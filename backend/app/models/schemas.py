@@ -1,0 +1,170 @@
+from datetime import datetime
+from enum import Enum
+from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel, Field
+
+
+class ModelProvider(str, Enum):
+    ollama = "ollama"
+    lm_studio = "lm_studio"
+    llama_cpp = "llama_cpp"
+    koboldcpp = "koboldcpp"
+    openai = "openai"
+    anthropic = "anthropic"
+    gemini = "gemini"
+    mistral = "mistral"
+    openai_compatible = "openai_compatible"
+
+
+class ModelSelection(BaseModel):
+    provider: ModelProvider
+    model_name: str
+    endpoint: Optional[str] = None
+    api_key_env: Optional[str] = None
+
+
+class PlayerAction(BaseModel):
+    player_name: str
+    action: str
+    dice_result: Optional[int] = Field(default=None, ge=1, le=20)
+
+
+class ChatTurnRequest(BaseModel):
+    world_id: str
+    campaign_id: str
+    location: str
+    model: ModelSelection
+    actions: List[PlayerAction]
+
+
+class AgentTrace(BaseModel):
+    agent: str
+    output: Dict[str, Any]
+
+
+class ChatTurnResponse(BaseModel):
+    dm_response: str
+    npc_reactions: List[str]
+    world_changes: List[str]
+    journal_entry_id: str
+    traces: List[AgentTrace]
+
+
+class CharacterSheet(BaseModel):
+    name: str
+    race: str
+    class_name: str
+    level: int
+    stats: Dict[str, int]
+    skills: Dict[str, int] = Field(default_factory=dict)
+    inventory: List[str] = Field(default_factory=list)
+    spells: List[str] = Field(default_factory=list)
+    portrait: Optional[str] = None
+    backstory: Optional[str] = None
+
+
+class NPCState(BaseModel):
+    name: str
+    motivation: str
+    goals: List[str]
+    memory: List[str] = Field(default_factory=list)
+    faction: Optional[str] = None
+    location: Optional[str] = None
+
+
+class WorldEvent(BaseModel):
+    timestamp: datetime
+    title: str
+    details: str
+    visibility: str = "hidden"
+
+
+class CampaignLoadRequest(BaseModel):
+    campaign_id: str
+    world_id: str
+
+
+class CampaignLoadResponse(BaseModel):
+    campaign_id: str
+    status: str
+    loaded_files: List[str]
+
+
+class SessionInterfaceState(BaseModel):
+    campaign_id: str
+    players: List[str] = Field(default_factory=list)
+    session_log: List[str] = Field(default_factory=list)
+    dice_input_required: bool = False
+
+
+class ReadinessCheck(BaseModel):
+    area: str
+    status: str
+    details: str
+
+
+class ReadinessReport(BaseModel):
+    score_percent: float
+    summary: str
+    checks: List[ReadinessCheck]
+    next_steps: List[str]
+
+
+class CharacterUpsertRequest(BaseModel):
+    campaign_id: str
+    character: CharacterSheet
+
+
+class CharacterListResponse(BaseModel):
+    campaign_id: str
+    characters: List[CharacterSheet]
+
+
+class WorldTickResponse(BaseModel):
+    world_id: str
+    triggered: bool
+    reason: str
+    events: List[str]
+
+
+class KnowledgeIngestResponse(BaseModel):
+    kind: str
+    filename: str
+    extracted_chars: int
+    entry_id: str
+    notes: str
+
+
+class CombatParticipant(BaseModel):
+    name: str
+    initiative: int
+    hp: int = 1
+    ac: int = 10
+
+
+class CombatStartRequest(BaseModel):
+    campaign_id: str
+    combat_id: str
+    participants: List[CombatParticipant]
+
+
+class CombatActionRequest(BaseModel):
+    campaign_id: str
+    combat_id: str
+    attacker: str
+    target: str
+    d20_roll: int = Field(ge=1, le=20)
+    attack_bonus: int = 0
+    target_ac: int = Field(ge=1)
+    damage: int = Field(ge=0)
+
+
+class CombatStateResponse(BaseModel):
+    campaign_id: str
+    combat_id: str
+    round: int
+    turn_index: int
+    order: List[Dict[str, Any]]
+    participants: List[Dict[str, Any]]
+    log: List[str]
