@@ -1,0 +1,2 @@
+usurper.bundle filter=lfs diff=lfs merge=lfs -text
+enigma.bundle filter=lfs diff=lfs merge=lfs -text
