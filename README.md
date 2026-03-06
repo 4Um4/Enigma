@@ -65,6 +65,38 @@ python -m compileall backend/app
 PYTHONPATH=backend python -m unittest discover -s backend/tests -p "test_*.py"
 ```
 
+## Сборка в .exe (Windows)
+
+Цель: получить готовый исполняемый файл `EnigmaDM.exe` для локального запуска и теста.
+
+1) Откройте PowerShell в папке `backend` и выполните:
+
+```powershell
+.\scripts\build_exe.ps1
+```
+
+или `cmd` вариант:
+
+```bat
+scripts\build_exe.bat
+```
+
+2) Результат сборки:
+
+```text
+backend\dist\EnigmaDM.exe
+```
+
+3) Быстрый smoke-тест exe/entrypoint:
+
+```powershell
+# проверка импортов без старта сервера
+python run_local_dm.py --health-check
+
+# запуск сервера
+python run_local_dm.py --host 127.0.0.1 --port 8000
+```
+
 ## Запуск тестов в VSCode/Windows
 
 Если запускаете `backend/tests/test_services.py` напрямую (debugpy), теперь bootstrap импорта включён в самом файле.
@@ -103,12 +135,13 @@ python backend/tests/test_services.py
 
 ## Прогресс разработки
 
-Сейчас прогресс по продуктовой цели ориентировочно **50%**:
+Сейчас прогресс по продуктовой цели ориентировочно **55%**:
 - ✅ есть backend, многослойная память, базовая оркестрация, импорт мира
 - ✅ добавлены персонажи кампании (сохранение/список)
 - ✅ добавлен принудительный world tick и скрытый журнал событий мира
 - ✅ добавлен импорт знаний из PDF/TXT/MD для world/rules/characters/npc/campaign
 - ✅ добавлен базовый combat API (инициатива/ход/атака/урон)
+- ✅ добавлен Windows-ready launcher и конфиг сборки в .exe (PyInstaller)
 - ⚠️ нет полноценного desktop UI
 - ⚠️ нет полного rules engine D&D 5e
 - ⚠️ нет production-интеграций LLM провайдеров

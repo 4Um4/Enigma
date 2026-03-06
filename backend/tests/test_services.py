@@ -1,3 +1,5 @@
+import importlib.util
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -28,6 +30,21 @@ try:
 except ModuleNotFoundError:
     CharacterSheet = None
     CharacterService = None
+
+
+@unittest.skipIf(importlib.util.find_spec("fastapi") is None, "fastapi dependency is unavailable in environment")
+class LauncherTests(unittest.TestCase):
+    def test_health_check_entrypoint(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        proc = subprocess.run(
+            [sys.executable, str(root / "run_local_dm.py"), "--health-check"],
+            capture_output=True,
+            text=True,
+            cwd=str(root.parent),
+        )
+        self.assertEqual(proc.returncode, 0, msg=proc.stderr)
+        self.assertIn("OK:", proc.stdout)
+
 
 
 class MemoryTests(unittest.TestCase):

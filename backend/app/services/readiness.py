@@ -36,6 +36,11 @@ class ReadinessService:
                 status="missing",
                 details="Electron/Tauri интерфейс, карта, токены, fog of war и панели игры отсутствуют.",
             ),
+            ReadinessCheck(
+                area="Packaging (.exe)",
+                status="partial",
+                details="Добавлен launcher и PyInstaller spec, требуется реальная сборка на Windows и smoke-тест exe.",
+            ),
         ]
 
         status_points = {"done": 1.0, "partial": 0.5, "missing": 0.0}
@@ -50,5 +55,6 @@ class ReadinessService:
                 "Добавить векторную память и расширенную долговременную NPC memory.",
                 "Сделать desktop UI с chat/map/player/event log и кнопкой SWITCH MODEL.",
                 "Добавить отдельный фоновый scheduler world simulation каждые N минут.",
+                "Провести сборку EnigmaDM.exe на Windows и проверить запуск/остановку сервера.",
             ],
         )
