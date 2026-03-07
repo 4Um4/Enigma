@@ -16,6 +16,7 @@ from app.services.combat_service import CombatService
 from app.services.orchestrator import GameOrchestrator
 from app.services.llama_cpp import LlamaCppAdapter
 from app.services.llm_manager import LlmManager
+from app.services.pdf_drop_importer import PdfDropImporter
 
 try:
     from app.services.readiness import ReadinessService
@@ -173,6 +174,25 @@ class KnowledgeIngestTests(unittest.TestCase):
                 raw="Древний город на холме".encode("utf-8"),
             )
             self.assertGreater(result.extracted_chars, 0)
+            ctx = layers.build_context("w1", "c1")
+            self.assertTrue(ctx["world_canon"])
+
+
+class PdfDropImporterTests(unittest.TestCase):
+    def test_imports_txt_files_from_drop_folder(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            layers = LayeredMemory(JsonMemoryStore(tmp))
+            ingest = KnowledgeIngestService(layers)
+            importer = PdfDropImporter(ingest)
+
+            folder = Path(tmp) / "drop"
+            folder.mkdir(parents=True, exist_ok=True)
+            (folder / "правила_игрока.txt").write_text("d20 проверка навыка", encoding="utf-8")
+
+            imported = importer.import_from_folder(str(folder), world_id="w1", campaign_id="c1")
+            self.assertEqual(len(imported), 1)
+            self.assertEqual(imported[0].status, "ok")
+
             ctx = layers.build_context("w1", "c1")
             self.assertTrue(ctx["world_canon"])
 
