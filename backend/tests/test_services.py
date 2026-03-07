@@ -1,16 +1,21 @@
+import os
 import tempfile
 import unittest
+from pathlib import Path
 
 from app.agents.dm_agent import DmAgent
 from app.agents.rules_agent import RulesAgent
 from app.agents.world_sim_agent import WorldSimulationAgent
 from app.models.schemas import PlayerAction
+from app.models.schemas import ModelProvider, ModelSelection
 from app.services.memory import JsonMemoryStore, LayeredMemory
 from app.services.system_requirements import RequirementReport, SystemRequirements
 from app.services.world_scheduler import WorldScheduler
 from app.services.knowledge_ingest import KnowledgeIngestService
 from app.services.combat_service import CombatService
 from app.services.orchestrator import GameOrchestrator
+from app.services.llama_cpp import LlamaCppAdapter
+from app.services.llm_manager import LlmManager
 
 try:
     from app.services.readiness import ReadinessService
@@ -88,6 +93,31 @@ class DmAgentTests(unittest.TestCase):
         )
         self.assertIn("Канон мира ещё не загружен", result["dm_response"])
         self.assertIn("отложена", result["world_changes"][0])
+
+
+class LlamaCppIntegrationTests(unittest.TestCase):
+    def test_llama_cpp_run_with_local_binary_and_model(self) -> None:
+        adapter = LlamaCppAdapter()
+        model_env = Path((os.environ.get("LLAMA_TEST_MODEL") or "")).expanduser()
+
+        if not (model_env and model_env.exists()):
+            self.skipTest("LLAMA_TEST_MODEL is not configured or does not exist")
+
+        try:
+            adapter.resolve_executable()
+        except RuntimeError:
+            self.skipTest("llama.cpp executable is not available in PATH/LLAMA_CPP_EXECUTABLE")
+
+        manager = LlmManager()
+        manager.switch_model(
+            ModelSelection(
+                provider=ModelProvider.llama_cpp,
+                model_name=model_env.name,
+            )
+        )
+        output = manager.run("Здравствуй")
+        self.assertIsInstance(output, str)
+        self.assertTrue(output.strip())
 
 class RequirementsTests(unittest.TestCase):
     def test_check_returns_report(self) -> None:

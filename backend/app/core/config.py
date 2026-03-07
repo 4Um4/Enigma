@@ -10,6 +10,10 @@ class Settings(BaseSettings):
     min_ram_gb: int = 16
     enforce_system_requirements: bool = True
     orchestrator_workers: int = 4
+    llama_cpp_executable: str = ""
+    llama_cpp_model_path: str = ""
+    llama_cpp_max_tokens: int = 128
+    llama_cpp_timeout_sec: int = 120
 
     model_config = SettingsConfigDict(env_prefix="AIDM_", env_file=".env", extra="ignore")
 

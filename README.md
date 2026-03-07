@@ -18,6 +18,7 @@
 - Dynamic context builder перед ходом (`world_canon + campaign_memory + session_memory`).
 - Adventure loader для загрузки локальных кампаний из `data/campaigns/<campaign_id>/`.
 - Runtime переключение LLM-модели через `model` в запросе (`SWITCH MODEL` основа для UI) через `LlmManager`/`ModelRouter`.
+- Добавлен локальный адаптер `llama_cpp` для запуска `llama.cpp` бинарника и GGUF-модели через subprocess.
 - Canon-guard для DM: без загруженного `WORLD_CANON` мастер просит уточнение и не продвигает сюжетные world-change события.
 - Локальное JSONL хранение (с дальнейшей заменой на SQLite/vector DB).
 
@@ -64,6 +65,13 @@ uvicorn app.main:app --reload --port 8000
 ```bash
 python -m compileall backend/app
 PYTHONPATH=backend python -m unittest discover -s backend/tests -p "test_*.py"
+cd backend && python -m pytest -q
+```
+
+Для запуска тестов из корня можно использовать:
+
+```bash
+PYTHONPATH=backend python -m pytest backend/tests -q
 ```
 
 
@@ -138,3 +146,31 @@ AI не бросает кубики сам.
 - запуск через локальный игровой backend (FastAPI orchestrator)
 
 Это даёт лучший баланс качества/скорости и сохраняет портативный формат «одна папка».
+
+### Локальный запуск llama.cpp + model.gguf (Windows)
+
+Если у вас уже есть файлы (как в примере):
+
+- `C:\Users\lipir\OneDrive\Документы\Codex\VSC_Enigma\Models LLM\model.gguf`
+- `C:\Users\lipir\OneDrive\Документы\Codex\VSC_Enigma\Models LLM\llama-b8224-bin-win-cuda-12.4-x64\llama.exe`
+
+задайте переменные окружения перед запуском backend:
+
+```powershell
+$env:LLAMA_CPP_EXECUTABLE = "C:\Users\lipir\OneDrive\Документы\Codex\VSC_Enigma\Models LLM\llama-b8224-bin-win-cuda-12.4-x64\llama.exe"
+$env:LLAMA_CPP_MODEL = "C:\Users\lipir\OneDrive\Документы\Codex\VSC_Enigma\Models LLM\model.gguf"
+```
+
+`LlmManager.run()` для `provider=llama_cpp` автоматически вызовет бинарник командой вида:
+
+```text
+llama.exe -m <path-to-model.gguf> -p "<prompt>" -n 128
+```
+
+Для локального интеграционного теста используйте:
+
+```powershell
+$env:LLAMA_TEST_MODEL = "C:\Users\lipir\OneDrive\Документы\Codex\VSC_Enigma\Models LLM\model.gguf"
+```
+
+Тест пропускается автоматически, если бинарник llama.cpp не найден или `LLAMA_TEST_MODEL` не задан.
