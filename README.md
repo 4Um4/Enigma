@@ -59,6 +59,44 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload --port 8000
 ```
 
+## Запуск живого DM в терминале (VS Code)
+
+Теперь можно сразу запустить терминальный режим, где вы пишете по-русски, а `llama.cpp` отвечает как DM.
+
+1. Укажите путь к `llama.exe` и к вашей GGUF модели:
+
+```powershell
+$env:LLAMA_CPP_EXECUTABLE = "C:\Users\lipir\OneDrive\Документы\Codex\VSC_Enigma\Models LLM\llama-b8224-bin-win-cuda-12.4-x64\llama.exe"
+$env:LLAMA_CPP_MODEL = "C:\Users\lipir\OneDrive\Документы\Codex\VSC_Enigma\Models LLM\model.gguf"
+```
+
+2. Откройте терминал VS Code, перейдите в `backend` и запустите:
+
+```bash
+python run_terminal_dm.py
+```
+
+Или на Windows можно запустить one-click файл:
+
+```text
+backend/start_dm_terminal.bat
+```
+
+3. Команды в терминале:
+- `/ingest` — загрузить знания из `data/pdf_drop`
+- `/state` — показать размеры слоёв памяти
+- `/exit` — выход
+
+### Папка для PDF/правил/сценариев
+
+Используйте папку:
+
+```text
+data/pdf_drop/
+```
+
+Положите туда PDF/TXT/MD (правила, книга игрока, сценарии кампаний и т.д.), затем в терминале введите `/ingest`.
+
 
 ## Проверки
 
