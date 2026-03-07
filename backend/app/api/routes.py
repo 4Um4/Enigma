@@ -151,14 +151,9 @@ def game_turn(request: ChatTurnRequest) -> ChatTurnResponse:
 
 @router.get("/session/state/{campaign_id}", response_model=SessionInterfaceState)
 def session_state(campaign_id: str) -> SessionInterfaceState:
-    recent = orchestrator.layered_memory.build_context(world_id="manual", campaign_id=campaign_id, session_limit=20)
-    session_memory = recent["session_memory"]
-    return SessionInterfaceState(
-        campaign_id=campaign_id,
-        players=[char.name for char in character_service.list_characters(campaign_id)],
-        session_log=[item.get("location", "unknown") for item in session_memory],
-        dice_input_required=bool(session_memory and session_memory[-1].get("dice_input_required")),
-    )
+    state = orchestrator.session_state(campaign_id)
+    state.players = [char.name for char in character_service.list_characters(campaign_id)]
+    return state
 
 
 @router.post("/import/world")

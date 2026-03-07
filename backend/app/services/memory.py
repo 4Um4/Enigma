@@ -59,11 +59,20 @@ class LayeredMemory:
     def write_world_canon(self, world_id: str, payload: dict[str, Any]) -> str:
         return self.store.append(f"world_canon_{world_id}", payload)
 
+    def read_world_canon(self, world_id: str, limit: int = 25) -> list[dict[str, Any]]:
+        return self.store.recent(f"world_canon_{world_id}", limit=limit)
+
     def write_campaign_memory(self, campaign_id: str, payload: dict[str, Any]) -> str:
         return self.store.append(f"campaign_memory_{campaign_id}", payload)
 
+    def read_campaign_memory(self, campaign_id: str, limit: int = 25) -> list[dict[str, Any]]:
+        return self.store.recent(f"campaign_memory_{campaign_id}", limit=limit)
+
     def write_session_memory(self, campaign_id: str, payload: dict[str, Any]) -> str:
         return self.store.append(f"session_memory_{campaign_id}", payload)
+
+    def read_session_memory(self, campaign_id: str, limit: int = 25) -> list[dict[str, Any]]:
+        return self.store.recent(f"session_memory_{campaign_id}", limit=limit)
 
 
     def write_npc_memory(self, campaign_id: str, payload: dict[str, Any]) -> str:
@@ -74,8 +83,12 @@ class LayeredMemory:
 
     def build_context(self, world_id: str, campaign_id: str, session_limit: int = 15) -> dict[str, Any]:
         return {
-            "world_canon": self.store.recent(f"world_canon_{world_id}", limit=10),
-            "campaign_memory": self.store.recent(f"campaign_memory_{campaign_id}", limit=20),
-            "session_memory": self.store.recent(f"session_memory_{campaign_id}", limit=session_limit),
+            "world_canon": self.read_world_canon(world_id, limit=10),
+            "campaign_memory": self.read_campaign_memory(campaign_id, limit=20),
+            "session_memory": self.read_session_memory(campaign_id, limit=session_limit),
             "npc_memory": self.read_npc_memory(campaign_id, limit=20),
         }
+
+    def build_dynamic_context(self, world_id: str, campaign_id: str, session_limit: int = 15) -> dict[str, Any]:
+        """Alias for orchestration layer: explicit context assembly before each turn."""
+        return self.build_context(world_id, campaign_id, session_limit=session_limit)

@@ -17,7 +17,8 @@
   3. `SESSION_MEMORY` (краткосрочный контекст сессии)
 - Dynamic context builder перед ходом (`world_canon + campaign_memory + session_memory`).
 - Adventure loader для загрузки локальных кампаний из `data/campaigns/<campaign_id>/`.
-- Runtime переключение LLM-модели через `model` в запросе (`SWITCH MODEL` основа для UI).
+- Runtime переключение LLM-модели через `model` в запросе (`SWITCH MODEL` основа для UI) через `LlmManager`/`ModelRouter`.
+- Canon-guard для DM: без загруженного `WORLD_CANON` мастер просит уточнение и не продвигает сюжетные world-change события.
 - Локальное JSONL хранение (с дальнейшей заменой на SQLite/vector DB).
 
 ## Производительность и системные требования
@@ -113,7 +114,7 @@ PYTHONPATH=backend python -m unittest discover -s backend/tests -p "test_*.py"
 - `POST /api/combat/next-turn/{campaign_id}/{combat_id}`
 - `POST /api/knowledge/import`
 - `POST /api/game/turn`
-- `GET /api/session/state/{campaign_id}`
+- `GET /api/session/state/{campaign_id}` (возвращает `world_id`, актуальный лог и срез memory layers)
 - `POST /api/import/world`
 
 ### Принцип по кубикам
@@ -127,3 +128,13 @@ AI не бросает кубики сам.
 2. Заменить JSONL memory на SQLite + векторную базу (Chroma/FAISS/Qdrant).
 3. Добавить полную боёвку D&D 5e (атаки, saving throws, состояния, эффекты заклинаний).
 4. Сделать desktop UI с картой, токенами и журналом сессии.
+
+
+## Рекомендованный локальный стек моделей
+
+Для Windows + NVIDIA GeForce RTX 3070 Ti (8 GB VRAM) в MVP рекомендован профиль:
+- `llama.cpp`
+- `Qwen3.5-9B` в формате GGUF
+- запуск через локальный игровой backend (FastAPI orchestrator)
+
+Это даёт лучший баланс качества/скорости и сохраняет портативный формат «одна папка».

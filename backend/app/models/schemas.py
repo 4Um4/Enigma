@@ -87,15 +87,18 @@ class CampaignLoadRequest(BaseModel):
 
 class CampaignLoadResponse(BaseModel):
     campaign_id: str
+    world_id: str
     status: str
     loaded_files: List[str]
 
 
 class SessionInterfaceState(BaseModel):
     campaign_id: str
+    world_id: str
     players: List[str] = Field(default_factory=list)
     session_log: List[str] = Field(default_factory=list)
     dice_input_required: bool = False
+    layers: Dict[str, Any] = Field(default_factory=dict)
 
 
 class ReadinessCheck(BaseModel):

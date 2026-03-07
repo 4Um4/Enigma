@@ -7,7 +7,13 @@ from app.agents.npc_agent import NpcAgent
 from app.agents.rules_agent import RulesAgent
 from app.agents.world_sim_agent import WorldSimulationAgent
 from app.core.config import settings
-from app.models.schemas import AgentTrace, CampaignLoadResponse, ChatTurnRequest, ChatTurnResponse
+from app.models.schemas import (
+    AgentTrace,
+    CampaignLoadResponse,
+    ChatTurnRequest,
+    ChatTurnResponse,
+    SessionInterfaceState,
+)
 from app.services.adventure_loader import AdventureLoader
 from app.services.llm_manager import LlmManager
 from app.services.memory import JsonMemoryStore, LayeredMemory
@@ -32,6 +38,7 @@ class GameOrchestrator:
             min_ram_gb=settings.min_ram_gb,
         )
         self.pool = ThreadPoolExecutor(max_workers=max(2, settings.orchestrator_workers))
+        self._campaign_world_index: dict[str, str] = {}
 
     def _assert_requirements(self) -> dict:
         report = self.system_requirements.check()
@@ -44,16 +51,40 @@ class GameOrchestrator:
 
     def load_campaign(self, campaign_id: str, world_id: str) -> CampaignLoadResponse:
         loaded = self.adventure_loader.load_campaign(campaign_id)
+        self._campaign_world_index[campaign_id] = world_id
         for filename, payload in loaded.get("files", {}).items():
             self.layered_memory.write_world_canon(
                 world_id,
                 {"campaign_id": campaign_id, "source": filename, "payload": payload},
             )
+        self.layered_memory.write_campaign_memory(
+            campaign_id,
+            {
+                "event": "campaign_loaded",
+                "world_id": world_id,
+                "loaded_files": list(loaded.get("files", {}).keys()),
+                "status": loaded["status"],
+            },
+        )
         return CampaignLoadResponse(
             campaign_id=campaign_id,
+            world_id=world_id,
             status=loaded["status"],
             loaded_files=list(loaded.get("files", {}).keys()),
         )
+
+    def _resolve_world_id(self, campaign_id: str) -> str:
+        if campaign_id in self._campaign_world_index:
+            return self._campaign_world_index[campaign_id]
+
+        history = self.layered_memory.read_campaign_memory(campaign_id, limit=100)
+        for item in reversed(history):
+            if item.get("event") == "campaign_loaded" and item.get("world_id"):
+                world_id = item["world_id"]
+                self._campaign_world_index[campaign_id] = world_id
+                return world_id
+
+        return "manual"
 
     def import_world_text(self, filename: str, content: str) -> str:
         return self.layered_memory.write_world_canon(
@@ -71,7 +102,7 @@ class GameOrchestrator:
     def run_turn(self, req: ChatTurnRequest) -> ChatTurnResponse:
         started = perf_counter()
         requirements = self._assert_requirements()
-        self.llm_manager.switch_model(req.model)
+        active_model = self.llm_manager.switch_model(req.model)
         context = self.memory_manager.retrieve_context(req.world_id, req.campaign_id)
 
         world_tick_meta = self.world_scheduler.maybe_tick(req.world_id, every_minutes=settings.world_tick_minutes)
@@ -103,12 +134,13 @@ class GameOrchestrator:
                 "dm": dm_result["dm_response"],
                 "npc": dm_result["npc_reactions"],
                 "world": dm_result["world_changes"],
-                "model": req.model.model_dump(),
+                "model": active_model.model_dump(),
             },
         )
         self.layered_memory.write_session_memory(
             req.campaign_id,
             {
+                "world_id": req.world_id,
                 "location": req.location,
                 "last_actions": [a.model_dump() for a in req.actions],
                 "dice_input_required": any(a.dice_result is None for a in req.actions),
@@ -136,4 +168,17 @@ class GameOrchestrator:
             world_changes=dm_result["world_changes"],
             journal_entry_id=journal_entry_id,
             traces=traces,
+        )
+
+    def session_state(self, campaign_id: str, session_limit: int = 20) -> SessionInterfaceState:
+        world_id = self._resolve_world_id(campaign_id)
+        recent = self.layered_memory.build_dynamic_context(world_id=world_id, campaign_id=campaign_id, session_limit=session_limit)
+        session_memory = recent["session_memory"]
+        return SessionInterfaceState(
+            campaign_id=campaign_id,
+            world_id=world_id,
+            players=[],
+            session_log=[item.get("location", "unknown") for item in session_memory],
+            dice_input_required=bool(session_memory and session_memory[-1].get("dice_input_required")),
+            layers=recent,
         )
