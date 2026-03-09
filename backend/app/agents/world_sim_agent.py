@@ -1,8 +1,127 @@
-from datetime import datetime, timezone
+"""
+World Simulation Agent - World Event Generation
+
+Uses capability-based routing for world simulation.
+"""
+
+from typing import Optional
+
+from app.services.llm import ModelRouter, Capability, get_router
 
 
 class WorldSimulationAgent:
-    def tick(self, world_id: str) -> dict:
-        now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-        event = f"[{now}] Во фракциях мира {world_id} происходят скрытые политические перестановки."
-        return {"world_events": [event]}
+    """
+    World simulation agent with automatic model selection.
+    
+    Uses ModelRouter to request 'world_simulation' capability.
+    """
+
+    def __init__(self, router: Optional[ModelRouter] = None) -> None:
+        self._router = router
+
+    @property
+    def router(self) -> ModelRouter:
+        """Lazy initialization of router via global singleton."""
+        if self._router is None:
+            self._router = get_router()
+        return self._router
+
+    def simulate(
+        self,
+        location: str,
+        actions: list,
+        current_events: list[str],
+    ) -> dict:
+        """
+        Simulate world events based on player actions.
+        
+        The agent requests 'world_simulation' capability.
+        Router automatically selects: qwen_9b (best for simulation).
+        """
+        prompt = self._build_prompt(location, actions, current_events)
+        system_prompt = self._get_system_prompt()
+        
+        try:
+            response = self.router.request(
+                capability=Capability.WORLD_SIMULATION,
+                prompt=prompt,
+                system_prompt=system_prompt,
+            )
+            
+            return {
+                "world_events": [response],
+                "simulation_log": f"Simulated in {location}",
+            }
+        except Exception as e:
+            print(f"World Sim Agent error: {e}, using fallback")
+            return self._fallback_simulate(location, actions, current_events)
+
+    def generate_event(
+        self,
+        location: str,
+        context: str,
+    ) -> str:
+        """Generate a world event for a location."""
+        prompt = f"""Локация: {location}
+Контекст: {context}
+
+Сгенерируй одно событие которое происходит в этой локации.
+Событие должно быть логичным для мира D&D 5e.
+Будь краток (1-2 предложения)."""
+        
+        system_prompt = """Ты - симулятор мира D&D 5e.
+Генерируй события которые логично развивают мир.
+Учитывай текущую ситуацию и предыдущие события."""
+        
+        try:
+            return self.router.request(
+                capability=Capability.WORLD_SIMULATION,
+                prompt=prompt,
+                system_prompt=system_prompt,
+            )
+        except Exception as e:
+            print(f"World event error: {e}")
+            return "Ничего особенного не происходит."
+
+    def _build_prompt(
+        self,
+        location: str,
+        actions: list,
+        current_events: list[str],
+    ) -> str:
+        """Build simulation prompt."""
+        action_str = "\n".join(f"- {a}" for a in actions) if actions else "- Нет действий"
+        event_str = "\n".join(f"- {e}" for e in current_events) if current_events else "- Нет текущих событий"
+        
+        return f"""Локация: {location}
+Текущие события:
+{event_str}
+Действия игроков:
+{action_str}
+
+Симулируй как эти действия повлияют на мир.
+Опиши изменения в мире (события, NPC, погода, время)."""
+
+    def _get_system_prompt(self) -> str:
+        """Get system prompt for world simulation."""
+        return """Ты - симулятор мира D&D 5e.
+Отслеживай изменения в мире:
+- NPC меняют локации
+- События развиваются
+- Квесты продвигаются
+- Время течёт
+
+Веди логику мира последовательно и логично."""
+
+    def _fallback_simulate(
+        self,
+        location: str,
+        actions: list,
+        current_events: list[str],
+    ) -> dict:
+        """Fallback when LLM is unavailable."""
+        return {
+            "world_events": [f"Мир в {location} продолжает существовать."],
+            "simulation_log": "Fallback mode",
+        }
+

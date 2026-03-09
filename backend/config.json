@@ -1,0 +1,22 @@
+{
+  "server": {
+    "context_size": 8192,
+    "batch_size": 512,
+    "threads": 6,
+    "cache_reuse": 256,
+    "max_prompt_tokens": 6000,
+    "max_response_tokens": 512,
+    "gpu_layers": 33
+  },
+  "model": {
+    "path": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\Models LLM\\qwen2.5-7b-instruct-q4_k_m.gguf",
+    "server_exe": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\Models LLM\\llama\\llama-server.exe",
+    "client_exe": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\Models LLM\\llama\\llama.exe"
+  },
+  "project": {
+    "root": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma",
+    "data_dir": "data\\pdf_drop",
+    "system_prompt_max_tokens": 1200
+  }
+}
+

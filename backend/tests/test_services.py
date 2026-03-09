@@ -1,7 +1,13 @@
 import os
+import sys
 import tempfile
 import unittest
 from pathlib import Path
+
+# Добавляем backend в PYTHONPATH, чтобы при запуске из корня проекта находился модуль app
+_backend = Path(__file__).resolve().parent.parent
+if str(_backend) not in sys.path:
+    sys.path.insert(0, str(_backend))
 
 from app.agents.dm_agent import DmAgent
 from app.agents.rules_agent import RulesAgent
@@ -14,6 +20,7 @@ from app.services.world_scheduler import WorldScheduler
 from app.services.knowledge_ingest import KnowledgeIngestService
 from app.services.combat_service import CombatService
 from app.services.orchestrator import GameOrchestrator
+from app.core.config import settings
 from app.services.llama_cpp import LlamaCppAdapter
 from app.services.llm_manager import LlmManager
 from app.services.pdf_drop_importer import PdfDropImporter
@@ -99,10 +106,15 @@ class DmAgentTests(unittest.TestCase):
 class LlamaCppIntegrationTests(unittest.TestCase):
     def test_llama_cpp_run_with_local_binary_and_model(self) -> None:
         adapter = LlamaCppAdapter()
-        model_env = Path((os.environ.get("LLAMA_TEST_MODEL") or "")).expanduser()
+        model_path_str = (
+            os.environ.get("LLAMA_TEST_MODEL")
+            or os.environ.get("LLAMA_CPP_MODEL")
+            or settings.llama_cpp_model_path
+        )
+        model_path = Path(model_path_str or "").expanduser() if model_path_str else None
 
-        if not (model_env and model_env.exists()):
-            self.skipTest("LLAMA_TEST_MODEL is not configured or does not exist")
+        if not (model_path and model_path.exists()):
+            self.skipTest("Model path is not configured or does not exist")
 
         try:
             adapter.resolve_executable()
@@ -113,7 +125,7 @@ class LlamaCppIntegrationTests(unittest.TestCase):
         manager.switch_model(
             ModelSelection(
                 provider=ModelProvider.llama_cpp,
-                model_name=model_env.name,
+                model_name=model_path.name,
             )
         )
         output = manager.run("Здравствуй")

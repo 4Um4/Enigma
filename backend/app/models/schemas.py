@@ -53,15 +53,20 @@ class ChatTurnResponse(BaseModel):
 
 class CharacterSheet(BaseModel):
     name: str
-    race: str
-    class_name: str
-    level: int
-    stats: Dict[str, int]
+    race: str = ""
+    class_name: str = ""
+    level: int = 1
+    stats: Dict[str, int] = Field(default_factory=dict)
     skills: Dict[str, int] = Field(default_factory=dict)
     inventory: List[str] = Field(default_factory=list)
     spells: List[str] = Field(default_factory=list)
     portrait: Optional[str] = None
     backstory: Optional[str] = None
+    # Дополнительные поля для интерфейса
+    hp: int = 10
+    max_hp: int = 10
+    ac: int = 10
+    effects: List[str] = Field(default_factory=list)
 
 
 class NPCState(BaseModel):
@@ -171,3 +176,46 @@ class CombatStateResponse(BaseModel):
     order: List[Dict[str, Any]]
     participants: List[Dict[str, Any]]
     log: List[str]
+
+
+# === Campaign State Models (RAG-ready) ===
+
+class PlayerInfo(BaseModel):
+    """Информация об игроке/персонаже."""
+    name: str
+    race: str = ""
+    class_name: str = ""
+    level: int = 1
+    notes: str = ""
+    created_at: str = ""
+    updated_at: str = ""
+
+
+class WorldFact(BaseModel):
+    """Факт о мире с метаданными для RAG."""
+    id: str
+    text: str
+    category: str = "lore"  # location, npc, quest, lore
+    tags: List[str] = Field(default_factory=list)
+    source: str = ""
+    created_at: str = ""
+
+
+class SessionSummary(BaseModel):
+    """Краткое описание сессии."""
+    id: str
+    date: str
+    summary: str
+    location: str = ""
+    key_events: List[str] = Field(default_factory=list)
+    created_at: str = ""
+
+
+class CampaignState(BaseModel):
+    """Состояние кампании - "тёплый" слой между каноном и сессией."""
+    campaign_id: str
+    campaign_name: str = ""
+    players: List[PlayerInfo] = Field(default_factory=list)
+    world_facts: List[WorldFact] = Field(default_factory=list)
+    session_summaries: List[SessionSummary] = Field(default_factory=list)
+    metadata: Dict[str, Any] = Field(default_factory=dict)

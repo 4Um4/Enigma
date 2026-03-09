@@ -1,2 +1,21 @@
 __pycache__/
 *.pyc
+*.log
+
+# Models - too large for Git
+Models LLM/
+
+# PDF books - not needed in repo
+data/pdf_drop/
+
+# IDE
+.vscode/
+.idea/
+
+# Python virtual env
+.venv/
+venv/
+
+# OS
+.DS_Store
+Thumbs.db
