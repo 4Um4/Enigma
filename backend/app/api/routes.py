@@ -16,12 +16,16 @@ from app.models.schemas import (
     ReadinessReport,
     SessionInterfaceState,
     WorldTickResponse,
+    PlayerInfo,
+    WorldFact,
+    SessionSummary,
 )
 from app.services.character_service import CharacterService
 from app.services.combat_service import CombatService
 from app.services.knowledge_ingest import KnowledgeIngestService
 from app.services.orchestrator import GameOrchestrator
 from app.services.readiness import ReadinessService
+from app.services.campaign_state_service import get_campaign_state_service
 
 router = APIRouter()
 orchestrator = GameOrchestrator()
@@ -29,6 +33,7 @@ readiness_service = ReadinessService()
 character_service = CharacterService()
 combat_service = CombatService()
 knowledge_ingest = KnowledgeIngestService(orchestrator.layered_memory)
+campaign_service = get_campaign_state_service()
 
 
 def _combat_response(state) -> CombatStateResponse:
@@ -161,3 +166,92 @@ async def import_world(file: UploadFile) -> dict:
     content = (await file.read()).decode("utf-8", errors="ignore")
     entry_id = orchestrator.import_world_text(file.filename or "world.txt", content)
     return {"import_id": entry_id, "filename": file.filename}
+
+
+# === Новые endpoints для интерфейса ===
+
+@router.get("/interface/campaign/{campaign_id}")
+def get_campaign_info(campaign_id: str) -> dict:
+    """Получить информацию о кампании для интерфейса."""
+    summary = campaign_service.get_summary(campaign_id)
+    return {
+        "campaign_id": campaign_id,
+        "campaign_name": summary.get("campaign_name", "Без названия"),
+        "players_count": summary.get("players_count", 0),
+        "facts_count": summary.get("facts_count", 0),
+        "sessions_count": summary.get("sessions_count", 0)
+    }
+
+
+@router.get("/interface/players/{campaign_id}")
+def get_interface_players(campaign_id: str) -> list[dict]:
+    """Получить игроков с HP и эффектами для интерфейса."""
+    characters = character_service.list_characters(campaign_id)
+    players_data = []
+    for char in characters:
+        players_data.append({
+            "name": char.name,
+            "race": char.race or "Человек",
+            "class": char.class_name or "Воин",
+            "level": char.level,
+            "hp": char.hp,
+            "maxHp": char.max_hp,
+            "ac": char.ac,
+            "effects": char.effects
+        })
+    return players_data
+
+
+@router.post("/interface/players/{campaign_id}")
+def add_interface_player(campaign_id: str, request: dict) -> dict:
+    """Добавить игрока через интерфейс."""
+    from app.models.schemas import CharacterSheet
+    
+    char = CharacterSheet(
+        name=request.get("name", "Новый персонаж"),
+        race=request.get("race", ""),
+        class_name=request.get("class", ""),
+        level=request.get("level", 1),
+        hp=request.get("hp", 10),
+        max_hp=request.get("maxHp", 10),
+        ac=request.get("ac", 10),
+        effects=request.get("effects", [])
+    )
+    stored = character_service.upsert_character(campaign_id, char)
+    return {
+        "status": "ok",
+        "player": {
+            "name": stored.name,
+            "race": stored.race,
+            "class": stored.class_name,
+            "level": stored.level,
+            "hp": stored.hp,
+            "maxHp": stored.max_hp,
+            "ac": stored.ac
+        }
+    }
+
+
+@router.get("/interface/facts/{campaign_id}")
+def get_interface_facts(campaign_id: str, category: str = None) -> list[dict]:
+    """Получить факты мира для интерфейса."""
+    facts = campaign_service.get_world_facts(campaign_id, category=category)
+    return [{"id": f.id, "text": f.text, "category": f.category, "tags": f.tags} for f in facts]
+
+
+@router.post("/interface/facts/{campaign_id}")
+def add_interface_fact(campaign_id: str, request: dict) -> dict:
+    """Добавить факт через интерфейс."""
+    text = request.get("text", "")
+    category = request.get("category", "lore")
+    tags = request.get("tags", [])
+    
+    fact = campaign_service.add_world_fact(campaign_id, text, category=category, tags=tags)
+    return {"status": "ok", "fact": {"id": fact.id, "text": fact.text, "category": fact.category}}
+
+
+@router.get("/interface/sessions/{campaign_id}")
+def get_interface_sessions(campaign_id: str) -> list[dict]:
+    """Получить сессии для интерфейса."""
+    sessions = campaign_service.get_session_summaries(campaign_id)
+    return [{"id": s.id, "date": s.date, "summary": s.summary, "location": s.location} for s in sessions]

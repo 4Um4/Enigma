@@ -1,0 +1,1550 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enigma - AI Dungeon Master</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-dark: #1a1a2e;
+            --bg-panel: #16213e;
+            --bg-input: #0f3460;
+            --accent: #e94560;
+            --accent-hover: #ff6b6b;
+            --text-primary: #eaeaea;
+            --text-secondary: #a0a0a0;
+            --border: #2a2a4a;
+            --success: #4ecca3;
+            --warning: #ffc107;
+            --error: #ff4757;
+            --dm-color: #9b59b6;
+            --player-color: #3498db;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .app-container {
+            display: grid;
+            grid-template-columns: 1fr 280px;
+            grid-template-rows: 1fr auto;
+            height: 100vh;
+            gap: 1px;
+            background: var(--border);
+        }
+
+        /* Главная панель - Чат */
+        .main-panel {
+            grid-column: 1;
+            grid-row: 1;
+            background: var(--bg-dark);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            background: var(--bg-panel);
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-header h2 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .panel-header h2::before {
+            content: '⚔️';
+        }
+
+        .campaign-info {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        /* Область чата */
+        .chat-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .message {
+            max-width: 85%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            line-height: 1.5;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.player {
+            align-self: flex-start;
+            background: var(--player-color);
+            border-bottom-left-radius: 4px;
+        }
+
+        .message.dm {
+            align-self: flex-end;
+            background: var(--dm-color);
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.error {
+            align-self: center;
+            background: var(--error);
+            max-width: 70%;
+            text-align: center;
+        }
+
+        .message .sender {
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+            opacity: 0.8;
+        }
+
+        .message .content {
+            font-size: 0.95rem;
+        }
+
+        .message .dice-result {
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid rgba(255,255,255,0.2);
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .dice-badge {
+            background: rgba(0,0,0,0.3);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        .dice-badge.success {
+            background: var(--success);
+            color: #000;
+        }
+
+        .dice-badge.fail {
+            background: var(--error);
+        }
+
+        /* Область ввода */
+        .input-area {
+            background: var(--bg-panel);
+            padding: 16px 20px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .player-selector {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .player-selector label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .player-selector select {
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+
+        .message-input {
+            flex: 1;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-family: inherit;
+            resize: none;
+            min-height: 44px;
+            max-height: 100px;
+        }
+
+        .message-input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .message-input::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .send-btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .send-btn:hover {
+            background: var(--accent-hover);
+        }
+
+        .send-btn:disabled {
+            background: var(--text-secondary);
+            cursor: not-allowed;
+        }
+
+        /* Боковая панель - Игроки */
+        .sidebar-panel {
+            grid-column: 2;
+            grid-row: 1;
+            background: var(--bg-panel);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .sidebar-header {
+            background: var(--bg-panel);
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .sidebar-header h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .sidebar-header h3::before {
+            content: '🧙';
+        }
+
+        .players-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+        }
+
+        .player-card {
+            background: var(--bg-dark);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+            border: 1px solid var(--border);
+            transition: border-color 0.2s;
+        }
+
+        .player-card:hover {
+            border-color: var(--accent);
+        }
+
+        .player-card .name {
+            font-weight: 600;
+            font-size: 0.95rem;
+            margin-bottom: 4px;
+            color: var(--player-color);
+        }
+
+        .player-card .details {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .player-card .hp-bar {
+            height: 6px;
+            background: var(--bg-input);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 4px;
+        }
+
+        .player-card .hp-fill {
+            height: 100%;
+            background: var(--success);
+            transition: width 0.3s;
+        }
+
+        .player-card .hp-fill.low {
+            background: var(--warning);
+        }
+
+        .player-card .hp-fill.critical {
+            background: var(--error);
+        }
+
+        .player-card .hp-text {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-align: right;
+        }
+
+        .player-card .status-effects {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-top: 8px;
+        }
+
+        .status-effect {
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: var(--warning);
+            color: #000;
+        }
+
+        /* Нижняя панель - Мастер */
+        .master-panel {
+            grid-column: 1 / -1;
+            grid-row: 2;
+            background: var(--bg-panel);
+            height: 200px;
+            display: flex;
+            flex-direction: column;
+            border-top: 2px solid var(--accent);
+        }
+
+        .master-tabs {
+            display: flex;
+            background: var(--bg-dark);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .master-tab {
+            padding: 10px 20px;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        .master-tab:hover {
+            color: var(--text-primary);
+            background: var(--bg-panel);
+        }
+
+        .master-tab.active {
+            color: var(--accent);
+            background: var(--bg-panel);
+            border-bottom: 2px solid var(--accent);
+        }
+
+        .master-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px 20px;
+        }
+
+        .master-section {
+            display: none;
+        }
+
+        .master-section.active {
+            display: block;
+        }
+
+        /* История действий */
+        .action-log {
+            font-family: 'Consolas', monospace;
+            font-size: 0.85rem;
+        }
+
+        .action-log .entry {
+            padding: 4px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .action-log .entry .time {
+            color: var(--text-secondary);
+            margin-right: 8px;
+        }
+
+        .action-log .entry .player-name {
+            color: var(--player-color);
+            font-weight: 600;
+        }
+
+        .action-log .entry .action {
+            color: var(--text-primary);
+        }
+
+        /* Ошибки */
+        .error-log {
+            font-family: 'Consolas', monospace;
+            font-size: 0.85rem;
+        }
+
+        .error-log .entry {
+            padding: 8px;
+            background: rgba(255, 71, 87, 0.1);
+            border-left: 3px solid var(--error);
+            margin-bottom: 8px;
+            border-radius: 0 4px 4px 0;
+        }
+
+        .error-log .entry .error-msg {
+            color: var(--error);
+        }
+
+        .error-log .entry .error-details {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            margin-top: 4px;
+        }
+
+        /* События */
+        .event-log {
+            font-family: 'Consolas', monospace;
+            font-size: 0.85rem;
+        }
+
+        .event-log .entry {
+            padding: 6px 0;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .event-log .entry .icon {
+            font-size: 1rem;
+        }
+
+        .event-log .entry .event-text {
+            flex: 1;
+        }
+
+        /* Панель кубиков */
+        .dice-panel {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .dice-btn {
+            background: var(--bg-dark);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        .dice-btn:hover {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+
+        .dice-result-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--bg-panel);
+            border: 2px solid var(--accent);
+            padding: 30px 50px;
+            border-radius: 12px;
+            font-size: 2rem;
+            font-weight: bold;
+            z-index: 1000;
+            animation: popIn 0.3s ease;
+            display: none;
+        }
+
+        .dice-result-popup.show {
+            display: block;
+        }
+
+        @keyframes popIn {
+            from { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+            to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+
+        .dice-result-popup .dice-type {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .dice-result-popup .result {
+            font-size: 3rem;
+            color: var(--accent);
+        }
+
+        /* Скроллбар */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-dark);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-secondary);
+        }
+
+        /* Утилиты */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--text-secondary);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-secondary);
+        }
+
+        .empty-state .icon {
+            font-size: 3rem;
+            margin-bottom: 16px;
+        }
+
+        .empty-state p {
+            font-size: 0.95rem;
+        }
+
+        /* Кнопка настроек */
+        .settings-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 1.2rem;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .settings-btn:hover {
+            background: var(--bg-input);
+            color: var(--text-primary);
+        }
+
+        /* Модальное окно создания персонажа */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        .modal-overlay.hidden {
+            display: none;
+        }
+
+        .modal-content {
+            background: var(--bg-panel);
+            border: 2px solid var(--accent);
+            border-radius: 16px;
+            padding: 30px;
+            max-width: 450px;
+            width: 90%;
+            position: relative;
+            animation: modalIn 0.3s ease;
+        }
+
+        @keyframes modalIn {
+            from { transform: scale(0.9); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .modal-header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .modal-header h2 {
+            font-size: 1.5rem;
+            margin-bottom: 8px;
+        }
+
+        .modal-header p {
+            color: var(--text-secondary);
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.2rem;
+            cursor: pointer;
+        }
+
+        .modal-close:hover {
+            color: var(--text-primary);
+        }
+
+        .character-creation-steps .step {
+            display: none;
+        }
+
+        .character-creation-steps .step.active {
+            display: block;
+        }
+
+        .step-label {
+            display: block;
+            margin-bottom: 16px;
+            font-size: 1rem;
+            color: var(--text-primary);
+        }
+
+        .char-input, .char-select {
+            width: 100%;
+            padding: 12px 16px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            border-radius: 8px;
+            font-size: 1rem;
+            margin-bottom: 16px;
+        }
+
+        .char-input:focus, .char-select:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .step-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: space-between;
+        }
+
+        .char-next-btn, .char-back-btn, .char-confirm-btn {
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+
+        .char-next-btn {
+            background: var(--accent);
+            color: white;
+            width: 100%;
+        }
+
+        .char-next-btn:hover {
+            background: var(--accent-hover);
+        }
+
+        .char-back-btn {
+            background: var(--bg-dark);
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+        }
+
+        .char-back-btn:hover {
+            background: var(--bg-input);
+        }
+
+        .char-confirm-btn {
+            background: var(--success);
+            color: #000;
+            flex: 1;
+            font-weight: 600;
+        }
+
+        .char-confirm-btn:hover {
+            filter: brightness(1.1);
+        }
+
+        .character-preview {
+            background: var(--bg-dark);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+            border: 1px solid var(--border);
+        }
+
+        .character-preview .preview-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--player-color);
+            margin-bottom: 8px;
+        }
+
+        .character-preview .preview-details {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Главная панель - Чат приключения -->
+        <div class="main-panel">
+            <div class="panel-header">
+                <h2>Чат приключения</h2>
+                <div class="campaign-info">
+                    <button class="settings-btn" onclick="showCreateCharacterModal()" title="Создать персонажа">➕</button>
+                    <span id="campaignName">Кампания: Загрузка...</span>
+                </div> REPLACE
+                </div>
+            </div>
+            
+            <div class="chat-area" id="chatArea">
+                <div class="empty-state">
+                    <div class="icon">🎲</div>
+                    <p>Добро пожаловать в подземелье!</p>
+                    <p>Начните своё приключение...</p>
+                </div>
+            </div>
+            
+            <div class="input-area">
+                <div class="player-selector">
+                    <label for="playerSelect">Игрок:</label>
+                    <select id="playerSelect">
+                        <option value="">Выберите персонажа</option>
+                    </select>
+                </div>
+                <textarea 
+                    class="message-input" 
+                    id="messageInput" 
+                    placeholder="Опишите действие вашего персонажа..."
+                    rows="1"
+                ></textarea>
+                <button class="send-btn" id="sendBtn">Отправить</button>
+            </div>
+        </div>
+
+        <!-- Боковая панель - Игроки -->
+        <div class="sidebar-panel">
+            <div class="sidebar-header">
+                <h3>Персонажи</h3>
+            </div>
+            <div class="players-list" id="playersList">
+                <div class="empty-state">
+                    <div class="icon">🧙</div>
+                    <p>Нет персонажей</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Нижняя панель - Панель мастера -->
+        <div class="master-panel">
+            <div class="master-tabs">
+                <button class="master-tab active" data-tab="actions">История</button>
+                <button class="master-tab" data-tab="errors">Ошибки</button>
+                <button class="master-tab" data-tab="events">События</button>
+                <button class="master-tab" data-tab="dice">Кубики</button>
+                <button class="master-tab" data-tab="debug">DEBUG</button>
+            </div>
+            <div class="master-content">
+                <div class="master-section active" id="actionsSection">
+                    <div class="action-log" id="actionLog">
+                        <div class="empty-state">
+                            <p>История действий пуста</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="master-section" id="errorsSection">
+                    <div class="error-log" id="errorLog">
+                        <div class="empty-state">
+                            <p>Нет ошибок</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="master-section" id="eventsSection">
+                    <div class="event-log" id="eventLog">
+                        <div class="empty-state">
+                            <p>Событий пока нет</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="master-section" id="diceSection">
+                    <div class="dice-panel">
+                        <button class="dice-btn" data-dice="d4">d4</button>
+                        <button class="dice-btn" data-dice="d6">d6</button>
+                        <button class="dice-btn" data-dice="d8">d8</button>
+                        <button class="dice-btn" data-dice="d10">d10</button>
+                        <button class="dice-btn" data-dice="d12">d12</button>
+                        <button class="dice-btn" data-dice="d20">d20</button>
+                        <button class="dice-btn" data-dice="d100">d100</button>
+                    </div>
+                </div>
+                <div class="master-section" id="debugSection">
+                    <div class="debug-log" id="debugLog">
+                        <div class="empty-state">
+                            <p>Отладочная информация</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Popup результата броска кубика -->
+    <div class="dice-result-popup" id="dicePopup">
+        <div class="dice-type">d20</div>
+        <div class="result">15</div>
+    </div>
+
+    <!-- Модальное окно создания персонажа -->
+    <div class="modal-overlay" id="createCharacterModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🧙 Создание персонажа</h2>
+                <p>Давайте создадим вашего героя вместе!</p>
+            </div>
+            
+            <div class="character-creation-steps">
+                <!-- Шаг 1: Имя -->
+                <div class="step active" data-step="1">
+                    <label class="step-label">Шаг 1 из 4: Как зовут вашего персонажа?</label>
+                    <input type="text" class="char-input" id="charName" placeholder="Например: Аелар">
+                    <button class="char-next-btn" onclick="nextStep(1)">Далее →</button>
+                </div>
+                
+                <!-- Шаг 2: Раса -->
+                <div class="step" data-step="2">
+                    <label class="step-label">Шаг 2 из 4: Какая раса у вашего персонажа?</label>
+                    <select class="char-select" id="charRace">
+                        <option value="">Выберите расу</option>
+                        <option value="Человек">Человек</option>
+                        <option value="Эльф">Эльф</option>
+                        <option value="Дворф">Дворф</option>
+                        <option value="Полуорк">Полуорк</option>
+                        <option value="Полуэльф">Полуэльф</option>
+                        <option value="Гном">Гном</option>
+                        <option value="Халфлинг">Халфлинг</option>
+                        <option value="Драконорождённый">Драконорождённый</option>
+                        <option value="Тифлинг">Тифлинг</option>
+                    </select>
+                    <div class="step-buttons">
+                        <button class="char-back-btn" onclick="prevStep(2)">← Назад</button>
+                        <button class="char-next-btn" onclick="nextStep(2)">Далее →</button>
+                    </div>
+                </div>
+                
+                <!-- Шаг 3: Класс -->
+                <div class="step" data-step="3">
+                    <label class="step-label">Шаг 3 из 4: Какой класс вы выбрали?</label>
+                    <select class="char-select" id="charClass">
+                        <option value="">Выберите класс</option>
+                        <option value="Воин">Воин</option>
+                        <option value="Волшебник">Волшебник</option>
+                        <option value="Плут">Плут</option>
+                        <option value="Жрец">Жрец</option>
+                        <option value="Паладин">Паладин</option>
+                        <option value="Следопыт">Следопыт</option>
+                        <option value="Варвар">Варвар</option>
+                        <option value="Бард">Бард</option>
+                        <option value="Друид">Друид</option>
+                        <option value="Монах">Монах</option>
+                        <option value="Чародей">Чародей</option>
+                        <option value="Варлок">Варлок</option>
+                    </select>
+                    <div class="step-buttons">
+                        <button class="char-back-btn" onclick="prevStep(3)">← Назад</button>
+                        <button class="char-next-btn" onclick="nextStep(3)">Далее →</button>
+                    </div>
+                </div>
+                
+                <!-- Шаг 4: Уровень и подтверждение -->
+                <div class="step" data-step="4">
+                    <label class="step-label">Шаг 4 из 4: Какой начальный уровень?</label>
+                    <select class="char-select" id="charLevel">
+                        <option value="1">Уровень 1</option>
+                        <option value="2">Уровень 2</option>
+                        <option value="3">Уровень 3</option>
+                    </select>
+                    
+                    <div class="character-preview" id="characterPreview"></div>
+                    
+                    <div class="step-buttons">
+                        <button class="char-back-btn" onclick="prevStep(4)">← Назад</button>
+                        <button class="char-confirm-btn" onclick="confirmCharacter()">✅ Создать персонажа!</button>
+                    </div>
+                </div>
+            </div>
+            
+            <button class="modal-close" onclick="closeCharacterModal()">✕</button>
+        </div>
+    </div>
+
+    <script>
+        // === API Client ===
+        const API = {
+            baseUrl: 'http://127.0.0.1:8000/api',
+            
+            async request(endpoint, options = {}) {
+                const url = `${this.baseUrl}${endpoint}`;
+                const config = {
+                    headers: { 'Content-Type': 'application/json' },
+                    ...options
+                };
+                if (options.body && typeof options.body === 'object') {
+                    config.body = JSON.stringify(options.body);
+                }
+                const response = await fetch(url, config);
+                if (!response.ok) {
+                    throw new Error(`API Error: ${response.status}`);
+                }
+                return response.json();
+            },
+            
+            // Состояние кампании
+            async getSessionState(campaignId) {
+                return this.request(`/session/state/${campaignId}`);
+            },
+            
+            // Информация о кампании для интерфейса
+            async getCampaignInfo(campaignId) {
+                return this.request(`/interface/campaign/${campaignId}`);
+            },
+            
+            // Отправить ход
+            async sendTurn(data) {
+                return this.request('/game/turn', {
+                    method: 'POST',
+                    body: data
+                });
+            },
+            
+            // Игроки из интерфейса
+            async getPlayers(campaignId) {
+                return this.request(`/interface/players/${campaignId}`);
+            },
+            
+            // Добавить игрока
+            async addPlayer(campaignId, playerData) {
+                return this.request(`/interface/players/${campaignId}`, {
+                    method: 'POST',
+                    body: playerData
+                });
+            },
+            
+            // Игроки (старый endpoint)
+            async getCharacters(campaignId) {
+                return this.request(`/characters/${campaignId}`);
+            },
+            
+            // Факты мира
+            async getFacts(campaignId, category = null) {
+                const endpoint = category 
+                    ? `/interface/facts/${campaignId}?category=${category}`
+                    : `/interface/facts/${campaignId}`;
+                return this.request(endpoint);
+            },
+            
+            // Добавить факт
+            async addFact(campaignId, factData) {
+                return this.request(`/interface/facts/${campaignId}`, {
+                    method: 'POST',
+                    body: factData
+                });
+            },
+            
+            // Сессии
+            async getSessions(campaignId) {
+                return this.request(`/interface/sessions/${campaignId}`);
+            },
+            
+            // Бросок кубика
+            async rollDice(dice, modifier = 0) {
+                const sides = parseInt(dice.replace('d', ''));
+                const roll = Math.floor(Math.random() * sides) + 1 + modifier;
+                return { roll, sides, modifier, total: roll };
+            }
+        };
+
+        // === Game State ===
+        const state = {
+            campaignId: 'demo-campaign',
+            worldId: 'demo-world',
+            players: [],
+            messages: [],
+            actions: [],
+            errors: [],
+            events: [],
+            currentPlayer: null
+        };
+
+        // === DOM Elements ===
+        const elements = {
+            chatArea: document.getElementById('chatArea'),
+            messageInput: document.getElementById('messageInput'),
+            sendBtn: document.getElementById('sendBtn'),
+            playerSelect: document.getElementById('playerSelect'),
+            playersList: document.getElementById('playersList'),
+            campaignName: document.getElementById('campaignName'),
+            actionLog: document.getElementById('actionLog'),
+            errorLog: document.getElementById('errorLog'),
+            eventLog: document.getElementById('eventLog'),
+            dicePopup: document.getElementById('dicePopup'),
+            masterTabs: document.querySelectorAll('.master-tab'),
+            masterSections: document.querySelectorAll('.master-section'),
+            diceBtns: document.querySelectorAll('.dice-btn')
+        };
+
+        // === UI Functions ===
+        
+        // Показать сообщение в чате
+        function addMessage(player, content, type = 'player', diceResult = null) {
+            // Удаляем empty state если есть
+            const emptyState = elements.chatArea.querySelector('.empty-state');
+            if (emptyState) emptyState.remove();
+            
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message ${type}`;
+            
+            const senderLabel = type === 'player' ? player || 'Игрок' : 'DM';
+            
+            let html = `
+                <div class="sender">${senderLabel}</div>
+                <div class="content">${escapeHtml(content)}</div>
+            `;
+            
+            if (diceResult) {
+                const successClass = diceResult.success ? 'success' : 'fail';
+                html += `
+                    <div class="dice-result">
+                        <span class="dice-badge ${successClass}">${diceResult.roll}</span>
+                        <span>${diceResult.success ? 'Успех!' : 'Провал'}</span>
+                        ${diceResult.modifier ? `<span>(мод: ${diceResult.modifier >= 0 ? '+' : ''}${diceResult.modifier})</span>` : ''}
+                    </div>
+                `;
+            }
+            
+            msgDiv.innerHTML = html;
+            elements.chatArea.appendChild(msgDiv);
+            
+            // Сохраняем в историю
+            state.messages.push({
+                player,
+                content,
+                type,
+                diceResult,
+                timestamp: new Date().toISOString()
+            });
+            
+            // Прокрутка вниз
+            elements.chatArea.scrollTop = elements.chatArea.scrollHeight;
+        }
+
+        // Показать ошибку
+        function showError(message, details = '') {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'entry';
+            errorDiv.innerHTML = `
+                <div class="error-msg">${escapeHtml(message)}</div>
+                ${details ? `<div class="error-details">${escapeHtml(details)}</div>` : ''}
+            `;
+            
+            const emptyState = elements.errorLog.querySelector('.empty-state');
+            if (emptyState) emptyState.remove();
+            
+            elements.errorLog.insertBefore(errorDiv, elements.errorLog.firstChild);
+            state.errors.push({ message, details, timestamp: new Date().toISOString() });
+            
+            // Также показываем в чате
+            addMessage('Система', message, 'error');
+        }
+
+        // Добавить запись в историю действий
+        function addAction(player, action) {
+            const actionDiv = document.createElement('div');
+            actionDiv.className = 'entry';
+            
+            const time = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+            actionDiv.innerHTML = `
+                <span class="time">[${time}]</span>
+                <span class="player-name">${escapeHtml(player)}:</span>
+                <span class="action">${escapeHtml(action)}</span>
+            `;
+            
+            const emptyState = elements.actionLog.querySelector('.empty-state');
+            if (emptyState) emptyState.remove();
+            
+            elements.actionLog.insertBefore(actionDiv, elements.actionLog.firstChild);
+            state.actions.push({ player, action, timestamp: new Date().toISOString() });
+        }
+
+        // Добавить событие
+        function addEvent(icon, text) {
+            const eventDiv = document.createElement('div');
+            eventDiv.className = 'entry';
+            eventDiv.innerHTML = `
+                <span class="icon">${icon}</span>
+                <span class="event-text">${escapeHtml(text)}</span>
+            `;
+            
+            const emptyState = elements.eventLog.querySelector('.empty-state');
+            if (emptyState) emptyState.remove();
+            
+            elements.eventLog.insertBefore(eventDiv, elements.eventLog.firstChild);
+            state.events.push({ icon, text, timestamp: new Date().toISOString() });
+        }
+
+        // Показать результат броска кубика
+        function showDiceResult(dice, result) {
+            const popup = elements.dicePopup;
+            popup.querySelector('.dice-type').textContent = dice;
+            popup.querySelector('.result').textContent = result;
+            popup.classList.add('show');
+            
+            setTimeout(() => {
+                popup.classList.remove('show');
+            }, 2000);
+        }
+
+        // Обновить список игроков
+        function updatePlayersList() {
+            if (state.players.length === 0) {
+                elements.playersList.innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">🧙</div>
+                        <p>Нет персонажей</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            elements.playersList.innerHTML = state.players.map(player => {
+                const hpPercent = Math.min(100, (player.hp / player.maxHp) * 100);
+                const hpClass = hpPercent <= 25 ? 'critical' : hpPercent <= 50 ? 'low' : '';
+                
+                return `
+                    <div class="player-card" data-player="${player.name}">
+                        <div class="name">${escapeHtml(player.name)}</div>
+                        <div class="details">${escapeHtml(player.race || 'Человек')} ${escapeHtml(player.class || 'Воин')} ур. ${player.level || 1}</div>
+                        <div class="hp-bar">
+                            <div class="hp-fill ${hpClass}" style="width: ${hpPercent}%"></div>
+                        <div class="hp-text">${player.hp || 10} / ${player.maxHp || 10} HP</div>
+                        ${player.effects && player.effects.length > 0 ? `
+                            <div class="status-effects">
+                                ${player.effects.map(e => `<span class="status-effect">${escapeHtml(e)}</span>`).join('')}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+            
+            // Обновляем селектор игроков
+            elements.playerSelect.innerHTML = `
+                <option value="">Выберите персонажа</option>
+                ${state.players.map(p => `<option value="${p.name}">${p.name}</option>`).join('')}
+            `;
+        }
+
+        // Экранирование HTML
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // === Event Handlers ===
+
+        // Отправка сообщения
+        async function handleSendMessage() {
+            const content = elements.messageInput.value.trim();
+            const playerName = elements.playerSelect.value;
+            
+            if (!content) return;
+            if (!playerName) {
+                showError('Пожалуйста, выберите персонажа');
+                return;
+            }
+            
+            // Блокируем кнопку
+            elements.sendBtn.disabled = true;
+            elements.sendBtn.innerHTML = '<span class="loading"></span>';
+            
+            try {
+                // Добавляем действие в историю
+                addAction(playerName, content);
+                
+                // Добавляем сообщение игрока в чат
+                addMessage(playerName, content, 'player');
+                
+                // Очищаем поле ввода
+                elements.messageInput.value = '';
+                
+                // Отправляем на сервер
+                const response = await API.sendTurn({
+                    world_id: state.worldId,
+                    campaign_id: state.campaignId,
+                    location: 'current',
+                    model: { provider: 'llama_cpp', model_name: 'qwen2.5-7b-instruct-q4_k_m.gguf' },
+                    actions: [{
+                        player_name: playerName,
+                        action: content
+                    }]
+                });
+                
+                // Показываем ответ DM
+                if (response.dm_response) {
+                    addMessage('DM', response.dm_response, 'dm');
+                }
+                
+                // Показываем реакции NPC
+                if (response.npc_reactions && response.npc_reactions.length > 0) {
+                    response.npc_reactions.forEach(r => addEvent('💬', r));
+                }
+                
+                // Показываем изменения в мире
+                if (response.world_changes && response.world_changes.length > 0) {
+                    response.world_changes.forEach(w => addEvent('🌍', w));
+                }
+                
+            } catch (error) {
+                console.error('Error sending message:', error);
+                showError('Ошибка связи с сервером', error.message);
+                
+                // Для демонстрации - симулируем ответ
+                const responses = [
+                    'Ты входишь в тёмную пещеру. Стены покрыты странным налётом.',
+                    'Воздух пахнет сыростью и чем-то... древним.',
+                    'Где-то в глубине слышен странный звук...',
+                    'Ты видишь слабый свет факела в конце коридора.',
+                    'Орк оборачивается и замечает тебя!'
+                ];
+                const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+                addMessage('DM', randomResponse, 'dm');
+            } finally {
+                elements.sendBtn.disabled = false;
+                elements.sendBtn.textContent = 'Отправить';
+            }
+        }
+
+        // Бросок кубика
+        async function handleDiceRoll(dice) {
+            const result = await API.rollDice(dice);
+            showDiceResult(dice, result.total);
+            
+            addEvent('🎲', `Бросок ${dice}: ${result.total}${result.modifier ? ` (+${result.modifier})` : ''}`);
+        }
+
+        // Переключение вкладок мастера
+        elements.masterTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                const targetTab = tab.dataset.tab;
+                
+                // Обновляем активные классы
+                elements.masterTabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                
+                elements.masterSections.forEach(s => {
+                    s.classList.remove('active');
+                    if (s.id === `${targetTab}Section`) {
+                        s.classList.add('active');
+                    }
+                });
+            });
+        });
+
+        // Обработчики событий
+        elements.sendBtn.addEventListener('click', handleSendMessage);
+        elements.messageInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSendMessage();
+            }
+        });
+
+        elements.diceBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                handleDiceRoll(btn.dataset.dice);
+            });
+        });
+
+        // === Debug Log ===
+        function addDebugLog(type, message) {
+            const debugDiv = document.createElement('div');
+            debugDiv.className = 'entry';
+            const time = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const icon = type === 'request' ? '📤' : type === 'response' ? '📥' : type === 'error' ? '❌' : 'ℹ️';
+            debugDiv.innerHTML = `
+                <span class="time">[${time}]</span>
+                <span class="icon">${icon}</span>
+                <span class="debug-text">${escapeHtml(message)}</span>
+            `;
+            
+            const emptyState = elements.debugLog.querySelector('.empty-state');
+            if (emptyState) emptyState.remove();
+            
+            elements.debugLog.insertBefore(debugDiv, elements.debugLog.firstChild);
+        }
+
+        // === Command Handler ===
+        function handleCommand(cmd) {
+            const parts = cmd.split(" ");
+            const command = parts[0].toLowerCase();
+
+            switch(command) {
+                case "/roll":
+                    handleDiceRoll(parts[1] || "d20");
+                    break;
+                case "/clear":
+                    elements.chatArea.innerHTML = "";
+                    addMessage('Система', 'Чат очищен', 'dm');
+                    break;
+                case "/help":
+                    addMessage('Система', 'Команды: /roll d20, /clear, /help, /players', 'dm');
+                    break;
+                case "/players":
+                    updateGameState();
+                    addMessage('Система', `Персонажей: ${state.players.length}`, 'dm');
+                    break;
+                default:
+                    showError("Неизвестная команда: " + command);
+            }
+        }
+
+        // === Auto Update Game State ===
+        async function updateGameState() {
+            try {
+                const players = await API.getPlayers(state.campaignId);
+                if (players && players.length > 0) {
+                    state.players = players;
+                    updatePlayersList();
+                }
+            } catch(e) {
+                // Silently fail - not critical
+            }
+        }
+
+        // Start auto-update every 5 seconds
+        setInterval(updateGameState, 5000);
+
+        // === Character Creation Modal ===
+        function showCreateCharacterModal() {
+            document.getElementById('createCharacterModal').classList.remove('hidden');
+        }
+
+        function closeCharacterModal() {
+            document.getElementById('createCharacterModal').classList.add('hidden');
+            // Reset form
+            document.getElementById('charName').value = '';
+            document.getElementById('charRace').value = '';
+            document.getElementById('charClass').value = '';
+            document.getElementById('charLevel').value = '1';
+            document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+            document.querySelector('.step[data-step="1"]').classList.add('active');
+        }
+
+        function nextStep(currentStep) {
+            // Validate current step
+            if (currentStep === 1) {
+                const name = document.getElementById('charName').value.trim();
+                if (!name) {
+                    alert('Пожалуйста, введите имя персонажа');
+                    return;
+                }
+            }
+            
+            // Go to next step
+            document.querySelector(`.step[data-step="${currentStep}"]`).classList.remove('active');
+            document.querySelector(`.step[data-step="${currentStep + 1}"]`).classList.add('active');
+            
+            // Update preview on step 4
+            if (currentStep + 1 === 4) {
+                updateCharacterPreview();
+            }
+        }
+
+        function prevStep(currentStep) {
+            document.querySelector(`.step[data-step="${currentStep}"]`).classList.remove('active');
+            document.querySelector(`.step[data-step="${currentStep - 1}"]`).classList.add('active');
+        }
+
+        function updateCharacterPreview() {
+            const name = document.getElementById('charName').value || 'Имя персонажа';
+            const race = document.getElementById('charRace').value || 'Раса';
+            const charClass = document.getElementById('charClass').value || 'Класс';
+            const level = document.getElementById('charLevel').value || '1';
+            
+            document.getElementById('characterPreview').innerHTML = `
+                <div class="preview-name">${escapeHtml(name)}</div>
+                <div class="preview-details">${escapeHtml(race)} ${escapeHtml(charClass)} уровень ${level}</div>
+            `;
+        }
+
+        async function confirmCharacter() {
+            const name = document.getElementById('charName').value.trim();
+            const race = document.getElementById('charRace').value;
+            const charClass = document.getElementById('charClass').value;
+            const level = parseInt(document.getElementById('charLevel').value) || 1;
+            
+            if (!name) {
+                alert('Пожалуйста, введите имя персонажа');
+                return;
+            }
+            if (!race) {
+                alert('Пожалуйста, выберите расу');
+                return;
+            }
+            if (!charClass) {
+                alert('Пожалуйста, выберите класс');
+                return;
+            }
+            
+            // Calculate HP based on class
+            const hpByClass = {
+                'Воин': 10, 'Паладин': 10, 'Следопыт': 10,
+                'Волшебник': 6, 'Чародей': 6, 'Изобретатель': 8,
+                'Жрец': 8, 'Друид': 8,
+                'Плут': 8, 'Бард': 8,
+                'Монах': 8, 'Варлок': 8,
+                'Дворф': 10, 'Эльф': 10, 'Полуорк': 10,
+                'Полуэльф': 8, 'Гном': 8, 'Халфлинг': 6
+            };
+            
+            const hp = hpByClass[charClass] || 8;
+            
+            const playerData = {
+                name: name,
+                race: race,
+                class: charClass,
+                level: level,
+                hp: hp,
+                maxHp: hp,
+                ac: 10
+            };
+            
+            try {
+                // Send to backend
+                const result = await API.addPlayer(state.campaignId, playerData);
+                
+                // Add to local state
+                state.players.push(playerData);
+                updatePlayersList();
+                
+                // Close modal
+                closeCharacterModal();
+                
+                // Show success message
+                addMessage('Система', `Персонаж ${name} успешно создан!`, 'dm');
+                addEvent('✅', `Персонаж: ${name} (${race} ${charClass}) ур. ${level}`);
+                
+            } catch (error) {
+                console.error('Error creating player:', error);
+                // Still add locally even if API fails
+                state.players.push(playerData);
+                updatePlayersList();
+                closeCharacterModal();
+                addMessage('Система', `Персонаж ${name} создан (локально)`, 'dm');
+            }
+        }
+
+        // === Initialization ===
+
+        async function init() {
+            try {
+                // Загружаем информацию о кампании
+                const campaignInfo = await API.getCampaignInfo(state.campaignId);
+                elements.campaignName.textContent = `Кампания: ${campaignInfo.campaign_name || state.campaignId}`;
+                
+                // Загружаем персонажей через новый API
+                try {
+                    const players = await API.getPlayers(state.campaignId);
+                    state.players = players || [];
+                } catch (e) {
+                    // Если новый API не работает, пробуем старый
+                    const characters = await API.getCharacters(state.campaignId);
+                    state.players = characters.characters || [];
+                }
+                updatePlayersList();
+                
+                // Первое приветственное сообщение
+                addEvent('🎲', 'Система инициализирована');
+                addEvent('📜', `Кампания: ${campaignInfo.campaign_name || state.campaignId}`);
+                addEvent('👥', `Персонажей: ${state.players.length}`);
+                
+                // Если нет персонажей - показать модальное окно создания
+                if (state.players.length === 0) {
+                    showCreateCharacterModal();
+                }
+                
+            } catch (error) {
+                console.error('Error initializing:', error);
+                showError('Сервер недоступен', 'Проверьте запущен ли backend сервер');
+                // Всё равно показать модальное окно для создания персонажа локально
+                showCreateCharacterModal();
+            }
+        }
+
+        // Запуск
+        init();
+    </script>
+</body>
+</html>
