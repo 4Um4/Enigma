@@ -29,10 +29,16 @@ class WorldScheduler:
         if last_tick and (now - last_tick) < timedelta(minutes=every_minutes):
             return {"triggered": False, "reason": "interval_not_elapsed", "events": []}
 
-        result = self.world_agent.tick(world_id)
+        # Safe call to world agent - if it fails, we continue with empty events
+        try:
+            result = self.world_agent.tick(world_id)
+        except Exception as e:
+            print(f"World tick error: {e}")
+            result = {"world_events": [], "simulation_log": "error"}
+
         event_payload = {
             "visibility": "hidden",
-            "events": result["world_events"],
+            "events": result.get("world_events", []),
         }
         self.memory.store.append(f"world_hidden_events_{world_id}", event_payload)
-        return {"triggered": True, "reason": "ok", "events": result["world_events"]}
+        return {"triggered": True, "reason": "ok", "events": result.get("world_events", [])}

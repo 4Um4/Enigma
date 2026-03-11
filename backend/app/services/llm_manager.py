@@ -27,23 +27,18 @@ class LlmManager:
 
     def _load_system_prompts(self) -> None:
         """Загружает системные промпты для агентов."""
-        # Загружаем базовый промпт DM
-        prompt_path = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
-            settings.system_prompt_file
-        )
+        # Используем PromptLoader для загрузки промпта (поддерживает разные форматы)
+        from app.services.prompt_loader import get_prompt_loader
         
         try:
-            import json
-            with open(prompt_path, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-                # DM промпт - основной
-                self._system_prompts["dm"] = data.get("SYSTEM PROMPT", "")
-                # Для других агентов используем модифицированные версии
-                self._system_prompts["npc"] = self._create_npc_prompt(data.get("SYSTEM PROMPT", ""))
-                self._system_prompts["rules"] = self._create_rules_prompt()
-                self._system_prompts["world"] = self._create_world_prompt()
-                self._system_prompts["memory"] = self._create_memory_prompt()
+            loader = get_prompt_loader()
+            dm_prompt = loader.load_prompt(settings.system_prompt_file)
+            
+            self._system_prompts["dm"] = dm_prompt
+            self._system_prompts["npc"] = self._create_npc_prompt(dm_prompt)
+            self._system_prompts["rules"] = self._create_rules_prompt()
+            self._system_prompts["world"] = self._create_world_prompt()
+            self._system_prompts["memory"] = self._create_memory_prompt()
         except Exception as e:
             print(f"Предупреждение: не удалось загрузить промпт: {e}")
             # Fallback промпты
@@ -181,4 +176,18 @@ class LlmManager:
     def list_agents_and_models(self) -> dict:
         """Список агентов и их моделей."""
         return self.router.list_agents()
+
+    def get_default_model_for_agent(self, agent: str = "dm") -> ModelSelection:
+        """
+        Получить модель для указанного агента.
+        
+        Args:
+            agent: имя агента (dm, npc, rules, world, memory)
+            
+        Returns:
+            ModelSelection с выбранной моделью
+        """
+        result = self.switch_for_agent(agent)
+        print(f"[LLM_MANAGER] get_default_model_for_agent({agent}) -> model={result.model_name}, provider={result.provider}")
+        return result
 

@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Literal
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
@@ -12,7 +13,13 @@ from app.models.schemas import (
     CombatActionRequest,
     CombatStartRequest,
     CombatStateResponse,
+    HeartbeatRequest,
+    HeartbeatResponse,
     KnowledgeIngestResponse,
+    PlayerAction,
+    PlayerSelectRequest,
+    PlayerSelectResponse,
+    PlayerSessionResponse,
     ReadinessReport,
     SessionInterfaceState,
     WorldTickResponse,
@@ -23,9 +30,11 @@ from app.models.schemas import (
 from app.services.character_service import CharacterService
 from app.services.combat_service import CombatService
 from app.services.knowledge_ingest import KnowledgeIngestService
+from app.services.llm_service import llm_service
 from app.services.orchestrator import GameOrchestrator
 from app.services.readiness import ReadinessService
 from app.services.campaign_state_service import get_campaign_state_service
+from app.services.player_session_service import player_session_service
 
 router = APIRouter()
 orchestrator = GameOrchestrator()
@@ -34,6 +43,10 @@ character_service = CharacterService()
 combat_service = CombatService()
 knowledge_ingest = KnowledgeIngestService(orchestrator.layered_memory)
 campaign_service = get_campaign_state_service()
+
+# Время старта приложения
+import time
+app_start_time = time.time()
 
 
 def _combat_response(state) -> CombatStateResponse:
@@ -50,7 +63,67 @@ def _combat_response(state) -> CombatStateResponse:
 
 @router.get("/health")
 def health() -> dict:
-    return {"status": "ok", "service": "local-ai-dm"}
+    """
+    Health check endpoint.
+    Возвращает статус всех сервисов системы.
+    """
+    # Проверяем LLM (с использованием кэша)
+    llm_status = llm_service.check_health(use_cache=True)
+    
+    # Получаем количество активных игроков
+    active_campaigns = list(player_session_service._sessions.keys())
+    total_players = sum(
+        1 for camp_id in active_campaigns 
+        if player_session_service.is_player_active(camp_id)
+    )
+    
+    return {
+        "status": "ok",
+        "service": "local-ai-dm",
+        "llm": llm_status.get("status", "unknown"),
+        "llm_model": llm_status.get("model", None),
+        "players": total_players,
+        "sessions": len(active_campaigns)
+    }
+
+
+@router.get("/system/status")
+def system_status() -> dict:
+    """
+    System status endpoint для отладки.
+    Возвращает детальную информацию о состоянии системы.
+    """
+    import time
+    
+    # LLM статус
+    llm_status = llm_service.check_health(use_cache=False)  # Fresh check
+    
+    # Сессии в памяти
+    memory_sessions = len(player_session_service._sessions)
+    
+    # Сессии на диске
+    disk_sessions = 0
+    import os
+    sessions_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data", "sessions")
+    if os.path.exists(sessions_dir):
+        disk_sessions = len([f for f in os.listdir(sessions_dir) if f.endswith(".json")])
+    
+    # Uptime
+    uptime = int(time.time() - app_start_time)
+    
+    return {
+        "backend": "ok",
+        "llm": llm_status.get("status", "error"),
+        "llm_model": llm_status.get("model", "unknown"),
+        "memory_sessions": memory_sessions,
+        "disk_sessions": disk_sessions,
+        "uptime": uptime,
+        "ports": {
+            "llm": 8080,
+            "backend": 8000,
+            "frontend": 3000
+        }
+    }
 
 
 @router.get("/system/requirements")
@@ -148,10 +221,117 @@ async def import_knowledge(
 
 @router.post("/game/turn", response_model=ChatTurnResponse)
 def game_turn(request: ChatTurnRequest) -> ChatTurnResponse:
+    # Проверяем, что игрок активен перед обработкой хода
+    if request.actions:
+        player_name = request.actions[0].player_name
+        if not player_session_service.is_player_active(request.campaign_id, player_name):
+            print(f"[TURN_REJECTED_NO_PLAYER] Campaign: {request.campaign_id}, Player: {player_name}")
+            raise HTTPException(
+                status_code=412,
+                detail=f"Игрок '{player_name}' не активен. Пожалуйста, выберите персонажа."
+            )
+    
     try:
         return orchestrator.run_turn(request)
     except RuntimeError as exc:
         raise HTTPException(status_code=412, detail=str(exc)) from exc
+
+
+@router.post("/game/action")
+def game_action(request: dict) -> dict:
+    """
+    Упрощённый endpoint для отправки хода.
+    Принимает: {player: "name", campaign: "id", action: "текст действия"}
+    Возвращает: {response: "ответ DM", ...}
+    """
+    # Логирование входящего запроса
+    print(f"[GAME_ACTION_RAW_REQUEST] {request}")
+    
+    player = request.get("player")
+    campaign_id = request.get("campaign")
+    action_text = request.get("action")
+    
+    print(f"[GAME_ACTION_PARSED] player={player}, campaign={campaign_id}, action={action_text}")
+    
+    if not player:
+        raise HTTPException(status_code=400, detail="Поле 'player' обязательно")
+    if not campaign_id:
+        raise HTTPException(status_code=400, detail="Поле 'campaign' обязательно")
+    if not action_text:
+        raise HTTPException(status_code=400, detail="Поле 'action' обязательно")
+    
+    # Проверяем, что игрок активен - с детальным логированием
+    session = player_session_service.get_session(campaign_id)
+    if session is None:
+        print(f"[GAME_ACTION_412] Сессия не найдена: campaign={campaign_id}, player={player}")
+        raise HTTPException(
+            status_code=412,
+            detail=f"Сессия не найдена для кампании '{campaign_id}'. Пожалуйста, выберите персонажа."
+        )
+    
+    if not player_session_service.is_player_active(campaign_id, player):
+        # Детальное логирование причины
+        elapsed = (datetime.now() - session.last_heartbeat).total_seconds()
+        print(f"[GAME_ACTION_412] Сессия неактивна: campaign={campaign_id}, player={player}, "
+              f"active={session.active}, elapsed={elapsed:.1f}s, ttl={player_session_service.ttl_seconds}s")
+        
+        # Fallback: форсируем активацию на первый action (устраняет race condition)
+        session.active = True
+        session.last_heartbeat = datetime.now()
+        print(f"[GAME_ACTION_FORCE_ACTIVE] Campaign: {campaign_id}, Player: {player}")
+        
+        # Проверяем снова после активации
+        if not player_session_service.is_player_active(campaign_id, player):
+            raise HTTPException(
+                status_code=412,
+                detail=f"Игрок '{player}' не активен в кампании '{campaign_id}'. Пожалуйста, выберите персонажа."
+            )
+    
+    # Получаем текущую модель LLM через LlmManager
+    print(f"[GAME_ACTION_MODEL] Getting model for agent 'dm'...")
+    model_selection = orchestrator.llm_manager.get_default_model_for_agent("dm")
+    print(f"[GAME_ACTION_MODEL] Selected model: {model_selection.model_name}, provider: {model_selection.provider}")
+    
+    player_action = PlayerAction(
+        player_name=player,
+        action=action_text
+    )
+    
+    # Получаем текущую локацию
+    from app.services.campaign_state_service import get_campaign_state_service
+    campaign_service = get_campaign_state_service()
+    campaign_state = campaign_service.get_campaign_state(campaign_id)
+    location = campaign_state.metadata.get("current_location", "unknown") if campaign_state else "unknown"
+    
+    print(f"[GAME_ACTION_ORCHESTRATOR] Calling run_turn with location={location}")
+    
+    turn_request = ChatTurnRequest(
+        world_id=campaign_id,
+        campaign_id=campaign_id,
+        location=location,
+        model=model_selection,
+        actions=[player_action]
+    )
+    
+    try:
+        print(f"[GAME_ACTION_RUN_TURN] Executing orchestrator.run_turn...")
+        result = orchestrator.run_turn(turn_request)
+        
+        # Логирование ответа
+        response_preview = result.dm_response[:200] if result.dm_response else "EMPTY"
+        print(f"[GAME_ACTION_RESPONSE] preview: {response_preview}...")
+        
+        print(f"[GAME_ACTION_COMPLETE] player={player}, campaign={campaign_id}")
+        
+        return {
+            "response": result.dm_response,
+            "npc_reactions": result.npc_reactions,
+            "world_changes": result.world_changes,
+            "journal_entry_id": result.journal_entry_id
+        }
+    except RuntimeError as exc:
+        print(f"[GAME_ACTION_ERROR] {str(exc)}")
+        raise HTTPException(status_code=412, detail=str(exc))
 
 
 @router.get("/session/state/{campaign_id}", response_model=SessionInterfaceState)
@@ -255,3 +435,124 @@ def get_interface_sessions(campaign_id: str) -> list[dict]:
     """Получить сессии для интерфейса."""
     sessions = campaign_service.get_session_summaries(campaign_id)
     return [{"id": s.id, "date": s.date, "summary": s.summary, "location": s.location} for s in sessions]
+
+
+# === Player Session / Heartbeat ===
+
+@router.post("/player/heartbeat", response_model=HeartbeatResponse)
+def player_heartbeat(request: HeartbeatRequest) -> HeartbeatResponse:
+    """
+    Обновить или создать сессию игрока (heartbeat).
+    Вызывается фронтендом каждую секунду для отслеживания активности.
+    """
+    # Проверяем, что персонаж существует в кампании
+    characters = character_service.list_characters(request.campaign_id)
+    player_exists = any(char.name == request.player_name for char in characters)
+    
+    if not player_exists:
+        raise HTTPException(
+            status_code=412,
+            detail=f"Персонаж '{request.player_name}' не найден в кампании '{request.campaign_id}'"
+        )
+    
+    # Обновляем сессию
+    session = player_session_service.heartbeat(request.campaign_id, request.player_name)
+    
+    return HeartbeatResponse(
+        active=session.active,
+        player_name=request.player_name,
+        message="Heartbeat обновлён"
+    )
+
+
+@router.get("/player/active/{campaign_id}")
+def get_active_players(campaign_id: str) -> list[str]:
+    """Получить список активных игроков для кампании."""
+    return player_session_service.get_all_active_players(campaign_id)
+
+
+# === Новые API для системы выбора персонажа ===
+
+@router.get("/player/session/{campaign_id}", response_model=PlayerSessionResponse)
+def get_player_session(campaign_id: str) -> PlayerSessionResponse:
+    """
+    Получить текущую сессию игрока.
+    Single Source of Truth - backend хранит состояние.
+    """
+    session = player_session_service.get_session(campaign_id)
+    
+    if session is None:
+        return PlayerSessionResponse(
+            player=None,
+            active=False
+        )
+    
+    # Проверяем, активна ли сессия (не истёк ли heartbeat)
+    is_active = player_session_service.is_player_active(campaign_id)
+    
+    return PlayerSessionResponse(
+        player=session.player_name,
+        active=is_active
+    )
+
+
+@router.post("/player/session/{campaign_id}", response_model=PlayerSessionResponse)
+def create_player_session(campaign_id: str, request: dict) -> PlayerSessionResponse:
+    """
+    Создать новую сессию игрока.
+    Принимает {player: "name"} в теле запроса.
+    """
+    player_name = request.get("player")
+    
+    if not player_name:
+        raise HTTPException(
+            status_code=400,
+            detail="Поле 'player' обязательно"
+        )
+    
+    # Проверяем, что персонаж существует в кампании
+    characters = character_service.list_characters(campaign_id)
+    player_exists = any(char.name == player_name for char in characters)
+    
+    if not player_exists:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Персонаж '{player_name}' не найден в кампании '{campaign_id}'"
+        )
+    
+    # Создаём сессию
+    session = player_session_service.select_player(campaign_id, player_name)
+    
+    print(f"[SESSION_CREATED] Campaign: {campaign_id}, Player: {player_name}")
+    
+    return PlayerSessionResponse(
+        player=player_name,
+        active=True
+    )
+
+
+@router.post("/player/select", response_model=PlayerSelectResponse)
+def select_player(request: PlayerSelectRequest) -> PlayerSelectResponse:
+    """
+    Выбрать персонажа для игры.
+    Создаёт новую сессию и активирует игрока.
+    """
+    # Проверяем, что персонаж существует в кампании
+    characters = character_service.list_characters(request.campaign_id)
+    player_exists = any(char.name == request.player for char in characters)
+    
+    if not player_exists:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Персонаж '{request.player}' не найден в кампании '{request.campaign_id}'"
+        )
+    
+    # Создаём сессию (атомарная операция)
+    session = player_session_service.select_player(request.campaign_id, request.player)
+    
+    print(f"[PLAYER_SELECTED] Campaign: {request.campaign_id}, Player: {request.player}")
+    
+    return PlayerSelectResponse(
+        status="ok",
+        player=request.player
+    )

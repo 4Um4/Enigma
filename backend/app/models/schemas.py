@@ -18,6 +18,9 @@ class ModelProvider(str, Enum):
 
 
 class ModelSelection(BaseModel):
+    """Model selection configuration."""
+    model_config = {"protected_namespaces": ()}
+    
     provider: ModelProvider
     model_name: str
     endpoint: Optional[str] = None
@@ -219,3 +222,71 @@ class CampaignState(BaseModel):
     world_facts: List[WorldFact] = Field(default_factory=list)
     session_summaries: List[SessionSummary] = Field(default_factory=list)
     metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
+class PlayerSession(BaseModel):
+    """Сессия игрока для отслеживания активности."""
+    campaign_id: str
+    player_name: str
+    active: bool = True
+    last_heartbeat: datetime = Field(default_factory=datetime.now)
+    session_id: str = ""
+    
+    def is_active(self, timeout_seconds: int = 120) -> bool:
+        """
+        Проверить, активна ли сессия (timestamp < timeout).
+        По умолчанию 120 секунд - синхронизировано с player_session_service.ttl_seconds.
+        """
+        if not self.active:
+            return False
+        elapsed = (datetime.now() - self.last_heartbeat).total_seconds()
+        # Защита от race condition: отрицательный elapsed из-за синхронизации часов
+        # считаем как активную сессию
+        if elapsed < 0:
+            return True
+        return elapsed < timeout_seconds
+
+
+class HeartbeatRequest(BaseModel):
+    """Запрос на обновление heartbeat."""
+    campaign_id: str
+    player_name: str
+    
+    # Поддержка старых клиентов с другими названиями полей
+    player: Optional[str] = Field(None, alias="player")
+    campaign: Optional[str] = Field(None, alias="campaign")
+    
+    model_config = {"populate_by_name": True}
+    
+    def __init__(self, **data):
+        # Если пришли старые поля - преобразуем
+        if "player" in data and data["player"]:
+            data["player_name"] = data.pop("player")
+        if "campaign" in data and data["campaign"]:
+            data["campaign_id"] = data.pop("campaign")
+        super().__init__(**data)
+
+
+class HeartbeatResponse(BaseModel):
+    """Ответ на heartbeat."""
+    active: bool
+    player_name: str
+    message: str
+
+
+class PlayerSelectRequest(BaseModel):
+    """Запрос на выбор персонажа."""
+    campaign_id: str
+    player: str
+
+
+class PlayerSelectResponse(BaseModel):
+    """Ответ на выбор персонажа."""
+    status: str
+    player: str
+
+
+class PlayerSessionResponse(BaseModel):
+    """Ответ на получение сессии."""
+    player: Optional[str] = None
+    active: bool = False

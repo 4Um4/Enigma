@@ -9,8 +9,14 @@ echo.
 echo Starting HTTP server for frontend...
 echo.
 
+:: Set Python command - use venv if exists, otherwise use system python
+set "PYTHON_CMD=python"
+if exist "%~dp0..\.venv\Scripts\python.exe" (
+    set "PYTHON_CMD=%~dp0..\.venv\Scripts\python.exe"
+)
+
 :: Check if Python is available
-python --version >nul 2>&1
+%PYTHON_CMD% --version >nul 2>&1
 if errorlevel 1 (
     echo [ERROR] Python not found. Please install Python 3.10+
     pause
@@ -22,7 +28,7 @@ start "" "http://127.0.0.1:8081/ui/index.html"
 
 :: Start HTTP server
 cd /d C:\DDD\Codex\VSC_Enigma\Enigma\frontend
-python -m http.server 8081
+%PYTHON_CMD% -m http.server 8081
 
 pause
 
