@@ -77,6 +77,30 @@ class ProviderFactory:
     def create_default() -> LlmProvider:
         """Создать провайдер по умолчанию (llama.cpp)."""
         return create_llama_cpp_provider()
+    
+    @staticmethod
+    def create_for_agent(agent_name: str) -> LlamaCppProvider:
+        """
+        Создать провайдер для конкретного агента с правильным URL сервера.
+        
+        Args:
+            agent_name: Имя агента (dm, npc, world, rules, memory)
+            
+        Returns:
+            Настроенный LlamaCppProvider с правильным URL
+        """
+        server_url = settings.get_llm_server_url(agent_name)
+        return create_llama_cpp_provider(server_url=server_url)
+    
+    @staticmethod
+    def check_health_all() -> dict[str, bool]:
+        """
+        Проверить доступность всех LLM серверов для агентов.
+        
+        Returns:
+            Словарь {agent_name: is_available}
+        """
+        return settings.check_llm_servers_health()
 
 
 # === Additional Provider Implementations ===

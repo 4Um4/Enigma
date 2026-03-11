@@ -1,5 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor
 from time import perf_counter
+import logging
 
 from app.agents.dm_agent import DmAgent
 from app.agents.memory_manager_agent import MemoryManagerAgent
@@ -19,6 +20,23 @@ from app.services.llm_manager import LlmManager
 from app.services.memory import JsonMemoryStore, LayeredMemory
 from app.services.system_requirements import SystemRequirements
 from app.services.world_scheduler import WorldScheduler
+from app.services.character_service import CharacterService
+
+logger = logging.getLogger(__name__)
+
+
+def safe_future_result(future, agent_name: str = "unknown"):
+    """
+    Safely extract result from a future, returning None on failure.
+    
+    This ensures that if any agent fails, the pipeline continues
+    and DM agent still runs.
+    """
+    try:
+        return future.result()
+    except Exception as e:
+        logger.error(f"Agent '{agent_name}' failed: {e}")
+        return None
 
 
 class GameOrchestrator:
@@ -26,12 +44,21 @@ class GameOrchestrator:
         self.store = JsonMemoryStore(data_dir)
         self.layered_memory = LayeredMemory(self.store)
         self.llm_manager = LlmManager()
+        
+        # Форсируем загрузку модели DM при старте
+        try:
+            default_model = self.llm_manager.get_default_model_for_agent("dm")
+            print(f"[ORCHESTRATOR_INIT] DM model preloaded: {default_model.model_name}")
+        except Exception as e:
+            print(f"[ORCHESTRATOR_INIT] Warning: could not preload DM model: {e}")
+        
         self.dm_agent = DmAgent()
         self.rules_agent = RulesAgent()
         self.npc_agent = NpcAgent()
         self.world_agent = WorldSimulationAgent()
         self.world_scheduler = WorldScheduler(self.layered_memory, self.world_agent)
         self.memory_manager = MemoryManagerAgent(self.layered_memory)
+        self.character_service = CharacterService()  # Для проверки персонажей
         self.adventure_loader = AdventureLoader(f"{data_dir}/campaigns")
         self.system_requirements = SystemRequirements(
             min_physical_cores=settings.min_cpu_physical_cores,
@@ -39,6 +66,8 @@ class GameOrchestrator:
         )
         self.pool = ThreadPoolExecutor(max_workers=max(2, settings.orchestrator_workers))
         self._campaign_world_index: dict[str, str] = {}
+        
+        print(f"[ORCHESTRATOR_INIT] GameOrchestrator ready")
 
     def _assert_requirements(self) -> dict:
         report = self.system_requirements.check()
@@ -99,8 +128,33 @@ class GameOrchestrator:
     def trigger_world_tick(self, world_id: str) -> dict:
         return self.world_scheduler.maybe_tick(world_id, every_minutes=0)
 
+    def _check_player_precondition(self, campaign_id: str, player_names: list[str]) -> None:
+        """Проверить что игроки существуют и готовы к игре."""
+        if not player_names:
+            raise RuntimeError(
+                "Нет персонажей в кампании. Создайте персонажа через интерфейс или API: "
+                "POST /api/interface/players/{campaign_id}"
+            )
+        
+        # Проверяем что хотя бы один персонаж помечен как активный
+        # Для этого получаем персонажей из character_service
+        characters = self.character_service.list_characters(campaign_id) if hasattr(self, 'character_service') else []
+        
+        # Если персонажи есть, считаем что игра может продолжаться
+        # (в будущем можно добавить флаг active для каждого персонажа)
+        if len(characters) == 0:
+            raise RuntimeError(
+                f"Персонажи не загружены для кампании '{campaign_id}'. "
+                "Создайте персонажа через интерфейс."
+            )
+
     def run_turn(self, req: ChatTurnRequest) -> ChatTurnResponse:
         started = perf_counter()
+        
+        # Проверяем precondition - должны быть персонажи
+        player_names = [action.player_name for action in req.actions]
+        self._check_player_precondition(req.campaign_id, player_names)
+        
         requirements = self._assert_requirements()
         active_model = self.llm_manager.switch_model(req.model)
         context = self.memory_manager.retrieve_context(req.world_id, req.campaign_id)
@@ -109,11 +163,18 @@ class GameOrchestrator:
 
         rules_future = self.pool.submit(self.rules_agent.evaluate_actions, req.actions)
         npc_future = self.pool.submit(self.npc_agent.react, req.location, req.actions, context.get("npc_memory", []))
-        world_future = self.pool.submit(self.world_agent.tick, req.world_id)
+        # Note: world_scheduler.maybe_tick() already handles world simulation
+        # So we don't need a separate world_future here
 
-        rules_result = rules_future.result()
-        npc_result = npc_future.result()
-        world_result = world_future.result()
+        # Safe extraction - if any agent fails, we continue with None
+        rules_result = safe_future_result(rules_future, "rules_agent")
+        npc_result = safe_future_result(npc_future, "npc_agent")
+        
+        # Extract world events from scheduler result
+        world_result = {
+            "world_events": world_tick_meta.get("events", []),
+            "simulation_log": f"Scheduler: {world_tick_meta.get('reason', 'unknown')}"
+        } if world_tick_meta.get("triggered") else {"world_events": [], "simulation_log": "no_tick"}
 
         dm_result = self.dm_agent.narrate(
             req.location,
@@ -146,7 +207,7 @@ class GameOrchestrator:
                 "dice_input_required": any(a.dice_result is None for a in req.actions),
             },
         )
-        for note in npc_result.get("npc_memory_updates", []):
+        for note in (npc_result or {}).get("npc_memory_updates", []):
             self.layered_memory.write_npc_memory(req.campaign_id, {"note": note, "location": req.location})
 
         elapsed_ms = round((perf_counter() - started) * 1000, 2)

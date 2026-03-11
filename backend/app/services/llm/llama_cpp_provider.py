@@ -238,6 +238,42 @@ class LlamaCppProvider(StreamingLlmProvider):
             except Exception:
                 return False
     
+    def check_server_with_retry(self, max_retries: int = 5, interval_sec: int = 2) -> tuple[bool, str]:
+        """
+        Проверяет доступность сервера с повторными попытками.
+        
+        Args:
+            max_retries: Максимальное количество попыток
+            interval_sec: Интервал между попытками в секундах
+            
+        Returns:
+            Tuple (is_available, status_message)
+        """
+        import time
+        
+        for attempt in range(1, max_retries + 1):
+            if self._check_server():
+                return True, f"LLM server доступен: {self.server_url}"
+            
+            if attempt < max_retries:
+                time.sleep(interval_sec)
+        
+        return False, f"LLM server недоступен после {max_retries} попыток: {self.server_url}"
+    
+    def is_available_with_retry(self, max_retries: int = 5, interval_sec: int = 2) -> bool:
+        """
+        Проверяет доступность провайдера с повторными попытками.
+        
+        Args:
+            max_retries: Максимальное количество попыток
+            interval_sec: Интервал между попытками в секундах
+            
+        Returns:
+            True если сервер доступен
+        """
+        is_available, _ = self.check_server_with_retry(max_retries, interval_sec)
+        return is_available
+    
     def get_info(self) -> ProviderInfo:
         """Возвращает информацию о провайдере."""
         model_name = Path(self.model_config.path).stem

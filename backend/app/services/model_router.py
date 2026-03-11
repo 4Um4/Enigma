@@ -81,11 +81,15 @@ class ModelRouter:
         Returns:
             ModelSelection для использования в LLM
         """
+        print(f"[MODEL_ROUTER] switch_to_agent({agent_name}) -> looking up model...")
         model_info = self.get_model_for_agent(agent_name)
         
         if not model_info:
             # Fallback на первую доступную модель
+            print(f"[MODEL_ROUTER] WARNING: No model found for agent '{agent_name}', using fallback")
             model_info = next(iter(self._models.values()))
+        
+        print(f"[MODEL_ROUTER] switch_to_agent({agent_name}) -> model={model_info.key}, name={model_info.name}")
         
         self.current = ModelSelection(
             provider=ModelProvider.llama_cpp,

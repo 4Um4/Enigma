@@ -125,3 +125,19 @@ class WorldSimulationAgent:
             "simulation_log": "Fallback mode",
         }
 
+    def tick(self, world_id: str) -> dict:
+        """
+        Alias for backward compatibility.
+        
+        WorldScheduler and Orchestrator call this method,
+        but the agent internally uses simulate() with location/actions.
+        Since tick() doesn't have context, we simulate a generic world event.
+        """
+        # Try to get recent location from memory if available
+        # For now, use a generic simulation
+        return self.simulate(
+            location="unknown",
+            actions=[],
+            current_events=[],
+        )
+
