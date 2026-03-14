@@ -53,8 +53,7 @@ class LlamaCppProvider(StreamingLlmProvider):
     - llama-cli (subprocess) - медленный режим
     """
     
-    def __init__(
-        self, 
+    def __init__(self, 
         model_config: LlamaCppModelConfig | None = None,
         server_url: str | None = None,
         executable: str | None = None,
@@ -91,10 +90,43 @@ class LlamaCppProvider(StreamingLlmProvider):
             return self._complete_via_cli(full_prompt, gen_params)
     
     def _build_prompt(self, user_prompt: str, system_prompt: str | None) -> str:
-        """Формирует полный промпт с системным."""
-        if system_prompt:
-            return f"<system>\n{system_prompt}\n</system>\n\n<user>\n{user_prompt}\n</user>\n\n<assistant>\n"
-        return user_prompt
+        """Формирует полный промпт с системным.
+
+        Поддерживает разные форматы Chat Template для разных моделей:
+        - Qwen: <|system|>, <|user|>, <|assistant|>
+        - Saiga/Mistral: ### System, ### User, ### Assistant
+        - Generic: просто system_prompt + user_prompt
+        """
+        if not system_prompt:
+            return user_prompt
+
+        # Detect model type from config and use appropriate chat template
+        model_name = self.model_config.name.lower() if self.model_config else ""
+
+        if "qwen" in model_name:
+            # Qwen chat template
+            return (
+                f"<|system|>\n{system_prompt}\n<|end|>\n"
+                f"<|user|>\n{user_prompt}\n<|end|>\n"
+                f"<|assistant|>\n"
+            )
+        elif "saiga" in model_name or "mistral" in model_name:
+            # Saiga / Mistral chat template
+            return (
+                f"### System\n{system_prompt}\n\n"
+                f"### User\n{user_prompt}\n\n"
+                f"### Assistant\n"
+            )
+        elif "yandex" in model_name:
+            # Yandex chat template (similar to Saiga)
+            return (
+                f"### System\n{system_prompt}\n\n"
+                f"### User\n{user_prompt}\n\n"
+                f"### Assistant\n"
+            )
+        else:
+            # Generic fallback - just concatenate
+            return f"{system_prompt}\n\n{user_prompt}\n\n"
     
     def _complete_via_server(self, prompt: str, params: GenerationParams) -> str:
         """Отправляет запрос через llama-server HTTP API."""
@@ -299,6 +331,106 @@ class LlamaCppProvider(StreamingLlmProvider):
         """Установить URL llama-server."""
         self.server_url = url
         self._use_server = bool(url)
+    
+    def stream_complete(
+        self,
+        prompt: str,
+        params: GenerationParams | None = None,
+        system_prompt: str | None = None,
+        callback=None,
+    ) -> str:
+        """
+        Генерирует текст со стримингом через llama.cpp server.
+        
+        Args:
+            prompt: Пользовательский промпт
+            params: Параметры генерации
+            system_prompt: Системный промпт
+            callback: Функция для обработки чанков (опционально)
+            
+        Returns:
+            Полный сгенерированный текст
+        """
+        if not self._use_server:
+            # Fallback to non-streaming for CLI
+            result = self.complete(prompt, params, system_prompt)
+            if callback:
+                callback(result)
+            return result
+        
+        # Build full prompt
+        full_prompt = self._build_prompt(prompt, system_prompt)
+        gen_params = params or GenerationParams()
+        
+        url = self.server_url.rstrip("/") + "/completion"
+        
+        # Build stop tokens
+        stop_tokens = list(DEFAULT_STOP_TOKENS)
+        if gen_params.stop:
+            stop_tokens.extend(gen_params.stop)
+        
+        payload = {
+            "prompt": full_prompt,
+            "n_predict": gen_params.max_tokens,
+            "stream": True,  # Enable streaming!
+            "stop": stop_tokens,
+            "temperature": gen_params.temperature,
+            "top_p": gen_params.top_p,
+            "repeat_penalty": gen_params.repeat_penalty,
+            "top_k": gen_params.top_k,
+            "n_keep": gen_params.n_keep,
+        }
+        
+        data = json.dumps(payload).encode("utf-8")
+        req = urllib.request.Request(
+            url,
+            data=data,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        
+        full_content = ""
+        
+        try:
+            with urllib.request.urlopen(req, timeout=settings.llama_cpp_timeout_sec) as resp:
+                # Read streaming response line by line
+                import io
+                stream = io.BufferedReader(resp)
+                
+                while True:
+                    line = stream.readline()
+                    if not line:
+                        break
+                    
+                    line = line.decode("utf-8").strip()
+                    if not line:
+                        continue
+                    
+                    # Parse SSE-like format: {"content": "..."}
+                    if line.startswith("data:"):
+                        data_str = line[5:].strip()
+                        if data_str:
+                            try:
+                                chunk = json.loads(data_str)
+                                content = chunk.get("content", "")
+                                if content:
+                                    full_content += content
+                                    if callback:
+                                        callback(content)
+                            except json.JSONDecodeError:
+                                continue
+                    
+                    # Check for done
+                    if "done" in line:
+                        break
+                        
+        except urllib.error.URLError as e:
+            raise RuntimeError(
+                f"Не удалось подключиться к llama-server ({self.server_url}). "
+                "Убедитесь что llama-server запущен."
+            ) from e
+        
+        return full_content.strip()
 
 
 # Factory function

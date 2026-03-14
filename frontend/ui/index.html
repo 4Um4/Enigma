@@ -1,336 +1,1006 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-
 <meta charset="UTF-8">
-<title>Enigma</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ENIGMA — Местный Мастер Подземелий</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Pro:ital,wght@0,300;0,400;1,300;1,400&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
 
 <style>
+/* ═══════════════════════════════════════════
+   VARIABLES — The Grimoire Palette
+═══════════════════════════════════════════ */
+:root {
+  --void:       #06060d;
+  --deep:       #0b0b16;
+  --surface:    #10101e;
+  --border:     #1e1a30;
+  --border-glow:#2e2540;
 
-body{
-background:#0e0e11;
-color:#e6e6e6;
-font-family:Segoe UI;
-margin:0;
-display:flex;
-flex-direction:column;
-height:100vh;
+  --ember:      #c8832a;
+  --ember-dim:  #8a5a1a;
+  --ember-glow: #e8a040;
+  --crimson:    #8b2020;
+  --crimson-lit:#c03030;
+
+  --parchment:  #e8d4a8;
+  --parchment-dim: #b0a080;
+  --silver:     #9ab0c8;
+  --silver-dim: #6080a0;
+  --muted:      #50506a;
+
+  --hp-green:   #4a9460;
+  --hp-warn:    #a06020;
+  --hp-danger:  #8b2020;
+
+  --font-title: 'Cinzel', serif;
+  --font-body:  'Crimson Pro', serif;
+  --font-mono:  'JetBrains Mono', monospace;
+
+  --radius:     3px;
+  --transition: 180ms ease;
 }
 
-header{
-background:#14141a;
-padding:12px;
-border-bottom:1px solid #222;
-display:flex;
-justify-content:space-between;
-align-items:center;
+/* ═══════════════════════════════════════════
+   RESET & BASE
+═══════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  background: var(--void);
+  color: var(--parchment-dim);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.6;
+  overflow: hidden;
 }
 
-#status{
-font-size:12px;
-opacity:.7;
+/* Ambient background texture */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 60% 50% at 50% 0%, #1a0d2e22 0%, transparent 70%),
+    radial-gradient(ellipse 40% 30% at 20% 100%, #2a0d0d18 0%, transparent 60%);
+  pointer-events: none;
+  z-index: 0;
 }
 
-main{
-flex:1;
-display:flex;
-flex-direction:column;
-padding:10px;
+/* ═══════════════════════════════════════════
+   LAYOUT
+═══════════════════════════════════════════ */
+#app {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-rows: auto auto 1fr auto;
+  height: 100vh;
+  max-width: 860px;
+  margin: 0 auto;
+  border-left: 1px solid var(--border);
+  border-right: 1px solid var(--border);
 }
 
-.chat{
-flex:1;
-overflow-y:auto;
-background:#0b0b0f;
-border:1px solid #222;
-padding:10px;
-margin-bottom:10px;
+/* ═══════════════════════════════════════════
+   HEADER
+═══════════════════════════════════════════ */
+header {
+  background: var(--deep);
+  border-bottom: 1px solid var(--border-glow);
+  padding: 14px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 20px #00000060;
 }
 
-.msg{
-margin-bottom:8px;
+.title-block { display: flex; align-items: baseline; gap: 12px; }
+
+h1 {
+  font-family: var(--font-title);
+  font-size: 1.3rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: var(--ember);
+  text-shadow: 0 0 20px #c8832a50;
 }
 
-.dm{
-color:#7dd3fc;
+.title-sub {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 
-.player{
-color:#facc15;
+#server-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--muted);
+  letter-spacing: 0.05em;
 }
 
-.controls{
-display:flex;
-gap:10px;
+.dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--muted);
+  transition: background var(--transition), box-shadow var(--transition);
+}
+.dot.online  { background: #4a9460; box-shadow: 0 0 8px #4a946080; }
+.dot.offline { background: var(--crimson); box-shadow: 0 0 8px #8b202080; }
+
+/* ═══════════════════════════════════════════
+   CHARACTER PANEL
+═══════════════════════════════════════════ */
+#char-panel {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  min-height: 48px;
+  flex-wrap: wrap;
 }
 
-textarea{
-flex:1;
-background:#0b0b0f;
-border:1px solid #333;
-color:white;
-padding:8px;
-resize:none;
-height:60px;
+#player-select-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-button{
-background:#2563eb;
-border:none;
-padding:8px 14px;
-color:white;
-cursor:pointer;
+.label-sm {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 
-button:disabled{
-opacity:.4;
+select {
+  background: var(--deep);
+  border: 1px solid var(--border-glow);
+  color: var(--parchment-dim);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  padding: 4px 8px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  outline: none;
+  transition: border-color var(--transition);
+}
+select:focus { border-color: var(--ember-dim); }
+
+/* Character stats */
+#char-stats {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+#char-stats.visible { opacity: 1; }
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
-select{
-background:#0b0b0f;
-color:white;
-border:1px solid #333;
-padding:6px;
+.stat-icon {
+  font-size: 0.75rem;
+  opacity: 0.7;
+}
+
+.stat-value {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--parchment-dim);
+}
+
+.hp-bar-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hp-bar {
+  width: 60px;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.hp-fill {
+  height: 100%;
+  background: var(--hp-green);
+  border-radius: 2px;
+  transition: width 0.5s ease, background 0.5s ease;
+}
+
+.stat-sep {
+  width: 1px;
+  height: 16px;
+  background: var(--border-glow);
+}
+
+/* ═══════════════════════════════════════════
+   CHAT
+═══════════════════════════════════════════ */
+#chat-wrap {
+  overflow-y: auto;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  scroll-behavior: smooth;
+}
+
+/* Custom scrollbar */
+#chat-wrap::-webkit-scrollbar { width: 4px; }
+#chat-wrap::-webkit-scrollbar-track { background: transparent; }
+#chat-wrap::-webkit-scrollbar-thumb { background: var(--border-glow); border-radius: 2px; }
+
+/* Messages */
+.msg {
+  max-width: 100%;
+  animation: fadeIn 0.25s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* DM messages */
+.msg-dm .msg-header {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  color: var(--ember-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 4px;
+}
+
+.msg-dm .msg-body {
+  font-family: var(--font-body);
+  font-size: 1.05rem;
+  color: var(--parchment);
+  line-height: 1.7;
+  font-weight: 300;
+}
+
+/* Player messages */
+.msg-player {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.msg-player .msg-arrow {
+  color: var(--ember-dim);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.msg-player .msg-body {
+  color: var(--silver);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  font-style: italic;
+}
+
+/* NPC reactions */
+.msg-npc .msg-header {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  color: var(--silver-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 4px;
+}
+
+.msg-npc .msg-body {
+  color: var(--silver-dim);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-style: italic;
+  padding-left: 12px;
+  border-left: 2px solid var(--border-glow);
+}
+
+/* System messages */
+.msg-system .msg-body {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+  padding: 6px 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  display: inline-block;
+}
+
+/* Error messages */
+.msg-error .msg-body {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: #e07070;
+  padding: 8px 12px;
+  background: #2a100f;
+  border: 1px solid #4a1a18;
+  border-radius: var(--radius);
+}
+
+/* ═══════════════════════════════════════════
+   THINKING INDICATOR
+═══════════════════════════════════════════ */
+#thinking {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 20px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+
+#thinking.visible { display: flex; }
+
+.think-label {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  color: var(--ember-dim);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.think-dots {
+  display: flex;
+  gap: 4px;
+}
+
+.think-dots span {
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: var(--ember-dim);
+  animation: pulse 1.2s ease-in-out infinite;
+}
+.think-dots span:nth-child(2) { animation-delay: 0.2s; }
+.think-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes pulse {
+  0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); }
+  40%           { opacity: 1;   transform: scale(1); }
+}
+
+#think-timer {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  color: var(--muted);
+  margin-left: auto;
+}
+
+/* ═══════════════════════════════════════════
+   INPUT AREA
+═══════════════════════════════════════════ */
+footer {
+  background: var(--deep);
+  border-top: 1px solid var(--border-glow);
+  padding: 14px 20px;
+}
+
+.input-wrap {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+textarea {
+  flex: 1;
+  background: var(--surface);
+  border: 1px solid var(--border-glow);
+  border-radius: var(--radius);
+  color: var(--parchment-dim);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  padding: 10px 12px;
+  resize: none;
+  height: 52px;
+  min-height: 52px;
+  max-height: 140px;
+  outline: none;
+  transition: border-color var(--transition), box-shadow var(--transition);
+  overflow-y: hidden;
+}
+
+textarea::placeholder { color: var(--muted); font-style: italic; }
+
+textarea:focus {
+  border-color: var(--ember-dim);
+  box-shadow: 0 0 0 2px #c8832a18;
+}
+
+textarea:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+#send-btn {
+  background: linear-gradient(135deg, #5a1a1a, #3a1010);
+  border: 1px solid #6a2020;
+  border-radius: var(--radius);
+  color: #e8a080;
+  font-family: var(--font-title);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 12px 18px;
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition), transform var(--transition);
+  white-space: nowrap;
+  height: 52px;
+}
+
+#send-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #6a2a2a, #4a1818);
+  border-color: #8a3030;
+  transform: translateY(-1px);
+}
+
+#send-btn:active:not(:disabled) { transform: translateY(0); }
+
+#send-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.input-hint {
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  color: var(--muted);
+  margin-top: 6px;
+  text-align: right;
+}
+
+/* ═══════════════════════════════════════════
+   DIVIDER
+═══════════════════════════════════════════ */
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 4px 0;
+  opacity: 0.5;
+}
+.divider::before, .divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+.divider-text {
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 
 </style>
-
 </head>
 
 <body>
+<div id="app">
 
-<header>
+  <!-- ── HEADER ── -->
+  <header>
+    <div class="title-block">
+      <h1>ENIGMA</h1>
+      <span class="title-sub">AI Dungeon Master v0.1</span>
+    </div>
+    <div id="server-status">
+      <div class="dot" id="status-dot"></div>
+      <span id="status-text">подключение...</span>
+    </div>
+  </header>
 
-<div>
-<b>ENIGMA</b>
+  <!-- ── CHARACTER PANEL ── -->
+  <div id="char-panel">
+    <div id="player-select-wrap">
+      <span class="label-sm">Персонаж</span>
+      <select id="player-select">
+        <option value="">— выбрать —</option>
+      </select>
+    </div>
+
+    <div id="char-stats">
+      <div class="stat-sep"></div>
+
+      <div class="stat-item hp-bar-wrap">
+        <span class="stat-icon">♥</span>
+        <span class="stat-value" id="stat-hp">—</span>
+        <div class="hp-bar"><div class="hp-fill" id="hp-fill" style="width:100%"></div></div>
+      </div>
+
+      <div class="stat-item">
+        <span class="stat-icon">⛨</span>
+        <span class="stat-value" id="stat-ac">—</span>
+      </div>
+
+      <div class="stat-sep"></div>
+
+      <div class="stat-item">
+        <span class="stat-value" id="stat-class">—</span>
+      </div>
+
+      <div class="stat-item">
+        <span class="label-sm">ур.</span>
+        <span class="stat-value" id="stat-level">—</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── CHAT ── -->
+  <div id="chat-wrap"></div>
+
+  <!-- ── THINKING INDICATOR ── -->
+  <div id="thinking">
+    <span class="think-label">Мастер думает</span>
+    <div class="think-dots">
+      <span></span><span></span><span></span>
+    </div>
+    <span id="think-timer"></span>
+  </div>
+
+  <!-- ── INPUT ── -->
+  <footer>
+    <div class="input-wrap">
+      <textarea
+        id="action-input"
+        placeholder="Опишите действие вашего персонажа..."
+        disabled
+      ></textarea>
+      <button id="send-btn" disabled>Действие</button>
+    </div>
+    <div class="input-hint">Enter — отправить &nbsp;·&nbsp; Shift+Enter — новая строка</div>
+  </footer>
+
 </div>
-
-<div id="status">
-connecting...
-</div>
-
-</header>
-
-<main>
-
-<div class="controls">
-
-<select id="playerSelect">
-<option value="">Выберите персонажа</option>
-<option value="Демеург">Демеург</option>
-</select>
-
-</div>
-
-<div id="chat" class="chat"></div>
-
-<div class="controls">
-
-<textarea id="actionInput" placeholder="Опишите действие персонажа..."></textarea>
-
-<button id="sendBtn">Отправить</button>
-
-</div>
-
-</main>
 
 <script>
+/* ═══════════════════════════════════════════
+   CONFIG
+═══════════════════════════════════════════ */
+const CAMPAIGN = "demo-campaign";
+let API = "http://127.0.0.1:8000/api";
 
-const API="http://127.0.0.1:8000/api"
+/* ═══════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════ */
+const state = {
+  online:  false,
+  player:  null,
+  char:    null,   // full character object
+  busy:    false,
+  thinkStart: null,
+  thinkTimer: null,
+  hbTimer: null,
+};
 
-const state={
-serverOnline:false,
-player:null,
-campaign:"demo-campaign",
-sessionActive:false
+/* ═══════════════════════════════════════════
+   HELPERS
+═══════════════════════════════════════════ */
+function qs(sel) { return document.querySelector(sel); }
+
+async function apiFetch(path, opts = {}) {
+  const res = await fetch(API + path, {
+    headers: { "Content-Type": "application/json" },
+    ...opts,
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: `HTTP ${res.status}` }));
+    throw new Error(err.detail || `HTTP ${res.status}`);
+  }
+  return res.json();
 }
 
-let heartbeatTimer=null
-
-function log(msg,type="dm"){
-
-const chat=document.getElementById("chat")
-
-const div=document.createElement("div")
-div.className="msg "+type
-div.innerText=msg
-
-chat.appendChild(div)
-
-chat.scrollTop=chat.scrollHeight
-
+/* ═══════════════════════════════════════════
+   MESSAGES
+═══════════════════════════════════════════ */
+function addMsg(html, type = "dm") {
+  const wrap = qs("#chat-wrap");
+  const el   = document.createElement("div");
+  el.className = `msg msg-${type}`;
+  el.innerHTML = html;
+  wrap.appendChild(el);
+  wrap.scrollTop = wrap.scrollHeight;
+  return el;
 }
 
-function setStatus(text){
-document.getElementById("status").innerText=text
+function msgDM(text) {
+  addMsg(`
+    <div class="msg-header">⚔ Мастер подземелий</div>
+    <div class="msg-body">${escHtml(text)}</div>
+  `, "dm");
 }
 
-async function checkServer(){
-
-try{
-
-const r=await fetch(API+"/health")
-const j=await r.json()
-
-state.serverOnline=true
-
-setStatus("server online")
-
-}catch{
-
-state.serverOnline=false
-setStatus("server offline")
-
+function msgPlayer(text) {
+  addMsg(`
+    <div class="msg-arrow">▶</div>
+    <div class="msg-body">${escHtml(text)}</div>
+  `, "player");
 }
 
+function msgNPC(reactions) {
+  if (!Array.isArray(reactions) || !reactions.length) return;
+  const lines = reactions.map(r => {
+    const who  = r.npc_name  || r.name   || "NPC";
+    const what = r.reaction  || r.action || r.text || JSON.stringify(r);
+    return `<b>${escHtml(who)}:</b> ${escHtml(what)}`;
+  }).join("<br>");
+  addMsg(`
+    <div class="msg-header">◉ Реакции NPC</div>
+    <div class="msg-body">${lines}</div>
+  `, "npc");
 }
 
-async function loadSession(){
-
-if(!state.player)return
-
-try{
-
-const r=await fetch(API+"/player/session/"+state.campaign)
-
-const j=await r.json()
-
-state.sessionActive=j.active
-
-if(state.sessionActive){
-
-startHeartbeat()
-
+function msgSystem(text) {
+  addMsg(`<div class="msg-body">${escHtml(text)}</div>`, "system");
 }
 
-}catch{}
-
+function msgError(text) {
+  addMsg(`<div class="msg-body">⚠ ${escHtml(text)}</div>`, "error");
 }
 
-async function selectPlayer(name){
-
-state.player=name
-
-log("Игрок: "+name,"player")
-
-await createSession()
-
+function addDivider(label) {
+  const wrap = qs("#chat-wrap");
+  wrap.innerHTML += `
+    <div class="divider">
+      <span class="divider-text">${label}</span>
+    </div>`;
+  wrap.scrollTop = wrap.scrollHeight;
 }
 
-async function createSession(){
-
-try{
-
-await fetch(API+"/player/session/"+state.campaign,{
-method:"POST",
-headers:{'Content-Type':'application/json'},
-body:JSON.stringify({player:state.player})
-})
-
-state.sessionActive=true
-
-startHeartbeat()
-
-}catch{}
-
+function escHtml(s) {
+  if (s == null) return "";
+  return String(s)
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;")
+    .replace(/\n/g,"<br>");
 }
 
-function startHeartbeat(){
-
-if(heartbeatTimer)return
-
-heartbeatTimer=setInterval(async()=>{
-
-if(!state.sessionActive)return
-
-try{
-
-await fetch(API+"/player/heartbeat",{
-method:"POST",
-headers:{'Content-Type':'application/json'},
-body:JSON.stringify({
-player:state.player,
-campaign:state.campaign
-})
-})
-
-}catch{}
-
-},10000)
-
+/* ═══════════════════════════════════════════
+   STATUS
+═══════════════════════════════════════════ */
+function setStatus(text, online) {
+  qs("#status-text").textContent = text;
+  const dot = qs("#status-dot");
+  dot.className = "dot " + (online ? "online" : online === false ? "offline" : "");
 }
 
-async function sendTurn(){
-
-if(!state.player)return
-
-const text=document.getElementById("actionInput").value
-
-if(!text)return
-
-log(text,"player")
-
-document.getElementById("actionInput").value=""
-
-try{
-
-const r=await fetch(API+"/game/action",{
-method:"POST",
-headers:{'Content-Type':'application/json'},
-body:JSON.stringify({
-player:state.player,
-campaign:state.campaign,
-action:text
-})
-})
-
-const j=await r.json()
-
-log(j.response,"dm")
-
-}catch{
-
-log("Сервер недоступен")
-
+/* ═══════════════════════════════════════════
+   THINKING INDICATOR
+═══════════════════════════════════════════ */
+function thinkStart() {
+  state.thinkStart = Date.now();
+  qs("#thinking").classList.add("visible");
+  state.thinkTimer = setInterval(() => {
+    const sec = Math.floor((Date.now() - state.thinkStart) / 1000);
+    qs("#think-timer").textContent = sec + "с";
+  }, 500);
 }
 
+function thinkStop() {
+  qs("#thinking").classList.remove("visible");
+  qs("#think-timer").textContent = "";
+  clearInterval(state.thinkTimer);
+  state.thinkTimer = null;
+  state.thinkStart = null;
 }
 
-function initUI(){
+/* ═══════════════════════════════════════════
+   CHARACTER PANEL
+═══════════════════════════════════════════ */
+function showCharStats(ch) {
+  state.char = ch;
+  const hp    = ch.hp     ?? 10;
+  const maxHp = ch.max_hp ?? 10;
+  const ac    = ch.ac     ?? 10;
+  const pct   = Math.max(0, Math.min(100, (hp / maxHp) * 100));
 
-document
-.getElementById("playerSelect")
-.addEventListener("change",e=>{
+  qs("#stat-hp").textContent    = `${hp}/${maxHp}`;
+  qs("#stat-ac").textContent    = ac;
+  qs("#stat-class").textContent = [ch.race, ch.class_name].filter(Boolean).join(" · ");
+  qs("#stat-level").textContent = ch.level || 1;
 
-if(!e.target.value)return
+  const fill = qs("#hp-fill");
+  fill.style.width = pct + "%";
+  fill.style.background =
+    pct > 60 ? "var(--hp-green)" :
+    pct > 30 ? "var(--hp-warn)"  : "var(--hp-danger)";
 
-selectPlayer(e.target.value)
-
-})
-
-document
-.getElementById("sendBtn")
-.addEventListener("click",sendTurn)
-
+  qs("#char-stats").classList.add("visible");
 }
 
-async function init(){
+/* ═══════════════════════════════════════════
+   API CALLS
+═══════════════════════════════════════════ */
 
-initUI()
-
-await checkServer()
-
-if(state.serverOnline){
-
-log("Добро пожаловать в подземелье!")
-
+// Resolve correct API port
+async function resolveApiBase() {
+  try {
+    const ports = await fetch("/api/ports").then(r => r.json());
+    if (ports.api_port) API = `http://127.0.0.1:${ports.api_port}/api`;
+  } catch {
+    try {
+      const ports = await fetch("/backend/data/runtime_ports.json").then(r => r.json());
+      if (ports.api_port) API = `http://127.0.0.1:${ports.api_port}/api`;
+    } catch { /* use default */ }
+  }
 }
 
+// Load character list from backend
+async function loadCharacters() {
+  try {
+    const data = await apiFetch(`/characters/${CAMPAIGN}`);
+    const sel  = qs("#player-select");
+    sel.innerHTML = '<option value="">— выбрать —</option>';
+    (data.characters || []).forEach(ch => {
+      const opt = document.createElement("option");
+      opt.value       = ch.name;
+      opt.textContent = `${ch.name}  (${ch.class_name || "??"}, ур.${ch.level || 1})`;
+      opt.dataset.char = JSON.stringify(ch);
+      sel.appendChild(opt);
+    });
+  } catch (e) {
+    // Fallback: add Демеург manually so the game still works
+    const sel = qs("#player-select");
+    sel.innerHTML = `
+      <option value="">— выбрать —</option>
+      <option value="Демеург">Демеург</option>
+    `;
+    console.warn("Characters API unavailable:", e.message);
+  }
 }
 
-init()
+// Create or restore session
+// POST /player/session/{campaign_id} expects { player: "name" }
+async function createSession(playerName) {
+  await apiFetch(`/player/session/${CAMPAIGN}`, {
+    method:  "POST",
+    body: JSON.stringify({ player: playerName }),
+  });
+}
 
+// Heartbeat
+// POST /player/heartbeat expects { campaign_id, player_name }
+function startHeartbeat(playerName) {
+  stopHeartbeat();
+  state.hbTimer = setInterval(async () => {
+    try {
+      await apiFetch("/player/heartbeat", {
+        method: "POST",
+        body: JSON.stringify({
+          campaign_id: CAMPAIGN,
+          player_name: playerName,
+        }),
+      });
+    } catch { /* silent — don't spam console */ }
+  }, 10_000);
+}
+
+function stopHeartbeat() {
+  if (state.hbTimer) { clearInterval(state.hbTimer); state.hbTimer = null; }
+}
+
+/* ═══════════════════════════════════════════
+   PLAYER SELECT
+═══════════════════════════════════════════ */
+async function selectPlayer(name, charData) {
+  state.player = name;
+
+  if (charData) showCharStats(charData);
+
+  setStatus("сессия...", null);
+  try {
+    await createSession(name);
+    startHeartbeat(name);
+    setStatus("в сети", true);
+
+    addDivider("начало сессии");
+    msgSystem(`Персонаж выбран: ${name}`);
+    msgDM(`Добро пожаловать, ${name}. Ваше приключение продолжается... Что вы делаете?`);
+
+    enableInput(true);
+    qs("#action-input").focus();
+  } catch (e) {
+    msgError(`Не удалось создать сессию: ${e.message}`);
+    setStatus("ошибка сессии", false);
+  }
+}
+
+/* ═══════════════════════════════════════════
+   SEND ACTION
+═══════════════════════════════════════════ */
+async function sendAction() {
+  if (state.busy || !state.player) return;
+
+  const input = qs("#action-input");
+  const text  = input.value.trim();
+  if (!text) return;
+
+  input.value = "";
+  resizeTextarea(input);
+
+  msgPlayer(text);
+  setBusy(true);
+  thinkStart();
+
+  try {
+    // POST /game/action expects { player, campaign, action }
+    const data = await apiFetch("/game/action", {
+      method: "POST",
+      body: JSON.stringify({
+        player:   state.player,
+        campaign: CAMPAIGN,
+        action:   text,
+      }),
+    });
+
+    thinkStop();
+
+    // FIX: handle undefined / missing response field
+    const reply = data.response || data.dm_response || data.detail;
+    if (reply) {
+      msgDM(reply);
+    } else {
+      msgError("Мастер не ответил (пустой ответ). Попробуйте ещё раз.");
+    }
+
+    // Show NPC reactions if any
+    if (data.npc_reactions && data.npc_reactions.length) {
+      msgNPC(data.npc_reactions);
+    }
+
+    // World changes as system note
+    if (data.world_changes && data.world_changes.length) {
+      const changes = data.world_changes.map(c =>
+        typeof c === "string" ? c : (c.description || JSON.stringify(c))
+      ).join("; ");
+      msgSystem(`⟳ Мир: ${changes}`);
+    }
+
+  } catch (e) {
+    thinkStop();
+    const msg = e.message || "Неизвестная ошибка";
+    // Show user-friendly error + hint
+    if (msg.includes("412")) {
+      msgError(`Сессия истекла. Пожалуйста, выберите персонажа снова.`);
+      resetSession();
+    } else if (msg.includes("500")) {
+      msgError(`Ошибка сервера. Проверьте backend/error.log`);
+    } else {
+      msgError(`Ошибка: ${msg}`);
+    }
+  } finally {
+    setBusy(false);
+  }
+}
+
+/* ═══════════════════════════════════════════
+   UI HELPERS
+═══════════════════════════════════════════ */
+function setBusy(busy) {
+  state.busy = busy;
+  qs("#send-btn").disabled   = busy || !state.player;
+  qs("#action-input").disabled = busy || !state.player;
+}
+
+function enableInput(yes) {
+  qs("#send-btn").disabled   = !yes;
+  qs("#action-input").disabled = !yes;
+}
+
+function resetSession() {
+  stopHeartbeat();
+  state.player = null;
+  state.char   = null;
+  enableInput(false);
+  qs("#player-select").value = "";
+  qs("#char-stats").classList.remove("visible");
+}
+
+// Auto-resize textarea
+function resizeTextarea(el) {
+  el.style.height = "52px";
+  const sh = el.scrollHeight;
+  el.style.height = Math.min(sh, 140) + "px";
+  el.style.overflowY = sh > 140 ? "auto" : "hidden";
+}
+
+/* ═══════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════ */
+async function checkServer() {
+  try {
+    await apiFetch("/health");
+    state.online = true;
+    setStatus("в сети", true);
+    return true;
+  } catch {
+    state.online = false;
+    setStatus("сервер недоступен", false);
+    return false;
+  }
+}
+
+async function init() {
+  setStatus("подключение...", null);
+  await resolveApiBase();
+
+  const online = await checkServer();
+  if (!online) {
+    msgError("Backend сервер недоступен. Убедитесь что start_enigma.bat запущен.");
+    return;
+  }
+
+  await loadCharacters();
+
+  msgSystem("Enigma AI Dungeon Master запущен. Выберите персонажа для начала.");
+
+  // Server health re-check every 30s
+  setInterval(async () => {
+    const ok = await checkServer();
+    if (!ok && state.player) {
+      msgError("Соединение с сервером потеряно.");
+      stopHeartbeat();
+    }
+  }, 30_000);
+}
+
+/* ═══════════════════════════════════════════
+   EVENT LISTENERS
+═══════════════════════════════════════════ */
+qs("#player-select").addEventListener("change", e => {
+  const name = e.target.value;
+  if (!name) return;
+  const opt  = e.target.selectedOptions[0];
+  let charData = null;
+  try { charData = JSON.parse(opt.dataset.char || "null"); } catch {}
+  selectPlayer(name, charData);
+});
+
+qs("#send-btn").addEventListener("click", sendAction);
+
+qs("#action-input").addEventListener("keydown", e => {
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    sendAction();
+  }
+});
+
+qs("#action-input").addEventListener("input", e => {
+  resizeTextarea(e.target);
+});
+
+/* ── GO ── */
+init();
 </script>
-
 </body>
 </html>

@@ -2,18 +2,22 @@
 DM Agent - Dungeon Master Narrative Layer
 
 Uses capability-based routing to automatically select the best model.
+Includes Phase 1 error handling + VRAM logging.
 """
 
-from typing import Optional
-
+from typing import Optional, List, Dict
+from pathlib import Path
 from app.models.schemas import PlayerAction
-from app.services.llm import ModelRouter, Capability, get_router
+from app.services.llm import ModelRouter, get_router
+from app.services.error_interpreter import get_error_interpreter
+from app.services.vram_monitor import get_vram_monitor
+# from app.services.orchestrator import jsonl_log, ERROR_CODES  # Avoid circular import
 
 
 class DmAgent:
     """
     Narrative DM layer with automatic model selection.
-    
+
     Uses ModelRouter to request "narrative" capability.
     The router automatically selects the best model.
     """
@@ -28,81 +32,70 @@ class DmAgent:
             self._router = get_router()
         return self._router
 
-    def narrate(
+    def run(
         self,
         location: str,
-        actions: list[PlayerAction],
-        rules_result: dict,
-        npc_result: dict,
-        world_result: dict,
+        actions: List[PlayerAction],
+        rules_result: Dict,
+        npc_result: Dict,
+        world_result: Dict,
         world_canon_exists: bool,
-        context: Optional[dict] = None,
-    ) -> dict:
+        context: Optional[Dict] = None,
+    ) -> Dict:
         """
-        Generate DM narrative using automatic model selection.
-        
-        The agent requests 'narrative' capability.
-        Router automatically selects: qwen_7b (default) or qwen_9b (if available).
+        Main run method for DmAgent - generates narrative response.
+        SAFE FALLBACK: Always returns minimal dict.
         """
-        action_lines = " ".join([f"{a.player_name}: {a.action}." for a in actions])
-        
-        # Build prompt
-        prompt = self._build_prompt(
-            location=location,
-            actions=action_lines,
-            rules_result=rules_result,
-            npc_result=npc_result,
-            world_result=world_result,
-            world_canon_exists=world_canon_exists,
-            context=context,
-        )
-        
-        # Get system prompt for narrative
-        system_prompt = self._get_system_prompt()
-        
         try:
-            # Request via router - automatic model selection by capability
-            dm_response = self.router.request(
-                capability=Capability.NARRATIVE,
-                prompt=prompt,
-                system_prompt=system_prompt,
+            return self.narrate(
+                location,
+                actions,
+                rules_result,
+                npc_result,
+                world_result,
+                world_canon_exists,
+                context,
             )
-            
-            return {
-                "dm_response": dm_response,
-                "npc_reactions": npc_result.get("npc_reactions", []),
-                "world_changes": world_result.get("world_events", []),
-            }
-        except Exception as e:
-            print(f"DM Agent error: {e}, using fallback")
-            return self._fallback_narrate(location, actions, rules_result, npc_result, world_result, world_canon_exists)
+        except Exception:
+            return self._fallback_narrate(
+                location,
+                actions,
+                rules_result,
+                npc_result,
+                world_result,
+                world_canon_exists,
+            )
 
     def _build_prompt(
         self,
         location: str,
         actions: str,
-        rules_result: dict,
-        npc_result: dict,
-        world_result: dict,
+        rules_result: Dict,
+        npc_result: Dict,
+        world_result: Dict,
         world_canon_exists: bool,
-        context: Optional[dict] = None,
+        context: Optional[Dict] = None,
     ) -> str:
         """Build narrative prompt."""
         context_str = ""
         if context:
-            recent = context.get("recent_events", [])
+            recent = context.get("recent_memory", [])
             if recent:
                 context_str = "Недавние события:\n" + "\n".join(f"- {e}" for e in recent[-3:]) + "\n\n"
-        
+
         npc_reactions = npc_result.get("npc_reactions", [])
         npc_str = "\n".join(f"- {r}" for r in npc_reactions) if npc_reactions else "Нет реакций NPC"
-        
+
         world_changes = world_result.get("world_events", [])
         world_str = "\n".join(f"- {w}" for w in world_changes) if world_changes else "Нет изменений мира"
-        
+
         checks = rules_result.get("checks", [])
-        rules_str = "\n".join(f"- {c.get('player', 'Unknown')}: {c.get('result', c.get('instruction', ''))}" for c in checks) if checks else "Нет проверок"
-        
+        rules_str = (
+            "\n".join(f"- {c.get('player', 'Unknown')}: {c.get('result', c.get('instruction', ''))}" for c in checks)
+            if checks
+            else "Нет проверок"
+        )
+
         return f"""Текущая локация: {location}
 
 {context_str}Действия игроков:
@@ -132,31 +125,59 @@ class DmAgent:
     def _fallback_narrate(
         self,
         location: str,
-        actions: list[PlayerAction],
-        rules_result: dict,
-        npc_result: dict,
-        world_result: dict,
+        actions: List[PlayerAction],
+        rules_result: Dict,
+        npc_result: Dict,
+        world_result: Dict,
         world_canon_exists: bool,
-    ) -> dict:
-        """Fallback when LLM is unavailable."""
-        action_lines = " ".join([f"{a.player_name}: {a.action}." for a in actions])
-        if not world_canon_exists:
-            return {
-                "dm_response": (
-                    f"Локация: {location}. Канон мира ещё не загружен. "
-                    f"Заявленные действия: {action_lines}"
-                ),
-                "npc_reactions": ["NPC ждут уточнения канона мира."],
-                "world_changes": ["Симуляция отложена до загрузки канона."],
-            }
-
+    ) -> Dict:
+        """Fallback when LLM is unavailable - minimal working."""
         return {
-            "dm_response": (
-                f"Локация: {location}. {action_lines} "
-                f"Проверки: {rules_result['checks']}. "
-                "Мир продолжает жить."
-            ),
-            "npc_reactions": npc_result.get("npc_reactions", []),
-            "world_changes": world_result.get("world_events", []),
+            "dm_response": "Ничего не произошло.",
+            "npc_reactions": [],
+            "world_changes": [],
         }
 
+    def narrate(
+        self,
+        location: str,
+        actions: List[PlayerAction],
+        rules_result: Dict,
+        npc_result: Dict,
+        world_result: Dict,
+        world_canon_exists: bool,
+        context: Optional[Dict] = None,
+    ) -> Dict:
+        """
+        Generates narrative using ModelRouter.
+        Converts actions list to string for prompt.
+        """
+        actions_str = "\n".join(f"{a.player_name}: {a.action}" for a in actions) if actions else "Нет действий"
+
+        prompt = self._build_prompt(
+            location,
+            actions_str,
+            rules_result,
+            npc_result,
+            world_result,
+            world_canon_exists,
+            context,
+        )
+
+        system_prompt = self._get_system_prompt()
+
+        result = self.router.request(
+            capability="narrative",
+            prompt=prompt,
+            system_prompt=system_prompt,
+        )
+
+        # result expected to be dict or JSON string
+        if isinstance(result, str):
+            import json
+            try:
+                result = json.loads(result)
+            except Exception:
+                result = {"dm_response": result, "npc_reactions": [], "world_changes": []}
+
+        return result

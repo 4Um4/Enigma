@@ -1,6 +1,10 @@
-
-
 from __future__ import annotations
+import sys
+from pathlib import Path
+_PROJECT_ROOT = Path(__file__).resolve().parent  # backend/
+APP_DIR = _PROJECT_ROOT / "app"
+if str(APP_DIR) not in sys.path:
+    sys.path.insert(0, str(APP_DIR))
 
 import os
 import re
@@ -15,8 +19,8 @@ from app.services.campaign_state_service import get_campaign_state_service
 from app.services.context_builder import build_dynamic_context
 
 # Папка data — в корне проекта (родитель backend)
-_PROJECT_ROOT = Path(__file__).resolve().parent.parent
-PDF_DROP_FOLDER = str(_PROJECT_ROOT / "data" / "pdf_drop")
+_PROJECT_ROOT = Path(__file__).resolve().parent  # backend/
+PDF_DROP_FOLDER = _PROJECT_ROOT / "data" / "pdf_drop"
 
 # Включить отладочный режим (показывает сырой ответ модели)
 _DEBUG_MODE = "--debug" in os.sys.argv
@@ -179,7 +183,8 @@ def main() -> None:
                 }
                 if model_num in model_map:
                     new_model = model_map[model_num]
-                    model_path = str(_PROJECT_ROOT / "Models LLM" / new_model)
+                    ROOT_ENIGMA = _PROJECT_ROOT.parent  # Enigma/
+                    model_path = ROOT_ENIGMA / "Models LLM" / new_model
                     model = ModelSelection(provider=ModelProvider.llama_cpp, model_name=new_model)
                     orchestrator.llm_manager.switch_model(model)
                     os.environ["LLAMA_CPP_MODEL"] = model_path

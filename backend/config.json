@@ -1,12 +1,12 @@
 {
   "server": {
-    "context_size": 8192,
-    "batch_size": 512,
-    "threads": 6,
+    "context_size": 4096,
+    "batch_size": 256,
+    "threads": 8,
     "cache_reuse": 256,
-    "max_prompt_tokens": 6000,
+    "max_prompt_tokens": 4000,
     "max_response_tokens": 512,
-    "gpu_layers": 33
+    "gpu_layers": 28
   },
   "model": {
     "path": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\Models LLM\\qwen2.5-7b-instruct-q4_k_m.gguf",
@@ -19,4 +19,3 @@
     "system_prompt_max_tokens": 1200
   }
 }
-

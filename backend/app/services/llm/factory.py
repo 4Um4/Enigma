@@ -9,6 +9,10 @@ from __future__ import annotations
 from typing import Optional
 
 from app.core.config import settings
+from app.core.settings_dm import dm_settings
+from app.core.settings_npc import npc_settings
+from app.core.settings_world import world_settings
+from app.core.settings_rules import rules_settings
 from app.services.llm.provider import LlmProvider, ProviderType
 from app.services.llm.llama_cpp_provider import LlamaCppProvider, create_llama_cpp_provider
 
@@ -89,8 +93,22 @@ class ProviderFactory:
         Returns:
             Настроенный LlamaCppProvider с правильным URL
         """
-        server_url = settings.get_llm_server_url(agent_name)
-        return create_llama_cpp_provider(server_url=server_url)
+        agent_map = {
+            "dm": dm_settings,
+            "npc": npc_settings,
+            "world": world_settings,
+            "rules": rules_settings,
+        }
+        agent_settings = agent_map.get(agent_name, settings)
+        server_url = agent_settings.get_llm_server_url(agent_name)
+        model_key = agent_settings.agent_model_map.get(agent_name, "qwen_7b")
+        model_path = None
+        if hasattr(agent_settings, 'available_models') and model_key in agent_settings.available_models:
+            model_path = agent_settings.available_models[model_key].path
+        return create_llama_cpp_provider(
+            model_path=model_path,
+            server_url=server_url,
+        )
     
     @staticmethod
     def check_health_all() -> dict[str, bool]:
