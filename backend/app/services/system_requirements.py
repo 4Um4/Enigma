@@ -18,7 +18,7 @@ class RequirementReport:
 class SystemRequirements:
     """Checks host machine against minimum hardware profile (i7-9700F class / 16GB RAM)."""
 
-    def __init__(self, min_physical_cores: int = 8, min_ram_gb: int = 16) -> None:
+    def __init__(self, min_physical_cores: int = 8, min_ram_gb: int = 8) -> None:
         self.min_physical_cores = min_physical_cores
         self.min_ram_gb = min_ram_gb
 

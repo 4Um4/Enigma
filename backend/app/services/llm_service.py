@@ -17,10 +17,11 @@ class LLMService:
     """
     
     def __init__(self, llm_url: str = "http://127.0.0.1:8080"):
+        from app.core.config import settings  # импорт внутри конструктора
         self.llm_url = llm_url
         self._cache: Optional[dict] = None
         self._cache_timestamp: float = 0
-        self._cache_ttl: float = 5.0  # 5 секунд кэш
+        self._cache_ttl: float = settings.llm_health_check_interval_sec
     
     def _is_cache_valid(self) -> bool:
         """Проверить, валиден ли кэш."""
@@ -44,7 +45,7 @@ class LLMService:
         
         # Проверяем LLM
         try:
-            with httpx.Client(timeout=5.0) as client:
+            with httpx.Client(timeout=settings.llama_cpp_timeout_sec) as client:
                 response = client.get(f"{self.llm_url}/v1/models")
                 
                 if response.status_code == 200:

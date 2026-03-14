@@ -1,68 +1,75 @@
 @echo off
 chcp 65001 >nul
-title Enigma LLM Server
+title Enigma LLM Server (Stable)
 
-echo ========================================
-echo    Enigma LLM Server
-echo ========================================
-echo.
+:: ========================================
+:: 1. Создание timestamped лог-файла
+:: ========================================
+powershell -Command "$dt = Get-Date -Format 'yyyyMMdd_HHmmss'; Write-Output $dt" > "%TEMP%\llm_timestamp.txt"
+set /p dt=<"%TEMP%\llm_timestamp.txt"
+del "%TEMP%\llm_timestamp.txt"
 
-:: Configuration
-set LLM_DIR=C:\DDD\Codex\VSC_Enigma\Enigma\Models LLM\llama
-set MODEL_PATH=C:\DDD\Codex\VSC_Enigma\Enigma\Models LLM\qwen2.5-7b-instruct-q4_k_m.gguf
-set MODEL_NAME=Qwen2.5-7B
-set PORT=8080
-set CONTEXT_SIZE=4096
-set GPU_LAYERS=33
+:: Убираем запрещённые символы
+set "dt=%dt::=-%"
+set "dt=%dt:/=-%"
+set "dt=%dt: =_%"
 
-:: Check if llama-server.exe exists
-if not exist "%LLM_DIR%\llama-server.exe" (
-    echo [ERROR] llama-server.exe not found at: %LLM_DIR%
-    echo Please check your installation
-    pause
-    exit /b 1
-)
+:: ========================================
+:: 2. Конфигурация (относительные пути)
+:: ========================================
+:: ROOT_DIR = Enigma
+set "ROOT_DIR=%~dp0.."
 
-:: Check if model exists
-if not exist "%MODEL_PATH%" (
-    echo [ERROR] Model not found at: %MODEL_PATH%
-    echo Please check your model file
-    pause
-    exit /b 1
-)
+:: LLM директория
+set "LLM_DIR=%ROOT_DIR%\Models LLM\llama"
+set "LLAMA_EXE=%LLM_DIR%\llama-server.exe"
+set "MODEL_PATH=%ROOT_DIR%\Models LLM\qwen2.5-7b-instruct-q4_k_m.gguf"
 
-:: Unblock files (Windows security)
+:: Сервер
+set "LLM_PORT=8080"
+set "CONTEXT_SIZE=4096"
+set "GPU_LAYERS=28"
+
+:: Логи backend
+set "LOG_DIR=%ROOT_DIR%\backend\logs"
+set "LOGFILE=%LOG_DIR%\llm_%dt%.log"
+
+:: ========================================
+:: 4. Разблокировка exe
+:: ========================================
 echo [1/3] Unblocking files...
 powershell -Command "Get-ChildItem '%LLM_DIR%' -Recurse -Filter '*.exe' | Unblock-File -ErrorAction SilentlyContinue"
 
-echo [2/3] Starting LLM Server...
-echo   Model: %MODEL_NAME%
-echo   Path:  %MODEL_PATH%
-echo   Port:  %PORT%
-echo   Context: %CONTEXT_SIZE%
-echo   GPU Layers: %GPU_LAYERS%
-echo.
+:: ========================================
+:: 5. Создание папки логов
+:: ========================================
+if not exist "%LOG_DIR%" mkdir "%LOG_DIR%"
 
-"%LLM_DIR%\llama-server.exe" ^
+:: ========================================
+:: 6. Старт LLM сервера в отдельном окне
+:: ========================================
+echo [2/3] Starting LLM Server...
+echo [INFO] LLM server start >> "%LOGFILE%"
+
+:: ===== Ключ: используем start с абсолютным путем и кавычками, без cmd /c =====
+start "Enigma LLM" "%LLAMA_EXE%" ^
+    --verbose ^
     -ngl %GPU_LAYERS% ^
     -m "%MODEL_PATH%" ^
     -c %CONTEXT_SIZE% ^
-    --port %PORT% ^
+    --port %LLM_PORT% ^
     --host 127.0.0.1 ^
     --threads 8 ^
     --temp 0.7 ^
     --top-p 0.9 ^
     --repeat-penalty 1.1 ^
-    --log-disable
+    >> "%LOGFILE%" 2>&1
 
-if errorlevel 1 (
-    echo.
-    echo [ERROR] LLM server failed to start
-    pause
-    exit /b 1
-)
+:: ========================================
+:: 7. Tail логов
+:: ========================================
+echo [INFO] LLM server started in background
+echo [INFO] Tail logs:
+powershell -Command "Get-Content '%LOGFILE%' -Tail 50 -Wait"
 
-echo.
-echo [INFO] LLM server stopped
 pause
-

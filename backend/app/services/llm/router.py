@@ -82,7 +82,7 @@ def _init_registry() -> dict[str, ModelConfig]:
     return {
         "qwen_7b": ModelConfig(
             key="qwen_7b",
-            name="Qwen2.5-7B",
+            name="qwen_7b",
             provider_type=ProviderType.LLAMA_CPP,
             path=settings.model_qwen_7b_path,
             capabilities=[
@@ -96,7 +96,7 @@ def _init_registry() -> dict[str, ModelConfig]:
         ),
         "qwen_9b": ModelConfig(
             key="qwen_9b",
-            name="Qwen3.5-9B",
+            name="qwen_9b",
             provider_type=ProviderType.LLAMA_CPP,
             path=settings.model_qwen_9b_path,
             capabilities=[
@@ -110,7 +110,7 @@ def _init_registry() -> dict[str, ModelConfig]:
         ),
         "saiga": ModelConfig(
             key="saiga",
-            name="Saiga Mistral 7B",
+            name="saiga",
             provider_type=ProviderType.LLAMA_CPP,
             path=settings.model_saiga_path,
             capabilities=[
@@ -121,18 +121,29 @@ def _init_registry() -> dict[str, ModelConfig]:
             vram_mb=4000,
             temperature=0.5,  # Lower for rules accuracy
         ),
-        "yandex": ModelConfig(
-            key="yandex",
-            name="YandexGPT-8B Lite",
+        "npc_major": ModelConfig(
+            key="npc_major",
+            name="npc_major",
             provider_type=ProviderType.LLAMA_CPP,
-            path=settings.model_yandex_path,
+            path=settings.model_npc_major_path,
             capabilities=[
                 Capability.DIALOGUE,
                 Capability.DIALOGUE_GENERATION,
-                Capability.NARRATIVE,
             ],
-            vram_mb=5000,
+            vram_mb=4000,
             temperature=0.8,
+        ),
+        "npc_mass": ModelConfig(
+            key="npc_mass",
+            name="npc_mass",
+            provider_type=ProviderType.LLAMA_CPP,
+            path=settings.model_npc_mass_path,
+            capabilities=[
+                Capability.DIALOGUE,
+                Capability.FAST,
+            ],
+            vram_mb=2500,
+            temperature=0.7,
         ),
     }
 
@@ -154,15 +165,15 @@ DEFAULT_AGENT_CAPABILITY_MAP: dict[str, Capability] = {
 
 # Mapping: capability → preferred model keys (in order of preference)
 CAPABILITY_MODEL_PREFERENCES: dict[Capability, list[str]] = {
-    Capability.NARRATIVE: ["qwen_7b", "qwen_9b", "yandex"],
-    Capability.DIALOGUE: ["yandex", "qwen_7b"],
-    Capability.DIALOGUE_GENERATION: ["yandex", "qwen_7b"],
+    Capability.NARRATIVE: ["qwen_7b", "qwen_9b"],
+    Capability.DIALOGUE: ["npc_major", "npc_mass", "qwen_7b"],
+    Capability.DIALOGUE_GENERATION: ["npc_major", "npc_mass", "qwen_7b"],
     Capability.WORLD_SIMULATION: ["qwen_9b", "qwen_7b"],
     Capability.RULES_REASONING: ["saiga", "qwen_7b"],
     Capability.MEMORY_SUMMARIZATION: ["saiga", "qwen_7b"],
     Capability.FACT_EXTRACTION: ["qwen_9b", "qwen_7b"],
     Capability.STRATEGY: ["qwen_9b", "qwen_7b"],
-    Capability.FAST: ["saiga", "qwen_7b"],
+    Capability.FAST: ["saiga", "npc_mass", "qwen_7b"],
     Capability.GENERAL: ["qwen_7b", "saiga"],
 }
 
@@ -430,7 +441,7 @@ class ModelRouter:
     
     def _get_fallback_model(self) -> str:
         """Получить резервную модель."""
-        for key in ["qwen_7b", "saiga", "yandex", "qwen_9b"]:
+        for key in ["qwen_7b", "saiga", "npc_major", "qwen_9b", "npc_mass"]:
             if key in self._registry:
                 return key
         return list(self._registry.keys())[0]
