@@ -24,7 +24,7 @@ class ProviderType(str, Enum):
 @dataclass
 class GenerationParams:
     """Параметры генерации для LLM."""
-    max_tokens: int = 512
+    max_tokens: int = 812
     temperature: float = 0.7
     top_p: float = 0.9
     top_k: int = 40

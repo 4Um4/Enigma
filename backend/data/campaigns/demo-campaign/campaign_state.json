@@ -61,5 +61,12 @@
     }
   ],
   "session_summaries": [],
-  "metadata": {}
+  "metadata": {
+    "current_location": "Таверна Серебряный Волк",
+    "world_name": "Фандалин",
+    "time_of_day": "вечер",
+    "day": 1,
+    "weather": "тихо, облачно, переодически накрапывает дождь",
+    "season": "осень"
+  }
 }

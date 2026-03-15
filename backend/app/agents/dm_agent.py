@@ -9,6 +9,7 @@ from typing import Optional, List, Dict
 from pathlib import Path
 from app.models.schemas import PlayerAction
 from app.services.llm import ModelRouter, get_router
+from app.services.llm.provider import GenerationParams
 from app.services.error_interpreter import get_error_interpreter
 from app.services.vram_monitor import get_vram_monitor
 # from app.services.orchestrator import jsonl_log, ERROR_CODES  # Avoid circular import
@@ -115,12 +116,13 @@ class DmAgent:
 В конце опиши текущую ситуацию, не задавай вопросов."""
 
     def _get_system_prompt(self) -> str:
-        """Get system prompt for DM narrative."""
-        return """Ты - Dungeon Master для D&D 5e кампании.
-Веди叙事 от третьего лица, описывая мир и NPC.
-Никогда не говори за игроков.
-Будь краток и атмосферен.
-Не повторяй предыдущий текст."""
+        return """ВАЖНО: Отвечай ТОЛЬКО на Русском языке. Никакого английского или китайского.
+    ВАЖНО: Не показывай свои размышления. Только финальный ответ.
+
+    Ты — Мастер Подземелий D&D 5e. Ведёшь повествование от третьего лица.
+    Никогда не говори за игроков.
+    Будь атмосферен и краток (2-4 предложения).
+    Не повторяй текст промпта в ответе."""
 
     def _fallback_narrate(
         self,
@@ -170,6 +172,7 @@ class DmAgent:
             capability="narrative",
             prompt=prompt,
             system_prompt=system_prompt,
+            params=GenerationParams(max_tokens=1000),
         )
 
         # result expected to be dict or JSON string
@@ -179,5 +182,7 @@ class DmAgent:
                 result = json.loads(result)
             except Exception:
                 result = {"dm_response": result, "npc_reactions": [], "world_changes": []}
+
+                
 
         return result

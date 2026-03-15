@@ -1,0 +1,291 @@
+{"error_code": "startup_error", "error_message": "Simulated startup error"}
+{"error_code": "startup_error", "error_message": "Simulated startup error"}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"timestamp": "2026-03-15T18:20:08.611363", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 5411}
+{"timestamp": "2026-03-15T18:20:08.664740", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 5411, "vram_delta_mb": 0}
+{"timestamp": "2026-03-15T18:20:16.941307", "level": "INFO", "agent": "rules", "model": "saiga", "status": "load_start", "vram_before_mb": 5422}
+{"timestamp": "2026-03-15T18:20:16.986317", "level": "INFO", "agent": "rules", "model": "saiga", "status": "load_success", "vram_after_mb": 5422, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 5422, "vram_after_mb": 5422}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 180, "status": "complete"}
+{"timestamp": "2026-03-15T18:20:17.155249", "level": "INFO", "agent": "npc", "model": "npc_major", "status": "load_start", "vram_before_mb": 5422}
+{"timestamp": "2026-03-15T18:20:17.205353", "level": "INFO", "agent": "npc", "model": "npc_major", "status": "load_success", "vram_after_mb": 5422, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "npc", "status": "model_switch", "vram_before_mb": 5422, "vram_after_mb": 5422}
+{"level": "INFO", "agent": "npc", "error_code": "SUCCESS", "duration_ms": 8151, "status": "complete"}
+{"timestamp": "2026-03-15T18:20:25.293595", "level": "INFO", "agent": "dm", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 5422}
+{"timestamp": "2026-03-15T18:20:25.344195", "level": "INFO", "agent": "dm", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 5422, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 5425, "vram_after_mb": 5422}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 8877, "status": "complete"}
+{"level": "INFO", "agent": "orchestrator", "error_code": "SUCCESS", "duration_ms": 25404, "status": "pipeline_complete", "agents_executed": ["rules", "npc", "dm"]}
+{"error_code": "startup_error", "error_message": "Simulated startup error"}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"timestamp": "2026-03-15T20:07:49.003752", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6773}
+{"timestamp": "2026-03-15T20:07:49.059979", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6773, "vram_delta_mb": 0}
+{"timestamp": "2026-03-15T20:08:00.401819", "level": "INFO", "agent": "rules", "model": "saiga", "status": "load_start", "vram_before_mb": 6771}
+{"timestamp": "2026-03-15T20:08:00.476295", "level": "INFO", "agent": "rules", "model": "saiga", "status": "load_success", "vram_after_mb": 6778, "vram_delta_mb": 7}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6771, "vram_after_mb": 6778}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 287, "status": "complete"}
+{"timestamp": "2026-03-15T20:08:00.598044", "level": "INFO", "agent": "npc", "model": "npc_major", "status": "load_start", "vram_before_mb": 6778}
+{"timestamp": "2026-03-15T20:08:00.646127", "level": "INFO", "agent": "npc", "model": "npc_major", "status": "load_success", "vram_after_mb": 6778, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "npc", "status": "model_switch", "vram_before_mb": 6778, "vram_after_mb": 6778}
+{"level": "INFO", "agent": "npc", "error_code": "SUCCESS", "duration_ms": 5620, "status": "complete"}
+{"timestamp": "2026-03-15T20:08:06.203884", "level": "INFO", "agent": "dm", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6771}
+{"timestamp": "2026-03-15T20:08:06.274597", "level": "INFO", "agent": "dm", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6771, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6771, "vram_after_mb": 6771}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 6757, "status": "complete"}
+{"level": "INFO", "agent": "orchestrator", "error_code": "SUCCESS", "duration_ms": 23837, "status": "pipeline_complete", "agents_executed": ["rules", "npc", "dm"]}
+{"error_code": "startup_error", "error_message": "Simulated startup error"}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"timestamp": "2026-03-15T20:48:31.900303", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6754}
+{"timestamp": "2026-03-15T20:48:31.954133", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6754, "vram_delta_mb": 0}
+{"timestamp": "2026-03-15T20:48:35.806406", "level": "INFO", "agent": "rules", "model": "saiga", "status": "load_start", "vram_before_mb": 6758}
+{"timestamp": "2026-03-15T20:48:35.872959", "level": "INFO", "agent": "rules", "model": "saiga", "status": "load_success", "vram_after_mb": 6758, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6758, "vram_after_mb": 6758}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 179, "status": "complete"}
+{"timestamp": "2026-03-15T20:48:36.006428", "level": "INFO", "agent": "npc", "model": "npc_major", "status": "load_start", "vram_before_mb": 6758}
+{"timestamp": "2026-03-15T20:48:36.036382", "level": "INFO", "agent": "npc", "model": "npc_major", "status": "load_success", "vram_after_mb": 6758, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "npc", "status": "model_switch", "vram_before_mb": 6758, "vram_after_mb": 6758}
+{"level": "INFO", "agent": "npc", "error_code": "SUCCESS", "duration_ms": 1106, "status": "complete"}
+{"timestamp": "2026-03-15T20:48:37.090877", "level": "INFO", "agent": "dm", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6755}
+{"timestamp": "2026-03-15T20:48:37.173539", "level": "INFO", "agent": "dm", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6755, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6755, "vram_after_mb": 6752}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 678, "status": "complete"}
+{"level": "INFO", "agent": "orchestrator", "error_code": "SUCCESS", "duration_ms": 5734, "status": "pipeline_complete", "agents_executed": ["rules", "npc", "dm"]}
+{"timestamp": "2026-03-15T20:50:05.499626", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6773}
+{"timestamp": "2026-03-15T20:50:05.531797", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6773, "vram_delta_mb": 0}
+{"timestamp": "2026-03-15T20:50:05.631618", "level": "INFO", "agent": "rules", "model": "saiga", "status": "load_start", "vram_before_mb": 6773}
+{"timestamp": "2026-03-15T20:50:05.681662", "level": "INFO", "agent": "rules", "model": "saiga", "status": "load_success", "vram_after_mb": 6773, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6773, "vram_after_mb": 6773}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 174, "status": "complete"}
+{"timestamp": "2026-03-15T20:50:05.819542", "level": "INFO", "agent": "npc", "model": "npc_major", "status": "load_start", "vram_before_mb": 6773}
+{"timestamp": "2026-03-15T20:50:05.865452", "level": "INFO", "agent": "npc", "model": "npc_major", "status": "load_success", "vram_after_mb": 6773, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "npc", "status": "model_switch", "vram_before_mb": 6773, "vram_after_mb": 6773}
+{"level": "INFO", "agent": "npc", "error_code": "SUCCESS", "duration_ms": 5905, "status": "complete"}
+{"timestamp": "2026-03-15T20:50:11.702960", "level": "INFO", "agent": "dm", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6783}
+{"timestamp": "2026-03-15T20:50:11.786593", "level": "INFO", "agent": "dm", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6783, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6783, "vram_after_mb": 6783}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 13997, "status": "complete"}
+{"level": "INFO", "agent": "orchestrator", "error_code": "SUCCESS", "duration_ms": 20086, "status": "pipeline_complete", "agents_executed": ["rules", "npc", "dm"]}
+{"error_code": "startup_error", "error_message": "Simulated startup error"}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"timestamp": "2026-03-15T21:07:37.848836", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6775}
+{"timestamp": "2026-03-15T21:07:37.901239", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6775, "vram_delta_mb": 0}
+{"timestamp": "2026-03-15T21:07:38.000243", "level": "INFO", "agent": "rules", "model": "saiga", "status": "load_start", "vram_before_mb": 6775}
+{"timestamp": "2026-03-15T21:07:38.047359", "level": "INFO", "agent": "rules", "model": "saiga", "status": "load_success", "vram_after_mb": 6776, "vram_delta_mb": 1}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6775, "vram_after_mb": 6776}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 194, "status": "complete"}
+{"timestamp": "2026-03-15T21:07:38.181935", "level": "INFO", "agent": "npc", "model": "npc_major", "status": "load_start", "vram_before_mb": 6776}
+{"timestamp": "2026-03-15T21:07:38.214972", "level": "INFO", "agent": "npc", "model": "npc_major", "status": "load_success", "vram_after_mb": 6776, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "npc", "status": "model_switch", "vram_before_mb": 6776, "vram_after_mb": 6776}
+{"level": "INFO", "agent": "npc", "error_code": "SUCCESS", "duration_ms": 162, "status": "complete"}
+{"timestamp": "2026-03-15T21:07:38.331663", "level": "INFO", "agent": "dm", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6776}
+{"timestamp": "2026-03-15T21:07:38.381199", "level": "INFO", "agent": "dm", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6776, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6776, "vram_after_mb": 6776}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 185, "status": "complete"}
+{"level": "INFO", "agent": "orchestrator", "error_code": "SUCCESS", "duration_ms": 547, "status": "pipeline_complete", "agents_executed": ["rules", "npc", "dm"]}
+{"timestamp": "2026-03-15T21:07:52.729586", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6775}
+{"timestamp": "2026-03-15T21:07:52.760720", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6775, "vram_delta_mb": 0}
+{"timestamp": "2026-03-15T21:07:52.861082", "level": "INFO", "agent": "rules", "model": "saiga", "status": "load_start", "vram_before_mb": 6775}
+{"timestamp": "2026-03-15T21:07:52.893858", "level": "INFO", "agent": "rules", "model": "saiga", "status": "load_success", "vram_after_mb": 6775, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6775, "vram_after_mb": 6775}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 162, "status": "complete"}
+{"timestamp": "2026-03-15T21:07:53.026881", "level": "INFO", "agent": "npc", "model": "npc_major", "status": "load_start", "vram_before_mb": 6775}
+{"timestamp": "2026-03-15T21:07:53.082179", "level": "INFO", "agent": "npc", "model": "npc_major", "status": "load_success", "vram_after_mb": 6775, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "npc", "status": "model_switch", "vram_before_mb": 6775, "vram_after_mb": 6775}
+{"level": "INFO", "agent": "npc", "error_code": "SUCCESS", "duration_ms": 210, "status": "complete"}
+{"timestamp": "2026-03-15T21:07:53.227130", "level": "INFO", "agent": "dm", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6776}
+{"timestamp": "2026-03-15T21:07:53.260313", "level": "INFO", "agent": "dm", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6776, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6775, "vram_after_mb": 6776}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 157, "status": "complete"}
+{"level": "INFO", "agent": "orchestrator", "error_code": "SUCCESS", "duration_ms": 537, "status": "pipeline_complete", "agents_executed": ["rules", "npc", "dm"]}
+{"timestamp": "2026-03-15T21:08:03.987621", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6767}
+{"timestamp": "2026-03-15T21:08:04.037076", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6767, "vram_delta_mb": 0}
+{"timestamp": "2026-03-15T21:08:04.120576", "level": "INFO", "agent": "rules", "model": "saiga", "status": "load_start", "vram_before_mb": 6767}
+{"timestamp": "2026-03-15T21:08:04.172273", "level": "INFO", "agent": "rules", "model": "saiga", "status": "load_success", "vram_after_mb": 6767, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6767, "vram_after_mb": 6767}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 167, "status": "complete"}
+{"timestamp": "2026-03-15T21:08:04.305171", "level": "INFO", "agent": "npc", "model": "npc_major", "status": "load_start", "vram_before_mb": 6767}
+{"timestamp": "2026-03-15T21:08:04.341270", "level": "INFO", "agent": "npc", "model": "npc_major", "status": "load_success", "vram_after_mb": 6767, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "npc", "status": "model_switch", "vram_before_mb": 6767, "vram_after_mb": 6767}
+{"level": "INFO", "agent": "npc", "error_code": "SUCCESS", "duration_ms": 168, "status": "complete"}
+{"timestamp": "2026-03-15T21:08:04.470706", "level": "INFO", "agent": "dm", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6767}
+{"timestamp": "2026-03-15T21:08:04.520172", "level": "INFO", "agent": "dm", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6767, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6767, "vram_after_mb": 6767}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 211, "status": "complete"}
+{"level": "INFO", "agent": "orchestrator", "error_code": "SUCCESS", "duration_ms": 548, "status": "pipeline_complete", "agents_executed": ["rules", "npc", "dm"]}
+{"error_code": "startup_error", "error_message": "Simulated startup error"}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"timestamp": "2026-03-15T21:12:09.871843", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6772}
+{"timestamp": "2026-03-15T21:12:09.901416", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6772, "vram_delta_mb": 0}
+{"timestamp": "2026-03-15T21:12:09.984241", "level": "INFO", "agent": "rules", "model": "saiga", "status": "load_start", "vram_before_mb": 6772}
+{"timestamp": "2026-03-15T21:12:10.033804", "level": "INFO", "agent": "rules", "model": "saiga", "status": "load_success", "vram_after_mb": 6772, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6772, "vram_after_mb": 6772}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 182, "status": "complete"}
+{"timestamp": "2026-03-15T21:12:10.167676", "level": "INFO", "agent": "npc", "model": "npc_major", "status": "load_start", "vram_before_mb": 6772}
+{"timestamp": "2026-03-15T21:12:10.200745", "level": "INFO", "agent": "npc", "model": "npc_major", "status": "load_success", "vram_after_mb": 6772, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "npc", "status": "model_switch", "vram_before_mb": 6772, "vram_after_mb": 6772}
+{"level": "INFO", "agent": "npc", "error_code": "SUCCESS", "duration_ms": 5953, "status": "complete"}
+{"timestamp": "2026-03-15T21:12:16.122654", "level": "INFO", "agent": "dm", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6768}
+{"timestamp": "2026-03-15T21:12:16.156021", "level": "INFO", "agent": "dm", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6768, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6768, "vram_after_mb": 6768}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 13962, "status": "complete"}
+{"level": "INFO", "agent": "orchestrator", "error_code": "SUCCESS", "duration_ms": 20100, "status": "pipeline_complete", "agents_executed": ["rules", "npc", "dm"]}
+{"error_code": "startup_error", "error_message": "Simulated startup error"}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"timestamp": "2026-03-15T21:21:48.955748", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6763}
+{"timestamp": "2026-03-15T21:21:49.006284", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6763, "vram_delta_mb": 0}
+{"timestamp": "2026-03-15T21:21:49.104689", "level": "INFO", "agent": "rules", "model": "saiga", "status": "load_start", "vram_before_mb": 6763}
+{"timestamp": "2026-03-15T21:21:49.138364", "level": "INFO", "agent": "rules", "model": "saiga", "status": "load_success", "vram_after_mb": 6763, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6763, "vram_after_mb": 6763}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 182, "status": "complete"}
+{"timestamp": "2026-03-15T21:21:49.289075", "level": "INFO", "agent": "npc", "model": "npc_major", "status": "load_start", "vram_before_mb": 6763}
+{"timestamp": "2026-03-15T21:21:49.338204", "level": "INFO", "agent": "npc", "model": "npc_major", "status": "load_success", "vram_after_mb": 6763, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "npc", "status": "model_switch", "vram_before_mb": 6763, "vram_after_mb": 6763}
+{"level": "INFO", "agent": "npc", "error_code": "SUCCESS", "duration_ms": 5902, "status": "complete"}
+{"timestamp": "2026-03-15T21:21:55.160496", "level": "INFO", "agent": "dm", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6769}
+{"timestamp": "2026-03-15T21:21:55.193269", "level": "INFO", "agent": "dm", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6769, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6769, "vram_after_mb": 6769}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 13609, "status": "complete"}
+{"level": "INFO", "agent": "orchestrator", "error_code": "SUCCESS", "duration_ms": 19695, "status": "pipeline_complete", "agents_executed": ["rules", "npc", "dm"]}
+{"error_code": "startup_error", "error_message": "Simulated startup error"}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"timestamp": "2026-03-15T21:33:20.057391", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6758}
+{"timestamp": "2026-03-15T21:33:20.109635", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6758, "vram_delta_mb": 0}
+{"timestamp": "2026-03-15T21:33:31.432932", "level": "INFO", "agent": "rules", "model": "saiga", "status": "load_start", "vram_before_mb": 6754}
+{"timestamp": "2026-03-15T21:33:31.466473", "level": "INFO", "agent": "rules", "model": "saiga", "status": "load_success", "vram_after_mb": 6754, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6754, "vram_after_mb": 6754}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 147, "status": "complete"}
+{"timestamp": "2026-03-15T21:33:31.619442", "level": "INFO", "agent": "npc", "model": "npc_major", "status": "load_start", "vram_before_mb": 6754}
+{"timestamp": "2026-03-15T21:33:31.649858", "level": "INFO", "agent": "npc", "model": "npc_major", "status": "load_success", "vram_after_mb": 6754, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "npc", "status": "model_switch", "vram_before_mb": 6754, "vram_after_mb": 6754}
+{"level": "INFO", "agent": "npc", "error_code": "SUCCESS", "duration_ms": 5655, "status": "complete"}
+{"timestamp": "2026-03-15T21:33:37.226437", "level": "INFO", "agent": "dm", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6756}
+{"timestamp": "2026-03-15T21:33:37.254631", "level": "INFO", "agent": "dm", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6756, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6756, "vram_after_mb": 6756}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 13819, "status": "complete"}
+{"level": "INFO", "agent": "orchestrator", "error_code": "SUCCESS", "duration_ms": 30868, "status": "pipeline_complete", "agents_executed": ["rules", "npc", "dm"]}
+{"error_code": "startup_error", "error_message": "Simulated startup error"}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"timestamp": "2026-03-15T21:41:38.157447", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6758}
+{"timestamp": "2026-03-15T21:41:38.207626", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6758, "vram_delta_mb": 0}
+{"timestamp": "2026-03-15T21:41:38.307028", "level": "INFO", "agent": "rules", "model": "saiga", "status": "load_start", "vram_before_mb": 6758}
+{"timestamp": "2026-03-15T21:41:38.340272", "level": "INFO", "agent": "rules", "model": "saiga", "status": "load_success", "vram_after_mb": 6758, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6758, "vram_after_mb": 6758}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 176, "status": "complete"}
+{"timestamp": "2026-03-15T21:41:38.491140", "level": "INFO", "agent": "npc", "model": "npc_major", "status": "load_start", "vram_before_mb": 6758}
+{"timestamp": "2026-03-15T21:41:38.540092", "level": "INFO", "agent": "npc", "model": "npc_major", "status": "load_success", "vram_after_mb": 6758, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "npc", "status": "model_switch", "vram_before_mb": 6758, "vram_after_mb": 6758}
+{"level": "INFO", "agent": "npc", "error_code": "SUCCESS", "duration_ms": 5954, "status": "complete"}
+{"timestamp": "2026-03-15T21:41:44.437879", "level": "INFO", "agent": "dm", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6754}
+{"timestamp": "2026-03-15T21:41:44.495329", "level": "INFO", "agent": "dm", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6754, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6754, "vram_after_mb": 6754}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 1750, "status": "complete"}
+{"level": "INFO", "agent": "orchestrator", "error_code": "SUCCESS", "duration_ms": 7889, "status": "pipeline_complete", "agents_executed": ["rules", "npc", "dm"]}
+{"timestamp": "2026-03-15T21:43:18.912699", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6764}
+{"timestamp": "2026-03-15T21:43:18.945167", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6764, "vram_delta_mb": 0}
+{"timestamp": "2026-03-15T21:43:19.046960", "level": "INFO", "agent": "rules", "model": "saiga", "status": "load_start", "vram_before_mb": 6764}
+{"timestamp": "2026-03-15T21:43:19.094723", "level": "INFO", "agent": "rules", "model": "saiga", "status": "load_success", "vram_after_mb": 6765, "vram_delta_mb": 1}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6764, "vram_after_mb": 6765}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 200, "status": "complete"}
+{"timestamp": "2026-03-15T21:43:19.245556", "level": "INFO", "agent": "npc", "model": "npc_major", "status": "load_start", "vram_before_mb": 6765}
+{"timestamp": "2026-03-15T21:43:19.278226", "level": "INFO", "agent": "npc", "model": "npc_major", "status": "load_success", "vram_after_mb": 6765, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "npc", "status": "model_switch", "vram_before_mb": 6765, "vram_after_mb": 6765}
+{"level": "INFO", "agent": "npc", "error_code": "SUCCESS", "duration_ms": 5991, "status": "complete"}
+{"timestamp": "2026-03-15T21:43:25.218326", "level": "INFO", "agent": "dm", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6756}
+{"timestamp": "2026-03-15T21:43:25.249793", "level": "INFO", "agent": "dm", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6756, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6756, "vram_after_mb": 6756}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 13857, "status": "complete"}
+{"level": "INFO", "agent": "orchestrator", "error_code": "SUCCESS", "duration_ms": 20050, "status": "pipeline_complete", "agents_executed": ["rules", "npc", "dm"]}
+{"error_code": "startup_error", "error_message": "Simulated startup error"}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"timestamp": "2026-03-15T21:53:16.815519", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6775}
+{"timestamp": "2026-03-15T21:53:16.848745", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6775, "vram_delta_mb": 0}
+{"timestamp": "2026-03-15T21:53:17.302157", "level": "INFO", "agent": "rules", "model": "saiga", "status": "load_start", "vram_before_mb": 6782}
+{"timestamp": "2026-03-15T21:53:17.331655", "level": "INFO", "agent": "rules", "model": "saiga", "status": "load_success", "vram_after_mb": 6782, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6782, "vram_after_mb": 6782}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 142, "status": "complete"}
+{"timestamp": "2026-03-15T21:53:17.431722", "level": "INFO", "agent": "npc", "model": "npc_major", "status": "load_start", "vram_before_mb": 6782}
+{"timestamp": "2026-03-15T21:53:17.465390", "level": "INFO", "agent": "npc", "model": "npc_major", "status": "load_success", "vram_after_mb": 6782, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "npc", "status": "model_switch", "vram_before_mb": 6782, "vram_after_mb": 6782}
+{"level": "INFO", "agent": "npc", "error_code": "SUCCESS", "duration_ms": 272, "status": "complete"}
+{"timestamp": "2026-03-15T21:53:17.715626", "level": "INFO", "agent": "dm", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6784}
+{"timestamp": "2026-03-15T21:53:17.752513", "level": "INFO", "agent": "dm", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6784, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6784, "vram_after_mb": 6784}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 1624, "status": "complete"}
+{"level": "INFO", "agent": "orchestrator", "error_code": "SUCCESS", "duration_ms": 2413, "status": "pipeline_complete", "agents_executed": ["rules", "npc", "dm"]}
+{"timestamp": "2026-03-15T21:54:06.475210", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6785}
+{"timestamp": "2026-03-15T21:54:06.508359", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6785, "vram_delta_mb": 0}
+{"timestamp": "2026-03-15T21:54:06.592024", "level": "INFO", "agent": "rules", "model": "saiga", "status": "load_start", "vram_before_mb": 6785}
+{"timestamp": "2026-03-15T21:54:06.624987", "level": "INFO", "agent": "rules", "model": "saiga", "status": "load_success", "vram_after_mb": 6785, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6785, "vram_after_mb": 6785}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 141, "status": "complete"}
+{"timestamp": "2026-03-15T21:54:06.758189", "level": "INFO", "agent": "npc", "model": "npc_major", "status": "load_start", "vram_before_mb": 6785}
+{"timestamp": "2026-03-15T21:54:06.808811", "level": "INFO", "agent": "npc", "model": "npc_major", "status": "load_success", "vram_after_mb": 6785, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "npc", "status": "model_switch", "vram_before_mb": 6785, "vram_after_mb": 6785}
+{"level": "INFO", "agent": "npc", "error_code": "SUCCESS", "duration_ms": 1692, "status": "complete"}
+{"timestamp": "2026-03-15T21:54:08.426576", "level": "INFO", "agent": "dm", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6785}
+{"timestamp": "2026-03-15T21:54:08.459647", "level": "INFO", "agent": "dm", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6785, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6785, "vram_after_mb": 6785}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 342, "status": "complete"}
+{"level": "INFO", "agent": "orchestrator", "error_code": "SUCCESS", "duration_ms": 2185, "status": "pipeline_complete", "agents_executed": ["rules", "npc", "dm"]}
+{"error_code": "startup_error", "error_message": "Simulated startup error"}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"timestamp": "2026-03-15T22:00:15.647819", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6795}
+{"timestamp": "2026-03-15T22:00:15.680131", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6795, "vram_delta_mb": 0}
+{"timestamp": "2026-03-15T22:00:15.782111", "level": "INFO", "agent": "rules", "model": "saiga", "status": "load_start", "vram_before_mb": 6795}
+{"timestamp": "2026-03-15T22:00:15.816867", "level": "INFO", "agent": "rules", "model": "saiga", "status": "load_success", "vram_after_mb": 6795, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6795, "vram_after_mb": 6795}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 180, "status": "complete"}
+{"timestamp": "2026-03-15T22:00:15.963771", "level": "INFO", "agent": "npc", "model": "npc_major", "status": "load_start", "vram_before_mb": 6795}
+{"timestamp": "2026-03-15T22:00:16.012769", "level": "INFO", "agent": "npc", "model": "npc_major", "status": "load_success", "vram_after_mb": 6795, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "npc", "status": "model_switch", "vram_before_mb": 6795, "vram_after_mb": 6795}
+{"level": "INFO", "agent": "npc", "error_code": "SUCCESS", "duration_ms": 1322, "status": "complete"}
+{"timestamp": "2026-03-15T22:00:17.281986", "level": "INFO", "agent": "dm", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6802}
+{"timestamp": "2026-03-15T22:00:17.330567", "level": "INFO", "agent": "dm", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6802, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6802, "vram_after_mb": 6802}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 2136, "status": "complete"}
+{"level": "INFO", "agent": "orchestrator", "error_code": "SUCCESS", "duration_ms": 3641, "status": "pipeline_complete", "agents_executed": ["rules", "npc", "dm"]}
+{"timestamp": "2026-03-15T22:01:01.555783", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6802}
+{"timestamp": "2026-03-15T22:01:01.603132", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6802, "vram_delta_mb": 0}
+{"timestamp": "2026-03-15T22:01:01.703583", "level": "INFO", "agent": "rules", "model": "saiga", "status": "load_start", "vram_before_mb": 6802}
+{"timestamp": "2026-03-15T22:01:01.756485", "level": "INFO", "agent": "rules", "model": "saiga", "status": "load_success", "vram_after_mb": 6802, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6802, "vram_after_mb": 6802}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 200, "status": "complete"}
+{"timestamp": "2026-03-15T22:01:01.890421", "level": "INFO", "agent": "npc", "model": "npc_major", "status": "load_start", "vram_before_mb": 6802}
+{"timestamp": "2026-03-15T22:01:01.923784", "level": "INFO", "agent": "npc", "model": "npc_major", "status": "load_success", "vram_after_mb": 6802, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "npc", "status": "model_switch", "vram_before_mb": 6802, "vram_after_mb": 6802}
+{"level": "INFO", "agent": "npc", "error_code": "SUCCESS", "duration_ms": 1269, "status": "complete"}
+{"timestamp": "2026-03-15T22:01:03.176306", "level": "INFO", "agent": "dm", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6803}
+{"timestamp": "2026-03-15T22:01:03.203761", "level": "INFO", "agent": "dm", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6803, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6803, "vram_after_mb": 6803}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 1421, "status": "complete"}
+{"level": "INFO", "agent": "orchestrator", "error_code": "SUCCESS", "duration_ms": 2892, "status": "pipeline_complete", "agents_executed": ["rules", "npc", "dm"]}
+{"timestamp": "2026-03-15T22:01:33.434452", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6802}
+{"timestamp": "2026-03-15T22:01:33.480524", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6802, "vram_delta_mb": 0}
+{"timestamp": "2026-03-15T22:01:33.547505", "level": "INFO", "agent": "rules", "model": "saiga", "status": "load_start", "vram_before_mb": 6802}
+{"timestamp": "2026-03-15T22:01:33.584454", "level": "INFO", "agent": "rules", "model": "saiga", "status": "load_success", "vram_after_mb": 6802, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6802, "vram_after_mb": 6802}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 154, "status": "complete"}
+{"timestamp": "2026-03-15T22:01:33.730832", "level": "INFO", "agent": "npc", "model": "npc_major", "status": "load_start", "vram_before_mb": 6802}
+{"timestamp": "2026-03-15T22:01:33.785814", "level": "INFO", "agent": "npc", "model": "npc_major", "status": "load_success", "vram_after_mb": 6802, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "npc", "status": "model_switch", "vram_before_mb": 6802, "vram_after_mb": 6802}
+{"level": "INFO", "agent": "npc", "error_code": "SUCCESS", "duration_ms": 1877, "status": "complete"}
+{"timestamp": "2026-03-15T22:01:35.582164", "level": "INFO", "agent": "dm", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6803}
+{"timestamp": "2026-03-15T22:01:35.618453", "level": "INFO", "agent": "dm", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6803, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6803, "vram_after_mb": 6803}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 1638, "status": "complete"}
+{"level": "INFO", "agent": "orchestrator", "error_code": "SUCCESS", "duration_ms": 3671, "status": "pipeline_complete", "agents_executed": ["rules", "npc", "dm"]}
+{"timestamp": "2026-03-15T22:02:09.716078", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6788}
+{"timestamp": "2026-03-15T22:02:09.745806", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6784, "vram_delta_mb": -4}
+{"timestamp": "2026-03-15T22:02:09.846053", "level": "INFO", "agent": "rules", "model": "saiga", "status": "load_start", "vram_before_mb": 6784}
+{"timestamp": "2026-03-15T22:02:09.895579", "level": "INFO", "agent": "rules", "model": "saiga", "status": "load_success", "vram_after_mb": 6784, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6784, "vram_after_mb": 6784}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 199, "status": "complete"}
+{"timestamp": "2026-03-15T22:02:10.046233", "level": "INFO", "agent": "npc", "model": "npc_major", "status": "load_start", "vram_before_mb": 6784}
+{"timestamp": "2026-03-15T22:02:10.079009", "level": "INFO", "agent": "npc", "model": "npc_major", "status": "load_success", "vram_after_mb": 6784, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "npc", "status": "model_switch", "vram_before_mb": 6784, "vram_after_mb": 6784}
+{"level": "INFO", "agent": "npc", "error_code": "SUCCESS", "duration_ms": 1196, "status": "complete"}
+{"timestamp": "2026-03-15T22:02:11.213136", "level": "INFO", "agent": "dm", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6784}
+{"timestamp": "2026-03-15T22:02:11.246624", "level": "INFO", "agent": "dm", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6784, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6784, "vram_after_mb": 6784}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 2294, "status": "complete"}
+{"level": "INFO", "agent": "orchestrator", "error_code": "SUCCESS", "duration_ms": 3692, "status": "pipeline_complete", "agents_executed": ["rules", "npc", "dm"]}

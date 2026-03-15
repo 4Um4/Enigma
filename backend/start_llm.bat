@@ -2,6 +2,7 @@
 chcp 65001 >nul
 title Enigma LLM Server (Stable)
 
+
 :: ========================================
 :: 1. Создание timestamped лог-файла
 :: ========================================
@@ -23,12 +24,12 @@ set "ROOT_DIR=%~dp0.."
 :: LLM директория
 set "LLM_DIR=%ROOT_DIR%\Models LLM\llama"
 set "LLAMA_EXE=%LLM_DIR%\llama-server.exe"
-set "MODEL_PATH=%ROOT_DIR%\Models LLM\qwen2.5-7b-instruct-q4_k_m.gguf"
+set "MODEL_PATH=%ROOT_DIR%\Models LLM\Qwen3.5-9B.gguf"
 
 :: Сервер
 set "LLM_PORT=8080"
 set "CONTEXT_SIZE=4096"
-set "GPU_LAYERS=28"
+set "GPU_LAYERS=33"
 
 :: Логи backend
 set "LOG_DIR=%ROOT_DIR%\backend\logs"
@@ -51,6 +52,7 @@ if not exist "%LOG_DIR%" mkdir "%LOG_DIR%"
 echo [2/3] Starting LLM Server...
 echo [INFO] LLM server start >> "%LOGFILE%"
 
+
 :: ===== Ключ: используем start с абсолютным путем и кавычками, без cmd /c =====
 start "Enigma LLM" "%LLAMA_EXE%" ^
     --verbose ^
@@ -59,6 +61,8 @@ start "Enigma LLM" "%LLAMA_EXE%" ^
     -c %CONTEXT_SIZE% ^
     --port %LLM_PORT% ^
     --host 127.0.0.1 ^
+    --no-context-shift ^
+    --n-predict 800 ^
     --threads 8 ^
     --temp 0.7 ^
     --top-p 0.9 ^

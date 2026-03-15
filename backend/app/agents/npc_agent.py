@@ -10,6 +10,7 @@ from typing import Optional
 
 from app.models.schemas import PlayerAction
 from app.services.llm import ModelRouter, Capability, get_router
+from app.services.llm.provider import GenerationParams
 
 
 class NpcAgent:
@@ -97,6 +98,7 @@ class NpcAgent:
                 capability=self._get_capability_for_npc("major"),
                 prompt=prompt,
                 system_prompt=system_prompt,
+                params=GenerationParams(max_tokens=400),
             )
         except Exception as e:
             print(f"NPC speak error: {e}")
@@ -184,6 +186,7 @@ class NpcAgent:
                 capability=capability,
                 prompt=prompt,
                 system_prompt=system_prompt,
+                params=GenerationParams(max_tokens=400),
             )
             return {"npc_reactions": [response], "npc_memory_updates": [prompt]}
         except Exception:

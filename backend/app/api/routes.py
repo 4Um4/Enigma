@@ -262,7 +262,11 @@ async def game_action(request: dict) -> dict:
         )
 
         campaign_state = campaign_service.get_campaign_state(campaign_id)
-        location = campaign_state.metadata.get("current_location", "unknown") if campaign_state else "unknown"
+        location = "Таверна Серебряный Волк"  # дефолт всегда
+        if campaign_state:
+            saved_location = campaign_state.metadata.get("current_location")
+            if saved_location:
+                location = saved_location
 
         turn_request = ChatTurnRequest(
             world_id=campaign_id,
