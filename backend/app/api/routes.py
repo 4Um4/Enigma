@@ -253,8 +253,8 @@ async def game_action(request: dict) -> dict:
 
         pool = get_model_pool()
         router_llm = get_router()
-        model_key = router_llm.get_model_for_agent("dm")
-        model_provider = await pool.get_model_async(model_key, "ROUTE", timeout_sec=30)
+        dm_model_key = router_llm.get_model_for_agent("dm")
+        model_provider = await pool.get_model_async(dm_model_key, "ROUTE", timeout_sec=30)
         model_selection = ModelSelection(
             provider=ModelProvider.llama_cpp,
             model_name=model_provider.key if model_provider else "fallback",
@@ -277,11 +277,30 @@ async def game_action(request: dict) -> dict:
         )
 
         result = await orchestrator.run_turn(turn_request)
+
+        # Мета о моделях (для UI/дебага). Не ломает старые клиенты.
+        dm_cfg = pool.get_model_config(dm_model_key) if pool else None
+        npc_model_key = router_llm.get_model_for_agent("npc")
+        npc_cfg = pool.get_model_config(npc_model_key) if pool else None
+
         return {
             "response": result.dm_response,
             "npc_reactions": result.npc_reactions,
             "world_changes": result.world_changes,
-            "journal_entry_id": result.journal_entry_id
+            "journal_entry_id": result.journal_entry_id,
+            "dm_model": {
+                "key": dm_model_key,
+                "name": dm_cfg.name if dm_cfg else dm_model_key,
+                "provider": (dm_cfg.provider_type.value if dm_cfg else "unknown"),
+                "path": (dm_cfg.path if dm_cfg else None),
+            },
+            "npc_model": {
+                "key": npc_model_key,
+                "name": npc_cfg.name if npc_cfg else npc_model_key,
+                "provider": (npc_cfg.provider_type.value if npc_cfg else "unknown"),
+                "path": (npc_cfg.path if npc_cfg else None),
+            },
+            "active_pool_model": getattr(pool, "active_model_key", None),
         }
     except HTTPException:
         raise  # пробрасываем дальше

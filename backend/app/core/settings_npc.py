@@ -5,7 +5,7 @@ ROOT_DIR = Path(__file__).resolve().parents[3]
 MODEL_DIR = ROOT_DIR / "Models LLM"
 
 class NpcSettings(BaseSettings):
-    npc_major_model_path: Path = MODEL_DIR / "NPC-LLM-7B.Q4_K_M.gguf"
+    npc_major_model_path: Path = MODEL_DIR / "mistral-pygmalion-7b.Q5_K_M.gguf"
     llm_servers: Dict[str, Dict[str, str]] = {
         "npc": {
             "host": "127.0.0.1",

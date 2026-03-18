@@ -1,0 +1,88 @@
+{"error_code": "startup_error", "error_message": "Simulated startup error"}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"error_code": "startup_error", "error_message": "Simulated startup error"}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"error_code": "startup_error", "error_message": "Simulated startup error"}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"timestamp": "2026-03-17T19:29:03.857404", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6756}
+{"timestamp": "2026-03-17T19:29:03.903798", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6756, "vram_delta_mb": 0}
+{"timestamp": "2026-03-17T19:29:56.277855", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6760}
+{"timestamp": "2026-03-17T19:29:56.317557", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6760, "vram_delta_mb": 0}
+{"timestamp": "2026-03-17T19:30:31.697124", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6757}
+{"timestamp": "2026-03-17T19:30:31.741911", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6757, "vram_delta_mb": 0}
+{"error_code": "startup_error", "error_message": "Simulated startup error"}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"timestamp": "2026-03-17T19:41:37.475496", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6804}
+{"timestamp": "2026-03-17T19:41:37.505840", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6804, "vram_delta_mb": 0}
+{"timestamp": "2026-03-17T19:42:05.500245", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6804}
+{"timestamp": "2026-03-17T19:42:05.530399", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6804, "vram_delta_mb": 0}
+{"timestamp": "2026-03-17T19:42:51.924528", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6803}
+{"timestamp": "2026-03-17T19:42:51.958488", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6803, "vram_delta_mb": 0}
+{"timestamp": "2026-03-17T19:43:35.112849", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6806}
+{"timestamp": "2026-03-17T19:43:35.160383", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6806, "vram_delta_mb": 0}
+{"timestamp": "2026-03-17T19:47:08.897082", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6821}
+{"timestamp": "2026-03-17T19:47:08.929843", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6821, "vram_delta_mb": 0}
+{"error_code": "startup_error", "error_message": "Simulated startup error"}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"timestamp": "2026-03-17T20:01:53.404653", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6904}
+{"timestamp": "2026-03-17T20:01:53.451603", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6904, "vram_delta_mb": 0}
+{"timestamp": "2026-03-17T20:02:16.986454", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6971}
+{"timestamp": "2026-03-17T20:02:17.021149", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6971, "vram_delta_mb": 0}
+{"timestamp": "2026-03-17T20:02:40.910909", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6975}
+{"timestamp": "2026-03-17T20:02:40.958076", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6975, "vram_delta_mb": 0}
+{"timestamp": "2026-03-17T20:03:04.530198", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6976}
+{"timestamp": "2026-03-17T20:03:04.561769", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6976, "vram_delta_mb": 0}
+{"error_code": "startup_error", "error_message": "Simulated startup error"}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"timestamp": "2026-03-17T20:13:27.021202", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6996}
+{"timestamp": "2026-03-17T20:13:27.051654", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6996, "vram_delta_mb": 0}
+{"timestamp": "2026-03-17T20:14:05.921908", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6995}
+{"timestamp": "2026-03-17T20:14:05.954100", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6995, "vram_delta_mb": 0}
+{"timestamp": "2026-03-17T20:15:09.342511", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6997}
+{"timestamp": "2026-03-17T20:15:09.373404", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6997, "vram_delta_mb": 0}
+{"timestamp": "2026-03-17T20:46:17.686755", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 7063}
+{"timestamp": "2026-03-17T20:46:17.719190", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 7063, "vram_delta_mb": 0}
+{"error_code": "startup_error", "error_message": "Simulated startup error"}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"timestamp": "2026-03-17T20:52:52.101950", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6985}
+{"timestamp": "2026-03-17T20:52:52.141690", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6985, "vram_delta_mb": 0}
+{"error_code": "startup_error", "error_message": "Simulated startup error"}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"timestamp": "2026-03-17T21:03:25.228862", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6908}
+{"timestamp": "2026-03-17T21:03:25.257858", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6908, "vram_delta_mb": 0}
+{"timestamp": "2026-03-17T21:05:01.346099", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6915}
+{"timestamp": "2026-03-17T21:05:01.376005", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6915, "vram_delta_mb": 0}
+{"timestamp": "2026-03-17T21:06:16.544564", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6914}
+{"timestamp": "2026-03-17T21:06:16.573654", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6914, "vram_delta_mb": 0}
+{"timestamp": "2026-03-17T21:07:34.764832", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6920}
+{"timestamp": "2026-03-17T21:07:34.795372", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6920, "vram_delta_mb": 0}
+{"timestamp": "2026-03-17T21:09:06.559913", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6847}
+{"timestamp": "2026-03-17T21:09:06.589667", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6847, "vram_delta_mb": 0}
+{"error_code": "startup_error", "error_message": "Simulated startup error"}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"timestamp": "2026-03-17T22:10:26.788179", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6496}
+{"timestamp": "2026-03-17T22:10:26.815871", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6496, "vram_delta_mb": 0}
+{"error_code": "startup_error", "error_message": "Simulated startup error"}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"timestamp": "2026-03-17T22:11:43.119335", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6523}
+{"timestamp": "2026-03-17T22:11:43.150470", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6523, "vram_delta_mb": 0}
+{"timestamp": "2026-03-17T22:11:53.497211", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6527}
+{"timestamp": "2026-03-17T22:11:53.526427", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6527, "vram_delta_mb": 0}
+{"error_code": "startup_error", "error_message": "Simulated startup error"}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"timestamp": "2026-03-17T22:19:22.637863", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6711}
+{"timestamp": "2026-03-17T22:19:22.667396", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6711, "vram_delta_mb": 0}
+{"error_code": "startup_error", "error_message": "Simulated startup error"}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"timestamp": "2026-03-17T22:26:09.538488", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6699}
+{"timestamp": "2026-03-17T22:26:09.567390", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6699, "vram_delta_mb": 0}
+{"error_code": "startup_error", "error_message": "Simulated startup error"}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"timestamp": "2026-03-17T22:29:34.366688", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6683}
+{"timestamp": "2026-03-17T22:29:34.399747", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6683, "vram_delta_mb": 0}
+{"timestamp": "2026-03-17T22:29:54.299523", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6683}
+{"timestamp": "2026-03-17T22:29:54.328339", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6683, "vram_delta_mb": 0}
+{"error_code": "startup_error", "error_message": "Simulated startup error"}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"timestamp": "2026-03-17T22:36:16.682197", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6683}
+{"timestamp": "2026-03-17T22:36:16.715545", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6683, "vram_delta_mb": 0}

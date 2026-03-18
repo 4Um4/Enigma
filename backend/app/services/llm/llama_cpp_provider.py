@@ -18,6 +18,7 @@ import urllib.request
 import urllib.error
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Generator
 
 from app.core.config import settings
 from app.services.llm.provider import (
@@ -312,6 +313,73 @@ class LlamaCppProvider(StreamingLlmProvider):
             ) from e
 
         return _strip_thinking(full_content)
+
+    def stream_tokens(
+        self,
+        prompt: str,
+        params: GenerationParams | None = None,
+        system_prompt: str | None = None,
+    ) -> Generator[str, None, None]:
+        """
+        Generator версия стриминга — yield каждый токен.
+        Использовать в SSE роуте: for token in provider.stream_tokens(...): ...
+        """
+        if not self._use_server:
+            yield self.complete(prompt, params, system_prompt)
+            return
+
+        gen_params = params or GenerationParams()
+        full_prompt = self._build_chatml_prompt(prompt, system_prompt)
+        url = self.server_url.rstrip("/") + "/completion"
+
+        stop_tokens = list(DEFAULT_STOP_TOKENS)
+        if gen_params.stop:
+            stop_tokens.extend([t for t in gen_params.stop if t.isascii()])
+
+        payload = {
+            "prompt":         full_prompt,
+            "n_predict":      gen_params.max_tokens,
+            "stream":         True,
+            "stop":           stop_tokens,
+            "temperature":    gen_params.temperature,
+            "top_p":          gen_params.top_p,
+            "repeat_penalty": gen_params.repeat_penalty,
+            "top_k":          gen_params.top_k,
+            "n_keep":         gen_params.n_keep,
+        }
+
+        data = json.dumps(payload).encode("utf-8")
+        req = urllib.request.Request(
+            url,
+            data=data,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+
+        try:
+            with urllib.request.urlopen(req, timeout=settings.llama_cpp_timeout_sec) as resp:
+                while True:
+                    line = resp.readline()
+                    if not line:
+                        break
+                    line = line.decode("utf-8").strip()
+                    if not line or not line.startswith("data:"):
+                        continue
+                    data_str = line[5:].strip()
+                    if not data_str:
+                        continue
+                    try:
+                        chunk = json.loads(data_str)
+                        if chunk.get("stop"):
+                            return
+                        token = chunk.get("content", "")
+                        if token:
+                            yield token
+                    except json.JSONDecodeError:
+                        continue
+
+        except urllib.error.URLError as e:
+            yield f"\n[Ошибка соединения: {e}]"
 
     # ──────────────────────────────────────────────────────────────────────────
     # Служебные методы

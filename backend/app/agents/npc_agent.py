@@ -11,6 +11,8 @@ from typing import Optional
 from app.models.schemas import PlayerAction
 from app.services.llm import ModelRouter, Capability, get_router
 from app.services.llm.provider import GenerationParams
+from app.services.llm.provider_manager import get_model_pool
+from app.core.config import settings
 
 
 class NpcAgent:
@@ -142,11 +144,21 @@ class NpcAgent:
 
     def _get_system_prompt(self) -> str:
         """Get system prompt for NPC dialogue."""
-        return """Ты - NPC в D&D 5e кампании.
+        tone = ""
+        if getattr(settings, "hardcore_mode", False):
+            tone = """
+
+HARDCORE: разрешены грубость, мат, угрозы, мрачные детали, жестокость.
+Не морализируй и не смягчай речь игрока/сцены. Не "воспитывай" игрока.
+"""
+
+        return f"""Ты - NPC в D&D 5e кампании.
 Генерируй реалистичные диалоги и реакции персонажей.
-Отвечай от первого лица.
+Отвечай от первого лица (Я/мне/меня), без перехода на "вы с изумлением" от третьего лица.
 Учитывай контекст ситуации и отношения с игроками.
-Будь краток и атмосферен."""
+Будь краток и атмосферен (1-2 предложения).
+Не повторяй дословно фразы игрока, реагируй по смыслу.
+Не добавляй мета-пояснений про модель, правила или безопасность.{tone}"""
 
     def _fallback_react(
         self,
@@ -181,6 +193,24 @@ class NpcAgent:
         prompt = self._build_prompt(location, actions, npc_memory, shared_context)
         capability = self._get_capability_for_npc(npc_importance)
         system_prompt = self._get_system_prompt()
+
+        # Мета о том, какую модель роутер выберет под эту capability.
+        model_key = self.router.select_model(capability)
+        model_meta = {"key": model_key}
+        try:
+            pool = get_model_pool()
+            cfg = pool.get_model_config(model_key) if pool else None
+            if cfg:
+                model_meta.update({
+                    "name": cfg.name,
+                    "provider": cfg.provider_type.value,
+                    "path": cfg.path,
+                    "context_size": cfg.context_size,
+                    "temperature": cfg.temperature,
+                })
+        except Exception:
+            pass
+
         try:
             response = self.router.request(
                 capability=capability,
@@ -188,6 +218,10 @@ class NpcAgent:
                 system_prompt=system_prompt,
                 params=GenerationParams(max_tokens=400),
             )
-            return {"npc_reactions": [response], "npc_memory_updates": [prompt]}
+            return {
+                "npc_reactions": [response],
+                "npc_memory_updates": [prompt],
+                "model": model_meta,
+            }
         except Exception:
             return self._fallback_react(location, actions, npc_memory)
