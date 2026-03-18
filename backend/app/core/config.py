@@ -68,6 +68,13 @@ class Settings(BaseSettings):
     llm_fallback_enabled: bool = True
 
     # ─────────────────────────────────────────────────────────────────
+    # Tone / content policy
+    # ─────────────────────────────────────────────────────────────────
+    # Если True — DM/NPC разрешено: грубость, мат, жестокие/мрачные сцены.
+    # Важно: это влияет только на промпты, не на логику правил.
+    hardcore_mode: bool = True
+
+    # ─────────────────────────────────────────────────────────────────
     # GPU параметры для RTX 3070 Ti (8 GB VRAM)
     # ─────────────────────────────────────────────────────────────────
     # Qwen2.5-7B Q4_K_M: 32 transformer слоя + 1 output = 33 слоя всего.
@@ -94,8 +101,8 @@ class Settings(BaseSettings):
     model_saiga_path: str = str(
         BASE_DIR / "Models LLM" / "saiga_mistral_7b_model-q4_K.gguf"
     )
-    model_npc_major_path: str = str(BASE_DIR / "backend" / "data" / "npc_major.gguf")
-    model_npc_mass_path:  str = str(BASE_DIR / "backend" / "data" / "npc_mass.gguf")
+    model_npc_major_path: str = str(BASE_DIR / "Models LLM" / "mistral-pygmalion-7b.Q5_K_M.gguf")
+    model_npc_mass_path:  str = str(BASE_DIR / "Models LLM" / "mistral-pygmalion-7b.Q4_K_M.gguf")
 
     # ─────────────────────────────────────────────────────────────────
     # Agent → Model mapping  (оптимизировано под 8 GB)
@@ -112,7 +119,7 @@ class Settings(BaseSettings):
     # - world: qwen_7b — мировые события, qwen_9b слишком большой (5.5 GB)
     agent_model_map: Dict[str, str] = {
         "dm":       "qwen_7b",
-        "npc":      "npc_major",   # специализированная NPC-модель
+    "npc":      "npc_major",   # Mistral Pygmalion для NPC
         "rules":    "saiga",
         "memory":   "saiga",
         "world":    "qwen_7b",     # qwen_9b (5.5 GB) → OOM при ctx=2048+KV
@@ -150,8 +157,8 @@ class Settings(BaseSettings):
         #   ИТОГО:             ~6192 MB (77% VRAM)
         #
         # NPC-модели:
-        #   npc_major (Q4_K_M): ~4000 MB — для диалогов важных NPC
-        #   npc_mass (IQ4_XS):  ~2500 MB — для толпы (фоновые реплики)
+#   npc_major (Q5_K_M): ~4500 MB — Mistral Pygmalion для major NPCs
+#   npc_mass (Q4_K_M):  ~4000 MB — Mistral Pygmalion для mass NPCs
         # ─────────────────────────────────────────────────────────────
         self.available_models = {
             "qwen_7b": ModelConfig(
@@ -183,8 +190,8 @@ class Settings(BaseSettings):
             "npc_major": ModelConfig(
                 name="npc_major",
                 path=self.model_npc_major_path,
-                display_name="NPC-LLM 7B Q4 (Major NPCs)",
-                vram_mb=4000,
+                display_name="Mistral Pygmalion 7B Q5_K_M (Major NPCs)",
+                vram_mb=4500,
                 context_size=1024,  # диалог NPC короткий
                 temperature=0.8,    # NPC должны быть немного непредсказуемы
                 repeat_penalty=1.15,
@@ -192,8 +199,8 @@ class Settings(BaseSettings):
             "npc_mass": ModelConfig(
                 name="npc_mass",
                 path=self.model_npc_mass_path,
-                display_name="NPC-LLM 7B IQ4 (Mass NPCs — быстрый)",
-                vram_mb=2500,       # IQ4_XS значительно легче
+                display_name="Mistral Pygmalion 7B Q4_K_M (Mass NPCs)",
+                vram_mb=4000,       # Q4_K_M
                 context_size=512,   # фоновые NPC — очень короткий контекст
                 temperature=0.9,
             ),

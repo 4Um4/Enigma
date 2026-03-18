@@ -482,6 +482,50 @@ class ModelRouter:
         """Получить ключ модели для агента."""
         capability = self._capability_map.get(agent_name, Capability.GENERAL)
         return self.select_model(capability)
+
+    def get_provider(self, capability: Capability | str) -> LlmProvider | None:
+        """
+        Возвращает провайдер для capability.
+        Используется для прямого стриминга в dm_agent.stream_narrate.
+    
+        ВАЖНО: Этот метод ЗАГРУЖАЕТ модель синхронно если её нет в VRAM.
+        Для streaming-контекста где нельзя использовать async.
+        """
+        capability_obj = self._normalize_capability(capability)
+        preferred_keys = CAPABILITY_MODEL_PREFERENCES.get(capability_obj, [])
+
+        pool = self._get_model_pool()
+        if pool is None:
+            return None
+
+        for model_key in preferred_keys:
+            if pool.is_model_available(model_key):
+                # Сначала проверяем активную модель (быстрый путь)
+                model_provider = pool.get_model(model_key)
+            
+                # Если модель не загружена — загружаем синхронно
+                if model_provider is None:
+                    import asyncio
+                    try:
+                        # Создаём новый event loop если его нет
+                        try:
+                            loop = asyncio.get_event_loop()
+                        except RuntimeError:
+                            loop = asyncio.new_event_loop()
+                            asyncio.set_event_loop(loop)
+                    
+                        # Загружаем модель асинхронно через синхронный вызов
+                        model_provider = loop.run_until_complete(
+                            pool.get_model_async(model_key, agent="dm")
+                        )
+                    except Exception as e:
+                        print(f"ModelRouter.get_provider: Failed to load {model_key}: {e}")
+                        continue
+            
+                if model_provider and model_provider.is_available():
+                    return model_provider.provider
+
+        return None   
     
     def get_model_info(self, model_key: str) -> ModelConfig | None:
         """Получить конфигурацию модели."""

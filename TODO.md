@@ -1,10 +1,13 @@
-# TODO: Push complete ✅
+# Enigma GitHub Backup Task - TODO Steps
 
-Branch V.0.1_alfa1 created & pushed to https://github.com/4Um4/Enigma/tree/V.0.1_alfa1
+## Plan Breakdown (Approved by User)
+1. [ ] Stage all changes: `git add .` (skip large Enigma.zip)
+2. [ ] Remove Enigma.zip if staged: `git rm --cached Enigma.zip`
+3. [ ] Commit changes: `git commit -m "V.0.2_alfa1: Latest codebase update"`
+4. [ ] Create/switch branch: `git checkout -b V.0.2_alfa1`
+5. [ ] Push to GitHub: `git push -u origin V.0.2_alfa1`
+6. [ ] Verify: `git status && git branch -a`
+7. [ ] Complete task
 
-1. [x] gh install - skipped
-2. [x] git add -A
-3. [x] git commit "V.0.1_alfa1: ..." (143 files, 309k+ lines)
-4. [x] git checkout -b V.0.1_alfa1
-5. [x] git push -u origin V.0.1_alfa1 (pushing ~119 objects)
-6. [x] Verify on GitHub
+**Progress: Starting step 1**
+

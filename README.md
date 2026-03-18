@@ -1,5 +1,5 @@
 # ENIGMA — Локальный AI Dungeon Master
-### Полная проектная документация v2.0
+### Полная проектная документация v3.0
 
 ---
 
@@ -41,30 +41,32 @@ NPC умны не потому что LLM умная, а потому что **P
 **VRAM-бюджет (аксиома архитектуры):**
 ```
 ОС + CUDA runtime:          ~500 MB
-Qwen3.5-9B Q4_K_M:        ~5300 MB  ← основная модель сейчас
-KV-cache ctx=2048:           ~260 MB
-Буфер безопасности:          ~700 MB
+Qwen2.5-7B Q4_K_M:        ~4500 MB  ← основная модель (DM/World)
+KV-cache ctx=2048:           ~256 MB
+Буфер безопасности:          ~500 MB
 ─────────────────────────────────────
-Итого занято:              ~6760 MB  (82% VRAM)
-Остаток:                   ~1430 MB
+Итого занято:              ~5756 MB  (70% VRAM)
+Остаток:                   ~2436 MB  (запас под NPC-модели)
 ```
+
+> **Примечание:** Qwen3.5-9B (~5500 MB) исключён из активного маппинга агентов — при ctx=2048 не остаётся буфера. Оставлен в конфиге для будущего (12+ GB GPU).
 
 **Скорость генерации (реальные данные из логов):**
 ```
 Prefill:    2.9 ms/tok  → 344 tok/sec   ← обработка промпта
 Generation: 15.3 ms/tok →  65 tok/sec   ← генерация ответа
-Итого 512 токенов:       ~8.2 сек
+Итого 512 токенов:       ~8.2 сек       (Qwen2.5-7B Q4_K_M, ctx=2048)
 ```
 
 **Модели на диске:**
 | Файл | Размер | Роль |
 |---|---|---|
-| `Qwen3.5-9B.gguf` | ~5.3 GB | DM — главный нарратор |
-| `Qwen2.5-7B-instruct-Q4_K_M.gguf` | ~4.1 GB | World Sim — логика мира |
-| `NPC-LLM-7B.Q4_K_M.gguf` | ~4.0 GB | NPC Major — важные персонажи |
-| `NPC-LLM-7B.IQ4_XS.gguf` | ~2.5 GB | NPC Mass — толпа, быстрые реплики |
-| `saiga_mistral_7b_model-q4_K.gguf` | ~4.0 GB | Rules — правила D&D 5e |
-| `YandexGPT-5-Lite-8B-instruct-Q4_K_M.gguf` | ~4.5 GB | Memory — русская суммаризация |
+| `Qwen2.5-7B-instruct-Q4_K_M.gguf` | ~4.1 GB | DM — главный нарратор + World Sim |
+| `Qwen3.5-9B.gguf` | ~5.3 GB | Резерв (требует 12 GB GPU, сейчас не активен) |
+| `mistral-pygmalion-7b.Q5_K_M.gguf` | ~4.8 GB | NPC Major — важные персонажи |
+| `mistral-pygmalion-7b.Q4_K_M.gguf` | ~4.0 GB | NPC Mass — толпа, быстрые реплики |
+| `saiga_mistral_7b_model-q4_K.gguf` | ~4.0 GB | Rules + Memory — правила D&D 5e и суммаризация |
+| `YandexGPT-5-Lite-8B-instruct-Q4_K_M.gguf` | ~4.5 GB | Memory — русская суммаризация (резерв) |
 
 ---
 
@@ -84,43 +86,59 @@ Enigma/
 │   │   ├── ggml-cuda.dll             ← CUDA ускорение
 │   │   ├── ggml-cpu-zen4.dll         ← CPU оптимизация для i7-9700F
 │   │   └── [прочие DLL/EXE]
-│   ├── Qwen3.5-9B.gguf               ← DM агент
-│   ├── Qwen2.5-7B-instruct-Q4_K_M.gguf ← World агент
-│   ├── NPC-LLM-7B.Q4_K_M.gguf       ← NPC Major агент
-│   ├── NPC-LLM-7B.IQ4_XS.gguf       ← NPC Mass агент
-│   ├── saiga_mistral_7b_model-q4_K.gguf ← Rules агент
-│   └── YandexGPT-5-Lite-8B-instruct-Q4_K_M.gguf ← Memory агент
+│   ├── qwen2.5-7b-instruct-q4_k_m.gguf   ← DM + World агент (активен)
+│   ├── Qwen3.5-9B.gguf                   ← резерв (требует 12 GB VRAM, не активен)
+│   ├── mistral-pygmalion-7b.Q5_K_M.gguf  ← NPC Major агент (активен)
+│   ├── mistral-pygmalion-7b.Q4_K_M.gguf  ← NPC Mass агент (активен)
+│   ├── saiga_mistral_7b_model-q4_K.gguf  ← Rules + Memory агент (активен)
+│   └── YandexGPT-5-Lite-8B-instruct-Q4_K_M.gguf ← Memory резерв
 │
 ├── backend/                          ← FastAPI сервер (порт 8000)
 │   ├── app/
 │   │   ├── main.py                   ← FastAPI точка входа, startup
 │   │   │
 │   │   ├── agents/                   ← LLM агенты
-│   │   │   ├── dm_agent.py           ← Мастер Подземелий (Qwen9B)
-│   │   │   ├── npc_agent.py          ← NPC Major (NPC-7B Q4)
-│   │   │   ├── npc_mass_agent.py     ← NPC Mass (NPC-7B IQ4)
-│   │   │   ├── rules_agent.py        ← Правила D&D (Saiga)
-│   │   │   ├── world_sim_agent.py    ← Мир (Qwen7B)
-│   │   │   └── memory_manager_agent.py ← Суммаризация (YandexGPT)
+│   │   │   ├── dm_agent.py           ← Мастер Подземелий (Qwen2.5-7B) ✅
+│   │   │   ├── npc_agent.py          ← NPC Major (Mistral Pygmalion Q5_K_M) ✅
+│   │   │   ├── rules_agent.py        ← Правила D&D (Saiga) ✅
+│   │   │   ├── world_sim_agent.py    ← Мир (Qwen2.5-7B) ✅
+│   │   │   └── memory_manager_agent.py ← Суммаризация (Saiga/YandexGPT) ✅
+│   │   │   ─ npc_mass_agent.py       ← NPC Mass (Pygmalion Q4_K_M) [⏳ не создан]
 │   │   │
 │   │   ├── api/
-│   │   │   ├── routes.py             ← основные эндпоинты
-│   │   │   ├── routes_stream.py      ← SSE стриминг токенов
-│   │   │   └── routes_debug.py       ← /debug/vram, /debug/npc
+│   │   │   ├── routes.py             ← основные эндпоинты ✅
+│   │   │   ├── routes_stream.py      ← SSE стриминг токенов ✅
+│   │   │   └── routes_debug.py       ← /debug/vram, /health/agents, /logs-tail ✅
 │   │   │
 │   │   ├── core/
-│   │   │   ├── config.py             ← настройки + VRAM бюджеты
-│   │   │   └── runtime_config.py     ← динамические порты
+│   │   │   ├── config.py             ← настройки + VRAM бюджеты ✅
+│   │   │   ├── runtime_config.py     ← динамические порты ✅
+│   │   │   ├── error_logger.py       ← единый JSONL логгер ошибок ✅
+│   │   │   ├── settings_dm.py        ← параметры DM агента ✅
+│   │   │   ├── settings_npc.py       ← параметры NPC агентов ✅
+│   │   │   ├── settings_rules.py     ← параметры Rules агента ✅
+│   │   │   └── settings_world.py     ← параметры World агента ✅
 │   │   │
 │   │   ├── models/
 │   │   │   └── schemas.py            ← Pydantic схемы
 │   │   │
 │   │   └── services/
-│   │       ├── orchestrator.py       ← главный дирижёр агентов
-│   │       ├── action_classifier.py  ← определяет тип действия (Python, 0ms)
-│   │       ├── agent_selector.py     ← выбирает нужных агентов
+│   │       ├── orchestrator.py           ← главный дирижёр агентов ✅
+│   │       ├── action_classifier.py      ← 14 ActionType, приоритеты (Python, 0ms) ✅
+│   │       ├── context_builder.py        ← динамический сборщик контекста LLM ✅
+│   │       ├── campaign_state_service.py ← состояние кампании ✅
+│   │       ├── character_service.py      ← сервис персонажей ✅
+│   │       ├── combat_service.py         ← боевой сервис ✅
+│   │       ├── adventure_loader.py       ← загрузка приключений ✅
+│   │       ├── player_session_service.py ← сессии игроков ✅
+│   │       ├── prompt_loader.py          ← загрузка системных промптов ✅
+│   │       ├── readiness.py              ← pre-flight проверки ✅
+│   │       ├── logging_tools.py          ← JSONL логирование ✅
+│   │       ├── pdf_drop_importer.py      ← импорт PDF книг ✅
+│   │       ├── knowledge_ingest.py       ← индексация знаний ✅
+│   │       ├── world_scheduler.py        ← периодические тики мира ✅
 │   │       │
-│   │       ├── npc/                  ← NPC движки (Python, без LLM)
+│   │       ├── npc/                  ← NPC движки (Python, без LLM) [⏳ НЕ СОЗДАН]
 │   │       │   ├── npc_cognition.py  ← драйвы, нормализация
 │   │       │   ├── psyche_engine.py  ← стресс, слом воли, состояния
 │   │       │   ├── threat_assessor.py ← оценка угрозы
@@ -130,50 +148,60 @@ Enigma/
 │   │       │   └── social_mobility.py ← динамические роли
 │   │       │
 │   │       ├── game/
-│   │       │   ├── combat_math.py    ← D&D 5e математика боя
-│   │       │   ├── physics_validator.py ← нельзя летать без заклинания
-│   │       │   ├── turn_manager.py   ← очередь ходов 1–8 игроков
-│   │       │   ├── character_creation.py ← пошаговая генерация персонажа
-│   │       │   ├── sandbox_handler.py ← нестандартные действия
-│   │       │   └── death_handler.py  ← смерть не конец игры
+│   │       │   ├── combat_math.py        ← D&D 5e математика боя ✅
+│   │       │   ├── physics_validator.py  ← нельзя летать без заклинания ✅
+│   │       │   ├── sandbox_handler.py    ← нестандартные действия (23 обработчика) ✅
+│   │       │   ├── turn_manager.py       ← очередь ходов 1–8 игроков [⏳ не создан]
+│   │       │   ├── character_creation.py ← пошаговая генерация персонажа [⏳ не создан]
+│   │       │   └── death_handler.py      ← смерть не конец игры [⏳ не создан]
 │   │       │
 │   │       ├── memory/
-│   │       │   ├── memory.py         ← LayeredMemory (JSONL)
-│   │       │   ├── memory_manager.py ← бюджет токенов, контекст
-│   │       │   └── knowledge_base.py ← ChromaDB / FAISS для PDF
+│   │       │   ├── memory.py         ← LayeredMemory + JsonMemoryStore (JSONL) ✅
+│   │       │   ├── memory_manager.py ← бюджет токенов, контекст [⏳ не создан]
+│   │       │   └── knowledge_base.py ← ChromaDB / FAISS для PDF [⏳ не создан]
 │   │       │
 │   │       ├── analytics/
-│   │       │   └── player_stats.py   ← статистика действий игроков
+│   │       │   └── player_stats.py   ← статистика действий игроков [⏳ не создан]
 │   │       │
 │   │       ├── llm/
-│   │       │   ├── provider_manager.py ← ModelPool (max_loaded=1)
-│   │       │   ├── llama_cpp_provider.py ← HTTP клиент + streaming
-│   │       │   └── router.py         ← capability routing
+│   │       │   ├── provider.py           ← базовый класс провайдера ✅
+│   │       │   ├── provider_manager.py   ← ModelPool (max_loaded=1) ✅
+│   │       │   ├── llama_cpp_provider.py ← HTTP клиент + streaming ✅
+│   │       │   ├── router.py             ← capability routing ✅
+│   │       │   └── factory.py            ← фабрика провайдеров ✅
 │   │       │
-│   │       ├── model_router.py       ← агент→модель маппинг
-│   │       ├── vram_monitor.py       ← nvidia-smi мониторинг
-│   │       └── error_interpreter.py  ← перехват + self-debug
+│   │       ├── model_router.py       ← агент→модель маппинг ✅
+│   │       ├── vram_monitor.py       ← nvidia-smi мониторинг (baseline fix) ✅
+│   │       └── error_interpreter.py  ← перехват + self-debug (5 типов) ✅
 │   │
 │   ├── data/
 │   │   ├── campaigns/
-│   │   │   └── demo-campaign/
-│   │   │       ├── characters.json   ← персонажи игроков
-│   │   │       └── campaign_state.json ← состояние мира, локация
-│   │   ├── npcs/
+│   │   │   ├── demo-campaign/
+│   │   │   │   ├── characters.json   ← персонажи игроков ✅
+│   │   │   │   └── campaign_state.json ← состояние мира, локация ✅ (⚠ current_location="unknown")
+│   │   │   └── test-campaign/        ← тестовая кампания ✅
+│   │   ├── npcs/                     ← [⏳ НЕ СОЗДАН] данные NPC
 │   │   │   ├── major_npcs.json       ← важные NPC с полной психологией
 │   │   │   └── mass_npc_templates.json ← шаблоны для толпы
-│   │   ├── pdf_drop/                 ← D&D 5e книги на русском
-│   │   ├── knowledge_db/             ← ChromaDB векторная база (генерируется)
-│   │   ├── analytics/                ← статистика игроков
-│   │   ├── sessions/                 ← сохранённые сессии
-│   │   └── logs/                     ← JSONL структурированные логи
+│   │   ├── pdf_drop/                 ← D&D 5e книги на русском ✅ (пусто)
+│   │   ├── knowledge_db/             ← ChromaDB векторная база [⏳ не генерируется]
+│   │   ├── sessions/                 ← сохранённые сессии ✅
+│   │   └── logs/                     ← JSONL структурированные логи ✅
 │   │
 │   └── tests/
-│       └── test_startup_checks.py
+│       ├── test_startup_checks.py    ✅
+│       ├── test_services.py          ✅
+│       ├── test_error_interpreter.py ✅
+│       ├── test_full_error_logging.py ✅
+│       ├── test_llm.py               ✅ (требует запущенного сервера)
+│       ├── test_main.py              ✅
+│       ├── test_package.py           ✅
+│       ├── test_provider_manager.py  ✅
+│       └── test_run_terminal_dm.py   ✅
 │
 └── frontend/
     └── ui/
-        └── index.html                ← всё в одном файле
+        └── index.html                ← всё в одном файле ✅ (SSE streaming, fallback POST, метрики)
 ```
 
 ---
@@ -184,21 +212,23 @@ Enigma/
 Игрок(и) пишут действие(я)
            ↓
 ┌──────────────────────────────────────────────────────────────┐
-│  ACTION CLASSIFIER (Python, <1ms)                           │
-│  "расстёгивает ширинку" → тип: SANDBOX_UNCONVENTIONAL       │
+│  ACTION CLASSIFIER (Python, <1ms)   ✅ РЕАЛИЗОВАН            │
+│  "расстёгивает ширинку" → тип: SANDBOX_PHYSICAL             │
 │  "атакую гоблина"       → тип: COMBAT                       │
 │  "говорю с трактирщиком" → тип: SOCIAL + npc="трактирщик"   │
+│  14 типов действий, словари с учётом склонений               │
 └──────────────────────────────────────────────────────────────┘
            ↓
 ┌──────────────────────────────────────────────────────────────┐
-│  PHYSICS VALIDATOR (Python, <1ms)                           │
+│  PHYSICS VALIDATOR (Python, <1ms)   ✅ РЕАЛИЗОВАН            │
 │  Проверяем: нарушается ли логика мира?                      │
 │  "лечу без заклинания" → ОТКЛОНЕНО + объяснение             │
 │  "расстёгивает ширинку" → ОК (физически возможно)           │
+│  bypass через заклинания и способности персонажа             │
 └──────────────────────────────────────────────────────────────┘
            ↓
 ┌──────────────────────────────────────────────────────────────┐
-│  AGENT SELECTOR (Python, <1ms)                              │
+│  AGENT SELECTOR (встроен в ActionClassifier, <1ms) ✅        │
 │  COMBAT → [rules, dm]                                       │
 │  SOCIAL + major NPC → [npc_major, dm]                       │
 │  SOCIAL + толпа → [npc_mass, dm]                            │
@@ -207,39 +237,40 @@ Enigma/
 └──────────────────────────────────────────────────────────────┘
            ↓
 ┌──────────────────────────────────────────────────────────────┐
-│  PYTHON ENGINES (параллельно, <50ms суммарно)               │
+│  PYTHON ENGINES (последовательно, <50ms суммарно)            │
 │                                                             │
-│  CombatMath      → броски, урон, AC (если бой)             │
-│  NPCCognition    → драйвы, стресс, доверие (если NPC)      │
-│  ThreatAssessor  → уровень угрозы (всегда)                  │
-│  PerceptionEngine → что NPC видит в игроке (если NPC)      │
-│  PsycheEngine    → состояние NPC (если NPC)                 │
-│  KarmaEngine     → обновление репутации                     │
-│  SandboxHandler  → правила для нестандартных действий       │
+│  CombatMath      → броски, урон, AC (если бой)     ✅       │
+│  SandboxHandler  → 23 обработчика + TOP-100         ✅       │
+│  NPCCognition    → драйвы, стресс, доверие          ⏳ Фаза 3│
+│  ThreatAssessor  → уровень угрозы                   ⏳ Фаза 3│
+│  PerceptionEngine → что NPC видит в игроке          ⏳ Фаза 3│
+│  PsycheEngine    → состояние NPC                    ⏳ Фаза 3│
+│  KarmaEngine     → обновление репутации             ⏳ Фаза 3│
 └──────────────────────────────────────────────────────────────┘
            ↓
 ┌──────────────────────────────────────────────────────────────┐
 │  LLM PIPELINE (последовательно, ModelPool max_loaded=1)     │
 │                                                             │
-│  Если нужен Rules:    switch→Saiga     → rules_result       │
-│  Если нужен NPC:      switch→NPC-7B   → npc_result          │
-│  Всегда:              switch→Qwen9B   → dm_result (стрим)   │
+│  Если нужен Rules:    switch→Saiga             → rules_result│
+│  Если нужен NPC:      switch→Pygmalion Q5_K_M  → npc_result │
+│  Всегда:              switch→Qwen2.5-7B        → dm_result  │
 └──────────────────────────────────────────────────────────────┘
            ↓
 ┌──────────────────────────────────────────────────────────────┐
-│  STREAMING SSE → UI                                         │
-│  Токены идут в браузер по мере генерации                    │
+│  STREAMING SSE → UI   ✅ РЕАЛИЗОВАН                         │
+│  stream_tokens() → routes_stream.py → getReader() в JS      │
 │  Первый токен: ~500ms после отправки запроса                │
-│  В UI: таймер, счётчик токенов, название модели             │
+│  В UI: таймер, счётчик tok/s, прогресс-бар, состояния      │
+│  Fallback: обычный POST если ReadableStream недоступен       │
 └──────────────────────────────────────────────────────────────┘
            ↓
 ┌──────────────────────────────────────────────────────────────┐
 │  PERSISTENCE                                                │
-│  LayeredMemory.write() → JSONL файлы                        │
-│  NPCState.save() → major_npcs.json                          │
-│  CharacterService.update_hp() → characters.json             │
-│  Analytics.record() → player_stats                          │
-│  TurnManager.next() → следующий игрок                       │
+│  LayeredMemory.write() → JSONL файлы                ✅       │
+│  NPCState.save() → major_npcs.json            ⏳ Фаза 3     │
+│  CharacterService.update_hp() → characters.json     ✅       │
+│  Analytics.record() → player_stats            ⏳ Фаза 8     │
+│  TurnManager.next() → следующий игрок         ⏳ Фаза 5     │
 └──────────────────────────────────────────────────────────────┘
 ```
 
@@ -332,11 +363,11 @@ Enigma/
 
 | Tier | Модель | JSON | Когда |
 |---|---|---|---|
-| `major` | NPC-7B Q4_K_M (~4 GB) | Полный JSON, полная психология | Ключевые персонажи сюжета |
-| `minor` | NPC-7B IQ4_XS (~2.5 GB) | Сокращённый JSON | Жители, стражники, торговцы |
-| `mass` | NPC-7B IQ4_XS (шаблон) | Только архетип + настроение | Толпа, фоновые персонажи |
+| `major` | Mistral Pygmalion 7B Q5_K_M (~4.8 GB) | Полный JSON, полная психология | Ключевые персонажи сюжета |
+| `minor` | Mistral Pygmalion 7B Q4_K_M (~4.0 GB) | Сокращённый JSON | Жители, стражники, торговцы |
+| `mass` | Mistral Pygmalion 7B Q4_K_M (шаблон) | Только архетип + настроение | Толпа, фоновые персонажи |
 
-### 8 Python движков NPC (все работают до LLM, <50ms)
+### 8 Python движков NPC (цель — <50ms суммарно) [⏳ Фаза 3 — не реализованы]
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -345,21 +376,21 @@ Enigma/
 └─────────────────────────────────────────────────────────────────┘
                               ↓
 ┌─────────────────────────────────────────────────────────────────┐
-│ 2. THREAT ASSESSOR (Python, <50ms)                              │
+│ 2. THREAT ASSESSOR (Python, <50ms)   ⏳ Фаза 3                  │
 │    armor=30 + weapon=20 + action=30 = threat_score=80           │
 │    → fear_of_player += 0.2                                      │
 │    → stress += 40                                               │
 └─────────────────────────────────────────────────────────────────┘
                               ↓
 ┌─────────────────────────────────────────────────────────────────┐
-│ 3. PERCEPTION ENGINE (Python, <50ms)                            │
+│ 3. PERCEPTION ENGINE (Python, <50ms)   ⏳ Фаза 3                │
 │    visible_markers проверяются против NPC знаний                │
 │    → perceived_status: "high" (тяжёлые доспехи = опасен)       │
 │    → social_permission: может угрожать                          │
 └─────────────────────────────────────────────────────────────────┘
                               ↓
 ┌─────────────────────────────────────────────────────────────────┐
-│ 4. PSYCHE ENGINE (Python, <50ms)                                │
+│ 4. PSYCHE ENGINE (Python, <50ms)   ⏳ Фаза 3                    │
 │    stress(60+40=100) > breakpoint(85)                           │
 │    → state = 'broken'                                           │
 │    → loyalty_true -= 30                                         │
@@ -367,7 +398,7 @@ Enigma/
 └─────────────────────────────────────────────────────────────────┘
                               ↓
 ┌─────────────────────────────────────────────────────────────────┐
-│ 5. NPC COGNITION (Python, <50ms)                                │
+│ 5. NPC COGNITION (Python, <50ms)   ⏳ Фаза 3                    │
 │    dominant_drive = 'control' (0.60)                            │
 │    state = 'broken' → overrides drive → survival mode           │
 │    behavior_hint = "сломан, подчиняется из страха"              │
@@ -377,18 +408,19 @@ Enigma/
 │ 6. LLM NPC AGENT — получает ВСЁ уже посчитанное                │
 │    "Гром: control=0.6, stress=100/85 СЛОМАН, угроза=80/100     │
 │     fear_of_player=0.3, поведение: подчиняется из страха"      │
+│    Модель: Mistral Pygmalion 7B Q5_K_M (Major NPCs)             │
 │    → "В-в сарае... под сеном... пожалуйста, не бейте..."       │
 └─────────────────────────────────────────────────────────────────┘
                               ↓
 ┌─────────────────────────────────────────────────────────────────┐
-│ 7. KARMA ENGINE (Python, <50ms)                                 │
+│ 7. KARMA ENGINE (Python, <50ms)   ⏳ Фаза 3                     │
 │    reputation['cruel'] += 10                                    │
 │    faction['village'] -= 15                                     │
 │    if released: schedule_event(tick+3, "revenge_attempt")       │
 └─────────────────────────────────────────────────────────────────┘
                               ↓
 ┌─────────────────────────────────────────────────────────────────┐
-│ 8. LIFE ENGINE (фон, каждые 15 мин)                             │
+│ 8. LIFE ENGINE (фон, каждые 15 мин)   ⏳ Фаза 3                 │
 │    routine обновляется (время дня)                              │
 │    random_events проверяются (5% шанс)                          │
 │    stress снижается если в безопасности (-5/тик)                │
@@ -668,28 +700,28 @@ class TurnManager:
 │  Раунд 2       │           [Действие] [Пропустить]   │
 │  Ход 3/3       │                                     │
 ├────────────────┴─────────────────────────────────────┤
-│ VRAM: 5.2/8 GB ▓▓▓▓▓▓░░  Модель: Qwen3.5-9B  65t/s │
+│ VRAM: 4.5/8 GB ▓▓▓▓▓░░░  Модель: Qwen2.5-7B  65t/s │
 └──────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 📡 Streaming токенов — UI опыт
+## 📡 Streaming токенов — UI опыт ✅ РЕАЛИЗОВАН
 
 ### Как работает
 
 ```
-Запрос → llama-server (stream=true) → SSE события → UI
+Запрос → POST /api/game/action/stream → llama-server (stream=true) → SSE события → UI
 ```
 
-Каждый токен (слово/часть слова) отправляется отдельным SSE событием. Текст появляется как при наборе — живо, интерактивно.
+Каждый токен отправляется отдельным SSE событием. Текст появляется как при наборе. Реализовано полностью — `llama_cpp_provider.stream_tokens()` → `dm_agent.stream_narrate()` → `routes_stream.py` → `index.html` с `getReader()`.
 
 ### Метрики в реальном времени
 
 ```javascript
 // Что показывается пока DM думает:
 
-"⚔ Мастер думает...  ████████░░░  12.4с  |  247 токенов  |  65 tok/s  |  Qwen3.5-9B"
+"⚔ Мастер думает...  ████████░░░  12.4с  |  247 токенов  |  65 tok/s  |  Qwen2.5-7B"
                       ↑ прогресс    ↑ таймер   ↑ счётчик    ↑ скорость   ↑ модель
 ```
 
@@ -709,33 +741,39 @@ class TurnManager:
 {"type": "done",    "timing": {total_ms: 8240, tokens: 512, tok_per_sec: 65}}
 ```
 
-### JavaScript обработчик
+### JavaScript обработчик ✅ (реализован в index.html)
 
 ```javascript
-async function sendActionStream() {
-  const source = new EventSource(...)  // или fetch со стримингом
-  let tokenCount = 0
-  const startTime = Date.now()
+// Реальная реализация — fetch + getReader() (не EventSource)
+async function sendActionStream(text) {
+  const res = await fetch(API + "/game/action/stream", {
+    method: "POST", body: JSON.stringify({player, campaign, action: text})
+  })
+  const reader = res.body.getReader()
   
-  source.onmessage = (e) => {
-    const data = JSON.parse(e.data)
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    
+    // Декодируем SSE строки, парсим JSON-события
+    const data = parseSSEChunk(value)
     
     if (data.type === 'token') {
-      // Добавляем токен в чат — живое печатание
-      appendToken(data.text)
-      tokenCount++
-      
-      // Обновляем метрики
-      const elapsed = (Date.now() - startTime) / 1000
-      const tps = tokenCount / elapsed
-      updateMetrics(elapsed, tokenCount, tps)
+      appendToken(data.text)       // Живое печатание в чат
+      updateStreamMetrics(...)     // tok/s, прогресс-бар, таймер
     }
     else if (data.type === 'done') {
-      // Финальная статистика
-      showTiming(data.timing)
+      showFinalStats(data)
       unlockInput()
     }
   }
+}
+
+// Fallback если ReadableStream недоступен
+if (typeof ReadableStream !== "undefined") {
+  await sendActionStream(text)
+} else {
+  await sendActionFallback(text)  // обычный POST
 }
 ```
 
@@ -918,12 +956,12 @@ class PlayerAnalytics:
 
 ---
 
-## 💻 Отвязка от браузера — .exe файл
+## 💻 Отвязка от браузера — .exe файл [⏳ Фаза 11]
 
 ### Launcher (PyInstaller + pywebview)
 
 ```python
-# launcher.py — главный .exe
+# launcher.py — главный .exe (в разработке, заготовки есть в build/)
 
 import webview
 import threading
@@ -937,8 +975,9 @@ def start_llm_server():
     """Запускаем llama-server в фоне."""
     subprocess.Popen([
         str(ROOT / "Models LLM" / "llama" / "llama-server.exe"),
-        "-m", str(ROOT / "Models LLM" / "Qwen3.5-9B.gguf"),
-        "--port", "8080", "-ngl", "33", "-c", "4096"
+        "-m", str(ROOT / "Models LLM" / "qwen2.5-7b-instruct-q4_k_m.gguf"),
+        "--port", "8080", "-ngl", "28", "-c", "2048",
+        "--n-predict", "800", "--threads", "6"
     ])
 
 def start_backend():
@@ -997,7 +1036,7 @@ if __name__ == "__main__":
 │                     │         │              │ Action: social│
 │ [ввод]              │         │ [ввод]       │ Agent: npc_maj│
 │                     │         │              │ NPC stress:75 │
-│                     │         │              │ VRAM: 5.2/8GB │
+│                     │         │              │ VRAM: 4.5/8GB │
 │                     │         │              │ Tokens: 412   │
 │                     │         │              │ Time: 8.2s    │
 └─────────────────────┘         └──────────────┴───────────────┘
@@ -1007,90 +1046,96 @@ if __name__ == "__main__":
 
 ## 🔧 Genius Features
 
-### 1. LLM Self-Debug Mode
-При ошибке разбора JSON от агента — другая модель анализирует и исправляет:
+### 1. LLM Self-Debug — Error Interpreter ✅ РЕАЛИЗОВАН
+Error Interpreter (singleton) перехватывает 5 типов ошибок (timeout, OOM, JSON parse, context overflow, model fail), анализирует JSONL логи и выдаёт fix-рекомендации. Логируется в `data/logs/enigma_YYYYMMDD.jsonl`.
 ```python
-try:
-    result = json.loads(llm_response)
-except json.JSONDecodeError:
-    # Saiga анализирует сломанный ответ
-    fix_prompt = f"Исправь невалидный JSON: {llm_response}"
-    fixed = rules_agent.run(fix_prompt)
-    result = json.loads(fixed)
+# error_interpreter.py — обрабатывает ошибки LLM-агентов
+# 5 типов: TIMEOUT | OOM | JSON_PARSE | CONTEXT_OVERFLOW | MODEL_FAIL
+get_error_interpreter().interpret(error_type, context, traceback)
 ```
 
-### 2. VRAM-Aware Priority Queue
-При нехватке памяти — приоритет: DM > Rules > NPC Major > NPC Mass > World > Memory
+### 2. VRAM-Aware Priority Queue ✅ РЕАЛИЗОВАН
+При нехватке памяти — приоритет загрузки моделей:
 ```python
+# config.py — agent_model_map
 AGENT_PRIORITY = {"dm": 1, "rules": 2, "npc_major": 3, 
                    "npc_mass": 4, "world": 5, "memory": 6}
+# ModelPool.is_safe_to_load(model_vram_mb) — проверка перед загрузкой
 ```
 
-### 3. Offline-First RAG Cache
-Векторные эмбеддинги PDF книг генерируются при первом запуске, кэшируются в FAISS-индекс. Поиск мгновенный, без сети.
+### 3. Offline-First RAG Cache ⏳ Фаза 10
+Векторные эмбеддинги PDF книг генерируются при первом запуске, кэшируются в FAISS-индекс. Поиск мгновенный, без сети. Заготовки: `pdf_drop_importer.py`, `knowledge_ingest.py`.
 
-### 4. Player Memory Editor
+### 4. Player Memory Editor ⏳ Будущая фаза
 Игрок может просматривать и редактировать "известные факты" о себе. Прозрачность памяти системы.
+
+### 5. Context Builder ✅ РЕАЛИЗОВАН
+`context_builder.py` — динамически собирает контекст для LLM: системный промпт из `Promt_AI.json`, релевантные факты кампании, память сессии, результаты python_engines. Поддерживает бюджет токенов на агента (DM: 2048, NPC: 1024, Rules: 1024).
 
 ---
 
 ## 📅 Итоговый план реализации
 
-| # | Этап | Срок | Ключевой результат |
-|---|---|---|---|
-| 0 | Стабилизация | 2 дня | Правильная модель, 800 токенов, начальная локация |
-| 1 | Streaming SSE | 1 нед | Текст появляется по мере генерации + таймер |
-| 2 | Action Classifier | 1 нед | Python классификатор типов действий |
-| 3 | Combat Math | 1 нед | D&D 5e математика без LLM |
-| 4 | NPC Python Engines | 2 нед | 8 движков психологии, все без LLM |
-| 5 | Мультиплеер 1–8 | 2 нед | Turn Manager, очередь, групповой DM |
-| 6 | Все агенты активны | 2 нед | Saiga/NPC/World используются по назначению |
-| 7 | Sandbox Handler | 1 нед | Любое действие обрабатывается |
-| 8 | Создание персонажа | 1 нед | DM ведёт диалог, Python считает |
-| 9 | Система памяти | 2 нед | 4 уровня, Memory Manager, YandexGPT суммаризация |
-| 10 | Аналитика | 1 нед | Статистика игроков, итоги сессии |
-| 11 | .exe файл | 2 нед | PyInstaller + pywebview, без браузера |
-| 12 | RAG по PDF | 2 нед | ChromaDB / FAISS, индексация книг |
+| # | Этап | Срок | Ключевой результат | Статус |
+|---|---|---|---|---|
+| 0 | Стабилизация | 2 дня | 800 токенов, GPU_LAYERS=33, context_builder | ✅ 95% |
+| 1 | Streaming SSE | 1 нед | Текст появляется по мере генерации + таймер | ✅ ГОТОВО |
+| 2 | Action Classifier + PhysicsValidator | 1 нед | Python классификатор типов действий | ✅ ГОТОВО |
+| 3 | Combat Math + Sandbox Handler | 2 нед | D&D 5e математика + любые действия | ✅ ГОТОВО |
+| 4 | NPC Python Engines | 2 нед | 8 движков психологии (Фаза 3A–3B) | ⏳ ТЕКУЩИЙ ЭТАП |
+| 5 | Все агенты активны | 1.5 нед | Pygmalion/Saiga/World по назначению | ⏳ |
+| 6 | Мультиплеер 1–8 | 2 нед | TurnManager, очередь, групповой DM | ⏳ |
+| 7 | Создание персонажа | 1 нед | DM ведёт диалог, Python считает | ⏳ |
+| 8 | Система памяти | 2 нед | Memory Manager, суммаризация | ⏳ (LayeredMemory готов) |
+| 9 | Аналитика | 1 нед | Статистика игроков, итоги сессии | ⏳ |
+| 10 | World Simulator | 1.5 нед | WorldScheduler полноценный | ⏳ (базовый готов) |
+| 11 | RAG по PDF | 2 нед | ChromaDB / FAISS, индексация книг | ⏳ (заготовки) |
+| 12 | .exe файл | 2 нед | PyInstaller + pywebview, без браузера | ⏳ |
 
-**До первой полностью играбельной версии:** ~4–5 месяцев.
-**До минимальной играбельной (без RAG и .exe):** ~2 месяца.
+**До v1.0-playable (Этапы 0–6):** ~2.5 месяца от сейчас.
+**До полного релиза:** ~5–6 месяцев.
 
 ---
 
 ## 📈 Текущее состояние
 
-| Компонент | Готовность |
-|---|---|
-| Инфраструктура запуска | 95% |
-| LLM интеграция (базовая) | 70% |
-| Игровой цикл (ход→ответ) | 45% |
-| Streaming токенов | 0% |
-| NPC психология (Python) | 0% |
-| Мультиплеер | 0% |
-| Боевая математика | 20% |
-| Sandbox (любые действия) | 0% |
-| Создание персонажа | 10% |
-| Система памяти | 50% |
-| Аналитика | 0% |
-| .exe файл | 0% |
-| RAG по PDF | 5% |
-| **Общий прогресс** | **~35%** |
+| Компонент | Готовность | Примечание |
+|---|---|---|
+| Инфраструктура запуска | 98% | start_enigma.bat, pre-flight, динамические порты |
+| LLM интеграция (базовая) | 90% | ModelPool, lazy loading, VRAM-aware, streaming |
+| Игровой цикл (ход→ответ) | 80% | Orchestrator, ActionClassifier, PhysicsValidator интегрированы |
+| Streaming токенов | **100%** | SSE + getReader() + fallback POST + метрики |
+| Action Classifier | **100%** | 14 типов, приоритеты, get_required_agents() |
+| Physics Validator | **100%** | Правила мира, bypass через заклинания |
+| Боевая математика | **100%** | attack_roll, damage, initiative, death saves, grid |
+| Sandbox (любые действия) | **100%** | 23 обработчика + TOP-100 нестандартных |
+| NPC психология (Python) | 0% | ⏳ Фаза 3A — текущий этап |
+| Система памяти | 65% | LayeredMemory + JsonMemoryStore готовы, Manager нет |
+| Error Interpreter | 90% | 5 типов ошибок, JSONL логи, fix-рекомендации |
+| VRAM Monitor | 95% | baseline fix, get_vram_budget(), ложных утечек нет |
+| Context Builder | 85% | динамический сборщик, релевантные факты |
+| Мультиплеер | 0% | ⏳ Фаза 5 |
+| Создание персонажа | 10% | Математика готова, диалог с DM нет |
+| Аналитика | 0% | ⏳ Фаза 8 |
+| .exe файл | 5% | Заготовки build/, pywebview |
+| RAG по PDF | 10% | pdf_drop_importer.py + knowledge_ingest.py есть |
+| **Общий прогресс** | **~60%** | |
 
 ---
 
 ## 🏛️ Ключевые архитектурные принципы
 
 **1. Python считает — LLM рассказывает.**
-Урон, хиты, психология NPC, физика, стресс, репутация — всё это математика в Python. LLM получает готовые числа и превращает их в живую историю.
+Урон, хиты, психология NPC, физика, стресс, репутация — всё это математика в Python. LLM получает готовые числа и превращает их в живую историю. Реализовано: CombatMath, PhysicsValidator, SandboxHandler, ActionClassifier. В разработке: NPC-движки (Фаза 3).
 
 **2. Один llama-server, одна модель в VRAM.**
-max_loaded=1 — это не ограничение, это архитектурное решение. Action Classifier минимизирует количество переключений.
+max_loaded=1 — это не ограничение, это архитектурное решение для 8 GB VRAM. ModelPool с lazy loading. Маппинг агентов: DM/World → Qwen2.5-7B, NPC Major → Pygmalion Q5_K_M, NPC Mass → Pygmalion Q4_K_M, Rules/Memory → Saiga 7B.
 
 **3. Любое действие игрока обрабатывается.**
-Нет запрещённых путей — есть последствия. SandboxHandler превращает даже самые странные действия в осмысленные ситуации.
+Нет запрещённых путей — есть последствия. SandboxHandler (23 обработчика + TOP-100 нестандартных ситуаций) превращает даже самые странные действия в осмысленные ситуации. Полностью реализован.
 
 **4. Состояние — единственный источник правды.**
-`characters.json`, `major_npcs.json`, `campaign_state.json` — никакая LLM не меняет их напрямую. Только Python сервисы через API.
+`characters.json`, `major_npcs.json` (создаётся в Фазе 3), `campaign_state.json` — никакая LLM не меняет их напрямую. Только Python сервисы через API.
 
 **5. Мир живёт независимо от игрока.**
-LifeEngine тикает каждые 15 минут. NPC ходят на работу, спят, ссорятся, влюбляются. Игрок возвращается в мир который жил без него.
+WorldScheduler тикает каждые 15 минут (базовая реализация готова). Полноценный LifeEngine с расписаниями NPC, случайными событиями и стресс-механикой — в Фазе 3B.

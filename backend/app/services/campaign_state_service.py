@@ -151,13 +151,23 @@ class CampaignStateService:
         category: str = "lore",
         tags: Optional[list[str]] = None,
         source: str = ""
-    ) -> WorldFact:
-        """Добавить факт о мире с метаданными для RAG."""
+    ) -> Optional[WorldFact]:           # ← теперь может вернуть None
         state = self.get_campaign_state(campaign_id)
-        
-        # Генерируем ID
+    
+        text = text.strip()
+        if not text:
+            return None
+    
+        # Проверяем, есть ли уже факт с точно таким же текстом
+        normalized_text = text.lower()
+        for existing in state.world_facts:
+            if existing.text.strip().lower() == normalized_text:
+                # logger.debug(f"Дубликат факта пропущен: {text}")
+                return existing  # или просто return None, если не нужно возвращать существующий
+    
+    # Если не нашли — создаём новый
         fact_id = f"fact_{uuid4().hex[:8]}"
-        
+    
         fact = WorldFact(
             id=fact_id,
             text=text,
@@ -166,7 +176,7 @@ class CampaignStateService:
             source=source,
             created_at=self._now_iso()
         )
-        
+    
         state.world_facts.append(fact)
         self._save_to_file(self._state_file(campaign_id), state)
         return fact

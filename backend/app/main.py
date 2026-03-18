@@ -15,6 +15,7 @@ import asyncio
 
 from app.api.routes import router
 from app.api import routes_debug
+from app.api.routes_stream import router as stream_router
 from app.core.config import settings
 
 from app.services.llm import initialize_router
@@ -39,6 +40,7 @@ app.add_middleware(
 
 app.include_router(router, prefix="/api")
 app.include_router(routes_debug.router, prefix="/api")
+app.include_router(stream_router, prefix="/api")
 
 BASE_DIR     = Path(__file__).resolve().parents[2]   # Enigma root
 FRONTEND_DIR = BASE_DIR / "frontend" / "ui"
