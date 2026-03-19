@@ -95,6 +95,7 @@ class DmAgent:
 
         physics_warnings = ""
         python_engines_block = ""
+        npc_psychology_block = ""
 
         if context:
             # ──────────────────────────────
@@ -120,6 +121,12 @@ class DmAgent:
                 if engines:
                     python_engines_block = "Результаты вычислений и проверок (ОБЯЗАТЕЛЬНО используй эти данные в повествовании):\n"
                     for player_name, data in engines.items():
+                        # ИСПРАВЛЕНИЕ: npc_contexts хранится в python_engines в
+                        # orchestrator._run_python_engines — это list, не dict.
+                        # В stream-роуте python_engines пуст, но для надёжности
+                        # пропускаем любые не-dict значения чтобы не было AttributeError.
+                        if not isinstance(data, dict):
+                            continue
                         python_engines_block += f"Игрок {player_name}:\n"
                         if data.get("combat"):
                             c = data["combat"]
@@ -138,6 +145,32 @@ class DmAgent:
                             )
                     python_engines_block += "\nИспользуй эти точные результаты в своём повествовании. Не придумывай другие значения.\n"
 
+            # ──────────────────────────────
+            # ФАЗА 3A: Психология NPC
+            # ──────────────────────────────
+            # npc_contexts хранится на верхнем уровне shared_context (stream-роут)
+            # или внутри python_engines["npc_contexts"] (orchestrator).
+            # DM получает подсказки о поведении NPC — чтобы повествование
+            # совпадало с тем что рассчитали Python-движки.
+            npc_ctxs = context.get("npc_contexts") or (
+                context.get("python_engines", {}).get("npc_contexts", [])
+                if isinstance(context.get("python_engines"), dict) else []
+            )
+            if npc_ctxs:
+                npc_psychology_block = "Психологическое состояние NPC в локации (Python рассчитал — использовать в повествовании):\n"
+                for ctx in npc_ctxs:
+                    name  = ctx.get("npc_name", "NPC")
+                    hint  = ctx.get("behavior_hint", "")
+                    pstat = ctx.get("perceived_status", "")
+                    tcat  = ctx.get("threat_category", "")
+                    line  = f"- {name}: {hint}"
+                    if pstat:
+                        line += f" | Игрок воспринимается как: {pstat}"
+                    if tcat:
+                        line += f" | Уровень угрозы: {tcat}"
+                    npc_psychology_block += line + "\n"
+                npc_psychology_block += "Используй имена NPC из этого списка — не придумывай новые.\n"
+
         return f"""Текущая локация: {location}
 
 {context_str}
@@ -155,6 +188,7 @@ class DmAgent:
 
 {physics_warnings}
 {python_engines_block}
+{npc_psychology_block}
 
 Продолжи рассказ от лица Dungeon Master. Не говори за игроков. 
 Опиши что происходит, диалоги NPC, результаты действий. 

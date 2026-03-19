@@ -1,0 +1,418 @@
+[
+  {
+    "id": "tavern_keeper_tornin",
+    "name": "Торнин Серебряная Луна",
+    "tier": "major",
+    "status_profile": {
+      "freedom": 75,
+      "wealth": 40,
+      "power": 20,
+      "title": "Хозяин таверны",
+      "faction_rank": {
+        "гильдия_воров": -1
+      }
+    },
+    "visible_markers": [
+      "apron",
+      "keys",
+      "heavy_build",
+      "scar_on_cheek"
+    ],
+    "hidden_truth": [
+      "former_soldier",
+      "owes_debt_to_thieves_guild"
+    ],
+    "drives": {
+      "control": 0.5,
+      "significance": 0.25,
+      "fear": 0.15,
+      "desire": 0.1
+    },
+    "psyche": {
+      "willpower": 65,
+      "stress": 20,
+      "breakpoint": 80,
+      "loyalty_true": 60,
+      "loyalty_fake": 60,
+      "state": "free",
+      "trauma_flags": []
+    },
+    "social_stats": {
+      "trust": 0.66,
+      "affection": 0.5,
+      "fear_of_player": 0.01,
+      "debt": 0
+    },
+    "relationships": {
+      "player_default": 50,
+      "guard_borko": 60
+    },
+    "routine": {
+      "current": "cleaning_tables",
+      "mood": "neutral",
+      "interrupted": false,
+      "next_task": "serve_customers",
+      "schedule": {
+        "06:00-22:00": "working",
+        "22:00-06:00": "sleeping"
+      }
+    },
+    "recent_events": [],
+    "memory_trace": [],
+    "flags": {
+      "has_gold": true,
+      "knows_secret": false,
+      "is_enslaved": false,
+      "planning_revenge": false,
+      "is_dead": false
+    },
+    "location": "tavern_silver_wolf",
+    "hp": 40,
+    "max_hp": 40,
+    "combat_stats": {
+      "ac": 12,
+      "attack_bonus": 3,
+      "damage": "1d6+2"
+    },
+    "abilities": {
+      "strength": 14,
+      "dexterity": 10,
+      "constitution": 13,
+      "intelligence": 11,
+      "wisdom": 12,
+      "charisma": 13
+    }
+  },
+  {
+    "id": "guard_borko",
+    "name": "Стражник Борко",
+    "tier": "minor",
+    "status_profile": {
+      "freedom": 60,
+      "wealth": 15,
+      "power": 30,
+      "title": "Стражник городских ворот",
+      "faction_rank": {
+        "стража_города": 2
+      }
+    },
+    "visible_markers": [
+      "city_guard_armor",
+      "spear",
+      "city_emblem"
+    ],
+    "hidden_truth": [
+      "takes_bribes",
+      "lazy"
+    ],
+    "drives": {
+      "control": 0.4,
+      "significance": 0.3,
+      "fear": 0.2,
+      "desire": 0.1
+    },
+    "psyche": {
+      "willpower": 45,
+      "stress": 25,
+      "breakpoint": 65,
+      "loyalty_true": 30,
+      "loyalty_fake": 50,
+      "state": "free",
+      "trauma_flags": []
+    },
+    "social_stats": {
+      "trust": 0.4,
+      "affection": 0.3,
+      "fear_of_player": 0.1,
+      "debt": 0
+    },
+    "relationships": {
+      "player_default": 40,
+      "tavern_keeper_tornin": 60
+    },
+    "routine": {
+      "current": "guarding_gate",
+      "mood": "bored",
+      "interrupted": false,
+      "next_task": "patrol",
+      "schedule": {
+        "07:00-19:00": "guarding_gate",
+        "19:00-07:00": "sleeping"
+      }
+    },
+    "recent_events": [],
+    "memory_trace": [],
+    "flags": {
+      "has_gold": false,
+      "knows_secret": false,
+      "is_enslaved": false,
+      "planning_revenge": false,
+      "is_dead": false
+    },
+    "location": "city_gate",
+    "hp": 30,
+    "max_hp": 30,
+    "combat_stats": {
+      "ac": 14,
+      "attack_bonus": 4,
+      "damage": "1d8+2"
+    },
+    "abilities": {
+      "strength": 13,
+      "dexterity": 12,
+      "constitution": 12,
+      "intelligence": 9,
+      "wisdom": 11,
+      "charisma": 10
+    }
+  },
+  {
+    "id": "maid_lusya",
+    "name": "Люся",
+    "tier": "minor",
+    "status_profile": {
+      "freedom": 50,
+      "wealth": 5,
+      "power": 5,
+      "title": "Служанка таверны",
+      "faction_rank": {}
+    },
+    "visible_markers": [
+      "maid_dress",
+      "tray",
+      "tired_eyes"
+    ],
+    "hidden_truth": [
+      "spy_for_thieves_guild",
+      "looking_for_escape"
+    ],
+    "drives": {
+      "control": 0.15,
+      "significance": 0.2,
+      "fear": 0.45,
+      "desire": 0.2
+    },
+    "psyche": {
+      "willpower": 35,
+      "stress": 40,
+      "breakpoint": 55,
+      "loyalty_true": 20,
+      "loyalty_fake": 55,
+      "state": "coerced",
+      "trauma_flags": [
+        "threatened_in_past"
+      ]
+    },
+    "social_stats": {
+      "trust": 0.41,
+      "affection": 0.45,
+      "fear_of_player": 0.16,
+      "debt": 0
+    },
+    "relationships": {
+      "player_default": 35,
+      "tavern_keeper_tornin": 40
+    },
+    "routine": {
+      "current": "serving_tables",
+      "mood": "anxious",
+      "interrupted": false,
+      "next_task": "wash_dishes",
+      "schedule": {
+        "08:00-23:00": "serving_tables",
+        "23:00-08:00": "sleeping"
+      }
+    },
+    "recent_events": [],
+    "memory_trace": [],
+    "flags": {
+      "has_gold": false,
+      "knows_secret": true,
+      "is_enslaved": false,
+      "planning_revenge": false,
+      "is_dead": false
+    },
+    "location": "tavern_silver_wolf",
+    "hp": 15,
+    "max_hp": 15,
+    "combat_stats": {
+      "ac": 10,
+      "attack_bonus": 0,
+      "damage": "1d4"
+    },
+    "abilities": {
+      "strength": 8,
+      "dexterity": 13,
+      "constitution": 10,
+      "intelligence": 12,
+      "wisdom": 14,
+      "charisma": 12
+    }
+  },
+  {
+    "id": "merchant_goran",
+    "name": "Купец Горан",
+    "tier": "minor",
+    "status_profile": {
+      "freedom": 80,
+      "wealth": 70,
+      "power": 35,
+      "title": "Торговец тканями",
+      "faction_rank": {
+        "купеческая_гильдия": 3
+      }
+    },
+    "visible_markers": [
+      "merchant_robes",
+      "coin_purse",
+      "ledger"
+    ],
+    "hidden_truth": [
+      "smuggles_contraband",
+      "owes_money_to_criminals"
+    ],
+    "drives": {
+      "control": 0.2,
+      "significance": 0.25,
+      "fear": 0.15,
+      "desire": 0.4
+    },
+    "psyche": {
+      "willpower": 50,
+      "stress": 30,
+      "breakpoint": 70,
+      "loyalty_true": 45,
+      "loyalty_fake": 45,
+      "state": "free",
+      "trauma_flags": []
+    },
+    "social_stats": {
+      "trust": 0.5,
+      "affection": 0.4,
+      "fear_of_player": 0.05,
+      "debt": 0
+    },
+    "relationships": {
+      "player_default": 50
+    },
+    "routine": {
+      "current": "haggling",
+      "mood": "calculating",
+      "interrupted": false,
+      "next_task": "inspect_goods",
+      "schedule": {
+        "09:00-18:00": "market_trading",
+        "18:00-21:00": "counting_money",
+        "21:00-09:00": "sleeping"
+      }
+    },
+    "recent_events": [],
+    "memory_trace": [],
+    "flags": {
+      "has_gold": true,
+      "knows_secret": true,
+      "is_enslaved": false,
+      "planning_revenge": false,
+      "is_dead": false
+    },
+    "location": "market_square",
+    "hp": 20,
+    "max_hp": 20,
+    "combat_stats": {
+      "ac": 11,
+      "attack_bonus": 1,
+      "damage": "1d4"
+    },
+    "abilities": {
+      "strength": 10,
+      "dexterity": 12,
+      "constitution": 11,
+      "intelligence": 14,
+      "wisdom": 13,
+      "charisma": 15
+    }
+  },
+  {
+    "id": "thief_shadow",
+    "name": "Тень",
+    "tier": "major",
+    "status_profile": {
+      "freedom": 70,
+      "wealth": 35,
+      "power": 25,
+      "title": "Вор",
+      "faction_rank": {
+        "гильдия_воров": 4
+      }
+    },
+    "visible_markers": [
+      "dark_cloak",
+      "hood",
+      "daggers"
+    ],
+    "hidden_truth": [
+      "guild_lieutenant",
+      "looking_for_something"
+    ],
+    "drives": {
+      "control": 0.3,
+      "significance": 0.2,
+      "fear": 0.1,
+      "desire": 0.4
+    },
+    "psyche": {
+      "willpower": 70,
+      "stress": 15,
+      "breakpoint": 85,
+      "loyalty_true": -20,
+      "loyalty_fake": 50,
+      "state": "deceptive",
+      "trauma_flags": []
+    },
+    "social_stats": {
+      "trust": 0.31,
+      "affection": 0.2,
+      "fear_of_player": 0.06,
+      "debt": 0
+    },
+    "relationships": {
+      "player_default": 25
+    },
+    "routine": {
+      "current": "observing",
+      "mood": "alert",
+      "interrupted": false,
+      "next_task": "contact_guild",
+      "schedule": {
+        "20:00-04:00": "active",
+        "04:00-14:00": "sleeping",
+        "14:00-20:00": "planning"
+      }
+    },
+    "recent_events": [],
+    "memory_trace": [],
+    "flags": {
+      "has_gold": false,
+      "knows_secret": true,
+      "is_enslaved": false,
+      "planning_revenge": false,
+      "is_dead": false
+    },
+    "location": "tavern_silver_wolf",
+    "hp": 35,
+    "max_hp": 35,
+    "combat_stats": {
+      "ac": 15,
+      "attack_bonus": 5,
+      "damage": "1d6+3"
+    },
+    "abilities": {
+      "strength": 10,
+      "dexterity": 17,
+      "constitution": 12,
+      "intelligence": 13,
+      "wisdom": 14,
+      "charisma": 11
+    }
+  }
+]
