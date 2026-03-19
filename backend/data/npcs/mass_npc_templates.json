@@ -1,0 +1,82 @@
+{
+  "city_guard": {
+    "archetype": "городской стражник",
+    "drives": {"control": 0.45, "significance": 0.25, "fear": 0.20, "desire": 0.10},
+    "stress_baseline": 25, "willpower_baseline": 50, "breakpoint_baseline": 65,
+    "trust_baseline": 0.40, "fear_of_player_baseline": 0.10,
+    "visible_markers": ["city_guard_armor", "spear"],
+    "routine_template": {"07:00-19:00": "on_duty", "19:00-07:00": "off_duty"}
+  },
+  "tavern_drunk": {
+    "archetype": "пьяный посетитель",
+    "drives": {"control": 0.10, "significance": 0.30, "fear": 0.10, "desire": 0.50},
+    "stress_baseline": 10, "willpower_baseline": 20, "breakpoint_baseline": 30,
+    "trust_baseline": 0.60, "fear_of_player_baseline": 0.05,
+    "visible_markers": ["ragged_clothes", "mug_of_ale"],
+    "routine_template": {"12:00-24:00": "drinking", "00:00-12:00": "sleeping"}
+  },
+  "peasant": {
+    "archetype": "крестьянин",
+    "drives": {"control": 0.35, "significance": 0.15, "fear": 0.40, "desire": 0.10},
+    "stress_baseline": 30, "willpower_baseline": 40, "breakpoint_baseline": 55,
+    "trust_baseline": 0.45, "fear_of_player_baseline": 0.15,
+    "visible_markers": ["tunic", "calloused_hands", "hoe"],
+    "routine_template": {"06:00-18:00": "working_fields", "18:00-22:00": "home", "22:00-06:00": "sleeping"}
+  },
+  "merchant": {
+    "archetype": "торговец",
+    "drives": {"control": 0.25, "significance": 0.20, "fear": 0.15, "desire": 0.40},
+    "stress_baseline": 20, "willpower_baseline": 55, "breakpoint_baseline": 70,
+    "trust_baseline": 0.50, "fear_of_player_baseline": 0.05,
+    "visible_markers": ["merchant_clothes", "coin_purse"],
+    "routine_template": {"08:00-18:00": "trading", "18:00-08:00": "off_duty"}
+  },
+  "beggar": {
+    "archetype": "нищий",
+    "drives": {"control": 0.05, "significance": 0.10, "fear": 0.60, "desire": 0.25},
+    "stress_baseline": 50, "willpower_baseline": 30, "breakpoint_baseline": 40,
+    "trust_baseline": 0.25, "fear_of_player_baseline": 0.35,
+    "visible_markers": ["rags", "begging_bowl"],
+    "routine_template": {"08:00-20:00": "begging", "20:00-08:00": "sleeping"}
+  },
+  "monk": {
+    "archetype": "монах",
+    "drives": {"control": 0.20, "significance": 0.15, "fear": 0.15, "desire": 0.50},
+    "stress_baseline": 10, "willpower_baseline": 75, "breakpoint_baseline": 90,
+    "trust_baseline": 0.65, "fear_of_player_baseline": 0.02,
+    "visible_markers": ["robes", "holy_symbol"],
+    "routine_template": {"05:00-21:00": "duties", "21:00-05:00": "prayer_and_sleep"}
+  },
+  "soldier": {
+    "archetype": "солдат",
+    "drives": {"control": 0.40, "significance": 0.30, "fear": 0.10, "desire": 0.20},
+    "stress_baseline": 30, "willpower_baseline": 65, "breakpoint_baseline": 80,
+    "trust_baseline": 0.40, "fear_of_player_baseline": 0.05,
+    "visible_markers": ["military_armor", "sword", "unit_emblem"],
+    "routine_template": {"06:00-18:00": "training_patrol", "18:00-06:00": "barracks"}
+  },
+  "innkeeper_maid": {
+    "archetype": "служанка",
+    "drives": {"control": 0.20, "significance": 0.20, "fear": 0.35, "desire": 0.25},
+    "stress_baseline": 35, "willpower_baseline": 35, "breakpoint_baseline": 50,
+    "trust_baseline": 0.40, "fear_of_player_baseline": 0.20,
+    "visible_markers": ["maid_dress", "tray"],
+    "routine_template": {"07:00-22:00": "serving", "22:00-07:00": "sleeping"}
+  },
+  "child": {
+    "archetype": "ребёнок",
+    "drives": {"control": 0.10, "significance": 0.20, "fear": 0.30, "desire": 0.40},
+    "stress_baseline": 15, "willpower_baseline": 20, "breakpoint_baseline": 30,
+    "trust_baseline": 0.70, "fear_of_player_baseline": 0.10,
+    "visible_markers": ["small_size", "simple_clothes"],
+    "routine_template": {"08:00-20:00": "playing_chores", "20:00-08:00": "sleeping"}
+  },
+  "priest": {
+    "archetype": "жрец",
+    "drives": {"control": 0.20, "significance": 0.30, "fear": 0.10, "desire": 0.40},
+    "stress_baseline": 10, "willpower_baseline": 70, "breakpoint_baseline": 85,
+    "trust_baseline": 0.60, "fear_of_player_baseline": 0.03,
+    "visible_markers": ["priest_robes", "temple_symbol"],
+    "routine_template": {"06:00-20:00": "temple_duties", "20:00-06:00": "rest"}
+  }
+}

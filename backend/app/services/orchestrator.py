@@ -20,6 +20,8 @@
 #
 # ФАЗА 2.2 — добавлен PhysicsValidator (до агентов, после classifier)
 # ФАЗА 2.3/2.4 — добавлен _run_python_engines (CombatMath + SandboxHandler)
+# ФАЗА 3A — добавлены NPC Psychology движки (ThreatAssessor, PerceptionEngine,
+#             NPCCognition, PsycheEngine), загрузка/сохранение major_npcs.json
 
 import asyncio
 from time import perf_counter
@@ -59,6 +61,13 @@ from app.services.action_classifier import classifier, ActionType
 # === ИНТЕГРАЦИЯ PHYSICS VALIDATOR (фаза 2.2) ===
 from app.services.game.physics_validator import validator
 
+# === NPC Psychology (фаза 3A) ===
+from app.services.npc.npc_cognition   import (process_player_action, build_npc_prompt,
+                                                get_inner_thought, normalize_drives)
+from app.services.npc.psyche_engine   import apply_stress, get_behavior_hint
+from app.services.npc.threat_assessor import assess_threat, get_threat_category, apply_threat_to_npc
+from app.services.npc.perception_engine import assess_status, get_status_label, get_social_permissions
+
 logger = logging.getLogger(__name__)
 
 ERROR_CODES = {
@@ -71,7 +80,7 @@ ERROR_CODES = {
 }
 
 AGENT_TIMEOUT_SEC = 120   # максимум 2 мин на агента
-NPC_MEMORY_LIMIT  = 10    # лимит памяти NPC (экономия ~200 токенов)
+NPC_MEMORY_LIMIT  = 30    # лимит памяти NPC (экономия ~200 токенов)
 
 # Типы действий при которых запускается SandboxHandler
 _SANDBOX_TYPES = {
@@ -107,7 +116,41 @@ class GameOrchestrator:
         self.model_router = ModelRouter()
         self._campaign_world_index: dict[str, str] = {}
 
-        logger.info("[ORCHESTRATOR_INIT] GameOrchestrator ready (ActionClassifier + PhysicsValidator + PythonEngines подключены)")
+        logger.info("[ORCHESTRATOR_INIT] GameOrchestrator ready (ActionClassifier + PhysicsValidator + PythonEngines + NPCPsychology подключены)")
+
+    # ИСПРАВЛЕНИЕ (фаза 3A): кэш NPC — класс-переменная, не глобальная.
+    # Доступ через GameOrchestrator._npc_cache, а не global.
+    _npc_cache: list | None = None  # кэш в RAM
+
+    def _load_npcs(self) -> list:
+        """Загружает NPC из JSON. Кэширует в RAM."""
+        # ИСПРАВЛЕНИЕ: было "global _npc_cache" — неправильно для class variable.
+        # Правильно: обращаться через имя класса.
+        if GameOrchestrator._npc_cache is not None:
+            return GameOrchestrator._npc_cache
+        npc_path = self.data_dir / "npcs" / "major_npcs.json"
+        if npc_path.exists():
+            import json
+            with open(npc_path, "r", encoding="utf-8") as f:
+                GameOrchestrator._npc_cache = json.load(f)
+        else:
+            GameOrchestrator._npc_cache = []
+        return GameOrchestrator._npc_cache
+
+    def _save_npcs(self, npcs: list) -> None:
+        """Сохраняет обновлённые NPC обратно в JSON."""
+        import json
+        npc_path = self.data_dir / "npcs" / "major_npcs.json"
+        npc_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(npc_path, "w", encoding="utf-8") as f:
+            # ИСПРАВЛЕНИЕ: json.dump не был отступлен внутри with → IndentationError
+            json.dump(npcs, f, ensure_ascii=False, indent=2)
+        # ИСПРАВЛЕНИЕ: было "global _npc_cache" — правильно через имя класса.
+        GameOrchestrator._npc_cache = npcs  # обновляем кэш
+
+    def _get_npcs_in_location(self, location: str) -> list:
+        """Возвращает NPC которые сейчас в данной локации."""
+        return [npc for npc in self._load_npcs() if npc.get("location") == location]
 
     def session_state(self, campaign_id: str):
         """
@@ -213,20 +256,20 @@ class GameOrchestrator:
         self,
         req: ChatTurnRequest,
         classification_results: List[dict],
+        shared_context: dict,   # ИСПРАВЛЕНИЕ: параметр добавлен — NPC-блок его использует
     ) -> dict:
         """
-        Фаза 2.3/2.4: Python движки — выполняются ДО LLM агентов.
+        Фазы 2.3/2.4/3A: Python движки — выполняются ДО LLM агентов.
         Принцип: Python считает → LLM только рассказывает результат.
 
         Запускает:
           - CombatMath (attack_roll, damage_roll) — при COMBAT
           - SandboxHandler (process_sandbox_action) — при нестандартных действиях
+          - NPC Psychology (фаза 3A):
+              ThreatAssessor → PerceptionEngine → NPCCognition → PsycheEngine
 
         Возвращает структуру python_engines_result, которая передаётся DM агенту
         через shared_context["python_engines"].
-
-        Фаза 3 расширит этот метод:
-          ThreatAssessor → PerceptionEngine → NPCCognition → PsycheEngine → KarmaEngine
         """
         engines_result: Dict[str, dict] = {}
 
@@ -255,8 +298,6 @@ class GameOrchestrator:
             # ─────────────────────────────────────────────────────────────────
             if act_type == ActionType.COMBAT:
                 try:
-                    # Строим минимальный словарь атакующего из CharacterSheet.
-                    # Полная интеграция с NPC-данными — Фаза 3 (major_npcs.json).
                     attacker = {
                         "name":            player_name,
                         "level":           char_dict.get("level", 1),
@@ -268,8 +309,9 @@ class GameOrchestrator:
                         }),
                         "conditions":      char_dict.get("conditions", []),
                     }
-                    # Заглушка цели — Фаза 3 заменит на реальные NPC из локации
-                    target = {
+                    # Фаза 3A: цель берётся из NPC в локации если есть, иначе заглушка
+                    npcs_here = self._get_npcs_in_location(req.location)
+                    target = npcs_here[0] if npcs_here else {
                         "name":   "противник",
                         "ac":     12,
                         "hp":     20,
@@ -305,15 +347,14 @@ class GameOrchestrator:
             # ─────────────────────────────────────────────────────────────────
             elif act_type in _SANDBOX_TYPES:
                 try:
-                    # Полный текст (не обрезанный) — берём из action_item
                     full_action = getattr(action_item, "action",
                                          getattr(action_item, "description", action_text))
 
                     sandbox_result = process_sandbox_action(
                         player=char_dict,
                         action_desc=full_action,
-                        target=None,          # Фаза 3: NPC из локации
-                        enemies=None,         # Фаза 3: боевые противники
+                        target=None,
+                        enemies=None,
                         location_type=req.location,
                         gold=char_dict.get("gold", 0),
                     )
@@ -329,7 +370,85 @@ class GameOrchestrator:
 
             engines_result[player_name] = player_result
 
+
+        # ── NPC Psychology блок (фаза 3A) ─────────────────────────────────────────────
+        # ИСПРАВЛЕНИЕ: action_type брался из shared_context.get("action_type") — ключа нет.
+        # Правильно: берём из первого элемента classification_results.
+        action_type = classification_results[0]["type"] if classification_results else "EXPLORE"
+
+        player_data = {}
+        if req.actions:
+            player_name = req.actions[0].player_name
+            chars = self.character_service.list_characters(req.campaign_id)
+            player_data = next(
+                (c.model_dump() for c in chars if c.name == player_name), {}
+            )
+
+        npcs_in_location = self._get_npcs_in_location(req.location)
+        npc_contexts = []
+
+        for npc in npcs_in_location:
+            # 1. Угроза
+            player_markers = player_data.get("visible_markers", [])
+            threat_score   = assess_threat(
+                player_markers, action_type,
+                player_data.get("reputation", {})
+            )
+            threat_cat = get_threat_category(threat_score)
+            apply_threat_to_npc(npc, threat_score, threat_cat)
+
+            # 2. Восприятие
+            status_score  = assess_status(player_markers)
+            status_label  = get_status_label(status_score)
+            permissions   = get_social_permissions(player_markers, npc)
+
+            # 3. NPCCognition — доверие/страх
+            action_deltas = process_player_action(npc, action_type, player_data, threat_score)
+
+            # 4. PsycheEngine — подсказка по поведению
+            behavior_hint = get_behavior_hint(npc)
+
+            # 5. Промпт для NPC агента
+            npc_system_prompt = build_npc_prompt(
+                npc, player_data, shared_context,
+                behavior_hint=behavior_hint,
+                perceived_status=status_label,
+                threat_category=threat_cat,
+            )
+
+            # 6. Внутренняя мысль для режима отладки
+            inner_thought = get_inner_thought(npc, shared_context)
+
+            npc_contexts.append({
+                "npc_id":          npc["id"],
+                "npc_name":        npc["name"],
+                "threat_score":    threat_score,
+                "threat_category": threat_cat,
+                "perceived_status": status_label,
+                "behavior_hint":   behavior_hint,
+                "system_prompt":   npc_system_prompt,
+                "inner_thought":   inner_thought,
+                "permissions":     permissions,
+                "action_deltas":   action_deltas,
+            })
+
+        # Сохраняем обновлённые состояния NPC
+        if npcs_in_location:
+            all_npcs = self._load_npcs()
+            for updated_npc in npcs_in_location:
+                for i, n in enumerate(all_npcs):
+                    if n["id"] == updated_npc["id"]:
+                        all_npcs[i] = updated_npc
+                        break
+            self._save_npcs(all_npcs)
+
+        # ИСПРАВЛЕНИЕ: было results["npc_contexts"] — переменная results не существует
+        # внутри _run_python_engines. Правильно: engines_result.
+        engines_result["npc_contexts"] = npc_contexts
+        # ── Конец NPC блока ────────────────────────────────────────────────────────────
+
         return engines_result
+
 
     async def _run_agent_safe(
         self, agent_name: str, agent, args: tuple, kwargs: dict
@@ -435,7 +554,6 @@ class GameOrchestrator:
             action_text = getattr(action_item, "action",
                                   getattr(action_item, "description", str(action_item)))
 
-            # Берём персонажа (для мультиплеера — каждый своего)
             char_sheet = self._get_character_dict(req.campaign_id, action_item.player_name)
 
             validation = validator.validate(
@@ -459,16 +577,17 @@ class GameOrchestrator:
         # ===================================================================
 
         # ===================================================================
-        # === PYTHON ENGINES (фаза 2.3/2.4) — CombatMath + SandboxHandler ==
+        # === PYTHON ENGINES (фазы 2.3/2.4/3A) ==============================
+        # ИСПРАВЛЕНИЕ: передаём shared_context — NPC-блок его требует
         # ===================================================================
         python_engines_result = await self._run_python_engines(
-            req, classification_results
+            req, classification_results, shared_context
         )
         shared_context["python_engines"] = python_engines_result
 
         logger.info(
             f"[PYTHON_ENGINES] Обработано {len(python_engines_result)} игроков: "
-            f"{[v['action_type'] for v in python_engines_result.values()]}"
+            f"{[v['action_type'] for v in python_engines_result.values() if isinstance(v, dict) and 'action_type' in v]}"
         )
         # ===================================================================
 
@@ -512,7 +631,7 @@ class GameOrchestrator:
                 "npc":      results.get("dm", {}).get("npc_reactions", []),
                 "world":    results.get("dm", {}).get("world_changes", []),
                 "model":    active_model.model_dump() if active_model else "unknown",
-                # Фаза 2: сохраняем результаты python_engines в журнал кампании
+                # Фазы 2/3A: сохраняем результаты python_engines в журнал кампании
                 "python_engines": python_engines_result,
             },
         )
