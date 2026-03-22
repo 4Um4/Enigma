@@ -2,6 +2,14 @@
   {
     "id": "tavern_keeper_tornin",
     "name": "Торнин Серебряная Луна",
+    "name_forms": [
+      "торнин",
+      "торнина",
+      "торнину",
+      "торнином",
+      "торнине",
+      "серебряная луна"
+    ],
     "tier": "major",
     "gender": "мужской",
     "description": "Коренастый мужчина за пятьдесят, фартук заляпан пивом, на щеке старый шрам. Двигается уверенно, будто знает каждый угол этой таверны.",
@@ -32,7 +40,7 @@
     },
     "psyche": {
       "willpower": 65,
-      "stress": 46,
+      "stress": 0,
       "breakpoint": 80,
       "loyalty_true": 60,
       "loyalty_fake": 60,
@@ -40,9 +48,9 @@
       "trauma_flags": []
     },
     "social_stats": {
-      "trust": 0.35,
+      "trust": 0.28,
       "affection": 0.5,
-      "fear_of_player": 0.82,
+      "fear_of_player": 0.86,
       "debt": 0
     },
     "relationships": {
@@ -50,7 +58,7 @@
       "guard_borko": 60
     },
     "routine": {
-      "current": "cleaning_tables",
+      "current": "sleeping",
       "mood": "neutral",
       "interrupted": false,
       "next_task": "serve_customers",
@@ -68,7 +76,7 @@
       "planning_revenge": false,
       "is_dead": false
     },
-    "location": "tavern_silver_wolf",
+    "location": "inn_rooms",
     "hp": 40,
     "max_hp": 40,
     "combat_stats": {
@@ -88,6 +96,14 @@
   {
     "id": "guard_borko",
     "name": "Стражник Борко",
+    "name_forms": [
+      "борко",
+      "борка",
+      "борку",
+      "борком",
+      "борке",
+      "стражник борко"
+    ],
     "tier": "minor",
     "gender": "мужской",
     "description": "Дородный стражник в городской броне, копьё прислонено к стене. Скучающий взгляд, но глаза цепкие — замечает всё что плохо лежит.",
@@ -135,14 +151,15 @@
       "tavern_keeper_tornin": 60
     },
     "routine": {
-      "current": "guarding_gate",
-      "mood": "bored",
+      "current": "sleeping",
+      "mood": "neutral",
       "interrupted": false,
       "next_task": "patrol",
       "schedule": {
         "07:00-19:00": "guarding_gate",
         "19:00-07:00": "sleeping"
-      }
+      },
+      "_last_life_tick": 3
     },
     "recent_events": [],
     "memory_trace": [],
@@ -153,7 +170,7 @@
       "planning_revenge": false,
       "is_dead": false
     },
-    "location": "city_gate",
+    "location": "inn_rooms",
     "hp": 30,
     "max_hp": 30,
     "combat_stats": {
@@ -173,6 +190,14 @@
   {
     "id": "maid_lusya",
     "name": "Люся",
+    "name_forms": [
+      "люся",
+      "люси",
+      "люсе",
+      "люсю",
+      "люсей",
+      "люс"
+    ],
     "tier": "minor",
     "gender": "женский",
     "description": "Молодая женщина в простом платье служанки, поднос в руках. Усталые глаза смотрят в пол, движения нервные и осторожные.",
@@ -200,7 +225,7 @@
     },
     "psyche": {
       "willpower": 35,
-      "stress": 59,
+      "stress": 84,
       "breakpoint": 55,
       "loyalty_true": 20,
       "loyalty_fake": 55,
@@ -210,9 +235,9 @@
       ]
     },
     "social_stats": {
-      "trust": 0.1,
+      "trust": 0.21,
       "affection": 0.45,
-      "fear_of_player": 0.96,
+      "fear_of_player": 0.86,
       "debt": 0
     },
     "relationships": {
@@ -227,7 +252,8 @@
       "schedule": {
         "08:00-23:00": "serving_tables",
         "23:00-08:00": "sleeping"
-      }
+      },
+      "_last_life_tick": 3
     },
     "recent_events": [],
     "memory_trace": [],
@@ -258,6 +284,14 @@
   {
     "id": "merchant_goran",
     "name": "Купец Горан",
+    "name_forms": [
+      "горан",
+      "горана",
+      "горану",
+      "гораном",
+      "горане",
+      "купец горан"
+    ],
     "tier": "minor",
     "gender": "мужской",
     "description": "Полный купец средних лет в богатых одеждах, пальцы унизаны перстнями. Улыбка не сходит с лица, но глаза всегда считают выгоду.",
@@ -304,15 +338,16 @@
       "player_default": 50
     },
     "routine": {
-      "current": "haggling",
-      "mood": "calculating",
+      "current": "sleeping",
+      "mood": "neutral",
       "interrupted": false,
       "next_task": "inspect_goods",
       "schedule": {
         "09:00-18:00": "market_trading",
         "18:00-21:00": "counting_money",
         "21:00-09:00": "sleeping"
-      }
+      },
+      "_last_life_tick": 3
     },
     "recent_events": [],
     "memory_trace": [],
@@ -323,7 +358,7 @@
       "planning_revenge": false,
       "is_dead": false
     },
-    "location": "market_square",
+    "location": "inn_rooms",
     "hp": 20,
     "max_hp": 20,
     "combat_stats": {
@@ -343,6 +378,12 @@
   {
     "id": "thief_shadow",
     "name": "Тень",
+    "name_forms": [
+      "Тень",
+      "Тени",
+      "Тенью",
+      "Тению"
+    ],
     "tier": "major",
     "gender": "неизвестен",
     "description": "Фигура в тёмном плаще и низко надвинутом капюшоне. Лица не видно. Сидит в самом тёмном углу таверны, почти неподвижно — но явно за всем наблюдает.",
@@ -372,7 +413,7 @@
     },
     "psyche": {
       "willpower": 70,
-      "stress": 50,
+      "stress": 47,
       "breakpoint": 85,
       "loyalty_true": -20,
       "loyalty_fake": 50,
@@ -380,7 +421,7 @@
       "trauma_flags": []
     },
     "social_stats": {
-      "trust": 0.0,
+      "trust": 0.18,
       "affection": 0.2,
       "fear_of_player": 0.86,
       "debt": 0
@@ -389,8 +430,8 @@
       "player_default": 25
     },
     "routine": {
-      "current": "observing",
-      "mood": "alert",
+      "current": "active",
+      "mood": "neutral",
       "interrupted": false,
       "next_task": "contact_guild",
       "schedule": {

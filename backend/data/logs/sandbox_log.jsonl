@@ -1,0 +1,4 @@
+{"ts": "2026-03-22T19:59:29", "event": "unknown_sandbox", "type": "UNKNOWN", "action": "Я хотел тебя попросить кое о чём...", "severity": "mild", "roll": "d20(19)+wisdom(0)=19 vs DC15", "success": true, "consequence": "репутация -5"}
+{"ts": "2026-03-22T20:00:08", "event": "unknown_sandbox", "type": "UNKNOWN", "action": "Трактирщик, налей мне эля", "severity": "mild", "roll": "d20(4)+wisdom(0)=4 vs DC15", "success": false, "consequence": "NPC удивлён"}
+{"ts": "2026-03-22T20:00:31", "event": "unknown_sandbox", "type": "UNKNOWN", "action": "А ты давно здесь работаешь?", "severity": "mild", "roll": "d20(19)+wisdom(0)=19 vs DC14", "success": true, "consequence": "NPC удивлён"}
+{"ts": "2026-03-22T20:01:09", "event": "unknown_sandbox", "type": "UNKNOWN", "action": "Украсть одну свечу. А еще две потушить", "severity": "medium", "roll": "d20(16)+dexterity(0)=16 vs DC14", "success": true, "consequence": "стража замечает"}

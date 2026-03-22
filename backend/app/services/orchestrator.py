@@ -286,6 +286,15 @@ class GameOrchestrator:
           (target_npc_id, target_npc_name, target_object_id, player_position, player_distances)
         '''
         lower = action_text.lower()
+
+        # Если в тексте только местоимение (тебя/тебе/тебя/тобой) 
+        # и нет нового адресата — сохраняем предыдущую цель
+        _PRONOUNS = ["тебя", "тебе", "тобой", "тебе", "к тебе", "с тобой"]
+        has_only_pronoun = any(p in lower for p in _PRONOUNS)
+
+        # Предыдущая цель из SceneState (если была)
+        prev_target_id   = scene_state.get("player_target_npc") if scene_state else None
+        prev_target_name = scene_state.get("player_target_npc_name") if scene_state else None
  
         # ── Таблица ключевых слов по роли (из npc_id префикса) ───────────────
         # Принцип: НЕ имена конкретных NPC, а архетипы ролей.
@@ -309,6 +318,10 @@ class GameOrchestrator:
             "innkeeper":     ["хозяйка", "хозяйке", "хозяйку"],
         }
  
+        # Если имя не нашли, но есть местоимение и была предыдущая цель — используем её
+
+
+
         def _get_role_from_id(npc_id: str) -> str:
             '''Извлекает роль из npc_id: "tavern_keeper_tornin" → "tavern_keeper"'''
             parts = npc_id.split("_")
@@ -319,16 +332,29 @@ class GameOrchestrator:
                     return candidate
             return ""
  
-        def _name_forms(name: str) -> list[str]:
-            '''Генерирует формы имени для поиска без морфологической библиотеки.
-            Покрывает большинство русских падежей для имён.'''
+        def _get_name_forms(ctx: dict) -> list[str]:
+            '''
+            Возвращает формы имени NPC для поиска в тексте действия.
+            Приоритет: name_forms из JSON (точные падежи дизайнера).
+            Fallback: автогенерация из имени (только для NPC без name_forms).
+            '''
+            explicit = ctx.get("name_forms")
+            if explicit:
+                return [f.lower() for f in explicit]
+            # Fallback — автогенерация для NPC без явных форм
+            name = ctx.get("npc_name", "")
             n = name.lower()
             forms = [n]
-            if len(n) > 2:
-                forms.append(n[:-1])   # Люся → Люс, Торнин → Торни
             if len(n) > 3:
-                forms.append(n[:-2])   # Горан → Гора
-            return forms
+                forms.append(n[:-1])
+            if len(n) > 4:
+                forms.append(n[:-2])
+                forms.append(n[:-3])
+            if len(n) >= 4:
+                forms.append(n[:4])
+            if len(n) >= 5:
+                forms.append(n[:5])
+            return list(set(f for f in forms if len(f) >= 3))  
  
         # ── 1. Поиск целевого NPC ─────────────────────────────────────────────
         target_npc_id   = None
@@ -338,9 +364,8 @@ class GameOrchestrator:
             npc_id   = ctx.get("npc_id", "")
             npc_name = ctx.get("npc_name", "")
  
-            # Проверяем имя NPC с разными падежными формами
-            if npc_name:
-                if any(form in lower for form in _name_forms(npc_name)):
+            # Проверяем имя NPC — сначала явные формы из JSON, потом автогенерация
+            if any(form in lower for form in _get_name_forms(ctx)):
                     target_npc_id   = npc_id
                     target_npc_name = npc_name
                     break
@@ -351,6 +376,10 @@ class GameOrchestrator:
                 target_npc_id   = npc_id
                 target_npc_name = npc_name
                 break
+
+            if target_npc_id is None and has_only_pronoun and prev_target_id:
+                target_npc_id   = prev_target_id
+                target_npc_name = prev_target_name
  
         # ── 2. Поиск целевого объекта ─────────────────────────────────────────
         target_object = None
@@ -639,7 +668,8 @@ class GameOrchestrator:
             npc_contexts.append({
                 "npc_id":           npc["id"],
                 "npc_name":         npc["name"],
-                "tier":             npc.get("tier", "minor"),             # для сортировки в npc_agent
+                "name_forms":       npc.get("name_forms", []),            # ← добавить это
+                "tier":             npc.get("tier", "minor"),
                 "gender":           npc.get("gender", ""),                # для местоимений в DM
                 "description":      npc.get("description", ""),           # для вводной сцены
                 "threat_score":     threat_score,
@@ -667,7 +697,7 @@ class GameOrchestrator:
         engines_result["npc_contexts"] = npc_contexts
         # ── Конец NPC блока ────────────────────────────────────────────────────────────
 
- # ── S.0: Обновляем SceneState пространственным контекстом игрока ──────
+        # ── S.0: Обновляем SceneState пространственным контекстом игрока ──────
         # Нужно чтобы DM и NPC агенты знали кто где стоит и к кому обращаются.
         # Вызываем ПОСЛЕ того как npc_contexts собраны — нужны id и имена NPC.
         try:
@@ -1007,6 +1037,253 @@ class GameOrchestrator:
             traces=traces,
         )
 
+
+    # ─────────────────────────────────────────────────────────────────────────────
+    # ДОБАВИТЬ В КОНЕЦ КЛАССА GameOrchestrator (перед финальными комментариями)
+    #
+    # stream_turn() — стриминговая версия run_turn().
+    # routes_stream.py вызывает только этот метод.
+    # Вся логика идентична run_turn(), только финальная генерация DM — стриминговая.
+    # ─────────────────────────────────────────────────────────────────────────────
+
+    async def stream_turn(
+        self,
+        campaign_id: str,
+        player: str,
+        action_text: str,
+        location: str,
+        campaign_state=None,
+    ):
+        """
+        Стриминговая версия run_turn() для SSE.
+
+        Единственный источник игровой логики для стримингового пути.
+        routes_stream.py вызывает только этот метод — никакой логики там нет.
+
+        Yields dict-события в том же формате что ожидает index.html:
+          {"type": "ping"}
+          {"type": "status",      "text": "..."}
+          {"type": "action_type", "value": "SOCIAL"}
+          {"type": "model",       "data": {...}}
+          {"type": "npc",         "data": [...]}
+          {"type": "token",       "text": "...", "n": 1}
+          {"type": "done",        "tokens": N, "ms": T, "tps": X}
+        """
+        import time
+        from app.models.schemas import PlayerAction, ChatTurnRequest
+        from app.services.llm.router import get_router as get_llm_router, Capability
+        from app.services.llm.provider_manager import get_model_pool
+
+        start_ms    = time.time() * 1000
+        token_count = 0
+
+        yield {"type": "ping"}
+        yield {"type": "status", "text": "Мастер думает..."}
+
+        # ── 1. Action Classifier (0ms) ─────────────────────────────────────
+        act_type        = classifier.classify(action_text)
+        action_type_str = act_type.value
+        yield {"type": "action_type", "value": action_type_str}
+
+        # ── 2. Строим ChatTurnRequest для _run_python_engines ──────────────
+        # world_id берём из campaign_state или fallback
+        world_id = "manual"
+        if campaign_state:
+            world_id = campaign_state.metadata.get("world_id", "manual")
+
+        actions = [PlayerAction(player_name=player, action=action_text)]
+
+        req = ChatTurnRequest(
+            campaign_id=campaign_id,
+            world_id=world_id,
+            location=location,
+            actions=actions,
+        )
+
+        # ── 3. SceneState — инициализация (идентично run_turn) ────────────
+        shared_context = {
+            "campaign_id":  campaign_id,
+            "world_id":     world_id,
+            "location":     location,
+            "player_state": {player: {}},
+            "threat":       {},
+            "perception":   {},
+            "psyche":       {},
+            "life":         {},
+            "karma":        {},
+        }
+
+        try:
+            scene_state = self.scene_manager.get_scene_state(campaign_id, location)
+            if scene_state is None:
+                time_of_day = "22:00"
+                if campaign_state:
+                    time_of_day = campaign_state.metadata.get("time_of_day", "22:00")
+                scene_state = self.scene_manager.initialize_scene(
+                    campaign_id, location, time_of_day
+                )
+                logger.info(f"[STREAM] Новая сцена: {location}")
+            shared_context["scene_state"] = scene_state
+        except Exception as e:
+            logger.warning(f"[STREAM] SceneState error: {e}")
+            shared_context["scene_state"] = {}
+
+        # ── 4. PhysicsValidator ────────────────────────────────────────────
+        physics_results = []
+        try:
+            char_sheet  = self._get_character_dict(campaign_id, player)
+            validation  = validator.validate(
+                action=action_text,
+                character=char_sheet,
+                game_state={"location": location},
+            )
+            if not validation.valid:
+                physics_results.append({
+                    "player":      player,
+                    "valid":       False,
+                    "reason":      validation.reason,
+                    "alternative": validation.alternative,
+                })
+        except Exception as e:
+            logger.warning(f"[STREAM] PhysicsValidator error: {e}")
+
+        shared_context["physics_validation"] = physics_results
+
+        # ── 5. Python Engines (CombatMath + SandboxHandler + NPC Psychology
+        #       + S.0 player_target + name_forms) ──────────────────────────
+        # Это единственное место где строятся npc_contexts с name_forms.
+        # Здесь же вызывается _extract_player_target и update_player_target.
+        classification_results = [{
+            "player":       player,
+            "type":         action_type_str,
+            "agents":       ["dm"],
+            "flags":        {"unconventional": False},
+            "text_preview": action_text[:80],
+        }]
+        shared_context["classification"] = classification_results
+
+        try:
+            python_engines_result = await self._run_python_engines(
+                req, classification_results, shared_context
+            )
+            shared_context["python_engines"] = python_engines_result
+        except Exception as e:
+            logger.error(f"[STREAM] _run_python_engines error: {e}")
+            shared_context["python_engines"] = {}
+
+        # ── 6. Модели — отправляем метаинфо клиенту ───────────────────────
+        try:
+            npc_contexts = shared_context.get("python_engines", {}).get("npc_contexts", [])
+            has_major    = any(c.get("tier") == "major" for c in npc_contexts)
+            router_llm   = get_llm_router()
+            pool         = get_model_pool()
+            dm_key   = router_llm.select_model(Capability.NARRATIVE)
+            npc_cap  = Capability.DIALOGUE_GENERATION if has_major else Capability.DIALOGUE
+            npc_key  = router_llm.select_model(npc_cap)
+            dm_cfg   = pool.get_model_config(dm_key)  if pool else None
+            npc_cfg  = pool.get_model_config(npc_key) if pool else None
+            yield {
+                "type": "model",
+                "data": {
+                    "dm": {
+                        "key":      dm_key,
+                        "name":     dm_cfg.name if dm_cfg else dm_key,
+                        "provider": dm_cfg.provider_type.value if dm_cfg else "unknown",
+                    },
+                    "npc": {
+                        "key":      npc_key,
+                        "name":     npc_cfg.name if npc_cfg else npc_key,
+                        "provider": npc_cfg.provider_type.value if npc_cfg else "unknown",
+                    },
+                },
+            }
+        except Exception:
+            pass
+
+        # ── 7. Rules агент ─────────────────────────────────────────────────
+        try:
+            rules_result = await asyncio.to_thread(self.rules_agent.run, actions)
+        except Exception:
+            rules_result = {"checks": []}
+
+        # ── 8. NPC агент ───────────────────────────────────────────────────
+        npc_importance = "major" if any(
+            c.get("tier") == "major"
+            for c in shared_context.get("python_engines", {}).get("npc_contexts", [])
+        ) else "mass"
+
+        try:
+            npc_memory = self.layered_memory.read_npc_memory(campaign_id, limit=30)
+            npc_result = await asyncio.to_thread(
+                self.npc_agent.run,
+                location, actions, npc_memory, shared_context, npc_importance,
+            )
+        except Exception:
+            npc_result = {"npc_reactions": [], "npc_actions": [], "npc_state_updates": []}
+
+        # Применяем trust/stress дельты
+        npc_state_updates = npc_result.get("npc_state_updates", [])
+        if npc_state_updates:
+            self._apply_npc_state_updates(npc_state_updates)
+
+        # NPC реакции — отправляем ДО токенов DM
+        npc_reactions = npc_result.get("npc_reactions", [])
+        if npc_reactions:
+            yield {
+                "type":  "npc",
+                "data":  npc_reactions,
+                "model": npc_result.get("model"),
+            }
+
+        # ── 9. DM агент — стриминг токенов ────────────────────────────────
+        yield {"type": "status", "text": "Мастер рассказывает..."}
+
+        world_result = {"world_events": []}
+
+        try:
+            async for token in self.dm_agent.stream_narrate(
+                location=location,
+                actions=actions,
+                rules_result=rules_result,
+                npc_result=npc_result,
+                world_result=world_result,
+                world_canon_exists=False,
+                context=shared_context,
+            ):
+                token_count += 1
+                yield {"type": "token", "text": token, "n": token_count}
+        except Exception as e:
+            yield {"type": "error", "text": str(e)}
+            return
+
+        # ── 10. Финал ──────────────────────────────────────────────────────
+        elapsed_ms = int(time.time() * 1000 - start_ms)
+        tps = round(token_count / (elapsed_ms / 1000), 1) if elapsed_ms > 0 else 0
+
+        yield {"type": "done", "tokens": token_count, "ms": elapsed_ms, "tps": tps}
+
+        # ── 11. Сохраняем в память ─────────────────────────────────────────
+        try:
+            self.layered_memory.write_session_memory(
+                campaign_id,
+                {
+                    "world_id":     world_id,
+                    "location":     location,
+                    "last_actions": [{"player_name": player, "action": action_text}],
+                    "dice_input_required": False,
+                },
+            )
+            self.layered_memory.write_campaign_memory(
+                campaign_id,
+                {
+                    "world_id": world_id,
+                    "location": location,
+                    "actions":  [{"player_name": player, "action": action_text}],
+                    "dm":       "",  # текст стримился, здесь недоступен
+                },
+            )
+        except Exception as e:
+            logger.warning(f"[STREAM] Memory write error: {e}")
 
 # ─────────────────────────────────────────────────────────────────────────────
 # initialize_models_stub() УДАЛЁН.

@@ -32,6 +32,13 @@ def apply_stress(npc: Dict, amount: int) -> Dict:
         psyche.setdefault("trauma_flags", []).append("will_broken")
         state_changed = True
 
+    if npc["psyche"]["stress"] >= npc["psyche"].get("breakpoint", 85):
+        if npc["psyche"].get("state") not in ("broken", "dead"):
+            npc["psyche"]["state"] = "broken"
+            npc["psyche"]["loyalty_true"] = max(
+                0, npc["psyche"].get("loyalty_true", 50) - 30
+            )
+
     return {
         "stress_before": stress_before,
         "stress_after":  psyche["stress"],

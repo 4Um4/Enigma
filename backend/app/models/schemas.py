@@ -37,7 +37,7 @@ class ChatTurnRequest(BaseModel):
     world_id: str
     campaign_id: str
     location: str
-    model: ModelSelection
+    model: Optional[ModelSelection] = None  # оркестратор сам управляет моделями
     actions: List[PlayerAction]
 
 
