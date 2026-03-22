@@ -11,7 +11,7 @@ DATA_DIR = BACKEND_DIR / "data"
 MODELS_DIR = ROOT_DIR / "Models LLM"
 
 # Полный путь к модели Saiga
-SAIGA_MODEL_PATH = MODELS_DIR / "saiga_mistral_7b_model-q4_K.gguf"
+GEMMA_12B_PATH = MODELS_DIR / "gemma-3-12b-it-q4_k_m.gguf"
 
 # =========================
 # Settings
@@ -25,14 +25,14 @@ class RulesSettings(Settings):
     }
     
     # Precision over speed/creativity
-    gpu_layers: int = 30
+    gpu_layers: int = 28
     temperature: float = 0.3  # Low temp for rules accuracy
     top_p: float = 0.8
     ctx_size: int = 4096
     repeat_penalty: float = 1.15
 
     # Model path
-    rules_model_path: Path = SAIGA_MODEL_PATH
+    rules_model_path: Path = GEMMA_12B_PATH
 
 # ------------------------
 # URL for llama_cpp server

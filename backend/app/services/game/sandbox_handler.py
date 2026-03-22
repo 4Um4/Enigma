@@ -17,6 +17,21 @@ from typing import Dict, List, Any, Optional, Tuple
 from pathlib import Path
 from enum import Enum
 
+# === ФАЗА S: SceneChange — изменения состояния сцены ===
+# scene_change.py создаётся параллельно; импорт не блокирует работу
+try:
+    from app.services.scene_change import (
+        SceneChange, ChangeType,
+        npc_captured, player_fled, player_hidden, gold_stolen,
+        lock_opened, object_damaged, npc_poisoned,
+        player_surrendered, item_crafted, environment_disturbed,
+    )
+    _SCENE_CHANGE_AVAILABLE = True
+except ImportError:
+    # Фаза S ещё не подключена — работаем без scene_changes
+    SceneChange = None  # type: ignore
+    _SCENE_CHANGE_AVAILABLE = False
+
 # ──────────────────────────────────────────────────────────────────────────────
 # Логирование
 # ──────────────────────────────────────────────────────────────────────────────
@@ -92,6 +107,9 @@ class SandboxResult:
         self.success        = success
         self.consequences   = consequences
         self.context_for_dm = context_for_dm
+        # ФАЗА S: список SceneChange объектов — заполняется обработчиками
+        # Orchestrator применяет их к SceneStateManager после pipeline
+        self.scene_changes: list = []
 
     def to_dict(self) -> Dict:
         return {
@@ -99,6 +117,9 @@ class SandboxResult:
             "success":        self.success,
             "consequences":   self.consequences,
             "context_for_dm": self.context_for_dm,
+            # scene_changes сериализуются для JSONL логирования
+            "scene_changes":  [sc.to_dict() for sc in self.scene_changes]
+                               if self.scene_changes else [],
         }
 
 
@@ -156,7 +177,17 @@ def handle_physical(player: Dict, action: str, **kw) -> SandboxResult:
     ctx = {"type": "physical", "severity": severity,
            "roll": f"d20({d20})+CHA({mod})={total} vs DC{dc}", "rep_impact": rep}
     _log("physical_sandbox", ctx)
-    return SandboxResult(ActionType.PHYSICAL, success, {"reputation": rep, "ban_risk": severity == "severe"}, ctx)
+    result = SandboxResult(ActionType.PHYSICAL, success,
+                          {"reputation": rep, "ban_risk": severity == "severe"}, ctx)
+    if _SCENE_CHANGE_AVAILABLE and severity in ("medium", "severe"):
+        # Публичный физический инцидент повышает шум в локации
+        location_id = kw.get("location", "current_location")
+        result.scene_changes = environment_disturbed(
+            location_id, "noise_level",
+            "high" if severity == "severe" else "moderate",
+            cause="player_physical_action"
+        )
+    return result
 
 
 # ── 2. ПОБЕГ ──────────────────────────────────────────────────────────────────
@@ -177,7 +208,11 @@ def handle_flee(player: Dict, action: str, enemies: List[Dict] = None, location:
         "opportunity_attack": not success,
         "state": "fled" if success else "in_combat",
     }
-    return SandboxResult(ActionType.FLEE, success, cons, ctx)
+    result = SandboxResult(ActionType.FLEE, success, cons, ctx)
+    if _SCENE_CHANGE_AVAILABLE and success:
+        player_name = player.get("name", "player")
+        result.scene_changes = player_fled(player_name, location, cause="player_flee")
+    return result
 
 
 # ── 3. ЗАХВАТ / ПЛЕН ──────────────────────────────────────────────────────────
@@ -196,7 +231,11 @@ def handle_capture(player: Dict, action: str, npc: Dict = None, **kw) -> Sandbox
     ctx = {"type": "capture", "p_roll": p_roll, "n_roll": n_roll, "success": success,
            "karma_impact": +15}
     _log("capture", ctx)
-    return SandboxResult(ActionType.CAPTURE, success, {"enslaved": success, "karma_cruel": 15}, ctx)
+    result = SandboxResult(ActionType.CAPTURE, success, {"enslaved": success, "karma_cruel": 15}, ctx)
+    if _SCENE_CHANGE_AVAILABLE and success and npc:
+        npc_id = npc.get("id", "unknown_npc")
+        result.scene_changes = npc_captured(npc_id, cause="player_capture")
+    return result
 
 
 # ── 4. РОМАНТИКА / ФЛИРТ ──────────────────────────────────────────────────────
@@ -306,7 +345,11 @@ def handle_stealth(player: Dict, action: str, npc: Dict = None, **kw) -> Sandbox
     success = totalp > d20n
     ctx = {"type": "stealth", "player_roll": totalp, "npc_perception": d20n, "success": success}
     _log("stealth", ctx)
-    return SandboxResult(ActionType.STEALTH, success, {"detected": not success}, ctx)
+    result = SandboxResult(ActionType.STEALTH, success, {"detected": not success}, ctx)
+    if _SCENE_CHANGE_AVAILABLE and success:
+        player_name = player.get("name", "player")
+        result.scene_changes = player_hidden(player_name, cause="player_stealth")
+    return result
 
 
 # ── 11. АКРОБАТИКА / ПРЫЖОК / КАРАБКАНЬЕ ─────────────────────────────────────
@@ -360,8 +403,15 @@ def handle_crafting(player: Dict, action: str, difficulty: str = "medium", **kw)
     ctx = {"type": "crafting", "difficulty": difficulty, "quality": quality,
            "roll": f"d20({d20})+INT({mod})={total} vs DC{dc}", "success": success}
     _log("crafting", ctx)
-    return SandboxResult(ActionType.CRAFTING, success,
+    result = SandboxResult(ActionType.CRAFTING, success,
                           {"item_created": success, "quality": quality}, ctx)
+    if _SCENE_CHANGE_AVAILABLE and success:
+        player_name = player.get("name", "player")
+        # action содержит описание — используем как имя предмета
+        item_name = action.lower().replace(" ", "_")[:30]
+        result.scene_changes = item_crafted(player_name, item_name, quality,
+                                            cause="player_craft")
+    return result
 
 
 # ── 15. МАСКИРОВКА / ПЕРЕОДЕВАНИЕ ────────────────────────────────────────────
@@ -377,21 +427,90 @@ def handle_disguise(player: Dict, action: str, npc: Dict = None, **kw) -> Sandbo
     return SandboxResult(ActionType.DISGUISE, success, {"disguise_maintained": success}, ctx)
 
 
-# ── 16. КАРМАННАЯ КРАЖА ───────────────────────────────────────────────────────
+# ── 16. КАРМАННАЯ КРАЖА / КРАЖА ОБЪЕКТА ──────────────────────────────────────
+# Обрабатывает два случая:
+#   А) Кража у NPC (кошелёк, золото) → gold_stolen SceneChange
+#   Б) Кража объекта из сцены (свечи, ключи, нож) → OBJECT_REMOVE + INVENTORY
 @_register(ActionType.PICKPOCKET)
 def handle_pickpocket(player: Dict, action: str, npc: Dict = None, **kw) -> SandboxResult:
     npc = npc or {}
-    perception = _get_mod(npc, "wisdom") + random.randint(0, 3)
+    lower = action.lower()
+    perception = _get_mod(npc, "wisdom") + random.randint(0, 3) if npc else random.randint(3, 8)
     d20p, modp, totalp = _d20(player, "dexterity", proficient=True)
     d20n = random.randint(1, 20) + perception
     success = totalp > d20n
     loot = random.randint(1, 20) if success else 0
+
     ctx = {"type": "pickpocket", "player_roll": totalp, "npc_perception": d20n,
            "success": success, "gold": loot}
     _log("pickpocket", ctx)
     cons = {"gold_stolen": loot, "caught": not success,
             "reputation_impact": -20 if not success else -5}
-    return SandboxResult(ActionType.PICKPOCKET, success, cons, ctx)
+    result = SandboxResult(ActionType.PICKPOCKET, success, cons, ctx)
+
+    if not (_SCENE_CHANGE_AVAILABLE and success):
+        return result
+
+    player_name = player.get("name", "player")
+
+    # Словарь: русский корень → (object_id в SceneState, русское название)
+    # Если упомянут объект из сцены — генерируем OBJECT_REMOVE вместо gold_stolen
+    scene_object_map = {
+        "свеч":   ("candles",         "свечи"),
+        "кружк":  ("mug_on_table",    "кружку"),
+        "книг":   ("ledger",          "книгу"),
+        "ключ":   ("keys",            "ключи"),
+        "нож":    ("knife_on_table",  "нож"),
+        "кубок":  ("goblet",          "кубок"),
+        "печать": ("wax_seal",        "печать"),
+        "мешоч":  ("coin_pouch",      "мешочек"),
+        "докум":  ("documents",       "документы"),
+        "письм":  ("letter",          "письмо"),
+    }
+
+    stolen_obj_id = None
+    stolen_obj_name = None
+    for keyword, (obj_id, obj_name) in scene_object_map.items():
+        if keyword in lower:
+            stolen_obj_id   = obj_id
+            stolen_obj_name = obj_name
+            break
+
+    if stolen_obj_id:
+        # Кража объекта из сцены → убрать из SceneState + добавить в инвентарь
+        result.scene_changes = [
+            SceneChange(
+                type   = ChangeType.OBJECT_REMOVE,
+                target = stolen_obj_id,
+                field  = "state",
+                value  = "stolen",
+                cause  = "player_steal",
+            ),
+            SceneChange(
+                type   = ChangeType.INVENTORY,
+                target = player_name,
+                field  = "add",
+                value  = {stolen_obj_id: 1},
+                cause  = "player_steal",
+            ),
+        ]
+        # Кража свечей → темнее в зале
+        if "свеч" in lower:
+            result.scene_changes.append(
+                SceneChange(
+                    type   = ChangeType.OBJECT_STATE,
+                    target = "candles",
+                    field  = "count",
+                    value  = 0,
+                    cause  = "player_steal",
+                )
+            )
+    else:
+        # Кража у NPC (золото) → стандартный путь
+        if loot > 0:
+            result.scene_changes = gold_stolen(player_name, loot, cause="player_pickpocket")
+
+    return result
 
 
 # ── 17. ВЗЛОМ ЗАМКА ───────────────────────────────────────────────────────────
@@ -403,8 +522,13 @@ def handle_lockpick(player: Dict, action: str, lock_quality: str = "medium", **k
     ctx = {"type": "lockpick", "lock_quality": lock_quality,
            "roll": f"d20({d20})+DEX({mod})={total} vs DC{dc}", "success": success}
     _log("lockpick", ctx)
-    return SandboxResult(ActionType.LOCKPICK, success,
+    result = SandboxResult(ActionType.LOCKPICK, success,
                           {"opened": success, "time_spent_rounds": 1 if success else 3}, ctx)
+    if _SCENE_CHANGE_AVAILABLE and success:
+        # target — id замка/двери; если не передан, используем generic id
+        target_id = kw.get("target_id", "locked_object")
+        result.scene_changes = lock_opened(target_id, cause="player_lockpick")
+    return result
 
 
 # ── 18. ЯД ────────────────────────────────────────────────────────────────────
@@ -422,8 +546,14 @@ def handle_poison(player: Dict, action: str, npc: Dict = None, **kw) -> SandboxR
             npc["conditions"].append({"type": "poisoned", "duration": 3})
     ctx = {"type": "poison", "roll": f"d20({d20})+DEX({mod})={total}", "success": success}
     _log("poison", ctx)
-    return SandboxResult(ActionType.POISON, success,
+    result = SandboxResult(ActionType.POISON, success,
                           {"applied": success, "karma_evil": 10}, ctx)
+    if _SCENE_CHANGE_AVAILABLE and success and npc:
+        con_save_check = random.randint(1, 20) + _get_mod(npc, "constitution")
+        if con_save_check < 14:
+            npc_id = npc.get("id", "unknown_npc")
+            result.scene_changes = npc_poisoned(npc_id, duration=3, cause="player_poison")
+    return result
 
 
 # ── 19. ДИПЛОМАТИЯ / ПЕРЕГОВОРЫ ───────────────────────────────────────────────
@@ -448,8 +578,12 @@ def handle_surrender(player: Dict, action: str, **kw) -> SandboxResult:
     ctx = {"type": "surrender", "state": "surrendered",
            "karma_coward": 5, "karma_wise": 3}
     _log("surrender", ctx)
-    return SandboxResult(ActionType.SURRENDER, True,
+    result = SandboxResult(ActionType.SURRENDER, True,
                           {"state": "prisoner", "hp_safe": True}, ctx)
+    if _SCENE_CHANGE_AVAILABLE:
+        player_name = player.get("name", "player")
+        result.scene_changes = player_surrendered(player_name, cause="player_surrender")
+    return result
 
 
 # ── 21. ПРОВОКАЦИЯ / ЗАДРАЗНИТЬ ───────────────────────────────────────────────
@@ -476,8 +610,15 @@ def handle_improvised(player: Dict, action: str, **kw) -> SandboxResult:
     ctx = {"type": "improvised_weapon", "attack_roll": d20, "damage": dmg + str_mod,
            "item_description": action}
     _log("improvised_weapon", ctx)
-    return SandboxResult(ActionType.IMPROVISED_WEAPON, d20 >= 10,
+    hit = d20 >= 10
+    result = SandboxResult(ActionType.IMPROVISED_WEAPON, hit,
                           {"damage": dmg + str_mod}, ctx)
+    if _SCENE_CHANGE_AVAILABLE and hit:
+        # target_id — id объекта/NPC получившего урон; generic fallback
+        target_id = kw.get("target_id") or (kw.get("npc", {}) or {}).get("id", "target_object")
+        result.scene_changes = object_damaged(target_id, dmg + str_mod,
+                                              cause="player_improvised_weapon")
+    return result
 
 
 # ── 23. КОНТРОЛЬ ТОЛПЫ ────────────────────────────────────────────────────────
@@ -687,7 +828,8 @@ _KEYWORD_MAP: List[Tuple[List[str], ActionType]] = [
       "готовлю", "кузнец"],                                    ActionType.CRAFTING),
     (["переодеваюсь", "надеваю маску", "меняю облик"],         ActionType.DISGUISE),
     (["краду кошелёк", "вытаскиваю из кармана",
-      "ворую незаметно"],                                      ActionType.PICKPOCKET),
+      "ворую незаметно", "краду", "стащ", "похищаю",
+      "ворую", "незаметно беру", "тихонько беру"],            ActionType.PICKPOCKET),
     (["вскрываю замок", "отмычка", "взламываю дверь"],         ActionType.LOCKPICK),
     (["отравляю", "добавляю яд", "подсыпаю зелье"],            ActionType.POISON),
     (["веду переговоры", "предлагаю мир", "прошу перемирия"],  ActionType.DIPLOMACY),

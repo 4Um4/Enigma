@@ -3,1282 +3,899 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ENIGMA — Местный Мастер Подземелий</title>
+<title>ENIGMA — AI Dungeon Master</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Pro:ital,wght@0,300;0,400;1,300;1,400&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
-
 <style>
-/* ═══════════════════════════════════════════
-   VARIABLES
-═══════════════════════════════════════════ */
 :root {
-  --void:        #331908;
-  --deep:        #5e3f2b;
-  --surface:     #e4c7a8;
-  --border:      #527a8a;
-  --border-glow: #2a354b;
-
-  --ember:       #c8832a;
-  --ember-dim:   #8a5a1a;
-  --ember-glow:  #e8a040;
-  --crimson:     #8b2020;
-  --crimson-lit: #c03030;
-
-  --parchment:     #F5F5DC;
-  --parchment-dim: #FFFFFF;
-  --silver:        #9ab0c8;
-  --silver-dim:    #6080a0;
-  --muted:         #7a6a5a;
-
-  --hp-green:  #4a9460;
-  --hp-warn:   #a06020;
-  --hp-danger: #8b2020;
-
-  --font-title: 'Cinzel', serif;
-  --font-body:  'Crimson Pro', serif;
-  --font-mono:  'JetBrains Mono', monospace;
-
-  --radius:     3px;
-  --transition: 180ms ease;
+  --bg0:#1c0f07; --bg1:#251408; --bg2:#311a0b; --bg3:#3e2110; --bg4:#4d2c17;
+  --br0:#1e2d3a; --br1:#2a3f50; --br2:#3a5060;
+  --em:#c8832a; --em2:#a06020; --em3:#e8a040; --em4:#f0c070;
+  --tx0:#f0d8b0; --tx1:#d4b888; --tx2:#9a8060; --tx3:#5a4a3a;
+  --si:#9ab0c8; --si2:#6080a0;
+  --gn:#4a9460; --gn2:#2a6040;
+  --rd:#8b2020; --rd2:#c03030; --rd3:#e05050;
+  --wa:#a06020;
+  --ff-t:'Cinzel',serif; --ff-b:'Crimson Pro',serif; --ff-m:'JetBrains Mono',monospace;
+  --r:3px; --r2:6px; --t:160ms ease; --ts:360ms ease;
 }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg0);color:var(--tx0);font-family:var(--ff-b);font-size:15px;line-height:1.65;overflow:hidden}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(ellipse 80% 40% at 50% 0%,#2a1020 0%,transparent 55%),
+             radial-gradient(ellipse 35% 35% at 0% 100%,#200a08 0%,transparent 50%),
+             radial-gradient(ellipse 25% 30% at 100% 70%,#08101a 0%,transparent 50%)}
 
-/* ═══════════════════════════════════════════
-   RESET & BASE
-═══════════════════════════════════════════ */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+/* ── SHELL ── */
+#app{position:relative;z-index:1;display:grid;
+  grid-template-rows:auto auto 1fr auto 0fr auto auto;
+  height:100vh;max-width:1120px;margin:0 auto;
+  border-left:1px solid var(--br0);border-right:1px solid var(--br0);
+  transition:grid-template-rows var(--ts)}
+#app.scene-open{grid-template-rows:auto auto 1fr auto auto auto auto}
 
-html, body {
-  height: 100%;
-  background: var(--void);
-  color: var(--parchment-dim);
-  font-family: var(--font-body);
-  font-size: 16px;
-  line-height: 1.6;
-  overflow: hidden;
+/* ── HEADER ── */
+header{background:var(--bg3);border-bottom:1px solid var(--br0);padding:10px 18px;
+  display:flex;align-items:center;gap:14px;box-shadow:0 10px 28px #00000060}
+h1{font-family:var(--ff-t);font-size:1.2rem;font-weight:700;letter-spacing:.2em;
+  color:var(--em);text-shadow:0 0 22px #c8832a50,0 0 44px #c8832a18;flex-shrink:0}
+.title-sub{font-family:var(--ff-m);font-size:.58rem;color:var(--tx2);letter-spacing:.38em;text-transform:uppercase}
+#hdr-center{flex:1;display:flex;align-items:center;justify-content:center;gap:14px;overflow:hidden}
+#hdr-loc{font-family:var(--ff-t);font-size:.74rem;letter-spacing:.06em;color:var(--tx1);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:0;transition:opacity var(--ts)}
+#hdr-loc.vis{opacity:1}
+#hdr-time{font-family:var(--ff-m);font-size:.62rem;color:var(--em2);letter-spacing:.06em;
+  border:1px solid var(--br0);padding:2px 7px;border-radius:var(--r);
+  opacity:0;transition:opacity var(--ts);white-space:nowrap;flex-shrink:0}
+#hdr-time.vis{opacity:1}
+#hdr-right{display:flex;align-items:center;gap:12px;flex-shrink:0}
+#server-status{display:flex;align-items:center;gap:5px;font-family:var(--ff-m);font-size:.6rem;color:var(--tx2);letter-spacing:.04em}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--tx2);transition:background var(--t),box-shadow var(--t)}
+.dot.on{background:var(--gn);box-shadow:0 0 8px #4a946070}
+.dot.off{background:var(--rd);box-shadow:0 0 8px #8b202070}
+#vram-badge{font-family:var(--ff-m);font-size:.55rem;letter-spacing:.04em;
+  padding:2px 7px;border-radius:var(--r);border:1px solid var(--br0);color:var(--tx2);display:none}
+#vram-badge.vis{display:block}
+#vram-badge.hi{color:var(--wa);border-color:var(--wa)}
+#vram-badge.crit{color:var(--rd3);border-color:var(--rd2)}
+
+/* ── CHAR PANEL ── */
+#char-panel{background:linear-gradient(to right,var(--bg2),var(--bg3));
+  border-bottom:1px solid var(--br0);padding:7px 18px;
+  display:flex;align-items:center;gap:14px;flex-wrap:wrap;min-height:42px}
+.lbl{font-family:var(--ff-m);font-size:.56rem;color:var(--tx2);text-transform:uppercase;letter-spacing:.1em;white-space:nowrap}
+select{background:var(--bg1);border:1px solid var(--br0);color:var(--tx0);
+  font-family:var(--ff-b);font-size:.88rem;padding:3px 8px;border-radius:var(--r);
+  cursor:pointer;outline:none;transition:border-color var(--t)}
+select:focus{border-color:var(--em2)}
+#char-stats{display:flex;align-items:center;gap:12px;flex-wrap:wrap;opacity:0;transition:opacity var(--ts)}
+#char-stats.vis{opacity:1}
+.stat{display:flex;align-items:center;gap:4px}
+.stat-ico{font-size:.68rem;opacity:.65}
+.stat-val{font-family:var(--ff-m);font-size:.66rem;color:var(--tx0)}
+.sep-v{width:1px;height:13px;background:var(--br0)}
+.hp-bar{width:52px;height:3px;background:var(--br1);border-radius:2px;overflow:hidden}
+.hp-fill{height:100%;border-radius:2px;transition:width .6s,background .6s}
+#act-tag{margin-left:auto;font-family:var(--ff-m);font-size:.54rem;letter-spacing:.1em;
+  padding:2px 8px;border-radius:2px;border:1px solid;text-transform:uppercase;
+  opacity:0;transition:opacity var(--t);display:none}
+#act-tag.vis{opacity:1;display:block}
+
+/* ── MAIN GRID ── */
+#main{display:grid;grid-template-columns:1fr 290px;min-height:0;overflow:hidden}
+
+/* CHAT */
+#chat{overflow-y:auto;padding:12px 18px;display:flex;flex-direction:column;gap:9px;
+  scroll-behavior:smooth;position:relative;border-right:1px solid var(--br0)}
+#chat::-webkit-scrollbar{width:3px}
+#chat::-webkit-scrollbar-thumb{background:var(--br0);border-radius:2px}
+#scroll-up{position:absolute;top:8px;right:10px;z-index:10;
+  background:var(--bg3);border:1px solid var(--br0);color:var(--tx2);
+  font-family:var(--ff-m);font-size:.54rem;padding:2px 8px;border-radius:var(--r);
+  cursor:pointer;opacity:0;pointer-events:none;transition:opacity .25s}
+#scroll-up.vis{opacity:1;pointer-events:all}
+
+/* NPC SIDE */
+#side{background:#16100a;display:flex;flex-direction:column;overflow:hidden}
+#side-hdr{padding:9px 11px 7px;border-bottom:1px solid #1e1408;
+  display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.panel-lbl{font-family:var(--ff-m);font-size:.52rem;letter-spacing:.14em;text-transform:uppercase;color:var(--si2)}
+#side-loc{font-family:var(--ff-m);font-size:.52rem;color:var(--tx2)}
+#npc-list{flex:1;overflow-y:auto;padding:7px;display:flex;flex-direction:column;gap:5px}
+#npc-list::-webkit-scrollbar{width:2px}
+#npc-list::-webkit-scrollbar-thumb{background:#1e1408}
+.npc-card{background:#120d07;border:1px solid #201608;border-radius:var(--r);
+  padding:7px 9px;transition:border-color var(--t),opacity var(--t)}
+.npc-card.here{border-color:#1e3020}
+.npc-card.gone{opacity:.28;filter:grayscale(.6)}
+.npc-hdr{display:flex;align-items:center;gap:5px;margin-bottom:3px}
+.npc-ico{width:18px;height:18px;border-radius:50%;background:var(--bg2);border:1px solid #201608;
+  display:flex;align-items:center;justify-content:center;font-size:.62rem;flex-shrink:0}
+.npc-name{font-family:var(--ff-b);font-size:.78rem;color:var(--tx1);flex:1}
+.npc-pin{width:4px;height:4px;border-radius:50%;background:var(--tx2);flex-shrink:0}
+.npc-card.here .npc-pin{background:var(--gn);box-shadow:0 0 4px #4a946050}
+.npc-act{font-family:var(--ff-m);font-size:.52rem;color:var(--tx2);margin-bottom:4px}
+.npc-bars{display:flex;gap:4px;flex-wrap:wrap}
+.npc-bar{display:flex;align-items:center;gap:2px;font-family:var(--ff-m);font-size:.48rem;color:var(--tx2)}
+.mbar{width:26px;height:2px;background:#201608;border-radius:1px;overflow:hidden}
+.mbar-f{height:100%;border-radius:1px;transition:width .4s}
+.bar-t .mbar-f{background:var(--si2)}
+.bar-s .mbar-f{background:var(--wa)}
+.bar-f .mbar-f{background:var(--rd3)}
+.npc-q{font-family:var(--ff-b);font-size:.71rem;font-style:italic;color:var(--si2);
+  border-left:2px solid var(--br0);padding-left:5px;margin-top:4px;line-height:1.4;display:none}
+.npc-q.vis{display:block}
+#npc-empty{text-align:center;padding:20px 10px;font-family:var(--ff-m);font-size:.54rem;
+  color:var(--tx3);letter-spacing:.06em;line-height:1.8}
+#life-log{border-top:1px solid #1e1408;padding:5px 8px;font-family:var(--ff-m);font-size:.5rem;
+  color:var(--tx3);max-height:68px;overflow-y:auto;flex-shrink:0;display:none}
+#life-log.vis{display:block}
+#life-log::-webkit-scrollbar{width:1px}
+.ll-title{color:var(--tx2);font-size:.48rem;text-transform:uppercase;letter-spacing:.12em;margin-bottom:2px}
+.ll-entry{display:flex;gap:4px;padding:1px 0;border-bottom:1px solid #180c06}
+.ll-t{color:var(--em2);flex-shrink:0}
+
+/* ── SCENE BAR ── */
+#scene-toggle{background:#1a1008;border-top:1px solid var(--br0);padding:5px 18px;
+  display:flex;align-items:center;gap:9px;cursor:pointer;user-select:none;
+  transition:background var(--t);flex-shrink:0}
+#scene-toggle:hover{background:var(--bg2)}
+.st-lbl{font-family:var(--ff-m);font-size:.52rem;color:var(--em2);text-transform:uppercase;letter-spacing:.1em}
+.st-arr{font-size:.55rem;color:var(--tx2);transition:transform var(--t);display:inline-block}
+#scene-toggle.open .st-arr{transform:rotate(180deg)}
+#scene-quick{flex:1;font-family:var(--ff-m);font-size:.52rem;color:var(--tx2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#scene-bar{background:#1a1008;overflow:hidden;max-height:0;transition:max-height var(--ts);border-top:1px solid transparent}
+#scene-bar.open{max-height:124px;border-color:var(--br0)}
+#scene-body{padding:10px 18px 12px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.sc-title{font-family:var(--ff-m);font-size:.48rem;color:var(--si2);text-transform:uppercase;letter-spacing:.12em;margin-bottom:4px}
+.sc-tags{display:flex;flex-wrap:wrap;gap:3px}
+.sc-tag{font-family:var(--ff-m);font-size:.5rem;padding:1px 5px;border-radius:2px;border:1px solid var(--br0);color:var(--tx1)}
+.sc-tag.dmg{color:var(--wa);border-color:#4a2e10}
+.sc-tag.gone{color:var(--rd3);border-color:#4a1010;text-decoration:line-through}
+.sc-tag.lit{color:var(--em4);border-color:var(--em2)}
+.sc-tag.open{color:var(--gn);border-color:var(--gn2)}
+.sc-env{display:flex;flex-direction:column;gap:2px}
+.sc-env-item{font-family:var(--ff-m);font-size:.52rem;color:var(--tx1);display:flex;align-items:center;gap:4px}
+.sc-effects{display:flex;flex-direction:column;gap:2px}
+.sc-eff{font-family:var(--ff-m);font-size:.5rem;padding:2px 5px;border-radius:2px;background:#200808;border:1px solid var(--rd);color:var(--rd3)}
+.sc-none{font-family:var(--ff-m);font-size:.5rem;color:var(--tx3)}
+
+/* ── STATUS BAR ── */
+#status-bar{background:var(--bg1);border-top:1px solid var(--br0);padding:4px 18px;min-height:28px;display:flex;align-items:center;gap:10px}
+#thinking{display:none;align-items:center;gap:8px;width:100%}
+#thinking.vis{display:flex}
+.th-lbl{font-family:var(--ff-m);font-size:.58rem;color:var(--em2);letter-spacing:.08em;text-transform:uppercase}
+.th-dots{display:flex;gap:3px}
+.th-dots span{width:3px;height:3px;border-radius:50%;background:var(--em2);animation:pls 1.2s ease-in-out infinite}
+.th-dots span:nth-child(2){animation-delay:.2s}
+.th-dots span:nth-child(3){animation-delay:.4s}
+@keyframes pls{0%,80%,100%{opacity:.2;transform:scale(.8)}40%{opacity:1;transform:scale(1)}}
+#think-t{font-family:var(--ff-m);font-size:.56rem;color:var(--tx2);margin-left:auto}
+#metrics{display:none;align-items:center;gap:9px;width:100%}
+#metrics.vis{display:flex}
+.m-lbl{font-family:var(--ff-m);font-size:.52rem;color:var(--em2);text-transform:uppercase;letter-spacing:.06em}
+.m-val{font-family:var(--ff-m);font-size:.58rem;color:var(--tx1)}
+.m-sep{color:var(--tx2);font-size:.52rem}
+#prog-wrap{flex:1;height:2px;background:var(--br0);border-radius:1px;overflow:hidden}
+#prog{height:100%;width:0%;background:linear-gradient(90deg,var(--em2),var(--em3));border-radius:1px;transition:width .1s linear}
+#metrics-st{font-family:var(--ff-m);font-size:.5rem;color:var(--tx2);margin-left:auto;white-space:nowrap}
+
+/* ── FOOTER ── */
+footer{background:var(--bg3);border-top:1px solid var(--br0);padding:11px 18px}
+.inp-row{display:flex;gap:8px;align-items:flex-end}
+textarea{flex:1;background:var(--bg1);border:1px solid var(--br0);border-radius:var(--r);
+  color:var(--tx0);font-family:var(--ff-b);font-size:.96rem;padding:8px 11px;resize:none;
+  height:46px;min-height:46px;max-height:130px;outline:none;overflow-y:hidden;
+  transition:border-color var(--t),box-shadow var(--t)}
+textarea::placeholder{color:var(--tx2);font-style:italic}
+textarea:focus{border-color:var(--em2);box-shadow:0 0 0 2px #c8832a12}
+textarea:disabled{opacity:.35;cursor:not-allowed}
+#send-btn{background:linear-gradient(145deg,#481616,#2c0e0e);border:1px solid #5a1e1e;
+  border-radius:var(--r);color:#d07858;font-family:var(--ff-t);font-size:.64rem;font-weight:600;
+  letter-spacing:.12em;text-transform:uppercase;padding:10px 16px;cursor:pointer;height:46px;
+  transition:background var(--t),border-color var(--t),transform var(--t);white-space:nowrap}
+#send-btn:hover:not(:disabled){background:linear-gradient(145deg,#5c2020,#381414);border-color:#703030;transform:translateY(-1px)}
+#send-btn:active:not(:disabled){transform:none}
+#send-btn:disabled{opacity:.24;cursor:not-allowed;transform:none}
+.inp-hint{font-family:var(--ff-m);font-size:.5rem;color:var(--tx3);margin-top:4px;text-align:right}
+
+/* ── MESSAGES ── */
+.msg{max-width:100%;animation:sld .24s ease}
+@keyframes sld{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.msg-dm .msg-hdr{font-family:var(--ff-m);font-size:.55rem;color:var(--em2);text-transform:uppercase;letter-spacing:.12em;margin-bottom:4px}
+.msg-dm .msg-body{font-family:var(--ff-b);font-size:1rem;color:var(--tx0);line-height:1.74;font-weight:300}
+.msg-dm .msg-body p{margin-bottom:.55em}
+.msg-dm .msg-body p:last-child{margin-bottom:0}
+.cursor{display:inline-block;width:2px;height:1em;background:var(--em);margin-left:2px;vertical-align:text-bottom;animation:blk .7s step-end infinite}
+@keyframes blk{0%,100%{opacity:1}50%{opacity:0}}
+.msg-player{display:flex;gap:8px;align-items:flex-start}
+.msg-player .arr{color:var(--em2);font-family:var(--ff-m);font-size:.7rem;margin-top:2px;flex-shrink:0}
+.msg-player .msg-body{color:var(--si);font-family:var(--ff-b);font-size:.94rem;font-style:italic}
+.msg-player .badges{display:flex;gap:5px;flex-wrap:wrap;margin-top:3px}
+.badge{font-family:var(--ff-m);font-size:.48rem;padding:1px 6px;border-radius:2px;border:1px solid;text-transform:uppercase;letter-spacing:.1em;white-space:nowrap}
+.b-combat{color:#e05050;border-color:#6a1818;background:#180606}
+.b-explore{color:var(--si);border-color:var(--si2);background:#08101a}
+.b-social{color:var(--em4);border-color:var(--em2);background:#160c04}
+.b-sandbox{color:var(--tx1);border-color:var(--br1);background:var(--bg1)}
+.b-capture{color:#e09040;border-color:#7a4010;background:#140a04}
+.b-flee{color:#90c090;border-color:#405040;background:#060e06}
+.b-romance{color:#e080a8;border-color:#784060;background:#14080e}
+.b-lore{color:var(--si2);border-color:var(--br0);background:#080c10}
+.msg-npc .msg-hdr{font-family:var(--ff-m);font-size:.55rem;color:var(--si2);text-transform:uppercase;letter-spacing:.12em;margin-bottom:4px}
+.msg-npc .msg-body{color:var(--si2);font-family:var(--ff-b);font-size:.9rem;font-style:italic;padding-left:10px;border-left:2px solid var(--br0)}
+.msg-sys .msg-body{font-family:var(--ff-m);font-size:.58rem;color:var(--tx2);padding:4px 9px;background:var(--bg1);border:1px solid var(--br0);border-radius:var(--r);display:inline-block}
+.msg-err .msg-body{font-family:var(--ff-m);font-size:.66rem;color:#d07070;padding:7px 11px;background:#200c0a;border:1px solid #421a18;border-radius:var(--r)}
+.msg-dice-wrap{display:flex;align-items:stretch;border:1px solid var(--em2);border-radius:var(--r);overflow:hidden;background:#140a02;max-width:300px}
+.dice-face{background:linear-gradient(135deg,#281208,#180a02);padding:9px 12px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-right:1px solid var(--em2);min-width:48px}
+.dice-ico{font-size:1rem;margin-bottom:1px}
+.dice-type{font-family:var(--ff-m);font-size:.46rem;color:var(--em2)}
+.dice-num{font-family:var(--ff-t);font-size:1.4rem;font-weight:700;line-height:1;color:var(--em3);text-shadow:0 0 12px #c8832a70}
+.dice-num.crit{color:#ffd060;text-shadow:0 0 16px #ffd06070}
+.dice-num.fail{color:var(--rd3)}
+.dice-info{padding:7px 11px;display:flex;flex-direction:column;justify-content:center;gap:3px}
+.dice-lbl{font-family:var(--ff-b);font-size:.8rem;color:var(--tx1)}
+.dice-out{font-family:var(--ff-m);font-size:.52rem;padding:1px 5px;border-radius:2px;display:inline-block;align-self:flex-start}
+.dice-out.hit{background:#081a08;color:var(--gn);border:1px solid var(--gn2)}
+.dice-out.miss{background:#1a0808;color:#b04040;border:1px solid #601818}
+.msg-sc{border-left:2px solid var(--em2);padding-left:8px;font-family:var(--ff-m);font-size:.56rem;color:var(--tx2)}
+.msg-sc .sc-hdr{color:var(--em2);font-size:.52rem;text-transform:uppercase;letter-spacing:.1em;margin-bottom:2px}
+.msg-sc .sc-row .sc-tgt{color:var(--si2)}
+.msg-sc .sc-row .sc-val{color:var(--em4)}
+.msg-life{border-left:2px solid var(--gn2);padding-left:8px;font-family:var(--ff-m);font-size:.54rem;color:var(--tx2)}
+.msg-life .lf-hdr{color:var(--gn2);font-size:.5rem;text-transform:uppercase;letter-spacing:.1em;margin-bottom:1px}
+.divd{display:flex;align-items:center;gap:8px;margin:2px 0;opacity:.35}
+.divd::before,.divd::after{content:'';flex:1;height:1px;background:var(--br0)}
+.divd-t{font-family:var(--ff-m);font-size:.5rem;color:var(--tx2);letter-spacing:.12em;text-transform:uppercase;white-space:nowrap}
+
+/* ── DEBUG OVERLAY ── */
+#dbg{position:fixed;inset:0;z-index:1000;background:rgba(10,6,3,.96);backdrop-filter:blur(4px);display:none;flex-direction:column;overflow:hidden}
+#dbg.vis{display:flex}
+#dbg-hdr{background:var(--bg3);border-bottom:1px solid var(--br0);padding:9px 18px;display:flex;align-items:center;gap:14px;flex-shrink:0}
+.dbg-title{font-family:var(--ff-t);font-size:.76rem;color:var(--em);letter-spacing:.2em}
+.dbg-hint{font-family:var(--ff-m);font-size:.54rem;color:var(--tx2)}
+#dbg-close{margin-left:auto;background:transparent;border:1px solid var(--br0);color:var(--tx2);font-family:var(--ff-m);font-size:.56rem;padding:3px 10px;border-radius:var(--r);cursor:pointer}
+#dbg-close:hover{border-color:var(--em2);color:var(--tx1)}
+#dbg-body{flex:1;overflow-y:auto;padding:14px 18px;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;align-content:start}
+.dbg-card{background:var(--bg1);border:1px solid #1e1408;border-radius:var(--r2);padding:11px 13px}
+.dbg-name{font-family:var(--ff-t);font-size:.76rem;color:var(--em4);margin-bottom:7px;display:flex;align-items:center;gap:7px}
+.dbg-tier{font-family:var(--ff-m);font-size:.46rem;padding:1px 5px;border-radius:2px;background:var(--bg2);border:1px solid var(--br0);color:var(--si2);text-transform:uppercase}
+.dbg-row{display:grid;grid-template-columns:90px 1fr;gap:2px 6px;margin-bottom:2px;align-items:center}
+.dbg-k{font-family:var(--ff-m);font-size:.5rem;color:var(--si2);text-transform:uppercase;letter-spacing:.06em}
+.dbg-v{font-family:var(--ff-m);font-size:.54rem;color:var(--tx1)}
+.bw{display:flex;align-items:center;gap:4px}
+.bw .b{flex:1;height:3px;background:#1e1408;border-radius:2px;overflow:hidden}
+.bw .b .f{height:100%;border-radius:2px;transition:width .4s}
+.c-g .f{background:var(--gn)}
+.c-r .f{background:var(--rd3)}
+.c-a .f{background:var(--em)}
+.c-s .f{background:var(--si2)}
+.dbg-thought{margin-top:7px;padding:5px 7px;background:#0e0904;border-left:2px solid var(--em2);font-family:var(--ff-b);font-size:.7rem;font-style:italic;color:var(--tx1);line-height:1.45}
+.dbg-drives{margin-top:5px;display:flex;gap:3px;flex-wrap:wrap}
+.drv{font-family:var(--ff-m);font-size:.46rem;padding:1px 5px;border-radius:2px;background:#180c04;border:1px solid #3a1c08;color:var(--em2)}
+
+@media(max-width:680px){
+  #main{grid-template-columns:1fr}
+  #side{border-top:1px solid var(--br0);max-height:140px;flex-direction:row}
+  #npc-list{flex-direction:row;overflow-x:auto;padding:6px}
+  .npc-card{min-width:120px}
+  #scene-body{grid-template-columns:1fr 1fr}
+  #hdr-center{display:none}
+  #dbg-body{grid-template-columns:1fr}
 }
-
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background:
-    radial-gradient(ellipse 60% 50% at 50% 0%, #1a0d2e22 0%, transparent 70%),
-    radial-gradient(ellipse 40% 30% at 20% 100%, #2a0d0d18 0%, transparent 60%);
-  pointer-events: none;
-  z-index: 0;
-}
-
-/* ═══════════════════════════════════════════
-   LAYOUT
-═══════════════════════════════════════════ */
-#app {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  grid-template-rows: auto auto 1fr auto auto;
-  height: 100vh;
-  max-width: 860px;
-  margin: 0 auto;
-  border-left: 1px solid var(--border);
-  border-right: 1px solid var(--border);
-}
-
-/* ═══════════════════════════════════════════
-   HEADER
-═══════════════════════════════════════════ */
-header {
-  background: var(--deep);
-  border-bottom: 1px solid var(--border-glow);
-  padding: 14px 20px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  box-shadow: 0 16px 20px #00000060;
-}
-
-.title-block { display: flex; align-items: baseline; gap: 12px; }
-
-h1 {
-  font-family: var(--font-title);
-  font-size: 1.3rem;
-  font-weight: 700;
-  letter-spacing: 0.18em;
-  color: var(--ember);
-  text-shadow: 0 0 20px #c8832a50;
-}
-
-.title-sub {
-  font-family: var(--font-mono);
-  font-size: 0.8rem;
-  color: var(--muted);
-  letter-spacing: 0.5em;
-  text-transform: uppercase;
-}
-
-#server-status {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-family: var(--font-mono);
-  font-size: 0.65rem;
-  color: var(--muted);
-  letter-spacing: 0.05em;
-}
-
-.dot {
-  width: 6px; height: 6px;
-  border-radius: 50%;
-  background: var(--muted);
-  transition: background var(--transition), box-shadow var(--transition);
-}
-.dot.online  { background: #4a9460; box-shadow: 0 0 8px #4a946080; }
-.dot.offline { background: var(--crimson); box-shadow: 0 0 8px #8b202080; }
-
-/* ═══════════════════════════════════════════
-   CHARACTER PANEL
-═══════════════════════════════════════════ */
-#char-panel {
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  padding: 10px 20px;
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  min-height: 48px;
-  flex-wrap: wrap;
-}
-
-#player-select-wrap {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.label-sm {
-  font-family: var(--font-mono);
-  font-size: 0.6rem;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-select {
-  background: var(--deep);
-  border: 1px solid var(--border-glow);
-  color: var(--parchment-dim);
-  font-family: var(--font-body);
-  font-size: 0.9rem;
-  padding: 4px 8px;
-  border-radius: var(--radius);
-  cursor: pointer;
-  outline: none;
-  transition: border-color var(--transition);
-}
-select:focus { border-color: var(--ember-dim); }
-
-/* Character stats */
-#char-stats {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  flex-wrap: wrap;
-  opacity: 0;
-  transition: opacity 0.4s ease;
-}
-#char-stats.visible { opacity: 1; }
-
-.stat-item { display: flex; align-items: center; gap: 6px; }
-.stat-icon { font-size: 0.75rem; opacity: 0.7; }
-.stat-value { font-family: var(--font-mono); font-size: 0.72rem; color: var(--parchment-dim); }
-
-.hp-bar-wrap { display: flex; align-items: center; gap: 6px; }
-.hp-bar { width: 60px; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
-.hp-fill { height: 100%; background: var(--hp-green); border-radius: 2px; transition: width 0.5s ease, background 0.5s ease; }
-.stat-sep { width: 1px; height: 16px; background: var(--border-glow); }
-
-/* World time */
-#world-time {
-  margin-left: auto;
-  font-family: var(--font-mono);
-  font-size: 0.6rem;
-  color: var(--muted);
-  display: none;
-}
-#world-time.visible { display: block; }
-
-/* ═══════════════════════════════════════════
-   CHAT
-═══════════════════════════════════════════ */
-#chat-wrap {
-  overflow-y: auto;
-  padding: 16px 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  scroll-behavior: smooth;
-  position: relative;
-}
-
-#chat-wrap::-webkit-scrollbar { width: 4px; }
-#chat-wrap::-webkit-scrollbar-track { background: transparent; }
-#chat-wrap::-webkit-scrollbar-thumb { background: var(--border-glow); border-radius: 2px; }
-
-/* Кнопка "наверх" */
-#scroll-top-btn {
-  position: absolute;
-  top: 8px;
-  right: 12px;
-  background: var(--deep);
-  border: 1px solid var(--border-glow);
-  color: var(--muted);
-  font-family: var(--font-mono);
-  font-size: 0.6rem;
-  padding: 4px 8px;
-  border-radius: var(--radius);
-  cursor: pointer;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.3s ease;
-  z-index: 10;
-}
-#scroll-top-btn.visible {
-  opacity: 1;
-  pointer-events: all;
-}
-
-/* Messages */
-.msg {
-  max-width: 100%;
-  animation: fadeSlideIn 0.3s ease;
-}
-
-@keyframes fadeSlideIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-/* DM */
-.msg-dm .msg-header {
-  font-family: var(--font-mono);
-  font-size: 0.6rem;
-  color: var(--ember-dim);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  margin-bottom: 4px;
-}
-.msg-dm .msg-body {
-  font-family: var(--font-body);
-  font-size: 1.05rem;
-  color: var(--parchment);
-  line-height: 1.7;
-  font-weight: 300;
-}
-/* Абзацы внутри DM сообщения */
-.msg-dm .msg-body p { margin-bottom: 0.6em; }
-.msg-dm .msg-body p:last-child { margin-bottom: 0; }
-
-/* Курсор печатающей машинки */
-.cursor-blink {
-  display: inline-block;
-  width: 2px;
-  height: 1em;
-  background: var(--ember);
-  margin-left: 2px;
-  vertical-align: text-bottom;
-  animation: blink 0.7s step-end infinite;
-}
-@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
-
-/* Player */
-.msg-player { display: flex; gap: 10px; align-items: flex-start; }
-.msg-player .msg-arrow { color: var(--ember-dim); font-family: var(--font-mono); font-size: 0.8rem; margin-top: 2px; flex-shrink: 0; }
-.msg-player .msg-body { color: var(--silver); font-family: var(--font-body); font-size: 0.95rem; font-style: italic; }
-
-/* NPC */
-.msg-npc .msg-header { font-family: var(--font-mono); font-size: 0.6rem; color: var(--silver-dim); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px; }
-.msg-npc .msg-body { color: var(--silver-dim); font-family: var(--font-body); font-size: 0.9rem; font-style: italic; padding-left: 12px; border-left: 2px solid var(--border-glow); }
-
-/* System */
-.msg-system .msg-body { font-family: var(--font-mono); font-size: 0.65rem; color: var(--muted); letter-spacing: 0.04em; padding: 6px 10px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); display: inline-block; }
-
-/* Error */
-.msg-error .msg-body { font-family: var(--font-mono); font-size: 0.72rem; color: #e07070; padding: 8px 12px; background: #2a100f; border: 1px solid #4a1a18; border-radius: var(--radius); }
-
-/* ═══════════════════════════════════════════
-   STREAM METRICS BAR
-═══════════════════════════════════════════ */
-#stream-metrics {
-  display: none;
-  align-items: center;
-  gap: 12px;
-  padding: 6px 20px;
-  background: var(--surface);
-  border-top: 1px solid var(--border);
-  min-height: 32px;
-}
-#stream-metrics.visible { display: flex; }
-
-.metric-label {
-  font-family: var(--font-mono);
-  font-size: 0.6rem;
-  color: var(--ember-dim);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-.metric-val {
-  font-family: var(--font-mono);
-  font-size: 0.62rem;
-  color: var(--parchment-dim);
-}
-
-.metric-sep { color: var(--muted); font-size: 0.6rem; }
-
-/* Прогресс-бар */
-#stream-progress-wrap {
-  flex: 1;
-  height: 2px;
-  background: var(--border);
-  border-radius: 1px;
-  overflow: hidden;
-}
-#stream-progress {
-  height: 100%;
-  width: 0%;
-  background: linear-gradient(90deg, var(--ember-dim), var(--ember-glow));
-  border-radius: 1px;
-  transition: width 0.1s linear;
-}
-
-#stream-status-text {
-  font-family: var(--font-mono);
-  font-size: 0.58rem;
-  color: var(--muted);
-  margin-left: auto;
-  white-space: nowrap;
-}
-
-/* ═══════════════════════════════════════════
-   THINKING INDICATOR (используется для non-stream фаз)
-═══════════════════════════════════════════ */
-#thinking {
-  display: none;
-  align-items: center;
-  gap: 10px;
-  padding: 6px 20px;
-  background: var(--surface);
-  border-top: 1px solid var(--border);
-  min-height: 32px;
-}
-#thinking.visible { display: flex; }
-
-.think-label { font-family: var(--font-mono); font-size: 0.62rem; color: var(--ember-dim); letter-spacing: 0.08em; text-transform: uppercase; }
-.think-dots { display: flex; gap: 4px; }
-.think-dots span { width: 4px; height: 4px; border-radius: 50%; background: var(--ember-dim); animation: pulse 1.2s ease-in-out infinite; }
-.think-dots span:nth-child(2) { animation-delay: 0.2s; }
-.think-dots span:nth-child(3) { animation-delay: 0.4s; }
-
-@keyframes pulse {
-  0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); }
-  40%           { opacity: 1;   transform: scale(1); }
-}
-
-#think-timer { font-family: var(--font-mono); font-size: 0.6rem; color: var(--muted); margin-left: auto; }
-
-/* ═══════════════════════════════════════════
-   INPUT AREA
-═══════════════════════════════════════════ */
-footer {
-  background: var(--deep);
-  border-top: 1px solid var(--border-glow);
-  padding: 14px 20px;
-}
-
-.input-wrap { display: flex; gap: 10px; align-items: flex-end; }
-
-textarea {
-  flex: 1;
-  background: var(--surface);
-  border: 1px solid var(--border-glow);
-  border-radius: var(--radius);
-  color: var(--parchment-dim);
-  font-family: var(--font-body);
-  font-size: 1rem;
-  padding: 10px 12px;
-  resize: none;
-  height: 52px;
-  min-height: 52px;
-  max-height: 140px;
-  outline: none;
-  transition: border-color var(--transition), box-shadow var(--transition);
-  overflow-y: hidden;
-}
-textarea::placeholder { color: var(--muted); font-style: italic; }
-textarea:focus { border-color: var(--ember-dim); box-shadow: 0 0 0 2px #c8832a18; }
-textarea:disabled { opacity: 0.4; cursor: not-allowed; }
-
-#send-btn {
-  background: linear-gradient(135deg, #5a1a1a, #3a1010);
-  border: 1px solid #6a2020;
-  border-radius: var(--radius);
-  color: #e8a080;
-  font-family: var(--font-title);
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  padding: 12px 18px;
-  cursor: pointer;
-  transition: background var(--transition), border-color var(--transition), transform var(--transition);
-  white-space: nowrap;
-  height: 52px;
-}
-#send-btn:hover:not(:disabled) { background: linear-gradient(135deg, #6a2a2a, #4a1818); border-color: #8a3030; transform: translateY(-1px); }
-#send-btn:active:not(:disabled) { transform: translateY(0); }
-#send-btn:disabled { opacity: 0.3; cursor: not-allowed; transform: none; }
-
-.input-hint { font-family: var(--font-mono); font-size: 0.58rem; color: var(--muted); margin-top: 6px; text-align: right; }
-
-/* DIVIDER */
-.divider { display: flex; align-items: center; gap: 10px; margin: 4px 0; opacity: 0.5; }
-.divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
-.divider-text { font-family: var(--font-mono); font-size: 0.55rem; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; }
 </style>
 </head>
-
 <body>
 <div id="app">
-
-  <!-- HEADER -->
-  <header>
-    <div class="title-block">
-      <h1>ENIGMA</h1>
-      <span class="title-sub">AI Dungeon Master v0.1</span>
-    </div>
+<header>
+  <div style="display:flex;align-items:baseline;gap:10px;flex-shrink:0">
+    <h1>ENIGMA</h1><span class="title-sub">AI DM v0.2</span>
+  </div>
+  <div id="hdr-center">
+    <span id="hdr-loc"></span><span id="hdr-time"></span>
+  </div>
+  <div id="hdr-right">
+    <span id="vram-badge"></span>
     <div id="server-status">
       <div class="dot" id="status-dot"></div>
       <span id="status-text">подключение...</span>
     </div>
-  </header>
-
-  <!-- CHARACTER PANEL -->
-  <div id="char-panel">
-    <div id="player-select-wrap">
-      <span class="label-sm">Персонаж</span>
-      <select id="player-select">
-        <option value="">— выбрать —</option>
-      </select>
-    </div>
-
-    <div id="char-stats">
-      <div class="stat-sep"></div>
-      <div class="stat-item hp-bar-wrap">
-        <span class="stat-icon">♥</span>
-        <span class="stat-value" id="stat-hp">—</span>
-        <div class="hp-bar"><div class="hp-fill" id="hp-fill" style="width:100%"></div></div>
-      </div>
-      <div class="stat-item">
-        <span class="stat-icon">⛨</span>
-        <span class="stat-value" id="stat-ac">—</span>
-      </div>
-      <div class="stat-sep"></div>
-      <div class="stat-item">
-        <span class="stat-value" id="stat-class">—</span>
-      </div>
-      <div class="stat-item">
-        <span class="label-sm">ур.</span>
-        <span class="stat-value" id="stat-level">—</span>
-      </div>
-    </div>
-
-    <span id="world-time"></span>
   </div>
+</header>
 
-  <!-- CHAT -->
-  <div id="chat-wrap">
-    <button id="scroll-top-btn" onclick="scrollToTop()">↑ наверх</button>
+<div id="char-panel">
+  <div style="display:flex;align-items:center;gap:7px">
+    <span class="lbl">Персонаж</span>
+    <select id="player-select"><option value="">— выбрать —</option></select>
   </div>
+  <div id="char-stats">
+    <div class="sep-v"></div>
+    <div class="stat" style="gap:5px">
+      <span class="stat-ico">♥</span>
+      <span class="stat-val" id="stat-hp">—</span>
+      <div class="hp-bar"><div class="hp-fill" id="hp-fill" style="width:100%"></div></div>
+    </div>
+    <div class="stat"><span class="stat-ico">⛨</span><span class="stat-val" id="stat-ac">—</span></div>
+    <div class="sep-v"></div>
+    <span class="stat-val" id="stat-cls">—</span>
+    <div class="stat"><span class="lbl" style="font-size:.5rem">ур.</span><span class="stat-val" id="stat-lvl">—</span></div>
+  </div>
+  <span id="act-tag"></span>
+</div>
 
-  <!-- STREAM METRICS / THINKING -->
+<div id="main">
+  <div id="chat">
+    <button id="scroll-up" onclick="scrollTop_()">↑ вверх</button>
+  </div>
+  <div id="side">
+    <div id="side-hdr">
+      <span class="panel-lbl">◉ NPC в сцене</span>
+      <span id="side-loc">—</span>
+    </div>
+    <div id="npc-list">
+      <div id="npc-empty">Выберите персонажа<br>для начала</div>
+    </div>
+    <div id="life-log"><div class="ll-title">⟳ жизнь мира</div></div>
+  </div>
+</div>
+
+<div id="scene-toggle" onclick="toggleScene()">
+  <span class="st-arr">▲</span>
+  <span class="st-lbl">Сцена</span>
+  <span id="scene-quick">нет данных · F9</span>
+</div>
+<div id="scene-bar">
+  <div id="scene-body">
+    <div><div class="sc-title">Объекты</div><div class="sc-tags" id="sc-obj"><span class="sc-none">—</span></div></div>
+    <div><div class="sc-title">Окружение</div><div class="sc-env" id="sc-env"><span class="sc-none">—</span></div></div>
+    <div><div class="sc-title">Эффекты</div><div class="sc-effects" id="sc-eff"><span class="sc-none">нет</span></div></div>
+  </div>
+</div>
+
+<div id="status-bar">
   <div id="thinking">
-    <span class="think-label">Мастер думает</span>
-    <div class="think-dots"><span></span><span></span><span></span></div>
-    <span id="think-timer"></span>
+    <span class="th-lbl">Мастер думает</span>
+    <div class="th-dots"><span></span><span></span><span></span></div>
+    <span id="think-t"></span>
   </div>
-
-  <div id="stream-metrics">
-    <span class="metric-label">⟳</span>
-    <span class="metric-val" id="metric-tokens">0</span>
-    <span class="metric-sep">токенов</span>
-    <span class="metric-sep">·</span>
-    <span class="metric-val" id="metric-time">0.0</span>
-    <span class="metric-sep">с</span>
-    <span class="metric-sep">·</span>
-    <span class="metric-val" id="metric-tps">0</span>
-    <span class="metric-sep">tok/s</span>
-    <div id="stream-progress-wrap"><div id="stream-progress"></div></div>
-    <span id="stream-status-text"></span>
+  <div id="metrics">
+    <span class="m-lbl">⟳</span>
+    <span class="m-val" id="m-tok">0</span><span class="m-sep">tok</span>
+    <span class="m-sep">·</span>
+    <span class="m-val" id="m-sec">0.0</span><span class="m-sep">с</span>
+    <span class="m-sep">·</span>
+    <span class="m-val" id="m-tps">0</span><span class="m-sep">tok/s</span>
+    <div id="prog-wrap"><div id="prog"></div></div>
+    <span id="metrics-st"></span>
   </div>
+</div>
 
-  <!-- INPUT -->
-  <footer>
-    <div class="input-wrap">
-      <textarea id="action-input" placeholder="Опишите действие вашего персонажа..." disabled></textarea>
-      <button id="send-btn" disabled>Действие</button>
-    </div>
-    <div class="input-hint">Enter — отправить &nbsp;·&nbsp; Shift+Enter — новая строка</div>
-  </footer>
+<footer>
+  <div class="inp-row">
+    <textarea id="inp" placeholder="Опишите действие вашего персонажа..." disabled></textarea>
+    <button id="send-btn" disabled>Действие</button>
+  </div>
+  <div class="inp-hint">Enter — отправить · Shift+Enter — строка · F9 — сцена · F12 — психология NPC</div>
+</footer>
+</div>
 
+<div id="dbg">
+  <div id="dbg-hdr">
+    <span class="dbg-title">DEBUG — Психология NPC</span>
+    <span class="dbg-hint">Внутренние состояния · F12 / ESC — закрыть</span>
+    <button id="dbg-close" onclick="dbgToggle()">✕ Закрыть</button>
+  </div>
+  <div id="dbg-body">
+    <div style="font-family:var(--ff-m);font-size:.58rem;color:var(--tx2);padding:20px">Данные появятся после первого хода</div>
+  </div>
 </div>
 
 <script>
-/* ═══════════════════════════════════════════
-   CONFIG
-═══════════════════════════════════════════ */
-const CAMPAIGN = "demo-campaign";
-let API = "http://127.0.0.1:8000/api";
+const CAMPAIGN="demo-campaign";
+let API="http://127.0.0.1:8000/api";
+const ETOK=220;
 
-// Средняя скорость генерации для оценки прогресс-бара (tok/sec)
-const AVG_TPS_ESTIMATE = 65;
-// Ожидаемое кол-во токенов в ответе DM (для прогресс-бара)
-const EXPECTED_TOKENS  = 200;
-
-/* ═══════════════════════════════════════════
-   STATE
-═══════════════════════════════════════════ */
-const state = {
-  online:     false,
-  player:     null,
-  char:       null,
-  busy:       false,
-  thinkStart: null,
-  thinkTimer: null,
-  hbTimer:    null,
-  // Streaming
-  streamActive:    false,
-  streamTokenCount: 0,
-  streamStartMs:   0,
-  // Текущий DM элемент куда пишем токены
-  activeDmEl:  null,
-  activeCursor: null,
+const G={
+  online:false,player:null,char:null,busy:false,
+  thinkT:null,thinkStart:null,hbTimer:null,vramTimer:null,
+  sTok:0,sMs:0,dmEl:null,curEl:null,
+  pendNpc:null,pendMod:null,pendMeta:null,
+  npcCache:{},dbgNpcs:[],
+  sceneOpen:false,dbgOpen:false,
+  location:null,lastAt:null
 };
 
-/* ═══════════════════════════════════════════
-   HELPERS
-═══════════════════════════════════════════ */
-const qs = sel => document.querySelector(sel);
+const ICONS={tavern_keeper_tornin:"🧔",guard_borko:"⚔️",maid_lusya:"👧",merchant_goran:"🪙",thief_shadow:"🗡️"};
+const ACT_L={sleeping:"спит",cleaning_tables:"протирает столы",serving_tables:"разносит еду",guarding_gate:"на страже",haggling:"торгуется",observing:"наблюдает",resting:"отдыхает",eating:"ест",drinking:"пьёт",working:"работает",on_duty:"на дежурстве",off_duty:"после смены",talking_at_bar:"говорит у стойки",hiding:"прячется"};
+const ATYPE={
+  COMBAT:{l:"⚔ Бой",c:"b-combat"},EXPLORE:{l:"👁 Осмотр",c:"b-explore"},
+  SOCIAL:{l:"💬 Социал",c:"b-social"},SOCIAL_MASS:{l:"📢 Речь",c:"b-social"},
+  SANDBOX_MILD:{l:"✦ Действие",c:"b-sandbox"},SANDBOX_SOCIAL:{l:"✦ Соц.",c:"b-sandbox"},
+  SANDBOX_PHYSICAL:{l:"✦ Физ.",c:"b-sandbox"},CAPTURE:{l:"⛓ Захват",c:"b-capture"},
+  FLEE:{l:"💨 Побег",c:"b-flee"},ROMANCE:{l:"♡ Романс",c:"b-romance"},
+  LORE_QUERY:{l:"📖 Лор",c:"b-lore"},CRAFT_USE:{l:"🔧 Создание",c:"b-sandbox"},
+  LIFE_CHOICE:{l:"⭐ Выбор",c:"b-social"},UNKNOWN:{l:"? Действие",c:"b-sandbox"}
+};
+const ATAG={
+  COMBAT:{co:"#e05050",bo:"#6a1818",bg:"#180606"},
+  EXPLORE:{co:"var(--si)",bo:"var(--si2)",bg:"#08101a"},
+  SOCIAL:{co:"var(--em4)",bo:"var(--em2)",bg:"#160c04"},
+  SOCIAL_MASS:{co:"var(--em4)",bo:"var(--em2)",bg:"#160c04"},
+  SANDBOX_MILD:{co:"var(--tx1)",bo:"var(--br1)",bg:"var(--bg1)"},
+  SANDBOX_SOCIAL:{co:"var(--tx1)",bo:"var(--br1)",bg:"var(--bg1)"},
+  SANDBOX_PHYSICAL:{co:"#e09040",bo:"#7a4010",bg:"#140a04"},
+  CAPTURE:{co:"#e09040",bo:"#7a4010",bg:"#140a04"},
+  FLEE:{co:"#90c090",bo:"#405040",bg:"#060e06"},
+  ROMANCE:{co:"#e080a8",bo:"#784060",bg:"#14080e"}
+};
+const OBJ_ST={intact:"цел",damaged:"повреждён",destroyed:"уничтожен",lit:"горит",unlit:"погашен",burning:"горит",open:"открыт",locked:"заперт",manned:"занят",flowing:"бьёт",made:"убрана",closed:"закрыт"};
+const LI={bright:"☀",dim:"🕯",dark:"🌑",torchlit:"🔥",natural:"⛅"};
+const NI={silent:"·",low:"〜",moderate:"〜〜",loud:"〜〜〜"};
 
-async function apiFetch(path, opts = {}) {
-  const res = await fetch(API + path, {
-    headers: { "Content-Type": "application/json" },
-    ...opts,
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ detail: `HTTP ${res.status}` }));
-    throw new Error(err.detail || `HTTP ${res.status}`);
-  }
-  return res.json();
+const $=s=>document.querySelector(s);
+const esc=s=>s==null?"":String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+const pct=(v,m)=>Math.round(Math.max(0,Math.min(1,(+v||0)/(+m||1)))*100)+"%";
+
+async function api(path,opts={}){
+  const r=await fetch(API+path,{headers:{"Content-Type":"application/json"},...opts});
+  if(!r.ok){const e=await r.json().catch(()=>({detail:`HTTP ${r.status}`}));throw new Error(e.detail||`HTTP ${r.status}`);}
+  return r.json();
 }
 
-function escHtml(s) {
-  if (s == null) return "";
-  return String(s)
-    .replace(/&/g,"&amp;")
-    .replace(/</g,"&lt;")
-    .replace(/>/g,"&gt;")
-    .replace(/"/g,"&quot;");
+/* ── MESSAGES ── */
+const MAX_MSG=60;
+function addMsg(html,type){
+  const chat=$("#chat"),msgs=chat.querySelectorAll(".msg");
+  if(msgs.length>=MAX_MSG)msgs[0].remove();
+  const el=document.createElement("div");
+  el.className=`msg msg-${type}`;el.innerHTML=html;
+  chat.appendChild(el);chat.scrollTop=chat.scrollHeight;updScrollBtn();return el;
 }
-
-/* ═══════════════════════════════════════════
-   MESSAGES
-═══════════════════════════════════════════ */
-const MAX_MESSAGES = 50;
-
-function addMsg(html, type = "dm") {
-  const wrap = qs("#chat-wrap");
-
-  // Удаляем старые если больше MAX
-  const msgs = wrap.querySelectorAll(".msg");
-  if (msgs.length >= MAX_MESSAGES) {
-    msgs[0].remove();
-  }
-
-  const el = document.createElement("div");
-  el.className = `msg msg-${type}`;
-  el.innerHTML = html;
-  wrap.appendChild(el);
-  wrap.scrollTop = wrap.scrollHeight;
-
-  // Кнопка "наверх" появляется при длинной истории
-  updateScrollTopBtn();
-  return el;
+function startDM(){
+  const chat=$("#chat"),msgs=chat.querySelectorAll(".msg");
+  if(msgs.length>=MAX_MSG)msgs[0].remove();
+  const el=document.createElement("div");
+  el.className="msg msg-dm";
+  el.innerHTML=`<div class="msg-hdr">⚔ Мастер подземелий</div><div class="msg-body"></div>`;
+  chat.appendChild(el);chat.scrollTop=chat.scrollHeight;updScrollBtn();
+  const body=el.querySelector(".msg-body");
+  const cur=document.createElement("span");cur.className="cursor";body.appendChild(cur);
+  G.dmEl=body;G.curEl=cur;return body;
 }
-
-/** Создаёт пустое DM сообщение и возвращает элемент body для стриминга */
-function startDmMessage() {
-  const wrap = qs("#chat-wrap");
-  const msgs = wrap.querySelectorAll(".msg");
-  if (msgs.length >= MAX_MESSAGES) msgs[0].remove();
-
-  const el = document.createElement("div");
-  el.className = "msg msg-dm";
-  el.innerHTML = `
-    <div class="msg-header">⚔ Мастер подземелий</div>
-    <div class="msg-body" id="streaming-body"></div>
-  `;
-  wrap.appendChild(el);
-  wrap.scrollTop = wrap.scrollHeight;
-  updateScrollTopBtn();
-
-  const body = el.querySelector(".msg-body");
-
-  // Добавляем мигающий курсор
-  const cursor = document.createElement("span");
-  cursor.className = "cursor-blink";
-  body.appendChild(cursor);
-
-  state.activeDmEl  = body;
-  state.activeCursor = cursor;
-  return body;
+function appendTok(t){
+  if(!G.dmEl)return;
+  G.dmEl.insertBefore(document.createTextNode(t),G.curEl);
+  $("#chat").scrollTop=$("#chat").scrollHeight;
 }
-
-/** Добавляет токен в текущее активное DM сообщение */
-function appendToken(token) {
-  if (!state.activeDmEl) return;
-  // Вставляем текст перед курсором
-  const textNode = document.createTextNode(token);
-  state.activeDmEl.insertBefore(textNode, state.activeCursor);
-  // Прокручиваем
-  const wrap = qs("#chat-wrap");
-  wrap.scrollTop = wrap.scrollHeight;
+function endDM(){
+  if(!G.dmEl)return;
+  if(G.curEl){G.curEl.remove();G.curEl=null;}
+  const raw=G.dmEl.textContent||"";
+  const ps=raw.split(/\n\n+/).map(p=>p.trim()).filter(Boolean);
+  if(ps.length>1)G.dmEl.innerHTML=ps.map(p=>`<p>${esc(p)}</p>`).join("");
+  G.dmEl=null;
 }
-
-/** Завершает DM сообщение — убирает курсор, форматирует абзацы */
-function finishDmMessage() {
-  if (!state.activeDmEl) return;
-
-  // Убираем курсор
-  if (state.activeCursor) {
-    state.activeCursor.remove();
-    state.activeCursor = null;
-  }
-
-  // Форматируем абзацы — разбиваем по \n или двойному переносу
-  const raw = state.activeDmEl.textContent || "";
-  const paragraphs = raw.split(/\n\n+/).map(p => p.trim()).filter(Boolean);
-  if (paragraphs.length > 1) {
-    state.activeDmEl.innerHTML = paragraphs
-      .map(p => `<p>${escHtml(p)}</p>`)
-      .join("");
-  }
-
-  state.activeDmEl = null;
+function msgDM(text){
+  const ps=text.split(/\n\n+/).map(p=>p.trim()).filter(Boolean);
+  const b=ps.length>1?ps.map(p=>`<p>${esc(p)}</p>`).join(""):esc(text);
+  addMsg(`<div class="msg-hdr">⚔ Мастер подземелий</div><div class="msg-body">${b}</div>`,"dm");
 }
-
-function msgDM(text) {
-  // Форматируем абзацы сразу
-  const paragraphs = text.split(/\n\n+/).map(p => p.trim()).filter(Boolean);
-  const body = paragraphs.length > 1
-    ? paragraphs.map(p => `<p>${escHtml(p)}</p>`).join("")
-    : escHtml(text);
-
-  addMsg(`
-    <div class="msg-header">⚔ Мастер подземелий</div>
-    <div class="msg-body">${body}</div>
-  `, "dm");
+function msgPlayer(text,at){
+  const am=ATYPE[at];
+  const badge=am?`<span class="badge ${am.c}">${am.l}</span>`:"";
+  addMsg(`<div class="arr">▶</div><div><div class="msg-body">${esc(text)}</div>${badge?`<div class="badges">${badge}</div>`:""}</div>`,"player");
 }
-
-function msgPlayer(text) {
-  addMsg(`
-    <div class="msg-arrow">▶</div>
-    <div class="msg-body">${escHtml(text)}</div>
-  `, "player");
-}
-
-function msgNPC(reactions) {
-  if (!Array.isArray(reactions) || !reactions.length) return;
-  const lines = reactions.map(r => {
-    if (typeof r === "string") return escHtml(r);
-    const who  = r.npc_name || r.name || "NPC";
-    const what = r.reaction || r.action || r.text || JSON.stringify(r);
-    return `<b>${escHtml(who)}:</b> ${escHtml(what)}`;
+function msgNPC(rs){
+  if(!rs?.length)return;
+  const lines=rs.map(r=>{
+    if(typeof r==="string")return esc(r);
+    const w=r.npc_name||r.name||"NPC",t=r.reaction||r.action||r.text||"";
+    return `<b>${esc(w)}:</b> ${esc(t)}`;
   }).join("<br>");
-  addMsg(`
-    <div class="msg-header">◉ Реакции NPC</div>
-    <div class="msg-body">${lines}</div>
-  `, "npc");
+  addMsg(`<div class="msg-hdr">◉ Реакции</div><div class="msg-body">${lines}</div>`,"npc");
+}
+function msgSys(text){addMsg(`<div class="msg-body">${esc(text)}</div>`,"sys");}
+function msgErr(text){addMsg(`<div class="msg-body">⚠ ${esc(text)}</div>`,"err");}
+function msgDice(d){
+  const n=d.result||0,cls=d.critical?"crit":d.fumble?"fail":"";
+  const out=d.success!=null?`<span class="dice-out ${d.success?"hit":"miss"}">${d.success?"Попадание":"Промах"}</span>`:"";
+  addMsg(`<div class="msg-dice-wrap"><div class="dice-face"><div class="dice-ico">⬡</div><div class="dice-num ${cls}">${n}</div><div class="dice-type">${esc(d.type||"d20")}</div></div><div class="dice-info"><div class="dice-lbl">${esc(d.label||"Бросок")}</div>${out}</div></div>`,"dice");
+}
+function msgSC(changes){
+  if(!changes?.length)return;
+  const TY={object_state:"объект",npc_position:"NPC→",npc_state:"NPC",inventory:"инвентарь",effect_add:"эффект+",effect_remove:"эффект−",environment:"обстановка",object_add:"добавлен",object_remove:"убран"};
+  const rows=changes.slice(0,6).map(ch=>`<div class="sc-row">${TY[ch.type]||ch.type}: <span class="sc-tgt">${esc(ch.target)}</span> → <span class="sc-val">${esc(String(ch.value??ch.field))}</span></div>`).join("")+(changes.length>6?`<div style="color:var(--tx3)">…ещё ${changes.length-6}</div>`:"");
+  addMsg(`<div class="sc-hdr">⟳ Сцена изменилась</div>${rows}`,"sc");
+}
+function msgLife(data){
+  if(!data?.changes)return;
+  const npcs=(data.npcs||[]).join(", ");
+  addMsg(`<div class="lf-hdr">⏱ Мир живёт</div><div>${data.changes} изм.${npcs?": "+esc(npcs):""}</div>`,"life");
+}
+function addDiv(lbl){
+  const el=document.createElement("div");el.className="divd";
+  el.innerHTML=`<span class="divd-t">${esc(lbl)}</span>`;
+  $("#chat").appendChild(el);$("#chat").scrollTop=$("#chat").scrollHeight;
 }
 
-function msgSystem(text) {
-  addMsg(`<div class="msg-body">${escHtml(text)}</div>`, "system");
+/* ── ACTION TAG ── */
+function showActTag(type){
+  if(!type)return; G.lastAt=type;
+  const tag=$("#act-tag"),am=ATYPE[type],st=ATAG[type];
+  tag.textContent=am?am.l:type;
+  if(st){tag.style.color=st.co;tag.style.borderColor=st.bo;tag.style.background=st.bg;}
+  tag.classList.add("vis");
 }
 
-function msgError(text) {
-  addMsg(`<div class="msg-body">⚠ ${escHtml(text)}</div>`, "error");
-}
-
-function addDivider(label) {
-  const wrap = qs("#chat-wrap");
-  const el = document.createElement("div");
-  el.className = "divider";
-  el.innerHTML = `<span class="divider-text">${escHtml(label)}</span>`;
-  wrap.appendChild(el);
-  wrap.scrollTop = wrap.scrollHeight;
-}
-
-/* ═══════════════════════════════════════════
-   SCROLL TO TOP BUTTON
-═══════════════════════════════════════════ */
-function updateScrollTopBtn() {
-  const wrap = qs("#chat-wrap");
-  const btn  = qs("#scroll-top-btn");
-  // Показываем если можно прокрутить вверх
-  if (wrap.scrollTop > 200) {
-    btn.classList.add("visible");
-  } else {
-    btn.classList.remove("visible");
+/* ── NPC PANEL ── */
+function renderNpc(npcs,loc){
+  const list=$("#npc-list"),empty=$("#npc-empty");
+  if(loc)$("#side-loc").textContent=loc;
+  if(!npcs?.length){empty.style.display="block";return;}
+  empty.style.display="none";
+  G.dbgNpcs=npcs;
+  list.querySelectorAll(".npc-card").forEach(el=>el.remove());
+  for(const npc of npcs){
+    const id=npc.id||"",name=npc.name||id;
+    const here=!loc||(npc.location===loc||npc._present!==false);
+    const act=ACT_L[npc.routine?.current]||npc.routine?.current||"здесь";
+    const ico=ICONS[id]||"👤";
+    const trust=npc.social_stats?.trust||0,fear=npc.social_stats?.fear_of_player||0;
+    const stress=npc.psyche?.stress||0,brkpt=npc.psyche?.breakpoint||80;
+    G.npcCache[id]={name,here,act};
+    const card=document.createElement("div");
+    card.className=`npc-card ${here?"here":"gone"}`;card.id=`nc-${id}`;
+    card.innerHTML=`
+      <div class="npc-hdr">
+        <div class="npc-ico">${ico}</div>
+        <span class="npc-name">${esc(name)}</span>
+        <div class="npc-pin" title="${here?"в сцене":"отсутствует"}"></div>
+      </div>
+      <div class="npc-act" id="na-${id}">${here?act:"не здесь"}</div>
+      <div class="npc-bars">
+        <div class="npc-bar bar-t"><span>Д</span><div class="mbar"><div class="mbar-f" style="width:${Math.round(trust*100)}%"></div></div></div>
+        <div class="npc-bar bar-s"><span>Стр</span><div class="mbar"><div class="mbar-f" style="width:${pct(stress,brkpt)}"></div></div></div>
+        <div class="npc-bar bar-f"><span>Стх</span><div class="mbar"><div class="mbar-f" style="width:${Math.round(fear*100)}%"></div></div></div>
+      </div>
+      <div class="npc-q" id="nq-${id}"></div>`;
+    list.appendChild(card);
   }
 }
-
-function scrollToTop() {
-  qs("#chat-wrap").scrollTo({ top: 0, behavior: "smooth" });
+function updNpc(id,field,value){
+  const card=$(`#nc-${id}`);if(!card)return;
+  if(field==="visible")card.className=`npc-card ${value?"here":"gone"}`;
+  if(field==="activity"){const el=$(`#na-${id}`);if(el)el.textContent=ACT_L[value]||value;}
+}
+function setQuote(idOrName,text){
+  let el=$(`#nq-${idOrName}`);
+  if(!el){for(const nm of $("#npc-list").querySelectorAll(".npc-name")){if(nm.textContent.trim().toLowerCase().includes(idOrName.toLowerCase())){el=nm.closest(".npc-card")?.querySelector(".npc-q");break;}}}
+  if(!el)return;
+  el.textContent=`"${text}"`;el.classList.add("vis");
+}
+function lifeLog(text){
+  const log=$("#life-log");log.classList.add("vis");
+  const now=new Date(),t=String(now.getHours()).padStart(2,"0")+":"+String(now.getMinutes()).padStart(2,"0");
+  const entry=document.createElement("div");entry.className="ll-entry";
+  entry.innerHTML=`<span class="ll-t">${t}</span><span>${esc(text)}</span>`;
+  log.appendChild(entry);log.scrollTop=log.scrollHeight;
+  const es=log.querySelectorAll(".ll-entry");if(es.length>20)es[0].remove();
 }
 
-qs("#chat-wrap").addEventListener("scroll", updateScrollTopBtn);
-
-/* ═══════════════════════════════════════════
-   STATUS
-═══════════════════════════════════════════ */
-function setStatus(text, online) {
-  qs("#status-text").textContent = text;
-  const dot = qs("#status-dot");
-  dot.className = "dot " + (online ? "online" : online === false ? "offline" : "");
+/* ── SCENE BAR ── */
+function toggleScene(){
+  G.sceneOpen=!G.sceneOpen;
+  $("#scene-toggle").classList.toggle("open",G.sceneOpen);
+  $("#scene-bar").classList.toggle("open",G.sceneOpen);
+  $("#app").classList.toggle("scene-open",G.sceneOpen);
 }
-
-/* ═══════════════════════════════════════════
-   THINKING / METRICS
-═══════════════════════════════════════════ */
-function thinkStart() {
-  state.thinkStart = Date.now();
-  qs("#thinking").classList.add("visible");
-  qs("#stream-metrics").classList.remove("visible");
-  state.thinkTimer = setInterval(() => {
-    const sec = ((Date.now() - state.thinkStart) / 1000).toFixed(1);
-    qs("#think-timer").textContent = sec + "с";
-  }, 100);
-}
-
-function thinkStop() {
-  qs("#thinking").classList.remove("visible");
-  qs("#think-timer").textContent = "";
-  clearInterval(state.thinkTimer);
-  state.thinkTimer = null;
-  state.thinkStart = null;
-}
-
-function metricsStart() {
-  state.streamTokenCount = 0;
-  state.streamStartMs    = Date.now();
-  qs("#metric-tokens").textContent = "0";
-  qs("#metric-time").textContent   = "0.0";
-  qs("#metric-tps").textContent    = "0";
-  qs("#stream-progress").style.width = "0%";
-  qs("#stream-status-text").textContent = "генерация...";
-  qs("#stream-metrics").classList.add("visible");
-  qs("#thinking").classList.remove("visible");
-}
-
-function metricsUpdate(tokenCount) {
-  state.streamTokenCount = tokenCount;
-  const elapsedSec = (Date.now() - state.streamStartMs) / 1000;
-  const tps = elapsedSec > 0 ? Math.round(tokenCount / elapsedSec) : 0;
-
-  qs("#metric-tokens").textContent = tokenCount;
-  qs("#metric-time").textContent   = elapsedSec.toFixed(1);
-  qs("#metric-tps").textContent    = tps;
-
-  // Прогресс-бар — оценочный
-  const pct = Math.min(95, (tokenCount / EXPECTED_TOKENS) * 100);
-  qs("#stream-progress").style.width = pct + "%";
-}
-
-function metricsDone(totalTokens, totalMs, tps) {
-  qs("#stream-progress").style.width = "100%";
-  qs("#stream-status-text").textContent =
-    `готово · ${totalTokens} токенов · ${(totalMs/1000).toFixed(1)}с · ${tps} tok/s`;
-
-  // Скрываем через 3 секунды
-  setTimeout(() => {
-    qs("#stream-metrics").classList.remove("visible");
-    qs("#stream-status-text").textContent = "";
-  }, 3000);
-}
-
-/* ═══════════════════════════════════════════
-   CHARACTER PANEL
-═══════════════════════════════════════════ */
-function showCharStats(ch) {
-  state.char = ch;
-  const hp    = ch.hp     ?? 10;
-  const maxHp = ch.max_hp ?? 10;
-  const ac    = ch.ac     ?? 10;
-  const pct   = Math.max(0, Math.min(100, (hp / maxHp) * 100));
-
-  qs("#stat-hp").textContent    = `${hp}/${maxHp}`;
-  qs("#stat-ac").textContent    = ac;
-  qs("#stat-class").textContent = [ch.race, ch.class_name].filter(Boolean).join(" · ");
-  qs("#stat-level").textContent = ch.level || 1;
-
-  const fill = qs("#hp-fill");
-  fill.style.width = pct + "%";
-  fill.style.background =
-    pct > 60 ? "var(--hp-green)" :
-    pct > 30 ? "var(--hp-warn)"  : "var(--hp-danger)";
-
-  qs("#char-stats").classList.add("visible");
-}
-
-function updateWorldTime(campaignState) {
-  if (!campaignState) return;
-  const md = campaignState.metadata || {};
-  const parts = [];
-  if (md.world_name)   parts.push(md.world_name);
-  if (md.time_of_day)  parts.push(md.time_of_day);
-  if (md.day)          parts.push("день " + md.day);
-  if (parts.length) {
-    const wt = qs("#world-time");
-    wt.textContent = parts.join(" · ");
-    wt.classList.add("visible");
+function renderScene(s){
+  if(!s)return;
+  const env=s.environment||{};
+  $("#scene-quick").textContent=[s.location_id,env.time_of_day,Object.keys(s.objects||{}).length+" объектов"].filter(Boolean).join(" · ")+" · F9";
+  const objEl=$("#sc-obj");objEl.innerHTML="";
+  for(const[id,obj]of Object.entries(s.objects||{})){
+    if(obj.count!=null&&+obj.count<=0)continue;
+    const st=obj.state||"",cnt=obj.count!=null?` ×${obj.count}`:"";
+    const lbl=(obj.name||id)+cnt,stl=OBJ_ST[st]||st;
+    const cls=["damaged"].includes(st)?"dmg":["destroyed"].includes(st)?"gone":["lit","burning"].includes(st)?"lit":st==="open"?"open":"";
+    const tag=document.createElement("span");tag.className=`sc-tag ${cls}`;
+    tag.textContent=stl?`${lbl}: ${stl}`:lbl;objEl.appendChild(tag);
   }
+  if(!objEl.children.length)objEl.innerHTML=`<span class="sc-none">—</span>`;
+  const envEl=$("#sc-env");envEl.innerHTML="";
+  if(env.light_level)envEl.innerHTML+=`<div class="sc-env-item"><span>${LI[env.light_level]||"○"}</span><span>${env.light_level}</span></div>`;
+  if(env.noise_level)envEl.innerHTML+=`<div class="sc-env-item"><span>${NI[env.noise_level]||"〜"}</span><span>${env.noise_level}</span></div>`;
+  if(env.time_of_day)envEl.innerHTML+=`<div class="sc-env-item"><span>⏱</span><span>${esc(env.time_of_day)}</span></div>`;
+  if(!envEl.children.length)envEl.innerHTML=`<span class="sc-none">—</span>`;
+  const effEl=$("#sc-eff");effEl.innerHTML="";
+  for(const e of s.active_effects||[]){
+    const v=e.value||{},t=v.type||e.field||"?",dur=v.duration?` (${v.duration})`:"";
+    const tag=document.createElement("span");tag.className="sc-eff";
+    tag.textContent=`${e.target}: ${t}${dur}`;effEl.appendChild(tag);
+  }
+  if(!effEl.children.length)effEl.innerHTML=`<span class="sc-none">нет</span>`;
 }
 
-/* ═══════════════════════════════════════════
-   STREAMING ACTION — основной путь
-═══════════════════════════════════════════ */
-async function sendActionStream(text) {
-  thinkStart();
-  setBusy(true);
+/* ── DEBUG OVERLAY ── */
+function dbgToggle(){
+  G.dbgOpen=!G.dbgOpen;
+  $("#dbg").classList.toggle("vis",G.dbgOpen);
+  if(G.dbgOpen)dbgRender();
+}
+function dbgRender(){
+  const body=$("#dbg-body");
+  if(!G.dbgNpcs?.length){body.innerHTML=`<div style="font-family:var(--ff-m);font-size:.58rem;color:var(--tx2);padding:20px">Данные появятся после первого хода</div>`;return;}
+  body.innerHTML=G.dbgNpcs.map(npc=>{
+    const ps=npc.psyche||{},ss=npc.social_stats||{},dr=npc.drives||{},rt=npc.routine||{};
+    const it=npc._inner_thought||npc.inner_thought||"";
+    const pills=Object.entries(dr).map(([k,v])=>`<span class="drv">${k}: ${(v*100).toFixed(0)}%</span>`).join("");
+    return `<div class="dbg-card">
+      <div class="dbg-name">${ICONS[npc.id]||"👤"} ${esc(npc.name||npc.id)} <span class="dbg-tier">${npc.tier||"?"}</span></div>
+      <div class="dbg-row"><span class="dbg-k">Локация</span><span class="dbg-v">${esc(npc.location||"—")}</span></div>
+      <div class="dbg-row"><span class="dbg-k">Активность</span><span class="dbg-v">${esc(ACT_L[rt.current]||rt.current||"—")}</span></div>
+      <div class="dbg-row"><span class="dbg-k">Настроение</span><span class="dbg-v">${esc(rt.mood||"—")}</span></div>
+      <div class="dbg-row"><span class="dbg-k">Воля</span><div class="bw c-s"><div class="b"><div class="f" style="width:${pct(ps.willpower,100)}"></div></div><span class="dbg-v">${ps.willpower??'—'}</span></div></div>
+      <div class="dbg-row"><span class="dbg-k">Стресс</span><div class="bw c-a"><div class="b"><div class="f" style="width:${pct(ps.stress,ps.breakpoint||80)}"></div></div><span class="dbg-v">${ps.stress??'—'}/${ps.breakpoint||80}</span></div></div>
+      <div class="dbg-row"><span class="dbg-k">Доверие</span><div class="bw c-g"><div class="b"><div class="f" style="width:${Math.round((ss.trust||0)*100)}%"></div></div><span class="dbg-v">${((ss.trust||0)*100).toFixed(0)}%</span></div></div>
+      <div class="dbg-row"><span class="dbg-k">Страх</span><div class="bw c-r"><div class="b"><div class="f" style="width:${Math.round((ss.fear_of_player||0)*100)}%"></div></div><span class="dbg-v">${((ss.fear_of_player||0)*100).toFixed(0)}%</span></div></div>
+      <div class="dbg-row"><span class="dbg-k">Лояльность</span><div class="bw c-g"><div class="b"><div class="f" style="width:${pct(ps.loyalty_true,100)}"></div></div><span class="dbg-v">${ps.loyalty_true??'—'}</span></div></div>
+      <div class="dbg-row"><span class="dbg-k">Психостатус</span><span class="dbg-v">${esc(ps.state||"free")}</span></div>
+      ${pills?`<div class="dbg-drives">${pills}</div>`:""}
+      ${it?`<div class="dbg-thought">💭 ${esc(it)}</div>`:""}
+    </div>`;
+  }).join("");
+}
 
-  // Создаём пустое DM сообщение — будем стримить в него
-  const dmBody = startDmMessage();
+/* ── HEADER ── */
+function setStatus(txt,state){
+  $("#status-text").textContent=txt;
+  $("#status-dot").className="dot"+(state===true?" on":state===false?" off":"");
+}
+function updHeader(loc,time){
+  if(loc){const el=$("#hdr-loc");el.textContent=loc;el.classList.add("vis");}
+  if(time){const el=$("#hdr-time");el.textContent=time;el.classList.add("vis");}
+}
+function updVram(mb){
+  const b=$("#vram-badge");if(!mb)return;
+  b.textContent=`VRAM ${mb}MB`;b.classList.add("vis");
+  const p=mb/8192;b.className="vram-badge vis"+(p>.85?" crit":p>.65?" hi":"");
+}
 
-  let tokenCount = 0;
-  let buffer     = "";
-  let firstToken = true;
-  // ── Очередь и контролируемая отрисовка ───────────────────────────────
-  let tokenQueue = [];
-  let renderTimer = null;
-  const TARGET_TPS = 40;           // желаемая скорость отрисовки (токенов/сек)
-  const RENDER_INTERVAL = 1000 / TARGET_TPS;
+/* ── THINKING/METRICS ── */
+function thinkStart(){
+  G.thinkStart=Date.now();
+  $("#thinking").classList.add("vis");$("#metrics").classList.remove("vis");
+  G.thinkT=setInterval(()=>{$("#think-t").textContent=((Date.now()-G.thinkStart)/1000).toFixed(1)+"с";},100);
+}
+function thinkStop(){
+  $("#thinking").classList.remove("vis");$("#think-t").textContent="";
+  clearInterval(G.thinkT);G.thinkT=null;
+}
+function mStart(){
+  G.sTok=0;G.sMs=Date.now();
+  ["#m-tok","#m-sec","#m-tps"].forEach((s,i)=>{$(s).textContent=["0","0.0","0"][i];});
+  $("#prog").style.width="0%";$("#metrics-st").textContent="генерация...";
+  $("#metrics").classList.add("vis");$("#thinking").classList.remove("vis");
+}
+function mUpd(n){
+  const s=(Date.now()-G.sMs)/1000;
+  $("#m-tok").textContent=n;$("#m-sec").textContent=s.toFixed(1);
+  $("#m-tps").textContent=s>0?Math.round(n/s):0;
+  $("#prog").style.width=Math.min(95,n/ETOK*100)+"%";
+}
+function mDone(tok,ms,tps){
+  $("#prog").style.width="100%";
+  $("#metrics-st").textContent=`готово · ${tok} tok · ${(ms/1000).toFixed(1)}с · ${tps} tok/s`;
+  setTimeout(()=>{$("#metrics").classList.remove("vis");$("#metrics-st").textContent="";},4000);
+}
 
-  function startRenderTimer() {
-    if (renderTimer) return;
-    renderTimer = setInterval(() => {
-      if (tokenQueue.length === 0) return;
-      const token = tokenQueue.shift();
-      appendToken(token);
-    }, RENDER_INTERVAL);
-  }
+/* ── CHAR PANEL ── */
+function showChar(ch){
+  G.char=ch;const hp=ch.hp??10,mhp=ch.max_hp??10,p=Math.max(0,Math.min(100,hp/mhp*100));
+  $("#stat-hp").textContent=`${hp}/${mhp}`;$("#stat-ac").textContent=ch.ac??10;
+  $("#stat-cls").textContent=[ch.race,ch.class_name].filter(Boolean).join(" · ");
+  $("#stat-lvl").textContent=ch.level||1;
+  const fill=$("#hp-fill");fill.style.width=p+"%";
+  fill.style.background=p>60?"var(--gn)":p>30?"var(--wa)":"var(--rd)";
+  $("#char-stats").classList.add("vis");
+}
+function updScrollBtn(){$("#scroll-up").classList.toggle("vis",$("#chat").scrollTop>200);}
+function scrollTop_(){$("#chat").scrollTo({top:0,behavior:"smooth"});}
+$("#chat").addEventListener("scroll",updScrollBtn);
 
-  function stopRenderTimer() {
-    if (renderTimer) { clearInterval(renderTimer); renderTimer = null; }
-      // Дорендерить остаток очереди мгновенно
-    while (tokenQueue.length) appendToken(tokenQueue.shift());
-  }
-
-  try {
-    const res = await fetch(API + "/game/action/stream", {
-      method:  "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        player:   state.player,
-        campaign: CAMPAIGN,
-        action:   text,
-      }),
+/* ── STREAMING ── */
+async function sendStream(text){
+  thinkStart();setBusy(true);startDM();
+  let n=0,buf="",first=true,queue=[],timer=null;
+  const startR=()=>{if(timer)return;timer=setInterval(()=>{if(queue.length)appendTok(queue.shift());},25);};
+  const stopR=()=>{clearInterval(timer);timer=null;while(queue.length)appendTok(queue.shift());};
+  try{
+    const res=await fetch(API+"/game/action/stream",{
+      method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({player:G.player,campaign:CAMPAIGN,action:text})
     });
-
-    if (!res.ok) {
-      throw new Error(`HTTP ${res.status}`);
-    }
-
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      buffer += decoder.decode(value, { stream: true });
-
-      // Разбиваем по двойному переносу — разделитель SSE событий
-      const parts = buffer.split("\n\n");
-      buffer = parts.pop() || ""; // остаток (может быть неполным)
-
-      for (const part of parts) {
-        const line = part.trim();
-        if (!line.startsWith("data:")) continue;
-        
-        const jsonStr = line.slice(5).trim();
-        if (!jsonStr) continue;
-
-        let evt;
-        try { evt = JSON.parse(jsonStr); } catch { continue; }
-
-        if (evt.type === "status") {
-          // Статус "Мастер думает..." и "Мастер рассказывает..."
-          // Первый статус — оставляем thinking индикатор
-          // При втором — переключаемся на метрики
-          if (evt.text && evt.text.includes("рассказывает")) {
-            thinkStop();
-            metricsStart();
+    if(!res.ok)throw new Error(`HTTP ${res.status}`);
+    const reader=res.body.getReader(),dec=new TextDecoder();
+    while(true){
+      const{done,value}=await reader.read();if(done)break;
+      buf+=dec.decode(value,{stream:true});
+      const parts=buf.split("\n\n");buf=parts.pop()||"";
+      for(const part of parts){
+        const line=part.trim();if(!line.startsWith("data:"))continue;
+        let e;try{e=JSON.parse(line.slice(5).trim());}catch{continue;}
+        if(e.type==="status"){if(e.text?.includes("рассказывает")){thinkStop();mStart();}}
+        else if(e.type==="action_type"){showActTag(e.value);}
+        else if(e.type==="token"){
+          if(first){thinkStop();mStart();startR();first=false;}
+          n++;queue.push(e.text);mUpd(n);
+        }
+        else if(e.type==="npc"){
+          if(e.data?.length){
+            // NPC реакции теперь приходят ДО DM — показываем сразу
+            msgNPC(e.data);
+            for(const r of e.data){const who=r.npc_id||r.npc_name||"",what=r.reaction||r.action||r.text||"";if(who&&what)setQuote(who,what);}
           }
         }
-        else if (evt.type === "token") {
-          if (firstToken) {
-            thinkStop();
-            metricsStart();
-            firstToken = false;
-            startRenderTimer();  // запускаем плавную отрисовку
-          }
-          tokenCount++;
-          tokenQueue.push(evt.text);        // ← кладём в очередь, не рендерим сразу
-          metricsUpdate(tokenCount);        // реальная скорость генерации LLM
-        }
-        else if (evt.type === "npc") {
-          if (Array.isArray(evt.data) && evt.data.length) {
-            // NPC реакции покажем после завершения DM
-            state._pendingNpc = evt.data;
-            if (evt.model) state._pendingNpcModel = evt.model;
+        else if(e.type==="model"){G.pendMeta=e.data;}
+        else if(e.type==="scene_state"){renderScene(e.data||e.scene_state);}
+        else if(e.type==="scene_change"){
+          if(e.changes?.length){
+            msgSC(e.changes);
+            for(const c of e.changes)if(c.type==="npc_position")updNpc(c.target,c.field,c.value);
+            lifeLog(`${e.changes.length} изм. сцены`);
           }
         }
-        else if (evt.type === "model") {
-          // Метаданные моделей (необязательное событие, безопасно игнорировать)
-          state._pendingModelMeta = evt.data;
+        else if(e.type==="life_engine"){
+          msgLife(e.data);
+          for(const nm of(e.data?.npcs||[]))lifeLog(`${nm} изменил активность`);
         }
-        else if (evt.type === "done") {
-          metricsDone(evt.tokens || tokenCount, evt.ms || 0, evt.tps || 0);
-        }
-        else if (evt.type === "error") {
-          msgError(evt.text || "Ошибка стриминга");
-        }
+        else if(e.type==="dice"){for(const d of(e.rolls||(e.data?[e.data]:[])))msgDice(d);}
+        else if(e.type==="done"){mDone(e.tokens||n,e.ms||0,e.tps||0);if(e.scene_state)renderScene(e.scene_state);}
+        else if(e.type==="error"){msgErr(e.text||"Ошибка стриминга");}
       }
     }
-
-  } catch (e) {
+  }catch(e){
     thinkStop();
-    metricsUpdate(tokenCount); // финальные числа
-    // Убираем незавершённое сообщение если ничего не было написано
-    if (tokenCount === 0) {
-      if (state.activeDmEl) {
-        state.activeDmEl.closest(".msg")?.remove();
-        state.activeDmEl  = null;
-        state.activeCursor = null;
-      }
-      const msg = e.message || "Неизвестная ошибка";
-      if (msg.includes("412")) {
-        msgError("Сессия истекла. Пожалуйста, выберите персонажа снова.");
-        resetSession();
-      } else {
-        msgError(`Ошибка: ${msg}`);
-      }
+    if(n===0){
+      G.dmEl?.closest(".msg")?.remove();G.dmEl=G.curEl=null;
+      const m=e.message||"";
+      if(m.includes("412")){msgErr("Сессия истекла.");resetSession();}
+      else msgErr(`Ошибка: ${m}`);
     }
-  } finally {
-    // Обязательно завершаем отрисовку и сообщение
-    stopRenderTimer();
-    finishDmMessage();
-    thinkStop();
-    setBusy(false);
-
-    // NPC реакции
-    if (state._pendingModelMeta) {
-      const dm = state._pendingModelMeta.dm;
-      const npc = state._pendingModelMeta.npc;
-      if (dm && dm.key) msgSystem(`LLM(DM): ${dm.key}${dm.name && dm.name !== dm.key ? " · " + dm.name : ""}`);
-      if (npc && npc.key) msgSystem(`LLM(NPC): ${npc.key}${npc.name && npc.name !== npc.key ? " · " + npc.name : ""}`);
-      state._pendingModelMeta = null;
-    }
-    if (state._pendingNpc) {
-      if (state._pendingNpcModel && state._pendingNpcModel.key) {
-        const m = state._pendingNpcModel;
-        msgSystem(`LLM(NPC actual): ${m.key}${m.name && m.name !== m.key ? " · " + m.name : ""}`);
-      }
-      msgNPC(state._pendingNpc);
-      state._pendingNpc = null;
-      state._pendingNpcModel = null;
-    }
-
-
-    stopRenderTimer();  // ← перед finishDmMessage()
-    finishDmMessage();
-
-    setBusy(false);
+  }finally{
+    stopR();endDM();thinkStop();setBusy(false);
+    if(G.pendMeta){const{dm,npc}=G.pendMeta;if(dm?.key)msgSys(`DM: ${dm.key}`);if(npc?.key)msgSys(`NPC: ${npc.key}`);G.pendMeta=null;}
+    // pendNpc больше не нужен — NPC реакции показываются сразу при получении
+    G.pendNpc=G.pendMod=null;
+    refreshState();
   }
 }
 
-/* ═══════════════════════════════════════════
-   FALLBACK — обычный POST если нет ReadableStream
-═══════════════════════════════════════════ */
-async function sendActionFallback(text) {
-  setBusy(true);
-  thinkStart();
+async function sendFallback(text){
+  setBusy(true);thinkStart();
+  try{
+    const d=await api("/game/action",{method:"POST",body:JSON.stringify({player:G.player,campaign:CAMPAIGN,action:text})});
+    thinkStop();
+    const r=d.response||d.dm_response||d.detail;
+    if(r)msgDM(r);else msgErr("Мастер не ответил.");
+    if(d.npc_reactions?.length)msgNPC(d.npc_reactions);
+    if(d.dm_model?.key)msgSys(`DM: ${d.dm_model.key}`);
+    if(d.npc_model?.key)msgSys(`NPC: ${d.npc_model.key}`);
+  }catch(e){
+    thinkStop();const m=e.message||"";
+    if(m.includes("412")){msgErr("Сессия истекла.");resetSession();}
+    else if(m.includes("500"))msgErr("Ошибка 500 — проверьте backend/error.log");
+    else msgErr(`Ошибка: ${m}`);
+  }finally{setBusy(false);refreshState();}
+}
 
-  try {
-    const data = await apiFetch("/game/action", {
-      method: "POST",
-      body: JSON.stringify({
-        player:   state.player,
-        campaign: CAMPAIGN,
-        action:   text,
-      }),
+async function send(){
+  if(G.busy||!G.player)return;
+  const inp=$("#inp"),text=inp.value.trim();if(!text)return;
+  inp.value="";resize(inp);
+  msgPlayer(text,G.lastAt);
+  G.lastAt=null;$("#act-tag").classList.remove("vis");
+  if(typeof ReadableStream!=="undefined")await sendStream(text);
+  else await sendFallback(text);
+}
+
+/* ── API HELPERS ── */
+async function resolveApi(){
+  try{const p=await fetch("/api/ports").then(r=>r.json());if(p.api_port)API=`http://127.0.0.1:${p.api_port}/api`;return;}catch{}
+  try{const p=await fetch("/backend/data/runtime_ports.json").then(r=>r.json());if(p.api_port)API=`http://127.0.0.1:${p.api_port}/api`;}catch{}
+}
+async function loadChars(){
+  try{
+    const d=await api(`/characters/${CAMPAIGN}`);
+    const sel=$("#player-select");sel.innerHTML='<option value="">— выбрать —</option>';
+    (d.characters||[]).forEach(ch=>{
+      const o=document.createElement("option");
+      o.value=ch.name;o.textContent=`${ch.name}  (${ch.class_name||"??"},  ур.${ch.level||1})`;
+      o.dataset.ch=JSON.stringify(ch);sel.appendChild(o);
     });
-
-    thinkStop();
-
-    const reply = data.response || data.dm_response || data.detail;
-    if (reply) {
-      msgDM(reply);
-    } else {
-      msgError("Мастер не ответил (пустой ответ).");
-    }
-
-    if (data.npc_reactions && data.npc_reactions.length) {
-      msgNPC(data.npc_reactions);
-    }
-    if (data.dm_model && data.dm_model.key) {
-      msgSystem(`LLM(DM): ${data.dm_model.key}${data.dm_model.name && data.dm_model.name !== data.dm_model.key ? " · " + data.dm_model.name : ""}`);
-    }
-    if (data.npc_model && data.npc_model.key) {
-      msgSystem(`LLM(NPC): ${data.npc_model.key}${data.npc_model.name && data.npc_model.name !== data.npc_model.key ? " · " + data.npc_model.name : ""}`);
-    }
-    if (data.world_changes && data.world_changes.length) {
-      const ch = data.world_changes.map(c =>
-        typeof c === "string" ? c : (c.description || JSON.stringify(c))
-      ).join("; ");
-      msgSystem(`⟳ Мир: ${ch}`);
-    }
-  } catch (e) {
-    thinkStop();
-    const msg = e.message || "";
-    if (msg.includes("412")) {
-      msgError("Сессия истекла. Выберите персонажа снова.");
-      resetSession();
-    } else if (msg.includes("500")) {
-      msgError("Ошибка сервера. Проверьте backend/error.log");
-    } else {
-      msgError(`Ошибка: ${msg}`);
-    }
-  } finally {
-    setBusy(false);
+  }catch(e){
+    $("#player-select").innerHTML='<option value="">— выбрать —</option><option value="Демеург">Демеург</option>';
+    console.warn("Chars API:",e.message);
   }
 }
-
-/* ═══════════════════════════════════════════
-   SEND ACTION — выбирает стриминг или fallback
-═══════════════════════════════════════════ */
-async function sendAction() {
-  if (state.busy || !state.player) return;
-
-  const input = qs("#action-input");
-  const text  = input.value.trim();
-  if (!text) return;
-
-  input.value = "";
-  resizeTextarea(input);
-  msgPlayer(text);
-
-  // Проверяем поддержку ReadableStream
-  if (typeof ReadableStream !== "undefined" && typeof fetch !== "undefined") {
-    await sendActionStream(text);
-  } else {
-    await sendActionFallback(text);
-  }
+async function refreshState(){
+  try{
+    const cs=await api(`/session/state/${CAMPAIGN}`);
+    // metadata и scene_state лежат в layers (бэкенд кладёт туда через session_state патч)
+    const md=cs.metadata||cs.layers?.metadata||{};
+    const scn=cs.scene_state||cs.layers?.scene_state||null;
+    if(md.current_location||md.time_of_day)updHeader(md.current_location,md.time_of_day);
+    if(md.current_location){G.location=md.current_location;$("#side-loc").textContent=md.current_location;}
+    if(scn)renderScene(scn);
+    await loadNpcs(md.current_location);
+  }catch{}
+}
+async function loadNpcs(loc){
+  try{
+    const d=await api(`/npcs/${CAMPAIGN}`);
+    const npcs=d.npcs||d.characters||d||[];
+    if(Array.isArray(npcs)&&npcs.length)renderNpc(npcs,loc||G.location);
+  }catch{}
+}
+async function createSession(name){await api(`/player/session/${CAMPAIGN}`,{method:"POST",body:JSON.stringify({player:name})});}
+function startHb(name){
+  stopHb();
+  G.hbTimer=setInterval(async()=>{try{await api("/player/heartbeat",{method:"POST",body:JSON.stringify({campaign_id:CAMPAIGN,player_name:name})});}catch{}},10_000);
+}
+function stopHb(){if(G.hbTimer){clearInterval(G.hbTimer);G.hbTimer=null;}}
+function startVram(){
+  G.vramTimer=setInterval(async()=>{try{const d=await api("/debug/vram");updVram(d.used_mb||d.vram_used_mb||0);}catch{}},60_000);
 }
 
-/* ═══════════════════════════════════════════
-   API CALLS
-═══════════════════════════════════════════ */
-async function resolveApiBase() {
-  try {
-    const ports = await fetch("/api/ports").then(r => r.json());
-    if (ports.api_port) API = `http://127.0.0.1:${ports.api_port}/api`;
-  } catch {
-    try {
-      const ports = await fetch("/backend/data/runtime_ports.json").then(r => r.json());
-      if (ports.api_port) API = `http://127.0.0.1:${ports.api_port}/api`;
-    } catch { /* use default */ }
-  }
-}
-
-async function loadCharacters() {
-  try {
-    const data = await apiFetch(`/characters/${CAMPAIGN}`);
-    const sel  = qs("#player-select");
-    sel.innerHTML = '<option value="">— выбрать —</option>';
-    (data.characters || []).forEach(ch => {
-      const opt = document.createElement("option");
-      opt.value        = ch.name;
-      opt.textContent  = `${ch.name}  (${ch.class_name || "??"}, ур.${ch.level || 1})`;
-      opt.dataset.char = JSON.stringify(ch);
-      sel.appendChild(opt);
-    });
-  } catch (e) {
-    const sel = qs("#player-select");
-    sel.innerHTML = `
-      <option value="">— выбрать —</option>
-      <option value="Демеург">Демеург</option>
-    `;
-    console.warn("Characters API unavailable:", e.message);
-  }
-}
-
-async function createSession(playerName) {
-  await apiFetch(`/player/session/${CAMPAIGN}`, {
-    method: "POST",
-    body: JSON.stringify({ player: playerName }),
-  });
-}
-
-function startHeartbeat(playerName) {
-  stopHeartbeat();
-  state.hbTimer = setInterval(async () => {
-    try {
-      await apiFetch("/player/heartbeat", {
-        method: "POST",
-        body: JSON.stringify({ campaign_id: CAMPAIGN, player_name: playerName }),
-      });
-    } catch { /* silent */ }
-  }, 10_000);
-}
-
-function stopHeartbeat() {
-  if (state.hbTimer) { clearInterval(state.hbTimer); state.hbTimer = null; }
-}
-
-/* ═══════════════════════════════════════════
-   PLAYER SELECT
-═══════════════════════════════════════════ */
-async function selectPlayer(name, charData) {
-  state.player = name;
-  if (charData) showCharStats(charData);
-
-  setStatus("сессия...", null);
-  try {
-    await createSession(name);
-    startHeartbeat(name);
-    setStatus("в сети", true);
-
-    // Загружаем campaign state для мирового времени
-    try {
-      const cs = await apiFetch(`/session/state/${CAMPAIGN}`);
-      updateWorldTime(cs);
-    } catch { /* не критично */ }
-
-    addDivider("начало сессии");
-    msgSystem(`Персонаж выбран: ${name}`);
+/* ── SESSION ── */
+async function selectPlayer(name,ch){
+  G.player=name;if(ch)showChar(ch);setStatus("сессия...",null);
+  try{
+    await createSession(name);startHb(name);setStatus("в сети",true);
+    await refreshState();
+    addDiv("начало сессии");msgSys(`Персонаж: ${name}`);
     msgDM(`Добро пожаловать, ${name}. Ваше приключение продолжается... Что вы делаете?`);
-
-    enableInput(true);
-    qs("#action-input").focus();
-  } catch (e) {
-    msgError(`Не удалось создать сессию: ${e.message}`);
-    setStatus("ошибка сессии", false);
-  }
+    enableInp(true);$("#inp").focus();
+  }catch(e){msgErr(`Не удалось создать сессию: ${e.message}`);setStatus("ошибка",false);}
+}
+function resetSession(){
+  stopHb();G.player=G.char=null;enableInp(false);$("#player-select").value="";
+  $("#char-stats").classList.remove("vis");$("#act-tag").classList.remove("vis");
 }
 
-/* ═══════════════════════════════════════════
-   UI HELPERS
-═══════════════════════════════════════════ */
-function setBusy(busy) {
-  state.busy = busy;
-  qs("#send-btn").disabled     = busy || !state.player;
-  qs("#action-input").disabled = busy || !state.player;
+/* ── UI ── */
+function setBusy(b){G.busy=b;$("#send-btn").disabled=b||!G.player;$("#inp").disabled=b||!G.player;}
+function enableInp(y){$("#send-btn").disabled=!y;$("#inp").disabled=!y;}
+function resize(el){el.style.height="46px";el.style.height=Math.min(el.scrollHeight,130)+"px";el.style.overflowY=el.scrollHeight>130?"auto":"hidden";}
+async function checkServer(){
+  try{await api("/health");G.online=true;setStatus("в сети",true);return true;}
+  catch{G.online=false;setStatus("недоступен",false);return false;}
 }
 
-function enableInput(yes) {
-  qs("#send-btn").disabled     = !yes;
-  qs("#action-input").disabled = !yes;
+/* ── INIT ── */
+async function init(){
+  setStatus("подключение...",null);await resolveApi();
+  if(!await checkServer()){msgErr("Backend недоступен. Убедитесь что start_enigma.bat запущен.");return;}
+  await loadChars();startVram();
+  msgSys("Enigma AI DM v0.2  ·  F9 — сцена  ·  F12 — психология NPC");
+  setInterval(async()=>{if(!await checkServer()&&G.player){msgErr("Соединение потеряно.");stopHb();}},30_000);
 }
 
-function resetSession() {
-  stopHeartbeat();
-  state.player = null;
-  state.char   = null;
-  enableInput(false);
-  qs("#player-select").value = "";
-  qs("#char-stats").classList.remove("visible");
-  qs("#world-time").classList.remove("visible");
-}
-
-function resizeTextarea(el) {
-  el.style.height = "52px";
-  const sh = el.scrollHeight;
-  el.style.height = Math.min(sh, 140) + "px";
-  el.style.overflowY = sh > 140 ? "auto" : "hidden";
-}
-
-/* ═══════════════════════════════════════════
-   SERVER CHECK & INIT
-═══════════════════════════════════════════ */
-async function checkServer() {
-  try {
-    await apiFetch("/health");
-    state.online = true;
-    setStatus("в сети", true);
-    return true;
-  } catch {
-    state.online = false;
-    setStatus("сервер недоступен", false);
-    return false;
-  }
-}
-
-async function init() {
-  setStatus("подключение...", null);
-  await resolveApiBase();
-
-  const online = await checkServer();
-  if (!online) {
-    msgError("Backend сервер недоступен. Убедитесь что start_enigma.bat запущен.");
-    return;
-  }
-
-  await loadCharacters();
-  msgSystem("Enigma AI Dungeon Master запущен. Выберите персонажа для начала.");
-
-  setInterval(async () => {
-    const ok = await checkServer();
-    if (!ok && state.player) {
-      msgError("Соединение с сервером потеряно.");
-      stopHeartbeat();
-    }
-  }, 30_000);
-}
-
-/* ═══════════════════════════════════════════
-   EVENT LISTENERS
-═══════════════════════════════════════════ */
-qs("#player-select").addEventListener("change", e => {
-  const name = e.target.value;
-  if (!name) return;
-  const opt = e.target.selectedOptions[0];
-  let charData = null;
-  try { charData = JSON.parse(opt.dataset.char || "null"); } catch {}
-  selectPlayer(name, charData);
+/* ── EVENTS ── */
+$("#player-select").addEventListener("change",e=>{
+  const name=e.target.value;if(!name)return;
+  let ch=null;try{ch=JSON.parse(e.target.selectedOptions[0].dataset.ch||"null");}catch{}
+  selectPlayer(name,ch);
+});
+$("#send-btn").addEventListener("click",send);
+$("#inp").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send();}});
+$("#inp").addEventListener("input",e=>resize(e.target));
+document.addEventListener("keydown",e=>{
+  if(e.key==="F12"){e.preventDefault();dbgToggle();}
+  if(e.key==="F9"){e.preventDefault();toggleScene();}
+  if(e.key==="Escape"&&G.dbgOpen)dbgToggle();
 });
 
-qs("#send-btn").addEventListener("click", sendAction);
-
-qs("#action-input").addEventListener("keydown", e => {
-  if (e.key === "Enter" && !e.shiftKey) {
-    e.preventDefault();
-    sendAction();
-  }
-});
-
-qs("#action-input").addEventListener("input", e => resizeTextarea(e.target));
-
-/* START */
 init();
 </script>
 </body>

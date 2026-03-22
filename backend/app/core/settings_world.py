@@ -12,7 +12,7 @@ class WorldSettings(Settings):
     """World Simulation settings - large model for complex simulation."""
 
     # World model (larger)
-    model_qwen_9b_path: str = str(MODEL_DIR / "Qwen3.5-9B.gguf")
+    model_gemma_12b_path: str = str(MODEL_DIR / "gemma-3-12b-it-q4_k_m.gguf")
 
     # World server (порт для сырого старта)
     WORLD_PORT: ClassVar[int] = 8082  # теперь Pydantic не считает это полем
@@ -22,9 +22,9 @@ class WorldSettings(Settings):
 
     llama_cpp_server_url: str = f"http://127.0.0.1:{WORLD_PORT}"
 
-    gpu_layers: int = 40
+    gpu_layers: int = 28
     temperature: float = 0.8
-    ctx_size: int = 8192
+    ctx_size: int = 4096
     threads: int = 6
 
 # Создаём экземпляр настроек

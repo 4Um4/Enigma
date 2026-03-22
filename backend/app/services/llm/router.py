@@ -80,6 +80,29 @@ MODEL_REGISTRY: dict[str, ModelConfig] = {}
 def _init_registry() -> dict[str, ModelConfig]:
     """Инициализирует реестр моделей из конфигурации."""
     return {
+        # ── Фаза M: основная модель — все агенты ─────────────────────────
+        "gemma_12b": ModelConfig(
+            key="gemma_12b",
+            name="gemma_12b",
+            provider_type=ProviderType.LLAMA_CPP,
+            path=settings.model_gemma_12b_path,
+            capabilities=[
+                Capability.NARRATIVE,
+                Capability.DIALOGUE,
+                Capability.DIALOGUE_GENERATION,
+                Capability.RULES_REASONING,
+                Capability.WORLD_SIMULATION,
+                Capability.MEMORY_SUMMARIZATION,
+                Capability.FACT_EXTRACTION,
+                Capability.STRATEGY,
+                Capability.GENERAL,
+                Capability.FAST,
+            ],
+            vram_mb=7000,
+            context_size=4096,
+            temperature=0.7,
+        ),
+        # ── Fallback модели ────────────────────────────────────────────────
         "qwen_7b": ModelConfig(
             key="qwen_7b",
             name="qwen_7b",
@@ -164,17 +187,19 @@ DEFAULT_AGENT_CAPABILITY_MAP: dict[str, Capability] = {
 
 
 # Mapping: capability → preferred model keys (in order of preference)
+# Фаза M: gemma_12b первая для всех — одна модель вместо пяти.
+# Старые модели оставлены как fallback на случай если файл не найден.
 CAPABILITY_MODEL_PREFERENCES: dict[Capability, list[str]] = {
-    Capability.NARRATIVE: ["qwen_7b", "qwen_9b"],
-    Capability.DIALOGUE: ["npc_major", "npc_mass", "qwen_7b"],
-    Capability.DIALOGUE_GENERATION: ["npc_major", "npc_mass", "qwen_7b"],
-    Capability.WORLD_SIMULATION: ["qwen_9b", "qwen_7b"],
-    Capability.RULES_REASONING: ["saiga", "qwen_7b"],
-    Capability.MEMORY_SUMMARIZATION: ["saiga", "qwen_7b"],
-    Capability.FACT_EXTRACTION: ["qwen_9b", "qwen_7b"],
-    Capability.STRATEGY: ["qwen_9b", "qwen_7b"],
-    Capability.FAST: ["saiga", "npc_mass", "qwen_7b"],
-    Capability.GENERAL: ["qwen_7b", "saiga"],
+    Capability.NARRATIVE:             ["gemma_12b", "qwen_7b", "qwen_9b"],
+    Capability.DIALOGUE:              ["gemma_12b", "npc_major", "npc_mass", "qwen_7b"],
+    Capability.DIALOGUE_GENERATION:   ["gemma_12b", "npc_major", "npc_mass", "qwen_7b"],
+    Capability.WORLD_SIMULATION:      ["gemma_12b", "qwen_9b", "qwen_7b"],
+    Capability.RULES_REASONING:       ["gemma_12b", "saiga", "qwen_7b"],
+    Capability.MEMORY_SUMMARIZATION:  ["gemma_12b", "saiga", "qwen_7b"],
+    Capability.FACT_EXTRACTION:       ["gemma_12b", "qwen_9b", "qwen_7b"],
+    Capability.STRATEGY:              ["gemma_12b", "qwen_9b", "qwen_7b"],
+    Capability.FAST:                  ["gemma_12b", "saiga", "npc_mass", "qwen_7b"],
+    Capability.GENERAL:               ["gemma_12b", "qwen_7b", "saiga"],
 }
 
 
@@ -441,7 +466,7 @@ class ModelRouter:
     
     def _get_fallback_model(self) -> str:
         """Получить резервную модель."""
-        for key in ["qwen_7b", "saiga", "npc_major", "qwen_9b", "npc_mass"]:
+        for key in ["gemma_12b", "qwen_7b", "saiga", "npc_major", "qwen_9b", "npc_mass"]:
             if key in self._registry:
                 return key
         return list(self._registry.keys())[0]
@@ -583,4 +608,3 @@ def initialize_router() -> None:
     
     print(f"Router initialized. ModelPool: {pool_results}")
     print("Lazy loading enabled: only one model in VRAM at a time")
-

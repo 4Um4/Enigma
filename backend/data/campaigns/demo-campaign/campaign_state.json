@@ -19,5 +19,63 @@
     "day": 1,
     "weather": "тихо, облачно, накрапывает дождь",
     "season": "осень"
+  },
+  "scene_state": {
+    "location_id": "tavern_silver_wolf",
+    "snapshot_tick": 0,
+    "objects": {
+      "bar_counter": {
+        "name": "барная стойка",
+        "state": "intact",
+        "material": "oak",
+        "hp": 30,
+        "max_hp": 30,
+        "interactable": true
+      },
+      "fireplace": {
+        "name": "очаг",
+        "state": "burning",
+        "light": 40,
+        "interactable": false
+      },
+      "tables": {
+        "name": "столы",
+        "count": 5,
+        "state": "intact",
+        "interactable": true
+      },
+      "candles_main": {
+        "name": "свечи",
+        "state": "lit",
+        "count": 14,
+        "interactable": true,
+        "owner": null
+      }
+    },
+    "npc_positions": {
+      "tavern_keeper_tornin": {
+        "position": "behind_bar",
+        "activity": "cleaning_tables",
+        "visible": true
+      },
+      "maid_lusya": {
+        "position": "serving_table_3",
+        "activity": "serving_tables",
+        "visible": true
+      },
+      "thief_shadow": {
+        "position": "corner_table",
+        "activity": "observing",
+        "visible": false
+      }
+    },
+    "environment": {
+      "light_level": "bright",
+      "noise_level": "moderate",
+      "time_of_day": "вечер",
+      "weather_inside": "warm_busy"
+    },
+    "player_inventory_snapshot": {},
+    "active_effects": []
   }
 }

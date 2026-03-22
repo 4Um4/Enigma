@@ -3,6 +3,8 @@
     "id": "tavern_keeper_tornin",
     "name": "Торнин Серебряная Луна",
     "tier": "major",
+    "gender": "мужской",
+    "description": "Коренастый мужчина за пятьдесят, фартук заляпан пивом, на щеке старый шрам. Двигается уверенно, будто знает каждый угол этой таверны.",
     "status_profile": {
       "freedom": 75,
       "wealth": 40,
@@ -30,7 +32,7 @@
     },
     "psyche": {
       "willpower": 65,
-      "stress": 20,
+      "stress": 46,
       "breakpoint": 80,
       "loyalty_true": 60,
       "loyalty_fake": 60,
@@ -38,9 +40,9 @@
       "trauma_flags": []
     },
     "social_stats": {
-      "trust": 0.66,
+      "trust": 0.35,
       "affection": 0.5,
-      "fear_of_player": 0.01,
+      "fear_of_player": 0.82,
       "debt": 0
     },
     "relationships": {
@@ -87,6 +89,8 @@
     "id": "guard_borko",
     "name": "Стражник Борко",
     "tier": "minor",
+    "gender": "мужской",
+    "description": "Дородный стражник в городской броне, копьё прислонено к стене. Скучающий взгляд, но глаза цепкие — замечает всё что плохо лежит.",
     "status_profile": {
       "freedom": 60,
       "wealth": 15,
@@ -170,6 +174,8 @@
     "id": "maid_lusya",
     "name": "Люся",
     "tier": "minor",
+    "gender": "женский",
+    "description": "Молодая женщина в простом платье служанки, поднос в руках. Усталые глаза смотрят в пол, движения нервные и осторожные.",
     "status_profile": {
       "freedom": 50,
       "wealth": 5,
@@ -194,7 +200,7 @@
     },
     "psyche": {
       "willpower": 35,
-      "stress": 40,
+      "stress": 59,
       "breakpoint": 55,
       "loyalty_true": 20,
       "loyalty_fake": 55,
@@ -204,9 +210,9 @@
       ]
     },
     "social_stats": {
-      "trust": 0.41,
+      "trust": 0.1,
       "affection": 0.45,
-      "fear_of_player": 0.16,
+      "fear_of_player": 0.96,
       "debt": 0
     },
     "relationships": {
@@ -253,6 +259,8 @@
     "id": "merchant_goran",
     "name": "Купец Горан",
     "tier": "minor",
+    "gender": "мужской",
+    "description": "Полный купец средних лет в богатых одеждах, пальцы унизаны перстнями. Улыбка не сходит с лица, но глаза всегда считают выгоду.",
     "status_profile": {
       "freedom": 80,
       "wealth": 70,
@@ -336,6 +344,8 @@
     "id": "thief_shadow",
     "name": "Тень",
     "tier": "major",
+    "gender": "неизвестен",
+    "description": "Фигура в тёмном плаще и низко надвинутом капюшоне. Лица не видно. Сидит в самом тёмном углу таверны, почти неподвижно — но явно за всем наблюдает.",
     "status_profile": {
       "freedom": 70,
       "wealth": 35,
@@ -362,7 +372,7 @@
     },
     "psyche": {
       "willpower": 70,
-      "stress": 15,
+      "stress": 50,
       "breakpoint": 85,
       "loyalty_true": -20,
       "loyalty_fake": 50,
@@ -370,9 +380,9 @@
       "trauma_flags": []
     },
     "social_stats": {
-      "trust": 0.31,
+      "trust": 0.0,
       "affection": 0.2,
-      "fear_of_player": 0.06,
+      "fear_of_player": 0.86,
       "debt": 0
     },
     "relationships": {
