@@ -1,28 +1,13 @@
 {
   "campaign_id": "demo-campaign",
-  "campaign_name": "demo-campaign",
+  "campaign_name": "",
   "players": [],
-  "world_facts": [
-    {
-      "id": "fact_bb967854",
-      "text": "В таверне \"Серебряный Волк\" подают эль \"Лунная Слеза\". Хозяин Торнин Серебряная Луна знает слухи.",
-      "category": "npc",
-      "tags": [],
-      "source": "",
-      "created_at": "2026-03-08T08:50:40.031905+00:00"
-    }
-  ],
-  "metadata": {
-    "current_location": "tavern_silver_wolf",
-    "world_name": "Фандалин",
-    "time_of_day": "вечер",
-    "day": 1,
-    "weather": "тихо, облачно, накрапывает дождь",
-    "season": "осень"
-  },
+  "world_facts": [],
+  "session_summaries": [],
+  "metadata": {},
   "scene_state": {
     "location_id": "tavern_silver_wolf",
-    "snapshot_tick": 0,
+    "snapshot_tick": 3,
     "objects": {
       "bar_counter": {
         "name": "барная стойка",
@@ -47,16 +32,17 @@
       "candles_main": {
         "name": "свечи",
         "state": "lit",
-        "count": 14,
+        "count": 5,
         "interactable": true,
         "owner": null
       }
     },
     "npc_positions": {
       "tavern_keeper_tornin": {
-        "position": "behind_bar",
-        "activity": "cleaning_tables",
-        "visible": true
+        "position": "bed",
+        "activity": "sleeping",
+        "visible": false,
+        "location": "inn_rooms"
       },
       "maid_lusya": {
         "position": "serving_table_3",
@@ -64,18 +50,38 @@
         "visible": true
       },
       "thief_shadow": {
-        "position": "corner_table",
-        "activity": "observing",
-        "visible": false
+        "position": "near_bar",
+        "activity": "talking_at_bar",
+        "visible": true
+      },
+      "guard_borko": {
+        "activity": "sleeping",
+        "position": "bed",
+        "visible": false,
+        "location": "inn_rooms"
+      },
+      "merchant_goran": {
+        "activity": "sleeping",
+        "position": "bed",
+        "visible": false,
+        "location": "inn_rooms"
       }
     },
     "environment": {
-      "light_level": "bright",
-      "noise_level": "moderate",
-      "time_of_day": "вечер",
-      "weather_inside": "warm_busy"
+      "light_level": "dim",
+      "noise_level": "low",
+      "time_of_day": "22:00",
+      "weather_inside": "warm_smoky"
     },
     "player_inventory_snapshot": {},
-    "active_effects": []
+    "active_effects": [],
+    "player_position": "на коленях",
+    "player_target_npc": null,
+    "player_target_npc_name": null,
+    "player_target_object": null,
+    "player_distances": {
+      "maid_lusya": 2.0,
+      "thief_shadow": 3.0
+    }
   }
 }

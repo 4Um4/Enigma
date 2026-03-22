@@ -16,6 +16,9 @@ from app.services.llm.provider_manager import get_model_pool
 from app.core.config import settings
 
 
+
+
+
 class NpcAgent:
     """
     NPC agent with automatic model selection.
@@ -358,14 +361,23 @@ HARDCORE: разрешены грубость, мат, угрозы, мрачн�
 
         # ── Сценарий 4 (fallback): проверяем имена из контекста ──────────────
         # Generic: используем npc_name из данных, не хардкод
-        def _name_forms(name: str) -> list[str]:
+        def _get_name_forms(ctx: dict) -> list[str]:
+            explicit = ctx.get("name_forms")
+            if explicit:
+                return [f.lower() for f in explicit]
+            name = ctx.get("npc_name", "")
             n = name.lower()
             forms = [n]
-            if len(n) > 2:
-                forms.append(n[:-1])
             if len(n) > 3:
+                forms.append(n[:-1])
+            if len(n) > 4:
                 forms.append(n[:-2])
-            return forms
+                forms.append(n[:-3])
+            if len(n) >= 4:
+                forms.append(n[:4])
+            if len(n) >= 5:
+                forms.append(n[:5])
+            return list(set(f for f in forms if len(f) >= 3))
 
         # Таблица ключевых слов по роли (из npc_id — универсальная)
         _ROLE_KEYWORDS: dict[str, list[str]] = {
@@ -393,7 +405,7 @@ HARDCORE: разрешены грубость, мат, угрозы, мрачн�
             npc_id   = ctx.get("npc_id", "")
             npc_name = ctx.get("npc_name", "")
 
-            if npc_name and any(form in full_text for form in _name_forms(npc_name)):
+            if any(form in full_text for form in _get_name_forms(ctx)):
                 return [ctx]
 
             role = _get_role(npc_id)
@@ -401,6 +413,25 @@ HARDCORE: разрешены грубость, мат, угрозы, мрачн�
                 return [ctx]
 
         # Общее действие — отвечает первый по tier
+        # Проверяем: игрок упомянул какую-то роль/имя которого нет в сцене?
+        # Если да — никто не отвечает, DM сам скажет "кузнеца здесь нет"
+        _ANY_ROLE_KEYWORDS = [kw for kws in _ROLE_KEYWORDS.values() for kw in kws]
+        _NPC_NAMES = [ctx.get("npc_name", "").lower() for ctx in sorted_contexts]
+
+        mentioned_unknown = (
+            any(kw in full_text for kw in _ANY_ROLE_KEYWORDS) or
+            # упомянуто имя из 4+ букв которого нет среди активных NPC
+            any(
+                word in full_text
+                for word in full_text.split()
+                if len(word) >= 4 and not any(word in name for name in _NPC_NAMES)
+            )
+        )
+        # Только если явно упомянута роль/имя и никто не найден — молчим
+        # Иначе (общая реплика без адресата) — отвечает первый
+        if any(kw in full_text for kw in _ANY_ROLE_KEYWORDS):
+            return []   # кузнец/священник/лорд — но их нет → DM объяснит
+
         return [sorted_contexts[0]]
 
     # ─────────────────────────────────────────────────────────────────────────
@@ -495,6 +526,10 @@ HARDCORE: разрешены грубость, мат, угрозы, мрачн�
         """
         npc_contexts   = self._get_phase3a_npc_contexts(shared_context)
         recent_session = shared_context.get("recent_session", []) if shared_context else []
+
+        scene_state   = shared_context.get("scene_state") if shared_context else None
+        target_npc_id = (scene_state or {}).get("player_target_npc")
+
 
         # S.0: получаем SceneState для пространственного контекста
         scene_state   = shared_context.get("scene_state") if shared_context else None
