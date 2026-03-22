@@ -317,7 +317,52 @@ async def game_action(request: dict) -> dict:
 def session_state(campaign_id: str) -> SessionInterfaceState:
     state = orchestrator.session_state(campaign_id)
     state.players = [char.name for char in character_service.list_characters(campaign_id)]
+
+    # Фаза S + 3B: добавляем metadata и scene_state для фронтенда
+    # Фронтенд читает metadata.current_location и metadata.time_of_day
+    try:
+        import json
+        # campaign_state.json хранит metadata (location, time) и scene_state напрямую
+        cs_path = orchestrator.data_dir / "campaigns" / campaign_id / "campaign_state.json"
+        if cs_path.exists():
+            cs = json.loads(cs_path.read_text(encoding="utf-8"))
+            # Берём metadata как есть
+            meta = cs.get("metadata", {})
+            state.layers["metadata"] = meta
+            # scene_state хранится прямо в campaign_state.json
+            raw_scene = cs.get("scene_state")
+            if raw_scene:
+                state.layers["scene_state"] = raw_scene
+            elif meta.get("current_location"):
+                # Fallback: запрашиваем через SceneManager
+                try:
+                    scene = orchestrator.scene_manager.get_scene_state(
+                        campaign_id, meta["current_location"]
+                    )
+                    if scene:
+                        state.layers["scene_state"] = scene
+                except Exception:
+                    pass
+    except Exception:
+        pass
+
     return state
+
+
+@router.get("/npcs/{campaign_id}")
+def get_npcs(campaign_id: str) -> dict:
+    """Возвращает major NPC для NPC-панели фронтенда."""
+    try:
+        npc_path = orchestrator.data_dir / "npcs" / "major_npcs.json"
+        if not npc_path.exists():
+            return {"npcs": []}
+        import json
+        with open(npc_path, encoding="utf-8") as f:
+            npcs = json.load(f)
+        # Возвращаем все поля — фронтенд сам разберётся что показать
+        return {"npcs": npcs, "count": len(npcs)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/import/world")

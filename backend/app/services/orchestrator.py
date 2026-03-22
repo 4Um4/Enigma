@@ -68,6 +68,13 @@ from app.services.npc.psyche_engine   import apply_stress, get_behavior_hint
 from app.services.npc.threat_assessor import assess_threat, get_threat_category, apply_threat_to_npc
 from app.services.npc.perception_engine import assess_status, get_status_label, get_social_permissions
 
+# === SceneState (фаза S) ===
+from app.services.scene_state_manager import SceneStateManager
+
+# === LifeEngine (фаза 3B.1) ===
+# Движок жизни NPC: обновляет позиции по расписанию без LLM
+from app.services.npc.life_engine import get_life_engine
+
 logger = logging.getLogger(__name__)
 
 ERROR_CODES = {
@@ -114,9 +121,13 @@ class GameOrchestrator:
             min_ram_gb=settings.min_ram_gb,
         )
         self.model_router = ModelRouter()
+        # Фаза S: SceneStateManager — Python как единственный источник истины о мире
+        self.scene_manager = SceneStateManager(self.data_dir)
+        # Фаза 3B.1: LifeEngine — мир живёт без участия игрока
+        self.life_engine = get_life_engine()
         self._campaign_world_index: dict[str, str] = {}
 
-        logger.info("[ORCHESTRATOR_INIT] GameOrchestrator ready (ActionClassifier + PhysicsValidator + PythonEngines + NPCPsychology подключены)")
+        logger.info("[ORCHESTRATOR_INIT] GameOrchestrator ready (ActionClassifier + PhysicsValidator + PythonEngines + NPCPsychology + SceneState + LifeEngine подключены)")
 
     # ИСПРАВЛЕНИЕ (фаза 3A): кэш NPC — класс-переменная, не глобальная.
     # Доступ через GameOrchestrator._npc_cache, а не global.
@@ -252,6 +263,155 @@ class GameOrchestrator:
             logger.warning(f"[ORCHESTRATOR] Не удалось загрузить персонажа '{player_name}': {e}")
         return {}
 
+    def _extract_player_target(
+        self,
+        action_text: str,
+        npc_contexts: list,
+        scene_state: dict,
+    ) -> tuple[str | None, str | None, str | None, str | None, dict]:
+        '''
+        S.0: Извлекает цель игрока из текста действия.
+ 
+        Generic — работает для любых NPC из npc_contexts,
+        без хардкода имён конкретных персонажей.
+ 
+        Алгоритм:
+          1. Для каждого NPC в контексте: проверяем имя + роль в тексте действия
+             Морфология: проверяем 4 формы имени (полное, -1, -2 символа)
+             Роль: берётся из npc_id префикса через _ROLE_KEYWORDS
+          2. Ищем объект из SceneState (name объекта в тексте)
+          3. Определяем позицию игрока из ключевых слов
+ 
+        Возвращает:
+          (target_npc_id, target_npc_name, target_object_id, player_position, player_distances)
+        '''
+        lower = action_text.lower()
+ 
+        # ── Таблица ключевых слов по роли (из npc_id префикса) ───────────────
+        # Принцип: НЕ имена конкретных NPC, а архетипы ролей.
+        # Новый NPC с role="merchant" → автоматически получает эти ключевые слова.
+        _ROLE_KEYWORDS: dict[str, list[str]] = {
+            "tavern_keeper": ["хозяин", "трактирщик", "бармен", "владелец",
+                              "хозяину", "трактирщику", "хозяина"],
+            "innkeeper":     ["хозяин", "трактирщик", "хозяину"],
+            "maid":          ["служанка", "официантка", "девушка",
+                              "служанке", "официантке", "девушке"],
+            "guard":         ["стражник", "охранник", "страж",
+                              "стражнику", "охраннику", "стражника"],
+            "merchant":      ["купец", "торговец", "продавец",
+                              "купцу", "торговцу", "купца"],
+            "thief":         ["вор", "незнакомец", "фигура", "тень",
+                              "вору", "незнакомцу", "тени"],
+            "priest":        ["священник", "жрец", "священнику", "жрецу"],
+            "blacksmith":    ["кузнец", "кузнецу", "кузнеца"],
+            "farmer":        ["крестьянин", "фермер", "крестьянину"],
+            "noble":         ["лорд", "господин", "барон", "лорду", "господину"],
+            "innkeeper":     ["хозяйка", "хозяйке", "хозяйку"],
+        }
+ 
+        def _get_role_from_id(npc_id: str) -> str:
+            '''Извлекает роль из npc_id: "tavern_keeper_tornin" → "tavern_keeper"'''
+            parts = npc_id.split("_")
+            # Ищем совпадение с ключом _ROLE_KEYWORDS начиная с длинных префиксов
+            for length in range(len(parts) - 1, 0, -1):
+                candidate = "_".join(parts[:length])
+                if candidate in _ROLE_KEYWORDS:
+                    return candidate
+            return ""
+ 
+        def _name_forms(name: str) -> list[str]:
+            '''Генерирует формы имени для поиска без морфологической библиотеки.
+            Покрывает большинство русских падежей для имён.'''
+            n = name.lower()
+            forms = [n]
+            if len(n) > 2:
+                forms.append(n[:-1])   # Люся → Люс, Торнин → Торни
+            if len(n) > 3:
+                forms.append(n[:-2])   # Горан → Гора
+            return forms
+ 
+        # ── 1. Поиск целевого NPC ─────────────────────────────────────────────
+        target_npc_id   = None
+        target_npc_name = None
+ 
+        for ctx in npc_contexts:
+            npc_id   = ctx.get("npc_id", "")
+            npc_name = ctx.get("npc_name", "")
+ 
+            # Проверяем имя NPC с разными падежными формами
+            if npc_name:
+                if any(form in lower for form in _name_forms(npc_name)):
+                    target_npc_id   = npc_id
+                    target_npc_name = npc_name
+                    break
+ 
+            # Проверяем ключевые слова роли
+            role = _get_role_from_id(npc_id)
+            if role and any(kw in lower for kw in _ROLE_KEYWORDS.get(role, [])):
+                target_npc_id   = npc_id
+                target_npc_name = npc_name
+                break
+ 
+        # ── 2. Поиск целевого объекта ─────────────────────────────────────────
+        target_object = None
+        objects = scene_state.get("objects", {}) if scene_state else {}
+        for obj_id, obj_data in objects.items():
+            obj_name = obj_data.get("name", "").lower()
+            if obj_name and len(obj_name) >= 3 and obj_name in lower:
+                target_object = obj_id
+                break
+ 
+        # ── 3. Определение позиции игрока ─────────────────────────────────────
+        player_position = None
+        _POSITION_PATTERNS: dict[str, list[str]] = {
+            "на коленях": ["на колен", "встаю на колен", "опускаюсь на колен"],
+            "сидит":      ["сажусь", "сижу", "сел", "садится"],
+            "лежит":      ["ложусь", "лежу", "лёг", "упал"],
+            "прячется":   ["прячусь", "скрываюсь", "скрыт"],
+            "крадётся":   ["крадусь", "иду тихо", "иду осторожно"],
+            "стоит":      ["стою", "встаю", "встал"],
+            "бежит":      ["бегу", "бегу к", "убегаю"],
+        }
+        for pos_label, patterns in _POSITION_PATTERNS.items():
+            if any(p in lower for p in patterns):
+                player_position = pos_label
+                break
+ 
+        # ── 4. Расчёт расстояний (упрощённый) ────────────────────────────────
+        # Если игрок явно рядом с NPC (обращается к нему, перед ним и т.д.)
+        # → ставим ~0.5м. Иначе — стандартное расстояние по позиции в сцене.
+        player_distances: dict = {}
+        npc_positions = scene_state.get("npc_positions", {}) if scene_state else {}
+ 
+        _POSITION_BASE_DISTANCE: dict[str, float] = {
+            "behind_bar":      3.0,
+            "serving_table_3": 2.0,
+            "corner_table":    5.0,
+            "gate_post":       4.0,
+            "stall_3":         2.5,
+        }
+ 
+        _PROXIMITY_KEYWORDS = [
+            "перед", "рядом с", "к ", "подхожу к", "стою перед",
+            "обращаюсь к", "говорю с", "смотрю на", "касаюсь",
+            "на коленях перед", "беру за руку", "держу",
+        ]
+        is_proximate = any(kw in lower for kw in _PROXIMITY_KEYWORDS)
+ 
+        for ctx in npc_contexts:
+            npc_id   = ctx.get("npc_id", "")
+            npc_pos  = npc_positions.get(npc_id, {})
+            pos_key  = npc_pos.get("position", "")
+            base_dist = _POSITION_BASE_DISTANCE.get(pos_key, 3.0)
+ 
+            if npc_id == target_npc_id and is_proximate:
+                # Игрок явно взаимодействует с этим NPC — считаем близко
+                player_distances[npc_id] = 0.5
+            else:
+                player_distances[npc_id] = base_dist
+ 
+        return target_npc_id, target_npc_name, target_object, player_position, player_distances    
+
     async def _run_python_engines(
         self,
         req: ChatTurnRequest,
@@ -360,6 +520,16 @@ class GameOrchestrator:
                     )
                     player_result["sandbox"] = sandbox_result.to_dict()
 
+                    # Фаза S: применяем scene_changes из SandboxHandler если есть
+                    # (SandboxResult.scene_changes добавляется в фазе S.4.1)
+                    scene_changes = getattr(sandbox_result, "scene_changes", [])
+                    if scene_changes and shared_context.get("scene_state") is not None:
+                        self.scene_manager.apply_changes(
+                            req.campaign_id,
+                            scene_changes,
+                            shared_context["scene_state"],
+                        )
+
                     logger.info(
                         f"[PYTHON_ENGINES] SANDBOX: {player_name} → "
                         f"type={sandbox_result.action_type.value} "
@@ -371,17 +541,64 @@ class GameOrchestrator:
             engines_result[player_name] = player_result
 
 
+        # ── LifeEngine тик (фаза 3B.1) ────────────────────────────────────────────────
+        # Запускаем ДО NPC Psychology — чтобы позиции NPC были актуальны когда
+        # ThreatAssessor и NPCCognition строят контекст для LLM.
+        # Принцип: Python двигает мир → LLM рассказывает результат.
+        try:
+            scene_state_for_life = shared_context.get("scene_state")
+            life_changes = self.life_engine.tick(req.campaign_id, scene_state_for_life)
+            if life_changes and scene_state_for_life is not None:
+                applied = self.scene_manager.apply_changes(
+                    req.campaign_id,
+                    life_changes,
+                    scene_state_for_life,
+                )
+                # Инвалидируем кэш NPC если были изменения позиций
+                if applied:
+                    self.life_engine.save_npcs(req.campaign_id)
+                    # Сбрасываем кэш orchestrator чтобы _get_npcs_in_location()
+                    # вернул актуальные позиции для NPC Psychology блока
+                    GameOrchestrator._npc_cache = None
+                logger.info(
+                    f"[PYTHON_ENGINES] LifeEngine: {len(life_changes)} изменений, "
+                    f"применено {applied}"
+                )
+        except Exception as e:
+            logger.error(f"[PYTHON_ENGINES] LifeEngine error: {e}")
+
+
         # ── NPC Psychology блок (фаза 3A) ─────────────────────────────────────────────
         # ИСПРАВЛЕНИЕ: action_type брался из shared_context.get("action_type") — ключа нет.
         # Правильно: берём из первого элемента classification_results.
         action_type = classification_results[0]["type"] if classification_results else "EXPLORE"
 
+        # HF-3: сессионная память — последние 2 хода для NPC continuity.
+        # Тень/Люся/Торнин не помнят что говорили без этого (Фаза 3C решит полностью).
+        try:
+            recent_entries = self.layered_memory.read_campaign_memory(
+                req.campaign_id, limit=2
+            )
+            recent_session = []
+            for entry in recent_entries:
+                for action in entry.get("actions", []):
+                    recent_session.append(
+                        f"{action.get('player_name', '?')}: {action.get('action', '?')}"
+                    )
+                dm_text = entry.get("dm", "")
+                if dm_text:
+                    recent_session.append(f"[DM]: {dm_text[:120]}")
+            shared_context["recent_session"] = recent_session
+        except Exception as e:
+            logger.warning(f"[ORCHESTRATOR] Не удалось загрузить recent_session: {e}")
+            shared_context["recent_session"] = []
+
         player_data = {}
         if req.actions:
-            player_name = req.actions[0].player_name
+            player_name_0 = req.actions[0].player_name
             chars = self.character_service.list_characters(req.campaign_id)
             player_data = next(
-                (c.model_dump() for c in chars if c.name == player_name), {}
+                (c.model_dump() for c in chars if c.name == player_name_0), {}
             )
 
         npcs_in_location = self._get_npcs_in_location(req.location)
@@ -420,19 +637,22 @@ class GameOrchestrator:
             inner_thought = get_inner_thought(npc, shared_context)
 
             npc_contexts.append({
-                "npc_id":          npc["id"],
-                "npc_name":        npc["name"],
-                "threat_score":    threat_score,
-                "threat_category": threat_cat,
+                "npc_id":           npc["id"],
+                "npc_name":         npc["name"],
+                "tier":             npc.get("tier", "minor"),             # для сортировки в npc_agent
+                "gender":           npc.get("gender", ""),                # для местоимений в DM
+                "description":      npc.get("description", ""),           # для вводной сцены
+                "threat_score":     threat_score,
+                "threat_category":  threat_cat,
                 "perceived_status": status_label,
-                "behavior_hint":   behavior_hint,
-                "system_prompt":   npc_system_prompt,
-                "inner_thought":   inner_thought,
-                "permissions":     permissions,
-                "action_deltas":   action_deltas,
+                "behavior_hint":    behavior_hint,
+                "system_prompt":    npc_system_prompt,
+                "inner_thought":    inner_thought,
+                "permissions":      permissions,
+                "action_deltas":    action_deltas,
             })
 
-        # Сохраняем обновлённые состояния NPC
+        # Сохраняем обновлённые состояния NPC (изменения от ThreatAssessor и NPCCognition)
         if npcs_in_location:
             all_npcs = self._load_npcs()
             for updated_npc in npcs_in_location:
@@ -447,7 +667,96 @@ class GameOrchestrator:
         engines_result["npc_contexts"] = npc_contexts
         # ── Конец NPC блока ────────────────────────────────────────────────────────────
 
+ # ── S.0: Обновляем SceneState пространственным контекстом игрока ──────
+        # Нужно чтобы DM и NPC агенты знали кто где стоит и к кому обращаются.
+        # Вызываем ПОСЛЕ того как npc_contexts собраны — нужны id и имена NPC.
+        try:
+            scene_state_for_target = shared_context.get("scene_state")
+            if scene_state_for_target is not None and req.actions:
+                # Берём первое действие (при мультиплеере — позже будет per-player)
+                first_action_text = getattr(
+                    req.actions[0], "action",
+                    getattr(req.actions[0], "description", "")
+                )
+                (
+                    target_npc_id,
+                    target_npc_name,
+                    target_object,
+                    player_position,
+                    player_distances,
+                ) = self._extract_player_target(
+                    first_action_text,
+                    npc_contexts,
+                    scene_state_for_target,
+                )
+                self.scene_manager.update_player_target(
+                    req.campaign_id,
+                    scene_state_for_target,
+                    target_npc_id   = target_npc_id,
+                    target_npc_name = target_npc_name,
+                    target_object_id = target_object,
+                    player_position  = player_position,
+                    player_distances = player_distances,
+                )
+                # Обновляем shared_context — DM и NPC агенты получат актуальный SceneState
+                shared_context["scene_state"] = scene_state_for_target
+                # Также передаём target напрямую для быстрого доступа
+                shared_context["player_target_npc"]  = target_npc_id
+                shared_context["player_target_name"] = target_npc_name
+ 
+                logger.info(
+                    f"[SCENE S.0] target_npc={target_npc_name!r} "
+                    f"target_obj={target_object!r} pos={player_position!r}"
+                )
+        except Exception as e:
+            logger.error(f"[SCENE S.0] _extract_player_target error: {e}")
+        # ─────────────────────────────────────────────────────────────────────
+
         return engines_result
+
+    def _apply_npc_state_updates(self, npc_state_updates: list) -> None:
+        """
+        HF-1: Применяет trust_change и stress_change из JSON ответов NPC агента
+        к реальным данным NPC в major_npcs.json.
+
+        Вызывается из run_turn() после _run_agent_safe("npc", ...).
+
+        npc_state_updates: [{"npc_id": str, "trust_delta": float, "stress_delta": int}, ...]
+        trust_delta: уже в шкале 0..1 (поделено на 100 в npc_agent)
+        stress_delta: в шкале 0..100 (прибавляется напрямую)
+        """
+        if not npc_state_updates:
+            return
+        try:
+            all_npcs = self._load_npcs()
+            changed  = False
+            for upd in npc_state_updates:
+                npc_id       = upd.get("npc_id")
+                trust_delta  = upd.get("trust_delta", 0.0)
+                stress_delta = upd.get("stress_delta", 0)
+                for npc in all_npcs:
+                    if npc["id"] != npc_id:
+                        continue
+                    # Применяем trust_delta к social_stats.trust
+                    if trust_delta != 0.0:
+                        ss = npc.setdefault("social_stats", {})
+                        old_trust = ss.get("trust", 0.5)
+                        ss["trust"] = round(max(0.0, min(1.0, old_trust + trust_delta)), 4)
+                    # Применяем stress_delta к psyche.stress
+                    if stress_delta != 0:
+                        psyche = npc.setdefault("psyche", {})
+                        old_stress = psyche.get("stress", 0)
+                        psyche["stress"] = max(0, min(100, old_stress + stress_delta))
+                    changed = True
+                    logger.info(
+                        f"[NPC_STATE] {npc_id}: trust_delta={trust_delta:+.4f} "
+                        f"stress_delta={stress_delta:+d}"
+                    )
+                    break
+            if changed:
+                self._save_npcs(all_npcs)
+        except Exception as e:
+            logger.error(f"[ORCHESTRATOR] _apply_npc_state_updates failed: {e}")
 
 
     async def _run_agent_safe(
@@ -517,6 +826,27 @@ class GameOrchestrator:
         )
         shared_context = self._build_shared_context(req)
         npc_importance = self._get_npc_importance(req.campaign_id, req.location)
+
+        # ===================================================================
+        # === SCENE STATE (фаза S) — инициализация до всех агентов ==========
+        # Python — единственный источник истины о состоянии мира.
+        # Если SceneState для этой локации нет — создаём из шаблона.
+        # ===================================================================
+        try:
+            scene_state = self.scene_manager.get_scene_state(
+                req.campaign_id, req.location
+            )
+            if scene_state is None:
+                time_of_day = shared_context.get("time_of_day", "12:00")
+                scene_state = self.scene_manager.initialize_scene(
+                    req.campaign_id, req.location, time_of_day
+                )
+                logger.info(f"[SCENE] Новая сцена инициализирована: {req.location}")
+            shared_context["scene_state"] = scene_state
+        except Exception as e:
+            logger.warning(f"[SCENE] Ошибка инициализации SceneState: {e}")
+            shared_context["scene_state"] = {}
+        # ===================================================================
 
         # ===================================================================
         # === ACTION CLASSIFIER (фаза 2.1) — выполняется ПЕРВЫМ (0 мс) =====
@@ -606,6 +936,12 @@ class GameOrchestrator:
             ),
             {},
         )
+
+        # HF-1: применяем trust_change/stress_change из JSON ответов NPC к major_npcs.json.
+        # Раньше эти дельты выбрасывались — каждый ход психология NPC не накапливалась.
+        npc_state_updates = results.get("npc", {}).get("npc_state_updates", [])
+        if npc_state_updates:
+            self._apply_npc_state_updates(npc_state_updates)
         results["dm"] = await self._run_agent_safe(
             "dm", self.dm_agent,
             (

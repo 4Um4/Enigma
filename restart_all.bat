@@ -12,7 +12,7 @@ timeout /t 2 >nul
 
 echo.
 echo [2/4] Чистим кэш Python...
-cd C:\DDD\Codex\VSC_Enigma\Enigma\backend
+cd /d "%~dp0backend"
 del /s /q __pycache__ 2>nul
 for /d /r %%d in (__pycache__) do @if exist "%%d" rd /s /q "%%d"
 
@@ -22,7 +22,7 @@ timeout /t 3 >nul
 
 echo.
 echo [4/4] Запускаем заново...
-start "ENIGMA" cmd /k "C:\DDD\Codex\VSC_Enigma\Enigma\start_enigma.bat"
+start "ENIGMA" cmd /k "%~dp0start_enigma.bat"
 
 echo.
 echo ========================================

@@ -118,6 +118,8 @@ def _run_npc_engines(
                 "npc_id":           npc["id"],
                 "npc_name":         npc["name"],
                 "tier":             npc.get("tier", "minor"),
+                "gender":           npc.get("gender", ""),           # для местоимений в DM
+                "description":      npc.get("description", ""),       # для вводной сцены
                 "system_prompt":    npc_system_prompt,
                 "inner_thought":    inner_thought,
                 "behavior_hint":    behavior_hint,
@@ -210,6 +212,9 @@ async def game_action_stream(request: dict):
         act_type = classifier.classify(action_text)
         action_type_str = act_type.value
 
+        # Сразу сообщаем клиенту тип действия — чтобы бейдж появился ДО токенов
+        yield _sse({"type": "action_type", "value": action_type_str})
+
         # Загружаем данные персонажа
         char_data = {}
         try:
@@ -224,17 +229,64 @@ async def game_action_stream(request: dict):
         # Запускаем NPC Psychology движки (Phase 3A)
         npc_contexts = _run_npc_engines(location, action_text, action_type_str, char_data)
 
+        # has_major определяем здесь — до try/except с мета-моделями,
+        # чтобы npc_importance был доступен даже если try упадёт
+        has_major = any(ctx.get("tier") == "major" for ctx in npc_contexts)
+
+        # ── SceneState (фаза S): инициализируем сцену если нет ────────────
+        # SceneState — единственный источник истины об объектах в локации.
+        # DM получает его первым блоком промпта через _build_scene_description().
+        scene_state = {}
+        try:
+            scene_state = _orchestrator.scene_manager.get_scene_state(
+                campaign_id, location
+            )
+            if scene_state is None:
+                # Первый визит в локацию — создаём из шаблона
+                time_of_day = "22:00"  # дефолт; TODO: брать из campaign_state.metadata
+                if campaign_state:
+                    tod = campaign_state.metadata.get("time_of_day", "")
+                    if tod:
+                        time_of_day = tod
+                scene_state = _orchestrator.scene_manager.initialize_scene(
+                    campaign_id, location, time_of_day
+                )
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(f"[STREAM] SceneState error: {e}")
+            scene_state = {}
+
+        # ── recent_session: последние 2 хода для NPC continuity ────────────
+        # Без этого NPC не помнят что было в прошлом ходу текущей сессии.
+        recent_session = []
+        try:
+            recent_entries = _orchestrator.layered_memory.read_campaign_memory(
+                campaign_id, limit=2
+            )
+            for entry in recent_entries:
+                for act in entry.get("actions", []):
+                    recent_session.append(
+                        f"{act.get('player_name', '?')}: {act.get('action', '?')}"
+                    )
+                dm_text = entry.get("dm", "")
+                if dm_text:
+                    recent_session.append(f"[DM]: {dm_text[:120]}")
+        except Exception:
+            pass
+
         # ── ИСПРАВЛЕНИЕ: npc_contexts хранится на верхнем уровне shared_context,
         # а НЕ внутри python_engines. dm_agent итерирует python_engines.items()
         # и вызывает data.get() на каждом значении — список вместо dict → AttributeError.
         # npc_contexts читается отдельно в dm_agent и npc_agent.
         shared_context = {
-            "campaign_id":  campaign_id,
-            "location":     location,
-            "action_type":  action_type_str,
-            "player_name":  player,
-            "python_engines": {},          # combat/sandbox данных нет в stream-роуте
-            "npc_contexts": npc_contexts,  # Phase 3A — на верхнем уровне
+            "campaign_id":    campaign_id,
+            "location":       location,
+            "action_type":    action_type_str,
+            "player_name":    player,
+            "python_engines": {},           # combat/sandbox данных нет в stream-роуте
+            "npc_contexts":   npc_contexts, # Phase 3A — на верхнем уровне
+            "scene_state":    scene_state,  # Фаза S — SceneState для DM
+            "recent_session": recent_session,  # HF-3 — память текущей сессии для NPC
             "classification": [{
                 "player": player,
                 "type":   action_type_str,
@@ -256,7 +308,6 @@ async def game_action_stream(request: dict):
 
             dm_key  = router_llm.select_model(Capability.NARRATIVE)
             # Если есть major NPC — используем DIALOGUE_GENERATION (npc_major модель)
-            has_major = any(ctx.get("tier") == "major" for ctx in npc_contexts)
             npc_cap = Capability.DIALOGUE_GENERATION if has_major else Capability.DIALOGUE
             npc_key = router_llm.select_model(npc_cap)
 
@@ -284,8 +335,10 @@ async def game_action_stream(request: dict):
         except Exception:
             pass
 
-        # ── 4. Запускаем NPC агента — теперь со shared_context Phase 3A ────
-        # npc_importance = "major" если есть major NPC в локации
+        # ── 4. NPC агент — сначала: он быстрее (120 токенов) ───────────────
+        # Философия: NPC говорят SAMи → DM описывает МИР.
+        # DM получает только физические действия NPC, не их речь.
+        # Так игрок сначала видит что сказали NPC, потом что изменилось в мире.
         npc_importance = "major" if has_major else "mass"
         try:
             npc_result = await _run_npc_agent(
@@ -294,7 +347,17 @@ async def game_action_stream(request: dict):
         except Exception:
             npc_result = {"npc_reactions": [], "npc_memory_updates": []}
 
-        # ── 5. Стримим DM агента ────────────────────────────────────────────
+        # NPC реакции отправляем СРАЗУ — до DM текста
+        # Игрок видит что сказали NPC, затем DM описывает мир
+        npc_reactions_early = npc_result.get("npc_reactions", [])
+        if npc_reactions_early:
+            yield _sse({
+                "type":  "npc",
+                "data":  npc_reactions_early,
+                "model": npc_result.get("model"),
+            })
+
+        # ── 5. DM агент — описывает МИР, не пересказывает NPC ──────────────
         yield _sse({"type": "status", "text": "Мастер рассказывает..."})
 
         world_result = {"world_events": []}
@@ -307,7 +370,7 @@ async def game_action_stream(request: dict):
                 npc_result=npc_result,
                 world_result=world_result,
                 world_canon_exists=False,
-                context=shared_context,  # передаём shared_context с Phase 3A
+                context=shared_context,
             ):
                 token_count += 1
                 yield _sse({"type": "token", "text": token, "n": token_count})
@@ -315,16 +378,7 @@ async def game_action_stream(request: dict):
         except Exception as e:
             yield _sse({"type": "error", "text": str(e)})
             return
-
-        # ── 6. Отправляем реакции NPC ───────────────────────────────────────
-        npc_reactions = npc_result.get("npc_reactions", [])
-        if npc_reactions:
-            yield _sse({
-                "type":  "npc",
-                "data":  npc_reactions,
-                "model": npc_result.get("model"),
-            })
-
+        # NPC реакции уже отправлены ДО текста DM (раздел 4)
         # ── 7. Финальный пакет со статистикой ──────────────────────────────
         elapsed_ms = int(time.time() * 1000 - start_ms)
         tps = round(token_count / (elapsed_ms / 1000), 1) if elapsed_ms > 0 else 0
@@ -344,6 +398,16 @@ async def game_action_stream(request: dict):
                     "location":     location,
                     "last_actions": [{"player": player, "action": action_text}],
                     "dice_input_required": False,
+                },
+            )
+            # Сохраняем в campaign_memory чтобы recent_session работал в следующем ходу.
+            # Без этого NPC каждый ход начинают с нуля и не помнят предыдущих событий.
+            _orchestrator.layered_memory.write_campaign_memory(
+                campaign_id,
+                {
+                    "location": location,
+                    "actions":  [{"player_name": player, "action": action_text}],
+                    "dm":       "",  # DM текст недоступен здесь (стриминг завершён)
                 },
             )
         except Exception:

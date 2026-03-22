@@ -1,0 +1,249 @@
+{
+  "tavern_silver_wolf": {
+    "name": "Таверна «Серебряный Волк»",
+    "type": "tavern",
+    "default_objects": {
+      "bar_counter": {
+        "name": "барная стойка",
+        "state": "intact",
+        "material": "oak",
+        "hp": 30,
+        "max_hp": 30,
+        "interactable": true
+      },
+      "fireplace": {
+        "name": "очаг",
+        "state": "burning",
+        "light": 40,
+        "interactable": false
+      },
+      "tables": {
+        "name": "столы",
+        "count": 6,
+        "state": "intact",
+        "interactable": true
+      }
+    },
+    "time_variants": {
+      "06:00-10:00": {
+        "light_level": "dim",
+        "noise_level": "silent",
+        "weather_inside": "cool_fresh",
+        "candles": { "state": "unlit", "count": 0 }
+      },
+      "10:00-22:00": {
+        "light_level": "bright",
+        "noise_level": "moderate",
+        "weather_inside": "warm_busy",
+        "candles": { "state": "lit", "count": 12 }
+      },
+      "22:00-02:00": {
+        "light_level": "dim",
+        "noise_level": "low",
+        "weather_inside": "warm_smoky",
+        "candles": { "state": "lit", "count": 6 }
+      },
+      "02:00-06:00": {
+        "light_level": "dark",
+        "noise_level": "silent",
+        "weather_inside": "cold_quiet",
+        "candles": { "state": "unlit", "count": 0 }
+      }
+    },
+    "npc_defaults": {
+      "tavern_keeper_tornin": {
+        "position": "behind_bar",
+        "activity": "cleaning_tables",
+        "visible": true
+      },
+      "maid_lusya": {
+        "position": "serving_table_3",
+        "activity": "serving_tables",
+        "visible": true
+      },
+      "thief_shadow": {
+        "position": "corner_table",
+        "activity": "observing",
+        "visible": false
+      }
+    },
+    "connected_locations": ["city_gate", "market_square", "inn_rooms"]
+  },
+
+  "city_gate": {
+    "name": "Городские ворота",
+    "type": "gate",
+    "default_objects": {
+      "gate_doors": {
+        "name": "створки ворот",
+        "state": "open",
+        "hp": 60,
+        "max_hp": 60,
+        "interactable": true
+      },
+      "guard_post": {
+        "name": "пост охраны",
+        "state": "manned",
+        "interactable": false
+      },
+      "torch_left": {
+        "name": "факел левый",
+        "state": "lit",
+        "count": 1,
+        "interactable": true
+      },
+      "torch_right": {
+        "name": "факел правый",
+        "state": "lit",
+        "count": 1,
+        "interactable": true
+      }
+    },
+    "time_variants": {
+      "06:00-22:00": {
+        "light_level": "natural",
+        "noise_level": "moderate",
+        "weather_inside": "outdoor"
+      },
+      "22:00-06:00": {
+        "light_level": "torchlit",
+        "noise_level": "low",
+        "weather_inside": "outdoor"
+      }
+    },
+    "npc_defaults": {
+      "guard_borko": {
+        "position": "gate_post",
+        "activity": "guarding_gate",
+        "visible": true
+      }
+    },
+    "connected_locations": ["tavern_silver_wolf", "market_square"]
+  },
+
+  "market_square": {
+    "name": "Рыночная площадь",
+    "type": "market",
+    "default_objects": {
+      "market_stalls": {
+        "name": "торговые прилавки",
+        "count": 8,
+        "state": "open",
+        "interactable": true
+      },
+      "fountain": {
+        "name": "фонтан",
+        "state": "flowing",
+        "interactable": true
+      },
+      "notice_board": {
+        "name": "доска объявлений",
+        "state": "intact",
+        "interactable": true
+      }
+    },
+    "time_variants": {
+      "06:00-18:00": {
+        "light_level": "natural",
+        "noise_level": "loud",
+        "weather_inside": "outdoor"
+      },
+      "18:00-22:00": {
+        "light_level": "dim",
+        "noise_level": "moderate",
+        "weather_inside": "outdoor"
+      },
+      "22:00-06:00": {
+        "light_level": "dark",
+        "noise_level": "silent",
+        "weather_inside": "outdoor"
+      }
+    },
+    "npc_defaults": {
+      "merchant_goran": {
+        "position": "stall_3",
+        "activity": "haggling",
+        "visible": true
+      }
+    },
+    "connected_locations": ["city_gate", "tavern_silver_wolf"]
+  },
+
+  "inn_rooms": {
+    "name": "Комнаты таверны",
+    "type": "inn",
+    "default_objects": {
+      "bed": {
+        "name": "кровать",
+        "state": "made",
+        "interactable": true
+      },
+      "chest": {
+        "name": "сундук",
+        "state": "locked",
+        "hp": 20,
+        "max_hp": 20,
+        "interactable": true
+      },
+      "candle_bedside": {
+        "name": "свеча у кровати",
+        "state": "unlit",
+        "count": 1,
+        "interactable": true
+      },
+      "window": {
+        "name": "окно",
+        "state": "closed",
+        "interactable": true
+      }
+    },
+    "time_variants": {
+      "22:00-08:00": {
+        "light_level": "dark",
+        "noise_level": "silent",
+        "weather_inside": "warm_quiet"
+      },
+      "08:00-22:00": {
+        "light_level": "dim",
+        "noise_level": "low",
+        "weather_inside": "warm_quiet"
+      }
+    },
+    "npc_defaults": {},
+    "connected_locations": ["tavern_silver_wolf"]
+  },
+
+  "dungeon_entrance": {
+    "name": "Вход в подземелье",
+    "type": "dungeon",
+    "default_objects": {
+      "stone_door": {
+        "name": "каменная дверь",
+        "state": "closed",
+        "hp": 50,
+        "max_hp": 50,
+        "interactable": true
+      },
+      "wall_torches": {
+        "name": "настенные факелы",
+        "count": 4,
+        "state": "unlit",
+        "interactable": true
+      },
+      "old_bones": {
+        "name": "старые кости",
+        "state": "intact",
+        "interactable": true
+      }
+    },
+    "time_variants": {
+      "00:00-24:00": {
+        "light_level": "dark",
+        "noise_level": "silent",
+        "weather_inside": "cold_damp"
+      }
+    },
+    "npc_defaults": {},
+    "connected_locations": ["city_gate"]
+  }
+}

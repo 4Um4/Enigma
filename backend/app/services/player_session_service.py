@@ -8,6 +8,7 @@ from datetime import datetime
 from typing import Dict, Optional
 
 from app.models.schemas import PlayerSession
+from app.core.config import settings
 
 
 class PlayerSessionService:
@@ -34,9 +35,10 @@ class PlayerSessionService:
     
     def _get_sessions_dir(self) -> str:
         """Получить путь к директории сессий."""
-        # Поднимаемся от app/services/ до корня проекта
-        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-        sessions_dir = os.path.join(project_root, "data", "sessions")
+        # ИСПРАВЛЕНИЕ: было 4x os.path.dirname(__file__) → Enigma/data/sessions/ (неверно).
+        # settings.data_dir = Enigma/backend/data/ — совпадает с campaigns/, npcs/, logs/.
+        # Итог: Enigma/backend/data/sessions/ (верно).
+        sessions_dir = os.path.join(settings.data_dir, "sessions")
         
         # Создаем директорию если не существует
         if not os.path.exists(sessions_dir):
@@ -230,4 +232,3 @@ class PlayerSessionService:
 
 # Глобальный экземпляр сервиса
 player_session_service = PlayerSessionService()
-

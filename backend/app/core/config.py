@@ -75,15 +75,15 @@ class Settings(BaseSettings):
     hardcore_mode: bool = True
 
     # ─────────────────────────────────────────────────────────────────
-    # GPU параметры для RTX 3070 Ti (8 GB VRAM)
+    # GPU параметры для RTX 3070 Ti (8 GB VRAM) — Фаза M: Gemma-3-12B
     # ─────────────────────────────────────────────────────────────────
-    # Qwen2.5-7B Q4_K_M: 32 transformer слоя + 1 output = 33 слоя всего.
-    # При gpu_layers=28: 28 слоёв в VRAM (~4.2 GB) + остальное на CPU.
-    # При gpu_layers=33: все слои в VRAM (~4.8 GB) + KV-cache → OOM при ctx>2048.
-    # РЕКОМЕНДАЦИЯ: 28 для стабильности, 33 только если ctx<=1024.
-    gpu_layers: int = 28                # ОПТИМИЗАЦИЯ: 33→28 (безопасно для 8GB)
-    threads: int = 6                    # ОПТИМИЗАЦИЯ: 8→6 (оставляем 2 ядра ОС)
-    ctx_size: int = 2048                # ОПТИМИЗАЦИЯ: 4096→2048
+    # Gemma-3-12B Q4_K_M: ~7.0 GB в VRAM при ctx=4096
+    # gpu_layers=38 — все слои в VRAM (Gemma-3 имеет 46 слоёв,
+    # 38 в VRAM даёт ~6.8 GB; остаток на CPU но это embedding слои)
+    # ctx=4096 — Gemma держит длинный контекст без деградации
+    gpu_layers: int = 38                # Обновлено для Gemma-3-12B
+    threads: int = 6
+    ctx_size: int = 4096                # Увеличено: Gemma держит 4096 стабильно
 
     # Параметры генерации
     llama_cpp_temperature: float = 0.7
@@ -103,26 +103,24 @@ class Settings(BaseSettings):
     )
     model_npc_major_path: str = str(BASE_DIR / "Models LLM" / "mistral-pygmalion-7b.Q5_K_M.gguf")
     model_npc_mass_path:  str = str(BASE_DIR / "Models LLM" / "mistral-pygmalion-7b.Q4_K_M.gguf")
+    # Фаза M: Gemma-3-12B — основная модель для всех агентов
+    model_gemma_12b_path: str = str(BASE_DIR / "Models LLM" / "gemma-3-12b-it-q4_k_m.gguf")
 
     # ─────────────────────────────────────────────────────────────────
-    # Agent → Model mapping  (оптимизировано под 8 GB)
+    # Agent → Model mapping  (Фаза M: все агенты → Gemma-3-12B)
     # ─────────────────────────────────────────────────────────────────
-    # Все агенты используют один llama-server (single port).
-    # Переключение через ModelPool: выгрузить → загрузить (max_loaded=1).
-    #
-    # СТРАТЕГИЯ ДЛЯ "УМНЫХ NPC":
-    # - dm: qwen_7b  — лучший нарратор, Qwen2.5 отлично пишет по-русски
-    # - npc: npc_major — специализированная NPC-модель для главных NPC
-    # - npc_mass fallback на qwen_7b если npc_major не загружен
-    # - rules: saiga  — Saiga Mistral хорошо знает D&D правила (русский)
-    # - memory: saiga — компактные суммаризации
-    # - world: qwen_7b — мировые события, qwen_9b слишком большой (5.5 GB)
+    # Одна сильная 12B модель вместо пяти слабых 7B.
+    # Преимущества: нет задержек переключения, стабильный instruction-following,
+    # согласованное поведение DM и NPC, лучший русский язык.
+    # Старые модели оставлены в available_models как _fallback.
     agent_model_map: Dict[str, str] = {
-        "dm":       "qwen_7b",
-    "npc":      "npc_major",   # Mistral Pygmalion для NPC
-        "rules":    "saiga",
-        "memory":   "saiga",
-        "world":    "qwen_7b",     # qwen_9b (5.5 GB) → OOM при ctx=2048+KV
+        "dm":       "gemma_12b",
+        "npc":      "gemma_12b",
+        "rules":    "gemma_12b",
+        "memory":   "gemma_12b",
+        "world":    "gemma_12b",
+        # Fallback: если gemma недоступна — Qwen 7B
+        "_fallback": "qwen_7b",
     }
 
     available_models: Dict[str, ModelConfig] = {}
@@ -161,6 +159,17 @@ class Settings(BaseSettings):
 #   npc_mass (Q4_K_M):  ~4000 MB — Mistral Pygmalion для mass NPCs
         # ─────────────────────────────────────────────────────────────
         self.available_models = {
+            # ── ФАЗА M: Основная модель ──────────────────────────────────────
+            "gemma_12b": ModelConfig(
+                name="gemma_12b",
+                path=self.model_gemma_12b_path,
+                display_name="Gemma-3-12B IT Q4_K_M (все агенты)",
+                vram_mb=7000,           # ~7.0 GB при ctx=4096
+                context_size=4096,      # Gemma держит 4096 без деградации
+                temperature=0.7,
+                repeat_penalty=1.05,    # Gemma менее склонна к повторам чем Qwen
+            ),
+            # ── Fallback модели (оставлены для резерва) ───────────────────────
             "qwen_7b": ModelConfig(
                 name="qwen_7b",
                 path=self.model_qwen_7b_path,
@@ -211,13 +220,14 @@ class Settings(BaseSettings):
     # (разные агенты нуждаются в разном количестве контекста)
     # ─────────────────────────────────────────────────────────────────
     def get_context_for_agent(self, agent_name: str) -> int:
-        """Возвращает оптимальный ctx_size для агента."""
+        """Возвращает оптимальный ctx_size для агента.
+        Gemma-3-12B держит 4096 стабильно — увеличены бюджеты."""
         ctx_map = {
-            "dm":     2048,  # DM нужен длинный контекст для нарратива
-            "npc":    1024,  # диалог NPC короткий
-            "rules":  1024,  # rules engine — точность важнее длины
-            "memory": 1024,  # суммаризация — короткий вывод
-            "world":  1024,  # world tick — краткие события
+            "dm":     2048,  # DM: SceneState + python_engines + история
+            "npc":    1024,  # NPC: один персонаж, короткий диалог
+            "rules":  1024,  # Rules: точность важнее длины
+            "memory": 1024,  # Memory: суммаризация — короткий вывод
+            "world":  1024,  # World: краткие события
         }
         return ctx_map.get(agent_name.lower(), 1024)
 

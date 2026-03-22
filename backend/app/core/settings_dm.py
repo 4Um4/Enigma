@@ -22,7 +22,7 @@ class DmSettings(Settings):
     """
 
     # Пути к моделям: используем относительные пути
-    llama_cpp_model_path: Path = Settings().models_path / "qwen2.5-7b-instruct-q4_k_m.gguf"
+    llama_cpp_model_path: Path = Settings().models_path / "gemma-3-12b-it-q4_k_m.gguf"
 
     # Настройки LLM сервера
     llm_servers: dict = {
@@ -34,9 +34,9 @@ class DmSettings(Settings):
     }
 
     # Параметры генерации текста
-    gpu_layers: int = 35
+    gpu_layers: int = 28
     temperature: float = 0.75
-    ctx_size: int = 8192  # больший контекст для длинных историй
+    ctx_size: int = 4096  # 12B — KV-cache мал, ctx=4096 ок
 
 
 # Создаём объект настроек DM

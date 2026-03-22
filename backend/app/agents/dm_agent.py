@@ -17,6 +17,146 @@ from app.core.config import settings
 import json
 
 
+# ──────────────────────────────────────────────────────────────────────────────
+# Стоп-токены Gemma-3: при появлении в стриме — немедленно останавливаем.
+# <|im_start|> — самый опасный: вызывает генерацию текста промпта целиком.
+# ──────────────────────────────────────────────────────────────────────────────
+_GEMMA_STOP_TOKENS = [
+    "<|file_separator|>",
+    "<|end_of_turn|>",
+    "<end_of_turn>",
+    "<|im_end|>",
+    "<|im_start|>",      # главный виновник утечки промпта
+    "</|im_start|>",
+    "</s>",
+    "<|endoftext|>",
+    "<|file_end|>",
+    "<|file_sep|>",
+]
+
+
+def _strip_stop_tokens(text: str) -> str:
+    """Убирает стоп-токены из строки. Обрезает по первому вхождению."""
+    for token in _GEMMA_STOP_TOKENS:
+        idx = text.find(token)
+        if idx != -1:
+            text = text[:idx]
+    return text.strip()
+
+
+def _has_stop_token(text: str) -> bool:
+    return any(st in text for st in _GEMMA_STOP_TOKENS)
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Фаза S: вспомогательная функция — SceneState → текст для DM промпта
+# Дублирует логику SceneStateManager.get_scene_description() чтобы избежать
+# циклического импорта. dm_agent не должен зависеть от scene_state_manager.
+# ──────────────────────────────────────────────────────────────────────────────
+
+# ──────────────────────────────────────────────────────────────────────────────
+# ПАТЧ для dm_agent.py — ФАЗА S.0
+# Заменить функцию _build_scene_description() целиком.
+#
+# Изменения:
+#   - Добавлен блок ПРОСТРАНСТВЕННЫЙ КОНТЕКСТ ИГРОКА
+#   - Добавлен блок ПРАВИЛА РЕАКЦИЙ NPC
+#   - _build_scene_description теперь делегирует в SceneStateManager
+#     (убираем дублирование логики)
+# ──────────────────────────────────────────────────────────────────────────────
+
+def _build_scene_description(scene_state: dict) -> str:
+    """
+    Преобразует SceneState в текстовый блок для DM промпта.
+
+    S.0: делегирует в SceneStateManager.get_scene_description() —
+    там уже реализован полный блок включая player_target и правила реакций.
+
+    Fallback: встроенная упрощённая версия если импорт недоступен.
+    """
+    if not scene_state:
+        return ""
+
+    # Пробуем использовать SceneStateManager — там полная S.0 логика
+    try:
+        from app.services.scene_state_manager import SceneStateManager
+        return SceneStateManager.get_scene_description(scene_state)
+    except Exception:
+        pass
+
+    # ── Fallback: упрощённая версия (совместимость) ───────────────────────────
+    location_name = scene_state.get("location_name", scene_state.get("location_id", "?"))
+    env           = scene_state.get("environment", {})
+    objects       = scene_state.get("objects", {})
+    npc_positions = scene_state.get("npc_positions", {})
+    effects       = scene_state.get("active_effects", [])
+    time_of_day   = env.get("time_of_day", "?")
+    light         = env.get("light_level", "")
+    noise         = env.get("noise_level", "")
+
+    light_desc = {
+        "dark": "темно", "very_dim": "почти темно", "dim": "тускло",
+        "bright": "светло", "natural": "дневной свет",
+    }.get(light, light)
+
+    noise_desc = {
+        "silent": "тихо", "low": "тихий фон",
+        "moderate": "умеренный шум", "high": "шумно",
+    }.get(noise, noise)
+
+    state_map = {
+        "intact": "цел", "damaged": "повреждён", "broken": "сломан",
+        "lit": "горит", "unlit": "не горит", "burning": "горит",
+        "open": "открыт", "closed_unlocked": "закрыт", "closed_locked": "заперт",
+        "full": "полный", "empty": "пустой", "flowing": "течёт",
+    }
+
+    lines = [
+        f"СОСТОЯНИЕ СЦЕНЫ — {location_name} | {time_of_day} | {light_desc} | {noise_desc}",
+    ]
+
+    if objects:
+        parts = []
+        for obj_id, obj in objects.items():
+            name  = obj.get("name", obj_id)
+            state = state_map.get(obj.get("state", ""), obj.get("state", ""))
+            count = obj.get("count")
+            cnt   = f"({count})" if count and count > 1 else ""
+            parts.append(f"{name}{cnt}: {state}" if state else name)
+        lines.append("Объекты: " + "; ".join(parts))
+
+    if npc_positions:
+        npc_parts = []
+        for npc_id, pos in npc_positions.items():
+            if pos.get("state") == "dead":
+                continue
+            p = pos.get("position", "")
+            a = pos.get("activity", "")
+            v = "" if pos.get("visible", True) else "(скрыт)"
+            npc_parts.append(f"{npc_id} {v}: {p}, {a}".strip())
+        if npc_parts:
+            lines.append("NPC: " + "; ".join(npc_parts))
+
+    if effects:
+        lines.append("Эффекты: " + ", ".join(str(e) for e in effects))
+
+    # S.0: player_target даже в fallback
+    target_name = scene_state.get("player_target_npc_name")
+    target_id   = scene_state.get("player_target_npc")
+    player_pos  = scene_state.get("player_position")
+    if player_pos:
+        lines.append(f"Позиция игрока: {player_pos}")
+    if target_name or target_id:
+        name_str = target_name or target_id
+        lines.append(f"Игрок обращается к: {name_str}")
+        lines.append(
+            f"ПРАВИЛО: только {name_str} отвечает игроку. Остальные NPC молчат."
+        )
+
+    lines.append("Упоминай ТОЛЬКО объекты и NPC из этого списка.")
+    return "\n".join(lines)
+
+
 class DmAgent:
     """
     Narrative DM layer with automatic model selection.
@@ -78,8 +218,31 @@ class DmAgent:
             if recent:
                 context_str = "Недавние события:\n" + "\n".join(f"- {e}" for e in recent[-5:]) + "\n\n"
 
+        # Фаза S: SceneState — факты о мире. DM получает это первым.
+        # Только объекты и NPC из этого блока реально существуют в сцене.
+        scene_block = ""
+        if context:
+            scene_state = context.get("scene_state", {})
+            if scene_state:
+                try:
+                    scene_block = _build_scene_description(scene_state) + "\n\n"
+                except Exception:
+                    pass
+
+        # DM получает речь NPC как контекст-только-для-чтения —
+        # чтобы его описание мира было СОГЛАСОВАНО с тем что NPC уже сказали.
+        # Принцип: NPC говорят → DM описывает то что ПОСЛЕ слов NPC.
+        # ВАЖНО: DM не пересказывает речь, но знает о ней.
         npc_reactions = npc_result.get("npc_reactions", [])
-        npc_str = "\n".join(f"- {r}" for r in npc_reactions) if npc_reactions else "Нет реакций NPC"
+        npc_str = (
+            "\n".join(f"- {r}" for r in npc_reactions)
+            if npc_reactions else ""
+        )
+        npc_actions = npc_result.get("npc_actions", [])
+        npc_actions_str = (
+            "\n".join(f"- {a}" for a in npc_actions)
+            if npc_actions else ""
+        )
 
         world_changes = world_result.get("world_events", [])
         world_str = "\n".join(f"- {w}" for w in world_changes) if world_changes else "Нет изменений мира"
@@ -171,7 +334,7 @@ class DmAgent:
                     npc_psychology_block += line + "\n"
                 npc_psychology_block += "Используй имена NPC из этого списка — не придумывай новые.\n"
 
-        return f"""Текущая локация: {location}
+        return f"""{scene_block}Текущая локация: {location}
 
 {context_str}
 Действия игроков:
@@ -180,8 +343,11 @@ class DmAgent:
 Результаты проверок правил:
 {rules_str}
 
-Реакции NPC:
-{npc_str}
+Что NPC уже сказали игроку (КОНТЕКСТ — не повторяй это, используй для согласованности своего описания):
+{npc_str if npc_str else "NPC не говорили ничего"}
+
+Физические действия NPC (для описания мира):
+{npc_actions_str if npc_actions_str else "NPC не предпринимают видимых физических действий"}
 
 Изменения в мире:
 {world_str}
@@ -190,14 +356,19 @@ class DmAgent:
 {python_engines_block}
 {npc_psychology_block}
 
-Продолжи рассказ от лица Dungeon Master. Не говори за игроков. 
-Опиши что происходит, диалоги NPC, результаты действий. 
+Продолжи рассказ от лица Dungeon Master. Не говори за игроков.
+Опиши атмосферу и последствия действий от второго лица ("ты видишь...").
+Реплики NPC уже показаны игроку — НЕ повторяй и НЕ пересказывай их. Описывай мир ПОСЛЕ слов NPC, согласованно с тем что они сказали.
 Обязательно учитывай данные из блоков "Физические/логические ограничения" и "Результаты вычислений и проверок" — они имеют приоритет.
-Не говори за игроков. Будь краток (1-3 предложения для простых действий).
+Будь краток (1-3 предложения для простых действий).
 В конце опиши текущую ситуацию, не задавай вопросов.
 """
 
     def _get_system_prompt(self) -> str:
+        """
+        Загружает системный промпт из Promt_AI.json.
+        Fallback: встроенный промпт если файл недоступен.
+        """
         tone = ""
         if getattr(settings, "hardcore_mode", False):
             tone = """
@@ -207,14 +378,29 @@ class DmAgent:
 Не морализируй, не сглаживай и не "перевоспитывай" игрока.
 Действия имеют последствия (социальные и физические), но без цензуры.
 """
+        # Пробуем загрузить из файла
+        try:
+            from app.services.prompt_loader import load_system_prompt
+            from app.core.config import settings as s
+            file_prompt = load_system_prompt(s.system_prompt_file)
+            if file_prompt and len(file_prompt) > 20:
+                return file_prompt + tone
+        except Exception:
+            pass
 
+        # Встроенный fallback
         return f"""ВАЖНО: Отвечай ТОЛЬКО на Русском языке. Никакого английского или китайского.
 ВАЖНО: Не показывай свои размышления. Только финальный ответ.
+ВАЖНО: Никогда не генерируй теги вида <|im_start|>, <|im_end|>, <|file_separator|> и подобные.
 
-Ты — Мастер Подземелий D&D 5e. Ведёшь повествование от третьего лица.
+Ты — Мастер Подземелий D&D 5e. Ведёшь повествование от второго лица ("ты видишь...", "перед тобой...").
 Никогда не говори за игроков.
+НЕ генерируй реплики NPC — они идут отдельным каналом.
+Описывай только физические действия NPC от третьего лица.
+Используй ТОЛЬКО объекты и NPC из блока "СОСТОЯНИЕ СЦЕНЫ".
 Будь атмосферен и краток (2-4 предложения).
-Не повторяй текст промпта в ответе.{tone}"""
+Не повторяй текст промпта в ответе.
+Не заканчивай вопросом "Что вы будете делать?"{tone}"""
 
     # ──────────────────────────────────────────────────────────────────────────
     # Синхронная генерация
@@ -244,7 +430,7 @@ class DmAgent:
             capability="narrative",
             prompt=prompt,
             system_prompt=self._get_system_prompt(),
-            params=GenerationParams(max_tokens=1000),
+            params=GenerationParams(max_tokens=220),
         )
 
         if isinstance(result, str):
@@ -282,7 +468,7 @@ class DmAgent:
                 capability="narrative",
                 prompt=prompt,
                 system_prompt=system_prompt,
-                params=GenerationParams(max_tokens=1000),
+                params=GenerationParams(max_tokens=220),
             )
             if isinstance(result, dict):
                 yield result.get("dm_response", "")
@@ -298,19 +484,46 @@ class DmAgent:
 
         def _producer():
             token_num = 0
+            buffer = ""  # буфер для поимки стоп-токенов разбитых между чанками
+            tail_len = max(len(st) for st in _GEMMA_STOP_TOKENS)
             try:
                 for token in provider.stream_tokens(
                     prompt=prompt,
-                    params=GenerationParams(max_tokens=1000),
+                    params=GenerationParams(max_tokens=220),
                     system_prompt=system_prompt,
                 ):
+                    if not token:
+                        continue
                     token_num += 1
-                    if token and len(token) > 24:
-                        step = 12
-                        for i in range(0, len(token), step):
-                            asyncio.run_coroutine_threadsafe(q.put(token[i:i+step]), loop)
-                    else:
-                        asyncio.run_coroutine_threadsafe(q.put(token), loop)
+                    buffer += token
+
+                    # Проверяем буфер на стоп-токены
+                    if _has_stop_token(buffer):
+                        # Обрезаем по первому стоп-токену, отправляем чистый остаток
+                        clean = _strip_stop_tokens(buffer)
+                        if clean:
+                            asyncio.run_coroutine_threadsafe(q.put(clean), loop)
+                        # Стоп-токен — завершаем стриминг немедленно
+                        asyncio.run_coroutine_threadsafe(q.put(None), loop)
+                        return
+
+                    # Держим хвост на случай стоп-токена разбитого между чанками
+                    if len(buffer) > tail_len:
+                        to_send = buffer[:-tail_len]
+                        buffer  = buffer[-tail_len:]
+                        if to_send and len(to_send) > 24:
+                            step = 12
+                            for i in range(0, len(to_send), step):
+                                asyncio.run_coroutine_threadsafe(q.put(to_send[i:i+step]), loop)
+                        elif to_send:
+                            asyncio.run_coroutine_threadsafe(q.put(to_send), loop)
+
+                # Конец стрима — отправляем остаток буфера
+                if buffer:
+                    clean = _strip_stop_tokens(buffer)
+                    if clean:
+                        asyncio.run_coroutine_threadsafe(q.put(clean), loop)
+
             except Exception as e:
                 asyncio.run_coroutine_threadsafe(q.put(f"\n[Ошибка стриминга: {e}]"), loop)
             finally:
