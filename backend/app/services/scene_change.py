@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\scene_change.py
 """
 SceneChange — типы и структура изменений состояния сцены.
 backend/app/services/scene_change.py

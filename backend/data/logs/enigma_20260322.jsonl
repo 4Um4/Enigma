@@ -1,6 +1,0 @@
-{"timestamp": "2026-03-22T20:00:09.015906", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_start", "vram_before_mb": 6982}
-{"timestamp": "2026-03-22T20:00:09.048182", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_success", "vram_after_mb": 6982, "vram_delta_mb": 0}
-{"timestamp": "2026-03-22T20:00:39.645546", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_start", "vram_before_mb": 6952}
-{"timestamp": "2026-03-22T20:00:39.695379", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_success", "vram_after_mb": 6953, "vram_delta_mb": 1}
-{"timestamp": "2026-03-22T20:01:21.765245", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_start", "vram_before_mb": 6949}
-{"timestamp": "2026-03-22T20:01:21.815072", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_success", "vram_after_mb": 6949, "vram_delta_mb": 0}

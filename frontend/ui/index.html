@@ -274,6 +274,20 @@ textarea:disabled{opacity:.35;cursor:not-allowed}
 .dbg-drives{margin-top:5px;display:flex;gap:3px;flex-wrap:wrap}
 .drv{font-family:var(--ff-m);font-size:.46rem;padding:1px 5px;border-radius:2px;background:#180c04;border:1px solid #3a1c08;color:var(--em2)}
 
+/* ── TIMING PANEL ── */
+#timing-panel{background:#0e0904;border-top:1px solid var(--br0);padding:6px 18px;
+  font-family:var(--ff-m);font-size:.52rem;display:none;flex-wrap:wrap;gap:6px 14px;align-items:center}
+#timing-panel.vis{display:flex}
+.tp-title{color:var(--em2);text-transform:uppercase;letter-spacing:.1em;font-size:.5rem;width:100%;margin-bottom:2px}
+.tp-row{display:flex;align-items:center;gap:5px}
+.tp-lbl{color:var(--tx2)}
+.tp-val{color:var(--tx0);min-width:38px}
+.tp-bar{width:60px;height:2px;background:var(--br0);border-radius:1px;overflow:hidden}
+.tp-fill{height:100%;border-radius:1px;background:var(--em2);transition:width .2s}
+.tp-fill.slow{background:var(--rd2)}
+.tp-fill.ok{background:var(--gn)}
+.tp-total{margin-left:auto;color:var(--em3);font-size:.58rem}
+
 @media(max-width:680px){
   #main{grid-template-columns:1fr}
   #side{border-top:1px solid var(--br0);max-height:140px;flex-direction:row}
@@ -368,6 +382,17 @@ textarea:disabled{opacity:.35;cursor:not-allowed}
     <div id="prog-wrap"><div id="prog"></div></div>
     <span id="metrics-st"></span>
   </div>
+</div>
+
+<div id="timing-panel">
+  <span class="tp-title">⏱ Профиль хода</span>
+  <div class="tp-row"><span class="tp-lbl">Соединение</span><span class="tp-val" id="tp-conn">—</span><div class="tp-bar"><div class="tp-fill" id="tf-conn"></div></div></div>
+  <div class="tp-row"><span class="tp-lbl">Классификация</span><span class="tp-val" id="tp-cls">—</span><div class="tp-bar"><div class="tp-fill" id="tf-cls"></div></div></div>
+  <div class="tp-row"><span class="tp-lbl">Python-движки</span><span class="tp-val" id="tp-eng">—</span><div class="tp-bar"><div class="tp-fill" id="tf-eng"></div></div></div>
+  <div class="tp-row"><span class="tp-lbl">NPC агент</span><span class="tp-val" id="tp-npc">—</span><div class="tp-bar"><div class="tp-fill" id="tf-npc"></div></div></div>
+  <div class="tp-row"><span class="tp-lbl">Первый токен</span><span class="tp-val" id="tp-ftok">—</span><div class="tp-bar"><div class="tp-fill" id="tf-ftok"></div></div></div>
+  <div class="tp-row"><span class="tp-lbl">Генерация</span><span class="tp-val" id="tp-gen">—</span><div class="tp-bar"><div class="tp-fill" id="tf-gen"></div></div></div>
+  <span class="tp-total" id="tp-total"></span>
 </div>
 
 <footer>
@@ -704,9 +729,60 @@ function scrollTop_(){$("#chat").scrollTo({top:0,behavior:"smooth"});}
 $("#chat").addEventListener("scroll",updScrollBtn);
 
 /* ── STREAMING ── */
+/* ── TIMING ── */
+const T={};
+function tMark(k){T[k]=performance.now();}
+function tMs(from,to){return T[to]&&T[from]?Math.round(T[to]-T[from]):null;}
+function tFmt(ms){return ms==null?"—":ms<1000?ms+"ms":(ms/1000).toFixed(1)+"s";}
+function tBar(fillId,ms,maxMs,warnMs){
+  const el=document.getElementById(fillId);if(!el||ms==null)return;
+  const pct=Math.min(100,ms/maxMs*100);
+  el.style.width=pct+"%";
+  el.className="tp-fill"+(ms>warnMs?" slow":ms<warnMs*.4?" ok":"");
+}
+function tShow(){
+  const conn=tMs("send","ping"),cls=tMs("ping","cls"),
+        eng=tMs("cls","model"),npc=tMs("model","npc_or_ftok"),
+        ftok=tMs("send","ftok"),gen=tMs("ftok","done"),
+        total=tMs("send","done");
+
+  document.getElementById("tp-conn").textContent=tFmt(conn);
+  document.getElementById("tp-cls").textContent=tFmt(cls);
+  document.getElementById("tp-eng").textContent=tFmt(eng);
+  document.getElementById("tp-npc").textContent=tFmt(npc);
+  document.getElementById("tp-ftok").textContent=tFmt(ftok);
+  document.getElementById("tp-gen").textContent=tFmt(gen);
+  document.getElementById("tp-total").textContent=total!=null?"Итого: "+(total/1000).toFixed(1)+"s":"";
+
+  tBar("tf-conn", conn,  2000,  500);
+  tBar("tf-cls",  cls,   5000,  200);
+  tBar("tf-eng",  eng,  15000, 5000);
+  tBar("tf-npc",  npc,  30000,10000);
+  tBar("tf-ftok", ftok, 60000,20000);
+  tBar("tf-gen",  gen,  60000,30000);
+
+  document.getElementById("timing-panel").classList.add("vis");
+
+  // Лог в консоль для детального анализа
+  console.table({
+    "→ Соединение (send→ping)":    tFmt(conn),
+    "→ Классификация (ping→cls)":  tFmt(cls),
+    "→ Python+Rules (cls→model)":  tFmt(eng),
+    "→ NPC агент (model→npc/tok)": tFmt(npc),
+    "→ До 1го токена (send→ftok)": tFmt(ftok),
+    "→ Генерация (ftok→done)":     tFmt(gen),
+    "→ ИТОГО":                     tFmt(total),
+  });
+}
+
 async function sendStream(text){
+  tMark("send");
+  // Сбрасываем таймеры предыдущего хода
+  ["ping","cls","model","npc_or_ftok","ftok","done"].forEach(k=>delete T[k]);
+  document.getElementById("timing-panel").classList.remove("vis");
+
   thinkStart();setBusy(true);startDM();
-  let n=0,buf="",first=true,queue=[],timer=null;
+  let n=0,buf="",first=true,queue=[],timer=null,npcReceived=false;
   const startR=()=>{if(timer)return;timer=setInterval(()=>{if(queue.length)appendTok(queue.shift());},25);};
   const stopR=()=>{clearInterval(timer);timer=null;while(queue.length)appendTok(queue.shift());};
   try{
@@ -723,20 +799,36 @@ async function sendStream(text){
       for(const part of parts){
         const line=part.trim();if(!line.startsWith("data:"))continue;
         let e;try{e=JSON.parse(line.slice(5).trim());}catch{continue;}
-        if(e.type==="status"){if(e.text?.includes("рассказывает")){thinkStop();mStart();}}
-        else if(e.type==="action_type"){showActTag(e.value);}
-        else if(e.type==="token"){
-          if(first){thinkStop();mStart();startR();first=false;}
-          n++;queue.push(e.text);mUpd(n);
+
+        if(e.type==="ping"){
+          tMark("ping");
+        }
+        else if(e.type==="status"){
+          if(e.text?.includes("рассказывает")){thinkStop();mStart();}
+        }
+        else if(e.type==="action_type"){
+          tMark("cls");
+          showActTag(e.value);
+        }
+        else if(e.type==="model"){
+          tMark("model");
+          G.pendMeta=e.data;
         }
         else if(e.type==="npc"){
+          tMark("npc_or_ftok"); npcReceived=true;
           if(e.data?.length){
-            // NPC реакции теперь приходят ДО DM — показываем сразу
             msgNPC(e.data);
             for(const r of e.data){const who=r.npc_id||r.npc_name||"",what=r.reaction||r.action||r.text||"";if(who&&what)setQuote(who,what);}
           }
         }
-        else if(e.type==="model"){G.pendMeta=e.data;}
+        else if(e.type==="token"){
+          if(first){
+            tMark("ftok");
+            if(!npcReceived)tMark("npc_or_ftok"); // npc не пришёл — считаем от model до ftok
+            thinkStop();mStart();startR();first=false;
+          }
+          n++;queue.push(e.text);mUpd(n);
+        }
         else if(e.type==="scene_state"){renderScene(e.data||e.scene_state);}
         else if(e.type==="scene_change"){
           if(e.changes?.length){
@@ -750,7 +842,12 @@ async function sendStream(text){
           for(const nm of(e.data?.npcs||[]))lifeLog(`${nm} изменил активность`);
         }
         else if(e.type==="dice"){for(const d of(e.rolls||(e.data?[e.data]:[])))msgDice(d);}
-        else if(e.type==="done"){mDone(e.tokens||n,e.ms||0,e.tps||0);if(e.scene_state)renderScene(e.scene_state);}
+        else if(e.type==="done"){
+          tMark("done");
+          mDone(e.tokens||n,e.ms||0,e.tps||0);
+          if(e.scene_state)renderScene(e.scene_state);
+          tShow(); // показываем панель с цифрами
+        }
         else if(e.type==="error"){msgErr(e.text||"Ошибка стриминга");}
       }
     }
@@ -764,8 +861,8 @@ async function sendStream(text){
     }
   }finally{
     stopR();endDM();thinkStop();setBusy(false);
+    if(T["send"]&&!T["done"]){tMark("done");tShow();} // показать даже при ошибке
     if(G.pendMeta){const{dm,npc}=G.pendMeta;if(dm?.key)msgSys(`DM: ${dm.key}`);if(npc?.key)msgSys(`NPC: ${npc.key}`);G.pendMeta=null;}
-    // pendNpc больше не нужен — NPC реакции показываются сразу при получении
     G.pendNpc=G.pendMod=null;
     refreshState();
   }

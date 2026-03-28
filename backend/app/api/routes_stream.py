@@ -29,13 +29,12 @@ from datetime import datetime
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 
-from app.services.orchestrator import GameOrchestrator
+from app.services.game_loop_factory import game_loop
 from app.services.player_session_service import player_session_service
 from app.services.campaign_state_service import get_campaign_state_service
 
 router = APIRouter()
 
-_orchestrator = GameOrchestrator()
 _campaign_service = get_campaign_state_service()
 
 
@@ -99,7 +98,7 @@ async def game_action_stream(request: dict):
         Простой генератор: вызывает orchestrator.stream_turn() и
         пересылает всё что оттуда приходит.
         """
-        async for event in _orchestrator.stream_turn(
+        async for event in game_loop.stream_turn(
             campaign_id=campaign_id,
             player=player,
             action_text=action_text,

@@ -34,7 +34,7 @@ from app.services.character_service import CharacterService
 from app.services.combat_service import CombatService
 from app.services.knowledge_ingest import KnowledgeIngestService
 from app.services.llm_service import llm_service
-from app.services.orchestrator import GameOrchestrator
+from app.services.game_loop_factory import game_loop
 from app.services.readiness import ReadinessService
 from app.services.campaign_state_service import get_campaign_state_service
 from app.services.player_session_service import player_session_service
@@ -47,11 +47,10 @@ import time
 import os
 
 router = APIRouter()
-orchestrator = GameOrchestrator()
 readiness_service = ReadinessService()
 character_service = CharacterService()
 combat_service = CombatService()
-knowledge_ingest = KnowledgeIngestService(orchestrator.layered_memory)
+knowledge_ingest = KnowledgeIngestService(game_loop.layered_memory)
 campaign_service = get_campaign_state_service()
 
 # Время старта приложения
@@ -124,7 +123,7 @@ def system_status() -> dict:
 
 @router.get("/system/requirements")
 def system_requirements() -> dict:
-    report = orchestrator.system_requirements.check()
+    report = game_loop.system_requirements.check()
     return {"meets": report.meets, **report.details}
 
 
@@ -135,12 +134,12 @@ def readiness_status() -> ReadinessReport:
 
 @router.post("/campaign/load", response_model=CampaignLoadResponse)
 def load_campaign(request: CampaignLoadRequest) -> CampaignLoadResponse:
-    return orchestrator.load_campaign(request.campaign_id, request.world_id)
+    return game_loop.load_campaign(request.campaign_id, request.world_id)
 
 
 @router.post("/world/tick/{world_id}", response_model=WorldTickResponse)
 def force_world_tick(world_id: str) -> WorldTickResponse:
-    tick = orchestrator.trigger_world_tick(world_id)
+    tick = game_loop.world_scheduler.maybe_tick(world_id, force=True)
     return WorldTickResponse(world_id=world_id, **tick)
 
 
@@ -224,7 +223,7 @@ async def game_turn(request: ChatTurnRequest) -> ChatTurnResponse:
                 detail=f"Игрок '{player_name}' не активен. Пожалуйста, выберите персонажа."
             )
     try:
-        return await orchestrator.run_turn(request)
+        return await game_loop.run_turn(request)
     except RuntimeError as exc:
         raise HTTPException(status_code=412, detail=str(exc))
 
@@ -276,7 +275,7 @@ async def game_action(request: dict) -> dict:
             actions=[PlayerAction(player_name=player, action=action_text)]
         )
 
-        result = await orchestrator.run_turn(turn_request)
+        result = await game_loop.run_turn(turn_request)
 
         # Мета о моделях (для UI/дебага). Не ломает старые клиенты.
         dm_cfg = pool.get_model_config(dm_model_key) if pool else None
@@ -315,7 +314,7 @@ async def game_action(request: dict) -> dict:
 
 @router.get("/session/state/{campaign_id}", response_model=SessionInterfaceState)
 def session_state(campaign_id: str) -> SessionInterfaceState:
-    state = orchestrator.session_state(campaign_id)
+    state = game_loop.session_state(campaign_id)
     state.players = [char.name for char in character_service.list_characters(campaign_id)]
 
     # Фаза S + 3B: добавляем metadata и scene_state для фронтенда
@@ -323,7 +322,7 @@ def session_state(campaign_id: str) -> SessionInterfaceState:
     try:
         import json
         # campaign_state.json хранит metadata (location, time) и scene_state напрямую
-        cs_path = orchestrator.data_dir / "campaigns" / campaign_id / "campaign_state.json"
+        cs_path = game_loop.data_dir / "campaigns" / campaign_id / "campaign_state.json"
         if cs_path.exists():
             cs = json.loads(cs_path.read_text(encoding="utf-8"))
             # Берём metadata как есть
@@ -336,7 +335,7 @@ def session_state(campaign_id: str) -> SessionInterfaceState:
             elif meta.get("current_location"):
                 # Fallback: запрашиваем через SceneManager
                 try:
-                    scene = orchestrator.scene_manager.get_scene_state(
+                    scene = game_loop.scene_manager.get_scene_state(
                         campaign_id, meta["current_location"]
                     )
                     if scene:
@@ -353,7 +352,7 @@ def session_state(campaign_id: str) -> SessionInterfaceState:
 def get_npcs(campaign_id: str) -> dict:
     """Возвращает major NPC для NPC-панели фронтенда."""
     try:
-        npc_path = orchestrator.data_dir / "npcs" / "major_npcs.json"
+        npc_path = game_loop.data_dir / "npcs" / "major_npcs.json"
         if not npc_path.exists():
             return {"npcs": []}
         import json
@@ -368,7 +367,9 @@ def get_npcs(campaign_id: str) -> dict:
 @router.post("/import/world")
 async def import_world(file: UploadFile) -> dict:
     content = (await file.read()).decode("utf-8", errors="ignore")
-    entry_id = orchestrator.import_world_text(file.filename or "world.txt", content)
+    entry_id = game_loop.layered_memory.write_world_canon(
+        "manual", {"source": file.filename or "world.txt", "content": content}
+    )
     return {"import_id": entry_id, "filename": file.filename}
 
 

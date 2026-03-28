@@ -1,0 +1,2 @@
+{"ts": "2026-03-23T19:38:06", "campaign_id": "demo-campaign", "applied": true, "type": "npc_position", "target": "thief_shadow", "field": "visible", "value": false, "cause": "life_engine_random", "tick": 1}
+{"ts": "2026-03-23T21:31:29", "campaign_id": "demo-campaign", "applied": true, "type": "npc_state", "target": "thief_shadow", "field": "psyche_state", "value": "alert", "cause": "life_engine_random", "tick": 5}

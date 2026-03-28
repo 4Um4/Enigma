@@ -23,7 +23,7 @@ from app.services.error_interpreter import get_error_interpreter
 from app.services.vram_monitor import get_vram_monitor
 from app.services.llm.provider_manager import get_model_pool
 from app.services.llm.factory import ProviderFactory
-from app.services.orchestrator import jsonl_log
+from app.services.logging_tools import jsonl_log
 from app.services.llm.llama_cpp_provider import LlamaCppProvider
 
 logger = logging.getLogger(__name__)

@@ -7,7 +7,7 @@
   "metadata": {},
   "scene_state": {
     "location_id": "tavern_silver_wolf",
-    "snapshot_tick": 3,
+    "snapshot_tick": 7,
     "objects": {
       "bar_counter": {
         "name": "барная стойка",
@@ -52,7 +52,8 @@
       "thief_shadow": {
         "position": "near_bar",
         "activity": "talking_at_bar",
-        "visible": true
+        "visible": false,
+        "psyche_state": "alert"
       },
       "guard_borko": {
         "activity": "sleeping",
@@ -75,12 +76,12 @@
     },
     "player_inventory_snapshot": {},
     "active_effects": [],
-    "player_position": "на коленях",
-    "player_target_npc": null,
-    "player_target_npc_name": null,
+    "player_position": "сидит",
+    "player_target_npc": "thief_shadow",
+    "player_target_npc_name": "Тень",
     "player_target_object": null,
     "player_distances": {
-      "maid_lusya": 2.0,
+      "maid_lusya": 3.0,
       "thief_shadow": 3.0
     }
   }
