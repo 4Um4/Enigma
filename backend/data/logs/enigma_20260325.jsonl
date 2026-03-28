@@ -1,0 +1,54 @@
+{"error_code": "startup_error", "error_message": "Simulated startup error"}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"error_code": "startup_error", "error_message": "Simulated startup error"}
+{"error_code": "startup_error", "error_message": "Simulated startup error"}
+{"error_code": "startup_error", "error_message": "Simulated startup error"}
+{"error_code": "startup_error", "error_message": "Simulated startup error"}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"timestamp": "2026-03-25T20:14:48.456126", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_start", "vram_before_mb": 7250}
+{"timestamp": "2026-03-25T20:14:48.504663", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_success", "vram_after_mb": 7250, "vram_delta_mb": 0}
+{"timestamp": "2026-03-25T20:15:43.339407", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_start", "vram_before_mb": 7252}
+{"timestamp": "2026-03-25T20:15:43.387986", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_success", "vram_after_mb": 7252, "vram_delta_mb": 0}
+{"error_code": "startup_error", "error_message": "Simulated startup error"}
+{"error_code": "startup_error", "error_message": "Simulated startup error"}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"timestamp": "2026-03-25T20:54:15.546482", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_start", "vram_before_mb": 7069}
+{"timestamp": "2026-03-25T20:54:15.596906", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_success", "vram_after_mb": 7069, "vram_delta_mb": 0}
+{"error_code": "startup_error", "error_message": "Simulated startup error"}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"timestamp": "2026-03-25T21:08:01.929091", "level": "INFO", "agent": "rules", "model": "gemma_12b", "status": "load_start", "vram_before_mb": 7065}
+{"timestamp": "2026-03-25T21:08:01.978978", "level": "INFO", "agent": "rules", "model": "gemma_12b", "status": "load_success", "vram_after_mb": 7065, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 7065, "vram_after_mb": 7065}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 303, "status": "complete"}
+{"level": "INFO", "agent": "npc", "status": "model_switch", "vram_before_mb": 7071, "vram_after_mb": 7071}
+{"level": "INFO", "agent": "npc", "error_code": "SUCCESS", "duration_ms": 6980, "status": "complete"}
+{"timestamp": "2026-03-25T21:08:09.166540", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_start", "vram_before_mb": 7071}
+{"timestamp": "2026-03-25T21:08:09.216548", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_success", "vram_after_mb": 7073, "vram_delta_mb": 2}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 7062, "vram_after_mb": 7062}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 76, "status": "complete"}
+{"level": "INFO", "agent": "npc", "status": "model_switch", "vram_before_mb": 7062, "vram_after_mb": 7062}
+{"level": "INFO", "agent": "npc", "error_code": "SUCCESS", "duration_ms": 7159, "status": "complete"}
+{"timestamp": "2026-03-25T21:09:09.240462", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_start", "vram_before_mb": 7136}
+{"timestamp": "2026-03-25T21:09:09.292035", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_success", "vram_after_mb": 7136, "vram_delta_mb": 0}
+{"error_code": "startup_error", "error_message": "Simulated startup error"}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"error_code": "startup_error", "error_message": "Simulated startup error"}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"timestamp": "2026-03-25T21:36:33.653964", "level": "INFO", "agent": "rules", "model": "gemma_12b", "status": "load_start", "vram_before_mb": 7014}
+{"timestamp": "2026-03-25T21:36:33.701419", "level": "INFO", "agent": "rules", "model": "gemma_12b", "status": "load_success", "vram_after_mb": 7015, "vram_delta_mb": 1}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 7014, "vram_after_mb": 7015}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 360, "status": "complete"}
+{"level": "INFO", "agent": "npc", "status": "model_switch", "vram_before_mb": 7015, "vram_after_mb": 7015}
+{"level": "INFO", "agent": "npc", "error_code": "SUCCESS", "duration_ms": 6885, "status": "complete"}
+{"timestamp": "2026-03-25T21:36:40.859546", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_start", "vram_before_mb": 7023}
+{"timestamp": "2026-03-25T21:36:40.909564", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_success", "vram_after_mb": 7023, "vram_delta_mb": 0}
+{"error_code": "startup_error", "error_message": "Simulated startup error"}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"timestamp": "2026-03-25T21:56:05.763531", "level": "INFO", "agent": "rules", "model": "gemma_12b", "status": "load_start", "vram_before_mb": 7119}
+{"timestamp": "2026-03-25T21:56:05.812517", "level": "INFO", "agent": "rules", "model": "gemma_12b", "status": "load_success", "vram_after_mb": 7119, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 7119, "vram_after_mb": 7119}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 369, "status": "complete"}
+{"level": "INFO", "agent": "npc", "status": "model_switch", "vram_before_mb": 7125, "vram_after_mb": 7125}
+{"level": "INFO", "agent": "npc", "error_code": "SUCCESS", "duration_ms": 7911, "status": "complete"}
+{"timestamp": "2026-03-25T21:56:14.022339", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_start", "vram_before_mb": 7137}
+{"timestamp": "2026-03-25T21:56:14.071213", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_success", "vram_after_mb": 7138, "vram_delta_mb": 1}

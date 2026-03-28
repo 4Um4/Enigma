@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\psyche_engine.py
 """
 PsycheEngine — стресс, слом воли, психологические состояния
 backend/app/services/npc/psyche_engine.py

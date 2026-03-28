@@ -2,7 +2,7 @@
 Debug API Routes (F1-T03)
 Agent Health Dashboard + VRAM/logs for frontend debug.html
 """
-
+import time
 from fastapi import APIRouter
 
 from app.services.llm.provider_manager import get_model_pool

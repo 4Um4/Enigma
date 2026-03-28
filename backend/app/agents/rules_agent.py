@@ -1,102 +1,237 @@
+# backend/app/agents/rules_agent.py
+#
+# RulesAgent v2.0 — переработан под архитектуру v8.1
+#
+# Принцип: чистый Python, 0 мс, никакого LLM.
+# Отвечает ровно за одно: определить игромеханические параметры действия.
+#
+# Что изменилось vs v1:
+#   - Возвращает структурированный RulesResult вместо голого dict
+#   - Skill check определяется по ActionType (из classifier), не по keywords
+#   - DC калиброван по реальным правилам D&D 5e (PHB)
+#   - Добавлены advantage/disadvantage условия
+#   - Добавлен ability_used — DM знает какую характеристику проверять
+#   - Готов к интеграции с EventBus (Phase 3B.1): result совместим со SceneChange
+#   - Убрана логика "рутинные слова" — за классификацию отвечает action_classifier
+
+from dataclasses import dataclass, field
+from typing import Optional
 from app.models.schemas import PlayerAction
+from app.services.action_classifier import ActionType
+
+
+# ─── Таблица DC по D&D 5e PHB ───────────────────────────────────────────────
+# Trivial=5, Easy=10, Medium=12, Hard=15, VeryHard=20, NearlyImpossible=25
+_DC_BY_ACTION_TYPE: dict[str, int] = {
+    ActionType.COMBAT.value:          12,   # Атака — AC цели перекрывает, но базово 12
+    ActionType.SANDBOX_PHYSICAL.value: 12,  # Физические действия — Easy/Medium
+    ActionType.SANDBOX_SOCIAL.value:   14,  # Социальные — Medium (Persuasion/Deception)
+    ActionType.SANDBOX_MILD.value:     10,  # Лёгкие действия — Easy
+    ActionType.ROMANCE.value:          14,  # Убеждение/обаяние — Medium
+    ActionType.CAPTURE.value:          15,  # Захват — Hard (Athletics vs Athletics)
+    ActionType.FLEE.value:             12,  # Побег — Medium (Athletics)
+    ActionType.LIFE_CHOICE.value:      10,  # Простые решения — Easy
+    ActionType.EXPLORE.value:           0,  # Исследование — обычно без броска
+    ActionType.UNKNOWN.value:          12,  # Неизвестное — Medium по умолчанию
+}
+
+# Какую характеристику/навык использует тип действия
+_ABILITY_BY_ACTION_TYPE: dict[str, str] = {
+    ActionType.COMBAT.value:           "strength",      # или dexterity для финессе
+    ActionType.SANDBOX_PHYSICAL.value: "strength",
+    ActionType.SANDBOX_SOCIAL.value:   "charisma",
+    ActionType.SANDBOX_MILD.value:     "dexterity",
+    ActionType.ROMANCE.value:          "charisma",
+    ActionType.CAPTURE.value:          "strength",
+    ActionType.FLEE.value:             "dexterity",
+    ActionType.LIFE_CHOICE.value:      "wisdom",
+    ActionType.EXPLORE.value:          "perception",
+    ActionType.UNKNOWN.value:          "intelligence",
+}
+
+# Навык D&D 5e по типу действия (для промпта DM)
+_SKILL_BY_ACTION_TYPE: dict[str, str] = {
+    ActionType.COMBAT.value:           "Athletics",
+    ActionType.SANDBOX_PHYSICAL.value: "Athletics",
+    ActionType.SANDBOX_SOCIAL.value:   "Persuasion",
+    ActionType.SANDBOX_MILD.value:     "Sleight of Hand",
+    ActionType.ROMANCE.value:          "Persuasion",
+    ActionType.CAPTURE.value:          "Athletics",
+    ActionType.FLEE.value:             "Acrobatics",
+    ActionType.LIFE_CHOICE.value:      "Insight",
+    ActionType.EXPLORE.value:          "Perception",
+    ActionType.UNKNOWN.value:          "Intelligence",
+}
+
+# Типы действий которые никогда не требуют броска
+_NO_ROLL_TYPES = {
+    ActionType.EXPLORE.value,
+    ActionType.LIFE_CHOICE.value,
+}
+
+
+@dataclass
+class SkillCheckResult:
+    """Результат одной проверки навыка."""
+    player:       str
+    action:       str
+    action_type:  str
+    needs_roll:   bool
+    dc:           int         # 0 если броска нет
+    ability:      str         # strength / dexterity / charisma / etc.
+    skill:        str         # Athletics / Persuasion / etc.
+    advantage:    bool = False
+    disadvantage: bool = False
+    result:       str = ""    # "автоматический успех" / "" если нужен бросок
+
+    def to_dict(self) -> dict:
+        return {
+            "player":       self.player,
+            "action":       self.action,
+            "action_type":  self.action_type,
+            "needs_roll":   self.needs_roll,
+            "dc":           self.dc,
+            "ability":      self.ability,
+            "skill":        self.skill,
+            "advantage":    self.advantage,
+            "disadvantage": self.disadvantage,
+            "result":       self.result,
+        }
 
 
 class RulesAgent:
-    """Агент правил D&D 5e с логикой определения необходимости броска."""
+    """
+    Игромеханика D&D 5e — чистый Python, 0 мс.
 
-    # Рутинные действия - для них НЕ требуется бросок d20
-    ROUTINE_ACTIONS = {
-        "купить", "выпить", "заказать", "спросить", "осмотреть",
-        "посмотреть", "взять", "положить", "идти", "войти", "выйти",
-        "сесть", "встать", "лечь", "отдохнуть", "поесть", "съесть",
-        "поговорить", "поздороваться", "попрощаться", "расспросить",
-        "пройти", "подойти", "отойти", "открыть", "закрыть",
-        "достать", "показать", "подать", "передать", "прочитать", "послушать",
-    }
+    Определяет:
+    - нужен ли бросок d20
+    - DC (сложность)
+    - какую характеристику/навык проверять
+    - advantage/disadvantage условия
 
-    # Ключевые слова, требующие броска (реальный риск или последствия)
-    RISK_KEYWORDS = {
-        "подкупить", "взломать", "скрыт", "убедить", "обмануть", "выкрасть",
-        "атаковать", "ударить", "убить", "защищаться", "уклониться",
-        "ловушка", "опасн", "враг", "монстр", "бой", "сражение",
-        "прыжок", "карабкаться", "плаван", "алхимия", "магия", "заклинани",
-    }
+    НЕ вызывает LLM. НЕ принимает решения за игрока.
+    Результат используется DM агентом для нарратива.
+    """
 
-    def _is_routine_action(self, action_text: str) -> bool:
-        """Определяет, является ли действие рутинным (без броска)."""
-        action_lower = action_text.lower()
-
-        for routine_word in self.ROUTINE_ACTIONS:
-            if routine_word in action_lower:
-                # Проверяем наличие слов риска
-                for risk_word in self.RISK_KEYWORDS:
-                    if risk_word in action_lower:
-                        if risk_word in {"подкупить", "взломать", "скрыт", "убедить", "обмануть", "выкрасть"}:
-                            return False  # требует бросок
-                return True
-        return False
-
-    def check_need_roll(self, action: str) -> bool:
+    def needs_roll(self, action_type: str) -> bool:
         """
-        Определяет, требуется ли бросок d20 для данного действия.
-        Returns:
-            True - нужен бросок, False - автоматический успех
+        Нужен ли бросок для данного типа действия.
+        EXPLORE и LIFE_CHOICE — автоматический успех.
+        Все остальные — проверка навыка.
         """
-        action_lower = action.lower()
+        return action_type not in _NO_ROLL_TYPES
 
-        if self._is_routine_action(action):
-            return False
+    def get_dc(self, action_type: str, character: dict | None = None) -> int:
+        """
+        DC по таблице D&D 5e.
+        character — для будущей модификации DC по уровню противника (Phase 3D).
+        """
+        return _DC_BY_ACTION_TYPE.get(action_type, 12)
 
-        for risk_word in self.RISK_KEYWORDS:
-            if risk_word in action_lower:
-                return True
+    def get_ability(self, action_type: str) -> str:
+        return _ABILITY_BY_ACTION_TYPE.get(action_type, "intelligence")
 
-        return False  # спорные случаи - по умолчанию
+    def get_skill(self, action_type: str) -> str:
+        return _SKILL_BY_ACTION_TYPE.get(action_type, "Intelligence")
 
-    def calculate_difficulty(self, action: str) -> int:
-        """Возвращает DC для броска на основе ключевых слов."""
-        hard_keywords = ("взлом", "скрыт", "древн", "босс")
-        if any(word in action.lower() for word in hard_keywords):
-            return 15
-        return 12
+    def check_advantage(self, action_type: str, character: dict) -> tuple[bool, bool]:
+        """
+        Возвращает (advantage, disadvantage).
+        Правила D&D 5e:
+          - advantage при помощи союзника / удачных условиях
+          - disadvantage при ослаблении / враждебных условиях
+        Сейчас читаем из conditions персонажа.
+        Phase 3B.3 расширит это через WorldState.
+        """
+        conditions = character.get("conditions", [])
 
-    def resolve_skill_check(self, dice_result: int, dc: int) -> str:
-        if dice_result >= dc:
+        advantage    = "helped" in conditions or "inspired" in conditions
+        disadvantage = any(c in conditions for c in [
+            "prone", "blinded", "frightened", "poisoned", "exhausted",
+            "restrained", "лежит", "ослеплён", "напуган", "отравлен",
+        ])
+
+        # Advantage и disadvantage одновременно — нейтрализуют друг друга
+        if advantage and disadvantage:
+            return False, False
+
+        return advantage, disadvantage
+
+    def resolve(self, dice_roll: int, dc: int) -> str:
+        """
+        Разрешает проверку навыка по результату броска.
+        Возвращает: "критический успех" / "успех" / "частичный успех" / "провал"
+        """
+        if dice_roll == 20:
+            return "критический успех"
+        if dice_roll >= dc:
             return "успех"
-        elif dice_result >= dc - 3:
+        if dice_roll >= dc - 3:
             return "частичный успех"
         return "провал"
 
-    def resolve_damage(self, base_damage: int, modifier: int = 0) -> int:
-        return max(0, base_damage + modifier)
+    def run(
+        self,
+        actions: list[PlayerAction],
+        shared_context: dict | None = None,
+    ) -> dict:
+        """
+        Основной метод — оценивает все действия за ход.
 
-    def run(self, actions: list[PlayerAction], shared_context: dict | None = None) -> dict:
+        Возвращает:
+            {
+                "checks": [SkillCheckResult.to_dict(), ...],
+                "summary": "краткая строка для DM промпта"
+            }
         """
-        Main run method for RulesAgent - evaluates player actions with smart dice logic.
-        SAFE FALLBACK: Always returns {"checks": [...]} even on error.
-        """
-        try:
-            checks = []
-            for action in actions:
-                needs_roll = self.check_need_roll(action.action)
-                dc = self.calculate_difficulty(action.action)
-                if needs_roll:
-                    check = {
-                        "player": action.player_name,
-                        "action": action.action,
-                        "needs_roll": True,
-                        "dc": dc,
-                        "instruction": f"Бросьте d20 для {action.action} (DC {dc})"
-                    }
-                else:
-                    check = {
-                        "player": action.player_name,
-                        "action": action.action,
-                        "needs_roll": False,
-                        "result": "автоматический успех"
-                    }
-                checks.append(check)
-            return {"checks": checks}
-        except Exception:
-            # Minimal fallback
-            return {"checks": []}
+        checks = []
+
+        for action in actions:
+            action_type = ActionType.UNKNOWN.value
+            # Берём тип из shared_context если есть (classifier уже отработал)
+            if shared_context:
+                for cls in shared_context.get("classification", []):
+                    if cls.get("player") == action.player_name:
+                        action_type = cls.get("type", ActionType.UNKNOWN.value)
+                        break
+
+            character = {}
+            if shared_context:
+                python_engines = shared_context.get("python_engines", {})
+                character = python_engines.get(action.player_name, {})
+
+            roll_needed = self.needs_roll(action_type)
+            dc          = self.get_dc(action_type, character) if roll_needed else 0
+            ability     = self.get_ability(action_type)
+            skill       = self.get_skill(action_type)
+            adv, dis    = self.check_advantage(action_type, character)
+
+            check = SkillCheckResult(
+                player      = action.player_name,
+                action      = action.action,
+                action_type = action_type,
+                needs_roll  = roll_needed,
+                dc          = dc,
+                ability     = ability,
+                skill       = skill,
+                advantage   = adv,
+                disadvantage = dis,
+                result      = "" if roll_needed else "автоматический успех",
+            )
+            checks.append(check)
+
+        # Краткий summary для DM промпта (одна строка, не эссе)
+        summary_parts = []
+        for c in checks:
+            if c.needs_roll:
+                adv_str = " (advantage)" if c.advantage else (" (disadvantage)" if c.disadvantage else "")
+                summary_parts.append(
+                    f"{c.player}: {c.skill} DC{c.dc}{adv_str}"
+                )
+            else:
+                summary_parts.append(f"{c.player}: автоуспех")
+
+        return {
+            "checks":  [c.to_dict() for c in checks],
+            "summary": " | ".join(summary_parts),
+        }
