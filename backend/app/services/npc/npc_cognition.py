@@ -1,3 +1,4 @@
+# C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\npc_cognition.py
 # -*- coding: utf-8 -*-
 """
 NPCCognition — 4 драйва личности + сборщик промпта
@@ -101,19 +102,23 @@ def process_player_action(
 # HF-2: Физическое состояние NPC — числа → конкретные факты
 # ──────────────────────────────────────────────────────────────────────────────
 
-def _get_physical_state(npc: Dict) -> str:
+def _get_physical_state(npc: Dict, scene_state: Optional[dict] = None) -> str:
     """
     HF-2: Переводит числовые состояния NPC в конкретное физическое описание.
-    Принцип: LLM не интерпретирует числа — она получает готовые факты.
-
-    'stress=40' → 'движения немного скованные, взгляд настороженный'
-    'routine.current=serving_tables' → 'стоишь с подносом, обслуживаешь столы'
+    C.1: activity берётся из scene_state (источник правды), fallback → routine.current
     """
-    stress   = npc.get("psyche", {}).get("stress", 0)
-    state    = npc.get("psyche", {}).get("state", "free")
-    routine  = npc.get("routine", {})
-    current  = routine.get("current", "")
-    mood     = routine.get("mood", "neutral")
+    npc_id  = npc.get("id", "")
+    stress  = npc.get("psyche", {}).get("stress", 0)
+    state   = npc.get("psyche", {}).get("state", "free")
+    routine = npc.get("routine", {})
+    mood    = routine.get("mood", "neutral")
+
+    # C.1: scene_state — единственный источник правды об activity
+    current = ""
+    if scene_state and npc_id:
+        current = scene_state.get("npc_positions", {}).get(npc_id, {}).get("activity", "")
+    if not current:
+        current = routine.get("current", "")
 
     # ── Физическое положение из текущей рутины ────────────────────────────
     position_map = {
@@ -179,6 +184,7 @@ def build_npc_prompt(
     behavior_hint: str = "",      # из PsycheEngine
     perceived_status: str = "",   # из PerceptionEngine
     threat_category: str = "LOW", # из ThreatAssessor
+    scene_state: Optional[dict] = None,
 ) -> str:
     """
     HF-2: Строит system prompt для NPC LLM агента.
@@ -195,7 +201,7 @@ def build_npc_prompt(
     fear      = ss.get("fear_of_player", 0.1)
 
     # HF-2: физическое состояние вместо абстрактных чисел
-    physical_state = _get_physical_state(npc)
+    physical_state = _get_physical_state(npc, scene_state=scene_state)
 
     # Описание и пол из JSON (добавлены в HF ранее)
     description = npc.get("description", "")

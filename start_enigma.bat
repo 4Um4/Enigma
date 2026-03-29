@@ -1,3 +1,4 @@
+:: C:\DDD\Codex\VSC_Enigma\Enigma\start_enigma.bat
 @echo off
 chcp 65001 >nul
 title Enigma - Local AI Dungeon Master

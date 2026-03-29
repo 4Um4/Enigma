@@ -1,636 +1,404 @@
-# ENIGMA — Локальный AI Dungeon Master
-### Полная проектная документация v5.0 | Март 2026
+﻿# ENIGMA — локальный AI Dungeon Master
+
+Актуализация README: 2026-03-29  
+Основано на фактическом коде (`backend/app/*`), актуальном `Now.md`, текущих скриптах запуска и состоянии репозитория.
 
 ---
 
-## 🎯 Что это такое и зачем
+## 1. Что это за проект
 
-Моя идея - локальная D&D где с друзьями по очереди вы играете каждый за своего персонажа, которого вы себе придумали полностью и теперь описываете что с ним происходит. Как и в обычном D&D есть какой-то мир, есть где-то основная миссия, но вы свободны делать всё что захотите, и взаимодействовать со всеми так и как захотите. Идти куда угодно и делать что угодно. Все действия во власти фантазии игроков, а то как отреагирует на них мир - во власти DM и других агентов... И чем правдоподобнее и интереснее реакция агентов на действия игрока тем лучше выйдет игра.
+Enigma — локальная RPG-система в духе D&D 5e, где:
+- игрок пишет действие свободным текстом,
+- Python детерминированно считает последствия,
+- LLM превращает рассчитанный результат в нарратив.
 
+Это не «чат-бот с фэнтези-обёрткой», а попытка построить симулятор мира с устойчивым состоянием, NPC-поведением и последовательной памятью.
 
-Но кроме того это то как строится мир - я предлагаю с помощью pdf описания компании и мира обучать игру действовать внутри этого мира, в идеале в будущем я бы хотел чтобы игра сама могла принимать в себя pdf а потом вместе с игроками настраивать миры которые они загружают, npc глобальный конфликт локации и прочее всё что характерно для обычной настольной D&D
+Ключевой принцип (истинный и неизменный):
 
-Enigma — локальная компьютерная RPG в жанре D&D 5e, где роль Мастера Подземелий,
-всех NPC и самого живого мира выполняет языковая модель, запущенная **полностью
-на вашем компьютере** — без облака, без подписки, без интернета.
-
-**Это не чат-бот в антураже фэнтези.** Это симулятор живого мира, где:
-
-- Каждый NPC обладает психологией, драйвами, историей и помнит что ты делал
-- Мир живёт и меняется независимо от игрока — LifeEngine тикает каждые 15 минут
-- Физика и логика мира неумолимы — свиньи не летают, вода не горит
-- От 1 до 8 игроков могут играть за одним компьютером по очереди
-- **Любое** действие игрока обрабатывается — нет запрещённых путей, только последствия
-
-**Главный принцип работы:**
-```
+```text
 Игрок пишет действие
         ↓
-Python считает (0ms):
-  ActionClassifier → PhysicsValidator → CombatMath/SandboxHandler
-  → NPC Psychology → SceneState → player_target
+Python рассчитывает последствия
         ↓
-LLM интерпретирует (8–30 сек):
-  Gemma-3-12B получает готовые числа и факты → превращает в живой нарратив
+LLM формулирует ответ в художественной форме
         ↓
-Игрок видит живой текст (стриминг токенов с первого слова)
+Состояние мира сохраняется
 ```
-
-NPC умны не потому что LLM умная — а потому что **Python уже всё посчитал**: стресс,
-страх, угрозу, статус, кому адресована речь, на каком расстоянии стоит игрок.
-LLM получает готовый контекст и занимается только одним: красиво рассказывает.
 
 ---
 
-## 🏛️ Архитектурные принципы (незыблемые)
+## 2. Архитектурные принципы
 
-**1. Python считает — LLM рассказывает.**
-Урон, психология NPC, физика, стресс, репутация, пространство — всё это математика
-Python. LLM получает числа и превращает их в атмосферный текст.
+### 2.1 Python считает — LLM рассказывает
+- Проверки, физика, сцена, базовая NPC-психология и обновление состояния делаются в Python.
+- LLM получает уже подготовленный контекст и не является источником истины для механики.
 
-**2. Одна модель в VRAM.**
-Gemma-3-12B — единственная активная модель. max_loaded=1 — жёсткое требование
-при 8 GB VRAM, не архитектурный каприз.
+### 2.2 SceneState как источник правды
+- Состояние сцены, объекты, позиции NPC, эффекты, цель игрока ведутся Python-слоем.
+- LLM не пишет в состояние напрямую.
 
-**3. Любое действие обрабатывается.**
-SandboxHandler (23 обработчика + TOP-100 паттернов). Нет запрещённых путей.
+### 2.3 «Нет запрещённых действий», есть последствия
+- Sandbox-ветка обрабатывает нестандартные пользовательские действия.
+- Невозможное отсекается физическим валидатором, а не «моральной» логикой модели.
 
-**4. Состояние — единственный источник правды.**
-`characters.json`, `major_npcs.json`, `campaign_state.json` — только Python сервисы
-меняют их через SceneChange. LLM не меняет состояние никогда.
-
-**5. Мир живёт независимо от игрока.**
-WorldScheduler тикает каждые 15 минут. LifeEngine двигает NPC по расписанию.
-
-**6. Система generic — без хардкода.**
-Персонажей может быть великое множество. Разнообразие действий — бесконечно.
-Случиться может что угодно. Поэтому: никакого хардкода имён и ситуаций в коде.
-Новый NPC = новый JSON. Новое поведение = новое правило в данных.
-
-**7. Orchestrator — единственный источник игровой логики.**
-`routes_stream.py` — только SSE транспорт. `orchestrator.py` — вся логика,
-оба пути (синхронный и стриминговый) проходят через один и тот же движок.
+### 2.4 Runtime-ядро: `game_loop`, не `orchestrator`
+- Исторический `orchestrator` больше не является реальным ядром runtime.
+- Текущий центр исполнения: `game_loop.py` + `game_loop_factory.py`.
 
 ---
 
-## 🖥️ Железо и ограничения
+## 3. Текущее состояние проекта (на 2026-03-29)
 
-| Компонент | Значение | Ограничение |
-|---|---|---|
-| GPU | RTX 3070 Ti | **8 GB VRAM** — 1 модель одновременно |
-| CPU | Intel i7-9700F | 6 физ. ядер, AVX512 |
-| RAM | 16 GB | Без роскоши, но достаточно |
-| ОС | Windows 11 Россия | Кириллица в путях — всегда проверять кодировки |
-| Python | 3.11.9 в `.venv` | Зафиксировано, не обновлять |
-| llama.cpp | build 8236 | CUDA + AVX512 + flash attention |
-
-**VRAM-бюджет (реальный, Март 2026):**
-```
-ОС + CUDA runtime:              ~500 MB
-Gemma-3-12B-IT-Q4_K_M:        ~7 500 MB
-KV-cache ctx=8192:             ~1 952 MB  (non-SWA + SWA, 4 слота)
-Compute buffers:                 ~560 MB
-─────────────────────────────────────────
-Итого занято:                ~10 512 MB  (часть слоёв на CPU)
-
-ngl=28 слоёв на GPU — баланс скорость/память.
-max_loaded=1 — жёсткое требование железа.
-```
-
-**Скорость генерации (реальные данные из логов):**
-```
-Prefill:    ~1.3–2 ms/tok  → ~500–750 tok/sec   ← обработка промпта
-Generation: ~123–138 ms/tok → ~7–8 tok/sec       ← генерация ответа
-Итого 70–80 токенов:         ~8–13 сек           (Gemma-3-12B, ctx=8192)
-```
-
-**Активная модель:**
-| Файл | Размер | Роль |
-|---|---|---|
-| `gemma-3-12b-it-q4_k_m.gguf` | ~6.8 GB | DM + все NPC + Rules + World — одна на всё |
-
-**Резервные модели (не активны, не помещаются с Gemma одновременно):**
-| Файл | Размер | Примечание |
-|---|---|---|
-| `Qwen2.5-7B-instruct-Q4_K_M.gguf` | ~4.1 GB | Резерв |
-| `model.gguf` (Qwen3.5-9B) | ~5.3 GB | Требует 12 GB VRAM |
-| `mistral-pygmalion-7b.Q5_K_M.gguf` | ~4.8 GB | Резерв |
-| `mistral-pygmalion-7b.Q4_K_M.gguf` | ~4.0 GB | Резерв |
-| `saiga_mistral_7b_model-q4_K.gguf` | ~4.0 GB | Резерв |
-| `YandexGPT-5-Lite-8B-instruct-Q4_K_M.gguf` | ~4.5 GB | Резерв |
+| Подсистема | Оценка | Комментарий |
+|---|---:|---|
+| Core runtime (FastAPI + loop) | 85% | Стабильный цикл `run_turn/stream_turn` |
+| SceneState / SceneChange | 80% | Изменения объектов и таргетов проходят |
+| NPC pipeline | 70% | Рабочая реактивность и расписания |
+| Event layer | 60% | Подключён, но campaign-изоляция неполная |
+| Memory | 45% | Layered JSONL есть, SQLite/FAISS ещё нет |
+| UI/UX | 45% | Рабочий чат + SSE, но не весь planned UI |
+| Rules/Combat depth | 35% | Базовые механики есть, полный D&D 5e нет |
+| Тестовый контур | 20% | Часть тестов legacy, `pytest` часто не поднят в окружении |
 
 ---
 
-## 📁 Структура проекта
+## 4. Что уже сделано и подтверждено кодом
 
+### 4.1 Закрытые шаги A/B/C.1
+- Фаза A (`A.1`–`A.4`) закрыта:
+  - добавлен `ObjectResolver` (`backend/app/services/action/object_resolver.py`),
+  - `campaign_id` добавлен в `GameEvent`,
+  - событие публикуется из `ActionProcessor`,
+  - `PerceptionFilter` встроен в pipeline `game_loop` (шаг `5.5`).
+- `B.1` закрыт: `/api/npcs/{campaign_id}` возвращает NPC текущей локации игрока.
+- `B.2` закрыт: activity NPC обновляется из schedule по `time_of_day`.
+- `C.1` закрыт: prompt NPC берёт activity из `scene_state` как источника правды.
+
+### 4.2 Важные исправления, которые уже не надо чинить повторно
+- Старый баг `routes_debug` (`time` без импорта) исправлен.
+- `world_state.record_event()` подключён (вызов из `ActionProcessor`).
+
+---
+
+## 5. Реальная runtime-архитектура
+
+### 5.1 Boot chain
+
+```text
+start_enigma.bat
+  ↓
+backend/start_llm.bat
+  ↓
+backend/start_backend.bat
+  ↓
+uvicorn app.main:app
+  ↓
+main.py
+  ↓
+routes + routes_stream + routes_debug
+  ↓
+game_loop_factory.game_loop (singleton)
 ```
+
+### 5.2 Игровой цикл (SSE/REST)
+
+```text
+Frontend
+  ↓
+/api/game/action/stream  (или /api/game/action)
+  ↓
+GameLoop
+  ↓
+ActionProcessor (classification + physics + event publish)
+  ↓
+PythonEngines (sandbox/combat/npc systems/scene updates)
+  ↓
+RulesAgent
+  ↓
+NpcAgent
+  ↓
+DmAgent
+  ↓
+Ответ + сохранение памяти
+```
+
+---
+
+## 6. Ключевые подсистемы
+
+### 6.1 SceneState / SceneChange
+- Управление сценой: `backend/app/services/scene_state_manager.py`.
+- Атомарные изменения: `backend/app/services/scene_change.py`.
+- Объекты, позиции NPC, player target, эффекты — часть scene-контракта.
+
+### 6.2 NPC системы
+Активно задействованы в runtime:
+- `threat_assessor.py`
+- `perception_engine.py`
+- `psyche_engine.py`
+- `npc_cognition.py`
+- `life_engine.py`
+
+Подключённые частично/погранично:
+- `perception_filter.py` (подключён в `game_loop`, нужен дальнейший hardening)
+- `reaction_priority.py` (есть код и связи, но требует доинтеграции во всех ветках)
+
+### 6.3 Event + World context
+- EventBus: `backend/app/services/events/event_bus.py`
+- Типы событий: `backend/app/services/events/event_types.py`
+- World slice/token-budget: `backend/app/services/simulation/world_state.py`
+
+Текущий риск: события и recent-log глобальные, а не строго изолированные по campaign.
+
+### 6.4 Память (текущая реализация)
+- `JsonMemoryStore` + `LayeredMemory` (`backend/app/services/memory.py`)
+- Слои: world canon, campaign memory, session memory, npc memory (JSONL)
+- Пока нет SQLite+FAISS слоя как production-default.
+
+### 6.5 LLM слой
+- Основная модель: Gemma-3-12B Q4_K_M.
+- `ModelPool` работает с ограничением `max_loaded=1` (важно для 8 GB VRAM).
+- Есть drift fallback-конфигов: в `config.py` указаны пути к некоторым моделям, которых нет локально.
+
+---
+
+## 7. Структура репозитория
+
+```text
 Enigma/
-├── start_enigma.bat                  ← ЕДИНАЯ ТОЧКА ВХОДА ✅
-├── reload_enigma.bat                 ← Полная перезагрузка (убивает процессы) ✅
-├── launcher.py                       ← (будет) нативное окно без браузера ⏳
-├── .venv/                            ← Python 3.11.9 окружение
-├── requirements.txt
-│
-├── Models LLM/
-│   ├── llama/                        ← llama.cpp бинари + CUDA DLL
-│   │   ├── llama-server.exe          ← HTTP сервер LLM (порт 8080) ✅
-│   │   ├── ggml-cuda.dll             ← CUDA ускорение
-│   │   └── ggml-cpu-zen4.dll         ← CPU оптимизация для i7-9700F
-│   ├── gemma-3-12b-it-q4_k_m.gguf   ← АКТИВНАЯ МОДЕЛЬ ✅
-│   └── [резервные модели]
-│
-├── backend/                          ← FastAPI сервер (порт 8000)
+├── start_enigma.bat
+├── restart_all.bat
+├── Now.md
+├── Before.md
+├── Plan.md
+├── backend/
+│   ├── start_backend.bat
+│   ├── start_llm.bat
 │   ├── app/
-│   │   ├── main.py                   ← FastAPI точка входа, startup checks ✅
-│   │   │
-│   │   ├── agents/                   ← LLM агенты (все используют Gemma-3-12B)
-│   │   │   ├── dm_agent.py           ← DM нарратив, stream_narrate() ✅
-│   │   │   ├── npc_agent.py          ← NPC диалоги, S.0 пространственный контекст ✅
-│   │   │   ├── rules_agent.py        ← Правила D&D 5e ✅
-│   │   │   ├── world_sim_agent.py    ← Мировые события ✅
-│   │   │   └── memory_manager_agent.py ← Суммаризация ✅
-│   │   │
+│   │   ├── main.py
 │   │   ├── api/
-│   │   │   ├── routes.py             ← REST эндпоинты ✅
-│   │   │   ├── routes_stream.py      ← SSE транспорт (только доставка) ✅
-│   │   │   └── routes_debug.py       ← /debug/vram, /health/agents ✅
-│   │   │
+│   │   │   ├── routes.py
+│   │   │   ├── routes_stream.py
+│   │   │   └── routes_debug.py
+│   │   ├── agents/
 │   │   ├── core/
-│   │   │   ├── config.py             ← настройки, gemma_12b для всех агентов ✅
-│   │   │   ├── runtime_config.py     ← динамические порты ✅
-│   │   │   ├── error_logger.py       ← единый JSONL логгер ✅
-│   │   │   └── settings_*.py         ← параметры агентов ✅
-│   │   │
 │   │   ├── models/
-│   │   │   └── schemas.py            ← Pydantic схемы (model: Optional) ✅
-│   │   │
 │   │   └── services/
-│   │       ├── orchestrator.py           ← ЕДИНЫЙ ИСТОЧНИК ЛОГИКИ ✅
-│   │       │   ├── run_turn()            ← синхронный путь
-│   │       │   ├── stream_turn()         ← стриминговый путь (новый) ✅
-│   │       │   ├── _run_python_engines() ← все Python движки ✅
-│   │       │   └── _extract_player_target() ← S.0 парсинг цели ✅
-│   │       ├── action_classifier.py      ← 14 ActionType, <1ms ✅
-│   │       ├── scene_state_manager.py    ← SceneStateManager ✅
-│   │       │   ├── update_player_target() ← S.0 пространство ✅
-│   │       │   └── build_npc_context_block() ← блок для NPC промпта ✅
-│   │       ├── scene_change.py           ← SceneChange, 10 типов ✅
-│   │       ├── world_scheduler.py        ← тикер 15 мин ✅
-│   │       │
+│   │       ├── game_loop.py
+│   │       ├── game_loop_factory.py
+│   │       ├── action/
 │   │       ├── npc/
-│   │       │   ├── npc_cognition.py  ← драйвы, build_npc_prompt ✅
-│   │       │   ├── psyche_engine.py  ← стресс, слом воли, breakpoint ✅
-│   │       │   ├── threat_assessor.py ← оценка угрозы ✅
-│   │       │   ├── perception_engine.py ← visible_markers → perceived_status ✅
-│   │       │   ├── life_engine.py    ← расписание NPC, тики ✅ (базовый)
-│   │       │   ├── reaction_priority.py  ⏳ Фаза S.4.2
-│   │       │   ├── karma_engine.py       ⏳ Фаза 3B
-│   │       │   ├── npc_generator.py      ⏳ Фаза 3B.0
-│   │       │   └── social_mobility.py    ⏳ Фаза 3B
-│   │       │
+│   │       ├── events/
+│   │       ├── simulation/
 │   │       ├── game/
-│   │       │   ├── combat_math.py        ← D&D 5e математика боя ✅
-│   │       │   ├── physics_validator.py  ← нарушения физики → BLOCKED ✅
-│   │       │   ├── sandbox_handler.py    ← 23 обработчика + TOP-100 ✅
-│   │       │   │                           (SceneChange при success ⏳ S.4.1)
-│   │       │   ├── turn_manager.py       ⏳ Фаза 5
-│   │       │   ├── character_creation.py ⏳ Фаза 6
-│   │       │   └── death_handler.py      ⏳
-│   │       │
-│   │       ├── memory/
-│   │       │   ├── memory.py         ← LayeredMemory + JsonMemoryStore ✅
-│   │       │   ├── memory_manager.py ⏳ Фаза 7
-│   │       │   └── knowledge_base.py ⏳ Фаза 10
-│   │       │
-│   │       └── llm/
-│   │           ├── provider.py           ✅
-│   │           ├── provider_manager.py   ← ModelPool max_loaded=1 ✅
-│   │           ├── llama_cpp_provider.py ← HTTP клиент + streaming ✅
-│   │           ├── router.py             ← capability routing ✅
-│   │           └── factory.py            ✅
-│   │
+│   │       ├── llm/
+│   │       └── state/
 │   ├── data/
-│   │   ├── campaigns/demo-campaign/
-│   │   │   ├── characters.json       ← персонаж игрока ✅
-│   │   │   └── campaign_state.json   ← SceneState + история ✅
-│   │   ├── npcs/
-│   │   │   ├── major_npcs.json       ← 5 NPC с полной психологией + name_forms ✅
-│   │   │   ├── mass_npc_templates.json ← 10 шаблонов ✅
-│   │   │   └── generated/            ⏳ Фаза 3B.0
-│   │   ├── locations/
-│   │   │   └── location_templates.json ← 5 локаций с time_variants ✅
-│   │   ├── Promt_AI.json             ← системный промпт на русском ✅
-│   │   ├── pdf_drop/                 ← D&D книги (пусто, ждёт Фазу 10)
-│   │   ├── knowledge_db/             ⏳ Фаза 10
-│   │   ├── sessions/                 ← сессии игроков ✅
-│   │   └── logs/                     ← JSONL логи ✅
-│   │
-│   └── tests/                        ← 9 тестов, все зелёные ✅
-│
-└── frontend/ui/index.html            ← SSE streaming + fallback POST ✅
+│   └── tests/
+├── frontend/
+│   └── ui/
+│       └── index.html
+└── Models LLM/
 ```
 
 ---
 
-## ⚙️ Полный цикл одного хода (Март 2026)
+## 8. Запуск проекта
 
+### 8.1 Рекомендуемый запуск
+
+```bat
+start_enigma.bat
 ```
-Игрок пишет действие в браузере
-              ↓
-    routes_stream.py (только транспорт)
-              ↓
-    orchestrator.stream_turn()  ← ЕДИНЫЙ ИСТОЧНИК ЛОГИКИ
-              │
-              ├─ [0ms]  ActionClassifier
-              │         14 типов: COMBAT / SOCIAL / EXPLORE / SANDBOX / ...
-              │
-              ├─ [<1ms] PhysicsValidator
-              │         "лечу без заклинания" → BLOCKED
-              │         bypass: заклинания и способности персонажа
-              │
-              ├─ [<50ms] _run_python_engines():
-              │
-              │   ├─ CombatMath         → бросок d20, урон, крит (если COMBAT)
-              │   ├─ SandboxHandler     → 23 обработчика + TOP-100 (если SANDBOX)
-              │   ├─ LifeEngine.tick()  → NPC двигаются по расписанию
-              │   │
-              │   ├─ NPC Psychology блок (для каждого NPC в локации):
-              │   │   ThreatAssessor   → threat_score из visible_markers
-              │   │   PerceptionEngine → perceived_status игрока
-              │   │   NPCCognition     → доминирующий драйв, дельты доверия
-              │   │   PsycheEngine     → стресс, breakpoint, behavior_hint
-              │   │   build_npc_prompt → system_prompt с психологией NPC
-              │   │
-              │   └─ S.0 блок:
-              │       _extract_player_target() → target_npc_id + name_forms
-              │       update_player_target()   → запись в SceneState
-              │       Если только местоимение → сохраняем предыдущую цель
-              │
-              ├─ [8–13 сек] NPC агент (Gemma-3-12B):
-              │   Промпт = ТВОЁ ПОЛОЖЕНИЕ В СЦЕНЕ + психология + история
-              │   _resolve_active_npcs() → только правильный NPC отвечает
-              │   _filter_npc_response() → постфильтр галлюцинаций
-              │
-              ├─ SSE: {"type":"npc", "data":[...]}  ← NPC реакции сразу
-              │
-              ├─ [8–13 сек] DM агент (Gemma-3-12B):
-              │   Промпт = СОСТОЯНИЕ СЦЕНЫ + результаты Python + правила NPC
-              │   stream_narrate() → токены идут в браузер по мере генерации
-              │
-              └─ SSE: {"type":"token"} × N  +  {"type":"done"}
-```
+
+Скрипт поднимает:
+- LLM сервер (`llama-server` на `127.0.0.1:8080`),
+- Backend FastAPI (`127.0.0.1:8000`),
+- Frontend static server (`127.0.0.1:3000`, если `frontend/ui/index.html` присутствует).
+
+### 8.2 Ручной запуск по частям
+1. LLM: `backend/start_llm.bat`
+2. Backend: `backend/start_backend.bat`
+3. Frontend (если нужно вручную): `python -m http.server 3000 --directory frontend/ui`
+
+### 8.3 Проверка после старта
+- UI: `http://127.0.0.1:3000`
+- API docs: `http://127.0.0.1:8000/docs`
+- Health: `http://127.0.0.1:8000/api/health`
+- Debug VRAM: `http://127.0.0.1:8000/api/debug/vram`
 
 ---
 
-## 🎭 NPC система
+## 9. Требования к окружению
 
-### Три уровня NPC
+### 9.1 Минимально ожидаемые ресурсы
+- CPU: от 4 физических ядер.
+- RAM: от 12 GB (рекомендуется 16 GB).
+- GPU: RTX 3070 Ti 8 GB (целевой профиль проекта).
 
-| Tier | Контекст в промпте | Когда |
-|---|---|---|
-| `major` | Полный JSON: психология, история, драйвы, visible_markers | Ключевые персонажи сюжета |
-| `minor` | Сокращённый JSON | Жители, стражники, торговцы |
-| `mass` | Архетип + настроение | Толпа, фоновые персонажи |
+### 9.2 Python и зависимости
+- Backend-скрипт жёстко проверяет Python 3.11 в `/.venv`.
+- Зависимости ставятся из `backend/requirements.txt` при старте backend-скрипта.
 
-Модель одна для всех — разница только в объёме переданного контекста.
+Важно: если запускать команды вне `.venv`, можно получить ошибку вида `No module named pytest` даже при наличии `pytest` в `requirements.txt`.
 
-### Структура NPC JSON (полная, актуальная)
-
-```json
-{
-  "id": "maid_lusya",
-  "name": "Люся",
-  "name_forms": ["люся", "люси", "люсе", "люсю", "люсей", "люс"],
-  "tier": "minor",
-  "gender": "женский",
-  "description": "Молодая женщина в простом платье служанки...",
-
-  "status_profile": {
-    "freedom": 50, "wealth": 5, "power": 5,
-    "title": "Служанка таверны", "faction_rank": {}
-  },
-
-  "visible_markers": ["maid_dress", "tray", "tired_eyes"],
-  "hidden_truth": ["spy_for_thieves_guild"],
-
-  "drives": {
-    "control": 0.15, "significance": 0.20,
-    "fear": 0.45, "desire": 0.20
-  },
-
-  "psyche": {
-    "willpower": 35, "stress": 84, "breakpoint": 55,
-    "loyalty_true": 20, "loyalty_fake": 55,
-    "state": "coerced", "trauma_flags": ["threatened_in_past"]
-  },
-
-  "social_stats": {
-    "trust": 0.12, "affection": 0.45,
-    "fear_of_player": 0.92, "debt": 0
-  },
-
-  "relationships": {"player_default": 35, "tavern_keeper_tornin": 40},
-
-  "routine": {
-    "current": "serving_tables", "mood": "anxious",
-    "schedule": {
-      "08:00-23:00": "serving_tables",
-      "23:00-08:00": "sleeping"
-    }
-  },
-
-  "flags": {"is_enslaved": false, "knows_secret": true, "planning_revenge": false},
-  "location": "tavern_silver_wolf",
-
-  "hp": 15, "max_hp": 15,
-  "combat_stats": {"ac": 10, "attack_bonus": 0, "damage": "1d4"},
-  "abilities": {"strength": 8, "dexterity": 13, "constitution": 10,
-                "intelligence": 12, "wisdom": 14, "charisma": 12}
-}
-```
-
-**Ключевое поле `name_forms`** — явные падежи имени, заданные дизайнером.
-Без него система вынуждена автогенерировать формы, что даёт ложные срабатывания
-для коротких имён вроде "Тень" (→ "тен" → совпадение с "темно").
-Новый персонаж = новый JSON с `name_forms`. Код менять не нужно.
-
-### 8 Python движков NPC (статус на Март 2026)
-
-```
-1. THREAT ASSESSOR    ✅ — угроза от действия + visible_markers игрока
-2. PERCEPTION ENGINE  ✅ — как игрок выглядит → perceived_status
-3. PSYCHE ENGINE      ✅ — стресс → breakpoint → state: coerced/broken
-4. NPC COGNITION      ✅ — доминирующий драйв, дельты trust/fear
-5. LIFE ENGINE        ✅ — базовый: NPC следуют расписанию (sleeping/working)
-6. LLM NPC AGENT      ✅ — получает всё посчитанное, озвучивает
-7. REACTION PRIORITY  ⏳ S.4.2 — NPC реагируют сами на события
-8. KARMA ENGINE       ⏳ 3B — репутация, цепные реакции по фракциям
-```
-
-### Состояния NPC (psyche.state)
-
-| Состояние | Поведение |
-|---|---|
-| `free` | Следует драйвам, может отказать |
-| `coerced` | Подчиняется из принуждения, ищет выход |
-| `broken` | Воля сломлена, подчиняется из страха (loyalty_true падает) |
-| `loyal` | Добровольно предан, может жертвовать собой |
-| `deceptive` | loyalty_fake ≠ loyalty_true, планирует предательство |
-
-Переход `stress > breakpoint` → автоматически меняет state на `broken`.
-Реализовано в `psyche_engine.apply_stress()`.
-
-### Как S.0 решает проблему пространства
-
-До S.0 модель галлюцинировала расположение персонажей: "Люся протирает столы
-в углу" — когда игрок стоит перед ней на коленях. Теперь каждый NPC получает
-в начале своего промпта блок:
-
-```
-ТВОЁ ПОЛОЖЕНИЕ В СЦЕНЕ:
-- Ты: у третьего стола, несёшь поднос
-- Игрок: на коленях, расстояние до тебя: ~0.5 м
-- ИГРОК ОБРАЩАЕТСЯ ИМЕННО К ТЕБЕ (Люся) — отвечай.
-ВАЖНО: Игрок физически рядом с тобой (< 1.5 м).
-Ты НЕ МОЖЕШЬ одновременно находиться в другом месте сцены.
-```
-
-`_extract_player_target()` в orchestrator — generic, без хардкода имён.
-Ищет цель через `name_forms` из JSON + роле-ключевые слова из npc_id префикса.
-Сохраняет предыдущую цель при использовании местоимений ("тебя", "тебе").
+### 9.3 Модели и бинарники
+Обязательные артефакты для штатного запуска:
+- `Models LLM/llama/llama-server.exe`
+- `Models LLM/gemma-3-12b-it-q4_k_m.gguf`
 
 ---
 
-## 🌍 SceneState — состояние сцены
+## 10. API-карта (основные эндпоинты)
 
-Принцип: **любой объект которого нет в SceneState — не существует**.
-LLM только описывает SceneState словами, никогда не меняет его напрямую.
-Изменения проходят через `SceneChange → validate → apply`.
+### 10.1 Игровой цикл
+- `POST /api/game/action/stream` — основной SSE канал игры.
+- `POST /api/game/action` — sync fallback.
+- `POST /api/game/turn` — typed turn API.
 
-```
-SceneChange (10 типов):
-  OBJECT_REMOVE    — объект исчезает (украден, уничтожен)
-  OBJECT_STATE     — состояние меняется (open/broken/burning)
-  OBJECT_ADD       — объект появляется
-  OBJECT_MOVE      — объект перемещается
-  NPC_STATE        — состояние NPC (poisoned/captured/sleeping)
-  NPC_POSITION     — NPC меняет позицию/активность
-  INVENTORY        — предмет добавляется/убирается у игрока
-  ENVIRONMENT      — изменение окружения (свет, шум)
-  EFFECT_ADD       — эффект на локацию (fire/darkness/smoke)
-  EFFECT_REMOVE    — эффект снимается
-```
+### 10.2 Состояние и интерфейс
+- `GET /api/session/state/{campaign_id}`
+- `GET /api/npcs/{campaign_id}`
+- `GET /api/interface/campaign/{campaign_id}`
+- `GET/POST /api/interface/players/{campaign_id}`
+- `GET/POST /api/interface/facts/{campaign_id}`
+- `GET /api/interface/sessions/{campaign_id}`
 
-SceneState в `campaign_state.json` содержит (актуально):
-- `location_id` — текущая локация
-- `objects` — объекты с состояниями и count
-- `npc_positions` — позиции и активности NPC
-- `environment` — свет, шум, время суток
-- `active_effects` — активные эффекты
-- `player_position` — текущая поза игрока ← S.0
-- `player_target_npc` / `player_target_npc_name` ← S.0
-- `player_target_object` ← S.0
-- `player_distances` — расстояния до NPC в метрах ← S.0
+### 10.3 Player session
+- `POST /api/player/heartbeat`
+- `GET /api/player/active/{campaign_id}`
+- `GET/POST /api/player/session/{campaign_id}`
+- `POST /api/player/select`
 
-LifeEngine читает `routine.schedule` каждого NPC и обновляет их позиции через
-SceneChange без участия LLM. Торнин уходит спать в 22:00 — SceneState это знает.
+### 10.4 Characters / Combat / World
+- `POST /api/characters/upsert`
+- `GET /api/characters/{campaign_id}`
+- `POST /api/combat/start`
+- `POST /api/combat/attack`
+- `POST /api/combat/next-turn/{campaign_id}/{combat_id}`
+- `POST /api/world/tick/{world_id}`
+- `POST /api/campaign/load`
 
----
-
-## 🎲 Sandbox — любое действие обрабатывается
-
-**Философия:** нет запрещённых путей — есть последствия в SceneState.
-
-```python
-class SandboxHandler:
-    # 23 обработчика + TOP-100 нестандартных паттернов D&D 5e
-    # Каждый обработчик при success=True должен порождать SceneChange
-    # target_npc и target_object берутся из SceneState — не хардкод
-```
-
-Обработчики: FLEE, CAPTURE, ROMANCE, LIFE_CHOICE, INTIMIDATE, BRIBERY,
-DECEPTION, PERSUASION, STEALTH, ACROBATICS, DISTRACTION, ANIMAL_INTERACTION,
-CRAFTING, DISGUISE, PICKPOCKET, LOCKPICK, POISON, DIPLOMACY, SURRENDER,
-TAUNT, IMPROVISED_WEAPON, CROWD_CONTROL, PHYSICAL + UNKNOWN (fallback TOP-100).
-
-**Следующий шаг (S.4.1):** при `success=True` каждый обработчик генерирует
-соответствующий SceneChange. Сейчас SandboxHandler работает, но SceneState
-после него не меняется — это задача S.4.1.
+### 10.5 Ingest / Debug / Health
+- `POST /api/knowledge/import`
+- `POST /api/import/world`
+- `GET /api/health`
+- `GET /api/system/status`
+- `GET /api/system/requirements`
+- `GET /api/status/readiness`
+- `GET /api/debug/health/agents`
+- `GET /api/debug/vram`
+- `GET /api/debug/logs-tail`
 
 ---
 
-## 📡 Streaming — архитектура SSE
+## 11. Где хранятся данные
 
-**После рефакторинга S.0** существует единый путь для обоих режимов:
-
-```
-routes_stream.py        → orchestrator.stream_turn()
-routes.py               → orchestrator.run_turn()
-                                    ↓
-                         _run_python_engines()  ← одинаково для обоих
-                         npc_agent.react()      ← одинаково
-                         dm_agent.stream_narrate() / dm_agent.narrate()
-```
-
-`routes_stream.py` — 60 строк. Вся игровая логика в `orchestrator.py`.
-Добавить новую фичу = изменить orchestrator один раз, работает везде.
-
-**SSE протокол событий:**
-```python
-{"type": "ping"}                                    # первое событие
-{"type": "status",      "text": "Мастер думает..."} # статус
-{"type": "action_type", "value": "SOCIAL"}          # тип действия для UI
-{"type": "model",       "data": {...}}              # какая модель работает
-{"type": "npc",         "data": ["Люся: ..."]}      # NPC реакции (до DM)
-{"type": "token",       "text": "Вы ", "n": 1}     # токен DM нарратива
-{"type": "done",        "tokens": 72, "ms": 9995}  # финал со статистикой
-```
+Основные рабочие данные лежат в `backend/data/`:
+- `campaign_memory_*.jsonl`
+- `session_memory_*.jsonl`
+- `npc_memory_*.jsonl`
+- `world_canon_*.jsonl`
+- `campaigns/{campaign_id}/campaign_state.json`
+- `campaigns/{campaign_id}/characters.json`
+- `logs/` (jsonl логи, scene changes, sandbox logs)
+- `npcs/major_npcs.json`
 
 ---
 
-## 🧠 Система памяти (4 уровня)
+## 12. Известные ограничения и риски
 
-```
-УРОВЕНЬ 1: Оперативная (~500 токенов)
-  recent_session — последние 2 хода текущей сессии
-  Передаётся напрямую в промпт каждого NPC
+### 12.1 Архитектурные
+- C.2 (вводное описание старта сессии) ещё не реализован как формальный режим.
+- Event/World контекст пока не полностью изолирован по campaign.
 
-УРОВЕНЬ 2: Сессия (~1000 токенов)
-  session_memory_{campaign}.jsonl — события текущей сессии
-  Читается при старте нового хода
+### 12.2 Модельные
+- Есть drift путей fallback-моделей в `config.py` относительно реального содержимого `Models LLM`.
+- При переключении на отсутствующий fallback возможны ошибки загрузки модели.
 
-УРОВЕНЬ 3: Кампания (~300 токенов)
-  campaign_memory_{campaign}.jsonl — вся история кампании
-  Gemma-12B суммаризирует в конце сессии (та же модель, economy mode)
-
-УРОВЕНЬ 4: Мир (~300 токенов)
-  world_canon.jsonl + ChromaDB/FAISS (PDF книги D&D) ⏳ Фаза 10
-```
-
-`LayeredMemory` + `JsonMemoryStore` реализованы и работают.
-`MemoryManager` с бюджетом токенов — ⏳ Фаза 7.
+### 12.3 Тесты и legacy
+- `backend/run_terminal_dm.py` и часть тестов всё ещё завязаны на legacy `orchestrator`.
+- Тестовый контур требует очистки и миграции к `game_loop`.
 
 ---
 
-## 📈 Текущее состояние (Март 2026)
+## 13. Что считать legacy (чтобы не тратить время зря)
 
-| Компонент | Готовность | Примечание |
-|---|---|---|
-| Инфраструктура запуска | **100%** | start_enigma.bat, pre-flight, тесты ✅ |
-| LLM интеграция | **95%** | Gemma-3-12B, ModelPool, streaming ✅ |
-| Игровой цикл | **85%** | Orchestrator единый источник логики ✅ |
-| Streaming SSE | **100%** | stream_turn() в orchestrator ✅ |
-| Action Classifier | **100%** | 14 типов, <1ms ✅ |
-| Physics Validator | **100%** | Правила мира, bypass ✅ |
-| Боевая математика | **100%** | D&D 5e полная ✅ |
-| Sandbox Handler | **100%** | 23 обработчика (SceneChange ⏳ S.4.1) |
-| SceneStateManager S.0 | **100%** | player_target, расстояния, NPC блок ✅ |
-| NPC адресация | **100%** | name_forms + роле-ключевые слова ✅ |
-| NPC Psychology | **70%** | Threat/Perception/Psyche/Cognition ✅; Reaction/Karma ⏳ |
-| LifeEngine | **40%** | Расписания работают, события/karma ⏳ |
-| Система памяти | **65%** | LayeredMemory ✅, MemoryManager ⏳ |
-| Error Interpreter | **90%** | 5 типов ошибок, JSONL логи ✅ |
-| VRAM Monitor | **95%** | Без ложных утечек ✅ |
-| Мультиплеер | **0%** | ⏳ Фаза 5 |
-| Создание персонажа | **10%** | Математика ✅, диалог с DM ⏳ |
-| RAG по PDF | **10%** | Заготовки есть ⏳ |
-| PyGame UI | **0%** | ⏳ Фаза UI |
-| **Общий прогресс** | **~70%** | |
+- `orchestrator` как runtime-ядро.
+- Док-утверждения «streaming отсутствует».
+- Старые планы, где current-код не учитывается (`game_loop`/SSE/Event integration).
 
 ---
 
-## 📅 Дорожная карта (актуальная)
+## 14. Roadmap (операционный, актуальный)
 
-| Фаза | Описание | Срок | Статус |
-|------|----------|------|--------|
-| 0–M | Инфраструктура, стриминг, движки, Gemma-12B | — | ✅ |
-| S.0 | SceneState в промпт, S.0 player_target, name_forms | 2 нед | ✅ |
-| **S.4.1** | **SandboxHandler → SceneChange** | **2–3 дня** | **⬅️ СЛЕДУЮЩИЙ** |
-| S.4.2 | ReactionPriority Queue | 2–3 дня | ❌ |
-| 3B | Живой мир (NPCAutoGenerator, LifeEngine полный, KarmaEngine) | 2 нед | ❌ |
-| UI | PyGame интерфейс | 2–3 нед | ❌ |
-| 3C | Социальная сеть NPC (RumorNetwork, BeliefSystem) | 2 нед | ❌ |
-| 3D | ActionLayerEngine, ShockEngine | 2–3 нед | ❌ |
-| 5 | Мультиплеер 1–8 игроков | 2 нед | ❌ |
-| 6 | Создание персонажа через DM | 1 нед | ❌ |
-| 7 | MemoryManager с бюджетом токенов | 2 нед | ⚠️ частично |
-| 4.5 | Эпизодическая кампания | 3 нед | ❌ |
-| 8 | Аналитика (PlayerStats) | 1 нед | ❌ |
-| 9 | World Simulator расширение | 1.5 нед | ❌ |
-| 10 | RAG по PDF (ChromaDB/FAISS) | 2 нед | ❌ |
-| 11 | Дистрибуция (.exe / PyInstaller) | 2 нед | ❌ |
-| 12 | Полные правила D&D 5e | 3–4 нед | ❌ |
+### R0 (P0): стабилизация ядра
+1. Реализовать C.2 (first-turn/session-start intro).
+2. Изолировать EventBus/WorldState по campaign.
+3. Финализировать C.3 (single source of addressee).
+4. Починить manifest моделей и fallback-валидацию.
+5. Восстановить минимальный quality gate (`pytest` + smoke).
 
-**До v1.0-playable (S.4.1 + S.4.2 + 3B + UI):** ~5–6 недель
-**До полной v1.0 (+ 3C + 5 + 6 + 7):** ~3.5 месяца
-**До релиза:** ~7 месяцев
+### R1 (P1): Memory Core v1
+1. Ввести фасад `MemoryManager`.
+2. Формализовать working/session/campaign/world слои памяти.
+3. Добавить compressor + decay policy.
+4. Ввести жёсткий token-budget контекста.
+
+### R2 (P1/P2): persistent storage
+1. SQLite для структурных сущностей.
+2. Snapshot manager.
+3. FAISS для семантического retrieval.
+4. Debug/API редактирование фактов памяти.
+
+### R3 (P1): NPC Cognitive Core v1
+1. Расширить `mind`-схему NPC (beliefs/goals/plans/theory_of_mind/learning).
+2. Полный цикл `Perceive -> Feel -> Think -> Decide -> Act -> Learn`.
+3. Tiered autonomy (`mass/minor/major`).
+4. Сохранить принцип: решения Python, язык от LLM.
+
+### R4 (P2): gameplay depth
+1. Reputation/Faction engine.
+2. Углубление D&D 5e механик.
+3. Расширение UI (player/debug/history panels).
+
+### R5 (P2/P3): масштабирование
+1. Профилирование 500+ NPC сценариев.
+2. Перф/смоук-набор для API и latency.
+3. Метрики регрессий NPC-консистентности.
 
 ---
 
-## 🔧 Специальные возможности
+## 15. Конвенции разработки для этого репозитория
 
-### LLM Self-Debug — Error Interpreter ✅
-5 типов ошибок: TIMEOUT | OOM | JSON_PARSE | CONTEXT_OVERFLOW | MODEL_FAIL.
-Перехватывает, анализирует JSONL логи, выдаёт fix-рекомендации.
-Логируется в `data/logs/enigma_YYYYMMDD.jsonl`.
+1. Новый runtime-код ориентировать на `game_loop` и текущие сервисы.
+2. Не реанимировать `orchestrator`-ветку как основной путь.
+3. Логику мира писать в Python-сервисы, не в текстовые промпты.
+4. Любой новый функционал проверять на:
+   - совместимость со SceneState,
+   - влияние на latency,
+   - влияние на VRAM budget.
 
-### VRAM-Aware ModelPool ✅
-```python
-AGENT_PRIORITY = {"dm": 1, "rules": 2, "npc_major": 3, "npc_mass": 4}
-# ModelPool.is_safe_to_load() — проверка перед каждой загрузкой
-# max_loaded=1 — жёсткий лимит
+---
+
+## 16. Быстрый FAQ
+
+### Q: Почему backend стартует, но модель «молчит»?
+Проверьте наличие `llama-server.exe` и `gemma-3-12b-it-q4_k_m.gguf`, затем `http://127.0.0.1:8080/v1/models`.
+
+### Q: Почему тесты не запускаются, хотя `pytest` в requirements?
+Скорее всего запущен не тот Python (вне `/.venv`), либо не выполнена установка зависимостей в этом окружении.
+
+### Q: Почему персонаж не отвечает NPC, хотя обращение есть?
+Проверьте `scene_state.player_target_*`, activity NPC (не спит ли), и фильтр perception в текущей локации.
+
+---
+
+## 17. Главный практический вывод
+
+```text
+orchestrator -> game_loop
 ```
 
-### Стоп-токены Gemma-3 ✅
-Gemma-3 генерирует служебные токены после ответа. Специальный фильтр:
-```python
-_GEMMA_STOP_TOKENS = [
-    "<|file_separator|>", "<|end_of_turn|>", "<end_of_turn>",
-    "<|im_end|>", "<|im_start|>", "</s>", ...
-]
-```
-Применяется в `dm_agent` (потоковый буфер) и `npc_agent` (парсинг JSON).
-
-### JSON-парсинг ответов NPC ✅
-Gemma генерирует `"+3"` в числовых полях — нарушение JSON.
-`_fix_json_numbers()` исправляет до парсинга. `_try_repair_json()` восстанавливает
-через regex если `json.loads` упал.
-
-### Постфильтр галлюцинаций NPC ✅
-`_filter_npc_response()` — если игрок обращался к конкретному NPC,
-а модель сгенерировала ответ от другого, фильтр возвращает "молчит".
-
----
-
-## 🚀 Быстрый старт
-
-```
-1. Запустить start_enigma.bat
-2. Подождать ~30 сек пока загрузится Gemma-3-12B
-3. Открыть браузер: http://127.0.0.1:8000
-4. Выбрать персонажа и начать играть
-
-Для полной перезагрузки: reload_enigma.bat
-Debug режим: F12 в браузере — психология NPC, SceneState
-```
-
----
-
-## ⚠️ Известные ограничения
-
-- **Свечи не гаснут при краже** — SceneState обновляется правильно,
-  но SandboxHandler ещё не генерирует SceneChange (задача S.4.1)
-- **Торнин не отвечает ночью** — это не баг, это LifeEngine + расписание работает правильно
-- **action_classifier** иногда неверно классифицирует "осматриваюсь" как COMBAT —
-  не критично, NPC всё равно молчат при тихих действиях
-- **Отсутствие морфологической библиотеки** — падежи имён NPC задаются вручную
-  через `name_forms` в JSON. Без этого поля система делает автогенерацию
-  которая работает для большинства имён, но может давать сбои на коротких (3-4 буквы)
-- **Контекст 8192 токенов** — при длинных сессиях старые события вытесняются.
-  MemoryManager с суммаризацией — ⏳ Фаза 7
-
----
-
-**Документ:** ENIGMA README v5.0
-**Обновлено:** Март 2026
-**Следующий шаг:** Фаза S.4.1 — SandboxHandler генерирует SceneChange
+Это фундамент текущей системы. Все изменения, документация, тесты и roadmap должны исходить из этой реальности.

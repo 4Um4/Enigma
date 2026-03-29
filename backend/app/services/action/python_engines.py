@@ -282,6 +282,60 @@ class PythonEngines:
         npcs_in_location = self._get_npcs_in_location(req.location)
         npc_contexts = []
 
+        # ── B.2: Activity из расписания ───────────────────────────────────
+        try:
+            scene_state_for_schedule = shared_context.get("scene_state")
+            if scene_state_for_schedule and npcs_in_location:
+                time_of_day = scene_state_for_schedule.get(
+                    "environment", {}
+                ).get("time_of_day", "12:00")
+                try:
+                    h, m = map(int, time_of_day.split(":"))
+                    current_minutes = h * 60 + m
+                except (ValueError, AttributeError):
+                    current_minutes = 12 * 60
+
+                npc_positions = scene_state_for_schedule.setdefault("npc_positions", {})
+                schedule_changed = False
+
+                for npc in npcs_in_location:
+                    npc_id = npc.get("id", "")
+                    schedule = npc.get("routine", {}).get("schedule", {})
+                    if not schedule:
+                        continue
+                    matched_activity = None
+                    for time_range, activity in schedule.items():
+                        try:
+                            start_str, end_str = time_range.split("-")
+                            sh, sm = map(int, start_str.split(":"))
+                            eh, em = map(int, end_str.split(":"))
+                            start_min = sh * 60 + sm
+                            end_min   = eh * 60 + em
+                            if start_min > end_min:
+                                if current_minutes >= start_min or current_minutes < end_min:
+                                    matched_activity = activity
+                                    break
+                            else:
+                                if start_min <= current_minutes < end_min:
+                                    matched_activity = activity
+                                    break
+                        except (ValueError, AttributeError):
+                            continue
+                    if matched_activity:
+                        pos_entry = npc_positions.setdefault(npc_id, {})
+                        if pos_entry.get("activity") != matched_activity:
+                            pos_entry["activity"] = matched_activity
+                            npc.setdefault("routine", {})["current"] = matched_activity
+                            schedule_changed = True
+                            logger.info(f"[B.2] {npc.get('name')}: activity → {matched_activity!r}")
+
+                if schedule_changed:
+                    self.scene_manager.save_scene_state(
+                        req.campaign_id, scene_state_for_schedule
+                    )
+        except Exception as e:
+            logger.error(f"[PYTHON_ENGINES] B.2 Schedule error: {e}")
+
         for npc in npcs_in_location:
             player_markers = player_data.get("visible_markers", [])
             threat_score = assess_threat(
@@ -302,6 +356,7 @@ class PythonEngines:
                 behavior_hint=behavior_hint,
                 perceived_status=status_label,
                 threat_category=threat_cat,
+                scene_state=shared_context.get("scene_state"),
             )
             inner_thought = get_inner_thought(npc, shared_context)
 
@@ -358,7 +413,7 @@ class PythonEngines:
                     scene_state_for_target,
                 )
 
-                logger.info(
+                print(
                     f"[S.0 DEBUG] action={first_action_text[:40]!r} "
                     f"→ target_npc={target_npc_name!r} "
                     f"prev_target={scene_state_for_target.get('player_target_npc')!r}"
@@ -377,9 +432,10 @@ class PythonEngines:
                 shared_context["player_target_npc"] = target_npc_id
                 shared_context["player_target_name"] = target_npc_name
 
-                logger.info(
-                    f"[SCENE S.0] target_npc={target_npc_name!r} "
-                    f"target_obj={target_object!r} pos={player_position!r}"
+                print(
+                    f"[S.0 DEBUG] action={first_action_text[:40]!r} "
+                    f"→ target_npc={target_npc_name!r} "
+                    f"prev_target={scene_state_for_target.get('player_target_npc')!r}"
                 )
         except Exception as e:
             logger.error(f"[SCENE S.0] player_target_extractor error: {e}")

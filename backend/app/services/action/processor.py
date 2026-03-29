@@ -91,6 +91,7 @@ class ActionProcessor:
         self,
         action_result: "ActionResult",
         location: str,
+        campaign_id: str = "",
         scene_state: Optional[Dict] = None,
     ) -> None:
         """
@@ -110,6 +111,7 @@ class ActionProcessor:
                 event_type  = event_type,
                 actor_id    = action_result.player_name,
                 location    = location,
+                campaign_id = campaign_id,
                 parameters  = {
                     "action_text": action_result.action_text[:120],
                     "action_type": action_result.action_type,
@@ -216,7 +218,7 @@ class ActionProcessor:
                 physics_alternative = physics_alternative,
             )
             if physics_valid:
-                self._publish_event(action_res_tmp, location)
+                self._publish_event(action_res_tmp, location, campaign_id)
 
             # ── Combined ──────────────────────────────────────────────────
             result.action_results.append(action_res_tmp)

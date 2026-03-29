@@ -1,13 +1,13 @@
-# Enigma Git Backup to V.0.4.3 - TODO Steps
+# Enigma Git Backup to V.0.4.4.1 - TODO Steps
 
 ## Plan Breakdown (Approved)
 1. [ ] Stage all changes: `git add -A`
-2. [ ] Commit changes: `git commit -m "V.0.4.3: Full local backup with recent changes (agents, services, data, logs, TODO1.md, roadmaps)"`
-3. [ ] Create & switch to new branch: `git checkout -b V.0.4.3`
-4. [ ] Push to origin: `git push -u origin V.0.4.3`
-5. [ ] Verify: Check GitHub https://github.com/4Um4/Enigma/tree/V.0.4.3
+2. [ ] Commit changes: `git commit -m "V.0.4.4.1: Full current local backup - new Before.md/Plan.md, object_resolver.py, game_loop updates, recent logs 20260329, action processors"`
+3. [ ] Create & switch to new branch: `git checkout -b V.0.4.4.1`
+4. [ ] Push to origin: `git push -u origin V.0.4.4.1`
+5. [ ] Verify: Check GitHub https://github.com/4Um4/Enigma/tree/V.0.4.4.1
 
 ## Progress Tracking
-- Updates after each step completed.
+- Updates after each step.
 
-Ready to execute step-by-step.
+Proceed step-by-step.

@@ -7,7 +7,7 @@
   "metadata": {},
   "scene_state": {
     "location_id": "tavern_silver_wolf",
-    "snapshot_tick": 7,
+    "snapshot_tick": 5,
     "objects": {
       "bar_counter": {
         "name": "барная стойка",
@@ -23,26 +23,56 @@
         "light": 40,
         "interactable": false
       },
-      "tables": {
-        "name": "столы",
-        "count": 5,
+      "tables_1": {
+        "name": "столы #1",
         "state": "intact",
-        "interactable": true
+        "interactable": true,
+        "instance_of": "tables"
+      },
+      "tables_2": {
+        "name": "столы #2",
+        "state": "intact",
+        "interactable": true,
+        "instance_of": "tables"
+      },
+      "tables_3": {
+        "name": "столы #3",
+        "state": "intact",
+        "interactable": true,
+        "instance_of": "tables"
+      },
+      "tables_4": {
+        "name": "столы #4",
+        "state": "broken",
+        "interactable": true,
+        "instance_of": "tables"
+      },
+      "tables_5": {
+        "name": "столы #5",
+        "state": "intact",
+        "interactable": true,
+        "instance_of": "tables"
+      },
+      "tables_6": {
+        "name": "столы #6",
+        "state": "intact",
+        "interactable": true,
+        "instance_of": "tables"
       },
       "candles_main": {
         "name": "свечи",
         "state": "lit",
-        "count": 5,
+        "count": 10,
         "interactable": true,
         "owner": null
       }
     },
     "npc_positions": {
       "tavern_keeper_tornin": {
-        "position": "bed",
-        "activity": "sleeping",
-        "visible": false,
-        "location": "inn_rooms"
+        "position": "behind_bar",
+        "activity": "working",
+        "visible": true,
+        "location": "tavern_silver_wolf"
       },
       "maid_lusya": {
         "position": "serving_table_3",
@@ -50,37 +80,26 @@
         "visible": true
       },
       "thief_shadow": {
-        "position": "near_bar",
-        "activity": "talking_at_bar",
-        "visible": false,
-        "psyche_state": "alert"
-      },
-      "guard_borko": {
-        "activity": "sleeping",
         "position": "bed",
-        "visible": false,
-        "location": "inn_rooms"
-      },
-      "merchant_goran": {
         "activity": "sleeping",
-        "position": "bed",
         "visible": false,
         "location": "inn_rooms"
       }
     },
     "environment": {
-      "light_level": "dim",
-      "noise_level": "low",
-      "time_of_day": "22:00",
-      "weather_inside": "warm_smoky"
+      "light_level": "bright",
+      "noise_level": "moderate",
+      "time_of_day": "12:00",
+      "weather_inside": "warm_busy"
     },
     "player_inventory_snapshot": {},
     "active_effects": [],
-    "player_position": "сидит",
-    "player_target_npc": "thief_shadow",
-    "player_target_npc_name": "Тень",
+    "player_position": "смотрит",
+    "player_target_npc": null,
+    "player_target_npc_name": null,
     "player_target_object": null,
     "player_distances": {
+      "tavern_keeper_tornin": 3.0,
       "maid_lusya": 3.0,
       "thief_shadow": 3.0
     }
