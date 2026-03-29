@@ -1,3 +1,4 @@
+# C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\agents\npc_agent.py
 # -*- coding: utf-8 -*-
 """
 NPC Agent - NPC Dialogue Generation
@@ -301,8 +302,18 @@ HARDCORE: разрешены грубость, мат, угрозы, мрачн�
         return NpcAgent._strip_stop_tokens(resp), "", 0, 0
 
     # ─────────────────────────────────────────────────────────────────────────
-    # ФАЗА S.0: _fresolve_active_npcs — generic версия без хардкода имён
+    # ФАЗА S.0: _resolve_active_npcs — generic версия без хардкода имён
     # ─────────────────────────────────────────────────────────────────────────
+
+    @staticmethod
+    def _is_sleeping(ctx: dict, scene_state: Optional[dict]) -> bool:
+        """Проверяет спит ли NPC по scene_state.npc_positions."""
+        if not scene_state:
+            return False
+        npc_id = ctx.get("npc_id", "")
+        pos = scene_state.get("npc_positions", {}).get(npc_id, {})
+        activity = pos.get("activity", "").lower()
+        return activity in {"sleeping", "спит", "sleep"}
 
     @staticmethod
     def _resolve_active_npcs(
@@ -314,15 +325,23 @@ HARDCORE: разрешены грубость, мат, угрозы, мрачн�
         Определяет каких NPC нужно вызывать на этом ходу.
 
         Порядок приоритетов (строго сверху вниз):
-          1. S.0: player_target_npc задан Python → только этот NPC (абсолютный приоритет)
-          2. Broadcast-ключевые слова → все NPC в локации
-          3. Тихое действие → никто не отвечает
+          0. Спящие NPC исключаются полностью (не могут говорить)
+          1. Тихое/физическое действие → никто не отвечает
+          2. S.0: player_target_npc задан Python → только этот NPC
+          3. Broadcast-ключевые слова → все бодрствующие NPC
           4. Имена NPC в тексте → только упомянутые NPC
           5. Ролевые ключевые слова → NPC по роли
-          6. Fallback → первый по tier (general реплика без адресата)
-
-        Generic: имена и роли берутся из данных, не хардкодятся в логике.
+          6. Fallback → первый по tier среди бодрствующих
         """
+        if not sorted_contexts:
+            return []
+
+        # ── Приоритет 0: убираем спящих ──────────────────────────────────────
+        sorted_contexts = [
+            ctx for ctx in sorted_contexts
+            if not NpcAgent._is_sleeping(ctx, scene_state)
+        ]
+
         if not sorted_contexts:
             return []
 
@@ -330,21 +349,18 @@ HARDCORE: разрешены грубость, мат, угрозы, мрачн�
             getattr(a, "action", "") for a in actions
         ).lower()
 
-        # ── Приоритет 1: S.0 — target задан Python ───────────────────────────
-        # Абсолютный приоритет. Если Python уже определил цель — ничто не перебивает.
-        # Broadcast, имена, роли — всё игнорируется.
-        if scene_state:
-            target_id = scene_state.get("player_target_npc")
-            if target_id:
-                for ctx in sorted_contexts:
-                    if ctx.get("npc_id") == target_id:
-                        return [ctx]
-                # target_id есть но NPC не в локации — никто не отвечает
-                # (DM объяснит что персонаж ушёл)
-                return []
+        # ── Приоритет 1: Тихое/физическое действие — никто не реагирует ─────
+        # Проверяется ДО target, иначе sticky-target глушит этот фильтр.
+        silent_keywords = [
+            "осматриваюсь", "смотрю вокруг", "оглядываюсь", "изучаю комнату",
+            "читаю", "жду молча", "сижу тихо", "наблюдаю",
+            "осматриваю комнату", "тихо подхожу", "крадусь",
+            "отношу", "кладу", "ложу", "несу",
+        ]
+        if any(kw in full_text for kw in silent_keywords):
+            return []
 
         # ── Приоритет 2: Broadcast ────────────────────────────────────────────
-        # Игрок явно обращается ко всем или совершает действие видимое всем.
         broadcast_keywords = [
             "всем", "господа", "люди", "слушайте",
             "кричу в зал", "обращаюсь к залу", "обращаюсь ко всем",
@@ -352,114 +368,30 @@ HARDCORE: разрешены грубость, мат, угрозы, мрачн�
             "поднимаю тост", "объявляю", "говорю, чтобы все",
         ]
         if any(kw in full_text for kw in broadcast_keywords):
-            return sorted_contexts
+            return sorted_contexts    
 
-        # ── Приоритет 3: Тихое действие ──────────────────────────────────────
-        # Игрок делает что-то молча — NPC не реагируют голосом.
-        silent_keywords = [
-            "осматриваюсь", "смотрю вокруг", "оглядываюсь", "изучаю комнату",
-            "читаю", "жду молча", "сижу тихо", "наблюдаю",
-            "осматриваю комнату", "тихо подхожу", "крадусь",
-        ]
-        if any(kw in full_text for kw in silent_keywords):
-            return []
-
-        # ── Приоритет 4: Имена NPC в тексте ──────────────────────────────────
-        # Ищем любую форму имени каждого NPC в тексте действия.
-        # name_forms из JSON имеют приоритет над автогенерацией.
-        def _get_name_forms(ctx: dict) -> list[str]:
-            explicit = ctx.get("name_forms")
-            if explicit:
-                return [f.lower() for f in explicit if f]
-            # Автогенерация падежных форм из имени
-            name = ctx.get("npc_name", "").lower().strip()
-            if not name:
+        # ── Приоритет 3: S.0 — target задан Python ───────────────────────────
+        # Абсолютный приоритет среди речевых действий.
+        if scene_state:
+            target_id = scene_state.get("player_target_npc")
+            if target_id:
+                for ctx in sorted_contexts:
+                    if ctx.get("npc_id") == target_id:
+                        return [ctx]
                 return []
-            forms = {name}
-            if len(name) > 3:
-                forms.add(name[:-1])   # родительный
-            if len(name) > 4:
-                forms.add(name[:-2])   # дательный
-                forms.add(name[:-3])   # творительный
-            if len(name) >= 4:
-                forms.add(name[:4])    # начало имени
-            if len(name) >= 5:
-                forms.add(name[:5])
-            return [f for f in forms if len(f) >= 3]
 
-        named_npcs = []
-        for ctx in sorted_contexts:
-            name_forms = _get_name_forms(ctx)
-            if any(form in full_text for form in name_forms):
-                named_npcs.append(ctx)
-
-        if named_npcs:
-            return named_npcs
-
-        # ── Приоритет 5: Ролевые ключевые слова ──────────────────────────────
-        # "говорю трактирщику", "спрашиваю стражника" — без имени но с ролью.
-        # Таблица generic: роль определяется из npc_id, не из имени.
-        _ROLE_KEYWORDS: dict[str, list[str]] = {
-            "tavern_keeper": [
-                "хозяин", "трактирщик", "бармен", "корчмарь",
-                "хозяину", "трактирщику", "хозяина", "хозяюшка",
-            ],
-            "innkeeper": [
-                "хозяин", "хозяйка", "трактирщик", "хозяину",
-            ],
-            "maid": [
-                "служанка", "официантка", "девушка",
-                "служанке", "служанку", "официантке",
-            ],
-            "guard": [
-                "стражник", "охранник", "страж",
-                "стражнику", "стражника", "охраннику",
-            ],
-            "merchant": [
-                "купец", "торговец", "продавец",
-                "купцу", "торговцу", "купца",
-            ],
-            "thief": [
-                "вор", "незнакомец", "фигура", "тень",
-                "вору", "незнакомцу",
-            ],
-            "priest":     ["священник", "жрец", "священнику", "жрецу"],
-            "blacksmith": ["кузнец", "кузнецу", "кузнеца"],
-            "farmer":     ["крестьянин", "фермер", "крестьянину"],
-            "noble":      ["лорд", "господин", "барон", "господину", "лорду"],
-        }
-
-        def _get_role(npc_id: str) -> str:
-            """Извлекает роль из npc_id: maid_lusya → maid"""
-            parts = npc_id.split("_")
-            for length in range(len(parts) - 1, 0, -1):
-                candidate = "_".join(parts[:length])
-                if candidate in _ROLE_KEYWORDS:
-                    return candidate
-            return ""
-
-        role_npcs = []
-        for ctx in sorted_contexts:
-            role = _get_role(ctx.get("npc_id", ""))
-            if role and any(kw in full_text for kw in _ROLE_KEYWORDS[role]):
-                role_npcs.append(ctx)
-
-        if role_npcs:
-            return role_npcs
-
-        # ── Приоритет 6: Fallback ─────────────────────────────────────────────
-        # Общая реплика без адресата ("Добрый вечер", "Есть кто живой?").
-        # Отвечает первый NPC по tier (major > minor > mass).
-        # Если упомянута ЛЮБАЯ роль которой нет в сцене — никто не отвечает,
-        # DM объяснит ("здесь нет кузнеца").
-        all_role_keywords = [
-            kw for kws in _ROLE_KEYWORDS.values() for kw in kws
+        # ── Приоритет 4: Нет цели — молчание ─────────────────────────────────
+        # Если Python не определил цель и это не broadcast —
+        # DM опишет сцену, но NPC не говорят.
+        # Fallback: первый по tier отвечает только на общую реплику без объекта.
+        _OBJECT_HINTS = [
+            "стол", "стул", "дверь", "окно", "бочк", "ящик",
+            "огонь", "свеч", "пол", "стен", "потол",
         ]
-        if any(kw in full_text for kw in all_role_keywords):
-            # Упомянута роль, но NPC с ней не в локации
+        if any(hint in full_text for hint in _OBJECT_HINTS):
             return []
 
-        # Общая реплика — отвечает первый по tier
+        # Общая реплика (приветствие, вопрос в воздух) — отвечает первый по tier
         return [sorted_contexts[0]]
 
     # ─────────────────────────────────────────────────────────────────────────

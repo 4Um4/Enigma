@@ -1,3 +1,4 @@
+# C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game\sandbox_handler.py
 # -*- coding: utf-8 -*-
 """
 Sandbox Handler — любые нестандартные действия игрока
@@ -16,6 +17,7 @@ from datetime import datetime
 from typing import Dict, List, Any, Optional, Tuple
 from pathlib import Path
 from enum import Enum
+from app.services.action.object_resolver import resolve_object, resolve_object_group
 
 # === ФАЗА S: SceneChange — изменения состояния сцены ===
 # scene_change.py создаётся параллельно; импорт не блокирует работу
@@ -388,20 +390,8 @@ def handle_acrobatics(player: Dict, action: str, dc: int = 14, **kw) -> SandboxR
     if has_destruction and _SCENE_CHANGE_AVAILABLE:
         scene_state = kw.get("scene_state")
         # Ищем объект в SceneState по ключевым словам из текста действия
-        _OBJECT_SEARCH_MAP = [
-            ("стол",   ["стол", "table"]),
-            ("стул",   ["стул", "chair"]),
-            ("дверь",  ["дверь", "door"]),
-            ("бочк",   ["бочк", "barrel"]),
-            ("ящик",   ["ящик", "crate"]),
-            ("полк",   ["полк", "shelf"]),
-            ("витрин", ["витрин", "display"]),
-        ]
-        target_obj_id = None
-        for action_kw, scene_kws in _OBJECT_SEARCH_MAP:
-            if action_kw in lower:
-                target_obj_id = _find_object_in_scene(scene_state, scene_kws)
-                break
+        candidates = resolve_object_group(action, scene_state)
+        target_obj_id = random.choice(candidates) if candidates else None
 
         if target_obj_id and scene_state is not None:
             if success:
@@ -539,75 +529,40 @@ def handle_pickpocket(player: Dict, action: str, npc: Dict = None, **kw) -> Sand
  
     player_name = player.get("name", "player")
  
-    # ── S.4.1: Ищем объект в SceneState по ключевым словам ──────────────
-    # Таблица: русские корни из текста действия → ключевые слова для поиска в scene
-    # Принцип: ищем по name объекта в SceneState, не по хардкодному ID
-    object_keywords_map: List[Tuple[str, List[str]]] = [
-        ("свеч",   ["свеч"]),
-        ("кружк",  ["кружк", "mug"]),
-        ("книг",   ["книг", "ledger"]),
-        ("ключ",   ["ключ", "key"]),
-        ("нож",    ["нож", "knife"]),
-        ("кубок",  ["кубок", "goblet"]),
-        ("печать", ["печать", "seal"]),
-        ("мешоч",  ["мешоч", "pouch"]),
-        ("докум",  ["докум", "document"]),
-        ("письм",  ["письм", "letter"]),
-    ]
- 
-    stolen_obj_id = None
-    stolen_keyword = None
-    for action_keyword, scene_keywords in object_keywords_map:
-        if action_keyword in lower:
-            # Ищем реальный ID в SceneState
-            found_id = _find_object_in_scene(scene_state, scene_keywords)
-            if found_id:
-                stolen_obj_id = found_id
-                stolen_keyword = action_keyword
-            break
- 
+    # ── S.4.1: Ищем объект в SceneState через ObjectResolver ────────────
+    stolen_obj_id = resolve_object(action, scene_state)
+
     if stolen_obj_id:
-        # Кража объекта из сцены — убрать из SceneState + добавить в инвентарь
-        result.scene_changes = [
-            SceneChange(
-                type   = ChangeType.OBJECT_REMOVE,
-                target = stolen_obj_id,
-                field  = "state",
-                value  = "stolen",
-                cause  = "player_steal",
-            ),
-            SceneChange(
-                type   = ChangeType.INVENTORY,
-                target = player_name,
-                field  = "add",
-                value  = {stolen_obj_id: 1},
-                cause  = "player_steal",
-            ),
-        ]
-        # Кража свечей → уменьшаем count на 1 (не обнуляем — украл одну)
-        if stolen_keyword == "свеч":
-            obj_data = (scene_state or {}).get("objects", {}).get(stolen_obj_id, {})
-            current_count = obj_data.get("count", 1)
-            new_count = max(0, current_count - 1)
-            result.scene_changes.append(
-                SceneChange(
-                    type   = ChangeType.OBJECT_STATE,
-                    target = stolen_obj_id,
-                    field  = "count",
-                    value  = new_count,
-                    cause  = "player_steal",
-                )
-            )
+        stolen_obj_data = (scene_state or {}).get("objects", {}).get(stolen_obj_id, {})
+        current_count   = stolen_obj_data.get("count")
+
+        if current_count is not None and current_count > 1:
+            # Счётный объект (свечи, монеты, стрелы...) — уменьшаем на 1
+            result.scene_changes = [
+                SceneChange(ChangeType.OBJECT_STATE, stolen_obj_id, "count",
+                            current_count - 1, "player_steal"),
+                SceneChange(ChangeType.INVENTORY, player_name, "add",
+                            {stolen_obj_id: 1}, "player_steal"),
+            ]
+        else:
+            # Единичный объект (нож, книга, ключ...) — исчезает из сцены целиком
+            result.scene_changes = [
+                SceneChange(ChangeType.OBJECT_REMOVE, stolen_obj_id, "state",
+                            "stolen", "player_steal"),
+                SceneChange(ChangeType.INVENTORY, player_name, "add",
+                            {stolen_obj_id: 1}, "player_steal"),
+            ]
+
         _log("scene_change_steal", {
-            "obj_id": stolen_obj_id,
-            "player": player_name,
+            "obj_id":  stolen_obj_id,
+            "player":  player_name,
             "success": success,
         })
     else:
-        # Кража у NPC (золото) или объект не найден в SceneState
+        # Объект не в SceneState — крадём золото у NPC
         if loot > 0:
             result.scene_changes = gold_stolen(player_name, loot, cause="player_pickpocket")
- 
+
     return result
 
 
@@ -705,7 +660,7 @@ def handle_taunt(player: Dict, action: str, npc: Dict = None, **kw) -> SandboxRe
                 SceneChange(ChangeType.NPC_POSITION, npc_id, "activity", "hostile",   "player_taunt"),
                 SceneChange(ChangeType.ENVIRONMENT,  "scene", "noise_level", "moderate", "player_taunt"),
             ]
-    return resultыы
+    return result
 
 
 # ── 22. ИМПРОВИЗИРОВАННОЕ ОРУЖИЕ ──────────────────────────────────────────────
@@ -894,25 +849,15 @@ def handle_environmental(player: Dict, action: str, dc: int = 14, **kw) -> Sandb
         ]
         if success:
             # Ищем объект-цель в SceneState по ключевым словам
-            _ENV_OBJECT_MAP = [
-                ("светильник", ["светильник", "lamp"]),
-                ("колонн",     ["колонн", "column", "pillar"]),
-                ("бочк",       ["бочк", "barrel"]),
-                ("масл",       ["масл", "oil"]),
-                ("очаг",       ["очаг", "hearth", "fireplace"]),
-            ]
-            for action_kw, scene_kws in _ENV_OBJECT_MAP:
-                if action_kw in lower:
-                    obj_id = _find_object_in_scene(scene_state, scene_kws)
-                    if obj_id:
-                        new_state = "burning" if effect == "fire" else "broken"
-                        changes.append(
-                            SceneChange(ChangeType.OBJECT_STATE, obj_id, "state",
-                                        new_state, f"player_environmental_{effect}")
-                        )
-                        if scene_state:
-                            scene_state.setdefault("objects", {}).setdefault(obj_id, {})["state"] = new_state
-                        break
+            obj_id = resolve_object(action, scene_state)
+            if obj_id:
+                new_state = "burning" if effect == "fire" else "broken"
+                changes.append(
+                    SceneChange(ChangeType.OBJECT_STATE, obj_id, "state",
+                                new_state, f"player_environmental_{effect}")
+                )
+                if scene_state:
+                    scene_state.setdefault("objects", {}).setdefault(obj_id, {})["state"] = new_state
         result.scene_changes = changes
     return result
 
@@ -993,7 +938,9 @@ _KEYWORD_MAP: List[Tuple[List[str], ActionType]] = [
     (["убеждаю", "уговариваю", "прошу", "умоляю"],             ActionType.PERSUASION),
     (["прячусь", "крадусь", "скрываюсь", "иду тихо"],          ActionType.STEALTH),
     (["прыгаю", "кувырком", "карабкаюсь", "балансирую",
-      "ныряю", "лезу"],                                        ActionType.ACROBATICS),
+      "ныряю", "лезу", "ломаю", "разбиваю", "крушу",
+      "опрокидываю", "переворачиваю",
+      "разношу", "уничтожаю", "разрушаю"],                     ActionType.ACROBATICS),
     (["отвлекаю", "создаю шум", "бросаю камень в сторону"],    ActionType.DISTRACTION),
     (["говорю с животным", "успокаиваю зверя", "приручаю",
       "кормлю зверя"],                                         ActionType.ANIMAL_INTERACTION),

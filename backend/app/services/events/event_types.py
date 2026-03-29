@@ -86,6 +86,7 @@ class GameEvent:
     event_type:  EventType
     actor_id:    str                         # player_name или npc_id
     location:    str
+    campaign_id: str            = ""        
     target_id:   Optional[str]    = None    # на кого/что направлено
     parameters:  Dict[str, Any]   = field(default_factory=dict)
     timestamp:   float            = field(default_factory=time.time)

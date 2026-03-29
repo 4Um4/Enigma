@@ -1,3 +1,4 @@
+{"ts": "2026-03-29T16:50:03", "event": "unknown_sandbox", "type": "UNKNOWN", "action": "Ломаю стол №4", "severity": "medium", "roll": "d20(6)+wisdom(0)=6 vs DC15", "success": false, "consequence": "NPC возмущён"}
 {"ts": "2026-03-22T19:59:29", "event": "unknown_sandbox", "type": "UNKNOWN", "action": "Я хотел тебя попросить кое о чём...", "severity": "mild", "roll": "d20(19)+wisdom(0)=19 vs DC15", "success": true, "consequence": "репутация -5"}
 {"ts": "2026-03-22T20:00:08", "event": "unknown_sandbox", "type": "UNKNOWN", "action": "Трактирщик, налей мне эля", "severity": "mild", "roll": "d20(4)+wisdom(0)=4 vs DC15", "success": false, "consequence": "NPC удивлён"}
 {"ts": "2026-03-22T20:00:31", "event": "unknown_sandbox", "type": "UNKNOWN", "action": "А ты давно здесь работаешь?", "severity": "mild", "roll": "d20(19)+wisdom(0)=19 vs DC14", "success": true, "consequence": "NPC удивлён"}
@@ -42,3 +43,12 @@
 {"ts": "2026-03-25T21:36:33", "event": "unknown_sandbox", "type": "UNKNOWN", "action": "Люська, ко мне! Ресче давай", "severity": "medium", "roll": "d20(8)+dexterity(0)=8 vs DC15", "success": false, "consequence": "репутация -15"}
 {"ts": "2026-03-27T23:21:29", "event": "unknown_sandbox", "type": "UNKNOWN", "action": "?", "severity": "mild", "roll": "d20(3)+dexterity(0)=3 vs DC14", "success": false, "consequence": "репутация -5"}
 {"ts": "2026-03-28T21:19:31", "event": "unknown_sandbox", "type": "UNKNOWN", "action": "Я разрушаю один из столов, прыгая на него", "severity": "mild", "roll": "d20(3)+charisma(0)=3 vs DC14", "success": false, "consequence": "забавный момент"}
+{"ts": "2026-03-29T13:33:21", "event": "unknown_sandbox", "type": "UNKNOWN", "action": "Ломаю один из столов - а именно №4", "severity": "medium", "roll": "d20(14)+intelligence(0)=14 vs DC12", "success": true, "consequence": "действие удалось"}
+{"ts": "2026-03-29T13:34:19", "event": "unknown_sandbox", "type": "UNKNOWN", "action": "Ломаю один из столов - а именно №4", "severity": "mild", "roll": "d20(16)+wisdom(0)=16 vs DC12", "success": true, "consequence": "никто не обратил внимания"}
+{"ts": "2026-03-29T17:01:55", "event": "acrobatics", "type": "acrobatics", "ability": "strength", "roll": "d20(3)+strength(2)=5 vs DC0", "success": true}
+{"ts": "2026-03-29T17:02:29", "event": "acrobatics", "type": "acrobatics", "ability": "strength", "roll": "d20(2)+strength(2)=4 vs DC0", "success": true}
+{"ts": "2026-03-29T17:10:00", "event": "acrobatics", "type": "acrobatics", "ability": "strength", "roll": "d20(2)+strength(2)=4 vs DC0", "success": true}
+{"ts": "2026-03-29T17:28:52", "event": "acrobatics", "type": "acrobatics", "ability": "strength", "roll": "d20(2)+strength(2)=4 vs DC0", "success": true}
+{"ts": "2026-03-29T20:17:47", "event": "unknown_sandbox", "type": "UNKNOWN", "action": "Я пытаюсь починить стол №4", "severity": "mild", "roll": "d20(2)+strength(0)=2 vs DC10", "success": false, "consequence": "NPC удивлён"}
+{"ts": "2026-03-29T21:06:49", "event": "crafting", "type": "crafting", "difficulty": "medium", "quality": "неудачное", "roll": "d20(6)+INT(2)=8 vs DC15", "success": false}
+{"ts": "2026-03-29T21:29:31", "event": "unknown_sandbox", "type": "UNKNOWN", "action": "Смотрю на сломанный стол", "severity": "mild", "roll": "d20(1)+intelligence(0)=1 vs DC15", "success": false, "consequence": "забавный момент"}

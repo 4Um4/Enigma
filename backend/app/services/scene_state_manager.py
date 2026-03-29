@@ -1,3 +1,4 @@
+# C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\scene_state_manager.py
 # -*- coding: utf-8 -*-
 """
 SceneStateManager — Python как единственный источник истины о состоянии мира.
@@ -525,11 +526,19 @@ class SceneStateManager:
         objects: dict = {}
         for obj_id, obj_data in template.get("default_objects", {}).items():
             obj = dict(obj_data)
-            if "count" in obj:
+            if "count" in obj and obj.get("interactable", False):
+                # Разбиваем агрегат на именованные инстансы
                 base  = obj["count"]
                 delta = max(1, int(base * 0.2))
-                obj["count"] = base + random.randint(-delta, delta)
-            objects[obj_id] = obj
+                count = base + random.randint(-delta, delta)
+                for i in range(1, count + 1):
+                    instance = {k: v for k, v in obj.items() if k != "count"}
+                    instance["instance_of"] = obj_id
+                    instance["name"] = f"{obj['name']} #{i}"
+                    objects[f"{obj_id}_{i}"] = instance
+            else:
+                # Одиночный объект — оставляем как есть
+                objects[obj_id] = obj
 
         time_variant = self._select_time_variant(template, time_of_day)
         environment = {
@@ -788,38 +797,35 @@ class SceneStateManager:
         lines = ["Текущее состояние сцены (ТОЛЬКО ЭТИ объекты существуют в локации):"]
 
         # ── Объекты ──────────────────────────────────────────────────────────
+        # Группируем инстансы для отображения
+        groups: dict = {}
         for obj_id, obj in scene_state.get("objects", {}).items():
-            name  = obj.get("name", obj_id)
-            state = obj.get("state", "")
-            count = obj.get("count")
-            extra = ""
-            if count is not None and int(count) > 0:
-                extra = f" ({count} шт.)"
-            elif count is not None and int(count) == 0:
-                continue
+            instance_of = obj.get("instance_of", obj_id)
+            if instance_of not in groups:
+                groups[instance_of] = {"obj": obj, "ids": [], "states": set()}
+            groups[instance_of]["ids"].append(obj_id)
+            groups[instance_of]["states"].add(obj.get("state", ""))
 
-            material = obj.get("material", "")
-            hp       = obj.get("hp")
-            max_hp   = obj.get("max_hp")
+        for base_id, group in groups.items():
+            obj   = group["obj"]
+            name  = obj.get("name", base_id)
+            count = len(group["ids"])
+            states = group["states"]
 
-            desc_parts = []
-            if state:
-                state_map = {
-                    "intact": "целый", "damaged": "повреждённый",
-                    "destroyed": "уничтожен", "lit": "горит",
-                    "unlit": "не горит", "burning": "горит",
-                    "open": "открыт", "locked": "заперт",
-                    "manned": "при охране", "flowing": "бьёт",
-                    "made": "застелена",
-                }
-                desc_parts.append(state_map.get(state, state))
-            if material:
-                desc_parts.append(material)
-            if hp is not None and max_hp and hp < max_hp:
-                desc_parts.append(f"HP {hp}/{max_hp}")
+            state_map = {
+                "intact": "цел", "damaged": "повреждён",
+                "destroyed": "уничтожен", "lit": "горит",
+                "unlit": "не горит", "burning": "горит",
+                "open": "открыт", "locked": "заперт",
+            }
 
-            desc = ", ".join(desc_parts) + extra if desc_parts else extra
-            lines.append(f"- {name}: {desc}".rstrip(": ").rstrip())
+            if len(states) == 1:
+                state_str = state_map.get(states.pop(), "")
+            else:
+                state_str = ", ".join(state_map.get(s, s) for s in states)
+
+            count_str = f" ×{count}" if count > 1 else ""
+            lines.append(f"- {name}{count_str}: {state_str}".rstrip(": "))
 
         # ── Окружение ─────────────────────────────────────────────────────────
         env = scene_state.get("environment", {})

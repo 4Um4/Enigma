@@ -316,6 +316,36 @@ class GameLoop:
 
         shared_context["python_engines"] = python_engines_result
 
+        # 5.5: PerceptionFilter — кто из NPC воспринял последнее событие
+        try:
+            from app.services.npc.perception_filter import filter_perceiving_npcs
+            from app.services.events.event_bus import get_event_bus
+
+            npc_contexts = python_engines_result.get("npc_contexts", [])
+            npc_ids = [ctx["npc_id"] for ctx in npc_contexts]
+            recent = get_event_bus().get_recent_events(limit=1)
+
+            if recent and npc_ids:
+                perceiving = filter_perceiving_npcs(
+                    npc_ids     = npc_ids,
+                    event       = recent[0],
+                    scene_state = shared_context.get("scene_state", {}),
+                )
+                shared_context["perceiving_npcs"] = perceiving
+                logger.info(
+                    f"[GAME_LOOP] PerceptionFilter: "
+                    f"{len(perceiving)}/{len(npc_ids)} NPC воспринимают событие"
+                )
+            else:
+                shared_context["perceiving_npcs"] = npc_ids
+                logger.warning(
+                    f"[GAME_LOOP] PerceptionFilter skip: "
+                    f"recent={len(recent)} npc_ids={len(npc_ids)}"
+                )
+        except Exception as e:
+            logger.error(f"[GAME_LOOP] PerceptionFilter error: {e}")
+            shared_context["perceiving_npcs"] = []
+
         # 6. Rules агент
         rules_result = await self._run_agent_safe(
             "rules", self.rules_agent, (actions,), {}

@@ -350,7 +350,7 @@ def session_state(campaign_id: str) -> SessionInterfaceState:
 
 @router.get("/npcs/{campaign_id}")
 def get_npcs(campaign_id: str) -> dict:
-    """Возвращает major NPC для NPC-панели фронтенда."""
+    """Возвращает NPC текущей локации для NPC-панели фронтенда."""
     try:
         npc_path = game_loop.data_dir / "npcs" / "major_npcs.json"
         if not npc_path.exists():
@@ -358,7 +358,26 @@ def get_npcs(campaign_id: str) -> dict:
         import json
         with open(npc_path, encoding="utf-8") as f:
             npcs = json.load(f)
-        # Возвращаем все поля — фронтенд сам разберётся что показать
+
+        # Определяем текущую локацию игрока
+        current_location = None
+        try:
+            cs_path = game_loop.data_dir / "campaigns" / campaign_id / "campaign_state.json"
+            if cs_path.exists():
+                cs = json.loads(cs_path.read_text(encoding="utf-8"))
+                current_location = cs.get("scene_state", {}).get("location_id")
+                if not current_location:
+                    current_location = cs.get("metadata", {}).get("current_location")
+        except Exception:
+            pass
+
+        # Фильтруем по локации если она известна
+        if current_location:
+            npcs = [
+                npc for npc in npcs
+                if npc.get("location") == current_location
+            ]
+
         return {"npcs": npcs, "count": len(npcs)}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
