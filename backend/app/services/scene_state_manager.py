@@ -756,6 +756,164 @@ class SceneStateManager:
             logger.info(f"[SCENE] Применено {applied_count}/{len(changes)} изменений")
         return applied_count
 
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # R2.1 — apply_narrative_extractions: регистрирует объекты и события из DM
+    # ─────────────────────────────────────────────────────────────────────────
+
+    def apply_narrative_extractions(
+        self,
+        campaign_id: str,
+        scene_state: dict,
+        extraction_result,
+    ) -> None:
+        """
+        R2.2.8: применяет ExtractionResult к SceneState.
+        Поддерживает canonical, importance, last_tick, FSM state, NpcAction.
+        """
+        changed = False
+        objects = scene_state.setdefault("objects", {})
+
+        # ── Новые динамические объекты ────────────────────────────────────
+        for obj in extraction_result.new_objects:
+            if obj.object_id not in objects:
+                objects[obj.object_id] = {
+                    "name":           obj.name,
+                    "raw_name":       obj.raw_name,
+                    "canonical_name": obj.canonical_name,
+                    "type":           obj.obj_type,
+                    "state":          obj.state,
+                    "importance":     obj.importance,
+                    "holder":         obj.holder,
+                    "created_tick":   obj.created_tick,
+                    "last_tick":      obj.created_tick,
+                    "dynamic":        True,
+                    "interactable":   True,
+                }
+                print(f"[R2.1] Новый объект: {obj.object_id} ({obj.name}, {obj.obj_type})")
+                changed = True
+
+        # ── FSM: обновление состояний существующих объектов ───────────────
+        from app.services.scene.narrative_extractor import STATE_PRIORITY
+        for obj_id, new_state in extraction_result.updated_states:
+            if obj_id in objects:
+                old_state = objects[obj_id].get("state", "present")
+                old_prio  = STATE_PRIORITY.get(old_state, 0)
+                new_prio  = STATE_PRIORITY.get(new_state, 0)
+                if new_prio >= old_prio:
+                    objects[obj_id]["state"]    = new_state
+                    objects[obj_id]["last_tick"] = extraction_result.new_events[0].tick if extraction_result.new_events else 0
+                    print(f"[R2.1] Состояние: {obj_id} → {new_state}")
+                    changed = True
+
+        # ── События сцены (с canonical для дедупликации) ──────────────────
+        events = scene_state.setdefault("scene_events", [])
+        for evt in extraction_result.new_events:
+            events.append({
+                "event_id":   evt.event_id,
+                "event_type": evt.event_type,
+                "actor":      evt.actor,
+                "object_name": evt.object_name,
+                "canonical":  evt.canonical,
+                "object_id":  evt.object_id,
+                "tick":       evt.tick,
+                "happened":   True,
+            })
+            print(f"[R2.1] Событие: {evt.event_type} / {evt.object_name} (tick={evt.tick})")
+            changed = True
+
+        if len(events) > 30:
+            scene_state["scene_events"] = events[-30:]
+
+        # ── current_action NPC (Action Persistence) ───────────────────────
+        npc_positions = scene_state.setdefault("npc_positions", {})
+        for npc_id, npc_action in extraction_result.npc_actions.items():
+            entry = npc_positions.setdefault(npc_id, {})
+            entry["current_action"]      = f"{npc_action.action}_{npc_action.object_canonical}"
+            entry["action_started_tick"] = npc_action.tick
+            changed = True
+
+        if changed:
+            self.save_scene_state(campaign_id, scene_state)
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # R2.1 — get_scene_events_block: блок для DM промпта
+    # ─────────────────────────────────────────────────────────────────────────
+
+    @staticmethod
+    def get_scene_events_block(scene_state: dict) -> str:
+        """R2.2.8: блок "уже произошло" для DM промпта. Canonical-aware."""
+        events = scene_state.get("scene_events", [])
+        if not events:
+            return ""
+
+        event_labels = {
+            "drop":       "упал/уронили",
+            "break":      "сломан/разбит",
+            "take":       "подобран/взят",
+            "use":        "используется",
+            "light":      "зажжён",
+            "extinguish": "потушен",
+        }
+
+        lines = ["СОБЫТИЯ УЖЕ ПРОИЗОШЛИ В ЭТОЙ СЦЕНЕ (не повторять):"]
+        seen: set[tuple] = set()
+
+        for evt in events[-10:]:
+            etype     = evt.get("event_type", evt.get("type", ""))
+            canonical = evt.get("canonical", evt.get("object_name", "").lower())
+            actor     = evt.get("actor", "")
+            key       = (etype, canonical)
+            if key in seen:
+                continue
+            seen.add(key)
+
+            label     = event_labels.get(etype, etype)
+            obj_name  = evt.get("object_name", canonical)
+            tick      = evt.get("tick", "?")
+            actor_str = f" ({actor.split('_')[-1]})" if actor else ""
+            lines.append(f"- {obj_name} — {label}{actor_str} [ход {tick}]")
+
+        return "\n".join(lines) if len(lines) > 1 else ""
+
+
+    def prune_dynamic_objects(
+        self,
+        campaign_id: str,
+        scene_state: dict,
+        current_tick: int,
+        transient_lifetime: int = 60,
+        max_objects: int = 80,
+    ) -> int:
+        """
+        Фикс #6: удаляет старые динамические объекты по last_tick (не created_tick).
+        Вызывается автоматически каждые 50 тиков.
+        """
+        from app.services.scene.narrative_extractor import STATE_PRIORITY
+        objects = scene_state.get("objects", {})
+        removed = 0
+
+        for oid in list(objects.keys()):
+            obj = objects[oid]
+            if not obj.get("dynamic"):
+                continue
+            last_active = obj.get("last_tick", obj.get("created_tick", 0))
+            age         = current_tick - last_active
+            importance  = obj.get("importance", 2)
+
+            if importance == 2 and age > transient_lifetime:
+                del objects[oid]
+                removed += 1
+            elif importance == 1 and age > transient_lifetime * 4:
+                del objects[oid]
+                removed += 1
+
+        if removed:
+            self.save_scene_state(campaign_id, scene_state)
+            print(f"[R2.1] prune_dynamic_objects: удалено {removed} объектов")
+
+        return removed
+
     # ─────────────────────────────────────────────────────────────────────────
     # update_npc_position
     # ─────────────────────────────────────────────────────────────────────────

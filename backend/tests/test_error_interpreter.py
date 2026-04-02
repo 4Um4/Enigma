@@ -1,3 +1,4 @@
+# C:\DDD\Codex\VSC_Enigma\Enigma\backend\tests\test_error_interpreter.py
 from pathlib import Path
 import sys
 import asyncio
@@ -13,7 +14,7 @@ sys.path.insert(0, str(BACKEND_DIR))
 import unittest
 from unittest.mock import MagicMock, patch
 from app.services.error_interpreter import get_error_interpreter
-from app.services.orchestrator import ERROR_CODES
+from app.services.game_loop import ERROR_CODES
 
 
 class TestErrorInterpreter(unittest.TestCase):

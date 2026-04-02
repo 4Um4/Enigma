@@ -90,6 +90,7 @@ class GameLoop:
         *,
         data_dir: Path,
         layered_memory: LayeredMemory,
+        memory_manager,
         processor: ActionProcessor,
         python_engines: PythonEngines,
         scene_manager: SceneStateManager,
@@ -106,6 +107,7 @@ class GameLoop:
     ):
         self.data_dir         = data_dir
         self.layered_memory   = layered_memory
+        self.memory_manager   = memory_manager
         self.processor        = processor
         self.python_engines   = python_engines
         self.scene_manager    = scene_manager
@@ -120,6 +122,7 @@ class GameLoop:
         self.adventure_loader     = adventure_loader
         self.system_requirements  = system_requirements
         self._campaign_world_index: dict[str, str] = {}
+        self._session_started_campaigns: set = set()
 
     # ─────────────────────────────────────────────────────────────────────────
     # ПУБЛИЧНЫЙ API
@@ -141,6 +144,25 @@ class GameLoop:
             ),
             {},
         )
+
+        # R2.1: NarrativeExtractor R2.2.8 — синхронный путь (REST)
+        try:
+            from app.services.scene.narrative_extractor import get_extractor
+            dm_text     = dm_result.get("dm_response", "")
+            scene_state = state.shared_context.get("scene_state", {})
+            if dm_text and scene_state:
+                current_tick = scene_state.get("snapshot_tick", 0)
+                extraction   = get_extractor().extract(dm_text, scene_state, current_tick)
+                if extraction.new_objects or extraction.new_events or extraction.updated_states:
+                    self.scene_manager.apply_narrative_extractions(
+                        req.campaign_id, scene_state, extraction
+                    )
+                    if current_tick % 50 == 0:
+                        self.scene_manager.prune_dynamic_objects(
+                            req.campaign_id, scene_state, current_tick
+                        )
+        except Exception as e:
+            print(f"[R2.1] NarrativeExtractor REST error: {e}")
 
         self._write_memory(
             req, state, dm_result,
@@ -180,6 +202,10 @@ class GameLoop:
 
         actions = [PlayerAction(player_name=player, action=action_text)]
 
+        is_session_start = campaign_id not in self._session_started_campaigns
+        if is_session_start:
+            self._session_started_campaigns.add(campaign_id)
+
         # Немедленно отвечаем клиенту — ещё до pipeline
         yield {"type": "ping"}
         yield {"type": "status", "text": "Мастер думает..."}
@@ -211,8 +237,9 @@ class GameLoop:
 
         # DM — стриминг токенов
         yield {"type": "status", "text": "Мастер рассказывает..."}
-        token_count  = 0
-        world_result = {"world_events": []}
+        token_count   = 0
+        world_result  = {"world_events": []}
+        dm_text_parts: list[str] = []   # R2.1: буфер для экстрактора
 
         try:
             async for token in self.dm_agent.stream_narrate(
@@ -223,8 +250,10 @@ class GameLoop:
                 world_result=world_result,
                 world_canon_exists=False,
                 context=state.shared_context,
+                is_session_start=is_session_start,
             ):
                 token_count += 1
+                dm_text_parts.append(token)   # R2.1
                 yield {"type": "token", "text": token, "n": token_count}
         except Exception as e:
             yield {"type": "error", "text": str(e)}
@@ -234,7 +263,30 @@ class GameLoop:
         tps = round(token_count / (elapsed_ms / 1000), 1) if elapsed_ms > 0 else 0
         yield {"type": "done", "tokens": token_count, "ms": elapsed_ms, "tps": tps}
 
-        self._write_session_memory(campaign_id, world_id, location, player, action_text)
+        # R2.1: NarrativeExtractor R2.2.8
+        try:
+            from app.services.scene.narrative_extractor import get_extractor
+            dm_full_text = "".join(dm_text_parts)
+            scene_state  = state.shared_context.get("scene_state", {})
+            if dm_full_text and scene_state:
+                current_tick = scene_state.get("snapshot_tick", 0)
+                extraction   = get_extractor().extract(dm_full_text, scene_state, current_tick)
+                if extraction.new_objects or extraction.new_events or extraction.updated_states:
+                    self.scene_manager.apply_narrative_extractions(
+                        campaign_id, scene_state, extraction
+                    )
+                    # Фикс #6: prune каждые 50 тиков
+                    if current_tick % 50 == 0:
+                        self.scene_manager.prune_dynamic_objects(
+                            campaign_id, scene_state, current_tick
+                        )
+                    print(
+                        f"[R2.1] objects={len(extraction.new_objects)} "
+                        f"events={len(extraction.new_events)} "
+                        f"state_updates={len(extraction.updated_states)}"
+                    )
+        except Exception as e:
+            print(f"[R2.1] NarrativeExtractor error: {e}")
 
     # ─────────────────────────────────────────────────────────────────────────
     # ОБЩИЙ ПАЙПЛАЙН (шаги 1–8 — одинаковы для REST и SSE)
@@ -323,7 +375,7 @@ class GameLoop:
 
             npc_contexts = python_engines_result.get("npc_contexts", [])
             npc_ids = [ctx["npc_id"] for ctx in npc_contexts]
-            recent = get_event_bus().get_recent_events(limit=1)
+            recent = get_event_bus().get_recent_events(limit=1, campaign_id=campaign_id)
 
             if recent and npc_ids:
                 perceiving = filter_perceiving_npcs(
@@ -352,6 +404,8 @@ class GameLoop:
         )
 
         # 7. NPC агент
+        # R1.C1: подаём Working Memory в shared_context — NPC видит последние ходы
+        shared_context["working_memory"] = self.memory_manager.working_memory.get(campaign_id)
         npc_memory = self.layered_memory.read_npc_memory(campaign_id, limit=NPC_MEMORY_LIMIT)
         npc_result = await self._run_agent_safe(
             "npc", self.npc_agent,
@@ -362,13 +416,48 @@ class GameLoop:
         # Применяем trust/stress дельты
         npc_state_updates = npc_result.get("npc_state_updates", [])
         if npc_state_updates:
-            self._apply_npc_state_updates(npc_state_updates)
+            self._apply_npc_state_updates(npc_state_updates, campaign_id=campaign_id)
         # Записываем ход в память NPC
         self._write_npc_memory(
             npc_reactions = npc_result.get("npc_reactions", []),
             player        = actions[0].player_name if actions else "игрок",
             action_text   = actions[0].action if actions else "",
         )
+
+        # ── R1 CONNECT: Working Memory ────────────────────────────────────────
+        _player_text = actions[0].action if actions else ""
+        _player_name = actions[0].player_name if actions else "игрок"
+
+        # action_type из классификатора (для ImportanceEngine)
+        # Используем processing из начала метода, не state!
+        _act_type = "unknown"
+        if processing.classification:
+            _first = processing.classification[0] if processing.classification else {}
+            _act_type = _first.get("type", "unknown")  # в classification поле "type", не "action_type"
+
+        # P0.1: действие игрока → Working Memory
+        self.memory_manager.record_event(campaign_id, {
+            "type":        "player_action",
+            "actor":       _player_name,
+            "content":     _player_text,
+            "action_type": _act_type,
+            "location":    location,
+        })
+
+        # P0.2: ответы NPC → Working Memory
+        for _reaction in npc_result.get("npc_reactions", []):
+            if _reaction and ":" in _reaction:
+                self.memory_manager.record_event(campaign_id, {
+                    "type":        "npc_speech",
+                    "actor":       _reaction.split(":")[0].strip(),
+                    "content":     _reaction.split(":", 1)[1].strip()[:120],
+                    "action_type": "dialogue_key",
+                })
+
+        # P0.3: decay каждые 10 ходов
+        _tick = shared_context.get("scene_state", {}).get("snapshot_tick", 0)
+        self.memory_manager.run_decay_if_needed(campaign_id, _tick)
+        # ─────────────────────────────────────────────────────────────────────
 
         return _PipelineState(
             shared_context         = shared_context,
@@ -394,7 +483,7 @@ class GameLoop:
             logger.warning(f"[GAME_LOOP] Персонаж '{player_name}' не найден: {e}")
         return {}
 
-    def _apply_npc_state_updates(self, updates: list) -> None:
+    def _apply_npc_state_updates(self, updates: list, campaign_id: str = "") -> None:
         if not updates:
             return
         try:
@@ -422,6 +511,17 @@ class GameLoop:
                         f"[NPC_STATE] {npc_id}: "
                         f"trust_delta={trust_delta:+.4f} stress_delta={stress_delta:+d}"
                     )
+                    # P1: RelationshipStore
+                    if trust_delta != 0.0 and campaign_id:
+                        try:
+                            self.memory_manager.update_relationship(
+                                campaign_id = campaign_id,
+                                source      = "player",
+                                target      = npc_id,
+                                delta       = {"trust": trust_delta},
+                            )
+                        except Exception:
+                            pass
                     break
             if changed:
                 self._save_npcs(all_npcs)
@@ -596,6 +696,10 @@ class GameLoop:
         player: str,
         action_text: str,
     ) -> None:
+        self.memory_manager.record_event(
+            campaign_id,
+            {"type": "player_action", "player": player, "action": action_text, "location": location},
+        )
         try:
             self.layered_memory.write_session_memory(
                 campaign_id,

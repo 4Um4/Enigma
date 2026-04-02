@@ -1,4 +1,4 @@
-# backend/app/core/config.py
+# C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\core\config.py
 # ОПТИМИЗАЦИЯ ПОД RTX 3070 Ti — 8 GB VRAM
 #
 # ИЗМЕНЕНИЯ vs оригинал:
@@ -53,7 +53,7 @@ class Settings(BaseSettings):
         BASE_DIR / "Models LLM" / "llama" / "llama-cli.exe"
     )
     llama_cpp_model_path: str = str(
-        BASE_DIR / "Models LLM" / "qwen2.5-7b-instruct-q4_k_m.gguf"
+        BASE_DIR / "Models LLM" / "gemma-3-12b-it-q4_k_m.gguf"
     )
 
     llama_cpp_server_url: str = "http://127.0.0.1:8080"
@@ -93,16 +93,17 @@ class Settings(BaseSettings):
 
     # Пути к моделям
     model_qwen_7b_path: str = str(
-        BASE_DIR / "Models LLM" / "qwen2.5-7b-instruct-q4_k_m.gguf"
+        BASE_DIR / "Models LLM" / "qwen2.5-7b-instruct-q4_k_m.gguf"  # отсутствует локально
     )
     model_qwen_9b_path: str = str(
         BASE_DIR / "Models LLM" / "Qwen3.5-9B.gguf"
     )
     model_saiga_path: str = str(
-        BASE_DIR / "Models LLM" / "saiga_mistral_7b_model-q4_K.gguf"
+        BASE_DIR / "Models LLM" / "saiga_mistral_7b_model-q4_K.gguf"  # отсутствует локально
     )
     model_npc_major_path: str = str(BASE_DIR / "Models LLM" / "mistral-pygmalion-7b.Q5_K_M.gguf")
-    model_npc_mass_path:  str = str(BASE_DIR / "Models LLM" / "mistral-pygmalion-7b.Q4_K_M.gguf")
+    model_npc_mass_path:  str = str(BASE_DIR / "Models LLM" / "mistral-pygmalion-7b.Q5_K_M.gguf")
+    model_yandex_path:    str = str(BASE_DIR / "Models LLM" / "YandexGPT-5-Lite-8B-instruct-Q4_K_M.gguf")
     # Фаза M: Gemma-3-12B — основная модель для всех агентов
     model_gemma_12b_path: str = str(BASE_DIR / "Models LLM" / "gemma-3-12b-it-q4_k_m.gguf")
 
@@ -164,56 +165,74 @@ class Settings(BaseSettings):
                 name="gemma_12b",
                 path=self.model_gemma_12b_path,
                 display_name="Gemma-3-12B IT Q4_K_M (все агенты)",
-                vram_mb=7000,           # ~7.0 GB при ctx=4096
-                context_size=4096,      # Gemma держит 4096 без деградации
+                vram_mb=7000,
+                context_size=4096,
                 temperature=0.7,
-                repeat_penalty=1.05,    # Gemma менее склонна к повторам чем Qwen
+                repeat_penalty=1.05,
             ),
-            # ── Fallback модели (оставлены для резерва) ───────────────────────
-            "qwen_7b": ModelConfig(
-                name="qwen_7b",
-                path=self.model_qwen_7b_path,
-                display_name="Qwen2.5 7B (DM/World)",
-                vram_mb=4500,
-                context_size=2048,
-                temperature=0.75,   # чуть выше для нарратива
-            ),
-            # qwen_9b исключён из маппинга — 5.5 GB не оставляет буфера
-            # Оставлен в конфиге для будущего (если будет 12 GB GPU)
-            "qwen_9b": ModelConfig(
-                name="qwen_9b",
-                path=self.model_qwen_9b_path,
-                display_name="Qwen3.5 9B (World — требует 12 GB VRAM)",
-                vram_mb=5500,
-                context_size=1024,
-                temperature=0.8,
-            ),
-            "saiga": ModelConfig(
-                name="saiga",
-                path=self.model_saiga_path,
-                display_name="Saiga Mistral 7B (Rules/Memory)",
-                vram_mb=4000,
-                context_size=1024,  # Rules/Memory не нуждаются в длинном ctx
-                temperature=0.3,    # низкая температура для точных правил
-            ),
+            # ── Резервные модели (присутствуют локально) ─────────────────────
             "npc_major": ModelConfig(
                 name="npc_major",
                 path=self.model_npc_major_path,
                 display_name="Mistral Pygmalion 7B Q5_K_M (Major NPCs)",
                 vram_mb=4500,
-                context_size=1024,  # диалог NPC короткий
-                temperature=0.8,    # NPC должны быть немного непредсказуемы
+                context_size=1024,
+                temperature=0.8,
                 repeat_penalty=1.15,
             ),
             "npc_mass": ModelConfig(
                 name="npc_mass",
-                path=self.model_npc_mass_path,
-                display_name="Mistral Pygmalion 7B Q4_K_M (Mass NPCs)",
-                vram_mb=4000,       # Q4_K_M
-                context_size=512,   # фоновые NPC — очень короткий контекст
+                path=self.model_npc_mass_path,   # тот же Q5 файл
+                display_name="Mistral Pygmalion 7B Q5_K_M (Mass NPCs fallback)",
+                vram_mb=4500,
+                context_size=512,
                 temperature=0.9,
             ),
+            "qwen_9b": ModelConfig(
+                name="qwen_9b",
+                path=self.model_qwen_9b_path,
+                display_name="Qwen3.5 9B (требует 12 GB VRAM)",
+                vram_mb=5500,
+                context_size=1024,
+                temperature=0.8,
+            ),
+            "yandex_8b": ModelConfig(
+                name="yandex_8b",
+                path=self.model_yandex_path,
+                display_name="YandexGPT-5 Lite 8B Q4_K_M (резерв)",
+                vram_mb=5000,
+                context_size=2048,
+                temperature=0.7,
+            ),
+            # ── Отсутствуют локально (оставлены для будущего) ────────────────
+            "qwen_7b": ModelConfig(
+                name="qwen_7b",
+                path=self.model_qwen_7b_path,    # файла нет — не использовать
+                display_name="Qwen2.5 7B [ОТСУТСТВУЕТ]",
+                vram_mb=4500,
+                context_size=2048,
+                temperature=0.75,
+            ),
+            "saiga": ModelConfig(
+                name="saiga",
+                path=self.model_saiga_path,      # файла нет — не использовать
+                display_name="Saiga Mistral 7B [ОТСУТСТВУЕТ]",
+                vram_mb=4000,
+                context_size=1024,
+                temperature=0.3,
+            ),
         }
+
+        # ── Валидация на старте: логируем отсутствующие файлы ────────────────
+        import logging as _log
+        _logger = _log.getLogger(__name__)
+        for key, mcfg in self.available_models.items():
+            from pathlib import Path as _Path
+            if not _Path(mcfg.path).exists():
+                _logger.warning(
+                    f"[CONFIG] Модель '{key}' ({mcfg.display_name}) "
+                    f"не найдена: {mcfg.path}"
+                )
 
     # ─────────────────────────────────────────────────────────────────
     # Контекстно-зависимый ctx_size для агентов
@@ -283,3 +302,7 @@ class ErrorInterpreter:
 
 
 settings = Settings()
+
+# Константы для обратной совместимости с тестами
+DATA_DIR   = Path(settings.data_dir)
+MODEL_PATH = Path(settings.model_gemma_12b_path)

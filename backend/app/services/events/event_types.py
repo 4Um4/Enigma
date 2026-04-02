@@ -98,13 +98,14 @@ class GameEvent:
 
     def to_dict(self) -> dict:
         return {
-            "event_type": self.event_type.name,
-            "actor_id":   self.actor_id,
-            "location":   self.location,
-            "target_id":  self.target_id,
-            "parameters": self.parameters,
-            "timestamp":  self.timestamp,
-            "radius":     self.radius,
+            "event_type":  self.event_type.name,
+            "actor_id":    self.actor_id,
+            "location":    self.location,
+            "campaign_id": self.campaign_id,
+            "target_id":   self.target_id,
+            "parameters":  self.parameters,
+            "timestamp":   self.timestamp,
+            "radius":      self.radius,
         }
 
     @classmethod

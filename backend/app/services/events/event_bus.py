@@ -135,8 +135,13 @@ class EventBus:
 
     # ── Утилиты ───────────────────────────────────────────────────────────
 
-    def get_recent_events(self, limit: int = 20) -> List[dict]:
-        """Последние N событий для debug и context_builder."""
+    def get_recent_events(self, limit: int = 20, campaign_id: str = "") -> List[dict]:
+        """Последние N событий для debug и context_builder.
+        Если campaign_id указан — фильтрует только события этой кампании.
+        """
+        if campaign_id:
+            filtered = [e for e in self._event_log if e.get("campaign_id") == campaign_id]
+            return filtered[-limit:]
         return self._event_log[-limit:]
 
     def get_subscriber_count(self, event_type: EventType) -> int:

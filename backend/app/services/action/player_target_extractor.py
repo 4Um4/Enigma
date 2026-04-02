@@ -185,6 +185,22 @@ class PlayerTargetExtractor:
         player_position = None
         player_distances: Dict[str, float] = {}
 
+        # Pronoun shortcut: игрок использует местоимение И есть предыдущая цель
+        # → пропускаем поиск по имени/роли, берём sticky target напрямую.
+        # Иначе роль-ключевое слово из контекста фразы перехватит цель ложно.
+        if has_only_pronoun and prev_target_id:
+            target_npc_id = prev_target_id
+            target_npc_name = prev_target_name
+            for ctx in npc_contexts:
+                npc_id = ctx.get("npc_id", "")
+                is_proximate = any(kw in lower for kw in self._PROXIMITY_KEYWORDS)
+                player_distances[npc_id] = 0.5 if npc_id == target_npc_id and is_proximate else 3.0
+            for pos_label, patterns in self._POSITION_PATTERNS.items():
+                if any(p in lower for p in patterns):
+                    player_position = pos_label
+                    break
+            return target_npc_id, target_npc_name, target_object, player_position, player_distances
+
         # 1. Поиск целевого NPC
         for ctx in npc_contexts:
             npc_id = ctx.get("npc_id", "")
@@ -230,8 +246,34 @@ class PlayerTargetExtractor:
                     target_object = obj_id
                     break
 
-        # Sticky target — только если нет объекта-цели
-        if target_npc_id is None and prev_target_id and target_object is None:
+        # Sticky target через лемматизацию (pymorphy3)
+        # Все формы глаголов обращения сводятся к базовой лемме —
+        # не зависим от конкретных словоформ.
+        try:
+            import pymorphy3 as _pm3
+            _morph = _pm3.MorphAnalyzer()
+            _ADDRESS_LEMMAS = {
+                "говорить", "сказать", "спросить", "шептать", "спрашивать",
+                "отвечать", "обращаться", "просить", "попросить", "молвить",
+                "сообщить", "сообщать", "заявить", "заявлять", "шепнуть",
+                "произнести", "произносить", "промолвить", "добавить",
+                "крикнуть", "кричать", "позвать", "звать", "велеть",
+                "приказать", "предложить", "предлагать", "уточнить",
+            }
+            has_address_signal = has_only_pronoun or any(
+                kw in lower for kw in self._PROXIMITY_KEYWORDS
+            ) or any(
+                _morph.parse(w)[0].normal_form in _ADDRESS_LEMMAS
+                for w in lower.split()
+                if w
+            )
+        except Exception:
+            # Fallback если pymorphy3 недоступен
+            has_address_signal = has_only_pronoun or any(
+                kw in lower for kw in self._PROXIMITY_KEYWORDS
+            )
+
+        if target_npc_id is None and prev_target_id and target_object is None and has_address_signal:
             target_npc_id = prev_target_id
             target_npc_name = prev_target_name
 

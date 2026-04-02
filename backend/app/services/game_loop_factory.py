@@ -14,6 +14,7 @@ from app.services.game_loop import GameLoop
 from app.services.adventure_loader import AdventureLoader
 from app.services.system_requirements import SystemRequirements
 from app.services.memory import JsonMemoryStore, LayeredMemory
+from app.services.memory.memory_manager import MemoryManager
 from app.services.model_router import ModelRouter
 from app.services.world_scheduler import WorldScheduler
 from app.services.character_service import CharacterService
@@ -34,6 +35,7 @@ def _build_game_loop() -> GameLoop:
     data_dir       = Path(settings.data_dir)
     store          = JsonMemoryStore(data_dir)
     layered_memory = LayeredMemory(store)
+    memory_manager = MemoryManager(layered_memory, data_dir=str(data_dir))
     scene_manager  = SceneStateManager(data_dir)
     life_engine    = get_life_engine()
     char_service   = CharacterService()
@@ -92,6 +94,7 @@ def _build_game_loop() -> GameLoop:
     loop = GameLoop(
         data_dir            = data_dir,
         layered_memory      = layered_memory,
+        memory_manager      = memory_manager,
         processor           = ActionProcessor(),
         python_engines      = python_engines,
         scene_manager       = scene_manager,
