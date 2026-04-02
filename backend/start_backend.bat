@@ -1,3 +1,4 @@
+:: C:\DDD\Codex\VSC_Enigma\Enigma\backend\start_backend.bat
 @echo off
 :: ========================================
 :: Enigma Backend Server Launcher
@@ -45,17 +46,34 @@ if errorlevel 1 (
 )
 
 :: ========================================
-:: Установка зависимостей
+:: Установка зависимостей (только если requirements.txt изменился)
 :: ========================================
-echo [INFO] Installing dependencies from requirements.txt...
-"%VENV_PIP%" install --upgrade pip >> "%LOGFILE%" 2>&1
-"%VENV_PIP%" install -r "%~dp0requirements.txt" >> "%LOGFILE%" 2>&1
-if errorlevel 1 (
-    echo [ERROR] Failed to install dependencies. Check %LOGFILE%
-    pause
-    exit /b 1
+set "REQ_FILE=%~dp0requirements.txt"
+set "MARKER_FILE=%~dp0..\.venv\.deps_marker"
+
+:: Считаем хэш requirements.txt
+for /f "skip=1 tokens=*" %%h in ('certutil -hashfile "%REQ_FILE%" SHA1 2^>nul') do (
+    set "REQ_HASH=%%h"
+    goto :hash_done
 )
-echo [OK] Dependencies installed
+:hash_done
+
+:: Читаем предыдущий хэш
+set "OLD_HASH="
+if exist "%MARKER_FILE%" set /p OLD_HASH=<"%MARKER_FILE%"
+
+if "%REQ_HASH%"=="%OLD_HASH%" (
+    echo [OK] Dependencies up-to-date, skipping install
+) else (
+    echo [INFO] requirements.txt changed, installing dependencies...
+    "%VENV_PIP%" install -r "%REQ_FILE%" --timeout 15 --retries 1 >> "%LOGFILE%" 2>&1
+    if errorlevel 1 (
+        echo [WARN] Some dependencies failed to install. Game may still work if packages are cached.
+    ) else (
+        echo %REQ_HASH%> "%MARKER_FILE%"
+        echo [OK] Dependencies installed
+    )
+)
 
 :: ========================================
 :: Запуск FastAPI сервера

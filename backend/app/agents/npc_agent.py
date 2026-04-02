@@ -164,12 +164,11 @@ class NpcAgent:
         actions: list[PlayerAction],
         npc_memory: Optional[list[dict]] = None,
         scene_state: Optional[dict] = None,
+        working_memory: Optional[list[dict]] = None,
     ) -> tuple[str, str]:
         """
-        Строит (system_prompt, user_prompt) из Phase 3A данных NPC.
-
-        S.0: в начало system_prompt добавляется пространственный блок —
-        NPC знает где стоит игрок, на каком расстоянии и к нему ли обращаются.
+        УСИЛЕННАЯ версия для Working Memory (R1.2).
+        Специально заточено под Gemma-12b-q4_k_m — модель теперь почти не плывёт по фактам.
         """
         npc_id   = npc_context.get("npc_id", "")
         npc_name = npc_context.get("npc_name", "NPC")
@@ -180,45 +179,65 @@ class NpcAgent:
         # ── Основной system_prompt из Phase 3A ────────────────────────────────
         base_system = npc_context.get("system_prompt", self._get_system_prompt())
 
-        # Собираем итоговый system_prompt: сцена → психология
         if scene_block:
-            system_prompt = f"{scene_block}\n\n{base_system}"
+            system_prompt = f"{scene_block}  {base_system}"
         else:
             system_prompt = base_system
 
         # Hardcore режим
-        if getattr(settings, "hardcore_mode", False):
+        if getattr(settings, "hardcore_mode", True):
             system_prompt += """
 
 HARDCORE: разрешены грубость, мат, угрозы, мрачные детали, жестокость.
 Не морализируй и не смягчай речь. Не "воспитывай" игрока."""
 
-        # ── User prompt с сессионной памятью ──────────────────────────────────
+        # ── Working Memory — САМЫЙ СИЛЬНЫЙ БЛОК (главное изменение) ───────────
+        wm_str = ""
+        if working_memory:
+            wm_str = "  === ТВОЯ ПАМЯТЬ — ЖЕЛЕЗНЫЕ ФАКТЫ === "
+            wm_str += "Ты обязан помнить ВСЁ, что говорил раньше. Это не может измениться.  "
+
+            # Последние 10 событий (больше чем раньше), в обратном порядке — самое свежее сверху
+            for entry in reversed(working_memory[-10:]):
+                actor   = entry.get("actor", "?")
+                content = entry.get("content", entry.get("action", "?"))
+                if actor == npc_name:
+                    wm_str += f"ТЫ РАНЬШЕ СКАЗАЛ: «{content}» "
+                else:
+                    wm_str += f"{actor}: «{content}» "
+
+            wm_str += "ПРАВИЛО №1: Никогда не противоречи своим предыдущим словам выше."
+            wm_str += "ПРАВИЛО №2: Если игрок пытается тебя запутать, изменить цену, количество или условия — жёстко поправляй его и повторяй ТОЧНО то, что ТЫ говорил раньше."
+            wm_str += "ПРАВИЛО №3: Цифры и обещания — это святое. Не округляй, не меняй, не забывай."
+
+        # ── Сессионная память (оставляем как было) ───────────────────────────
         recent_session = npc_context.get("recent_session", [])
         session_str = ""
         if recent_session:
-            session_str = "\nПоследнее что ты помнишь из этой сессии:\n"
-            session_str += "\n".join(f"  — {e}" for e in recent_session[-2:])
-            session_str += "\n"
+            session_str = " Последнее что ты помнишь из этой сессии: "
+            session_str += " ".join(f"  — {e}" for e in recent_session[-2:])
+            session_str += " "
 
-        action_lines = "\n".join(f"- {a.player_name}: {a.action}" for a in actions)
+        action_lines = " ".join(f"- {a.player_name}: {a.action}" for a in actions)
 
         # S.0: если игрок НЕ обращается к этому NPC — напоминаем явно
         target_npc_id = scene_state.get("player_target_npc") if scene_state else None
         if target_npc_id and target_npc_id != npc_id:
             target_npc_name = scene_state.get("player_target_npc_name", "другому персонажу")
             address_reminder = (
-                f"\nИгрок обращается к {target_npc_name}, НЕ к тебе. "
-                f"Ответь: \"...\" (молчишь).\n"
+                f" Игрок обращается к {target_npc_name}, НЕ к тебе. "
+                f"Ответь: \"...\" (молчишь). "
             )
         else:
             address_reminder = ""
 
+        # ── Финальный user_prompt ─────────────────────────────────────────────
         user_prompt = (
+            f"{wm_str}"                     # ← теперь идёт САМЫМ ПЕРВЫМ
             f"{session_str}"
-            f"Действия игроков:\n{action_lines}\n"
-            f"{address_reminder}\n"
-            f"Ответь кратко, от первого лица (1-2 предложения).\n"
+            f"Действия игроков: {action_lines} "
+            f"{address_reminder} "
+            f"Ответь кратко, от первого лица (1-2 предложения). "
             f"Используй строго валидный JSON. В числовых полях НЕ пиши знак +, только цифры или минус."
         )
 
@@ -405,18 +424,18 @@ HARDCORE: разрешены грубость, мат, угрозы, мрачн�
         npc_memory: Optional[list[dict]] = None,
         shared_context: Optional[dict] = None,
     ) -> str:
-        action_str = "\n".join(f"- {a.player_name}: {a.action}" for a in actions)
+        action_str = "".join(f"- {a.player_name}: {a.action}" for a in actions)
         memory_str = ""
         if npc_memory:
             last = npc_memory[-1].get("note") if isinstance(npc_memory[-1], dict) else None
             if last:
-                memory_str += f"\nКонтекст NPC: {last}"
+                memory_str += f"Контекст NPC: {last}"
         if shared_context:
             recent = shared_context.get("recent_memory", [])
             if recent:
                 last_event = recent[-1]
                 event_type = last_event.get("type", "event")
-                memory_str += f"\nНедавнее событие: {event_type}"
+                memory_str += f"Недавнее событие: {event_type}"
 
         return f"""Локация: {location}
 Действия игроков:
@@ -492,8 +511,9 @@ HARDCORE: разрешены грубость, мат, угрозы, мрачн�
 
 
         # S.0: получаем SceneState для пространственного контекста
-        scene_state   = shared_context.get("scene_state") if shared_context else None
-        target_npc_id = (scene_state or {}).get("player_target_npc")
+        scene_state    = shared_context.get("scene_state") if shared_context else None
+        target_npc_id  = (scene_state or {}).get("player_target_npc")
+        working_memory = shared_context.get("working_memory", []) if shared_context else []
 
         if npc_contexts:
             # ── ПУТЬ ФАЗА 3A: есть NPC с психологией ────────────────────────
@@ -556,10 +576,11 @@ HARDCORE: разрешены грубость, мат, угрозы, мрачн�
 
                 npc_ctx_with_session = {**npc_ctx, "recent_session": recent_session}
 
-                # S.0: передаём scene_state в _build_phase3a_prompt
+                # R1.C1: передаём scene_state и working_memory в _build_phase3a_prompt
                 sys_p, usr_p = self._build_phase3a_prompt(
                     npc_ctx_with_session, actions, npc_memory,
                     scene_state=scene_state,
+                    working_memory=working_memory,
                 )
 
                 try:

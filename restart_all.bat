@@ -1,4 +1,6 @@
+:: C:\DDD\Codex\VSC_Enigma\Enigma\restart_all.bat
 @echo off
+chcp 65001 >nul
 echo ========================================
 echo  ПОЛНАЯ ПЕРЕЗАГРУЗКА ENIGMA
 echo ========================================

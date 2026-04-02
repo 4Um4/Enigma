@@ -1,3 +1,4 @@
+# backend\tests\test_full_error_logging.py
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
@@ -39,7 +40,7 @@ class FullErrorLoggingTests(unittest.TestCase):
                 raise Exception(exc_msg)
         except Exception:
             tb = traceback.format_exc()
-            human, fix = self.interpreter.handle(Exception(exc_msg), 
+            human, fix = self.interpreter.handle(exc_class(exc_msg), 
                                                context={'test': error_name, 'tb': tb},
                                                agent='test', model='debug')
         

@@ -898,8 +898,7 @@ async function send(){
 
 /* ── API HELPERS ── */
 async function resolveApi(){
-  try{const p=await fetch("/api/ports").then(r=>r.json());if(p.api_port)API=`http://127.0.0.1:${p.api_port}/api`;return;}catch{}
-  try{const p=await fetch("/backend/data/runtime_ports.json").then(r=>r.json());if(p.api_port)API=`http://127.0.0.1:${p.api_port}/api`;}catch{}
+  // Порт всегда 8000 — автодетект не нужен
 }
 async function loadChars(){
   try{
@@ -951,7 +950,12 @@ async function selectPlayer(name,ch){
     await createSession(name);startHb(name);setStatus("в сети",true);
     await refreshState();
     addDiv("начало сессии");msgSys(`Персонаж: ${name}`);
-    msgDM(`Добро пожаловать, ${name}. Ваше приключение продолжается... Что вы делаете?`);
+    // Первый ход — бэкенд автоматически даёт атмосферное интро сцены
+    try{
+      await sendStream("осматриваюсь");
+    }catch{
+      msgDM(`Добро пожаловать, ${name}. Ваше приключение продолжается...`);
+    }
     enableInp(true);$("#inp").focus();
   }catch(e){msgErr(`Не удалось создать сессию: ${e.message}`);setStatus("ошибка",false);}
 }

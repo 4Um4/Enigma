@@ -1,3 +1,4 @@
+# C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\agents\dm_agent.py
 # -*- coding: utf-8 -*-
 """
 DM Agent - Dungeon Master Narrative Layer
@@ -345,6 +346,19 @@ class DmAgent:
                 # ──────────────────────────────
         # S.4.2: ReactionPriority — кто реагирует первым
         # ──────────────────────────────
+        # ── R2.1: события которые уже произошли — DM не повторяет ────────────
+        scene_events_block = ""
+        if context:
+            scene_state_for_events = context.get("scene_state", {})
+            if scene_state_for_events.get("scene_events"):
+                try:
+                    from app.services.scene_state_manager import SceneStateManager
+                    scene_events_block = SceneStateManager.get_scene_events_block(
+                        scene_state_for_events
+                    ) + "\n\n"
+                except Exception:
+                    pass
+
         reaction_block = ""
         if context:
             reaction_order = context.get("reaction_order", [])
@@ -394,7 +408,7 @@ class DmAgent:
 {physics_warnings}
 {python_engines_block}
 {npc_psychology_block}
-{reaction_block}
+{scene_events_block}{reaction_block}
 Продолжи рассказ от лица Dungeon Master. Не говори за игроков.
 Опиши мир от второго лица ("ты видишь...", "ты чувствуешь...").
 
@@ -497,7 +511,8 @@ class DmAgent:
     # ──────────────────────────────────────────────────────────────────────────
 
     async def stream_narrate(self, location, actions, rules_result, npc_result,
-                             world_result, world_canon_exists, context=None):
+                             world_result, world_canon_exists, context=None,
+                             is_session_start=False):
         """
         Async streaming генерация для SSE роута.
         Загружает модель через ModelPool.get_model_async(), затем стримит токены.
@@ -506,10 +521,13 @@ class DmAgent:
             "\n".join(f"{a.player_name}: {a.action}" for a in actions)
             if actions else "Нет действий"
         )
-        prompt = self._build_prompt(
-            location, actions_str, rules_result, npc_result,
-            world_result, world_canon_exists, context,
-        )
+        if is_session_start:
+            prompt = self._build_intro_prompt(location, context or {})
+        else:
+            prompt = self._build_prompt(
+                location, actions_str, rules_result, npc_result,
+                world_result, world_canon_exists, context,
+            )
         system_prompt = self._get_system_prompt()
 
         provider = await self._get_provider_async("narrative")
@@ -610,6 +628,31 @@ class DmAgent:
                     return model_provider.provider
     
         return None
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # Промт начала игры
+    # 
+
+    def _build_intro_prompt(self, location: str, context: dict) -> str:
+            """Промпт для вводного описания сцены в начале сессии."""
+            scene_block = ""
+            if context:
+                scene_state = context.get("scene_state", {})
+                if scene_state:
+                    try:
+                        scene_block = _build_scene_description(scene_state) + "\n\n"
+                    except Exception:
+                        pass
+
+            return f"""{scene_block}Текущая локация: {location}
+            
+Ты — Мастер игры. Начинается новая игровая сессия. Игроки только что вошли в сцену.
+
+Напиши атмосферное вводное описание локации от второго лица ("ты видишь...", "ты чувствуешь...").
+Упомяни только объекты и NPC из блока СОСТОЯНИЕ СЦЕНЫ выше.
+Создай настроение — время суток, освещение, звуки, запахи.
+Максимум 3-4 предложения. Без вопросов в конце.
+"""
 
     # ──────────────────────────────────────────────────────────────────────────
     # Fallback

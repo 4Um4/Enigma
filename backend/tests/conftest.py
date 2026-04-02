@@ -1,3 +1,4 @@
+# C:\DDD\Codex\VSC_Enigma\Enigma\backend\tests\conftest.py
 import pytest
 import os
 from unittest.mock import Mock, MagicMock, patch
@@ -93,9 +94,9 @@ def test_environment(monkeypatch):
     DATA_DIR = ROOT_DIR / "data"
     MODELS_DIR = ROOT_DIR.parents[0] / "Models LLM"  # Enigma/Models LLM
 
-    monkeypatch.setattr('app.core.config.settings.model_qwen_7b_path', MODELS_DIR / 'qwen2.5-7b-instruct-q4_k_m.gguf')
-    monkeypatch.setattr('app.core.config.settings.model_saiga_path', MODELS_DIR / 'saiga.gguf')
-    monkeypatch.setattr('app.core.config.settings.model_npc_major_path', DATA_DIR / 'npc_major.gguf')
-    monkeypatch.setattr('app.core.config.settings.model_npc_mass_path', DATA_DIR / 'npc_mass.gguf')
-    monkeypatch.setattr('app.core.config.settings.model_qwen_9b_path', MODELS_DIR / 'qwen_9b.gguf')
+    monkeypatch.setattr('app.core.config.settings.model_gemma_12b_path', MODELS_DIR / 'gemma-3-12b-it-q4_k_m.gguf')
+    monkeypatch.setattr('app.core.config.settings.model_npc_major_path', MODELS_DIR / 'mistral-pygmalion-7b.Q5_K_M.gguf')
+    monkeypatch.setattr('app.core.config.settings.model_npc_mass_path',  MODELS_DIR / 'mistral-pygmalion-7b.Q5_K_M.gguf')
+    monkeypatch.setattr('app.core.config.settings.model_qwen_9b_path',   MODELS_DIR / 'Qwen3.5-9B.gguf')
+    monkeypatch.setattr('app.core.config.settings.model_yandex_path',    MODELS_DIR / 'YandexGPT-5-Lite-8B-instruct-Q4_K_M.gguf')
 

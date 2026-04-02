@@ -1,38 +1,44 @@
 # backend/tests/test_run_terminal_dm.py
+# Legacy: run_terminal_dm.py удалён вместе с orchestrator.
+# Файл оставлен как smoke-тест текущего ядра (game_loop).
 import pytest
 
-# Корректные импорты через sys.path из conftest.py
-from run_terminal_dm import build_prompt, _normalize_subcommand, _truncate_str
 
-# ----------------------------------------
-# Фикстуры (данные для контекста)
-# ----------------------------------------
-@pytest.fixture
-def example_context():
-    return {
-        "world_canon": [{"text": "Мир полон магии"}],
-        "campaign_memory": [{"event": "Битва с драконом"}],
-        "session_memory": [{"player_text": "Атакую дракона"}]
-    }
+def test_game_loop_import():
+    """game_loop должен импортироваться без ошибок."""
+    from app.services.game_loop import GameLoop
+    assert GameLoop is not None
 
-# ----------------------------------------
-# Тесты
-# ----------------------------------------
-def test_build_prompt_truncation(example_context):
-    user_text = "Что я делаю дальше?"
-    prompt = build_prompt(user_text, example_context)
-    assert "Ты ИИ-мастер D&D 5e" in prompt
-    assert user_text in prompt
-    assert "Битва с драконом" in prompt
 
-def test_normalize_subcommand():
-    assert _normalize_subcommand("добавить") == "add"
-    assert _normalize_subcommand("Add") == "add"
-    assert _normalize_subcommand("-") == "del"
-    assert _normalize_subcommand("удалить") == "del"
-    assert _normalize_subcommand("unknown") is None
+def test_action_classifier_import():
+    """Классификатор действий должен быть доступен."""
+    from app.services.action_classifier import classifier
+    assert classifier is not None
 
-def test_truncate_str():
-    s = "1234567890"
-    assert _truncate_str(s, 5) == "12345 [...]"
-    assert _truncate_str(s, 20) == s
+
+def test_classifier_returns_known_type():
+    """Классификатор возвращает известный тип для простого действия."""
+    from app.services.action_classifier import classifier
+    result = classifier.classify("атакую стражника мечом")
+    assert result is not None
+
+
+def test_event_bus_campaign_filter():
+    """get_recent_events фильтрует по campaign_id."""
+    from app.services.events.event_bus import get_event_bus, reset_event_bus
+    reset_event_bus()
+    bus = get_event_bus()
+
+    from app.services.events.event_types import GameEvent, EventType
+    e1 = GameEvent(event_type=EventType.PLAYER_SPOKE, actor_id="player", location="tavern", campaign_id="camp_A")
+    e2 = GameEvent(event_type=EventType.PLAYER_SPOKE, actor_id="player", location="tavern", campaign_id="camp_B")
+    bus.publish(e1)
+    bus.publish(e2)
+
+    result_a = bus.get_recent_events(limit=10, campaign_id="camp_A")
+    result_b = bus.get_recent_events(limit=10, campaign_id="camp_B")
+
+    assert all(e["campaign_id"] == "camp_A" for e in result_a)
+    assert all(e["campaign_id"] == "camp_B" for e in result_b)
+
+    reset_event_bus()

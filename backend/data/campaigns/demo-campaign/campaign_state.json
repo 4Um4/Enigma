@@ -7,7 +7,7 @@
   "metadata": {},
   "scene_state": {
     "location_id": "tavern_silver_wolf",
-    "snapshot_tick": 5,
+    "snapshot_tick": 11,
     "objects": {
       "bar_counter": {
         "name": "барная стойка",
@@ -65,25 +65,66 @@
         "count": 10,
         "interactable": true,
         "owner": null
+      },
+      "поднос_lusya_t6_81bd": {
+        "name": "поднос",
+        "raw_name": "люся несёт поднос",
+        "canonical_name": "поднос",
+        "type": "prop",
+        "state": "in_use",
+        "importance": 1,
+        "holder": "maid_lusya",
+        "created_tick": 6,
+        "last_tick": 6,
+        "dynamic": true,
+        "interactable": true
+      },
+      "поднос_scene_t10_4a7c": {
+        "name": "поднос",
+        "raw_name": "поднос",
+        "canonical_name": "поднос",
+        "type": "prop",
+        "state": "dropped",
+        "importance": 2,
+        "holder": null,
+        "created_tick": 10,
+        "last_tick": 10,
+        "dynamic": true,
+        "interactable": true
       }
     },
     "npc_positions": {
       "tavern_keeper_tornin": {
         "position": "behind_bar",
         "activity": "working",
-        "visible": true,
-        "location": "tavern_silver_wolf"
+        "visible": false,
+        "location": "tavern_silver_wolf",
+        "psyche_state": "alert"
       },
       "maid_lusya": {
         "position": "serving_table_3",
         "activity": "serving_tables",
-        "visible": true
+        "visible": true,
+        "current_action": "take_поднос",
+        "action_started_tick": 11
       },
       "thief_shadow": {
         "position": "bed",
         "activity": "sleeping",
         "visible": false,
         "location": "inn_rooms"
+      },
+      "guard_borko": {
+        "activity": "guarding_gate",
+        "position": "common_area",
+        "visible": true,
+        "location": "tavern_silver_wolf"
+      },
+      "merchant_goran": {
+        "activity": "market_trading",
+        "position": "common_area",
+        "visible": true,
+        "location": "tavern_silver_wolf"
       }
     },
     "environment": {
@@ -94,14 +135,56 @@
     },
     "player_inventory_snapshot": {},
     "active_effects": [],
-    "player_position": "смотрит",
-    "player_target_npc": null,
-    "player_target_npc_name": null,
+    "player_position": "шепчет",
+    "player_target_npc": "maid_lusya",
+    "player_target_npc_name": "Люся",
     "player_target_object": null,
     "player_distances": {
       "tavern_keeper_tornin": 3.0,
       "maid_lusya": 3.0,
       "thief_shadow": 3.0
-    }
+    },
+    "scene_events": [
+      {
+        "event_id": "evt_8a5f32",
+        "event_type": "use",
+        "actor": "maid_lusya",
+        "object_name": "люся несёт поднос",
+        "canonical": "поднос",
+        "object_id": "поднос_lusya_t6_81bd",
+        "tick": 6,
+        "happened": true
+      },
+      {
+        "event_id": "evt_790478",
+        "event_type": "drop",
+        "actor": "maid_lusya",
+        "object_name": "люся роняет поднос",
+        "canonical": "поднос",
+        "object_id": "поднос_lusya_t6_81bd",
+        "tick": 6,
+        "happened": true
+      },
+      {
+        "event_id": "evt_70729a",
+        "event_type": "drop",
+        "actor": null,
+        "object_name": "поднос",
+        "canonical": "поднос",
+        "object_id": "поднос_scene_t10_4a7c",
+        "tick": 10,
+        "happened": true
+      },
+      {
+        "event_id": "evt_4692d9",
+        "event_type": "take",
+        "actor": "maid_lusya",
+        "object_name": "разбитый поднос",
+        "canonical": "поднос",
+        "object_id": "поднос_lusya_t6_81bd",
+        "tick": 11,
+        "happened": true
+      }
+    ]
   }
 }
