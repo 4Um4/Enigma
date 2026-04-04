@@ -72,7 +72,7 @@ class LlamaCppProvider(StreamingLlmProvider):
             path=settings.llama_cpp_model_path,
             name="default",
         )
-        self.server_url = server_url or settings.llama_cpp_server_url
+        self.server_url = server_url or settings.get_llm_server_url()
         self.executable = executable or settings.llama_cpp_executable
         self._use_server = bool(self.server_url)
 
@@ -134,18 +134,16 @@ class LlamaCppProvider(StreamingLlmProvider):
             return f"### User\n{user_prompt}\n\n### Assistant\n"
 
         else:
-            # Qwen3, NPC-LLM, default — ChatML с отключением thinking
+            # Gemma-3 / default — чистый ChatML без thinking prefill
             if system_prompt:
                 return (
                     f"<|im_start|>system\n{system_prompt}\n<|im_end|>\n"
                     f"<|im_start|>user\n{user_prompt}\n<|im_end|>\n"
                     f"<|im_start|>assistant\n"
-                    f"<think>\n\n</think>\n\n"  # ← пустой think = thinking отключён
                 )
             return (
                 f"<|im_start|>user\n{user_prompt}\n<|im_end|>\n"
                 f"<|im_start|>assistant\n"
-                f"<think>\n\n</think>\n\n"
             )
 
     # ──────────────────────────────────────────────────────────────────────────
@@ -280,11 +278,9 @@ class LlamaCppProvider(StreamingLlmProvider):
 
         try:
             with urllib.request.urlopen(req, timeout=settings.llama_cpp_timeout_sec) as resp:
-                import io
-                stream = io.BufferedReader(resp)
-
+                # Читаем напрямую — BufferedReader буферизовал весь ответ целиком
                 while True:
-                    line = stream.readline()
+                    line = resp.readline()
                     if not line:
                         break
                     line = line.decode("utf-8").strip()

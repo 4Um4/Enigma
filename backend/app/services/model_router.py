@@ -110,7 +110,7 @@ class ModelRouter:
         self.current = ModelSelection(
             provider=ModelProvider.llama_cpp,
             model_name=model_info.name,
-            endpoint=getattr(settings, "llama_cpp_server_url", None),
+            endpoint=settings.get_llm_server_url(),
         )
         self._current_agent = agent_name
         await self._health_check(model_key, session_id or "unknown")
@@ -135,7 +135,7 @@ class ModelRouter:
         selection = ModelSelection(
             provider=ModelProvider.llama_cpp,
             model_name=model_info.name,
-            endpoint=getattr(settings, "llama_cpp_server_url", None),
+            endpoint=settings.get_llm_server_url(),
         )
         self.current = selection
         return selection

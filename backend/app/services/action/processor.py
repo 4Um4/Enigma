@@ -113,8 +113,10 @@ class ActionProcessor:
                 location    = location,
                 campaign_id = campaign_id,
                 parameters  = {
-                    "action_text": action_result.action_text[:120],
-                    "action_type": action_result.action_type,
+                    "action_text":   action_result.action_text[:120],
+                    "action_type":   action_result.action_type,
+                    "success":       action_result.physics_valid,
+                    "fail_reason":   action_result.physics_reason,
                 },
                 radius      = radius,
             )
@@ -205,8 +207,9 @@ class ActionProcessor:
                     f"[PROCESSOR] BLOCKED '{player_name}': {physics_reason}"
                 )
 
-            # A.3: публикуем в EventBus если физически возможно
-            # (affordance check пройден — NPC могут реагировать)
+            # A.3: публикуем в EventBus всегда — успех и провал наблюдаемы.
+            # NPC-обработчики читают parameters["success"] и реагируют по-разному:
+            # успех → "видели как сделал", провал → "видели как пытался".
             action_res_tmp = ActionResult(
                 player_name         = player_name,
                 action_text         = action_text,
@@ -217,8 +220,7 @@ class ActionProcessor:
                 physics_reason      = physics_reason,
                 physics_alternative = physics_alternative,
             )
-            if physics_valid:
-                self._publish_event(action_res_tmp, location, campaign_id)
+            self._publish_event(action_res_tmp, location, campaign_id)
 
             # ── Combined ──────────────────────────────────────────────────
             result.action_results.append(action_res_tmp)

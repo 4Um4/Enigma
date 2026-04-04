@@ -494,6 +494,10 @@ def initialize_model_pool(warm_model_key: Optional[str] = None) -> Dict[str, boo
     pool = get_model_pool()
     results: Dict[str, bool] = {}
     for key, model_config in settings.available_models.items():
+        if not Path(model_config.path).exists():
+            logger.info(f"ModelPool: Skipped '{key}' — файл модели не найден")
+            results[key] = False
+            continue
         try:
             ctx = min(model_config.context_size, 2048)
             config = ModelConfig(

@@ -120,8 +120,8 @@ class Settings(BaseSettings):
         "rules":    "gemma_12b",
         "memory":   "gemma_12b",
         "world":    "gemma_12b",
-        # Fallback: если gemma недоступна — Qwen 7B
-        "_fallback": "qwen_7b",
+        # Fallback: если gemma недоступна — Qwen3.5-9B
+        "_fallback": "Qwen3.5-9B",
     }
 
     available_models: Dict[str, ModelConfig] = {}

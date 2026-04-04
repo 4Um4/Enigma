@@ -62,46 +62,97 @@ def _clamp(value: float) -> float:
     return max(0.0, min(1.0, value))
 
 
-def resolve(belief: Dict[str, Any], new_event: Dict[str, Any]) -> Dict[str, Any]:
+# Минимальный интервал тиков между обновлениями одного belief.
+# Защита от дребезга при спаме одного события несколькими свидетелями.
+COOLDOWN_TICKS: int = 2
+
+
+def resolve(
+    belief: Dict[str, Any],
+    new_event: Dict[str, Any],
+    current_tick: int = 0,
+) -> tuple[Dict[str, Any], Dict[str, Any]]:
     """
     Обновляет confidence belief на основе нового события.
+    Возвращает (updated_belief, trace) — trace нужен для калибровки R4.2.
 
     belief = {"statement": "игрок герой", "tag": "hero", "confidence": 0.7}
-    event  = {"type": "theft"}
-    →      {"statement": "игрок герой", "tag": "hero", "confidence": 0.50}
-
-    Возвращает обновлённый belief (оригинал не мутируется).
+    event  = {"type": "theft", "intensity": 1.5}
+    →      ({"tag": "hero", "confidence": 0.575, ...}, {"changed": True, ...})
     """
-    updated = dict(belief)
-    tag = belief.get("tag", "").lower()
+    # Защита от пустых данных — тихий баг без этого
+    tag        = (belief.get("tag") or "").lower()
     event_type = (
         new_event.get("type") or new_event.get("action_type") or ""
     ).lower()
+
+    if not tag or not event_type:
+        return dict(belief), {"changed": False, "reason": "empty_input", "delta": 0.0}
+
+    # Cooldown — игнорируем спам событий
+    last_tick = belief.get("last_update_tick", 0)
+    if current_tick - last_tick < COOLDOWN_TICKS and last_tick > 0:
+        return dict(belief), {"changed": False, "reason": "cooldown", "delta": 0.0}
+
+    updated    = dict(belief)
     confidence = float(belief.get("confidence", 0.5))
+    intensity  = float(new_event.get("intensity", 1.0))
 
-    # Проверяем противоречия
+    # Точное совпадение приоритетнее подстроки.
+    # Противоречие и подтверждение взаимоисключают друг друга за один тик.
     contra = CONTRADICTIONS.get(tag, {})
-    for key, delta in contra.items():
-        if key in event_type:
-            confidence = _clamp(confidence + delta)
-            updated["last_challenge"] = event_type
-            break
+    contra_delta = contra.get(event_type) or next(
+        (d for k, d in contra.items() if k in event_type), None
+    )
 
-    # Проверяем подтверждения
-    confirm = CONFIRMATIONS.get(tag, {})
-    for key, delta in confirm.items():
-        if key in event_type:
-            confidence = _clamp(confidence + delta)
+    confirm_delta = None
+    if contra_delta is None:
+        confirm = CONFIRMATIONS.get(tag, {})
+        confirm_delta = confirm.get(event_type) or next(
+            (d for k, d in confirm.items() if k in event_type), None
+        )
+
+    raw_delta = contra_delta if contra_delta is not None else confirm_delta
+    scaled_delta = 0.0
+
+    if raw_delta is not None:
+        # Масштабирование на интенсивность события — основа калибровки R4.2
+        scaled_delta = round(raw_delta * intensity, 4)
+        confidence = _clamp(confidence + scaled_delta)
+
+        if contra_delta is not None:
+            updated["last_challenge"] = event_type
+            reason = "contradiction"
+        else:
             updated["last_confirmation"] = event_type
-            break
+            reason = "confirmation"
+
+        updated["last_update_tick"] = current_tick
+    else:
+        reason = "no_match"
 
     updated["confidence"] = round(confidence, 4)
-    return updated
+
+    trace = {
+        "changed":    raw_delta is not None,
+        "reason":     reason,
+        "delta":      scaled_delta,
+        "event_type": event_type,
+        "tag":        tag,
+    }
+    return updated, trace
 
 
 def resolve_all(
     beliefs: list[Dict[str, Any]],
     new_event: Dict[str, Any],
-) -> list[Dict[str, Any]]:
-    """Обновляет весь список beliefs одним событием."""
-    return [resolve(b, new_event) for b in beliefs]
+    current_tick: int = 0,
+) -> tuple[list[Dict[str, Any]], list[Dict[str, Any]]]:
+    """
+    Обновляет весь список beliefs одним событием.
+    Возвращает (updated_beliefs, traces) — traces для калибровки R4.2.
+    """
+    results = [resolve(b, new_event, current_tick) for b in beliefs]
+    updated = [r[0] for r in results]
+    traces  = [r[1] for r in results]
+    return updated, traces

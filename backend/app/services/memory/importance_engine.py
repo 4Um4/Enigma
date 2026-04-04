@@ -28,7 +28,8 @@ def score_event(event: Dict[str, Any]) -> float:
     """
     Возвращает importance 0.0–1.0 для события.
     Берёт тип из event["type"] или event["action_type"].
-    Если тип не найден — возвращает 0.30 (нейтральное событие).
+    Приоритет: точное совпадение → вхождение подстроки → дефолт 0.30.
+    Два прохода исключают ложные срабатывания ("quest" в "request").
     """
     event_type = (
         event.get("type")
@@ -36,6 +37,11 @@ def score_event(event: Dict[str, Any]) -> float:
         or ""
     ).lower()
 
+    # Проход 1: точное совпадение — надёжно
+    if event_type in IMPORTANCE_RULES:
+        return IMPORTANCE_RULES[event_type]
+
+    # Проход 2: подстрока — для составных типов ("dialogue_key_npc")
     for key, score in IMPORTANCE_RULES.items():
         if key in event_type:
             return score

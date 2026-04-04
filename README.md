@@ -1,425 +1,434 @@
-﻿# ENIGMA — локальный AI Dungeon Master
+﻿# ENIGMA — локальный AI Dungeon Master (Deterministic NPC Engine)
 
-Актуализация README: 2026-03-29  
-Основано на фактическом коде (`backend/app/*`), актуальном `Now.md`, текущих скриптах запуска и состоянии репозитория.
+Актуализация README: 2026-04-04
+Статус: архитектура зафиксирована, переход к Decision Core
 
 ---
 
 ## 1. Что это за проект
 
-Enigma — локальная RPG-система в духе D&D 5e, где:
-- игрок пишет действие свободным текстом,
-- Python детерминированно считает последствия,
-- LLM превращает рассчитанный результат в нарратив.
+**Enigma** — это локальная RPG-система нового типа:
 
-Это не «чат-бот с фэнтези-обёрткой», а попытка построить симулятор мира с устойчивым состоянием, NPC-поведением и последовательной памятью.
+> NPC — это не текст.
+> NPC — это система числовых состояний, принимающая решения детерминированно.
 
-Ключевой принцип (истинный и неизменный):
+Игрок взаимодействует с миром свободным текстом или действиями, а система:
 
 ```text
-Игрок пишет действие
-        ↓
-Python рассчитывает последствия
-        ↓
-LLM формулирует ответ в художественной форме
-        ↓
-Состояние мира сохраняется
+Игрок → Event → DecisionHub → NPCState → LLM (речь)
 ```
 
 ---
 
-## 2. Архитектурные принципы
+## 2. Главный принцип системы
 
-### 2.1 Python считает — LLM рассказывает
-- Проверки, физика, сцена, базовая NPC-психология и обновление состояния делаются в Python.
-- LLM получает уже подготовленный контекст и не является источником истины для механики.
+```text
+Python думает — LLM говорит.
+```
 
-### 2.2 SceneState как источник правды
-- Состояние сцены, объекты, позиции NPC, эффекты, цель игрока ведутся Python-слоем.
-- LLM не пишет в состояние напрямую.
+* Python:
 
-### 2.3 «Нет запрещённых действий», есть последствия
-- Sandbox-ветка обрабатывает нестандартные пользовательские действия.
-- Невозможное отсекается физическим валидатором, а не «моральной» логикой модели.
+  * принимает решения
+  * считает последствия
+  * хранит состояние
 
-### 2.4 Runtime-ядро: `game_loop`, не `orchestrator`
-- Исторический `orchestrator` больше не является реальным ядром runtime.
-- Текущий центр исполнения: `game_loop.py` + `game_loop_factory.py`.
+* LLM:
 
----
-
-## 3. Текущее состояние проекта (на 2026-03-29)
-
-| Подсистема | Оценка | Комментарий |
-|---|---:|---|
-| Core runtime (FastAPI + loop) | 85% | Стабильный цикл `run_turn/stream_turn` |
-| SceneState / SceneChange | 80% | Изменения объектов и таргетов проходят |
-| NPC pipeline | 70% | Рабочая реактивность и расписания |
-| Event layer | 60% | Подключён, но campaign-изоляция неполная |
-| Memory | 45% | Layered JSONL есть, SQLite/FAISS ещё нет |
-| UI/UX | 45% | Рабочий чат + SSE, но не весь planned UI |
-| Rules/Combat depth | 35% | Базовые механики есть, полный D&D 5e нет |
-| Тестовый контур | 20% | Часть тестов legacy, `pytest` часто не поднят в окружении |
+  * НЕ думает
+  * НЕ принимает решений
+  * только озвучивает результат
 
 ---
 
-## 4. Что уже сделано и подтверждено кодом
+## 3. Цель проекта
 
-### 4.1 Закрытые шаги A/B/C.1
-- Фаза A (`A.1`–`A.4`) закрыта:
-  - добавлен `ObjectResolver` (`backend/app/services/action/object_resolver.py`),
-  - `campaign_id` добавлен в `GameEvent`,
-  - событие публикуется из `ActionProcessor`,
-  - `PerceptionFilter` встроен в pipeline `game_loop` (шаг `5.5`).
-- `B.1` закрыт: `/api/npcs/{campaign_id}` возвращает NPC текущей локации игрока.
-- `B.2` закрыт: activity NPC обновляется из schedule по `time_of_day`.
-- `C.1` закрыт: prompt NPC берёт activity из `scene_state` как источника правды.
+Создать систему, в которой NPC:
 
-### 4.2 Важные исправления, которые уже не надо чинить повторно
-- Старый баг `routes_debug` (`time` без импорта) исправлен.
-- `world_state.record_event()` подключён (вызов из `ActionProcessor`).
+* ведут себя **причинно-следственно**
+* **помнят** действия игрока (через веса)
+* **реагируют последовательно**
+* остаются **предсказуемыми, но не полностью**
+
+Ограничения:
+
+* локальный запуск
+* 7B–13B модели
+* ≤ 8 GB VRAM
+* ≤ 4k токенов контекста
 
 ---
 
-## 5. Реальная runtime-архитектура
+## 4. Архитектурное ядро
 
-### 5.1 Boot chain
+```text
+Event
+  ↓
+DecisionHub.compute()     # read-only
+  ↓
+DecisionResult
+  ↓
+StateApplicator.apply()   # write-only (atomic)
+  ↓
+NPCState (source of truth)
+  ↓
+LLM (verbalization only)
+```
+
+---
+
+## 5. Источник истины
+
+### NPCState — единственный source of truth
+
+Содержит:
+
+* emotion
+* stress
+* intent
+* relationship cache
+* personality coefficients
+
+Использование:
+
+* DecisionHub читает ТОЛЬКО NPCState
+* SceneState получает снимок после обновления
+
+---
+
+### SceneState
+
+НЕ участвует в принятии решений.
+
+Используется только как:
+
+* визуальное состояние сцены
+* позиции NPC
+* объекты
+
+---
+
+## 6. Event Layer
+
+Любое действие превращается в событие:
+
+```python
+Event(
+    type="harassment",
+    actor="player",
+    target="npc_id",
+    intensity=0.7
+)
+```
+
+Фильтрация:
+
+1. Distance
+2. Perception (видимость)
+
+→ NPC получают только релевантные события
+
+---
+
+## 7. Decision Hub (ядро интеллекта)
+
+### Свойства:
+
+* чистая функция (read-only)
+* без LLM
+* работает только с числами
+
+---
+
+### Формула
+
+```python
+score(action) =
+    (drive_weight * context_relevance)
+  + emotion_weight
+  + relationship_modifier
+  - (fear * risk)
+  + randomness(±10%)
+```
+
+---
+
+### Выход
+
+```python
+DecisionResult:
+    intent
+    emotion_delta
+    stress_delta
+    relationship_delta
+```
+
+---
+
+## 8. State Applicator
+
+Единственная точка записи в NPCState.
+
+```python
+apply(npc_state, decision_result) → new_npc_state
+```
+
+Гарантии:
+
+* атомарность
+* отсутствие partial updates
+* детерминированность
+
+---
+
+## 9. NPCState
+
+Содержит:
+
+* emotion (накопительная)
+* stress
+* intent (сохраняется до следующего тика)
+* relationship cache
+* personality параметры
+
+---
+
+## 10. Relationship System
+
+### Хранение:
+
+* `RelationshipStore` (персистентный слой)
+* JSON / будущая БД
+
+### В NPCState:
+
+* только кэш
+
+---
+
+### Пример:
+
+```json
+{
+  "player→npc": {
+    "trust": 35,
+    "fear": 10,
+    "debt": 0
+  }
+}
+```
+
+---
+
+## 11. Memory = веса, не текст
+
+Память влияет только на числа:
+
+```text
+player_help → trust +15
+player_hit  → trust -20
+```
+
+Нет:
+
+* retrieval
+* embedding поиска
+* текстовых воспоминаний в runtime
+
+---
+
+## 12. Life Engine
+
+Фоновая симуляция:
+
+* движение
+* рутины
+* физиология
+
+НЕ принимает решений.
+
+---
+
+## 13. Частота решений
+
+* Event-trigger — мгновенно
+* Idle tick — раз в N секунд
+
+---
+
+## 14. LLM слой (verbalization)
+
+### Вход:
+
+```python
+VerbalizationContext:
+    npc_name
+    emotion
+    intent
+    target
+    scene_hint  # ≤ 100 токенов
+```
+
+---
+
+### Ограничения:
+
+LLM НЕ получает:
+
+* raw input игрока
+* память
+* reasoning
+* скрытые параметры
+
+---
+
+### Задача:
+
+Только:
+
+* речь
+* короткое действие
+
+---
+
+## 15. Детерминизм
+
+* randomness: ±10%
+* seed фиксируется на сессию
+
+---
+
+## 16. Масштаб
+
+* целевой: 10–30 NPC
+* максимум: ~50
+
+---
+
+## 17. Текущее состояние разработки
+
+### Завершено
+
+* Memory Core (R1):
+
+  * MemoryManager
+  * WorkingMemory
+  * Importance + decay
+  * RelationshipStore
+  * ContradictionResolver
+
+---
+
+### В процессе
+
+* Decision Hub (R2)
+* NPCState как централизованная модель
+
+---
+
+### Частично реализовано (legacy → будет заменено)
+
+* npc_cognition.py
+* psyche_engine.py
+* reaction_priority.py
+
+---
+
+## 18. Структура проекта (сокращённо)
+
+```text
+backend/
+  app/
+    services/
+      game_loop.py
+      action/
+      npc/
+      memory/
+      events/
+      simulation/
+      scene/
+```
+
+---
+
+## 19. Runtime
 
 ```text
 start_enigma.bat
   ↓
-backend/start_llm.bat
+LLM server (127.0.0.1:8080)
   ↓
-backend/start_backend.bat
+FastAPI backend (127.0.0.1:8000)
   ↓
-uvicorn app.main:app
-  ↓
-main.py
-  ↓
-routes + routes_stream + routes_debug
-  ↓
-game_loop_factory.game_loop (singleton)
+Frontend (127.0.0.1:3000)
 ```
 
-### 5.2 Игровой цикл (SSE/REST)
+---
+
+## 20. Ключевое отличие от других систем
+
+Enigma не пытается сделать NPC "умными" через LLM.
+
+Она делает их:
+
+> **предсказуемыми системами с памятью и характером**
+
+LLM — лишь голос.
+
+---
+
+## 21. Как должна работать система
 
 ```text
-Frontend
-  ↓
-/api/game/action/stream  (или /api/game/action)
-  ↓
-GameLoop
-  ↓
-ActionProcessor (classification + physics + event publish)
-  ↓
-PythonEngines (sandbox/combat/npc systems/scene updates)
-  ↓
-RulesAgent
-  ↓
-NpcAgent
-  ↓
-DmAgent
-  ↓
-Ответ + сохранение памяти
+Игрок действует
+↓
+NPC интерпретирует событие через характер
+↓
+учитывает прошлый опыт (веса)
+↓
+принимает решение (DecisionHub)
+↓
+реакция становится частью состояния
+↓
+LLM выражает это словами
 ```
 
 ---
 
-## 6. Ключевые подсистемы
+## 22. Критерий успеха
 
-### 6.1 SceneState / SceneChange
-- Управление сценой: `backend/app/services/scene_state_manager.py`.
-- Атомарные изменения: `backend/app/services/scene_change.py`.
-- Объекты, позиции NPC, player target, эффекты — часть scene-контракта.
+Игрок чувствует:
 
-### 6.2 NPC системы
-Активно задействованы в runtime:
-- `threat_assessor.py`
-- `perception_engine.py`
-- `psyche_engine.py`
-- `npc_cognition.py`
-- `life_engine.py`
-
-Подключённые частично/погранично:
-- `perception_filter.py` (подключён в `game_loop`, нужен дальнейший hardening)
-- `reaction_priority.py` (есть код и связи, но требует доинтеграции во всех ветках)
-
-### 6.3 Event + World context
-- EventBus: `backend/app/services/events/event_bus.py`
-- Типы событий: `backend/app/services/events/event_types.py`
-- World slice/token-budget: `backend/app/services/simulation/world_state.py`
-
-Текущий риск: события и recent-log глобальные, а не строго изолированные по campaign.
-
-### 6.4 Память (текущая реализация)
-- `JsonMemoryStore` + `LayeredMemory` (`backend/app/services/memory.py`)
-- Слои: world canon, campaign memory, session memory, npc memory (JSONL)
-- Пока нет SQLite+FAISS слоя как production-default.
-
-### 6.5 LLM слой
-- Основная модель: Gemma-3-12B Q4_K_M.
-- `ModelPool` работает с ограничением `max_loaded=1` (важно для 8 GB VRAM).
-- Есть drift fallback-конфигов: в `config.py` указаны пути к некоторым моделям, которых нет локально.
+* NPC помнит
+* NPC не противоречит себе
+* NPC реагирует логично
+* NPC можно понять и "читать"
 
 ---
 
-## 7. Структура репозитория
+## 23. Что считается ошибкой архитектуры
+
+* LLM принимает решения
+* память как текст
+* reasoning через промпты
+* скрытая логика вне Python
+
+---
+
+## 24. Направление развития
+
+Следующий этап:
+
+```
+R2 → Decision Hub
+```
+
+---
+
+## 25. Итог
 
 ```text
-Enigma/
-├── start_enigma.bat
-├── restart_all.bat
-├── Now.md
-├── Before.md
-├── Plan.md
-├── backend/
-│   ├── start_backend.bat
-│   ├── start_llm.bat
-│   ├── app/
-│   │   ├── main.py
-│   │   ├── api/
-│   │   │   ├── routes.py
-│   │   │   ├── routes_stream.py
-│   │   │   └── routes_debug.py
-│   │   ├── agents/
-│   │   ├── core/
-│   │   ├── models/
-│   │   └── services/
-│   │       ├── game_loop.py
-│   │       ├── game_loop_factory.py
-│   │       ├── action/
-│   │       ├── npc/
-│   │       ├── events/
-│   │       ├── simulation/
-│   │       ├── game/
-│   │       ├── llm/
-│   │       └── state/
-│   ├── data/
-│   └── tests/
-├── frontend/
-│   └── ui/
-│       └── index.html
-└── Models LLM/
+Это не чат-бот.
+Это не генератор историй.
+
+Это симулятор поведения.
 ```
-
----
-
-## 8. Запуск проекта
-
-### 8.1 Рекомендуемый запуск
-
-```bat
-start_enigma.bat
-```
-
-Скрипт поднимает:
-- LLM сервер (`llama-server` на `127.0.0.1:8080`),
-- Backend FastAPI (`127.0.0.1:8000`),
-- Frontend static server (`127.0.0.1:3000`, если `frontend/ui/index.html` присутствует).
-
-### 8.2 Ручной запуск по частям
-1. LLM: `backend/start_llm.bat`
-2. Backend: `backend/start_backend.bat`
-3. Frontend (если нужно вручную): `python -m http.server 3000 --directory frontend/ui`
-
-### 8.3 Проверка после старта
-- UI: `http://127.0.0.1:3000`
-- API docs: `http://127.0.0.1:8000/docs`
-- Health: `http://127.0.0.1:8000/api/health`
-- Debug VRAM: `http://127.0.0.1:8000/api/debug/vram`
-
----
-
-## 9. Требования к окружению
-
-### 9.1 Минимально ожидаемые ресурсы
-- CPU: от 4 физических ядер.
-- RAM: от 12 GB (рекомендуется 16 GB).
-- GPU: RTX 3070 Ti 8 GB (целевой профиль проекта).
-
-### 9.2 Python и зависимости
-- Backend-скрипт жёстко проверяет Python 3.11 в `/.venv`.
-- Зависимости ставятся из `backend/requirements.txt` при старте backend-скрипта.
-
-Важно: если запускать команды вне `.venv`, можно получить ошибку вида `No module named pytest` даже при наличии `pytest` в `requirements.txt`.
-
-### 9.3 Модели и бинарники
-Обязательные артефакты для штатного запуска:
-- `Models LLM/llama/llama-server.exe`
-- `Models LLM/gemma-3-12b-it-q4_k_m.gguf`
-
----
-
-## 10. API-карта (основные эндпоинты)
-
-### 10.1 Игровой цикл
-- `POST /api/game/action/stream` — основной SSE канал игры.
-- `POST /api/game/action` — sync fallback.
-- `POST /api/game/turn` — typed turn API.
-
-### 10.2 Состояние и интерфейс
-- `GET /api/session/state/{campaign_id}`
-- `GET /api/npcs/{campaign_id}`
-- `GET /api/interface/campaign/{campaign_id}`
-- `GET/POST /api/interface/players/{campaign_id}`
-- `GET/POST /api/interface/facts/{campaign_id}`
-- `GET /api/interface/sessions/{campaign_id}`
-
-### 10.3 Player session
-- `POST /api/player/heartbeat`
-- `GET /api/player/active/{campaign_id}`
-- `GET/POST /api/player/session/{campaign_id}`
-- `POST /api/player/select`
-
-### 10.4 Characters / Combat / World
-- `POST /api/characters/upsert`
-- `GET /api/characters/{campaign_id}`
-- `POST /api/combat/start`
-- `POST /api/combat/attack`
-- `POST /api/combat/next-turn/{campaign_id}/{combat_id}`
-- `POST /api/world/tick/{world_id}`
-- `POST /api/campaign/load`
-
-### 10.5 Ingest / Debug / Health
-- `POST /api/knowledge/import`
-- `POST /api/import/world`
-- `GET /api/health`
-- `GET /api/system/status`
-- `GET /api/system/requirements`
-- `GET /api/status/readiness`
-- `GET /api/debug/health/agents`
-- `GET /api/debug/vram`
-- `GET /api/debug/logs-tail`
-
----
-
-## 11. Где хранятся данные
-
-Основные рабочие данные лежат в `backend/data/`:
-- `campaign_memory_*.jsonl`
-- `session_memory_*.jsonl`
-- `npc_memory_*.jsonl`
-- `world_canon_*.jsonl`
-- `campaigns/{campaign_id}/campaign_state.json`
-- `campaigns/{campaign_id}/characters.json`
-- `logs/` (jsonl логи, scene changes, sandbox logs)
-- `npcs/major_npcs.json`
-
----
-
-## 12. Известные ограничения и риски
-
-### 12.1 Архитектурные
-- C.2 (вводное описание старта сессии) ещё не реализован как формальный режим.
-- Event/World контекст пока не полностью изолирован по campaign.
-
-### 12.2 Модельные
-- Есть drift путей fallback-моделей в `config.py` относительно реального содержимого `Models LLM`.
-- При переключении на отсутствующий fallback возможны ошибки загрузки модели.
-
-### 12.3 Тесты и legacy
-- `backend/run_terminal_dm.py` и часть тестов всё ещё завязаны на legacy `orchestrator`.
-- Тестовый контур требует очистки и миграции к `game_loop`.
-
----
-
-## 13. Что считать legacy (чтобы не тратить время зря)
-
-- `orchestrator` как runtime-ядро.
-- Док-утверждения «streaming отсутствует».
-- Старые планы, где current-код не учитывается (`game_loop`/SSE/Event integration).
-
----
-
-## 14. Roadmap (операционный, актуальный)
-
-### R0 (P0): стабилизация ядра
-1. Реализовать C.2 (first-turn/session-start intro).
-2. Изолировать EventBus/WorldState по campaign.
-3. Финализировать C.3 (single source of addressee).
-4. Починить manifest моделей и fallback-валидацию.
-5. Восстановить минимальный quality gate (`pytest` + smoke).
-
-### R1 (P1): Memory Core v1
-1. Ввести фасад `MemoryManager`.
-2. Формализовать working/session/campaign/world слои памяти.
-3. Добавить compressor + decay policy.
-4. Ввести жёсткий token-budget контекста.
-
-### R2 (P1/P2): persistent storage
-1. SQLite для структурных сущностей.
-2. Snapshot manager.
-3. FAISS для семантического retrieval.
-4. Debug/API редактирование фактов памяти.
-
-### R3 (P1): NPC Cognitive Core v1
-1. Расширить `mind`-схему NPC (beliefs/goals/plans/theory_of_mind/learning).
-2. Полный цикл `Perceive -> Feel -> Think -> Decide -> Act -> Learn`.
-3. Tiered autonomy (`mass/minor/major`).
-4. Сохранить принцип: решения Python, язык от LLM.
-
-### R4 (P2): gameplay depth
-1. Reputation/Faction engine.
-2. Углубление D&D 5e механик.
-3. Расширение UI (player/debug/history panels).
-
-### R5 (P2/P3): масштабирование
-1. Профилирование 500+ NPC сценариев.
-2. Перф/смоук-набор для API и latency.
-3. Метрики регрессий NPC-консистентности.
-
----
-
-## 15. Конвенции разработки для этого репозитория
-
-1. Новый runtime-код ориентировать на `game_loop` и текущие сервисы.
-2. Не реанимировать `orchestrator`-ветку как основной путь.
-3. Логику мира писать в Python-сервисы, не в текстовые промпты.
-4. Любой новый функционал проверять на:
-   - совместимость со SceneState,
-   - влияние на latency,
-   - влияние на VRAM budget.
-
----
-
-## 16. Быстрый FAQ
-
-### Q: Почему backend стартует, но модель «молчит»?
-Проверьте наличие `llama-server.exe` и `gemma-3-12b-it-q4_k_m.gguf`, затем `http://127.0.0.1:8080/v1/models`.
-
-### Q: Почему тесты не запускаются, хотя `pytest` в requirements?
-Скорее всего запущен не тот Python (вне `/.venv`), либо не выполнена установка зависимостей в этом окружении.
-
-### Q: Почему персонаж не отвечает NPC, хотя обращение есть?
-Проверьте `scene_state.player_target_*`, activity NPC (не спит ли), и фильтр perception в текущей локации.
-
----
-
-## 17. Главный практический вывод
-
-```text
-orchestrator -> game_loop
-```
-
-Это фундамент текущей системы. Все изменения, документация, тесты и roadmap должны исходить из этой реальности.
-
-система должна работать так:
-
-игрок говорит или делает что-то
-↓
-NPC интерпретирует это через свой характер
-↓
-учитывает свой прошлый опыт
-↓
-принимает решение
-↓
-реакция уникальна
-
-То есть реакция зависит от:
-
-характера
-памяти
-контекста мира
-текущих целей
-
-А LLM — лишь инструмент для выражения мысли.
