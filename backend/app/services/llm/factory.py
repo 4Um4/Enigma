@@ -52,7 +52,7 @@ class ProviderFactory:
                 return create_llama_cpp_provider(
                     model_path=model_path,
                     model_name="default",
-                    server_url=endpoint or settings.llama_cpp_server_url,
+                    server_url=endpoint or settings.get_llm_server_url(),
                 )
             
             case ProviderType.OPENAI:
@@ -101,7 +101,10 @@ class ProviderFactory:
         }
         agent_settings = agent_map.get(agent_name, settings)
         server_url = agent_settings.get_llm_server_url(agent_name)
-        model_key = agent_settings.agent_model_map.get(agent_name, "qwen_7b")
+        model_key = agent_settings.agent_model_map.get(
+            agent_name,
+            settings.agent_model_map.get("_fallback", "gemma_12b"),
+        )
         model_path = None
         if hasattr(agent_settings, 'available_models') and model_key in agent_settings.available_models:
             model_path = agent_settings.available_models[model_key].path

@@ -23,6 +23,8 @@ def _clamp(value: float, lo: float = -100.0, hi: float = 100.0) -> float:
 class RelationshipStore:
     def __init__(self, data_dir: str = "data") -> None:
         self._root = Path(data_dir)
+        # Кэш в RAM — исключает повторные чтения диска за один тик.
+        self._cache: Dict[str, Dict[str, Any]] = {}
 
     def _path(self, campaign_id: str) -> Path:
         folder = self._root / f"campaign_{campaign_id}"
@@ -30,16 +32,25 @@ class RelationshipStore:
         return folder / "npc_relationships.json"
 
     def _load(self, campaign_id: str) -> Dict[str, Any]:
+        # Возвращаем кэш если он уже загружен — диск не трогаем.
+        if campaign_id in self._cache:
+            return self._cache[campaign_id]
         path = self._path(campaign_id)
         if not path.exists():
-            return {}
+            self._cache[campaign_id] = {}
+            return self._cache[campaign_id]
         try:
-            return json.loads(path.read_text(encoding="utf-8"))
+            data = json.loads(path.read_text(encoding="utf-8"))
+            self._cache[campaign_id] = data
+            return data
         except Exception as e:
             logger.error(f"[RELATIONSHIPS] Ошибка чтения {path}: {e}")
-            return {}
+            self._cache[campaign_id] = {}
+            return self._cache[campaign_id]
 
     def _save(self, campaign_id: str, data: Dict[str, Any]) -> None:
+        # Обновляем кэш синхронно с диском.
+        self._cache[campaign_id] = data
         path = self._path(campaign_id)
         try:
             path.write_text(
@@ -82,3 +93,47 @@ class RelationshipStore:
     def get_all(self, campaign_id: str) -> Dict[str, Any]:
         """Возвращает весь граф отношений кампании."""
         return self._load(campaign_id)
+
+    def get_all_for_source(
+        self,
+        campaign_id: str,
+        source: str,
+    ) -> Dict[str, Dict[str, float]]:
+        """
+        Возвращает {target_id: {trust, fear, debt, respect}} для всех target.
+        Decision Hub вызывает один раз за тик — не по одной паре.
+        """
+        if not source:
+            return {}
+        data = self._load(campaign_id)
+        prefix = f"{source}→"
+        return {
+            key.split("→")[1]: {
+                attr: float(data[key].get(attr, 0.0))
+                for attr in RELATIONSHIP_KEYS
+            }
+            for key in data
+            if key.startswith(prefix)
+        }
+
+    def get_pair(
+        self,
+        campaign_id: str,
+        source: str,
+        target: str,
+    ) -> Dict[str, float]:
+        # Пустые ID создают мусорные ключи вида "→target" в JSON.
+        if not source or not target:
+            return {attr: 0.0 for attr in RELATIONSHIP_KEYS}
+        """
+        Возвращает отношение source→target как числовой словарь.
+        Используется Decision Hub для получения весов формулы score().
+        Если пара не существует — возвращает нули (нейтральные отношения).
+        """
+        data = self._load(campaign_id)
+        key = f"{source}→{target}"
+        raw = data.get(key, {})
+        return {
+            attr: float(raw.get(attr, 0.0))
+            for attr in RELATIONSHIP_KEYS
+        }

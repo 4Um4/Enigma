@@ -1,3 +1,4 @@
+# backend\app\services\prompt_loader.py
 """
 Prompt Loader - загрузчик системных промптов для LLM.
 

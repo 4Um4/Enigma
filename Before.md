@@ -1,449 +1,277 @@
-﻿A.1 и A.2 закрыты. A.3 закрыт.
-Большой прогресс — SceneChange работает:
-"target": "tables_3", "field": "state", "value": "broken", "applied": true
-Отличный прогресс — target_npc=None работает, sticky target починен. Торнин правильно отреагировал на публичный вандализм.
-Всё работает:
+﻿
+## Стоп. Архитектурный аудит предложений.
 
-tables_4: broken — правильный стол сломан ✓
-target_npc=None при действии с объектом ✓
-Свеча потушена — счётчик ещё не изменился, но это потому что "тушу" попало не в PICKPOCKET а в другой обработчик без SceneChange для свечей — это отдельная небольшая доработка
-
-Фаза A закрыта. Все четыре пункта работают.
-
-B.1 закрыт.
-
-Кстати хорошие новости из скриншота:
-tables_4: broken — стол сломан и персистирует между ходами ✓
-В панели только 3 NPC — B.1 работает ✓
-
-Два наблюдения:
-1. B.2 молча не работает — в коде npcs_in_location используется внутри B.2 блока, но определяется позже в блоке NPC Psychology. В момент выполнения B.2 эта переменная ещё не существует, except глотает ошибку молча. Поэтому активности не меняются.
-2. DM галлюцинирует "Тена" — это отдельная проблема LLM, но она уйдёт сама когда C.1 заработает и промпт будет содержать правильный список NPC.
-Фазы A и B полностью закрыты. Идём к C.1 — Activity в промпте NPC.
-C.1 закрыт.
-Стоп — в логах нет технических ошибок, все агенты отработали успешно. То что ты видишь — это проблемы качества LLM, не кода.
-Разбор по ходам:
-Ход 1 — "Люся говорит что не видела Тень" — это правильно. Тень спит в 12:00 по расписанию. Люся физически её не видит в таверне. Система работает корректно.
-Ход 2 — Торнин отвечает "Тень? Не знаю такого" когда его спросили про себя — это галлюцинация LLM. В memory_trace Торнина накопилось много упоминаний слова "Тень" из прошлых ходов, и модель путается. Это именно то что лечит C.2 — вводное описание сцены сбрасывает контекст при старте.
-Технически всё работает
+  ---
 
-Тест 1 — broadcast:
-Господа, кто здесь самый опытный путешественник?
-Ожидание: отвечают все бодрствующие NPC в сцене.
-Тест 2 — действие с объектом без адресата:
-Смотрю на сломанный стол
-Ожидание: никто не отвечает, только DM описывает.
-Тест 3 — общая реплика без адресата и без объекта:
-Добрый вечер
-Ожидание: отвечает только первый по tier — Торнин (major).
-
-Тест 1, 2 и 3 — идеально ✓ - всё работает!
-
-R0.1 закрыт. ✅
-Что сделали:
-game_loop.py — трекает первый ход кампании через _session_started_campaigns
-dm_agent.py — при первом ходе использует _build_intro_prompt() вместо обычного промпта
-R0.2 закрыт. ✅
-EventBus теперь изолирован по campaign — события фильтруются, campaign_id сериализуется в лог.
-R0.3 закрыт. ✅
-Sticky target теперь работает через лемматизацию — не сломается на падежах, приставках и нестандартных формах.
-R0.4 закрыт. ✅
-Теперь при старте backend в логах будут предупреждения о каждой отсутствующей модели — не будет тихих ошибок.
-R0.5 закрыт. Фаза R0 — Стабилизация ядра — полностью завершена. ✅
-Итог сессии:
-Задача Что сделали 
-R0.1 First-turn intro: _session_started_campaigns + _build_intro_prompt()
-R0.2 EventBus изолирован по campaign: campaign_id в to_dict() + фильтр в get_recent_events()
-R0.3 Sticky target через pymorphy3 — не ломается на падежах и формах
-R0.4 Manifest моделей исправлен, YandexGPT добавлен, валидация на старте
-R0.5 Legacy тест заменён на smoke-suite, conftest синхронизирован с реальными файлами
-
-Что работает:
-✅ Атмосферное интро при старте — красиво
-✅ restart_all.bat — кириллица нормальная
-✅ Тесты 4/4 OK
-✅ Адресация Люси по "официантке" — работает
+  ### Что реально происходит сейчас
 
+  Прежде чем трогать что-либо — нужно честно оценить состояние.
 
+  **Что только что заработало (этот сеанс):**
+  - R1 Working Memory — подключена, пишется, попадает в промпт
+  - R2.1 NarrativeExtractor — работает, поднос зарегистрирован
+  - scene_events — пишутся в SceneState
 
+  **Что ещё не подтверждено тестом:**
+  - Торнин помнит конкретные цифры? Не проверено после фиксов
+  - scene_events_block попадает в DM промпт? Не проверено
+  - Люся роняет поднос дважды — исчезло? Не проверено
 
-(.venv) PS C:\DDD\Codex\VSC_Enigma\Enigma> Select-String -Path "backend\tests\*.py" -Pattern "simulate_startup_error"
-
-backend\tests\test_startup_checks.py:82:            interpreter.simulate_startup_error()  # вызывает "Simulated startup error"
-
-    def test_error_interpreter_traceback_logging(self):
-        """Симуляция ошибки + проверка JSONL логирования."""
-        interpreter = get_error_interpreter()
-    
-        # Симуляция ошибки через встроенный метод
-        with self.assertRaises(Exception) as context:
-            interpreter.simulate_startup_error()  # вызывает "Simulated startup error"
+  **Вывод:** Мы не завершили R1-Connect и R2. Предлагается начать R3.5 (Goal/Intent architecture) + социальные роли. Это прыжок через две фазы.
 
-        human_msg = context.exception.args[0] if context.exception.args else str(context.exception)
-        self.assertIsInstance(human_msg, str)
-        self.assertIn("Simulated startup error", human_msg)
+  ---
 
-        recent_logs = interpreter.get_recent_logs()
-        print(f"Logged errors: {len(recent_logs)}")
+  ### Разбор каждого предложения
 
-if __name__ == "__main__":
-    unittest.main()
+  **1. "Перенести S.0 наверх в python_engines.py — фатальная архитектурная ошибка"**
 
-Ctrl+Shift+R - я первым делом нажал, а то сцена без этого включалась без красивого вводного слова DM, может дело в КЕШе? 
+  За: логически верно — зачем строить промпты для NPC которые не активны.
 
-startup_error в JSONL — это нормально и исправлено. Одна запись на один запуск — это тест test_error_interpreter_traceback_logging который намеренно вызывает simulate_startup_error(). Так и должно быть. В логе видно две записи потому что это append-only файл — первая из прошлого запуска, вторая из текущего. Это не баг.
-Кэш браузера — да, скорее всего именно из-за него интро не работало сразу. После Ctrl+Shift+R /api/ports тоже должен исчезнуть из логов.
+  Против:
+  - Это оптимизация производительности, не исправление бага
+  - Система **уже работает** — NPC молчат через `_resolve_active_npcs` в `npc_agent.py`
+  - "Гигантская бесполезная работа" — `build_npc_prompt` это Python dict, не LLM вызов. Реальная стоимость: микросекунды
+  - Изменение затрагивает `python_engines.py` — один из самых сложных файлов проекта
 
-Итог всей сессии — всё что сделали:
-#ЗадачаСтатусR0.1Session-start intro✅R0.2EventBus campaign-изоляция✅R0.3Sticky target через pymorphy3✅R0.4Manifest моделей + валидация✅R0.5pytest smoke suite✅+start_backend.bat — быстрый старт✅+restart_all.bat — кириллица✅+Legacy orchestrator imports✅+/api/ports убран✅+Авто-интро от DM✅
+  Вердикт: **не сейчас**. Это рефакторинг ради чистоты, не функциональность.
 
+  ---
 
+  **2. "Active Speaker Selection — ленивая генерация"**
 
+  За: правильная идея в теории.
 
+  Против:
+  - `npc_agent.py` уже делает это через `_resolve_active_npcs()` — возвращает только активных NPC, остальные не получают LLM вызов
+  - Флаг `is_active` в `python_engines.py` — дублирование логики которая уже есть в агенте
+  - Создаёт скрытую зависимость между двумя файлами
 
+  Вердикт: **не нужно** — проблема уже решена другим путём.
 
-Шаг 1 из 5 — R1.1: создаёмmemory_manager.py - создан
-Шаг 2 из 5 — обновляемMemoryManagerAgent - обновлён
-Теперь проверяем, что ничего не сломалось.
-Запустите в терминале:
-cd backend
-python -m pytest tests/ -x -q
-python -c "from app.services.memory.memory_manager import MemoryManager; print('OK')"
+  ---
 
-76 прошло, 9 скипнуто, 0 упало. Тесты зелёные.
-R1.1 закрыт. ✅
-Идём к R1.2 — Working Memory.
+  **3. "Social Reaction Rules — Защитник/Перехватчик"**
 
-76/0. R1.2 закрыт. ✅
-Идём к R1.3 — Importance Score + Decay.
+  За: это действительно нужная система для живого мира.
 
-76/0. R1.3 закрыт. ✅Идём к R1.4 — Relationship Memory.
+  Против:
+  - Это **фаза R3** по roadmap (Goal Engine + Intent architecture)
+  - Требует стабильных Relationships (R1.C2 — ещё не подключено полностью)
+  - Без Working Memory работающей в промпте — бессмысленно: Защитник вмешается, но NPC не будут помнить почему
+  - Порядок: сначала NPC должны помнить → потом реагировать на основе памяти
 
-76/0. R1.4 закрыт. ✅Идём к последнему — R1.5 — Contradiction Resolver.
+  Вердикт: **правильно, но преждевременно**. Вернёмся в R3.
 
-76/0. R1.5 закрыт. ✅
-Фаза R1 — Memory Core v1 — полностью завершена.
-ШагЧто сделалиСтатусR1.1MemoryManager фасад✅R1.2Working Memory (deque, RAM)✅R1.3Importance Score + Decay✅R1.4Relationship Store (JSON на диске)✅R1.5Contradiction Resolver (beliefs)✅
-Структура файлов теперь:
-backend/app/services/memory/
-├── __init__.py
-├── layered_memory.py
-├── memory_manager.py
-├── working_memory.py
-├── importance_engine.py
-├── relationship_store.py
-└── contradiction_resolver.py
+  ---
 
-76/0. Фаза R1 полностью завершена и подключена. ✅
-Итог:
-ШагФайлСтатусR1.1memory_manager.py✅R1.2working_memory.py✅R1.3importance_engine.py✅R1.4relationship_store.py✅R1.5contradiction_resolver.py✅Подключениеgame_loop.py + game_loop_factory.py✅
-Что теперь происходит в живой игре:
+  **4. "Data-Driven NPC JSON с social_role и social_links"**
 
-Каждый ход записывается в Working Memory (последние 5 в RAM)
-Каждое событие получает importance score автоматически
-Каждые 10 ходов Working Memory проходит decay × 0.92
-Отношения NPC пишутся в data/campaign_*/npc_relationships.json
-Beliefs NPC обновляются через Contradiction Resolver
+  За: архитектурно правильно, расширяемо.
 
-Что работает хорошо:
+  Против:
+  - Требует изменения схемы `major_npcs.json` для всех NPC
+  - Требует нового движка чтения этих полей
+  - Без Goal Engine эти поля мертвы — некому их читать
 
-importance: 0.3 в JSONL — Working Memory пишется ✅
-S.0 таргетинг — Торнин, Люся, Тень определяются правильно ✅
-NPC психология отображается в панели ✅
-Все агенты SUCCESS в логах ✅
+  Вердикт: **спроектировать поля сейчас, реализовать в R3**. Добавить `social_role` и `social_links` в JSON как пустые заглушки — ничего не сломает, подготовит почву.
 
-# Стратегический аудит Enigma: пересборка плана
+  ---
 
----
+  ### Текущее реальное положение на roadmap
 
-## ЧАСТЬ 1: Диагностика — где система сейчас
+  ```
+  R1-Connect  ████████░░  80%  (Working Memory подключена, Relationships — нет)
+  R2          ██████░░░░  60%  (Extractor работает, scene_events в промпт — не подтверждено)
+  R3          ░░░░░░░░░░   0%  (Goal Engine, Intent, Social Rules — не начато)
+  ```
 
-### 1.1 Реальное состояние vs декларируемое
+  ---
 
-R1 завершён **структурно**, но не **функционально**. Это принципиальное различие:
+  ### Что делать прямо сейчас (в правильном порядке)
 
-| Компонент | Создан | Подключён | Влияет на игру |
-|---|:---:|:---:|:---:|
-| WorkingMemory | ✅ | ❌ | ❌ |
-| ImportanceEngine | ✅ | ❌ (всегда 0.3) | ❌ |
-| RelationshipStore | ✅ | ❌ | ❌ |
-| ContradictionResolver | ✅ | ❌ | ❌ |
-| SceneEvents log | ❌ | ❌ | ❌ |
-| NPC current_action | ❌ | ❌ | ❌ |
-| Goal Engine | ❌ | ❌ | ❌ |
+  **Шаг 1 — подтвердить что R1 работает** (5 минут игры):
+  Сыграй 3 хода с Торнином о цене. Спроси на 4-м ходу. Помнит цифры — R1 закрыт. Не помнит — сначала чиним это.
 
-**Критический вывод:** Фаза R1 — это инфраструктура без водопровода. Трубы есть. Воды нет.
+  **Шаг 2 — подтвердить R2** (1 ход):
+  Люся уронила поднос → следующий ход. В панели объектов `поднос: dropped`? DM не повторяет падение? Если да — R2 закрыт.
 
----
+  **Шаг 3 — единственное полезное из предложенного сейчас:**
 
-### 1.2 Скрытая системная проблема (важнее всех багов)
+  Добавить `social_role` и `social_links` в JSON NPC как пустые поля — это 2 минуты, ничего не ломает, готовит R3:
 
-Все обсуждаемые проблемы — симптомы одной болезни:
+  ```json
+  "social_role": "owner",
+  "social_links": [
+    {"target": "maid_lusya", "type": "authority", "strength": 0.8}
+  ]
+  ```
 
-> **NPC — реактивные боты, а не агенты.**
+  **Шаг 4 — после подтверждения R1+R2:** идём в R3 по roadmap — Goal Engine.
 
-Бот: `player_action → LLM_response`  
-Агент: `own_goals + world_state + player_action → decision → LLM_verbalization`
+  ---
 
-Пока у NPC нет **целей** — память бессмысленна (нечего запоминать про себя), отношения статичны (нет мотивации их менять), нарратив плоский (нет собственной воли персонажей).
+  ### Итог
 
-**Самоопровержение:** *Но может, сначала память сделает NPC умнее, и цели появятся сами?*  
-Нет. Память без целей — это просто лог. NPC с памятью, но без целей, будет помнить, что ты сломал стол, и... ничего с этим не делать. Цели — это то, что превращает факт в мотивацию.
+  Из всего предложенного **сейчас делаем только одно**: добавляем `social_role` и `social_links` как пустые поля в `major_npcs.json`. Всё остальное — R3, после подтверждения что R1 и R2 реально работают.
 
----
+  Покажи результат теста с Торнином и подносом — тогда поймём точно, где мы находимся.
 
-### 1.3 Три класса проблем (разделяем, чтобы не мешать в кучу)
 
-**Класс A — Соединения (R1-connect):** то что построено, но не включено  
-**Класс B — Отсутствующая физика сцены:** нет журнала событий, нет персистентности действий NPC  
-**Класс C — Отсутствующий когнитивный слой:** нет целей, нет намерений, нет автономии  
+## Анализ перед планом.
 
-Порядок решения строго A → B → C. Нельзя строить когнитивный слой поверх сломанной физики.
+  Сначала — честная карта: что из этой архитектуры **уже есть** в Enigma, что **есть частично**, что **отсутствует**.
 
----
+  ---
 
-## ЧАСТЬ 2: Критический параметр решения
+  ```
+  [1] WORLD STATE          ✅ world_state.py, scene_state_manager.py
+  [2] EVENT LAYER          ✅ event_bus.py, event_types.py (только что починен)
+  [3] DECISION HUB         ⚠️  фрагменты: npc_cognition, psyche_engine,
+                              reaction_priority — но НЕТ единой формулы score()
+  [4] STATE UPDATE         ⚠️  life_engine.py — частично, без intent-фиксации
+  [5] LLM VERBALIZATION    ✅ dm_agent.py, npc_agent.py — но получают слишком
+                              много контекста, а не только intent+emotion
+  [6] MEMORY AS WEIGHT     ⚠️  файлы есть (importance_engine, relationship_store,
+                              working_memory) — но НЕ подключены к score()
+  ```
 
-> **Критический параметр:** подключение WorkingMemory к промпту NPC — это единственное изменение, которое немедленно видит игрок. Всё остальное либо невидимо, либо требует времени.
+  **Вывод:** скелет стоит. Нет главной связки: `Event → score() → intent → LLM`.
 
-Это определяет первый шаг: не архитектура, не рефакторинг — одно соединение. Видимый эффект за 30 минут работы.
+  ---
 
----
+  ## ПЛАН ПЕРЕХОДА
 
-## ЧАСТЬ 3: Новый порядок действий
+  ### ФАЗА R1 — Memory Core v1 *(текущий запланированный milestone)*
+  *Цель: подключить память к весам, не к тексту.*
 
-### ФАЗА R1-CONNECT — «Включить то, что построили» (1–2 дня)
+  **R1.1** — `MemoryManager` фасад  
+  Единая точка входа для всех агентов. Не хранит текст — возвращает числа.  
+  Файл: `services/memory/memory_manager.py`
 
-Три соединения, три независимых шага.
+  **R1.2** — `WorkingMemory` deque  
+  Скользящее окно последних N событий сессии.  
+  Файл: `services/memory/working_memory.py`
 
-**R1.C1 — Working Memory → NPC prompt**  
-Торнин должен помнить разговор. Сейчас `working_memory` пишется в JSONL, но `npc_agent` его не получает.  
-Шаг: в `context_builder` (или там, где собирается промпт NPC) добавить `working_memory.get(campaign_id)` как первый блок контекста.
+  **R1.3** — `ImportanceEngine` + decay  
+  `importance_score(event) → float`. Затухание по времени.  
+  Файл: `services/memory/importance_engine.py`
 
-*Самоопровержение: может, это ухудшит качество через token bloat?*  
-Нет — working memory = 5 ходов, это ~300 токенов, некритично.
+  **R1.4** — `RelationshipStore` как весовая матрица  
+  `trust[player][npc_id]`, `fear[npc_id]`, `debt[npc_id]`.  
+  JSON-персистентность. Без текста.  
+  Файл: `services/memory/relationship_store.py`
 
-**R1.C2 — npc_state_updates → RelationshipStore**  
-`_apply_npc_state_updates` обновляет trust/stress в JSON NPC, но не пишет в RelationshipStore.  
-Шаг: в конце `_apply_npc_state_updates` добавить вызов `relationship_store.update(...)`.
+  **R1.5** — `ContradictionResolver`  
+  Если два события дают противоположные сигналы — резолюция по весу важности.  
+  Файл: `services/memory/contradiction_resolver.py`
 
-**R1.C3 — action_type → ImportanceEngine**  
-Классификатор уже знает тип действия (combat, vandalism, dialogue). ImportanceEngine это не получает.  
-Шаг: прокинуть `action_type` из классификатора в `memory_manager.record_event(event, action_type=...)`.
+  ---
 
----
+  ### ФАЗА R2 — Decision Hub v1 *(ядро интеллекта)*
+  *Цель: реализовать единую формулу score() для каждого NPC.*
 
-### ФАЗА R2 — «Физика сцены» (2–3 дня)
+  **R2.1** — `NPCState` dataclass  
+  Единый объект состояния NPC: `emotion`, `stress`, `intent`, `drives`.  
+  Поля — только числа и enum.
 
-Это то, что называли в документе "ephemeral object problem" и "action reset problem". Без этого мир не имеет физической памяти.
+  **R2.2** — `DecisionHub.score(action, npc_state, context) → float`  
+  Реализация формулы:
+  ```
+  score = (drive_weight × context_relevance)
+        + emotion_weight
+        + relationship_modifier
+        - (fear × risk)
+  ```
+  Все коэффициенты — константы в одном файле.
 
-**R2.1 — scene_events log**  
-```json
-scene_events: [
-  {"type": "object_drop", "actor": "lusya", "object": "tray", "tick": 12, "happened": true}
-]
-```
-Перед каждым ходом: проверять scene_events. Если событие `happened: true` — блокировать повторение через контекст DM.
+  **R2.3** — `IntentResolver`  
+  `max(score(action) for action in possible_actions) → Intent`  
+  Возможные действия — фиксированный enum (не генерирует LLM).
 
-*Самоопровержение: не слишком ли это велико для "физики"?*  
-Нет — это 50 строк Python + одна строка в промпте DM: "Эти события уже произошли: [список]". Минимальная стоимость, максимальный эффект.
+  **R2.4** — Подключение к EventBus  
+  `Event → DecisionHub.process(npc_id, event) → NPCState (updated)`  
+  Каждый NPC подписан на события в своём радиусе.
 
-**R2.2 — NPC current_action persistence**  
-Добавить в `npc_positions`:
-```yaml
-tornin:
-  position: behind_bar
-  activity: cleaning_tables
-  current_action: wiping_glass
-  action_started_tick: 14
-```
-Правило: NPC не начинает новое действие, если `current_action` не завершено. Завершение: через N тиков или через внешнее событие.
+  **R2.5** — StateUpdate  
+  После `IntentResolver` — запись в `NPCState`:  
+  `emotion`, `stress ± delta`, `trust ± delta`, `intent`.
 
-**R2.3 — Dynamic Object Registry (минимальная версия)**  
-Не полный Object Extractor. Только: при появлении нового объекта в нарративе DM (через SceneChange) — регистрировать его в `scene_state.objects` с полями `state`, `location`, `type`. Это предотвращает "объект из воздуха".
+  ---
 
----
+  ### ФАЗА R3 — LLM Verbalization Layer *(очистка)*
+  *Цель: LLM получает только intent+emotion, не весь контекст.*
 
-### ФАЗА R3 — «Goal Engine» (5–7 дней)
+  **R3.1** — `VerbalizationContext` dataclass  
+  ```python
+  @dataclass
+  class VerbalizationContext:
+      npc_id:    str
+      npc_name:  str
+      emotion:   str      # enum → строка
+      intent:    str      # enum → строка
+      target:    str
+      scene_hint: str     # ≤ 50 токенов
+  ```
 
-Это граница между ботом и агентом. Самая важная фаза проекта.
+  **R3.2** — Переписать `npc_agent.py`  
+  Агент принимает `VerbalizationContext`, не `shared_context`.  
+  Промпт ≤ 300 токенов. Ответ — только реплика/действие NPC.
 
-**R3.1 — Схема целей в JSON NPC**
-```json
-"goals": [
-  {"id": "protect_tavern", "priority": 85, "type": "permanent"},
-  {"id": "collect_payment_from_player", "priority": 60, "deadline_tick": 200}
-],
-"plans": [
-  {"goal_id": "collect_payment", "action": "approach_player", "status": "pending"}
-]
-```
+  **R3.3** — Переписать `dm_agent.py`  
+  DM получает: список `intent`-ов всех NPC + результат хода.  
+  Синтезирует нарратив. Не принимает решений за NPC.
 
-**R3.2 — Needs → Goals generator**  
-Физиологические нужды генерируют цели:
-```python
-if npc.hunger > 0.6:
-    npc.add_goal("find_food", priority=npc.hunger * 100)
-```
-Нужды: голод, безопасность, социальный контакт, деньги (для каждого NPC свой вес).
+  ---
 
-**R3.3 — Utility function с needs_pressure**
-```python
-score = Σ(goal_priority × impact × modifiers) + need_pressure × action_relief
-```
-Python считает. LLM только озвучивает выбор.
+  ### ФАЗА R4 — Integration & Calibration
+  *Цель: сквозной прогон, калибровка коэффициентов.*
 
-**R3.4 — Intent architecture (ключевой архитектурный сдвиг)**
+  **R4.1** — Smoke test: `Event → score() → intent → verbalization`  
+  Один NPC, одно действие игрока, сквозной путь без LLM.
 
-Текущий pipeline: `player_action → NPC_LLM → scene_text`  
-Новый pipeline: `player_action → NPC_intent (Python) → DM_resolves → scene_text`
+  **R4.2** — Калибровка весов  
+  Ручной прогон 10 сценариев. Запись ожидаемого `intent`.  
+  Подбор коэффициентов до совпадения с ожиданием.
 
-NPC не пишет сцену. NPC генерирует **намерение**:
-```json
-{"npc": "tornin", "intent": "demand_payment", "target": "player", "urgency": 0.8}
-```
-DM получает все намерения NPC + действие игрока → пишет одну согласованную сцену.
+  **R4.3** — Координаты в `SceneState`  
+  `life_engine.py` начинает писать `position: {x, y}` для каждого NPC.  
+  `PlayerTargetExtractor._get_distance()` переключится на реальные данные автоматически (уже готово).
 
-Это решает Narrative Authority Conflict: конец ситуации, когда Люся кричит на спокойного Торнина.
+  **R4.4** — Финальный smoke test  
+  Полный цикл с LLM: стражник видит провальную попытку игрока, Decision Hub выдаёт `INVESTIGATE`, LLM вербализует реплику.
 
-*Самоопровержение: не сломает ли это существующую архитектуру?*  
-Это изменение в `npc_agent.py` (генерировать intent_dict вместо narrative) и в `dm_agent.py` (принимать intents[]).  
-Текущий flow не рушится — это надстройка, не замена.
+  ---
 
-**R3.5 — Autonomy tick**  
-Каждые 15 игровых минут (независимо от хода игрока): NPC проходит цикл  
-`Perceive → Feel → Think → Decide → Act`  
-Полностью в Python. LLM не вызывается. Результат — обновлённый `current_action`, `goals`, `emotional_state`.
+  ## Порядок старта
 
----
+  ```
+  Сейчас → R1.1 (MemoryManager фасад)
+  ```
 
-### ФАЗА R4 — «Persistent Memory Infra» (1–2 недели)
+  Для старта нужен файл:
+  ```
+  backend/app/services/memory/memory_manager.py
+  ```
 
-Только после стабильного Goal Engine. Память без агентов — архив. Память с агентами — инструмент.
+  Покажи его — начнём R1.1.  
 
-- **R4.1** SQLite: квесты, отношения, метрики NPC, player state
-- **R4.2** Compressor Agent: каждые 10 ходов — summary + decay × 0.92
-- **R4.3** Snapshot manager: auto-save каждые 30 мин
-- **R4.4** FAISS: world lore RAG (80 МБ, CPU-only)
-- **R4.5** context_builder: token budget ≤ 4000 токенов на LLM запрос
 
----
 
-### ФАЗА R5 — «Narrative Layer» (2–3 недели)
+Итоговая таблица архитектурных решений (финальная):
+  #Решение1NPCState — источник истины2Intent хранится в NPCState3Event-trigger + редкий idle тик4Enum + фильтр доступности5RelationshipStore + кэш в NPCState6emotion_base + Σ(delta × decay)7Risk из контекста (свидетели, дистанция, сила)8Радиус → Perception (два фильтра)9DecisionHub = read-only. StateApplicator = write-only10LifeEngine = фоновый тик11intent + emotion + fact-hint ≤ 100 токенов12±10% randomness, seed per-session13Цель: 10–30 NPC, запас до 5014Старт: только R1.1
 
-Это то, чего в проекте нет совсем. Не сюжет — система давления:
+И вот я начал следовать плану:
+R1.1 закрыт.
+R1.2 закрыт.
+R1.3 закрыт.
+R1.4 закрыт.
+R1.5 закрыт.
+Все пять задач R1 выполнены.
 
-```
-Simulation (мир живёт) + Narrative Pressure (сюжет давит) = Controlled Emergence
-```
+R2.1 закрыт.
+ pending_decay — отклоняю. Преждевременная оптимизация. Разные скорости decay решаются параметром в apply_decay(), не структурой данных.
+Проблема: _score_npc читает npc dict напрямую, а не NPCState. После R2 это создаст дублирование источников данных.
 
-- **R5.1** Narrative Pressure: счётчик бездействия игрока → эскалация событий
-- **R5.2** Event escalation engine: малое событие → триггер → цепочка событий
-- **R5.3** Scene tension tracker: напряжение сцены как числовой параметр
-
----
-
-### ФАЗА R6 — «Cognitive Layer» (позже)
-
-Theory of Mind, Beliefs с confidence, Cognitive Distortions, Learning.
-
-*Самоопровержение: почему так поздно, если это "идеал"?*  
-Потому что когнитивные искажения без стабильного базового поведения — это хаос, не реализм. Вероятность: без Goals — 70% сломает предсказуемость. С Goals (R3) — 80% усилит реализм.
-
----
-
-### ФАЗА R7 — «Knowledge Graph» (если нужен)
-
-NetworkX в RAM для ассоциативной памяти. Актуально при >100 NPC, >10k событий. До этого — JSON + SQLite достаточно.
-
----
-
-## ЧАСТЬ 4: Структура проекта (целевое состояние)
-
-```
-backend/app/
-├── core/               ← конфиг, startup, model manifest
-├── services/
-│   ├── game_loop.py    ← центральный оркестратор
-│   ├── scene/
-│   │   ├── scene_state.py
-│   │   ├── scene_events.py     ← R2.1 (new)
-│   │   ├── object_registry.py  ← R2.3 (new)
-│   │   └── action_persistence.py ← R2.2 (new)
-│   ├── memory/
-│   │   ├── memory_manager.py   ← R1.1 ✅
-│   │   ├── working_memory.py   ← R1.2 ✅ (не подключена)
-│   │   ├── importance_engine.py ← R1.3 ✅ (не подключена)
-│   │   ├── relationship_store.py ← R1.4 ✅ (не подключена)
-│   │   ├── contradiction_resolver.py ← R1.5 ✅
-│   │   ├── compressor.py       ← R4.2
-│   │   ├── context_builder.py  ← R4.5
-│   │   └── vector_store.py     ← R4.4
-│   ├── npc/
-│   │   ├── goal_engine.py      ← R3.1–R3.3 (new)
-│   │   ├── autonomy_tick.py    ← R3.5 (new)
-│   │   ├── intent_generator.py ← R3.4 (new)
-│   │   ├── life_engine.py      ← existing + расширить
-│   │   ├── psyche_engine.py    ← existing
-│   │   └── cognitive/          ← R6 (future)
-│   │       ├── theory_of_mind.py
-│   │       └── beliefs.py
-│   └── narrative/
-│       ├── narrative_pressure.py ← R5.1 (new)
-│       └── event_escalation.py   ← R5.2 (new)
-├── agents/
-│   ├── npc_agent.py    ← обновить: принимать intents (R3.4)
-│   ├── dm_agent.py     ← обновить: резолвить intents (R3.4)
-│   ├── rules_agent.py  ← stable
-│   └── memory_manager_agent.py ← обновить: подключить R1 компоненты
-└── data/
-    └── campaign_{id}/
-        ├── scene_state.json
-        ├── scene_events.json   ← R2.1
-        ├── npc_relationships.json ← R1.4
-        ├── campaign_memory.db  ← R4.1
-        └── snapshots/
-```
-
----
-
-## ЧАСТЬ 5: Сводная таблица нового Roadmap
-
-| Фаза | Название | Дней | Критический выход |
-|---|---|:---:|---|
-| **R1-Connect** | Включить R1 | 1–2 | Торнин помнит разговор |
-| **R2** | Физика сцены | 2–3 | Люся не роняет поднос дважды |
-| **R3** | Goal Engine + Intent | 5–7 | NPC — агент, не бот |
-| **R4** | Persistent Memory | 7–14 | Кампания живёт годами |
-| **R5** | Narrative Layer | 14–21 | Мир давит на игрока сам |
-| **R6** | Cognitive Layer | 14–21 | NPC мыслит субъективно |
-| **R7** | Knowledge Graph | по необходимости | Ассоциативная память |
-
----
-
-## ЧАСТЬ 6: Карта рисков (обновлённая)
-
-| Риск | Вероятность | Последствие |
-|---|:---:|---|
-| Пропустить R1-Connect и начать R3 | 60% (соблазн) | Цели у NPC, которые ничего не помнят |
-| Intent-архитектура сломает существующий npc_agent | 30% | Регрессия по всем тестам |
-| FAISS до SQLite (R4 в неправильном порядке) | 25% | Семантический поиск без структурных данных |
-| Cognitive Distortions до Goal Engine | 70% → хаос | NPC непредсказуемы до полной поломки |
-| Knowledge Graph до R4 | 40% | Граф без данных = пустой граф |
-
----
-
-## Итоговый вывод
-
-**Оптимальный путь — три волны:**
-
-**Волна 1 (эта неделя):** R1-Connect → R2  
-*Цель: сделать то, что уже построено, работающим. Видимый эффект за 2–4 дня.*
-
-**Волна 2 (следующие 2–3 недели):** R3 Goal Engine + Intent architecture  
-*Цель: пересечь границу бот/агент. Это качественный скачок, не количественный.*
-
-**Волна 3 (месяц+):** R4 → R5 → R6  
-*Цель: масштабирование, нарратив, когниция.*
-
-**Следующий конкретный шаг:** R1.C1 — подать `working_memory.get(campaign_id)` в промпт `npc_agent`. Один файл, одно место, один вызов.
+R2.2 готов.
+R2.3 готов.
+R1 полностью закрыт. R2.1–R2.4 закрыты.

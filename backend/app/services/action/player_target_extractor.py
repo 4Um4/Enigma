@@ -251,7 +251,9 @@ class PlayerTargetExtractor:
         # не зависим от конкретных словоформ.
         try:
             import pymorphy3 as _pm3
-            _morph = _pm3.MorphAnalyzer()
+            if not hasattr(PlayerTargetExtractor, "_morph_analyzer"):
+                PlayerTargetExtractor._morph_analyzer = _pm3.MorphAnalyzer()
+            _morph = PlayerTargetExtractor._morph_analyzer
             _ADDRESS_LEMMAS = {
                 "говорить", "сказать", "спросить", "шептать", "спрашивать",
                 "отвечать", "обращаться", "просить", "попросить", "молвить",
@@ -283,14 +285,16 @@ class PlayerTargetExtractor:
                 player_position = pos_label
                 break
 
-        # 4. Расстояния
+        # 4. Расстояния — приоритет: реальные координаты, fallback: лингвистика
         is_proximate = any(kw in lower for kw in self._PROXIMITY_KEYWORDS)
         for ctx in npc_contexts:
             npc_id = ctx.get("npc_id", "")
-            if npc_id == target_npc_id and is_proximate:
-                player_distances[npc_id] = 0.5
-            else:
-                player_distances[npc_id] = 3.0
+            player_distances[npc_id] = self._get_distance(
+                npc_id=npc_id,
+                is_target=(npc_id == target_npc_id),
+                is_proximate=is_proximate,
+                scene_state=scene_state,
+            )
 
         return target_npc_id, target_npc_name, target_object, player_position, player_distances
 
@@ -304,3 +308,30 @@ class PlayerTargetExtractor:
             if candidate in PlayerTargetExtractor._ROLE_KEYWORDS:
                 return candidate
         return ""
+
+    @staticmethod
+    def _get_distance(
+        npc_id: str,
+        is_target: bool,
+        is_proximate: bool,
+        scene_state: Optional[Dict],
+    ) -> float:
+        """
+        Расчёт дистанции игрок → NPC.
+        Приоритет 1: реальные координаты из scene_state (когда LifeEngine их заполнит).
+        Приоритет 2: лингвистический прокси (proximity keywords).
+        """
+        if scene_state:
+            player_pos = scene_state.get("player_position") or {}
+            npc_data = (scene_state.get("npcs") or {}).get(npc_id) or {}
+            npc_pos = npc_data.get("position") or {}
+
+            px, py = player_pos.get("x"), player_pos.get("y")
+            nx, ny = npc_pos.get("x"), npc_pos.get("y")
+
+            if px is not None and py is not None and nx is not None and ny is not None:
+                import math
+                return round(math.dist((px, py), (nx, ny)), 2)
+
+        # Fallback: лингвистический прокси
+        return 0.5 if (is_target and is_proximate) else 3.0

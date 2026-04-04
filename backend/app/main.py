@@ -17,6 +17,7 @@ from app.api.routes import router
 from app.api import routes_debug
 from app.api.routes_stream import router as stream_router
 from app.core.config import settings
+from app.core.runtime_config import get_api_url, get_frontend_url
 
 from app.services.llm import initialize_router
 from app.services.error_interpreter import get_error_interpreter
@@ -137,7 +138,9 @@ async def startup_event():
         print(f"  ⚠️  LLM check error: {e}")
 
     print("\n=== Application startup complete ===\n")
-    print(f"  Frontend:  http://127.0.0.1:3000  (если запущен)")
-    print(f"  Backend:   http://127.0.0.1:8000")
-    print(f"  API Docs:  http://127.0.0.1:8000/docs")
-    print(f"  VRAM:      http://127.0.0.1:8000/api/debug/vram\n")
+    _api      = get_api_url()
+    _frontend = get_frontend_url()
+    print(f"  Frontend:  {_frontend}")
+    print(f"  Backend:   {_api}")
+    print(f"  API Docs:  {_api}/docs")
+    print(f"  VRAM:      {_api}/api/debug/vram\n")

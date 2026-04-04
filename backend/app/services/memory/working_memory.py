@@ -24,3 +24,13 @@ class WorkingMemory:
 
     def clear(self, campaign_id: str) -> None:
         self._buffers.pop(campaign_id, None)
+
+    def replace_all(self, campaign_id: str, events: List[Dict[str, Any]]) -> None:
+        """
+        Атомарная замена буфера — используется после decay.
+        Старые данные не трогаются до момента полной готовности нового списка.
+        """
+        new_buf: deque = deque(maxlen=self._maxlen)
+        for event in events:
+            new_buf.append(event)
+        self._buffers[campaign_id] = new_buff._buffers.pop(campaign_id, None)
