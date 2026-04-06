@@ -8,7 +8,10 @@ NPC Agent - NPC Dialogue Generation
 """
 
 import json
+import logging
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 from app.models.schemas import PlayerAction
 from app.services.llm import ModelRouter, Capability, get_router
@@ -17,7 +20,13 @@ from app.services.llm.provider_manager import get_model_pool
 from app.core.config import settings
 
 
+from pydantic import BaseModel, Field, ConfigDict
 
+class NPCVerbalizationResponse(BaseModel):
+    speech: str = Field(default="", max_length=2000)
+    action: str = Field(default="", max_length=500)
+
+    model_config = ConfigDict(extra="ignore")
 
 
 class NpcAgent:
@@ -268,57 +277,124 @@ HARDCORE: разрешены грубость, мат, угрозы, мрачн�
 
     @staticmethod
     def _try_repair_json(text: str) -> dict:
+        """Простой regex-ремонт JSON для старого парсера (_parse_npc_response)."""
         import re
-        result = {}
+        result: dict = {}
+
+        # Извлекаем speech и action
         for field, pattern in [
             ("speech", r'"speech"\s*:\s*"((?:[^"\\]|\\.)*)"'),
             ("action", r'"action"\s*:\s*"((?:[^"\\]|\\.)*)"'),
         ]:
-            m = re.search(pattern, text)
+            m = re.search(pattern, text, re.DOTALL)
             if m:
                 result[field] = m.group(1)
+
+        # Извлекаем дельты только для старого парсера
         for field in ("trust_change", "stress_change"):
             m = re.search(rf'"{field}"\s*:\s*([+-]?\d+)', text)
             if m:
                 result[field] = int(m.group(1))
+
         return result
 
     @staticmethod
     def _parse_npc_response(resp: str) -> tuple[str, str, int, int]:
+        """Парсит полный ответ NPC со всеми дельтами (старый путь)."""
         clean = NpcAgent._strip_stop_tokens(resp.strip())
 
+        # Удаление markdown fences
         if clean.startswith("```"):
             parts = clean.split("```")
             if len(parts) >= 2:
                 inner = parts[1]
                 if inner.startswith("json"):
-                    inner = inner[4:]
-                clean = NpcAgent._strip_stop_tokens(inner.strip())
+                    inner = inner[4:].strip()
+                else:
+                    inner = inner.strip()
+                clean = NpcAgent._strip_stop_tokens(inner)
 
         clean_fixed = NpcAgent._fix_json_numbers(clean)
 
+        # Попытка 1: нормальный json.loads
         try:
-            parsed       = json.loads(clean_fixed)
-            speech       = str(parsed.get("speech", "")).strip()
-            action       = str(parsed.get("action", "")).strip()
-            trust_delta  = int(parsed.get("trust_change", 0))
+            parsed = json.loads(clean_fixed)
+            speech = str(parsed.get("speech", "")).strip()
+            action = str(parsed.get("action", "")).strip()
+            trust_delta = int(parsed.get("trust_change", 0))
             stress_delta = int(parsed.get("stress_change", 0))
+
             if not speech:
                 speech = NpcAgent._strip_stop_tokens(resp)
+
             return speech, action, trust_delta, stress_delta
         except (json.JSONDecodeError, TypeError, ValueError):
             pass
 
+        # Попытка 2: regex repair
         recovered = NpcAgent._try_repair_json(clean_fixed)
         if recovered.get("speech"):
             return (
-                str(recovered["speech"]).strip(),
+                str(recovered.get("speech", "")).strip(),
                 str(recovered.get("action", "")).strip(),
                 int(recovered.get("trust_change", 0)),
                 int(recovered.get("stress_change", 0)),
             )
 
+        # Грубый fallback
         return NpcAgent._strip_stop_tokens(resp), "", 0, 0
+
+    @staticmethod
+    def _parse_r3_response(resp: str) -> tuple[str, str]:
+        """
+        R3-путь: парсит ответ через Pydantic-модель NPCVerbalizationResponse.
+        
+        Особенности:
+        - trust_change и stress_change полностью игнорируются (даже если LLM их выводит)
+        - Возвращает строго только (speech, action)
+        - Приоритет: Pydantic → regex fallback → грубый fallback
+        """
+        # 1. Базовая очистка
+        clean = NpcAgent._strip_stop_tokens(resp.strip())
+
+        # 2. Удаление markdown-кода (```json ... ```)
+        if clean.startswith("```"):
+            parts = clean.split("```")
+            if len(parts) >= 2:
+                inner = parts[1]
+                if inner.startswith("json"):
+                    inner = inner[4:].strip()
+                else:
+                    inner = inner.strip()
+                clean = NpcAgent._strip_stop_tokens(inner)
+
+        # 3. Исправление распространённых ошибок JSON от LLM
+        clean = NpcAgent._fix_json_numbers(clean)
+
+        # 4. Попытка 1: строгий парсинг через Pydantic
+        try:
+            parsed = NPCVerbalizationResponse.model_validate_json(clean)
+            return parsed.speech.strip(), parsed.action.strip()
+        except Exception:
+            pass
+
+        # 5. Попытка 2: regex fallback (только speech и action)
+        import re
+        speech_match = re.search(
+            r'"speech"\s*:\s*"((?:[^"\\]|\\.)*)"', clean, re.DOTALL
+        )
+        action_match = re.search(
+            r'"action"\s*:\s*"((?:[^"\\]|\\.)*)"', clean, re.DOTALL
+        )
+
+        speech = speech_match.group(1).strip() if speech_match else ""
+        action = action_match.group(1).strip() if action_match else ""
+
+        # 6. Финальный fallback
+        if not speech:
+            speech = NpcAgent._strip_stop_tokens(resp)
+
+        return speech, action
 
     # ─────────────────────────────────────────────────────────────────────────
     # ФАЗА S.0: _resolve_active_npcs — generic версия без хардкода имён
@@ -486,6 +562,95 @@ HARDCORE: разрешены грубость, мат, угрозы, мрачн�
         }
 
     # ─────────────────────────────────────────────────────────────────────────
+    # R3.1 — новый путь через VerbalizationContext
+    # Вызывается вместо run() когда DecisionHub уже принял решение.
+    # LLM получает только VerbalizationContext — не shared_context.
+    # ─────────────────────────────────────────────────────────────────────────
+
+    def run_from_context(
+        self,
+        contexts:    list,
+        scene_state: Optional[dict] = None,
+    ) -> dict:
+        """
+        R3-путь: NPC agent получает только VerbalizationContext.
+        MASS NPC → шаблоны без LLM.
+        Далёкие NPC → lazy verbalization, пропускаем.
+        Dynamic token budget по intent.
+        """
+        from app.services.npc.verbalization_context import (
+            VerbalizationContext,
+            build_npc_prompt_from_context,
+            get_mass_template,
+            get_token_budget,
+            should_verbalize,
+            Intent,
+        )
+        from app.services.npc.npc_state import NPCTier
+
+        all_reactions     = []
+        all_actions       = []
+        npc_state_updates = []
+
+        for ctx in contexts:
+            if not isinstance(ctx, VerbalizationContext):
+                continue
+
+            # IDLE/OBSERVE — молчат, без LLM
+            if ctx.intent in (Intent.IDLE.value, Intent.OBSERVE.value):
+                continue
+
+            # Lazy verbalization — далёкие NPC не вербализуются
+            if scene_state and not should_verbalize(
+                ctx.npc_id, scene_state, ctx.intent
+            ):
+                continue
+
+            # MASS NPC — шаблоны без LLM
+            if ctx.tier == NPCTier.MASS.value:
+                template = get_mass_template(ctx)
+                if template:
+                    all_actions.append(template)
+                continue
+
+            # MAJOR / MINOR — LLM с dynamic token budget
+            max_tokens = get_token_budget(ctx.tier, ctx.intent)
+            if max_tokens == 0:
+                continue
+
+            sys_p, usr_p = build_npc_prompt_from_context(ctx)
+
+            try:
+                resp = self.router.request(
+                    capability=Capability.DIALOGUE,
+                    prompt=usr_p,
+                    system_prompt=sys_p,
+                    params=GenerationParams(max_tokens=max_tokens),
+                )
+                # R3-путь: только speech и action — дельты не запрашиваем и не принимаем
+                speech, action = self._parse_r3_response(resp)
+                if action and action not in ("молчит, разговор не к нему", ""):
+                    all_actions.append(f"{ctx.npc_name}: {action}")
+
+            except Exception as e:
+                logger.error(f"[VERBALIZE] LLM failed для {ctx.npc_id}: {e}")
+                # Гарантированный fallback — NPC не исчезает из сцены
+                from app.services.npc.verbalization_context import get_mass_template
+                fallback = get_mass_template(ctx)
+                if fallback:
+                    all_actions.append(fallback)
+                else:
+                    # Последний резерв: intent как действие
+                    all_actions.append(f"{ctx.npc_name} {ctx.intent}.")
+
+        return {
+            "npc_reactions":      all_reactions,
+            "npc_actions":        all_actions,
+            "npc_memory_updates": [],
+            "npc_state_updates":  [],  # R3-путь: состояние меняет только StateApplicator
+        }      
+
+    # ─────────────────────────────────────────────────────────────────────────
     # react — основной метод
     # ─────────────────────────────────────────────────────────────────────────
 
@@ -566,6 +731,16 @@ HARDCORE: разрешены грубость, мат, угрозы, мрачн�
             all_mem_updates  = []
             npc_state_updates = []
 
+            # R3-путь: если есть verbalization_ctx — используем run_from_context
+            r3_contexts = [
+                ctx["verbalization_ctx"]
+                for ctx in active_contexts
+                if "verbalization_ctx" in ctx
+            ]
+            if r3_contexts:
+                scene_state_for_r3 = shared_context.get("scene_state") if shared_context else None
+                return self.run_from_context(r3_contexts, scene_state=scene_state_for_r3)
+                
             for npc_ctx in active_contexts:
                 npc_name    = npc_ctx.get("npc_name", "NPC")
                 npc_id      = npc_ctx.get("npc_id", "")

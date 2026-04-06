@@ -1,20 +1,25 @@
 # backend/app/services/npc/npc_state.py
 """
 R2.1 — NPCState: единый источник правды о динамическом состоянии NPC.
+NPCState — центральный узел всей психики.
 
 Принципы:
   - NPCPersonality (frozen) — static, загружается из JSON один раз
   - NPCState (mutable) — dynamic, меняется через StateApplicator
   - DecisionHub читает оба объекта, но пишет только через StateApplicator
   - LLM получает только VerbalizationContext — не сам NPCState
+  
 """
 
 from __future__ import annotations
 
 import math
+import math as _math
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, Optional, Set, Tuple
+from typing import Any, Dict, Optional, Set, Tuple, Union
+
+from backend.app.services.npc.behavior_mask import BehaviorMaskState
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -87,6 +92,112 @@ class NarrativeFact:
     emotion_tag: str    # какая эмоция была применена
     day:         int    # игровой день (для "три дня назад")
     importance:  float  # для выбора top-2
+    trust_delta: float = 0.0   # числовой след — было -15
+    sequence_id: int   = 0     # порядок для хронологии
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# EventMemory — L2: смысловая память NPC (из Память.md R5.1)
+# Lifecycle: Fresh → Detailed → Compressed → Abstract → Forgotten
+# Не участвует в формуле score() — только для вербализации и EXPLAIN.
+# ─────────────────────────────────────────────────────────────────────────────
+
+class MemoryStage(str, Enum):
+    """Стадия жизненного цикла события в памяти."""
+    FRESH      = "fresh"       # только что произошло — детальная
+    DETAILED   = "detailed"    # несколько тиков — ещё точная
+    COMPRESSED = "compressed"  # сжатая — детали теряются
+    ABSTRACT   = "abstract"    # только смысл — уходит в L3 traits
+    FORGOTTEN  = "forgotten"   # importance < threshold — удаляется
+
+
+@dataclass(frozen=True)
+class EventMemory:
+    """
+    R5.1 — L2: смысловая память о событии.
+    Хранит clarity (чёткость восприятия) и confidence (уверенность в деталях).
+    Decay переводит из Fresh → Forgotten через промежуточные стадии.
+    """
+    event_type:         str
+    target_id:          str
+    emotion_tag:        str
+    day:                int
+    importance:         float       # 0.0–1.0, затухает со временем
+    clarity:            float = 1.0 # насколько чётко NPC воспринял событие
+    confidence:         float = 1.0 # уверенность в деталях (снижается при drift)
+    decay_rate:         float = 0.05  # потеря importance за тик
+    stage:              MemoryStage = MemoryStage.FRESH
+    sequence_id:        int = 0
+
+    def __post_init__(self) -> None:
+        # Защита от невалидных значений при загрузке из JSON
+        object.__setattr__(self, "importance",  max(0.0, min(1.0, self.importance)))
+        object.__setattr__(self, "clarity",     max(0.0, min(1.0, self.clarity)))
+        object.__setattr__(self, "confidence",  max(0.0, min(1.0, self.confidence)))
+        object.__setattr__(self, "decay_rate",  max(0.0, min(1.0, self.decay_rate)))
+
+    def decayed(self, ticks: int = 1) -> "EventMemory":
+        """
+        Возвращает новый EventMemory с применённым decay.
+        Используется WorkingMemory.apply_decay() — не мутирует оригинал.
+        """
+        # Экспоненциальное затухание важности
+        new_importance = self.importance * (_math.exp(-self.decay_rate * ticks))
+        # Уверенность снижается медленнее — детали теряются постепенно
+        new_confidence = self.confidence * (_math.exp(-self.decay_rate * 0.5 * ticks))
+        new_stage      = _resolve_stage(new_importance)
+
+        return EventMemory(
+            event_type  = self.event_type,
+            target_id   = self.target_id,
+            emotion_tag = self.emotion_tag,
+            day         = self.day,
+            importance  = round(new_importance, 4),
+            clarity     = self.clarity,       # clarity фиксируется в момент восприятия
+            confidence  = round(new_confidence, 4),
+            decay_rate  = self.decay_rate,
+            stage       = new_stage,
+            sequence_id = self.sequence_id,
+        )
+
+
+    def to_identity_weight(self) -> Optional[tuple[str, float]]:
+        """
+        R5.3/R6 — конвертирует ABSTRACT память в вес для L3 Identity.
+        Вызывается WorkingMemory при вытеснении события.
+        Возвращает (trait_name, delta) или None если не конвертируется.
+        """
+        if self.stage != MemoryStage.ABSTRACT:
+            return None
+        # Негативные эмоции → накопление resentment
+        if self.emotion_tag in ("angry", "fearful", "disgusted"):
+            return ("resentment", round(self.importance * 0.1, 4))
+        # Позитивные → накопление dependency
+        if self.emotion_tag in ("grateful", "happy"):
+            return ("dependency", round(self.importance * 0.1, 4))
+        return None
+
+
+    @property
+    def is_forgotten(self) -> bool:
+        """Событие можно удалить из памяти."""
+        return self.stage == MemoryStage.FORGOTTEN
+
+
+def _resolve_stage(importance: float) -> MemoryStage:
+    """
+    Определяет стадию памяти по текущей важности.
+    Пороги откалиброваны под decay_rate=0.05.
+    """
+    if importance >= 0.80:
+        return MemoryStage.FRESH
+    if importance >= 0.55:
+        return MemoryStage.DETAILED
+    if importance >= 0.30:
+        return MemoryStage.COMPRESSED
+    if importance >= 0.10:
+        return MemoryStage.ABSTRACT
+    return MemoryStage.FORGOTTEN
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -107,6 +218,15 @@ class NPCPersonality:
     breakpoint:    float              # порог стресса для слома воли
     loyalty_base:  float              # базовая лояльность (не текущая)
     can_awaken:    bool = False       # может ли Minor стать Major через snapshot
+
+    # Голос персонажа — static из JSON. Не меняется в сессии.
+    # Пример: "Говоришь грубо, коротко. Называешь всех 'парень'. Материшься."
+    voice_profile: str = ""
+
+    # Биография / backstory — короткие ключевые факты из жизни NPC.
+    # Пример: "Жена умерла в войну. Учился у старого кузнеца. Боится собак."
+    # Не длинная история, а факты. LLM получает как есть.
+    backstory:     str = ""           # ≤ 200 символов
 
     def __post_init__(self) -> None:
         total = sum(self.drives_base.values())
@@ -129,10 +249,33 @@ class NPCState:
     """
     npc_id: str
 
-    # ── Психика ──────────────────────────────────────────────────────────────
-    stress:         float     = 0.0
-    will_state:     WillState = WillState.FREE
-    trauma_markers: Set[str]  = field(default_factory=set)
+    # ── Психика ──────────────────────────────────────────────
+
+    stress: float = 0.0
+
+    # R6.1 — накопленная скрытая агрессия к источнику давления.
+    # Используется при выборе FAKE_SUBMISSION и BETRAYAL.
+    resentment: float = 0.0
+
+    # R6.1 — психологическая зависимость от источника давления.
+    # Растёт при помощи, спасении и формировании привязки.
+    dependency: float = 0.0
+
+    # R6.1 — целостность личности (нормализованная шкала 0.0–1.0).
+    # Уменьшается ТОЛЬКО через BreakProgressEngine (R6.4).
+    identity_integrity: float = 1.0
+
+    # R6.4 — динамическое сопротивление давлению (Anti-abuse).
+    pressure_resistance: float = 0.0
+
+    will_state: WillState = WillState.FREE
+
+    # R6.2 — внешний поведенческий паттерн поверх will_state.
+    # Читается OpportunityEngine и EmotionalNuanceEngine.
+    # NONE = маска отсутствует, поведение соответствует will_state.
+    behavior_mask: BehaviorMaskState = field(default_factory=BehaviorMaskState)
+
+    trauma_markers: Set[str] = field(default_factory=set)
 
     # ── Эмоция (накопительная) ────────────────────────────────────────────────
     emotion:        EmotionTag = EmotionTag.NEUTRAL
@@ -152,8 +295,10 @@ class NPCState:
     relationship_cache: Dict[str, float] = field(default_factory=dict)
     cache_timestamp:    int              = 0
 
-    # ── Narrative facts (max 2 для LLM) ──────────────────────────────────────
-    narrative_cache: Tuple[NarrativeFact, ...] = field(default_factory=tuple)
+# ── Narrative facts (max 2 для LLM) ──────────────────────────────────────
+    # Union: NarrativeFact (legacy) или EventMemory (R5.1) — оба принимаются.
+    # verbalization_context использует getattr для доступа к clarity/confidence.
+    narrative_cache: Tuple[Union[NarrativeFact, "EventMemory"], ...] = field(default_factory=tuple)
 
     # ── Позиция (кэш из SceneState) ───────────────────────────────────────────
     cached_position: Optional[Tuple[float, float]] = None
@@ -162,6 +307,13 @@ class NPCState:
     def __post_init__(self) -> None:
         """Защита от повреждённых данных на входе."""
         self.stress = max(0.0, min(100.0, self.stress))
+
+        # R6.1/R6.4 — защита диапазонов параметров личности и сопротивления
+        self.resentment = max(0.0, min(100.0, self.resentment))
+        self.dependency = max(0.0, min(100.0, self.dependency))
+        self.identity_integrity = max(0.0, min(1.0, self.identity_integrity))
+        self.pressure_resistance = max(0.0, min(100.0, self.pressure_resistance))
+
         self.emotion_delta = max(-100.0, min(100.0, self.emotion_delta))
         if self.intent is not None and self.intent_target is None:
             if self.intent not in (Intent.IDLE, Intent.OBSERVE, Intent.FLEE,
@@ -182,8 +334,8 @@ class NPCState:
         dy = self.cached_position[1] - other_pos[1]
         return math.sqrt(dx * dx + dy * dy)
 
-    def get_top_narrative_facts(self, n: int = 2) -> Tuple[NarrativeFact, ...]:
-        """Top-N фактов по importance. Вызывается при intent=EXPLAIN."""
+    def get_top_narrative_facts(self, n: int = 2) -> tuple:
+        """Top-N фактов по importance. Принимает NarrativeFact и EventMemory."""
         return tuple(sorted(
             self.narrative_cache, key=lambda f: f.importance, reverse=True
         )[:n])
@@ -196,7 +348,20 @@ class NPCState:
         return {
             "npc_id":             self.npc_id,
             "stress":             self.stress,
+
+            # R6.1 — состояние накопленного давления личности
+            "resentment":         self.resentment,
+            "dependency":         self.dependency,
+            "identity_integrity": self.identity_integrity,
+            "pressure_resistance": self.pressure_resistance,
+
             "will_state":         self.will_state.value,
+
+            # R6.2 — поведенческая маска
+            "behavior_mask":      self.behavior_mask.mask.value,
+            "behavior_mask_intensity": self.behavior_mask.intensity,
+            "behavior_mask_applied_at_day": self.behavior_mask.applied_at_day,
+            
             "emotion":            self.emotion.value,
             "emotion_delta":      self.emotion_delta,
             "active_traits":      dict(self.active_traits),
@@ -230,6 +395,13 @@ class NPCStateAdapter:
         return NPCState(
             npc_id            = npc_dict.get("id", "unknown"),
             stress            = float(psyche.get("stress", 0)),
+
+            # R6.1/R6.4 — новые параметры личности (если отсутствуют — дефолты)
+            resentment        = float(psyche.get("resentment", 0.0)),
+            dependency        = float(psyche.get("dependency", 0.0)),
+            identity_integrity = float(psyche.get("identity_integrity", 1.0)),
+            pressure_resistance = float(psyche.get("pressure_resistance", 0.0)),
+
             will_state        = psyche.get("state", "free"),
             trauma_markers    = set(psyche.get("trauma_flags", [])),
             relationship_cache = {
@@ -272,14 +444,16 @@ def personality_from_legacy(npc_dict: dict) -> NPCPersonality:
         tier = NPCTier.MAJOR
 
     return NPCPersonality(
-        npc_id       = npc_dict.get("id", "unknown"),
-        tier         = tier,
-        drives_base  = dict(npc_dict.get("drives", {
+        npc_id        = npc_dict.get("id", "unknown"),
+        tier          = tier,
+        drives_base   = dict(npc_dict.get("drives", {
             "control": 0.25, "significance": 0.25,
             "fear": 0.25,    "desire": 0.25,
         })),
-        willpower    = float(psyche.get("willpower", 50)),
-        breakpoint   = float(psyche.get("breakpoint", 80)),
-        loyalty_base = float(psyche.get("loyalty_true", 50)),
-        can_awaken   = bool(npc_dict.get("can_awaken", False)),
+        willpower     = float(psyche.get("willpower", 50)),
+        breakpoint    = float(psyche.get("breakpoint", 80)),
+        loyalty_base  = float(psyche.get("loyalty_true", 50)),
+        can_awaken    = bool(npc_dict.get("can_awaken", False)),
+        voice_profile = npc_dict.get("voice_profile", ""),
+        backstory     = npc_dict.get("backstory", ""),
     )

@@ -31,8 +31,75 @@ _LIGHT_LEVELS = {
 }
 
 
+import math
+
+def _get_position(entity_data: dict) -> Optional[tuple[float, float]]:
+    """
+    Извлекает (x, y) из словаря позиции.
+    Возвращает None если координаты отсутствуют — для обратной совместимости.
+    """
+    x = entity_data.get("x")
+    y = entity_data.get("y")
+    if x is not None and y is not None:
+        return float(x), float(y)
+    return None
+
+
+def _euclidean(a: tuple[float, float], b: tuple[float, float]) -> float:
+    """Евклидово расстояние между двумя точками (x, y)."""
+    return math.sqrt((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2)
+
+
+def calculate_clarity(
+    distance: float,
+    light_level: str,
+    npc_stress: float = 0.0,
+) -> float:
+    """
+    R5.3 — вычисляет clarity восприятия события.
+    Используется при создании EventMemory из GameEvent.
+    clarity = f(distance, light, stress)
+    Высокая clarity → детальное воспоминание.
+    """
+    base = 1.0
+
+    # Дистанция снижает чёткость
+    if distance > 15.0:
+        base -= 0.4
+    elif distance > 10.0:
+        base -= 0.2
+
+    # Освещение
+    if light_level == "dim":
+        base -= 0.15
+    elif light_level == "dark":
+        base -= 0.4
+
+    # Стресс мешает запомнить детали
+    if npc_stress > 70.0:
+        base -= 0.2
+    elif npc_stress > 50.0:
+        base -= 0.1
+
+    return round(max(0.0, min(1.0, base)), 3)
+
+
 def _npc_distance(npc_id: str, scene_state: dict) -> float:
-    """Расстояние от NPC до игрока. Fallback: 999 (далеко)."""
+    """
+    Расстояние от NPC до игрока.
+    R4.3: использует реальные координаты (x, y) если доступны.
+    Fallback: player_distances словарь → 999.0 (далеко).
+    """
+    npc_data    = scene_state.get("npc_positions", {}).get(npc_id, {})
+    player_data = scene_state.get("player_position", {})
+
+    npc_pos    = _get_position(npc_data)
+    player_pos = _get_position(player_data)
+
+    if npc_pos is not None and player_pos is not None:
+        return _euclidean(npc_pos, player_pos)
+
+    # Fallback: предвычисленный словарь (до R4.3 или для тестов)
     return float(scene_state.get("player_distances", {}).get(npc_id, 999.0))
 
 
@@ -47,17 +114,28 @@ def _npc_is_conscious(npc_id: str, scene_state: dict) -> bool:
 
 def _can_see(npc_id: str, scene_state: dict, event_location: str) -> bool:
     """
-    NPC может видеть событие если:
-      - находится в той же локации
-      - не спит
-      - освещение позволяет (не dark)
+    NPC видит событие если:
+      - R4.3: находится в радиусе зрения (≤ 15м по координатам)
+      - Fallback: та же строковая локация
+      - Не спит, освещение достаточное
     """
-    npc_location = scene_state.get("npc_positions", {}).get(npc_id, {}).get("location", "")
-    if npc_location and npc_location != event_location:
-        return False  # разные локации — не видит
-
     if not _npc_is_conscious(npc_id, scene_state):
         return False
+
+    npc_data    = scene_state.get("npc_positions", {}).get(npc_id, {})
+    player_data = scene_state.get("player_position", {})
+    npc_pos     = _get_position(npc_data)
+    player_pos  = _get_position(player_data)
+
+    if npc_pos is not None and player_pos is not None:
+        # R4.3: реальная дистанция — видит если ≤ 15м (дальше теряется из виду)
+        if _euclidean(npc_pos, player_pos) > 15.0:
+            return False
+    else:
+        # Fallback: проверка по строке локации
+        npc_location = npc_data.get("location", "")
+        if npc_location and npc_location != event_location:
+            return False
 
     light = scene_state.get("environment", {}).get("light_level", "dim")
     return _LIGHT_LEVELS.get(light, 1) >= _LIGHT_LEVELS[_MIN_LIGHT_FOR_SIGHT]

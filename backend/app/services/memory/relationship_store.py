@@ -75,10 +75,14 @@ class RelationshipStore:
         key = f"{source}→{target}"
         current = data.get(key, {})
         for attr, change in delta.items():
-            if attr in RELATIONSHIP_KEYS:
-                current[attr] = _clamp(
-                    float(current.get(attr, 0)) + float(change)
-                )
+            if attr not in RELATIONSHIP_KEYS:
+                continue
+            current_val = float(current.get(attr, 0))
+            # Saturation: изменения теряют эффект при приближении к пределу.
+            # trust=90 → новый +10 даёт только +1 (10% от полного изменения).
+            headroom = (100.0 - abs(current_val)) / 100.0
+            effective_change = float(change) * headroom
+            current[attr] = _clamp(current_val + effective_change)
         data[key] = current
         self._save(campaign_id, data)
 
@@ -122,18 +126,20 @@ class RelationshipStore:
         source: str,
         target: str,
     ) -> Dict[str, float]:
-        # Пустые ID создают мусорные ключи вида "→target" в JSON.
         if not source or not target:
             return {attr: 0.0 for attr in RELATIONSHIP_KEYS}
-        """
-        Возвращает отношение source→target как числовой словарь.
-        Используется Decision Hub для получения весов формулы score().
-        Если пара не существует — возвращает нули (нейтральные отношения).
-        """
+            """
+            Возвращает отношение source→target как числовой словарь.
+            Используется Decision Hub для получения весов формулы score().
+            Если пара не существует — возвращает нули (нейтральные отношения).
+            """
         data = self._load(campaign_id)
-        key = f"{source}→{target}"
-        raw = data.get(key, {})
+        key  = f"{source}→{target}"
+        raw  = data.get(key, {})
+        # Нормализация: хранится -100..100, DecisionHub ожидает -1.0..1.0.
+        # Saturation встроена через _clamp при записи — здесь только масштаб.
         return {
-            attr: float(raw.get(attr, 0.0))
+            attr: round(float(raw.get(attr, 0.0)) / 100.0, 4)
             for attr in RELATIONSHIP_KEYS
         }
+
