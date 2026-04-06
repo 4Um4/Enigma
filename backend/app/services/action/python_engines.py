@@ -336,45 +336,247 @@ class PythonEngines:
         except Exception as e:
             logger.error(f"[PYTHON_ENGINES] B.2 Schedule error: {e}")
 
+        # R2.5: инициализация DecisionHub и StateApplicator
+        try:
+            from app.services.npc.decision_hub import DecisionHub, EventContext
+            from app.services.npc.state_applicator import StateApplicator
+            from app.services.npc.npc_state import (
+                NPCStateAdapter, personality_from_legacy,
+            )
+            from app.services.npc.break_progress_engine import BreakProgressEngine
+            from app.services.npc.verbalization_context import (
+                build_verbalization_context, generate_emotional_nuance,
+            )
+            from app.services.memory.relationship_store import RelationshipStore
+            from app.services.memory.memory_manager import MemoryManager
+
+            _decision_hub = DecisionHub()
+            _rel_store    = RelationshipStore(
+                data_dir=str(shared_context.get("data_dir", "data"))
+            )
+            _state_applicator = StateApplicator(_rel_store)
+            _current_tick     = shared_context.get("current_tick", 0)
+
+            # Один экземпляр MemoryManager на весь тик — не пересоздаём per-NPC,
+            # чтобы не терять накопленное состояние WorkingMemory
+            _memory_manager: MemoryManager = (
+                self.layered_memory._memory_manager
+                if hasattr(self.layered_memory, "_memory_manager")
+                else MemoryManager(self.layered_memory)
+            )
+
+            # R5.3 + R5.4: decay и resonance — операции уровня тика, не NPC.
+            # Вызов один раз до цикла исключает N-кратный decay за один ход.
+            _tick_trait_deltas: list = []
+            try:
+                _tick_trait_deltas = _memory_manager.run_decay_if_needed(
+                    req.campaign_id, _current_tick
+                )
+                _tick_trait_deltas += _memory_manager.detect_resonance(
+                    req.campaign_id,
+                    actor_id=player_data.get("name", "player"),
+                )
+            except Exception as _decay_e:
+                logger.warning(f"[R5.4] decay/resonance error: {_decay_e}")
+
+            _r2_available = True
+        except Exception as _e:
+            logger.warning(f"[R2.5] DecisionHub недоступен, fallback на legacy: {_e}")
+            _r2_available = False
+            _memory_manager = None        # явная инициализация для безопасности
+            _tick_trait_deltas = []       # fallback — пустой список, цикл не сломается
+
+        # R3.3: один раз получаем последнее событие для scene_hint
+        try:
+            from app.services.npc.perception_filter import build_perception_context
+            from app.services.events.event_bus import get_event_bus
+            _recent_events = get_event_bus().get_recent_events(
+                limit=1, campaign_id=req.campaign_id
+            )
+            _last_event = _recent_events[0] if _recent_events else None
+        except Exception:
+            _last_event = None
+
+        # Видимые маркеры игрока — один раз на весь тик
+        player_markers = player_data.get("visible_markers", [])
+
         for npc in npcs_in_location:
-            player_markers = player_data.get("visible_markers", [])
+            npc_id   = npc.get("id", "")
+            npc_name = npc.get("name", "NPC")
+
+            # ── scene_hint из PerceptionFilter ───────────────────────────────
+            _scene_hint = ""
+            if _last_event:
+                try:
+                    _scene_hint = build_perception_context(
+                        npc_id=npc_id,
+                        npc_name=npc_name,
+                        event=_last_event,
+                        scene_state=shared_context.get("scene_state", {}),
+                    )
+                except Exception:
+                    pass
+
+            if _r2_available:
+                # ── R2.5 + R5.3: новый путь через DecisionHub + EventMemory ─────
+                try:
+                    npc_state   = NPCStateAdapter.from_legacy(npc)
+                    personality = personality_from_legacy(npc)
+
+                    # R6.4: давление → трещины → слом применяется ДО решения.
+                    # Работает для всех NPC в локации — игрок не может заморозить
+                    # слом, игнорируя NPC или выходя из диалога.
+                    _break_deltas = BreakProgressEngine.calculate(npc_state)
+                    npc_state = _state_applicator.apply_break(
+                        npc_state, _break_deltas, req.campaign_id
+                    )
+
+                    # EventContext из данных сцены
+                    distance = float(
+                        shared_context.get("scene_state", {})
+                        .get("player_distances", {})
+                        .get(npc_id, 3.0)
+                    )
+                    event_ctx = EventContext(
+                        event_type  = action_type.lower(),
+                        actor_id    = player_data.get("name", "player"),
+                        success     = True,
+                        intensity   = min(len(player_markers) * 0.2 + 0.5, 1.5),
+                        distance    = distance,
+                        witness_count = len(npcs_in_location),
+                        location    = req.location,
+                        day         = shared_context.get("current_day", 0),
+                        visible_threat_markers = player_markers,
+                    )
+
+                    decision     = _decision_hub.compute(
+                        npc_state, personality, event_ctx,
+                        scene_state=shared_context.get("scene_state"),
+                    )
+                    new_state    = _state_applicator.apply(
+                        npc_state, decision,   # personality убран из сигнатуры
+                        campaign_id=req.campaign_id,
+                        current_tick=_current_tick,
+                    )
+
+                    # R5.3: создаём EventMemory с реальным clarity.
+                    # _memory_manager инициализирован до цикла — один экземпляр на тик.
+                    try:
+                        mem = _memory_manager.create_event_memory(
+                            campaign_id=req.campaign_id,
+                            npc_id=npc_id,
+                            event={
+                                "type": action_type.lower(),
+                                "target": player_data.get("name", "player"),
+                                "actor": player_data.get("name", "player"),
+                            },
+                            scene_state=shared_context.get("scene_state", {}),
+                            npc_stress=new_state.stress,
+                            emotion_tag=new_state.emotion.value,
+                        )
+
+                        # Добавляем в narrative_cache NPCState.
+                        # Оставляем только top-10 по importance — ограничение из Now.md
+                        current_cache = list(new_state.narrative_cache)
+                        current_cache.append(mem)
+                        current_cache.sort(key=lambda f: getattr(f, "importance", 0), reverse=True)
+                        new_state.narrative_cache = tuple(current_cache[:10])
+
+                        # R5.3 + R5.4: применяем trait deltas от decay и resonance.
+                        # _tick_trait_deltas вычислены один раз до цикла — применяем
+                        # к каждому NPC, чей state обновился в этом тике.
+                        # TODO: переместить в StateApplicator после R6 (когда он получит
+                        #       tick-level context)
+                        # будет удалено после: StateApplicator.apply() получает tick_deltas
+                        for trait_name, delta in _tick_trait_deltas:
+                            current_val = new_state.active_traits.get(trait_name, 0.0)
+                            new_state.active_traits[trait_name] = round(
+                                min(1.0, current_val + delta), 4
+                            )
+
+                    except Exception as mem_e:
+                        logger.warning(f"[R5.3] Не удалось создать EventMemory для {npc_id}: {mem_e}")
+
+                    # Синхронизируем новый state обратно в legacy dict
+                    NPCStateAdapter.to_legacy(new_state, npc)
+
+                    # VerbalizationContext
+                    adult_mode = shared_context.get("scene_state", {}).get(
+                        "adult_mode", getattr(settings, "hardcore_mode", False)
+                    )
+                    verbalization_ctx = build_verbalization_context(
+                        state        = new_state,
+                        personality  = personality,
+                        scene_hint   = _scene_hint,
+                        npc_name     = npc_name,
+                        adult_content= adult_mode,
+                    )
+
+                    inner_thought = (
+                        f"[{new_state.npc_id}] "
+                        f"intent={new_state.intent} "
+                        f"emotion={new_state.emotion.value} "
+                        f"stress={new_state.stress:.0f} "
+                        f"nuance={generate_emotional_nuance(new_state)}"
+                    )
+
+                    npc_contexts.append({
+                        "npc_id":              npc_id,
+                        "npc_name":            npc_name,
+                        "name_forms":          npc.get("name_forms", []),
+                        "tier":                personality.tier.value,
+                        "gender":              npc.get("gender", ""),
+                        "description":         npc.get("description", ""),
+                        "verbalization_ctx":   verbalization_ctx,
+                        "inner_thought":       inner_thought,
+                        "decision_trace":      decision.scores_trace,
+                        "scene_hint":          _scene_hint,
+                    })
+                    continue
+
+                except Exception as _e:
+                    logger.error(
+                        f"[R2.5] DecisionHub error для '{npc_id}': {_e}. "
+                        f"Fallback на legacy."
+                    )
+
+            # ── LEGACY FALLBACK: старый путь (временно, до полного R2) ────────
+            # TODO: удалить после завершения R2 (StateApplicator подключён везде)
+            # будет удалено после: все NPC имеют корректный NPCPersonality в JSON
             threat_score = assess_threat(
                 player_markers, action_type, player_data.get("reputation", {})
             )
-            threat_cat = get_threat_category(threat_score)
+            threat_cat   = get_threat_category(threat_score)
             apply_threat_to_npc(npc, threat_score, threat_cat)
 
-            status_score = assess_status(player_markers)
-            status_label = get_status_label(status_score)
-            permissions = get_social_permissions(player_markers, npc)
-
-            action_deltas = process_player_action(npc, action_type, player_data, threat_score)
+            status_score  = assess_status(player_markers)
+            status_label  = get_status_label(status_score)
+            permissions   = get_social_permissions(player_markers, npc)
             behavior_hint = get_behavior_hint(npc)
 
             npc_system_prompt = build_npc_prompt(
                 npc, player_data, shared_context,
-                behavior_hint=behavior_hint,
-                perceived_status=status_label,
-                threat_category=threat_cat,
-                scene_state=shared_context.get("scene_state"),
+                behavior_hint   = behavior_hint,
+                perceived_status= status_label,
+                threat_category = threat_cat,
+                scene_state     = shared_context.get("scene_state"),
             )
-            inner_thought = get_inner_thought(npc, shared_context)
 
             npc_contexts.append({
-                "npc_id": npc["id"],
-                "npc_name": npc["name"],
-                "name_forms": npc.get("name_forms", []),
-                "tier": npc.get("tier", "minor"),
-                "gender": npc.get("gender", ""),
-                "description": npc.get("description", ""),
-                "threat_score": threat_score,
-                "threat_category": threat_cat,
+                "npc_id":           npc_id,
+                "npc_name":         npc_name,
+                "name_forms":       npc.get("name_forms", []),
+                "tier":             npc.get("tier", "minor"),
+                "gender":           npc.get("gender", ""),
+                "description":      npc.get("description", ""),
+                "threat_score":     threat_score,
+                "threat_category":  threat_cat,
                 "perceived_status": status_label,
-                "behavior_hint": behavior_hint,
-                "system_prompt": npc_system_prompt,
-                "inner_thought": inner_thought,
-                "permissions": permissions,
-                "action_deltas": action_deltas,
+                "behavior_hint":    behavior_hint,
+                "system_prompt":    npc_system_prompt,
+                "inner_thought":    "",
+                "permissions":      permissions,
+                "scene_hint":       _scene_hint,
             })
 
         # 3B.3: decay стресса каждый ход (безопасная среда = -5, сон = -15)

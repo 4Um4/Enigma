@@ -25,6 +25,8 @@ from app.services.npc.npc_state import (
     WillState,
 )
 from app.services.npc.decision_hub import DecisionResult, StateDeltas
+from app.services.npc.break_progress_engine import BreakDeltas
+from app.services.npc.math_utils import apply_saturation
 from app.services.memory.relationship_store import RelationshipStore
 
 logger = logging.getLogger(__name__)
@@ -32,8 +34,7 @@ logger = logging.getLogger(__name__)
 # Максимальное количество NarrativeFacts в кэше одного NPC
 _MAX_NARRATIVE_CACHE = 10
 
-# Порог стресса для перехода в will_state=BROKEN
-_STRESS_BROKEN_THRESHOLD = 80.0
+# Константы порогов удалены. Логика порогов перенесена в BreakProgressEngine.
 
 # Скорость decay active_traits за тик (умножается на strength)
 _TRAIT_DECAY_RATE = 0.05
@@ -61,6 +62,7 @@ class StateApplicator:
     ) -> NPCState:
         """
         Применяет DecisionResult атомарно.
+        Параметр personality УДАЛЁН — он уже использован в DecisionHub.
         Возвращает новый NPCState — оригинал не мутируется.
         """
         # Глубокая копия — атомарность через замену целиком
@@ -70,7 +72,20 @@ class StateApplicator:
             self._apply_intent(new_state, result, current_tick)
             self._apply_deltas(new_state, result.deltas, campaign_id)
             self._apply_narrative(new_state, result.narrative_fact)
-            self._apply_will_break(new_state)
+
+            # --- ИСПРАВЛЕНО: работаем с new_state и result.deltas ---
+            d = result.deltas
+            
+            # Применяем психологические изменения (R6.1)
+            new_state.identity_integrity = max(0.0, min(1.0, new_state.identity_integrity + d.identity_integrity_delta))
+            new_state.pressure_resistance = max(0.0, min(2.0, new_state.pressure_resistance + d.pressure_resistance_delta))
+
+            # Прямое переопределение воли (R6.4)
+            if d.will_state_override:
+                new_state.will_state = d.will_state_override
+                if d.will_state_override == WillState.BROKEN:
+                    new_state.trauma_markers.add("will_broken")
+
             self._apply_trait_decay(new_state)
             return new_state
 
@@ -81,6 +96,40 @@ class StateApplicator:
                 f"Возвращаем оригинальный state."
             )
             return state
+
+
+    def apply_break(
+        self,
+        state:        NPCState,
+        break_deltas: BreakDeltas,
+        campaign_id:  str,
+    ) -> NPCState:
+        """
+        Применяет дельты слома независимо от DecisionResult.
+        Вызывается в python_engines ДО _decision_hub.compute() — для всех NPC,
+        включая тех, на кого не направлено действие игрока.
+        Атомарность: deepcopy + возврат оригинала при ошибке.
+        """
+        new_state = copy.deepcopy(state)
+        try:
+            new_state.identity_integrity = max(0.0, min(1.0,
+                new_state.identity_integrity + break_deltas.identity_integrity_delta
+            ))
+            new_state.pressure_resistance = max(0.0, min(2.0,
+                new_state.pressure_resistance + break_deltas.pressure_resistance_delta
+            ))
+            if break_deltas.will_state_override is not None:
+                new_state.will_state = break_deltas.will_state_override
+                if break_deltas.will_state_override == WillState.BROKEN:
+                    new_state.trauma_markers.add("will_broken")
+            return new_state
+        except Exception as e:
+            logger.error(
+                f"[STATE_APPLICATOR] apply_break ошибка для '{state.npc_id}': {e}. "
+                f"Возвращаем оригинальный state."
+            )
+            return state
+
 
     def apply_tick_recovery(
         self,
@@ -129,9 +178,18 @@ class StateApplicator:
         """Применяет числовые дельты к state и RelationshipStore."""
         # Стресс
         if deltas.stress_delta != 0.0:
-            state.stress = max(0.0, min(100.0,
-                state.stress + deltas.stress_delta
-            ))
+            old = state.stress
+            state.stress, effective = apply_saturation(
+                current=old,
+                delta=deltas.stress_delta,
+                min_val=0.0,
+                max_val=100.0,
+            )
+            deltas.stress_delta_effective = effective
+            logger.debug(
+                f"[APPLY] {state.npc_id}: stress {old:.1f} → {state.stress:.1f} "
+                f"(wanted {deltas.stress_delta:+.1f}, applied {effective:+.1f})"
+            )
 
         # Эмоция
         if deltas.emotion_delta != 0.0:
@@ -186,21 +244,6 @@ class StateApplicator:
         current.sort(key=lambda f: f.importance, reverse=True)
         state.narrative_cache = tuple(current[:_MAX_NARRATIVE_CACHE])
 
-    def _apply_will_break(self, state: NPCState) -> None:
-        """
-        Проверяет порог стресса и меняет will_state если нужно.
-        Дублирующая логика из psyche_engine.apply_stress — теперь здесь.
-        """
-        if (
-            state.stress >= _STRESS_BROKEN_THRESHOLD
-            and state.will_state == WillState.FREE
-        ):
-            state.will_state = WillState.BROKEN
-            state.trauma_markers.add("will_broken")
-            logger.info(
-                f"[STATE_APPLICATOR] NPC '{state.npc_id}' сломан. "
-                f"stress={state.stress:.1f} >= {_STRESS_BROKEN_THRESHOLD}"
-            )
 
     def _apply_trait_decay(self, state: NPCState) -> None:
         """

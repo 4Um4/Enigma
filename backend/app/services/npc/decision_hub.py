@@ -24,6 +24,11 @@ from app.services.npc.npc_state import (
     NarrativeFact,
     WillState,
 )
+from app.services.npc.opportunity_engine import (
+    OpportunityContext,
+    OpportunityEngine,
+    OpportunityResult,
+)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -51,13 +56,20 @@ MIN_INTENT_SCORE: float = 0.15
 @dataclass
 class StateDeltas:
     """Дельты которые StateApplicator применит к NPCState атомарно."""
-    stress_delta:    float = 0.0
-    emotion_delta:   float = 0.0
+    stress_delta:           float = 0.0
+    stress_delta_effective: float = 0.0
+    emotion_delta:          float = 0.0
     emotion_tag:     Optional[EmotionTag] = None
     trust_delta:     float = 0.0
     fear_delta:      float = 0.0
     trait_updates:   Dict[str, float] = field(default_factory=dict)
     new_trauma:      Optional[str] = None
+    
+    # --- R6.4: Команды для системы слома ---
+    identity_integrity_delta:   float = 0.0
+    pressure_resistance_delta:  float = 0.0
+    will_state_override: Optional[WillState] = None
+
 
 
 @dataclass
@@ -74,6 +86,8 @@ class DecisionResult:
     deltas:          StateDeltas
     narrative_fact:  Optional[NarrativeFact] = None # новый факт для narrative_cache
     explanation_mode: bool = False                  # True если intent=EXPLAIN
+
+
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -122,27 +136,38 @@ class DecisionHub:
         + noise                 ← ±10% рандом
     """
 
+
     def __init__(self, seed: Optional[int] = None) -> None:
         # seed per-session — воспроизводимость при отладке (решение №12)
         self._rng = random.Random(seed)
 
+
     def compute(
         self,
-        state:       NPCState,
-        personality: NPCPersonality,
-        event:       EventContext,
-        scene_state: Optional[Dict[str, Any]] = None,
+        state:           NPCState,
+        personality:     NPCPersonality,
+        event:           EventContext,
+        scene_state:     Optional[Dict[str, Any]] = None,
+        opportunity_ctx: Optional[OpportunityContext] = None,
     ) -> DecisionResult:
         """
         Основной метод. READ ONLY — state не мутируется.
+        Принимает state уже после применения BreakProgressEngine
+        (game_loop вызывает apply_break через StateApplicator перед compute).
         Возвращает DecisionResult для StateApplicator.
         """
         # Игрок спросил "почему?" → специальный режим объяснения
         if event.event_type == "player_asks_why":
             return self._explain_mode(state, personality, event)
 
-        possible = self._get_possible_intents(state, personality, event)
-        scores   = self._score_all(state, personality, event, possible)
+        # R6.3 — оцениваем момент скрытого действия до фильтрации интентов.
+        # OpportunityContext=None → inactive() без ошибки, backward-compatible.
+        opportunity = OpportunityEngine().evaluate(
+            state, opportunity_ctx or OpportunityContext()
+        )
+
+        possible = self._get_possible_intents(state, personality, event, opportunity)
+        scores   = self._score_all(state, personality, event, possible, opportunity)
 
         best_intent, best_score = max(scores.items(), key=lambda x: x[1])
 
@@ -154,12 +179,19 @@ class DecisionHub:
         deltas        = self._compute_deltas(state, personality, event, best_intent)
         narrative     = self._make_narrative_fact(event, best_intent, state, deltas)
 
+        # Трейс opportunity добавляется в scores_trace для калибровки R4.2
+        opp_trace = {f"opp_{k}": v for k, v in opportunity.score_trace.items()}
+
         return DecisionResult(
             npc_id         = state.npc_id,
             intent         = Intent(best_intent),
             intent_target  = intent_target,
             score          = round(best_score, 4),
-            scores_trace   = {k: round(v, 4) for k, v in scores.items()},
+            scores_trace   = {
+                **{k: round(v, 4) for k, v in scores.items()},
+                **opp_trace,
+                # break_stage виден в state.identity_integrity — трейс через snapshot()
+            },
             deltas         = deltas,
             narrative_fact = narrative,
         )
@@ -173,20 +205,16 @@ class DecisionHub:
         state:       NPCState,
         personality: NPCPersonality,
         event:       EventContext,
+        opportunity: OpportunityResult,
     ) -> List[str]:
-        """
-        Фиксированный enum + фильтр по текущему состоянию NPC.
-        Сломанный NPC не атакует. Мёртвый ничего не делает.
-        """
         all_intents = [i.value for i in Intent
                        if i not in (Intent.IDLE, Intent.EXPLAIN)]
 
         filtered = []
         for intent in all_intents:
-            if self._is_intent_available(intent, state, personality):
+            if self._is_intent_available(intent, state, personality, opportunity):
                 filtered.append(intent)
 
-        # IDLE всегда доступен — это "не делать ничего"
         filtered.append(Intent.IDLE.value)
         return filtered
 
@@ -195,18 +223,24 @@ class DecisionHub:
         intent:      str,
         state:       NPCState,
         personality: NPCPersonality,
+        opportunity: OpportunityResult,
     ) -> bool:
-        """Фильтр доступности intent по состоянию NPC."""
+        """
+        Фильтр доступности intent по состоянию NPC.
+        R6.3: BROKEN NPC с активной маской получает скрытые интенты
+        при достаточном opportunity_score.
+        """
         if state.will_state == WillState.BROKEN:
-            # Сломленный: только подчинение и побег
-            return intent in (Intent.FLEE.value, Intent.OBSERVE.value,
-                               Intent.TALK.value)
+            # Базовые интенты: всегда доступны сломленному NPC
+            if intent in (Intent.FLEE.value, Intent.OBSERVE.value, Intent.TALK.value):
+                return True
+            # Скрытые интенты: разблокируются только через OpportunityEngine
+            return intent in opportunity.unlocked_intents
+
         if state.will_state == WillState.LOYAL:
-            # Лояльный: не атакует актора которому служит
             if intent == Intent.ATTACK.value:
                 return False
         if state.stress >= 90.0:
-            # Критический стресс: только примитивные реакции
             return intent in (Intent.FLEE.value, Intent.WARN.value,
                                Intent.OBSERVE.value)
         return True
@@ -234,11 +268,14 @@ class DecisionHub:
         _AGGRO_INTENTS = {Intent.ATTACK.value, Intent.INTIMIDATE.value}
 
         for intent_str in possible:
+            # Трусливый NPC пропускает агрессию — если только
+            # OpportunityEngine не разблокировал интент. Момент важнее страха.
             if skip_aggro and intent_str in _AGGRO_INTENTS:
-                scores[intent_str] = -1.0   # недоступно, не вычисляем
-                continue
+                if intent_str not in opportunity.unlocked_intents:
+                    scores[intent_str] = -1.0
+                    continue
 
-            components = self._score_components(intent_str, state, personality, event)
+            components = self._score_components(intent_str, state, personality, event, opportunity)
             base = sum(components.values())
             noise = self._rng.uniform(-SCORE_NOISE_RANGE, SCORE_NOISE_RANGE)
 
@@ -247,9 +284,42 @@ class DecisionHub:
                 components["inertia"] = round(inertia, 4)
 
             components["noise"] = round(noise, 4)
-            scores[intent_str] = round(base + noise, 4)
+            # Clamp: score не уходит за физические пределы формулы
+            # Верхний предел 3.0 — теоретический максимум суммы всех компонентов
+            scores[intent_str] = round(max(-2.0, min(3.0, base + noise)), 4)
 
         return scores
+
+    def _relationship_modifier(
+        self,
+        intent: str,
+        trust:  float,
+        fear:   float,
+    ) -> float:
+        """
+        Отношения + страх теперь работают как в Disco Elysium:
+        страх — это не просто «штраф», а полноценный drive.
+        Высокий fear → сильный FLEE, слабая агрессия, паралич в социалке.
+        """
+        mod = 0.0
+
+        if intent == Intent.FLEE.value:
+            # Страх — главный мотиватор к бегству (даже от «друга»)
+            mod += fear * 0.65
+            mod -= trust * 0.25          # от друга бежать тяжелее
+        elif intent in (Intent.ATTACK.value, Intent.INTIMIDATE.value):
+            # Страх полностью парализует агрессию
+            mod -= fear * 0.9
+            mod -= trust * 0.2
+        elif intent == Intent.OBSERVE.value:
+            # Страх делает наблюдение более вероятным
+            mod += fear * 0.40
+        else:
+            # Социальные действия (TALK, TRADE, HELP и т.д.)
+            mod += trust * 0.30
+            mod -= fear * 0.35           # страх мешает общению
+
+        return round(mod, 4)
 
     def _score_components(
         self,
@@ -257,6 +327,7 @@ class DecisionHub:
         state:       NPCState,
         personality: NPCPersonality,
         event:       EventContext,
+        opportunity: OpportunityResult,
     ) -> Dict[str, float]:
         """
         Возвращает словарь компонентов score — для полного trace в R4.2.
@@ -271,8 +342,26 @@ class DecisionHub:
         drive_score  = self._drive_relevance(intent, drives, event)
         emotion_mod  = self._emotion_modifier(intent, state.emotion)
         rel_mod      = self._relationship_modifier(intent, trust, fear)
-        risk_penalty = round(-(fear * risk), 4)
         trait_mod    = self._trait_modifier(intent, state.active_traits)
+
+        # Risk теперь intent-aware (Disco Elysium style)
+        # Высокий fear + высокий risk = мощный FLEE, а не паралич
+        if intent == Intent.FLEE.value:
+            # Для FLEE: fear используется дважды — как буст (rel_mod) и как множитель риска.
+            # Это намеренно: страх перед конкретным актором + опасность ситуации — разные сигналы.
+            # rel_mod = fear × 0.65 (отношение к актору)
+            # risk_penalty = fear × risk × 0.9 (оценка угрозы ситуации)
+            risk_penalty = round(fear * risk * 0.9, 4)
+        elif intent == Intent.OBSERVE.value:
+            risk_penalty = round(fear * risk * 0.5, 4)      # осторожное наблюдение
+        elif intent in (Intent.ATTACK.value, Intent.INTIMIDATE.value):
+            risk_penalty = round(-fear * risk * 1.25, 4)    # страх полностью блокирует агрессию
+        else:
+            risk_penalty = round(-fear * risk * 0.3, 4)     # лёгкий штраф для всего остального
+
+        # R6.3 — буст разблокированных интентов пропорционален opportunity_score.
+        # Делает скрытое действие конкурентоспособным без ломания баланса формулы.
+        opportunity_mod = opportunity.intent_score_modifiers.get(intent, 0.0)
 
         return {
             "drive":        round(drive_score, 4),
@@ -280,6 +369,7 @@ class DecisionHub:
             "relationship": round(rel_mod, 4),
             "risk_penalty": risk_penalty,
             "trait":        round(trait_mod, 4),
+            "opportunity":  round(opportunity_mod, 4),
         }
 
     def _score_one(
@@ -291,36 +381,6 @@ class DecisionHub:
     ) -> float:
         """Суммарный score без компонентов — для внутреннего использования."""
         return sum(self._score_components(intent, state, personality, event).values())
-        """
-        Основная формула для одного intent:
-          score = (drive_weight × context_relevance)
-                + emotion_weight
-                + relationship_modifier
-                - (fear × risk)
-        """
-        drives = personality.drives_base
-        rel    = state.relationship_cache
-        fear   = rel.get("fear", 0.0)
-        trust  = rel.get("trust", 0.0)
-        risk   = self._compute_risk(event, state)
-
-        # drive_weight × context_relevance
-        drive_score = self._drive_relevance(intent, drives, event)
-
-        # emotion modifier
-        emotion_mod = self._emotion_modifier(intent, state.emotion)
-
-        # relationship modifier
-        rel_mod = self._relationship_modifier(intent, trust, fear)
-
-        # Основная формула
-        score = drive_score + emotion_mod + rel_mod - (fear * risk)
-
-        # Trait overlay — накопленные черты корректируют base
-        trait_mod = self._trait_modifier(intent, state.active_traits)
-        score += trait_mod
-
-        return score
 
     def _drive_relevance(
         self,
@@ -406,24 +466,6 @@ class DecisionHub:
         }
         mods = _EMOTION_INTENT_MOD.get(emotion.value, {})
         return mods.get(intent, 0.0)
-
-    def _relationship_modifier(
-        self,
-        intent: str,
-        trust:  float,
-        fear:   float,
-    ) -> float:
-        """Отношения смещают вероятность intent."""
-        mod = 0.0
-        if intent == Intent.HELP.value:
-            mod += trust * 0.3
-        if intent == Intent.ATTACK.value:
-            mod -= trust * 0.2
-        if intent == Intent.FLEE.value:
-            mod += fear * 0.25
-        if intent == Intent.TRADE.value:
-            mod += trust * 0.15
-        return round(mod, 4)
 
     def _trait_modifier(
         self,
@@ -555,7 +597,7 @@ class DecisionHub:
             deltas.trait_updates["suspicious"] = min(
                 state.active_traits.get("suspicious", 0.0) + 0.15, 1.0
             )
-
+        
         return deltas
 
     def _make_narrative_fact(

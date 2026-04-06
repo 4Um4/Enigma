@@ -1,14 +1,15 @@
-# backend/app/services/memory/importance_engine.py
 """
-R1.3 — Importance Score + Decay.
-Python считает важность события без LLM.
-Каждые 10 ходов применяется decay × 0.92.
+R1.3 + R5.3 — Importance Engine.
+Теперь учитывает не только тип события, но и восприятие NPC (clarity, stress, emotion).
 """
 
 from __future__ import annotations
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
-IMPORTANCE_RULES: Dict[str, float] = {
+from app.services.npc.npc_state import EmotionTag
+
+# Базовые веса по типу события (R1.3)
+BASE_IMPORTANCE: Dict[str, float] = {
     "combat":          0.85,
     "vandalism":       0.75,
     "theft":           0.70,
@@ -21,39 +22,58 @@ IMPORTANCE_RULES: Dict[str, float] = {
 }
 
 DECAY_RATE  = 0.92
-DECAY_EVERY = 10   # ходов
+DECAY_EVERY = 10
 
 
-def score_event(event: Dict[str, Any]) -> float:
+def score_event(
+    event: Dict[str, Any],
+    npc_clarity: float = 1.0,
+    npc_stress: float = 0.0,
+    emotion_tag: Optional[str] = None,
+) -> float:
     """
-    Возвращает importance 0.0–1.0 для события.
-    Берёт тип из event["type"] или event["action_type"].
-    Приоритет: точное совпадение → вхождение подстроки → дефолт 0.30.
-    Два прохода исключают ложные срабатывания ("quest" в "request").
+    R5.3 — Расширенный расчёт importance.
+    
+    Базовая важность + модификаторы от восприятия NPC.
+    clarity снижает важность при плохом восприятии.
+    Высокий стресс усиливает эмоционально значимые события.
     """
     event_type = (
         event.get("type")
         or event.get("action_type")
-        or ""
+        or event.get("event_type", "")
     ).lower()
 
-    # Проход 1: точное совпадение — надёжно
-    if event_type in IMPORTANCE_RULES:
-        return IMPORTANCE_RULES[event_type]
+    # 1. Базовая важность
+    base = 0.30
+    if event_type in BASE_IMPORTANCE:
+        base = BASE_IMPORTANCE[event_type]
+    else:
+        for key, val in BASE_IMPORTANCE.items():
+            if key in event_type:
+                base = val
+                break
 
-    # Проход 2: подстрока — для составных типов ("dialogue_key_npc")
-    for key, score in IMPORTANCE_RULES.items():
-        if key in event_type:
-            return score
+    # 2. Модификатор clarity (R5.3)
+    clarity_mod = max(0.4, npc_clarity)   # минимум 40% даже при плохом восприятии
 
-    return 0.30
+    # 3. Модификатор стресса и эмоции
+    stress_mod = 1.0
+    if npc_stress > 70 and emotion_tag in (EmotionTag.ANGRY.value, EmotionTag.FEARFUL.value):
+        stress_mod = 1.25   # стресс усиливает значимость угрозы/обиды
+    elif npc_stress > 50:
+        stress_mod = 1.10
+
+    # 4. Финальная важность
+    importance = base * clarity_mod * stress_mod
+
+    return round(max(0.05, min(1.0, importance)), 4)
 
 
 def apply_decay(events: List[Dict[str, Any]], rate: float = DECAY_RATE) -> List[Dict[str, Any]]:
     """
-    Снижает importance каждого события на rate.
-    События с importance < 0.05 помечаются archived=True.
-    Оригинальный список не мутируется — возвращает новый.
+    Оставляем без изменений — используется для legacy dict событий.
+    Для EventMemory decay происходит внутри .decayed().
     """
     result = []
     for event in events:

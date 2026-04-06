@@ -26,12 +26,11 @@ def apply_stress(npc: Dict, amount: int) -> Dict:
     psyche["stress"] = min(100, stress_before + amount)
 
     state_changed = False
-    if psyche["stress"] > psyche.get("breakpoint", 80) and psyche.get("state") == "free":
-        psyche["state"] = "broken"
-        psyche["loyalty_true"] = min(psyche.get("loyalty_true", 50),
-                                      psyche.get("loyalty_true", 50) - 30)
-        psyche.setdefault("trauma_flags", []).append("will_broken")
-        state_changed = True
+    # R6.4: мгновенный слом удалён. Теперь только через BreakProgressEngine.
+    # Stress увеличивает pressure, но will_state меняется поэтапно.
+    if psyche["stress"] > psyche.get("breakpoint", 80):
+        # Только маркер для BreakProgressEngine — не меняем state напрямую
+        psyche.setdefault("flags", {})["high_stress"] = True
 
     return {
         "stress_before": stress_before,
