@@ -29,25 +29,37 @@
         "light_level": "dim",
         "noise_level": "silent",
         "weather_inside": "cool_fresh",
-        "candles": { "state": "unlit", "count": 0 }
+        "candles": {
+          "state": "unlit",
+          "count": 0
+        }
       },
       "10:00-22:00": {
         "light_level": "bright",
         "noise_level": "moderate",
         "weather_inside": "warm_busy",
-        "candles": { "state": "lit", "count": 12 }
+        "candles": {
+          "state": "lit",
+          "count": 12
+        }
       },
       "22:00-02:00": {
         "light_level": "dim",
         "noise_level": "low",
         "weather_inside": "warm_smoky",
-        "candles": { "state": "lit", "count": 6 }
+        "candles": {
+          "state": "lit",
+          "count": 6
+        }
       },
       "02:00-06:00": {
         "light_level": "dark",
         "noise_level": "silent",
         "weather_inside": "cold_quiet",
-        "candles": { "state": "unlit", "count": 0 }
+        "candles": {
+          "state": "unlit",
+          "count": 0
+        }
       }
     },
     "npc_defaults": {
@@ -67,9 +79,85 @@
         "visible": false
       }
     },
-    "connected_locations": ["city_gate", "market_square", "inn_rooms"]
+    "connected_locations": [
+      "city_gate",
+      "market_square",
+      "inn_rooms"
+    ],
+    "spatial_scale": "1 unit = 1 meter",
+    "positions": {
+      "behind_bar": {
+        "x": -4.0,
+        "y": 0.0,
+        "connections": [
+          "bar_area"
+        ],
+        "label": "за стойкой"
+      },
+      "bar_area": {
+        "x": -2.5,
+        "y": 0.0,
+        "connections": [
+          "behind_bar",
+          "main_hall"
+        ],
+        "label": "у стойки"
+      },
+      "main_hall": {
+        "x": 0.0,
+        "y": 0.0,
+        "connections": [
+          "bar_area",
+          "corner_table",
+          "serving_table_3",
+          "entrance",
+          "fireplace",
+          "stairs"
+        ],
+        "label": "центр зала"
+      },
+      "serving_table_3": {
+        "x": 1.5,
+        "y": 2.0,
+        "connections": [
+          "main_hall"
+        ],
+        "label": "у третьего стола"
+      },
+      "corner_table": {
+        "x": 3.5,
+        "y": 3.0,
+        "connections": [
+          "main_hall"
+        ],
+        "label": "в тёмном углу"
+      },
+      "entrance": {
+        "x": 0.0,
+        "y": -4.0,
+        "connections": [
+          "main_hall"
+        ],
+        "label": "у входа"
+      },
+      "fireplace": {
+        "x": -3.5,
+        "y": 2.5,
+        "connections": [
+          "main_hall"
+        ],
+        "label": "у камина"
+      },
+      "stairs": {
+        "x": 2.0,
+        "y": -3.0,
+        "connections": [
+          "main_hall"
+        ],
+        "label": "у лестницы"
+      }
+    }
   },
-
   "city_gate": {
     "name": "Городские ворота",
     "type": "gate",
@@ -118,9 +206,57 @@
         "visible": true
       }
     },
-    "connected_locations": ["tavern_silver_wolf", "market_square"]
+    "connected_locations": [
+      "tavern_silver_wolf",
+      "market_square"
+    ],
+    "spatial_scale": "1 unit = 1 meter",
+    "positions": {
+      "gate_post": {
+        "x": 0.0,
+        "y": 0.0,
+        "connections": [
+          "left_torch",
+          "right_torch",
+          "road_out",
+          "inner_arch"
+        ],
+        "label": "пост у ворот"
+      },
+      "left_torch": {
+        "x": -2.0,
+        "y": 1.0,
+        "connections": [
+          "gate_post"
+        ],
+        "label": "левый факел"
+      },
+      "right_torch": {
+        "x": 2.0,
+        "y": 1.0,
+        "connections": [
+          "gate_post"
+        ],
+        "label": "правый факел"
+      },
+      "road_out": {
+        "x": 0.0,
+        "y": -4.0,
+        "connections": [
+          "gate_post"
+        ],
+        "label": "дорога наружу"
+      },
+      "inner_arch": {
+        "x": 0.0,
+        "y": 3.0,
+        "connections": [
+          "gate_post"
+        ],
+        "label": "арка в город"
+      }
+    }
   },
-
   "market_square": {
     "name": "Рыночная площадь",
     "type": "market",
@@ -166,9 +302,66 @@
         "visible": true
       }
     },
-    "connected_locations": ["city_gate", "tavern_silver_wolf"]
+    "connected_locations": [
+      "city_gate",
+      "tavern_silver_wolf"
+    ],
+    "spatial_scale": "1 unit = 1 meter",
+    "positions": {
+      "stall_1": {
+        "x": -5.0,
+        "y": 0.0,
+        "connections": [
+          "center"
+        ],
+        "label": "первый прилавок"
+      },
+      "stall_2": {
+        "x": -2.5,
+        "y": 0.0,
+        "connections": [
+          "center"
+        ],
+        "label": "второй прилавок"
+      },
+      "stall_3": {
+        "x": 0.0,
+        "y": 2.0,
+        "connections": [
+          "center"
+        ],
+        "label": "третий прилавок"
+      },
+      "center": {
+        "x": 0.0,
+        "y": 0.0,
+        "connections": [
+          "stall_1",
+          "stall_2",
+          "stall_3",
+          "gate_post",
+          "fountain"
+        ],
+        "label": "центр рынка"
+      },
+      "gate_post": {
+        "x": 0.0,
+        "y": -5.0,
+        "connections": [
+          "center"
+        ],
+        "label": "у ворот"
+      },
+      "fountain": {
+        "x": 3.0,
+        "y": 0.0,
+        "connections": [
+          "center"
+        ],
+        "label": "у фонтана"
+      }
+    }
   },
-
   "inn_rooms": {
     "name": "Комнаты таверны",
     "type": "inn",
@@ -210,9 +403,47 @@
       }
     },
     "npc_defaults": {},
-    "connected_locations": ["tavern_silver_wolf"]
+    "connected_locations": [
+      "tavern_silver_wolf"
+    ],
+    "spatial_scale": "1 unit = 1 meter",
+    "positions": {
+      "bedside": {
+        "x": 0.0,
+        "y": 0.0,
+        "connections": [
+          "door",
+          "window_corner",
+          "chest_corner"
+        ],
+        "label": "у кровати"
+      },
+      "door": {
+        "x": 0.0,
+        "y": -3.0,
+        "connections": [
+          "bedside"
+        ],
+        "label": "у двери"
+      },
+      "window_corner": {
+        "x": 2.0,
+        "y": 1.5,
+        "connections": [
+          "bedside"
+        ],
+        "label": "у окна"
+      },
+      "chest_corner": {
+        "x": -2.0,
+        "y": 1.5,
+        "connections": [
+          "bedside"
+        ],
+        "label": "у сундука"
+      }
+    }
   },
-
   "dungeon_entrance": {
     "name": "Вход в подземелье",
     "type": "dungeon",
@@ -244,6 +475,36 @@
       }
     },
     "npc_defaults": {},
-    "connected_locations": ["city_gate"]
+    "connected_locations": [
+      "city_gate"
+    ],
+    "spatial_scale": "1 unit = 1 meter",
+    "positions": {
+      "stone_door": {
+        "x": 0.0,
+        "y": 0.0,
+        "connections": [
+          "torch_niche",
+          "stairs_down"
+        ],
+        "label": "у каменной двери"
+      },
+      "torch_niche": {
+        "x": -2.5,
+        "y": 0.5,
+        "connections": [
+          "stone_door"
+        ],
+        "label": "ниша с факелом"
+      },
+      "stairs_down": {
+        "x": 1.5,
+        "y": -2.5,
+        "connections": [
+          "stone_door"
+        ],
+        "label": "спуск вниз"
+      }
+    }
   }
 }

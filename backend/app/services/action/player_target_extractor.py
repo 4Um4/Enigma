@@ -9,6 +9,7 @@
 # Использует name_forms из JSON + ролевые ключевые слова из npc_id.
 
 from typing import Optional, Dict, List, Tuple
+from app.services.npc.spatial_runtime import resolve_distance_between_entities
 
 
 class PlayerTargetExtractor:
@@ -322,13 +323,21 @@ class PlayerTargetExtractor:
         Приоритет 2: лингвистический прокси (proximity keywords).
         """
         if scene_state:
+            npc_data = (scene_state.get("npc_positions") or {}).get(npc_id) or {}
+            player_data = scene_state.get("player_spatial") or {}
+            if npc_data and player_data:
+                spatial_distance = resolve_distance_between_entities(
+                    scene_state=scene_state,
+                    a=npc_data,
+                    b=player_data,
+                )
+                if spatial_distance < 999.0:
+                    return spatial_distance
+
+            # legacy R4.2 fallback for raw XY state
             player_pos = scene_state.get("player_position") or {}
-            npc_data = (scene_state.get("npcs") or {}).get(npc_id) or {}
-            npc_pos = npc_data.get("position") or {}
-
             px, py = player_pos.get("x"), player_pos.get("y")
-            nx, ny = npc_pos.get("x"), npc_pos.get("y")
-
+            nx, ny = npc_data.get("x"), npc_data.get("y")
             if px is not None and py is not None and nx is not None and ny is not None:
                 import math
                 return round(math.dist((px, py), (nx, ny)), 2)

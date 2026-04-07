@@ -212,6 +212,7 @@ class SceneStateManager:
         target_object_id: str | None,
         player_position: str | None = None,
         player_distances: dict | None = None,
+        player_spatial: dict | None = None,
     ) -> None:
         """
         Обновляет поля пространственного контекста игрока в SceneState.
@@ -225,6 +226,8 @@ class SceneStateManager:
             target_object_id — id объекта с которым взаимодействует (или None)
             player_position  — текущая позиция игрока ("стоит", "на коленях" и т.д.)
             player_distances — {npc_id: float} расстояния до NPC в метрах
+            player_spatial   — spatial-контекст игрока:
+                               {location_id, position, local_position{x,y}}
         """
         scene_state["player_target_npc"]      = target_npc_id
         scene_state["player_target_npc_name"] = target_npc_name
@@ -235,6 +238,9 @@ class SceneStateManager:
 
         if player_distances is not None:
             scene_state["player_distances"] = player_distances
+
+        if player_spatial is not None:
+            scene_state["player_spatial"] = player_spatial
 
         self.save_scene_state(campaign_id, scene_state)
         logger.info(
@@ -358,6 +364,10 @@ class SceneStateManager:
                 return self._templates_cache
             except (json.JSONDecodeError, OSError) as e:
                 logger.warning(f"[SCENE] Ошибка чтения шаблонов: {e}")
+        logger.warning(
+            "[SCENE] location_templates.json недоступен — используется builtin fallback. "
+            "JSON должен быть основным source of truth."
+        )
         self._templates_cache = self._builtin_templates()
         return self._templates_cache
 
@@ -567,7 +577,10 @@ class SceneStateManager:
 
         npc_positions: dict = {}
         for npc_id, pos_data in template.get("npc_defaults", {}).items():
-            npc_positions[npc_id] = dict(pos_data)
+            pos_entry = dict(pos_data)
+            pos_entry.setdefault("location_id", location_id)
+            pos_entry.setdefault("local_position", {"x": 0.0, "y": 0.0})
+            npc_positions[npc_id] = pos_entry
 
         scene_state = {
             "location_id":              location_id,
@@ -582,10 +595,21 @@ class SceneStateManager:
             # Обновляется каждый ход через update_player_target()
             # Используется в build_npc_context_block() и _build_scene_description()
             "player_position":      "стоит",     # текущая поза/позиция игрока
+            "player_spatial": {
+                "location_id": location_id,
+                "position": "main_hall",
+                "local_position": {"x": 0.0, "y": 0.0},
+            },
             "player_target_npc":    None,         # id NPC к которому обращается
             "player_target_npc_name": None,       # читаемое имя (для промпта)
             "player_target_object": None,         # id объекта взаимодействия
             "player_distances":     {},           # {npc_id: float} метры
+            "environment_modifiers": {
+                "light": 0.5,
+                "noise": 0.5,
+                "density": 0.0,
+                "danger": 0.0,
+            },
             # ─────────────────────────────────────────────────────────────────
         }
 
