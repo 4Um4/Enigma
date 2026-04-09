@@ -1,8 +1,8 @@
-# backend/app/services/game_loop_factory.py
+﻿# backend/app/services/game_loop_factory.py
 #
-# Единственный экземпляр GameLoop для всего приложения.
-# routes.py и routes_stream.py импортируют отсюда.
-# Создаётся один раз при импорте модуля.
+# Р•РґРёРЅСЃС‚РІРµРЅРЅС‹Р№ СЌРєР·РµРјРїР»СЏСЂ GameLoop РґР»СЏ РІСЃРµРіРѕ РїСЂРёР»РѕР¶РµРЅРёСЏ.
+# routes.py Рё routes_stream.py РёРјРїРѕСЂС‚РёСЂСѓСЋС‚ РѕС‚СЃСЋРґР°.
+# РЎРѕР·РґР°С‘С‚СЃСЏ РѕРґРёРЅ СЂР°Р· РїСЂРё РёРјРїРѕСЂС‚Рµ РјРѕРґСѓР»СЏ.
 
 from __future__ import annotations
 import json
@@ -15,11 +15,10 @@ from app.services.adventure_loader import AdventureLoader
 from app.services.system_requirements import SystemRequirements
 from app.services.memory import JsonMemoryStore, LayeredMemory
 from app.services.memory.memory_manager import MemoryManager
-# Старый model_router удалён — загрузка моделей теперь управляется llm/router.py
+# РЎС‚Р°СЂС‹Р№ model_router СѓРґР°Р»С‘РЅ вЂ” Р·Р°РіСЂСѓР·РєР° РјРѕРґРµР»РµР№ С‚РµРїРµСЂСЊ СѓРїСЂР°РІР»СЏРµС‚СЃСЏ llm/router.py
 from app.services.world_scheduler import WorldScheduler
 from app.services.character_service import CharacterService
 from app.services.scene_state_manager import SceneStateManager
-from app.services.action.processor import ActionProcessor
 from app.services.action.dm_orchestrator import DMOrchestrator
 from app.services.action.player_target_extractor import PlayerTargetExtractor
 from app.services.npc.life_engine import get_life_engine
@@ -39,10 +38,10 @@ def _build_game_loop() -> GameLoop:
     scene_manager  = SceneStateManager(data_dir)
     life_engine    = get_life_engine()
     char_service   = CharacterService()
-    # model_router удалён: загрузка моделей происходит лениво внутри агентов
+    # model_router СѓРґР°Р»С‘РЅ: Р·Р°РіСЂСѓР·РєР° РјРѕРґРµР»РµР№ РїСЂРѕРёСЃС…РѕРґРёС‚ Р»РµРЅРёРІРѕ РІРЅСѓС‚СЂРё Р°РіРµРЅС‚РѕРІ
     extractor      = PlayerTargetExtractor()
 
-    # NPC cache — замыкание, одно на весь lifecycle приложения
+    # NPC cache вЂ” Р·Р°РјС‹РєР°РЅРёРµ, РѕРґРЅРѕ РЅР° РІРµСЃСЊ lifecycle РїСЂРёР»РѕР¶РµРЅРёСЏ
     _cache: dict = {"npcs": None}
 
     def load_npcs() -> list:
@@ -85,12 +84,11 @@ def _build_game_loop() -> GameLoop:
         data_dir            = data_dir,
         layered_memory      = layered_memory,
         memory_manager      = memory_manager,
-        processor           = ActionProcessor(),
         dm_orchestrator     = dm_orchestrator,
         scene_manager       = scene_manager,
         world_scheduler     = world_scheduler,
         character_service   = char_service,
-        # model_router параметр удалён из GameLoop
+        # model_router РїР°СЂР°РјРµС‚СЂ СѓРґР°Р»С‘РЅ РёР· GameLoop
         dm_agent            = DmAgent(),
         npc_agent           = NpcAgent(),
         rules_agent         = RulesAgent(),
@@ -103,9 +101,9 @@ def _build_game_loop() -> GameLoop:
         ),
     )
 
-    logger.info("[FACTORY] GameLoop singleton создан")
+    logger.info("[FACTORY] GameLoop singleton СЃРѕР·РґР°РЅ")
     return loop
 
 
-# Единственный экземпляр — создаётся при импорте модуля
+# Р•РґРёРЅСЃС‚РІРµРЅРЅС‹Р№ СЌРєР·РµРјРїР»СЏСЂ вЂ” СЃРѕР·РґР°С‘С‚СЃСЏ РїСЂРё РёРјРїРѕСЂС‚Рµ РјРѕРґСѓР»СЏ
 game_loop: GameLoop = _build_game_loop()

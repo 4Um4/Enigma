@@ -102,6 +102,8 @@ class NPCStateL2:
     # При критических значениях триггерят медленные изменения в NPCIdentityL1.
     identity_integrity: float = 1.0      # 1.0 = цел, 0.0 = сломлен
     pressure_resistance: float = 1.0     # Буфер сопротивления давлению
+    resentment: float = 0.0              # Затаенная обида (накопительная)
+    dependency: float = 0.0              # Зависимость (от игрока/вещества)
     
     # TODO: временное поле для обратной совместимости, будет удалено
     behavior_mask: Optional[BehaviorMaskState] = None

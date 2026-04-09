@@ -66,12 +66,37 @@ LLM НЕ ВЫДАЁТ ДЕЛЬТЫ.
  ├─ Validator — фильтр реальности "можно ли?" (Этап 3)
  └─ Participants — выбор NPC из line_of_sight (Этап 4) 
 2. Event — валидированный Event уходит в ядро
-3. Spatial Filter — PerceptionFilter (кто именно воспринимает из участников)
-4. DecisionHub — score(action) по весам (профиль + память + эмоции + риск)
-5. Resolution — бросок кубика смещает ожидаемый результат (±10%)
-6. State Update — StateApplicator атомарно пишет дельты (только он!)
-7. World Influence — макро-мир реагирует (фракции, фронты, слухи)
-8. Verbalization — LLM озвучивает intent одной фразой
+3. Event — валидированный Event уходит в ядро
+4. Spatial Filter — PerceptionFilter (кто именно воспринимает из участников)
+   
+   [НОВЫЙ БЛОК]
+4.5. Intent Queue — генераторы (GOAP, LifeEngine, Reaction) создают Intent'ы
+      с параметрами (priority, commitment, source). Очередь временно 
+      накапливает их, но НЕ выбирает победителя.
+   [/НОВЫЙ БЛОК]
+   
+5. DecisionHub — score(action) по весам (профиль + память + эмоции + риск)
+   **ПРИНЦИП:** DecisionHub = чистый SCORER. Он не знает про "планы" или "рутину".
+   Он получает список Intent'ов из очереди и считает финальный score для каждого.
+   
+6. Resolution — бросок кубика смещает ожидаемый результат (±10%)
+   
+   [ИЗМЕНЕНО]
+7. State Update — StateApplicator производит дельты (только читает DecisionResult).
+   SceneStateManager — единственная точка записи (атомарно применяет дельты).
+   StateApplicator НЕ имеет права писать состояние напрямую.
+   [/ИЗМЕНЕНО] 
+
+8. World Influence — макро-мир реагирует (фракции, фронты, слухи)
+  
+9. Verbalization — LLM озвучивает intent одной фразой
+
+10. ИСПРАВЛЕННАЯ АРХИТЕКТУРА (Закон системы):
+    Внешние системы (GOAP, LifeEngine, EventBus) генерируют ActionCandidate.
+    ActionCandidate КРАЙНЕ СТРОГО содержит только что можно сделать. Ноль чисел (никаких priority, score, weight).
+    DecisionHub — единственный, кто имеет право приписать вес кандидату на основе формулы score().
+    Commitment — это состояние NPCStateL2, а не свойство кандидата. Оно дает инерцию, но не финальное решение.
+
 ```
 
 **Правило записи:** `DecisionHub` — read-only. `StateApplicator` — write-only. Нигде больше состояние не меняется.
@@ -95,12 +120,49 @@ Tier-система объёма памяти:
 Файлы: `memory/memory_manager.py`, `memory/layered_memory.py`, `memory/working_memory.py`, `memory/resonance_engine.py`, `memory/importance_engine.py`, `memory/relationship_store.py`, `memory/contradiction_resolver.py`
 
 #### R2 Decision Core ✅ DONE (MIGRATED TO L0/L2)
-`DecisionHub` — единственная точка принятия решений. Строго типизирован под чистую 4-слойную модель (NPCProfileL0, NPCStateL2). Основан на Multidimensional Utility AI (отвергнуты FSM и GOAP как избыточные для психологической RPG). Формула: ...
+
+#### R2.1 Cognition & Planning (FUTURE)
+ВНИМАНИЕ: В текущей реализации DecisionHub принимает единый EventContext. Интеграция GOAP и Intent Queue (R10.5) запланирована как адаптация входных данных для DecisionHub, а не замена его формулы score(). Подробности в разделе 9.1.
+**Гибридная модель (Вариант C):** GOAP и реактивность сосуществуют через единый язык Intent'ов.
+
+**Intent Structure:**
+- `action`: строковый идентификатор (MOVE, ATTACK, HIDE)
+- `priority`: базовый вес от генератора (0.0-1.0)
+- `commitment`: инерция намерения (0.0-1.0). GOAP-планы имеют высокий commitment (0.8+), 
+  реакции — низкий (0.0-0.3), рутина — средний (0.3-0.5).
+- `source`: "goap", "life_engine", "reaction", "player_event"
+- `chain_id`: ID GOAP-плана (если есть)
+- `abort_conditions`: список условий прерывания (damage_taken, target_lost)
+- `expiry_tick`: тик, до которого intent актуален
+
+
+`DecisionHub` — единственная точка принятия решений. Строго типизирован под чистую 4-слойную модель (NPCProfileL0, NPCStateL2). Основан на Multidimensional Utility AI (отвергнуты FSM и GOAP как избыточные для психологической RPG).
+
+**DecisionHub Formula (дополненная):**
+```
+score(intent) = [drive × context_relevance × commitment_multiplier]
+- [fear × risk]
++ reactive_urgency
++ opportunity_mod
+± noise(10%)
+где:
+commitment_multiplier = 1.0 + (intent.commitment × INTENT_INERTIA)
+reactive_urgency = base_urgency × freshness (exp decay по тикам)
+freshness = exp(-0.15 × ticks_since_event)
+```
+
+**Защита от доминирования GOAP:**
+- **Intent Saturation Penalty:** если тот же `chain_id` используется >3 тиков подряд, 
+  score *= 0.9 каждый следующий тик (пока commitment не упадет).
+- **Cognitive Switch Cost:** штраф при резкой смене intent'ов (анти-дребезг).
+- **Commitment Decay:** каждый тик без выполнения шага GOAP-интент теряет 10% commitment.
+
+**Архитектурный контракт:**
+- GOAP — только генератор intent'ов (A* планировщик), не исполнитель.
+- DecisionHub — только scorer, не знает про "планы" или "цели".
+- SceneStateManager — единственный владелец состояния.
 
 ```
-score(action) = drive × context_relevance - fear × risk + opportunity_mod ± noise(10%)
-```
-
 Ключевые механики:
 - **INTENT_INERTIA (0.20):** NPC не дребезжит — продолжает начатое действие
 - **SCORE_NOISE_RANGE (±10%):** контролируемый хаос, NPC не детерминирован
@@ -288,9 +350,7 @@ backend/
 │       ├── scene_state_manager.py    # Source of Truth сцены (Требует рефакторинга под L0-L2)
 │       ├── scene_change.py
 │       ├── campaign_state_service.py
-│       ├── action_classifier.py      # [LEGACY] — будет заменен DM Router
 │       ├── action/
-│       │   ├── processor.py          # [LEGACY] — К УДАЛЕНИЮ
 │       │   ├── player_target_extractor.py  # R4 ✅
 │       │   ├── object_resolver.py
 │       │   ├── dm_orchestrator.py    # ★ АКТИВЕН (Единая точка входа)
@@ -382,7 +442,6 @@ enigma/
 │   │   ├── models/                  # ЧИСТЫЕ ДАННЫЕ (Pydantic/Dataclasses)
 │   │   │   ├── npc_state.py         # R2.1 NPCState (динамика)
 │   │   │   ├── personality.py       # L0 Core & L1 Identity (Immutable)
-│   │   │   ├── memory.py            # R1 Структуры памяти (Weights, Facts)
 │   │   │   ├── decision.py          # R2 Контракт DecisionResult
 │   │   │   ├── spatial.py           # R4 Модели локаций и координат
 │   │   │   └── schemas.py           # Общие DTO для API
@@ -405,16 +464,22 @@ enigma/
 │   │   │   │       ├── combat.yaml
 │   │   │   │       └── social.yaml
 │   │   │   │
-│   │   │   ├── npc/                 # R2 — ЯДРО ИНТЕЛЛЕКТА (Python считает)
-│   │   │   │   ├── decision_hub.py      # [ЦЕНТР] Формула score()
-│   │   │   │   ├── state_applicator.py  # [ТОЧКА ЗАПИСИ] Атомарные изменения
-│   │   │   │   ├── perception.py        # Фильтр релевантности (кто видит)
-│   │   │   │   └── engines/             # СПЕЦИАЛИЗИРОВАННЫЕ ВЫЧИСЛИТЕЛИ
-│   │   │   │       ├── break_engine.py      # R8 Механика слома воли
-│   │   │   │       ├── memory_engine.py     # R1 Деградация и искажение
-│   │   │   │       ├── dice_engine.py       # R5 Стохастическое смещение
-│   │   │   │       ├── social_engine.py     # R7 Связи и слухи
-│   │   │   │       └── threat_assessor.py   # Оценка рисков
+│   │   │   ├── npc/                           # R2 — ЯДРО ИНТЕЛЛЕКТА (Python считает)
+│   │   │   │   ├── decision_hub.py            # [ЦЕНТР] Формула score()
+│   │   │   │   ├── state_applicator.py        # [ТОЧКА ЗАПИСИ] Атомарные изменения
+│   │   │   │   ├── perception.py              # Фильтр релевантности (кто видит)
+│   │   │   │   ├── cognition/                 # НОВЫЙ: Унификация источников Intent
+│   │   │   │   │   ├── intent_queue.py        # Приоритетная очередь (все источники равны)
+│   │   │   │   │   ├── intent_generator.py    # Фасад LifeEngine vs GOAP vs Reaction
+│   │   │   │   │   ├── goap_intents.py        # GOAP как генератор (не исполнитель)
+│   │   │   │   │   ├── crisis_detector.py     # Триггер GOAP-режима
+│   │   │   │   │   └── priority_calculator.py # Saturation penalty, decay
+│   │   │   │   └── engines/                   # СПЕЦИАЛИЗИРОВАННЫЕ ВЫЧИСЛИТЕЛИ
+│   │   │   │       ├── break_engine.py        # R8 Механика слома воли
+│   │   │   │       ├── memory_engine.py       # R1 Деградация и искажение
+│   │   │   │       ├── dice_engine.py         # R5 Стохастическое смещение
+│   │   │   │       ├── social_engine.py       # R7 Связи и слухи
+│   │   │   │       └── threat_assessor.py     # Оценка рисков
 │   │   │   │
 │   │   │   ├── resolution/          # R2.5 + R5 — МЕХАНИКА ИСХОДОВ (Бывший combat_math)
 │   │   │   │   ├── action_resolver.py   # Диспетчер: куда отправить Event
@@ -457,6 +522,7 @@ enigma/
     ├── assets/                       # Пиксель-арт, текстуры
     ├── map/                          # Модуль "Карты мародёров"
     └── terminal/                     # Диалоговое окно
+
 ---
 
 ---
@@ -499,6 +565,14 @@ enigma/
 **Защита:** штрафы за повторные броски, ограничение откатов.
 **Статус:** не реализовано.
 
+### 8. Frequency Dominance (доминирование GOAP)
+**Симптом:** GOAP-планы системно выигрывают у реактивности из-за стабильной 
+генерации intent'ов каждый тик, в то время как реакции спорадичны.
+**Защита:** 
+- `freshness_decay` для reactive_urgency (экспоненциальное затухание)
+- `intent_saturation_penalty` (штраф за залипание в одном chain_id)
+- Кап частоты генерации GOAP (не чаще 1 раза за тик)
+
 ---
 
 ## 7. ПРАВИЛА РАЗРАБОТКИ (ДЛЯ LLM И ЧЕЛОВЕКА)
@@ -518,32 +592,387 @@ enigma/
 
 ## 8. ТЕКУЩИЙ ФОКУС РАЗРАБОТКИ
 
-Завершено: Хирургическое отсечение python_engines.py. DMOrchestrator (Этапы 1-4) управляет входящим потоком.Временный адаптер: Этап 4 (Participant Selector) реализован в game_loop.py через извлечение из DMResult.scene_context.
+ЗАВЕРШЕНО (Архитектурная стабилизация):
+    Уничтожен монолит python_engines.py.
+    Спроектирована 4-слойная модель (npc_profile.py).
+    DecisionHub и StateApplicator пересажены на L0/L2.
+    Создан npc_loader.py (бронестена от мусора).
+    DM Execution Facade (Этап 5) интегрирован в game_loop.py. NPC теперь получают решения из чистого DecisionHub и передают VerbalizationContext в LLM-агенты.
 
-Активный фокус: Интеграция DecisionHub (Этап 5 плана DM) внутрь DMOrchestrator.Технический долг: Замена ключа shared_context["python_engines"] на shared_context["dm_result"] в dm_agent.py и context_builder.py (сломает старые контракты агентов).
+АКТИВНЫЙ ФОКУС:
+    StateApplicator Pipeline (Запись последствий)Сейчас game_loop вызывает DecisionHub (Read-Only) и получает DecisionResult (дельты). Но эти дельты не применяются к NPCStateL2.Следующий микро-шаг: Забрать decision_result из цикла в game_loop и прогнать его через StateApplicator.apply(), чтобы NPC реально меняли стресс и обиды после разговора с игроком.
 
-ИЗМЕНЕНИЕ:
-— Что изменено: Отражена реальная победа над монолитом. Заранее зафиксирован следующий шаг (Этап 5) и технический долг по переименованию ключей словаря.
-— Причина: Фокус разработки должен указывать на ближайшую тактическую цель.
-— Влияние на систему: Направляющая для следующих сессий работы.
+ТЕХНИЧЕСКИЙ ДОЛГ:
+    Заменить ключ shared_context["python_engines"] на shared_context["dm_result"] в агентах.
 
 ## 9. ТЕКУЩИЕ ШАГИ РАЗРАБОТКИ
 
-ЗАВЕРШЕНО (Сессия архитектурной миграции):
-    Удален монолит python_engines.py.
-    Спроектирована и зафиксирована целевая 4-слойная модель данных (npc_profile.py: L0 Profile, L1 Identity, L2 State, R4 Spatial).
-    DecisionHub и StateApplicator успешно пересажены на L0/L2 контракты. Duck Typing обеспечил нулевой слом тестов при смене типов.
-    Создан npc_loader.py — бронестена, отсекающая легаси-мусор (memory_trace, рутины) от чистой математики ядра.
-    Устранен PydanticDeprecatedSince20 warning глобально.
+ЗАВЕРШЕНО:
+- Хирургическое отсечение python_engines.py.
+- Спроектирована 4-слойная модель данных (npc_profile.py: L0-L2).
+- DecisionHub и StateApplicator мигрированы на L0/L2 контракты.
+- Создан npc_loader.py — адаптер миграции.
 
-АКТИВНЫЙ ФОКУС: DM Execution Facade (Этап 5 плана DM)Теперь, когда ядро питается чистыми типами, необходимо написать связующий метод (пока временно в game_loop или как фасад), который:
-    Берет npc_ids из DMOrchestrator (Этап 4).
-    Загружает их L0 через npc_loader.
-    Инициализирует пустой L2.
-    Вызывает DecisionHub.compute().
-    Упаковывает результат в VerbalizationContext для LLM.
+АКТИВНЫЙ ФОКУС: **Commitment Model & Intent Queue (R2.1)**
+- Внедрение `commitment`, `reactive_urgency`, `freshness_decay` в DecisionHub.
+- Реализация IntentQueue как арбитра между GOAP/LifeEngine/Reaction.
+- State Ownership Fix: StateApplicator → чистый производитель дельт, 
+  SceneStateManager → единственная точка записи.
+
+СЛЕДУЮЩИЙ ШАГ (после стабилизации R2.1):
+- Crisis Detector (минимальная версия: is_besieged, is_enslaved).
+- Базовый GOAP Planner (3 цели, 5-6 действий, preconditions).
+- Интеграция: GOAP как генератор intent'ов в очередь.
 
 ТЕХНИЧЕСКИЙ ДОЛГ:
-    Удалить action/processor.py и action_classifier.py физически.
-    Заменить ключ shared_context["python_engines"] на shared_context["dm_result"] в агентах.
-    Переписать game_loop.py на вызов нового Facade вместо старого пайплайна.
+- Заменить ключ shared_context["python_engines"] на shared_context["dm_result"].
+- Ego Resistance (R6) — минимальная версия (behavior drift penalty).
+
+---
+
+## 9. БУДУЩАЯ АРХИТЕКТУРА: ADAPTIVE REALITY FRAMEWORK (R9.x + R11)
+
+> Этот раздел описывает **следующий этап** развития ENIGMA после стабилизации текущей системы (R1-R8).  
+> Здесь фиксируются архитектурные решения, которые будут реализованы позже, чтобы не забыть их и не переделывать.
+
+---
+
+### 9.1 GOAP — Генератор Intent'ов, в дереве кода (R10.5)
+
+**Принцип:** GOAP не управляет NPC напрямую. Он создает Intent'ы с высоким 
+`commitment`, которые попадают в общую очередь и конкурируют с реакциями 
+через DecisionHub.
+
+**Архитектура:**
+[Crisis Detector] → [GOAP Planner] → [Intent Generator] → [Intent Queue]
+↑                                      |
+└──────── [World State Tracker] ←──────┘
+
+
+**Crisis Detector:**
+```python
+def needs_goap(npc_state, world_state) -> bool:
+    """Определяет, сломана ли рутина."""
+    return (
+        world_state.is_besieged or      
+        npc_state.is_enslaved or         
+        world_state.famine_level > 0.7 or 
+        npc_state.home_destroyed         
+    )
+
+**Зачем он нужен (в будущем):**
+- Город в осаде → фермер не может выйти в поле, нужен план "спрятаться/помочь защите/бежать"
+- NPC захвачен в рабство → рутина "дом→работа" заменяется на "выживание/побег"
+- Голод/разруха → поиск еды и убежища становится приоритетом
+
+**Почему не сейчас:**
+1. **Нет механик кризиса** — у нас нет осады, голода, разрушения домов
+2. **LifeEngine покрывает 90%** — в норме NPC живут по расписанию из JSON
+3. **Текстовый формат** — GOAP должен работать "в фоне", сжимая цепочку до одной фразы, а не показывать 5 тиков подряд
+
+**Вердикт:** GOAP добавим в R10.5, когда появятся механики кризиса (осада, рабство, разруха), ломающие обычную рутину.
+
+GOAP Planner (упрощенный):
+    Цели: SURVIVE_SIEGE, ESCAPE_SLAVERY, FIND_FOOD, HIDE_FROM_THREAT
+    Действия: 5-6 базовых (find_shelter, move_to, wait_hide, steal_food)
+    Preconditions/Effects: Упрощенные (логические условия), достаточные для A*
+    Вывод: Не "выполнить действие", а создать Intent с commitment=0.9 и chain_id
+    Execution:
+    GOAP генерирует план (цепочка шагов)
+    Каждый тик предлагает ТОЛЬКО текущий шаг как Intent в очередь
+    DecisionHub сравнивает его с реактивными intent'ами
+    Если reactive_urgency > (commitment × 1.5) → план прерывается (естественно, через scoring)
+    GOAP видит прерывание на следующем тике и пересчитывает план с новой позиции
+    Запрет: GOAP не может генерировать больше одного Intent за тик.
+    Нет "вложенных" планов — только линейная цепочка с возможностью отката.
+
+Файлы:
+    services/npc/cognition/goap_intents.py — генератор
+    services/npc/cognition/crisis_detector.py — триггер
+    services/npc/cognition/intent_queue.py — общая очередь (все источники)
+
+---
+
+### 9.2 Что такое Adaptive Reality Framework (R9.x + R11)
+
+**Проблема:** Сейчас мир реагирует на игрока локально (NPC помнит обиды). Но мир не **адаптируется** глобально.
+
+**Пример:** Игрок 10 раз подряд использует "Запугивание → Кража". Каждый NPC реагирует отдельно. Но стража не становится умнее, торговцы не начинают прятать товары, игрок не чувствует, что "этот мир больше не принимает его".
+
+**Решение:** Система пяти уровней адаптации мира:
+
+| Уровень | Что происходит | Пример |
+|---------|----------------|--------|
+| **L1** Local Memory | Отдельный NPC запоминает | Торнин боится игрока |
+| **L2** Social Graph | Слухи распространяются | Все в деревне знают о воре |
+| **L3** Pattern Recognition | Система видит паттерн | "Игрок всегда крадёт ночью" |
+| **L4** Macro Adaptation | Мир меняет правила | Стража удваивается, ночью запирают двери |
+| **L5** Reality Shift | Игрока вытесняют в другой слой реальности | Из "порядочного мира" в "подполье" |
+
+**Ключевой принцип:** Игрок не выбирает фракцию. Мир **вытесняет** его туда, где он теперь существует.
+
+---
+
+### 9.3 Как это будет устроено (Чистая версия)
+
+Вместо сложной иерархии папок — **плоская структура** в `services/world/`:
+
+```
+backend/app/services/world/           ← НОВАЯ ПАПКА (9 файлов)
+├── world_director.py                 # Главный фасад — единственная точка входа
+├── adaptive_core.py                  # L1-L4: Память, паттерны, адаптация
+├── social_layer.py                   # L2 + L5: Слухи и сдвиг реальности
+├── scene_field.py                    # Динамика сцены (внимание, напряжение)
+├── consequence_imprint.py            # Следствия действий (многослойный отпечаток)
+├── pressure_bias_engine.py           # Давление на NPC (меняет их решения)
+├── probabilistic_model.py            # Потолок успеха (~70%, нельзя абузить)
+├── telemetry.py                      # Отладка (God Mode)
+└── constants.py                      # Все числа в одном месте
+```
+
+**Почему именно так:**
+- **Zero overhead** — обновления не каждый тик, а по необходимости
+- **Не ломает текущее** — DecisionHub получает только 2 новых множителя:
+  ```python
+  score = base_score * scene.narrative_bias * layer.cost_multiplier
+  ```
+- **9 файлов** — никакой "папки в папке в папке"
+
+---
+
+### 9.4 Порядок внедрения (почему так)
+
+**Сейчас (Фаза 0):** Стабилизируем R2-R8
+- DecisionHub должен работать в продакшене
+- StateApplicator — единственная точка записи
+- Все тесты зелёные
+
+**Потом (Фаза 1):** R9.x Core
+- Local Memory + Pattern Recognition
+- Подключается к существующему R1 Memory
+
+**Потом (Фаза 2):** Social Layer
+- Слухи + Social Graph
+- Подключается к OpportunityEngine
+
+**Потом (Фаза 3):** R11 Reality Shift
+- Три слоя реальности: Order → Grey Zone → Underworld
+- Только когда всё предыдущее стабильно
+
+**Почему такой порядок:** Каждый следующий слой зависит от предыдущего. Нельзя делать "реальность-сдвиг" (L5), если нет паттерн-распознавания (L3).
+
+---
+
+### 9.5 Финальный принцип (зачем всё это)
+
+> "Игрок может обмануть NPC.  
+> Но не может бесконечно обманывать систему.  
+> 
+> Мир не даёт бонусов.  
+> Мир меняет условия.  
+> 
+> Игрок не выбирает слой реальности —  
+> мир сам вытесняет его туда, где он теперь существует."
+
+**Этот раздел — дорожная карта.** Когда текущая архитектура (R1-R8) будет стабильна, мы откроем этот раздел и начнём внедрение с Фазы 1.
+```
+
+Вот гибридный вариант — моя структура + твои формулировки:
+
+---
+
+```markdown
+## 9. БУДУЩАЯ АРХИТЕКТУРА: ADAPTIVE REALITY FRAMEWORK (R9.x + R11)
+
+> Следующий этап после стабилизации R1–R8.  
+> Цель — превратить мир из реактивного в **адаптирующийся, но несовершенный**.
+
+---
+
+### 9.1 Проблема и цель
+
+**Сейчас:**
+```text
+игрок → действие → NPC реагируют
+```
+
+**Недостаток:**
+```text
+мир не учится как система
+мир не меняет правила  
+мир не ошибается
+```
+
+**Нужно:**
+```text
+игрок → действие → мир учится → мир меняет правила → игрок адаптируется
+```
+
+---
+
+### 9.2 Уровни адаптации (L1–L5)
+
+| Уровень | Механика | Суть | Статус |
+|---------|----------|------|--------|
+| **L1 — Local Memory** | R1 ✅ | NPC помнит события | Готово |
+| **L2 — Social Layer** | R7 🟡 | Слухи распространяются | Частично |
+| **L3 — Pattern Recognition** | R9.1 🔴 | Система выявляет повторы | Планируется |
+| **L4 — Macro Adaptation** | R9.2 🔴 | Мир меняет условия | Планируется |
+| **L5 — Reality Shift (R11)** | R11 🔴 | Игрока вытесняют в другой слой | Планируется |
+
+**Pipeline:**
+```text
+событие → агрегация → распознавание паттерна → оценка уверенности → триггер адаптации
+```
+
+---
+
+### 9.3 Ключевые принципы
+
+```text
+1. Игрок не может эксплуатировать систему бесконечно
+   но система не идеальна и может ошибаться
+
+2. Мир не усиливается напрямую — мир меняет структуру
+
+3. Мир платит за изменения:
+   - time_delay (адаптация не мгновенна)
+   - resource_cost (требуется участие NPC/структур)
+   - error_rate (результат может быть неправильным)
+
+4. При сужении пространства появляются альтернативные пути (Escape Vector)
+
+5. Игрок не выбирает слой реальности — мир вытесняет его туда, где он теперь существует
+```
+
+---
+
+### 9.4 Структура (services/world/)
+
+```
+world/
+├── world_director.py          # Главный фасад — единственная точка входа
+├── adaptive_core.py           # L3-L4: Паттерны + адаптация
+├── social_layer.py            # L2 + L5: Слухи + сдвиг реальности  
+├── scene_field.py             # Динамика сцены (внимание, напряжение)
+├── consequence_imprint.py     # Многослойный отпечаток последствий
+├── pressure_bias_engine.py    # Давление на NPC (меняет их решения)
+├── probabilistic_model.py     # Потолок успеха ~70%
+├── telemetry.py               # God Mode debug
+└── constants.py               # Все thresholds в одном месте
+```
+
+---
+
+### 9.5 Imperfection (несовершенство системы)
+
+**Почему:** Идеальная система = нечестная. Игрок должен иметь шанс "обмануть" мир.
+
+**Механики:**
+- `pattern_confidence ∈ [0..1]` — мир не уверен в паттерне
+- `pattern_error_rate ∈ [0.1..0.4]` — ложные/неполные выводы  
+- `adaptation_delay` (в тиках) — адаптация не мгновенна
+- `information_imperfection` — NPC действует по восприятию, не по истине
+
+**Типы ошибок системы:**
+* ложный паттерн (увидел то, чего нет)
+* неполный паттерн (не заметил ключевого)
+* задержка распознавания (реакция с опозданием)
+
+---
+
+### 9.6 Adaptation Cost (цена адаптации)
+
+```text
+мир платит за изменения
+```
+
+**Пример:**
+```text
+усиление охраны →
+    требуется время →
+    часть мер неэффективна →
+    возможны новые уязвимости
+```
+
+**Компоненты:**
+- `time_delay` — адаптация не мгновенна
+- `resource_cost` — требуется участие NPC/структур  
+- `error_rate` — результат может быть неправильным
+
+---
+
+### 9.7 Reality Shift (R11)
+
+**Три слоя реальности:**
+```text
+Order World  → Grey Zone  → Underworld
+   ↑______________↓______________↑
+   (возврат возможен, но дорогой)
+```
+
+**Механика перехода:**
+```text
+trust ↓ + reputation ↓ + suspicion ↑ + pressure ↑ → layer shift
+```
+
+**Irreversibility Gradient:**
+```text
+глубже слой → выше цена возврата → ниже вероятность возврата
+```
+
+**Escape Vector (ключевой принцип):**
+```text
+система не должна замыкаться
+
+при сужении пространства →
+обязательно появляются альтернативные стратегии
+```
+
+📌 Это не помощь. Это **смена уровня игры**.
+
+---
+
+### 9.8 Интеграция с DecisionHub
+
+```python
+score = base_score * narrative_bias * layer_modifier * uncertainty_factor
+```
+
+**Новые входы:**
+- `narrative_bias` — из scene_field (внимание к игроку)
+- `layer_modifier` — из social_layer (cost multiplier)
+- `uncertainty_factor` — из probabilistic_model (ошибка восприятия)
+
+**Информационное несовершенство:**
+```text
+NPC действует по восприятию, а не по истине
+```
+
+---
+
+### 9.9 Порядок внедрения
+
+| Фаза | Что делаем | Зависимость |
+|------|------------|-------------|
+| **0 (сейчас)** | Стабилизация R2-R8 | DecisionHub в продакшене |
+| **1** | Adaptive Core + Pattern Recognition | Готова R1 Memory |
+| **2** | Social Layer + Rumor propagation | Готовы L3 паттерны |
+| **3** | Macro Adaptation | Готовы L2-L3 |
+| **4** | Reality Shift (R11) | Готовы L1-L4 |
+
+---
+
+### 9.10 Финальный принцип
+
+```
+игрок может обмануть NPC
+но не может бесконечно обманывать систему
+
+мир не помогает игроку
+мир меняет условия
+
+мир не идеален
+и именно поэтому он живой
+
+```

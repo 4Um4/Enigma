@@ -1,4 +1,4 @@
-# backend/app/services/game_loop.py
+﻿# backend/app/services/game_loop.py
 #
 # Шаг 5 рефакторинга: единая точка входа для run_turn и stream_turn.
 #
@@ -25,8 +25,6 @@ from app.models.schemas import (
     ChatTurnResponse,
     PlayerAction,
 )
-from app.services.action.processor import ActionProcessor, ProcessingResult
-from app.services.action_classifier import classifier
 from app.services.action.dm_orchestrator import DMOrchestrator
 from app.services.action.player_target_extractor import PlayerTargetExtractor
 from app.services.state.context_builder import build_context, patch_scene_state
@@ -57,9 +55,9 @@ ERROR_CODES = {
 }
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+# ────────────────────────────────────────────────────────────────────────────────
 # Внутренний результат пайплайна (до DM-нарратива)
-# ─────────────────────────────────────────────────────────────────────────────
+# ────────────────────────────────────────────────────────────────────────────────
 
 @dataclass
 class _PipelineState:
@@ -73,9 +71,9 @@ class _PipelineState:
     start_ms:              float           = field(default_factory=lambda: time.time() * 1000)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+# ────────────────────────────────────────────────────────────────────────────────
 # GameLoop
-# ─────────────────────────────────────────────────────────────────────────────
+# ────────────────────────────────────────────────────────────────────────────────
 
 class GameLoop:
     """
@@ -90,8 +88,6 @@ class GameLoop:
         *,
         data_dir: Path,
         layered_memory: LayeredMemory,
-        memory_manager,
-        processor: ActionProcessor,
         dm_orchestrator: DMOrchestrator,
         scene_manager: SceneStateManager,
         world_scheduler: WorldScheduler,
@@ -107,8 +103,6 @@ class GameLoop:
     ):
         self.data_dir         = data_dir
         self.layered_memory   = layered_memory
-        self.memory_manager   = memory_manager
-        self.processor        = processor
         self.dm_orchestrator = dm_orchestrator
         self.scene_manager    = scene_manager
         self.world_scheduler  = world_scheduler
@@ -124,9 +118,9 @@ class GameLoop:
         self._campaign_world_index: dict[str, str] = {}
         self._session_started_campaigns: set = set()
 
-    # ─────────────────────────────────────────────────────────────────────────
+    # ────────────────────────────────────────────────────────────────────────────
     # ПУБЛИЧНЫЙ API
-    # ─────────────────────────────────────────────────────────────────────────
+    # ────────────────────────────────────────────────────────────────────────────
 
     async def run_turn(self, req: ChatTurnRequest) -> ChatTurnResponse:
         """Блокирующий путь (REST). DM-нарратив собирается целиком."""
@@ -211,9 +205,8 @@ class GameLoop:
         yield {"type": "status", "text": "Мастер думает..."}
 
         # Классификация — 0 мс, сразу отдаём тип действия
-        from app.services.action_classifier import classifier
-        act_type        = classifier.classify(action_text)
-        action_type_str = act_type.value
+        # TODO: Тип будет извлекаться из DMOrchestrator в будущем
+        action_type_str = "unknown"
         yield {"type": "action_type", "value": action_type_str}
 
         # Теперь запускаем тяжёлый pipeline
@@ -288,9 +281,9 @@ class GameLoop:
         except Exception as e:
             print(f"[R2.1] NarrativeExtractor error: {e}")
 
-    # ─────────────────────────────────────────────────────────────────────────
+    # ────────────────────────────────────────────────────────────────────────────
     # ОБЩИЙ ПАЙПЛАЙН (шаги 1–8 — одинаковы для REST и SSE)
-    # ─────────────────────────────────────────────────────────────────────────
+    # ────────────────────────────────────────────────────────────────────────────
 
     async def _run_pipeline(
         self,
@@ -316,27 +309,14 @@ class GameLoop:
             )
         )
 
-        # 2. ActionProcessor (classify + physics)
-        player_names    = [a.player_name for a in actions]
-        npc_importance  = {}  # заполняется позже при необходимости
-        processing: ProcessingResult = self.processor.process(
-            actions                 = actions,
-            campaign_id             = campaign_id,
-            location                = location,
-            get_character_dict_func = self._get_character_dict,
-            npc_importance          = npc_importance,
-        )
-
         # 3. Базовый shared_context
         shared_context = build_context(
             campaign_id         = campaign_id,
             world_id            = world_id,
             location            = location,
-            player              = player_names[0] if player_names else "",
+            player              = actions[0].player_name if actions else "",
             scene_state         = {},
             python_engines      = {},
-            physics_validation  = processing.physics_validation,
-            classification      = processing.classification,
             recent_memory       = [],
             reaction_order      = [],
         )
@@ -361,7 +341,7 @@ class GameLoop:
         try:
             # Извлекаем структурированные данные для нового DM
             # ВНИМАНИЕ: ключи shared_context могут немного отличаться, проверьте при первом запуске
-            raw_input = processing.classification[0].get("text_preview", "") if processing.classification else ""
+            raw_input = actions[0].action if actions else ""
             
             dm_result = self.dm_orchestrator.process_player_action(
                 raw_input=raw_input,
@@ -374,19 +354,94 @@ class GameLoop:
             )
             
             # TODO: временная заглушка
-            # будет удалено после: интеграции DecisionHub внутрь DMOrchestrator (Этап 4-5 плана DM)
+            # будет удалено после: интеграции DecisionHub внутри DMOrchestrator (Этап 4-5 плана DM)
             shared_context["dm_result"] = dm_result
             
             # Этап 4 (Базовый): Извлекаем участников сцены из DM SceneBuilder
+            # TODO: временная заглушка
+            # будет удалено после: выделения DM Execution Facade в отдельный сервис (Этап 5)
+            from app.services.npc.npc_loader import load_profile_from_legacy_json, load_l2_state_from_runtime_dict
+            from app.services.verbalization.verbalization_context import VerbalizationContext, generate_emotional_nuance
+            from app.services.npc.decision_hub import DecisionHub, EventContext as HubEventContext
+
             npc_contexts = []
             if dm_result.is_valid and dm_result.scene_context:
+                # Формируем базовое событие для DecisionHub (пока упрощенно)
+                raw_event_type = shared_context.get("action_type", "player_interacts")
+                hub_event = HubEventContext(event_type=raw_event_type, actor_id="player")
+
                 for npc in dm_result.scene_context.nearby_npcs:
                     npc_id = npc.get("npc_id")
-                    # Берем только тех NPC, которых DM пропустил через валидатор (line_of_sight)
                     if npc_id and dm_result.scene_context.line_of_sight.get(npc_id, False):
+                        
+                        # 1. Мост: Грязный Dict -> Чистые L0/L2 типы
+                        profile_l0 = load_profile_from_legacy_json(npc)
+                        state_l2 = load_l2_state_from_runtime_dict(npc)
+                        
+                        # 2. Этап 5: Запуск DecisionHub (Read-Only)
+                        decision = DecisionHub().compute(
+                            state=state_l2,
+                            personality=profile_l0,
+                            event=hub_event
+                        )
+                        
+                        # 3. StateApplicator: Вычисляем реальные последствия (Read -> Write)
+                        # ВНИМАНИЕ: Мы пока не пишем это в SceneState, а используем ТОЛЬКО для LLM-промпта
+                        state_to_use_for_llm = state_l2
+                        try:
+                            from app.services.npc.state_applicator import StateApplicator
+                            rel_store = self.memory_manager._relationships
+                            applicator = StateApplicator(relationship_store=rel_store)
+                            state_to_use_for_llm = applicator.apply(
+                                state=state_l2,
+                                result=decision,
+                                campaign_id=campaign_id
+                            )
+                        except Exception as e:
+                            logger.warning(f"[DM_FACADE] StateApplicator failed for {npc_id}, using raw state: {e}")
+                        
+                        # 4. Упаковка в VerbalizationContext (Enum -> Строки для LLM)
+                        # ИСПОЛЬЗУЕМ state_to_use_for_llm, чтобы LLM увидел последствия решения!
+                        verb_ctx = VerbalizationContext(
+                            npc_id=profile_l0.id,
+                            npc_name=profile_l0.name,
+                            tier=profile_l0.tier,
+                            emotion=state_to_use_for_llm.emotion.value,
+                            will_state=state_to_use_for_llm.will_state.value,
+                            intent=decision.intent.value,
+                            intent_target=decision.intent_target,
+                            # Временные пустышки (будут заполняться DM Aggregator и Nuance Engine)
+                            scene_hint="",
+                            emotional_nuance=generate_emotional_nuance(state_to_use_for_llm),
+                            # Извлекаем доминирующий драйв из L0 профиля для стиля речи LLM
+                            dominant_drive = max(profile_l0.drives_base.items(), key=lambda x: x[1])[0],
+                            speech_style=dominant_drive,
+                            # Берём из L0 профиля
+                            voice_profile=profile_l0.voice_profile,
+                            backstory=profile_l0.backstory,
+                        )
+                        
+                        # TODO: Мост для Phase 1: Превращаем StateDeltas в формат старого парсера
+                        # УДАЛИТЬ, когда SceneStateManager будет переписан под NPCStateL2!
+                        try:
+                            stress_d = decision.deltas.stress_delta_effective
+                            trust_d = decision.deltas.trust_delta
+                            # TODO: Добавить emotion_delta, trait_updates для R6/R8
+                            if stress_d != 0.0 or trust_d != 0.0:
+                                npc_contexts.append({
+                                    "npc_id": npc_id,
+                                    "trust_delta": trust_d,
+                                    "stress_delta": stress_d,
+                                    "decision_result": decision  # Передаём результат дальше для будущей записи
+                                })
+                        except Exception as e:
+                            logger.warning(f"[DM_FACADE] Failed to parse deltas for {npc_id}: {e}")
+                        
                         npc_contexts.append({
                             "npc_id": npc_id,
-                            "tier": npc.get("tier", "minor")  # Fallback для безопасности
+                            "tier": profile_l0.tier,
+                            "verbalization_ctx": verb_ctx,   # КЛЮЧ: Переключает агента на путь R3!
+                            "decision_result": decision       # Для будущего StateApplicator
                         })
             
             python_engines_result = {
@@ -441,7 +496,7 @@ class GameLoop:
         npc_memory = self.layered_memory.read_npc_memory(campaign_id, limit=NPC_MEMORY_LIMIT)
         npc_result = await self._run_agent_safe(
             "npc", self.npc_agent,
-            (location, actions, npc_memory, shared_context, npc_importance),
+            (location, actions, npc_memory, shared_context, {}),
             {},
         )
 
@@ -456,16 +511,13 @@ class GameLoop:
             action_text   = actions[0].action if actions else "",
         )
 
-        # ── R1 CONNECT: Working Memory ────────────────────────────────────────
+        # ── R1 CONNECT: Working Memory ─────────────────────────────────────────
         _player_text = actions[0].action if actions else ""
         _player_name = actions[0].player_name if actions else "игрок"
 
         # action_type из классификатора (для ImportanceEngine)
-        # Используем processing из начала метода, не state!
+        # TODO: Тип будет извлекаться из DMOrchestrator в будущем
         _act_type = "unknown"
-        if processing.classification:
-            _first = processing.classification[0] if processing.classification else {}
-            _act_type = _first.get("type", "unknown")  # в classification поле "type", не "action_type"
 
         # P0.1: действие игрока → Working Memory
         self.memory_manager.record_event(campaign_id, {
@@ -489,11 +541,11 @@ class GameLoop:
         # P0.3: decay каждые 10 ходов
         _tick = shared_context.get("scene_state", {}).get("snapshot_tick", 0)
         self.memory_manager.run_decay_if_needed(campaign_id, _tick)
-        # ─────────────────────────────────────────────────────────────────────
+        # ────────────────────────────────────────────────────────────────────────
 
         return _PipelineState(
             shared_context         = shared_context,
-            classification_results = processing.classification,
+            classification_results = [],
             world_tick_meta        = world_tick_meta,
             rules_result           = rules_result,
             npc_result             = npc_result,
@@ -501,9 +553,9 @@ class GameLoop:
             start_ms               = start_ms,
         )
 
-    # ─────────────────────────────────────────────────────────────────────────
+    # ────────────────────────────────────────────────────────────────────────────
     # ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ
-    # ─────────────────────────────────────────────────────────────────────────
+    # ────────────────────────────────────────────────────────────────────────────
 
     def _get_character_dict(self, campaign_id: str, player_name: str) -> dict:
         try:
@@ -768,9 +820,9 @@ class GameLoop:
             AgentTrace(agent="game_loop",       output={"pipeline_duration_ms": elapsed_ms}),
         ]
 
-# ─────────────────────────────────────────────────────────────────────────
+# ────────────────────────────────────────────────────────────────────────────────
     # УПРАВЛЕНИЕ КАМПАНИЕЙ + СИСТЕМНЫЕ ПРОВЕРКИ
-    # ─────────────────────────────────────────────────────────────────────────
+    # ────────────────────────────────────────────────────────────────────────────────
 
     def assert_requirements(self) -> dict:
         report = self.system_requirements.check()
@@ -827,9 +879,9 @@ class GameLoop:
                 return item["world_id"]
         return "manual"
 
-# ─────────────────────────────────────────────────────────────────────────────
+# ────────────────────────────────────────────────────────────────────────────────
 # Фиктивный Request для PythonEngines (ожидает объект с полями, не dict)
-# ─────────────────────────────────────────────────────────────────────────────
+# ────────────────────────────────────────────────────────────────────────────────
 
 class _FakeRequest:
     """Минимальный объект-заглушка для совместимости с PythonEngines.run()."""
