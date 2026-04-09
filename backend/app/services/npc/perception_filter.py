@@ -16,6 +16,12 @@
 from __future__ import annotations
 import logging
 from typing import List, Optional
+from app.services.npc.spatial_runtime import (
+    extract_scene_for_npc,
+    line_of_sight,
+    resolve_distance_between_entities,
+    sound_reach,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -86,20 +92,30 @@ def calculate_clarity(
 
 def _npc_distance(npc_id: str, scene_state: dict) -> float:
     """
-    Расстояние от NPC до игрока.
-    R4.3: использует реальные координаты (x, y) если доступны.
-    Fallback: player_distances словарь → 999.0 (далеко).
+    Расстояние от NPC до игрока в метрах.
+    R4.3: использует player_spatial (canonical) → resolve_distance_between_entities.
+    Fallback 1: прямое Евклидово расстояние из x/y в npc_data и player_position.
+    Fallback 2: player_distances словарь (до R4.3) → 999.0.
     """
     npc_data    = scene_state.get("npc_positions", {}).get(npc_id, {})
-    player_data = scene_state.get("player_position", {})
+    player_data = scene_state.get("player_spatial", {})
 
-    npc_pos    = _get_position(npc_data)
-    player_pos = _get_position(player_data)
+    # Приоритет 1: graph-based расстояние через player_spatial
+    if npc_data and player_data and isinstance(player_data, dict):
+        spatial_distance = resolve_distance_between_entities(scene_state, npc_data, player_data)
+        if spatial_distance < 999.0:
+            return spatial_distance
 
-    if npc_pos is not None and player_pos is not None:
-        return _euclidean(npc_pos, player_pos)
+    # Приоритет 2: прямое Евклидово по x/y если player_position это dict с координатами.
+    # Защита: player_position может быть строкой ("стоит") — тогда пропускаем.
+    player_pos_raw = scene_state.get("player_position")
+    if isinstance(player_pos_raw, dict):
+        npc_pos    = _get_position(npc_data)
+        player_pos = _get_position(player_pos_raw)
+        if npc_pos is not None and player_pos is not None:
+            return _euclidean(npc_pos, player_pos)
 
-    # Fallback: предвычисленный словарь (до R4.3 или для тестов)
+    # Fallback: предвычисленный словарь (совместимость с до-R4.3)
     return float(scene_state.get("player_distances", {}).get(npc_id, 999.0))
 
 
@@ -122,20 +138,32 @@ def _can_see(npc_id: str, scene_state: dict, event_location: str) -> bool:
     if not _npc_is_conscious(npc_id, scene_state):
         return False
 
-    npc_data    = scene_state.get("npc_positions", {}).get(npc_id, {})
-    player_data = scene_state.get("player_position", {})
-    npc_pos     = _get_position(npc_data)
-    player_pos  = _get_position(player_data)
+    npc_data      = scene_state.get("npc_positions", {}).get(npc_id, {})
+    player_spatial = scene_state.get("player_spatial")
 
-    if npc_pos is not None and player_pos is not None:
-        # R4.3: реальная дистанция — видит если ≤ 15м (дальше теряется из виду)
-        if _euclidean(npc_pos, player_pos) > 15.0:
+    # Приоритет 1: graph-based дистанция через player_spatial
+    if npc_data and isinstance(player_spatial, dict) and player_spatial:
+        distance = resolve_distance_between_entities(scene_state, npc_data, player_spatial)
+        if distance >= 999.0:
             return False
+        if not line_of_sight(distance, scene_state):
+            return False
+
     else:
-        # Fallback: проверка по строке локации
-        npc_location = npc_data.get("location", "")
-        if npc_location and npc_location != event_location:
-            return False
+        # Приоритет 2: Евклидово из x/y если оба словаря содержат координаты
+        player_pos_raw = scene_state.get("player_position")
+        npc_pos    = _get_position(npc_data)
+        player_pos = _get_position(player_pos_raw) if isinstance(player_pos_raw, dict) else None
+
+        if npc_pos is not None and player_pos is not None:
+            # Оба имеют координаты — считаем напрямую
+            if _euclidean(npc_pos, player_pos) > 15.0:
+                return False
+        else:
+            # Приоритет 3: нет координат — проверяем по строке локации
+            npc_location = npc_data.get("location", "")
+            if npc_location and npc_location != event_location:
+                return False
 
     light = scene_state.get("environment", {}).get("light_level", "dim")
     return _LIGHT_LEVELS.get(light, 1) >= _LIGHT_LEVELS[_MIN_LIGHT_FOR_SIGHT]
@@ -153,7 +181,7 @@ def _can_hear(npc_id: str, scene_state: dict, radius: float) -> bool:
             return False
 
     distance = _npc_distance(npc_id, scene_state)
-    return distance <= radius
+    return distance <= sound_reach(radius, scene_state)
 
 
 def filter_perceiving_npcs(
@@ -268,3 +296,16 @@ def build_perception_context(
     }
 
     return _TEMPLATES.get(event_type, f"Ты замечаешь событие: {event_type} {dist_str}.")
+
+
+def extract_scene_awareness(
+    npc_id: str,
+    npc_ids: List[str],
+    scene_state: dict,
+) -> dict:
+    """
+    R4.5 Scene Extraction:
+      - кто рядом
+      - какие действия доступны в текущем пространстве
+    """
+    return extract_scene_for_npc(scene_state, npc_id=npc_id, npc_ids=npc_ids)

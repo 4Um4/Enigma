@@ -24,7 +24,7 @@ from app.services.npc.npc_state import (
 )
 from app.services.npc.decision_hub import DecisionHub, EventContext
 from app.services.npc.state_applicator import StateApplicator
-from app.services.npc.verbalization_context import (
+from app.services.verbalization.verbalization_context import (
     build_verbalization_context,
     VerbalizationContext,
 )
@@ -431,7 +431,7 @@ class TestVerbalizationContext:
         tavern_keeper_personality,
     ):
         """scene_hint обрезается до SCENE_HINT_MAX_CHARS."""
-        from app.services.npc.verbalization_context import SCENE_HINT_MAX_CHARS
+        from app.services.verbalization.verbalization_context import SCENE_HINT_MAX_CHARS
         long_hint = "X" * (SCENE_HINT_MAX_CHARS + 200)
         ctx = build_verbalization_context(
             fresh_npc_state, tavern_keeper_personality,
@@ -476,7 +476,7 @@ class TestFullPipeline:
         assert ctx.npc_id  == new_state.npc_id
 
         # 4. Промпт строится без ошибок
-        from app.services.npc.verbalization_context import build_npc_prompt_from_context
+        from app.services.verbalization.verbalization_context import build_npc_prompt_from_context
         sys_p, usr_p = build_npc_prompt_from_context(ctx)
         assert len(sys_p) > 10
         assert len(usr_p) > 0

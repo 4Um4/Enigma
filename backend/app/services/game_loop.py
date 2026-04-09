@@ -27,12 +27,12 @@ from app.models.schemas import (
 )
 from app.services.action.processor import ActionProcessor, ProcessingResult
 from app.services.action_classifier import classifier
-from app.services.action.python_engines import PythonEngines
+from app.services.action.dm_orchestrator import DMOrchestrator
 from app.services.action.player_target_extractor import PlayerTargetExtractor
 from app.services.state.context_builder import build_context, patch_scene_state
 from app.services.scene_state_manager import SceneStateManager
 from app.services.memory import JsonMemoryStore, LayeredMemory
-from app.services.model_router import ModelRouter
+# Старый model_router удалён — агенты сами управляют маршрутизацией через llm/router
 from app.services.world_scheduler import WorldScheduler
 from app.services.character_service import CharacterService
 from app.services.npc.life_engine import get_life_engine
@@ -92,11 +92,11 @@ class GameLoop:
         layered_memory: LayeredMemory,
         memory_manager,
         processor: ActionProcessor,
-        python_engines: PythonEngines,
+        dm_orchestrator: DMOrchestrator,
         scene_manager: SceneStateManager,
         world_scheduler: WorldScheduler,
         character_service: CharacterService,
-        model_router: ModelRouter,
+        # model_router удалён
         dm_agent,
         npc_agent,
         rules_agent,
@@ -109,11 +109,11 @@ class GameLoop:
         self.layered_memory   = layered_memory
         self.memory_manager   = memory_manager
         self.processor        = processor
-        self.python_engines   = python_engines
+        self.dm_orchestrator = dm_orchestrator
         self.scene_manager    = scene_manager
         self.world_scheduler  = world_scheduler
         self.character_service = character_service
-        self.model_router     = model_router
+        # self.model_router удалён
         self.dm_agent         = dm_agent
         self.npc_agent        = npc_agent
         self.rules_agent      = rules_agent
@@ -359,12 +359,44 @@ class GameLoop:
         # 5. PythonEngines
         fake_req = _FakeRequest(campaign_id, world_id, location, actions)
         try:
-            python_engines_result = await self.python_engines.run(
-                fake_req, processing.classification, shared_context
+            # Извлекаем структурированные данные для нового DM
+            # ВНИМАНИЕ: ключи shared_context могут немного отличаться, проверьте при первом запуске
+            raw_input = processing.classification[0].get("text_preview", "") if processing.classification else ""
+            
+            dm_result = self.dm_orchestrator.process_player_action(
+                raw_input=raw_input,
+                player_data=shared_context.get("player", {}),
+                player_markers=shared_context.get("player_markers", []),
+                target_npc_id=shared_context.get("player_target_id"),
+                spatial_data=shared_context.get("player_spatial", {}),
+                current_day=shared_context.get("current_day", 1),
+                current_tick=shared_context.get("current_tick", 0),
             )
+            
+            # TODO: временная заглушка
+            # будет удалено после: интеграции DecisionHub внутрь DMOrchestrator (Этап 4-5 плана DM)
+            shared_context["dm_result"] = dm_result
+            
+            # Этап 4 (Базовый): Извлекаем участников сцены из DM SceneBuilder
+            npc_contexts = []
+            if dm_result.is_valid and dm_result.scene_context:
+                for npc in dm_result.scene_context.nearby_npcs:
+                    npc_id = npc.get("npc_id")
+                    # Берем только тех NPC, которых DM пропустил через валидатор (line_of_sight)
+                    if npc_id and dm_result.scene_context.line_of_sight.get(npc_id, False):
+                        npc_contexts.append({
+                            "npc_id": npc_id,
+                            "tier": npc.get("tier", "minor")  # Fallback для безопасности
+                        })
+            
+            python_engines_result = {
+                "dm_result": dm_result,
+                "npc_contexts": npc_contexts,  
+            }
+            
         except Exception as e:
-            logger.error(f"[GAME_LOOP] PythonEngines error: {e}")
-            python_engines_result = {}
+            logger.error(f"[GAME_LOOP] DM Orchestrator error: {e}")
+            python_engines_result = {"dm_result": None, "npc_contexts": []}
 
         shared_context["python_engines"] = python_engines_result
 
@@ -573,9 +605,10 @@ class GameLoop:
         error_interpreter = get_error_interpreter()
         start             = time.perf_counter()
 
+        # Модель загружается лениво внутри agent.run() через новый llm/router.
+        # Замер VRAM показывает потребление до и во время работы агента.
         vram_before = await vram_monitor.get_vram_mb()
-        await self.model_router.switch_to_agent(agent_name)
-        vram_after  = await vram_monitor.get_vram_mb()
+        vram_after  = vram_before  # Будет обновлено после agent.run()
 
         jsonl_log({
             "level": "INFO", "agent": agent_name, "status": "model_switch",

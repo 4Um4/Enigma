@@ -15,12 +15,12 @@ from app.services.adventure_loader import AdventureLoader
 from app.services.system_requirements import SystemRequirements
 from app.services.memory import JsonMemoryStore, LayeredMemory
 from app.services.memory.memory_manager import MemoryManager
-from app.services.model_router import ModelRouter
+# Старый model_router удалён — загрузка моделей теперь управляется llm/router.py
 from app.services.world_scheduler import WorldScheduler
 from app.services.character_service import CharacterService
 from app.services.scene_state_manager import SceneStateManager
 from app.services.action.processor import ActionProcessor
-from app.services.action.python_engines import PythonEngines
+from app.services.action.dm_orchestrator import DMOrchestrator
 from app.services.action.player_target_extractor import PlayerTargetExtractor
 from app.services.npc.life_engine import get_life_engine
 from app.agents.dm_agent import DmAgent
@@ -39,7 +39,7 @@ def _build_game_loop() -> GameLoop:
     scene_manager  = SceneStateManager(data_dir)
     life_engine    = get_life_engine()
     char_service   = CharacterService()
-    model_router   = ModelRouter()
+    # model_router удалён: загрузка моделей происходит лениво внутри агентов
     extractor      = PlayerTargetExtractor()
 
     # NPC cache — замыкание, одно на весь lifecycle приложения
@@ -79,28 +79,18 @@ def _build_game_loop() -> GameLoop:
         layered_memory, WorldSimulationAgent()
     )
 
-    python_engines = PythonEngines(
-        scene_manager             = scene_manager,
-        life_engine               = life_engine,
-        target_extractor          = extractor,
-        character_service         = char_service,
-        layered_memory            = layered_memory,
-        load_npcs_func            = load_npcs,
-        save_npcs_func            = save_npcs,
-        get_npcs_in_location_func = get_npcs_in_location,
-        get_character_dict_func   = get_character_dict,
-    )
+    dm_orchestrator = DMOrchestrator()
 
     loop = GameLoop(
         data_dir            = data_dir,
         layered_memory      = layered_memory,
         memory_manager      = memory_manager,
         processor           = ActionProcessor(),
-        python_engines      = python_engines,
+        dm_orchestrator     = dm_orchestrator,
         scene_manager       = scene_manager,
         world_scheduler     = world_scheduler,
         character_service   = char_service,
-        model_router        = model_router,
+        # model_router параметр удалён из GameLoop
         dm_agent            = DmAgent(),
         npc_agent           = NpcAgent(),
         rules_agent         = RulesAgent(),

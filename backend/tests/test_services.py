@@ -24,7 +24,11 @@ from app.services.knowledge_ingest import KnowledgeIngestService
 from app.services.combat_service import CombatService
 from app.services.game_loop import GameLoop
 from app.core.config import settings
-from app.services.llama_cpp import LlamaCppAdapter
+# Старый llama_cpp удалён, класс переименован в LlamaCppProvider
+try:
+    from app.services.llm.llama_cpp_provider import LlamaCppProvider as LlamaCppAdapter
+except ImportError:
+    LlamaCppAdapter = None
 
 from app.services.pdf_drop_importer import PdfDropImporter
 

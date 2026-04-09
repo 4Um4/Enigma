@@ -578,7 +578,7 @@ HARDCORE: разрешены грубость, мат, угрозы, мрачн�
         Далёкие NPC → lazy verbalization, пропускаем.
         Dynamic token budget по intent.
         """
-        from app.services.npc.verbalization_context import (
+        from app.services.verbalization.verbalization_context import (
             VerbalizationContext,
             build_npc_prompt_from_context,
             get_mass_template,
@@ -635,7 +635,7 @@ HARDCORE: разрешены грубость, мат, угрозы, мрачн�
             except Exception as e:
                 logger.error(f"[VERBALIZE] LLM failed для {ctx.npc_id}: {e}")
                 # Гарантированный fallback — NPC не исчезает из сцены
-                from app.services.npc.verbalization_context import get_mass_template
+                from app.services.verbalization.verbalization_context import get_mass_template
                 fallback = get_mass_template(ctx)
                 if fallback:
                     all_actions.append(fallback)

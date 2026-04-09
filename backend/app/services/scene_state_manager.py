@@ -115,6 +115,51 @@ class ChangeValidator:
         return True, ""
 
 
+# ---------------------------------------------------------------------------
+# R4.4: производные модификаторы среды из time_variant + типа локации
+# ---------------------------------------------------------------------------
+
+_NOISE_MAP: dict[str, float] = {
+    "silent":   0.0,
+    "low":      0.2,
+    "moderate": 0.5,
+    "loud":     0.8,
+}
+
+_LIGHT_MAP: dict[str, float] = {
+    "dark":      0.0,
+    "torchlit":  0.2,
+    "dim":       0.4,
+    "natural":   0.7,
+    "bright":    1.0,
+}
+
+# Базовая плотность и опасность по типу локации
+_TYPE_MODIFIERS: dict[str, dict[str, float]] = {
+    "dungeon": {"density": 0.6, "danger": 0.6},
+    "market":  {"density": 0.7, "danger": 0.1},
+    "tavern":  {"density": 0.3, "danger": 0.1},
+    "gate":    {"density": 0.2, "danger": 0.2},
+    "inn":     {"density": 0.1, "danger": 0.0},
+}
+
+def _derive_environment_modifiers(
+    time_variant: dict,
+    location_type: str,
+) -> dict[str, float]:
+    """
+    R4.4: вычисляет environment_modifiers из time_variant и типа локации.
+    Заменяет захардкоженные нули — LOS и sound_reach теперь работают реально.
+    """
+    base = _TYPE_MODIFIERS.get(location_type, {"density": 0.0, "danger": 0.0})
+    return {
+        "light":   _LIGHT_MAP.get(time_variant.get("light_level", "dim"), 0.4),
+        "noise":   _NOISE_MAP.get(time_variant.get("noise_level", "low"), 0.2),
+        "density": base["density"],
+        "danger":  base["danger"],
+    }
+
+
 # ──────────────────────────────────────────────────────────────────────────────
 # SceneStateManager
 # ──────────────────────────────────────────────────────────────────────────────
@@ -212,6 +257,7 @@ class SceneStateManager:
         target_object_id: str | None,
         player_position: str | None = None,
         player_distances: dict | None = None,
+        player_spatial: dict | None = None,
     ) -> None:
         """
         Обновляет поля пространственного контекста игрока в SceneState.
@@ -225,6 +271,8 @@ class SceneStateManager:
             target_object_id — id объекта с которым взаимодействует (или None)
             player_position  — текущая позиция игрока ("стоит", "на коленях" и т.д.)
             player_distances — {npc_id: float} расстояния до NPC в метрах
+            player_spatial   — spatial-контекст игрока:
+                               {location_id, position, local_position{x,y}}
         """
         scene_state["player_target_npc"]      = target_npc_id
         scene_state["player_target_npc_name"] = target_npc_name
@@ -235,6 +283,9 @@ class SceneStateManager:
 
         if player_distances is not None:
             scene_state["player_distances"] = player_distances
+
+        if player_spatial is not None:
+            scene_state["player_spatial"] = player_spatial
 
         self.save_scene_state(campaign_id, scene_state)
         logger.info(
@@ -358,6 +409,10 @@ class SceneStateManager:
                 return self._templates_cache
             except (json.JSONDecodeError, OSError) as e:
                 logger.warning(f"[SCENE] Ошибка чтения шаблонов: {e}")
+        logger.warning(
+            "[SCENE] location_templates.json недоступен — используется builtin fallback. "
+            "JSON должен быть основным source of truth."
+        )
         self._templates_cache = self._builtin_templates()
         return self._templates_cache
 
@@ -567,7 +622,10 @@ class SceneStateManager:
 
         npc_positions: dict = {}
         for npc_id, pos_data in template.get("npc_defaults", {}).items():
-            npc_positions[npc_id] = dict(pos_data)
+            pos_entry = dict(pos_data)
+            pos_entry.setdefault("location_id", location_id)
+            pos_entry.setdefault("local_position", {"x": 0.0, "y": 0.0})
+            npc_positions[npc_id] = pos_entry
 
         scene_state = {
             "location_id":              location_id,
@@ -582,10 +640,18 @@ class SceneStateManager:
             # Обновляется каждый ход через update_player_target()
             # Используется в build_npc_context_block() и _build_scene_description()
             "player_position":      "стоит",     # текущая поза/позиция игрока
+            "player_spatial": {
+                "location_id": location_id,
+                "position": "main_hall",
+                "local_position": {"x": 0.0, "y": 0.0},
+            },
             "player_target_npc":    None,         # id NPC к которому обращается
             "player_target_npc_name": None,       # читаемое имя (для промпта)
             "player_target_object": None,         # id объекта взаимодействия
             "player_distances":     {},           # {npc_id: float} метры
+            "environment_modifiers": _derive_environment_modifiers(
+                time_variant, template.get("type", "")
+            ),
             # ─────────────────────────────────────────────────────────────────
         }
 
