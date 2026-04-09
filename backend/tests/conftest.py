@@ -1,23 +1,39 @@
 # C:\DDD\Codex\VSC_Enigma\Enigma\backend\tests\conftest.py
+"""
+conftest.py — общие фикстуры для тестов ENIGMA
+"""
+
+import sys
+from pathlib import Path
+
+# === ФИКС ИМПОРТОВ ДЛЯ ТЕСТОВ ===
+# Добавляем оба возможных пути, чтобы pytest гарантированно видел пакет "app"
+root = Path(__file__).resolve().parents[2]          # Enigma/
+backend = root / "backend"
+
+if str(root) not in sys.path:
+    sys.path.insert(0, str(root))
+if str(backend) not in sys.path:
+    sys.path.insert(0, str(backend))
+
+# Теперь импорты from app... должны работать
 import pytest
 import os
 from unittest.mock import Mock, MagicMock, patch
-from pathlib import Path
-
-# Add backend to path for tests
-import sys
-ROOT_DIR = Path(__file__).resolve().parents[2]  # Enigma/backend
-if str(ROOT_DIR) not in sys.path:
-    sys.path.insert(0, str(ROOT_DIR))
 
 from app.services.llm.provider_manager import (
-    get_provider_manager, get_model_pool, ProviderManager, ModelPool,
-    initialize_providers, initialize_model_pool, ProviderStatus, ModelConfig
+    get_provider_manager, 
+    get_model_pool, 
+    ProviderManager, 
+    ModelPool,
+    initialize_providers, 
+    initialize_model_pool, 
+    ProviderStatus, 
+    ModelConfig
 )
-from app.services.llm.provider import LlmProvider, ProviderType
+from app.services.llm.provider import LlmProvider, ProviderType, ProviderInfo
 from app.services.llm.factory import ProviderFactory
 from app.services.llm.router import ModelRouter, get_router
-from app.services.llm.provider import ProviderInfo
 
 
 @pytest.fixture(scope="session")

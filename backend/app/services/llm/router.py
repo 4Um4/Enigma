@@ -1,3 +1,4 @@
+# backend\app\services\llm\router.py
 """
 Model Router - Capability-based LLM Routing with Lazy Loading
 
@@ -16,9 +17,12 @@ Features:
 
 from __future__ import annotations
 
+import asyncio
+from enum import Enum
+
 import time
 from dataclasses import dataclass, field
-from enum import Enum
+
 from typing import Optional
 
 from app.core.config import settings
@@ -228,12 +232,20 @@ class ModelRouter:
         if self._initialized:
             return
             
-        self._registry = dict(MODEL_REGISTRY)
-        self._capability_map = dict(DEFAULT_AGENT_CAPABILITY_MAP)
-        self._model_pool = None
+        # Инициализация реестра и зависимостей
+        self._registry: dict[str, ModelConfig] = _init_registry()
+        self._pool: dict[str, ModelConfig] = _init_registry()
+        self._providers: dict[str, Any] = {}
         self._provider_manager = None
-        self._current_model_key: str | None = None
-        self._use_lazy_loading: bool = True  # Default to lazy loading
+        self._model_pool = None      # Lazy initialization для ModelPool
+        self._current_model_key = None # Текущая активная модель (для legacy-методов)
+        self._capability_map = DEFAULT_AGENT_CAPABILITY_MAP.copy()
+        self._lazy_loading = True
+        
+        # Защита VRAM. Только 1 запрос обрабатывается одновременно.
+        # Критично для локальных 7B-13B моделей на 16GB VRAM.
+        self._vram_semaphore = asyncio.Semaphore(1)
+        
         self._initialized = True
     
     def _get_model_pool(self):
@@ -266,7 +278,7 @@ class ModelRouter:
     
     # === Main Request Methods ===
     
-    def request(
+    async def request(
         self,
         capability: Capability | str,
         prompt: str,
@@ -274,44 +286,37 @@ class ModelRouter:
         system_prompt: str | None = None,
     ) -> str:
         """
-        Основной метод: отправка запроса с автовыбором модели.
+        Основной асинхронный запрос к LLM с жёсткой защитой VRAM.
         
-        Args:
-            capability: Требуемая возможность (narrative, dialogue, etc)
-            prompt: Пользовательский промпт
-            params: Параметры генерации
-            system_prompt: Системный промпт
-            
-        Returns:
-            Ответ от LLM
+        Семaphore(1) гарантирует, что в любой момент времени только ОДИН запрос
+        обрабатывается моделью — критично для 7B–13B на 16 ГБ и меньше.
         """
-        # Convert string to Capability
         capability_obj = self._normalize_capability(capability)
-        
-        # Get preferred model keys for this capability
-        preferred_keys = CAPABILITY_MODEL_PREFERENCES.get(capability_obj, [])
-        
-        # Use ModelPool for lazy loading if enabled
-        if self._use_lazy_loading and self._model_pool is not None:
-            return self._request_via_pool(capability_obj, preferred_keys, prompt, params, system_prompt)
-        
-        # Fallback to ProviderManager (legacy)
-        pm = self._get_provider_manager()
-        if pm.is_ready:
-            model_provider = pm.get_provider_for_capability(
-                capability=capability_obj.value,
-                preferred_keys=preferred_keys,
-            )
-            
-            if model_provider:
-                return model_provider.provider.complete(prompt, params, system_prompt)
-            
-            model_provider = pm.get_any_available()
-            if model_provider:
-                return model_provider.provider.complete(prompt, params, system_prompt)
-        
-        # Legacy fallback
-        return self._request_legacy(capability_obj, prompt, params, system_prompt)
+        preferred_keys = self.get_capability_preferences(capability_obj)
+
+        # === ЗАЩИТА VRAM ===
+        async with self._vram_semaphore:
+            # Логируем вход в критическую секцию
+            logger.info(f"ModelRouter: Acquired VRAM semaphore for capability={capability_obj}")
+
+            try:
+                if self._lazy_loading:
+                    return await self._request_via_pool(
+                        capability=capability_obj,
+                        preferred_keys=preferred_keys,
+                        prompt=prompt,
+                        params=params,
+                        system_prompt=system_prompt,
+                    )
+                else:
+                    return await self._request_legacy(
+                        capability=capability_obj,
+                        prompt=prompt,
+                        params=params,
+                        system_prompt=system_prompt,
+                    )
+            finally:
+                logger.debug(f"ModelRouter: Released VRAM semaphore for {capability_obj}")
     
     def _request_via_pool(
         self,

@@ -16,11 +16,13 @@ import copy
 import logging
 from typing import Optional
 
+# Целевая архитектура данных (L2)
+from app.models.npc_profile import NPCStateL2
+
+# Легаси-типы, используемые в логике (Enum'ы и контракты)
 from app.services.npc.npc_state import (
     EmotionTag,
     Intent,
-    NPCPersonality,
-    NPCState,
     NarrativeFact,
     WillState,
 )
@@ -55,11 +57,11 @@ class StateApplicator:
 
     def apply(
         self,
-        state:        NPCState,
+        state:        NPCStateL2,
         result:       DecisionResult,
         campaign_id:  str,
         current_tick: int = 0,
-    ) -> NPCState:
+    ) -> NPCStateL2:
         """
         Применяет DecisionResult атомарно.
         Параметр personality УДАЛЁН — он уже использован в DecisionHub.

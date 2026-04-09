@@ -111,7 +111,7 @@ async def startup_event():
         pool = get_model_pool()
         pool.debug = True
         logging.getLogger("app.services.llm.provider_manager").setLevel(logging.DEBUG)
-        logging.getLogger("app.services.model_router").setLevel(logging.DEBUG)
+        # Старый model_router удалён
         print("✓ ModelPool.debug = True")
     except Exception as e:
         logger.warning(f"[STARTUP] ModelPool debug failed: {e}")

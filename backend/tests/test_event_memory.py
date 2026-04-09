@@ -232,7 +232,7 @@ class TestMemoryBreathes:
         base_personality: Any,   # TODO: заменить на NPCPersonality после создания класса
     ) -> str:
         from app.services.npc.npc_state import NPCState, Intent
-        from app.services.npc.verbalization_context import (
+        from app.services.verbalization.verbalization_context import (
             build_verbalization_context,
             build_npc_prompt_from_context,
         )

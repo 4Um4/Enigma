@@ -16,11 +16,13 @@ import random
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
 
+# Целевая архитектура данных (L0/L2)
+from app.models.npc_profile import NPCProfileL0, NPCStateL2
+
+# Легаси-типы, всё ещё используемые в логике (Enum'ы и контракты результатов)
 from app.services.npc.npc_state import (
     EmotionTag,
     Intent,
-    NPCPersonality,
-    NPCState,
     NarrativeFact,
     WillState,
 )
@@ -144,8 +146,8 @@ class DecisionHub:
 
     def compute(
         self,
-        state:           NPCState,
-        personality:     NPCPersonality,
+        state:           NPCStateL2,
+        personality:     NPCProfileL0,
         event:           EventContext,
         scene_state:     Optional[Dict[str, Any]] = None,
         opportunity_ctx: Optional[OpportunityContext] = None,
@@ -162,12 +164,25 @@ class DecisionHub:
 
         # R6.3 — оцениваем момент скрытого действия до фильтрации интентов.
         # OpportunityContext=None → inactive() без ошибки, backward-compatible.
-        opportunity = OpportunityEngine().evaluate(
-            state, opportunity_ctx or OpportunityContext()
+        # OpportunityEngine требует контекст и строку will_state, а не весь state
+        opportunity = OpportunityEngine().calculate(
+            ctx=opportunity_ctx or OpportunityContext(),
+            will_state=state.will_state.value if hasattr(state.will_state, "value") else str(state.will_state)
         )
 
         possible = self._get_possible_intents(state, personality, event, opportunity)
         scores   = self._score_all(state, personality, event, possible, opportunity)
+
+        if not scores:
+            # Защита от ValueError: если все интенты отфильтрованы — IDLE
+            return DecisionResult(
+                npc_id=state.npc_id,
+                intent=Intent.IDLE,
+                intent_target=None,
+                score=0.0,
+                scores_trace={"fallback": "no_available_intents"},
+                deltas=StateDeltas(),
+            )
 
         best_intent, best_score = max(scores.items(), key=lambda x: x[1])
 
@@ -179,8 +194,9 @@ class DecisionHub:
         deltas        = self._compute_deltas(state, personality, event, best_intent)
         narrative     = self._make_narrative_fact(event, best_intent, state, deltas)
 
-        # Трейс opportunity добавляется в scores_trace для калибровки R4.2
-        opp_trace = {f"opp_{k}": v for k, v in opportunity.score_trace.items()}
+        # В scores_trace попадают ТОЛЬКО числа для калибровки R4.2.
+        # Строки (причины срабатывания) отсекаются.
+        opp_trace = {f"opp_{k}": v for k, v in opportunity.score_trace.items() if isinstance(v, (int, float))}
 
         return DecisionResult(
             npc_id         = state.npc_id,
@@ -255,6 +271,7 @@ class DecisionHub:
         personality: NPCPersonality,
         event:       EventContext,
         possible:    List[str],
+        opportunity: OpportunityResult,  # ← правильный тип
     ) -> Dict[str, float]:
         """
         Считает score для каждого доступного intent.
@@ -361,7 +378,8 @@ class DecisionHub:
 
         # R6.3 — буст разблокированных интентов пропорционален opportunity_score.
         # Делает скрытое действие конкурентоспособным без ломания баланса формулы.
-        opportunity_mod = opportunity.intent_score_modifiers.get(intent, 0.0)
+        # Буст даётся только если интент разблокирован сломленным NPC
+        opportunity_mod = opportunity.score if intent in opportunity.unlocked_intents else 0.0
 
         return {
             "drive":        round(drive_score, 4),
@@ -378,9 +396,10 @@ class DecisionHub:
         state:       NPCState,
         personality: NPCPersonality,
         event:       EventContext,
+        opportunity: OpportunityResult,  # Добавлен недостающий параметр
     ) -> float:
         """Суммарный score без компонентов — для внутреннего использования."""
-        return sum(self._score_components(intent, state, personality, event).values())
+        return sum(self._score_components(intent, state, personality, event, opportunity).values())
 
     def _drive_relevance(
         self,
@@ -562,15 +581,21 @@ class DecisionHub:
         intent:      str,
     ) -> StateDeltas:
         """
-        Вычисляет дельты состояния — StateApplicator применит их атомарно.
+        Вычисляет дельты состояния с учётом saturation (diminishing returns).
+        StateApplicатор применит их атомарно.
         """
+        from app.services.npc.math_utils import apply_saturation
+        
         deltas = StateDeltas()
 
-        # Стресс от насилия рядом
+        # Стресс от насилия рядом — с saturation у границ диапазона (0-100)
         if event.event_type in ("combat", "capture") and event.distance <= 5.0:
-            deltas.stress_delta = round(15.0 * event.intensity, 2)
+            raw_stress = 15.0 * event.intensity
+            _, deltas.stress_delta = apply_saturation(
+                current=state.stress, delta=raw_stress
+            )
 
-        # Эмоциональная реакция
+        # Эмоциональная реакция (пока без saturation — нет жёсткого максимума)
         emotion_map = {
             "combat":      (EmotionTag.FEARFUL,   +20.0),
             "theft":       (EmotionTag.ANGRY,      +15.0),
@@ -584,10 +609,23 @@ class DecisionHub:
                 deltas.emotion_delta = round(delta * event.intensity, 2)
                 break
 
-        # Отношения: доверие и страх
+        # Отношения: доверие и страх — с saturation (пределы -100..100)
         if event.event_type in ("combat", "intimidation"):
-            deltas.trust_delta = round(-10.0 * event.intensity, 2)
-            deltas.fear_delta  = round(+8.0  * event.intensity, 2)
+            raw_trust = -10.0 * event.intensity
+            _, deltas.trust_delta = apply_saturation(
+                current=state.relationship_cache.get("trust", 0.0), 
+                delta=raw_trust, 
+                min_val=-100.0, 
+                max_val=100.0
+            )
+            
+            raw_fear = +8.0 * event.intensity
+            _, deltas.fear_delta = apply_saturation(
+                current=state.relationship_cache.get("fear", 0.0), 
+                delta=raw_fear, 
+                min_val=-100.0, 
+                max_val=100.0
+            )
         elif event.event_type == "help":
             deltas.trust_delta = round(+12.0 * event.intensity, 2)
             deltas.fear_delta  = round(-5.0  * event.intensity, 2)
@@ -609,17 +647,31 @@ class DecisionHub:
     ) -> Optional[NarrativeFact]:
         """
         Создаёт NarrativeFact если событие достаточно важное.
-        Только для событий с intensity >= 0.5.
+        Важность считается по реальному влиянию на веса (Память.md #4), 
+        а не по абстрактному event.intensity.
         """
-        if event.intensity < 0.5:
+        # Δweights = сумма абсолютных изменений ключевых метрик
+        delta_weights = abs(deltas.trust_delta) + abs(deltas.fear_delta) + abs(deltas.stress_delta)
+        
+        # Эмоциональный импакт (нормализация: max emotion_delta ~20.0 -> 0-1)
+        emotional_intensity = abs(deltas.emotion_delta) / 20.0 if deltas.emotion_delta else 0.0
+        
+        # Травма — всегда значимое событие для идентичности
+        identity_impact = 0.3 if deltas.new_trauma else 0.0
+        
+        # Итоговая важность: взвешенная сумма компонентов
+        importance = min(delta_weights * 0.01 + emotional_intensity * 0.5 + identity_impact * 0.2, 1.0)
+        
+        if importance < 0.3:
             return None
+
         emotion_str = deltas.emotion_tag.value if deltas.emotion_tag else "neutral"
         return NarrativeFact(
             event_type  = event.event_type,
             target_id   = event.actor_id,
             emotion_tag = emotion_str,
             day         = event.day,
-            importance  = min(event.intensity * 0.8, 1.0),
+            importance  = round(importance, 4),
         )
 
     def _explain_mode(

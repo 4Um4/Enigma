@@ -1,6 +1,6 @@
 from pathlib import Path
 from typing import Dict
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 ROOT_DIR = Path(__file__).resolve().parents[3]
 MODEL_DIR = ROOT_DIR / "Models LLM"
 
@@ -18,8 +18,6 @@ class NpcSettings(BaseSettings):
     temperature: float = 0.85
     ctx_size: int = 4096  # 12B — ctx=4096 ок
 
-    class Config:
-        env_prefix = "NPC_"
-        case_sensitive = False
+    model_config = SettingsConfigDict(env_prefix="NPC_", case_sensitive=False)
 
 npc_settings = NpcSettings()

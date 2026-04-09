@@ -439,7 +439,7 @@ class DmAgent:
 """
         # Пробуем загрузить из файла
         try:
-            from app.services.prompt_loader import load_system_prompt
+            from app.services.verbalization.prompt_loader import load_system_prompt
             from app.core.config import settings as s
             file_prompt = load_system_prompt(s.system_prompt_file)
             if file_prompt and len(file_prompt) > 20:

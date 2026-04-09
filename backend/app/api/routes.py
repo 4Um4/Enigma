@@ -33,7 +33,7 @@ from app.models.schemas import (
 from app.services.character_service import CharacterService
 from app.services.combat_service import CombatService
 from app.services.knowledge_ingest import KnowledgeIngestService
-from app.services.llm_service import llm_service
+from app.services.llm.health import check_llm_health
 from app.services.game_loop_factory import game_loop
 from app.services.readiness import ReadinessService
 from app.services.campaign_state_service import get_campaign_state_service
@@ -79,7 +79,7 @@ async def health() -> dict:
     from app.services.llm.provider_manager import get_model_pool
     pool = get_model_pool()
     
-    llm_status = llm_service.check_health(use_cache=True)
+    llm_status = check_llm_health(use_cache=True)
     active_campaigns = list(player_session_service._sessions.keys())
     total_players = sum(
         1 for camp_id in active_campaigns 
@@ -101,7 +101,7 @@ async def health() -> dict:
 
 @router.get("/system/status")
 def system_status() -> dict:
-    llm_status = llm_service.check_health(use_cache=False)
+    llm_status = check_llm_health(use_cache=False)
     memory_sessions = len(player_session_service._sessions)
     sessions_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data", "sessions")
     disk_sessions = len([f for f in os.listdir(sessions_dir) if f.endswith(".json")]) if os.path.exists(sessions_dir) else 0
