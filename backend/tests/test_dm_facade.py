@@ -10,7 +10,8 @@
 
 import pytest
 from app.services.npc.decision_hub import DecisionHub, EventContext
-from app.services.npc.npc_loader import load_profile_from_legacy_json
+from app.services.npc.npc_loader import load_profile_from_legacy_json, load_l2_state_from_runtime_dict
+from app.services.npc.npc_state import Intent, WillState
 from app.models.npc_profile import NPCStateL2
 
 # Минимальный словарь, имитирующий кусок major_npcs.json
@@ -82,3 +83,44 @@ class TestDMFacadeBridge:
         
         # Стресс должен остаться 10.0, так как StateApplicator здесь не вызывался
         assert state_l2.stress == 10.0
+
+
+    def test_real_l2_state_changes_hub_behavior(self):
+        """
+        Сценарий: Игрок говорит с Торнином, у которого затяжная обида (resentment=0.8).
+        1. Фасад загружает L0 (статика).
+        2. Фасад получает "живой" L2 из runtime-словаря с высоким resentment.
+        3. DecisionHub должен учесть это в формуле (score изменится).
+        """
+        # 1. Статика
+        profile_l0 = load_profile_from_legacy_json(MOCK_RAW_TORNIN)
+        
+        # 2. Динамика: имитация "живого" состояния из runtime
+        runtime_tornin_dict = {
+            "id": "tavern_keeper_tornin",
+            "psyche": {
+                "stress": 45.0,           # Высокий стресс
+                "state": "coerced",       # Вынужденное подчинение
+                "resentment": 0.8,       # Затаенная обида
+                "identity_integrity": 0.6 # Частично сломлен
+            },
+            "social_stats": {"trust": -20.0, "fear_of_player": 15.0}
+        }
+        
+        state_l2 = load_l2_state_from_runtime_dict(runtime_tornin_dict)
+        
+        # Проверки маппинга
+        assert state_l2.stress == 45.0
+        assert state_l2.resentment == 0.8
+        assert state_l2.will_state == WillState.COERCED  # Проверка Enum-маппинга
+        assert state_l2.relationship_cache["trust"] == -20.0
+
+        # 3. Вызов DecisionHub
+        event_ctx = EventContext(event_type="player_talks", actor_id="player_1")
+        hub = DecisionHub(seed=42)
+        result = hub.compute(state=state_l2, personality=profile_l0, event=event_ctx)
+        
+        # 4. Решение обиженного и частично сломленного NPC должно отличаться
+        # от решения полностью спокойного (из первого теста). 
+        # Мы не жестко задаем intent, но проверяем, что он не IDLE при высоком стрессе
+        assert result.intent != Intent.IDLE

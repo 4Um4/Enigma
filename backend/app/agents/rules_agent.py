@@ -12,12 +12,11 @@
 #   - Добавлены advantage/disadvantage условия
 #   - Добавлен ability_used — DM знает какую характеристику проверять
 #   - Готов к интеграции с EventBus (Phase 3B.1): result совместим со SceneChange
-#   - Убрана логика "рутинные слова" — за классификацию отвечает action_classifier
 
 from dataclasses import dataclass, field
 from typing import Optional
 from app.models.schemas import PlayerAction
-from app.services.action_classifier import ActionType
+from app.services.npc.npc_state import ActionType
 
 
 # ─── Таблица DC по D&D 5e PHB ───────────────────────────────────────────────
