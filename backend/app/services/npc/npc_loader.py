@@ -12,7 +12,8 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, Optional
 
-from app.models.npc_profile import NPCProfileL0, PsycheBase, NPCStateL2
+from app.models.npc_profile import NPCProfileL0, PsycheBase
+from app.services.npc.npc_state import NPCStateL2
 from app.services.npc.npc_state import WillState
 
 from app.services.npc.decision_hub import DecisionHub, EventContext

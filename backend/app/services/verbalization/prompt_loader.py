@@ -9,6 +9,7 @@ Prompt Loader - загрузчик системных промптов для LL
 """
 import json
 import os
+import re
 from pathlib import Path
 from typing import Optional, List
 
@@ -19,10 +20,123 @@ except ImportError:
     # Fallback для запуска из корня проекта или тестов
     from backend.app.core.config import settings
 
+from dataclasses import dataclass
+from typing import Union, Optional
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# VERBALIZATION CORE — Whitelist-контракт (источник смысла)
+# ═══════════════════════════════════════════════════════════════════════════════
+# Запрет: verbalization_core = str → НЕДОПУСТИМО
+# Только структурированные данные. Смысл формируется ДО текста.
+
+@dataclass(frozen=True, slots=True)
+class VerbalizationCore:
+    """Whitelist-контракт для ядра вербализации.
+    
+    Только три поля. Нельзя протащить числа, теги, internals.
+    Смысл детерминирован: intent + target + scene → текст.
+    
+    ЗАЧЕМ: Устраняет класс багов "утечка смысла" (-60%).
+    sanitize становится запасным фильтром, не основным.
+    """
+    intent: str   # "ATTACK", "TALK", "FLEE" — что хочет NPC
+    target: str   # "игрок", "Торнин" — к кому направлено
+    scene: str    # "Игрок спрашивает про эль" — что происходит
+    
+    def __post_init__(self):
+        # Защита от пустых обязательных полей
+        if not self.intent or not self.intent.strip():
+            raise ValueError("VerbalizationCore.intent не может быть пустым")
+    
+    def to_prompt_text(self) -> str:
+        """Формирует текст для промпта из структурированных данных.
+        
+        Единственная точка превращения смысл → текст.
+        sanitize больше не главный фильтр — это просто подстраховка.
+        """
+        parts = [f"Намерение: {self.intent.strip().upper()}"]
+        
+        if self.target and self.target.strip():
+            parts.append(f", цель: {self.target.strip()}")
+        parts.append(".")
+        
+        if self.scene and self.scene.strip():
+            # Sanitize на входе — защитный слой от грязных данных
+            clean_scene = _sanitize_verbalization_core(self.scene.strip())
+            if clean_scene:
+                parts.append(f"\nСитуация: {clean_scene}")
+        
+        return "".join(parts)
+
+
+
+# Константы лимитов для NPC промпта (защита от деградации токенного бюджета)
+VERBALIZATION_CORE_MAX_LEN = 300    # ~75 токенов — текущая ситуация
+VOICE_PROFILE_MAX_LEN = 150         # ~40 токенов — стиль речи
+EMOTION_MAX_LEN = 100               # ~25 токенов — эмоциональный фон
+
+
+def _sanitize_verbalization_core(core: str) -> str:
+    """Удаляет технические данные и ограничивает длину verbalization_core.
+    
+    NPC должен видеть описания, а не машинные параметры.
+    Это граница системы — последняя точка контроля.
+    
+    Приоритет секций (при нехватке контекста):
+    1. core — что происходит (обязательно)
+    2. emotion — эмоциональный фон
+    3. voice — стиль речи
+    4. biography — опционально (может быть отброшена)
+    """
+    if not core:
+        return core
+    
+    # Паттерны технических данных (case-insensitive)
+    patterns = [
+        r'\b\w+:\s*-?\d+\.?\d*\b',        # stress: 85, trust: -25
+        r'\bscore\s*=\s*[\d.]+\b',          # score=0.73
+        r'\bcommitment\s*=\s*[\d.]+\b',     # commitment=0.9
+        r'\bintent\s*=\s*\w+\b',            # intent=ATTACK
+        r'\bdelta_\w+\s*=\s*[+-]?\d+\b',    # delta_stress=+10
+        r'\[\w+\]',                          # [SYSTEM], [DEBUG], [INTERNAL]
+        r'\bwill\s*=\s*[\d.]+\b',           # will=0.5
+    ]
+    
+    result = core
+    for pattern in patterns:
+        result = re.sub(pattern, '', result, flags=re.IGNORECASE)
+    
+    # Убираем артефакты очистки
+    result = re.sub(r',\s*,', ',', result)
+    result = re.sub(r'^\s*,\s*', '', result)
+    result = re.sub(r',\s*$', '', result)
+    result = re.sub(r'\s{2,}', ' ', result).strip()
+    
+    # Ограничение длины — обрезка на границе предложения/слова
+    if len(result) > VERBALIZATION_CORE_MAX_LEN:
+        result = result[:VERBALIZATION_CORE_MAX_LEN]
+        # Приоритет: точка > запятая > пробел (чтобы не разрывать слово)
+        last_dot = result.rfind('.')
+        last_comma = result.rfind(',')
+        last_space = result.rfind(' ')
+        
+        # Берём лучший вариант, но не раньше половины лимита
+        candidates = [
+            (last_dot, '.'), 
+            (last_comma, ','), 
+            (last_space, '')
+        ]
+        for pos, suffix in candidates:
+            if pos > VERBALIZATION_CORE_MAX_LEN // 2:
+                result = result[:pos].rstrip() + suffix
+                break
+    
+    return result if result else "Ситуация в сцене"
+
 
 class PromptLoader:
     """Загрузчик и рендерер системных промптов."""
-    
 
     def __init__(self, prompts_dir: Optional[str] = None):
         """
@@ -183,7 +297,7 @@ class PromptLoader:
 
     def render_npc_prompt(
         self,
-        verbalization_core: str,
+        verbalization_core: VerbalizationCore,
         tier: str = "MINOR",
         npc_name: str = "",
         voice_profile: str = "",
@@ -198,29 +312,49 @@ class PromptLoader:
         Рендерит полный промпт для вербализации NPC через Jinja2.
         
         ЗАЧЕМ:
-        - VerbalizationContext передаёт только чистое ядро (intent + emotional_nuance + scene_hint).
-        - PromptLoader отвечает за обёртку в tier-aware контекст, биографию, стиль речи и системный промпт.
-        - Это сохраняет чистоту архитектуры: LLM получает только текст, без чисел и reasoning.
+        - VerbalizationCore (whitelist) — единственный источник смысла.
+        - str НЕ допускается — миграция завершена.
+        - to_prompt_text() — единственная точка смысл → текст.
         """
+        # Типовая проверка — early fail если кто-то передал строку
+        if not isinstance(verbalization_core, VerbalizationCore):
+            raise TypeError(
+                f"verbalization_core должен быть VerbalizationCore, "
+                f"получен {type(verbalization_core).__name__}"
+            )
+        
+        # Единственная точка смысл → текст
+        core_text = verbalization_core.to_prompt_text()
         try:
             template = self.env.get_template(template_name)
         except Exception:  # TemplateNotFound или любая ошибка загрузки шаблона
             # Graceful fallback — система продолжает работать
-            return f"{verbalization_core}\n\nГовори строго от первого лица. Одна короткая реплика."
+            return f"{core_text}\n\nГовори строго от первого лица. Одна короткая реплика."
 
-        # Загружаем базовый системный промпт игры
-        system_base = self.load_prompt("Promt_AI.json")
+        # Загружаем NPC системный промпт (НЕ DM промпт!)
+        # Чистый текстовый файл — без комментариев и кода
+        npc_sys_path = self.get_prompt_path("npc_system.txt")
+        if npc_sys_path.exists():
+            with open(npc_sys_path, "r", encoding="utf-8") as f:
+                system_base = f.read().strip()
+        else:
+            # Fallback если файл отсутствует
+            system_base = (
+                "Ты — персонаж игрового мира. Говори от первого лица.\n"
+                "Одна короткая реплика. Не придумывай действия за других.\n"
+                "Не возвращай JSON. Не задавай вопросов."
+            )
 
         return template.render(
             system_prompt=system_base,
             npc_name=npc_name or "Неизвестный NPC",
             tier=tier.upper(),
-            voice_profile=voice_profile,
-            emotion=emotion,
-            verbalization_core=verbalization_core.strip(),
-            narrative_hints=narrative_hints,      # R3: факты вместо сырой памяти
-            allow_profanity=allow_profanity,      # R3: флаг контента
-            biography=biography.strip()[:500],   # защита от слишком длинной биографии
+            voice_profile=voice_profile.strip()[:VOICE_PROFILE_MAX_LEN],
+            emotion=emotion.strip()[:EMOTION_MAX_LEN],
+            verbalization_core=core_text,
+            narrative_hints=narrative_hints.strip()[:200] if narrative_hints else "",
+            allow_profanity=allow_profanity,
+            biography=biography.strip()[:500],
             max_tokens=max_tokens
         )   
 

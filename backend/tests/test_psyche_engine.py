@@ -29,11 +29,15 @@ def test_stress_normal():
     print("✅ apply_stress (нормальный стресс)")
 
 def test_stress_breaks_will():
+    """R6.4: мгновенный слом удалён. apply_stress выставляет флаг high_stress,
+    state меняет только BreakProgressEngine. Проверяем флаг и отсутствие прямого слома."""
     npc = make_npc(willpower=60, stress=70, breakpoint=80)
     r = apply_stress(npc, 20)  # 70+20=90 > 80
-    assert npc["psyche"]["state"] == "broken"
-    assert r["state_changed"] == True
-    print("✅ apply_stress (breakpoint → state=broken)")
+    # state НЕ меняется напрямую — это работа BreakProgressEngine (R6.4)
+    assert npc["psyche"]["state"] == "free", "apply_stress не ломает state напрямую"
+    assert npc["psyche"].get("flags", {}).get("high_stress") is True, "флаг high_stress должен быть выставлен"
+    assert r["state_changed"] == False
+    print("✅ apply_stress (breakpoint → high_stress flag, not direct break)")
 
 def test_stress_capped_at_100():
     npc = make_npc(stress=90)

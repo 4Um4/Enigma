@@ -2,16 +2,17 @@
 """
 path: backend/app/services/action/dm_scene_builder.py
 Назначение: Этап 2 DM — Scene Builder. Определение "здесь и сейчас".
-Зависимости: app.services.npc.decision_hub.EventContext
+Зависимости: app.services.action.dm_router.RawEvent, app.services.npc.decision_hub.EventContext
 Основные сущности: SceneContext, DMSceneBuilder
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Dict, List, Optional, Set
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set
 
 if TYPE_CHECKING:
+    from app.services.action.dm_router import RawEvent
     from app.services.npc.decision_hub import EventContext
 
 
@@ -22,10 +23,10 @@ class SceneContext:
     DM Scene Builder определяет это, не принимая решений.
     """
     location_id: str
-    nearby_npcs: List[Dict[str, Any]]  # NPC в радиусе видимости
+    nearby_npcs: List[Dict[str, Any]]
     visible_objects: List[str]
     environmental_modifiers: Dict[str, float] = field(default_factory=dict)
-    line_of_sight: Dict[str, bool] = field(default_factory=dict)  # npc_id -> видит ли игрока
+    line_of_sight: Dict[str, bool] = field(default_factory=dict)
 
 
 class DMSceneBuilder:
@@ -41,27 +42,17 @@ class DMSceneBuilder:
     def build_scene_context(
         self,
         player_location: str,
-        spatial_data: Dict[str, Any],  # Из R4 Spatial System
-        event_ctx: EventContext,
+        spatial_data: Dict[str, Any],
+        raw_event: Optional[Any] = None,
     ) -> SceneContext:
         """
         Строит полный контекст сцены на основе пространственных данных.
         """
-        # Извлекаем NPC в радиусе видимости
         all_npcs = spatial_data.get("npcs", [])
         nearby_npcs = self._filter_by_visibility(all_npcs, player_location, spatial_data)
-        
-        # Рассчитываем LOS для каждого NPC
         los = self._calculate_los(nearby_npcs, player_location, spatial_data)
-        
-        # Environmental modifiers (R4.4)
         modifiers = self._get_environmental_modifiers(spatial_data)
         
-        # Обновляем EventContext witness_count (теперь точно!)
-        # Это важно: witness_count должен считаться ПОСЛЕ фильтрации видимости
-        visible_witnesses = sum(1 for npc in nearby_npcs if los.get(npc["id"], False))
-        
-        # Возвращаем SceneContext
         return SceneContext(
             location_id=player_location,
             nearby_npcs=nearby_npcs,
@@ -83,8 +74,7 @@ class DMSceneBuilder:
         for npc in npcs:
             npc_loc = npc.get("location_id")
             if npc_loc != player_location:
-                continue  # NPC в другой локации
-            
+                continue
             distance = npc.get("distance_to_player", 999.0)
             if distance <= visibility_radius:
                 result.append(npc)
@@ -97,29 +87,19 @@ class DMSceneBuilder:
         player_location: str,
         spatial_data: Dict,
     ) -> Dict[str, bool]:
-        """
-        Line of Sight — кто видит игрока.
-        Учитывает: свет, препятствия, направление взгляда NPC.
-        """
+        """Line of Sight — кто видит игрока."""
         los = {}
-        light_level = spatial_data.get("light_level", 1.0)  # 0.0-1.0
+        light_level = spatial_data.get("light_level", 1.0)
         
         for npc in npcs:
-            npc_id = npc["id"]
+            npc_id = npc.get("npc_id", npc.get("id", "unknown"))
             distance = npc.get("distance_to_player", 999.0)
-            
-            # Базовая видимость: чем ближе, тем лучше видно
             base_visibility = max(0.0, 1.0 - (distance / 20.0))
-            
-            # Модификатор света
             visibility = base_visibility * light_level
-            
-            # NPC смотрит в сторону игрока?
             facing_player = npc.get("facing_towards_player", True)
             if not facing_player:
-                visibility *= 0.3  # Сложно заметить, если не смотрит
-            
-            los[npc_id] = visibility > 0.2  # Порог видимости
+                visibility *= 0.3
+            los[npc_id] = visibility > 0.2
         
         return los
     
@@ -132,20 +112,33 @@ class DMSceneBuilder:
             "danger": spatial_data.get("ambient_danger", 0.0),
         }
     
-    def enrich_event_context(
+    def enrich_raw_event(
         self,
-        event_ctx: EventContext,
-        scene_ctx: SceneContext,
+        raw_event: Any,
+        scene_context: SceneContext,
     ) -> EventContext:
         """
-        Обогащает EventContext данными сцены.
-        EventContext frozen — создаём копию через dataclass.replace().
+        Создаёт EventContext из RawEvent + данные сцены.
+        SceneBuilder — единственное место где текстовые факты становятся миром.
         """
-        # Пересчитываем witness_count на основе реальной видимости
-        visible_count = sum(1 for visible in scene_ctx.line_of sight.values() if visible)
-        
-        # Не мутируем исходный контекст, создаём обновлённую копию
-        return dataclasses.replace(
-            event_ctx,
+        from app.services.action.dm_router import RawEvent
+        from app.services.npc.decision_hub import EventContext
+
+        visible_count = sum(1 for v in scene_context.line_of_sight.values() if v)
+
+        if isinstance(raw_event, RawEvent):
+            return EventContext(
+                event_type=raw_event.event_type,
+                actor_id=raw_event.actor_id,
+                intensity=raw_event.base_intensity,
+                witness_count=visible_count,
+                location=scene_context.location_id,
+                day=0,
+            )
+
+        return EventContext(
+            event_type="player_interacts",
+            actor_id="player",
             witness_count=visible_count,
+            location=scene_context.location_id,
         )

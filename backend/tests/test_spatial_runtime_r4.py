@@ -1,3 +1,4 @@
+from pathlib import Path
 from app.services.npc.perception_filter import _can_hear, _can_see, extract_scene_awareness
 from app.services.npc.spatial_runtime import line_of_sight, resolve_distance_between_entities, sound_reach, extract_scene_for_npc, PERCEPTION_RADIUS, sound_bleeds_to_adjacent
 from app.services.scene_state_manager import _derive_environment_modifiers
@@ -260,7 +261,7 @@ def test_sound_bleeds_to_adjacent_loud_event() -> None:
     adjacent = sound_bleeds_to_adjacent(
         scene, base_radius=10.0,
         bleed_threshold=12.0,
-        data_dir="data",
+        data_dir=str(Path(__file__).parent.parent / "data"),
     )
     assert isinstance(adjacent, list)
     assert "city_gate" in adjacent or "market_square" in adjacent or "inn_rooms" in adjacent
@@ -275,6 +276,6 @@ def test_sound_bleeds_quiet_event_stays_local() -> None:
     adjacent = sound_bleeds_to_adjacent(
         scene, base_radius=2.0,
         bleed_threshold=12.0,
-        data_dir="data",
+        data_dir=str(Path(__file__).parent.parent / "data"),
     )
     assert adjacent == []

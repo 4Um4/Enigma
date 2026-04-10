@@ -11,7 +11,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Dict, List, Optional
 
-from app.services.action.dm_router import DMRouter, RouterResult
+from app.services.action.dm_router import DMRouter, RouterResult, RawEvent
 from app.services.action.dm_scene_builder import DMSceneBuilder, SceneContext
 
 if TYPE_CHECKING:
@@ -83,17 +83,18 @@ class DMOrchestrator:
                 error=f"Router: {router_result.error.value} — {router_result.error_details}"
             )
         
-        # --- Этап 2: Scene Builder (контекст сцены) ---
+        # --- Этап 2: Scene Builder (RawEvent + Spatial → EventContext) ---
+        # SceneBuilder теперь получает ЧИСТЫЕ факты текста и добавляет реальность мира
         scene_ctx = self._scene_builder.build_scene_context(
             player_location=spatial_data.get("location_id", "unknown"),
             spatial_data=spatial_data,
-            event_ctx=router_result.event_context,
+            raw_event=router_result.raw_event,
         )
         
-        # Обогащаем EventContext данными сцены
-        enriched_event = self._scene_builder.enrich_event_context(
-            router_result.event_context,
-            scene_ctx,
+        # SceneBuilder формирует полноценный EventContext (с witness_count, distance и т.д.)
+        enriched_event = self._scene_builder.enrich_raw_event(
+            raw_event=router_result.raw_event,
+            scene_context=scene_ctx,
         )
         
         # --- Этап 3: Дополнительная валидация (Scene-based) ---

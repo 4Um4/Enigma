@@ -25,7 +25,10 @@ from dataclasses import dataclass, field
 
 from typing import Optional
 
+import logging
 from app.core.config import settings
+
+logger = logging.getLogger(__name__)
 from app.services.llm.provider import LlmProvider, GenerationParams, ProviderType
 
 
@@ -301,7 +304,7 @@ class ModelRouter:
 
             try:
                 if self._lazy_loading:
-                    return await self._request_via_pool(
+                    return self._request_via_pool(
                         capability=capability_obj,
                         preferred_keys=preferred_keys,
                         prompt=prompt,
@@ -309,7 +312,7 @@ class ModelRouter:
                         system_prompt=system_prompt,
                     )
                 else:
-                    return await self._request_legacy(
+                    return await self._request_sync(
                         capability=capability_obj,
                         prompt=prompt,
                         params=params,
@@ -356,13 +359,16 @@ class ModelRouter:
                         # Record metrics
                         latency_ms = (time.time() - start_time) * 1000
                         tokens = len(result.split())  # Rough estimate
-                        pool.record_request(model_key, latency_ms, tokens, success=True)
+                        # record_request — опциональная метрика, не критична
+                        if hasattr(pool, 'record_request'):
+                            pool.record_request(model_key, latency_ms, tokens, success=True)
                         
                         return result
                     except Exception as e:
                         # Record failure
                         latency_ms = (time.time() - start_time) * 1000
-                        pool.record_request(model_key, latency_ms, 0, success=False)
+                        if hasattr(pool, 'record_request'):
+                            pool.record_request(model_key, latency_ms, 0, success=False)
                         print(f"ModelRouter: Model {model_key} failed: {e}")
                         continue
         
@@ -379,7 +385,7 @@ class ModelRouter:
         
         # Last resort: legacy fallback
         print("ModelRouter: Falling back to legacy mode")
-        return self._request_legacy(capability, prompt, params, system_prompt)
+        return self._request_sync(capability, prompt, params, system_prompt)
     
     def _normalize_capability(self, capability: Capability | str) -> Capability:
         """Convert string to Capability enum."""
@@ -390,7 +396,7 @@ class ModelRouter:
                 return Capability.GENERAL
         return capability
     
-    def _request_legacy(
+    def _request_sync(
         self,
         capability: Capability,
         prompt: str,
@@ -500,7 +506,16 @@ class ModelRouter:
             Ответ от LLM
         """
         capability = self._capability_map.get(agent_name, Capability.GENERAL)
-        return self.request(capability, prompt, params, system_prompt)
+        coro = self.request(capability, prompt, params, system_prompt)
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                future = asyncio.run_coroutine_threadsafe(coro, loop)
+                return future.result(timeout=60)
+            else:
+                return asyncio.run(coro)
+        except Exception:
+            return asyncio.run(coro)
     
     def set_capability_for_agent(self, agent_name: str, capability: Capability | str) -> None:
         """Установить маппинг агент → capability."""

@@ -12,7 +12,7 @@ import pytest
 from app.services.npc.decision_hub import DecisionHub, EventContext
 from app.services.npc.npc_loader import load_profile_from_legacy_json, load_l2_state_from_runtime_dict
 from app.services.npc.npc_state import Intent, WillState
-from app.models.npc_profile import NPCStateL2
+from app.services.npc.npc_state import NPCStateL2
 
 # Минимальный словарь, имитирующий кусок major_npcs.json
 MOCK_RAW_TORNIN = {
@@ -41,7 +41,7 @@ class TestDMFacadeBridge:
         assert profile_l0.drives_base["control"] == 0.5
 
         # 2. Получение состояния L2 (в реальности достается из памяти кэша)
-        state_l2 = NPCStateL2()
+        state_l2 = NPCStateL2(npc_id="test_npc")
         
         # 3. Формирование события от игрока (имитация работы DM Router)
         event_ctx = EventContext(
@@ -75,7 +75,7 @@ class TestDMFacadeBridge:
         Если мутирует — архитектура сломана.
         """
         profile_l0 = load_profile_from_legacy_json(MOCK_RAW_TORNIN)
-        state_l2 = NPCStateL2(stress=10.0)
+        state_l2 = NPCStateL2(npc_id="test_npc", stress=10.0)
         
         event_ctx = EventContext(event_type="player_insults", actor_id="player_1")
         
