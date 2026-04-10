@@ -1,5 +1,11 @@
 # backend/app/services/npc/npc_state.py
 """
+Единый источник типов NPC. Жёсткие write-контракты:
+  L0 NPCPersonality   — write: NEVER (frozen dataclass)
+  L1 NPCIdentityL1    — write: ONLY ResonanceEngine
+  L2 NPCState         — write: ONLY StateApplicator
+  EventMemory         — write: ONLY MemoryManager
+
 R2.1 — NPCState: единый источник правды о динамическом состоянии NPC.
 NPCState — центральный узел всей психики.
 
@@ -14,12 +20,12 @@ NPCState — центральный узел всей психики.
 from __future__ import annotations
 
 import math
-import math as _math
+_math = math
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict, Optional, Set, Tuple, Union
 
-from backend.app.services.npc.behavior_mask import BehaviorMaskState
+from app.services.npc.behavior_mask import BehaviorMaskState
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -237,7 +243,44 @@ class NPCPersonality:
                 f"Проверь JSON конфигурацию NPC."
             )
 
-# ─────────────────────────────────────────────────────────────────────────────
+
+
+
+# ═════════════════════════════════════════════════════════
+# L1 — IDENTITY (semi-stable, пишет ТОЛЬКО ResonanceEngine)
+# ═════════════════════════════════════════════════════════
+
+@dataclass
+class NPCIdentityL1:
+    """
+    L1: Кристаллизованные черты личности из паттернов памяти.
+    Накапливается через ResonanceEngine — не изменяется напрямую.
+    Overlay поверх NPCPersonality.drives_base — не замена.
+    """
+    npc_id: str
+    # Накопленные черты: ключ = trait_name, значение = накопленный вес
+    # Пример: {"resentment": 0.34, "dependency": 0.12}
+    # WRITE: только ResonanceEngine.apply_resonance()
+    active_traits: Dict[str, float] = field(default_factory=dict)
+
+    def overlay_drives(self, base: Dict[str, float]) -> Dict[str, float]:
+        """
+        Возвращает drives с наложенными trait-весами.
+        Читается DecisionHub через DecisionView — не напрямую.
+        """
+        result = dict(base)
+        for trait, weight in self.active_traits.items():
+            if trait in result:
+                result[trait] = max(0.0, min(1.0, result[trait] + weight))
+        return result
+
+
+# ═════════════════════════════════════════════════════════
+# L2 — STATE (volatile, пишет ТОЛЬКО StateApplicator)
+# ═════════════════════════════════════════════════════════
+
+
+# ───────────────────────────────────────────────────────
 # NPCState — dynamic, единственный изменяемый объект
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -281,7 +324,9 @@ class NPCState:
     emotion:        EmotionTag = EmotionTag.NEUTRAL
     emotion_delta:  float      = 0.0
 
-    # ── Trait Accumulation (overlay на personality_base, не замена) ───────────
+    # TODO: мост → L1. Будет удалено после подключения ResonanceEngine к StateApplicator.
+    # Сейчас пишется StateApplicator, читается verbalization_context и decision_hub.
+    # Целевое место: NPCIdentityL1.active_traits (write: ONLY ResonanceEngine)
     active_traits: Dict[str, float] = field(default_factory=dict)
 
     # ── Intent ────────────────────────────────────────────────────────────────
@@ -289,6 +334,7 @@ class NPCState:
     intent_target:       Optional[str]    = None
     intent_formed_at:    int              = 0
     intent_duration:     int              = 0   # тиков держится текущий intent
+    intent_progress_ticks: int            = 0   # тиков с реальным прогрессом (значимые дельты)
     last_intent_change:  int              = 0   # тик последней смены intent
 
     # ── Кэш отношений ────────────────────────────────────────────────────────
@@ -364,16 +410,40 @@ class NPCState:
             
             "emotion":            self.emotion.value,
             "emotion_delta":      self.emotion_delta,
-            "active_traits":      dict(self.active_traits),
+            "active_traits":      {},  # L1: хранится в NPCIdentityL1, не в NPCState
             "trauma_markers":     list(self.trauma_markers),
             "intent":             self.intent.value if self.intent else None,
             "intent_target":      self.intent_target,
-            "intent_duration":    self.intent_duration,
-            "last_intent_change": self.last_intent_change,
+            "intent_duration":      self.intent_duration,
+            "intent_progress_ticks": self.intent_progress_ticks,
+            "last_intent_change":   self.last_intent_change,
             "relationship_cache": dict(self.relationship_cache),
             "position_valid":     self.position_valid,
             "cached_position":    list(self.cached_position) if self.cached_position else None,
         }
+
+
+
+    @staticmethod
+    def write_to_legacy(state: "NPCState", npc_dict: dict) -> None:
+        """
+        Записывает NPCState обратно в legacy dict (major_npcs.json).
+        Вызывается ПОСЛЕ StateApplicator.apply() — единственная точка записи.
+        Мутирует npc_dict (вызывающий должен сохранить через _save_npcs).
+        """
+        psyche = npc_dict.setdefault("psyche", {})
+        ss     = npc_dict.setdefault("social_stats", {})
+
+        # Психика
+        psyche["stress"]       = state.stress
+        psyche["state"]        = state.will_state.value
+        psyche["trauma_flags"] = list(state.trauma_markers)
+
+        # Социальные статы (из relationship_cache)
+        rc = state.relationship_cache
+        ss["trust"]          = rc.get("trust", 0.0)
+        ss["fear_of_player"] = rc.get("fear", 0.0)
+        ss["debt"]           = rc.get("debt", 0.0)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -411,25 +481,6 @@ class NPCStateAdapter:
             },
         )
 
-    @staticmethod
-    def to_legacy(state: NPCState, npc_dict: dict) -> None:
-        """
-        Записывает изменения из NPCState обратно в legacy dict.
-        TODO: удалить после полного перехода на StateApplicator.
-        будет удалено после: завершения R2 (StateApplicator готов и подключён)
-        """
-        psyche = npc_dict.setdefault("psyche", {})
-        ss     = npc_dict.setdefault("social_stats", {})
-
-        psyche["stress"]       = state.stress
-        psyche["state"]        = state.will_state
-        psyche["trauma_flags"] = list(state.trauma_markers)
-
-        ss["trust"]          = state.relationship_cache.get("trust", 0.0)
-        ss["fear_of_player"] = state.relationship_cache.get("fear", 0.0)
-        ss["debt"]           = state.relationship_cache.get("debt", 0.0)
-
-
 # ─────────────────────────────────────────────────────────────────────────────
 # NPCPersonality builder — из legacy dict
 # ─────────────────────────────────────────────────────────────────────────────
@@ -457,3 +508,29 @@ def personality_from_legacy(npc_dict: dict) -> NPCPersonality:
         voice_profile = npc_dict.get("voice_profile", ""),
         backstory     = npc_dict.get("backstory", ""),
     )
+
+
+# ═════════════════════════════════════════════════════════
+# DecisionView — read-only контракт для DecisionHub
+# Только этот объект передаётся в compute() — не сырые L0/L1/L2
+# ═════════════════════════════════════════════════════════
+
+@dataclass(frozen=True)
+class DecisionView:
+    """
+    Контракт чтения для DecisionHub.
+    Изолирует ядро решений от прямого доступа к L0/L1/L2.
+    Создаётся в game_loop / dm_orchestrator перед вызовом compute().
+    """
+    profile:  NPCPersonality   # L0 — неизменяемая личность
+    identity: NPCIdentityL1    # L1 — накопленные черты
+    state:    NPCState         # L2 — текущее состояние
+
+
+# ═════════════════════════════════════════════════════════
+# Алиасы — для будущей миграции к явным именам слоёв
+# Нулевой слом тестов: старые имена продолжают работать
+# ═════════════════════════════════════════════════════════
+
+NPCProfileL0 = NPCPersonality   # L0
+NPCStateL2   = NPCState         # L2

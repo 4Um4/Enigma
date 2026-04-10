@@ -336,7 +336,10 @@ class PlayerTargetExtractor:
 
             # legacy R4.2 fallback for raw XY state
             player_pos = scene_state.get("player_position") or {}
-            px, py = player_pos.get("x"), player_pos.get("y")
+            if isinstance(player_pos, dict):
+                px, py = player_pos.get("x"), player_pos.get("y")
+            else:
+                px, py = None, None
             nx, ny = npc_data.get("x"), npc_data.get("y")
             if px is not None and py is not None and nx is not None and ny is not None:
                 import math

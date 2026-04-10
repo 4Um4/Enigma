@@ -26,7 +26,7 @@ def test_r62_default_mask():
     """
     npc = NPCState(npc_id="test_npc")
 
-    assert npc.behavior_mask.mask is BehaviorMask.NONE
+    assert npc.behavior_mask.mask == BehaviorMask.NONE
     assert npc.behavior_mask.intensity == 0.0
     assert npc.behavior_mask.applied_at_day is None
     assert npc.behavior_mask.is_active() is False

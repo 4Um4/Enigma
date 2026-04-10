@@ -18,9 +18,10 @@ from app.services.llm import ModelRouter, Capability, get_router
 from app.services.llm.provider import GenerationParams
 from app.services.llm.provider_manager import get_model_pool
 from app.core.config import settings
-
+from app.services.verbalization.verbalization_context import VerbalizationContext  # R3 path
 
 from pydantic import BaseModel, Field, ConfigDict
+
 
 class NPCVerbalizationResponse(BaseModel):
     speech: str = Field(default="", max_length=2000)
@@ -44,7 +45,21 @@ class NpcAgent:
     def router(self) -> ModelRouter:
         if self._router is None:
             self._router = get_router()
-        return self._router
+
+    def _sync_request(self, *args, **kwargs):
+        router = self._router if self._router else get_router()
+        capability = kwargs.get("capability", args[0] if args else "dialogue")
+        prompt = kwargs.get("prompt", args[1] if len(args) > 1 else "")
+        params = kwargs.get("params", None)
+        system_prompt = kwargs.get("system_prompt", None)
+        print(f"[SYNC_REQ] capability={capability}, prompt_len={len(prompt)}")
+        try:
+            result = router._request_sync(capability, prompt, params, system_prompt)
+            print(f"[SYNC_REQ] OK, result_len={len(result) if result else 0}")
+            return result
+        except Exception as e:
+            print(f"[SYNC_REQ] FAILED: {type(e).__name__}: {e}")
+            raise
 
     def _get_capability_for_npc(self, npc_importance: Optional[str] = None) -> Capability:
         if npc_importance == "major":
@@ -59,10 +74,27 @@ class NpcAgent:
         shared_context: Optional[dict] = None,
         npc_importance: str = "mass",
     ) -> dict:
-        try:
-            return self.react(location, actions, npc_memory, shared_context, npc_importance)
-        except Exception:
-            return self._fallback_react(location, actions, npc_memory)
+        # R3-маршрутизация: если есть VerbalizationContext — минуем старый react()
+        if shared_context:
+            npc_contexts = shared_context.get("npc_contexts", [])
+            r3_contexts = [
+                ctx["verbalization_ctx"]
+                for ctx in npc_contexts
+                if isinstance(ctx.get("verbalization_ctx"), VerbalizationContext)
+            ]
+            if r3_contexts:
+                scene_state = shared_context.get("scene_state")
+                return self.run_from_context(r3_contexts, scene_state)
+
+        # Fallback: R3 path недоступен — возвращаем пустой результат.
+        # НЕ удалять: защита от случаев когда VerbalizationContext не собран.
+        print("[WARN] NPC agent: R3 path unavailable, using fallback")
+        return {
+            "npc_reactions": [],
+            "npc_actions": [],
+            "npc_memory_updates": [],
+            "npc_state_updates": [],
+        }
 
     def speak_as(self, npc_name: str, context: str, player_action: str) -> str:
         prompt = f"""Ситуация: {context}
@@ -76,7 +108,7 @@ class NpcAgent:
 Не описывай действия - только говори."""
 
         try:
-            return self.router.request(
+            return self._sync_request(
                 capability=self._get_capability_for_npc("major"),
                 prompt=prompt,
                 system_prompt=system_prompt,
@@ -538,29 +570,6 @@ HARDCORE: разрешены грубость, мат, угрозы, мрачн�
 Не повторяй дословно фразы игрока, реагируй по смыслу.
 Не добавляй мета-пояснений.{tone}"""
 
-    def _fallback_react(
-        self,
-        location: str,
-        actions: list[PlayerAction],
-        npc_memory: Optional[list[dict]] = None,
-    ) -> dict:
-        reactions = []
-        memory_lines = []
-        for action in actions:
-            reactions.append(f"NPC в {location} реагируют на '{action.action}'.")
-            memory_lines.append(f"{action.player_name}: {action.action}")
-        if npc_memory:
-            last = npc_memory[-1].get("note") if isinstance(npc_memory[-1], dict) else None
-            if last:
-                reactions.append(f"NPC помнят: {last}")
-        return {
-            "npc_reactions":      reactions,
-            "npc_memory_updates": memory_lines,
-            "npc_actions":        [],
-            "npc_state_updates":  [],
-            "npc_inner_thoughts": [],
-        }
-
     # ─────────────────────────────────────────────────────────────────────────
     # R3.1 — новый путь через VerbalizationContext
     # Вызывается вместо run() когда DecisionHub уже принял решение.
@@ -618,22 +627,40 @@ HARDCORE: разрешены грубость, мат, угрозы, мрачн�
             if max_tokens == 0:
                 continue
 
-            sys_p, usr_p = build_npc_prompt_from_context(ctx)
+            print(f"[VERBALIZE] Building prompt for {ctx.npc_id}, tier={ctx.tier}, intent={ctx.intent}, tokens={max_tokens}")
+            try:
+                sys_p, usr_p = build_npc_prompt_from_context(ctx)
+                print(f"[VERBALIZE] Prompt built OK, sys_p len={len(sys_p)}, usr_p len={len(usr_p)}")
+            except Exception as e:
+                print(f"[VERBALIZE] build_npc_prompt_from_context failed for {ctx.npc_id}: {e}")
+                continue
 
             try:
-                resp = self.router.request(
+                resp = self._sync_request(
                     capability=Capability.DIALOGUE,
                     prompt=usr_p,
                     system_prompt=sys_p,
                     params=GenerationParams(max_tokens=max_tokens),
                 )
+                print(f"[VERBALIZE] LLM response for {ctx.npc_id}: {resp[:50]}...")
                 # R3-путь: только speech и action — дельты не запрашиваем и не принимаем
                 speech, action = self._parse_r3_response(resp)
+                print(f"[VERBALIZE] Parsed: speech='{speech[:30]}', action='{action[:30]}'")
+                
+                # Speech — реплика NPC (основная)
+                if speech and speech not in ("...", ""):
+                    line = f"{ctx.npc_name}: {speech}"
+                    all_reactions.append(line)
+                
+                # Action — физическое действие (дополнительно)
                 if action and action not in ("молчит, разговор не к нему", ""):
-                    all_actions.append(f"{ctx.npc_name}: {action}")
+                    line = f"{ctx.npc_name}: {action}"
+                    all_actions.append(line)
 
             except Exception as e:
-                logger.error(f"[VERBALIZE] LLM failed для {ctx.npc_id}: {e}")
+                import traceback
+                print(f"[VERBALIZE] LLM failed для {ctx.npc_id}: {e}")
+                print(f"[VERBALIZE] Traceback: {traceback.format_exc()}")
                 # Гарантированный fallback — NPC не исчезает из сцены
                 from app.services.verbalization.verbalization_context import get_mass_template
                 fallback = get_mass_template(ctx)
@@ -654,194 +681,3 @@ HARDCORE: разрешены грубость, мат, угрозы, мрачн�
     # react — основной метод
     # ─────────────────────────────────────────────────────────────────────────
 
-    def react(
-        self,
-        location: str,
-        actions: list[PlayerAction],
-        npc_memory: Optional[list[dict]] = None,
-        shared_context: Optional[dict] = None,
-        npc_importance: str = "mass",
-    ) -> dict:
-        """
-        Генерирует реакции NPC.
-
-        S.0: передаёт scene_state в _build_phase3a_prompt и _resolve_active_npcs.
-             Применяет _filter_npc_response для проверки что нужный NPC отвечает.
-        """
-        npc_contexts   = self._get_phase3a_npc_contexts(shared_context)
-        recent_session = shared_context.get("recent_session", []) if shared_context else []
-
-        scene_state   = shared_context.get("scene_state") if shared_context else None
-        target_npc_id = (scene_state or {}).get("player_target_npc")
-
-
-        # S.0: получаем SceneState для пространственного контекста
-        scene_state    = shared_context.get("scene_state") if shared_context else None
-        target_npc_id  = (scene_state or {}).get("player_target_npc")
-        working_memory = shared_context.get("working_memory", []) if shared_context else []
-
-        if npc_contexts:
-            # ── ПУТЬ ФАЗА 3A: есть NPC с психологией ────────────────────────
-            tier_order = {"major": 0, "minor": 1, "mass": 2}
-            sorted_contexts = sorted(
-                npc_contexts,
-                key=lambda c: tier_order.get(c.get("tier", "mass"), 2)
-            )
-
-            # S.0: передаём scene_state в _resolve_active_npcs
-            active_contexts = self._resolve_active_npcs(
-                actions, sorted_contexts, scene_state=scene_state
-            )
-
-            if not active_contexts:
-                return {
-                    "npc_reactions":      [],
-                    "npc_actions":        [],
-                    "npc_memory_updates": [],
-                    "npc_state_updates":  [],
-                    "model":              {"key": "none"},
-                    "npc_inner_thoughts": [
-                        {"npc": ctx["npc_name"], "thought": ctx.get("inner_thought", "")}
-                        for ctx in npc_contexts
-                    ],
-                }
-
-            primary_tier = active_contexts[0].get("tier", "minor")
-            capability   = self._get_capability_for_npc(
-                "major" if primary_tier == "major" else npc_importance
-            )
-            model_key  = self.router.select_model(capability)
-            model_meta = {"key": model_key}
-            try:
-                pool = get_model_pool()
-                cfg  = pool.get_model_config(model_key) if pool else None
-                if cfg:
-                    model_meta.update({
-                        "name":         cfg.name,
-                        "provider":     cfg.provider_type.value,
-                        "path":         cfg.path,
-                        "context_size": cfg.context_size,
-                        "temperature":  cfg.temperature,
-                    })
-            except Exception:
-                pass
-
-            all_reactions    = []
-            all_actions      = []
-            all_mem_updates  = []
-            npc_state_updates = []
-
-            # R3-путь: если есть verbalization_ctx — используем run_from_context
-            r3_contexts = [
-                ctx["verbalization_ctx"]
-                for ctx in active_contexts
-                if "verbalization_ctx" in ctx
-            ]
-            if r3_contexts:
-                scene_state_for_r3 = shared_context.get("scene_state") if shared_context else None
-                return self.run_from_context(r3_contexts, scene_state=scene_state_for_r3)
-                
-            for npc_ctx in active_contexts:
-                npc_name    = npc_ctx.get("npc_name", "NPC")
-                npc_id      = npc_ctx.get("npc_id", "")
-                npc_tier    = npc_ctx.get("tier", "minor")
-                npc_capability = self._get_capability_for_npc(
-                    "major" if npc_tier == "major" else "mass"
-                )
-
-                npc_ctx_with_session = {**npc_ctx, "recent_session": recent_session}
-
-                # R1.C1: передаём scene_state и working_memory в _build_phase3a_prompt
-                sys_p, usr_p = self._build_phase3a_prompt(
-                    npc_ctx_with_session, actions, npc_memory,
-                    scene_state=scene_state,
-                    working_memory=working_memory,
-                )
-
-                try:
-                    resp = self.router.request(
-                        capability=npc_capability,
-                        prompt=usr_p,
-                        system_prompt=sys_p,
-                        params=GenerationParams(max_tokens=120),
-                    )
-
-                    speech, action, trust_delta, stress_delta = self._parse_npc_response(resp)
-
-                    # S.0: постфильтр — если модель сгенерировала ответ не от того NPC
-                    speech, action, trust_delta, stress_delta = self._filter_npc_response(
-                        speech, action, trust_delta, stress_delta,
-                        speaker_npc_id=npc_id,
-                        target_npc_id=target_npc_id,
-                    )
-
-                    # Молчащий NPC не добавляется в реакции (только "..." не нужен игроку)
-                    if speech and speech != "...":
-                        all_reactions.append(f"{npc_name}: {speech}")
-                    if action and action != "молчит, разговор не к нему":
-                        all_actions.append(f"{npc_name}: {action}")
-
-                    all_mem_updates.append(f"{npc_name}: {usr_p}")
-
-                    if (trust_delta != 0 or stress_delta != 0) and npc_id:
-                        npc_state_updates.append({
-                            "npc_id":       npc_id,
-                            "npc_name":     npc_name,
-                            "trust_delta":  round(trust_delta / 100.0, 4),
-                            "stress_delta": stress_delta,
-                        })
-
-                except Exception:
-                    all_reactions.append(f"{npc_name} молча наблюдает.")
-
-            return {
-                "npc_reactions":      all_reactions,
-                "npc_actions":        all_actions,
-                "npc_memory_updates": all_mem_updates,
-                "npc_state_updates":  npc_state_updates,
-                "model":              model_meta,
-                "npc_inner_thoughts": [
-                    {"npc": ctx["npc_name"], "thought": ctx.get("inner_thought", "")}
-                    for ctx in npc_contexts
-                ],
-            }
-
-        else:
-            # ── ПУТЬ ДЕФОЛТ: нет Phase 3A данных ────────────────────────────
-            capability    = self._get_capability_for_npc(npc_importance)
-            system_prompt = self._get_system_prompt()
-            user_prompt   = self._build_prompt(location, actions, npc_memory, shared_context)
-
-            model_key  = self.router.select_model(capability)
-            model_meta = {"key": model_key}
-            try:
-                pool = get_model_pool()
-                cfg  = pool.get_model_config(model_key) if pool else None
-                if cfg:
-                    model_meta.update({
-                        "name":         cfg.name,
-                        "provider":     cfg.provider_type.value,
-                        "path":         cfg.path,
-                        "context_size": cfg.context_size,
-                        "temperature":  cfg.temperature,
-                    })
-            except Exception:
-                pass
-
-            try:
-                response = self.router.request(
-                    capability=capability,
-                    prompt=user_prompt,
-                    system_prompt=system_prompt,
-                    params=GenerationParams(max_tokens=180),
-                )
-                return {
-                    "npc_reactions":      [response],
-                    "npc_actions":        [],
-                    "npc_memory_updates": [user_prompt],
-                    "npc_state_updates":  [],
-                    "model":              model_meta,
-                    "npc_inner_thoughts": [],
-                }
-            except Exception:
-                return self._fallback_react(location, actions, npc_memory)

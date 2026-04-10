@@ -17,7 +17,8 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
 
 # Целевая архитектура данных (L0/L2)
-from app.models.npc_profile import NPCProfileL0, NPCStateL2
+from app.models.npc_profile import NPCProfileL0
+from app.services.npc.npc_state import NPCStateL2  # алиас для NPCState (L2)
 
 # Легаси-типы, всё ещё используемые в логике (Enum'ы и контракты результатов)
 from app.services.npc.npc_state import (
@@ -41,8 +42,12 @@ from app.services.npc.opportunity_engine import (
 SCORE_NOISE_RANGE: float = 0.10
 
 # Максимальная инерция intent — после 10 тиков смена intent затруднена
-INTENT_INERTIA_MAX_TICKS: int = 10
+INTENT_INERTIA_MAX_TICKS: int   = 10
 INTENT_INERTIA_WEIGHT:    float = 0.20
+
+# Распад инерции при отсутствии прогресса — после N тиков "впустую"
+INTENT_SATURATION_TICKS: int   = 6   # тиков без прогресса до начала decay
+INTENT_DECAY_RATE:        float = 0.03  # убывание за каждый лишний тик
 
 # Порог страха: выше — NPC склонен к FLEE/OBSERVE вместо ATTACK
 FEAR_FLEE_THRESHOLD: float = 0.65
@@ -151,6 +156,7 @@ class DecisionHub:
         event:           EventContext,
         scene_state:     Optional[Dict[str, Any]] = None,
         opportunity_ctx: Optional[OpportunityContext] = None,
+        identity:        Optional["NPCIdentityL1"] = None,
     ) -> DecisionResult:
         """
         Основной метод. READ ONLY — state не мутируется.
@@ -170,8 +176,10 @@ class DecisionHub:
             will_state=state.will_state.value if hasattr(state.will_state, "value") else str(state.will_state)
         )
 
+        # Черты из L1. Если identity не передан — берём из state (мост до полной миграции)
+        active_traits: Dict[str, float] = identity.active_traits if identity else state.active_traits
         possible = self._get_possible_intents(state, personality, event, opportunity)
-        scores   = self._score_all(state, personality, event, possible, opportunity)
+        scores   = self._score_all(state, personality, event, possible, opportunity, active_traits)
 
         if not scores:
             # Защита от ValueError: если все интенты отфильтрованы — IDLE
@@ -267,11 +275,12 @@ class DecisionHub:
 
     def _score_all(
         self,
-        state:       NPCState,
-        personality: NPCPersonality,
-        event:       EventContext,
-        possible:    List[str],
-        opportunity: OpportunityResult,  # ← правильный тип
+        state:        NPCState,
+        personality:  NPCPersonality,
+        event:        EventContext,
+        possible:     List[str],
+        opportunity:  OpportunityResult,
+        active_traits: Dict[str, float] = None,  # L1 черты, опционально
     ) -> Dict[str, float]:
         """
         Считает score для каждого доступного intent.
@@ -292,7 +301,7 @@ class DecisionHub:
                     scores[intent_str] = -1.0
                     continue
 
-            components = self._score_components(intent_str, state, personality, event, opportunity)
+            components = self._score_components(intent_str, state, personality, event, opportunity, active_traits or {})
             base = sum(components.values())
             noise = self._rng.uniform(-SCORE_NOISE_RANGE, SCORE_NOISE_RANGE)
 
@@ -340,11 +349,12 @@ class DecisionHub:
 
     def _score_components(
         self,
-        intent:      str,
-        state:       NPCState,
-        personality: NPCPersonality,
-        event:       EventContext,
-        opportunity: OpportunityResult,
+        intent:        str,
+        state:         NPCState,
+        personality:   NPCPersonality,
+        event:         EventContext,
+        opportunity:   OpportunityResult,
+        active_traits: Dict[str, float] = None,  # L1 черты из NPCIdentityL1
     ) -> Dict[str, float]:
         """
         Возвращает словарь компонентов score — для полного trace в R4.2.
@@ -359,7 +369,7 @@ class DecisionHub:
         drive_score  = self._drive_relevance(intent, drives, event)
         emotion_mod  = self._emotion_modifier(intent, state.emotion)
         rel_mod      = self._relationship_modifier(intent, trust, fear)
-        trait_mod    = self._trait_modifier(intent, state.active_traits)
+        trait_mod    = self._trait_modifier(intent, active_traits or {})
 
         # Risk теперь intent-aware (Disco Elysium style)
         # Высокий fear + высокий risk = мощный FLEE, а не паралич
@@ -547,13 +557,31 @@ class DecisionHub:
 
     def _intent_inertia(self, state: NPCState) -> float:
         """
-        Инерция текущего intent. Чем дольше держится — тем сложнее сменить.
-        Максимум через INTENT_INERTIA_MAX_TICKS тиков.
+        Инерция intent с условным распадом.
+        Рост: до INTENT_INERTIA_MAX_TICKS — бонус растёт.
+        Decay: включается только при отсутствии прогресса
+               (effective_stall > INTENT_SATURATION_TICKS).
+        Так NPC держит цель пока движется к ней,
+        но теряет намерение если топчется на месте.
         """
         if state.intent is None or state.intent == Intent.IDLE:
             return 0.0
-        ratio = min(state.intent_duration / INTENT_INERTIA_MAX_TICKS, 1.0)
-        return ratio * INTENT_INERTIA_WEIGHT
+
+        duration = state.intent_duration
+        progress = min(state.intent_progress_ticks, duration)
+
+        # Рост инерции — стандартный
+        ratio = min(duration / INTENT_INERTIA_MAX_TICKS, 1.0)
+        base  = ratio * INTENT_INERTIA_WEIGHT
+
+        # Decay только при бесплодном намерении
+        effective_stall = duration - progress
+        if effective_stall > INTENT_SATURATION_TICKS:
+            excess = effective_stall - INTENT_SATURATION_TICKS
+            decay  = excess * INTENT_DECAY_RATE
+            base   = max(0.0, base - decay)
+
+        return base
 
     # ─────────────────────────────────────────────────────────────────────────
     # Вспомогательные методы

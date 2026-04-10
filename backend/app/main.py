@@ -26,6 +26,7 @@ from app.services.llm.provider_manager import get_model_pool
 from app.services.llm.factory import ProviderFactory
 from app.services.logging_tools import jsonl_log
 from app.services.llm.llama_cpp_provider import LlamaCppProvider
+from app.services.game_loop_builder import build_game_loop
 
 logger = logging.getLogger(__name__)
 
@@ -116,7 +117,16 @@ async def startup_event():
     except Exception as e:
         logger.warning(f"[STARTUP] ModelPool debug failed: {e}")
 
-    # 5. LLM server health check (НЕ блокирует старт при недоступности)
+    # 5. GameLoop — единственный инстанс, живёт в app.state
+    try:
+        app.state.game_loop = build_game_loop(DATA_DIR)
+        print("✓ GameLoop initialized (app.state)")
+    except Exception as e:
+        logger.error(f"[STARTUP] GameLoop failed: {e}")
+        print(f"✗ GameLoop error: {e}")
+        app.state.game_loop = None  # explicit — guard в accessor
+
+    # 6. LLM server health check (НЕ блокирует старт при недоступности)
     print("\n=== Проверка LLM сервера ===")
     try:
         provider = LlamaCppProvider()

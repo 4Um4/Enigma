@@ -201,7 +201,7 @@ class WorldState:
       - WorldTokenBudget (срез для агентов)
 
     Не дублирует SceneStateManager — использует его для чтения/записи.
-    Один экземпляр на кампанию (создаётся в game_loop_factory).
+    Один экземпляр на кампанию (создаётся в main.py при startup).
     """
 
     def __init__(self) -> None:

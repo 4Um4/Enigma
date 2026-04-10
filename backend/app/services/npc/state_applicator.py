@@ -17,7 +17,7 @@ import logging
 from typing import Optional
 
 # Целевая архитектура данных (L2)
-from app.models.npc_profile import NPCStateL2
+from app.services.npc.npc_state import NPCStateL2  # алиас для NPCState (L2)
 
 # Легаси-типы, используемые в логике (Enum'ы и контракты)
 from app.services.npc.npc_state import (
@@ -69,9 +69,15 @@ class StateApplicator:
         """
         # Глубокая копия — атомарность через замену целиком
         new_state = copy.deepcopy(state)
+        
+        # Debug: проверяем что deepcopy не сломал объект
+        if not hasattr(new_state, 'intent_duration'):
+            print(f"[STATE_APPLICATOR] deepcopy сломал объект {state.npc_id}! type={type(new_state)}, attrs={list(vars(new_state).keys()) if hasattr(new_state, '__dict__') else 'no __dict__'}")
+            return state
 
         try:
             self._apply_intent(new_state, result, current_tick)
+            self._apply_progress(new_state, result.deltas)  # счётчик реального прогресса
             self._apply_deltas(new_state, result.deltas, campaign_id)
             self._apply_narrative(new_state, result.narrative_fact)
 
@@ -164,12 +170,38 @@ class StateApplicator:
             # Intent не изменился — увеличиваем duration
             state.intent_duration += 1
         else:
-            # Intent сменился — фиксируем момент смены
+            # Intent сменился — мягкий сброс: сохраняем 30% прогресса для цепочек
             state.intent           = new_intent
             state.intent_target    = result.intent_target
             state.intent_formed_at = current_tick
             state.intent_duration  = 0
+            state.intent_progress_ticks = int(state.intent_progress_ticks * 0.3)
             state.last_intent_change = current_tick
+
+
+    def _apply_progress(
+        self,
+        state:  NPCStateL2,
+        deltas: "StateDeltas",
+    ) -> None:
+        """
+        Обновляет счётчик тиков реального прогресса.
+        Прогресс = значимое изменение мира (отношения, психика, черты).
+        Стресс не считается — он шум, а не результат.
+        """
+        has_progress = (
+            abs(deltas.trust_delta) > 0.01
+            or abs(deltas.fear_delta) > 0.01
+            or abs(deltas.identity_integrity_delta) > 0.01
+            or bool(deltas.trait_updates)
+        )
+        if has_progress:
+            # Потолок: прогресс не может превышать duration
+            state.intent_progress_ticks = min(
+                state.intent_progress_ticks + 1,
+                state.intent_duration,
+            )
+
 
     def _apply_deltas(
         self,

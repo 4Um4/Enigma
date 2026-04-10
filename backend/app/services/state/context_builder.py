@@ -20,10 +20,8 @@ def build_context(
     player:               str,
     scene_state:          dict,
     python_engines:       dict,
-    physics_validation:   list,
-    classification:       list,
-    recent_memory:        list,
-    reaction_order:       list,
+    recent_memory:        list  = [],
+    reaction_order:       list  = [],
     forced_first_speaker: Optional[str] = None,
 ) -> dict:
     """
@@ -55,8 +53,6 @@ def build_context(
         # ── Результаты Python-движков ─────────────────────────────────
         "python_engines":     python_engines,
         "npc_contexts":       npc_contexts,
-        "physics_validation": physics_validation,
-        "classification":     classification,
 
         # ── Память и сессия ───────────────────────────────────────────
         "recent_memory":  recent_memory,

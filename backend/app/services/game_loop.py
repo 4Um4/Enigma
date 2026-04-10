@@ -1,4 +1,4 @@
-﻿# backend/app/services/game_loop.py
+# backend/app/services/game_loop.py
 #
 # Шаг 5 рефакторинга: единая точка входа для run_turn и stream_turn.
 #
@@ -26,6 +26,8 @@ from app.models.schemas import (
     PlayerAction,
 )
 from app.services.action.dm_orchestrator import DMOrchestrator
+from app.services.events.event_types import GameEvent, EventType
+from app.services.events.event_bus import get_event_bus
 from app.services.action.player_target_extractor import PlayerTargetExtractor
 from app.services.state.context_builder import build_context, patch_scene_state
 from app.services.scene_state_manager import SceneStateManager
@@ -88,11 +90,11 @@ class GameLoop:
         *,
         data_dir: Path,
         layered_memory: LayeredMemory,
+        memory_manager,          # MemoryManager — подключён к DecisionHub и identity_cache
         dm_orchestrator: DMOrchestrator,
         scene_manager: SceneStateManager,
         world_scheduler: WorldScheduler,
         character_service: CharacterService,
-        # model_router удалён
         dm_agent,
         npc_agent,
         rules_agent,
@@ -103,7 +105,8 @@ class GameLoop:
     ):
         self.data_dir         = data_dir
         self.layered_memory   = layered_memory
-        self.dm_orchestrator = dm_orchestrator
+        self.memory_manager   = memory_manager
+        self.dm_orchestrator  = dm_orchestrator
         self.scene_manager    = scene_manager
         self.world_scheduler  = world_scheduler
         self.character_service = character_service
@@ -220,7 +223,10 @@ class GameLoop:
             yield event
 
         # NPC реакции — ДО токенов DM
-        npc_reactions = state.npc_result.get("npc_reactions", [])
+        npc_reactions = (
+            state.npc_result.get("npc_reactions", [])
+            + state.npc_result.get("npc_actions", [])
+        )
         if npc_reactions:
             yield {
                 "type":  "npc",
@@ -343,46 +349,152 @@ class GameLoop:
             # ВНИМАНИЕ: ключи shared_context могут немного отличаться, проверьте при первом запуске
             raw_input = actions[0].action if actions else ""
             
+            # 4.5: Извлекаем цель игрока из текста — без этого target=None всегда
+            try:
+                _scene_pre = shared_context.get("scene_state") or {}
+                _npc_ids = list((_scene_pre.get("npc_positions") or {}).keys())
+                # Загружаем name_forms из NPC JSON — extract() ищет по ним
+                _all_npcs_raw = self._load_npcs()
+                _npc_ctx_list = []
+                for _n in _all_npcs_raw:
+                    _nid = _n.get("id") or _n.get("npc_id")
+                    if _nid and _nid in _npc_ids:
+                        _npc_ctx_list.append({
+                            "npc_id": _nid,
+                            "npc_name": _n.get("name", ""),
+                            "name_forms": _n.get("name_forms", []),
+                        })
+                _target_extractor = PlayerTargetExtractor()
+                _target_id, _target_name, _, _, _ = _target_extractor.extract(
+                    action_text=raw_input or "",
+                    npc_contexts=_npc_ctx_list,
+                    scene_state=_scene_pre if isinstance(_scene_pre, dict) else {},
+                )
+                if _target_id:
+                    shared_context["player_target_id"] = _target_id
+                    shared_context["player_target_name"] = _target_name
+                    print(f"[TARGET] Extracted: {_target_name} ({_target_id})")
+                else:
+                    print(f"[TARGET] No target found in: {(raw_input or '')[:50]}...")
+            except Exception as _te:
+                import traceback
+                print(f"[TARGET] Extract error: {_te}")
+                traceback.print_exc()
+            
+            # Строим spatial_data из scene_state для DM SceneBuilder
+            _scene = shared_context.get("scene_state", {})
+            _npc_positions = _scene.get("npc_positions", {})
+            print(f"[DEBUG SPATIAL] location={location}, npc_positions keys={list(_npc_positions.keys())}")
+            _npcs_for_builder = []
+            for _nid, _npos in _npc_positions.items():
+                _npcs_for_builder.append({
+                    "npc_id": _nid,
+                    "location_id": location,
+                    "distance_to_player": _npos.get("distance_to_player", 0.0),
+                    "facing_towards_player": True,
+                })
+            _spatial_data = {
+                "location_id": location,
+                "npcs": _npcs_for_builder,
+                "objects": _scene.get("objects", []),
+                "light_level": _scene.get("environment", {}).get("light", 1.0),
+            }
+            
             dm_result = self.dm_orchestrator.process_player_action(
                 raw_input=raw_input,
                 player_data=shared_context.get("player", {}),
                 player_markers=shared_context.get("player_markers", []),
                 target_npc_id=shared_context.get("player_target_id"),
-                spatial_data=shared_context.get("player_spatial", {}),
+                spatial_data=_spatial_data,
                 current_day=shared_context.get("current_day", 1),
                 current_tick=shared_context.get("current_tick", 0),
             )
             
-            # TODO: временная заглушка
-            # будет удалено после: интеграции DecisionHub внутри DMOrchestrator (Этап 4-5 плана DM)
+            # Передаём DM результат в контекст для NPC agent и Verbalization
             shared_context["dm_result"] = dm_result
-            
-            # Этап 4 (Базовый): Извлекаем участников сцены из DM SceneBuilder
-            # TODO: временная заглушка
-            # будет удалено после: выделения DM Execution Facade в отдельный сервис (Этап 5)
+
+            # 5.1: Публикуем событие в EventBus — без этого PerceptionFilter слепой
+            if dm_result.is_valid:
+                _evt_map = {
+                    "dialogue": EventType.PLAYER_SPOKE,
+                    "attack": EventType.PLAYER_ATTACKED,
+                    "move": EventType.PLAYER_MOVED,
+                    "stealth": EventType.PLAYER_MOVED,
+                }
+                _raw_type = shared_context.get("action_type", "dialogue")
+                _game_evt = GameEvent(
+                    event_type=_evt_map.get(_raw_type, EventType.PLAYER_SPOKE),
+                    actor_id="player",
+                    location=location,
+                    campaign_id=campaign_id,
+                    target_id=shared_context.get("player_target_id"),
+                    parameters={"raw_input": raw_input, "action_type": _raw_type},
+                )
+                get_event_bus().publish(_game_evt)
+                print(f"[EVENT_BUS] Published: {_game_evt.event_type.name}, target={_game_evt.target_id}")
+
+            # Этап 4: Формируем NPC контексты для DecisionHub
+
             from app.services.npc.npc_loader import load_profile_from_legacy_json, load_l2_state_from_runtime_dict
             from app.services.verbalization.verbalization_context import VerbalizationContext, generate_emotional_nuance
             from app.services.npc.decision_hub import DecisionHub, EventContext as HubEventContext
 
             npc_contexts = []
+            print(f"[DEBUG DM] is_valid={dm_result.is_valid}, scene_context={dm_result.scene_context}, error={dm_result.error}")
             if dm_result.is_valid and dm_result.scene_context:
                 # Формируем базовое событие для DecisionHub (пока упрощенно)
                 raw_event_type = shared_context.get("action_type", "player_interacts")
                 hub_event = HubEventContext(event_type=raw_event_type, actor_id="player")
 
+                _dirty_npcs: set = set()  # ID изменённых dict'ов для сохранения
                 for npc in dm_result.scene_context.nearby_npcs:
                     npc_id = npc.get("npc_id")
                     if npc_id and dm_result.scene_context.line_of_sight.get(npc_id, False):
                         
-                        # 1. Мост: Грязный Dict -> Чистые L0/L2 типы
-                        profile_l0 = load_profile_from_legacy_json(npc)
-                        state_l2 = load_l2_state_from_runtime_dict(npc)
+                        # 1. Загружаем полный профиль NPC по ID из major_npcs.json
+                        _all_npcs_raw = self._load_npcs()
+                        _npc_profile = None
+                        for _n in _all_npcs_raw:
+                            if _n.get("id") == npc_id or _n.get("npc_id") == npc_id:
+                                _npc_profile = _n
+                                break
+                        if not _npc_profile:
+                            print(f"[GAME_LOOP] Profile not found for {npc_id}")
+                            continue
+                        # Сохраняем ссылку на dict для записи после StateApplicator
+                        _npc_dict_for_write = _npc_profile
                         
-                        # 2. Этап 5: Запуск DecisionHub (Read-Only)
+                        # 2. Мост: Грязный Dict -> Чистые L0/L2 типы
+                        profile_l0 = load_profile_from_legacy_json(_npc_profile)
+                        state_l2 = load_l2_state_from_runtime_dict(_npc_profile)
+
+                        # 1.5. Обогащаем relationship_cache из MemoryManager (РАЗРЫВ #1 закрыт)
+                        # DecisionHub теперь принимает решения с учётом реальной истории отношений
+                        try:
+                            mem_weights = self.memory_manager.get_weights_for_decision(
+                                campaign_id=campaign_id,
+                                npc_id=npc_id,
+                                target_id="player",
+                            )
+                            state_l2.relationship_cache.update(mem_weights)
+                        except Exception as _mem_e:
+                            print(f"[MEMORY] get_weights failed for {npc_id}: {_mem_e}")
+
+                        # 2. Этап 5: Запуск DecisionHub с L1 чертами (РАЗРЫВ #1+#2 полностью закрыт)
+                        _identity_traits = self.memory_manager.get_identity_traits(
+                            campaign_id=campaign_id,
+                            npc_id=npc_id,
+                        )
+                        from app.services.npc.npc_state import NPCIdentityL1
+                        _identity = NPCIdentityL1(
+                            npc_id=npc_id,
+                            active_traits=_identity_traits,
+                        )
                         decision = DecisionHub().compute(
                             state=state_l2,
                             personality=profile_l0,
-                            event=hub_event
+                            event=hub_event,
+                            identity=_identity,
                         )
                         
                         # 3. StateApplicator: Вычисляем реальные последствия (Read -> Write)
@@ -397,11 +509,19 @@ class GameLoop:
                                 result=decision,
                                 campaign_id=campaign_id
                             )
+                            # ЗАМЫКАНИЕ: Записываем новое состояние обратно в dict
+                            from app.services.npc.npc_state import NPCState
+                            NPCState.write_to_legacy(state_to_use_for_llm, _npc_dict_for_write)
+                            _dirty_npcs.add(id(_npc_dict_for_write))
                         except Exception as e:
                             logger.warning(f"[DM_FACADE] StateApplicator failed for {npc_id}, using raw state: {e}")
                         
                         # 4. Упаковка в VerbalizationContext (Enum -> Строки для LLM)
                         # ИСПОЛЬЗУЕМ state_to_use_for_llm, чтобы LLM увидел последствия решения!
+                        _dominant_drive = max(profile_l0.drives_base.items(), key=lambda x: x[1])[0]
+                        # Формируем контекст события для NPC (что именно происходит)
+                        _scene_hint = raw_input[:500].strip() if raw_input else ""
+                        
                         verb_ctx = VerbalizationContext(
                             npc_id=profile_l0.id,
                             npc_name=profile_l0.name,
@@ -410,13 +530,9 @@ class GameLoop:
                             will_state=state_to_use_for_llm.will_state.value,
                             intent=decision.intent.value,
                             intent_target=decision.intent_target,
-                            # Временные пустышки (будут заполняться DM Aggregator и Nuance Engine)
-                            scene_hint="",
+                            scene_hint=_scene_hint,
                             emotional_nuance=generate_emotional_nuance(state_to_use_for_llm),
-                            # Извлекаем доминирующий драйв из L0 профиля для стиля речи LLM
-                            dominant_drive = max(profile_l0.drives_base.items(), key=lambda x: x[1])[0],
-                            speech_style=dominant_drive,
-                            # Берём из L0 профиля
+                            speech_style=_dominant_drive,
                             voice_profile=profile_l0.voice_profile,
                             backstory=profile_l0.backstory,
                         )
@@ -443,6 +559,9 @@ class GameLoop:
                             "verbalization_ctx": verb_ctx,   # КЛЮЧ: Переключает агента на путь R3!
                             "decision_result": decision       # Для будущего StateApplicator
                         })
+                # Сохраняем все изменённые NPC состояния
+                if _dirty_npcs:
+                    self._save_npcs(self._load_npcs())
             
             python_engines_result = {
                 "dm_result": dm_result,
@@ -454,36 +573,41 @@ class GameLoop:
             python_engines_result = {"dm_result": None, "npc_contexts": []}
 
         shared_context["python_engines"] = python_engines_result
+        _all_npc_contexts = python_engines_result.get("npc_contexts", [])
 
-        # 5.5: PerceptionFilter — кто из NPC воспринял последнее событие
+        # 5.5: PerceptionFilter — фильтруем npc_contexts по воспринимающим NPC
         try:
             from app.services.npc.perception_filter import filter_perceiving_npcs
-            from app.services.events.event_bus import get_event_bus
 
-            npc_contexts = python_engines_result.get("npc_contexts", [])
-            npc_ids = [ctx["npc_id"] for ctx in npc_contexts]
-            recent = get_event_bus().get_recent_events(limit=1, campaign_id=campaign_id)
+            _all_npc_ids = [ctx["npc_id"] for ctx in _all_npc_contexts]
+            _recent = get_event_bus().get_recent_events(limit=1, campaign_id=campaign_id)
 
-            if recent and npc_ids:
-                perceiving = filter_perceiving_npcs(
-                    npc_ids     = npc_ids,
-                    event       = recent[0],
+            if _recent and _all_npc_ids:
+                _perceiving_ids = set(filter_perceiving_npcs(
+                    npc_ids     = _all_npc_ids,
+                    event       = _recent[0],
                     scene_state = shared_context.get("scene_state", {}),
-                )
-                shared_context["perceiving_npcs"] = perceiving
-                logger.info(
-                    f"[GAME_LOOP] PerceptionFilter: "
-                    f"{len(perceiving)}/{len(npc_ids)} NPC воспринимают событие"
-                )
+                ))
+                # Если есть явный адресат — только он отвечает
+                # (Позже: добавить свидетелей по LOS + distance)
+                _explicit_target = shared_context.get("player_target_id")
+                if _explicit_target:
+                    _perceiving_ids = {_explicit_target}
+                
+                # ФИЛЬТРУЕМ — только воспринимающие NPC получают вербализацию
+                _filtered_ctxs = [c for c in _all_npc_contexts if c.get("npc_id") in _perceiving_ids]
+                shared_context["npc_contexts"] = _filtered_ctxs
+                shared_context["perceiving_npcs"] = list(_perceiving_ids)
+                _target_note = f" (target={_explicit_target})" if _explicit_target else ""
+                print(f"[PERCEPTION_FILTER] {len(_perceiving_ids)}/{len(_all_npc_ids)} NPC{_target_note}: {list(_perceiving_ids)}")
             else:
-                shared_context["perceiving_npcs"] = npc_ids
-                logger.warning(
-                    f"[GAME_LOOP] PerceptionFilter skip: "
-                    f"recent={len(recent)} npc_ids={len(npc_ids)}"
-                )
-        except Exception as e:
-            logger.error(f"[GAME_LOOP] PerceptionFilter error: {e}")
-            shared_context["perceiving_npcs"] = []
+                shared_context["npc_contexts"] = _all_npc_contexts
+                print(f"[PERCEPTION_FILTER] skip: recent={len(_recent) if _recent else 0}, npcs={len(_all_npc_ids)}")
+        except Exception as _pf_err:
+            import traceback
+            print(f"[PERCEPTION_FILTER] error: {_pf_err}")
+            traceback.print_exc()
+            shared_context["npc_contexts"] = _all_npc_contexts
 
         # 6. Rules агент
         rules_result = await self._run_agent_safe(
@@ -530,6 +654,8 @@ class GameLoop:
 
         # P0.2: ответы NPC → Working Memory
         for _reaction in npc_result.get("npc_reactions", []):
+            if not isinstance(_reaction, str):
+                continue
             if _reaction and ":" in _reaction:
                 self.memory_manager.record_event(campaign_id, {
                     "type":        "npc_speech",
@@ -540,7 +666,14 @@ class GameLoop:
 
         # P0.3: decay каждые 10 ходов
         _tick = shared_context.get("scene_state", {}).get("snapshot_tick", 0)
-        self.memory_manager.run_decay_if_needed(campaign_id, _tick)
+        # Decay → identity_weights → NPCIdentityL1 cache (РАЗРЫВ #2 закрыт)
+        _identity_weights = self.memory_manager.run_decay_if_needed(campaign_id, _tick)
+        # TODO: npc_id недоступен здесь глобально — weights применяются по actor_id из событий
+        # Временно: detect_resonance для общего actor "player" (будет per-NPC в ШАГ 6)
+        if _identity_weights:
+            _resonance = self.memory_manager.detect_resonance(campaign_id, actor_id="player")
+            for _npc_id in shared_context.get("active_npc_ids", []):
+                self.memory_manager.apply_identity_weights(campaign_id, _npc_id, _resonance)
         # ────────────────────────────────────────────────────────────────────────
 
         return _PipelineState(

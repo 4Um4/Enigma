@@ -34,7 +34,8 @@ from app.services.character_service import CharacterService
 from app.services.combat_service import CombatService
 from app.services.knowledge_ingest import KnowledgeIngestService
 from app.services.llm.health import check_llm_health
-from app.services.game_loop_factory import game_loop
+from fastapi import Depends
+from app.services.game_loop_accessor import get_game_loop
 from app.services.readiness import ReadinessService
 from app.services.campaign_state_service import get_campaign_state_service
 from app.services.player_session_service import player_session_service
@@ -50,7 +51,7 @@ router = APIRouter()
 readiness_service = ReadinessService()
 character_service = CharacterService()
 combat_service = CombatService()
-knowledge_ingest = KnowledgeIngestService(game_loop.layered_memory)
+# knowledge_ingest создаётся внутри функции (строка 198)
 campaign_service = get_campaign_state_service()
 
 # Время старта приложения
@@ -100,7 +101,7 @@ async def health() -> dict:
 
 
 @router.get("/system/status")
-def system_status() -> dict:
+def system_status(game_loop=Depends(get_game_loop)) -> dict:
     llm_status = check_llm_health(use_cache=False)
     memory_sessions = len(player_session_service._sessions)
     sessions_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data", "sessions")
@@ -122,7 +123,7 @@ def system_status() -> dict:
 
 
 @router.get("/system/requirements")
-def system_requirements() -> dict:
+def system_requirements(game_loop=Depends(get_game_loop)) -> dict:
     report = game_loop.system_requirements.check()
     return {"meets": report.meets, **report.details}
 
@@ -133,12 +134,12 @@ def readiness_status() -> ReadinessReport:
 
 
 @router.post("/campaign/load", response_model=CampaignLoadResponse)
-def load_campaign(request: CampaignLoadRequest) -> CampaignLoadResponse:
+def load_campaign(request: CampaignLoadRequest, game_loop=Depends(get_game_loop)) -> CampaignLoadResponse:
     return game_loop.load_campaign(request.campaign_id, request.world_id)
 
 
 @router.post("/world/tick/{world_id}", response_model=WorldTickResponse)
-def force_world_tick(world_id: str) -> WorldTickResponse:
+def force_world_tick(world_id: str, game_loop=Depends(get_game_loop)) -> WorldTickResponse:
     tick = game_loop.world_scheduler.maybe_tick(world_id, force=True)
     return WorldTickResponse(world_id=world_id, **tick)
 
@@ -195,7 +196,9 @@ async def import_knowledge(
 ) -> KnowledgeIngestResponse:
     raw = await file.read()
     try:
-        result = knowledge_ingest.ingest(
+        from app.services.knowledge_ingest import KnowledgeIngestService
+        _ki = KnowledgeIngestService(game_loop.layered_memory)
+        result = _ki.ingest(
             world_id=world_id,
             campaign_id=campaign_id,
             kind=kind,
@@ -229,7 +232,7 @@ async def game_turn(request: ChatTurnRequest) -> ChatTurnResponse:
 
 
 @router.post("/game/action")
-async def game_action(request: dict) -> dict:
+async def game_action(request: dict, game_loop=Depends(get_game_loop)) -> dict:
     try:
         from app.services.campaign_state_service import get_campaign_state_service
 
@@ -313,7 +316,7 @@ async def game_action(request: dict) -> dict:
 
 
 @router.get("/session/state/{campaign_id}", response_model=SessionInterfaceState)
-def session_state(campaign_id: str) -> SessionInterfaceState:
+def session_state(campaign_id: str, game_loop=Depends(get_game_loop)) -> SessionInterfaceState:
     state = game_loop.session_state(campaign_id)
     state.players = [char.name for char in character_service.list_characters(campaign_id)]
 
@@ -349,7 +352,7 @@ def session_state(campaign_id: str) -> SessionInterfaceState:
 
 
 @router.get("/npcs/{campaign_id}")
-def get_npcs(campaign_id: str) -> dict:
+def get_npcs(campaign_id: str, game_loop=Depends(get_game_loop)) -> dict:
     """Возвращает NPC текущей локации для NPC-панели фронтенда."""
     try:
         npc_path = game_loop.data_dir / "npcs" / "major_npcs.json"
@@ -384,7 +387,7 @@ def get_npcs(campaign_id: str) -> dict:
 
 
 @router.post("/import/world")
-async def import_world(file: UploadFile) -> dict:
+async def import_world(file: UploadFile, game_loop=Depends(get_game_loop)) -> dict:
     content = (await file.read()).decode("utf-8", errors="ignore")
     entry_id = game_loop.layered_memory.write_world_canon(
         "manual", {"source": file.filename or "world.txt", "content": content}

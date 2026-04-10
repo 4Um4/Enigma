@@ -15,6 +15,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Optional, Tuple, Union
 
+from app.services.verbalization.prompt_loader import VerbalizationCore
+
 try:
     from app.services.npc.npc_state import (
         EmotionTag,
@@ -183,6 +185,19 @@ def _select_narrative_hint(
     return ()
 
 
+def _get_speech_style(personality: NPCPersonality) -> str:
+    """Определяет стиль речи NPC по доминирующему drive."""
+    drives   = personality.drives_base
+    dominant = max(drives, key=drives.get) if drives else "desire"
+    styles = {
+        "control":      "Говоришь структурированно, ставишь условия, не терпишь хаоса.",
+        "significance": "Упоминаешь своё положение. Обижаешься на неуважение.",
+        "fear":         "Осторожен. Задаёшь вопросы. Говоришь тихо или торопливо.",
+        "desire":       "Энергичен. Открыт к выгоде. Торгуешься. Любопытен.",
+    }
+    return styles.get(dominant, "")
+
+
 def build_verbalization_context(
     state:           NPCState,
     personality:     NPCPersonality,
@@ -240,9 +255,13 @@ def should_verbalize(
     if intent in (Intent.IDLE.value, Intent.OBSERVE.value):
         return False
 
-    distance = float(
-        scene_state.get("player_distances", {}).get(npc_id, 999.0)
-    )
+    # TODO: player_distances заполняется в DM SceneBuilder. Пока fallback: "в той же локации = 0м"
+    raw_dist = scene_state.get("player_distances", {}).get(npc_id, 999.0)
+    if raw_dist > 100.0:
+        # Нет точной дистанции — NPC в nearby_npcs значит в той же локации
+        distance = 0.0
+    else:
+        distance = float(raw_dist)
 
     # Крик / атака / побег — слышно дальше
     if intent in (Intent.WARN.value, Intent.ATTACK.value, Intent.FLEE.value):
@@ -367,139 +386,34 @@ def _confidence_prefix(confidence: float) -> str:
         return "вроде бы"
 
 
-def build_npc_prompt_from_context(ctx: VerbalizationContext) -> str:
-    """
-    Строит финальный промпт для LLM через PromptLoader + Jinja2.
-    
-    Улучшения:
-    - Сохраняет всю существующую логику генерации фактуры (intent_instructions, narrative_text с confidence,
-      ContentProfile, adult_text и т.д.).
-    - VerbalizationContext отвечает только за доменную фактуру (ядро).
-    - PromptLoader отвечает за инфраструктуру (tier, биография, системный промпт, шаблон).
-    - LLM получает только текст — без чисел, reasoning и дельт.
-    """
-    # 1. Получаем глобальный загрузчик промптов
-    loader = get_prompt_loader()
-
-    # 2. Сохраняем всю твою текущую логику генерации фактуры
-    intent_instructions = {
-        Intent.TALK.value:       "Хочешь поговорить.",
-        Intent.WARN.value:       "Предупреждаешь об угрозе.",
-        Intent.INTIMIDATE.value: "Запугиваешь. Давишь.",
-        Intent.FLEE.value:       "Хочешь уйти. Ищешь выход.",
-        Intent.ATTACK.value:     "Настроен враждебно. Готов к конфликту.",
-        Intent.HELP.value:       "Хочешь помочь.",
-        Intent.REPORT.value:     "Думаешь донести властям.",
-        Intent.TRADE.value:      "Открыт к сделке.",
-        Intent.OBSERVE.value:    "Молча наблюдаешь. Не вмешиваешься.",
-        Intent.EXPLAIN.value:    "Объясняешь свои действия честно.",
-        Intent.IDLE.value:       "",
-    }
-
-    target_text = f" (в отношении: {ctx.intent_target})" if ctx.intent_target else ""
-    intent_text = intent_instructions.get(ctx.intent, "")
-
-    # Narrative hints — факты из памяти NPC
-    narrative_text = ""
-    if ctx.narrative_hints:
-        facts = []
-        for fact in ctx.narrative_hints:
-            mem_text = _verbalize_memory(fact)
-            confidence = getattr(fact, "confidence", 1.0)
-
-            conf_word = ""
-            if confidence >= 0.8:
-                conf_word = "точно помню: "
-            elif ctx.is_explain_mode and confidence < 0.7:
-                conf_word = _confidence_prefix(confidence) + ": "
-
-            facts.append(f"— {conf_word}{mem_text}")
-
-        prefix = "Вспоминаешь:" if not ctx.is_explain_mode else "Объясняешь, опираясь на:"
-        narrative_text = prefix + "\n" + "\n".join(facts)
-
-    # Контентные ограничения
-    adult_parts = []
-    if ctx.content_profile.profanity_level >= 1:
-        adult_parts.append(
-            "мат разрешён" if ctx.content_profile.profanity_level == 1 else "жёсткий мат разрешён"
-        )
-    if ctx.content_profile.violence_level >= 1:
-        adult_parts.append(
-            "упоминание насилия разрешено" if ctx.content_profile.violence_level == 1 
-            else "детальное насилие разрешено"
-        )
-    adult_text = (", ".join(adult_parts)).capitalize() + "." if adult_parts else ""
-
-    # 3. Формируем чистое verbalization_core (вся фактура, которую генерирует Python)
-    verbalization_core = f"""Ты — {getattr(ctx, 'npc_name', 'NPC')}.
-
-Твоё текущее намерение: {intent_text}{target_text}.
-Твоя эмоция: {getattr(ctx, 'emotion', 'нейтральное')}.
-Стиль речи: {getattr(ctx, 'voice_profile', '') or _get_speech_style(ctx.personality) if hasattr(ctx, 'personality') else ''}.
-
-Сцена: {getattr(ctx, 'scene_hint', 'текущая ситуация в локации')}.
-Эмоциональный нюанс: {getattr(ctx, 'emotional_nuance', '')}.
-
-{narrative_text}
-{adult_text}
-
-Говори от первого лица. Живо, конкретно, в характере. Не добавляй объяснения и мысли в скобках."""
-
-    # 4. Рендерим через PromptLoader (Jinja2 + tier + system_prompt)
-    full_prompt = loader.render_npc_prompt(
-        verbalization_core=verbalization_core,
-        tier=getattr(ctx, 'tier', "MINOR"),
-        npc_name=getattr(ctx, 'npc_name', ''),
-        voice_profile=getattr(ctx, 'voice_profile', ''),
-        emotion=getattr(ctx, 'emotion', 'нейтральное'),
-        recent_events=getattr(ctx, 'recent_events', []),
-        biography=getattr(ctx, 'backstory', '') or getattr(ctx, 'biography', ''),
-        max_tokens=get_token_budget(
-            getattr(ctx, 'tier', "MINOR"), 
-            ctx.intent
-        ),
-    )
-
-    return full_prompt
-
-
-def _get_speech_style(personality: NPCPersonality) -> str:
-    drives   = personality.drives_base
-    dominant = max(drives, key=drives.get) if drives else "desire"
-    styles = {
-        "control":      "Говоришь структурированно, ставишь условия, не терпишь хаоса.",
-        "significance": "Упоминаешь своё положение. Обижаешься на неуважение.",
-        "fear":         "Осторожен. Задаёшь вопросы. Говоришь тихо или торопливо.",
-        "desire":       "Энергичен. Открыт к выгоде. Торгуешься. Любопытен.",
-    }
-    return styles.get(dominant, "")
-
-
 def build_npc_core_data(ctx: VerbalizationContext) -> dict:
     """
     R3.1: Подготовка данных. 
     Используем явные атрибуты и передаем сырые флаги в шаблон.
     """
-    # 1. Формируем базис намерения (простая логика)
-    # Используем явное имя поля из вашего датакласса (intent_target)
+    # 1. Формируем VerbalizationCore — whitelist-контракт (единственный источник смысла)
     target = ctx.intent_target if hasattr(ctx, 'intent_target') else None
     
-    intent_part = f"Намерение: {ctx.intent.upper()}"
-    target_part = f", цель: {target}" if target else ""
-    
-    # 2. Собираем только смысловое ядро
-    verbalization_core = f"{intent_part}{target_part}.\n"
-    if ctx.scene_hint:
-        verbalization_core += f"Ситуация: {ctx.scene_hint}"
+    core = VerbalizationCore(
+        intent=ctx.intent,
+        target=target or "",
+        scene=ctx.scene_hint or "",
+    )
 
-    # R3: Формируем текстовые подсказки из памяти (max 2 факта для EXPLAIN mode)
+    # 2. Формируем текстовые подсказки из памяти (max 2 факта для EXPLAIN mode)
     hints_text = ""
     if ctx.narrative_hints:
         hints_lines = []
         for fact in ctx.narrative_hints:
-            mem_text = _verbalize_memory(fact)
-            hints_lines.append(f"— {mem_text}")
+            mem_text  = _verbalize_memory(fact)
+            confidence = getattr(fact, "confidence", 1.0)
+            if confidence >= 0.8:
+                conf_word = "точно помню: "
+            elif confidence >= 0.5:
+                conf_word = _confidence_prefix(confidence) + ": "
+            else:
+                conf_word = ""
+            hints_lines.append(f"— {conf_word}{mem_text}")
         hints_text = "\n".join(hints_lines)
 
     return {
@@ -508,11 +422,9 @@ def build_npc_core_data(ctx: VerbalizationContext) -> dict:
         "biography": ctx.backstory or "",
         "emotion": ctx.emotional_nuance or "нейтрально",
 
-        # R3: recent_events удалены из контекста (LLM не получает сырую память).
-        # Пустой список сохраняет совместимость с сигнатурой render_npc_prompt.
-        "recent_events": [],
+        # VerbalizationCore — структурированный смысл, не строка
+        "verbalization_core": core,
 
-        "verbalization_core": verbalization_core,
         "narrative_hints": hints_text,
         # Простая обработка тира: берем .value если это Enum, иначе как есть
         "tier": ctx.tier.value if hasattr(ctx.tier, 'value') else str(ctx.tier),
@@ -523,20 +435,24 @@ def build_npc_core_data(ctx: VerbalizationContext) -> dict:
 def build_npc_prompt_from_context(ctx: VerbalizationContext) -> Tuple[str, str]:
     """
     R3.2: Финальный системный промпт для LLM.
-    Возвращает (system_prompt, user_hint) для совместимости с текущим API.
+    Возвращает (full_prompt, core_text) для совместимости с текущим API.
     """
     loader = get_prompt_loader()
     data = build_npc_core_data(ctx)
     
+    # VerbalizationCore передаётся как объект — render_npc_prompt сам вызовет to_prompt_text()
     full_prompt = loader.render_npc_prompt(
         verbalization_core=data["verbalization_core"],
         tier=data["tier"],
         npc_name=data["npc_name"],
         voice_profile=data["voice_profile"],
         emotion=data["emotion"],
-        narrative_hints=data["narrative_hints"],  # Передаём факты в шаблон
+        narrative_hints=data["narrative_hints"],
         biography=data["biography"],
         max_tokens=get_token_budget(getattr(ctx, 'tier', "MINOR"), ctx.intent)
     )
     
-    return full_prompt, data["verbalization_core"]
+    # Для обратной совместимости возвращаем текст, не объект
+    core_text = data["verbalization_core"].to_prompt_text() if isinstance(data["verbalization_core"], VerbalizationCore) else data["verbalization_core"]
+    
+    return full_prompt, core_text

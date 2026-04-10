@@ -16,7 +16,19 @@
 from dataclasses import dataclass, field
 from typing import Optional
 from app.models.schemas import PlayerAction
-from app.services.npc.npc_state import ActionType
+from enum import Enum
+
+class ActionType(str, Enum):
+    COMBAT            = "COMBAT"
+    SANDBOX_PHYSICAL  = "SANDBOX_PHYSICAL"
+    SANDBOX_SOCIAL    = "SANDBOX_SOCIAL"
+    SANDBOX_MILD      = "SANDBOX_MILD"
+    ROMANCE           = "ROMANCE"
+    CAPTURE           = "CAPTURE"
+    FLEE              = "FLEE"
+    LIFE_CHOICE       = "LIFE_CHOICE"
+    EXPLORE           = "EXPLORE"
+    UNKNOWN           = "UNKNOWN"
 
 
 # ─── Таблица DC по D&D 5e PHB ───────────────────────────────────────────────

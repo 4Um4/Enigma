@@ -29,7 +29,8 @@ from datetime import datetime
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 
-from app.services.game_loop_factory import game_loop
+from fastapi import Depends
+from app.services.game_loop_accessor import get_game_loop
 from app.services.player_session_service import player_session_service
 from app.services.campaign_state_service import get_campaign_state_service
 
@@ -44,7 +45,7 @@ def _sse(event: dict) -> str:
 
 
 @router.post("/game/action/stream")
-async def game_action_stream(request: dict):
+async def game_action_stream(request: dict, game_loop=Depends(get_game_loop)):
     """
     SSE эндпоинт — токены идут в браузер по мере генерации DM агента.
 

@@ -123,6 +123,7 @@ class DmAgentTests(unittest.TestCase):
         self.assertIn("отложена", result["world_changes"][0])
 
 
+@unittest.skip("Требует физический бинарник llama.cpp — запускать вручную")
 class LlamaCppIntegrationTests(unittest.TestCase):
     def test_llama_cpp_run_with_local_binary_and_model(self) -> None:
         adapter = LlamaCppAdapter()

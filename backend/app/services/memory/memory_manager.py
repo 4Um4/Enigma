@@ -27,6 +27,10 @@ class MemoryManager:
         self._relationships = RelationshipStore(data_dir=data_dir)
         self._tick_counters: Dict[str, int] = {}
         self._resonance = ResonanceEngine()
+        # Накопленные черты из ResonanceEngine — фактический NPCIdentityL1 (in-memory)
+        # Ключ: f"{campaign_id}:{npc_id}", значение: {trait_name: weight}
+        # WRITE: только через apply_identity_weights()
+        self._identity_cache: Dict[str, Dict[str, float]] = {}
 
     @property
     def working_memory(self) -> WorkingMemory:
@@ -113,14 +117,14 @@ class MemoryManager:
         return mem
 
     # ──────────────────────────────────────────────────────────────────────
-    # Legacy методы (обратная совместимость)
+    # Основные методы записи (используются game_loop.py)
     # ──────────────────────────────────────────────────────────────────────
     def record_event(
         self,
         campaign_id: str,
         event: Dict[str, Any],
     ) -> None:
-        """Legacy путь — для старого кода. Использует простой score_event."""
+        """Запись события через score_event. Используется game_loop.py."""
         importance = score_event(event)
         event_with_score = {**event, "importance": importance}
         self._working.push(campaign_id, event_with_score)
@@ -211,3 +215,33 @@ class MemoryManager:
 
         patterns = self._resonance.detect(em_events, actor_id=actor_id)
         return [(p.trait_name, p.trait_delta) for p in patterns]
+
+
+    def apply_identity_weights(
+            self,
+            campaign_id: str,
+            npc_id:      str,
+            weights:     List[Tuple[str, float]],
+        ) -> None:
+            """
+            Применяет trait-дельты из ResonanceEngine в identity_cache.
+            WRITE: только этот метод пишет в _identity_cache.
+            """
+            key = f"{campaign_id}:{npc_id}"
+            cache = self._identity_cache.setdefault(key, {})
+            for trait, delta in weights:
+                current = cache.get(trait, 0.0)
+                cache[trait] = round(max(0.0, min(1.0, current + delta)), 4)
+                
+
+    def get_identity_traits(
+        self,
+        campaign_id: str,
+        npc_id:      str,
+    ) -> Dict[str, float]:
+        """
+        Возвращает накопленные черты NPC из identity_cache.
+        READ: для DecisionHub через DecisionView.identity.active_traits
+        """
+        key = f"{campaign_id}:{npc_id}"
+        return dict(self._identity_cache.get(key, {}))      

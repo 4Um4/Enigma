@@ -42,8 +42,9 @@ class WorldSimulationAgent:
         system_prompt = self._get_system_prompt()
         
         try:
-            response = self.router.request(
-                capability=Capability.WORLD_SIMULATION,
+            # request_for_agent — синхронная версия для агентов вне async-контекста
+            response = self.router.request_for_agent(
+                agent_name="world",
                 prompt=prompt,
                 system_prompt=system_prompt,
             )
@@ -74,8 +75,8 @@ class WorldSimulationAgent:
 Учитывай текущую ситуацию и предыдущие события."""
         
         try:
-            return self.router.request(
-                capability=Capability.WORLD_SIMULATION,
+            return self.router.request_for_agent(
+                agent_name="world",
                 prompt=prompt,
                 system_prompt=system_prompt,
             )

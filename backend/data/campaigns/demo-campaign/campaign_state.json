@@ -75,7 +75,7 @@
         "importance": 1,
         "holder": "maid_lusya",
         "created_tick": 6,
-        "last_tick": 6,
+        "last_tick": 12,
         "dynamic": true,
         "interactable": true
       },
@@ -91,6 +91,19 @@
         "last_tick": 10,
         "dynamic": true,
         "interactable": true
+      },
+      "стол_tornin_t12_9fcc": {
+        "name": "стол",
+        "raw_name": "протирает стол",
+        "canonical_name": "стол",
+        "type": "furniture",
+        "state": "in_use",
+        "importance": 2,
+        "holder": "tavern_keeper_tornin",
+        "created_tick": 12,
+        "last_tick": 12,
+        "dynamic": true,
+        "interactable": true
       }
     },
     "npc_positions": {
@@ -99,7 +112,9 @@
         "activity": "working",
         "visible": false,
         "location": "tavern_silver_wolf",
-        "psyche_state": "alert"
+        "psyche_state": "alert",
+        "current_action": "use_стол",
+        "action_started_tick": 12
       },
       "maid_lusya": {
         "position": "serving_table_3",
@@ -183,6 +198,26 @@
         "canonical": "поднос",
         "object_id": "поднос_lusya_t6_81bd",
         "tick": 11,
+        "happened": true
+      },
+      {
+        "event_id": "evt_01ed80",
+        "event_type": "use",
+        "actor": "tavern_keeper_tornin",
+        "object_name": "люся несёт поднос",
+        "canonical": "поднос",
+        "object_id": "поднос_lusya_t6_81bd",
+        "tick": 12,
+        "happened": true
+      },
+      {
+        "event_id": "evt_8b802d",
+        "event_type": "use",
+        "actor": "tavern_keeper_tornin",
+        "object_name": "протирает стол",
+        "canonical": "стол",
+        "object_id": "стол_tornin_t12_9fcc",
+        "tick": 12,
         "happened": true
       }
     ]

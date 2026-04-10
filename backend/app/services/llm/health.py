@@ -23,6 +23,8 @@ def check_llm_health(use_cache: bool = True) -> Dict:
     Проверяет доступность llama.cpp/vLLM сервера.
     Возвращает словарь со статусом, именем модели и URL.
     """
+    global _cache, _cache_time
+
     if use_cache and (time.time() - _cache_time < _CACHE_TTL_SEC) and _cache:
         return _cache
 
