@@ -119,6 +119,7 @@ class PlayerSessionService:
         if campaign_id in self._sessions:
             old_session = self._sessions[campaign_id]
             print(f"[PLAYER_SESSION_REPLACED] Campaign: {campaign_id}, Old player: {old_session.player_name}")
+            # Сброс session_flag делается через game_loop.reset_session_flag() в routes.py
         
         # Создаем новую сессию
         session = PlayerSession(

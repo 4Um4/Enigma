@@ -26,6 +26,7 @@ from app.services.npc.npc_state import (
     NarrativeFact,
     WillState,
 )
+from app.models.psychological import CausalEntry
 from app.services.npc.decision_hub import DecisionResult, StateDeltas
 from app.services.npc.break_progress_engine import BreakDeltas
 from app.services.npc.math_utils import apply_saturation
@@ -240,6 +241,33 @@ class StateApplicator:
         # Травма
         if deltas.new_trauma:
             state.trauma_markers.add(deltas.new_trauma)
+
+        # Causal Ledger — паспорт каждого изменения (Шаг 3)
+        _tick = getattr(state, "intent_formed_at", 0)
+        if deltas.stress_delta != 0.0:
+            state.causal_ledger.append(CausalEntry(
+                npc_id=state.npc_id, field="stress",
+                delta=deltas.stress_delta_effective,
+                source=getattr(deltas, "source", "unknown"),
+                tick=_tick,
+            ))
+        if deltas.trust_delta != 0.0:
+            state.causal_ledger.append(CausalEntry(
+                npc_id=state.npc_id, field="trust",
+                delta=deltas.trust_delta,
+                source=getattr(deltas, "source", "unknown"),
+                tick=_tick,
+            ))
+        if deltas.fear_delta != 0.0:
+            state.causal_ledger.append(CausalEntry(
+                npc_id=state.npc_id, field="fear",
+                delta=deltas.fear_delta,
+                source=getattr(deltas, "source", "unknown"),
+                tick=_tick,
+            ))
+        # Ограничиваем размер (20 последних записей)
+        if len(state.causal_ledger) > 20:
+            state.causal_ledger = state.causal_ledger[-20:]
 
         # Отношения — пишем в RelationshipStore, не в NPCState напрямую
         if deltas.trust_delta != 0.0 or deltas.fear_delta != 0.0:

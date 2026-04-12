@@ -27,6 +27,7 @@ from app.services.npc.npc_state import (
     NarrativeFact,
     WillState,
 )
+from app.services.npc.behavior_mask import BehaviorMask
 from app.services.npc.opportunity_engine import (
     OpportunityContext,
     OpportunityEngine,
@@ -49,11 +50,35 @@ INTENT_INERTIA_WEIGHT:    float = 0.20
 INTENT_SATURATION_TICKS: int   = 6   # тиков без прогресса до начала decay
 INTENT_DECAY_RATE:        float = 0.03  # убывание за каждый лишний тик
 
+# Активный штраф за зависание — делает текущий intent ХУЖЕ альтернатив
+# Включается после тех же INTENT_SATURATION_TICKS, но растёт агрессивнее
+INTENT_EXHAUSTION_RATE:   float = 0.08  # -0.08 за каждый тик стагнации сверх порога
+
 # Порог страха: выше — NPC склонен к FLEE/OBSERVE вместо ATTACK
 FEAR_FLEE_THRESHOLD: float = 0.65
 
 # Минимальный score чтобы intent был выбран (иначе IDLE)
 MIN_INTENT_SCORE: float = 0.15
+
+# ─────────────────────────────────────────────────────────────────────────────
+# COMMITMENT MODEL — инерция как порог смены, не бонус к score
+# ─────────────────────────────────────────────────────────────────────────────
+# commitment ∈ [0..1] — нормализованная инерция (из intent_duration)
+# threshold = base * (1 + commitment²) — нелинейный порог смены
+# pressure = new_score - current_score — разница лучшего кандидата и текущего
+
+COMMITMENT_BASE_THRESHOLD: float = 0.15   # минимальное давление для смены
+COMMITMENT_K: float = 2.5                 # коэффициент нарастания порога
+
+# SWITCHING COST — стоимость смены intent в пространстве score
+SWITCHING_COST_BASE: float = 0.05         # минимальная стоимость смены
+SWITCHING_COST_AGE_K: float = 0.08        # вклад возраста intent
+SWITCHING_COST_EMOTION_K: float = 0.06    # вклад эмоциональной вовлечённости
+SWITCHING_COST_IDENTITY_K: float = 0.04   # вклад соответствия identity
+COMMITMENT_BONUS_K: float = 0.10          # бонус к score текущего intent
+
+# Reactive urgency — принудительная смена при угрозе
+REACTIVE_URGENCY_THRESHOLD: float = 0.8   # fear > this → force switch
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -71,6 +96,9 @@ class StateDeltas:
     fear_delta:      float = 0.0
     trait_updates:   Dict[str, float] = field(default_factory=dict)
     new_trauma:      Optional[str] = None
+    
+    # --- Причинность: источник дельты (Шаг A.3) ---
+    source:          str = "unknown"   # event_type или "break_system", "life_engine"
     
     # --- R6.4: Команды для системы слома ---
     identity_integrity_delta:   float = 0.0
@@ -192,7 +220,63 @@ class DecisionHub:
                 deltas=StateDeltas(),
             )
 
-        best_intent, best_score = max(scores.items(), key=lambda x: x[1])
+        # ── Commitment: бонус к текущему + стоимость смены ──
+        commitment = self._get_commitment(state)
+        threshold = self._commitment_threshold(commitment)
+        current_intent_str_pre = state.intent.value if state.intent else None
+
+        if current_intent_str_pre and current_intent_str_pre in scores:
+            # Бонус к текущему intent — инерция в пространстве score
+            scores[current_intent_str_pre] = round(
+                scores[current_intent_str_pre] + commitment * COMMITMENT_BONUS_K, 4
+            )
+            # Switching cost — вычитается из всех остальных
+            cost = self._switching_cost(state, personality, commitment)
+            for k in scores:
+                if k != current_intent_str_pre:
+                    scores[k] = round(scores[k] - cost, 4)
+
+        best_candidate_str, best_score = max(scores.items(), key=lambda x: x[1])  # (str, float)
+
+        # ── Commitment Model: порог смены intent ──
+        threshold = self._commitment_threshold(commitment)
+        
+        # Текущий score (если intent есть и он в кандидатах)
+        current_intent_str = state.intent.value if state.intent else None
+        current_score = scores.get(current_intent_str, 0.0) if current_intent_str else 0.0
+        pressure = best_score - current_score  # >0 значит новый лучше
+        
+        # Reactive urgency: высокая тревога → принудительная смена
+        fear_value = state.stress if hasattr(state, 'stress') else 0.0
+        force_switch = fear_value > REACTIVE_URGENCY_THRESHOLD
+        
+        # ── Pressure Accumulation: накопление давления по парам ──
+        # Ключ ВСЕГДА (str, str) — best_candidate_str из scores
+        acc_key = (current_intent_str, best_candidate_str) if current_intent_str else None
+        accumulated = 0.0
+        if acc_key:
+            accumulated = state.pressure_accumulator.get(acc_key, 0.0)
+            if pressure > 0:
+                accumulated = min(accumulated + pressure, 1.0)
+            else:
+                accumulated *= 0.85
+            state.pressure_accumulator[acc_key] = accumulated
+        
+        # ── Решение: сменить или удержать ──
+        switched = False
+        if force_switch or pressure >= threshold or accumulated >= threshold:
+            switched = True
+            best_intent = Intent(best_candidate_str)
+        elif state.intent and state.intent != Intent.IDLE:
+            best_intent = state.intent
+            best_score = current_score
+            if current_intent_str not in scores:
+                best_intent = Intent.IDLE
+                best_score = 0.0
+        
+        # Reset accumulator при смене (защита от hysteresis lock)
+        if switched and acc_key:
+            state.pressure_accumulator[acc_key] = 0.0
 
         if best_score < MIN_INTENT_SCORE:
             best_intent = Intent.IDLE
@@ -267,6 +351,22 @@ class DecisionHub:
         if state.stress >= 90.0:
             return intent in (Intent.FLEE.value, Intent.WARN.value,
                                Intent.OBSERVE.value)
+
+        # R8: BehaviorMask — ограничение доступных интентов, не override
+        # Маска не переписывает выбор, а сужает пространство до контекстуального
+        mask = state.behavior_mask.mask
+        if mask == BehaviorMask.COLLAPSE:
+            # Функциональный паралич — только IDLE доступен
+            return intent == Intent.IDLE.value
+        if mask == BehaviorMask.FAKE_SUBMISSION:
+            # Внешняя покорность — агрессия скрыта, но выбор остаётся контекстуальным
+            if intent in (Intent.ATTACK.value, Intent.INTIMIDATE.value, Intent.WARN.value):
+                return False
+        if mask == BehaviorMask.BETRAYAL:
+            # Скрытое предательство — помощь блокируется, но NPC сам решает чем заменить
+            if intent == Intent.HELP.value:
+                return False
+
         return True
 
     # ─────────────────────────────────────────────────────────────────────────
@@ -308,6 +408,12 @@ class DecisionHub:
             if state.intent and state.intent.value == intent_str:
                 base += inertia
                 components["inertia"] = round(inertia, 4)
+                
+                # Exhaustion: штраф за стагнацию (применяется после inertia bonus)
+                exhaustion = self._intent_exhaustion(state)
+                if exhaustion > 0:
+                    base -= exhaustion
+                    components["exhaustion"] = round(-exhaustion, 4)
 
             components["noise"] = round(noise, 4)
             # Clamp: score не уходит за физические пределы формулы
@@ -382,7 +488,18 @@ class DecisionHub:
         elif intent == Intent.OBSERVE.value:
             risk_penalty = round(fear * risk * 0.5, 4)      # осторожное наблюдение
         elif intent in (Intent.ATTACK.value, Intent.INTIMIDATE.value):
-            risk_penalty = round(-fear * risk * 1.25, 4)    # страх полностью блокирует агрессию
+            # Агрессия требует явной провокации — строковое сравнение (EventContext.event_type: str)
+            # Без провокации штраф -0.54 делает ATTACK хуже чем TALK/WARN
+            _PROVOCATION_TYPES = {"player_attacked", "combat", "intimidation", "capture", "player_insults", "player_threatens"}
+            _THREAT_THRESHOLD = 0.3  # visible_threat_markers суммарно должны превышать порог
+            # Просто количество уникальных угроз × 0.1
+            threat_level = len(set(event.visible_threat_markers)) * 0.1
+            is_provoked = (
+                event.event_type in _PROVOCATION_TYPES
+                or threat_level >= _THREAT_THRESHOLD
+            )
+            provocation_gate = 1.0 if is_provoked else 0.1
+            risk_penalty = round((-fear * risk * 1.25 - (1.0 - provocation_gate) * 0.6), 4)
         else:
             risk_penalty = round(-fear * risk * 0.3, 4)     # лёгкий штраф для всего остального
 
@@ -463,6 +580,13 @@ class DecisionHub:
         if event.witness_count >= 3:
             if intent in (Intent.REPORT.value, Intent.WARN.value):
                 base += 0.2
+
+        # Диалог активирует разговорные интенты, подавляет нелогичные
+        if event.event_type == "player_interacts":
+            if intent in (Intent.TALK.value, Intent.OBSERVE.value):
+                base += 0.5
+            if intent in (Intent.REPORT.value, Intent.ATTACK.value, Intent.FLEE.value, Intent.WARN.value, Intent.INTIMIDATE.value):
+                base -= 0.4
 
         return min(base, 2.0)
 
@@ -583,6 +707,106 @@ class DecisionHub:
 
         return base
 
+
+    def _intent_exhaustion(self, state: NPCState) -> float:
+        """Активный штраф за зависание intent без прогресса.
+        
+        ЗАЧЕМ: Decay уменьшает inertia bonus, но не делает текущий intent
+        хуже альтернатив. Exhaustion — это ОТРИЦАТЕЛЬНЫЙ модификатор к score,
+        который заставляет NPC отказаться от застрявшего действия.
+        
+        РАЗНИЦА С DECAY:
+        - Decay: bonus 0.15 → 0.12 → 0.09 (intent чуть слабее)
+        - Exhaustion: score -0.08 → -0.16 → -0.24 (intent активнее проигрывает)
+        
+        ВКЛЮЧАЕТСЯ: после INTENT_SATURATION_TICKS без прогресса.
+        ПРИМЕРЫ (excess = тики сверх порога):
+        - excess=1 → -0.08 (лёгкое раздражение)
+        - excess=3 → -0.24 (явное разочарование)
+        - excess=5 → -0.40 (принудительная смена)
+        """
+        if state.intent is None or state.intent == Intent.IDLE:
+            return 0.0
+        
+        duration = state.intent_duration
+        progress = min(state.intent_progress_ticks, duration)
+        effective_stall = duration - progress
+        
+        if effective_stall <= INTENT_SATURATION_TICKS:
+            return 0.0
+        
+        excess = effective_stall - INTENT_SATURATION_TICKS
+        return excess * INTENT_EXHAUSTION_RATE
+
+
+    def _get_commitment(self, state: NPCState) -> float:
+        """Нормализованная инерция intent ∈ [0..1].
+        
+        ЗАЧЕМ: Преобразуем тики в число, которое можно подставить в формулу порога.
+        0 = нет инерции (IDLE или первый тик)
+        1 = максимальная инерция (держится INTENT_INERTIA_MAX_TICKS)
+        """
+        if state.intent is None or state.intent == Intent.IDLE:
+            return 0.0
+        
+        ratio = min(state.intent_duration / INTENT_INERTIA_MAX_TICKS, 1.0)
+        
+        # Decay при отсутствии прогресса — снижает commitment
+        effective_stall = state.intent_duration - min(state.intent_progress_ticks, state.intent_duration)
+        if effective_stall > INTENT_SATURATION_TICKS:
+            excess = effective_stall - INTENT_SATURATION_TICKS
+            decay = excess * INTENT_DECAY_RATE * 2  # агрессивнее чем у inertia bonus
+            ratio = max(0.0, ratio - decay)
+        
+        return round(ratio, 4)
+
+    def _commitment_threshold(self, commitment: float) -> float:
+        """Порог давления для смены intent.
+        
+        ЗАЧЕМ: Чем выше commitment — тем сложнее сменить intent.
+        Формула нелинейная: commitment² даёт плавный рост в начале,
+        резкий в середине — NPC "упирается".
+        
+        ПРИМЕРЫ:
+        - commitment=0.0 → threshold=0.15 (лёгкая смена)
+        - commitment=0.5 → threshold=0.34
+        - commitment=1.0 → threshold=0.53 (очень трудно сменить)
+        """
+        return COMMITMENT_BASE_THRESHOLD * (1 + (commitment ** 2) * COMMITMENT_K)
+
+    def _switching_cost(
+        self,
+        state:       NPCState,
+        personality: NPCPersonality,
+        commitment:  float,
+    ) -> float:
+        """
+        Стоимость смены intent — вычитается из score всех НЕ текущих интентов.
+        Три оси: возраст intent, эмоциональная вовлечённость, соответствие identity.
+
+        ЗАЧЕМ: делает смену intent реально дорогой, а не просто трудно-порогово.
+        NPC с высоким стрессом и долгим intent не бросает его при первом сигнале.
+        """
+        # Ось 1: возраст intent (нормализован через commitment)
+        age_cost = commitment * SWITCHING_COST_AGE_K
+
+        # Ось 2: эмоциональная вовлечённость (высокий стресс = труднее переключиться)
+        emotion_cost = min(state.stress / 100.0, 1.0) * SWITCHING_COST_EMOTION_K
+
+        # Ось 3: соответствие identity (если intent совпадает с доминирующим drive)
+        current_drive = max(personality.drives_base, key=personality.drives_base.get) if personality.drives_base else ""
+        _DRIVE_INTENTS = {
+            "control":      {Intent.ATTACK.value, Intent.WARN.value, Intent.INTIMIDATE.value},
+            "fear":         {Intent.FLEE.value, Intent.OBSERVE.value},
+            "desire":       {Intent.TRADE.value, Intent.TALK.value},
+            "significance": {Intent.HELP.value, Intent.TALK.value},
+        }
+        current_intent_str = state.intent.value if state.intent else ""
+        aligned = current_intent_str in _DRIVE_INTENTS.get(current_drive, set())
+        identity_cost = SWITCHING_COST_IDENTITY_K if aligned else 0.0
+
+        return round(SWITCHING_COST_BASE + age_cost + emotion_cost + identity_cost, 4)
+
     # ─────────────────────────────────────────────────────────────────────────
     # Вспомогательные методы
     # ─────────────────────────────────────────────────────────────────────────
@@ -614,10 +838,88 @@ class DecisionHub:
         """
         from app.services.npc.math_utils import apply_saturation
         
-        deltas = StateDeltas()
+        deltas = StateDeltas(source=event.event_type)
 
-        # Стресс от насилия рядом — с saturation у границ диапазона (0-100)
-        if event.event_type in ("combat", "capture") and event.distance <= 5.0:
+        # Стресс и гнев от оскорблений — провокация без физического насилия
+        if event.event_type == "player_insults":
+            raw_stress = 12.0 * event.intensity
+            _, deltas.stress_delta = apply_saturation(
+                current=state.stress, delta=raw_stress
+            )
+            deltas.emotion_tag = EmotionTag.ANGRY
+            deltas.emotion_delta = round(15.0 * event.intensity, 2)
+            raw_trust = -8.0 * event.intensity
+            _, deltas.trust_delta = apply_saturation(
+                current=state.relationship_cache.get("trust", 0.0),
+                delta=raw_trust,
+                min_val=-100.0,
+                max_val=100.0,
+            )
+            raw_fear = -5.0 * event.intensity
+            _, deltas.fear_delta = apply_saturation(
+                current=state.relationship_cache.get("fear", 0.0),
+                delta=raw_fear,
+                min_val=-100.0,
+                max_val=100.0,
+            )
+
+        # Стресс от прямых угроз — "замолчи", "на колени", "сдохнешь"
+        elif event.event_type == "player_threatens":
+            raw_stress = 10.0 * event.intensity
+            _, deltas.stress_delta = apply_saturation(
+                current=state.stress, delta=raw_stress
+            )
+            deltas.emotion_tag = EmotionTag.ANGRY
+            deltas.emotion_delta = round(12.0 * event.intensity, 2)
+            raw_trust = -5.0 * event.intensity
+            _, deltas.trust_delta = apply_saturation(
+                current=state.relationship_cache.get("trust", 0.0),
+                delta=raw_trust,
+                min_val=-100.0,
+                max_val=100.0,
+            )
+
+        # Стресс от косвенных угроз — "жена видел с незнакомцем"
+        elif event.event_type == "player_threatens_indirect":
+            raw_stress = 8.0 * event.intensity
+            _, deltas.stress_delta = apply_saturation(
+                current=state.stress, delta=raw_stress
+            )
+            deltas.emotion_tag = EmotionTag.FEARFUL
+            deltas.emotion_delta = round(10.0 * event.intensity, 2)
+            raw_trust = -6.0 * event.intensity
+            _, deltas.trust_delta = apply_saturation(
+                current=state.relationship_cache.get("trust", 0.0),
+                delta=raw_trust,
+                min_val=-100.0,
+                max_val=100.0,
+            )
+
+        # Стресс от физического насилия — player_attacks из Router
+        elif event.event_type == "player_attacks":
+            raw_stress = 18.0 * event.intensity
+            _, deltas.stress_delta = apply_saturation(
+                current=state.stress, delta=raw_stress
+            )
+            deltas.emotion_tag = EmotionTag.FEARFUL
+            deltas.emotion_delta = round(20.0 * event.intensity, 2)
+            raw_trust = -10.0 * event.intensity
+            _, deltas.trust_delta = apply_saturation(
+                current=state.relationship_cache.get("trust", 0.0),
+                delta=raw_trust,
+                min_val=-100.0,
+                max_val=100.0,
+            )
+            raw_fear = 8.0 * event.intensity
+            _, deltas.fear_delta = apply_saturation(
+                current=state.relationship_cache.get("fear", 0.0),
+                delta=raw_fear,
+                min_val=-100.0,
+                max_val=100.0,
+            )
+
+        # Стресс от насилия рядом (combat/capture от других источников)
+        elif event.event_type in ("combat", "capture") and event.distance <= 5.0:
             raw_stress = 15.0 * event.intensity
             _, deltas.stress_delta = apply_saturation(
                 current=state.stress, delta=raw_stress
@@ -630,6 +932,11 @@ class DecisionHub:
             "intimidation":(EmotionTag.FEARFUL,    +18.0),
             "help":        (EmotionTag.GRATEFUL,   +12.0),
             "dialogue_key":(EmotionTag.NEUTRAL,    +5.0),
+            "player_insults":(EmotionTag.ANGRY,    +15.0),
+            "player_threatens":(EmotionTag.ANGRY, +12.0),
+            "player_threatens_indirect":(EmotionTag.FEARFUL, +10.0),
+            "player_attacks":(EmotionTag.FEARFUL, +20.0),
+            "player_interacts":(EmotionTag.NEUTRAL, +2.0),
         }
         for key, (tag, delta) in emotion_map.items():
             if key in event.event_type:

@@ -23,7 +23,7 @@ import math
 _math = math
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, Optional, Set, Tuple, Union
+from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 from app.services.npc.behavior_mask import BehaviorMaskState
 
@@ -336,6 +336,7 @@ class NPCState:
     intent_duration:     int              = 0   # тиков держится текущий intent
     intent_progress_ticks: int            = 0   # тиков с реальным прогрессом (значимые дельты)
     last_intent_change:  int              = 0   # тик последней смены intent
+    pressure_accumulator: Dict[Tuple[str, str], float] = field(default_factory=dict)  # (from, to) → накопленное давление
 
     # ── Кэш отношений ────────────────────────────────────────────────────────
     relationship_cache: Dict[str, float] = field(default_factory=dict)
@@ -345,6 +346,11 @@ class NPCState:
     # Union: NarrativeFact (legacy) или EventMemory (R5.1) — оба принимаются.
     # verbalization_context использует getattr для доступа к clarity/confidence.
     narrative_cache: Tuple[Union[NarrativeFact, "EventMemory"], ...] = field(default_factory=tuple)
+
+    # ── Causal Ledger — паспорт изменений состояния (Шаг 3) ──────────────────
+    # Хранит последние N записей CausalEntry для отладки и Social Propagation.
+    # Не сохраняется в JSON — только runtime.
+    causal_ledger: List[Any] = field(default_factory=list)
 
     # ── Позиция (кэш из SceneState) ───────────────────────────────────────────
     cached_position: Optional[Tuple[float, float]] = None

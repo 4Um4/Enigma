@@ -488,7 +488,7 @@ def get_player_session(campaign_id: str) -> PlayerSessionResponse:
 
 
 @router.post("/player/session/{campaign_id}", response_model=PlayerSessionResponse)
-def create_player_session(campaign_id: str, request: dict) -> PlayerSessionResponse:
+def create_player_session(campaign_id: str, request: dict, game_loop=Depends(get_game_loop)) -> PlayerSessionResponse:
     player_name = request.get("player")
     if not player_name:
         raise HTTPException(status_code=400, detail="Поле 'player' обязательно")
@@ -496,6 +496,8 @@ def create_player_session(campaign_id: str, request: dict) -> PlayerSessionRespo
     if not any(c.name == player_name for c in characters):
         raise HTTPException(status_code=404, detail=f"Персонаж '{player_name}' не найден")
     session = player_session_service.select_player(campaign_id, player_name)
+    # Сбрасываем флаг сессии — следующий ход будет session_start (сброс стресса NPC)
+    game_loop.reset_session_flag(campaign_id)
     return PlayerSessionResponse(player=player_name, active=True)
 
 

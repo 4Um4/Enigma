@@ -21,6 +21,75 @@ except ImportError:
     from backend.app.core.config import settings
 
 from dataclasses import dataclass
+from enum import Enum
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# BEHAVIOR MODE — структурный контроль, не текстовая рекомендация
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class BehaviorMode(Enum):
+    """Режим генерации — определяет ДОПУСТИМЫЕ действия LLM.
+    
+    НЕ строка в промпте — структурный сигнал, который LLM не может "проигнорировать".
+    Передаётся как отдельный блок в system_prompt.
+    """
+    FLEXIBLE = "FLEXIBLE"      # Можно уточнять, торговаться, задавать вопросы
+    STRICT = "STRICT"          # Никаких отклонений от намерения
+    REACTIVE = "REACTIVE"      # Только реакция, не инициирует диалог
+    SILENT = "SILENT"          # Только наблюдение, не вмешивается
+
+
+# Маппинг: intent → mode (НЕ строка ограничения)
+# Ключевой принцип: разные intent'ы требуют разных режимов генерации
+INTENT_TO_MODE: dict[str, BehaviorMode] = {
+    # Гибкие — можно уточнять и диалогировать
+    "TALK": BehaviorMode.FLEXIBLE,
+    "NEGOTIATE": BehaviorMode.FLEXIBLE,
+    "PERSUADE": BehaviorMode.FLEXIBLE,
+    "REQUEST": BehaviorMode.FLEXIBLE,
+    
+    # Жёсткие — никакого дрейфа от намерения
+    "THREAT": BehaviorMode.STRICT,
+    "ATTACK": BehaviorMode.STRICT,
+    "INTIMIDATE": BehaviorMode.STRICT,
+    "COMMAND": BehaviorMode.STRICT,
+    
+    # Реактивные — только ответ, не инициатива
+    "FLEE": BehaviorMode.REACTIVE,
+    "DEFEND": BehaviorMode.REACTIVE,
+    "DODGE": BehaviorMode.REACTIVE,
+    
+    # Пассивные
+    "IDLE": BehaviorMode.SILENT,
+    "OBSERVE": BehaviorMode.SILENT,
+    "EXPLAIN": BehaviorMode.SILENT,
+}
+
+# Default если intent не найден
+_DEFAULT_MODE = BehaviorMode.STRICT
+
+
+def _get_behavior_mode(intent: str) -> BehaviorMode:
+    """Получить режим поведения из intent.
+    
+    ЗАЧЕМ: Режим генерации — структурный сигнал, не текстовая рекомендация.
+    LLM не может "проигнорировать" mode блок в промпте так же легко как текст.
+    """
+    if not intent:
+        return _DEFAULT_MODE
+    
+    # Нормализация: берём базовый intent без подтипов
+    clean_intent = intent.strip().split("_")[0].upper()
+    
+    return INTENT_TO_MODE.get(clean_intent, _DEFAULT_MODE)
+
+
+# Форматирование mode для промпта — структурный блок, не рекомендация
+_MODE_FORMAT = """
+=== РЕЖИМ ПОВЕДЕНИЯ: {mode} ===
+Это не рекомендация. Это ограничение возможностей генерации.
+"""
 from typing import Union, Optional
 
 
@@ -69,6 +138,127 @@ class VerbalizationCore:
         
         return "".join(parts)
 
+
+# ═════════════════════════════════════════════════════════════════════════════════
+# INTENT-DRIVEN ОГРАНИЧЕНИЯ — поведение зависит от намерения
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Маппинг: intent → дополнительные ограничения на поведение
+# Ключевой принцип: ограничения не глобальны — они зависят от контекста
+INTENT_CONSTRAINTS: dict[str, str] = {
+    "TALK": "Можешь задавать уточняющие вопросы, если это естественно.",
+    "NEGOTIATE": "Можешь торговаться и предлагать варианты.",
+    "PERSUADE": "Можешь уговаривать и приводить аргументы.",
+    "THREAT": "НЕ задавай вопросов. Только угроза или требование.",
+    "ATTACK": "НЕ задавай вопросов. Действуй, не спрашивай разрешения.",
+    "FLEE": "НЕ задавай вопросов. Только реакция бегства.",
+    "INTIMIDATE": "НЕ задавай вопросы. Дави, не спрашивай.",
+    "IDLE": "Короткая фраза или молчание. Не инициируй диалог.",
+    "OBSERVE": "Только наблюдение. Не вмешивайся, не обращайся.",
+    "EXPLAIN": "Краткое объяснение факта. Без вопросов к игроку.",
+}
+
+# Default если intent не найден в маппинге
+_DEFAULT_CONSTRAINT = "Не задавай вопросы. Одна короткая фраза."
+
+
+def _get_intent_constraint(intent: str) -> str:
+    """Получить ограничение поведения на основе intent.
+    
+    ЗАЧЕМ: Разные намерения требуют разного поведения.
+    TALK можно уточнять, THREAT нельзя.
+    
+    ПРИОРИТЕТЫ:
+    1. Точное совпадение (ATTACK_BRUTAL → свой constraint)
+    2. Базовый intent (ATTACK_BRUTAL → ATTACK)
+    3. Semantic fallback (хук для будущей классификации)
+    """
+    if not intent:
+        return _semantic_fallback(intent)
+    
+    clean_intent = intent.strip().upper()
+    
+    # Уровень 1: точное совпадение
+    if clean_intent in INTENT_CONSTRAINTS:
+        return INTENT_CONSTRAINTS[clean_intent]
+    
+    # Уровень 2: базовый intent (до "_")
+    base_intent = clean_intent.split("_")[0]
+    if base_intent in INTENT_CONSTRAINTS:
+        return INTENT_CONSTRAINTS[base_intent]
+    
+    # Уровень 3: semantic fallback (точка расширения)
+    return _semantic_fallback(clean_intent)
+
+
+def _semantic_fallback(intent: str) -> str:
+    """Fallback для неизвестных intent'ов.
+    
+    ЗАЧЕМ: Точка расширения — когда появятся подтипы (GOAP),
+    здесь включится классификация без переписывания _get_intent_constraint.
+    
+    ТЕКУЩЕЕ: простой дефолт.
+    БУДУЩЕЕ: semantic class mapping.
+    """
+    return _DEFAULT_CONSTRAINT
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# СЛОЙ РАЗРЕШЕНИЯ КОНФЛИКТОВ: State (Emotion/Scene) > Intent > Constraint
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Эмоции, которые создают конфликт с "мягкими" intent'ами
+_DANGER_EMOTIONS: set[str] = {
+    "ярость", "в ярости", "бешенство", "в бешенстве",
+    "паника", "в панике", "страх парализует",
+}
+
+# Слова в scene, которые создают конфликт
+_DANGER_SCENE_WORDS: set[str] = {
+    "готов убить", "достаёт оружие", "хватается за нож", "нападает",
+    "бросается на", "замахивается",
+}
+
+# Intent'ы, уязвимые к конфликту (допускают вопросы/диалог)
+_SOFT_INTENTS: set[str] = {"TALK", "NEGOTIATE", "PERSUADE", "EXPLAIN"}
+
+# Ужесточённый constraint для конфликтных ситуаций
+_STRICT_OVERRIDE_CONSTRAINT: str = "НЕ задавай вопросов. Только реакция на угрозу или действие."
+
+
+def detect_semantic_conflict(intent: str, emotion: str, scene: str) -> bool:
+    """Детектирует конфликт между intent и эмоциональным/сценовым контекстом.
+    
+    ЗАЧЕМ: TALK intent + "в ярости" = поведенческий гибрид.
+    Лучше ужесточить constraint, чем позволить LLM решить сама.
+    """
+    if intent not in _SOFT_INTENTS:
+        return False
+    
+    emotion_lower = emotion.lower()
+    scene_lower = scene.lower()
+    
+    if any(danger in emotion_lower for danger in _DANGER_EMOTIONS):
+        return True
+    
+    if any(danger in scene_lower for danger in _DANGER_SCENE_WORDS):
+        return True
+    
+    return False
+
+
+def resolve_effective_constraint(intent: str, emotion: str, scene: str) -> str:
+    """Разрешает конфликт слоёв и возвращает финальный constraint.
+    
+    ЗАЧЕМ: Intent не абсолютен — emotion/scene могут его ужесточить.
+    Но мы НЕ меняем intent (Core свят), мы ужесточаем constraint.
+    
+    ПРИНЦИП: State (Emotion/Scene) > Intent > Constraint.
+    """
+    if detect_semantic_conflict(intent, emotion, scene):
+        return _STRICT_OVERRIDE_CONSTRAINT
+    
+    return _get_intent_constraint(intent)
 
 
 # Константы лимитов для NPC промпта (защита от деградации токенного бюджета)
@@ -342,8 +532,20 @@ class PromptLoader:
             system_base = (
                 "Ты — персонаж игрового мира. Говори от первого лица.\n"
                 "Одна короткая реплика. Не придумывай действия за других.\n"
-                "Не возвращай JSON. Не задавай вопросов."
+                "Не возвращай JSON. Не задавай вопросы."
             )
+        
+        # Добавляем режим поведения — структурный сигнал, не текстовая рекомендация
+        mode = _get_behavior_mode(verbalization_core.intent)
+        system_base += _MODE_FORMAT.format(mode=mode.value)
+        
+        # Разрешение конфликта: emotion/scene могут ужесточить constraint
+        constraint = resolve_effective_constraint(
+            intent=verbalization_core.intent,
+            emotion=emotion,
+            scene=verbalization_core.scene,
+        )
+        system_base += f"\nОГРАНИЧЕНИЕ: {constraint}"
 
         return template.render(
             system_prompt=system_base,

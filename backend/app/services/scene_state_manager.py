@@ -1,4 +1,4 @@
-# C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\scene_state_manager.py
+﻿# C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\scene_state_manager.py
 # -*- coding: utf-8 -*-
 """
 SceneStateManager — Python как единственный источник истины о состоянии мира.
@@ -38,6 +38,10 @@ from typing import Optional, Any
 
 from app.core.config import settings
 from app.services.scene_change import SceneChange, ChangeType
+from app.services.state.persistence_port import PersistencePort
+
+# Тип для опционального порта сохранения
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -181,8 +185,13 @@ class SceneStateManager:
       8. save_scene_state → сохранить в campaign_state.json
     """
 
-    def __init__(self, data_dir: Optional[Path] = None):
+    def __init__(
+        self,
+        data_dir: Optional[Path] = None,
+        persistence: Optional[PersistencePort] = None,
+    ):
         self.data_dir      = Path(data_dir) if data_dir else _DATA_DIR
+        self._persistence  = persistence  # PersistencePort для commit()
         self.campaigns_dir = self.data_dir / "campaigns"
         self.templates_dir = self.data_dir / "locations"
         self.validator     = ChangeValidator()
@@ -840,24 +849,11 @@ class SceneStateManager:
         changed = False
         objects = scene_state.setdefault("objects", {})
 
-        # ── Новые динамические объекты ────────────────────────────────────
-        for obj in extraction_result.new_objects:
-            if obj.object_id not in objects:
-                objects[obj.object_id] = {
-                    "name":           obj.name,
-                    "raw_name":       obj.raw_name,
-                    "canonical_name": obj.canonical_name,
-                    "type":           obj.obj_type,
-                    "state":          obj.state,
-                    "importance":     obj.importance,
-                    "holder":         obj.holder,
-                    "created_tick":   obj.created_tick,
-                    "last_tick":      obj.created_tick,
-                    "dynamic":        True,
-                    "interactable":   True,
-                }
-                print(f"[R2.1] Новый объект: {obj.object_id} ({obj.name}, {obj.obj_type})")
-                changed = True
+        # ── Новые объекты из текста ЗАПРЕЩЕНЫ (TEXT→ENTITY нарушает контракт) ──
+        # Объекты появляются только через carried_objects при инициализации сцены.
+        # NarrativeExtractor вправе только обновлять состояния существующих объектов.
+        if extraction_result.new_objects:
+            print(f"[R2.1] Заблокировано {len(extraction_result.new_objects)} TEXT→ENTITY попыток")
 
         # ── FSM: обновление состояний существующих объектов ───────────────
         from app.services.scene.narrative_extractor import STATE_PRIORITY
@@ -901,6 +897,51 @@ class SceneStateManager:
 
         if changed:
             self.save_scene_state(campaign_id, scene_state)
+
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # Commit Boundary — атомарное сохранение состояния мира
+    # ─────────────────────────────────────────────────────────────────────────
+
+    def commit(
+        self,
+        campaign_id: str,
+        scene_state: dict,
+        npc_dicts: list[dict] | None = None,
+    ) -> int:
+        """
+        Единственная точка коммита состояния мира.
+        
+        Координирует сохранение:
+        - scene_state -> campaign_state.json
+        - npc_dicts -> major_npcs.json (если переданы)
+        
+        НЕ модифицирует данные — только вызывает PersistencePort.
+        Ownership NPCState остаётся у StateApplicator.
+        
+        Returns:
+            Количество сохранённых подсистем (1 или 2).
+        """
+        if self._persistence is None:
+            logger.warning("[SCENE] commit() вызван без PersistencePort — пропуск")
+            return 0
+        
+        saved = 0
+        try:
+            self._persistence.save_scene(campaign_id, scene_state)
+            saved += 1
+        except Exception as e:
+            logger.error(f"[SCENE] commit() ошибка сохранения сцены: {e}")
+        
+        if npc_dicts is not None:
+            try:
+                self._persistence.save_npcs(npc_dicts)
+                saved += 1
+            except Exception as e:
+                logger.error(f"[SCENE] commit() ошибка сохранения NPC: {e}")
+        
+        return saved
+
 
     # ─────────────────────────────────────────────────────────────────────────
     # R2.1 — get_scene_events_block: блок для DM промпта
@@ -1214,3 +1255,7 @@ def get_scene_state_manager() -> SceneStateManager:
     if _scene_state_manager is None:
         _scene_state_manager = SceneStateManager()
     return _scene_state_manager
+
+
+
+

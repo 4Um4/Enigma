@@ -51,6 +51,13 @@ _MAGIC_WORDS: set[str] = {
     "проклят", "волшебн", "эфирн", "золот", "серебрян", "дракон",
 }
 
+# Фразы, которые содержат триггерные слова, но не описывают взаимодействие с предметом
+_TRIGGER_IDIOMS: frozenset[str] = frozenset({
+    "поднимает взгляд", "поднял взгляд", "поднимает голову", "поднял голову",
+    "поднимает руку", "поднял руку", "поднимает бровь", "поднял бровь",
+    "берёт себя", "берёт в руки себя",
+})
+
 EVENT_TRIGGERS: dict[str, list[str]] = {
     "drop":       ["роняет", "упал", "уронил", "падает", "разлетается", "грохнулся"],
     "break":      ["ломает", "разбил", "сломал", "трескается", "разбивается", "вдребезги"],
@@ -245,6 +252,9 @@ class NarrativeExtractor:
             found_event_type: Optional[str] = None
             for trigger, etype in _TRIGGER_TO_EVENT.items():
                 if trigger in sent_lower:
+                    # Исключаем устойчивые выражения без физического объекта
+                    if any(idiom in sent_lower for idiom in _TRIGGER_IDIOMS):
+                        continue
                     found_event_type = etype
                     break
             if not found_event_type:
@@ -277,12 +287,15 @@ class NarrativeExtractor:
                     if raw_name.lower() == obj.get("raw_name", "").lower():
                         existing_id = oid
                         break
-                    # Фикс #2: fallback по canonical для transient без holder
+                    # Фикс #2: fallback по canonical — приоритет по holder, затем любой
                     if canonical == obj.get("canonical_name"):
                         if actor and actor == obj.get("holder"):
                             existing_id = oid
                             break
                         if obj.get("importance") == 2:
+                            fallback_candidate = oid
+                        elif fallback_candidate is None:
+                            # Любой объект с тем же canonical лучше нового дубля
                             fallback_candidate = oid
 
                 if not existing_id and fallback_candidate:

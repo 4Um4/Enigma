@@ -2,16 +2,6 @@
 chcp 65001 >nul
 title Enigma - Local AI Dungeon Master
 
-:: ========================================
-:: SINGLE FILE LAUNCHER
-:: 1. Kill stale processes + clean cache
-:: 2. Start LLM server
-:: 3. Start Backend
-:: 4. Start Frontend
-:: 5. Open browser
-:: ========================================
-
-:: --- Kill stale processes ---
 echo [INIT] Cleaning stale processes...
 taskkill /F /IM llama-server.exe >nul 2>&1
 timeout /t 1 /nobreak >nul
@@ -22,14 +12,12 @@ for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":3000.*LISTENING" 2^>nul') d
     taskkill /F /PID %%a >nul 2>&1
 )
 
-:: --- Clean Python cache ---
 echo [INIT] Cleaning __pycache__...
 cd /d "%~dp0backend"
 del /s /q __pycache__ >nul 2>&1
 for /d /r %%d in (__pycache__) do @if exist "%%d" rd /s /q "%%d" 2>nul
 cd /d "%~dp0"
 
-:: --- Paths ---
 set "ROOT_DIR=%~dp0"
 if "%ROOT_DIR:~-1%"=="\" set "ROOT_DIR=%ROOT_DIR:~0,-1%"
 set "BACKEND_DIR=%ROOT_DIR%\backend"
@@ -42,7 +30,6 @@ set "MAIN_LOG=%LOG_DIR%\startup_%dt%.log"
 echo [INFO] Root: %ROOT_DIR%
 echo [INFO] Logs: %LOG_DIR%
 
-:: --- Python ---
 set "PYTHON_CMD=%ROOT_DIR%\.venv\Scripts\python.exe"
 if not exist "%PYTHON_CMD%" (
     echo [WARN] .venv not found, using system python
@@ -53,23 +40,17 @@ set "PYTHONPATH=%BACKEND_DIR%"
 for /f "tokens=2" %%i in ('"%PYTHON_CMD%" --version 2^>^&1') do set PYTHON_VER=%%i
 echo [INFO] Python: %PYTHON_VER%
 
-:: ========================================
-:: STEP 0: Check LLM binary
-:: ========================================
 echo.
 echo [0/5] Checking LLM binary...
 set "LLAMA_EXE=%ROOT_DIR%\Models LLM\llama\llama-server.exe"
 if not exist "%LLAMA_EXE%" (
     echo [ERROR] llama-server.exe not found: %LLAMA_EXE%
-    echo Download llama.cpp release and extract to: %ROOT_DIR%\Models LLM\llama\
     pause
     exit /b 1
 )
 echo [OK] llama-server.exe found
 
-:: ========================================
-:: STEP 1: Start LLM server
-:: ========================================
+echo.
 echo [1/5] Starting LLM server...
 set "LLM_LOG=%LOG_DIR%\llm_%dt%.log"
 
@@ -77,14 +58,12 @@ cd /d "%BACKEND_DIR%"
 start "Enigma LLM" start_llm.bat %LLM_LOG%
 cd /d "%ROOT_DIR%"
 
-:: Give process time to spawn
 timeout /t 3 /nobreak >nul
 
 echo [INFO] Waiting for LLM server (max 450 sec)...
 set /a LLM_WAIT=0
 :wait_llm
 
-:: Early crash detection
 tasklist /FI "IMAGENAME eq llama-server.exe" 2>nul | findstr /I "llama-server.exe" >nul
 if errorlevel 1 (
     echo [FATAL] llama-server.exe crashed! Log:
@@ -93,7 +72,6 @@ if errorlevel 1 (
     exit /b 1
 )
 
-:: Port check
 powershell -NoProfile -Command "try { Invoke-WebRequest -Uri 'http://127.0.0.1:8080/v1/models' -UseBasicParsing -TimeoutSec 3 -ErrorAction Stop | Out-Null; exit 0 } catch { exit 1 }" >nul 2>&1
 if %errorlevel% equ 0 goto llm_ready
 
@@ -109,9 +87,25 @@ goto start_backend
 :llm_ready
 echo [OK] LLM ready (%LLM_WAIT% sec)
 
-:: ========================================
-:: STEP 2: Start Backend
-:: ========================================
+echo.
+echo [1.5/5] Resetting campaign state...
+set "CAMPAIGN_STATE=%BACKEND_DIR%\data\campaigns\demo-campaign\campaign_state.json"
+set "SESSION_FILE=%BACKEND_DIR%\data\sessions\demo-campaign.json"
+
+if exist "%CAMPAIGN_STATE%" (
+    del "%CAMPAIGN_STATE%"
+    echo [OK] Deleted: campaign_state.json
+) else (
+    echo [SKIP] campaign_state.json not found
+)
+
+if exist "%SESSION_FILE%" (
+    del "%SESSION_FILE%"
+    echo [OK] Deleted: session file
+) else (
+    echo [SKIP] session file not found
+)
+
 :start_backend
 echo.
 echo [2/5] Starting Backend...
@@ -137,9 +131,6 @@ exit /b 1
 :backend_ready
 echo [OK] Backend ready (%BACK_WAIT% sec)
 
-:: ========================================
-:: STEP 3: Start Frontend
-:: ========================================
 echo.
 echo [3/5] Starting Frontend...
 set "FRONTEND_DIR=%ROOT_DIR%\frontend\ui"
@@ -153,17 +144,11 @@ start "Enigma Frontend" cmd /c "%PYTHON_CMD%" -m http.server 3000 --directory "%
 timeout /t 2 /nobreak >nul
 echo [OK] Frontend started
 
-:: ========================================
-:: STEP 4: Open browser
-:: ========================================
 :open_browser
 echo.
 echo [4/5] Opening browser...
 powershell -NoProfile -Command "try { Invoke-WebRequest -Uri 'http://127.0.0.1:3000' -UseBasicParsing -TimeoutSec 2 -ErrorAction Stop | Out-Null; Start-Process 'http://127.0.0.1:3000' } catch { Start-Process 'http://127.0.0.1:8000' }"
 
-:: ========================================
-:: STEP 5: Done
-:: ========================================
 echo.
 echo [5/5] ==================== ENIGMA LIVE ====================
 echo    Frontend:  http://127.0.0.1:3000

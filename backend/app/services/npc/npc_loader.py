@@ -21,6 +21,48 @@ from app.services.npc.decision_hub import DecisionHub, EventContext
 logger = logging.getLogger(__name__)
 
 
+# Локализация стандартных предметов инвентаря NPC
+_ITEM_DISPLAY_NAMES: Dict[str, str] = {
+    "apron":      "фартук",
+    "keys":       "ключи",
+    "coin_pouch": "кошелёк",
+    "dagger":     "кинжал",
+    "sword":      "меч",
+    "bow":        "лук",
+    "torch":      "факел",
+    "lantern":    "фонарь",
+    "rope":       "верёвка",
+    "lock":       "замок",
+    "tray":       "поднос",
+    "maid_dress": "платье служанки",
+    "notebook":   "записная книжка",
+    "scales":     "весы",
+    "pipe":       "трубка",
+    "cloak":      "плащ",
+}
+
+def get_item_display_name(item_id: str) -> str:
+    """Возвращает локализованное имя предмета или сам item_id как fallback."""
+    return _ITEM_DISPLAY_NAMES.get(item_id, item_id)
+
+def materialize_inventory(raw_npc: Dict[str, Any]) -> Dict[str, int]:
+    """
+    Материализует физический инвентарь NPC из seed-данных JSON.
+    Читает carried_objects — явный список физических предметов роли.
+    Валидирует каждый предмет через world_ontology перед регистрацией.
+    Вызывается один раз при инициализации новой сцены — не в рантайме.
+    """
+    from app.services.world.world_ontology import is_physical_object
+
+    result: Dict[str, int] = {}
+    for obj_id in raw_npc.get("carried_objects", []):
+        if is_physical_object(obj_id):
+            result[obj_id] = 1
+        else:
+            print(f"[NPC_LOADER] Пропущен non-physical маркер '{obj_id}' у NPC {raw_npc.get('id')}")
+    return result
+
+
 def load_profile_from_legacy_json(raw_data: Dict[str, Any]) -> NPCProfileL0:
     """
     Парсит словарь из major_npcs.json в строгий NPCProfileL0.

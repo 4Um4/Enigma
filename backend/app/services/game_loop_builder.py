@@ -18,6 +18,7 @@ from app.services.memory.memory_manager import MemoryManager
 from app.services.world_scheduler import WorldScheduler
 from app.services.character_service import CharacterService
 from app.services.scene_state_manager import SceneStateManager
+from app.services.state.json_persistence_adapter import JsonPersistenceAdapter
 from app.services.action.dm_orchestrator import DMOrchestrator
 from app.agents.dm_agent import DmAgent
 from app.agents.npc_agent import NpcAgent
@@ -32,7 +33,8 @@ def build_game_loop(data_dir: Path) -> GameLoop:
     store          = JsonMemoryStore(data_dir)
     layered_memory = LayeredMemory(store)
     memory_manager = MemoryManager(layered_memory, data_dir=str(data_dir))
-    scene_manager  = SceneStateManager(data_dir)
+    persistence    = JsonPersistenceAdapter(data_dir)
+    scene_manager  = SceneStateManager(data_dir, persistence=persistence)
     char_service   = CharacterService()
 
     # NPC cache — замыкание, одно на весь lifecycle

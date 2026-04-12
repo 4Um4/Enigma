@@ -603,16 +603,22 @@ HARDCORE: разрешены грубость, мат, угрозы, мрачн�
 
         for ctx in contexts:
             if not isinstance(ctx, VerbalizationContext):
+                print(f"[VERBALIZE-DROP] {getattr(ctx, 'npc_id', ctx)}: not VerbalizationContext, type={type(ctx).__name__}")
                 continue
 
             # IDLE/OBSERVE — молчат, без LLM
             if ctx.intent in (Intent.IDLE.value, Intent.OBSERVE.value):
+                print(f"[VERBALIZE-DROP] {ctx.npc_id}: intent={ctx.intent} (silent)")
                 continue
 
             # Lazy verbalization — далёкие NPC не вербализуются
             if scene_state and not should_verbalize(
                 ctx.npc_id, scene_state, ctx.intent
             ):
+                # Диагностика: почему should_verbalize вернул False?
+                _dist = scene_state.get("player_distances", {}).get(ctx.npc_id, "??")
+                _tier = ctx.tier
+                print(f"[VERBALIZE-DROP] {ctx.npc_id}: should_verbalize=False, dist={_dist}, tier={_tier}, intent={ctx.intent}")
                 continue
 
             # MASS NPC — шаблоны без LLM
@@ -620,11 +626,13 @@ HARDCORE: разрешены грубость, мат, угрозы, мрачн�
                 template = get_mass_template(ctx)
                 if template:
                     all_actions.append(template)
+                print(f"[VERBALIZE-MASS] {ctx.npc_id}: template response")
                 continue
 
             # MAJOR / MINOR — LLM с dynamic token budget
             max_tokens = get_token_budget(ctx.tier, ctx.intent)
             if max_tokens == 0:
+                print(f"[VERBALIZE-DROP] {ctx.npc_id}: token_budget=0, tier={ctx.tier}, intent={ctx.intent}")
                 continue
 
             print(f"[VERBALIZE] Building prompt for {ctx.npc_id}, tier={ctx.tier}, intent={ctx.intent}, tokens={max_tokens}")

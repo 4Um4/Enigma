@@ -218,7 +218,12 @@ class DmAgent:
         if context:
             recent = context.get("recent_memory", [])
             if recent:
-                context_str = "Недавние события:\n" + "\n".join(f"- {e}" for e in recent[-5:]) + "\n\n"
+                # Запрет на повтор — LLM воспринимает ограничения строже чем контекст
+                context_str = (
+                    "УЖЕ БЫЛО СКАЗАНО (ЗАПРЕЩЕНО ПОВТОРЯТЬ дословно или по смыслу):\n"
+                    + "\n".join(f"- {e}" for e in recent[-5:])
+                    + "\n\nКаждый ответ должен описывать НОВОЕ состояние сцены.\n\n"
+                )
 
         # Фаза S: SceneState — факты о мире. DM получает это первым.
         # Только объекты и NPC из этого блока реально существуют в сцене.
@@ -231,22 +236,58 @@ class DmAgent:
                 except Exception:
                     pass
 
+        # B.3/B.4: SceneContinuity — состояние сцены из Python
+        continuity_block = ""
+        if context:
+            _cont = context.get("scene_continuity")
+            if _cont:
+                print(f"[CONTINUITY_DEBUG] tension={_cont.tension:.3f} flags={_cont.active_flags} events={len(_cont.recent_events)} emotion={_cont.emotional_vector}")
+        if context:
+            _cont = context.get("scene_continuity")
+            if _cont and hasattr(_cont, "to_prompt_block"):
+                _cont_block = _cont.to_prompt_block()
+                if _cont_block:
+                    continuity_block = _cont_block + "\n\n"
+                _emotion_line = _cont.to_emotional_line()
+                if _emotion_line:
+                    continuity_block += _emotion_line + "\n\n"
+            # Диагностика: показываем что реально попадёт в промпт
+            if continuity_block:
+                print(f"[CONTINUITY_FINAL]\n{continuity_block}[/CONTINUITY_FINAL]")
+            else:
+                print(f"[CONTINUITY_FINAL] EMPTY (tension={_cont.tension if _cont else 'NO_CONT'} flags={_cont.active_flags if _cont else 'NO_CONT'})")
+
         # DM получает речь NPC как контекст-только-для-чтения —
         # чтобы его описание мира было СОГЛАСОВАНО с тем что NPC уже сказали.
         # Принцип: NPC говорят → DM описывает то что ПОСЛЕ слов NPC.
         # ВАЖНО: DM не пересказывает речь, но знает о ней.
-        npc_reactions = npc_result.get("npc_reactions", [])
-        npc_str = (
-            "\n".join(f"- {r}" for r in npc_reactions)
-            if npc_reactions else ""
-        )
-        npc_actions = npc_result.get("npc_actions", [])
-        npc_actions_str = (
-            "\n".join(f"- {a}" for a in npc_actions)
-            if npc_actions else ""
-        )
+        # R3 Direct Mode: если есть dm_frame → используем SceneOutcomeBuilder
+        dm_frame = npc_result.get("dm_frame")
+        if dm_frame is not None:
+            from app.services.verbalization.scene_outcome_builder import SceneOutcomeBuilder
+            _builder = SceneOutcomeBuilder()
+            npc_str = _builder.to_dm_prompt_block(dm_frame)
+            npc_actions_str = ""  # DM описывает действия сам
+        else:
+            # Legacy: npc_reactions из npc_agent
+            npc_reactions = npc_result.get("npc_reactions", [])
+            npc_str = (
+                "\n".join(f"- {r}" for r in npc_reactions)
+                if npc_reactions else ""
+            )
+            npc_actions = npc_result.get("npc_actions", [])
+            npc_actions_str = (
+                "\n".join(f"- {a}" for a in npc_actions)
+                if npc_actions else ""
+            )
 
         world_changes = world_result.get("world_events", [])
+        # Прибытие NPC от LifeEngine — DM должен их анонсировать
+        _arrivals = (context or {}).get("npc_arrivals", [])
+        if _arrivals:
+            world_changes = list(world_changes) + [
+                f"В локацию вошёл NPC: {npc_id} — опиши его появление" for npc_id in _arrivals
+            ]
         world_str = "\n".join(f"- {w}" for w in world_changes) if world_changes else "Нет изменений мира"
 
         checks = rules_result.get("checks", [])
@@ -387,6 +428,27 @@ class DmAgent:
                     )
                 reaction_block += "Максимум 3 реплики NPC за ход. Остальные NPC молчат.\n"
 
+        # R3 Direct Mode: dm_frame есть → NPC ЕЩЁ НЕ говорили → DM озвучивает
+        # Legacy путь: dm_frame нет → NPC уже сказали через npc_agent
+        _regime_block = ""
+        if dm_frame is not None:
+            _r3_npc_header = "Реакции и намерения NPC (СГЕНЕРИРУЙ реплики от их имени, соблюдай стиль):\n"
+            _r3_rule3 = "Ты ДОЛЖЕН генерировать реплики NPC от их имени (кавычки или двоеточие). Пиши так: Торнин: \"Хм...\" или Люся дрожащим голосом: \"П-пожалуйста...\". Не описывай что они делают — дай им ГОВОРИТЬ."
+            # ProjectionLayer: regime как инструкция, не описание
+            _regime_lines = []
+            for npc in dm_frame.focus_npcs:
+                if npc.psychological:
+                    p = npc.psychological
+                    _regime_lines.append(f"- {npc.npc_id}: режим={p.regime.value}, выраженность={p.intensity:.0%}, стабильность={p.stability:.0%}")
+            if _regime_lines:
+                _regime_block = "ПСИХОЛОГИЧЕСКИЙ РЕЖИМ NPC (ОБЯЗАТЕЛЬНО учитывай при генерации реплик — это инструкция, не описание):\n"
+                _regime_block += "\n".join(_regime_lines) + "\n"
+                _regime_block += "Режим определяет тон, длину фраз, уровень агрессии/открытости. НЕ игнорируй.\n\n"
+                print(f"[REGIME_BLOCK]\n{_regime_block}[/REGIME_BLOCK]")
+        else:
+            _r3_npc_header = "Что NPC уже сказали игроку (КОНТЕКСТ — не повторяй это, используй для согласованности своего описания):\n"
+            _r3_rule3 = "Реплики NPC уже показаны игроку — НЕ повторяй их, НЕ пересказывай. Описывай мир ПОСЛЕ их слов."
+
         return f"""{scene_block}Текущая локация: {location}
 
 {context_str}
@@ -396,9 +458,9 @@ class DmAgent:
 Результаты проверок правил:
 {rules_str}
 
-Что NPC уже сказали игроку (КОНТЕКСТ — не повторяй это, используй для согласованности своего описания):
-{npc_str if npc_str else "NPC не говорили ничего"}
+{_r3_npc_header}{npc_str if npc_str else "NPC не говорили ничего"}
 
+{_regime_block}
 Физические действия NPC (для описания мира):
 {npc_actions_str if npc_actions_str else "NPC не предпринимают видимых физических действий"}
 
@@ -408,14 +470,14 @@ class DmAgent:
 {physics_warnings}
 {python_engines_block}
 {npc_psychology_block}
-{scene_events_block}{reaction_block}
+{continuity_block}{scene_events_block}{reaction_block}
 Продолжи рассказ от лица Dungeon Master. Не говори за игроков.
 Опиши мир от второго лица ("ты видишь...", "ты чувствуешь...").
 
 ЖЁСТКИЕ ПРАВИЛА — нарушение недопустимо:
 1. ПРОВАЛ броска = действие физически НЕ произошло. Свеча осталась на месте. Дверь не открылась. Запрещено описывать провалившееся действие как успешное или частично успешное.
 2. УСПЕХ броска = действие произошло. Опиши конкретный результат. Объект исчез со стола. NPC отреагировал на факт.
-3. Реплики NPC уже показаны игроку — НЕ повторяй их, НЕ пересказывай. Описывай мир ПОСЛЕ их слов.
+3. {_r3_rule3}
 4. Используй ТОЛЬКО объекты и NPC из блока "СОСТОЯНИЕ СЦЕНЫ". Если объект не указан — его не существует.
 5. Если NPC уже ронял поднос/кружки в этой сцене — он не роняет снова. Найди другую реакцию.
 6. Психологическое состояние NPC из блока "Психология" — это факт, не рекомендация. Если NPC в состоянии "fearful" — он ведёт себя как напуганный, не как обычный.
@@ -423,7 +485,7 @@ class DmAgent:
 8. Максимум 3 предложения. Не задавай вопросов.
 """
 
-    def _get_system_prompt(self) -> str:
+    def _get_system_prompt(self, is_r3_direct: bool = False) -> str:
         """
         Загружает системный промпт из Promt_AI.json.
         Fallback: встроенный промпт если файл недоступен.
@@ -448,6 +510,10 @@ class DmAgent:
             pass
 
         # Встроенный fallback
+        # R3 Direct Mode: DM роль зависит от глобального флага
+        # (npc_str недоступен в _get_system_prompt, используем feature flag)
+        _r3_dm_role = "DM (ты): описываешь мир И генерируешь реплики NPC (Торнин: \"...\", Люся: \"...\")" if is_r3_direct else "DM (ты): описываешь физический мир, окружение, последствия\n- NPC агент (отдвигает реплики NPC — ты их НЕ повторяешь)"
+
         return f"""ВАЖНО: Отвечай ТОЛЬКО на Русском языке. Никакого английского или китайского.
 ВАЖНО: Не показывай размышления. Только финальный ответ.
 ВАЖНО: Никогда не генерируй теги <|im_start|>, <|im_end|>, </|im_end|>, <|file_separator|>.
@@ -455,16 +521,47 @@ class DmAgent:
 Ты — Мастер Подземелий D&D 5e. Твоя задача: описывать МИР и его реакцию на действия игрока.
 
 КТО ЧТО ДЕЛАЕТ:
-- DM (ты): описываешь физический мир, окружение, последствия, действия NPC без слов
-- NPC агент (отдельно): генерирует реплики NPC — ты их НЕ повторяешь
+- {_r3_dm_role}
+
+АГЕНТНОСТЬ (КРИТИЧЕСКОЕ ПРАВИЛО):
+РАЗРЕШЕНО описывать:
+- Реакции NPC (слова, жесты, эмоции)
+- Изменения окружения (только если они пришли из блока данных)
+- Восприятие игрока ("ты слышишь", "ты видишь")
+
+ЗАПРЕЩЕНО описывать:
+- Действия игрока (никогда не пиши "ты опускаешься", "ты бьёшь" — игрок сам это сказал)
+- Подтверждение неверифицированных заявлений игрока
+  ЕСЛИ игрок говорит "я убил Торнинга" → это ЗАЯВЛЕНИЕ, не факт
+  → NPC реагирует на ЗАЯВЛЕНИЕ: "Ты спятил?", "Стража!" — а не "Торнин падает замертво"
+- Создание новых фактов (объекты, NPC, события которых нет в данных)
+
+ФАКТЫ (ТИПЫ И ПРАВИЛА):
+- Verified: из блока данных (объекты, состояния, расстояния)
+- Claimed: сказано игроком ("я убил", "у меня меч")
+- Unknown: не подтверждено
+ПРАВИЛА: Claimed ≠ Verified — никогда не превращай. NPC реагируют на слова, не на факты.
+
+ПОВЕДЕНИЕ NPC (ЗАДАНО СИСТЕМОЙ):
+Для каждого NPC передаётся: stance + tone + urgency.
+ТЫ НЕ ВЫБИРАЕШЬ поведение — ТЫ ВЫРАЖАЕШЬ его через текст.
+- confront + aggressive → давление, короткие фразы, вызов
+- probe + neutral → вопросы, подозрение
+- dismiss → игнор или обесценивание
+- observe → наблюдение без участия
+
+СОСТОЯНИЕ СЦЕНЫ (ИНЕРЦИЯ):
+- tension: 0.0–1.0 — НЕ уменьшается без явной причины из данных
+- flags: события которые УЖЕ произошли — не повторяй
+- при высоком tension реакции резче, короче
 
 ТВОИ ПРАВИЛА:
 - Веди от второго лица: "ты видишь", "ты чувствуешь", "перед тобой"
-- Описывай только то что есть в блоке "СОСТОЯНИЕ СЦЕНЫ" — не придумывай объекты
+- Описывай только то что есть в блоке "СОСТОСТОЯНИЕ СЦЕНЫ" — не придумывай объекты
 - Результаты бросков из блока "Результаты вычислений" — закон. ПРОВАЛ = действие не случилось
 - NPC реагируют РАЗНООБРАЗНО. Люся не роняет поднос каждый раз. У неё есть другие реакции: замирает, отворачивается, прижимается к стене, шепчет молитву, трясущимися руками протирает стол
 - Сцена развивается линейно: каждое агрессивное действие УВЕЛИЧИВАЕТ напряжение. Не сбрасывай его
-- Краткость: 2-3 предложения. Без вопросов в конце.
+- Краткость: 3-5 предложений. Без вопросов в конце.
 - Согласованность с NPC: если NPC сказал "я молчу" — DM не пишет что NPC кричит{tone}"""
 
     # ──────────────────────────────────────────────────────────────────────────
@@ -494,7 +591,7 @@ class DmAgent:
         result = self.router.request(
             capability="narrative",
             prompt=prompt,
-            system_prompt=self._get_system_prompt(),
+            system_prompt=self._get_system_prompt(is_r3_direct=(npc_result.get("dm_frame") is not None)),
             params=GenerationParams(max_tokens=220),
         )
 
@@ -528,7 +625,7 @@ class DmAgent:
                 location, actions_str, rules_result, npc_result,
                 world_result, world_canon_exists, context,
             )
-        system_prompt = self._get_system_prompt()
+        system_prompt = self._get_system_prompt(is_r3_direct=(npc_result.get("dm_frame") is not None))
 
         provider = await self._get_provider_async("narrative")
 
