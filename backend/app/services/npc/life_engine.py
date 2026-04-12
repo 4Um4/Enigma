@@ -59,44 +59,6 @@ _RANDOM_EVENT_CHANCE = 0.05
 _STRESS_RECOVERY_SAFE    = 5    # безопасное место, бодрствует
 _STRESS_RECOVERY_SLEEPING = 15  # спит
 
-# ──────────────────────────────────────────────────────────────────────────────
-# Маппинг: npc_id → activity → (location_id, position_in_scene, activity_display)
-#
-# Используется в update_routine() для генерации NPC_POSITION SceneChange.
-# При sleeping NPC покидает основную сцену и уходит в inn_rooms/home.
-# ──────────────────────────────────────────────────────────────────────────────
-_NPC_ACTIVITY_MAP: dict[str, dict[str, tuple[str, str, str]]] = {
-    "tavern_keeper_tornin": {
-        "working":        ("tavern_silver_wolf", "behind_bar",       "cleaning_tables"),
-        "sleeping":       ("inn_rooms",          "bed",              "sleeping"),
-        "eating":         ("tavern_silver_wolf", "corner_table",     "eating"),
-        "resting":        ("inn_rooms",          "bed",              "resting"),
-    },
-    "maid_lusya": {
-        "working":        ("tavern_silver_wolf", "serving_table_3",  "serving_tables"),
-        "sleeping":       ("inn_rooms",          "bed",              "sleeping"),
-        "eating":         ("tavern_silver_wolf", "corner_table",     "eating"),
-        "resting":        ("inn_rooms",          "bed",              "resting"),
-    },
-    "guard_borko": {
-        "on_duty":        ("city_gate",          "gate_post",        "guarding_gate"),
-        "off_duty":       ("tavern_silver_wolf", "corner_table",     "resting"),
-        "sleeping":       ("inn_rooms",          "bed",              "sleeping"),
-        "working":        ("city_gate",          "gate_post",        "guarding_gate"),
-    },
-    "merchant_goran": {
-        "working":        ("market_square",      "stall_3",          "haggling"),
-        "sleeping":       ("inn_rooms",          "bed",              "sleeping"),
-        "on_duty":        ("market_square",      "stall_3",          "haggling"),
-        "off_duty":       ("tavern_silver_wolf", "corner_table",     "drinking"),
-    },
-    "thief_shadow": {
-        "working":        ("tavern_silver_wolf", "corner_table",     "observing"),
-        "sleeping":       ("inn_rooms",          "bed",              "sleeping"),
-        "scouting":       ("city_gate",          "shadows_near_gate","hiding"),
-        "off_duty":       ("tavern_silver_wolf", "corner_table",     "observing"),
-    },
-}
 
 # Fallback для неизвестных NPC
 _DEFAULT_ACTIVITY_MAP: dict[str, tuple[str, str, str]] = {
@@ -480,7 +442,7 @@ class LifeEngine:
 
         # Определяем новую позицию и локацию
         new_location, new_position, activity_display = self._resolve_position(
-            npc_id, new_activity
+            npc, new_activity
         )
 
         prev_location = npc.get("location", new_location)
@@ -563,28 +525,31 @@ class LifeEngine:
 
     def _resolve_position(
         self,
-        npc_id: str,
+        npc: dict,
         activity: str,
     ) -> tuple[str, str, str]:
         """
-        Возвращает (location_id, position_in_scene, activity_display)
-        для данного NPC и активности.
-        Использует _NPC_ACTIVITY_MAP, с fallback на _DEFAULT_ACTIVITY_MAP.
+        Возвращает (location_id, position_in_scene, activity_display).
+        Читает activity_map из профиля NPC (data-driven).
+        Fallback: _DEFAULT_ACTIVITY_MAP для неизвестных активностей.
         """
-        npc_map = _NPC_ACTIVITY_MAP.get(npc_id, {})
-        if activity in npc_map:
-            return npc_map[activity]
+        # Сначала читаем activity_map из JSON профиля NPC
+        npc_map: dict = npc.get("activity_map", {})
 
-        # Попытка частичного совпадения: "working_bar" → "working"
-        for key, val in npc_map.items():
+        if activity in npc_map:
+            entry = npc_map[activity]
+            return (entry["location"], entry["position"], entry["display"])
+
+        # Частичное совпадение: "working_bar" → "working"
+        for key, entry in npc_map.items():
             if activity.startswith(key) or key.startswith(activity):
-                return val
+                return (entry["location"], entry["position"], entry["display"])
 
         # Fallback на общую таблицу
         if activity in _DEFAULT_ACTIVITY_MAP:
             return _DEFAULT_ACTIVITY_MAP[activity]
 
-        # Последний fallback: остаётся на месте
+        # Последний fallback
         return ("tavern_silver_wolf", "common_area", activity)
 
     @staticmethod

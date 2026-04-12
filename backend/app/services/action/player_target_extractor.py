@@ -202,34 +202,46 @@ class PlayerTargetExtractor:
                     break
             return target_npc_id, target_npc_name, target_object, player_position, player_distances
 
-        # 1. Поиск целевого NPC
+        # 1. Поиск целевого NPC — собираем ВСЕХ кандидатов, выбираем по позиции в тексте
+        # Если упоминаются несколько NPC (например "подойти к Люсе и спросить про Торнина"),
+        # главная цель = тот, чьё имя ближе к началу фразы (прямое действие).
+        _candidates: List[Tuple[int, str, str]] = []  # (позиция_в_тексте, npc_id, npc_name)
+
         for ctx in npc_contexts:
             npc_id = ctx.get("npc_id", "")
             npc_name = ctx.get("npc_name", "")
 
             # name_forms (приоритет)
             name_forms = [f.lower() for f in ctx.get("name_forms", [])]
-            if name_forms and any(form in lower for form in name_forms):
-                matched = [f for f in name_forms if f in lower]
-                print(f"[S.0 MATCH] name_form {matched!r} → {npc_id}")
-                target_npc_id = npc_id
-                target_npc_name = npc_name
-                break
+            if name_forms:
+                for form in name_forms:
+                    pos = lower.find(form)
+                    if pos != -1:
+                        print(f"[S.0 MATCH] name_form '{form}' at pos {pos} → {npc_id}")
+                        _candidates.append((pos, npc_id, npc_name))
+                        break  # не ищем другие формы этого NPC
 
-            # Ролевое ключевое слово
-            role = self._get_role_from_id(npc_id)
-            if role and any(
-                f" {kw} " in f" {lower} " or
-                lower.startswith(f"{kw} ") or
-                lower.endswith(f" {kw}") or
-                lower == kw
-                for kw in self._ROLE_KEYWORDS.get(role, [])
-            ):
-                matched = [kw for kw in self._ROLE_KEYWORDS.get(role, []) if kw in lower]
-                print(f"[S.0 MATCH] role_kw {matched!r} via role={role!r} → {npc_id}")
-                target_npc_id = npc_id
-                target_npc_name = npc_name
-                break
+            # Ролевое ключевое слово (если name_forms не сработали)
+            if not any(c[1] == npc_id for c in _candidates):
+                role = self._get_role_from_id(npc_id)
+                if role and any(
+                    f" {kw} " in f" {lower} " or
+                    lower.startswith(f"{kw} ") or
+                    lower.endswith(f" {kw}") or
+                    lower == kw
+                    for kw in self._ROLE_KEYWORDS.get(role, [])
+                ):
+                    matched = [kw for kw in self._ROLE_KEYWORDS.get(role, []) if kw in lower]
+                    pos = lower.find(matched[0]) if matched else 999
+                    print(f"[S.0 MATCH] role_kw {matched!r} at pos {pos} via role={role!r} → {npc_id}")
+                    _candidates.append((pos, npc_id, npc_name))
+
+        # Выбираем кандидата с минимальной позицией (ближе к началу = главная цель)
+        if _candidates:
+            _candidates.sort(key=lambda x: x[0])  # сортировка по позиции
+            target_npc_id = _candidates[0][1]
+            target_npc_name = _candidates[0][2]
+            print(f"[TARGET] Selected {target_npc_name} ({target_npc_id}) from {len(_candidates)} candidates at pos {_candidates[0][0]}")
 
         # 2. Поиск объекта в SceneState через ObjectResolver (с морфологией)
         try:

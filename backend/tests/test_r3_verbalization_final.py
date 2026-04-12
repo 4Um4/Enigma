@@ -39,11 +39,13 @@ class TestR3VerbalizationContract:
         """Проверка, что все поля из Context попадают в Core Data для шаблона"""
         ctx = create_mock_ctx()
         data = build_npc_core_data(ctx)
-        
+    
         assert data["npc_name"] == "Торнин"
         assert data["emotion"] == "раздражение"
         assert "Бывший стражник" in data["biography"]
-        assert "TALK" in data["verbalization_core"]
+        # VerbalizationCore — dataclass, проверяем поля напрямую
+        core = data["verbalization_core"]
+        assert core.intent == "talk"
 
     def test_profanity_filter_logic(self):
         """Проверка работы контент-фильтра (R3.4)"""
@@ -62,8 +64,10 @@ class TestR3VerbalizationContract:
         ctx = create_mock_ctx(intent=Intent.EXPLAIN)
         data = build_npc_core_data(ctx)
         
-        assert "EXPLAIN" in data["verbalization_core"]
-        assert "цель: Игрок" in data["verbalization_core"]
+        # VerbalizationCore — dataclass, проверяем поля напрямую
+        core = data["verbalization_core"]
+        assert core.intent == "explain"
+        assert "Игрок" in core.target
 
     def test_render_integration(self):
         """Интеграционный тест: проходит ли рендер через Jinja2 без ошибок"""

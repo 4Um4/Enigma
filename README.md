@@ -1,5 +1,6 @@
-# ENIGMA — MASTER SPEC (v5.1)
-> Единый живой документ проекта. Актуален на момент завершения Memory System (v5.2).
+```markdown
+# ENIGMA — MASTER SPEC (v5.2)
+> Единый живой документ проекта. Актуален на момент Intent Exhaustion (R2.1 Phase 3).
 > Любой LLM, получивший этот файл, должен понимать: что строится, почему так, и что уже сделано.
 
 ---
@@ -53,13 +54,16 @@ LLM НЕ ВЫДАЁТ ДЕЛЬТЫ.
 - MAJOR NPC контекст: 450–700 токенов
 - MINOR NPC контекст: ≤ 180 токенов
 
----
-
-## 3. ГЛОБАЛЬНАЯ ЦЕПЬ ПРИЧИННОСТИ (DATA FLOW)
-
-Событие **не может перескочить слой**. Строгий конвейер:
+**ГЛАВНЫЙ ИНВАРИАНТ СИСТЕМЫ:**
+```text
+Ни LLM, ни persistence не имеют права вводить новые факты.
+LLM → только текст, не структура
+Parser → не создаёт сущности
+Commitment → не является фактом, только состоянием
 
 ```
+Data Flow (шаги 1-9):
+
 1. DM System — координатор входа (парсинг, сцена, валидация, участники)
  ├─ DM Router — текст в Event (Этап 1)
  ├─ Scene Builder — R4 Spatial контекст (Этап 2)
@@ -68,37 +72,50 @@ LLM НЕ ВЫДАЁТ ДЕЛЬТЫ.
 
 2. Event — валидированный Event уходит в ядро
 
-3. Event — валидированный Event уходит в ядро
+3. Spatial Filter — PerceptionFilter (кто именно воспринимает из участников)
 
-4. Spatial Filter — PerceptionFilter (кто именно воспринимает из участников)
-
-4.5. Intent Pool — генераторы (GOAP, LifeEngine, Reaction) создают Intent'ы с параметрами (priority, commitment, source).
-    ВНИМАНИЕ: Это Pool (пул кандидатов на ТЕКУЩИЙ тик), а не Queue (накопитель). Pool пересоздаётся каждый тик. Он не хранит историю между тиками.
-    Это устраняет temporal drift (когда старый intent влияет на новую реальность).
+4. Intent Pool — генераторы (GOAP, LifeEngine, Reaction) создают Intent'ы с параметрами.
+   ВНИМАНИЕ: Это Pool (пул кандидатов на ТЕКУЩИЙ тик), а не Queue (накопитель).
+   Pool пересоздаётся каждый тик. Он не хранит историю между тиками.
+   Это устраняет temporal drift (когда старый intent влияет на новую реальность).
 
 5. DecisionHub — score(action) по весам (профиль + память + эмоции + риск)
-   **ПРИНЦИП:** DecisionHub = чистый SCORER. Он не знает про "планы" или "рутину".
+   ПРИНЦИП: DecisionHub = чистый SCORER. Он не знает про "планы" или "рутину".
    Он получает список Intent'ов из очереди и считает финальный score для каждого.
    
 6. Resolution — бросок кубика смещает ожидаемый результат (±10%)
    
-   [ИЗМЕНЕНО]
 7. State Update — StateApplicator производит дельты (только читает DecisionResult).
    SceneStateManager — единственная точка записи (атомарно применяет дельты).
    StateApplicator НЕ имеет права писать состояние напрямую.
-   [/ИЗМЕНЕНО] 
 
 8. World Influence — макро-мир реагирует (фракции, фронты, слухи)
   
-9. Verbalization — LLM озвучивает intent одной фразой
+9. Verbalization — Структурная вербализация (Вариант D) + Controlled Chaos
+   └─ SceneOutcomeBuilder.build() — DecisionResult[] → SceneOutcome (атомарные события с типами)
+   └─ Chaos Injection Layer — искажение восприятия (НЕ меняет факты)
+      ├─ Perception Noise: perceived_emotion = true_emotion + noise(-0.2..+0.2)
+      ├─ Expression Drift: допуск сарказма/усталости в рамках intent
+      ├─ Information Loss: скрыть часть событий (filter_by_confidence)
+      ├─ Contradiction Allowance: NPC могут противоречить друг другу
+      └─ Temporal Noise: лёгкая рассинхронизация реакций (1 тик)
+   └─ SceneOutcomeBuilder.build_dm_frame() — SceneOutcome + chaos_profile → DMFrame
+   └─ DM LLM — заполняет payload по id:: (НЕ возвращает структуру)
+   └─ Python рендеринг → финальный текст (тривиальный split)
+   
+   ПРИНЦИПЫ:
+   - Разделение ДО LLM. Система генерирует структуру → LLM заполняет payload.
+   - LLM = noise source (ограниченный канал вариативности), не decision maker.
+   - CHAOS_INTENSITY ∈ [0.0..1.0], max_deviation_from_truth <= 15%.
+   - Если LLM влияет на intent/state → controlled chaos становится обычным хаосом.
 
-10. ИСПРАВЛЕННАЯ АРХИТЕКТУРА (Закон системы):
-    Внешние системы (GOAP, LifeEngine, EventBus) генерируют ActionCandidate.
-    ActionCandidate КРАЙНЕ СТРОГО содержит только что можно сделать. Ноль чисел (никаких priority, score, weight).
-    DecisionHub — единственный, кто имеет право приписать вес кандидату на основе формулы score().
-    Intent Structur — это состояние NPCStateL2, а не свойство кандидата. Оно дает инерцию, но не финальное решение.
-
+   Трёхслойная архитектура:
+   [Truth Layer] DecisionHub → Resolution → State (LLM запрещён)
+   [Perception Layer] SceneOutcome → Chaos Layer → DMFrame (LLM искажает)
+   [Expression Layer] DMFrame → LLM → Text (LLM генерирует)
 ```
+
+**Закон системы:** Внешние системы (GOAP, LifeEngine, EventBus) генерируют ActionCandidate. ActionCandidate КРАЙНЕ СТРОГО содержит только что можно сделать. Ноль чисел (никаких priority, score, weight). DecisionHub — единственный, кто имеет право приписать вес кандидату на основе формулы score().
 
 **Правило записи:** `DecisionHub` — read-only. `StateApplicator` — write-only. Нигде больше состояние не меняется.
 
@@ -126,7 +143,7 @@ Write-контракты зафиксированы: NPCPersonality (write: NEVE
 #### R2 Decision Core ✅ DONE (MIGRATED TO L0/L2)
 
 #### R2.1 Cognition & Planning (FUTURE)
-ВНИМАНИЕ: В текущей реализации DecisionHub принимает единый EventContext. Интеграция GOAP и Intent Queue (R10.5) запланирована как адаптация входных данных для DecisionHub, а не замена его формулы score(). Подробности в разделе 9.1.
+ВНИМАНИЕ: В текущей реализации DecisionHub принимает единый EventContext. Интеграция GOAP и Intent Queue (R10.5) запланирована как адаптация входных данных для DecisionHub, а не замена его формулы score(). Подробности в разделе 10.8.
 **Гибридная модель (Вариант C):** GOAP и реактивность сосуществуют через единый язык Intent'ов.
 
 Intent Structure (кандидат в Pool):
@@ -144,7 +161,6 @@ Commitment Model (критически важно):
     Intent Pool = проекция давления системы в текущий тик. После тика — очищается.
     Это гарантирует: DecisionHub всегда видит ТОЛЬКО актуальных кандидатов.
 
-
 *DecisionHub* — единственная точка принятия решений. Строго типизирован под чистую 4-слойную модель (NPCProfileL0, NPCStateL2). Основан на Multidimensional Utility AI (отвергнуты FSM и GOAP как избыточные для психологической RPG).    
 
 **DecisionHub Formula (дополненная):**
@@ -161,39 +177,108 @@ freshness = exp(-0.15 × ticks_since_event)
 ```
 
 **Защита от доминирования GOAP:**
-- **Intent Saturation Penalty:** если тот же `chain_id` используется >3 тиков подряд, 
-  score *= 0.9 каждый следующий тик (пока commitment не упадет).
-- **Cognitive Switch Cost:** штраф при резкой смене intent'ов (анти-дребезг).
-- **Commitment Decay:** каждый тик без выполнения шага GOAP-интент теряет 10% commitment.
+- **Intent Saturation Penalty:** если тот же `chain_id` используется >3 тиков подряд, score *= 0.9 каждый следующий тик
+- **Cognitive Switch Cost:** штраф при резкой смене intent'ов (анти-дребезг)
+- **Commitment Decay:** каждый тик без выполнения шага GOAP-интент теряет 10% commitment
+- **Intent Exhaustion:** активный штраф при стагнации (intent активен без прогресса)
 
 **Архитектурный контракт:**
-- GOAP — только генератор intent'ов (A* планировщик), не исполнитель.
-- DecisionHub — только scorer, не знает про "планы" или "цели".
-- SceneStateManager — единственный владелец состояния.
+- GOAP — только генератор intent'ов (A* планировщик), не исполнитель
+- DecisionHub — только scorer, не знает про "планы" или "цели"
+- SceneStateManager — единственный владелец состояния
 
 ```
 Ключевые механики:
-- **INTENT_INERTIA (0.20):** NPC не дребезжит — продолжает начатое действие
-- **SCORE_NOISE_RANGE (±10%):** контролируемый хаос, NPC не детерминирован
-- **scores_trace:** "чёрный ящик" — почему NPC выбрал FLEE вмест of ATTACK
-- **OpportunityEngine:** NPC действует проактивно (скрытые атаки, предательство при отсутствии свидетелей)
-- **WillState.LOYAL** блокирует ATTACK — верные NPC не нападают без причины
-- **stress > 90** → NPC теряет широту и сводится к базовым инстинктам (бегство/наблюдение)
+- INTENT_INERTIA (0.20): NPC не дребезжит — продолжает начатое действие
+- INTENT_EXHAUSTION_RATE (0.08): штраф за стагнацию сверх INTENT_SATURATION_TICKS
+- SCORE_NOISE_RANGE (±10%): контролируемый хаос, NPC не детерминирован
+- scores_trace: "чёрный ящик" — почему NPC выбрал FLEE вместо ATTACK
+- OpportunityEngine: NPC действует проактивно (скрытые атаки, предательство при отсутствии свидетелей)
+- WillState.LOYAL блокирует ATTACK — верные NPC не нападают без причины
+- stress > 90 → NPC теряет широту и сводится к базовым инстинктам (бегство/наблюдение)
 
-Файлы: `npc/decision_hub.py`, `npc/opportunity_engine.py`, `npc/reaction_priority.py`, `npc/threat_assessor.py`, `npc/npc_cognition.py`, `npc/psyche_engine.py`, `npc/resolution_engine.py`
+Файлы: npc/decision_hub.py, npc/opportunity_engine.py, npc/reaction_priority.py, npc/threat_assessor.py, npc/npc_cognition.py, npc/psyche_engine.py, npc/resolution_engine.py
+Тесты: test_decision_hub_commitment.py (23), test_decision_calibration.py (10), test_decision_pipeline.py (20)
+```
 
-#### R3 Verbalization Layer ✅ УСИЛЕН
-LLM получает только структурированные данные — никаких цифр и internals:
+#### R3 Verbalization Layer ✅ АРХИТЕКТУРНЫЙ СДВИГ: Структурная вербализация (Вариант D)
 
-VerbalizationCore — frozen dataclass (whitelist: intent, target, scene)
-str в render_npc_prompt() запрещён на уровне типа (TypeError)
-_sanitize_verbalization_core() — 7 паттернов + теги, вызывается внутри to_prompt_text()
-Секционные лимиты: core(300), voice(150), emotion(100), hints(200), bio(500)
-Interpretation Envelope: запреты на описание сцены, чужих действий, multi-NPC
-RESET STATE: защита от Semantic Echo Drift
-Behaviour Contract: единый источник npc_system.txt, шаблон содержит только данные
-build_npc_core_data() возвращает VerbalizationCore, не строку
-Файлы: verbalization/verbalization_context.py, verbalization/prompt_loader.py, prompts/npc_system.txt, prompts/npc_speech.j2Тесты: 59 тестов (TestNPCPromptContent, TestPromptMustNotContain, TestTokenBudget, TestFailureModes, TestVerbalizationCoreContract)
+**Базовый принцип:** Python = Mind, LLM = Voice. DM = единственный источник речи.
+
+**Ключевой перелом:** Разделение делается ДО LLM, не ПОСЛЕ.
+- ❌ НЕ: "LLM генерирует сцену → мы её делим"
+- ✅ ДА: "Система генерирует структуру → LLM только озвучивает узлы"
+
+**Вариант D — Structural Verbalization (95-99% надёжность):**
+
+Ключевой принцип: **LLM не возвращает структуру. LLM возвращает только payload внутри уже заданной структуры.**
+Структура = 100% Python. LLM = только текст. Парсинг = тривиальный split по id::
+
+**Шаг 1:** SceneOutcomeBuilder (Python, 0ms) — формирует структуру с пустыми payload (массив dict с type, id, payload="").
+
+**Шаг 2:** DM LLM (1 вызов) — промпт: "Заполни payload для каждого блока. НЕ меняй структуру. Ответ — список payload по id."
+
+**Шаг 3:** LLM возвращает только текст: `1:: Ты подходишь к стойке...` и `2:: "Эль? Две серебряные монеты..."`
+
+**Шаг 4:** Python собирает финальную структуру — тривиальный split по `id::` (нулевой риск парсинга)
+
+**Почему не JSON от LLM:**
+- JSON от LLM: 40-60% надёжность
+- :::markup: 80-90% надёжность
+- ID→payload mapping: **95-99%** надёжность
+
+**Вывод:** Не улучшай парсинг. Убери необходимость в нём.
+```
+
+**Вторичные эффекты (важнее самой задачи):**
+- Управление сценой: скрывать части, менять POV, cinematic cuts
+- Мульти-NPC без коллизий: кто говорит, кто действует, кто наблюдает
+- Будущие системы: TTS по npc_id, анимации по type, структурированное логирование
+
+**Защита от потери голосов (Voice Flattening):**
+- Voice Constraints: TONE, STYLE, LEXICON — ограничения, а не просьбы
+- Анти-гладкость: `ALLOW: interruptions, incomplete sentences, conflicting reactions`
+- Запрет: `DISALLOW: perfect coordination between NPCs`
+
+**Сохранённые контракты:**
+- VerbalizationCore — frozen dataclass (whitelist: intent, target, scene)
+- BehaviorMode: STRICT/FLEXIBLE/REACTIVE/SILENT
+- Semantic Conflict Resolution: emotion/scene > intent > constraint
+
+**Артефакты (Шаги 1-2 завершены):**
+- `SceneOutcomeBuilder` — компрессор: DecisionResult[] → SceneOutcome (0ms)
+- `SceneOutcome` — frozen: salience, tension (с sources), visibility (с confidence), latent signals
+- `DMFrame` — перцептивная модель: фокус (≤2 NPC), фон, скрытые сигналы
+- `SceneToDMAdapter` — единый вход: SceneOutcome или Legacy Dict → DMFrame
+- `LatentSignal` — типизированный контракт (TRAUMA, WILL_OVERRIDE, INTEGRITY_CRACK)
+
+**Формулы:**
+- `salience = proximity(0.30) + emotional_intensity(0.30) + action_relevance(0.25) + tier(0.15)`
+- `tension.level` — агрегация stress_delta + fear_delta, spike при травме/смене воли
+
+**Controlled Chaos Layer:**
+- `CHAOS_INTENSITY ∈ [0.0..1.0]` — глобальный параметр стохастики
+- `max_deviation_from_truth <= 15%` — жёсткий предел искажения
+- Распределение влияния: Selection(40%), Interpretation(30%), Expression(20%), Timing(10%)
+- `perceived_emotion = true_emotion + noise(-0.2..+0.2)` — искажение восприятия
+- `chaos_profile` в DMFrame: {ambiguity, emotional_noise, info_loss, contradiction}
+- Критические зоны роста: Social scenes (+90%), Tension (+75%), Break System (+95%)
+- Где разрушает систему: факты ("ударил" → "почти ударил"), причинность (intent через речь)
+
+**R3_DIRECT_MODE (feature flag):**
+- `True`: DecisionResult[] → SceneOutcome → DMFrame → dm_agent → 1 LLM
+- `False`: legacy (npc_agent → npc_result → dm_agent) — полный откат
+- Текущий статус: ⚠️ DMFrame формируется, но npc_agent ВСЁ РАВНО вызывается после (баг #1)
+
+**Вероятностная оценка стратегий:**
+| Подход | Итог |
+|--------|------|
+| Без chaos | 60% «умно, но мёртво» |
+| Свободный LLM | 70% хаос/баги |
+| Controlled Chaos | **85% живой мир + стабильность** |
+
+Файлы: verbalization/verbalization_context.py, verbalization/scene_outcome_builder.py, verbalization/scene_to_dm_adapter.py, verbalization/prompt_loader.py, game_loop.py, dm_agent.py, prompts/npc_system.txt
+Тесты: 79 (R3) + 32 (SceneOutcome) + 17 (DMFrame) + 23 (Adapter) + 29 (регрессии) = **180 тестов**
 
 ---
 
@@ -209,8 +294,10 @@ build_npc_core_data() возвращает VerbalizationCore, не строку
 
 ### L1 — ПРОСТРАНСТВО ✅ DONE (R4 полностью закрыт)
 
-#### R4 Spatial System
+#### R4 Spatial System ✅ РАБОТАЕТ
 Полная пространственная симуляция сцены:
+
+**Исправлено:** `distance_to_player` теперь корректно передаётся из экстрактора в SceneContext. Расстояния реальны (Торнин=4.0м, Люся=2.5м, Тень=4.61м).
 
 **R4.1–4.2 LocationGraph + LocationNode**
 - Граф узлов с XY-координатами, связями, родителями/детьми
@@ -262,7 +349,6 @@ build_npc_core_data() возвращает VerbalizationCore, не строку
   - Нет проверки `intent` против профиля игрока
   - Нет `affinity()` функции (только заглушка в ResolutionEngine)
   - Нет штрафов за нарушение роли
-- Файлы: `character_service.py` (базовый), `verbalization_context.py` (ContentProfile — не то!)
 
 Файлы: `character_service.py`, `npc/npc_state.py`, `npc/behavior_mask.py`, `npc/life_engine.py`
 
@@ -288,19 +374,26 @@ build_npc_core_data() возвращает VerbalizationCore, не строку
 - Файлы: `npc/behavior_mask.py`, `npc/break_progress_engine.py`, `npc/opportunity_engine.py`
 - Тесты: `test_behavior_mask_r62.py`, `test_break_progress_engine_r64.py`
 
-Файлы: `npc/break_progress_engine.py`, `npc/behavior_mask.py`, `npc/state_applicator.py`
-
 ---
 
 ### L6 — МИР
 
-#### R9 World Director STUB
+#### R9 World Director PARTIAL
+- ✅ **Онтология мира** — три класса сущностей:
+  - `PHYSICAL_OBJECT` → `scene_state["objects"]` + `owner` (материальные предметы)
+  - `BODY_TRAIT` → `NPCIdentityL1` / `NPCState` (шрамы, телосложение)
+  - `ROLE_MARKER` → `BehaviorMask` / `LifeEngine tags` (статусные маркеры)
+- ✅ **Двухфазная инстанциация (MVP):**
+  - Фаза 1 (Semantic): JSON → `NPCProfileL0.carried_objects` (явный список)
+  - Фаза 2 (World): `carried_objects` → `scene_state["objects"][owner=npc_id]`
+- ✅ **Разделение:** `carried_objects` (seed для материализации) vs `visible_markers` (LLM-контекст)
+- ✅ `world_ontology.is_physical_object()` — валидация перед записью в сцену
 - ❌ **Фронты (Fronts) — НЕ РЕАЛИЗОВАНЫ**
 - ❌ **Фракции (Factions) — НЕ РЕАЛИЗОВАНЫ**
 - ❌ **Экономика (Scarcity) — НЕ РЕАЛИЗОВАНА**
 - ❌ **Автономные события — НЕ РЕАЛИЗОВАНЫ**
-- ✅ Есть только заглушки: `world_scheduler.py`, `world_sim_agent.py`, `world_state.py`
-- **Следующий шаг:** Реализация `FactionSystem` и `WorldFront` классов
+- ❌ **EPL (Event Processing Language)** — цель будущей архитектуры, сейчас не трогаем
+- Файлы: `world/world_ontology.py`
 
 ---
 
@@ -310,6 +403,9 @@ build_npc_core_data() возвращает VerbalizationCore, не строку
 - Диалог = 1 тик. Перемещение/отдых = X тиков.
 - Мир меняется асинхронно во время отдыха игрока
 - NPC перемещаются по расписанию (`life_engine.py`) независимо от игрока
+- ✅ LifeEngine.tick() подключён в пайплайн
+- ✅ SceneChange применяются через SceneStateManager.apply_changes()
+- ✅ Spatial данные корректны (расстояния 2.5-4.6м)
 
 Файлы: `game_loop.py`, `world_scheduler.py`, `npc/life_engine.py`
 
@@ -345,7 +441,7 @@ backend/
 │   │   ├── dm_agent.py               # [LEGACY] — убрать прямую генерацию дельт
 │   │   ├── npc_agent.py              # ★ R3 VerbalizationContext (react() удалён)
 │   │   ├── rules_agent.py
-│   │   ├── world_sim_agent.py
+│   │   └── world_sim_agent.py
 │   ├── api/
 │   │   ├── routes.py                 # REST
 │   │   ├── routes_stream.py          # SSE
@@ -381,18 +477,18 @@ backend/
 │       │   ├── memory_manager.py     # R1 ✅ — подключён к DecisionHub и NPCIdentityL1
 │       │   ├── layered_memory.py
 │       │   ├── working_memory.py
-│       │   ├── resonance_engine.py   resonance_engine.py   # ✅ — подключён через MemoryManager.apply_identity_weights()
+│       │   ├── resonance_engine.py   # ✅ — подключён через MemoryManager.apply_identity_weights()
 │       │   ├── importance_engine.py
 │       │   ├── relationship_store.py
 │       │   └── contradiction_resolver.py
 │       ├── npc/
 │       │   ├── decision_hub.py       # ★ Ядро интеллекта [✅ МИГРИРОВАН НА L0/L2]
 │       │   ├── state_applicator.py   # ★ Единственная точка записи [✅ МИГРИРОВАН НА L0/L2]
-│       │   ├── npc_state.py          # ★ ЕДИНЫЙ ИСТОЧНИК ТИПОВ — NPCPersonality(L0), NPCIdentityL1(L1), NPCState(L2), DecisionView, EventMemory
+│       │   ├── npc_state.py          # ★ ЕДИНЫЙ ИСТОЧНИК ТИПОВ — NPCPersonality(L0), NPCIdentityL1(L1), NPCState(L2)
 │       │   ├── life_engine.py
 │       │   ├── location_graph.py     # R4 ✅
 │       │   ├── spatial_runtime.py    # R4 ✅
-        │   ├── npc_loader.py         # ★ НОВЫЙ — Адаптер миграции (JSON -> L0 Profile)
+│       │   ├── npc_loader.py         # ★ Адаптер миграции (JSON -> L0 Profile)
 │       │   ├── perception_filter.py  # R4 ✅
 │       │   ├── perception_engine.py
 │       │   ├── npc_cognition.py
@@ -408,10 +504,16 @@ backend/
 │       │   └── narrative_extractor.py
 │       ├── simulation/
 │       │   └── world_state.py
+│       ├── world/
+│       │   └── world_ontology.py       # Онтологический контракт: PHYSICAL_OBJECT_TYPES, is_physical_object()
 │       ├── state/
-│       │   └── context_builder.py    # ★ Активен (build_context, patch_scene_state)
+│       │   ├── context_builder.py    # ★ Активен (build_context, patch_scene_state)
+│       │   ├── persistence_port.py   # ★ Абстрактный порт сохранения (Пробой 7)
+│       │   └── json_persistence_adapter.py  # ★ JSON реализация PersistencePort
 │       ├── verbalization/
-│       │   ├── verbalization_context.py # R3 ✅ (Контракт готов, ждем L0/L2 данные)
+│       │   ├── verbalization_context.py # R3 ✅
+│       │   ├── scene_outcome_builder.py # ★ SceneOutcome, DMFrame, Salience, Tension
+│       │   ├── scene_to_dm_adapter.py   # ★ Единый входной контракт для DM
 │       │   └── prompt_loader.py
 │       └── llm/
 │           ├── llama_cpp_provider.py
@@ -514,10 +616,12 @@ enigma/
 │   │   │   │   ├── relationship_store.py  # Матрица отношений
 │   │   │   │   └── long_term_store.py     # (Будущее) SQLite/Факты
 │   │   │   │
-│   │   │   └── verbalization/       # R3 — СЛОЙ ГОЛОСА (Только упаковка для LLM)
-│   │   │       ├── prompt_factory.py      # Сборка промптов (NPC + DM)
-│   │   │       ├── context_builder.py     # Формирование VerbalizationContext
-│   │   │       └── llm_client.py          # Адаптер (llama.cpp/vLLM)
+│   │   │   └── verbalization/       # R3 — СЛОЙ ГОЛОСА (Режиссура сцены)
+│   │   │          ├── prompt_factory.py      # Сборка промптов (NPC + DM)
+│   │   │          ├── context_builder.py     # Формирование VerbalizationContext
+│   │   │          ├── scene_outcome_builder.py # DecisionResult[] → SceneOutcome → DMFrame
+│   │   │          ├── scene_to_dm_adapter.py   # Единый вход (new/legacy) → DMFrame
+│   │   │          └── llm_client.py          # Адаптер (llama.cpp/vLLM)
 │   │   │
 │   │   └── knowledge/               # PHASE 2 — PDF ЗАГРУЗЧИК (Вне логики)
 │   │       ├── pdf_loader.py
@@ -535,8 +639,7 @@ enigma/
     ├── assets/                       # Пиксель-арт, текстуры
     ├── map/                          # Модуль "Карты мародёров"
     └── terminal/                     # Диалоговое окно
-
----
+```
 
 ---
 
@@ -585,13 +688,66 @@ enigma/
 **Защита:** штрафы за повторные броски, ограничение откатов.
 **Статус:** не реализовано.
 
-### 8. Frequency Dominance (доминирование GOAP)
-**Симптом:** GOAP-планы системно выигрывают у реактивности из-за стабильной 
-генерации intent'ов каждый тик, в то время как реакции спорадичны.
+### 8. Voice Flattening (размытие голосов NPC)
+**Симптом:** Все NPC начинают говорить языком DM. Теряется индивидуальность (Торнин звучит как Борко).
+**Правило:** DM получает не описание голоса, а **Voice Constraints** (TONE, STYLE, LEXICON). Это ограничения, а не предложения.
+**Защита:** 
+- Структурный сигнал: `TONE: HARSH` в developer message (а не "Торнин грубый" в тексте)
+- Анти-гладкость: явное разрешение в промпте на прерывания и противоречия между NPC
+- Если Voice Constraints нарушаются → текст режется пост-процессором (Фаза 3 из Semantic Determinism)
+
+### 9. Frequency Dominance (доминирование GOAP)
+**Симптом:** GOAP-планы системно выигрывают у реактивности из-за стабильной генерации intent'ов каждый тик, в то время как реакции спорадичны.
 **Защита:** 
 - `freshness_decay` для reactive_urgency (экспоненциальное затухание)
 - `intent_saturation_penalty` (штраф за залипание в одном chain_id)
+- `intent_exhaustion` (штраф за стагнацию без прогресса)
 - Кап частоты генерации GOAP (не чаще 1 раза за тик)
+
+### 10. Unprovoked Hostility — ЗАКРЫТ
+**Симптом:** NPC атакует или предупреждает при нейтральном входе.
+**Решение:** provocation_gate (−0.54 за отсутствие провокации).
+**Статус:** ✅ ЗАКРЫТ — Торнин теперь говорит "Заработать? Помои убери..." вместо атаки. Остаточный риск: контекст-релевантность (Баг B) — отдельная задача.
+
+### 11. Silent NPC Drop — ЛОЖНАЯ ТРЕВОГА
+**Симптом:** PERCEPTION_FILTER находит NPC, но [VERBALIZE] не появляется.
+**Диагноз:** Не баг. NPC с `intent=idle` молчат по контракту — лог `[VERBALIZE-DROP] intent=idle (silent)` подтверждает.
+**Статус:** ✅ ЗАКРЫТ — добавлен диагностический лог для отслеживания.
+
+### 12. Wrong Target Response — ИСПРАВЛЕН
+**Симптом:** "Подойти к Люсе и спросить про Торнина" → отвечал Торнин (нашёлся первым).
+**Причина:** `break` после первого совпадения в экстракторе — Люся никогда не проверялась.
+**Решение:** Собираем всех кандидатов, сортируем по позиции в тексте → выбираем ближайшего к началу.
+**Статус:** ✅ ЗАКРЫТ — позиционная сортировка кандидатов.
+
+### 13. Stale Scene Cache (грязный рестарт)
+**Симптом:** После перезапуска — старые объекты, сломанная мебель. campaign_state.json накапливает мусор.
+**Правило:** Должен быть механизм чистого старта (runtime reset без затирания профилей).
+**Статус:** ✅ МИТИГИРОВАН — reset_campaign.bat (сбрасывает runtime-стейт, сохраняет профили).
+
+### 14. Event Parser Leak (реплики NPC парсятся как действия) ✅ ЗАКРЫТ
+**Симптом:** Реплика "Эль? Две серебряные..." → объект `эль_tornin_t0_b98f` с raw_name: 'поднимает взгляд "эль'.
+**Причина:** NarrativeExtractor нарушал фундаментальный контракт — создавал объекты из текста DM (new_objects).
+**Следствие:** Мусорные объекты попадают в контекст DM → галлюцинации ("Эль — подобран"), дубли подносов.
+**Правило:** TEXT→ENTITY запрещён. NarrativeExtractor только обновляет состояния существующих объектов, никогда не создаёт новые (new_objects = [] всегда). Новые объекты — только через carried_objects или явные действия игрока.
+**Решение:** 
+- Идиомный блок-лист перед принятием триггера ("поднимает взгляд" ≠ "take")
+- Хирургическое решение: new_objects заблокирован на уровне NarrativeExtractor
+**Статус:** ✅ ЗАКРЫТ — баг #2 в 8.5.
+### 15. Truth-Perception Boundary Collapse
+**Симптом:** LLM искажает факты ("ударил" → "почти ударил") или меняет intent через речь.
+**Правило:** LLM может влиять только на perception layer (как выглядит), не на reality layer (числа, факты, intent'ы).
+**Следствие:** Если граница размыта → controlled chaos превращается в обычный хаос.
+**Защита:**
+- CHAOS_INTENSITY жёстко ограничен (max_deviation_from_truth <= 15%)
+- Факты проходят мимо LLM (DecisionHub → State напрямую)
+- LLM получает только DMFrame (уже искажённую проекцию, не оригинал)
+**Статус:** 📋 Зафиксирован — Controlled Chaos Layer спроектирован с учётом этого риска.
+
+### 16. Commitment Persistence Bug (будущий)
+**Симптом:** NPC после рестарта продолжает мёртвый GOAP-план с высоким commitment'ом без причины.
+**Правило:** Commitment не переживает рестарт. Хранить не commitment, а intent_persistence_score с decay при загрузке.
+**Статус:** 📋 Зафиксирован — Фаза 2.2 в дорожной карте.
 
 ---
 
@@ -607,870 +763,3 @@ enigma/
 8. **Каждые 5 шагов:** проверка связности, дублирования, утечки ответственности.
 9. **Магические значения запрещены.** Все константы в конфиг.
 10. **Тест после каждого изменения.** Без тестов — нет уверенности.
-
----
-
-## 8. ТЕКУЩИЙ ФОКУС РАЗРАБОТКИ
-
-Завершено (Memory System v5.2):
-  - Удалён файл-паразит services/memory.py
-  - npc_state.py: добавлены NPCIdentityL1, DecisionView, алиасы L0/L2, write-контракты
-  - Memory→DecisionHub: relationship_cache обогащается перед каждым compute()
-  - ResonanceEngine→identity_cache: decay → apply_identity_weights → NPCIdentityL1
-  - DecisionHub.compute() принимает identity=NPCIdentityL1
-  - Удалён мёртвый memory_manager_agent.py
-
-ЗАВЕРШЕНО (Глобальная очистка):
-  - NPCStateL2 дубликат удалён из npc_profile.py → npc_state.py
-  - NPCIdentityL1 дубликат удалён из npc_profile.py → npc_state.py
-  - npc_profile.py теперь содержит только L0 типы
-  - game_loop_factory.py → мигрирован в main.py (app.state) + accessor
-  - npc_agent.py: react() + _fallback_react() удалены (-213 строк)
-  - npc_state.py: to_legacy() мёртвый метод удалён
-  - game_loop.py: ложные TODO-заглушки удалены
-  - 228 тестов проходят, 0 failures
-
-Технический долг:
-  - active_traits в NPCState — мост до полного подключения ResonanceEngine
-  - extractor + life_engine — мёртвые параметры в GameLoop.__init__
-  - _request_sync — переименован (было _request_legacy)
-
-ЗАВЕРШЕНО (Архитектурная стабилизация):
-    Уничтожен монолит python_engines.py.
-    Типы разделены: npc_profile.py (L0), npc_state.py (L1/L2).
-    DecisionHub и StateApplicator пересажены на L0/L2.
-    Создан npc_loader.py (бронестена от мусора).
-    DM Execution Facade (Этап 5) интегрирован в game_loop.py.
-    shared_context["dm_result"] подключён (заменён python_engines).
-
-ЗАВЕРШЕНО (StateApplicator Pipeline):
-  - DecisionHub → StateApplicator.apply() → NPCState.write_to_legacy() → _save_npcs()
-  - NPC теперь реально меняют стресс/интент после действий игрока
-  - Интеграционный тест: test_state_applicator_pipeline.py (2 passed)
-
-ЗАВЕРШЕНО (R3 Verbalization Layer Enhancement):
-  - VerbalizationCore — frozen dataclass с whitelist (intent, target, scene)
-  - str в render_npc_prompt() запрещён на уровне типа (TypeError)
-  - _sanitize_verbalization_core() — 7 паттернов + теги, вызывается внутри to_prompt_text()
-  - Секционные лимиты: core(300), voice(150), emotion(100), hints(200), bio(500)
-  - Interpretation Envelope в npc_system.txt — запреты на описание сцены, чужих действий
-  - RESET STATE — защита от Semantic Echo Drift
-  - Behaviour Contract: единый источник npc_system.txt, шаблон только данные
-  - build_npc_core_data() возвращает VerbalizationCore, не строку
-  - Удалены: npc_system.py, npc_speech.py (мёртвый код и дубликаты)
-  - 59 тестов вербализации (0 failures)
-
-## 9. ТЕКУЩИЕ ШАГИ РАЗРАБОТКИ
-
-ЗАВЕРШЕНО:
-- Хирургическое отсечение python_engines.py.
-- Типы разделены: npc_profile.py (L0), npc_state.py (L1/L2).
-- DecisionHub и StateApplicator мигрированы на L0/L2 контракты.
-- Создан npc_loader.py — адаптер миграции.
-- Глобальная очистка: -300 строк мёртвого/дублирующего кода.
-- GameLoop мигрирован на app.state (main.py startup + accessor).
-
-АКТИВНЫЙ ФОКУС: **Commitment Model & Intent Queue (R2.1)**
-- Внедрение `commitment`, `reactive_urgency`, `freshness_decay` в DecisionHub.
-- Реализация IntentQueue как арбитра между GOAP/LifeEngine/Reaction.
-- State Ownership Fix: StateApplicator → чистый производитель дельт, 
-  SceneStateManager → единственная точка записи.
-
-СЛЕДУЮЩИЙ ШАГ (после стабилизации R2.1):
-- Crisis Detector (минимальная версия: is_besieged, is_enslaved).
-- Базовый GOAP Planner (3 цели, 5-6 действий, preconditions).
-- Интеграция: GOAP как генератор intent'ов в очередь.
-
-ТЕХНИЧЕСКИЙ ДОЛГ:
-- Ego Resistance (R6) — минимальная версия (behavior drift penalty).
-
-ИЗМЕНЕНИЕ:
-Убрана строка с метрикой (она уже есть в дорожной карте)
-Причина: Дублирование
-
----
-
-## 9. БУДУЩАЯ АРХИТЕКТУРА: ADAPTIVE REALITY FRAMEWORK (R9.x + R11)
-
-> Этот раздел описывает **следующий этап** развития ENIGMA после стабилизации текущей системы (R1-R8).  
-> Здесь фиксируются архитектурные решения, которые будут реализованы позже, чтобы не забыть их и не переделывать.
-
----
-
-### 9.1 GOAP — Генератор Intent'ов, в дереве кода (R10.5)
-
-**Принцип:** GOAP не управляет NPC напрямую. Он создает Intent'ы с высоким 
-`commitment`, которые попадают в общую очередь и конкурируют с реакциями 
-через DecisionHub.
-
-**Архитектура:**
-[Crisis Detector] → [GOAP Planner] → [Intent Generator] → [Intent Queue]
-↑                                      |
-└──────── [World State Tracker] ←──────┘
-
-
-**Crisis Detector:**
-```python
-def needs_goap(npc_state, world_state) -> bool:
-    """Определяет, сломана ли рутина."""
-    return (
-        world_state.is_besieged or      
-        npc_state.is_enslaved or         
-        world_state.famine_level > 0.7 or 
-        npc_state.home_destroyed         
-    )
-
-**Зачем он нужен (в будущем):**
-- Город в осаде → фермер не может выйти в поле, нужен план "спрятаться/помочь защите/бежать"
-- NPC захвачен в рабство → рутина "дом→работа" заменяется на "выживание/побег"
-- Голод/разруха → поиск еды и убежища становится приоритетом
-
-**Почему не сейчас:**
-1. **Нет механик кризиса** — у нас нет осады, голода, разрушения домов
-2. **LifeEngine покрывает 90%** — в норме NPC живут по расписанию из JSON
-3. **Текстовый формат** — GOAP должен работать "в фоне", сжимая цепочку до одной фразы, а не показывать 5 тиков подряд
-
-**Вердикт:** GOAP добавим в R10.5, когда появятся механики кризиса (осада, рабство, разруха), ломающие обычную рутину.
-
-GOAP Planner (упрощенный):
-    Цели: SURVIVE_SIEGE, ESCAPE_SLAVERY, FIND_FOOD, HIDE_FROM_THREAT
-    Действия: 5-6 базовых (find_shelter, move_to, wait_hide, steal_food)
-    Preconditions/Effects: Упрощенные (логические условия), достаточные для A*
-    Вывод: Не "выполнить действие", а создать Intent с commitment=0.9 и chain_id
-    Execution:
-    GOAP генерирует план (цепочка шагов)
-    Каждый тик предлагает ТОЛЬКО текущий шаг как Intent в очередь
-    DecisionHub сравнивает его с реактивными intent'ами
-    Если reactive_urgency > (commitment × 1.5) → план прерывается (естественно, через scoring)
-    GOAP видит прерывание на следующем тике и пересчитывает план с новой позиции
-    Запрет: GOAP не может генерировать больше одного Intent за тик.
-    Нет "вложенных" планов — только линейная цепочка с возможностью отката.
-
-Файлы:
-    services/npc/cognition/goap_intents.py — генератор
-    services/npc/cognition/crisis_detector.py — триггер
-    services/npc/cognition/intent_queue.py — общая очередь (все источники)
-
----
-
-### 9.2 Что такое Adaptive Reality Framework (R9.x + R11)
-
-**Проблема:** Сейчас мир реагирует на игрока локально (NPC помнит обиды). Но мир не **адаптируется** глобально.
-
-**Пример:** Игрок 10 раз подряд использует "Запугивание → Кража". Каждый NPC реагирует отдельно. Но стража не становится умнее, торговцы не начинают прятать товары, игрок не чувствует, что "этот мир больше не принимает его".
-
-**Решение:** Система пяти уровней адаптации мира:
-
-| Уровень | Что происходит | Пример |
-|---------|----------------|--------|
-| **L1** Local Memory | Отдельный NPC запоминает | Торнин боится игрока |
-| **L2** Social Graph | Слухи распространяются | Все в деревне знают о воре |
-| **L3** Pattern Recognition | Система видит паттерн | "Игрок всегда крадёт ночью" |
-| **L4** Macro Adaptation | Мир меняет правила | Стража удваивается, ночью запирают двери |
-| **L5** Reality Shift | Игрока вытесняют в другой слой реальности | Из "порядочного мира" в "подполье" |
-
-**Ключевой принцип:** Игрок не выбирает фракцию. Мир **вытесняет** его туда, где он теперь существует.
-
----
-
-### 9.3 Как это будет устроено (Чистая версия)
-
-Вместо сложной иерархии папок — **плоская структура** в `services/world/`:
-
-```
-backend/app/services/world/           ← НОВАЯ ПАПКА (9 файлов)
-├── world_director.py                 # Главный фасад — единственная точка входа
-├── adaptive_core.py                  # L1-L4: Память, паттерны, адаптация
-├── social_layer.py                   # L2 + L5: Слухи и сдвиг реальности
-├── scene_field.py                    # Динамика сцены (внимание, напряжение)
-├── consequence_imprint.py            # Следствия действий (многослойный отпечаток)
-├── pressure_bias_engine.py           # Давление на NPC (меняет их решения)
-├── probabilistic_model.py            # Потолок успеха (~70%, нельзя абузить)
-├── telemetry.py                      # Отладка (God Mode)
-└── constants.py                      # Все числа в одном месте
-```
-
-**Почему именно так:**
-- **Zero overhead** — обновления не каждый тик, а по необходимости
-- **Не ломает текущее** — DecisionHub получает только 2 новых множителя:
-  ```python
-  score = base_score * scene.narrative_bias * layer.cost_multiplier
-  ```
-- **9 файлов** — никакой "папки в папке в папке"
-
----
-
-### 9.4 Порядок внедрения (почему так)
-
-**Сейчас (Фаза 0):** Стабилизируем R2-R8
-- DecisionHub должен работать в продакшене
-- StateApplicator — единственная точка записи
-- Все тесты зелёные
-
-**Потом (Фаза 1):** R9.x Core
-- Local Memory + Pattern Recognition
-- Подключается к существующему R1 Memory
-
-**Потом (Фаза 2):** Social Layer
-- Слухи + Social Graph
-- Подключается к OpportunityEngine
-
-**Потом (Фаза 3):** R11 Reality Shift
-- Три слоя реальности: Order → Grey Zone → Underworld
-- Только когда всё предыдущее стабильно
-
-**Почему такой порядок:** Каждый следующий слой зависит от предыдущего. Нельзя делать "реальность-сдвиг" (L5), если нет паттерн-распознавания (L3).
-
----
-
-### 9.5 Финальный принцип (зачем всё это)
-
-> "Игрок может обмануть NPC.  
-> Но не может бесконечно обманывать систему.  
-> 
-> Мир не даёт бонусов.  
-> Мир меняет условия.  
-> 
-> Игрок не выбирает слой реальности —  
-> мир сам вытесняет его туда, где он теперь существует."
-
-**Этот раздел — дорожная карта.** Когда текущая архитектура (R1-R8) будет стабильна, мы откроем этот раздел и начнём внедрение с Фазы 1.
-```
-
-Вот гибридный вариант — моя структура + твои формулировки:
-
----
-
-```markdown
-## 9. БУДУЩАЯ АРХИТЕКТУРА: ADAPTIVE REALITY FRAMEWORK (R9.x + R11)
-
-> Следующий этап после стабилизации R1–R8.  
-> Цель — превратить мир из реактивного в **адаптирующийся, но несовершенный**.
-
----
-
-### 9.1 Проблема и цель
-
-**Сейчас:**
-```text
-игрок → действие → NPC реагируют
-```
-
-**Недостаток:**
-```text
-мир не учится как система
-мир не меняет правила  
-мир не ошибается
-```
-
-**Нужно:**
-```text
-игрок → действие → мир учится → мир меняет правила → игрок адаптируется
-```
-
----
-
-### 9.2 Уровни адаптации (L1–L5)
-
-| Уровень | Механика | Суть | Статус |
-|---------|----------|------|--------|
-| **L1 — Local Memory** | R1 ✅ | NPC помнит события | Готово |
-| **L2 — Social Layer** | R7 🟡 | Слухи распространяются | Частично |
-| **L3 — Pattern Recognition** | R9.1 🔴 | Система выявляет повторы | Планируется |
-| **L4 — Macro Adaptation** | R9.2 🔴 | Мир меняет условия | Планируется |
-| **L5 — Reality Shift (R11)** | R11 🔴 | Игрока вытесняют в другой слой | Планируется |
-
-**Pipeline:**
-```text
-событие → агрегация → распознавание паттерна → оценка уверенности → триггер адаптации
-```
-
----
-
-### 9.3 Ключевые принципы
-
-```text
-1. Игрок не может эксплуатировать систему бесконечно
-   но система не идеальна и может ошибаться
-
-2. Мир не усиливается напрямую — мир меняет структуру
-
-3. Мир платит за изменения:
-   - time_delay (адаптация не мгновенна)
-   - resource_cost (требуется участие NPC/структур)
-   - error_rate (результат может быть неправильным)
-
-4. При сужении пространства появляются альтернативные пути (Escape Vector)
-
-5. Игрок не выбирает слой реальности — мир вытесняет его туда, где он теперь существует
-```
-
----
-
-### 9.4 Структура (services/world/)
-
-```
-world/
-├── world_director.py          # Главный фасад — единственная точка входа
-├── adaptive_core.py           # L3-L4: Паттерны + адаптация
-├── social_layer.py            # L2 + L5: Слухи + сдвиг реальности  
-├── scene_field.py             # Динамика сцены (внимание, напряжение)
-├── consequence_imprint.py     # Многослойный отпечаток последствий
-├── pressure_bias_engine.py    # Давление на NPC (меняет их решения)
-├── probabilistic_model.py     # Потолок успеха ~70%
-├── telemetry.py               # God Mode debug
-└── constants.py               # Все thresholds в одном месте
-```
-
----
-
-### 9.5 Imperfection (несовершенство системы)
-
-**Почему:** Идеальная система = нечестная. Игрок должен иметь шанс "обмануть" мир.
-
-**Механики:**
-- `pattern_confidence ∈ [0..1]` — мир не уверен в паттерне
-- `pattern_error_rate ∈ [0.1..0.4]` — ложные/неполные выводы  
-- `adaptation_delay` (в тиках) — адаптация не мгновенна
-- `information_imperfection` — NPC действует по восприятию, не по истине
-
-**Типы ошибок системы:**
-* ложный паттерн (увидел то, чего нет)
-* неполный паттерн (не заметил ключевого)
-* задержка распознавания (реакция с опозданием)
-
----
-
-### 9.6 Adaptation Cost (цена адаптации)
-
-```text
-мир платит за изменения
-```
-
-**Пример:**
-```text
-усиление охраны →
-    требуется время →
-    часть мер неэффективна →
-    возможны новые уязвимости
-```
-
-**Компоненты:**
-- `time_delay` — адаптация не мгновенна
-- `resource_cost` — требуется участие NPC/структур  
-- `error_rate` — результат может быть неправильным
-
----
-
-### 9.7 Reality Shift (R11)
-
-**Три слоя реальности:**
-```text
-Order World  → Grey Zone  → Underworld
-   ↑______________↓______________↑
-   (возврат возможен, но дорогой)
-```
-
-**Механика перехода:**
-```text
-trust ↓ + reputation ↓ + suspicion ↑ + pressure ↑ → layer shift
-```
-
-**Irreversibility Gradient:**
-```text
-глубже слой → выше цена возврата → ниже вероятность возврата
-```
-
-**Escape Vector (ключевой принцип):**
-```text
-система не должна замыкаться
-
-при сужении пространства →
-обязательно появляются альтернативные стратегии
-```
-
-📌 Это не помощь. Это **смена уровня игры**.
-
----
-
-### 9.8 Интеграция с DecisionHub
-
-```python
-score = base_score * narrative_bias * layer_modifier * uncertainty_factor
-```
-
-**Новые входы:**
-- `narrative_bias` — из scene_field (внимание к игроку)
-- `layer_modifier` — из social_layer (cost multiplier)
-- `uncertainty_factor` — из probabilistic_model (ошибка восприятия)
-
-**Информационное несовершенство:**
-```text
-NPC действует по восприятию, а не по истине
-```
-
----
-
-### 9.9 Порядок внедрения
-
-| Фаза | Что делаем | Зависимость |
-|------|------------|-------------|
-| **0 (сейчас)** | Стабилизация R2-R8 | DecisionHub в продакшене |
-| **1** | Adaptive Core + Pattern Recognition | Готова R1 Memory |
-| **2** | Social Layer + Rumor propagation | Готовы L3 паттерны |
-| **3** | Macro Adaptation | Готовы L2-L3 |
-| **4** | Reality Shift (R11) | Готовы L1-L4 |
-
----
-
-### 9.10 Финальный принцип
-
-```
-игрок может обмануть NPC
-но не может бесконечно обманывать систему
-
-мир не помогает игроку
-мир меняет условия
-
-мир не идеален
-и именно поэтому он живой
-
-```
-
-## 10 Ядро, которое нельзя ломать
-
-1. DecisionHub — чистый математик
-
-    Не арбитр
-    Не очередь
-    Не исполнитель
-    Только вычисление score на основе состояния мира
-
-    Любая попытка превратить его в «выбор из списка» = деградация до скриптового AI
-    Вероятность краха иммерсии: 85–95%
-
-2. Pipeline строгий, однонаправленный
-
-    RAW INPUT
-        → RawEvent (только факт из текста)
-        → EventContext (обогащённый миром)
-        → ValidatedEvent (проверка реальности)
-        → Intent (формализация действия)
-        → DecisionHub (оценка)
-        → Action
-        → StateDelta → StateApplicator
-
-    Любое «перепрыгивание» этапов = рассинхронизация модели мира
-
-3. Никаких placeholder-данных
-
-    Нет success=True "пока что"
-    Нет witness_count=1 "потом заменим"
-    Нет "заглушек"
-
-    Если данные неизвестны → они не существуют
-
-    Иначе:
-        → появляются фантомные состояния
-        → DecisionHub считает на мусоре
-        → поведение NPC начинает «течь»
-
-    Риск: скрытые баги с экспоненциальным ростом
-
-4. Иммутабельность слоёв
-
-    RawEvent — immutable
-    EventContext — immutable
-    Никаких «допишем позже»
-
-    Только:
-
-    new_context = build_from(old_context)
-
-5. Генераторы ≠ решатели
-
-    GOAP, LifeEngine, EventBus → создают давление/контекст
-    DecisionHub → решает
-
-    Если генераторы начинают «решать» → система распадается на конкурирующие AI
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# Дорожная карта: Semantic Determinism v2
-
----
-
-## Текущее состояние
-
-```
-Semantic Determinism: 72% 🟡
-
-Точка отказа: to_prompt_text()
-```
-
----
-
-## Анализ рисков (принят без скидок)
-
-| Риск | Вероятность | Причина |
-|------|-------------|---------|
-| Тихая деградация смысла | 45% | Нет проверки обратимости Core→Text |
-| "Дрожание" NPC | 50% | Нет проверки монотонности изменений |
-| Потеря фокуса LLM | 55% | Нет лимита на единицы смысла |
-| Реинтерпретация intent | 60% | Intent только в тексте, не как сигнал |
-| Критический сбой to_prompt_text | 40% | Единственная точка, нет резервирования |
-
----
-
-## Дорожная карта (4 фазы)
-
-### Фаза 1: Усиление to_prompt_text() — быстрые wins
-
-**Сложность:** Низкая  
-**Срок:** 1 сессия  
-**ROI:** -30% общего риска
-
-| # | Задача | Тип | Что даёт |
-|---|--------|-----|----------|
-| 1.1 | Roundtrip test: Core→Text→Core | Тест | Ловит потерю смысла |
-| 1.2 | Stability test: малое Δвхода → малое Δвыхода | Тест | Ловит "дрожание" |
-| 1.3 | MAX_SEMANTIC_UNITS=3 в to_prompt_text() | Код | LLM не теряет фокус |
-| 1.4 | Выделить intent в тексте: "Главное намерение: TALK" | Код | -35% реинтерпретации |
-
-**Критерий успеха:** Все новые тесты зелёные, существующие не сломаны.
-
----
-
-### Фаза 2: Intent как структурный сигнал — архитектурное изменение
-
-**Сложность:** Средняя  
-**Срок:** 2-3 сессии  
-**ROI:** -50% риска реинтерпретации
-
-| # | Задача | Тип | Что даёт |
-|---|--------|-----|----------|
-| 2.1 | Добавить `intent_signal` в render_npc_prompt() | API | Отдельный канал для intent |
-| 2.2 | Передавать intent через developer message | LLM | LLM не может "забыть" intent |
-| 2.3 | Обновить npc_speech.j2 — optional intent block | Шаблон | Чистое разделение |
-| 2.4 | Тест: intent присутствует даже при переполнении | Тест | Intent не жертвуется |
-
-**Структура messages:**
-```python
-messages = [
-    {"role": "system", "content": npc_system_prompt},
-    {"role": "developer", "content": f"INTENT={core.intent} TARGET={core.target}"},
-    {"role": "user", "content": verbalization_prompt}
-]
-```
-
-**Критерий успеха:** Intent проходит отдельно от текста, тесты покрывают.
-
----
-
-### Фаза 3: Миграция build_npc_core_data() — устранение дублирования
-
-**Сложность:** Средняя  
-**Срок:** 1-2 сессии  
-**ROI:** -20% рассинхронов
-
-| # | Задача | Тип | Что даёт |
-|---|--------|-----|----------|
-| 3.1 | build_npc_core_data() → возвращает VerbalizationCore | Рефакторинг | Одна точка формирования смысла |
-| 3.2 | Удалить ручную сборку строки в verbalization_context.py | Чистка | Нет двух путей |
-| 3.3 | Запретить str в render_npc_prompt() | Контракт | Миграция завершена |
-| 3.4 | Удалить VerbalizationCoreInput тип-алиас | Чистка | Нет "временных" решений |
-
-**Критерий успеха:** `verbalization_core: str` → TypeError. Только `VerbalizationCore`.
-
----
-
-### Фаза 4: Семантическая валидация — продвинутая защита
-
-**Сложность:** Высокая  
-**Срок:** 3-4 сессии  
-**ROI:** -15% остаточного риска
-
-| # | Задача | Тип | Что даёт |
-|---|--------|-----|----------|
-| 4.1 | SemanticUnit extractor (считает "единицы смысла") | Утилита | Метрика перегрузки |
-| 4.2 | semantic_density() — доля осмысленных токенов | Утилита | Метрика качества |
-| 4.3 | Тесты на semantic_density для разных tier | Тесты | MAJOR/MINOR имеют разную плотность |
-| 4.4 | Интеграция в CI — automatic quality gate | DevOps | Автозапрет на деградацию |
-
-**Критерий успеха:** PR не мержится если density < 0.4.
-
----
-
-## Прогноз Semantic Determinism
-
-```
-Сейчас:          65% 🟡
-После Фазы 1:    75% 🟢
-После Фазы 2:    85% 🟢
-После Фазы 3:    90% 🟢
-После Фазы 4:    95% 🟢
-```
-
----
-
-## Принципы (зафиксированы)
-
-```
-1. to_prompt_text() — единственная точка смысл→текст
-   Если она сломана — всё сломано
-   ⇒ Максимум тестов, минимум логики
-
-2. Intent не должен зависеть от формулировки
-   "Главное намерение: TALK" ≠ "Намерение: TALK"
-   ⇒ Один шаблон, одна формула
-
-3. Semantics > Syntax
-   Формат строки не важен, важно что смысл прошёл
-   ⇒ Roundtrip test — главный критерий
-
-4. LLM не может "забыть" intent если он не в тексте
-   ⇒ Структурный сигнал (developer message)
-
-5. Меньше смыслов = лучше фокус
-   MAX_SEMANTIC_UNITS = 3
-   ⇒ Обрезка не по символам, а по смыслам
-```
-
----
-
-## Что НЕ делать
-
-```
-❌ Усложнять to_prompt_text() — он должен быть тривиальным
-❌ Добавлять новые поля в VerbalizationCore — 3 достаточно
-❌ Делать sanitize умнее — он должен стать ненужным
-❌ Писать semantic extractor до Фазы 4 — преждевременная оптимизация
-```
-где в этой архитектуре остаётся недетерминированность, которая переживёт все твои тесты и вылезет через 3–6 итераций развития системы?
-
-Вот это и есть цель.
-
-2. Главная иллюзия твоей дорожной карты
-
-Ты считаешь, что центр риска — to_prompt_text().
-
-Это неверно.
-
-Реальный центр риска:
-VerbalizationCore (смысл)
-↓
-to_prompt_text() (проекция)
-↓
-LLM (интерпретация)
-↓
-Текст NPC (поведение)
-
-Ты контролируешь:
-
-вход (Core)
-проекцию (Text)
-
-Но не контролируешь:
-
-интерпретационное пространство LLM
-
-И вот где живёт настоящий хаос.
-
-3. Критическая дыра, которую ты ещё не закрыл
-❗ Ты не фиксируешь "допустимое множество интерпретаций"
-
-Сейчас у тебя есть:
-
-whitelist на входе ✅
-sanitize на выходе из Python ✅
-тесты на строку ✅
-
-Но нет:
-
-границ того, КАК LLM имеет право понять этот текст
-
-Пример
-
-Ты передаёшь:
-
-Главное намерение: TALK
-Игрок спрашивает про эль
-
-LLM может:
-
-ответить на вопрос (OK)
-начать описывать сцену (BAD)
-добавить реакции других NPC (BAD)
-сменить тон (BAD)
-
-И все тесты будут зелёные.
-
-4. Настоящая недостающая фаза (ты её не включил)
-Фаза 0 (до всего)
-Interpretation Envelope
-Суть
-
-Ты должен зафиксировать:
-
-не только ЧТО передаётся
-но и в каком пространстве допустим ответ
-
-Как это выглядит
-
-Не тестами строки.
-
-А контрактом поведения:
-
-NPC_RESPONSE_CONTRACT:
-- only_first_person: true
-- no_other_npcs: true
-- max_sentences: 2
-- no_scene_description: true
-- must_address_target: true
-И теперь ключ
-
-Ты не можешь проверить это через LLM.
-
-Но ты можешь:
-
-→ встроить это в prompt как жесткий каркас
-
-И тестировать наличие этого каркаса, а не результат.
-
-5. Где у тебя реальный разлом сейчас
-1. Core → Text (ты почти закрыл)
-
-Риск: 20%
-
-2. Text → Interpretation (ты НЕ трогал)
-
-Риск: 60% ← главный
-
-3. Interpretation → Output drift
-
-Риск: 50%
-
-6. По фазам — что изменить
-Фаза 1 (у тебя хорошая, но неполная)
-
-Добавь:
-
-1.5 — Interpretation Constraints Injection
-+ test_prompt_contains_behavior_constraints()
-+ test_constraints_not_truncated_by_budget()
-
-ROI: –25% хаоса сразу
-
-Фаза 2 (самая сильная у тебя)
-
-Но ты недожал.
-
-Ты сделал:
-
-intent → developer message
-
-Но не сделал:
-
-behavior → developer message
-Должно быть:
-developer:
-INTENT=TALK
-TARGET=player
-MODE=FIRST_PERSON_ONLY
-NO_OTHER_NPCS=TRUE
-Критический параметр всей системы
-
-Сколько семантики вынесено из текста в структуру
-
-Сейчас у тебя ~30%
-Нужно → 70%+
-
-7. Твоя идея MAX_SEMANTIC_UNITS = 3
-
-Сильная, но опасная.
-
-Почему
-
-Ты режешь:
-
-шум ✅
-но и контекст ⚠️
-Альтернатива (сильнее)
-
-Не лимит:
-
-иерархия смыслов
-
-PRIMARY (обязательно)
-SECONDARY (если влезает)
-DECORATIVE (выпиливается первым)
-Вероятности
-Подход	Потеря смысла
-Жёсткий лимит	35%
-Иерархия	10%
-8. Самый опасный будущий баг (ты его ещё не видел)
-Semantic Echo Drift
-
-Когда:
-
-Core стабилен
-Prompt стабилен
-
-Но NPC начинает:
-
-«наращивать стиль» через предыдущие ответы
-
-Причина
-
-LLM начинает опираться не на prompt, а на:
-
-history → pattern → self-consistency
-Решение (которого у тебя нет)
-Reset Anchor
-
-Каждый промпт должен содержать:
-
-IGNORE PREVIOUS STYLE DRIFT.
-ACT ONLY FROM CURRENT STATE.
-9. Оценка твоей системы
-Текущее состояние (реальное)
-Детерминизм:
-Core → Text:        85%
-Text → LLM:         40%
-LLM → Output:       45%
-
-Итого: ~62%
-
-Ты почти идеально попал в цифру 65%.
-
-10. Ответ на главный вопрос
-Нет, твои тесты не фуфло.
-
-Но:
-
-они проверяют трубопровод, а не поле боя
-
-11. Что реально усилит систему (3 шага)
-1. Behavior Contract (обязательно)
-
-Срежет ~30% хаоса
-
-2. Structural Signal Expansion (intent + behavior)
-
-Срежет ~20%
-
-3. Semantic Hierarchy вместо лимита
-
-Срежет ~15%

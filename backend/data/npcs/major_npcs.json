@@ -28,6 +28,11 @@
       "heavy_build",
       "scar_on_cheek"
     ],
+    "carried_objects": [
+      "apron",
+      "keys",
+      "coin_pouch"
+    ],
     "hidden_truth": [
       "former_soldier",
       "owes_debt_to_thieves_guild"
@@ -40,7 +45,7 @@
     },
     "psyche": {
       "willpower": 65,
-      "stress": 0.0,
+      "stress": 76.0705,
       "breakpoint": 80,
       "loyalty_true": 60,
       "loyalty_fake": 60,
@@ -48,9 +53,9 @@
       "trauma_flags": []
     },
     "social_stats": {
-      "trust": 0.0,
+      "trust": -0.6089,
       "affection": 0.5,
-      "fear_of_player": 0.0,
+      "fear_of_player": 0.2469,
       "debt": 0.0
     },
     "relationships": {
@@ -67,57 +72,79 @@
         "22:00-06:00": "sleeping"
       }
     },
+    "activity_map": {
+      "working": {
+        "location": "tavern_silver_wolf",
+        "position": "behind_bar",
+        "display": "cleaning_tables"
+      },
+      "sleeping": {
+        "location": "inn_rooms",
+        "position": "bed",
+        "display": "sleeping"
+      },
+      "eating": {
+        "location": "tavern_silver_wolf",
+        "position": "corner_table",
+        "display": "eating"
+      },
+      "resting": {
+        "location": "inn_rooms",
+        "position": "bed",
+        "display": "resting"
+      }
+    },
     "recent_events": [],
     "memory_trace": [
       {
         "tick_added": 0,
-        "event": "Демеург: Торнин, деньги или жизнь? Шучу",
-        "my_response": "\"А теперь плати.\""
+        "event": "Демеург: Сколько платите?",
+        "my_response": "За работу надо хорошо платить."
       },
       {
         "tick_added": 0,
         "event": "Демеург: осматриваюсь",
-        "my_response": "Я протираю стойку, глядя тебе в глаза."
-      },
-      {
-        "tick_added": 0,
-        "event": "Демеург: Торнин, сколько стоит выпивка?",
-        "my_response": "Обычная кружка эля — семь медных монет."
+        "my_response": "Смотрите под ноги, гость. Здесь не любят неосторожных."
       },
       {
         "tick_added": 0,
         "event": "Демеург: осматриваюсь",
-        "my_response": "\"В этом городе не место для тех, кто не умеет держать язык за зубами.\""
-      },
-      {
-        "tick_added": 0,
-        "event": "Демеург: Торнин, сколько нынче стоит Эль?",
-        "my_response": "\"Не задавай мне глупых вопросов.\""
+        "my_response": "Снова ты здесь? Не стоит напутывать мне клиентов."
       },
       {
         "tick_added": 0,
         "event": "Демеург: осматриваюсь",
-        "my_response": "Торнин хмурится."
+        "my_response": "Я уже давно здесь работаю, видел всякое. Не стою ли ты у стойки?"
       },
       {
         "tick_added": 0,
-        "event": "Демеург: Торнин, сколько нынче стоит Эль?",
-        "my_response": "Два серебряных монеты за кружку."
+        "event": "Демеург: Подойти к Торнину спросить как дела",
+        "my_response": "Не стоило подходить ко мне с такими вопросами. Убирайся отсюда."
+      },
+      {
+        "tick_added": 0,
+        "event": "Демеург: Подойти тогда к Люсе и спросить всегда ли Торнин такой",
+        "my_response": "Что за вопросы тебе здесь нужны?"
       },
       {
         "tick_added": 0,
         "event": "Демеург: осматриваюсь",
-        "my_response": "\"С чего бы это вам понадобилось тут шастать?\""
+        "my_response": "Что привело тебя в «Веселый эль»."
       },
       {
         "tick_added": 0,
-        "event": "Демеург: Торнин, сколько нынче стоит Эль?",
-        "my_response": "Эль сегодня три серебряных монеты за кружку."
+        "event": "Демеург: Подойти тогда к Люсе и спросить всегда ли Торнин такой",
+        "my_response": "Иногда я бываю и лучше. Зато пиво у меня всегда свежее."
       },
       {
         "tick_added": 0,
-        "event": "Демеург: А я могу у тебя заработать на выпивку? А то денег нынче у меня нет",
-        "my_response": "Торнин хмурится и оглядывает тебя с ног до головы."
+        "event": "Демеург: осматриваюсь",
+        "my_response": "Что привело тебя в мой скромный приют?"
+      },
+      {
+        "tick_added": 0,
+        "event": "Демеург: Подойти к Торнину и спросить сколько нынче стоит Эль",
+        "my_response": "Два серебряных за кружку."
       }
     ],
     "flags": {
@@ -172,6 +199,11 @@
       "spear",
       "city_emblem"
     ],
+    "carried_objects": [
+      "spear",
+      "city_guard_armor",
+      "city_emblem"
+    ],
     "hidden_truth": [
       "takes_bribes",
       "lazy"
@@ -184,7 +216,7 @@
     },
     "psyche": {
       "willpower": 45,
-      "stress": 25.0,
+      "stress": 69.1706,
       "breakpoint": 65,
       "loyalty_true": 30,
       "loyalty_fake": 50,
@@ -192,9 +224,9 @@
       "trauma_flags": []
     },
     "social_stats": {
-      "trust": 0.0,
+      "trust": -0.4118,
       "affection": 0.3,
-      "fear_of_player": 0.0,
+      "fear_of_player": 0.1879,
       "debt": 0.0
     },
     "relationships": {
@@ -212,23 +244,35 @@
       },
       "_last_life_tick": 3
     },
+    "activity_map": {
+      "guarding_gate": {
+        "location": "city_gate",
+        "position": "gate_post",
+        "display": "guarding_gate"
+      },
+      "on_duty": {
+        "location": "city_gate",
+        "position": "gate_post",
+        "display": "guarding_gate"
+      },
+      "working": {
+        "location": "city_gate",
+        "position": "gate_post",
+        "display": "guarding_gate"
+      },
+      "off_duty": {
+        "location": "tavern_silver_wolf",
+        "position": "corner_table",
+        "display": "resting"
+      },
+      "sleeping": {
+        "location": "inn_rooms",
+        "position": "bed",
+        "display": "sleeping"
+      }
+    },
     "recent_events": [],
     "memory_trace": [
-      {
-        "tick_added": 0,
-        "event": "Демеург: А Люсю за сколько продашь мне?",
-        "my_response": "Подумай хорошенько, прежде чем говорить глупости."
-      },
-      {
-        "tick_added": 0,
-        "event": "Демеург: осматриваюсь",
-        "my_response": "Слышишь грохот шагов за спиной."
-      },
-      {
-        "tick_added": 0,
-        "event": "Демеург: Торнин, деньги или жизнь? Шучу",
-        "my_response": "«Не смеши меня!»"
-      },
       {
         "tick_added": 0,
         "event": "Демеург: осматриваюсь",
@@ -263,6 +307,21 @@
         "tick_added": 0,
         "event": "Демеург: А я могу у тебя заработать на выпивку? А то денег нынче у меня нет",
         "my_response": "Я тебе не отец родной, парень."
+      },
+      {
+        "tick_added": 0,
+        "event": "Демеург: осматриваюсь",
+        "my_response": "Здесь не безопасно находиться без пропуска. У вас есть документы?"
+      },
+      {
+        "tick_added": 0,
+        "event": "Демеург: Ответишь ли ты мне?",
+        "my_response": "Стой! Не подходи ближе!"
+      },
+      {
+        "tick_added": 0,
+        "event": "Демеург: осматриваюсь",
+        "my_response": "Что ты здесь делаешь?"
       }
     ],
     "flags": {
@@ -315,6 +374,10 @@
       "tray",
       "tired_eyes"
     ],
+    "carried_objects": [
+      "maid_dress",
+      "tray"
+    ],
     "hidden_truth": [
       "spy_for_thieves_guild",
       "looking_for_escape"
@@ -327,7 +390,7 @@
     },
     "psyche": {
       "willpower": 35,
-      "stress": 2.0,
+      "stress": 76.1512,
       "breakpoint": 55,
       "loyalty_true": 0,
       "loyalty_fake": 55,
@@ -337,9 +400,9 @@
       ]
     },
     "social_stats": {
-      "trust": 0.0,
+      "trust": -0.6089,
       "affection": 0.45,
-      "fear_of_player": 0.0,
+      "fear_of_player": 0.2469,
       "debt": 0.0
     },
     "relationships": {
@@ -357,38 +420,35 @@
       },
       "_last_life_tick": 3
     },
+    "activity_map": {
+      "serving_tables": {
+        "location": "tavern_silver_wolf",
+        "position": "serving_table_3",
+        "display": "serving_tables"
+      },
+      "working": {
+        "location": "tavern_silver_wolf",
+        "position": "serving_table_3",
+        "display": "serving_tables"
+      },
+      "sleeping": {
+        "location": "inn_rooms",
+        "position": "bed",
+        "display": "sleeping"
+      },
+      "eating": {
+        "location": "tavern_silver_wolf",
+        "position": "corner_table",
+        "display": "eating"
+      },
+      "resting": {
+        "location": "inn_rooms",
+        "position": "bed",
+        "display": "resting"
+      }
+    },
     "recent_events": [],
     "memory_trace": [
-      {
-        "tick_added": 0,
-        "event": "Демеург: А я думал 4 золотые? И почему ты отвечаешь мне служанка? Я говорил с трактирщико",
-        "my_response": "Я не меняла цены. Работа для официанта стоит 3 серебряные монеты в час, я так и сказала. Я служанка, мне сказали подходи"
-      },
-      {
-        "tick_added": 0,
-        "event": "Демеург: Я подхожу к Торнину и спрашиваю, они ли отправил официантку ко мне, и почему она",
-        "my_response": "Я не меняла цены, работа для официанта стоит 3 серебряные монеты в час. Трактирщик сам сказал, что платит столько."
-      },
-      {
-        "tick_added": 0,
-        "event": "Демеург: Я хочу поговорить с Торнином",
-        "my_response": "Трактирщик... я не знаю, где он сейчас. Работа для официанта стоит 3 серебряные монеты в час, это точно."
-      },
-      {
-        "tick_added": 0,
-        "event": "Демеург: Но вот же он! Протирает кружки...",
-        "my_response": "Трактирщик вот там, да. Работа для официанта стоит 3 серебряные монеты в час."
-      },
-      {
-        "tick_added": 0,
-        "event": "Демеург: Подойти к барной стойке и спросить у Торнина: \"Есть комнатка на ночь?\"",
-        "my_response": "\"Пожалуйста... не надо...\""
-      },
-      {
-        "tick_added": 0,
-        "event": "Демеург: Тихо подкрасться и напугать спящего Тень",
-        "my_response": "Я смогла выскользнуть из-за стойки."
-      },
       {
         "tick_added": 0,
         "event": "Демеург: Подойти к Торнину и спросить как дела",
@@ -408,6 +468,36 @@
         "tick_added": 0,
         "event": "Демеург: осматриваюсь",
         "my_response": "Я оглядываюсь по сторонам, стараясь не встречаться ни с кем взглядом."
+      },
+      {
+        "tick_added": 0,
+        "event": "Демеург: Ответишь ли ты мне?",
+        "my_response": "П-пожалуйста, не говорите так... Я боюсь."
+      },
+      {
+        "tick_added": 0,
+        "event": "Демеург: осматриваюсь",
+        "my_response": "Я... Я ничего не вижу. Пожалуйста, не надо..."
+      },
+      {
+        "tick_added": 0,
+        "event": "Демеург: Подойти к  Люсе",
+        "my_response": "Ох, пожалуйста, не надо... Пожалуйста, оставьте меня в покое."
+      },
+      {
+        "tick_added": 0,
+        "event": "Демеург: осматриваюсь",
+        "my_response": "Ч-что вам угодно? Пожалуйста, не кричите..."
+      },
+      {
+        "tick_added": 0,
+        "event": "Демеург: осматриваюсь",
+        "my_response": "Ох, прошу простите...\nЯ должна уйти..."
+      },
+      {
+        "tick_added": 0,
+        "event": "Демеург: Подойти к Люсе и спросить всегда ли Торнин такой",
+        "my_response": "Ох, прошу... Не надо так... Он... он всегда такой, да..."
       }
     ],
     "flags": {
@@ -474,7 +564,7 @@
     },
     "psyche": {
       "willpower": 50,
-      "stress": 30.0,
+      "stress": 69.9156,
       "breakpoint": 70,
       "loyalty_true": 45,
       "loyalty_fake": 45,
@@ -482,9 +572,9 @@
       "trauma_flags": []
     },
     "social_stats": {
-      "trust": 0.0,
+      "trust": -0.4118,
       "affection": 0.4,
-      "fear_of_player": 0.0,
+      "fear_of_player": 0.1879,
       "debt": 0.0
     },
     "relationships": {
@@ -502,23 +592,40 @@
       },
       "_last_life_tick": 3
     },
+    "activity_map": {
+      "market_trading": {
+        "location": "market_square",
+        "position": "stall_3",
+        "display": "haggling"
+      },
+      "counting_money": {
+        "location": "market_square",
+        "position": "stall_3",
+        "display": "counting_money"
+      },
+      "working": {
+        "location": "market_square",
+        "position": "stall_3",
+        "display": "haggling"
+      },
+      "on_duty": {
+        "location": "market_square",
+        "position": "stall_3",
+        "display": "haggling"
+      },
+      "off_duty": {
+        "location": "tavern_silver_wolf",
+        "position": "corner_table",
+        "display": "drinking"
+      },
+      "sleeping": {
+        "location": "inn_rooms",
+        "position": "bed",
+        "display": "sleeping"
+      }
+    },
     "recent_events": [],
     "memory_trace": [
-      {
-        "tick_added": 0,
-        "event": "Демеург: осматриваюсь",
-        "my_response": "Добро пожаловать в мой скромный магазинчик! Что желаете приобрести?"
-      },
-      {
-        "tick_added": 0,
-        "event": "Демеург: Торнин, деньги или жизнь? Шучу",
-        "my_response": "Похоже, ты пытаешься меня разыграть."
-      },
-      {
-        "tick_added": 0,
-        "event": "Демеург: осматриваюсь",
-        "my_response": "У меня есть редкие товары из далёких земель."
-      },
       {
         "tick_added": 0,
         "event": "Демеург: Торнин, сколько стоит выпивка?",
@@ -553,6 +660,21 @@
         "tick_added": 0,
         "event": "Демеург: А я могу у тебя заработать на выпивку? А то денег нынче у меня нет",
         "my_response": "\"Уговорил.\""
+      },
+      {
+        "tick_added": 0,
+        "event": "Демеург: осматриваюсь",
+        "my_response": "Не стойте тут без дела, это место для торгов."
+      },
+      {
+        "tick_added": 0,
+        "event": "Демеург: Ответишь ли ты мне?",
+        "my_response": "Что тебе нужно?"
+      },
+      {
+        "tick_added": 0,
+        "event": "Демеург: осматриваюсь",
+        "my_response": "Здравствуй, путник, посмотри на мои товары. Что тебе нужно?"
       }
     ],
     "flags": {
@@ -617,7 +739,7 @@
     },
     "psyche": {
       "willpower": 70,
-      "stress": 0.0,
+      "stress": 76.0705,
       "breakpoint": 85,
       "loyalty_true": 0,
       "loyalty_fake": 50,
@@ -625,9 +747,9 @@
       "trauma_flags": []
     },
     "social_stats": {
-      "trust": 0.0,
+      "trust": -0.6089,
       "affection": 0.2,
-      "fear_of_player": 0.0,
+      "fear_of_player": 0.2469,
       "debt": 0.0
     },
     "relationships": {
@@ -644,13 +766,40 @@
         "14:00-20:00": "planning"
       }
     },
+    "activity_map": {
+      "active": {
+        "location": "tavern_silver_wolf",
+        "position": "corner_table",
+        "display": "observing"
+      },
+      "planning": {
+        "location": "tavern_silver_wolf",
+        "position": "corner_table",
+        "display": "observing"
+      },
+      "working": {
+        "location": "tavern_silver_wolf",
+        "position": "corner_table",
+        "display": "observing"
+      },
+      "scouting": {
+        "location": "city_gate",
+        "position": "shadows_near_gate",
+        "display": "hiding"
+      },
+      "off_duty": {
+        "location": "tavern_silver_wolf",
+        "position": "corner_table",
+        "display": "observing"
+      },
+      "sleeping": {
+        "location": "inn_rooms",
+        "position": "bed",
+        "display": "sleeping"
+      }
+    },
     "recent_events": [],
     "memory_trace": [
-      {
-        "tick_added": 0,
-        "event": "Демеург: Я подхожу к одному из столов и переворачиваю его пока никто не может мне помешат",
-        "my_response": "Что за черт ты наделал? Нельзя вот так просто всё ломать."
-      },
       {
         "tick_added": 0,
         "event": "Демеург: Ломаю один из столов - а именно №4",
@@ -695,6 +844,11 @@
         "tick_added": 0,
         "event": "Демеург: Я хотел спросить у вас работа для меня не найдется?",
         "my_response": "\"Простите... может быть, найдется...\""
+      },
+      {
+        "tick_added": 0,
+        "event": "Демеург: Сколько платите?",
+        "my_response": "За что... за что мне платить? Я... я не понимаю."
       }
     ],
     "flags": {

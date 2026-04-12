@@ -339,8 +339,8 @@ class TestTraitCalibration:
         control_personality: NPCPersonality,
     ) -> None:
         """
-        NPC держит WARN 8 тиков → inertia даёт WARN буст.
-        scores_trace[WARN] с инерцией > без инерции при том же событии.
+        NPC держит WARN 8 тиков С ПРОГРЕССОМ → inertia даёт WARN буст.
+        Без прогресса exhaustion штрафует intent — это отдельный тест.
         """
         event = EventContext(
             event_type    = "theft",
@@ -353,6 +353,7 @@ class TestTraitCalibration:
             intent          = Intent.WARN,
             intent_target   = "player",
             intent_duration = 8,
+            intent_progress_ticks = 8,  # Есть прогресс → нет exhaustion
         )
         state_fresh = NPCState(
             npc_id          = "control_npc",
