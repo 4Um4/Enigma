@@ -59,13 +59,20 @@ _TRIGGER_IDIOMS: frozenset[str] = frozenset({
 })
 
 EVENT_TRIGGERS: dict[str, list[str]] = {
-    "drop":       ["роняет", "упал", "уронил", "падает", "разлетается", "грохнулся"],
-    "break":      ["ломает", "разбил", "сломал", "трескается", "разбивается", "вдребезги"],
+    # drop/break удалены — физические реакции контролируются Reaction Layer,
+    # не извлекаются из текста LLM (избегаем feedback loop "роняет→роняет")
     "take":       ["берёт", "поднимает", "хватает", "взял", "подбирает", "схватил"],
     "use":        ["протирает", "чистит", "режет", "наливает", "несёт", "открывает"],
     "light":      ["зажигает", "поджигает", "разгорается", "вспыхивает"],
     "extinguish": ["тушит", "гасит", "потухла", "погасла"],
 }
+
+# События, которые генерируются ТОЛЬКО Reaction Layer (composure + fragility),
+# не из текста LLM. Реестр для защитного пояса в scene_state_manager.
+REACTION_ONLY_EVENTS: frozenset[str] = frozenset({
+    "drop", "break",
+    # Добавлять сюда любые новые reaction-only типы
+})
 
 _TRIGGER_TO_EVENT: dict[str, str] = {
     word: event_type
@@ -86,8 +93,7 @@ STATE_PRIORITY: dict[str, int] = {
 }
 
 _EVENT_TO_STATE: dict[str, str] = {
-    "drop":       "dropped",
-    "break":      "broken",
+    # drop/break удалены — состояние объектов меняется через Reaction Layer
     "take":       "held",
     "use":        "in_use",
     "light":      "lit",

@@ -6,7 +6,7 @@ R1.3 + R5.3 — Importance Engine.
 from __future__ import annotations
 from typing import Any, Dict, List, Optional
 
-from app.services.npc.npc_state import EmotionTag
+from app.models.npc_state import EmotionTag
 
 # Базовые веса по типу события (R1.3)
 BASE_IMPORTANCE: Dict[str, float] = {

@@ -209,7 +209,6 @@ class NpcAgent:
     ) -> tuple[str, str]:
         """
         УСИЛЕННАЯ версия для Working Memory (R1.2).
-        Специально заточено под Gemma-12b-q4_k_m — модель теперь почти не плывёт по фактам.
         """
         npc_id   = npc_context.get("npc_id", "")
         npc_name = npc_context.get("npc_name", "NPC")
@@ -288,7 +287,7 @@ HARDCORE: разрешены грубость, мат, угрозы, мрачн�
     # Стоп-токены и утилиты парсинга
     # ─────────────────────────────────────────────────────────────────────────
 
-    _GEMMA_STOP_TOKENS = [
+    _STOP_TOKENS = [
         "<|file_separator|>", "<|end_of_turn|>", "<end_of_turn>",
         "<|im_end|>", "<|im_start|>", "</|im_start|>",
         "</s>", "<|endoftext|>", "<|file_end|>", "<|file_sep|>",
@@ -296,7 +295,7 @@ HARDCORE: разрешены грубость, мат, угрозы, мрачн�
 
     @staticmethod
     def _strip_stop_tokens(text: str) -> str:
-        for token in NpcAgent._GEMMA_STOP_TOKENS:
+        for token in NpcAgent._STOP_TOKENS:
             idx = text.find(token)
             if idx != -1:
                 text = text[:idx]
@@ -595,7 +594,7 @@ HARDCORE: разрешены грубость, мат, угрозы, мрачн�
             should_verbalize,
             Intent,
         )
-        from app.services.npc.npc_state import NPCTier
+        from app.models.npc_state import NPCTier
 
         all_reactions     = []
         all_actions       = []

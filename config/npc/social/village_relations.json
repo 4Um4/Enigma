@@ -1,0 +1,42 @@
+{
+  "_version": "1.0",
+  "_type": "social_base",
+  "relations": {
+    "tavern_keeper_tornin": {
+      "maid_lusya": {
+        "nature": "employer_employee",
+        "base_trust": 0.3,
+        "base_affection": 0.2,
+        "notes": "Торнин знает о шпионаже Люси, но молчит из-за долга гильдии"
+      },
+      "guard_borko": {
+        "nature": "acquaintance",
+        "base_trust": 0.2,
+        "base_affection": 0.1,
+        "notes": "Борко иногда берёт взятки за закрытие глаз"
+      },
+      "merchant_goran": {
+        "nature": "business_partner",
+        "base_trust": 0.4,
+        "base_affection": 0.2,
+        "notes": "Горан арендует склад у таверны"
+      }
+    },
+    "maid_lusya": {
+      "thief_shadow": {
+        "nature": "handler_agent",
+        "base_trust": 0.1,
+        "base_affection": -0.2,
+        "notes": "Тень — куратор Люси от гильдии воров"
+      }
+    },
+    "thief_shadow": {
+      "tavern_keeper_tornin": {
+        "nature": "debt_holder",
+        "base_trust": 0.0,
+        "base_affection": -0.1,
+        "notes": "Торнин должен гильдии, Тень следит за ним"
+      }
+    }
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "_version": "1.0",
+  "_type": "archetype",
+  "_inherits": "_base_humanoid",
+  "visible_markers": ["dark_cloak", "hood", "daggers"],
+  "carried_objects": [],
+  "routine": {
+    "schedule": {
+      "20:00-04:00": "active",
+      "04:00-14:00": "sleeping",
+      "14:00-20:00": "planning"
+    }
+  },
+  "activity_map": {
+    "active": {
+      "location": "tavern_silver_wolf",
+      "position": "corner_table",
+      "display": "observing"
+    },
+    "planning": {
+      "location": "tavern_silver_wolf",
+      "position": "corner_table",
+      "display": "observing"
+    },
+    "working": {
+      "location": "tavern_silver_wolf",
+      "position": "corner_table",
+      "display": "observing"
+    },
+    "scouting": {
+      "location": "city_gate",
+      "position": "shadows_near_gate",
+      "display": "hiding"
+    },
+    "off_duty": {
+      "location": "tavern_silver_wolf",
+      "position": "corner_table",
+      "display": "observing"
+    },
+    "sleeping": {
+      "location": "inn_rooms",
+      "position": "bed",
+      "display": "sleeping"
+    }
+  },
+  "combat_stats": {
+    "ac": 15,
+    "attack_bonus": 5,
+    "damage": "1d6+3"
+  },
+  "abilities": {
+    "strength": 10,
+    "dexterity": 17,
+    "constitution": 12,
+    "intelligence": 13,
+    "wisdom": 14,
+    "charisma": 11
+  }
+}

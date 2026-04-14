@@ -13,7 +13,7 @@
 import pytest
 
 from app.services.npc.break_progress_engine import BreakProgressEngine, BreakDeltas
-from app.services.npc.npc_state import WillState
+from app.models.npc_state import WillState
 
 
 # ====================== Fixtures ======================

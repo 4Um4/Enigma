@@ -5,7 +5,7 @@
 """
 
 from app.services.memory.working_memory import WorkingMemory
-from app.services.npc.npc_state import EventMemory, MemoryStage
+from app.models.npc_state import EventMemory, MemoryStage
 
 
 def _make_fresh(emotion_tag: str = "angry", importance: float = 0.9) -> EventMemory:

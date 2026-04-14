@@ -11,8 +11,8 @@
 import pytest
 from app.services.npc.decision_hub import DecisionHub, EventContext
 from app.services.npc.npc_loader import load_profile_from_legacy_json, load_l2_state_from_runtime_dict
-from app.services.npc.npc_state import Intent, WillState
-from app.services.npc.npc_state import NPCStateL2
+from app.models.npc_state import Intent, WillState
+from app.models.npc_state import NPCStateL2
 
 # Минимальный словарь, имитирующий кусок major_npcs.json
 MOCK_RAW_TORNIN = {
@@ -63,7 +63,7 @@ class TestDMFacadeBridge:
         # 5. Проверки
         assert result is not None
         # Проверяем, что DecisionHub вернул валидный Enum (а не строку-мусор)
-        from app.services.npc.npc_state import Intent
+        from app.models.npc_state import Intent
         assert isinstance(result.intent, Intent)
         
         # Убеждаемся, что scores_trace посчитался (черный ящик работает)

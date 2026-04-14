@@ -13,6 +13,7 @@
 #   - Добавлен ability_used — DM знает какую характеристику проверять
 #   - Готов к интеграции с EventBus (Phase 3B.1): result совместим со SceneChange
 
+import random
 from dataclasses import dataclass, field
 from typing import Optional
 from app.models.schemas import PlayerAction
@@ -227,7 +228,12 @@ class RulesAgent:
                 skill       = skill,
                 advantage   = adv,
                 disadvantage = dis,
-                result      = "" if roll_needed else "автоматический успех",
+                result      = self.resolve(
+                    random.randint(2, 20) if not adv and not dis
+                    else max(random.randint(2, 20), random.randint(2, 20)) if adv
+                    else min(random.randint(2, 20), random.randint(2, 20)),
+                    dc
+                ) if roll_needed else "автоматический успех",
             )
             checks.append(check)
 

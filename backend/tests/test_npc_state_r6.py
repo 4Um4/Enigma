@@ -6,7 +6,7 @@
 
 import pytest
 
-from app.services.npc.npc_state import (
+from app.models.npc_state import (
     NPCState,
     NPCStateAdapter
 )

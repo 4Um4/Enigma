@@ -6,7 +6,7 @@ R6.4 — BreakProgressEngine: процесс давления → трещины
 
 from dataclasses import dataclass
 from typing import Optional
-from app.services.npc.npc_state import NPCState, WillState
+from app.models.npc_state import NPCState, WillState
 # EventContext не нужен — BreakProgressEngine работает на накопленном состоянии,
 # не на конкретном событии. Вызов возможен в любой момент тика.
 
@@ -24,6 +24,7 @@ class BreakProgressEngine:
     Вызывается перед DecisionHub для обновления психологических параметров.
     """
     
+    # TODO: миграция в core/constants.py после калибровки
     # Пороги стадий (identity_integrity)
     STAGE_RESISTANCE = 1.0
     STAGE_CRACKS = 0.8

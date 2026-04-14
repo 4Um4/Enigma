@@ -16,7 +16,7 @@
 from __future__ import annotations
 import logging
 from typing import List, Optional
-from app.services.npc.spatial_runtime import (
+from app.services.spatial.spatial_runtime import (
     extract_scene_for_npc,
     line_of_sight,
     resolve_distance_between_entities,
@@ -116,10 +116,7 @@ def _npc_distance(npc_id: str, scene_state: dict) -> float:
             return _euclidean(npc_pos, player_pos)
 
     # Fallback: предвычисленный словарь (совместимость с до-R4.3)
-    _dist = float(scene_state.get("player_distances", {}).get(npc_id, 999.0))
-    if _dist >= 15.0:
-        return False
-    return True
+    return float(scene_state.get("player_distances", {}).get(npc_id, 999.0))
 
 
 def _npc_is_conscious(npc_id: str, scene_state: dict) -> bool:
@@ -148,6 +145,9 @@ def _can_see(npc_id: str, scene_state: dict, event_location: str) -> bool:
     if npc_data and isinstance(player_spatial, dict) and player_spatial:
         distance = resolve_distance_between_entities(scene_state, npc_data, player_spatial)
         if distance >= 999.0:
+            return False
+        # R4: Жёсткий cap 15m — NPC не воспринимает за пределами радиуса
+        if distance >= 15.0:
             return False
         if not line_of_sight(distance, scene_state):
             return False
@@ -248,6 +248,9 @@ def filter_perceiving_npcs(
         # Визуальные события — проверяем зрение
         if _can_see(npc_id, scene_state, location):
             perceiving.append(npc_id)
+        else:
+            _dist = _npc_distance(npc_id, scene_state)
+            print(f"[PERCEPTION_SKIP] {npc_id}: dist={_dist:.1f}m (not visible)")
 
     logger.debug(
         f"[PERCEPTION_FILTER] {event_type}: "

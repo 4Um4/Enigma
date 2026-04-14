@@ -20,11 +20,12 @@ StateApplicator получает оригинал → реальность не 
 from dataclasses import replace
 
 from app.models.psychological import DistortionProfile
-from app.services.npc.npc_state import NPCState
+from app.models.npc_state import NPCState
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Константы искажений (калибровочные коэффициенты, не магические значения)
+# TODO: миграция в core/constants.py после калибровки
 # ─────────────────────────────────────────────────────────────────────────────
 
 # threat_amplification: fear → стресс усиливается перед решением
@@ -80,6 +81,9 @@ class CognitiveDistortionEngine:
         # 1. Threat amplification: страх усиливает воспринимаемую угрозу
         if fear_value > 0:
             threat_bias = fear_value * THREAT_AMPLIFICATION_FACTOR
+        # Debug: следим за накоплением — после калибровки удалить
+        if fear_value != 0.0 or trust_value != 0.0:
+            print(f"[DISTORTION_RAW] fear={fear_value:.4f} trust={trust_value:.4f}")
 
         # 2. Trust bias: накопленная обида + низкое доверие → подозрительность
         if actor_is_player and trust_value < DISTRUST_STRESS_THRESHOLD:
@@ -119,6 +123,7 @@ class CognitiveDistortionEngine:
             salience_bias=salience_bias,
         )
 
+        print(f"[DISTORTION] threat={threat_bias} trust={trust_bias} salience={salience_bias} (governor={'scaled' if total > 1.0 else 'ok'})")
         # Если искажение незначимо — возвращаем оригинал
         if stress_boost < 0.1 and all(abs(v) < 0.05 for v in bias.to_dict().values()):
             return state, bias

@@ -38,25 +38,23 @@ def build_game_loop(data_dir: Path) -> GameLoop:
     char_service   = CharacterService()
 
     # NPC cache — замыкание, одно на весь lifecycle
-    _cache: dict = {"npcs": None}
+    _cache: dict = {"npcs": None, "runtime_path": None}
 
-    def load_npcs() -> list:
+    def load_npcs(runtime_path=None) -> list:
+        # Инвалидируем кэш если изменился runtime_path
+        if _cache["runtime_path"] != runtime_path:
+            _cache["npcs"] = None
+            _cache["runtime_path"] = runtime_path
+        
         if _cache["npcs"] is not None:
             return _cache["npcs"]
-        npc_path = data_dir / "npcs" / "major_npcs.json"
-        if npc_path.exists():
-            with open(npc_path, "r", encoding="utf-8") as f:
-                _cache["npcs"] = json.load(f)
-        else:
-            _cache["npcs"] = []
+        
+        from app.services.npc.npc_loader import load_npcs_merged
+        _cache["npcs"] = load_npcs_merged(runtime_path)
         return _cache["npcs"]
 
-    def save_npcs(npcs: list) -> None:
-        npc_path = data_dir / "npcs" / "major_npcs.json"
-        npc_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(npc_path, "w", encoding="utf-8") as f:
-            json.dump(npcs, f, ensure_ascii=False, indent=2)
-        _cache["npcs"] = npcs
+    # save_npcs удалён — commit() теперь пишет runtime через PersistencePort (Шаг 0.8)
+    # major_npcs.json больше не используется для загрузки (Фаза 1.5)
 
     world_scheduler = WorldScheduler(
         layered_memory, WorldSimulationAgent()
@@ -76,7 +74,6 @@ def build_game_loop(data_dir: Path) -> GameLoop:
         npc_agent           = NpcAgent(),
         rules_agent         = RulesAgent(),
         load_npcs_func      = load_npcs,
-        save_npcs_func      = save_npcs,
         adventure_loader    = AdventureLoader(data_dir / "campaigns"),
         system_requirements = SystemRequirements(
             min_physical_cores = settings.min_cpu_physical_cores,

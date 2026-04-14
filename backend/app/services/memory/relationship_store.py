@@ -40,7 +40,7 @@ class RelationshipStore:
             self._cache[campaign_id] = {}
             return self._cache[campaign_id]
         try:
-            data = json.loads(path.read_text(encoding="utf-8"))
+            data = json.loads(path.read_text(encoding="utf-8-sig"))
             self._cache[campaign_id] = data
             return data
         except Exception as e:
@@ -119,6 +119,21 @@ class RelationshipStore:
             for key in data
             if key.startswith(prefix)
         }
+
+    def reset_campaign(self, campaign_id: str) -> int:
+        """Сбрасывает все отношения для кампании. Для миграции после бага #7."""
+        path = self._path(campaign_id)
+        if not path.exists():
+            return 0
+        data = self._load(campaign_id)
+        count = len(data)
+        if count == 0:
+            return 0
+        # Сохраняем пустой словарь
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("{}" if not data else "{}", encoding="utf-8")
+        logger.warning(f"[RELATIONSHIPS] Сброшено {count} записей для {campaign_id} (миграция бага #7)")
+        return count
 
     def get_pair(
         self,

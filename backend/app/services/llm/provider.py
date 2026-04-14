@@ -24,12 +24,13 @@ class ProviderType(str, Enum):
 @dataclass
 class GenerationParams:
     """Параметры генерации для LLM."""
-    max_tokens: int = 812
-    temperature: float = 0.7
+    max_tokens: int = 1024
+    temperature: float = 0.9
     top_p: float = 0.9
     top_k: int = 40
-    repeat_penalty: float = 1.1
-    n_keep: int = 512  # System prompt tokens to keep
+    repeat_penalty: float = 1.12
+    n_keep: int = 800  # System prompt tokens to keep
+    min_p: float = 0.1  # Min-P sampling — отсекает мусор при высокой температуре
     stop: list[str] = field(default_factory=list)
     
     # Дополнительные параметры для API провайдеров

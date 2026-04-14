@@ -17,10 +17,10 @@ import logging
 from typing import Optional
 
 # Целевая архитектура данных (L2)
-from app.services.npc.npc_state import NPCStateL2  # алиас для NPCState (L2)
+from app.models.npc_state import NPCStateL2  # алиас для NPCState (L2)
 
 # Легаси-типы, используемые в логике (Enum'ы и контракты)
-from app.services.npc.npc_state import (
+from app.models.npc_state import (
     EmotionTag,
     Intent,
     NarrativeFact,
@@ -34,11 +34,13 @@ from app.services.memory.relationship_store import RelationshipStore
 
 logger = logging.getLogger(__name__)
 
+# TODO: миграция в core/constants.py после калибровки
 # Максимальное количество NarrativeFacts в кэше одного NPC
 _MAX_NARRATIVE_CACHE = 10
 
 # Константы порогов удалены. Логика порогов перенесена в BreakProgressEngine.
 
+# TODO: миграция в core/constants.py после калибровки
 # Скорость decay active_traits за тик (умножается на strength)
 _TRAIT_DECAY_RATE = 0.05
 
@@ -96,6 +98,7 @@ class StateApplicator:
                     new_state.trauma_markers.add("will_broken")
 
             self._apply_trait_decay(new_state)
+            print(f"[STATE_APPLIED] {new_state.npc_id}: stress={new_state.stress:.1f} intent={new_state.intent}")
             return new_state
 
         except Exception as e:
@@ -268,6 +271,7 @@ class StateApplicator:
         # Ограничиваем размер (20 последних записей)
         if len(state.causal_ledger) > 20:
             state.causal_ledger = state.causal_ledger[-20:]
+        print(f"[CAUSAL] {state.npc_id}: {len(state.causal_ledger)} entries (last: {state.causal_ledger[-1].field}={state.causal_ledger[-1].delta:.2f} src={state.causal_ledger[-1].source})" if state.causal_ledger else "")
 
         # Отношения — пишем в RelationshipStore, не в NPCState напрямую
         if deltas.trust_delta != 0.0 or deltas.fear_delta != 0.0:

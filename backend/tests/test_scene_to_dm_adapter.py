@@ -27,7 +27,7 @@ from app.services.verbalization.scene_outcome_builder import (
     TensionTrend,
     Visibility,
 )
-from app.services.npc.npc_state import Intent
+from app.models.npc_state import Intent
 from app.services.npc.decision_hub import DecisionResult, StateDeltas
 
 

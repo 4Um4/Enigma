@@ -70,8 +70,7 @@ def initialized_model_pool():
     
     # Register mock configs (dummy paths)
     test_configs = [
-        ModelConfig(key="qwen_7b", name="Test Qwen", provider_type=ProviderType.LLAMA_CPP, path="/test/path/qwen.gguf"),
-        ModelConfig(key="saiga", name="Test Saiga", provider_type=ProviderType.LLAMA_CPP, path="/test/path/saiga.gguf"),
+        ModelConfig(key="qwen_7b", name="Test Qwen", provider_type=ProviderType.LLAMA_CPP, path="/test/path/Qwen2.5-7B-Instruct-abliterated-v2.Q5_K_M.gguf"),
     ]
     
     for config in test_configs:
@@ -110,9 +109,5 @@ def test_environment(monkeypatch):
     DATA_DIR = ROOT_DIR / "data"
     MODELS_DIR = ROOT_DIR.parents[0] / "Models LLM"  # Enigma/Models LLM
 
-    monkeypatch.setattr('app.core.config.settings.model_gemma_12b_path', MODELS_DIR / 'gemma-3-12b-it-q4_k_m.gguf')
-    monkeypatch.setattr('app.core.config.settings.model_npc_major_path', MODELS_DIR / 'mistral-pygmalion-7b.Q5_K_M.gguf')
-    monkeypatch.setattr('app.core.config.settings.model_npc_mass_path',  MODELS_DIR / 'mistral-pygmalion-7b.Q5_K_M.gguf')
-    monkeypatch.setattr('app.core.config.settings.model_qwen_9b_path',   MODELS_DIR / 'Qwen3.5-9B.gguf')
-    monkeypatch.setattr('app.core.config.settings.model_yandex_path',    MODELS_DIR / 'YandexGPT-5-Lite-8B-instruct-Q4_K_M.gguf')
+    monkeypatch.setattr('app.core.config.settings.model_qwen_7b_path', MODELS_DIR / 'Qwen2.5-7B-Instruct-abliterated-v2.Q5_K_M.gguf')
 

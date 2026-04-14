@@ -1,0 +1,42 @@
+{
+  "_version": "1.0",
+  "_type": "individual",
+  "_archetype": "merchant",
+  "_mixins": [],
+  "id": "merchant_goran",
+  "name": "Купец Горан",
+  "name_forms": ["горан", "горана", "горану", "гораном", "горане", "купец горан"],
+  "gender": "мужской",
+  "description": "Полный купец средних лет в богатых одеждах, пальцы унизаны перстнями. Улыбка не сходит с лица, но глаза всегда считают выгоду.",
+  "status_profile": {
+    "freedom": 80,
+    "wealth": 70,
+    "power": 35,
+    "title": "Торговец тканями",
+    "faction_rank": {
+      "купеческая_гильдия": 3
+    }
+  },
+  "hidden_truth": ["smuggles_contraband", "owes_money_to_criminals"],
+  "drives": {
+    "control": 0.2,
+    "significance": 0.25,
+    "fear": 0.15,
+    "desire": 0.4
+  },
+  "psyche": {
+    "willpower": 50,
+    "breakpoint": 70,
+    "loyalty_true": 45
+  },
+  "flags": {
+    "has_gold": true,
+    "knows_secret": true,
+    "is_enslaved": false,
+    "planning_revenge": false,
+    "is_dead": false
+  },
+  "location": "inn_rooms",
+  "hp": 20,
+  "max_hp": 20
+}

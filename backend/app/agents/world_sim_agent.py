@@ -36,7 +36,7 @@ class WorldSimulationAgent:
         Simulate world events based on player actions.
         
         The agent requests 'world_simulation' capability.
-        Router automatically selects: qwen_9b (best for simulation).
+        Router автоматически выбирает модель для симуляции.
         """
         prompt = self._build_prompt(location, actions, current_events)
         system_prompt = self._get_system_prompt()

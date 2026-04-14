@@ -1,4 +1,4 @@
-﻿# tests/test_persistence_port.py
+# tests/test_persistence_port.py
 """Тесты PersistencePort и SceneStateManager.commit()"""
 
 import pytest
@@ -77,7 +77,7 @@ class TestSceneStateManagerCommit:
         
         assert result == 2
         mock_port.save_scene.assert_called_once_with("camp-1", scene)
-        mock_port.save_npcs.assert_called_once_with(npcs)
+        mock_port.save_npc_runtime.assert_called_once_with("camp-1", npcs)
     
     def test_commit_scene_only(self, tmp_path):
         """commit() без npc_dicts сохраняет только сцену."""
@@ -88,7 +88,7 @@ class TestSceneStateManagerCommit:
         
         assert result == 1
         mock_port.save_scene.assert_called_once()
-        mock_port.save_npcs.assert_not_called()
+        mock_port.save_npc_runtime.assert_not_called()
     
     def test_commit_continues_on_scene_error(self, tmp_path):
         """commit() продолжает сохранять NPC даже если сцена упала."""
@@ -98,6 +98,6 @@ class TestSceneStateManagerCommit:
         
         result = manager.commit("camp-1", {"loc": "x"}, [{"id": "n1"}])
         
-        # scene упал (0), npc сохранился (1)
+        # scene упал (0), npc runtime сохранился (1)
         assert result == 1
-        mock_port.save_npcs.assert_called_once()
+        mock_port.save_npc_runtime.assert_called_once_with("camp-1", [{"id": "n1"}])

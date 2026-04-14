@@ -7,7 +7,7 @@
   "metadata": {},
   "scene_state": {
     "location_id": "tavern_silver_wolf",
-    "snapshot_tick": 0,
+    "snapshot_tick": 2,
     "objects": {
       "bar_counter": {
         "name": "барная стойка",
@@ -53,10 +53,22 @@
         "interactable": true,
         "instance_of": "tables"
       },
+      "tables_6": {
+        "name": "столы #6",
+        "state": "intact",
+        "interactable": true,
+        "instance_of": "tables"
+      },
+      "tables_7": {
+        "name": "столы #7",
+        "state": "intact",
+        "interactable": true,
+        "instance_of": "tables"
+      },
       "candles_main": {
         "name": "свечи",
         "state": "lit",
-        "count": 11,
+        "count": 13,
         "interactable": true,
         "owner": null
       },
@@ -101,19 +113,30 @@
         "local_position": {
           "x": 0.0,
           "y": 0.0
-        },
-        "current_action": "drop_поднос",
-        "action_started_tick": 0
+        }
       },
       "thief_shadow": {
-        "position": "corner_table",
-        "activity": "observing",
+        "position": "bed",
+        "activity": "sleeping",
         "visible": false,
         "location_id": "tavern_silver_wolf",
         "local_position": {
           "x": 0.0,
           "y": 0.0
-        }
+        },
+        "location": "inn_rooms"
+      },
+      "guard_borko": {
+        "activity": "guarding_gate",
+        "position": "gate_post",
+        "visible": true,
+        "location": "city_gate"
+      },
+      "merchant_goran": {
+        "activity": "haggling",
+        "position": "stall_3",
+        "visible": true,
+        "location": "market_square"
       }
     },
     "environment": {
@@ -138,26 +161,16 @@
     "player_target_object": null,
     "player_distances": {
       "tavern_keeper_tornin": 4.0,
+      "guard_borko": 5.0,
       "maid_lusya": 2.5,
-      "thief_shadow": 4.61
+      "merchant_goran": 5.0,
+      "thief_shadow": 5.0
     },
     "environment_modifiers": {
       "light": 1.0,
       "noise": 0.5,
       "density": 0.3,
       "danger": 0.1
-    },
-    "scene_events": [
-      {
-        "event_id": "evt_219b25",
-        "event_type": "drop",
-        "actor": "maid_lusya",
-        "object_name": "люся роняет поднос",
-        "canonical": "поднос",
-        "object_id": "поднос_lusya_t0_c973",
-        "tick": 0,
-        "happened": true
-      }
-    ]
+    }
   }
 }

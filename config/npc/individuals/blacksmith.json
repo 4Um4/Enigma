@@ -1,0 +1,18 @@
+{
+  "_version": "1.0",
+  "_type": "individual",
+  "_archetype": "tavern_keeper",
+  "_mixins": ["veteran"],
+  "id": "blacksmith_orm",
+  "name": "Кузнец Орм",
+  "name_forms": ["орм", "орма", "орму", "ормом", "орме"],
+  "gender": "мужской",
+  "description": "Громадный кузнец с обожжёнными руками. Молчит по-гномьему.",
+  "status_profile": {
+    "freedom": 90,
+    "wealth": 50,
+    "power": 40,
+    "title": "Кузнец",
+    "faction_rank": {}
+  }
+}

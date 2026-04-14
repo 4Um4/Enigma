@@ -26,7 +26,7 @@ from app.services.verbalization.scene_outcome_builder import (
     TensionTrend,
     TensionOutcome,
 )
-from app.services.npc.npc_state import Intent, EmotionTag
+from app.models.npc_state import Intent, EmotionTag
 from app.services.npc.decision_hub import DecisionResult, StateDeltas
 
 

@@ -350,8 +350,8 @@ class SceneStateManager:
             "stall_3":         "у третьего прилавка",
         }
         _activity_map = {
-            "cleaning_tables": "протираешь стаканы",
-            "serving_tables":  "несёшь поднос",
+            "cleaning_tables": "убираешься",
+            "serving_tables":  "обслуживаешь зал",
             "observing":       "наблюдаешь",
             "guarding_gate":   "несёшь стражу",
             "sleeping":        "спишь",
@@ -869,8 +869,13 @@ class SceneStateManager:
                     changed = True
 
         # ── События сцены (с canonical для дедупликации) ──────────────────
+        # Защитный пояс: reaction-only события не проходят из текста LLM.
+        # Источник истины — REACTION_ONLY_EVENTS в narrative_extractor.py
+        from app.services.scene.narrative_extractor import REACTION_ONLY_EVENTS
         events = scene_state.setdefault("scene_events", [])
         for evt in extraction_result.new_events:
+            if evt.event_type in REACTION_ONLY_EVENTS:
+                continue
             events.append({
                 "event_id":   evt.event_id,
                 "event_type": evt.event_type,
@@ -914,7 +919,7 @@ class SceneStateManager:
         
         Координирует сохранение:
         - scene_state -> campaign_state.json
-        - npc_dicts -> major_npcs.json (если переданы)
+        - npc_dicts -> sessions/{id}/npc_runtime.json (Шаг 0.8: разделение static/runtime)
         
         НЕ модифицирует данные — только вызывает PersistencePort.
         Ownership NPCState остаётся у StateApplicator.
@@ -935,10 +940,11 @@ class SceneStateManager:
         
         if npc_dicts is not None:
             try:
-                self._persistence.save_npcs(npc_dicts)
+                # Шаг 0.8: runtime отдельно от static конфига
+                self._persistence.save_npc_runtime(campaign_id, npc_dicts)
                 saved += 1
             except Exception as e:
-                logger.error(f"[SCENE] commit() ошибка сохранения NPC: {e}")
+                logger.error(f"[SCENE] commit() ошибка сохранения NPC runtime: {e}")
         
         return saved
 
@@ -1061,10 +1067,33 @@ class SceneStateManager:
 
         lines = ["Текущее состояние сцены (ТОЛЬКО ЭТИ объекты существуют в локации):"]
 
-        # ── Объекты ──────────────────────────────────────────────────────────
-        # Группируем инстансы для отображения
+        # ── Объекты (Salience Engine: фильтрация по важности) ─────────────
+        from app.services.scene.salience_engine import SalienceEngine
+        from app.models.scene_mode import SceneMode
+
+        _raw_objects = scene_state.get("objects", {})
+        _sal_event = scene_state.get("_salience_event_type", "player_interacts")
+        _sal_stress = scene_state.get("_salience_max_stress", 0.0)
+        _sal_target = scene_state.get("_salience_target_object")
+
+        _filtered = SalienceEngine().get_filtered_objects(
+            objects=_raw_objects,
+            event_type=_sal_event,
+            max_npc_stress=_sal_stress,
+            player_target_object=_sal_target,
+        )
+
+        _scene_mode = determine_scene_mode(_sal_event, _sal_stress)
+        state_map = {
+            "intact": "цел", "damaged": "повреждён",
+            "destroyed": "уничтожен", "lit": "горит",
+            "unlit": "не горит", "burning": "горит",
+            "open": "открыт", "locked": "заперт",
+        }
+
+        # Группируем только отфильтрованные объекты
         groups: dict = {}
-        for obj_id, obj in scene_state.get("objects", {}).items():
+        for obj_id, obj in _filtered:
             instance_of = obj.get("instance_of", obj_id)
             if instance_of not in groups:
                 groups[instance_of] = {"obj": obj, "ids": [], "states": set()}
@@ -1077,13 +1106,6 @@ class SceneStateManager:
             count = len(group["ids"])
             states = group["states"]
 
-            state_map = {
-                "intact": "цел", "damaged": "повреждён",
-                "destroyed": "уничтожен", "lit": "горит",
-                "unlit": "не горит", "burning": "горит",
-                "open": "открыт", "locked": "заперт",
-            }
-
             if len(states) == 1:
                 state_str = state_map.get(states.pop(), "")
             else:
@@ -1091,6 +1113,9 @@ class SceneStateManager:
 
             count_str = f" ×{count}" if count > 1 else ""
             lines.append(f"- {name}{count_str}: {state_str}".rstrip(": "))
+
+        # Индикатор режима для отладки
+        lines.append(f"[режим: {_scene_mode.value}]")
 
         # ── Окружение ─────────────────────────────────────────────────────────
         env = scene_state.get("environment", {})
@@ -1122,15 +1147,6 @@ class SceneStateManager:
         npc_positions = scene_state.get("npc_positions", {})
         if npc_positions:
             lines.append("")
-            activity_map = {
-                "cleaning_tables": "протирает стаканы",
-                "serving_tables":  "несёт поднос",
-                "behind_bar":      "стоит за стойкой",
-                "observing":       "наблюдает",
-                "guarding_gate":   "несёт стражу у ворот",
-                "haggling":        "торгуется",
-                "sleeping":        "спит",
-            }
             position_map = {
                 "behind_bar":      "за стойкой",
                 "serving_table_3": "у третьего стола",
@@ -1142,13 +1158,10 @@ class SceneStateManager:
                 if pos.get("state") == "dead":
                     continue
                 position = position_map.get(pos.get("position", ""), pos.get("position", ""))
-                activity = activity_map.get(pos.get("activity", ""), pos.get("activity", ""))
                 visible  = pos.get("visible", True)
                 npc_name = _npc_id_to_display(npc_id)
                 hidden_tag = " [скрыт]" if not visible else ""
                 desc = f"{npc_name}: {position}"
-                if activity:
-                    desc += f", {activity}"
                 lines.append(desc + hidden_tag)
 
         lines.append("NPC которых нет в этом списке — в локации отсутствуют.")

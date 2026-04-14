@@ -135,7 +135,7 @@ class ErrorInterpreter:
             "syntax": [
                 "1. Проверьте model path в config.py → available_models",
                 "2. .gguf файл повреждён? Перекачайте",
-                "3. Конфликт chat template в промпте (qwen/saiga)"
+                "3. Конфликт chat template в промпте"
             ],
             "modulenotfound": [
                 "1. pip install -r backend/requirements.txt",

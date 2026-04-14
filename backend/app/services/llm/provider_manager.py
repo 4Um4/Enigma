@@ -14,8 +14,7 @@ Provider Manager — Multi-Provider + Lazy Loading (RTX 3070 Ti, 8 GB VRAM)
 3. unload_all() вызывал asyncio.create_task() из sync-контекста → RuntimeError.
    Заменено на синхронный _unload_active_model().
 
-4. context_size по умолчанию: 2048 (было 4096).
-   Экономия KV-cache: ~256 MB VRAM на каждую модель.
+# 4. context_size по умолчанию: 8192 (с flash-attn влезает в 8 GB VRAM).
 """
 
 from __future__ import annotations
@@ -65,7 +64,7 @@ class ModelConfig:
     name: str
     provider_type: ProviderType
     path: str
-    context_size: int = 2048   # ОПТИМИЗАЦИЯ: 2048 вместо 4096
+    context_size: int = 8192
     temperature: float = 0.7
     vram_mb: int = 4000
     metrics: ModelMetrics = field(
@@ -499,7 +498,7 @@ def initialize_model_pool(warm_model_key: Optional[str] = None) -> Dict[str, boo
             results[key] = False
             continue
         try:
-            ctx = min(model_config.context_size, 2048)
+            ctx = model_config.context_size
             config = ModelConfig(
                 key=key, name=model_config.display_name,
                 provider_type=ProviderType.LLAMA_CPP, path=model_config.path,

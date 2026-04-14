@@ -1,7 +1,7 @@
 # backend\tests\test_r3_verbalization_final.py
 # python -m pytest backend/tests/test_r3_verbalization_final.py -v
 import pytest
-from app.services.npc.npc_state import Intent, NPCTier, EventMemory
+from app.models.npc_state import Intent, NPCTier, EventMemory
 from app.services.verbalization.verbalization_context import (
     build_npc_core_data, 
     build_npc_prompt_from_context,  # Добавлено для совместимости

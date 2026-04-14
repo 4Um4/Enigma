@@ -26,5 +26,15 @@ class PersistencePort(ABC):
     
     @abstractmethod
     def save_npcs(self, npc_dicts: list[dict]) -> None:
-        """Сохраняет состояния NPC в major_npcs.json."""
+        """Сохраняет состояния NPC в major_npcs.json. ЗАМЕЧЕНО: смешивает static/runtime."""
+        ...
+    
+    @abstractmethod
+    def save_npc_runtime(self, session_id: str, npc_dicts: list[dict]) -> None:
+        """Сохраняет ТОЛЬКО runtime-состояние NPC в сессию (отдельно от статического профиля)."""
+        ...
+    
+    @abstractmethod
+    def load_npc_runtime(self, session_id: str) -> list[dict] | None:
+        """Загружает runtime-состояние NPC из сессии. None если нет сохранения."""
         ...

@@ -50,6 +50,8 @@ class RawEvent:
     raw_input: str
     base_intensity: float
     tick: int
+    # R5: Разделение вербальных и физических действий
+    action_mode: str = "VERBAL"  # VERBAL или PHYSICAL
 
 @dataclass(frozen=True)
 class RouterResult:
@@ -93,6 +95,13 @@ class DMRouter:
         ),
     }
 
+    # R5: Физические действия требуют броска кубиков через rules_agent
+    _PHYSICAL_ACTIONS: frozenset[str] = frozenset({
+        "player_attacks",
+        "player_steals",
+        "player_flees",
+    })
+
     _BASE_INTENSITY: dict[str, float] = {
         "player_attacks": 1.0,
         "player_threatens": 0.7,
@@ -124,15 +133,33 @@ class DMRouter:
         event_type = self._classify_action(raw_input)
         base_intensity = self._BASE_INTENSITY.get(event_type, 0.2)
 
+        action_mode = "PHYSICAL" if event_type in self._PHYSICAL_ACTIONS else "VERBAL"
         raw_event = RawEvent(
             event_type=event_type,
             actor_id="player",
             raw_input=raw_input.strip(),
             base_intensity=base_intensity,
             tick=current_tick,
+            action_mode=action_mode,
         )
 
         return RouterResult(is_valid=True, raw_event=raw_event)
+
+    def get_rules_action_type(self, event_type: str) -> str:
+        """
+        Маппинг Router event_type → RulesAgent ActionType.
+        Используется для передачи классификации в rules_agent.
+        """
+        _MAPPING: dict[str, str] = {
+            "player_attacks": "COMBAT",
+            "player_steals": "SANDBOX_PHYSICAL",
+            "player_flees": "FLEE",
+            "player_threatens": "SANDBOX_SOCIAL",
+            "player_threatens_indirect": "SANDBOX_SOCIAL",
+            "player_insults": "SANDBOX_SOCIAL",
+            "player_interacts": "SANDBOX_MILD",
+        }
+        return _MAPPING.get(event_type, "UNKNOWN")
 
     def _classify_action(self, text: str) -> str:
         """Определяет тип события. Физические действия -> Регексы. Оскорбления -> Морфология."""

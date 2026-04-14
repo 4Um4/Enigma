@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from collections import deque
 from typing import Any, Dict, List, Tuple, Union
-from app.services.npc.npc_state import EventMemory, MemoryStage
+from app.models.npc_state import EventMemory, MemoryStage
 
 # Константа из Now.md — не магическое число
 _DEFAULT_MAXLEN: int = 20

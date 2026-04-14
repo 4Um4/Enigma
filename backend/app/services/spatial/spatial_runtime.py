@@ -9,7 +9,7 @@ import math
 from typing import Iterable, Optional
 
 from app.core.config import settings
-from app.services.npc.location_graph import LocationGraph, load_graph, local_xy_distance
+from app.services.spatial.location_graph import LocationGraph, load_graph, local_xy_distance
 
 
 def _loc(entity: dict, fallback_location_id: str) -> str:

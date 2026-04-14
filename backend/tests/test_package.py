@@ -20,7 +20,6 @@ def test_app_imports():
         from app.services.error_interpreter import get_error_interpreter
         from app.services.system_requirements import SystemRequirements
         print("✅ All app.services imports OK")
-        return True
     except ImportError as e:
         print(f"❌ Import failed: {e}")
         raise
@@ -31,7 +30,6 @@ def test_main_imports():
         from app.main import app
         from app.core.config import settings
         print("✅ app.main and config OK")
-        return True
     except ImportError as e:
         print(f"❌ app.main import failed: {e}")
         raise
