@@ -1,0 +1,49 @@
+{
+  "_version": "1.0",
+  "_type": "individual",
+  "_archetype": "maid",
+  "_mixins": [],
+  "id": "maid_lusya",
+  "name": "Люся",
+  "name_forms": ["люся", "люси", "люсе", "люсю", "люсей", "люс"],
+  "gender": "женский",
+  "description": "Молодая женщина в простом платье служанки. Усталые глаза смотрят в пол, движения нервные и осторожные.",
+  "status_profile": {
+    "freedom": 50,
+    "wealth": 5,
+    "power": 5,
+    "title": "Служанка таверны",
+    "faction_rank": {}
+  },
+  "visible_markers": ["maid_dress", "tray", "tired_eyes"],
+  "hidden_truth": ["spy_for_thieves_guild", "looking_for_escape"],
+  "drives": {
+    "control": 0.15,
+    "significance": 0.2,
+    "fear": 0.45,
+    "desire": 0.2
+  },
+  "psyche": {
+    "willpower": 35,
+    "breakpoint": 55,
+    "loyalty_true": 0
+  },
+  "abilities": {
+    "strength": 8,
+    "dexterity": 13,
+    "constitution": 10,
+    "intelligence": 12,
+    "wisdom": 14,
+    "charisma": 12
+  },
+  "flags": {
+    "has_gold": false,
+    "knows_secret": true,
+    "is_enslaved": false,
+    "planning_revenge": false,
+    "is_dead": false
+  },
+  "location": "tavern_silver_wolf",
+  "hp": 15,
+  "max_hp": 15
+}

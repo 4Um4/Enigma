@@ -7,7 +7,7 @@
 import pytest
 from app.services.npc.decision_hub import DecisionHub, EventContext, DecisionResult
 from app.services.npc.resolution_engine import ResolutionEngine, ResolutionOutcome
-from app.services.npc.npc_state import (
+from app.models.npc_state import (
     NPCState, NPCPersonality, WillState, NPCTier, EmotionTag
 )
 

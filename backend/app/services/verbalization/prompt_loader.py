@@ -441,7 +441,7 @@ class PromptLoader:
         Загрузить промпт для конкретной модели (для будущей многомодельности).
         
         Args:
-            model_name: Имя модели (например, "qwen2.5", "llama3.1", "saiga")
+            model_name: Имя модели (например, "qwen2.5")
             default_filename: Имя файла промпта по умолчанию
             
         Returns:

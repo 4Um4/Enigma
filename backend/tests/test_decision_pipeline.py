@@ -14,7 +14,7 @@ R4.1 — Smoke test сквозного пути без LLM.
 import pytest
 from unittest.mock import MagicMock
 
-from app.services.npc.npc_state import (
+from app.models.npc_state import (
     NPCPersonality,
     NPCState,
     NPCTier,
@@ -403,7 +403,7 @@ class TestVerbalizationContext:
         tavern_keeper_personality,
     ):
         """EXPLAIN mode даёт narrative hints."""
-        from app.services.npc.npc_state import NarrativeFact
+        from app.models.npc_state import NarrativeFact
         fact = NarrativeFact(
             event_type  = "theft",
             target_id   = "player",

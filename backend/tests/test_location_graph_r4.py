@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from app.services.npc.location_graph import (
+from app.services.spatial.location_graph import (
     LocationNode,
     load_graph,
     local_xy_distance,

@@ -17,28 +17,16 @@ from typing import Optional, Tuple, Union
 
 from app.services.verbalization.prompt_loader import VerbalizationCore
 
-try:
-    from app.services.npc.npc_state import (
-        EmotionTag,
-        Intent,
-        NarrativeFact,
-        NPCPersonality,
-        NPCState,
-        WillState,
-        EventMemory,
-        MemoryStage,
-    )
-except ImportError:
-    from backend.app.services.npc.npc_state import (
-        EmotionTag,
-        Intent,
-        NarrativeFact,
-        NPCPersonality,
-        NPCState,
-        WillState,
-        EventMemory,
-        MemoryStage,
-    )
+from app.models.npc_state import (
+    EmotionTag,
+    Intent,
+    NarrativeFact,
+    NPCPersonality,
+    NPCState,
+    WillState,
+    EventMemory,
+    MemoryStage,
+)
 
 try:
     from app.services.verbalization.prompt_loader import get_prompt_loader

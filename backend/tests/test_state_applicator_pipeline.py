@@ -5,7 +5,7 @@
 DecisionHub → StateApplicator → NPCState.write_to_legacy → dict обновлён
 """
 
-from app.services.npc.npc_state import NPCState, Intent, WillState, EmotionTag
+from app.models.npc_state import NPCState, Intent, WillState, EmotionTag
 from app.services.npc.decision_hub import DecisionResult, StateDeltas
 from app.services.npc.state_applicator import StateApplicator
 from unittest.mock import MagicMock

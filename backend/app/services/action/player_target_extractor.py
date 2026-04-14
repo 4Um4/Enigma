@@ -9,7 +9,7 @@
 # Использует name_forms из JSON + ролевые ключевые слова из npc_id.
 
 from typing import Optional, Dict, List, Tuple
-from app.services.npc.spatial_runtime import resolve_distance_between_entities
+from app.services.spatial.spatial_runtime import resolve_distance_between_entities
 
 
 class PlayerTargetExtractor:

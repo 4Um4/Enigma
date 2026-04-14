@@ -1,10 +1,12 @@
 # backend/app/main.py
 # ИСПРАВЛЕНИЯ vs оригинал:
 # 1. StaticFiles с check_dir=False → не крашит если frontend/ui пустой
-# 2. Все опасные операции в startup_event обёрнуты в try/except
+# 2. Все опасные операции в startup обёрнуты в try/except
 # 3. LLM health check не блокирует старт (результат — только warning)
 # 4. VRAM baseline устанавливается здесь (не в GameOrchestrator.__init__)
+# 5. Migrated from @app.on_event to lifespan (FastAPI best practice)
 
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -30,51 +32,14 @@ from app.services.game_loop_builder import build_game_loop
 
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title=settings.app_name)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-app.include_router(router, prefix="/api")
-app.include_router(routes_debug.router, prefix="/api")
-app.include_router(stream_router, prefix="/api")
-
 BASE_DIR     = Path(__file__).resolve().parents[2]   # Enigma root
 FRONTEND_DIR = BASE_DIR / "frontend" / "ui"
 DATA_DIR     = BASE_DIR / "backend" / "data"
 
-# StaticFiles: монтируем только если директория существует
-# (иначе uvicorn падает на старте с RuntimeError)
-if FRONTEND_DIR.exists():
-    app.mount("/ui", StaticFiles(directory=FRONTEND_DIR, html=True), name="ui")
-else:
-    logger.warning(f"[STARTUP] frontend/ui не найден: {FRONTEND_DIR}")
 
-if DATA_DIR.exists():
-    app.mount("/backend/data", StaticFiles(directory=DATA_DIR), name="data")
-
-
-@app.get("/")
-def root():
-    """Serve main UI или заглушку если frontend не готов."""
-    index = FRONTEND_DIR / "index.html"
-    if index.exists():
-        return FileResponse(index)
-    return JSONResponse({
-        "status": "running",
-        "message": "Enigma Backend работает. Frontend не найден.",
-        "docs": "/docs",
-        "health": "/api/health",
-    })
-
-
-@app.on_event("startup")
-async def startup_event():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """FastAPI lifespan — замена устаревшего @app.on_event('startup'/'shutdown')."""
     print("\n=== STARTUP: Enigma Backend ===")
 
     # 1. LLM Router
@@ -154,3 +119,53 @@ async def startup_event():
     print(f"  Backend:   {_api}")
     print(f"  API Docs:  {_api}/docs")
     print(f"  VRAM:      {_api}/api/debug/vram\n")
+
+    yield  # приложение работает
+
+    # ── SHUTDOWN ──
+    # Завершение сессии VRAM мониторинга
+    try:
+        vram = get_vram_monitor()
+        await vram.end_session()
+        print("✓ VRAM session ended")
+    except Exception:
+        pass
+
+
+app = FastAPI(title=settings.app_name, lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(router, prefix="/api")
+app.include_router(routes_debug.router, prefix="/api")
+app.include_router(stream_router, prefix="/api")
+
+# StaticFiles: монтируем только если директория существует
+# (иначе uvicorn падает на старте с RuntimeError)
+if FRONTEND_DIR.exists():
+    app.mount("/ui", StaticFiles(directory=FRONTEND_DIR, html=True), name="ui")
+else:
+    logger.warning(f"[STARTUP] frontend/ui не найден: {FRONTEND_DIR}")
+
+if DATA_DIR.exists():
+    app.mount("/backend/data", StaticFiles(directory=DATA_DIR), name="data")
+
+
+@app.get("/")
+def root():
+    """Serve main UI или заглушку если frontend не готов."""
+    index = FRONTEND_DIR / "index.html"
+    if index.exists():
+        return FileResponse(index)
+    return JSONResponse({
+        "status": "running",
+        "message": "Enigma Backend работает. Frontend не найден.",
+        "docs": "/docs",
+        "health": "/api/health",
+    })

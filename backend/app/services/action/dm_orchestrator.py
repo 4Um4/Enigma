@@ -50,6 +50,12 @@ class DMOrchestrator:
         self._router = DMRouter()
         self._scene_builder = DMSceneBuilder()
     
+    def classify_action(self, raw_input: str) -> str:
+        """Быстрая классификация действия (0 мс, чистый Python). Для SSE pre-response."""
+        if not raw_input or not raw_input.strip():
+            return "unknown"
+        return self._router._classify_action(raw_input)
+
     def process_player_action(
         self,
         raw_input: str,

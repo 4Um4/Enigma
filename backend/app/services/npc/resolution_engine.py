@@ -23,11 +23,12 @@ import random
 from dataclasses import dataclass, field
 from typing import Dict, Optional, Tuple
 
-from app.services.npc.npc_state import EmotionTag, NPCPersonality, NPCState
+from app.models.npc_state import EmotionTag, NPCPersonality, NPCState
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Константы
+# TODO: миграция в core/constants.py после калибровки
 # ─────────────────────────────────────────────────────────────────────────────
 
 # Доля броска кубика в итоге: 65% хаос, 35% состояние системы

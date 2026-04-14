@@ -54,3 +54,31 @@ class JsonPersistenceAdapter(PersistencePort):
             logger.debug(f"[PERSISTENCE] NPCs saved: {len(npc_dicts)} records")
         except OSError as e:
             logger.error(f"[PERSISTENCE] Error saving NPCs: {e}")
+    
+    def save_npc_runtime(self, session_id: str, npc_dicts: list[dict]) -> None:
+        """Сохраняет runtime-состояние NPC в сессию (отдельно от статического профиля)."""
+        if not session_id:
+            logger.warning("[PERSISTENCE] save_npc_runtime вызван без session_id — пропуск")
+            return
+        runtime_path = self._campaigns_dir / session_id / "npc_runtime.json"
+        try:
+            runtime_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(runtime_path, "w", encoding="utf-8") as f:
+                json.dump(npc_dicts, f, ensure_ascii=False, indent=2)
+            logger.debug(f"[PERSISTENCE] NPC runtime saved: {session_id} ({len(npc_dicts)} records)")
+        except OSError as e:
+            logger.error(f"[PERSISTENCE] Error saving NPC runtime: {e}")
+    
+    def load_npc_runtime(self, session_id: str) -> list[dict] | None:
+        """Загружает runtime-состояние NPC из сессии. None если нет сохранения."""
+        if not session_id:
+            return None
+        runtime_path = self._campaigns_dir / session_id / "npc_runtime.json"
+        if not runtime_path.exists():
+            return None
+        try:
+            with open(runtime_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except (OSError, json.JSONDecodeError) as e:
+            logger.error(f"[PERSISTENCE] Error loading NPC runtime: {e}")
+            return None

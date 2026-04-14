@@ -3,6 +3,7 @@ Test script for multimodel LLM system.
 Run BEFORE starting the main application.
 """
 
+import pytest
 from pathlib import Path
 import sys
 import os
@@ -60,7 +61,7 @@ def test_multimodel():
         LLAMA_BAT = str(ROOT_DIR / "backend" / "run_llama_server_multi.bat")
         print(f"   Run: {LLAMA_BAT}")
         print(f"   Try manual: curl {server_url}/v1/models")
-        return False
+        pytest.skip(f"LLaMA server not available at {server_url}")
     else:    
         print(f"[OK] LLaMA Server running at {server_url}")
 
@@ -71,7 +72,7 @@ def test_multimodel():
         print("[OK] ModelRouter initialized")
     except Exception as e:
         print(f"[ERROR] Failed to initialize router: {e}")
-        return False
+        pytest.skip("ModelRouter initialization failed")
 
     # Список агентов (соответствует DEFAULT_AGENT_CAPABILITY_MAP)
     agents = ["dm", "npc", "rules", "world", "memory"]
@@ -106,7 +107,6 @@ def test_multimodel():
     print("\n" + "=" * 50)
     print("   Test Complete!")
     print("=" * 50)
-    return True
 
 
 if __name__ == "__main__":

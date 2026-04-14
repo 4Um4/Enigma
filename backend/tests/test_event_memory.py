@@ -6,7 +6,7 @@ R5.1 — тесты EventMemory: clarity, confidence, decay lifecycle.
 import math
 import pytest
 
-from app.services.npc.npc_state import EventMemory, MemoryStage, _resolve_stage
+from app.models.npc_state import EventMemory, MemoryStage, _resolve_stage
 from app.services.memory.working_memory import WorkingMemory
 
 # NPCPersonality пока не существует → используем Any для тестов
@@ -203,7 +203,7 @@ class TestToIdentityWeight:
 @pytest.fixture
 def base_personality():
     """Минимальная личность NPC для тестов вербализации."""
-    from app.services.npc.npc_state import NPCPersonality, NPCTier
+    from app.models.npc_state import NPCPersonality, NPCTier
     return NPCPersonality(
         npc_id       = "test_npc",
         tier         = NPCTier.MAJOR,
@@ -231,7 +231,7 @@ class TestMemoryBreathes:
         mem: EventMemory,
         base_personality: Any,   # TODO: заменить на NPCPersonality после создания класса
     ) -> str:
-        from app.services.npc.npc_state import NPCState, Intent
+        from app.models.npc_state import NPCState, Intent
         from app.services.verbalization.verbalization_context import (
             build_verbalization_context,
             build_npc_prompt_from_context,

@@ -12,7 +12,7 @@ from app.services.memory.importance_engine import score_event, apply_decay, DECA
 from app.services.memory.relationship_store import RelationshipStore
 from app.services.memory.contradiction_resolver import resolve_all
 
-from app.services.npc.npc_state import EventMemory, MemoryStage
+from app.models.npc_state import EventMemory, MemoryStage
 from app.services.npc.perception_filter import calculate_clarity
 
 from app.services.memory.resonance_engine import ResonanceEngine
@@ -210,7 +210,7 @@ class MemoryManager:
         if not events:
             return []
 
-        from app.services.npc.npc_state import EventMemory as _EM
+        from app.models.npc_state import EventMemory as _EM
         em_events = [e for e in events if isinstance(e, _EM)]
 
         patterns = self._resonance.detect(em_events, actor_id=actor_id)

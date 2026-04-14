@@ -15,7 +15,7 @@ R4.2 — Калибровочные тесты формулы score().
 
 import pytest
 
-from app.services.npc.npc_state import (
+from app.models.npc_state import (
     EmotionTag,
     Intent,
     NPCPersonality,

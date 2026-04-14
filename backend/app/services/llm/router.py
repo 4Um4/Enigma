@@ -57,7 +57,7 @@ class Capability(str, Enum):
 @dataclass
 class ModelConfig:
     """Конфигурация модели для маршрутизации."""
-    key: str                           # Уникальный ключ (qwen_7b, saiga, etc)
+    key: str                           # Уникальный ключ модели
     name: str                          # Человеческое название
     provider_type: ProviderType        # Тип провайдера
     path: str                          # Путь к файлу модели
@@ -85,31 +85,8 @@ MODEL_REGISTRY: dict[str, ModelConfig] = {}
 
 
 def _init_registry() -> dict[str, ModelConfig]:
-    """Инициализирует реестр моделей из конфигурации."""
+    """Единственная модель проекта."""
     return {
-        # ── Фаза M: основная модель — все агенты ─────────────────────────
-        "gemma_12b": ModelConfig(
-            key="gemma_12b",
-            name="gemma_12b",
-            provider_type=ProviderType.LLAMA_CPP,
-            path=settings.model_gemma_12b_path,
-            capabilities=[
-                Capability.NARRATIVE,
-                Capability.DIALOGUE,
-                Capability.DIALOGUE_GENERATION,
-                Capability.RULES_REASONING,
-                Capability.WORLD_SIMULATION,
-                Capability.MEMORY_SUMMARIZATION,
-                Capability.FACT_EXTRACTION,
-                Capability.STRATEGY,
-                Capability.GENERAL,
-                Capability.FAST,
-            ],
-            vram_mb=7000,
-            context_size=4096,
-            temperature=0.7,
-        ),
-        # ── Fallback модели ────────────────────────────────────────────────
         "qwen_7b": ModelConfig(
             key="qwen_7b",
             name="qwen_7b",
@@ -119,61 +96,18 @@ def _init_registry() -> dict[str, ModelConfig]:
                 Capability.NARRATIVE,
                 Capability.DIALOGUE,
                 Capability.DIALOGUE_GENERATION,
-                Capability.GENERAL,
-            ],
-            vram_mb=4000,
-            temperature=0.7,
-        ),
-        "qwen_9b": ModelConfig(
-            key="qwen_9b",
-            name="qwen_9b",
-            provider_type=ProviderType.LLAMA_CPP,
-            path=settings.model_qwen_9b_path,
-            capabilities=[
-                Capability.NARRATIVE,
-                Capability.WORLD_SIMULATION,
-                Capability.STRATEGY,
-                Capability.FACT_EXTRACTION,
-            ],
-            vram_mb=5500,
-            temperature=0.8,
-        ),
-        "saiga": ModelConfig(
-            key="saiga",
-            name="saiga",
-            provider_type=ProviderType.LLAMA_CPP,
-            path=settings.model_saiga_path,
-            capabilities=[
                 Capability.RULES_REASONING,
+                Capability.WORLD_SIMULATION,
                 Capability.MEMORY_SUMMARIZATION,
+                Capability.FACT_EXTRACTION,
+                Capability.STRATEGY,
+                Capability.GENERAL,
                 Capability.FAST,
             ],
-            vram_mb=4000,
-            temperature=0.5,  # Lower for rules accuracy
-        ),
-        "npc_major": ModelConfig(
-            key="npc_major",
-            name="npc_major",
-            provider_type=ProviderType.LLAMA_CPP,
-            path=settings.model_npc_major_path,
-            capabilities=[
-                Capability.DIALOGUE,
-                Capability.DIALOGUE_GENERATION,
-            ],
-            vram_mb=4000,
-            temperature=0.8,
-        ),
-        "npc_mass": ModelConfig(
-            key="npc_mass",
-            name="npc_mass",
-            provider_type=ProviderType.LLAMA_CPP,
-            path=settings.model_npc_mass_path,
-            capabilities=[
-                Capability.DIALOGUE,
-                Capability.FAST,
-            ],
-            vram_mb=2500,
-            temperature=0.7,
+            vram_mb=5000,
+            context_size=8192,
+            temperature=0.9,
+            repeat_penalty=1.12,
         ),
     }
 
@@ -193,20 +127,18 @@ DEFAULT_AGENT_CAPABILITY_MAP: dict[str, Capability] = {
 }
 
 
-# Mapping: capability → preferred model keys (in order of preference)
-# Фаза M: gemma_12b первая для всех — одна модель вместо пяти.
-# Старые модели оставлены как fallback на случай если файл не найден.
+# Mapping: capability → model key (единственная модель)
 CAPABILITY_MODEL_PREFERENCES: dict[Capability, list[str]] = {
-    Capability.NARRATIVE:             ["gemma_12b", "qwen_7b", "qwen_9b"],
-    Capability.DIALOGUE:              ["gemma_12b", "npc_major", "npc_mass", "qwen_7b"],
-    Capability.DIALOGUE_GENERATION:   ["gemma_12b", "npc_major", "npc_mass", "qwen_7b"],
-    Capability.WORLD_SIMULATION:      ["gemma_12b", "qwen_9b", "qwen_7b"],
-    Capability.RULES_REASONING:       ["gemma_12b", "saiga", "qwen_7b"],
-    Capability.MEMORY_SUMMARIZATION:  ["gemma_12b", "saiga", "qwen_7b"],
-    Capability.FACT_EXTRACTION:       ["gemma_12b", "qwen_9b", "qwen_7b"],
-    Capability.STRATEGY:              ["gemma_12b", "qwen_9b", "qwen_7b"],
-    Capability.FAST:                  ["gemma_12b", "saiga", "npc_mass", "qwen_7b"],
-    Capability.GENERAL:               ["gemma_12b", "qwen_7b", "saiga"],
+    Capability.NARRATIVE:             ["qwen_7b"],
+    Capability.DIALOGUE:              ["qwen_7b"],
+    Capability.DIALOGUE_GENERATION:   ["qwen_7b"],
+    Capability.WORLD_SIMULATION:      ["qwen_7b"],
+    Capability.RULES_REASONING:       ["qwen_7b"],
+    Capability.MEMORY_SUMMARIZATION:  ["qwen_7b"],
+    Capability.FACT_EXTRACTION:       ["qwen_7b"],
+    Capability.STRATEGY:              ["qwen_7b"],
+    Capability.FAST:                  ["qwen_7b"],
+    Capability.GENERAL:               ["qwen_7b"],
 }
 
 
@@ -247,7 +179,9 @@ class ModelRouter:
         
         # Защита VRAM. Только 1 запрос обрабатывается одновременно.
         # Критично для локальных 7B-13B моделей на 16GB VRAM.
-        self._vram_semaphore = asyncio.Semaphore(1)
+        # Ленивая инициализация — Semaphore привязан к event loop,
+        # а __init__ может вызываться в другом контексте (стартап vs запрос).
+        self._vram_semaphore: asyncio.Semaphore | None = None
         
         self._initialized = True
     
@@ -298,6 +232,9 @@ class ModelRouter:
         preferred_keys = self.get_capability_preferences(capability_obj)
 
         # === ЗАЩИТА VRAM ===
+        # Ленивое создание Semaphore в текущем event loop
+        if self._vram_semaphore is None:
+            self._vram_semaphore = asyncio.Semaphore(1)
         async with self._vram_semaphore:
             # Логируем вход в критическую секцию
             logger.info(f"ModelRouter: Acquired VRAM semaphore for capability={capability_obj}")
@@ -477,10 +414,8 @@ class ModelRouter:
     
     def _get_fallback_model(self) -> str:
         """Получить резервную модель."""
-        for key in ["gemma_12b", "qwen_7b", "saiga", "npc_major", "qwen_9b", "npc_mass"]:
-            if key in self._registry:
-                return key
-        return list(self._registry.keys())[0]
+        return "qwen_7b"
+
     
     # === Agent-friendly methods ===
     

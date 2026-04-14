@@ -19,10 +19,10 @@ import json
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-# Стоп-токены Gemma-3: при появлении в стриме — немедленно останавливаем.
+# Стоп-токены ChatML (Qwen2.5): при появлении в стриме — немедленно останавливаем.
 # <|im_start|> — самый опасный: вызывает генерацию текста промпта целиком.
 # ──────────────────────────────────────────────────────────────────────────────
-_GEMMA_STOP_TOKENS = [
+_STOP_TOKENS = [
     "<|file_separator|>",
     "<|end_of_turn|>",
     "<end_of_turn>",
@@ -39,7 +39,7 @@ _GEMMA_STOP_TOKENS = [
 
 def _strip_stop_tokens(text: str) -> str:
     """Убирает стоп-токены из строки. Обрезает по первому вхождению."""
-    for token in _GEMMA_STOP_TOKENS:
+    for token in _STOP_TOKENS:
         idx = text.find(token)
         if idx != -1:
             text = text[:idx]
@@ -47,7 +47,7 @@ def _strip_stop_tokens(text: str) -> str:
 
 
 def _has_stop_token(text: str) -> bool:
-    return any(st in text for st in _GEMMA_STOP_TOKENS)
+    return any(st in text for st in _STOP_TOKENS)
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -651,7 +651,7 @@ class DmAgent:
         def _producer():
             token_num = 0
             buffer = ""  # буфер для поимки стоп-токенов разбитых между чанками
-            tail_len = max(len(st) for st in _GEMMA_STOP_TOKENS)
+            tail_len = max(len(st) for st in _STOP_TOKENS)
             try:
                 for token in provider.stream_tokens(
                     prompt=prompt,

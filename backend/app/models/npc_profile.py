@@ -18,11 +18,9 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Set, Tuple
 
-# Импорты Enum'ов из текущей системы (чтобы не ломать то, что работает)
-try:
-    from app.services.npc.npc_state import EmotionTag, Intent, WillState, BehaviorMaskState
-except ImportError:
-    BehaviorMaskState = str  # Заглушка, если модуль еще не готов
+# Импорты Enum'ов из моделей
+from app.models.npc_state import EmotionTag, Intent, WillState
+from app.models.behavior_mask import BehaviorMaskState
 
 
 # --- СЛОЙ L0: ШАБЛОН (IMMUTABLE) ---

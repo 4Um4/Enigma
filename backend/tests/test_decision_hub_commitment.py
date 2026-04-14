@@ -21,7 +21,7 @@ from app.services.npc.decision_hub import (
     INTENT_INERTIA_MAX_TICKS,
     REACTIVE_URGENCY_THRESHOLD,
 )
-from app.services.npc.npc_state import NPCStateL2, Intent
+from app.models.npc_state import NPCStateL2, Intent
 from app.models.npc_profile import NPCProfileL0, PsycheBase
 from app.services.npc.decision_hub import EventContext
 

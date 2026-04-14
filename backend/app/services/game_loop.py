@@ -108,7 +108,6 @@ class GameLoop:
         npc_agent,
         rules_agent,
         load_npcs_func,
-        save_npcs_func,
         adventure_loader: AdventureLoader,
         system_requirements: SystemRequirements,
     ):
@@ -124,7 +123,6 @@ class GameLoop:
         self.npc_agent        = npc_agent
         self.rules_agent      = rules_agent
         self._load_npcs           = load_npcs_func
-        self._save_npcs           = save_npcs_func
         self.adventure_loader     = adventure_loader
         self.system_requirements  = system_requirements
         self._campaign_world_index: dict[str, str] = {}
@@ -145,8 +143,12 @@ class GameLoop:
     async def run_turn(self, req: ChatTurnRequest) -> ChatTurnResponse:
         """Блокирующий путь (REST). DM-нарратив собирается целиком."""
         self.assert_requirements()
+        _is_session_start_rest = req.campaign_id not in self._session_started_campaigns
+        if _is_session_start_rest:
+            self._session_started_campaigns.add(req.campaign_id)
         state = await self._run_pipeline(req.actions, req.campaign_id,
-                                         req.world_id, req.location)
+                                         req.world_id, req.location,
+                                         is_session_start=_is_session_start_rest)
 
         dm_result = await self._run_agent_safe(
             "dm", self.dm_agent,
@@ -225,14 +227,14 @@ class GameLoop:
         yield {"type": "status", "text": "Мастер думает..."}
 
         # Классификация — 0 мс, сразу отдаём тип действия
-        # TODO: Тип будет извлекаться из DMOrchestrator в будущем
-        action_type_str = "unknown"
+        action_type_str = self.dm_orchestrator.classify_action(action_text)
         yield {"type": "action_type", "value": action_type_str}
 
         # Теперь запускаем тяжёлый pipeline
         state = await self._run_pipeline(
             actions, campaign_id, world_id, location,
             campaign_state=campaign_state,
+            is_session_start=is_session_start,
         )
 
         # Модели — метаинфо
@@ -315,6 +317,7 @@ class GameLoop:
         world_id: str,
         location: str,
         campaign_state=None,
+        is_session_start: bool = False,
     ) -> _PipelineState:
         """
         Шаги 1–8: classify → physics → SceneState → PythonEngines → rules → npc.
@@ -395,7 +398,9 @@ class GameLoop:
             _life_changes = _life_engine.tick(campaign_id, scene_state)
             if _life_changes:
                 self.scene_manager.apply_changes(campaign_id, _life_changes, scene_state)
-                _life_engine.save_npcs(campaign_id)
+                # TODO: Шаг 0.8 — save_npcs загрязнял major_npcs.json. 
+                # LifeEngine runtime будет персистироваться через npc_runtime.json после рефакторинга LifeEngine.
+                # _life_engine.save_npcs(campaign_id)
                 print(f"[LIFE_ENGINE] {len(_life_changes)} изменений применено")
                 # Сообщаем DM о прибывших NPC — чтобы он их анонсировал
                 _arrivals = [
@@ -526,8 +531,52 @@ class GameLoop:
                 # EventContext с intensity уже сформирован в dm_scene_builder.enrich_raw_event
                 hub_event = dm_result.event_context or HubEventContext(event_type="player_interacts", actor_id="player")
 
+                # ── CHARACTER FILTER (Фаза 2.0.4) ──
+                # Фильтрует действие через психологию персонажа (один раз на ход)
+                _player_name = actions[0].player_name if actions else ""
+                _filter_result = None
+                try:
+                    from app.services.character.character_filter import CharacterFilter as CharFilter
+                    _profile = self.character_service.get_or_create_profile(campaign_id, _player_name)
+                    # Если профиль пустой (аватар без ценностей) — пропускаем фильтр
+                    if _profile.values.weights:
+                        _cf = CharFilter()
+                        _filter_result = _cf.compute_resistance(
+                            profile=_profile,
+                            event_type=hub_event.event_type,
+                            intensity=getattr(hub_event, 'intensity', 0.5) or 0.5,
+                        )
+                        # Применяем эрозию если была
+                        if _filter_result.erosion_applied > 0:
+                            _profile.apply_erosion(
+                                _filter_result.erosion_applied,
+                                f"{hub_event.event_type}: {_filter_result.outcome.value}",
+                            )
+                            self.character_service.upsert_profile(campaign_id, _profile)
+                        
+                        print(f"[CHAR_FILTER] {_player_name}: {_filter_result.outcome.value} "
+                              f"(res={_filter_result.resistance:.2f}, mod={_filter_result.action_modifier:.2f})")
+                        
+                        # RESIST/REFUSE — передаём контекст DM, пропускаем NPC решения
+                        if _filter_result.outcome.value in ("resist", "refuse"):
+                            shared_context["character_filter"] = _filter_result.to_dict()
+                            # DM увидит описание в prompt, NPC решения не нужны
+                            hub_event = None
+                except Exception as _cfe:
+                    import traceback
+                    print(f"[CHAR_FILTER] Error (non-blocking): {_cfe}")
+                    traceback.print_exc()
+
+                # Если CharacterFilter заблокировал действие — пропускаем NPC цикл
+                if hub_event is None:
+                    print(f"[CHAR_FILTER] Action blocked, skipping NPC decisions")
+
                 _dirty_npcs: set = set()  # ID изменённых dict'ов для сохранения
                 for npc in dm_result.scene_context.nearby_npcs:
+                    if hub_event is None:
+                        break  # CharacterFilter заблокировал — NPC не реагируют
+                    # Salience Engine: собираем max_stress для фильтрации объектов
+                    _max_npc_stress = 0.0
                     npc_id = npc.get("npc_id")
                     if npc_id and dm_result.scene_context.line_of_sight.get(npc_id, False):
                         
@@ -547,6 +596,22 @@ class GameLoop:
                         # 2. Мост: Грязный Dict -> Чистые L0/L2 типы
                         profile_l0 = load_profile_from_legacy_json(_npc_profile)
                         state_l2 = load_l2_state_from_runtime_dict(_npc_profile)
+
+                        # Сброс динамического состояния при старте новой сессии
+                        # R8: без этого stale emotion_tag даёт +0.35 к FLEE
+                        if is_session_start:
+                            state_l2.stress = 0.0
+                            state_l2.intent_duration = 0
+                            state_l2.intent_formed_at = 0
+                            state_l2.emotion_delta = 0.0
+                            # Intent и Emotion сбрасываются через импорт — локальный
+                            from app.models.npc_state import Intent as _Intent, EmotionTag as _EmotionTag
+                            from app.models.behavior_mask import BehaviorMaskState
+                            state_l2.intent = _Intent.IDLE
+                            state_l2.emotion = _EmotionTag.NEUTRAL
+                            # R8: сброс маски поведения — новый игрок не должен видеть старую
+                            state_l2.behavior_mask = BehaviorMaskState()
+                            print(f"[SESSION_RESET] {npc_id}: stress=0 emotion=NEUTRAL mask=NONE")
 
                         # 1.5. Обогащаем relationship_cache из MemoryManager (РАЗРЫВ #1 закрыт)
                         # DecisionHub теперь принимает решения с учётом реальной истории отношений
@@ -573,7 +638,7 @@ class GameLoop:
                             campaign_id=campaign_id,
                             npc_id=npc_id,
                         )
-                        from app.services.npc.npc_state import NPCIdentityL1
+                        from app.models.npc_state import NPCIdentityL1
                         _identity = NPCIdentityL1(
                             npc_id=npc_id,
                             active_traits=_identity_traits,
@@ -598,11 +663,34 @@ class GameLoop:
                                 campaign_id=campaign_id
                             )
                             # ЗАМЫКАНИЕ: Записываем новое состояние обратно в dict
-                            from app.services.npc.npc_state import NPCState
+                            from app.models.npc_state import NPCState
                             NPCState.write_to_legacy(state_to_use_for_llm, _npc_dict_for_write)
                             _dirty_npcs.add(id(_npc_dict_for_write))
+                            # Salience: обновляем max_stress для фильтрации объектов
+                            _max_npc_stress = max(_max_npc_stress, getattr(state_to_use_for_llm, "stress", 0.0))
                         except Exception as e:
                             logger.warning(f"[DM_FACADE] StateApplicator failed for {npc_id}, using raw state: {e}")
+                        
+                        # 3.5 Reaction Layer: DecisionResult → MicroEvents (ШАГ 0.5)
+                        # Без этого: DecisionHub говорит "испуган", но ничего не падает
+                        _micro_events = []
+                        try:
+                            from app.services.reaction.reaction_resolver import ReactionResolver
+                            _resolver = ReactionResolver()
+                            _composure = 1.0 - state_to_use_for_llm.stress / 100.0
+                            _current_activity = _npc_dict_for_write.get("routine", {}).get("current", "")
+                            _hands_occupied = _current_activity in ("serving", "working", "crafting", "cooking", "serving_tables", "cleaning_tables")
+                            
+                            _micro_events = _resolver.resolve(
+                                decision=decision,
+                                event=hub_event,
+                                composure=_composure,
+                                hands_occupied=_hands_occupied,
+                                current_activity=_current_activity,
+                            )
+                            print(f"[REACTION] {npc_id}: composure={_composure:.2f} hands={_hands_occupied} act='{_current_activity}' events={[e.event_type.value for e in _micro_events]}")
+                        except Exception as e:
+                            logger.warning(f"[REACTION] Failed for {npc_id}: {e}")
                         
                         # 4. Упаковка в VerbalizationContext (Enum -> Строки для LLM)
                         # ИСПОЛЬЗУЕМ state_to_use_for_llm, чтобы LLM увидел последствия решения!
@@ -625,8 +713,7 @@ class GameLoop:
                             backstory=profile_l0.backstory,
                         )
                         
-                        # TODO: Мост для Phase 1: Превращаем StateDeltas в формат старого парсера
-                        # Формируем единый контекст NPC (исправлено: было 2 append → дублирование)
+                        # Формируем единый контекст NPC
                         _stress_d = 0.0
                         _trust_d = 0.0
                         try:
@@ -644,6 +731,7 @@ class GameLoop:
                             "real_state": _npc_dict_for_write,   # Legacy dict для ProjectionLayer
                             "trust_delta": _trust_d,          # Для StateApplicator
                             "stress_delta": _stress_d,        # Для StateApplicator
+                            "micro_events": _micro_events,    # ШАГ 0.5: физические реакции
                         })
                 # Сохраняем через commit boundary (Пробой 7 закрыт)
                 if _dirty_npcs:
@@ -652,6 +740,11 @@ class GameLoop:
                         scene_state=shared_context["scene_state"],
                         npc_dicts=self._load_npcs(),
                     )
+                # Salience Engine: передаём метаданные для фильтрации объектов в промпте
+                _scene_for_dm = shared_context.get("scene_state", {})
+                _scene_for_dm["_salience_event_type"] = getattr(hub_event, "event_type", "player_interacts")
+                _scene_for_dm["_salience_max_stress"] = _max_npc_stress
+                _scene_for_dm["_salience_target_object"] = _scene_for_dm.get("player_target_object")
             
             python_engines_result = {
                 "dm_result": dm_result,
@@ -699,10 +792,18 @@ class GameLoop:
             traceback.print_exc()
             shared_context["npc_contexts"] = _all_npc_contexts
 
-        # 6. Rules агент
+        # 6. Rules агент — передаём классификацию из Router
+        _action_type = shared_context.get("action_type", "player_interacts")
+        _rules_context = {
+            "classification": [{
+                "player": actions[0].player_name,
+                "type": self.dm_orchestrator._router.get_rules_action_type(_action_type), 
+            }]
+        }
         rules_result = await self._run_agent_safe(
-            "rules", self.rules_agent, (actions,), {}
+            "rules", self.rules_agent, (actions, _rules_context), {}
         )
+        print(f"[RULES] action_type={_action_type} → {_rules_context['classification'][0]['type']}")
 
         # 7. NPC агент / R3 Direct Mode
         if R3_DIRECT_MODE:
@@ -728,12 +829,23 @@ class GameLoop:
             _visible = set(_scene_state.get("line_of_sight", {}).keys())
             _tiers = {ctx["npc_id"]: ctx.get("tier", "minor") for ctx in _filtered_ctxs}
             
+            # R5: Определяем успех физического действия из rules_agent
+            _player_success = True  # VERBAL действия всегда "успешны" (нет броска)
+            if rules_result and isinstance(rules_result, dict):
+                _checks = rules_result.get("checks", [])
+                if _checks:
+                    _first_check = _checks[0] if isinstance(_checks[0], dict) else _checks[0].to_dict() if hasattr(_checks[0], 'to_dict') else {}
+                    if _first_check.get("needs_roll", False):
+                        _result_str = _first_check.get("result", "").lower()
+                        _player_success = "успех" in _result_str or "крит" in _result_str
+                        print(f"[R5] Physical action: success={_player_success} result={_result_str}")
+            
             _scene_ctx = SceneContext(
                 distances=_distances,
                 visible_npcs=_visible,
                 npc_tiers=_tiers,
                 player_action_text=actions[0].action if actions else "",
-                player_success=True,  # TODO: из ResolutionEngine
+                player_success=_player_success,
             )
             
             # Собираем снапшоты для ProjectionLayer (реальное состояние + искажения)
@@ -787,6 +899,21 @@ class GameLoop:
                 _cont.add_flag("combat_started")
                 _cont.add_event("Началась драка")
             
+            # ШАГ 0.5: MicroEvents → SceneContinuity флаги/события
+            for ctx in _filtered_ctxs:
+                for me in ctx.get("micro_events", []):
+                    _npc_name = ctx.get("verbalization_ctx")
+                    _name = _npc_name.npc_name if _npc_name else me.npc_id
+                    if me.event_type.value == "object_dropped":
+                        _cont.add_flag(f"{_name}_dropped_object")
+                        _cont.add_event(f"{_name} уронил(а) предмет")
+                    elif me.event_type.value == "interaction_disrupted":
+                        _cont.add_flag(f"{_name}_disrupted")
+                        _cont.add_event(f"Действие {_name} прервано")
+                    elif me.event_type.value == "grip_tightened":
+                        _cont.add_flag(f"{_name}_grip_tightened")
+                        # Без add_event — слишком мелкое для нарратива
+            
             _dm_frame = _builder.build_dm_frame(_scene)
             
             # Конвертируем DMFrame в формат совместимый с dm_agent
@@ -827,8 +954,7 @@ class GameLoop:
         _player_name = actions[0].player_name if actions else "игрок"
 
         # action_type из классификатора (для ImportanceEngine)
-        # TODO: Тип будет извлекаться из DMOrchestrator в будущем
-        _act_type = "unknown"
+        _act_type = shared_context.get("action_type", "unknown")
 
         # P0.1: действие игрока → Working Memory
         self.memory_manager.record_event(campaign_id, {
@@ -855,8 +981,7 @@ class GameLoop:
         _tick = shared_context.get("scene_state", {}).get("snapshot_tick", 0)
         # Decay → identity_weights → NPCIdentityL1 cache (РАЗРЫВ #2 закрыт)
         _identity_weights = self.memory_manager.run_decay_if_needed(campaign_id, _tick)
-        # TODO: npc_id недоступен здесь глобально — weights применяются по actor_id из событий
-        # Временно: detect_resonance для общего actor "player" (будет per-NPC в ШАГ 6)
+        # Resonance → identity_weights для каждого активного NPC
         if _identity_weights:
             _resonance = self.memory_manager.detect_resonance(campaign_id, actor_id="player")
             for _npc_id in shared_context.get("active_npc_ids", []):

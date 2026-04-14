@@ -1,0 +1,52 @@
+{
+  "_version": "1.0",
+  "_type": "individual",
+  "_archetype": "tavern_keeper",
+  "_mixins": ["veteran"],
+  "id": "tavern_keeper_tornin",
+  "name": "Торнин Серебряная Луна",
+  "name_forms": ["торнин", "торнина", "торнину", "торнином", "торнине", "серебряная луна"],
+  "tier": "major",
+  "gender": "мужской",
+  "description": "Коренастый мужчина за пятьдесят, фартук заляпан пивом, на щеке старый шрам. Двигается уверенно, будто знает каждый угол этой таверны.",
+  "status_profile": {
+    "freedom": 75,
+    "wealth": 40,
+    "power": 20,
+    "title": "Хозяин таверны",
+    "faction_rank": {
+      "гильдия_воров": -1
+    }
+  },
+  "visible_markers": ["apron", "keys", "heavy_build", "scar_on_cheek"],
+  "hidden_truth": ["former_soldier", "owes_debt_to_thieves_guild"],
+  "drives": {
+    "control": 0.5,
+    "significance": 0.25,
+    "fear": 0.15,
+    "desire": 0.1
+  },
+  "psyche": {
+    "willpower": 65,
+    "breakpoint": 80,
+    "loyalty_true": 60
+  },
+  "abilities": {
+    "strength": 14,
+    "dexterity": 10,
+    "constitution": 13,
+    "intelligence": 11,
+    "wisdom": 12,
+    "charisma": 13
+  },
+  "flags": {
+    "has_gold": true,
+    "knows_secret": false,
+    "is_enslaved": false,
+    "planning_revenge": false,
+    "is_dead": false
+  },
+  "location": "tavern_silver_wolf",
+  "hp": 40,
+  "max_hp": 40
+}

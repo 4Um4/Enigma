@@ -1,8 +1,13 @@
-# path: backend/app/services/npc/behavior_mask.py
+# path: backend/app/models/behavior_mask.py
 
 """
 Поведенческая маска NPC — внешний слой поведения,
 независимый от внутреннего WillState.
+
+Файл: backend/app/models/behavior_mask.py
+Назначение: Поведенческая маска NPC — внешний слой поведения
+Зависимости: нет (только stdlib)
+Основные сущности: BehaviorMask (Enum), BehaviorMaskState (dataclass)
 
 WillState = что происходит внутри (broken, coerced...)
 BehaviorMask = как NPC это показывает снаружи (или скрывает)
@@ -10,7 +15,7 @@ BehaviorMask = как NPC это показывает снаружи (или с�
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
 from typing import Optional
 

@@ -27,8 +27,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Dict, FrozenSet
 
-from app.services.npc.behavior_mask import BehaviorMask
-from app.services.npc.npc_state import Intent
+from app.models.behavior_mask import BehaviorMask
+from app.models.npc_state import Intent
 
 
 # ─────────────────────────────────────────────────────────────────────────────

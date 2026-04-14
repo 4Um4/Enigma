@@ -103,7 +103,7 @@ class ProviderFactory:
         server_url = agent_settings.get_llm_server_url(agent_name)
         model_key = agent_settings.agent_model_map.get(
             agent_name,
-            settings.agent_model_map.get("_fallback", "gemma_12b"),
+            settings.agent_model_map.get(agent_name, "qwen_7b"),
         )
         model_path = None
         if hasattr(agent_settings, 'available_models') and model_key in agent_settings.available_models:

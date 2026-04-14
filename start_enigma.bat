@@ -112,7 +112,7 @@ echo [2/5] Starting Backend...
 set "BACKEND_LOG=%LOG_DIR%\backend_%dt%.log"
 
 cd /d "%BACKEND_DIR%"
-start "Enigma Backend" cmd /c "%PYTHON_CMD%" -u -X utf8 -m uvicorn app.main:app --host 127.0.0.1 --port 8000 >> "%BACKEND_LOG%" 2>&1
+start "Enigma Backend" cmd /c ""%PYTHON_CMD%" -u -X utf8 -m uvicorn app.main:app --host 127.0.0.1 --port 8000 >> "%BACKEND_LOG%" 2>&1"
 cd /d "%ROOT_DIR%"
 
 set /a BACK_WAIT=0

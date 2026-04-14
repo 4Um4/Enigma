@@ -10,7 +10,7 @@ import pytest
 
 from app.services.memory.memory_manager import MemoryManager
 from app.services.memory.importance_engine import DECAY_EVERY
-from app.services.npc.npc_state import EventMemory, MemoryStage
+from app.models.npc_state import EventMemory, MemoryStage
 
 
 def _make_manager() -> MemoryManager:

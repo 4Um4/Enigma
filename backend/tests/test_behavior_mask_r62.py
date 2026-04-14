@@ -8,8 +8,8 @@
 
 import pytest
 
-from backend.app.services.npc.behavior_mask import BehaviorMask, BehaviorMaskState
-from backend.app.services.npc.npc_state import NPCState
+from app.models.behavior_mask import BehaviorMask, BehaviorMaskState
+from app.models.npc_state import NPCState
 
 
 # =========================================================

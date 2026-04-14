@@ -47,16 +47,30 @@ class DMSceneBuilder:
     ) -> SceneContext:
         """
         Строит полный контекст сцены на основе пространственных данных.
+        Salience Engine фильтрует объекты по важности.
         """
         all_npcs = spatial_data.get("npcs", [])
         nearby_npcs = self._filter_by_visibility(all_npcs, player_location, spatial_data)
         los = self._calculate_los(nearby_npcs, player_location, spatial_data)
         modifiers = self._get_environmental_modifiers(spatial_data)
         
+        # Salience Engine: фильтруем объекты перед передачей в LLM
+        _event_type = getattr(raw_event, "event_type", "player_interacts") if raw_event else "player_interacts"
+        _raw_objects = spatial_data.get("objects", {})
+        
+        from app.services.scene.salience_engine import SalienceEngine
+        _filtered_pairs = SalienceEngine().get_filtered_objects(
+            objects=_raw_objects,
+            event_type=_event_type,
+            max_npc_stress=0.0,  # stress ещё не доступен на этом этапе
+        )
+        # Конвертируем обратно в dict для совместимости с SceneContext
+        _filtered_objects = {obj_id: obj for obj_id, obj in _filtered_pairs}
+        
         return SceneContext(
             location_id=player_location,
             nearby_npcs=nearby_npcs,
-            visible_objects=spatial_data.get("objects", []),
+            visible_objects=_filtered_objects,
             environmental_modifiers=modifiers,
             line_of_sight=los,
         )

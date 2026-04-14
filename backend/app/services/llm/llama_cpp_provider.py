@@ -52,12 +52,13 @@ DEFAULT_STOP_TOKENS = [
 class LlamaCppModelConfig:
     path: str
     name: str
-    context_size: int = 4096
-    temperature: float = 0.7
+    context_size: int = 8192
+    temperature: float = 0.9
     top_p: float = 0.9
-    repeat_penalty: float = 1.1
+    min_p: float = 0.1
+    repeat_penalty: float = 1.12
     n_keep: int = 800
-    vram_mb: int = 4000
+    vram_mb: int = 5000
 
 
 class LlamaCppProvider(StreamingLlmProvider):
@@ -121,30 +122,17 @@ class LlamaCppProvider(StreamingLlmProvider):
 
         После этого модель генерирует только финальный ответ.
         """
-        model_name = self.model_config.name.lower() if self.model_config else ""
-
-        if "saiga" in model_name or "mistral" in model_name or "yandex" in model_name:
-            # Saiga / Mistral / YandexGPT
-            if system_prompt:
-                return (
-                    f"### System\n{system_prompt}\n\n"
-                    f"### User\n{user_prompt}\n\n"
-                    f"### Assistant\n"
-                )
-            return f"### User\n{user_prompt}\n\n### Assistant\n"
-
-        else:
-            # Gemma-3 / default — чистый ChatML без thinking prefill
-            if system_prompt:
-                return (
-                    f"<|im_start|>system\n{system_prompt}\n<|im_end|>\n"
-                    f"<|im_start|>user\n{user_prompt}\n<|im_end|>\n"
-                    f"<|im_start|>assistant\n"
-                )
+        # Qwen2.5 — ChatML формат
+        if system_prompt:
             return (
+                f"<|im_start|>system\n{system_prompt}\n<|im_end|>\n"
                 f"<|im_start|>user\n{user_prompt}\n<|im_end|>\n"
                 f"<|im_start|>assistant\n"
             )
+        return (
+            f"<|im_start|>user\n{user_prompt}\n<|im_end|>\n"
+            f"<|im_start|>assistant\n"
+        )
 
     # ──────────────────────────────────────────────────────────────────────────
     # Server mode — /completion
@@ -165,6 +153,7 @@ class LlamaCppProvider(StreamingLlmProvider):
             "temperature":    params.temperature,
             "top_p":          params.top_p,
             "repeat_penalty": params.repeat_penalty,
+            "min_p":          params.min_p,
             "top_k":          params.top_k,
             "n_keep":         params.n_keep,
         }
@@ -262,6 +251,7 @@ class LlamaCppProvider(StreamingLlmProvider):
             "temperature":    gen_params.temperature,
             "top_p":          gen_params.top_p,
             "repeat_penalty": gen_params.repeat_penalty,
+            "min_p":          gen_params.min_p,
             "top_k":          gen_params.top_k,
             "n_keep":         gen_params.n_keep,
         }
@@ -340,6 +330,7 @@ class LlamaCppProvider(StreamingLlmProvider):
             "temperature":    gen_params.temperature,
             "top_p":          gen_params.top_p,
             "repeat_penalty": gen_params.repeat_penalty,
+            "min_p":          gen_params.min_p,
             "top_k":          gen_params.top_k,
             "n_keep":         gen_params.n_keep,
         }

@@ -1,4 +1,4 @@
-﻿# backend/tests/test_verbalization_chain.py
+# backend/tests/test_verbalization_chain.py
 # cd backend; python -m pytest tests/test_verbalization_chain.py -v
 """
 Интеграционный тест всей цепочки вербализации + инварианты системы.

@@ -1,0 +1,296 @@
+{
+  "filename": "tavern.json",
+  "label": "Таверна Серебряного Волка",
+  "world_pos": {
+    "x": 0,
+    "y": 0
+  },
+  "size": {
+    "w": 20,
+    "h": 15
+  },
+  "grid_cell_size": 1.0,
+  "is_outdoor": false,
+  "rooms": [
+    {
+      "id": "room_0",
+      "name": "Главный зал",
+      "x": 2.0,
+      "y": 2.0,
+      "width": 12.0,
+      "height": 10.0
+    },
+    {
+      "id": "room_1",
+      "name": "Кухня",
+      "x": 14.0,
+      "y": 2.0,
+      "width": 4.0,
+      "height": 5.0
+    }
+  ],
+  "walls": [
+    {
+      "id": "wall_0",
+      "type": "wall",
+      "x1": 2.0,
+      "y1": 2.0,
+      "x2": 14.0,
+      "y2": 2.0,
+      "thickness": 0.2
+    },
+    {
+      "id": "wall_1",
+      "type": "wall",
+      "x1": 14.0,
+      "y1": 2.0,
+      "x2": 14.0,
+      "y2": 7.0,
+      "thickness": 0.2
+    },
+    {
+      "id": "wall_2",
+      "type": "wall",
+      "x1": 2.0,
+      "y1": 2.0,
+      "x2": 2.0,
+      "y2": 12.0,
+      "thickness": 0.2
+    },
+    {
+      "id": "wall_3",
+      "type": "wall",
+      "x1": 2.0,
+      "y1": 12.0,
+      "x2": 14.0,
+      "y2": 12.0,
+      "thickness": 0.2
+    },
+    {
+      "id": "wall_4",
+      "type": "wall",
+      "x1": 14.0,
+      "y1": 7.0,
+      "x2": 18.0,
+      "y2": 7.0,
+      "thickness": 0.2
+    },
+    {
+      "id": "wall_5",
+      "type": "wall",
+      "x1": 18.0,
+      "y1": 2.0,
+      "x2": 18.0,
+      "y2": 7.0,
+      "thickness": 0.2
+    }
+  ],
+  "nodes": {
+    "entrance": {
+      "x": 8.0,
+      "y": 12.0,
+      "label": "Вход",
+      "connections": [
+        "main_hall"
+      ]
+    },
+    "main_hall": {
+      "x": 8.0,
+      "y": 7.0,
+      "label": "Центр зала",
+      "connections": [
+        "entrance",
+        "bar_area",
+        "fireplace",
+        "corner_table"
+      ]
+    },
+    "bar_area": {
+      "x": 4.0,
+      "y": 4.0,
+      "label": "У стойки",
+      "connections": [
+        "main_hall",
+        "behind_bar"
+      ]
+    },
+    "behind_bar": {
+      "x": 4.0,
+      "y": 2.5,
+      "label": "За стойкой",
+      "connections": [
+        "bar_area"
+      ]
+    },
+    "fireplace": {
+      "x": 11.0,
+      "y": 4.0,
+      "label": "У камина",
+      "connections": [
+        "main_hall"
+      ]
+    },
+    "corner_table": {
+      "x": 12.0,
+      "y": 10.0,
+      "label": "В тёмном углу",
+      "connections": [
+        "main_hall"
+      ]
+    },
+    "kitchen": {
+      "x": 16.0,
+      "y": 4.0,
+      "label": "Кухня",
+      "connections": []
+    }
+  },
+  "objects": [
+    {
+      "type": "bar",
+      "position": {
+        "x": 4.0,
+        "y": 3.0
+      },
+      "size": {
+        "w": 3.0,
+        "h": 1.0,
+        "d": 1.2
+      },
+      "rotation": 0,
+      "passability": {
+        "walk": false,
+        "jump_over": true,
+        "crawl_under": false,
+        "climb_on": false,
+        "walk_around": true
+      },
+      "cover": 0.8,
+      "color": "#654321"
+    },
+    {
+      "type": "table",
+      "position": {
+        "x": 8.0,
+        "y": 5.0
+      },
+      "size": {
+        "w": 2.0,
+        "h": 1.5,
+        "d": 0.8
+      },
+      "rotation": 0,
+      "passability": {
+        "walk": false,
+        "jump_over": true,
+        "crawl_under": true,
+        "climb_on": true,
+        "walk_around": true
+      },
+      "cover": 0.5,
+      "color": "#8B7355"
+    },
+    {
+      "type": "table",
+      "position": {
+        "x": 12.0,
+        "y": 8.0
+      },
+      "size": {
+        "w": 1.5,
+        "h": 1.5,
+        "d": 0.8
+      },
+      "rotation": 0,
+      "passability": {
+        "walk": false,
+        "jump_over": true,
+        "crawl_under": true,
+        "climb_on": true,
+        "walk_around": true
+      },
+      "cover": 0.5,
+      "color": "#8B7355"
+    },
+    {
+      "type": "chair",
+      "position": {
+        "x": 7.0,
+        "y": 5.0
+      },
+      "size": {
+        "w": 0.5,
+        "h": 0.5,
+        "d": 0.5
+      },
+      "rotation": 0,
+      "passability": {
+        "walk": false,
+        "jump_over": true,
+        "crawl_under": false,
+        "climb_on": true,
+        "walk_around": true
+      },
+      "cover": 0.3,
+      "color": "#A0522D"
+    },
+    {
+      "type": "chair",
+      "position": {
+        "x": 9.0,
+        "y": 5.0
+      },
+      "size": {
+        "w": 0.5,
+        "h": 0.5,
+        "d": 0.5
+      },
+      "rotation": 0,
+      "passability": {
+        "walk": false,
+        "jump_over": true,
+        "crawl_under": false,
+        "climb_on": true,
+        "walk_around": true
+      },
+      "cover": 0.3,
+      "color": "#A0522D"
+    }
+  ],
+  "portals": [
+    {
+      "id": "door_0",
+      "type": "door",
+      "position": {
+        "x": 8.0,
+        "y": 12.0
+      },
+      "size": {
+        "w": 1.0,
+        "h": 1.0
+      },
+      "label": "Главный вход",
+      "target": "",
+      "one_way": false,
+      "color": "#FFD700"
+    },
+    {
+      "id": "door_1",
+      "type": "door",
+      "position": {
+        "x": 14.0,
+        "y": 4.5
+      },
+      "size": {
+        "w": 1.0,
+        "h": 1.0
+      },
+      "label": "Дверь на кухню",
+      "target": "",
+      "one_way": false,
+      "color": "#FFD700"
+    }
+  ],
+  "created_at": "2024-01-15T10:30:00",
+  "modified_at": "2024-01-15T10:30:00"
+}

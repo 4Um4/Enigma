@@ -18,7 +18,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import List, Optional, Sequence
 
-from app.services.npc.npc_state import EventMemory, MemoryStage, NPCPersonality
+from app.models.npc_state import EventMemory, MemoryStage, NPCPersonality
 
 
 # ─────────────────────────────────────────────────────────────────────────────

@@ -29,12 +29,11 @@ class WorldScheduler:
         if last_tick and (now - last_tick) < timedelta(minutes=every_minutes):
             return {"triggered": False, "reason": "interval_not_elapsed", "events": []}
 
-        # Safe call to world agent - if it fails, we continue with empty events
-        try:
-            result = self.world_agent.tick(world_id)
-        except Exception as e:
-            print(f"World tick error: {e}")
-            result = {"world_events": [], "simulation_log": "error"}
+        # TODO: временная заглушка
+        # будет удалено после: ФАЗА 6 — WorldTickEngine (Python-based, без LLM)
+        # ПРИЧИНА: world_sim_agent использует LLM для генерации событий,
+        # что нарушает главный контракт: "LLM НЕ ПРИНИМАЕТ РЕШЕНИЯ"
+        result = {"world_events": [], "simulation_log": "disabled_pending_phase6"}
 
         event_payload = {
             "visibility": "hidden",

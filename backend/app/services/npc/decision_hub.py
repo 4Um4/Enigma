@@ -18,16 +18,16 @@ from typing import Any, Dict, List, Optional, Tuple
 
 # Целевая архитектура данных (L0/L2)
 from app.models.npc_profile import NPCProfileL0
-from app.services.npc.npc_state import NPCStateL2  # алиас для NPCState (L2)
+from app.models.npc_state import NPCStateL2  # алиас для NPCState (L2)
 
 # Легаси-типы, всё ещё используемые в логике (Enum'ы и контракты результатов)
-from app.services.npc.npc_state import (
+from app.models.npc_state import (
     EmotionTag,
     Intent,
     NarrativeFact,
     WillState,
 )
-from app.services.npc.behavior_mask import BehaviorMask
+from app.models.behavior_mask import BehaviorMask
 from app.services.npc.opportunity_engine import (
     OpportunityContext,
     OpportunityEngine,
@@ -37,6 +37,7 @@ from app.services.npc.opportunity_engine import (
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Константы формулы score()
+# TODO: миграция в core/constants.py после калибровки
 # ─────────────────────────────────────────────────────────────────────────────
 
 # Контролируемый рандом ±N% — NPC предсказуем, но не робот (решение №12)
@@ -273,6 +274,9 @@ class DecisionHub:
             if current_intent_str not in scores:
                 best_intent = Intent.IDLE
                 best_score = 0.0
+        else:
+            # Текущий intent отсутствует или IDLE — берём лучший кандидат
+            best_intent = Intent(best_candidate_str)
         
         # Reset accumulator при смене (защита от hysteresis lock)
         if switched and acc_key:
@@ -290,6 +294,7 @@ class DecisionHub:
         # Строки (причины срабатывания) отсекаются.
         opp_trace = {f"opp_{k}": v for k, v in opportunity.score_trace.items() if isinstance(v, (int, float))}
 
+        print(f"[DECISION_HUB] {state.npc_id}: intent={best_intent} score={round(best_score, 3)} event={event.event_type}")
         return DecisionResult(
             npc_id         = state.npc_id,
             intent         = Intent(best_intent),
@@ -352,21 +357,8 @@ class DecisionHub:
             return intent in (Intent.FLEE.value, Intent.WARN.value,
                                Intent.OBSERVE.value)
 
-        # R8: BehaviorMask — ограничение доступных интентов, не override
-        # Маска не переписывает выбор, а сужает пространство до контекстуального
-        mask = state.behavior_mask.mask
-        if mask == BehaviorMask.COLLAPSE:
-            # Функциональный паралич — только IDLE доступен
-            return intent == Intent.IDLE.value
-        if mask == BehaviorMask.FAKE_SUBMISSION:
-            # Внешняя покорность — агрессия скрыта, но выбор остаётся контекстуальным
-            if intent in (Intent.ATTACK.value, Intent.INTIMIDATE.value, Intent.WARN.value):
-                return False
-        if mask == BehaviorMask.BETRAYAL:
-            # Скрытое предательство — помощь блокируется, но NPC сам решает чем заменить
-            if intent == Intent.HELP.value:
-                return False
-
+        # R8: BehaviorMask — теперь через модификаторы в _score_all, не блокировка
+        # Маска умножает score (напр. FLEE * 3.0), DecisionHub сам выбирает
         return True
 
     # ─────────────────────────────────────────────────────────────────────────
@@ -403,6 +395,13 @@ class DecisionHub:
 
             components = self._score_components(intent_str, state, personality, event, opportunity, active_traits or {})
             base = sum(components.values())
+            
+            # R8: BehaviorMask модификатор — маска умножает score, не блокирует
+            mask_mod = self._behavior_mask_modifier(intent_str, state)
+            if mask_mod != 1.0:
+                base *= mask_mod
+                components["mask"] = round(mask_mod, 3)
+            
             noise = self._rng.uniform(-SCORE_NOISE_RANGE, SCORE_NOISE_RANGE)
 
             if state.intent and state.intent.value == intent_str:
@@ -421,6 +420,53 @@ class DecisionHub:
             scores[intent_str] = round(max(-2.0, min(3.0, base + noise)), 4)
 
         return scores
+
+    def _behavior_mask_modifier(
+        self,
+        intent: str,
+        state: NPCState,
+    ) -> float:
+        """
+        R8: BehaviorMask как модификатор score, не блокировка.
+        
+        COLLAPSE: функциональный паралич — IDLE усилен, остальные подавлены
+        FAKE_SUBMISSION: агрессия скрыта, покорность усилена
+        BETRAYAL: помощь блокирована, наблюдение усилено
+        
+        Возвращает множитель: 1.0 = без изменений, 0.0 = полностью блокирует.
+        """
+        mask = state.behavior_mask.mask
+        if mask == BehaviorMask.NONE:
+            return 1.0
+        
+        # Интенсификация маски: чем глубже маска, тем сильнее эффект
+        intensity = state.behavior_mask.intensity
+        # Базовый множитель: 0.5 при intensity=0, 0.0 при intensity=1.0
+        suppression = 1.0 - (0.5 + 0.5 * intensity)
+        
+        if mask == BehaviorMask.COLLAPSE:
+            # Функциональный паралич — IDLE доминирует
+            if intent == Intent.IDLE.value:
+                return 1.0 + 2.0 * intensity  # 1.0..3.0 — сильный бонус к IDLE
+            return suppression  # 0.5..0.0 — подавление остальных
+        
+        if mask == BehaviorMask.FAKE_SUBMISSION:
+            # Внешняя покорность — агрессия скрыта
+            if intent in (Intent.ATTACK.value, Intent.INTIMIDATE.value, Intent.WARN.value):
+                return 0.0  # Полная блокировка — не может позволить себе агрессию
+            if intent in (Intent.TALK.value, Intent.OBSERVE.value, Intent.IDLE.value):
+                return 1.0 + 0.5 * intensity  # 1.0..1.5 — усиление покорности
+            return suppression
+        
+        if mask == BehaviorMask.BETRAYAL:
+            # Скрытое предательство — помощь блокирована
+            if intent == Intent.HELP.value:
+                return 0.0  # Не может помочь — нарушит маску
+            if intent in (Intent.OBSERVE.value, Intent.IDLE.value):
+                return 1.0 + 0.5 * intensity  # Наблюдение — сбор информации
+            return suppression
+        
+        return 1.0
 
     def _relationship_modifier(
         self,
@@ -585,8 +631,12 @@ class DecisionHub:
         if event.event_type == "player_interacts":
             if intent in (Intent.TALK.value, Intent.OBSERVE.value):
                 base += 0.5
-            if intent in (Intent.REPORT.value, Intent.ATTACK.value, Intent.FLEE.value, Intent.WARN.value, Intent.INTIMIDATE.value):
+            if intent in (Intent.REPORT.value, Intent.ATTACK.value, Intent.WARN.value, Intent.INTIMIDATE.value):
                 base -= 0.4
+            if intent == Intent.FLEE.value:
+                # Сильное подавление: нейтральный диалог не должен вызывать побег
+                # даже при низком доверии (rel_mod компенсируется контекстом)
+                base -= 0.7
 
         return min(base, 2.0)
 
@@ -878,6 +928,14 @@ class DecisionHub:
                 min_val=-100.0,
                 max_val=100.0,
             )
+            # Угроза повышает страх перед игроком (меньше чем атака, но ощутимо)
+            raw_fear = 4.0 * event.intensity
+            _, deltas.fear_delta = apply_saturation(
+                current=state.relationship_cache.get("fear", 0.0),
+                delta=raw_fear,
+                min_val=-100.0,
+                max_val=100.0,
+            )
 
         # Стресс от косвенных угроз — "жена видел с незнакомцем"
         elif event.event_type == "player_threatens_indirect":
@@ -891,6 +949,14 @@ class DecisionHub:
             _, deltas.trust_delta = apply_saturation(
                 current=state.relationship_cache.get("trust", 0.0),
                 delta=raw_trust,
+                min_val=-100.0,
+                max_val=100.0,
+            )
+            # Косвенная угроза — страх ниже прямой, но присутствует
+            raw_fear = 2.5 * event.intensity
+            _, deltas.fear_delta = apply_saturation(
+                current=state.relationship_cache.get("fear", 0.0),
+                delta=raw_fear,
                 min_val=-100.0,
                 max_val=100.0,
             )

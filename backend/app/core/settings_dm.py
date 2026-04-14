@@ -2,29 +2,17 @@ from pydantic_settings import BaseSettings
 from pathlib import Path
 
 class Settings(BaseSettings):
-    """
-    Базовый класс настроек проекта Enigma.
-    Используется для наследования другими агентами.
-    """
-    project_root: Path = Path(__file__).resolve().parents[3]  # Enigma root
+    """Базовый класс настроек проекта Enigma."""
+    project_root: Path = Path(__file__).resolve().parents[3]
     data_path: Path = project_root / "backend" / "data"
     models_path: Path = project_root / "Models LLM"
 
 
 class DmSettings(Settings):
-    """
-    DM Agent specific settings - primary narrative model.
+    """DM Agent — нарративная генерация (Qwen2.5-7B)."""
 
-    Настройки для агента DM:
-    - модель для нарративной генерации
-    - сервер llama.cpp
-    - параметры GPU и контекста
-    """
+    llama_cpp_model_path: Path = Settings().models_path / "Qwen2.5-7B-Instruct-abliterated-v2.Q5_K_M.gguf"
 
-    # Пути к моделям: используем относительные пути
-    llama_cpp_model_path: Path = Settings().models_path / "gemma-3-12b-it-q4_k_m.gguf"
-
-    # Настройки LLM сервера
     llm_servers: dict = {
         "dm": {
             "host": "127.0.0.1",
@@ -33,14 +21,11 @@ class DmSettings(Settings):
         },
     }
 
-    # Параметры генерации текста
-    gpu_layers: int = 28
-    temperature: float = 0.75
-    ctx_size: int = 4096  # 12B — KV-cache мал, ctx=4096 ок
+    gpu_layers: int = 99
+    temperature: float = 0.9
+    ctx_size: int = 8192
 
 
-# Создаём объект настроек DM
 dm_settings = DmSettings()
 
-# URL сервера LLM для DM (только после создания объекта)
 llama_cpp_server_url: str = f"http://{dm_settings.llm_servers['dm']['host']}:{dm_settings.llm_servers['dm']['port']}"

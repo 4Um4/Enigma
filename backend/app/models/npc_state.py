@@ -1,10 +1,15 @@
-# backend/app/services/npc/npc_state.py
+# backend/app/models/npc_state.py
 """
 Единый источник типов NPC. Жёсткие write-контракты:
   L0 NPCPersonality   — write: NEVER (frozen dataclass)
   L1 NPCIdentityL1    — write: ONLY ResonanceEngine
   L2 NPCState         — write: ONLY StateApplicator
   EventMemory         — write: ONLY MemoryManager
+
+Файл: backend/app/models/npc_state.py
+Назначение: Единый источник типов NPC (L0-L2, Enums, Memory)
+Зависимости: app.models.behavior_mask (BehaviorMaskState)
+Основные сущности: Intent, WillState, EmotionTag, NPCTier, NarrativeFact, EventMemory, NPCPersonality, NPCIdentityL1, NPCState, DecisionView
 
 R2.1 — NPCState: единый источник правды о динамическом состоянии NPC.
 NPCState — центральный узел всей психики.
@@ -25,7 +30,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
-from app.services.npc.behavior_mask import BehaviorMaskState
+from app.models.behavior_mask import BehaviorMaskState
 
 
 # ─────────────────────────────────────────────────────────────────────────────

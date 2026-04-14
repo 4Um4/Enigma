@@ -1,5 +1,5 @@
-# backend/tests/test_verbalization_chain_copy.py
-# cd backend; python -m pytest tests/test_verbalization_chain_copy.py -v
+# backend/tests/test_verbalization_chain_ANY.py
+# cd backend; python -m pytest tests/test_verbalization_chain_ANY.py -v
 """
 Тесты VERBALIZATION LAYER — проверяем что LLM получает правильный промпт.
 НЕ тестируем LLM вывод (нестабильный).

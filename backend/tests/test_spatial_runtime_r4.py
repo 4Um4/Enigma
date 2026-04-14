@@ -1,6 +1,6 @@
 from pathlib import Path
 from app.services.npc.perception_filter import _can_hear, _can_see, extract_scene_awareness
-from app.services.npc.spatial_runtime import line_of_sight, resolve_distance_between_entities, sound_reach, extract_scene_for_npc, PERCEPTION_RADIUS, sound_bleeds_to_adjacent
+from app.services.spatial.spatial_runtime import line_of_sight, resolve_distance_between_entities, sound_reach, extract_scene_for_npc, PERCEPTION_RADIUS, sound_bleeds_to_adjacent
 from app.services.scene_state_manager import _derive_environment_modifiers
 
 def test_stealth_npc_not_visible_from_distance() -> None:

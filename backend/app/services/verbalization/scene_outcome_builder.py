@@ -18,7 +18,7 @@ from enum import Enum
 from typing import Dict, List, Optional
 
 from app.services.npc.decision_hub import DecisionResult, StateDeltas
-from app.services.npc.npc_state import EmotionTag, WillState
+from app.models.npc_state import EmotionTag, WillState
 from app.services.verbalization.verbal_stance import VerbalStance, stance_from_decision
 
 
@@ -392,6 +392,7 @@ class SceneOutcomeBuilder:
         self,
         real_state: dict,
         distortion_bias: Optional["DistortionProfile"] = None,
+        intent: str = "idle",
     ) -> Optional[PsychologicalSignature]:
         """
         ProjectionLayer — субъективная интерпретация объективного состояния.
@@ -445,6 +446,19 @@ class SceneOutcomeBuilder:
         if integrity < 0.5 and 20 < stress < 40 and regime == PsychologicalRegime.NEUTRAL:
             regime = PsychologicalRegime.MANIPULATIVE
 
+        # ── Intent override: если числа ещё не накоплены, intent даёт fallback ──
+        # Применяется только когда режим всё ещё NEUTRAL (числа не перебили)
+        _INTENT_REGIME: dict[str, PsychologicalRegime] = {
+            "flee":    PsychologicalRegime.DEFENSIVE,
+            "attack":  PsychologicalRegime.HOSTILE,
+            "warn":    PsychologicalRegime.DEFENSIVE,
+            "report":  PsychologicalRegime.WITHDRAWN,
+            "resist":  PsychologicalRegime.HOSTILE,
+            "hide":    PsychologicalRegime.DEFENSIVE,
+        }
+        if regime == PsychologicalRegime.NEUTRAL and intent in _INTENT_REGIME:
+            regime = _INTENT_REGIME[intent]
+
         # ── Intensity (насколько выражен режим) ──
         intensity = min(1.0, (stress / 100.0) + abs(effective_threat - 30) / 70.0 + salience_bias)
         intensity = max(0.0, min(1.0, intensity))
@@ -487,7 +501,8 @@ class SceneOutcomeBuilder:
         voice_constraints = self._build_voice_constraints(npc_id, context)
         
         # ProjectionLayer — субъективная интерпретация психики
-        psychological = self._project_psychology(real_state, distortion_bias or {})
+        _intent_str = decision.intent.value if hasattr(decision.intent, 'value') else str(decision.intent)
+        psychological = self._project_psychology(real_state, distortion_bias or {}, intent=_intent_str)
         
         # B.2: Stance — поведенческая форма для DM prompt
         stance = None
@@ -659,11 +674,12 @@ class SceneOutcomeBuilder:
     ) -> List[str]:
         """Извлекает наблюдаемые изменения сцены из narrative_facts."""
         changes = []
+        seen: set[str] = set()
         for d in decisions:
             if d.narrative_fact:
-                # narrative_fact — это строка с описанием факта
                 fact_text = d.narrative_fact if isinstance(d.narrative_fact, str) else str(d.narrative_fact)
-                if fact_text:
+                if fact_text and fact_text not in seen:
+                    seen.add(fact_text)
                     changes.append(fact_text)
         return changes
 

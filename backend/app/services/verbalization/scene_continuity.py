@@ -42,6 +42,7 @@ class SceneContinuity:
         "confusion": 0.0,
     })
     
+    # TODO: миграция в core/constants.py после калибровки
     # Капы
     MAX_RECENT: int = 5
     MAX_FLAGS: int = 20
@@ -59,7 +60,9 @@ class SceneContinuity:
         return flag in self.active_flags
 
     def add_event(self, event: str) -> None:
-        """Добавить событие в recent (cap=5)."""
+        """Добавить событие в recent (cap=5). Дедупликация."""
+        if event in self.recent_events:
+            return
         self.recent_events.append(event)
         if len(self.recent_events) > self.MAX_RECENT:
             self.recent_events = self.recent_events[-self.MAX_RECENT:]

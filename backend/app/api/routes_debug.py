@@ -21,12 +21,14 @@ async def agent_health_dashboard():
     errors = get_error_interpreter().analyze_recent_errors()
     
     # Agent-specific (mock for now, extend from orchestrator/agents)
+    active_model = status.get("active_model", "none")
+    has_model = status.get("has_active_model", False)
     agents_status = {
-        "dm": {"model": status.get("active_model", "none"), "ready": status.get("has_active_model", False)},
-        "rules": {"model": "saiga", "ready": True},  # From agent_model_map
-        "npc": {"model": "npc_major", "ready": True},
-        "world": {"model": "qwen_9b", "ready": True},
-        "memory": {"model": "saiga", "ready": True},
+        "dm": {"model": active_model, "ready": has_model},
+        "rules": {"model": active_model, "ready": has_model},
+        "npc": {"model": active_model, "ready": has_model},
+        "world": {"model": active_model, "ready": has_model},
+        "memory": {"model": active_model, "ready": has_model},
     }
     
     return {
@@ -60,4 +62,15 @@ async def reset_model_errors(model_key: str):
         pool.active_model.reset_errors()
         return {"status": "ok", "model": model_key}
     return {"status": "error", "model": model_key}
+
+
+@router.post("/reset-relationships/{campaign_id}")
+async def reset_campaign_relationships(campaign_id: str):
+    """Миграция: сброс relationships после бага #7 (дублирование дельт)."""
+    from app.core.game_loop import get_game_loop
+    loop = get_game_loop()
+    if not loop or not loop.memory_manager:
+        return {"status": "error", "message": "GameLoop not initialized"}
+    count = loop.memory_manager._relationships.reset_campaign(campaign_id)
+    return {"status": "ok", "campaign_id": campaign_id, "reset_count": count}
 

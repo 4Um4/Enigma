@@ -43,7 +43,7 @@ def test_provider_manager_singleton():
     assert pm1 is pm2
     assert isinstance(pm1, ProviderManager)
 
-@pytest.mark.skip(reason="saiga/qwen_7b отсутствуют локально — тест устарел")
+@pytest.mark.skip(reason="тест устарел — единственная модель qwen_7b")
 def test_get_provider_for_capability_initialized(initialized_provider_manager):
     """Test get_provider_for_capability works after init."""
     pm = initialized_provider_manager
@@ -63,7 +63,6 @@ def test_model_pool_registration(initialized_model_pool):
     pool = initialized_model_pool
     configs = pool.list_model_configs()
     assert "qwen_7b" in configs
-    assert "saiga" in configs
 
 
 @pytest.mark.parametrize("capability,expected_keys", [
@@ -71,13 +70,13 @@ def test_model_pool_registration(initialized_model_pool):
     ("rules_reasoning", ["saiga"]),
     ("dialogue", ["npc_major"]),
 ])
-@pytest.mark.skip(reason="saiga/qwen_7b отсутствуют локально — тест устарел")
+@pytest.mark.skip(reason="тест устарел — единственная модель qwen_7b")
 def test_preference_mapping(capability, expected_keys, initialized_provider_manager):
     """Verify capability preferences route correctly."""
     pm = initialized_provider_manager
     provider = pm.get_provider_for_capability(capability)
     assert provider is not None
-    assert provider.key in expected_keys  # At least one preferred available
+    assert provider.key in expected_keys
 
 @pytest.mark.skip(reason="требует живого провайдера — тест устарел")
 def test_provider_manager_is_ready(monkeypatch, initialized_provider_manager):
