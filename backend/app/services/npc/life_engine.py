@@ -27,6 +27,15 @@ backend/app/services/npc/life_engine.py
 ИНТЕГРАЦИЯ:
   orchestrator._run_python_engines() → LifeEngine.tick() → apply_changes()
   WorldScheduler.maybe_tick() вызывается отдельно (LLM-события — не наша зона)
+
+TICK ARCHITECTURE (Блок 1):
+  - sim_tick: persisted counter (JSON), сколько тиков РЕАЛЬНО обработано
+  - НЕ привязан к wall-clock времени — tick ≠ время
+  - macro_simulate(): state(t+Δ) = f(state(t), Δ) для долгого отсутствия
+  - HOT (RAM): npc_cache, tick_cache — быстрые копии
+  - COLD (JSON): world_tick.json, major_npcs.json — персистентное
+  - LRU: HOT очищается по TTL (1ч) и лимиту (100 кампаний)
+  - Hybrid persistence: JSON пишется раз в N тиков, не каждый
 """
 
 from __future__ import annotations
@@ -34,6 +43,9 @@ from __future__ import annotations
 import json
 import logging
 import random
+import time
+from collections import OrderedDict
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
@@ -49,16 +61,25 @@ logger = logging.getLogger(__name__)
 # Константы и маппинги
 # ──────────────────────────────────────────────────────────────────────────────
 
-# Для Minor NPC: тик симуляции раз в N тиков
-_MINOR_TICK_INTERVAL = 3
-
-# Вероятность случайного события за один тик (5%)
-_RANDOM_EVENT_CHANCE = 0.05
+from app.core.constants import (
+    CAMPAIGN_TTL_SECONDS,
+    MACRO_SIM_THRESHOLD_SECONDS,
+    MAX_CACHED_CAMPAIGNS,
+    MINOR_TICK_INTERVAL,
+    RANDOM_EVENT_CHANCE,
+    STRESS_RECOVERY_SAFE,
+    STRESS_RECOVERY_SLEEPING,
+    TICK_SAVE_INTERVAL,
+)
 
 # Восстановление стресса за тик (см. psyche_engine)
-_STRESS_RECOVERY_SAFE    = 5    # безопасное место, бодрствует
-_STRESS_RECOVERY_SLEEPING = 15  # спит
+# ── Tick Architecture (Блок 1) ──────────────────────────────────────────────
 
+# Hybrid persistence: сохранять tick в JSON раз в N тиков
+
+# LRU защита для HOT кэша
+
+# Порог для макро-симуляции (в секундах реального времени)
 
 # Fallback для неизвестных NPC
 _DEFAULT_ACTIVITY_MAP: dict[str, tuple[str, str, str]] = {
@@ -213,20 +234,271 @@ class LifeEngine:
 
     Использование:
         engine = LifeEngine(data_dir=settings.data_dir)
+        
+        # При входе игрока — решить как симулировать
+        changes = engine.macro_simulate(campaign_id, scene_state)
+        # (внутри решает: обычный tick или макро-аппроксимация)
+        
+        # Или явный одиночный тик
         changes = engine.tick(campaign_id, scene_state)
+        
         scene_manager.apply_changes(campaign_id, changes, scene_state)
-        engine.save_npcs(campaign_id)  # после apply_changes
+        engine.save_npcs(campaign_id)
+
+    Tick Architecture:
+        - sim_tick: persisted counter, сколько тиков РЕАЛЬНО обработано
+        - tick ≠ время: инкрементируется только при реальной обработке
+        - macro_simulate(): для долгого отсутствия — state(t+Δ) = f(state(t), Δ)
+        - hybrid persistence: JSON пишется раз в TICK_SAVE_INTERVAL тиков
     """
 
     def __init__(self, data_dir: Optional[str] = None):
         self.data_dir  = Path(data_dir or settings.data_dir)
         self.npcs_dir  = self.data_dir / "npcs"
-        # Счётчик тиков жизни — хранится в памяти, сбрасывается при рестарте
-        # ключ: campaign_id → int
-        self._tick_counters: dict[str, int] = {}
-        # Кэш NPC в RAM для быстрого доступа между тиками
+        self.sessions_dir = self.data_dir / "sessions"
+        
+        # ── HOT кэш (RAM) ──────────────────────────────────────────────────
+        # Кэш NPC для быстрого доступа между тиками
         # ключ: campaign_id → list[dict]
         self._npc_cache: dict[str, list] = {}
+        
+        # Кэш sim_tick для быстрого доступа (копия JSON)
+        # ключ: campaign_id → int
+        self._tick_cache: dict[str, int] = {}
+                
+        # LRU tracking для HOT кэша
+        # ключ: campaign_id → timestamp последнего доступа
+        self._last_access: OrderedDict[str, float] = OrderedDict()
+        
+        # Счётчик для batched persistence
+        # ключ: campaign_id → int (сколько тиков с последнего save)
+        self._ticks_since_save: dict[str, int] = {}
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # Tick Architecture (Блок 1)
+    # ─────────────────────────────────────────────────────────────────────────
+
+    def _tick_file_path(self, campaign_id: str) -> Path:
+        """Путь к файлу persistent tick."""
+        return self.sessions_dir / campaign_id / "world_tick.json"
+
+    def _load_tick(self, campaign_id: str) -> int:
+        """
+        Загружает sim_tick из JSON (COLD storage).
+        Возвращает 0 если файл не существует или повреждён.
+        """
+        path = self._tick_file_path(campaign_id)
+        if not path.exists():
+            return 0
+        try:
+            data = json.loads(path.read_text(encoding="utf-8-sig"))
+            return data.get("sim_tick", 0)
+        except (json.JSONDecodeError, OSError) as e:
+            logger.warning(f"[LIFE_ENGINE] Ошибка чтения tick: {e}")
+            return 0
+
+    def _save_tick(self, campaign_id: str, tick: int) -> None:
+        """
+        Сохраняет sim_tick в JSON (COLD storage).
+        Вызывается автоматически (batched) или вручную (flush_ticks).
+        """
+        path = self._tick_file_path(campaign_id)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        
+        # Читаем существующий файл чтобы сохранить created_at
+        _existing = {}
+        if path.exists():
+            try:
+                _existing = json.loads(path.read_text(encoding="utf-8-sig"))
+            except (json.JSONDecodeError, OSError):
+                pass
+
+        data = {
+            "sim_tick": tick,
+            "updated_at": datetime.now().isoformat(),
+            # created_at пишется один раз при создании — не перезаписывается
+            "created_at": _existing.get("created_at") or datetime.now().isoformat(),
+        }
+        try:
+            path.write_text(
+                json.dumps(data, ensure_ascii=False, indent=2),
+                encoding="utf-8"
+            )
+        except OSError as e:
+            logger.error(f"[LIFE_ENGINE] Ошибка сохранения tick: {e}")
+
+
+    def get_idle_seconds(self, campaign_id: str) -> float:
+        """
+        Сколько секунд прошло с последнего тика.
+        Возвращает inf если тик никогда не был.
+        """
+        path = self._tick_file_path(campaign_id)
+        if not path.exists():
+            return float('inf')
+        try:
+            data = json.loads(path.read_text(encoding="utf-8-sig"))
+            last_ts = data.get("updated_at")
+            if not last_ts:
+                return float('inf')
+            last_dt = datetime.fromisoformat(last_ts)
+            return (datetime.now() - last_dt).total_seconds()
+        except (json.JSONDecodeError, OSError, ValueError):
+            return float('inf')
+
+    def get_world_ticks_elapsed(self, campaign_id: str) -> int:
+        """
+        Вычисляет сколько тиков ДОЛЖНО было пройти с момента создания кампании.
+        Основан на реальном времени (world_time), не на sim_tick.
+        Персистентен — не зависит от рестартов сервера.
+        """
+        from app.core.constants import TICK_REAL_SECONDS
+        path = self._tick_file_path(campaign_id)
+        if not path.exists():
+            return 0
+        try:
+            data = json.loads(path.read_text(encoding="utf-8-sig"))
+            created_at = data.get("created_at")
+            if not created_at:
+                return self.get_current_tick(campaign_id)
+            elapsed = (datetime.now() - datetime.fromisoformat(created_at)).total_seconds()
+            return int(elapsed // TICK_REAL_SECONDS)
+        except (json.JSONDecodeError, OSError, ValueError):
+            return self.get_current_tick(campaign_id)
+
+    def macro_simulate(
+        self,
+        campaign_id: str,
+        scene_state: Optional[dict] = None,
+    ) -> list[SceneChange]:
+        """
+        Аппроксимация долгого отсутствия игрока.
+        
+        Вместо: for _ in range(500): tick()
+        Делает: state(t+Δ) = f(state(t), Δ)
+        
+        Что аппроксимирует:
+        - Расписание: прыгает к текущему слоту
+        - Стресс: нормализуется к baseline
+        - События: агрегированная вероятность
+        """
+        idle_seconds = self.get_idle_seconds(campaign_id)
+        
+        if idle_seconds < MACRO_SIM_THRESHOLD_SECONDS:
+            # Короткое отсутствие — обычный тик (или несколько)
+            return self.tick(campaign_id, scene_state)
+        
+        logger.info(
+            f"[LIFE_ENGINE] macro_simulate для '{campaign_id}': "
+            f"idle={idle_seconds:.0f}s"
+        )
+        
+        npcs = self._load_npcs(campaign_id)
+        all_changes: list[SceneChange] = []
+        current_time = _parse_game_time(scene_state)
+        
+        for npc in npcs:
+            tier = npc.get("tier", "major")
+            npc_id = npc.get("id", "?")
+            
+            if tier == "mass":
+                continue
+                
+            try:
+                # 1. Расписание — прыгаем к текущему слоту
+                routine_changes = self.update_routine(npc, current_time)
+                all_changes.extend(routine_changes)
+                
+                # 2. Стресс — нормализация к baseline
+                psyche = npc.setdefault("psyche", {})
+                current_stress = psyche.get("stress", 0)
+                if current_stress > 20:
+                    # Долгое отсутствие → стресс снижается к baseline
+                    # Формула: stress = baseline + (current - baseline) * decay
+                    baseline = 10  # нормальный фоновый стресс
+                    decay = 0.3    # за долгое отсутствие сбросить на 70%
+                    psyche["stress"] = round(baseline + (current_stress - baseline) * decay)
+                
+                # 3. Агрегированные события — вероятность * время
+                # 5% за тик, но мы не считаем тики — используем эвристику
+                if tier == "major" and random.random() < 0.4:  # 40% шанс за долгий idle
+                    event_changes = self.check_random_events(npc, self.get_current_tick(campaign_id))
+                    all_changes.extend(event_changes)
+                    
+            except Exception as e:
+                logger.error(f"[LIFE_ENGINE] macro_simulate error for '{npc_id}': {e}")
+        
+        # Обновляем кэш и tick
+        self._npc_cache[campaign_id] = npcs
+        self._increment_tick(campaign_id)  # Один тик за всю макро-симуляцию
+        
+        logger.info(
+            f"[LIFE_ENGINE] macro_simulate завершена: "
+            f"{len(all_changes)} changes"
+        )
+        return all_changes
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # LRU защита для HOT кэша
+    # ─────────────────────────────────────────────────────────────────────────
+
+    def _touch(self, campaign_id: str) -> None:
+        """Обновляет время последнего доступа (LRU)."""
+        self._last_access[campaign_id] = time.time()
+        self._last_access.move_to_end(campaign_id)
+
+    def _evict_stale(self) -> list[str]:
+        """
+        Вызывает очистку неактивных кампаний.
+        Удаляет: (1) просроченные по TTL, (2) лишние по LRU.
+        Возвращает список evicted campaign_id.
+        """
+        now = time.time()
+        evicted = []
+        
+        # Слой 1: TTL eviction
+        stale = [
+            cid for cid, ts in self._last_access.items()
+            if now - ts > CAMPAIGN_TTL_SECONDS
+        ]
+        for cid in stale:
+            self.cleanup_campaign(cid)
+            evicted.append(f"{cid}(TTL)")
+        
+        # Слой 2: LRU eviction (если всё ещё слишком много)
+        while len(self._last_access) > MAX_CACHED_CAMPAIGNS:
+            oldest_cid, _ = self._last_access.popitem(last=False)
+            self.cleanup_campaign(oldest_cid)
+            evicted.append(f"{oldest_cid}(LRU)")
+        
+        if evicted:
+            logger.debug(f"[LIFE_ENGINE] evicted: {evicted}")
+        return evicted
+
+    def cleanup_campaign(self, campaign_id: str) -> None:
+        """
+        Очистка HOT кэша + flush tick перед удалением.
+        COLD storage (JSON) сохраняется, но не удаляется.
+        """
+        self.flush_ticks(campaign_id)
+        self._npc_cache.pop(campaign_id, None)
+        self._tick_cache.pop(campaign_id, None)
+        self._last_access.pop(campaign_id, None)
+        self._ticks_since_save.pop(campaign_id, None)
+
+    def cleanup_all_campaigns(self) -> int:
+        """
+        Очистка всего HOT + flush всех ticks.
+        COLD storage (JSON) сохраняется, но не удаляется.
+        """
+        self.flush_ticks()  # Сначала сохраняем
+        count = len(self._npc_cache)
+        self._npc_cache.clear()
+        self._tick_cache.clear()
+        self._last_access.clear()
+        self._ticks_since_save.clear()
+        logger.info(f"[LIFE_ENGINE] cleared all HOT cache: {count} campaigns")
+        return count
 
     # ─────────────────────────────────────────────────────────────────────────
     # Публичный API
@@ -245,11 +517,16 @@ class LifeEngine:
           - восстанавливает стресс
           - с 5% шансом генерирует случайное событие
 
-        Minor NPC обрабатываются раз в _MINOR_TICK_INTERVAL тиков.
+        Minor NPC обрабатываются раз в MINOR_TICK_INTERVAL тиков.
         Mass NPC — только флаги присутствия (без SceneChange, 0ms).
 
         Возвращает list[SceneChange] для применения через apply_changes().
         """
+        # LRU: автоочистка перед доступом
+        self._evict_stale()
+        self._touch(campaign_id)
+        
+        # Tick: инкремент с персистенцией
         current_tick = self._increment_tick(campaign_id)
         current_time = _parse_game_time(scene_state)
 
@@ -276,7 +553,7 @@ class LifeEngine:
                 # ── MINOR: расписание + случайные события раз в N тиков ─────
                 elif tier == "minor":
                     last_minor = npc.get("routine", {}).get("_last_life_tick", 0)
-                    if (current_tick - last_minor) >= _MINOR_TICK_INTERVAL:
+                    if (current_tick - last_minor) >= MINOR_TICK_INTERVAL:
                         changes = self._simulate_minor(npc, current_time, current_tick)
                         all_changes.extend(changes)
                         npc.setdefault("routine", {})["_last_life_tick"] = current_tick
@@ -284,9 +561,6 @@ class LifeEngine:
 
                 # ── MASS: только проверяем присутствие (0ms) ─────────────────
                 elif tier == "mass":
-                    # Mass NPC не генерируют SceneChange — их статус управляется
-                    # NPCAutoGenerator (фаза 3B.4), который создаёт их при контакте.
-                    # Здесь только логируем если нужно.
                     pass
 
             except Exception as e:
@@ -352,6 +626,114 @@ class LifeEngine:
         return f"{name} {phrase}"
 
     # ─────────────────────────────────────────────────────────────────────────
+    # Tick management (persistent)
+    # ─────────────────────────────────────────────────────────────────────────
+
+    def _increment_tick(self, campaign_id: str) -> int:
+        """
+        Инкрементирует sim_tick с hybrid persistence.
+        
+        Порядок:
+          1. Прочитать текущий (из RAM кэша или JSON)
+          2. +1
+          3. Записать в RAM кэш (всегда)
+          4. Записать в JSON (раз в TICK_SAVE_INTERVAL тиков)
+        
+        Возвращает новый tick.
+        """
+        current = self._tick_cache.get(campaign_id)
+        if current is None:
+            # Прочитать из JSON
+            current = self._load_tick(campaign_id)
+        
+        new_tick = current + 1
+        
+        # Обновить HOT (RAM) — всегда
+        self._tick_cache[campaign_id] = new_tick
+        
+        # Hybrid persistence: COLD (JSON) раз в N тиков
+        unsaved = self._ticks_since_save.get(campaign_id, 0) + 1
+        if unsaved >= TICK_SAVE_INTERVAL:
+            self._save_tick(campaign_id, new_tick)
+            self._ticks_since_save[campaign_id] = 0
+        else:
+            self._ticks_since_save[campaign_id] = unsaved
+        
+        return new_tick
+
+    def flush_ticks(self, campaign_id: Optional[str] = None) -> None:
+        """
+        Принудительная запись tick(s) в JSON.
+        Вызывать при: shutdown, critical event, manual save.
+        """
+        if campaign_id:
+            tick = self._tick_cache.get(campaign_id)
+            if tick is not None:
+                self._save_tick(campaign_id, tick)
+                self._ticks_since_save[campaign_id] = 0
+        else:
+            # Flush all
+            for cid, tick in self._tick_cache.items():
+                self._save_tick(cid, tick)
+            self._ticks_since_save.clear()
+
+    def get_current_tick(self, campaign_id: str) -> int:
+        """
+        Возвращает текущий sim_tick (без инкремента).
+        Читает из RAM кэша, fallback — из JSON.
+        """
+        cached = self._tick_cache.get(campaign_id)
+        if cached is not None:
+            return cached
+        return self._load_tick(campaign_id)
+
+    def invalidate_cache(self, campaign_id: str) -> None:
+        """
+        Сбрасывает HOT кэш NPC для campaign_id.
+        Вызвать если major_npcs.json был изменён извне (например, SandboxHandler).
+        """
+        self._npc_cache.pop(campaign_id, None)
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # Внутренние методы загрузки NPC
+    # ─────────────────────────────────────────────────────────────────────────
+
+    def _npcs_file(self) -> Path:
+        """Путь к файлу NPC (для совместимости с legacy кодом)."""
+        return self.npcs_dir / "major_npcs.json"
+
+    def _load_npcs(self, campaign_id: str) -> list:
+        """
+        Загружает NPC из кэша или файла.
+        Для campaign-specific файлов путь: sessions/{campaign_id}/major_npcs.json
+        """
+        # HOT cache hit
+        if campaign_id in self._npc_cache:
+            return self._npc_cache[campaign_id]
+        
+        # COLD storage: campaign-specific файл
+        campaign_file = self.sessions_dir / campaign_id / "major_npcs.json"
+        if campaign_file.exists():
+            try:
+                npcs = json.loads(campaign_file.read_text(encoding="utf-8"))
+                self._npc_cache[campaign_id] = npcs
+                return npcs
+            except (json.JSONDecodeError, OSError) as e:
+                logger.warning(f"[LIFE_ENGINE] Ошибка чтения campaign NPC: {e}")
+        
+        # Fallback: глобальный файл
+        global_file = self._npcs_file()
+        if global_file.exists():
+            try:
+                npcs = json.loads(global_file.read_text(encoding="utf-8"))
+                self._npc_cache[campaign_id] = npcs
+                return npcs
+            except (json.JSONDecodeError, OSError) as e:
+                logger.warning(f"[LIFE_ENGINE] Ошибка чтения global NPC: {e}")
+        
+        return []
+
+    # ─────────────────────────────────────────────────────────────────────────
     # Симуляция по тирам
     # ─────────────────────────────────────────────────────────────────────────
 
@@ -387,7 +769,7 @@ class LifeEngine:
         tick: int,
     ) -> list[SceneChange]:
         """
-        Симуляция Minor NPC раз в _MINOR_TICK_INTERVAL тиков.
+        Симуляция Minor NPC раз в MINOR_TICK_INTERVAL тиков.
         Только расписание + случайные события (без полного стресс-расчёта).
         """
         changes: list[SceneChange] = []
@@ -426,21 +808,17 @@ class LifeEngine:
         schedule = npc.get("routine", {}).get("schedule", {})
 
         if not schedule:
-            # NPC без расписания — не трогаем
             return []
 
-        # Определяем текущую активность по времени
         new_activity = self._get_current_activity(schedule, current_time)
         if not new_activity:
             return []
 
         prev_activity = npc.get("routine", {}).get("current", "")
 
-        # Если активность не изменилась — ничего не генерируем
         if new_activity == prev_activity:
             return []
 
-        # Определяем новую позицию и локацию
         new_location, new_position, activity_display = self._resolve_position(
             npc, new_activity
         )
@@ -450,7 +828,6 @@ class LifeEngine:
 
         # ── Генерируем SceneChange ────────────────────────────────────────────
 
-        # Активность (всегда)
         changes.append(SceneChange(
             type=ChangeType.NPC_POSITION,
             target=npc_id,
@@ -460,7 +837,6 @@ class LifeEngine:
             tick=tick,
         ))
 
-        # Позиция (всегда)
         changes.append(SceneChange(
             type=ChangeType.NPC_POSITION,
             target=npc_id,
@@ -470,7 +846,6 @@ class LifeEngine:
             tick=tick,
         ))
 
-        # Видимость: если ушёл спать → скрыт из основной сцены
         going_to_sleep = "sleeping" in new_activity or "resting" in new_activity
         changes.append(SceneChange(
             type=ChangeType.NPC_POSITION,
@@ -481,7 +856,6 @@ class LifeEngine:
             tick=tick,
         ))
 
-        # Если NPC сменил локацию → фиксируем
         if new_location != prev_location:
             changes.append(SceneChange(
                 type=ChangeType.NPC_POSITION,
@@ -533,23 +907,19 @@ class LifeEngine:
         Читает activity_map из профиля NPC (data-driven).
         Fallback: _DEFAULT_ACTIVITY_MAP для неизвестных активностей.
         """
-        # Сначала читаем activity_map из JSON профиля NPC
         npc_map: dict = npc.get("activity_map", {})
 
         if activity in npc_map:
             entry = npc_map[activity]
             return (entry["location"], entry["position"], entry["display"])
 
-        # Частичное совпадение: "working_bar" → "working"
         for key, entry in npc_map.items():
             if activity.startswith(key) or key.startswith(activity):
                 return (entry["location"], entry["position"], entry["display"])
 
-        # Fallback на общую таблицу
         if activity in _DEFAULT_ACTIVITY_MAP:
             return _DEFAULT_ACTIVITY_MAP[activity]
 
-        # Последний fallback
         return ("tavern_silver_wolf", "common_area", activity)
 
     @staticmethod
@@ -577,138 +947,50 @@ class LifeEngine:
         tick: int = 0,
     ) -> list[SceneChange]:
         """
-        С вероятностью _RANDOM_EVENT_CHANCE (5%) генерирует случайное событие.
+        С вероятностью RANDOM_EVENT_CHANCE (5%) генерирует случайное событие.
         Возвращает список SceneChange или пустой список.
-
-        Случайные события:
-          - wanders_to_bar: NPC подходит к стойке
-          - notices_something: NPC стал бдительным
-          - minor_argument: NPC поспорил → +10 стресса
-          - brief_exit: NPC вышел → visible=False
 
         Спящие NPC не получают случайных событий.
         """
         npc_id   = npc.get("id", "unknown")
         activity = npc.get("routine", {}).get("current", "")
 
-        # Спящих NPC не тревожим
         if "sleeping" in activity:
             return []
 
-        # Бросаем кубик
-        if random.random() > _RANDOM_EVENT_CHANCE:
+        if random.random() > RANDOM_EVENT_CHANCE:
             return []
 
-        # Выбираем случайное событие из таблицы
         events = _make_random_events(npc, tick)
         event_id, changes = random.choice(events)
 
-        # Применяем стресс если событие — ссора (только к данным NPC, без SceneChange)
         if event_id == "minor_argument":
             psyche = npc.setdefault("psyche", {})
             psyche["stress"] = min(100, psyche.get("stress", 0) + 10)
-            # SceneChange для стресса не генерируем — это внутренние данные NPC
-            changes = []  # убираем stress_delta SceneChange (он не поддерживается)
 
-        logger.info(
-            f"[LIFE_ENGINE] Случайное событие: {npc_id} → {event_id} (тик {tick})"
-        )
+        logger.info(f"[LIFE_ENGINE] {npc_id}: случайное событие '{event_id}'")
         return changes
 
     # ─────────────────────────────────────────────────────────────────────────
-    # recover_stress_tick — восстановление стресса
+    # Stress recovery (без SceneChange — только данные NPC)
     # ─────────────────────────────────────────────────────────────────────────
 
     def recover_stress_tick(self, npc: dict) -> None:
         """
-        Снижает стресс NPC за один тик.
-
-        Правила:
-          - Спит → -_STRESS_RECOVERY_SLEEPING (15) за тик
-          - Бодрствует в безопасности → -_STRESS_RECOVERY_SAFE (5) за тик
-          - Если stress уже 0 — ничего не делаем
-
-        Модифицирует npc dict в памяти (без SceneChange — это внутренние данные).
-        Caller (save_npcs) сохранит изменения на диск.
+        Восстанавливает стресс NPC за один тик.
+        Спящие восстанавливаются быстрее.
         """
-        psyche = npc.setdefault("psyche", {
-            "willpower": 50, "stress": 0, "breakpoint": 80,
-            "loyalty_true": 50, "loyalty_fake": 50,
-            "state": "free", "trauma_flags": [],
-        })
+        activity = npc.get("routine", {}).get("current", "")
+        is_sleeping = "sleeping" in activity
 
+        psyche = npc.setdefault("psyche", {})
         current_stress = psyche.get("stress", 0)
+
         if current_stress <= 0:
             return
 
-        activity = npc.get("routine", {}).get("current", "")
-        recovery = (
-            _STRESS_RECOVERY_SLEEPING
-            if "sleeping" in activity
-            else _STRESS_RECOVERY_SAFE
-        )
-
+        recovery = STRESS_RECOVERY_SLEEPING if is_sleeping else STRESS_RECOVERY_SAFE
         psyche["stress"] = max(0, current_stress - recovery)
-
-        logger.debug(
-            f"[LIFE_ENGINE] {npc.get('id', '?')}: стресс "
-            f"{current_stress} → {psyche['stress']} (восстановление: -{recovery})"
-        )
-
-    # ─────────────────────────────────────────────────────────────────────────
-    # Загрузка / счётчик тиков
-    # ─────────────────────────────────────────────────────────────────────────
-
-    def _load_npcs(self, campaign_id: str) -> list:
-        """
-        Загружает NPC из major_npcs.json.
-        Использует кэш в RAM если уже загружено (экономия IO).
-        """
-        if campaign_id in self._npc_cache:
-            return self._npc_cache[campaign_id]
-
-        path = self._npcs_file()
-        if not path.exists():
-            logger.warning(f"[LIFE_ENGINE] {path} не найден — NPC пусто")
-            self._npc_cache[campaign_id] = []
-            return []
-
-        try:
-            data = json.loads(path.read_text(encoding="utf-8"))
-            self._npc_cache[campaign_id] = data if isinstance(data, list) else []
-            logger.debug(
-                f"[LIFE_ENGINE] Загружено {len(self._npc_cache[campaign_id])} NPC"
-            )
-        except (json.JSONDecodeError, OSError) as e:
-            logger.error(f"[LIFE_ENGINE] Ошибка загрузки NPC: {e}")
-            self._npc_cache[campaign_id] = []
-
-        return self._npc_cache[campaign_id]
-
-    def _npcs_file(self) -> Path:
-        """Путь к major_npcs.json."""
-        return self.npcs_dir / "major_npcs.json"
-
-    def _increment_tick(self, campaign_id: str) -> int:
-        """
-        Увеличивает внутренний счётчик тиков для campaign_id.
-        Сбрасывается при рестарте сервера (хранится в RAM).
-        """
-        self._tick_counters[campaign_id] = (
-            self._tick_counters.get(campaign_id, 0) + 1
-        )
-        return self._tick_counters[campaign_id]
-
-    def get_current_tick(self, campaign_id: str) -> int:
-        """Возвращает текущий тик для campaign_id (без инкремента)."""
-        return self._tick_counters.get(campaign_id, 0)
-
-    def invalidate_cache(self, campaign_id: str) -> None:
-        """
-        Сбрасывает кэш NPC для campaign_id.
-        Вызвать если major_npcs.json был изменён извне (например, SandboxHandler).
-        """
-        self._npc_cache.pop(campaign_id, None)
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -727,3 +1009,21 @@ def get_life_engine() -> LifeEngine:
     if _life_engine_instance is None:
         _life_engine_instance = LifeEngine()
     return _life_engine_instance
+
+
+def shutdown_life_engine() -> None:
+    """
+    Graceful shutdown: flush all ticks, clear HOT cache.
+    Вызывать в app shutdown hook.
+    """
+    global _life_engine_instance
+    if _life_engine_instance is not None:
+        _life_engine_instance.cleanup_all_campaigns()
+    _life_engine_instance = None
+
+
+def reset_life_engine() -> None:
+    """
+    Сбрасывает синглтон. Для тестов.
+    """
+    shutdown_life_engine()

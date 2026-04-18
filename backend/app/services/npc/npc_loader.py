@@ -163,7 +163,12 @@ _RUNTIME_PSYCHE_KEYS = frozenset({
     "stress", "state", "trauma_flags",
     "identity_integrity", "pressure_resistance", "resentment", "dependency"
 })
-_RUNTIME_TOP_LEVEL_KEYS = frozenset({"social_stats", "location", "hp"})
+_RUNTIME_TOP_LEVEL_KEYS = frozenset({
+    "social_stats", "location", "hp", "max_hp",
+    "current_role", "role_history",
+    "conditions", "wounds", "threat_accumulator", "posture",
+    "temporary_drives", "causal_ledger",
+})
 _RUNTIME_FLAGS_KEYS = frozenset({
     "has_gold", "knows_secret", "is_enslaved", "planning_revenge", "is_dead"
 })
@@ -172,7 +177,7 @@ _RUNTIME_ROUTINE_KEYS = frozenset({"next_task"})
 
 def _apply_runtime_overlay(static_npc: Dict[str, Any], runtime_npc: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Накладывает runtime-поля из runtime_npc на static_npc.
+    Накладывает runtime-поля из runtime_npc на static_npc
     Static поля НЕ перезаписываются — сохраняют значения из config/.
     """
     result = static_npc.copy()
@@ -334,6 +339,29 @@ def load_profile_from_legacy_json(raw_data: Dict[str, Any]) -> NPCProfileL0:
         raise ValueError(f"Invalid NPC profile format for id={raw_data.get('id', 'UNKNOWN')}: {e}")
 
 
+def _restore_narrative_cache(cache_list: List[Dict]) -> tuple:
+    """Восстанавливает narrative_cache из JSON в кортеж NarrativeFact/EventMemory."""
+    if not cache_list:
+        return ()
+    from app.models.npc_state import NarrativeFact, EventMemory
+    _result = []
+    for _d in cache_list:
+        _type_name = _d.pop("_memory_type", None)
+        if _type_name == "EventMemory":
+            _mem = EventMemory(**_d)
+            # Decay при загрузке — NPC загружается раз в тик
+            _mem = _mem.decayed(ticks=1)
+            if not _mem.is_forgotten:
+                _result.append(_mem)
+        else:
+            # NarrativeFact — без decay (устаревший формат)
+            try:
+                _result.append(NarrativeFact(**_d))
+            except TypeError:
+                continue  # пропуск невалидных записей
+    return tuple(_result)
+
+
 def load_l2_state_from_runtime_dict(raw_data: Dict[str, Any]) -> NPCStateL2:
     """
     Извлекает ДИНАМИЧЕСКОЕ состояние из runtime-словаря (SceneState / JSON).
@@ -354,6 +382,8 @@ def load_l2_state_from_runtime_dict(raw_data: Dict[str, Any]) -> NPCStateL2:
 
     return NPCStateL2(
         npc_id=raw_data.get("id", "unknown"),
+        hp=int(raw_data.get("hp", 0)),
+        max_hp=int(raw_data.get("max_hp", 0)),
         stress=float(psyche.get("stress", 0.0)),
         will_state=will_enum,
         
@@ -368,7 +398,9 @@ def load_l2_state_from_runtime_dict(raw_data: Dict[str, Any]) -> NPCStateL2:
             "trust": float(ss.get("trust", 0.0)),
             "fear": float(ss.get("fear_of_player", 0.0)),
             "debt": float(ss.get("debt", 0.0)),
-        }
+        },
+        # Восстановление narrative_cache из JSON
+        narrative_cache=_restore_narrative_cache(raw_data.get("narrative_cache", [])),
     )
 
 

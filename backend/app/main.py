@@ -1,7 +1,6 @@
 # backend/app/main.py
 # ИСПРАВЛЕНИЯ vs оригинал:
-# 1. StaticFiles с check_dir=False → не крашит если frontend/ui пустой
-# 2. Все опасные операции в startup обёрнуты в try/except
+# 1. Все опасные операции в startup обёрнуты в try/except
 # 3. LLM health check не блокирует старт (результат — только warning)
 # 4. VRAM baseline устанавливается здесь (не в GameOrchestrator.__init__)
 # 5. Migrated from @app.on_event to lifespan (FastAPI best practice)
@@ -19,13 +18,12 @@ from app.api.routes import router
 from app.api import routes_debug
 from app.api.routes_stream import router as stream_router
 from app.core.config import settings
-from app.core.runtime_config import get_api_url, get_frontend_url
+from app.core.runtime_config import get_api_url
 
 from app.services.llm import initialize_router
 from app.services.error_interpreter import get_error_interpreter
 from app.services.vram_monitor import get_vram_monitor
 from app.services.llm.provider_manager import get_model_pool
-from app.services.llm.factory import ProviderFactory
 from app.services.logging_tools import jsonl_log
 from app.services.llm.llama_cpp_provider import LlamaCppProvider
 from app.services.game_loop_builder import build_game_loop
@@ -33,7 +31,6 @@ from app.services.game_loop_builder import build_game_loop
 logger = logging.getLogger(__name__)
 
 BASE_DIR     = Path(__file__).resolve().parents[2]   # Enigma root
-FRONTEND_DIR = BASE_DIR / "frontend" / "ui"
 DATA_DIR     = BASE_DIR / "backend" / "data"
 
 
@@ -49,6 +46,16 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"[STARTUP] LLM Router failed: {e}")
         print(f"✗ LLM Router error: {e}")
+
+    # 1.5 ModelPool — регистрирует модели из settings.available_models
+    try:
+        from app.services.llm.provider_manager import initialize_model_pool
+        results = initialize_model_pool()
+        loaded = sum(1 for v in results.values() if v)
+        print(f"✓ ModelPool initialized ({loaded}/{len(results)} models)")
+    except Exception as e:
+        logger.error(f"[STARTUP] ModelPool failed: {e}")
+        print(f"✗ ModelPool error: {e}")
 
     # 2. ErrorInterpreter + VRAMMonitor
     try:
@@ -95,16 +102,17 @@ async def lifespan(app: FastAPI):
     print("\n=== Проверка LLM сервера ===")
     try:
         provider = LlamaCppProvider()
-        is_available, message = await asyncio.wait_for(
+        is_available = await asyncio.wait_for(
             asyncio.to_thread(
-                provider.check_server_with_retry,
+                provider.is_available_with_retry,
                 max_retries=settings.llm_health_check_retries,
                 interval_sec=settings.llm_health_check_interval_sec,
             ),
             timeout=30,  # максимум 30 сек на проверку
         )
+        mode = "сервер" if provider.use_server else "CLI"
         icon = "✅" if is_available else "⚠️"
-        print(f"  {icon} {message}")
+        print(f"  {icon} LLM ({mode}): {'доступен' if is_available else 'недоступен'}")
         if not is_available:
             print("  Игра запущена в offline-режиме. LLM ответы будут недоступны.")
     except asyncio.TimeoutError:
@@ -114,8 +122,8 @@ async def lifespan(app: FastAPI):
 
     print("\n=== Application startup complete ===\n")
     _api      = get_api_url()
-    _frontend = get_frontend_url()
-    print(f"  Frontend:  {_frontend}")
+    _ui_mode = "pygame (встроенный)"
+    print(f"  UI:        {_ui_mode}")
     print(f"  Backend:   {_api}")
     print(f"  API Docs:  {_api}/docs")
     print(f"  VRAM:      {_api}/api/debug/vram\n")
@@ -146,26 +154,16 @@ app.include_router(router, prefix="/api")
 app.include_router(routes_debug.router, prefix="/api")
 app.include_router(stream_router, prefix="/api")
 
-# StaticFiles: монтируем только если директория существует
-# (иначе uvicorn падает на старте с RuntimeError)
-if FRONTEND_DIR.exists():
-    app.mount("/ui", StaticFiles(directory=FRONTEND_DIR, html=True), name="ui")
-else:
-    logger.warning(f"[STARTUP] frontend/ui не найден: {FRONTEND_DIR}")
-
 if DATA_DIR.exists():
     app.mount("/backend/data", StaticFiles(directory=DATA_DIR), name="data")
 
 
 @app.get("/")
 def root():
-    """Serve main UI или заглушку если frontend не готов."""
-    index = FRONTEND_DIR / "index.html"
-    if index.exists():
-        return FileResponse(index)
+    """Статус backend — UI теперь в pygame."""
     return JSONResponse({
         "status": "running",
-        "message": "Enigma Backend работает. Frontend не найден.",
+        "mode": "pygame",
         "docs": "/docs",
         "health": "/api/health",
     })

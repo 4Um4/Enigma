@@ -20,6 +20,8 @@ from __future__ import annotations
 import asyncio
 from enum import Enum
 
+from app.services.logging_tools import jsonl_log
+
 import time
 from dataclasses import dataclass, field
 
@@ -86,11 +88,14 @@ MODEL_REGISTRY: dict[str, ModelConfig] = {}
 
 def _init_registry() -> dict[str, ModelConfig]:
     """Единственная модель проекта."""
+    # Читаем provider_type из settings — позволяет переключить на mock без правки кода
+    _qwen_cfg = settings.available_models.get("qwen_7b")
+    _qwen_pt = ProviderType(getattr(_qwen_cfg, "provider_type", "llama_cpp")) if _qwen_cfg else ProviderType.LLAMA_CPP
     return {
         "qwen_7b": ModelConfig(
             key="qwen_7b",
             name="qwen_7b",
-            provider_type=ProviderType.LLAMA_CPP,
+            provider_type=_qwen_pt,
             path=settings.model_qwen_7b_path,
             capabilities=[
                 Capability.NARRATIVE,
@@ -230,6 +235,17 @@ class ModelRouter:
         """
         capability_obj = self._normalize_capability(capability)
         preferred_keys = self.get_capability_preferences(capability_obj)
+
+        # === ЛОГИРОВАНИЕ ПРОМПТА ДЛЯ ОТЛАДКИ ===
+        _prompt_preview = (prompt[:500] + '...') if len(prompt) > 500 else prompt
+        _sys_preview = (system_prompt[:200] + '...') if system_prompt and len(system_prompt) > 200 else system_prompt
+        jsonl_log({
+            "level": "INFO",
+            "agent": "llm_input",
+            "capability": str(capability_obj),
+            "prompt_preview": _prompt_preview,
+            "system_prompt": _sys_preview or "",
+        })
 
         # === ЗАЩИТА VRAM ===
         # Ленивое создание Semaphore в текущем event loop

@@ -2,47 +2,37 @@
 CognitiveDistortionEngine — детерминированные когнитивные искажения NPC.
 
 path: backend/app/services/npc/cognitive_distortion.py
-Назначение: Детерминированные когнитивные искажения NPC — меняют восприятие перед DecisionHub, не трогая формулу
-Зависимости: npc_state.py (NPCState), dataclasses.replace
+Назначение: Возвращает модификаторы score для DecisionHub + bias для ProjectionLayer
+Зависимости: npc_state.py (NPCState), psychological.py (DistortionProfile)
 Основные сущности: CognitiveDistortionEngine
 
 Стоит ПОСЛЕ MemoryManager, ПЕРЕД DecisionHub.
-Меняет ВХОДЫ DecisionHub (восприятие), не формулу.
 
-Принцип: NPC не видит мир напрямую — видит через призму своего состояния.
-Параноик усиливает угрозы. Обиженный видит враждебность там, где её нет.
+ПРИНЦИП (ШАГ C.1):
+Distortion НЕ искажает числовые данные NPC.
+Вместо этого возвращает score_modifiers для DecisionHub:
+- threat_bias > 0 → FLEE +0.3, OBSERVE +0.15
+- trust_bias < 0 → TALK -0.25, HELP -0.2
+- salience_bias > 0 → OBSERVE +0.1
 
-ВАЖНО: Искажение НЕ сохраняется в состояние.
-DecisionHub получает искажённый снапшот → решение искажено.
-StateApplicator получает оригинал → реальность не меняется от галлюцинаций NPC.
+Реализм сохраняется:
+- NPC ВЕДЕТ СЕЯ искажённо (через score modifiers)
+- NPC ВЕРБАЛИЗИРУЕТСЯ искажённо (через bias в ProjectionLayer)
+- StateApplicator работает с ЧИСТЫМИ данными (нет разрыва)
 """
 
 from dataclasses import replace
+from typing import Dict
 
+from app.core.constants import (
+    DISTRUST_STRESS_BOOST,
+    DISTRUST_STRESS_THRESHOLD,
+    MAX_DISTORTION_STRESS,
+    RESENTMENT_BIAS_FACTOR,
+    THREAT_AMPLIFICATION_FACTOR,
+)
 from app.models.psychological import DistortionProfile
 from app.models.npc_state import NPCState
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Константы искажений (калибровочные коэффициенты, не магические значения)
-# TODO: миграция в core/constants.py после калибровки
-# ─────────────────────────────────────────────────────────────────────────────
-
-# threat_amplification: fear → стресс усиливается перед решением
-# fear=100 → +15 stress (NPC воспринимает ситуацию как более опасную)
-THREAT_AMPLIFICATION_FACTOR: float = 0.15
-
-# memory_bias: накопленная обида → дополнительный стресс
-# resentment > 50 → каждый пункт обиды добавляет 0.2 стресса
-RESENTMENT_BIAS_FACTOR: float = 0.20
-
-# intent_projection: низкое доверие к игроку → ожидание угрозы
-# trust < -30 → +8 stress при любом взаимодействии с игроком
-DISTRUST_STRESS_THRESHOLD: float = -30.0
-DISTRUST_STRESS_BOOST: float = 8.0
-
-# Жёсткий кап: искажение не может добавить больше этого значения
-MAX_DISTORTION_STRESS: float = 30.0
 
 
 class CognitiveDistortionEngine:
@@ -124,21 +114,21 @@ class CognitiveDistortionEngine:
         )
 
         print(f"[DISTORTION] threat={threat_bias} trust={trust_bias} salience={salience_bias} (governor={'scaled' if total > 1.0 else 'ok'})")
-        # Если искажение незначимо — возвращаем оригинал
-        if stress_boost < 0.1 and all(abs(v) < 0.05 for v in bias.to_dict().values()):
-            return state, bias
+        
+        # ШАГ C.1: Возвращаем ОРИГИНАЛЬНЫЙ state + bias + модификаторы для DecisionHub
+        # Искажение восприятия теперь выражается через score modifiers, не через фальшивые числа
+        # Реализм сохраняется: NPC ведёт себя искажённо (через score), вербализируется искажённо (через bias)
+        # Но StateApplicator работает с реальными данными (нет разрыва)
+        
+        # Модификаторы score: threat → FLEE бонус, trust → TALK штраф
+        score_modifiers: Dict[str, float] = {}
+        if threat_bias > 0.05:
+            score_modifiers["flee"] = round(threat_bias * 0.3, 4)       # угроза → побег
+            score_modifiers["observe"] = round(threat_bias * 0.15, 4)  # угроза → наблюдение
+        if trust_bias < -0.05:
+            score_modifiers["talk"] = round(trust_bias * 0.25, 4)       # недоверие → меньше разговора
+            score_modifiers["help"] = round(trust_bias * 0.2, 4)       # недоверие → меньше помощи
+        if salience_bias > 0.05:
+            score_modifiers["observe"] = score_modifiers.get("observe", 0.0) + round(salience_bias * 0.1, 4)
 
-        # Искажённая копия: stress + trust/fear в relationship_cache
-        new_rel = dict(state.relationship_cache)
-        if threat_bias > 0:
-            new_rel["fear"] = min(100.0, fear_value + threat_bias * 20)
-        if trust_bias < 0:
-            new_rel["trust"] = max(-100.0, trust_value + trust_bias * 30)
-
-        distorted = replace(
-            state,
-            stress=min(state.stress + stress_boost, 100.0),
-            relationship_cache=new_rel,
-        )
-
-        return distorted, bias
+        return state, bias, score_modifiers

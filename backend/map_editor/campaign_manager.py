@@ -22,18 +22,17 @@ class CampaignManager:
     def __init__(self, dm):
         self.dm = dm
         self.current_campaign_name: Optional[str] = None
+        self._campaign_dir: Optional[Path] = None  # полный путь к папке кампании
         self.campaign_data: Optional[dict] = None
         CAMPAIGNS_DIR.mkdir(exist_ok=True)
 
     @property
     def is_open(self) -> bool:
-        return self.current_campaign_name is not None
+        return self._campaign_dir is not None
 
     @property
     def campaign_path(self) -> Optional[Path]:
-        if self.current_campaign_name:
-            return CAMPAIGNS_DIR / self.current_campaign_name
-        return None
+        return self._campaign_dir
 
     def list_campaigns(self) -> List[dict]:
         """Возвращает список всех кампаний с метаданными"""
@@ -90,23 +89,34 @@ class CampaignManager:
         return True, ""
 
     def open_campaign(self, folder_name: str) -> Tuple[bool, str]:
-        """Открывает кампанию — переключает DataManager на её папку локаций"""
+        """Открывает кампанию из стандартной папки campaigns/"""
         campaign_dir = CAMPAIGNS_DIR / folder_name
+        return self.open_campaign_from_path(campaign_dir)
+
+    def open_campaign_from_path(self, campaign_dir: Path) -> Tuple[bool, str]:
+        """Открывает кампанию по произвольному пути к папке с campaign.json"""
+        campaign_dir = Path(campaign_dir)
         meta_file = campaign_dir / "campaign.json"
         if not campaign_dir.exists() or not meta_file.exists():
-            return False, f"Кампания '{folder_name}' не найдена"
+            return False, f"campaign.json не найден в {campaign_dir}"
         try:
             with open(meta_file, "r", encoding="utf-8") as f:
                 self.campaign_data = json.load(f)
         except Exception as e:
             return False, f"Ошибка чтения: {e}"
-        self.current_campaign_name = folder_name
-        self.dm.set_base_dir(campaign_dir / "locations")
+        self.current_campaign_name = campaign_dir.name
+        self._campaign_dir = campaign_dir
+        # Локации лежат рядом с campaign.json в подпапке locations/
+        loc_dir = campaign_dir / "locations"
+        if not loc_dir.exists():
+            loc_dir.mkdir(exist_ok=True)
+        self.dm.set_base_dir(loc_dir)
         return True, ""
 
     def close_campaign(self):
         """Закрывает кампанию, возвращает DataManager к шаблонам"""
         self.current_campaign_name = None
+        self._campaign_dir = None
         self.campaign_data = None
         self.dm.set_base_dir(TEMPLATE_DIR)
 

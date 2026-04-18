@@ -3,22 +3,25 @@ map_editor/editor_core.py
 Главный редактор карт - ядро приложения
 """
 import pygame
+import json
 import sys
+from sprite_registry import sprite_registry
 import math
 from typing import Optional, Tuple, Dict, List, Any
 from dataclasses import dataclass
 
 from copy import deepcopy
 
-from data_manager import DataManager, OBJECT_PRESETS, PORTAL_TYPES
+from data_manager import DataManager, OBJECT_PRESETS, NPC_PRESETS, NPC_SPRITE_MAP, load_npc_individuals
 from undo_manager import (
     UndoManager, AddWallCommand, RemoveWallCommand,
     AddRoomCommand, RemoveRoomCommand,
     AddNodeCommand, RemoveNodeCommand,
     AddObjectCommand, RemoveObjectCommand,
-    AddPortalCommand, RemovePortalCommand,
-    TogglePassabilityCommand, RotateObjectCommand, PasteCommand,
-    CompoundCommand,
+    AddPassageCommand, RemovePassageCommand,
+    TogglePassabilityCommand, RotateObjectCommand, MirrorObjectCommand, ResizeObjectCommand, MoveEntityCommand, PasteCommand,
+    CompoundCommand, RenameCommand, AddLabelCommand, RemoveLabelCommand,
+    AddNpcCommand, RemoveNpcCommand,
 )
 from campaign_manager import CampaignManager
 from ui_components import (
@@ -41,7 +44,10 @@ TOOL_SELECT = "select"
 TOOL_WALL = "wall"        # Рисование стен
 TOOL_ROOM = "room"        # Создание комнат
 TOOL_OBJECT = "object"    # Размещение объектов
-TOOL_PORTAL = "portal"    # Размещение порталов
+TOOL_PASSAGE = "passage"  # Создание прохода в стене
+TOOL_LABEL = "label"      # Создание надписи
+TOOL_NPC = "npc"          # Размещение NPC
+TOOL_SPAWN = "spawn"      # Установка точки спавна игрока
 TOOL_DELETE = "delete"    # Удаление
 
 # Цвета объектов
@@ -92,7 +98,7 @@ class EditorCore:
         # Состояние
         self.mode = MODE_WORLD
         self.current_file: Optional[str] = None
-        self.tool = TOOL_SELECT
+        self.tool = None  # None = режим покоя (выделение)
         self.selected_object: Optional[Tuple[str, Any]] = None
         
         # Камера
@@ -100,6 +106,19 @@ class EditorCore:
         self.camera_y = 0.0
         self.zoom = 1.0
         self.dragging_camera = False
+        self.camera_speed = 15  # пикселей за кадр при стрелках
+        
+        # Двойной клик для переименования
+        self._last_click_time: int = 0
+        self._last_click_pos: Tuple[int, int] = (0, 0)
+        
+        # Перекрытые комнаты — циклический выбор
+        self._overlap_room_ids: List[str] = []
+        self._overlap_index: int = -1
+        
+        # Позиция для размещения надписи (временная, до диалога)
+        self._pending_label_pos: Optional[Tuple[float, float]] = None
+        self._open_file_path: Optional[Any] = None  # путь к открытому файлу напрямую
         
         # Рисование
         self.wall_drawing = False
@@ -121,15 +140,26 @@ class EditorCore:
         self.show_grid = True
         self.show_walls = True
         self.show_objects = True
-        self.show_portals = True
         self.show_rooms = True
         
         # Выбранные типы
         self.selected_object_type = "table"
-        self.selected_portal_type = "door"
+        self.selected_npc_id: str = ""  # id реального NPC из config
+        self._npc_list: List[Dict[str, str]] = load_npc_individuals()
+        if self._npc_list:
+            self.selected_npc_id = self._npc_list[0]["id"]
+        
+        # Состояние ресайза и перетаскивания
+        self._resizing: Optional[Dict[str, Any]] = None
+        self._dragging_entity: Optional[Dict[str, Any]] = None
         
         # Инициализация UI
         self._init_ui()
+        
+        # Инициализация реестра спрайтов
+        info = sprite_registry.get_sheet_info("Deadbeat/deadbeat_b.png")
+        if info:
+            print(f"Спрайтшит загружен: {info['cols']}x{info['rows']} тайлов")
         
         # Приветственное сообщение
         self._show_toast("Добро пожаловать! Создайте локацию через меню File")
@@ -154,16 +184,8 @@ class EditorCore:
         toolbar_y = self.menu_height + 5
         self.toolbar_buttons = []
         
-        # Группа: Навигация
-        x = 10
-        self.btn_tool_select = ToggleButton(x, toolbar_y, 80, 32, "👆 Выбор", 
-                                           on_toggle=lambda s: self._set_tool(TOOL_SELECT) if s else None)
-        self.btn_tool_select.state = True
-        self.toolbar_buttons.append(self.btn_tool_select)
-        x += 90
-        
         # Группа: Строительство
-        x += 10
+        x = 10
         self.btn_tool_wall = ToggleButton(x, toolbar_y, 80, 32, "🧱 Стена",
                                          on_toggle=lambda s: self._set_tool(TOOL_WALL) if s else None)
         self.toolbar_buttons.append(self.btn_tool_wall)
@@ -181,9 +203,26 @@ class EditorCore:
         self.toolbar_buttons.append(self.btn_tool_object)
         x += 100
         
-        self.btn_tool_portal = ToggleButton(x, toolbar_y, 90, 32, "🚪 Портал",
-                                           on_toggle=lambda s: self._set_tool(TOOL_PORTAL) if s else None)
-        self.toolbar_buttons.append(self.btn_tool_portal)
+        self.btn_tool_passage = ToggleButton(x, toolbar_y, 90, 32, "🕳️ Проход",
+                                              on_toggle=lambda s: self._set_tool(TOOL_PASSAGE) if s else None)
+        self.toolbar_buttons.append(self.btn_tool_passage)
+        x += 100
+        
+        self.btn_tool_label = ToggleButton(x, toolbar_y, 80, 32, "📝 Надпись",
+                                           on_toggle=lambda s: self._set_tool(TOOL_LABEL) if s else None)
+        self.toolbar_buttons.append(self.btn_tool_label)
+        x += 90
+        
+        # Группа: Сущности
+        x += 10
+        self.btn_tool_npc = ToggleButton(x, toolbar_y, 80, 32, "👤 NPC",
+                                         on_toggle=lambda s: self._set_tool(TOOL_NPC) if s else None)
+        self.toolbar_buttons.append(self.btn_tool_npc)
+        x += 90
+        
+        self.btn_tool_spawn = ToggleButton(x, toolbar_y, 90, 32, "🏁 Спавн",
+                                           on_toggle=lambda s: self._set_tool(TOOL_SPAWN) if s else None)
+        self.toolbar_buttons.append(self.btn_tool_spawn)
         x += 100
         
         # Группа: Удаление
@@ -200,7 +239,6 @@ class EditorCore:
         
         # === Дропдауны для типов объектов ===
         self.object_dropdown: Optional[Dropdown] = None
-        self.portal_dropdown: Optional[Dropdown] = None
         
         # === Кнопки в панели ===
         self.panel_buttons = []
@@ -216,11 +254,13 @@ class EditorCore:
         
         # Устанавливаем нужную кнопку
         tool_buttons = {
-            TOOL_SELECT: self.btn_tool_select,
             TOOL_WALL: self.btn_tool_wall,
             TOOL_ROOM: self.btn_tool_room,
             TOOL_OBJECT: self.btn_tool_object,
-            TOOL_PORTAL: self.btn_tool_portal,
+            TOOL_PASSAGE: self.btn_tool_passage,
+            TOOL_LABEL: self.btn_tool_label,
+            TOOL_NPC: self.btn_tool_npc,
+            TOOL_SPAWN: self.btn_tool_spawn,
             TOOL_DELETE: self.btn_tool_delete,
         }
         if tool in tool_buttons:
@@ -228,14 +268,19 @@ class EditorCore:
         
         # Показываем подсказку
         tool_names = {
-            TOOL_SELECT: "Выделение: кликайте по объектам",
-            TOOL_WALL: "Стены: кликните и потяните для рисования",
+            TOOL_WALL: "Стены: первый клик — начало, второй — конец",
             TOOL_ROOM: "Комнаты: кликните и потяните для создания",
             TOOL_OBJECT: "Объекты: кликните для размещения",
-            TOOL_PORTAL: "Порталы: кликните для размещения",
+            TOOL_PASSAGE: "Проход: кликните по стене для создания",
+            TOOL_LABEL: "Надпись: кликните для размещения",
+            TOOL_NPC: "NPC: кликните для размещения на карте",
+            TOOL_SPAWN: "Спавн: кликните для установки точки появления игрока",
             TOOL_DELETE: "Удаление: кликните по объекту для удаления",
         }
-        self._show_toast(tool_names.get(tool, ""))
+        if tool:
+            self._show_toast(tool_names.get(tool, "Режим покоя — выделяйте объекты"))
+        else:
+            self._show_toast("Режим покоя — выделяйте объекты кликом")
         
         # Создаём/убираем дропдауны
         self._update_dropdowns()
@@ -243,33 +288,45 @@ class EditorCore:
     def _update_dropdowns(self):
         """Обновляет дропдауны в зависимости от инструмента"""
         self.object_dropdown = None
-        self.portal_dropdown = None
         
         if self.tool == TOOL_OBJECT:
-            options = list(OBJECT_PRESETS.keys())
+            preset_keys = list(OBJECT_PRESETS.keys())
+            options = [OBJECT_PRESETS[k]["label"] for k in preset_keys]
             self.object_dropdown = Dropdown(
                 700, self.menu_height + 8, 120, 28,
                 options=options, label="Тип"
             )
-            self.object_dropdown.selected = list(OBJECT_PRESETS.keys()).index(self.selected_object_type)
-            self.object_dropdown.on_select = lambda i, opt: setattr(self, 'selected_object_type', opt)
-            
-        elif self.tool == TOOL_PORTAL:
-            options = [p["label"] for p in PORTAL_TYPES.values()]
-            self.portal_dropdown = Dropdown(
-                700, self.menu_height + 8, 140, 28,
-                options=options, label="Тип"
-            )
-            self.portal_dropdown.selected = list(PORTAL_TYPES.keys()).index(self.selected_portal_type)
-            self.portal_dropdown.on_select = lambda i, opt: setattr(
-                self, 'selected_portal_type', list(PORTAL_TYPES.keys())[i]
-            )
+            self.object_dropdown.selected = preset_keys.index(self.selected_object_type)
+            self.object_dropdown.on_select = lambda i, opt: setattr(self, 'selected_object_type', preset_keys[i])
+        
+        elif self.tool == TOOL_NPC:
+            if not self._npc_list:
+                self.object_dropdown = Dropdown(
+                    700, self.menu_height + 8, 180, 28,
+                    options=["Нет NPC в config"], label="NPC"
+                )
+                self.object_dropdown.enabled = False
+            else:
+                npc_ids = [n["id"] for n in self._npc_list]
+                options = [n["name"] for n in self._npc_list]
+                self.object_dropdown = Dropdown(
+                    700, self.menu_height + 8, 180, 28,
+                    options=options, label="NPC"
+                )
+                try:
+                    self.object_dropdown.selected = npc_ids.index(self.selected_npc_id)
+                except ValueError:
+                    self.object_dropdown.selected = 0
+                    self.selected_npc_id = npc_ids[0]
+                self.object_dropdown.on_select = lambda i, opt: setattr(self, 'selected_npc_id', npc_ids[i])
     
     def _show_file_menu(self):
         """Показывает выпадающее меню File"""
         items = [
             {"label": "Новая кампания...", "action": self._dialog_create_campaign},
             {"label": "Открыть кампанию...", "action": self._dialog_open_campaign},
+            {"label": "Открыть папку...", "action": self._dialog_open_folder},
+            {"label": "Открыть файл...", "action": self._dialog_open_file},
             {"label": "Закрыть кампанию", "action": self._close_campaign,
              "disabled": not self.cm.is_open},
             {"type": "separator"},
@@ -331,6 +388,70 @@ class EditorCore:
                 self._show_toast(f"Ошибка: {err}")
         self.dialog = ModalDialog(self.screen, "Открыть кампанию", fields, on_confirm)
 
+    def _dialog_open_folder(self):
+        """Открывает системный проводник для выбора папки с campaign.json"""
+        import tkinter as tk
+        from tkinter import filedialog
+        from pathlib import Path
+        # Скрываем мини-окно tkinter
+        root = tk.Tk()
+        root.withdraw()
+        root.attributes("-topmost", True)
+        folder = filedialog.askdirectory(
+            title="Выберите папку с campaign.json",
+            initialdir=str(Path(__file__).parent.parent.parent)
+        )
+        root.destroy()
+        if not folder:
+            return
+        ok, err = self.cm.open_campaign_from_path(folder)
+        if ok:
+            self.current_file = None
+            self.mode = MODE_WORLD
+            self.undo.clear()
+            self._show_toast(f"Открыта: {self.cm.campaign_data.get('name', folder)}")
+        else:
+            self._show_toast(f"Ошибка: {err}")
+
+    def _dialog_open_file(self):
+        """Открывает проводник для выбора JSON-файла локации"""
+        import tkinter as tk
+        from tkinter import filedialog
+        from pathlib import Path
+        root = tk.Tk()
+        root.withdraw()
+        root.attributes("-topmost", True)
+        filepath = filedialog.askopenfilename(
+            title="Выберите файл локации (.json)",
+            initialdir=str(Path(__file__).parent / "location_templates"),
+            filetypes=[("JSON файлы", "*.json"), ("Все файлы", "*.*")]
+        )
+        root.destroy()
+        if not filepath:
+            return
+        filepath = Path(filepath)
+        try:
+            with open(filepath, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except Exception as e:
+            self._show_toast(f"Ошибка чтения: {e}")
+            return
+        # Проверяем что это локация (есть size)
+        if "size" not in data:
+            self._show_toast("Это не файл локации (нет size)")
+            return
+        # Загружаем напрямую в dm.locations
+        filename = filepath.name
+        self.dm.locations[filename] = data
+        # Запоминаем путь к файлу для сохранения
+        self._open_file_path = filepath
+        self.current_file = filename
+        self.mode = MODE_LOCAL
+        self.undo.clear()
+        self._center_camera()
+        label = data.get("label", filename)
+        self._show_toast(f"Открыт файл: {label}")
+
     def _close_campaign(self):
         """Закрывает текущую кампанию"""
         name = self.cm.campaign_data.get("name", "") if self.cm.campaign_data else ""
@@ -379,18 +500,35 @@ class EditorCore:
         self._show_toast(f"Сохранено: {self.current_file}")
 
     def _dialog_save_as(self):
-        """Диалог сохранения локации под другим именем"""
-        fields = [
-            {"key": "filename", "label": "Новое имя файла", "value": self.current_file},
-        ]
-        def on_confirm(inputs):
-            ok, err = self.cm.save_location_as(self.current_file, inputs["filename"])
-            if ok:
-                self.current_file = inputs["filename"]
-                self._show_toast(f"Сохранено как: {inputs['filename']}")
-            else:
-                self._show_toast(f"Ошибка: {err}")
-        self.dialog = ModalDialog(self.screen, "Сохранить как...", fields, on_confirm)
+        """Сохраняет локацию в выбранную папку через проводник"""
+        if not self.current_file or self.current_file not in self.dm.locations:
+            self._show_toast("Нет открытого файла")
+            return
+        import tkinter as tk
+        from tkinter import filedialog
+        from pathlib import Path
+        root = tk.Tk()
+        root.withdraw()
+        root.attributes("-topmost", True)
+        # Начальная папка — текущая кампания или campaigns
+        init_dir = str(self.cm.campaign_path) if self.cm.campaign_path else str(Path(__file__).parent / "campaigns")
+        filepath = filedialog.asksaveasfilename(
+            title="Сохранить локацию как...",
+            initialdir=init_dir,
+            initialfile=self.current_file,
+            filetypes=[("JSON файлы", "*.json"), ("Все файлы", "*.*")]
+        )
+        root.destroy()
+        if not filepath:
+            return
+        filepath = Path(filepath)
+        try:
+            with open(filepath, "w", encoding="utf-8") as f:
+                json.dump(self.dm.locations[self.current_file], f, indent=2, ensure_ascii=False)
+            self._open_file_path = filepath
+            self._show_toast(f"Сохранено: {filepath.name}")
+        except Exception as e:
+            self._show_toast(f"Ошибка сохранения: {e}")
 
     def _save_all(self):
         """Сохраняет все локации кампании"""
@@ -443,8 +581,9 @@ class EditorCore:
         """Центрирует камеру на текущей локации"""
         if self.current_file and self.current_file in self.dm.locations:
             loc = self.dm.locations[self.current_file]
-            cx = loc["origin"]["x"] + loc["size"]["w"] / 2
-            cy = loc["origin"]["y"] + loc["size"]["h"] / 2
+            origin = loc.get("origin", {"x": 0, "y": 0})
+            cx = origin["x"] + loc["size"]["w"] / 2
+            cy = origin["y"] + loc["size"]["h"] / 2
             screen_cx = (self.screen.get_width() - self.panel_width) / 2
             screen_cy = (self.screen.get_height() - self.menu_height - self.toolbar_height) / 2
             self.camera_x = screen_cx - cx * SCALE * self.zoom
@@ -475,39 +614,187 @@ class EditorCore:
         corners = [(-hw, -hh), (hw, -hh), (hw, hh), (-hw, hh)]
         return [(x * cos_a - y * sin_a + cx, x * sin_a + y * cos_a + cy) for x, y in corners]
 
-    def _get_rotation_buttons(self, obj_index: int) -> List[Dict[str, Any]]:
-        """Возвращает кнопки поворота для выделенного объекта"""
-        if not self.current_file or obj_index < 0:
+    def _get_rotation_buttons(self, obj_id: str) -> List[Dict[str, Any]]:
+        """Возвращает кнопки поворота/зеркала для выделенного объекта"""
+        if not self.current_file or not obj_id:
             return []
         loc = self.dm.locations[self.current_file]
-        if obj_index >= len(loc["objects"]):
+        obj = next((o for o in loc["objects"] if o.get("id") == obj_id), None)
+        if not obj:
             return []
-        obj = loc["objects"][obj_index]
         sx, sy = self.world_to_screen(obj["position"]["x"], obj["position"]["y"])
         w = obj["size"]["w"] * SCALE * self.zoom
         h = obj["size"]["h"] * SCALE * self.zoom
         radius = max(w, h) / 2 + 14
         btn_r = 10
-        return [
-            {"rect": pygame.Rect(sx - radius - btn_r, sy - btn_r, btn_r * 2, btn_r * 2), "delta": -45},
-            {"rect": pygame.Rect(sx + radius - btn_r, sy - btn_r, btn_r * 2, btn_r * 2), "delta": 45},
-        ]
+        
+        # Определяем режим из пресета
+        obj_type = obj.get("type", "")
+        preset = OBJECT_PRESETS.get(obj_type, {})
+        mode = preset.get("rotation_mode", "free")
+        
+        if mode == "mirror":
+            # Одна кнопка зеркалирования сверху
+            return [
+                {"rect": pygame.Rect(sx - btn_r, sy - radius - btn_r, btn_r * 2, btn_r * 2), "action": "mirror"},
+            ]
+        else:
+            # Две кнопки поворота по бокам
+            return [
+                {"rect": pygame.Rect(sx - radius - btn_r, sy - btn_r, btn_r * 2, btn_r * 2), "delta": -45},
+                {"rect": pygame.Rect(sx + radius - btn_r, sy - btn_r, btn_r * 2, btn_r * 2), "delta": 45},
+            ]
+
+    def _get_resize_handles(self, obj_id: str) -> List[Dict[str, Any]]:
+        """Возвращает хэндлы углов для ресайза объекта"""
+        if not self.current_file or not obj_id:
+            return []
+        loc = self.dm.locations[self.current_file]
+        obj = next((o for o in loc["objects"] if o.get("id") == obj_id), None)
+        if not obj:
+            return []
+        
+        sx, sy = self.world_to_screen(obj["position"]["x"], obj["position"]["y"])
+        w = obj["size"]["w"] * SCALE * self.zoom
+        h = obj["size"]["h"] * SCALE * self.zoom
+        hs = 5  # половина размера хэндла
+        
+        # Определяем режим из пресета
+        obj_type = obj.get("type", "")
+        preset = OBJECT_PRESETS.get(obj_type, {})
+        is_wall_mounted = preset.get("requires_wall", False)
+        
+        if is_wall_mounted:
+            # Определяем длинную сторону (длина двери) — её и ресайзим
+            if w >= h:  # дверь горизонтальна
+                return [
+                    {"rect": pygame.Rect(sx - w/2 - hs, sy - hs, hs * 2, hs * 2), "axis": "w", "dir": -1},
+                    {"rect": pygame.Rect(sx + w/2 - hs, sy - hs, hs * 2, hs * 2), "axis": "w", "dir": 1},
+                ]
+            else:  # дверь вертикальна (w и h были поменяны при создании)
+                return [
+                    {"rect": pygame.Rect(sx - hs, sy - h/2 - hs, hs * 2, hs * 2), "axis": "h", "dir": -1},
+                    {"rect": pygame.Rect(sx - hs, sy + h/2 - hs, hs * 2, hs * 2), "axis": "h", "dir": 1},
+                ]
+        else:
+            # Четыре угла — свободный ресайз
+            return [
+                {"rect": pygame.Rect(sx - w/2 - hs, sy - h/2 - hs, hs * 2, hs * 2), "axis": "wh", "dir_x": -1, "dir_y": -1},
+                {"rect": pygame.Rect(sx + w/2 - hs, sy - h/2 - hs, hs * 2, hs * 2), "axis": "wh", "dir_x": 1, "dir_y": -1},
+                {"rect": pygame.Rect(sx - w/2 - hs, sy + h/2 - hs, hs * 2, hs * 2), "axis": "wh", "dir_x": -1, "dir_y": 1},
+                {"rect": pygame.Rect(sx + w/2 - hs, sy + h/2 - hs, hs * 2, hs * 2), "axis": "wh", "dir_x": 1, "dir_y": 1},
+            ]
+
+    def _is_on_selected(self, mx: int, my: int) -> bool:
+        """Проверяет, попал ли клик именно на выделенную сущность"""
+        if not self.selected_object:
+            return False
+        old_sel = self.selected_object
+        self._try_select_existing(mx, my)
+        is_same = self.selected_object == old_sel
+        self.selected_object = old_sel  # восстанавливаем выделение
+        return is_same
+
+    def _get_drag_orig(self, etype: str, eid: str) -> Optional[Dict]:
+        """Возвращает исходные координаты сущности для перетаскивания"""
+        if not self.current_file:
+            return None
+        loc = self.dm.locations[self.current_file]
+        if etype == "object":
+            obj = next((o for o in loc["objects"] if o.get("id") == eid), None)
+            if obj:
+                data = {"x": obj["position"]["x"], "y": obj["position"]["y"], "wall_id": obj.get("wall_id")}
+                if data["wall_id"]:
+                    wall = next((w for w in loc["walls"] if w["id"] == data["wall_id"]), None)
+                    if wall:
+                        data["wx1"] = wall["x1"]; data["wy1"] = wall["y1"]
+                        data["wx2"] = wall["x2"]; data["wy2"] = wall["y2"]
+                return data
+        elif etype == "wall":
+            wall = next((w for w in loc["walls"] if w["id"] == eid), None)
+            if wall: return {"x1": wall["x1"], "y1": wall["y1"], "x2": wall["x2"], "y2": wall["y2"]}
+        elif etype == "room":
+            room = next((r for r in loc["rooms"] if r["id"] == eid), None)
+            if room:
+                data = {"x": room["x"], "y": room["y"]}
+                if "polygon" in room: data["polygon"] = [list(p) for p in room["polygon"]]
+                return data
+        elif etype == "node":
+            node = loc["nodes"].get(eid)
+            if node: return {"x": node["x"], "y": node["y"]}
+        elif etype == "label":
+            lbl = next((l for l in loc.get("labels", []) if l.get("id") == eid), None)
+            if lbl: return {"x": lbl["x"], "y": lbl["y"]}
+        elif etype == "npc":
+            npc = next((n for n in loc.get("npcs", []) if n.get("ref_id") == eid), None)
+            if npc: return {"x": npc["position"]["x"], "y": npc["position"]["y"]}
+        elif etype == "spawn":
+            spawn = loc.get("player_spawn")
+            if spawn: return {"x": spawn["x"], "y": spawn["y"]}
+        return None
+
+    def _apply_drag(self, etype: str, eid: str, orig: Dict, dx: float, dy: float) -> None:
+        """Смещает сущность на dx, dy от исходных координат"""
+        loc = self.dm.locations[self.current_file]
+        if etype == "object":
+            obj = next((o for o in loc["objects"] if o.get("id") == eid), None)
+            if obj:
+                obj["position"]["x"] = orig["x"] + dx
+                obj["position"]["y"] = orig["y"] + dy
+                if orig.get("wall_id"):
+                    wall = next((w for w in loc["walls"] if w["id"] == orig["wall_id"]), None)
+                    if wall and "wx1" in orig:
+                        wall["x1"] = orig["wx1"] + dx; wall["y1"] = orig["wy1"] + dy
+                        wall["x2"] = orig["wx2"] + dx; wall["y2"] = orig["wy2"] + dy
+        elif etype == "wall":
+            wall = next((w for w in loc["walls"] if w["id"] == eid), None)
+            if wall:
+                wall["x1"] = orig["x1"] + dx; wall["y1"] = orig["y1"] + dy
+                wall["x2"] = orig["x2"] + dx; wall["y2"] = orig["y2"] + dy
+        elif etype == "room":
+            room = next((r for r in loc["rooms"] if r["id"] == eid), None)
+            if room:
+                room["x"] = orig["x"] + dx; room["y"] = orig["y"] + dy
+                if "polygon" in orig:
+                    room["polygon"] = [[p[0] + dx, p[1] + dy] for p in orig["polygon"]]
+        elif etype == "node":
+            node = loc["nodes"].get(eid)
+            if node:
+                node["x"] = orig["x"] + dx; node["y"] = orig["y"] + dy
+        elif etype == "label":
+            lbl = next((l for l in loc.get("labels", []) if l.get("id") == eid), None)
+            if lbl:
+                lbl["x"] = orig["x"] + dx; lbl["y"] = orig["y"] + dy
+        elif etype == "npc":
+            npc = next((n for n in loc.get("npcs", []) if n.get("ref_id") == eid), None)
+            if npc:
+                npc["position"]["x"] = orig["x"] + dx
+                npc["position"]["y"] = orig["y"] + dy
+        elif etype == "spawn":
+            spawn = loc.get("player_spawn")
+            if spawn:
+                spawn["x"] = orig["x"] + dx
+                spawn["y"] = orig["y"] + dy
 
     def _copy_selection(self) -> None:
         """Копирует выделенный объект или стену в буфер"""
         if not self.current_file or not self.selected_object:
             return
-        loc = self.dm.locations[self.current_file]
         obj_type, obj_key = self.selected_object
+        # NPC и spawn не копируются
+        if obj_type in ("npc", "spawn"):
+            return
+        loc = self.dm.locations[self.current_file]
         self.clipboard = {"walls": [], "objects": [], "origin": (0.0, 0.0)}
         self.current_z: int = 0
         self.current_z: int = 0
 
-        if obj_type == "object" and 0 <= obj_key < len(loc["objects"]):
-            obj = loc["objects"][obj_key]
-            self.clipboard["objects"] = [deepcopy(obj)]
-            self.clipboard["origin"] = (obj["position"]["x"], obj["position"]["y"])
-            self._show_toast(f"Скопирован: {obj['type']}")
+        if obj_type == "object":
+            obj = next((o for o in loc["objects"] if o.get("id") == obj_key), None)
+            if obj:
+                self.clipboard["objects"] = [deepcopy(obj)]
+                self.clipboard["origin"] = (obj["position"]["x"], obj["position"]["y"])
+                self._show_toast(f"Скопирован: {obj['type']}")
         elif obj_type == "wall":
             wall = next((w for w in loc["walls"] if w["id"] == obj_key), None)
             if wall:
@@ -577,8 +864,7 @@ class EditorCore:
             pygame.display.flip()
             self.clock.tick(60)
         
-        pygame.quit()
-        sys.exit()
+        return
     
     def _handle_event(self, event: pygame.event.Event):
         """Обрабатывает события ввода"""
@@ -595,11 +881,16 @@ class EditorCore:
                     self.room_start = None
                 else:
                     self.selected_object = None
-                    self._set_tool(TOOL_SELECT)
+                    self._set_tool(None)
+                    
+            elif event.key in (pygame.K_DELETE, pygame.K_BACKSPACE):
+                # Удаление выбранного объекта
+                if self.selected_object and self.tool is None:
+                    self._delete_at(mx, my)
                     
             elif event.key == pygame.K_TAB:
                 self._toggle_mode()
-                
+            
             elif event.key == pygame.K_s and pygame.key.get_mods() & pygame.KMOD_CTRL:
                 if self.current_file:
                     if self.cm.is_open:
@@ -657,9 +948,60 @@ class EditorCore:
         
         if self.object_dropdown and self.object_dropdown.handle_event(event):
             return
-        if self.portal_dropdown and self.portal_dropdown.handle_event(event):
-            return
         
+        # Хэндлы ресайза на холсте — максимальный приоритет
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            mx, my = event.pos
+            if self.tool is None and self.selected_object and self.selected_object[0] == "object":
+                for handle in self._get_resize_handles(self.selected_object[1]):
+                    if handle["rect"].collidepoint(mx, my):
+                        obj = next((o for o in self.dm.locations[self.current_file]["objects"] if o.get("id") == self.selected_object[1]), None)
+                        if obj:
+                            self._resizing = {
+                                "obj_id": self.selected_object[1],
+                                "handle": handle,
+                                "start_mx": mx,
+                                "start_my": my,
+                                "start_w": obj["size"]["w"],
+                                "start_h": obj["size"]["h"],
+                            }
+                        return
+
+        # Перетаскивание выделенной сущности — после хэндлов и кнопок
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            mx, my = event.pos
+            if self.tool is None and self.selected_object and not self._resizing:
+                if self._is_on_selected(mx, my):
+                    etype, eid = self.selected_object
+                    orig = self._get_drag_orig(etype, eid)
+                    if orig:
+                        self._dragging_entity = {"start_mx": mx, "start_my": my, "orig": orig}
+                    return
+
+        # Кнопки поворота/зеркала на холсте — приоритет над панелью свойств
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            mx, my = event.pos
+            if self.tool is None and self.selected_object and self.selected_object[0] == "object":
+                for btn in self._get_rotation_buttons(self.selected_object[1]):
+                    if btn["rect"].collidepoint(mx, my):
+                        obj = next((o for o in self.dm.locations[self.current_file]["objects"] if o.get("id") == self.selected_object[1]), None)
+                        if obj:
+                            if btn.get("action") == "mirror":
+                                self.undo.push(MirrorObjectCommand(
+                                    self.dm, self.current_file, self.selected_object[1],
+                                    obj.get("mirrored", False)
+                                ))
+                            else:
+                                try:
+                                    old_rot = float(obj.get("rotation") or 0)
+                                except (ValueError, TypeError):
+                                    old_rot = 0.0
+                                self.undo.push(RotateObjectCommand(
+                                    self.dm, self.current_file, self.selected_object[1],
+                                    old_rot, btn["delta"]
+                                ))
+                        return
+
         # Панель свойств
         action = self.property_panel.handle_event(event)
         if action:
@@ -713,19 +1055,20 @@ class EditorCore:
                         self._toggle_mode()
                         return
                         
-            elif event.button == 2 or (event.button == 3 and pygame.key.get_mods() & pygame.KMOD_SHIFT):
-                # Средняя кнопка или Shift+ПКМ - перемещение камеры
+            elif event.button == 2:
+                # Колёсико — перемещение камеры
                 self.dragging_camera = True
                 
         elif event.type == pygame.MOUSEBUTTONUP:
-            if event.button in (2, 3):
+            if event.button == 2:
                 self.dragging_camera = False
                 
         elif event.type == pygame.MOUSEMOTION:
             if self.dragging_camera:
                 self.camera_x += event.rel[0]
                 self.camera_y += event.rel[1]
-    
+
+
     def _handle_local_event(self, event: pygame.event.Event):
         """Обрабатывает события в режиме редактирования локации"""
         mx, my = pygame.mouse.get_pos()
@@ -741,21 +1084,121 @@ class EditorCore:
         
         if event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == 1:  # ЛКМ
-                self._handle_left_click(mx, my, world_x, world_y, grid_x, grid_y)
+                # Проверка двойного клика (< 400мс, < 8 пикселей)
+                now = pygame.time.get_ticks()
+                dx = abs(mx - self._last_click_pos[0])
+                dy = abs(my - self._last_click_pos[1])
+                if now - self._last_click_time < 400 and dx < 8 and dy < 8:
+                    self._handle_double_click(mx, my)
+                    self._last_click_time = 0
+                else:
+                    self._handle_left_click(mx, my, world_x, world_y, grid_x, grid_y)
+                self._last_click_time = now
+                self._last_click_pos = (mx, my)
                 
-            elif event.button == 3:  # ПКМ
+            elif event.button == 2:  # Колёсико — двигать камеру
                 self.dragging_camera = True
+            elif event.button == 3:  # ПКМ
+                if self.tool is not None:
+                    # В режиме создания — выйти в покой, выделение остаётся
+                    self._set_tool(None)
+                else:
+                    # В режиме покоя — снять выделение
+                    self.selected_object = None
                 
         elif event.type == pygame.MOUSEBUTTONUP:
             if event.button == 1:
-                self._handle_left_release(mx, my, world_x, world_y, grid_x, grid_y)
-            elif event.button == 3:
+                if self._resizing:
+                    obj = next((o for o in self.dm.locations[self.current_file]["objects"] if o.get("id") == self._resizing["obj_id"]), None)
+                    if obj:
+                        new_w = round(obj["size"]["w"], 2)
+                        new_h = round(obj["size"]["h"], 2)
+                        old_w = round(self._resizing["start_w"], 2)
+                        old_h = round(self._resizing["start_h"], 2)
+                        if abs(new_w - old_w) > 0.01 or abs(new_h - old_h) > 0.01:
+                            self.undo.push(ResizeObjectCommand(
+                                self.dm, self.current_file, self._resizing["obj_id"],
+                                old_w, old_h, new_w, new_h
+                            ))
+                    self._resizing = None
+                elif self._dragging_entity:
+                    mx_now, my_now = event.pos
+                    total_dx = mx_now - self._dragging_entity["start_mx"]
+                    total_dy = my_now - self._dragging_entity["start_my"]
+                    scale = 1.0 / (SCALE * self.zoom)
+                    dx_world = round(total_dx * scale, 2)
+                    dy_world = round(total_dy * scale, 2)
+                    if abs(dx_world) > 0.01 or abs(dy_world) > 0.01:
+                        etype, eid = self.selected_object
+                        drag_wall = etype == "object" and bool(self._dragging_entity["orig"].get("wall_id"))
+                        cmd = MoveEntityCommand(
+                            self.dm, self.current_file, etype, eid,
+                            dx_world, dy_world, drag_wall
+                        )
+                        cmd._skip_do = True
+                        self.undo.push(cmd)
+                    self._dragging_entity = None
+                else:
+                    self._handle_left_release(mx, my, world_x, world_y, grid_x, grid_y)
+            elif event.button == 2:  # Колёсико
                 self.dragging_camera = False
                 
         elif event.type == pygame.MOUSEMOTION:
-            if self.dragging_camera:
+            if self._dragging_entity:
+                mx_now, my_now = event.pos
+                total_dx = mx_now - self._dragging_entity["start_mx"]
+                total_dy = my_now - self._dragging_entity["start_my"]
+                scale = 1.0 / (SCALE * self.zoom)
+                dx_world = total_dx * scale
+                dy_world = total_dy * scale
+                etype, eid = self.selected_object
+                self._apply_drag(etype, eid, self._dragging_entity["orig"], dx_world, dy_world)
+            elif self._resizing:
+                obj = next((o for o in self.dm.locations[self.current_file]["objects"] if o.get("id") == self._resizing["obj_id"]), None)
+                if obj:
+                    mx_now, my_now = event.pos
+                    total_dx = mx_now - self._resizing["start_mx"]
+                    total_dy = my_now - self._resizing["start_my"]
+                    scale = 1.0 / (SCALE * self.zoom)
+                    handle = self._resizing["handle"]
+                    
+                    if handle["axis"] == "w":
+                        # Только ширина (для объектов в стенах)
+                        dw = total_dx * scale * handle["dir"]
+                        obj["size"]["w"] = max(0.3, self._resizing["start_w"] + dw)
+                    elif handle["axis"] == "h":
+                        # Только высота (для вертикальных объектов в стенах)
+                        dh = total_dy * scale * handle["dir"]
+                        obj["size"]["h"] = max(0.3, self._resizing["start_h"] + dh)
+                    else:
+                        # Свободный ресайз по обоим осям
+                        dw = total_dx * scale * handle["dir_x"]
+                        dh = total_dy * scale * handle["dir_y"]
+                        obj["size"]["w"] = max(0.3, self._resizing["start_w"] + dw)
+                        obj["size"]["h"] = max(0.3, self._resizing["start_h"] + dh)
+            elif self.dragging_camera:
                 self.camera_x += event.rel[0]
                 self.camera_y += event.rel[1]
+    
+    def _handle_double_click(self, mx: int, my: int) -> None:
+        """Обрабатывает двойной клик — переименование сущности"""
+        if not self.current_file or not self.selected_object:
+            return
+        
+        entity_type, entity_id = self.selected_object
+        old_name = self.dm.get_entity_name(self.current_file, entity_type, entity_id)
+        
+        fields = [{"key": "name", "label": "Новое имя", "value": old_name}]
+        
+        def on_confirm(inputs: Dict[str, str]) -> None:
+            new_name = inputs.get("name", "").strip()
+            if new_name and new_name != old_name:
+                self.undo.push(RenameCommand(
+                    self.dm, self.current_file, entity_type, entity_id,
+                    old_name, new_name))
+                self._show_toast(f"Переименовано: {new_name}")
+        
+        self.dialog = ModalDialog(self.screen, "Переименовать", fields, on_confirm)
     
     def _handle_left_click(self, mx: int, my: int, wx: float, wy: float, gx: float, gy: float):
         """Обрабатывает клик ЛКМ в режиме редактирования"""
@@ -764,24 +1207,27 @@ class EditorCore:
         
         loc = self.dm.locations[self.current_file]
         
-        if self.tool == TOOL_SELECT:
-            # проверяем кнопки поворота у выделенного объекта
-            if self.selected_object and self.selected_object[0] == "object":
-                for btn in self._get_rotation_buttons(self.selected_object[1]):
-                    if btn["rect"].collidepoint(mx, my):
-                        obj = self.dm.locations[self.current_file]["objects"][self.selected_object[1]]
-                        self.undo.push(RotateObjectCommand(
-                            self.dm, self.current_file, self.selected_object[1],
-                            obj.get("rotation", 0), btn["delta"]
-                        ))
-                        return
-            # Ищем объект под курсором
-            self._select_at(mx, my)
-            
-        elif self.tool == TOOL_WALL:
-            # Начинаем рисование стены
-            self.wall_drawing = True
-            self.wall_start = (gx, gy)
+        # Режим покоя (tool=None) — клик выделяет объекты
+        if self.tool is None:
+            self._try_select_existing(mx, my)
+            return
+        
+        # Ниже — активные инструменты создания
+        if self.tool == TOOL_WALL:
+            if self.wall_start is None:
+                # Первый клик — начало стены
+                self.wall_drawing = True
+                self.wall_start = (gx, gy)
+            else:
+                # Второй клик — завершение стены
+                if abs(gx - self.wall_start[0]) > 0.1 or abs(gy - self.wall_start[1]) > 0.1:
+                    wall_id = self.undo.push(AddWallCommand(self.dm, self.current_file,
+                                   self.wall_start[0], self.wall_start[1],
+                                   gx, gy))
+                    self._show_toast("Стена создана")
+                    self._try_auto_room(wall_id)
+                self.wall_drawing = False
+                self.wall_start = None
             
         elif self.tool == TOOL_ROOM:
             # Начинаем создание комнаты
@@ -789,21 +1235,87 @@ class EditorCore:
             self.room_start = (gx, gy)
             
         elif self.tool == TOOL_OBJECT:
+            # Запрещаем ставить объекты вне комнат
+            if not self._is_point_in_any_room(wx, wy):
+                self._show_toast("Объекты можно размещать только внутри комнат")
+                return
             # Создаём объект
             preset = OBJECT_PRESETS.get(self.selected_object_type, {})
             ds = preset.get("default_size", {"w": 1.0, "h": 1.0})
+            obj_w, obj_h = ds["w"], ds["h"]
+            # Проверяем требует ли объект стену
+            wall_id = ""
+            if preset.get("requires_wall", False):
+                wall_id = self._find_wall_near(gx, gy, threshold=1.0) or ""
+                if not wall_id:
+                    self._show_toast("Этот объект должен быть на стене — кликните ближе к стене")
+                    return
+                # Выравниваем объект по оси стены
+                wall = next((w for w in self.dm.locations[self.current_file]["walls"] if w["id"] == wall_id), None)
+                if wall:
+                    dx = abs(wall["x2"] - wall["x1"])
+                    dy = abs(wall["y2"] - wall["y1"])
+                    if dy > dx:  # стена более вертикальная — меняем w/h местами
+                        obj_w, obj_h = obj_h, obj_w
             idx = self.undo.push(AddObjectCommand(
                 self.dm, self.current_file, self.selected_object_type,
-                gx, gy, ds["w"], ds["h"]
+                gx, gy, obj_w, obj_h, wall_id
             ))
-            self.selected_object = ("object", idx)
+            self.selected_object = ("object", str(idx))
             self._show_toast(f"Объект создан: {self.selected_object_type}")
             
-        elif self.tool == TOOL_PORTAL:
-            # Создаём портал
-            portal_id = self.undo.push(AddPortalCommand(self.dm, self.current_file, self.selected_portal_type, gx, gy))
-            self.selected_object = ("portal", portal_id)
-            self._show_toast(f"Портал создан: {portal_id}")
+        elif self.tool == TOOL_PASSAGE:
+            # Создаём проход — ищем стену рядом с кликом
+            wall_id = self._find_wall_near(gx, gy, threshold=1.0)
+            if wall_id:
+                pass_id = self.undo.push(AddPassageCommand(
+                    self.dm, self.current_file, wall_id, "door",
+                    {"x": gx, "y": gy}, self.current_z))
+                self.selected_object = ("passage", pass_id)
+                self._show_toast(f"Проход создан в стене {wall_id}")
+            else:
+                self._show_toast("Нет стены рядом — кликните ближе к стене")
+            
+        elif self.tool == TOOL_LABEL:
+            # Запрещаем ставить надписи вне комнат
+            if not self._is_point_in_any_room(wx, wy):
+                self._show_toast("Надписи можно размещать только внутри комнат")
+                return
+            # Создаём надпись — сначала спрашиваем текст
+            self._pending_label_pos = (gx, gy)
+            fields = [{"key": "text", "label": "Текст надписи", "value": "Надпись"}]
+            def on_confirm(inputs: Dict[str, str]) -> None:
+                text = inputs.get("text", "").strip()
+                if text and self._pending_label_pos:
+                    lid = self.undo.push(AddLabelCommand(
+                        self.dm, self.current_file,
+                        self._pending_label_pos[0], self._pending_label_pos[1], text))
+                    self.selected_object = ("label", lid)
+                    self._show_toast(f"Надпись создана")
+            self.dialog = ModalDialog(self.screen, "Новая надпись", fields, on_confirm)
+            
+        elif self.tool == TOOL_NPC:
+            # Запрещаем ставить NPC вне комнат
+            if not self._is_point_in_any_room(wx, wy):
+                self._show_toast("NPC можно размещать только внутри комнат")
+                return
+            if not self.selected_npc_id:
+                self._show_toast("Нет доступных NPC в config/npc/individuals")
+                return
+            room_id = self.dm.find_room_at(self.current_file, wx, wy)
+            npc_ref = self.undo.push(AddNpcCommand(
+                self.dm, self.current_file, self.selected_npc_id,
+                gx, gy, room_id
+            ))
+            self.selected_object = ("npc", self.selected_npc_id)
+            npc_name = next((n["name"] for n in self._npc_list if n["id"] == self.selected_npc_id), self.selected_npc_id)
+            self._show_toast(f"NPC размещён: {npc_name}")
+            
+        elif self.tool == TOOL_SPAWN:
+            # Устанавливаем точку спавна игрока
+            self.dm.set_player_spawn(self.current_file, gx, gy, self.current_z)
+            self.selected_object = ("spawn", "player_spawn")
+            self._show_toast(f"Точка спавна установлена: ({gx}, {gy})")
             
         elif self.tool == TOOL_DELETE:
             # Удаляем объект под курсором
@@ -814,17 +1326,7 @@ class EditorCore:
         if not self.current_file:
             return
         
-        if self.tool == TOOL_WALL and self.wall_drawing and self.wall_start:
-            # Завершаем рисование стены
-            if abs(gx - self.wall_start[0]) > 0.1 or abs(gy - self.wall_start[1]) > 0.1:
-                self.undo.push(AddWallCommand(self.dm, self.current_file,
-                               self.wall_start[0], self.wall_start[1],
-                               gx, gy))
-                self._show_toast("Стена создана")
-            self.wall_drawing = False
-            self.wall_start = None
-            
-        elif self.tool == TOOL_ROOM and self.room_drawing and self.room_start:
+        if self.tool == TOOL_ROOM and self.room_drawing and self.room_start:
             # Завершаем создание комнаты
             x = min(self.room_start[0], gx)
             y = min(self.room_start[1], gy)
@@ -845,6 +1347,219 @@ class EditorCore:
             self.room_drawing = False
             self.room_start = None
     
+    def _try_auto_room(self, last_wall_id: str) -> None:
+        """Проверяет, замкнулся ли контур после создания стены.
+        Если да — создаёт комнату автоматически."""
+        if not self.current_file:
+            return
+        loc = self.dm.locations[self.current_file]
+        
+        # Округляем координаты до сетки 0.5м для сравнения
+        def snap(pt: float) -> float:
+            return round(pt * 2) / 2
+        
+        # Строим граф: точка (snapped) → список стен
+        graph: Dict[Tuple[float, float], List[Dict]] = {}
+        for wall in loc.get("walls", []):
+            p1 = (snap(wall["x1"]), snap(wall["y1"]))
+            p2 = (snap(wall["x2"]), snap(wall["y2"]))
+            graph.setdefault(p1, []).append(wall)
+            graph.setdefault(p2, []).append(wall)
+        
+        # Начальная стена
+        start_wall = next((w for w in loc["walls"] if w["id"] == last_wall_id), None)
+        if not start_wall:
+            return
+        
+        origin = (snap(start_wall["x1"]), snap(start_wall["y1"]))
+        current = (snap(start_wall["x2"]), snap(start_wall["y2"]))
+        
+        # Ищем путь обратно к origin
+        visited_walls = {last_wall_id}
+        path_points = [origin, current]
+        max_depth = 50  # защита от бесконечного цикла
+        
+        while current != origin and max_depth > 0:
+            max_depth -= 1
+            candidates = graph.get(current, [])
+            found = False
+            for wall in candidates:
+                if wall["id"] in visited_walls:
+                    continue
+                visited_walls.add(wall["id"])
+                p1 = (snap(wall["x1"]), snap(wall["y1"]))
+                p2 = (snap(wall["x2"]), snap(wall["y2"]))
+                # Идём к другому концу стены
+                next_pt = p2 if p1 == current else p1
+                if next_pt == current:
+                    continue  # стена длиной 0
+                current = next_pt
+                path_points.append(current)
+                found = True
+                break
+            if not found:
+                return  # тупик — не замкнутый
+        
+        if current != origin or len(path_points) < 4:
+            return  # не замкнулся или слишком мало точек
+        
+        # Вычисляем площадь по формуле шнурков
+        n = len(path_points)
+        area = 0.0
+        for i in range(n):
+            j = (i + 1) % n
+            area += path_points[i][0] * path_points[j][1]
+            area -= path_points[j][0] * path_points[i][1]
+        area = abs(area) / 2.0
+        
+        if area < 1.0:
+            return  # слишком маленькая
+        
+        # Проверяем что комната с такими координатами ещё не существует
+        all_room_keys = set()
+        for r in loc.get("rooms", []):
+            all_room_keys.add((round(r["x"], 1), round(r["y"], 1),
+                               round(r["width"], 1), round(r["height"], 1)))
+        
+        # Bounding box
+        xs = [p[0] for p in path_points]
+        ys = [p[1] for p in path_points]
+        bx = round(min(xs), 2)
+        by = round(min(ys), 2)
+        bw = round(max(xs) - bx, 2)
+        bh = round(max(ys) - by, 2)
+        
+        room_key = (round(bx, 1), round(by, 1), round(bw, 1), round(bh, 1))
+        if room_key in all_room_keys:
+            return  # уже есть
+        
+        room_name = f"Комната {len(loc['rooms'])}"
+        room_cmd = AddRoomCommand(
+            self.dm, self.current_file, room_name, bx, by, bw, bh,
+            polygon=path_points, area_sqm=round(area, 1))
+        
+        self.undo.push(room_cmd)
+        self._show_toast(f"Автокомната: {room_name} ({area:.1f} м²)")
+    
+    def _find_wall_near(self, wx: float, wy: float, threshold: float = 1.0) -> Optional[str]:
+        """Ищет стену, ближайшую к мировой точке (wx, wy). Возвращает wall_id или None."""
+        if not self.current_file:
+            return None
+        loc = self.dm.locations[self.current_file]
+        best_id: Optional[str] = None
+        best_dist = threshold
+        for wall in loc.get("walls", []):
+            # Расстояние от точки до отрезка
+            dist = self._point_to_segment_dist(wx, wy,
+                                                wall["x1"], wall["y1"],
+                                                wall["x2"], wall["y2"])
+            if dist < best_dist:
+                best_dist = dist
+                best_id = wall["id"]
+        return best_id
+    
+    def _is_point_in_any_room(self, wx: float, wy: float) -> bool:
+        """Проверяет, попадает ли мировая точка внутрь хотя бы одной комнаты"""
+        if not self.current_file:
+            return False
+        loc = self.dm.locations[self.current_file]
+        for room in loc.get("rooms", []):
+            poly = room.get("polygon")
+            if poly and len(poly) >= 3:
+                if DataManager._point_in_polygon(wx, wy, [(p[0], p[1]) for p in poly]):
+                    return True
+        return False
+
+    @staticmethod
+    def _point_to_segment_dist(px: float, py: float,
+                                x1: float, y1: float,
+                                x2: float, y2: float) -> float:
+        """Расстояние от точки до отрезка"""
+        dx, dy = x2 - x1, y2 - y1
+        length_sq = dx * dx + dy * dy
+        if length_sq == 0:
+            return math.hypot(px - x1, py - y1)
+        t = max(0, min(1, ((px - x1) * dx + (py - y1) * dy) / length_sq))
+        proj_x = x1 + t * dx
+        proj_y = y1 + t * dy
+        return math.hypot(px - proj_x, py - proj_y)
+    
+    def _try_select_existing(self, mx: int, my: int) -> bool:
+        """Пробует выбрать существующий объект под курсором. Возвращает True если нашёл."""
+        if not self.current_file:
+            return False
+        loc = self.dm.locations[self.current_file]
+        
+        # Объекты
+        if self.show_objects:
+            for obj in loc.get("objects", []):
+                sx, sy = self.world_to_screen(obj["position"]["x"], obj["position"]["y"])
+                w = obj["size"]["w"] * SCALE * self.zoom
+                h = obj["size"]["h"] * SCALE * self.zoom
+                hit_rect = pygame.Rect(sx - w/2, sy - h/2, w, h)
+                if hit_rect.collidepoint(mx, my):
+                    self.selected_object = ("object", obj.get("id", ""))
+                    return True
+        
+        # NPC (проверяем перед стенами — приоритет)
+        for npc in loc.get("npcs", []):
+            sx, sy = self.world_to_screen(npc["position"]["x"], npc["position"]["y"])
+            hit_r = int(SCALE * self.zoom * 0.4)
+            if pygame.Rect(sx - hit_r, sy - hit_r, hit_r * 2, hit_r * 2).collidepoint(mx, my):
+                self.selected_object = ("npc", npc["ref_id"])
+                return True
+        
+        # Точка спавна
+        spawn = loc.get("player_spawn")
+        if spawn:
+            sx, sy = self.world_to_screen(spawn["x"], spawn["y"])
+            hit_r = int(SCALE * self.zoom * 0.5)
+            if pygame.Rect(sx - hit_r, sy - hit_r, hit_r * 2, hit_r * 2).collidepoint(mx, my):
+                self.selected_object = ("spawn", "player_spawn")
+                return True
+        
+        # Стены
+        if self.show_walls:
+            for wall in loc.get("walls", []):
+                sx1, sy1 = self.world_to_screen(wall["x1"], wall["y1"])
+                sx2, sy2 = self.world_to_screen(wall["x2"], wall["y2"])
+                if self._point_near_line(mx, my, sx1, sy1, sx2, sy2, 10):
+                    self.selected_object = ("wall", wall["id"])
+                    return True
+        
+        # Комнаты — собираем все перекрытые, переключаемся циклом
+        if self.show_rooms:
+            wx, wy = self.screen_to_world(mx, my)
+            matched_rooms: List[str] = []
+            for room in loc.get("rooms", []):
+                poly = room.get("polygon")
+                if poly and len(poly) >= 3:
+                    if DataManager._point_in_polygon(wx, wy, [(p[0], p[1]) for p in poly]):
+                        matched_rooms.append(room["id"])
+                else:
+                    rx, ry = self.world_to_screen(room["x"], room["y"])
+                    rw = room["width"] * SCALE * self.zoom
+                    rh = room["height"] * SCALE * self.zoom
+                    if pygame.Rect(rx, ry, rw, rh).collidepoint(mx, my):
+                        matched_rooms.append(room["id"])
+            
+            if matched_rooms:
+                # Проверяем что клик в той же области (±8 пикселей)
+                dx = abs(mx - self._last_click_pos[0])
+                dy = abs(my - self._last_click_pos[1])
+                if matched_rooms == self._overlap_room_ids and dx < 8 and dy < 8:
+                    # Переключаемся на следующую
+                    self._overlap_index = (self._overlap_index + 1) % len(matched_rooms)
+                else:
+                    # Новая область — начинаем с первой
+                    self._overlap_room_ids = matched_rooms
+                    self._overlap_index = 0
+                
+                self.selected_object = ("room", matched_rooms[self._overlap_index])
+                return True
+        
+        return False
+    
     def _select_at(self, mx: int, my: int):
         """Выбирает объект под курсором"""
         if not self.current_file:
@@ -852,22 +1567,33 @@ class EditorCore:
         
         loc = self.dm.locations[self.current_file]
         
-        # Проверяем порталы (приоритет)
-        if self.show_portals:
-            for p in loc.get("portals", []):
-                sx, sy = self.world_to_screen(p["position"]["x"], p["position"]["y"])
-                if abs(sx - mx) < 20 and abs(sy - my) < 20:
-                    self.selected_object = ("portal", p["id"])
+        # Проверяем объекты (приоритет — крупнее, чаще используются)
+        if self.show_objects:
+            for obj in loc.get("objects", []):
+                sx, sy = self.world_to_screen(obj["position"]["x"], obj["position"]["y"])
+                w = obj["size"]["w"] * SCALE * self.zoom
+                h = obj["size"]["h"] * SCALE * self.zoom
+                hit_rect = pygame.Rect(sx - w/2, sy - h/2, w, h)
+                if hit_rect.collidepoint(mx, my):
+                    self.selected_object = ("object", obj.get("id", ""))
                     return
         
-
-        # Проверяем объекты
-        if self.show_objects:
-            for i, obj in enumerate(loc.get("objects", [])):
-                sx, sy = self.world_to_screen(obj["position"]["x"], obj["position"]["y"])
-                if abs(sx - mx) < 20 and abs(sy - my) < 20:
-                    self.selected_object = ("object", i)
-                    return
+        # Проверяем NPC
+        for npc in loc.get("npcs", []):
+            sx, sy = self.world_to_screen(npc["position"]["x"], npc["position"]["y"])
+            hit_r = int(SCALE * self.zoom * 0.4)
+            if pygame.Rect(sx - hit_r, sy - hit_r, hit_r * 2, hit_r * 2).collidepoint(mx, my):
+                self.selected_object = ("npc", npc["ref_id"])
+                return
+        
+        # Проверяем точку спавна
+        spawn = loc.get("player_spawn")
+        if spawn:
+            sx, sy = self.world_to_screen(spawn["x"], spawn["y"])
+            hit_r = int(SCALE * self.zoom * 0.5)
+            if pygame.Rect(sx - hit_r, sy - hit_r, hit_r * 2, hit_r * 2).collidepoint(mx, my):
+                self.selected_object = ("spawn", "player_spawn")
+                return
         
         # Проверяем стены
         if self.show_walls:
@@ -880,13 +1606,20 @@ class EditorCore:
         
         # Проверяем комнаты
         if self.show_rooms:
+            wx, wy = self.screen_to_world(mx, my)
             for room in loc.get("rooms", []):
-                rx, ry = self.world_to_screen(room["x"], room["y"])
-                rw = room["width"] * SCALE * self.zoom
-                rh = room["height"] * SCALE * self.zoom
-                if pygame.Rect(rx, ry, rw, rh).collidepoint(mx, my):
-                    self.selected_object = ("room", room["id"])
-                    return
+                poly = room.get("polygon")
+                if poly and len(poly) >= 3:
+                    if DataManager._point_in_polygon(wx, wy, [(p[0], p[1]) for p in poly]):
+                        self.selected_object = ("room", room["id"])
+                        return
+                else:
+                    rx, ry = self.world_to_screen(room["x"], room["y"])
+                    rw = room["width"] * SCALE * self.zoom
+                    rh = room["height"] * SCALE * self.zoom
+                    if pygame.Rect(rx, ry, rw, rh).collidepoint(mx, my):
+                        self.selected_object = ("room", room["id"])
+                        return
         
         self.selected_object = None
     
@@ -896,15 +1629,6 @@ class EditorCore:
             return
         
         loc = self.dm.locations[self.current_file]
-        
-        # Порталы
-        for p in loc.get("portals", []):
-            sx, sy = self.world_to_screen(p["position"]["x"], p["position"]["y"])
-            if abs(sx - mx) < 20 and abs(sy - my) < 20:
-                self.undo.push(RemovePortalCommand(self.dm, self.current_file, deepcopy(p)))
-                self._show_toast(f"Портал удалён: {p['id']}")
-                self.selected_object = None
-                return
         
         # Узлы
         for nid in list(loc.get("nodes", {}).keys()):
@@ -923,6 +1647,28 @@ class EditorCore:
             if abs(sx - mx) < 20 and abs(sy - my) < 20:
                 self.undo.push(RemoveObjectCommand(self.dm, self.current_file, obj.get("id", ""), deepcopy(obj)))
                 self._show_toast("Объект удалён")
+                self.selected_object = None
+                return
+        
+        # NPC
+        for npc in loc.get("npcs", []):
+            sx, sy = self.world_to_screen(npc["position"]["x"], npc["position"]["y"])
+            hit_r = int(SCALE * self.zoom * 0.4)
+            if pygame.Rect(sx - hit_r, sy - hit_r, hit_r * 2, hit_r * 2).collidepoint(mx, my):
+                self.undo.push(RemoveNpcCommand(self.dm, self.current_file, deepcopy(npc)))
+                npc_name = next((n["name"] for n in self._npc_list if n["id"] == npc["ref_id"]), npc["ref_id"])
+                self._show_toast(f"NPC удалён: {npc_name}")
+                self.selected_object = None
+                return
+        
+        # Надписи
+        for lbl in loc.get("labels", []):
+            sx, sy = self.world_to_screen(lbl["x"], lbl["y"])
+            text_surf = self.font_small.render(lbl.get("text", ""), True, COLORS["text"])
+            tw, th = text_surf.get_size()
+            if pygame.Rect(sx, sy, tw, th).collidepoint(mx, my):
+                self.undo.push(RemoveLabelCommand(self.dm, self.current_file, deepcopy(lbl)))
+                self._show_toast("Надпись удалена")
                 self.selected_object = None
                 return
         
@@ -979,56 +1725,161 @@ class EditorCore:
     
     def _handle_property_action(self, action: str):
         """Обрабатывает действия из панели свойств"""
-        if not self.current_file or not self.selected_object:
+        if not self.current_file:
+            return
+        
+        # Действия над локацией (когда ничего не выделено)
+        if not self.selected_object:
+            loc = self.dm.locations[self.current_file]
+            if action == "set_location_id":
+                current_val = loc.get("location_id", "")
+                fields = [{"key": "location_id", "label": "location_id", "value": current_val}]
+                def on_confirm(inputs: Dict[str, str]) -> None:
+                    new_val = inputs.get("location_id", "").strip()
+                    loc["location_id"] = new_val
+                    self._show_toast(f"location_id = {new_val or '(пусто)'}")
+                self.dialog = ModalDialog(self.screen, "Задать location_id", fields, on_confirm)
             return
         
         obj_type, obj_key = self.selected_object
         loc = self.dm.locations[self.current_file]
         
+        if action == "rename":
+            old_name = self.dm.get_entity_name(self.current_file, obj_type, obj_key)
+            fields = [{"key": "name", "label": "Новое имя", "value": old_name}]
+            def on_confirm(inputs: Dict[str, str]) -> None:
+                new_name = inputs.get("name", "").strip()
+                if new_name and new_name != old_name:
+                    self.undo.push(RenameCommand(
+                        self.dm, self.current_file, obj_type, obj_key,
+                        old_name, new_name))
+                    self._show_toast(f"Переименовано: {new_name}")
+            self.dialog = ModalDialog(self.screen, "Переименовать", fields, on_confirm)
+            return
+        
+        if action == "toggle_show_name" and obj_type == "object":
+            obj = next((o for o in loc["objects"] if o.get("id") == obj_key), None)
+            if obj:
+                obj["show_name"] = not obj.get("show_name", False)
+            return
+        
+        if action == "rename_label":
+            lbl = next((l for l in loc["labels"] if l["id"] == obj_key), None)
+            if lbl:
+                old_text = lbl.get("text", "")
+                fields = [{"key": "text", "label": "Текст", "value": old_text}]
+                def on_confirm_lbl(inputs: Dict[str, str]) -> None:
+                    new_text = inputs.get("text", "").strip()
+                    if new_text and new_text != old_text:
+                        self.dm.rename_label(self.current_file, obj_key, new_text)
+                        self._show_toast("Текст изменён")
+                self.dialog = ModalDialog(self.screen, "Изменить текст", fields, on_confirm_lbl)
+            return
+        
         if action.startswith("toggle_"):
             flag = action[7:]  # Убираем "toggle_"
             if obj_type == "object":
-                obj = loc["objects"][obj_key]
-                self.undo.push(TogglePassabilityCommand(
-                    self.dm, self.current_file, obj_key, flag, obj["passability"][flag]
-                ))
+                obj = next((o for o in loc["objects"] if o.get("id") == obj_key), None)
+            if not obj:
+                return
+            self.undo.push(TogglePassabilityCommand(
+                self.dm, self.current_file, obj_key, flag, obj["passability"][flag]
+            ))
     
     def _update(self):
         """Обновляет состояние"""
         if self.toast_timer > 0:
             self.toast_timer -= 1
         
+        # Плавное движение камеры стрелками (проверяем зажатие)
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_LEFT]:
+            self.camera_x += self.camera_speed
+        if keys[pygame.K_RIGHT]:
+            self.camera_x -= self.camera_speed
+        if keys[pygame.K_UP]:
+            self.camera_y += self.camera_speed
+        if keys[pygame.K_DOWN]:
+            self.camera_y -= self.camera_speed
+        
         # Обновляем панель свойств
         self._update_property_panel()
     
     def _update_property_panel(self):
         """Обновляет содержимое панели свойств"""
-        if not self.current_file or not self.selected_object:
+        if not self.current_file:
             self.property_panel.set_content("СВОЙСТВА", [])
             return
+        
+        loc = self.dm.locations[self.current_file]
+        
+        # Если ничего не выделено — показываем свойства локации
+        if not self.selected_object:
+            items = [
+                {"type": "label", "text": f"Локация: {loc.get('label', self.current_file)}", "important": True},
+                {"type": "value", "label": "Файл", "value": self.current_file},
+                {"type": "value", "label": "Размер", "value": f"{loc['size']['w']}x{loc['size']['h']}м"},
+                {"type": "value", "label": "location_id", "value": loc.get("location_id", "—")},
+                {"type": "toggle", "label": "✏️ Задать location_id", "action": "set_location_id"},
+                {"type": "section", "text": "Содержимое:"},
+                {"type": "value", "label": "Комнаты", "value": str(len(loc.get("rooms", [])))},
+                {"type": "value", "label": "Стены", "value": str(len(loc.get("walls", [])))},
+                {"type": "value", "label": "Объекты", "value": str(len(loc.get("objects", [])))},
+                {"type": "value", "label": "NPC", "value": str(len(loc.get("npcs", [])))},
+                {"type": "value", "label": "Узлы", "value": str(len(loc.get("nodes", {})))},
+            ]
+            self.property_panel.set_content("СВОЙСТВА", items)
+            return
+        
+        obj_type, obj_key = self.selected_object
+        items = []
         
         obj_type, obj_key = self.selected_object
         loc = self.dm.locations[self.current_file]
         items = []
         
         if obj_type == "object":
-            obj = loc["objects"][obj_key]
+            obj = next((o for o in loc["objects"] if o.get("id") == obj_key), None)
+            if not obj:
+                self.property_panel.set_content("СВОЙСТВА", [])
+                return
             items = [
                 {"type": "label", "text": f"Объект: {obj['type']}", "important": True},
+                {"type": "value", "label": "Имя", "value": obj.get("name", "")},
+                {"type": "toggle", "label": "✏️ Переименовать", "action": "rename"},
+                {"type": "toggle", "label": "Показать имя", "value": obj.get("show_name", False), "action": "toggle_show_name"},
                 {"type": "value", "label": "X", "value": f"{obj['position']['x']:.1f}"},
                 {"type": "value", "label": "Y", "value": f"{obj['position']['y']:.1f}"},
                 {"type": "section", "text": "Проходимость:"},
-                {"type": "toggle", "label": "Walk", "value": obj["passability"]["walk"], "action": "toggle_walk"},
-                {"type": "toggle", "label": "Jump", "value": obj["passability"]["jump_over"], "action": "toggle_jump_over"},
-                {"type": "toggle", "label": "Crawl", "value": obj["passability"]["crawl_under"], "action": "toggle_crawl_under"},
-                {"type": "toggle", "label": "Climb", "value": obj["passability"]["climb_on"], "action": "toggle_climb_on"},
+                {"type": "toggle", "label": "Идти", "value": obj["passability"]["walk"], "action": "toggle_walk"},
+                {"type": "toggle", "label": "Прыгать", "value": obj["passability"]["jump_over"], "action": "toggle_jump_over"},
+                {"type": "toggle", "label": "Ползти", "value": obj["passability"]["crawl_under"], "action": "toggle_crawl_under"},
+                {"type": "toggle", "label": "Лезть", "value": obj["passability"]["climb_on"], "action": "toggle_climb_on"},
             ]
+            # Свойства объекта (если есть)
+            props = obj.get("properties", {})
+            if props:
+                items.append({"type": "section", "text": "Свойства:"})
+                prop_labels = {
+                    "open": "Открыто", "locked": "Замок", "durability": "Прочность",
+                    "opacity": "Непрозрачность", "destructible": "Разрушаемое",
+                    "sound_attenuation": "Заглушение звука"
+                }
+                for key, value in props.items():
+                    label = prop_labels.get(key, key)
+                    if isinstance(value, bool):
+                        items.append({"type": "value", "label": label, "value": "Да" if value else "Нет"})
+                    elif isinstance(value, (int, float)):
+                        items.append({"type": "value", "label": label, "value": f"{value}"})
+                    else:
+                        items.append({"type": "value", "label": label, "value": str(value)})
         
         elif obj_type == "portal":
             p = next((p for p in loc["portals"] if p["id"] == obj_key), None)
             if p:
                 items = [
                     {"type": "label", "text": f"Портал: {p['label']}", "important": True},
+                    {"type": "toggle", "label": "✏️ Переименовать", "action": "rename"},
                     {"type": "value", "label": "Тип", "value": p['type']},
                     {"type": "value", "label": "Цель", "value": p.get('target') or "(не связан)"},
                 ]
@@ -1049,10 +1900,44 @@ class EditorCore:
             if room:
                 items = [
                     {"type": "label", "text": f"Комната: {room['name']}", "important": True},
+                    {"type": "toggle", "label": "✏️ Переименовать", "action": "rename"},
                     {"type": "value", "label": "X", "value": f"{room['x']:.1f}"},
                     {"type": "value", "label": "Y", "value": f"{room['y']:.1f}"},
                     {"type": "value", "label": "Ширина", "value": f"{room['width']:.1f}"},
                     {"type": "value", "label": "Высота", "value": f"{room['height']:.1f}"},
+                    {"type": "value", "label": "Площадь", "value": f"{room.get('area_sqm', room['width'] * room['height']):.1f} м²"},
+                ]
+        
+        elif obj_type == "label":
+            lbl = next((l for l in loc["labels"] if l["id"] == obj_key), None)
+            if lbl:
+                items = [
+                    {"type": "label", "text": "Надпись", "important": True},
+                    {"type": "toggle", "label": "✏️ Изменить текст", "action": "rename_label"},
+                    {"type": "value", "label": "X", "value": f"{lbl['x']:.1f}"},
+                    {"type": "value", "label": "Y", "value": f"{lbl['y']:.1f}"},
+                ]
+        
+        elif obj_type == "npc":
+            npc = next((n for n in loc.get("npcs", []) if n.get("ref_id") == obj_key), None)
+            if npc:
+                npc_name = next((nn["name"] for nn in self._npc_list if nn["id"] == npc["ref_id"]), npc["ref_id"])
+                items = [
+                    {"type": "label", "text": f"NPC: {npc_name}", "important": True},
+                    {"type": "value", "label": "ID", "value": npc["ref_id"]},
+                    {"type": "value", "label": "X", "value": f"{npc['position']['x']:.1f}"},
+                    {"type": "value", "label": "Y", "value": f"{npc['position']['y']:.1f}"},
+                    {"type": "value", "label": "Комната", "value": npc.get("room_id", "—")},
+                ]
+        
+        elif obj_type == "spawn":
+            spawn = loc.get("player_spawn")
+            if spawn:
+                items = [
+                    {"type": "label", "text": "🏁 Точка спавна игрока", "important": True},
+                    {"type": "value", "label": "X", "value": f"{spawn['x']:.1f}"},
+                    {"type": "value", "label": "Y", "value": f"{spawn['y']:.1f}"},
+                    {"type": "value", "label": "Z", "value": f"{spawn.get('z', 0)}"},
                 ]
         
         self.property_panel.set_content("СВОЙСТВА", items)
@@ -1100,7 +1985,7 @@ class EditorCore:
             pygame.draw.rect(self.screen, color, rect, border_radius=4)
             pygame.draw.rect(self.screen, COLORS["border"], rect, 2, border_radius=4)
             
-            # Название
+            # Название локации
             label = self.font_bold.render(data.get("label", fname), True, COLORS["text_highlight"])
             self.screen.blit(label, (rect.x + 8, rect.y - 18))
             
@@ -1164,13 +2049,21 @@ class EditorCore:
         if self.show_walls:
             self._draw_walls()
         
+        # Проходы (внутренние двери в стенах)
+        self._draw_passages()
+        
+        # Надписи (поверх всего, чтобы не перекрывались)
+        self._draw_labels()
+        
         # Объекты
         if self.show_objects:
             self._draw_objects()
         
-        # Порталы
-        if self.show_portals:
-            self._draw_portals()
+        # NPC
+        self._draw_npcs()
+        
+        # Точка спавна игрока
+        self._draw_spawn()
         
         # Предпросмотр рисования
         self._draw_preview()
@@ -1225,7 +2118,8 @@ class EditorCore:
             return
         
         loc = self.dm.locations[self.current_file]
-        x, y = self.world_to_screen(loc["origin"]["x"], loc["origin"]["y"])
+        origin = loc.get("origin", {"x": 0, "y": 0})
+        x, y = self.world_to_screen(origin["x"], origin["y"])
         w = loc["size"]["w"] * SCALE * self.zoom
         h = loc["size"]["h"] * SCALE * self.zoom
         
@@ -1240,24 +2134,88 @@ class EditorCore:
         label = self.font.render(f"{loc['size']['w']}x{loc['size']['h']}м", True, COLORS["text_dim"])
         self.screen.blit(label, (x + 5, y - 15))
     
+    def _find_label_position(self, room: Dict, objects_in_room: List[Dict]) -> Tuple[int, int]:
+        """Находит лучшую позицию для надписи комнаты — максимально удалённую от объектов."""
+        poly = room.get("polygon")
+        if not poly:
+            rx, ry = self.world_to_screen(room["x"], room["y"])
+            return rx + 4, ry + 4
+        
+        # Экранные координаты полигона
+        screen_poly = [self.world_to_screen(p[0], p[1]) for p in poly]
+        # Bounding box
+        xs = [p[0] for p in screen_poly]
+        ys = [p[1] for p in screen_poly]
+        min_x, max_x = min(xs), max(xs)
+        min_y, max_y = min(ys), max(ys)
+        
+        # Экранные позиции объектов
+        obj_positions = [(self.world_to_screen(o["position"]["x"], o["position"]["y"]))
+                         for o in objects_in_room]
+        
+        # Сетка кандидатов — с запасом на размер текста
+        text_w, text_h = 150, 16  # примерный максимальный размер надписи
+        step = 16
+        best_pos = (min_x + 4, min_y + 4)
+        best_dist = -1
+        
+        cx = min_x + text_w // 2 + 4
+        while cx < max_x - text_w // 2 - 4:
+            cy = min_y + text_h // 2 + 4
+            while cy < max_y - text_h // 2 - 4:
+                # Проверяем что ЛЕВЫЙ ВЕРХНИЙ угол текста и ПРАВЫЙ НИЖНИЙ — внутри полигона
+                if (DataManager._point_in_polygon(cx - text_w // 2, cy - text_h // 2, screen_poly) and
+                    DataManager._point_in_polygon(cx + text_w // 2, cy - text_h // 2, screen_poly) and
+                    DataManager._point_in_polygon(cx - text_w // 2, cy + text_h // 2, screen_poly) and
+                    DataManager._point_in_polygon(cx + text_w // 2, cy + text_h // 2, screen_poly)):
+                    # Минимальное расстояние до объектов
+                    min_d = float('inf')
+                    for ox, oy in obj_positions:
+                        d = math.hypot(cx - ox, cy - oy)
+                        if d < min_d:
+                            min_d = d
+                    if not obj_positions:
+                        min_d = 999
+                    if min_d > best_dist:
+                        best_dist = min_d
+                        best_pos = (int(cx) - text_w // 2, int(cy) - text_h // 2)
+                cy += step
+            cx += step
+        
+        return best_pos
+    
     def _draw_rooms(self):
-        """Отрисовывает комнаты"""
+        """Отрисовывает комнаты — полигональные или прямоугольные"""
         if not self.current_file:
             return
         
         loc = self.dm.locations[self.current_file]
         for room in loc.get("rooms", []):
-            rx, ry = self.world_to_screen(room["x"], room["y"])
-            rw = room["width"] * SCALE * self.zoom
-            rh = room["height"] * SCALE * self.zoom
+            poly = room.get("polygon")
             
-            # Фон комнаты
-            pygame.draw.rect(self.screen, (60, 60, 70), (rx, ry, rw, rh))
-            # Граница
-            pygame.draw.rect(self.screen, (100, 100, 120), (rx, ry, rw, rh), 2)
-            # Название
-            name = self.font_small.render(room["name"], True, COLORS["text_dim"])
-            self.screen.blit(name, (rx + 4, ry + 4))
+            if poly and len(poly) >= 3:
+                # Полигональная комната
+                screen_pts = [self.world_to_screen(p[0], p[1]) for p in poly]
+                pygame.draw.polygon(self.screen, (60, 60, 70), screen_pts)
+                pygame.draw.polygon(self.screen, (100, 100, 120), screen_pts, 2)
+            else:
+                # Прямоугольная (совместимость)
+                rx, ry = self.world_to_screen(room["x"], room["y"])
+                rw = room["width"] * SCALE * self.zoom
+                rh = room["height"] * SCALE * self.zoom
+                pygame.draw.rect(self.screen, (60, 60, 70), (rx, ry, rw, rh))
+                pygame.draw.rect(self.screen, (100, 100, 120), (rx, ry, rw, rh), 2)
+            
+            # Надпись — умная позиция, уходящая от объектов
+            objects_in = [o for o in loc.get("objects", [])
+                          if self.dm.find_room_at(self.current_file,
+                                                    o["position"]["x"],
+                                                    o["position"]["y"]) == room["id"]]
+            lx, ly = self._find_label_position(room, objects_in)
+            area = room.get("area_sqm", round(room["width"] * room["height"], 1))
+            label_str = f"{room['name']} — {area:.1f} м²"
+            label = self.font_small.render(label_str, True, COLORS["text_dim"])
+            self.screen.blit(label, (lx, ly))
     
     def _draw_walls(self):
         """Отрисовывает стены"""
@@ -1277,6 +2235,40 @@ class EditorCore:
             pygame.draw.circle(self.screen, (180, 120, 60), (x1, y1), 4)
             pygame.draw.circle(self.screen, (180, 120, 60), (x2, y2), 4)
     
+    def _draw_passages(self):
+        """Отрисовывает проходы (внутренние двери/окна в стенах)"""
+        if not self.current_file:
+            return
+        loc = self.dm.locations[self.current_file]
+        for passage in loc.get("passages", []):
+            if passage.get("z", 0) != self.current_z:
+                continue
+            sx, sy = self.world_to_screen(passage["position"]["x"], passage["position"]["y"])
+            # Цвет по типу: дверь — жёлтый, окно — голубой, пролом — серый
+            ptype = passage.get("type", "door")
+            color = {"door": "#FFD700", "window": "#87CEEB", "gap": "#AAAAAA"}.get(ptype, "#FFD700")
+            pygame.draw.circle(self.screen, color, (sx, sy), 6)
+            pygame.draw.circle(self.screen, COLORS["border"], (sx, sy), 6, 1)
+            label = self.font_small.render(passage["id"], True, COLORS["text_dim"])
+            self.screen.blit(label, (sx + 10, sy - 6))
+    
+    def _draw_labels(self):
+        """Отрисовывает произвольные надписи"""
+        if not self.current_file:
+            return
+        loc = self.dm.locations[self.current_file]
+        for lbl in loc.get("labels", []):
+            sx, sy = self.world_to_screen(lbl["x"], lbl["y"])
+            text = lbl.get("text", "")
+            if not text:
+                continue
+            color = COLORS["text_highlight"]
+            # Если выделена — подсветить
+            if self.selected_object == ("label", lbl["id"]):
+                color = COLORS["accent_yellow"]
+            rendered = self.font_small.render(text, True, color)
+            self.screen.blit(rendered, (sx, sy))
+    
     def _draw_objects(self):
         """Отрисовывает объекты"""
         if not self.current_file:
@@ -1287,22 +2279,105 @@ class EditorCore:
             sx, sy = self.world_to_screen(obj["position"]["x"], obj["position"]["y"])
             w = obj["size"]["w"] * SCALE * self.zoom
             h = obj["size"]["h"] * SCALE * self.zoom
-            rotation = obj.get("rotation", 0)
+            try:
+                rotation = float(obj.get("rotation") or 0)
+            except (ValueError, TypeError):
+                rotation = 0.0
             color = OBJECT_COLORS.get(obj["type"], OBJECT_COLORS["decoration"])
             
-            if rotation % 360 != 0:
-                pts = self._rotated_rect_points(sx, sy, w, h, rotation)
-                pygame.draw.polygon(self.screen, color, pts)
-                pygame.draw.polygon(self.screen, COLORS["border"], pts, 1)
-            else:
-                rect = pygame.Rect(sx - w/2, sy - h/2, w, h)
-                pygame.draw.rect(self.screen, color, rect, border_radius=2)
-                pygame.draw.rect(self.screen, COLORS["border"], rect, 1, border_radius=2)
+            # Попытка получить спрайт из пресета
+            preset = OBJECT_PRESETS.get(obj["type"], {})
+            sprite_info = preset.get("sprite")
+            sprite_surf = None
+            if sprite_info:
+                sprite_surf = sprite_registry.get(sprite_info[0], sprite_info[1], sprite_info[2])
             
-            # Имя объекта (для старых данных без name — fallback на тип)
-            label_text = obj.get("name", obj["type"][:4])
-            label = self.font_small.render(label_text, True, COLORS["text_highlight"])
-            self.screen.blit(label, (sx - label.get_width() // 2, sy - h / 2 - 14))
+            if sprite_surf:
+                # Отрисовка спрайта с масштабированием без рамки
+                scaled = pygame.transform.scale(sprite_surf, (int(w), int(h)))
+                if rotation % 360 != 0:
+                    scaled = pygame.transform.rotate(scaled, -rotation)
+                scaled_rect = scaled.get_rect(center=(int(sx), int(sy)))
+                self.screen.blit(scaled, scaled_rect)
+            else:
+                # Fallback на цветной квадрат
+                if rotation % 360 != 0:
+                    pts = self._rotated_rect_points(sx, sy, w, h, rotation)
+                    pygame.draw.polygon(self.screen, color, pts)
+                    pygame.draw.polygon(self.screen, COLORS["border"], pts, 1)
+                else:
+                    rect = pygame.Rect(sx - w/2, sy - h/2, w, h)
+                    pygame.draw.rect(self.screen, color, rect, border_radius=2)
+                    pygame.draw.rect(self.screen, COLORS["border"], rect, 1, border_radius=2)
+            
+            # Имя объекта — только если включено показ
+            if obj.get("show_name", False):
+                label_text = obj.get("name", obj["type"][:4])
+                label = self.font_small.render(label_text, True, COLORS["text_highlight"])
+                self.screen.blit(label, (sx - label.get_width() // 2, sy - h / 2 - 14))
+    
+    def _draw_npcs(self):
+        """Отрисовывает размещённых NPC (реальных из config)"""
+        if not self.current_file:
+            return
+        
+        loc = self.dm.locations[self.current_file]
+        for npc in loc.get("npcs", []):
+            sx, sy = self.world_to_screen(npc["position"]["x"], npc["position"]["y"])
+            
+            # Имя NPC из списка загруженных
+            npc_name = next((n["name"] for n in self._npc_list if n["id"] == npc["ref_id"]), npc["ref_id"])
+            
+            # Спрайт из маппинга или дефолтный
+            sprite_info = NPC_SPRITE_MAP.get(npc["ref_id"], ("Deadbeat/deadbeat_b", 23, 21))
+            size = int(SCALE * self.zoom * 0.8)
+            sprite_surf = sprite_registry.get(sprite_info[0], sprite_info[1], sprite_info[2])
+            
+            is_selected = self.selected_object == ("npc", npc["ref_id"])
+            
+            if sprite_surf:
+                scaled = pygame.transform.scale(sprite_surf, (size, size))
+                rect = scaled.get_rect(center=(int(sx), int(sy)))
+                self.screen.blit(scaled, rect)
+                if is_selected:
+                    pygame.draw.rect(self.screen, COLORS["accent_yellow"], rect.inflate(4, 4), 2)
+            else:
+                color = COLORS["accent_yellow"] if is_selected else (100, 180, 100)
+                pygame.draw.circle(self.screen, color, (int(sx), int(sy)), size // 2)
+                pygame.draw.circle(self.screen, COLORS["border"], (int(sx), int(sy)), size // 2, 1)
+            
+            # Подпись с реальным именем NPC
+            label = self.font_small.render(npc_name, True, COLORS["text_highlight"])
+            self.screen.blit(label, (sx - label.get_width() // 2, sy - size // 2 - 14))
+    
+    def _draw_spawn(self):
+        """Отрисовывает точку спавна игрока"""
+        if not self.current_file:
+            return
+        
+        loc = self.dm.locations[self.current_file]
+        spawn = loc.get("player_spawn")
+        if not spawn:
+            return
+        
+        sx, sy = self.world_to_screen(spawn["x"], spawn["y"])
+        is_selected = self.selected_object == ("spawn", "player_spawn")
+        
+        # Флаг — жёлтый треугольник
+        size = int(SCALE * self.zoom * 0.5)
+        color = COLORS["accent_yellow"] if is_selected else (255, 200, 0)
+        
+        points = [
+            (sx, sy - size),
+            (sx - size * 0.7, sy + size * 0.5),
+            (sx + size * 0.7, sy + size * 0.5),
+        ]
+        pygame.draw.polygon(self.screen, color, points)
+        pygame.draw.polygon(self.screen, COLORS["border"], points, 2)
+        
+        # Подпись
+        label = self.font_small.render("СПАВН", True, COLORS["accent_yellow"])
+        self.screen.blit(label, (sx - label.get_width() // 2, sy + size * 0.5 + 4))
     
     def _draw_nodes(self):
         """Отрисовывает навигационные узлы"""
@@ -1339,44 +2414,7 @@ class EditorCore:
             label = self.font_small.render(ndata.get("label", nid), True, COLORS["text"])
             self.screen.blit(label, (sx + 10, sy - 8))
     
-    def _draw_portals(self):
-        """Отрисовывает порталы"""
-        if not self.current_file:
-            return
-        
-        loc = self.dm.locations[self.current_file]
-        
-        for p in loc.get("portals", []):
-            sx, sy = self.world_to_screen(p["position"]["x"], p["position"]["y"])
-            
-            # Цвет по типу
-            portal_info = PORTAL_TYPES.get(p["type"], PORTAL_TYPES["door"])
-            color = tuple(int(portal_info["color"][i:i+2], 16) for i in (1, 3, 5))
-            
-            # Иконка по типу
-            if p["type"] == "door":
-                pygame.draw.rect(self.screen, color, (sx - 10, sy - 20, 20, 40), 2)
-                pygame.draw.line(self.screen, color, (sx, sy - 20), (sx, sy + 20), 1)
-            elif p["type"] in ("stairs_up", "stairs_down"):
-                pygame.draw.polygon(self.screen, color, [(sx, sy - 15), (sx + 15, sy), (sx - 15, sy)])
-                if p["type"] == "stairs_up":
-                    pygame.draw.polygon(self.screen, color, [(sx, sy - 10), (sx + 10, sy), (sx - 10, sy)])
-            elif p["type"] == "ladder":
-                pygame.draw.line(self.screen, color, (sx, sy - 20), (sx, sy + 20), 3)
-                for i in range(-15, 16, 8):
-                    pygame.draw.line(self.screen, color, (sx - 8, sy + i), (sx + 8, sy + i), 2)
-            else:
-                # Стандартная иконка
-                pygame.draw.circle(self.screen, color, (sx, sy), 12)
-            
-            # Подпись
-            label = self.font_small.render(p.get("label", p["id"]), True, color)
-            self.screen.blit(label, (sx + 15, sy - 8))
-            
-            # Индикатор связи
-            if p.get("target"):
-                pygame.draw.circle(self.screen, COLORS["accent_green"], (sx - 15, sy - 15), 4)
-    
+
     def _draw_preview(self):
         """Отрисовывает предпросмотр при рисовании"""
         mx, my = pygame.mouse.get_pos()
@@ -1397,6 +2435,17 @@ class EditorCore:
             rect = pygame.Rect(min(x1, mx), min(y1, my), abs(mx - x1), abs(my - y1))
             pygame.draw.rect(self.screen, (100, 100, 120, 100), rect)
             pygame.draw.rect(self.screen, COLORS["accent_yellow"], rect, 2)
+            # Площадь в реальном времени
+            wx1, wy1 = self.room_start
+            wx2, wy2 = self.screen_to_world(mx, my)
+            w_m = abs(wx2 - wx1)
+            h_m = abs(wy2 - wy1)
+            area = w_m * h_m
+            if area > 0.5:
+                area_text = f"{area:.1f} м² ({w_m:.1f}×{h_m:.1f})"
+                area_surf = self.font_small.render(area_text, True, COLORS["accent_yellow"])
+                self.screen.blit(area_surf, (rect.centerx - area_surf.get_width() // 2,
+                                              rect.centery - area_surf.get_height() // 2))
     
     def _draw_selection(self):
         """Отрисовывает выделение объекта"""
@@ -1407,30 +2456,49 @@ class EditorCore:
         loc = self.dm.locations[self.current_file]
         
         if obj_type == "object":
-            if 0 <= obj_key < len(loc.get("objects", [])):
-                obj = loc["objects"][obj_key]
+            obj = next((o for o in loc.get("objects", []) if o.get("id") == obj_key), None)
+            if obj:
                 sx, sy = self.world_to_screen(obj["position"]["x"], obj["position"]["y"])
                 w = obj["size"]["w"] * SCALE * self.zoom
                 h = obj["size"]["h"] * SCALE * self.zoom
-                rotation = obj.get("rotation", 0)
-                if rotation % 360 != 0:
-                    pts = self._rotated_rect_points(sx, sy, w + 6, h + 6, rotation)
-                    pygame.draw.polygon(self.screen, COLORS["accent_yellow"], pts, 3)
-                else:
-                    rect = pygame.Rect(sx - w/2 - 3, sy - h/2 - 3, w + 6, h + 6)
-                    pygame.draw.rect(self.screen, COLORS["accent_yellow"], rect, 3, border_radius=3)
-                # кнопки поворота
-                for btn in self._get_rotation_buttons(obj_key):
-                    r = btn["rect"]
-                    pygame.draw.circle(self.screen, COLORS["bg_panel"], r.center, r.width // 2)
-                    pygame.draw.circle(self.screen, COLORS["border"], r.center, r.width // 2, 1)
-                    # треугольник-стрелка
-                    cx, cy = r.center
-                    if btn["delta"] > 0:  # по часовой →
-                        pts = [(cx - 4, cy - 4), (cx - 4, cy + 4), (cx + 4, cy)]
-                    else:  # против часовой ←
-                        pts = [(cx + 4, cy - 4), (cx + 4, cy + 4), (cx - 4, cy)]
-                    pygame.draw.polygon(self.screen, COLORS["text"], pts)
+                try:
+                    rotation = float(obj.get("rotation") or 0)
+                except (ValueError, TypeError):
+                    rotation = 0.0
+                # Рамка выделения — только для объектов без спрайта
+                preset = OBJECT_PRESETS.get(obj["type"], {})
+                if not preset.get("sprite"):
+                    if rotation % 360 != 0:
+                        pts = self._rotated_rect_points(sx, sy, w + 6, h + 6, rotation)
+                        pygame.draw.polygon(self.screen, COLORS["accent_yellow"], pts, 3)
+                    else:
+                        rect = pygame.Rect(sx - w/2 - 3, sy - h/2 - 3, w + 6, h + 6)
+                        pygame.draw.rect(self.screen, COLORS["accent_yellow"], rect, 3, border_radius=3)
+                # хэндлы ресайза — только в режиме выбора
+                if self.tool is None:
+                    for handle in self._get_resize_handles(obj_key):
+                        r = handle["rect"]
+                        pygame.draw.rect(self.screen, COLORS["bg_panel"], r)
+                        pygame.draw.rect(self.screen, COLORS["accent_yellow"], r, 1)
+                # кнопки поворота/зеркала — только в режиме выбора
+                if self.tool is None:
+                    for btn in self._get_rotation_buttons(obj_key):
+                        r = btn["rect"]
+                        pygame.draw.circle(self.screen, COLORS["bg_panel"], r.center, r.width // 2)
+                        pygame.draw.circle(self.screen, COLORS["border"], r.center, r.width // 2, 1)
+                        cx, cy = r.center
+                        if btn.get("action") == "mirror":
+                            # горизонтальная двусторонняя стрелка ↔
+                            pygame.draw.line(self.screen, COLORS["text"], (cx - 5, cy), (cx + 5, cy), 2)
+                            pygame.draw.polygon(self.screen, COLORS["text"], [(cx + 5, cy), (cx + 2, cy - 3), (cx + 2, cy + 3)])
+                            pygame.draw.polygon(self.screen, COLORS["text"], [(cx - 5, cy), (cx - 2, cy - 3), (cx - 2, cy + 3)])
+                        else:
+                            # треугольник-стрелка поворота
+                            if btn["delta"] > 0:  # по часовой →
+                                pts = [(cx - 4, cy - 4), (cx - 4, cy + 4), (cx + 4, cy)]
+                            else:  # против часовой ←
+                                pts = [(cx + 4, cy - 4), (cx + 4, cy + 4), (cx - 4, cy)]
+                            pygame.draw.polygon(self.screen, COLORS["text"], pts)
                 
         elif obj_type == "portal":
             for p in loc.get("portals", []):
@@ -1450,10 +2518,15 @@ class EditorCore:
         elif obj_type == "room":
             for room in loc.get("rooms", []):
                 if room["id"] == obj_key:
-                    rx, ry = self.world_to_screen(room["x"], room["y"])
-                    rw = room["width"] * SCALE * self.zoom
-                    rh = room["height"] * SCALE * self.zoom
-                    pygame.draw.rect(self.screen, COLORS["accent_yellow"], (rx - 2, ry - 2, rw + 4, rh + 4), 3)
+                    poly = room.get("polygon")
+                    if poly and len(poly) >= 3:
+                        screen_pts = [self.world_to_screen(p[0], p[1]) for p in poly]
+                        pygame.draw.polygon(self.screen, COLORS["accent_yellow"], screen_pts, 3)
+                    else:
+                        rx, ry = self.world_to_screen(room["x"], room["y"])
+                        rw = room["width"] * SCALE * self.zoom
+                        rh = room["height"] * SCALE * self.zoom
+                        pygame.draw.rect(self.screen, COLORS["accent_yellow"], (rx - 2, ry - 2, rw + 4, rh + 4), 3)
                     break
     
     def _draw_ui(self):
@@ -1480,8 +2553,6 @@ class EditorCore:
         # Дропдауны
         if self.object_dropdown:
             self.object_dropdown.draw(self.screen, self.font, self.font_small)
-        if self.portal_dropdown:
-            self.portal_dropdown.draw(self.screen, self.font, self.font_small)
         
         # Панель свойств
         self.property_panel.draw(self.screen, self.font, self.font_small)

@@ -106,7 +106,7 @@ def generate_emotional_nuance(state: NPCState) -> str:
     """
     parts = []
     stress = state.stress
-    traits = state.active_traits
+    traits = state.state_modifiers
 
     if state.emotion == EmotionTag.ANGRY:
         if stress > 70:
@@ -352,7 +352,9 @@ def _verbalize_memory(fact: Union[NarrativeFact, "EventMemory"]) -> str:
 
     # Обычная логика для конкретных воспоминаний
     if clarity > 0.8 and confidence > 0.6:
-        mem_text = f"{event_type} ({readable})"
+        # R1: предпочитаем summary с реальным текстом события
+        _summary = getattr(fact, "summary", "")
+        mem_text = _summary if _summary else f"{event_type} ({readable})"
     elif clarity > 0.4:
         mem_text = f"что-то связанное с {readable}"
     else:

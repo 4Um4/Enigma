@@ -23,30 +23,16 @@ import random
 from dataclasses import dataclass, field
 from typing import Dict, Optional, Tuple
 
+from app.core.constants import (
+    BIAS_WEIGHT,
+    D20_SIDES,
+    DESPERATION_STRESS,
+    DICE_WEIGHT,
+    OUTCOME_CEILING,
+    OUTCOME_FLOOR,
+    SURPRISE_THRESHOLD,
+)
 from app.models.npc_state import EmotionTag, NPCPersonality, NPCState
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Константы
-# TODO: миграция в core/constants.py после калибровки
-# ─────────────────────────────────────────────────────────────────────────────
-
-# Доля броска кубика в итоге: 65% хаос, 35% состояние системы
-DICE_WEIGHT: float = 0.65
-BIAS_WEIGHT: float = 0.35
-
-# Кубик d20 → нормализация в [0..1]
-D20_SIDES: int = 20
-
-# Жёсткие границы — никогда 0% или 100%
-OUTCOME_FLOOR:   float = 0.05
-OUTCOME_CEILING: float = 0.95
-
-# Порог сюрприза — выше → эмоциональная реакция
-SURPRISE_THRESHOLD: float = 0.25
-
-# Порог стресса для режима отчаяния — NPC действует вопреки шансам
-DESPERATION_STRESS: float = 85.0
 
 
 # ─────────────────────────────────────────────────────────────────────────────

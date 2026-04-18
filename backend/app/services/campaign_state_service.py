@@ -53,7 +53,7 @@ class CampaignStateService:
             return state
         
         try:
-            data = json.loads(path.read_text(encoding="utf-8"))
+            data = json.loads(path.read_text(encoding="utf-8-sig"))
             return CampaignState.model_validate(data)
         except (json.JSONDecodeError, ValueError) as e:
             # Если файл поврежден - создаем новый

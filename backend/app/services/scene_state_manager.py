@@ -30,6 +30,7 @@ SceneState хранится в:
 from __future__ import annotations
 
 import json
+import math
 import random
 import logging
 from datetime import datetime
@@ -189,10 +190,13 @@ class SceneStateManager:
         self,
         data_dir: Optional[Path] = None,
         persistence: Optional[PersistencePort] = None,
+        saves_dir: Optional[Path] = None,
     ):
         self.data_dir      = Path(data_dir) if data_dir else _DATA_DIR
         self._persistence  = persistence  # PersistencePort для commit()
         self.campaigns_dir = self.data_dir / "campaigns"
+        # Runtime-сохранения: пишет в saves_dir, читает с fallback в campaigns_dir
+        self._saves_dir    = Path(saves_dir) if saves_dir else self.campaigns_dir
         self.templates_dir = self.data_dir / "locations"
         self.validator     = ChangeValidator()
         self._templates_cache: dict | None = None
@@ -202,9 +206,21 @@ class SceneStateManager:
     # ─────────────────────────────────────────────────────────────────────────
 
     def _state_file(self, campaign_id: str) -> Path:
-        path = self.campaigns_dir / campaign_id / "campaign_state.json"
-        path.parent.mkdir(parents=True, exist_ok=True)
-        return path
+        """Возвращает путь к campaign_state.json в saves/. Мигрирует из campaigns/ при первом доступе."""
+        saves_path = self._saves_dir / campaign_id / "campaign_state.json"
+        if saves_path.exists():
+            return saves_path
+        # Миграция: если файл в старом месте — копируем в saves/
+        legacy_path = self.campaigns_dir / campaign_id / "campaign_state.json"
+        if legacy_path.exists():
+            saves_path.parent.mkdir(parents=True, exist_ok=True)
+            import shutil
+            shutil.copy2(legacy_path, saves_path)
+            logger.info(f"[SCENE] Миграция campaign_state: {legacy_path} → {saves_path}")
+            return saves_path
+        # Новое сохранение — в saves_dir
+        saves_path.parent.mkdir(parents=True, exist_ok=True)
+        return saves_path
 
     def _templates_file(self) -> Path:
         self.templates_dir.mkdir(parents=True, exist_ok=True)
@@ -219,7 +235,7 @@ class SceneStateManager:
         if not path.exists():
             return {}
         try:
-            return json.loads(path.read_text(encoding="utf-8"))
+            return json.loads(path.read_text(encoding="utf-8-sig"))
         except (json.JSONDecodeError, OSError) as e:
             logger.error(f"[SCENE] Ошибка чтения {path}: {e}")
             return {}
@@ -425,6 +441,212 @@ class SceneStateManager:
         self._templates_cache = self._builtin_templates()
         return self._templates_cache
 
+    def _find_editor_location(self, campaign_id: str, location_id: str) -> dict | None:
+        """Ищет editor JSON с совпадающим location_id.
+        Поддерживает: точное совпадение, частичное совпадение label, пустой location_id."""
+        search_dirs = [
+            self.campaigns_dir / campaign_id / "locations",
+            Path(__file__).parent.parent.parent / "map_editor" / "campaigns" / campaign_id / "locations",
+        ]
+        for loc_dir in search_dirs:
+            if not loc_dir.exists():
+                continue
+            for json_file in loc_dir.glob("*.json"):
+                try:
+                    data = json.loads(json_file.read_text(encoding="utf-8"))
+                    lid = data.get("location_id", "")
+                    label = data.get("label", "")
+                    # Точное совпадение
+                    if lid == location_id or label == location_id:
+                        logger.info(f"[SCENE] Найден editor JSON: {json_file} для location_id={location_id}")
+                        return data
+                    # Частичное совпадение label (в одну сторону)
+                    if label and location_id and (location_id.lower() in label.lower()):
+                        logger.info(f"[SCENE] Найден editor JSON по частичному label: {json_file}")
+                        return data
+                    # Пустой location_id в файле — берём первую попавшуюся с rooms
+                    if not lid and location_id and data.get("rooms"):
+                        logger.info(f"[SCENE] Fallback на первый файл с rooms: {json_file}")
+                        return data
+                except (json.JSONDecodeError, OSError):
+                    continue
+        return None
+
+    def _find_first_editor_location(self, campaign_id: str) -> dict | None:
+        """Возвращает первую найденную локацию из editor JSON — fallback при несовпадении location_id."""
+        search_dirs = [
+            self.campaigns_dir / campaign_id / "locations",
+            Path(__file__).parent.parent.parent / "map_editor" / "campaigns" / campaign_id / "locations",
+        ]
+        for loc_dir in search_dirs:
+            if not loc_dir.exists():
+                continue
+            for json_file in loc_dir.glob("*.json"):
+                try:
+                    data = json.loads(json_file.read_text(encoding="utf-8"))
+                    if data.get("rooms") or data.get("walls"):
+                        logger.info(f"[SCENE] Fallback: первая локация из {json_file}")
+                        return data
+                except (json.JSONDecodeError, OSError):
+                    continue
+        return None
+
+    def _build_spatial_data(self, editor_data: dict) -> tuple[list[dict], list[dict]]:
+        """Единственная точка построения spatial_walls и spatial_obstacles из editor JSON."""
+        spatial_walls: list[dict] = []
+        spatial_obstacles: list[dict] = []
+
+        if not editor_data:
+            return spatial_walls, spatial_obstacles
+
+        # Разрезаем стены проёмами (двери)
+        wall_openings: dict[str, list[dict]] = {}
+        for obj in editor_data.get("objects", []):
+            wall_id = obj.get("rotation")
+            if not wall_id:
+                continue
+            if obj.get("passability", {}).get("walk", False):
+                wall_openings.setdefault(wall_id, []).append(obj)
+
+        for wall in editor_data.get("walls", []):
+            wall_id = wall.get("id")
+            openings = wall_openings.get(wall_id, [])
+            segments = self._split_wall_by_openings(wall, openings)
+            spatial_walls.extend(segments)
+
+        # Препятствия с passability и blocks_los
+        for obj in editor_data.get("objects", []):
+            if obj.get("passability", {}).get("walk", True):
+                continue
+            pos = obj.get("position", {})
+            size = obj.get("size", {})
+            if pos and size:
+                spatial_obstacles.append({
+                    "x": pos["x"] - size.get("w", 0) / 2,
+                    "y": pos["y"] - size.get("h", 0) / 2,
+                    "w": size.get("w", 0),
+                    "h": size.get("h", 0),
+                    "id": obj.get("id", ""),
+                    "blocks_los": obj.get("cover", 0) >= 0.8,
+                    "passability": obj.get("passability", {}),
+                })
+
+        return spatial_walls, spatial_obstacles
+
+    def _split_wall_by_openings(
+        self, wall: dict, openings: list[dict]
+    ) -> list[dict]:
+        """Разрезает сегмент стены на части, исключая проёмы (двери, проходы)."""
+        if not openings:
+            return [{
+                "x1": wall["x1"], "y1": wall["y1"],
+                "x2": wall["x2"], "y2": wall["y2"],
+            }]
+
+        x1, y1 = wall["x1"], wall["y1"]
+        x2, y2 = wall["x2"], wall["y2"]
+
+        dx = x2 - x1
+        dy = y2 - y1
+        wall_len = (dx * dx + dy * dy) ** 0.5
+        if wall_len == 0:
+            return [{"x1": x1, "y1": y1, "x2": x2, "y2": y2}]
+
+        # единичный вектор вдоль стены
+        ux = dx / wall_len
+        uy = dy / wall_len
+
+        # Собираем интервалы проёмов вдоль стены (в метрах от начала стены)
+        gaps = []
+        for op in openings:
+            pos = op.get("position", {})
+            size = op.get("size", {})
+            px, py = pos.get("x", 0), pos.get("y", 0)
+            # Вектор от начала стены до центра объекта
+            vx, vy = px - x1, py - y1
+            # Расстояние вдоль стены от начала
+            dist_along = vx * ux + vy * uy
+            # Перпендикулярное расстояние (объект должен быть на стене)
+            perp_dist = abs(vx * (-uy) + vy * ux)
+
+            if perp_dist > 0.5:
+                continue
+
+            # Длина проёма вдоль оси стены
+            if abs(dx) < abs(dy):  # Вертикальная стена
+                span = size.get("h", 1.0)
+            else:  # Горизонтальная стена
+                span = size.get("w", 1.0)
+
+            gap_start = dist_along - span / 2
+            gap_end = dist_along + span / 2
+            gaps.append((gap_start, gap_end))
+
+        if not gaps:
+            return [{"x1": x1, "y1": y1, "x2": x2, "y2": y2}]
+
+        # Сортируем и склеиваем пересекающиеся проёмы
+        gaps.sort()
+        merged = [list(gaps[0])]
+        for gs, ge in gaps[1:]:
+            if gs <= merged[-1][1]:
+                merged[-1][1] = max(merged[-1][1], ge)
+            else:
+                merged.append([gs, ge])
+
+        # Разрезаем стену на сегменты вокруг проёмов
+        segments = []
+        current = 0.0
+        for gs, ge in merged:
+            gs = max(0.0, gs)
+            ge = min(wall_len, ge)
+            if gs > current:
+                segments.append({
+                    "x1": x1 + ux * current, "y1": y1 + uy * current,
+                    "x2": x1 + ux * gs, "y2": y1 + uy * gs,
+                })
+            current = ge
+        if current < wall_len:
+            segments.append({
+                "x1": x1 + ux * current, "y1": y1 + uy * current,
+                "x2": x1 + ux * wall_len, "y2": y1 + uy * wall_len,
+            })
+
+        return segments if segments else []
+
+def enrich_scene_spatial(scene_state: dict, campaign_folder: str) -> None:
+    """Обогащает spatial_walls/obstacles из editor JSON.
+    
+    Решает проблему устаревшего campaign_state.json: новый код ожидает
+    поля passability/blocks_los, которых нет в старом кэше.
+    """
+    manager = SceneStateManager()
+    location_id = scene_state.get("location_id", "")
+    editor_data = manager._find_editor_location(campaign_folder, location_id)
+    if not editor_data:
+        return
+
+    spatial_walls, spatial_obstacles = manager._build_spatial_data(editor_data)
+    scene_state["spatial_walls"] = spatial_walls
+    scene_state["spatial_obstacles"] = spatial_obstacles
+
+
+    def _nearest_node_to_xy(self, editor_data: dict, x: float, y: float) -> str:
+        """Находит ближайший навигационный узел к координате XY."""
+        nodes = editor_data.get("nodes", {})
+        if not nodes:
+            return ""
+        best_node = ""
+        best_dist = float("inf")
+        for node_id, node_data in nodes.items():
+            nx = node_data.get("x", 0)
+            ny = node_data.get("y", 0)
+            dist = math.sqrt((nx - x) ** 2 + (ny - y) ** 2)
+            if dist < best_dist:
+                best_dist = dist
+                best_node = node_id
+        return best_node
+
     @staticmethod
     def _builtin_templates() -> dict:
         """Встроенные шаблоны на случай отсутствия файла."""
@@ -587,23 +809,117 @@ class SceneStateManager:
         templates = self._load_templates()
         template  = templates.get(location_id, {})
 
-        objects: dict = {}
-        for obj_id, obj_data in template.get("default_objects", {}).items():
-            obj = dict(obj_data)
-            if "count" in obj and obj.get("interactable", False):
-                # Разбиваем агрегат на именованные инстансы
-                base  = obj["count"]
-                delta = max(1, int(base * 0.2))
-                count = base + random.randint(-delta, delta)
-                for i in range(1, count + 1):
-                    instance = {k: v for k, v in obj.items() if k != "count"}
-                    instance["instance_of"] = obj_id
-                    instance["name"] = f"{obj['name']} #{i}"
-                    objects[f"{obj_id}_{i}"] = instance
-            else:
-                # Одиночный объект — оставляем как есть
-                objects[obj_id] = obj
+        # === Пытаемся загрузить editor JSON с деталями карты ===
+        editor_data = self._find_editor_location(campaign_id, location_id)
 
+        objects: dict = {}
+        npc_positions: dict = {}
+        player_spawn_node: str = ""
+        spatial_walls: list[dict] = []
+        spatial_obstacles: list[dict] = []
+
+        if editor_data:
+            # --- Объекты из editor JSON ---
+            for i, obj in enumerate(editor_data.get("objects", [])):
+                obj_id = obj.get("id", f"obj_{i}")
+                objects[obj_id] = {
+                    "name": obj.get("name", obj.get("type", "объект")),
+                    "type": obj.get("type", ""),
+                    "state": obj.get("properties", {}).get("open", True) and "intact" or "closed",
+                    "position": obj.get("position", {}),
+                    "size": obj.get("size", {}),
+                    "interactable": True,
+                }
+
+            # --- NPC из editor JSON — только те что на этой карте ---
+            for npc in editor_data.get("npcs", []):
+                ref_id = npc.get("ref_id", "")
+                if not ref_id:
+                    continue
+                pos = npc.get("position", {})
+                node = self._nearest_node_to_xy(editor_data, pos.get("x", 0), pos.get("y", 0))
+                npc_positions[ref_id] = {
+                    "location_id": location_id,
+                    "position": node,
+                    "activity": "",
+                    "visible": True,
+                    "local_position": {"x": pos.get("x", 0.0), "y": pos.get("y", 0.0)},
+                    "editor_room_id": npc.get("room_id", ""),
+                }
+
+            # --- Точка спавна игрока ---
+            spawn = editor_data.get("player_spawn")
+            if spawn:
+                player_spawn_node = self._nearest_node_to_xy(
+                    editor_data, spawn.get("x", 0), spawn.get("y", 0)
+                )
+
+            # --- Стены и блокирующие объекты для коллизий в spatial_runtime ---
+            # Сначала собираем проходимые объекты, привязанные к стенам (двери)
+            wall_openings: dict[str, list[dict]] = {}
+            for obj in editor_data.get("objects", []):
+                wall_id = obj.get("rotation")
+                if not wall_id:
+                    continue
+                is_passable = obj.get("passability", {}).get("walk", False)
+                if is_passable:
+                    wall_openings.setdefault(wall_id, []).append(obj)
+
+            spatial_walls: list[dict] = []
+            for wall in editor_data.get("walls", []):
+                wall_id = wall.get("id")
+                openings = wall_openings.get(wall_id, [])
+                segments = self._split_wall_by_openings(wall, openings)
+                spatial_walls.extend(segments)
+
+            spatial_obstacles: list[dict] = []
+            for obj in editor_data.get("objects", []):
+                # Непроходимые объекты — стены, двери (закрытые), крупная мебель
+                passthrough = obj.get("passability", {}).get("walk", True)
+                if passthrough:
+                    continue
+                pos = obj.get("position", {})
+                size = obj.get("size", {})
+                if pos and size:
+                    spatial_obstacles.append({
+                        "x": pos["x"] - size.get("w", 0) / 2,
+                        "y": pos["y"] - size.get("h", 0) / 2,
+                        "w": size.get("w", 0),
+                        "h": size.get("h", 0),
+                        "id": obj.get("id", ""),
+                        # LOS блокируют только массивные объекты (полки), а не столы/стулья
+                        "blocks_los": obj.get("cover", 0) >= 0.8,
+                        # Сохраняем passability для data-driven фильтрации коллизий (Posture FSM)
+                        "passability": obj.get("passability", {}),
+                    })
+
+            logger.info(
+                f"[SCENE] Editor JSON: {len(objects)} объектов, "
+                f"{len(npc_positions)} NPC, spawn_node={player_spawn_node}"
+            )
+        else:
+            # --- Fallback: старая логика из location_templates.json ---
+            for obj_id, obj_data in template.get("default_objects", {}).items():
+                obj = dict(obj_data)
+                if "count" in obj and obj.get("interactable", False):
+                    base  = obj["count"]
+                    delta = max(1, int(base * 0.2))
+                    count = base + random.randint(-delta, delta)
+                    for i in range(1, count + 1):
+                        instance = {k: v for k, v in obj.items() if k != "count"}
+                        instance["instance_of"] = obj_id
+                        instance["name"] = f"{obj['name']} #{i}"
+                        objects[f"{obj_id}_{i}"] = instance
+                else:
+                    objects[obj_id] = obj
+
+            for npc_id, pos_data in template.get("npc_defaults", {}).items():
+                pos_entry = dict(pos_data)
+                pos_entry.setdefault("location_id", location_id)
+                pos_entry.setdefault("local_position", {"x": 0.0, "y": 0.0})
+                npc_positions[npc_id] = pos_entry
+
+        # --- Среда (всегда из шаблона — время/свет/шум) ---
         time_variant = self._select_time_variant(template, time_of_day)
         environment = {
             "light_level":    time_variant.get("light_level", "dim"),
@@ -629,13 +945,6 @@ class SceneStateManager:
                     "count": 0, "interactable": True, "owner": None,
                 }
 
-        npc_positions: dict = {}
-        for npc_id, pos_data in template.get("npc_defaults", {}).items():
-            pos_entry = dict(pos_data)
-            pos_entry.setdefault("location_id", location_id)
-            pos_entry.setdefault("local_position", {"x": 0.0, "y": 0.0})
-            npc_positions[npc_id] = pos_entry
-
         scene_state = {
             "location_id":              location_id,
             "snapshot_tick":            0,
@@ -651,8 +960,11 @@ class SceneStateManager:
             "player_position":      "стоит",     # текущая поза/позиция игрока
             "player_spatial": {
                 "location_id": location_id,
-                "position": "main_hall",
-                "local_position": {"x": 0.0, "y": 0.0},
+                "position": player_spawn_node or "main_hall",
+                "local_position": {
+                    "x": editor_data.get("player_spawn", {}).get("x", 0.0) if editor_data else 0.0,
+                    "y": editor_data.get("player_spawn", {}).get("y", 0.0) if editor_data else 0.0,
+                },
             },
             "player_target_npc":    None,         # id NPC к которому обращается
             "player_target_npc_name": None,       # читаемое имя (для промпта)
@@ -661,6 +973,9 @@ class SceneStateManager:
             "environment_modifiers": _derive_environment_modifiers(
                 time_variant, template.get("type", "")
             ),
+            # ── Пространственные данные для коллизий (из editor JSON) ─────
+            "spatial_walls":     spatial_walls,
+            "spatial_obstacles": spatial_obstacles,
             # ─────────────────────────────────────────────────────────────────
         }
 
@@ -1115,7 +1430,7 @@ class SceneStateManager:
             lines.append(f"- {name}{count_str}: {state_str}".rstrip(": "))
 
         # Индикатор режима для отладки
-        lines.append(f"[режим: {_scene_mode.value}]")
+        print(f"[SALIENCE_DEBUG] режим={_scene_mode.value}, объектов_до={len(_raw_objects)}, объектов_после={len(_filtered)}")
 
         # ── Окружение ─────────────────────────────────────────────────────────
         env = scene_state.get("environment", {})
@@ -1217,25 +1532,24 @@ class SceneStateManager:
 # Вспомогательная функция: npc_id → читаемое имя
 # ──────────────────────────────────────────────────────────────────────────────
 
-# Кэш имён NPC загружаемых из major_npcs.json
+# Кэш имён NPC загружаемых из config/npc/individuals/
 _NPC_NAME_CACHE: dict[str, str] = {}
 _NPC_NAME_CACHE_LOADED = False
 
 
 def _load_npc_names_cache() -> None:
-    """Загружает id→name из major_npcs.json один раз."""
+    """Загружает id→name из config/npc/individuals/ один раз."""
     global _NPC_NAME_CACHE_LOADED
     if _NPC_NAME_CACHE_LOADED:
         return
     try:
-        npc_path = _DATA_DIR / "npcs" / "major_npcs.json"
-        if npc_path.exists():
-            npcs = json.loads(npc_path.read_text(encoding="utf-8"))
-            for npc in npcs:
-                nid = npc.get("id", "")
-                name = npc.get("name", "")
-                if nid and name:
-                    _NPC_NAME_CACHE[nid] = name
+        from app.services.npc.npc_loader import load_npcs_merged
+        npcs = load_npcs_merged()
+        for npc in npcs:
+            nid = npc.get("id", "")
+            name = npc.get("name", "")
+            if nid and name:
+                _NPC_NAME_CACHE[nid] = name
     except Exception:
         pass
     _NPC_NAME_CACHE_LOADED = True
@@ -1244,7 +1558,7 @@ def _load_npc_names_cache() -> None:
 def _npc_id_to_display(npc_id: str) -> str:
     """
     Конвертирует npc_id в отображаемое имя.
-    Приоритет: major_npcs.json → эвристика из id.
+    Приоритет: config/npc → эвристика из id.
     Generic: работает для любого npc_id без хардкода конкретных персонажей.
     """
     _load_npc_names_cache()

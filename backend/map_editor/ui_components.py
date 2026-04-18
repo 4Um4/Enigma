@@ -640,14 +640,23 @@ class PropertyPanel:
             y += 5
     
     def handle_event(self, event: pygame.event.Event) -> Optional[str]:
-        """Возвращает ключ действия если кнопка нажата"""
+        """Возвращает ключ действия если кнопка нажата. Y-позиции должны совпадать с draw()."""
+        if event.type != pygame.MOUSEBUTTONDOWN or event.button != 1:
+            return None
+        
         y = self.rect.y + 50
         for item in self.content:
             if item.get("type") == "toggle":
+                y += 5  # отступ перед toggle — как в draw
                 btn_rect = pygame.Rect(self.rect.x + 15, y, 110, 28)
-                if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                    if btn_rect.collidepoint(event.pos):
-                        return item.get("action")
+                if btn_rect.collidepoint(event.pos):
+                    return item.get("action")
                 y += 35
-            y += 22 if item.get("type") == "label" else 24 if item.get("type") == "value" else 30
+            elif item.get("type") == "label":
+                y += 22
+            elif item.get("type") == "value":
+                y += 24
+            elif item.get("type") == "section":
+                y += 5 + 26  # разделитель + текст — как в draw
+            y += 5  # общий отступ после каждого элемента — как в draw
         return None

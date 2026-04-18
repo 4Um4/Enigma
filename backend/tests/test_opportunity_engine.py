@@ -2,11 +2,11 @@
 # Назначение: Unit-тесты для проверки корректности внедрения R6.3 (OpportunityEngine — hidden actions для сломленных NPC).
 # Зависимости: pytest opportunity_engine.py (OpportunityContext, OpportunityResult, OpportunityEngine)
 # Основные сущности: OpportunityContext, OpportunityResult, OpportunityEngine
-# $env:PYTHONPATH="backend" pytest backend/tests/test_opportunity_engine.py -v
+#  $env:PYTHONPATH="backend"; pytest backend/tests/test_opportunity_engine.py -v
 
 import pytest
 from dataclasses import asdict
-from app.services.npc.opportunity_engine import (
+from app.services.economy.opportunity_engine import (
     OpportunityContext,
     OpportunityResult,
     OpportunityEngine,

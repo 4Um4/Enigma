@@ -21,6 +21,21 @@ StanceType = Literal[
 ToneType = Literal[
     "aggressive", "cold", "neutral", "sarcastic", "fearful", "tense"
 ]
+UrgencyLabel = Literal[
+    "фоновая", "умеренная", "высокая", "критическая"
+]
+
+
+def _urgency_to_label(value: float) -> UrgencyLabel:
+    """Маппинг 0..1 → текстовая категория для LLM."""
+    if value < 0.2:
+        return "фоновая"
+    elif value < 0.5:
+        return "умеренная"
+    elif value < 0.8:
+        return "высокая"
+    else:
+        return "критическая"
 
 
 @dataclass(frozen=True)
@@ -28,11 +43,15 @@ class VerbalStance:
     """Поведенческая форма — что LLM должен выразить через текст."""
     stance: StanceType
     tone: ToneType
-    urgency: float  # 0..1
+    urgency: float  # 0..1, внутреннее значение
+
+    @property
+    def urgency_label(self) -> UrgencyLabel:
+        return _urgency_to_label(self.urgency)
 
     def to_prompt_line(self) -> str:
         """Компактная строка для DM prompt."""
-        return f"{self.stance}/{self.tone} (urgency={self.urgency:.1f})"
+        return f"{self.stance}/{self.tone} (срочность: {self.urgency_label})"
 
 
 def stance_from_decision(
@@ -79,7 +98,6 @@ def stance_from_decision(
         stance = "submit"
         tone = "fearful"
     elif intent == "report":
-        # Донести — уход от контакта, холодное отношение
         stance = "dismiss"
         tone = "cold"
         urgency *= 0.5

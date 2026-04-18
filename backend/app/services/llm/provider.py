@@ -19,6 +19,8 @@ class ProviderType(str, Enum):
     OLLAMA = "ollama"
     LM_STUDIO = "lm_studio"
     KOBOLD_CPP = "koboldcpp"
+    VLLM = "vllm"
+    MOCK = "mock"
 
 
 @dataclass

@@ -212,7 +212,7 @@ class WorldState:
         """
         Точка A (roadmap): добавляет событие в буфер.
         При превышении MAX_RECENT_EVENTS — удаляет самые старые.
-        Вызывается из processor.py после event_bus.publish().
+        Вызывается из game_loop.py после event_bus.publish().
         """
         self._recent_events.append(event_dict)
         if len(self._recent_events) > MAX_RECENT_EVENTS:

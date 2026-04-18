@@ -31,6 +31,9 @@ from enum import Enum
 from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 from app.models.behavior_mask import BehaviorMaskState
+from app.models.psychological import CausalEntry
+from app.models.physical import Condition, Wound, ThreatAccumulator
+from app.services.events.event_types import EventType as NarrativeEventType
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -51,6 +54,16 @@ class Intent(str, Enum):
     OBSERVE       = "observe"        # наблюдать, не действовать
     EXPLAIN       = "explain"        # ответить "почему" — для диалога
 
+    # ── Проактивные интенты (Фаза 3.4: Agenda Loop) ─────────────────────
+    BLOCK_PATH    = "block_path"     # преградить дорогу (шаг 9 из Мечты)
+    AMBUSH        = "ambush"         # устроить засаду
+    SEEK_ALLY     = "seek_ally"      # пойти за союзником
+    OFFER_JOB     = "offer_job"      # предложить работу (Economic Engine)
+    REQUEST_SERVICE = "request_service"  # попросить об услуге
+    SPREAD_RUMOR  = "spread_rumor"   # распространить слух (Social Graph)
+    CALL_FOR_HELP = "call_for_help"  # позвать на помощь
+    CHANGE_ROLE   = "change_role"    # сменить роль (Role Transition)
+
 class WillState(str, Enum):
     """Состояние воли NPC. Enum защищает от опечаток в строках."""
     FREE      = "free"
@@ -69,6 +82,39 @@ class EmotionTag(str, Enum):
     GRATEFUL  = "grateful"
     DISGUSTED = "disgusted"
     SAD       = "sad"
+
+
+class NarrativeEventType(str, Enum):
+    """Унифицированные типы событий для NarrativeFact. 
+    Наследует str для обратной совместимости с загрузкой из JSON."""
+    # Легаси-события из старых сохранений и тестов
+    THEFT = "theft"
+    COMBAT = "combat"
+    HELP = "help"
+    DIALOGUE = "dialogue"
+    INTIMIDATION = "intimidation"
+    IDLE = "idle"
+    BETRAYAL = "betrayal"
+    SAVED_LIFE = "saved_life"
+    MOVEMENT = "movement"
+    PLAYER_ASKS_WHY = "player_asks_why"
+    
+    # События из EventContext (DecisionHub, GameLoop)
+    PLAYER_INTERACTS = "player_interacts"
+    PLAYER_ATTACKS = "player_attacks"
+    PLAYER_ATTACK = "player_attack"
+    PLAYER_INSULTS = "player_insults"
+    PLAYER_TALKS = "player_talks"
+    PLAYER_THREATENS = "player_threatens"
+    PLAYER_SPOKE = "PLAYER_SPOKE"
+    PLAYER_ATTACKED = "PLAYER_ATTACKED"
+    
+    # Пространственные события
+    PROXIMITY_CLOSE = "proximity_close"
+    PROXIMITY_LEAVE = "proximity_leave"
+    
+    # Fallback
+    UNKNOWN = "unknown"
 
 
 class NPCTier(str, Enum):
@@ -91,8 +137,7 @@ class NPCTier(str, Enum):
 @dataclass(frozen=True)
 class NarrativeFact:
     
-    event_type:  str    # значение из IMPORTANCE_RULES — "combat", "theft", "help" и т.д.
-                        # TODO R1.6: заменить на EventTypeEnum после унификации типов событий
+    event_type:  NarrativeEventType
     """
     R1.6 — Факт из памяти NPC для объяснений ("почему ты злишься?").
     frozen=True: защита от случайной модификации в процессе вербализации.
@@ -105,6 +150,10 @@ class NarrativeFact:
     importance:  float  # для выбора top-2
     trust_delta: float = 0.0   # числовой след — было -15
     sequence_id: int   = 0     # порядок для хронологии
+
+    def __str__(self) -> str:
+        # Человекочитаемое представление для LLM промпта — не repr
+        return f"{self.event_type} → {self.emotion_tag} (важность: {self.importance:.2f})"
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -139,6 +188,8 @@ class EventMemory:
     decay_rate:         float = 0.05  # потеря importance за тик
     stage:              MemoryStage = MemoryStage.FRESH
     sequence_id:        int = 0
+    summary:            str = ""    # R1: текст "игрок избил Люсю кулаками"
+    npc_id:             str = ""    # R1: какой NPC это запоминает
 
     def __post_init__(self) -> None:
         # Защита от невалидных значений при загрузке из JSON
@@ -169,6 +220,8 @@ class EventMemory:
             decay_rate  = self.decay_rate,
             stage       = new_stage,
             sequence_id = self.sequence_id,
+            summary     = self.summary,
+            npc_id      = self.npc_id,
         )
 
 
@@ -218,7 +271,7 @@ def _resolve_stage(importance: float) -> MemoryStage:
 @dataclass(frozen=True)
 class NPCPersonality:
     """
-    Неизменяемая личность NPC. Загружается из major_npcs.json один раз.
+    Неизменяемая личность NPC. Загружается из config/npc/ один раз.
     DecisionHub использует как контекст, но не мутирует.
     drives_base — веса для формулы score().
     """
@@ -286,6 +339,112 @@ class NPCIdentityL1:
 
 
 # ───────────────────────────────────────────────────────
+# RoleChangeEntry — запись о смене профессии (ФАЗА 4-ROLE)
+# ─────────────────────────────────────────────────────────────────────────────
+
+@dataclass(frozen=True)
+class RoleChangeEntry:
+    """Запись о смене роли NPC. Используется в role_history NPCState."""
+    from_role: str
+    to_role: str
+    tick: int
+    reason: str
+
+
+# ───────────────────────────────────────────────────────
+# TemporaryDrive — временная цель из эмоционального удара (ФАЗА 4-ROLE.2)
+# ─────────────────────────────────────────────────────────────────────────────
+
+@dataclass
+class TemporaryDrive:
+    """
+    Временная цель NPC, порождённая сильным эмоциональным событием.
+    Генерируется когда CausalEntry.emotional_impact > 0.7.
+    Cap: 3 активных drives (старый удаляется по FIFO).
+    Затухает по tick_age > MAX_DRIVE_AGE.
+    """
+    drive_type: str           # "vengeance", "greed", "desperation", "loyalty_surge"
+    urgency: float            # сила мотивации [0..1], затухает со временем
+    reason: str               # человекочитаемая причина ("Торнин избил Люсю")
+    source_npc_id: str        # кто вызвал (игрок или NPC)
+    tick_born: int            # тик создания
+    tick_age: int = 0         # тиков с создания (инкрементируется в LifeEngine/WorldTick)
+
+    # Маппинг drive_type → модификаторы intent (для DecisionHub)
+    # vengeance → ATTACK+0.3, OBSERVE+0.1
+    # greed → TRADE+0.3, REQUEST_SERVICE+0.2
+    # desperation → TRADE+0.2, FLEE+0.1
+    # loyalty_surge → HELP+0.3, CALL_FOR_HELP+0.2
+
+MAX_ACTIVE_DRIVES: int = 3
+MAX_DRIVE_AGE: int = 50      # тиков до автоматического удаления
+
+# Маппинг drive_type → {intent: modifier} (множится на urgency)
+DRIVE_INTENT_MODIFIERS: Dict[str, Dict[str, float]] = {
+    "vengeance": {
+        "attack": 0.30,
+        "intimidate": 0.20,
+        "observe": 0.10,
+        "block_path": 0.15,
+    },
+    "greed": {
+        "trade": 0.30,
+        "request_service": 0.20,
+        "offer_job": 0.10,
+    },
+    "desperation": {
+        "trade": 0.20,
+        "flee": 0.15,
+        "seek_ally": 0.15,
+    },
+    "loyalty_surge": {
+        "help": 0.30,
+        "call_for_help": 0.20,
+        "warn": 0.10,
+    },
+}
+
+
+def compute_drive_modifiers(drives: List[TemporaryDrive]) -> Dict[str, float]:
+    """
+    Вычисляет итоговые модификаторы для DecisionHub из активных драйвов.
+    Каждый modifier = base_modifier × drive.urgency.
+    Если несколько drives модифицируют один intent — суммируются.
+    """
+    mods: Dict[str, float] = {}
+    for drive in drives:
+        if drive.tick_age >= MAX_DRIVE_AGE:
+            continue
+        intent_map = DRIVE_INTENT_MODIFIERS.get(drive.drive_type, {})
+        decay = max(0.0, 1.0 - drive.tick_age / MAX_DRIVE_AGE)
+        for intent, base_mod in intent_map.items():
+            effective = base_mod * drive.urgency * decay
+            mods[intent] = round(mods.get(intent, 0.0) + effective, 4)
+    return mods
+
+
+def age_drives(drives: List[TemporaryDrive]) -> List[TemporaryDrive]:
+    """
+    Инкрементирует tick_age для всех drives.
+    Удаляет просроченные (tick_age >= MAX_DRIVE_AGE).
+    Вызывается каждый тик из game_loop.
+    """
+    surviving: List[TemporaryDrive] = []
+    for drive in drives:
+        aged = TemporaryDrive(
+            drive_type=drive.drive_type,
+            urgency=drive.urgency,
+            reason=drive.reason,
+            source_npc_id=drive.source_npc_id,
+            tick_born=drive.tick_born,
+            tick_age=drive.tick_age + 1,
+        )
+        if aged.tick_age < MAX_DRIVE_AGE:
+            surviving.append(aged)
+    return surviving
+
+
+# ───────────────────────────────────────────────────────
 # NPCState — dynamic, единственный изменяемый объект
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -325,14 +484,37 @@ class NPCState:
 
     trauma_markers: Set[str] = field(default_factory=set)
 
+    # ── Роль (runtime, ФАЗА 4-ROLE) ──────────────────────────────────────────
+    # Текущая профессия NPC. Изначально = archetype из config.
+    # Может меняться через RoleTransition при определённых условиях.
+    current_role: str = ""
+
+    # История смен ролей для отладки и CausalLedger.
+    role_history: List["RoleChangeEntry"] = field(default_factory=list)
+
+    # ── Временные драйвы (ФАЗА 4-ROLE.2) ────────────────────────────────────
+    # Порождены сильными эмоциональными ударами (emotional_impact > 0.7).
+    # Cap: MAX_ACTIVE_DRIVES (3). Затухание по tick_age > MAX_DRIVE_AGE.
+    # Модификаторы для DecisionHub вычисляются из drive_type + urgency.
+    temporary_drives: List["TemporaryDrive"] = field(default_factory=list)
+
+    # ── Физика (runtime, ШАГ 4 Причинный Слой) ──────────────────────────────
+    # НЕОБРАТИМЫЕ изменения: wounds — формируют идентичность NPC.
+    # ПОЛУОБРАТИМЫЕ: conditions — затухают, но влияют на решения.
+    # ОБРАТИМЫЕ: hp, threat — меняются каждый тик.
+    hp: int = 0
+    max_hp: int = 0
+    conditions: Dict[str, "Condition"] = field(default_factory=dict)
+    wounds: List["Wound"] = field(default_factory=list)
+    threat_accumulator: "ThreatAccumulator" = field(default_factory=lambda: ThreatAccumulator())
+    posture: str = "standing"  # standing, staggered, prone
+
     # ── Эмоция (накопительная) ────────────────────────────────────────────────
     emotion:        EmotionTag = EmotionTag.NEUTRAL
     emotion_delta:  float      = 0.0
 
-    # TODO: мост → L1. Будет удалено после подключения ResonanceEngine к StateApplicator.
-    # Сейчас пишется StateApplicator, читается verbalization_context и decision_hub.
-    # Целевое место: NPCIdentityL1.active_traits (write: ONLY ResonanceEngine)
-    active_traits: Dict[str, float] = field(default_factory=dict)
+    # volatile-модификаторы состояния: пишутся StateApplicator, затухают по тикам
+    state_modifiers: Dict[str, float] = field(default_factory=dict)
 
     # ── Intent ────────────────────────────────────────────────────────────────
     intent:              Optional[Intent] = None
@@ -355,7 +537,7 @@ class NPCState:
     # ── Causal Ledger — паспорт изменений состояния (Шаг 3) ──────────────────
     # Хранит последние N записей CausalEntry для отладки и Social Propagation.
     # Не сохраняется в JSON — только runtime.
-    causal_ledger: List[Any] = field(default_factory=list)
+    causal_ledger: List["CausalEntry"] = field(default_factory=list)
 
     # ── Позиция (кэш из SceneState) ───────────────────────────────────────────
     cached_position: Optional[Tuple[float, float]] = None
@@ -421,7 +603,7 @@ class NPCState:
             
             "emotion":            self.emotion.value,
             "emotion_delta":      self.emotion_delta,
-            "active_traits":      {},  # L1: хранится в NPCIdentityL1, не в NPCState
+            "state_modifiers":    dict(self.state_modifiers),
             "trauma_markers":     list(self.trauma_markers),
             "intent":             self.intent.value if self.intent else None,
             "intent_target":      self.intent_target,
@@ -438,12 +620,16 @@ class NPCState:
     @staticmethod
     def write_to_legacy(state: "NPCState", npc_dict: dict) -> None:
         """
-        Записывает NPCState обратно в legacy dict (major_npcs.json).
+        Записывает NPCState обратно в runtime dict (npc_runtime.json).
         Вызывается ПОСЛЕ StateApplicator.apply() — единственная точка записи.
         Мутирует npc_dict (вызывающий должен сохранить через _save_npcs).
         """
         psyche = npc_dict.setdefault("psyche", {})
         ss     = npc_dict.setdefault("social_stats", {})
+
+        # Физическое состояние (сохраняется между тиками)
+        npc_dict["hp"]     = state.hp
+        npc_dict["max_hp"] = state.max_hp
 
         # Психика
         psyche["stress"]       = state.stress
@@ -455,6 +641,18 @@ class NPCState:
         ss["trust"]          = rc.get("trust", 0.0)
         ss["fear_of_player"] = rc.get("fear", 0.0)
         ss["debt"]           = rc.get("debt", 0.0)
+
+        # narrative_cache — сериализация в список dict для JSON
+        if state.narrative_cache:
+            _cache_list = []
+            for _item in state.narrative_cache:
+                _d = {**_item.__dict__, "_memory_type": type(_item).__name__}
+                _cache_list.append(_d)
+            npc_dict["narrative_cache"] = _cache_list
+
+        # causal_ledger — сериализация для God Mode и persistence
+        if state.causal_ledger:
+            npc_dict["causal_ledger"] = [entry.to_dict() for entry in state.causal_ledger]
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -490,6 +688,9 @@ class NPCStateAdapter:
                 "fear":  float(ss.get("fear_of_player", 0.0)),
                 "debt":  float(ss.get("debt", 0.0)),
             },
+            causal_ledger = [
+                CausalEntry.from_dict(e) for e in npc_dict.get("causal_ledger", [])
+            ],
         )
 
 # ─────────────────────────────────────────────────────────────────────────────

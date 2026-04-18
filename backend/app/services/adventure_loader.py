@@ -21,8 +21,8 @@ class AdventureLoader:
             if not path.exists():
                 continue
             if path.suffix == ".json":
-                files[filename] = json.loads(path.read_text(encoding="utf-8"))
+                files[filename] = json.loads(path.read_text(encoding="utf-8-sig"))
             else:
-                files[filename] = path.read_text(encoding="utf-8")
+                files[filename] = path.read_text(encoding="utf-8-sig")
 
         return {"campaign_id": campaign_id, "status": "loaded", "files": files}

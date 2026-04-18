@@ -73,7 +73,8 @@ class LlamaCppProvider(StreamingLlmProvider):
             path=settings.llama_cpp_model_path,
             name="default",
         )
-        self.server_url = server_url or settings.get_llm_server_url()
+        # server_url берётся из конфига, не из runtime_ports (чтобы управлять режимом)
+        self.server_url = server_url or settings.llama_cpp_server_url
         self.executable = executable or settings.llama_cpp_executable
         self._use_server = bool(self.server_url)
 
@@ -413,6 +414,9 @@ class LlamaCppProvider(StreamingLlmProvider):
         return False, f"LLM server недоступен после {max_retries} попыток: {self.server_url}"
 
     def is_available_with_retry(self, max_retries: int = 5, interval_sec: int = 2) -> bool:
+        # CLI-режим: проверяем наличие файлов (без retry — нет сети)
+        if not self._use_server:
+            return self.is_available()
         ok, _ = self.check_server_with_retry(max_retries, interval_sec)
         return ok
 

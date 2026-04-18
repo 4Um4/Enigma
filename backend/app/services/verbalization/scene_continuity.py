@@ -94,7 +94,7 @@ class SceneContinuity:
         if self.tension > 0.05:
             lines.append(f"tension: {self.tension:.2f}")
         
-        # Flags
+        # Flags — техническая информация, LLM не обязан интерпретировать
         if self.active_flags:
             flags_str = ", ".join(sorted(self.active_flags))
             lines.append(f"flags: {flags_str}")

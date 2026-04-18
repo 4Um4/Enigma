@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Runtime port management for Enigma.
-Handles dynamic assignment, saving, and loading of LLM/API/frontend ports.
+Handles dynamic assignment, saving, and loading of LLM/API ports.
 """
 
 from pathlib import Path

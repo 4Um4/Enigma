@@ -25,6 +25,8 @@ class ModelConfig(BaseSettings):
     top_p: float = 0.9
     repeat_penalty: float = 1.12
     n_keep: int = 800
+    # Тип провайдера — позволяет переключить модель на mock/openai/vllm без кода
+    provider_type: str = "llama_cpp"
 
 
 class Settings(BaseSettings):
@@ -32,6 +34,7 @@ class Settings(BaseSettings):
     default_model: str = "qwen_7b"
     world_tick_minutes: int = 15
     data_dir: str = str(BASE_DIR / "backend" / "data")
+    saves_dir: str = str(BASE_DIR / "saves")
     min_cpu_physical_cores: int = 4
     min_ram_gb: int = 12
     enforce_system_requirements: bool = False
@@ -47,7 +50,7 @@ class Settings(BaseSettings):
         BASE_DIR / "Models LLM" / "Qwen2.5-7B-Instruct-abliterated-v2.Q5_K_M.gguf"
     )
 
-    llama_cpp_server_url: str = "http://127.0.0.1:8080"
+    llama_cpp_server_url: str = ""
     llama_cpp_max_tokens: int = 1024
     llama_cpp_timeout_sec: int = 180
     model_load_timeout_sec: int = 60
@@ -142,6 +145,7 @@ class Settings(BaseSettings):
                 top_p=0.9,
                 repeat_penalty=1.12,
                 n_keep=800,
+                provider_type="llama_cpp",
             ),
         }
 

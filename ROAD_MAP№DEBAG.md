@@ -251,3 +251,188 @@ Commitment → не является фактом, только состояни
 ХАРДКОД отдельных NPC ЗАПРЕЩЕН!!! Система должна быть масштабируемой.
 ```
 ```
+****
+
+Известные архитектурные долги:
+
+Двери в стенах — нужно разделить на проходы в map_editor
+PlayerMemory in-memory — нужна персистенция
+Направления ("иду на север") — парсится, но move.direction не используется в game_loop
+_npc_id_to_display загружает кэш лениво — можно сломаться если config/npc пустой
+
+****
+
+Архитектурный контракт свободной воли аватара:
+Игрок нажимает / вводит
+        ↓
+   TextInput
+        ↓
+  ActionRouter ←── AvatarWill ──── self_integrity, stress, erosion
+        ↓              ↓
+   Нормальный       Сопротивление:
+   поток            - искажение команды
+        ↓           - задержка выполнения
+MovementIntent      - прерывание разговора
+   / DM Loop        - самостоятельное действие
+
+   AvatarWill — НЕ DecisionHub. DecisionHub решает что делает NPC. AvatarWill решает насколько аватар подчиняется игроку.
+
+Формула (упрощённо):
+
+compliance = self_integrity × (1 - stress/100)
+compliance < 0.3 → сопротивление возможно
+erosion_accumulator > threshold → самостоятельные действия
+
+****
+
+Архитектурный анализ завершён. Вот что есть и что нужно:
+
+**Уже есть (переиспользуем):**
+- `WorldTickEngine.compute_proactive_decisions()` — решения NPC каждый тик
+- `NeedEngine` — растёт hunger/thirst/urgency со временем
+- `EconomicModifier` — голод усиливает TRADE, страх усиливает FLEE
+- `DecisionHub` — финальный расчёт intent + score
+- `StateApplicator` — применяет дельты к NPCState
+
+**Нужно создать:**
+
+```
+backend/npc_sandbox.py
+├── SandboxConfig — настройки симуляции
+│   ├── npc_overrides: {npc_id: {money, stress, needs...}}
+│   ├── tick_count: int
+│   ├── locked: bool (запереть — нельзя покинуть локацию)
+│   └── snapshot_interval: int (каждый N тиков — слепок)
+│
+├── Snapshot — состояние NPC в момент тика
+│   ├── tick: int
+│   ├── npc_id: str
+│   ├── hp, stress, resentment, money, intent, score
+│   ├── needs: {type: urgency}
+│   └── deltas: что изменилось с прошлого слепка
+│
+├── NPCSandbox — ядро симуляции
+│   ├── load_npcs() — грузит из config + применяет overrides
+│   ├── run_tick() — один тик (NeedEngine → EconomicModifier → DecisionHub → StateApplicator)
+│   ├── run_simulation() — цикл N тиков, собирает snapshots
+│   └── results() — возвращает список Snapshot
+│
+└── SandboxReporter — вывод результатов
+    ├── print_table() — консольная таблица (таблица по тикам)
+    ├── save_csv() — CSV для Excel
+    └── plot_charts() — matplotlib графики (опционально)
+```
+
+**Графики (примеры):**
+1. Stress по тикам для каждого NPC (линии)
+2. Money по тикам (линии)
+3. Intent distribution (stacked bar — какой % тиков каждый intent)
+4. "Кто выиграл/проиграл" — delta hp + delta money + delta stress за всю симуляцию
+
+**Ключевой вопрос перед реализацией:**
+
+`NeedEngine` обновляет `neglected_ticks` — но я не видел метод `tick()`. Нужно проверить как он вызывается:
+
+```
+Get-Content C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\economy\need_engine.py | Select-String -Pattern "def.*tick|def.*update|def.*compute" | Select-Object -Property LineNumber, Line
+```
+
+Делаем это или сначала посмотрим NeedEngine?
+
+Предсуществующий долг (зафиксирован):
+test_spatial_runtime_r4.py — нет location_templates.json
+test_player_cognition_pipeline.py — сломан
+OutcomeResult missing wound_severity/potential_conditions — физический движок
+Фронтенд: выбор персонажа откатывает в главное меню
+
+
+****
+
+Это две большие задачи. Отвечу по порядку:
+
+---
+
+## LLM как вербализатор психологии
+
+**Ответ: будет работать, если правильно расставить приоритеты.**
+
+| Компонент | Задержка | Критично? |
+|-----------|----------|-----------|
+| Движок тиков | 50-100мс | Да |
+| Решения NPC (DecisionHub) | 5-20мс | Да |
+| Физика/коллизии | 16мс | Да |
+| **Вербализация LLM** | 100-500мс | **Нет** |
+
+LLM не должна быть в критическом пути. Правильная архитектура:
+
+```
+[WORLD TICK 50мс] → [NPC решения 20мс] → [Движение/бой 16мс]
+                                                        ↓
+                                              [Очередь событий]
+                                                        ↓
+                                         [LLM вербализация 300мс]
+                                                        ↓
+                                              [Обновление текста]
+```
+
+LLM **асинхронно** переводит сухие события в текст:
+- Событие: `npc_id=thief, intent=TRADE, target=player`
+- LLM: "Тень мелкого человека отделилась от стены. Нервный голос шепчет: 'Эй, путник... не хочешь ли купить кое-что?'"
+
+**Модель для этого:**
+- 7B-8B параметров (Llama, Mistral, Qwen)
+- Квантизированная (4-bit) — влезет в 6-8GB VRAM
+- Latency 100-200мс на короткий промпт
+- Достаточно для "переводчика психологии"
+
+---
+
+## Адаптивные тики + WASD + LLM
+
+Это **отдельная архитектурная сессия**, не одна правка. Причины:
+
+1. **Не вижу pygame кода** — только `dump_*.py` скрипты на верхнем уровне
+2. **Нужен рефакторинг game_loop** — сейчас он синхронный, запрос-ответ
+3. **Связка backend ↔ frontend** — как они общаются? WebSocket? HTTP? Прямой импорт?
+
+---
+
+## Что мне нужно для работы
+
+Выполни:
+
+```
+Get-ChildItem -Path "." -Directory | Where-Object { $_.FullName -notmatch "__pycache__|\.venv|\.git|node_modules" } | Select-Object Name
+```
+
+И если есть папка с pygame/UI:
+
+```
+Get-ChildItem -Path "." -Filter "*.py" -Recurse -Depth 3 | Where-Object { $_.FullName -notmatch "backend|__pycache__|\.venv" } | Select-Object FullName
+```
+
+---
+
+## Предварительный план (если подтвердится структура)
+
+**Фаза 1: Двойной цикл (backend)**
+- Отделить "логический тик" от "хода игрока"
+- Добавить параметр `tick_pace` в game_loop
+
+**Фаза 2: WebSocket API (связка)**
+- Backend публикует события мира в реальном времени
+- Pygame подписывается и отображает
+
+**Фаза 3: Адаптивные тики (pygame)**
+- Отслеживать ввод (WASD vs текст)
+- Динамически регулировать частоту запросов к backend
+
+**Фаза 4: LLM вербализатор**
+- Отдельный поток/процесс
+- Очередь событий → LLM → очередь текстов
+- Не блокирует игровой цикл
+
+---
+
+Покажи структуру проекта — и я начну с Фазы 1.
+

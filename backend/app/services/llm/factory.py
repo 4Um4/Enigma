@@ -1,12 +1,17 @@
 """
 LLM Provider Factory
 
-Creates and manages LLM providers based on configuration.
+Создаёт LLM провайдеров по типу. Не содержит реализаций — только маппинг.
+Реализации живут в отдельных модулях:
+- llama_cpp_provider.py
+- openai_provider.py
+- anthropic_provider.py
+- ollama_provider.py
+- vllm_provider.py
+- mock_provider.py
 """
 
 from __future__ import annotations
-
-from typing import Optional
 
 from app.core.config import settings
 from app.core.settings_dm import dm_settings
@@ -14,18 +19,20 @@ from app.core.settings_npc import npc_settings
 from app.core.settings_world import world_settings
 from app.core.settings_rules import rules_settings
 from app.services.llm.provider import LlmProvider, ProviderType
-from app.services.llm.llama_cpp_provider import LlamaCppProvider, create_llama_cpp_provider
+from app.services.llm.llama_cpp_provider import create_llama_cpp_provider
+from app.services.llm.openai_provider import OpenAIProvider
+from app.services.llm.anthropic_provider import AnthropicProvider
+from app.services.llm.ollama_provider import OllamaProvider
+from app.services.llm.vllm_provider import create_vllm_provider
+from app.services.llm.mock_provider import create_mock_provider
 
 
 class ProviderFactory:
     """
     Фабрика для создания LLM провайдеров.
     
-    Supports:
-    - llama.cpp (local)
-    - OpenAI API
-    - Anthropic API
-    - Ollama (local)
+    Каждый провайдер — отдельный replaceable модуль.
+    Добавить новый провайдер = создать файл + добавить case в create().
     """
     
     @staticmethod
@@ -40,7 +47,7 @@ class ProviderFactory:
         
         Args:
             provider_type: Тип провайдера
-            model_path: Путь к модели (для локальных)
+            model_path: Путь/имя модели
             endpoint: URL endpoint (для API)
             api_key: API ключ (для API)
             
@@ -49,23 +56,25 @@ class ProviderFactory:
         """
         match provider_type:
             case ProviderType.LLAMA_CPP:
+                # server_url=None → create_llama_cpp_provider берёт из settings.llama_cpp_server_url
+                # Пустая строка там = CLI режим, URL = серверный режим
                 return create_llama_cpp_provider(
                     model_path=model_path,
                     model_name="default",
-                    server_url=endpoint or settings.get_llm_server_url(),
+                    server_url=endpoint,
                 )
             
             case ProviderType.OPENAI:
                 return OpenAIProvider(
                     endpoint=endpoint or "https://api.openai.com/v1",
-                    api_key=api_key or settings.openai_api_key,
+                    api_key=api_key or getattr(settings, "openai_api_key", None),
                     model=model_path or "gpt-4",
                 )
             
             case ProviderType.ANTHROPIC:
                 return AnthropicProvider(
-                    api_key=api_key or settings.anthropic_api_key,
-                    model=model_path or "claude-3-opus",
+                    api_key=api_key or getattr(settings, "anthropic_api_key", None),
+                    model=model_path or "claude-3-opus-20240229",
                 )
             
             case ProviderType.OLLAMA:
@@ -73,6 +82,16 @@ class ProviderFactory:
                     endpoint=endpoint or "http://localhost:11434",
                     model=model_path or "llama2",
                 )
+            
+            case ProviderType.VLLM:
+                return create_vllm_provider(
+                    endpoint=endpoint,
+                    model=model_path,
+                    api_key=api_key,
+                )
+            
+            case ProviderType.MOCK:
+                return create_mock_provider()
             
             case _:
                 raise ValueError(f"Unknown provider type: {provider_type}")
@@ -83,7 +102,7 @@ class ProviderFactory:
         return create_llama_cpp_provider()
     
     @staticmethod
-    def create_for_agent(agent_name: str) -> LlamaCppProvider:
+    def create_for_agent(agent_name: str) -> LlmProvider:
         """
         Создать провайдер для конкретного агента с правильным URL сервера.
         
@@ -100,7 +119,8 @@ class ProviderFactory:
             "rules": rules_settings,
         }
         agent_settings = agent_map.get(agent_name, settings)
-        server_url = agent_settings.get_llm_server_url(agent_name)
+        # Не перезаписываем server_url из runtime_ports — используем settings
+        server_url = None
         model_key = agent_settings.agent_model_map.get(
             agent_name,
             settings.agent_model_map.get(agent_name, "qwen_7b"),
@@ -124,127 +144,7 @@ class ProviderFactory:
         return settings.check_llm_servers_health()
 
 
-# === Additional Provider Implementations ===
-
-class OpenAIProvider(LlmProvider):
-    """OpenAI API провайдер."""
-    
-    def __init__(
-        self,
-        endpoint: str = "https://api.openai.com/v1",
-        api_key: str | None = None,
-        model: str = "gpt-4",
-    ) -> None:
-        self.endpoint = endpoint
-        self.api_key = api_key
-        self.model = model
-    
-    def complete(
-        self,
-        prompt: str,
-        params=None,
-        system_prompt: str | None = None,
-    ) -> str:
-        # TODO: Implement OpenAI API call
-        raise NotImplementedError("OpenAI provider not yet implemented")
-    
-    def is_available(self) -> bool:
-        return bool(self.api_key)
-    
-    def get_info(self):
-        from app.services.llm.provider import ProviderInfo
-        return ProviderInfo(
-            name=f"OpenAI ({self.model})",
-            provider_type=ProviderType.OPENAI,
-            endpoint=self.endpoint,
-            model_name=self.model,
-            is_available=self.is_available(),
-        )
-    
-    def get_provider_type(self) -> ProviderType:
-        return ProviderType.OPENAI
-
-
-class AnthropicProvider(LlmProvider):
-    """Anthropic API провайдер."""
-    
-    def __init__(
-        self,
-        api_key: str | None = None,
-        model: str = "claude-3-opus-20240229",
-    ) -> None:
-        self.api_key = api_key
-        self.model = model
-    
-    def complete(
-        self,
-        prompt: str,
-        params=None,
-        system_prompt: str | None = None,
-    ) -> str:
-        # TODO: Implement Anthropic API call
-        raise NotImplementedError("Anthropic provider not yet implemented")
-    
-    def is_available(self) -> bool:
-        return bool(self.api_key)
-    
-    def get_info(self):
-        from app.services.llm.provider import ProviderInfo
-        return ProviderInfo(
-            name=f"Anthropic ({self.model})",
-            provider_type=ProviderType.ANTHROPIC,
-            model_name=self.model,
-            is_available=self.is_available(),
-        )
-    
-    def get_provider_type(self) -> ProviderType:
-        return ProviderType.ANTHROPIC
-
-
-class OllamaProvider(LlmProvider):
-    """Ollama local provider."""
-    
-    def __init__(
-        self,
-        endpoint: str = "http://localhost:11434",
-        model: str = "llama2",
-    ) -> None:
-        self.endpoint = endpoint
-        self.model = model
-    
-    def complete(
-        self,
-        prompt: str,
-        params=None,
-        system_prompt: str | None = None,
-    ) -> str:
-        # TODO: Implement Ollama API call
-        raise NotImplementedError("Ollama provider not yet implemented")
-    
-    def is_available(self) -> bool:
-        import urllib.request
-        try:
-            with urllib.request.urlopen(self.endpoint + "/api/tags", timeout=2):
-                return True
-        except Exception:
-            return False
-    
-    def get_info(self):
-        from app.services.llm.provider import ProviderInfo
-        return ProviderInfo(
-            name=f"Ollama ({self.model})",
-            provider_type=ProviderType.OLLAMA,
-            endpoint=self.endpoint,
-            model_name=self.model,
-            is_available=self.is_available(),
-        )
-    
-    def get_provider_type(self) -> ProviderType:
-        return ProviderType.OLLAMA
-
-
-# === Convenience function ===
 def get_provider(provider_type: ProviderType = ProviderType.LLAMA_CPP) -> LlmProvider:
-    """Получить провайдер по умолчанию."""
+    """Получить провайдер по типу."""
     return ProviderFactory.create(provider_type)
 

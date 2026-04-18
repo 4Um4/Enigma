@@ -1,4 +1,5 @@
 # backend/app/services/memory/layered_memory.py
+import dataclasses
 import json
 from collections import deque
 from datetime import datetime, timezone
@@ -8,6 +9,30 @@ from uuid import uuid4
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+class _SafeMemoryEncoder(json.JSONEncoder):
+    """Гарантирует сериализацию любых объектов (dataclass, pydantic, etc) без краша игры."""
+    def default(self, o: Any) -> Any:
+        # Dataclasses (включая DMResult и подобные)
+        if dataclasses.is_dataclass(o) and not isinstance(o, type):
+            return dataclasses.asdict(o)
+        # Pydantic v2
+        if hasattr(o, "model_dump"):
+            return o.model_dump()
+        # Pydantic v1
+        if hasattr(o, "dict"):
+            return o.dict()
+        # Множества (set) — конвертируем в список для сохранения структуры
+        if isinstance(o, set):
+            return list(o)
+        # Фолбэк — предупреждаем, но не падаем
+        logger.warning(
+            f"[MEMORY] Объект типа {type(o).__name__} не сериализуем нативно, "
+            f"сохранён как строку"
+        )
+        return str(o)
+
 
 class JsonMemoryStore:
     """Local JSONL storage backend with explicit memory layer separation and read cache."""
@@ -30,7 +55,7 @@ class JsonMemoryStore:
         path = self._collection_path(collection)
         try:
             with path.open("a", encoding="utf-8") as f:
-                f.write(json.dumps(line, ensure_ascii=False) + "\n")
+                f.write(json.dumps(line, ensure_ascii=False, cls=_SafeMemoryEncoder) + "\n")
         except Exception as e:
             logger.error(f"Failed to append memory to {collection}: {e}")
 

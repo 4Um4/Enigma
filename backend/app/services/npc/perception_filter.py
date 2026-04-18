@@ -10,7 +10,7 @@
 # NPC в соседней комнате НЕ видит что происходит здесь.
 # Но громкий звук (radius=20) — слышат все в радиусе.
 #
-# Вызывается из action/processor.py после event_bus.publish().
+# Вызывается из game_loop.py после event_bus.publish().
 # Результат: список npc_id которые воспринимают событие.
 
 from __future__ import annotations

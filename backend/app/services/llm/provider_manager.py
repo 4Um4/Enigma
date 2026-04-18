@@ -468,7 +468,7 @@ class ProviderManager:
 
     def _create_and_register_provider(self, key, model_config) -> ModelProvider:
         from app.services.llm.factory import ProviderFactory
-        pt = ProviderType.LLAMA_CPP
+        pt = ProviderType(getattr(model_config, "provider_type", "llama_cpp"))
         provider = ProviderFactory.create(provider_type=pt, model_path=model_config.path)
         return self.register_provider(
             key=key, name=model_config.display_name,
@@ -493,7 +493,10 @@ def initialize_model_pool(warm_model_key: Optional[str] = None) -> Dict[str, boo
     pool = get_model_pool()
     results: Dict[str, bool] = {}
     for key, model_config in settings.available_models.items():
-        if not Path(model_config.path).exists():
+        pt_str = getattr(model_config, "provider_type", "llama_cpp")
+        # Не-локальные провайдеры не требуют файл модели на диске
+        _LOCAL_PROVIDERS = {"llama_cpp", "koboldcpp"}
+        if pt_str in _LOCAL_PROVIDERS and not Path(model_config.path).exists():
             logger.info(f"ModelPool: Skipped '{key}' — файл модели не найден")
             results[key] = False
             continue
@@ -501,7 +504,8 @@ def initialize_model_pool(warm_model_key: Optional[str] = None) -> Dict[str, boo
             ctx = model_config.context_size
             config = ModelConfig(
                 key=key, name=model_config.display_name,
-                provider_type=ProviderType.LLAMA_CPP, path=model_config.path,
+                provider_type=ProviderType(getattr(model_config, "provider_type", "llama_cpp")),
+                path=model_config.path,
                 context_size=ctx, temperature=model_config.temperature,
                 vram_mb=model_config.vram_mb,
             )

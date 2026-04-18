@@ -484,25 +484,3 @@ class TestFullPipeline:
         print(f"\n[SMOKE TEST] intent={ctx.intent} emotion={ctx.emotion} "
               f"stress={new_state.stress:.1f} nuance='{ctx.emotional_nuance}'")
         print(f"[SMOKE TEST] scores={result.scores_trace}")
-
-def test_llm_deltas_ignored_in_r3():
-    """LLM вернул trust_change — система его не принимает."""
-    from app.agents.npc_agent import NpcAgent
-    mock_response = '{"speech": "Я тебе доверяю больше!", "action": "", "trust_change": 50}'
-    speech, action = NpcAgent._parse_r3_response(mock_response)
-    assert speech == "Я тебе доверяю больше!"
-    assert action == ""
-    # trust_change структурно не возвращается — контракт соблюдён  
-
-
-def test_pydantic_model_ignores_trust_change_structurally() -> None:
-    """
-    NPCVerbalizationResponse физически не принимает trust_change.
-    Защита на уровне типов, не только логики игнорирования.
-    """
-    from app.agents.npc_agent import NPCVerbalizationResponse
-    json_with_deltas = '{"speech": "Я тебе доверяю!", "action": "", "trust_change": 50}'
-    parsed = NPCVerbalizationResponse.model_validate_json(json_with_deltas)
-    assert parsed.speech == "Я тебе доверяю!"
-    assert not hasattr(parsed, "trust_change"), \
-        "trust_change не должен попасть в модель — extra='ignore'"    

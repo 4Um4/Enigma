@@ -47,6 +47,7 @@ class MemoryManager:
         scene_state: Dict[str, Any],
         npc_stress: float = 0.0,
         emotion_tag: str = "neutral",
+        summary: str = "",
     ) -> EventMemory:
         """
         R5.3 — Создаёт EventMemory с правильно рассчитанным clarity.
@@ -104,10 +105,12 @@ class MemoryManager:
             confidence=0.95 if clarity > 0.7 else 0.75,  # начальная уверенность
             decay_rate=decay_rate,
             stage=MemoryStage.FRESH,
+            summary=summary,
+            npc_id=npc_id,
         )
 
-        # 7. Сохраняем в рабочую память и layered storage
-        self._working.push(campaign_id, mem)
+        # 7. Сохраняем в рабочую память (per-NPC ключ) и layered storage
+        self._working.push(f"{campaign_id}:{npc_id}", mem)
         self._layered.write_session_memory(campaign_id, {
             "type": "event_memory",
             "npc_id": npc_id,
@@ -156,14 +159,17 @@ class MemoryManager:
         target_id: str,
     ) -> Dict[str, float]:
         rel = self._relationships.get_pair(campaign_id, npc_id, target_id)
-        recent = self._working.get(campaign_id)
+        recent = self._working.get(f"{campaign_id}:{npc_id}")
 
-        recent_pressure = sum(
-            e.get("importance", 0.0)
-            for e in recent
-            if isinstance(e, dict) and
-               (e.get("actor") == target_id or e.get("target") == target_id)
-        )
+        recent_pressure = 0.0
+        for e in recent:
+            if isinstance(e, dict):
+                # Legacy формат
+                if e.get("actor") == target_id or e.get("target") == target_id:
+                    recent_pressure += e.get("importance", 0.0)
+            elif hasattr(e, "npc_id") and e.npc_id == npc_id:
+                # EventMemory — учитываем все события этого NPC
+                recent_pressure += e.importance
 
         return {
             "trust": rel.get("trust", 0.0),
@@ -179,21 +185,24 @@ class MemoryManager:
     ) -> List[Tuple[str, float]]:
         """
         R5.3 — запускает decay и возвращает identity weights от ABSTRACT-переходов.
-        Вызывающий код (python_engines) применяет их к NPCState.active_traits.
-        Делегирует в WorkingMemory — дублирование decay-логики устранено.
+        Обрабатывает как старый campaign-level буфер, так и per-NPC буферы.
         """
         last = self._tick_counters.get(campaign_id, 0)
         if current_tick - last < DECAY_EVERY:
             return []
 
-        if not self._working.get(campaign_id):
-            self._tick_counters[campaign_id] = current_tick
-            return []
+        all_weights: List[Tuple[str, float]] = []
 
-        # Делегируем в WorkingMemory — там живёт вся логика стадий и переходов
-        identity_weights = self._working.apply_decay(campaign_id, ticks=1)
+        # Старый формат: один буфер на кампанию
+        if self._working.get(campaign_id):
+            all_weights.extend(self._working.apply_decay(campaign_id, ticks=1))
+
+        # Новый формат: per-NPC буферы (campaign_id:npc_id)
+        for key in self._working.get_keys_with_prefix(f"{campaign_id}:"):
+            all_weights.extend(self._working.apply_decay(key, ticks=1))
+
         self._tick_counters[campaign_id] = current_tick
-        return identity_weights
+        return all_weights
 
 
     def detect_resonance(

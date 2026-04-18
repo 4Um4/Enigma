@@ -77,6 +77,10 @@ class WorkingMemory:
         self.replace_all(campaign_id, decayed)
         return identity_weights
 
+    def get_keys_with_prefix(self, prefix: str) -> List[str]:
+        """Возвращает ключи буферов начинающихся с prefix."""
+        return [k for k in self._buffers if k.startswith(prefix)]
+
     def clear(self, campaign_id: str) -> None:
         """Очищает буфер кампании."""
         self._buffers.pop(campaign_id, None)

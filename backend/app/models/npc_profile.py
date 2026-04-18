@@ -45,7 +45,7 @@ class PsycheBase:
 @dataclass(frozen=True)
 class NPCProfileL0:
     """
-    L0 Core Profile. Загружается из major_npcs.json один раз.
+    L0 Core Profile. Загружается из config/npc/ один раз.
     NEVER CHANGES во время кампании.
     """
     id: str

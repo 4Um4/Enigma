@@ -21,7 +21,16 @@ CharacterProfile — психологический профиль персон�
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Dict, FrozenSet, List, Optional
+from enum import Enum
+from typing import Any, Dict, FrozenSet, List, Optional
+
+
+class ErosionStage(str, Enum):
+    """Стадии эрозии идентичности персонажа (Фаза 5.3)."""
+    NORMAL = "normal"          # self_integrity > 0.7 — нет изменений
+    WEAKENED = "weakened"      # self_integrity 0.4-0.7 — первые компромиссы
+    FRACTURED = "fractured"    # self_integrity 0.2-0.4 — паттерны ломаются
+    COLLAPSED = "collapsed"    # self_integrity < 0.2 — потеря самоидентификации
 
 
 # Стандартные ценности для справки (не constraint, а справочник)
@@ -125,6 +134,18 @@ class CharacterProfile:
     # История эрозии для анализа (cap=20)
     erosion_events: List[str] = field(default_factory=list)
     
+    # История RESIST-действий для накопительного эффекта (Фаза 5.2)
+    # Частый RESIST → снижение порога: "подчинялся 5 раз → привычка подчинения"
+    resist_ticks: List[int] = field(default_factory=list)
+
+    # ── ФАЗА 5.3: Identity Erosion ──
+    # Стадия деградации самоидентичности от компромиссов
+    erosion_stage: ErosionStage = ErosionStage.NORMAL
+
+    # ── ФАЗА 5.1: FRONT STATE ──
+    # Маска под давлением мира. Вычисляется FrontEngine, хранится здесь.
+    front: Optional["FrontState"] = None
+    
     def get_constraint(self, constraint_id: str) -> float:
         """Безопасное получение веса социального ограничения."""
         return self.social_constraints.get(constraint_id, 0.0)
@@ -164,10 +185,56 @@ class CharacterProfile:
         self.erosion_events.append(reason)
         if len(self.erosion_events) > 20:
             self.erosion_events = self.erosion_events[-20:]
+
+    def record_resist(self, tick: int) -> None:
+        """Записать тик RESIST-действия для накопительного эффекта (Фаза 5.2)."""
+        self.resist_ticks.append(tick)
+        # Храним только последние 20 записей
+        if len(self.resist_ticks) > 20:
+            self.resist_ticks = self.resist_ticks[-20:]
+
+    def get_resist_frequency(self, current_tick: int, window: int = 20) -> float:
+        """
+        Частота RESIST за последние window тиков.
+        Возвращает ∈ [0..1]: 0 = не подчинялся, 1 = подчинялся каждый тик.
+        """
+        recent = [t for t in self.resist_ticks if current_tick - t <= window]
+        return len(recent) / window if window > 0 else 0.0
+
+    def update_erosion_stage(self) -> str:
+        """
+        Обновляет стадию эрозии на основе self_integrity (Фаза 5.3).
+        Вызывается после каждого apply_erosion.
+        Возвращает описание для LLM (пустая строка если NORMAL).
+        """
+        integrity = self.self_integrity
+        old_stage = self.erosion_stage
+
+        if integrity > 0.7:
+            new_stage = ErosionStage.NORMAL
+        elif integrity > 0.4:
+            new_stage = ErosionStage.WEAKENED
+        elif integrity > 0.2:
+            new_stage = ErosionStage.FRACTURED
+        else:
+            new_stage = ErosionStage.COLLAPSED
+
+        self.erosion_stage = new_stage
+
+        if new_stage != old_stage:
+            logger.info(f"[EROSION] {self.character_id}: {old_stage.value} → {new_stage.value} (integrity={integrity:.2f})")
+
+        # Описания для LLM (только если не NORMAL)
+        _descriptions = {
+            ErosionStage.WEAKENED: "персонаж теряет устойчивость, компромиссы даются всё легче",
+            ErosionStage.FRACTURED: "паттерны поведения ломаются, персонаж не узнаёт себя",
+            ErosionStage.COLLAPSED: "идентичность разрушена, персонаж действует автоматически",
+        }
+        return _descriptions.get(new_stage, "")
     
     def to_dict(self) -> Dict:
         """Сериализация для persistence."""
-        return {
+        result: Dict[str, Any] = {
             "character_id": self.character_id,
             "self_integrity": self.self_integrity,
             "values": self.values.weights,
@@ -175,13 +242,26 @@ class CharacterProfile:
             "npc_trust": self.npc_trust,
             "erosion_accumulator": self.erosion_accumulator,
             "erosion_events": self.erosion_events,
+            "resist_ticks": self.resist_ticks,
+            "erosion_stage": self.erosion_stage.value,
         }
+        # Фаза 5.1: Front persistence
+        if self.front is not None:
+            result["front"] = {
+                "front_type": self.front.front_type.value,
+                "intensity": self.front.intensity,
+                "tick_adopted": self.front.tick_adopted,
+                "tick_age": self.front.tick_age,
+                "integrity_cost_per_tick": self.front.integrity_cost_per_tick,
+                "breaks": self.front.breaks,
+            }
+        return result
     
     @classmethod
     def from_dict(cls, data: Dict) -> "CharacterProfile":
         """Десериализация из persistence."""
         values_data = data.get("values", {})
-        return cls(
+        profile = cls(
             character_id=data.get("character_id", "unknown"),
             self_integrity=float(data.get("self_integrity", 1.0)),
             values=ValueSet(weights=values_data),
@@ -189,4 +269,19 @@ class CharacterProfile:
             npc_trust=data.get("npc_trust", {}),
             erosion_accumulator=float(data.get("erosion_accumulator", 0.0)),
             erosion_events=data.get("erosion_events", []),
+            resist_ticks=data.get("resist_ticks", []),
+            erosion_stage=ErosionStage(data.get("erosion_stage", "normal")),
         )
+        # Фаза 5.1: Front restoration
+        front_data = data.get("front")
+        if front_data and isinstance(front_data, dict):
+            from app.models.front import FrontState, FrontType
+            profile.front = FrontState(
+                front_type=FrontType(front_data.get("front_type", "none")),
+                intensity=float(front_data.get("intensity", 0.0)),
+                tick_adopted=int(front_data.get("tick_adopted", 0)),
+                tick_age=int(front_data.get("tick_age", 0)),
+                integrity_cost_per_tick=float(front_data.get("integrity_cost_per_tick", 0.0)),
+                breaks=front_data.get("breaks", []),
+            )
+        return profile

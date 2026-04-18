@@ -9,6 +9,7 @@ import math
 from typing import Iterable, Optional
 
 from app.core.config import settings
+from app.core.constants import PERCEPTION_FALLBACK_DISTANCE, PERCEPTION_RADIUS
 from app.services.spatial.location_graph import LocationGraph, load_graph, local_xy_distance
 
 
@@ -59,6 +60,84 @@ def resolve_distance_between_entities(
     return local_xy_distance(graph, node_a, node_b, _local(a), _local(b))
 
 
+def _point_to_segment_dist(px: float, py: float, x1: float, y1: float, x2: float, y2: float) -> float:
+    """Минимальное расстояние от точки (px, py) до отрезка (x1,y1)-(x2,y2)."""
+    dx, dy = x2 - x1, y2 - y1
+    if dx == 0 and dy == 0:
+        return math.hypot(px - x1, py - y1)
+    t = max(0.0, min(1.0, ((px - x1) * dx + (py - y1) * dy) / (dx * dx + dy * dy)))
+    proj_x = x1 + t * dx
+    proj_y = y1 + t * dy
+    return math.hypot(px - proj_x, py - proj_y)
+
+
+def is_blocked_by_wall(ax: float, ay: float, bx: float, by: float, scene_state: dict) -> bool:
+    """Проверяет, пересекает ли линия AB любую стену из spatial_walls."""
+    walls = scene_state.get("spatial_walls", [])
+    if not walls:
+        return False
+    for wall in walls:
+        if _segments_intersect(ax, ay, bx, by, wall["x1"], wall["y1"], wall["x2"], wall["y2"]):
+            return True
+    return False
+
+
+def is_blocked_by_obstacle(ax: float, ay: float, bx: float, by: float, scene_state: dict) -> bool:
+    """Проверяет, пересекает ли линия AB любой прямоугольный obstacle."""
+    obstacles = scene_state.get("spatial_obstacles", [])
+    if not obstacles:
+        return False
+    for obs in obstacles:
+        if not obs.get("blocks_los", False):
+            continue
+        if _line_rect_intersect(ax, ay, bx, by, obs["x"], obs["y"], obs["w"], obs["h"]):
+            return True
+    return False
+
+
+def is_line_of_sight_clear(ax: float, ay: float, bx: float, by: float, scene_state: dict) -> bool:
+    """Полная проверка LOS: стены + непроходимые объекты."""
+    return not is_blocked_by_wall(ax, ay, bx, by, scene_state) and not is_blocked_by_obstacle(ax, ay, bx, by, scene_state)
+
+
+def _segments_intersect(
+    ax: float, ay: float, bx: float, by: float,
+    cx: float, cy: float, dx: float, dy: float,
+) -> bool:
+    """Пересечение двух отрезков AB и CD."""
+    def cross(ox: float, oy: float, px: float, py: float, qx: float, qy: float) -> float:
+        return (px - ox) * (qy - oy) - (py - oy) * (qx - ox)
+
+    d1 = cross(cx, cy, dx, dy, ax, ay)
+    d2 = cross(cx, cy, dx, dy, bx, by)
+    d3 = cross(ax, ay, bx, by, cx, cy)
+    d4 = cross(ax, ay, bx, by, dx, dy)
+
+    if ((d1 > 0 and d2 < 0) or (d1 < 0 and d2 > 0)) and ((d3 > 0 and d4 < 0) or (d3 < 0 and d4 > 0)):
+        return True
+    return False
+
+
+def _line_rect_intersect(
+    ax: float, ay: float, bx: float, by: float,
+    rx: float, ry: float, rw: float, rh: float,
+) -> bool:
+    """Пересечение линии AB с прямоугольником (rx, ry, rw, rh)."""
+    # Проверяем 4 стороны прямоугольника
+    if _segments_intersect(ax, ay, bx, by, rx, ry, rx + rw, ry):
+        return True
+    if _segments_intersect(ax, ay, bx, by, rx + rw, ry, rx + rw, ry + rh):
+        return True
+    if _segments_intersect(ax, ay, bx, by, rx + rw, ry + rh, rx, ry + rh):
+        return True
+    if _segments_intersect(ax, ay, bx, by, rx, ry + rh, rx, ry):
+        return True
+    # Линия полностью внутри прямоугольника
+    if rx <= ax <= rx + rw and ry <= ay <= ry + rh and rx <= bx <= rx + rw and ry <= by <= ry + rh:
+        return True
+    return False
+
+
 def _effective_modifiers(scene_state: dict) -> dict:
     """
     R4.4: возвращает модификаторы среды с динамической плотностью.
@@ -73,11 +152,16 @@ def _effective_modifiers(scene_state: dict) -> dict:
     return modifiers
 
 
-def line_of_sight(distance: float, scene_state: dict) -> bool:
+def line_of_sight(distance: float, scene_state: dict, ax: float = 0.0, ay: float = 0.0, bx: float = 0.0, by: float = 0.0) -> bool:
     """
-    R4.3/R4.4: видимость с учётом освещения и модификаторов среды.
-    Плотность динамическая — зависит от количества NPC в сцене.
+    R4.3/R4.4: видимость с учётом освещения, модификаторов среды и стен.
+    Если переданы координаты — проверяет физические коллизии.
     """
+    # Физическая проверка: стена или непроходимый объект между точками
+    if ax != 0.0 or ay != 0.0 or bx != 0.0 or by != 0.0:
+        if not is_line_of_sight_clear(ax, ay, bx, by, scene_state):
+            return False
+
     env       = scene_state.get("environment", {})
     modifiers = _effective_modifiers(scene_state)
 
@@ -109,18 +193,13 @@ def sound_reach(base_radius: float, scene_state: dict) -> float:
 
 # Радиусы восприятия по tier — вызывающий код передаёт нужный.
 # Из Баги.md: lazy evaluation для minor NPC экономит ресурсы и закрывает эксплойт фарма.
-PERCEPTION_RADIUS: dict[str, float] = {
-    "minor": 3.0,   # слышит только вплотную
-    "major": 15.0,  # полная симуляция
-}
-_DEFAULT_RADIUS = 8.0  # fallback если tier неизвестен
 
 
 def extract_scene_for_npc(
     scene_state: dict,
     npc_id: str,
     npc_ids: Iterable[str],
-    perception_radius: float = _DEFAULT_RADIUS,
+    perception_radius: float = PERCEPTION_FALLBACK_DISTANCE,
 ) -> dict:
     """
     R4.5: снимок сцены для NPC — кто рядом, игрок, доступные действия.
@@ -158,7 +237,10 @@ def extract_scene_for_npc(
 
         d = resolve_distance_between_entities(scene_state, me, other, graph=graph)
         if d <= perception_radius:
-            nearby.append({"npc_id": other_id, "distance": round(d, 2)})
+            my_xy = _local(me)
+            other_xy = _local(other)
+            los = line_of_sight(d, scene_state, my_xy[0], my_xy[1], other_xy[0], other_xy[1])
+            nearby.append({"npc_id": other_id, "distance": round(d, 2), "in_los": los})
 
     # --- Игрок в радиусе восприятия ---
     player_snapshot: dict | None = None
@@ -166,7 +248,9 @@ def extract_scene_for_npc(
     if isinstance(player_data, dict) and player_data:
         d_player = resolve_distance_between_entities(scene_state, me, player_data, graph=graph)
         if d_player <= perception_radius:
-            los = line_of_sight(d_player, scene_state)
+            my_xy = _local(me)
+            player_xy = _local(player_data)
+            los = line_of_sight(d_player, scene_state, my_xy[0], my_xy[1], player_xy[0], player_xy[1])
             player_snapshot = {
                 "distance": round(d_player, 2),
                 "in_los":   los,
@@ -212,7 +296,7 @@ def sound_bleeds_to_adjacent(
     templates_path = Path(data_dir) / "locations" / "location_templates.json"
 
     try:
-        templates  = json.loads(templates_path.read_text(encoding="utf-8"))
+        templates  = json.loads(templates_path.read_text(encoding="utf-8-sig"))
         connected  = templates.get(location_id, {}).get("connected_locations", [])
         return list(connected)
     except (json.JSONDecodeError, OSError):

@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import random
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Set
 
 # Целевая архитектура данных (L0/L2)
 from app.models.npc_profile import NPCProfileL0
@@ -27,59 +27,40 @@ from app.models.npc_state import (
     NarrativeFact,
     WillState,
 )
+from app.services.events.event_types import EventType
 from app.models.behavior_mask import BehaviorMask
-from app.services.npc.opportunity_engine import (
+
+from app.core.constants import (
+    SCORE_NOISE_RANGE,
+    INTENT_INERTIA_MAX_TICKS,
+    INTENT_INERTIA_WEIGHT,
+    INTENT_SATURATION_TICKS,
+    INTENT_DECAY_RATE,
+    INTENT_EXHAUSTION_RATE,
+    FEAR_FLEE_THRESHOLD,
+    MIN_INTENT_SCORE,
+    COMMITMENT_BASE_THRESHOLD,
+    COMMITMENT_K,
+    COMMITMENT_BONUS_K,
+    SWITCHING_COST_BASE,
+    SWITCHING_COST_AGE_K,
+    SWITCHING_COST_EMOTION_K,
+    SWITCHING_COST_IDENTITY_K,
+    REACTIVE_URGENCY_THRESHOLD,
+)
+from app.services.economy.opportunity_engine import (
     OpportunityContext,
     OpportunityEngine,
     OpportunityResult,
 )
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Константы формулы score()
-# TODO: миграция в core/constants.py после калибровки
-# ─────────────────────────────────────────────────────────────────────────────
-
-# Контролируемый рандом ±N% — NPC предсказуем, но не робот (решение №12)
-SCORE_NOISE_RANGE: float = 0.10
-
-# Максимальная инерция intent — после 10 тиков смена intent затруднена
-INTENT_INERTIA_MAX_TICKS: int   = 10
-INTENT_INERTIA_WEIGHT:    float = 0.20
-
-# Распад инерции при отсутствии прогресса — после N тиков "впустую"
-INTENT_SATURATION_TICKS: int   = 6   # тиков без прогресса до начала decay
-INTENT_DECAY_RATE:        float = 0.03  # убывание за каждый лишний тик
-
-# Активный штраф за зависание — делает текущий intent ХУЖЕ альтернатив
-# Включается после тех же INTENT_SATURATION_TICKS, но растёт агрессивнее
-INTENT_EXHAUSTION_RATE:   float = 0.08  # -0.08 за каждый тик стагнации сверх порога
-
-# Порог страха: выше — NPC склонен к FLEE/OBSERVE вместо ATTACK
-FEAR_FLEE_THRESHOLD: float = 0.65
-
-# Минимальный score чтобы intent был выбран (иначе IDLE)
-MIN_INTENT_SCORE: float = 0.15
-
-# ─────────────────────────────────────────────────────────────────────────────
-# COMMITMENT MODEL — инерция как порог смены, не бонус к score
-# ─────────────────────────────────────────────────────────────────────────────
-# commitment ∈ [0..1] — нормализованная инерция (из intent_duration)
-# threshold = base * (1 + commitment²) — нелинейный порог смены
-# pressure = new_score - current_score — разница лучшего кандидата и текущего
-
-COMMITMENT_BASE_THRESHOLD: float = 0.15   # минимальное давление для смены
-COMMITMENT_K: float = 2.5                 # коэффициент нарастания порога
-
-# SWITCHING COST — стоимость смены intent в пространстве score
-SWITCHING_COST_BASE: float = 0.05         # минимальная стоимость смены
-SWITCHING_COST_AGE_K: float = 0.08        # вклад возраста intent
-SWITCHING_COST_EMOTION_K: float = 0.06    # вклад эмоциональной вовлечённости
-SWITCHING_COST_IDENTITY_K: float = 0.04   # вклад соответствия identity
-COMMITMENT_BONUS_K: float = 0.10          # бонус к score текущего intent
-
-# Reactive urgency — принудительная смена при угрозе
-REACTIVE_URGENCY_THRESHOLD: float = 0.8   # fear > this → force switch
+# ── Проактивные интенты: доступны только при WORLD_TICK ──────────────────────
+PROACTIVE_INTENTS: frozenset = frozenset({
+    Intent.BLOCK_PATH, Intent.AMBUSH, Intent.SEEK_ALLY,
+    Intent.OFFER_JOB, Intent.REQUEST_SERVICE, Intent.SPREAD_RUMOR,
+    Intent.CALL_FOR_HELP, Intent.CHANGE_ROLE,
+})
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -136,7 +117,7 @@ class EventContext:
     Контекст события для DecisionHub.
     Формируется в game_loop из GameEvent + SceneState.
     """
-    event_type:              str
+    event_type:              EventType
     actor_id:                str
     success:                 bool  = True
     intensity:               float = 1.0     # кап 1.5 применяется в __post_init__
@@ -148,6 +129,9 @@ class EventContext:
     visible_threat_markers:  List[str] = field(default_factory=list)
     # Текущая активность цели — для контекстной релевантности
     target_routine:          str   = "working"
+    # Факты сцены — NPC помнит что происходило в локации (не только текущее действие)
+    scene_flags:             Set[str] = field(default_factory=set)
+    scene_facts:             List[str] = field(default_factory=list)
 
     def __post_init__(self) -> None:
         # Кап интенсивности — защита от баговых значений из EventBus
@@ -186,6 +170,11 @@ class DecisionHub:
         scene_state:     Optional[Dict[str, Any]] = None,
         opportunity_ctx: Optional[OpportunityContext] = None,
         identity:        Optional["NPCIdentityL1"] = None,
+        eco_modifiers:     Optional[Dict[str, float]] = None,
+        social_modifiers:  Optional[Dict[str, float]] = None,
+        reputation_modifiers: Optional[Dict[str, float]] = None,
+        drive_modifiers:   Optional[Dict[str, float]] = None,
+        reflex_constraints: Optional[Dict] = None,
     ) -> DecisionResult:
         """
         Основной метод. READ ONLY — state не мутируется.
@@ -205,10 +194,95 @@ class DecisionHub:
             will_state=state.will_state.value if hasattr(state.will_state, "value") else str(state.will_state)
         )
 
-        # Черты из L1. Если identity не передан — берём из state (мост до полной миграции)
-        active_traits: Dict[str, float] = identity.active_traits if identity else state.active_traits
+        # L1 черты: только из NPCIdentityL1
+        active_traits: Dict[str, float] = identity.active_traits if identity else {}
         possible = self._get_possible_intents(state, personality, event, opportunity)
         scores   = self._score_all(state, personality, event, possible, opportunity, active_traits)
+
+        # Фаза 2.4-ECO: экономические модификаторы (опционально)
+        if eco_modifiers:
+            for intent, modifier in eco_modifiers.items():
+                if intent in scores:
+                    scores[intent] = round(scores[intent] + modifier, 4)
+
+        # Фаза 3.2: социальные модификаторы (ревность, защита, страх)
+        if social_modifiers:
+            for intent, modifier in social_modifiers.items():
+                if intent in scores:
+                    scores[intent] = round(scores[intent] + modifier, 4)
+
+        # Фаза 3.5: репутационные модификаторы (фракции влияют на уверенность)
+        if reputation_modifiers:
+            for intent, modifier in reputation_modifiers.items():
+                if intent in scores:
+                    scores[intent] = round(scores[intent] + modifier, 4)
+
+        # Фаза 4-ROLE.2: модификаторы от временных драйвов (vengeance, greed, desperation)
+        if drive_modifiers:
+            for intent, modifier in drive_modifiers.items():
+                if intent in scores:
+                    scores[intent] = round(scores[intent] + modifier, 4)
+
+        # ── Причинный слой: ReflexConstraints (ограничения от рефлекса) ──
+        # НЕ блокирует полностью — ограничивает через penalties и allowed_intents
+        if reflex_constraints:
+            allowed = reflex_constraints.get("allowed_intents", [])
+            penalties = reflex_constraints.get("penalties", {})
+            # Штрафы к запрещённым/трудным интентам
+            for intent_str, penalty in penalties.items():
+                if intent_str in scores:
+                    scores[intent_str] = round(scores[intent_str] + penalty, 4)
+            # Жёсткая фильтрация: убрать интенты вне allowed (если specified)
+            if allowed:
+                scores = {
+                    k: v for k, v in scores.items()
+                    if k in allowed
+                }
+
+        # ── Причинный слой: Physical state (чтение изменённого мира) ──
+        # DecisionHub ВИДИТ: hp, conditions, wounds, threats — не "пытались атаковать"
+        _hp = getattr(state, "hp", 0)
+        _max_hp = getattr(state, "max_hp", 0)
+        _conditions = getattr(state, "conditions", {})
+        _threat_acc = getattr(state, "threat_accumulator", None)
+        _wounds = getattr(state, "wounds", [])
+
+        # Низкое HP → усиление FLEE
+        if _max_hp > 0 and _hp < _max_hp * 0.3:
+            scores[Intent.FLEE] = round(scores.get(Intent.FLEE, 0.0) + 0.3, 4)
+
+        # Bleeding → усиление защитных интентов
+        if "bleeding" in _conditions:
+            scores[Intent.FLEE] = round(scores.get(Intent.FLEE, 0.0) + 0.15, 4)
+            scores[Intent.HELP] = round(scores.get(Intent.HELP, 0.0) + 0.1, 4)
+
+        # Stunned → принудительный IDLE (но не lock — constraint выше уже ограничил)
+        if "stunned" in _conditions:
+            for intent_key in list(scores.keys()):
+                if intent_key != Intent.IDLE:
+                    scores[intent_key] = round(scores[intent_key] * 0.1, 4)
+            scores[Intent.IDLE] = round(scores.get(Intent.IDLE, 0.0) + 0.5, 4)
+
+        # Prone → штраф к атаке и бегу
+        if "prone" in _conditions or getattr(state, "posture", "") == "prone":
+            scores[Intent.ATTACK] = round(scores.get(Intent.ATTACK, 0.0) - 0.5, 4)
+            scores[Intent.FLEE] = round(scores.get(Intent.FLEE, 0.0) - 0.3, 4)
+
+        # Threat accumulation → модификатор от конкретного источника
+        if _threat_acc and _threat_acc.total > 30:
+            _threat_mod = min(0.4, _threat_acc.total / 100.0)
+            scores[Intent.FLEE] = round(scores.get(Intent.FLEE, 0.0) + _threat_mod, 4)
+            # Высокая угроза → отчаянная атака возможна
+            if _threat_acc.total > 50:
+                scores[Intent.ATTACK] = round(
+                    scores.get(Intent.ATTACK, 0.0) + (_threat_acc.total - 50) / 100.0, 4
+                )
+
+        # Wounds → штраф к эффективности (шрамы болят)
+        if _wounds:
+            _wound_penalty = min(0.2, len(_wounds) * 0.05)
+            for intent_key in scores:
+                scores[intent_key] = round(scores[intent_key] - _wound_penalty, 4)
 
         if not scores:
             # Защита от ValueError: если все интенты отфильтрованы — IDLE
@@ -320,11 +394,19 @@ class DecisionHub:
         event:       EventContext,
         opportunity: OpportunityResult,
     ) -> List[str]:
+        from app.services.events.event_types import EventType
+
+        # Проактивные интенты — ТОЛЬКО при world_tick, не при реакциях на игрока
+        _is_proactive_tick = event.event_type == EventType.WORLD_TICK
+
         all_intents = [i.value for i in Intent
                        if i not in (Intent.IDLE, Intent.EXPLAIN)]
 
         filtered = []
         for intent in all_intents:
+            # Фильтруем проактивные интенты при реактивных событиях
+            if not _is_proactive_tick and intent in PROACTIVE_INTENTS:
+                continue
             if self._is_intent_available(intent, state, personality, opportunity):
                 filtered.append(intent)
 
@@ -427,13 +509,17 @@ class DecisionHub:
         state: NPCState,
     ) -> float:
         """
-        R8: BehaviorMask как модификатор score, не блокировка.
+        R8 + ШАГ C.2: BehaviorMask как CONSTRAINT (ограничение), не блокировка.
         
-        COLLAPSE: функциональный паралич — IDLE усилен, остальные подавлены
-        FAKE_SUBMISSION: агрессия скрыта, покорность усилена
-        BETRAYAL: помощь блокирована, наблюдение усилено
+        ПРИНЦИП: Маска НЕ блокирует интенты полностью. Она делает их очень трудными.
+        При экстремальных обстоятельствах (OpportunityEngine +20 бонус) 
+        NPC МОЖЕТ преодолеть маску — но это приведёт к последствиям.
         
-        Возвращает множитель: 1.0 = без изменений, 0.0 = полностью блокирует.
+        COLLAPSE: IDLE усилен, остальные сильно подавлены (но не 0)
+        FAKE_SUBMISSION: агрессия подавлена, покорность усилена
+        BETRAYAL: помощь подавлена, наблюдение усилено
+        
+        Возвращает множитель: 1.0 = без изменений, 0.1 = почти невозможно.
         """
         mask = state.behavior_mask.mask
         if mask == BehaviorMask.NONE:
@@ -441,29 +527,30 @@ class DecisionHub:
         
         # Интенсификация маски: чем глубже маска, тем сильнее эффект
         intensity = state.behavior_mask.intensity
-        # Базовый множитель: 0.5 при intensity=0, 0.0 при intensity=1.0
-        suppression = 1.0 - (0.5 + 0.5 * intensity)
+        # Constraint: минимум 0.1 (никогда не блокирует полностью)
+        # При intensity=0 → 0.8, при intensity=1.0 → 0.1
+        suppression = max(0.1, 0.8 - 0.7 * intensity)
         
         if mask == BehaviorMask.COLLAPSE:
             # Функциональный паралич — IDLE доминирует
             if intent == Intent.IDLE.value:
-                return 1.0 + 2.0 * intensity  # 1.0..3.0 — сильный бонус к IDLE
-            return suppression  # 0.5..0.0 — подавление остальных
+                return 1.0 + 1.0 * intensity  # 1.0..2.0 — усиление IDLE
+            return suppression  # 0.8..0.1 — сильное подавление
         
         if mask == BehaviorMask.FAKE_SUBMISSION:
-            # Внешняя покорность — агрессия скрыта
+            # Внешняя покорность — агрессия крайне затруднена
             if intent in (Intent.ATTACK.value, Intent.INTIMIDATE.value, Intent.WARN.value):
-                return 0.0  # Полная блокировка — не может позволить себе агрессию
+                return suppression * 0.5  # 0.4..0.05 — почти невозможно, но не 0
             if intent in (Intent.TALK.value, Intent.OBSERVE.value, Intent.IDLE.value):
-                return 1.0 + 0.5 * intensity  # 1.0..1.5 — усиление покорности
+                return 1.0 + 0.3 * intensity  # 1.0..1.3 — усиление покорности
             return suppression
         
         if mask == BehaviorMask.BETRAYAL:
-            # Скрытое предательство — помощь блокирована
+            # Скрытое предательство — помощь крайне затруднена
             if intent == Intent.HELP.value:
-                return 0.0  # Не может помочь — нарушит маску
+                return suppression * 0.5  # 0.4..0.05
             if intent in (Intent.OBSERVE.value, Intent.IDLE.value):
-                return 1.0 + 0.5 * intensity  # Наблюдение — сбор информации
+                return 1.0 + 0.3 * intensity  # 1.0..1.3
             return suppression
         
         return 1.0
@@ -593,6 +680,15 @@ class DecisionHub:
             Intent.HELP.value:       "significance",
             Intent.TALK.value:       "significance",
             Intent.IDLE.value:       "fear",
+            # Проактивные интенты (Фаза 3.4)
+            Intent.BLOCK_PATH.value:    "control",
+            Intent.AMBUSH.value:        "control",
+            Intent.SEEK_ALLY.value:     "significance",
+            Intent.OFFER_JOB.value:     "desire",
+            Intent.REQUEST_SERVICE.value: "desire",
+            Intent.SPREAD_RUMOR.value:  "significance",
+            Intent.CALL_FOR_HELP.value: "significance",
+            Intent.CHANGE_ROLE.value:   "desire",
         }
         drive_key = _INTENT_DRIVE.get(intent, "desire")
         drive_weight = drives.get(drive_key, 0.25)
@@ -637,6 +733,15 @@ class DecisionHub:
                 # Сильное подавление: нейтральный диалог не должен вызывать побег
                 # даже при низком доверии (rel_mod компенсируется контекстом)
                 base -= 0.7
+
+        # Фаза 3.4: WorldTick — проактивные интенты получают базовый бонус
+        # Реактивные интенты при world_tick подавляются (нет стимула)
+        from app.services.events.event_types import EventType
+        if event.event_type == EventType.WORLD_TICK:
+            if intent in PROACTIVE_INTENTS:
+                base += 0.4  # бонус за проактивность
+            else:
+                base -= 0.3  # штраф за реакцию без стимула
 
         return min(base, 2.0)
 
@@ -726,6 +831,31 @@ class DecisionHub:
             for m in event.visible_threat_markers
         )
         base_risk += min(power_risk, 0.5)
+
+        # Сцена: активный бой повышает воспринимаемую угрозу
+        # Входит в формулу как fear × risk — эффект зависит от характера NPC
+        _scene_flags = event.scene_flags if hasattr(event, "scene_flags") else set()
+        if "combat_started" in _scene_flags:
+            base_risk += 0.25
+
+        # Память: недавние важные события повышают риск
+        # "Я видел как ты избил Люсю" — lingering effect через decay
+        _pressure = state.relationship_cache.get("recent_pressure", 0.0)
+        if _pressure > 0.01:
+            base_risk += min(_pressure * 0.5, 0.3)
+
+        # R1: Смысловая память — EventMemory с decay importance
+        # Насилие 3 тика назад: importance=0.6 → risk+=0.09 (лёгкая настороженность)
+        # Насилие 1 тик назад: importance=0.95 → risk+=0.14 (заметное влияние)
+        _memory_penalty = 0.0
+        for _m in state.narrative_cache:
+            if not hasattr(_m, "importance") or _m.importance < 0.1:
+                continue
+            _type = getattr(_m, "event_type", "")
+            _weight = 0.15 if _type in ("player_attacks", "combat", "intimidation", "theft") else 0.05
+            _memory_penalty += _m.importance * _weight
+        if _memory_penalty > 0.01:
+            base_risk += min(_memory_penalty, 0.3)
 
         return min(base_risk, 1.0)
 
@@ -846,10 +976,10 @@ class DecisionHub:
         # Ось 3: соответствие identity (если intent совпадает с доминирующим drive)
         current_drive = max(personality.drives_base, key=personality.drives_base.get) if personality.drives_base else ""
         _DRIVE_INTENTS = {
-            "control":      {Intent.ATTACK.value, Intent.WARN.value, Intent.INTIMIDATE.value},
+            "control":      {Intent.ATTACK.value, Intent.WARN.value, Intent.INTIMIDATE.value, Intent.BLOCK_PATH.value, Intent.AMBUSH.value},
             "fear":         {Intent.FLEE.value, Intent.OBSERVE.value},
-            "desire":       {Intent.TRADE.value, Intent.TALK.value},
-            "significance": {Intent.HELP.value, Intent.TALK.value},
+            "desire":       {Intent.TRADE.value, Intent.TALK.value, Intent.OFFER_JOB.value, Intent.REQUEST_SERVICE.value, Intent.CHANGE_ROLE.value},
+            "significance": {Intent.HELP.value, Intent.TALK.value, Intent.SEEK_ALLY.value, Intent.SPREAD_RUMOR.value, Intent.CALL_FOR_HELP.value},
         }
         current_intent_str = state.intent.value if state.intent else ""
         aligned = current_intent_str in _DRIVE_INTENTS.get(current_drive, set())
@@ -871,6 +1001,11 @@ class DecisionHub:
         if intent in (Intent.IDLE.value, Intent.OBSERVE.value):
             return None
         if intent == Intent.FLEE.value:
+            return None
+        # Фаза 3.4: Проактивные интенты при world_tick не имеют явной цели
+        # (actor_id = сам NPC). DM определит цель из контекста сцены.
+        from app.services.events.event_types import EventType
+        if event.event_type == EventType.WORLD_TICK and intent in PROACTIVE_INTENTS:
             return None
         # По умолчанию — актор события
         return event.actor_id
@@ -1034,7 +1169,7 @@ class DecisionHub:
         # Trait: подозрительность от неудачных попыток
         if not event.success and event.event_type in ("theft", "intimidation"):
             deltas.trait_updates["suspicious"] = min(
-                state.active_traits.get("suspicious", 0.0) + 0.15, 1.0
+                state.state_modifiers.get("suspicious", 0.0) + 0.15, 1.0
             )
         
         return deltas

@@ -1,0 +1,13 @@
+[
+  {
+    "character_id": "Демеург",
+    "self_integrity": 1.0,
+    "values": {},
+    "social_constraints": {},
+    "npc_trust": {},
+    "erosion_accumulator": 0.0,
+    "erosion_events": [],
+    "resist_ticks": [],
+    "erosion_stage": "normal"
+  }
+]

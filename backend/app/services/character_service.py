@@ -36,7 +36,7 @@ class CharacterService:
         path = self._characters_path(campaign_id)
         if not path.exists():
             return []
-        payload = json.loads(path.read_text(encoding="utf-8"))
+        payload = json.loads(path.read_text(encoding="utf-8-sig"))
         return [CharacterSheet.model_validate(item) for item in payload]
 
     def upsert_character(self, campaign_id: str, sheet: CharacterSheet) -> CharacterSheet:
@@ -68,7 +68,7 @@ class CharacterService:
         path = self._profiles_path(campaign_id)
         if not path.exists():
             return []
-        payload = json.loads(path.read_text(encoding="utf-8"))
+        payload = json.loads(path.read_text(encoding="utf-8-sig"))
         return [CharacterProfile.from_dict(item) for item in payload]
 
     def get_profile(

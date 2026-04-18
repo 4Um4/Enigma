@@ -1,0 +1,59 @@
+{
+  "sheet": {
+    "name": "Демеург",
+    "race": "Человек",
+    "class_name": "Искатель",
+    "level": 1,
+    "stats": {
+      "str": 10,
+      "dex": 10,
+      "con": 10,
+      "int": 10,
+      "wis": 10,
+      "cha": 10
+    },
+    "skills": {},
+    "inventory": [],
+    "spells": [],
+    "portrait": null,
+    "backstory": null,
+    "hp": 10,
+    "max_hp": 10,
+    "ac": 10,
+    "effects": [],
+    "importance": null
+  },
+  "profile": {
+    "character_id": "Демеург",
+    "self_integrity": 1.0,
+    "values": {},
+    "social_constraints": {},
+    "npc_trust": {},
+    "erosion_accumulator": 0.0,
+    "erosion_events": []
+  },
+  "state": {
+    "npc_id": "Демеург",
+    "stress": 0.0,
+    "resentment": 0.0,
+    "dependency": 0.0,
+    "identity_integrity": 1.0,
+    "pressure_resistance": 0.0,
+    "will_state": "free",
+    "behavior_mask": {
+      "mask": "none",
+      "applied_at_day": null,
+      "intensity": 0.0
+    },
+    "trauma_markers": [],
+    "current_role": "",
+    "hp": 10,
+    "max_hp": 10,
+    "conditions": {},
+    "wounds": [],
+    "posture": "standing",
+    "emotion": "neutral",
+    "emotion_delta": 0.0,
+    "state_modifiers": {}
+  }
+}
