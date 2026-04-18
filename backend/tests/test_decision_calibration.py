@@ -18,6 +18,7 @@ import pytest
 from app.models.npc_state import (
     EmotionTag,
     Intent,
+    NPCIdentityL1,
     NPCPersonality,
     NPCState,
     NPCTier,
@@ -294,13 +295,11 @@ class TestTraitCalibration:
             actor_id   = "player",
             intensity  = 0.5,
         )
-        state_suspicious = NPCState(
-            npc_id        = "desire_npc",
-            active_traits = {"suspicious": 0.8},
-        )
+        identity_suspicious = NPCIdentityL1(npc_id="desire_npc", active_traits={"suspicious": 0.8})
+        state_suspicious = NPCState(npc_id="desire_npc")
         state_clean = NPCState(npc_id="desire_npc")
 
-        r_suspicious = hub.compute(state_suspicious, desire_personality, event)
+        r_suspicious = hub.compute(state_suspicious, desire_personality, event, identity=identity_suspicious)
         r_clean      = hub.compute(state_clean,      desire_personality, event)
 
         obs_suspicious = r_suspicious.scores_trace.get(Intent.OBSERVE.value, 0.0)
@@ -318,13 +317,11 @@ class TestTraitCalibration:
         """
         Трейт grateful → score ATTACK ниже, чем без трейта.
         """
-        state_grateful = NPCState(
-            npc_id        = "control_npc",
-            active_traits = {"grateful": 0.9},
-        )
+        identity_grateful = NPCIdentityL1(npc_id="control_npc", active_traits={"grateful": 0.9})
+        state_grateful = NPCState(npc_id="control_npc")
         state_neutral = NPCState(npc_id="control_npc")
 
-        r_grateful = hub.compute(state_grateful, control_personality, close_combat_event)
+        r_grateful = hub.compute(state_grateful, control_personality, close_combat_event, identity=identity_grateful)
         r_neutral  = hub.compute(state_neutral,  control_personality, close_combat_event)
 
         atk_grateful = r_grateful.scores_trace.get(Intent.ATTACK.value, -1.0)

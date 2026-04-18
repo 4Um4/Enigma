@@ -6,11 +6,9 @@ R5.1 — тесты EventMemory: clarity, confidence, decay lifecycle.
 import math
 import pytest
 
-from app.models.npc_state import EventMemory, MemoryStage, _resolve_stage
+from app.models.npc_state import EventMemory, MemoryStage, _resolve_stage, NPCPersonality
 from app.services.memory.working_memory import WorkingMemory
 
-# NPCPersonality пока не существует → используем Any для тестов
-# TODO: после создания app/services/npc/personality.py вернуть настоящий импорт
 from typing import Any
 
 
@@ -229,7 +227,7 @@ class TestMemoryBreathes:
     def _build_prompt_with_memory(
         self,
         mem: EventMemory,
-        base_personality: Any,   # TODO: заменить на NPCPersonality после создания класса
+        base_personality: NPCPersonality,
     ) -> str:
         from app.models.npc_state import NPCState, Intent
         from app.services.verbalization.verbalization_context import (

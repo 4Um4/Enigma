@@ -163,7 +163,7 @@ def _load_graph_uncached(location_id: str, data_dir: str) -> LocationGraph:
 
     if templates_path.exists():
         try:
-            templates  = json.loads(templates_path.read_text(encoding="utf-8"))
+            templates  = json.loads(templates_path.read_text(encoding="utf-8-sig"))
             raw_nodes  = templates.get(location_id, {}).get("positions", {})
             if raw_nodes:
                 nodes = _parse_nodes(raw_nodes)

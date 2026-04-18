@@ -27,7 +27,7 @@ class MinimalNPCState:
         self.pressure_resistance = kwargs.get("pressure_resistance", 0.0)
         self.will_state = kwargs.get("will_state", WillState.FREE)
         self.relationship_cache = kwargs.get("relationship_cache", {})
-        self.active_traits = kwargs.get("active_traits", {})
+        self.state_modifiers = kwargs.get("state_modifiers", {})
         self.resentment = kwargs.get("resentment", 0.0)
         self.dependency = kwargs.get("dependency", 0.0)
 

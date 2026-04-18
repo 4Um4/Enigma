@@ -26,8 +26,14 @@
   │     ├─ #7 Дублирование npc_contexts (2 append → 6 decisions вместо 3)
   │     └─ #8 DM Router: мат-междометия ("нахуй") + ложные срабатывания ("ты не дурак")
   │
-  └─ LifeEngine data-driven ✅
-        └─ activity_map вынесен в JSON, _NPC_ACTIVITY_MAP удалён
+  └─ LifeEngine ✅ [TICK ARCHITECTURE ПЕРЕРАБОТАНА]
+        ├─ activity_map вынесен в JSON, _NPC_ACTIVITY_MAP удалён
+        ├─ sim_tick: persisted counter (JSON), НЕ привязан к wall-clock
+        ├─ macro_simulate(): state(t+Δ) = f(state(t), Δ) для долгого отсутствия
+        ├─ Hybrid persistence: JSON пишется раз в 10 тиков (не каждый)
+        ├─ Hot/Cold разделение: RAM cache + JSON persistent
+        ├─ LRU защита: TTL (1ч) + лимит (100 кампаний) для HOT
+        └─ flush_ticks() для shutdown/critical events
 
 ██ АУДИТ РЕАЛЬНОСТИ (по логам 10-ходовой проверки)
 ════════════════════════════════════════════════════════════
@@ -54,14 +60,33 @@
   │           game_loop.py — классификация передаётся в rules_agent, player_success из результата
   │
   ├─ B.3 Continuity: events дублируются ✅ ИСПРАВЛЕНО
-        Лог: "Началась драка" ×2 при разных event_type
-        Корень: add_event не проверяет дубликаты
-        Фикс: scene_continuity.py:62 — if event in self.recent_events: return
+  │     Лог: "Началась драка" ×2 при разных event_type
+  │     Корень: add_event не проверяет дубликаты
+  │     Фикс: scene_continuity.py:62 — if event in self.recent_events: return
   │
-  └─ AsyncIO: Semaphore bound to different event loop ✅ ИСПРАВЛЕНО
-        Лог: Semaphore bound to different event loop (повторяющийся)
-        Корень: Semaphore создавался в __init__ при старте, использовался в другом loop
-        Фикс: router.py:250 — ленивая инициализация _vram_semaphore в текущем loop
+  ├─ AsyncIO: Semaphore bound to different event loop ✅ ИСПРАВЛЕНО
+  │     Лог: Semaphore bound to different event loop (повторяющийся)
+  │     Корень: Semaphore создавался в __init__ при старте, использовался в другом loop
+  │     Фикс: router.py:250 — ленивая инициализация _vram_semaphore в текущем loop
+  │
+  ├─ 0.1 visible_npcs: все NPC получают [скрыт] ✅ ИСПРАВЛЕНО
+  │     Лог: NPC с line_of_sight=True помечались как скрытые
+  │     Корень: строка 742 — пустой dict {} = falsy, не инжектился в scene_state
+  │            строка 1360 — .keys() брала ВСЕ ключи, даже False
+  │     Фикс: game_loop.py:742 — is not None вместо truthy check
+  │           game_loop.py:1360 — фильтр по is_visible
+  │
+  ├─ 0.2 urgency=0.2: число в LLM промпте ✅ ИСПРАВЛЕНО
+  │     Лог: DM получал "urgency=0.2" вместо текстовой категории
+  │     Корень: verbal_stance.py:35 — float напрямую в строку
+  │     Фикс: verbal_stance.py — _urgency_to_label() + UrgencyLabel type
+  │           Категории: фоновая (0-0.19), умеренная (0.2-0.49), высокая (0.5-0.79), критическая (0.8+)
+  │
+  └─ 0.3 [скрыт, но влияние ощутимо] на фокусных NPC ✅ ИСПРАВЛЕНО
+        Лог: Фокусные NPC получали contradictory тег
+        Корень: scene_outcome_builder.py:360-361 — проверка visibility без учёта тира
+        Фикс: Удалены строки 360-361 (фокусные NPC = видимые по определению)
+  
 
   ├─ R1 Memory Core ✅
   │     ├─ L1 Numerical (числовые веса: trust, fear, stress — только для DecisionHub)
@@ -79,7 +104,8 @@
   │
   ├─ R3 Verbalization Layer ✅
   │     ├─ VerbalizationCore (frozen dataclass, whitelist)
-  │     ├─ VerbalStance (B.2) — intent → stance/tone/urgency
+  │     ├─ VerbalStance (B.2) — intent → stance/tone/urgency_label
+  │     │   └─ urgency: float → UrgencyLabel (фоновая/умеренная/высокая/критическая)
   │     ├─ SceneContinuity (B.3/B.4) — flags, tension, emotional_vector
   │     ├─ Psychological Projection (мост Python → LLM)
   │     │   ├─ 4 оси: arousal, stance, stability, mode
@@ -117,8 +143,6 @@
   │
   └─ World Ontology v1.0 [ЧАСТИЧНО]
         ├─ PHYSICAL_OBJECT + is_physical_object() ✅ (используется в npc_loader.py)
-        ├─ BODY_TRAIT ❌ (определён, но не используется)
-        └─ ROLE_MARKER ❌ (определён, но не используется)
 
 ██ ИНФРАСТРУКТУРНЫЕ КОМПОНЕНТЫ [РЕАЛИЗОВАНЫ]
 ═════════════════════════════════════════════
@@ -197,6 +221,7 @@
   8. SceneStateManager.commit() — ЕДИНСТВЕННАЯ точка сохранения.
   9. NarrativeFacts — max 2 факта. frozen. НЕ участвуют в логике.
   10. TierConfig    — статичен. Только controlled respawn.
+  11. LifeEngine tick — факт обработки, НЕ функция времени. sim_tick ≠ world_time.
 
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                       2. ЧТО ПРЕДСТОИТ СДЕЛАТЬ                              │
@@ -207,11 +232,14 @@
 
   ├─ GOAP (планировщик действий) → UX текстовой RPG не выдержит 5 тиков планирования
   ├─ intent_queue.py → логика инерции внутри decision_hub (commitment + cost)
-  ├─ npc_agent.py как основной путь → Bypassed в R3_DIRECT_MODE
+  ├─ npc_agent.py как основной путь → УДАЛЁН (файл и legacy путь)
   ├─ Точные числа (stress=85) в LLM-промпте → пробивает Fog of War (запрещено навсегда)
   ├─ Randomness в DecisionHub → двойной RNG (случайность только в ResolutionEngine)
   ├─ BODY_TRAIT / ROLE_MARKER → мёртвый код (будет удалён при чистке)
-  └─ Runtime TierConfig upgrade → нарушает предсказуемость (запрещено)
+  ├─ Runtime TierConfig upgrade → нарушает предсказуемость (запрещено)
+  ├─ world_tick = f(wall_clock) → ✅ ИСПРАВЛЕНО: WorldTickEngine привязан к кол-ву ходов, не к времени
+  ├─ catch_up = loop x10 → аппроксимация без причинности, заменён macro_simulate()
+  └─ write tick every iteration → write amplification, заменён hybrid persistence
 
 ██ ФУНДАМЕНТАЛЬНЫЙ КОНТРАКТ: STATIC VS RUNTIME [НОВОЕ ПРАВИЛО]
 ═════════════════════════════════════════════════════════════════════════════
@@ -302,12 +330,14 @@
   │     ├─ Отдельный от NPC→player (DecisionHub._relationship_modifier)
   │     └─ Persistence: to_dict/from_dict включает npc_trust
   │
-  ├─ 2.0.4 Интеграция в Pipeline ✅ ЗАВЕРЧЕНА
-        ├─ Точка вставки: game_loop.py:534 (после hub_event, до NPC цикла)
-        ├─ CharacterService расширен: get_profile/upsert_profile/get_or_create_profile
-        ├─ RESIST/REFUSE → hub_event=None → NPC цикл пропускается
-        ├─ shared_context["character_filter"] → DM видит результат
-        └─ Non-blocking: ошибки фильтра не ломают pipeline
+  ├─ 2-ECO.5 Интеграция в DecisionHub ✅ ЗАВЕРЧЕНА (ПОЛНАЯ)
+        ├─ compute() принимает eco_modifiers: Dict[str, float]
+        ├─ Модификаторы добавляются к score после _score_all()
+        ├─ _get_or_create_economic_profiles() — ленивая инициализация из config
+        ├─ NeedEngine.tick() вызывается каждый ход для каждого NPC
+        ├─ get_wealth_stress() → добавляет стресс при бедности
+        ├─ Все модификаторы объединены: distortion + economic + social
+        └─ Лог: [ECO] npc_id: N mods, drives=[...] + wealth_stress=+X
 
   ЗАВИСИМОСТИ:
   ├─ ТРЕБУЕТ: ФАЗА 1.5.1 + 1.5.2 (values в archetype — структура + loader)
@@ -382,63 +412,92 @@
   └─────────────────────────────────────────────────────────────────────┘
                                     │
                                     ▼
-██ ФАЗА 2.4-ECO — ЭКОНОМИЧЕСКИЙ ДВИЖОК [НЕ РЕАЛИЗОВАНО]
+██ ФАЗА 2.4-ECO — ЭКОНОМИЧЕСКИЙ ДВИЖОК ✅ ЗАВЕРШЕНА
 ═════════════════════════════════════════════════════════════════════════════
 
   ПРИНЦИП: NPC имеют потребности → потребности генерируют кандидатов →
            кандидаты решаются через транзакции. Без скриптовых квестов.
 
-  ├─ 2-ECO.1 models/economy.py [НЕ СУЩЕСТВУЕТ]
-  │     ├─ Need (type, urgency, budget_share, skill_required)
-  │     ├─ Transaction (actor, target, goods, payment, reason)
-  │     └─ EconomicProfile (income_sources, needs, resources)
+  ├─ 2-ECO.1 models/economy.py ✅ ЗАВЕРШЁН
+  │     ├─ Need (type, urgency, decay_rate по типу, budget_share)
+  │     ├─ Transaction (actor, target, goods, payment, status)
+  │     ├─ EconomicProfile (gold, goods, income, needs, obligations, contracts)
+  │     ├─ Obligation — временное давление (rent, debt, tax)
+  │     ├─ Contract — память о договорах (employment, rent)
+  │     ├─ NEED_DECAY_RATES — еда 0.02, жильё 0.005 (реалистичный темп)
+  │     ├─ GOODS_ESTIMATED_VALUES + WAGES — золотой стандар
+  │     └─ get_total_wealth() — золото + стоимость предметов
   │
-  ├─ 2-ECO.2 need_calculator.py [НЕ СУЩЕСТВУЕТ]
-  │     ├─ Динамический urgency от neglected_ticks
-  │     ├─ Кап: urgency_max = 0.95
-  │     └─ Базовый доход от "мирной жизни" (анти-collapse)
+  ├─ 2-ECO.2 NeedEngine ✅ ЗАВЕРЧЁН
+  │     ├─ tick() — обновление neglect + авто-удовлетворение + генерация драйвов
+  │     ├─ NeedDrive — сигнал для DecisionHub (drive_type, strength, reason)
+  │     ├─ get_wealth_stress() — стресс от бедности (wealth < 0.2)
+  │     ├─ get_obligation_stress() — стресс от просроченных обязательств
+  │     └─ NEED_AUTO_GOODS — авто-удовлетворение FOOD из инвентаря
   │
-  ├─ 2-ECO.3 opportunity_engine.py [НЕ СУЩЕСТВУЕТ]
-  │     ├─ Вход: List[Need] с urgency > 0.6
-  │     ├─ Если есть ресурсы → Candidate(OFFER_JOB, wage=X)
-  │     ├─ Если нет ресурсов → Candidate(REQUEST_SERVICE, ask_ally)
-  │     └─ Если нет союзников → Candidate(REDIRECT, target=best_match)
+  ├─ 2-ECO.3 EconomicModifier ✅ ЗАВЕРЧЁН
+  │     ├─ calculate() — модификаторы score на основе NeedDrive
+  │     ├─ DRIVE_INTENT_MAP — маппинг драйвов → бонусы к интентам
+  │     ├─ HUNGER → trade+0.35, talk+0.15, help-0.2
+  │     ├─ OBLIGATION_URGE → trade+0.45 (срочная потребность)
+  │     ├─ wealth_bonus → богатый NPC менее мотивирован на TRADE
+  │     └─ Интеграция: добавляется к score в DecisionHub (аналог BehaviorMask)
   │
-  ├─ 2-ECO.4 transaction_engine.py [НЕ СУЩЕСТВУЕТ]
-  │     ├─ NPC-to-NPC сделки (sale, employment, bribe)
-  │     ├─ Валидация ресурсов до сделки
-  │     └─ Запись в CausalLedger при успехе
+  ├─ 2-ECO.4 TransactionEngine ✅ ЗАВЕРЧЁН
+  │     ├─ execute_sale() — атомарная продажа с валидацией
+  │     ├─ execute_employment() — трудовой контракт + доход в profile
+  │     ├─ process_contract_payments() — обработка платежей каждый тик
+  │     ├─ calculate_selling_price() — динамическая цена:
+  │     │   ├─ base × inflation × local × trust × urgency
+  │     │   ├─ Готово: trust (знакомый=скидка), urgency (срочно=скидка)
+  │     │   ├─ Фаза 6: global_inflation (мировая инфляция)
+  │     │   └─ Фаза 3.1: local_modifier (дефицит/изобилие в локации)
+  │     └─ causal_note в Transaction для CausalLedger
   │
-  └─ 2-ECO.5 Интеграция в DecisionHub
-        ├─ Новые кандидаты: OFFER_JOB, REQUEST_SERVICE, TRADE, SELL_PROPERTY
-        └─ Формула: score += resource_capability * 0.2
+  └─ 2-ECO.5 Интеграция в DecisionHub ✅ ЗАВЕРЧЕНА
+        ├─ compute() принимает eco_modifiers: Dict[str, float]
+        ├─ Модификаторы добавляются к score после _score_all()
+        ├─ Не создаёт новые интенты — усиливает/ослабляет существующие
+        └─ Вызов из game_loop: NeedEngine → EconomicModifier → eco_modifiers
 
   ЗАВИСИМОСТИ:
-  ├─ ТРЕБУЕТ: ФАЗА 2.4-ECO (needs из archetype)
-  ├─ ТРЕБУЕТ: ФАЗА 3.2 Social Graph (поиск союзников через граф)
-  └─ Блокирует: ФАЗА 4-ROLE (смена роли требует ресурсов)
+  ├─ ТРЕБУЕТ: ФАЗА 3.2 Social Graph ✅ (поиск союзников для сделок)
+  ├─ ГОТОВ К: ФАЗА 4-ROLE (смена роли требует ресурсов)
+  └─ ✅ ГОТОВ К: ФАЗА 6 (WorldTick ✅ → NeedEngine.tick() каждый тик)
 
-  ТЕСТОВЫЙ СЦЕНАРИЙ:
-  ├─ Торнин: need=cleanliness urgency=0.8
-  ├─ Генерирует Candidate(OFFER_JOB, wage=10)
-  ├─ Игрок спрашивает о работе → предлагает
-  └─ Игрок не подходит → REDIRECT к Люсе (debt=20, навык есть)
+  ТЕСТОВЫЙ СЦЕНАРИЙ (ПРОВЕРЕН):
+  ├─ FOOD urgency=0.9 после 30h neglect → HUNGER drive
+  ├─ Obligation overdue → OBLIGATION_URGE drive → TRADE +0.45
+  ├─ Ценообразование: trust=0.8 → 13G, trust=0.2 → 15.75G
+  ├─ Инфляция: кризис 1.15 → 17.25G за меч
+  └─ Локальный дефицит: осада food×2.0 → 1.0G за паёк
                                     │
                                     ▼
   ┌─────────────────────────────────────────────────────────────────────┐
-  │ ШАГ C: СТАБИЛИЗАЦИЯ ЯДРА (Python→Python)                          │
+  │ ШАГ C: СТАБИЛИЗАЦИЯ ЯДРА (Python→Python) ✅ ЗАВЕРШЁН            │
   │                                                                     │
-  │ C.1 Distortion → DecisionHub (модификатор, не источник)           │
-  │ C.2 BehaviorMask: от override к constraint                        │
+  │ C.1 Distortion → DecisionHub ✅                                   │
+  │     ├─ apply() возвращает (state, bias, score_modifiers)           │
+  │     ├─ НЕ искажает числовые данные NPC                            │
+  │     ├─ threat_bias → FLEE+0.3, OBSERVE+0.15                       │
+  │     └─ trust_bias → TALK-0.25, HELP-0.2                           │
+  │                                                                     │
+  │ C.2 BehaviorMask: от override к constraint ✅                      │
+  │     ├─ Минимум 0.1 (никогда не блокирует полностью)              │
+  │     ├─ COLLAPSE: IDLE +2.0, остальные 0.8→0.1                    │
+  │     ├─ FAKE_SUBMISSION: агрессия 0.4→0.05 (не 0)                 │
+  │     └─ При OpportunityEngine +20 бонус: NPC МОЖЕТ преодолеть      │
   └─────────────────────────────────────────────────────────────────────┘
                                     │
                                     ▼
   ┌─────────────────────────────────────────────────────────────────────┐
-  │ ШАГ D: SOCIAL PROPAGATION                                           │
+  │ ШАГ D: SOCIAL PROPAGATION ✅ ЗАВЕРШЁН                             │
   │                                                                     │
-  │ D.1 social_engine.py                                               │
-  │ D.2 rumor distortion + trust-based propagation                    │
-  │ D.3 decay по хопам                                                │
+  │ D.1 social_engine.py ✅                                            │
+  │ D.2 rumor distortion + trust-based propagation ✅                 │
+  │ D.3 decay по хопам ✅                                             │
+  │ D.4 freq cap (1/5 тиков) ✅                                       │
+  │ D.5 game_loop интеграция ✅                                       │
   └─────────────────────────────────────────────────────────────────────┘
                                     │
                                     ▼
@@ -459,19 +518,21 @@
   │                                                                     │
   │ ПРОБЛЕМА 1: ПРОСТРАНСТВО ИНЕРТНО                                   │
   │ "Подойти к Люси" → player_interacts. Нет события proximity.      │
-  │ R4 считает метры, но не генерирует event_type при пересечении.    │
+  │ ✅ РЕШЕНА (Фаза 3.4): spatial_events публикуются в EventBus,       │
+  │ DecisionHub видит PROXIMITY_CLOSE/LEAVE через _context_relevance. │
   │                                                                     │
-  │ ПРОБЛЕМА 2: НЕТ СВЯЗЕЙ NPC-NPC                                    │
-  │ Нет триггера "ревность". DecisionHub не видит, что игрок в 1.5м   │
-  │ от Люси и не знает tornin.attachment_lucy.                        │
+  │ ПРОБЛЕМА 2: НЕТ СВЯЗЕЙ NPC-NPC ✅ РЕШЕНА (Фаза 3.4)             │
+  │ SocialEngine.compute_social_modifiers переписан: ревность срабатывает│
+  │ по ВСЕМ связям (не только target), extra_event_types пробрасывает  │
+  │ spatial_events. Торнин видит proximity к Люси.                     │
   │                                                                     │
-  │ ПРОБЛЕМА 3: НЕТ ПРОАКТИВНОЙ ВОЛИ                                  │
-  │ Нет цикла World Tick → NPC Agenda. Шаг 9 (Торнин блокирует путь) │
-  │ невозможен: NPC не может действовать без хода игрока.             │
+  │ ПРОБЛЕМА 3: НЕТ ПРОАКТИВНОЙ ВОЛИ ✅ РЕШЕНА (Фаза 3.4)           │
+  │ WorldTickEngine каждые 3 хода → DecisionHub(WORLD_TICK).           │
+  │ Шаг 9 (Торнин блокирует путь) реализован: BLOCK_PATH intent.       │
   │                                                                     │
-  │ ПРОБЛЕМА 4: НЕТ ЭКОНОМИКИ (🆕 из ROADMAP2)                        │
-  │ NPC не могут нанимать, торговать, менять профессию.               │
-  │ "Месть Торнина" невозможна: нет продажи таверны, нет смены роли.  │
+  │ ПРОБЛЕМА 4: НЕТ ЭКОНОМИКИ ✅ РЕШЕНА (Фаза 2.4-ECO)               │
+  │ NPC могут нанимать, торговать, менять профессию.                  │
+  │ "Месть Торнина" возможна: TransactionEngine + calculate_selling_price│
   └─────────────────────────────────────────────────────────────────────┘
 
   ├─ 2.5 БAGFIXES (R2/R4/R5/R8/Continuity)
@@ -485,67 +546,92 @@
 │     ├─ game_loop.py — MicroEvents → SceneContinuity флаги/события
 │     └─ narrative_extractor.py — REACTION_ONLY_EVENTS реестр (drop/break не из текста LLM)
   │
-  ├─ 3.1 Spatial Events (R4 Активация) [НЕ РЕАЛИЗОВАНО]
-  │     ├─ ЦЕЛЬ: "Подойти" → event_type="proximity_close"
-  │     ├─ services/spatial/spatial_events.py — генератор событий
-  │     │   ├─ distance < 1.5m → proximity_close (триггер для диалога)
-  │     │   └─ distance > 5.0m → proximity_leave (прерывание контакта)
-  │     └─ Зависит: R4 LocalSpace (уже считает расстояния)
+  ├─ 3.1 Spatial Events (R4 Активация) ✅ ЗАВЕРШЕНА + ДОРАБОТАНА (Фаза 3.4)
+  │     ├─ services/spatial/spatial_events.py — detect_transitions() ✅
+  │     │   ├─ Сравнивает prev vs curr distances между ходами
+  │     │   ├─ prev >= 2.0 → curr < 2.0 → proximity_close
+  │     │   └─ prev < 5.0 → curr >= 5.0 → proximity_leave
+  │     ├─ game_loop: _prev_player_distances хранилище по campaign ✅
+  │     ├─ game_loop: spatial_events → shared_context + SceneContinuity ✅
+  │     ├─ game_loop: spatial_events → EventBus.publish() ✅ (Фаза 3.4: DecisionHub видит)
+  │     └─ 11 тестов ✅
   │
-  ├─ 3.2 Social Graph (NPC-to-NPC связи) [НЕ РЕАЛИЗОВАНО]
-  │     ├─ services/social/social_graph.py — матрица связей
-  │     │   └─ Relationship: trust, affection, fear, debt, shared_secrets
-  │     ├─ Загрузка из config/npc/social/village_relations.json
-  │     ├─ Runtime мутации сохраняются в saves/session/social_graph_state.json
-  │     ├─ Триггер "ревность" из примера Деревни:
-  │     │   if player.distance_to(lucy) < 2.0 and graph[tornin][lucy].affection > 0.5
-  │     │   → Candidate(INTIMIDATE, reason=jealousy)
-  │     └─ Зависит: 3.1 (нужны события приближения)
+  ├─ 3.2 Social Graph (NPC-to-NPC связи) ✅ ЗАВЕРШЕНА + ДОРАБОТАНА (Фаза 3.4)
+  │     ├─ Граф реализован в ШАГ D: SocialEngine (models/social.py) ✅
+  │     ├─ compute_social_modifiers() в social_engine.py ✅
+  │     │   ├─ Ревность: affection > 0.3 + dist < 3.0 по ВСЕМ связям (не только target) → INTIMIDATE
+  │     │   ├─ Защита союзника: trust > 0.4 + attacks/threatens/insults → THREATEN
+  │     │   ├─ Страх ассоциата: fear > 0.3 + attacks → FLEE
+  │     │   └─ Долговой рычаг: debt > 0 + dist < 4.0 → OBSERVE
+  │     ├─ DecisionHub.compute(): параметр social_modifiers ✅
+  │     ├─ game_loop: social_modifiers передаются в NPC цикл ✅
+  │     └─ 16 тестов ✅
+  │     ⚠ ОТКЛОНЕНИЕ: Не создаёт Candidate — использует modifier pattern
+  │       (аналог EconomicModifier: усиливает существующие intents, не создаёт новые)
   │
-  ├─ 3.3 Social Propagation [НЕ РЕАЛИЗОВАНО]
-  │     ├─ services/social/social_propagation.py — распространение событий
-  │     ├─ Алгоритм: max_hops=3, decay=0.8^hop, freq_cap=1/5 тиков
-  │     ├─ Искажение: trust_bias (враги преувеличивают негатив)
-  │     ├─ Генерирует MicroEvents для удалённых NPC (узнал слух)
-  │     └─ Зависит: 3.2 (нужна матрица связей)
+  ├─ 3.3 Social Propagation ✅ ЗАВЕРШЕНА [ШАГ D]
+  │     ├─ models/social.py — Relationship (base/runtime split), Rumor (frozen), PropagationResult ✅
+  │     ├─ services/social/social_engine.py — BFS propagation + trust distortion ✅
+  │     ├─ Алгоритм: max_hops=3, decay=0.8^hop, freq_cap=1/5 тиков ✅
+  │     ├─ Искажение: trust < 0.2 → amplify×1.3, trust > 0.6 → dampen×0.7 ✅
+  │     ├─ Обратные связи генерируются автоматически (reverse defaults) ✅
+  │     ├─ Persistence: get_runtime_state/apply_runtime_state (отдельно от static) ✅
+  │     ├─ Интеграция: game_loop после PerceptionFilter → continuity_note в SceneContinuity ✅
+  │     └─ 39 тестов ✅
+  │     ⚠ ОТКЛОНЕНИЕ ОТ ПЛАНА: Не генерирует MicroEvents — возвращает PropagationResult
+  │       (MicroEvents = физические реакции, слух = информационный слой, разные домены)
   │
-  ├─ 3.4 Proactive Intents (Agenda Loop) [НЕ РЕАЛИЗОВАНО]
+  ├─ 3.4 Proactive Intents (Agenda Loop) ✅ РЕАЛИЗОВАНО
   │     ├─ ЦЕЛЬ: NPC действует между ходами игрока (шаг 9 из Мечты)
-  │     ├─ game_loop.py: WorldTickEngine — тикер раз в N ходов
-  │     │   └─ Для каждого NPC: DecisionHub(event_type="world_tick")
-  │     ├─ Новые проактивные кандидаты:
+  │     ├─ services/world/world_tick_engine.py — WorldTickEngine (каждые 3 хода)
+  │     │   └─ Для каждого major NPC: DecisionHub(event_type="world_tick")
+  │     ├─ 8 проактивных интентов в Intent enum:
   │     │   ├─ BLOCK_PATH, AMBUSH, SEEK_ALLY (базовые)
-  │     │   ├─ OFFER_JOB, REQUEST_SERVICE (🆕 из Economic Engine)
-  │     │   ├─ SPREAD_RUMOR, CALL_FOR_HELP (🆕 из Social Graph)
-  │     │   └─ CHANGE_ROLE (🆕 из Role Transition)
-  │     └─ Зависит: 3.2 + 3.3 + ФАЗА 2.4-ECO
+  │     │   ├─ OFFER_JOB, REQUEST_SERVICE (из Economic Engine)
+  │     │   ├─ SPREAD_RUMOR, CALL_FOR_HELP (из Social Graph)
+  │     │   └─ CHANGE_ROLE (из Role Transition)
+  │     ├─ DecisionHub: проактивные интенты ТОЛЬКО при WORLD_TICK, бонус +0.4 в _context_relevance
+  │     ├─ PROACTIVE_INTENT_PENALTY = 0.2 — NPC не спамят проактивными действиями
+  │     ├─ Proactive decisions → SceneContinuity → DM видит в промпте
+  │     └─ Константы: WORLD_TICK_EVERY_TURNS, MIN_PROACTIVE_SCORE, PROACTIVE_INTENT_PENALTY в constants.py
   │
-  └─ 3.5 Reputation Engine [НЕ РЕАЛИЗОВАНО]
+  └─ 3.5 Reputation Engine ✅ РЕАЛИЗОВАНО
         ├─ services/social/reputation_engine.py — репутация в фракциях
-        ├─ Загрузка фракций из config/world/factions.json
-        ├─ Действия NPC влияют на репутацию его фракции
-        └─ Зависит: 3.3 (propagation несёт информацию о действиях)
+        ├─ config/world/factions.json — 4 фракции (гильдия_воров, городская_стража, торговая_гильдия, таверна)
+        ├─ EVENT_REPUTATION_IMPACT — маппинг event_type → delta по nature фракции
+        ├─ compute_reputation_modifier() → модификаторы для DecisionHub (HATED/TRUSTED thresholds)
+        ├─ apply_event_impact() → дельты репутации после действий, applied в game_loop
+        ├─ Ленивая инициализация в GameLoop._get_reputation_engine()
+        └─ reputation_modifiers пробрасываются в DecisionHub.compute()
 
-██ ФАЗА 4-ROLE — СМЕНА РОЛЕЙ [НЕ РЕАЛИЗОВАНО]
-═══════════════════════════════════════════════════
+██ ФАЗА 4-ROLE — СМЕНА РОЛЕЙ ✅ ЗАВЕРШЕНА
+═════════════════════════════════════════
 
   ПРИНЦИП: Профессия NPC — не приговор. Обстоятельства меняют людей.
 
-  ├─ 4-ROLE.1 role_transition.py [НЕ СУЩЕСТВУЕТ]
-  │     ├─ can_transition(npc, target_role): проверка required_background
-  │     ├─ execute_transition(): смена current_role, activity_map из archetype
-  │     ├─ Запись в role_history + CausalLedger
-  │     └─ Обновление SocialGraph (другие NPC реагируют на новую роль)
+  ├─ 4-ROLE.1 role_transition.py ✅ [ШАГ 1 ЗАВЕРШЁН]
+  │     ├─ can_transition(): archetype exists + stress<80 + integrity>0.3 + reason
+  │     ├─ execute_transition(): immutable replace NPCState + role_history (cap=10)
+  │     ├─ NPCState: current_role + role_history: List[RoleChangeEntry]
+  │     ├─ npc_loader: current_role в _RUNTIME_TOP_LEVEL_KEYS
+  │     └─ TODO: activity_map из нового archetype при загрузке
   │
-  ├─ 4-ROLE.2 temporary_drives в NPCState [НЕ СУЩЕСТВУЕТ]
-  │     ├─ Генерация: CausalEntry с emotional_impact > 0.7 → drive
-  │     ├─ Cap: 3 active drives (старый удаляется)
-  │     └─ Влияние на DecisionHub: drive.urgency модифицирует score
+  ├─ 4-ROLE.2 temporary_drives в NPCState ✅ РЕАЛИЗОВАНО
+  │     ├─ TemporaryDrive dataclass в npc_state.py (drive_type, urgency, reason, tick_age)
+  │     ├─ Генерация: CausalEntry.emotional_impact > 0.7 → drive (StateApplicator)
+  │     ├─ 4 типа: vengeance, greed, desperation, loyalty_surge
+  │     ├─ DRIVE_INTENT_MODIFIERS: маппинг drive_type → intent bonuses
+  │     ├─ Cap: MAX_ACTIVE_DRIVES=3 (FIFO), MAX_DRIVE_AGE=50 тиков
+  │     ├─ age_drives() — инкремент + удаление просроченных (каждый тик в game_loop)
+  │     ├─ compute_drive_modifiers() → drive_modifiers в DecisionHub.compute()
+  │     └─ Persistence: temporary_drives в _RUNTIME_TOP_LEVEL_KEYS
   │
-  └─ 4-ROLE.3 Интеграция с Economic Engine
-        ├─ Смена роли может требовать ресурсы (transition_cost)
-        ├─ Сделки для накопления ресурсов (продажа имущества)
-        └─ Проверка: enough resources → can_transition → execute
+  └─ 4-ROLE.3 Интеграция с Economic Engine ✅ РЕАЛИЗОВАНО
+        ├─ TRANSITION_COST = 20G — стоимость смены роли
+        ├─ can_transition() проверяет economic_profile.get_total_wealth() >= cost
+        ├─ execute_transition() списывает стоимость через economic_profile.spend()
+        ├─ TransitionDenied.INSUFFICIENT_RESOURCES — отдельная причина отказа
+        └─ economic_profile — опциональный параметр (backward-compatible)
 
   ЗАВИСИМОСТИ:
   ├─ ТРЕБУЕТ: ФАЗА 1.5 (archetypes с transition_cost)
@@ -553,43 +639,124 @@
   ├─ ТРЕБУЕТ: ФАЗА 3.2 (social_graph для реакции на смену роли)
   └─ ТЕСТ: "Месть Торнина" — полный цикл от смерти Люси до роли mercenary
 
-██ ФАЗА 5-PRESSURE — ДАВЛЕНИЕ МИРА НА ПЕРСОНАЖА
+██ ФАЗА 4.5 — ПРИЧИННЫЙ СЛОЙ (CAUSAL LAYER) ✅ [ШАГИ 0-8 ЗАВЕРШЕНЫ]
+═══════════════════════════════════════════════════════
+
+  ПРИНЦИП: DecisionHub получает НЕ намерение, а ПОСЛЕДСТВИЕ.
+  Без этого — симуляция = иллюзия, поведение NPC = декорация.
+
+  ├─ 4.5.0 EventResolutionResult (unified envelope) ✅
+  │     ├─ models/event_resolution.py — единый выход из resolver
+  │     ├─ Три канала: StateChanges / DecisionSignals / SceneEvents
+  │     └─ Запрещено смешивать каналы
+  │
+  ├─ 4.5.1 Physical Models ✅
+  │     ├─ models/physical.py — PhysicalOutcome, Condition, Wound, ThreatAccumulator
+  │     ├─ DamageType enum (slashing, piercing, bludgeoning, fire, cold, poison, psychic)
+  │     ├─ WoundSeverity enum (minor → crippling)
+  │     ├─ Condition.tick() — автоматическое затухание
+  │     ├─ ThreatAccumulator.decay() — медленная деградация угрозы
+  │     └─ Wound.capability_penalty — штраф для DecisionHub
+  │
+  ├─ 4.5.2 MicroEventType расширение ✅
+  │     ├─ +STAGGERED, CRY_OF_PAIN, BLOOD_SPATTER, WEAPON_DROPPED_FORCE
+  │     ├─ +FELL_TO_GROUND, FLINCHED, ITEM_DAMAGED
+  │     └─ Разделение: реакция (осознанная) vs рефлекс (мгновенный)
+  │
+  ├─ 4.5.3 ReflexResolver ✅
+  │     ├─ services/reaction/reflex_resolver.py
+  │     ├─ PhysicalOutcome → ReflexResult (SceneEvents + DecisionSignals)
+  │     ├─ ReflexConstraint: НЕ блокирует, ОГРАНИЧИВАЕТ (allowed_intents + penalties)
+  │     └─ DamageType модификаторы (slashing → больше крови, bludgeoning → больше стаггера)
+  │
+  ├─ 4.5.4 NPCState расширение ✅
+  │     ├─ hp, max_hp, conditions, wounds, threat_accumulator, posture
+  │     ├─ npc_loader: _RUNTIME_TOP_LEVEL_KEYS обновлён
+  │     └─ Persistence: автоматическая сериализация через dataclass to_dict/from_dict
+  │
+  ├─ 4.5.5 PhysicalResolver ✅
+  │     ├─ services/resolution/physical_resolver.py (НОВАЯ ПАПКА)
+  │     ├─ resolve_attack(): d20 + ability vs AC, advantage/disadvantage
+  │     ├─ resolve_grapple(): contested STR check
+  │     ├─ НЕ LLM агент — чистый Python (отдельно от rules_agent)
+  │     └─ Выход: PhysicalOutcome → StateApplicator (не в текст)
+  │
+  ├─ 4.5.6 StateApplicator.apply_physical() ✅
+  │     ├─ HP clamp, threat accumulation, condition generation
+  │     ├─ Wound generation: severity + body_part + persistent check
+  │     ├─ Posture change при тяжёлом ударе
+  │     └─ CausalLedger запись
+  │
+  ├─ 4.5.7 ConditionEngine ✅
+  │     ├─ services/npc/condition_engine.py
+  │     ├─ Работает ВСЕГДА (не только при PHYSICAL)
+  │     ├─ bleeding → hp decay + BLOOD_SPATTER визуал
+  │     ├─ stunned → POSTURE_CHANGED визуал
+  │     └─ Два канала: StateChanges + SceneEvents (строго разделены)
+  │
+  ├─ 4.5.8 DecisionHub — чтение physical state ✅
+  │     ├─ reflex_constraints: penalties + allowed_intents фильтрация
+  │     ├─ HP < 30% → FLEE +0.3
+  │     ├─ bleeding → FLEE +0.15, HELP +0.1
+  │     ├─ stunned → IDLE forced (×0.1 для остальных)
+  │     ├─ prone → ATTACK -0.5, FLEE -0.3
+  │     ├─ threat > 30 → FLEE modifier, threat > 50 → ATTACK modifier
+  │     └─ wounds count → глобальный penalty -0.05/wound
+  │
+  └─ 4.5.9 game_loop интеграция ✅
+        ├─ PHYSICAL → PhysicalResolver → ReflexResolver → StateApplicator → DecisionHub
+        ├─ VERBAL → DecisionHub (без изменений)
+        ├─ ConditionEngine.tick() — перед DecisionHub для ВСЕХ NPC
+        ├─ ReflexConstraints → передаются в DecisionHub.compute()
+        └─ SceneEvents из рефлекса → SceneContinuity
+
+  НОВЫЙ ПОРЯДОК PIPELINE:
+    Parser → CharacterFilter → [PHYSICAL: Resolver→Reflex→StateApply] →
+    ConditionEngine → PerceptionFilter → DecisionHub → ReactionResolver → DM
+
+██ ФАЗА 5-PRESSURE — ДАВЛЕНИЕ МИРА НА ПЕРСОНАЖА ✅ ЗАВЕРШЕНА
 ═══════════════════════════════════════
 
-  ⚠ АУДИТ РЕАЛЬНОСТИ: ПОЛНОСТЬЮ НЕ РЕАЛИЗОВАНО
-  ⚠ ПРЕДУСЛОВИЕ: ФАЗА 2.0 (CharacterFilter) + ФАЗА 3.3 (Propagation)
-
-  ├─ 5.1 Fronts (R9) [НЕ СУЩЕСТВУЕТ]
-  │     ├─ Давление мира на персонажа (не на игрока!)
-  │     ├─ Front = маска, которую персонаж носит для мира
-  │     ├─ Формируется из: репутация (3.5) + слухи (3.3) + фракционные давления
-  │     └─ Зависит: ФАЗА 3.3 (Social Propagation), ФАЗА 3.5 (Reputation)
+  ├─ 5.1 Fronts (R9) ✅ РЕАЛИЗОВАНО
+  │     ├─ models/front.py — FrontType (6 типов), WorldPressure, FrontState
+  │     ├─ services/character/front_engine.py — FrontEngine (вычисление давления + решение)
+  │     ├─ PRESSURE_FRONT_MAP: источник давления → тип маски
+  │     ├─ 5 решений: none / adopt / intensify / drop / break
+  │     ├─ Стоимость маски → erosion self_integrity через CharacterProfile
+  │     ├─ BREAK: перегрузка → срыв маски + потеря целостности
+  │     ├─ Интеграция: game_loop каждый тик → front_description в DM контекст
+  │     └─ Persistence: front в CharacterProfile.to_dict/from_dict
   │
-  ├─ 5.2 Consequence Accumulation [НЕ СУЩЕСТВУЕТ]
-  │     ├─ Накопленные последствия RESIST действий из CharacterFilter
-  │     ├─ Влияют на self_integrity (истощение воли)
-  │     ├─ "Слишком часто подчинялся → легче подчиниться снова"
-  │     └─ Зависит: ФАЗА 2.0 (CharacterFilter генерирует RESIST)
+  ├─ 5.2 Consequence Accumulation ✅ РЕАЛИЗОВАНО
+  │     ├─ resist_ticks в CharacterProfile — история тиков RESIST (cap=20)
+  │     ├─ get_resistance_frequency(window=20) — частота за окно
+  │     ├─ CharacterFilter: habituation_penalty = freq × 0.20 снижает base_resistance
+  │     ├─ game_loop: record_resist() при outcome=RESIST
+  │     ├─ Persistence: resist_ticks в to_dict/from_dict
+  │     └─ Формула: "часто подчинялся → привычка → легче подчиниться снова"
   │
-  └─ 5.3 Identity Erosion [НЕ СУЩЕСТВУЕТ]
-        ├─ Противоположность NPC Break System (R8)
-        ├─ NPC ломается под давлением мира (внешний слом)
-        ├─ Персонаж теряет себя под давлением СОБСТВЕННЫХ компромиссов (внутренний слом)
-        ├─ Связь с Temporary Drives: erosion может порождать drives (desperation)
-        └─ Зависит: 5.2 + ФАЗА 4-ROLE (temporary_drives)
+  └─ 5.3 Identity Erosion ✅ РЕАЛИЗОВАНО
+        ├─ ErosionStage enum: NORMAL → WEAKENED → FRACTURED → COLLAPSED
+        ├─ Пороги по self_integrity: 0.7 / 0.4 / 0.2
+        ├─ update_erosion_stage() после каждого apply_erosion — автоматический переход
+        ├─ Описания для LLM при смене стадии (только если не NORMAL)
+        ├─ Persistence: erosion_stage в to_dict/from_dict
+        ├─ Интеграция: game_loop передаёт erosion_stage в shared_context для DM
+        └─ Связь с Temporary Drives: COLLAPSED может порождать desperation drive
 
   ПРИМЕЧАНИЕ: Ego Resistance УДАЛЁН — является ЧАСТЬЮ CharacterFilter (2.0.2)
 
 ██ ФАЗА 6-WORLD — PROACTIVE WORLD (МИР БЕЗ ИГРОКА)
 ═══════════════════════════════════════
 
-  ⚠ АУДИТ РЕАЛЬНОСТИ: Фундамент заложен в ФАЗА 3.4 (Agenda Loop)
+  ⚠ АУДИТ РЕАЛЬНОСТИ: Фундамент заложен в ФАЗА 3.4 (Agenda Loop) ✅
   ⚠ ЦЕЛЬ: Полная оффлайн-симуляция
 
-  ├─ 6.1 WorldTickEngine [НЕ СУЩЕСТВУЕТ]
-  │     ├─ Тикер: раз в N ходов или при входе в локацию
-  │     ├─ Симуляция: каждый NPC → DecisionHub(event_type="world_tick")
-  │     └─ Результат: транзакции, смена ролей, перемещения — без участия игрока
+  ├─ 6.1 WorldTickEngine ✅ БАЗА РЕАЛИЗОВАНА (Фаза 3.4)
+  │     ├─ Тикер: раз в 3 хода (WORLD_TICK_EVERY_TURNS в constants.py)
+  │     ├─ Симуляция: каждый major NPC → DecisionHub(event_type="world_tick")
+  │     ├─ Результат: проактивные решения → SceneContinuity → DM видит
+  │     └─ ⚠ НЕДОСТАТОК: пока нет оффлайн-мутаций (сохранения транзакций/перемещений)
   │
   ├─ 6.2 Оффлайн-мутации [НЕ СУЩЕСТВУЕТ]
   │     ├─ NPC торгуют, ссорятся, меняют работу за время отсутствия игрока
@@ -621,22 +788,22 @@ enigma/
 │   │   │   └── routes_debug.py         # God Mode
 │   │   │
 │   │   ├── models/                     # ЧИСТЫЕ ДАННЫЕ
-│   │   │   ├── npc_state.py            # ✅ R2.1 NPCState (динамика) [ПЕРЕНЕСЁН]
-│   │   │   ├── behavior_mask.py        # ✅ R8 BehaviorMask, BehaviorMaskState [ПЕРЕНЕСЁН]
-│   │   │   ├── personality.py          # L0 Core & L1 Identity
-│   │   │   ├── decision.py             # R2 Контракт DecisionResult
+│   │   │   ├── npc_state.py            # ✅ R2.1 NPCState (динамика) + CausalLedger
+│   │   │   ├── behavior_mask.py        # ✅ R8 BehaviorMask, BehaviorMaskState
 │   │   │   ├── candidates.py           # Кандидаты действий
-│   │   │   ├── npc_profile.py          # Профиль из JSON
+│   │   │   ├── npc_profile.py          # L0 Core Profile (из JSON)
+│   │   │   ├── character.py            # ✅ CharacterProfile + ValueSet (ФАЗА 2.0)
 │   │   │   ├── schemas.py              # Pydantic схемы API
-│   │   │   ├── psychological.py        # ✅ DistortionProfile, CausalEntry [ШАГ 2b]
+│   │   │   ├── psychological.py        # ✅ DistortionProfile, CausalEntry
 │   │   │   ├── scene_mode.py           # ✅ SceneMode (EXPLORATION/INTERACTION/COMBAT)
-│   │   │   ├── economy.py              # 🆕 Need, Transaction, EconomicProfile
-│   │   │   └── social.py               # 🆕 SocialGraph, Relationship (trust, affection, debt, secrets)
+│   │   │   ├── economy.py              # ✅ Need, Transaction, EconomicProfile
+│   │   │   ├── physical.py             # ✅ PhysicalOutcome, Condition, Wound, ThreatAccumulator [ФАЗА 4.5]
+│   │   │   ├── event_resolution.py      # ✅ EventResolutionResult, ReflexConstraint, StateChange [ФАЗА 4.5]
+│   │   │   └── social.py               # ✅ Relationship (base/runtime), Rumor, PropagationResult
 │   │   │
 │   │   ├── agents/                     # LLM-агенты
 │   │   │   ├── dm_agent.py             # Вербализатор
-│   │   │   ├── rules_agent.py          # ✅ Интегрирован с Router (Итерация 1)
-│   │   │   └── world_sim_agent.py       # ⚠️ TECH DEBT: LLM для симуляции (противоречит архитектуре, будет заменён WorldTickEngine в Фазе 6)
+│   │   │   └── rules_agent.py          # ✅ Интегрирован с Router (Итерация 1)
 │   │   │
 │   │   ├── core/                       # БАЗОВЫЕ МЕХАНИЗМЫ (не знают об игре)
 │   │   │   ├── event_bus.py            # Шина событий
@@ -652,12 +819,11 @@ enigma/
 │   │       │   └── reaction_rules.py    # Правила: threat→drop, attack→disrupt
 │   │       │
 │   │       ├── character/              # 🆕 ФАЗА 2.0 — ПЕРСОНАЖ (после Reaction)
-│   │       │   ├── character_filter.py # PlayerIntent → FilteredAction
-│   │       │   ├── character_profile.py # self_integrity, values, constraints
-│   │       │   └── resistance_scorer.py # Формула сопротивления
+│   │       │   └── character_filter.py # PlayerIntent → FilteredAction (включает resistance scorer)
 │   │       │
 │   │       ├── game_loop.py            # ★ КООРДИНАТОР + Reaction + Rules интеграция
 │   │       │                           # ✅ legacy paths → commit() [ШАГ 1]
+│   │       ├── scene_state_manager.py  # ✅ Source of Truth (фасад)
 │   │       │
 │   │       ├── action/                 # ★★★ DM SYSTEM (реальный путь, НЕ dm/)
 │   │       │   ├── dm_orchestrator.py  # Главный фасад
@@ -665,8 +831,7 @@ enigma/
 │   │       │   ├── dm_scene_builder.py # R4 Spatial контекст
 │   │       │   ├── object_resolver.py  # Разрешение объектов
 │   │       │   ├── player_target_extractor.py
-│   │       │   ├── python_engines.py     # Пайплайн вызова Python-движков (DecisionHub, Resolution)
-│   │       │   └─ [ДОЛГ] dm_validator.py
+│   │       │   └─ [ДОЛГ] dm_validator.py    # ⚠️ НЕ СУЩЕСТВУЕТ
 │   │       │
 │   │       ├── npc/                    # R2 — ЯДРО ИНТЕЛЛЕКТА
 │   │       │   ├── decision_hub.py     # ✅ BehaviorMask modifier (Итерация 1)
@@ -680,34 +845,35 @@ enigma/
 │   │       │   ├── psyche_engine.py         # Психологические режимы
 │   │       │   ├── break_progress_engine.py # R8 Прогресс слома
 │   │       │   ├── reaction_priority.py     # Приоритеты реакций
-│   │       │   ├── resolution_engine.py     # R5 Gap System
+│   │       │   ├── resolution_engine.py     # R5 Gap System (психология)
 │   │       │   ├── math_utils.py            # Утилиты
-│   │       │   ├── role_transition.py       # 🆕 Смена профессий (validation + execution)
+│   │       │   ├── condition_engine.py      # ✅ Тикер conditions (bleeding/stunned) [ФАЗА 4.5]
+│   │       │   ├── role_transition.py       # ✅ Смена профессий (validation + execution) [ФАЗА 4-ROLE]
 │   │       │
 │   │       # cognition/ и engines/ — НЕ СУЩЕСТВУЮТ (фантомы, удалены из дерева)
 │   │       │
-│   │       ├── social/                 # 🆕 СОЦИАЛЬНАЯ СИСТЕМА (ФАЗА 3)
-│   │       │   ├── social_graph.py          # Матрица NPC-NPC связей
-│   │       │   ├── social_propagation.py    # Распространение слухов (decay по хопам)
-│   │       │   └── reputation_engine.py     # Репутация в фракциях
+│   │       ├── social/                 # ✅ СОЦИАЛЬНАЯ СИСТЕМА (ШАГ D ЗАВЕРШЁН)
+│   │       │   ├── social_engine.py         # ✅ BFS propagation + trust distortion [ШАГ D]
+│   │       │   └── reputation_engine.py     # ✅ Репутация в фракциях [ФАЗА 3.5]
 │   │       │
-│   │       ├── economy/                # 🆕 ЭКОНОМИЧЕСКАЯ СИСТЕМА (ФАЗА 2.4)
+│   │       ├── economy/                # ✅ ЭКОНОМИЧЕСКАЯ СИСТЕМА (ФАЗА 2.4)
 │   │       │   ├── transaction_engine.py    # NPC-to-NPC сделки
-│   │       │   ├── opportunity_engine.py    # 🆕 Генерация кандидатов из needs
-│   │       │   ├── market_simulator.py      # Цены, спрос/предложение
-│   │       │   └── need_calculator.py       # Динамический расчёт urgency
+│   │       │   ├── need_engine.py           # Tick потребностей + NeedDrive
+│   │       │   ├── economic_modifier.py     # Модификаторы score для DecisionHub
+│   │       │   └── opportunity_engine.py    # Генерация кандидатов из needs
 │   │       │
 │   │       ├── spatial/                # R4 + ФАЗА 3 — ПРОСТРАНСТВЕННАЯ СИСТЕМА
 │   │       │   ├── location_graph.py        # R4 Граф локаций
 │   │       │   ├── spatial_runtime.py       # R4 Runtime расстояний
-│   │       │   ├── spatial_events.py        # 🆕 proximity_close/leave генерация
-│   │       │   └── salience_engine.py      # ✅ Фильтрация объектов по режиму сцены
+│   │       │   └── spatial_events.py        # ✅ detect_transitions (ФАЗА 3.1)
 │   │       │
-│   │       ├── resolution/             # R5 — МЕХАНИКА ИСХОДОВ
-│   │       │   └── action_resolver.py  # Диспетчер
+│   │       ├── resolution/                  # ✅ ФАЗА 4.5 — Физическое разрешение
+│   │       │   ├── physical_resolver.py     # Кубик + формула → PhysicalOutcome
+│   │       │   └── __init__.py
+│   │       # npc/resolution_engine.py — R5 Gap System (психология, отдельный слой)
 │   │       │
 │   │       ├── state/                  # R4 — УПРАВЛЕНИЕ МИРОМ
-│   │       │   ├── scene_state_manager.py   # Source of Truth
+│   │       │   ├── (scene_state_manager.py вынесен в services/)
 │   │       │   ├── context_builder.py       # shared_context
 │   │       │   ├── json_persistence_adapter.py
 │   │       │   └── persistence_port.py
@@ -733,11 +899,12 @@ enigma/
 │   │       │   ├── event_bus.py
 │   │       │   └── event_types.py
 │   │       │
-│   │       ├── scene/                  # Парсинг нарратива
-│   │       │   └── narrative_extractor.py
+│   │       ├── scene/                  # Парсинг нарратива + фильтрация
+│   │       │   ├── narrative_extractor.py
+│   │       │   └── salience_engine.py      # Фильтрация объектов по режиму сцены
 │   │       │
-│   │       ├── simulation/             # Симуляция мира
-│   │       │   └── world_state.py
+│   │       ├── simulation/             # Симуляция мира (legacy)
+│   │       │   └── world_state.py      # ⚠️ TODO: аудит необходимости
 │   │       │
 │   │       └── llm/                    # LLM провайдеры
 │   │           ├── router.py           # ✅ Ленивый Semaphore (Итерация 1)
@@ -761,31 +928,27 @@ enigma/
 │   │   │   ├── _base_humanoid.json
 │   │   │   ├── tavern_keeper.json
 │   │   │   ├── guard.json
+│   │   │   ├── maid.json
 │   │   │   ├── merchant.json
-│   │   │   └── peasant.json
+│   │   │   └── thief.json
 │   │   │
 │   │   ├── mixins/                     # Модификаторы archetype
-│   │   │   ├── fallen_noble.json
-│   │   │   ├── criminal_past.json
 │   │   │   └── veteran.json
 │   │   │
 │   │   ├── individuals/                # Конкретные NPC (ТОЛЬКО дельта от archetype)
 │   │   │   ├── tornin.json
 │   │   │   ├── borko.json
 │   │   │   ├── lusya.json
-│   │   │   └── goran.json
+│   │   │   ├── goran.json
+│   │   │   ├── shadow.json
+│   │   │   └── blacksmith.json
 │   │   │
 │   │   └── social/                     # Статичные связи NPC-NPC
 │   │       └── village_relations.json
 │   │
-│   ├── economy/                        # Экономические конфиги
-│   │   ├── needs_library.json          # Типы потребностей
-│   │   ├── wages.json                  # Ставки оплаты
-│   │   └── goods_prices.json           # Базовые цены
-│   │
-│   └── world/
-│       ├── locations.json
-│       └── factions.json
+│   # economy/ — НЕ СУЩЕСТВУЕТ (константы в models/economy.py)
+│   └── world/                          # ✅ Фракции мира [ФАЗА 3.5]
+│       └── factions.json               # 4 фракции: гильдия_воров, городская_стража, торговая_гильдия, таверна
 │
 ├── saves/                              # RUNTIME СОХРАНЕНИЯ (отдельно от config)
 │   └── session_{id}/
@@ -974,28 +1137,19 @@ FINAL TEXT
   └─────────────────────────────────────────────────────────────────────────┘
                                     │
                                     ▼
-  ┌─────────────────────────────────────────────────────────────────────────┐
-  │ ШАГ 0.9: DATA CONTRACTS ДЛЯ НОВЫХ СИСТЕМ 🆕                          │
-  │                                                                         │
-  │ ПРИЧИНА: Контракты до реализации — предотвращают переделки.          │
-  │                                                                         │
-  │ 0.9.1 models/economy.py                                                │
-  │     ├─ Need (type, urgency, budget_share, skill_required)              │
-  │     ├─ Transaction (actor, target, goods, payment, reason)             │
-  │     └─ EconomicProfile (income_sources, needs, resources)              │
-  │                                                                         │
-  │ 0.9.2 models/social.py                                                 │
-  │     ├─ Relationship (trust, affection, fear, debt, shared_secrets)     │
-  │     └─ SocialGraph (матрица связей с методами запроса)                 │
-  │                                                                         │
-  │ 0.9.3 Расширение NPCState                                              │
-  │     ├─ current_role: str (из archetype)                                 │
-  │     ├─ temporary_drives: List[TemporaryDrive]                           │
-  │     ├─ resources: Dict (gold, items)                                    │
-  │     └─ role_history: List[str]                                          │
-  │                                                                         │
-  │ БЛОКИРУЕТ: 2.4-ECO, 3.2, 4-ROLE, 0.2 (CharacterFilter)               │
-  └─────────────────────────────────────────────────────────────────────────┘
+  ┌─────────────────────────────────────────────────────────────────────┐
+  │ ШАГ 0.9: DATA CONTRACTS ✅ ЗАВЕРШЁН (в рамках реализации)        │
+  │                                                                     │
+  │ 0.9.1 models/economy.py ✅                                          │
+  │     ├─ Need, Transaction, Obligation, Contract                       │
+  │     └─ EconomicProfile (gold, goods, needs, obligations, contracts)  │
+  │                                                                     │
+  │ 0.9.2 models/social.py ✅ (структура есть, SocialGraph в ШАГ D)   │
+  │                                                                     │
+  │ 0.9.3 models/character.py ✅ (CharacterProfile + ValueSet)          │
+  │                                                                     │
+  │ АУДИТ ЦЕЛОСТНОСТИ: 32/32 модулей OK                                │
+  └─────────────────────────────────────────────────────────────────────┘
                                     │
                                     ▼
   ┌─────────────────────────────────────────────────────────────────────────┐
@@ -1121,34 +1275,37 @@ FINAL TEXT
                                     │
                                     ▼
   ┌─────────────────────────────────────────────────────────────────────┐
-  │ ШАГ 2-ECO: ЭКОНОМИЧЕСКИЙ ДВИЖОК 🆕                                │
+  │ ШАГ 2-ECO: ЭКОНОМИЧЕСКИЙ ДВИЖОК ✅ ЗАВЕРШЁН                      │
   │                                                                     │
-  │ ПРИНЦИП: Потребности → кандидаты → транзакции. Без скриптов.      │
+  │ РЕАЛИЗАЦИЯ (отличается от плана —modifier подход, не candidates):   │
   │                                                                     │
-  │ 2-ECO.1 need_calculator.py                                        │
-  │     ├─ Динамический urgency от neglected_ticks                     │
-  │     ├─ Кап: urgency_max = 0.95                                    │
-  │     └─ Базовый доход от "мирной жизни" (анти-collapse)            │
+  │ 2-ECO.1 models/economy.py ✅                                       │
+  │     ├─ Need (decay_rate по типу: FOOD 0.02, SHELTER 0.005)        │
+  │     ├─ Obligation (временное давление: rent, debt, tax)            │
+  │     ├─ Contract (память договоров: employment, rent)               │
+  │     └─ EconomicProfile (gold, goods, needs, obligations, contracts)│
   │                                                                     │
-  │ 2-ECO.2 opportunity_engine.py                                     │
-  │     ├─ Вход: List[Need] с urgency > 0.6                           │
-  │     ├─ Если ресурсы есть → Candidate(OFFER_JOB, wage=X)           │
-  │     ├─ Если нет ресурсов → Candidate(REQUEST_SERVICE)              │
-  │     └─ Если нет союзников → Candidate(REDIRECT)                   │
+  │ 2-ECO.2 need_engine.py ✅ (вместо need_calculator)                │
+  │     ├─ tick() — обновление neglect + авто-удовлетворение           │
+  │     ├─ NeedDrive — сигнал для DecisionHub                          │
+  │     └─ get_wealth_stress() + get_obligation_stress()               │
   │                                                                     │
-  │ 2-ECO.3 transaction_engine.py                                     │
-  │     ├─ NPC-to-NPC сделки (sale, employment, bribe)                │
-  │     ├─ Валидация ресурсов до сделки                               │
-  │     └─ Запись в CausalLedger при успехе                           │
+  │ 2-ECO.3 economic_modifier.py ✅ (вместо opportunity_engine)        │
+  │     ├─ HUNGER → trade+0.35, talk+0.15                             │
+  │     ├─ OBLIGATION_URGE → trade+0.45                               │
+  │     └─ wealth_bonus → богатый менее мотивирован                    │
   │                                                                     │
-  │ 2-ECO.4 Интеграция в DecisionHub                                  │
-  │     ├─ Новые кандидаты: OFFER_JOB, REQUEST_SERVICE, TRADE         │
-  │     └─ Формула: score += resource_capability * 0.2                │
+  │ 2-ECO.4 transaction_engine.py ✅                                    │
+  │     ├─ execute_sale() — атомарная продажа                         │
+  │     ├─ execute_employment() — трудовой контракт                    │
+  │     ├─ calculate_selling_price() — trust × urgency × inflation    │
+  │     └─ process_contract_payments() — каждый тик                   │
   │                                                                     │
-  │ ТРЕБУЕТ: 0.8 (archetype needs), 0.9 (models/economy.py)          │
-  │ БЛОКИРУЕТ: 4-ROLE (смена роли требует транзакций)                 │
+  │ 2-ECO.5 Интеграция в DecisionHub ✅                                │
+  │     ├─ compute(eco_modifiers=...) — добавка к score                │
+  │     └─ Не создаёт новые интенты — усиливает существующие           │
   │                                                                     │
-  │ ТЕСТ: Торнин (need=cleanliness 0.8) → OFFER_JOB → REDIRECT к Люсе│
+  │ ТЕСТ ПРОВЕРЕН: Меч 15G → знакомый 13G, незнакомец 15.75G          │
   └─────────────────────────────────────────────────────────────────────┘
                                     │
                                     ▼
@@ -1158,27 +1315,31 @@ FINAL TEXT
   │ ПРИНЦИП: NPC знают друг друга, передают информацию, действуют      │
   │          между ходами игрока.                                      │
   │                                                                     │
-  │ D.1 spatial_events.py (ФАЗА 3.1)                                  │
-  │     ├─ distance < 1.5m → proximity_close (триггер диалога)        │
-  │     ├─ distance > 5.0m → proximity_leave (прерывание)              │
-  │     └─ Превращает "подойти" из текста в триггер DecisionHub       │
+  │ D.1 spatial_events.py (ФАЗА 3.1) ✅ ЗАВЕРШЁН                      │
+  │     ├─ detect_transitions(prev, curr) — чистая функция             │
+  │     ├─ close: prev >= 2.0 → curr < 2.0 → proximity_close          │
+  │     ├─ leave: prev < 5.0 → curr >= 5.0 → proximity_leave          │
+  │     └─ Интеграция: game_loop → shared_context → SceneContinuity   │
   │                                                                     │
-  │ D.2 social_graph.py (ФАЗА 3.2)                                     │
-  │     ├─ Relationship: trust, affection, fear, debt, shared_secrets  │
-  │     ├─ Загрузка из config/npc/social/ + runtime мутации           │
-  │     ├─ Правило ревности: proximity_close + affection > 0.5         │
-  │     │   → Candidate(INTIMIDATE, reason=jealousy)                  │
-  │     └─ Правило долга: need + no resources + debt > 0              │
-  │         → Candidate(REQUEST_SERVICE, target=debtor)                │
+  │ D.2 social_graph.py (ФАЗА 3.2) ✅ ЗАВЕРШЁН                        │
+  │     ├─ Реализовано как compute_social_modifiers() в SocialEngine   │
+  │     ├─ Modifier pattern (не Candidate): усиливает score intents    │
+  │     ├─ Ревность: affection > 0.5 + dist < 3.0 → INTIMIDATE +0.32  │
+  │     ├─ Защита: trust > 0.4 + threats → THREATEN +0.21            │
+  │     ├─ Страх: fear > 0.3 + attacks → FLEE +0.18                   │
+  │     └─ Долг: debt > 0 + dist < 4.0 → OBSERVE +0.20               │
   │                                                                     │
   │ D.3 social_propagation.py (ФАЗА 3.3)                               │
   │     ├─ max_hops=3, decay=0.8^hop, freq_cap=1/5 тиков              │
   │     ├─ Искажение: trust < 0 → преувеличивает негатив              │
   │     └─ Генерирует MicroEvents для удалённых NPC                   │
   │                                                                     │
-  │ D.4 reputation_engine.py (ФАЗА 3.5)                                │
+  │ D.4 reputation_engine.py (ФАЗА 3.5) ✅ РЕАЛИЗОВАНО                   │
   │     ├─ Репутация в фракциях (config/world/factions.json)           │
-  │     └─ Действия NPC влияют на репутацию фракции                    │
+  │     ├─ EVENT_REPUTATION_IMPACT: маппинг event_type → delta по nature│
+  │     ├─ compute_reputation_modifier() → DecisionHub модификаторы     │
+  │     ├─ apply_event_impact() → дельты после действий в game_loop    │
+  │     └─ 4 фракции: гильдия_воров, городская_стража, торговая, таверна│
   │                                                                     │
   │ D.5 role_transition.py (ФАЗА 4-ROLE)                               │
   │     ├─ can_transition(): required_background из archetype          │
@@ -1190,19 +1351,20 @@ FINAL TEXT
   │     ├─ Cap: 3 active drives                                       │
   │     └─ Модификаторы: vengeance→COMBAT+0.3, greed→TRADE+0.3       │
   │                                                                     │
-  │ D.7 Agenda Loop / WorldTickEngine (ФАЗА 6-WORLD)                   │
-  │     ├─ Тикер: раз в N ходов или при входе в локацию               │
-  │     ├─ Каждый NPC → DecisionHub(event_type="world_tick")          │
-  │     └─ Оффлайн-мутации: транзакции, смена ролей, перемещения      │
+  │ D.7 Agenda Loop / WorldTickEngine (ФАЗА 6-WORLD) ✅ БАЗА РЕАЛИЗОВАНА (Фаза 3.4)│
+  │     ├─ Тикер: раз в 3 хода (WORLD_TICK_EVERY_TURNS)               │
+  │     ├─ Каждый major NPC → DecisionHub(event_type="world_tick")     │
+  │     └─ ⚠ Оффлайн-мутации: НЕ РЕАЛИЗОВАНО (Фаза 6.2)               │
   │                                                                     │
-  │ ТРЕБУЕТ: 0.8 (archetype), 0.9 (models/social.py), 2-ECO          │
+  │ ТРЕБУЕТ: ✅ 0.8 (archetype), ✅ 0.9 (models/social.py), ✅ 2-ECO  │
   └─────────────────────────────────────────────────────────────────────┘
                                     │
                                     ▼
   ┌─────────────────────────────────────────────────────────────────────┐
   │ ШАГ E: ДАВЛЕНИЕ МИРА НА ПЕРСОНАЖА (ФАЗА 5-PRESSURE)               │
   │                                                                     │
-  │ ❌ БЛОКИРУЕТСЯ: CharacterFilter (ФАЗА 2.0) + Social Propagation    │
+  │ ⚠ БЛОКИРОВАЛОСЬ: CharacterFilter ✅ + Social Propagation ✅        │
+  │ ⚠ ПРЕДУСЛОВИЯ ВЫПОЛНЕНЫ — можно начинать реализацию              │
   │                                                                     │
   │ E.1 Fronts                                                          │
   │     ├─ Маска персонажа для мира                                     │
@@ -1391,25 +1553,41 @@ SOCIAL GRAPH & PROPAGATION (СЕТЬ СВЯЗЕЙ NPC-NPC)
 ПРИНЦИП: NPC знают друг о друге. Связи имеют измерения, не одно число.
 События распространяются по графу с искажением и затуханием.
 
-КОНТРАКТ ДАННЫХ (models/social.py):
+КОНТРАКТ ДАННЫХ (models/social.py) ✅ РЕАЛИЗОВАНО:
 
-Relationship (связь между двумя NPC):
-  trust: float             # -1.0 до 1.0 (вера в слова/намерения)
-  affection: float         # Эмоциональная привязанность (ревность, защита)
-  fear: float              # Страх перед NPC
-  debt: float              # Долг (положительный = должен ему)
-  last_interaction: int    # Тиков назад (для decay)
-  shared_secrets: List     # Что знают друг о друге (для шантажа/доверия)
+Relationship (направленная связь source → target):
+  base_trust: float          # из config [-1..1], НЕ мутируется
+  base_affection: float      # из config [-1..1], НЕ мутируется
+  runtime_trust_delta: float # мутируется, effective = base + delta (cap [-1..1])
+  runtime_affection_delta: float
+  fear: float                # runtime
+  debt: float                # runtime
+  shared_secrets: int        # runtime
+  effective_trust → property # вычисляемое, для чтения
+  adjust_trust(delta) → safe mutation с пересчётом delta
 
-ПРОПАГАЦИЯ СОБЫТИЙ (social_propagation.py):
-1. Событие (смерть, сделка, предательство) → SocialPropagation.propagate()
-2. Распространение по графу:
-   ├─ max_hops = 3 (не далее 3 связей)
-   ├─ decay = 0.8^hop (каждый хоп ослабляет сигнал)
-   └─ frequency_cap = 1 раз в 5 тиков (предотвращает спам)
-3. Искажение через trust_bias:
-   ├─ trust < 0 → преувеличивает негативное (враг рассказывает хуже)
-   └─ trust > 0 → преувеличивает позитивное (союзник защищает репутацию)
+Rumor (frozen dataclass — LLM НЕ видит):
+  origin_event_type, origin_target, origin_actor
+  base_intensity, perceived_intensity (после distortion)
+  hop, carrier, distortion_applied
+
+PropagationResult (frozen — возвращается вызывающему, НЕ пишет состояние):
+  npc_id, trust_delta, stress_delta, rumor, continuity_note
+
+ПРОПАГАЦИЯ СОБЫТИЙ (social_engine.py) ✅ РЕАЛИЗОВАНА:
+1. Событие → SocialEngine.propagate() → List[PropagationResult]
+2. BFS от свидетелей по графу (обратные связи auto-generated):
+   ├─ max_hops = 3
+   ├─ decay = 0.8^hop
+   └─ frequency_cap = 1 раз в 5 тиков (эфемерный, не сохраняется)
+3. Искажение (только негативные события, детерминистично):
+   ├─ trust < 0.2 → amplify ×1.3 (враг преувеличивает)
+   ├─ trust > 0.6 → dampen ×0.7 (друг смягчает)
+   └─ позитивные — без искажения
+4. Влияние на получателя (капы):
+   ├─ trust_delta: max |0.1| от одного слуха
+   └─ stress_delta: perceived × 0.25 (только негатив)
+5. Интеграция: game_loop → continuity_note → SceneContinuity → DM prompt
 
 ПРИМЕР ИСПОЛЬЗОВАНИЯ В DECISIONHUB:
 ─ Игрок подходит к Люси (dist < 1.5, spatial_events → proximity_close)
@@ -1554,3 +1732,13 @@ RESISTANCE_RESIST = 0.9
 AGE_COST_K = 0.08
 EMOTION_COST_K = 0.06
 IDENTITY_COST_BASE = 0.04
+
+# Life Engine
+MINOR_TICK_INTERVAL = 3
+RANDOM_EVENT_CHANCE = 0.05
+STRESS_RECOVERY_SAFE = 5
+STRESS_RECOVERY_SLEEPING = 15
+TICK_SAVE_INTERVAL = 10
+MAX_CACHED_CAMPAIGNS = 100
+CAMPAIGN_TTL_SECONDS = 3600
+MACRO_SIM_THRESHOLD_SECONDS = 3600

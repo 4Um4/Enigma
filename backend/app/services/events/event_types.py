@@ -15,36 +15,65 @@
 
 from __future__ import annotations
 from dataclasses import dataclass, field
-from enum import Enum, auto
+from enum import Enum
 from typing import Any, Dict, List, Optional
 import time
 
 
-class EventType(Enum):
+class EventType(str, Enum):
     # ── Физический мир ────────────────────────────────────────────────────
-    OBJECT_MOVED     = auto()   # объект переместился
-    OBJECT_DESTROYED = auto()   # объект уничтожен (слышно, видно)
-    OBJECT_CHANGED   = auto()   # состояние изменилось (дверь открыта, свеча погасла)
-    LIGHT_CHANGED    = auto()   # освещение изменилось
-    SOUND_EMITTED    = auto()   # звук — слышат NPC в радиусе
-    SMELL_EMITTED    = auto()   # запах — слышат NPC в радиусе
+    OBJECT_MOVED     = "object_moved"
+    OBJECT_DESTROYED = "object_destroyed"
+    OBJECT_CHANGED   = "object_changed"
+    LIGHT_CHANGED    = "light_changed"
+    SOUND_EMITTED    = "sound_emitted"
+    SMELL_EMITTED    = "smell_emitted"
 
     # ── Игрок ─────────────────────────────────────────────────────────────
-    PLAYER_MOVED     = auto()   # игрок сменил позицию
-    PLAYER_ATTACKED  = auto()   # атака (видна всем в локации)
-    PLAYER_SPOKE     = auto()   # игрок сказал что-то
-    PLAYER_USED_ITEM = auto()   # использование предмета
-    PLAYER_CAST_SPELL = auto()  # заклинание
+    PLAYER_MOVED     = "player_moved"
+    PLAYER_ATTACKED  = "PLAYER_ATTACKED"  # сохранено для совместимости со старыми строками
+    PLAYER_SPOKE     = "PLAYER_SPOKE"     # сохранено для совместимости со старыми строками
+    PLAYER_USED_ITEM = "player_used_item"
+    PLAYER_CAST_SPELL = "player_cast_spell"
 
     # ── NPC ───────────────────────────────────────────────────────────────
-    NPC_STATE_CHANGED = auto()  # стресс, доверие, hp, conditions
-    NPC_MOVED        = auto()   # NPC сменил позицию (LifeEngine)
-    NPC_SPOKE        = auto()   # NPC сказал что-то
+    NPC_STATE_CHANGED = "npc_state_changed"
+    NPC_MOVED        = "npc_moved"
+    NPC_SPOKE        = "npc_spoke"
 
     # ── Мир ───────────────────────────────────────────────────────────────
-    TIME_PASSED      = auto()   # world_tick — прошло игровое время
-    WEATHER_CHANGED  = auto()
-    FACTION_EVENT    = auto()   # Phase 3E
+    TIME_PASSED      = "time_passed"
+    WEATHER_CHANGED  = "weather_changed"
+    FACTION_EVENT    = "faction_event"
+    WORLD_TICK       = "world_tick"       # проактивный тик мира (Фаза 3.4)
+
+    # ── NPC-NPC взаимодействия (Фаза 3.4) ───────────────────────────────
+    NPC_PROXIMITY_CLOSE   = "npc_proximity_close"   # NPC подошёл к другому NPC
+    NPC_PROXIMITY_LEAVE   = "npc_proximity_leave"   # NPC отошёл от другого NPC
+    NPC_INTERACTS_NPC     = "npc_interacts_npc"     # NPC инициирует контакт с NPC
+
+    # ── Легаси-события (из EventContext и старых JSON) ────────────────────
+    # Унифицированы здесь для устранения разрывов (R1.6)
+    THEFT            = "theft"
+    COMBAT           = "combat"
+    HELP             = "help"
+    IDLE             = "idle"
+    DIALOGUE         = "dialogue"
+    INTIMIDATION     = "intimidation"
+    BETRAYAL         = "betrayal"
+    SAVED_LIFE       = "saved_life"
+    MOVEMENT         = "movement"
+    PLAYER_ASKS_WHY  = "player_asks_why"
+    PLAYER_INTERACTS = "player_interacts"
+    PLAYER_ATTACKS   = "player_attacks"
+    PLAYER_ATTACK    = "player_attack"
+    PLAYER_INSULTS   = "player_insults"
+    PLAYER_TALKS     = "player_talks"
+    PLAYER_THREATENS = "player_threatens"
+    PLAYER_HELPERS   = "player_helpers"
+    PROXIMITY_CLOSE  = "proximity_close"
+    PROXIMITY_LEAVE  = "proximity_leave"
+    UNKNOWN          = "unknown"
 
 
 # Соответствие ChangeType (старый) → EventType (новый)

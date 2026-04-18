@@ -6,11 +6,11 @@ map_editor/undo_manager.py
 path: /backend/map_editor/undo_manager.py
 Зависимости: dataclasses, copy, typing
 Основные сущности: Command (база), AddWallCommand, RemoveWallCommand, AddRoomCommand, RemoveRoomCommand,
-AddNodeCommand, RemoveNodeCommand, AddObjectCommand, RemoveObjectCommand, AddPortalCommand, RemovePortalCommand,
+AddNodeCommand, RemoveNodeCommand, AddObjectCommand, RemoveObjectCommand,
 TogglePassabilityCommand, UndoManager.
 """
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 from copy import deepcopy
 
 
@@ -74,6 +74,49 @@ class RemoveWallCommand(Command):
 
 
 @dataclass
+class AddPassageCommand(Command):
+    """Создание прохода в стене"""
+    dm: Any = None
+    filename: str = ""
+    wall_id: str = ""
+    passage_type: str = "door"
+    position: Dict = field(default_factory=dict)
+    passage_id: str = ""
+
+    def __post_init__(self):
+        self.label = f"Проход: {self.passage_type}"
+
+    def do(self) -> str:
+        self.passage_id = self.dm.add_passage(
+            self.filename, self.wall_id, self.passage_type, self.position)
+        return self.passage_id
+
+    def undo(self):
+        if self.passage_id:
+            self.dm.remove_passage(self.filename, self.passage_id)
+
+
+@dataclass
+class RemovePassageCommand(Command):
+    """Удаление прохода с сохранением данных для восстановления"""
+    dm: Any = None
+    filename: str = ""
+    passage_data: Dict = field(default_factory=dict)
+
+    def __post_init__(self):
+        self.label = "Удалить проход"
+
+    def do(self):
+        if self.passage_data.get("id"):
+            self.dm.remove_passage(self.filename, self.passage_data["id"])
+
+    def undo(self):
+        if self.passage_data.get("id"):
+            loc = self.dm.locations[self.filename]
+            loc["passages"].append(deepcopy(self.passage_data))
+
+
+@dataclass
 class AddRoomCommand(Command):
     """Добавление комнаты"""
     dm: Any = None
@@ -84,13 +127,16 @@ class AddRoomCommand(Command):
     width: float = 0.0
     height: float = 0.0
     room_id: str = ""
+    polygon: Optional[List[Tuple[float, float]]] = None
+    area_sqm: Optional[float] = None
 
     def __post_init__(self):
         self.label = "Комната"
 
     def do(self) -> str:
         self.room_id = self.dm.add_room(
-            self.filename, self.name, self.x, self.y, self.width, self.height
+            self.filename, self.name, self.x, self.y, self.width, self.height,
+            polygon=self.polygon, area_sqm=self.area_sqm
         )
         return self.room_id
 
@@ -117,6 +163,111 @@ class RemoveRoomCommand(Command):
         if self.room_data.get("id"):
             loc = self.dm.locations[self.filename]
             loc["rooms"].append(deepcopy(self.room_data))
+
+
+@dataclass
+class RenameCommand(Command):
+    """Универсальное переименование сущности"""
+    dm: Any = None
+    filename: str = ""
+    entity_type: str = ""  # "room", "object", "portal"
+    entity_id: str = ""
+    old_name: str = ""
+    new_name: str = ""
+
+    def __post_init__(self):
+        self.label = "Переименовать"
+
+    def do(self):
+        self.dm.rename_entity(self.filename, self.entity_type, self.entity_id, self.new_name)
+
+    def undo(self):
+        self.dm.rename_entity(self.filename, self.entity_type, self.entity_id, self.old_name)
+
+
+@dataclass
+class AddLabelCommand(Command):
+    """Создание надписи"""
+    dm: Any = None
+    filename: str = ""
+    x: float = 0.0
+    y: float = 0.0
+    text: str = "Надпись"
+    label_id: str = ""
+
+    def __post_init__(self):
+        self.label = "Надпись"
+
+    def do(self) -> str:
+        self.label_id = self.dm.add_label(self.filename, self.x, self.y, self.text)
+        return self.label_id
+
+    def undo(self):
+        if self.label_id:
+            self.dm.remove_label(self.filename, self.label_id)
+
+
+@dataclass
+class RemoveLabelCommand(Command):
+    """Удаление надписи с сохранением для восстановления"""
+    dm: Any = None
+    filename: str = ""
+    label_data: Dict = field(default_factory=dict)
+
+    def __post_init__(self):
+        self.label = "Удалить надпись"
+
+    def do(self):
+        if self.label_data.get("id"):
+            self.dm.remove_label(self.filename, self.label_data["id"])
+
+    def undo(self):
+        if self.label_data.get("id"):
+            loc = self.dm.locations[self.filename]
+            loc["labels"].append(deepcopy(self.label_data))
+
+
+@dataclass
+class AddNpcCommand(Command):
+    """Размещение NPC на локации"""
+    dm: Any = None
+    filename: str = ""
+    ref_id: str = ""
+    x: float = 0.0
+    y: float = 0.0
+    room_id: str = ""
+    npc_ref: str = ""
+
+    def __post_init__(self):
+        self.label = "Разместить NPC"
+
+    def do(self) -> str:
+        self.npc_ref = self.dm.add_npc(self.filename, self.ref_id, self.x, self.y, self.room_id)
+        return self.npc_ref
+
+    def undo(self):
+        if self.npc_ref:
+            self.dm.remove_npc(self.filename, self.ref_id)
+
+
+@dataclass
+class RemoveNpcCommand(Command):
+    """Удаление NPC с сохранением для восстановления"""
+    dm: Any = None
+    filename: str = ""
+    npc_data: Dict = field(default_factory=dict)
+
+    def __post_init__(self):
+        self.label = "Удалить NPC"
+
+    def do(self):
+        if self.npc_data.get("ref_id"):
+            self.dm.remove_npc(self.filename, self.npc_data["ref_id"])
+
+    def undo(self):
+        if self.npc_data.get("ref_id"):
+            loc = self.dm.locations[self.filename]
+            loc["npcs"].append(deepcopy(self.npc_data))
 
 
 @dataclass
@@ -173,6 +324,7 @@ class AddObjectCommand(Command):
     width: float = 1.0
     height: float = 1.0
     rotation: float = 0
+    wall_id: str = ""
     obj_id: str = ""
 
     def __post_init__(self):
@@ -181,7 +333,7 @@ class AddObjectCommand(Command):
     def do(self) -> str:
         self.obj_id = self.dm.add_object(
             self.filename, self.obj_type, self.x, self.y,
-            self.width, self.height, self.rotation
+            self.width, self.height, self.rotation, self.wall_id
         )
         return self.obj_id
 
@@ -212,70 +364,165 @@ class RemoveObjectCommand(Command):
 
 
 @dataclass
-class AddPortalCommand(Command):
-    """Добавление портала"""
-    dm: Any = None
-    filename: str = ""
-    portal_type: str = ""
-    x: float = 0.0
-    y: float = 0.0
-    label: str = ""
-    target: str = ""
-    portal_id: str = ""
-
-    def __post_init__(self):
-        self.label = f"Портал: {self.portal_type}"
-
-    def do(self) -> str:
-        self.portal_id = self.dm.add_portal(
-            self.filename, self.portal_type, self.x, self.y, self.label, self.target
-        )
-        return self.portal_id
-
-    def undo(self):
-        if self.portal_id:
-            self.dm.remove_portal(self.filename, self.portal_id)
-
-
-@dataclass
-class RemovePortalCommand(Command):
-    """Удаление портала с сохранением данных для восстановления"""
-    dm: Any = None
-    filename: str = ""
-    portal_data: Dict = field(default_factory=dict)
-
-    def __post_init__(self):
-        self.label = "Удалить портал"
-
-    def do(self):
-        if self.portal_data.get("id"):
-            self.dm.remove_portal(self.filename, self.portal_data["id"])
-
-    def undo(self):
-        if self.portal_data.get("id"):
-            loc = self.dm.locations[self.filename]
-            loc["portals"].append(deepcopy(self.portal_data))
-
-
-@dataclass
 class RotateObjectCommand(Command):
     """Поворот объекта на заданный угол"""
     dm: Any = None
     filename: str = ""
-    obj_index: int = -1
+    obj_id: str = ""
     old_rotation: float = 0
     delta: float = 45
 
     def __post_init__(self):
         self.label = "Поворот"
 
+    def _find_obj(self) -> Optional[Dict]:
+        for o in self.dm.locations[self.filename]["objects"]:
+            if o.get("id") == self.obj_id:
+                return o
+        return None
+
     def do(self):
-        loc = self.dm.locations[self.filename]
-        loc["objects"][self.obj_index]["rotation"] = (self.old_rotation + self.delta) % 360
+        obj = self._find_obj()
+        if obj:
+            try:
+                obj["rotation"] = (float(self.old_rotation) + self.delta) % 360
+            except (ValueError, TypeError):
+                obj["rotation"] = self.delta % 360
 
     def undo(self):
+        obj = self._find_obj()
+        if obj:
+            try:
+                obj["rotation"] = float(self.old_rotation)
+            except (ValueError, TypeError):
+                obj["rotation"] = 0.0
+
+
+@dataclass
+class MirrorObjectCommand(Command):
+    """Зеркальное отражение объекта (для дверей/окон в стенах)"""
+    dm: Any = None
+    filename: str = ""
+    obj_id: str = ""
+    old_mirrored: bool = False
+
+    def __post_init__(self):
+        self.label = "Зеркало"
+
+    def _find_obj(self) -> Optional[Dict]:
+        for o in self.dm.locations[self.filename]["objects"]:
+            if o.get("id") == self.obj_id:
+                return o
+        return None
+
+    def do(self):
+        obj = self._find_obj()
+        if obj:
+            obj["mirrored"] = not obj.get("mirrored", False)
+
+    def undo(self):
+        obj = self._find_obj()
+        if obj:
+            obj["mirrored"] = self.old_mirrored
+
+
+@dataclass
+class MoveEntityCommand(Command):
+    """Перемещение любой сущности (объект, стена, комната, узел, надпись)"""
+    dm: Any = None
+    filename: str = ""
+    entity_type: str = ""
+    entity_id: str = ""
+    dx: float = 0.0
+    dy: float = 0.0
+    drag_wall: bool = False
+    _skip_do: bool = False
+
+    def __post_init__(self):
+        self.label = "Перемещение"
+
+    def _apply(self, dx: float, dy: float) -> None:
         loc = self.dm.locations[self.filename]
-        loc["objects"][self.obj_index]["rotation"] = self.old_rotation
+        if self.entity_type == "object":
+            obj = next((o for o in loc["objects"] if o.get("id") == self.entity_id), None)
+            if obj:
+                obj["position"]["x"] += dx
+                obj["position"]["y"] += dy
+                if self.drag_wall and obj.get("wall_id"):
+                    wall = next((w for w in loc["walls"] if w["id"] == obj["wall_id"]), None)
+                    if wall:
+                        wall["x1"] += dx; wall["y1"] += dy
+                        wall["x2"] += dx; wall["y2"] += dy
+        elif self.entity_type == "wall":
+            wall = next((w for w in loc["walls"] if w["id"] == self.entity_id), None)
+            if wall:
+                wall["x1"] += dx; wall["y1"] += dy
+                wall["x2"] += dx; wall["y2"] += dy
+        elif self.entity_type == "room":
+            room = next((r for r in loc["rooms"] if r["id"] == self.entity_id), None)
+            if room:
+                room["x"] += dx; room["y"] += dy
+                if "polygon" in room:
+                    for p in room["polygon"]:
+                        p[0] += dx; p[1] += dy
+        elif self.entity_type == "node":
+            node = loc["nodes"].get(self.entity_id)
+            if node:
+                node["x"] += dx; node["y"] += dy
+        elif self.entity_type == "label":
+            lbl = next((l for l in loc.get("labels", []) if l.get("id") == self.entity_id), None)
+            if lbl:
+                lbl["x"] += dx; lbl["y"] += dy
+        elif self.entity_type == "npc":
+            npc = next((n for n in loc.get("npcs", []) if n.get("ref_id") == self.entity_id), None)
+            if npc:
+                npc["position"]["x"] += dx
+                npc["position"]["y"] += dy
+        elif self.entity_type == "spawn":
+            spawn = loc.get("player_spawn")
+            if spawn:
+                spawn["x"] += dx
+                spawn["y"] += dy
+
+    def do(self):
+        if not self._skip_do:
+            self._apply(self.dx, self.dy)
+
+    def undo(self):
+        self._apply(-self.dx, -self.dy)
+
+
+@dataclass
+class ResizeObjectCommand(Command):
+    """Изменение размера объекта"""
+    dm: Any = None
+    filename: str = ""
+    obj_id: str = ""
+    old_w: float = 0.0
+    old_h: float = 0.0
+    new_w: float = 0.0
+    new_h: float = 0.0
+
+    def __post_init__(self):
+        self.label = "Размер"
+
+    def _find_obj(self) -> Optional[Dict]:
+        for o in self.dm.locations[self.filename]["objects"]:
+            if o.get("id") == self.obj_id:
+                return o
+        return None
+
+    def do(self):
+        obj = self._find_obj()
+        if obj:
+            obj["size"]["w"] = self.new_w
+            obj["size"]["h"] = self.new_h
+
+    def undo(self):
+        obj = self._find_obj()
+        if obj:
+            obj["size"]["w"] = self.old_w
+            obj["size"]["h"] = self.old_h
 
 
 @dataclass
@@ -315,26 +562,33 @@ class PasteCommand(Command):
             self.dm.remove_wall(self.filename, wid)
 
 
+@dataclass
 class TogglePassabilityCommand(Command):
     """Переключение флага проходимости объекта"""
     dm: Any = None
     filename: str = ""
-    obj_index: int = -1
+    obj_id: str = ""
     flag: str = ""
     old_value: bool = False
 
     def __post_init__(self):
         self.label = f"Проходимость: {self.flag}"
 
+    def _find_obj(self) -> Optional[Dict]:
+        for o in self.dm.locations[self.filename]["objects"]:
+            if o.get("id") == self.obj_id:
+                return o
+        return None
+
     def do(self):
-        loc = self.dm.locations[self.filename]
-        obj = loc["objects"][self.obj_index]
-        obj["passability"][self.flag] = not self.old_value
+        obj = self._find_obj()
+        if obj:
+            obj["passability"][self.flag] = not self.old_value
 
     def undo(self):
-        loc = self.dm.locations[self.filename]
-        obj = loc["objects"][self.obj_index]
-        obj["passability"][self.flag] = self.old_value
+        obj = self._find_obj()
+        if obj:
+            obj["passability"][self.flag] = self.old_value
 
 
 class CompoundCommand(Command):

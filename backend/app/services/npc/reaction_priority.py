@@ -12,14 +12,13 @@ import logging
 from dataclasses import dataclass, field
 from typing import Any, Optional
 
+from app.core.constants import MAX_SPEAKERS_PER_TURN
+
 logger = logging.getLogger(__name__)
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 1. Настройки
+# 1. Настройки (пороги перенесены в core/constants.py)
 # ─────────────────────────────────────────────────────────────────────────────
-THRESHOLD_MUST_REACT = 60   # NPC обязан вмешаться
-THRESHOLD_WILL_REACT = 30   # NPC хочет отреагировать
-MAX_SPEAKERS_PER_TURN = 3   # максимум NPC говорят за один ход
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 2. Таблица обязанностей по роли (расширяется легко)

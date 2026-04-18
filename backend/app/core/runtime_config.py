@@ -20,11 +20,6 @@ def get_api_url() -> str:
     ports = get_runtime_ports()
     return f"http://127.0.0.1:{ports['api_port']}"
 
-def get_frontend_url() -> str:
-    """Get current Frontend URL."""
-    ports = get_runtime_ports()
-    return f"http://127.0.0.1:{ports['frontend_port']}"
-
 def get_llm_server_config(agent_name: str = "default") -> dict:
     """Get LLM server config for any agent (single port)."""
     ports = get_runtime_ports()

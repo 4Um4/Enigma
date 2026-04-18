@@ -49,7 +49,7 @@ class CombatService:
 
     def load(self, campaign_id: str, combat_id: str) -> CombatState:
         path = self._combat_path(campaign_id, combat_id)
-        payload = json.loads(path.read_text(encoding="utf-8"))
+        payload = json.loads(path.read_text(encoding="utf-8-sig"))
         return CombatState(**payload)
 
     def start(self, campaign_id: str, combat_id: str, participants: list[dict[str, Any]]) -> CombatState:

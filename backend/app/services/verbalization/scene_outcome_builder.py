@@ -19,6 +19,7 @@ from typing import Dict, List, Optional
 
 from app.services.npc.decision_hub import DecisionResult, StateDeltas
 from app.models.npc_state import EmotionTag, WillState
+from app.models.npc_profile import NPCProfileL0
 from app.services.verbalization.verbal_stance import VerbalStance, stance_from_decision
 
 
@@ -216,14 +217,17 @@ class SceneOutcomeBuilder:
         context: SceneContext,
         state_snapshots: Optional[Dict[str, dict]] = None,
         distortion_biases: Optional[Dict[str, "DistortionProfile"]] = None,
+        npc_profiles: Optional[Dict[str, NPCProfileL0]] = None,
     ) -> SceneOutcome:
         """
         Основной метод. Принимает решения + контекст, возвращает проживаемую реальность.
         
         state_snapshots: npc_id → реальное состояние (без искажения)
         distortion_biases: npc_id → bias от CognitiveDistortion
+        npc_profiles: npc_id → профиль NPC (для voice constraints)
         """
         _snapshots = state_snapshots or {}
+        _profiles = npc_profiles or {}
         _biases = distortion_biases or {}
 
         # 1. Собираем NPC исходы с salience + психологической проекцией
@@ -232,6 +236,7 @@ class SceneOutcomeBuilder:
                 d, context,
                 real_state=_snapshots.get(d.npc_id),
                 distortion_bias=_biases.get(d.npc_id),
+                profile=_profiles.get(d.npc_id),
             )
             for d in decisions
         ]
@@ -352,8 +357,6 @@ class SceneOutcomeBuilder:
                     int_label = "ярко" if p.intensity > 0.7 else "умеренно" if p.intensity > 0.4 else "слабо"
                     stab_label = "стабильно" if p.stability > 0.7 else "на грани" if p.stability > 0.4 else "нестабильно"
                     line += f" [{p.regime.value}, {int_label}, {stab_label}]"
-                if npc.visibility == Visibility.HIDDEN:
-                    line += " [скрыт, но влияние ощутимо]"
                 focus_lines.append(line)
             blocks.append("Ключевые NPC (фокус сцены):\n" + "\n".join(focus_lines))
         
@@ -419,31 +422,43 @@ class SceneOutcomeBuilder:
         # ── Определение regime (детерминированное, не LLM) ──
         regime = PsychologicalRegime.NEUTRAL
 
+        # Пороги перехода психологического режима
+        _THREAT_HOSTILE_THRESHOLD = 20.0
+        _THREAT_DEFENSIVE_THRESHOLD = 5.0
+        _TRUST_WITHDRAWN_THRESHOLD = -10.0
+        _STRESS_UNSTABLE_THRESHOLD = 30.0
+        _INTEGRITY_UNSTABLE_THRESHOLD = 0.6
+        _STRESS_COLLAPSE_THRESHOLD = 50.0
+
         # Высокая угроза (реальная + искажённая)
-        # TODO: пороги снижены для тестирования — вернуть к 30/60 после фикса дельт
         effective_threat = fear + threat_bias * 50
-        if effective_threat > 20:
+        if effective_threat > _THREAT_HOSTILE_THRESHOLD:
             regime = PsychologicalRegime.HOSTILE
-        elif effective_threat > 5:
+        elif effective_threat > _THREAT_DEFENSIVE_THRESHOLD:
             regime = PsychologicalRegime.DEFENSIVE
 
         # Низкое доверие (усиленное искажением)
         effective_trust = trust + trust_bias * 30
-        if effective_trust < -10 and regime == PsychologicalRegime.NEUTRAL:
+        if effective_trust < _TRUST_WITHDRAWN_THRESHOLD and regime == PsychologicalRegime.NEUTRAL:
             regime = PsychologicalRegime.WITHDRAWN
 
         # Высокий стресс + нестабильность
-        if stress > 30 and integrity < 0.6:
+        if stress > _STRESS_UNSTABLE_THRESHOLD and integrity < _INTEGRITY_UNSTABLE_THRESHOLD:
             regime = PsychologicalRegime.UNSTABLE
-        elif stress > 50:
+        elif stress > _STRESS_COLLAPSE_THRESHOLD:
             regime = PsychologicalRegime.UNSTABLE
 
         # Позитивные состояния
-        if effective_trust > 10 and stress < 20:
+        _TRUST_COOPERATIVE_THRESHOLD = 10.0
+        _STRESS_COOPERATIVE_THRESHOLD = 20.0
+        if effective_trust > _TRUST_COOPERATIVE_THRESHOLD and stress < _STRESS_COOPERATIVE_THRESHOLD:
             regime = PsychologicalRegime.COOPERATIVE
 
         # Скрытые мотивы: низкая целостность + средний стресс
-        if integrity < 0.5 and 20 < stress < 40 and regime == PsychologicalRegime.NEUTRAL:
+        _INTEGRITY_MANIPULATIVE_THRESHOLD = 0.5
+        _STRESS_MANIPULATIVE_MIN = 20.0
+        _STRESS_MANIPULATIVE_MAX = 40.0
+        if integrity < _INTEGRITY_MANIPULATIVE_THRESHOLD and _STRESS_MANIPULATIVE_MIN < stress < _STRESS_MANIPULATIVE_MAX and regime == PsychologicalRegime.NEUTRAL:
             regime = PsychologicalRegime.MANIPULATIVE
 
         # ── Intent override: если числа ещё не накоплены, intent даёт fallback ──
@@ -481,6 +496,7 @@ class SceneOutcomeBuilder:
         context: SceneContext,
         real_state: Optional[dict] = None,
         distortion_bias: Optional[dict] = None,
+        profile: Optional[NPCProfileL0] = None,
     ) -> NpcOutcome:
         """Превращает один DecisionResult в NpcOutcome с salience."""
         npc_id = decision.npc_id
@@ -497,8 +513,8 @@ class SceneOutcomeBuilder:
         # Latent signals для этого NPC
         npc_latent = self._extract_npc_latent(decision)
         
-        # Voice constraints — пока заглушка, будет заполнена из NPC профиля
-        voice_constraints = self._build_voice_constraints(npc_id, context)
+        # Voice constraints из профиля NPC
+        voice_constraints = self._build_voice_constraints(npc_id, context, profile)
         
         # ProjectionLayer — субъективная интерпретация психики
         _intent_str = decision.intent.value if hasattr(decision.intent, 'value') else str(decision.intent)
@@ -739,27 +755,27 @@ class SceneOutcomeBuilder:
         else:
             outcome = "fail"
         
+        action_text = context.player_action_text or "действие"
+        if context.player_success:
+            effect = f"{action_text} удалось"
+        else:
+            effect = f"{action_text} не принесло результата"
+
         return PlayerOutcome(
-            intent=context.player_action_text or "действие",
+            intent=action_text,
             outcome=outcome,
-            perceived_effect="",  # TODO: заполнить из ResolutionEngine
+            perceived_effect=effect,
         )
 
     def _build_voice_constraints(
         self,
         npc_id: str,
         context: SceneContext,
+        profile: Optional[NPCProfileL0] = None,
     ) -> Dict[str, str]:
         """
-        Формирует voice constraints для DM.
-        Пока заглушка — будет заполнена из NPC профиля.
-        
-        Целевая структура:
-        {
-            "TONE": "HARSH",
-            "STYLE": "SHORT",
-            "LEXICON": "rude, direct"
-        }
+        Формирует voice constraints для DM на основе профиля NPC.
         """
-        # TODO: загрузить из NPCProfileL0.voice_profile
+        if profile and profile.voice_profile:
+            return {"STYLE": profile.voice_profile}
         return {}

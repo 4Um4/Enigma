@@ -217,6 +217,7 @@ class DmAgent:
         context_str = ""
         if context:
             recent = context.get("recent_memory", [])
+            print(f"[DM_CONTEXT_DEBUG] context keys={list(context.keys())[:8]} recent_memory={len(recent) if recent else 0}")
             if recent:
                 # Запрет на повтор — LLM воспринимает ограничения строже чем контекст
                 context_str = (
@@ -267,6 +268,34 @@ class DmAgent:
             from app.services.verbalization.scene_outcome_builder import SceneOutcomeBuilder
             _builder = SceneOutcomeBuilder()
             npc_str = _builder.to_dm_prompt_block(dm_frame)
+            # Scene Event Layer: DM видит ЧТО произошло в сцене
+            _scene_events = (context or {}).get("scene_events", [])
+            if _scene_events:
+                _event_lines = [f"- [{e.event_type.value}] {e.summary}" for e in _scene_events]
+                npc_str += "\n\nСобытия в сцене (все NPC это видят/слышат):\n" + "\n".join(_event_lines)
+                print(f"[SCENE_EVENTS_DM] {len(_scene_events)} events injected")
+            # Факты сцены — DM видит что УЖЕ произошло (не повторяет, но учитывает)
+            _cont = context.get("scene_continuity") if context else None
+            if _cont:
+                _parts = []
+                if _cont.scene_facts:
+                    _parts.extend(f"- {f}" for f in _cont.scene_facts[-3:])
+                # Флаги — DM знает о бое даже если детали не сохранились
+                _important_flags = _cont.active_flags & {"combat_started", "npc_died", "violence"}
+                if _important_flags:
+                    _flag_labels = {
+                        "combat_started": "В сцене идёт бой",
+                        "npc_died": "NPC погиб",
+                        "violence": "Происходит насилие",
+                    }
+                    _parts.extend(f"- {_flag_labels.get(f, f)}" for f in _important_flags)
+                if _parts:
+                    npc_str += "\n\nФАКТЫ СЦЕНЫ (ОБЯЗАТЕЛЬНО учитывай — это уже произошло, NPC это видели):\n" + "\n".join(_parts)
+                    print(f"[DM_FACTS_INJECTED] {len(_parts)} items")
+                # Прошлые действия игрока — DM знает ЧТО произошло до этого
+                _recent_actions = (context or {}).get("recent_actions", [])
+                if _recent_actions:
+                    npc_str += "\n\nПрошлые действия в сцене:\n" + "\n".join(f"- {a}" for a in _recent_actions[-5:])
             npc_actions_str = ""  # DM описывает действия сам
         else:
             # Legacy: npc_reactions из npc_agent
@@ -370,18 +399,29 @@ class DmAgent:
                 if isinstance(context.get("python_engines"), dict) else []
             )
             if npc_ctxs:
-                npc_psychology_block = "Психологическое состояние NPC в локации (Python рассчитал — использовать в повествовании):\n"
-                for ctx in npc_ctxs:
-                    name  = ctx.get("npc_name", "NPC")
-                    hint  = ctx.get("behavior_hint", "")
-                    pstat = ctx.get("perceived_status", "")
-                    tcat  = ctx.get("threat_category", "")
-                    line  = f"- {name}: {hint}"
-                    if pstat:
-                        line += f" | Игрок воспринимается как: {pstat}"
-                    if tcat:
-                        line += f" | Уровень угрозы: {tcat}"
-                    npc_psychology_block += line + "\n"
+                npc_psychology_block = "Психологическое NPC в локации (Python рассчитал):\n"
+            if context and context.get("npc_recent_speech"):
+                npc_psychology_block += "\nНедавние реакции NPC (что уже произошло):\n"
+                npc_psychology_block += "\n".join(f"- {line}" for line in context["npc_recent_speech"])
+            if context and context.get("recent_player_actions"):
+                npc_psychology_block += "\nНедавние действия в сцене (DM помнит что происходило):\n"
+                npc_psychology_block += "\n".join(f"- {line}" for line in context["recent_player_actions"])
+                print(f"[PSYCH_ACTIONS] injected {len(context['recent_player_actions'])} actions")
+            else:
+                print(f"[PSYCH_ACTIONS] MISS context={context is not None} keys={list(context.keys()) if context else 'None'}")
+            # R1: контекст NPC — должен быть вне conditional блоков
+            for ctx in npc_ctxs:
+                name  = ctx.get("npc_name", "NPC")
+                hint  = ctx.get("behavior_hint", "")
+                pstat = ctx.get("perceived_status", "")
+                tcat  = ctx.get("threat_category", "")
+                line  = f"- {name}: {hint}"
+                if pstat:
+                    line += f" | Игрок воспринимается как: {pstat}"
+                if tcat:
+                    line += f" | Уровень угрозы: {tcat}"
+                npc_psychology_block += line + "\n"
+            if npc_ctxs:
                 npc_psychology_block += "Используй имена NPC из этого списка — не придумывай новые.\n"
 
                 # ──────────────────────────────
@@ -449,11 +489,33 @@ class DmAgent:
             _r3_npc_header = "Что NPC уже сказали игроку (КОНТЕКСТ — не повторяй это, используй для согласованности своего описания):\n"
             _r3_rule3 = "Реплики NPC уже показаны игроку — НЕ повторяй их, НЕ пересказывай. Описывай мир ПОСЛЕ их слов."
 
+        # Блок состояния игрока — аватар с живой психикой
+        player_state_block = ""
+        if context and context.get("player_state"):
+            for pname, pdata in context["player_state"].items():
+                if not pdata:
+                    continue
+                _lines = [f"- {pname}: HP {pdata.get('hp', '?')}, стресс {pdata.get('stress', 0)}, эмоция: {pdata.get('emotion', 'neutral')}"]
+                if pdata.get("wounds") and pdata["wounds"] != "нет":
+                    _lines.append(f"  травмы: {pdata['wounds']}")
+                if pdata.get("conditions") and pdata["conditions"] != "нет":
+                    _lines.append(f"  состояния: {pdata['conditions']}")
+                if pdata.get("posture") and pdata["posture"] != "standing":
+                    _lines.append(f"  поза: {pdata['posture']}")
+                if pdata.get("will_state") and pdata["will_state"] != "free":
+                    _lines.append(f"  воля: {pdata['will_state']}")
+                _integrity = pdata.get("identity_integrity", 1.0)
+                if _integrity < 0.8:
+                    _lines.append(f"  целостность личности: {_integrity:.0%} — ДЕГРАДАЦИЯ")
+                player_state_block = "Состояние игрока (факт — отражай в повествовании):\n" + "\n".join(_lines) + "\n\n"
+
+        # DEBUG: проверяем что блок попал в промпт
+        _psych_debug = f"[PSYCH_DEBUG] len={len(npc_psychology_block)}: {npc_psychology_block[:300] if npc_psychology_block else 'EMPTY'}" if npc_psychology_block else "[PSYCH_DEBUG] EMPTY"
         return f"""{scene_block}Текущая локация: {location}
 
-{context_str}
-Действия игроков:
-{actions}
+ {context_str}
+ {player_state_block}Действия игроков:
+ {actions}
 
 Результаты проверок правил:
 {rules_str}
@@ -470,6 +532,7 @@ class DmAgent:
 {physics_warnings}
 {python_engines_block}
 {npc_psychology_block}
+{_psych_debug}
 {continuity_block}{scene_events_block}{reaction_block}
 Продолжи рассказ от лица Dungeon Master. Не говори за игроков.
 Опиши мир от второго лица ("ты видишь...", "ты чувствуешь...").
@@ -557,7 +620,9 @@ class DmAgent:
 
 ТВОИ ПРАВИЛА:
 - Веди от второго лица: "ты видишь", "ты чувствуешь", "перед тобой"
-- Описывай только то что есть в блоке "СОСТОСТОЯНИЕ СЦЕНЫ" — не придумывай объекты
+- Описывай только то что есть в блоке "СОСТОЯНИЕ СЦЕНЫ" — не придумывай объекты
+- Объекты в блоке "СОСТОЯНИЕ СЦЕНЫ" уже отфильтрованы Python-движком по важности. Строй нарратив вокруг них — не упоминай другие предметы
+- [ACTIVITY] NPC — вычисленное намерение Python (fleeing/fighting/observing). Отыгрывай его литературно, не переопределяй
 - Результаты бросков из блока "Результаты вычислений" — закон. ПРОВАЛ = действие не случилось
 - NPC реагируют РАЗНООБРАЗНО. Люся не роняет поднос каждый раз. У неё есть другие реакции: замирает, отворачивается, прижимается к стене, шепчет молитву, трясущимися руками протирает стол
 - Сцена развивается линейно: каждое агрессивное действие УВЕЛИЧИВАЕТ напряжение. Не сбрасывай его
@@ -588,8 +653,9 @@ class DmAgent:
             world_result, world_canon_exists, context,
         )
 
-        result = self.router.request(
-            capability="narrative",
+        # sync метод не может await — fallback на синхронный complete()
+        result = self.router.request_for_agent(
+            agent="dm",
             prompt=prompt,
             system_prompt=self._get_system_prompt(is_r3_direct=(npc_result.get("dm_frame") is not None)),
             params=GenerationParams(max_tokens=220),
@@ -627,10 +693,21 @@ class DmAgent:
             )
         system_prompt = self._get_system_prompt(is_r3_direct=(npc_result.get("dm_frame") is not None))
 
+        from app.services.logging_tools import jsonl_log
+        _prompt_preview = (prompt[:500] + '...') if len(prompt) > 500 else prompt
+        _sys_preview = (system_prompt[:200] + '...') if system_prompt and len(system_prompt) > 200 else system_prompt
+        jsonl_log({
+            "level": "INFO",
+            "agent": "llm_input",
+            "capability": "narrative",
+            "prompt_preview": _prompt_preview,
+            "system_prompt": _sys_preview or "",
+        })
+
         provider = await self._get_provider_async("narrative")
 
         if provider is None or not hasattr(provider, "stream_tokens"):
-            result = self.router.request(
+            result = await self.router.request(
                 capability="narrative",
                 prompt=prompt,
                 system_prompt=system_prompt,

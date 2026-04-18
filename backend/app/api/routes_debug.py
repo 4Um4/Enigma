@@ -1,9 +1,9 @@
 """
 Debug API Routes (F1-T03)
-Agent Health Dashboard + VRAM/logs for frontend debug.html
+Agent Health Dashboard + VRAM/logs
 """
 import time
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 
 from app.services.llm.provider_manager import get_model_pool
 from app.services.error_interpreter import get_error_interpreter
@@ -62,6 +62,35 @@ async def reset_model_errors(model_key: str):
         pool.active_model.reset_errors()
         return {"status": "ok", "model": model_key}
     return {"status": "error", "model": model_key}
+
+
+@router.get("/npc/{npc_id}/causal_ledger")
+async def get_npc_causal_ledger(npc_id: str, campaign_id: str, request: Request):
+    """
+    God Mode: просмотр CausalLedger NPC.
+    Показывает полную цепочку причинно-следственных связей —
+    почему NPC имеет текущее состояние, роль, уровень стресса.
+    """
+    from app.services.game_loop_accessor import get_game_loop
+
+    loop = get_game_loop(request)
+    all_npcs = loop._load_npcs_with_runtime(campaign_id)
+
+    for npc_dict in all_npcs:
+        if npc_dict.get("id") == npc_id:
+            ledger_raw = npc_dict.get("causal_ledger", [])
+            drives_raw = npc_dict.get("temporary_drives", [])
+            return {
+                "npc_id": npc_id,
+                "current_role": npc_dict.get("current_role", "unknown"),
+                "stress": npc_dict.get("psyche", {}).get("stress", 0),
+                "will_state": npc_dict.get("psyche", {}).get("state", "free"),
+                "temporary_drives": drives_raw,
+                "ledger": ledger_raw,
+                "ledger_size": len(ledger_raw),
+            }
+
+    return {"error": f"NPC '{npc_id}' not found in campaign '{campaign_id}'"}
 
 
 @router.post("/reset-relationships/{campaign_id}")

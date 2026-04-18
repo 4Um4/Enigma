@@ -49,7 +49,8 @@ import os
 
 router = APIRouter()
 readiness_service = ReadinessService()
-character_service = CharacterService()
+from app.core.config import settings
+character_service = CharacterService(root=str(settings.saves_dir))
 combat_service = CombatService()
 # knowledge_ingest создаётся внутри функции (строка 198)
 campaign_service = get_campaign_state_service()
@@ -117,7 +118,6 @@ def system_status(game_loop=Depends(get_game_loop)) -> dict:
         "ports": {
             "llm": 8080,
             "backend": 8000,
-            "frontend": 3000
         }
     }
 
@@ -137,6 +137,23 @@ def readiness_status() -> ReadinessReport:
 def load_campaign(request: CampaignLoadRequest, game_loop=Depends(get_game_loop)) -> CampaignLoadResponse:
     return game_loop.load_campaign(request.campaign_id, request.world_id)
 
+
+@router.post("/game/idle_tick/{campaign_id}")
+def idle_tick(campaign_id: str, game_loop=Depends(get_game_loop)) -> dict:
+    """
+    Тик мира без действия игрока — вызывается pygame по таймеру.
+    Двигает NPC по расписанию, не запускает LLM.
+    """
+    try:
+        from app.services.npc.life_engine import get_life_engine
+        _engine = get_life_engine()
+        _scene = game_loop.scene_manager.get_scene_state(campaign_id, "")
+        changes = _engine.tick(campaign_id, _scene)
+        if changes:
+            game_loop.scene_manager.apply_changes(campaign_id, changes, _scene)
+        return {"status": "ok", "changes": len(changes)}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
 
 @router.post("/world/tick/{world_id}", response_model=WorldTickResponse)
 def force_world_tick(world_id: str, game_loop=Depends(get_game_loop)) -> WorldTickResponse:
@@ -327,7 +344,7 @@ def session_state(campaign_id: str, game_loop=Depends(get_game_loop)) -> Session
         # campaign_state.json хранит metadata (location, time) и scene_state напрямую
         cs_path = game_loop.data_dir / "campaigns" / campaign_id / "campaign_state.json"
         if cs_path.exists():
-            cs = json.loads(cs_path.read_text(encoding="utf-8"))
+            cs = json.loads(cs_path.read_text(encoding="utf-8-sig"))
             # Берём metadata как есть
             meta = cs.get("metadata", {})
             state.layers["metadata"] = meta
@@ -355,19 +372,16 @@ def session_state(campaign_id: str, game_loop=Depends(get_game_loop)) -> Session
 def get_npcs(campaign_id: str, game_loop=Depends(get_game_loop)) -> dict:
     """Возвращает NPC текущей локации для NPC-панели фронтенда."""
     try:
-        npc_path = game_loop.data_dir / "npcs" / "major_npcs.json"
-        if not npc_path.exists():
-            return {"npcs": []}
-        import json
-        with open(npc_path, encoding="utf-8") as f:
-            npcs = json.load(f)
+        from app.services.npc.npc_loader import load_npcs_merged
+        npcs = load_npcs_merged()
 
         # Определяем текущую локацию игрока
         current_location = None
         try:
+            import json
             cs_path = game_loop.data_dir / "campaigns" / campaign_id / "campaign_state.json"
             if cs_path.exists():
-                cs = json.loads(cs_path.read_text(encoding="utf-8"))
+                cs = json.loads(cs_path.read_text(encoding="utf-8-sig"))
                 current_location = cs.get("scene_state", {}).get("location_id")
                 if not current_location:
                     current_location = cs.get("metadata", {}).get("current_location")
@@ -498,6 +512,8 @@ def create_player_session(campaign_id: str, request: dict, game_loop=Depends(get
     session = player_session_service.select_player(campaign_id, player_name)
     # Сбрасываем флаг сессии — следующий ход будет session_start (сброс стресса NPC)
     game_loop.reset_session_flag(campaign_id)
+    # Инициализируем сцену из editor JSON — чтобы Pygame мог рендерить до первого хода
+    game_loop.ensure_scene_initialized(campaign_id)
     return PlayerSessionResponse(player=player_name, active=True)
 
 

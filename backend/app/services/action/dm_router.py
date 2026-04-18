@@ -36,6 +36,28 @@ try:
 except Exception:
     pass
 
+# Леммы действий — pymorphy3 сведёт все формы к этим
+_ACTION_LEMMAS: dict[str, frozenset[str]] = {
+    "player_attacks": frozenset({
+        "атаковать", "ударить", "бить", "избить", "избивать",
+        "резать", "стрелять", "кастовать", "колдовать",
+        "убить", "убивать", "пнуть", "рассечь",
+        "удушить", "задушить", "застрелить", "выстрелить",
+    }),
+    "player_steals": frozenset({
+        "украсть", "свистнуть", "красть", "карманить",
+        "забирать", "забрать", "выносить", "вынести",
+    }),
+    "player_flees": frozenset({
+        "убежать", "сбежать", "бежать", "драпать",
+        "отступать", "отступить", "прятаться", "спрятаться",
+    }),
+    "player_threatens": frozenset({
+        "угрожать", "запугивать", "пугать", "приказывать",
+        "требовать", "уставиться",
+    }),
+}
+
 
 # --- Сущности ---
 
@@ -69,17 +91,14 @@ class DMRouter:
     Чистый Python. Извлекает тип действия и базовую интенсивность.
     """
 
-    # Паттерны ТОЛЬКО для простых, однозначных физических действий.
-    # Оскорблений здесь нет! Они обрабатываются сложной логикой ниже.
+    # Паттерны ТОЛЬКО для сложных случаев, которые не покрываются лемматизацией:
+    # - multi-word выражения ("на колени")
+    # - составные условия (threatens_indirect)
+    # Оскорбления обрабатываются через _INSULT_ROOTS + pymorphy3.
     _PATTERNS: dict[str, re.Pattern] = {
-        "player_attacks": re.compile(
-            r"(?i)\b(атакую|удар|бью|режу|стреляю|каста|колдую|убью|убить)\b"
-        ),
         "player_threatens": re.compile(
-            r"(?i)\b(угрожаю|запугиваю|пугаю|приказываю|требую|уставился"
-            r"|на\s*колени|замолчи|молчи|сдохнешь|убью|задушу|выбью)"
+            r"(?i)на\s*колени|замолчи|молчи|сдохнешь"
         ),
-        # Косвенные угрозы: упоминание близких + негативный контекст
         "player_threatens_indirect": re.compile(
             r"(?i)(жена|дочь|сын|мать|отец|семья|ребёнок|дети).*"
             r"(видел|был[аи]?|спит|с[^а-яё]|незнаком|чужой|уходил[аи]?)"
@@ -87,11 +106,9 @@ class DMRouter:
             r"(видел|знаю|слышал).*"
             r"(жена|дочь|сын|мать|отец|семья|ребёнок|дети)"
         ),
-        "player_flees": re.compile(
-            r"(?i)\b(убегаю|прячусь|отступаю|отступить|бежать|сбежать)\b"
-        ),
-        "player_steals": re.compile(
-            r"(?i)\b(краду|украсть|карман|сую|забираю|тихо беру)\b"
+        "player_insults": re.compile(
+            r"(?i)\b(твою|тебя|тебе|вас|вам|твой|твоя|твоё|твои)\b.*"
+            r"(дура|дурак|дебил|идиот|тупой|тупая|тупое|глупый|глупая|глупое|дерьмо|позор|подон|подона|мразь|мрази|шлюха|шлюхи|шлюхе|шлюхам|шлюхам)"
         ),
     }
 
@@ -99,7 +116,8 @@ class DMRouter:
     _PHYSICAL_ACTIONS: frozenset[str] = frozenset({
         "player_attacks",
         "player_steals",
-        "player_flees",
+        "player_fleses",
+        "player_insults",
     })
 
     _BASE_INTENSITY: dict[str, float] = {
@@ -162,19 +180,33 @@ class DMRouter:
         return _MAPPING.get(event_type, "UNKNOWN")
 
     def _classify_action(self, text: str) -> str:
-        """Определяет тип события. Физические действия -> Регексы. Оскорбления -> Морфология."""
+        """Определяет тип события. Лемматизация для действий, regex для сложных случаев."""
         
-        # 1. Быстрая проверка физических действий
+        # 0. Знак вопроса = всегда player_interacts (вопросы не наносят урон!)
+        if "?" in text:
+            return "player_interacts"
+        
+        # 1. Лемматизация — один проход по всем словам, проверка всех категорий
+        if _MORPH and _ACTION_LEMMAS:
+            words = re.findall(r'[а-яёa-z]+', text.lower())
+            for word in words:
+                for parsed in _MORPH.parse(word):
+                    lemma = parsed.normal_form
+                    for event_type, lemmas in _ACTION_LEMMAS.items():
+                        if lemma in lemmas:
+                            return event_type
+
+        # 2. Regex для сложных случаев (multi-word, составные условия)
         for event_type, pattern in self._PATTERNS.items():
             if pattern.search(text):
                 return event_type
 
-        # 2. Быстрая проверка междометий которые не попадают в морфологию ("твою" и т.п.)
+        # 3. Быстрая проверка междометий ("твою" и т.п.)
         if re.search(r"(?i)\bтвою\b", text):
             print(f"[DM_ROUTER] Exclamation insult detected: player_insults")
             return "player_insults"
 
-        # 3. Сложная проверка оскорблений (только если морфология доступна и словарь загружен)
+        # 4. Сложная проверка оскорблений (лемматизация + контекст)
         if _INSULT_ROOTS and _MORPH:
             if self._is_directed_insult(text):
                 print(f"[DM_ROUTER] Insult detected: player_insults")

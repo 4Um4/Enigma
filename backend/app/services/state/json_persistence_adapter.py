@@ -4,15 +4,14 @@ JsonPersistenceAdapter — JSON реализация PersistencePort.
 
 Сохраняет:
 - scene_state -> campaigns/{id}/campaign_state.json
-- npc_dicts -> npcs/major_npcs.json
-
-Использует ту же структуру файлов, что и оригинальный код.
+- npc_runtime -> campaigns/{id}/npc_runtime.json (только runtime-состояние)
 """
 
 from __future__ import annotations
 import json
 import logging
 from pathlib import Path
+from typing import Optional
 
 from app.services.state.persistence_port import PersistencePort
 
@@ -25,13 +24,17 @@ class JsonPersistenceAdapter(PersistencePort):
     Совместима с текущей структурой данных ENIGMA.
     """
     
-    def __init__(self, data_dir: Path) -> None:
+    def __init__(self, data_dir: Path, saves_dir: Optional[Path] = None) -> None:
         self._campaigns_dir = data_dir / "campaigns"
+        # Runtime-сохранения — в отдельную папку (static/runtime разделение)
+        self._saves_dir = Path(saves_dir) if saves_dir else data_dir / "campaigns"
+        # TODO: временная заглушка — save_npcs пишет в major_npcs.json (legacy путь)
+        # будет удалено после: полного отказа от save_npcs в пользу save_npc_runtime
         self._npcs_path = data_dir / "npcs" / "major_npcs.json"
     
     def save_scene(self, campaign_id: str, scene_state: dict) -> None:
         """Сохраняет scene_state в campaign_state.json."""
-        campaign_file = self._campaigns_dir / campaign_id / "campaign_state.json"
+        campaign_file = self._saves_dir / campaign_id / "campaign_state.json"
         try:
             campaign_file.parent.mkdir(parents=True, exist_ok=True)
             data: dict = {}
@@ -60,7 +63,7 @@ class JsonPersistenceAdapter(PersistencePort):
         if not session_id:
             logger.warning("[PERSISTENCE] save_npc_runtime вызван без session_id — пропуск")
             return
-        runtime_path = self._campaigns_dir / session_id / "npc_runtime.json"
+        runtime_path = self._saves_dir / session_id / "npc_runtime.json"
         try:
             runtime_path.parent.mkdir(parents=True, exist_ok=True)
             with open(runtime_path, "w", encoding="utf-8") as f:
@@ -73,7 +76,7 @@ class JsonPersistenceAdapter(PersistencePort):
         """Загружает runtime-состояние NPC из сессии. None если нет сохранения."""
         if not session_id:
             return None
-        runtime_path = self._campaigns_dir / session_id / "npc_runtime.json"
+        runtime_path = self._saves_dir / session_id / "npc_runtime.json"
         if not runtime_path.exists():
             return None
         try:
