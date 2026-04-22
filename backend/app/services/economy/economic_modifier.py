@@ -22,7 +22,7 @@ import logging
 from dataclasses import dataclass
 from typing import Dict, List, Optional
 
-from app.models.economy import EconomicProfile, NeedType
+from app.models.economy import EconomicProfile
 from app.services.economy.need_engine import NeedDrive, DriveType
 
 logger = logging.getLogger(__name__)

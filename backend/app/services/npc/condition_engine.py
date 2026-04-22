@@ -27,8 +27,6 @@ from __future__ import annotations
 import logging
 from typing import List, Tuple
 
-from app.models.event_resolution import StateChange
-from app.models.physical import Condition
 from app.models.npc_state import NPCState
 from app.services.reaction.micro_event import MicroEvent, MicroEventType
 

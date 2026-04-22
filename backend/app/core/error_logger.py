@@ -68,8 +68,8 @@ def log_warning(module: str, function: str, message: str, context: Optional[Dict
             }
             f.write(json.dumps(entry, ensure_ascii=False) + "\n")
         print(f"[WARNING] {module}.{function} → {message}")
-    except:
-        pass
+    except Exception:
+        print(f"[CRITICAL] Логгер упал при записи: {message}")
 
 
 # ====================== ПРИМЕР ИСПОЛЬЗОВАНИЯ ======================

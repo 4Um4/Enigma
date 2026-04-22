@@ -9,7 +9,7 @@ path: /backend/app/services/player_cognition/spatial_layer.py
 Основные сущности: extract_spatial_data()
 """
 import math
-from typing import Dict, List, Tuple
+from typing import List, Tuple
 
 from app.services.player_cognition.types import PerceivedEntity
 from app.services.spatial.spatial_runtime import (

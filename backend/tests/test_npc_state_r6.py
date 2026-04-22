@@ -4,8 +4,6 @@
 # Основные сущности: NPCState NPCStateAdapter
 # $env:PYTHONPATH="." pytest tests/test_npc_state_r6.py -v
 
-import pytest
-
 from app.models.npc_state import (
     NPCState,
     NPCStateAdapter

@@ -26,7 +26,6 @@ PhysicalResolver — чистый Python resolver физических дейс�
 from __future__ import annotations
 
 import random
-from typing import Optional
 
 from app.models.physical import DamageType, PhysicalOutcome, OutcomeResult
 

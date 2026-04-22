@@ -8,7 +8,6 @@
 Зависимости: npc_loader, npc_profile, decision_hub.
 """
 
-import pytest
 from app.services.npc.decision_hub import DecisionHub, EventContext
 from app.services.npc.npc_loader import load_profile_from_legacy_json, load_l2_state_from_runtime_dict
 from app.models.npc_state import Intent, WillState

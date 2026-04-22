@@ -12,25 +12,16 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 from app.models.economy import EconomicProfile, NeedType
+from app.core.constants import GOODS_PRICES
 from app.services.economy.transaction_engine import TransactionEngine
 
 logger = logging.getLogger(__name__)
 
 
-# Базовые цены для товаров (средневековье)
-GOODS_PRICES: Dict[str, float] = {
-    "food": 0.3,       # хлеб/каша
-    "ale": 0.1,        # эль
-    "cloth": 0.5,      # ткань
-    "silk": 2.0,       # шёлк
-    "iron": 0.8,       # железо
-    "tools": 1.5,      # инструменты
-    "lockpick": 0.5,   # отмычка
-    "room_rent": 0.2,  # аренда комнаты (за раз)
-}
+
 
 
 @dataclass
@@ -135,6 +126,51 @@ class TradeResolver:
                 reason=tx.reason if not success else "",
             ))
         
+        # Второй проход: NPC с срочными потребностями покупают, даже если intent ≠ trade
+        # DecisionHub может дать «разговор» при голоде — но голодный купит еду
+        already_traded = set(trade_intents.keys())
+        for npc_id, profile in profiles.items():
+            if npc_id in already_traded:
+                continue
+            needed_good = self._determine_needed_good(profile)
+            if not needed_good:
+                # TODO: временная диагностика — удалить после починки 0.1
+                urgent = profile.get_urgent_needs(threshold=0.6)
+                if urgent:
+                    food_stock = profile.goods.get("food", 0.0)
+                    logger.debug(f"[TRADE2] {npc_id}: urgency={urgent[0].effective_urgency:.2f} но food={food_stock} → не покупает")
+                continue
+            needed_amount = self._calculate_needed_amount(profile, needed_good)
+            seller_id = self._find_seller(profiles, npc_id, needed_good, needed_amount)
+            if not seller_id:
+                # TODO: временная диагностика — удалить после починки 0.1
+                stocks = {nid: p.stock_for_sale.get(needed_good, 0) for nid, p in profiles.items() if nid != npc_id}
+                logger.debug(f"[TRADE2] {npc_id}: нужен {needed_good} но нет продавца. stocks={stocks}")
+                continue
+            seller = profiles[seller_id]
+            price = self._calculate_price(needed_good, needed_amount, seller)
+            if not profile.can_afford(price):
+                # TODO: временная диагностика — удалить после починки 0.1
+                logger.debug(f"[TRADE2] {npc_id}: не может позволить {price}G (есть {profile.gold}G)")
+                continue
+            tx = self.tx_engine.execute_sale(
+                buyer=profile,
+                seller=seller,
+                goods={needed_good: needed_amount},
+                price=price,
+                reason=f"{npc_id} покупает {needed_good} у {seller_id} (потребность)",
+                tick=0,
+            )
+            success = tx.status.value == "completed"
+            results.append(TradeResult(
+                buyer_id=npc_id,
+                seller_id=seller_id,
+                goods={needed_good: needed_amount},
+                price=price,
+                success=success,
+                reason=tx.reason if not success else "",
+            ))
+        
         return results
 
     def _determine_needed_good(self, profile: EconomicProfile) -> Optional[str]:
@@ -144,8 +180,8 @@ class TradeResolver:
         
         for need in urgent_needs:
             if need.need_type == NeedType.FOOD:
-                # Проверяем есть ли уже еда
-                if not profile.has_good("food", 1.0):
+                # Покупать только если запасы низкие (< 3 порции)
+                if profile.goods.get("food", 0.0) < 3.0:
                     return "food"
         
         return None
@@ -170,11 +206,12 @@ class TradeResolver:
         for npc_id, profile in profiles.items():
             if npc_id == buyer_id:
                 continue
-            if not profile.has_good(good, amount):
+            # Ищем только у тех, у кого есть товар НА ПРОДАЖУ
+            if not profile.has_stock(good, amount):
                 continue
             
             # Выбираем самого дешёвого
-            base_price = GOODS_PRICES.get(good, 0.5)
+            base_price = GOODS_PRICES.get(good, 0.1)
             price = base_price * amount
             if price < best_price:
                 best_price = price
@@ -189,7 +226,7 @@ class TradeResolver:
         seller: EconomicProfile,
     ) -> float:
         """Рассчитывает финальную цену с наценкой продавца."""
-        base_price = GOODS_PRICES.get(good, 0.5)
+        base_price = GOODS_PRICES.get(good, 0.1)
         
         # Наценка продавца на основе wealth_level (богатые продают дороже)
         markup = 1.0 + seller.wealth_level * 0.3  # 0-30% наценка

@@ -23,9 +23,6 @@ from app.models.schemas import (
     ReadinessReport,
     SessionInterfaceState,
     WorldTickResponse,
-    PlayerInfo,
-    WorldFact,
-    SessionSummary,
     CharacterSheet,
     ModelSelection,
     ModelProvider
@@ -43,7 +40,6 @@ from app.services.llm.provider_manager import get_model_pool
 from app.services.llm.router import get_router
 from app.core.config import settings
 
-import asyncio
 import time
 import os
 
@@ -142,18 +138,49 @@ def load_campaign(request: CampaignLoadRequest, game_loop=Depends(get_game_loop)
 def idle_tick(campaign_id: str, game_loop=Depends(get_game_loop)) -> dict:
     """
     Тик мира без действия игрока — вызывается pygame по таймеру.
-    Двигает NPC по расписанию, не запускает LLM.
+    Возвращает обновлённые npc_positions для синхронизации pygame.
     """
     try:
         from app.services.npc.life_engine import get_life_engine
         _engine = get_life_engine()
-        _scene = game_loop.scene_manager.get_scene_state(campaign_id, "")
+        # Получаем campaign_state и берём location_id из него
+        _campaign_state = game_loop.scene_manager._read_campaign_json(campaign_id)
+        _location_id = (_campaign_state or {}).get("current_location", "")
+        _scene = game_loop.scene_manager.get_scene_state(campaign_id, _location_id)
+        if _scene is None:
+            return {"status": "no_scene", "changes": 0, "npc_positions": {}}
+        print(f"[IDLE_TICK_BE] location={_location_id} npc_count={len(_scene.get('npc_positions', {}))}")
         changes = _engine.tick(campaign_id, _scene)
         if changes:
             game_loop.scene_manager.apply_changes(campaign_id, changes, _scene)
-        return {"status": "ok", "changes": len(changes)}
+        # Фильтруем значимые события для клиента (близкие NPC, life_engine источник)
+        significant_events = []
+        _player_pos = _scene.get("player_spatial", {}).get("local_position", {})
+        _px, _py = _player_pos.get("x", 0), _player_pos.get("y", 0)
+        for _ch in changes:
+            if not _ch.cause or not _ch.cause.startswith("life_engine"):
+                continue
+            _npc_pos = _scene.get("npc_positions", {}).get(_ch.target, {})
+            _nx, _ny = _npc_pos.get("x", 0), _npc_pos.get("y", 0)
+            _dist = ((_nx - _px)**2 + (_ny - _py)**2) ** 0.5
+            if _dist < 20:  # в зоне восприятия
+                significant_events.append({
+                    "cause": _ch.cause,
+                    "type": _ch.type.value,
+                    "target": _ch.target,
+                    "field": _ch.field,
+                    "value": str(_ch.value),
+                })
+        return {
+            "status": "ok",
+            "changes": len(changes),
+            "npc_positions": _scene.get("npc_positions", {}),
+            "events": significant_events,
+        }
     except Exception as e:
-        return {"status": "error", "error": str(e)}
+        import traceback
+        print(f"[IDLE_TICK_BE] ERROR: {e}\n{traceback.format_exc()}")
+        return {"status": "error", "error": str(e), "npc_positions": {}}
 
 @router.post("/world/tick/{world_id}", response_model=WorldTickResponse)
 def force_world_tick(world_id: str, game_loop=Depends(get_game_loop)) -> WorldTickResponse:
@@ -280,6 +307,19 @@ async def game_action(request: dict, game_loop=Depends(get_game_loop)) -> dict:
             endpoint=settings.llama_cpp_server_url,
         )
 
+        # Синхронизация позиции игрока от фронтенда
+        player_x = request.get("player_x", 0.0)
+        player_y = request.get("player_y", 0.0)
+        print(f"[POS_SYNC] received: x={player_x}, y={player_y}")
+        if player_x != 0.0 or player_y != 0.0:
+            scene = game_loop.scene_manager.get_scene_state(campaign_id, "")
+            print(f"[POS_SYNC] scene={scene is not None}, has_player_spatial={'player_spatial' in scene if scene else 'N/A'}")
+            if scene and "player_spatial" in scene:
+                scene["player_spatial"]["local_position"]["x"] = player_x
+                scene["player_spatial"]["local_position"]["y"] = player_y
+                game_loop.scene_manager.save_scene_state(campaign_id, scene)
+                print(f"[POS_SYNC] saved: x={player_x}, y={player_y}")
+
         campaign_state = campaign_service.get_campaign_state(campaign_id)
         location = "Таверна Серебряный Волк"  # дефолт всегда
         if campaign_state:
@@ -360,8 +400,8 @@ def session_state(campaign_id: str, game_loop=Depends(get_game_loop)) -> Session
                     )
                     if scene:
                         state.layers["scene_state"] = scene
-                except Exception:
-                    pass
+                except Exception as e:
+                    print(f"[ROUTES] Ошибка получения scene_state: {e}")
     except Exception:
         pass
 
@@ -385,8 +425,8 @@ def get_npcs(campaign_id: str, game_loop=Depends(get_game_loop)) -> dict:
                 current_location = cs.get("scene_state", {}).get("location_id")
                 if not current_location:
                     current_location = cs.get("metadata", {}).get("current_location")
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[ROUTES] Ошибка чтения current_location: {e}")
 
         # Фильтруем по локации если она известна
         if current_location:

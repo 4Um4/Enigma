@@ -19,7 +19,6 @@ VRAM Monitor (F1-T02) — оптимизирован под RTX 3070 Ti (8 GB)
    Для принятия решений ДО загрузки модели — предотвращает OOM.
 """
 
-import asyncio
 import logging
 import os
 import subprocess

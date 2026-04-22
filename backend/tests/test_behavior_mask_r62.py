@@ -6,8 +6,6 @@
 Зависимости: pytest, behavior_mask.py, npc_state.py
 """
 
-import pytest
-
 from app.models.behavior_mask import BehaviorMask, BehaviorMaskState
 from app.models.npc_state import NPCState
 

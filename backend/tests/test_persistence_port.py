@@ -2,7 +2,6 @@
 """Тесты PersistencePort и SceneStateManager.commit()"""
 
 import pytest
-from pathlib import Path
 from unittest.mock import MagicMock
 from app.services.state.persistence_port import PersistencePort
 from app.services.state.json_persistence_adapter import JsonPersistenceAdapter

@@ -10,9 +10,8 @@ LLM получает build_combat_context() и только нарративит
 
 import random
 import json
-import os
 from datetime import datetime
-from typing import Dict, List, Tuple, Any, Optional
+from typing import Dict, List, Tuple, Any
 from pathlib import Path
 
 # ──────────────────────────────────────────────────────────────────────────────

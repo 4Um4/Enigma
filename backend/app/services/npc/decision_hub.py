@@ -12,9 +12,12 @@ R2.2 — DecisionHub: чистая функция принятия решени�
 
 from __future__ import annotations
 
+import logging
 import random
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple, Set
+from typing import Any, Dict, List, Optional, Set
+
+logger = logging.getLogger(__name__)
 
 # Целевая архитектура данных (L0/L2)
 from app.models.npc_profile import NPCProfileL0
@@ -37,7 +40,6 @@ from app.core.constants import (
     INTENT_SATURATION_TICKS,
     INTENT_DECAY_RATE,
     INTENT_EXHAUSTION_RATE,
-    FEAR_FLEE_THRESHOLD,
     MIN_INTENT_SCORE,
     COMMITMENT_BASE_THRESHOLD,
     COMMITMENT_K,
@@ -60,6 +62,14 @@ PROACTIVE_INTENTS: frozenset = frozenset({
     Intent.BLOCK_PATH, Intent.AMBUSH, Intent.SEEK_ALLY,
     Intent.OFFER_JOB, Intent.REQUEST_SERVICE, Intent.SPREAD_RUMOR,
     Intent.CALL_FOR_HELP, Intent.CHANGE_ROLE,
+})
+
+# Роли, которым доступны перехватывающие/засадные интенты
+# Остальные (торговцы, трактирщики, ремесленники) — заблокированы
+COMBAT_CAPABLE_ROLES: frozenset = frozenset({
+    "стражник", "охранник", "наёмник", "телохранитель",
+    "вор", "бандит", "убийца", "наёмный убийца",
+    "солдат", "воин", "рыцарь", "варвар", "головорез",
 })
 
 
@@ -368,7 +378,7 @@ class DecisionHub:
         # Строки (причины срабатывания) отсекаются.
         opp_trace = {f"opp_{k}": v for k, v in opportunity.score_trace.items() if isinstance(v, (int, float))}
 
-        print(f"[DECISION_HUB] {state.npc_id}: intent={best_intent} score={round(best_score, 3)} event={event.event_type}")
+        logger.debug(f"[DECISION_HUB] {state.npc_id}: intent={best_intent} score={round(best_score, 3)} event={event.event_type}")
         return DecisionResult(
             npc_id         = state.npc_id,
             intent         = Intent(best_intent),
@@ -436,8 +446,26 @@ class DecisionHub:
             if intent == Intent.ATTACK.value:
                 return False
         if state.stress >= 90.0:
-            return intent in (Intent.FLEE.value, Intent.WARN.value,
-                               Intent.OBSERVE.value)
+            # Стресс-реакция зависит от доминирующего драйва, не от порога
+            # Трусливый (fear доминирует) → ограничен до безопасных
+            # Смелый (desire доминирует) → действует по природе
+            # Контролирующий (control доминирует) → удерживает стабильность
+            drives = getattr(personality, 'drives_base', {})
+            fear = drives.get("fear", 0.25)
+            desire = drives.get("desire", 0.25)
+            control = drives.get("control", 0.25)
+            max_drive = max(fear, desire, control)
+            # Блокируем только если страх — доминирующий драйв
+            if fear >= max_drive and fear > 0.4:
+                return intent in (Intent.FLEE.value, Intent.OBSERVE.value)
+            return True
+
+        # Ролевая фильтрация: мирные роли не перехватывают и не устраивают засады
+        # Пустая роль = нет данных → не блокируем (безопаснее разрешить)
+        if intent in (Intent.BLOCK_PATH.value, Intent.AMBUSH.value):
+            role_lower = state.current_role.lower()
+            if role_lower and not any(p in role_lower for p in COMBAT_CAPABLE_ROLES):
+                return False
 
         # R8: BehaviorMask — теперь через модификаторы в _score_all, не блокировка
         # Маска умножает score (напр. FLEE * 3.0), DecisionHub сам выбирает

@@ -11,7 +11,7 @@ path: /backend/tests/test_phase3_spatial_social.py
 """
 
 import pytest
-from app.services.spatial.spatial_events import SpatialEvent, detect_transitions, PROXIMITY_CLOSE_THRESHOLD, PROXIMITY_LEAVE_THRESHOLD
+from app.services.spatial.spatial_events import SpatialEvent, detect_transitions
 from app.services.social.social_engine import SocialEngine
 from app.services.npc.decision_hub import DecisionHub, EventContext
 from app.models.npc_state import NPCState, NPCPersonality, WillState, NPCTier, EmotionTag

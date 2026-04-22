@@ -27,6 +27,8 @@ def real_scene_state() -> dict:
     with open(path, "r", encoding="utf-8") as f:
         data = json.load(f)
     scene = data.get("scene_state")
+    if scene is None:
+        pytest.skip("campaign_state.json не содержит scene_state — нет данных для теста")
     # В сохранённом файле npc_positions на верхнем уровне,
     # но в runtime game_loop кладёт их внутрь scene_state
     if "npc_positions" in data and "npc_positions" not in scene:

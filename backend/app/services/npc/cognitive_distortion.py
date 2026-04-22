@@ -21,14 +21,11 @@ Distortion НЕ искажает числовые данные NPC.
 - StateApplicator работает с ЧИСТЫМИ данными (нет разрыва)
 """
 
-from dataclasses import replace
 from typing import Dict
 
 from app.core.constants import (
-    DISTRUST_STRESS_BOOST,
     DISTRUST_STRESS_THRESHOLD,
     MAX_DISTORTION_STRESS,
-    RESENTMENT_BIAS_FACTOR,
     THREAT_AMPLIFICATION_FACTOR,
 )
 from app.models.psychological import DistortionProfile

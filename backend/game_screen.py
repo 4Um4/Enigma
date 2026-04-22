@@ -25,10 +25,10 @@ from app.services.player_cognition import (
     PlayerMemory,
     EncounterHistory,
 )
-from movement_system import try_move, move_towards, MovementResult
-from intent_parser import parse_movement_intent, get_direction_vector
+from movement_system import try_move, move_towards
+from intent_parser import parse_movement_intent
 from pathfinding import find_path
-from api_client import create_game_gateway, ActionQueue, CompletedAction
+from api_client import create_game_gateway, ActionQueue
 
 
 _SAVES_DIR = Path(__file__).parent.parent / "saves"
@@ -190,8 +190,22 @@ class GameScreen:
 
         # Idle tick: тикаем мир пока игрок не делает действие
         # IDLE_TICK_MS — интервал в мс (30 секунд реального времени)
-        _IDLE_TICK_MS = 30_000
+        _IDLE_TICK_MS = 5_000
         _last_idle_tick = pygame.time.get_ticks()
+        _idle_tick_result: list = []   # потокобезопасный буфер результата
+        _idle_tick_running = [False]   # флаг активного запроса
+
+        import threading
+
+        def _do_idle_tick():
+            try:
+                result = _gateway.idle_tick(campaign_folder)
+                _idle_tick_result.clear()
+                _idle_tick_result.append(result)
+            except Exception:
+                pass
+            finally:
+                _idle_tick_running[0] = False
 
         running = True
         while running:
@@ -206,10 +220,17 @@ class GameScreen:
                     elif event.key == pygame.K_TAB:
                         # Переключение фокуса: игра <-> консоль общения
                         text_input.focused = not text_input.focused
+                        if text_input.focused:
+                            # Открыли консоль — ждём ввода игрока
+                            # Телеграф запускается по давлению NPC, не по таймеру
+                            print("[CONSOLE] opened — waiting for player input")
                     # TextInput обрабатывает всё кроме WASD (pass_through)
                     handled = text_input.handle_event(event)
                     # RETURN обрабатывается отдельно — TextInput намеренно возвращает False
                     if event.key == pygame.K_RETURN and not text_input.empty:
+                        # Игрок успел напечатать — отменяем telegraph
+                        action_queue.cancel_telegraph()
+                        print("[TELEGRAPH] cancelled — player acted first")
                         self._handle_text_input(
                             text_input.text.strip(), scene_state, focus,
                             walls, obstacles, move, message_log,
@@ -340,13 +361,55 @@ class GameScreen:
 
             # === Idle tick: тикаем мир если игрок давно не действовал ===
             _now = pygame.time.get_ticks()
-            if _now - _last_idle_tick >= _IDLE_TICK_MS and action_queue.pending_count() == 0:
-                try:
-                    _gateway.idle_tick(campaign_folder)
-                    print(f"[IDLE_TICK] fired at {_now}ms")
-                except Exception:
-                    pass
+            _tick_data = {}
+            # Применяем результат прошлого idle_tick если готов
+            if _idle_tick_result:
+                _tick_data = _idle_tick_result.pop()
+                _new_positions = _tick_data.get("npc_positions", {})
+                if _new_positions:
+                    # Мержим: обновляем строковые поля (position, activity),
+                    # но сохраняем local_position с координатами
+                    for npc_id, new_data in _new_positions.items():
+                        if npc_id in scene_state.get("npc_positions", {}):
+                            existing = scene_state["npc_positions"][npc_id]
+                            # Обновляем только то что пришло, не трогая local_position
+                            for k, v in new_data.items():
+                                if k != "local_position" or "local_position" not in existing:
+                                    existing[k] = v
+                        else:
+                            scene_state.setdefault("npc_positions", {})[npc_id] = new_data
+                    print(f"[IDLE_TICK] merged: {list(_new_positions.keys())}")
+
+            # Pressure-driven: если idle_tick принёс события от близких NPC → запускаем телеграф
+            _events = _tick_data.get("events", [])
+            if _events and text_input.focused:
+                # Берём самое приоритетное событие
+                _ev = _events[0]
+                _npc_name = ""
+                _npc_id = _ev.get("target", "")
+                # Получаем имя NPC из scene_state
+                _npc_data = scene_state.get("npc_positions", {}).get(_npc_id, {})
+                _npc_name = _npc_data.get("name", _npc_id)
+                _ev_desc = _ev.get("value", "")
+                _telegraph_text = f"[TELEGRAPH: {_npc_name} — {_ev_desc}]"
+                action_queue.submit_telegraph(
+                    campaign_folder, player_name,
+                    _player_xy[0] if _player_xy else 0.0,
+                    _player_y = _player_xy[1] if _player_xy else 0.0,
+                    action_text=_telegraph_text,
+                )
+                print(f"[TELEGRAPH] event-driven: {_telegraph_text}")
+
+            # Консоль закрыта → сверхнизкая дискретизация (30 сек вместо 5)
+            _tick_interval = _IDLE_TICK_MS if not text_input.focused else 30_000
+            # Запускаем новый idle_tick если пора и предыдущий завершён
+            if (_now - _last_idle_tick >= _tick_interval
+                    and not _idle_tick_running[0]
+                    and action_queue.pending_count() == 0):
+                _idle_tick_running[0] = True
                 _last_idle_tick = _now
+                print(f"[IDLE_TICK] fired at {_now}ms")
+                threading.Thread(target=_do_idle_tick, daemon=True).start()
 
             # === Poll backend responses ===
             result = action_queue.poll()
@@ -354,12 +417,20 @@ class GameScreen:
                 if result.error:
                     message_log.append(f"[Ошибка] {result.error}")
                 else:
-                    message_log.append(result.response.dm_response)
+                    resp = result.response.dm_response
+                    if resp and resp != "Ничего не произошло.":
+                        message_log.append(resp)
                     for npc_r in result.response.npc_reactions:
                         npc_name = npc_r.get("npc_name", "NPC")
                         npc_text = npc_r.get("reaction", "")
                         if npc_text:
                             message_log.append(f"  {npc_name}: {npc_text}")
+
+                # Telegraph завершился — запускаем следующий если консоль открыта
+                # Telegraph завершился — НЕ перезапускаем автоматически
+                # Следующий Telegraph запустится при следующем Tab
+                if action_queue.is_telegraph_result(result):
+                    print("[TELEGRAPH] completed")
 
             # === Pipeline ===
             config = PerceptionConfig(
@@ -438,7 +509,8 @@ class GameScreen:
 
         if intent is None:
             # Не movement — отправляем на backend (LLM обработка)
-            action_queue.submit(campaign_id, player_name, text)
+            px, py = _player_xy(scene_state)
+            action_queue.submit(campaign_id, player_name, text, px, py)
             message_log.append(f"⟳ {text}")
             return
 

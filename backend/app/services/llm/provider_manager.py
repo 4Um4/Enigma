@@ -36,8 +36,6 @@ from app.services.vram_monitor import get_vram_monitor
 
 logger = logging.getLogger(__name__)
 
-import aiohttp
-
 from app.services.llm.provider import LlmProvider, ProviderType, ProviderInfo
 from app.services.llm.router import CAPABILITY_MODEL_PREFERENCES, Capability
 
@@ -167,9 +165,11 @@ class ModelPool:
         return [self._active_model] if self._active_model else []
 
     def get_model(self, key: str) -> Optional[ModelProvider]:
-        if self._active_key == key:
+        """Синхронный доступ — загружает модель если ещё не в VRAM."""
+        if self._active_key == key and self._active_model is not None:
+            self._active_model.mark_used()
             return self._active_model
-        return None
+        return self._load_model(key)
 
     # ── Async Lazy Loading ─────────────────────────────────────────────────────
     async def get_model_async(
@@ -376,8 +376,8 @@ class ModelPool:
         try:
             with open(self._log_file, "a", encoding="utf-8") as f:
                 f.write(json.dumps(event, ensure_ascii=False) + "\n")
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[PROVIDER_MGR] Ошибка записи лога: {e}")
 
 
 # ── Global singletons ─────────────────────────────────────────────────────────

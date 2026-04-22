@@ -27,7 +27,7 @@ backend/app/services/economy/psycho_economy.py
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional
 
 from app.models.economy import Need, NeedType
 

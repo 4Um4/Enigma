@@ -17,17 +17,11 @@ path: backend/tests/test_scene_outcome_builder.py
 """
 
 import pytest
-from dataclasses import field
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 
 from app.services.verbalization.scene_outcome_builder import (
     SceneOutcomeBuilder,
     SceneContext,
-    SceneOutcome,
-    NpcOutcome,
-    PlayerOutcome,
-    TensionOutcome,
-    LatentSignal,
     LatentSignalType,
     Visibility,
     TensionTrend,

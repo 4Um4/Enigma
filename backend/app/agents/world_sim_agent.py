@@ -6,7 +6,7 @@ Uses capability-based routing for world simulation.
 
 from typing import Optional
 
-from app.services.llm import ModelRouter, Capability, get_router
+from app.services.llm import ModelRouter, get_router
 
 
 class WorldSimulationAgent:

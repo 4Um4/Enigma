@@ -33,7 +33,36 @@
         ├─ Hybrid persistence: JSON пишется раз в 10 тиков (не каждый)
         ├─ Hot/Cold разделение: RAM cache + JSON persistent
         ├─ LRU защита: TTL (1ч) + лимит (100 кампаний) для HOT
-        └─ flush_ticks() для shutdown/critical events
+        ├─  flush_ticks() для shutdown/critical events
+        ├─ ADAPTIVE TICK SYSTEM ✅ [НОВОЕ]
+        │     ├─ TICK_REAL_SECONDS=300, MAX_CATCH_UP_TICKS=10 в constants.py
+        │     ├─ created_at в world_tick.json — точка отсчёта world_time
+        │     ├─ get_world_ticks_elapsed() — вычисляет δ world_time vs sim_tick
+        │     ├─ Catch-up: game_loop вычисляет delta и применяет N тиков (max 10)
+        │     ├─ /api/game/idle_tick endpoint — тик без действия игрока
+        │     │   └─ возвращает npc_positions для синхронизации pygame
+        │     ├─ GameGateway.idle_tick() — в Protocol + 4 реализациях
+        │     │   (BackendContract, HttpGameGateway, DirectGameGateway, FallbackGateway)
+        │     └─ Pygame: таймер 5с в background thread → scene_state["npc_positions"] обновляется
+
+██ SALIENCE ENGINE [РЕАЛИЗОВАН И ПОДКЛЮЧЁН]
+═════════════════════════════════════════════
+
+  ├─ services/scene/salience_engine.py — фильтрация объектов по важности
+  │     ├─ _salience_score() — эвристика: interactable, state, owner, count
+  │     ├─ get_filtered_objects() — top-N по режиму (EXPLORATION:10, INTERACTION:5, COMBAT:2)
+  │     ├─ _INVENTORY_STATES — equipped/in_inventory/worn всегда отсекаются
+  │     ├─ player_target_object — всегда в фокусе (score=999)
+  │     └─ Интеграция: SceneStateManager.get_scene_description() → фильтр перед LLM
+  │
+  ├─ models/scene_mode.py — SceneMode + determine_scene_mode(event_type, stress)
+  │
+  ├─ Activity → Intent связь ✅
+  │     ├─ game_loop: после StateApplicator intent → _INTENT_TO_ACTIVITY маппинг
+  │     └─ scene_state["npc_positions"][npc_id]["activity"] обновляется каждый ход
+  │
+  └─ [SALIENCE_DEBUG] в логах: режим, объектов до/после фильтрации
+
 
 ██ АУДИТ РЕАЛЬНОСТИ (по логам 10-ходовой проверки)
 ════════════════════════════════════════════════════════════
@@ -82,10 +111,25 @@
   │     Фикс: verbal_stance.py — _urgency_to_label() + UrgencyLabel type
   │           Категории: фоновая (0-0.19), умеренная (0.2-0.49), высокая (0.5-0.79), критическая (0.8+)
   │
-  └─ 0.3 [скрыт, но влияние ощутимо] на фокусных NPC ✅ ИСПРАВЛЕНО
-        Лог: Фокусные NPC получали contradictory тег
-        Корень: scene_outcome_builder.py:360-361 — проверка visibility без учёта тира
-        Фикс: Удалены строки 360-361 (фокусные NPC = видимые по определению)
+  ├─ 0.3 [скрыт, но влияние ощутимо] на фокусных NPC ✅ ИСПРАВЛЕНО
+  │     Лог: Фокусные NPC получали contradictory тег
+  │     Корень: scene_outcome_builder.py:360-361 — проверка visibility без учёта тира
+  │     Фикс: Удалены строки 360-361 (фокусные NPC = видимые по определению)
+  │
+  ├─ 0.4 NarrativeFact: Python repr в LLM промпте ✅ ИСПРАВЛЕНО
+  │     Лог: "NarrativeFact(event_type='player_attacks'...)" в [DM_PROMPT_BLOCK]
+  │     Корень: NarrativeFact — dataclass без __str__, str() давал repr
+  │     Фикс: models/npc_state.py — добавлен __str__() → "player_attacks → fearful (важность: 0.77)"
+  │
+  ├─ 0.5 [режим: INTERACTION] debug-тег в LLM промпте ✅ ИСПРАВЛЕНО
+  │     Лог: DM получал "[режим: INTERACTION]" как факт сцены
+  │     Корень: scene_state_manager.py — lines.append(f"[режим: ...]")
+  │     Фикс: заменён на print() → [SALIENCE_DEBUG] только в консоль
+  │
+  └─ 0.6 SceneStateManager.commit() вне класса ✅ ИСПРАВЛЕНО
+        Лог: 'SceneStateManager' object has no attribute 'commit'
+        Корень: ~600 строк методов оказались вне класса (нулевой отступ)
+        Фикс: возвращены в тело класса, class ends at line 1510        
   
 
   ├─ R1 Memory Core ✅
@@ -222,6 +266,24 @@
   9. NarrativeFacts — max 2 факта. frozen. НЕ участвуют в логике.
   10. TierConfig    — статичен. Только controlled respawn.
   11. LifeEngine tick — факт обработки, НЕ функция времени. sim_tick ≠ world_time.
+  12. idle_tick — НЕ запускает LLM. Только LifeEngine.tick() + apply_changes(). 0 токенов.
+
+██ PYGAME ФРОНТЕНД [РЕАЛИЗОВАН]
+═════════════════════════════════
+
+  ├─ backend/game_launcher.py — точка входа, lifecycle управление
+  ├─ backend/game_screen.py — игровой экран, WASD, TextInput
+  ├─ backend/api_client.py — GameGateway Protocol (5 реализаций)
+  │     ├─ BackendContract (HTTP маппинг)
+  │     ├─ HttpGameGateway
+  │     ├─ DirectGameGateway (pygame → GameLoop напрямую)
+  │     ├─ FallbackGateway (HTTP primary, Direct fallback)
+  │     └─ ActionQueue — неблокирующая очередь (LLM latency не замораживает pygame)
+  ├─ backend/game_loop_bridge.py — sync обёртка над async GameLoop
+  ├─ backend/scene_renderer.py — отрисовка PerceivedScene
+  ├─ backend/movement_system.py — коллизии, перемещение (чистый Python, без pygame)
+  ├─ backend/map_editor/ — редактор локаций (editor_core.py, sprite_registry.py)
+  └─ Режимы запуска: HTTP (backend отдельно) / Direct (всё в одном процессе)
 
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                       2. ЧТО ПРЕДСТОИТ СДЕЛАТЬ                              │

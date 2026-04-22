@@ -8,8 +8,6 @@ backend/tests/test_life_engine.py
 
 import pytest
 import json
-import tempfile
-from pathlib import Path
 
 # ── Импорт тестируемого модуля ───────────────────────────────────────────────
 from app.services.npc.life_engine import (

@@ -1,4 +1,5 @@
 from pathlib import Path
+import pytest
 from app.services.npc.perception_filter import _can_hear, _can_see, extract_scene_awareness
 from app.services.spatial.spatial_runtime import line_of_sight, resolve_distance_between_entities, sound_reach, extract_scene_for_npc, PERCEPTION_RADIUS, sound_bleeds_to_adjacent
 from app.services.scene_state_manager import _derive_environment_modifiers
@@ -254,6 +255,9 @@ def test_dynamic_density_empty_scene_uses_base() -> None:
 
 def test_sound_bleeds_to_adjacent_loud_event() -> None:
     """Громкий звук (radius > threshold) просачивается в соседние локации."""
+    templates = Path(__file__).parent.parent / "data" / "locations" / "location_templates.json"
+    if not templates.exists():
+        pytest.skip("location_templates.json отсутствует")
     scene = _scene()
     scene["environment_modifiers"]["noise"] = 1.0
     scene["environment_modifiers"]["density"] = 0.0

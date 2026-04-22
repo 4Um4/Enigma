@@ -18,7 +18,7 @@ path: /backend/app/services/reaction/reaction_resolver.py
     LLM запрещено создавать реальность, но Python не создавал её.
     Теперь Python создаёт.
 """
-from typing import List, Optional
+from typing import List
 
 from app.services.npc.decision_hub import DecisionResult, EventContext
 from app.services.reaction.micro_event import MicroEvent

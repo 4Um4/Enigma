@@ -22,9 +22,9 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from enum import Enum
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List
 
-from app.models.economy import EconomicProfile, Need, NeedType, Obligation
+from app.models.economy import EconomicProfile, NeedType
 
 logger = logging.getLogger(__name__)
 

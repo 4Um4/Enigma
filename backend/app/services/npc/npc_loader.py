@@ -324,6 +324,7 @@ def load_profile_from_legacy_json(raw_data: Dict[str, Any]) -> NPCProfileL0:
             id=raw_data["id"],
             name=raw_data.get("name", "Unknown"),
             tier=raw_data.get("tier", "minor"),
+            gender=raw_data.get("gender", "male"),
             drives_base=drives_base,
             psyche_base=psyche_base,
             # voice_profile и backstory пока берем как есть, если есть.
@@ -399,6 +400,9 @@ def load_l2_state_from_runtime_dict(raw_data: Dict[str, Any]) -> NPCStateL2:
             "fear": float(ss.get("fear_of_player", 0.0)),
             "debt": float(ss.get("debt", 0.0)),
         },
+        # Роль из статического профиля — нужна для фильтрации интентов
+        current_role=raw_data.get("status_profile", {}).get("title", ""),
+        
         # Восстановление narrative_cache из JSON
         narrative_cache=_restore_narrative_cache(raw_data.get("narrative_cache", [])),
     )

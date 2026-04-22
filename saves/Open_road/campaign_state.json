@@ -664,20 +664,20 @@
       "location_id": "Таверна Серебряный Волк",
       "position": "entrance",
       "local_position": {
-        "x": 8.0,
-        "y": 11.5
+        "x": 4.73223304703363,
+        "y": 5.646446609406725
       }
     },
     "player_target_npc": null,
     "player_target_npc_name": null,
     "player_target_object": null,
     "player_distances": {
-      "blacksmith_orm": 15.29,
-      "guard_borko": 12.55,
-      "merchant_goran": 13.85,
-      "maid_lusya": 12.1,
-      "thief_shadow": 4.92,
-      "tavern_keeper_tornin": 15.32
+      "blacksmith_orm": 16.67,
+      "guard_borko": 15.83,
+      "merchant_goran": 14.77,
+      "maid_lusya": 5.41,
+      "thief_shadow": 4.05,
+      "tavern_keeper_tornin": 8.82
     },
     "environment_modifiers": {
       "light": 0.4,
@@ -753,209 +753,441 @@
         "y": 2.9250000000000003,
         "w": 3.0,
         "h": 1.0,
-        "id": "obj_0"
+        "id": "obj_0",
+        "blocks_los": true,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": false,
+          "climb_on": false,
+          "walk_around": true
+        }
       },
       {
         "x": 7.2,
         "y": 4.29,
         "w": 1.6,
         "h": 1.32,
-        "id": "obj_1"
+        "id": "obj_1",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": true,
+          "climb_on": true,
+          "walk_around": true
+        }
       },
       {
         "x": 11.275,
         "y": 7.1,
         "w": 1.5,
         "h": 1.5,
-        "id": "obj_2"
+        "id": "obj_2",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": true,
+          "climb_on": true,
+          "walk_around": true
+        }
       },
       {
         "x": 6.75,
         "y": 4.75,
         "w": 0.5,
         "h": 0.5,
-        "id": "obj_3"
+        "id": "obj_3",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": false,
+          "climb_on": true,
+          "walk_around": true
+        }
       },
       {
         "x": 8.75,
         "y": 4.75,
         "w": 0.5,
         "h": 0.5,
-        "id": "obj_4"
+        "id": "obj_4",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": false,
+          "climb_on": true,
+          "walk_around": true
+        }
       },
       {
         "x": 2.75,
         "y": 4.55,
         "w": 1.5,
         "h": 0.9,
-        "id": "obj_7"
+        "id": "obj_7",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": true,
+          "climb_on": true,
+          "walk_around": true
+        }
       },
       {
         "x": 2.75,
         "y": 6.55,
         "w": 1.5,
         "h": 0.9,
-        "id": "obj_8"
+        "id": "obj_8",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": true,
+          "climb_on": true,
+          "walk_around": true
+        }
       },
       {
         "x": 2.75,
         "y": 8.55,
         "w": 1.5,
         "h": 0.9,
-        "id": "obj_9"
+        "id": "obj_9",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": true,
+          "climb_on": true,
+          "walk_around": true
+        }
       },
       {
         "x": 11.25,
         "y": 4.55,
         "w": 1.5,
         "h": 0.9,
-        "id": "obj_10"
+        "id": "obj_10",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": true,
+          "climb_on": true,
+          "walk_around": true
+        }
       },
       {
         "x": 7.25,
         "y": 6.55,
         "w": 1.5,
         "h": 0.9,
-        "id": "obj_11"
+        "id": "obj_11",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": true,
+          "climb_on": true,
+          "walk_around": true
+        }
       },
       {
         "x": 7.25,
         "y": 8.55,
         "w": 1.5,
         "h": 0.9,
-        "id": "obj_12"
+        "id": "obj_12",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": true,
+          "climb_on": true,
+          "walk_around": true
+        }
       },
       {
         "x": 7.75,
         "y": 7.25,
         "w": 0.5,
         "h": 0.5,
-        "id": "obj_13"
+        "id": "obj_13",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": false,
+          "climb_on": true,
+          "walk_around": true
+        }
       },
       {
         "x": 7.74,
         "y": 6.235,
         "w": 0.52,
         "h": 0.53,
-        "id": "obj_14"
+        "id": "obj_14",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": false,
+          "climb_on": true,
+          "walk_around": true
+        }
       },
       {
         "x": 8.75,
         "y": 8.75,
         "w": 0.5,
         "h": 0.5,
-        "id": "obj_15"
+        "id": "obj_15",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": false,
+          "climb_on": true,
+          "walk_around": true
+        }
       },
       {
         "x": 6.75,
         "y": 8.75,
         "w": 0.5,
         "h": 0.5,
-        "id": "obj_16"
+        "id": "obj_16",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": false,
+          "climb_on": true,
+          "walk_around": true
+        }
       },
       {
         "x": 11.75,
         "y": 8.75,
         "w": 0.5,
         "h": 0.5,
-        "id": "obj_17"
+        "id": "obj_17",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": false,
+          "climb_on": true,
+          "walk_around": true
+        }
       },
       {
         "x": 11.75,
         "y": 6.75,
         "w": 0.5,
         "h": 0.5,
-        "id": "obj_18"
+        "id": "obj_18",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": false,
+          "climb_on": true,
+          "walk_around": true
+        }
       },
       {
         "x": 11.75,
         "y": 4.25,
         "w": 0.5,
         "h": 0.5,
-        "id": "obj_19"
+        "id": "obj_19",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": false,
+          "climb_on": true,
+          "walk_around": true
+        }
       },
       {
         "x": 11.75,
         "y": 5.25,
         "w": 0.5,
         "h": 0.5,
-        "id": "obj_20"
+        "id": "obj_20",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": false,
+          "climb_on": true,
+          "walk_around": true
+        }
       },
       {
         "x": 3.25,
         "y": 4.25,
         "w": 0.5,
         "h": 0.5,
-        "id": "obj_21"
+        "id": "obj_21",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": false,
+          "climb_on": true,
+          "walk_around": true
+        }
       },
       {
         "x": 3.25,
         "y": 5.25,
         "w": 0.5,
         "h": 0.5,
-        "id": "obj_22"
+        "id": "obj_22",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": false,
+          "climb_on": true,
+          "walk_around": true
+        }
       },
       {
         "x": 4.25,
         "y": 6.75,
         "w": 0.5,
         "h": 0.5,
-        "id": "obj_23"
+        "id": "obj_23",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": false,
+          "climb_on": true,
+          "walk_around": true
+        }
       },
       {
         "x": 2.25,
         "y": 6.75,
         "w": 0.5,
         "h": 0.5,
-        "id": "obj_24"
+        "id": "obj_24",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": false,
+          "climb_on": true,
+          "walk_around": true
+        }
       },
       {
         "x": 3.25,
         "y": 8.25,
         "w": 0.5,
         "h": 0.5,
-        "id": "obj_25"
+        "id": "obj_25",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": false,
+          "climb_on": true,
+          "walk_around": true
+        }
       },
       {
         "x": 3.25,
         "y": 9.25,
         "w": 0.5,
         "h": 0.5,
-        "id": "obj_26"
+        "id": "obj_26",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": false,
+          "climb_on": true,
+          "walk_around": true
+        }
       },
       {
         "x": 13.891944444444446,
         "y": 1.755,
         "w": 4.23,
         "h": 1.49,
-        "id": "obj_27"
+        "id": "obj_27",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": true,
+          "climb_on": true,
+          "walk_around": true
+        }
       },
       {
         "x": 14.25,
         "y": 5.25,
         "w": 0.5,
         "h": 0.5,
-        "id": "obj_29"
+        "id": "obj_29",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": false,
+          "climb_on": true,
+          "walk_around": true
+        }
       },
       {
         "x": 7.8,
         "y": 9.3,
         "w": 0.4,
         "h": 0.4,
-        "id": "obj_33"
+        "id": "obj_33",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": false,
+          "climb_on": true,
+          "walk_around": true
+        }
       },
       {
         "x": 16.125,
         "y": 5.375,
         "w": 0.5,
         "h": 0.5,
-        "id": "obj_35"
+        "id": "obj_35",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": false,
+          "climb_on": true,
+          "walk_around": true
+        }
       }
     ],
     "line_of_sight": {
       "maid_lusya": true,
       "guard_borko": true,
-      "blacksmith_orm": true,
+      "blacksmith_orm": false,
       "tavern_keeper_tornin": true,
       "thief_shadow": true,
       "merchant_goran": true

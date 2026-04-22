@@ -1,4 +1,3 @@
-from pydantic_settings import BaseSettings
 from .config import Settings
 from pathlib import Path
 

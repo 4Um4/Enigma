@@ -32,7 +32,7 @@ from app.core.constants import (
     OUTCOME_FLOOR,
     SURPRISE_THRESHOLD,
 )
-from app.models.npc_state import EmotionTag, NPCPersonality, NPCState
+from app.models.npc_state import NPCPersonality, NPCState
 
 
 # ─────────────────────────────────────────────────────────────────────────────

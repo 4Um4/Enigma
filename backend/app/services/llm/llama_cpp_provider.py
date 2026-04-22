@@ -12,8 +12,11 @@ Local LLM inference using llama.cpp server or CLI
 from __future__ import annotations
 
 import os
+import random
 import re
 import json
+import subprocess
+import threading
 import urllib.request
 import urllib.error
 from dataclasses import dataclass
@@ -22,7 +25,6 @@ from typing import Generator
 
 from app.core.config import settings
 from app.services.llm.provider import (
-    LlmProvider,
     GenerationParams,
     ProviderInfo,
     ProviderType,
@@ -77,6 +79,9 @@ class LlamaCppProvider(StreamingLlmProvider):
         self.server_url = server_url or settings.llama_cpp_server_url
         self.executable = executable or settings.llama_cpp_executable
         self._use_server = bool(self.server_url)
+        # CLI-режим: отслеживание процесса и блокировка параллельных вызовов
+        self._cli_process: subprocess.Popen | None = None
+        self._cli_lock = threading.Lock()
 
     @property
     def use_server(self) -> bool:
@@ -146,6 +151,8 @@ class LlamaCppProvider(StreamingLlmProvider):
         if params.stop:
             stop_tokens.extend([t for t in params.stop if t.isascii()])
 
+        # seed=-1 + случайное значение ломает KV-кеш llama-server при похожих промптах
+        _seed = random.randint(0, 2**31 - 1)
         payload = {
             "prompt":         prompt,
             "n_predict":      params.max_tokens,
@@ -157,6 +164,7 @@ class LlamaCppProvider(StreamingLlmProvider):
             "min_p":          params.min_p,
             "top_k":          params.top_k,
             "n_keep":         params.n_keep,
+            "seed":           _seed,
         }
 
         data = json.dumps(payload).encode("utf-8")
@@ -177,47 +185,101 @@ class LlamaCppProvider(StreamingLlmProvider):
                 "Убедитесь что llama-server запущен."
             ) from e
 
+    def abort_generation(self) -> None:
+        """Прервать текущую генерацию (server — HTTP abort, CLI — kill процесса)."""
+        if self._use_server and self.server_url:
+            try:
+                urllib.request.urlopen(
+                    self.server_url.rstrip("/") + "/abort",
+                    data=b"",
+                    method="POST",
+                    timeout=2,
+                )
+            except Exception:
+                pass
+        else:
+            self._kill_cli_process()
+
     # ──────────────────────────────────────────────────────────────────────────
     # CLI mode
     # ──────────────────────────────────────────────────────────────────────────
 
     def _complete_via_cli(self, prompt: str, params: GenerationParams) -> str:
-        import subprocess
-        import tempfile
+        # Блокировка: только один CLI-процесс одновременно
+        if not self._cli_lock.acquire(timeout=2):
+            raise RuntimeError("Предыдущий CLI-запрос ещё выполняется")
+        try:
+            executable = self.executable or self._find_executable()
+            if not executable:
+                raise RuntimeError("llama.cpp executable не найден")
 
-        executable = self.executable or self._find_executable()
-        if not executable:
-            raise RuntimeError("llama.cpp executable не найден")
+            cmd = [
+                executable,
+                "-m", self.model_config.path,
+                "-n", str(params.max_tokens),
+                "-ngl", str(settings.gpu_layers),   # все слои на GPU
+                "-c", str(settings.ctx_size),        # размер контекста
+                "-t", str(settings.threads),         # потоки CPU для оставшихся операций
+            ]
 
-        cmd = [executable, "-m", self.model_config.path, "-n", str(params.max_tokens)]
-
-        if len(prompt) > 8000:
-            with tempfile.NamedTemporaryFile(
-                mode="w", suffix=".txt", delete=False, encoding="utf-8"
-            ) as f:
-                f.write(prompt)
-                tmp_path = f.name
-            cmd.extend(["-f", tmp_path])
-            try:
-                result = subprocess.run(
-                    cmd, capture_output=True, text=True,
-                    encoding="utf-8", errors="replace",
-                    timeout=settings.llama_cpp_timeout_sec,
-                )
-            finally:
+            if len(prompt) > 8000:
+                import tempfile
+                with tempfile.NamedTemporaryFile(
+                    mode="w", suffix=".txt", delete=False, encoding="utf-8"
+                ) as f:
+                    f.write(prompt)
+                    tmp_path = f.name
+                cmd.extend(["-f", tmp_path])
                 try:
-                    os.unlink(tmp_path)
-                except OSError:
-                    pass
-        else:
-            cmd.extend(["-p", prompt])
-            result = subprocess.run(
-                cmd, capture_output=True, text=True,
-                encoding="utf-8", errors="replace",
-                timeout=settings.llama_cpp_timeout_sec,
+                    return self._run_cli_process(cmd)
+                finally:
+                    try:
+                        os.unlink(tmp_path)
+                    except OSError:
+                        pass
+            else:
+                cmd.extend(["-p", prompt])
+                return self._run_cli_process(cmd)
+        finally:
+            self._cli_process = None
+            self._cli_lock.release()
+
+    def _run_cli_process(self, cmd: list[str]) -> str:
+        """Запустить CLI-процесс с отслеживанием и гарантированным убийством при таймауте."""
+        self._cli_process = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+        )
+        try:
+            stdout, stderr = self._cli_process.communicate(
+                timeout=settings.llama_cpp_timeout_sec
+            )
+            return stdout.strip() or stderr.strip()
+        except subprocess.TimeoutExpired:
+            self._kill_cli_process()
+            raise RuntimeError(
+                f"llama-cli завис и был убит (таймаут {settings.llama_cpp_timeout_sec}с)"
             )
 
-        return result.stdout.strip() or result.stderr.strip()
+    def _kill_cli_process(self) -> None:
+        """Жёсткое убийство CLI-процесса — освобождает VRAM."""
+        proc = self._cli_process
+        if proc is None:
+            return
+        try:
+            proc.kill()
+            proc.wait(timeout=3)
+        except Exception:
+            try:
+                proc.terminate()
+                proc.wait(timeout=2)
+            except Exception:
+                pass
+        self._cli_process = None
 
     # ──────────────────────────────────────────────────────────────────────────
     # Streaming

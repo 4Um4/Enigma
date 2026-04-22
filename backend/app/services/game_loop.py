@@ -38,7 +38,7 @@ from app.services.action.player_target_extractor import PlayerTargetExtractor
 R3_DIRECT_MODE: bool = True
 from app.services.state.context_builder import build_context, patch_scene_state
 from app.services.scene_state_manager import SceneStateManager
-from app.services.memory import JsonMemoryStore, LayeredMemory
+from app.services.memory import LayeredMemory
 # Старый model_router удалён — агенты сами управляют маршрутизацией через llm/router
 from app.services.world_scheduler import WorldScheduler
 from app.services.npc.npc_loader import materialize_inventory, get_item_display_name
@@ -55,7 +55,7 @@ from app.models.schemas import CampaignLoadResponse
 
 logger = logging.getLogger(__name__)
 
-AGENT_TIMEOUT_SEC = 120
+AGENT_TIMEOUT_SEC = 35
 
 ERROR_CODES = {
     "AGENT_SUCCESS":              "SUCCESS",
@@ -138,6 +138,9 @@ class GameLoop:
         self._prev_player_distances: Dict[str, Dict[str, float]] = {}
         # ФАЗА 2.4-ECO: Economic profiles — кэш по campaign_id
         self._economic_profiles: Dict[str, Dict[str, 'EconomicProfile']] = {}
+        # ФАЗА 2.4-ECO: EconomyTracker — трекинг доходов и дневных проверок
+        from app.services.economy.economy_tracker import EconomyTracker
+        self._economy_tracker = EconomyTracker()
         # ФАЗА 3.4: WorldTickEngine — проактивные действия NPC
         from app.services.world.world_tick_engine import WorldTickEngine
         self._world_tick_engine = WorldTickEngine()
@@ -224,36 +227,50 @@ class GameLoop:
         _profiles: Dict[str, EconomicProfile] = {}
         _all_npcs = self._load_npcs()
         
+        from app.services.economy.profile_factory import create_profile_from_npc
+        from app.services.world.world_ontology import is_physical_object
+
         for _npc in _all_npcs:
             _nid = _npc.get("id")
             if not _nid:
                 continue
             
-            # Создаём минимальный профиль с базовыми потребностями
-            _needs = [
-                Need(NeedType.FOOD, 0.3, 0.2),
-                Need(NeedType.INCOME, 0.2, 0.1),
-                Need(NeedType.SHELTER, 0.1, 0.05),
-            ]
-            
-            # Золото из runtime если есть
-            _gold = float(_npc.get("gold", 0.0))
+            # Товары из carried_objects (физические предметы)
             _goods = {}
             for _item in _npc.get("carried_objects", []):
-                from app.services.world.world_ontology import is_physical_object
                 if is_physical_object(_item):
                     _goods[_item] = 1
             
-            _profiles[_nid] = EconomicProfile(
-                npc_id=_nid,
-                gold=_gold,
+            _profiles[_nid] = create_profile_from_npc(
+                npc_data=_npc,
                 goods=_goods,
-                base_needs=_needs,
             )
         
         self._economic_profiles[campaign_id] = _profiles
         logger.info(f"[ECO] Initialized {len(_profiles)} economic profiles for {campaign_id}")
         return _profiles
+
+    def _collect_base_drives(self, campaign_id: str) -> Dict[str, Dict[str, float]]:
+        """
+        Извлекает базовые драйвы (control, desire, fear, significance) из всех NPC.
+        Нужны для EconomyTracker: расчёт savings_tendency без динамического _psycho.
+        """
+        from app.services.npc.npc_loader import load_profile_from_legacy_json
+        
+        _all_npcs = self._load_npcs()
+        _drives: Dict[str, Dict[str, float]] = {}
+        
+        for _npc in _all_npcs:
+            _nid = _npc.get("id")
+            if not _nid:
+                continue
+            try:
+                _l0 = load_profile_from_legacy_json(_npc)
+                _drives[_nid] = _l0.drives_base
+            except Exception:
+                _drives[_nid] = {"control": 0.25, "desire": 0.25, "fear": 0.25, "significance": 0.25}
+        
+        return _drives
 
     # ────────────────────────────────────────────────────────────────────────────
     # ПУБЛИЧНЫЙ API
@@ -280,8 +297,8 @@ class GameLoop:
             loc_id = existing.get("scene_state", existing).get("location_id")
             if loc_id:
                 location = loc_id
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[GAME_LOOP] Ошибка получения location_id: {e}")
         
         scene_state = self.scene_manager.get_scene_state(campaign_id, location)
         
@@ -378,7 +395,7 @@ class GameLoop:
             {},
         )
         # TODO: временный дебаг — удалить после починки LLM
-        print(f"[DM_RESULT_DEBUG] type={type(dm_result).__name__}, keys={list(dm_result.keys()) if isinstance(dm_result, dict) else 'N/A'}, dm_resp={repr(dm_result.get('dm_response', '<NO KEY>')[:100]) if isinstance(dm_result, dict) else repr(dm_result)[:100]}")
+        print(f"[DM_RESULT] type={type(dm_result).__name__}, keys={list(dm_result.keys()) if isinstance(dm_result, dict) else 'N/A'}, dm_resp={repr(dm_result.get('dm_response', '<NO KEY>')[:200]) if isinstance(dm_result, dict) else repr(dm_result)[:200]}")
 
         # R2.1: NarrativeExtractor R2.2.8 — синхронный путь (REST)
         try:
@@ -672,6 +689,29 @@ class GameLoop:
                     print(f"[LIFE_ENGINE] Прибыли в сцену: {_arrivals}")
         except Exception as _le:
             print(f"[LIFE_ENGINE] Ошибка тика: {_le}")
+
+        # 4.2. EconomyTracker — дневная проверка INCOME/SOCIAL (раз в TICKS_PER_DAY)
+        try:
+            from app.core.constants import TICKS_PER_DAY
+            _eco_profiles = self._economic_profiles.get(campaign_id)
+            if _eco_profiles:
+                # Текущий тик после catch-up
+                _current_tick = _life_engine.get_current_tick(campaign_id)
+                if _current_tick > 0 and _current_tick % TICKS_PER_DAY == 0:
+                    _base_drives = self._collect_base_drives(campaign_id)
+                    _inc_sat, _soc_sat = self._economy_tracker.check_daily_needs(
+                        profiles=_eco_profiles,
+                        npc_drives=_base_drives,
+                        tick=_current_tick,
+                        # TODO: временная заглушка — нужно определить из scene_state (editor JSON)
+                        # будет удалено после: добавление флага "locked_location" в структуру локации
+                        location_locked=False,
+                    )
+                    self._economy_tracker.reset_daily()
+                    if _inc_sat or _soc_sat:
+                        print(f"[ECO_TRACKER] day_end: income={_inc_sat} social={_soc_sat} satisfied")
+        except Exception as _et_err:
+            print(f"[ECO_TRACKER] Error (non-blocking): {_et_err}")
 
         # 5. PythonEngines
         fake_req = _FakeRequest(campaign_id, world_id, location, actions)
@@ -1255,8 +1295,8 @@ class GameLoop:
                                     event_target=shared_context.get("player_target_id"),
                                     extra_event_types=_extra_evt_types,
                                 )
-                        except Exception:
-                            pass  # non-blocking
+                        except Exception as e:
+                            print(f"[GAME_LOOP] Ошибка decision_hub.compute: {e}")  # non-blocking
 
                         # Фаза 2.4-ECO: экономические модификаторы от потребностей
                         _eco_modifiers = {}
@@ -1273,11 +1313,12 @@ class GameLoop:
                                 _eco_modifiers = _eco_result.modifiers
                                 if _eco_modifiers:
                                     print(f"[ECO] {npc_id}: {len(_eco_modifiers)} mods, drives={_eco_result.active_drives}")
-                                # Стресс от бедности
-                                _wealth_stress = _ne.get_wealth_stress(_eco_profile)
-                                if _wealth_stress > 0:
-                                    state_l2.stress = min(100.0, state_l2.stress + _wealth_stress * 10)
-                                    print(f"[ECO] {npc_id}: wealth_stress=+{_wealth_stress:.3f}")
+                                # Стресс от экономики/потребностей (единый расчёт)
+                                from app.services.economy.stress_calculator import calculate_economic_stress
+                                _eco_stress, _eco_reason = calculate_economic_stress(_eco_profile, _ne)
+                                if _eco_stress > 0:
+                                    state_l2.stress = min(100.0, state_l2.stress + _eco_stress)
+                                    print(f"[ECO] {npc_id}: +{_eco_stress:.3f} ({_eco_reason})")
                         except Exception as _eco_e:
                             print(f"[ECO] Error (non-blocking): {_eco_e}")
 
@@ -1429,6 +1470,9 @@ class GameLoop:
                         # Формируем контекст события для NPC (что именно происходит)
                         _scene_hint = raw_input[:500].strip() if raw_input else ""
                         
+                        # Выводим can_speak/can_move через StateInterpreter
+                        from app.services.verbalization.state_interpreter import StateInterpreter
+                        _interpreter = StateInterpreter()
                         verb_ctx = VerbalizationContext(
                             npc_id=profile_l0.id,
                             npc_name=profile_l0.name,
@@ -1442,6 +1486,8 @@ class GameLoop:
                             speech_style=_dominant_drive,
                             voice_profile=profile_l0.voice_profile,
                             backstory=profile_l0.backstory,
+                            can_speak=_interpreter.derive_can_speak(state_to_use_for_llm.posture, state_to_use_for_llm.conditions),
+                            can_move=_interpreter.derive_can_move(state_to_use_for_llm.posture, state_to_use_for_llm.conditions, state_to_use_for_llm.hp),
                         )
                         
                         # Формируем единый контекст NPC
@@ -1843,6 +1889,7 @@ class GameLoop:
                 npc_tiers=_tiers,
                 player_action_text=actions[0].action if actions else "",
                 player_success=_player_success,
+                player_target_id=shared_context.get("player_target_id", ""),
             )
             
             # Собираем снапшоты для ProjectionLayer (реальное состояние + искажения)
@@ -1858,6 +1905,7 @@ class GameLoop:
             }
 
             # Строим SceneOutcome → DMFrame (с психологической проекцией)
+            # TODO: npc_profiles требует конвертации raw→NPCProfileL0 — пока None (voice constraints не применяются)
             _scene = _builder.build(
                 _decisions, _scene_ctx,
                 state_snapshots=_state_snapshots,
@@ -1982,14 +2030,16 @@ class GameLoop:
         _act_type = shared_context.get("action_type", "unknown")
 
         # P0.1: действие игрока → Working Memory
-        self.memory_manager.record_event(campaign_id, {
-            "type":        "player_action",
-            "actor":       _player_name,
-            "content":     _player_text,
-            "action_type": _act_type,
-            "location":    location,
-        })
-        print(f"[WM_WRITE] player_action: {_player_text[:50]}")
+        # Телеграф — технический маркер, не действие игрока
+        if not _player_text.startswith("[TELEGRAPH"):
+            self.memory_manager.record_event(campaign_id, {
+                "type":        "player_action",
+                "actor":       _player_name,
+                "content":     _player_text,
+                "action_type": _act_type,
+                "location":    location,
+            })
+            print(f"[WM_WRITE] player_action: {_player_text[:50]}")
 
         # P0.2: ответы NPC → Working Memory
         for _reaction in npc_result.get("npc_reactions", []):
@@ -2075,8 +2125,8 @@ class GameLoop:
                                 target      = npc_id,
                                 delta       = {"trust": trust_delta},
                             )
-                        except Exception:
-                            pass
+                        except Exception as e:
+                            print(f"[GAME_LOOP] Ошибка обновления отношений: {e}")
                     break
             if changed:
                 # Пробой 7 закрыт: единственная точка сохранения — commit()
@@ -2157,6 +2207,15 @@ class GameLoop:
         except asyncio.TimeoutError:
             duration = round((time.perf_counter() - start) * 1000)
             msg = f"Агент '{agent_name}' превысил лимит {AGENT_TIMEOUT_SEC}с"
+            # Прерываем зависшую генерацию на llama-server
+            try:
+                from app.services.llm.provider_manager import get_model_pool
+                _pool = get_model_pool()
+                if _pool._active_model:
+                    _pool._active_model.provider.abort_generation()
+                    print(f"[GAME_LOOP] abort sent to {_pool.active_model_key}")
+            except Exception:
+                pass
             jsonl_log({
                 "level": "ERROR", "agent": agent_name,
                 "error_code": ERROR_CODES["AGENT_TIMEOUT"],
@@ -2210,8 +2269,8 @@ class GameLoop:
                     },
                 },
             }
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[GAME_LOOP] Ошибка получения location_id: {e}")
 
     def _write_memory(
         self,

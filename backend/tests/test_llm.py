@@ -6,7 +6,6 @@ Run BEFORE starting the main application.
 import pytest
 from pathlib import Path
 import sys
-import os
 import urllib.request
 
 ROOT_DIR = Path(__file__).resolve().parents[2]  # backend/

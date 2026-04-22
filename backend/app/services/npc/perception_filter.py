@@ -238,8 +238,8 @@ def filter_perceiving_npcs(
         if audible_to and not visible_to and npc_id not in audible_to:
             continue
 
-        # Звуковые события — проверяем слух
-        sound_events = {"SOUND_EMITTED", "OBJECT_DESTROYED", "PLAYER_ATTACKED"}
+        # Звуковые события — проверяем слух (речь слышна дальше чем видна)
+        sound_events = {"SOUND_EMITTED", "OBJECT_DESTROYED", "PLAYER_ATTACKED", "PLAYER_SPOKE"}
         if event_type in sound_events:
             if _can_hear(npc_id, scene_state, radius):
                 perceiving.append(npc_id)

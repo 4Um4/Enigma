@@ -18,6 +18,7 @@ Features:
 from __future__ import annotations
 
 import asyncio
+import threading
 from enum import Enum
 
 from app.services.logging_tools import jsonl_log
@@ -188,6 +189,11 @@ class ModelRouter:
         # а __init__ может вызываться в другом контексте (стартап vs запрос).
         self._vram_semaphore: asyncio.Semaphore | None = None
         
+        # Threading lock для worker threads — исключает конкурентные LLM вызовы
+        # (TELEGRAPH thread + player action thread → один из них skip)
+        self._worker_lock = threading.Lock()
+        # Флаг активного запроса — для abort при зависании
+        self._request_in_progress = False
         self._initialized = True
     
     def _get_model_pool(self):
@@ -274,6 +280,16 @@ class ModelRouter:
             finally:
                 logger.debug(f"ModelRouter: Released VRAM semaphore for {capability_obj}")
     
+    def _abort_generation(self) -> None:
+        """Прервать зависшую генерацию на llama-server."""
+        try:
+            pool = self._get_model_pool()
+            if pool._active_model:
+                pool._active_model.provider.abort_generation()
+                print(f"[R4A_ABORT] sent /abort to {pool.active_model_key}")
+        except Exception as e:
+            print(f"[R4A_ABORT] failed: {e}")
+    
     def _request_via_pool(
         self,
         capability: Capability,
@@ -296,6 +312,7 @@ class ModelRouter:
             Ответ от LLM
         """
         pool = self._get_model_pool()
+        print(f"[R4A_POOL] active_model={pool.active_model_key}")
         
         # Try preferred keys in order
         for model_key in preferred_keys:
@@ -307,7 +324,9 @@ class ModelRouter:
                 if model_provider and model_provider.is_available():
                     try:
                         # Execute request
+                        print(f"[R4A_POOL] calling complete() on {model_key}...")
                         result = model_provider.provider.complete(prompt, params, system_prompt)
+                        print(f"[R4A_POOL] complete() returned {len(result)} chars in {(time.time()-start_time)*1000:.0f}ms")
                         
                         # Record metrics
                         latency_ms = (time.time() - start_time) * 1000
@@ -318,11 +337,12 @@ class ModelRouter:
                         
                         return result
                     except Exception as e:
-                        # Record failure
+                        import traceback
                         latency_ms = (time.time() - start_time) * 1000
                         if hasattr(pool, 'record_request'):
                             pool.record_request(model_key, latency_ms, 0, success=False)
                         print(f"ModelRouter: Model {model_key} failed: {e}")
+                        print(f"[ROUTER_TRACEBACK]\n{traceback.format_exc()}")
                         continue
         
         # Fallback: try any available model from pool
@@ -336,9 +356,9 @@ class ModelRouter:
                     except Exception:
                         continue
         
-        # Last resort: legacy fallback
-        print("ModelRouter: Falling back to legacy mode")
-        return self._request_sync(capability, prompt, params, system_prompt)
+        # Все модели пула недоступны — не создаём новые провайдеры (это порождало
+        # дублирующие llama-cli процессы на занятую VRAM)
+        raise RuntimeError(f"Все модели пула недоступны для capability={capability}")
     
     def _normalize_capability(self, capability: Capability | str) -> Capability:
         """Convert string to Capability enum."""
@@ -457,16 +477,48 @@ class ModelRouter:
             Ответ от LLM
         """
         capability = self._capability_map.get(agent_name, Capability.GENERAL)
+        # Worker thread (to_thread): прямой синхронный вызов без semaphore
+        # Semaphore привязан к main loop — в новом loop он мёртв
+        if threading.current_thread() is not threading.main_thread():
+            capability_obj = self._capability_map.get(agent_name, Capability.GENERAL)
+            preferred_keys = self.get_capability_preferences(capability_obj)
+            # Если предыдущий запрос завис — abort перед новым и ждём освобождения
+            if self._request_in_progress:
+                print(f"[R4A_WORKER] aborting stuck request...")
+                self._abort_generation()
+                # Ждём пока llama-server обработает abort (1с) + закрыет HTTP
+                time.sleep(1.0)
+                # Если всё ещё завис — повторяем abort
+                if self._request_in_progress:
+                    self._abort_generation()
+                    time.sleep(1.0)
+            self._request_in_progress = True
+            try:
+                print(f"[R4A_WORKER] direct sync call, capability={capability_obj}")
+                _result = self._request_via_pool(
+                    capability_obj,
+                    preferred_keys=preferred_keys,
+                    prompt=prompt,
+                    params=params,
+                    system_prompt=system_prompt,
+                )
+                print(f"[R4A_WORKER] returned {len(_result) if _result else 'None'} chars")
+                return _result
+            except Exception as e:
+                print(f"[R4A_WORKER] exception: {e}")
+                return ""
+            finally:
+                self._request_in_progress = False
         coro = self.request(capability, prompt, params, system_prompt)
         try:
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                future = asyncio.run_coroutine_threadsafe(coro, loop)
-                return future.result(timeout=60)
-            else:
-                return asyncio.run(coro)
-        except Exception:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            # Нет запущенного цикла — запускаем свой
             return asyncio.run(coro)
+        else:
+            # Есть запущенный цикл — thread-safe запуск
+            future = asyncio.run_coroutine_threadsafe(coro, loop)
+            return future.result(timeout=60)
     
     def set_capability_for_agent(self, agent_name: str, capability: Capability | str) -> None:
         """Установить маппинг агент → capability."""

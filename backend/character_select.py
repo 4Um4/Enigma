@@ -81,8 +81,8 @@ def _load_characters(campaign_id: str) -> list[CharacterEntry]:
                 max_hp=item.get("max_hp", 0),
                 ac=item.get("ac", 10),
             ))
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"[CHAR_SELECT] Ошибка парсинга персонажей: {e}")
     return entries
 
 

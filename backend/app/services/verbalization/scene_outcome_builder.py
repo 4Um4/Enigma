@@ -17,10 +17,9 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Dict, List, Optional
 
-from app.services.npc.decision_hub import DecisionResult, StateDeltas
-from app.models.npc_state import EmotionTag, WillState
+from app.services.npc.decision_hub import DecisionResult
 from app.models.npc_profile import NPCProfileL0
-from app.services.verbalization.verbal_stance import VerbalStance, stance_from_decision
+from app.services.verbalization.verbal_stance import stance_from_decision
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -91,8 +90,10 @@ class PsychologicalSignature:
 @dataclass(frozen=True)
 class NpcOutcome:
     npc_id: str
-    intent: str
+    intent: str = ""
+    name: str = ""
     emotion: Optional[str] = None
+    gender: str = "male"  # для гендерных окончаний в narrative
     salience: float = 0.0
     visibility: Visibility = Visibility.DIRECT
     visibility_confidence: float = 1.0   # 0.0-1.0, уверенность в видимости
@@ -144,6 +145,8 @@ class SceneContext:
     player_action_text: str = ""
     # успех действия игрока
     player_success: bool = True
+    # NPC к которому обращается игрок (получает salience boost)
+    player_target_id: str = ""
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -342,27 +345,35 @@ class SceneOutcomeBuilder:
         """
         blocks = []
         
-        # 1. Фокусные NPC — детально + stance + психологическая проекция
+        # 1. Фокусные NPC — только человекочитаемые описания (ФАЗА 3.1-3.2)
+        # intent → описание действия, emotion → русское слово с гендерными окончаниями (pymorphy3)
+        from app.services.verbalization.state_interpreter import (
+            INTENT_DESCRIPTIONS, EMOTION_DESCRIPTIONS, _apply_gender
+        )
+        
         if frame.focus_npcs:
             focus_lines = []
             for npc in frame.focus_npcs:
-                line = f"- {npc.npc_id}: {npc.intent}"
-                if npc.stance:
-                    line += f" [{npc.stance.to_prompt_line()}]"
+                # intent как описание: "observe" → "наблюдает осторожно"
+                intent_desc = INTENT_DESCRIPTIONS.get(
+                    npc.intent if isinstance(npc.intent, str) else getattr(npc.intent, "value", str(npc.intent)),
+                    "наблюдает"
+                )
+                gender = getattr(npc, "gender", "male")
+                line = f"- {npc.name or npc.npc_id} {intent_desc}"
+                # emotion с гендерным окончанием через pymorphy3
                 if npc.emotion:
-                    line += f" ({npc.emotion})"
-                # ProjectionLayer — категория, не числа (Fog of War)
-                if npc.psychological:
-                    p = npc.psychological
-                    int_label = "ярко" if p.intensity > 0.7 else "умеренно" if p.intensity > 0.4 else "слабо"
-                    stab_label = "стабильно" if p.stability > 0.7 else "на грани" if p.stability > 0.4 else "нестабильно"
-                    line += f" [{p.regime.value}, {int_label}, {stab_label}]"
+                    emotion_key = npc.emotion if isinstance(npc.emotion, str) else getattr(npc.emotion, "value", str(npc.emotion))
+                    emotion_base = EMOTION_DESCRIPTIONS.get(emotion_key, "")
+                    if emotion_base:
+                        emotion_desc = _apply_gender(emotion_base, gender)
+                        line += f", {emotion_desc}"
                 focus_lines.append(line)
             blocks.append("Ключевые NPC (фокус сцены):\n" + "\n".join(focus_lines))
         
         # 2. Фоновые NPC — кратко
         if frame.background_npcs:
-            bg_names = [n.npc_id for n in frame.background_npcs]
+            bg_names = [n.name or n.npc_id for n in frame.background_npcs]
             blocks.append(f"Фоновые NPC: {', '.join(bg_names)}")
         
         # 3. Напряжение сцены
@@ -541,8 +552,10 @@ class SceneOutcomeBuilder:
         
         return NpcOutcome(
             npc_id=npc_id,
+            name=(profile.name if profile else None) or (real_state.get("name") if isinstance(real_state, dict) else None) or npc_id,
             intent=decision.intent.value if hasattr(decision.intent, 'value') else str(decision.intent),
             emotion=emotion,
+            gender=profile.gender if profile else "male",
             salience=salience,
             visibility=visibility,
             voice_constraints=voice_constraints,
@@ -585,12 +598,16 @@ class SceneOutcomeBuilder:
         tier = context.npc_tiers.get(npc_id, "minor")
         is_major = 1.0 if tier == "major" else 0.0
         
+        # 5. Target boost — игрок обратился к этому NPC
+        is_target = 0.4 if context.player_target_id and npc_id == context.player_target_id else 0.0
+        
         # Взвешенная сумма
         salience = (
             proximity * SALIENCE_PROXIMITY_WEIGHT +
             emotional_intensity * SALIENCE_EMOTIONAL_WEIGHT +
             relevance * SALIENCE_RELEVANCE_WEIGHT +
-            is_major * SALIENCE_TIER_WEIGHT
+            is_major * SALIENCE_TIER_WEIGHT +
+            is_target
         )
         
         return round(max(0.0, min(1.0, salience)), 3)

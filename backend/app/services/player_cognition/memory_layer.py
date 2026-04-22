@@ -14,10 +14,9 @@ path: /backend/app/services/player_cognition/memory_layer.py
 
 TODO: после реализации PlayerMemory persistence — заменить in-memory на persisted.
 """
-import time
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 from app.services.player_cognition.types import PerceivedEntity
 

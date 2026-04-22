@@ -4,7 +4,6 @@
 Проверка: Подаем ввод -> получаем expected_success, outcome, gap.
 Запуск: python -m pytest backend/tests/test_r2_r5_math.py -v -s
 """
-import pytest
 from app.services.npc.decision_hub import DecisionHub, EventContext, DecisionResult
 from app.services.npc.resolution_engine import ResolutionEngine, ResolutionOutcome
 from app.models.npc_state import (

@@ -27,10 +27,8 @@ from app.models.schemas import CharacterSheet
 from app.models.character import CharacterProfile
 from app.models.npc_state import (
     NPCState,
-    EmotionTag,
-    WillState,
 )
-from app.models.physical import Condition, Wound, ThreatAccumulator
+from app.models.physical import Condition, Wound
 from app.models.behavior_mask import BehaviorMaskState
 
 logger = logging.getLogger(__name__)
@@ -97,8 +95,8 @@ class PlayerAvatarService:
         if avatar and avatar.get("sheet"):
             try:
                 return CharacterSheet.model_validate(avatar["sheet"])
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"[AVATAR] Ошибка валидации листа персонажа: {e}")
         return CharacterSheet(name=player_name)
 
     def load_profile(self, campaign_id: str, player_name: str) -> CharacterProfile:
@@ -107,8 +105,8 @@ class PlayerAvatarService:
         if avatar and avatar.get("profile"):
             try:
                 return CharacterProfile.from_dict(avatar["profile"])
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"[AVATAR] Ошибка валидации листа персонажа: {e}")
         return CharacterProfile(character_id=player_name)
 
     # ── Сохранение ────────────────────────────────────────────────────

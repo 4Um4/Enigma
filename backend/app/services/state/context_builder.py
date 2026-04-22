@@ -20,8 +20,8 @@ def build_context(
     player:               str,
     scene_state:          dict,
     python_engines:       dict,
-    recent_memory:        list  = [],
-    reaction_order:       list  = [],
+    recent_memory:        list | None  = None,
+    reaction_order:       list | None  = None,
     forced_first_speaker: Optional[str] = None,
 ) -> dict:
     """
@@ -30,6 +30,10 @@ def build_context(
     Возвращает dict который кладётся в shared_context и передаётся
     в dm_agent._build_prompt() и npc_agent._build_phase3a_prompt().
     """
+    if recent_memory is None:
+        recent_memory = []
+    if reaction_order is None:
+        reaction_order = []
 
     # npc_contexts живут в python_engines — выносим на верхний уровень
     # чтобы DM и NPC агенты могли обращаться напрямую без python_engines["npc_contexts"]

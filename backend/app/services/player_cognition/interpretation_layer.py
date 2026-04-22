@@ -11,7 +11,7 @@ path: /backend/app/services/player_cognition/interpretation_layer.py
 Зависимости: types (Inference, InferenceTier, PerceivedEntity)
 Основные сущности: apply_interpretation()
 """
-from typing import List, Optional
+from typing import List
 
 from app.services.player_cognition.types import Inference, InferenceTier, PerceivedEntity
 

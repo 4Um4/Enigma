@@ -5,7 +5,7 @@ PsycheEngine — стресс, слом воли, психологические
 backend/app/services/npc/psyche_engine.py
 """
 from __future__ import annotations
-from typing import Dict, Tuple
+from typing import Dict
 
 
 # ──────────────────────────────────────────────────────────────────────────────

@@ -15,9 +15,7 @@ import pygame
 
 from app.core.sprite_resolver import get_entity_sprite
 from app.services.player_cognition.types import (
-    AudioEvent,
     PerceivedEntity,
-    PerceivedEnvironment,
     PerceivedScene,
 )
 

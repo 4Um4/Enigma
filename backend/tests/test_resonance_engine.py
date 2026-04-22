@@ -4,8 +4,7 @@ path: backend/tests/test_resonance_engine.py
 Запуск: python -m pytest tests/test_resonance_engine.py -v --tb=short
 """
 
-import pytest
-from app.services.memory.resonance_engine import ResonanceEngine, ResonancePattern
+from app.services.memory.resonance_engine import ResonanceEngine
 from app.models.npc_state import EventMemory, MemoryStage
 
 

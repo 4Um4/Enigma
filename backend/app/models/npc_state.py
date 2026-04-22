@@ -32,7 +32,7 @@ from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 from app.models.behavior_mask import BehaviorMaskState
 from app.models.psychological import CausalEntry
-from app.models.physical import Condition, Wound, ThreatAccumulator
+from app.models.physical import ThreatAccumulator
 from app.services.events.event_types import EventType as NarrativeEventType
 
 
@@ -455,6 +455,7 @@ class NPCState:
     Изменяется только через StateApplicator — не напрямую.
     """
     npc_id: str
+    gender: str = "male"  # "male", "female", "other" — копируется из NPCProfileL0
 
     # ── Психика ──────────────────────────────────────────────
 

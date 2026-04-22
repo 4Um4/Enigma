@@ -14,7 +14,7 @@ backend/game_launcher.py
 import sys
 import os
 import subprocess
-import time
+
 
 # Два пути нужны из-за голых импортов внутри map_editor (sprite_registry и т.д.)
 # TODO: временное решение — после миграции map_editor на относительные импорты убрать второй путь
@@ -48,7 +48,7 @@ def _ensure_backend_running() -> subprocess.Popen:
                 print("  ✓ Backend уже запущен")
                 return None
     except Exception:
-        pass
+        pass  # backend не запущен — это норма при первичном запуске
 
     # Запускаем uvicorn в фоне
     backend_dir = os.path.dirname(os.path.abspath(__file__))

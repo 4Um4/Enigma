@@ -9,7 +9,7 @@ path: backend/app/services/action/dm_scene_builder.py
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 if TYPE_CHECKING:
     from app.services.action.dm_router import RawEvent
