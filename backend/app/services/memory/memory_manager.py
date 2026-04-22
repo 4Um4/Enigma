@@ -4,7 +4,7 @@ R1.1 + R5.3 — MemoryManager.
 """
 
 from __future__ import annotations
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Tuple
 
 from app.services.memory import LayeredMemory
 from app.services.memory.working_memory import WorkingMemory

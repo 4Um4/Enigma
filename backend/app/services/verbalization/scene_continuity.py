@@ -13,7 +13,7 @@ path: backend/app/services/verbalization/scene_continuity.py
 """
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Set
+from typing import Dict, List, Set
 
 
 @dataclass
@@ -87,12 +87,16 @@ class SceneContinuity:
                 )
 
     def to_prompt_block(self) -> str:
-        """Сгенерировать блок для DM prompt."""
+        """Сгенерировать блок для DM prompt. Без чисел (инвариант)."""
         lines = []
         
-        # Tension
-        if self.tension > 0.05:
-            lines.append(f"tension: {self.tension:.2f}")
+        # Tension — интерпретация в слово
+        if self.tension > 0.7:
+            lines.append("напряжение: критическое")
+        elif self.tension > 0.4:
+            lines.append("напряжение: высокое")
+        elif self.tension > 0.1:
+            lines.append("напряжение: заметное")
         
         # Flags — техническая информация, LLM не обязан интерпретировать
         if self.active_flags:
@@ -115,12 +119,18 @@ class SceneContinuity:
         return "СОСТОЯНИЕ СЦЕНЫ:\n" + "\n".join(lines)
 
     def to_emotional_line(self) -> str:
-        """Компактная строка эмоционального вектора для DM prompt."""
+        """Компактная строка эмоционального вектора для DM prompt. Без чисел."""
+        _labels = {
+            "trust": ("доверие растёт", "доверие падает"),
+            "tension": ("напряжённость растёт", "напряжённость спадает"),
+            "confusion": ("замешательство растёт", "замешательство спадает"),
+        }
         parts = []
         for key, val in self.emotional_vector.items():
-            if abs(val) > 0.05:
-                sign = "+" if val > 0 else ""
-                parts.append(f"{key}={sign}{val:.1f}")
+            if abs(val) > 0.1:  # порог выше — не спамить незначительными
+                labels = _labels.get(key)
+                if labels:
+                    parts.append(labels[0] if val > 0 else labels[1])
         if not parts:
             return ""
         return "эмоциональный фон: " + ", ".join(parts)

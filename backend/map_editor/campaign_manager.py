@@ -10,7 +10,7 @@ import json
 import copy
 from pathlib import Path
 from datetime import datetime
-from typing import Dict, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 CAMPAIGNS_DIR = Path(__file__).parent / "campaigns"
 TEMPLATE_DIR = Path(__file__).parent / "location_templates"

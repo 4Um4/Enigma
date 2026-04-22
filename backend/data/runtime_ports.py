@@ -50,8 +50,8 @@ def load_ports() -> Dict[str, int]:
                 if key not in ports or not isinstance(ports[key], int):
                     ports[key] = default_value
             return ports
-        except (json.JSONDecodeError, KeyError, TypeError):
-            pass
+        except (json.JSONDecodeError, KeyError, TypeError) as e:
+            print(f"[PORTS] Ошибка чтения ports.json: {e}")
     # fallback на дефолтные
     return DEFAULT_PORTS.copy()
 

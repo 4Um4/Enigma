@@ -6,7 +6,6 @@
 """
 
 from unittest.mock import MagicMock
-import pytest
 
 from app.services.memory.memory_manager import MemoryManager
 from app.services.memory.importance_engine import DECAY_EVERY

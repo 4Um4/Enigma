@@ -9,7 +9,7 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field, model_validator
 from pathlib import Path
-from typing import Dict, Optional, Literal
+from typing import Dict, Optional
 
 BASE_DIR = Path(__file__).resolve().parents[3]
 
@@ -50,9 +50,9 @@ class Settings(BaseSettings):
         BASE_DIR / "Models LLM" / "Qwen2.5-7B-Instruct-abliterated-v2.Q5_K_M.gguf"
     )
 
-    llama_cpp_server_url: str = ""
+    llama_cpp_server_url: str = "http://127.0.0.1:8080"
     llama_cpp_max_tokens: int = 1024
-    llama_cpp_timeout_sec: int = 180
+    llama_cpp_timeout_sec: int = 30
     model_load_timeout_sec: int = 60
 
     llm_servers: Dict[str, Dict[str, str]] = {}
@@ -111,7 +111,7 @@ class Settings(BaseSettings):
         default_factory=lambda: BASE_DIR / "backend" / "data" / "logs"
     )
 
-    system_prompt_file: str = str(BASE_DIR / "backend" / "Promt_AI.json")
+    system_prompt_file: str = str(BASE_DIR / "backend" / "prompts" / "dm_system.txt")
 
     model_config = SettingsConfigDict(
         env_prefix="AIDM_",

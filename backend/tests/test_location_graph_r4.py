@@ -1,6 +1,3 @@
-import json
-from pathlib import Path
-
 from app.services.spatial.location_graph import (
     LocationNode,
     load_graph,

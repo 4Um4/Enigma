@@ -16,13 +16,11 @@ from app.agents.dm_agent import DmAgent
 from app.agents.rules_agent import RulesAgent
 from app.agents.world_sim_agent import WorldSimulationAgent
 from app.models.schemas import PlayerAction
-from app.models.schemas import ModelProvider, ModelSelection
 from app.services.memory import JsonMemoryStore, LayeredMemory
 from app.services.system_requirements import RequirementReport, SystemRequirements
 from app.services.world_scheduler import WorldScheduler
 from app.services.knowledge_ingest import KnowledgeIngestService
 from app.services.combat_service import CombatService
-from app.services.game_loop import GameLoop
 from app.core.config import settings
 # Старый llama_cpp удалён, класс переименован в LlamaCppProvider
 try:
@@ -44,7 +42,6 @@ except ModuleNotFoundError:
     CharacterSheet = None
     CharacterService = None
 
-import asyncio
 import pytest
 from app.services.llm.provider_manager import get_model_pool
 

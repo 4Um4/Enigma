@@ -382,7 +382,7 @@ class TextInput:
             pygame.scrap.init()
             pygame.scrap.put(pygame.SCRAP_TEXT, selected.encode("utf-8"))
         except Exception:
-            pass  # Буфер обмена недоступен
+            pass  # Буфер обмена недоступен — нормально для некоторых ОС
 
     def _paste_from_clipboard(self) -> None:
         """Вставляет текст из буфера обмена."""
@@ -393,7 +393,7 @@ class TextInput:
                 text = raw.decode("utf-8", errors="ignore").rstrip("\x00")
                 self._insert_text(text)
         except Exception:
-            pass  # Буфер обмена недоступен
+            pass  # Буфер обмена недоступен — нормально для некоторых ОС
 
     # ── Отрисовка ──────────────────────────────────────────────────────
 

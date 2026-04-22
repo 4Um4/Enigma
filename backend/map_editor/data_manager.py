@@ -4,7 +4,6 @@ map_editor/data_manager.py
 Поддерживает: стены, комнаты, узлы, объекты, порталы
 """
 import json
-import os
 from pathlib import Path
 from datetime import datetime
 from copy import deepcopy
@@ -453,7 +452,7 @@ class DataManager:
                     if idx > max_idx:
                         max_idx = idx
                 except ValueError:
-                    pass
+                    pass  # iid имеет неожиданный формат, пропускаем
         return f"{prefix}{max_idx + 1}"
     
     def __init__(self):

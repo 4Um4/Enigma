@@ -16,11 +16,9 @@ R4 (Spatial) — Эфемерный срез. Существует только 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, Optional, Tuple
 
 # Импорты Enum'ов из моделей
-from app.models.npc_state import EmotionTag, Intent, WillState
-from app.models.behavior_mask import BehaviorMaskState
 
 
 # --- СЛОЙ L0: ШАБЛОН (IMMUTABLE) ---
@@ -56,6 +54,7 @@ class NPCProfileL0:
     voice_profile: str
     backstory: str = ""
     inventory_rules: Optional[InventoryProfile] = None
+    gender: str = "male"  # "male", "female", "other" — для гендерных окончаний в narrative
 
 
 # --- СЛОЙ L1: ИДЕНТИЧНОСТЬ (MEDIAN DYNAMICS) ---

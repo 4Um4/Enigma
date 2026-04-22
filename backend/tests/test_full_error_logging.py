@@ -9,9 +9,8 @@ Simulates timeout/OOM/SyntaxError + verifies ErrorInterpreter JSONL logs.
 import sys
 import unittest
 import traceback
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 from pathlib import Path
-import time
 import asyncio
 
 ROOT_DIR = Path(__file__).resolve().parents[2]

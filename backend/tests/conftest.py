@@ -18,21 +18,14 @@ if str(backend) not in sys.path:
 
 # Теперь импорты from app... должны работать
 import pytest
-import os
-from unittest.mock import Mock, MagicMock, patch
+from unittest.mock import Mock, patch
 
 from app.services.llm.provider_manager import (
     get_provider_manager, 
     get_model_pool, 
-    ProviderManager, 
-    ModelPool,
-    initialize_providers, 
-    initialize_model_pool, 
-    ProviderStatus, 
     ModelConfig
 )
 from app.services.llm.provider import LlmProvider, ProviderType, ProviderInfo
-from app.services.llm.factory import ProviderFactory
 from app.services.llm.router import ModelRouter, get_router
 
 

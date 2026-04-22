@@ -27,8 +27,8 @@ import time
 import uuid
 import urllib.request
 import urllib.error
-from dataclasses import dataclass, field
-from typing import Protocol, Optional, Any
+from dataclasses import dataclass
+from typing import Protocol
 from queue import Queue
 
 
@@ -68,6 +68,8 @@ class GameGateway(Protocol):
         campaign_id: str,
         player_name: str,
         action_text: str,
+        player_x: float = 0.0,
+        player_y: float = 0.0,
     ) -> GameActionResponse:
         """Отправить действие игрока. Блокирующий — вызывать из worker thread."""
         ...
@@ -142,7 +144,7 @@ class HttpClient:
             try:
                 body = e.read().decode("utf-8", errors="replace")
             except Exception:
-                pass
+                pass  # не удалось прочитать тело ошибки HTTP
             raise BackendError(
                 f"HTTP {e.code}: {body}",
                 status_code=e.code,
@@ -172,12 +174,16 @@ class BackendContract:
         campaign_id: str,
         player_name: str,
         action_text: str,
+        player_x: float = 0.0,
+        player_y: float = 0.0,
     ) -> GameActionResponse:
         """Маппинг: доменные аргументы → JSON payload → JSON response → доменный объект."""
         raw = self._t.post("/api/game/action", {
             "campaign": campaign_id,
             "player": player_name,
             "action": action_text,
+            "player_x": player_x,
+            "player_y": player_y,
         })
         return self._map_action_response(raw)
     
@@ -237,8 +243,10 @@ class HttpGameGateway:
         campaign_id: str,
         player_name: str,
         action_text: str,
+        player_x: float = 0.0,
+        player_y: float = 0.0,
     ) -> GameActionResponse:
-        return self._contract.send_action(campaign_id, player_name, action_text)
+        return self._contract.send_action(campaign_id, player_name, action_text, player_x, player_y)
     
     def health(self) -> dict:
         return self._contract.health()
@@ -282,11 +290,14 @@ class DirectGameGateway:
         campaign_id: str,
         player_name: str,
         action_text: str,
+        player_x: float = 0.0,
+        player_y: float = 0.0,
     ) -> GameActionResponse:
         # Инициализируем при первом вызове (долго — загружает модели)
         if not self._bridge.ready:
             self._bridge.initialize()
         
+        # TODO: передать player_x, player_y в bridge.turn() для локального режима
         result = self._bridge.turn(
             campaign_id=campaign_id,
             player_name=player_name,
@@ -382,6 +393,8 @@ class FallbackGateway:
         campaign_id: str,
         player_name: str,
         action_text: str,
+        player_x: float = 0.0,
+        player_y: float = 0.0,
     ) -> GameActionResponse:
         # Если HTTP помечен мёртвым — пробуем заново каждые _retry_interval запросов
         if self._primary_healthy is False:
@@ -391,17 +404,17 @@ class FallbackGateway:
                 if self._try_primary_health():
                     self._primary_healthy = True
             if self._primary_healthy is False:
-                return self._fallback.send_action(campaign_id, player_name, action_text)
+                return self._fallback.send_action(campaign_id, player_name, action_text, player_x, player_y)
         
         try:
-            result = self._primary.send_action(campaign_id, player_name, action_text)
+            result = self._primary.send_action(campaign_id, player_name, action_text, player_x, player_y)
             self._primary_healthy = True
             self._requests_since_fail = 0
             return result
         except BackendError:
             self._primary_healthy = False
             self._requests_since_fail = 0
-            return self._fallback.send_action(campaign_id, player_name, action_text)
+            return self._fallback.send_action(campaign_id, player_name, action_text, player_x, player_y)
     
     def _try_primary_health(self) -> bool:
         """Тихая проверка — не бросает исключение."""
@@ -480,6 +493,8 @@ class _PendingAction:
     player_name: str
     action_text: str
     submitted_at: float
+    player_x: float = 0.0  # координаты для синхронизации с бэкендом
+    player_y: float = 0.0
 
 
 @dataclass
@@ -521,6 +536,8 @@ class ActionQueue:
         self._output: Queue[CompletedAction] = Queue()
         self._worker: threading.Thread | None = None
         self._running = False
+        # Telegraph: id текущего автономного хода (None = нет активного)
+        self._telegraph_id: str | None = None
     
     def start(self) -> None:
         """Запускает worker thread. Потоко-безопасно."""
@@ -543,6 +560,8 @@ class ActionQueue:
         campaign_id: str,
         player_name: str,
         action_text: str,
+        player_x: float = 0.0,
+        player_y: float = 0.0,
     ) -> str:
         """
         Добавить действие в очередь. Неблокирующий — возвращает сразу.
@@ -557,6 +576,8 @@ class ActionQueue:
             player_name=player_name,
             action_text=action_text,
             submitted_at=time.monotonic(),
+            player_x=player_x,
+            player_y=player_y,
         ))
         return action_id
     
@@ -576,6 +597,42 @@ class ActionQueue:
     def pending_count(self) -> int:
         """Количество действий в очереди (для UI индикатора)."""
         return self._input.qsize()
+
+    def submit_telegraph(
+        self,
+        campaign_id: str,
+        player_name: str,
+        player_x: float = 0.0,
+        player_y: float = 0.0,
+        action_text: str | None = None,
+    ) -> str:
+        """
+        Автономный ход мира — NPC действуют пока игрок думает.
+        Telegraph отменяется если игрок нажал Enter раньше.
+        """
+        action_id = uuid.uuid4().hex[:8]
+        self._telegraph_id = action_id
+        self._input.put(_PendingAction(
+            action_id=action_id,
+            campaign_id=campaign_id,
+            player_name=player_name,
+            action_text=action_text or "[TELEGRAPH: мир живёт, опиши что делают NPC]",
+            submitted_at=time.monotonic(),
+            player_x=player_x,
+            player_y=player_y,
+        ))
+        return action_id
+
+    def cancel_telegraph(self) -> None:
+        """
+        Игрок нажал Enter — отменяем telegraph.
+        Результат будет проигнорирован по telegraph_id.
+        """
+        self._telegraph_id = None
+
+    def is_telegraph_result(self, result: "CompletedAction") -> bool:
+        """Возвращает True если result — это завершённый telegraph (не отменённый)."""
+        return result.action_id == self._telegraph_id
     
     def _worker_loop(self) -> None:
         """Цикл worker thread — берёт из input, вызывает gateway, кладёт в output."""
@@ -590,6 +647,8 @@ class ActionQueue:
                     campaign_id=pending.campaign_id,
                     player_name=pending.player_name,
                     action_text=pending.action_text,
+                    player_x=pending.player_x,
+                    player_y=pending.player_y,
                 )
                 self._output.put(CompletedAction(
                     action_id=pending.action_id,

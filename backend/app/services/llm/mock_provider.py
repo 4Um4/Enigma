@@ -14,10 +14,8 @@ from __future__ import annotations
 import time
 import random
 from dataclasses import dataclass, field
-from typing import Optional
 
 from app.services.llm.provider import (
-    LlmProvider,
     StreamingLlmProvider,
     GenerationParams,
     ProviderInfo,

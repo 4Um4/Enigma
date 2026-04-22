@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List
 
 from app.models.economy import (
     EconomicProfile,
@@ -74,18 +74,19 @@ class TransactionEngine:
             tick=tick,
         )
         
-        # Валидация
-        if not seller.can_afford_goods(goods):
-            tx = Transaction(
-                tx_type=TransactionType.SALE,
-                status=TransactionStatus.FAILED,
-                actor_id=buyer.npc_id,
-                target_id=seller.npc_id,
-                reason=f"seller lacks goods: {goods}",
-                tick=tick,
-            )
-            self._record_both(buyer, seller, tx)
-            return tx
+        # Валидация: товар должен быть в stock_for_sale (не в личных запасах)
+        for good_id, amount in goods.items():
+            if not seller.has_stock(good_id, amount):
+                tx = Transaction(
+                    tx_type=TransactionType.SALE,
+                    status=TransactionStatus.FAILED,
+                    actor_id=buyer.npc_id,
+                    target_id=seller.npc_id,
+                    reason=f"seller lacks stock: {goods}",
+                    tick=tick,
+                )
+                self._record_both(buyer, seller, tx)
+                return tx
         
         if not buyer.can_afford(price):
             tx = Transaction(
@@ -105,9 +106,9 @@ class TransactionEngine:
             buyer.spend(price)
             # Продавец получает
             seller.receive(price)
-            # Товар переходит
+            # Товар переходит из stock_for_sale продавца → goods покупателя
             for good_id, amount in goods.items():
-                seller.remove_good(good_id, amount)
+                seller.remove_stock(good_id, amount)
                 buyer.add_good(good_id, amount)
             
             tx = Transaction(

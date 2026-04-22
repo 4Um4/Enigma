@@ -22,20 +22,16 @@ from app.core.constants import TRAIT_DECAY_RATE, NARRATIVE_CACHE_MAX
 
 # Легаси-типы, используемые в логике (Enum'ы и контракты)
 from app.models.npc_state import (
-    EmotionTag,
-    Intent,
     NarrativeFact,
     TemporaryDrive,
     WillState,
     MAX_ACTIVE_DRIVES,
-    MAX_DRIVE_AGE,
 )
 from app.models.psychological import CausalEntry
 from app.models.physical import (
     Condition,
     DamageType,
     PhysicalOutcome,
-    ThreatAccumulator,
     Wound,
     WoundSeverity,
 )
@@ -102,7 +98,7 @@ class StateApplicator:
                     new_state.trauma_markers.add("will_broken")
 
             self._apply_trait_decay(new_state)
-            print(f"[STATE_APPLIED] {new_state.npc_id}: stress={new_state.stress:.1f} intent={new_state.intent}")
+            logger.debug(f"[STATE_APPLIED] {new_state.npc_id}: stress={new_state.stress:.1f} intent={new_state.intent}")
             return new_state
 
         except Exception as e:

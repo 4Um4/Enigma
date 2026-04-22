@@ -13,7 +13,7 @@ from __future__ import annotations
 import json
 import urllib.request
 import urllib.error
-from typing import Optional, Generator
+from typing import Generator
 
 from app.services.llm.provider import (
     StreamingLlmProvider,

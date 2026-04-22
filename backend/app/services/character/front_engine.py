@@ -13,10 +13,9 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Optional
 
 from app.models.character import CharacterProfile
-from app.models.front import FrontState, FrontType, WorldPressure, PRESSURE_FRONT_MAP
+from app.models.front import FrontType, WorldPressure, PRESSURE_FRONT_MAP
 
 logger = logging.getLogger(__name__)
 

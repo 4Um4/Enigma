@@ -16,8 +16,8 @@ class ResponseParser:
                     "speech": data.get("speech", ""),
                     "target": data.get("target", "all")
                 }
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[LLM_PARSER] Ошибка парсинга ответа LLM: {e}")
             
         # Fallback если всё сломалось
         return {

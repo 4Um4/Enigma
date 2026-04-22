@@ -82,9 +82,9 @@
       "title": "Кузнец",
       "faction_rank": {}
     },
-    "max_hp": 45,
     "hp": 45,
-    "location": "forge"
+    "location": "forge",
+    "max_hp": 45
   },
   {
     "_version": "1.0",

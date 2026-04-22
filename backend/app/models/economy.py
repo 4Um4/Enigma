@@ -17,7 +17,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
+
+from app.core.constants import GOODS_PRICES as GOODS_BASE_PRICES
 
 
 class NeedType(Enum):
@@ -35,7 +37,7 @@ class NeedType(Enum):
 # Дефолтные скорости decay по типу потребности
 # Еда растёт быстро, жильё и общение — медленно
 NEED_DECAY_RATES: Dict[NeedType, float] = {
-    NeedType.FOOD: 0.02,
+    NeedType.FOOD: 0.05,   # 0.4 urgency через 8 часов → ест 3 раза/день
     NeedType.SHELTER: 0.005,
     NeedType.INCOME: 0.01,
     NeedType.SOCIAL: 0.005,
@@ -45,24 +47,8 @@ NEED_DECAY_RATES: Dict[NeedType, float] = {
     NeedType.INFORMATION: 0.003,
 }
 
-# Оценочная стоимость предметов для расчёта total_wealth
-# Будет заменена на загрузку из config/economy/goods_prices.json
-GOODS_BASE_PRICES: Dict[str, float] = {
-    "food": 0.5,           # 1 паёк = 0.5G
-    "ale": 0.2,            # 1 кружка = 0.2G
-    "iron_sword": 15.0,    # 1 меч = 15G
-    "dagger": 5.0,         # 1 кинжал = 5G
-    "torch": 0.1,          # 1 факел = 0.1G
-}
-
-# Золотой стандарт: 1G = 1 день выживания бедняка
-WAGES: Dict[str, float] = {
-    "laborer": 1.0,        # Чернорабочий
-    "maid": 0.8,           # Служанка
-    "guard": 3.0,          # Стражник
-    "merchant": 10.0,      # Торговец
-    "tavern_keeper": 10.0, # Трактирщик
-}
+# Цены и зарплаты — единый источник правды в app.core.constants
+# Здесь алиас GOODS_BASE_PRICES для совместимости с существующим кодом
 
 
 class TransactionType(Enum):
@@ -306,7 +292,8 @@ class EconomicProfile:
     
     # ── РЕСУРСЫ ──
     gold: float = 0.0                # Деньги
-    goods: Dict[str, float] = field(default_factory=dict)  # Предметы: {"food": 5, "ale": 20}
+    goods: Dict[str, float] = field(default_factory=dict)  # Личные запасы: {"food": 5, "ale": 20}
+    stock_for_sale: Dict[str, float] = field(default_factory=dict)  # Товар на продажу: тавернщик продаёт из этого
     
     # ── ДОХОДЫ ──
     # Источник → сумма за тик (мирной жизни)
@@ -392,8 +379,22 @@ class EconomicProfile:
         return True
     
     def has_good(self, good_id: str, amount: float = 1.0) -> bool:
-        """Проверяет наличие предмета."""
+        """Проверяет наличие предмета в личных запасах."""
         return self.goods.get(good_id, 0.0) >= amount
+    
+    def has_stock(self, good_id: str, amount: float = 1.0) -> bool:
+        """Проверяет наличие товара на продажу."""
+        return self.stock_for_sale.get(good_id, 0.0) >= amount
+    
+    def remove_stock(self, good_id: str, amount: float) -> bool:
+        """Убирает товар из stock_for_sale. Returns False если не хватает."""
+        current = self.stock_for_sale.get(good_id, 0.0)
+        if current < amount:
+            return False
+        self.stock_for_sale[good_id] = current - amount
+        if self.stock_for_sale[good_id] <= 0:
+            del self.stock_for_sale[good_id]
+        return True
     
     def can_afford_goods(self, goods: Dict[str, float]) -> bool:
         """Проверяет наличие всех товаров в нужном количестве."""

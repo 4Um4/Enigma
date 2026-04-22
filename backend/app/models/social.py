@@ -16,8 +16,8 @@ path: /backend/app/models/social.py
 - Runtime мутации (trust_delta, affection_delta) сохраняются отдельно от статичных base_*
 """
 
-from dataclasses import dataclass, field
-from typing import Dict, Optional, Tuple
+from dataclasses import dataclass
+from typing import Dict
 
 
 @dataclass

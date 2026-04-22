@@ -20,12 +20,10 @@ path: /backend/app/services/player_cognition/pipeline.py
 Основные сущности: PerceptionConfig, build_perceived_scene()
 """
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 from app.services.player_cognition.types import (
-    AudioEvent,
     PerceivedEnvironment,
-    PerceivedEntity,
     PerceivedScene,
 )
 from app.services.player_cognition.spatial_layer import extract_spatial_data

@@ -1,1 +1,0 @@
-(Не забудь создать директорию backend/prompts и положить туда npc_speech.j2 и Promt_AI.json).

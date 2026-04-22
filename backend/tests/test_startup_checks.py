@@ -7,7 +7,6 @@ Enigma Startup Health Checks (Windows-ready unittest suite).
 
 import sys
 import unittest
-import traceback
 from pathlib import Path
 import psutil
 

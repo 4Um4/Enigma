@@ -11,7 +11,6 @@ backend/app/services/game/sandbox_handler.py
 
 import random
 import json
-import os
 import traceback
 from datetime import datetime
 from typing import Dict, List, Any, Optional, Tuple

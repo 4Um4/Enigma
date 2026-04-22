@@ -14,8 +14,7 @@
 #   - Готов к интеграции с EventBus (Phase 3B.1): result совместим со SceneChange
 
 import random
-from dataclasses import dataclass, field
-from typing import Optional
+from dataclasses import dataclass
 from app.models.schemas import PlayerAction
 from enum import Enum
 
@@ -79,6 +78,7 @@ _SKILL_BY_ACTION_TYPE: dict[str, str] = {
 _NO_ROLL_TYPES = {
     ActionType.EXPLORE.value,
     ActionType.LIFE_CHOICE.value,
+    ActionType.SANDBOX_MILD.value,
 }
 
 

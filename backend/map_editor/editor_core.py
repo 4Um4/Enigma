@@ -4,7 +4,6 @@ map_editor/editor_core.py
 """
 import pygame
 import json
-import sys
 from sprite_registry import sprite_registry
 import math
 from typing import Optional, Tuple, Dict, List, Any
@@ -12,21 +11,21 @@ from dataclasses import dataclass
 
 from copy import deepcopy
 
-from data_manager import DataManager, OBJECT_PRESETS, NPC_PRESETS, NPC_SPRITE_MAP, load_npc_individuals
+from data_manager import DataManager, OBJECT_PRESETS, NPC_SPRITE_MAP, load_npc_individuals
 from undo_manager import (
     UndoManager, AddWallCommand, RemoveWallCommand,
     AddRoomCommand, RemoveRoomCommand,
-    AddNodeCommand, RemoveNodeCommand,
+    RemoveNodeCommand,
     AddObjectCommand, RemoveObjectCommand,
-    AddPassageCommand, RemovePassageCommand,
+    AddPassageCommand,
     TogglePassabilityCommand, RotateObjectCommand, MirrorObjectCommand, ResizeObjectCommand, MoveEntityCommand, PasteCommand,
     CompoundCommand, RenameCommand, AddLabelCommand, RemoveLabelCommand,
     AddNpcCommand, RemoveNpcCommand,
 )
 from campaign_manager import CampaignManager
 from ui_components import (
-    COLORS, Button, ToggleButton, TextInput, Dropdown,
-    ModalDialog, Toolbar, PropertyPanel, DropDownMenu
+    COLORS, Button, ToggleButton, Dropdown,
+    ModalDialog, PropertyPanel, DropDownMenu
 )
 
 # === Константы редактора ===

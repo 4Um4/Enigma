@@ -1,4 +1,4 @@
-﻿# C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\scene_state_manager.py
+# C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\scene_state_manager.py
 # -*- coding: utf-8 -*-
 """
 SceneStateManager — Python как единственный источник истины о состоянии мира.
@@ -35,7 +35,7 @@ import random
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, Any
+from typing import Optional
 
 from app.core.config import settings
 from app.services.scene_change import SceneChange, ChangeType
@@ -254,9 +254,12 @@ class SceneStateManager:
     def get_scene_state(self, campaign_id: str, location_id: str) -> dict | None:
         data = self._read_campaign_json(campaign_id)
         scene = data.get("scene_state")
-        if scene and scene.get("location_id") == location_id:
-            return scene
-        return None
+        if not scene:
+            return None
+        # Пустой location_id = без фильтра (для синхронизации позиции)
+        if location_id and scene.get("location_id") != location_id:
+            return None
+        return scene
 
     # ─────────────────────────────────────────────────────────────────────────
     # save_scene_state
@@ -613,24 +616,6 @@ class SceneStateManager:
             })
 
         return segments if segments else []
-
-def enrich_scene_spatial(scene_state: dict, campaign_folder: str) -> None:
-    """Обогащает spatial_walls/obstacles из editor JSON.
-    
-    Решает проблему устаревшего campaign_state.json: новый код ожидает
-    поля passability/blocks_los, которых нет в старом кэше.
-    """
-    manager = SceneStateManager()
-    location_id = scene_state.get("location_id", "")
-    editor_data = manager._find_editor_location(campaign_folder, location_id)
-    if not editor_data:
-        return
-
-    spatial_walls, spatial_obstacles = manager._build_spatial_data(editor_data)
-    scene_state["spatial_walls"] = spatial_walls
-    scene_state["spatial_obstacles"] = spatial_obstacles
-
-
     def _nearest_node_to_xy(self, editor_data: dict, x: float, y: float) -> str:
         """Находит ближайший навигационный узел к координате XY."""
         nodes = editor_data.get("nodes", {})
@@ -1231,28 +1216,28 @@ def enrich_scene_spatial(scene_state: dict, campaign_folder: str) -> None:
     ) -> int:
         """
         Единственная точка коммита состояния мира.
-        
+    
         Координирует сохранение:
         - scene_state -> campaign_state.json
         - npc_dicts -> sessions/{id}/npc_runtime.json (Шаг 0.8: разделение static/runtime)
-        
+    
         НЕ модифицирует данные — только вызывает PersistencePort.
         Ownership NPCState остаётся у StateApplicator.
-        
+    
         Returns:
             Количество сохранённых подсистем (1 или 2).
         """
         if self._persistence is None:
             logger.warning("[SCENE] commit() вызван без PersistencePort — пропуск")
             return 0
-        
+    
         saved = 0
         try:
             self._persistence.save_scene(campaign_id, scene_state)
             saved += 1
         except Exception as e:
             logger.error(f"[SCENE] commit() ошибка сохранения сцены: {e}")
-        
+    
         if npc_dicts is not None:
             try:
                 # Шаг 0.8: runtime отдельно от static конфига
@@ -1260,7 +1245,7 @@ def enrich_scene_spatial(scene_state: dict, campaign_folder: str) -> None:
                 saved += 1
             except Exception as e:
                 logger.error(f"[SCENE] commit() ошибка сохранения NPC runtime: {e}")
-        
+    
         return saved
 
 
@@ -1384,7 +1369,7 @@ def enrich_scene_spatial(scene_state: dict, campaign_folder: str) -> None:
 
         # ── Объекты (Salience Engine: фильтрация по важности) ─────────────
         from app.services.scene.salience_engine import SalienceEngine
-        from app.models.scene_mode import SceneMode
+        from app.models.scene_mode import SceneMode, determine_scene_mode
 
         _raw_objects = scene_state.get("objects", {})
         _sal_event = scene_state.get("_salience_event_type", "player_interacts")
@@ -1496,13 +1481,19 @@ def enrich_scene_spatial(scene_state: dict, campaign_folder: str) -> None:
             lines.append(f"- Игрок обращается к: {target_npc_name}")
         elif target_npc_id:
             lines.append(f"- Игрок обращается к: {_npc_id_to_display(target_npc_id)}")
-        else:
-            lines.append("- Игрок не обращается к конкретному NPC")
+        # else: не показываем ложь "не обращается" — может быть имя в тексте действия
         if target_obj:
             lines.append(f"- Игрок взаимодействует с объектом: {target_obj}")
         if distances:
+            # Интерпретация расстояния в слово (инвариант: LLM не видит координаты)
+            def _dist_to_word(d: float) -> str:
+                if d < 1.0: return "вплотную"
+                if d < 3.0: return "рядом"
+                if d < 6.0: return "близко"
+                if d < 10.0: return "в нескольких шагах"
+                return "далеко"
             dist_parts = [
-                f"{_npc_id_to_display(nid)}: {dist:.1f}м"
+                f"{_npc_id_to_display(nid)}: {_dist_to_word(dist)}"
                 for nid, dist in distances.items()
             ]
             lines.append(f"- Расстояния: {', '.join(dist_parts)}")
@@ -1514,8 +1505,7 @@ def enrich_scene_spatial(scene_state: dict, campaign_folder: str) -> None:
                 f"1. Игрок обратился к {target_npc_name} — "
                 f"ТОЛЬКО {target_npc_name} отвечает. Остальные NPC молчат."
             )
-        else:
-            lines.append("1. Игрок не назвал конкретного NPC — отвечает ближайший по контексту.")
+        # else: не показываем ложное правило "не назвал" — имя может быть в тексте действия
         lines.append(
             "2. NPC не может одновременно быть рядом с игроком "
             "И делать что-то в другом месте сцены."
@@ -1526,6 +1516,25 @@ def enrich_scene_spatial(scene_state: dict, campaign_folder: str) -> None:
         )
 
         return "\n".join(lines)
+
+
+def enrich_scene_spatial(scene_state: dict, campaign_folder: str) -> None:
+    """Обогащает spatial_walls/obstacles из editor JSON.
+    
+    Решает проблему устаревшего campaign_state.json: новый код ожидает
+    поля passability/blocks_los, которых нет в старом кэше.
+    """
+    manager = SceneStateManager()
+    location_id = scene_state.get("location_id", "")
+    editor_data = manager._find_editor_location(campaign_folder, location_id)
+    if not editor_data:
+        return
+
+    spatial_walls, spatial_obstacles = manager._build_spatial_data(editor_data)
+    scene_state["spatial_walls"] = spatial_walls
+    scene_state["spatial_obstacles"] = spatial_obstacles
+
+
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -1550,8 +1559,8 @@ def _load_npc_names_cache() -> None:
             name = npc.get("name", "")
             if nid and name:
                 _NPC_NAME_CACHE[nid] = name
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"[SCENE_MGR] Ошибка загрузки кэша NPC: {e}")
     _NPC_NAME_CACHE_LOADED = True
 
 

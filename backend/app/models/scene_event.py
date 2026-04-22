@@ -6,7 +6,6 @@ path: /backend/app/models/scene_event.py
 """
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional
 
 
 class SceneEventType(str, Enum):
