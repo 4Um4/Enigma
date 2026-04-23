@@ -162,12 +162,26 @@ TICK_SAVE_INTERVAL: Final[int] = 10
 TICK_REAL_SECONDS: Final[int] = 300
 TICKS_PER_DAY: Final[int] = 24  # 1 тик = 1 час игрового, 24 тика = 1 день
 
+# Фаза 4 — Время продвигается от действий, не от тиков
+TIME_DELTA_DIALOG: int = 0          # диалог — время не идёт (секунды)
+TIME_DELTA_WALK_INDOOR: int = 10    # шаг внутри помещения (секунды)
+TIME_DELTA_WALK_OUTDOOR: int = 60   # шаг на улице (секунды)
+TIME_DELTA_TELEGRAPH: int = 30      # NPC проявил инициативу (секунды)
+TIME_DELTA_WAIT_HOUR: int = 3600    # игрок сказал "жду час"
+TIME_DELTA_TRAVEL: float = 120.0    # 1 единица = 2 минуты (fallback, не используется)
+TIME_UNITS_PER_MINUTE: float = 3.0  # 3 единицы в минуту (переход таверны ~10 мин)
+
 # Фаза 2.1 — Distance-based idle tick intervals (мс на клиенте)
 IDLE_TICK_NEAR_MS: Final[int] = 2_000       # NPC в радиусе NEAR — тик каждые 2 сек
 IDLE_TICK_MID_MS: Final[int] = 8_000        # NPC в радиусе MID — тик каждые 8 сек
 IDLE_TICK_FAR_MS: Final[int] = 30_000       # NPC за FAR — тик каждые 30 сек
 IDLE_TICK_NEAR_RADIUS: Final[float] = 5.0   # порог "близко" (метров)
 IDLE_TICK_MID_RADIUS: Final[float] = 15.0   # порог "средне" (метров, = perception cap)
+
+# Фаза 2.1 — DecisionHub в idle_tick
+IDLE_DECISION_SCORE_THRESHOLD: Final[float] = 0.5  # порог накопленного давления для триггера телеграфа
+IDLE_PRESSURE_ACCUM_RATE: Final[float] = 0.1       # 10% от score за тик
+IDLE_PRESSURE_DECAY_RATE: Final[float] = 0.05      # 5% decay за тик
 MAX_CATCH_UP_TICKS: Final[int] = 10  # лимит catch-up за одно подключение
 MAX_CACHED_CAMPAIGNS: Final[int] = 100
 CAMPAIGN_TTL_SECONDS: Final[int] = 3600

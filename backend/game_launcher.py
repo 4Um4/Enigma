@@ -120,13 +120,27 @@ def main() -> None:
 
     pygame.quit()
 
-    # Завершаем backend если мы его запускали
-    if backend_proc and backend_proc.poll() is None:
+    # Убиваем backend + llama-server при любом выходе
+    if sys.platform == "win32":
+        for _port in [8000, 8080]:
+            try:
+                _find = subprocess.run(
+                    ["netstat", "-ano"],
+                    capture_output=True, text=True, timeout=5,
+                )
+                for _line in _find.stdout.splitlines():
+                    _parts = _line.split()
+                    if (len(_parts) >= 2
+                            and _parts[1].endswith(f":{_port}")
+                            and "LISTENING" in _line):
+                        subprocess.run(
+                            ["taskkill", "/T", "/F", "/PID", _parts[-1]],
+                            capture_output=True, timeout=5,
+                        )
+            except Exception:
+                pass
+    elif backend_proc is not None and backend_proc.poll() is None:
         backend_proc.terminate()
-        try:
-            backend_proc.wait(timeout=3)
-        except subprocess.TimeoutExpired:
-            backend_proc.kill()
 
     sys.exit(0)
 

@@ -2,7 +2,7 @@
   {
     "_version": "1.0",
     "_type": "base",
-    "tier": "minor",
+    "tier": "major",
     "drives": {
       "control": 0.3,
       "significance": 0.25,
@@ -89,7 +89,7 @@
   {
     "_version": "1.0",
     "_type": "base",
-    "tier": "minor",
+    "tier": "major",
     "drives": {
       "control": 0.4,
       "significance": 0.3,
@@ -196,7 +196,7 @@
   {
     "_version": "1.0",
     "_type": "base",
-    "tier": "minor",
+    "tier": "major",
     "drives": {
       "control": 0.2,
       "significance": 0.25,
@@ -305,7 +305,7 @@
   {
     "_version": "1.0",
     "_type": "base",
-    "tier": "minor",
+    "tier": "major",
     "drives": {
       "control": 0.15,
       "significance": 0.2,
@@ -409,7 +409,7 @@
   {
     "_version": "1.0",
     "_type": "base",
-    "tier": "minor",
+    "tier": "major",
     "drives": {
       "control": 0.3,
       "significance": 0.2,

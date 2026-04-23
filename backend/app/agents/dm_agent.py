@@ -92,6 +92,19 @@ class DmAgent:
             jsonl_log({"level": "ERROR", "agent": "dm_agent", "error": str(e)})
             return self._fallback_narrate()
 
+    @staticmethod
+    def _has_real_check_flag(rules_result: Dict) -> bool:
+        """Есть ли реальный бросок (не автоуспех)."""
+        if not rules_result:
+            return False
+        for c in rules_result.get("checks", []):
+            if c.get("result") not in ("Нет проверок", None, ""):
+                if "автоматический" not in str(c.get("result", "")).lower():
+                    return True
+            if c.get("instruction"):
+                return True
+        return False
+
     def _build_contract(
         self,
         location: str,
@@ -108,6 +121,17 @@ class DmAgent:
         builder = DMContractBuilder(
             hardcore_mode=getattr(settings, "hardcore_mode", False),
             max_sentences=3,
+        )
+        
+        # Определяем тип действия — для диалога пропускаем шумные блоки
+        _action_type = ""
+        if rules_result:
+            for _c in rules_result.get("checks", []):
+                _action_type = _c.get("action_type", "")
+                break
+        _is_light_dialog = (
+            _action_type in ("SANDBOX_MILD", "SANDBOX_MEDIUM")
+            and not self._has_real_check_flag(rules_result)
         )
         
         # Блок 1: Действия игрока — всегда первый
@@ -152,19 +176,21 @@ class DmAgent:
                     f"Игрок обращается напрямую к {_target_name}. Этот NPC должен отреагировать — ответить словами или действием. Остальные NPC реагируют как наблюдатели."
                 )
         
-        # Блок 3: Сцена
-        scene_block = ""
-        if context:
-            scene_state = context.get("scene_state", {})
-            if scene_state:
-                try:
-                    scene_block = SceneStateManager.get_scene_description(scene_state) + "\n\n"
-                except Exception as e:
-                    jsonl_log({"level": "ERROR", "agent": "dm_agent", "error": f"Scene build error: {e}"})
-        builder.add_scene(scene_block, location)
+        # Блок 3: Сцена — для диалога пропускаем (объекты не релевантны)
+        if not _is_light_dialog:
+            scene_block = ""
+            if context:
+                scene_state = context.get("scene_state", {})
+                if scene_state:
+                    try:
+                        scene_block = SceneStateManager.get_scene_description(scene_state) + "\n\n"
+                    except Exception as e:
+                        jsonl_log({"level": "ERROR", "agent": "dm_agent", "error": f"Scene build error: {e}"})
+            builder.add_scene(scene_block, location)
         
-        # Блок 4: Состояние игрока
+        # Блок 4: Состояние игрока — для диалога только если есть раны/состояния
         player_state_block = ""
+        _skip_player_state = _is_light_dialog
         if context and context.get("player_state"):
             _lines = []
             for pname, pdata in context["player_state"].items():
@@ -192,35 +218,42 @@ class DmAgent:
                 if isinstance(_integrity, (int, float)) and _integrity < 0.8:
                     _lines.append(f"  целостность личности снижена — ДЕГРАДАЦИЯ")
             if _lines:
-                player_state_block = "Состояние игрока (факт — отражай в повествовании):\n" + "\n".join(_lines)
+                # Для диалога пропускаем если только "спокоен" без ран
+                if _skip_player_state and len(_lines) <= 1 and "спокоен" in _lines[0]:
+                    player_state_block = ""
+                else:
+                    player_state_block = "Состояние игрока (факт — отражай в повествовании):\n" + "\n".join(_lines)
         builder.add_player_state(player_state_block)
         
-        # Блок 5: Проверки
-        checks = rules_result.get("checks", []) if rules_result else []
-        _has_real_check = any(
-            c.get('result') not in ('Нет проверок', None, '')
-            and 'провал' not in str(c.get('result', '')).lower()
-            or c.get('instruction')
-            for c in checks
-        ) if checks else False
-        rules_str = (
-            "\n".join(
-                f"- {c.get('player', 'Unknown')}: {c.get('result', c.get('instruction', ''))}"
+        # Блок 5: Проверки — для диалога пропускаем автоуспех
+        if not _is_light_dialog:
+            checks = rules_result.get("checks", []) if rules_result else []
+            _has_real_check = any(
+                c.get('result') not in ('Нет проверок', None, '')
+                and 'провал' not in str(c.get('result', '')).lower()
+                or c.get('instruction')
                 for c in checks
+            ) if checks else False
+            rules_str = (
+                "\n".join(
+                    f"- {c.get('player', 'Unknown')}: {c.get('result', c.get('instruction', ''))}"
+                    for c in checks
+                )
+                if _has_real_check else ""
             )
-            if _has_real_check else ""
-        )
-        builder.add_rules(rules_str)
+            builder.add_rules(rules_str)
         
-        # Блок 6: Изменения мира
-        world_changes = world_result.get("world_events", []) if world_result else []
+        # Блок 6: Изменения мира — для диалога только если кто-то пришёл
         _arrivals = (context or {}).get("npc_arrivals", [])
-        if _arrivals:
-            world_changes = list(world_changes) + [
-                f"В локацию вошёл NPC: {npc_id} — опиши его появление" for npc_id in _arrivals
-            ]
-        world_str = "\n".join(f"- {w}" for w in world_changes) if world_changes else "Нет изменений мира"
-        builder.add_world_changes(world_str)
+        if not _is_light_dialog or _arrivals:
+            world_changes = world_result.get("world_events", []) if world_result else []
+            if _arrivals:
+                world_changes = list(world_changes) + [
+                    f"В локацию вошёл NPC: {npc_id} — опиши его появление" for npc_id in _arrivals
+                ]
+            world_str = "\n".join(f"- {w}" for w in world_changes) if world_changes else ""
+            if world_str:
+                builder.add_world_changes(world_str)
         
         # Блок 7: Continuity
         continuity_block = ""
@@ -240,8 +273,8 @@ class DmAgent:
                 guardrail = "ЗАПРЕЩЕНО: повторять предыдущий ответ дословно или по смыслу. Опиши НОВУЮ реакцию."
         builder.add_guardrail(guardrail)
         
-        # Блок 9: Физические ограничения + Python движки
-        if context:
+        # Блок 9: Физические ограничения + Python движки — только для не-диалогов
+        if context and not _is_light_dialog:
             physics_warnings = ""
             if context.get("physics_validation"):
                 invalid = [v for v in context["physics_validation"] if not v.get("valid")]
@@ -285,7 +318,7 @@ class DmAgent:
                         if _player_block:
                             _has_engine_data = True
                             python_engines_block += f"Игрок {player_name}:\n{_player_block}"
-            if _has_engine_data:
+            if _has_engine_data and not _is_light_dialog:
                 builder.add_custom_block("Результаты проверок", python_engines_block)
             
             scene_events_block = ""
@@ -299,7 +332,7 @@ class DmAgent:
             builder.add_custom_block("События сцены", scene_events_block)
             
             reaction_block = ""
-            if context.get("reaction_order"):
+            if not _is_light_dialog and context.get("reaction_order"):
                 reaction_order = context["reaction_order"]
                 forced = context.get("forced_first_speaker")
                 if reaction_order:
@@ -394,6 +427,11 @@ class DmAgent:
         print(f"[DM_CONTRACT] id={contract.contract_id} sys_tokens~{_sys_words} user_tokens~{_usr_words}")
         print(f"[DM_CONTRACT] user (last 800 chars):\n...{contract.user_prompt[-800:]}\n[/DM_CONTRACT]")
         
+        if not contract.user_prompt.strip():
+            # Контракт пустой — не отправляем в LLM, сразу fallback
+            jsonl_log({"level": "ERROR", "agent": "dm_agent", "error": "Empty contract", "action": actions_str})
+            return self._fallback_narrate()
+
         result = self.router.request_for_agent(
             agent_name="dm",
             prompt=contract.user_prompt,

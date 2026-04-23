@@ -153,8 +153,13 @@ def idle_tick(campaign_id: str, game_loop=Depends(get_game_loop)) -> dict:
         changes = _engine.tick(campaign_id, _scene)
         if changes:
             game_loop.scene_manager.apply_changes(campaign_id, changes, _scene)
-        # Фильтруем значимые события для клиента (близкие NPC, life_engine источник)
+        # Фаза 2.1: DecisionHub — NPC думают даже в idle tick
+        decision_events = _engine.tick_decisions(campaign_id, _scene)
+        # Фильтруем значимые события для клиента (близкие NPC)
         significant_events = []
+        # Сначала решения decision_hub (приоритетнее)
+        for _de in decision_events:
+            significant_events.append(_de)
         _player_pos = _scene.get("player_spatial", {}).get("local_position", {})
         _px, _py = _player_pos.get("x", 0), _player_pos.get("y", 0)
         for _ch in changes:
@@ -308,17 +313,40 @@ async def game_action(request: dict, game_loop=Depends(get_game_loop)) -> dict:
         )
 
         # Синхронизация позиции игрока от фронтенда
+        # Фаза 4 — время продвигается от перемещений
         player_x = request.get("player_x", 0.0)
         player_y = request.get("player_y", 0.0)
-        print(f"[POS_SYNC] received: x={player_x}, y={player_y}")
         if player_x != 0.0 or player_y != 0.0:
             scene = game_loop.scene_manager.get_scene_state(campaign_id, "")
-            print(f"[POS_SYNC] scene={scene is not None}, has_player_spatial={'player_spatial' in scene if scene else 'N/A'}")
             if scene and "player_spatial" in scene:
+                # Вычисляем расстояние от предыдущей позиции
+                import math
+                _old_pos = scene["player_spatial"]["local_position"]
+                _old_x = _old_pos.get("x", player_x)
+                _old_y = _old_pos.get("y", player_y)
+                _dist = math.hypot(player_x - _old_x, player_y - _old_y)
+                
+                # Сохраняем новую позицию
                 scene["player_spatial"]["local_position"]["x"] = player_x
                 scene["player_spatial"]["local_position"]["y"] = player_y
+                
+                # Продвигаем время пропорционально расстоянию (1м = 2 мин)
+                if _dist > 0.1:  # минимальный порог чтобы не спамить
+                    _env = scene.get("environment", {})
+                    _current_time = _env.get("time_of_day", "12:00")
+                    try:
+                        _h, _m = map(int, _current_time.split(":"))
+                        _delta_minutes = int(_dist * 2)  # 2 минуты за метр
+                        _total_minutes = _h * 60 + _m + _delta_minutes
+                        _total_minutes = _total_minutes % (24 * 60)
+                        _new_h = _total_minutes // 60
+                        _new_m = _total_minutes % 60
+                        scene["environment"]["time_of_day"] = f"{_new_h:02d}:{_new_m:02d}"
+                        print(f"[TIME_WALK] {_current_time} → {scene['environment']['time_of_day']} (+{_delta_minutes} мин, {_dist:.1f}м)")
+                    except (ValueError, AttributeError):
+                        pass
+                
                 game_loop.scene_manager.save_scene_state(campaign_id, scene)
-                print(f"[POS_SYNC] saved: x={player_x}, y={player_y}")
 
         campaign_state = campaign_service.get_campaign_state(campaign_id)
         location = "Таверна Серебряный Волк"  # дефолт всегда

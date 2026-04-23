@@ -58,8 +58,8 @@ def _load_json_file(path: Path) -> Dict[str, Any]:
     """Загружает JSON файл. Падает при ошибке — конфиги критичны."""
     if not path.exists():
         raise FileNotFoundError(f"[NPC_LOADER] Config not found: {path}")
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
+    with open(path, "rb") as bf:
+        return json.loads(bf.read().decode('utf-8-sig'))
 
 
 def _deep_merge(base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any]:
