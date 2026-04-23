@@ -28,7 +28,12 @@ from app.services.player_cognition import (
 from movement_system import try_move, move_towards
 from intent_parser import parse_movement_intent
 from pathfinding import find_path
+from npc_movement import NpcMovementSystem
 from api_client import create_game_gateway, ActionQueue
+from app.core.constants import (
+    IDLE_TICK_NEAR_MS, IDLE_TICK_MID_MS, IDLE_TICK_FAR_MS,
+    IDLE_TICK_NEAR_RADIUS, IDLE_TICK_MID_RADIUS,
+)
 
 
 _SAVES_DIR = Path(__file__).parent.parent / "saves"
@@ -96,6 +101,31 @@ def _set_player_xy(scene_state: dict, x: float, y: float) -> None:
     scene_state["player_spatial"]["local_position"]["y"] = y
 
 
+def _nearest_npc_distance(scene_state: dict) -> float:
+    """Минимальное расстояние от игрока до ближайшего NPC с координатами."""
+    px, py = _player_xy(scene_state)
+    min_dist = 999.0
+    for npc_data in scene_state.get("npc_positions", {}).values():
+        lp = npc_data.get("local_position") or {}
+        if not lp:
+            continue
+        nx, ny = float(lp.get("x", 0)), float(lp.get("y", 0))
+        dist = math.hypot(nx - px, ny - py)
+        if dist < min_dist:
+            min_dist = dist
+    return min_dist
+
+
+def _idle_tick_interval_ms(nearest_dist: float) -> int:
+    """Фаза 2.1 — интервал тика зависит от расстояния до ближайшего NPC."""
+    if nearest_dist <= IDLE_TICK_NEAR_RADIUS:
+        return IDLE_TICK_NEAR_MS
+    elif nearest_dist <= IDLE_TICK_MID_RADIUS:
+        return IDLE_TICK_MID_MS
+    else:
+        return IDLE_TICK_FAR_MS
+
+
 def _check_transition_trigger(scene_state: dict, px: float, py: float, message_log: list) -> None:
     """Проверяет, наступил ли игрок на триггер перехода (door_transition)."""
     for obj_id, obj_data in scene_state.get("objects", {}).items():
@@ -160,6 +190,17 @@ class GameScreen:
         walls = scene_state.get("spatial_walls", [])
         obstacles = scene_state.get("spatial_obstacles", [])
 
+        # Система плавного движения NPC — резолвит строковые позиции в координаты
+        from app.services.spatial.location_graph import load_graph
+        _npc_graph = load_graph(location_id, str(_CAMPAIGNS_DIR / campaign_folder))
+        npc_movement = NpcMovementSystem(
+            scene_w=scene_w,
+            scene_h=scene_h,
+            walls=walls,
+            obstacles=obstacles,
+            location_graph=_npc_graph,
+        )
+
         # Состояние восприятия
         memory = PlayerMemory()
         encounters = EncounterHistory()
@@ -189,8 +230,7 @@ class GameScreen:
         held_keys: set[int] = set()
 
         # Idle tick: тикаем мир пока игрок не делает действие
-        # IDLE_TICK_MS — интервал в мс (30 секунд реального времени)
-        _IDLE_TICK_MS = 5_000
+        # Фаза 2.1 — интервал зависит от расстояния до NPC (см. _idle_tick_interval_ms)
         _last_idle_tick = pygame.time.get_ticks()
         _idle_tick_result: list = []   # потокобезопасный буфер результата
         _idle_tick_running = [False]   # флаг активного запроса
@@ -372,12 +412,20 @@ class GameScreen:
                     for npc_id, new_data in _new_positions.items():
                         if npc_id in scene_state.get("npc_positions", {}):
                             existing = scene_state["npc_positions"][npc_id]
-                            # Обновляем только то что пришло, не трогая local_position
+                            new_pos_str = new_data.get("position", "")
+                            # Обновляем строковые поля, но не трогаем local_position
                             for k, v in new_data.items():
                                 if k != "local_position" or "local_position" not in existing:
                                     existing[k] = v
+                            # Запускаем плавное движение если строковая позиция изменилась
+                            if new_pos_str and npc_movement.should_request_move(npc_id, new_pos_str, scene_state):
+                                npc_movement.request_move(npc_id, new_pos_str, scene_state)
                         else:
+                            # Новый NPC — добавляем и инициализируем координаты из графа
                             scene_state.setdefault("npc_positions", {})[npc_id] = new_data
+                            new_pos_str = new_data.get("position", "")
+                            if new_pos_str and npc_movement.should_request_move(npc_id, new_pos_str, scene_state):
+                                npc_movement.request_move(npc_id, new_pos_str, scene_state)
                     print(f"[IDLE_TICK] merged: {list(_new_positions.keys())}")
 
             # Pressure-driven: если idle_tick принёс события от близких NPC → запускаем телеграф
@@ -391,21 +439,44 @@ class GameScreen:
                 _npc_data = scene_state.get("npc_positions", {}).get(_npc_id, {})
                 _npc_name = _npc_data.get("name", _npc_id)
                 _ev_desc = _ev.get("value", "")
-                _telegraph_text = f"[TELEGRAPH: {_npc_name} — {_ev_desc}]"
+                # Человекочитаемый текст для DM (без технических деталей)
+                _intent_map = {
+                    "observe": "присматривается",
+                    "talk": "хочет поговорить",
+                    "warn": "хочет предупредить",
+                    "report": "хочет что-то сообщить",
+                    "trade": "хочет предложить сделку",
+                    "help": "хочет помочь",
+                    "flee": "пытается уйти",
+                }
+                _readable = _intent_map.get(_ev_desc, "проявляет инициативу")
+                _telegraph_text = f"{_npc_name} {_readable}"
+                _px, _py = _player_xy(scene_state)
                 action_queue.submit_telegraph(
                     campaign_folder, player_name,
-                    _player_xy[0] if _player_xy else 0.0,
-                    _player_y = _player_xy[1] if _player_xy else 0.0,
+                    _px,
+                    _py,
                     action_text=_telegraph_text,
                 )
                 print(f"[TELEGRAPH] event-driven: {_telegraph_text}")
 
-            # Консоль закрыта → сверхнизкая дискретизация (30 сек вместо 5)
-            _tick_interval = _IDLE_TICK_MS if not text_input.focused else 30_000
+            # Фаза 2.1 — distance-based интервал: в чате = частый, при ходьбе = редкий
+            if text_input.focused:
+                _nearest = _nearest_npc_distance(scene_state)
+                _tick_interval = _idle_tick_interval_ms(_nearest)
+            else:
+                _tick_interval = 30_000  # ходьба → игрок сам двигает мир
             # Запускаем новый idle_tick если пора и предыдущий завершён
             if (_now - _last_idle_tick >= _tick_interval
                     and not _idle_tick_running[0]
                     and action_queue.pending_count() == 0):
+                # Фаза 4 — сохраняем позицию на бэкенд перед idle_tick
+                try:
+                    _bridge = _gateway._bridge
+                    if _bridge.ready:
+                        _bridge._game_loop.scene_manager.save_scene_state(campaign_folder, scene_state)
+                except Exception:
+                    pass
                 _idle_tick_running[0] = True
                 _last_idle_tick = _now
                 print(f"[IDLE_TICK] fired at {_now}ms")
@@ -431,6 +502,9 @@ class GameScreen:
                 # Следующий Telegraph запустится при следующем Tab
                 if action_queue.is_telegraph_result(result):
                     print("[TELEGRAPH] completed")
+
+            # === Движение NPC — обновляем local_position перед pipeline ===
+            npc_movement.tick(scene_state)
 
             # === Pipeline ===
             config = PerceptionConfig(

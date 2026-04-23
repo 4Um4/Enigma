@@ -216,10 +216,17 @@ class PlayerTargetExtractor:
             if name_forms:
                 for form in name_forms:
                     pos = lower.find(form)
-                    if pos != -1:
+                    if pos !=  -1:
+                        # Прямое обращение: "Привет, Тень" (после запятой или в начале)
+                        # Косвенное упоминание: "относишься к Люсе" (перед именем предлог "к")
+                        _prefix = lower[max(0, pos - 4):pos].strip()
+                        _PREPOSITIONS = {"к", "про", "о", "об", "у", "с", "из", "от", "для", "до", "без"}
+                        _is_indirect = any(_prefix.endswith(f" {p} ") for p in _PREPOSITIONS)
+                        if _is_indirect:
+                            continue  # не делаем целем из косвенного упоминания
                         print(f"[S.0 MATCH] name_form '{form}' at pos {pos} → {npc_id}")
                         _candidates.append((pos, npc_id, npc_name))
-                        break  # не ищем другие формы этого NPC
+                        break
 
             # Ролевое ключевое слово (если name_forms не сработали)
             if not any(c[1] == npc_id for c in _candidates):

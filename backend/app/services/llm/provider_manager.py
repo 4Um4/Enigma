@@ -392,7 +392,7 @@ def get_model_pool() -> ModelPool:
     return _model_pool
 
 
-pool = get_model_pool()
+# pool создаётся через initialize_model_pool() при старте — не на уровне модуля
 
 
 class ProviderManager:

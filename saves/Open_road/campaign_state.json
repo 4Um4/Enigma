@@ -7,7 +7,7 @@
   "metadata": {},
   "scene_state": {
     "location_id": "Таверна Серебряный Волк",
-    "snapshot_tick": 0,
+    "snapshot_tick": 3,
     "objects": {
       "obj_0": {
         "name": "Барная стойка #1",
@@ -586,8 +586,8 @@
     "npc_positions": {
       "maid_lusya": {
         "location_id": "Таверна Серебряный Волк",
-        "position": "bar_area",
-        "activity": "",
+        "position": "serving_table_3",
+        "activity": "serving_tables",
         "visible": true,
         "local_position": {
           "x": 4.5,
@@ -597,30 +597,32 @@
       },
       "guard_borko": {
         "location_id": "Таверна Серебряный Волк",
-        "position": "corner_table",
-        "activity": "",
+        "position": "gate_post",
+        "activity": "guarding_gate",
         "visible": true,
         "local_position": {
           "x": 12.0,
           "y": 9.0
         },
-        "editor_room_id": "room_0"
+        "editor_room_id": "room_0",
+        "location": "city_gate"
       },
       "blacksmith_orm": {
         "location_id": "Таверна Серебряный Волк",
-        "position": "kitchen",
-        "activity": "",
+        "position": "behind_bar",
+        "activity": "cleaning_tables",
         "visible": true,
         "local_position": {
           "x": 16.4,
           "y": 5.55
         },
-        "editor_room_id": "room_0"
+        "editor_room_id": "room_0",
+        "location": "tavern_silver_wolf"
       },
       "tavern_keeper_tornin": {
         "location_id": "Таверна Серебряный Волк",
         "position": "behind_bar",
-        "activity": "",
+        "activity": "cleaning_tables",
         "visible": true,
         "local_position": {
           "x": 4.5,
@@ -630,31 +632,33 @@
       },
       "thief_shadow": {
         "location_id": "Таверна Серебряный Волк",
-        "position": "entrance",
-        "activity": "",
-        "visible": true,
+        "position": "bed",
+        "activity": "sleeping",
+        "visible": false,
         "local_position": {
           "x": 3.5,
           "y": 9.5
         },
-        "editor_room_id": "room_0"
+        "editor_room_id": "room_0",
+        "location": "inn_rooms"
       },
       "merchant_goran": {
         "location_id": "Таверна Серебряный Волк",
-        "position": "kitchen",
-        "activity": "",
+        "position": "stall_3",
+        "activity": "haggling",
         "visible": true,
         "local_position": {
           "x": 14.5,
           "y": 5.5
         },
-        "editor_room_id": "room_1"
+        "editor_room_id": "room_1",
+        "location": "market_square"
       }
     },
     "environment": {
       "light_level": "dim",
       "noise_level": "low",
-      "time_of_day": "12:00",
+      "time_of_day": "12:13",
       "weather_inside": "neutral"
     },
     "player_inventory_snapshot": {},
@@ -664,20 +668,20 @@
       "location_id": "Таверна Серебряный Волк",
       "position": "entrance",
       "local_position": {
-        "x": 4.73223304703363,
-        "y": 5.646446609406725
+        "x": 4.818019484660534,
+        "y": 5.81801948466054
       }
     },
     "player_target_npc": null,
     "player_target_npc_name": null,
     "player_target_object": null,
     "player_distances": {
-      "blacksmith_orm": 16.67,
-      "guard_borko": 15.83,
-      "merchant_goran": 14.77,
-      "maid_lusya": 5.41,
-      "thief_shadow": 4.05,
-      "tavern_keeper_tornin": 8.82
+      "blacksmith_orm": 17.25,
+      "guard_borko": 12.86,
+      "merchant_goran": 14.69,
+      "maid_lusya": 7.06,
+      "thief_shadow": 8.91,
+      "tavern_keeper_tornin": 8.99
     },
     "environment_modifiers": {
       "light": 0.4,

@@ -529,7 +529,12 @@ class GameLoop:
                     "dm":       dm_full_text_for_mem,
                 },
             )
-            print(f"[DM_MEM_SAVED] {len(dm_full_text_for_mem)} chars → campaign memory")
+            # Лог вопроса + ответа для отладки
+            _player_msg = next((a.action for a in actions if a.action), "")
+            _preview_q = _player_msg[:80] + "..." if len(_player_msg) > 80 else _player_msg
+            _preview_a = dm_full_text_for_mem[:120] + "..." if len(dm_full_text_for_mem) > 120 else dm_full_text_for_mem
+            print(f"[DM] {_preview_q}")
+            print(f"[NPC] {_preview_a}")
 
         yield {"type": "done", "tokens": token_count, "ms": elapsed_ms, "tps": tps}
 
@@ -557,6 +562,65 @@ class GameLoop:
                     )
         except Exception as e:
             print(f"[R2.1] NarrativeExtractor error: {e}")
+
+    def _advance_game_time(self, scene_state: dict, action_type: str, raw_input: str) -> None:
+        """
+        Фаза 4 — время продвигается от действий, не от тиков.
+        Обновляет time_of_day в scene_state["environment"].
+        """
+        from app.core.constants import (
+            TIME_DELTA_DIALOG,
+            TIME_DELTA_WALK_INDOOR,
+            TIME_DELTA_TELEGRAPH,
+            TIME_DELTA_TRAVEL,
+        )
+        import re
+
+        # Определяем дельту по типу действия
+        if action_type in ("dialogue", "player_interacts"):
+            _delta_seconds = TIME_DELTA_DIALOG
+        elif action_type in ("move", "stealth", "player_moves"):
+            # Проверяем indoor/outdoor по локации
+            _location = scene_state.get("location_id", "")
+            if "tavern" in _location.lower() or "inn" in _location.lower():
+                _delta_seconds = TIME_DELTA_WALK_INDOOR
+            else:
+                _delta_seconds = TIME_DELTA_WALK_INDOOR * 3  # outdoor пока тройной
+        elif "TELEGRAPH" in raw_input:
+            _delta_seconds = TIME_DELTA_TELEGRAPH
+        else:
+            _delta_seconds = 0
+
+        # Проверяем явные запросы времени в тексте
+        _wait_match = re.search(r"жд[уаю]\s+(\d+)\s+(час|минут|секунд)", raw_input, re.I)
+        if _wait_match:
+            _amount = int(_wait_match.group(1))
+            _unit = _wait_match.group(2)
+            if "час" in _unit:
+                _delta_seconds = _amount * 3600
+            elif "минут" in _unit:
+                _delta_seconds = _amount * 60
+            else:
+                _delta_seconds = _amount
+
+        if _delta_seconds == 0:
+            return
+
+        # Обновляем time_of_day
+        _env = scene_state.get("environment", {})
+        _current_time = _env.get("time_of_day", "12:00")
+        try:
+            _h, _m = map(int, _current_time.split(":"))
+            _total_minutes = _h * 60 + _m + _delta_seconds // 60
+            _total_minutes = _total_minutes % (24 * 60)  # wrap around
+            _new_h = _total_minutes // 60
+            _new_m = _total_minutes % 60
+            _new_time = f"{_new_h:02d}:{_new_m:02d}"
+            scene_state["environment"]["time_of_day"] = _new_time
+            if _delta_seconds >= 60:
+                print(f"[TIME_ADVANCE] {_current_time} → {_new_time} (+{_delta_seconds // 60} мин)")
+        except (ValueError, AttributeError):
+            pass
 
     # ────────────────────────────────────────────────────────────────────────────
     # ОБЩИЙ ПАЙПЛАЙН (шаги 1–8 — одинаковы для REST и SSE)
@@ -673,7 +737,7 @@ class GameLoop:
             print(f"[TICK_CATCHUP] world={_world_elapsed} sim={_sim_tick} delta={_delta} applying={_catch_up}")
             _life_changes = []
             for _ in range(max(1, _catch_up)):
-                _life_changes += _life_engine.tick(campaign_id, scene_state)
+                _life_changes += _life_engine.tick(campaign_id, scene_state, runtime_path=self._get_npc_runtime_path(campaign_id))
             if _life_changes:
                 self.scene_manager.apply_changes(campaign_id, _life_changes, scene_state)
                 print(f"[LIFE_ENGINE] {len(_life_changes)} изменений применено")
@@ -894,6 +958,8 @@ class GameLoop:
                     parameters={"raw_input": raw_input, "action_type": _raw_type},
                 )
                 get_event_bus().publish(_game_evt)
+                # Фаза 4 — время продвигается от действий, не от тиков
+                self._advance_game_time(scene_state, _raw_type, raw_input)
                 print(f"[EVENT_BUS] Published: {_game_evt.event_type.name}, target={_game_evt.target_id}")
 
             # ── SCENE EVENT LAYER: единые события для восприятия всеми NPC ──

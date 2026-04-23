@@ -282,8 +282,12 @@ class DirectGameGateway:
     """
     
     def __init__(self) -> None:
+        # Инициализация ModelPool в pygame процессе — без этого пул пустой
+        from app.services.llm.provider_manager import initialize_model_pool
+        initialize_model_pool()
         from game_loop_bridge import get_game_loop_bridge
         self._bridge = get_game_loop_bridge()
+        self._last_player_pos: tuple[float, float] | None = None
     
     def send_action(
         self,
@@ -316,6 +320,41 @@ class DirectGameGateway:
     
     def health(self) -> dict:
         return {"status": "ok", "mode": "direct"}
+    
+    def _advance_time_by_movement(self, campaign_id: str, distance: float) -> None:
+        """Фаза 4 — время продвигается от перемещений (деление, не умножение)."""
+        from app.core.constants import TIME_UNITS_PER_MINUTE
+        
+        if distance < 0.1:
+            return
+        try:
+            _bridge = self._bridge
+            if not _bridge.ready:
+                return
+            _scene = _bridge._game_loop.scene_manager.get_scene_state(campaign_id, "")
+            if not _scene:
+                return
+            _env = _scene.get("environment", {})
+            _current_time = _env.get("time_of_day", "12:00")
+            try:
+                _h, _m = map(int, _current_time.split(":"))
+                # Деление: 3 единицы в минуту. Переход таверны (~30 ед) = 10 мин
+                _delta_minutes = int(distance / TIME_UNITS_PER_MINUTE)
+                if _delta_minutes == 0 and distance >= 1.0:
+                    _delta_minutes = 1  # минимум 1 минута если прошли >= 1 единицы
+                if _delta_minutes == 0:
+                    return  # слишком маленькое перемещение
+                _total_minutes = _h * 60 + _m + _delta_minutes
+                _total_minutes = _total_minutes % (24 * 60)
+                _new_h = _total_minutes // 60
+                _new_m = _total_minutes % 60
+                _scene["environment"]["time_of_day"] = f"{_new_h:02d}:{_new_m:02d}"
+                _bridge._game_loop.scene_manager.save_scene_state(campaign_id, _scene)
+                print(f"[TIME_WALK] {_current_time} → {_scene['environment']['time_of_day']} (+{_delta_minutes} мин за {distance:.1f} ед)")
+            except (ValueError, AttributeError):
+                pass
+        except Exception:
+            pass
     
     def create_player_session(
         self, campaign_id: str, player_name: str
@@ -353,10 +392,48 @@ class DirectGameGateway:
                 return {"status": "not_ready"}
             _engine = get_life_engine()
             _scene = _bridge._game_loop.scene_manager.get_scene_state(campaign_id, "")
-            changes = _engine.tick(campaign_id, _scene)
+            # Фаза 4 — отслеживаем перемещения через idle_tick (каждые 2 сек)
+            if _scene:
+                _ps = _scene.get("player_spatial", {}).get("local_position") or {}
+                _current_pos = (_ps.get("x", 0.0), _ps.get("y", 0.0))
+                if self._last_player_pos:
+                    import math
+                    _dist = math.hypot(_current_pos[0] - self._last_player_pos[0], _current_pos[1] - self._last_player_pos[1])
+                    if _dist > 0.3:  # минимальный порог чтобы не спамить
+                        self._advance_time_by_movement(campaign_id, _dist)
+                self._last_player_pos = _current_pos
+            changes = _engine.tick(campaign_id, _scene, runtime_path=_runtime_path)
             if changes:
                 _bridge._game_loop.scene_manager.apply_changes(campaign_id, changes, _scene)
-            return {"status": "ok", "changes": len(changes)}
+            # Фаза 2.1: DecisionHub — NPC думают даже в idle tick
+            _runtime_path = _bridge._game_loop._get_npc_runtime_path(campaign_id)
+            decision_events = _engine.tick_decisions(campaign_id, _scene, runtime_path=_runtime_path)
+            # Формируем significant_events как в routes.py (для телеграфа)
+            significant_events = list(decision_events)
+            # Фильтруем life_engine события по расстоянию (как в routes.py)
+            if _scene:
+                _player_pos = _scene.get("player_spatial", {}).get("local_position", {})
+                _px, _py = _player_pos.get("x", 0), _player_pos.get("y", 0)
+                for _ch in changes:
+                    if not _ch.cause or not _ch.cause.startswith("life_engine"):
+                        continue
+                    _npc_pos = _scene.get("npc_positions", {}).get(_ch.target, {})
+                    _nx, _ny = _npc_pos.get("x", 0), _npc_pos.get("y", 0)
+                    _dist = ((_nx - _px)**2 + (_ny - _py)**2) ** 0.5
+                    if _dist < 20:
+                        significant_events.append({
+                            "cause": _ch.cause,
+                            "type": _ch.type.value,
+                            "target": _ch.target,
+                            "field": _ch.field,
+                            "value": str(_ch.value),
+                        })
+            return {
+                "status": "ok",
+                "changes": len(changes),
+                "npc_positions": _scene.get("npc_positions", {}) if _scene else {},
+                "events": significant_events,
+            }
         except Exception as e:
             return {"status": "error", "error": str(e)}
 

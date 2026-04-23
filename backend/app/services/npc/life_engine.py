@@ -270,6 +270,10 @@ class LifeEngine:
         # ключ: campaign_id → timestamp последнего доступа
         self._last_access: OrderedDict[str, float] = OrderedDict()
         
+        # Фаза 2.2 — in-memory давление NPC (не персистентно, сбрасывается при рестарте)
+        # ключ: (campaign_id, npc_id) → float
+        self._idle_pressure: dict[tuple[str, str], float] = {}
+        
         # Счётчик для batched persistence
         # ключ: campaign_id → int (сколько тиков с последнего save)
         self._ticks_since_save: dict[str, int] = {}
@@ -370,6 +374,7 @@ class LifeEngine:
         self,
         campaign_id: str,
         scene_state: Optional[dict] = None,
+        runtime_path: Optional[Path] = None,
     ) -> list[SceneChange]:
         """
         Аппроксимация долгого отсутствия игрока.
@@ -386,14 +391,15 @@ class LifeEngine:
         
         if idle_seconds < MACRO_SIM_THRESHOLD_SECONDS:
             # Короткое отсутствие — обычный тик (или несколько)
-            return self.tick(campaign_id, scene_state)
+            return self.tick(campaign_id, scene_state, runtime_path=runtime_path)
         
         logger.info(
             f"[LIFE_ENGINE] macro_simulate для '{campaign_id}': "
             f"idle={idle_seconds:.0f}s"
         )
         
-        npcs = self._load_npcs(campaign_id)
+        from app.services.npc.npc_loader import load_npcs_merged
+        npcs = load_npcs_merged(runtime_path=runtime_path)
         all_changes: list[SceneChange] = []
         current_time = _parse_game_time(scene_state)
         
@@ -508,20 +514,20 @@ class LifeEngine:
         self,
         campaign_id: str,
         scene_state: Optional[dict] = None,
+        runtime_path: Optional[Path] = None,
     ) -> list[SceneChange]:
         """
         Главная точка входа — один тик движка жизни.
 
-        Обрабатывает всех Major NPC:
+        Обрабатывает всех NPC:
           - обновляет позицию по расписанию
           - восстанавливает стресс
           - с 5% шансом генерирует случайное событие
 
-        Minor NPC обрабатываются раз в MINOR_TICK_INTERVAL тиков.
-        Mass NPC — только флаги присутствия (без SceneChange, 0ms).
-
         Возвращает list[SceneChange] для применения через apply_changes().
         """
+        from app.services.npc.npc_loader import load_npcs_merged
+
         # LRU: автоочистка перед доступом
         self._evict_stale()
         self._touch(campaign_id)
@@ -535,7 +541,8 @@ class LifeEngine:
             f"(время: {current_time})"
         )
 
-        npcs = self._load_npcs(campaign_id)
+        # Используем правильный загрузчик (config + runtime)
+        npcs = load_npcs_merged(runtime_path=runtime_path)
         all_changes: list[SceneChange] = []
         npcs_updated = False
 
@@ -575,6 +582,106 @@ class LifeEngine:
             f"{len(all_changes)} SceneChange сгенерировано"
         )
         return all_changes
+
+    def tick_decisions(
+        self,
+        campaign_id: str,
+        scene_state: dict,
+        runtime_path: Optional[Path] = None,
+    ) -> list[dict]:
+        """
+        Фаза 2.1 — DecisionHub для NPC в idle tick.
+        Чистая математика, без LLM.
+        
+        Возвращает список dicts для триггера телеграфа на клиенте.
+        Формат совместим с significant_events в routes.py.
+        """
+        from app.core.constants import (
+            IDLE_DECISION_SCORE_THRESHOLD,
+            IDLE_PRESSURE_ACCUM_RATE,
+            IDLE_PRESSURE_DECAY_RATE,
+        )
+        from app.services.npc.decision_hub import DecisionHub, EventContext
+        from app.services.npc.npc_loader import (
+            load_npcs_merged,
+            load_profile_from_legacy_json,
+            load_l2_state_from_runtime_dict,
+        )
+        from app.services.events.event_types import EventType
+        from app.models.npc_state import WillState
+
+        # Используем правильный загрузчик (config + runtime), а не major_npcs.json
+        npcs = load_npcs_merged(runtime_path=runtime_path)
+        hub = DecisionHub()
+        decisions: list[dict] = []
+
+        for npc in npcs:
+            npc_id = npc.get("id", "?")
+
+            try:
+                state_l2 = load_l2_state_from_runtime_dict(npc)
+                profile_l0 = load_profile_from_legacy_json(npc)
+
+                # Пропускаем мёртвых/сломанных
+                if state_l2.hp <= 0:
+                    continue
+                if state_l2.will_state == WillState.BROKEN:
+                    continue
+
+                # Контекст для idle tick — низкая интенсивность, нет стимула
+                event = EventContext(
+                    event_type=EventType.IDLE,
+                    actor_id=npc_id,
+                    success=True,
+                    intensity=0.2,
+                    distance=0.0,
+                    witness_count=0,
+                    location=scene_state.get("location_id", ""),
+                    scene_flags=set(scene_state.get("active_flags", [])),
+                    scene_facts=[],
+                )
+
+                result = hub.compute(
+                    state=state_l2,
+                    personality=profile_l0,
+                    event=event,
+                    scene_state=scene_state,
+                    social_modifiers=None,
+                )
+
+                # Фаза 2.2 — накопление давления (in-memory)
+                _key = (campaign_id, npc_id)
+                _current_pressure = self._idle_pressure.get(_key, 0.0)
+                
+                _pressure_delta = 0.0
+                if result.intent and result.intent.value != "idle":
+                    # Накапливаем score как давление (медленно)
+                    _pressure_delta = result.score * IDLE_PRESSURE_ACCUM_RATE
+                else:
+                    # Decay — давление спадает если нет стимула
+                    _pressure_delta = -_current_pressure * IDLE_PRESSURE_DECAY_RATE
+                
+                _new_pressure = max(0.0, min(1.0, _current_pressure + _pressure_delta))
+                self._idle_pressure[_key] = _new_pressure
+                
+                # Триггер когда давление накопилось
+                if _new_pressure >= IDLE_DECISION_SCORE_THRESHOLD:
+                    decisions.append({
+                        "npc_id": npc_id,
+                        "cause": "idle_pressure",
+                        "type": "proactive",
+                        "target": npc_id,
+                        "field": "intent",
+                        "value": f"{result.intent.value if result.intent else 'observe'}",
+                    })
+                    # Сброс давления после триггера
+                    self._idle_pressure[_key] = 0.0
+
+            except Exception as e:
+                logger.warning(f"[LIFE_ENGINE] Idle decision error for {npc_id}: {e}")
+                continue
+
+        return decisions
 
     def save_npcs(self, campaign_id: str) -> None:
         """

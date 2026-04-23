@@ -94,6 +94,7 @@ class NpcOutcome:
     name: str = ""
     emotion: Optional[str] = None
     gender: str = "male"  # для гендерных окончаний в narrative
+    description_snippet: str = ""  # первая строка из description для DM промпта
     salience: float = 0.0
     visibility: Visibility = Visibility.DIRECT
     visibility_confidence: float = 1.0   # 0.0-1.0, уверенность в видимости
@@ -360,7 +361,13 @@ class SceneOutcomeBuilder:
                     "наблюдает"
                 )
                 gender = getattr(npc, "gender", "male")
-                line = f"- {npc.name or npc.npc_id} {intent_desc}"
+                line = f"- {npc.name or npc_id} {intent_desc}"
+                # pronoun-подсказка для 7B — без неё модель галлюцинирует пол
+                if gender not in ("male", "female"):
+                    line += " [он]"
+                # description snippet — даёт модели контекст вместо галлюцинации
+                if npc.description_snippet:
+                    line += f" ({npc.description_snippet})"
                 # emotion с гендерным окончанием через pymorphy3
                 if npc.emotion:
                     emotion_key = npc.emotion if isinstance(npc.emotion, str) else getattr(npc.emotion, "value", str(npc.emotion))
@@ -550,9 +557,19 @@ class SceneOutcomeBuilder:
                 collapse=_collapse,
             )
         
+        # Первое предложение description — даёт модели зацепку вместо пустоты
+        _desc_snippet = ""
+        if isinstance(real_state, dict):
+            _raw_desc = real_state.get("description", "")
+            if _raw_desc:
+                _first_sent = _raw_desc.split(".")[0].strip()
+                if len(_first_sent) > 10:
+                    _desc_snippet = _first_sent + "."
+
         return NpcOutcome(
             npc_id=npc_id,
             name=(profile.name if profile else None) or (real_state.get("name") if isinstance(real_state, dict) else None) or npc_id,
+            description_snippet=_desc_snippet,
             intent=decision.intent.value if hasattr(decision.intent, 'value') else str(decision.intent),
             emotion=emotion,
             gender=profile.gender if profile else "male",
