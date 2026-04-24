@@ -541,8 +541,10 @@ class LifeEngine:
             f"(время: {current_time})"
         )
 
-        # Используем правильный загрузчик (config + runtime)
-        npcs = load_npcs_merged(runtime_path=runtime_path)
+        # Используем кэшированных NPC если есть, иначе загружаем с диска
+        npcs = self._npc_cache.get(campaign_id)
+        if not npcs:
+            npcs = load_npcs_merged(runtime_path=runtime_path)
         all_changes: list[SceneChange] = []
         npcs_updated = False
 

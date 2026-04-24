@@ -15,9 +15,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from app.models.npc_profile import NPCProfileL0, PsycheBase
-from app.models.npc_state import NPCStateL2, WillState
-
-from app.services.npc.decision_hub import DecisionHub, EventContext
+from app.models.npc_state import NPCState, WillState
 
 # Путь к статичным конфигам NPC (read-only зона)
 _CONFIG_NPC_ROOT = Path(__file__).parent.parent.parent.parent.parent / "config" / "npc"
@@ -327,10 +325,10 @@ def load_profile_from_legacy_json(raw_data: Dict[str, Any]) -> NPCProfileL0:
             gender=raw_data.get("gender", "male"),
             drives_base=drives_base,
             psyche_base=psyche_base,
-            # voice_profile и backstory пока берем как есть, если есть.
-            # В будущем они будут формироваться из отдельных файлов лора.
+            # voice_profile и backstory берем из JSON.
             voice_profile=raw_data.get("voice_profile", ""),
-            backstory=raw_data.get("description", ""),
+            backstory=raw_data.get("backstory", raw_data.get("description", "")),
+            author_notes=raw_data.get("author_notes", ""),
         )
         
         return profile
@@ -338,6 +336,38 @@ def load_profile_from_legacy_json(raw_data: Dict[str, Any]) -> NPCProfileL0:
     except (KeyError, ValueError, TypeError) as e:
         logger.error(f"[NPC_LOADER] Failed to parse profile from JSON: {e}. Raw keys: {raw_data.keys()}")
         raise ValueError(f"Invalid NPC profile format for id={raw_data.get('id', 'UNKNOWN')}: {e}")
+
+
+def _convert_origin_events(origin_list: List[Dict], npc_id: str) -> tuple:
+    """Конвертирует origin_events из JSON-конфига в кортеж EventMemory.
+    Вызывается только при новой игре, когда narrative_cache ещё пуст."""
+    if not origin_list:
+        return ()
+    from app.models.npc_state import EventMemory
+    _result = []
+    for _d in origin_list:
+        # tags в JSON — list, в модели — set
+        if "tags" in _d and isinstance(_d["tags"], list):
+            _d["tags"] = set(_d["tags"])
+        _mem = EventMemory(
+            event_type=_d.get("event_type", "origin"),
+            target_id=_d.get("target_id", ""),
+            emotion_tag=_d.get("emotion_tag", "neutral"),
+            day=_d.get("day", -1000),
+            importance=_d.get("importance", 0.5),
+            clarity=_d.get("clarity", 1.0),
+            confidence=_d.get("confidence", 1.0),
+            decay_rate=_d.get("decay_rate", 0.001),  # origin забываются медленно
+            summary=_d.get("summary", ""),
+            npc_id=npc_id,
+            tags=_d.get("tags", set()),
+            is_secret=_d.get("is_secret", False),
+            known_by=_d.get("known_by", []),
+            hidden_from=_d.get("hidden_from", []),
+            accessibility=_d.get("accessibility", 1.0),
+        )
+        _result.append(_mem)
+    return tuple(_result)
 
 
 def _restore_narrative_cache(cache_list: List[Dict]) -> tuple:
@@ -349,6 +379,9 @@ def _restore_narrative_cache(cache_list: List[Dict]) -> tuple:
     for _d in cache_list:
         _type_name = _d.pop("_memory_type", None)
         if _type_name == "EventMemory":
+            # tags в JSON — list, в модели — set
+            if "tags" in _d and isinstance(_d["tags"], list):
+                _d["tags"] = set(_d["tags"])
             _mem = EventMemory(**_d)
             # Decay при загрузке — NPC загружается раз в тик
             _mem = _mem.decayed(ticks=1)
@@ -363,7 +396,7 @@ def _restore_narrative_cache(cache_list: List[Dict]) -> tuple:
     return tuple(_result)
 
 
-def load_l2_state_from_runtime_dict(raw_data: Dict[str, Any]) -> NPCStateL2:
+def load_l2_state_from_runtime_dict(raw_data: Dict[str, Any]) -> NPCState:
     """
     Извлекает ДИНАМИЧЕСКОЕ состояние из runtime-словаря (SceneState / JSON).
     В отличие от L0 (который immutable), это меняется каждый тик.
@@ -381,7 +414,7 @@ def load_l2_state_from_runtime_dict(raw_data: Dict[str, Any]) -> NPCStateL2:
     except ValueError:
         will_enum = WillState.FREE
 
-    return NPCStateL2(
+    state = NPCState(
         npc_id=raw_data.get("id", "unknown"),
         hp=int(raw_data.get("hp", 0)),
         max_hp=int(raw_data.get("max_hp", 0)),
@@ -402,29 +435,13 @@ def load_l2_state_from_runtime_dict(raw_data: Dict[str, Any]) -> NPCStateL2:
         },
         # Роль из статического профиля — нужна для фильтрации интентов
         current_role=raw_data.get("status_profile", {}).get("title", ""),
-        
-        # Восстановление narrative_cache из JSON
-        narrative_cache=_restore_narrative_cache(raw_data.get("narrative_cache", [])),
-    )
-
-
-def execute_npc_decision(raw_npc_dict: Dict[str, Any], event_ctx: EventContext, seed: Optional[int] = None) -> 'DecisionResult':
-    """
-    DM Execution Facade (Этап 5).
-    Берет грязные данные NPC из сцены, приводит к чистым типам и получает решение.
-    
-    ВНИМАНИЕ: Эта функция не меняет состояние (StateApplicator вызывается отдельно).
-    """
-    # 1. Извлекаем статику и динамику в строгие контракты
-    profile_l0 = load_profile_from_legacy_json(raw_npc_dict)
-    state_l2 = load_l2_state_from_runtime_dict(raw_npc_dict)
-    
-    # 2. Вычисляем решение
-    hub = DecisionHub(seed=seed)
-    result = hub.compute(
-        state=state_l2,
-        personality=profile_l0,
-        event=event_ctx
     )
     
-    return result    
+    # Восстановление narrative_cache: из runtime-дампа или из origin_events
+    _cache = _restore_narrative_cache(raw_data.get("narrative_cache", []))
+    if not _cache:
+        _npc_id = raw_data.get("id", "unknown")
+        _cache = _convert_origin_events(raw_data.get("origin_events", []), _npc_id)
+    state.narrative_cache = _cache
+    
+    return state 

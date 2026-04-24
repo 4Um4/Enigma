@@ -509,10 +509,14 @@ def create_llama_cpp_provider(
     model_path: str | None = None,
     model_name: str = "default",
     server_url: str | None = None,
+    temperature: float | None = None,
+    repeat_penalty: float | None = None,
 ) -> LlamaCppProvider:
     config = LlamaCppModelConfig(
         path=model_path or settings.llama_cpp_model_path,
         name=model_name,
+        temperature=temperature if temperature is not None else 0.9,
+        repeat_penalty=repeat_penalty if repeat_penalty is not None else 1.12,
     )
     return LlamaCppProvider(
         model_config=config,

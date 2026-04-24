@@ -17,7 +17,7 @@ import logging
 from typing import Optional
 
 # Целевая архитектура данных (L2)
-from app.models.npc_state import NPCStateL2  # алиас для NPCState (L2)
+from app.models.npc_state import NPCState
 from app.core.constants import TRAIT_DECAY_RATE, NARRATIVE_CACHE_MAX
 
 # Легаси-типы, используемые в логике (Enum'ы и контракты)
@@ -60,11 +60,11 @@ class StateApplicator:
 
     def apply(
         self,
-        state:        NPCStateL2,
+        state:        NPCState,
         result:       DecisionResult,
         campaign_id:  str,
         current_tick: int = 0,
-    ) -> NPCStateL2:
+    ) -> NPCState:
         """
         Применяет DecisionResult атомарно.
         Параметр personality УДАЛЁН — он уже использован в DecisionHub.
@@ -145,10 +145,10 @@ class StateApplicator:
 
     def apply_physical(
         self,
-        state: NPCStateL2,
+        state: NPCState,
         outcome: PhysicalOutcome,
         current_tick: int = 0,
-    ) -> tuple[NPCStateL2, list[StateChange]]:
+    ) -> tuple[NPCState, list[StateChange]]:
         """
         Применяет PhysicalOutcome к NPCState.
         Вызывается ДО DecisionHub — NPC видит изменённый мир.
@@ -344,7 +344,7 @@ class StateApplicator:
 
     def _apply_progress(
         self,
-        state:  NPCStateL2,
+        state:  NPCState,
         deltas: "StateDeltas",
     ) -> None:
         """

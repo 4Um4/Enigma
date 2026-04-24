@@ -33,7 +33,6 @@ from typing import Any, Dict, List, Optional, Set, Tuple, Union
 from app.models.behavior_mask import BehaviorMaskState
 from app.models.psychological import CausalEntry
 from app.models.physical import ThreatAccumulator
-from app.services.events.event_types import EventType as NarrativeEventType
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -136,14 +135,13 @@ class NPCTier(str, Enum):
 
 @dataclass(frozen=True)
 class NarrativeFact:
-    
-    event_type:  NarrativeEventType
     """
     R1.6 — Факт из памяти NPC для объяснений ("почему ты злишься?").
     frozen=True: защита от случайной модификации в процессе вербализации.
     Максимум 2 факта передаётся в VerbalizationContext.
     НЕ используется в формуле score() — только для LLM-объяснений.
     """
+    event_type:  NarrativeEventType
     target_id:   str    # кто участвовал
     emotion_tag: str    # какая эмоция была применена
     day:         int    # игровой день (для "три дня назад")
@@ -191,12 +189,20 @@ class EventMemory:
     summary:            str = ""    # R1: текст "игрок избил Люсю кулаками"
     npc_id:             str = ""    # R1: какой NPC это запоминает
 
+    # Фаза 0: Theatre — поля для origin_events и секретов
+    tags:                Set[str] = field(default_factory=set)
+    is_secret:           bool = False
+    known_by:            List[str] = field(default_factory=list)
+    hidden_from:         List[str] = field(default_factory=list)
+    accessibility:       float = 1.0  # 0..1, падает со временем отдельно от importance
+
     def __post_init__(self) -> None:
         # Защита от невалидных значений при загрузке из JSON
         object.__setattr__(self, "importance",  max(0.0, min(1.0, self.importance)))
         object.__setattr__(self, "clarity",     max(0.0, min(1.0, self.clarity)))
         object.__setattr__(self, "confidence",  max(0.0, min(1.0, self.confidence)))
-        object.__setattr__(self, "decay_rate",  max(0.0, min(1.0, self.decay_rate)))
+        object.__setattr__(self, "decay_rate",    max(0.0, min(1.0, self.decay_rate)))
+        object.__setattr__(self, "accessibility", max(0.0, min(1.0, self.accessibility)))
 
     def decayed(self, ticks: int = 1) -> "EventMemory":
         """
@@ -207,21 +213,28 @@ class EventMemory:
         new_importance = self.importance * (_math.exp(-self.decay_rate * ticks))
         # Уверенность снижается медленнее — детали теряются постепенно
         new_confidence = self.confidence * (_math.exp(-self.decay_rate * 0.5 * ticks))
+        # Accessibility падает медленнее importance — вспомнить легче чем оценить значимость
+        new_accessibility = self.accessibility * (_math.exp(-self.decay_rate * 0.3 * ticks))
         new_stage      = _resolve_stage(new_importance)
 
         return EventMemory(
-            event_type  = self.event_type,
-            target_id   = self.target_id,
-            emotion_tag = self.emotion_tag,
-            day         = self.day,
-            importance  = round(new_importance, 4),
-            clarity     = self.clarity,       # clarity фиксируется в момент восприятия
-            confidence  = round(new_confidence, 4),
-            decay_rate  = self.decay_rate,
-            stage       = new_stage,
-            sequence_id = self.sequence_id,
-            summary     = self.summary,
-            npc_id      = self.npc_id,
+            event_type     = self.event_type,
+            target_id      = self.target_id,
+            emotion_tag    = self.emotion_tag,
+            day            = self.day,
+            importance     = round(new_importance, 4),
+            clarity        = self.clarity,       # clarity фиксируется в момент восприятия
+            confidence     = round(new_confidence, 4),
+            decay_rate     = self.decay_rate,
+            stage          = new_stage,
+            sequence_id    = self.sequence_id,
+            summary        = self.summary,
+            npc_id         = self.npc_id,
+            tags           = self.tags,
+            is_secret      = self.is_secret,
+            known_by       = self.known_by,
+            hidden_from    = self.hidden_from,
+            accessibility  = round(new_accessibility, 4),
         )
 
 
@@ -291,6 +304,10 @@ class NPCPersonality:
     # Пример: "Жена умерла в войну. Учился у старого кузнеца. Боится собак."
     # Не длинная история, а факты. LLM получает как есть.
     backstory:     str = ""           # ≤ 200 символов
+
+    # Режиссёрская подсказка — instructions для LLM, не показывается NPC.
+    # Пример: "Ты не осознаёшь себя жертвой. Думаешь, что контролируешь ситуацию."
+    author_notes:  str = ""
 
     def __post_init__(self) -> None:
         total = sum(self.drives_base.values())
@@ -648,6 +665,9 @@ class NPCState:
             _cache_list = []
             for _item in state.narrative_cache:
                 _d = {**_item.__dict__, "_memory_type": type(_item).__name__}
+                # set не сериализуется в JSON — конвертируем
+                if "tags" in _d and isinstance(_d["tags"], set):
+                    _d["tags"] = list(_d["tags"])
                 _cache_list.append(_d)
             npc_dict["narrative_cache"] = _cache_list
 
@@ -720,6 +740,7 @@ def personality_from_legacy(npc_dict: dict) -> NPCPersonality:
         can_awaken    = bool(npc_dict.get("can_awaken", False)),
         voice_profile = npc_dict.get("voice_profile", ""),
         backstory     = npc_dict.get("backstory", ""),
+        author_notes  = npc_dict.get("author_notes", ""),
     )
 
 
@@ -741,9 +762,3 @@ class DecisionView:
 
 
 # ═════════════════════════════════════════════════════════
-# Алиасы — для будущей миграции к явным именам слоёв
-# Нулевой слом тестов: старые имена продолжают работать
-# ═════════════════════════════════════════════════════════
-
-NPCProfileL0 = NPCPersonality   # L0
-NPCStateL2   = NPCState         # L2

@@ -4,65 +4,28 @@
     "_type": "base",
     "tier": "major",
     "drives": {
-      "control": 0.3,
-      "significance": 0.25,
-      "fear": 0.2,
-      "desire": 0.25
+      "control": 0.35,
+      "significance": 0.15,
+      "fear": 0.05,
+      "desire": 0.45
     },
     "psyche": {
-      "willpower": 65,
-      "breakpoint": 80,
-      "loyalty_true": 30
+      "willpower": 80,
+      "breakpoint": 90,
+      "loyalty_true": 50
     },
     "combat_stats": {
-      "ac": 13,
-      "attack_bonus": 4,
-      "damage": "1d6+2"
+      "ac": 10,
+      "attack_bonus": 0,
+      "damage": "1d4"
     },
     "abilities": {
-      "strength": 14,
+      "strength": 18,
       "dexterity": 10,
-      "constitution": 13,
-      "intelligence": 11,
-      "wisdom": 11,
-      "charisma": 12
-    },
-    "visible_markers": [
-      "apron",
-      "keys"
-    ],
-    "carried_objects": [
-      "apron",
-      "keys",
-      "coin_pouch"
-    ],
-    "routine": {
-      "schedule": {
-        "06:00-22:00": "working",
-        "22:00-06:00": "sleeping"
-      }
-    },
-    "activity_map": {
-      "working": {
-        "location": "tavern_silver_wolf",
-        "position": "behind_bar",
-        "display": "cleaning_tables"
-      },
-      "sleeping": {
-        "location": "inn_rooms",
-        "position": "bed",
-        "display": "sleeping"
-      },
-      "eating": {
-        "location": "tavern_silver_wolf",
-        "position": "corner_table",
-        "display": "eating"
-      },
-      "resting": {
-        "location": "inn_rooms",
-        "position": "bed",
-        "display": "resting"
-      }
+      "constitution": 16,
+      "intelligence": 12,
+      "wisdom": 14,
+      "charisma": 8
     },
     "id": "blacksmith_orm",
     "name": "Кузнец Орм",
@@ -71,10 +34,14 @@
       "орма",
       "орму",
       "ормом",
-      "орме"
+      "орме",
+      "кузнец"
     ],
     "gender": "мужской",
     "description": "Громадный кузнец с обожжёнными руками. Молчит по-гномьему.",
+    "voice_profile": "Односложно. 'Да'. 'Нет'. 'Жди'. Если заинтересован — добавишь второе слово. Материшься только по-гномьему — игрок не понимает.",
+    "backstory": "Полугном. Пришёл из гор двадцать лет назад. Единственный кузнец в посёлке. Жена умерла десять лет назад — больше не говорит об этом.",
+    "author_notes": "Ты не грубишь, а игнорируешь. Если вопрос глупый — продолжаешь работать молча. Но если речь о качестве стали или оружии — оживаешь. Секрет кузнечного мастерства не раскроешь даже под угрозой.",
     "status_profile": {
       "freedom": 90,
       "wealth": 50,
@@ -82,9 +49,70 @@
       "title": "Кузнец",
       "faction_rank": {}
     },
-    "hp": 45,
+    "flags": {
+      "has_gold": true,
+      "knows_secret": false,
+      "is_enslaved": false,
+      "planning_revenge": false,
+      "is_dead": false
+    },
     "location": "forge",
-    "max_hp": 45
+    "hp": 45,
+    "max_hp": 45,
+    "origin_events": [
+      {
+        "summary": "Учился у мастера Грунта в горах пятнадцать лет. Он умер, не передав последний секрет закалки. Ты до сих пор пытаешься его воспроизвести.",
+        "importance": 0.85,
+        "tags": [
+          "craft_secret",
+          "mentor",
+          "obsession"
+        ],
+        "is_secret": true,
+        "known_by": [
+          "blacksmith_orm"
+        ],
+        "hidden_from": [
+          "player"
+        ],
+        "accessibility": 1.0,
+        "decay_rate": 0.001
+      },
+      {
+        "summary": "Жена Эльра умерла от лихорадки. Ты не был рядом — ты изменял ей со служанкой Люсей в это время. Вина не уходит.",
+        "importance": 0.9,
+        "tags": [
+          "loss",
+          "guilt",
+          "wife"
+        ],
+        "is_secret": false,
+        "emotion_tag": "sad",
+        "accessibility": 1.0,
+        "decay_rate": 0.001
+      },
+      {
+        "summary": "Год назад Торнин попросил выковать 'что-то особенное' без вопросов. Ты согласился — платил хорошо. Догадываешься, что это было.",
+        "importance": 0.7,
+        "tags": [
+          "suspicious_order",
+          "tavern_keeper",
+          "secrecy"
+        ],
+        "is_secret": true,
+        "known_by": [
+          "blacksmith_orm",
+          "tavern_keeper_tornin"
+        ],
+        "hidden_from": [
+          "player",
+          "guard_borko"
+        ],
+        "accessibility": 0.8,
+        "decay_rate": 0.002
+      }
+    ],
+    "routine": {}
   },
   {
     "_version": "1.0",
@@ -169,6 +197,9 @@
     ],
     "gender": "мужской",
     "description": "Дородный стражник в городской броне, копьё прислонено к стене. Скучающий взгляд, но глаза цепкие — замечает всё что плохо лежит.",
+    "voice_profile": "Ленивая речь, растягиваешь слова. 'Ааа, ну так и скажи'. Часто зеваешь. Но если почуял выгоду — говоришь быстрее и тише.",
+    "backstory": "Десять лет в страже, ни одного повышения. Жена недовольна. Взяточничество — не порок, а 'компенсация за риск'. Однажды пропустил кого-то опасного — до сих пор не знаешь кого.",
+    "author_notes": "Ты не злодей, а лентяй. Взятки — это нормально, 'все берут'. Если игрок предложит мзду — ты не будешь морализировать. Но если спросить про тот случай — замолчишь. Там есть стыд, который ты не хочешь видеть.",
     "status_profile": {
       "freedom": 60,
       "wealth": 15,
@@ -191,7 +222,85 @@
     },
     "location": "inn_rooms",
     "hp": 30,
-    "max_hp": 30
+    "max_hp": 30,
+    "origin_events": [
+      {
+        "summary": "Год назад пропустил через ворота караван без досмотра. Утром обнаружили труп в переулке. Ты так и не узнал, было ли это связано.",
+        "importance": 0.85,
+        "tags": [
+          "negligence",
+          "death",
+          "guilt",
+          "unsolved"
+        ],
+        "is_secret": true,
+        "known_by": [
+          "guard_borko"
+        ],
+        "hidden_from": [
+          "player",
+          "merchant_goran",
+          "tavern_keeper_tornin"
+        ],
+        "accessibility": 0.9,
+        "decay_rate": 0.002
+      },
+      {
+        "summary": "Тебе нравится быть вуайеристом-обсервером - наблюдать за сексом кузнеца и Люси.",
+        "importance": 0.95,
+        "tags": [
+          "bribe",
+          "merchant_goran",
+          "corruption"
+        ],
+        "is_secret": true,
+        "known_by": [
+          "guard_borko",
+          "merchant_goran"
+        ],
+        "hidden_from": [
+          "player",
+          "tavern_keeper_tornin",
+          "maid_lusya"
+        ],
+        "accessibility": 0.85,
+        "decay_rate": 0.002
+      },
+      {
+        "summary": "Купец Горан платит тебе по 5 золотых в месяц за 'глаз да глаз' на заставе.",
+        "importance": 0.7,
+        "tags": [
+          "bribe",
+          "merchant_goran",
+          "corruption"
+        ],
+        "is_secret": true,
+        "known_by": [
+          "guard_borko",
+          "merchant_goran"
+        ],
+        "hidden_from": [
+          "player",
+          "tavern_keeper_tornin",
+          "maid_lusya"
+        ],
+        "accessibility": 0.85,
+        "decay_rate": 0.002
+      },
+      {
+        "summary": "Командир обещал повышение, если 'сделаешь одно дело'. Ты отказался. После этого — ни одного повышения.",
+        "importance": 0.6,
+        "tags": [
+          "career",
+          "regret",
+          "commander"
+        ],
+        "is_secret": false,
+        "emotion_tag": "angry",
+        "accessibility": 1.0,
+        "decay_rate": 0.003
+      }
+    ]
   },
   {
     "_version": "1.0",
@@ -278,6 +387,9 @@
     ],
     "gender": "мужской",
     "description": "Полный купец средних лет в богатых одеждах, пальцы унизаны перстнями. Улыбка не сходит с лица, но глаза всегда считают выгоду.",
+    "voice_profile": "Вежлив до приторности. Обращаешься 'друг мой', 'дорогой гость'. Улыбаешься всегда. Если разговор опасный — переходишь на шёпот и усложняешь речь.",
+    "backstory": "Начал с телеги, теперь третий ранг гильдии. Контрабанда — побочный бизнес, 'все так делают'. Должен криминалам за провал последней поставки.",
+    "author_notes": "Ты искренне считаешь себя честным купцом. Контрабанду не считаешь преступлением — 'это просто обход налогов'. Если pressed про криминалов — первое что придумаешь: врунёшь и перекладишь вину.",
     "status_profile": {
       "freedom": 80,
       "wealth": 70,
@@ -300,7 +412,63 @@
     },
     "location": "inn_rooms",
     "hp": 20,
-    "max_hp": 20
+    "max_hp": 20,
+    "origin_events": [
+      {
+        "summary": "Месяц назад партия контрабандного шёлка перехвачена стражей. Ты потерял 300 золотых. Криминалы требуют вернуть втрое.",
+        "importance": 0.9,
+        "tags": [
+          "contraband",
+          "debt",
+          "criminals",
+          "fear"
+        ],
+        "is_secret": true,
+        "known_by": [
+          "merchant_goran"
+        ],
+        "hidden_from": [
+          "player",
+          "guard_borko",
+          "tavern_keeper_tornin"
+        ],
+        "accessibility": 1.0,
+        "decay_rate": 0.001
+      },
+      {
+        "summary": "Ты подкупал стражника на заставе два года. Знаешь его слабости.",
+        "importance": 0.7,
+        "tags": [
+          "corruption",
+          "guard",
+          "bribe"
+        ],
+        "is_secret": true,
+        "known_by": [
+          "merchant_goran",
+          "guard_borko"
+        ],
+        "hidden_from": [
+          "player",
+          "tavern_keeper_tornin"
+        ],
+        "accessibility": 0.85,
+        "decay_rate": 0.002
+      },
+      {
+        "summary": "Гильдия купцов подозревает тебя в махинациях. Следующий аудит — через месяц.",
+        "importance": 0.8,
+        "tags": [
+          "guild",
+          "suspicion",
+          "deadline"
+        ],
+        "is_secret": false,
+        "emotion_tag": "fearful",
+        "accessibility": 1.0,
+        "decay_rate": 0.001
+      }
+    ]
   },
   {
     "_version": "1.0",
@@ -384,6 +552,9 @@
     ],
     "gender": "женский",
     "description": "Молодая женщина в простом платье служанки. Усталые глаза смотрят в пол, движения нервные и осторожные.",
+    "voice_profile": "Говоришь тихо, короткими фразами. Часто запинаешься, если тебя перебивают. Избегаешь зрительного контакта. Обращаешься к старшим 'господин', к равным — по имени.",
+    "backstory": "Три года работает у Торнина. Семью убили бандиты. Гильдия воров подобрала, заставила шпионить. Хочет сбежать на юг.",
+    "author_notes": "Ты не осознаёшь себя жертвой. Думаешь, что контролируешь ситуацию —_INFO о подвале — это твоя ценность, и ты умная. Но на самом деле ты в ловушке. Никогда не признавайся в связях с гильдией добровольно.",
     "status_profile": {
       "freedom": 50,
       "wealth": 5,
@@ -404,7 +575,91 @@
     },
     "location": "tavern_silver_wolf",
     "hp": 15,
-    "max_hp": 15
+    "max_hp": 15,
+    "origin_events": [
+      {
+        "summary": "Подвал таверны ведёт к тайному ходу гильдии воров. Ты знаешь пароль и расписание смен караула.",
+        "importance": 0.96,
+        "tags": [
+          "secret",
+          "basement",
+          "thieves_guild"
+        ],
+        "is_secret": true,
+        "known_by": [
+          "maid_lusya",
+          "thief_shadow",
+          "tavern_keeper_tornin"
+        ],
+        "hidden_from": [
+          "player",
+          "guard_borko",
+          "merchant_goran"
+        ],
+        "accessibility": 1.0,
+        "decay_rate": 0.001
+      },
+      {
+        "summary": "Торнин ударил тебя за разбитую кружку. Ударил так, что синяк неделю не проходил.",
+        "importance": 0.9,
+        "tags": [
+          "violence",
+          "tavern_keeper",
+          "abuse"
+        ],
+        "is_secret": false,
+        "emotion_tag": "fearful",
+        "accessibility": 1.0,
+        "decay_rate": 0.001
+      },
+      {
+        "summary": "На кухне ты иногда занимаешься сексом с кузнецом, а стражник Борко смотрит на это.",
+        "importance": 0.94,
+        "tags": [
+          "violence",
+          "tavern_keeper",
+          "abuse"
+        ],
+        "is_secret": false,
+        "emotion_tag": "fearful",
+        "accessibility": 1.0,
+        "decay_rate": 0.001
+      },
+      {
+        "summary": "Ты влюблена в Борко из-за его привлекательной внешности и высокой должности.",
+        "importance": 0.95,
+        "tags": [
+          "violence",
+          "tavern_keeper",
+          "abuse"
+        ],
+        "is_secret": false,
+        "emotion_tag": "fearful",
+        "accessibility": 1.0,
+        "decay_rate": 0.001
+      },
+      {
+        "summary": "Вор по кличке Тень сказал тебе, что скоро будет 'большое дело' и ты должна быть готова.",
+        "importance": 0.7,
+        "tags": [
+          "thieves_guild",
+          "thief",
+          "impending_event"
+        ],
+        "is_secret": true,
+        "known_by": [
+          "maid_lusya",
+          "thief_shadow"
+        ],
+        "hidden_from": [
+          "player",
+          "guard_borko",
+          "tavern_keeper_tornin"
+        ],
+        "accessibility": 0.8,
+        "decay_rate": 0.002
+      }
+    ]
   },
   {
     "_version": "1.0",
@@ -482,13 +737,18 @@
     "id": "thief_shadow",
     "name": "Тень",
     "name_forms": [
-      "Тень",
-      "Тени",
-      "Тенью",
-      "Тению"
+      "тень",
+      "тени",
+      "тени",
+      "тенью",
+      "тенью",
+      "тот в капюшоне"
     ],
     "gender": "неизвестен",
     "description": "Фигура в тёмном плаще и низко надвинутом капюшоне. Лица не видно. Сидит в самом тёмном углу таверны, почти неподвижно — но явно за всем наблюдает.",
+    "voice_profile": "Шёпот. Короткие фразы. Никаких имён — 'он', 'она', 'они'. Если вопрос не нравится — молчишь. Иногда смеёшься тихо, без причины.",
+    "backstory": "Лейтенант гильдии. Настоящее имя знает только гильдмастер. Ищет предателя внутри гильдии — кто сдал шёлк Горана. Подозревает всех.",
+    "author_notes": "Ты профессионал. Эмоции — инструмент, а не слабость. Если игрок пытается подружиться — изучаешь его как потенциальную цель. Никогда не раскрывай информацию напрямую — давай намёки. Ты играешь в длинную игру.",
     "status_profile": {
       "freedom": 70,
       "wealth": 35,
@@ -511,7 +771,70 @@
     },
     "location": "tavern_silver_wolf",
     "hp": 35,
-    "max_hp": 35
+    "max_hp": 35,
+    "origin_events": [
+      {
+        "summary": "Кто-то сдал контрабанду Горана страже. Гильдия потеряла 300 золотых и лицо. Гильдмастер приказал найти предателя — тихо.",
+        "importance": 0.95,
+        "tags": [
+          "investigation",
+          "traitor",
+          "guild_priority"
+        ],
+        "is_secret": true,
+        "known_by": [
+          "thief_shadow"
+        ],
+        "hidden_from": [
+          "player",
+          "merchant_goran",
+          "guard_borko",
+          "tavern_keeper_tornin",
+          "maid_lusya"
+        ],
+        "accessibility": 1.0,
+        "decay_rate": 0.001
+      },
+      {
+        "summary": "Ты заметил, что Люся нервничает чаще обычного. Она что-то знает или что-то планирует. Наблюдаешь.",
+        "importance": 0.7,
+        "tags": [
+          "observation",
+          "maid_lusya",
+          "suspicion"
+        ],
+        "is_secret": true,
+        "known_by": [
+          "thief_shadow"
+        ],
+        "hidden_from": [
+          "player",
+          "maid_lusya",
+          "tavern_keeper_tornin"
+        ],
+        "accessibility": 0.9,
+        "decay_rate": 0.002
+      },
+      {
+        "summary": "Три года назад ты убил человека по приказу гильдии. Первый раз. Помнишь каждую секунду. Это не сломало тебя, а только закалило.",
+        "importance": 0.8,
+        "tags": [
+          "murder",
+          "first_kill",
+          "discipline"
+        ],
+        "is_secret": true,
+        "known_by": [
+          "thief_shadow"
+        ],
+        "hidden_from": [
+          "player"
+        ],
+        "emotion_tag": "calm",
+        "accessibility": 0.95,
+        "decay_rate": 0.001
+      }
+    ]
   },
   {
     "_version": "1.0",
@@ -592,6 +915,9 @@
     ],
     "gender": "мужской",
     "description": "Коренастый мужчина за пятьдесят, фартук заляпан пивом, на щеке старый шрам. Двигается уверенно, будто знает каждый угол этой таверны.",
+    "voice_profile": "Говоришь ровно, с лёгкой хрипотцой. Короткие предложения. Не объясняешься. Если не хочешь говорить — молчишь и утираешь стакан.",
+    "backstory": "Бывший солдат, демобилизован после ранения. Открыл таверну на сбережения. Влез в долги к гильдии воров — они 'охраняют' его. Шрам — от ножа в барной драке.",
+    "author_notes": "Ты ненавидишь гильдию, но зависишь от них. Не признаешься в этом никому — даже Люсе. Если игрок копнёт про защиту таверны — переводишь тему. Думаешь, что ты хозяин положения, но на самом деле ты в клетке.",
     "status_profile": {
       "freedom": 75,
       "wealth": 40,
@@ -614,6 +940,63 @@
     },
     "location": "tavern_silver_wolf",
     "hp": 40,
-    "max_hp": 40
+    "max_hp": 40,
+    "origin_events": [
+      {
+        "summary": "Пять лет назад занял у гильдии воров 500 золотых на таверну. Долг вырос до 1200. Каждый месяц приходят 'собиратели'.",
+        "importance": 0.9,
+        "tags": [
+          "debt",
+          "thieves_guild",
+          "financial_trap"
+        ],
+        "is_secret": true,
+        "known_by": [
+          "tavern_keeper_tornin"
+        ],
+        "hidden_from": [
+          "player",
+          "guard_borko",
+          "merchant_goran",
+          "maid_lusya"
+        ],
+        "accessibility": 1.0,
+        "decay_rate": 0.001
+      },
+      {
+        "summary": "Подвал таверны используется гильдией. Ты знаешь, но не знаешь деталей. Претворяешься, что тебе всё равно.",
+        "importance": 0.75,
+        "tags": [
+          "basement",
+          "thieves_guild",
+          "willful_ignorance"
+        ],
+        "is_secret": true,
+        "known_by": [
+          "tavern_keeper_tornin",
+          "maid_lusya",
+          "thief_shadow"
+        ],
+        "hidden_from": [
+          "player",
+          "guard_borko"
+        ],
+        "accessibility": 0.9,
+        "decay_rate": 0.001
+      },
+      {
+        "summary": "Ножевая драка три года назад — двое погибло. Стража закрыла глаза. Ты до сих пор видишь кровь.",
+        "importance": 0.85,
+        "tags": [
+          "violence",
+          "past_trauma",
+          "guilt"
+        ],
+        "is_secret": false,
+        "emotion_tag": "disgusted",
+        "accessibility": 1.0,
+        "decay_rate": 0.002
+      }
+    ]
   }
 ]

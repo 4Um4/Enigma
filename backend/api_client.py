@@ -50,6 +50,7 @@ class GameActionResponse:
     npc_reactions: list[dict]
     world_changes: list[dict]
     journal_entry_id: str | None
+    game_time_minutes: int = 0  # total_minutes для HUD
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -222,6 +223,7 @@ class BackendContract:
             npc_reactions=raw.get("npc_reactions", []),
             world_changes=raw.get("world_changes", []),
             journal_entry_id=raw.get("journal_entry_id"),
+            game_time_minutes=raw.get("game_time_minutes", 0),
         )
 
 
@@ -316,6 +318,7 @@ class DirectGameGateway:
             npc_reactions=result.npc_reactions,
             world_changes=[],
             journal_entry_id=None,
+            game_time_minutes=result.game_time_minutes,
         )
     
     def health(self) -> dict:

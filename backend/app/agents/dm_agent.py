@@ -123,6 +123,23 @@ class DmAgent:
             max_sentences=3,
         )
         
+        # Intro для первой сессии — атмосферное описание вместо пустого промпта
+        _is_session_start = context.get("session_start", False) if context else False
+        if _is_session_start:
+            _scene_block = ""
+            _scene_state = context.get("scene_state", {}) if context else {}
+            if _scene_state:
+                try:
+                    from app.services.scene.scene_state_manager import SceneStateManager
+                    _scene_block = SceneStateManager.get_scene_description(_scene_state) + "\n\n"
+                except Exception:
+                    pass
+            builder.add_custom_block("ВВОДНАЯ СЦЕНА", 
+                f"{_scene_block}Текущая локация: {(context or {}).get('location_id', 'таверна')}\n\n"
+                "Напиши атмосферное описание от второго лица ('ты видишь...'). 2-3 предложения. Без вопросов."
+            )
+            # После intro — стандартные блоки (DMFrame, таргет и т.д.)
+        
         # Определяем тип действия — для диалога пропускаем шумные блоки
         _action_type = ""
         if rules_result:
@@ -472,13 +489,13 @@ class DmAgent:
             if actions else "Нет действий"
         )
         
-        if is_session_start:
-            prompt = self._build_intro_prompt(location, context or {})
-        else:
-            prompt = self._build_prompt(
-                location, actions_str, rules_result, npc_result,
-                world_result, context,
-            )
+        # Контракт всегда — intro через флаг в контексте, не отдельный промпт
+        if is_session_start and context:
+            context["session_start"] = True
+        prompt = self._build_prompt(
+            location, actions_str, rules_result, npc_result,
+            world_result, context,
+        )
             
         system_prompt = self._get_system_prompt(is_r3_direct=(npc_result.get('dm_frame') is not None))
 

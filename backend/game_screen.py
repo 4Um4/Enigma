@@ -179,6 +179,12 @@ class GameScreen:
         if scene_state is None:
             return
 
+        # Игровое время — total_minutes от начала эпохи
+        # При старте парсим из scene_state, дальше обновляем из ответов backend
+        from app.core.calendar import Calendar
+        _env_time_str = scene_state.get("environment", {}).get("time_of_day", "07:00")
+        game_time_minutes: int = Calendar.parse_hhmm(_env_time_str)
+
         # Обогащаем spatial-данные из editor JSON (кэш может быть устаревшим)
         from app.services.scene_state_manager import enrich_scene_spatial
         enrich_scene_spatial(scene_state, campaign_folder)
@@ -488,6 +494,9 @@ class GameScreen:
                 if result.error:
                     message_log.append(f"[Ошибка] {result.error}")
                 else:
+                    # Обновляем время из ответа backend
+                    if result.response.game_time_minutes > 0:
+                        game_time_minutes = result.response.game_time_minutes
                     resp = result.response.dm_response
                     if resp and resp != "Ничего не произошло.":
                         message_log.append(resp)
@@ -532,10 +541,16 @@ class GameScreen:
             self._draw_input_bar(text_input)
             self._draw_message_log(message_log)
 
+            # HUD: FPS + игровое время
             fps_surf = self.renderer.font_small.render(
                 f"FPS: {int(self.clock.get_fps())}", True, (80, 80, 80)
             )
             self.screen.blit(fps_surf, (self.screen.get_width() - 70, 4))
+            
+            time_surf = self.renderer.font_small.render(
+                Calendar.format_full(game_time_minutes), True, (140, 140, 140)
+            )
+            self.screen.blit(time_surf, (self.screen.get_width() - 280, 4))
 
             pygame.display.flip()
             self.clock.tick(60)

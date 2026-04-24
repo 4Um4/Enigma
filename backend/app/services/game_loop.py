@@ -536,7 +536,13 @@ class GameLoop:
             print(f"[DM] {_preview_q}")
             print(f"[NPC] {_preview_a}")
 
-        yield {"type": "done", "tokens": token_count, "ms": elapsed_ms, "tps": tps}
+        yield {
+            "type": "done",
+            "tokens": token_count,
+            "ms": elapsed_ms,
+            "tps": tps,
+            "game_time_minutes": state.shared_context.get("game_time_minutes", 0),
+        }
 
         # R2.1: NarrativeExtractor R2.2.8
         try:
@@ -563,35 +569,40 @@ class GameLoop:
         except Exception as e:
             print(f"[R2.1] NarrativeExtractor error: {e}")
 
-    def _advance_game_time(self, scene_state: dict, action_type: str, raw_input: str) -> None:
+    def _advance_game_time(
+        self,
+        scene_state: dict,
+        action_type: str,
+        raw_input: str,
+        shared_context: dict | None = None,
+    ) -> None:
         """
         Фаза 4 — время продвигается от действий, не от тиков.
-        Обновляет time_of_day в scene_state["environment"].
+        Обновляет total_minutes в shared_context и time_of_day в scene_state.
         """
         from app.core.constants import (
             TIME_DELTA_DIALOG,
             TIME_DELTA_WALK_INDOOR,
             TIME_DELTA_TELEGRAPH,
-            TIME_DELTA_TRAVEL,
         )
+        from app.core.calendar import Calendar
         import re
 
         # Определяем дельту по типу действия
         if action_type in ("dialogue", "player_interacts"):
             _delta_seconds = TIME_DELTA_DIALOG
         elif action_type in ("move", "stealth", "player_moves"):
-            # Проверяем indoor/outdoor по локации
             _location = scene_state.get("location_id", "")
             if "tavern" in _location.lower() or "inn" in _location.lower():
                 _delta_seconds = TIME_DELTA_WALK_INDOOR
             else:
-                _delta_seconds = TIME_DELTA_WALK_INDOOR * 3  # outdoor пока тройной
+                _delta_seconds = TIME_DELTA_WALK_INDOOR * 3
         elif "TELEGRAPH" in raw_input:
             _delta_seconds = TIME_DELTA_TELEGRAPH
         else:
             _delta_seconds = 0
 
-        # Проверяем явные запросы времени в тексте
+        # Явные запросы времени в тексте игрока
         _wait_match = re.search(r"жд[уаю]\s+(\d+)\s+(час|минут|секунд)", raw_input, re.I)
         if _wait_match:
             _amount = int(_wait_match.group(1))
@@ -606,21 +617,28 @@ class GameLoop:
         if _delta_seconds == 0:
             return
 
-        # Обновляем time_of_day
-        _env = scene_state.get("environment", {})
-        _current_time = _env.get("time_of_day", "12:00")
-        try:
-            _h, _m = map(int, _current_time.split(":"))
-            _total_minutes = _h * 60 + _m + _delta_seconds // 60
-            _total_minutes = _total_minutes % (24 * 60)  # wrap around
-            _new_h = _total_minutes // 60
-            _new_m = _total_minutes % 60
-            _new_time = f"{_new_h:02d}:{_new_m:02d}"
-            scene_state["environment"]["time_of_day"] = _new_time
-            if _delta_seconds >= 60:
-                print(f"[TIME_ADVANCE] {_current_time} → {_new_time} (+{_delta_seconds // 60} мин)")
-        except (ValueError, AttributeError):
-            pass
+        # Текущее время из shared_context (новый путь) или из строки (legacy)
+        if shared_context and "game_time_minutes" in shared_context:
+            _current_total = shared_context["game_time_minutes"]
+        else:
+            _env_time = scene_state.get("environment", {}).get("time_of_day", "07:00")
+            _minutes_in_day = Calendar.parse_hhmm(_env_time)
+            _current_total = _minutes_in_day  # legacy: без дня/года
+
+        _new_total = Calendar.advance(_current_total, _delta_seconds)
+
+        # Обновляем shared_context
+        if shared_context is not None:
+            shared_context["game_time_minutes"] = _new_total
+
+        # Обновляем time_of_day в scene_state для совместимости
+        # (scene_state_manager._select_time_variant читает строку)
+        _old_hhmm = Calendar.format_time(_current_total)
+        _new_hhmm = Calendar.format_time(_new_total)
+        scene_state.setdefault("environment", {})["time_of_day"] = _new_hhmm
+
+        if _delta_seconds >= 60:
+            print(f"[TIME_ADVANCE] {_old_hhmm} → {_new_hhmm} (+{_delta_seconds // 60} мин)")
 
     # ────────────────────────────────────────────────────────────────────────────
     # ОБЩИЙ ПАЙПЛАЙН (шаги 1–8 — одинаковы для REST и SSE)
@@ -688,9 +706,9 @@ class GameLoop:
         try:
             scene_state = self.scene_manager.get_scene_state(campaign_id, location)
             if scene_state is None:
-                time_of_day = "12:00"
+                time_of_day = "07:00"
                 if campaign_state:
-                    time_of_day = campaign_state.metadata.get("time_of_day", "12:00")
+                    time_of_day = campaign_state.metadata.get("time_of_day", "07:00")
                 scene_state = self.scene_manager.initialize_scene(
                     campaign_id, location, time_of_day
                 )
@@ -720,6 +738,14 @@ class GameLoop:
                 self.scene_manager.save_scene_state(campaign_id, scene_state)
                 logger.info(f"[GAME_LOOP] Новая сцена: {location}")
             patch_scene_state(shared_context, scene_state)
+            
+            # Инициализация game_time_minutes из scene_state
+            # Новая игра → "07:00" (DEFAULT_START_HOUR), загрузка → сохранённая строка
+            from app.core.calendar import Calendar
+            _env_time = scene_state.get("environment", {}).get("time_of_day", "07:00")
+            _minutes_in_day = Calendar.parse_hhmm(_env_time)
+            # Старые сейвы не хранят день/год — начинаем с эпохи (день 1, год 1)
+            shared_context["game_time_minutes"] = _minutes_in_day
         except Exception as e:
             logger.warning(f"[GAME_LOOP] SceneState error: {e}")
 
@@ -741,13 +767,13 @@ class GameLoop:
             if _life_changes:
                 self.scene_manager.apply_changes(campaign_id, _life_changes, scene_state)
                 print(f"[LIFE_ENGINE] {len(_life_changes)} изменений применено")
-                # Сообщаем DM о прибывших NPC — чтобы он их анонсировал
-                _arrivals = [
+                # Сообщаем DM о прибывших NPC — дедуплицируем (catch-up может дать N одинаковых)
+                _arrivals = list({
                     c.target for c in _life_changes
                     if c.type.value == "npc_position"
                     and c.field == "location"
                     and c.value == location
-                ]
+                })
                 if _arrivals:
                     shared_context["npc_arrivals"] = _arrivals
                     print(f"[LIFE_ENGINE] Прибыли в сцену: {_arrivals}")
@@ -848,8 +874,6 @@ class GameLoop:
                     self._prev_player_distances[campaign_id] = dict(_curr_dists)
                 except Exception as _se_err:
                     logger.warning(f"[SPATIAL] Transition detection failed: {_se_err}")
-                else:
-                    print(f"[TARGET] No target found in: {(raw_input or '')[:50]}...")
             except Exception as _te:
                 import traceback
                 print(f"[TARGET] Extract error: {_te}")
@@ -922,7 +946,6 @@ class GameLoop:
                 player_markers=shared_context.get("player_markers", []),
                 target_npc_id=shared_context.get("player_target_id"),
                 spatial_data=_spatial_data,
-                current_day=shared_context.get("current_day", 1),
                 current_tick=shared_context.get("current_tick", 0),
             )
             
@@ -959,7 +982,7 @@ class GameLoop:
                 )
                 get_event_bus().publish(_game_evt)
                 # Фаза 4 — время продвигается от действий, не от тиков
-                self._advance_game_time(scene_state, _raw_type, raw_input)
+                self._advance_game_time(scene_state, _raw_type, raw_input, shared_context)
                 print(f"[EVENT_BUS] Published: {_game_evt.event_type.name}, target={_game_evt.target_id}")
 
             # ── SCENE EVENT LAYER: единые события для восприятия всеми NPC ──

@@ -138,7 +138,6 @@ class DMRouter:
         target_npc_id: Optional[str],
         distance: float,
         location: str,
-        current_day: int,
         current_tick: int,
     ) -> RouterResult:
         if not raw_input or not raw_input.strip():

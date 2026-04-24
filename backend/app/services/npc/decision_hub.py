@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 # Целевая архитектура данных (L0/L2)
 from app.models.npc_profile import NPCProfileL0
-from app.models.npc_state import NPCStateL2  # алиас для NPCState (L2)
+from app.models.npc_state import NPCState
 
 # Легаси-типы, всё ещё используемые в логике (Enum'ы и контракты результатов)
 from app.models.npc_state import (
@@ -174,7 +174,7 @@ class DecisionHub:
 
     def compute(
         self,
-        state:           NPCStateL2,
+        state:           NPCState,
         personality:     NPCProfileL0,
         event:           EventContext,
         scene_state:     Optional[Dict[str, Any]] = None,

@@ -24,6 +24,7 @@
 - LIFE_ENGINE: тайминги и вероятности макро-симуляции
 """
 
+from enum import IntEnum
 from typing import Final
 
 
@@ -168,8 +169,7 @@ TIME_DELTA_WALK_INDOOR: int = 10    # шаг внутри помещения (с
 TIME_DELTA_WALK_OUTDOOR: int = 60   # шаг на улице (секунды)
 TIME_DELTA_TELEGRAPH: int = 30      # NPC проявил инициативу (секунды)
 TIME_DELTA_WAIT_HOUR: int = 3600    # игрок сказал "жду час"
-TIME_DELTA_TRAVEL: float = 120.0    # 1 единица = 2 минуты (fallback, не используется)
-TIME_UNITS_PER_MINUTE: float = 3.0  # 3 единицы в минуту (переход таверны ~10 мин)
+# TIME_DELTA_TRAVEL и TIME_UNITS_PER_MINUTE удалены — не используются
 
 # Фаза 2.1 — Distance-based idle tick intervals (мс на клиенте)
 IDLE_TICK_NEAR_MS: Final[int] = 2_000       # NPC в радиусе NEAR — тик каждые 2 сек
@@ -186,6 +186,61 @@ MAX_CATCH_UP_TICKS: Final[int] = 10  # лимит catch-up за одно под�
 MAX_CACHED_CAMPAIGNS: Final[int] = 100
 CAMPAIGN_TTL_SECONDS: Final[int] = 3600
 MACRO_SIM_THRESHOLD_SECONDS: Final[int] = 3600
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# GAME_TIME — Структура календаря и форматирование
+# ═══════════════════════════════════════════════════════════════════════
+# Вариант А: часы 0–23 (стандарт цифровых часов, 00:00–23:59)
+# Календарь: 12 месяцев × 30 дней + 5 вставных (межсезонье) = 365 дней
+# Хранение: total_minutes от начала эпохи — позволяет менять календарь
+#   без ломания сохранений
+
+HOURS_PER_DAY: Final[int] = 24
+SECONDS_PER_MINUTE: Final[int] = 60
+SECONDS_PER_HOUR: Final[int] = 60 * SECONDS_PER_MINUTE    # 3600
+SECONDS_PER_DAY: Final[int] = HOURS_PER_DAY * SECONDS_PER_HOUR  # 86400
+
+# Структура года
+DAYS_PER_MONTH: Final[int] = 30
+MONTHS_PER_YEAR: Final[int] = 12
+REGULAR_DAYS_PER_YEAR: Final[int] = DAYS_PER_MONTH * MONTHS_PER_YEAR  # 360
+INTERCALARY_DAYS: Final[int] = 5                                          # после 12-го месяца
+DAYS_PER_YEAR: Final[int] = REGULAR_DAYS_PER_YEAR + INTERCALARY_DAYS     # 365
+SECONDS_PER_YEAR: Final[int] = DAYS_PER_YEAR * SECONDS_PER_DAY
+
+# Дефолты при создании новой сцены
+DEFAULT_START_HOUR: Final[int] = 7
+DEFAULT_START_SECOND_ABS: Final[int] = DEFAULT_START_HOUR * SECONDS_PER_HOUR  # 25200
+DEFAULT_START_DAY: Final[int] = 1    # 1-й день года
+DEFAULT_START_YEAR: Final[int] = 1
+
+
+class GameMonth(IntEnum):
+    """Месяцы игрового календаря. Значения 1–12."""
+    JANUARY = 1
+    FEBRUARY = 2
+    MARCH = 3
+    APRIL = 4
+    MAY = 5
+    JUNE = 6
+    JULY = 7
+    AUGUST = 8
+    SEPTEMBER = 9
+    OCTOBER = 10
+    NOVEMBER = 11
+    DECEMBER = 12
+
+
+# Русские названия для отображения (ключ = GameMonth.value)
+MONTH_NAMES_RU: Final[dict[int, str]] = {
+    1: "Январь", 2: "Февраль", 3: "Март", 4: "Апрель",
+    5: "Май", 6: "Июнь", 7: "Июль", 8: "Август",
+    9: "Сентябрь", 10: "Октябрь", 11: "Ноябрь", 12: "Декабрь",
+}
+
+# Название вставных дней (null-аналог из советов — отдельная строка, не месяц)
+INTERCALARY_NAME_RU: Final[str] = "Межсезонье"
 
 
 # ═══════════════════════════════════════════════════════════════════════
