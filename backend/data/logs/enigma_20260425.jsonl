@@ -1,0 +1,71 @@
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"timestamp": "2026-04-25T00:21:10.070958", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6562}
+{"timestamp": "2026-04-25T00:21:10.117724", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6562, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6534, "vram_after_mb": 6534}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 51, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6532, "vram_after_mb": 6532}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 1130, "status": "complete"}
+{"timestamp": "2026-04-25T00:21:24.799048", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6532}
+{"timestamp": "2026-04-25T00:21:24.846336", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6532, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6532, "vram_after_mb": 6532}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 51, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6532, "vram_after_mb": 6532}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 1350, "status": "complete"}
+{"timestamp": "2026-04-25T00:21:38.174510", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6515}
+{"timestamp": "2026-04-25T00:21:38.221057", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6515, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6515, "vram_after_mb": 6515}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 52, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6515, "vram_after_mb": 6515}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 1015, "status": "complete"}
+{"timestamp": "2026-04-25T00:21:42.188807", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6513}
+{"timestamp": "2026-04-25T00:21:42.236568", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6513, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6513, "vram_after_mb": 6513}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 48, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6513, "vram_after_mb": 6513}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 1301, "status": "complete"}
+{"timestamp": "2026-04-25T00:21:48.226162", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6513}
+{"timestamp": "2026-04-25T00:21:48.271756", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6513, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6515, "vram_after_mb": 6515}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 51, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6515, "vram_after_mb": 6515}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 1352, "status": "complete"}
+{"timestamp": "2026-04-25T00:21:50.225670", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6513}
+{"timestamp": "2026-04-25T00:21:50.271476", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6513, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6513, "vram_after_mb": 6513}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 49, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6513, "vram_after_mb": 6513}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 599, "status": "complete"}
+{"timestamp": "2026-04-25T00:21:52.227696", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6513}
+{"timestamp": "2026-04-25T00:21:52.273695", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6513, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6515, "vram_after_mb": 6515}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 49, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6515, "vram_after_mb": 6515}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 711, "status": "complete"}
+{"timestamp": "2026-04-25T00:21:54.226212", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6515}
+{"timestamp": "2026-04-25T00:21:54.272623", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6515, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6515, "vram_after_mb": 6515}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 55, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6515, "vram_after_mb": 6515}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 800, "status": "complete"}
+{"timestamp": "2026-04-25T00:21:56.241075", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6513}
+{"timestamp": "2026-04-25T00:21:56.288299", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6513, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6513, "vram_after_mb": 6513}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 39, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6513, "vram_after_mb": 6513}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 852, "status": "complete"}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6502, "vram_after_mb": 6502}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 50, "status": "complete"}
+{"level": "INFO", "agent": "llm_input", "capability": "narrative", "prompt_preview": "ВВОДНАЯ СЦЕНА:\nТекущая локация: таверна\n\nНапиши атмосферное описание от второго лица ('ты видишь...'). 2-3 предложения. Без вопросов.\n\nДействия игроков:\nДемеург: Люся?\n\nКлючевые NPC (фокус сцены):\n- Люся внимательно смотрит (Молодая женщина в простом платье служанки.)\n- Стражник Борко тянется к страже (Дородный стражник в городской броне, копьё прислонено к стене.)\n\nФоновые NPC: Купец Горан, Кузнец Орм, Торнин Серебряная Луна, Тень\n\nОбращение игрока:\nИгрок обращается напрямую к Люся. Этот NPC до...", "system_prompt": "Ты — Мастер Подземелий D&D 5e в живом игровом мире.\nОтвечай ТОЛЬКО на русском языке. ЗАПРЕЩЕНО любой другой язык — ни китайского, ни английского.\nНе показывай размышления. Только финальный нарратив.\nН..."}
+{"timestamp": "2026-04-25T00:25:05.269635", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6520}
+{"timestamp": "2026-04-25T00:25:05.314630", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6520, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6503, "vram_after_mb": 6503}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 44, "status": "complete"}
+{"level": "INFO", "agent": "llm_input", "capability": "narrative", "prompt_preview": "Действия игроков:\nДемеург: Было 7,21 а теперь ровно 7,00 видимо время сбоит?\n\nКлючевые NPC (фокус сцены):\n- Стражник Борко повёрнут к игроку (Дородный стражник в городской броне, копьё прислонено к стене.)\n- Купец Горан достаёт что-то из кармана (Полный купец средних лет в богатых одеждах, пальцы унизаны перстнями.)\n\nФоновые NPC: Кузнец Орм, Торнин Серебряная Луна, Тень, Люся\n\nОбращение игрока:\nИгрок обращается напрямую к Люся. Этот NPC должен отреагировать — ответить словами или действием. Оста...", "system_prompt": "Ты — Мастер Подземелий D&D 5e в живом игровом мире.\nОтвечай ТОЛЬКО на русском языке. ЗАПРЕЩЕНО любой другой язык — ни китайского, ни английского.\nНе показывай размышления. Только финальный нарратив.\nН..."}
+{"timestamp": "2026-04-25T00:25:32.971590", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6503}
+{"timestamp": "2026-04-25T00:25:33.019195", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6503, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6503, "vram_after_mb": 6503}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 47, "status": "complete"}
+{"level": "INFO", "agent": "llm_input", "capability": "narrative", "prompt_preview": "Действия игроков:\nДемеург: Люся, я хожу по комнате а время не меняется\n\nКлючевые NPC (фокус сцены):\n- Люся внимательно смотрит (Молодая женщина в простом платье служанки.)\n- Стражник Борко повёрнут к игроку (Дородный стражник в городской броне, копьё прислонено к стене.)\n\nФоновые NPC: Купец Горан, Кузнец Орм, Торнин Серебряная Луна, Тень\n\nОбращение игрока:\nИгрок обращается напрямую к Люся. Этот NPC должен отреагировать — ответить словами или действием. Остальные NPC реагируют как наблюдатели.\n\nС...", "system_prompt": "Ты — Мастер Подземелий D&D 5e в живом игровом мире.\nОтвечай ТОЛЬКО на русском языке. ЗАПРЕЩЕНО любой другой язык — ни китайского, ни английского.\nНе показывай размышления. Только финальный нарратив.\nН..."}
+{"timestamp": "2026-04-25T00:26:01.966075", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6503}
+{"timestamp": "2026-04-25T00:26:02.013947", "level": "INFO", "agent": "dm_narrative", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6503, "vram_delta_mb": 0}

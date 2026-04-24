@@ -363,7 +363,7 @@ class SceneOutcomeBuilder:
                 gender = getattr(npc, "gender", "male")
                 line = f"- {npc.name or npc_id} {intent_desc}"
                 # pronoun-подсказка для 7B — без неё модель галлюцинирует пол
-                if gender not in ("male", "female"):
+                if gender not in ("male", "female", "мужской", "женский"):
                     line += " [он]"
                 # description snippet — даёт модели контекст вместо галлюцинации
                 if npc.description_snippet:

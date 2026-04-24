@@ -63,7 +63,6 @@ class DMOrchestrator:
         player_markers: List[str],
         target_npc_id: Optional[str],
         spatial_data: Dict[str, Any],
-        current_day: int,
         current_tick: int,
     ) -> DMResult:
         """
@@ -79,7 +78,6 @@ class DMOrchestrator:
             target_npc_id=target_npc_id,
             distance=spatial_data.get("distance_to_target", 999.0),
             location=spatial_data.get("location_id", "unknown"),
-            current_day=current_day,
             current_tick=current_tick,
         )
         

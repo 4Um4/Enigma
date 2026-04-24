@@ -128,9 +128,14 @@ class ProviderFactory:
         model_path = None
         if hasattr(agent_settings, 'available_models') and model_key in agent_settings.available_models:
             model_path = agent_settings.available_models[model_key].path
+        # Передаём temperature и repeat_penalty из настроек агента
+        _temp = getattr(agent_settings, 'temperature', 0.9)
+        _rep = getattr(agent_settings, 'repeat_penalty', 1.12)
         return create_llama_cpp_provider(
             model_path=model_path,
             server_url=server_url,
+            temperature=_temp,
+            repeat_penalty=_rep,
         )
     
     @staticmethod

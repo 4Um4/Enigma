@@ -53,6 +53,8 @@ class NPCProfileL0:
     psyche_base: PsycheBase
     voice_profile: str
     backstory: str = ""
+    # Режиссёрская подсказка — instructions для LLM
+    author_notes: str = ""
     inventory_rules: Optional[InventoryProfile] = None
     gender: str = "male"  # "male", "female", "other" — для гендерных окончаний в narrative
 

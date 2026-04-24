@@ -22,7 +22,8 @@ class DmSettings(Settings):
     }
 
     gpu_layers: int = 99
-    temperature: float = 0.9
+    temperature: float = 0.6
+    repeat_penalty: float = 1.15
     ctx_size: int = 8192
 
 

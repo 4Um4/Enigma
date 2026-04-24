@@ -22,7 +22,7 @@ from app.core.constants import (
     PROACTIVE_INTENT_PENALTY,
     WORLD_TICK_EVERY_TURNS,
 )
-from app.models.npc_state import Intent, NPCStateL2, WillState
+from app.models.npc_state import Intent, NPCState, WillState
 from app.models.npc_profile import NPCProfileL0
 from app.services.events.event_types import EventType
 
@@ -76,7 +76,7 @@ class WorldTickEngine:
         self,
         campaign_id: str,
         location: str,
-        npc_data: List[Tuple[str, NPCStateL2, NPCProfileL0]],
+        npc_data: List[Tuple[str, NPCState, NPCProfileL0]],
         scene_state: Dict[str, Any],
         social_modifiers: Optional[Dict[str, Dict[str, float]]] = None,
         reputation_modifiers: Optional[Dict[str, Dict[str, float]]] = None,

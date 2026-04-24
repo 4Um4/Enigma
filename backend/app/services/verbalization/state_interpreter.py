@@ -122,11 +122,11 @@ _gender_cache: dict[tuple[str, str], str] = {}
 def _apply_gender(word: str, gender: str) -> str:
     """
     Адаптирует слово к роду через pymorphy3. Базовая форма — мужской.
-    gender: "male", "female", "other" (other = мужской по умолчанию)
+    gender: "male"/"мужской", "female"/"женский", прочее = мужской по умолчанию
     
     Для составных фраз ("тяжело ранен") обрабатывает последнее слово.
     """
-    if gender != "female":
+    if gender not in ("female", "женский"):
         return word
     
     cache_key = (word, gender)
