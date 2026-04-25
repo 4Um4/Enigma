@@ -50,7 +50,7 @@ class GameActionResponse:
     npc_reactions: list[dict]
     world_changes: list[dict]
     journal_entry_id: str | None
-    game_time_minutes: int = 0  # total_minutes для HUD
+    game_time_seconds: int = 0  # total_seconds для HUD
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -185,6 +185,7 @@ class BackendContract:
             "action": action_text,
             "player_x": player_x,
             "player_y": player_y,
+            "is_telegraph": getattr(action_text, '_is_telegraph', False),
         })
         return self._map_action_response(raw)
     
@@ -223,7 +224,7 @@ class BackendContract:
             npc_reactions=raw.get("npc_reactions", []),
             world_changes=raw.get("world_changes", []),
             journal_entry_id=raw.get("journal_entry_id"),
-            game_time_minutes=raw.get("game_time_minutes", 0),
+            game_time_seconds=raw.get("game_time_seconds", 0),
         )
 
 
@@ -318,46 +319,15 @@ class DirectGameGateway:
             npc_reactions=result.npc_reactions,
             world_changes=[],
             journal_entry_id=None,
-            game_time_minutes=result.game_time_minutes,
+            game_time_seconds=result.game_time_seconds,
         )
     
     def health(self) -> dict:
         return {"status": "ok", "mode": "direct"}
     
     def _advance_time_by_movement(self, campaign_id: str, distance: float) -> None:
-        """Фаза 4 — время продвигается от перемещений (деление, не умножение)."""
-        from app.core.constants import TIME_UNITS_PER_MINUTE
-        
-        if distance < 0.1:
-            return
-        try:
-            _bridge = self._bridge
-            if not _bridge.ready:
-                return
-            _scene = _bridge._game_loop.scene_manager.get_scene_state(campaign_id, "")
-            if not _scene:
-                return
-            _env = _scene.get("environment", {})
-            _current_time = _env.get("time_of_day", "12:00")
-            try:
-                _h, _m = map(int, _current_time.split(":"))
-                # Деление: 3 единицы в минуту. Переход таверны (~30 ед) = 10 мин
-                _delta_minutes = int(distance / TIME_UNITS_PER_MINUTE)
-                if _delta_minutes == 0 and distance >= 1.0:
-                    _delta_minutes = 1  # минимум 1 минута если прошли >= 1 единицы
-                if _delta_minutes == 0:
-                    return  # слишком маленькое перемещение
-                _total_minutes = _h * 60 + _m + _delta_minutes
-                _total_minutes = _total_minutes % (24 * 60)
-                _new_h = _total_minutes // 60
-                _new_m = _total_minutes % 60
-                _scene["environment"]["time_of_day"] = f"{_new_h:02d}:{_new_m:02d}"
-                _bridge._game_loop.scene_manager.save_scene_state(campaign_id, _scene)
-                print(f"[TIME_WALK] {_current_time} → {_scene['environment']['time_of_day']} (+{_delta_minutes} мин за {distance:.1f} ед)")
-            except (ValueError, AttributeError):
-                pass
-        except Exception:
-            pass
+        """Удалено: время продвигается в game_screen.py при каждом шаге через Calendar."""
+        pass
     
     def create_player_session(
         self, campaign_id: str, player_name: str
@@ -386,34 +356,29 @@ class DirectGameGateway:
             return []
     
     def idle_tick(self, campaign_id: str) -> dict:
-        # Прямой вызов life_engine — без LLM, без action
+        """Прямой вызов life_engine + DecisionHub — без LLM, без action."""
         try:
             from app.services.npc.life_engine import get_life_engine
             from game_loop_bridge import get_game_loop_bridge
             _bridge = get_game_loop_bridge()
             if not _bridge.ready:
+                print("[IDLE_TICK_CLIENT] bridge not ready, skipping")
                 return {"status": "not_ready"}
+
             _engine = get_life_engine()
-            _scene = _bridge._game_loop.scene_manager.get_scene_state(campaign_id, "")
-            # Фаза 4 — отслеживаем перемещения через idle_tick (каждые 2 сек)
-            if _scene:
-                _ps = _scene.get("player_spatial", {}).get("local_position") or {}
-                _current_pos = (_ps.get("x", 0.0), _ps.get("y", 0.0))
-                if self._last_player_pos:
-                    import math
-                    _dist = math.hypot(_current_pos[0] - self._last_player_pos[0], _current_pos[1] - self._last_player_pos[1])
-                    if _dist > 0.3:  # минимальный порог чтобы не спамить
-                        self._advance_time_by_movement(campaign_id, _dist)
-                self._last_player_pos = _current_pos
+            _runtime_path = _bridge._loop._get_npc_runtime_path(campaign_id)
+            _scene = _bridge._loop.scene_manager.get_scene_state(campaign_id, "")
+
+            # LifeEngine: расписание, стресс, случайные события
             changes = _engine.tick(campaign_id, _scene, runtime_path=_runtime_path)
             if changes:
-                _bridge._game_loop.scene_manager.apply_changes(campaign_id, changes, _scene)
-            # Фаза 2.1: DecisionHub — NPC думают даже в idle tick
-            _runtime_path = _bridge._game_loop._get_npc_runtime_path(campaign_id)
+                _bridge._loop.scene_manager.apply_changes(campaign_id, changes, _scene)
+
+            # DecisionHub: NPC думают, давление накапливается
             decision_events = _engine.tick_decisions(campaign_id, _scene, runtime_path=_runtime_path)
-            # Формируем significant_events как в routes.py (для телеграфа)
             significant_events = list(decision_events)
-            # Фильтруем life_engine события по расстоянию (как в routes.py)
+
+            # Фильтруем life_engine события по расстоянию до игрока
             if _scene:
                 _player_pos = _scene.get("player_spatial", {}).get("local_position", {})
                 _px, _py = _player_pos.get("x", 0), _player_pos.get("y", 0)
@@ -431,6 +396,7 @@ class DirectGameGateway:
                             "field": _ch.field,
                             "value": str(_ch.value),
                         })
+
             return {
                 "status": "ok",
                 "changes": len(changes),
@@ -438,6 +404,8 @@ class DirectGameGateway:
                 "events": significant_events,
             }
         except Exception as e:
+            import traceback
+            print(f"[IDLE_TICK_CLIENT] ERROR: {e}\n{traceback.format_exc()}")
             return {"status": "error", "error": str(e)}
 
     def load_campaign(self, campaign_id: str, world_id: str = "default") -> dict:
@@ -565,6 +533,11 @@ class FallbackGateway:
 # УРОВЕНЬ 6: ActionQueue — неблокирующая очередь для Pygame
 # ═══════════════════════════════════════════════════════════════════════
 
+class _TelegraphText(str):
+    """Строка с меткой — телеграф NPC, не действие игрока."""
+    _is_telegraph: bool = True
+
+
 @dataclass
 class _PendingAction:
     """Внутреннее представление запроса в очереди."""
@@ -575,6 +548,7 @@ class _PendingAction:
     submitted_at: float
     player_x: float = 0.0  # координаты для синхронизации с бэкендом
     player_y: float = 0.0
+    is_telegraph: bool = False  # NPC телеграф — не действие игрока
 
 
 @dataclass
@@ -700,6 +674,7 @@ class ActionQueue:
             submitted_at=time.monotonic(),
             player_x=player_x,
             player_y=player_y,
+            is_telegraph=True,
         ))
         return action_id
 
@@ -723,10 +698,14 @@ class ActionQueue:
                 break
             
             try:
+                # Помечаем action_text флагом для передачи в payload
+                _text = pending.action_text
+                if pending.is_telegraph:
+                    _text = _TelegraphText(_text)
                 response = self._gateway.send_action(
                     campaign_id=pending.campaign_id,
                     player_name=pending.player_name,
-                    action_text=pending.action_text,
+                    action_text=_text,
                     player_x=pending.player_x,
                     player_y=pending.player_y,
                 )

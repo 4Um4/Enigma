@@ -6,8 +6,8 @@
   "session_summaries": [],
   "metadata": {},
   "scene_state": {
-    "location_id": "tavern_silver_wolf",
-    "snapshot_tick": 3,
+    "location_id": "Таверна Серебряный Волк",
+    "snapshot_tick": 1,
     "objects": {
       "obj_0": {
         "name": "Барная стойка #1",
@@ -519,13 +519,6 @@
         },
         "interactable": true
       },
-      "candles_main": {
-        "name": "свечи",
-        "state": "unlit",
-        "count": 0,
-        "interactable": true,
-        "owner": null
-      },
       "spear_owned_by_guard_borko": {
         "name": "spear",
         "state": "present",
@@ -571,72 +564,66 @@
     },
     "npc_positions": {
       "maid_lusya": {
-        "location_id": "tavern_silver_wolf",
-        "position": "bed",
-        "activity": "sleeping",
-        "visible": false,
+        "location_id": "Таверна Серебряный Волк",
+        "position": "bar_area",
+        "activity": "",
+        "visible": true,
         "local_position": {
           "x": 4.5,
           "y": 5.0
         },
-        "editor_room_id": "room_0",
-        "location": "inn_rooms"
+        "editor_room_id": "room_0"
       },
       "guard_borko": {
-        "location_id": "tavern_silver_wolf",
-        "position": "gate_post",
-        "activity": "guarding_gate",
+        "location_id": "Таверна Серебряный Волк",
+        "position": "corner_table",
+        "activity": "",
         "visible": true,
         "local_position": {
           "x": 12.0,
           "y": 9.0
         },
-        "editor_room_id": "room_0",
-        "location": "city_gate"
+        "editor_room_id": "room_0"
       },
       "blacksmith_orm": {
-        "location_id": "tavern_silver_wolf",
+        "location_id": "Таверна Серебряный Волк",
         "position": "kitchen",
         "activity": "",
-        "visible": false,
+        "visible": true,
         "local_position": {
           "x": 16.4,
           "y": 5.55
         },
-        "editor_room_id": "room_0",
-        "psyche_state": "alert",
-        "stress_delta": 10
+        "editor_room_id": "room_0"
       },
       "tavern_keeper_tornin": {
-        "location_id": "tavern_silver_wolf",
+        "location_id": "Таверна Серебряный Волк",
         "position": "behind_bar",
-        "activity": "cleaning_tables",
+        "activity": "",
         "visible": true,
         "local_position": {
           "x": 4.5,
           "y": 2.5
         },
         "editor_room_id": "room_0",
-        "psyche_state": "alert",
-        "stress_delta": 10
+        "psyche_state": "alert"
       },
       "thief_shadow": {
-        "location_id": "tavern_silver_wolf",
-        "position": "bed",
-        "activity": "sleeping",
-        "visible": false,
+        "location_id": "Таверна Серебряный Волк",
+        "position": "entrance",
+        "activity": "",
+        "visible": true,
         "local_position": {
           "x": 3.5,
           "y": 9.5
         },
-        "editor_room_id": "room_0",
-        "location": "inn_rooms"
+        "editor_room_id": "room_0"
       },
       "merchant_goran": {
-        "location_id": "tavern_silver_wolf",
-        "position": "bed",
-        "activity": "sleeping",
-        "visible": false,
+        "location_id": "Таверна Серебряный Волк",
+        "position": "kitchen",
+        "activity": "",
+        "visible": true,
         "local_position": {
           "x": 14.5,
           "y": 5.5
@@ -646,37 +633,37 @@
     },
     "environment": {
       "light_level": "dim",
-      "noise_level": "silent",
+      "noise_level": "low",
       "time_of_day": "07:00",
-      "weather_inside": "cool_fresh"
+      "weather_inside": "neutral"
     },
     "player_inventory_snapshot": {},
     "active_effects": [],
     "player_position": "стоит",
     "player_spatial": {
-      "location_id": "tavern_silver_wolf",
+      "location_id": "Таверна Серебряный Волк",
       "position": "entrance",
       "local_position": {
-        "x": 8.0,
-        "y": 11.5
+        "x": 2.7573593128807126,
+        "y": 2.318019484660539
       }
     },
     "player_target_npc": null,
     "player_target_npc_name": null,
     "player_target_object": null,
     "player_distances": {
-      "blacksmith_orm": 15.29,
-      "guard_borko": 9.72,
-      "merchant_goran": 13.85,
-      "maid_lusya": 12.38,
-      "thief_shadow": 9.92,
-      "tavern_keeper_tornin": 15.32
+      "blacksmith_orm": 19.02,
+      "guard_borko": 19.24,
+      "merchant_goran": 17.17,
+      "maid_lusya": 7.92,
+      "thief_shadow": 7.22,
+      "tavern_keeper_tornin": 7.41
     },
     "environment_modifiers": {
       "light": 0.4,
-      "noise": 0.0,
-      "density": 0.3,
-      "danger": 0.1
+      "noise": 0.2,
+      "density": 0.0,
+      "danger": 0.0
     },
     "spatial_walls": [
       {
@@ -1177,13 +1164,71 @@
         }
       }
     ],
+    "raw_scene_events": [
+      {
+        "event_type": "verbal",
+        "actor_id": "player",
+        "target_id": "maid_lusya",
+        "location_id": "Таверна Серебряный Волк",
+        "tick": 0,
+        "intensity": 0.3,
+        "visibility_radius": 7.4,
+        "summary": "Люся, у паука 8 ног, у старика три ноги, а у ребенка четыре ноги. Знаешь почему?",
+        "damage": 0,
+        "damage_type": "",
+        "emotion_tag": "",
+        "sound_level": 0.7
+      },
+      {
+        "event_type": "verbal",
+        "actor_id": "player",
+        "target_id": "maid_lusya",
+        "location_id": "Таверна Серебряный Волк",
+        "tick": 0,
+        "intensity": 0.3,
+        "visibility_radius": 7.4,
+        "summary": "Люся, Сколько ног у старика? Помнишь я говорил",
+        "damage": 0,
+        "damage_type": "",
+        "emotion_tag": "",
+        "sound_level": 0.7
+      },
+      {
+        "event_type": "verbal",
+        "actor_id": "player",
+        "target_id": "maid_lusya",
+        "location_id": "Таверна Серебряный Волк",
+        "tick": 0,
+        "intensity": 0.3,
+        "visibility_radius": 7.4,
+        "summary": "А про паука ты помнишь, Люся?",
+        "damage": 0,
+        "damage_type": "",
+        "emotion_tag": "",
+        "sound_level": 0.7
+      },
+      {
+        "event_type": "verbal",
+        "actor_id": "player",
+        "target_id": "thief_shadow",
+        "location_id": "Таверна Серебряный Волк",
+        "tick": 0,
+        "intensity": 0.3,
+        "visibility_radius": 7.4,
+        "summary": "Про паука, помнишь?",
+        "damage": 0,
+        "damage_type": "",
+        "emotion_tag": "",
+        "sound_level": 0.7
+      }
+    ],
     "line_of_sight": {
       "maid_lusya": true,
-      "guard_borko": true,
-      "blacksmith_orm": true,
+      "guard_borko": false,
+      "blacksmith_orm": false,
       "tavern_keeper_tornin": true,
       "thief_shadow": true,
-      "merchant_goran": true
+      "merchant_goran": false
     }
   }
 }

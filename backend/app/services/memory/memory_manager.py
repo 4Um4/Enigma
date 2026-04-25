@@ -48,6 +48,7 @@ class MemoryManager:
         npc_stress: float = 0.0,
         emotion_tag: str = "neutral",
         summary: str = "",
+        importance: float = None,  # ФАЗА 1: переопределение важности для значимых взаимодействий
     ) -> EventMemory:
         """
         R5.3 — Создаёт EventMemory с правильно рассчитанным clarity.
@@ -70,12 +71,13 @@ class MemoryManager:
         )
 
         # 4. Важность события (расширенная версия из R5.3)
-        importance = score_event(
-            event=event,
-            npc_clarity=clarity,
-            npc_stress=npc_stress,
-            emotion_tag=emotion_tag,
-        )
+        if importance is None:
+            importance = score_event(
+                event=event,
+                npc_clarity=clarity,
+                npc_stress=npc_stress,
+                emotion_tag=emotion_tag,
+            )
 
 
         # 5. Негативные эмоции "прилипают" — медленнее затухают в памяти

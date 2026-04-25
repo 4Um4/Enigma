@@ -288,9 +288,15 @@ async def game_action(request: dict, game_loop=Depends(get_game_loop)) -> dict:
         player = request.get("player")
         campaign_id = request.get("campaign")
         action_text = request.get("action")
+        is_telegraph = request.get("is_telegraph", False)
 
         if not player or not campaign_id or not action_text:
             raise HTTPException(status_code=400, detail="Поля 'player', 'campaign', 'action' обязательны")
+        
+        # Телеграф NPC — не действие игрока, пропускаем через idle_tick
+        if is_telegraph:
+            # NPC телеграф обрабатывается как фоновый тик, не засоряет историю игрока
+            return {"response": "", "npc_reactions": [], "world_changes": {}, "journal_entry_id": None}
 
         session = player_session_service.get_session(campaign_id)
         if session is None:
@@ -330,21 +336,8 @@ async def game_action(request: dict, game_loop=Depends(get_game_loop)) -> dict:
                 scene["player_spatial"]["local_position"]["x"] = player_x
                 scene["player_spatial"]["local_position"]["y"] = player_y
                 
-                # Продвигаем время пропорционально расстоянию (1м = 2 мин)
-                if _dist > 0.1:  # минимальный порог чтобы не спамить
-                    _env = scene.get("environment", {})
-                    _current_time = _env.get("time_of_day", "12:00")
-                    try:
-                        _h, _m = map(int, _current_time.split(":"))
-                        _delta_minutes = int(_dist * 2)  # 2 минуты за метр
-                        _total_minutes = _h * 60 + _m + _delta_minutes
-                        _total_minutes = _total_minutes % (24 * 60)
-                        _new_h = _total_minutes // 60
-                        _new_m = _total_minutes % 60
-                        scene["environment"]["time_of_day"] = f"{_new_h:02d}:{_new_m:02d}"
-                        print(f"[TIME_WALK] {_current_time} → {scene['environment']['time_of_day']} (+{_delta_minutes} мин, {_dist:.1f}м)")
-                    except (ValueError, AttributeError):
-                        pass
+                # Время продвигается в game_screen.py при каждом шаге (Calendar)
+                # Удалено легаси-мутирование time_of_day здесь
                 
                 game_loop.scene_manager.save_scene_state(campaign_id, scene)
 

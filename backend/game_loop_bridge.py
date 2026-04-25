@@ -33,7 +33,7 @@ class TurnResult:
     tokens: int = 0
     ms: int = 0
     tps: float = 0.0
-    game_time_minutes: int = 0  # total_minutes для отображения даты/времени
+    game_time_seconds: int = 0  # total_seconds для отображения даты/времени
     error: Optional[str] = None
 
 
@@ -111,7 +111,7 @@ class GameLoopBridge:
                     result.tokens = event.get("tokens", 0)
                     result.ms = event.get("ms", 0)
                     result.tps = event.get("tps", 0.0)
-                    result.game_time_minutes = event.get("game_time_minutes", 0)
+                    result.game_time_seconds = event.get("game_time_seconds", 0),
                 elif etype == "error":
                     result.error = event.get("text", "неизвестная ошибка")
 

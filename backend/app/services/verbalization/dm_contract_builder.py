@@ -133,6 +133,24 @@ class DMContractBuilder:
             self._blocks.append(guardrail)
         return self
     
+    def add_npc_stm(self, stm_block: str) -> "DMContractBuilder":
+        """ФАЗА 0: Блок кратковременной памяти (текущий разговор)."""
+        if stm_block and stm_block.strip():
+            self._blocks.append(f"[Краткая память — текущий разговор]\n{stm_block}")
+        return self
+    
+    def add_npc_l2_memory(self, memory_block: str) -> "DMContractBuilder":
+        """ФАЗА 0: Блок важных воспоминаний (top-3 EventMemory)."""
+        if memory_block and memory_block.strip():
+            self._blocks.append(f"[Важные воспоминания]\n{memory_block}")
+        return self
+    
+    def add_npc_author_notes(self, notes: str) -> "DMContractBuilder":
+        """ФАЗА 0: Режиссёрская инструкция для NPC."""
+        if notes and notes.strip():
+            self._blocks.append(f"[Режиссёрская инструкция]\n{notes}")
+        return self
+    
     def add_custom_block(self, label: str, content: str) -> "DMContractBuilder":
         """Произвольный блок — для расширения без изменения класса."""
         if content and content.strip():

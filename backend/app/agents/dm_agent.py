@@ -173,13 +173,18 @@ class DmAgent:
             if npc_actions:
                 builder.add_custom_block("Физические действия NPC", "\n".join(f"- {a}" for a in npc_actions))
         
+        # Блок 2.4: STM — последние реплики диалога (из WorkingMemory через game_loop)
+        _recent_speech = (context or {}).get("npc_recent_speech", [])
+        print(f"[STM_INJECT] npc_recent_speech={_recent_speech}")
+        if _recent_speech:
+            builder.add_npc_stm("\n".join(_recent_speech))
+        
         # Блок 2.5: Кому обращается игрок — без этого DM не знает что NPC должен отвечать
         if context:
+            # Явный таргет из текста всегда приоритетнее sticky
             _target_id = context.get("player_target_id", "")
-            # Если имя не извлечено из текста — используем предыдущего адресата
-            if not _target_id:
-                _target_id = getattr(self, '_last_target_id', "")
             if _target_id:
+                # Обновляем sticky только для явного таргета, не для fallback
                 self._last_target_id = _target_id
                 _target_name = _target_id
                 # Имя берём из DMFrame (NpcOutcome.name заполняется из real_state)
@@ -401,7 +406,7 @@ class DmAgent:
         )
         # Диагностика: первый раз печатаем полный промпт
         if not getattr(self, '_prompt_printed', False):
-            print(f"[DM_CONTRACT]\nsystem: {contract.system_prompt[:200]}...\nuser: {contract.user_prompt[:500]}...\n[/DM_CONTRACT]")
+            print(f"[DM_CONTRACT]\nsystem: {contract.system_prompt[:200]}...\nuser: {contract.user_prompt[:1200]}...\n[/DM_CONTRACT]")
             self._prompt_printed = True
         return contract.user_prompt
 

@@ -346,9 +346,10 @@ def _convert_origin_events(origin_list: List[Dict], npc_id: str) -> tuple:
     from app.models.npc_state import EventMemory
     _result = []
     for _d in origin_list:
-        # tags в JSON — list, в модели — set
-        if "tags" in _d and isinstance(_d["tags"], list):
-            _d["tags"] = set(_d["tags"])
+        # JSON даёт list, модель требует tuple (frozen dataclass)
+        _tags = tuple(_d["tags"]) if isinstance(_d.get("tags"), list) else tuple()
+        _known = tuple(_d["known_by"]) if isinstance(_d.get("known_by"), list) else tuple()
+        _hidden = tuple(_d["hidden_from"]) if isinstance(_d.get("hidden_from"), list) else tuple()
         _mem = EventMemory(
             event_type=_d.get("event_type", "origin"),
             target_id=_d.get("target_id", ""),
@@ -360,10 +361,10 @@ def _convert_origin_events(origin_list: List[Dict], npc_id: str) -> tuple:
             decay_rate=_d.get("decay_rate", 0.001),  # origin забываются медленно
             summary=_d.get("summary", ""),
             npc_id=npc_id,
-            tags=_d.get("tags", set()),
+            tags=_tags,
             is_secret=_d.get("is_secret", False),
-            known_by=_d.get("known_by", []),
-            hidden_from=_d.get("hidden_from", []),
+            known_by=_known,
+            hidden_from=_hidden,
             accessibility=_d.get("accessibility", 1.0),
         )
         _result.append(_mem)
@@ -379,9 +380,13 @@ def _restore_narrative_cache(cache_list: List[Dict]) -> tuple:
     for _d in cache_list:
         _type_name = _d.pop("_memory_type", None)
         if _type_name == "EventMemory":
-            # tags в JSON — list, в модели — set
+            # JSON даёт list, модель требует tuple (frozen dataclass)
             if "tags" in _d and isinstance(_d["tags"], list):
-                _d["tags"] = set(_d["tags"])
+                _d["tags"] = tuple(_d["tags"])
+            if "known_by" in _d and isinstance(_d["known_by"], list):
+                _d["known_by"] = tuple(_d["known_by"])
+            if "hidden_from" in _d and isinstance(_d["hidden_from"], list):
+                _d["hidden_from"] = tuple(_d["hidden_from"])
             _mem = EventMemory(**_d)
             # Decay при загрузке — NPC загружается раз в тик
             _mem = _mem.decayed(ticks=1)

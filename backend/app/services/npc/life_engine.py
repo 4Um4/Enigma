@@ -82,13 +82,13 @@ from app.core.constants import (
 # Порог для макро-симуляции (в секундах реального времени)
 
 # Fallback для неизвестных NPC
-_DEFAULT_ACTIVITY_MAP: dict[str, tuple[str, str, str]] = {
-    "working":   ("tavern_silver_wolf", "common_area",  "working"),
-    "sleeping":  ("inn_rooms",          "bed",          "sleeping"),
-    "on_duty":   ("city_gate",          "gate_post",    "on_duty"),
-    "off_duty":  ("tavern_silver_wolf", "corner_table", "resting"),
-    "resting":   ("inn_rooms",          "bed",          "resting"),
-    "eating":    ("tavern_silver_wolf", "corner_table", "eating"),
+_DEFAULT_ACTIVITY_MAP: dict[str, tuple[str, str, str]] = {          
+    "working":   ("tavern_silver_wolf", "behind_bar",     "working"),
+    "sleeping": ("tavern_silver_wolf", "corner_table",  "sleeping"),
+    "on_duty":   ("tavern_silver_wolf", "entrance",     "on_duty"),
+    "off Duty":  ("tavern_silver_wolf", "corner_table",  "resting"),
+    "resting":   ("tavern_silver_wolf", "corner_table",  "resting"),
+    "eating":    ("tavern_silver_wolf", "corner_table",  "eating"),
     "drinking":  ("tavern_silver_wolf", "bar_area",     "drinking"),
 }
 
@@ -616,6 +616,7 @@ class LifeEngine:
         npcs = load_npcs_merged(runtime_path=runtime_path)
         hub = DecisionHub()
         decisions: list[dict] = []
+        print(f"[TICK_DECISIONS] start: {len(npcs)} NPCs")
 
         for npc in npcs:
             npc_id = npc.get("id", "?")
@@ -656,7 +657,8 @@ class LifeEngine:
                 _current_pressure = self._idle_pressure.get(_key, 0.0)
                 
                 _pressure_delta = 0.0
-                if result.intent and result.intent.value != "idle":
+                _intent_val = result.intent.value if result.intent else "none"
+                if result.intent and _intent_val != "idle":
                     # Накапливаем score как давление (медленно)
                     _pressure_delta = result.score * IDLE_PRESSURE_ACCUM_RATE
                 else:
@@ -680,9 +682,13 @@ class LifeEngine:
                     self._idle_pressure[_key] = 0.0
 
             except Exception as e:
-                logger.warning(f"[LIFE_ENGINE] Idle decision error for {npc_id}: {e}")
+                import traceback
+                logger.warning(f"[LIFE_ENGINE] Idle decision error for {npc_id}: {e}\n{traceback.format_exc()}")
+                print(f"[TICK_DECISIONS] error: {npc_id} → {e}")
+                print(traceback.format_exc())
                 continue
 
+        print(f"[TICK_DECISIONS] end: {len(decisions)} decisions")
         return decisions
 
     def save_npcs(self, campaign_id: str) -> None:
