@@ -316,6 +316,38 @@ class PlayerTargetExtractor:
                 scene_state=scene_state,
             )
 
+        # Fallback: нет явного таргета в тексте
+        if target_npc_id is None and player_distances:
+            try:
+                from app.services.spatial.spatial_runtime import sound_reach
+                _voice_radius = sound_reach(8.0, scene_state or {})  # голос ≈ 8м базовый
+            except Exception:
+                _voice_radius = 8.0
+
+            # Fallback 1: продолжение диалога — берём предыдущего таргета если в радиусе слышимости
+            if prev_target_id:
+                _prev_dist = player_distances.get(prev_target_id)
+                if _prev_dist is not None and _prev_dist <= _voice_radius:
+                    target_npc_id = prev_target_id
+                    target_npc_name = prev_target_name
+                    print(f"[TARGET] Sticky dialog: {target_npc_name} ({target_npc_id}) dist={_prev_dist:.1f}")
+
+            # Fallback 2: нет предыдущего или он вне зоны — берём ближайшего СЛЫШАЩЕГО NPC
+            if target_npc_id is None:
+                _audible_candidates = {
+                    nid: dist for nid, dist in player_distances.items()
+                    if dist <= _voice_radius
+                }
+                if _audible_candidates:
+                    _nearest_id = min(_audible_candidates, key=_audible_candidates.get)
+                    _nearest_dist = _audible_candidates[_nearest_id]
+                    for ctx in npc_contexts:
+                        if ctx.get("npc_id") == _nearest_id:
+                            target_npc_id = _nearest_id
+                            target_npc_name = ctx.get("npc_name", _nearest_id)
+                            print(f"[TARGET] Fallback nearest audible: {target_npc_name} ({target_npc_id}) dist={_nearest_dist:.1f} voice_range={_voice_radius:.1f}")
+                            break
+
         return target_npc_id, target_npc_name, target_object, player_position, player_distances
 
     # ── Вспомогательные методы ───────────────────────────────────────────────

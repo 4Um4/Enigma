@@ -54,10 +54,14 @@ class VerbalizationContext:
     speech_style: str
     voice_profile: str
     backstory: str
+    author_notes: str = ""  # ФАЗА 0: режиссёрская инструкция для LLM
 
     # Физические ограничения — для ResponseValidator
     can_speak: bool = True
     can_move: bool = True
+
+    # Гендер — для правильных окончаний в речи NPC
+    gender: str = "male"
 
     # Контент
     content_profile: ContentProfile = field(default_factory=ContentProfile)

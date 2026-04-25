@@ -49,6 +49,7 @@ class _MoveState:
     direction: Optional[str] = None
     cooldown: float = 0.0
     path: Optional[list] = None
+    walk_distance_accumulated: float = 0.0  # накопленное расстояние (метры) для расчёта времени
     path_index: int = 0
 
 
@@ -179,11 +180,12 @@ class GameScreen:
         if scene_state is None:
             return
 
-        # Игровое время — total_minutes от начала эпохи
-        # При старте парсим из scene_state, дальше обновляем из ответов backend
+        # Игровое время — total_seconds от начала эпохи
+        # При старте парсим из scene_state, дальше обновляем из ответов backend и движения
         from app.core.calendar import Calendar
+        from app.core.constants import TIME_DELTA_WALK_INDOOR
         _env_time_str = scene_state.get("environment", {}).get("time_of_day", "07:00")
-        game_time_minutes: int = Calendar.parse_hhmm(_env_time_str)
+        self.game_time_seconds: int = Calendar.parse_hhmm(_env_time_str)
 
         # Обогащаем spatial-данные из editor JSON (кэш может быть устаревшим)
         from app.services.scene_state_manager import enrich_scene_spatial
@@ -240,6 +242,19 @@ class GameScreen:
         _last_idle_tick = pygame.time.get_ticks()
         _idle_tick_result: list = []   # потокобезопасный буфер результата
         _idle_tick_running = [False]   # флаг активного запроса
+        _last_telegraph_ms = 0         # cooldown между телеграфами
+        _TELEGRAPH_COOLDOWN_MS = 30_000  # 30 сек между телеграфами
+        # Маппинг npc_id → имя для телеграфа
+        _npc_name_map: dict[str, str] = {}
+        try:
+            import json
+            _npc_dir = Path("config/npc/individuals")
+            if _npc_dir.exists():
+                for _f in _npc_dir.glob("*.json"):
+                    _data = json.loads(_f.read_text(encoding="utf-8"))
+                    _npc_name_map[_data.get("id", "")] = _data.get("name", "")
+        except Exception:
+            pass
 
         import threading
 
@@ -248,10 +263,10 @@ class GameScreen:
                 result = _gateway.idle_tick(campaign_folder)
                 _idle_tick_result.clear()
                 _idle_tick_result.append(result)
-            except Exception:
-                pass
-            finally:
-                _idle_tick_running[0] = False
+            except Exception as e:
+                import traceback
+                print(f"[IDLE_TICK] ERROR: {e}\n{traceback.format_exc()}")
+            _idle_tick_running[0] = False
 
         running = True
         while running:
@@ -404,6 +419,14 @@ class GameScreen:
                     _set_player_xy(scene_state, result.new_x, result.new_y)
                     _check_transition_trigger(scene_state, result.new_x, result.new_y, message_log)
                     move.cooldown = _MOVE_INTERVAL
+                    # Накопительное время: 10 сек за каждый полный метр (а не за микро-шаг 0.3)
+                    move.walk_distance_accumulated += 0.3  # step_size
+                    meters_walked = int(move.walk_distance_accumulated)
+                    if meters_walked > 0:
+                        self.game_time_seconds = Calendar.advance(
+                            self.game_time_seconds, TIME_DELTA_WALK_INDOOR * meters_walked
+                        )
+                        move.walk_distance_accumulated -= meters_walked
 
             # === Idle tick: тикаем мир если игрок давно не действовал ===
             _now = pygame.time.get_ticks()
@@ -434,16 +457,22 @@ class GameScreen:
                                 npc_movement.request_move(npc_id, new_pos_str, scene_state)
                     print(f"[IDLE_TICK] merged: {list(_new_positions.keys())}")
 
-            # Pressure-driven: если idle_tick принёс события от близких NPC → запускаем телеграф
+            # Pressure-driven: если idle_tick принёс proactive события → запускаем телеграф
             _events = _tick_data.get("events", [])
-            if _events and text_input.focused:
+            # Фильтруем только proactive (не life_engine позиционные)
+            _proactive_events = [e for e in _events if e.get("cause") == "idle_pressure"]
+            _now_ms = pygame.time.get_ticks()
+            if _proactive_events and action_queue.pending_count() == 0 and (_now_ms - _last_telegraph_ms >= _TELEGRAPH_COOLDOWN_MS):
                 # Берём самое приоритетное событие
-                _ev = _events[0]
+                _ev = _proactive_events[0]
                 _npc_name = ""
                 _npc_id = _ev.get("target", "")
-                # Получаем имя NPC из scene_state
-                _npc_data = scene_state.get("npc_positions", {}).get(_npc_id, {})
-                _npc_name = _npc_data.get("name", _npc_id)
+                # Имя из маппинга конфигов, или из scene_state, или fallback на id
+                _npc_name = _npc_name_map.get(_npc_id, "")
+                if not _npc_name:
+                    _npc_data = scene_state.get("npc_positions", {}).get(_npc_id, {})
+                    _npc_name = _npc_data.get("name") or _npc_data.get("display_name") or _npc_id
+                _last_telegraph_ms = _now_ms
                 _ev_desc = _ev.get("value", "")
                 # Человекочитаемый текст для DM (без технических деталей)
                 _intent_map = {
@@ -467,11 +496,13 @@ class GameScreen:
                 print(f"[TELEGRAPH] event-driven: {_telegraph_text}")
 
             # Фаза 2.1 — distance-based интервал: в чате = частый, при ходьбе = редкий
-            if text_input.focused:
+            if not text_input.focused:
+                # WASD: чат не в фокусе → NPC двигаются по расстоянию
                 _nearest = _nearest_npc_distance(scene_state)
                 _tick_interval = _idle_tick_interval_ms(_nearest)
             else:
-                _tick_interval = 30_000  # ходьба → игрок сам двигает мир
+                # Диалог: NPC стоят и разговаривают, не "летают" по комнате
+                _tick_interval = 30_000
             # Запускаем новый idle_tick если пора и предыдущий завершён
             if (_now - _last_idle_tick >= _tick_interval
                     and not _idle_tick_running[0]
@@ -495,8 +526,14 @@ class GameScreen:
                     message_log.append(f"[Ошибка] {result.error}")
                 else:
                     # Обновляем время из ответа backend
-                    if result.response.game_time_minutes > 0:
-                        game_time_minutes = result.response.game_time_minutes
+                    _gts = result.response.game_time_seconds
+                    # Защита от tuple (существующий баг сериализации)
+                    if isinstance(_gts, tuple):
+                        _gts = _gts[0] if _gts else 0
+                    if isinstance(_gts, (int, float)) and _gts > 0:
+                        self.game_time_seconds = _gts
+                    # Пауза idle tick: NPC не двигаются пока игрок читает ответ
+                    _last_idle_tick = pygame.time.get_ticks() + 1000
                     resp = result.response.dm_response
                     if resp and resp != "Ничего не произошло.":
                         message_log.append(resp)
@@ -548,7 +585,7 @@ class GameScreen:
             self.screen.blit(fps_surf, (self.screen.get_width() - 70, 4))
             
             time_surf = self.renderer.font_small.render(
-                Calendar.format_full(game_time_minutes), True, (140, 140, 140)
+                Calendar.format_full(self.game_time_seconds), True, (140, 140, 140)
             )
             self.screen.blit(time_surf, (self.screen.get_width() - 280, 4))
 

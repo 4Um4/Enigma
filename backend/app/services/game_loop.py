@@ -541,7 +541,7 @@ class GameLoop:
             "tokens": token_count,
             "ms": elapsed_ms,
             "tps": tps,
-            "game_time_minutes": state.shared_context.get("game_time_minutes", 0),
+            "game_time_seconds": state.shared_context.get("game_time_seconds", 0),
         }
 
         # R2.1: NarrativeExtractor R2.2.8
@@ -578,19 +578,22 @@ class GameLoop:
     ) -> None:
         """
         Фаза 4 — время продвигается от действий, не от тиков.
-        Обновляет total_minutes в shared_context и time_of_day в scene_state.
+        Обновляет total_seconds в shared_context и time_of_day в scene_state.
         """
         from app.core.constants import (
-            TIME_DELTA_DIALOG,
+            TIME_DIALOG_BASE,
+            TIME_DIALOG_PER_CHAR,
+            TIME_DIALOG_MAX,
             TIME_DELTA_WALK_INDOOR,
             TIME_DELTA_TELEGRAPH,
         )
         from app.core.calendar import Calendar
         import re
 
-        # Определяем дельту по типу действия
+        # Время диалога: базовое + длина ввода игрока (скорость речи NPC ~10 симв/с)
         if action_type in ("dialogue", "player_interacts"):
-            _delta_seconds = TIME_DELTA_DIALOG
+            _input_len = len(raw_input) if raw_input else 0
+            _delta_seconds = min(TIME_DIALOG_BASE + int(_input_len * TIME_DIALOG_PER_CHAR), TIME_DIALOG_MAX)
         elif action_type in ("move", "stealth", "player_moves"):
             _location = scene_state.get("location_id", "")
             if "tavern" in _location.lower() or "inn" in _location.lower():
@@ -618,18 +621,18 @@ class GameLoop:
             return
 
         # Текущее время из shared_context (новый путь) или из строки (legacy)
-        if shared_context and "game_time_minutes" in shared_context:
-            _current_total = shared_context["game_time_minutes"]
+        if shared_context and "game_time_seconds" in shared_context:
+            _current_total = shared_context["game_time_seconds"]
         else:
             _env_time = scene_state.get("environment", {}).get("time_of_day", "07:00")
-            _minutes_in_day = Calendar.parse_hhmm(_env_time)
-            _current_total = _minutes_in_day  # legacy: без дня/года
+            _seconds_in_day = Calendar.parse_hhmm(_env_time)
+            _current_total = _seconds_in_day  # legacy: без дня/года
 
         _new_total = Calendar.advance(_current_total, _delta_seconds)
 
         # Обновляем shared_context
         if shared_context is not None:
-            shared_context["game_time_minutes"] = _new_total
+            shared_context["game_time_seconds"] = _new_total
 
         # Обновляем time_of_day в scene_state для совместимости
         # (scene_state_manager._select_time_variant читает строку)
@@ -739,13 +742,13 @@ class GameLoop:
                 logger.info(f"[GAME_LOOP] Новая сцена: {location}")
             patch_scene_state(shared_context, scene_state)
             
-            # Инициализация game_time_minutes из scene_state
+            # Инициализация game_time_seconds из scene_state
             # Новая игра → "07:00" (DEFAULT_START_HOUR), загрузка → сохранённая строка
             from app.core.calendar import Calendar
             _env_time = scene_state.get("environment", {}).get("time_of_day", "07:00")
-            _minutes_in_day = Calendar.parse_hhmm(_env_time)
+            _seconds_in_day = Calendar.parse_hhmm(_env_time)
             # Старые сейвы не хранят день/год — начинаем с эпохи (день 1, год 1)
-            shared_context["game_time_minutes"] = _minutes_in_day
+            shared_context["game_time_seconds"] = _seconds_in_day
         except Exception as e:
             logger.warning(f"[GAME_LOOP] SceneState error: {e}")
 
@@ -1017,6 +1020,13 @@ class GameLoop:
                 shared_context["scene_events"] = _scene_events
                 if _scene_events:
                     print(f"[SCENE_EVENTS] {len(_scene_events)} events emitted: {[e.event_type.value for e in _scene_events]}")
+                    # Накопление в scene_state для cross-tick восприятия (БАГ 2)
+                    from dataclasses import asdict
+                    _se_accum = scene_state.setdefault("raw_scene_events", [])
+                    _se_accum.extend(asdict(e) for e in _scene_events)
+                    if len(_se_accum) > 30:
+                        scene_state["raw_scene_events"] = _se_accum[-30:]
+                    print(f"[SCENE_ACCUM] total={len(_se_accum)} events in scene_state")
             except Exception as _se_err:
                 print(f"[SCENE_EVENTS] error: {_se_err}")
 
@@ -1147,6 +1157,8 @@ class GameLoop:
                     hub_event.scene_flags = _cont_inject.active_flags
                     hub_event.scene_facts = _cont_inject.scene_facts[-3:]
 
+                # Загружаем ВСЕХ NPC один раз — мутации будут в этом списке
+                _all_npcs_raw = self._load_npcs_with_runtime(campaign_id)
                 _dirty_npcs: set = set()  # ID изменённых dict'ов для сохранения
                 _max_npc_stress: float = 0.0  # Salience: максимальный стресс среди NPC
                 for npc in dm_result.scene_context.nearby_npcs:
@@ -1155,8 +1167,7 @@ class GameLoop:
                     npc_id = npc.get("npc_id")
                     if npc_id and dm_result.scene_context.line_of_sight.get(npc_id, False):
                         
-                        # 1. Загружаем полный профиль NPC по ID из config/npc/ + runtime
-                        _all_npcs_raw = self._load_npcs_with_runtime(campaign_id)
+                        # 1. Ищем профиль NPC в уже загруженном списке
                         _npc_profile = None
                         for _n in _all_npcs_raw:
                             if _n.get("id") == npc_id or _n.get("npc_id") == npc_id:
@@ -1458,11 +1469,6 @@ class GameLoop:
                                 result=decision,
                                 campaign_id=campaign_id
                             )
-                            # ЗАМЫКАНИЕ: Записываем новое состояние обратно в dict
-                            from app.models.npc_state import NPCState
-                            NPCState.write_to_legacy(state_to_use_for_llm, _npc_dict_for_write)
-                            _dirty_npcs.add(id(_npc_dict_for_write))
-                            
                             # Собираем недавние события NPC для DecisionHub (память = контекст)
                             hub_event.npc_recent = []
                             if hasattr(state_to_use_for_llm, "narrative_cache"):
@@ -1474,34 +1480,78 @@ class GameLoop:
                             # Salience: обновляем max_stress для фильтрации объектов
                             _max_npc_stress = max(_max_npc_stress, getattr(state_to_use_for_llm, "stress", 0.0))
 
-                            # R1: Память NPC с контекстом — EventMemory с summary
+                            # ФАЗА 1: NPC становятся живыми — запоминаем взаимодействия
                             _new_mem = None  # инициализация до условия — иначе UnboundLocalError
                             try:
                                 _evt_type = hub_event.event_type if hub_event else ""
-                                _evt_target = shared_context.get("player_target_id", "")
-                                # Запоминаем только значимые события — не рутинный диалог
-                                _memorable_types = (
-                                    "player_attacks", "combat", "player_threatens",
-                                    "player_insults", "player_threatens_indirect",
-                                    "theft", "intimidation", "help",
-                                )
-                                if _evt_type in _memorable_types:
+                                _evt_actor = hub_event.actor_id or "player"
+                                _evt_target = shared_context.get("player_target_id") or ""
+                                _intent_val = getattr(decision.intent, "value", "") if decision.intent else ""
+                                _has_target = bool(_evt_target)
+                                _deltas = decision.deltas
+
+                                # Whitelist: социальные интенты, не навигация
+                                _social_intents = ("TALK", "TRADE", "HELP", "ATTACK", "FLEE", "GIVE", "ASK", "THREATEN")
+                                _is_npc_npc = _evt_type in ("npc_interacts_npc", "npc_proximity_close")
+                                _intent_upper = _intent_val.upper() if _intent_val else ""
+                                
+                                _importance = None
+                                _summary = ""
+                                
+                                if _is_npc_npc:
+                                    # NPC-NPC: "Люся спросила у Торнина про поставки"
+                                    _actor_name = _evt_actor
+                                    _target_name = _evt_target
+                                    _summary = f"{_actor_name} → {_target_name}: {_intent_val}"
+                                    _importance = 0.6  # NPC-NPC менее значимы для LLM чем player-NPC
+                                elif _evt_type == "player_interacts" and _has_target:
+                                    # Player-NPC: записываем всегда, даже если NPC ответил observe
+                                    _actor_name = _evt_actor
+                                    _target_name = _evt_target
                                     _player_text = actions[0].action if actions else ""
-                                    _summary = f"{_player_name}: {_player_text[:80]}"
+                                    _summary = f"{_actor_name} → {_target_name}: {_player_text[:60]}"
+                                    _BASE_IMPORTANCE = {
+                                        "TALK": 0.6, "TRADE": 0.7, "HELP": 0.8,
+                                        "ATTACK": 0.9, "FLEE": 0.8, "GIVE": 0.5,
+                                        "ASK": 0.5, "THREATEN": 0.85, "OBSERVE": 0.3,
+                                    }
+                                    _base = _BASE_IMPORTANCE.get(_intent_upper, 0.4)
+                                    _emotion_boost = min(abs(_deltas.emotion_delta) / 5.0, 1.0) * 0.3
+                                    _importance = min(_base + _emotion_boost, 1.0)
+                                elif _has_target and _intent_upper in _social_intents:
+                                    # Player-NPC: "Игрок купил еду у Люси"
+                                    _actor_name = _evt_actor
+                                    _target_name = _evt_target
+                                    _player_text = actions[0].action if actions else ""
+                                    _summary = f"{_actor_name} → {_target_name}: {_player_text[:60]}"
+                                    # Базовая важность по типу интента
+                                    _BASE_IMPORTANCE = {
+                                        "TALK": 0.6, "TRADE": 0.7, "HELP": 0.8,
+                                        "ATTACK": 0.9, "FLEE": 0.8, "GIVE": 0.5,
+                                        "ASK": 0.5, "THREATEN": 0.85,
+                                    }
+                                    _base = _BASE_IMPORTANCE.get(_intent_upper, 0.0)
+                                    # emotion_delta как множитель (шкала ~20, /5.0 = до +30%)
+                                    _emotion_boost = min(abs(_deltas.emotion_delta) / 5.0, 1.0) * 0.3
+                                    _importance = min(_base + _emotion_boost, 1.0)
+                                    
+
+                                if _importance is not None:
                                     _emotion = getattr(state_to_use_for_llm.emotion, "value", "neutral") if state_to_use_for_llm.emotion else "neutral"
                                     _new_mem = self.memory_manager.create_event_memory(
                                         campaign_id=campaign_id,
                                         npc_id=npc_id,
                                         event={
                                             "type": _evt_type,
-                                            "actor": "player",
+                                            "actor": _evt_actor,
                                             "target": _evt_target,
-                                            "action_type": _evt_type,
+                                            "action_type": _intent_upper,
                                         },
                                         scene_state=scene_state,
                                         npc_stress=getattr(state_to_use_for_llm, "stress", 0.0),
                                         emotion_tag=_emotion,
                                         summary=_summary,
+                                        importance=_importance,
                                     )
                                 # R1: записываем в narrative_cache — иначе память теряется
                                 if _new_mem is not None:
@@ -1511,7 +1561,12 @@ class GameLoop:
                                     _cache.sort(key=lambda f: f.importance, reverse=True)
                                     state_to_use_for_llm.narrative_cache = tuple(_cache[:NARRATIVE_CACHE_MAX])
                             except Exception as _mem_err:
-                                print(f"[MEMORY] create_event_memory failed for {npc_id}: {_mem_err}")
+                                    print(f"[MEMORY] create_event_memory failed for {npc_id}: {_mem_err}")
+
+                            # ЗАМЫКАНИЕ: Записываем состояние в dict ПОСЛЕ всех мутаций (включая память)
+                            from app.models.npc_state import NPCState
+                            NPCState.write_to_legacy(state_to_use_for_llm, _npc_dict_for_write)
+                            _dirty_npcs.add(id(_npc_dict_for_write))
 
                             # Фаза 1: activity вычисляется из intent, не хранится как константа.
                             # Это связывает психологический движок с тем что видит LLM в сцене.
@@ -1575,8 +1630,12 @@ class GameLoop:
                             speech_style=_dominant_drive,
                             voice_profile=profile_l0.voice_profile,
                             backstory=profile_l0.backstory,
+                            author_notes=profile_l0.author_notes,
                             can_speak=_interpreter.derive_can_speak(state_to_use_for_llm.posture, state_to_use_for_llm.conditions),
                             can_move=_interpreter.derive_can_move(state_to_use_for_llm.posture, state_to_use_for_llm.conditions, state_to_use_for_llm.hp),
+                            gender=profile_l0.gender,
+                            # ФАЗА 0: передаём narrative_cache как hints для LLM
+                            narrative_hints=state_to_use_for_llm.narrative_cache,
                         )
                         
                         # Формируем единый контекст NPC
@@ -1589,10 +1648,11 @@ class GameLoop:
                             logger.warning(f"[DM_FACADE] Failed to parse deltas for {npc_id}: {e}")
                         
                         # Scene Event Layer: NPC видит все события в сцене
-                        _perceived = shared_context.get("scene_events", [])
+                        _perceived = scene_state.get("raw_scene_events", [])
                         npc_contexts.append({
                             "npc_id": npc_id,
                             "tier": profile_l0.tier,
+                            "profile_l0": profile_l0,           # ФАЗА 0: для voice/backstory/author_notes
                             "verbalization_ctx": verb_ctx,   # КЛЮЧ: Переключает агента на путь R3!
                             "decision_result": decision,      # Для будущего StateApplicator
                             "distortion_bias": _distortion_bias,  # Для ProjectionLayer (речь)
@@ -1607,7 +1667,7 @@ class GameLoop:
                     self.scene_manager.commit(
                         campaign_id=campaign_id,
                         scene_state=shared_context["scene_state"],
-                        npc_dicts=self._load_npcs_with_runtime(campaign_id),
+                        npc_dicts=_all_npcs_raw,  # тот же список с мутациями
                     )
 
                 # ФАЗА 3.5: Reputation impact — влияние действий на репутацию фракций
@@ -1992,13 +2052,19 @@ class GameLoop:
                 for ctx in _filtered_ctxs
                 if ctx.get("distortion_bias")
             }
+            # ФАЗА 0: профили NPC для voice_profile, backstory, author_notes
+            _npc_profiles = {
+                ctx["npc_id"]: ctx["profile_l0"]
+                for ctx in _filtered_ctxs
+                if ctx.get("profile_l0")
+            }
 
             # Строим SceneOutcome → DMFrame (с психологической проекцией)
-            # TODO: npc_profiles требует конвертации raw→NPCProfileL0 — пока None (voice constraints не применяются)
             _scene = _builder.build(
                 _decisions, _scene_ctx,
                 state_snapshots=_state_snapshots,
                 distortion_biases=_distortion_biases,
+                npc_profiles=_npc_profiles,
             )
 
             # Диагностика ProjectionLayer + DecisionHub

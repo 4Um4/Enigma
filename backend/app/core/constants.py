@@ -163,13 +163,35 @@ TICK_SAVE_INTERVAL: Final[int] = 10
 TICK_REAL_SECONDS: Final[int] = 300
 TICKS_PER_DAY: Final[int] = 24  # 1 тик = 1 час игрового, 24 тика = 1 день
 
-# Фаза 4 — Время продвигается от действий, не от тиков
-TIME_DELTA_DIALOG: int = 0          # диалог — время не идёт (секунды)
-TIME_DELTA_WALK_INDOOR: int = 10    # шаг внутри помещения (секунды)
-TIME_DELTA_WALK_OUTDOOR: int = 60   # шаг на улице (секунды)
-TIME_DELTA_TELEGRAPH: int = 30      # NPC проявил инициативу (секунды)
-TIME_DELTA_WAIT_HOUR: int = 3600    # игрок сказал "жду час"
-# TIME_DELTA_TRAVEL и TIME_UNITS_PER_MINUTE удалены — не используются
+# Фаза 4 — Время продвигается от действий, не от реального времени
+# Все дельты в секундах игрового времени
+
+# Движение
+TIME_DELTA_WALK_INDOOR: int = 10    # шаг внутри помещения
+TIME_DELTA_WALK_OUTDOOR: int = 60   # шаг на улице (тройной от indoor)
+
+# TIME_DELTA_DIALOG удалён — заменён на TIME_DIALOG_BASE + TIME_DIALOG_PER_CHAR
+TIME_DIALOG_BASE: int = 5                  # минимальное время за любой диалог (произнесение "привет")
+TIME_DIALOG_PER_CHAR: float = 0.5         # +0.5 сек за символ ввода (скорость речи ~10 симв/с)
+TIME_DIALOG_MAX: int = 30                 # потолок (длинный монолог NPC)
+
+# Телеграф — NPC проявил инициативу
+TIME_DELTA_TELEGRAPH: int = 30
+
+# Явные запросы (используются в regex, не как константы)
+TIME_SECONDS_PER_HOUR: int = 3600
+TIME_SECONDS_PER_MINUTE: int = 60
+
+# Тик мира — привязан к игровому времени, не к реальному
+# 1 тик = 15 минут игрового. За вечер (3 часа) = 12 тиков.
+# Достаточно для LifeEngine, DecisionHub, NeedEngine.
+GAME_TICK_INTERVAL_SECONDS: int = 900  # 15 минут = 900 секунд
+
+# Давление для телеграфа — от реального молчания при открытом TAB
+# Игрок молчит → давление растёт → телеграф
+# Игрок пишет → давление НЕ растёт
+PRESSURE_IDLE_RATE: float = 0.05      # +0.05 за секунду реального молчания
+PRESSURE_THRESHOLD: float = 0.5       # порог для триггера телеграфа
 
 # Фаза 2.1 — Distance-based idle tick intervals (мс на клиенте)
 IDLE_TICK_NEAR_MS: Final[int] = 2_000       # NPC в радиусе NEAR — тик каждые 2 сек
@@ -179,7 +201,7 @@ IDLE_TICK_NEAR_RADIUS: Final[float] = 5.0   # порог "близко" (мет�
 IDLE_TICK_MID_RADIUS: Final[float] = 15.0   # порог "средне" (метров, = perception cap)
 
 # Фаза 2.1 — DecisionHub в idle_tick
-IDLE_DECISION_SCORE_THRESHOLD: Final[float] = 0.5  # порог накопленного давления для триггера телеграфа
+IDLE_DECISION_SCORE_THRESHOLD: Final[float] = 0.15  # порог накопленного давления для триггера телеграфа (~6 тиков)
 IDLE_PRESSURE_ACCUM_RATE: Final[float] = 0.1       # 10% от score за тик
 IDLE_PRESSURE_DECAY_RATE: Final[float] = 0.05      # 5% decay за тик
 MAX_CATCH_UP_TICKS: Final[int] = 10  # лимит catch-up за одно подключение

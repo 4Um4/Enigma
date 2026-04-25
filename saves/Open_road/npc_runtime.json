@@ -12,7 +12,10 @@
     "psyche": {
       "willpower": 80,
       "breakpoint": 90,
-      "loyalty_true": 50
+      "loyalty_true": 50,
+      "stress": 0.0,
+      "trauma_flags": [],
+      "state": "free"
     },
     "combat_stats": {
       "ac": 10,
@@ -112,6 +115,11 @@
         "decay_rate": 0.002
       }
     ],
+    "social_stats": {
+      "trust": -0.226,
+      "fear_of_player": 0.1845,
+      "debt": 0.0
+    },
     "routine": {}
   },
   {
@@ -127,7 +135,10 @@
     "psyche": {
       "willpower": 45,
       "breakpoint": 65,
-      "loyalty_true": 30
+      "loyalty_true": 30,
+      "stress": 0.0,
+      "trauma_flags": [],
+      "state": "free"
     },
     "combat_stats": {
       "ac": 14,
@@ -300,7 +311,12 @@
         "accessibility": 1.0,
         "decay_rate": 0.003
       }
-    ]
+    ],
+    "social_stats": {
+      "trust": -0.226,
+      "fear_of_player": 0.1845,
+      "debt": 0.0
+    }
   },
   {
     "_version": "1.0",
@@ -315,7 +331,10 @@
     "psyche": {
       "willpower": 50,
       "breakpoint": 70,
-      "loyalty_true": 45
+      "loyalty_true": 45,
+      "stress": 0.0,
+      "trauma_flags": [],
+      "state": "free"
     },
     "combat_stats": {
       "ac": 11,
@@ -468,7 +487,12 @@
         "accessibility": 1.0,
         "decay_rate": 0.001
       }
-    ]
+    ],
+    "social_stats": {
+      "trust": -0.226,
+      "fear_of_player": 0.1845,
+      "debt": 0.0
+    }
   },
   {
     "_version": "1.0",
@@ -483,7 +507,10 @@
     "psyche": {
       "willpower": 35,
       "breakpoint": 55,
-      "loyalty_true": 0
+      "loyalty_true": 0,
+      "stress": 0.19999999999999998,
+      "trauma_flags": [],
+      "state": "free"
     },
     "combat_stats": {
       "ac": 10,
@@ -554,7 +581,7 @@
     "description": "Молодая женщина в простом платье служанки. Усталые глаза смотрят в пол, движения нервные и осторожные.",
     "voice_profile": "Говоришь тихо, короткими фразами. Часто запинаешься, если тебя перебивают. Избегаешь зрительного контакта. Обращаешься к старшим 'господин', к равным — по имени.",
     "backstory": "Три года работает у Торнина. Семью убили бандиты. Гильдия воров подобрала, заставила шпионить. Хочет сбежать на юг.",
-    "author_notes": "Ты не осознаёшь себя жертвой. Думаешь, что контролируешь ситуацию —_INFO о подвале — это твоя ценность, и ты умная. Но на самом деле ты в ловушке. Никогда не признавайся в связях с гильдией добровольно.",
+    "author_notes": "Ты не осознаёшь себя жертвой. Думаешь, что контролируешь ситуацию — информация о подвале — это твоя ценность, и ты умная. Но на самом деле ты в ловушке. Никогда не признавайся в связях с гильдией добровольно.",
     "status_profile": {
       "freedom": 50,
       "wealth": 5,
@@ -578,12 +605,169 @@
     "max_hp": 15,
     "origin_events": [
       {
-        "summary": "Подвал таверны ведёт к тайному ходу гильдии воров. Ты знаешь пароль и расписание смен караула.",
+        "summary": "Торнин ударил тебя за разбитую кружку. Синяк прошёл, но тело помнит — каждый звон кружки триггер. Ты не можешь уйти, у тебя нет денег и некуда идти.",
         "importance": 0.96,
+        "tags": [
+          "violence",
+          "tavern_keeper",
+          "abuse",
+          "trauma",
+          "trigger"
+        ],
+        "is_secret": false,
+        "emotion_tag": "traumatized",
+        "accessibility": 1.0,
+        "decay_rate": 0.001
+      },
+      {
+        "summary": "Подвал таверны ведёт к тайному ходу гильдии воров. Ты знаешь пароль и расписание смен. [Это твой козырь — доказательство что ты умная, не просто вещь. Без этого знания психика рухнет.]",
+        "importance": 0.92,
         "tags": [
           "secret",
           "basement",
-          "thieves_guild"
+          "thieves_guild",
+          "control_anchor"
+        ],
+        "is_secret": true,
+        "known_by": [
+          "maid_lusya",
+          "thief_shadow",
+          "tavern_keeper_tornin"
+        ],
+        "hidden_from": [
+          "player",
+          "guard_borko",
+          "merchant_goran"
+        ],
+        "emotion_tag": "secretly_proud",
+        "accessibility": 1.0,
+        "decay_rate": 0.001
+      },
+      {
+        "summary": "Вор по кличке Тень сказал тебе, что скоро будет 'большое дело' и ты должна быть готова. Ты отложила этот страх в ящик — 'ещё не сейчас, я придумаю'.",
+        "importance": 0.82,
+        "tags": [
+          "thieves_guild",
+          "thief_shadow",
+          "impending_event",
+          "orders",
+          "avoidance"
+        ],
+        "is_secret": true,
+        "known_by": [
+          "maid_lusya",
+          "thief_shadow"
+        ],
+        "hidden_from": [
+          "player",
+          "guard_borko",
+          "tavern_keeper_tornin",
+          "merchant_goran"
+        ],
+        "emotion_tag": "anxious",
+        "accessibility": 0.8,
+        "decay_rate": 0.002
+      },
+      {
+        "summary": "На кухне ты иногда занимаешься сексом с кузнецом, а стражник Борко смотрит и мастурбирует. Ты считаешь это сделкой — он не расскажет, если получит своё.",
+        "importance": 0.65,
+        "tags": [
+          "intimacy",
+          "blacksmith_orm",
+          "guard_borko",
+          "voyeurism",
+          "compromise"
+        ],
+        "is_secret": true,
+        "known_by": [
+          "maid_lusya",
+          "blacksmith_orm",
+          "guard_borko"
+        ],
+        "hidden_from": [
+          "player",
+          "tavern_keeper_tornin",
+          "merchant_goran",
+          "thief_shadow"
+        ],
+        "emotion_tag": "resigned",
+        "accessibility": 1.0,
+        "decay_rate": 0.002
+      },
+      {
+        "summary": "Ты влюблена в Борко — его форма, его взгляд. [Симптом, не ресурс. Желание пытается перекрыть страх. Глубоко ты ему не веришь.]",
+        "importance": 0.25,
+        "tags": [
+          "crush",
+          "guard_borko",
+          "emotion",
+          "projection",
+          "symptom"
+        ],
+        "is_secret": true,
+        "known_by": [
+          "maid_lusya"
+        ],
+        "hidden_from": [
+          "player",
+          "guard_borko",
+          "tavern_keeper_tornin"
+        ],
+        "emotion_tag": "desperate_hope",
+        "accessibility": 1.0,
+        "decay_rate": 0.003
+      }
+    ],
+    "social_stats": {
+      "trust": -0.226,
+      "fear_of_player": 0.1845,
+      "debt": 0.0
+    },
+    "narrative_cache": [
+      {
+        "event_type": "origin",
+        "target_id": "",
+        "emotion_tag": "traumatized",
+        "day": -1000,
+        "importance": 0.96,
+        "clarity": 1.0,
+        "confidence": 1.0,
+        "decay_rate": 0.001,
+        "stage": "fresh",
+        "sequence_id": 0,
+        "summary": "Торнин ударил тебя за разбитую кружку. Синяк прошёл, но тело помнит — каждый звон кружки триггер. Ты не можешь уйти, у тебя нет денег и некуда идти.",
+        "npc_id": "maid_lusya",
+        "tags": [
+          "violence",
+          "tavern_keeper",
+          "abuse",
+          "trauma",
+          "trigger"
+        ],
+        "is_secret": false,
+        "known_by": [],
+        "hidden_from": [],
+        "accessibility": 1.0,
+        "_memory_type": "EventMemory"
+      },
+      {
+        "event_type": "origin",
+        "target_id": "",
+        "emotion_tag": "secretly_proud",
+        "day": -1000,
+        "importance": 0.92,
+        "clarity": 1.0,
+        "confidence": 1.0,
+        "decay_rate": 0.001,
+        "stage": "fresh",
+        "sequence_id": 0,
+        "summary": "Подвал таверны ведёт к тайному ходу гильдии воров. Ты знаешь пароль и расписание смен. [Это твой козырь — доказательство что ты умная, не просто вещь. Без этого знания психика рухнет.]",
+        "npc_id": "maid_lusya",
+        "tags": [
+          "secret",
+          "basement",
+          "thieves_guild",
+          "control_anchor"
         ],
         "is_secret": true,
         "known_by": [
@@ -597,54 +781,27 @@
           "merchant_goran"
         ],
         "accessibility": 1.0,
-        "decay_rate": 0.001
+        "_memory_type": "EventMemory"
       },
       {
-        "summary": "Торнин ударил тебя за разбитую кружку. Ударил так, что синяк неделю не проходил.",
-        "importance": 0.9,
-        "tags": [
-          "violence",
-          "tavern_keeper",
-          "abuse"
-        ],
-        "is_secret": false,
-        "emotion_tag": "fearful",
-        "accessibility": 1.0,
-        "decay_rate": 0.001
-      },
-      {
-        "summary": "На кухне ты иногда занимаешься сексом с кузнецом, а стражник Борко смотрит на это.",
-        "importance": 0.94,
-        "tags": [
-          "violence",
-          "tavern_keeper",
-          "abuse"
-        ],
-        "is_secret": false,
-        "emotion_tag": "fearful",
-        "accessibility": 1.0,
-        "decay_rate": 0.001
-      },
-      {
-        "summary": "Ты влюблена в Борко из-за его привлекательной внешности и высокой должности.",
-        "importance": 0.95,
-        "tags": [
-          "violence",
-          "tavern_keeper",
-          "abuse"
-        ],
-        "is_secret": false,
-        "emotion_tag": "fearful",
-        "accessibility": 1.0,
-        "decay_rate": 0.001
-      },
-      {
-        "summary": "Вор по кличке Тень сказал тебе, что скоро будет 'большое дело' и ты должна быть готова.",
-        "importance": 0.7,
+        "event_type": "origin",
+        "target_id": "",
+        "emotion_tag": "anxious",
+        "day": -1000,
+        "importance": 0.82,
+        "clarity": 1.0,
+        "confidence": 1.0,
+        "decay_rate": 0.002,
+        "stage": "fresh",
+        "sequence_id": 0,
+        "summary": "Вор по кличке Тень сказал тебе, что скоро будет 'большое дело' и ты должна быть готова. Ты отложила этот страх в ящик — 'ещё не сейчас, я придумаю'.",
+        "npc_id": "maid_lusya",
         "tags": [
           "thieves_guild",
-          "thief",
-          "impending_event"
+          "thief_shadow",
+          "impending_event",
+          "orders",
+          "avoidance"
         ],
         "is_secret": true,
         "known_by": [
@@ -654,10 +811,98 @@
         "hidden_from": [
           "player",
           "guard_borko",
-          "tavern_keeper_tornin"
+          "tavern_keeper_tornin",
+          "merchant_goran"
         ],
         "accessibility": 0.8,
-        "decay_rate": 0.002
+        "_memory_type": "EventMemory"
+      },
+      {
+        "event_type": "origin",
+        "target_id": "",
+        "emotion_tag": "resigned",
+        "day": -1000,
+        "importance": 0.65,
+        "clarity": 1.0,
+        "confidence": 1.0,
+        "decay_rate": 0.002,
+        "stage": "fresh",
+        "sequence_id": 0,
+        "summary": "На кухне ты иногда занимаешься сексом с кузнецом, а стражник Борко смотрит и мастурбирует. Ты считаешь это сделкой — он не расскажет, если получит своё.",
+        "npc_id": "maid_lusya",
+        "tags": [
+          "intimacy",
+          "blacksmith_orm",
+          "guard_borko",
+          "voyeurism",
+          "compromise"
+        ],
+        "is_secret": true,
+        "known_by": [
+          "maid_lusya",
+          "blacksmith_orm",
+          "guard_borko"
+        ],
+        "hidden_from": [
+          "player",
+          "tavern_keeper_tornin",
+          "merchant_goran",
+          "thief_shadow"
+        ],
+        "accessibility": 1.0,
+        "_memory_type": "EventMemory"
+      },
+      {
+        "event_type": "player_interacts",
+        "target_id": "thief_shadow",
+        "emotion_tag": "neutral",
+        "day": 0,
+        "importance": 0.324,
+        "clarity": 0.85,
+        "confidence": 0.95,
+        "decay_rate": 0.05,
+        "stage": "fresh",
+        "sequence_id": 0,
+        "summary": "player → thief_shadow: Про паука, помнишь?",
+        "npc_id": "maid_lusya",
+        "tags": [],
+        "is_secret": false,
+        "known_by": [],
+        "hidden_from": [],
+        "accessibility": 1.0,
+        "_memory_type": "EventMemory"
+      },
+      {
+        "event_type": "origin",
+        "target_id": "",
+        "emotion_tag": "desperate_hope",
+        "day": -1000,
+        "importance": 0.25,
+        "clarity": 1.0,
+        "confidence": 1.0,
+        "decay_rate": 0.003,
+        "stage": "fresh",
+        "sequence_id": 0,
+        "summary": "Ты влюблена в Борко — его форма, его взгляд. [Симптом, не ресурс. Желание пытается перекрыть страх. Глубоко ты ему не веришь.]",
+        "npc_id": "maid_lusya",
+        "tags": [
+          "crush",
+          "guard_borko",
+          "emotion",
+          "projection",
+          "symptom"
+        ],
+        "is_secret": true,
+        "known_by": [
+          "maid_lusya"
+        ],
+        "hidden_from": [
+          "player",
+          "guard_borko",
+          "tavern_keeper_tornin"
+        ],
+        "accessibility": 1.0,
+        "_memory_type": "EventMemory"
       }
     ]
   },
@@ -674,7 +919,10 @@
     "psyche": {
       "willpower": 70,
       "breakpoint": 85,
-      "loyalty_true": 0
+      "loyalty_true": 0,
+      "stress": 0.0,
+      "trauma_flags": [],
+      "state": "free"
     },
     "combat_stats": {
       "ac": 15,
@@ -834,6 +1082,123 @@
         "accessibility": 0.95,
         "decay_rate": 0.001
       }
+    ],
+    "social_stats": {
+      "trust": -0.226,
+      "fear_of_player": 0.1845,
+      "debt": 0.0
+    },
+    "narrative_cache": [
+      {
+        "event_type": "origin",
+        "target_id": "",
+        "emotion_tag": "neutral",
+        "day": -1000,
+        "importance": 0.95,
+        "clarity": 1.0,
+        "confidence": 1.0,
+        "decay_rate": 0.001,
+        "stage": "fresh",
+        "sequence_id": 0,
+        "summary": "Кто-то сдал контрабанду Горана страже. Гильдия потеряла 300 золотых и лицо. Гильдмастер приказал найти предателя — тихо.",
+        "npc_id": "thief_shadow",
+        "tags": [
+          "investigation",
+          "traitor",
+          "guild_priority"
+        ],
+        "is_secret": true,
+        "known_by": [
+          "thief_shadow"
+        ],
+        "hidden_from": [
+          "player",
+          "merchant_goran",
+          "guard_borko",
+          "tavern_keeper_tornin",
+          "maid_lusya"
+        ],
+        "accessibility": 1.0,
+        "_memory_type": "EventMemory"
+      },
+      {
+        "event_type": "origin",
+        "target_id": "",
+        "emotion_tag": "calm",
+        "day": -1000,
+        "importance": 0.8,
+        "clarity": 1.0,
+        "confidence": 1.0,
+        "decay_rate": 0.001,
+        "stage": "fresh",
+        "sequence_id": 0,
+        "summary": "Три года назад ты убил человека по приказу гильдии. Первый раз. Помнишь каждую секунду. Это не сломало тебя, а только закалило.",
+        "npc_id": "thief_shadow",
+        "tags": [
+          "murder",
+          "first_kill",
+          "discipline"
+        ],
+        "is_secret": true,
+        "known_by": [
+          "thief_shadow"
+        ],
+        "hidden_from": [
+          "player"
+        ],
+        "accessibility": 0.95,
+        "_memory_type": "EventMemory"
+      },
+      {
+        "event_type": "origin",
+        "target_id": "",
+        "emotion_tag": "neutral",
+        "day": -1000,
+        "importance": 0.7,
+        "clarity": 1.0,
+        "confidence": 1.0,
+        "decay_rate": 0.002,
+        "stage": "fresh",
+        "sequence_id": 0,
+        "summary": "Ты заметил, что Люся нервничает чаще обычного. Она что-то знает или что-то планирует. Наблюдаешь.",
+        "npc_id": "thief_shadow",
+        "tags": [
+          "observation",
+          "maid_lusya",
+          "suspicion"
+        ],
+        "is_secret": true,
+        "known_by": [
+          "thief_shadow"
+        ],
+        "hidden_from": [
+          "player",
+          "maid_lusya",
+          "tavern_keeper_tornin"
+        ],
+        "accessibility": 0.9,
+        "_memory_type": "EventMemory"
+      },
+      {
+        "event_type": "player_interacts",
+        "target_id": "thief_shadow",
+        "emotion_tag": "neutral",
+        "day": 0,
+        "importance": 0.324,
+        "clarity": 0.85,
+        "confidence": 0.95,
+        "decay_rate": 0.05,
+        "stage": "fresh",
+        "sequence_id": 0,
+        "summary": "player → thief_shadow: Про паука, помнишь?",
+        "npc_id": "thief_shadow",
+        "tags": [],
+        "is_secret": false,
+        "known_by": [],
+        "hidden_from": [],
+        "accessibility": 1.0,
+        "_memory_type": "EventMemory"
+      }
     ]
   },
   {
@@ -849,7 +1214,10 @@
     "psyche": {
       "willpower": 65,
       "breakpoint": 80,
-      "loyalty_true": 60
+      "loyalty_true": 60,
+      "stress": 0.0,
+      "trauma_flags": [],
+      "state": "free"
     },
     "combat_stats": {
       "ac": 13,
@@ -996,6 +1364,119 @@
         "emotion_tag": "disgusted",
         "accessibility": 1.0,
         "decay_rate": 0.002
+      }
+    ],
+    "social_stats": {
+      "trust": -0.226,
+      "fear_of_player": 0.1845,
+      "debt": 0.0
+    },
+    "narrative_cache": [
+      {
+        "event_type": "origin",
+        "target_id": "",
+        "emotion_tag": "neutral",
+        "day": -1000,
+        "importance": 0.9,
+        "clarity": 1.0,
+        "confidence": 1.0,
+        "decay_rate": 0.001,
+        "stage": "fresh",
+        "sequence_id": 0,
+        "summary": "Пять лет назад занял у гильдии воров 500 золотых на таверну. Долг вырос до 1200. Каждый месяц приходят 'собиратели'.",
+        "npc_id": "tavern_keeper_tornin",
+        "tags": [
+          "debt",
+          "thieves_guild",
+          "financial_trap"
+        ],
+        "is_secret": true,
+        "known_by": [
+          "tavern_keeper_tornin"
+        ],
+        "hidden_from": [
+          "player",
+          "guard_borko",
+          "merchant_goran",
+          "maid_lusya"
+        ],
+        "accessibility": 1.0,
+        "_memory_type": "EventMemory"
+      },
+      {
+        "event_type": "origin",
+        "target_id": "",
+        "emotion_tag": "disgusted",
+        "day": -1000,
+        "importance": 0.85,
+        "clarity": 1.0,
+        "confidence": 1.0,
+        "decay_rate": 0.002,
+        "stage": "fresh",
+        "sequence_id": 0,
+        "summary": "Ножевая драка три года назад — двое погибло. Стража закрыла глаза. Ты до сих пор видишь кровь.",
+        "npc_id": "tavern_keeper_tornin",
+        "tags": [
+          "violence",
+          "past_trauma",
+          "guilt"
+        ],
+        "is_secret": false,
+        "known_by": [],
+        "hidden_from": [],
+        "accessibility": 1.0,
+        "_memory_type": "EventMemory"
+      },
+      {
+        "event_type": "origin",
+        "target_id": "",
+        "emotion_tag": "neutral",
+        "day": -1000,
+        "importance": 0.75,
+        "clarity": 1.0,
+        "confidence": 1.0,
+        "decay_rate": 0.001,
+        "stage": "fresh",
+        "sequence_id": 0,
+        "summary": "Подвал таверны используется гильдией. Ты знаешь, но не знаешь деталей. Претворяешься, что тебе всё равно.",
+        "npc_id": "tavern_keeper_tornin",
+        "tags": [
+          "basement",
+          "thieves_guild",
+          "willful_ignorance"
+        ],
+        "is_secret": true,
+        "known_by": [
+          "tavern_keeper_tornin",
+          "maid_lusya",
+          "thief_shadow"
+        ],
+        "hidden_from": [
+          "player",
+          "guard_borko"
+        ],
+        "accessibility": 0.9,
+        "_memory_type": "EventMemory"
+      },
+      {
+        "event_type": "player_interacts",
+        "target_id": "thief_shadow",
+        "emotion_tag": "neutral",
+        "day": 0,
+        "importance": 0.324,
+        "clarity": 0.85,
+        "confidence": 0.95,
+        "decay_rate": 0.05,
+        "stage": "fresh",
+        "sequence_id": 0,
+        "summary": "player → thief_shadow: Про паука, помнишь?",
+        "npc_id": "tavern_keeper_tornin",
+        "tags": [],
+        "is_secret": false,
+        "known_by": [],
+        "hidden_from": [],
+        "accessibility": 1.0,
+        "_memory_type": "EventMemory"
       }
     ]
   }

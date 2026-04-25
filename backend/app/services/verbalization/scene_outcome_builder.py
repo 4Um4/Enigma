@@ -15,7 +15,7 @@ DM получает результат — он станет рассказчи�
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 from app.services.npc.decision_hub import DecisionResult
 from app.models.npc_profile import NPCProfileL0
@@ -102,6 +102,12 @@ class NpcOutcome:
     latent_signals: List[LatentSignal] = field(default_factory=list)
     psychological: Optional[PsychologicalSignature] = None
     stance: Optional["VerbalStance"] = None  # B.2: поведенческая форма для DM
+
+    # ФАЗА 0: память и характер — для DM-промпта
+    voice_profile: str = ""
+    backstory: str = ""
+    author_notes: str = ""
+    memory_hints: Tuple[str, ...] = ()  # top-3 воспоминаний как текст
 
 
 @dataclass(frozen=True)
@@ -378,6 +384,22 @@ class SceneOutcomeBuilder:
                 focus_lines.append(line)
             blocks.append("Ключевые NPC (фокус сцены):\n" + "\n".join(focus_lines))
         
+        # ФАЗА 0: Характер и память целевого NPC
+        if frame.focus_npcs:
+            for npc in frame.focus_npcs:
+                _npc_blocks = []
+                if npc.voice_profile:
+                    _npc_blocks.append(f"Голос: {npc.voice_profile}")
+                if npc.backstory:
+                    _npc_blocks.append(f"Биография: {npc.backstory}")
+                if npc.author_notes:
+                    _npc_blocks.append(f"Инструкция: {npc.author_notes}")
+                if npc.memory_hints:
+                    _npc_blocks.append("Воспоминания:\n" + "\n".join(f"- {m}" for m in npc.memory_hints))
+                if _npc_blocks:
+                    _npc_name = npc.name or npc.npc_id
+                    blocks.append(f"[{ _npc_name} — характер и память]\n" + "\n".join(_npc_blocks))
+        
         # 2. Фоновые NPC — кратко
         if frame.background_npcs:
             bg_names = [n.name or n.npc_id for n in frame.background_npcs]
@@ -566,6 +588,34 @@ class SceneOutcomeBuilder:
                 if len(_first_sent) > 10:
                     _desc_snippet = _first_sent + "."
 
+        # ФАЗА 0: извлекаем характер и память
+        _voice = profile.voice_profile if profile else ""
+        _backstory = profile.backstory if profile else ""
+        _author_notes = profile.author_notes if profile else ""
+        _memory_hints = ()
+        if isinstance(real_state, dict):
+            _raw_cache = real_state.get("narrative_cache", [])
+            if _raw_cache:
+                _hints = []
+                for _item in _raw_cache[:3]:  # top-3
+                    _summary = _item.get("summary", "") if isinstance(_item, dict) else getattr(_item, "summary", "")
+                    _is_secret = _item.get("is_secret", False) if isinstance(_item, dict) else getattr(_item, "is_secret", False)
+                    # Фильтрация: если тайна скрыта от игрока — не показываем содержание
+                    _hidden_from = _item.get("hidden_from", []) if isinstance(_item, dict) else getattr(_item, "hidden_from", ())
+                    if isinstance(_hidden_from, tuple):
+                        _hidden_from = list(_hidden_from)
+                    if _is_secret and "player" in _hidden_from:
+                        # LLM знает что тайна есть, но не знает содержания
+                        _tags = _item.get("tags", []) if isinstance(_item, dict) else getattr(_item, "tags", ())
+                        if isinstance(_tags, tuple):
+                            _tags = list(_tags)
+                        _hint_tags = ", ".join(t for t in _tags[:2] if t not in ("secret",))
+                        _hints.append(f"[СЕКРЕТ — НЕ РАСКРЫВАТЬ] У тебя есть тайна{_hint_tags and f' про {_hint_tags}' or ''}")
+                    elif _summary:
+                        _prefix = "[ТАЙНА] " if _is_secret else ""
+                        _hints.append(f"{_prefix}{_summary}")
+                _memory_hints = tuple(_hints)
+
         return NpcOutcome(
             npc_id=npc_id,
             name=(profile.name if profile else None) or (real_state.get("name") if isinstance(real_state, dict) else None) or npc_id,
@@ -579,6 +629,10 @@ class SceneOutcomeBuilder:
             latent_signals=npc_latent,
             psychological=psychological,
             stance=stance,
+            voice_profile=_voice,
+            backstory=_backstory,
+            author_notes=_author_notes,
+            memory_hints=_memory_hints,
         )
 
     def _compute_salience(

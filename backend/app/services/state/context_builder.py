@@ -67,8 +67,8 @@ def build_context(
         "forced_first_speaker": forced_first_speaker,
 
         # ── Время (заполняется после загрузки scene_state) ─────────
-        # total_minutes от начала эпохи — единый источник правды для даты/времени
-        "game_time_minutes": 0,
+        # total_seconds от начала эпохи — единый источник правды для даты/времени
+        "game_time_seconds": 0,
 
         # ── Пустые слоты (заполняются движками если нужны) ───────────
         "threat":     {},

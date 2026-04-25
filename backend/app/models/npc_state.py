@@ -190,11 +190,11 @@ class EventMemory:
     npc_id:             str = ""    # R1: какой NPC это запоминает
 
     # Фаза 0: Theatre — поля для origin_events и секретов
-    tags:                Set[str] = field(default_factory=set)
+    tags:                Tuple[str, ...] = ()   # для триггерного поиска (immutable для frozen)
     is_secret:           bool = False
-    known_by:            List[str] = field(default_factory=list)
-    hidden_from:         List[str] = field(default_factory=list)
-    accessibility:       float = 1.0  # 0..1, падает со временем отдельно от importance
+    known_by:            Tuple[str, ...] = ()   # кто знает (immutable для frozen)
+    hidden_from:         Tuple[str, ...] = ()   # от кого скрыто (immutable для frozen)
+    accessibility:       float = 1.0            # 0..1, падает со временем отдельно от importance
 
     def __post_init__(self) -> None:
         # Защита от невалидных значений при загрузке из JSON
@@ -665,9 +665,13 @@ class NPCState:
             _cache_list = []
             for _item in state.narrative_cache:
                 _d = {**_item.__dict__, "_memory_type": type(_item).__name__}
-                # set не сериализуется в JSON — конвертируем
-                if "tags" in _d and isinstance(_d["tags"], set):
+                # tuple не сериализуется в JSON — конвертируем
+                if "tags" in _d and isinstance(_d["tags"], tuple):
                     _d["tags"] = list(_d["tags"])
+                if "known_by" in _d and isinstance(_d["known_by"], tuple):
+                    _d["known_by"] = list(_d["known_by"])
+                if "hidden_from" in _d and isinstance(_d["hidden_from"], tuple):
+                    _d["hidden_from"] = list(_d["hidden_from"])
                 _cache_list.append(_d)
             npc_dict["narrative_cache"] = _cache_list
 
