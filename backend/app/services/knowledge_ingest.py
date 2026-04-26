@@ -1,13 +1,16 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
 from io import BytesIO
-from typing import Literal
-
-from app.services.memory import LayeredMemory
+from typing import TYPE_CHECKING, Literal
 
 try:
     from pypdf import PdfReader  # type: ignore
 except Exception:  # pragma: no cover
     PdfReader = None
+
+if TYPE_CHECKING:
+    from app.services.memory.memory_manager import MemoryManager
 
 KnowledgeKind = Literal["world", "rules", "characters", "npc", "campaign"]
 
@@ -22,10 +25,13 @@ class IngestResult:
 
 
 class KnowledgeIngestService:
-    """Imports local source text (TXT/MD/PDF) into layered memory for DM/rules/NPC context."""
+    """Imports local source text into memory for DM/rules/NPC context.
+    
+    Зависит от MemoryManager, не от LayeredMemory (Закон 4.1.2).
+    """
 
-    def __init__(self, memory: LayeredMemory) -> None:
-        self.memory = memory
+    def __init__(self, memory: MemoryManager) -> None:
+        self._memory = memory
 
     def _extract_pdf(self, raw: bytes) -> str:
         if PdfReader is None:
@@ -64,13 +70,25 @@ class KnowledgeIngestService:
         }
 
         if kind in {"world", "rules", "campaign"}:
-            entry_id = self.memory.write_world_canon(world_id, payload)
+            entry_id = self._memory.persist_world_canon(
+                world_id,
+                campaign_id=campaign_id,
+                source=filename,
+                payload=payload,
+            )
             target = "world_canon"
         elif kind == "characters":
-            entry_id = self.memory.write_campaign_memory(campaign_id, {**payload, "tag": "character_source"})
+            entry_id = self._memory.persist_campaign_data(
+                campaign_id,
+                {**payload, "tag": "character_source"},
+            )
             target = "campaign_memory"
         else:  # npc
-            entry_id = self.memory.write_npc_memory(campaign_id, {"note": payload["text_preview"], "source": filename})
+            entry_id = self._memory.persist_npc_note(
+                campaign_id,
+                note=payload["text_preview"],
+                source=filename,
+            )
             target = "npc_memory"
 
         return IngestResult(

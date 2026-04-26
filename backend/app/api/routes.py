@@ -251,7 +251,7 @@ async def import_knowledge(
     raw = await file.read()
     try:
         from app.services.knowledge_ingest import KnowledgeIngestService
-        _ki = KnowledgeIngestService(game_loop.layered_memory)
+        _ki = KnowledgeIngestService(game_loop.memory_manager)
         result = _ki.ingest(
             world_id=world_id,
             campaign_id=campaign_id,
@@ -469,8 +469,11 @@ def get_npcs(campaign_id: str, game_loop=Depends(get_game_loop)) -> dict:
 @router.post("/import/world")
 async def import_world(file: UploadFile, game_loop=Depends(get_game_loop)) -> dict:
     content = (await file.read()).decode("utf-8", errors="ignore")
-    entry_id = game_loop.layered_memory.write_world_canon(
-        "manual", {"source": file.filename or "world.txt", "content": content}
+    entry_id = game_loop.memory_manager.persist_world_canon(
+        "manual",
+        campaign_id="",
+        source=file.filename or "world.txt",
+        payload={"content": content},
     )
     return {"import_id": entry_id, "filename": file.filename}
 

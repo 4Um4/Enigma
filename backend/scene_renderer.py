@@ -13,7 +13,7 @@ from typing import List, Optional, Tuple
 
 import pygame
 
-from app.core.sprite_resolver import get_entity_sprite
+from sprite_resolver import get_entity_sprite
 from app.services.player_cognition.types import (
     PerceivedEntity,
     PerceivedScene,

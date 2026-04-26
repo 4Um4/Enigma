@@ -88,6 +88,7 @@ INTENT_EXHAUSTION_RATE: Final[float] = 0.08   # штраф за зависани
 # Пороги выбора
 FEAR_FLEE_THRESHOLD: Final[float] = 0.65
 MIN_INTENT_SCORE: Final[float] = 0.15
+PROVOCATION_THREAT_THRESHOLD: Final[float] = 0.3  # суммарный threat_markers для разблокировки агрессии без event_type
 
 # Commitment Model
 COMMITMENT_BASE_THRESHOLD: Final[float] = 0.15
@@ -192,13 +193,6 @@ GAME_TICK_INTERVAL_SECONDS: int = 900  # 15 минут = 900 секунд
 # Игрок пишет → давление НЕ растёт
 PRESSURE_IDLE_RATE: float = 0.05      # +0.05 за секунду реального молчания
 PRESSURE_THRESHOLD: float = 0.5       # порог для триггера телеграфа
-
-# Фаза 2.1 — Distance-based idle tick intervals (мс на клиенте)
-IDLE_TICK_NEAR_MS: Final[int] = 2_000       # NPC в радиусе NEAR — тик каждые 2 сек
-IDLE_TICK_MID_MS: Final[int] = 8_000        # NPC в радиусе MID — тик каждые 8 сек
-IDLE_TICK_FAR_MS: Final[int] = 30_000       # NPC за FAR — тик каждые 30 сек
-IDLE_TICK_NEAR_RADIUS: Final[float] = 5.0   # порог "близко" (метров)
-IDLE_TICK_MID_RADIUS: Final[float] = 15.0   # порог "средне" (метров, = perception cap)
 
 # Фаза 2.1 — DecisionHub в idle_tick
 IDLE_DECISION_SCORE_THRESHOLD: Final[float] = 0.15  # порог накопленного давления для триггера телеграфа (~6 тиков)

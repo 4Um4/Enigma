@@ -47,7 +47,7 @@ import time
 from collections import OrderedDict
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import Dict, Optional
 
 from app.core.config import settings
 from app.services.scene_change import (
@@ -71,6 +71,23 @@ from app.core.constants import (
     STRESS_RECOVERY_SLEEPING,
     TICK_SAVE_INTERVAL,
 )
+
+# ── Need-driven movement: простой прокси потребностей ──────────────────
+# Не зависит от NeedEngine/EconomicProfile — живёт в словаре NPC
+# Позже можно заменить на интеграцию с NeedEngine через DTO
+
+# Маппинг: имя потребности → активность в activity_map
+_NEED_TO_ACTIVITY: Dict[str, str] = {
+    "hunger": "eating",
+    "shelter_urge": "resting",
+    "social_urge": "socializing",
+}
+
+# Порог: если value >= threshold → NPC идёт удовлетворять потребность
+_NEED_THRESHOLD: float = 0.7
+
+# Прирост за тик, если активность не удовлетворяет потребность
+_NEED_DECAY_PER_TICK: float = 0.05
 
 # Восстановление стресса за тик (см. psyche_engine)
 # ── Tick Architecture (Блок 1) ──────────────────────────────────────────────
@@ -521,6 +538,7 @@ class LifeEngine:
 
         Обрабатывает всех NPC:
           - обновляет позицию по расписанию
+          - need-driven movement при критических потребностях
           - восстанавливает стресс
           - с 5% шансом генерирует случайное событие
 
@@ -860,13 +878,21 @@ class LifeEngine:
     ) -> list[SceneChange]:
         """
         Полная симуляция Major NPC за один тик.
-        Порядок: расписание → стресс → случайные события.
+        Порядок: need-driven → расписание → стресс → случайные события.
+        Need-driven имеет приоритет: если потребность критична — schedule пропускается.
         """
         changes: list[SceneChange] = []
 
-        # 1. Обновляем позицию/активность по расписанию
-        routine_changes = self.update_routine(npc, current_time, tick)
-        changes.extend(routine_changes)
+        # 1. Need-driven: растим потребности, проверяем порог
+        # Проверяем ПЕРЕД schedule — биологическое важнее расписания
+        self._tick_needs(npc)
+        need_changes = self._check_need_driven_movement(npc, tick)
+        changes.extend(need_changes)
+
+        # 2. Расписание — только если need-driven ничего не сделал
+        if not need_changes:
+            routine_changes = self.update_routine(npc, current_time, tick)
+            changes.extend(routine_changes)
 
         # 2. Восстанавливаем стресс (без SceneChange — только данные NPC)
         self.recover_stress_tick(npc)
@@ -874,6 +900,126 @@ class LifeEngine:
         # 3. Случайные события (5% шанс)
         event_changes = self.check_random_events(npc, tick)
         changes.extend(event_changes)
+
+        return changes
+
+    # ─────────────────────────────────────────────────────────────────────
+    # Need-driven movement — перемещение по потребностям
+    # ─────────────────────────────────────────────────────────────────────
+
+    def _ensure_needs_state(self, npc: dict) -> dict:
+        """Инициализирует словарь потребностей в NPC dict если отсутствует."""
+        if "needs" not in npc:
+            npc["needs"] = {
+                "hunger": 0.0,
+                "shelter_urge": 0.0,
+                "social_urge": 0.0,
+            }
+        return npc["needs"]
+
+    def _tick_needs(self, npc: dict) -> None:
+        """
+        Увеличивает потребности за тик.
+        Если текущая активность удовлетворяет потребность — сбрасываем.
+        """
+        needs = self._ensure_needs_state(npc)
+        current_activity = npc.get("routine", {}).get("current", "")
+
+        for need_name, activity_name in _NEED_TO_ACTIVITY.items():
+            if activity_name in current_activity:
+                # NPC удовлетворяет потребность — сбрасываем
+                needs[need_name] = 0.0
+            else:
+                # Потребность растёт
+                needs[need_name] = min(1.0, needs[need_name] + _NEED_DECAY_PER_TICK)
+
+    def _check_need_driven_movement(
+        self,
+        npc: dict,
+        tick: int,
+    ) -> list[SceneChange]:
+        """
+        Если потребность выше порога — генерирует SceneChange для перемещения.
+        Приоритет: самая критичная потребность.
+        """
+        needs = npc.get("needs", {})
+        if not needs:
+            return []
+
+        activity_map = npc.get("activity_map", {})
+        npc_id = npc.get("id", "unknown")
+        current_position = npc.get("position", "")
+        prev_location = npc.get("location", "")
+        changes: list[SceneChange] = []
+
+        # Находим самую критичную потребность
+        urgent_needs = [
+            (name, val) for name, val in needs.items()
+            if val >= _NEED_THRESHOLD
+        ]
+
+        if not urgent_needs:
+            return []
+
+        # Самая срочная первой
+        urgent_needs.sort(key=lambda x: x[1], reverse=True)
+        need_name, need_value = urgent_needs[0]
+
+        target_activity = _NEED_TO_ACTIVITY.get(need_name)
+        if not target_activity:
+            return []
+
+        target_entry = activity_map.get(target_activity)
+        if not target_entry:
+            return []
+
+        target_position = target_entry.get("position", "")
+        target_location = target_entry.get("location", "")
+        display = target_entry.get("display", target_activity)
+
+        # Не двигаемся если уже на целевой позиции
+        if current_position == target_position:
+            return []
+
+        logger.info(
+            f"[LIFE_ENGINE] Need-driven: {npc_id} → {target_activity} "
+            f"(need={need_name}={need_value:.2f})"
+        )
+
+        # Обновляем NPC dict in-place
+        npc["position"] = target_position
+        if target_location:
+            npc["location"] = target_location
+        npc.get("routine", {})["current"] = target_activity
+
+        # Генерируем SceneChange
+        changes.append(SceneChange(
+            type=ChangeType.NPC_POSITION,
+            target=npc_id,
+            field="activity",
+            value=display,
+            cause="life_engine_need_driven",
+            tick=tick,
+        ))
+
+        changes.append(SceneChange(
+            type=ChangeType.NPC_POSITION,
+            target=npc_id,
+            field="position",
+            value=target_position,
+            cause="life_engine_need_driven",
+            tick=tick,
+        ))
+
+        if target_location and target_location != prev_location:
+            changes.append(SceneChange(
+                type=ChangeType.NPC_POSITION,
+                target=npc_id,
+                field="location",
+                value=target_location,
+                cause="life_engine_need_driven",
+                tick=tick,
+            ))
 
         return changes
 

@@ -102,6 +102,7 @@ class NpcOutcome:
     latent_signals: List[LatentSignal] = field(default_factory=list)
     psychological: Optional[PsychologicalSignature] = None
     stance: Optional["VerbalStance"] = None  # B.2: поведенческая форма для DM
+    topic: str = ""  # ФАЗА 4: тема из TopicExtractor (Устав 3.2)
 
     # ФАЗА 0: память и характер — для DM-промпта
     voice_profile: str = ""
@@ -228,6 +229,7 @@ class SceneOutcomeBuilder:
         state_snapshots: Optional[Dict[str, dict]] = None,
         distortion_biases: Optional[Dict[str, "DistortionProfile"]] = None,
         npc_profiles: Optional[Dict[str, NPCProfileL0]] = None,
+        topics: Optional[Dict[str, str]] = None,
     ) -> SceneOutcome:
         """
         Основной метод. Принимает решения + контекст, возвращает проживаемую реальность.
@@ -239,6 +241,7 @@ class SceneOutcomeBuilder:
         _snapshots = state_snapshots or {}
         _profiles = npc_profiles or {}
         _biases = distortion_biases or {}
+        _topics = topics or {}
 
         # 1. Собираем NPC исходы с salience + психологической проекцией
         npc_outcomes = [
@@ -247,6 +250,7 @@ class SceneOutcomeBuilder:
                 real_state=_snapshots.get(d.npc_id),
                 distortion_bias=_biases.get(d.npc_id),
                 profile=_profiles.get(d.npc_id),
+                topic=_topics.get(d.npc_id, ""),
             )
             for d in decisions
         ]
@@ -374,6 +378,9 @@ class SceneOutcomeBuilder:
                 # description snippet — даёт модели контекст вместо галлюцинации
                 if npc.description_snippet:
                     line += f" ({npc.description_snippet})"
+                # ФАЗА 4: topic — якорь для LLM (Устав 3.2)
+                if npc.topic:
+                    line += f" [тема: {npc.topic}]"
                 # emotion с гендерным окончанием через pymorphy3
                 if npc.emotion:
                     emotion_key = npc.emotion if isinstance(npc.emotion, str) else getattr(npc.emotion, "value", str(npc.emotion))
@@ -537,6 +544,7 @@ class SceneOutcomeBuilder:
         real_state: Optional[dict] = None,
         distortion_bias: Optional[dict] = None,
         profile: Optional[NPCProfileL0] = None,
+        topic: str = "",
     ) -> NpcOutcome:
         """Превращает один DecisionResult в NpcOutcome с salience."""
         npc_id = decision.npc_id
@@ -629,6 +637,7 @@ class SceneOutcomeBuilder:
             latent_signals=npc_latent,
             psychological=psychological,
             stance=stance,
+            topic=topic,
             voice_profile=_voice,
             backstory=_backstory,
             author_notes=_author_notes,

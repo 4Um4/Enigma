@@ -1,8 +1,12 @@
-# TODO: Публикация V.0.5.1.3_Встроил_Кратковременную_память
+# TODO: Push V.0.5.1.5 to GitHub
 
-- [x] 1. Понять текущее состояние репозитория (ветка, изменения, remote)
-- [x] 2. Создать ветку `V.0.5.1.3_Встроил_Кратковременную_память`
-- [x] 3. Закоммитить все изменения
-- [x] 4. Запушить ветку на GitHub
-- [x] 5. Сформировать отчёт сравнения с `V.0.5.1.2_Встроил_ПАМЯТЬ_0.1и0.2`
+- [x] 1. Gather repo status (branches, remotes, diff stats)
+- [x] 2. Read key files (Before.md, Now.md, COMPARISON_REPORT_V.0.5.1.3.md)
+- [x] 3. Understand changes since V.0.5.1.4
+- [ ] 4. Write COMPARISON_REPORT_V.0.5.1.4.md
+- [ ] 5. Stage all changes (`git add -A`)
+- [ ] 6. Commit with meaningful message
+- [ ] 7. Create branch `V.0.5.1.5_Продолжаю_починку_игры`
+- [ ] 8. Push to origin
+- [ ] 9. Verify remote branch
 

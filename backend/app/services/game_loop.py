@@ -26,7 +26,8 @@ from app.models.schemas import (
     PlayerAction,
 )
 from app.services.action.dm_orchestrator import DMOrchestrator
-from app.services.events.event_types import GameEvent, EventType
+from app.domain.events import EventDTO
+from app.services.events.event_types import EventType
 from app.services.events.event_bus import get_event_bus
 from app.services.action.player_target_extractor import PlayerTargetExtractor
 
@@ -39,7 +40,7 @@ R3_DIRECT_MODE: bool = True
 from app.services.state.context_builder import build_context, patch_scene_state
 from app.models.pipeline_context import PipelineContext
 from app.services.scene_state_manager import SceneStateManager
-from app.services.memory import LayeredMemory
+# LayeredMemory удалён из GameLoop — все записи через MemoryManager (Закон 4.1.2)
 # Старый model_router удалён — агенты сами управляют маршрутизацией через llm/router
 from app.services.world_scheduler import WorldScheduler
 from app.services.npc.npc_loader import materialize_inventory, get_item_display_name
@@ -98,8 +99,7 @@ class GameLoop:
         self,
         *,
         data_dir: Path,
-        layered_memory: LayeredMemory,
-        memory_manager,          # MemoryManager — подключён к DecisionHub и identity_cache
+        memory_manager,          # MemoryManager — единая точка записи (Закон 4.1.2)
         dm_orchestrator: DMOrchestrator,
         scene_manager: SceneStateManager,
         world_scheduler: WorldScheduler,
@@ -114,7 +114,6 @@ class GameLoop:
     ):
         self.data_dir         = data_dir
         self._saves_dir       = Path(saves_dir) if saves_dir else data_dir / "campaigns"
-        self.layered_memory   = layered_memory
         self.memory_manager   = memory_manager
         self.dm_orchestrator  = dm_orchestrator
         self.scene_manager    = scene_manager
@@ -429,14 +428,12 @@ class GameLoop:
             dm_response=dm_result.get("dm_response", ""),
             npc_reactions=dm_result.get("npc_reactions", []),
             world_changes=dm_result.get("world_changes", []),
-            journal_entry_id=self.layered_memory.write_campaign_memory(
+            journal_entry_id=self.memory_manager.persist_dm_response(
                 req.campaign_id,
-                {
-                    "world_id": req.world_id,
-                    "location": req.location,
-                    "actions":  [a.model_dump() for a in req.actions],
-                    "dm":       dm_result.get("dm_response", ""),
-                },
+                world_id=req.world_id,
+                location=req.location,
+                actions=[a.model_dump() for a in req.actions],
+                dm_text=dm_result.get("dm_response", ""),
             ),
             traces=traces,
         )
@@ -521,14 +518,12 @@ class GameLoop:
         # Сохраняем DM-ответ в Campaign Memory ДО yield done — SSE не гарантирует выполнение после
         dm_full_text_for_mem = "".join(dm_text_parts)
         if dm_full_text_for_mem:
-            self.layered_memory.write_campaign_memory(
+            self.memory_manager.persist_dm_response(
                 campaign_id,
-                {
-                    "world_id": world_id,
-                    "location": location,
-                    "actions":  [a.model_dump() for a in actions],
-                    "dm":       dm_full_text_for_mem,
-                },
+                world_id=world_id,
+                location=location,
+                actions=[a.model_dump() for a in actions],
+                dm_text=dm_full_text_for_mem,
             )
             # Лог вопроса + ответа для отладки
             _player_msg = next((a.action for a in actions if a.action), "")
@@ -663,6 +658,11 @@ class GameLoop:
         """
         start_ms = time.time() * 1000
 
+        # Флаги мутаций — единый коммит в конце пайплайна
+        _dirty_npcs: set = set()
+        _wt_dirty: bool = False
+        _prop_dirty: bool = False
+
         # 1. World tick — асинхронный фон, не блокирует ответ игроку
         world_tick_meta = {"triggered": False, "events": []}
         asyncio.create_task(
@@ -674,7 +674,7 @@ class GameLoop:
         )
 
         # 3. Базовый shared_context
-        _raw_mem = self.layered_memory.read_campaign_memory(campaign_id, limit=3)
+        _raw_mem = self.memory_manager.read_campaign_history(campaign_id, limit=3)
         if _raw_mem:
             logger.warning(f"[RECENT_MEM] {len(_raw_mem)} entries, dm_fields={[bool(e.get('dm')) for e in _raw_mem]}")
         shared_context = build_context(
@@ -866,16 +866,17 @@ class GameLoop:
                                 if _sp.event_type == "proximity_close"
                                 else EventType.PROXIMITY_LEAVE
                             )
-                            _ge = GameEvent(
-                                event_type=_evt_type,
-                                actor_id="player",
-                                location=location,
-                                campaign_id=campaign_id,
-                                target_id=_sp.npc_id,
-                                parameters={
+                            _ge = EventDTO.create(
+                                event_type=_evt_type.value,
+                                source="player",
+                                payload={
+                                    "location": location,
+                                    "campaign_id": campaign_id,
+                                    "target_id": _sp.npc_id,
                                     "prev_distance": _sp.prev_distance,
                                     "new_distance": _sp.new_distance,
                                 },
+                                radius=999.0,
                             )
                             get_event_bus().publish(_ge)
                     # Сохраняем текущие для следующего хода
@@ -979,19 +980,22 @@ class GameLoop:
                 _resolved_type = _evt_map.get(_raw_type, EventType.PLAYER_SPOKE)
                 # Атака — звуковое событие с ограниченным радиусом слышимости
                 _evt_radius = 15.0 if _resolved_type == EventType.PLAYER_ATTACKED else 999.0
-                _game_evt = GameEvent(
-                    event_type=_resolved_type,
-                    actor_id="player",
-                    location=location,
-                    campaign_id=campaign_id,
-                    target_id=shared_context.player_target_id,
+                _game_evt = EventDTO.create(
+                    event_type=_resolved_type.value,
+                    source="player",
+                    payload={
+                        "location": location,
+                        "campaign_id": campaign_id,
+                        "target_id": shared_context.player_target_id,
+                        "raw_input": raw_input,
+                        "action_type": _raw_type,
+                    },
                     radius=_evt_radius,
-                    parameters={"raw_input": raw_input, "action_type": _raw_type},
                 )
                 get_event_bus().publish(_game_evt)
                 # Фаза 4 — время продвигается от действий, не от тиков
                 self._advance_game_time(scene_state, _raw_type, raw_input, shared_context)
-                logger.warning(f"[EVENT_BUS] Published: {_game_evt.event_type.name}, target={_game_evt.target_id}")
+                logger.warning(f"[EVENT_BUS] Published: {_game_evt.type}, target={_game_evt.payload.get('target_id')}")
 
             # ── SCENE EVENT LAYER: единые события для восприятия всеми NPC ──
             _scene_events = []
@@ -1039,6 +1043,7 @@ class GameLoop:
 
             from app.services.npc.npc_loader import load_profile_from_legacy_json, load_l2_state_from_runtime_dict
             from app.services.verbalization.verbalization_context import VerbalizationContext, generate_emotional_nuance
+            from app.services.npc.topic_extractor import extract_topic
             from app.services.npc.decision_hub import DecisionHub, EventContext as HubEventContext
 
             npc_contexts = []
@@ -1126,7 +1131,7 @@ class GameLoop:
                     elif _front_decision.action in ("drop", "break") and _player_profile.front:
                         if _front_decision.action == "break":
                             _player_profile.front.breaks.append(
-                                f"tick={shared_context.get('current_tick', 0)}: {_front_decision.front_description}"
+                                f"tick={shared_context.current_tick or 0}: {_front_decision.front_description}"
                             )
                         _player_profile.front.drop()
                     # Стоимость поддержания маски — эрозия целостности
@@ -1164,7 +1169,6 @@ class GameLoop:
 
                 # Загружаем ВСЕХ NPC один раз — мутации будут в этом списке
                 _all_npcs_raw = self._load_npcs_with_runtime(campaign_id)
-                _dirty_npcs: set = set()  # ID изменённых dict'ов для сохранения
                 _max_npc_stress: float = 0.0  # Salience: максимальный стресс среди NPC
                 for npc in dm_result.scene_context.nearby_npcs:
                     if hub_event is None:
@@ -1387,9 +1391,7 @@ class GameLoop:
                         try:
                             _se3 = self._get_social_engine(campaign_id)
                             if _se3:
-                                _player_dists_snap = shared_context.get(
-                                    "scene_state", {}
-                                ).get("player_distances", {})
+                                _player_dists_snap = (shared_context.scene_state or {}).get("player_distances", {})
                                 # Собираем spatial event types для социальных триггеров (ревность по proximity)
                                 _spatial_evts = shared_context.spatial_events or []
                                 _extra_evt_types = [sp.event_type for sp in _spatial_evts] if _spatial_evts else None
@@ -1543,28 +1545,27 @@ class GameLoop:
 
                                 if _importance is not None:
                                     _emotion = getattr(state_to_use_for_llm.emotion, "value", "neutral") if state_to_use_for_llm.emotion else "neutral"
-                                    _new_mem = self.memory_manager.create_event_memory(
-                                        campaign_id=campaign_id,
-                                        npc_id=npc_id,
-                                        event={
-                                            "type": _evt_type,
-                                            "actor": _evt_actor,
-                                            "target": _evt_target,
+                                    from app.domain.events import EventDTO
+                                    _evt_dto = EventDTO.create(
+                                        event_type=_evt_type,
+                                        source=_evt_actor,
+                                        payload={
+                                            "npc_id": npc_id,
+                                            "target_id": _evt_target,
                                             "action_type": _intent_upper,
+                                            "emotion_tag": _emotion,
+                                            "summary": _summary,
+                                            "importance": _importance,
+                                            "npc_stress": getattr(state_to_use_for_llm, "stress", 0.0),
+                                            "scene_state": scene_state,
                                         },
-                                        scene_state=scene_state,
-                                        npc_stress=getattr(state_to_use_for_llm, "stress", 0.0),
-                                        emotion_tag=_emotion,
-                                        summary=_summary,
-                                        importance=_importance,
+                                        persistence_level="session",
                                     )
-                                # R1: записываем в narrative_cache — иначе память теряется
-                                if _new_mem is not None:
-                                    from app.core.constants import NARRATIVE_CACHE_MAX
-                                    _cache = list(state_to_use_for_llm.narrative_cache)
-                                    _cache.append(_new_mem)
-                                    _cache.sort(key=lambda f: f.importance, reverse=True)
-                                    state_to_use_for_llm.narrative_cache = tuple(_cache[:NARRATIVE_CACHE_MAX])
+                                    state_to_use_for_llm = self.memory_manager.apply(
+                                        event=_evt_dto,
+                                        npc_state=state_to_use_for_llm,
+                                        campaign_id=campaign_id,
+                                    )
                             except Exception as _mem_err:
                                     logger.warning(f"[MEMORY] create_event_memory failed for {npc_id}: {_mem_err}")
 
@@ -1622,6 +1623,12 @@ class GameLoop:
                         # Выводим can_speak/can_move через StateInterpreter
                         from app.services.verbalization.state_interpreter import StateInterpreter
                         _interpreter = StateInterpreter()
+                        # ФАЗА 4: TopicExtractor — тема ДО вербализации (Устав 3.2)
+                        _topic = extract_topic(
+                            event_type=hub_event.event_type.value if hasattr(hub_event.event_type, "value") else str(hub_event.event_type),
+                            scene_facts=hub_event.scene_facts,
+                            raw_input=raw_input,
+                        )
                         verb_ctx = VerbalizationContext(
                             npc_id=profile_l0.id,
                             npc_name=profile_l0.name,
@@ -1630,6 +1637,7 @@ class GameLoop:
                             will_state=state_to_use_for_llm.will_state.value,
                             intent=decision.intent.value,
                             intent_target=decision.intent_target,
+                            topic=_topic,
                             scene_hint=_scene_hint,
                             emotional_nuance=generate_emotional_nuance(state_to_use_for_llm),
                             speech_style=_dominant_drive,
@@ -1667,14 +1675,6 @@ class GameLoop:
                             "micro_events": _micro_events,    # ШАГ 0.5: физические реакции
                             "perceived_events": _perceived,   # Scene Event Layer: что NPC воспринимает
                         })
-                # Сохраняем через commit boundary (Пробой 7 закрыт)
-                if _dirty_npcs:
-                    self.scene_manager.commit(
-                        campaign_id=campaign_id,
-                        scene_state=shared_context.scene_state,
-                        npc_dicts=_all_npcs_raw,  # тот же список с мутациями
-                    )
-
                 # ФАЗА 3.5: Reputation impact — влияние действий на репутацию фракций
                 _rep_eng = self._get_reputation_engine()
                 if _rep_eng and hub_event:
@@ -1694,9 +1694,9 @@ class GameLoop:
                 if self._world_tick_engine.should_tick(campaign_id):
                     try:
                         from app.services.npc.npc_loader import load_profile_from_legacy_json, load_l2_state_from_runtime_dict
-                        _all_raw = self._load_npcs_with_runtime(campaign_id)
+                        # Используем канонический _all_npcs_raw (загружен на стр. 1166)
                         _proactive_npc_data = []
-                        for _n in _all_raw:
+                        for _n in _all_npcs_raw:
                             _pid = _n.get("id") or _n.get("npc_id")
                             if not _pid:
                                 continue
@@ -1731,12 +1731,11 @@ class GameLoop:
                             from app.services.npc.state_applicator import StateApplicator
                             from app.models.npc_state import NPCState
                             _wt_applicator = StateApplicator(relationship_store=self.memory_manager._relationships)
-                            _wt_dirty = False
                             _wt_tick = shared_context.current_tick or 0
 
                             # 1. Recovery для ВСЕХ major NPC (не только с решениями)
                             for _pid, _p_l2, _ in _proactive_npc_data:
-                                _wt_npc_raw = next((_n for _n in _all_raw if (_n.get("id") or _n.get("npc_id")) == _pid), None)
+                                _wt_npc_raw = next((_n for _n in _all_npcs_raw if (_n.get("id") or _n.get("npc_id")) == _pid), None)
                                 if not _wt_npc_raw:
                                     continue
                                 _wt_state = load_l2_state_from_runtime_dict(_wt_npc_raw)
@@ -1746,7 +1745,7 @@ class GameLoop:
 
                             # 2. Deltas от конкретных proactive решений
                             for _pd in _tick_result.decisions:
-                                _wt_npc_raw = next((_n for _n in _all_raw if (_n.get("id") or _n.get("npc_id")) == _pd.npc_id), None)
+                                _wt_npc_raw = next((_n for _n in _all_npcs_raw if (_n.get("id") or _n.get("npc_id")) == _pd.npc_id), None)
                                 if not _wt_npc_raw:
                                     continue
                                 _wt_state = load_l2_state_from_runtime_dict(_wt_npc_raw)
@@ -1778,14 +1777,6 @@ class GameLoop:
                             except Exception as _wt_ne_err:
                                 logger.warning(f"[WORLD_TICK] NeedEngine error: {_wt_ne_err}")
 
-                            # Коммитим изменения world_tick
-                            if _wt_dirty:
-                                self.scene_manager.commit(
-                                    campaign_id=campaign_id,
-                                    scene_state=shared_context.scene_state,
-                                    npc_dicts=self._load_npcs_with_runtime(campaign_id),
-                                )
-                                logger.warning(f"[WORLD_TICK] state committed for {len(_tick_result.decisions)} NPCs")
 
                     except Exception as _wt_err:
                         logger.warning(f"[WORLD_TICK] Error: {_wt_err}")
@@ -1937,13 +1928,11 @@ class GameLoop:
                     )
 
                     if _social_results:
-                        _prop_dirty = False
-                        _all_npcs = self._load_npcs_with_runtime(campaign_id)
                         for pr in _social_results:
                             # Не перезаписываем прямых свидетелей — они уже получили дельты
                             if pr.npc_id in _witness_ids:
                                 continue
-                            for _npc_d in _all_npcs:
+                            for _npc_d in _all_npcs_raw:
                                 if _npc_d.get("id") == pr.npc_id:
                                     # trust хранится в -100..100, delta в -1..1
                                     _rc = _npc_d.setdefault("relationship_cache", {})
@@ -1966,12 +1955,6 @@ class GameLoop:
                                     )
                                     break
 
-                        if _prop_dirty:
-                            self.scene_manager.commit(
-                                campaign_id=campaign_id,
-                                scene_state=shared_context.scene_state,
-                                npc_dicts=self._load_npcs_with_runtime(campaign_id),
-                            )
                         shared_context.social_propagation = _social_results
         except Exception as _se_err:
             logger.warning(f"[SOCIAL] Propagation failed: {_se_err}")
@@ -2063,6 +2046,12 @@ class GameLoop:
                 for ctx in _filtered_ctxs
                 if ctx.get("profile_l0")
             }
+            # ФАЗА 4: темы NPC из TopicExtractor (Устав 3.2)
+            _npc_topics = {
+                ctx["npc_id"]: ctx["verbalization_ctx"].topic
+                for ctx in _filtered_ctxs
+                if ctx.get("verbalization_ctx") and ctx["verbalization_ctx"].topic
+            }
 
             # Строим SceneOutcome → DMFrame (с психологической проекцией)
             _scene = _builder.build(
@@ -2070,6 +2059,7 @@ class GameLoop:
                 state_snapshots=_state_snapshots,
                 distortion_biases=_distortion_biases,
                 npc_profiles=_npc_profiles,
+                topics=_npc_topics,
             )
 
             # Диагностика ProjectionLayer + DecisionHub
@@ -2173,13 +2163,13 @@ class GameLoop:
         # Применяем trust/stress дельты
         npc_state_updates = npc_result.get("npc_state_updates", [])
         if npc_state_updates:
-            self._apply_npc_state_updates(npc_state_updates, campaign_id=campaign_id, scene_state=shared_context.scene_state or {})
+            self._apply_npc_state_updates(npc_state_updates, npc_dicts=_all_npcs_raw, campaign_id=campaign_id)
         # Записываем ход в память NPC
         self._write_npc_memory(
             npc_reactions = npc_result.get("npc_reactions", []),
             player        = actions[0].player_name if actions else "игрок",
             action_text   = actions[0].action if actions else "",
-            scene_state   = shared_context.scene_state or {},
+            npc_dicts     = _all_npcs_raw,
         )
 
         # ── R1 CONNECT: Working Memory ─────────────────────────────────────────
@@ -2223,6 +2213,21 @@ class GameLoop:
             for _npc_id in shared_context.active_npc_ids or []:
                 self.memory_manager.apply_identity_weights(campaign_id, _npc_id, _resonance)
         # ────────────────────────────────────────────────────────────────────────
+        # ЕДИНСТВЕННАЯ точка коммита NPC-состояний за весь тик (Устав 4.2.1)
+        if _dirty_npcs or _wt_dirty or _prop_dirty:
+            self.scene_manager.commit(
+                campaign_id=campaign_id,
+                scene_state=shared_context.scene_state,
+                npc_dicts=_all_npcs_raw,
+            )
+            _sources = []
+            if _dirty_npcs:
+                _sources.append(f"npc={len(_dirty_npcs)}")
+            if _wt_dirty:
+                _sources.append("world_tick")
+            if _prop_dirty:
+                _sources.append("social")
+            logger.warning(f"[COMMIT] single commit: {', '.join(_sources)}")
 
         return _PipelineState(
             shared_context         = shared_context,
@@ -2248,11 +2253,11 @@ class GameLoop:
             logger.warning(f"[GAME_LOOP] Персонаж '{player_name}' не найден: {e}")
         return {}
 
-    def _apply_npc_state_updates(self, updates: list, campaign_id: str = "", scene_state: dict | None = None) -> None:
+    def _apply_npc_state_updates(self, updates: list, npc_dicts: list | None = None, campaign_id: str = "") -> None:
         if not updates:
             return
         try:
-            all_npcs = self._load_npcs_with_runtime(campaign_id) if campaign_id else self._load_npcs()
+            all_npcs = npc_dicts if npc_dicts is not None else (self._load_npcs_with_runtime(campaign_id) if campaign_id else self._load_npcs())
             changed  = False
             for upd in updates:
                 npc_id       = upd.get("npc_id")
@@ -2289,8 +2294,7 @@ class GameLoop:
                             logger.warning(f"[GAME_LOOP] Ошибка обновления отношений: {e}")
                     break
             if changed:
-                # Пробой 7 закрыт: единственная точка сохранения — commit()
-                self.scene_manager.commit(campaign_id, scene_state or {}, all_npcs)
+                logger.warning(f"[NPC_STATE] {sum(1 for u in updates if u.get('npc_id'))} trust/stress deltas applied to buffer")
 
         except Exception as e:
             logger.error(f"[GAME_LOOP] _apply_npc_state_updates failed: {e}")
@@ -2301,13 +2305,13 @@ class GameLoop:
         player: str,
         action_text: str,
         turn_tick: int = 0,
-        scene_state: dict | None = None,
+        npc_dicts: list | None = None,
     ) -> None:
         """Записывает ход в memory_trace каждого NPC который ответил."""
         if not npc_reactions:
             return
         try:
-            all_npcs = self._load_npcs()
+            all_npcs = npc_dicts if npc_dicts is not None else self._load_npcs()
             changed  = False
             for reaction in npc_reactions:
                 # reaction формат: "Люся: Я не знаю..."
@@ -2329,8 +2333,7 @@ class GameLoop:
                     changed = True
                     break
             if changed:
-                # Пробой 7 закрыт: единственная точка сохранения — commit()
-                self.scene_manager.commit("", scene_state or {}, all_npcs)
+                logger.warning(f"[NPC_MEM] memory_trace updated for {len(npc_reactions)} reactions in buffer")
         except Exception as e:
             logger.warning(f"[GAME_LOOP] _write_npc_memory failed: {e}")
 
@@ -2432,74 +2435,6 @@ class GameLoop:
         except Exception as e:
             logger.warning(f"[GAME_LOOP] Ошибка получения location_id: {e}")
 
-    def _write_memory(
-        self,
-        req: ChatTurnRequest,
-        state: _PipelineState,
-        dm_result: dict,
-        python_engines_result: dict,
-    ) -> None:
-        memory_events = dm_result.get("memory_events", [])
-        self.layered_memory.store_events(req.campaign_id, memory_events)
-        self.layered_memory.write_campaign_memory(
-            req.campaign_id,
-            {
-                "world_id": req.world_id,
-                "location": req.location,
-                "actions":  [a.model_dump() for a in req.actions],
-                "rules":    state.rules_result,
-                "dm":       dm_result.get("dm_response", ""),
-                "npc":      dm_result.get("npc_reactions", []),
-                "world":    dm_result.get("world_changes", []),
-                "python_engines": python_engines_result,
-            },
-        )
-        self.layered_memory.write_session_memory(
-            req.campaign_id,
-            {
-                "world_id":     req.world_id,
-                "location":     req.location,
-                "last_actions": [a.model_dump() for a in req.actions],
-                "dice_input_required": any(
-                    a.dice_result is None for a in req.actions
-                ),
-            },
-        )
-
-    def _write_session_memory(
-        self,
-        campaign_id: str,
-        world_id: str,
-        location: str,
-        player: str,
-        action_text: str,
-    ) -> None:
-        self.memory_manager.record_event(
-            campaign_id,
-            {"type": "player_action", "player": player, "action": action_text, "location": location},
-        )
-        try:
-            self.layered_memory.write_session_memory(
-                campaign_id,
-                {
-                    "world_id":     world_id,
-                    "location":     location,
-                    "last_actions": [{"player_name": player, "action": action_text}],
-                    "dice_input_required": False,
-                },
-            )
-            self.layered_memory.write_campaign_memory(
-                campaign_id,
-                {
-                    "world_id": world_id,
-                    "location": location,
-                    "actions":  [{"player_name": player, "action": action_text}],
-                    "dm":       "",
-                },
-            )
-        except Exception as e:
-            logger.warning(f"[GAME_LOOP] Memory write error: {e}")
-
     def _build_traces(
         self, state: _PipelineState, dm_result: dict, elapsed_ms: int
     ) -> list:
@@ -2527,15 +2462,17 @@ class GameLoop:
         loaded = self.adventure_loader.load_campaign(campaign_id)
         self._campaign_world_index[campaign_id] = world_id
         for filename, payload in loaded.get("files", {}).items():
-            self.layered_memory.write_world_canon(
+            self.memory_manager.persist_world_canon(
                 world_id,
-                {"campaign_id": campaign_id, "source": filename, "payload": payload},
+                campaign_id=campaign_id,
+                source=filename,
+                payload=payload,
             )
-        self.layered_memory.write_campaign_memory(
+        self.memory_manager.persist_campaign_event(
             campaign_id,
-            {
-                "event":        "campaign_loaded",
-                "world_id":     world_id,
+            event="campaign_loaded",
+            world_id=world_id,
+            data={
                 "loaded_files": list(loaded.get("files", {})),
                 "status":       loaded["status"],
             },
@@ -2565,7 +2502,7 @@ class GameLoop:
     def _resolve_world_id(self, campaign_id: str) -> str:
         if campaign_id in self._campaign_world_index:
             return self._campaign_world_index[campaign_id]
-        history = self.layered_memory.read_campaign_memory(campaign_id, limit=100)
+        history = self.memory_manager.read_campaign_history(campaign_id, limit=100)
         for item in reversed(history):
             if item.get("event") == "campaign_loaded" and item.get("world_id"):
                 self._campaign_world_index[campaign_id] = item["world_id"]

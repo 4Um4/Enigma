@@ -42,6 +42,7 @@ import time
 from app.api.routes import router
 from app.api import routes_debug
 from app.api.routes_stream import router as stream_router
+from app.api.world_routes import router as world_router
 from app.core.config import settings
 from app.core.runtime_config import get_api_url
 
@@ -230,6 +231,7 @@ app.add_middleware(
 app.include_router(router, prefix="/api")
 app.include_router(routes_debug.router, prefix="/api")
 app.include_router(stream_router, prefix="/api")
+app.include_router(world_router, prefix="/api")
 
 if DATA_DIR.exists():
     app.mount("/backend/data", StaticFiles(directory=DATA_DIR), name="data")

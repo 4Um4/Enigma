@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 test_game_loop_pipeline.py — базовая фиксация работоспособности _run_pipeline.
-
+Запуск: python -m pytest backend/tests/test_game_loop_pipeline.py -v --tb=short
 Цель: убедиться, что _run_pipeline отрабатывает без падений
 и возвращает _PipelineState с корректным shared_context.
 """
@@ -20,11 +20,11 @@ def mock_deps(tmp_path):
     """Моки для всех зависимостей GameLoop."""
     return {
         "data_dir": tmp_path / "data",
-        "layered_memory": MagicMock(read_campaign_memory=MagicMock(return_value=[])),
         "memory_manager": MagicMock(
             run_decay_if_needed=MagicMock(return_value=None),
             detect_resonance=MagicMock(return_value=None),
             apply_identity_weights=MagicMock(),
+            read_campaign_history=MagicMock(return_value=[]),
         ),
         "dm_orchestrator": AsyncMock(),
         "scene_manager": MagicMock(load_scene=MagicMock(return_value={"snapshot_tick": 0})),

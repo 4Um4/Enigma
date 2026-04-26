@@ -23,6 +23,11 @@ class PersistencePort(ABC):
     def save_scene(self, campaign_id: str, scene_state: dict) -> None:
         """Сохраняет состояние сцены в campaign_state.json."""
         ...
+
+    @abstractmethod
+    def load_scene(self, campaign_id: str) -> dict | None:
+        """Загружает состояние сцены. None если нет сохранения."""
+        ...
     
     @abstractmethod
     def save_npcs(self, npc_dicts: list[dict]) -> None:

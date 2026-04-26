@@ -30,7 +30,8 @@ from intent_parser import parse_movement_intent
 from pathfinding import find_path
 from npc_movement import NpcMovementSystem
 from api_client import create_game_gateway, ActionQueue
-from app.core.constants import (
+# Тайминги опроса backend из constants.py (frontend-side)
+from constants import (
     IDLE_TICK_NEAR_MS, IDLE_TICK_MID_MS, IDLE_TICK_FAR_MS,
     IDLE_TICK_NEAR_RADIUS, IDLE_TICK_MID_RADIUS,
 )

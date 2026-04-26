@@ -16,6 +16,8 @@
 from __future__ import annotations
 import logging
 from typing import List, Optional
+
+from app.domain.events import EventDTO
 from app.services.spatial.spatial_runtime import (
     extract_scene_for_npc,
     line_of_sight,
@@ -63,7 +65,7 @@ def calculate_clarity(
 ) -> float:
     """
     R5.3 — вычисляет clarity восприятия события.
-    Используется при создании EventMemory из GameEvent.
+    Используется при создании EventMemory из EventDTO.
     clarity = f(distance, light, stress)
     Высокая clarity → детальное воспоминание.
     """
@@ -208,7 +210,15 @@ def filter_perceiving_npcs(
         return []
 
     # Извлекаем поля события
-    if hasattr(event, "visible_to"):
+    if isinstance(event, EventDTO):
+        # EventDTO: нет явных списков visible_to/audible_to — фильтруем через radius/sight/sound
+        visible_to  = []
+        audible_to  = []
+        radius      = event.radius
+        location    = event.payload.get("location", "")
+        event_type  = event.type
+    elif hasattr(event, "visible_to"):
+        # TODO: временная заглушка — будет удалена после полного удаления GameEvent
         visible_to  = event.visible_to  or []
         audible_to  = event.audible_to  or []
         radius      = float(getattr(event, "radius", 999.0))
@@ -273,7 +283,12 @@ def build_perception_context(
       "Ты слышишь громкий треск — что-то сломали."
       "Ты видишь как игрок атакует кого-то рядом."
     """
-    if hasattr(event, "event_type"):
+    if isinstance(event, EventDTO):
+        event_type = event.type
+        params     = event.payload
+        actor      = event.source or "кто-то"
+    elif hasattr(event, "event_type"):
+        # TODO: временная заглушка — будет удалена после полного удаления GameEvent
         event_type = str(
             event.event_type.name
             if hasattr(event.event_type, "name")
