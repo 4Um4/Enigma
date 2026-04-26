@@ -1,0 +1,12 @@
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 972, "vram_after_mb": 972}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 78, "status": "complete"}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 922, "vram_after_mb": 922}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 53, "status": "complete"}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 946, "vram_after_mb": 946}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 51, "status": "complete"}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 945, "vram_after_mb": 945}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 60, "status": "complete"}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 769, "vram_after_mb": 769}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 58, "status": "complete"}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 773, "vram_after_mb": 773}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 50, "status": "complete"}

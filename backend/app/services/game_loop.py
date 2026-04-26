@@ -37,6 +37,7 @@ from app.services.action.player_target_extractor import PlayerTargetExtractor
 # ─────────────────────────────────────────────────────────────────────────────
 R3_DIRECT_MODE: bool = True
 from app.services.state.context_builder import build_context, patch_scene_state
+from app.models.pipeline_context import PipelineContext
 from app.services.scene_state_manager import SceneStateManager
 from app.services.memory import LayeredMemory
 # Старый model_router удалён — агенты сами управляют маршрутизацией через llm/router
@@ -72,7 +73,7 @@ ERROR_CODES = {
 @dataclass
 class _PipelineState:
     """Всё что нужно знать агентам после Python-этапа."""
-    shared_context:        Dict[str, Any]
+    shared_context:        PipelineContext
     classification_results: List[Dict[str, Any]]
     world_tick_meta:       Dict[str, Any]
     rules_result:          Dict[str, Any]  = field(default_factory=dict)
@@ -298,7 +299,7 @@ class GameLoop:
             if loc_id:
                 location = loc_id
         except Exception as e:
-            print(f"[GAME_LOOP] Ошибка получения location_id: {e}")
+            logger.warning(f"[GAME_LOOP] Ошибка получения location_id: {e}")
         
         scene_state = self.scene_manager.get_scene_state(campaign_id, location)
         
@@ -395,13 +396,13 @@ class GameLoop:
             {},
         )
         # TODO: временный дебаг — удалить после починки LLM
-        print(f"[DM_RESULT] type={type(dm_result).__name__}, keys={list(dm_result.keys()) if isinstance(dm_result, dict) else 'N/A'}, dm_resp={repr(dm_result.get('dm_response', '<NO KEY>')[:200]) if isinstance(dm_result, dict) else repr(dm_result)[:200]}")
+        logger.warning(f"[DM_RESULT] type={type(dm_result).__name__}, keys={list(dm_result.keys()) if isinstance(dm_result, dict) else 'N/A'}, dm_resp={repr(dm_result.get('dm_response', '<NO KEY>')[:200]) if isinstance(dm_result, dict) else repr(dm_result)[:200]}")
 
         # R2.1: NarrativeExtractor R2.2.8 — синхронный путь (REST)
         try:
             from app.services.scene.narrative_extractor import get_extractor
             dm_text     = dm_result.get("dm_response", "")
-            scene_state = state.shared_context.get("scene_state", {})
+            scene_state = state.shared_context.scene_state or {}
             if dm_text and scene_state:
                 current_tick = scene_state.get("snapshot_tick", 0)
                 extraction   = get_extractor().extract(dm_text, scene_state, current_tick)
@@ -414,7 +415,7 @@ class GameLoop:
                             req.campaign_id, scene_state, current_tick
                         )
         except Exception as e:
-            print(f"[R2.1] NarrativeExtractor REST error: {e}")
+            logger.warning(f"[R2.1] NarrativeExtractor REST error: {e}")
 
         self._write_memory(
             req, state, dm_result,
@@ -455,7 +456,7 @@ class GameLoop:
         actions = [PlayerAction(player_name=player, action=action_text)]
 
         is_session_start = campaign_id not in self._session_started_campaigns
-        print(f"[SESSION_CHECK] campaign={campaign_id} known={self._session_started_campaigns} is_new={is_session_start}")
+        logger.warning(f"[SESSION_CHECK] campaign={campaign_id} known={self._session_started_campaigns} is_new={is_session_start}")
         if is_session_start:
             self._session_started_campaigns.add(campaign_id)
 
@@ -533,22 +534,22 @@ class GameLoop:
             _player_msg = next((a.action for a in actions if a.action), "")
             _preview_q = _player_msg[:80] + "..." if len(_player_msg) > 80 else _player_msg
             _preview_a = dm_full_text_for_mem[:120] + "..." if len(dm_full_text_for_mem) > 120 else dm_full_text_for_mem
-            print(f"[DM] {_preview_q}")
-            print(f"[NPC] {_preview_a}")
+            logger.warning(f"[DM] {_preview_q}")
+            logger.warning(f"[NPC] {_preview_a}")
 
         yield {
             "type": "done",
             "tokens": token_count,
             "ms": elapsed_ms,
             "tps": tps,
-            "game_time_seconds": state.shared_context.get("game_time_seconds", 0),
+            "game_time_seconds": state.shared_context.game_time_seconds or 0,
         }
 
         # R2.1: NarrativeExtractor R2.2.8
         try:
             from app.services.scene.narrative_extractor import get_extractor
             dm_full_text = "".join(dm_text_parts)
-            scene_state  = state.shared_context.get("scene_state", {})
+            scene_state  = state.shared_context.scene_state or {}
             if dm_full_text and scene_state:
                 current_tick = scene_state.get("snapshot_tick", 0)
                 extraction   = get_extractor().extract(dm_full_text, scene_state, current_tick)
@@ -561,13 +562,13 @@ class GameLoop:
                         self.scene_manager.prune_dynamic_objects(
                             campaign_id, scene_state, current_tick
                         )
-                    print(
+                    logger.debug(
                         f"[R2.1] objects={len(extraction.new_objects)} "
                         f"events={len(extraction.new_events)} "
                         f"state_updates={len(extraction.updated_states)}"
                     )
         except Exception as e:
-            print(f"[R2.1] NarrativeExtractor error: {e}")
+            logger.warning(f"[R2.1] NarrativeExtractor error: {e}")
 
     def _advance_game_time(
         self,
@@ -622,7 +623,7 @@ class GameLoop:
 
         # Текущее время из shared_context (новый путь) или из строки (legacy)
         if shared_context and "game_time_seconds" in shared_context:
-            _current_total = shared_context["game_time_seconds"]
+            _current_total = shared_context.game_time_seconds
         else:
             _env_time = scene_state.get("environment", {}).get("time_of_day", "07:00")
             _seconds_in_day = Calendar.parse_hhmm(_env_time)
@@ -632,7 +633,7 @@ class GameLoop:
 
         # Обновляем shared_context
         if shared_context is not None:
-            shared_context["game_time_seconds"] = _new_total
+            shared_context.game_time_seconds = _new_total
 
         # Обновляем time_of_day в scene_state для совместимости
         # (scene_state_manager._select_time_variant читает строку)
@@ -641,7 +642,7 @@ class GameLoop:
         scene_state.setdefault("environment", {})["time_of_day"] = _new_hhmm
 
         if _delta_seconds >= 60:
-            print(f"[TIME_ADVANCE] {_old_hhmm} → {_new_hhmm} (+{_delta_seconds // 60} мин)")
+            logger.warning(f"[TIME_ADVANCE] {_old_hhmm} → {_new_hhmm} (+{_delta_seconds // 60} мин)")
 
     # ────────────────────────────────────────────────────────────────────────────
     # ОБЩИЙ ПАЙПЛАЙН (шаги 1–8 — одинаковы для REST и SSE)
@@ -675,7 +676,7 @@ class GameLoop:
         # 3. Базовый shared_context
         _raw_mem = self.layered_memory.read_campaign_memory(campaign_id, limit=3)
         if _raw_mem:
-            print(f"[RECENT_MEM] {len(_raw_mem)} entries, dm_fields={[bool(e.get('dm')) for e in _raw_mem]}")
+            logger.warning(f"[RECENT_MEM] {len(_raw_mem)} entries, dm_fields={[bool(e.get('dm')) for e in _raw_mem]}")
         shared_context = build_context(
             campaign_id         = campaign_id,
             world_id            = world_id,
@@ -699,11 +700,11 @@ class GameLoop:
             if _match and self.avatar_service.load_avatar(campaign_id, _player_name) is None:
                 self.avatar_service.migrate_from_characters_json(campaign_id, _match)
                 _avatar_state = self.avatar_service.load_state(campaign_id, _player_name)
-            shared_context["player_state"] = {
+            shared_context.player_state = {
                 _player_name: self._avatar_to_prompt(_avatar_state)
             }
         except Exception as _e:
-            print(f"[AVATAR] ошибка загрузки: {_e}")
+            logger.warning(f"[AVATAR] ошибка загрузки: {_e}")
 
         # 4. SceneState
         try:
@@ -737,7 +738,7 @@ class GameLoop:
                                     "count":        _qty,
                                 }
                     except Exception as _e:
-                        print(f"[GAME_LOOP] Ошибка материализации инвентаря {_npc_id}: {_e}")
+                        logger.warning(f"[GAME_LOOP] Ошибка материализации инвентаря {_npc_id}: {_e}")
                 self.scene_manager.save_scene_state(campaign_id, scene_state)
                 logger.info(f"[GAME_LOOP] Новая сцена: {location}")
             patch_scene_state(shared_context, scene_state)
@@ -748,7 +749,7 @@ class GameLoop:
             _env_time = scene_state.get("environment", {}).get("time_of_day", "07:00")
             _seconds_in_day = Calendar.parse_hhmm(_env_time)
             # Старые сейвы не хранят день/год — начинаем с эпохи (день 1, год 1)
-            shared_context["game_time_seconds"] = _seconds_in_day
+            shared_context.game_time_seconds = _seconds_in_day
         except Exception as e:
             logger.warning(f"[GAME_LOOP] SceneState error: {e}")
 
@@ -763,13 +764,13 @@ class GameLoop:
             _sim_tick = _life_engine.get_current_tick(campaign_id)
             _delta = max(0, _world_elapsed - _sim_tick)
             _catch_up = min(_delta, MAX_CATCH_UP_TICKS)
-            print(f"[TICK_CATCHUP] world={_world_elapsed} sim={_sim_tick} delta={_delta} applying={_catch_up}")
+            logger.warning(f"[TICK_CATCHUP] world={_world_elapsed} sim={_sim_tick} delta={_delta} applying={_catch_up}")
             _life_changes = []
             for _ in range(max(1, _catch_up)):
                 _life_changes += _life_engine.tick(campaign_id, scene_state, runtime_path=self._get_npc_runtime_path(campaign_id))
             if _life_changes:
                 self.scene_manager.apply_changes(campaign_id, _life_changes, scene_state)
-                print(f"[LIFE_ENGINE] {len(_life_changes)} изменений применено")
+                logger.warning(f"[LIFE_ENGINE] {len(_life_changes)} изменений применено")
                 # Сообщаем DM о прибывших NPC — дедуплицируем (catch-up может дать N одинаковых)
                 _arrivals = list({
                     c.target for c in _life_changes
@@ -778,10 +779,10 @@ class GameLoop:
                     and c.value == location
                 })
                 if _arrivals:
-                    shared_context["npc_arrivals"] = _arrivals
-                    print(f"[LIFE_ENGINE] Прибыли в сцену: {_arrivals}")
+                    shared_context.npc_arrivals = _arrivals
+                    logger.warning(f"[LIFE_ENGINE] Прибыли в сцену: {_arrivals}")
         except Exception as _le:
-            print(f"[LIFE_ENGINE] Ошибка тика: {_le}")
+            logger.warning(f"[LIFE_ENGINE] Ошибка тика: {_le}")
 
         # 4.2. EconomyTracker — дневная проверка INCOME/SOCIAL (раз в TICKS_PER_DAY)
         try:
@@ -802,9 +803,9 @@ class GameLoop:
                     )
                     self._economy_tracker.reset_daily()
                     if _inc_sat or _soc_sat:
-                        print(f"[ECO_TRACKER] day_end: income={_inc_sat} social={_soc_sat} satisfied")
+                        logger.warning(f"[ECO_TRACKER] day_end: income={_inc_sat} social={_soc_sat} satisfied")
         except Exception as _et_err:
-            print(f"[ECO_TRACKER] Error (non-blocking): {_et_err}")
+            logger.warning(f"[ECO_TRACKER] Error (non-blocking): {_et_err}")
 
         # 5. PythonEngines
         fake_req = _FakeRequest(campaign_id, world_id, location, actions)
@@ -815,7 +816,7 @@ class GameLoop:
             
             # 4.5: Извлекаем цель игрока из текста — без этого target=None всегда
             try:
-                _scene_pre = shared_context.get("scene_state") or {}
+                _scene_pre = shared_context.scene_state or {}
                 _npc_ids = list((_scene_pre.get("npc_positions") or {}).keys())
                 # Загружаем name_forms из NPC JSON — extract() ищет по ним
                 _all_npcs_raw = self._load_npcs()
@@ -840,9 +841,13 @@ class GameLoop:
                 if _player_pos and isinstance(_scene_pre, dict):
                     _scene_pre["player_position"] = _player_pos
                 if _target_id:
-                    shared_context["player_target_id"] = _target_id
-                    shared_context["player_target_name"] = _target_name
-                    print(f"[TARGET] Extracted: {_target_name} ({_target_id})")
+                    shared_context.player_target_id = _target_id
+                    shared_context.player_target_name = _target_name
+                    # Sticky target: сохраняем в scene_state для следующего тика
+                    if isinstance(_scene_pre, dict):
+                        _scene_pre["player_target_npc"] = _target_id
+                        _scene_pre["player_target_npc_name"] = _target_name
+                    logger.warning(f"[TARGET] Extracted: {_target_name} ({_target_id})")
 
                 # ФАЗА 3.1: Spatial Events — детекция переходов расстояний
                 try:
@@ -851,8 +856,8 @@ class GameLoop:
                     _curr_dists = _player_dists if _player_dists else {}
                     _spatial_events = detect_transitions(_prev_dists, _curr_dists)
                     if _spatial_events:
-                        shared_context["spatial_events"] = _spatial_events
-                        print(f"[SPATIAL] {len(_spatial_events)} transitions: "
+                        shared_context.spatial_events = _spatial_events
+                        logger.debug(f"[SPATIAL] {len(_spatial_events)} transitions: "
                               f"{[(e.npc_id, e.event_type) for e in _spatial_events]}")
                         # ФАЗА 3.4: Публикуем spatial events в EventBus — DecisionHub видит proximity
                         for _sp in _spatial_events:
@@ -878,14 +883,14 @@ class GameLoop:
                 except Exception as _se_err:
                     logger.warning(f"[SPATIAL] Transition detection failed: {_se_err}")
             except Exception as _te:
-                import traceback
-                print(f"[TARGET] Extract error: {_te}")
-                traceback.print_exc()
+                
+                logger.warning(f"[TARGET] Extract error: {_te}")
+                pass
             
             # Строим spatial_data из scene_state для DM SceneBuilder
-            _scene = shared_context.get("scene_state", {})
+            _scene = shared_context.scene_state or {}
             _npc_positions = _scene.get("npc_positions", {})
-            print(f"[DEBUG SPATIAL] location={location}, npc_positions keys={list(_npc_positions.keys())}")
+            logger.warning(f"[DEBUG SPATIAL] location={location}, npc_positions keys={list(_npc_positions.keys())}")
             _npcs_for_builder = []
             _player_distances = _scene.get("player_distances", {})
             for _nid, _npos in _npc_positions.items():
@@ -906,19 +911,19 @@ class GameLoop:
             
             # R1: DM видит прошлую речь NPC — извлекаем из WorkingMemory
             # На текущем тике буфер содержит речь с предыдущего тика
-            print("[WM_CHECK_START]")
-            print(f"[WM_CHECK] campaign={campaign_id}, wm_keys={list(self.memory_manager.working_memory._buffers.keys())}")
+            logger.debug("[WM_CHECK_START]")
+            logger.warning(f"[WM_CHECK] campaign={campaign_id}, wm_keys={list(self.memory_manager.working_memory._buffers.keys())}")
             _recent_speech = []
             try:
                 # Чтение напрямую из изолированного буфера диалогов (без O(N) фильтра)
                 for _evt in self.memory_manager.working_memory.get(f"{campaign_id}:dialogue"):
                     if _evt.get("content"):
                         _recent_speech.append(f"{_evt.get('actor', 'NPC')}: {_evt['content']}")
-                shared_context["npc_recent_speech"] = _recent_speech[-5:]
+                shared_context.npc_recent_speech = _recent_speech[-5:]
                 if _recent_speech:
-                    print(f"[RECENT_SPEECH] {_recent_speech[-5:]}")
+                    logger.warning(f"[RECENT_SPEECH] {_recent_speech[-5:]}")
             except Exception as _rs_err:
-                print(f"[RECENT_SPEECH] error: {_rs_err}")
+                logger.warning(f"[RECENT_SPEECH] error: {_rs_err}")
 
             # R1: DM видит недавние действия игрока — "что произошло" не из пустого
             _recent_player_actions = []
@@ -937,28 +942,28 @@ class GameLoop:
                         _raw_type = _evt.get("action_type", "SANDBOX_MILD")
                         _semantic = _SEMANTIC_MAP.get(_raw_type, "действовал")
                         _recent_player_actions.append(f"{_actor}: {_semantic}")
-                shared_context["recent_player_actions"] = _recent_player_actions[-3:]
+                shared_context.recent_player_actions = _recent_player_actions[-3:]
                 if _recent_player_actions:
-                    print(f"[RECENT_ACTIONS_SEMANTIC] {_recent_player_actions[-3:]}")
+                    logger.warning(f"[RECENT_ACTIONS_SEMANTIC] {_recent_player_actions[-3:]}")
             except Exception as _ra_err:
-                print(f"[RECENT_ACTIONS] error: {_ra_err}")
+                logger.warning(f"[RECENT_ACTIONS] error: {_ra_err}")
 
             dm_result = self.dm_orchestrator.process_player_action(
                 raw_input=raw_input,
-                player_data=shared_context.get("player", {}),
-                player_markers=shared_context.get("player_markers", []),
-                target_npc_id=shared_context.get("player_target_id"),
+                player_data=shared_context.player or {},
+                player_markers=shared_context.player_markers or [],
+                target_npc_id=shared_context.player_target_id,
                 spatial_data=_spatial_data,
-                current_tick=shared_context.get("current_tick", 0),
+                current_tick=shared_context.current_tick or 0,
             )
             
             # Передаём DM результат в контекст для NPC agent и Verbalization
-            shared_context["dm_result"] = dm_result
+            shared_context.dm_result = dm_result
 
             # Сохраняем классификацию из Router для DecisionHub и EventBus
             if dm_result.event_context:
-                shared_context["action_type"] = dm_result.event_context.event_type
-                print(f"[EVENT_TYPE] Router classified as: {dm_result.event_context.event_type}")
+                shared_context.action_type = dm_result.event_context.event_type
+                logger.warning(f"[EVENT_TYPE] Router classified as: {dm_result.event_context.event_type}")
 
             # 5.1: Публикуем событие в EventBus — без этого PerceptionFilter слепой
             if dm_result.is_valid:
@@ -970,7 +975,7 @@ class GameLoop:
                     "move": EventType.PLAYER_MOVED,
                     "stealth": EventType.PLAYER_MOVED,
                 }
-                _raw_type = shared_context.get("action_type", "dialogue")
+                _raw_type = shared_context.action_type or "dialogue"
                 _resolved_type = _evt_map.get(_raw_type, EventType.PLAYER_SPOKE)
                 # Атака — звуковое событие с ограниченным радиусом слышимости
                 _evt_radius = 15.0 if _resolved_type == EventType.PLAYER_ATTACKED else 999.0
@@ -979,23 +984,23 @@ class GameLoop:
                     actor_id="player",
                     location=location,
                     campaign_id=campaign_id,
-                    target_id=shared_context.get("player_target_id"),
+                    target_id=shared_context.player_target_id,
                     radius=_evt_radius,
                     parameters={"raw_input": raw_input, "action_type": _raw_type},
                 )
                 get_event_bus().publish(_game_evt)
                 # Фаза 4 — время продвигается от действий, не от тиков
                 self._advance_game_time(scene_state, _raw_type, raw_input, shared_context)
-                print(f"[EVENT_BUS] Published: {_game_evt.event_type.name}, target={_game_evt.target_id}")
+                logger.warning(f"[EVENT_BUS] Published: {_game_evt.event_type.name}, target={_game_evt.target_id}")
 
             # ── SCENE EVENT LAYER: единые события для восприятия всеми NPC ──
             _scene_events = []
             try:
                 from app.services.scene.scene_event_emitter import SceneEventEmitter
                 _emitter = SceneEventEmitter()
-                _action_type = shared_context.get("action_type", "player_interacts")
-                _target_id = shared_context.get("player_target_id", "")
-                _tick = shared_context.get("current_tick", 0)
+                _action_type = shared_context.action_type or "player_interacts"
+                _target_id = shared_context.player_target_id or ""
+                _tick = shared_context.current_tick or 0
                 
                 if _action_type in ("player_attacks", "player_steals", "player_grapples"):
                     # Физическое действие — ищем результат в npc_contexts позже
@@ -1017,18 +1022,18 @@ class GameLoop:
                         target_id=_target_id,
                     )
                 
-                shared_context["scene_events"] = _scene_events
+                shared_context.scene_events = _scene_events
                 if _scene_events:
-                    print(f"[SCENE_EVENTS] {len(_scene_events)} events emitted: {[e.event_type.value for e in _scene_events]}")
+                    logger.warning(f"[SCENE_EVENTS] {len(_scene_events)} events emitted: {[e.event_type.value for e in _scene_events]}")
                     # Накопление в scene_state для cross-tick восприятия (БАГ 2)
                     from dataclasses import asdict
                     _se_accum = scene_state.setdefault("raw_scene_events", [])
                     _se_accum.extend(asdict(e) for e in _scene_events)
                     if len(_se_accum) > 30:
                         scene_state["raw_scene_events"] = _se_accum[-30:]
-                    print(f"[SCENE_ACCUM] total={len(_se_accum)} events in scene_state")
+                    logger.warning(f"[SCENE_ACCUM] total={len(_se_accum)} events in scene_state")
             except Exception as _se_err:
-                print(f"[SCENE_EVENTS] error: {_se_err}")
+                logger.warning(f"[SCENE_EVENTS] error: {_se_err}")
 
             # Этап 4: Формируем NPC контексты для DecisionHub
 
@@ -1037,7 +1042,7 @@ class GameLoop:
             from app.services.npc.decision_hub import DecisionHub, EventContext as HubEventContext
 
             npc_contexts = []
-            print(f"[DEBUG DM] is_valid={dm_result.is_valid}, scene_context={dm_result.scene_context}, error={dm_result.error}")
+            logger.warning(f"[DEBUG DM] is_valid={dm_result.is_valid}, scene_context={dm_result.scene_context}, error={dm_result.error}")
             if dm_result.is_valid and dm_result.scene_context:
                 # Инжектируем line_of_sight в scene_state для SceneOutcomeBuilder
                 if dm_result.scene_context.line_of_sight is not None:
@@ -1069,18 +1074,18 @@ class GameLoop:
                             )
                             self.character_service.upsert_profile(campaign_id, _profile)
                         
-                        print(f"[CHAR_FILTER] {_player_name}: {_filter_result.outcome.value} "
+                        logger.debug(f"[CHAR_FILTER] {_player_name}: {_filter_result.outcome.value} "
                               f"(res={_filter_result.resistance:.2f}, mod={_filter_result.action_modifier:.2f})")
                         
                         # RESIST/REFUSE — передаём контекст DM, пропускаем NPC решения
                         if _filter_result.outcome.value in ("resist", "refuse"):
-                            shared_context["character_filter"] = _filter_result.to_dict()
+                            shared_context.character_filter = _filter_result.to_dict()
                             # DM увидит описание в prompt, NPC решения не нужны
                             hub_event = None
                 except Exception as _cfe:
-                    import traceback
-                    print(f"[CHAR_FILTER] Error (non-blocking): {_cfe}")
-                    traceback.print_exc()
+                    
+                    logger.warning(f"[CHAR_FILTER] Error (non-blocking): {_cfe}")
+                    pass
 
                 # Фаза 5.1: FrontEngine — давление мира на персонажа (каждый тик)
                 try:
@@ -1104,7 +1109,7 @@ class GameLoop:
                     _front_decision = _front_eng.decide(
                         profile=_player_profile,
                         pressure=_world_pressure,
-                        current_tick=shared_context.get("current_tick", 0),
+                        current_tick=shared_context.current_tick or 0,
                     )
                     # Применяем решение к профилю
                     if _front_decision.action == "adopt":
@@ -1113,7 +1118,7 @@ class GameLoop:
                             _player_profile.front = FrontState()
                         _player_profile.front.adopt(
                             _front_decision.front_type,
-                            tick=shared_context.get("current_tick", 0),
+                            tick=shared_context.current_tick or 0,
                             intensity=_world_pressure.total_pressure,
                         )
                     elif _front_decision.action == "intensify" and _player_profile.front:
@@ -1133,11 +1138,11 @@ class GameLoop:
                     self.character_service.upsert_profile(campaign_id, _player_profile)
                     # Передаём DM описание маски
                     if _front_decision.front_description:
-                        shared_context["front_description"] = _front_decision.front_description
-                        shared_context["front_type"] = _front_decision.front_type.value
+                        shared_context.front_description = _front_decision.front_description
+                        shared_context.front_type = _front_decision.front_type.value
                     if _world_pressure.total_pressure > 0.1:
-                        shared_context["world_pressure"] = round(_world_pressure.total_pressure, 3)
-                    print(f"[FRONT] action={_front_decision.action}, "
+                        shared_context.world_pressure = round(_world_pressure.total_pressure, 3)
+                    logger.debug(f"[FRONT] action={_front_decision.action}, "
                           f"pressure={_world_pressure.total_pressure:.2f}, "
                           f"cost={_front_decision.integrity_cost:.4f}")
                 except Exception as _fe_err:
@@ -1145,14 +1150,14 @@ class GameLoop:
 
                 # Если CharacterFilter заблокировал действие — пропускаем NPC цикл
                 if hub_event is None:
-                    print(f"[CHAR_FILTER] Action blocked, skipping NPC decisions")
+                    logger.warning("[CHAR_FILTER] Action blocked, skipping NPC decisions")
 
                 # SceneContinuity нужен ДО NPC цикла (физические факты)
                 if "scene_continuity" not in shared_context:
-                    shared_context["scene_continuity"] = self._scene_continuities.setdefault(campaign_id, SceneContinuity())
+                    shared_context.scene_continuity = self._scene_continuities.setdefault(campaign_id, SceneContinuity())
 
                 # Инжект SceneContinuity в EventContext — NPC видит МИР, не только текущее действие
-                _cont_inject = shared_context.get("scene_continuity")
+                _cont_inject = shared_context.scene_continuity
                 if _cont_inject and hub_event:
                     hub_event.scene_flags = _cont_inject.active_flags
                     hub_event.scene_facts = _cont_inject.scene_facts[-3:]
@@ -1174,7 +1179,7 @@ class GameLoop:
                                 _npc_profile = _n
                                 break
                         if not _npc_profile:
-                            print(f"[GAME_LOOP] Profile not found for {npc_id}")
+                            logger.warning(f"[GAME_LOOP] Profile not found for {npc_id}")
                             continue
                         # Сохраняем ссылку на dict для записи после StateApplicator
                         _npc_dict_for_write = _npc_profile
@@ -1198,13 +1203,13 @@ class GameLoop:
                                     for d in _aged
                                 ]
                             if len(_aged) != len(_drives):
-                                print(f"[DRIVE] {npc_id}: {len(_drives)}→{len(_aged)} drives (expired)")
+                                logger.warning(f"[DRIVE] {npc_id}: {len(_drives)}→{len(_aged)} drives (expired)")
 
                         # ── ПРИЧИННЫЙ СЛОЙ: Physical Resolution (до DecisionHub) ──
                         # Только для target NPC при PHYSICAL действии
                         _reflex_constraints = None
-                        _target_id = shared_context.get("player_target_id")
-                        _action_type = shared_context.get("action_type", "")
+                        _target_id = shared_context.player_target_id
+                        _action_type = shared_context.action_type or ""
                         
                         # Определяем PHYSICAL через event_type (DMResult не хранит raw_event)
                         _PHYSICAL_EVENTS = frozenset({
@@ -1214,7 +1219,7 @@ class GameLoop:
                         _is_physical = _action_type in _PHYSICAL_EVENTS
                         
                         if npc_id == _target_id:
-                            print(f"[PHYSICAL_DBG] npc={npc_id} target={_target_id} physical={_is_physical} max_hp={state_l2.max_hp}")
+                            logger.warning(f"[PHYSICAL_DBG] npc={npc_id} target={_target_id} physical={_is_physical} max_hp={state_l2.max_hp}")
 
                         if _is_physical and npc_id == _target_id and state_l2.max_hp > 0:
                             try:
@@ -1240,7 +1245,7 @@ class GameLoop:
                                 state_l2, _phys_changes = _applicator.apply_physical(
                                     state=state_l2,
                                     outcome=_phys_outcome,
-                                    current_tick=shared_context.get("current_tick", 0),
+                                    current_tick=shared_context.current_tick or 0,
                                 )
                                 # Записать изменённый стейт обратно в dict
                                 from app.models.npc_state import NPCState
@@ -1262,11 +1267,11 @@ class GameLoop:
                                             _reflex_constraints = sig.constraint.to_dict()
                                 
                                 # Факт о физическом ударе — ВСЕГДА при hit (переживает между тиками)
-                                _continuity = shared_context.get("scene_continuity")
+                                _continuity = shared_context.scene_continuity
                                 if _phys_outcome.hit and _continuity:
                                     _npc_display_name = _npc_profile.get("name", npc_id)
                                     # Наблюдаемость: есть ли свидетели кроме цели
-                                    _scene_state = shared_context.get("scene_state", {})
+                                    _scene_state = shared_context.scene_state or {}
                                     _los = _scene_state.get("line_of_sight", {})
                                     _witnesses = [nid for nid, vis in _los.items() if vis and nid != npc_id]
                                     _vis_tag = "на глазах у присутствующих " if _witnesses else ""
@@ -1297,9 +1302,9 @@ class GameLoop:
                                         _continuity.scene_facts[-1] = _existing + ", " + ", ".join(_desc_parts)
                                 
                             except Exception as _phys_err:
-                                import traceback
-                                print(f"[PHYSICAL] Error (non-blocking): {_phys_err}")
-                                traceback.print_exc()
+                                
+                                logger.error(f"[PHYSICAL] Error (non-blocking): {_phys_err}", exc_info=True)
+                                pass
 
                         # ── ПРИЧИННЫЙ СЛОЙ: ConditionEngine (всегда, не только PHYSICAL) ──
                         if state_l2.conditions:
@@ -1308,7 +1313,7 @@ class GameLoop:
                                 _cond_engine = ConditionEngine()
                                 _cond_changes, _cond_events = _cond_engine.tick(
                                     state=state_l2,
-                                    current_tick=shared_context.get("current_tick", 0),
+                                    current_tick=shared_context.current_tick or 0,
                                 )
                                 # StateChanges: применить к state_l2
                                 for _sc in _cond_changes:
@@ -1320,14 +1325,14 @@ class GameLoop:
                                         _NPCState.write_to_legacy(state_l2, _npc_dict_for_write)
                                 # SceneEvents → SceneContinuity
                                 if _cond_events:
-                                    _continuity = shared_context.get("scene_continuity")
+                                    _continuity = shared_context.scene_continuity
                                     if _continuity:
                                         for _me in _cond_events:
                                             _continuity.add_event(
                                                 f"{_me.event_type.value}_{_me.npc_id}"
                                             )
                             except Exception as _cond_err:
-                                print(f"[CONDITION] Error (non-blocking): {_cond_err}")
+                                logger.warning(f"[CONDITION] Error (non-blocking): {_cond_err}")
 
                         # Сброс динамического состояния при старте новой сессии
                         # R8: без этого stale emotion_tag даёт +0.35 к FLEE
@@ -1344,7 +1349,7 @@ class GameLoop:
                             state_l2.emotion = _EmotionTag.NEUTRAL
                             # R8: сброс маски поведения — новый игрок не должен видеть старую
                             state_l2.behavior_mask = BehaviorMaskState()
-                            print(f"[SESSION_RESET] {npc_id}: stress=0 emotion=NEUTRAL mask=NONE")
+                            logger.warning(f"[SESSION_RESET] {npc_id}: stress=0 emotion=NEUTRAL mask=NONE")
 
                         # 1.5. Обогащаем relationship_cache из MemoryManager (РАЗРЫВ #1 закрыт)
                         # DecisionHub теперь принимает решения с учётом реальной истории отношений
@@ -1356,7 +1361,7 @@ class GameLoop:
                             )
                             state_l2.relationship_cache.update(mem_weights)
                         except Exception as _mem_e:
-                            print(f"[MEMORY] get_weights failed for {npc_id}: {_mem_e}")
+                            logger.error(f"[MEMORY] get_weights failed for {npc_id}: {_mem_e}", exc_info=True)
 
                         # 1.6. CognitiveDistortion: модификаторы для DecisionHub (ШАГ C.1)
                         # Distortion НЕ искажает state — возвращает модификаторы score
@@ -1386,17 +1391,17 @@ class GameLoop:
                                     "scene_state", {}
                                 ).get("player_distances", {})
                                 # Собираем spatial event types для социальных триггеров (ревность по proximity)
-                                _spatial_evts = shared_context.get("spatial_events", [])
+                                _spatial_evts = shared_context.spatial_events or []
                                 _extra_evt_types = [sp.event_type for sp in _spatial_evts] if _spatial_evts else None
                                 _social_mods = _se3.compute_social_modifiers(
                                     npc_id=npc_id,
                                     player_distances=_player_dists_snap,
                                     event_type=hub_event.event_type,
-                                    event_target=shared_context.get("player_target_id"),
+                                    event_target=shared_context.player_target_id,
                                     extra_event_types=_extra_evt_types,
                                 )
                         except Exception as e:
-                            print(f"[GAME_LOOP] Ошибка decision_hub.compute: {e}")  # non-blocking
+                            logger.warning(f"[GAME_LOOP] Ошибка decision_hub.compute: {e}")  # non-blocking
 
                         # Фаза 2.4-ECO: экономические модификаторы от потребностей
                         _eco_modifiers = {}
@@ -1412,15 +1417,15 @@ class GameLoop:
                                 _eco_result = _em.calculate(_eco_profile, _drives)
                                 _eco_modifiers = _eco_result.modifiers
                                 if _eco_modifiers:
-                                    print(f"[ECO] {npc_id}: {len(_eco_modifiers)} mods, drives={_eco_result.active_drives}")
+                                    logger.warning(f"[ECO] {npc_id}: {len(_eco_modifiers)} mods, drives={_eco_result.active_drives}")
                                 # Стресс от экономики/потребностей (единый расчёт)
                                 from app.services.economy.stress_calculator import calculate_economic_stress
                                 _eco_stress, _eco_reason = calculate_economic_stress(_eco_profile, _ne)
                                 if _eco_stress > 0:
                                     state_l2.stress = min(100.0, state_l2.stress + _eco_stress)
-                                    print(f"[ECO] {npc_id}: +{_eco_stress:.3f} ({_eco_reason})")
+                                    logger.warning(f"[ECO] {npc_id}: +{_eco_stress:.3f} ({_eco_reason})")
                         except Exception as _eco_e:
-                            print(f"[ECO] Error (non-blocking): {_eco_e}")
+                            logger.warning(f"[ECO] Error (non-blocking): {_eco_e}")
 
                         # Объединяем все модификаторы для DecisionHub
                         _all_modifiers = {**_distortion_modifiers}
@@ -1485,7 +1490,7 @@ class GameLoop:
                             try:
                                 _evt_type = hub_event.event_type if hub_event else ""
                                 _evt_actor = hub_event.actor_id or "player"
-                                _evt_target = shared_context.get("player_target_id") or ""
+                                _evt_target = shared_context.player_target_id or ""
                                 _intent_val = getattr(decision.intent, "value", "") if decision.intent else ""
                                 _has_target = bool(_evt_target)
                                 _deltas = decision.deltas
@@ -1561,7 +1566,7 @@ class GameLoop:
                                     _cache.sort(key=lambda f: f.importance, reverse=True)
                                     state_to_use_for_llm.narrative_cache = tuple(_cache[:NARRATIVE_CACHE_MAX])
                             except Exception as _mem_err:
-                                    print(f"[MEMORY] create_event_memory failed for {npc_id}: {_mem_err}")
+                                    logger.warning(f"[MEMORY] create_event_memory failed for {npc_id}: {_mem_err}")
 
                             # ЗАМЫКАНИЕ: Записываем состояние в dict ПОСЛЕ всех мутаций (включая память)
                             from app.models.npc_state import NPCState
@@ -1604,7 +1609,7 @@ class GameLoop:
                                 hands_occupied=_hands_occupied,
                                 current_activity=_current_activity,
                             )
-                            print(f"[REACTION] {npc_id}: composure={_composure:.2f} hands={_hands_occupied} act='{_current_activity}' events={[e.event_type.value for e in _micro_events]}")
+                            logger.warning(f"[REACTION] {npc_id}: composure={_composure:.2f} hands={_hands_occupied} act='{_current_activity}' events={[e.event_type.value for e in _micro_events]}")
                         except Exception as e:
                             logger.warning(f"[REACTION] Failed for {npc_id}: {e}")
                         
@@ -1666,7 +1671,7 @@ class GameLoop:
                 if _dirty_npcs:
                     self.scene_manager.commit(
                         campaign_id=campaign_id,
-                        scene_state=shared_context["scene_state"],
+                        scene_state=shared_context.scene_state,
                         npc_dicts=_all_npcs_raw,  # тот же список с мутациями
                     )
 
@@ -1674,15 +1679,15 @@ class GameLoop:
                 _rep_eng = self._get_reputation_engine()
                 if _rep_eng and hub_event:
                     try:
-                        _action_type_for_rep = shared_context.get("action_type", "")
+                        _action_type_for_rep = shared_context.action_type or ""
                         _rep_deltas = _rep_eng.apply_event_impact(
                             event_type=_action_type_for_rep,
                             actor_npc_id=None,  # игрок — не NPC
-                            target_npc_id=shared_context.get("player_target_id"),
+                            target_npc_id=shared_context.player_target_id,
                         )
                         if _rep_deltas:
                             _rep_eng.apply_deltas(_rep_deltas)
-                            print(f"[REPUTATION] {len(_rep_deltas)} faction deltas applied")
+                            logger.warning(f"[REPUTATION] {len(_rep_deltas)} faction deltas applied")
                     except Exception as _rep_err:
                         logger.warning(f"[REPUTATION] Impact error: {_rep_err}")
                 # ФАЗА 3.4: WorldTickEngine — проактивные действия NPC
@@ -1715,19 +1720,19 @@ class GameLoop:
                                 campaign_id=campaign_id,
                                 location=location,
                                 npc_data=_proactive_npc_data,
-                                scene_state=shared_context.get("scene_state", {}),
+                                scene_state=shared_context.scene_state or {},
                                 reputation_modifiers=_rep_mods if _rep_mods else None,
                             )
-                            shared_context["world_tick_result"] = _tick_result
+                            shared_context.world_tick_result = _tick_result
                             if _tick_result.decisions:
-                                print(f"[WORLD_TICK] {len(_tick_result.decisions)} proactive decisions")
+                                logger.warning(f"[WORLD_TICK] {len(_tick_result.decisions)} proactive decisions")
 
                             # Применяем deltas от world_tick к NPC стейту
                             from app.services.npc.state_applicator import StateApplicator
                             from app.models.npc_state import NPCState
                             _wt_applicator = StateApplicator(relationship_store=self.memory_manager._relationships)
                             _wt_dirty = False
-                            _wt_tick = shared_context.get("current_tick", 0)
+                            _wt_tick = shared_context.current_tick or 0
 
                             # 1. Recovery для ВСЕХ major NPC (не только с решениями)
                             for _pid, _p_l2, _ in _proactive_npc_data:
@@ -1777,16 +1782,16 @@ class GameLoop:
                             if _wt_dirty:
                                 self.scene_manager.commit(
                                     campaign_id=campaign_id,
-                                    scene_state=shared_context["scene_state"],
+                                    scene_state=shared_context.scene_state,
                                     npc_dicts=self._load_npcs_with_runtime(campaign_id),
                                 )
-                                print(f"[WORLD_TICK] state committed for {len(_tick_result.decisions)} NPCs")
+                                logger.warning(f"[WORLD_TICK] state committed for {len(_tick_result.decisions)} NPCs")
 
                     except Exception as _wt_err:
                         logger.warning(f"[WORLD_TICK] Error: {_wt_err}")
 
                 # Salience Engine: передаём метаданные для фильтрации объектов в промпте
-                _scene_for_dm = shared_context.get("scene_state", {})
+                _scene_for_dm = shared_context.scene_state or {}
                 _scene_for_dm["_salience_event_type"] = getattr(hub_event, "event_type", "player_interacts")
                 _scene_for_dm["_salience_max_stress"] = _max_npc_stress
                 _scene_for_dm["_salience_target_object"] = _scene_for_dm.get("player_target_object")
@@ -1800,7 +1805,7 @@ class GameLoop:
             logger.error(f"[GAME_LOOP] DM Orchestrator error: {e}")
             python_engines_result = {"dm_result": None, "npc_contexts": []}
 
-        shared_context["python_engines"] = python_engines_result
+        shared_context.python_engines = python_engines_result
         _all_npc_contexts = python_engines_result.get("npc_contexts", [])
 
         # 5.5: PerceptionFilter — фильтруем npc_contexts по воспринимающим NPC
@@ -1814,27 +1819,27 @@ class GameLoop:
                 _perceiving_ids = set(filter_perceiving_npcs(
                     npc_ids     = _all_npc_ids,
                     event       = _recent[0],
-                    scene_state = shared_context.get("scene_state", {}),
+                    scene_state = shared_context.scene_state or {},
                 ))
                 # Адресат всегда воспринимает + свидетели по perception
                 # Свидетели получают ослабленный сигнал через distance/clarity
-                _explicit_target = shared_context.get("player_target_id")
+                _explicit_target = shared_context.player_target_id
                 if _explicit_target:
                     _perceiving_ids.add(_explicit_target)
                 
                 # ФИЛЬТРУЕМ — только воспринимающие NPC получают вербализацию
                 _filtered_ctxs = [c for c in _all_npc_contexts if c.get("npc_id") in _perceiving_ids]
-                shared_context["npc_contexts"] = _filtered_ctxs
-                shared_context["perceiving_npcs"] = list(_perceiving_ids)
+                shared_context.npc_contexts = _filtered_ctxs
+                shared_context.perceiving_npcs = list(_perceiving_ids)
                 _target_note = f" (target={_explicit_target})" if _explicit_target else ""
-                print(f"[PERCEPTION_FILTER] {len(_perceiving_ids)}/{len(_all_npc_ids)} NPC{_target_note}: {list(_perceiving_ids)}")
+                logger.warning(f"[PERCEPTION_FILTER] {len(_perceiving_ids)}/{len(_all_npc_ids)} NPC{_target_note}: {list(_perceiving_ids)}")
             else:
-                shared_context["npc_contexts"] = _all_npc_contexts
-                print(f"[PERCEPTION_FILTER] skip: recent={len(_recent) if _recent else 0}, npcs={len(_all_npc_ids)}")
+                shared_context.npc_contexts = _all_npc_contexts
+                logger.warning(f"[PERCEPTION_FILTER] skip: recent={len(_recent) if _recent else 0}, npcs={len(_all_npc_ids)}")
 
                 # ФАЗА 3.4.5: Обновление аватара игрока — реакция на NPC
                 _player_name = actions[0].player_name if actions else ""
-                _ctxs_for_avatar = shared_context.get("npc_contexts", [])
+                _ctxs_for_avatar = shared_context.npc_contexts or []
                 if _player_name and _ctxs_for_avatar:
                     try:
                         _avatar_state = self.avatar_service.load_state(campaign_id, _player_name)
@@ -1878,11 +1883,11 @@ class GameLoop:
                                         if _phys_outcome.hit and _phys_outcome.damage > 0:
                                             _avatar_state.hp = max(0, _avatar_state.hp - _phys_outcome.damage)
                                             _avatar_changed = True
-                                            print(f"[AVATAR_DAMAGE] {npc_id} → player: dmg={_phys_outcome.damage} crit={_phys_outcome.critical} hp={_avatar_state.hp}/{_avatar_state.max_hp}")
+                                            logger.warning(f"[AVATAR_DAMAGE] {npc_id} → player: dmg={_phys_outcome.damage} crit={_phys_outcome.critical} hp={_avatar_state.hp}/{_avatar_state.max_hp}")
                                         else:
-                                            print(f"[AVATAR_DAMAGE] {npc_id} → player: MISS")
+                                            logger.warning(f"[AVATAR_DAMAGE] {npc_id} → player: MISS")
                                 except Exception as _phys_err:
-                                    print(f"[AVATAR_DAMAGE] error: {_phys_err}")
+                                    logger.error(f"[AVATAR_DAMAGE] error: {_phys_err}", exc_info=True)
                             elif _intent_val.value == "intimidate":
                                 _avatar_state.stress = min(100.0, _avatar_state.stress + 2.0)
                                 if _avatar_state.emotion == _EmotionTag.NEUTRAL:
@@ -1896,21 +1901,21 @@ class GameLoop:
 
                         if _avatar_changed:
                             self.avatar_service.save_state(campaign_id, _avatar_state)
-                            print(f"[AVATAR] stress={_avatar_state.stress:.1f} emotion={_avatar_state.emotion.value}")
+                            logger.warning(f"[AVATAR] stress={_avatar_state.stress:.1f} emotion={_avatar_state.emotion.value}")
                     except Exception as _av_err:
-                        print(f"[AVATAR] update error: {_av_err}")
+                        logger.warning(f"[AVATAR] update error: {_av_err}")
 
         except Exception as _pf_err:
-            import traceback
-            print(f"[PERCEPTION_FILTER] error: {_pf_err}")
-            traceback.print_exc()
-            shared_context["npc_contexts"] = _all_npc_contexts
+            
+            logger.warning(f"[PERCEPTION_FILTER] error: {_pf_err}")
+            pass
+            shared_context.npc_contexts = _all_npc_contexts
 
         # ШАГ D: Social Propagation — слухи доходят до непрямо воспринимающих NPC
         try:
             _se = self._get_social_engine(campaign_id)
             _dm_res = python_engines_result.get("dm_result")
-            _target_id = shared_context.get("player_target_id")
+            _target_id = shared_context.player_target_id
 
             if _se and _dm_res and _dm_res.event_context and _target_id:
                 _evt = _dm_res.event_context
@@ -1919,7 +1924,7 @@ class GameLoop:
                     # Свидетели = NPC, получившие прямую вербализацию
                     _witness_ids = {
                         c.get("npc_id")
-                        for c in shared_context.get("npc_contexts", [])
+                        for c in shared_context.npc_contexts or []
                         if c.get("npc_id")
                     }
                     _social_results = _se.propagate(
@@ -1953,7 +1958,7 @@ class GameLoop:
                                         _cur_stress + pr.stress_delta * 100,
                                     ))
                                     _prop_dirty = True
-                                    print(
+                                    logger.debug(
                                         f"[SOCIAL] {pr.npc_id}: "
                                         f"trust{pr.trust_delta:+.3f} "
                                         f"stress{pr.stress_delta:+.3f} "
@@ -1964,15 +1969,15 @@ class GameLoop:
                         if _prop_dirty:
                             self.scene_manager.commit(
                                 campaign_id=campaign_id,
-                                scene_state=shared_context["scene_state"],
+                                scene_state=shared_context.scene_state,
                                 npc_dicts=self._load_npcs_with_runtime(campaign_id),
                             )
-                        shared_context["social_propagation"] = _social_results
+                        shared_context.social_propagation = _social_results
         except Exception as _se_err:
             logger.warning(f"[SOCIAL] Propagation failed: {_se_err}")
 
         # 6. Rules агент — передаём классификацию из Router
-        _action_type = shared_context.get("action_type", "player_interacts")
+        _action_type = shared_context.action_type or "player_interacts"
         _rules_context = {
             "classification": [{
                 "player": actions[0].player_name,
@@ -1982,7 +1987,7 @@ class GameLoop:
         rules_result = await self._run_agent_safe(
             "rules", self.rules_agent, (actions, _rules_context), {}
         )
-        print(f"[RULES] action_type={_action_type} → {_rules_context['classification'][0]['type']}")
+        logger.warning(f"[RULES] action_type={_action_type} → {_rules_context['classification'][0]['type']}")
 
         # 6.5 Запись действия игрока в буфер диалогов для семантической памяти
         if actions and actions[0].action:
@@ -2002,7 +2007,7 @@ class GameLoop:
             )
             
             _builder = SceneOutcomeBuilder()
-            _filtered_ctxs = shared_context.get("npc_contexts", [])
+            _filtered_ctxs = shared_context.npc_contexts or []
             
             # Собираем DecisionResult[] из отфильтрованных контекстов
             _decisions = []
@@ -2012,7 +2017,7 @@ class GameLoop:
                     _decisions.append(dr)
             
             # Собираем SceneContext для salience/visibility
-            _scene_state = shared_context.get("scene_state", {})
+            _scene_state = shared_context.scene_state or {}
             _distances = _scene_state.get("player_distances", {})
             _visible = {
                 npc_id for npc_id, is_visible 
@@ -2030,7 +2035,7 @@ class GameLoop:
                     if _first_check.get("needs_roll", False):
                         _result_str = _first_check.get("result", "").lower()
                         _player_success = "успех" in _result_str or "крит" in _result_str
-                        print(f"[R5] Physical action: success={_player_success} result={_result_str}")
+                        logger.warning(f"[R5] Physical action: success={_player_success} result={_result_str}")
             
             _scene_ctx = SceneContext(
                 distances=_distances,
@@ -2038,7 +2043,7 @@ class GameLoop:
                 npc_tiers=_tiers,
                 player_action_text=actions[0].action if actions else "",
                 player_success=_player_success,
-                player_target_id=shared_context.get("player_target_id", ""),
+                player_target_id=shared_context.player_target_id or "",
             )
             
             # Собираем снапшоты для ProjectionLayer (реальное состояние + искажения)
@@ -2071,14 +2076,14 @@ class GameLoop:
             for actor in _scene.actors:
                 if actor.psychological:
                     p = actor.psychological
-                    print(f"[PROJECTION] {actor.npc_id}: {p.regime.value} (int={p.intensity}, stab={p.stability})")
+                    logger.warning(f"[PROJECTION] {actor.npc_id}: {p.regime.value} (int={p.intensity}, stab={p.stability})")
             # Дельты от DecisionHub
             for d in _decisions:
                 dl = d.deltas
-                print(f"[DELTA] {d.npc_id}: intent={d.intent.value} stress_d={dl.stress_delta} trust_d={dl.trust_delta} fear_d={dl.fear_delta}")
+                logger.warning(f"[DELTA] {d.npc_id}: intent={d.intent.value} stress_d={dl.stress_delta} trust_d={dl.trust_delta} fear_d={dl.fear_delta}")
             
             # B.3/B.4: Обновляем SceneContinuity из дельт
-            _cont = shared_context.get("scene_continuity") or self._scene_continuities.get(campaign_id)
+            _cont = shared_context.scene_continuity or self._scene_continuities.get(campaign_id)
             if not _cont:
                 _cont = SceneContinuity()
                 self._scene_continuities[campaign_id] = _cont
@@ -2091,7 +2096,7 @@ class GameLoop:
                 "confusion": 0.3 if len(_decisions) > 2 else 0.0,  # много NPC = хаос
             })
             # Флаги ключевых событий
-            _event_type = shared_context.get("action_type", "")
+            _event_type = shared_context.action_type or ""
             if "insult" in _event_type:
                 _cont.add_flag("insult_occurred")
                 _cont.add_event(f"Игрок оскорбил {_target_id or 'NPC'}")
@@ -2103,7 +2108,7 @@ class GameLoop:
                 _cont.add_event("Началась драка")
             
             # ФАЗА 3.4: Proactive decisions → SceneContinuity (DM видит проактивные действия)
-            _tick_result = shared_context.get("world_tick_result")
+            _tick_result = shared_context.world_tick_result
             if _tick_result and _tick_result.decisions:
                 for _pd in _tick_result.decisions:
                     _intent_labels = {
@@ -2120,7 +2125,7 @@ class GameLoop:
                     _target_str = f" → {_pd.intent_target}" if _pd.intent_target else ""
                     _cont.add_event(f"{_pd.npc_id}: {_label}{_target_str}")
                     _cont.add_flag(f"proactive_{_pd.intent.value}_{_pd.npc_id}")
-                print(f"[WORLD_TICK→CONTINUITY] {len(_tick_result.decisions)} proactive → DM context")
+                logger.warning(f"[WORLD_TICK→CONTINUITY] {len(_tick_result.decisions)} proactive → DM context")
             
             # ШАГ 0.5: MicroEvents → SceneContinuity флаги/события
             for ctx in _filtered_ctxs:
@@ -2138,11 +2143,11 @@ class GameLoop:
                         # Без add_event — слишком мелкое для нарратива
             
             # ШАГ D: Social Propagation → SceneContinuity (факты для DM)
-            for _pr in shared_context.get("social_propagation", []):
+            for _pr in shared_context.social_propagation or []:
                 _cont.add_event(_pr.continuity_note)
 
             # ФАЗА 3.1: Spatial Events → SceneContinuity
-            for _sp_ev in shared_context.get("spatial_events", []):
+            for _sp_ev in shared_context.spatial_events or []:
                 _sp_name = _sp_ev.npc_id
                 if _sp_ev.event_type == "proximity_close":
                     _cont.add_event(f"Игрок подошёл к {_sp_name}")
@@ -2161,20 +2166,20 @@ class GameLoop:
             }
             
             # B.3/B.4: Передаём SceneContinuity в контекст для DM prompt
-            shared_context["scene_continuity"] = _cont
+            shared_context.scene_continuity = _cont
             
-            print(f"[R3_DIRECT] {len(_decisions)} decisions → DMFrame (focus={len(_dm_frame.focus_npcs)}, bg={len(_dm_frame.background_npcs)})")
+            logger.warning(f"[R3_DIRECT] {len(_decisions)} decisions → DMFrame (focus={len(_dm_frame.focus_npcs)}, bg={len(_dm_frame.background_npcs)})")
 
         # Применяем trust/stress дельты
         npc_state_updates = npc_result.get("npc_state_updates", [])
         if npc_state_updates:
-            self._apply_npc_state_updates(npc_state_updates, campaign_id=campaign_id, scene_state=shared_context.get("scene_state", {}))
+            self._apply_npc_state_updates(npc_state_updates, campaign_id=campaign_id, scene_state=shared_context.scene_state or {})
         # Записываем ход в память NPC
         self._write_npc_memory(
             npc_reactions = npc_result.get("npc_reactions", []),
             player        = actions[0].player_name if actions else "игрок",
             action_text   = actions[0].action if actions else "",
-            scene_state   = shared_context.get("scene_state", {}),
+            scene_state   = shared_context.scene_state or {},
         )
 
         # ── R1 CONNECT: Working Memory ─────────────────────────────────────────
@@ -2182,7 +2187,7 @@ class GameLoop:
         _player_name = actions[0].player_name if actions else "игрок"
 
         # action_type из классификатора (для ImportanceEngine)
-        _act_type = shared_context.get("action_type", "unknown")
+        _act_type = shared_context.action_type or "unknown"
 
         # P0.1: действие игрока → Working Memory
         # Телеграф — технический маркер, не действие игрока
@@ -2194,7 +2199,7 @@ class GameLoop:
                 "action_type": _act_type,
                 "location":    location,
             })
-            print(f"[WM_WRITE] player_action: {_player_text[:50]}")
+            logger.warning(f"[WM_WRITE] player_action: {_player_text[:50]}")
 
         # P0.2: ответы NPC → Working Memory
         for _reaction in npc_result.get("npc_reactions", []):
@@ -2209,13 +2214,13 @@ class GameLoop:
                 })
 
         # P0.3: decay каждые 10 ходов
-        _tick = shared_context.get("scene_state", {}).get("snapshot_tick", 0)
+        _tick = shared_context.scene_state or {}.get("snapshot_tick", 0)
         # Decay → identity_weights → NPCIdentityL1 cache (РАЗРЫВ #2 закрыт)
         _identity_weights = self.memory_manager.run_decay_if_needed(campaign_id, _tick)
         # Resonance → identity_weights для каждого активного NPC
         if _identity_weights:
             _resonance = self.memory_manager.detect_resonance(campaign_id, actor_id="player")
-            for _npc_id in shared_context.get("active_npc_ids", []):
+            for _npc_id in shared_context.active_npc_ids or []:
                 self.memory_manager.apply_identity_weights(campaign_id, _npc_id, _resonance)
         # ────────────────────────────────────────────────────────────────────────
 
@@ -2281,7 +2286,7 @@ class GameLoop:
                                 delta       = {"trust": trust_delta},
                             )
                         except Exception as e:
-                            print(f"[GAME_LOOP] Ошибка обновления отношений: {e}")
+                            logger.warning(f"[GAME_LOOP] Ошибка обновления отношений: {e}")
                     break
             if changed:
                 # Пробой 7 закрыт: единственная точка сохранения — commit()
@@ -2368,7 +2373,7 @@ class GameLoop:
                 _pool = get_model_pool()
                 if _pool._active_model:
                     _pool._active_model.provider.abort_generation()
-                    print(f"[GAME_LOOP] abort sent to {_pool.active_model_key}")
+                    logger.warning(f"[GAME_LOOP] abort sent to {_pool.active_model_key}")
             except Exception:
                 pass
             jsonl_log({
@@ -2400,7 +2405,7 @@ class GameLoop:
             from app.services.llm.router import get_router as get_llm_router, Capability
             from app.services.llm.provider_manager import get_model_pool
 
-            npc_contexts = state.shared_context.get("python_engines", {}).get("npc_contexts", [])
+            npc_contexts = state.shared_context.python_engines or {}.get("npc_contexts", [])
             has_major    = any(c.get("tier") == "major" for c in npc_contexts)
             router_llm   = get_llm_router()
             pool         = get_model_pool()
@@ -2425,7 +2430,7 @@ class GameLoop:
                 },
             }
         except Exception as e:
-            print(f"[GAME_LOOP] Ошибка получения location_id: {e}")
+            logger.warning(f"[GAME_LOOP] Ошибка получения location_id: {e}")
 
     def _write_memory(
         self,
