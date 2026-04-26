@@ -13,7 +13,7 @@ import unicodedata
 
 import pymorphy3
 
-from app.services.scene_state_manager import _npc_id_to_display
+from npc_name_resolver import npc_id_to_display
 
 _morph = pymorphy3.MorphAnalyzer()
 
@@ -101,7 +101,7 @@ def _find_npc_by_name(text: str, npc_ids: List[str]) -> Optional[str]:
     candidates: List[Tuple[str, str, int]] = []
 
     for npc_id in npc_ids:
-        display_name = _npc_id_to_display(npc_id)
+        display_name = npc_id_to_display(npc_id)
         # Лемматизируем каждое слово display_name
         # Разбиваем display_name на отдельные слова и лемматизируем каждое
         name_lemmata: set[str] = set()
@@ -143,7 +143,7 @@ def parse_movement_intent(
 
     display_name = ""
     if npc_id:
-        display_name = _npc_id_to_display(npc_id)
+        display_name = npc_id_to_display(npc_id)
 
     return MovementIntent(
         direction=direction,

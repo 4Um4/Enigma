@@ -12,10 +12,13 @@ from app.services.memory.importance_engine import score_event, apply_decay, DECA
 from app.services.memory.relationship_store import RelationshipStore
 from app.services.memory.contradiction_resolver import resolve_all
 
-from app.models.npc_state import EventMemory, MemoryStage
+from app.models.npc_state import EventMemory, MemoryStage, NPCState
+from app.domain.events import EventDTO
 from app.services.npc.perception_filter import calculate_clarity
 
 from app.services.memory.resonance_engine import ResonanceEngine
+from app.services.memory.dialogue_session import DialogueSession
+from app.core.constants import NARRATIVE_CACHE_MAX
 
 
 class MemoryManager:
@@ -31,98 +34,216 @@ class MemoryManager:
         # Ключ: f"{campaign_id}:{npc_id}", значение: {trait_name: weight}
         # WRITE: только через apply_identity_weights()
         self._identity_cache: Dict[str, Dict[str, float]] = {}
+        # STM-сессии диалогов. Ключ: campaign_id:npc_id (Закон 4.1.1 — per-NPC)
+        self._dialogue_sessions: Dict[str, DialogueSession] = {}
 
     @property
     def working_memory(self) -> WorkingMemory:
         return self._working
 
     # ──────────────────────────────────────────────────────────────────────
-    # R5.3 — Новый основной метод создания памяти NPC
+    # STM: кратковременная память диалога (Этап 1)
     # ──────────────────────────────────────────────────────────────────────
-    def create_event_memory(
+
+    def get_dialogue_session(self, campaign_id: str, npc_id: str) -> DialogueSession:
+        """Возвращает сессию диалога для NPC. Создаёт если нет."""
+        key = f"{campaign_id}:{npc_id}"
+        if key not in self._dialogue_sessions:
+            self._dialogue_sessions[key] = DialogueSession(npc_id=npc_id)
+        return self._dialogue_sessions[key]
+
+    def add_dialogue_turn(self, campaign_id: str, npc_id: str, speaker: str, text: str) -> None:
+        """Добавляет реплику в STM конкретного NPC."""
+        session = self.get_dialogue_session(campaign_id, npc_id)
+        session.add(speaker, text)
+
+    def clear_dialogue_session(self, campaign_id: str, npc_id: str) -> None:
+        """Очищает STM при завершении диалога (NPC ушёл, смена сцены)."""
+        key = f"{campaign_id}:{npc_id}"
+        session = self._dialogue_sessions.pop(key, None)
+        if session is not None:
+            session.clear()
+
+    def get_stm_prompt_block(self, campaign_id: str, npc_id: str) -> str:
+        """Возвращает текстуализацию STM для промпта. Пустую строку если нет сессии."""
+        key = f"{campaign_id}:{npc_id}"
+        session = self._dialogue_sessions.get(key)
+        if session is None:
+            return ""
+        return session.to_prompt_block()
+
+    # ──────────────────────────────────────────────────────────────────────
+    # EventBus и фазовая модель
+    # ──────────────────────────────────────────────────────────────────────
+    # GameEvent.publish() — Фаза 2 (вход в систему, Закон 5.1).
+    # MemoryManager.apply() — Фаза 3 (обработка для конкретного NPC).
+    # Subscribe невозможен: GameEvent не содержит npc_state,
+    # а npc_state доступен только после Фазы 2.
+    # Поэтому apply() вызывается напрямую из game_loop после NPC-цикла.
+
+    # ──────────────────────────────────────────────────────────────────────
+    # Единственная точка входа события в память (Закон 4.1.2)
+    # Фаза 3 Tick Orchestrator: EventDTO → обновлённый NPCState
+    # ──────────────────────────────────────────────────────────────────────
+    def apply(
         self,
+        event: EventDTO,
+        npc_state: NPCState,
+        *,
         campaign_id: str,
-        npc_id: str,
-        event: Dict[str, Any],
-        scene_state: Dict[str, Any],
-        npc_stress: float = 0.0,
-        emotion_tag: str = "neutral",
-        summary: str = "",
-        importance: float = None,  # ФАЗА 1: переопределение важности для значимых взаимодействий
-    ) -> EventMemory:
-        """
-        R5.3 — Создаёт EventMemory с правильно рассчитанным clarity.
+    ) -> NPCState:
+        """Принимает EventDTO, создаёт EventMemory, обновляет narrative_cache.
         
-        Использует perception_filter.calculate_clarity() для реалистичного
-        восприятия события NPC (дистанция, освещение, стресс).
+        Заменяет прямые вызовы create_event_memory + ручную запись
+        в narrative_cache из game_loop.py (нарушение 4.1.2).
         """
-        # 1. Расстояние от NPC до события (обычно до игрока)
+        payload = event.payload
+        npc_id = payload.get("npc_id", "")
+
+        # 1. Clarity восприятия (расстояние, свет, стресс NPC)
+        scene_state = payload.get("scene_state", {})
         from app.services.npc.perception_filter import _npc_distance
         distance = _npc_distance(npc_id, scene_state)
-
-        # 2. Освещение
         light_level = scene_state.get("environment", {}).get("light_level", "dim")
+        npc_stress = payload.get("npc_stress", getattr(npc_state, "stress", 0.0))
 
-        # 3. Clarity восприятия
         clarity = calculate_clarity(
             distance=distance,
             light_level=light_level,
             npc_stress=npc_stress,
         )
 
-        # 4. Важность события (расширенная версия из R5.3)
+        # 2. Важность события
+        emotion_tag = payload.get("emotion_tag", "neutral")
+        importance = payload.get("importance")
         if importance is None:
             importance = score_event(
-                event=event,
+                event={"type": event.type, **payload},
                 npc_clarity=clarity,
                 npc_stress=npc_stress,
                 emotion_tag=emotion_tag,
             )
 
-
-        # 5. Негативные эмоции "прилипают" — медленнее затухают в памяти
-        _EMOTION_DECAY_RATE: Dict[str, float] = {
-            "angry":    0.03,
-            "fearful":  0.03,
-            "disgusted":0.03,
-            "grateful": 0.07,   # позитив уходит быстрее
-            "happy":    0.07,
+        # 3. Decay rate: негативные эмоции "прилипают"
+        _EMOTION_DECAY_RATE: dict[str, float] = {
+            "angry": 0.03, "fearful": 0.03, "disgusted": 0.03,
+            "grateful": 0.07, "happy": 0.07,
         }
         decay_rate = _EMOTION_DECAY_RATE.get(emotion_tag, 0.05)
-
-        # §9 Память.md: критические события не забываются (спасение, травма)
-        _CRITICAL_IMPORTANCE_THRESHOLD: float = 0.90
-        if importance >= _CRITICAL_IMPORTANCE_THRESHOLD:
+        if importance >= 0.90:
             decay_rate = 0.005
 
-
-        # 6. Создаём EventMemory
+        # 4. Создаём EventMemory
         mem = EventMemory(
-            event_type=event.get("type") or event.get("action_type") or "unknown",
-            target_id=event.get("target") or event.get("actor") or "player",
+            event_type=event.type,
+            target_id=payload.get("target_id", event.source),
             emotion_tag=emotion_tag,
-            day=event.get("day", 0),
+            day=payload.get("day", 0),
             importance=importance,
             clarity=clarity,
-            confidence=0.95 if clarity > 0.7 else 0.75,  # начальная уверенность
+            confidence=0.95 if clarity > 0.7 else 0.75,
             decay_rate=decay_rate,
             stage=MemoryStage.FRESH,
-            summary=summary,
+            summary=payload.get("summary", ""),
             npc_id=npc_id,
         )
 
-        # 7. Сохраняем в рабочую память (per-NPC ключ) и layered storage
+        # 5. STM: per-NPC ключ (Закон 4.1.1)
         self._working.push(f"{campaign_id}:{npc_id}", mem)
-        self._layered.write_session_memory(campaign_id, {
-            "type": "event_memory",
-            "npc_id": npc_id,
-            **mem.__dict__,
-        })
 
-        return mem
+        # 6. narrative_cache — ТОЛЬКО через MemoryManager (Закон 4.1.2)
+        cache = list(npc_state.narrative_cache)
+        cache.append(mem)
+        cache.sort(key=lambda f: f.importance, reverse=True)
+        npc_state.narrative_cache = tuple(cache[:NARRATIVE_CACHE_MAX])
+
+        return npc_state
 
     # ──────────────────────────────────────────────────────────────────────
-    # Основные методы записи (используются game_loop.py)
+    # Persistence — единая точка записи в хранилище (Закон 4.1.2)
+    # game_loop не вызывает layered_memory напрямую.
+    # ──────────────────────────────────────────────────────────────────────
+    def persist_world_canon(
+        self,
+        world_id: str,
+        *,
+        campaign_id: str,
+        source: str,
+        payload: Any,
+    ) -> str:
+        """Запись лора мира в канон. Вызывается при load_campaign."""
+        return self._layered.write_world_canon(
+            world_id,
+            {"campaign_id": campaign_id, "source": source, "payload": payload},
+        )
+
+    def persist_campaign_event(
+        self,
+        campaign_id: str,
+        *,
+        event: str,
+        world_id: str,
+        data: Dict[str, Any],
+    ) -> str:
+        """Запись системного события кампании (load, save, etc)."""
+        return self._layered.write_campaign_memory(
+            campaign_id,
+            {"event": event, "world_id": world_id, **data},
+        )
+
+    def persist_npc_note(
+        self,
+        campaign_id: str,
+        *,
+        note: str,
+        source: str,
+    ) -> str:
+        """Запись заметки об NPC в журнал кампании."""
+        return self._layered.write_npc_memory(
+            campaign_id,
+            {"note": note, "source": source},
+        )
+
+    def read_campaign_history(
+        self,
+        campaign_id: str,
+        *,
+        limit: int = 25,
+    ) -> List[Dict[str, Any]]:
+        """Чтение журнала кампании. Единственная точка чтения из game_loop."""
+        return self._layered.read_campaign_memory(campaign_id, limit=limit)
+
+    def persist_campaign_data(
+        self,
+        campaign_id: str,
+        payload: Dict[str, Any],
+    ) -> str:
+        """Generic запись в журнал кампании. Для специфических случаев
+        (DM-ответ, системное событие) использовать именованные методы."""
+        return self._layered.write_campaign_memory(campaign_id, payload)
+
+    def persist_dm_response(
+        self,
+        campaign_id: str,
+        *,
+        world_id: str,
+        location: str,
+        actions: List[Any],
+        dm_text: str,
+    ) -> str:
+        """Запись DM-ответа в журнал кампании. Возвращает ID записи."""
+        return self._layered.write_campaign_memory(
+            campaign_id,
+            {
+                "world_id": world_id,
+                "location": location,
+                "actions":  actions,
+                "dm":       dm_text,
+            },
+        )
+
+    # ──────────────────────────────────────────────────────────────────────
+    # Основные методы записи (используются game_loop.py) — ЛЕГАСИ, мигрируют на apply()
     # ──────────────────────────────────────────────────────────────────────
     def record_event(
         self,

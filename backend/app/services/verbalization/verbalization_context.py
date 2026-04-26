@@ -47,6 +47,7 @@ class VerbalizationContext:
     will_state: str
     intent: str
     intent_target: Optional[str]
+    topic: str = ""  # из TopicExtractor (Фаза 4), пустая строка = провод не подключён
 
     # Python-сгенерированная фактура
     scene_hint: str

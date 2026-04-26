@@ -18,7 +18,7 @@ from app.services.world_scheduler import WorldScheduler
 from app.services.character_service import CharacterService
 from app.services.player_avatar_service import PlayerAvatarService
 from app.services.scene_state_manager import SceneStateManager
-from app.services.state.json_persistence_adapter import JsonPersistenceAdapter
+from app.services.state.sqlite_persistence_adapter import SqlitePersistenceAdapter
 from app.services.action.dm_orchestrator import DMOrchestrator
 from app.agents.dm_agent import DmAgent
 from app.agents.rules_agent import RulesAgent
@@ -33,7 +33,7 @@ def build_game_loop(data_dir: Path) -> GameLoop:
     layered_memory = LayeredMemory(store)
     memory_manager = MemoryManager(layered_memory, data_dir=str(data_dir))
     saves_dir      = Path(settings.saves_dir)
-    persistence    = JsonPersistenceAdapter(data_dir, saves_dir=saves_dir)
+    persistence    = SqlitePersistenceAdapter(saves_dir / "enigma_runtime.db")
     scene_manager  = SceneStateManager(data_dir, persistence=persistence, saves_dir=saves_dir)
     char_service   = CharacterService(root=str(saves_dir))
     avatar_service = PlayerAvatarService(root=str(saves_dir))
@@ -66,7 +66,6 @@ def build_game_loop(data_dir: Path) -> GameLoop:
     loop = GameLoop(
         saves_dir           = saves_dir,
         data_dir            = data_dir,
-        layered_memory      = layered_memory,
         memory_manager      = memory_manager,
         dm_orchestrator     = dm_orchestrator,
         scene_manager       = scene_manager,

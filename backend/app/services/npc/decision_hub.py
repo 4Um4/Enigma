@@ -49,6 +49,7 @@ from app.core.constants import (
     SWITCHING_COST_EMOTION_K,
     SWITCHING_COST_IDENTITY_K,
     REACTIVE_URGENCY_THRESHOLD,
+    PROVOCATION_THREAT_THRESHOLD,
 )
 from app.services.economy.opportunity_engine import (
     OpportunityContext,
@@ -125,7 +126,7 @@ class DecisionResult:
 class EventContext:
     """
     Контекст события для DecisionHub.
-    Формируется в game_loop из GameEvent + SceneState.
+    Формируется в game_loop из EventDTO + SceneState.
     """
     event_type:              EventType
     actor_id:                str
@@ -651,13 +652,12 @@ class DecisionHub:
         elif intent in (Intent.ATTACK.value, Intent.INTIMIDATE.value):
             # Агрессия требует явной провокации — строковое сравнение (EventContext.event_type: str)
             # Без провокации штраф -0.54 делает ATTACK хуже чем TALK/WARN
-            _PROVOCATION_TYPES = {"player_attacked", "combat", "intimidation", "capture", "player_insults", "player_threatens"}
-            _THREAT_THRESHOLD = 0.3  # visible_threat_markers суммарно должны превышать порог
+            _PROVOCATION_TYPES = {"player_attacks", "combat", "intimidation", "capture", "player_insults", "player_threatens"}
             # Просто количество уникальных угроз × 0.1
             threat_level = len(set(event.visible_threat_markers)) * 0.1
             is_provoked = (
                 event.event_type in _PROVOCATION_TYPES
-                or threat_level >= _THREAT_THRESHOLD
+                or threat_level >= PROVOCATION_THREAT_THRESHOLD
             )
             provocation_gate = 1.0 if is_provoked else 0.1
             risk_penalty = round((-fear * risk * 1.25 - (1.0 - provocation_gate) * 0.6), 4)
@@ -731,7 +731,7 @@ class DecisionHub:
         base = 0.5  # нейтральная релевантность
 
         # Близкое насилие делает побег и предупреждение более релевантными
-        if event.event_type in ("combat", "capture") and event.distance <= 3.0:
+        if event.event_type in ("player_attacks", "combat", "capture") and event.distance <= 3.0:
             if intent in (Intent.FLEE.value, Intent.WARN.value):
                 base += 0.8 * event.intensity
             if intent == Intent.ATTACK.value:

@@ -47,6 +47,19 @@ class JsonPersistenceAdapter(PersistencePort):
             logger.debug(f"[PERSISTENCE] Scene saved: {campaign_id}")
         except OSError as e:
             logger.error(f"[PERSISTENCE] Error saving scene: {e}")
+
+    def load_scene(self, campaign_id: str) -> dict | None:
+        """Загружает scene_state из campaign_state.json. None если нет."""
+        campaign_file = self._saves_dir / campaign_id / "campaign_state.json"
+        if not campaign_file.exists():
+            return None
+        try:
+            with open(campaign_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            return data.get("scene_state")
+        except (OSError, json.JSONDecodeError) as e:
+            logger.error(f"[PERSISTENCE] Error loading scene: {e}")
+            return None
     
     def save_npcs(self, npc_dicts: list[dict]) -> None:
         """Сохраняет NPC в major_npcs.json."""

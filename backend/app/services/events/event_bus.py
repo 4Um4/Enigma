@@ -19,13 +19,16 @@ from __future__ import annotations
 import logging
 from typing import Callable, Dict, List, Optional
 
-from app.services.events.event_types import EventType, GameEvent
+import dataclasses
+
+from app.domain.events import EventDTO
+from app.services.events.event_types import EventType
 
 logger = logging.getLogger(__name__)
 
 
 # Тип обработчика событий
-EventHandler = Callable[[GameEvent], Optional[dict]]
+EventHandler = Callable[[EventDTO], Optional[dict]]
 
 
 class EventBus:
@@ -43,8 +46,8 @@ class EventBus:
     """
 
     def __init__(self) -> None:
-        self._handlers: Dict[EventType, List[EventHandler]] = {}
-        self._tick_queue: List[GameEvent] = []
+        self._handlers: Dict[str, List[EventHandler]] = {}
+        self._tick_queue: List[EventDTO] = []
         self._event_log: List[dict] = []   # последние 100 событий для debug
 
     # ── Подписка ──────────────────────────────────────────────────────────
@@ -54,11 +57,11 @@ class EventBus:
         Регистрирует обработчик для типа события.
         Обработчик вызывается синхронно при publish().
 
-        handler(event: GameEvent) -> Optional[dict]
+        handler(event: EventDTO) -> Optional[dict]
           Возвращает dict с результатом (добавляется в results publish)
           или None (игнорируется).
         """
-        self._handlers.setdefault(event_type, []).append(handler)
+        self._handlers.setdefault(event_type.value, []).append(handler)
         logger.debug(
             f"[EVENT_BUS] Подписан обработчик на {event_type.name}: "
             f"{handler.__qualname__}"
@@ -66,24 +69,25 @@ class EventBus:
 
     def unsubscribe(self, event_type: EventType, handler: EventHandler) -> None:
         """Удаляет обработчик."""
-        handlers = self._handlers.get(event_type, [])
+        handlers = self._handlers.get(event_type.value, [])
         if handler in handlers:
             handlers.remove(handler)
 
     # ── Публикация ────────────────────────────────────────────────────────
 
-    def publish(self, event: GameEvent) -> List[dict]:
+    def publish(self, event: EventDTO) -> List[dict]:
+        """Публикует событие — вызывает всех подписчиков синхронно.
+        
+        Закон 2.1.1: publish() принимает только EventDTO. Всё остальное — TypeError.
         """
-        Публикует событие — вызывает всех подписчиков синхронно.
+        if not isinstance(event, EventDTO):
+            raise TypeError(
+                f"EventBus.publish() принимает только EventDTO, "
+                f"получен {type(event).__name__}"
+            )
 
-        Правило affordance (из roadmap):
-          publish() вызывается ТОЛЬКО после affordance check в processor.py.
-          Физически невозможные события сюда не доходят.
-
-        Возвращает список результатов от обработчиков (для агрегации).
-        """
-        results = []
-        handlers = self._handlers.get(event.event_type, [])
+        results: List[dict] = []
+        handlers = self._handlers.get(event.type, [])
 
         for handler in handlers:
             try:
@@ -96,21 +100,21 @@ class EventBus:
                     f"{handler.__qualname__} → {e}"
                 )
 
-        # Логируем для debug (храним последние 100)
-        self._event_log.append(event.to_dict())
+        # логируем для debug (последние 100)
+        self._event_log.append(dataclasses.asdict(event))
         if len(self._event_log) > 100:
             self._event_log.pop(0)
 
         if handlers:
             logger.info(
-                f"[EVENT_BUS] {event.event_type.name} "
-                f"от {event.actor_id!r} в {event.location!r} → "
+                f"[EVENT_BUS] {event.type} "
+                f"от {event.source!r} → "
                 f"{len(handlers)} обработчиков, {len(results)} результатов"
             )
 
         return results
 
-    def publish_many(self, events: List[GameEvent]) -> List[dict]:
+    def publish_many(self, events: List[EventDTO]) -> List[dict]:
         """Публикует несколько событий подряд. Возвращает все результаты."""
         all_results = []
         for event in events:
@@ -119,7 +123,7 @@ class EventBus:
 
     # ── Phase 3B.4: очередь для world_tick ───────────────────────────────
 
-    def enqueue_for_tick(self, event: GameEvent) -> None:
+    def enqueue_for_tick(self, event: EventDTO) -> None:
         """
         Добавляет событие в очередь для обработки в world_tick().
         НЕ вызывает обработчиков немедленно.
@@ -128,7 +132,7 @@ class EventBus:
         """
         self._tick_queue.append(event)
 
-    def flush_tick_queue(self) -> List[GameEvent]:
+    def flush_tick_queue(self) -> List[EventDTO]:
         """Возвращает накопленные события и очищает очередь."""
         events, self._tick_queue = self._tick_queue, []
         return events
@@ -140,12 +144,12 @@ class EventBus:
         Если campaign_id указан — фильтрует только события этой кампании.
         """
         if campaign_id:
-            filtered = [e for e in self._event_log if e.get("campaign_id") == campaign_id]
+            filtered = [e for e in self._event_log if e.get("payload", {}).get("campaign_id") == campaign_id]
             return filtered[-limit:]
         return self._event_log[-limit:]
 
     def get_subscriber_count(self, event_type: EventType) -> int:
-        return len(self._handlers.get(event_type, []))
+        return len(self._handlers.get(event_type.value, []))
 
     def clear(self) -> None:
         """Сбрасывает все подписки и очереди. Для тестов."""

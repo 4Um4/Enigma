@@ -15,6 +15,7 @@ response_validator.py — валидация ответа LLM + fallback.
 Основные сущности: ValidationResult, ResponseValidator
 """
 
+import re
 from dataclasses import dataclass
 from typing import Optional
 
@@ -59,7 +60,11 @@ class ResponseValidator:
         if not text:
             return self._fallback("empty")
         
-        # 2. Повтор недавнего текста
+        # 2. Не-русский текст (китайские иероглифы, мусор)
+        if self._contains_non_russian(text):
+            return self._fallback("non_russian")
+        
+        # 3. Повтор недавнего текста
         if recent_text and self._is_repeat(text, recent_text):
             return self._fallback("repeat")
         
@@ -88,6 +93,23 @@ class ResponseValidator:
             text=text,
             is_fallback=False,
         )
+    
+    _CJK_PATTERN = re.compile(r'[\u4e00-\u9fff\u3400-\u4dbf\uff00-\uffef]')
+    
+    def _contains_non_russian(self, text: str) -> bool:
+        """Китайские иероглифы или доминирующий не-русский текст."""
+        if self._CJK_PATTERN.search(text):
+            return True
+        # Если >40% букв — не кириллица/латиница → мусор
+        alpha_total = sum(1 for c in text if c.isalpha())
+        if alpha_total > 10:
+            russian_like = sum(
+                1 for c in text
+                if c.isalpha() and (c.isascii() or '\u0400' <= c <= '\u04ff')
+            )
+            if russian_like / alpha_total < 0.6:
+                return True
+        return False
     
     def _is_repeat(self, text: str, recent: str) -> bool:
         """Простая проверка повтора (нормализация + совпадение начала)."""

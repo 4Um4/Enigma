@@ -759,3 +759,25 @@ def create_game_gateway(
     gateway: GameGateway = FallbackGateway(http_gateway, direct_gateway)
     queue = ActionQueue(gateway)
     return gateway, queue
+
+
+# ── Read-only запросы состояния (не через gateway) ────────────────────
+
+def get_world_state(
+    campaign_id: str,
+    after_tick: int | None = None,
+    base_url: str = "http://127.0.0.1:8000",
+) -> dict | None:
+    """Запрос снимка мира. Read-only, не идёт через GameGateway.
+    
+    Frontend вызывает для рендера NPC из WorldSnapshotDTO.
+    Возвращает None при ошибке или 304 — frontend отрендерит без обновления.
+    """
+    try:
+        client = HttpClient(base_url=base_url)
+        params = f"campaign_id={campaign_id}"
+        if after_tick is not None:
+            params += f"&after_tick={after_tick}"
+        return client.get(f"/api/world_state?{params}")
+    except Exception:
+        return None

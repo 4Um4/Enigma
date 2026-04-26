@@ -252,8 +252,12 @@ class SceneStateManager:
     # ─────────────────────────────────────────────────────────────────────────
 
     def get_scene_state(self, campaign_id: str, location_id: str) -> dict | None:
-        data = self._read_campaign_json(campaign_id)
-        scene = data.get("scene_state")
+        # Устав 4.2.1: читаем из порта (SQLite) если доступен
+        if self._persistence:
+            scene = self._persistence.load_scene(campaign_id)
+        else:
+            data = self._read_campaign_json(campaign_id)
+            scene = data.get("scene_state")
         if not scene:
             return None
         # Пустой location_id = без фильтра (для синхронизации позиции)
@@ -266,10 +270,14 @@ class SceneStateManager:
     # ─────────────────────────────────────────────────────────────────────────
 
     def save_scene_state(self, campaign_id: str, scene_state: dict) -> None:
-        """Сохраняет SceneState обратно в campaign_state.json."""
-        data = self._read_campaign_json(campaign_id)
-        data["scene_state"] = scene_state
-        self._write_campaign_json(campaign_id, data)
+        """Сохраняет SceneState через PersistencePort (Устав 4.2.1)."""
+        if self._persistence:
+            self._persistence.save_scene(campaign_id, scene_state)
+        else:
+            # Фоллбэк: прямая запись JSON (без порта)
+            data = self._read_campaign_json(campaign_id)
+            data["scene_state"] = scene_state
+            self._write_campaign_json(campaign_id, data)
         logger.debug(f"[SCENE] Сохранён SceneState: {scene_state.get('location_id')}")
 
     # ─────────────────────────────────────────────────────────────────────────
@@ -1231,6 +1239,12 @@ class SceneStateManager:
             logger.warning("[SCENE] commit() вызван без PersistencePort — пропуск")
             return 0
     
+        # Устав 4.2.1: атомарный коммит если адаптер поддерживает save_all
+        if hasattr(self._persistence, 'save_all'):
+            ok = self._persistence.save_all(campaign_id, scene_state, npc_dicts)
+            return 2 if ok else 0
+    
+        # Фоллбэк: раздельные вызовы (JsonPersistenceAdapter)
         saved = 0
         try:
             self._persistence.save_scene(campaign_id, scene_state)

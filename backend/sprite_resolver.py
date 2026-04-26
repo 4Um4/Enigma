@@ -15,7 +15,7 @@ import pygame
 
 # Путь к папке с палитрами — рядом с map_editor
 _BASE_DIR = os.path.normpath(
-    os.path.join(os.path.dirname(__file__), "..", "..", "map_editor", "pixels", "2-Bit Pack")
+    os.path.join(os.path.dirname(__file__), "map_editor", "pixels", "2-Bit Pack")
 )
 _TILE_SIZE = 16
 
