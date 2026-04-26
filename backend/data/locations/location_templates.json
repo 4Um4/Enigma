@@ -1,1 +1,158 @@
-﻿{"tavern_silver_wolf":{"name":"Таверна «Серебряный Волк»","type":"tavern","default_objects":{"bar_counter":{"name":"барная стойка","state":"intact","material":"oak","hp":30,"max_hp":30,"interactable":true},"fireplace":{"name":"очаг","state":"burning","light":40,"interactable":false},"tables":{"name":"столы","count":6,"state":"intact","interactable":true}},"time_variants":{"06:00-10:00":{"light_level":"dim","noise_level":"silent","candles":{"state":"unlit"},"weather_inside":"cool_fresh"},"10:00-22:00":{"light_level":"bright","noise_level":"moderate","candles":{"state":"lit","count":12},"weather_inside":"warm_busy"},"22:00-02:00":{"light_level":"dim","noise_level":"low","candles":{"state":"lit","count":6},"weather_inside":"warm_smoky"},"02:00-06:00":{"light_level":"dark","noise_level":"silent","candles":{"state":"unlit"},"weather_inside":"cold_quiet"}},"npc_defaults":{"tavern_keeper_tornin":{"position":"behind_bar","activity":"cleaning_tables","visible":true},"maid_lusya":{"position":"serving_table_3","activity":"separving_tables","visible":true},"thief_shadow":{"position":"corner_table","activity":"observing","visible":false}},"connected_locations":["city_gate","market_square","inn_rooms"]}}
+{
+  "tavern_silver_wolf": {
+    "name": "Таверна «Серебряный Волк»",
+    "type": "tavern",
+    "default_objects": {
+      "bar_counter": {
+        "name": "барная стойка",
+        "state": "intact",
+        "material": "oak",
+        "hp": 30,
+        "max_hp": 30,
+        "interactable": true
+      },
+      "fireplace": {
+        "name": "очаг",
+        "state": "burning",
+        "light": 40,
+        "interactable": false
+      },
+      "tables": {
+        "name": "столы",
+        "count": 6,
+        "state": "intact",
+        "interactable": true
+      }
+    },
+    "time_variants": {
+      "06:00-10:00": {
+        "light_level": "dim",
+        "noise_level": "silent",
+        "candles": {
+          "state": "unlit"
+        },
+        "weather_inside": "cool_fresh"
+      },
+      "10:00-22:00": {
+        "light_level": "bright",
+        "noise_level": "moderate",
+        "candles": {
+          "state": "lit",
+          "count": 12
+        },
+        "weather_inside": "warm_busy"
+      },
+      "22:00-02:00": {
+        "light_level": "dim",
+        "noise_level": "low",
+        "candles": {
+          "state": "lit",
+          "count": 6
+        },
+        "weather_inside": "warm_smoky"
+      },
+      "02:00-06:00": {
+        "light_level": "dark",
+        "noise_level": "silent",
+        "candles": {
+          "state": "unlit"
+        },
+        "weather_inside": "cold_quiet"
+      }
+    },
+    "npc_defaults": {
+      "tavern_keeper_tornin": {
+        "position": "behind_bar",
+        "activity": "cleaning_tables",
+        "visible": true
+      },
+      "maid_lusya": {
+        "position": "serving_table_3",
+        "activity": "separving_tables",
+        "visible": true
+      },
+      "thief_shadow": {
+        "position": "corner_table",
+        "activity": "observing",
+        "visible": false
+      }
+    },
+    "connected_locations": [
+      "city_gate",
+      "market_square",
+      "inn_rooms"
+    ],
+    "positions": {
+      "behind_bar": {
+        "x": -4.0,
+        "y": 0.0,
+        "connections": [
+          "bar_area"
+        ],
+        "label": "за стойкой"
+      },
+      "bar_area": {
+        "x": -2.5,
+        "y": 0.0,
+        "connections": [
+          "behind_bar",
+          "main_hall"
+        ],
+        "label": "у стойки"
+      },
+      "main_hall": {
+        "x": 0.0,
+        "y": 0.0,
+        "connections": [
+          "bar_area",
+          "corner_table",
+          "serving_table_3",
+          "entrance",
+          "fireplace",
+          "stairs"
+        ],
+        "label": "центр зала"
+      },
+      "serving_table_3": {
+        "x": 1.5,
+        "y": 2.0,
+        "connections": [
+          "main_hall"
+        ],
+        "label": "у третьего стола"
+      },
+      "corner_table": {
+        "x": 3.5,
+        "y": 3.0,
+        "connections": [
+          "main_hall"
+        ],
+        "label": "в тёмном углу"
+      },
+      "entrance": {
+        "x": 0.0,
+        "y": -4.0,
+        "connections": [
+          "main_hall"
+        ],
+        "label": "у входа"
+      },
+      "fireplace": {
+        "x": -3.5,
+        "y": 2.5,
+        "connections": [
+          "main_hall"
+        ],
+        "label": "у камина"
+      },
+      "stairs": {
+        "x": 2.0,
+        "y": -3.0,
+        "connections": [
+          "main_hall"
+        ],
+        "label": "у лестницы"
+      }
+    }
+  }
+}

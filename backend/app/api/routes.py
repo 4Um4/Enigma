@@ -145,7 +145,12 @@ def idle_tick(campaign_id: str, game_loop=Depends(get_game_loop)) -> dict:
         _engine = get_life_engine()
         # Получаем campaign_state и берём location_id из него
         _campaign_state = game_loop.scene_manager._read_campaign_json(campaign_id)
-        _location_id = (_campaign_state or {}).get("current_location", "")
+        # Локация хранится в scene_state.location_id или metadata.current_location
+        _location_id = (
+            (_campaign_state or {}).get("scene_state", {}).get("location_id")
+            or (_campaign_state or {}).get("metadata", {}).get("current_location")
+            or ""
+        )
         _scene = game_loop.scene_manager.get_scene_state(campaign_id, _location_id)
         if _scene is None:
             return {"status": "no_scene", "changes": 0, "npc_positions": {}}

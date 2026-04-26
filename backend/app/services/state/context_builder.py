@@ -11,6 +11,7 @@ DM и NPC получают одинаковый срез реальности �
 
 from typing import Optional
 from app.services.simulation.world_state import get_world_state
+from app.models.pipeline_context import PipelineContext
 
 
 def build_context(
@@ -43,49 +44,38 @@ def build_context(
     # Уже посчитан в _run_python_engines → просто пробрасываем
     recent_session = python_engines.get("recent_session", [])
 
-    return {
+    return PipelineContext(
         # ── Идентификаторы ──────────────────────────────────────────
-        "campaign_id":  campaign_id,
-        "world_id":     world_id,
-        "location":     location,
-        "player_state": {player: {}},
+        campaign_id=campaign_id,
+        world_id=world_id,
+        location=location,
+        player_state={player: {}},
 
         # ── Состояние мира (единственный источник правды) ────────────
-        "scene_state":        scene_state,
-        "world_context_slice": get_world_state().build_context_slice(scene_state),
+        scene_state=scene_state,
+        world_context_slice=get_world_state().build_context_slice(scene_state),
 
         # ── Результаты Python-движков ─────────────────────────────────
-        "python_engines":     python_engines,
-        "npc_contexts":       npc_contexts,
+        python_engines=python_engines,
+        npc_contexts=npc_contexts,
 
         # ── Память и сессия ───────────────────────────────────────────
-        "recent_memory":  recent_memory,
-        "recent_session": recent_session,
+        recent_memory=recent_memory,
+        recent_session=recent_session,
 
         # ── Реакции NPC (S.4.2) ───────────────────────────────────────
-        "reaction_order":       reaction_order,
-        "forced_first_speaker": forced_first_speaker,
-
-        # ── Время (заполняется после загрузки scene_state) ─────────
-        # total_seconds от начала эпохи — единый источник правды для даты/времени
-        "game_time_seconds": 0,
-
-        # ── Пустые слоты (заполняются движками если нужны) ───────────
-        "threat":     {},
-        "perception": {},
-        "psyche":     {},
-        "life":       {},
-        "karma":      {},
-    }
+        reaction_order=reaction_order,
+        forced_first_speaker=forced_first_speaker,
+    )
 
 
-def patch_scene_state(context: dict, scene_state: dict) -> None:
+def patch_scene_state(context: PipelineContext, scene_state: dict) -> None:
     """
     Обновляет scene_state внутри уже собранного контекста.
     Вызывается после apply_changes() если SceneState мутировал.
     In-place — ссылка та же, агенты увидят изменение автоматически.
     """
-    context["scene_state"] = scene_state
+    context.scene_state = scene_state
 
 
 def get_npc_context(context: dict, npc_id: str) -> Optional[dict]:
