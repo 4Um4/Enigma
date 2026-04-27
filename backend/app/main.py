@@ -42,7 +42,7 @@ import time
 from app.api.routes import router
 from app.api import routes_debug
 from app.api.routes_stream import router as stream_router
-from app.api.world_routes import router as world_router
+from app.api.world_routes import world_router
 from app.core.config import settings
 from app.core.runtime_config import get_api_url
 

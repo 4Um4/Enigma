@@ -2,6 +2,11 @@ __pycache__/
 *.pyc
 *.log
 
+# Runtime logs & DB
+*.jsonl
+*.db
+backend/data/logs/
+
 # Models - too large for Git
 Models LLM/
 

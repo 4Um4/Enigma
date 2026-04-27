@@ -69,6 +69,8 @@ class VerbalizationContext:
 
     # Narrative
     narrative_hints: Tuple[NarrativeFact, ...] = field(default_factory=tuple)
+    # STM: последние реплики текущего диалога (Этап 1)
+    stm_buffer: Tuple[str, ...] = field(default_factory=tuple)
     is_explain_mode: bool = False
 
 

@@ -1035,6 +1035,14 @@ class SceneStateManager:
 
         ct = change.type
 
+        # Архитектурный guard: прямая мутация position запрещена
+        if ct == ChangeType.NPC_POSITION and change.field == "position":
+            raise RuntimeError(
+                f"[ARCH GUARD] Прямая мутация position запрещена. "
+                f"npc={change.target}, value={change.value!r}. "
+                f"Используй MovementIntent → MovementEngine → local_position"
+            )
+
         try:
             if ct == ChangeType.OBJECT_STATE:
                 obj = scene_state["objects"][change.target]

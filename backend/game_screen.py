@@ -62,7 +62,7 @@ def _load_campaign_state(campaign_folder: str) -> Optional[dict]:
     if not state_file.exists():
         return None
     with open(state_file, "r", encoding="utf-8") as f:
-        data = json.load(f)
+        data = json.loads(f.read().encode().decode("utf-8-sig"))
     scene = data.get("scene_state")
     if scene is None:
         return None
@@ -201,7 +201,7 @@ class GameScreen:
 
         # Система плавного движения NPC — резолвит строковые позиции в координаты
         from app.services.spatial.location_graph import load_graph
-        _npc_graph = load_graph(location_id, str(_CAMPAIGNS_DIR / campaign_folder))
+        _npc_graph = load_graph(location_id)
         npc_movement = NpcMovementSystem(
             scene_w=scene_w,
             scene_h=scene_h,

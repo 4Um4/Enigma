@@ -6,7 +6,7 @@
   "session_summaries": [],
   "metadata": {},
   "scene_state": {
-    "location_id": "Таверна Серебряный Волк",
+    "location_id": "tavern_silver_wolf",
     "snapshot_tick": 1,
     "objects": {
       "obj_0": {
@@ -564,7 +564,7 @@
     },
     "npc_positions": {
       "maid_lusya": {
-        "location_id": "Таверна Серебряный Волк",
+        "location_id": "tavern_silver_wolf",
         "position": "bar_area",
         "activity": "",
         "visible": true,
@@ -575,7 +575,7 @@
         "editor_room_id": "room_0"
       },
       "guard_borko": {
-        "location_id": "Таверна Серебряный Волк",
+        "location_id": "tavern_silver_wolf",
         "position": "corner_table",
         "activity": "",
         "visible": true,
@@ -586,7 +586,7 @@
         "editor_room_id": "room_0"
       },
       "blacksmith_orm": {
-        "location_id": "Таверна Серебряный Волк",
+        "location_id": "tavern_silver_wolf",
         "position": "kitchen",
         "activity": "",
         "visible": true,
@@ -597,7 +597,7 @@
         "editor_room_id": "room_0"
       },
       "tavern_keeper_tornin": {
-        "location_id": "Таверна Серебряный Волк",
+        "location_id": "tavern_silver_wolf",
         "position": "behind_bar",
         "activity": "",
         "visible": true,
@@ -609,7 +609,7 @@
         "psyche_state": "alert"
       },
       "thief_shadow": {
-        "location_id": "Таверна Серебряный Волк",
+        "location_id": "tavern_silver_wolf",
         "position": "entrance",
         "activity": "",
         "visible": true,
@@ -620,7 +620,7 @@
         "editor_room_id": "room_0"
       },
       "merchant_goran": {
-        "location_id": "Таверна Серебряный Волк",
+        "location_id": "tavern_silver_wolf",
         "position": "kitchen",
         "activity": "",
         "visible": true,
@@ -641,7 +641,7 @@
     "active_effects": [],
     "player_position": "стоит",
     "player_spatial": {
-      "location_id": "Таверна Серебряный Волк",
+      "location_id": "tavern_silver_wolf",
       "position": "entrance",
       "local_position": {
         "x": 2.7573593128807126,
@@ -1169,7 +1169,7 @@
         "event_type": "verbal",
         "actor_id": "player",
         "target_id": "maid_lusya",
-        "location_id": "Таверна Серебряный Волк",
+        "location_id": "tavern_silver_wolf",
         "tick": 0,
         "intensity": 0.3,
         "visibility_radius": 7.4,
@@ -1183,7 +1183,7 @@
         "event_type": "verbal",
         "actor_id": "player",
         "target_id": "maid_lusya",
-        "location_id": "Таверна Серебряный Волк",
+        "location_id": "tavern_silver_wolf",
         "tick": 0,
         "intensity": 0.3,
         "visibility_radius": 7.4,
@@ -1197,7 +1197,7 @@
         "event_type": "verbal",
         "actor_id": "player",
         "target_id": "maid_lusya",
-        "location_id": "Таверна Серебряный Волк",
+        "location_id": "tavern_silver_wolf",
         "tick": 0,
         "intensity": 0.3,
         "visibility_radius": 7.4,
@@ -1211,7 +1211,7 @@
         "event_type": "verbal",
         "actor_id": "player",
         "target_id": "thief_shadow",
-        "location_id": "Таверна Серебряный Волк",
+        "location_id": "tavern_silver_wolf",
         "tick": 0,
         "intensity": 0.3,
         "visibility_radius": 7.4,

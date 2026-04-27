@@ -47,13 +47,15 @@ import time
 from collections import OrderedDict
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Optional
+from typing import List, Optional
 
 from app.core.config import settings
 from app.services.scene_change import (
     SceneChange,
     ChangeType,
 )
+from app.domain.movement import MovementIntent
+from app.services.spatial.movement_engine import MovementEngine
 
 logger = logging.getLogger(__name__)
 
@@ -119,22 +121,16 @@ def _make_random_events(npc: dict, tick: int) -> list:
     """
     Таблица случайных событий для Major NPC.
     5% шанс одного события за тик.
-    Возвращает список (event_id, changes) из которых выбирается одно.
+    Возвращает список (event_id, changes, intent_or_none) из которых выбирается одно.
+    changes — SceneChange без position (activity, state и т.д.)
+    intent — MovementIntent если событие требует перемещения, иначе None
     """
     npc_id   = npc.get("id", "unknown")
     location = npc.get("location", "tavern_silver_wolf")
 
-    return [
+    events = [
         # NPC переходит к стойке поговорить с кем-то
         ("wanders_to_bar", [
-            SceneChange(
-                type=ChangeType.NPC_POSITION,
-                target=npc_id,
-                field="position",
-                value="near_bar",
-                cause="life_engine_random",
-                tick=tick,
-            ),
             SceneChange(
                 type=ChangeType.NPC_POSITION,
                 target=npc_id,
@@ -143,7 +139,12 @@ def _make_random_events(npc: dict, tick: int) -> list:
                 cause="life_engine_random",
                 tick=tick,
             ),
-        ]),
+        ], MovementIntent(
+            npc_id=npc_id,
+            target_node_id="near_bar",
+            location_id=location,
+            reason="random:wanders_to_bar",
+        )),
         # NPC становится более бдительным (заметил что-то)
         ("notices_something", [
             SceneChange(
@@ -154,7 +155,7 @@ def _make_random_events(npc: dict, tick: int) -> list:
                 cause="life_engine_random",
                 tick=tick,
             ),
-        ]),
+        ], None),
         # Небольшой стресс — ссора с кем-то
         ("minor_argument", [
             SceneChange(
@@ -165,7 +166,7 @@ def _make_random_events(npc: dict, tick: int) -> list:
                 cause="life_engine_argument",
                 tick=tick,
             ),
-        ]),
+        ], None),
         # NPC на мгновение выходит (в туалет, за товаром, на улицу)
         ("brief_exit", [
             SceneChange(
@@ -176,8 +177,12 @@ def _make_random_events(npc: dict, tick: int) -> list:
                 cause="life_engine_random",
                 tick=tick,
             ),
-        ]),
+        ], None),
     ]
+    # Событие wanders_to_bar только в таверне — иначе MovementEngine не найдёт узел
+    if location != "tavern_silver_wolf":
+        events = [e for e in events if e[0] != "wanders_to_bar"]
+    return events
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -294,6 +299,9 @@ class LifeEngine:
         # Счётчик для batched persistence
         # ключ: campaign_id → int (сколько тиков с последнего save)
         self._ticks_since_save: dict[str, int] = {}
+        
+        # Слой 2: MovementEngine — конвертирует MovementIntent → SceneChange с {x, y}
+        self._movement_engine = MovementEngine()
 
     # ─────────────────────────────────────────────────────────────────────────
     # Tick Architecture (Блок 1)
@@ -392,7 +400,7 @@ class LifeEngine:
         campaign_id: str,
         scene_state: Optional[dict] = None,
         runtime_path: Optional[Path] = None,
-    ) -> list[SceneChange]:
+    ) -> tuple[list[SceneChange], "MovementIntent | None"]:
         """
         Аппроксимация долгого отсутствия игрока.
         
@@ -429,8 +437,13 @@ class LifeEngine:
                 
             try:
                 # 1. Расписание — прыгаем к текущему слоту
-                routine_changes = self.update_routine(npc, current_time)
+                routine_changes, routine_intent = self.update_routine(npc, current_time)
                 all_changes.extend(routine_changes)
+                if routine_intent:
+                    movement_changes = self._movement_engine.process_intents(
+                        [routine_intent], tick=0,
+                    )
+                    all_changes.extend(movement_changes)
                 
                 # 2. Стресс — нормализация к baseline
                 psyche = npc.setdefault("psyche", {})
@@ -532,7 +545,7 @@ class LifeEngine:
         campaign_id: str,
         scene_state: Optional[dict] = None,
         runtime_path: Optional[Path] = None,
-    ) -> list[SceneChange]:
+    ) -> tuple[list[SceneChange], "MovementIntent | None"]:
         """
         Главная точка входа — один тик движка жизни.
 
@@ -875,7 +888,7 @@ class LifeEngine:
         npc: dict,
         current_time: str,
         tick: int,
-    ) -> list[SceneChange]:
+    ) -> tuple[list[SceneChange], "MovementIntent | None"]:
         """
         Полная симуляция Major NPC за один тик.
         Порядок: need-driven → расписание → стресс → случайные события.
@@ -886,13 +899,37 @@ class LifeEngine:
         # 1. Need-driven: растим потребности, проверяем порог
         # Проверяем ПЕРЕД schedule — биологическое важнее расписания
         self._tick_needs(npc)
-        need_changes = self._check_need_driven_movement(npc, tick)
-        changes.extend(need_changes)
+        need_intent = self._check_need_driven_movement(npc)
 
-        # 2. Расписание — только если need-driven ничего не сделал
-        if not need_changes:
-            routine_changes = self.update_routine(npc, current_time, tick)
+        # 1.5 Если есть intent — отдаём MovementEngine (Слой 2)
+        if need_intent:
+            intent_changes = self._movement_engine.process_intents(
+                [need_intent], tick=tick,
+            )
+            changes.extend(intent_changes)
+            # Также обновляем activity в scene_state
+            target_activity = _NEED_TO_ACTIVITY.get(
+                need_intent.reason.split(":")[1].split("=")[0], ""
+            )
+            if target_activity:
+                activity_entry = npc.get("activity_map", {}).get(target_activity, {})
+                changes.append(SceneChange(
+                    type=ChangeType.NPC_POSITION,
+                    target=need_intent.npc_id,
+                    field="activity",
+                    value=activity_entry.get("display", target_activity),
+                    cause=f"life_engine_need_driven:{need_intent.reason}",
+                    tick=tick,
+                ))
+        else:
+            # 2. Расписание — только если need-driven ничего не сделал
+            routine_changes, routine_intent = self.update_routine(npc, current_time, tick)
             changes.extend(routine_changes)
+            if routine_intent:
+                movement_changes = self._movement_engine.process_intents(
+                    [routine_intent], tick=tick,
+                )
+                changes.extend(movement_changes)
 
         # 2. Восстанавливаем стресс (без SceneChange — только данные NPC)
         self.recover_stress_tick(npc)
@@ -908,14 +945,17 @@ class LifeEngine:
     # ─────────────────────────────────────────────────────────────────────
 
     def _ensure_needs_state(self, npc: dict) -> dict:
-        """Инициализирует словарь потребностей в NPC dict если отсутствует."""
+        """Инициализирует словарь потребностей в NPC dict.
+        Дополняет недостающие ключи если dict уже существует.
+        """
         if "needs" not in npc:
-            npc["needs"] = {
-                "hunger": 0.0,
-                "shelter_urge": 0.0,
-                "social_urge": 0.0,
-            }
-        return npc["needs"]
+            npc["needs"] = {}
+        needs = npc["needs"]
+        # Гарантируем что все потребности из маппинга присутствуют
+        for need_name in _NEED_TO_ACTIVITY:
+            if need_name not in needs:
+                needs[need_name] = 0.0
+        return needs
 
     def _tick_needs(self, npc: dict) -> None:
         """
@@ -936,21 +976,19 @@ class LifeEngine:
     def _check_need_driven_movement(
         self,
         npc: dict,
-        tick: int,
-    ) -> list[SceneChange]:
+    ) -> Optional[MovementIntent]:
         """
-        Если потребность выше порога — генерирует SceneChange для перемещения.
+        Если потребность выше порога — возвращает MovementIntent.
         Приоритет: самая критичная потребность.
+        Конвертация в SceneChange — ответственность MovementEngine (Слой 2).
         """
         needs = npc.get("needs", {})
         if not needs:
-            return []
+            return None
 
         activity_map = npc.get("activity_map", {})
         npc_id = npc.get("id", "unknown")
         current_position = npc.get("position", "")
-        prev_location = npc.get("location", "")
-        changes: list[SceneChange] = []
 
         # Находим самую критичную потребность
         urgent_needs = [
@@ -959,7 +997,7 @@ class LifeEngine:
         ]
 
         if not urgent_needs:
-            return []
+            return None
 
         # Самая срочная первой
         urgent_needs.sort(key=lambda x: x[1], reverse=True)
@@ -967,61 +1005,36 @@ class LifeEngine:
 
         target_activity = _NEED_TO_ACTIVITY.get(need_name)
         if not target_activity:
-            return []
+            return None
 
         target_entry = activity_map.get(target_activity)
         if not target_entry:
-            return []
+            return None
 
-        target_position = target_entry.get("position", "")
+        target_node = target_entry.get("position", "")
         target_location = target_entry.get("location", "")
-        display = target_entry.get("display", target_activity)
 
-        # Не двигаемся если уже на целевой позиции
-        if current_position == target_position:
-            return []
+        # Не двигаемся если уже на целевом узле
+        if current_position == target_node:
+            return None
 
         logger.info(
             f"[LIFE_ENGINE] Need-driven: {npc_id} → {target_activity} "
             f"(need={need_name}={need_value:.2f})"
         )
 
-        # Обновляем NPC dict in-place
-        npc["position"] = target_position
+        # Обновляем NPC dict in-place (для следующего тика)
+        npc["position"] = target_node
         if target_location:
             npc["location"] = target_location
         npc.get("routine", {})["current"] = target_activity
 
-        # Генерируем SceneChange
-        changes.append(SceneChange(
-            type=ChangeType.NPC_POSITION,
-            target=npc_id,
-            field="activity",
-            value=display,
-            cause="life_engine_need_driven",
-            tick=tick,
-        ))
-
-        changes.append(SceneChange(
-            type=ChangeType.NPC_POSITION,
-            target=npc_id,
-            field="position",
-            value=target_position,
-            cause="life_engine_need_driven",
-            tick=tick,
-        ))
-
-        if target_location and target_location != prev_location:
-            changes.append(SceneChange(
-                type=ChangeType.NPC_POSITION,
-                target=npc_id,
-                field="location",
-                value=target_location,
-                cause="life_engine_need_driven",
-                tick=tick,
-            ))
-
-        return changes
+        return MovementIntent(
+            npc_id=npc_id,
+            target_node_id=target_node,
+            location_id=target_location,
+            reason=f"need_driven:{need_name}={need_value:.2f}",
+        )
 
     def _simulate_minor(
         self,
@@ -1034,8 +1047,13 @@ class LifeEngine:
         Только расписание + случайные события (без полного стресс-расчёта).
         """
         changes: list[SceneChange] = []
-        routine_changes = self.update_routine(npc, current_time, tick)
+        routine_changes, routine_intent = self.update_routine(npc, current_time, tick)
         changes.extend(routine_changes)
+        if routine_intent:
+            movement_changes = self._movement_engine.process_intents(
+                [routine_intent], tick=tick,
+            )
+            changes.extend(movement_changes)
         event_changes = self.check_random_events(npc, tick)
         changes.extend(event_changes)
         return changes
@@ -1049,7 +1067,7 @@ class LifeEngine:
         npc: dict,
         current_time: str,
         tick: int = 0,
-    ) -> list[SceneChange]:
+    ) -> tuple[list[SceneChange], "MovementIntent | None"]:
         """
         Обновляет позицию NPC согласно расписанию и текущему времени.
 
@@ -1069,16 +1087,16 @@ class LifeEngine:
         schedule = npc.get("routine", {}).get("schedule", {})
 
         if not schedule:
-            return []
+            return [], None
 
         new_activity = self._get_current_activity(schedule, current_time)
         if not new_activity:
-            return []
+            return [], None
 
         prev_activity = npc.get("routine", {}).get("current", "")
 
         if new_activity == prev_activity:
-            return []
+            return [], None
 
         new_location, new_position, activity_display = self._resolve_position(
             npc, new_activity
@@ -1087,22 +1105,13 @@ class LifeEngine:
         prev_location = npc.get("location", new_location)
         changes: list[SceneChange] = []
 
-        # ── Генерируем SceneChange ────────────────────────────────────────────
+        # ── Генерируем SceneChange (БЕЗ position — через MovementEngine) ──
 
         changes.append(SceneChange(
             type=ChangeType.NPC_POSITION,
             target=npc_id,
             field="activity",
             value=activity_display,
-            cause="life_engine_schedule",
-            tick=tick,
-        ))
-
-        changes.append(SceneChange(
-            type=ChangeType.NPC_POSITION,
-            target=npc_id,
-            field="position",
-            value=new_position,
             cause="life_engine_schedule",
             tick=tick,
         ))
@@ -1131,6 +1140,14 @@ class LifeEngine:
                 f"(активность: {prev_activity} → {new_activity})"
             )
 
+        # ── MovementIntent для MovementEngine (Слой 2) ────────────────────
+        intent = MovementIntent(
+            npc_id=npc_id,
+            target_node_id=new_position,
+            location_id=new_location,
+            reason=f"schedule:{new_activity}",
+        )
+
         # ── Обновляем NPC dict в памяти ────────────────────────────────────
         routine = npc.setdefault("routine", {})
         routine["current"]   = new_activity
@@ -1138,12 +1155,13 @@ class LifeEngine:
         if "interrupted" not in routine:
             routine["interrupted"] = False
         npc["location"] = new_location
+        npc["position"] = new_position
 
         logger.debug(
             f"[LIFE_ENGINE] {npc_id}: активность {prev_activity!r} → {new_activity!r} "
             f"в {current_time}"
         )
-        return changes
+        return changes, intent
 
     def _get_current_activity(self, schedule: dict, current_time: str) -> str:
         """
@@ -1206,7 +1224,7 @@ class LifeEngine:
         self,
         npc: dict,
         tick: int = 0,
-    ) -> list[SceneChange]:
+    ) -> tuple[list[SceneChange], "MovementIntent | None"]:
         """
         С вероятностью RANDOM_EVENT_CHANCE (5%) генерирует случайное событие.
         Возвращает список SceneChange или пустой список.
@@ -1223,13 +1241,21 @@ class LifeEngine:
             return []
 
         events = _make_random_events(npc, tick)
-        event_id, changes = random.choice(events)
+        event_id, changes, movement_intent = random.choice(events)
 
         if event_id == "minor_argument":
             psyche = npc.setdefault("psyche", {})
             psyche["stress"] = min(100, psyche.get("stress", 0) + 10)
 
         logger.info(f"[LIFE_ENGINE] {npc_id}: случайное событие '{event_id}'")
+
+        # Если событие требует перемещения — через MovementEngine
+        if movement_intent:
+            movement_changes = self._movement_engine.process_intents(
+                [movement_intent], tick=tick,
+            )
+            changes.extend(movement_changes)
+
         return changes
 
     # ─────────────────────────────────────────────────────────────────────────
