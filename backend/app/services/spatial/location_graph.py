@@ -144,7 +144,10 @@ def invalidate_graph_cache(location_id: Optional[str] = None) -> None:
         logger.debug("[LocationGraph] кэш графа '%s' сброшен", location_id)
 
 
-def load_graph(location_id: str, data_dir: str = "data") -> LocationGraph:
+# Путь к backend/data/ относительно этого файла — не зависит от CWD
+_DEFAULT_DATA_DIR: str = str(Path(__file__).resolve().parent.parent.parent.parent / "data")
+
+def load_graph(location_id: str, data_dir: str = _DEFAULT_DATA_DIR) -> LocationGraph:
     """
     Загружает граф локации.
     Результат кэшируется — повторные вызовы бесплатны.

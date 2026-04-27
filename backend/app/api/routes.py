@@ -347,7 +347,7 @@ async def game_action(request: dict, game_loop=Depends(get_game_loop)) -> dict:
                 game_loop.scene_manager.save_scene_state(campaign_id, scene)
 
         campaign_state = campaign_service.get_campaign_state(campaign_id)
-        location = "Таверна Серебряный Волк"  # дефолт всегда
+        location = "tavern_silver_wolf"  # дефолт — ID локации, неdisplayName
         if campaign_state:
             saved_location = campaign_state.metadata.get("current_location")
             if saved_location:

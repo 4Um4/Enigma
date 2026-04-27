@@ -6,7 +6,7 @@
   "session_summaries": [],
   "metadata": {},
   "scene_state": {
-    "location_id": "Таверна Серебряный Волк",
+    "location_id": "tavern_silver_wolf",
     "snapshot_tick": 0,
     "objects": {},
     "npc_positions": {},
@@ -20,7 +20,7 @@
     "active_effects": [],
     "player_position": "стоит",
     "player_spatial": {
-      "location_id": "Таверна Серебряный Волк",
+      "location_id": "tavern_silver_wolf",
       "position": "main_hall",
       "local_position": {
         "x": 0.0,

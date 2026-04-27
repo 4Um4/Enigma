@@ -1,4 +1,4 @@
-﻿## Дорожная карта: что кроме твоих трёх параллелей
+﻿## Дорожная карта: что кроме твоих двух параллелей
 
 Сопоставил текущий код с Уставом и твоими диаграммами. Вот что **блокирует** твою работу и что **не видно**, пока не упрёшься.
 
@@ -10,7 +10,6 @@
 |-----------|------|------------|
 | **Фронтенд** | Получит сломанный контракт или начнёт импортировать `app/` | Нужен `WorldSnapshotDTO` (Устав 6.3) как жесткая стена. Без него фронтенд так или иначе протянет руки в backend |
 | **Память NPC** | STM есть, L2 есть, но **MemoryPromotionEngine не подключён** (Устав 4.1.3). Память = лог, не система | Promotion — это не "ещё один модуль", это клапан. Без него STM переполняется, L2 не заполняется, campaign пустой |
-| **LLM-мусор** | Verbalization получает `CommunicationIntent` с пустым `topic` (Устав 2.2.1). Какой бы ни был чистый промпт — LLM плывёт без темы | `TopicExtractor` должен работать на Фазе 4, ДО DecisionHub. Сейчас его нет в пайплайне |
 
 ---
 
@@ -174,3 +173,69 @@
 - **EventBus как реальная шина** — NPC-решения идут напрямую через пайплайн, не через `publish()`
 - **Dead tests cleanup** — удалить или обновить
 - **Экстракция фаз из `_run_pipeline`** — 1500 строк монолит
+
+Хватит экстракции на этой сессии. Дальше — NPC loop (623 строк), который глубоко переплетён с `_all_npcs_raw`, `_dirty_npcs`, `_wt_dirty`, `_prop_dirty`, `hub_event`. Выносить без рефакторинга thread-state = методы с 10+ параметрами, что хуже монолита.
+
+---
+
+## Итого сессии
+
+### Выполнено
+
+| Шаг | Что | Результат |
+|-----|-----|-----------|
+| 1 | Dead tests cleanup | `test_decision_hub_commitment.py` + `test_dm_facade.py` удалены (импортировали несуществующий `NPCStateL2`) |
+| 2 | `_init_scene_state()` экстракция | ~100 строк: SceneState + LifeEngine + EconomyTracker → отдельный метод |
+| 3 | `_apply_front_engine()` экстракция | ~60 строк: FrontEngine давление мира → отдельный метод |
+| 4 | `fake_req` мёртвый код | Создавался на 811, нигде не использовался — удалён |
+
+### `_run_pipeline`: 1594 → 1472 строк (−122)
+
+### Обнаруженный баг (не чинил — отдельная задача)
+
+**Аватар внутри `else:` PerceptionFilter** — строка 1857. Блок обновления аватара игрока (реакция на attack/intimidate/help) выполняется **только когда PerceptionFilter пропущен**. Когда NPC воспринимают игрока (нормальный путь) — аватар не обновляется. Обратная логика.
+
+```
+1853:                else:
+1854:                    shared_context.npc_contexts = _all_npc_contexts
+1855:                    logger.warning(...)
+1856:
+1857:                    # ФАЗА 3.4.5: Обновление аватара игрока — реакция на NPC
+                         ^^^^ этот блок должен быть ВНЕ else
+```
+
+245 passed. Оба падающих теста — предсуществующие, не связаны с моими изменениями:
+
+1. `test_ingest_txt_to_world` — `persist_world_canon` не существует на `LayeredMemory` (мёртвый метод)
+2. `test_run_pipeline_returns_pipeline_state` — coroutine в payload от мока (маскировался `UnboundLocalError` до моего топлевел-импорта `EventDTO`)
+
+---
+
+## Итого сессии
+
+### Выполнено
+
+| Шаг | Что | Результат |
+|-----|-----|-----------|
+| 1 | **Баг аватара** — вынос из `else:` | Блок 1857-1923 теперь выполняется при ЛЮБОМ пути PerceptionFilter |
+| 2 | `EventDTO` топлевел импорт | Убран `UnboundLocalError` — раньше маскировал корутинный баг в тесте |
+| 3 | `update_routine` сигнатура | `list[SceneChange]` → `tuple[list[SceneChange], MovementIntent \| None]` |
+| 4 | `update_routine` ранние returns | `return []` → `return [], None` на строках 1086, 1090, 1095 |
+| 5 | `_simulate_minor` сигнатура | `tuple[...]` → `list[SceneChange]` (возвращает только changes) |
+| 6 | Тесты `test_life_engine.py` | Распаковка кортежа: `changes` → `changes, intent` |
+| 7 | Тест `test_tornin_sleeps_at_night` | Добавлен `activity_map` со sleeping→inn_rooms |
+
+### Баг в проде `blacksmith_orm` — тоже починен
+
+`update_routine` возвращал `[]` вместо `([], None)` → `_simulate_minor` на строке 1046 делал `routine_changes, routine_intent = []` → `ValueError: not enough values to unpack (expected 2, got 0)`. Мой фикс строки 1086/1090/1095 закрывает это.
+
+### Предсуществующие баги (не чинил — вне сессии)
+
+| Тест | Причина |
+|------|---------|
+| `test_ingest_txt_to_world` | `persist_world_canon` не существует на `LayeredMemory` |
+| `test_run_pipeline_returns_pipeline_state` | Мок `get_rules_action_type` возвращает coroutine, не строку |
+
+### Следующая сессия
+
+**NPC loop** — проектирование `TickContext` dataclass для замены 5+ мутабельных локальных переменных (`_all_npcs_raw`, `_dirty_npcs`, `_wt_dirty`, `_prop_dirty`, `hub_event`) на один объект.

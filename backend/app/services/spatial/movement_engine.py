@@ -27,11 +27,11 @@ class MovementEngine:
     def __init__(self) -> None:
         self._graphs: dict[str, LocationGraph] = {}
 
-    def _get_graph(self, location_id: str, data_dir: str = "data") -> Optional[LocationGraph]:
+    def _get_graph(self, location_id: str) -> Optional[LocationGraph]:
         """Ленивая загрузка графа с кэшированием."""
         if location_id not in self._graphs:
             try:
-                self._graphs[location_id] = load_graph(location_id, data_dir)
+                self._graphs[location_id] = load_graph(location_id)
             except Exception as e:
                 logger.warning(f"[MOVEMENT_ENGINE] Граф не найден для {location_id}: {e}")
                 return None
@@ -50,7 +50,6 @@ class MovementEngine:
         self,
         intents: List[MovementIntent],
         tick: int,
-        data_dir: str = "data",
     ) -> List[SceneChange]:
         """Обрабатывает список намерений → список SceneChange.
         
@@ -69,7 +68,7 @@ class MovementEngine:
             by_location.setdefault(loc, []).append(intent)
 
         for location_id, loc_intents in by_location.items():
-            graph = self._get_graph(location_id, data_dir)
+            graph = self._get_graph(location_id)
             if not graph:
                 for intent in loc_intents:
                     logger.warning(
@@ -91,16 +90,6 @@ class MovementEngine:
                     target=intent.npc_id,
                     field="local_position",
                     value={"x": node.x, "y": node.y},
-                    cause=f"movement_engine:{intent.reason}",
-                    tick=tick,
-                ))
-
-                # Также обновляем строковое поле position для обратной совместимости
-                changes.append(SceneChange(
-                    type=ChangeType.NPC_POSITION,
-                    target=intent.npc_id,
-                    field="position",
-                    value=intent.target_node_id,
                     cause=f"movement_engine:{intent.reason}",
                     tick=tick,
                 ))

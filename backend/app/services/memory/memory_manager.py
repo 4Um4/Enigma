@@ -64,6 +64,12 @@ class MemoryManager:
         if session is not None:
             session.clear()
 
+    def clear_all_dialogue_sessions(self, campaign_id: str) -> None:
+        """Очищает все STM-сессии кампании — игрок ушёл из локации."""
+        keys_to_remove = [k for k in self._dialogue_sessions if k.startswith(f"{campaign_id}:")]
+        for key in keys_to_remove:
+            self._dialogue_sessions.pop(key)
+
     def get_stm_prompt_block(self, campaign_id: str, npc_id: str) -> str:
         """Возвращает текстуализацию STM для промпта. Пустую строку если нет сессии."""
         key = f"{campaign_id}:{npc_id}"
@@ -245,17 +251,7 @@ class MemoryManager:
     # ──────────────────────────────────────────────────────────────────────
     # Основные методы записи (используются game_loop.py) — ЛЕГАСИ, мигрируют на apply()
     # ──────────────────────────────────────────────────────────────────────
-    def record_event(
-        self,
-        campaign_id: str,
-        event: Dict[str, Any],
-    ) -> None:
-        """Запись события через score_event. Используется game_loop.py."""
-        importance = score_event(event)
-        event_with_score = {**event, "importance": importance}
-        self._working.push(campaign_id, event_with_score)
-        self._layered.write_session_memory(campaign_id, event_with_score)
-
+    
     def update_relationship(
         self,
         campaign_id: str,

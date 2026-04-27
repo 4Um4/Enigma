@@ -91,20 +91,31 @@
         ],
         "label": "за стойкой"
       },
-      "bar_area": {
+        "bar_area": {
         "x": -2.5,
         "y": 0.0,
         "connections": [
           "behind_bar",
-          "main_hall"
+          "main_hall",
+          "near_bar"
         ],
         "label": "у стойки"
+      },
+        "near_bar": {
+        "x": -1.5,
+        "y": -1.0,
+        "connections": [
+          "bar_area",
+          "main_hall"
+        ],
+        "label": "возле стойки"
       },
       "main_hall": {
         "x": 0.0,
         "y": 0.0,
         "connections": [
           "bar_area",
+          "near_bar",
           "corner_table",
           "serving_table_3",
           "entrance",
@@ -152,6 +163,149 @@
           "main_hall"
         ],
         "label": "у лестницы"
+      }
+    }
+  },
+  "city_gate": {
+    "name": "Городские ворота",
+    "type": "exterior",
+    "default_objects": {},
+    "time_variants": {
+      "06:00-22:00": {
+        "light_level": "bright",
+        "noise_level": "moderate"
+      },
+      "22:00-06:00": {
+        "light_level": "dark",
+        "noise_level": "silent"
+      }
+    },
+    "npc_defaults": {},
+    "connected_locations": [
+      "tavern_silver_wolf",
+      "market_square"
+    ],
+    "positions": {
+      "gate_post": {
+        "x": 0.0,
+        "y": 0.0,
+        "connections": ["road_north", "road_south", "guard_shack", "shadows_near_gate"],
+        "label": "на посту у ворот"
+      },
+      "guard_shack": {
+        "x": -3.0,
+        "y": 1.0,
+        "connections": ["gate_post"],
+        "label": "будка стражи"
+      },
+      "shadows_near_gate": {
+        "x": 3.0,
+        "y": 2.0,
+        "connections": ["gate_post", "road_north"],
+        "label": "в тени у стены"
+      },
+      "road_north": {
+        "x": 0.0,
+        "y": -4.0,
+        "connections": ["gate_post", "shadows_near_gate"],
+        "label": "дорога на север"
+      },
+      "road_south": {
+        "x": 0.0,
+        "y": 4.0,
+        "connections": ["gate_post"],
+        "label": "дорога к городу"
+      }
+    }
+  },
+  "market_square": {
+    "name": "Рыночная площадь",
+    "type": "exterior",
+    "default_objects": {},
+    "time_variants": {
+      "08:00-18:00": {
+        "light_level": "bright",
+        "noise_level": "loud"
+      },
+      "18:00-08:00": {
+        "light_level": "dark",
+        "noise_level": "silent"
+      }
+    },
+    "npc_defaults": {},
+    "connected_locations": [
+      "tavern_silver_wolf",
+      "city_gate"
+    ],
+    "positions": {
+      "stall_3": {
+        "x": 2.0,
+        "y": 1.0,
+        "connections": ["fountain_center", "stall_2"],
+        "label": "у третьего прилавка"
+      },
+      "stall_1": {
+        "x": -3.0,
+        "y": 1.0,
+        "connections": ["fountain_center"],
+        "label": "у первого прилавка"
+      },
+      "stall_2": {
+        "x": -1.0,
+        "y": -2.0,
+        "connections": ["fountain_center", "stall_3"],
+        "label": "у второго прилавка"
+      },
+      "fountain_center": {
+        "x": 0.0,
+        "y": 0.0,
+        "connections": ["stall_1", "stall_2", "stall_3", "road_to_tavern"],
+        "label": "у фонтана"
+      },
+      "road_to_tavern": {
+        "x": 3.0,
+        "y": -3.0,
+        "connections": ["fountain_center"],
+        "label": "дорога к таверне"
+      }
+    }
+  },
+  "inn_rooms": {
+    "name": "Комнаты постоялого двора",
+    "type": "interior",
+    "default_objects": {},
+    "time_variants": {
+      "22:00-06:00": {
+        "light_level": "dark",
+        "noise_level": "silent"
+      },
+      "06:00-22:00": {
+        "light_level": "dim",
+        "noise_level": "quiet"
+      }
+    },
+    "npc_defaults": {},
+    "connected_locations": [
+      "tavern_silver_wolf"
+    ],
+    "positions": {
+      "bed": {
+        "x": 0.0,
+        "y": 0.0,
+        "connections": ["hallway"],
+        "label": "у кровати"
+      },
+      "hallway": {
+        "x": 0.0,
+        "y": -3.0,
+        "connections": ["bed", "stairs_down"],
+        "label": "в коридоре"
+      },
+      "stairs_down": {
+        "x": 0.0,
+        "y": -5.0,
+        "connections": ["hallway"],
+        "label": "на лестнице вниз"
       }
     }
   }

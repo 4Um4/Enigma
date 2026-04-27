@@ -168,8 +168,9 @@ class TestUpdateRoutine:
             },
         }
         # 14:00 → working (как сейчас)
-        changes = engine.update_routine(npc, "14:00", tick=1)
+        changes, intent = engine.update_routine(npc, "14:00", tick=1)
         assert changes == [], "Нет изменений если активность та же"
+        assert intent is None, "Нет намерения если активность та же"
 
     def test_generates_changes_on_activity_switch(self, engine):
         """При смене активности генерируются SceneChange."""
@@ -182,7 +183,7 @@ class TestUpdateRoutine:
             },
         }
         # 23:00 → sleeping (смена!)
-        changes = engine.update_routine(npc, "23:00", tick=5)
+        changes, intent = engine.update_routine(npc, "23:00", tick=5)
         assert len(changes) > 0, "Должны быть SceneChange при смене активности"
 
         # Проверяем типы изменений
@@ -199,8 +200,11 @@ class TestUpdateRoutine:
                 "schedule": {"06:00-22:00": "working", "22:00-06:00": "sleeping"},
             },
             "psyche": {"stress": 0},
+            "activity_map": {
+                "sleeping": {"location": "inn_rooms", "position": "bed", "display": "sleeping"},
+            },
         }
-        changes = engine.update_routine(npc, "23:00", tick=10)
+        changes, _intent = engine.update_routine(npc, "23:00", tick=10)
 
         # Найдём изменение видимости
         visible_changes = [c for c in changes if c.field == "visible"]
@@ -228,7 +232,7 @@ class TestUpdateRoutine:
             },
             "psyche": {"stress": 0},
         }
-        changes = engine.update_routine(npc, "08:00", tick=20)
+        changes, _intent = engine.update_routine(npc, "08:00", tick=20)
         assert len(changes) > 0, "Должны быть SceneChange при пробуждении"
 
         # Должен стать visible
@@ -245,8 +249,9 @@ class TestUpdateRoutine:
             "location": "tavern_silver_wolf",
             "routine": {"current": "wandering"},
         }
-        changes = engine.update_routine(npc, "14:00", tick=1)
+        changes, intent = engine.update_routine(npc, "14:00", tick=1)
         assert changes == []
+        assert intent is None
 
 
 # ──────────────────────────────────────────────────────────────────────────────
