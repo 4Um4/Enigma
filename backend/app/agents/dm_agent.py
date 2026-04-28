@@ -179,7 +179,26 @@ class DmAgent:
         if _recent_speech:
             builder.add_npc_stm("\n".join(_recent_speech))
         
-        # Блок 2.5: Кому обращается игрок — без этого DM не знает что NPC должен отвечать
+        # Блок 2.5: L2 память NPC — recalled_facts (Этап 4)
+        _recalled = (context or {}).get("npc_recalled_memory", [])
+        if _recalled:
+            _mem_lines = []
+            for _entry in _recalled:
+                _npc_name = _entry.get("npc_name", "NPC")
+                for _f in _entry.get("facts", []):
+                    if not _f.summary:
+                        continue
+                    if _f.importance > 0.7:
+                        _qualifier = "хорошо помнит"
+                    elif _f.importance > 0.4:
+                        _qualifier = "кажется, помнит"
+                    else:
+                        _qualifier = "смутно припоминает"
+                    _mem_lines.append(f"- {_npc_name} {_qualifier}: {_f.summary}")
+            if _mem_lines:
+                builder.add_npc_l2_memory("\n".join(_mem_lines[:5]))
+        
+        # Блок 2.6: Кому обращается игрок — без этого DM не знает что NPC должен отвечать
         if context:
             # Явный таргет из текста всегда приоритетнее sticky
             _target_id = context.get("player_target_id", "")

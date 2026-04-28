@@ -57,6 +57,9 @@ class DMSceneBuilder:
         # Salience Engine: фильтруем объекты перед передачей в LLM
         _event_type = getattr(raw_event, "event_type", "player_interacts") if raw_event else "player_interacts"
         _raw_objects = spatial_data.get("objects", {})
+        # objects может быть list из scene_state — нормализуем в dict
+        if isinstance(_raw_objects, list):
+            _raw_objects = {str(i): obj for i, obj in enumerate(_raw_objects)}
         
         from app.services.scene.salience_engine import SalienceEngine
         _filtered_pairs = SalienceEngine().get_filtered_objects(

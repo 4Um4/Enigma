@@ -5,7 +5,10 @@ __pycache__/
 # Runtime logs & DB
 *.jsonl
 *.db
+*.db-shm
+*.db-wal
 backend/data/logs/
+saves/
 
 # Models - too large for Git
 Models LLM/
