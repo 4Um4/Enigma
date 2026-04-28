@@ -27,7 +27,6 @@ from app.models.npc_state import NPCState
 from app.models.npc_state import (
     EmotionTag,
     Intent,
-    NarrativeFact,
     WillState,
 )
 from app.services.events.event_types import EventType
@@ -112,7 +111,7 @@ class DecisionResult:
     score:           float                          # итоговый score победившего intent
     scores_trace:    Dict[str, float]               # все scores для калибровки R4.2
     deltas:          StateDeltas
-    narrative_fact:  Optional[NarrativeFact] = None # новый факт для narrative_cache
+    narrative_fact:  Optional[str] = None  # текстовое описание для scene_outcome_builder
     explanation_mode: bool = False                  # True если intent=EXPLAIN
 
 
@@ -373,7 +372,7 @@ class DecisionHub:
 
         intent_target = self._resolve_target(best_intent, event, state)
         deltas        = self._compute_deltas(state, personality, event, best_intent)
-        narrative     = self._make_narrative_fact(event, best_intent, state, deltas)
+        narrative     = None  # факт создаётся через MemoryManager.apply(), не здесь
 
         # В scores_trace попадают ТОЛЬКО числа для калибровки R4.2.
         # Строки (причины срабатывания) отсекаются.
@@ -1202,41 +1201,6 @@ class DecisionHub:
         
         return deltas
 
-    def _make_narrative_fact(
-        self,
-        event:   EventContext,
-        intent:  str,
-        state:   NPCState,
-        deltas:  StateDeltas,
-    ) -> Optional[NarrativeFact]:
-        """
-        Создаёт NarrativeFact если событие достаточно важное.
-        Важность считается по реальному влиянию на веса (Память.md #4), 
-        а не по абстрактному event.intensity.
-        """
-        # Δweights = сумма абсолютных изменений ключевых метрик
-        delta_weights = abs(deltas.trust_delta) + abs(deltas.fear_delta) + abs(deltas.stress_delta)
-        
-        # Эмоциональный импакт (нормализация: max emotion_delta ~20.0 -> 0-1)
-        emotional_intensity = abs(deltas.emotion_delta) / 20.0 if deltas.emotion_delta else 0.0
-        
-        # Травма — всегда значимое событие для идентичности
-        identity_impact = 0.3 if deltas.new_trauma else 0.0
-        
-        # Итоговая важность: взвешенная сумма компонентов
-        importance = min(delta_weights * 0.01 + emotional_intensity * 0.5 + identity_impact * 0.2, 1.0)
-        
-        if importance < 0.3:
-            return None
-
-        emotion_str = deltas.emotion_tag.value if deltas.emotion_tag else "neutral"
-        return NarrativeFact(
-            event_type  = event.event_type,
-            target_id   = event.actor_id,
-            emotion_tag = emotion_str,
-            day         = event.day,
-            importance  = round(importance, 4),
-        )
 
     def _explain_mode(
         self,
@@ -1257,6 +1221,6 @@ class DecisionHub:
             score            = 1.0,
             scores_trace     = {"explain": 1.0},
             deltas           = StateDeltas(),
-            narrative_fact   = facts[0] if facts else None,
+            narrative_fact   = facts[0].summary if facts else None,
             explanation_mode = True,
         )

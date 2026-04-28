@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from fastapi import APIRouter, Query, HTTPException
+from fastapi import APIRouter, Query, HTTPException, Request
 
 from app.domain.snapshot import WorldSnapshotDTO
 from app.services.scene_state_manager import get_scene_state_manager
@@ -18,6 +18,7 @@ world_router = APIRouter(tags=["world"])
 
 @world_router.get("/world_state", response_model=WorldSnapshotDTO)
 def get_world_state(
+    request: Request,
     campaign_id: str = Query(..., description="ID кампании"),
     after_tick: Optional[int] = Query(None, description="Вернуть только если tick > after_tick"),
 ) -> WorldSnapshotDTO:
@@ -28,7 +29,8 @@ def get_world_state(
     """
     from app.services.integration.world_snapshot_builder import WorldSnapshotBuilder
 
-    mgr = get_scene_state_manager()
+    # Берём тот же scene_manager что и game_loop — единый источник истины
+    mgr = request.app.state.game_loop.scene_manager if request.app.state.game_loop else get_scene_state_manager()
     scene_state = mgr.get_scene_state(campaign_id, location_id="")
 
     if not scene_state:

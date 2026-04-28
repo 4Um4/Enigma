@@ -12,7 +12,6 @@ from typing import List, Optional, Tuple
 from app.models.npc_state import (
     EmotionTag,
     Intent,
-    NarrativeFact,
     NPCPersonality,
     NPCState,
     WillState,
@@ -50,11 +49,11 @@ class VerbalizationContext:
     topic: str = ""  # из TopicExtractor (Фаза 4), пустая строка = провод не подключён
 
     # Python-сгенерированная фактура
-    scene_hint: str
-    emotional_nuance: str
-    speech_style: str
-    voice_profile: str
-    backstory: str
+    scene_hint: str = ""
+    emotional_nuance: str = ""
+    speech_style: str = ""
+    voice_profile: str = ""
+    backstory: str = ""
     author_notes: str = ""  # ФАЗА 0: режиссёрская инструкция для LLM
 
     # Физические ограничения — для ResponseValidator
@@ -67,8 +66,9 @@ class VerbalizationContext:
     # Контент
     content_profile: ContentProfile = field(default_factory=ContentProfile)
 
-    # Narrative
-    narrative_hints: Tuple[NarrativeFact, ...] = field(default_factory=tuple)
+    # Narrative: полная память + отфильтрованный recall (Этап 3)
+    narrative_hints: Tuple["EventMemory", ...] = field(default_factory=tuple)
+    recalled_facts:  Tuple["EventMemory", ...] = field(default_factory=tuple)
     # STM: последние реплики текущего диалога (Этап 1)
     stm_buffer: Tuple[str, ...] = field(default_factory=tuple)
     is_explain_mode: bool = False

@@ -181,11 +181,17 @@ def idle_tick(campaign_id: str, game_loop=Depends(get_game_loop)) -> dict:
                     "field": _ch.field,
                     "value": str(_ch.value),
                 })
+        # B3: frontend получит WorldSnapshotDTO прямо из idle_tick
+        from app.services.integration.world_snapshot_builder import WorldSnapshotBuilder
+        _builder = WorldSnapshotBuilder()
+        _snapshot = _builder.build(scene_state=_scene, tick=_scene.get("snapshot_tick", 0))
+
         return {
             "status": "ok",
             "changes": len(changes),
             "npc_positions": _scene.get("npc_positions", {}),
             "events": significant_events,
+            "world_snapshot": _snapshot,
         }
     except Exception as e:
         import traceback

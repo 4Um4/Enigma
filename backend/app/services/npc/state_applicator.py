@@ -22,7 +22,6 @@ from app.core.constants import TRAIT_DECAY_RATE, NARRATIVE_CACHE_MAX
 
 # Легаси-типы, используемые в логике (Enum'ы и контракты)
 from app.models.npc_state import (
-    NarrativeFact,
     TemporaryDrive,
     WillState,
     MAX_ACTIVE_DRIVES,
@@ -82,7 +81,6 @@ class StateApplicator:
             self._apply_intent(new_state, result, current_tick)
             self._apply_progress(new_state, result.deltas)  # счётчик реального прогресса
             self._apply_deltas(new_state, result.deltas, campaign_id)
-            self._apply_narrative(new_state, result.narrative_fact)
 
             # --- ИСПРАВЛЕНО: работаем с new_state и result.deltas ---
             d = result.deltas
@@ -105,7 +103,8 @@ class StateApplicator:
             # Если что-то пошло не так — возвращаем оригинал нетронутым
             logger.error(
                 f"[STATE_APPLICATOR] Ошибка применения для '{state.npc_id}': {e}. "
-                f"Возвращаем оригинальный state."
+                f"Возвращаем оригинальный state.",
+                exc_info=True,
             )
             return state
 
@@ -492,25 +491,6 @@ class StateApplicator:
                     state.intent_target or "player"
                 )
                 state.relationship_cache.update(fresh)
-
-    def _apply_narrative(
-        self,
-        state:  NPCState,
-        fact:   Optional[NarrativeFact],
-    ) -> None:
-        """
-        Добавляет новый NarrativeFact в кэш.
-        Хранит top-N по importance — старые вытесняются.
-        """
-        if fact is None:
-            return
-
-        current = list(state.narrative_cache)
-        current.append(fact)
-
-        # Сортируем по importance, оставляем top-N
-        current.sort(key=lambda f: f.importance, reverse=True)
-        state.narrative_cache = tuple(current[:NARRATIVE_CACHE_MAX])
 
 
     def _apply_trait_decay(self, state: NPCState) -> None:

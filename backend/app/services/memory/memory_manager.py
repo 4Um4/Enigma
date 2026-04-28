@@ -166,6 +166,60 @@ class MemoryManager:
         return npc_state
 
     # ──────────────────────────────────────────────────────────────────────
+    # Recall — поиск в памяти (Этап 3)
+    # Чистая функция от narrative_cache — не лезет в хранилища.
+    # ──────────────────────────────────────────────────────────────────────
+    def recall(
+        self,
+        narrative_cache: Tuple[EventMemory, ...],
+        *,
+        trigger_tags: Tuple[str, ...] = (),
+        pressure: int = 0,
+        limit: int = 3,
+    ) -> List[EventMemory]:
+        """Ищет релевантные воспоминания из narrative_cache.
+
+        Два режима:
+        1. Триггерный: тег из trigger_tags совпал → accessibility не важен,
+           сортировка по importance (Этап 5: секреты раскроются позже).
+        2. Случайный: accessibility > 0.2 → сортировка по importance × accessibility.
+
+        pressure зарезервирован для Этапа 5 (discovery_check секретов).
+        """
+        if not narrative_cache:
+            return []
+
+        # Фильтруем забытые
+        alive = [m for m in narrative_cache if not m.is_forgotten]
+        if not alive:
+            return []
+
+        # Триггерный поиск: хотя бы один тег совпал
+        triggered: List[EventMemory] = []
+        if trigger_tags:
+            _tag_set = set(trigger_tags)
+            for m in alive:
+                if _tag_set.intersection(m.tags):
+                    triggered.append(m)
+
+        if triggered:
+            # Сортировка по importance — самые значимые триггеры первые
+            triggered.sort(key=lambda m: m.importance, reverse=True)
+            return triggered[:limit]
+
+        # Случайный recall: только доступные воспоминания
+        accessible = [m for m in alive if m.accessibility > 0.2]
+        if not accessible:
+            return []
+
+        # Сортировка: importance × accessibility — баланс значимости и свежести
+        accessible.sort(
+            key=lambda m: m.importance * m.accessibility,
+            reverse=True,
+        )
+        return accessible[:limit]
+
+    # ──────────────────────────────────────────────────────────────────────
     # Persistence — единая точка записи в хранилище (Закон 4.1.2)
     # game_loop не вызывает layered_memory напрямую.
     # ──────────────────────────────────────────────────────────────────────

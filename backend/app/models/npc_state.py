@@ -9,7 +9,7 @@
 Файл: backend/app/models/npc_state.py
 Назначение: Единый источник типов NPC (L0-L2, Enums, Memory)
 Зависимости: app.models.behavior_mask (BehaviorMaskState)
-Основные сущности: Intent, WillState, EmotionTag, NPCTier, NarrativeFact, EventMemory, NPCPersonality, NPCIdentityL1, NPCState, DecisionView
+Основные сущности: Intent, WillState, EmotionTag, NPCTier, EventMemory, NPCPersonality, NPCIdentityL1, NPCState, DecisionView
 
 R2.1 — NPCState: единый источник правды о динамическом состоянии NPC.
 NPCState — центральный узел всей психики.
@@ -83,39 +83,6 @@ class EmotionTag(str, Enum):
     SAD       = "sad"
 
 
-class NarrativeEventType(str, Enum):
-    """Унифицированные типы событий для NarrativeFact. 
-    Наследует str для обратной совместимости с загрузкой из JSON."""
-    # Легаси-события из старых сохранений и тестов
-    THEFT = "theft"
-    COMBAT = "combat"
-    HELP = "help"
-    DIALOGUE = "dialogue"
-    INTIMIDATION = "intimidation"
-    IDLE = "idle"
-    BETRAYAL = "betrayal"
-    SAVED_LIFE = "saved_life"
-    MOVEMENT = "movement"
-    PLAYER_ASKS_WHY = "player_asks_why"
-    
-    # События из EventContext (DecisionHub, GameLoop)
-    PLAYER_INTERACTS = "player_interacts"
-    PLAYER_ATTACKS = "player_attacks"
-    PLAYER_ATTACK = "player_attack"
-    PLAYER_INSULTS = "player_insults"
-    PLAYER_TALKS = "player_talks"
-    PLAYER_THREATENS = "player_threatens"
-    PLAYER_SPOKE = "PLAYER_SPOKE"
-    PLAYER_ATTACKED = "PLAYER_ATTACKED"
-    
-    # Пространственные события
-    PROXIMITY_CLOSE = "proximity_close"
-    PROXIMITY_LEAVE = "proximity_leave"
-    
-    # Fallback
-    UNKNOWN = "unknown"
-
-
 class NPCTier(str, Enum):
     """
     Статический уровень симуляции NPC.
@@ -127,31 +94,6 @@ class NPCTier(str, Enum):
     MASS  = "mass"
     MINOR = "minor"
     MAJOR = "major"
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# NarrativeFact — frozen, для объяснений NPC
-# ─────────────────────────────────────────────────────────────────────────────
-
-@dataclass(frozen=True)
-class NarrativeFact:
-    """
-    R1.6 — Факт из памяти NPC для объяснений ("почему ты злишься?").
-    frozen=True: защита от случайной модификации в процессе вербализации.
-    Максимум 2 факта передаётся в VerbalizationContext.
-    НЕ используется в формуле score() — только для LLM-объяснений.
-    """
-    event_type:  NarrativeEventType
-    target_id:   str    # кто участвовал
-    emotion_tag: str    # какая эмоция была применена
-    day:         int    # игровой день (для "три дня назад")
-    importance:  float  # для выбора top-2
-    trust_delta: float = 0.0   # числовой след — было -15
-    sequence_id: int   = 0     # порядок для хронологии
-
-    def __str__(self) -> str:
-        # Человекочитаемое представление для LLM промпта — не repr
-        return f"{self.event_type} → {self.emotion_tag} (важность: {self.importance:.2f})"
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -548,9 +490,9 @@ class NPCState:
     cache_timestamp:    int              = 0
 
 # ── Narrative facts (max 2 для LLM) ──────────────────────────────────────
-    # Union: NarrativeFact (legacy) или EventMemory (R5.1) — оба принимаются.
+    # Только EventMemory — NarrativeFact удалён в Этапе 2.4.
     # verbalization_context использует getattr для доступа к clarity/confidence.
-    narrative_cache: Tuple[Union[NarrativeFact, "EventMemory"], ...] = field(default_factory=tuple)
+    narrative_cache: Tuple["EventMemory", ...] = field(default_factory=tuple)
 
     # ── Causal Ledger — паспорт изменений состояния (Шаг 3) ──────────────────
     # Хранит последние N записей CausalEntry для отладки и Social Propagation.
@@ -592,7 +534,7 @@ class NPCState:
         return math.sqrt(dx * dx + dy * dy)
 
     def get_top_narrative_facts(self, n: int = 2) -> tuple:
-        """Top-N фактов по importance. Принимает NarrativeFact и EventMemory."""
+        """Top-N фактов по importance."""
         return tuple(sorted(
             self.narrative_cache, key=lambda f: f.importance, reverse=True
         )[:n])

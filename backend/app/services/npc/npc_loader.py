@@ -372,10 +372,10 @@ def _convert_origin_events(origin_list: List[Dict], npc_id: str) -> tuple:
 
 
 def _restore_narrative_cache(cache_list: List[Dict]) -> tuple:
-    """Восстанавливает narrative_cache из JSON в кортеж NarrativeFact/EventMemory."""
+    """Восстанавливает narrative_cache из JSON в кортеж EventMemory."""
     if not cache_list:
         return ()
-    from app.models.npc_state import NarrativeFact, EventMemory
+    from app.models.npc_state import EventMemory
     _result = []
     for _d in cache_list:
         _type_name = _d.pop("_memory_type", None)
@@ -392,12 +392,6 @@ def _restore_narrative_cache(cache_list: List[Dict]) -> tuple:
             _mem = _mem.decayed(ticks=1)
             if not _mem.is_forgotten:
                 _result.append(_mem)
-        else:
-            # NarrativeFact — без decay (устаревший формат)
-            try:
-                _result.append(NarrativeFact(**_d))
-            except TypeError:
-                continue  # пропуск невалидных записей
     return tuple(_result)
 
 

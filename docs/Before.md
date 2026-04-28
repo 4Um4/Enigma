@@ -191,51 +191,52 @@
 
 ### `_run_pipeline`: 1594 → 1472 строк (−122)
 
-### Обнаруженный баг (не чинил — отдельная задача)
-
-**Аватар внутри `else:` PerceptionFilter** — строка 1857. Блок обновления аватара игрока (реакция на attack/intimidate/help) выполняется **только когда PerceptionFilter пропущен**. Когда NPC воспринимают игрока (нормальный путь) — аватар не обновляется. Обратная логика.
-
-```
-1853:                else:
-1854:                    shared_context.npc_contexts = _all_npc_contexts
-1855:                    logger.warning(...)
-1856:
-1857:                    # ФАЗА 3.4.5: Обновление аватара игрока — реакция на NPC
-                         ^^^^ этот блок должен быть ВНЕ else
-```
-
-245 passed. Оба падающих теста — предсуществующие, не связаны с моими изменениями:
-
-1. `test_ingest_txt_to_world` — `persist_world_canon` не существует на `LayeredMemory` (мёртвый метод)
-2. `test_run_pipeline_returns_pipeline_state` — coroutine в payload от мока (маскировался `UnboundLocalError` до моего топлевел-импорта `EventDTO`)
-
 ---
 
 ## Итого сессии
 
 ### Выполнено
 
-| Шаг | Что | Результат |
-|-----|-----|-----------|
-| 1 | **Баг аватара** — вынос из `else:` | Блок 1857-1923 теперь выполняется при ЛЮБОМ пути PerceptionFilter |
-| 2 | `EventDTO` топлевел импорт | Убран `UnboundLocalError` — раньше маскировал корутинный баг в тесте |
-| 3 | `update_routine` сигнатура | `list[SceneChange]` → `tuple[list[SceneChange], MovementIntent \| None]` |
-| 4 | `update_routine` ранние returns | `return []` → `return [], None` на строках 1086, 1090, 1095 |
-| 5 | `_simulate_minor` сигнатура | `tuple[...]` → `list[SceneChange]` (возвращает только changes) |
-| 6 | Тесты `test_life_engine.py` | Распаковка кортежа: `changes` → `changes, intent` |
-| 7 | Тест `test_tornin_sleeps_at_night` | Добавлен `activity_map` со sleeping→inn_rooms |
+| Шаг | Что | Строки out of loop |
+|-----|-----|-------------------|
+| 1 | **Баг аватара** — вынос из `else:` | ~67 строк теперь на правильном уровне |
+| 2 | `EventDTO` топлевел импорт | Убран `UnboundLocalError` |
+| 3 | `update_routine` сигнатура + 3 early returns | Починен `blacksmith_orm` в проде |
+| 4 | `_simulate_minor` сигнатура | `tuple` → `list` |
+| 5 | Тесты `test_life_engine.py` — 5 фиксов | 26 passed |
+| 6 | **`_TickContext` dataclass** | 6 полей, заменил 5+ локальных переменных |
+| 7 | Массовая миграция: `hub_event`, `_all_npcs_raw`, `_dirty_npcs`, `_wt_dirty`, `_prop_dirty`, `_max_npc_stress` | ~40 вхождений |
+| 8 | **`_reset_session_state()`** | 16 строк → статический метод |
+| 9 | **`_tick_conditions()`** | 25 строк → статический метод |
+| 10 | **`_age_temporary_drives()`** | 16 строк → статический метод |
+| 11 | **`_resolve_physical_attack()`** | 95 строк → метод с возвратом `(state_l2, constraints)` |
+| 12 | **`_resolve_reactions()`** | 20 строк → статический метод |
+
+
 
 ### Баг в проде `blacksmith_orm` — тоже починен
 
 `update_routine` возвращал `[]` вместо `([], None)` → `_simulate_minor` на строке 1046 делал `routine_changes, routine_intent = []` → `ValueError: not enough values to unpack (expected 2, got 0)`. Мой фикс строки 1086/1090/1095 закрывает это.
 
-### Предсуществующие баги (не чинил — вне сессии)
-
+Предсуществующие баги (не чинил)
 | Тест | Причина |
 |------|---------|
-| `test_ingest_txt_to_world` | `persist_world_canon` не существует на `LayeredMemory` |
-| `test_run_pipeline_returns_pipeline_state` | Мок `get_rules_action_type` возвращает coroutine, не строку |
+| `test_ingest_txt_to_world` | `persist_world_canon` не существует |
+| `test_run_pipeline_returns_pipeline_state` | Мок возвращает coroutine |
+| `test_empty_social_modifiers_no_effect` | Загрязнение состояния между тестами (проходит в изоляции) |
 
-### Следующая сессия
+Экстрагированные методы (новые):
+_TickContext                    — dataclass, 6 полей
+_reset_session_state()          — static, 3 параметра
+_tick_conditions()              — static, 4 параметра
+_age_temporary_drives()         — static, 3 параметра
+_resolve_physical_attack()      — method, 9 параметров (но заменяет 100 строк inline)
+_resolve_reactions()            — static, 5 параметров
 
-**NPC loop** — проектирование `TickContext` dataclass для замены 5+ мутабельных локальных переменных (`_all_npcs_raw`, `_dirty_npcs`, `_wt_dirty`, `_prop_dirty`, `hub_event`) на один объект.
+
+Следующая сессия
+Продолжить экстракцию из NPC loop. Кандидаты:
+
+Memory event creation (~50 строк) — создание EventDTO + memory_manager.apply()
+VerbalizationContext packing (~30 строк) — сборка контекста для LLM
+WorldTick proactive block (~80 строк) — уже частично изолирован после NPC loop
