@@ -1,4 +1,4 @@
-# backend/app/services/game_loop.py
+﻿# backend/app/services/game_loop.py
 #
 # Шаг 5 рефакторинга: единая точка входа для run_turn и stream_turn.
 #
@@ -84,23 +84,29 @@ class _PipelineState:
 
 
 # ────────────────────────────────────────────────────────────────────────────────
-# TickContext — мутабельное состояние одного тика
-# Заменяет 5+ разрозненных локальных переменных в _run_pipeline
+# Re-exports из подмодулей
 # ────────────────────────────────────────────────────────────────────────────────
-
-@dataclass
-class _TickContext:
-    """Мутабельное состояние одного тика пайплайна.
-
-    Собирает dirty-флаги, загруженных NPC и event-контекст
-    в один объект вместо 5+ локальных переменных.
-    """
-    all_npcs_raw: list[dict] = field(default_factory=list)
-    dirty_npcs: set[int] = field(default_factory=set)
-    wt_dirty: bool = False
-    prop_dirty: bool = False
-    hub_event: Any = None  # HubEventContext или None (CharacterFilter блокировка)
-    max_npc_stress: float = 0.0
+from app.services.game_loop.tick_context import (
+    TickInput,
+    TickBuffer,
+    TickOutput,
+    _TickContext,  # backward compat alias
+)
+from app.services.game_loop.phase_8_commit import commit_tick
+from app.services.game_loop.phase_1_input import publish_player_action, publish_player_speech
+from app.services.game_loop.phase_2_world_tick import tick_world_proactive
+from app.services.npc.npc_tick_pipeline import (
+    HANDS_OCCUPIED_ACTIVITIES,
+    BASE_IMPORTANCE,
+    PHYSICAL_EVENTS,
+    reset_session_state,
+    tick_conditions,
+    age_temporary_drives,
+    resolve_reactions,
+    resolve_physical_attack,
+    create_memory_event,
+    build_verbalization_context,
+)
 
 
 # ────────────────────────────────────────────────────────────────────────────────
@@ -664,293 +670,70 @@ class GameLoop:
     # ОБЩИЙ ПАЙПЛАЙН (шаги 1–8 — одинаковы для REST и SSE)
     # ────────────────────────────────────────────────────────────────────────────
 
+    _BASE_IMPORTANCE: dict[str, float] = {
+        "TALK": 0.6, "TRADE": 0.7, "HELP": 0.8,
+        "ATTACK": 0.9, "FLEE": 0.8, "GIVE": 0.5,
+        "ASK": 0.5, "THREATEN": 0.85, "OBSERVE": 0.3,
+    }
+
     _PHYSICAL_EVENTS = frozenset({
         "player_attacks", "player_steals", "player_grapples",
         "player_casts", "player_shoots",
     })
 
-    def _resolve_physical_attack(
-        self,
-        npc_id: str,
-        npc_profile: dict,
-        npc_dict_for_write: dict,
-        state_l2: "NPCStateL2",
-        action_type: str,
-        target_id: str,
-        current_tick: int,
-        scene_continuity: "SceneContinuity | None",
-        scene_state: dict,
-    ) -> tuple["NPCStateL2", "dict | None"]:
-        """Physical Resolution: игрок атакует NPC — урон, рефлексы, факты сцены.
+    def _resolve_physical_attack(self, npc_id, npc_profile, npc_dict_for_write,
+                                  state_l2, action_type, target_id, current_tick,
+                                  scene_continuity, scene_state):
+        return resolve_physical_attack(
+            npc_id, npc_profile, npc_dict_for_write,
+            state_l2, action_type, target_id, current_tick,
+            scene_continuity, scene_state,
+            self.memory_manager._relationships,
+        )
 
-        Возвращает (state_l2, reflex_constraints) — constraints для DecisionHub.
-        Если действие не физическое или NPC не цель — возвращает (state_l2, None).
-        """
-        if action_type not in self._PHYSICAL_EVENTS or npc_id != target_id or state_l2.max_hp <= 0:
-            return state_l2, None
+    def _tick_world_proactive(self, campaign_id, location, shared_context, tick_ctx):
+        return tick_world_proactive(
+            self._world_tick_engine,
+            self._get_reputation_engine(),
+            self.memory_manager._relationships,
+            self._get_or_create_economic_profiles,
+            campaign_id, location, shared_context, tick_ctx,
+        )
 
-        _reflex_constraints = None
-        try:
-            from app.services.resolution.physical_resolver import PhysicalResolver
-            from app.services.reaction.reflex_resolver import ReflexResolver
-            from app.services.npc.state_applicator import StateApplicator
+    def _build_verbalization_context(self, profile_l0, state_for_llm, decision,
+                                      hub_event, raw_input, campaign_id=""):
+        return build_verbalization_context(
+            self.memory_manager, profile_l0, state_for_llm,
+            decision, hub_event, raw_input, campaign_id,
+        )
 
-            _combat = npc_profile.get("combat_stats", {})
-            _resolver = PhysicalResolver()
-            _phys_outcome = _resolver.resolve_attack(
-                attack_bonus=2,
-                target_ac=_combat.get("ac", 10),
-                damage_formula=_combat.get("damage", "1d4"),
-                attacker_id="player",
-            )
+    def _create_memory_event(self, state_l2, decision, npc_id, hub_event,
+                              player_target_id, player_text, scene_state, campaign_id):
+        return create_memory_event(
+            self.memory_manager, state_l2, decision, npc_id, hub_event,
+            player_target_id, player_text, scene_state, campaign_id,
+        )
 
-            # StateApplicator: применить урон к NPCState
-            _rel_store = self.memory_manager._relationships
-            _applicator = StateApplicator(relationship_store=_rel_store)
-            state_l2, _ = _applicator.apply_physical(
-                state=state_l2,
-                outcome=_phys_outcome,
-                current_tick=current_tick,
-            )
-            from app.models.npc_state import NPCState
-            NPCState.write_to_legacy(state_l2, npc_dict_for_write)
-
-            # ReflexResolver: генерирует SceneEvents + DecisionSignals
-            _reflex = ReflexResolver()
-            _reflex_result = _reflex.resolve(
-                outcome=_phys_outcome,
-                npc_id=npc_id,
-                current_hp=state_l2.hp,
-                max_hp=state_l2.max_hp,
-            )
-
-            if _reflex_result.has_constraint:
-                for sig in _reflex_result.decision_signals:
-                    if sig.signal_type == "constraint" and sig.constraint:
-                        _reflex_constraints = sig.constraint.to_dict()
-
-            # Факт о физическом ударе — ВСЕГДА при hit
-            if _phys_outcome.hit and scene_continuity:
-                _npc_display_name = npc_profile.get("name", npc_id)
-                _los = (scene_state or {}).get("line_of_sight", {})
-                _witnesses = [nid for nid, vis in _los.items() if vis and nid != npc_id]
-                _vis_tag = "на глазах у присутствующих " if _witnesses else ""
-                _fact = f"Игрок {_vis_tag}ударил {_npc_display_name}: {_phys_outcome.damage} урона ({_phys_outcome.damage_type.value})"
-                if _phys_outcome.critical:
-                    _fact += ", КРИТИЧЕСКИЙ УДАР"
-                scene_continuity.add_fact(_fact)
-
-            # Описания рефлексов → SceneContinuity
-            if _reflex_result.scene_events:
-                _phys_labels = {
-                    "flinched": "дрогнул(а)",
-                    "staggered": "отшатнулся(лся) от удара",
-                    "cry_of_pain": "вскрикнул(а) от боли",
-                    "blood_spatter": "появилась кровь",
-                    "weapon_dropped_force": "выронил(а) оружие от удара",
-                    "fell_to_ground": "упал(а) на землю",
-                }
-                _desc_parts = []
-                for _me in _reflex_result.scene_events:
-                    _label = _phys_labels.get(_me.event_type.value, _me.event_type.value)
-                    _desc_parts.append(_label)
-                    if scene_continuity:
-                        scene_continuity.add_event(f"{_me.event_type.value}_{_me.npc_id}")
-                if _desc_parts and scene_continuity:
-                    _existing = scene_continuity.scene_facts[-1] if scene_continuity.scene_facts else ""
-                    scene_continuity.scene_facts[-1] = _existing + ", " + ", ".join(_desc_parts)
-
-        except Exception as _phys_err:
-            logger.error(f"[PHYSICAL] Error (non-blocking): {_phys_err}", exc_info=True)
-
-        return state_l2, _reflex_constraints
-
-    _HANDS_OCCUPIED_ACTIVITIES = frozenset({
-        "serving", "working", "crafting", "cooking", "serving_tables", "cleaning_tables",
-    })
+    # ── Делегаты в npc/npc_tick_pipeline (обратная совместимость) ──
+    _HANDS_OCCUPIED_ACTIVITIES = HANDS_OCCUPIED_ACTIVITIES
+    _BASE_IMPORTANCE = BASE_IMPORTANCE
+    _PHYSICAL_EVENTS = PHYSICAL_EVENTS
 
     @staticmethod
-    def _resolve_reactions(
-        decision: "DecisionResult",
-        hub_event: "HubEventContext",
-        state_for_llm: "NPCStateL2",
-        npc_dict_for_write: dict,
-        npc_id: str,
-    ) -> list:
-        """Reaction Layer: DecisionResult → MicroEvents.
-
-        Без этого DecisionHub говорит "испуган", но ничего не визуализируется.
-        """
-        try:
-            from app.services.reaction.reaction_resolver import ReactionResolver
-            _resolver = ReactionResolver()
-            _composure = 1.0 - state_for_llm.stress / 100.0
-            _current_activity = npc_dict_for_write.get("routine", {}).get("current", "")
-            _hands_occupied = _current_activity in GameLoop._HANDS_OCCUPIED_ACTIVITIES
-            _micro_events = _resolver.resolve(
-                decision=decision,
-                event=hub_event,
-                composure=_composure,
-                hands_occupied=_hands_occupied,
-                current_activity=_current_activity,
-            )
-            logger.warning(
-                f"[REACTION] {npc_id}: composure={_composure:.2f} "
-                f"hands={_hands_occupied} act='{_current_activity}' "
-                f"events={[e.event_type.value for e in _micro_events]}"
-            )
-            return _micro_events
-        except Exception as e:
-            logger.warning(f"[REACTION] Failed for {npc_id}: {e}")
-            return []
+    def _resolve_reactions(decision, hub_event, state_for_llm, npc_dict_for_write, npc_id):
+        return resolve_reactions(decision, hub_event, state_for_llm, npc_dict_for_write, npc_id)
 
     @staticmethod
-    def _age_temporary_drives(
-        state_l2: "NPCStateL2",
-        npc_dict_for_write: dict,
-        npc_id: str,
-    ) -> None:
-        """Фаза 4-ROLE.2: aging temporary drives — истекшие удаляются."""
-        _drives = getattr(state_l2, "temporary_drives", [])
-        if not _drives:
-            return
-        from app.models.npc_state import age_drives
-        _aged = age_drives(_drives)
-        if hasattr(state_l2, "__dict__"):
-            state_l2.temporary_drives = _aged
-            npc_dict_for_write["temporary_drives"] = [
-                {
-                    "drive_type": d.drive_type,
-                    "urgency": d.urgency,
-                    "reason": d.reason,
-                    "source_npc_id": d.source_npc_id,
-                    "tick_born": d.tick_born,
-                    "tick_age": d.tick_age,
-                }
-                for d in _aged
-            ]
-        if len(_aged) != len(_drives):
-            logger.warning(f"[DRIVE] {npc_id}: {len(_drives)}→{len(_aged)} drives (expired)")
+    def _age_temporary_drives(state_l2, npc_dict_for_write, npc_id):
+        age_temporary_drives(state_l2, npc_dict_for_write, npc_id)
 
     @staticmethod
-    def _tick_conditions(
-        state_l2: "NPCStateL2",
-        npc_dict_for_write: dict,
-        current_tick: int,
-        scene_continuity: "SceneContinuity | None",
-    ) -> "NPCStateL2":
-        """ConditionEngine: тик условий (яд, болезнь, etc).
-
-        Возвращает обновлённый state_l2 — может быть пересоздан при изменении HP.
-        """
-        if not state_l2.conditions:
-            return state_l2
-        try:
-            from app.services.npc.condition_engine import ConditionEngine
-            _cond_changes, _cond_events = ConditionEngine().tick(
-                state=state_l2,
-                current_tick=current_tick,
-            )
-            for _sc in _cond_changes:
-                if _sc.field == "hp":
-                    state_l2 = state_l2.__class__(
-                        **{**state_l2.__dict__, "hp": max(0, state_l2.hp + _sc.delta)}
-                    )
-                    from app.models.npc_state import NPCState
-                    NPCState.write_to_legacy(state_l2, npc_dict_for_write)
-            if _cond_events and scene_continuity:
-                for _me in _cond_events:
-                    scene_continuity.add_event(f"{_me.event_type.value}_{_me.npc_id}")
-        except Exception as _cond_err:
-            logger.warning(f"[CONDITION] Error (non-blocking): {_cond_err}")
-        return state_l2
+    def _tick_conditions(state_l2, npc_dict_for_write, current_tick, scene_continuity):
+        return tick_conditions(state_l2, npc_dict_for_write, current_tick, scene_continuity)
 
     @staticmethod
-    def _reset_session_state(state_l2: "NPCStateL2", npc_id: str, is_session_start: bool) -> None:
-        """Сброс динамического состояния при старте новой сессии.
-
-        R8: stale emotion_tag даёт +0.35 к FLEE — без сброса NPC
-        начинают убегать от нового игрока из-за старой эмоции.
-        Stress НЕ сбрасывается — копится от событий.
-        """
-        if not is_session_start:
-            return
-        from app.models.npc_state import Intent, EmotionTag
-        from app.models.behavior_mask import BehaviorMaskState
-
-        state_l2.intent_duration = 0
-        state_l2.intent_formed_at = 0
-        state_l2.emotion_delta = 0.0
-        state_l2.intent = Intent.IDLE
-        state_l2.emotion = EmotionTag.NEUTRAL
-        state_l2.behavior_mask = BehaviorMaskState()
-        logger.warning(f"[SESSION_RESET] {npc_id}: emotion=NEUTRAL mask=NONE")
-
-    def _apply_front_engine(
-        self,
-        campaign_id: str,
-        player_name: str,
-        shared_context: PipelineContext,
-    ) -> None:
-        """Фаза 5.1: давление мира на персонажа — решение о маске/фасаде."""
-        try:
-            from app.services.character.front_engine import FrontEngine
-            _front_eng = FrontEngine()
-            _player_profile = self.character_service.get_or_create_profile(
-                campaign_id, player_name
-            )
-            # Собираем сигналы давления из систем
-            _rep_eng = self._get_reputation_engine()
-            _player_rep = 0.0
-            if _rep_eng:
-                _rep_states = _rep_eng.get_all_faction_states()
-                if _rep_states:
-                    _player_rep = sum(s["reputation"] for s in _rep_states.values()) / len(_rep_states)
-            _world_pressure = _front_eng.compute_pressure(
-                profile=_player_profile,
-                player_reputation=_player_rep,
-            )
-            _front_decision = _front_eng.decide(
-                profile=_player_profile,
-                pressure=_world_pressure,
-                current_tick=shared_context.current_tick or 0,
-            )
-            # Применяем решение к профилю
-            if _front_decision.action == "adopt":
-                if _player_profile.front is None:
-                    from app.models.front import FrontState
-                    _player_profile.front = FrontState()
-                _player_profile.front.adopt(
-                    _front_decision.front_type,
-                    tick=shared_context.current_tick or 0,
-                    intensity=_world_pressure.total_pressure,
-                )
-            elif _front_decision.action == "intensify" and _player_profile.front:
-                _player_profile.front.intensity = min(1.0, _player_profile.front.intensity + 0.1)
-            elif _front_decision.action in ("drop", "break") and _player_profile.front:
-                if _front_decision.action == "break":
-                    _player_profile.front.breaks.append(
-                        f"tick={shared_context.current_tick or 0}: {_front_decision.front_description}"
-                    )
-                _player_profile.front.drop()
-            # Стоимость поддержания маски — эрозия целостности
-            if _front_decision.integrity_cost > 0:
-                _player_profile.apply_erosion(
-                    _front_decision.integrity_cost,
-                    f"front_{_front_decision.front_type.value}",
-                )
-            self.character_service.upsert_profile(campaign_id, _player_profile)
-            # Передаём DM описание маски
-            if _front_decision.front_description:
-                shared_context.front_description = _front_decision.front_description
-                shared_context.front_type = _front_decision.front_type.value
-            if _world_pressure.total_pressure > 0.1:
-                shared_context.world_pressure = round(_world_pressure.total_pressure, 3)
-            logger.debug(f"[FRONT] action={_front_decision.action}, "
-                  f"pressure={_world_pressure.total_pressure:.2f}, "
-                  f"cost={_front_decision.integrity_cost:.4f}")
-        except Exception as _fe_err:
-            logger.warning(f"[FRONT] Error: {_fe_err}")
+    def _reset_session_state(state_l2, npc_id, is_session_start):
+        reset_session_state(state_l2, npc_id, is_session_start)
 
     def _init_scene_state(
         self,
@@ -1224,21 +1007,12 @@ class GameLoop:
                 "light_level": _scene.get("environment", {}).get("light", 1.0),
             }
             
-            # R1: DM видит прошлую речь NPC — извлекаем из WorkingMemory
-            # На текущем тике буфер содержит речь с предыдущего тика
-            logger.debug("[WM_CHECK_START]")
-            logger.warning(f"[WM_CHECK] campaign={campaign_id}, wm_keys={list(self.memory_manager.working_memory._buffers.keys())}")
-            _recent_speech = []
+            # R1: DM видит прошлую речь NPC — из DialogueSession (Этап 1)
             try:
-                # Чтение напрямую из изолированного буфера диалогов (без O(N) фильтра)
-                for _evt in self.memory_manager.working_memory.get(f"{campaign_id}:dialogue"):
-                    if _evt.get("content"):
-                        _recent_speech.append(f"{_evt.get('actor', 'NPC')}: {_evt['content']}")
-                shared_context.npc_recent_speech = _recent_speech[-5:]
-                if _recent_speech:
-                    logger.warning(f"[RECENT_SPEECH] {_recent_speech[-5:]}")
+                _recent_speech = self.memory_manager.get_recent_speech_all_npcs(campaign_id)
+                shared_context.npc_recent_speech = _recent_speech
             except Exception as _rs_err:
-                logger.warning(f"[RECENT_SPEECH] error: {_rs_err}")
+                logger.debug(f"[RECENT_SPEECH] error: {_rs_err}")
 
             # R1: DM видит недавние действия игрока — "что произошло" не из пустого
             _recent_player_actions = []
@@ -1249,19 +1023,8 @@ class GameLoop:
                 "SANDBOX_MILD": "вступал в контакт",
                 "FLEE": "пытался сбежать",
             }
-            try:
-                # Чтение из изолированного буфера диалогов
-                for _evt in self.memory_manager.working_memory.get(f"{campaign_id}:dialogue"):
-                    if _evt.get("type") == "player_speech":
-                        _actor = _evt.get("actor", "Игрок")
-                        _raw_type = _evt.get("action_type", "SANDBOX_MILD")
-                        _semantic = _SEMANTIC_MAP.get(_raw_type, "действовал")
-                        _recent_player_actions.append(f"{_actor}: {_semantic}")
-                shared_context.recent_player_actions = _recent_player_actions[-3:]
-                if _recent_player_actions:
-                    logger.warning(f"[RECENT_ACTIONS_SEMANTIC] {_recent_player_actions[-3:]}")
-            except Exception as _ra_err:
-                logger.warning(f"[RECENT_ACTIONS] error: {_ra_err}")
+            # recent_player_actions — TODO: восстановить из EventDTO при необходимости
+            shared_context.recent_player_actions = []
 
             dm_result = self.dm_orchestrator.process_player_action(
                 raw_input=raw_input,
@@ -1417,7 +1180,7 @@ class GameLoop:
                     logger.warning(f"[CHAR_FILTER] Error (non-blocking): {_cfe}")
                     pass
 
-                self._apply_front_engine(campaign_id, actions[0].player_name if actions else "", shared_context)
+                apply_front_engine(self.character_service, self._get_reputation_engine(), campaign_id, actions[0].player_name if actions else "", shared_context)
 
                 # Если CharacterFilter заблокировал действие — пропускаем NPC цикл
                 if _ctx.hub_event is None:
@@ -1616,85 +1379,19 @@ class GameLoop:
                             _ctx.max_npc_stress = max(_ctx.max_npc_stress, getattr(state_to_use_for_llm, "stress", 0.0))
 
                             # ФАЗА 1: NPC становятся живыми — запоминаем взаимодействия
-                            _new_mem = None  # инициализация до условия — иначе UnboundLocalError
                             try:
-                                _evt_type = _ctx.hub_event.event_type if _ctx.hub_event else ""
-                                _evt_actor = _ctx.hub_event.actor_id or "player"
-                                _evt_target = shared_context.player_target_id or ""
-                                _intent_val = getattr(decision.intent, "value", "") if decision.intent else ""
-                                _has_target = bool(_evt_target)
-                                _deltas = decision.deltas
-
-                                # Whitelist: социальные интенты, не навигация
-                                _social_intents = ("TALK", "TRADE", "HELP", "ATTACK", "FLEE", "GIVE", "ASK", "THREATEN")
-                                _is_npc_npc = _evt_type in ("npc_interacts_npc", "npc_proximity_close")
-                                _intent_upper = _intent_val.upper() if _intent_val else ""
-                                
-                                _importance = None
-                                _summary = ""
-                                
-                                if _is_npc_npc:
-                                    # NPC-NPC: "Люся спросила у Торнина про поставки"
-                                    _actor_name = _evt_actor
-                                    _target_name = _evt_target
-                                    _summary = f"{_actor_name} → {_target_name}: {_intent_val}"
-                                    _importance = 0.6  # NPC-NPC менее значимы для LLM чем player-NPC
-                                elif _evt_type == "player_interacts" and _has_target:
-                                    # Player-NPC: записываем всегда, даже если NPC ответил observe
-                                    _actor_name = _evt_actor
-                                    _target_name = _evt_target
-                                    _player_text = actions[0].action if actions else ""
-                                    _summary = f"{_actor_name} → {_target_name}: {_player_text[:60]}"
-                                    _BASE_IMPORTANCE = {
-                                        "TALK": 0.6, "TRADE": 0.7, "HELP": 0.8,
-                                        "ATTACK": 0.9, "FLEE": 0.8, "GIVE": 0.5,
-                                        "ASK": 0.5, "THREATEN": 0.85, "OBSERVE": 0.3,
-                                    }
-                                    _base = _BASE_IMPORTANCE.get(_intent_upper, 0.4)
-                                    _emotion_boost = min(abs(_deltas.emotion_delta) / 5.0, 1.0) * 0.3
-                                    _importance = min(_base + _emotion_boost, 1.0)
-                                elif _has_target and _intent_upper in _social_intents:
-                                    # Player-NPC: "Игрок купил еду у Люси"
-                                    _actor_name = _evt_actor
-                                    _target_name = _evt_target
-                                    _player_text = actions[0].action if actions else ""
-                                    _summary = f"{_actor_name} → {_target_name}: {_player_text[:60]}"
-                                    # Базовая важность по типу интента
-                                    _BASE_IMPORTANCE = {
-                                        "TALK": 0.6, "TRADE": 0.7, "HELP": 0.8,
-                                        "ATTACK": 0.9, "FLEE": 0.8, "GIVE": 0.5,
-                                        "ASK": 0.5, "THREATEN": 0.85,
-                                    }
-                                    _base = _BASE_IMPORTANCE.get(_intent_upper, 0.0)
-                                    # emotion_delta как множитель (шкала ~20, /5.0 = до +30%)
-                                    _emotion_boost = min(abs(_deltas.emotion_delta) / 5.0, 1.0) * 0.3
-                                    _importance = min(_base + _emotion_boost, 1.0)
-                                    
-
-                                if _importance is not None:
-                                    _emotion = getattr(state_to_use_for_llm.emotion, "value", "neutral") if state_to_use_for_llm.emotion else "neutral"
-                                    _evt_dto = EventDTO.create(
-                                        event_type=_evt_type,
-                                        source=_evt_actor,
-                                        payload={
-                                            "npc_id": npc_id,
-                                            "target_id": _evt_target,
-                                            "action_type": _intent_upper,
-                                            "emotion_tag": _emotion,
-                                            "summary": _summary,
-                                            "importance": _importance,
-                                            "npc_stress": getattr(state_to_use_for_llm, "stress", 0.0),
-                                            "scene_state": scene_state,
-                                        },
-                                        persistence_level="session",
-                                    )
-                                    state_to_use_for_llm = self.memory_manager.apply(
-                                        event=_evt_dto,
-                                        npc_state=state_to_use_for_llm,
-                                        campaign_id=campaign_id,
-                                    )
+                                state_to_use_for_llm = self._create_memory_event(
+                                    state_l2=state_to_use_for_llm,
+                                    decision=decision,
+                                    npc_id=npc_id,
+                                    hub_event=_ctx.hub_event,
+                                    player_target_id=shared_context.player_target_id,
+                                    player_text=actions[0].action if actions else "",
+                                    scene_state=scene_state,
+                                    campaign_id=campaign_id,
+                                )
                             except Exception as _mem_err:
-                                    logger.warning(f"[MEMORY] create_event_memory failed for {npc_id}: {_mem_err}")
+                                logger.warning(f"[MEMORY] apply failed for {npc_id}: {_mem_err}")
 
                             # ЗАМЫКАНИЕ: Записываем состояние в dict ПОСЛЕ всех мутаций (включая память)
                             from app.models.npc_state import NPCState
@@ -1727,51 +1424,12 @@ class GameLoop:
                         )
 
                         # 4. Упаковка в VerbalizationContext (Enum -> Строки для LLM)
-                        # ИСПОЛЬЗУЕМ state_to_use_for_llm, чтобы LLM увидел последствия решения!
-                        _drives_raw = profile_l0.drives_base
-                        if isinstance(_drives_raw, dict) and _drives_raw:
-                            _dominant_drive = max(_drives_raw.items(), key=lambda x: x[1])[0]
-                        else:
-                            _dominant_drive = "desire"
-                        # Формируем контекст события для NPC (что именно происходит)
-                        _scene_hint = raw_input[:500].strip() if raw_input else ""
-                        
-                        # Выводим can_speak/can_move через StateInterpreter
-                        from app.services.verbalization.state_interpreter import StateInterpreter
-                        _interpreter = StateInterpreter()
-                        # ФАЗА 4: TopicExtractor + Recall (Устав 3.2 + Этап 3)
-                        _topic = extract_topic(
-                            event_type=_ctx.hub_event.event_type.value if hasattr(_ctx.hub_event.event_type, "value") else str(_ctx.hub_event.event_type),
-                            scene_facts=_ctx.hub_event.scene_facts,
-                            raw_input=raw_input,
+                        verb_ctx = self._build_verbalization_context(
+                            profile_l0, state_to_use_for_llm, decision,
+                            _ctx.hub_event, raw_input,
+                            campaign_id=campaign_id,
                         )
-                        # Этап 3.5-3.6: Recall по narrative_cache
-                        _recalled = self.memory_manager.recall(
-                            state_to_use_for_llm.narrative_cache,
-                        )
-                        verb_ctx = VerbalizationContext(
-                            npc_id=profile_l0.id,
-                            npc_name=profile_l0.name,
-                            tier=profile_l0.tier,
-                            emotion=state_to_use_for_llm.emotion.value,
-                            will_state=state_to_use_for_llm.will_state.value,
-                            intent=decision.intent.value,
-                            intent_target=decision.intent_target,
-                            topic=_topic,
-                            scene_hint=_scene_hint,
-                            emotional_nuance=generate_emotional_nuance(state_to_use_for_llm),
-                            speech_style=_dominant_drive,
-                            voice_profile=profile_l0.voice_profile,
-                            backstory=profile_l0.backstory,
-                            author_notes=profile_l0.author_notes,
-                            can_speak=_interpreter.derive_can_speak(state_to_use_for_llm.posture, state_to_use_for_llm.conditions),
-                            can_move=_interpreter.derive_can_move(state_to_use_for_llm.posture, state_to_use_for_llm.conditions, state_to_use_for_llm.hp),
-                            gender=profile_l0.gender,
-                            # ФАЗА 0: передаём narrative_cache как hints для LLM
-                            narrative_hints=state_to_use_for_llm.narrative_cache,
-                            recalled_facts=tuple(_recalled),
-                        )
-                        
+
                         # Формируем единый контекст NPC
                         _stress_d = 0.0
                         _trust_d = 0.0
@@ -1812,95 +1470,7 @@ class GameLoop:
                     except Exception as _rep_err:
                         logger.warning(f"[REPUTATION] Impact error: {_rep_err}")
                 # ФАЗА 3.4: WorldTickEngine — проактивные действия NPC
-                if self._world_tick_engine.should_tick(campaign_id):
-                    try:
-                        from app.services.npc.npc_loader import load_profile_from_legacy_json, load_l2_state_from_runtime_dict
-                        # Используем канонический _ctx.all_npcs_raw (загружен на стр. 1166)
-                        _proactive_npc_data = []
-                        for _n in _ctx.all_npcs_raw:
-                            _pid = _n.get("id") or _n.get("npc_id")
-                            if not _pid:
-                                continue
-                            _ptier = _n.get("tier", "minor")
-                            if _ptier != "major":
-                                continue
-                            _p_l0 = load_profile_from_legacy_json(_n)
-                            _p_l2 = load_l2_state_from_runtime_dict(_n)
-                            if _p_l2.hp <= 0:
-                                continue
-                            _proactive_npc_data.append((_pid, _p_l2, _p_l0))
-                        if _proactive_npc_data:
-                            _rep_eng = self._get_reputation_engine()
-                            _rep_mods = {}
-                            if _rep_eng:
-                                for _pid, _, _ in _proactive_npc_data:
-                                    _rm = _rep_eng.compute_reputation_modifier(_pid)
-                                    if _rm:
-                                        _rep_mods[_pid] = _rm
-                            _tick_result = self._world_tick_engine.compute_proactive_decisions(
-                                campaign_id=campaign_id,
-                                location=location,
-                                npc_data=_proactive_npc_data,
-                                scene_state=shared_context.scene_state or {},
-                                reputation_modifiers=_rep_mods if _rep_mods else None,
-                            )
-                            shared_context.world_tick_result = _tick_result
-                            if _tick_result.decisions:
-                                logger.warning(f"[WORLD_TICK] {len(_tick_result.decisions)} proactive decisions")
-
-                            # Применяем deltas от world_tick к NPC стейту
-                            from app.services.npc.state_applicator import StateApplicator
-                            from app.models.npc_state import NPCState
-                            _wt_applicator = StateApplicator(relationship_store=self.memory_manager._relationships)
-                            _wt_tick = shared_context.current_tick or 0
-
-                            # 1. Recovery для ВСЕХ major NPC (не только с решениями)
-                            for _pid, _p_l2, _ in _proactive_npc_data:
-                                _wt_npc_raw = next((_n for _n in _ctx.all_npcs_raw if (_n.get("id") or _n.get("npc_id")) == _pid), None)
-                                if not _wt_npc_raw:
-                                    continue
-                                _wt_state = load_l2_state_from_runtime_dict(_wt_npc_raw)
-                                _wt_state = _wt_applicator.apply_tick_recovery(_wt_state, is_sleeping=False)
-                                NPCState.write_to_legacy(_wt_state, _wt_npc_raw)
-                                _ctx.wt_dirty = True
-
-                            # 2. Deltas от конкретных proactive решений
-                            for _pd in _tick_result.decisions:
-                                _wt_npc_raw = next((_n for _n in _ctx.all_npcs_raw if (_n.get("id") or _n.get("npc_id")) == _pd.npc_id), None)
-                                if not _wt_npc_raw:
-                                    continue
-                                _wt_state = load_l2_state_from_runtime_dict(_wt_npc_raw)
-
-                                # Применяем stress_delta из решения
-                                _wt_deltas = _pd.deltas_dict or {}
-                                _wt_stress_d = _wt_deltas.get("stress_delta", 0.0)
-                                if _wt_stress_d:
-                                    _wt_state.stress = min(100.0, max(0.0, _wt_state.stress + _wt_stress_d))
-
-                                # Эмоция из deltas
-                                _wt_emotion = _wt_deltas.get("emotion_tag")
-                                if _wt_emotion:
-                                    _wt_state.emotion = _wt_emotion
-
-                                NPCState.write_to_legacy(_wt_state, _wt_npc_raw)
-                                _ctx.wt_dirty = True
-
-                            # NeedEngine.tick() — потребности растут даже без игрока
-                            try:
-                                from app.services.economy.need_engine import NeedEngine
-                                _wt_eco_profiles = self._get_or_create_economic_profiles(campaign_id)
-                                _wt_ne = NeedEngine()
-                                for _pid, _, _ in _proactive_npc_data:
-                                    _wt_ep = _wt_eco_profiles.get(_pid)
-                                    if _wt_ep:
-                                        _wt_ne.tick(_wt_ep)
-                                _ctx.wt_dirty = True
-                            except Exception as _wt_ne_err:
-                                logger.warning(f"[WORLD_TICK] NeedEngine error: {_wt_ne_err}")
-
-
-                    except Exception as _wt_err:
-                        logger.warning(f"[WORLD_TICK] Error: {_wt_err}")
+                self._tick_world_proactive(campaign_id, location, shared_context, _ctx)
 
                 # Salience Engine: передаём метаданные для фильтрации объектов в промпте
                 _scene_for_dm = shared_context.scene_state or {}
@@ -1922,100 +1492,18 @@ class GameLoop:
 
         # 5.5: PerceptionFilter — фильтруем npc_contexts по воспринимающим NPC
         try:
-            from app.services.npc.perception_filter import filter_perceiving_npcs
+            from app.services.game_loop.phase_5_perception import apply_perception_filter
+            apply_perception_filter(
+                _all_npc_contexts, shared_context, campaign_id, get_event_bus(),
+            )
 
-            _all_npc_ids = [ctx["npc_id"] for ctx in _all_npc_contexts]
-            _recent = get_event_bus().get_recent_events(limit=1, campaign_id=campaign_id)
-
-            if _recent and _all_npc_ids:
-                _perceiving_ids = set(filter_perceiving_npcs(
-                    npc_ids     = _all_npc_ids,
-                    event       = _recent[0],
-                    scene_state = shared_context.scene_state or {},
-                ))
-                # Адресат всегда воспринимает + свидетели по perception
-                # Свидетели получают ослабленный сигнал через distance/clarity
-                _explicit_target = shared_context.player_target_id
-                if _explicit_target:
-                    _perceiving_ids.add(_explicit_target)
-                
-                # ФИЛЬТРУЕМ — только воспринимающие NPC получают вербализацию
-                _filtered_ctxs = [c for c in _all_npc_contexts if c.get("npc_id") in _perceiving_ids]
-                shared_context.npc_contexts = _filtered_ctxs
-                shared_context.perceiving_npcs = list(_perceiving_ids)
-                _target_note = f" (target={_explicit_target})" if _explicit_target else ""
-                logger.warning(f"[PERCEPTION_FILTER] {len(_perceiving_ids)}/{len(_all_npc_ids)} NPC{_target_note}: {list(_perceiving_ids)}")
-            else:
-                shared_context.npc_contexts = _all_npc_contexts
-                logger.warning(f"[PERCEPTION_FILTER] skip: recent={len(_recent) if _recent else 0}, npcs={len(_all_npc_ids)}")
-
-            # ФАЗА 3.4.5: Обновление аватара игрока — реакция на NPC
+            # ФАЗА 6: Обновление аватара игрока — реакция на NPC
+            from app.services.game_loop.phase_6_avatar import update_avatar_from_npc_intents
             _player_name = actions[0].player_name if actions else ""
-            _ctxs_for_avatar = shared_context.npc_contexts or []
-            if _player_name and _ctxs_for_avatar:
-                try:
-                    _avatar_state = self.avatar_service.load_state(campaign_id, _player_name)
-                    _avatar_changed = False
-
-                    for _npc_ctx in _ctxs_for_avatar:
-                        _npc_intent = _npc_ctx.get("decision_result")
-                        if not _npc_intent:
-                            continue
-                        _intent_val = getattr(_npc_ctx["decision_result"], "intent", None)
-                        if _intent_val is None:
-                            continue
-
-                        if _intent_val.value == "attack":
-                            _avatar_state.stress = min(100.0, _avatar_state.stress + 5.0)
-                            if _avatar_state.emotion in (_EmotionTag.NEUTRAL, _EmotionTag.HAPPY):
-                                _avatar_state.emotion = _EmotionTag.FEARFUL
-                            _avatar_changed = True
-
-                            # Физический урон: NPC атакует игрока через PhysicalResolver
-                            try:
-                                from app.services.resolution.physical_resolver import PhysicalResolver
-
-                                _npc_real = _npc_ctx.get("real_state", {})
-                                _npc_combat = _npc_real.get("combat_stats", {})
-                                _npc_damage = _npc_combat.get("damage", "1d4")
-                                _npc_atk_bonus = _npc_combat.get("attack_bonus", 2)
-
-                                _player_sheet = self.avatar_service.load_sheet(campaign_id, _player_name)
-                                _player_ac = _player_sheet.ac
-
-                                # Резолвим только если игрок жив и имеет HP
-                                if _avatar_state.max_hp > 0 and _avatar_state.hp > 0:
-                                    _phys_resolver = PhysicalResolver()
-                                    _phys_outcome = _phys_resolver.resolve_attack(
-                                        attack_bonus=_npc_atk_bonus,
-                                        target_ac=_player_ac,
-                                        damage_formula=_npc_damage,
-                                        attacker_id=_npc_ctx["npc_id"],
-                                    )
-                                    if _phys_outcome.hit and _phys_outcome.damage > 0:
-                                        _avatar_state.hp = max(0, _avatar_state.hp - _phys_outcome.damage)
-                                        _avatar_changed = True
-                                        logger.warning(f"[AVATAR_DAMAGE] {npc_id} → player: dmg={_phys_outcome.damage} crit={_phys_outcome.critical} hp={_avatar_state.hp}/{_avatar_state.max_hp}")
-                                    else:
-                                        logger.warning(f"[AVATAR_DAMAGE] {npc_id} → player: MISS")
-                            except Exception as _phys_err:
-                                logger.error(f"[AVATAR_DAMAGE] error: {_phys_err}", exc_info=True)
-                        elif _intent_val.value == "intimidate":
-                            _avatar_state.stress = min(100.0, _avatar_state.stress + 2.0)
-                            if _avatar_state.emotion == _EmotionTag.NEUTRAL:
-                                _avatar_state.emotion = _EmotionTag.SUSPICIOUS
-                            _avatar_changed = True
-                        elif _intent_val.value == "help":
-                            _avatar_state.stress = max(0.0, _avatar_state.stress - 3.0)
-                            if _avatar_state.emotion in (_EmotionTag.FEARFUL, _EmotionTag.SAD):
-                                _avatar_state.emotion = _EmotionTag.NEUTRAL
-                            _avatar_changed = True
-
-                    if _avatar_changed:
-                        self.avatar_service.save_state(campaign_id, _avatar_state)
-                        logger.warning(f"[AVATAR] stress={_avatar_state.stress:.1f} emotion={_avatar_state.emotion.value}")
-                except Exception as _av_err:
-                    logger.warning(f"[AVATAR] update error: {_av_err}")
+            update_avatar_from_npc_intents(
+                self.avatar_service, campaign_id, _player_name,
+                shared_context.npc_contexts or [], _EmotionTag,
+            )
 
         except Exception as _pf_err:
             
@@ -2025,58 +1513,17 @@ class GameLoop:
 
         # ШАГ D: Social Propagation — слухи доходят до непрямо воспринимающих NPC
         try:
-            _se = self._get_social_engine(campaign_id)
-            _dm_res = python_engines_result.get("dm_result")
-            _target_id = shared_context.player_target_id
-
-            if _se and _dm_res and _dm_res.event_context and _target_id:
-                _evt = _dm_res.event_context
-                if _evt.intensity >= _se.MIN_ORIGIN_INTENSITY:
-                    self._social_tick += 1
-                    # Свидетели = NPC, получившие прямую вербализацию
-                    _witness_ids = {
-                        c.get("npc_id")
-                        for c in shared_context.npc_contexts or []
-                        if c.get("npc_id")
-                    }
-                    _social_results = _se.propagate(
-                        event_type=_evt.event_type,
-                        intensity=_evt.intensity,
-                        actor=_evt.actor_id,
-                        target=_target_id,
-                        witnesses=list(_witness_ids - {_target_id}),
-                        current_tick=self._social_tick,
-                    )
-
-                    if _social_results:
-                        for pr in _social_results:
-                            # Не перезаписываем прямых свидетелей — они уже получили дельты
-                            if pr.npc_id in _witness_ids:
-                                continue
-                            for _npc_d in _ctx.all_npcs_raw:
-                                if _npc_d.get("id") == pr.npc_id:
-                                    # trust хранится в -100..100, delta в -1..1
-                                    _rc = _npc_d.setdefault("relationship_cache", {})
-                                    _rc["trust"] = max(-100.0, min(
-                                        100.0,
-                                        _rc.get("trust", 0.0) + pr.trust_delta * 100,
-                                    ))
-                                    # stress в 0..100, delta в 0..1
-                                    _cur_stress = _npc_d.get("stress", 0.0)
-                                    _npc_d["stress"] = max(0.0, min(
-                                        100.0,
-                                        _cur_stress + pr.stress_delta * 100,
-                                    ))
-                                    _ctx.prop_dirty = True
-                                    logger.debug(
-                                        f"[SOCIAL] {pr.npc_id}: "
-                                        f"trust{pr.trust_delta:+.3f} "
-                                        f"stress{pr.stress_delta:+.3f} "
-                                        f"({pr.rumor.hop} hops)"
-                                    )
-                                    break
-
-                        shared_context.social_propagation = _social_results
+            from app.services.social.propagation import propagate_social_rumors
+            from app.services.scene.r3_direct_builder import build_r3_dm_frame
+            from app.services.character.front_applicator import apply_front_engine
+            from app.services.character.character_filter_applicator import apply_character_filter
+            self._social_tick = propagate_social_rumors(
+                self._get_social_engine(campaign_id),
+                self._social_tick,
+                shared_context,
+                _ctx.all_npcs_raw,
+                _ctx,
+            )
         except Exception as _se_err:
             logger.warning(f"[SOCIAL] Propagation failed: {_se_err}")
 
@@ -2094,209 +1541,17 @@ class GameLoop:
         logger.warning(f"[RULES] action_type={_action_type} → {_rules_context['classification'][0]['type']}")
 
         # 6.5 Действие игрока → EventBus (Закон 5.1)
+        from app.services.game_loop.phase_1_input import publish_player_speech
         if actions and actions[0].action:
-            try:
-                get_event_bus().publish(EventDTO.create(
-                    event_type=EventType.PLAYER_SPOKE,
-                    source=actions[0].player_name or "Игрок",
-                    payload={
-                        "content":     actions[0].action[:120],
-                        "action_type": _rules_context['classification'][0]['type'],
-                    },
-                    persistence_level="working",
-                ))
-            except Exception as _bus_err:
-                logger.debug(f"[EVENT_BUS] player_speech publish skipped: {_bus_err}")
+            publish_player_speech(
+                actions[0].player_name,
+                actions[0].action,
+                _rules_context['classification'][0]['type'],
+            )
 
         # 7. NPC агент / R3 Direct Mode
         if R3_DIRECT_MODE:
-            # ── Новый путь: DecisionResult → DMFrame, npc_agent BYPASSED ──
-            from app.services.verbalization.scene_outcome_builder import (
-                SceneOutcomeBuilder,
-                SceneContext,
-            )
-            
-            _builder = SceneOutcomeBuilder()
-            _filtered_ctxs = shared_context.npc_contexts or []
-            
-            # Собираем DecisionResult[] из отфильтрованных контекстов
-            _decisions = []
-            for ctx in _filtered_ctxs:
-                dr = ctx.get("decision_result")
-                if dr is not None:
-                    _decisions.append(dr)
-            
-            # Собираем SceneContext для salience/visibility
-            _scene_state = shared_context.scene_state or {}
-            _distances = _scene_state.get("player_distances", {})
-            _visible = {
-                npc_id for npc_id, is_visible 
-                in _scene_state.get("line_of_sight", {}).items() 
-                if is_visible
-            }
-            _tiers = {ctx["npc_id"]: ctx.get("tier", "minor") for ctx in _filtered_ctxs}
-            
-            # R5: Определяем успех физического действия из rules_agent
-            _player_success = True  # VERBAL действия всегда "успешны" (нет броска)
-            if rules_result and isinstance(rules_result, dict):
-                _checks = rules_result.get("checks", [])
-                if _checks:
-                    _first_check = _checks[0] if isinstance(_checks[0], dict) else _checks[0].to_dict() if hasattr(_checks[0], 'to_dict') else {}
-                    if _first_check.get("needs_roll", False):
-                        _result_str = _first_check.get("result", "").lower()
-                        _player_success = "успех" in _result_str or "крит" in _result_str
-                        logger.warning(f"[R5] Physical action: success={_player_success} result={_result_str}")
-            
-            _scene_ctx = SceneContext(
-                distances=_distances,
-                visible_npcs=_visible,
-                npc_tiers=_tiers,
-                player_action_text=actions[0].action if actions else "",
-                player_success=_player_success,
-                player_target_id=shared_context.player_target_id or "",
-            )
-            
-            # Собираем снапшоты для ProjectionLayer (реальное состояние + искажения)
-            _state_snapshots = {
-                ctx["npc_id"]: ctx["real_state"]
-                for ctx in _filtered_ctxs
-                if ctx.get("real_state")
-            }
-            _distortion_biases = {
-                ctx["npc_id"]: ctx["distortion_bias"]
-                for ctx in _filtered_ctxs
-                if ctx.get("distortion_bias")
-            }
-            # ФАЗА 0: профили NPC для voice_profile, backstory, author_notes
-            _npc_profiles = {
-                ctx["npc_id"]: ctx["profile_l0"]
-                for ctx in _filtered_ctxs
-                if ctx.get("profile_l0")
-            }
-            # ФАЗА 4: темы NPC из TopicExtractor (Устав 3.2)
-            _npc_topics = {
-                ctx["npc_id"]: ctx["verbalization_ctx"].topic
-                for ctx in _filtered_ctxs
-                if ctx.get("verbalization_ctx") and ctx["verbalization_ctx"].topic
-            }
-
-            # Строим SceneOutcome → DMFrame (с психологической проекцией)
-            _scene = _builder.build(
-                _decisions, _scene_ctx,
-                state_snapshots=_state_snapshots,
-                distortion_biases=_distortion_biases,
-                npc_profiles=_npc_profiles,
-                topics=_npc_topics,
-            )
-
-            # Диагностика ProjectionLayer + DecisionHub
-            for actor in _scene.actors:
-                if actor.psychological:
-                    p = actor.psychological
-                    logger.warning(f"[PROJECTION] {actor.npc_id}: {p.regime.value} (int={p.intensity}, stab={p.stability})")
-            # Дельты от DecisionHub
-            for d in _decisions:
-                dl = d.deltas
-                logger.warning(f"[DELTA] {d.npc_id}: intent={d.intent.value} stress_d={dl.stress_delta} trust_d={dl.trust_delta} fear_d={dl.fear_delta}")
-            
-            # B.3/B.4: Обновляем SceneContinuity из дельт
-            _cont = shared_context.scene_continuity or self._scene_continuities.get(campaign_id)
-            if not _cont:
-                _cont = SceneContinuity()
-                self._scene_continuities[campaign_id] = _cont
-            _total_stress_d = sum(d.deltas.stress_delta for d in _decisions)
-            _total_trust_d = sum(d.deltas.trust_delta for d in _decisions)
-            _cont.update_tension(_total_stress_d / 100.0)  # нормализация в 0..1
-            _cont.update_emotional_vector({
-                "trust": _total_trust_d / 50.0,   # нормализация
-                "tension": _total_stress_d / 50.0,
-                "confusion": 0.3 if len(_decisions) > 2 else 0.0,  # много NPC = хаос
-            })
-            # Флаги ключевых событий
-            _event_type = shared_context.action_type or ""
-            if "insult" in _event_type:
-                _cont.add_flag("insult_occurred")
-                _cont.add_event(f"Игрок оскорбил {_target_id or 'NPC'}")
-            if "threaten" in _event_type:
-                _cont.add_flag("threat_made")
-                _cont.add_event(f"Игрок угрожал {_target_id or 'NPC'}")
-            if "attack" in _event_type:
-                _cont.add_flag("combat_started")
-                _cont.add_event("Началась драка")
-            
-            # ФАЗА 3.4: Proactive decisions → SceneContinuity (DM видит проактивные действия)
-            _tick_result = shared_context.world_tick_result
-            if _tick_result and _tick_result.decisions:
-                for _pd in _tick_result.decisions:
-                    _intent_labels = {
-                        "block_path": "преградил(а) дорогу",
-                        "ambush": "пытается устроить засаду",
-                        "seek_ally": "отправился(ась) искать союзника",
-                        "offer_job": "предлагает работу",
-                        "request_service": "просит об услуге",
-                        "spread_rumor": "распространяет слух",
-                        "call_for_help": "зовёт на помощь",
-                        "change_role": "меняет роль",
-                    }
-                    _label = _intent_labels.get(_pd.intent.value, _pd.intent.value)
-                    _target_str = f" → {_pd.intent_target}" if _pd.intent_target else ""
-                    _cont.add_event(f"{_pd.npc_id}: {_label}{_target_str}")
-                    _cont.add_flag(f"proactive_{_pd.intent.value}_{_pd.npc_id}")
-                logger.warning(f"[WORLD_TICK→CONTINUITY] {len(_tick_result.decisions)} proactive → DM context")
-            
-            # ШАГ 0.5: MicroEvents → SceneContinuity флаги/события
-            for ctx in _filtered_ctxs:
-                for me in ctx.get("micro_events", []):
-                    _npc_name = ctx.get("verbalization_ctx")
-                    _name = _npc_name.npc_name if _npc_name else me.npc_id
-                    if me.event_type.value == "object_dropped":
-                        _cont.add_flag(f"{_name}_dropped_object")
-                        _cont.add_event(f"{_name} уронил(а) предмет")
-                    elif me.event_type.value == "interaction_disrupted":
-                        _cont.add_flag(f"{_name}_disrupted")
-                        _cont.add_event(f"Действие {_name} прервано")
-                    elif me.event_type.value == "grip_tightened":
-                        _cont.add_flag(f"{_name}_grip_tightened")
-                        # Без add_event — слишком мелкое для нарратива
-            
-            # ШАГ D: Social Propagation → SceneContinuity (факты для DM)
-            for _pr in shared_context.social_propagation or []:
-                _cont.add_event(_pr.continuity_note)
-
-            # ФАЗА 3.1: Spatial Events → SceneContinuity
-            for _sp_ev in shared_context.spatial_events or []:
-                _sp_name = _sp_ev.npc_id
-                if _sp_ev.event_type == "proximity_close":
-                    _cont.add_event(f"Игрок подошёл к {_sp_name}")
-                    _cont.add_flag(f"proximity_close_{_sp_name}")
-                elif _sp_ev.event_type == "proximity_leave":
-                    _cont.add_event(f"Игрок отошёл от {_sp_name}")
-                    _cont.add_flag(f"proximity_leave_{_sp_name}")
-
-            _dm_frame = _builder.build_dm_frame(_scene)
-            
-            # Конвертируем DMFrame в формат совместимый с dm_agent
-            npc_result = {
-                "npc_reactions": [],       # Пусто — DM генерирует сам
-                "npc_actions": [],         # Пусто — DM генерирует сам
-                "dm_frame": _dm_frame,     # КЛЮЧ: DM использует этот путь
-            }
-            
-            # B.3/B.4: Передаём SceneContinuity в контекст для DM prompt
-            shared_context.scene_continuity = _cont
-            
-            # Этап 4.1: Собираем recalled_facts из npc_contexts для DM промпта
-            _recalled_for_dm = []
-            for _nctx in shared_context.npc_contexts or []:
-                _vc = _nctx.get("verbalization_ctx")
-                if _vc and _vc.recalled_facts:
-                    _recalled_for_dm.append({
-                        "npc_name": _vc.npc_name,
-                        "facts": _vc.recalled_facts,
-                    })
-            shared_context.npc_recalled_memory = _recalled_for_dm
-            
-            logger.warning(f"[R3_DIRECT] {len(_decisions)} decisions → DMFrame (focus={len(_dm_frame.focus_npcs)}, bg={len(_dm_frame.background_npcs)})")
+            npc_result = build_r3_dm_frame(shared_context, actions, rules_result)
 
         # Применяем trust/stress дельты
         npc_state_updates = npc_result.get("npc_state_updates", [])
@@ -2318,22 +1573,8 @@ class GameLoop:
         _act_type = shared_context.action_type or "unknown"
 
         # P0.1: действие игрока → EventBus (Закон 5.1)
-        # Телеграф — технический маркер, не действие игрока
-        if not _player_text.startswith("[TELEGRAPH"):
-            try:
-                get_event_bus().publish(EventDTO.create(
-                    event_type=EventType.PLAYER_INTERACTS,
-                    source=_player_name,
-                    payload={
-                        "content":     _player_text,
-                        "action_type": _act_type,
-                        "location":    location,
-                    },
-                    persistence_level="working",
-                ))
-                logger.debug(f"[EVENT_BUS] player_action → bus: {_player_text[:50]}")
-            except Exception as _bus_err:
-                logger.debug(f"[EVENT_BUS] player_action publish skipped: {_bus_err}")
+        from app.services.game_loop.phase_1_input import publish_player_action
+        publish_player_action(_player_name, _player_text, _act_type, location)
 
         # P0.2: ответы NPC → Working Memory + STM
         # Строим обратную маппинг имя → npc_id для STM-записи
@@ -2383,21 +1624,9 @@ class GameLoop:
             for _npc_id in shared_context.active_npc_ids or []:
                 self.memory_manager.apply_identity_weights(campaign_id, _npc_id, _resonance)
         # ────────────────────────────────────────────────────────────────────────
-        # ЕДИНСТВЕННАЯ точка коммита NPC-состояний за весь тик (Устав 4.2.1)
-        if _ctx.dirty_npcs or _ctx.wt_dirty or _ctx.prop_dirty:
-            self.scene_manager.commit(
-                campaign_id=campaign_id,
-                scene_state=shared_context.scene_state,
-                npc_dicts=_ctx.all_npcs_raw,
-            )
-            _sources = []
-            if _ctx.dirty_npcs:
-                _sources.append(f"npc={len(_ctx.dirty_npcs)}")
-            if _ctx.wt_dirty:
-                _sources.append("world_tick")
-            if _ctx.prop_dirty:
-                _sources.append("social")
-            logger.warning(f"[COMMIT] single commit: {', '.join(_sources)}")
+        # ФАЗА 8: Единственная точка коммита (Устав 4.2.1)
+        from app.services.game_loop.phase_8_commit import commit_tick
+        commit_tick(self.scene_manager, campaign_id, shared_context.scene_state, _ctx)
 
         return _PipelineState(
             shared_context         = shared_context,

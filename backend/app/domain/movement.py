@@ -21,6 +21,7 @@ class MovementIntent:
     """
     npc_id: str
     target_node_id: str     # "behind_bar", "corner_table", "main_hall"
+    from_node_id: str = ""  # текущий узел — для pathfinding (Слой 2)
     location_id: str = ""   # для загрузки правильного графа
     reason: str = ""        # "need_driven:hunger", "schedule:working"
 

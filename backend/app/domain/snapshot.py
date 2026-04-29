@@ -50,4 +50,3 @@ class WorldSnapshotDTO:
     location_id: str
     weather: str
     time_of_day: str
-    perceived_scene: Optional[dict] = None  # TODO: удалить после миграции player_cognition

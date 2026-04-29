@@ -432,69 +432,75 @@ class GameScreen:
             # === Idle tick: тикаем мир если игрок давно не действовал ===
             _now = pygame.time.get_ticks()
             _tick_data = {}
+            _new_positions = {}
             # Применяем результат прошлого idle_tick если готов
             if _idle_tick_result:
                 _tick_data = _idle_tick_result.pop()
                 _new_positions = _tick_data.get("npc_positions", {})
-                if _new_positions:
-                    # Мержим: обновляем строковые поля (position, activity),
-                    # но сохраняем local_position с координатами
-                    for npc_id, new_data in _new_positions.items():
-                        if npc_id in scene_state.get("npc_positions", {}):
-                            existing = scene_state["npc_positions"][npc_id]
-                            new_pos_str = new_data.get("position", "")
-                            # Обновляем строковые поля, но не трогаем local_position
-                            for k, v in new_data.items():
-                                if k != "local_position" or "local_position" not in existing:
-                                    existing[k] = v
+            if _new_positions:
+                # Мержим: обновляем строковые поля (position, activity),
+                # но сохраняем local_position с координатами
+                for npc_id, new_data in _new_positions.items():
+                    if npc_id in scene_state.get("npc_positions", {}):
+                        existing = scene_state["npc_positions"][npc_id]
+                        new_pos_str = new_data.get("position", "")
+                        # Обновляем строковые поля, но не трогаем local_position
+                        for k, v in new_data.items():
+                            if k != "local_position" or "local_position" not in existing:
+                                existing[k] = v
                             # Запускаем плавное движение если строковая позиция изменилась
                             if new_pos_str and npc_movement.should_request_move(npc_id, new_pos_str, scene_state):
                                 npc_movement.request_move(npc_id, new_pos_str, scene_state)
-                        else:
-                            # Новый NPC — добавляем и инициализируем координаты из графа
-                            scene_state.setdefault("npc_positions", {})[npc_id] = new_data
-                            new_pos_str = new_data.get("position", "")
-                            if new_pos_str and npc_movement.should_request_move(npc_id, new_pos_str, scene_state):
-                                npc_movement.request_move(npc_id, new_pos_str, scene_state)
-                    print(f"[IDLE_TICK] merged: {list(_new_positions.keys())}")
+                    else:
+                        scene_state.setdefault("npc_positions", {})[npc_id] = new_data
+                        if new_pos_str and npc_movement.should_request_move(npc_id, new_pos_str, scene_state):
+                            npc_movement.request_move(npc_id, new_pos_str, scene_state)
 
-            # Pressure-driven: если idle_tick принёс proactive события → запускаем телеграф
-            _events = _tick_data.get("events", [])
-            # Фильтруем только proactive (не life_engine позиционные)
-            _proactive_events = [e for e in _events if e.get("cause") == "idle_pressure"]
-            _now_ms = pygame.time.get_ticks()
-            if _proactive_events and action_queue.pending_count() == 0 and (_now_ms - _last_telegraph_ms >= _TELEGRAPH_COOLDOWN_MS):
-                # Берём самое приоритетное событие
-                _ev = _proactive_events[0]
-                _npc_name = ""
-                _npc_id = _ev.get("target", "")
-                # Имя из маппинга конфигов, или из scene_state, или fallback на id
-                _npc_name = _npc_name_map.get(_npc_id, "")
-                if not _npc_name:
-                    _npc_data = scene_state.get("npc_positions", {}).get(_npc_id, {})
-                    _npc_name = _npc_data.get("name") or _npc_data.get("display_name") or _npc_id
-                _last_telegraph_ms = _now_ms
-                _ev_desc = _ev.get("value", "")
-                # Человекочитаемый текст для DM (без технических деталей)
-                _intent_map = {
-                    "observe": "присматривается",
-                    "talk": "хочет поговорить",
-                    "warn": "хочет предупредить",
-                    "report": "хочет что-то сообщить",
-                    "trade": "хочет предложить сделку",
-                    "help": "хочет помочь",
-                    "flee": "пытается уйти",
-                }
-                _readable = _intent_map.get(_ev_desc, "проявляет инициативу")
-                _telegraph_text = f"{_npc_name} {_readable}"
-                _px, _py = _player_xy(scene_state)
-                action_queue.submit_telegraph(
-                    campaign_folder, player_name,
-                    _px,
-                    _py,
-                    action_text=_telegraph_text,
-                )
-                print(f"[TELEGRAPH] event-driven: {_telegraph_text}")
+        # A1: мержим координаты из WorldSnapshotDTO (графовые {x,y})
+        if _tick_data.get("world_snapshot"):
+            for dto in _tick_data["world_snapshot"].npc_positions:
+                entry = scene_state.setdefault("npc_positions", {}).setdefault(dto.npc_id, {})
+                entry["local_position"] = {"x": dto.x, "y": dto.y}
+
+        print(f"[IDLE_TICK] merged: {list(_new_positions.keys())}")
+
+        # Pressure-driven: если idle_tick принёс proactive события → запускаем телеграф
+        _events = _tick_data.get("events", [])
+        # Фильтруем только proactive (не life_engine позиционные)
+        _proactive_events = [e for e in _events if e.get("cause") == "idle_pressure"]
+        _now_ms = pygame.time.get_ticks()
+        if _proactive_events and action_queue.pending_count() == 0 and (_now_ms - _last_telegraph_ms >= _TELEGRAPH_COOLDOWN_MS):
+            # Берём самое приоритетное событие
+            _ev = _proactive_events[0]
+            _npc_name = ""
+            _npc_id = _ev.get("target", "")
+            # Имя из маппинга конфигов, или из scene_state, или fallback на id
+            _npc_name = _npc_name_map.get(_npc_id, "")
+            if not _npc_name:
+                _npc_data = scene_state.get("npc_positions", {}).get(_npc_id, {})
+                _npc_name = _npc_data.get("name") or _npc_data.get("display_name") or _npc_id
+            _last_telegraph_ms = _now_ms
+            _ev_desc = _ev.get("value", "")
+            # Человекочитаемый текст для DM (без технических деталей)
+            _intent_map = {
+                "observe": "присматривается",
+                "talk": "хочет поговорить",
+                "warn": "хочет предупредить",
+                "report": "хочет что-то сообщить",
+                "trade": "хочет предложить сделку",
+                "help": "хочет помочь",
+                "flee": "пытается уйти",
+            }
+            _readable = _intent_map.get(_ev_desc, "проявляет инициативу")
+            _telegraph_text = f"{_npc_name} {_readable}"
+            _px, _py = _player_xy(scene_state)
+            action_queue.submit_telegraph(
+                campaign_folder, player_name,
+                _px,
+                _py,
+                action_text=_telegraph_text,
+            )
+            print(f"[TELEGRAPH] event-driven: {_telegraph_text}")
 
             # Фаза 2.1 — distance-based интервал: в чате = частый, при ходьбе = редкий
             if not text_input.focused:

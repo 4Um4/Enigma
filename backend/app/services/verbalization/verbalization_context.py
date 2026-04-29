@@ -68,7 +68,8 @@ class VerbalizationContext:
 
     # Narrative: полная память + отфильтрованный recall (Этап 3)
     narrative_hints: Tuple["EventMemory", ...] = field(default_factory=tuple)
-    recalled_facts:  Tuple["EventMemory", ...] = field(default_factory=tuple)
+    recalled_facts:      Tuple["EventMemory", ...] = field(default_factory=tuple)
+    suppressed_secrets:   Tuple["EventMemory", ...] = field(default_factory=tuple)
     # STM: последние реплики текущего диалога (Этап 1)
     stm_buffer: Tuple[str, ...] = field(default_factory=tuple)
     is_explain_mode: bool = False

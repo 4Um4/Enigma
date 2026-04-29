@@ -115,7 +115,7 @@ class SceneRenderer:
     ) -> None:
         # Собираем ID препятствий которые игрок видит — стены рядом с ними ярче
         visible_obstacle_ids = {
-            e._raw_data.get("id", "")
+            e.entity_id
             for e in scene.entities
             if e.visible and e.entity_type == "object"
         }
@@ -139,15 +139,15 @@ class SceneRenderer:
                 continue
 
             raw = entity._raw_data
-            pos = raw.get("position") or {}
+            ox, oy = entity.x, entity.y
             size = raw.get("size") or {}
-            ox, oy = pos.get("x", 0), pos.get("y", 0)
             ow, oh = size.get("w", 1), size.get("h", 1)
 
             sx, sy = self._w2s(ox - ow / 2, oy - oh / 2, cam_x, cam_y)
             sw, sh = int(ow * SCALE), int(oh * SCALE)
 
-            obj_type = raw.get("type", "")
+            # TODO: убрать raw после добавления obj_type в PerceivedEntity
+            obj_type = raw.get("type", "") if raw else ""
             sprite = get_entity_sprite(obj_type)
 
             if sprite:
@@ -177,10 +177,7 @@ class SceneRenderer:
             if not entity.visible:
                 continue
 
-            raw = entity._raw_data
-            lp = raw.get("local_position") or {}
-            nx, ny = lp.get("x", 0), lp.get("y", 0)
-            sx, sy = self._w2s(nx, ny, cam_x, cam_y)
+            sx, sy = self._w2s(entity.x, entity.y, cam_x, cam_y)
 
             is_focused = entity.entity_id == focus_id
 

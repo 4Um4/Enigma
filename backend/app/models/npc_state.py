@@ -111,6 +111,16 @@ class MemoryStage(str, Enum):
     FORGOTTEN  = "forgotten"   # importance < threshold — удаляется
 
 
+class DiscoveryCrack(str, Enum):
+    """Уровень трещины в секрете под давлением (Этап 5).
+    NONE — NPC держится. CRACK — запинается. PARTIAL — часть правды. BROKEN — сломлен.
+    """
+    NONE    = "none"
+    CRACK   = "crack"
+    PARTIAL = "partial"
+    BROKEN  = "broken"
+
+
 @dataclass(frozen=True)
 class EventMemory:
     """

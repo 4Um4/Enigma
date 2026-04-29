@@ -163,29 +163,82 @@ NPC двигаются — видно `Прибыли в сцену: ['tavern_ke
 | 12 | BOM в JSON от PowerShell | `game_screen.py` | `utf-8-sig` декодинг |
 | 13 | `/api/world_state` 404 | `world_routes.py` | Берём `scene_manager` из `app.state` |
 
-**Дорожная карта — прогресс:**
-- ✅ D1: Графы содержат узлы из activity_map
-- ✅ D2: Schedule → MovementEngine → `{x,y}` в scene_state → API 200 OK
-- Следующее: B3 (idle_tick возвращает snapshot) или другая задача на твой выбор
+Оба импорта чистые. **C1 готов.**
 
-B3 работает! idle_tick возвращает world_snapshot с {x,y} из графов:
+**Итог шага C1:**
 
-text
+| Что | Результат |
+|---|---|
+| `domain/tick.py` | `TickResultDTO` — результат тика для API layer |
+| `core/tick_orchestrator.py` | Скелет 10 фаз из Устава §3 |
+| `routes.py` idle_tick | 40 строк процедурного кода → 1 вызов `_orchestrator.execute()` |
+| Фаза 0 | LifeEngine.tick() + apply_changes (свежий state для фазы 5) |
+| Фаза 5 | DecisionHub.tick_decisions() |
+| Фаза 9 | WorldSnapshotBuilder.build() → WorldSnapshotDTO |
+| Фазы 1-4, 6-8, 10 | TODO-заглушки с номерами roadmap (C2-C8) |
 
-maid_lusya: x=1.5, y=2.0    ← serving_table_3 из графа
-guard_borko: x=0.0, y=0.0      ← main_hall (дефолт, пока нет schedule)
-tavern_keeper_tornin: x=-4.0, y=0.0  ← behind_bar из графа
-merchant_goran: x=2.0, y=1.0      ← stall_3 из графа
-blacksmith_orm и thief_shadow отсутствуют — это правильно: WorldSnapshotBuilder фильтрует по visible (строка 72: if not data.get("visible", True): continue). Вор и кузнец скрыты.
+**D4 готов.**
 
-Итог сессии — что сделано:
+| Что | Результат |
+|---|---|
+| `spatial/spatial_event_detector.py` | Слой 4 — детекция переходов и проксимитета |
+| `NPC_MOVED` | Публикуется при переходе между узлами графа |
+| `NPC_PROXIMITY_CLOSE` | Два NPC сблизились (< 2.0м) |
+| `NPC_PROXIMITY_LEAVE` | Два NPC разошлись (> 3.5м) |
+| TickOrchestrator фаза 2 | Снимок ДО → фаза 0 → детекция → EventBus |
 
-Шаг
-Что
-Статус
-D1	Графы содержат узлы из activity_map	✅
-D2	Schedule → MovementEngine → {x,y} → saves → API	✅
-B3	idle_tick возвращает WorldSnapshotDTO	✅
-11 критических багов pipeline	Все устранены	✅
+**Обновлённая дорожная карта:**
 
-Следующее по roadmap — A1: game_screen.py рендерит из WorldSnapshotDTO вместо scene_state. Это подключает frontend к единому DTO и отсекает от backend internals. Двигаемся к A1 или есть другая приоритетная задача?
+| Шаг | Статус |
+|---|---|
+| D1 Графы содержат узлы из activity_map | ✅ |
+| D2 Schedule → MovementEngine → {x,y} | ✅ |
+| D3 Need-driven → MovementEngine → {x,y} | ✅ |
+| **D4 Spatial events — детекция переходов** | **✅** |
+| B2+B3 idle_tick → WorldSnapshotDTO | ✅ |
+| A1.1 PerceivedEntity.x/y, рендерер без _raw_data | ✅ (game_screen в руках) |
+| C1 TickOrchestrator скелет | ✅ |
+| `perceived_scene` удалён из DTO | ✅ |
+| D5 Pathing: movement_mode="path" | TODO |
+| D6-D8 Приоритеты, прерывание, новые источники | TODO |
+| C2-C8 Memory, Topic, IntentAdapter, Persistence | TODO |
+
+
+**D5 готов.**
+
+| Что | Результат |
+|---|---|
+| `LocationGraph.find_path()` | BFS по connections, тест: `main_hall → bar_area → behind_bar` |
+| `TransitTracker` | Хранит NPC в пути, `advance_all()` = 1 шаг за тик |
+| `MovementEngine` | `movement_mode="path"` → регистрация в TransitTracker вместо телепорта |
+| `MovementIntent.from_node_id` | Текущий узел для pathfinding |
+| `TickOrchestrator` | `advance_all()` ВЕРХ фазы 0 — NPC в пути двигаются до новых решений |
+
+**Порядок в тике:**
+```
+snapshot_positions_before()
+  ├─ TransitTracker.advance_all()  ← NPC в пути: 1 шаг
+  └─ _npc_positions_snapshot()     ← для SpatialEventDetector
+phase_0_simulation()
+  ├─ LifeEngine.tick()
+  │   ├─ need-driven → MovementIntent(from_node_id=..., movement_mode="instant")
+  │   └─ schedule   → MovementIntent(from_node_id=..., movement_mode="instant")
+  └─ MovementEngine.process_intents()
+      ├─ "instant" → SceneChange (телепорт)  ← текущее поведение
+      └─ "path"    → TransitTracker.register  ← инфраструктура готова
+```
+
+**Активация pathing** (когда графы будут полными): заменить `movement_mode="instant"` на `"path"` в точках создания intent (строки 142, 1032, 1144 в life_engine.py) + передать `from_node_id=npc.get("position", "")`. Пока не включаем — телепорт надёжнее пока графы не проверены.
+
+**Обновлённая дорожная карта:**
+
+| Шаг | Статус |
+|---|---|
+| D1-D3 Movement рабочий | ✅ |
+| D4 Spatial events | ✅ |
+| **D5 Pathing инфраструктура** | **✅** |
+| D6 Приоритеты intent-ов | TODO |
+| D7 Прерывание движения | TODO |
+| D8 Flee, follow, patrol | TODO |
+| C1 TickOrchestrator | ✅ |
+| A1.1 PerceivedEntity.x/y | ✅ |
