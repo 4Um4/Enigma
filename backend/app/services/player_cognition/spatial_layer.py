@@ -92,6 +92,8 @@ def extract_spatial_data(
         entities.append(PerceivedEntity(
             entity_id=npc_id,
             entity_type="npc",
+            x=ex,
+            y=ey,
             distance=distance,
             los=los,
             los_blocked_by=blocked_by,
@@ -107,6 +109,8 @@ def extract_spatial_data(
         entities.append(PerceivedEntity(
             entity_id=obj_id,
             entity_type="object",
+            x=ex,
+            y=ey,
             distance=distance,
             los=los,
             los_blocked_by=blocked_by,

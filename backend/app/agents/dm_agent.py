@@ -198,6 +198,18 @@ class DmAgent:
             if _mem_lines:
                 builder.add_npc_l2_memory("\n".join(_mem_lines[:5]))
         
+        # Блок 2.5b: Подавленные секреты — "ты помнишь, но молчишь" (Этап 5.5)
+        _suppressed = (context or {}).get("npc_suppressed_secrets", [])
+        if _suppressed:
+            _secret_lines = []
+            for _entry in _suppressed:
+                _npc_name = _entry.get("npc_name", "NPC")
+                _count = _entry.get("count", 0)
+                if _count > 0:
+                    _secret_lines.append(f"- {_npc_name} явно что-то скрывает ({_count} тайн)")
+            if _secret_lines:
+                builder.add_custom_block("Скрытое", "\n".join(_secret_lines[:3]))
+
         # Блок 2.6: Кому обращается игрок — без этого DM не знает что NPC должен отвечать
         if context:
             # Явный таргет из текста всегда приоритетнее sticky

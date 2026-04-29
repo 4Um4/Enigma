@@ -1,0 +1,27 @@
+warning: in the working copy of 'backend/app/services/verbalization/verbalization_context.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'docs/Before.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'Память_Театра.md', LF will be replaced by CRLF the next time Git touches it
+ ...AP_\320\244\320\240\320\236\320\235\320\242.md" |   93 [32m+[m[31m-[m
+ TODO.md                                            |   13 [31m-[m
+ backend/app/agents/dm_agent.py                     |   12 [32m+[m
+ backend/app/api/routes.py                          |   56 [32m+[m[31m-[m
+ backend/app/domain/movement.py                     |    1 [32m+[m
+ backend/app/domain/snapshot.py                     |    3 [32m+[m[31m-[m
+ backend/app/models/npc_state.py                    |   10 [32m+[m
+ backend/app/services/game_loop.py                  | 2694 [31m--------------------[m
+ backend/app/services/memory/dialogue_session.py    |   15 [32m+[m[31m-[m
+ backend/app/services/memory/memory_manager.py      |  143 [32m+[m[31m-[m
+ backend/app/services/npc/life_engine.py            |    4 [32m+[m
+ .../app/services/player_cognition/spatial_layer.py |    4 [32m+[m
+ backend/app/services/player_cognition/types.py     |    2 [32m+[m
+ backend/app/services/spatial/location_graph.py     |   32 [32m+[m
+ backend/app/services/spatial/movement_engine.py    |   53 [32m+[m[31m-[m
+ .../verbalization/verbalization_context.py         |    3 [32m+[m[31m-[m
+ backend/data/sessions/Open_road.json               |    4 [32m+[m[31m-[m
+ backend/data/sessions/Open_road/world_tick.json    |    4 [32m+[m[31m-[m
+ backend/data/sessions/my_cam.json                  |    4 [32m+[m[31m-[m
+ backend/game_screen.py                             |  118 [32m+[m[31m-[m
+ backend/scene_renderer.py                          |   13 [32m+[m[31m-[m
+ docs/Before.md                                     |  343 [32m+[m[31m--[m
+ ...242\320\265\320\260\321\202\321\200\320\260.md" |   63 [32m+[m[31m-[m
+ 23 files changed, 613 insertions(+), 3074 deletions(-)

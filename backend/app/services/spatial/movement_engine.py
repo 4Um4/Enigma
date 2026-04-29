@@ -11,6 +11,7 @@ from typing import List, Optional
 from app.domain.movement import MovementIntent
 from app.services.scene_change import SceneChange, ChangeType
 from app.services.spatial.location_graph import LocationGraph, load_graph, invalidate_graph_cache
+from app.services.spatial.transit_tracker import TransitTracker
 
 logger = logging.getLogger(__name__)
 
@@ -24,8 +25,9 @@ class MovementEngine:
     3. Генерирует SceneChange(field="local_position")
     """
 
-    def __init__(self) -> None:
+    def __init__(self, transit_tracker: TransitTracker | None = None) -> None:
         self._graphs: dict[str, LocationGraph] = {}
+        self._transit_tracker = transit_tracker or TransitTracker()
 
     def _get_graph(self, location_id: str) -> Optional[LocationGraph]:
         """Ленивая загрузка графа с кэшированием."""
@@ -36,6 +38,10 @@ class MovementEngine:
                 logger.warning(f"[MOVEMENT_ENGINE] Граф не найден для {location_id}: {e}")
                 return None
         return self._graphs[location_id]
+
+    def set_transit_tracker(self, tracker: "TransitTracker") -> None:
+        """Устанавливает TransitTracker для pathing-режима."""
+        self._transit_tracker = tracker
 
     def invalidate_cache(self, location_id: Optional[str] = None) -> None:
         """Сброс кэша графов."""
@@ -85,14 +91,43 @@ class MovementEngine:
                     )
                     continue
 
-                changes.append(SceneChange(
-                    type=ChangeType.NPC_POSITION,
-                    target=intent.npc_id,
-                    field="local_position",
-                    value={"x": node.x, "y": node.y},
-                    cause=f"movement_engine:{intent.reason}",
-                    tick=tick,
-                ))
+                if intent.movement_mode == "path":
+                    # Патхинг: регистрируем в TransitTracker, не телепортируем
+                    from_node = intent.from_node_id
+                    if from_node:
+                        path = graph.find_path(from_node, intent.target_node_id)
+                        if path:
+                            self._transit_tracker.register(
+                                npc_id=intent.npc_id,
+                                location_id=location_id,
+                                path=path,
+                                reason=intent.reason,
+                            )
+                        else:
+                            logger.warning(
+                                f"[MOVEMENT_ENGINE] Путь не найден: "
+                                f"{from_node} → {intent.target_node_id} для {intent.npc_id}"
+                            )
+                    else:
+                        # Не знаем текущую позицию — фоллбэк на телепорт
+                        changes.append(SceneChange(
+                            type=ChangeType.NPC_POSITION,
+                            target=intent.npc_id,
+                            field="local_position",
+                            value={"x": node.x, "y": node.y},
+                            cause=f"movement_engine:{intent.reason}",
+                            tick=tick,
+                        ))
+                else:
+                    # Instant — текущее поведение (телепорт)
+                    changes.append(SceneChange(
+                        type=ChangeType.NPC_POSITION,
+                        target=intent.npc_id,
+                        field="local_position",
+                        value={"x": node.x, "y": node.y},
+                        cause=f"movement_engine:{intent.reason}",
+                        tick=tick,
+                    ))
 
         return changes
 

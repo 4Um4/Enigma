@@ -4,7 +4,7 @@ R1.1 + R5.3 — MemoryManager.
 """
 
 from __future__ import annotations
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, Optional
 
 from app.services.memory import LayeredMemory
 from app.services.memory.working_memory import WorkingMemory
@@ -12,7 +12,7 @@ from app.services.memory.importance_engine import score_event, apply_decay, DECA
 from app.services.memory.relationship_store import RelationshipStore
 from app.services.memory.contradiction_resolver import resolve_all
 
-from app.models.npc_state import EventMemory, MemoryStage, NPCState
+from app.models.npc_state import DiscoveryCrack, EventMemory, MemoryStage, NPCState
 from app.domain.events import EventDTO
 from app.services.npc.perception_filter import calculate_clarity
 
@@ -139,7 +139,16 @@ class MemoryManager:
         if importance >= 0.90:
             decay_rate = 0.005
 
-        # 4. Создаём EventMemory
+        # 4. Генерация тегов из event.type + emotion_tag (Этап 5 prep)
+        _tags: list[str] = [event.type]
+        if emotion_tag in ("angry", "fearful", "disgusted"):
+            _tags.append("negative")
+        elif emotion_tag in ("grateful", "happy"):
+            _tags.append("positive")
+        else:
+            _tags.append("neutral")
+
+        # 5. Создаём EventMemory
         mem = EventMemory(
             event_type=event.type,
             target_id=payload.get("target_id", event.source),
@@ -152,18 +161,131 @@ class MemoryManager:
             stage=MemoryStage.FRESH,
             summary=payload.get("summary", ""),
             npc_id=npc_id,
+            tags=tuple(_tags),
+            is_secret=payload.get("is_secret", False),
+            known_by=tuple(payload.get("known_by", ())),
+            hidden_from=tuple(payload.get("hidden_from", ())),
         )
 
-        # 5. STM: per-NPC ключ (Закон 4.1.1)
+        # 6. STM: per-NPC ключ (Закон 4.1.1)
         self._working.push(f"{campaign_id}:{npc_id}", mem)
 
-        # 6. narrative_cache — ТОЛЬКО через MemoryManager (Закон 4.1.2)
+        # 7. narrative_cache — ТОЛЬКО через MemoryManager (Закон 4.1.2)
         cache = list(npc_state.narrative_cache)
         cache.append(mem)
         cache.sort(key=lambda f: f.importance, reverse=True)
         npc_state.narrative_cache = tuple(cache[:NARRATIVE_CACHE_MAX])
 
         return npc_state
+
+    # ──────────────────────────────────────────────────────────────────────
+    # Pressure — доступ к счётчику DialogueSession (Этап 5 prep)
+    # ──────────────────────────────────────────────────────────────────────
+    def get_recent_speech_all_npcs(self, campaign_id: str, limit: int = 5) -> List[str]:
+        """Собирает последние реплики из всех NPC-сессий кампании для DM."""
+        lines: List[str] = []
+        for key, session in self._dialogue_sessions.items():
+            if not key.startswith(f"{campaign_id}:"):
+                continue
+            for turn in session.buffer:
+                speaker = "Игрок" if turn.speaker == "player" else turn.speaker
+                lines.append(f"{speaker}: {turn.text}")
+        return lines[-limit:]
+
+    def get_dialogue_pressure(self, campaign_id: str, npc_id: str) -> int:
+        """Давление по текущей теме диалога."""
+        session = self.get_dialogue_session(campaign_id, npc_id)
+        return session.get_pressure(session.topic) if session else 0
+
+    # ──────────────────────────────────────────────────────────────────────
+    # Suppressed secrets — то что NPC помнит но скрывает (Этап 5.5)
+    # ──────────────────────────────────────────────────────────────────────
+    def get_suppressed_secrets(
+        self,
+        narrative_cache: Tuple[EventMemory, ...],
+        hidden_from_id: str = "player",
+    ) -> List[EventMemory]:
+        """Секреты которые NPC помнит но не раскрыл caller."""
+        return [
+            m for m in narrative_cache
+            if m.is_secret
+            and hidden_from_id in m.hidden_from
+            and not m.is_forgotten
+        ]
+
+    # ──────────────────────────────────────────────────────────────────────
+    # Discovery — раскрытие секретов под давлением (Этап 5.2)
+    # ──────────────────────────────────────────────────────────────────────
+    _PRESSURE_STRENGTH: dict[str, float] = {
+        "physical": 0.45,     # пытки, избиение — самый сильный эффект
+        "threat": 0.35,       # прямая угроза
+        "intimidation": 0.20, # психологическое давление
+        "question": 0.02,     # нудные вопросы — почти ничего
+    }
+
+    def discovery_check(
+        self,
+        memory: EventMemory,
+        *,
+        pressure_type: str = "question",
+        pressure_count: int = 0,
+        npc_stress: float = 0.0,
+        npc_trust: float = 0.0,
+    ) -> DiscoveryCrack:
+        """Определяет уровень трещины в секрете под давлением.
+
+        Формула: resistance - pressure_effect - stress_help
+        - resistance = importance * 0.8 (глубокий секрет сложнее раскрыть)
+        - pressure_effect зависит от ТИПА давления, не от количества вопросов
+        - повторение одного типа даёт убывающий бонус (×1.1, ×1.2, max ×1.5)
+        - низкий trust → упрямство (+resistance)
+        - высокий стресс → хуже врёт (-resistance, но не auto-reveal)
+        """
+        strength = self._PRESSURE_STRENGTH.get(pressure_type, 0.0)
+        if pressure_count > 1:
+            strength *= min(1.0 + (pressure_count - 1) * 0.1, 1.5)
+
+        resistance = memory.importance * 0.8
+        trust_modifier = max(0.0, -npc_trust) * 0.15 if npc_trust < 0 else 0.0
+        stress_modifier = max(0.0, (npc_stress - 0.8)) * 0.15 if npc_stress > 0.8 else 0.0
+
+        total = resistance + trust_modifier - strength - stress_modifier
+
+        if total > 0.5:
+            return DiscoveryCrack.NONE
+        if total > 0.2:
+            return DiscoveryCrack.CRACK
+        if total > -0.1:
+            return DiscoveryCrack.PARTIAL
+        return DiscoveryCrack.BROKEN
+
+    def assess_secrets_under_pressure(
+        self,
+        narrative_cache: Tuple[EventMemory, ...],
+        *,
+        hidden_from_id: str = "player",
+        pressure_type: str = "question",
+        pressure_count: int = 0,
+        npc_stress: float = 0.0,
+        npc_trust: float = 0.0,
+    ) -> List[Tuple[EventMemory, DiscoveryCrack]]:
+        """Проверяет все секреты под давлением, возвращает треснувшие."""
+        result: List[Tuple[EventMemory, DiscoveryCrack]] = []
+        for m in narrative_cache:
+            if not m.is_secret or m.is_forgotten:
+                continue
+            if hidden_from_id not in m.hidden_from:
+                continue
+            crack = self.discovery_check(
+                m,
+                pressure_type=pressure_type,
+                pressure_count=pressure_count,
+                npc_stress=npc_stress,
+                npc_trust=npc_trust,
+            )
+            if crack != DiscoveryCrack.NONE:
+                result.append((m, crack))
+        return result
 
     # ──────────────────────────────────────────────────────────────────────
     # Recall — поиск в памяти (Этап 3)
@@ -175,22 +297,25 @@ class MemoryManager:
         *,
         trigger_tags: Tuple[str, ...] = (),
         pressure: int = 0,
+        hidden_from_id: str = "",
+        npc_stress: float = 0.0,
         limit: int = 3,
     ) -> List[EventMemory]:
         """Ищет релевантные воспоминания из narrative_cache.
 
         Два режима:
-        1. Триггерный: тег из trigger_tags совпал → accessibility не важен,
-           сортировка по importance (Этап 5: секреты раскроются позже).
+        1. Триггерный: тег совпал → сортировка по importance.
         2. Случайный: accessibility > 0.2 → сортировка по importance × accessibility.
 
-        pressure зарезервирован для Этапа 5 (discovery_check секретов).
+        Секреты ВСЕГДА фильтруются из recall.
+        Раскрытие секретов — через assess_secrets_under_pressure() отдельно.
         """
         if not narrative_cache:
             return []
 
-        # Фильтруем забытые
         alive = [m for m in narrative_cache if not m.is_forgotten]
+        if hidden_from_id:
+            alive = [m for m in alive if not (m.is_secret and hidden_from_id in m.hidden_from)]
         if not alive:
             return []
 

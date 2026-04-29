@@ -5,7 +5,7 @@
 path: /backend/app/services/memory/dialogue_session.py
 Назначение: Кратковременная память диалога (STM) — буфер последних 5 реплик в RAM
 Зависимости: нет (чистый dataclass)
-Основные сущности: DialogueSession
+Основные сущности: DialogueTurn, DialogueSession
 """
 from dataclasses import dataclass, field
 from typing import Optional
@@ -31,6 +31,10 @@ class DialogueSession:
     
     # Текущая тема — определяется по ключевым словам, не LLM
     topic: Optional[str] = None
+    
+    # Pressure: счётчик повторных вопросов по теме + тип последнего давления (Этап 5)
+    _pressure_by_topic: dict[str, int] = field(default_factory=dict)
+    last_pressure_type: str = ""  # "physical", "threat", "intimidation", "question"
     
     # Эмоциональные маркеры для LLM-промпта
     emotional_markers: list[str] = field(default_factory=list)
@@ -64,7 +68,14 @@ class DialogueSession:
         for _word, _topic in _keywords.items():
             if _word in _lower:
                 self.topic = _topic
+                self._pressure_by_topic[_topic] = self._pressure_by_topic.get(_topic, 0) + 1
                 return
+    
+    def get_pressure(self, topic: str | None) -> int:
+        """Давление по теме — сколько раз за сессию ковыряли."""
+        if topic is None:
+            return 0
+        return self._pressure_by_topic.get(topic, 0)
     
     def to_prompt_block(self) -> str:
         """Текстуализация для LLM-промпта."""
@@ -84,6 +95,8 @@ class DialogueSession:
         self.buffer.clear()
         self.topic = None
         self.emotional_markers.clear()
+        self._pressure_by_topic.clear()         
+        self.last_pressure_type = ""
     
     @property
     def is_empty(self) -> bool:

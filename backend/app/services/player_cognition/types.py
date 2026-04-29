@@ -43,6 +43,8 @@ class PerceivedEntity:
     entity_type: Literal["npc", "object", "event"] = "object"
 
     # --- Spatial Layer ---
+    x: float = 0.0                   # мировая координата (метры)
+    y: float = 0.0                   # мировая координата (метры)
     distance: float = 999.0           # метры, 999 = не определено
     los: bool = False                 # line of sight чистый
     los_blocked_by: Optional[str] = None  # "wall", "obstacle", None

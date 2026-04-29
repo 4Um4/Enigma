@@ -137,15 +137,13 @@ def load_campaign(request: CampaignLoadRequest, game_loop=Depends(get_game_loop)
 @router.post("/game/idle_tick/{campaign_id}")
 def idle_tick(campaign_id: str, game_loop=Depends(get_game_loop)) -> dict:
     """
-    Тик мира без действия игрока — вызывается pygame по таймеру.
-    Возвращает обновлённые npc_positions для синхронизации pygame.
+    Тик мира без действия игрока — вызывается pygame по таймером.
+    Делегирует TickOrchestrator (10 фаз, Устав §3).
     """
     try:
-        from app.services.npc.life_engine import get_life_engine
-        _engine = get_life_engine()
+        from app.core.tick_orchestrator import TickOrchestrator
         # Получаем campaign_state и берём location_id из него
         _campaign_state = game_loop.scene_manager._read_campaign_json(campaign_id)
-        # Локация хранится в scene_state.location_id или metadata.current_location
         _location_id = (
             (_campaign_state or {}).get("scene_state", {}).get("location_id")
             or (_campaign_state or {}).get("metadata", {}).get("current_location")
@@ -155,43 +153,21 @@ def idle_tick(campaign_id: str, game_loop=Depends(get_game_loop)) -> dict:
         if _scene is None:
             return {"status": "no_scene", "changes": 0, "npc_positions": {}}
         print(f"[IDLE_TICK_BE] location={_location_id} npc_count={len(_scene.get('npc_positions', {}))}")
-        changes = _engine.tick(campaign_id, _scene)
-        if changes:
-            game_loop.scene_manager.apply_changes(campaign_id, changes, _scene)
-        # Фаза 2.1: DecisionHub — NPC думают даже в idle tick
-        decision_events = _engine.tick_decisions(campaign_id, _scene)
-        # Фильтруем значимые события для клиента (близкие NPC)
-        significant_events = []
-        # Сначала решения decision_hub (приоритетнее)
-        for _de in decision_events:
-            significant_events.append(_de)
-        _player_pos = _scene.get("player_spatial", {}).get("local_position", {})
-        _px, _py = _player_pos.get("x", 0), _player_pos.get("y", 0)
-        for _ch in changes:
-            if not _ch.cause or not _ch.cause.startswith("life_engine"):
-                continue
-            _npc_pos = _scene.get("npc_positions", {}).get(_ch.target, {})
-            _nx, _ny = _npc_pos.get("x", 0), _npc_pos.get("y", 0)
-            _dist = ((_nx - _px)**2 + (_ny - _py)**2) ** 0.5
-            if _dist < 20:  # в зоне восприятия
-                significant_events.append({
-                    "cause": _ch.cause,
-                    "type": _ch.type.value,
-                    "target": _ch.target,
-                    "field": _ch.field,
-                    "value": str(_ch.value),
-                })
-        # B3: frontend получит WorldSnapshotDTO прямо из idle_tick
-        from app.services.integration.world_snapshot_builder import WorldSnapshotBuilder
-        _builder = WorldSnapshotBuilder()
-        _snapshot = _builder.build(scene_state=_scene, tick=_scene.get("snapshot_tick", 0))
 
+        _orchestrator = TickOrchestrator(scene_manager=game_loop.scene_manager)
+        _result = _orchestrator.execute(
+            campaign_id=campaign_id,
+            scene_state=_scene,
+            tick_number=_scene.get("snapshot_tick", 0),
+        )
+
+        # TODO: удалить npc_positions после A1 — уже внутри world_snapshot
         return {
-            "status": "ok",
-            "changes": len(changes),
-            "npc_positions": _scene.get("npc_positions", {}),
-            "events": significant_events,
-            "world_snapshot": _snapshot,
+            "status": _result.status,
+            "changes": _result.changes_count,
+            "npc_positions": _result.npc_positions,
+            "events": _result.significant_events,
+            "world_snapshot": _result.world_snapshot,
         }
     except Exception as e:
         import traceback

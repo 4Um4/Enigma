@@ -303,6 +303,10 @@ class LifeEngine:
         # Слой 2: MovementEngine — конвертирует MovementIntent → SceneChange с {x, y}
         self._movement_engine = MovementEngine()
 
+    def set_transit_tracker(self, tracker) -> None:
+        """Пробрасывает TransitTracker в MovementEngine для pathing."""
+        self._movement_engine.set_transit_tracker(tracker)
+
     # ─────────────────────────────────────────────────────────────────────────
     # Tick Architecture (Блок 1)
     # ─────────────────────────────────────────────────────────────────────────

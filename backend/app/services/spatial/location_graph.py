@@ -51,6 +51,38 @@ class LocationGraph:
     def all_nodes(self) -> Dict[str, LocationNode]:
         return dict(self._nodes)
 
+    def find_path(self, from_node: str, to_node: str) -> list[str]:
+        """BFS-путь от from_node до to_node по connections.
+        
+        Returns:
+            Список node_id включая from_node и to_node.
+            Пустой список если путь не найден или узлы не существуют.
+        """
+        if from_node == to_node:
+            return [from_node]
+        if from_node not in self._nodes or to_node not in self._nodes:
+            return []
+
+        from collections import deque
+        visited: set[str] = {from_node}
+        queue: deque[tuple[str, list[str]]] = deque([(from_node, [from_node])])
+
+        while queue:
+            current, path = queue.popleft()
+            node = self._nodes.get(current)
+            if node is None:
+                continue
+            for neighbor in node.connections:
+                if neighbor in visited:
+                    continue
+                new_path = path + [neighbor]
+                if neighbor == to_node:
+                    return new_path
+                visited.add(neighbor)
+                queue.append((neighbor, new_path))
+
+        return []
+
     def get_distance(self, from_node: str, to_node: str) -> float:
         src = self._nodes.get(from_node)
         dst = self._nodes.get(to_node)
