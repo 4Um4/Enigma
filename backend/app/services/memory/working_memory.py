@@ -42,10 +42,10 @@ class WorkingMemory:
     def apply_decay(
         self,
         campaign_id: str,
-        ticks: int = 1,
+        game_days: float = 1.0,
     ) -> List[Tuple[str, float]]:
         """
-        R5.3 — применяет decay, возвращает identity weights от ABSTRACT-переходов.
+        R5.3 + Этап 8 — применяет decay по игровым дням, возвращает identity weights.
         Момент перехода в ABSTRACT — единственный триггер для L3 traits.
         Вызывается из MemoryManager.run_decay_if_needed() — не напрямую.
         """
@@ -59,7 +59,7 @@ class WorkingMemory:
         for event in events:
             if isinstance(event, EventMemory):
                 prev_stage = event.stage
-                updated = event.decayed(ticks)
+                updated = event.decayed(game_days)
 
                 # R5.3: переход в ABSTRACT → событие уходит в L3 Identity
                 if prev_stage != MemoryStage.ABSTRACT and updated.stage == MemoryStage.ABSTRACT:

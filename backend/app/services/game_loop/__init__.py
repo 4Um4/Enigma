@@ -29,7 +29,6 @@ from app.services.action.dm_orchestrator import DMOrchestrator
 from app.services.events.event_types import EventType
 from app.domain.events import EventDTO
 from app.services.events.event_bus import get_event_bus
-from app.services.action.player_target_extractor import PlayerTargetExtractor
 
 # ─────────────────────────────────────────────────────────────────────────────
 # R3 DIRECT MODE: DM как единственный источник речи
@@ -43,7 +42,7 @@ from app.services.scene_state_manager import SceneStateManager
 # LayeredMemory удалён из GameLoop — все записи через MemoryManager (Закон 4.1.2)
 # Старый model_router удалён — агенты сами управляют маршрутизацией через llm/router
 from app.services.world_scheduler import WorldScheduler
-from app.services.npc.npc_loader import materialize_inventory, get_item_display_name
+from app.services.npc.npc_loader import materialize_inventory, get_item_display_name, load_l2_state_from_runtime_dict
 from app.services.character_service import CharacterService
 from app.services.verbalization.scene_continuity import SceneContinuity
 from app.services.npc.life_engine import get_life_engine
@@ -56,15 +55,6 @@ from app.services.system_requirements import SystemRequirements
 from app.models.schemas import CampaignLoadResponse
 
 logger = logging.getLogger(__name__)
-
-AGENT_TIMEOUT_SEC = 35
-
-ERROR_CODES = {
-    "AGENT_SUCCESS":              "SUCCESS",
-    "AGENT_TIMEOUT":              "TIMEOUT",
-    "AGENT_MODEL_FAIL":           "MODEL_FAIL",
-    "ORCHESTRATOR_PIPELINE_FAIL": "PIPELINE_FAIL",
-}
 
 
 # ────────────────────────────────────────────────────────────────────────────────
@@ -95,6 +85,14 @@ from app.services.game_loop.tick_context import (
 from app.services.game_loop.phase_8_commit import commit_tick
 from app.services.game_loop.phase_1_input import publish_player_action, publish_player_speech
 from app.services.game_loop.phase_2_world_tick import tick_world_proactive
+from app.services.spatial.player_target_pipeline import (
+    PlayerTargetResult,
+    extract_player_target,
+    detect_and_publish_spatial_transitions,
+    build_spatial_data_for_dm,
+)
+from app.services.memory.working_memory_tick import write_npc_reactions_to_memory, run_decay_and_resonance
+from app.services.scene.scene_event_layer import emit_and_accumulate_scene_events
 from app.services.npc.npc_tick_pipeline import (
     HANDS_OCCUPIED_ACTIVITIES,
     BASE_IMPORTANCE,
@@ -411,7 +409,7 @@ class GameLoop:
                                          req.world_id, req.location,
                                          is_session_start=_is_session_start_rest)
 
-        dm_result = await self._run_agent_safe(
+        dm_result = await run_agent_safe(
             "dm", self.dm_agent,
             (
                 req.location, req.actions,
@@ -569,7 +567,6 @@ class GameLoop:
 
         # R2.1: NarrativeExtractor R2.2.8
         try:
-            from app.services.scene.narrative_extractor import get_extractor
             dm_full_text = "".join(dm_text_parts)
             scene_state  = state.shared_context.scene_state or {}
             if dm_full_text and scene_state:
@@ -681,59 +678,6 @@ class GameLoop:
         "player_casts", "player_shoots",
     })
 
-    def _resolve_physical_attack(self, npc_id, npc_profile, npc_dict_for_write,
-                                  state_l2, action_type, target_id, current_tick,
-                                  scene_continuity, scene_state):
-        return resolve_physical_attack(
-            npc_id, npc_profile, npc_dict_for_write,
-            state_l2, action_type, target_id, current_tick,
-            scene_continuity, scene_state,
-            self.memory_manager._relationships,
-        )
-
-    def _tick_world_proactive(self, campaign_id, location, shared_context, tick_ctx):
-        return tick_world_proactive(
-            self._world_tick_engine,
-            self._get_reputation_engine(),
-            self.memory_manager._relationships,
-            self._get_or_create_economic_profiles,
-            campaign_id, location, shared_context, tick_ctx,
-        )
-
-    def _build_verbalization_context(self, profile_l0, state_for_llm, decision,
-                                      hub_event, raw_input, campaign_id=""):
-        return build_verbalization_context(
-            self.memory_manager, profile_l0, state_for_llm,
-            decision, hub_event, raw_input, campaign_id,
-        )
-
-    def _create_memory_event(self, state_l2, decision, npc_id, hub_event,
-                              player_target_id, player_text, scene_state, campaign_id):
-        return create_memory_event(
-            self.memory_manager, state_l2, decision, npc_id, hub_event,
-            player_target_id, player_text, scene_state, campaign_id,
-        )
-
-    # ── Делегаты в npc/npc_tick_pipeline (обратная совместимость) ──
-    _HANDS_OCCUPIED_ACTIVITIES = HANDS_OCCUPIED_ACTIVITIES
-    _BASE_IMPORTANCE = BASE_IMPORTANCE
-    _PHYSICAL_EVENTS = PHYSICAL_EVENTS
-
-    @staticmethod
-    def _resolve_reactions(decision, hub_event, state_for_llm, npc_dict_for_write, npc_id):
-        return resolve_reactions(decision, hub_event, state_for_llm, npc_dict_for_write, npc_id)
-
-    @staticmethod
-    def _age_temporary_drives(state_l2, npc_dict_for_write, npc_id):
-        age_temporary_drives(state_l2, npc_dict_for_write, npc_id)
-
-    @staticmethod
-    def _tick_conditions(state_l2, npc_dict_for_write, current_tick, scene_continuity):
-        return tick_conditions(state_l2, npc_dict_for_write, current_tick, scene_continuity)
-
-    @staticmethod
-    def _reset_session_state(state_l2, npc_id, is_session_start):
-        reset_session_state(state_l2, npc_id, is_session_start)
 
     def _init_scene_state(
         self,
@@ -784,7 +728,6 @@ class GameLoop:
             patch_scene_state(shared_context, scene_state)
             
             # Инициализация game_time_seconds из scene_state
-            from app.core.calendar import Calendar
             _env_time = scene_state.get("environment", {}).get("time_of_day", "07:00")
             _seconds_in_day = Calendar.parse_hhmm(_env_time)
             shared_context.game_time_seconds = _seconds_in_day
@@ -913,99 +856,32 @@ class GameLoop:
             
             # 4.5: Извлекаем цель игрока из текста — без этого target=None всегда
             try:
-                _scene_pre = shared_context.scene_state or {}
-                _npc_ids = list((_scene_pre.get("npc_positions") or {}).keys())
-                # Загружаем name_forms из NPC JSON — extract() ищет по ним
-                _name_lookup_npcs = self._load_npcs()
-                _npc_ctx_list = []
-                for _n in _name_lookup_npcs:
-                    _nid = _n.get("id") or _n.get("npc_id")
-                    if _nid and _nid in _npc_ids:
-                        _npc_ctx_list.append({
-                            "npc_id": _nid,
-                            "npc_name": _n.get("name", ""),
-                            "name_forms": _n.get("name_forms", []),
-                        })
-                _target_extractor = PlayerTargetExtractor()
-                _target_id, _target_name, _, _player_pos, _player_dists = _target_extractor.extract(
-                    action_text=raw_input or "",
-                    npc_contexts=_npc_ctx_list,
-                    scene_state=_scene_pre if isinstance(_scene_pre, dict) else {},
+                _target = extract_player_target(
+                    self._load_npcs, shared_context.scene_state or {}, raw_input,
                 )
-                # Сохраняем расстояния обратно в scene_state — иначе spatial система всегда видит 5.0
-                if _player_dists and isinstance(_scene_pre, dict):
-                    _scene_pre["player_distances"] = _player_dists
-                if _player_pos and isinstance(_scene_pre, dict):
-                    _scene_pre["player_position"] = _player_pos
-                if _target_id:
-                    shared_context.player_target_id = _target_id
-                    shared_context.player_target_name = _target_name
-                    # Sticky target: сохраняем в scene_state для следующего тика
-                    if isinstance(_scene_pre, dict):
-                        _scene_pre["player_target_npc"] = _target_id
-                        _scene_pre["player_target_npc_name"] = _target_name
-                    logger.warning(f"[TARGET] Extracted: {_target_name} ({_target_id})")
+                if _target.target_id:
+                    shared_context.player_target_id = _target.target_id
+                    shared_context.player_target_name = _target.target_name
 
                 # ФАЗА 3.1: Spatial Events — детекция переходов расстояний
                 try:
-                    from app.services.spatial.spatial_events import detect_transitions
                     _prev_dists = self._prev_player_distances.get(campaign_id, {})
-                    _curr_dists = _player_dists if _player_dists else {}
-                    _spatial_events = detect_transitions(_prev_dists, _curr_dists)
+                    _curr_dists = _target.player_dists or {}
+                    _spatial_events = detect_and_publish_spatial_transitions(
+                        _prev_dists, _curr_dists, location, campaign_id,
+                    )
                     if _spatial_events:
                         shared_context.spatial_events = _spatial_events
-                        logger.debug(f"[SPATIAL] {len(_spatial_events)} transitions: "
-                              f"{[(e.npc_id, e.event_type) for e in _spatial_events]}")
-                        # ФАЗА 3.4: Публикуем spatial events в EventBus — DecisionHub видит proximity
-                        for _sp in _spatial_events:
-                            _evt_type = (
-                                EventType.PROXIMITY_CLOSE
-                                if _sp.event_type == "proximity_close"
-                                else EventType.PROXIMITY_LEAVE
-                            )
-                            _ge = EventDTO.create(
-                                event_type=_evt_type.value,
-                                source="player",
-                                payload={
-                                    "location": location,
-                                    "campaign_id": campaign_id,
-                                    "target_id": _sp.npc_id,
-                                    "prev_distance": _sp.prev_distance,
-                                    "new_distance": _sp.new_distance,
-                                },
-                                radius=999.0,
-                            )
-                            get_event_bus().publish(_ge)
                     # Сохраняем текущие для следующего хода
                     self._prev_player_distances[campaign_id] = dict(_curr_dists)
                 except Exception as _se_err:
                     logger.warning(f"[SPATIAL] Transition detection failed: {_se_err}")
             except Exception as _te:
-                
                 logger.warning(f"[TARGET] Extract error: {_te}")
                 pass
             
             # Строим spatial_data из scene_state для DM SceneBuilder
-            _scene = shared_context.scene_state or {}
-            _npc_positions = _scene.get("npc_positions", {})
-            logger.warning(f"[DEBUG SPATIAL] location={location}, npc_positions keys={list(_npc_positions.keys())}")
-            _npcs_for_builder = []
-            _player_distances = _scene.get("player_distances", {})
-            for _nid, _npos in _npc_positions.items():
-                # Реальное расстояние если известно, иначе 5.0 (NPC в той же локации)
-                _dist = _player_distances.get(_nid, 5.0)
-                _npcs_for_builder.append({
-                    "npc_id": _nid,
-                    "location_id": location,
-                    "distance_to_player": _dist,
-                    "facing_towards_player": True,
-                })
-            _spatial_data = {
-                "location_id": location,
-                "npcs": _npcs_for_builder,
-                "objects": _scene.get("objects", []),
-                "light_level": _scene.get("environment", {}).get("light", 1.0),
-            }
+            _spatial_data = build_spatial_data_for_dm(location, shared_context.scene_state or {})
             
             # R1: DM видит прошлую речь NPC — из DialogueSession (Этап 1)
             try:
@@ -1015,15 +891,7 @@ class GameLoop:
                 logger.debug(f"[RECENT_SPEECH] error: {_rs_err}")
 
             # R1: DM видит недавние действия игрока — "что произошло" не из пустого
-            _recent_player_actions = []
-            _SEMANTIC_MAP = {
-                "COMBAT": "применяял силу",
-                "SANDBOX_PHYSICAL": "физически воздействовал",
-                "SANDBOX_SOCIAL": "проявлял агрессию/угрозы",
-                "SANDBOX_MILD": "вступал в контакт",
-                "FLEE": "пытался сбежать",
-            }
-            # recent_player_actions — TODO: восстановить из EventDTO при необходимости
+            # TODO: восстановить из EventDTO при необходимости
             shared_context.recent_player_actions = []
 
             dm_result = self.dm_orchestrator.process_player_action(
@@ -1086,52 +954,19 @@ class GameLoop:
                 logger.warning(f"[EVENT_BUS] Published: {_game_evt.type}, target={_game_evt.payload.get('target_id')}")
 
             # ── SCENE EVENT LAYER: единые события для восприятия всеми NPC ──
-            _scene_events = []
-            try:
-                from app.services.scene.scene_event_emitter import SceneEventEmitter
-                _emitter = SceneEventEmitter()
-                _action_type = shared_context.action_type or "player_interacts"
-                _target_id = shared_context.player_target_id or ""
-                _tick = shared_context.current_tick or 0
-                
-                if _action_type in ("player_attacks", "player_steals", "player_grapples"):
-                    # Физическое действие — ищем результат в npc_contexts позже
-                    _scene_events = _emitter.emit_from_physical(
-                        action_type=_action_type,
-                        actor_id="player",
-                        target_id=_target_id,
-                        location_id=location,
-                        tick=_tick,
-                        action_text=raw_input,
-                    )
-                else:
-                    # Вербальное действие
-                    _scene_events = _emitter.emit_from_verbal(
-                        actor_id="player",
-                        location_id=location,
-                        tick=_tick,
-                        action_text=raw_input,
-                        target_id=_target_id,
-                    )
-                
-                shared_context.scene_events = _scene_events
-                if _scene_events:
-                    logger.warning(f"[SCENE_EVENTS] {len(_scene_events)} events emitted: {[e.event_type.value for e in _scene_events]}")
-                    # Накопление в scene_state для cross-tick восприятия (БАГ 2)
-                    from dataclasses import asdict
-                    _se_accum = scene_state.setdefault("raw_scene_events", [])
-                    _se_accum.extend(asdict(e) for e in _scene_events)
-                    if len(_se_accum) > 30:
-                        scene_state["raw_scene_events"] = _se_accum[-30:]
-                    logger.warning(f"[SCENE_ACCUM] total={len(_se_accum)} events in scene_state")
-            except Exception as _se_err:
-                logger.warning(f"[SCENE_EVENTS] error: {_se_err}")
+            _scene_events = emit_and_accumulate_scene_events(
+                action_type=shared_context.action_type or "player_interacts",
+                target_id=shared_context.player_target_id or "",
+                location_id=location,
+                tick=shared_context.current_tick or 0,
+                action_text=raw_input,
+                scene_state=scene_state,
+            )
+            shared_context.scene_events = _scene_events
 
             # Этап 4: Формируем NPC контексты для DecisionHub
 
-            from app.services.npc.npc_loader import load_profile_from_legacy_json, load_l2_state_from_runtime_dict
-            from app.services.verbalization.verbalization_context import VerbalizationContext, generate_emotional_nuance
-            from app.services.npc.topic_extractor import extract_topic
+            from app.services.npc.npc_loader import load_profile_from_legacy_json
             from app.services.npc.decision_hub import DecisionHub, EventContext as HubEventContext
 
             npc_contexts = []
@@ -1144,43 +979,9 @@ class GameLoop:
                 # EventContext с intensity уже сформирован в dm_scene_builder.enrich_raw_event
                 _ctx.hub_event = dm_result.event_context or HubEventContext(event_type="player_interacts", actor_id="player")
 
-                # ── CHARACTER FILTER (Фаза 2.0.4) ──
-                # Фильтрует действие через психологию персонажа (один раз на ход)
-                _player_name = actions[0].player_name if actions else ""
-                _filter_result = None
-                try:
-                    from app.services.character.character_filter import CharacterFilter as CharFilter
-                    _profile = self.character_service.get_or_create_profile(campaign_id, _player_name)
-                    # Если профиль пустой (аватар без ценностей) — пропускаем фильтр
-                    if _profile.values.weights:
-                        _cf = CharFilter()
-                        _filter_result = _cf.compute_resistance(
-                            profile=_profile,
-                            event_type=_ctx.hub_event.event_type,
-                            intensity=getattr(_ctx.hub_event, 'intensity', 0.5) or 0.5,
-                        )
-                        # Применяем эрозию если была
-                        if _filter_result.erosion_applied > 0:
-                            _profile.apply_erosion(
-                                _filter_result.erosion_applied,
-                                f"{_ctx.hub_event.event_type}: {_filter_result.outcome.value}",
-                            )
-                            self.character_service.upsert_profile(campaign_id, _profile)
-                        
-                        logger.debug(f"[CHAR_FILTER] {_player_name}: {_filter_result.outcome.value} "
-                              f"(res={_filter_result.resistance:.2f}, mod={_filter_result.action_modifier:.2f})")
-                        
-                        # RESIST/REFUSE — передаём контекст DM, пропускаем NPC решения
-                        if _filter_result.outcome.value in ("resist", "refuse"):
-                            shared_context.character_filter = _filter_result.to_dict()
-                            # DM увидит описание в prompt, NPC решения не нужны
-                            _ctx.hub_event = None
-                except Exception as _cfe:
-                    
-                    logger.warning(f"[CHAR_FILTER] Error (non-blocking): {_cfe}")
-                    pass
-
-                apply_front_engine(self.character_service, self._get_reputation_engine(), campaign_id, actions[0].player_name if actions else "", shared_context)
+                _cf_result = apply_character_filter(self.character_service, campaign_id, actions[0].player_name if actions else '', _ctx.hub_event, shared_context)
+                if _cf_result:
+                    _ctx.hub_event = None
 
                 # Если CharacterFilter заблокировал действие — пропускаем NPC цикл
                 if _ctx.hub_event is None:
@@ -1221,10 +1022,10 @@ class GameLoop:
                         state_l2 = load_l2_state_from_runtime_dict(_npc_profile)
 
                         # Фаза 4-ROLE.2: Aging temporary drives (каждый тик)
-                        self._age_temporary_drives(state_l2, _npc_dict_for_write, npc_id)
+                        age_temporary_drives(state_l2, _npc_dict_for_write, npc_id)
 
                         # ── ПРИЧИННЫЙ СЛОЙ: Physical Resolution (до DecisionHub) ──
-                        state_l2, _reflex_constraints = self._resolve_physical_attack(
+                        state_l2, _reflex_constraints = resolve_physical_attack(
                             npc_id=npc_id,
                             npc_profile=_npc_profile,
                             npc_dict_for_write=_npc_dict_for_write,
@@ -1234,17 +1035,18 @@ class GameLoop:
                             current_tick=shared_context.current_tick or 0,
                             scene_continuity=shared_context.scene_continuity,
                             scene_state=shared_context.scene_state or {},
+                            relationship_store=self.memory_manager._relationships,
                         )
 
                         # ── ПРИЧИННЫЙ СЛОЙ: ConditionEngine (всегда, не только PHYSICAL) ──
-                        state_l2 = self._tick_conditions(
+                        state_l2 = tick_conditions(
                             state_l2, _npc_dict_for_write,
                             shared_context.current_tick or 0,
                             shared_context.scene_continuity,
                         )
 
                         # Сброс динамического состояния при старте новой сессии
-                        self._reset_session_state(state_l2, npc_id, is_session_start)
+                        reset_session_state(state_l2, npc_id, is_session_start)
 
                         # 1.5. Обогащаем relationship_cache из MemoryManager (РАЗРЫВ #1 закрыт)
                         # DecisionHub теперь принимает решения с учётом реальной истории отношений
@@ -1380,7 +1182,8 @@ class GameLoop:
 
                             # ФАЗА 1: NPC становятся живыми — запоминаем взаимодействия
                             try:
-                                state_to_use_for_llm = self._create_memory_event(
+                                state_to_use_for_llm = create_memory_event(
+                                    self.memory_manager,
                                     state_l2=state_to_use_for_llm,
                                     decision=decision,
                                     npc_id=npc_id,
@@ -1418,14 +1221,14 @@ class GameLoop:
                             logger.warning(f"[DM_FACADE] StateApplicator failed for {npc_id}, using raw state: {e}")
                         
                         # 3.5 Reaction Layer: DecisionResult → MicroEvents (ШАГ 0.5)
-                        _micro_events = self._resolve_reactions(
+                        _micro_events = resolve_reactions(
                             decision, _ctx.hub_event, state_to_use_for_llm,
                             _npc_dict_for_write, npc_id,
                         )
 
                         # 4. Упаковка в VerbalizationContext (Enum -> Строки для LLM)
-                        verb_ctx = self._build_verbalization_context(
-                            profile_l0, state_to_use_for_llm, decision,
+                        verb_ctx = build_verbalization_context(
+                            self.memory_manager, profile_l0, state_to_use_for_llm, decision,
                             _ctx.hub_event, raw_input,
                             campaign_id=campaign_id,
                         )
@@ -1470,7 +1273,7 @@ class GameLoop:
                     except Exception as _rep_err:
                         logger.warning(f"[REPUTATION] Impact error: {_rep_err}")
                 # ФАЗА 3.4: WorldTickEngine — проактивные действия NPC
-                self._tick_world_proactive(campaign_id, location, shared_context, _ctx)
+                tick_world_proactive(self._world_tick_engine, self._get_reputation_engine(), self.memory_manager._relationships, self._get_or_create_economic_profiles, campaign_id, location, shared_context, _ctx)
 
                 # Salience Engine: передаём метаданные для фильтрации объектов в промпте
                 _scene_for_dm = shared_context.scene_state or {}
@@ -1517,6 +1320,7 @@ class GameLoop:
             from app.services.scene.r3_direct_builder import build_r3_dm_frame
             from app.services.character.front_applicator import apply_front_engine
             from app.services.character.character_filter_applicator import apply_character_filter
+            from app.services.game_loop.agent_runner import run_agent_safe, AGENT_TIMEOUT_SEC, ERROR_CODES
             self._social_tick = propagate_social_rumors(
                 self._get_social_engine(campaign_id),
                 self._social_tick,
@@ -1535,13 +1339,12 @@ class GameLoop:
                 "type": self.dm_orchestrator._router.get_rules_action_type(_action_type), 
             }]
         }
-        rules_result = await self._run_agent_safe(
+        rules_result = await run_agent_safe(
             "rules", self.rules_agent, (actions, _rules_context), {}
         )
         logger.warning(f"[RULES] action_type={_action_type} → {_rules_context['classification'][0]['type']}")
 
         # 6.5 Действие игрока → EventBus (Закон 5.1)
-        from app.services.game_loop.phase_1_input import publish_player_speech
         if actions and actions[0].action:
             publish_player_speech(
                 actions[0].player_name,
@@ -1573,59 +1376,23 @@ class GameLoop:
         _act_type = shared_context.action_type or "unknown"
 
         # P0.1: действие игрока → EventBus (Закон 5.1)
-        from app.services.game_loop.phase_1_input import publish_player_action
         publish_player_action(_player_name, _player_text, _act_type, location)
 
         # P0.2: ответы NPC → Working Memory + STM
-        # Строим обратную маппинг имя → npc_id для STM-записи
-        _name_to_id: Dict[str, str] = {}
-        if isinstance(_ctx.all_npcs_raw, dict):
-            for _nid, _ndata in _ctx.all_npcs_raw.items():
-                _nname = _ndata.get("name", "") if isinstance(_ndata, dict) else ""
-                if _nname:
-                    _name_to_id[_nname.lower()] = _nid
-
-        for _reaction in npc_result.get("npc_reactions", []):
-            if not isinstance(_reaction, str):
-                continue
-            if _reaction and ":" in _reaction:
-                _npc_name_raw = _reaction.split(":")[0].strip()
-                _npc_text = _reaction.split(":", 1)[1].strip()[:120]
-                # STM: записываем реплику NPC в его сессию
-                _matched_id = _name_to_id.get(_npc_name_raw.lower())
-                try:
-                    get_event_bus().publish(EventDTO.create(
-                        event_type=EventType.NPC_SPOKE,
-                        source=_npc_name_raw,
-                        payload={
-                            "npc_id":      _matched_id or "",
-                            "content":     _npc_text,
-                            "action_type": "dialogue_key",
-                        },
-                        persistence_level="working",
-                    ))
-                except Exception as _bus_err:
-                    logger.debug(f"[EVENT_BUS] npc_speech publish skipped: {_bus_err}")
-                if _matched_id:
-                    self.memory_manager.add_dialogue_turn(
-                        campaign_id=campaign_id,
-                        npc_id=_matched_id,
-                        speaker=_matched_id,
-                        text=_npc_text,
-                    )
+        write_npc_reactions_to_memory(
+            self.memory_manager,
+            npc_result.get("npc_reactions", []),
+            _ctx.all_npcs_raw,
+            campaign_id,
+        )
 
         # P0.3: decay каждые 10 ходов
-        _tick = shared_context.scene_state or {}.get("snapshot_tick", 0)
-        # Decay → identity_weights → NPCIdentityL1 cache (РАЗРЫВ #2 закрыт)
-        _identity_weights = self.memory_manager.run_decay_if_needed(campaign_id, _tick)
-        # Resonance → identity_weights для каждого активного NPC
-        if _identity_weights:
-            _resonance = self.memory_manager.detect_resonance(campaign_id, actor_id="player")
-            for _npc_id in shared_context.active_npc_ids or []:
-                self.memory_manager.apply_identity_weights(campaign_id, _npc_id, _resonance)
+        _tick = (shared_context.scene_state or {}).get("snapshot_tick", 0)
+        run_decay_and_resonance(
+            self.memory_manager, campaign_id, _tick, shared_context.active_npc_ids,
+        )
         # ────────────────────────────────────────────────────────────────────────
         # ФАЗА 8: Единственная точка коммита (Устав 4.2.1)
-        from app.services.game_loop.phase_8_commit import commit_tick
         commit_tick(self.scene_manager, campaign_id, shared_context.scene_state, _ctx)
 
         return _PipelineState(
@@ -1735,71 +1502,6 @@ class GameLoop:
                 logger.warning(f"[NPC_MEM] memory_trace updated for {len(npc_reactions)} reactions in buffer")
         except Exception as e:
             logger.warning(f"[GAME_LOOP] _write_npc_memory failed: {e}")
-
-    async def _run_agent_safe(
-        self, agent_name: str, agent, args: tuple, kwargs: dict
-    ) -> dict:
-        vram_monitor      = get_vram_monitor()
-        error_interpreter = get_error_interpreter()
-        start             = time.perf_counter()
-
-        # Модель загружается лениво внутри agent.run() через новый llm/router.
-        # Замер VRAM показывает потребление до и во время работы агента.
-        vram_before = await vram_monitor.get_vram_mb()
-        vram_after  = vram_before  # Будет обновлено после agent.run()
-
-        jsonl_log({
-            "level": "INFO", "agent": agent_name, "status": "model_switch",
-            "vram_before_mb": vram_before, "vram_after_mb": vram_after,
-        })
-
-        try:
-            result = await asyncio.wait_for(
-                asyncio.to_thread(agent.run, *args, **kwargs),
-                timeout=AGENT_TIMEOUT_SEC,
-            )
-            duration = round((time.perf_counter() - start) * 1000)
-            jsonl_log({
-                "level": "INFO", "agent": agent_name,
-                "error_code": ERROR_CODES["AGENT_SUCCESS"],
-                "duration_ms": duration, "status": "complete",
-            })
-            return result or {}
-
-        except asyncio.TimeoutError:
-            duration = round((time.perf_counter() - start) * 1000)
-            msg = f"Агент '{agent_name}' превысил лимит {AGENT_TIMEOUT_SEC}с"
-            # Прерываем зависшую генерацию на llama-server
-            try:
-                from app.services.llm.provider_manager import get_model_pool
-                _pool = get_model_pool()
-                if _pool._active_model:
-                    _pool._active_model.provider.abort_generation()
-                    logger.warning(f"[GAME_LOOP] abort sent to {_pool.active_model_key}")
-            except Exception:
-                pass
-            jsonl_log({
-                "level": "ERROR", "agent": agent_name,
-                "error_code": ERROR_CODES["AGENT_TIMEOUT"],
-                "duration_ms": duration, "status": "timeout",
-                "human_msg": msg,
-            })
-            logger.error(f"[GAME_LOOP] {msg}")
-            return {}
-
-        except Exception as e:
-            duration = round((time.perf_counter() - start) * 1000)
-            human_msg, fix = error_interpreter.handle(
-                e, {"agent": agent_name}, agent_name, agent_name
-            )
-            jsonl_log({
-                "level": "ERROR", "agent": agent_name,
-                "error_code": ERROR_CODES["AGENT_MODEL_FAIL"],
-                "duration_ms": duration, "status": "failed",
-                "human_msg": human_msg, "fix": fix,
-            })
-            logger.error(f"[GAME_LOOP] {agent_name} failed: {human_msg}")
-            return {}
 
     async def _yield_model_info(self, state: _PipelineState):
         """Генерирует SSE-событие с метаинфо о выбранных моделях."""

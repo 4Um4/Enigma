@@ -39,6 +39,10 @@ class MovementEngine:
                 return None
         return self._graphs[location_id]
 
+    def get_current_node(self, location_id: str, npc_id: str) -> str | None:
+        """Реальный текущий узел NPC если он в пути, иначе None."""
+        return self._transit_tracker.get_current_node(location_id, npc_id)
+
     def set_transit_tracker(self, tracker: "TransitTracker") -> None:
         """Устанавливает TransitTracker для pathing-режима."""
         self._transit_tracker = tracker
@@ -92,22 +96,58 @@ class MovementEngine:
                     continue
 
                 if intent.movement_mode == "path":
+                    # D7: если NPC уже в пути — сравниваем приоритеты
+                    current_priority = self._transit_tracker.get_current_priority(
+                        location_id, intent.npc_id
+                    )
+                    if current_priority is not None and intent.priority <= current_priority:
+                        logger.debug(
+                            f"[MOVEMENT_ENGINE] {intent.npc_id}: "
+                            f"новый intent (p={intent.priority}) не превосходит текущий путь "
+                            f"(p={current_priority}), пропускаем"
+                        )
+                        continue
+
+                    # Прерываем текущий путь если есть (новый приоритетнее)
+                    if current_priority is not None:
+                        self._transit_tracker.cancel(location_id, intent.npc_id)
+
                     # Патхинг: регистрируем в TransitTracker, не телепортируем
-                    from_node = intent.from_node_id
+                    # Берём реальную позицию из TransitTracker если NPC уже в пути
+                    from_node = self._transit_tracker.get_current_node(
+                        location_id, intent.npc_id
+                    ) or intent.from_node_id
                     if from_node:
                         path = graph.find_path(from_node, intent.target_node_id)
-                        if path:
+                        if len(path) >= 2:
                             self._transit_tracker.register(
                                 npc_id=intent.npc_id,
                                 location_id=location_id,
                                 path=path,
                                 reason=intent.reason,
+                                priority=intent.priority,
+                            )
+                        elif len(path) == 1:
+                            # NPC уже на целевом узле — ничего не делаем
+                            logger.debug(
+                                f"[MOVEMENT_ENGINE] {intent.npc_id}: "
+                                f"уже на {intent.target_node_id}, пропускаем"
                             )
                         else:
+                            # Путь не найден — фоллбэк на телепорт
                             logger.warning(
                                 f"[MOVEMENT_ENGINE] Путь не найден: "
-                                f"{from_node} → {intent.target_node_id} для {intent.npc_id}"
+                                f"{from_node} → {intent.target_node_id} "
+                                f"для {intent.npc_id}, фоллбэк на телепорт"
                             )
+                            changes.append(SceneChange(
+                                type=ChangeType.NPC_POSITION,
+                                target=intent.npc_id,
+                                field="local_position",
+                                value={"x": node.x, "y": node.y},
+                                cause=f"movement_engine_fallback:{intent.reason}",
+                                tick=tick,
+                            ))
                     else:
                         # Не знаем текущую позицию — фоллбэк на телепорт
                         changes.append(SceneChange(

@@ -27,6 +27,7 @@ class MemoryPayload(TypedDict, total=False):
     npc_stress: float
     day: int
     scene_state: Dict[str, Any]
+    contract_tag: str   # из domain.events: promise_given | promise_received | debt
 
 
 class PlayerActionPayload(TypedDict, total=False):
@@ -79,3 +80,18 @@ class EventDTO:
             radius=radius,
             persistence_level=persistence_level,
         )
+
+
+# ── Теги контрактов и обязательств (Этап 6) ──
+# Используются как теги в EventMemory для триггерного поиска и фильтрации.
+
+CONTRACT_TAG_PROMISE_GIVEN: str = "promise_given"
+CONTRACT_TAG_PROMISE_RECEIVED: str = "promise_received"
+CONTRACT_TAG_DEBT: str = "debt"
+CONTRACT_EVENT_FULFILLED: str = "promise_fulfilled"
+
+CONTRACT_TAGS: frozenset[str] = frozenset({
+    CONTRACT_TAG_PROMISE_GIVEN,
+    CONTRACT_TAG_PROMISE_RECEIVED,
+    CONTRACT_TAG_DEBT,
+})

@@ -66,6 +66,7 @@ class TransitTracker:
         location_id: str,
         path: List[str],
         reason: str = "",
+        priority: float = 0.5,
     ) -> bool:
         """Регистрирует NPC в пути.
         
@@ -86,6 +87,7 @@ class TransitTracker:
             path=path,
             step=0,
             reason=reason,
+            priority=priority,
         )
         logger.debug(f"[TRANSIT] {npc_id} начал путь: {' → '.join(path)}")
         return True
@@ -154,6 +156,16 @@ class TransitTracker:
             logger.debug(f"[TRANSIT] {npc_id} — движение прервано")
             return True
         return False
+
+    def get_current_priority(self, location_id: str, npc_id: str) -> float | None:
+        """Возвращает приоритет текущего пути NPC или None если не в пути."""
+        transit = self._transits.get((location_id, npc_id))
+        return transit.priority if transit else None
+
+    def get_current_node(self, location_id: str, npc_id: str) -> str | None:
+        """Возвращает текущий узел NPC в пути или None если не в пути."""
+        transit = self._transits.get((location_id, npc_id))
+        return transit.current_node if transit else None
 
     def active_count(self) -> int:
         return len(self._transits)

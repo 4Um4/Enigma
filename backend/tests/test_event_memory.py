@@ -45,7 +45,7 @@ class TestEventMemory:
             event_type="theft", target_id="player",
             emotion_tag="angry", day=1, importance=0.9, decay_rate=0.1,
         )
-        decayed = mem.decayed(ticks=1)
+        decayed = mem.decayed(game_days=1)
         assert decayed.importance < mem.importance
 
     def test_decay_follows_exponential(self) -> None:
@@ -54,7 +54,7 @@ class TestEventMemory:
             event_type="help", target_id="player",
             emotion_tag="grateful", day=1, importance=0.8, decay_rate=0.05,
         )
-        decayed = mem.decayed(ticks=2)
+        decayed = mem.decayed(game_days=2)
         expected = round(0.8 * math.exp(-0.05 * 2), 4)
         assert decayed.importance == pytest.approx(expected, abs=1e-3)
 
@@ -65,7 +65,7 @@ class TestEventMemory:
             emotion_tag="fearful", day=1, importance=0.9,
             clarity=0.7, decay_rate=0.1,
         )
-        decayed = mem.decayed(ticks=5)
+        decayed = mem.decayed(game_days=5)
         assert decayed.clarity == pytest.approx(0.7)
 
     def test_confidence_decreases_after_decay(self) -> None:
@@ -75,7 +75,7 @@ class TestEventMemory:
             emotion_tag="fearful", day=1, importance=0.9,
             confidence=1.0, decay_rate=0.1,
         )
-        decayed = mem.decayed(ticks=5)
+        decayed = mem.decayed(game_days=5)
         assert decayed.confidence < 1.0
         assert decayed.confidence > decayed.importance  # медленнее затухает
 
@@ -85,7 +85,7 @@ class TestEventMemory:
             event_type="idle", target_id="player",
             emotion_tag="neutral", day=1, importance=0.15, decay_rate=0.3,
         )
-        decayed = mem.decayed(ticks=10)
+        decayed = mem.decayed(game_days=10)
         assert decayed.is_forgotten
 
     def test_critical_memory_survives(self) -> None:
@@ -95,7 +95,7 @@ class TestEventMemory:
             emotion_tag="grateful", day=1, importance=1.0,
             decay_rate=0.001,   # почти не затухает
         )
-        decayed = mem.decayed(ticks=100)
+        decayed = mem.decayed(game_days=100)
         assert not decayed.is_forgotten
         assert decayed.importance > 0.9
 
@@ -128,7 +128,7 @@ class TestWorkingMemoryDecay:
         )
         wm.push("test", weak)
         wm.push("test", strong)
-        wm.apply_decay("test", ticks=5)
+        wm.apply_decay("test", game_days=5)
 
         remaining = wm.get("test")
         assert len(remaining) == 1
@@ -138,7 +138,7 @@ class TestWorkingMemoryDecay:
         """Legacy dict-события не затрагиваются decay."""
         wm = WorkingMemory()
         wm.push("test", {"type": "legacy_event", "actor": "player"})
-        wm.apply_decay("test", ticks=10)
+        wm.apply_decay("test", game_days=10)
         result = wm.get("test")
         assert len(result) == 1
         assert result[0]["type"] == "legacy_event"
@@ -271,7 +271,7 @@ class TestMemoryBreathes:
             importance=0.9, clarity=0.9, confidence=0.9,
             decay_rate=0.3,
         )
-        old_mem = mem.decayed(ticks=15)   # importance < 0.10 → FORGOTTEN или ABSTRACT
+        old_mem = mem.decayed(game_days=15)   # importance < 0.10 → FORGOTTEN или ABSTRACT
         # Если уже FORGOTTEN — форсируем ABSTRACT для теста
         if old_mem.is_forgotten:
             import dataclasses

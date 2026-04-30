@@ -35,6 +35,8 @@ _EVENT_TOPIC_MAP: dict[str, str] = {
     "trade":             "торговля",
     "capture":           "задержание",
     "proximity_close":   "встреча",
+    "npc_interacts_npc": "встреча",
+    "npc_proximity_close": "встреча",
     "world_tick":        "",
 }
 

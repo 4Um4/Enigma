@@ -26,7 +26,7 @@ def _make_fresh(emotion_tag: str = "angry", importance: float = 0.9) -> EventMem
 def test_apply_decay_returns_list() -> None:
     """apply_decay всегда возвращает список, даже пустой."""
     wm = WorkingMemory()
-    result = wm.apply_decay("camp_1", ticks=1)
+    result = wm.apply_decay("camp_1", game_days=1)
     assert isinstance(result, list)
 
 
@@ -34,7 +34,7 @@ def test_apply_decay_no_transition_no_weights() -> None:
     """FRESH с нулевым decay_rate не переходит в ABSTRACT → weights пусты."""
     wm = WorkingMemory()
     wm.push("camp_1", _make_fresh())
-    weights = wm.apply_decay("camp_1", ticks=1)
+    weights = wm.apply_decay("camp_1", game_days=1)
     assert weights == []
 
 
@@ -55,7 +55,7 @@ def test_apply_decay_abstract_transition_yields_resentment() -> None:
         stage=MemoryStage.COMPRESSED,
     )
     wm.push("camp_1", mem)
-    weights = wm.apply_decay("camp_1", ticks=1)
+    weights = wm.apply_decay("camp_1", game_days=1)
 
     if weights:   # если переход состоялся
         trait_names = [w[0] for w in weights]
@@ -79,7 +79,7 @@ def test_apply_decay_grateful_yields_dependency() -> None:
         stage=MemoryStage.COMPRESSED,
     )
     wm.push("camp_1", mem)
-    weights = wm.apply_decay("camp_1", ticks=1)
+    weights = wm.apply_decay("camp_1", game_days=1)
 
     if weights:
         trait_names = [w[0] for w in weights]
@@ -101,7 +101,7 @@ def test_apply_decay_removes_forgotten() -> None:
         stage=MemoryStage.ABSTRACT,
     )
     wm.push("camp_1", mem)
-    wm.apply_decay("camp_1", ticks=1)
+    wm.apply_decay("camp_1", game_days=1)
     assert wm.get("camp_1") == []
 
 
@@ -109,6 +109,6 @@ def test_apply_decay_preserves_legacy_dicts() -> None:
     """Legacy dict события не затрагиваются decay и не генерируют weights."""
     wm = WorkingMemory()
     wm.push("camp_1", {"type": "legacy_event", "importance": 0.5})
-    weights = wm.apply_decay("camp_1", ticks=1)
+    weights = wm.apply_decay("camp_1", game_days=1)
     assert weights == []
     assert len(wm.get("camp_1")) == 1

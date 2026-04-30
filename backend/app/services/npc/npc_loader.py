@@ -389,7 +389,7 @@ def _restore_narrative_cache(cache_list: List[Dict]) -> tuple:
                 _d["hidden_from"] = tuple(_d["hidden_from"])
             _mem = EventMemory(**_d)
             # Decay при загрузке — NPC загружается раз в тик
-            _mem = _mem.decayed(ticks=1)
+            _mem = _mem.decayed(game_days=1.0)
             if not _mem.is_forgotten:
                 _result.append(_mem)
     return tuple(_result)

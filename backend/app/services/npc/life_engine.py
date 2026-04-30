@@ -54,7 +54,7 @@ from app.services.scene_change import (
     SceneChange,
     ChangeType,
 )
-from app.domain.movement import MovementIntent
+from app.domain.movement import MovementIntent, PRIORITY_RANDOM
 from app.services.spatial.movement_engine import MovementEngine
 
 logger = logging.getLogger(__name__)
@@ -142,8 +142,11 @@ def _make_random_events(npc: dict, tick: int) -> list:
         ], MovementIntent(
             npc_id=npc_id,
             target_node_id="near_bar",
+            from_node_id=npc.get("position", ""),
             location_id=location,
             reason="random:wanders_to_bar",
+            movement_mode="path",
+            priority=PRIORITY_RANDOM,
         )),
         # NPC становится более бдительным (заметил что-то)
         ("notices_something", [
@@ -900,47 +903,55 @@ class LifeEngine:
         """
         changes: list[SceneChange] = []
 
+        # ── D6: сбор всех intent-ов с приоритетами ──
+        candidates: list[MovementIntent] = []
+
         # 1. Need-driven: растим потребности, проверяем порог
-        # Проверяем ПЕРЕД schedule — биологическое важнее расписания
         self._tick_needs(npc)
         need_intent = self._check_need_driven_movement(npc)
-
-        # 1.5 Если есть intent — отдаём MovementEngine (Слой 2)
         if need_intent:
-            intent_changes = self._movement_engine.process_intents(
-                [need_intent], tick=tick,
-            )
-            changes.extend(intent_changes)
-            # Также обновляем activity в scene_state
-            target_activity = _NEED_TO_ACTIVITY.get(
-                need_intent.reason.split(":")[1].split("=")[0], ""
-            )
-            if target_activity:
-                activity_entry = npc.get("activity_map", {}).get(target_activity, {})
-                changes.append(SceneChange(
-                    type=ChangeType.NPC_POSITION,
-                    target=need_intent.npc_id,
-                    field="activity",
-                    value=activity_entry.get("display", target_activity),
-                    cause=f"life_engine_need_driven:{need_intent.reason}",
-                    tick=tick,
-                ))
-        else:
-            # 2. Расписание — только если need-driven ничего не сделал
-            routine_changes, routine_intent = self.update_routine(npc, current_time, tick)
-            changes.extend(routine_changes)
-            if routine_intent:
-                movement_changes = self._movement_engine.process_intents(
-                    [routine_intent], tick=tick,
-                )
-                changes.extend(movement_changes)
+            candidates.append(need_intent)
 
-        # 2. Восстанавливаем стресс (без SceneChange — только данные NPC)
-        self.recover_stress_tick(npc)
+        # 2. Расписание (всегда генерирует, но может быть None)
+        routine_changes, routine_intent = self.update_routine(npc, current_time, tick)
+        changes.extend(routine_changes)
+        if routine_intent:
+            candidates.append(routine_intent)
 
-        # 3. Случайные события (5% шанс)
+        # 3. Случайные события (5% шанс) — могут породить intent
         event_changes = self.check_random_events(npc, tick)
         changes.extend(event_changes)
+
+        # 4. Восстанавливаем стресс (без SceneChange — только данные NPC)
+        self.recover_stress_tick(npc)
+
+        # ── D6: выбираем лучший intent по priority ──
+        if candidates:
+            candidates.sort(key=lambda i: i.priority, reverse=True)
+            winner = candidates[0]
+            intent_changes = self._movement_engine.process_intents(
+                [winner], tick=tick,
+            )
+            changes.extend(intent_changes)
+            # Обновляем activity в scene_state
+            if winner.reason.startswith("need_driven:"):
+                target_activity = _NEED_TO_ACTIVITY.get(
+                    winner.reason.split(":")[1].split("=")[0], ""
+                )
+                if target_activity:
+                    activity_entry = npc.get("activity_map", {}).get(target_activity, {})
+                    changes.append(SceneChange(
+                        type=ChangeType.NPC_POSITION,
+                        target=winner.npc_id,
+                        field="activity",
+                        value=activity_entry.get("display", target_activity),
+                        cause=f"life_engine_need_driven:{winner.reason}",
+                        tick=tick,
+                    ))
+            logger.debug(
+                f"[LIFE_ENGINE] {npc.get('id', '?')}: "
+                f"{len(candidates)} intents, winner={winner.reason} (p={winner.priority})"
+            )
 
         return changes
 
@@ -1033,11 +1044,15 @@ class LifeEngine:
             npc["location"] = target_location
         npc.get("routine", {})["current"] = target_activity
 
+        from app.domain.movement import PRIORITY_NEEDS
         return MovementIntent(
             npc_id=npc_id,
             target_node_id=target_node,
+            from_node_id=npc.get("position", ""),
             location_id=target_location,
             reason=f"need_driven:{need_name}={need_value:.2f}",
+            priority=PRIORITY_NEEDS,
+            movement_mode="path",
         )
 
     def _simulate_minor(
@@ -1145,11 +1160,15 @@ class LifeEngine:
             )
 
         # ── MovementIntent для MovementEngine (Слой 2) ────────────────────
+        from app.domain.movement import PRIORITY_SCHEDULE
         intent = MovementIntent(
             npc_id=npc_id,
             target_node_id=new_position,
+            from_node_id=npc.get("position", ""),
             location_id=new_location,
             reason=f"schedule:{new_activity}",
+            priority=PRIORITY_SCHEDULE,
+            movement_mode="path",
         )
 
         # ── Обновляем NPC dict в памяти ────────────────────────────────────
