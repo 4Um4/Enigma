@@ -28,3 +28,12 @@ class MovementIntent:
     # ── ЗАКЛАДКА ПОД PATHING (ФАЗА 4) — пока не используются ──
     movement_mode: str = "instant"   # "instant" | "path" — когда появится pathing
     priority: float = 0.5            # 0.0–1.0, для разрешения конфликтов intent-ов
+
+
+# Константы приоритетов — выше = важнее (D6)
+# Порядок из Диаграммы 9: flee > combat > needs > schedule > random
+PRIORITY_FLEE: float = 1.0
+PRIORITY_COMBAT: float = 0.85
+PRIORITY_NEEDS: float = 0.7
+PRIORITY_SCHEDULE: float = 0.5
+PRIORITY_RANDOM: float = 0.3

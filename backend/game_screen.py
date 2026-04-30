@@ -28,7 +28,8 @@ from app.services.player_cognition import (
 from movement_system import try_move, move_towards
 from intent_parser import parse_movement_intent
 from pathfinding import find_path
-from npc_movement import NpcMovementSystem
+# A2: npc_movement удалён — NPC двигает TransitTracker (backend, 1 шаг/тик)
+# Плавная интерполяция между DTO-снимками — отдельная задача
 from api_client import create_game_gateway, ActionQueue
 # Тайминги опроса backend из constants.py (frontend-side)
 from constants import (
@@ -198,17 +199,6 @@ class GameScreen:
         scene_h = loc_meta.get("size", {}).get("h", 15)
         walls = scene_state.get("spatial_walls", [])
         obstacles = scene_state.get("spatial_obstacles", [])
-
-        # Система плавного движения NPC — резолвит строковые позиции в координаты
-        from app.services.spatial.location_graph import load_graph
-        _npc_graph = load_graph(location_id)
-        npc_movement = NpcMovementSystem(
-            scene_w=scene_w,
-            scene_h=scene_h,
-            walls=walls,
-            obstacles=obstacles,
-            location_graph=_npc_graph,
-        )
 
         # Состояние восприятия
         memory = PlayerMemory()
@@ -443,24 +433,21 @@ class GameScreen:
                 for npc_id, new_data in _new_positions.items():
                     if npc_id in scene_state.get("npc_positions", {}):
                         existing = scene_state["npc_positions"][npc_id]
-                        new_pos_str = new_data.get("position", "")
                         # Обновляем строковые поля, но не трогаем local_position
+                        # local_position приходит только из WorldSnapshotDTO (ниже)
                         for k, v in new_data.items():
-                            if k != "local_position" or "local_position" not in existing:
+                            if k != "local_position":
                                 existing[k] = v
-                            # Запускаем плавное движение если строковая позиция изменилась
-                            if new_pos_str and npc_movement.should_request_move(npc_id, new_pos_str, scene_state):
-                                npc_movement.request_move(npc_id, new_pos_str, scene_state)
                     else:
                         scene_state.setdefault("npc_positions", {})[npc_id] = new_data
-                        if new_pos_str and npc_movement.should_request_move(npc_id, new_pos_str, scene_state):
-                            npc_movement.request_move(npc_id, new_pos_str, scene_state)
 
         # A1: мержим координаты из WorldSnapshotDTO (графовые {x,y})
-        if _tick_data.get("world_snapshot"):
-            for dto in _tick_data["world_snapshot"].npc_positions:
-                entry = scene_state.setdefault("npc_positions", {}).setdefault(dto.npc_id, {})
-                entry["local_position"] = {"x": dto.x, "y": dto.y}
+        # _tick_data — серилизованный dict из HTTP, а не DTO объект
+        _ws = _tick_data.get("world_snapshot")
+        if _ws and isinstance(_ws, dict):
+            for dto in _ws.get("npc_positions", []):
+                entry = scene_state.setdefault("npc_positions", {}).setdefault(dto.get("npc_id", ""), {})
+                entry["local_position"] = {"x": dto.get("x", 0.0), "y": dto.get("y", 0.0)}
 
         print(f"[IDLE_TICK] merged: {list(_new_positions.keys())}")
 
@@ -555,9 +542,6 @@ class GameScreen:
                 # Следующий Telegraph запустится при следующем Tab
                 if action_queue.is_telegraph_result(result):
                     print("[TELEGRAPH] completed")
-
-            # === Движение NPC — обновляем local_position перед pipeline ===
-            npc_movement.tick(scene_state)
 
             # === Pipeline ===
             config = PerceptionConfig(

@@ -184,6 +184,8 @@ class DecisionHub:
         social_modifiers:  Optional[Dict[str, float]] = None,
         reputation_modifiers: Optional[Dict[str, float]] = None,
         drive_modifiers:   Optional[Dict[str, float]] = None,
+        contract_modifiers: Optional[Dict[str, float]] = None,
+        npc_memory_modifiers: Optional[Dict[str, float]] = None,
         reflex_constraints: Optional[Dict] = None,
     ) -> DecisionResult:
         """
@@ -230,6 +232,18 @@ class DecisionHub:
         # Фаза 4-ROLE.2: модификаторы от временных драйвов (vengeance, greed, desperation)
         if drive_modifiers:
             for intent, modifier in drive_modifiers.items():
+                if intent in scores:
+                    scores[intent] = round(scores[intent] + modifier, 4)
+
+        # Этап 6: невыполненные контракты → повышают приоритет remind/demand
+        if contract_modifiers:
+            for intent, modifier in contract_modifiers.items():
+                if intent in scores:
+                    scores[intent] = round(scores[intent] + modifier, 4)
+
+        # Этап 7: NPC-NPC память → модификаторы от recall о целевом NPC
+        if npc_memory_modifiers:
+            for intent, modifier in npc_memory_modifiers.items():
                 if intent in scores:
                     scores[intent] = round(scores[intent] + modifier, 4)
 

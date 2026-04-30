@@ -148,6 +148,10 @@ class EventMemory:
     hidden_from:         Tuple[str, ...] = ()   # от кого скрыто (immutable для frozen)
     accessibility:       float = 1.0            # 0..1, падает со временем отдельно от importance
 
+    # Этап 6: контракты и обязательства
+    fulfilled:           bool = False           # обещание выполнено / долг погашен
+    contract_ref:        str = ""               # ID связанного события (promise_given ↔ fulfilled)
+
     def __post_init__(self) -> None:
         # Защита от невалидных значений при загрузке из JSON
         object.__setattr__(self, "importance",  max(0.0, min(1.0, self.importance)))
@@ -156,17 +160,18 @@ class EventMemory:
         object.__setattr__(self, "decay_rate",    max(0.0, min(1.0, self.decay_rate)))
         object.__setattr__(self, "accessibility", max(0.0, min(1.0, self.accessibility)))
 
-    def decayed(self, ticks: int = 1) -> "EventMemory":
+    def decayed(self, game_days: float = 1.0) -> "EventMemory":
         """
-        Возвращает новый EventMemory с применённым decay.
+        Возвращает новый EventMemory с применённым decay по игровым дням.
         Используется WorkingMemory.apply_decay() — не мутирует оригинал.
+        Формула (Этап 8): importance × exp(-decay_rate × game_days)
         """
         # Экспоненциальное затухание важности
-        new_importance = self.importance * (_math.exp(-self.decay_rate * ticks))
+        new_importance = self.importance * (_math.exp(-self.decay_rate * game_days))
         # Уверенность снижается медленнее — детали теряются постепенно
-        new_confidence = self.confidence * (_math.exp(-self.decay_rate * 0.5 * ticks))
+        new_confidence = self.confidence * (_math.exp(-self.decay_rate * 0.5 * game_days))
         # Accessibility падает медленнее importance — вспомнить легче чем оценить значимость
-        new_accessibility = self.accessibility * (_math.exp(-self.decay_rate * 0.3 * ticks))
+        new_accessibility = self.accessibility * (_math.exp(-self.decay_rate * 0.3 * game_days))
         new_stage      = _resolve_stage(new_importance)
 
         return EventMemory(

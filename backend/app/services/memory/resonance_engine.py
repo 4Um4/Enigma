@@ -277,6 +277,52 @@ class ResonanceEngine:
 
         return pattern_name
 
+    # ─────────────────────────────────────────────────────────────────────────
+    # Этап 7: NPC-NPC паттерны
+    # ─────────────────────────────────────────────────────────────────────────
+    def detect_npc_patterns(
+        self,
+        events: Sequence[EventMemory],
+        *,
+        target_npc_id: str,
+    ) -> List[ResonancePattern]:
+        """Детекция паттернов в памяти о конкретном NPC.
+
+        Ищет события где target_npc_id — источник (source) или цель (target_id).
+        3+ негативных → hostile_pattern.
+        """
+        relevant = [
+            e for e in events
+            if isinstance(e, EventMemory)
+            and e.stage != MemoryStage.FORGOTTEN
+            and (e.target_id == target_npc_id or e.npc_id == target_npc_id)
+        ]
+
+        # Считаем по тегам: negative события из темы агрессии
+        negative = [
+            e for e in relevant
+            if "negative" in e.tags
+            or any(theme in e.event_type for theme in _THEME_AGGRESSION)
+        ]
+
+        if len(negative) < _MIN_EVENTS_FOR_PATTERN:
+            return []
+
+        raw = sum(e.importance for e in negative)
+        if raw < _TRAIT_FORMATION_THRESHOLD:
+            return None  # type: ignore[return-value]
+
+        density = self._temporal_density(negative)
+        strength = raw * density
+
+        delta = min(_MAX_PATTERN_DELTA, round(strength * 0.15, 4))
+        return [ResonancePattern(
+            pattern_name="hostile_pattern",
+            strength=round(min(strength, 1.0), 4),
+            trait_name="hostile_to_npc",
+            trait_delta=delta,
+        )]
+
     def _temporal_density(self, events: List[EventMemory]) -> float:
         """
         Чем ближе события по времени — тем сильнее паттерн.

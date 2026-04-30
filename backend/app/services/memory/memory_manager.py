@@ -13,7 +13,7 @@ from app.services.memory.relationship_store import RelationshipStore
 from app.services.memory.contradiction_resolver import resolve_all
 
 from app.models.npc_state import DiscoveryCrack, EventMemory, MemoryStage, NPCState
-from app.domain.events import EventDTO
+from app.domain.events import EventDTO, CONTRACT_TAGS
 from app.services.npc.perception_filter import calculate_clarity
 
 from app.services.memory.resonance_engine import ResonanceEngine
@@ -139,6 +139,11 @@ class MemoryManager:
         if importance >= 0.90:
             decay_rate = 0.005
 
+        # Этап 6: обязательства забываются медленнее (×0.4 от базового)
+        _contract_tag_pending = payload.get("contract_tag", "")
+        if _contract_tag_pending in CONTRACT_TAGS:
+            decay_rate *= 0.4
+
         # 4. Генерация тегов из event.type + emotion_tag (Этап 5 prep)
         _tags: list[str] = [event.type]
         if emotion_tag in ("angry", "fearful", "disgusted"):
@@ -147,6 +152,11 @@ class MemoryManager:
             _tags.append("positive")
         else:
             _tags.append("neutral")
+
+        # 4b. Этап 6: тег контракта — обязательства забываются медленнее
+        contract_tag = payload.get("contract_tag", "")
+        if contract_tag in CONTRACT_TAGS:
+            _tags.append(contract_tag)
 
         # 5. Создаём EventMemory
         mem = EventMemory(
@@ -165,6 +175,8 @@ class MemoryManager:
             is_secret=payload.get("is_secret", False),
             known_by=tuple(payload.get("known_by", ())),
             hidden_from=tuple(payload.get("hidden_from", ())),
+            fulfilled=payload.get("fulfilled", False),
+            contract_ref=payload.get("contract_ref", ""),
         )
 
         # 6. STM: per-NPC ключ (Закон 4.1.1)
@@ -300,12 +312,14 @@ class MemoryManager:
         hidden_from_id: str = "",
         npc_stress: float = 0.0,
         limit: int = 3,
+        target_npc_id: str = "",
     ) -> List[EventMemory]:
         """Ищет релевантные воспоминания из narrative_cache.
 
-        Два режима:
+        Три режима:
         1. Триггерный: тег совпал → сортировка по importance.
-        2. Случайный: accessibility > 0.2 → сортировка по importance × accessibility.
+        2. По целевому NPC: target_npc_id совпал с target_id → сортировка по importance.
+        3. Случайный: accessibility > 0.2 → сортировка по importance × accessibility.
 
         Секреты ВСЕГДА фильтруются из recall.
         Раскрытие секретов — через assess_secrets_under_pressure() отдельно.
@@ -332,6 +346,13 @@ class MemoryManager:
             triggered.sort(key=lambda m: m.importance, reverse=True)
             return triggered[:limit]
 
+        # Этап 7: поиск памяти о конкретном NPC (NPC-NPC взаимодействия)
+        if target_npc_id:
+            npc_memories = [m for m in alive if m.target_id == target_npc_id]
+            if npc_memories:
+                npc_memories.sort(key=lambda m: m.importance, reverse=True)
+                return npc_memories[:limit]
+
         # Случайный recall: только доступные воспоминания
         accessible = [m for m in alive if m.accessibility > 0.2]
         if not accessible:
@@ -343,6 +364,33 @@ class MemoryManager:
             reverse=True,
         )
         return accessible[:limit]
+
+    # ──────────────────────────────────────────────────────────────────────
+    # Этап 6: контракты и обязательства
+    # ──────────────────────────────────────────────────────────────────────
+    def get_unfulfilled_contracts(
+        self,
+        narrative_cache: Tuple[EventMemory, ...],
+        *,
+        tag_filter: Tuple[str, ...] = (),
+    ) -> List[EventMemory]:
+        """Возвращает невыполненные обязательства из narrative_cache.
+
+        Фильтрует по тегам из CONTRACT_TAGS (promise_given, promise_received, debt).
+        fulfilled=True — исключается (обязательство выполнено).
+        Сортировка: importance DESC — самые pressing первые.
+        """
+        from app.domain.events import CONTRACT_TAGS
+
+        _filter = set(tag_filter) if tag_filter else CONTRACT_TAGS
+        result = [
+            m for m in narrative_cache
+            if not m.is_forgotten
+            and not m.fulfilled
+            and _filter.intersection(m.tags)
+        ]
+        result.sort(key=lambda m: m.importance, reverse=True)
+        return result
 
     # ──────────────────────────────────────────────────────────────────────
     # Persistence — единая точка записи в хранилище (Закон 4.1.2)
@@ -480,10 +528,12 @@ class MemoryManager:
         self,
         campaign_id: str,
         current_tick: int,
+        game_days: float = 1.0,
     ) -> List[Tuple[str, float]]:
         """
-        R5.3 — запускает decay и возвращает identity weights от ABSTRACT-переходов.
-        Обрабатывает как старый campaign-level буфер, так и per-NPC буферы.
+        R5.3 + Этап 8 — запускает decay по игровым дням, возвращает identity weights.
+        Триггер: раз в DECAY_EVERY тиков (частота вызова не меняется),
+        но magnitude decay считается в game_days, не в тиках.
         """
         last = self._tick_counters.get(campaign_id, 0)
         if current_tick - last < DECAY_EVERY:
@@ -493,11 +543,11 @@ class MemoryManager:
 
         # Старый формат: один буфер на кампанию
         if self._working.get(campaign_id):
-            all_weights.extend(self._working.apply_decay(campaign_id, ticks=1))
+            all_weights.extend(self._working.apply_decay(campaign_id, game_days=game_days))
 
         # Новый формат: per-NPC буферы (campaign_id:npc_id)
         for key in self._working.get_keys_with_prefix(f"{campaign_id}:"):
-            all_weights.extend(self._working.apply_decay(key, ticks=1))
+            all_weights.extend(self._working.apply_decay(key, game_days=game_days))
 
         self._tick_counters[campaign_id] = current_tick
         return all_weights

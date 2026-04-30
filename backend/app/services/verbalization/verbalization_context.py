@@ -72,6 +72,8 @@ class VerbalizationContext:
     suppressed_secrets:   Tuple["EventMemory", ...] = field(default_factory=tuple)
     # STM: последние реплики текущего диалога (Этап 1)
     stm_buffer: Tuple[str, ...] = field(default_factory=tuple)
+    # Этап 7: NPC-NPC — что NPC_A помнит о NPC_B
+    npc_npc_context: Tuple["EventMemory", ...] = field(default_factory=tuple)
     is_explain_mode: bool = False
 
 
