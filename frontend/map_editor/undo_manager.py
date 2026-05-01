@@ -1,9 +1,9 @@
 """
-map_editor/undo_manager.py
+path: /frontend/map_editor/undo_manager.py
+
 Система отмены/повтора действий (Undo/Redo)
 Каждая мутация данных оборачивается в команду с do()/undo()
 
-path: /backend/map_editor/undo_manager.py
 Зависимости: dataclasses, copy, typing
 Основные сущности: Command (база), AddWallCommand, RemoveWallCommand, AddRoomCommand, RemoveRoomCommand,
 AddNodeCommand, RemoveNodeCommand, AddObjectCommand, RemoveObjectCommand,

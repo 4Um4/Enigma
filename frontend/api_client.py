@@ -13,7 +13,8 @@ Pygame знает ТОЛЬКО GameGateway и ActionQueue.
 При смене транспорта (WebSocket, gRPC) — меняется только HttpGameGateway.
 При смене контракта API — меняется только BackendContract.
 
-path: /backend/api_client.py
+path: /frontend/api_client.py
+
 Назначение: Слой связи Pygame ↔ Backend. Три уровня: Protocol (что знает Pygame) → Contract (маппинг) → Transport (HTTP). Плюс неблокирующая очередь.
 Зависимости: urllib.request, json, threading, queue (stdlib)
 Основные сущности: GameGateway, GameActionResponse, HttpClient, BackendContract, HttpGameGateway, ActionQueue

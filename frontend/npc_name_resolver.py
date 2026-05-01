@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-backend/npc_name_resolver.py
+path: /frontend/npc_name_resolver.py
+
 Конвертация npc_id → отображаемое имя.
 Читает config/npc/individuals/ напрямую, без зависимости от app/.
 
@@ -8,7 +9,6 @@ backend/npc_name_resolver.py
   scene_state_manager — агрегат состояния сцены (backend).
   npc_name_resolver — чистая утилита для парсинга текста (frontend).
 
-  path: /backend/npc_name_resolver.py
 Назначение: Конвертация npc_id → отображаемое имя. Без зависимости от app/.
 Зависимости: json, pathlib, typing
 Основные сущности: npc_id_to_display, _NPC_NAME_CACHE

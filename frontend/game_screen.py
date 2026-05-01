@@ -1,9 +1,9 @@
 """
-backend/game_screen.py
+path: /frontend/game_screen.py
+
 Экран игры — связывает player_cognition pipeline с scene_renderer.
 Загружает состояние кампании, прогоняет pipeline каждый кадр, рендерит результат.
 
-path: /backend/game_screen.py
 Назначение: Экран игры — загружает кампанию, прогоняет pipeline, рендерит карту, возвращает управление в меню по ESC
 Зависимости: pygame, scene_renderer, player_cognition.pipeline, movement_system, intent_parser, json, pathlib
 Основные сущности: GameScreen, _MoveState
@@ -185,7 +185,7 @@ class GameScreen:
 
         # Игровое время — total_seconds от начала эпохи
         # При старте парсим из scene_state, дальше обновляем из ответов backend и движения
-        from backend.constants import TIME_DELTA_WALK_INDOOR, parse_hhmm
+        from constants import TIME_DELTA_WALK_INDOOR, parse_hhmm, format_game_time
         _env_time_str = scene_state.get("environment", {}).get("time_of_day", "07:00")
         self.game_time_seconds: int = parse_hhmm(_env_time_str)
 
@@ -419,9 +419,7 @@ class GameScreen:
                     move.walk_distance_accumulated += 0.3  # step_size
                     meters_walked = int(move.walk_distance_accumulated)
                     if meters_walked > 0:
-                        self.game_time_seconds = Calendar.advance(
-                            self.game_time_seconds, TIME_DELTA_WALK_INDOOR * meters_walked
-                        )
+                        self.game_time_seconds += TIME_DELTA_WALK_INDOOR * meters_walked
                         move.walk_distance_accumulated -= meters_walked
 
             # === Idle tick: применяем результат прошлого idle_tick если готов ===
@@ -570,7 +568,7 @@ class GameScreen:
             self.screen.blit(fps_surf, (self.screen.get_width() - 70, 4))
             
             time_surf = self.renderer.font_small.render(
-                Calendar.format_full(self.game_time_seconds), True, (140, 140, 140)
+                format_game_time(self.game_time_seconds), True, (140, 140, 140)
             )
             self.screen.blit(time_surf, (self.screen.get_width() - 280, 4))
 

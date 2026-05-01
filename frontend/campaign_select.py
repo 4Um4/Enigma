@@ -1,5 +1,5 @@
 """
-backend/campaign_select.py
+path: /frontend/campaign_select.py
 Экран выбора кампании — полностью самодостаточен, без зависимостей от map_editor и app/.
 Читает метаданные из data/campaigns/*/campaign.json напрямую.
 

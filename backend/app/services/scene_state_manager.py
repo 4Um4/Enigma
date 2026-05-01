@@ -462,7 +462,7 @@ class SceneStateManager:
         Поддерживает: точное совпадение, частичное совпадение label, пустой location_id."""
         search_dirs = [
             self.campaigns_dir / campaign_id / "locations",
-            Path(__file__).parent.parent.parent / "map_editor" / "campaigns" / campaign_id / "locations",
+            Path(__file__).parent.parent.parent.parent / "frontend" / "map_editor" / "campaigns" / campaign_id / "locations",
         ]
         for loc_dir in search_dirs:
             if not loc_dir.exists():
@@ -492,7 +492,7 @@ class SceneStateManager:
         """Возвращает первую найденную локацию из editor JSON — fallback при несовпадении location_id."""
         search_dirs = [
             self.campaigns_dir / campaign_id / "locations",
-            Path(__file__).parent.parent.parent / "map_editor" / "campaigns" / campaign_id / "locations",
+            Path(__file__).parent.parent.parent.parent / "frontend" / "map_editor" / "campaigns" / campaign_id / "locations",
         ]
         for loc_dir in search_dirs:
             if not loc_dir.exists():

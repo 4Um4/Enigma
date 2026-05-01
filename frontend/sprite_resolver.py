@@ -1,9 +1,9 @@
 """
-app/core/sprite_resolver.py
+path: /frontend/sprite_resolver.py
+
 Единственный источник маппинга тип объекта → спрайт.
 Независим от map_editor — сам загружает тайлы из общей папки пикселей.
 
-path: /backend/app/core/sprite_resolver.py
 Назначение: Разрешение типа сущности в pygame.Surface для рендерера
 Зависимости: pygame, typing, os
 Основные сущности: ENTITY_SPRITE_MAP, get_entity_sprite

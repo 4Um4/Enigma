@@ -1,10 +1,10 @@
 """
-backend/scene_renderer.py
+path: /frontend/scene_renderer.py
+
 Рендер карты — переводит PerceivedScene в пиксели.
 Координаты в метрах, SCALE = пикселей на метр.
 Рисует только воспринимаемое (visible entities, audio как текст).
 
-path: /backend/scene_renderer.py
 Назначение: Отрисовывает PerceivedScene на pygame.Surface — только то, что персонаж воспринимает
 Зависимости: pygame, player_cognition.types
 Основные сущности: SceneRenderer

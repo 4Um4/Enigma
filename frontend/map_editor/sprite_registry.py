@@ -1,6 +1,7 @@
 """Реестр спрайтов для работы с тайлсетами и палитрами.
 
-path: /backend/map_editor/sprite_registry.py
+path: /frontend/map_editor/sprite_registry.py
+
 Назначение: Универсальный кэширующий провайдер тайлов из спрайтшитов. Поддерживает произвольные паки палитр.
 Зависимости: pygame, typing
 Основные сущности: SpriteRegistry (singleton через модуль)
