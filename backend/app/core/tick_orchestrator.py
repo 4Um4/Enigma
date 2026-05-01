@@ -44,13 +44,19 @@ class _TickContext:
     old_npc_positions: dict = field(default_factory=dict)
     # Фаза 0: изменения от LifeEngine
     scene_changes: list = field(default_factory=list)
+    # Фаза 2: spatial events для Phase 3 (memory)
+    phase_2_events: list = field(default_factory=list)
+    # Фаза 4: извлечённые темы для каждого NPC (npc_id → topic)
+    npc_topics: dict = field(default_factory=dict)
+    # Фаза 4: извлечённые темы (Устав 3.2)
+    extracted_topics: list[str] = field(default_factory=list)
     # Фаза 5: решения DecisionHub
     decision_events: list = field(default_factory=list)
     # Фаза 9: финальный снимок
     world_snapshot: Optional[Any] = None
     # Фаза 10: данные для атомарного коммита
-    # npc_states: заполняется когда NPC-pipeline будет передавать стейты через контекст
-    npc_states: list[dict] | None = None
+    # npc_states: полные стейты NPC после мутаций LifeEngine (фаза 0)
+    npc_states: list[dict] = field(default_factory=list)
     # tick_events: все события тика для аудита (decision_events + spatial + handlers)
     tick_events: list[dict] | None = None
 
@@ -69,6 +75,7 @@ class TickOrchestrator:
         self._scene_manager = scene_manager
         # Ленивая инициализация — чтобы не тащить все сервисы при импорте
         self._life_engine = None
+        self._memory_manager = None
         self._event_bus = None
         self._snapshot_builder = None
         self._transit_tracker = None
@@ -78,6 +85,18 @@ class TickOrchestrator:
             from app.services.npc.life_engine import get_life_engine
             self._life_engine = get_life_engine()
         return self._life_engine
+
+    def _get_memory_manager(self):
+        if self._memory_manager is None:
+            from app.services.memory.memory_manager import MemoryManager
+            from app.services.memory.layered_memory import LayeredMemory
+            from app.services.memory.sqlite_store import SqliteMemoryStore
+            from app.core.config import settings
+            from pathlib import Path
+            store = SqliteMemoryStore(Path(settings.saves_dir) / "enigma_memory.db")
+            layered = LayeredMemory(store)
+            self._memory_manager = MemoryManager(layered)
+        return self._memory_manager
 
     def _get_event_bus(self):
         if self._event_bus is None:
@@ -189,6 +208,8 @@ class TickOrchestrator:
         engine.set_transit_tracker(self._get_transit_tracker())
         changes = engine.tick(ctx.campaign_id, ctx.scene_state, runtime_path=runtime_path)
         ctx.scene_changes = changes or []
+        # Заполняем полные стейты для фаз 3-6, 10 (Устав §3.1)
+        ctx.npc_states = engine.get_npc_states(ctx.campaign_id)
         if changes and self._scene_manager:
             self._scene_manager.apply_changes(ctx.campaign_id, changes, ctx.scene_state)
             logger.debug(f"[TICK_ORCH] Фаза 0: {len(changes)} changes от LifeEngine")
@@ -216,27 +237,133 @@ class TickOrchestrator:
             new_scene_state=ctx.scene_state,
         )
         if _spatial_events:
+            ctx.phase_2_events.extend(_spatial_events)
             logger.debug(f"[TICK_ORCH] Фаза 2: {len(_spatial_events)} spatial events")
 
     def _phase_3_memory(self, ctx: _TickContext) -> None:
         """MemoryProcessor: обновляет NPCState ДО принятия решения (Устав §3.1).
         
-        TODO: C2 — MemoryProcessor.apply(event, npc_state)
+        Для каждого spatial event из Phase 2 — находит затронутых NPC,
+        конвертирует dict → NPCState, вызывает MemoryManager.apply().
+        Пишет в STM + SQLite. narrative_cache на временном объекте теряется — 
+        восстанавливается из SQLite при следующем load (допустимо до R1.8).
         """
-        pass
+        if not ctx.phase_2_events:
+            return
+
+        from dataclasses import replace
+        from app.services.npc.npc_loader import load_l2_state_from_runtime_dict
+
+        mm = self._get_memory_manager()
+        processed = 0
+
+        for event in ctx.phase_2_events:
+            for npc_id in self._resolve_affected_npcs(event):
+                npc_dict = next(
+                    (n for n in ctx.npc_states if n.get("id") == npc_id),
+                    None,
+                )
+                if not npc_dict:
+                    continue
+
+                npc_state = load_l2_state_from_runtime_dict(npc_dict)
+                # apply() ищет npc_id в payload — инжектим
+                new_payload = {**event.payload, "npc_id": npc_id}
+                new_event = replace(event, payload=new_payload)
+
+                mm.apply(new_event, npc_state, campaign_id=ctx.campaign_id)
+                processed += 1
+
+        logger.debug(f"[TICK_ORCH] Фаза 3: {processed} memory updates")
+
+    @staticmethod
+    def _resolve_affected_npcs(event) -> list[str]:
+        """Определяет список NPC затронутых событием."""
+        from app.services.events.event_types import EventType
+
+        affected: list[str] = []
+        etype = event.type
+
+        if etype == EventType.NPC_MOVED.value:
+            affected.append(event.source)
+        elif etype in (
+            EventType.NPC_PROXIMITY_CLOSE.value,
+            EventType.NPC_PROXIMITY_LEAVE.value,
+        ):
+            affected.append(event.payload.get("npc_a", ""))
+            affected.append(event.payload.get("npc_b", ""))
+
+        return [n for n in affected if n]
 
     def _phase_4_pre_decision(self, ctx: _TickContext) -> None:
         """TopicExtractor: извлекает тему для каждого NPC (Устав §3.2).
         
-        TODO: C3 — TopicExtractor читает STM + L2 → формирует topic
-        Сейчас тема извлекается внутри DecisionHub, что нарушает Устав.
+        Приоритет источников темы:
+        1. Spatial event затронувший NPC (конкретный контекст)
+        2. STM буфер NPC (последние реплики)
+        3. Фоллбэк "наблюдение" (никогда не пустой — Устав §3.2)
         """
-        pass
+        from app.services.npc.topic_extractor import extract_topic
+        from app.services.events.event_types import EventType
+
+        mm = self._get_memory_manager()
+
+        for npc_dict in ctx.npc_states:
+            npc_id = npc_dict.get("id")
+            if not npc_id:
+                continue
+
+            topic = ""
+            stm_text = ""
+
+            # 1. Проверяем spatial events затронувшие этого NPC
+            for event in ctx.phase_2_events:
+                affected = self._resolve_affected_npcs(event)
+                if npc_id in affected:
+                    topic = extract_topic(
+                        event_type=event.type,
+                        raw_input=event.payload.get("to_node", ""),
+                    )
+                    break  # первый подошедший event достаточно
+
+            # 2. Фоллбэк на STM
+            if not topic:
+                stm_text = mm.get_stm_prompt_block(ctx.campaign_id, npc_id)
+                if stm_text.strip():
+                    topic = extract_topic(
+                        event_type="idle",
+                        raw_input=stm_text,
+                    )
+
+            # 3. Жёсткий фоллбэк — тема НЕ может быть пустой (Устав §3.2)
+            if not topic:
+                topic = "наблюдение"
+
+            ctx.npc_topics[npc_id] = topic
+
+        logger.debug(f"[TICK_ORCH] Фаза 4: {len(ctx.npc_topics)} topics извлечено")
+
+        from app.services.npc.topic_extractor import extract_topic
+
+        if ctx.phase_2_events:
+            for event in ctx.phase_2_events:
+                _topic = extract_topic(
+                    event_type=getattr(event, "event_type", ""),
+                    scene_facts=getattr(event, "scene_facts", None),
+                )
+                if _topic and _topic not in ctx.extracted_topics:
+                    ctx.extracted_topics.append(_topic)
+
+        # world_tick без событий — дефолтная тема
+        if not ctx.extracted_topics:
+            ctx.extracted_topics.append("наблюдение")
+
+        logger.debug(f"[TICK_ORCH] Фаза 4: topics={ctx.extracted_topics}")
 
     def _phase_5_decision(self, ctx: _TickContext) -> None:
         """DecisionHub: создаёт CommunicationIntent для каждого NPC."""
         engine = self._get_life_engine()
-        decisions = engine.tick_decisions(ctx.campaign_id, ctx.scene_state)
+        decisions = engine.tick_decisions(ctx.campaign_id, ctx.scene_state, topics=ctx.extracted_topics)
         ctx.decision_events = decisions or []
         if decisions:
             logger.debug(f"[TICK_ORCH] Фаза 5: {len(decisions)} decisions")

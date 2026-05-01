@@ -305,28 +305,12 @@ async def game_action(request: dict, game_loop=Depends(get_game_loop)) -> dict:
             endpoint=settings.llama_cpp_server_url,
         )
 
-        # Синхронизация позиции игрока от фронтенда
-        # Фаза 4 — время продвигается от перемещений
+        # Позиция игрока от фронтенда — пробрасывается через DTO, сохраняется атомарно в commit_tick
         player_x = request.get("player_x", 0.0)
         player_y = request.get("player_y", 0.0)
+        _player_pos: tuple[float, float] | None = None
         if player_x != 0.0 or player_y != 0.0:
-            scene = game_loop.scene_manager.get_scene_state(campaign_id, "")
-            if scene and "player_spatial" in scene:
-                # Вычисляем расстояние от предыдущей позиции
-                import math
-                _old_pos = scene["player_spatial"]["local_position"]
-                _old_x = _old_pos.get("x", player_x)
-                _old_y = _old_pos.get("y", player_y)
-                _dist = math.hypot(player_x - _old_x, player_y - _old_y)
-                
-                # Сохраняем новую позицию
-                scene["player_spatial"]["local_position"]["x"] = player_x
-                scene["player_spatial"]["local_position"]["y"] = player_y
-                
-                # Время продвигается в game_screen.py при каждом шаге (Calendar)
-                # Удалено легаси-мутирование time_of_day здесь
-                
-                game_loop.scene_manager.save_scene_state(campaign_id, scene)
+            _player_pos = (player_x, player_y)
 
         campaign_state = campaign_service.get_campaign_state(campaign_id)
         location = "tavern_silver_wolf"  # дефолт — ID локации, неdisplayName
@@ -340,7 +324,8 @@ async def game_action(request: dict, game_loop=Depends(get_game_loop)) -> dict:
             campaign_id=campaign_id,
             location=location,
             model=model_selection,
-            actions=[PlayerAction(player_name=player, action=action_text)]
+            actions=[PlayerAction(player_name=player, action=action_text)],
+            player_position=_player_pos,
         )
 
         result = await game_loop.run_turn(turn_request)

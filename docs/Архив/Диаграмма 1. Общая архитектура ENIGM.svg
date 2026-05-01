@@ -1,0 +1,241 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 960" font-family="'Segoe UI',system-ui,sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 6" refX="9" refY="3" markerWidth="8" markerHeight="5" orient="auto-start-reverse">
+      <path d="M0,0 L10,3 L0,6Z" fill="#757575"/>
+    </marker>
+    <marker id="ab" viewBox="0 0 10 6" refX="9" refY="3" markerWidth="10" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,3 L0,6Z" fill="#424242"/>
+    </marker>
+    <filter id="sh" x="-2%" y="-2%" width="104%" height="108%">
+      <feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.07"/>
+    </filter>
+  </defs>
+
+  <rect width="1200" height="960" fill="#fafafa" rx="6"/>
+
+  <!-- Заголовок -->
+  <text x="600" y="26" text-anchor="middle" font-size="13" font-weight="700" fill="#212121">Диаграмма 1. Общая архитектура ENIGMA (Production-Grade)</text>
+
+  <!-- ===== L1: FRONTEND ===== -->
+  <rect x="15" y="40" width="1170" height="105" rx="8" fill="#eceff1" stroke="#424242" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="30" y="58" font-size="10.5" font-weight="600" fill="#424242">Слой 1: Клиент (Frontend) — Глупый рендерер</text>
+
+  <rect x="80" y="68" width="190" height="48" rx="6" fill="#fff" stroke="#424242" stroke-width="1.5"/>
+  <text x="175" y="89" text-anchor="middle" font-size="12" font-weight="600">frontend/ui/</text>
+  <text x="175" y="105" text-anchor="middle" font-size="9" fill="#757575">Рендер UI</text>
+
+  <rect x="505" y="68" width="190" height="48" rx="6" fill="#fff" stroke="#424242" stroke-width="1.5"/>
+  <text x="600" y="89" text-anchor="middle" font-size="12" font-weight="600">frontend/map/</text>
+  <text x="600" y="105" text-anchor="middle" font-size="9" fill="#757575">Рендер карты</text>
+
+  <rect x="930" y="68" width="190" height="48" rx="6" fill="#fff" stroke="#424242" stroke-width="1.5"/>
+  <text x="1025" y="89" text-anchor="middle" font-size="12" font-weight="600">frontend/chat/</text>
+  <text x="1025" y="105" text-anchor="middle" font-size="9" fill="#757575">Рендер чата</text>
+
+  <!-- ===== L2: ИНФРАСТРУКТУРА ===== -->
+  <rect x="15" y="155" width="1170" height="140" rx="8" fill="#e3f2fd" stroke="#0277bd" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="30" y="173" font-size="10.5" font-weight="600" fill="#0277bd">Слой 2: Инфраструктура (Infrastructure) — Внешние связи и ИИ</text>
+
+  <rect x="40" y="183" width="260" height="50" rx="6" fill="#fff" stroke="#0277bd" stroke-width="1.5"/>
+  <text x="170" y="203" text-anchor="middle" font-size="11" font-weight="600">infrastructure/api/</text>
+  <text x="170" y="219" text-anchor="middle" font-size="9" fill="#757575">router.py, dto.py</text>
+
+  <rect x="460" y="183" width="260" height="50" rx="6" fill="#fff" stroke="#0277bd" stroke-width="1.5"/>
+  <text x="590" y="203" text-anchor="middle" font-size="11" font-weight="600">infrastructure/llm/</text>
+  <text x="590" y="219" text-anchor="middle" font-size="9" fill="#757575">compressor, shield, verbalizer</text>
+
+  <rect x="40" y="243" width="260" height="50" rx="6" fill="#fff" stroke="#0277bd" stroke-width="1.5"/>
+  <text x="170" y="263" text-anchor="middle" font-size="11" font-weight="600">infrastructure/memory/</text>
+  <text x="170" y="279" text-anchor="middle" font-size="9" fill="#757575">memory_shaper, vector_store</text>
+
+  <rect x="460" y="243" width="260" height="50" rx="6" fill="#fff" stroke="#0277bd" stroke-width="1.5"/>
+  <text x="590" y="263" text-anchor="middle" font-size="11" font-weight="600">infrastructure/narrative/</text>
+  <text x="590" y="279" text-anchor="middle" font-size="9" fill="#757575">emergent_generator</text>
+
+  <!-- ===== L3: ЯДРО ===== -->
+  <rect x="15" y="305" width="1170" height="195" rx="8" fill="#f3e5f5" stroke="#6a1b9a" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="30" y="323" font-size="10.5" font-weight="600" fill="#6a1b9a">Слой 3: Ядро (Core) — Оркестрация и Состояние</text>
+
+  <rect x="25" y="333" width="240" height="50" rx="6" fill="#fff" stroke="#6a1b9a" stroke-width="2.5"/>
+  <text x="145" y="353" text-anchor="middle" font-size="11" font-weight="700" fill="#6a1b9a">app/services/game_loop/</text>
+  <text x="145" y="369" text-anchor="middle" font-size="9" fill="#757575">10-фазный цикл (_run_pipeline)</text>
+
+  <rect x="280" y="333" width="240" height="50" rx="6" fill="#fff" stroke="#6a1b9a" stroke-width="1.5"/>
+  <text x="400" y="353" text-anchor="middle" font-size="11" font-weight="600">core/event_bus.py</text>
+  <text x="400" y="369" text-anchor="middle" font-size="9" fill="#757575">Шина событий (EventDTO)</text>
+
+  <rect x="535" y="333" width="240" height="50" rx="6" fill="#fff" stroke="#6a1b9a" stroke-width="1.5"/>
+  <text x="655" y="353" text-anchor="middle" font-size="11" font-weight="600">core/world_state.py</text>
+  <text x="655" y="369" text-anchor="middle" font-size="9" fill="#757575">Единый источник истины</text>
+
+  <rect x="790" y="333" width="240" height="50" rx="6" fill="#fff" stroke="#6a1b9a" stroke-width="1.5"/>
+  <text x="910" y="353" text-anchor="middle" font-size="11" font-weight="600">core/state_applicator.py</text>
+  <text x="910" y="369" text-anchor="middle" font-size="9" fill="#757575">Единственный мутатор</text>
+
+  <rect x="25" y="410" width="240" height="50" rx="6" fill="#fff" stroke="#6a1b9a" stroke-width="1.5"/>
+  <text x="145" y="430" text-anchor="middle" font-size="11" font-weight="600">core/state_delta.py</text>
+  <text x="145" y="446" text-anchor="middle" font-size="9" fill="#757575">Spatial, Health, Social</text>
+
+  <rect x="280" y="410" width="240" height="50" rx="6" fill="#fff" stroke="#6a1b9a" stroke-width="1.5"/>
+  <text x="400" y="430" text-anchor="middle" font-size="11" font-weight="600">core/temporal_engine.py</text>
+  <text x="400" y="446" text-anchor="middle" font-size="9" fill="#757575">Время, устаревание, recency</text>
+
+  <!-- ===== L4: NPC BRAIN ===== -->
+  <rect x="15" y="510" width="1170" height="140" rx="8" fill="#fff3e0" stroke="#f57f17" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="30" y="528" font-size="10.5" font-weight="600" fill="#f57f17">Слой 4: Когнитивный слой (NPC Brain)</text>
+
+  <rect x="25" y="538" width="230" height="48" rx="6" fill="#fff" stroke="#f57f17" stroke-width="1.5"/>
+  <text x="140" y="557" text-anchor="middle" font-size="11" font-weight="600">npc/perception_filter.py</text>
+  <text x="140" y="573" text-anchor="middle" font-size="9" fill="#757575">Что вижу</text>
+
+  <rect x="280" y="538" width="240" height="48" rx="6" fill="#fff" stroke="#f57f17" stroke-width="1.5"/>
+  <text x="400" y="557" text-anchor="middle" font-size="11" font-weight="600">npc/interpretation_engine.py</text>
+  <text x="400" y="573" text-anchor="middle" font-size="9" fill="#757575">Угроза или Флирт?</text>
+
+  <rect x="545" y="538" width="230" height="48" rx="6" fill="#fff" stroke="#f57f17" stroke-width="1.5"/>
+  <text x="660" y="557" text-anchor="middle" font-size="11" font-weight="600">npc/psyche_engine.py</text>
+  <text x="660" y="573" text-anchor="middle" font-size="9" fill="#757575">Стресс</text>
+
+  <rect x="280" y="596" width="240" height="48" rx="6" fill="#fff" stroke="#f57f17" stroke-width="2.5"/>
+  <text x="400" y="615" text-anchor="middle" font-size="11" font-weight="700" fill="#f57f17">npc/decision_hub.py</text>
+  <text x="400" y="631" text-anchor="middle" font-size="9" fill="#757575">Scorer: Выбор Intent</text>
+
+  <!-- ===== L5: ДОМЕН ===== -->
+  <rect x="15" y="660" width="1170" height="108" rx="8" fill="#e8f5e9" stroke="#2e7d32" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="30" y="678" font-size="10.5" font-weight="600" fill="#2e7d32">Слой 5: Домен (Domain) — Игровая логика</text>
+
+  <rect x="25" y="690" width="165" height="46" rx="6" fill="#fff" stroke="#2e7d32" stroke-width="1.5"/>
+  <text x="107" y="718" text-anchor="middle" font-size="11" font-weight="600">domain/combat/</text>
+
+  <rect x="210" y="690" width="165" height="46" rx="6" fill="#fff" stroke="#2e7d32" stroke-width="1.5"/>
+  <text x="292" y="718" text-anchor="middle" font-size="11" font-weight="600">domain/economy/</text>
+
+  <rect x="395" y="690" width="165" height="46" rx="6" fill="#fff" stroke="#2e7d32" stroke-width="1.5"/>
+  <text x="477" y="718" text-anchor="middle" font-size="11" font-weight="600">domain/social/</text>
+
+  <rect x="580" y="690" width="165" height="46" rx="6" fill="#fff" stroke="#2e7d32" stroke-width="1.5"/>
+  <text x="662" y="718" text-anchor="middle" font-size="11" font-weight="600">domain/needs/</text>
+
+  <rect x="765" y="690" width="165" height="46" rx="6" fill="#fff" stroke="#2e7d32" stroke-width="1.5"/>
+  <text x="847" y="718" text-anchor="middle" font-size="11" font-weight="600">domain/spatial/</text>
+
+  <!-- ===== L6: ДАННЫЕ ===== -->
+  <rect x="15" y="778" width="1170" height="88" rx="8" fill="#fffde7" stroke="#fbc02d" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="30" y="796" font-size="10.5" font-weight="600" fill="#f9a825">Слой 6: Данные (Data)</text>
+
+  <rect x="150" y="806" width="170" height="46" rx="6" fill="#fff" stroke="#fbc02d" stroke-width="1.5"/>
+  <text x="235" y="834" text-anchor="middle" font-size="11" font-weight="600">data/campaigns/</text>
+
+  <rect x="510" y="806" width="170" height="46" rx="6" fill="#fff" stroke="#fbc02d" stroke-width="1.5"/>
+  <text x="595" y="834" text-anchor="middle" font-size="11" font-weight="600">data/prompts/</text>
+
+  <rect x="870" y="806" width="170" height="46" rx="6" fill="#fff" stroke="#fbc02d" stroke-width="1.5"/>
+  <text x="955" y="834" text-anchor="middle" font-size="11" font-weight="600">data/world_def/</text>
+
+  <!-- ================================================================ -->
+  <!-- СВЯЗИ                                                            -->
+  <!-- ================================================================ -->
+
+  <!-- L1 → L2: User Input (bold, двунаправленная) -->
+  <line x1="600" y1="116" x2="170" y2="183" stroke="#424242" stroke-width="2.5" marker-end="url(#ab)" marker-start="url(#ab)"/>
+  <rect x="290" y="134" width="130" height="16" rx="3" fill="#fafafa" opacity="0.85"/>
+  <text x="355" y="146" text-anchor="middle" font-size="8.5" font-weight="600" fill="#424242">User Input / SnapshotDTO</text>
+
+  <!-- L2 → L3: API → game_loop (Команды) -->
+  <path d="M170,233 L170,295 L145,333" fill="none" stroke="#9e9e9e" stroke-width="2" marker-end="url(#a)"/>
+  <text x="108" y="285" font-size="8" fill="#616161" font-weight="500">Команды</text>
+
+  <!-- L3 → L2: game_loop → LLM (События для озвучки) -->
+  <path d="M265,345 L370,345 L370,295 L590,233" fill="none" stroke="#9e9e9e" stroke-width="2" marker-end="url(#a)"/>
+  <text x="440" y="280" font-size="8" fill="#616161">События для озвучки</text>
+
+  <!-- L2: LLM -.-> API (Текст к DTO, пунктир) -->
+  <path d="M590,183 L590,170 L300,170 L170,183" fill="none" stroke="#9e9e9e" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#a)"/>
+  <text x="380" y="167" font-size="7.5" fill="#9e9e9e" font-style="italic">Текст прикрепляется к DTO (НЕ ВЛИЯЕТ НА МИР!)</text>
+
+  <!-- L3 → L2: game_loop → memory (Важные события) -->
+  <path d="M80,383 L15,383 L15,268 L40,268" fill="none" stroke="#9e9e9e" stroke-width="2" marker-end="url(#a)"/>
+  <text x="22" y="330" font-size="8" fill="#616161" transform="rotate(-90,22,330)">Важные события</text>
+
+  <!-- L3: temporal -.-> memory (устаревание, пунктир) -->
+  <path d="M280,435 L310,435 L310,490 L15,490 L15,293 L40,293" fill="none" stroke="#9e9e9e" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#a)"/>
+  <text x="22" y="418" font-size="7.5" fill="#9e9e9e" font-style="italic" transform="rotate(-90,22,418)">Decay</text>
+
+  <!-- L3: game_loop → world_state (Чтение состояния) -->
+  <line x1="265" y1="370" x2="535" y2="370" stroke="#9e9e9e" stroke-width="2" marker-end="url(#a)"/>
+  <text x="400" y="363" text-anchor="middle" font-size="8" fill="#616161">Чтение состояния</text>
+
+  <!-- L3: world_state -.-> campaigns (Сохранение, пунктир) -->
+  <path d="M655,383 L655,770 L235,770 L235,806" fill="none" stroke="#9e9e9e" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#a)"/>
+  <text x="660" y="770" font-size="7.5" fill="#9e9e9e" font-style="italic">Сохранение</text>
+
+  <!-- L3 ↔ L4: game_loop ↔ decision_hub (Intent, bold двунаправленная) -->
+  <path d="M145,383 L145,500 L280,620" fill="none" stroke="#424242" stroke-width="2.5" marker-end="url(#ab)" marker-start="url(#ab)"/>
+  <rect x="55" y="492" width="90" height="16" rx="3" fill="#fafafa" opacity="0.85"/>
+  <text x="100" y="504" text-anchor="middle" font-size="8.5" font-weight="600" fill="#424242">Запрос / Intent</text>
+
+  <!-- L3: world_state -.-> perception (Сырой стейт, пунктир) -->
+  <path d="M535,380 L490,380 L490,510 L255,538" fill="none" stroke="#9e9e9e" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#a)"/>
+  <text x="498" y="465" font-size="7.5" fill="#9e9e9e" font-style="italic">Сырой стейт</text>
+
+  <!-- L2: memory -.-> perception (Искажения Bias, пунктир) -->
+  <path d="M300,268 L340,268 L340,510 L140,538" fill="none" stroke="#9e9e9e" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#a)"/>
+  <text x="347" y="405" font-size="7.5" fill="#9e9e9e" font-style="italic">Искажения (Bias)</text>
+
+  <!-- L4 внутри: perception → interpretation -->
+  <line x1="255" y1="562" x2="280" y2="562" stroke="#f57f17" stroke-width="2" marker-end="url(#a)"/>
+
+  <!-- L4 внутри: interpretation → decision_hub -->
+  <path d="M400,586 L400,596" fill="none" stroke="#f57f17" stroke-width="2" marker-end="url(#a)"/>
+  <text x="415" y="595" font-size="7.5" fill="#f57f17">Смысл</text>
+
+  <!-- L2: memory -.-> decision_hub (Soft Bias, пунктир) -->
+  <path d="M170,293 L170,505 L360,596" fill="none" stroke="#9e9e9e" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#a)"/>
+  <text x="175" y="455" font-size="7.5" fill="#9e9e9e" font-style="italic">Soft Bias</text>
+
+  <!-- L4 внутри: psyche → decision_hub -->
+  <path d="M660,586 L660,620 L520,620" fill="none" stroke="#f57f17" stroke-width="2" marker-end="url(#a)"/>
+  <text x="665" y="610" font-size="7.5" fill="#f57f17">Стресс</text>
+
+  <!-- L3 → L5: game_loop → domain (Исполнение, bold) -->
+  <path d="M145,460 L145,660 L107,690" fill="none" stroke="#424242" stroke-width="2.5" marker-end="url(#ab)"/>
+  <path d="M200,460 L200,650 L292,690" fill="none" stroke="#424242" stroke-width="2.5" marker-end="url(#ab)"/>
+  <path d="M220,460 L220,645 L477,690" fill="none" stroke="#424242" stroke-width="2.5" marker-end="url(#ab)"/>
+  <path d="M240,460 L240,640 L662,690" fill="none" stroke="#424242" stroke-width="2.5" marker-end="url(#ab)"/>
+  <path d="M260,460 L260,635 L847,690" fill="none" stroke="#424242" stroke-width="2.5" marker-end="url(#ab)"/>
+  <text x="128" y="650" font-size="8.5" font-weight="600" fill="#424242">Исполнение</text>
+
+  <!-- L5 → L3: domain → state_delta (StateDelta, bold) -->
+  <path d="M107,690 L107,480 L265,445" fill="none" stroke="#424242" stroke-width="2.5" marker-end="url(#ab)"/>
+  <path d="M292,690 L292,475 L265,440" fill="none" stroke="#424242" stroke-width="2.5" marker-end="url(#ab)"/>
+  <path d="M477,690 L477,470 L265,435" fill="none" stroke="#424242" stroke-width="2.5" marker-end="url(#ab)"/>
+  <path d="M662,690 L662,465 L265,430" fill="none" stroke="#424242" stroke-width="2.5" marker-end="url(#ab)"/>
+  <path d="M847,690 L847,460 L265,425" fill="none" stroke="#424242" stroke-width="2.5" marker-end="url(#ab)"/>
+  <text x="268" y="480" font-size="8.5" font-weight="600" fill="#424242">StateDelta</text>
+
+  <!-- L3 внутри: state_delta → state_applicator -->
+  <path d="M265,435 L790,370" fill="none" stroke="#9e9e9e" stroke-width="2" marker-end="url(#a)"/>
+
+  <!-- L3 внутри: state_applicator → world_state (Мутация, bold) -->
+  <path d="M910,383 L910,400 L775,400 L775,383" fill="none" stroke="#424242" stroke-width="2.5" marker-end="url(#ab)"/>
+  <text x="842" y="413" text-anchor="middle" font-size="8.5" font-weight="600" fill="#424242">Мутация</text>
+
+  <!-- L3: world_state -.-> narrative (Анализ Pressure, пунктир) -->
+  <path d="M775,358 L790,358 L790,268 L720,268" fill="none" stroke="#9e9e9e" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#a)"/>
+  <text x="798" y="310" font-size="7.5" fill="#9e9e9e" font-style="italic">Анализ Pressure</text>
+
+  <!-- ===== ЛЕГЕНДА ===== -->
+  <rect x="15" y="885" width="1170" height="65" rx="8" fill="#fff" stroke="#e0e0e0" stroke-width="1"/>
+  <text x="30" y="903" font-size="10" font-weight="600" fill="#424242">Легенда:</text>
+
+  <line x1="30" y1="920" x2="80" y2="920" stroke="#424242" stroke-width="2.5" marker-end="url(#ab)"/>
+  <text x="90" y="924" font-size="9" fill="#616161">Жирная = основной поток данных (DTO / Intent / Delta)</text>
+
+  <line x1="420" y1="920" x2="470" y2="920" stroke="#9e9e9e" stroke-width="2" marker-end="url(#a)"/>
+  <text x="480" y="924" font-size="9" fill="#616161">Обычная = внутренний вызов / чтение</text>
+
+  <line x1="720" y1="920" x2="770" y2="920" stroke="#9e9e9e" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#a)"/>
+  <text x="780" y="924" font-size="9" fill="#616161">Пунктир = побочный эффект (без мутации мира)</text>
+
+  <text x="30" y="942" font-size="8" fill="#9e9e9e">Исправлено: core/tick_orchestrator.py → app/services/game_loop/ (реальный путь после рефакторинга)</text>
+</svg>

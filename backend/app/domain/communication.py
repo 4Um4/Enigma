@@ -27,3 +27,8 @@ class CommunicationIntent:
     intent_type: str       # 'диалог', 'приказ', 'ложь', 'вопрос'
     emotional_state: str   # 'злость', 'страх', 'любопытство'
     exposure_level: ExposureLevel
+
+    def __post_init__(self) -> None:
+        # Устав 7.2: пустой topic = LLM плывёт по ассоциациям
+        if not self.topic or not self.topic.strip():
+            raise ValueError(f"CommunicationIntent.topic не может быть пустым (speaker={self.speaker!r})")

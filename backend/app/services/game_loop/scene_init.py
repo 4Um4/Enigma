@@ -41,6 +41,7 @@ def init_scene_state(
     location: str,
     shared_context: Any,
     campaign_state: Any = None,
+    player_position: tuple[float, float] | None = None,
 ) -> dict:
     """Фаза 1: загрузка/инициализация сцены, LifeEngine, EconomyTracker.
 
@@ -86,6 +87,12 @@ def init_scene_state(
                     logger.warning(f"[GAME_LOOP] Ошибка материализации инвентаря {_npc_id}: {_e}")
             loop.scene_manager.save_scene_state(campaign_id, scene_state)
             logger.info(f"[GAME_LOOP] Новая сцена: {location}")
+
+        # Применяем позицию игрока от фронтенда в памяти (атомарный commit_tick сохранит)
+        if player_position is not None and scene_state.get("player_spatial", {}).get("local_position"):
+            scene_state["player_spatial"]["local_position"]["x"] = player_position[0]
+            scene_state["player_spatial"]["local_position"]["y"] = player_position[1]
+
         patch_scene_state(shared_context, scene_state)
 
         # Инициализация game_time_seconds из scene_state

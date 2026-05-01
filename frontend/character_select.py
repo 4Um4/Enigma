@@ -1,5 +1,6 @@
 """
-backend/character_select.py
+path: /frontend/character_select.py
+
 Экран выбора персонажа — полностью самодостаточен, без зависимостей от app/.
 Читает characters.json из папки кампании напрямую.
 

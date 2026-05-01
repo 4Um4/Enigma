@@ -1,5 +1,6 @@
 """
-backend/text_input.py
+path: /frontend/text_input.py
+
 Кастомный виджет ввода текста для pygame.
 
 Поддерживает:
@@ -8,7 +9,6 @@ backend/text_input.py
 - Буфер обмена (Ctrl+C / Ctrl+V)
 - Курсор, выделение, автоскролл длинного текста
 
-path: /backend/text_input.py
 Назначение: Виджет ввода текста с кириллицей, историей, буфером
 Зависимости: pygame, typing
 Основные сущности: TextInput

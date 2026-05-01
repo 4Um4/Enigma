@@ -1,8 +1,7 @@
 """
-map_editor/campaign_manager.py
+path: /frontend/map_editor/campaign_manager.py
 Управление кампаниями: создание, открытие, сохранение
 Кампания = папка campaigns/<name>/ с campaign.json и locations/*.json
-path: /backend/map_editor/campaign_manager.py
 Зависимости: data_manager, json, zipfile (для шага 13), pathlib, datetime, copy
 Основные сущности: CampaignManager
 """

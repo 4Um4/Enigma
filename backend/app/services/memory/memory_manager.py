@@ -4,7 +4,10 @@ R1.1 + R5.3 — MemoryManager.
 """
 
 from __future__ import annotations
+import logging
 from typing import Any, Dict, List, Tuple, Optional
+
+logger = logging.getLogger(__name__)
 
 from app.services.memory import LayeredMemory
 from app.services.memory.working_memory import WorkingMemory
@@ -228,9 +231,10 @@ class MemoryManager:
                 _d["stage"] = MemoryStage(_stage_str)
             except ValueError:
                 _d["stage"] = MemoryStage.FRESH
-            # created_at и id — не поля EventMemory, убираем
+            # created_at, id, campaign_id — не поля EventMemory, убираем
             _d.pop("created_at", None)
             _d.pop("id", None)
+            _d.pop("campaign_id", None)
 
             try:
                 _mem = EventMemory(**_d)

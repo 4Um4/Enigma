@@ -513,31 +513,32 @@ class DmAgent:
             jsonl_log({"level": "ERROR", "agent": "dm_agent", "error": "Empty contract", "action": actions_str})
             return self._fallback_narrate()
 
-        result = self.router.request_for_agent(
+        raw = self.router.request_for_agent(
             agent_name="dm",
             prompt=contract.user_prompt,
             system_prompt=contract.system_prompt,
             params=GenerationParams(max_tokens=220),
         )
 
-        # Валидация ответа через ResponseValidator
-        dm_text = result.get("dm_response", "") if isinstance(result, dict) else str(result)
+        # 1. Парсим JSON → dict (до валидации!)
+        if isinstance(raw, str):
+            try:
+                result = json.loads(raw)
+            except Exception:
+                jsonl_log({"level": "WARN", "agent": "dm_agent", "error": "JSON parse failed", "raw_preview": raw[:300]})
+                return self._fallback_narrate()
+        else:
+            result = raw if isinstance(raw, dict) else {"dm_response": str(raw)}
+
+        # 2. Валидация — только текст dm_response, не сырой JSON
+        dm_text = result.get("dm_response", "")
         from app.services.verbalization.response_validator import ResponseValidator
         validator = ResponseValidator(contract)
         validation = validator.validate(dm_text)
-        
+
         if validation.is_fallback:
             jsonl_log({"level": "WARN", "agent": "dm_agent", "violation": validation.violation, "fallback_text": validation.text})
-            if isinstance(result, dict):
-                result["dm_response"] = validation.text
-            else:
-                dm_text = validation.text
-
-        if isinstance(result, str):
-            try:
-                result = json.loads(result)
-            except Exception:
-                result = {"dm_response": validation.text, "npc_reactions": [], "world_changes": []}
+            result["dm_response"] = validation.text
 
         return result
 

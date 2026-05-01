@@ -3,7 +3,8 @@
 Зависимости: pygame (только стандартная библиотека + pygame)
 Основные сущности: MenuAction, GameMenu, _MenuButton
 
-backend/game_menu.py
+path: /frontend/game_menu.py
+
 Главное меню игры — полностью самодостаточно, не зависит от map_editor.
 Содержит собственные минимальные UI-примитивы (цвета, кнопка).
 """

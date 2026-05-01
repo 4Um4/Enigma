@@ -1,5 +1,6 @@
 """
-backend/game_loop_bridge.py
+path: /frontend/game_loop_bridge.py
+
 Синхронная обёртка над async GameLoop для вызова из pygame.
 
 Собирает все события из stream_turn() в TurnResult:
@@ -9,7 +10,6 @@ backend/game_loop_bridge.py
 - tokens: количество токенов
 - ms: время генерации
 
-path: /backend/game_loop_bridge.py
 Назначение: Синхронный мост между pygame и async GameLoop
 Зависимости: app.services.game_loop_builder, app.services.campaign_state_service, asyncio, typing
 Основные сущности: GameLoopBridge, TurnResult

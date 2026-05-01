@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-path: /backend/game_launcher.py
+path: /game_launcher.py
 Назначение: Главная точка входа — управляет жизненным циклом pygame и диспетчеризирует между меню, редактором и игрой
 Зависимости: pygame, game_menu, campaign_select, map_editor.editor_core
 Основные сущности: main()
@@ -18,8 +18,12 @@ import subprocess
 
 # Два пути нужны из-за голых импортов внутри map_editor (sprite_registry и т.д.)
 # TODO: временное решение — после миграции map_editor на относительные импорты убрать второй путь
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "map_editor"))
+_ROOT = os.path.dirname(os.path.abspath(__file__))
+_BACKEND_DIR = os.path.join(_ROOT, "backend")
+_FRONTEND_DIR = os.path.join(_ROOT, "frontend")
+sys.path.insert(0, _BACKEND_DIR)
+sys.path.insert(0, _FRONTEND_DIR)
+sys.path.insert(0, os.path.join(_FRONTEND_DIR, "map_editor"))
 
 import pygame
 from game_menu import GameMenu, MenuAction
@@ -51,10 +55,9 @@ def _ensure_backend_running() -> subprocess.Popen:
         pass  # backend не запущен — это норма при первичном запуске
 
     # Запускаем uvicorn в фоне
-    backend_dir = os.path.dirname(os.path.abspath(__file__))
     proc = subprocess.Popen(
         [sys.executable, "-m", "uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", "8000"],
-        cwd=backend_dir,
+        cwd=_BACKEND_DIR,
 
     )
 

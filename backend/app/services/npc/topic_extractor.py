@@ -37,7 +37,7 @@ _EVENT_TOPIC_MAP: dict[str, str] = {
     "proximity_close":   "встреча",
     "npc_interacts_npc": "встреча",
     "npc_proximity_close": "встреча",
-    "world_tick":        "",
+    # world_tick не маппится — proactive topic формируется из STM + L2 (Устав 3.2)
 }
 
 
@@ -83,4 +83,4 @@ def extract_topic(
             return _topic
 
     # Фоллбэк на event_type
-    return _EVENT_TOPIC_MAP.get(event_type, "")
+    return _EVENT_TOPIC_MAP.get(event_type, "наблюдение")

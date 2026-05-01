@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-backend/constants.py
+path: /frontend/constants.py
+
 Константы frontend (pygame, тайминги опроса, UI).
 Не зависит от app/ — живет на стороне клиента.
 
-path: /backend/constants.py
 Назначение: Константы frontend (pygame, тайминги, UI). Не зависит от app/.
 Зависимости: нет
 Основные сущности: IDLE_TICK_*
@@ -30,3 +30,12 @@ def parse_hhmm(time_str: str) -> int:
         return h * 3600 + m * 60
     except Exception:
         return 7 * 3600  # 07:00
+
+
+def format_game_time(total_seconds: int) -> str:
+    """Минимальный формат для HUD: 'HH:MM'. Заменяет Calendar.format_full."""
+    if total_seconds < 0:
+        total_seconds = 0
+    hour = (total_seconds // 3600) % 24
+    minute = (total_seconds // 60) % 60
+    return f"{hour:02d}:{minute:02d}"

@@ -39,6 +39,8 @@ class ChatTurnRequest(BaseModel):
     location: str
     model: Optional[ModelSelection] = None  # оркестратор сам управляет моделями
     actions: List[PlayerAction]
+    # Позиция игрока от фронтенда — применяется в init_scene_state, сохраняется атомарно в commit_tick
+    player_position: Optional[tuple[float, float]] = None
 
 
 class AgentTrace(BaseModel):

@@ -624,15 +624,16 @@ class LifeEngine:
         return all_changes
 
     def tick_decisions(
-        self,
+        self,   
         campaign_id: str,
         scene_state: dict,
-        runtime_path: Optional[Path] = None,
+        topics: Optional[list[str]] = None,
     ) -> list[dict]:
         """
         Фаза 2.1 — DecisionHub для NPC в idle tick.
         Чистая математика, без LLM.
         
+        Читает NPC из кэша (после Phase 0), НЕ с диска (Устав §3.1).
         Возвращает список dicts для триггера телеграфа на клиенте.
         Формат совместим с significant_events в routes.py.
         """
@@ -643,15 +644,20 @@ class LifeEngine:
         )
         from app.services.npc.decision_hub import DecisionHub, EventContext
         from app.services.npc.npc_loader import (
-            load_npcs_merged,
             load_profile_from_legacy_json,
             load_l2_state_from_runtime_dict,
         )
         from app.services.events.event_types import EventType
         from app.models.npc_state import WillState
 
-        # Используем правильный загрузчик (config + runtime), а не major_npcs.json
-        npcs = load_npcs_merged(runtime_path=runtime_path)
+        # Читаем из кэша — после Phase 0 там уже мутации (Устав §3.1)
+        npcs = self._npc_cache.get(campaign_id)
+        if not npcs:
+            logger.error(
+                f"[LIFE_ENGINE] tick_decisions: кэш пуст для '{campaign_id}'. "
+                "Phase 0 (tick) не была вызвана перед Phase 5?"
+            )
+            return []
         hub = DecisionHub()
         decisions: list[dict] = []
         print(f"[TICK_DECISIONS] start: {len(npcs)} NPCs")
@@ -715,6 +721,7 @@ class LifeEngine:
                         "target": npc_id,
                         "field": "intent",
                         "value": f"{result.intent.value if result.intent else 'observe'}",
+                        "topic": (topics or ["наблюдение"])[0],
                     })
                     # Сброс давления после триггера
                     self._idle_pressure[_key] = 0.0
@@ -884,6 +891,21 @@ class LifeEngine:
             except (json.JSONDecodeError, OSError) as e:
                 logger.warning(f"[LIFE_ENGINE] Ошибка чтения global NPC: {e}")
         
+        return []
+
+    def get_npc_states(self, campaign_id: str) -> list[dict]:
+        """Возвращает кэшированные NPC states после мутации в tick().
+        
+        Вызывать ТОЛЬКО после tick() в рамках одного тика.
+        Если кэш пуст — значит tick() не была вызвана, возвращаем [].
+        """
+        cached = self._npc_cache.get(campaign_id)
+        if cached:
+            return list(cached)
+        logger.warning(
+            f"[LIFE_ENGINE] get_npc_states: кэш пуст для '{campaign_id}'. "
+            "tick() не была вызвана перед этим?"
+        )
         return []
 
     # ─────────────────────────────────────────────────────────────────────────
