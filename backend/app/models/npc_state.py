@@ -152,6 +152,10 @@ class EventMemory:
     fulfilled:           bool = False           # обещание выполнено / долг погашен
     contract_ref:        str = ""               # ID связанного события (promise_given ↔ fulfilled)
 
+    # Этап 9: сжатие
+    is_compressed:       bool = False           # это сжатая абстракция
+    compressed_from:     Tuple[str, ...] = ()   # ID исходных событий (immutable для frozen)
+
     def __post_init__(self) -> None:
         # Защита от невалидных значений при загрузке из JSON
         object.__setattr__(self, "importance",  max(0.0, min(1.0, self.importance)))
@@ -192,6 +196,10 @@ class EventMemory:
             known_by       = self.known_by,
             hidden_from    = self.hidden_from,
             accessibility  = round(new_accessibility, 4),
+            fulfilled      = self.fulfilled,
+            contract_ref   = self.contract_ref,
+            is_compressed  = self.is_compressed,
+            compressed_from = self.compressed_from,
         )
 
 

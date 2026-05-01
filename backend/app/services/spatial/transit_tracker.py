@@ -36,6 +36,7 @@ class _Transit:
     path: List[str]          # ["A", "B", "C"] — полный путь
     step: int = 0            # текущий индекс в path (0 = ещё не двигался)
     reason: str = ""
+    priority: int = 0
 
     @property
     def current_node(self) -> str:

@@ -41,9 +41,12 @@ class NpcTickInput:
     is_session_start: bool
     action_type: str
     raw_input: str
-    all_npcs_raw: list  # Список legacy-dict NPC
+    current_tick: int
+    all_npcs_raw: list  # Список legacy-dict NPC (shared reference — legacy мутации)
     nearby_npcs: list   # Из dm_result.scene_context.nearby_npcs
     scene_continuity: Any  # SceneContinuity или None
+    spatial_events: list   # Для социальных триггеров (ревность по proximity)
+    line_of_sight: dict    # Из dm_result.scene_context.line_of_sight
 
 
 @dataclass

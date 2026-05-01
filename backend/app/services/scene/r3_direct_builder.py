@@ -219,6 +219,17 @@ def build_r3_dm_frame(
                 "count": len(_vc.suppressed_secrets),
             })
     shared_context.npc_suppressed_secrets = _suppressed_for_dm
+    # Этап 10: накопленные черты NPC для вербализации
+    _identity_for_dm = []
+    for _nctx in shared_context.npc_contexts or []:
+        _vc = _nctx.get("verbalization_ctx")
+        _traits = _nctx.get("identity_traits", {})
+        if _vc and _traits:
+            _identity_for_dm.append({
+                "npc_name": _vc.npc_name,
+                "traits": _traits,
+            })
+    shared_context.npc_identity_traits = _identity_for_dm
 
     logger.warning(f"[R3_DIRECT] {len(_decisions)} decisions → DMFrame (focus={len(_dm_frame.focus_npcs)}, bg={len(_dm_frame.background_npcs)})")
 

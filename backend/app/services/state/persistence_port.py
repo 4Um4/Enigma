@@ -43,3 +43,27 @@ class PersistencePort(ABC):
     def load_npc_runtime(self, session_id: str) -> list[dict] | None:
         """Загружает runtime-состояние NPC из сессии. None если нет сохранения."""
         ...
+
+    @abstractmethod
+    def atomic_commit(
+        self,
+        campaign_id: str,
+        scene_state: dict,
+        npc_states: list[dict] | None = None,
+        events: list[dict] | None = None,
+    ) -> bool:
+        """Атомарный коммит всего состояния тика (Устав 4.2.1).
+
+        Единственная точка сохранения за тик. Вызывается из Фазы 10 TickOrchestrator.
+        Всё или ничего — при ошибке полный откат.
+
+        Args:
+            campaign_id: ID кампании
+            scene_state: финальное состояние сцены после всех фаз
+            npc_states: runtime-состояния NPC (опционально, пока не проходят через контекст)
+            events: события тика для аудита (опционально)
+
+        Returns:
+            True если коммит успешен, False если ошибка (откат).
+        """
+        ...

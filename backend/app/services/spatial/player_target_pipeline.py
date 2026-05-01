@@ -61,7 +61,7 @@ def extract_player_target(
             })
 
     _extractor = PlayerTargetExtractor()
-    _target_id, _target_name, _player_pos, _player_dists = _extractor.extract(
+    _target_id, _target_name, _target_obj, _player_pos, _player_dists = _extractor.extract(
         action_text=raw_input or "",
         npc_contexts=_npc_ctx_list,
         scene_state=_scene_pre if isinstance(_scene_pre, dict) else {},

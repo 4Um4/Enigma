@@ -70,6 +70,43 @@ async def run_agent_safe(agent_name: str, agent, args: tuple, kwargs: dict) -> d
                 logger.warning(f"[GAME_LOOP] abort sent to {_pool.active_model_key}")
         except Exception:
             pass
+
+
+async def yield_model_info(state):
+    """Генерирует SSE-событие с метаинфо о выбранных моделях."""
+    import logging
+    logger = logging.getLogger(__name__)
+    try:
+        from app.services.llm.router import get_router as get_llm_router, Capability
+        from app.services.llm.provider_manager import get_model_pool
+
+        _pe = state.shared_context.python_engines
+        npc_contexts = _pe.get("npc_contexts", []) if isinstance(_pe, dict) else []
+        has_major    = any(c.get("tier") == "major" for c in npc_contexts)
+        router_llm   = get_llm_router()
+        pool         = get_model_pool()
+        dm_key       = router_llm.select_model(Capability.NARRATIVE)
+        npc_cap      = Capability.DIALOGUE_GENERATION if has_major else Capability.DIALOGUE
+        npc_key      = router_llm.select_model(npc_cap)
+        dm_cfg       = pool.get_model_config(dm_key) if pool else None
+        npc_cfg      = pool.get_model_config(npc_key) if pool else None
+        yield {
+            "type": "model",
+            "data": {
+                "dm":  {
+                    "key":      dm_key,
+                    "name":     dm_cfg.name if dm_cfg else dm_key,
+                    "provider": dm_cfg.provider_type.value if dm_cfg else "unknown",
+                },
+                "npc": {
+                    "key":      npc_key,
+                    "name":     npc_cfg.name if npc_cfg else npc_key,
+                    "provider": npc_cfg.provider_type.value if npc_cfg else "unknown",
+                },
+            },
+        }
+    except Exception as e:
+        logger.warning(f"[GAME_LOOP] Ошибка получения model info: {e}")
         jsonl_log({
             "level": "ERROR", "agent": agent_name,
             "error_code": ERROR_CODES["AGENT_TIMEOUT"],
@@ -77,7 +114,7 @@ async def run_agent_safe(agent_name: str, agent, args: tuple, kwargs: dict) -> d
             "human_msg": msg,
         })
         logger.error(f"[GAME_LOOP] {msg}")
-        return {}
+        return
 
     except Exception as e:
         duration = round((time.perf_counter() - start) * 1000)
@@ -91,4 +128,4 @@ async def run_agent_safe(agent_name: str, agent, args: tuple, kwargs: dict) -> d
             "human_msg": human_msg, "fix": fix,
         })
         logger.error(f"[GAME_LOOP] {agent_name} failed: {human_msg}")
-        return {}
+        return

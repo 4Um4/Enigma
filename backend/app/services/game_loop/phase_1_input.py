@@ -12,6 +12,7 @@
 """
 
 import logging
+from typing import Any
 
 from app.domain.events import EventDTO
 from app.services.events.event_bus import get_event_bus
@@ -72,3 +73,41 @@ def publish_player_speech(
         ))
     except Exception as _bus_err:
         logger.debug(f"[EVENT_BUS] player_speech publish skipped: {_bus_err}")
+
+
+def publish_classified_player_event(
+    shared_context: Any,
+    location: str,
+    campaign_id: str,
+    raw_input: str,
+) -> None:
+    """Публикация классифицированного события игрока после DM-обработки.
+
+    Маппит action_type → EventType, учитывает радиус для атак.
+    """
+    _evt_map = {
+        "dialogue": EventType.PLAYER_SPOKE,
+        "player_interacts": EventType.PLAYER_SPOKE,
+        "attack": EventType.PLAYER_ATTACKED,
+        "player_attacks": EventType.PLAYER_ATTACKED,
+        "move": EventType.PLAYER_MOVED,
+        "stealth": EventType.PLAYER_MOVED,
+    }
+    _raw_type = shared_context.action_type or "dialogue"
+    _resolved_type = _evt_map.get(_raw_type, EventType.PLAYER_SPOKE)
+    # Атака — звуковое событие с ограниченным радиусом слышимости
+    _evt_radius = 15.0 if _resolved_type == EventType.PLAYER_ATTACKED else 999.0
+    _game_evt = EventDTO.create(
+        event_type=_resolved_type.value,
+        source="player",
+        payload={
+            "location": location,
+            "campaign_id": campaign_id,
+            "target_id": shared_context.player_target_id,
+            "raw_input": raw_input,
+            "action_type": _raw_type,
+        },
+        radius=_evt_radius,
+    )
+    get_event_bus().publish(_game_evt)
+    logger.warning(f"[EVENT_BUS] Published: {_game_evt.type}, target={_game_evt.payload.get('target_id')}")

@@ -564,7 +564,8 @@ def create_player_session(campaign_id: str, request: dict, game_loop=Depends(get
     # Сбрасываем флаг сессии — следующий ход будет session_start (сброс стресса NPC)
     game_loop.reset_session_flag(campaign_id)
     # Инициализируем сцену из editor JSON — чтобы Pygame мог рендерить до первого хода
-    game_loop.ensure_scene_initialized(campaign_id)
+    from app.services.game_loop.scene_init import ensure_scene_initialized
+    ensure_scene_initialized(game_loop, campaign_id)
     return PlayerSessionResponse(player=player_name, active=True)
 
 
