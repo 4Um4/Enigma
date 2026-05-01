@@ -48,6 +48,11 @@ class _TickContext:
     decision_events: list = field(default_factory=list)
     # Фаза 9: финальный снимок
     world_snapshot: Optional[Any] = None
+    # Фаза 10: данные для атомарного коммита
+    # npc_states: заполняется когда NPC-pipeline будет передавать стейты через контекст
+    npc_states: list[dict] | None = None
+    # tick_events: все события тика для аудита (decision_events + spatial + handlers)
+    tick_events: list[dict] | None = None
 
 
 class TickOrchestrator:
@@ -268,11 +273,27 @@ class TickOrchestrator:
 
     def _phase_10_persistence(self, ctx: _TickContext) -> None:
         """Atomic commit: SQLite (runtime truth) + YAML (для человека).
-        
-        TODO: C8 — PersistencePort.atomic_commit()
-        Сейчас persist делается caller-ом в routes.py — нарушает Устав §4.2.1.
+
+        Единственная точка сохранения за тик (Устав §4.2.1).
+        Делегирует в SceneStateManager.commit(), который вызывает PersistencePort.atomic_commit().
         """
-        pass
+        if self._scene_manager is None:
+            logger.warning("[TICK_ORCH] Фаза 10: нет scene_manager — коммит пропущен")
+            return
+
+        # Собираем события тика для аудита
+        ctx.tick_events = ctx.decision_events  # TODO: расширить spatial + handler events
+
+        saved = self._scene_manager.commit(
+            campaign_id=ctx.campaign_id,
+            scene_state=ctx.scene_state,
+            npc_dicts=ctx.npc_states,
+        )
+
+        if saved > 0:
+            logger.debug(f"[TICK_ORCH] Фаза 10: commit OK ({saved} подсистем)")
+        else:
+            logger.warning("[TICK_ORCH] Фаза 10: commit вернул 0 — данные не сохранены")
 
     # ── Хелперы ───────────────────────────────────────────────────────
 

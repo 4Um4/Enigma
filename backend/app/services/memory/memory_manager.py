@@ -18,6 +18,7 @@ from app.services.npc.perception_filter import calculate_clarity
 
 from app.services.memory.resonance_engine import ResonanceEngine
 from app.services.memory.dialogue_session import DialogueSession
+from app.services.memory.promotion_engine import MemoryPromotionEngine
 from app.core.constants import NARRATIVE_CACHE_MAX
 
 
@@ -188,7 +189,61 @@ class MemoryManager:
         cache.sort(key=lambda f: f.importance, reverse=True)
         npc_state.narrative_cache = tuple(cache[:NARRATIVE_CACHE_MAX])
 
+        # 8. SQLite persistence — runtime truth (Закон 4.2.1)
+        # event.id как mem_id — трассируемая связь EventDTO → EventMemory
+        _store = self._layered.store
+        if hasattr(_store, "save_event_memory"):
+            _store.save_event_memory(
+                mem_id=str(event.id),
+                campaign_id=campaign_id,
+                mem_data=mem,
+            )
+
         return npc_state
+
+    # ──────────────────────────────────────────────────────────────────────
+    # SQLite → RAM: восстановление narrative_cache при старте (Закон 4.2.1)
+    # ──────────────────────────────────────────────────────────────────────
+
+    def load_narrative_from_sqlite(
+        self,
+        campaign_id: str,
+        npc_id: str,
+    ) -> Optional[Tuple[EventMemory, ...]]:
+        """Загружает narrative_cache из SQLite. Возвращает None если нет данных —
+        вызывающая сторона fallback'ится на JSON (обратная совместимость)."""
+        _store = self._layered.store
+        if not hasattr(_store, "load_event_memories"):
+            return None
+
+        raw_list = _store.load_event_memories(campaign_id, npc_id)
+        if not raw_list:
+            return None
+
+        _result: List[EventMemory] = []
+        for _d in raw_list:
+            # stage хранится как строка, модель ждёт MemoryStage enum
+            _stage_str = _d.pop("stage", "FRESH")
+            try:
+                _d["stage"] = MemoryStage(_stage_str)
+            except ValueError:
+                _d["stage"] = MemoryStage.FRESH
+            # created_at и id — не поля EventMemory, убираем
+            _d.pop("created_at", None)
+            _d.pop("id", None)
+
+            try:
+                _mem = EventMemory(**_d)
+                # Decay при загрузке — NPC загружается раз в тик
+                _mem = _mem.decayed(game_days=1.0)
+                if not _mem.is_forgotten:
+                    _result.append(_mem)
+            except Exception as e:
+                logger.warning(f"[MEMORY] Failed to restore EventMemory for {npc_id}: {e}")
+
+        # Сортировка по importance и лимит — как в apply()
+        _result.sort(key=lambda f: f.importance, reverse=True)
+        return tuple(_result[:NARRATIVE_CACHE_MAX])
 
     # ──────────────────────────────────────────────────────────────────────
     # Pressure — доступ к счётчику DialogueSession (Этап 5 prep)
@@ -391,6 +446,41 @@ class MemoryManager:
         ]
         result.sort(key=lambda m: m.importance, reverse=True)
         return result
+
+    # ──────────────────────────────────────────────────────────────────────
+    # Этап 9: сжатие памяти (Закон 4.1.3 — отдельный класс)
+    # ──────────────────────────────────────────────────────────────────────
+    def compress_narrative_cache(
+        self,
+        narrative_cache: Tuple[EventMemory, ...],
+    ) -> Tuple[EventMemory, ...]:
+        """Сжимает группу похожих событий в одну абстракцию.
+
+        Вызывается после decay — события уже потеряли importance.
+        Возвращает новый кортеж narrative_cache с заменёнными группами.
+        """
+        engine = MemoryPromotionEngine()
+        results = engine.compress(narrative_cache)
+
+        if not results:
+            return narrative_cache
+
+        # Собираем ключи событий, которые были сжаты
+        _removed_keys: set = set()
+        compressed_mems: list = []
+        for r in results:
+            _removed_keys.update(r.removed_ids)
+            compressed_mems.append(r.compressed)
+
+        # Строим новый кэш: не сжатые + сжатые абстракции
+        # Ключ = sequence_id (EventMemory не имеет UUID)
+        kept = [
+            m for m in narrative_cache
+            if f"seq_{m.sequence_id}" not in _removed_keys
+        ]
+        new_cache = kept + compressed_mems
+        new_cache.sort(key=lambda m: m.importance, reverse=True)
+        return tuple(new_cache)
 
     # ──────────────────────────────────────────────────────────────────────
     # Persistence — единая точка записи в хранилище (Закон 4.1.2)
@@ -601,4 +691,22 @@ class MemoryManager:
         READ: для DecisionHub через DecisionView.identity.active_traits
         """
         key = f"{campaign_id}:{npc_id}"
-        return dict(self._identity_cache.get(key, {}))      
+        return dict(self._identity_cache.get(key, {}))
+
+    def check_identity_promotion(
+        self,
+        campaign_id: str,
+        npc_id: str,
+    ) -> List[Tuple[str, float]]:
+        """Этап 10: проверяет мета-паттерны в накопленных чертах.
+
+        Если комбинация черт удовлетворяет правилу — генерирует новую черту.
+        Возвращает список новых (trait_name, delta) для логирования.
+        Новые черты сразу применяются в identity_cache.
+        """
+        current = self.get_identity_traits(campaign_id, npc_id)
+        engine = MemoryPromotionEngine()
+        new_traits = engine.check_identity(current)
+        if new_traits:
+            self.apply_identity_weights(campaign_id, npc_id, new_traits)
+        return new_traits      

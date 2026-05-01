@@ -165,7 +165,115 @@ app/services/game_loop/
 
 ### Следующая сессия
 
-**Вариант 2:** превращаем `_run_pipeline` в фасад. Остальные inline-блоки (scene events, DM wrapper, R3 mode) слишком зависят от `shared_context` мутаций — их вынос не даёт чистых функций, а создаёт делегатов с 8+ параметрами. Лучше оставить их inline и заменить тело `_run_pipeline` на последовательность вызовов.
+Понимаю. Сейчас вижу полную картину. Вот диагноз:
 
-Цель: `__init__.py` < 1500 строк, потом превращаем `_run_pipeline` в фасад из 8 вызовов.
+## Что НЕ принадлежит оркестратору (1381 строка)
+
+| Блок | Строки | Почему не здесь |
+|------|--------|-----------------|
+| Ленивые инициализаторы (social, economy, reputation) | 166–292 (127) | Фабрики сервисов, не координация |
+| `_advance_game_time` | 584–660 (77) | Чистая доменная логика — расчёт времени |
+| `_init_scene_state` | 662–766 (105) | LifeEngine + EconomyTracker + инвентарь — целый движок |
+| `_apply_npc_state_updates` | 1178–1222 (45) | Мутация NPC state — домен npc/ |
+| `_write_npc_memory` | 1224–1260 (37) | Запись в память — домен memory/ |
+| `_avatar_to_prompt` | 362–384 (23) | Форматирование аватара — домен avatar/ |
+| `_yield_model_info` + `_FakeRequest` | 1262–1381 (57) | SSE-специфика + compatibility shim |
+| EventBus publish inline (894–934) | 41 | Уже есть `phase_1_input.py` — этот блок туда |
+| `ensure_scene_initialized` | 300–357 (58) | Scene management логика |
+
+**Итого выносимого: ~570 строк. Остаток: ~810. Но `_run_pipeline` тело ещё 395 строк inline-логики.**
+
+## Целевой `_run_pipeline` — рецепт, а не монолит
+
+```python
+async def _run_pipeline(self, ...) -> _PipelineState:
+    _ctx = _TickContext()
+    shared_context = self._build_base_context(actions, campaign_id, world_id, location)
+    self._load_avatar_into_context(shared_context, actions)
+    scene_state = init_scene_state(self, campaign_id, location, shared_context, campaign_state)
+
+    # ФАЗА 1: Input → EventDTO → EventBus
+    dm_result = self._classify_and_publish(actions, shared_context, scene_state, _ctx)
+
+    # ФАЗА 3-6: NPC decisions
+    npc_contexts = self._run_npc_phase(dm_result, shared_context, scene_state, _ctx, ...)
+
+    # ФАЗА 5-6: Perception + Avatar update
+    apply_perception_filter(npc_contexts, shared_context, campaign_id, get_event_bus())
+    update_avatar_from_npc_intents(self.avatar_service, campaign_id, ...)
+
+    # ШАГ D: Social propagation
+    self._propagate_social(shared_context, _ctx)
+
+    # ФАЗА 7: Rules agent
+    rules_result = await self._run_rules_agent(actions, shared_context)
+
+    # ФАЗА 8: R3 frame + memory + commit
+    npc_result = self._finalize_npc(shared_context, actions, rules_result, _ctx)
+    self._write_working_memory(shared_context, actions, npc_result, _ctx)
+    commit_tick(self.scene_manager, campaign_id, shared_context.scene_state, _ctx)
+
+    return _PipelineState(shared_context=shared_context, ...)
+```
+
+~30 строк тела. Каждый `_classify_and_publish`, `_run_npc_phase`, `_finalize_npc` — это уже вынесенные функции с подписями, а не inline-вычисления.
+
+## Целевая структура пакета
+
+```
+app/services/game_loop/
+    __init__.py              ~350 строк  — ЧИСТЫЙ фасад
+    tick_context.py             74        — уже есть
+    phase_1_input.py           ~115       — +41 (EventBus publish блок)
+    phase_2_world_tick.py      123        — уже есть
+    phase_5_perception.py       53        — уже есть
+    phase_6_avatar.py          ~124       — +23 (_avatar_to_prompt)
+    phase_8_commit.py           52        — уже есть
+    agent_runner.py            ~129       — +57 (_yield_model_info + _FakeRequest)
+    service_factories.py       ~140       — NEW (ленивые инициализаторы)
+    scene_init.py              ~110       — NEW (_init_scene_state)
+    time_advance.py             ~80       — NEW (_advance_game_time)
+    npc_state_helpers.py       ~120       — NEW (_apply_npc_state_updates + _write_npc_memory)
+```
+
+Все запланированные выносы завершены. Итог сессии:
+
+| Метрика | Было | Стало | Δ |
+|---------|------|-------|---|
+| `__init__.py` | 1381 | 836 | **-545** |
+
+**Выполненные выносы:**
+
+| Что | Куда | Δ строк |
+|-----|------|---------|
+| 4 ленивых инициализатора + ServiceFactory | `service_factories.py` | -130 |
+| `_advance_game_time` | `time_advance.py` | -73 |
+| `_init_scene_state` | `scene_init.py` | -104 |
+| `_apply_npc_state_updates` + `_write_npc_memory` | `npc_state_helpers.py` | -82 |
+| `_avatar_to_prompt` | `phase_6_avatar.py` | -23 |
+| `_yield_model_info` + `_FakeRequest` (мёртвый) | `agent_runner.py` + удалён | -45 |
+| `ensure_scene_initialized` | `scene_init.py` | -60 |
+| EventBus publish inline | `phase_1_input.py` | -24 |
+| Мёртвые импорты | удалены | -4 |
+
+**Файлы пакета теперь:**
+
+```
+backend/app/services/game_loop/
+    __init__.py              836
+    tick_context.py            74
+    phase_1_input.py          120
+    phase_2_world_tick.py     123
+    phase_5_perception.py      53
+    phase_6_avatar.py         127
+    phase_8_commit.py          52
+    agent_runner.py           117
+    service_factories.py      ~120
+    time_advance.py            63
+    scene_init.py             210
+    npc_state_helpers.py       83
+```
+
+Цель 350 строк не достигнута — оставшиеся 836 строк это `_run_pipeline` (~500), `run_turn`/`stream_turn` (~150), `__init__` (~80), мелкие публичные методы. Дальнейшая декомпозиция `_run_pipeline` — отдельная задача, требует детального анализа зависимостей.
+
 

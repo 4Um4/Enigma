@@ -98,3 +98,27 @@ class JsonPersistenceAdapter(PersistencePort):
         except (OSError, json.JSONDecodeError) as e:
             logger.error(f"[PERSISTENCE] Error loading NPC runtime: {e}")
             return None
+
+    def atomic_commit(
+        self,
+        campaign_id: str,
+        scene_state: dict,
+        npc_states: list[dict] | None = None,
+        events: list[dict] | None = None,
+    ) -> bool:
+        """Фоллбэк: раздельные JSON-записи (нет транзакции на уровне файлов).
+
+        Устав 4.2.1 предупреждение: JSON не даёт атомарности.
+        Events не сохраняются в JSON (нет целевой таблицы) — только warning.
+        """
+        try:
+            self.save_scene(campaign_id, scene_state)
+            if npc_states is not None:
+                self.save_npc_runtime(campaign_id, npc_states)
+            if events is not None:
+                logger.warning("[PERSISTENCE] JSON adapter: events dropped (нет аудит-таблицы)")
+            logger.debug(f"[PERSISTENCE] Atomic commit (best-effort): {campaign_id}")
+            return True
+        except OSError as e:
+            logger.error(f"[PERSISTENCE] Atomic commit FAILED ({campaign_id}): {e}")
+            return False

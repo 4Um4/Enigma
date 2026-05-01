@@ -31,9 +31,9 @@ logger = logging.getLogger(__name__)
 class SqlitePersistenceAdapter(PersistencePort):
     """
     SQLite реализация порта сохранения.
-    
+
     Каждая операция save_* — отдельный INSERT OR REPLACE.
-    save_all — атомарная транзакция (сцена + NPC runtime вместе).
+    atomic_commit — атомарная транзакция (сцена + NPC runtime + events вместе).
     """
 
     def __init__(self, db_path: Path) -> None:
@@ -137,24 +137,25 @@ class SqlitePersistenceAdapter(PersistencePort):
         logger.warning(f"[SQLITE_PERSISTENCE] runtime:{session_id} не список, а {type(data)}")
         return None
 
-    def save_all(
+    def atomic_commit(
         self,
         campaign_id: str,
         scene_state: dict,
-        npc_dicts: list[dict] | None = None,
+        npc_states: list[dict] | None = None,
+        events: list[dict] | None = None,
     ) -> bool:
-        """
-        Атомарный коммит: сцена + NPC runtime в одной транзакции.
+        """Атомарный коммит: сцена + NPC runtime + events в одной транзакции.
+
         Устав 4.2.1: всё или ничего.
-        
-        Returns:
-            True если коммит успешен, False если ошибка (откат).
+        Events сохраняются как JSON blob для аудита (ключ events_tick:{campaign_id}).
         """
         conn = self._get_conn()
         try:
             self._upsert(f"scene:{campaign_id}", scene_state)
-            if npc_dicts is not None:
-                self._upsert(f"runtime:{campaign_id}", npc_dicts)
+            if npc_states is not None:
+                self._upsert(f"runtime:{campaign_id}", npc_states)
+            if events is not None:
+                self._upsert(f"events_tick:{campaign_id}", events)
             conn.commit()
             logger.debug(f"[SQLITE_PERSISTENCE] Atomic commit OK: {campaign_id}")
             return True

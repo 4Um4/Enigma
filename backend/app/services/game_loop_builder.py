@@ -12,7 +12,8 @@ from app.core.config import settings
 from app.services.game_loop import GameLoop
 from app.services.adventure_loader import AdventureLoader
 from app.services.system_requirements import SystemRequirements
-from app.services.memory import JsonMemoryStore, LayeredMemory
+from app.services.memory import LayeredMemory
+from app.services.memory.sqlite_store import SqliteMemoryStore
 from app.services.memory.memory_manager import MemoryManager
 from app.services.world_scheduler import WorldScheduler
 from app.services.character_service import CharacterService
@@ -29,10 +30,11 @@ logger = logging.getLogger(__name__)
 
 def build_game_loop(data_dir: Path) -> GameLoop:
     """Собирает GameLoop со всеми зависимостями. Вызывать ТОЛЬКО из startup."""
-    store          = JsonMemoryStore(data_dir)
+    saves_dir      = Path(settings.saves_dir)
+    # Закон 4.2.1: SQLite = runtime truth
+    store          = SqliteMemoryStore(saves_dir / "enigma_memory.db")
     layered_memory = LayeredMemory(store)
     memory_manager = MemoryManager(layered_memory, data_dir=str(data_dir))
-    saves_dir      = Path(settings.saves_dir)
     persistence    = SqlitePersistenceAdapter(saves_dir / "enigma_runtime.db")
     scene_manager  = SceneStateManager(data_dir, persistence=persistence, saves_dir=saves_dir)
     char_service   = CharacterService(root=str(saves_dir))

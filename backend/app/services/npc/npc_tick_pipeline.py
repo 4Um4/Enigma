@@ -388,3 +388,269 @@ def build_verbalization_context(
         recalled_facts=tuple(_recalled),
         suppressed_secrets=tuple(_suppressed),
     )
+
+
+# ────────────────────────────────────────────────────────────────────────────
+# ОСНОВНОЙ ЦИКЛ NPC (Вариант C: Input/Buffer/Services)
+# ────────────────────────────────────────────────────────────────────────────
+
+def run_npc_pipeline(
+    inp: "NpcTickInput",
+    buf: "NpcTickBuffer",
+    svc: "NpcTickServices",
+) -> "NpcTickBuffer":
+    """Основной цикл NPC: профиль → модификаторы → DecisionHub → StateApplicator → память.
+
+    Читает из inp, мутирует buf, использует svc.
+    Legacy-мутации _npc_dict_for_write сохранены для совместимости с commit_tick.
+    Оркестратор НЕ должен вызывать если hub_event is None (CharacterFilter заблокировал).
+    """
+    from app.services.npc.npc_loader import load_profile_from_legacy_json, load_l2_state_from_runtime_dict
+    from app.services.npc.decision_hub import DecisionHub
+    from app.services.npc.cognitive_distortion import CognitiveDistortionEngine
+    from app.models.npc_state import NPCIdentityL1, NPCState, compute_drive_modifiers
+    from app.services.npc.state_applicator import StateApplicator
+    from app.services.economy.need_engine import NeedEngine
+    from app.services.economy.economic_modifier import EconomicModifier
+    from app.services.economy.stress_calculator import calculate_economic_stress
+    from app.services.npc.npc_tick_contracts import _INTENT_TO_ACTIVITY
+
+    hub_event = inp.hub_event
+
+    for npc in inp.nearby_npcs:
+        npc_id = npc.get("npc_id")
+        if npc_id and inp.line_of_sight.get(npc_id, False):
+
+            # 1. Ищем профиль NPC в уже загруженном списке
+            _npc_profile = None
+            for _n in inp.all_npcs_raw:
+                if _n.get("id") == npc_id or _n.get("npc_id") == npc_id:
+                    _npc_profile = _n
+                    break
+            if not _npc_profile:
+                logger.warning(f"[GAME_LOOP] Profile not found for {npc_id}")
+                continue
+            # Сохраняем ссылку на dict для записи после StateApplicator
+            _npc_dict_for_write = _npc_profile
+
+            # 2. Мост: Грязный Dict -> Чистые L0/L2 типы
+            profile_l0 = load_profile_from_legacy_json(_npc_profile)
+            state_l2 = load_l2_state_from_runtime_dict(_npc_profile)
+
+            # 2b. SQLite — runtime truth (Закон 4.2.1)
+            # Если в SQLite есть воспоминания — приоритет над JSON
+            _sqlite_cache = svc.memory_manager.load_narrative_from_sqlite(
+                inp.campaign_id, npc_id,
+            )
+            if _sqlite_cache is not None:
+                state_l2.narrative_cache = _sqlite_cache
+
+            # Фаза 4-ROLE.2: Aging temporary drives (каждый тик)
+            age_temporary_drives(state_l2, _npc_dict_for_write, npc_id)
+
+            # ── ПРИЧИННЫЙ СЛОЙ: Physical Resolution (до DecisionHub) ──
+            state_l2, _reflex_constraints = resolve_physical_attack(
+                npc_id=npc_id,
+                npc_profile=_npc_profile,
+                npc_dict_for_write=_npc_dict_for_write,
+                state_l2=state_l2,
+                action_type=inp.action_type,
+                target_id=inp.player_target_id,
+                current_tick=inp.current_tick,
+                scene_continuity=inp.scene_continuity,
+                scene_state=inp.scene_state,
+                relationship_store=svc.relationship_store,
+            )
+
+            # ── ПРИЧИННЫЙ СЛОЙ: ConditionEngine (всегда, не только PHYSICAL) ──
+            state_l2 = tick_conditions(
+                state_l2, _npc_dict_for_write,
+                inp.current_tick,
+                inp.scene_continuity,
+            )
+
+            # Сброс динамического состояния при старте новой сессии
+            reset_session_state(state_l2, npc_id, inp.is_session_start)
+
+            # 1.5. Обогащаем relationship_cache из MemoryManager (РАЗРЫВ #1 закрыт)
+            try:
+                mem_weights = svc.memory_manager.get_weights_for_decision(
+                    campaign_id=inp.campaign_id,
+                    npc_id=npc_id,
+                    target_id="player",
+                )
+                state_l2.relationship_cache.update(mem_weights)
+            except Exception as _mem_e:
+                logger.error(f"[MEMORY] get_weights failed for {npc_id}: {_mem_e}", exc_info=True)
+
+            # 1.6. CognitiveDistortion: модификаторы для DecisionHub (ШАГ C.1)
+            # Distortion НЕ искажает state — возвращает модификаторы score
+            _clean_state, _distortion_bias, _distortion_modifiers = CognitiveDistortionEngine().apply(
+                state_l2, actor_is_player=True
+            )
+
+            # 2. Этап 5: Запуск DecisionHub с L1 чертами + distortion модификаторы
+            _identity_traits = svc.memory_manager.get_identity_traits(
+                campaign_id=inp.campaign_id,
+                npc_id=npc_id,
+            )
+            _identity = NPCIdentityL1(
+                npc_id=npc_id,
+                active_traits=_identity_traits,
+            )
+
+            # ФАЗА 3.2: социальные модификаторы (ревность, защита союзника)
+            _social_mods = {}
+            try:
+                if svc.social_engine:
+                    _player_dists_snap = inp.scene_state.get("player_distances", {})
+                    _extra_evt_types = [sp.event_type for sp in inp.spatial_events] if inp.spatial_events else None
+                    _social_mods = svc.social_engine.compute_social_modifiers(
+                        npc_id=npc_id,
+                        player_distances=_player_dists_snap,
+                        event_type=hub_event.event_type,
+                        event_target=inp.player_target_id,
+                        extra_event_types=_extra_evt_types,
+                    )
+            except Exception as e:
+                logger.warning(f"[GAME_LOOP] Ошибка decision_hub.compute: {e}")
+
+            # Фаза 2.4-ECO: экономические модификаторы от потребностей
+            _eco_modifiers = {}
+            try:
+                _eco_profile = svc.economic_profiles.get(npc_id)
+                if _eco_profile:
+                    _ne = NeedEngine()
+                    _drives = _ne.tick(_eco_profile)
+                    _em = EconomicModifier()
+                    _eco_result = _em.calculate(_eco_profile, _drives)
+                    _eco_modifiers = _eco_result.modifiers
+                    if _eco_modifiers:
+                        logger.warning(f"[ECO] {npc_id}: {len(_eco_modifiers)} mods, drives={_eco_result.active_drives}")
+                    # Стресс от экономики/потребностей (единый расчёт)
+                    _eco_stress, _eco_reason = calculate_economic_stress(_eco_profile, _ne)
+                    if _eco_stress > 0:
+                        state_l2.stress = min(100.0, state_l2.stress + _eco_stress)
+                        logger.warning(f"[ECO] {npc_id}: +{_eco_stress:.3f} ({_eco_reason})")
+            except Exception as _eco_e:
+                logger.warning(f"[ECO] Error (non-blocking): {_eco_e}")
+
+            # Объединяем все модификаторы для DecisionHub
+            _all_modifiers = {**_distortion_modifiers}
+            if _eco_modifiers:
+                for _intent, _mod in _eco_modifiers.items():
+                    _all_modifiers[_intent] = _all_modifiers.get(_intent, 0.0) + _mod
+
+            # Фаза 3.5: Reputation modifiers
+            _rep_modifiers_for_hub = None
+            if svc.reputation_engine:
+                _rep_mod = svc.reputation_engine.compute_reputation_modifier(npc_id)
+                if _rep_mod:
+                    _rep_modifiers_for_hub = _rep_mod
+
+            # Фаза 4-ROLE.2: TemporaryDrive modifiers
+            _drive_modifiers_for_hub = None
+            _drives = getattr(state_l2, "temporary_drives", [])
+            if _drives:
+                _drive_mods = compute_drive_modifiers(_drives)
+                if _drive_mods:
+                    _drive_modifiers_for_hub = _drive_mods
+
+            decision = DecisionHub().compute(
+                state=_clean_state,
+                personality=profile_l0,
+                event=hub_event,
+                identity=_identity,
+                eco_modifiers=_all_modifiers if _all_modifiers else None,
+                social_modifiers=_social_mods if _social_mods else None,
+                reputation_modifiers=_rep_modifiers_for_hub,
+                drive_modifiers=_drive_modifiers_for_hub,
+                reflex_constraints=_reflex_constraints,
+            )
+
+            # 3. StateApplicator: Вычисляем реальные последствия (Read -> Write)
+            state_to_use_for_llm = state_l2
+            try:
+                applicator = StateApplicator(relationship_store=svc.relationship_store)
+                state_to_use_for_llm = applicator.apply(
+                    state=state_l2,
+                    result=decision,
+                    campaign_id=inp.campaign_id,
+                )
+                # Собираем недавние события NPC для DecisionHub (память = контекст)
+                hub_event.npc_recent = []
+                if hasattr(state_to_use_for_llm, "narrative_cache"):
+                    for e in state_to_use_for_llm.narrative_cache:
+                        if hasattr(e, "summary") and e.npc_id == npc_id and e.summary:
+                            hub_event.npc_recent.append(e.summary)
+                            if len(hub_event.npc_recent) >= 3:
+                                break
+                # Salience: обновляем max_stress для фильтрации объектов
+                buf.max_npc_stress = max(buf.max_npc_stress, getattr(state_to_use_for_llm, "stress", 0.0))
+
+                # ФАЗА 1: NPC становятся живыми — запоминаем взаимодействия
+                try:
+                    state_to_use_for_llm = create_memory_event(
+                        svc.memory_manager,
+                        state_l2=state_to_use_for_llm,
+                        decision=decision,
+                        npc_id=npc_id,
+                        hub_event=hub_event,
+                        player_target_id=inp.player_target_id,
+                        player_text=inp.raw_input,
+                        scene_state=inp.scene_state,
+                        campaign_id=inp.campaign_id,
+                    )
+                except Exception as _mem_err:
+                    logger.warning(f"[MEMORY] apply failed for {npc_id}: {_mem_err}")
+
+                # ЗАМЫКАНИЕ: Записываем состояние в dict ПОСЛЕ всех мутаций (legacy)
+                NPCState.write_to_legacy(state_to_use_for_llm, _npc_dict_for_write)
+                buf.dirty_npcs.add(id(_npc_dict_for_write))
+
+                # Activity override — оркестратор применит в scene_state ПОСЛЕ фазы
+                _new_activity = _INTENT_TO_ACTIVITY.get(state_to_use_for_llm.intent.value, "")
+                if _new_activity:
+                    buf.activity_overrides[npc_id] = _new_activity
+            except Exception as e:
+                logger.warning(f"[DM_FACADE] StateApplicator failed for {npc_id}, using raw state: {e}")
+
+            # 3.5 Reaction Layer: DecisionResult → MicroEvents (ШАГ 0.5)
+            _micro_events = resolve_reactions(
+                decision, hub_event, state_to_use_for_llm,
+                _npc_dict_for_write, npc_id,
+            )
+
+            # 4. Упаковка в VerbalizationContext (Enum -> Строки для LLM)
+            verb_ctx = build_verbalization_context(
+                svc.memory_manager, profile_l0, state_to_use_for_llm, decision,
+                hub_event, inp.raw_input,
+                campaign_id=inp.campaign_id,
+            )
+
+            # Формируем единый контекст NPC
+            _stress_d = 0.0
+            _trust_d = 0.0
+            try:
+                _stress_d = decision.deltas.stress_delta_effective
+                _trust_d = decision.deltas.trust_delta
+            except Exception as e:
+                logger.warning(f"[DM_FACADE] Failed to parse deltas for {npc_id}: {e}")
+
+            # Scene Event Layer: NPC видит все события в сцене
+            _perceived = inp.scene_state.get("raw_scene_events", [])
+            buf.npc_contexts.append({
+                "npc_id": npc_id,
+                "tier": profile_l0.tier,
+                "profile_l0": profile_l0,           # ФАЗА 0: для voice/backstory/author_notes
+                "verbalization_ctx": verb_ctx,       # КЛЮЧ: Переключает агента на путь R3!
+                "decision_result": decision,          # Для будущего StateApplicator
+                "distortion_bias": _distortion_bias,  # Для ProjectionLayer (речь)
+                "real_state": _npc_dict_for_write,    # Legacy dict для ProjectionLayer
+                "trust_delta": _trust_d,              # Для StateApplicator
+                "stress_delta": _stress_d,            # Для StateApplicator
+                "micro_events": _micro_events,        # ШАГ 0.5: физические реакции
+                "perceived_events": _perceived,       # Scene Event Layer: что NPC воспринимает
+            })
+
+    return buf

@@ -97,12 +97,15 @@ def main() -> None:
             menu = GameMenu(screen, clock)
 
         elif action == MenuAction.NEW_GAME:
+            screen = pygame.display.get_surface()
             select_screen = CampaignSelectScreen(screen, clock)
             selected_folder = select_screen.run()
             if selected_folder is not None:
+                screen = pygame.display.get_surface()
                 char_screen = CharacterSelectScreen(screen, clock, selected_folder)
                 selected_char = char_screen.run()
                 if selected_char is not None:
+                    screen = pygame.display.get_surface()
                     game_screen = GameScreen(screen, clock)
                     game_screen.run(selected_folder, selected_char)
             # Возвращаемся в меню — пересоздаём поверхность и меню

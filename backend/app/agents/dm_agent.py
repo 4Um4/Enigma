@@ -194,7 +194,22 @@ class DmAgent:
                         _qualifier = "кажется, помнит"
                     else:
                         _qualifier = "смутно припоминает"
-                    _mem_lines.append(f"- {_npc_name} {_qualifier}: {_f.summary}")
+                    # Этап 8: текстуализация по игровому времени
+                    _game_ts = (context or {}).get("game_time_seconds", 0)
+                    if _game_ts:
+                        from app.core.constants import SECONDS_PER_DAY
+                        _days_ago = (_game_ts // SECONDS_PER_DAY) - _f.day
+                        if _days_ago < 1:
+                            _tq = "только что"
+                        elif _days_ago < 7:
+                            _tq = "на днях"
+                        elif _days_ago < 30:
+                            _tq = f"{_days_ago} дн. назад"
+                        else:
+                            _tq = "давно"
+                        _mem_lines.append(f"- {_npc_name} {_qualifier} ({_tq}): {_f.summary}")
+                    else:
+                        _mem_lines.append(f"- {_npc_name} {_qualifier}: {_f.summary}")
             if _mem_lines:
                 builder.add_npc_l2_memory("\n".join(_mem_lines[:5]))
         
@@ -209,6 +224,19 @@ class DmAgent:
                     _secret_lines.append(f"- {_npc_name} явно что-то скрывает ({_count} тайн)")
             if _secret_lines:
                 builder.add_custom_block("Скрытое", "\n".join(_secret_lines[:3]))
+
+        # Блок 2.5c: Накопленные черты NPC — "ты осторожен с незнакомцами" (Этап 10)
+        _identity = (context or {}).get("npc_identity_traits", [])
+        if _identity:
+            _trait_lines = []
+            for _entry in _identity:
+                _npc_name = _entry.get("npc_name", "NPC")
+                _traits = _entry.get("traits", {})
+                if _traits:
+                    _desc = ", ".join(f"{k} ({v:.0%})" for k, v in _traits.items())
+                    _trait_lines.append(f"- {_npc_name}: {_desc}")
+            if _trait_lines:
+                builder.add_custom_block("Накопленные черты", "\n".join(_trait_lines[:5]))
 
         # Блок 2.6: Кому обращается игрок — без этого DM не знает что NPC должен отвечать
         if context:

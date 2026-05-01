@@ -278,6 +278,11 @@ class SceneStateManager:
             data = self._read_campaign_json(campaign_id)
             data["scene_state"] = scene_state
             self._write_campaign_json(campaign_id, data)
+        # TODO-A1: JSON mirror — game_screen ещё читает файлы, не API. Удалить после A1.
+        data = self._read_campaign_json(campaign_id)
+        if "scene_state" not in data:
+            data["scene_state"] = scene_state
+            self._write_campaign_json(campaign_id, data)
         logger.debug(f"[SCENE] Сохранён SceneState: {scene_state.get('location_id')}")
 
     # ─────────────────────────────────────────────────────────────────────────
@@ -1229,46 +1234,33 @@ class SceneStateManager:
         campaign_id: str,
         scene_state: dict,
         npc_dicts: list[dict] | None = None,
+        events: list[dict] | None = None,
     ) -> int:
-        """
-        Единственная точка коммита состояния мира.
-    
-        Координирует сохранение:
-        - scene_state -> campaign_state.json
-        - npc_dicts -> sessions/{id}/npc_runtime.json (Шаг 0.8: разделение static/runtime)
-    
-        НЕ модифицирует данные — только вызывает PersistencePort.
-        Ownership NPCState остаётся у StateApplicator.
-    
+        """Единственная точка коммита состояния мира (Устав 4.2.1).
+
+        Делегирует в PersistencePort.atomic_commit() — контракт ABC,
+        обе реализации (SQLite, JSON) обязаны его иметь.
+
+        Args:
+            campaign_id: ID кампании
+            scene_state: финальное состояние сцены
+            npc_dicts: runtime-стейты NPC (опционально)
+            events: события тика для аудита (опционально)
+
         Returns:
-            Количество сохранённых подсистем (1 или 2).
+            2 если коммит успешен, 0 если ошибка или нет PersistencePort.
         """
         if self._persistence is None:
             logger.warning("[SCENE] commit() вызван без PersistencePort — пропуск")
             return 0
-    
-        # Устав 4.2.1: атомарный коммит если адаптер поддерживает save_all
-        if hasattr(self._persistence, 'save_all'):
-            ok = self._persistence.save_all(campaign_id, scene_state, npc_dicts)
-            return 2 if ok else 0
-    
-        # Фоллбэк: раздельные вызовы (JsonPersistenceAdapter)
-        saved = 0
-        try:
-            self._persistence.save_scene(campaign_id, scene_state)
-            saved += 1
-        except Exception as e:
-            logger.error(f"[SCENE] commit() ошибка сохранения сцены: {e}")
-    
-        if npc_dicts is not None:
-            try:
-                # Шаг 0.8: runtime отдельно от static конфига
-                self._persistence.save_npc_runtime(campaign_id, npc_dicts)
-                saved += 1
-            except Exception as e:
-                logger.error(f"[SCENE] commit() ошибка сохранения NPC runtime: {e}")
-    
-        return saved
+
+        ok = self._persistence.atomic_commit(
+            campaign_id=campaign_id,
+            scene_state=scene_state,
+            npc_states=npc_dicts,
+            events=events,
+        )
+        return 2 if ok else 0
 
 
     # ─────────────────────────────────────────────────────────────────────────

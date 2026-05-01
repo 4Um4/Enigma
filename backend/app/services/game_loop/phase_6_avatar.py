@@ -99,3 +99,28 @@ def update_avatar_from_npc_intents(
             logger.warning(f"[AVATAR] stress={_avatar_state.stress:.1f} emotion={_avatar_state.emotion.value}")
     except Exception as _av_err:
         logger.warning(f"[AVATAR] update error: {_av_err}")
+
+
+def avatar_to_prompt(state) -> dict:
+    """Формирует краткое описание состояния аватара для DM промпта."""
+    wounds_str = "нет"
+    if state.wounds:
+        wounds_str = ", ".join(
+            f"{w.body_part}({w.severity if isinstance(w.severity, str) else w.severity.value})"
+            for w in state.wounds
+        )
+    conds_str = "нет"
+    if state.conditions:
+        conds_str = ", ".join(
+            f"{k}({v.severity:.0%})" for k, v in state.conditions.items()
+        )
+    return {
+        "hp": f"{state.hp}/{state.max_hp}" if state.max_hp > 0 else "не задано",
+        "stress": round(state.stress, 1),
+        "emotion": state.emotion.value if hasattr(state.emotion, "value") else str(state.emotion),
+        "will_state": state.will_state.value if hasattr(state.will_state, "value") else str(state.will_state),
+        "posture": state.posture,
+        "wounds": wounds_str,
+        "conditions": conds_str,
+        "identity_integrity": round(state.identity_integrity, 2),
+    }
