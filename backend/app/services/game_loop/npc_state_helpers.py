@@ -25,6 +25,10 @@
 - Новый стресс: new_stress = max(0, min(100, old_stress + stress_delta))
 - Ограничение memory_trace до последних 10 записей.
 
+TODO:
+- Добавить обработку edge cases, таких как отсутствие NPC с данным npc_id или неправильный формат реакций.
+- Оптимизировать поиск NPC по npc_id и имени, возможно, используя словарь для быстрого доступа.
+
 Путь к файлу: backend/app/services/game_loop/npc_state_helpers.py
 """
 
@@ -35,7 +39,7 @@ logger = logging.getLogger(__name__)
 
 
 def apply_npc_state_updates(
-    loop: Any,
+    memory_manager: Any,
     updates: list,
     npc_dicts: list | None = None,
     campaign_id: str = "",
@@ -43,7 +47,10 @@ def apply_npc_state_updates(
     if not updates:
         return
     try:
-        all_npcs = npc_dicts if npc_dicts is not None else (loop._load_npcs_with_runtime(campaign_id) if campaign_id else loop._load_npcs())
+        if not npc_dicts:
+            logger.warning("[NPC_STATE] apply_npc_state_updates: npc_dicts пуст, пропускаем")
+            return
+        all_npcs = npc_dicts
         changed  = False
         for upd in updates:
             npc_id       = upd.get("npc_id")
@@ -70,7 +77,7 @@ def apply_npc_state_updates(
                 # P1: RelationshipStore
                 if trust_delta != 0.0 and campaign_id:
                     try:
-                        loop.memory_manager.update_relationship(
+                        memory_manager.update_relationship(
                             campaign_id = campaign_id,
                             source      = "player",
                             target      = npc_id,
@@ -87,7 +94,7 @@ def apply_npc_state_updates(
 
 
 def write_npc_memory(
-    loop: Any,
+    memory_manager: Any,
     npc_reactions: list,
     player: str,
     action_text: str,

@@ -242,3 +242,73 @@ phase_0_simulation()
 | D8 Flee, follow, patrol | TODO |
 | C1 TickOrchestrator | ✅ |
 | A1.1 PerceivedEntity.x/y | ✅ |
+
+
+**Шаг 6 завершён.** Подведу итоги всей сессии:
+
+---
+
+## ЧТО СДЕЛАНО
+
+### Шаг 1: Разделить дистанции ✅
+| Файл | Изменение |
+|------|-----------|
+| `spatial_runtime.py` | Новая `euclidean_distance(a, b)` — чистый `math.hypot` из `local_position` |
+| `player_target_extractor.py` | Импорт + вызов `euclidean_distance` вместо графовой |
+| `perception_filter.py` | Импорт + 2 вызова `euclidean_distance` вместо графовой |
+| `spatial_runtime.py` | 3 внутренних вызова в `extract_scene_for_npc` → `euclidean_distance` |
+| `spatial_runtime.py` | `resolve_distance_between_entities` сохранена для pathfinding |
+
+**Эффект:** Люся (0.58m) теперь ближе Тени (7.56m) при таргетинге "девушка" и при восприятии.
+
+### Шаг 2: Граф локации ✅ (диагностика, без изменений)
+- Граф `tavern_silver_wolf` существует в `location_templates.json`
+- `local_position` заполняется из editor JSON при инициализации
+- Проблема была чисто в графовом расстоянии — исправлено Шагом 1
+
+### Шаг 6: Дескрипторы для таргетинга ✅
+| Файл | Изменение |
+|------|-----------|
+| `player_target_pipeline.py` | `gender` добавлен в `npc_ctx_list` |
+| `player_target_extractor.py` | `_ROLE_KEYWORDS["maid"]` очищена от гендерных терминов |
+| `player_target_extractor.py` | Добавлены `_GENDER_NORM`, `_DESCRIPTORS` (12 записей) |
+| `player_target_extractor.py` | Лемматизация через pymorphy3 (реюз `_morph_analyzer`) |
+| `player_target_extractor.py` | Descriptor-мэтчинг после name_forms → role → descriptor |
+
+**Цепочка мэтчинга теперь:**
+1. `name_forms` — "Люся", "Тень" → 0 или 1 кандидат
+2. `role_keywords` — "служанка", "стражник" → по профессии
+3. `descriptors` — "девушка", "мужчина" → по gender через pymorphy3 лемму
+4. Distance sort → ближайший кандидат выигрывает
+
+---
+
+## ОБНОВЛЁННАЯ ДОРОЖНАЯ КАРТА
+
+### ✅ Выполнено
+- **Шаг 1:** Евклидова дистанция для восприятия и таргетинга
+- **Шаг 2:** Граф локации — OK, без изменений
+- **Шаг 6:** Дескрипторы + pymorphy3 + очистка role_keywords
+
+### Новые шаги (из сессии)
+
+**Шаг 4 (критично при движении NPC):** `scene_state_manager:1359` — при обновлении позиции NPC (`entry["position"] = position`) не обновляется `local_position`. Когда NPC начнёт двигаться — евклидова дистанция будет считать от старых координат. Нужно синхронизировать `_nearest_node_to_xy()` → `local_position` при каждом изменении.
+
+**Шаг 7: S.1 Social Pragmatics Layer** (из твоего предложения)
+- `TargetCandidate` dataclass с `match_type`, `match_keyword`, `distance`
+- `address_propriety` = proper / mismatch / insulting / ambiguous
+- `social_gap` из `SocialStanding` enum в NPCProfile
+- Это фича на 5-7 шагов, но архитектурно правильная
+
+### Отложено (не сломано, не мешает)
+- **Шаг 3:** Движение NPC — заменён на реактивное движение через LLM (твоё предложение)
+- **Шаг 5:** Архитектурный долг (`context_builder` type annotation, `_as_dict` костыль)
+
+---
+
+**Приоритет следующей сессии:** Шаг 4 (синхронизация `local_position` при движении) → тест "девушка" → Люся в живой игре.
+
+
+Люся 4,5;5,0
+Тень 3,5;9,5
+Борко 12,0;9,0

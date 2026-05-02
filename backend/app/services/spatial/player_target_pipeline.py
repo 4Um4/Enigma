@@ -10,6 +10,10 @@ path: backend/app/services/spatial/player_target_pipeline.py
 Назначение: Извлечение цели игрока, детекция spatial transitions, построение spatial_data для DM. Вынесено из game_loop.
 Зависимости: PlayerTargetExtractor, spatial_events, EventBus, EventDTO, EventType
 Основные сущности: PlayerTargetResult, extract_player_target(), detect_and_publish_spatial_transitions(), build_spatial_data_for_dm()
+TODO: В будущем можно расширить для поддержки объектов, а не только NPC. Сейчас фокус на NPC как цели игрока.
+TODO: Возможно, стоит добавить к PlayerTargetResult больше информации о цели (тип, описание) для более богатого взаимодействия с DM. Сейчас только id и name.
+TODO: Логирование и мониторинг — сейчас есть базовые логгеры, но можно добавить больше контекста для отладки (например, какие именно переходы детектируются, какие цели извлекаются).
+TODO: В detect_and_publish_spatial_transitions() можно добавить фильтрацию по локации или другим параметрам, чтобы не публиковать слишком много событий, если это не нужно. Сейчас все transitions публикуются без фильтрации.
 """
 
 from __future__ import annotations
@@ -19,6 +23,7 @@ from dataclasses import dataclass
 from typing import Callable, Dict, List, Optional
 
 from app.services.action.player_target_extractor import PlayerTargetExtractor
+from app.services.spatial.spatial_runtime import euclidean_distance
 from app.services.events.event_bus import get_event_bus
 from app.services.events.event_types import EventType
 from app.domain.events import EventDTO
@@ -58,6 +63,7 @@ def extract_player_target(
                 "npc_id": _nid,
                 "npc_name": _n.get("name", ""),
                 "name_forms": _n.get("name_forms", []),
+                "gender": _n.get("gender", ""),
             })
 
     _extractor = PlayerTargetExtractor()
@@ -131,15 +137,15 @@ def build_spatial_data_for_dm(location: str, scene_state: dict) -> dict:
     """Строит spatial_data из scene_state для DM SceneBuilder."""
     _scene = scene_state
     _npc_positions = _scene.get("npc_positions", {})
-    logger.warning(
-        f"[DEBUG SPATIAL] location={location}, "
-        f"npc_positions keys={list(_npc_positions.keys())}"
-    )
 
+    _player_spatial = _scene.get("player_spatial") or {}
     _player_distances = _scene.get("player_distances", {})
     _npcs_for_builder = []
     for _nid, _npos in _npc_positions.items():
-        _dist = _player_distances.get(_nid, 5.0)
+        _dist = euclidean_distance(_player_spatial, _npos)
+        # Если координат нет, euclidean_distance вернёт 999.0 — используем старый fallback
+        if _dist >= 999.0:
+            _dist = _player_distances.get(_nid, 5.0)
         _npcs_for_builder.append({
             "npc_id": _nid,
             "location_id": location,

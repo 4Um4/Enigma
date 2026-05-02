@@ -51,6 +51,21 @@ class LocationGraph:
     def all_nodes(self) -> Dict[str, LocationNode]:
         return dict(self._nodes)
 
+    def find_nearest_node(self, x: float, y: float) -> Optional[str]:
+        """Находит ближайший узел к заданным координатам.
+
+        Используется для резолва APPROACH: позиция игрока → ближайший узел графа.
+        Возвращает node_id или None если граф пуст.
+        """
+        best_id: Optional[str] = None
+        best_dist: float = float("inf")
+        for nid, node in self._nodes.items():
+            d = math.dist((node.x, node.y), (x, y))
+            if d < best_dist:
+                best_dist = d
+                best_id = nid
+        return best_id
+
     def find_path(self, from_node: str, to_node: str) -> list[str]:
         """BFS-путь от from_node до to_node по connections.
         

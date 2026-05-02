@@ -1,6 +1,26 @@
 """
 backend/app/services/npc/spatial_runtime.py
 R4 runtime: расстояния XY, LOS, звук, извлечение контекста сцены для NPC.
+
+Назначение: все spatial-расчёты в одном месте, чтобы избежать дублирования логики и данных.
+Например, извлечение nearby NPC для major и minor NPC — с разными радиусами и LOS, но общей логикой определения расстояния и видимости.
+Также сюда входят функции для проверки LOS, расчёта звукового радиуса и т.д.
+
+Зависимости: использует LocationGraph для расчёта расстояний по узлам, а также данные о стенах и препятствиях из scene_state.
+Входные данные: словарь scene_state с ключами location_id, npc_positions, player_spatial, spatial_walls, spatial_obstacles, environment_modifiers и т.д.
+Выходные данные: функции возвращают числовые расстояния, булевы значения LOS, а также извлечённые данные для NPC (nearby, player snapshot, available actions).
+
+Формулы:
+- Евклидово расстояние между сущностями по local_position (euclidean_distance).
+- Расстояние по графу + local XY смещение (resolve_distance_between_entities) — для pathfinding.
+- LOS: зависит от освещения, плотности среды и опасности (line_of_sight).
+- Звук: базовый радиус + шум - плотность (sound_reach).
+- Извлечение сцены для NPC: nearby NPC в радиусе восприятия с учётом LOS, игрок, доступные действия (extract_scene_for_npc).
+- Звук в соседних локациях: если effective_radius > bleed_threshold, возвращает connected_locations (sound_bleeds_to_adjacent).
+
+TODO: оптимизации — кэширование графов, оптимизация проверки LOS, lazy evaluation для minor NPC и т.д.
+TODO: расширение функционала — учёт высоты, динамические объекты, более сложные модификаторы среды и т.д.
+TODO: расширение формул — например, добавление шумов к LOS, учёт укрытий, более сложные правила взаимодействия NPC и игрока и т.д.
 """
 
 from __future__ import annotations
@@ -30,6 +50,21 @@ def _local(entity: dict) -> tuple[float, float]:
         return float(local.get("x", 0.0)), float(local.get("y", 0.0))
     except (TypeError, ValueError):
         return 0.0, 0.0
+
+
+def euclidean_distance(
+    a: dict,
+    b: dict,
+) -> float:
+    """Евклидово расстояние между сущностями по local_position.
+    Для восприятия и таргетинга — кто рядом физически, а не по графу пути.
+    Возвращает 999.0 если local_position отсутствует у одной из сущностей."""
+    ax, ay = _local(a)
+    bx, by = _local(b)
+    # если обе позиции (0,0) по умолчанию — считаем что данных нет
+    if ax == 0.0 and ay == 0.0 and bx == 0.0 and by == 0.0:
+        return 999.0
+    return round(math.hypot(ax - bx, ay - by), 2)
 
 
 def resolve_distance_between_entities(
@@ -229,13 +264,13 @@ def extract_scene_for_npc(
         # Невидимый NPC требует LOS + дистанцию ≤ 1.5м для обнаружения.
         # Иначе — для наблюдателя его не существует в сцене.
         if not other.get("visible", True):
-            d = resolve_distance_between_entities(scene_state, me, other, graph=graph)
+            d = euclidean_distance(me, other)
             if d > 1.5 or not line_of_sight(d, scene_state):
                 continue
             nearby.append({"npc_id": other_id, "distance": round(d, 2), "detected": True})
             continue
 
-        d = resolve_distance_between_entities(scene_state, me, other, graph=graph)
+        d = euclidean_distance(me, other)
         if d <= perception_radius:
             my_xy = _local(me)
             other_xy = _local(other)
@@ -246,7 +281,7 @@ def extract_scene_for_npc(
     player_snapshot: dict | None = None
     player_data = scene_state.get("player_spatial") or {}
     if isinstance(player_data, dict) and player_data:
-        d_player = resolve_distance_between_entities(scene_state, me, player_data, graph=graph)
+        d_player = euclidean_distance(me, player_data)
         if d_player <= perception_radius:
             my_xy = _local(me)
             player_xy = _local(player_data)

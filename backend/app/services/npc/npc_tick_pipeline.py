@@ -8,19 +8,26 @@
 
 Назначение: Чистые функции NPC пайплайна — без self, без побочных эффектов кроме логгирования
 Зависимости: logging, app.services.resolution, app.services.reaction, app.services.npc, app.services.verbalization, app.models
-Основные сущности: HANDS_OCCUPIED_ACTIVITIES, BASE_IMPORTANCE, PHYSICAL_EVENTS, reset_session_state, tick_conditions, age_temporary_drives, resolve_reactions, resolve_physical_attack, create_memory_event, build_verbalization_context
+Основные сущности: BASE_IMPORTANCE, apply_perception_memory, create_memory_event, build_verbalization_context, run_npc_pipeline
 """
 
 import logging
 from typing import Any
 
+from app.services.npc.domain_phases import (
+    HANDS_OCCUPIED_ACTIVITIES,
+    PHYSICAL_EVENTS,
+    resolve_physical_attack,
+    reset_session_state,
+    tick_conditions,
+    age_temporary_drives,
+    compute_economy,
+    resolve_reactions,
+)
+
 logger = logging.getLogger(__name__)
 
 # ── Константы ──────────────────────────────────────────────────────────────────
-
-HANDS_OCCUPIED_ACTIVITIES = frozenset({
-    "serving", "working", "crafting", "cooking", "serving_tables", "cleaning_tables",
-})
 
 BASE_IMPORTANCE: dict[str, float] = {
     "TALK": 0.6, "TRADE": 0.7, "HELP": 0.8,
@@ -28,228 +35,72 @@ BASE_IMPORTANCE: dict[str, float] = {
     "ASK": 0.5, "THREATEN": 0.85, "OBSERVE": 0.3,
 }
 
-PHYSICAL_EVENTS = frozenset({
-    "player_attacks", "player_steals", "player_grapples",
-    "player_casts", "player_shoots",
-})
-
-
-# ── Physical resolution ──────────────────────────────────────────────────────
-
-def resolve_physical_attack(
-    npc_id: str,
-    npc_profile: dict,
-    npc_dict_for_write: dict,
-    state_l2: Any,
-    action_type: str,
-    target_id: str,
-    current_tick: int,
-    scene_continuity: Any,
-    scene_state: dict,
-    relationship_store: Any,
-) -> tuple:
-    """Physical Resolution: игрок атакует NPC — урон, рефлексы, факты сцены.
-
-    Возвращает (state_l2, reflex_constraints) — constraints для DecisionHub.
-    Если действие не физическое или NPC не цель — возвращает (state_l2, None).
-    """
-    if action_type not in PHYSICAL_EVENTS or npc_id != target_id or state_l2.max_hp <= 0:
-        return state_l2, None
-
-    _reflex_constraints = None
-    try:
-        from app.services.resolution.physical_resolver import PhysicalResolver
-        from app.services.reaction.reflex_resolver import ReflexResolver
-        from app.services.npc.state_applicator import StateApplicator
-
-        _combat = npc_profile.get("combat_stats", {})
-        _resolver = PhysicalResolver()
-        _phys_outcome = _resolver.resolve_attack(
-            attack_bonus=2,
-            target_ac=_combat.get("ac", 10),
-            damage_formula=_combat.get("damage", "1d4"),
-            attacker_id="player",
-        )
-
-        _applicator = StateApplicator(relationship_store=relationship_store)
-        state_l2, _ = _applicator.apply_physical(
-            state=state_l2,
-            outcome=_phys_outcome,
-            current_tick=current_tick,
-        )
-        from app.models.npc_state import NPCState
-        NPCState.write_to_legacy(state_l2, npc_dict_for_write)
-
-        _reflex = ReflexResolver()
-        _reflex_result = _reflex.resolve(
-            outcome=_phys_outcome,
-            npc_id=npc_id,
-            current_hp=state_l2.hp,
-            max_hp=state_l2.max_hp,
-        )
-
-        if _reflex_result.has_constraint:
-            for sig in _reflex_result.decision_signals:
-                if sig.signal_type == "constraint" and sig.constraint:
-                    _reflex_constraints = sig.constraint.to_dict()
-
-        if _phys_outcome.hit and scene_continuity:
-            _npc_display_name = npc_profile.get("name", npc_id)
-            _los = (scene_state or {}).get("line_of_sight", {})
-            _witnesses = [nid for nid, vis in _los.items() if vis and nid != npc_id]
-            _vis_tag = "на глазах у присутствующих " if _witnesses else ""
-            _fact = f"Игрок {_vis_tag}ударил {_npc_display_name}: {_phys_outcome.damage} урона ({_phys_outcome.damage_type.value})"
-            if _phys_outcome.critical:
-                _fact += ", КРИТИЧЕСКИЙ УДАР"
-            scene_continuity.add_fact(_fact)
-
-        if _reflex_result.scene_events:
-            _phys_labels = {
-                "flinched": "дрогнул(а)",
-                "staggered": "отшатнулся(лся) от удара",
-                "cry_of_pain": "вскрикнул(а) от боли",
-                "blood_spatter": "появилась кровь",
-                "weapon_dropped_force": "выронил(а) оружие от удара",
-                "fell_to_ground": "упал(а) на землю",
-            }
-            _desc_parts = []
-            for _me in _reflex_result.scene_events:
-                _label = _phys_labels.get(_me.event_type.value, _me.event_type.value)
-                _desc_parts.append(_label)
-                if scene_continuity:
-                    scene_continuity.add_event(f"{_me.event_type.value}_{_me.npc_id}")
-            if _desc_parts and scene_continuity:
-                _existing = scene_continuity.scene_facts[-1] if scene_continuity.scene_facts else ""
-                scene_continuity.scene_facts[-1] = _existing + ", " + ", ".join(_desc_parts)
-
-    except Exception as _phys_err:
-        logger.error(f"[PHYSICAL] Error (non-blocking): {_phys_err}", exc_info=True)
-
-    return state_l2, _reflex_constraints
-
 
 # ── Session reset ─────────────────────────────────────────────────────────────
-
-def reset_session_state(state_l2: Any, npc_id: str, is_session_start: bool) -> None:
-    """Сброс динамического состояния при старте новой сессии.
-
-    R8: stale emotion_tag даёт +0.35 к FLEE — без сброса NPC
-    начинают убегать от нового игрока из-за старой эмоции.
-    Stress НЕ сбрасывается — копится от событий.
-    """
-    if not is_session_start:
-        return
-    from app.models.npc_state import Intent, EmotionTag
-    from app.models.behavior_mask import BehaviorMaskState
-
-    state_l2.intent_duration = 0
-    state_l2.intent_formed_at = 0
-    state_l2.emotion_delta = 0.0
-    state_l2.intent = Intent.IDLE
-    state_l2.emotion = EmotionTag.NEUTRAL
-    state_l2.behavior_mask = BehaviorMaskState()
-    logger.warning(f"[SESSION_RESET] {npc_id}: emotion=NEUTRAL mask=NONE")
-
-
 # ── ConditionEngine ───────────────────────────────────────────────────────────
-
-def tick_conditions(
-    state_l2: Any,
-    npc_dict_for_write: dict,
-    current_tick: int,
-    scene_continuity: Any,
-) -> Any:
-    """ConditionEngine: тик условий (яд, болезнь, etc).
-
-    Возвращает обновлённый state_l2 — может быть пересоздан при изменении HP.
-    """
-    if not state_l2.conditions:
-        return state_l2
-    try:
-        from app.services.npc.condition_engine import ConditionEngine
-        _cond_changes, _cond_events = ConditionEngine().tick(
-            state=state_l2,
-            current_tick=current_tick,
-        )
-        for _sc in _cond_changes:
-            if _sc.field == "hp":
-                state_l2 = state_l2.__class__(
-                    **{**state_l2.__dict__, "hp": max(0, state_l2.hp + _sc.delta)}
-                )
-                from app.models.npc_state import NPCState
-                NPCState.write_to_legacy(state_l2, npc_dict_for_write)
-        if _cond_events and scene_continuity:
-            for _me in _cond_events:
-                scene_continuity.add_event(f"{_me.event_type.value}_{_me.npc_id}")
-    except Exception as _cond_err:
-        logger.warning(f"[CONDITION] Error (non-blocking): {_cond_err}")
-    return state_l2
-
 
 # ── Temporary drives aging ───────────────────────────────────────────────────
 
-def age_temporary_drives(state_l2: Any, npc_dict_for_write: dict, npc_id: str) -> None:
-    """Фаза 4-ROLE.2: aging temporary drives — истекшие удаляются."""
-    _drives = getattr(state_l2, "temporary_drives", [])
-    if not _drives:
-        return
-    from app.models.npc_state import age_drives
-    _aged = age_drives(_drives)
-    if hasattr(state_l2, "__dict__"):
-        state_l2.temporary_drives = _aged
-        npc_dict_for_write["temporary_drives"] = [
-            {
-                "drive_type": d.drive_type,
-                "urgency": d.urgency,
-                "reason": d.reason,
-                "source_npc_id": d.source_npc_id,
-                "tick_born": d.tick_born,
-                "tick_age": d.tick_age,
-            }
-            for d in _aged
-        ]
-    if len(_aged) != len(_drives):
-        logger.warning(f"[DRIVE] {npc_id}: {len(_drives)}→{len(_aged)} drives (expired)")
-
-
 # ── Reaction resolver ────────────────────────────────────────────────────────
 
-def resolve_reactions(
-    decision: Any,
-    hub_event: Any,
-    state_for_llm: Any,
-    npc_dict_for_write: dict,
-    npc_id: str,
-) -> list:
-    """Reaction Layer: DecisionResult → MicroEvents.
-
-    Без этого DecisionHub говорит "испуган", но ничего не визуализируется.
-    """
-    try:
-        from app.services.reaction.reaction_resolver import ReactionResolver
-        _resolver = ReactionResolver()
-        _composure = 1.0 - state_for_llm.stress / 100.0
-        _current_activity = npc_dict_for_write.get("routine", {}).get("current", "")
-        _hands_occupied = _current_activity in HANDS_OCCUPIED_ACTIVITIES
-        _micro_events = _resolver.resolve(
-            decision=decision,
-            event=hub_event,
-            composure=_composure,
-            hands_occupied=_hands_occupied,
-            current_activity=_current_activity,
-        )
-        logger.warning(
-            f"[REACTION] {npc_id}: composure={_composure:.2f} "
-            f"hands={_hands_occupied} act='{_current_activity}' "
-            f"events={[e.event_type.value for e in _micro_events]}"
-        )
-        return _micro_events
-    except Exception as e:
-        logger.warning(f"[REACTION] Failed for {npc_id}: {e}")
-        return []
-
-
 # ── Memory event creation ───────────────────────────────────────────────────
+
+def apply_perception_memory(
+    memory_manager: Any,
+    state_l2: Any,
+    hub_event: Any,
+    npc_id: str,
+    player_target_id: str,
+    player_text: str,
+    campaign_id: str,
+) -> Any:
+    """ФАЗА 3 (§3.1): Запись восприятия события в память NPC ДО DecisionHub.
+
+    DecisionHub должен видеть СВЕЖИЙ state — NPC помнит что произошло (Устав §3.1, §7.7).
+    Важно: не использует decision — он ещё не принят.
+    Возвращает обновлённый state_l2.
+    """
+    from app.domain.events import EventDTO
+
+    _evt_type = hub_event.event_type if hub_event else ""
+    _evt_actor = hub_event.actor_id or "player" if hub_event else "player"
+    _has_target = bool(player_target_id)
+
+    # Базовая важность по типу события — без decision (ещё не принято)
+    _importance = 0.4
+    if _evt_type in ("npc_interacts_npc", "npc_proximity_close"):
+        _importance = 0.6
+    elif _evt_type == "player_interacts" and _has_target:
+        _importance = 0.5
+
+    _summary = (
+        f"{_evt_actor} → {player_target_id}: {player_text[:60]}"
+        if _has_target
+        else f"{_evt_actor}: {player_text[:60]}"
+    )
+    _emotion = getattr(state_l2.emotion, "value", "neutral") if state_l2.emotion else "neutral"
+
+    _evt_dto = EventDTO.create(
+        event_type=_evt_type,
+        source=_evt_actor,
+        payload={
+            "npc_id": npc_id,
+            "target_id": player_target_id,
+            "action_type": "perception",
+            "emotion_tag": _emotion,
+            "summary": _summary,
+            "importance": _importance,
+            "npc_stress": getattr(state_l2, "stress", 0.0),
+        },
+        persistence_level="working",
+    )
+    state_l2 = memory_manager.apply(
+        event=_evt_dto,
+        npc_state=state_l2,
+        campaign_id=campaign_id,
+    )
+    return state_l2
+
 
 def create_memory_event(
     memory_manager: Any,
@@ -330,6 +181,7 @@ def build_verbalization_context(
     hub_event: Any,
     raw_input: str,
     campaign_id: str = "",
+    topic: str = "",
 ) -> Any:
     """Упаковка данных NPC в VerbalizationContext для LLM-промпта."""
     from app.services.verbalization.state_interpreter import StateInterpreter
@@ -346,12 +198,6 @@ def build_verbalization_context(
 
     _scene_hint = raw_input[:500].strip() if raw_input else ""
     _interpreter = StateInterpreter()
-
-    _topic = extract_topic(
-        event_type=hub_event.event_type.value if hasattr(hub_event.event_type, "value") else str(hub_event.event_type),
-        scene_facts=hub_event.scene_facts,
-        raw_input=raw_input,
-    )
 
     # Этап 3.5-3.6 + 5: Recall с поддержкой секретов
     _pressure = memory_manager.get_dialogue_pressure(campaign_id, profile_l0.id) if campaign_id else 0
@@ -374,7 +220,7 @@ def build_verbalization_context(
         will_state=state_for_llm.will_state.value,
         intent=decision.intent.value,
         intent_target=decision.intent_target,
-        topic=_topic,
+        topic=topic,
         scene_hint=_scene_hint,
         emotional_nuance=generate_emotional_nuance(state_for_llm),
         speech_style=_dominant_drive,
@@ -410,9 +256,6 @@ def run_npc_pipeline(
     from app.services.npc.cognitive_distortion import CognitiveDistortionEngine
     from app.models.npc_state import NPCIdentityL1, NPCState, compute_drive_modifiers
     from app.services.npc.state_applicator import StateApplicator
-    from app.services.economy.need_engine import NeedEngine
-    from app.services.economy.economic_modifier import EconomicModifier
-    from app.services.economy.stress_calculator import calculate_economic_stress
     from app.services.npc.npc_tick_contracts import _INTENT_TO_ACTIVITY
 
     hub_event = inp.hub_event
@@ -483,6 +326,15 @@ def run_npc_pipeline(
             except Exception as _mem_e:
                 logger.error(f"[MEMORY] get_weights failed for {npc_id}: {_mem_e}", exc_info=True)
 
+            # ФАЗА 3 (§3.1): Восприятие → память ДО DecisionHub (Устав §7.7)
+            try:
+                state_l2 = apply_perception_memory(
+                    svc.memory_manager, state_l2, hub_event, npc_id,
+                    inp.player_target_id, inp.raw_input, inp.campaign_id,
+                )
+            except Exception as _perc_mem_err:
+                logger.warning(f"[MEMORY] perception apply failed for {npc_id}: {_perc_mem_err}")
+
             # 1.6. CognitiveDistortion: модификаторы для DecisionHub (ШАГ C.1)
             # Distortion НЕ искажает state — возвращает модификаторы score
             _clean_state, _distortion_bias, _distortion_modifiers = CognitiveDistortionEngine().apply(
@@ -516,24 +368,9 @@ def run_npc_pipeline(
                 logger.warning(f"[GAME_LOOP] Ошибка decision_hub.compute: {e}")
 
             # Фаза 2.4-ECO: экономические модификаторы от потребностей
-            _eco_modifiers = {}
-            try:
-                _eco_profile = svc.economic_profiles.get(npc_id)
-                if _eco_profile:
-                    _ne = NeedEngine()
-                    _drives = _ne.tick(_eco_profile)
-                    _em = EconomicModifier()
-                    _eco_result = _em.calculate(_eco_profile, _drives)
-                    _eco_modifiers = _eco_result.modifiers
-                    if _eco_modifiers:
-                        logger.warning(f"[ECO] {npc_id}: {len(_eco_modifiers)} mods, drives={_eco_result.active_drives}")
-                    # Стресс от экономики/потребностей (единый расчёт)
-                    _eco_stress, _eco_reason = calculate_economic_stress(_eco_profile, _ne)
-                    if _eco_stress > 0:
-                        state_l2.stress = min(100.0, state_l2.stress + _eco_stress)
-                        logger.warning(f"[ECO] {npc_id}: +{_eco_stress:.3f} ({_eco_reason})")
-            except Exception as _eco_e:
-                logger.warning(f"[ECO] Error (non-blocking): {_eco_e}")
+            _eco_profile = svc.economic_profiles.get(npc_id)
+            _eco_result = compute_economy(npc_id, _eco_profile, state_l2)
+            _eco_modifiers = _eco_result["modifiers"]
 
             # Объединяем все модификаторы для DecisionHub
             _all_modifiers = {**_distortion_modifiers}
@@ -556,6 +393,14 @@ def run_npc_pipeline(
                 if _drive_mods:
                     _drive_modifiers_for_hub = _drive_mods
 
+            # Фаза 4 (§3.2): TopicExtractor — ДО DecisionHub
+            from app.services.npc.topic_extractor import extract_topic
+            _topic = extract_topic(
+                event_type=hub_event.event_type.value if hasattr(hub_event.event_type, "value") else str(hub_event.event_type),
+                scene_facts=hub_event.scene_facts,
+                raw_input=inp.raw_input,
+            )
+
             decision = DecisionHub().compute(
                 state=_clean_state,
                 personality=profile_l0,
@@ -566,7 +411,30 @@ def run_npc_pipeline(
                 reputation_modifiers=_rep_modifiers_for_hub,
                 drive_modifiers=_drive_modifiers_for_hub,
                 reflex_constraints=_reflex_constraints,
+                topic=_topic,
             )
+
+            # CommunicationIntent → buffer, публикация через Фазу 6 оркестратора (Устав §5.1)
+            if decision.communication is not None:
+                buf.communication_intents.append(decision.communication)
+                # DEPRECATED: published_events — оставлен для обратной совместимости
+                buf.published_events.append(decision.communication)
+
+            # MovementIntent — реактивное движение NPC (APPROACH, FLEE и др.)
+            # DecisionHub решает ЧТО делать, MovementEngine решит КАК (координаты)
+            from app.domain.movement import MovementIntent
+            _intent_value = decision.intent.value if decision.intent else ""
+            _MOVE_INTENTS = {"approach"}  # Расширять: flee, seek_ally и т.д.
+            if _intent_value in _MOVE_INTENTS:
+                _movement = _resolve_reactive_movement(
+                    npc_id=npc_id,
+                    intent=_intent_value,
+                    intent_target=decision.intent_target,
+                    scene_state=inp.scene_state,
+                    location_id=inp.location,
+                )
+                if _movement:
+                    buf.movement_intents.append(_movement)
 
             # 3. StateApplicator: Вычисляем реальные последствия (Read -> Write)
             state_to_use_for_llm = state_l2
@@ -626,6 +494,7 @@ def run_npc_pipeline(
                 svc.memory_manager, profile_l0, state_to_use_for_llm, decision,
                 hub_event, inp.raw_input,
                 campaign_id=inp.campaign_id,
+                topic=_topic,
             )
 
             # Формируем единый контекст NPC
@@ -654,3 +523,71 @@ def run_npc_pipeline(
             })
 
     return buf
+
+
+# ─────────────────────────────────────────────────────────────────────────
+# Мост: DecisionResult → MovementIntent (реактивное движение NPC)
+# ─────────────────────────────────────────────────────────────────────────
+
+def _resolve_reactive_movement(
+    npc_id: str,
+    intent: str,
+    intent_target: Optional[str],
+    scene_state: dict,
+    location_id: str,
+) -> Optional["MovementIntent"]:
+    """Конвертирует пространственный intent в MovementIntent.
+
+    DecisionHub решает ЧТО (approach), эта функция решает КУДА (целевой узел графа).
+    MovementEngine потом резолвит узел в {x, y}.
+
+    Поддерживаемые интенты:
+    - approach: идёт к intent_target (игрок/NPC) → ближайший к цели узел графа
+    - flee: уходит от intent_target → узел графа максимальной удалённости (заглушка)
+    """
+    from app.domain.movement import MovementIntent, PRIORITY_NEEDS
+    from app.services.spatial.location_graph import load_graph
+
+    # Текущий узел NPC
+    npc_positions = scene_state.get("npc_positions", {})
+    npc_entry = npc_positions.get(npc_id, {})
+    current_node = npc_entry.get("position", "")
+
+    # Координаты цели — кого ищем
+    target_x: float | None = None
+    target_y: float | None = None
+
+    if intent == "approach":
+        # Цель = игрок (по умолчанию) или другой NPC
+        if intent_target and intent_target in npc_positions:
+            # Подходим к другому NPC
+            target_entry = npc_positions[intent_target]
+            lp = target_entry.get("local_position", {})
+            target_x = lp.get("x")
+            target_y = lp.get("y")
+        else:
+            # Подходим к игроку
+            player_spatial = scene_state.get("player_spatial", {})
+            lp = player_spatial.get("local_position", {})
+            target_x = lp.get("x")
+            target_y = lp.get("y")
+
+    if target_x is None or target_y is None:
+        return None
+
+    # Резолвим целевые координаты → ближайший узел графа
+    try:
+        graph = load_graph(location_id)
+        target_node = graph.find_nearest_node(target_x, target_y)
+        if not target_node or target_node == current_node:
+            return None  # Уже на месте или граф не найден
+        return MovementIntent(
+            npc_id=npc_id,
+            target_node_id=target_node,
+            from_node_id=current_node,
+            location_id=location_id,
+            reason=f"reactive:{intent}",
+            priority=PRIORITY_NEEDS,
+        )
+    except Exception:
+        return None

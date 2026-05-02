@@ -65,8 +65,9 @@ class TestSceneStateManagerCommit:
         assert result == 0
     
     def test_commit_calls_both_saves(self, tmp_path):
-        """commit() с портом вызывает save_scene + save_npcs."""
+        """commit() с портом делегирует в atomic_commit."""
         mock_port = MagicMock(spec=PersistencePort)
+        mock_port.atomic_commit.return_value = True
         manager = SceneStateManager(tmp_path, persistence=mock_port)
         
         scene = {"location_id": "tavern"}
@@ -75,28 +76,36 @@ class TestSceneStateManagerCommit:
         result = manager.commit("camp-1", scene, npcs)
         
         assert result == 2
-        mock_port.save_scene.assert_called_once_with("camp-1", scene)
-        mock_port.save_npc_runtime.assert_called_once_with("camp-1", npcs)
+        mock_port.atomic_commit.assert_called_once_with(
+            campaign_id="camp-1",
+            scene_state=scene,
+            npc_states=npcs,
+            events=None,
+        )
     
     def test_commit_scene_only(self, tmp_path):
-        """commit() без npc_dicts сохраняет только сцену."""
+        """commit() без npc_dicts делегирует в atomic_commit с None."""
         mock_port = MagicMock(spec=PersistencePort)
+        mock_port.atomic_commit.return_value = True
         manager = SceneStateManager(tmp_path, persistence=mock_port)
         
         result = manager.commit("camp-1", {"location": "tavern"})
         
-        assert result == 1
-        mock_port.save_scene.assert_called_once()
-        mock_port.save_npc_runtime.assert_not_called()
+        assert result == 2
+        mock_port.atomic_commit.assert_called_once_with(
+            campaign_id="camp-1",
+            scene_state={"location": "tavern"},
+            npc_states=None,
+            events=None,
+        )
     
     def test_commit_continues_on_scene_error(self, tmp_path):
-        """commit() продолжает сохранять NPC даже если сцена упала."""
+        """atomic_commit — всё или ничего. Ошибка = 0."""
         mock_port = MagicMock(spec=PersistencePort)
-        mock_port.save_scene.side_effect = OSError("disk full")
+        mock_port.atomic_commit.return_value = False
         manager = SceneStateManager(tmp_path, persistence=mock_port)
         
         result = manager.commit("camp-1", {"loc": "x"}, [{"id": "n1"}])
         
-        # scene упал (0), npc runtime сохранился (1)
-        assert result == 1
-        mock_port.save_npc_runtime.assert_called_once_with("camp-1", [{"id": "n1"}])
+        assert result == 0
+        mock_port.atomic_commit.assert_called_once()

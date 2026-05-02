@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 # Целевая архитектура данных (L0/L2)
 from app.models.npc_profile import NPCProfileL0
 from app.models.npc_state import NPCState
+from app.domain.communication import CommunicationIntent, ExposureLevel
 
 # Легаси-типы, всё ещё используемые в логике (Enum'ы и контракты результатов)
 from app.models.npc_state import (
@@ -29,6 +30,9 @@ from app.models.npc_state import (
     Intent,
     WillState,
 )
+# StateDeltas — канонический контракт мутаций (Устав §2.3)
+from app.models.state_delta import StateDeltas
+
 from app.services.events.event_types import EventType
 from app.models.behavior_mask import BehaviorMask
 
@@ -77,25 +81,9 @@ COMBAT_CAPABLE_ROLES: frozenset = frozenset({
 # DecisionResult — только данные, никаких мутаций
 # ─────────────────────────────────────────────────────────────────────────────
 
-@dataclass
-class StateDeltas:
-    """Дельты которые StateApplicator применит к NPCState атомарно."""
-    stress_delta:           float = 0.0
-    stress_delta_effective: float = 0.0
-    emotion_delta:          float = 0.0
-    emotion_tag:     Optional[EmotionTag] = None
-    trust_delta:     float = 0.0
-    fear_delta:      float = 0.0
-    trait_updates:   Dict[str, float] = field(default_factory=dict)
-    new_trauma:      Optional[str] = None
-    
-    # --- Причинность: источник дельты (Шаг A.3) ---
-    source:          str = "unknown"   # event_type или "break_system", "life_engine"
-    
-    # --- R6.4: Команды для системы слома ---
-    identity_integrity_delta:   float = 0.0
-    pressure_resistance_delta:  float = 0.0
-    will_state_override: Optional[WillState] = None
+# StateDeltas импортирован из канонического модуля (app.models.state_delta)
+# Обратная совместимость: from app.services.npc.decision_hub import StateDeltas — работает
+__all_reexport__ = ["StateDeltas"]
 
 
 
@@ -113,6 +101,51 @@ class DecisionResult:
     deltas:          StateDeltas
     narrative_fact:  Optional[str] = None  # текстовое описание для scene_outcome_builder
     explanation_mode: bool = False                  # True если intent=EXPLAIN
+
+
+@dataclass
+class AgentAction:
+    """Агрегат: gameplay-решение + опциональная речь (Устав 2.2).
+
+    Наследует все поля DecisionResult через .decision.
+    StateApplicator, ReactionResolver — берут .decision (обратная совместимость).
+    DialogueEngine — берёт .communication (если есть).
+    """
+    decision: DecisionResult
+    communication: Optional[CommunicationIntent] = None
+
+    # Делегируем часто используемые поля — потребители не заметят
+    @property
+    def npc_id(self) -> str:
+        return self.decision.npc_id
+
+    @property
+    def intent(self) -> Intent:
+        return self.decision.intent
+
+    @property
+    def score(self) -> float:
+        return self.decision.score
+
+    @property
+    def deltas(self) -> StateDeltas:
+        return self.decision.deltas
+
+    @property
+    def intent_target(self) -> Optional[str]:
+        return self.decision.intent_target
+
+    @property
+    def scores_trace(self) -> Dict[str, float]:
+        return self.decision.scores_trace
+
+    @property
+    def narrative_fact(self) -> Optional[str]:
+        return self.decision.narrative_fact
+
+    @property
+    def explanation_mode(self) -> bool:
+        return self.decision.explanation_mode
 
 
 
@@ -171,6 +204,40 @@ class DecisionHub:
         # seed per-session — воспроизводимость при отладке (решение №12)
         self._rng = random.Random(seed)
 
+    # Вербальные интенты — для них строится CommunicationIntent (Устав 2.2)
+    _VERBAL_INTENTS: Set[str] = {
+        Intent.TALK.value, Intent.WARN.value, Intent.TRADE.value,
+        Intent.REQUEST_SERVICE.value, Intent.OFFER_JOB.value,
+        Intent.SPREAD_RUMOR.value, Intent.CALL_FOR_HELP.value,
+        Intent.INTIMIDATE.value, Intent.EXPLAIN.value,
+        Intent.APPROACH.value,
+    }
+
+    def _build_communication(
+        self,
+        npc_id: str,
+        intent_value: str,
+        intent_target: Optional[str],
+        topic: Optional[str],
+        emotion_value: str,
+    ) -> Optional[CommunicationIntent]:
+        """Создаёт CommunicationIntent для вербального intent (Устав 2.2).
+        
+        Возвращает None для невербальных intent (FLEE, ATTACK, IDLE...).
+        """
+        if intent_value not in self._VERBAL_INTENTS:
+            return None
+        # Тема: из фазы 4 или фоллбэк по intent
+        _topic = topic or intent_value
+        return CommunicationIntent(
+            speaker=npc_id,
+            audience=intent_target or "all",
+            topic=_topic,
+            intent_type=intent_value,
+            emotional_state=emotion_value,
+            exposure_level=ExposureLevel(semantic="normal", physical_radius=5.0),
+        )
+
 
     def compute(
         self,
@@ -187,7 +254,8 @@ class DecisionHub:
         contract_modifiers: Optional[Dict[str, float]] = None,
         npc_memory_modifiers: Optional[Dict[str, float]] = None,
         reflex_constraints: Optional[Dict] = None,
-    ) -> DecisionResult:
+        topic: Optional[str] = None,
+    ) -> AgentAction:
         """
         Основной метод. READ ONLY — state не мутируется.
         Принимает state уже после применения BreakProgressEngine
@@ -310,13 +378,15 @@ class DecisionHub:
 
         if not scores:
             # Защита от ValueError: если все интенты отфильтрованы — IDLE
-            return DecisionResult(
-                npc_id=state.npc_id,
-                intent=Intent.IDLE,
-                intent_target=None,
-                score=0.0,
-                scores_trace={"fallback": "no_available_intents"},
-                deltas=StateDeltas(),
+            return AgentAction(
+                decision=DecisionResult(
+                    npc_id=state.npc_id,
+                    intent=Intent.IDLE,
+                    intent_target=None,
+                    score=0.0,
+                    scores_trace={"fallback": "no_available_intents"},
+                    deltas=StateDeltas(),
+                ),
             )
 
         # ── Commitment: бонус к текущему + стоимость смены ──
@@ -393,7 +463,7 @@ class DecisionHub:
         opp_trace = {f"opp_{k}": v for k, v in opportunity.score_trace.items() if isinstance(v, (int, float))}
 
         logger.debug(f"[DECISION_HUB] {state.npc_id}: intent={best_intent} score={round(best_score, 3)} event={event.event_type}")
-        return DecisionResult(
+        _decision = DecisionResult(
             npc_id         = state.npc_id,
             intent         = Intent(best_intent),
             intent_target  = intent_target,
@@ -406,6 +476,14 @@ class DecisionHub:
             deltas         = deltas,
             narrative_fact = narrative,
         )
+        _communication = self._build_communication(
+            npc_id=state.npc_id,
+            intent_value=best_intent if isinstance(best_intent, str) else best_intent.value,
+            intent_target=intent_target,
+            topic=topic,
+            emotion_value=state.emotion.value if hasattr(state.emotion, "value") else str(state.emotion),
+        )
+        return AgentAction(decision=_decision, communication=_communication)
 
     # ─────────────────────────────────────────────────────────────────────────
     # Action Space — enum + фильтр доступности (решение №4)
@@ -730,6 +808,7 @@ class DecisionHub:
             Intent.SPREAD_RUMOR.value:  "significance",
             Intent.CALL_FOR_HELP.value: "significance",
             Intent.CHANGE_ROLE.value:   "desire",
+            Intent.APPROACH.value:      "desire",
         }
         drive_key = _INTENT_DRIVE.get(intent, "desire")
         drive_weight = drives.get(drive_key, 0.25)
@@ -768,6 +847,9 @@ class DecisionHub:
         if event.event_type == "player_interacts":
             if intent in (Intent.TALK.value, Intent.OBSERVE.value):
                 base += 0.5
+            # NPC обращаются напрямую к этому NPC — логично подойти
+            if intent == Intent.APPROACH.value:
+                base += 0.6
             if intent in (Intent.REPORT.value, Intent.ATTACK.value, Intent.WARN.value, Intent.INTIMIDATE.value):
                 base -= 0.4
             if intent == Intent.FLEE.value:
@@ -1048,6 +1130,9 @@ class DecisionHub:
         from app.services.events.event_types import EventType
         if event.event_type == EventType.WORLD_TICK and intent in PROACTIVE_INTENTS:
             return None
+        # APPROACH — подходит к актору события (игроку или другому NPC)
+        if intent == Intent.APPROACH.value:
+            return event.actor_id
         # По умолчанию — актор события
         return event.actor_id
 
@@ -1221,14 +1306,14 @@ class DecisionHub:
         state:       NPCState,
         personality: NPCPersonality,
         event:       EventContext,
-    ) -> DecisionResult:
+    ) -> AgentAction:
         """
         Intent.EXPLAIN — игрок спросил "почему ты так себя ведёшь?".
         DecisionHub выбирает top-2 факта из narrative_cache.
         LLM получает их в VerbalizationContext.
         """
         facts = state.get_top_narrative_facts(n=2)
-        return DecisionResult(
+        _decision = DecisionResult(
             npc_id           = state.npc_id,
             intent           = Intent.EXPLAIN,
             intent_target    = event.actor_id,
@@ -1238,3 +1323,11 @@ class DecisionHub:
             narrative_fact   = facts[0].summary if facts else None,
             explanation_mode = True,
         )
+        _communication = self._build_communication(
+            npc_id=state.npc_id,
+            intent_value=Intent.EXPLAIN.value,
+            intent_target=event.actor_id,
+            topic="объяснение_поведения",
+            emotion_value=state.emotion.value if hasattr(state.emotion, "value") else str(state.emotion),
+        )
+        return AgentAction(decision=_decision, communication=_communication)

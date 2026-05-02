@@ -1,9 +1,13 @@
 # -*- coding: utf-8 -*-
 """
-ThreatAssessor — оценка угрозы от игрока
-backend/app/services/npc/threat_assessor.py
+DEPRECATED: assess_threat() не вызывается из продакшн-кода.
+apply_threat_to_npc() — мёртвый код (зависит от psyche_engine.apply_stress).
 
-Работает < 10ms. Не использует LLM.
+Угрозы теперь обрабатываются через:
+  DecisionHub (intent scoring) → StateDeltas → StateApplicator
+  CognitiveDistortionEngine (threat_bias из fear)
+
+Этот файл будет удалён после проверки что sandbox/тесты не зависят от него.
 """
 from __future__ import annotations
 from typing import Dict, List

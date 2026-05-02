@@ -10,9 +10,9 @@ import logging
 from typing import Any, Dict, List
 
 from app.services.character.character_filter_applicator import apply_character_filter
+from app.services.events.event_bus import get_event_bus
 from app.services.game_loop.phase_2_world_tick import tick_world_proactive
-from app.services.npc.npc_tick_pipeline import run_npc_pipeline
-from app.services.npc.npc_tick_contracts import NpcTickInput, NpcTickBuffer, NpcTickServices
+from app.services.npc.npc_tick_contracts import NpcTickBuffer, NpcTickServices
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +26,7 @@ def run_npc_orchestration(
     campaign_id: str,
     location: str,
     is_session_start: bool,
+    tick_orchestrator=None,
 ) -> List[Any]:
     """CharacterFilter → NPC Pipeline → Reputation → Proactive → Salience.
 
@@ -64,32 +65,45 @@ def run_npc_orchestration(
     # Загружаем ВСЕХ NPC один раз — мутации будут в этом списке
     ctx.all_npcs_raw = game_loop._load_npcs_with_runtime(campaign_id)
 
-    # NPC Pipeline (Вариант C: Input/Buffer/Services)
-    _npc_buf = NpcTickBuffer()
+    # NPC Pipeline — единая точка входа через TickOrchestrator (Устав §3)
+    if tick_orchestrator is None:
+        raise RuntimeError("tick_orchestrator обязателен — параллельный путь удалён")
+
     _npc_svc = NpcTickServices(
         memory_manager=game_loop.memory_manager,
         relationship_store=game_loop.memory_manager._relationships,
         social_engine=game_loop._svc.get_social_engine(campaign_id),
         reputation_engine=game_loop._svc.get_reputation_engine(),
         economic_profiles=game_loop._svc.get_or_create_economic_profiles(campaign_id),
+        event_bus=get_event_bus(),
     )
-    _npc_inp = NpcTickInput(
+    from app.services.tick_orchestrator import DMContextDTO
+    _dm_ctx = DMContextDTO(
+        hub_event=ctx.hub_event,
+        nearby_npcs=shared_context.dm_result.scene_context.nearby_npcs,
+        line_of_sight=shared_context.dm_result.scene_context.line_of_sight,
+        scene_continuity=shared_context.scene_continuity,
+        action_type=shared_context.action_type or "",
+        player_target_id=shared_context.player_target_id,
+        spatial_events=shared_context.spatial_events or [],
+        raw_input=raw_input,
+        is_session_start=is_session_start,
+        current_tick=shared_context.current_tick or 0,
+        all_npcs_raw=ctx.all_npcs_raw,
+    )
+    _tick_result = tick_orchestrator.tick_player_turn(
         campaign_id=campaign_id,
         location=location,
         scene_state=shared_context.scene_state or {},
-        player_target_id=shared_context.player_target_id,
-        hub_event=ctx.hub_event,
-        is_session_start=is_session_start,
-        action_type=shared_context.action_type or "",
-        raw_input=raw_input,
-        current_tick=shared_context.current_tick or 0,
-        all_npcs_raw=ctx.all_npcs_raw,
-        nearby_npcs=shared_context.dm_result.scene_context.nearby_npcs,
-        scene_continuity=shared_context.scene_continuity,
-        spatial_events=shared_context.spatial_events or [],
-        line_of_sight=shared_context.dm_result.scene_context.line_of_sight,
+        dm_ctx=_dm_ctx,
+        npc_services=_npc_svc,
     )
-    _npc_buf = run_npc_pipeline(_npc_inp, _npc_buf, _npc_svc)
+    _npc_buf = NpcTickBuffer(
+        npc_contexts=_tick_result.npc_contexts,
+        dirty_npcs=_tick_result.dirty_npcs,
+        activity_overrides=_tick_result.activity_overrides,
+        max_npc_stress=_tick_result.max_npc_stress,
+    )
 
     # Проекция результатов обратно в оркестратор
     ctx.dirty_npcs.update(_npc_buf.dirty_npcs)

@@ -40,6 +40,7 @@ from typing import Optional
 from app.core.config import settings
 from app.services.scene_change import SceneChange, ChangeType
 from app.services.state.persistence_port import PersistencePort
+from app.services.spatial.location_graph import load_graph
 
 # Тип для опционального порта сохранения
 from typing import Optional
@@ -263,6 +264,8 @@ class SceneStateManager:
         # Пустой location_id = без фильтра (для синхронизации позиции)
         if location_id and scene.get("location_id") != location_id:
             return None
+        # Гарантируем актуальные local_position при каждой загрузке
+        self._enrich_local_positions(campaign_id, scene)
         return scene
 
     # ─────────────────────────────────────────────────────────────────────────
@@ -912,10 +915,18 @@ class SceneStateManager:
                     objects[obj_id] = obj
 
             for npc_id, pos_data in template.get("npc_defaults", {}).items():
-                pos_entry = dict(pos_data)
-                pos_entry.setdefault("location_id", location_id)
-                pos_entry.setdefault("local_position", {"x": 0.0, "y": 0.0})
-                npc_positions[npc_id] = pos_entry
+                if npc_id in npc_positions:
+                    # Дополняем editor JSON данными из шаблона (activity, visible)
+                    # Но НЕ перезаписываем local_position — он уже правильный из editor
+                    for k, v in pos_data.items():
+                        if k not in npc_positions[npc_id]:
+                            npc_positions[npc_id][k] = v
+                else:
+                    # NPC нет в editor JSON — создаём из шаблона
+                    pos_entry = dict(pos_data)
+                    pos_entry.setdefault("location_id", location_id)
+                    pos_entry.setdefault("local_position", {"x": 0.0, "y": 0.0})
+                    npc_positions[npc_id] = pos_entry
 
         # --- Среда (всегда из шаблона — время/свет/шум) ---
         time_variant = self._select_time_variant(template, time_of_day)
@@ -1342,8 +1353,68 @@ class SceneStateManager:
         return removed
 
     # ─────────────────────────────────────────────────────────────────────────
-    # update_npc_position
+    # _enrich_local_positions — гарантия актуальных координат
     # ─────────────────────────────────────────────────────────────────────────
+
+    def _enrich_local_positions(self, campaign_id: str, scene_state: dict) -> None:
+        """Восстанавливает local_position для NPC при загрузке scene_state.
+
+        Источники (по приоритету):
+        1. Editor JSON — если NPC на начальном узле из npc_defaults (визуальные координаты)
+        2. Граф локации — если NPC двигался (координаты текущего узла)
+        3. Оставляем как есть — если координаты уже корректны
+
+        Ключевое правило: editor JSON — истина для НАЧАЛЬНЫХ позиций,
+        граф — истина для позиций ПОСЛЕ ДВИЖЕНИЯ.
+        """
+        location_id = scene_state.get("location_id", "")
+        npc_positions = scene_state.get("npc_positions", {})
+        if not npc_positions or not location_id:
+            return
+
+        # Начальные узлы из npc_defaults — определяют, двигался ли NPC
+        templates = self._load_templates()
+        template = templates.get(location_id, {})
+        initial_nodes: dict[str, str] = {}
+        for npc_id, pos_data in template.get("npc_defaults", {}).items():
+            node = pos_data.get("position", "")
+            if node:
+                initial_nodes[npc_id] = node
+
+        # Editor JSON — визуальные координаты для начальных позиций
+        editor_coords: dict[str, dict] = {}
+        editor_data = self._find_editor_location(campaign_id, location_id)
+        if editor_data:
+            for npc in editor_data.get("npcs", []):
+                ref_id = npc.get("ref_id", "")
+                pos = npc.get("position", {})
+                if ref_id and pos:
+                    editor_coords[ref_id] = {"x": pos.get("x", 0.0), "y": pos.get("y", 0.0)}
+
+        # Граф локации — для резолва координат узлов при движении
+        graph = None
+        try:
+            from app.services.spatial.location_graph import load_graph
+            graph = load_graph(location_id)
+        except Exception:
+            pass
+
+        for npc_id, entry in npc_positions.items():
+            current_node = entry.get("position", "")
+            initial_node = initial_nodes.get(npc_id)
+
+            # NPC двигался, если есть начальный узел и текущий не совпадает
+            npc_moved = initial_node is not None and current_node != initial_node
+
+            if not npc_moved and npc_id in editor_coords:
+                # NPC на начальной позиции (или нет данных о движении) — визуальные координаты
+                entry["local_position"] = dict(editor_coords[npc_id])
+            elif graph and current_node:
+                # NPC двигался — берём координаты из графа
+                node = graph.get_node(current_node)
+                if node:
+                    entry["local_position"] = {"x": node.x, "y": node.y}
+            # Иначе — оставляем как есть (координаты уже корректны или данных нет)
 
     def update_npc_position(
         self, campaign_id: str, npc_id: str,
@@ -1360,6 +1431,26 @@ class SceneStateManager:
         entry = pos.setdefault(npc_id, {})
         entry["position"] = position
         entry["activity"] = activity
+
+        # Синхронизация local_position при движении NPC
+        # Без этого euclidean_distance считает от старых координат
+        location_id = scene_state.get("location_id", "")
+        if location_id:
+            try:
+                graph = load_graph(location_id)
+                node = graph.get_node(position)
+                if node:
+                    entry["local_position"] = {"x": node.x, "y": node.y}
+                else:
+                    logger.warning(
+                        f"[SPATIAL] Узел '{position}' не найден в графе '{location_id}' "
+                        f"для NPC {npc_id} — local_position не обновлён"
+                    )
+            except Exception as exc:
+                logger.warning(
+                    f"[SPATIAL] Не загрузить граф '{location_id}' для NPC {npc_id}: {exc} "
+                    f"— local_position не обновлён"
+                )
 
         if save_after:
             self.save_scene_state(campaign_id, scene_state)

@@ -627,15 +627,20 @@ class LifeEngine:
         self,   
         campaign_id: str,
         scene_state: dict,
-        topics: Optional[list[str]] = None,
-    ) -> list[dict]:
+        topics: Optional[dict[str, str]] = None,
+        identities: Optional[dict[str, dict[str, float]]] = None,
+    ) -> tuple[list[dict], list]:
         """
-        Фаза 2.1 — DecisionHub для NPC в idle tick.
+        Фаза 5 — DecisionHub для NPC в idle tick.
         Чистая математика, без LLM.
         
         Читает NPC из кэша (после Phase 0), НЕ с диска (Устав §3.1).
-        Возвращает список dicts для триггера телеграфа на клиенте.
-        Формат совместим с significant_events в routes.py.
+        
+        Returns:
+            (decision_dicts, communication_intents):
+            - decision_dicts: список dicts для триггера телеграфа на клиенте.
+              Формат совместим с significant_events в routes.py.
+            - communication_intents: CommunicationIntent для EventBus (Фаза 6).
         """
         from app.core.constants import (
             IDLE_DECISION_SCORE_THRESHOLD,
@@ -648,7 +653,9 @@ class LifeEngine:
             load_l2_state_from_runtime_dict,
         )
         from app.services.events.event_types import EventType
-        from app.models.npc_state import WillState
+        from app.models.npc_state import NPCIdentityL1, WillState, compute_drive_modifiers
+        from app.services.npc.cognitive_distortion import CognitiveDistortionEngine
+        from app.domain.communication import CommunicationIntent
 
         # Читаем из кэша — после Phase 0 там уже мутации (Устав §3.1)
         npcs = self._npc_cache.get(campaign_id)
@@ -660,6 +667,7 @@ class LifeEngine:
             return []
         hub = DecisionHub()
         decisions: list[dict] = []
+        communication_intents: list[CommunicationIntent] = []
         print(f"[TICK_DECISIONS] start: {len(npcs)} NPCs")
 
         for npc in npcs:
@@ -688,12 +696,36 @@ class LifeEngine:
                     scene_facts=[],
                 )
 
+                # Когнитивные искажения — idle NPC подвержены накопленным bias (Устав §3.1)
+                _clean_state, _distortion_bias, _distortion_modifiers = CognitiveDistortionEngine().apply(
+                    state_l2, actor_is_player=False
+                )
+
+                # Drive modifiers из temporary_drives
+                _drive_mods = None
+                if _clean_state.temporary_drives:
+                    _drive_mods = compute_drive_modifiers(_clean_state.temporary_drives)
+
+                # Identity L1 — кристаллизованные черты личности
+                _identity = None
+                if identities and npc_id in identities:
+                    _identity = NPCIdentityL1(
+                        npc_id=npc_id,
+                        active_traits=identities[npc_id],
+                    )
+
                 result = hub.compute(
-                    state=state_l2,
+                    state=_clean_state,
                     personality=profile_l0,
                     event=event,
                     scene_state=scene_state,
+                    identity=_identity,
+                    eco_modifiers=_distortion_modifiers if _distortion_modifiers else None,
                     social_modifiers=None,
+                    reputation_modifiers=None,
+                    drive_modifiers=_drive_mods,
+                    reflex_constraints=None,
+                    topic=topics.get(npc_id) if topics else None,
                 )
 
                 # Фаза 2.2 — накопление давления (in-memory)
@@ -712,6 +744,10 @@ class LifeEngine:
                 _new_pressure = max(0.0, min(1.0, _current_pressure + _pressure_delta))
                 self._idle_pressure[_key] = _new_pressure
                 
+                # Извлекаем CommunicationIntent для Фазы 6 (Устав §3.3)
+                if result.communication is not None:
+                    communication_intents.append(result.communication)
+
                 # Триггер когда давление накопилось
                 if _new_pressure >= IDLE_DECISION_SCORE_THRESHOLD:
                     decisions.append({
@@ -721,7 +757,7 @@ class LifeEngine:
                         "target": npc_id,
                         "field": "intent",
                         "value": f"{result.intent.value if result.intent else 'observe'}",
-                        "topic": (topics or ["наблюдение"])[0],
+                        "topic": topics.get(npc_id, "наблюдение") if topics else "наблюдение",
                     })
                     # Сброс давления после триггера
                     self._idle_pressure[_key] = 0.0
@@ -733,8 +769,8 @@ class LifeEngine:
                 print(traceback.format_exc())
                 continue
 
-        print(f"[TICK_DECISIONS] end: {len(decisions)} decisions")
-        return decisions
+        print(f"[TICK_DECISIONS] end: {len(decisions)} decisions, {len(communication_intents)} intents")
+        return decisions, communication_intents
 
     def save_npcs(self, campaign_id: str) -> None:
         """

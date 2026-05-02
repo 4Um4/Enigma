@@ -24,6 +24,7 @@ from app.core.constants import (
 )
 from app.models.npc_state import Intent, NPCState, WillState
 from app.models.npc_profile import NPCProfileL0
+from app.domain.events import EventDTO
 from app.services.events.event_types import EventType
 
 logger = logging.getLogger(__name__)
@@ -46,7 +47,7 @@ class WorldTickResult:
     triggered: bool
     tick_number: int
     decisions: List[ProactiveDecision]
-    events: List[dict]              # события для EventBus/SceneContinuity
+    events: List[EventDTO]          # типизированные события для EventBus (Устав §2.1, §7.8)
 
 
 class WorldTickEngine:
@@ -92,7 +93,7 @@ class WorldTickEngine:
 
         tick_num = self.get_tick_number(campaign_id)
         decisions: List[ProactiveDecision] = []
-        events: List[dict] = []
+        events: List[EventDTO] = []
 
         hub = DecisionHub()
 
@@ -157,13 +158,17 @@ class WorldTickEngine:
                     )
                     decisions.append(decision)
 
-                    events.append({
-                        "type": "proactive_action",
-                        "npc_id": npc_id,
-                        "intent": result.intent.value,
-                        "target": result.intent_target,
-                        "score": effective_score,
-                    })
+                    events.append(EventDTO.create(
+                        event_type=EventType.WORLD_TICK.value,
+                        source=npc_id,
+                        payload={
+                            "npc_id": npc_id,
+                            "intent": result.intent.value,
+                            "target": result.intent_target,
+                            "score": effective_score,
+                            "proactive": True,
+                        },
+                    ))
 
                     logger.info(
                         f"[WORLD_TICK] {npc_id}: {result.intent.value} "

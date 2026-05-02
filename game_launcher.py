@@ -5,7 +5,7 @@ path: /game_launcher.py
 Зависимости: pygame, game_menu, campaign_select, map_editor.editor_core
 Основные сущности: main()
 
-python backend/game_launcher.py
+python game_launcher.py
 
 backend/game_launcher.py
 Главная точка входа — игровое меню, запускающее редактор или игру.

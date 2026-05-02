@@ -52,6 +52,7 @@ class Intent(str, Enum):
     TRADE         = "trade"          # предложить сделку
     OBSERVE       = "observe"        # наблюдать, не действовать
     EXPLAIN       = "explain"        # ответить "почему" — для диалога
+    APPROACH      = "approach"       # подойти к целевой сущности (игрок/NPC/объект)
 
     # ── Проактивные интенты (Фаза 3.4: Agenda Loop) ─────────────────────
     BLOCK_PATH    = "block_path"     # преградить дорогу (шаг 9 из Мечты)

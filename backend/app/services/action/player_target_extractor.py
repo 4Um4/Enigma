@@ -7,9 +7,26 @@
 # Извлекает цель игрока из текста действия.
 # Работает полностью generic — без хардкода имён NPC.
 # Использует name_forms из JSON + ролевые ключевые слова из npc_id.
+"""
+Цель: определить, к кому обращается игрок в своём действии, и какие объекты он может иметь в виду.
+Подход:
+1. Ищем прямые упоминания NPC по name_forms (приоритет).
+2. Если нет прямых упоминаний, ищем ролевые ключевые слова (например, "хозяин" → tavern_keeper).
+3. Если есть местоимения (например, "говорю ему") и предыдущая цель в scene_state, используем её (sticky target).
+4. Пытаемся разрешить объекты через ObjectResolver.
+5. Определяем позицию игрока (на коленях, сидит, стоит и т.д.) по ключевым фразам.
+6. Вычисляем расстояния до NPC: приоритет — реальные координаты из scene_state, fallback — лингвистический прокси (ключевые слова близости).
+Результат: (target_npc_id, target_npc_name, target_object_id, player_position, player_distances)
 
+TODO: расширить список ролевых ключевых слов и позиций, добавить поддержку множественных целей, улучшить обработку местоимений через лемматизацию глаголов обращения.
+TODO: интегрировать с LifeEngine для получения реальных координат NPC и игрока, а также для обновления sticky target на основе диалогов и взаимодействий.
+TODO: добавить логирование для отладки и анализа ошибок в извлечении целей.
+"""
 from typing import Optional, Dict, List, Tuple
-from app.services.spatial.spatial_runtime import resolve_distance_between_entities
+import logging
+from app.services.spatial.spatial_runtime import euclidean_distance
+
+logger = logging.getLogger(__name__)
 
 
 class PlayerTargetExtractor:
@@ -31,11 +48,11 @@ class PlayerTargetExtractor:
             "говорю хозяйке", "спрашиваю хозяйку", "попрошу хозяина", "хозяйку попросить",
         ],
         "maid": [
-            "служанка", "официантка", "девушка", "служанке", "официантке", "девушке",
-            "служанку", "официантку", "девушку", "к служанке", "к официантке", "к девушке",
-            "служанкой", "с официанткой", "с девушкой", "горничная", "горничной", "к горничной",
-            "официантке за столом", "служанке в зале", "девушке в фартуке", "говорю служанке",
-            "шепчу официантке", "спрашиваю девушку", "девушку обнять", "служанку позвать",
+            "служанка", "официантка", "служанке", "официантке",
+            "служанку", "официантку", "к служанке", "к официантке",
+            "служанкой", "с официанткой", "горничная", "горничной", "к горничной",
+            "официантке за столом", "служанке в зале", "говорю служанке",
+            "шепчу официантке", "служанку позвать",
         ],
         "guard": [
             "стражник", "охранник", "страж", "стражнику", "охраннику", "стражу",
@@ -92,6 +109,30 @@ class PlayerTargetExtractor:
         "soldier": ["солдат", "воин", "солдату", "воину", "к солдату"],
         "beggar": ["нищий", "попрошайка", "нищему", "к нищему"],
         "traveler": ["путник", "странник", "путнику", "страннику", "к путнику"],
+    }
+
+    # Нормализация gender из NPC JSON → внутренний формат
+    _GENDER_NORM: Dict[str, str] = {
+        "женский": "female",
+        "мужской": "male",
+        "female": "female",
+        "male": "male",
+    }
+
+    # Дескрипторы: lemma → требуемый gender (None = любой).
+    # Мэтчится когда name_forms и role_keywords не сработали.
+    # "девушка" → любая женщина, не только служанка.
+    _DESCRIPTORS: Dict[str, Optional[str]] = {
+        "девушка": "female",
+        "женщина": "female",
+        "девчонка": "female",
+        "мужчина": "male",
+        "мужик": "male",
+        "парень": "male",
+        "старик": "male",
+        "старуха": "female",
+        "старушка": "female",
+        "ребёнок": None,
     }
 
     _PRONOUNS = [
@@ -207,6 +248,20 @@ class PlayerTargetExtractor:
         # главная цель = тот, чьё имя ближе к началу фразы (прямое действие).
         _candidates: List[Tuple[int, str, str]] = []  # (позиция_в_тексте, npc_id, npc_name)
 
+        # Лемматизация текста один раз — для descriptor-мэтчинга через pymorphy3
+        _lemma_to_word: Dict[str, str] = {}
+        try:
+            import pymorphy3 as _pm3
+            if not hasattr(PlayerTargetExtractor, "_morph_analyzer"):
+                PlayerTargetExtractor._morph_analyzer = _pm3.MorphAnalyzer()
+            _morph = PlayerTargetExtractor._morph_analyzer
+            for _w in lower.split():
+                _lemma = _morph.parse(_w)[0].normal_form
+                if _lemma not in _lemma_to_word:
+                    _lemma_to_word[_lemma] = _w
+        except Exception:
+            pass
+
         for ctx in npc_contexts:
             npc_id = ctx.get("npc_id", "")
             npc_name = ctx.get("npc_name", "")
@@ -242,6 +297,21 @@ class PlayerTargetExtractor:
                     pos = lower.find(matched[0]) if matched else 999
                     print(f"[S.0 MATCH] role_kw {matched!r} at pos {pos} via role={role!r} → {npc_id}")
                     _candidates.append((pos, npc_id, npc_name))
+
+            # Дескриптор по полу/возрасту (если name_forms и role не сработали)
+            if not any(c[1] == npc_id for c in _candidates) and _lemma_to_word:
+                npc_gender_raw = ctx.get("gender", "")
+                npc_gender = self._GENDER_NORM.get(npc_gender_raw, npc_gender_raw.lower())
+                if npc_gender:
+                    for desc_lemma, req_gender in self._DESCRIPTORS.items():
+                        if req_gender is not None and npc_gender != req_gender:
+                            continue
+                        if desc_lemma in _lemma_to_word:
+                            orig_word = _lemma_to_word[desc_lemma]
+                            pos = lower.find(orig_word)
+                            print(f"[S.0 MATCH] descriptor '{orig_word}' (lemma={desc_lemma}) gender={npc_gender} → {npc_id}")
+                            _candidates.append((pos, npc_id, npc_name))
+                            break
 
         # Выбираем кандидата с минимальной позицией (ближе к началу = главная цель)
         if _candidates:
@@ -377,8 +447,7 @@ class PlayerTargetExtractor:
             npc_data = (scene_state.get("npc_positions") or {}).get(npc_id) or {}
             player_data = scene_state.get("player_spatial") or {}
             if npc_data and player_data:
-                spatial_distance = resolve_distance_between_entities(
-                    scene_state=scene_state,
+                spatial_distance = euclidean_distance(
                     a=npc_data,
                     b=player_data,
                 )

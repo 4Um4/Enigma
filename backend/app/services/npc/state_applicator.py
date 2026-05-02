@@ -2,12 +2,19 @@
 """
 R2.3 — StateApplicator: единственный модуль с правом записи в NPCState.
 
+Назначение: атомарно применять изменения к NPCState на основе DecisionResult.
+Контракт:   - на вход: текущий NPCState (неизменённый) + DecisionResult
+            - на выход: новый NPCState (старый не мутируется)
+            - при ошибке: возвращает оригинальный NPCState без изменений
+
 Принципы:
   - DecisionHub возвращает DecisionResult (read-only)
   - StateApplicator применяет его атомарно — всё или ничего
   - Если применение падает — NPCState не тронут (старые данные целы)
   - RelationshipStore обновляется здесь, а не в DecisionHub
   - python_engines.py подключается через NPCStateAdapter (инкрементально)
+
+NOTE: psyche_engine — DEPRECATED (мёртвый код). WorldTickEngine.deltas_dict — кандидат на миграцию.  
 """
 
 from __future__ import annotations
@@ -35,7 +42,8 @@ from app.models.physical import (
     WoundSeverity,
 )
 from app.models.event_resolution import StateChange
-from app.services.npc.decision_hub import DecisionResult, StateDeltas
+from app.models.state_delta import StateDeltas
+from app.services.npc.decision_hub import DecisionResult
 from app.services.npc.break_progress_engine import BreakDeltas
 from app.services.npc.math_utils import apply_saturation
 from app.services.memory.relationship_store import RelationshipStore

@@ -57,6 +57,14 @@ class NpcTickBuffer:
     max_npc_stress: float = 0.0
     # Activity overrides — оркестратор применит в scene_state ПОСЛЕ фазы
     activity_overrides: Dict[str, str] = field(default_factory=dict)
+    # CommunicationIntent для Фазы 6 — публикация через оркестратор (Устав §5.1)
+    communication_intents: list = field(default_factory=list)
+    # MovementIntent — реактивное движение NPC (APPROACH, FLEE и др.)
+    # Оркестратор передаёт в MovementEngine → SceneChange → apply_changes
+    movement_intents: list = field(default_factory=list)
+    # DEPRECATED: published_events — нарушает §5.1 (публикация внутри pipeline).
+    # Удалить после миграции всех потребителей на communication_intents через Фазу 6.
+    published_events: list = field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -67,3 +75,4 @@ class NpcTickServices:
     social_engine: Optional[Any]
     reputation_engine: Optional[Any]
     economic_profiles: Dict[str, Any]
+    event_bus: Any = None  # Фаза 6-7: IntentEventAdapter → EventBus (§3.3)
