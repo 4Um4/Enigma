@@ -31,7 +31,7 @@
 import logging
 from typing import Any, Dict
 
-from app.services.game_loop.npc_state_helpers import apply_npc_state_updates, write_npc_memory
+from app.services.game_loop.npc_state_helpers import apply_npc_state_updates
 from app.services.memory.working_memory_tick import write_npc_reactions_to_memory, run_decay_and_resonance
 from app.services.scene.r3_direct_builder import build_r3_dm_frame
 
@@ -67,15 +67,6 @@ def run_finalize_phase(
             game_loop, npc_state_updates,
             npc_dicts=ctx.all_npcs_raw, campaign_id=campaign_id,
         )
-
-    # Записываем ход в память NPC
-    write_npc_memory(
-        loop=game_loop,
-        npc_reactions=npc_result.get("npc_reactions", []),
-        player=actions[0].player_name if actions else "игрок",
-        action_text=actions[0].action if actions else "",
-        npc_dicts=ctx.all_npcs_raw,
-    )
 
     # Working Memory: ответы NPC → STM + L2
     write_npc_reactions_to_memory(

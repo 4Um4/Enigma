@@ -24,6 +24,3 @@ class TickResultDTO:
     significant_events: List[dict] = field(default_factory=list)
     world_snapshot: Optional[WorldSnapshotDTO] = None
     error: Optional[str] = None
-
-    # TODO: удалить после A1 — npc_positions уже внутри world_snapshot
-    npc_positions: dict = field(default_factory=dict)

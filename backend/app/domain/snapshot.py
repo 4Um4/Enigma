@@ -50,3 +50,27 @@ class WorldSnapshotDTO:
     location_id: str
     weather: str
     time_of_day: str
+
+
+def snapshot_npc_positions_to_dict(
+    positions: List[NPCPositionDTO],
+) -> dict:
+    """Конвертирует List[NPCPositionDTO] в dict для обратной совместимости фронтенда.
+
+    Фронтенд ожидает: {npc_id: {"local_position": {"x", "y"}, "activity", "name", ...}}
+    WorldSnapshotDTO содержит: List[NPCPositionDTO] с плоскими x, y, action, display_name.
+    """
+    result: dict = {}
+    for pos in positions:
+        result[pos.npc_id] = {
+            "npc_id": pos.npc_id,
+            "x": pos.x,
+            "y": pos.y,
+            "local_position": {"x": pos.x, "y": pos.y},
+            "activity": pos.action,
+            "facing": pos.facing,
+            "location_id": pos.location_id,
+            "display_name": pos.display_name,
+            "name": pos.display_name,
+        }
+    return result

@@ -3,6 +3,7 @@ from typing import Literal, List
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 
+from app.domain.snapshot import snapshot_npc_positions_to_dict
 from app.models.schemas import (
     CampaignLoadRequest,
     CampaignLoadResponse,
@@ -141,7 +142,7 @@ def idle_tick(campaign_id: str, game_loop=Depends(get_game_loop)) -> dict:
     Делегирует TickOrchestrator (10 фаз, Устав §3).
     """
     try:
-        from app.core.tick_orchestrator import TickOrchestrator
+        from app.services.tick_orchestrator import TickOrchestrator
         # Получаем campaign_state и берём location_id из него
         _campaign_state = game_loop.scene_manager._read_campaign_json(campaign_id)
         _location_id = (
@@ -161,11 +162,16 @@ def idle_tick(campaign_id: str, game_loop=Depends(get_game_loop)) -> dict:
             tick_number=_scene.get("snapshot_tick", 0),
         )
 
-        # TODO: удалить npc_positions после A1 — уже внутри world_snapshot
+        # npc_positions из world_snapshot через конвертер (обратная совместимость)
+        _npc_pos_dict: dict = {}
+        if _result.world_snapshot is not None:
+            _npc_pos_dict = snapshot_npc_positions_to_dict(
+                _result.world_snapshot.npc_positions
+            )
         return {
             "status": _result.status,
             "changes": _result.changes_count,
-            "npc_positions": _result.npc_positions,
+            "npc_positions": _npc_pos_dict,
             "events": _result.significant_events,
             "world_snapshot": _result.world_snapshot,
         }

@@ -434,8 +434,7 @@ class GameScreen:
                     if npc_id in scene_state.get("npc_positions", {}):
                         existing = scene_state["npc_positions"][npc_id]
                         for k, v in new_data.items():
-                            if k != "local_position":
-                                existing[k] = v
+                            existing[k] = v
                     else:
                         scene_state.setdefault("npc_id", {})[npc_id] = new_data
 

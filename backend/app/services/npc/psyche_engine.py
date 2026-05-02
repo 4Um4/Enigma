@@ -1,8 +1,16 @@
 # -*- coding: utf-8 -*-
 # C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\psyche_engine.py
 """
-PsycheEngine — стресс, слом воли, психологические состояния
-backend/app/services/npc/psyche_engine.py
+DEPRECATED: Все функции этого модуля — мёртвый код.
+
+Канонический путь стресс/психика мутаций (Устав §2.3):
+  DecisionHub.compute() → StateDeltas → StateApplicator.apply()
+  
+Стресс: StateDeltas.stress_delta (app.models.state_delta)
+Слом воли: BreakProgressEngine (app.services.npc.break_progress_engine)
+Recovery: LifeEngine.recover_stress_tick() (app.services.npc.life_engine)
+
+Этот файл будет удалён после проверки что sandbox/тесты не зависят от него.
 """
 from __future__ import annotations
 from typing import Dict

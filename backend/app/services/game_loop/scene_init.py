@@ -26,6 +26,10 @@
 - economy_check: результат проверки EconomyTracker, который может логироваться или использоваться для обновления состояния NPC. 
 - Возвращаемое значение: обновлённый scene_state dict, который уже сохранён в SceneManager и патчен в shared_context.  Этот dict будет использоваться в дальнейшем в пайплайне для рендера, взаимодействия и других систем.
 
+TODO: по мере роста логики и количества данных в scene_state может потребоваться реорганизация в отдельные функции/классы для управления сложностью (например, отдельные функции для LifeEngine и EconomyTracker, или даже отдельные сервисы).
+TODO: добавить более детальное логирование для каждой фазы, чтобы облегчить отладку и понимание происходящего (например, сколько изменений от LifeEngine, какие NPC прибыли, результаты проверки EconomyTracker).
+TODO: рассмотреть возможность добавления метрик для мониторинга производительности и поведения (например, время выполнения каждой фазы, количество изменений от LifeEngine, удовлетворённость драйвов в EconomyTracker).
+
 path: backend/app/services/game_loop/scene_init.py
 """
 
@@ -116,6 +120,9 @@ def init_scene_state(
             _life_changes += _life_engine.tick(campaign_id, scene_state, runtime_path=loop._get_npc_runtime_path(campaign_id))
         if _life_changes:
             loop.scene_manager.apply_changes(campaign_id, _life_changes, scene_state)
+            # Восстанавливаем visual-координаты после мутаций LifeEngine/MovementEngine
+            # MovementEngine резолвит узлы графа в local_position — перебивая editor JSON
+            loop.scene_manager._enrich_local_positions(campaign_id, scene_state)
             logger.warning(f"[LIFE_ENGINE] {len(_life_changes)} изменений применено")
             _arrivals = list({
                 c.target for c in _life_changes

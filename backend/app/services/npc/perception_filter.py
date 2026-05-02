@@ -12,16 +12,37 @@
 #
 # Вызывается из game_loop.py после event_bus.publish().
 # Результат: список npc_id которые воспринимают событие.
-
+"""
+TODO: после полной миграции на EventDTO удалить поддержку dict и GameEvent в аргументах.
+TODO: после миграции на EventDTO удалить временную заглушку с visible_to/audible_to в GameEvent.
+TODO: расширение функционала — добавить дополнительные факторы в clarity (погода, состояние NPC, тип события и т.д.)
+TODO: оптимизация — кэшировать результаты perception для каждого NPC в течение одного тика, чтобы не пересчитывать для каждого события.
+TODO: расширение функционала — добавить поддержку разных типов восприятия (зрение, слух, обоняние) с разными радиусами и условиями.
+TODO: расширение функционала — добавить поддержку разных типов событий (визуальные, звуковые, тактильные) с разными шаблонами восприятия.
+TODO: расширение функционала — учитывать направление взгляда NPC для более реалистичного восприятия.
+TODO: расширение функционала — учитывать динамические изменения в сцене (движущиеся объекты, открывающиеся двери) при расчёте line of sight.
+TODO: расширение функционала — добавить поддержку "слепых зон" (например, NPC не видит за спиной).
+TODO: расширение функционала — учитывать индивидуальные особенности NPC (например, плохое зрение, глухота) при расчёте восприятия.
+TODO: расширение функционала — добавить поддержку "интуиции" (например, NPC может "чувствовать" присутствие игрока даже если не видит его напрямую).
+TODO: расширение функционала — добавить поддержку "слуховой маскировки" (например, если игрок стоит на ковре, его шаги менее слышны).
+TODO: расширение функционала — добавить поддержку "визуальной маскировки" (например, если игрок прячется в тени, его сложнее заметить).
+TODO: расширение функционала — добавить поддержку "шумовой маскировки" (например, если рядом есть громкий источник звука, NPC с меньшей вероятностью услышит тихое действие).
+TODO: расширение функционала — добавить поддержку "социального восприятия" (например, NPC может заметить изменения в поведении других NPC, даже если не видит игрока напрямую).
+TODO: расширение функционала — добавить поддержку "эмоционального восприятия" (например, NPC может почувствовать страх или агрессию игрока, даже если не видит его напрямую).
+TODO: расширение формулы clarity — добавить нелинейные эффекты (например, очень близкие объекты воспринимаются значительно чётче, чем просто "на 1 метр ближе").
+TODO: расширение формулы clarity — добавить эффект "порогового восприятия" (например, если distance > 15, clarity резко падает до 0, а не плавно).
+TODO: расширение формулы clarity — добавить эффект "насыщения" (например, если свет слишком яркий, clarity может начать снижаться из-за ослепления).
+TODO: расширение формулы clarity — добавить эффект "стрессового искажения" (например, при очень высоком стрессе NPC может начать воспринимать события искажённо, снижая clarity для определённых типов событий).
+"""
 from __future__ import annotations
 import logging
 from typing import List, Optional
 
 from app.domain.events import EventDTO
 from app.services.spatial.spatial_runtime import (
+    euclidean_distance,
     extract_scene_for_npc,
     line_of_sight,
-    resolve_distance_between_entities,
     sound_reach,
 )
 
@@ -95,16 +116,16 @@ def calculate_clarity(
 def _npc_distance(npc_id: str, scene_state: dict) -> float:
     """
     Расстояние от NPC до игрока в метрах.
-    R4.3: использует player_spatial (canonical) → resolve_distance_between_entities.
+    R4.3: использует player_spatial (canonical) → euclidean_distance по local_position.
     Fallback 1: прямое Евклидово расстояние из x/y в npc_data и player_position.
     Fallback 2: player_distances словарь (до R4.3) → 999.0.
     """
     npc_data    = scene_state.get("npc_positions", {}).get(npc_id, {})
     player_data = scene_state.get("player_spatial", {})
 
-    # Приоритет 1: graph-based расстояние через player_spatial
+    # Приоритет 1: евклидово расстояние по local_position
     if npc_data and player_data and isinstance(player_data, dict):
-        spatial_distance = resolve_distance_between_entities(scene_state, npc_data, player_data)
+        spatial_distance = euclidean_distance(npc_data, player_data)
         if spatial_distance < 999.0:
             return spatial_distance
 
@@ -143,9 +164,9 @@ def _can_see(npc_id: str, scene_state: dict, event_location: str) -> bool:
     npc_data      = scene_state.get("npc_positions", {}).get(npc_id, {})
     player_spatial = scene_state.get("player_spatial")
 
-    # Приоритет 1: graph-based дистанция через player_spatial
+    # Приоритет 1: евклидова дистанция по local_position
     if npc_data and isinstance(player_spatial, dict) and player_spatial:
-        distance = resolve_distance_between_entities(scene_state, npc_data, player_spatial)
+        distance = euclidean_distance(npc_data, player_spatial)
         if distance >= 999.0:
             return False
         # R4: Жёсткий cap 15m — NPC не воспринимает за пределами радиуса

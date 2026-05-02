@@ -481,6 +481,16 @@ class DmAgent:
         # Fallback — только если файл промпта отсутствует
         return "Ты — Мастер Подземелий D&D 5e. Отвечай на русском. 2-3 предложения. Не говори за игрока."
 
+    @staticmethod
+    def _as_dict(ctx) -> dict:
+        """PipelineContext → dict. Совместимость с legacy .get()/[] в _build_contract."""
+        if ctx is None:
+            return {}
+        if isinstance(ctx, dict):
+            return ctx
+        from dataclasses import asdict
+        return asdict(ctx)
+
     def narrate(
         self,
         location: str,
@@ -491,6 +501,7 @@ class DmAgent:
         world_canon_exists: bool,
         context: Optional[Dict] = None,
     ) -> Dict:
+        context = self._as_dict(context)
         actions_str = (
             "\n".join(f"{a.player_name}: {a.action}" for a in actions)
             if actions else "Нет действий"
@@ -549,6 +560,7 @@ class DmAgent:
         Async streaming генерация для SSE роута.
         Загружает модель через ModelPool.get_model_async(), затем стримит токены.
         """
+        context = self._as_dict(context)
         actions_str = (
             "\n".join(f"{a.player_name}: {a.action}" for a in actions)
             if actions else "Нет действий"
