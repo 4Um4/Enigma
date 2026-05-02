@@ -14,7 +14,7 @@ from typing import List, Optional, Tuple
 import pygame
 
 from sprite_resolver import get_entity_sprite
-from app.services.player_cognition.types import (
+from game_types import (
     PerceivedEntity,
     PerceivedScene,
 )

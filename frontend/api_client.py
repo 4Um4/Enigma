@@ -286,11 +286,10 @@ class DirectGameGateway:
     """
     
     def __init__(self) -> None:
-        # Инициализация ModelPool в pygame процессе — без этого пул пустой
-        from app.services.llm.provider_manager import initialize_model_pool
-        initialize_model_pool()
+        # Инициализация ModelPool через bridge (Закон 1.1 — frontend не импортирует backend)
         from game_loop_bridge import get_game_loop_bridge
         self._bridge = get_game_loop_bridge()
+        self._bridge.initialize_model_pool()
         self._last_player_pos: tuple[float, float] | None = None
     
     def send_action(
@@ -305,11 +304,13 @@ class DirectGameGateway:
         if not self._bridge.ready:
             self._bridge.initialize()
         
-        # TODO: передать player_x, player_y в bridge.turn() для локального режима
+        # Координаты игрока передаются в GameLoop для пространственных интентов (APPROACH и др.)
         result = self._bridge.turn(
             campaign_id=campaign_id,
             player_name=player_name,
             action_text=action_text,
+            player_x=player_x,
+            player_y=player_y,
         )
         
         if result.error:
@@ -359,21 +360,20 @@ class DirectGameGateway:
     def idle_tick(self, campaign_id: str) -> dict:
         """Прямой вызов life_engine + DecisionHub — без LLM, без action."""
         try:
-            from app.services.npc.life_engine import get_life_engine
             from game_loop_bridge import get_game_loop_bridge
             _bridge = get_game_loop_bridge()
             if not _bridge.ready:
                 print("[IDLE_TICK_CLIENT] bridge not ready, skipping")
                 return {"status": "not_ready"}
 
-            _engine = get_life_engine()
-            _runtime_path = _bridge._loop._get_npc_runtime_path(campaign_id)
-            _scene = _bridge._loop.scene_manager.get_scene_state(campaign_id, "")
+            _engine = _bridge.get_life_engine()
+            _runtime_path = _bridge.get_npc_runtime_path(campaign_id)
+            _scene = _bridge.get_scene_state(campaign_id, "")
 
             # LifeEngine: расписание, стресс, случайные события
             changes = _engine.tick(campaign_id, _scene, runtime_path=_runtime_path)
             if changes:
-                _bridge._loop.scene_manager.apply_changes(campaign_id, changes, _scene)
+                _bridge.apply_changes(campaign_id, changes, _scene)
 
             # DecisionHub: NPC думают, давление накапливается
             decision_events = _engine.tick_decisions(campaign_id, _scene, runtime_path=_runtime_path)

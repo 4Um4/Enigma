@@ -21,7 +21,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
 
-from app.services.game_loop import GameLoop
+# GameLoop из backend — тип не аннотируем (Закон 1.1: frontend не знает классы backend)
+# Доступ только через self._loop в runtime
 
 
 @dataclass
@@ -47,7 +48,7 @@ class GameLoopBridge:
 
     def __init__(self, data_dir: str = "data") -> None:
         self._data_dir = Path(data_dir)
-        self._loop: Optional[GameLoop] = None
+        self._loop = None  # type: ignore[assignment]  # backend GameLoop, создаётся в initialize()
         self._ready = False
 
     @property
@@ -72,6 +73,8 @@ class GameLoopBridge:
         player_name: str,
         action_text: str,
         location: str = "tavern_silver_wolf",
+        player_x: float = 0.0,
+        player_y: float = 0.0,
     ) -> TurnResult:
         """
         Синхронный вызов хода. Собирает все события из stream_turn().
@@ -98,6 +101,7 @@ class GameLoopBridge:
                 action_text=action_text,
                 location=location,
                 campaign_state=campaign_state,
+                player_position=(player_x, player_y) if (player_x or player_y) else None,
             ):
                 etype = event.get("type", "")
 
@@ -138,6 +142,57 @@ class GameLoopBridge:
         if not self._ready or self._loop is None:
             return {}
         return self._loop.ensure_scene_initialized(campaign_id)
+
+    def enrich_scene_spatial(self, scene_state: dict, campaign_id: str) -> None:
+        """Обогащает spatial-данные из editor JSON. Делегирует модульную функцию."""
+        if not self._ready or self._loop is None:
+            return
+        from app.services.scene_state_manager import enrich_scene_spatial as _enrich
+        _enrich(scene_state, campaign_id)
+
+    def build_perceived_scene(self, scene_state: dict, config) -> object:
+        """
+        Прогоняет scene_state через cognition pipeline.
+        Возвращает PerceivedScene (backend-тип, duck-typed на фронтенде).
+        """
+        if not self._ready or self._loop is None:
+            return None
+        from app.services.player_cognition import build_perceived_scene as _build
+        return _build(scene_state, config)
+
+    def save_scene_state(self, campaign_id: str, scene_state: dict) -> None:
+        """Сохраняет scene_state на бэкенд. Делегирует scene_manager."""
+        if not self._ready or self._loop is None:
+            return
+        self._loop.scene_manager.save_scene_state(campaign_id, scene_state)
+
+    def get_scene_state(self, campaign_id: str, location_id: str = "") -> dict | None:
+        """Возвращает текущее состояние сцены. Делегирует scene_manager."""
+        if not self._ready or self._loop is None:
+            return None
+        return self._loop.scene_manager.get_scene_state(campaign_id, location_id)
+
+    def apply_changes(self, campaign_id: str, changes: list, scene_state: dict) -> None:
+        """Применяет изменения к сцене. Делегирует scene_manager."""
+        if not self._ready or self._loop is None:
+            return
+        self._loop.scene_manager.apply_changes(campaign_id, changes, scene_state)
+
+    def get_npc_runtime_path(self, campaign_id: str) -> str:
+        """Возвращает путь к npc_runtime.json. Делегирует GameLoop."""
+        if not self._ready or self._loop is None:
+            return ""
+        return str(self._loop._get_npc_runtime_path(campaign_id))
+
+    def get_life_engine(self):
+        """Возвращает LifeEngine для idle_tick. Делегирует backend."""
+        from app.services.npc.life_engine import get_life_engine
+        return get_life_engine()
+
+    def initialize_model_pool(self) -> None:
+        """Инициализирует ModelPool в pygame процессе."""
+        from app.services.llm.provider_manager import initialize_model_pool
+        initialize_model_pool()
 
     def _get_campaign_state(self, campaign_id: str):
         """Получает campaign_state для определения локации."""

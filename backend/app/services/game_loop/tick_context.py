@@ -6,12 +6,14 @@
 - TickOutput  — readonly, итоговый результат до DM-агента
 
 Закон: фазы принимают TickInput + TickBuffer, возвращают TickBuffer.
-Единственная точка мутации мира — phase_8_commit (читает TickBuffer).
+Единственная точка мутации мира — TickOrchestrator.finalize_and_commit (читает TickBuffer).
 
 path: backend/app/services/game_loop/tick_context.py
 Назначение: Типы контекста одного тика — Input (readonly), Buffer (mutable), Output (result)
 Зависимости: dataclasses, typing
 Основные сущности: TickInput, TickBuffer, TickOutput
+
+TODO: при экстракции фаз из монолитного _run_pipeline — наполнить TickOutput результатами, которые сейчас мутируются в Buffer, и постепенно перенести их в Output.
 """
 
 from dataclasses import dataclass, field

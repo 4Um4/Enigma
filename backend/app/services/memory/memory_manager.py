@@ -11,7 +11,8 @@ logger = logging.getLogger(__name__)
 
 from app.services.memory import LayeredMemory
 from app.services.memory.working_memory import WorkingMemory
-from app.services.memory.importance_engine import score_event, apply_decay, DECAY_EVERY
+from app.services.memory.importance_engine import score_event, apply_decay
+from app.core.constants import DECAY_EVERY
 from app.services.memory.relationship_store import RelationshipStore
 from app.services.memory.contradiction_resolver import resolve_all
 

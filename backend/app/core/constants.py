@@ -159,6 +159,7 @@ RANDOM_EVENT_CHANCE: Final[float] = 0.05
 STRESS_RECOVERY_SAFE: Final[float] = 5.0
 STRESS_RECOVERY_SLEEPING: Final[float] = 15.0
 TICK_SAVE_INTERVAL: Final[int] = 10
+DECAY_EVERY: Final[int] = 10             # memory decay запускается каждые N тиков
 # Сколько реальных секунд соответствует одному игровому тику
 # 300с = 5 минут реального времени = 1 тик мира
 TICK_REAL_SECONDS: Final[int] = 300

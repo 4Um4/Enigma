@@ -22,7 +22,7 @@ BASE_IMPORTANCE: Dict[str, float] = {
 }
 
 DECAY_RATE  = 0.92
-DECAY_EVERY = 10
+from app.core.constants import DECAY_EVERY
 
 
 def score_event(

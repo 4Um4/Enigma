@@ -45,7 +45,6 @@ import logging
 import random
 import time
 from collections import OrderedDict
-from datetime import datetime
 from pathlib import Path
 from typing import List, Optional
 
@@ -71,7 +70,6 @@ from app.core.constants import (
     RANDOM_EVENT_CHANCE,
     STRESS_RECOVERY_SAFE,
     STRESS_RECOVERY_SLEEPING,
-    TICK_SAVE_INTERVAL,
 )
 
 # ── Need-driven movement: простой прокси потребностей ──────────────────
@@ -286,10 +284,6 @@ class LifeEngine:
         # Кэш NPC для быстрого доступа между тиками
         # ключ: campaign_id → list[dict]
         self._npc_cache: dict[str, list] = {}
-        
-        # Кэш sim_tick для быстрого доступа (копия JSON)
-        # ключ: campaign_id → int
-        self._tick_cache: dict[str, int] = {}
                 
         # LRU tracking для HOT кэша
         # ключ: campaign_id → timestamp последнего доступа
@@ -299,9 +293,9 @@ class LifeEngine:
         # ключ: (campaign_id, npc_id) → float
         self._idle_pressure: dict[tuple[str, str], float] = {}
         
-        # Счётчик для batched persistence
-        # ключ: campaign_id → int (сколько тиков с последнего save)
-        self._ticks_since_save: dict[str, int] = {}
+        # TemporalEngine — единая точка времени/decay (перенесено из LifeEngine)
+        from app.services.temporal.temporal_engine import TemporalEngine
+        self._temporal = TemporalEngine(sessions_dir=self.sessions_dir)
         
         # Слой 2: MovementEngine — конвертирует MovementIntent → SceneChange с {x, y}
         self._movement_engine = MovementEngine()
@@ -309,98 +303,6 @@ class LifeEngine:
     def set_transit_tracker(self, tracker) -> None:
         """Пробрасывает TransitTracker в MovementEngine для pathing."""
         self._movement_engine.set_transit_tracker(tracker)
-
-    # ─────────────────────────────────────────────────────────────────────────
-    # Tick Architecture (Блок 1)
-    # ─────────────────────────────────────────────────────────────────────────
-
-    def _tick_file_path(self, campaign_id: str) -> Path:
-        """Путь к файлу persistent tick."""
-        return self.sessions_dir / campaign_id / "world_tick.json"
-
-    def _load_tick(self, campaign_id: str) -> int:
-        """
-        Загружает sim_tick из JSON (COLD storage).
-        Возвращает 0 если файл не существует или повреждён.
-        """
-        path = self._tick_file_path(campaign_id)
-        if not path.exists():
-            return 0
-        try:
-            data = json.loads(path.read_text(encoding="utf-8-sig"))
-            return data.get("sim_tick", 0)
-        except (json.JSONDecodeError, OSError) as e:
-            logger.warning(f"[LIFE_ENGINE] Ошибка чтения tick: {e}")
-            return 0
-
-    def _save_tick(self, campaign_id: str, tick: int) -> None:
-        """
-        Сохраняет sim_tick в JSON (COLD storage).
-        Вызывается автоматически (batched) или вручную (flush_ticks).
-        """
-        path = self._tick_file_path(campaign_id)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        
-        # Читаем существующий файл чтобы сохранить created_at
-        _existing = {}
-        if path.exists():
-            try:
-                _existing = json.loads(path.read_text(encoding="utf-8-sig"))
-            except (json.JSONDecodeError, OSError):
-                pass
-
-        data = {
-            "sim_tick": tick,
-            "updated_at": datetime.now().isoformat(),
-            # created_at пишется один раз при создании — не перезаписывается
-            "created_at": _existing.get("created_at") or datetime.now().isoformat(),
-        }
-        try:
-            path.write_text(
-                json.dumps(data, ensure_ascii=False, indent=2),
-                encoding="utf-8"
-            )
-        except OSError as e:
-            logger.error(f"[LIFE_ENGINE] Ошибка сохранения tick: {e}")
-
-
-    def get_idle_seconds(self, campaign_id: str) -> float:
-        """
-        Сколько секунд прошло с последнего тика.
-        Возвращает inf если тик никогда не был.
-        """
-        path = self._tick_file_path(campaign_id)
-        if not path.exists():
-            return float('inf')
-        try:
-            data = json.loads(path.read_text(encoding="utf-8-sig"))
-            last_ts = data.get("updated_at")
-            if not last_ts:
-                return float('inf')
-            last_dt = datetime.fromisoformat(last_ts)
-            return (datetime.now() - last_dt).total_seconds()
-        except (json.JSONDecodeError, OSError, ValueError):
-            return float('inf')
-
-    def get_world_ticks_elapsed(self, campaign_id: str) -> int:
-        """
-        Вычисляет сколько тиков ДОЛЖНО было пройти с момента создания кампании.
-        Основан на реальном времени (world_time), не на sim_tick.
-        Персистентен — не зависит от рестартов сервера.
-        """
-        from app.core.constants import TICK_REAL_SECONDS
-        path = self._tick_file_path(campaign_id)
-        if not path.exists():
-            return 0
-        try:
-            data = json.loads(path.read_text(encoding="utf-8-sig"))
-            created_at = data.get("created_at")
-            if not created_at:
-                return self.get_current_tick(campaign_id)
-            elapsed = (datetime.now() - datetime.fromisoformat(created_at)).total_seconds()
-            return int(elapsed // TICK_REAL_SECONDS)
-        except (json.JSONDecodeError, OSError, ValueError):
-            return self.get_current_tick(campaign_id)
 
     def macro_simulate(
         self,
@@ -525,9 +427,8 @@ class LifeEngine:
         """
         self.flush_ticks(campaign_id)
         self._npc_cache.pop(campaign_id, None)
-        self._tick_cache.pop(campaign_id, None)
+        self._temporal.cleanup_campaign(campaign_id)
         self._last_access.pop(campaign_id, None)
-        self._ticks_since_save.pop(campaign_id, None)
 
     def cleanup_all_campaigns(self) -> int:
         """
@@ -537,9 +438,8 @@ class LifeEngine:
         self.flush_ticks()  # Сначала сохраняем
         count = len(self._npc_cache)
         self._npc_cache.clear()
-        self._tick_cache.clear()
+        self._temporal.cleanup_all()
         self._last_access.clear()
-        self._ticks_since_save.clear()
         logger.info(f"[LIFE_ENGINE] cleared all HOT cache: {count} campaigns")
         return count
 
@@ -654,7 +554,7 @@ class LifeEngine:
         )
         from app.services.events.event_types import EventType
         from app.models.npc_state import NPCIdentityL1, WillState, compute_drive_modifiers
-        from app.services.npc.cognitive_distortion import CognitiveDistortionEngine
+        from app.services.npc.interpretation_engine import InterpretationEngine
         from app.domain.communication import CommunicationIntent
 
         # Читаем из кэша — после Phase 0 там уже мутации (Устав §3.1)
@@ -697,14 +597,14 @@ class LifeEngine:
                 )
 
                 # Когнитивные искажения — idle NPC подвержены накопленным bias (Устав §3.1)
-                _clean_state, _distortion_bias, _distortion_modifiers = CognitiveDistortionEngine().apply(
-                    state_l2, actor_is_player=False
+                interpretation = InterpretationEngine().compute(
+                    state=state_l2, event=event
                 )
 
                 # Drive modifiers из temporary_drives
                 _drive_mods = None
-                if _clean_state.temporary_drives:
-                    _drive_mods = compute_drive_modifiers(_clean_state.temporary_drives)
+                if state_l2.temporary_drives:
+                    _drive_mods = compute_drive_modifiers(state_l2.temporary_drives)
 
                 # Identity L1 — кристаллизованные черты личности
                 _identity = None
@@ -715,12 +615,12 @@ class LifeEngine:
                     )
 
                 result = hub.compute(
-                    state=_clean_state,
+                    state=state_l2,
                     personality=profile_l0,
                     event=event,
                     scene_state=scene_state,
                     identity=_identity,
-                    eco_modifiers=_distortion_modifiers if _distortion_modifiers else None,
+                    eco_modifiers=interpretation.score_modifiers if interpretation.score_modifiers else None,
                     social_modifiers=None,
                     reputation_modifiers=None,
                     drive_modifiers=_drive_mods,
@@ -827,61 +727,35 @@ class LifeEngine:
 
     def _increment_tick(self, campaign_id: str) -> int:
         """
-        Инкрементирует sim_tick с hybrid persistence.
-        
-        Порядок:
-          1. Прочитать текущий (из RAM кэша или JSON)
-          2. +1
-          3. Записать в RAM кэш (всегда)
-          4. Записать в JSON (раз в TICK_SAVE_INTERVAL тиков)
-        
+        Делегирует инкремент тика в TemporalEngine.
         Возвращает новый tick.
         """
-        current = self._tick_cache.get(campaign_id)
-        if current is None:
-            # Прочитать из JSON
-            current = self._load_tick(campaign_id)
-        
-        new_tick = current + 1
-        
-        # Обновить HOT (RAM) — всегда
-        self._tick_cache[campaign_id] = new_tick
-        
-        # Hybrid persistence: COLD (JSON) раз в N тиков
-        unsaved = self._ticks_since_save.get(campaign_id, 0) + 1
-        if unsaved >= TICK_SAVE_INTERVAL:
-            self._save_tick(campaign_id, new_tick)
-            self._ticks_since_save[campaign_id] = 0
-        else:
-            self._ticks_since_save[campaign_id] = unsaved
-        
-        return new_tick
+        ctx = self._temporal.advance_tick(campaign_id)
+        return ctx.current_tick
 
     def flush_ticks(self, campaign_id: Optional[str] = None) -> None:
-        """
-        Принудительная запись tick(s) в JSON.
-        Вызывать при: shutdown, critical event, manual save.
-        """
-        if campaign_id:
-            tick = self._tick_cache.get(campaign_id)
-            if tick is not None:
-                self._save_tick(campaign_id, tick)
-                self._ticks_since_save[campaign_id] = 0
-        else:
-            # Flush all
-            for cid, tick in self._tick_cache.items():
-                self._save_tick(cid, tick)
-            self._ticks_since_save.clear()
+        """Делегирует принудительную запись tick(s) в TemporalEngine."""
+        self._temporal.flush_ticks(campaign_id)
 
     def get_current_tick(self, campaign_id: str) -> int:
-        """
-        Возвращает текущий sim_tick (без инкремента).
-        Читает из RAM кэша, fallback — из JSON.
-        """
-        cached = self._tick_cache.get(campaign_id)
-        if cached is not None:
-            return cached
-        return self._load_tick(campaign_id)
+        """Делегирует чтение текущего тика в TemporalEngine."""
+        return self._temporal.get_current_tick(campaign_id)
+
+    def get_temporal_context(self, campaign_id: str):
+        """Возвращает TemporalContext для подсистем, которым нужно больше чем просто тик."""
+        return self._temporal.get_temporal_context(campaign_id)
+
+    def get_idle_seconds(self, campaign_id: str) -> float:
+        """Делегирует в TemporalEngine."""
+        return self._temporal.get_idle_seconds(campaign_id)
+
+    def get_world_ticks_elapsed(self, campaign_id: str) -> int:
+        """Делегирует в TemporalEngine."""
+        return self._temporal.get_world_ticks_elapsed(campaign_id)
+
+    def mark_decay_executed(self, campaign_id: str) -> None:
+        """Фиксирует, что memory decay был запущен на текущем тике."""
+        self._temporal.mark_decay_executed(campaign_id)
 
     def invalidate_cache(self, campaign_id: str) -> None:
         """
@@ -889,6 +763,7 @@ class LifeEngine:
         Вызвать если major_npcs.json был изменён извне (например, SandboxHandler).
         """
         self._npc_cache.pop(campaign_id, None)
+        self._temporal.invalidate_cache(campaign_id)
 
     # ─────────────────────────────────────────────────────────────────────────
     # Внутренние методы загрузки NPC
