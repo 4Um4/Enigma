@@ -17,6 +17,7 @@ import logging
 from typing import TYPE_CHECKING, Dict, List, Optional
 
 from app.domain.events import EventDTO
+from app.models.temporal import TemporalContext
 from app.services.events.event_bus import get_event_bus
 from app.services.events.event_types import EventType
 
@@ -84,15 +85,21 @@ def write_npc_reactions_to_memory(
 def run_decay_and_resonance(
     memory_manager: MemoryManager,
     campaign_id: str,
-    snapshot_tick: int,
+    temporal: TemporalContext,
     active_npc_ids: Optional[List[str]],
 ) -> None:
-    """P0.3: decay каждые 10 ходов + resonance для активных NPC.
+    """P0.3: decay + resonance для активных NPC.
 
+    Decay запускается когда temporal.should_run_memory_decay == True.
     Decay → identity_weights → NPCIdentityL1 cache (РАЗРЫВ #2 закрыт).
     Resonance → identity_weights для каждого активного NPC.
     """
-    identity_weights = memory_manager.run_decay_if_needed(campaign_id, snapshot_tick)
+    if not temporal.should_run_memory_decay:
+        return
+
+    identity_weights = memory_manager.run_decay_if_needed(
+        campaign_id, temporal.current_tick,
+    )
     if identity_weights:
         resonance = memory_manager.detect_resonance(campaign_id, actor_id="player")
         for npc_id in active_npc_ids or []:

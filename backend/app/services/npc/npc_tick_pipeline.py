@@ -253,7 +253,7 @@ def run_npc_pipeline(
     """
     from app.services.npc.npc_loader import load_profile_from_legacy_json, load_l2_state_from_runtime_dict
     from app.services.npc.decision_hub import DecisionHub
-    from app.services.npc.cognitive_distortion import CognitiveDistortionEngine
+    from app.services.npc.interpretation_engine import InterpretationEngine
     from app.models.npc_state import NPCIdentityL1, NPCState, compute_drive_modifiers
     from app.services.npc.state_applicator import StateApplicator
     from app.services.npc.npc_tick_contracts import _INTENT_TO_ACTIVITY
@@ -337,8 +337,8 @@ def run_npc_pipeline(
 
             # 1.6. CognitiveDistortion: модификаторы для DecisionHub (ШАГ C.1)
             # Distortion НЕ искажает state — возвращает модификаторы score
-            _clean_state, _distortion_bias, _distortion_modifiers = CognitiveDistortionEngine().apply(
-                state_l2, actor_is_player=True
+            interpretation = InterpretationEngine().compute(
+                state=state_l2, event=hub_event
             )
 
             # 2. Этап 5: Запуск DecisionHub с L1 чертами + distortion модификаторы
@@ -373,7 +373,7 @@ def run_npc_pipeline(
             _eco_modifiers = _eco_result["modifiers"]
 
             # Объединяем все модификаторы для DecisionHub
-            _all_modifiers = {**_distortion_modifiers}
+            _all_modifiers = {**interpretation.score_modifiers}
             if _eco_modifiers:
                 for _intent, _mod in _eco_modifiers.items():
                     _all_modifiers[_intent] = _all_modifiers.get(_intent, 0.0) + _mod
@@ -402,7 +402,7 @@ def run_npc_pipeline(
             )
 
             decision = DecisionHub().compute(
-                state=_clean_state,
+                state=state_l2,
                 personality=profile_l0,
                 event=hub_event,
                 identity=_identity,
@@ -514,7 +514,7 @@ def run_npc_pipeline(
                 "profile_l0": profile_l0,           # ФАЗА 0: для voice/backstory/author_notes
                 "verbalization_ctx": verb_ctx,       # КЛЮЧ: Переключает агента на путь R3!
                 "decision_result": decision,          # Для будущего StateApplicator
-                "distortion_bias": _distortion_bias,  # Для ProjectionLayer (речь)
+                "distortion_bias": interpretation.bias,  # Для ProjectionLayer (речь)
                 "real_state": _npc_dict_for_write,    # Legacy dict для ProjectionLayer
                 "trust_delta": _trust_d,              # Для StateApplicator
                 "stress_delta": _stress_d,            # Для StateApplicator

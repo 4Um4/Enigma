@@ -114,6 +114,33 @@ def run_npc_orchestration(
         if _nid in scene_state.get("npc_positions", {}):
             scene_state["npc_positions"][_nid]["activity"] = _activity
 
+    # Реактивное движение NPC — MovementIntent → MovementEngine → SceneChange → apply_changes
+    _movement_intents = _tick_result.movement_intents if hasattr(_tick_result, "movement_intents") else []
+    if _movement_intents:
+        try:
+            from app.services.spatial.movement_engine import MovementEngine
+            from app.services.npc.life_engine import get_life_engine
+            _life_engine = get_life_engine()
+            _me = _life_engine._movement_engine
+            _changes = _me.process_intents(_movement_intents, tick=0)
+            if _changes:
+                game_loop.scene_manager.apply_changes(campaign_id, _changes, scene_state)
+                # Обновляем position в npc_positions для каждого перемещённого NPC
+                from app.services.spatial.location_graph import load_graph
+                _location_id = scene_state.get("location_id", "")
+                for _c in _changes:
+                    if _c.field == "local_position" and _c.target in scene_state.get("npc_positions", {}):
+                        _entry = scene_state["npc_positions"][_c.target]
+                        _entry["local_position"] = _c.value
+                        # Синхронизируем position (узел графа) из MovementIntent
+                        for _mi in _movement_intents:
+                            if _mi.npc_id == _c.target:
+                                _entry["position"] = _mi.target_node_id
+                                break
+                logger.warning(f"[MOVEMENT] {len(_changes)} реактивных перемещений применено")
+        except Exception as _move_err:
+            logger.warning(f"[MOVEMENT] Ошибка реактивного движения: {_move_err}")
+
     # ФАЗА 3.5: Reputation impact — влияние действий на репутацию фракций
     _rep_eng = game_loop._svc.get_reputation_engine()
     if _rep_eng and ctx.hub_event:

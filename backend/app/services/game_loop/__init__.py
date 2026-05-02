@@ -81,12 +81,12 @@ from app.services.game_loop.tick_context import (
     TickOutput,
     _TickContext,  # backward compat alias
 )
-# commit_tick перенесён в TickOrchestrator.finalize_and_commit (P1.1e)
+# commit_tick инлайн в TickOrchestrator.finalize_and_commit — phase_8_commit.py удалён
 from app.services.game_loop.phase_1_input import publish_player_action
 from app.services.game_loop.scene_init import init_scene_state
 from app.services.game_loop.dm_phase import run_dm_phase
 from app.services.game_loop.npc_orchestration import run_npc_orchestration
-# run_finalize_phase перенесён в TickOrchestrator._phase_finalize (P1.1e)
+# run_finalize_phase удалён (мёртвый код) — логика в TickOrchestrator._phase_finalize
 
 
 # ────────────────────────────────────────────────────────────────────────────────
@@ -137,7 +137,7 @@ class GameLoop:
         self._session_started_campaigns: set = set()    
         # B.3/B.4: SceneContinuity — эпизодическая фиксация сцены
         self._scene_continuities: Dict[str, SceneContinuity] = {}
-        # _social_tick перенесён в TickOrchestrator (P1.1f)
+        # _social_tick перенесён в SocialSubscriber (§5.1 EventBus подписки)
         # ФАЗА 3.1: Spatial Events — предыдущие расстояния для детекции переходов
         self._prev_player_distances: Dict[str, Dict[str, float]] = {}
         # ФАЗА 3.4: WorldTickEngine — проактивные действия NPC
@@ -381,7 +381,7 @@ class GameLoop:
     ) -> _PipelineState:
         """Фазовый пайплайн: DM → NPC → Perception → Social → Rules → Finalize → Commit.
 
-        Каждый блок — отдельный модуль в game_loop/. Подробнее: dm_phase, npc_orchestration, finalize_phase.
+        Каждый блок — отдельный модуль в game_loop/. Подробнее: dm_phase, npc_orchestration.
         """
         start_ms = time.time() * 1000
         _ctx = _TickContext()

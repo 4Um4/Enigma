@@ -72,6 +72,7 @@ INTENT_DESCRIPTIONS: dict[str, str] = {
     "spread_rumor": "шепчется с соседом",
     "call_for_help": "готов крикнуть",
     "change_role": "меняется в лице",
+    "approach": "подходит ближе",
 }
 
 # Маппинг EmotionTag → русский для промпта. Базовые формы (мужской род).

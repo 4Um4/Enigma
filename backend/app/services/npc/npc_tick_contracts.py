@@ -26,6 +26,7 @@ _INTENT_TO_ACTIVITY = {
     "OBSERVE":    "observing",
     "HELP":       "helping",
     "INTIMIDATE": "intimidating",
+    "APPROACH":   "approaching",
     "IDLE":       "",  # пустая строка → не перезаписываем дефолт
 }
 

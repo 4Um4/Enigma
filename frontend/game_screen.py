@@ -18,8 +18,7 @@ import pygame
 
 from scene_renderer import SceneRenderer
 from text_input import TextInput
-from app.services.player_cognition import (
-    build_perceived_scene,
+from game_types import (
     PerceptionConfig,
     PlayerFocus,
     PlayerMemory,
@@ -190,9 +189,8 @@ class GameScreen:
         self.game_time_seconds: int = parse_hhmm(_env_time_str)
 
         # Обогащаем spatial-данные из editor JSON (кэш может быть устаревшим)
-        from app.services.scene_state_manager import enrich_scene_spatial
         print(f"[GAME_SCREEN] before enrich_spatial, campaign={campaign_folder}")
-        enrich_scene_spatial(scene_state, campaign_folder)
+        _gateway._bridge.enrich_scene_spatial(scene_state, campaign_folder)
         print(f"[GAME_SCREEN] after enrich_spatial")
 
         location_id = scene_state.get("location_id", "unknown")
@@ -495,7 +493,7 @@ class GameScreen:
                     try:
                         _bridge = _gateway._bridge
                         if _bridge.ready:
-                            _bridge._game_loop.scene_manager.save_scene_state(campaign_folder, scene_state)
+                            _bridge.save_scene_state(campaign_folder, scene_state)
                     except Exception:
                         pass
                     _idle_tick_running[0] = True
@@ -542,7 +540,7 @@ class GameScreen:
                 encounter_history=encounters,
                 player_memory=memory,
             )
-            perceived = build_perceived_scene(scene_state, config)
+            perceived = _gateway._bridge.build_perceived_scene(scene_state, config)
 
             # === Рендер ===
             px, py = _player_xy(scene_state)

@@ -13,6 +13,8 @@ npc_response_validator.py — валидатор для NPC речи.
 Назначение: Валидация NPC-речи с fallback по intent
 Зависимости: response_validator, state_interpreter (INTENT_DESCRIPTIONS)
 Основные сущности: NPCResponseValidator
+
+TODO: можно расширить на разные типы нарушений (не только empty/dialog для немых NPC), добавив больше шаблонов в _MUTED_FALLBACKS и отдельные методы валидации.
 """
 
 from typing import Optional
@@ -42,6 +44,7 @@ _INTENT_FALLBACKS: dict[str, str] = {
     "spread_rumor": "{name} наклоняется ближе, понижая голос.",
     "call_for_help": "{name} делает глубокий вдох.",
     "idle": "{name} стоит безучастно.",
+    "approach": "{name} делает несколько шагов навстречу.",
 }
 
 # Fallback когда can_speak=False
@@ -53,6 +56,7 @@ _MUTED_FALLBACKS: dict[str, str] = {
     "intimidate": "{name} хмурится, делая угрожающий жест.",
     "help": "{name} кивает в поддержку.",
     "observe": "{name} пристально смотрит.",
+    "approach": "{name} молча подходит ближе.",
 }
 
 
