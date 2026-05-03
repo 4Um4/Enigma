@@ -23,6 +23,7 @@ from app.core.constants import (
     WORLD_TICK_EVERY_TURNS,
 )
 from app.models.npc_state import Intent, NPCState, WillState
+from app.models.state_delta import StateDeltas
 from app.models.npc_profile import NPCProfileL0
 from app.domain.events import EventDTO
 from app.services.events.event_types import EventType
@@ -38,7 +39,7 @@ class ProactiveDecision:
     intent_target: Optional[str]
     score: float
     reason: str                     # для debug/tracing
-    deltas_dict: Dict[str, Any]     # дельты для StateApplicator
+    deltas: StateDeltas              # канонический контракт мутаций (Устав §2.3)
 
 
 @dataclass
@@ -151,10 +152,7 @@ class WorldTickEngine:
                         intent_target=result.intent_target,
                         score=effective_score,
                         reason=f"world_tick#{tick_num}: {result.intent.value} (raw={result.score:.3f})",
-                        deltas_dict={
-                            "stress_delta": result.deltas.stress_delta,
-                            "emotion_tag": result.deltas.emotion_tag,
-                        },
+                        deltas=result.deltas,
                     )
                     decisions.append(decision)
 

@@ -27,7 +27,7 @@ def mock_deps(tmp_path):
             read_campaign_history=MagicMock(return_value=[]),
         ),
         "dm_orchestrator": AsyncMock(),
-        "scene_manager": MagicMock(load_scene=MagicMock(return_value={"snapshot_tick": 0})),
+        "scene_manager": MagicMock(load_scene=MagicMock(return_value={"location_id": "test"})),
         "world_scheduler": MagicMock(),
         "character_service": MagicMock(),
         "avatar_service": MagicMock(),

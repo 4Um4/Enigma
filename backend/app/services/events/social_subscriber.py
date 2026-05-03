@@ -1,16 +1,18 @@
 # backend/app/services/events/social_subscriber.py
 #
 # Устав §5.1: EventBus.publish() — единственная точка входа событий.
-# SocialSubscriber подписан на шину, накапливает EventDTO,
-# применяет пропагацию на фазе 6 (после perception).
+# SocialSubscriber подписан на шину, накапливает EventDTO.
+# Фаза 8: drain_events() + handle() — детерминированный drain-этап.
+# Шина для фактов, Фаза 8 для обработки. Никаких мета-событий.
 #
-# TODO: после полной миграции на EventDTO — брать intensity из payload,
-#       а не из shared_context.python_engines_result.dm_result
+# TODO: propagate_social_rumors() мутирует all_npcs_raw напрямую —
+#       мигрировать на возврат List[StateDeltas] (отдельный шаг).
+#       После миграции prop_dirty станет ненужным.
 """
 path: backend/app/services/events/social_subscriber.py
-Назначение: Подписчик EventBus для социальной пропагации (Устав §5.1)
-Зависимости: domain.events.EventDTO, services.events.event_bus.EventBus, services.events.event_types.EventType
-Основные сущности: SocialSubscriber
+Назначение: Phase8Handler — социальная пропагация (Устав §5.1 + §3 Фаза 8)
+Зависимости: domain.events.EventDTO, models.phase8.Phase8Context/Phase8Result, services.events.event_bus.EventBus
+Основные сущности: SocialSubscriber (Phase8Handler)
 
 TODO:
 - [ ] Phase 3B.4: поддержка асинхронной очереди для world_tick
@@ -24,6 +26,7 @@ import logging
 from typing import Any, Callable, List, Optional
 
 from app.domain.events import EventDTO
+from app.models.phase8 import Phase8Context, Phase8Result
 from app.services.events.event_bus import EventBus
 from app.services.events.event_types import EventType
 
@@ -48,10 +51,16 @@ _SOCIAL_EVENT_TYPES: list[EventType] = [
 
 
 class SocialSubscriber:
-    """Подписчик на события для социальной пропагации (Устав §5.1).
+    """Phase8Handler: социальная пропагация.
 
-    Накапливает EventDTO при publish(), применяет пропагацию на фазе 6.
-    Заменяет прямой вызов propagate_social_rumors из TickOrchestrator.
+    Жизненный цикл:
+      1. Шина → _on_event() накапливает EventDTO (Фазы 2/7)
+      2. Оркестратор → drain_events() снимок + очистка (Фаза 8)
+      3. Оркестратор → handle(events, ctx) → Phase8Result (Фаза 8)
+
+    LEGACY BRIDGE: propagate_social_rumors() пока мутирует all_npcs_raw.
+    Phase8Result.prop_dirty=True сигнализирует оркестратору.
+    TODO: мигрировать на возврат List[StateDeltas].
     """
 
     def __init__(self, event_bus: EventBus) -> None:
@@ -67,49 +76,64 @@ class SocialSubscriber:
             self._event_bus.subscribe(et, self._on_event)
 
     def _on_event(self, event: EventDTO) -> Optional[dict]:
-        """EventHandler: накапливает событие для обработки на фазе 6."""
+        """EventHandler: накапливает событие для обработки на Фазе 8."""
         self._pending_events.append(event)
         return None
+
+    @property
+    def name(self) -> str:
+        return "social"
+
+    def drain_events(self) -> List[EventDTO]:
+        """Снимок буфера + очистка. Вызывается строго один раз за тик."""
+        snapshot = list(self._pending_events)
+        self._pending_events.clear()
+        return snapshot
 
     def set_social_engine_factory(self, factory: Callable) -> None:
         """Устанавливает фабрику SocialEngine (DI)."""
         self._social_engine_factory = factory
 
-    def apply(
+    def handle(
         self,
-        shared_context: Any,
-        all_npcs_raw: List[dict],
-        tick_ctx: Any,
-        campaign_id: str,
-    ) -> None:
-        """ШАГ D: социальная пропагация накопленных событий.
+        events: List[EventDTO],
+        ctx: Phase8Context,
+    ) -> Phase8Result:
+        """ФАЗА 8: социальная пропагация накопленных событий.
 
-        Мутирует all_npcs_raw (trust/stress) и tick_ctx.prop_dirty.
-        Пока использует dm_result.event_context для intensity
-        (TODO: миграция на EventDTO payload).
+        events — из drain_events(), может быть пустым.
+        ctx — READ-ONLY (кроме legacy-моста, см. ниже).
+        Возвращает Phase8Result(prop_dirty=True) если были мутации.
+
+        LEGACY BRIDGE: propagate_social_rumors() пока мутирует
+        ctx.all_npcs_raw напрямую. prop_dirty=True сигнализирует
+        оркестратору о необходимости коммита.
+        TODO: мигрировать на возврат List[StateDeltas] — тогда
+              prop_dirty станет ненужным, all_npcs_raw не будет мутироваться.
         """
         if self._social_engine_factory is None:
-            logger.debug("[SOCIAL_SUB] apply: нет social_engine_factory — пропускаем")
-            self._pending_events.clear()
-            return
+            logger.debug("[SOCIAL_SUB] handle: нет social_engine_factory — пропускаем")
+            return Phase8Result()
+
+        if not events:
+            logger.debug("[SOCIAL_SUB] handle: нет накопленных событий")
+            return Phase8Result()
 
         from app.services.social.propagation import propagate_social_rumors
 
-        social_engine = self._social_engine_factory(campaign_id)
+        social_engine = self._social_engine_factory(ctx.campaign_id)
         self._social_tick = propagate_social_rumors(
             social_engine,
             self._social_tick,
-            shared_context,
-            all_npcs_raw,
-            tick_ctx,
+            ctx.shared_context,
+            ctx.all_npcs_raw,
+            ctx.tick_ctx,
         )
 
-        # Логируем накопленные события для диагностики
-        if self._pending_events:
-            logger.debug(
-                f"[SOCIAL_SUB] {len(self._pending_events)} events "
-                f"processed, social_tick={self._social_tick}"
-            )
+        logger.debug(
+            f"[SOCIAL_SUB] {len(events)} events "
+            f"processed, social_tick={self._social_tick}"
+        )
 
-        # Очищаем после применения
-        self._pending_events.clear()
+        # [TODO: migrate to StateDeltas] — prop_dirty временно
+        return Phase8Result(prop_dirty=True)

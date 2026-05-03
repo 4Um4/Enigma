@@ -207,7 +207,8 @@
       "label": "У стойки",
       "connections": [
         "main_hall",
-        "behind_bar"
+        "behind_bar",
+        "kitchen"
       ]
     },
     "behind_bar": {
@@ -238,7 +239,7 @@
       "x": 16.0,
       "y": 4.0,
       "label": "Кухня",
-      "connections": []
+      "connections": ["bar_area"]
     }
   },
   "objects": [

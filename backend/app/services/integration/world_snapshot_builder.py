@@ -46,7 +46,7 @@ class WorldSnapshotBuilder:
         player_pos = self._extract_player_position(scene_state)
         location_id = scene_state.get("location_id", "")
         environment = scene_state.get("environment", {})
-        version = scene_state.get("snapshot_tick", tick)
+        version = tick
 
         return WorldSnapshotDTO(
             tick=tick,

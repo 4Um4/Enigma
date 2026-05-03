@@ -67,7 +67,7 @@
         "visible": true
       },
       "maid_lusya": {
-        "position": "serving_table_3",
+        "position": "bar_area",
         "activity": "separving_tables",
         "visible": true
       },
@@ -83,86 +83,47 @@
       "inn_rooms"
     ],
     "positions": {
-      "behind_bar": {
-        "x": -4.0,
-        "y": 0.0,
-        "connections": [
-          "bar_area"
-        ],
-        "label": "за стойкой"
-      },
-        "bar_area": {
-        "x": -2.5,
-        "y": 0.0,
-        "connections": [
-          "behind_bar",
-          "main_hall",
-          "near_bar"
-        ],
-        "label": "у стойки"
-      },
-        "near_bar": {
-        "x": -1.5,
-        "y": -1.0,
-        "connections": [
-          "bar_area",
-          "main_hall"
-        ],
-        "label": "возле стойки"
+      "entrance": {
+        "x": 8.0,
+        "y": 12.0,
+        "connections": ["main_hall"],
+        "label": "Вход"
       },
       "main_hall": {
-        "x": 0.0,
-        "y": 0.0,
-        "connections": [
-          "bar_area",
-          "near_bar",
-          "corner_table",
-          "serving_table_3",
-          "entrance",
-          "fireplace",
-          "stairs"
-        ],
-        "label": "центр зала"
+        "x": 8.0,
+        "y": 7.0,
+        "connections": ["entrance", "bar_area", "fireplace", "corner_table"],
+        "label": "Центр зала"
       },
-      "serving_table_3": {
-        "x": 1.5,
-        "y": 2.0,
-        "connections": [
-          "main_hall"
-        ],
-        "label": "у третьего стола"
+      "bar_area": {
+        "x": 4.0,
+        "y": 4.0,
+        "connections": ["main_hall", "behind_bar", "kitchen"],
+        "label": "У стойки"
       },
-      "corner_table": {
-        "x": 3.5,
-        "y": 3.0,
-        "connections": [
-          "main_hall"
-        ],
-        "label": "в тёмном углу"
-      },
-      "entrance": {
-        "x": 0.0,
-        "y": -4.0,
-        "connections": [
-          "main_hall"
-        ],
-        "label": "у входа"
+      "behind_bar": {
+        "x": 4.0,
+        "y": 2.5,
+        "connections": ["bar_area"],
+        "label": "За стойкой"
       },
       "fireplace": {
-        "x": -3.5,
-        "y": 2.5,
-        "connections": [
-          "main_hall"
-        ],
-        "label": "у камина"
+        "x": 11.0,
+        "y": 4.0,
+        "connections": ["main_hall"],
+        "label": "У камина"
       },
-      "stairs": {
-        "x": 2.0,
-        "y": -3.0,
-        "connections": [
-          "main_hall"
-        ],
-        "label": "у лестницы"
+      "corner_table": {
+        "x": 12.0,
+        "y": 10.0,
+        "connections": ["main_hall"],
+        "label": "В тёмном углу"
+      },
+      "kitchen": {
+        "x": 16.0,
+        "y": 4.0,
+        "connections": ["bar_area"],
+        "label": "Кухня"
       }
     }
   },

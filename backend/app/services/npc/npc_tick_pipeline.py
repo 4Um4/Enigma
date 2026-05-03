@@ -424,7 +424,7 @@ def run_npc_pipeline(
             # DecisionHub решает ЧТО делать, MovementEngine решит КАК (координаты)
             from app.domain.movement import MovementIntent
             _intent_value = decision.intent.value if decision.intent else ""
-            _MOVE_INTENTS = {"approach"}  # Расширять: flee, seek_ally и т.д.
+            _MOVE_INTENTS = {"approach", "flee"}  # Расширять: seek_ally и т.д.
             if _intent_value in _MOVE_INTENTS:
                 _movement = _resolve_reactive_movement(
                     npc_id=npc_id,
@@ -543,7 +543,7 @@ def _resolve_reactive_movement(
 
     Поддерживаемые интенты:
     - approach: идёт к intent_target (игрок/NPC) → ближайший к цели узел графа
-    - flee: уходит от intent_target → узел графа максимальной удалённости (заглушка)
+    - flee: уходит от intent_target → find_furthest_node от позиции угрозы
     """
     from app.domain.movement import MovementIntent, PRIORITY_NEEDS
     from app.services.spatial.location_graph import load_graph
@@ -572,10 +572,43 @@ def _resolve_reactive_movement(
             target_x = lp.get("x")
             target_y = lp.get("y")
 
+    elif intent == "flee":
+        # Угроза = intent_target (источник страха) — от него бежим
+        if intent_target and intent_target in npc_positions:
+            # Бежим от другого NPC
+            target_entry = npc_positions[intent_target]
+            lp = target_entry.get("local_position", {})
+            threat_x = lp.get("x")
+            threat_y = lp.get("y")
+        else:
+            # Бежим от игрока
+            player_spatial = scene_state.get("player_spatial", {})
+            lp = player_spatial.get("local_position", {})
+            threat_x = lp.get("x")
+            threat_y = lp.get("y")
+
+        # Ищем самый дальний узел от угрозы
+        if threat_x is not None and threat_y is not None:
+            try:
+                graph = load_graph(location_id)
+                target_node = graph.find_furthest_node(threat_x, threat_y)
+                if target_node and target_node != current_node:
+                    return MovementIntent(
+                        npc_id=npc_id,
+                        target_node_id=target_node,
+                        from_node_id=current_node,
+                        location_id=location_id,
+                        reason=f"reactive:flee",
+                        priority=PRIORITY_NEEDS,
+                    )
+            except Exception:
+                pass
+        return None  # Нельзя определить угрозу — остаёмся на месте
+
     if target_x is None or target_y is None:
         return None
 
-    # Резолвим целевые координаты → ближайший узел графа
+    # Резолвим целевые координаты → ближайший узел графа (approach)
     try:
         graph = load_graph(location_id)
         target_node = graph.find_nearest_node(target_x, target_y)

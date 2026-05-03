@@ -27,8 +27,8 @@ from app.services.events.event_types import EventType
 logger = logging.getLogger(__name__)
 
 
-# Тип обработчика событий
-EventHandler = Callable[[EventDTO], Optional[dict]]
+# Тип обработчика событий (Устав §2.1: только EventDTO)
+EventHandler = Callable[[EventDTO], Optional[EventDTO]]
 
 
 class EventBus:
@@ -48,7 +48,7 @@ class EventBus:
     def __init__(self) -> None:
         self._handlers: Dict[str, List[EventHandler]] = {}
         self._tick_queue: List[EventDTO] = []
-        self._event_log: List[dict] = []   # последние 100 событий для debug
+        self._event_log: List[EventDTO] = []   # последние 100 событий для debug
 
     # ── Подписка ──────────────────────────────────────────────────────────
 
@@ -75,10 +75,11 @@ class EventBus:
 
     # ── Публикация ────────────────────────────────────────────────────────
 
-    def publish(self, event: EventDTO) -> List[dict]:
+    def publish(self, event: EventDTO) -> List[EventDTO]:
         """Публикует событие — вызывает всех подписчиков синхронно.
         
         Закон 2.1.1: publish() принимает только EventDTO. Всё остальное — TypeError.
+        Закон 2.1.2: Возвращает List[EventDTO] — результаты обработчиков.
         """
         if not isinstance(event, EventDTO):
             raise TypeError(
@@ -86,13 +87,13 @@ class EventBus:
                 f"получен {type(event).__name__}"
             )
 
-        results: List[dict] = []
+        results: List[EventDTO] = []
         handlers = self._handlers.get(event.type, [])
 
         for handler in handlers:
             try:
                 result = handler(event)
-                if result is not None:
+                if isinstance(result, EventDTO):
                     results.append(result)
             except Exception as e:
                 logger.error(
@@ -101,7 +102,7 @@ class EventBus:
                 )
 
         # логируем для debug (последние 100)
-        self._event_log.append(dataclasses.asdict(event))
+        self._event_log.append(event)
         if len(self._event_log) > 100:
             self._event_log.pop(0)
 
@@ -114,8 +115,8 @@ class EventBus:
 
         return results
 
-    def publish_many(self, events: List[EventDTO]) -> List[dict]:
-        """Публикует несколько событий подряд. Возвращает все результаты."""
+    def publish_many(self, events: List[EventDTO]) -> List[EventDTO]:
+        """Публикует несколько событий подряд. Возвращает все результаты (EventDTO)."""
         all_results = []
         for event in events:
             all_results.extend(self.publish(event))
@@ -139,12 +140,12 @@ class EventBus:
 
     # ── Утилиты ───────────────────────────────────────────────────────────
 
-    def get_recent_events(self, limit: int = 20, campaign_id: str = "") -> List[dict]:
+    def get_recent_events(self, limit: int = 20, campaign_id: str = "") -> List[EventDTO]:
         """Последние N событий для debug и context_builder.
         Если campaign_id указан — фильтрует только события этой кампании.
         """
         if campaign_id:
-            filtered = [e for e in self._event_log if e.get("payload", {}).get("campaign_id") == campaign_id]
+            filtered = [e for e in self._event_log if e.payload.get("campaign_id") == campaign_id]
             return filtered[-limit:]
         return self._event_log[-limit:]
 

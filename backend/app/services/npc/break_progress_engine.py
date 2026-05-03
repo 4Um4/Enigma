@@ -1,5 +1,8 @@
 # backend\app\services\npc\break_progress_engine.py
 """
+DEPRECATED: BreakProgressEngine не подключён к пайплайну (Устав §7.9).
+Нарушает закон: "ResonanceEngine / ContradictionResolver без lifecycle hooks — мёртвый код"
+Будет удалён после подключения к TickOrchestrator или переписан на StateDeltas.
 R6.4 — BreakProgressEngine: процесс давления → трещины → слом.
 Не принимает решений. Выдаёт дельты для StateApplicator.
 """

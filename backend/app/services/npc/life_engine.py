@@ -139,7 +139,7 @@ def _make_random_events(npc: dict, tick: int) -> list:
             ),
         ], MovementIntent(
             npc_id=npc_id,
-            target_node_id="near_bar",
+            target_node_id="bar_area",
             from_node_id=npc.get("position", ""),
             location_id=location,
             reason="random:wanders_to_bar",
