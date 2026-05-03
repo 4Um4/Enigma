@@ -184,10 +184,59 @@ class GameLoopBridge:
             return ""
         return str(self._loop._get_npc_runtime_path(campaign_id))
 
+    # TODO: временная заглушка — будет удалено после: все потребители перейдут на idle_tick()
     def get_life_engine(self):
-        """Возвращает LifeEngine для idle_tick. Делегирует backend."""
+        """DEPRECATED: используйте idle_tick() — TickOrchestrator вызывает LifeEngine внутри."""
         from app.services.npc.life_engine import get_life_engine
         return get_life_engine()
+
+    # TODO: временная заглушка — будет удалено после: все потребители перейдут на idle_tick()
+    def get_npc_runtime_path(self, campaign_id: str) -> str:
+        """DEPRECATED: используйте idle_tick() — TickOrchestrator управляет runtime."""
+        if not self._ready or self._loop is None:
+            return ""
+        return str(self._loop._get_npc_runtime_path(campaign_id))
+
+    def idle_tick(self, campaign_id: str) -> dict:
+        """Idle tick через TickOrchestrator (10 фаз, Устав §3).
+
+        Единая точка входа для DirectGateway и routes.py.
+        Возвращает dict с world_snapshot (dict) — канонический источник
+        позиций NPC и игрока для фронтенда.
+        """
+        if not self._ready or self._loop is None:
+            return {"status": "not_ready"}
+        try:
+            from dataclasses import asdict
+            from app.domain.snapshot import snapshot_npc_positions_to_dict
+
+            result = self._loop.idle_tick(campaign_id)
+
+            # Конвертация WorldSnapshotDTO → dict для фронтенда
+            _ws: dict | None = None
+            _npc_pos_dict: dict = {}
+            if result.world_snapshot is not None:
+                _ws = asdict(result.world_snapshot)
+                # npc_positions: List[NPCPositionDTO] → dict {npc_id: {...}}
+                _npc_pos_dict = snapshot_npc_positions_to_dict(
+                    result.world_snapshot.npc_positions
+                )
+                _ws["npc_positions"] = _npc_pos_dict
+                # UUID → строка для JSON-совместимости
+                if _ws.get("last_event_id") is not None:
+                    _ws["last_event_id"] = str(_ws["last_event_id"])
+
+            return {
+                "status": result.status,
+                "changes": result.changes_count,
+                "npc_positions": _npc_pos_dict,  # DEPRECATED: читать из world_snapshot
+                "events": result.significant_events,
+                "world_snapshot": _ws,
+            }
+        except Exception as e:
+            import traceback
+            print(f"[IDLE_TICK_BRIDGE] ERROR: {e}\n{traceback.format_exc()}")
+            return {"status": "error", "error": str(e), "npc_positions": {}}
 
     def initialize_model_pool(self) -> None:
         """Инициализирует ModelPool в pygame процессе."""

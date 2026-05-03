@@ -96,13 +96,8 @@ def tick_world_proactive(
             if not _wt_npc_raw:
                 continue
             _wt_state = load_l2_state_from_runtime_dict(_wt_npc_raw)
-            _wt_deltas = _pd.deltas_dict or {}
-            _wt_stress_d = _wt_deltas.get("stress_delta", 0.0)
-            if _wt_stress_d:
-                _wt_state.stress = min(100.0, max(0.0, _wt_state.stress + _wt_stress_d))
-            _wt_emotion = _wt_deltas.get("emotion_tag")
-            if _wt_emotion:
-                _wt_state.emotion = _wt_emotion
+            # Единая точка мутации — StateApplicator (Устав §2.3)
+            _wt_state = _wt_applicator.apply_deltas_only(_wt_state, _pd.deltas)
             NPCState.write_to_legacy(_wt_state, _wt_npc_raw)
             tick_ctx.wt_dirty = True
 

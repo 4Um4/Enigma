@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 # Сопоставление intent → activity для scene_state
 _INTENT_TO_ACTIVITY = {
     "COMBAT":     "fighting",
-    "FLEE":       "fleeing",
+    "FLEE":       "retreating",
     "TALK":       "talking",
     "OBSERVE":    "observing",
     "HELP":       "helping",

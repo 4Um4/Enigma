@@ -66,6 +66,21 @@ class LocationGraph:
                 best_id = nid
         return best_id
 
+    def find_furthest_node(self, x: float, y: float) -> Optional[str]:
+        """Находит наиболее удалённый узел от заданных координат.
+
+        Используется для резолва FLEE: позиция угрозы → самый дальний узел графа.
+        Возвращает node_id или None если граф пуст.
+        """
+        worst_id: Optional[str] = None
+        worst_dist: float = -1.0
+        for nid, node in self._nodes.items():
+            d = math.dist((node.x, node.y), (x, y))
+            if d > worst_dist:
+                worst_dist = d
+                worst_id = nid
+        return worst_id
+
     def find_path(self, from_node: str, to_node: str) -> list[str]:
         """BFS-путь от from_node до to_node по connections.
         
@@ -233,17 +248,14 @@ def _load_graph_uncached(location_id: str, data_dir: str) -> LocationGraph:
 # Все остальные локации должны быть в location_templates.json.
 _BUILTIN_NODES: Dict[str, dict] = {
     "tavern_silver_wolf": {
-        "behind_bar":      {"x": -4.0, "y":  0.0, "connections": ["bar_area"],     "label": "за стойкой"},
-        "bar_area":        {"x": -2.5, "y":  0.0, "connections": ["behind_bar", "main_hall"], "label": "у стойки"},
-        "main_hall":       {
-            "x": 0.0, "y": 0.0,
-            "connections": ["bar_area", "corner_table", "serving_table_3", "entrance", "fireplace", "stairs"],
-            "label": "центр зала",
-        },
-        "serving_table_3": {"x":  1.5, "y":  2.0, "connections": ["main_hall"],    "label": "у третьего стола"},
-        "corner_table":    {"x":  3.5, "y":  3.0, "connections": ["main_hall"],    "label": "в тёмном углу"},
-        "entrance":        {"x":  0.0, "y": -4.0, "connections": ["main_hall"],    "label": "у входа"},
-        "fireplace":       {"x": -3.5, "y":  2.5, "connections": ["main_hall"],    "label": "у камина"},
-        "stairs":          {"x":  2.0, "y": -3.0, "connections": ["main_hall"],    "label": "у лестницы"},
+        # Координаты из editor JSON (frontend/map_editor/campaigns/Open_road/locations/tavern.json)
+        # Глобальная система координат, 1 unit = 1 meter
+        "entrance":        {"x":  8.0, "y": 12.0, "connections": ["main_hall"],     "label": "Вход"},
+        "main_hall":       {"x":  8.0, "y":  7.0, "connections": ["entrance", "bar_area", "fireplace", "corner_table"], "label": "Центр зала"},
+        "bar_area":        {"x":  4.0, "y":  4.0, "connections": ["main_hall", "behind_bar"], "label": "У стойки"},
+        "behind_bar":      {"x":  4.0, "y":  2.5, "connections": ["bar_area"],     "label": "За стойкой"},
+        "fireplace":       {"x": 11.0, "y":  4.0, "connections": ["main_hall"],    "label": "У камина"},
+        "corner_table":    {"x": 12.0, "y": 10.0, "connections": ["main_hall"],    "label": "В тёмном углу"},
+        "kitchen":         {"x": 16.0, "y":  4.0, "connections": ["bar_area"],     "label": "Кухня"},
     },
 }

@@ -14,7 +14,7 @@ R2.3 — StateApplicator: единственный модуль с правом 
   - RelationshipStore обновляется здесь, а не в DecisionHub
   - python_engines.py подключается через NPCStateAdapter (инкрементально)
 
-NOTE: psyche_engine — DEPRECATED (мёртвый код). WorldTickEngine.deltas_dict — кандидат на миграцию.  
+NOTE: psyche_engine — DEPRECATED (мёртвый код). ProactiveDecision.deltas_dict → мигрировано в StateDeltas.
 """
 
 from __future__ import annotations
@@ -44,7 +44,6 @@ from app.models.physical import (
 from app.models.event_resolution import StateChange
 from app.models.state_delta import StateDeltas
 from app.services.npc.decision_hub import DecisionResult
-from app.services.npc.break_progress_engine import BreakDeltas
 from app.services.npc.math_utils import apply_saturation
 from app.services.memory.relationship_store import RelationshipStore
 
@@ -113,39 +112,6 @@ class StateApplicator:
                 f"[STATE_APPLICATOR] Ошибка применения для '{state.npc_id}': {e}. "
                 f"Возвращаем оригинальный state.",
                 exc_info=True,
-            )
-            return state
-
-
-    def apply_break(
-        self,
-        state:        NPCState,
-        break_deltas: BreakDeltas,
-        campaign_id:  str,
-    ) -> NPCState:
-        """
-        Применяет дельты слома независимо от DecisionResult.
-        Вызывается в python_engines ДО _decision_hub.compute() — для всех NPC,
-        включая тех, на кого не направлено действие игрока.
-        Атомарность: deepcopy + возврат оригинала при ошибке.
-        """
-        new_state = copy.deepcopy(state)
-        try:
-            new_state.identity_integrity = max(0.0, min(1.0,
-                new_state.identity_integrity + break_deltas.identity_integrity_delta
-            ))
-            new_state.pressure_resistance = max(0.0, min(2.0,
-                new_state.pressure_resistance + break_deltas.pressure_resistance_delta
-            ))
-            if break_deltas.will_state_override is not None:
-                new_state.will_state = break_deltas.will_state_override
-                if break_deltas.will_state_override == WillState.BROKEN:
-                    new_state.trauma_markers.add("will_broken")
-            return new_state
-        except Exception as e:
-            logger.error(
-                f"[STATE_APPLICATOR] apply_break ошибка для '{state.npc_id}': {e}. "
-                f"Возвращаем оригинальный state."
             )
             return state
 
@@ -316,12 +282,32 @@ class StateApplicator:
     ) -> NPCState:
         """
         Восстановление стресса за тик — вызывается LifeEngine.
-        Отдельный метод: не связан с DecisionResult.
+        Использует StateDeltas для унификации контракта мутаций.
+        """
+        recovery = 15.0 if is_sleeping else 5.0
+        deltas = StateDeltas(stress_delta=-recovery, source="tick_recovery")
+        return self.apply_deltas_only(state, deltas)
+
+    def apply_deltas_only(
+        self,
+        state:       NPCState,
+        deltas:      StateDeltas,
+        campaign_id: str = "",
+    ) -> NPCState:
+        """
+        Применяет StateDeltas без DecisionResult.
+        Унифицированный метод для всех источников мутаций (tick_recovery, world_tick, etc).
         """
         new_state = copy.deepcopy(state)
-        recovery = 15.0 if is_sleeping else 5.0
-        new_state.stress = max(0.0, new_state.stress - recovery)
-        return new_state
+        try:
+            self._apply_deltas(new_state, deltas, campaign_id)
+            return new_state
+        except Exception as e:
+            logger.error(
+                f"[STATE_APPLICATOR] apply_deltas_only ошибка для '{state.npc_id}': {e}. "
+                f"Возвращаем оригинальный state."
+            )
+            return state
 
     # ─────────────────────────────────────────────────────────────────────────
     # Внутренние методы применения

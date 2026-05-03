@@ -138,29 +138,11 @@ def load_campaign(request: CampaignLoadRequest, game_loop=Depends(get_game_loop)
 @router.post("/game/idle_tick/{campaign_id}")
 def idle_tick(campaign_id: str, game_loop=Depends(get_game_loop)) -> dict:
     """
-    Тик мира без действия игрока — вызывается pygame по таймером.
-    Делегирует TickOrchestrator (10 фаз, Устав §3).
+    Тик мира без действия игрока — вызывается pygame по таймеру.
+    Делегирует GameLoop.idle_tick() → TickOrchestrator (10 фаз, Устав §3).
     """
     try:
-        from app.services.tick_orchestrator import TickOrchestrator
-        # Получаем campaign_state и берём location_id из него
-        _campaign_state = game_loop.scene_manager._read_campaign_json(campaign_id)
-        _location_id = (
-            (_campaign_state or {}).get("scene_state", {}).get("location_id")
-            or (_campaign_state or {}).get("metadata", {}).get("current_location")
-            or ""
-        )
-        _scene = game_loop.scene_manager.get_scene_state(campaign_id, _location_id)
-        if _scene is None:
-            return {"status": "no_scene", "changes": 0, "npc_positions": {}}
-        print(f"[IDLE_TICK_BE] location={_location_id} npc_count={len(_scene.get('npc_positions', {}))}")
-
-        _orchestrator = TickOrchestrator(scene_manager=game_loop.scene_manager)
-        _result = _orchestrator.execute(
-            campaign_id=campaign_id,
-            scene_state=_scene,
-            tick_number=_scene.get("snapshot_tick", 0),
-        )
+        _result = game_loop.idle_tick(campaign_id)
 
         # npc_positions из world_snapshot через конвертер (обратная совместимость)
         _npc_pos_dict: dict = {}

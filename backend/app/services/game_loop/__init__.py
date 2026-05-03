@@ -28,6 +28,7 @@ from app.models.schemas import (
 from app.services.action.dm_orchestrator import DMOrchestrator
 from app.services.events.event_bus import get_event_bus
 from app.services.tick_orchestrator import TickOrchestrator, DMContextDTO, TickPlayerResultDTO
+from app.domain.tick import TickResultDTO
 # character_filter — используется только в npc_orchestration.py
 from app.services.game_loop.agent_runner import run_agent_safe, AGENT_TIMEOUT_SEC, ERROR_CODES, yield_model_info
 
@@ -155,6 +156,10 @@ class GameLoop:
         # P1.1f: внедряем фабрику SocialEngine в TickOrchestrator
         self._tick_orch.set_social_engine_factory(self._svc.get_social_engine)
 
+    def get_current_tick(self, campaign_id: str) -> int:
+        """Единый источник тика — через TemporalEngine (Устав §3)."""
+        return self._tick_orch.get_current_tick(campaign_id)
+
 
     # ────────────────────────────────────────────────────────────────────────────
     # ПУБЛИЧНЫЙ API
@@ -178,6 +183,24 @@ class GameLoop:
         from app.services.npc.npc_loader import load_npcs_merged
         _runtime_path = self._get_npc_runtime_path(campaign_id)
         return load_npcs_merged(runtime_path=_runtime_path)
+
+    def idle_tick(self, campaign_id: str) -> TickResultDTO:
+        """Idle tick — делегирует TickOrchestrator (10 фаз, Устав §3).
+
+        Вызывается когда игрок бездействует (таймер pygame).
+        Единая точка входа: GameLoopBridge и routes.py делегируют сюда.
+        TickOrchestrator.execute(dm_ctx=None) — полный idle-цикл с
+        WorldSnapshotBuilder на фазе 9.
+        """
+        _scene = self.scene_manager.get_scene_state(campaign_id, "")
+        if _scene is None:
+            return TickResultDTO(status="no_scene")
+
+        return self._tick_orch.execute(
+            campaign_id=campaign_id,
+            scene_state=_scene,
+            tick_number=self.get_current_tick(campaign_id),
+        )
 
     async def run_turn(self, req: ChatTurnRequest) -> ChatTurnResponse:
         """Блокирующий путь (REST). DM-нарратив собирается целиком."""
@@ -209,7 +232,7 @@ class GameLoop:
             dm_text     = dm_result.get("dm_response", "")
             scene_state = state.shared_context.scene_state or {}
             if dm_text and scene_state:
-                current_tick = scene_state.get("snapshot_tick", 0)
+                current_tick = self.get_current_tick(req.campaign_id)
                 extraction   = get_extractor().extract(dm_text, scene_state, current_tick)
                 if extraction.new_objects or extraction.new_events or extraction.updated_states:
                     self.scene_manager.apply_narrative_extractions(
@@ -350,7 +373,7 @@ class GameLoop:
             dm_full_text = "".join(dm_text_parts)
             scene_state  = state.shared_context.scene_state or {}
             if dm_full_text and scene_state:
-                current_tick = scene_state.get("snapshot_tick", 0)
+                current_tick = self.get_current_tick(campaign_id)
                 extraction   = get_extractor().extract(dm_full_text, scene_state, current_tick)
                 if extraction.new_objects or extraction.new_events or extraction.updated_states:
                     self.scene_manager.apply_narrative_extractions(
@@ -434,43 +457,24 @@ class GameLoop:
                 shared_context.action_type or "player_interacts", location,
             )
 
-            # ФАЗА 3-6: NPC оркестрация (CharacterFilter → Pipeline → Reputation → Proactive)
-            npc_contexts = []
+            # ФАЗА 3-6: NPC оркестрация → TickPlayerResultDTO (Устав §3)
+            _player_result: TickPlayerResultDTO = TickPlayerResultDTO()
             if dm_result.is_valid and dm_result.scene_context:
-                npc_contexts = run_npc_orchestration(
+                _player_result = run_npc_orchestration(
                     self, actions, shared_context, scene_state, _ctx,
                     campaign_id, location, is_session_start,
                     tick_orchestrator=self._tick_orch,
                 )
 
-            python_engines_result = {"dm_result": dm_result, "npc_contexts": npc_contexts}
+            python_engines_result = {"dm_result": dm_result, "npc_contexts": _player_result.npc_contexts}
         except Exception as e:
             logger.error(f"[GAME_LOOP] DM/NPC phase error: {e}", exc_info=True)
             python_engines_result = {"dm_result": None, "npc_contexts": []}
+            _player_result = TickPlayerResultDTO()
 
         shared_context.python_engines = python_engines_result
-        _all_npc_contexts = python_engines_result.get("npc_contexts", [])
 
-        # ФАЗА 5-6: Perception + Avatar update (Устав §5.1 — через TickOrchestrator)
-        try:
-            self._tick_orch.apply_perception(_all_npc_contexts, shared_context, campaign_id)
-            from app.services.game_loop.phase_6_avatar import update_avatar_from_npc_intents
-            from app.models.npc_state import EmotionTag
-            update_avatar_from_npc_intents(
-                self.avatar_service, campaign_id, _player_name,
-                shared_context.npc_contexts or [], EmotionTag,
-            )
-        except Exception as _pf_err:
-            logger.warning(f"[PERCEPTION_FILTER] error: {_pf_err}")
-            shared_context.npc_contexts = _all_npc_contexts
-
-        # ШАГ D: Social Propagation (Устав §5.1 — через TickOrchestrator)
-        try:
-            self._tick_orch.propagate_social(shared_context, _ctx.all_npcs_raw, _ctx, campaign_id)
-        except Exception as _se_err:
-            logger.warning(f"[SOCIAL] Propagation failed: {_se_err}")
-
-        # ФАЗА 7: Rules агент
+        # ФАЗА 7: Rules агент (асинхронный — не зависит от npc_contexts)
         _action_type = shared_context.action_type or "player_interacts"
         _rules_context = {"classification": [{
             "player": actions[0].player_name,
@@ -481,14 +485,28 @@ class GameLoop:
         )
         logger.warning(f"[RULES] action_type={_action_type} → {_rules_context['classification'][0]['type']}")
 
-        # ФАЗА 1 (сырая публикация) перенесена выше — ДО NPC оркестрации
+        # ФАЗЫ 8-10: Perception + Social + Finalize + Commit (Устав §3 — единая последовательность)
+        try:
+            _player_result = self._tick_orch.execute_player_finalize(
+                _player_result, _ctx, shared_context, actions, campaign_id,
+                rules_result, r3_direct_mode=R3_DIRECT_MODE,
+            )
+            npc_result = _player_result.finalize_result or {}
+        except Exception as _fin_err:
+            logger.error(f"[GAME_LOOP] Finalize error: {_fin_err}", exc_info=True)
+            npc_result = {}
+            shared_context.npc_contexts = _player_result.npc_contexts
 
-        # ФАЗА 7-8: R3 frame + NPC state + memory + working memory + decay
-        # ФАЗА 7-8 + 10: finalize + atomic commit (Устав §4.2.1)
-        npc_result = self._tick_orch.finalize_and_commit(
-            _ctx, actions, shared_context, campaign_id, rules_result,
-            r3_direct_mode=R3_DIRECT_MODE,
-        )
+        # Avatar update — после perception (shared_context.npc_contexts отфильтрован)
+        try:
+            from app.services.game_loop.phase_6_avatar import update_avatar_from_npc_intents
+            from app.models.npc_state import EmotionTag
+            update_avatar_from_npc_intents(
+                self.avatar_service, campaign_id, _player_name,
+                shared_context.npc_contexts or [], EmotionTag,
+            )
+        except Exception as _av_err:
+            logger.warning(f"[AVATAR] update error: {_av_err}")
 
         return _PipelineState(
             shared_context=shared_context,

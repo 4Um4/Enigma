@@ -9,7 +9,7 @@ path: backend/app/models/state_delta.py
 Никаких dict-мутаций.
 
 NOTE: psyche_engine — DEPRECATED (мёртвый код). WorldTickEngine использует
-ProactiveDecision.deltas_dict — кандидат на миграцию (отдельная задача).
+ProactiveDecision.deltas_dict → мигрировано в StateDeltas.
 """
 
 from dataclasses import dataclass, field

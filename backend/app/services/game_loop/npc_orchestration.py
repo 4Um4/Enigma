@@ -172,4 +172,12 @@ def run_npc_orchestration(
     _scene_for_dm["_salience_max_stress"] = ctx.max_npc_stress
     _scene_for_dm["_salience_target_object"] = _scene_for_dm.get("player_target_object")
 
-    return npc_contexts
+    # Возвращаем полный результат для передачи в execute_player_finalize()
+    from app.services.tick_orchestrator import TickPlayerResultDTO
+    return TickPlayerResultDTO(
+        npc_contexts=npc_contexts,
+        dirty_npcs=ctx.dirty_npcs,
+        activity_overrides=_npc_buf.activity_overrides,
+        max_npc_stress=ctx.max_npc_stress,
+        movement_intents=_movement_intents,
+    )
