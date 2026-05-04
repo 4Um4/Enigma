@@ -75,6 +75,23 @@ def publish_player_speech(
         logger.debug(f"[EVENT_BUS] player_speech publish skipped: {_bus_err}")
 
 
+# Интенсивность по типу действия — единый источник для EventDTO.payload
+# Дублирует DMRouter._BASE_INTENSITY чтобы не создавать зависимость layer→layer
+_INTENSITY_MAP: dict[str, float] = {
+    "player_attacks": 1.0,
+    "player_threatens": 0.7,
+    "player_threatens_indirect": 0.6,
+    "player_steals": 0.6,
+    "player_flees": 0.5,
+    "player_insults": 0.65,
+    "player_interacts": 0.2,
+    "dialogue": 0.2,
+    "attack": 1.0,
+    "move": 0.1,
+    "stealth": 0.1,
+}
+
+
 def publish_classified_player_event(
     shared_context: Any,
     location: str,
@@ -84,6 +101,7 @@ def publish_classified_player_event(
     """Публикация классифицированного события игрока после DM-обработки.
 
     Маппит action_type → EventType, учитывает радиус для атак.
+    payload.intensity — канонический источник для SocialSubscriber (Устав §2.1).
     """
     _evt_map = {
         "dialogue": EventType.PLAYER_SPOKE,
@@ -97,6 +115,7 @@ def publish_classified_player_event(
     _resolved_type = _evt_map.get(_raw_type, EventType.PLAYER_SPOKE)
     # Атака — звуковое событие с ограниченным радиусом слышимости
     _evt_radius = 15.0 if _resolved_type == EventType.PLAYER_ATTACKED else 999.0
+    _intensity = _INTENSITY_MAP.get(_raw_type, 0.2)
     _game_evt = EventDTO.create(
         event_type=_resolved_type.value,
         source="player",
@@ -106,8 +125,9 @@ def publish_classified_player_event(
             "target_id": shared_context.player_target_id,
             "raw_input": raw_input,
             "action_type": _raw_type,
+            "intensity": _intensity,
         },
         radius=_evt_radius,
     )
     get_event_bus().publish(_game_evt)
-    logger.warning(f"[EVENT_BUS] Published: {_game_evt.type}, target={_game_evt.payload.get('target_id')}")
+    logger.warning(f"[EVENT_BUS] Published: {_game_evt.type}, target={_game_evt.payload.get('target_id')}, intensity={_intensity}")

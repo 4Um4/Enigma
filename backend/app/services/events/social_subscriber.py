@@ -5,9 +5,9 @@
 # Фаза 8: drain_events() + handle() — детерминированный drain-этап.
 # Шина для фактов, Фаза 8 для обработки. Никаких мета-событий.
 #
-# TODO: propagate_social_rumors() мутирует all_npcs_raw напрямую —
-#       мигрировать на возврат List[StateDeltas] (отдельный шаг).
-#       После миграции prop_dirty станет ненужным.
+# propagate_social_rumors() — чистая функция, возвращает List[StateDeltas].
+# Оркестратор применяет дельты к all_npcs_raw в _apply_phase8_result().
+# TODO: trust_delta → RelationshipStore (нужен target от SocialEngine).
 """
 path: backend/app/services/events/social_subscriber.py
 Назначение: Phase8Handler — социальная пропагация (Устав §5.1 + §3 Фаза 8)
@@ -102,14 +102,11 @@ class SocialSubscriber:
         """ФАЗА 8: социальная пропагация накопленных событий.
 
         events — из drain_events(), может быть пустым.
-        ctx — READ-ONLY (кроме legacy-моста, см. ниже).
-        Возвращает Phase8Result(prop_dirty=True) если были мутации.
+        ctx — READ-ONLY.
+        Возвращает Phase8Result(deltas) — оркестратор применяет.
 
-        LEGACY BRIDGE: propagate_social_rumors() пока мутирует
-        ctx.all_npcs_raw напрямую. prop_dirty=True сигнализирует
-        оркестратору о необходимости коммита.
-        TODO: мигрировать на возврат List[StateDeltas] — тогда
-              prop_dirty станет ненужным, all_npcs_raw не будет мутироваться.
+        propagate_social_rumors() — чистая функция, возвращает List[StateDeltas].
+        Оркестратор применяет дельты к all_npcs_raw через _apply_phase8_result().
         """
         if self._social_engine_factory is None:
             logger.debug("[SOCIAL_SUB] handle: нет social_engine_factory — пропускаем")
@@ -122,18 +119,17 @@ class SocialSubscriber:
         from app.services.social.propagation import propagate_social_rumors
 
         social_engine = self._social_engine_factory(ctx.campaign_id)
-        self._social_tick = propagate_social_rumors(
+        self._social_tick, deltas = propagate_social_rumors(
             social_engine,
             self._social_tick,
             ctx.shared_context,
-            ctx.all_npcs_raw,
-            ctx.tick_ctx,
+            events=events,
         )
 
         logger.debug(
             f"[SOCIAL_SUB] {len(events)} events "
-            f"processed, social_tick={self._social_tick}"
+            f"processed, social_tick={self._social_tick}, "
+            f"deltas={len(deltas)}"
         )
 
-        # [TODO: migrate to StateDeltas] — prop_dirty временно
-        return Phase8Result(prop_dirty=True)
+        return Phase8Result(deltas=deltas)

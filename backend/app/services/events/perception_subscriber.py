@@ -99,14 +99,15 @@ class PerceptionSubscriber:
         if events and _all_npc_ids:
             from app.services.npc.perception_filter import filter_perceiving_npcs
 
-            # Последнее событие — самое актуальное (классифицированное)
-            last_event = events[-1]
-
-            _perceiving_ids = set(filter_perceiving_npcs(
-                npc_ids=_all_npc_ids,
-                event=last_event,
-                scene_state=ctx.shared_context.scene_state or {},
-            ))
+            # Обрабатываем ВСЕ накопленные события — каждый NPC воспринимает
+            # хотя бы одно событие (Устав §5.1: шина для фактов, Фаза 8 для обработки)
+            _perceiving_ids: set[str] = set()
+            for _event in events:
+                _perceiving_ids.update(filter_perceiving_npcs(
+                    npc_ids=_all_npc_ids,
+                    event=_event,
+                    scene_state=ctx.shared_context.scene_state or {},
+                ))
 
             # Адресат всегда воспринимает + свидетели по perception
             _explicit_target = ctx.shared_context.player_target_id

@@ -1,6 +1,10 @@
 ﻿# test_spatial_service.py — критерии приёмки SpatialService v1.2
 import sys
-sys.path.insert(0, ".")
+from pathlib import Path
+
+# Поднимаемся на уровень корня проекта, чтобы найти frontend/
+_project_root = Path(__file__).resolve().parent.parent.parent
+sys.path.insert(0, str(_project_root / "backend"))
 
 from app.models.spatial_contracts import NodeRole, Urgency, NodeRef, SpatialOverlay, NPCPathState
 from app.services.spatial.role_resolver import resolve_role
@@ -20,7 +24,12 @@ def check(name, condition):
         print(f"  FAIL: {name}")
         failed += 1
 
-editor = load_editor_json("Open_road", "tavern_silver_wolf")
+# Указываем правильные директории для поиска editor JSON от корня проекта
+_search_dirs = [
+    _project_root / "frontend" / "map_editor" / "campaigns" / "Open_road" / "locations",
+    _project_root / "backend" / "data" / "campaigns" / "Open_road" / "locations",
+]
+editor = load_editor_json("Open_road", "tavern_silver_wolf", search_dirs=_search_dirs)
 graph, alias_map = compile_graph(editor, "tavern_silver_wolf")
 conns = get_connections("tavern_silver_wolf")
 overlay = SpatialOverlay()

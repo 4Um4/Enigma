@@ -24,17 +24,31 @@ class StateDeltas:
     
     Единый язык мутаций для всех подсистем (Устав §2.3):
     - DecisionHub.compute() → DecisionResult.deltas: StateDeltas
-    - psyche_engine.apply_stress() → DEPRECATED (мёртвый код, не мигрировать)
-    - WorldTickEngine → StateDeltas (после миграции)
+    - WorldTickEngine → StateDeltas
+    - SocialDecayHandler / ReputationDecayHandler → StateDeltas
+    - Social propagation → StateDeltas
+    
+    # LOCKED v1: StateDeltas. Новые домены (combat/spatial/economy)
+    # → отдельный рефакторинг на type: Enum + payload.
+    # Поля damage_delta, position_delta и т.д. в v1 НЕ добавляются.
+    # TODO v2: split → SocialDelta/FactionDelta/EmotionDelta(BaseDelta)
     
     StateApplicator принимает только StateDeltas — никаких dict.
     """
+    npc_id:          Optional[str] = None  # маршрутизация к конкретному NPC
+
+    # --- Маршрутизация: только один тип таргета в одной дельте ---
+    intent_target:   Optional[str] = None   # DecisionHub → player-facing
+    social_target:   Optional[str] = None   # Social decay/propagation → NPC→NPC
+    faction_id:      Optional[str] = None   # Reputation decay → фракция
+
     stress_delta:           float = 0.0
     stress_delta_effective: float = 0.0
     emotion_delta:          float = 0.0
     emotion_tag:     Optional[EmotionTag] = None
-    trust_delta:     float = 0.0
-    fear_delta:      float = 0.0
+    trust_delta:     float = 0.0      # NPC→NPC, NPC→Player только
+    fear_delta:      float = 0.0      # NPC→NPC, NPC→Player только
+    reputation_delta: float = 0.0     # Фракции только. Семантически изолировано от trust
     trait_updates:   Dict[str, float] = field(default_factory=dict)
     new_trauma:      Optional[str] = None
     
@@ -45,3 +59,55 @@ class StateDeltas:
     identity_integrity_delta:   float = 0.0
     pressure_resistance_delta:  float = 0.0
     will_state_override: Optional[WillState] = None
+
+    def __post_init__(self) -> None:
+        """Структурная валидация: один тип таргета, семантическая изоляция.
+        
+        Семантическая валидация (trust_delta без таргета) — в StateApplicator,
+        т.к. DecisionHub ставит trust_delta после конструирования.
+        """
+        _targets = [
+            t for t in (self.intent_target, self.social_target, self.faction_id)
+            if t is not None
+        ]
+        if len(_targets) > 1:
+            raise ValueError(
+                f"StateDeltas: только один тип таргета, "
+                f"получено: intent={self.intent_target}, "
+                f"social={self.social_target}, faction={self.faction_id}"
+            )
+        # reputation_delta допустим только с faction_id
+        if self.reputation_delta != 0.0 and self.faction_id is None:
+            raise ValueError(
+                "StateDeltas: reputation_delta требует faction_id"
+            )
+        # trust_delta/fear_delta несовместимы с faction_id
+        if self.faction_id is not None and (self.trust_delta != 0.0 or self.fear_delta != 0.0):
+            raise ValueError(
+                "StateDeltas: faction_id несовместим с trust_delta/fear_delta "
+                "(используйте reputation_delta)"
+            )
+
+    def __post_init__(self) -> None:
+        """Валидация: только один тип таргета, семантическая изоляция полей."""
+        _targets = [
+            t for t in (self.intent_target, self.social_target, self.faction_id)
+            if t is not None
+        ]
+        if len(_targets) > 1:
+            raise ValueError(
+                f"StateDeltas: только один тип таргета, "
+                f"получено: intent={self.intent_target}, "
+                f"social={self.social_target}, faction={self.faction_id}"
+            )
+        # reputation_delta допустим только с faction_id
+        if self.reputation_delta != 0.0 and self.faction_id is None:
+            raise ValueError(
+                "StateDeltas: reputation_delta требует faction_id"
+            )
+        # trust_delta/fear_delta несовместимы с faction_id
+        if self.faction_id is not None and (self.trust_delta != 0.0 or self.fear_delta != 0.0):
+            raise ValueError(
+                "StateDeltas: faction_id несовместим с trust_delta/fear_delta "
+                "(используйте reputation_delta)"
+            )
