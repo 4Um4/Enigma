@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import copy
 import logging
-from typing import Optional
+from typing import Any, Dict, List, Optional
 
 # Целевая архитектура данных (L2)
 from app.models.npc_state import NPCState
@@ -61,8 +61,14 @@ class StateApplicator:
       - при ошибке: возвращает оригинальный NPCState без изменений
     """
 
-    def __init__(self, relationship_store: RelationshipStore) -> None:
+    def __init__(
+        self,
+        relationship_store: RelationshipStore,
+        reputation_engine: Any = None,
+    ) -> None:
         self._rel_store = relationship_store
+        # ReputationEngine — опциональная зависимость (DI)
+        self._reputation_engine = reputation_engine
 
     def apply(
         self,
@@ -467,13 +473,18 @@ class StateApplicator:
         if len(state.temporary_drives) > MAX_ACTIVE_DRIVES:
             state.temporary_drives = state.temporary_drives[-MAX_ACTIVE_DRIVES:]
 
-        # Отношения — пишем в RelationshipStore, не в NPCState напрямую
-        if deltas.trust_delta != 0.0 or deltas.fear_delta != 0.0:
+        # Отношения — маршрутизация по типу таргета
+        if deltas.faction_id is not None:
+            # Фракция → ReputationEngine (единственный мутатор)
+            self._apply_faction_delta(deltas, campaign_id)
+        elif deltas.trust_delta != 0.0 or deltas.fear_delta != 0.0:
             if self._rel_store is not None:
+                # Явная маршрутизация: social_target → NPC→NPC, intent_target → NPC→Player
+                _target = deltas.social_target or deltas.intent_target or state.intent_target or "player"
                 self._rel_store.update(
                     campaign_id = campaign_id,
                     source      = state.npc_id,
-                    target      = state.intent_target or "player",
+                    target      = _target,
                     delta       = {
                         "trust": deltas.trust_delta,
                         "fear":  deltas.fear_delta,
@@ -481,8 +492,7 @@ class StateApplicator:
                 )
                 # Обновляем кэш в NPCState из свежих данных
                 fresh = self._rel_store.get_pair(
-                    campaign_id, state.npc_id,
-                    state.intent_target or "player"
+                    campaign_id, state.npc_id, _target
                 )
                 state.relationship_cache.update(fresh)
 
@@ -502,3 +512,85 @@ class StateApplicator:
                 state.state_modifiers[trait] = round(new_strength, 4)
         for trait in to_remove:
             del state.state_modifiers[trait]
+
+    # ── Фракции: ReputationEngine — единственный мутатор ──────────────
+
+    def _apply_faction_delta(self, deltas: StateDeltas, campaign_id: str) -> None:
+        """Применяет reputation_delta к фракции через ReputationEngine.
+        
+        Вызывается из _apply_deltas() — единый путь мутаций.
+        """
+        if self._reputation_engine is None:
+            logger.debug(
+                f"[STATE_APPLICATOR] reputation_delta пропущен: "
+                f"no ReputationEngine (faction={deltas.faction_id})"
+            )
+            return
+        self._reputation_engine.apply_deltas([deltas])
+
+    # ── Batch-применение: единая точка для idle дельт ─────────────────
+
+    def apply_batch(
+        self,
+        deltas: List[StateDeltas],
+        all_npcs_raw: List[dict],
+        campaign_id: str,
+    ) -> None:
+        """Единая точка применения всех накопленных дельт.
+
+        Оркестратор вызывает вместо прямых мутаций all_npcs_raw.
+        Порядок: фракции → NPC (группировка по npc_id).
+        """
+        if not deltas:
+            return
+
+        # Разделение: фракции vs NPC
+        faction_deltas = [d for d in deltas if d.faction_id is not None]
+        npc_deltas = [d for d in deltas if d.faction_id is None]
+
+        # Фракции → ReputationEngine
+        if faction_deltas and self._reputation_engine:
+            self._reputation_engine.apply_deltas(faction_deltas)
+
+        # NPC: группировка по npc_id
+        by_npc: Dict[str, List[StateDeltas]] = {}
+        for d in npc_deltas:
+            if d.npc_id:
+                by_npc.setdefault(d.npc_id, []).append(d)
+
+        # Применяем через тонкий мост: dict → NPCState → _apply_deltas → dict
+        for npc_dict in all_npcs_raw:
+            npc_id = npc_dict.get("id")
+            if npc_id not in by_npc:
+                continue
+            for delta in by_npc[npc_id]:
+                self._apply_delta_to_raw(npc_dict, delta, campaign_id)
+
+    def _apply_delta_to_raw(
+        self,
+        npc_dict: dict,
+        deltas: StateDeltas,
+        campaign_id: str,
+    ) -> None:
+        """Тонкий сериализационный мост: dict → NPCState → _apply_deltas() → dict.
+
+        Никакой бизнес-логики, расчётов или условных ветвлений.
+        Вся причинность живёт в _apply_deltas.
+        """
+        from app.models.npc_state import NPCStateAdapter
+
+        # dict → NPCState
+        state = NPCStateAdapter.from_legacy(npc_dict)
+
+        # Применяем через единственный путь мутаций
+        try:
+            self._apply_deltas(state, deltas, campaign_id)
+        except Exception as e:
+            logger.error(
+                f"[STATE_APPLICATOR] _apply_delta_to_raw ошибка для "
+                f"'{npc_dict.get('id', '?')}': {e}. Delta пропущена."
+            )
+            return
+
+        # NPCState → dict
+        NPCState.write_to_legacy(state, npc_dict)

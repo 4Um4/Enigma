@@ -69,6 +69,12 @@ def run_npc_orchestration(
     if tick_orchestrator is None:
         raise RuntimeError("tick_orchestrator обязателен — параллельный путь удалён")
 
+    from app.services.spatial.spatial_service import SpatialService
+    _spatial_svc = SpatialService.build_for_location(
+        campaign_id=campaign_id,
+        location_id=location,
+        scene_state=shared_context.scene_state or {},
+    )
     _npc_svc = NpcTickServices(
         memory_manager=game_loop.memory_manager,
         relationship_store=game_loop.memory_manager._relationships,
@@ -76,6 +82,7 @@ def run_npc_orchestration(
         reputation_engine=game_loop._svc.get_reputation_engine(),
         economic_profiles=game_loop._svc.get_or_create_economic_profiles(campaign_id),
         event_bus=get_event_bus(),
+        spatial_service=_spatial_svc,
     )
     from app.services.tick_orchestrator import DMContextDTO
     _dm_ctx = DMContextDTO(

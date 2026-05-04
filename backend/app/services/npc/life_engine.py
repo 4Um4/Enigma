@@ -115,76 +115,6 @@ _DEFAULT_ACTIVITY_MAP: dict[str, tuple[str, str, str]] = {
 # Генератор получает npc dict и возвращает list[SceneChange]
 # ──────────────────────────────────────────────────────────────────────────────
 
-def _make_random_events(npc: dict, tick: int) -> list:
-    """
-    Таблица случайных событий для Major NPC.
-    5% шанс одного события за тик.
-    Возвращает список (event_id, changes, intent_or_none) из которых выбирается одно.
-    changes — SceneChange без position (activity, state и т.д.)
-    intent — MovementIntent если событие требует перемещения, иначе None
-    """
-    npc_id   = npc.get("id", "unknown")
-    location = npc.get("location", "tavern_silver_wolf")
-
-    events = [
-        # NPC переходит к стойке поговорить с кем-то
-        ("wanders_to_bar", [
-            SceneChange(
-                type=ChangeType.NPC_POSITION,
-                target=npc_id,
-                field="activity",
-                value="talking_at_bar",
-                cause="life_engine_random",
-                tick=tick,
-            ),
-        ], MovementIntent(
-            npc_id=npc_id,
-            target_node_id="bar_area",
-            from_node_id=npc.get("position", ""),
-            location_id=location,
-            reason="random:wanders_to_bar",
-            movement_mode="path",
-            priority=PRIORITY_RANDOM,
-        )),
-        # NPC становится более бдительным (заметил что-то)
-        ("notices_something", [
-            SceneChange(
-                type=ChangeType.NPC_STATE,
-                target=npc_id,
-                field="psyche_state",
-                value="alert",
-                cause="life_engine_random",
-                tick=tick,
-            ),
-        ], None),
-        # Небольшой стресс — ссора с кем-то
-        ("minor_argument", [
-            SceneChange(
-                type=ChangeType.NPC_STATE,
-                target=npc_id,
-                field="stress_delta",
-                value=10,
-                cause="life_engine_argument",
-                tick=tick,
-            ),
-        ], None),
-        # NPC на мгновение выходит (в туалет, за товаром, на улицу)
-        ("brief_exit", [
-            SceneChange(
-                type=ChangeType.NPC_POSITION,
-                target=npc_id,
-                field="visible",
-                value=False,
-                cause="life_engine_random",
-                tick=tick,
-            ),
-        ], None),
-    ]
-    # Событие wanders_to_bar только в таверне — иначе MovementEngine не найдёт узел
-    if location != "tavern_silver_wolf":
-        events = [e for e in events if e[0] != "wanders_to_bar"]
-    return events
-
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Вспомогательные функции времени
@@ -299,6 +229,16 @@ class LifeEngine:
         
         # Слой 2: MovementEngine — конвертирует MovementIntent → SceneChange с {x, y}
         self._movement_engine = MovementEngine()
+        
+        # Слой 3: SpatialService v1.2 — семантическая навигация (инжекция извне)
+        self._spatial_service: Optional[Any] = None
+
+    def set_spatial_service(self, svc: Any) -> None:
+        """Инжекция SpatialService для резолва NodeRole вместо хардкода."""
+        self._spatial_service = svc
+        # Пробрасываем в MovementEngine для A* с учётом оверлея
+        if hasattr(self, '_movement_engine') and self._movement_engine:
+            self._movement_engine.set_spatial_service(svc)
 
     def set_transit_tracker(self, tracker) -> None:
         """Пробрасывает TransitTracker в MovementEngine для pathing."""
@@ -823,6 +763,86 @@ class LifeEngine:
     # Симуляция по тирам
     # ─────────────────────────────────────────────────────────────────────────
 
+    def _make_random_events(self, npc: dict, tick: int) -> list:
+        """Таблица случайных событий для Major NPC.
+        
+        5% шанс одного события за тик.
+        Возвращает список (event_id, changes, intent_or_none).
+        """
+        npc_id   = npc.get("id", "unknown")
+        location = npc.get("location", "tavern_silver_wolf")
+
+        # Резолвим BAR узел через SpatialService v1.2, fallback на хардкод
+        bar_target = "bar_area"  # @deprecated: fallback
+        if self._spatial_service:
+            from app.models.spatial_contracts import NodeRole
+            bar_ref = self._spatial_service.resolve_node(
+                role=NodeRole.BAR,
+                origin_zone=location,
+            )
+            if bar_ref:
+                # MovementEngine ожидает legacy-ID, денормализуем
+                bar_target = self._spatial_service.denormalize_id(bar_ref.node_id)
+
+        events = [
+            # NPC переходит к стойке поговорить с кем-то
+            ("wanders_to_bar", [
+                SceneChange(
+                    type=ChangeType.NPC_POSITION,
+                    target=npc_id,
+                    field="activity",
+                    value="talking_at_bar",
+                    cause="life_engine_random",
+                    tick=tick,
+                ),
+            ], MovementIntent(
+                npc_id=npc_id,
+                target_node_id=bar_target,
+                from_node_id=npc.get("position", ""),
+                location_id=location,
+                reason="random:wanders_to_bar",
+                movement_mode="path",
+                priority=PRIORITY_RANDOM,
+            )),
+            # NPC становится более бдительным (заметил что-то)
+            ("notices_something", [
+                SceneChange(
+                    type=ChangeType.NPC_STATE,
+                    target=npc_id,
+                    field="psyche_state",
+                    value="alert",
+                    cause="life_engine_random",
+                    tick=tick,
+                ),
+            ], None),
+            # Небольшой стресс — ссора с кем-то
+            ("minor_argument", [
+                SceneChange(
+                    type=ChangeType.NPC_STATE,
+                    target=npc_id,
+                    field="stress_delta",
+                    value=10,
+                    cause="life_engine_argument",
+                    tick=tick,
+                ),
+            ], None),
+            # NPC на мгновение выходит (в туалет, за товаром, на улицу)
+            ("brief_exit", [
+                SceneChange(
+                    type=ChangeType.NPC_POSITION,
+                    target=npc_id,
+                    field="visible",
+                    value=False,
+                    cause="life_engine_random",
+                    tick=tick,
+                ),
+            ], None),
+        ]
+        # Событие wanders_to_bar только в таверне — иначе MovementEngine не найдёт узел
+        if location != "tavern_silver_wolf":
+            events = [e for e in events if e[0] != "wanders_to_bar"]
+        return events
+
     def _simulate_major(
         self,
         npc: dict,
@@ -1196,7 +1216,7 @@ class LifeEngine:
         if random.random() > RANDOM_EVENT_CHANCE:
             return []
 
-        events = _make_random_events(npc, tick)
+        events = self._make_random_events(npc, tick)
         event_id, changes, movement_intent = random.choice(events)
 
         if event_id == "minor_argument":

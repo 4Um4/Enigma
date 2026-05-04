@@ -178,25 +178,6 @@ class GameLoopBridge:
             return
         self._loop.scene_manager.apply_changes(campaign_id, changes, scene_state)
 
-    def get_npc_runtime_path(self, campaign_id: str) -> str:
-        """Возвращает путь к npc_runtime.json. Делегирует GameLoop."""
-        if not self._ready or self._loop is None:
-            return ""
-        return str(self._loop._get_npc_runtime_path(campaign_id))
-
-    # TODO: временная заглушка — будет удалено после: все потребители перейдут на idle_tick()
-    def get_life_engine(self):
-        """DEPRECATED: используйте idle_tick() — TickOrchestrator вызывает LifeEngine внутри."""
-        from app.services.npc.life_engine import get_life_engine
-        return get_life_engine()
-
-    # TODO: временная заглушка — будет удалено после: все потребители перейдут на idle_tick()
-    def get_npc_runtime_path(self, campaign_id: str) -> str:
-        """DEPRECATED: используйте idle_tick() — TickOrchestrator управляет runtime."""
-        if not self._ready or self._loop is None:
-            return ""
-        return str(self._loop._get_npc_runtime_path(campaign_id))
-
     def idle_tick(self, campaign_id: str) -> dict:
         """Idle tick через TickOrchestrator (10 фаз, Устав §3).
 

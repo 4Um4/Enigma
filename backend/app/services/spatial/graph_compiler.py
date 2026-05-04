@@ -25,6 +25,9 @@ from app.services.spatial.role_resolver import resolve_role
 
 logger = logging.getLogger(__name__)
 
+# Корень проекта (Enigma/) — динамическое определение от расположения файла
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent.parent
+
 
 def compile_graph(
     editor_data: dict,
@@ -43,6 +46,10 @@ def compile_graph(
         graph: dict[canonical_id, NodeRef]
         alias_map: dict[legacy_id, canonical_id]
     """
+    if not editor_data:
+        logger.error(f"[GRAPH_COMPILER] editor_data is None для {location_id}. Возвращаем пустой граф.")
+        return {}, {}
+        
     raw_nodes = editor_data.get("nodes", {})
     raw_passages = editor_data.get("passages", [])
 
@@ -155,6 +162,11 @@ _connections_data: Dict[str, Dict[str, Set[str]]] = {}
 
 
 def get_connections(location_id: str) -> Dict[str, Set[str]]:
+    """Возвращает подключения для локации. Временный мост до миграции."""
+    return _connections_data.get(location_id, {})
+
+
+def get_connections(location_id: str) -> Dict[str, Set[str]]:
     """Возвращает подключения для локации."""
     return _connections_data.get(location_id, {})
 
@@ -218,8 +230,8 @@ def load_editor_json(
     """
     if search_dirs is None:
         search_dirs = [
-            Path("frontend/map_editor/campaigns") / campaign_id / "locations",
-            Path("data/campaigns") / campaign_id / "locations",
+            _PROJECT_ROOT / "frontend" / "map_editor" / "campaigns" / campaign_id / "locations",
+            _PROJECT_ROOT / "backend" / "data" / "campaigns" / campaign_id / "locations",
         ]
 
     for loc_dir in search_dirs:

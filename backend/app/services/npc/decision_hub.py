@@ -1149,7 +1149,7 @@ class DecisionHub:
         """
         from app.services.npc.math_utils import apply_saturation
         
-        deltas = StateDeltas(source=event.event_type)
+        deltas = StateDeltas(source=event.event_type, intent_target="player")
 
         # Стресс и гнев от оскорблений — провокация без физического насилия
         if event.event_type == "player_insults":

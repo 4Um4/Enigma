@@ -351,6 +351,7 @@ class SceneStateManager:
         scene_state: dict,
         npc_id: str,
         npc_name: str,
+        spatial_service: Optional[Any] = None,
     ) -> str:
         """
         Строит пространственный блок для промпта конкретного NPC.
@@ -382,17 +383,9 @@ class SceneStateManager:
         pos_text = own_pos.get("position", "")
         act_text = own_pos.get("activity", "")
 
-        _position_map = {
-            "behind_bar":   "за стойкой",
-            "bar_area":     "у стойки",
-            "main_hall":    "в центре зала",
-            "fireplace":    "у камина",
-            "corner_table": "в тёмном углу",
-            "entrance":     "у входа",
-            "kitchen":      "на кухне",
-            "gate_post":    "у ворот",
-            "stall_3":      "у третьего прилавка",
-        }
+        # SpatialService v1.2 динамически резолвит лейблы узлов
+        pos_label = spatial_service.get_node_label(pos_text) if spatial_service else pos_text
+        
         _activity_map = {
             "cleaning_tables": "убираешься",
             "serving_tables":  "обслуживаешь зал",
@@ -401,7 +394,6 @@ class SceneStateManager:
             "sleeping":        "спишь",
             "haggling":        "торгуешься",
         }
-        pos_label = _position_map.get(pos_text, pos_text)
         act_label = _activity_map.get(act_text, act_text)
         own_desc = ", ".join(p for p in [pos_label, act_label] if p)
         lines.append(f"- Ты: {own_desc or 'в локации'}")
