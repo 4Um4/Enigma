@@ -1,17 +1,3 @@
-"""
-Формат:
-[SESS_01] 02.05.26: Создан domain/deltas.py. Внедрен DamageDelta. Изменен NPCState (добавлено поле pain_threshold).[SESS_02] 03.05.26: Ошибка. CombatResolver мутировал стейт напрямую. Исправлено: вынесено в StateApplicator.
-Запиши в формате MUTATIONS лог того, какие сущности и DTO были созданы или изменены в этой сессии. Формат: [ID_СЕССИИ] Дата: Описание изменения (что добавлено/удалено).
-"""
----
-[SESS_05] 27.04.26: Изменен `ProactiveDecision` (поле `deltas_dict: Dict[str, Any]` заменено на `deltas: StateDeltas`). Изменен `phase_2_world_tick.py` (ручная мутация стейта заменена на `StateApplicator.apply_deltas_only()`). Обновлены комментарии в `state_delta.py` и `state_applicator.py`.
-
-[SESS_06] 27.04.26: Создан `backend/app/models/phase8.py` (сущности: `Phase8Context(frozen=True)`, `Phase8Result`, `Phase8Handler(Protocol)`). Изменен `PerceptionSubscriber` (добавлены `name`, `drain_events()`, метод `apply()` заменен на `handle(events, ctx) -> Phase8Result`). Изменен `SocialSubscriber` (добавлены `name`, `drain_events()`, метод `apply()` заменен на `handle(events, ctx) -> Phase8Result`). Изменен `TickOrchestrator` (методы `_phase_8_handlers` и `_phase_8_player_handlers` заменены на `_phase_8_drain_secondary()`, добавлен `_apply_phase8_result()`, удалены DEPRECATED-методы `apply_perception` и `propagate_social`).
-
-[SESS_07] 27.04.26: Изменен `TickOrchestrator` (добавлен фасад `get_current_tick()`). Изменен `GameLoop` (добавлен фасад `get_current_tick()`). Изменен `WorldRoutes` (чтение `snapshot_tick` заменено на `_game_loop.get_current_tick()`). Изменен `WorldSnapshotBuilder` (поле `version` берется из аргумента `tick`, а не из `scene_state`). Изменен `SceneStateManager` (удалена инициализация и инкремент `snapshot_tick`, добавлен инкремент `_version` в `commit()`, добавлена миграция и очистка `snapshot_tick` в `get_scene_state()` и `save_scene_state()`).
-
-[SESS_08] 27.04.26: Изменен `StateDeltas` (добавлено поле `npc_id: Optional[str] = None` для маршрутизации дельт). Изменена функция `propagate_social_rumors()` (сигнатура изменена на чистую функцию, возвращающую `Tuple[int, List[StateDeltas]]`, удалена мутация `all_npcs_raw` и `tick_ctx`). Изменен `SocialSubscriber.handle()` (возвращает `Phase8Result(deltas=...)` вместо мутации и флага `prop_dirty`). Изменен `TickOrchestrator._apply_phase8_result()` (добавлено применение `StateDeltas` с `npc_id` к `all_npcs_raw`).
----
 
 ---
 [SESS_01] Дата: Текущая: GameLoop.idle_tick() — новый метод, делегирует в TickOrchestrator.execute() (idle mode). TickResultDTO импортирован.
@@ -33,4 +19,11 @@
 ---
 [SESS_03] 04.05.26: Интегрирован SpatialService v1.2. NpcTickServices: добавлено поле spatial_service. LifeEngine: добавлен DI через set_spatial_service, _make_random_events стал методом класса, хардкод "bar_area" заменен на svc.resolve_node(NodeRole.BAR). MovementEngine: добавлен DI, LocationGraph.find_path заменен на svc.find_path. SceneStateManager: _position_map удален, заменен на svc.get_node_label. GraphCompiler: добавлен _PROJECT_ROOT и get_connections. Данные: удалены _BUILTIN_NODES, блоки positions из location_templates.json, дубликат tavern.json.
 ---
+[SESS_06] 27.05.26: SpatialService контракт. В test_location_graph_r4.py добавлен @pytest.mark.skip. Из tick_orchestrator.py удален прямой импорт load_graph (нарушение черного ящика). Заменено на заглушку для SpatialService v1.2.[SESS_07] 27.05.26: delta_buffer как единственный канал мутации. В propagation.py баг break заменен на max() (агрегация intensity). Удалена мутация shared_context.social_propagation. В Phase8Result добавлены socially_affected_npc_ids и events_processed. SocialSubscriber извлекает affected IDs из deltas.[SESS_08] 27.05.26: Единый источник ACTION_INTENSITY. Создан domain/constants.py. Удалены дубликаты _INTENSITY_MAP (phase_1_input.py) и _BASE_INTENSITY (dm_router.py).[SESS_09] 27.05.26: Устав §1.1 (Frontend/Backend граница). Конвертация DTO→dict перенесена из game_loop_bridge.py в GameLoop.idle_tick(). Bridge больше не импортирует app.domain.*.
+---
+[SESS_10] 27.05.26: ADR-002 починка — _apply_phase8_result() прямая мутация all_npcs_raw заменена на маршрутизацию через delta_buffer → apply_batch(). Удалён блок прямой записи stress/trust в dict (нарушал единый мутатор). Добавлен flush delta_buffer в _phase_8_drain_secondary() после цикла обработчиков → Phase 9 видит обновлённое состояние. Бонус: trust_delta теперь корректно маршрутизируется по social_target/intent_target через apply_batch (раньше писалось в _rc["trust"] без учёта target).
+---
+[SESS_09] 27.04.26: Расширен StateDeltas (intent_target, social_target, faction_id, reputation_delta, __post_init__ валидация, # LOCKED v1). Создан app/models/idle_tick.py (NPCStateSnapshot, IdleTickHandler). Создан app/services/social/social_decay_handler.py (SocialDecayHandler с closing drift). Изменён app/services/social/reputation_engine.py (compute_decay() чистая функция, apply_deltas() принимает StateDeltas). Создан app/services/social/reputation_decay_handler.py (ReputationDecayHandler). Изменён app/services/social/propagation.py (social_target=_actor_id). Изменён app/services/npc/decision_hub.py (intent_target="player"). Изменён app/services/npc/state_applicator.py (reputation_engine DI, маршрутизация по таргету, _apply_faction_delta, apply_batch, _apply_delta_to_raw, импорт Any/Dict/List). Изменён app/services/tick_orchestrator.py (delta_buffer, _phase_0_5_idle_services, _build_npc_snapshots, _aggregate_deltas, idle_handlers, state_applicator, reputation_engine DI, Phase 8 guard if not events, flush delta_buffer в Фазе 10). Изменён app/services/game_loop/service_factories.py (get_state_applicator). Изменён app/services/game_loop/__init__.py (DI wiring idle handlers).
+---
+
 ---

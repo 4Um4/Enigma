@@ -35,6 +35,7 @@ from app.services.npc.decision_hub import DecisionResult, StateDeltas
 
 def make_deltas(stress: float = 0.0, fear: float = 0.0, **kwargs) -> StateDeltas:
     return StateDeltas(
+        npc_id=kwargs.get("npc_id", "test_npc"),
         stress_delta=stress,
         stress_delta_effective=stress,
         emotion_delta=0.0,
@@ -270,7 +271,6 @@ class TestPromptBlockFormatting:
         
         assert "Торнин" in result
 
-    @pytest.mark.skip("вербализация INTIMIDATE изменилась — тест привязан к конкретному слову")
     def test_focus_npcs_in_output(self):
         """NPC в фокусе и его intent видны в блоке."""
         builder = SceneOutcomeBuilder()
@@ -283,9 +283,8 @@ class TestPromptBlockFormatting:
         result = builder.to_dm_prompt_block(frame)
         
         assert "Торнин" in result
-        assert "запугать" in result.lower()
+        assert "intimidate" in result.lower()
 
-    @pytest.mark.skip("вербализация эмоций на русском — тест привязан к английскому слову")
     def test_emotion_in_output(self):
         """Эмоция NPC появляется в блоке."""
         builder = SceneOutcomeBuilder()
@@ -297,7 +296,7 @@ class TestPromptBlockFormatting:
         frame = builder.build_dm_frame(scene)
         result = builder.to_dm_prompt_block(frame)
         
-        assert "angry" in result.lower()
+        assert "зол холодно" in result.lower()
 
     def test_tension_not_shown_when_calm(self):
         """Спокойное напряжение НЕ появляется в блоке."""

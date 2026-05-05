@@ -147,28 +147,13 @@ def compile_graph(
     # ── Сохраняем connections в tags для совместимости ────────────────
     # NodeRef immutable — connections храним отдельно
     # Возвращаем вместе с графом
-    _connections_data[location_id] = connections
 
     logger.info(
         f"[GRAPH_COMPILER] {location_id}: {len(graph)} узлов, "
         f"{sum(len(c) for c in connections.values())//2} рёбер"
     )
 
-    return graph, alias_map
-
-
-# ── Глобальное хранилище подключений (до миграции на SpatialGraph) ────
-_connections_data: Dict[str, Dict[str, Set[str]]] = {}
-
-
-def get_connections(location_id: str) -> Dict[str, Set[str]]:
-    """Возвращает подключения для локации. Временный мост до миграции."""
-    return _connections_data.get(location_id, {})
-
-
-def get_connections(location_id: str) -> Dict[str, Set[str]]:
-    """Возвращает подключения для локации."""
-    return _connections_data.get(location_id, {})
+    return graph, connections, alias_map
 
 
 def _validate_connectivity(

@@ -36,17 +36,17 @@ def propagate_social_rumors(
     _target_id = shared_context.player_target_id
 
     # Канонический путь: intensity из EventDTO.payload (Устав §2.1)
+    # Агрегация через max() — инфляция слухов недопустима (Стратегическое правило 5)
     _intensity: float = 0.0
     _event_type: str = ""
     _actor_id: str = "player"
     if events:
         for _ev in events:
             _ev_intensity = _ev.payload.get("intensity", 0.0)
-            if _ev_intensity > 0:
+            if _ev_intensity > _intensity:
                 _intensity = float(_ev_intensity)
                 _event_type = _ev.payload.get("action_type", _ev.type)
                 _actor_id = _ev.source
-                break
 
     # Fallback: legacy путь через dm_result.event_context
     if _intensity == 0.0:
@@ -100,6 +100,7 @@ def propagate_social_rumors(
                 f"({pr.rumor.hop} hops)"
             )
 
-        shared_context.social_propagation = _social_results
+    # Чистая функция: не мутируем shared_context.
+    # Социальные результаты доступны оркестратору через Phase8Result.deltas
 
     return social_tick, deltas

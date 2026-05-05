@@ -120,15 +120,7 @@ class DMRouter:
         "player_insults",
     })
 
-    _BASE_INTENSITY: dict[str, float] = {
-        "player_attacks": 1.0,
-        "player_threatens": 0.7,
-        "player_threatens_indirect": 0.6,  # ниже чем прямая угроза, выше чем болтовня
-        "player_steals": 0.6,
-        "player_flees": 0.5,
-        "player_insults": 0.65,
-        "player_interacts": 0.2,
-    }
+    # Интенсивность вынесена в domain/constants.py (ACTION_INTENSITY)
 
     def parse_and_validate(
         self,
@@ -148,7 +140,8 @@ class DMRouter:
             )
 
         event_type = self._classify_action(raw_input)
-        base_intensity = self._BASE_INTENSITY.get(event_type, 0.2)
+        from app.domain.constants import ACTION_INTENSITY
+        base_intensity = ACTION_INTENSITY.get(event_type, 0.2)
 
         action_mode = "PHYSICAL" if event_type in self._PHYSICAL_ACTIONS else "VERBAL"
         raw_event = RawEvent(

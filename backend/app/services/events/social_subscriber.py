@@ -58,9 +58,8 @@ class SocialSubscriber:
       2. Оркестратор → drain_events() снимок + очистка (Фаза 8)
       3. Оркестратор → handle(events, ctx) → Phase8Result (Фаза 8)
 
-    LEGACY BRIDGE: propagate_social_rumors() пока мутирует all_npcs_raw.
-    Phase8Result.prop_dirty=True сигнализирует оркестратору.
-    TODO: мигрировать на возврат List[StateDeltas].
+    Чистая функция: propagate_social_rumors() возвращает List[StateDeltas].
+    Оркестратор складывает дельты в delta_buffer → StateApplicator (фаза 10).
     """
 
     def __init__(self, event_bus: EventBus) -> None:
@@ -132,4 +131,11 @@ class SocialSubscriber:
             f"deltas={len(deltas)}"
         )
 
-        return Phase8Result(deltas=deltas)
+        # Извлекаем затронутых NPC из дельт для синхронизации perception ∪ social
+        _affected_ids = {d.npc_id for d in deltas if d.npc_id}
+
+        return Phase8Result(
+            deltas=deltas,
+            socially_affected_npc_ids=_affected_ids,
+            events_processed=len(events),
+        )

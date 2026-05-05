@@ -76,15 +76,6 @@ class MemoryTests(unittest.TestCase):
 
 
 
-class RulesAgentTests(unittest.TestCase):
-    @pytest.mark.skip(reason="структура checks изменилась — тест устарел")
-    def test_requires_physical_d20_if_result_is_missing(self) -> None:
-        agent = RulesAgent()
-        result = agent.run([
-            PlayerAction(player_name="Aria", action="взломать дверь", dice_result=None)
-        ])
-        self.assertEqual(result["checks"][0]["instruction"], "Бросьте d20 для взломать дверь (DC 15)")
-
 
 class OrchestratorSessionStateTests(unittest.TestCase):
     def test_resolves_world_from_campaign_memory_history(self) -> None:

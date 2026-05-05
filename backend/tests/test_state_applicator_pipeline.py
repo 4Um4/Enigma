@@ -23,6 +23,7 @@ def test_pipeline_stress_increases_in_dict():
     
     # 2. stress_delta — INPUT (запрашиваемое изменение), не stress_delta_effective (OUTPUT)
     deltas = StateDeltas(
+        npc_id="test_npc",
         stress_delta=15.0,
     )
     result = DecisionResult(

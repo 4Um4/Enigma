@@ -90,6 +90,8 @@ class _TickContext:
     npc_states: list[dict] = field(default_factory=list)
     # tick_events: все события тика для аудита (decision_events + spatial + handlers)
     tick_events: list[dict] | None = None
+    # Фаза 0.5: буфер idle-дельт (social decay, reputation decay)
+    delta_buffer: list = field(default_factory=list)
 
 
 # ── Мостовые DTO для player turn (P1.1b) ──────────────────────────────
@@ -150,6 +152,12 @@ class TickOrchestrator:
         # §5.1 подписчики EventBus — создаются сразу чтобы не пропускать события
         self._perception_sub: PerceptionSubscriber = PerceptionSubscriber(self._get_event_bus())
         self._social_sub: SocialSubscriber = SocialSubscriber(self._get_event_bus())
+        # Фаза 0.5: time-driven idle-обработчики
+        self._idle_handlers: list = []
+        # StateApplicator для apply_batch (единый мутатор)
+        self._state_applicator: Any = None
+        # ReputationEngine для reputation decay
+        self._reputation_engine: Any = None
 
     def _get_life_engine(self):
         if self._life_engine is None:
@@ -190,6 +198,18 @@ class TickOrchestrator:
         if self._social_sub is not None:
             self._social_sub.set_social_engine_factory(factory)
 
+    def set_state_applicator(self, applicator: Any) -> None:
+        """Внедряет StateApplicator (DI) — единый мутатор для apply_batch."""
+        self._state_applicator = applicator
+
+    def set_reputation_engine(self, engine: Any) -> None:
+        """Внедряет ReputationEngine (DI) для reputation decay."""
+        self._reputation_engine = engine
+
+    def add_idle_handler(self, handler: Any) -> None:
+        """Добавляет IdleTickHandler для Фазы 0.5 (DI)."""
+        self._idle_handlers.append(handler)
+
     def execute(
         self,
         campaign_id: str,
@@ -226,6 +246,7 @@ class TickOrchestrator:
                 # Idle tick: полный 10-фазовый цикл
                 self._snapshot_positions_before(ctx)
                 self._phase_0_simulation(ctx)
+                self._phase_0_5_idle_services(ctx)
                 self._phase_1_input(ctx)
                 self._phase_2_event_bus_primary(ctx)
                 self._phase_3_memory(ctx)
@@ -353,6 +374,8 @@ class TickOrchestrator:
             player_result=player_result,
         )
 
+        # Фаза 0.5: время не останавливается (decay = всегда)
+        self._phase_0_5_idle_services(ctx)
         # Фазы 8→9→10 — единая последовательность (Устав §3)
         self._phase_8_player_handlers(ctx)
         self._phase_9_player_integration(ctx)
@@ -665,6 +688,15 @@ class TickOrchestrator:
         if ctx.shared_context is None:
             return
 
+        # Flush: применяем все накопленные idle-дельты через единый мутатор
+        if ctx.delta_buffer:
+            _aggregated = self._aggregate_deltas(ctx.delta_buffer)
+            if _aggregated and self._state_applicator:
+                self._state_applicator.apply_batch(
+                    _aggregated, ctx.all_npcs_raw, ctx.campaign_id
+                )
+                ctx.delta_buffer.clear()
+
         if ctx.dirty_npcs or ctx.wt_dirty or ctx.prop_dirty:
             self._scene_manager.commit(
                 campaign_id=ctx.campaign_id,
@@ -679,6 +711,99 @@ class TickOrchestrator:
             if ctx.prop_dirty:
                 _sources.append("social")
             logger.warning(f"[COMMIT] single commit: {', '.join(_sources)}")
+
+    # ── Фаза 0.5: Time-driven idle-сервисы (ВСЕГДА, время не останавливается) ──
+
+    def _phase_0_5_idle_services(self, ctx: _TickContext) -> None:
+        """Time-driven decay: social drift, reputation drift.
+
+        Выполняется КАЖДЫЙ тик (idle + player path).
+        Время идёт непрерывно — эксплойты через движение исключены.
+        Дельты собираются в ctx.delta_buffer → apply_batch() в Фазе 10.
+        """
+        if not self._idle_handlers:
+            return
+
+        current_tick = self._get_life_engine().get_current_tick(ctx.campaign_id)
+        snapshots = self._build_npc_snapshots(ctx.all_npcs_raw)
+
+        for handler in self._idle_handlers:
+            try:
+                deltas = handler.handle(snapshots, ctx.campaign_id, current_tick)
+            except Exception as e:
+                logger.error(
+                    f"[PHASE_0.5] {handler.name} handle() failed: {e}. "
+                    f"Deltas lost this tick."
+                )
+                continue
+
+            if deltas:
+                ctx.delta_buffer.extend(deltas)
+
+    @staticmethod
+    def _build_npc_snapshots(all_npcs_raw: list) -> list:
+        """Проецирует all_npcs_raw → List[NPCStateSnapshot] для handlers.
+
+        Handlers работают только с контрактом, не с внутренностями scene_state.
+        """
+        from app.models.idle_tick import NPCStateSnapshot
+
+        snapshots = []
+        for npc in all_npcs_raw:
+            if not isinstance(npc, dict):
+                continue
+            snapshots.append(NPCStateSnapshot(
+                npc_id=npc.get("id", ""),
+                stress=float(npc.get("psyche", {}).get("stress", 0.0)),
+                relationship_cache=npc.get("relationship_cache", {}),
+                base_values=npc.get("base_values", {}),
+                faction_affiliations=npc.get("faction_affiliations", []),
+            ))
+        return snapshots
+
+    @staticmethod
+    def _aggregate_deltas(deltas: list) -> list:
+        """Примитивная дедупликация: группировка по (npc_id, target_key, delta_type)
+        с суммированием числовых дельт.
+
+        Устраняет зависимость от порядка применения и шум от множественных источников.
+        """
+        from app.models.state_delta import StateDeltas
+
+        # Ключ группировки: (npc_id, intent_target, social_target, faction_id)
+        groups: dict[tuple, StateDeltas] = {}
+
+        for d in deltas:
+            if not isinstance(d, StateDeltas):
+                continue
+            key = (d.npc_id, d.intent_target, d.social_target, d.faction_id)
+            if key in groups:
+                # Суммируем числовые поля
+                existing = groups[key]
+                existing.stress_delta += d.stress_delta
+                existing.emotion_delta += d.emotion_delta
+                existing.trust_delta += d.trust_delta
+                existing.fear_delta += d.fear_delta
+                existing.reputation_delta += d.reputation_delta
+                existing.identity_integrity_delta += d.identity_integrity_delta
+                existing.pressure_resistance_delta += d.pressure_resistance_delta
+                # trait_updates — merge
+                for k, v in d.trait_updates.items():
+                    existing.trait_updates[k] = existing.trait_updates.get(k, 0.0) + v
+                # source: берём последний ненулевой
+                if d.source != "unknown":
+                    existing.source = d.source
+                # emotion_tag / new_trauma / will_state_override — последний выигрывает
+                if d.emotion_tag is not None:
+                    existing.emotion_tag = d.emotion_tag
+                if d.new_trauma is not None:
+                    existing.new_trauma = d.new_trauma
+                if d.will_state_override is not None:
+                    existing.will_state_override = d.will_state_override
+            else:
+                groups[key] = d
+
+        return list(groups.values())
 
     def _phase_8_drain_secondary(self, ctx: _TickContext) -> None:
         """ФАЗА 8: детерминированный drain накопленных событий.
@@ -697,14 +822,8 @@ class TickOrchestrator:
             if not events:
                 continue
 
-            if ctx.shared_context is None:
-                # idle path: нет shared_context → нечего обрабатывать
-                # буфер уже очищен через drain_events()
-                logger.debug(
-                    f"[PHASE_8] {handler.name}: {len(events)} events drained, "
-                    f"no shared_context — skip"
-                )
-                continue
+            # Фаза 8 — event-only по контракту.
+            # shared_context может быть None (idle path) — handlers обрабатывают сами.
 
             # Формируем READ-ONLY контекст (frozen=True в Phase8Context)
             _npc_contexts = (
@@ -733,6 +852,16 @@ class TickOrchestrator:
             # Применяем Phase8Result к _TickContext
             self._apply_phase8_result(ctx, result, handler.name)
 
+        # Flush: применяем все накопленные дельты (Phase 0.5 + Phase 8)
+        # через единый мутатор → Phase 9 видит обновлённое состояние (ADR-002)
+        if ctx.delta_buffer:
+            _aggregated = self._aggregate_deltas(ctx.delta_buffer)
+            if _aggregated and self._state_applicator:
+                self._state_applicator.apply_batch(
+                    _aggregated, ctx.all_npcs_raw, ctx.campaign_id
+                )
+                ctx.delta_buffer.clear()
+
     def _apply_phase8_result(
         self,
         ctx: _TickContext,
@@ -759,31 +888,15 @@ class TickOrchestrator:
             ctx.shared_context.npc_contexts = _filtered
             ctx.shared_context.perceiving_npcs = list(result.perceiving_npc_ids)
 
-        # Deltas: применяем к all_npcs_raw (social propagation, future handlers)
+        # Deltas: маршрутизация через delta_buffer → apply_batch (ADR-002 единый мутатор)
+        # Прямая мутация all_npcs_raw запрещена — все дельты идут через единый путь
         if result.deltas:
-            _applied = 0
-            for delta in result.deltas:
-                if not delta.npc_id:
-                    continue
-                for _npc_d in ctx.all_npcs_raw:
-                    if _npc_d.get("id") == delta.npc_id or _npc_d.get("npc_id") == delta.npc_id:
-                        # Stress — прямая мутация dict (0-100 шкала)
-                        if delta.stress_delta != 0.0:
-                            _cur = _npc_d.get("stress", 0.0)
-                            _npc_d["stress"] = max(0.0, min(100.0, _cur + delta.stress_delta))
-                        # Trust — в relationship_cache (0-100 шкала)
-                        # TODO: мигрировать на RelationshipStore когда target будет доступен
-                        if delta.trust_delta != 0.0:
-                            _rc = _npc_d.setdefault("relationship_cache", {})
-                            _rc["trust"] = max(-100.0, min(100.0, _rc.get("trust", 0.0) + delta.trust_delta))
-                        _applied += 1
-                        break
-            if _applied:
-                ctx.prop_dirty = True
-                logger.debug(
-                    f"[PHASE_8] {handler_name}: {_applied} deltas applied "
-                    f"to all_npcs_raw"
-                )
+            ctx.delta_buffer.extend(result.deltas)
+            ctx.prop_dirty = True
+            logger.debug(
+                f"[PHASE_8] {handler_name}: {len(result.deltas)} deltas "
+                f"routed to delta_buffer"
+            )
 
         # Legacy: prop_dirty от старых обработчиков (совместимость)
         if result.prop_dirty:
@@ -806,6 +919,15 @@ class TickOrchestrator:
         if self._scene_manager is None:
             logger.warning("[TICK_ORCH] Фаза 10: нет scene_manager — коммит пропущен")
             return
+
+        # Flush: применяем все накопленные idle-дельты через единый мутатор
+        if ctx.delta_buffer:
+            _aggregated = self._aggregate_deltas(ctx.delta_buffer)
+            if _aggregated and self._state_applicator:
+                self._state_applicator.apply_batch(
+                    _aggregated, ctx.all_npcs_raw, ctx.campaign_id
+                )
+                ctx.delta_buffer.clear()
 
         # Собираем события тика для аудита
         ctx.tick_events = ctx.decision_events  # TODO: расширить spatial + handler events
