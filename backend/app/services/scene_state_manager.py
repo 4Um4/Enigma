@@ -266,10 +266,26 @@ class SceneStateManager:
             return None
         # Гарантируем актуальные local_position при каждой загрузке
         self._enrich_local_positions(campaign_id, scene)
+        # Обогащаем spatial_walls/obstacles из editor JSON, если их нет
+        self._enrich_spatial_data(campaign_id, scene)
         # Миграция: удаляем legacy snapshot_tick (Устав §3 — тик через TemporalEngine)
         if "snapshot_tick" in scene:
             del scene["snapshot_tick"]
         return scene
+
+    def _enrich_spatial_data(self, campaign_id: str, scene_state: dict) -> None:
+        """Обогащает spatial_walls/obstacles из editor JSON, если их нет."""
+        if "spatial_walls" in scene_state and "spatial_obstacles" in scene_state:
+            return  # Уже обогащено
+
+        location_id = scene_state.get("location_id", "")
+        editor_data = self._find_editor_location(campaign_id, location_id)
+        if not editor_data:
+            return
+
+        spatial_walls, spatial_obstacles = self._build_spatial_data(editor_data)
+        scene_state["spatial_walls"] = spatial_walls
+        scene_state["spatial_obstacles"] = spatial_obstacles
 
     # ─────────────────────────────────────────────────────────────────────────
     # save_scene_state

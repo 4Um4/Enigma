@@ -154,3 +154,28 @@ class ServiceFactory:
                 _drives[_nid] = {"control": 0.25, "desire": 0.25, "fear": 0.25, "significance": 0.25}
 
         return _drives
+
+    # ── StateApplicator ──────────────────────────────────────────────────────
+
+    _state_applicator: Optional[Any] = None
+
+    def get_state_applicator(
+        self,
+        relationship_store: Any = None,
+    ) -> Any:
+        """Ленивая инициализация StateApplicator с ReputationEngine.
+
+        relationship_store: обязательный, из MemoryManager._relationships.
+        """
+        if self._state_applicator is not None:
+            return self._state_applicator
+
+        from app.services.npc.state_applicator import StateApplicator
+
+        _rep_engine = self.get_reputation_engine()
+        self._state_applicator = StateApplicator(
+            relationship_store=relationship_store,
+            reputation_engine=_rep_engine,
+        )
+        logger.info("[STATE_APPLICATOR] Initialized with ReputationEngine=%s", _rep_engine is not None)
+        return self._state_applicator

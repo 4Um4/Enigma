@@ -8,7 +8,7 @@ sys.path.insert(0, str(_project_root / "backend"))
 
 from app.models.spatial_contracts import NodeRole, Urgency, NodeRef, SpatialOverlay, NPCPathState
 from app.services.spatial.role_resolver import resolve_role
-from app.services.spatial.graph_compiler import compile_graph, load_editor_json, get_connections
+from app.services.spatial.graph_compiler import compile_graph, load_editor_json
 from app.services.spatial.spatial_overlay import build_overlay_from_scene, try_reserve_node
 from app.services.spatial.spatial_service import SpatialService
 
@@ -30,8 +30,7 @@ _search_dirs = [
     _project_root / "backend" / "data" / "campaigns" / "Open_road" / "locations",
 ]
 editor = load_editor_json("Open_road", "tavern_silver_wolf", search_dirs=_search_dirs)
-graph, alias_map = compile_graph(editor, "tavern_silver_wolf")
-conns = get_connections("tavern_silver_wolf")
+graph, conns, alias_map = compile_graph(editor, "tavern_silver_wolf")
 overlay = SpatialOverlay()
 svc = SpatialService(graph, conns, alias_map, overlay)
 

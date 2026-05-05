@@ -45,6 +45,7 @@ def make_deltas(
 ) -> StateDeltas:
     """Быстрая фабрика StateDeltas."""
     return StateDeltas(
+        npc_id=kwargs.get("npc_id", "test_npc"),
         stress_delta=stress,
         stress_delta_effective=stress,
         emotion_delta=0.0,

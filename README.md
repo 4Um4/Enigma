@@ -2,7 +2,7 @@
 
 Локальная narrative-RPG с живым миром, где **Python считает причинность**, а **LLM озвучивает результат**.
 
-Проект в этой ветке (`V.0.5.2.5_Почти_почти_4`) — это рабочее ядро игры **The Fool**: Pygame-клиент, FastAPI backend, тик мира с формализованной idle-фазой 0.5, память NPC, пространственная модель и атомарное сохранение состояния.
+Проект в этой ветке (`V.0.5.2.6_Почти_почти_5`) — это рабочее ядро игры **The Fool**: Pygame-клиент, FastAPI backend, тик мира с постоянной time-driven фазой 0.5, память NPC, spatial-контур и атомарное сохранение состояния.
 
 ---
 
@@ -18,28 +18,29 @@
 
 ---
 
-## Текущий статус ветки V.0.5.2.5
+## Текущий статус ветки V.0.5.2.6
 
 ### Уже реализовано
 
 - Единый `GameLoop` для `run_turn` (REST) и `stream_turn` (SSE) без дублирования пайплайна.
 - `TickOrchestrator` как единая точка тика мира (idle + player finalize).
-- Фаза `0.5` для time-driven изменений: социальный дрейф и репутационный дрейф (`IdleTickHandler`, `SocialDecayHandler`, `ReputationDecayHandler`).
-- `StateDeltas v1` с маршрутизацией (`npc_id`, `social_target`, `intent_target`, `faction_id`) и семантическими ограничениями.
-- Социальная пропагация переведена на чистый возврат `List[StateDeltas]` вместо прямой мутации state.
-- `StateApplicator.apply_batch()` как единая точка массового применения idle/social/faction дельт.
-- `Spatial Core v1.2` интегрирован глубже:
-- `SpatialService.build_for_location()` собирает граф из editor JSON + overlay для текущей сцены.
-- `LifeEngine` и `MovementEngine` используют `SpatialService` как канонический путь (с fallback на legacy-граф).
-- `WorldSnapshotDTO` и `/api/world_state` для фронтенда.
+- Фаза `0.5` выполняется в обоих путях (idle и player finalize): время в мире не останавливается на ходе игрока.
+- Добавлен `delta_buffer` + агрегация дельт (`_aggregate_deltas`) перед единым `apply_batch()` в фазе persistence.
+- В `TickOrchestrator` введён DI-контур: `set_state_applicator()`, `set_reputation_engine()`, `add_idle_handler()`.
+- `SceneStateManager` автоматически обогащает сцену `spatial_walls/spatial_obstacles` из editor JSON при загрузке.
+- `MovementEngine` переведён на канонический путь `SpatialService` без fallback на `LocationGraph`.
+- `graph_compiler.compile_graph()` теперь возвращает `connections` явно, без глобального hidden-store.
+- Константы интенсивности действий вынесены в единый `backend/app/domain/constants.py` (`ACTION_INTENSITY`).
+- Граница frontend/backend упрочнена: `GameLoop.idle_tick()` возвращает dict (DTO->dict конверсия внутри backend), bridge больше не знает `app.domain.*`.
+- `WorldSnapshotDTO` и `/api/world_state` остаются каноническим источником позиций и состояния для фронтенда.
 - Атомарный commit через `PersistencePort` + `SqlitePersistenceAdapter` (`atomic_commit`).
-- Pygame фронтенд с очередью действий (`ActionQueue`), не блокирующей UI во время LLM-ответов.
-- Dual transport на фронте: HTTP primary + direct fallback (`FallbackGateway`).
 
-### Проверено на этой ветке
+### Что важно в проекте The Fool после этого шага
 
-- `test_spatial_service.py`: **28 passed, 0 failed** (acceptance script).
-- `test_location_graph_r4.py`: **3 skipped** (ожидаем завершения миграции на `SpatialService v1.2`).
+- Симуляция стала менее эксплуатируемой: игрок больше не может "замораживать" time-driven decay своими действиями.
+- Пространственный слой стал строже: поведение NPC больше завязано на реальную геометрию сцены из editor-данных.
+- Граница слоёв чище: frontend получает только сериализованный snapshot-контракт, а не backend-DTO напрямую.
+- Нормализована единая "семантика силы действия" (`ACTION_INTENSITY`) между разбором input и social propagation.
 
 ---
 
@@ -214,7 +215,7 @@ cd backend
 
 - Идёт миграция части модулей на единые контракты `EventDTO`/`StateDeltas` (часть legacy-мостов ещё остаётся).
 - В frontend остаются временные заглушки по части визуальных ассетов и переходов локаций.
-- Часть тестов `LocationGraph` временно переведена в `skip` до завершения полной миграции spatial-слоя.
+- Миграция legacy `LocationGraph` в `SpatialService` ещё не полностью завершена: часть legacy-тестов удалена/пересобирается под новый контракт.
 
 ---
 
@@ -230,11 +231,11 @@ cd backend
 
 ---
 
-## Для ветки V.0.5.2.5_Почти_почти_4
+## Для ветки V.0.5.2.6_Почти_почти_5
 
-Эта ветка фиксирует шаг от «интеграции Spatial Core» к «операционному использованию»:
-- Введена отдельная idle-фаза 0.5 для time-driven world drift.
-- Social/Reputation механики переведены в дельта-ориентированный поток через `StateDeltas`.
-- Углублена интеграция `SpatialService` в movement/life-engine и prompt spatial context.
+Эта ветка фиксирует шаг от «phase 0.5 как отдельной идеи» к «непрерывной time-driven механике в обоих путях тика»:
+- drift-механики встроены в общий ритм мира (idle + player finalize);
+- spatial-контур стал каноническим и менее зависимым от legacy-фолбеков;
+- boundary между frontend и backend стал чище на idle-пути.
 
-Сравнительный отчёт изменений: `COMPARISON_REPORT_V.0.5.2.5_Почти_почти_4.md`.
+Сравнительный отчёт изменений: `COMPARISON_REPORT_V.0.5.2.6_Почти_почти_5.md`.

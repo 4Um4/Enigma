@@ -188,10 +188,6 @@ class GameScreen:
         _env_time_str = scene_state.get("environment", {}).get("time_of_day", "07:00")
         self.game_time_seconds: int = parse_hhmm(_env_time_str)
 
-        # Обогащаем spatial-данные из editor JSON (кэш может быть устаревшим)
-        print(f"[GAME_SCREEN] before enrich_spatial, campaign={campaign_folder}")
-        _gateway._bridge.enrich_scene_spatial(scene_state, campaign_folder)
-        print(f"[GAME_SCREEN] after enrich_spatial")
 
         location_id = scene_state.get("location_id", "unknown")
         loc_meta = _load_location_meta(campaign_folder, location_id)
@@ -424,6 +420,7 @@ class GameScreen:
             _now = pygame.time.get_ticks()
             _tick_data = {}
             _new_positions = {}
+            _ws = None
             if _idle_tick_result:
                 _tick_data = _idle_tick_result.pop()
                 # Канонический источник: world_snapshot.npc_positions (Устав §3, фаза 9)
