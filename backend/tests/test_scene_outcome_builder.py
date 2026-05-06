@@ -35,6 +35,7 @@ from app.models.npc_state import EmotionTag, Intent, WillState
 # ─────────────────────────────────────────────────────────────────────────────
 
 def make_deltas(
+    npc_id: str = "test_npc",
     stress: float = 0.0,
     fear: float = 0.0,
     emotion_tag: Optional[EmotionTag] = None,
@@ -45,7 +46,7 @@ def make_deltas(
 ) -> StateDeltas:
     """Быстрая фабрика StateDeltas."""
     return StateDeltas(
-        npc_id=kwargs.get("npc_id", "test_npc"),
+        npc_id=npc_id,
         stress_delta=stress,
         stress_delta_effective=stress,
         emotion_delta=0.0,

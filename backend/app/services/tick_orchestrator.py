@@ -36,6 +36,7 @@ from app.services.npc.topic_extractor import extract_topic
 from app.services.events.event_bus import get_event_bus
 from app.models.phase8 import Phase8Context, Phase8Result
 from app.services.events.perception_subscriber import PerceptionSubscriber
+from app.services.events.reaction_subscriber import ReactionSubscriber
 from app.services.events.social_subscriber import SocialSubscriber
 from app.services.events.intent_event_adapter import IntentEventAdapter
 from app.services.spatial.spatial_event_detector import (
@@ -116,6 +117,8 @@ class DMContextDTO:
 @dataclass
 class TickPlayerResultDTO:
     """Результат NPC-тика для player turn."""
+    status: str = "ok"
+    error: Optional[str] = None
     npc_contexts: list = field(default_factory=list)
     snapshot: Optional[dict] = None
     events: List[Any] = field(default_factory=list)
@@ -151,6 +154,7 @@ class TickOrchestrator:
         self._social_engine_factory: Any = None  # callable(campaign_id) → SocialEngine
         # §5.1 подписчики EventBus — создаются сразу чтобы не пропускать события
         self._perception_sub: PerceptionSubscriber = PerceptionSubscriber(self._get_event_bus())
+        self._reaction_sub: ReactionSubscriber = ReactionSubscriber(self._get_event_bus())
         self._social_sub: SocialSubscriber = SocialSubscriber(self._get_event_bus())
         # Фаза 0.5: time-driven idle-обработчики
         self._idle_handlers: list = []
@@ -259,6 +263,8 @@ class TickOrchestrator:
 
         except Exception as e:
             logger.error(f"[TICK_ORCH] Ошибка в тике {campaign_id}: {e}")
+            if dm_ctx is not None:
+                return TickPlayerResultDTO(status="error", error=str(e))
             return TickResultDTO(status="error", error=str(e))
 
         if dm_ctx is not None:
@@ -745,6 +751,15 @@ class TickOrchestrator:
         """Проецирует all_npcs_raw → List[NPCStateSnapshot] для handlers.
 
         Handlers работают только с контрактом, не с внутренностями scene_state.
+
+        Маппинг данных:
+          social_stats.trust         → relationship_cache["player"]["trust"] (0-100)
+          social_stats.fear_of_player → relationship_cache["player"]["fear"]
+          psyche.loyalty_true        → base_values["player"] (базовое доверие к игроку)
+          status_profile.faction_rank → faction_affiliations (ключи фракций)
+
+        NPC-to-NPC связи из village_relations.json пока НЕ включены —
+        потребуется обогащение NPC dict при загрузке (отдельная задача).
         """
         from app.models.idle_tick import NPCStateSnapshot
 
@@ -752,12 +767,58 @@ class TickOrchestrator:
         for npc in all_npcs_raw:
             if not isinstance(npc, dict):
                 continue
+
+            npc_id = npc.get("id", "")
+            psyche = npc.get("psyche", {})
+            ss = npc.get("social_stats", {})
+
+            # relationship_cache: вложенный формат {target: {trust, fear, ...}}
+            # SocialDecayHandler ожидает: {target: {trust, fear, base_trust}}
+            existing_rc = npc.get("relationship_cache", {})
+            if isinstance(existing_rc, dict) and any(
+                isinstance(v, dict) for v in existing_rc.values()
+            ):
+                # Уже в вложенном формате — используем как есть
+                relationship_cache = existing_rc
+            else:
+                # Маппинг social_stats (player-facing плоский) → вложенный формат
+                relationship_cache = {}
+                _player_trust = float(ss.get("trust", 0.0))
+                _player_fear = float(ss.get("fear_of_player", 0.0))
+                _player_debt = float(ss.get("debt", 0.0))
+                if _player_trust != 0.0 or _player_fear != 0.0 or _player_debt != 0.0:
+                    relationship_cache["player"] = {
+                        "trust": _player_trust,
+                        "fear": _player_fear,
+                        "debt": _player_debt,
+                    }
+
+            # base_values: базовые значения для drift-расчёта
+            # SocialDecayHandler: base_vals.get(target, rel_data.get("base_trust", current))
+            existing_bv = npc.get("base_values", {})
+            if existing_bv:
+                base_values = existing_bv
+            else:
+                base_values = {}
+                # loyalty_true (0-100) → базовое доверие к игроку
+                _loyalty = float(psyche.get("loyalty_true", 50.0))
+                base_values["player"] = _loyalty
+
+            # faction_affiliations: список фракций для ReputationDecayHandler
+            existing_fa = npc.get("faction_affiliations", [])
+            if existing_fa:
+                faction_affiliations = existing_fa
+            else:
+                # Извлекаем из status_profile.faction_rank
+                _faction_rank = npc.get("status_profile", {}).get("faction_rank", {})
+                faction_affiliations = list(_faction_rank.keys())
+
             snapshots.append(NPCStateSnapshot(
-                npc_id=npc.get("id", ""),
-                stress=float(npc.get("psyche", {}).get("stress", 0.0)),
-                relationship_cache=npc.get("relationship_cache", {}),
-                base_values=npc.get("base_values", {}),
-                faction_affiliations=npc.get("faction_affiliations", []),
+                npc_id=npc_id,
+                stress=float(psyche.get("stress", 0.0)),
+                relationship_cache=relationship_cache,
+                base_values=base_values,
+                faction_affiliations=faction_affiliations,
             ))
         return snapshots
 
@@ -814,7 +875,7 @@ class TickOrchestrator:
         Оркестратор применяет результаты к _TickContext.
         """
         # Фиксированный порядок обработчиков
-        _handlers = [self._perception_sub, self._social_sub]
+        _handlers = [self._perception_sub, self._reaction_sub, self._social_sub]
 
         for handler in _handlers:
             events = handler.drain_events()

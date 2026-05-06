@@ -50,7 +50,3 @@ def test_model_pool_registration(initialized_model_pool):
     pool = initialized_model_pool
     configs = pool.list_model_configs()
     assert "qwen_7b" in configs
-
-
-
-    assert provider.is_available()
