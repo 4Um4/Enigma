@@ -20,20 +20,47 @@ from app.services.player_cognition import (
 )
 
 
+def _make_rich_scene() -> dict:
+    """Создаёт насыщенный SceneState для тестов стресса, фокуса и ранений"""
+    return {
+        "location_id": "tavern_test",
+        "environment": {"light_level": "bright", "noise_level": "quiet"},
+        "environment_modifiers": {"light": 1.0, "noise": 0.0, "density": 0.2, "danger": 0.0},
+        "player_spatial": {"location_id": "tavern_test", "position": "", "local_position": {"x": 0.0, "y": 0.0}},
+        "spatial_walls": [],
+        "spatial_obstacles": [],
+        "npc_positions": {
+            "maid_lusya": {
+                "location_id": "tavern_test",
+                "position": "",
+                "activity": "working",
+                "visible": True,
+                "local_position": {"x": 2.0, "y": 0.0},
+            },
+            "guard_1": {
+                "location_id": "tavern_test",
+                "position": "",
+                "activity": "patrol",
+                "visible": True,
+                "local_position": {"x": 5.0, "y": 5.0},
+            },
+        },
+        "objects": {
+            "obj_barrel": {
+                "entity_id": "obj_barrel",
+                "entity_type": "object",
+                "display_name": "Дубовая бочка",
+                "location_id": "tavern_test",
+                "local_position": {"x": 1.0, "y": 1.0},
+            }
+        },
+    }
+
+
 @pytest.fixture
 def real_scene_state() -> dict:
-    """Загружает реальный SceneState из Open_road, сливая npc_positions с верхнего уровня"""
-    path = Path(__file__).parent.parent / "data" / "campaigns" / "Open_road" / "campaign_state.json"
-    with open(path, "r", encoding="utf-8") as f:
-        data = json.load(f)
-    scene = data.get("scene_state")
-    if scene is None:
-        pytest.skip("campaign_state.json не содержит scene_state — нет данных для теста")
-    # В сохранённом файле npc_positions на верхнем уровне,
-    # но в runtime game_loop кладёт их внутрь scene_state
-    if "npc_positions" in data and "npc_positions" not in scene:
-        scene["npc_positions"] = data["npc_positions"]
-    return scene
+    """Синтетическая сцена, заменяющая реальный campaign_state.json"""
+    return _make_rich_scene()
 
 
 def _print_result(result, label: str) -> None:

@@ -10,7 +10,7 @@ def test_stealth_npc_not_visible_from_distance() -> None:
     scene["npc_positions"]["thief"] = {
         "location_id": "tavern_silver_wolf",
         "position": "corner_table",
-        "local_position": {"x": 0.0, "y": 0.0},
+        "local_position": {"x": 5.0, "y": 5.0},
         "activity": "observing",
         "visible": False,
     }
@@ -94,7 +94,7 @@ def _scene() -> dict:
             "npc_far": {
                 "location_id": "tavern_silver_wolf",
                 "position": "stairs",
-                "local_position": {"x": 0.0, "y": 0.0},
+                "local_position": {"x": 8.0, "y": 0.0},
                 "activity": "working",
             },
         },
@@ -152,7 +152,7 @@ def test_stealth_npc_not_visible_from_distance() -> None:
     scene["npc_positions"]["thief"] = {
         "location_id": "tavern_silver_wolf",
         "position": "corner_table",
-        "local_position": {"x": 0.0, "y": 0.0},
+        "local_position": {"x": 5.0, "y": 5.0},
         "activity": "observing",
         "visible": False,
     }

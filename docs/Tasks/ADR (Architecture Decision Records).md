@@ -39,5 +39,88 @@ StateDeltas растёт (TODO v2: split на BaseDelta + SocialDelta/FactionDel
 apply_batch() требует dict→NPCState→_apply_deltas→dict мост (тонкий, без бизнес-логики)
 aggregate_deltas() — примитивная дедупликация, порядок source может теряться при слиянии
 ---
+ADR-003: Детерминизм тестового покрытия и изоляция от I/O (Текущая дата)
+Статус: Принято
+Контекст
+После внедрения ADR-001 и ADR-002 тестовое покрытие оказалось сломано: 1) Фабрики DTO не передавали обязательный npc_id в StateDeltas, что ломало маршрутизацию дельт в оркестраторе. 2) Юнит-тесты когнитивного пайплайна (test_player_cognition_pipeline.py) зависели от чтения campaign_state.json с диска (Fragile Test), что вызывало pytest.skip на чистых сборках и нарушало предсказуемость. 3) Наличие мертвых тестов, отключенных через @pytest.mark.skip("BROKEN"), маскировало удаление сущностей (load_graph, build_verbalization_context) и нарушало Устав §10.
+
+Решение:
+Строгое соблюдение контракта DTO: npc_id сделан обязательным аргументом во всех тестовых фабриках make_deltas(). Тест, не указавший npc_id, падает (TypeError), а не проходит с невалидным состоянием.
+Устранение Fragile Tests: хрупкие фикстуры, зависящие от I/O (real_scene_state), заменены на детерминированные синтетические фабрики (_make_rich_scene()), генерирующие состояние в памяти.
+Полная зачистка мертвого кода: удалены файлы и классы, тестирующие удаленные сущности. Динамические pytest.skip("BROKEN...") признаны архитектурным нарушением и заменены удалением теста.
+Приведение координат к fallback-графу: local_position в тестах SpatialService приведены в соответствие с логикой вычисления дистанций без реального графа.
+Последствия
+100% детерминированность тестового набора (0 FAILED, 0 illegitimate SKIPPED).
+Тесты можно запускать на любой машине без подготовки данных кампаний.
+ИИ-ассистенты получают четкий сигнал: старый код удален, новые контракты (npc_id) обязательны к исполнению.
+---
+ADR-003: Phase 8 Handlers — Memory, Scene, Reaction (27.05.26)
+Статус: Принято
+Контекст
+Диаграмма Фазы 8 предписывает 4 обработчика: memory, social, scene, reaction. Существовали только perception + social. Требовалось решение по каждому.
+
+Решение
+
+Memory handler — НЕ НУЖЕН как Phase8Handler
+Обоснование:
+Фаза 3 (MemoryProcessor.apply()) записывает факты в память ДО принятия решения (Phase 5).
+Это гарантирует актуальность state для DecisionHub (Устав §3.1, §7.7).
+Если memory обработка будет в Фазе 8 — NPC уже принял решение на устаревшем state.
+NPC-реплики (Phase 6→7→EventBus) обрабатываются в Phase 3 СЛЕДУЮЩЕГО тика.
+Memory "drain" эффекты (травма от воспоминаний) — это Reaction-домен, не Memory.
+Scene handler — НЕ НУЖЕН как Phase8Handler
+Обоснование:
+OBJECT_DESTROYED уже в _PERCEPTION_EVENT_TYPES — восприятие обрабатывается.
+ReactionSubscriber покрывает эмоциональные реакции на смену сцены.
+SceneStateManager.commit() в Фазе 10 — единственная точка записи состояния сцены.
+Смена локации/разрушение объекта — SceneChange → EventDTO → шина → perception/reaction.
+Добавление SceneSubscriber создаст дублирование.
+Reaction handler — НУЖЕН, создан ReactionSubscriber
+Обоснование:
+PerceptionSubscriber определяет КТО видит, SocialSubscriber — слухи,
+но никто не производит ПРЯМЫЕ эмоциональные дельты для наблюдателей.
+NPC видит атаку → стресс/страх растут, доверие падает,
+но без полного decision-цикла (Phase 5) и без LLM.
+Порядок: perception → reaction → social
+(perception фильтрует, reaction считает дельты, social распространяет слухи)
+Последствия
+Фаза 8 имеет 3 обработчика (perception, reaction, social) вместо 4 из диаграммы.
+Диаграмма обновлена. Memory и Scene НЕ будут добавлены без нового ADR.
+---
+ADR-004: NPC Data Mapping для Idle Handlers (27.05.26)
+Статус: Принято
+Контекст
+_build_npc_snapshots() читал ключ relationship_cache из NPC dict, но этот ключ не существует. NPC dict хранит социальные данные в social_stats (плоский формат: {trust, fear_of_player, debt}) — это player-facing только. NPC-to-NPC связи хранятся отдельно в village_relations.json. Результат: SocialDecayHandler всегда получал пустой кэш → нулевой social decay для всех NPC.
+
+Решение
+_build_npc_snapshots() выполняет маппинг при проекции:
+
+social_stats.trust → relationship_cache["player"]["trust"] (0-100)
+social_stats.fear_of_player → relationship_cache["player"]["fear"]
+social_stats.debt → relationship_cache["player"]["debt"]
+psyche.loyalty_true → base_values["player"] (базовое доверие для drift-расчёта)
+status_profile.faction_rank.keys → faction_affiliations
+Если relationship_cache уже во вложенном формате — используется как есть
+Плоский кэш {trust: val} автоматически конвертируется
+Последствия
+SocialDecayHandler теперь корректно вычисляет дрейф trust к базовому значению.
+Ограничение: NPC-to-NPC связи из village_relations.json пока НЕ попадают в snapshot.
+Требуется отдельная задача: _enrich_with_social_relations() при загрузке NPC.
+---
+ADR-0006: Централизация пространственных данных и удаление глобальных мостов
+Статус
+Принято (реализовано частично, заблокировано багами E2E)
+
+Контекст
+В системе существовало несколько источников истины для пространственных данных: глобальный словарь _connections_data в graph_compiler.py, кэш _graphs в MovementEngine, и прямые вызовы LocationGraph.find_path(). Это приводило к рассинхронизации, дублированию логики и невозможности полноценно использовать оверлеи (блокировки, толпа) при поиске пути. Также фронтенд незаконно обращался к бэкенду напрямую через _gateway._bridge, минуя API-слой.
+
+Решение
+Удалить глобальный мост _connections_data. compile_graph теперь возвращает связи явным кортежем, которые сразу забирает SpatialService.
+Удалить кэш _graphs и _get_graph из MovementEngine. Единственным источником пути теперь является SpatialService.find_path().
+Удалить denormalize_id при записи в TransitTracker. Внутри системы используются только канонические ID.
+Оборвать прямые вызовы фронтенда к бэкенду. Бэкенд обогащает scene_state стенами перед отправкой, а фронтенд сам собирает PerceivedScene из легальных данных.
+Последствия
+Положительные: Единая точка входа для навигации, учет оверлеев, соблюдение Архитектурного Устава.Отрицательные: Требуется строгий DI SpatialService во все ветки тика (и в player, и в idle), иначе NPC теряют способность двигаться. Требуется починка interpretation_engine для корректного доступа к драйвам.
+---
 
 ---

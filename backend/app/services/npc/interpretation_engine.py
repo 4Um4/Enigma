@@ -99,7 +99,7 @@ class InterpretationEngine:
         )
 
         # ── 3. Драйвы (из npc_cognition.py) ───────────────────────────────
-        normalized_drives = self._normalize_drives(state.drives_base)
+        normalized_drives = self._normalize_drives(state.personality.drives_base)
         dominant_drive = self._get_dominant_drive(normalized_drives)
 
         return InterpretationResult(

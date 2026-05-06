@@ -12,7 +12,7 @@
 """
 
 import logging
-from typing import Any
+from typing import Any, Optional
 
 from app.services.npc.domain_phases import (
     HANDS_OCCUPIED_ACTIVITIES,

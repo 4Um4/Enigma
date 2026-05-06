@@ -1,0 +1,457 @@
+# backend/tests/test_reaction_subscriber.py
+"""
+Тесты ReactionSubscriber — прямые эмоциональные реакции наблюдателей.
+
+Проверяет:
+  1. Protocol compliance (name, drain_events, handle)
+  2. Модификатор реакции на основе личности NPC
+  3. Правила реакций для разных event types
+  4. Маршрутизация trust_delta (intent_target для player, social_target для NPC)
+  5. Исключение источника события из реакций
+  6. Пустые events → пустой результат
+  7. perceiving_npcs из shared_context
+
+path: backend/tests/test_reaction_subscriber.py
+Назначение: Тесты ReactionSubscriber (Phase8Handler) — эмоциональные реакции наблюдателей
+Зависимости: pytest, app.services.events.reaction_subscriber, app.models.phase8, app.models.state_delta, app.domain.events, app.services.events.event_bus
+Основные сущности: TestReactionSubscriber, TestReactionModifier, TestReactionRules
+"""
+
+from __future__ import annotations
+
+import uuid
+from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Set
+from unittest.mock import MagicMock
+
+import pytest
+
+from app.domain.events import EventDTO
+from app.models.phase8 import Phase8Context, Phase8Result
+from app.models.state_delta import StateDeltas
+from app.services.events.event_bus import EventBus
+from app.services.events.event_types import EventType
+from app.services.events.reaction_subscriber import (
+    ReactionSubscriber,
+    _REACTION_EVENT_TYPES,
+    _REACTION_RULES,
+    _compute_reaction_modifier,
+)
+
+
+# ── Фикстуры ───────────────────────────────────────────────────────────────
+
+def _make_event(
+    event_type: str = "player_attacks",
+    source: str = "player",
+    intensity: float | None = None,
+) -> EventDTO:
+    """Создаёт тестовый EventDTO."""
+    payload: dict = {}
+    if intensity is not None:
+        payload["intensity"] = intensity
+    return EventDTO(
+        id=uuid.uuid4(),
+        type=event_type,
+        source=source,
+        timestamp=0.0,
+        payload=payload,
+        visibility="public",
+        radius=10.0,
+        persistence_level="working",
+    )
+
+
+def _make_npc(
+    npc_id: str = "npc_1",
+    stress: float = 30.0,
+    willpower: float = 50.0,
+    fear_drive: float = 0.25,
+) -> dict:
+    """Создаёт тестовый NPC dict."""
+    return {
+        "id": npc_id,
+        "psyche": {
+            "stress": stress,
+            "willpower": willpower,
+        },
+        "drives": {
+            "control": 0.25,
+            "significance": 0.25,
+            "fear": fear_drive,
+            "desire": 0.25,
+        },
+    }
+
+
+class _FakeSharedContext:
+    """Минимальный shared_context для тестов."""
+    def __init__(
+        self,
+        perceiving_npcs: list[str] | None = None,
+        scene_state: dict | None = None,
+    ):
+        self.perceiving_npcs = perceiving_npcs
+        self.scene_state = scene_state or {}
+
+
+def _make_ctx(
+    all_npcs_raw: list[dict] | None = None,
+    shared_context: Any = None,
+) -> Phase8Context:
+    """Создаёт тестовый Phase8Context."""
+    return Phase8Context(
+        all_npcs_raw=all_npcs_raw or [_make_npc()],
+        all_npc_contexts=[],
+        shared_context=shared_context,
+        campaign_id="test",
+        tick_ctx=None,
+    )
+
+
+def _create_subscriber() -> ReactionSubscriber:
+    """Создаёт ReactionSubscriber с моком EventBus."""
+    bus = MagicMock(spec=EventBus)
+    bus.subscribe = MagicMock()
+    return ReactionSubscriber(bus)
+
+
+# ── Protocol compliance ───────────────────────────────────────────────────
+
+class TestReactionSubscriberProtocol:
+    """Проверяет соответствие Phase8Handler Protocol."""
+
+    def test_name_property(self):
+        sub = _create_subscriber()
+        assert sub.name == "reaction"
+
+    def test_drain_events_returns_list(self):
+        sub = _create_subscriber()
+        result = sub.drain_events()
+        assert isinstance(result, list)
+
+    def test_drain_events_clears_buffer(self):
+        sub = _create_subscriber()
+        # Ручная инъекция событий в буфер
+        sub._pending_events.append(_make_event())
+        first = sub.drain_events()
+        assert len(first) == 1
+        second = sub.drain_events()
+        assert len(second) == 0
+
+    def test_handle_returns_phase8_result(self):
+        sub = _create_subscriber()
+        ctx = _make_ctx()
+        result = sub.handle([], ctx)
+        assert isinstance(result, Phase8Result)
+
+
+# ── Пустые события ───────────────────────────────────────────────────────
+
+class TestReactionEmptyEvents:
+    """Пустые events → пустой результат."""
+
+    def test_no_events_returns_empty_result(self):
+        sub = _create_subscriber()
+        ctx = _make_ctx()
+        result = sub.handle([], ctx)
+        assert result.deltas == []
+        assert result.events_processed == 0
+
+    def test_no_perceiving_npcs_returns_empty(self):
+        sub = _create_subscriber()
+        npc = _make_npc("npc_1")
+        # perceiving_npcs=[] — явный пустой список, fallback не сработает
+        ctx = _make_ctx(
+            all_npcs_raw=[npc],
+            shared_context=_FakeSharedContext(perceiving_npcs=[]),
+        )
+        result = sub.handle([_make_event()], ctx)
+        assert result.deltas == []
+
+
+# ── Модификатор реакции ──────────────────────────────────────────────────
+
+class TestReactionModifier:
+    """Проверяет _compute_reaction_modifier на основе личности NPC."""
+
+    def test_average_npc_modifier(self):
+        """Средний NPC: stress=50, fear=0.25, willpower=50 → modifier ≈ 0.5."""
+        npc = _make_npc(stress=50.0, willpower=50.0, fear_drive=0.25)
+        mod = _compute_reaction_modifier(npc)
+        # composure=0.5, composure_factor=0.75, fear_factor=1.0, willpower_factor=0.667
+        # 0.75 * 1.0 * 0.667 ≈ 0.5
+        assert 0.4 < mod < 0.6
+
+    def test_cowardly_npc_higher_modifier(self):
+        """Трусливый NPC реагирует сильнее."""
+        coward = _make_npc(stress=70.0, willpower=30.0, fear_drive=0.5)
+        average = _make_npc(stress=30.0, willpower=50.0, fear_drive=0.25)
+        assert _compute_reaction_modifier(coward) > _compute_reaction_modifier(average)
+
+    def test_brave_npc_lower_modifier(self):
+        """Храбрый NPC реагирует слабее."""
+        brave = _make_npc(stress=10.0, willpower=80.0, fear_drive=0.1)
+        average = _make_npc(stress=30.0, willpower=50.0, fear_drive=0.25)
+        assert _compute_reaction_modifier(brave) < _compute_reaction_modifier(average)
+
+    def test_missing_fields_uses_defaults(self):
+        """Отсутствующие поля → дефолты, не краш."""
+        npc = {"id": "minimal"}
+        mod = _compute_reaction_modifier(npc)
+        assert isinstance(mod, float)
+        assert mod > 0
+
+
+# ── Правила реакций ──────────────────────────────────────────────────────
+
+class TestReactionRules:
+    """Проверяет, что правила генерируют корректные дельты."""
+
+    def test_attack_generates_stress_and_fear(self):
+        """Атака → стресс + страх + потеря доверия."""
+        sub = _create_subscriber()
+        npc = _make_npc("npc_1")
+        ctx = _make_ctx(
+            all_npcs_raw=[npc],
+            shared_context=_FakeSharedContext(perceiving_npcs=["npc_1"]),
+        )
+        result = sub.handle([_make_event("player_attacks", "player")], ctx)
+        assert len(result.deltas) == 1
+        delta = result.deltas[0]
+        assert delta.npc_id == "npc_1"
+        assert delta.stress_delta > 0
+        assert delta.fear_delta > 0
+        assert delta.trust_delta < 0
+        assert delta.intent_target == "player"
+
+    def test_help_reduces_stress_and_increases_trust(self):
+        """Помощь → снижение стресса + рост доверия."""
+        sub = _create_subscriber()
+        npc = _make_npc("npc_1")
+        ctx = _make_ctx(
+            all_npcs_raw=[npc],
+            shared_context=_FakeSharedContext(perceiving_npcs=["npc_1"]),
+        )
+        result = sub.handle([_make_event("help", "player")], ctx)
+        assert len(result.deltas) == 1
+        delta = result.deltas[0]
+        assert delta.stress_delta < 0
+        assert delta.trust_delta > 0
+
+    def test_saved_life_reduces_fear(self):
+        """Спасение жизни → снижение страха + рост доверия."""
+        sub = _create_subscriber()
+        npc = _make_npc("npc_1")
+        ctx = _make_ctx(
+            all_npcs_raw=[npc],
+            shared_context=_FakeSharedContext(perceiving_npcs=["npc_1"]),
+        )
+        result = sub.handle([_make_event("saved_life", "player")], ctx)
+        assert len(result.deltas) == 1
+        delta = result.deltas[0]
+        assert delta.fear_delta < 0
+        assert delta.trust_delta > 0
+
+    def test_unknown_event_type_skipped(self):
+        """Неизвестный event_type → нет дельт."""
+        sub = _create_subscriber()
+        npc = _make_npc("npc_1")
+        ctx = _make_ctx(
+            all_npcs_raw=[npc],
+            shared_context=_FakeSharedContext(perceiving_npcs=["npc_1"]),
+        )
+        result = sub.handle([_make_event("unknown", "player")], ctx)
+        assert result.deltas == []
+
+
+# ── Маршрутизация trust ──────────────────────────────────────────────────
+
+class TestReactionTrustRouting:
+    """Проверяет маршрутизацию trust_delta по источнику события."""
+
+    def test_player_source_uses_intent_target(self):
+        """Действие игрока → intent_target="player"."""
+        sub = _create_subscriber()
+        npc = _make_npc("npc_1")
+        ctx = _make_ctx(
+            all_npcs_raw=[npc],
+            shared_context=_FakeSharedContext(perceiving_npcs=["npc_1"]),
+        )
+        result = sub.handle([_make_event("player_attacks", "player")], ctx)
+        delta = result.deltas[0]
+        assert delta.intent_target == "player"
+        assert delta.social_target is None
+
+    def test_npc_source_uses_social_target(self):
+        """Действие NPC → social_target=npc_id."""
+        sub = _create_subscriber()
+        source_npc = _make_npc("npc_attacker")
+        observer_npc = _make_npc("npc_observer")
+        ctx = _make_ctx(
+            all_npcs_raw=[source_npc, observer_npc],
+            shared_context=_FakeSharedContext(perceiving_npcs=["npc_observer"]),
+        )
+        result = sub.handle(
+            [_make_event("combat", source="npc_attacker")], ctx
+        )
+        # npc_attacker — источник, исключён. npc_observer — наблюдатель
+        assert len(result.deltas) == 1
+        delta = result.deltas[0]
+        assert delta.npc_id == "npc_observer"
+        assert delta.social_target == "npc_attacker"
+        assert delta.intent_target is None
+
+
+# ── Исключение источника ─────────────────────────────────────────────────
+
+class TestReactionSourceExclusion:
+    """Источник события не реагирует на собственное действие."""
+
+    def test_source_npc_excluded(self):
+        """NPC-источник не получает дельт от своего действия."""
+        sub = _create_subscriber()
+        npc = _make_npc("npc_1")
+        ctx = _make_ctx(
+            all_npcs_raw=[npc],
+            shared_context=_FakeSharedContext(perceiving_npcs=["npc_1"]),
+        )
+        result = sub.handle(
+            [_make_event("combat", source="npc_1")], ctx
+        )
+        assert result.deltas == []
+
+    def test_player_source_excluded_as_npc(self):
+        """Игрок не в all_npcs_raw → не получит дельту (корректно)."""
+        sub = _create_subscriber()
+        npc = _make_npc("npc_1")
+        ctx = _make_ctx(
+            all_npcs_raw=[npc],
+            shared_context=_FakeSharedContext(perceiving_npcs=["npc_1"]),
+        )
+        result = sub.handle(
+            [_make_event("player_attacks", source="player")], ctx
+        )
+        # Только 1 delta для npc_1, player не в all_npcs_raw
+        assert all(d.npc_id != "player" for d in result.deltas)
+        assert len(result.deltas) == 1
+
+
+# ── Множественные наблюдатели ────────────────────────────────────────────
+
+class TestReactionMultipleObservers:
+    """Несколько наблюдателей → дельты для каждого."""
+
+    def test_two_observers_get_deltas(self):
+        sub = _create_subscriber()
+        npc_a = _make_npc("npc_a")
+        npc_b = _make_npc("npc_b")
+        ctx = _make_ctx(
+            all_npcs_raw=[npc_a, npc_b],
+            shared_context=_FakeSharedContext(perceiving_npcs=["npc_a", "npc_b"]),
+        )
+        result = sub.handle([_make_event("player_attacks")], ctx)
+        assert len(result.deltas) == 2
+        npc_ids = {d.npc_id for d in result.deltas}
+        assert npc_ids == {"npc_a", "npc_b"}
+
+    def test_different_personalities_different_deltas(self):
+        """Разные личности → разные величины дельт."""
+        sub = _create_subscriber()
+        coward = _make_npc("coward", stress=70, willpower=30, fear_drive=0.5)
+        brave = _make_npc("brave", stress=10, willpower=80, fear_drive=0.1)
+        ctx = _make_ctx(
+            all_npcs_raw=[coward, brave],
+            shared_context=_FakeSharedContext(perceiving_npcs=["coward", "brave"]),
+        )
+        result = sub.handle([_make_event("player_attacks")], ctx)
+        by_id = {d.npc_id: d for d in result.deltas}
+        # Трус получает больше стресса
+        assert by_id["coward"].stress_delta > by_id["brave"].stress_delta
+
+
+# ── Perceiving NPCs fallback ─────────────────────────────────────────────
+
+class TestReactionPerceivingFallback:
+    """Fallback на всех NPC, если perceiving_npcs не установлен."""
+
+    def test_fallback_all_npcs_when_no_perceiving(self):
+        sub = _create_subscriber()
+        npc_a = _make_npc("npc_a")
+        npc_b = _make_npc("npc_b")
+        # shared_context без perceiving_npcs
+        ctx = _make_ctx(
+            all_npcs_raw=[npc_a, npc_b],
+            shared_context=_FakeSharedContext(perceiving_npcs=None),
+        )
+        result = sub.handle([_make_event("player_attacks")], ctx)
+        # Все NPC реагируют
+        assert len(result.deltas) == 2
+
+    def test_fallback_all_npcs_when_no_shared_context(self):
+        sub = _create_subscriber()
+        npc_a = _make_npc("npc_a")
+        ctx = _make_ctx(
+            all_npcs_raw=[npc_a],
+            shared_context=None,
+        )
+        result = sub.handle([_make_event("player_attacks")], ctx)
+        assert len(result.deltas) == 1
+
+
+# ── Интенсивность ────────────────────────────────────────────────────────
+
+class TestReactionIntensity:
+    """Интенсивность масштабирует дельты."""
+
+    def test_high_intensity_larger_deltas(self):
+        sub = _create_subscriber()
+        npc = _make_npc("npc_1")
+        ctx = _make_ctx(
+            all_npcs_raw=[npc],
+            shared_context=_FakeSharedContext(perceiving_npcs=["npc_1"]),
+        )
+        low = sub.handle([_make_event(intensity=0.3)], ctx)
+        # Сброс буфера не нужен — передаём напрямую в handle
+        high = sub.handle([_make_event(intensity=1.0)], ctx)
+        assert high.deltas[0].stress_delta > low.deltas[0].stress_delta
+
+    def test_intensity_from_payload(self):
+        """Интенсивность из payload.priority."""
+        sub = _create_subscriber()
+        npc = _make_npc("npc_1")
+        ctx = _make_ctx(
+            all_npcs_raw=[npc],
+            shared_context=_FakeSharedContext(perceiving_npcs=["npc_1"]),
+        )
+        event = _make_event(intensity=0.5)
+        result = sub.handle([event], ctx)
+        assert len(result.deltas) == 1
+        # Дельта должна быть ненулевой
+        assert result.deltas[0].stress_delta != 0.0
+
+
+# ── Реакционные типы событий ─────────────────────────────────────────────
+
+class TestReactionEventTypes:
+    """Проверяет, что подписка покрывает ключевые типы."""
+
+    def test_reaction_types_covers_threats(self):
+        """Все угрозы покрыты."""
+        threat_types = {"player_attacks", "player_attack", "player_attacked",
+                        "player_threatens", "combat", "intimidation", "betrayal"}
+        covered = {et.value.lower() for et in _REACTION_EVENT_TYPES}
+        assert threat_types.issubset(covered)
+
+    def test_reaction_types_covers_positive(self):
+        """Позитивные события покрыты."""
+        positive = {"help", "saved_life"}
+        covered = {et.value for et in _REACTION_EVENT_TYPES}
+        assert positive.issubset(covered)
+
+    def test_reaction_rules_match_event_types(self):
+        """Для каждого _REACTION_EVENT_TYPES есть правило."""
+        for et in _REACTION_EVENT_TYPES:
+            assert et.value.lower() in _REACTION_RULES, (
+                f"Нет правила для {et.value}"
+            )

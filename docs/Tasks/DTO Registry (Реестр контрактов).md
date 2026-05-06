@@ -9,7 +9,7 @@ events_processed: int (количество обработанных событ�
 prop_dirty: bool (DEPRECATED — флаг мутации, удаляется после полной миграции на delta_buffer)
 
 StateDeltas (# LOCKED v1 — новые домены через рефакторинг, не через добавление полей)
-npc_id: Optional[str] (маршрутизация к конкретному NPC)
+npc_id: Optional[str] (ОБЯЗАТЕЛЬНО для маршрутизации дельты. В тестах передается явно. None только для глобальных дельт)
 intent_target: Optional[str] (DecisionHub → player-facing trust/fear)
 social_target: Optional[str] (Social decay/propagation → NPC→NPC trust/fear)
 faction_id: Optional[str] (Reputation decay → фракция, несовместим с trust/fear)
@@ -57,12 +57,67 @@ type: dict[str, float]
 Ключи: player_attacks, player_threatens, player_threatens_indirect, player_steals, player_flees, player_insults, player_interacts, dialogue, attack, move, stealth
 Значения: базовая интенсивность (0.1 - 1.0). Если тип неизвестен, fallback = 0.2
 
+ReactionSubscriber (Phase8Handler — Фаза 8, event-driven)
+name: "reaction"
+Подписка: _REACTION_EVENT_TYPES (PLAYER_ATTACKS, PLAYER_ATTACK, PLAYER_ATTACKED, PLAYER_THREATENS, PLAYER_INSULTS, COMBAT, THEFT, INTIMIDATION, BETRAYAL, HELP, SAVED_LIFE, OBJECT_DESTROYED)
+drain_events() → List[EventDTO]
+handle(events, Phase8Context) → Phase8Result(deltas=List[StateDeltas])
+Модификатор реакции: _compute_reaction_modifier(npc_dict) → float
+composure_factor = 0.5 + (1 - composure) * 0.5 (stress 0-100 → 0.5-1.0)
+fear_factor = 0.5 + drives.fear * 2.0 (fear drive → 0.5-2.5)
+willpower_factor = 1.0 - willpower / 150.0 (willpower → 0.33-1.0)
+modifier = composure_factor * fear_factor * willpower_factor
+Правила реакций (_REACTION_RULES): event_type → (stress_base, fear_base, trust_actor_base)
+player_attacks: (15.0, 10.0, -8.0)
+combat: (18.0, 12.0, -6.0)
+help: (-3.0, 0.0, 5.0)
+saved_life: (-5.0, -3.0, 10.0)
+и т.д.
+Маршрутизация: source=player → intent_target="player"; source=NPC → social_target=source_id
+Источник события исключён из реакций (npc_id == source → skip)
+perceiving_npcs: None (не установлен) → fallback на всех NPC; [] (пустой) → никто не реагирует
+
+NPCStateSnapshot — маппинг данных (build_npc_snapshots)
+social_stats.trust → relationship_cache["player"]["trust"]
+social_stats.fear_of_player → relationship_cache["player"]["fear"]
+social_stats.debt → relationship_cache["player"]["debt"]
+psyche.loyalty_true → base_values["player"]
+status_profile.faction_rank.keys → faction_affiliations
+Вложенный relationship_cache используется как есть, плоский конвертируется
+
 GameLoop.idle_tick() Return Contract (dict)
 status: str ("ok", "no_scene", "not_ready", "error")
 changes: int
 npc_positions: dict (DEPRECATED: читать из world_snapshot)
 events: list
 world_snapshot: Optional[dict] (конвертировано из WorldSnapshotDTO, UUID→str)
+---
+TickPlayerResultDTO (backend/app/services/tick_orchestrator.py)
+status: str ("ok" | "error")
+error: Optional[str]
+npc_contexts: list
+snapshot: Optional[dict]
+events: List[Any]
+dirty_npcs: set
+activity_overrides: Dict[str, str]
+max_npc_stress: float
+movement_intents: list
+finalize_result: Optional[dict]
+NpcTickServices (backend/app/services/npc/npc_tick_contracts.py)
+memory_manager: Any
+relationship_store: Any
+social_engine: Any
+reputation_engine: Any
+economic_profiles: Any
+event_bus: Any
+spatial_service: Any # ДОБАВЛЕНО: Инжекция SpatialService
+PerceivedScene (frontend/game_types.py)
+location_id: str
+entities: List[PerceivedEntity]
+audio_events: List[AudioEvent]
+environment: PerceivedEnvironment
+attention_focus_id: Optional[str]
+player_body_state: List[str]
 ---
 
 ---

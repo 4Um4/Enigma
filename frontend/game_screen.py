@@ -23,10 +23,43 @@ from game_types import (
     PlayerFocus,
     PlayerMemory,
     EncounterHistory,
+    PerceivedScene,
+    PerceivedEntity,
+    PerceivedEnvironment,
 )
 from movement_system import try_move, move_towards
 from intent_parser import parse_movement_intent
 from pathfinding import find_path
+
+
+def _build_perceived_scene(scene_state: dict, config: PerceptionConfig) -> PerceivedScene:
+    """Локальная сборка PerceivedScene из scene_state (Закон 1.1: Фронтенд не лезет в бэкенд)."""
+    entities: List[PerceivedEntity] = []
+    
+    # Конвертируем NPC из scene_state
+    for npc_id, npc_data in scene_state.get("npc_positions", {}).items():
+        pos = npc_data.get("local_position") or npc_data.get("position")
+        x, y = 0.0, 0.0
+        if isinstance(pos, dict):
+            x, y = float(pos.get("x", 0)), float(pos.get("y", 0))
+            
+        entities.append(PerceivedEntity(
+            entity_id=npc_id,
+            entity_type="npc",
+            x=x,
+            y=y,
+            visible=True,
+            los=True,
+            display_name=npc_data.get("name", npc_id),
+            in_attention=(config.player_focus.focus_entity_id == npc_id)
+        ))
+        
+    return PerceivedScene(
+        location_id=scene_state.get("location_id", "unknown"),
+        entities=entities,
+        environment=PerceivedEnvironment(),
+        attention_focus_id=config.player_focus.focus_entity_id
+    )
 # A2: npc_movement удалён — NPC двигает TransitTracker (backend, 1 шаг/тик)
 # Плавная интерполяция между DTO-снимками — отдельная задача
 from api_client import create_game_gateway, ActionQueue
@@ -556,7 +589,7 @@ class GameScreen:
                 encounter_history=encounters,
                 player_memory=memory,
             )
-            perceived = _gateway._bridge.build_perceived_scene(scene_state, config)
+            perceived = _build_perceived_scene(scene_state, config)
 
             # === Рендер ===
             px, py = _player_xy(scene_state)

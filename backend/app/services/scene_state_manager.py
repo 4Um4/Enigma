@@ -857,6 +857,7 @@ class SceneStateManager:
                 pos = npc.get("position", {})
                 node = self._nearest_node_to_xy(editor_data, pos.get("x", 0), pos.get("y", 0))
                 npc_positions[ref_id] = {
+                    "name": _npc_id_to_display(ref_id),
                     "location_id": location_id,
                     "position": node,
                     "activity": "",

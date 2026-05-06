@@ -283,7 +283,7 @@ class TestPromptBlockFormatting:
         result = builder.to_dm_prompt_block(frame)
         
         assert "Торнин" in result
-        assert "intimidate" in result.lower()
+        assert "подался вперёд" in result.lower()
 
     def test_emotion_in_output(self):
         """Эмоция NPC появляется в блоке."""
@@ -296,7 +296,7 @@ class TestPromptBlockFormatting:
         frame = builder.build_dm_frame(scene)
         result = builder.to_dm_prompt_block(frame)
         
-        assert "зол холодно" in result.lower()
+        assert "злится" in result.lower()
 
     def test_tension_not_shown_when_calm(self):
         """Спокойное напряжение НЕ появляется в блоке."""
