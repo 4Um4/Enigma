@@ -82,6 +82,7 @@ class InterpretationEngine:
         state: NPCState,
         event: EventContext,
         player_reputation: Optional[Dict[str, int]] = None,
+        drives_base: Dict[str, float] = None,
     ) -> InterpretationResult:
         """
         Вычисляет как NPC воспринимает событие: искажения, угроза, драйвы.
@@ -99,7 +100,7 @@ class InterpretationEngine:
         )
 
         # ── 3. Драйвы (из npc_cognition.py) ───────────────────────────────
-        normalized_drives = self._normalize_drives(state.personality.drives_base)
+        normalized_drives = self._normalize_drives(drives_base)
         dominant_drive = self._get_dominant_drive(normalized_drives)
 
         return InterpretationResult(

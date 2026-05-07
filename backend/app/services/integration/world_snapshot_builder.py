@@ -80,7 +80,7 @@ class WorldSnapshotBuilder:
                 location_id=data.get("location_id", ""),
                 facing=data.get("facing", "south"),
                 action=data.get("activity", "idle"),
-                display_name=npc_id,  # TODO: заполнять из npc_name_resolver
+                display_name=data.get("name", npc_id),
             ))
 
         return result

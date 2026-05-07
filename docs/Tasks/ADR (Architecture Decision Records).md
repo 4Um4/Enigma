@@ -107,6 +107,37 @@ SocialDecayHandler теперь корректно вычисляет дрейф
 Ограничение: NPC-to-NPC связи из village_relations.json пока НЕ попадают в snapshot.
 Требуется отдельная задача: _enrich_with_social_relations() при загрузке NPC.
 ---
+ADR-005: NPC-to-NPC Social Relations Enrichment при загрузке (27.05.26)
+Статус: Принято
+Контекст
+_build_npc_snapshots() маппил только player-facing данные из social_stats (trust, fear_of_player). NPC-to-NPC связи из village_relations.json (base_trust, base_affection, nature) НЕ попадали в NPC dict. SocialDecayHandler не мог считать дрейф для NPC→NPC отношений — relationship_cache содержал только entry "player". Функция load_social_base() существовала, но никто не вызывал её для обогащения NPC dict.
+
+Решение
+Создана _enrich_with_social_relations() — обогащает каждый NPC dict данными из village_relations.json.
+Вызывается в load_npcs_merged() ПОСЛЕ мержа static + runtime, во всех 3 return-путях.
+Шкала: village_relations использует 0-1, SocialDecayHandler ожидает 0-100. Конвертация base_trust * 100.
+Формат обогащения: relationship_cache[target_npc_id] = {trust, fear, base_trust, nature}, base_values[target_npc_id] = base_trust * 100.
+Не перезаписывает существующие записи (runtime мог мутировать).
+Критический фикс _build_npc_snapshots(): после обогащения relationship_cache уже вложенный → старый код брал «как есть» и ПРОПУСКАЛ player entry из social_stats. Исправлено: shallow copy + гарантированное добавление player entry. Аналогично для base_values — player из loyalty_true.
+Последствия
+SocialDecayHandler теперь производит NPC→NPC дрейф (раньше — только player-facing).
+Player drift НЕ ломается при наличии NPC→NPC записей (гарантированный player entry).
+village_relations.json — единственный источник NPC→NPC базовых связей. Runtime мутации идут через delta_buffer.
+Ограничение: enrichment мутирует NPC dicts in-place. Это допустимо только потому что вызывается один раз при загрузке.
+---
+ADR-004: Синхронизация all_npcs_raw в idle-пути TickOrchestrator (05.05.2026)
+Статус: Принято
+Контекст
+При внедрении ADR-002 (единый мутатор) и ADR-001 (Phase8Result) выявилась рассинхронизация в idle-пути TickOrchestrator. Фаза 0 заполняла ctx.npc_states из LifeEngine, но ctx.all_npcs_raw (используемый StateApplicator.apply_batch() в Фазе 10) оставался пустым списком по умолчанию. Это приводило к потере дельт: StateApplicator применял стресс/доверие к пустому списку, а Фаза 10 сохраняла неизмененный ctx.npc_states. Сквозной дым-тест выявил этот баг.
+
+Решение
+В _phase_0_simulation после получения npc_states из LifeEngine добавлена явная синхронизация: ctx.all_npcs_raw = ctx.npc_states. Это гарантирует, что единый мутатор работает с актуальным стейтом, а Фаза 10 сохраняет уже мутированный словарь.
+
+Последствия
+Целостность данных: Дельты из Фазы 8 (Perception, Reaction, Social) теперь корректно применяются в idle-тиках и сохраняются на диск.
+Единая истина: ctx.npc_states и ctx.all_npcs_raw в idle-пути ссылаются на один и тот же объект в памяти, устраняя дрейф.
+Побочный эффект: Изменения в ctx.all_npcs_raw через StateApplicator мутируют ctx.npc_states напрямую. Это приемлемо, так как Фаза 9 читает scene_state, а Фаза 10 делает коммит после мутаций.
+---
 ADR-0006: Централизация пространственных данных и удаление глобальных мостов
 Статус
 Принято (реализовано частично, заблокировано багами E2E)
@@ -121,6 +152,32 @@ ADR-0006: Централизация пространственных данны
 Оборвать прямые вызовы фронтенда к бэкенду. Бэкенд обогащает scene_state стенами перед отправкой, а фронтенд сам собирает PerceivedScene из легальных данных.
 Последствия
 Положительные: Единая точка входа для навигации, учет оверлеев, соблюдение Архитектурного Устава.Отрицательные: Требуется строгий DI SpatialService во все ветки тика (и в player, и в idle), иначе NPC теряют способность двигаться. Требуется починка interpretation_engine для корректного доступа к драйвам.
+---
+ADR-0007: Инъекция примитивов вместо объектов в InterpretationEngine (Текущая дата)
+Статус: Принято
+Контекст
+InterpretationEngine падал с ошибкой 'NPCState' object has no attribute 'personality', так как профиль L0 передавался неявно или ожидался внутри state. Это нарушало Закон 1.2 (доменные модели не знают о сервисах) и приводило к хрупким связям.
+Решение
+Вместо передачи всего объекта profile_l0 (или добавления personality в NPCState), в метод compute() добавлен аргумент drives_base: Dict[str, float]. InterpretationEngine получает только те данные, которые ему нужны для работы, и не знает о структуре NPCPersonality.
+Последствия
+
+Снижение связности (Law of Demeter).
+Устранение краша пайплайна.
+Рост количества аргументов в методах (potential parameter bloat), требует контроля.
+---
+ADR-0008: Макро-зоны SpatialService vs Микро-зоны Archetypes
+Статус: Принято
+Контекст
+SpatialService v1.2 собирает граф локации из Editor JSON, который оперирует макро-зонами (main_hall, bar_area — 7 узлов на локацию). Конфиги NPC (archetypes) и старый scene_state используют микро-зоны (serving_table_3, gate_post, bed — десятки узлов). При поиске пути MovementEngine не находит микро-зону в макро-графе и отменяет движение. NPC парализованы.
+Решение
+
+Архетипы NPC должны ссылаться только на валидные узлы макро-графа (main_hall вместо serving_table_3).
+MovementEngine должен иметь fallback: если текущий узел NPC (from_node) не найден в графе, он принудительно сбрасывается на entrance или main_hall данной локации, чтобы разблокировать поиск пути.
+Последствия
+NPC regained mobility.
+Потеря микро-позиционирования (NPC стоят "где-то в main_hall" вместо конкретного стола).
+Требуется обновление всех archetype JSON.
+Требуется механизм резолва микро-зон в макро-зоны в будущем (например, алиасы в графе).
 ---
 
 ---

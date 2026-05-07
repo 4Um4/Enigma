@@ -116,6 +116,19 @@ def init_scene_state(
         _catch_up = min(_delta, MAX_CATCH_UP_TICKS)
         logger.warning(f"[TICK_CATCHUP] world={_world_elapsed} sim={_sim_tick} delta={_delta} applying={_catch_up}")
         _life_changes = []
+        # Инжекция SpatialService v1.2 для TICK_CATCHUP (Баг 2)
+        from app.services.spatial.spatial_service import SpatialService
+        _loc_id = scene_state.get("location_id", "")
+        _spatial_svc = None
+        if _loc_id:
+            _spatial_svc = SpatialService.build_for_location(
+                campaign_id=campaign_id,
+                location_id=_loc_id,
+                scene_state=scene_state,
+            )
+        if _spatial_svc:
+            _life_engine.set_spatial_service(_spatial_svc)
+
         for _ in range(max(1, _catch_up)):
             _life_changes += _life_engine.tick(campaign_id, scene_state, runtime_path=loop._get_npc_runtime_path(campaign_id))
         if _life_changes:

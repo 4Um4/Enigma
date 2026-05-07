@@ -672,7 +672,7 @@ class NPCStateAdapter:
             identity_integrity = float(psyche.get("identity_integrity", 1.0)),
             pressure_resistance = float(psyche.get("pressure_resistance", 0.0)),
 
-            will_state        = psyche.get("state", "free"),
+            will_state        = WillState(psyche.get("state", "free")),
             trauma_markers    = set(psyche.get("trauma_flags", [])),
             relationship_cache = {
                 "trust": float(ss.get("trust", 0.0)),

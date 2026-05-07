@@ -338,7 +338,7 @@ def run_npc_pipeline(
             # 1.6. CognitiveDistortion: модификаторы для DecisionHub (ШАГ C.1)
             # Distortion НЕ искажает state — возвращает модификаторы score
             interpretation = InterpretationEngine().compute(
-                state=state_l2, event=hub_event
+                state=state_l2, event=hub_event, drives_base=profile_l0.drives_base
             )
 
             # 2. Этап 5: Запуск DecisionHub с L1 чертами + distortion модификаторы

@@ -50,7 +50,7 @@ def _build_perceived_scene(scene_state: dict, config: PerceptionConfig) -> Perce
             y=y,
             visible=True,
             los=True,
-            display_name=npc_data.get("name", npc_id),
+            display_name=npc_data.get("display_name") or npc_data.get("name") or npc_id.split("_")[-1].capitalize(),
             in_attention=(config.player_focus.focus_entity_id == npc_id)
         ))
         
@@ -246,7 +246,14 @@ class GameScreen:
             pass_through_keys=_WASD_KEYS,
         )
         text_input.focused = False  # По умолчанию фокус на игре, а не на чате
-        message_log: list[str] = []
+        message_log: list[str] = [] # Временный адаптер, пока бэкенд не шьет NarrativeBeat
+        
+        # Инициализация Сценического Рендерера (Устав §10)
+        from narrative_renderer import NarrativeRenderer
+        narrative_renderer = NarrativeRenderer(
+            font_normal=self.renderer.font_small,
+            font_bold=self.renderer.font_small # Используем font_small как жирный
+        )
 
         # WASD → направляющий вектор
         _WASD_MAP = {
@@ -306,8 +313,10 @@ class GameScreen:
                         text_input.focused = not text_input.focused
                         if text_input.focused:
                             # Открыли консоль — ждём ввода игрока
-                            # Телеграф запускается по давлению NPC, не по таймеру
                             print("[CONSOLE] opened — waiting for player input")
+                        else:
+                            # Закрыли консоль — убираем пузыри с экрана, чтобы не загораживали игру
+                            message_log.clear()
                     # TextInput обрабатывает всё кроме WASD (pass_through)
                     handled = text_input.handle_event(event)
                     # RETURN обрабатывается отдельно — TextInput намеренно возвращает False
@@ -315,6 +324,19 @@ class GameScreen:
                         # Игрок успел напечатать — отменяем telegraph
                         action_queue.cancel_telegraph()
                         print("[TELEGRAPH] cancelled — player acted first")
+                        
+                        # Создаем сценическое событие для пузыря игрока (ТЗ 3 + Мастер тай)
+                        from narrative_beat import NarrativeBeat, DeliveryType, RecognitionLevel
+                        player_beat = NarrativeBeat(
+                            speaker=player_name,
+                            text=text_input.text.strip(),
+                            is_player=True,
+                            delivery=DeliveryType.NORMAL,
+                            recognition=RecognitionLevel.KNOWN_NAME,
+                            is_active=True
+                        )
+                        message_log.append(player_beat)
+                        
                         self._handle_text_input(
                             text_input.text.strip(), scene_state, focus,
                             walls, obstacles, move, message_log,
@@ -322,13 +344,19 @@ class GameScreen:
                             action_queue, campaign_folder, player_name,
                         )
                         text_input.push_history(text_input.text.strip())
-                        text_input.clear()
+                        text_input.clear() # Очищаем пузырь ввода после отправки
                     elif event.key in _WASD_MAP:
                         # WASD двигает персонажа только если чат не в фокусе
                         if not text_input.focused:
                             held_keys.add(event.key)
                             move.target_npc_id = None
                             move.direction = None
+                elif event.type == pygame.KEYUP:
+                    # Обязательно передаем отпускание клавиш в TextInput,
+                    # иначе инерция (зажатие стрелок/backspace) зависает навсегда
+                    text_input.handle_event(event)
+                    # Сброс флага зажатия WASD для движения персонажа
+                    held_keys.discard(event.key)
                 elif event.type == pygame.TEXTINPUT:
                     # WASD при зажатии генерирует TEXTINPUT с буквой — фильтруем
                     _WASD_KEY_TEXT = {pygame.K_w: 'w', pygame.K_a: 'a', pygame.K_s: 's', pygame.K_d: 'd'}
@@ -342,8 +370,6 @@ class GameScreen:
                         text_input.handle_event(event)
                 elif event.type == pygame.TEXTEDITING:
                     text_input.handle_event(event)
-                elif event.type == pygame.KEYUP:
-                    held_keys.discard(event.key)
                 elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                     clicked_npc = self._handle_click(
                         event.pos, scene_state, focus, walls,
@@ -375,6 +401,8 @@ class GameScreen:
             # === Перемещение ===
             dt = self.clock.get_time() / 1000.0
             move.cooldown -= dt
+            # Обновление физики инерционного повтора курсора в TextInput
+            text_input.update(dt)
             moved = False
 
             if move.cooldown <= 0:
@@ -565,14 +593,67 @@ class GameScreen:
                         self.game_time_seconds = _gts
                     # Пауза idle tick: NPC не двигаются пока игрок читает ответ
                     _last_idle_tick = pygame.time.get_ticks() + 1000
+                    from narrative_beat import NarrativeBeat, DeliveryType, RecognitionLevel
+                    
+                    # Получаем последний введенный текст игрока для фильтрации эха
+                    last_player_text = ""
+                    if message_log and isinstance(message_log[-1], NarrativeBeat) and message_log[-1].is_player:
+                        last_player_text = message_log[-1].text.strip()
+
                     resp = result.response.dm_response
                     if resp and resp != "Ничего не произошло.":
-                        message_log.append(resp)
+                        import re
+                        display_resp = resp.strip()
+                        
+                        # Умная фильтрация эха LLM
+                        if last_player_text:
+                            # 1. Снимаем эхо формата "Имя Игрока: текст" (LLM часто так делает)
+                            if display_resp.lower().startswith(player_name.lower()):
+                                prefix_len = len(player_name)
+                                if prefix_len < len(display_resp) and display_resp[prefix_len] in (':', ',', ' '):
+                                    display_resp = display_resp[prefix_len+1:].strip(' ,.-!:;')
+                            
+                            # 2. Пословное сравнение для обрезки неполного эха (игнорируем регистр и пунктуацию)
+                            player_words = re.sub(r'[^\w\s]', '', last_player_text).lower().split()
+                            resp_words = re.sub(r'[^\w\s]', '', display_resp).lower().split()
+                            
+                            match_count = 0
+                            for pw, rw in zip(player_words, resp_words):
+                                if pw == rw:
+                                    match_count += 1
+                                else:
+                                    break
+                            
+                            # Если совпало больше половины слов ввода — это эхо, отрезаем
+                            if match_count > 0 and match_count >= len(player_words) // 2:
+                                # Считаем сколько символов занимает эхо с пробелами
+                                echo_len = len(' '.join(display_resp.split()[:match_count]))
+                                display_resp = display_resp[echo_len:].strip(' ,.-!:;')
+                        
+                        # Добавляем только если после отсечения эха остался нарратив
+                        if display_resp:
+                            message_log.append(NarrativeBeat(
+                                speaker="Система",
+                                text=display_resp,
+                                is_player=False,
+                                delivery=DeliveryType.NORMAL,
+                                recognition=RecognitionLevel.KNOWN_NAME,
+                                is_active=False
+                            ))
+                        
                     for npc_r in result.response.npc_reactions:
                         npc_name = npc_r.get("npc_name", "NPC")
                         npc_text = npc_r.get("reaction", "")
                         if npc_text:
-                            message_log.append(f"  {npc_name}: {npc_text}")
+                            # Реплика NPC становится полноценным пузырем
+                            message_log.append(NarrativeBeat(
+                                speaker=npc_name,
+                                text=npc_text,
+                                is_player=False,
+                                delivery=DeliveryType.NORMAL,
+                                recognition=RecognitionLevel.KNOWN_NAME, # TODO: уровень знакомства из сцены
+                                is_active=False
+                            ))
 
                 # Telegraph завершился — запускаем следующий если консоль открыта
                 # Telegraph завершился — НЕ перезапускаем автоматически
@@ -604,8 +685,15 @@ class GameScreen:
             )
 
             # HUD
-            self._draw_input_bar(text_input)
-            self._draw_message_log(message_log)
+            # Пузырь ввода игрока (ТЗ 3) — правый нижний угол
+            input_bubble_x = self.screen.get_width() // 2 + 20
+            input_bubble_max_w = self.screen.get_width() // 2 - 40
+            if text_input.focused or not text_input.empty:
+                narrative_renderer.draw_input_bubble(
+                    self.screen, player_name, text_input.text, text_input._cursor_pos,
+                    x=input_bubble_x, y=self.screen.get_height() - 150, max_width=input_bubble_max_w
+                )
+            self._draw_message_log(message_log, narrative_renderer, player_name)
 
             # HUD: FPS + игровое время
             fps_surf = self.renderer.font_small.render(
@@ -631,15 +719,80 @@ class GameScreen:
         text_input.rect = pygame.Rect(4, sh - 36, sw - 8, 32)
         text_input.draw(self.screen)
 
-    def _draw_message_log(self, log: list) -> None:
-        """Рисует последние сообщения над строкой ввода"""
+    def _draw_message_log(self, log: list, renderer: 'NarrativeRenderer', player_name: str) -> None:
+        """Cinematic Layer: Рисует сценические пузыри вместо плоского чата"""
+        from narrative_beat import NarrativeBeat, RecognitionLevel, DeliveryType
+        
         sh = self.screen.get_height()
-        visible = log[-5:]
-        y = sh - 44 - len(visible) * 18
+        sw = self.screen.get_width()
+        
+        visible = log[-5:] # Берем последние 5 событий
+        
+        # Адаптер: конвертируем строки в NarrativeBeat на лету
+        beats = []
         for msg in visible:
-            surf = self.renderer.font_small.render(msg, True, (180, 180, 180))
-            self.screen.blit(surf, (10, y))
-            y += 18
+            if isinstance(msg, str):
+                is_player = msg.startswith(player_name)
+                # Грубая нарезка "Имя: Текст"
+                if ": " in msg:
+                    speaker, text = msg.split(": ", 1)
+                else:
+                    speaker, text = "Система", msg
+                
+                # Определяем уровень знания (ТЗ 1)
+                recognition = RecognitionLevel.KNOWN_NAME
+                if not is_player and speaker in ("Мужчина", "Женщина", "???"):
+                    recognition = RecognitionLevel.UNKNOWN_MALE if speaker == "Мужчина" else RecognitionLevel.UNKNOWN_FEMALE
+                
+                # Создаем Beat
+                beat = NarrativeBeat(
+                    speaker=speaker.strip(),
+                    text=text.strip(),
+                    is_player=is_player,
+                    recognition=recognition,
+                    delivery=DeliveryType.NORMAL,
+                    is_active=(msg == visible[-1]) # Активен только последний
+                )
+                beats.append(beat)
+            elif isinstance(msg, NarrativeBeat):
+                msg.is_active = (msg == visible[-1])
+                beats.append(msg)
+
+        # Правильный расчет позиций Y (снизу вверх, без наложений)
+        # 1. Сначала вычисляем высоту каждого пузыря
+        heights = []
+        max_w = sw // 2 - 40
+        for beat in beats:
+            # Приблизительный расчет высоты (совпадает с логикой NarrativeRenderer)
+            font = renderer.font_normal
+            lines = renderer._wrap_text(beat.text, font, max_w - 24)
+            line_h = font.get_linesize()
+            text_h = len(lines) * line_h
+            bubble_h = text_h + 24
+            name_h = renderer.font_bold.get_linesize() + 6
+            total_h = name_h + bubble_h
+            heights.append(total_h)
+
+        # 2. Рисуем снизу вверх
+        # Отступ снизу для пузыря ввода игрока
+        y_cursor = sh - 170 
+        
+        for i in range(len(beats) - 1, -1, -1):
+            beat = beats[i]
+            h = heights[i]
+            
+            # Рисуем пузырь
+            if beat.is_player:
+                bx = sw // 2 + 20
+            else:
+                bx = 20
+                
+            # Сдвигаем курсор вверх на высоту текущего пузыря и рисуем
+            y_cursor -= h
+            renderer.draw_beat(self.screen, beat, bx, y_cursor, max_w)
+            
+            # Отступ между пузырями
+            y_cursor -= 8
 
     # ── Обработчики ввода ─────────────────────────────────────────────
 

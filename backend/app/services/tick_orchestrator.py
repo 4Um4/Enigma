@@ -39,6 +39,7 @@ from app.services.events.perception_subscriber import PerceptionSubscriber
 from app.services.events.reaction_subscriber import ReactionSubscriber
 from app.services.events.social_subscriber import SocialSubscriber
 from app.services.events.intent_event_adapter import IntentEventAdapter
+from app.services.spatial.spatial_service import SpatialService
 from app.services.spatial.spatial_event_detector import (
     SpatialEventDetector,
     _npc_positions_snapshot,
@@ -262,7 +263,7 @@ class TickOrchestrator:
                 self._phase_10_persistence(ctx)
 
         except Exception as e:
-            logger.error(f"[TICK_ORCH] Ошибка в тике {campaign_id}: {e}")
+            logger.error(f"[TICK_ORCH] Ошибка в тике {campaign_id}: {e}", exc_info=True)
             if dm_ctx is not None:
                 return TickPlayerResultDTO(status="error", error=str(e))
             return TickResultDTO(status="error", error=str(e))
@@ -477,13 +478,27 @@ class TickOrchestrator:
         engine.set_transit_tracker(self._get_transit_tracker())
         
         # Инжекция SpatialService v1.2 для семантической навигации
-        if ctx.npc_services and hasattr(ctx.npc_services, "spatial_service"):
-            engine.set_spatial_service(ctx.npc_services.spatial_service)
+        _spatial_svc = None
+        if ctx.npc_services and hasattr(ctx.npc_services, "spatial_service") and ctx.npc_services.spatial_service:
+            _spatial_svc = ctx.npc_services.spatial_service
+        else:
+            # Fallback для idle_tick: если сервис не передан через npc_services, собираем на лету
+            _location_id = ctx.scene_state.get("location_id", "")
+            if _location_id:
+                _spatial_svc = SpatialService.build_for_location(
+                    campaign_id=ctx.campaign_id,
+                    location_id=_location_id,
+                    scene_state=ctx.scene_state,
+                )
+        if _spatial_svc:
+            engine.set_spatial_service(_spatial_svc)
         
         changes = engine.tick(ctx.campaign_id, ctx.scene_state, runtime_path=runtime_path)
         ctx.scene_changes = changes or []
         # Заполняем полные стейты для фаз 3-6, 10 (Устав §3.1)
         ctx.npc_states = engine.get_npc_states(ctx.campaign_id)
+        # ADR-002: Единый мутатор работает с all_npcs_raw. В idle-пути это те же данные, что и npc_states
+        ctx.all_npcs_raw = ctx.npc_states
         if changes and self._scene_manager:
             self._scene_manager.apply_changes(ctx.campaign_id, changes, ctx.scene_state)
             logger.debug(f"[TICK_ORCH] Фаза 0: {len(changes)} changes от LifeEngine")
@@ -758,8 +773,9 @@ class TickOrchestrator:
           psyche.loyalty_true        → base_values["player"] (базовое доверие к игроку)
           status_profile.faction_rank → faction_affiliations (ключи фракций)
 
-        NPC-to-NPC связи из village_relations.json пока НЕ включены —
-        потребуется обогащение NPC dict при загрузке (отдельная задача).
+        NPC-to-NPC связи обогащаются через _enrich_with_social_relations() при загрузке.
+        После обогащения relationship_cache содержит записи NPC→NPC из village_relations.json.
+        Player entry гарантированно добавляется из social_stats (даже при наличии NPC→NPC записей).
         """
         from app.models.idle_tick import NPCStateSnapshot
 
@@ -778,14 +794,19 @@ class TickOrchestrator:
             if isinstance(existing_rc, dict) and any(
                 isinstance(v, dict) for v in existing_rc.values()
             ):
-                # Уже в вложенном формате — используем как есть
-                relationship_cache = existing_rc
+                # Уже во вложенном формате — берём как основу (shallow copy)
+                relationship_cache = dict(existing_rc)
             else:
                 # Маппинг social_stats (player-facing плоский) → вложенный формат
                 relationship_cache = {}
-                _player_trust = float(ss.get("trust", 0.0))
-                _player_fear = float(ss.get("fear_of_player", 0.0))
-                _player_debt = float(ss.get("debt", 0.0))
+
+            # Гарантируем player entry из social_stats
+            # (после обогащения NPC→NPC, relationship_cache может существовать
+            # без player entry — social_stats.trust/fear_of_player заполняют его)
+            _player_trust = float(ss.get("trust", 0.0))
+            _player_fear = float(ss.get("fear_of_player", 0.0))
+            _player_debt = float(ss.get("debt", 0.0))
+            if "player" not in relationship_cache:
                 if _player_trust != 0.0 or _player_fear != 0.0 or _player_debt != 0.0:
                     relationship_cache["player"] = {
                         "trust": _player_trust,
@@ -797,10 +818,14 @@ class TickOrchestrator:
             # SocialDecayHandler: base_vals.get(target, rel_data.get("base_trust", current))
             existing_bv = npc.get("base_values", {})
             if existing_bv:
-                base_values = existing_bv
+                base_values = dict(existing_bv)  # shallow copy
             else:
                 base_values = {}
-                # loyalty_true (0-100) → базовое доверие к игроку
+
+            # Гарантируем player base из loyalty_true
+            # (после обогащения NPC→NPC, base_values может существовать
+            # без player entry — psyche.loyalty_true заполняет его)
+            if "player" not in base_values:
                 _loyalty = float(psyche.get("loyalty_true", 50.0))
                 base_values["player"] = _loyalty
 
@@ -824,23 +849,68 @@ class TickOrchestrator:
 
     @staticmethod
     def _aggregate_deltas(deltas: list) -> list:
-        """Примитивная дедупликация: группировка по (npc_id, target_key, delta_type)
-        с суммированием числовых дельт.
+        """Дедупликация: группировка по (npc_id, domain, target) v2
+        с суммированием числовых дельт (v1 + v2 payload).
 
         Устраняет зависимость от порядка применения и шум от множественных источников.
         """
         from app.models.state_delta import StateDeltas
+        from app.models.delta_payloads import (
+            SocialPayload, EmotionPayload, ReputationPayload, IdentityPayload
+        )
 
-        # Ключ группировки: (npc_id, intent_target, social_target, faction_id)
+        def _merge_payloads(p1, p2):
+            """Сливает два payload одного домена в новый замороженный объект."""
+            if p1 is None: return p2
+            if p2 is None: return p1
+            # Защита от смешивания доменов (не должно происходить при правильном ключе)
+            if type(p1) != type(p2): return p2 
+
+            if isinstance(p1, SocialPayload):
+                return SocialPayload(
+                    trust_delta=p1.trust_delta + p2.trust_delta,
+                    fear_delta=p1.fear_delta + p2.fear_delta,
+                    affection_delta=p1.affection_delta + p2.affection_delta,
+                    debt_delta=p1.debt_delta + p2.debt_delta,
+                )
+            if isinstance(p1, EmotionPayload):
+                return EmotionPayload(
+                    stress_delta=p1.stress_delta + p2.stress_delta,
+                    emotion_delta=p1.emotion_delta + p2.emotion_delta,
+                    # Для тегов/травм — последний ненулевой выигрывает
+                    emotion_tag=p2.emotion_tag if p2.emotion_tag is not None else p1.emotion_tag,
+                    new_trauma=p2.new_trauma if p2.new_trauma is not None else p1.new_trauma,
+                )
+            if isinstance(p1, ReputationPayload):
+                return ReputationPayload(
+                    reputation_delta=p1.reputation_delta + p2.reputation_delta
+                )
+            if isinstance(p1, IdentityPayload):
+                return IdentityPayload(
+                    identity_integrity_delta=p1.identity_integrity_delta + p2.identity_integrity_delta,
+                    pressure_resistance_delta=p1.pressure_resistance_delta + p2.pressure_resistance_delta,
+                    will_state_override=p2.will_state_override if p2.will_state_override is not None else p1.will_state_override,
+                )
+            return p2
+
+        # v2 ключ: (npc_id, domain, target). Фолбэк для v1: None + v1 таргеты
         groups: dict[tuple, StateDeltas] = {}
 
         for d in deltas:
             if not isinstance(d, StateDeltas):
                 continue
-            key = (d.npc_id, d.intent_target, d.social_target, d.faction_id)
+
+            # Формируем ключ группировки
+            if d.domain is not None:
+                key = (d.npc_id, d.domain, d.target)
+            else:
+                # Легаси v1 фолбэк (пока потребители не мигрированы)
+                key = (d.npc_id, None, d.intent_target or d.social_target or d.faction_id)
+
             if key in groups:
-                # Суммируем числовые поля
                 existing = groups[key]
+                
+                # Суммируем v1 числовые поля (backward compat для StateApplicator)
                 existing.stress_delta += d.stress_delta
                 existing.emotion_delta += d.emotion_delta
                 existing.trust_delta += d.trust_delta
@@ -848,19 +918,30 @@ class TickOrchestrator:
                 existing.reputation_delta += d.reputation_delta
                 existing.identity_integrity_delta += d.identity_integrity_delta
                 existing.pressure_resistance_delta += d.pressure_resistance_delta
-                # trait_updates — merge
+                
+                # v1 trait_updates — merge
                 for k, v in d.trait_updates.items():
                     existing.trait_updates[k] = existing.trait_updates.get(k, 0.0) + v
+                
+                # v1 маршрутизация — дополняем если в existing пусто
+                if d.intent_target is not None: existing.intent_target = d.intent_target
+                if d.social_target is not None: existing.social_target = d.social_target
+                if d.faction_id is not None: existing.faction_id = d.faction_id
+                
                 # source: берём последний ненулевой
                 if d.source != "unknown":
                     existing.source = d.source
-                # emotion_tag / new_trauma / will_state_override — последний выигрывает
+                
+                # v1 теги — последний выигрывает
                 if d.emotion_tag is not None:
                     existing.emotion_tag = d.emotion_tag
                 if d.new_trauma is not None:
                     existing.new_trauma = d.new_trauma
                 if d.will_state_override is not None:
                     existing.will_state_override = d.will_state_override
+
+                # v2 payload merge
+                existing.payload = _merge_payloads(existing.payload, d.payload)
             else:
                 groups[key] = d
 

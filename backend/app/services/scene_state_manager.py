@@ -1420,6 +1420,10 @@ class SceneStateManager:
             pass
 
         for npc_id, entry in npc_positions.items():
+            # Миграция имени: в старых сохранениях отсутствует поле name (Баг 3)
+            if "name" not in entry:
+                entry["name"] = _npc_id_to_display(npc_id)
+
             current_node = entry.get("position", "")
             initial_node = initial_nodes.get(npc_id)
 

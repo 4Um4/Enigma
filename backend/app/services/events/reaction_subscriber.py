@@ -36,7 +36,7 @@ from typing import Any, Dict, List, Optional, Set
 from app.domain.constants import ACTION_INTENSITY
 from app.domain.events import EventDTO
 from app.models.phase8 import Phase8Context, Phase8Result
-from app.models.state_delta import StateDeltas
+from app.models.state_delta import DeltaDomain, EmotionPayload, SocialPayload, StateDeltas
 from app.services.events.event_bus import EventBus
 from app.services.events.event_types import EventType
 
@@ -225,23 +225,40 @@ class ReactionSubscriber:
                 if stress_delta == 0.0 and fear_delta == 0.0 and trust_delta == 0.0:
                     continue
 
-                # Формируем StateDeltas с правильной маршрутизацией
-                delta_kwargs: dict[str, Any] = {
-                    "npc_id": npc_id,
-                    "stress_delta": stress_delta,
-                    "fear_delta": fear_delta,
-                    "source": "reaction",
-                }
-
-                # trust_delta требует таргет (Устав: trust ≠ без таргета)
-                if trust_delta != 0.0:
-                    delta_kwargs[trust_target_key] = trust_target_val
-                    delta_kwargs["trust_delta"] = trust_delta
-
+                # v2: Разделяем на EMOTION (stress) и SOCIAL (trust, fear)
                 try:
-                    deltas.append(StateDeltas(**delta_kwargs))
+                    # 1. Эмоциональная реакция (стресс)
+                    if stress_delta != 0.0:
+                        deltas.append(StateDeltas(
+                            npc_id=npc_id,
+                            # v1 backward compat
+                            stress_delta=stress_delta,
+                            # v2 domain-tagged payload
+                            domain=DeltaDomain.EMOTION,
+                            payload=EmotionPayload(stress_delta=stress_delta),
+                            source="reaction",
+                        ))
+
+                    # 2. Социальная реакция (страх, доверие)
+                    if fear_delta != 0.0 or trust_delta != 0.0:
+                        social_kwargs = {
+                            "npc_id": npc_id,
+                            # v1 backward compat
+                            "fear_delta": fear_delta,
+                            "trust_delta": trust_delta,
+                            # v2 domain-tagged payload
+                            "domain": DeltaDomain.SOCIAL,
+                            "payload": SocialPayload(fear_delta=fear_delta, trust_delta=trust_delta),
+                            "source": "reaction",
+                        }
+                        if trust_delta != 0.0:
+                            social_kwargs[trust_target_key] = trust_target_val # v1 compat
+                            social_kwargs["target"] = trust_target_val           # v2 compat
+
+                        deltas.append(StateDeltas(**social_kwargs))
+
                 except ValueError as e:
-                    # Невалидная дельта (например, конфликт таргетов) — логируем и пропускаем
+                    # Невалидная дельта (конфликт таргетов) — логируем и пропускаем
                     logger.warning(
                         f"[REACTION_SUB] невалидная дельта для {npc_id}: {e}"
                     )

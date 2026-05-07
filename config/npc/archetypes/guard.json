@@ -13,27 +13,27 @@
   "activity_map": {
     "guarding_gate": {
       "location": "city_gate",
-      "position": "gate_post",
+      "position": "entrance",
       "display": "guarding_gate"
     },
     "on_duty": {
       "location": "city_gate",
-      "position": "gate_post",
+      "position": "entrance",
       "display": "guarding_gate"
     },
     "working": {
       "location": "city_gate",
-      "position": "gate_post",
+      "position": "entrance",
       "display": "guarding_gate"
     },
     "off_duty": {
       "location": "tavern_silver_wolf",
-      "position": "corner_table",
+      "position": "main_hall",
       "display": "resting"
     },
     "sleeping": {
       "location": "inn_rooms",
-      "position": "bed",
+      "position": "main_hall",
       "display": "sleeping"
     }
   },

@@ -79,10 +79,15 @@ class MovementEngine:
                 target_ref = None  # NodeRef для SpatialService.find_path
                 
                 target_ref = svc.get_node(intent.target_node_id)
+                if not target_ref:
+                    # ADR-0008: Микро-зона отсутствует в макро-графе -> сброс на entrance/main_hall
+                    target_ref = svc.get_node("entrance") or svc.get_node("main_hall")
+                    if target_ref:
+                        logger.debug(f"[MOVEMENT_ENGINE] Целевая микро-зона '{intent.target_node_id}' не найдена, фоллбэк на {target_ref.node_id}")
+                        
                 if target_ref:
                     target_x, target_y = target_ref.x, target_ref.y
-                        
-                if target_x is None:
+                else:
                     logger.warning(
                         f"[MOVEMENT_ENGINE] Узел '{intent.target_node_id}' не найден "
                         f"для {intent.npc_id} в {location_id}"
@@ -116,6 +121,11 @@ class MovementEngine:
                         if target_ref:
                             # SpatialService: A* с учётом оверлея (риск, плотность)
                             from_ref = svc.get_node(from_node)
+                            if not from_ref:
+                                # ADR-0008: Сброс стартовой микро-зоны в макро-зону
+                                from_ref = svc.get_node("entrance") or svc.get_node("main_hall")
+                                if from_ref:
+                                    logger.debug(f"[MOVEMENT_ENGINE] Стартовая микро-зона '{from_node}' не найдена, фоллбэк на {from_ref.node_id}")
                             if from_ref:
                                 path_refs = svc.find_path(from_ref.xy, target_ref)
                                 # TransitTracker теперь работает с каноническими ID

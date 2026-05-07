@@ -205,7 +205,7 @@ class ReputationEngine:
         НЕ мутирует _states. Возвращает List[StateDeltas] с faction_id.
         Closing drift: если |base - current| < EPSILON → drift = base - current.
         """
-        from app.models.state_delta import StateDeltas
+        from app.models.state_delta import DeltaDomain, ReputationPayload, StateDeltas
 
         REPUTATION_DECAY_EPSILON: float = 0.001
         results: List[StateDeltas] = []
@@ -225,8 +225,13 @@ class ReputationEngine:
                 drift = faction.base_reputation - state.reputation
 
             results.append(StateDeltas(
+                # v1 backward compat (удаляется после миграции StateApplicator)
                 faction_id=fid,
                 reputation_delta=round(drift, 6),
+                # v2 domain-tagged payload
+                domain=DeltaDomain.REPUTATION,
+                target=fid,
+                payload=ReputationPayload(reputation_delta=round(drift, 6)),
                 source="reputation_decay",
             ))
 
@@ -238,7 +243,7 @@ class ReputationEngine:
 
         Принимает List[StateDeltas] с faction_id + reputation_delta.
         """
-        from app.models.state_delta import StateDeltas
+        from app.models.state_delta import DeltaDomain, ReputationPayload, StateDeltas
 
         for d in deltas:
             if not isinstance(d, StateDeltas):

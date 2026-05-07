@@ -2,7 +2,7 @@
 
 Локальная narrative-RPG с живым миром, где **Python считает причинность**, а **LLM озвучивает результат**.
 
-Проект в этой ветке (`V.0.5.2.7_Почти_почти_6`) — это рабочее ядро игры **The Fool**: Pygame-клиент, FastAPI backend, тик мира с постоянной time-driven фазой 0.5, память NPC, spatial-контур и атомарное сохранение состояния.
+Проект в этой ветке (`V.0.5.2.8_Почти_почти_7`) — это рабочее ядро игры **The Fool**: Pygame-клиент, FastAPI backend, тик мира с постоянной time-driven фазой 0.5, память NPC, spatial-контур, cinematic narrative-слой и атомарное сохранение состояния.
 
 ---
 
@@ -31,37 +31,48 @@
 
 ---
 
-## Текущий статус ветки V.0.5.2.7
+## Текущий статус ветки V.0.5.2.8
 
 ### Уже реализовано
 
 - Единый `GameLoop` для `run_turn` (REST) и `stream_turn` (SSE) без дублирования пайплайна.
-- `TickOrchestrator` как единая точка тика мира (idle + player finalize).
-- Фаза `0.5` выполняется в обоих путях (idle и player finalize): время в мире не останавливается на ходе игрока.
-- Добавлен `delta_buffer` + агрегация дельт (`_aggregate_deltas`) перед единым `apply_batch()` в фазе persistence.
-- В `TickOrchestrator` введён DI-контур: `set_state_applicator()`, `set_reputation_engine()`, `add_idle_handler()`.
-- `SceneStateManager` автоматически обогащает сцену `spatial_walls/spatial_obstacles` из editor JSON при загрузке.
-- `MovementEngine` переведён на канонический путь `SpatialService` без fallback на `LocationGraph`.
-- `graph_compiler.compile_graph()` теперь возвращает `connections` явно, без глобального hidden-store.
-- Константы интенсивности действий вынесены в единый `backend/app/domain/constants.py` (`ACTION_INTENSITY`).
-- Граница frontend/backend упрочнена: `GameLoop.idle_tick()` возвращает dict (DTO->dict конверсия внутри backend), bridge больше не знает `app.domain.*`.
-- `WorldSnapshotDTO` и `/api/world_state` остаются каноническим источником позиций и состояния для фронтенда.
-- Атомарный commit через `PersistencePort` + `SqlitePersistenceAdapter` (`atomic_commit`).
-- Добавлен `ReactionSubscriber` (Phase 8): прямые эмоциональные реакции наблюдателей на события (стресс/страх/доверие).
-- В `_build_npc_snapshots()` добавлен bridge-мэппинг `social_stats -> relationship_cache`, `loyalty_true -> base_values`, `faction_rank -> affiliations`.
-- Фронтенд (`game_screen.py`) перестал обращаться к backend-bridge напрямую для PerceivedScene: локальная сборка из `scene_state`.
-- `TickPlayerResultDTO` расширен полями `status/error`, а ветка исключений оркестратора возвращает корректный тип DTO в player-path.
-- Тестовый контур переведён на детерминированные фикстуры без зависимости от внешнего `campaign_state.json` и очищен от мёртвых legacy-тестов.
+- `TickOrchestrator` как единая точка тика мира (idle + player finalize) с phase-цепочкой `0 -> 10`.
+- `StateDeltas v2`: введены `DeltaDomain` + typed payloads (`SocialPayload`, `EmotionPayload`, `ReputationPayload`, `IdentityPayload`).
+- `_aggregate_deltas()` обновлён до v2-логики: группировка по `(npc_id, domain, target)` и merge payload-объектов.
+- `ReactionSubscriber` теперь разделяет реакцию на два канала: `EMOTION` (stress) и `SOCIAL` (fear/trust).
+- `SocialDecayHandler` и `ReputationEngine` начали эмитить domain-tagged дельты (с сохранением backward compatibility для legacy-полей).
+- Добавлен `_enrich_with_social_relations()` в `npc_loader`: `village_relations.json` реально попадает в runtime `relationship_cache/base_values`.
+- В `_build_npc_snapshots()` закрыт критический gap: гарантируется `player` entry даже при наличии NPC->NPC отношений.
+- В idle-пути синхронизированы `ctx.npc_states` и `ctx.all_npcs_raw` перед unified mutator (фиксация ADR-004).
+- Spatial-контур усилен fallback-логикой: при несовпадении микро- и макро-узлов движок сбрасывается в валидные зоны (`entrance/main_hall`).
+- В `scene_init` добавлена инъекция `SpatialService` и для catch-up тиков.
+- `WorldSnapshotBuilder` теперь заполняет `display_name` из runtime-данных NPC, а `SceneStateManager` добавляет имя в старые сохранения.
+- Frontend получил cinematic narrative-layer: `NarrativeBeat` + `NarrativeRenderer` + пузырь ввода игрока.
+- В `TextInput` добавлена физика удержания клавиш (ускоренный repeat), а также предотвращено залипание KEYUP.
+- Добавлены новые тесты для NPC social enrichment и full-loop smoke path оркестратора.
 
 ### Что важно в проекте The Fool после этого шага
 
-- Симуляция стала менее эксплуатируемой: игрок больше не может "замораживать" time-driven decay своими действиями.
-- Пространственный слой стал строже: поведение NPC больше завязано на реальную геометрию сцены из editor-данных.
-- Граница слоёв чище: frontend получает только сериализованный snapshot-контракт, а не backend-DTO напрямую.
-- Нормализована единая "семантика силы действия" (`ACTION_INTENSITY`) между разбором input и social propagation.
-- Появился отдельный контур мгновенных реакций свидетелей событий без запуска полного decision-цикла (важно для "живости" мира).
-- Восстановлен рабочий social decay: данные доверия/страха игрока теперь реально доходят до idle handlers.
-- Снижен риск "ложно-зелёного" CI за счёт удаления сломанных тестов, которые раньше жили через skip и маскировали регрессии.
+- Мир стал причинно полнее: теперь социальные связи работают не только `NPC -> player`, но и `NPC -> NPC`.
+- Phase 8 перестал быть монолитной реакцией: дельты стали типизированными по доменам, что снижает риск конфликтов при дальнейшем расширении (combat/physiology/spatial).
+- Уменьшен риск "тихой потери мутаций" в idle-cycle за счет синхронизации источника состояния для `StateApplicator`.
+- Пространственный слой стал практичнее в реальных сохранениях: NPC не «застревают» при несовпадении legacy-микрозон и макро-графа.
+- Фронтенд ушёл от плоского лога к сценическому представлению реплик; это повышает читаемость диалогов и UX без изменения ядра симуляции.
+- Граница backend/frontend остается чистой: truth по миру по-прежнему проходит через snapshot-контракт.
+
+### Внешний референс The Fool (изучено)
+
+Изучен внешний проект **The Fool** (CurseForge modpack, актуальный срез страницы на **7 мая 2026**) как тематический референс по оси «deception/disguise + системный прогресс».
+Ссылка: `https://www.curseforge.com/minecraft/modpacks/the-fool`.
+
+Что зафиксировано как полезный вектор для ENIGMA:
+- ставка на сильную тематику и узнаваемый tone;
+- многослойный прогресс (не только бой, но и социальные/контекстные механики);
+- высокая ценность понятного onboarding и play-guide в документации.
+
+Что сознательно не переносится:
+- ENIGMA не повторяет modpack-архитектуру и не зависит от Minecraft-экосистемы;
+- ядро ENIGMA остается: `LLM = Voice`, `Python = Logic`, с детерминированным state pipeline.
 
 ---
 
@@ -234,10 +245,11 @@ cd backend
 
 ## Ограничения текущей версии
 
-- Идёт миграция части модулей на единые контракты `EventDTO`/`StateDeltas` (часть legacy-мостов ещё остаётся).
+- Идёт миграция части модулей на единые контракты `EventDTO`/`StateDeltas v2` (часть legacy-мостов и v1-полей ещё остаётся).
 - В frontend остаются временные заглушки по части визуальных ассетов и переходов локаций.
-- Миграция legacy `LocationGraph` в `SpatialService` ещё не полностью завершена: часть legacy-тестов удалена/пересобирается под новый контракт.
-- `ReactionSubscriber` пока использует эвристическую формулу (MVP): коэффициенты реакций потребуют калибровки на длинных кампаниях.
+- Миграция legacy `LocationGraph` в `SpatialService` ещё не полностью завершена: fallback добавлен, но требуется полное выравнивание всех archetype/scene позиций.
+- `ReactionSubscriber` и decay-handlers пока используют эвристические коэффициенты (MVP): калибровка на длинных кампаниях обязательна.
+- `NarrativeRenderer` пока без продвинутой анимации жизненного цикла beat'ов (fade/pin/slam в полном объеме).
 
 ---
 
@@ -246,20 +258,22 @@ cd backend
 Ближайший вектор The Fool:
 
 1. Завершить унификацию phase handlers на `StateDeltas` и убрать финальные legacy-флаги/мосты.
-2. Закрыть migration gap между `LocationGraph` и `SpatialService` (включая тесты без `skip`).
-3. Докрутить эмоциональную модель Phase 8: адаптивные коэффициенты реакций с учётом контекста сцены/отношений.
-4. Укрепить player cognition + perception pipeline (меньше legacy `dict`, больше типизированных DTO).
-5. Упростить frontend слой: убрать временные заглушки, стабилизировать единый рендер world snapshot.
-6. Расширить системные тесты для end-to-end сценариев «действие игрока -> коммит мира -> восстановление состояния».
+2. Довести `StateApplicator` до полноценной поддержки v2 payload-first пути и снять зависимость от v1 fallback-полей.
+3. Закрыть migration gap между `LocationGraph` и `SpatialService` (включая тесты без `skip` и полную нормализацию микрозон).
+4. Докрутить эмоциональную модель Phase 8: адаптивные коэффициенты реакций с учётом контекста сцены/отношений.
+5. Укрепить player cognition + perception pipeline (меньше legacy `dict`, больше типизированных DTO).
+6. Развить cinematic narrative layer: lifetime-эффекты, priority-beats, фильтрация эха на backend-уровне.
+7. Расширить системные тесты для end-to-end сценариев «действие игрока -> коммит мира -> восстановление состояния».
 
 ---
 
-## Для ветки V.0.5.2.7_Почти_почти_6
+## Для ветки V.0.5.2.8_Почти_почти_7
 
-Эта ветка фиксирует шаг от «чистой time-driven механики» к «эмоционально реактивному миру с устойчивым тестовым контуром»:
-- в Фазе 8 появился отдельный реакционный слой наблюдателей (`ReactionSubscriber`);
-- восстановлена подача социальных данных в idle decay через корректный snapshot-мэппинг;
-- frontend дополнительно очищен от прямых backend-зависимостей;
-- тестовый слой очищен от мёртвого legacy и привязан к детерминированным in-memory фикстурам.
+Эта ветка фиксирует шаг от «эмоционально реактивного мира» к «типизированному контурy мутаций + NPC->NPC социальным связям + cinematic UI-слою»:
+- введен `StateDeltas v2` (domain-tagged payloads) без разрыва совместимости;
+- замкнут полный путь NPC->NPC social enrichment (`village_relations.json -> snapshot -> decay`);
+- устранены критические точки потери мутаций и spatial-паралича в idle/catch-up путях;
+- frontend получил сценический формат реплик (`NarrativeBeat/NarrativeRenderer`) вместо плоского чата;
+- тестовый слой усилен новыми инвариантами по social-enrichment и full-loop оркестратора.
 
-Сравнительный отчёт изменений: `COMPARISON_REPORT_V.0.5.2.7_Почти_почти_6.md`.
+Сравнительный отчёт изменений: `COMPARISON_REPORT_V.0.5.2.8_Почти_почти_7.md`.
