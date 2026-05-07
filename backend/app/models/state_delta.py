@@ -13,9 +13,32 @@ ProactiveDecision.deltas_dict → мигрировано в StateDeltas.
 """
 
 from dataclasses import dataclass, field
-from typing import Dict, Optional
+from enum import Enum
+from typing import Dict, Optional, Union
 
+from app.models.delta_payloads import (
+    EmotionPayload,
+    IdentityPayload,
+    ReputationPayload,
+    SocialPayload,
+)
 from app.models.npc_state import EmotionTag, WillState
+
+
+class DeltaDomain(Enum):
+    """Домены мутаций для StateDeltas v2."""
+    SOCIAL = "social"
+    EMOTION = "emotion"
+    REPUTATION = "reputation"
+    IDENTITY = "identity"
+    # БУДУЩЕЕ
+    COMBAT = "combat"
+    PHYSIOLOGY = "physiology"
+    SPATIAL = "spatial"
+
+
+# Union тип — IDE знает все варианты, autocomplete работает
+DeltaPayload = Union[SocialPayload, EmotionPayload, ReputationPayload, IdentityPayload]
 
 
 @dataclass
@@ -60,54 +83,49 @@ class StateDeltas:
     pressure_resistance_delta:  float = 0.0
     will_state_override: Optional[WillState] = None
 
-    def __post_init__(self) -> None:
-        """Структурная валидация: один тип таргета, семантическая изоляция.
-        
-        Семантическая валидация (trust_delta без таргета) — в StateApplicator,
-        т.к. DecisionHub ставит trust_delta после конструирования.
-        """
-        _targets = [
-            t for t in (self.intent_target, self.social_target, self.faction_id)
-            if t is not None
-        ]
-        if len(_targets) > 1:
-            raise ValueError(
-                f"StateDeltas: только один тип таргета, "
-                f"получено: intent={self.intent_target}, "
-                f"social={self.social_target}, faction={self.faction_id}"
-            )
-        # reputation_delta допустим только с faction_id
-        if self.reputation_delta != 0.0 and self.faction_id is None:
-            raise ValueError(
-                "StateDeltas: reputation_delta требует faction_id"
-            )
-        # trust_delta/fear_delta несовместимы с faction_id
-        if self.faction_id is not None and (self.trust_delta != 0.0 or self.fear_delta != 0.0):
-            raise ValueError(
-                "StateDeltas: faction_id несовместим с trust_delta/fear_delta "
-                "(используйте reputation_delta)"
-            )
+    # --- v2: Domain-Tagged Typed Payloads ---
+    domain:  Optional[DeltaDomain] = None   # Домен мутации (v2)
+    target:  Optional[str] = None           # Универсальный таргет (v2): player, npc_id, faction_id
+    payload: Optional[DeltaPayload] = None   # Типизированный payload (v2)
 
     def __post_init__(self) -> None:
-        """Валидация: только один тип таргета, семантическая изоляция полей."""
-        _targets = [
-            t for t in (self.intent_target, self.social_target, self.faction_id)
-            if t is not None
-        ]
-        if len(_targets) > 1:
-            raise ValueError(
-                f"StateDeltas: только один тип таргета, "
-                f"получено: intent={self.intent_target}, "
-                f"social={self.social_target}, faction={self.faction_id}"
-            )
-        # reputation_delta допустим только с faction_id
-        if self.reputation_delta != 0.0 and self.faction_id is None:
-            raise ValueError(
-                "StateDeltas: reputation_delta требует faction_id"
-            )
-        # trust_delta/fear_delta несовместимы с faction_id
-        if self.faction_id is not None and (self.trust_delta != 0.0 or self.fear_delta != 0.0):
-            raise ValueError(
-                "StateDeltas: faction_id несовместим с trust_delta/fear_delta "
-                "(используйте reputation_delta)"
-            )
+        """Валидация: v1 (один тип таргета) + v2 (payload соответствует domain)."""
+        _DOMAIN_PAYLOAD_MAP = {
+            DeltaDomain.SOCIAL: SocialPayload,
+            DeltaDomain.EMOTION: EmotionPayload,
+            DeltaDomain.REPUTATION: ReputationPayload,
+            DeltaDomain.IDENTITY: IdentityPayload,
+        }
+
+        # v2 валидация: если указан domain, payload должен соответствовать
+        if self.domain is not None and self.payload is not None:
+            expected = _DOMAIN_PAYLOAD_MAP.get(self.domain)
+            if expected and not isinstance(self.payload, expected):
+                raise TypeError(
+                    f"StateDeltas v2: domain {self.domain.value} требует {expected.__name__}, "
+                    f"получен {type(self.payload).__name__}"
+                )
+
+        # v1 валидация (обратная совместимость, пока миграция не завершена)
+        if self.domain is None:
+            _targets = [
+                t for t in (self.intent_target, self.social_target, self.faction_id)
+                if t is not None
+            ]
+            if len(_targets) > 1:
+                raise ValueError(
+                    f"StateDeltas: только один тип таргета, "
+                    f"получено: intent={self.intent_target}, "
+                    f"social={self.social_target}, faction={self.faction_id}"
+                )
+            # reputation_delta допустим только с faction_id
+            if self.reputation_delta != 0.0 and self.faction_id is None:
+                raise ValueError(
+                    "StateDeltas: reputation_delta требует faction_id"
+                )
+            # trust_delta/fear_delta несовместимы с faction_id
+            if self.faction_id is not None and (self.trust_delta != 0.0 or self.fear_delta != 0.0):
+                raise ValueError(
+                    "StateDeltas: faction_id несовместим с trust_delta/fear_delta "
+                    "(используйте reputation_delta)"
+                )

@@ -13,12 +13,12 @@
   "activity_map": {
     "serving_tables": {
       "location": "tavern_silver_wolf",
-      "position": "serving_table_3",
+      "position": "main_hall",
       "display": "serving_tables"
     },
     "working": {
       "location": "tavern_silver_wolf",
-      "position": "serving_table_3",
+      "position": "main_hall",
       "display": "serving_tables"
     },
     "sleeping": {

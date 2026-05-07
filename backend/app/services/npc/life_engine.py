@@ -538,7 +538,7 @@ class LifeEngine:
 
                 # Когнитивные искажения — idle NPC подвержены накопленным bias (Устав §3.1)
                 interpretation = InterpretationEngine().compute(
-                    state=state_l2, event=event
+                    state=state_l2, event=event, drives_base=profile_l0.drives_base
                 )
 
                 # Drive modifiers из temporary_drives

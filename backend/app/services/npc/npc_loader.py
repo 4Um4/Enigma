@@ -151,6 +151,74 @@ def load_social_base() -> Dict[str, Any]:
     return relations
 
 
+def _enrich_with_social_relations(
+    npcs: List[Dict[str, Any]],
+    relations: Dict[str, Any],
+) -> None:
+    """Обогащает NPC dict связями из village_relations.json.
+
+    village_relations.json использует шкалу 0-1 (base_trust: 0.3).
+    SocialDecayHandler ожидает шкалу 0-100.
+    Конвертация: base_trust * 100.
+
+    Формат обогащения:
+      relationship_cache[target] = {trust, fear, base_trust, nature}
+      base_values[target] = base_trust * 100
+
+    Не перезаписывает существующие записи (runtime мог мутировать).
+    Мутирует NPC dicts in-place — вызывается только при загрузке.
+    """
+    # Индекс NPC по ID для быстрого поиска
+    npc_by_id: Dict[str, Dict[str, Any]] = {}
+    for npc in npcs:
+        if isinstance(npc, dict):
+            _id = npc.get("id", "")
+            if _id:
+                npc_by_id[_id] = npc
+
+    for source_id, targets in relations.items():
+        if source_id not in npc_by_id:
+            logger.debug(
+                f"[NPC_LOADER] Social relation source '{source_id}' "
+                f"not found in loaded NPCs, skipping"
+            )
+            continue
+
+        npc = npc_by_id[source_id]
+
+        # Инициализация relationship_cache
+        if "relationship_cache" not in npc or not isinstance(npc["relationship_cache"], dict):
+            npc["relationship_cache"] = {}
+        rc = npc["relationship_cache"]
+
+        # Инициализация base_values
+        if "base_values" not in npc or not isinstance(npc["base_values"], dict):
+            npc["base_values"] = {}
+        bv = npc["base_values"]
+
+        for target_id, rel_data in targets.items():
+            if not isinstance(rel_data, dict):
+                continue
+
+            base_trust_01 = float(rel_data.get("base_trust", 0.0))
+            base_trust_100 = base_trust_01 * 100.0
+            nature = rel_data.get("nature", "unknown")
+
+            # Не перезаписываем существующие (runtime мог мутировать)
+            if target_id not in rc:
+                rc[target_id] = {
+                    "trust": base_trust_100,
+                    "fear": 0.0,
+                    "base_trust": base_trust_100,
+                    "nature": nature,
+                }
+
+            if target_id not in bv:
+                bv[target_id] = base_trust_100
+
+    logger.debug(f"[NPC_LOADER] Enriched {len(npcs)} NPCs with social relations")
+
+
 # =============================================================================
 # СИСТЕМА МЕРЖА STATIC + RUNTIME (ШАГ 1.5.3b)
 # =============================================================================
@@ -242,9 +310,13 @@ def load_npcs_merged(runtime_path: Optional[Path] = None) -> List[Dict[str, Any]
         except Exception as e:
             logger.error(f"[NPC_LOADER] Failed to load {json_file.name}: {e}")
             raise
-    
-    # 2. Если нет runtime — возвращаем чистый static
+
+    # 1.5 Загружаем социальные связи для обогащения NPC→NPC
+    social_base = load_social_base()
+
+    # 2. Если нет runtime — обогащаем и возвращаем static
     if not runtime_path or not runtime_path.exists():
+        _enrich_with_social_relations(static_npcs, social_base)
         logger.info(f"[NPC_LOADER] No runtime file, loaded {len(static_npcs)} NPCs from config only")
         return static_npcs
     
@@ -257,6 +329,7 @@ def load_npcs_merged(runtime_path: Optional[Path] = None) -> List[Dict[str, Any]
         }
     except Exception as e:
         logger.warning(f"[NPC_LOADER] Failed to load runtime {runtime_path}: {e}, using static only")
+        _enrich_with_social_relations(static_npcs, social_base)
         return static_npcs
     
     # 4. Мержим runtime поверх static
@@ -271,6 +344,7 @@ def load_npcs_merged(runtime_path: Optional[Path] = None) -> List[Dict[str, Any]
             result.append(static_npc)
             logger.debug(f"[NPC_LOADER] {npc_id}: static only (no runtime data)")
     
+    _enrich_with_social_relations(result, social_base)
     logger.info(f"[NPC_LOADER] Loaded {len(result)} NPCs (config + runtime from {runtime_path.name})")
     return result
 

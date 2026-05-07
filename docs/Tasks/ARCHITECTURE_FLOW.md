@@ -8,6 +8,7 @@ end
 subgraph Phase_0_2[Фазы 0-2: Input and Simulation]
 P0[Phase 0: LifeEngine] -->|scene_changes| P05
 P0 -->|scene_changes| P2
+P0 -->|ctx.npc_states = ctx.all_npcs_raw| SA_SYNC[State Sync ADR-004]
 P05[Phase 0.5: Idle Services ALWAYS] -->|List StateDeltas| DBUF[delta_buffer]
 PI[Player Input] -->|IntentDTO| P1[Phase 1: Input]
 P1 -->|EventDTO intensity from ACTION_INTENSITY| P2[Phase 2: EventBus]
@@ -22,7 +23,18 @@ SNAP --> RDH[ReputationDecayHandler]
 RDH -->|calls| RE[ReputationEngine.compute_decay pure]
 SDH -->|StateDeltas social_target trust_delta| DBUF2[delta_buffer]
 RDH -->|StateDeltas faction_id reputation_delta| DBUF2
+SDH -->|StateDeltas social_target NPC-to-NPC trust_delta| DBUF2
 end
+
+subgraph NPC_Loading[NPC Loading Pipeline]
+NPS[config/npc/individuals/*.json] -->|load_archetype_chain| MERG[static NPC dicts]
+MERG -->|+ runtime overlay| RUNTIME[npc_runtime.json]
+RUNTIME --> ENRICH[_enrich_with_social_relations village_relations.json]
+ENRICH -->|relationship_cache NPC-to-NPC + base_values| LOADED[Loaded NPC dicts]
+VR[config/npc/social/village_relations.json] -->|load_social_base| ENRICH
+end
+
+LOADED -.->|all_npcs_raw| SNAP
 
 subgraph Phase_3_7[Фазы 3-7: Memory and Decision]
 P2 -->|EventDTO| P3[Phase 3: MemoryProcessor]
@@ -35,8 +47,11 @@ end
 subgraph Phase_8[Фаза 8: Event-driven Handlers]
 P7 -->|drain_events| PER[PerceptionSubscriber]
 P2 -->|drain_events| PER
-P7 -->|drain_events| RXT[ReactionSubscriber]
-P2 -->|drain_events| RXT
+P7 -->|drain_events| SOC[SocialSubscriber]
+P2 -->|drain_events| SOC
+P7 -->|drain_events| REACT[ReactionSubscriber]
+P2 -->|drain_events| REACT
+REACT -->|Phase8Result stress/fear deltas| ORCH
 P7 -->|drain_events| SOC[SocialSubscriber]
 P2 -->|drain_events| SOC
 

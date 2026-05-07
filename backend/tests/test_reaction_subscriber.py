@@ -209,7 +209,7 @@ class TestReactionRules:
     """Проверяет, что правила генерируют корректные дельты."""
 
     def test_attack_generates_stress_and_fear(self):
-        """Атака → стресс + страх + потеря доверия."""
+        """Атака → стресс + страх + потеря доверия (v2: 2 дельты)."""
         sub = _create_subscriber()
         npc = _make_npc("npc_1")
         ctx = _make_ctx(
@@ -217,16 +217,20 @@ class TestReactionRules:
             shared_context=_FakeSharedContext(perceiving_npcs=["npc_1"]),
         )
         result = sub.handle([_make_event("player_attacks", "player")], ctx)
-        assert len(result.deltas) == 1
-        delta = result.deltas[0]
-        assert delta.npc_id == "npc_1"
-        assert delta.stress_delta > 0
-        assert delta.fear_delta > 0
-        assert delta.trust_delta < 0
-        assert delta.intent_target == "player"
+        assert len(result.deltas) == 2
+        # EMOTION дельта (стресс)
+        emotion_d = [d for d in result.deltas if d.domain is not None and d.domain.value == "emotion"][0]
+        assert emotion_d.npc_id == "npc_1"
+        assert emotion_d.stress_delta > 0
+        # SOCIAL дельта (страх, доверие)
+        social_d = [d for d in result.deltas if d.domain is not None and d.domain.value == "social"][0]
+        assert social_d.npc_id == "npc_1"
+        assert social_d.fear_delta > 0
+        assert social_d.trust_delta < 0
+        assert social_d.intent_target == "player"
 
     def test_help_reduces_stress_and_increases_trust(self):
-        """Помощь → снижение стресса + рост доверия."""
+        """Помощь → снижение стресса + рост доверия (v2: 2 дельты)."""
         sub = _create_subscriber()
         npc = _make_npc("npc_1")
         ctx = _make_ctx(
@@ -234,13 +238,16 @@ class TestReactionRules:
             shared_context=_FakeSharedContext(perceiving_npcs=["npc_1"]),
         )
         result = sub.handle([_make_event("help", "player")], ctx)
-        assert len(result.deltas) == 1
-        delta = result.deltas[0]
-        assert delta.stress_delta < 0
-        assert delta.trust_delta > 0
+        assert len(result.deltas) == 2
+        # EMOTION дельта
+        emotion_d = [d for d in result.deltas if d.domain is not None and d.domain.value == "emotion"][0]
+        assert emotion_d.stress_delta < 0
+        # SOCIAL дельта
+        social_d = [d for d in result.deltas if d.domain is not None and d.domain.value == "social"][0]
+        assert social_d.trust_delta > 0
 
     def test_saved_life_reduces_fear(self):
-        """Спасение жизни → снижение страха + рост доверия."""
+        """Спасение жизни → снижение страха + рост доверия (v2: 2 дельты)."""
         sub = _create_subscriber()
         npc = _make_npc("npc_1")
         ctx = _make_ctx(
@@ -248,10 +255,12 @@ class TestReactionRules:
             shared_context=_FakeSharedContext(perceiving_npcs=["npc_1"]),
         )
         result = sub.handle([_make_event("saved_life", "player")], ctx)
-        assert len(result.deltas) == 1
-        delta = result.deltas[0]
-        assert delta.fear_delta < 0
-        assert delta.trust_delta > 0
+        # saved_life даёт stress и fear/trust → 2 дельты
+        assert len(result.deltas) == 2
+        # Ищем SOCIAL дельту (fear, trust)
+        social_d = [d for d in result.deltas if d.domain is not None and d.domain.value == "social"][0]
+        assert social_d.fear_delta < 0
+        assert social_d.trust_delta > 0
 
     def test_unknown_event_type_skipped(self):
         """Неизвестный event_type → нет дельт."""
@@ -271,7 +280,7 @@ class TestReactionTrustRouting:
     """Проверяет маршрутизацию trust_delta по источнику события."""
 
     def test_player_source_uses_intent_target(self):
-        """Действие игрока → intent_target="player"."""
+        """Действие игрока → intent_target="player" (в SOCIAL дельте)."""
         sub = _create_subscriber()
         npc = _make_npc("npc_1")
         ctx = _make_ctx(
@@ -279,12 +288,12 @@ class TestReactionTrustRouting:
             shared_context=_FakeSharedContext(perceiving_npcs=["npc_1"]),
         )
         result = sub.handle([_make_event("player_attacks", "player")], ctx)
-        delta = result.deltas[0]
-        assert delta.intent_target == "player"
-        assert delta.social_target is None
+        social_d = [d for d in result.deltas if d.domain is not None and d.domain.value == "social"][0]
+        assert social_d.intent_target == "player"
+        assert social_d.social_target is None
 
     def test_npc_source_uses_social_target(self):
-        """Действие NPC → social_target=npc_id."""
+        """Действие NPC → social_target=npc_id (в SOCIAL дельте)."""
         sub = _create_subscriber()
         source_npc = _make_npc("npc_attacker")
         observer_npc = _make_npc("npc_observer")
@@ -296,11 +305,12 @@ class TestReactionTrustRouting:
             [_make_event("combat", source="npc_attacker")], ctx
         )
         # npc_attacker — источник, исключён. npc_observer — наблюдатель
-        assert len(result.deltas) == 1
-        delta = result.deltas[0]
-        assert delta.npc_id == "npc_observer"
-        assert delta.social_target == "npc_attacker"
-        assert delta.intent_target is None
+        # v2: 2 дельты (EMOTION + SOCIAL)
+        assert len(result.deltas) == 2
+        social_d = [d for d in result.deltas if d.domain is not None and d.domain.value == "social"][0]
+        assert social_d.npc_id == "npc_observer"
+        assert social_d.social_target == "npc_attacker"
+        assert social_d.intent_target is None
 
 
 # ── Исключение источника ─────────────────────────────────────────────────
@@ -332,9 +342,9 @@ class TestReactionSourceExclusion:
         result = sub.handle(
             [_make_event("player_attacks", source="player")], ctx
         )
-        # Только 1 delta для npc_1, player не в all_npcs_raw
+        # v2: 2 дельты (EMOTION + SOCIAL) для npc_1, player не в all_npcs_raw
         assert all(d.npc_id != "player" for d in result.deltas)
-        assert len(result.deltas) == 1
+        assert len(result.deltas) == 2
 
 
 # ── Множественные наблюдатели ────────────────────────────────────────────
@@ -351,7 +361,8 @@ class TestReactionMultipleObservers:
             shared_context=_FakeSharedContext(perceiving_npcs=["npc_a", "npc_b"]),
         )
         result = sub.handle([_make_event("player_attacks")], ctx)
-        assert len(result.deltas) == 2
+        # v2: 2 наблюдателя * 2 домена (EMOTION + SOCIAL) = 4 дельты
+        assert len(result.deltas) == 4
         npc_ids = {d.npc_id for d in result.deltas}
         assert npc_ids == {"npc_a", "npc_b"}
 
@@ -365,7 +376,9 @@ class TestReactionMultipleObservers:
             shared_context=_FakeSharedContext(perceiving_npcs=["coward", "brave"]),
         )
         result = sub.handle([_make_event("player_attacks")], ctx)
-        by_id = {d.npc_id: d for d in result.deltas}
+        # v2: фильтруем EMOTION дельты для проверки stress_delta
+        emotion_deltas = [d for d in result.deltas if d.domain is not None and d.domain.value == "emotion"]
+        by_id = {d.npc_id: d for d in emotion_deltas}
         # Трус получает больше стресса
         assert by_id["coward"].stress_delta > by_id["brave"].stress_delta
 
@@ -385,8 +398,8 @@ class TestReactionPerceivingFallback:
             shared_context=_FakeSharedContext(perceiving_npcs=None),
         )
         result = sub.handle([_make_event("player_attacks")], ctx)
-        # Все NPC реагируют
-        assert len(result.deltas) == 2
+        # v2: 2 NPC * 2 домена (EMOTION + SOCIAL)
+        assert len(result.deltas) == 4
 
     def test_fallback_all_npcs_when_no_shared_context(self):
         sub = _create_subscriber()
@@ -396,7 +409,8 @@ class TestReactionPerceivingFallback:
             shared_context=None,
         )
         result = sub.handle([_make_event("player_attacks")], ctx)
-        assert len(result.deltas) == 1
+        # v2: 1 NPC * 2 домена (EMOTION + SOCIAL)
+        assert len(result.deltas) == 2
 
 
 # ── Интенсивность ────────────────────────────────────────────────────────
@@ -426,9 +440,10 @@ class TestReactionIntensity:
         )
         event = _make_event(intensity=0.5)
         result = sub.handle([event], ctx)
-        assert len(result.deltas) == 1
-        # Дельта должна быть ненулевой
-        assert result.deltas[0].stress_delta != 0.0
+        assert len(result.deltas) == 2
+        # Проверяем EMOTION дельту
+        emotion_d = [d for d in result.deltas if d.domain is not None and d.domain.value == "emotion"][0]
+        assert emotion_d.stress_delta != 0.0
 
 
 # ── Реакционные типы событий ─────────────────────────────────────────────

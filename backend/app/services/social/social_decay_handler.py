@@ -23,7 +23,7 @@ import math
 from typing import Any, Dict, List
 
 from app.models.idle_tick import NPCStateSnapshot
-from app.models.state_delta import StateDeltas
+from app.models.state_delta import DeltaDomain, SocialPayload, StateDeltas
 
 logger = logging.getLogger(__name__)
 
@@ -81,8 +81,13 @@ class SocialDecayHandler:
 
                 results.append(StateDeltas(
                     npc_id=npc_id,
+                    # v1 backward compat (удаляется после миграции StateApplicator)
                     social_target=target,
                     trust_delta=round(drift, 6),
+                    # v2 domain-tagged payload
+                    domain=DeltaDomain.SOCIAL,
+                    target=target,
+                    payload=SocialPayload(trust_delta=round(drift, 6)),
                     source="social_decay",
                 ))
 

@@ -73,6 +73,15 @@ class TextInput:
         # Вертикальное смещение для автоскролла длинного текста
         self._scroll_offset: int = 0
 
+        # Физика зажатия клавиш (Key Repeat с ускорением)
+        self._held_key: Optional[int] = None
+        self._hold_time: float = 0.0
+        self._next_repeat_time: float = 0.0
+        self._current_repeat_interval: float = 0.12
+        self._REPEAT_INITIAL_DELAY: float = 0.35  # секунд до начала повтора
+        self._REPEAT_MIN_INTERVAL: float = 0.04   # максимальная скорость (интервал)
+        self._REPEAT_ACCELERATION: float = 0.85   # множитель ускорения каждый повтор
+
     # ── Публичный API ──────────────────────────────────────────────────
 
     @property
@@ -82,6 +91,9 @@ class TextInput:
     @focused.setter
     def focused(self, value: bool) -> None:
         self._focused = value
+        if not value:
+            # Сбрасываем инерцию при потере фокуса, чтобы не было залипания клавиш
+            self._held_key = None
 
     @property
     def text(self) -> str:
@@ -122,6 +134,8 @@ class TextInput:
     def set_focused(self, focused: bool) -> None:
         """Устанавливает фокус (совместимость)."""
         self._focused = focused
+        if not focused:
+            self._held_key = None
 
     # ── Обработка событий ──────────────────────────────────────────────
 
@@ -129,6 +143,12 @@ class TextInput:
         """
         Обрабатывает событие pygame. Возвращает True если событие обработано.
         """
+        # Сброс инерции при отпускании клавиши — СТРОГО ДО проверки фокуса!
+        # Иначе при потере фокуса зажатая клавиша останется "висеть" в воздухе
+        if event.type == pygame.KEYUP:
+            self._stop_hold(event.key)
+            return False
+
         # Клик по полю ввода всегда забирает фокус (даже если был сброшен через Tab)
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if self.rect.collidepoint(event.pos):
@@ -177,8 +197,8 @@ class TextInput:
                 self._copy_to_clipboard()
                 return True
             elif event.key == pygame.K_v:
-                # Вставить
-                self._paste_from_clipboard()
+                # ПОЛНЫЙ ЗАПРЕТ вставки (ТЗ п.4) — только ручной ввод
+                # TODO: Если Мастер тай переубедит — вернуть _paste_from_clipboard() с rate_limit
                 return True
             elif event.key == pygame.K_x:
                 # Вырезать
@@ -198,23 +218,15 @@ class TextInput:
         if event.key == pygame.K_DOWN:
             return self._history_next()
 
-        # Движение курсора
+        # Движение курсора (с поддержкой инерции)
         if event.key == pygame.K_LEFT:
-            if mods & pygame.KMOD_SHIFT:
-                self._extend_selection_left()
-            else:
-                self._selection_start = None
-                self._cursor_pos = max(0, self._cursor_pos - 1)
-            self._update_scroll()
+            self._move_left()
+            self._start_hold(event.key)
             return True
 
         if event.key == pygame.K_RIGHT:
-            if mods & pygame.KMOD_SHIFT:
-                self._extend_selection_right()
-            else:
-                self._selection_start = None
-                self._cursor_pos = min(len(self._text), self._cursor_pos + 1)
-            self._update_scroll()
+            self._move_right()
+            self._start_hold(event.key)
             return True
 
         if event.key == pygame.K_HOME:
@@ -239,22 +251,15 @@ class TextInput:
             self._update_scroll()
             return True
 
-        # Удаление
+        # Удаление (с поддержкой инерции)
         if event.key == pygame.K_BACKSPACE:
-            if self._selection_start is not None:
-                self._delete_selection()
-            elif self._cursor_pos > 0:
-                self._cursor_pos -= 1
-                self._text = self._text[:self._cursor_pos] + self._text[self._cursor_pos + 1:]
-            self._update_scroll()
+            self._do_backspace()
+            self._start_hold(event.key)
             return True
 
         if event.key == pygame.K_DELETE:
-            if self._selection_start is not None:
-                self._delete_selection()
-            elif self._cursor_pos < len(self._text):
-                self._text = self._text[:self._cursor_pos] + self._text[self._cursor_pos + 1:]
-            self._update_scroll()
+            self._do_delete()
+            self._start_hold(event.key)
             return True
 
         # Enter — не обрабатываем здесь (внешний код решает что делать)
@@ -394,6 +399,77 @@ class TextInput:
                 self._insert_text(text)
         except Exception:
             pass  # Буфер обмена недоступен — нормально для некоторых ОС
+
+    # ── Обновление (Физика зажатия) ────────────────────────────────────
+
+    def update(self, dt: float) -> None:
+        """Обновляет состояние инерции. Вызывать каждый кадр с dt в секундах."""
+        if self._held_key is None:
+            return
+
+        self._hold_time += dt
+        if self._hold_time >= self._next_repeat_time:
+            self._execute_key_action(self._held_key)
+            self._next_repeat_time = self._hold_time + self._current_repeat_interval
+            # Постепенно набираем скорость (уменьшаем интервал)
+            self._current_repeat_interval = max(
+                self._REPEAT_MIN_INTERVAL,
+                self._current_repeat_interval * self._REPEAT_ACCELERATION
+            )
+
+    def _start_hold(self, key: int) -> None:
+        """Начинает отслеживание зажатия клавиши."""
+        self._held_key = key
+        self._hold_time = 0.0
+        self._next_repeat_time = self._REPEAT_INITIAL_DELAY
+        self._current_repeat_interval = 0.12
+
+    def _stop_hold(self, key: int) -> None:
+        """Останавливает отслеживание при отпускании."""
+        if self._held_key == key:
+            self._held_key = None
+
+    def _execute_key_action(self, key: int) -> None:
+        """Исполняет действие для инерционного повтора."""
+        if key == pygame.K_LEFT: self._move_left()
+        elif key == pygame.K_RIGHT: self._move_right()
+        elif key == pygame.K_UP: self._history_prev()
+        elif key == pygame.K_DOWN: self._history_next()
+        elif key == pygame.K_BACKSPACE: self._do_backspace()
+        elif key == pygame.K_DELETE: self._do_delete()
+
+    def _move_left(self) -> None:
+        mods = pygame.key.get_mods()
+        if mods & pygame.KMOD_SHIFT:
+            self._extend_selection_left()
+        else:
+            self._selection_start = None
+            self._cursor_pos = max(0, self._cursor_pos - 1)
+        self._update_scroll()
+
+    def _move_right(self) -> None:
+        mods = pygame.key.get_mods()
+        if mods & pygame.KMOD_SHIFT:
+            self._extend_selection_right()
+        else:
+            self._selection_start = None
+            self._cursor_pos = min(len(self._text), self._cursor_pos + 1)
+        self._update_scroll()
+
+    def _do_backspace(self) -> None:
+        if self._selection_start is not None:
+            self._delete_selection()
+        elif self._cursor_pos > 0:
+            self._cursor_pos -= 1
+            self._text = self._text[:self._cursor_pos] + self._text[self._cursor_pos + 1:]
+        self._update_scroll()
+
+    def _do_delete(self) -> None:
+        if self._selection_start is not None:
+            self._delete_selection()
+        elif self._cursor_pos < len(self._text):
+            self._text = self._text[:self._cursor_pos] + self._text[self._cursor_pos + 1:]
+        self._update_scroll()
 
     # ── Отрисовка ──────────────────────────────────────────────────────
 
