@@ -161,7 +161,7 @@ def _idle_tick_interval_ms(nearest_dist: float) -> int:
         return IDLE_TICK_FAR_MS
 
 
-def _check_transition_trigger(scene_state: dict, px: float, py: float, message_log: list) -> None:
+def _check_transition_trigger(scene_state: dict, px: float, py: float, system_log: list) -> None:
     """Проверяет, наступил ли игрок на триггер перехода (door_transition)."""
     for obj_id, obj_data in scene_state.get("objects", {}).items():
         if obj_data.get("type") != "door_transition":
@@ -179,11 +179,11 @@ def _check_transition_trigger(scene_state: dict, px: float, py: float, message_l
             
             if target_file:
                 # TODO: будет удалено после: реализации полноценной смены локации через scene_state_manager
-                message_log.append(f"> Переход в {target_file} (портал: {target_portal})...")
+                system_log.append(f"> Переход в {target_file} (портал: {target_portal})...")
             else:
                 # Защита от спама в лог при каждом тике движения на клетке
-                if not message_log or "Привязка" not in message_log[-1]:
-                    message_log.append("> Дверь никуда не ведёт (не привязана в редакторе)")
+                if not system_log or "Привязка" not in system_log[-1]:
+                    system_log.append("> Дверь никуда не ведёт (не привязана в редакторе)")
 
 
 class GameScreen:
@@ -196,7 +196,8 @@ class GameScreen:
 
     def run(self, campaign_folder: str, player_name: str = "") -> None:
         """Запускает игровой экран для выбранной кампании"""
-        message_log: list[str] = []
+        message_log: list = []  # Cinematic Layer: Только NarrativeBeat
+        system_log: list[str] = []  # Log Layer: Системные сообщения, движение, ошибки
 
         # Неблокирующая очередь к backend — LLM не замораживает Pygame
         _gateway, action_queue = create_game_gateway()
@@ -207,7 +208,7 @@ class GameScreen:
             try:
                 _gateway.create_player_session(campaign_folder, player_name)
             except Exception as e:
-                message_log.append(f"[!] Backend session: {e}")
+                system_log.append(f"[!] Backend session: {e}")
 
         # Загружаем состояние ПОСЛЕ сессии — теперь scene_state уже скомпилирован
         scene_state = _load_campaign_state(campaign_folder)
@@ -246,7 +247,7 @@ class GameScreen:
             pass_through_keys=_WASD_KEYS,
         )
         text_input.focused = False  # По умолчанию фокус на игре, а не на чате
-        message_log: list[str] = [] # Временный адаптер, пока бэкенд не шьет NarrativeBeat
+        _last_player_input: str = "" # Надежная память последнего ввода для фильтра эха
         
         # Инициализация Сценического Рендерера (Устав §10)
         from narrative_renderer import NarrativeRenderer
@@ -327,6 +328,10 @@ class GameScreen:
                         
                         # Создаем сценическое событие для пузыря игрока (ТЗ 3 + Мастер тай)
                         from narrative_beat import NarrativeBeat, DeliveryType, RecognitionLevel
+                        
+                        # Сохраняем текст для фильтрации эха от LLM
+                        _last_player_input = text_input.text.strip()
+                        
                         player_beat = NarrativeBeat(
                             speaker=player_name,
                             text=text_input.text.strip(),
@@ -388,9 +393,9 @@ class GameScreen:
                         )
                         move.path_index = 0
                         if move.path:
-                            message_log.append(f"Идёшь к {clicked_npc} ({len(move.path)} точек)")
+                            system_log.append(f"Идёшь к {clicked_npc} ({len(move.path)} точек)")
                         else:
-                            message_log.append("Путь не найден")
+                            system_log.append("Путь не найден")
                             move.target_npc_id = None
                 elif event.type == pygame.VIDEORESIZE:
                     self.screen = pygame.display.set_mode(
@@ -422,7 +427,7 @@ class GameScreen:
                             if move.target_npc_id:
                                 from npc_name_resolver import npc_id_to_display
                                 name = npc_id_to_display(move.target_npc_id)
-                                message_log.append(f"Ты подошёл к {name}")
+                                system_log.append(f"Ты подошёл к {name}")
                                 move.target_npc_id = None
                     else:
                         result = try_move(
@@ -442,7 +447,7 @@ class GameScreen:
                     if arrived:
                         from npc_name_resolver import npc_id_to_display
                         name = npc_id_to_display(move.target_npc_id)
-                        message_log.append(f"Ты подошёл к {name}")
+                        system_log.append(f"Ты подошёл к {name}")
                         move.target_npc_id = None
                     elif result.success:
                         moved = True
@@ -468,7 +473,7 @@ class GameScreen:
 
                 if moved:
                     _set_player_xy(scene_state, result.new_x, result.new_y)
-                    _check_transition_trigger(scene_state, result.new_x, result.new_y, message_log)
+                    _check_transition_trigger(scene_state, result.new_x, result.new_y, system_log)
                     move.cooldown = _MOVE_INTERVAL
                     # Накопительное время: 10 сек за каждый полный метр (а не за микро-шаг 0.3)
                     move.walk_distance_accumulated += 0.3  # step_size
@@ -582,7 +587,7 @@ class GameScreen:
             result = action_queue.poll()
             if result is not None:
                 if result.error:
-                    message_log.append(f"[Ошибка] {result.error}")
+                    system_log.append(f"[Ошибка] {result.error}")
                 else:
                     # Обновляем время из ответа backend
                     _gts = result.response.game_time_seconds
@@ -595,63 +600,135 @@ class GameScreen:
                     _last_idle_tick = pygame.time.get_ticks() + 1000
                     from narrative_beat import NarrativeBeat, DeliveryType, RecognitionLevel
                     
-                    # Получаем последний введенный текст игрока для фильтрации эха
-                    last_player_text = ""
-                    if message_log and isinstance(message_log[-1], NarrativeBeat) and message_log[-1].is_player:
-                        last_player_text = message_log[-1].text.strip()
-
                     resp = result.response.dm_response
                     if resp and resp != "Ничего не произошло.":
                         import re
-                        display_resp = resp.strip()
+                        from difflib import SequenceMatcher
                         
-                        # Умная фильтрация эха LLM
-                        if last_player_text:
-                            # 1. Снимаем эхо формата "Имя Игрока: текст" (LLM часто так делает)
-                            if display_resp.lower().startswith(player_name.lower()):
-                                prefix_len = len(player_name)
-                                if prefix_len < len(display_resp) and display_resp[prefix_len] in (':', ',', ' '):
-                                    display_resp = display_resp[prefix_len+1:].strip(' ,.-!:;')
-                            
-                            # 2. Пословное сравнение для обрезки неполного эха (игнорируем регистр и пунктуацию)
-                            player_words = re.sub(r'[^\w\s]', '', last_player_text).lower().split()
-                            resp_words = re.sub(r'[^\w\s]', '', display_resp).lower().split()
-                            
-                            match_count = 0
-                            for pw, rw in zip(player_words, resp_words):
-                                if pw == rw:
-                                    match_count += 1
-                                else:
-                                    break
-                            
-                            # Если совпало больше половины слов ввода — это эхо, отрезаем
-                            if match_count > 0 and match_count >= len(player_words) // 2:
-                                # Считаем сколько символов занимает эхо с пробелами
-                                echo_len = len(' '.join(display_resp.split()[:match_count]))
-                                display_resp = display_resp[echo_len:].strip(' ,.-!:;')
+                        # Отладка DM ответа
+                        print(f"[ECHO_DEBUG_DM] DMResp: '{resp.strip()[:80]}...'")
                         
-                        # Добавляем только если после отсечения эха остался нарратив
-                        if display_resp:
-                            message_log.append(NarrativeBeat(
-                                speaker="Система",
-                                text=display_resp,
-                                is_player=False,
-                                delivery=DeliveryType.NORMAL,
-                                recognition=RecognitionLevel.KNOWN_NAME,
-                                is_active=False
-                            ))
+                        # Разбиваем ответ на строки и фильтруем каждую от эха
+                        raw_lines = resp.strip().split('\n')
+                        
+                        # Извлекаем имена NPC из scene_state для парсинга спикера
+                        known_names = {}
+                        for npc_id, npc_data in scene_state.get("npc_positions", {}).items():
+                            name = npc_data.get("name") or npc_data.get("display_name")
+                            if name:
+                                known_names[name.lower()] = name
+                        
+                        for line in raw_lines:
+                            line_stripped = line.strip()
+                            if not line_stripped:
+                                continue
+                                
+                            is_echo_line = False
+                            if _last_player_input:
+                                p_clean = re.sub(r'[^\w\s]', '', _last_player_input).lower()
+                                l_clean = re.sub(r'[^\w\s]', '', line_stripped).lower()
+                                
+                                # Убираем имя игрока в начале строки для корректного comparison
+                                if l_clean.startswith(player_name.lower()):
+                                    prefix_len = len(player_name)
+                                    if prefix_len < len(line_stripped) and line_stripped[prefix_len] in (':', ',', ' '):
+                                        l_clean = re.sub(r'[^\w\s]', '', line_stripped[prefix_len+1:].strip(' ,.-!:;')).lower()
+                                
+                                similarity = SequenceMatcher(None, p_clean, l_clean).ratio()
+                                
+                                # Если строка похожа на ввод — это эхо
+                                # Защита от ложных срабатываний: не используем in-проверку для коротких фраз (имена NPC)
+                                is_short_input = len(p_clean) < 10
+                                if similarity > 0.60:
+                                    is_echo_line = True
+                                elif not is_short_input and (p_clean in l_clean or l_clean in p_clean):
+                                    is_echo_line = True
+                            
+                            if not is_echo_line:
+                                # Извлечение спикера (Приоритет 0: починка "Системы")
+                                speaker = "Система"
+                                text = line_stripped
+                                recognition = RecognitionLevel.KNOWN_NAME
+                                delivery = DeliveryType.NORMAL
+                                
+                                for name_lower, name_orig in known_names.items():
+                                    if line_stripped.lower().startswith(name_lower):
+                                        rest = line_stripped[len(name_orig):]
+                                        if rest and rest[0] in (':', ',', '-'):
+                                            speaker = name_orig
+                                            text = rest.lstrip(':, - ').strip()
+                                            break
+                                
+                                # Определение RecognitionLevel для неизвестных
+                                if speaker in ("Мужчина", "Женщина", "???"):
+                                    recognition = RecognitionLevel.UNKNOWN_FEMALE if speaker == "Женщина" else RecognitionLevel.UNKNOWN_MALE
+                                
+                                # Определение DeliveryType по маркерам текста (Приоритет 1: Experiential Architecture)
+                                text_lower = text.lower()
+                                if text_lower.startswith("(") and text_lower.endswith(")"):
+                                    delivery = DeliveryType.WHISPER
+                                elif text_lower.startswith("*") and text_lower.endswith("*"):
+                                    delivery = DeliveryType.INTERNAL
+                                elif text.endswith("!!!") or text.isupper():
+                                    delivery = DeliveryType.SHOUT
+                                
+                                message_log.append(NarrativeBeat(
+                                    speaker=speaker,
+                                    text=text,
+                                    is_player=False,
+                                    delivery=delivery,
+                                    recognition=recognition,
+                                    is_active=False
+                                ))
                         
                     for npc_r in result.response.npc_reactions:
                         npc_name = npc_r.get("npc_name", "NPC")
                         npc_text = npc_r.get("reaction", "")
+                        
+                        # Отладка: выводим всё, что приходит как реплика NPC
+                        print(f"[ECHO_DEBUG_NPC] Name: '{npc_name}' | Text: '{npc_text}' | LastInput: '{_last_player_input}'")
+                        
                         if npc_text:
+                            # Защита от эха: если имя NPC совпадает с именем игрока — это эхо
+                            if npc_name.lower() == player_name.lower():
+                                print("[ECHO_DEBUG_NPC] ---> BLOCKED BY NAME!")
+                                continue
+                            
+                            # Защита от эха: если текст реплики совпадает с последним вводом игрока
+                            if _last_player_input:
+                                import re
+                                from difflib import SequenceMatcher
+                                p_clean = re.sub(r'[^\w\s]', '', _last_player_input).lower()
+                                t_clean = re.sub(r'[^\w\s]', '', npc_text).lower()
+                                similarity = SequenceMatcher(None, p_clean, t_clean).ratio()
+                                
+                                is_short_input = len(p_clean) < 10
+                                if similarity > 0.60 or (not is_short_input and (p_clean in t_clean or t_clean in p_clean)):
+                                    print("[ECHO_DEBUG_NPC] ---> BLOCKED BY TEXT SIMILARITY!")
+                                    continue
+
+                            # Определение DeliveryType для реакций NPC (Experiential Architecture)
+                            delivery = DeliveryType.NORMAL
+                            npc_text_lower = npc_text.lower()
+                            if npc_text_lower.startswith("(") and npc_text_lower.endswith(")"):
+                                delivery = DeliveryType.WHISPER
+                            elif npc_text_lower.startswith("*") and npc_text_lower.endswith("*"):
+                                delivery = DeliveryType.INTERNAL
+                            elif npc_text.endswith("!!!") or npc_text.isupper():
+                                delivery = DeliveryType.SHOUT
+                            
+                            # Определение RecognitionLevel для реакций NPC
+                            recognition = RecognitionLevel.KNOWN_NAME
+                            if npc_name in ("Мужчина", "Женщина", "???"):
+                                recognition = RecognitionLevel.UNKNOWN_FEMALE if npc_name == "Женщина" else RecognitionLevel.UNKNOWN_MALE
+
                             # Реплика NPC становится полноценным пузырем
                             message_log.append(NarrativeBeat(
                                 speaker=npc_name,
                                 text=npc_text,
                                 is_player=False,
-                                delivery=DeliveryType.NORMAL,
-                                recognition=RecognitionLevel.KNOWN_NAME, # TODO: уровень знакомства из сцены
+                                delivery=delivery,
+                                recognition=recognition,
                                 is_active=False
                             ))
 
@@ -693,7 +770,7 @@ class GameScreen:
                     self.screen, player_name, text_input.text, text_input._cursor_pos,
                     x=input_bubble_x, y=self.screen.get_height() - 150, max_width=input_bubble_max_w
                 )
-            self._draw_message_log(message_log, narrative_renderer, player_name)
+            self._draw_message_log(message_log, system_log, narrative_renderer, player_name)
 
             # HUD: FPS + игровое время
             fps_surf = self.renderer.font_small.render(
@@ -719,7 +796,7 @@ class GameScreen:
         text_input.rect = pygame.Rect(4, sh - 36, sw - 8, 32)
         text_input.draw(self.screen)
 
-    def _draw_message_log(self, log: list, renderer: 'NarrativeRenderer', player_name: str) -> None:
+    def _draw_message_log(self, log: list, system_log: list, renderer: 'NarrativeRenderer', player_name: str) -> None:
         """Cinematic Layer: Рисует сценические пузыри вместо плоского чата"""
         from narrative_beat import NarrativeBeat, RecognitionLevel, DeliveryType
         
@@ -728,35 +805,26 @@ class GameScreen:
         
         visible = log[-5:] # Берем последние 5 событий
         
-        # Адаптер: конвертируем строки в NarrativeBeat на лету
+        # Конвертация строк больше не нужна — message_log содержит только NarrativeBeat
         beats = []
         for msg in visible:
-            if isinstance(msg, str):
-                is_player = msg.startswith(player_name)
-                # Грубая нарезка "Имя: Текст"
-                if ": " in msg:
-                    speaker, text = msg.split(": ", 1)
-                else:
-                    speaker, text = "Система", msg
-                
-                # Определяем уровень знания (ТЗ 1)
-                recognition = RecognitionLevel.KNOWN_NAME
-                if not is_player and speaker in ("Мужчина", "Женщина", "???"):
-                    recognition = RecognitionLevel.UNKNOWN_MALE if speaker == "Мужчина" else RecognitionLevel.UNKNOWN_FEMALE
-                
-                # Создаем Beat
-                beat = NarrativeBeat(
-                    speaker=speaker.strip(),
-                    text=text.strip(),
-                    is_player=is_player,
-                    recognition=recognition,
-                    delivery=DeliveryType.NORMAL,
-                    is_active=(msg == visible[-1]) # Активен только последний
-                )
-                beats.append(beat)
-            elif isinstance(msg, NarrativeBeat):
-                msg.is_active = (msg == visible[-1])
-                beats.append(msg)
+            msg.is_active = (msg == visible[-1])
+            beats.append(msg)
+            
+        # === Log Layer: Системные сообщения (верхний правый угол, полупрозрачный) ===
+        if system_log:
+            sys_font = renderer.font_normal
+            visible_sys = system_log[-5:] # Последние 5 системных сообщений
+            sys_y = 10
+            for sys_msg in reversed(visible_sys):
+                sys_surf = sys_font.render(sys_msg, True, (180, 180, 180))
+                # Полупрозрачный фон
+                sys_bg = pygame.Surface((sys_surf.get_width() + 8, sys_surf.get_height() + 4), pygame.SRCALPHA)
+                sys_bg.fill((0, 0, 0, 120))
+                sys_x = sw - sys_surf.get_width() - 18
+                sys_bg.blit(sys_surf, (4, 2))
+                self.screen.blit(sys_bg, (sys_x, sys_y))
+                sys_y += sys_surf.get_height() + 6
 
         # Правильный расчет позиций Y (снизу вверх, без наложений)
         # 1. Сначала вычисляем высоту каждого пузыря
@@ -819,7 +887,8 @@ class GameScreen:
             # Не movement — отправляем на backend (LLM обработка)
             px, py = _player_xy(scene_state)
             action_queue.submit(campaign_id, player_name, text, px, py)
-            message_log.append(f"⟳ {text}")
+            # Пузырь игрока уже создан в обработчике KEYDOWN (NarrativeBeat)
+            # Добавлять плоскую строку в лог запрещено (Устав: один источник истины)
             return
 
         if intent.target_npc_id:
@@ -835,9 +904,9 @@ class GameScreen:
             )
             move.path_index = 0
             if move.path:
-                message_log.append(f"Идёшь к {intent.target_display_name}")
+                system_log.append(f"Идёшь к {intent.target_display_name}")
             else:
-                message_log.append("Путь не найден")
+                system_log.append("Путь не найден")
                 move.target_npc_id = None
         elif intent.direction:
             move.direction = intent.direction
@@ -846,7 +915,7 @@ class GameScreen:
                 "north": "север", "south": "юг",
                 "east": "восток", "west": "запад",
             }
-            message_log.append(f"Идёшь на {names.get(intent.direction, intent.direction)}")
+            system_log.append(f"Идёшь на {names.get(intent.direction, intent.direction)}")
 
     def _handle_click(
         self,

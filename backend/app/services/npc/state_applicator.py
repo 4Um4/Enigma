@@ -42,7 +42,7 @@ from app.models.physical import (
     WoundSeverity,
 )
 from app.models.event_resolution import StateChange
-from app.models.state_delta import StateDeltas
+from app.models.state_delta import DeltaDomain, EmotionPayload, IdentityPayload, ReputationPayload, SocialPayload, StateDeltas
 from app.services.npc.decision_hub import DecisionResult
 from app.services.npc.math_utils import apply_saturation
 from app.services.memory.relationship_store import RelationshipStore
@@ -291,7 +291,14 @@ class StateApplicator:
         Использует StateDeltas для унификации контракта мутаций.
         """
         recovery = 15.0 if is_sleeping else 5.0
-        deltas = StateDeltas(stress_delta=-recovery, source="tick_recovery")
+        deltas = StateDeltas(
+            # v1 backward compat
+            stress_delta=-recovery,
+            # v2 domain-tagged payload
+            domain=DeltaDomain.EMOTION,
+            payload=EmotionPayload(stress_delta=-recovery),
+            source="tick_recovery",
+        )
         return self.apply_deltas_only(state, deltas)
 
     def apply_deltas_only(
@@ -372,36 +379,51 @@ class StateApplicator:
         campaign_id: str,
     ) -> None:
         """Применяет числовые дельты к state и RelationshipStore."""
+        # --- v2 payload extraction (с фолбэком на v1 поля) ---
+        domain = deltas.domain
+
+        stress_delta = deltas.payload.stress_delta if domain == DeltaDomain.EMOTION and isinstance(deltas.payload, EmotionPayload) else deltas.stress_delta
+        emotion_delta = deltas.payload.emotion_delta if domain == DeltaDomain.EMOTION and isinstance(deltas.payload, EmotionPayload) else deltas.emotion_delta
+        emotion_tag = deltas.payload.emotion_tag if domain == DeltaDomain.EMOTION and isinstance(deltas.payload, EmotionPayload) else deltas.emotion_tag
+        new_trauma = deltas.payload.new_trauma if domain == DeltaDomain.EMOTION and isinstance(deltas.payload, EmotionPayload) else deltas.new_trauma
+
+        trust_delta = deltas.payload.trust_delta if domain == DeltaDomain.SOCIAL and isinstance(deltas.payload, SocialPayload) else deltas.trust_delta
+        fear_delta = deltas.payload.fear_delta if domain == DeltaDomain.SOCIAL and isinstance(deltas.payload, SocialPayload) else deltas.fear_delta
+
+        identity_integrity_delta = deltas.payload.identity_integrity_delta if domain == DeltaDomain.IDENTITY and isinstance(deltas.payload, IdentityPayload) else deltas.identity_integrity_delta
+        pressure_resistance_delta = deltas.payload.pressure_resistance_delta if domain == DeltaDomain.IDENTITY and isinstance(deltas.payload, IdentityPayload) else deltas.pressure_resistance_delta
+        will_state_override = deltas.payload.will_state_override if domain == DeltaDomain.IDENTITY and isinstance(deltas.payload, IdentityPayload) else deltas.will_state_override
+
         # Стресс
-        if deltas.stress_delta != 0.0:
+        if stress_delta != 0.0:
             old = state.stress
             state.stress, effective = apply_saturation(
                 current=old,
-                delta=deltas.stress_delta,
+                delta=stress_delta,
                 min_val=0.0,
                 max_val=100.0,
             )
             deltas.stress_delta_effective = effective
             logger.debug(
                 f"[APPLY] {state.npc_id}: stress {old:.1f} → {state.stress:.1f} "
-                f"(wanted {deltas.stress_delta:+.1f}, applied {effective:+.1f})"
+                f"(wanted {stress_delta:+.1f}, applied {effective:+.1f})"
             )
 
         # Эмоция
-        if deltas.emotion_delta != 0.0:
+        if emotion_delta != 0.0:
             state.emotion_delta = max(-100.0, min(100.0,
-                state.emotion_delta + deltas.emotion_delta
+                state.emotion_delta + emotion_delta
             ))
-        if deltas.emotion_tag is not None:
-            state.emotion = deltas.emotion_tag
+        if emotion_tag is not None:
+            state.emotion = emotion_tag
 
         # Traits overlay
         for trait, value in deltas.trait_updates.items():
             state.state_modifiers[trait] = max(0.0, min(1.0, value))
 
         # Травма
-        if deltas.new_trauma:
-            state.trauma_markers.add(deltas.new_trauma)
+        if new_trauma:
+            state.trauma_markers.add(new_trauma)
 
         # Causal Ledger — паспорт каждого изменения (Шаг 3)
         # Фаза 4-ROLE.2: emotional_impact для генерации TemporaryDrive
@@ -409,7 +431,7 @@ class StateApplicator:
         _source = getattr(deltas, "source", "unknown")
         _new_entries: list = []
 
-        if deltas.stress_delta != 0.0:
+        if stress_delta != 0.0:
             _impact = min(1.0, abs(deltas.stress_delta_effective) / 20.0)
             _new_entries.append(CausalEntry(
                 npc_id=state.npc_id, field="stress",
@@ -417,21 +439,21 @@ class StateApplicator:
                 source=_source, tick=_tick,
                 emotional_impact=round(_impact, 4),
             ))
-        if deltas.trust_delta != 0.0:
+        if trust_delta != 0.0:
             # Негативное доверие эмоционально сильнее
-            _threshold = 20.0 if deltas.trust_delta < 0 else 30.0
-            _impact = min(1.0, abs(deltas.trust_delta) / _threshold)
+            _threshold = 20.0 if trust_delta < 0 else 30.0
+            _impact = min(1.0, abs(trust_delta) / _threshold)
             _new_entries.append(CausalEntry(
                 npc_id=state.npc_id, field="trust",
-                delta=deltas.trust_delta,
+                delta=trust_delta,
                 source=_source, tick=_tick,
                 emotional_impact=round(_impact, 4),
             ))
-        if deltas.fear_delta != 0.0:
-            _impact = min(1.0, abs(deltas.fear_delta) / 15.0)
+        if fear_delta != 0.0:
+            _impact = min(1.0, abs(fear_delta) / 15.0)
             _new_entries.append(CausalEntry(
                 npc_id=state.npc_id, field="fear",
-                delta=deltas.fear_delta,
+                delta=fear_delta,
                 source=_source, tick=_tick,
                 emotional_impact=round(_impact, 4),
             ))
@@ -473,21 +495,21 @@ class StateApplicator:
         if len(state.temporary_drives) > MAX_ACTIVE_DRIVES:
             state.temporary_drives = state.temporary_drives[-MAX_ACTIVE_DRIVES:]
 
-        # Отношения — маршрутизация по типу таргета
-        if deltas.faction_id is not None:
+        # Отношения — маршрутизация по домену v2 (фолбэк на v1 таргеты)
+        if domain == DeltaDomain.REPUTATION or deltas.faction_id is not None:
             # Фракция → ReputationEngine (единственный мутатор)
             self._apply_faction_delta(deltas, campaign_id)
-        elif deltas.trust_delta != 0.0 or deltas.fear_delta != 0.0:
+        elif trust_delta != 0.0 or fear_delta != 0.0:
             if self._rel_store is not None:
-                # Явная маршрутизация: social_target → NPC→NPC, intent_target → NPC→Player
-                _target = deltas.social_target or deltas.intent_target or state.intent_target or "player"
+                # Явная маршрутизация: target (v2) → NPC→NPC/NPC→Player
+                _target = deltas.target or deltas.social_target or deltas.intent_target or state.intent_target or "player"
                 self._rel_store.update(
                     campaign_id = campaign_id,
                     source      = state.npc_id,
                     target      = _target,
                     delta       = {
-                        "trust": deltas.trust_delta,
-                        "fear":  deltas.fear_delta,
+                        "trust": trust_delta,
+                        "fear":  fear_delta,
                     },
                 )
                 # Обновляем кэш в NPCState из свежих данных
@@ -523,7 +545,7 @@ class StateApplicator:
         if self._reputation_engine is None:
             logger.debug(
                 f"[STATE_APPLICATOR] reputation_delta пропущен: "
-                f"no ReputationEngine (faction={deltas.faction_id})"
+                f"no ReputationEngine (faction={deltas.target or deltas.faction_id})"
             )
             return
         self._reputation_engine.apply_deltas([deltas])
@@ -544,9 +566,9 @@ class StateApplicator:
         if not deltas:
             return
 
-        # Разделение: фракции vs NPC
-        faction_deltas = [d for d in deltas if d.faction_id is not None]
-        npc_deltas = [d for d in deltas if d.faction_id is None]
+        # Разделение: фракции (v2 domain + v1 fallback) vs NPC
+        faction_deltas = [d for d in deltas if d.domain == DeltaDomain.REPUTATION or (d.domain is None and d.faction_id is not None)]
+        npc_deltas = [d for d in deltas if d not in faction_deltas]
 
         # Фракции → ReputationEngine
         if faction_deltas and self._reputation_engine:

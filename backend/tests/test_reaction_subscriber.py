@@ -426,9 +426,11 @@ class TestReactionIntensity:
             shared_context=_FakeSharedContext(perceiving_npcs=["npc_1"]),
         )
         low = sub.handle([_make_event(intensity=0.3)], ctx)
-        # Сброс буфера не нужен — передаём напрямую в handle
         high = sub.handle([_make_event(intensity=1.0)], ctx)
-        assert high.deltas[0].stress_delta > low.deltas[0].stress_delta
+        # v2: Фильтруем EMOTION дельты для сравнения stress_delta
+        low_emotion = [d for d in low.deltas if d.domain is not None and d.domain.value == "emotion"][0]
+        high_emotion = [d for d in high.deltas if d.domain is not None and d.domain.value == "emotion"][0]
+        assert high_emotion.stress_delta > low_emotion.stress_delta
 
     def test_intensity_from_payload(self):
         """Интенсивность из payload.priority."""

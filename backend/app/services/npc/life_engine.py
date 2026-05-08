@@ -240,9 +240,7 @@ class LifeEngine:
         if hasattr(self, '_movement_engine') and self._movement_engine:
             self._movement_engine.set_spatial_service(svc)
 
-    def set_transit_tracker(self, tracker) -> None:
-        """Пробрасывает TransitTracker в MovementEngine для pathing."""
-        self._movement_engine.set_transit_tracker(tracker)
+    # ADR-0010: set_transit_tracker удалён. TransitTracker ампутирован из макро-пайплайна.
 
     def macro_simulate(
         self,
@@ -872,8 +870,10 @@ class LifeEngine:
             candidates.append(routine_intent)
 
         # 3. Случайные события (5% шанс) — могут породить intent
-        event_changes = self.check_random_events(npc, tick)
+        event_changes, event_intent = self.check_random_events(npc, tick)
         changes.extend(event_changes)
+        if event_intent:
+            candidates.append(event_intent)
 
         # 4. Восстанавливаем стресс (без SceneChange — только данные NPC)
         self.recover_stress_tick(npc)
@@ -882,9 +882,11 @@ class LifeEngine:
         if candidates:
             candidates.sort(key=lambda i: i.priority, reverse=True)
             winner = candidates[0]
+            logger.info(f"[PIPELINE][MOVEMENT][INTENT_CONSUME] npc={winner.npc_id} target={winner.target_node_id} from={winner.from_node_id}")
             intent_changes = self._movement_engine.process_intents(
                 [winner], tick=tick,
             )
+            logger.info(f"[PIPELINE][MOVEMENT][INTENT_RESULT] npc={winner.npc_id} changes_count={len(intent_changes)}")
             changes.extend(intent_changes)
             # Обновляем activity в scene_state
             if winner.reason.startswith("need_driven:"):
@@ -1026,8 +1028,13 @@ class LifeEngine:
                 [routine_intent], tick=tick,
             )
             changes.extend(movement_changes)
-        event_changes = self.check_random_events(npc, tick)
+        event_changes, event_intent = self.check_random_events(npc, tick)
         changes.extend(event_changes)
+        if event_intent:
+            movement_changes = self._movement_engine.process_intents(
+                [event_intent], tick=tick,
+            )
+            changes.extend(movement_changes)
         return changes
 
     # ─────────────────────────────────────────────────────────────────────────
@@ -1211,10 +1218,10 @@ class LifeEngine:
         activity = npc.get("routine", {}).get("current", "")
 
         if "sleeping" in activity:
-            return []
+            return [], None
 
         if random.random() > RANDOM_EVENT_CHANCE:
-            return []
+            return [], None
 
         events = self._make_random_events(npc, tick)
         event_id, changes, movement_intent = random.choice(events)
@@ -1232,7 +1239,7 @@ class LifeEngine:
             )
             changes.extend(movement_changes)
 
-        return changes
+        return changes, None
 
     # ─────────────────────────────────────────────────────────────────────────
     # Stress recovery (без SceneChange — только данные NPC)

@@ -25,8 +25,7 @@ class MovementIntent:
     location_id: str = ""   # для загрузки правильного графа
     reason: str = ""        # "need_driven:hunger", "schedule:working"
 
-    # ── ЗАКЛАДКА ПОД PATHING (ФАЗА 4) — пока не используются ──
-    movement_mode: str = "instant"   # "instant" | "path" — когда появится pathing
+    # ADR-0010: movement_mode удалён. Макро-перемещение — всегда атомарная Semantic Relocation.
     priority: float = 0.5            # 0.0–1.0, для разрешения конфликтов intent-ов
 
 

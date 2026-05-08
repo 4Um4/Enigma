@@ -24,8 +24,8 @@ class MovementEngine:
     3. Генерирует SceneChange(field="local_position")
     """
 
-    def __init__(self, transit_tracker: TransitTracker | None = None) -> None:
-        self._transit_tracker = transit_tracker or TransitTracker()
+    def __init__(self) -> None:
+        # ADR-0010: TransitTracker ампутирован. Макро-перемещение — Semantic Relocation.
         # SpatialService v1.2 — инжекция извне (DI)
         self._spatial_service: Optional[Any] = None
 
@@ -80,8 +80,10 @@ class MovementEngine:
                 
                 target_ref = svc.get_node(intent.target_node_id)
                 if not target_ref:
-                    # ADR-0008: Микро-зона отсутствует в макро-графе -> сброс на entrance/main_hall
-                    target_ref = svc.get_node("entrance") or svc.get_node("main_hall")
+                    # ADR-0008: Пробуем с префиксом локации (tavern_silver_wolf:main_hall)
+                    target_ref = svc.get_node(f"{location_id}:{intent.target_node_id}")
+                if not target_ref:
+                    target_ref = svc.get_node(f"{location_id}:entrance") or svc.get_node(f"{location_id}:main_hall")
                     if target_ref:
                         logger.debug(f"[MOVEMENT_ENGINE] Целевая микро-зона '{intent.target_node_id}' не найдена, фоллбэк на {target_ref.node_id}")
                         
@@ -94,92 +96,38 @@ class MovementEngine:
                     )
                     continue
 
-                if intent.movement_mode == "path":
-                    # D7: если NPC уже в пути — сравниваем приоритеты
-                    current_priority = self._transit_tracker.get_current_priority(
-                        location_id, intent.npc_id
+                # ADR-0010: Semantic Relocation. Макро-движение всегда атомарно.
+                # DecisionHub решает ЧТО (approach), эта функция решает КУДА (целевой узел).
+                # SceneStateManager атомарно резолвит узел в local_position (x,y).
+                
+                # Резолвим целевой узел для фоллбэка и валидации
+                target_ref = svc.get_node(intent.target_node_id)
+                if not target_ref:
+                    # ADR-0008: Пробуем с префиксом локации (tavern_silver_wolf:main_hall)
+                    target_ref = svc.get_node(f"{location_id}:{intent.target_node_id}")
+                if not target_ref:
+                    target_ref = svc.get_node(f"{location_id}:entrance") or svc.get_node(f"{location_id}:main_hall")
+                    if target_ref:
+                        logger.debug(f"[MOVEMENT_ENGINE] Целевая зона '{intent.target_node_id}' не найдена, фоллбэк на {target_ref.node_id}")
+
+                if not target_ref:
+                    logger.warning(
+                        f"[MOVEMENT_ENGINE] Узел '{intent.target_node_id}' не найден "
+                        f"для {intent.npc_id} в {location_id}"
                     )
-                    if current_priority is not None and intent.priority <= current_priority:
-                        logger.debug(
-                            f"[MOVEMENT_ENGINE] {intent.npc_id}: "
-                            f"новый intent (p={intent.priority}) не превосходит текущий путь "
-                            f"(p={current_priority}), пропускаем"
-                        )
-                        continue
-
-                    # Прерываем текущий путь если есть (новый приоритетнее)
-                    if current_priority is not None:
-                        self._transit_tracker.cancel(location_id, intent.npc_id)
-
-                    # Патхинг: регистрируем в TransitTracker, не телепортируем
-                    # Берём реальную позицию из TransitTracker если NPC уже в пути
-                    from_node = self._transit_tracker.get_current_node(
-                        location_id, intent.npc_id
-                    ) or intent.from_node_id
-                    if from_node:
-                        path = []
-                        if target_ref:
-                            # SpatialService: A* с учётом оверлея (риск, плотность)
-                            from_ref = svc.get_node(from_node)
-                            if not from_ref:
-                                # ADR-0008: Сброс стартовой микро-зоны в макро-зону
-                                from_ref = svc.get_node("entrance") or svc.get_node("main_hall")
-                                if from_ref:
-                                    logger.debug(f"[MOVEMENT_ENGINE] Стартовая микро-зона '{from_node}' не найдена, фоллбэк на {from_ref.node_id}")
-                            if from_ref:
-                                path_refs = svc.find_path(from_ref.xy, target_ref)
-                                # TransitTracker теперь работает с каноническими ID
-                                path = [n.node_id for n in path_refs]
-                            
-                        if len(path) >= 2:
-                            self._transit_tracker.register(
-                                npc_id=intent.npc_id,
-                                location_id=location_id,
-                                path=path,
-                                reason=intent.reason,
-                                priority=intent.priority,
-                            )
-                        elif len(path) == 1:
-                            # NPC уже на целевом узле — ничего не делаем
-                            logger.debug(
-                                f"[MOVEMENT_ENGINE] {intent.npc_id}: "
-                                f"уже на {intent.target_node_id}, пропускаем"
-                            )
-                        else:
-                            # Путь не найден — фоллбэк на телепорт
-                            logger.warning(
-                                f"[MOVEMENT_ENGINE] Путь не найден: "
-                                f"{from_node} → {intent.target_node_id} "
-                                f"для {intent.npc_id}, фоллбэк на телепорт"
-                            )
-                            changes.append(SceneChange(
-                                type=ChangeType.NPC_POSITION,
-                                target=intent.npc_id,
-                                field="local_position",
-                                value={"x": target_x, "y": target_y},
-                                cause=f"movement_engine_fallback:{intent.reason}",
-                                tick=tick,
-                            ))
-                    else:
-                        # Не знаем текущую позицию — фоллбэк на телепорт
-                        changes.append(SceneChange(
-                            type=ChangeType.NPC_POSITION,
-                            target=intent.npc_id,
-                            field="local_position",
-                            value={"x": target_x, "y": target_y},
-                            cause=f"movement_engine:{intent.reason}",
-                            tick=tick,
-                        ))
-                else:
-                    # Instant — текущее поведение (телепорт)
-                    changes.append(SceneChange(
-                        type=ChangeType.NPC_POSITION,
-                        target=intent.npc_id,
-                        field="local_position",
-                        value={"x": target_x, "y": target_y},
-                        cause=f"movement_engine:{intent.reason}",
-                        tick=tick,
-                    ))
+                    continue
+                
+                # Семантическая релокация: обновляем только position (семантический узел).
+                # SceneStateManager применит это изменение и вычислит новые x, y.
+                changes.append(SceneChange(
+                    type=ChangeType.NPC_POSITION,
+                    target=intent.npc_id,
+                    field="position",
+                    value=intent.target_node_id,
+                    cause=f"semantic_relocation:{intent.reason}",
+                    tick=tick,
+                ))
+                logger.info(f"[PIPELINE][MOVEMENT][RELOCATE] npc={intent.npc_id} → zone={intent.target_node_id} reason={intent.reason}")
 
         return changes
 

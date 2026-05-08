@@ -19,6 +19,7 @@ from typing import Dict, Optional, Union
 from app.models.delta_payloads import (
     EmotionPayload,
     IdentityPayload,
+    PhysiologyPayload,
     ReputationPayload,
     SocialPayload,
 )
@@ -31,14 +32,14 @@ class DeltaDomain(Enum):
     EMOTION = "emotion"
     REPUTATION = "reputation"
     IDENTITY = "identity"
-    # БУДУЩЕЕ
-    COMBAT = "combat"
+    # Фундамент физического состояния (Устав Тай: Body LOD)
     PHYSIOLOGY = "physiology"
+    # БУДУЩЕЕ
     SPATIAL = "spatial"
 
 
 # Union тип — IDE знает все варианты, autocomplete работает
-DeltaPayload = Union[SocialPayload, EmotionPayload, ReputationPayload, IdentityPayload]
+DeltaPayload = Union[SocialPayload, EmotionPayload, ReputationPayload, IdentityPayload, PhysiologyPayload]
 
 
 @dataclass
@@ -51,7 +52,7 @@ class StateDeltas:
     - SocialDecayHandler / ReputationDecayHandler → StateDeltas
     - Social propagation → StateDeltas
     
-    # LOCKED v1: StateDeltas. Новые домены (combat/spatial/economy)
+    # LOCKED v1: StateDeltas. Новые домены (physiology/spatial/economy)
     # → отдельный рефакторинг на type: Enum + payload.
     # Поля damage_delta, position_delta и т.д. в v1 НЕ добавляются.
     # TODO v2: split → SocialDelta/FactionDelta/EmotionDelta(BaseDelta)
@@ -95,6 +96,7 @@ class StateDeltas:
             DeltaDomain.EMOTION: EmotionPayload,
             DeltaDomain.REPUTATION: ReputationPayload,
             DeltaDomain.IDENTITY: IdentityPayload,
+            DeltaDomain.PHYSIOLOGY: PhysiologyPayload,
         }
 
         # v2 валидация: если указан domain, payload должен соответствовать
