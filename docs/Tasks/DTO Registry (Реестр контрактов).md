@@ -159,3 +159,62 @@ facing: str
 action: str
 display_name: str # КРИТИЧЕСКИ ВАЖНО: Должно заполняться из data.get("name") в WorldSnapshotBuilder, иначе фронтенд показывает npc_id!
 ---
+NarrativeBeat (Frontend DTO)speaker: strtext: stris_player: booldelivery: DeliveryType (Enum: NORMAL, WHISPER, SHOUT, INTERNAL, PANIC, INTERRUPT)certainty: float (0.0 - 1.0)recognition: RecognitionLevel (Enum: UNKNOWN_MALE, UNKNOWN_FEMALE, STRANGE_FACE, KNOWN_NAME)lifetime: BeatLifetime (Enum: TRANSIENT, PINNED, SLAM)is_active: bool
+
+TextInput (Frontend Widget)Поддержка инерции зажатия клавиш (update(dt)).Поддержка Shift+Enter (\n).Полный запрет Paste (Ctrl+V / Shift+Insert).
+---
+
+---
+Session 14 Updates (08.05.2026 22:18)
+
+check_random_events (backend/app/services/npc/life_engine.py)Возвращаемый тип: tuple[list[SceneChange], MovementIntent | None]Контракт: СТРОГО кортеж из 2 элементов. Возвращает ([], None) если NPC спит или событие не сгенерировано. Возвращает (changes, None) если событие обработано (intent уже применён внутри метода).НАРУШЕНИЕ КОНТРАКТА: Возврат голого списка [] или list[SceneChange] без оборачивания в кортеж приводит к крашу "not enough values to unpack" в _simulate_major/_simulate_minor.
+
+SceneChange(field="position") — Статус: РАЗРЕШЕНО (ADR-0009)Ранее: Вызывало RuntimeError "Прямая мутация position запрещена".Сейчас: Страж смягчён. SceneChange(type=NPC_POSITION, field="position", value="main_hall") разрешён и является единственным легитимным способом обновить семантическую локацию NPC.Поведение SceneStateManager: При получении field="position" атомарно обновляет узел и резолвит local_position (x, y) через SpatialService.get_node().
+
+MovementIntent — Область применения (LOD1: Macro Traversal)Архитектурное ограничение: MovementIntent используется ТОЛЬКО для перемещения между узлами макро-графа (main_hall -> bar_area, city -> forest).ЗАПРЕЩЕНО: Использовать MovementIntent для микро-перемещений внутри одной макро-зоны (target_node_id == from_node_id). Это приводит к онтологической лжи и архитектурной эрозии.
+
+LocalSteeringIntent — ПЛАНИРУЕМАЯ DTO (LOD0: Micro Space)Статус: Не реализована. Требуется для визуального сближения NPC с объектами внутри одной макро-зоны.Назначение: Плавное перемещение (steering) к координатам (x,y) игрока или другого NPC без изменения семантического узла position.Поля (проект): npc_id, target_entity_id, target_xy, speed, arrival_radius.
+---
+StateDeltas (# v2: Domain-Tagged Typed Payloads. v1 поля LOCKED и депрекированы)
+npc_id: Optional[str] (ОБЯЗАТЕЛЬНО для маршрутизации. None только для глобальных дельт)
+domain: Optional[DeltaDomain] (v2: SOCIAL, EMOTION, REPUTATION, IDENTITY, COMBAT, PHYSIOLOGY, SPATIAL)
+target: Optional[str] (v2: универсальный таргет — player, npc_id, faction_id)
+payload: Optional[DeltaPayload] (v2: Union[SocialPayload, EmotionPayload, ReputationPayload, IdentityPayload])
+
+# v1 backward compat (deprecated, удаляются после миграции DecisionHub)
+intent_target: Optional[str] (DecisionHub → player-facing trust/fear)
+social_target: Optional[str] (Social decay/propagation → NPC→NPC trust/fear)
+faction_id: Optional[str] (Reputation decay → фракция, несовместим с trust/fear)
+stress_delta: float (v1: масштаб 0-100)
+emotion_delta: float (v1: масштаб -100..100)
+emotion_tag: Optional[EmotionTag]
+trust_delta: float (v1: масштаб 0-100)
+fear_delta: float (v1: масштаб 0-100)
+reputation_delta: float (v1: только с faction_id)
+trait_updates: Dict[str, float]
+new_trauma: Optional[str]
+source: str
+identity_integrity_delta: float
+pressure_resistance_delta: float
+will_state_override: Optional[WillState]
+
+post_init валидация v2: если payload не None, его тип должен соответствовать domain (TypeError)
+post_init валидация v1: один тип таргета, reputation_delta требует faction_id, trust/fear ≠ faction_id
+
+DeltaDomain (Enum)
+SOCIAL, EMOTION, REPUTATION, IDENTITY, COMBAT (FUTURE), PHYSIOLOGY (FUTURE), SPATIAL (FUTURE)
+
+SocialPayload (frozen dataclass)
+trust_delta: float = 0.0, fear_delta: float = 0.0, affection_delta: float = 0.0, debt_delta: float = 0.0
+
+EmotionPayload (frozen dataclass)
+stress_delta: float = 0.0, emotion_delta: float = 0.0, emotion_tag: Optional[str] = None, new_trauma: Optional[str] = None
+
+ReputationPayload (frozen dataclass)
+reputation_delta: float = 0.0
+
+IdentityPayload (frozen dataclass)
+identity_integrity_delta: float = 0.0, pressure_resistance_delta: float = 0.0, will_state_override: Optional[str] = None
+---
+
+---

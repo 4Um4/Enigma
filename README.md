@@ -2,7 +2,7 @@
 
 Локальная narrative-RPG с живым миром, где **Python считает причинность**, а **LLM озвучивает результат**.
 
-Проект в этой ветке (`V.0.5.2.8_Почти_почти_7`) — это рабочее ядро игры **The Fool**: Pygame-клиент, FastAPI backend, тик мира с постоянной time-driven фазой 0.5, память NPC, spatial-контур, cinematic narrative-слой и атомарное сохранение состояния.
+Проект в этой ветке (`V.0.5.2.9_СМЕНИЛ_подход`) — это рабочее ядро игры **The Fool**: Pygame-клиент, FastAPI backend, тик мира с постоянной time-driven фазой 0.5, память NPC, spatial-контур, cinematic narrative-слой и атомарное сохранение состояния.
 
 ---
 
@@ -31,44 +31,54 @@
 
 ---
 
-## Текущий статус ветки V.0.5.2.8
+## Текущий статус ветки V.0.5.2.9
 
 ### Уже реализовано
 
 - Единый `GameLoop` для `run_turn` (REST) и `stream_turn` (SSE) без дублирования пайплайна.
 - `TickOrchestrator` как единая точка тика мира (idle + player finalize) с phase-цепочкой `0 -> 10`.
-- `StateDeltas v2`: введены `DeltaDomain` + typed payloads (`SocialPayload`, `EmotionPayload`, `ReputationPayload`, `IdentityPayload`).
-- `_aggregate_deltas()` обновлён до v2-логики: группировка по `(npc_id, domain, target)` и merge payload-объектов.
-- `ReactionSubscriber` теперь разделяет реакцию на два канала: `EMOTION` (stress) и `SOCIAL` (fear/trust).
-- `SocialDecayHandler` и `ReputationEngine` начали эмитить domain-tagged дельты (с сохранением backward compatibility для legacy-полей).
+- `StateDeltas v2`: введены `DeltaDomain` + typed payloads (`SocialPayload`, `EmotionPayload`, `ReputationPayload`, `IdentityPayload`) с контрактной валидацией.
+- `_aggregate_deltas()` работает в v2-режиме: группировка по `(npc_id, domain, target)` и merge payload-объектов.
+- `StateApplicator` переведен на payload-first чтение с v1 fallback: маршрутизация по доменам стала явной (`EMOTION`, `SOCIAL`, `REPUTATION`, `IDENTITY`).
+- `ReactionSubscriber` и `propagate_social_rumors` разделяют изменения на независимые домены (`EMOTION` и `SOCIAL`), без смешанных дельт.
 - Добавлен `_enrich_with_social_relations()` в `npc_loader`: `village_relations.json` реально попадает в runtime `relationship_cache/base_values`.
 - В `_build_npc_snapshots()` закрыт критический gap: гарантируется `player` entry даже при наличии NPC->NPC отношений.
 - В idle-пути синхронизированы `ctx.npc_states` и `ctx.all_npcs_raw` перед unified mutator (фиксация ADR-004).
-- Spatial-контур усилен fallback-логикой: при несовпадении микро- и макро-узлов движок сбрасывается в валидные зоны (`entrance/main_hall`).
+- В spatial-контуре выполнен переход на **Semantic Relocation**: макро-движение теперь атомарно меняет `position`, а `SceneStateManager` сразу резолвит `local_position (x,y)` через `SpatialService`.
+- Удален `TransitTracker` из макро-цепочки: path-переходы ампутированы, выделена чистая LOD-граница (`Macro Traversal` сейчас, `LocalSteering` запланирован отдельно).
+- Spatial-фоллбэки усилены поиском узлов и в формате `location_id:node_id`, и в сокращенном формате.
 - В `scene_init` добавлена инъекция `SpatialService` и для catch-up тиков.
 - `WorldSnapshotBuilder` теперь заполняет `display_name` из runtime-данных NPC, а `SceneStateManager` добавляет имя в старые сохранения.
-- Frontend получил cinematic narrative-layer: `NarrativeBeat` + `NarrativeRenderer` + пузырь ввода игрока.
-- В `TextInput` добавлена физика удержания клавиш (ускоренный repeat), а также предотвращено залипание KEYUP.
-- Добавлены новые тесты для NPC social enrichment и full-loop smoke path оркестратора.
+- Frontend перешел на двухслойный вывод: `message_log` (NarrativeBeat-пузыри) и `system_log` (системные статусы/ошибки/перемещение).
+- В `TextInput` добавлен `Shift+Enter` для многострочного ввода без отправки.
+- В `NarrativeRenderer` добавлены корректный перенос с сохранением `\n`, улучшенные стили подачи (`SHOUT`, `WHISPER`, `INTERNAL`) и устойчивый рендер курсора.
+- В `game_screen` добавлена анти-эхо фильтрация ответа LLM/NPC через `SequenceMatcher` + разбор многострочного `dm_response` + попытка детекции спикера по известным NPC.
+- Добавлены контрактные тесты `backend/tests/test_state_delta_v2.py` для валидации v1/v2 сосуществования и payload type-safety.
 
 ### Что важно в проекте The Fool после этого шага
 
-- Мир стал причинно полнее: теперь социальные связи работают не только `NPC -> player`, но и `NPC -> NPC`.
-- Phase 8 перестал быть монолитной реакцией: дельты стали типизированными по доменам, что снижает риск конфликтов при дальнейшем расширении (combat/physiology/spatial).
-- Уменьшен риск "тихой потери мутаций" в idle-cycle за счет синхронизации источника состояния для `StateApplicator`.
-- Пространственный слой стал практичнее в реальных сохранениях: NPC не «застревают» при несовпадении legacy-микрозон и макро-графа.
-- Фронтенд ушёл от плоского лога к сценическому представлению реплик; это повышает читаемость диалогов и UX без изменения ядра симуляции.
-- Граница backend/frontend остается чистой: truth по миру по-прежнему проходит через snapshot-контракт.
+- Закрыт критический class багов «сломанный movement pipeline»: теперь `MovementIntent -> SceneChange(position) -> Spatial resolve (x,y)` работает как единый контракт.
+- Появилась устойчивая граница макро/микро движения: макро-узлы больше не маскируют локальное steering-поведение; архитектурный долг выделен явно, а не скрыт в хаках.
+- `StateDeltas v2` стал реальным протоколом изменений, а не декларацией: дельты доменно изолированы, агрегируются детерминированно и применяются единым мутатором.
+- Фронтенд ушел от «плоского чата»: ввод игрока и реплики сцены разделены по роли, что повышает читаемость и снижает когнитивный шум.
+- Заложен практичный контур для боёвки/физиологии: через новые домены можно расширять симуляцию без раздувания `StateDeltas` в god-object.
 
 ### Внешний референс The Fool (изучено)
 
-Изучен внешний проект **The Fool** (CurseForge modpack, актуальный срез страницы на **7 мая 2026**) как тематический референс по оси «deception/disguise + системный прогресс».
+Изучен внешний проект **The Fool** (CurseForge modpack, актуальный срез страницы на **8 мая 2026**) как тематический референс по оси «deception/disguise + системный прогресс».
 Ссылка: `https://www.curseforge.com/minecraft/modpacks/the-fool`.
+
+Короткая фактология среза:
+- около `28k+` загрузок (на момент среза: `28,189`);
+- версия `Minecraft 1.20.1`, загрузчик `Forge`;
+- последняя публичная сборка: `TheFool-Client-0.0.1-fix3` (дата релиза `15 мая 2025`);
+- выраженный фокус на deception-нарративе, фракционном прогрессе и высоком контентном объёме.
 
 Что зафиксировано как полезный вектор для ENIGMA:
 - ставка на сильную тематику и узнаваемый tone;
 - многослойный прогресс (не только бой, но и социальные/контекстные механики);
-- высокая ценность понятного onboarding и play-guide в документации.
+- высокая ценность понятного onboarding и play-guide в документации;
+- явное разделение «core loop» и «операционного onboarding» (у modpack отдельно проговорены ограничения установки и обязательные шаги).
 
 Что сознательно не переносится:
 - ENIGMA не повторяет modpack-архитектуру и не зависит от Minecraft-экосистемы;
@@ -267,13 +277,13 @@ cd backend
 
 ---
 
-## Для ветки V.0.5.2.8_Почти_почти_7
+## Для ветки V.0.5.2.9_СМЕНИЛ_подход
 
-Эта ветка фиксирует шаг от «эмоционально реактивного мира» к «типизированному контурy мутаций + NPC->NPC социальным связям + cinematic UI-слою»:
-- введен `StateDeltas v2` (domain-tagged payloads) без разрыва совместимости;
-- замкнут полный путь NPC->NPC social enrichment (`village_relations.json -> snapshot -> decay`);
-- устранены критические точки потери мутаций и spatial-паралича в idle/catch-up путях;
-- frontend получил сценический формат реплик (`NarrativeBeat/NarrativeRenderer`) вместо плоского чата;
-- тестовый слой усилен новыми инвариантами по social-enrichment и full-loop оркестратора.
+Эта ветка фиксирует переход от «частично рабочей миграции» к «контрактно закреплённому ядру»:
+- закреплен протокол `StateDeltas v2` в runtime-применении (`StateApplicator`, `propagation`, тесты контракта);
+- устранен архитектурный клин в movement pipeline через переход на `Semantic Relocation` и атомарный `position -> local_position` resolve;
+- явно отделены уровни пространства: `Macro Traversal` в production, `LocalSteering` вынесен в планируемый слой;
+- усилен cinematic UI-контур: многострочный ввод, фильтрация эха, расширенные стили подачи реплик;
+- обновлена документация ADR/DTO/flow, чтобы архитектурные решения были воспроизводимы для следующей итерации.
 
-Сравнительный отчёт изменений: `COMPARISON_REPORT_V.0.5.2.8_Почти_почти_7.md`.
+Сравнительный отчёт изменений: `COMPARISON_REPORT_V.0.5.2.9_СМЕНИЛ_подход.md`.

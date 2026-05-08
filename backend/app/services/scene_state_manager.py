@@ -1068,13 +1068,10 @@ class SceneStateManager:
 
         ct = change.type
 
-        # Архитектурный guard: прямая мутация position запрещена
+        # Архитектурный guard: семантика и пространство неразделимы
+        # MovementEngine меняет position → мы атомарно обновляем x,y через SpatialService
         if ct == ChangeType.NPC_POSITION and change.field == "position":
-            raise RuntimeError(
-                f"[ARCH GUARD] Прямая мутация position запрещена. "
-                f"npc={change.target}, value={change.value!r}. "
-                f"Используй MovementIntent → MovementEngine → local_position"
-            )
+            logger.debug(f"[ARCH GUARD] Легитимное перемещение: npc={change.target} → {change.value}")
 
         try:
             if ct == ChangeType.OBJECT_STATE:
@@ -1104,6 +1101,27 @@ class SceneStateManager:
                 pos = scene_state.setdefault("npc_positions", {})
                 entry = pos.setdefault(change.target, {})
                 entry[change.field] = change.value
+
+                # ADR-0008: Мгновенный резолв x,y при смене узла, чтобы NPC двигались на экране
+                if change.field == "position":
+                    location_id = scene_state.get("location_id", "")
+                    if location_id and change.value:
+                        try:
+                            from app.services.spatial.spatial_service import SpatialService
+                            svc = SpatialService.build_for_location(
+                                campaign_id=campaign_id, location_id=location_id, scene_state=scene_state
+                            )
+                            # Пробуем с префиксом локации и без (граф хранит tavern_silver_wolf:main_hall)
+                            node = svc.get_node(change.value) or svc.get_node(f"{location_id}:{change.value}")
+                            if not node:
+                                node = svc.get_node(f"{location_id}:entrance") or svc.get_node(f"{location_id}:main_hall")
+                            if node:
+                                entry["local_position"] = {"x": node.x, "y": node.y}
+                                logger.warning(f"[PIPELINE][SCENE_CHANGE][APPLY] npc={change.target} node={change.value} xy=({node.x:.1f}, {node.y:.1f})")
+                            else:
+                                logger.error(f"[PIPELINE][SCENE_CHANGE][APPLY_FAILED] npc={change.target} node={change.value} NOT FOUND in SpatialService!")
+                        except Exception as exc:
+                            logger.error(f"[PIPELINE][SCENE_CHANGE][APPLY_CRASH] npc={change.target} exc={exc}")
 
             elif ct == ChangeType.NPC_STATE:
                 pos = scene_state.setdefault("npc_positions", {})
@@ -1411,11 +1429,13 @@ class SceneStateManager:
                 if ref_id and pos:
                     editor_coords[ref_id] = {"x": pos.get("x", 0.0), "y": pos.get("y", 0.0)}
 
-        # Граф локации — для резолва координат узлов при движении
-        graph = None
+        # SpatialService — единый источник координат узлов (ADR-0006)
+        svc = None
         try:
-            from app.services.spatial.location_graph import load_graph
-            graph = load_graph(location_id)
+            from app.services.spatial.spatial_service import SpatialService
+            svc = SpatialService.build_for_location(
+                campaign_id=campaign_id, location_id=location_id, scene_state=scene_state
+            )
         except Exception:
             pass
 
@@ -1433,9 +1453,11 @@ class SceneStateManager:
             if not npc_moved and npc_id in editor_coords:
                 # NPC на начальной позиции (или нет данных о движении) — визуальные координаты
                 entry["local_position"] = dict(editor_coords[npc_id])
-            elif graph and current_node:
-                # NPC двигался — берём координаты из графа
-                node = graph.get_node(current_node)
+            elif svc and current_node:
+                # NPC двигался — берём координаты из SpatialService (пробуем с префиксом локации)
+                node = svc.get_node(current_node) or svc.get_node(f"{location_id}:{current_node}")
+                if not node:
+                    node = svc.get_node(f"{location_id}:entrance") or svc.get_node(f"{location_id}:main_hall")
                 if node:
                     entry["local_position"] = {"x": node.x, "y": node.y}
             # Иначе — оставляем как есть (координаты уже корректны или данных нет)

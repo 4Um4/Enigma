@@ -262,8 +262,11 @@ class TextInput:
             self._start_hold(event.key)
             return True
 
-        # Enter — не обрабатываем здесь (внешний код решает что делать)
+        # Shift+Enter = перенос строки, Обычный Enter = отправка
         if event.key == pygame.K_RETURN or event.key == pygame.K_KP_ENTER:
+            if mods & pygame.KMOD_SHIFT:
+                self._insert_text('\n')
+                return True
             return False
 
         # Escape — сбросить фокус

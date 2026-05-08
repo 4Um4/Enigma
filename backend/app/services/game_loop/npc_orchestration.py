@@ -129,22 +129,15 @@ def run_npc_orchestration(
             from app.services.npc.life_engine import get_life_engine
             _life_engine = get_life_engine()
             _me = _life_engine._movement_engine
+            # ADR-0010: Без SpatialService MovementEngine глотает интенты (svc=None → continue).
+            if _spatial_svc and not _me._spatial_service:
+                _me.set_spatial_service(_spatial_svc)
             _changes = _me.process_intents(_movement_intents, tick=0)
             if _changes:
                 game_loop.scene_manager.apply_changes(campaign_id, _changes, scene_state)
-                # Обновляем position в npc_positions для каждого перемещённого NPC
-                from app.services.spatial.location_graph import load_graph
-                _location_id = scene_state.get("location_id", "")
-                for _c in _changes:
-                    if _c.field == "local_position" and _c.target in scene_state.get("npc_positions", {}):
-                        _entry = scene_state["npc_positions"][_c.target]
-                        _entry["local_position"] = _c.value
-                        # Синхронизируем position (узел графа) из MovementIntent
-                        for _mi in _movement_intents:
-                            if _mi.npc_id == _c.target:
-                                _entry["position"] = _mi.target_node_id
-                                break
-                logger.warning(f"[MOVEMENT] {len(_changes)} реактивных перемещений применено")
+                logger.warning(f"[PIPELINE][ORCHESTRATION][MOVEMENT_RESULT] {len(_changes)} changes applied")
+                # Удалена загрузка удалённого load_graph и перезапись local_position строкой
+                # SceneStateManager.apply_changes уже резолвит x,y через SpatialService
         except Exception as _move_err:
             logger.warning(f"[MOVEMENT] Ошибка реактивного движения: {_move_err}")
 

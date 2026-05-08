@@ -454,15 +454,9 @@ class TickOrchestrator:
         """
         ctx.old_npc_positions = _npc_positions_snapshot(ctx.scene_state)
 
-        # TransitTracker: NPC в пути продвигаются на 1 шаг ДО фазы 0
-        tracker = self._get_transit_tracker()
-        if tracker.active_count() > 0:
-            location_id = ctx.scene_state.get("location_id", "")
-            graphs = {}  # TODO: Получить граф из SpatialService v1.2 (API черного ящика)
-            transit_changes = tracker.advance_all(graphs, ctx.tick_number)
-            if transit_changes and self._scene_manager:
-                self._scene_manager.apply_changes(ctx.campaign_id, transit_changes, ctx.scene_state)
-                logger.debug(f"[TICK_ORCH] Transit: {len(transit_changes)} шагов")
+        # ADR-0010: TransitTracker ампутирован из макро-пайплайна.
+        # Макро-движение теперь — Semantic Relocation (атомарный переход).
+        # Микро-движение (steering) будет реализовано в LocalSteeringLayer.
 
     # ── ФАЗЫ ──────────────────────────────────────────────────────────
 
@@ -474,8 +468,7 @@ class TickOrchestrator:
         """
         engine = self._get_life_engine()
         runtime_path = self._get_npc_runtime_path(ctx.campaign_id)
-        # Передаём transit_tracker чтобы MovementEngine мог регистрировать пути
-        engine.set_transit_tracker(self._get_transit_tracker())
+        # ADR-0010: TransitTracker больше не передаётся в LifeEngine/MovementEngine
         
         # Инжекция SpatialService v1.2 для семантической навигации
         _spatial_svc = None

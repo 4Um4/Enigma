@@ -50,5 +50,20 @@
 [SESS_11] Текущая дата: Миграция имен в SceneStateManager._enrich_local_positions добавлено заполнение поля name через _npc_id_to_display.
 [SESS_11] Текущая дата: Начало миграции конфигов. В maid.json изменены позиции serving_table_3 на main_hall.
 ---
+[SESS_UI_01] Дата: 08.05.2026 21:07 Создана система Narrative Beat (Cinematic Layer) взамен плоского message_log. Добавлен frontend/narrative_beat.py (DeliveryType, RecognitionLevel, BeatLifetime, NarrativeBeat).Добавлен frontend/narrative_renderer.py (отрисовка пузырей Persona 5 стиля).frontend/text_input.py: Добавлена физика инерции зажатия клавиш (Custom Key Repeat с ускорением). Добавлен Shift+Enter для многострочного ввода. Полный запрет Ctrl+V (ТЗ п.4). Удалена поддержка буфера обмена.frontend/game_screen.py: Интегрирован NarrativeRenderer. Ввод игрока отображается расширяющимся пузырем справа (ТЗ п.3). Эхо LLM фильтруется через _last_player_input + SequenceMatcher (построчный разбор). Удален legacy-вывод "⟳ {text}" (вызывал призрачное эхо). Починено залипание WASD (объединение KEYUP обработчиков).БАГ: Ответы NPC отображаются как "Система" из-за того, что dm_response не разделен на спикеров.
+---
+[SESS_14] Дата: 08.05.2026 22:08 Починка Pipeline движения и открытие LOD-границы (Macro vs Micro Space)
 
+life_engine.py: Восстановлен контракт возврата в check_random_events(). Все return пути теперь возвращают кортеж (changes, None) вместо голого списка. Устранён краш "not enough values to unpack".
+life_engine.py: Починена распаковка кортежей в _simulate_major() и _simulate_minor() для update_routine() и check_random_events().
+scene_state_manager.py: Удалён RuntimeError "Архитектурный guard: прямая мутация position запрещена". Страж заменён на debug log. Теперь SceneChange(field="position") разрешён и атомарно резолвится в local_position (x,y) через SpatialService (ADR-0008).
+scene_state_manager.py: Добавлены структурные логи [PIPELINE][SCENE_CHANGE][APPLY] и [APPLY_FAILED] для трейсинга применения координат.
+movement_engine.py: Добавлен fallback поиска узлов с префиксом локации (location_id:node_id) в get_node(), так как SpatialService хранит узлы с префиксом (например, tavern_silver_wolf:main_hall).
+movement_engine.py: Добавлены логи [PIPELINE][MOVEMENT][PATH_RESOLVE] и [INTENT_CONSUME].
+npc_orchestration.py: Удалён мёртвый код обновления local_position через удалённый load_graph, который блокировал применение координат.
+npc_tick_pipeline.py: Добавлены логи [PIPELINE][REACTIVE_MOVEMENT][CREATE/SKIP].
+npc_tick_pipeline.py: ОТКАТЕН опасный фикс микро-перемещений (MovementIntent с target_node_id=current_node). Устранён краш ModuleNotFoundError. Утверждено разделение Macro (MovementIntent) и Micro (LocalSteeringIntent) уровней пространства.
+config/npc/archetypes/: Миграция позиций guard.json и merchant.json с микро-зон (gate_post, stall_3, bed) на макро-зоны (entrance, main_hall).
+---
+[SESS_14] Дата: 08.05.2026 22:21: Приоритет 1 (StateDeltas v2) завершён. Создан app/models/delta_payloads.py (frozen dataclasses: SocialPayload, EmotionPayload, ReputationPayload, IdentityPayload). StateDeltas расширен: enum DeltaDomain, поля domain, target, payload. post_init валидирует соответствие payload типу domain (TypeError при несовпадении). Мигрированы на v2: SocialDecayHandler, ReputationEngine, ReactionSubscriber, propagation.py, StateApplicator (tick_recovery). _aggregate_deltas группирует по (npc_id, domain, target) и мержит frozen payloads. ReactionSubscriber разделен на 2 дельты (EMOTION + SOCIAL) вместо 1 смешанной. StateApplicator._apply_deltas извлекает данные из payload с fallback на v1 поля. DecisionHub оставлен на v1 (требует рефакторинга DecisionResult). 400 тестов проходят + 10 новых v2 контрактов.
 ---

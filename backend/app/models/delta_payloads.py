@@ -10,10 +10,10 @@ path: backend/app/models/delta_payloads.py
 IDE видит поля, опечатка вызывает TypeError, рефакторинг делается в один клик.
 
 TODO:
-- Добавить CombatPayload для боевых дельт (hp, pain, injuries).
+- Добавить SpatialPayload для пространственных дельт.
 """
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, Tuple
 
 
 @dataclass(frozen=True)
@@ -48,20 +48,28 @@ class IdentityPayload:
     will_state_override: Optional[str] = None
 
 
-# БУДУЩЕЕ — не создаются сейчас, но структура готова
-# @dataclass(frozen=True)
-# class CombatPayload:
-#     hp_delta: float = 0.0
-#     pain_delta: float = 0.0
-#     injuries: Tuple[InjuryDTO, ...] = ()
-#     bleeding_delta: float = 0.0
+@dataclass(frozen=True)
+class InjuryDTO:
+    """Типизированная модель травмы (Injury — контейнер причины).
+    
+    Все эффекты (кровотечение, штраф к ловкости, боль) вычисляются из неё.
+    Мастер Тай: никаких bool-флагов, только структурные причины.
+    """
+    type: str          # cut, fracture, burn, disease
+    severity: float    # 0.0 - 1.0 (масштаб ущерба)
+    body_part: str     # left_arm, torso, head (для локализации эффектов)
 
-# @dataclass(frozen=True)
-# class PhysiologyPayload:
-#     hunger_delta: float = 0.0
-#     fatigue_delta: float = 0.0
 
-# @dataclass(frozen=True)
-# class SpatialPayload:
-#     position_delta: Optional[Dict] = None
-#     location_delta: Optional[str] = None
+@dataclass(frozen=True)
+class PhysiologyPayload:
+    """Дельты физиологического состояния (Damage & Stress Propagation System).
+    
+    Бой, голод, падения, болезни — всё идёт через этот payload.
+    Мастер Тай: PHYSIOLOGY, а не COMBAT. Бой — лишь один из источников давления.
+    """
+    hp_delta: float = 0.0
+    pain_delta: float = 0.0
+    fatigue_delta: float = 0.0
+    add_injuries: Tuple[InjuryDTO, ...] = ()
+    add_statuses: Tuple[str, ...] = ()      # bleeding, poisoned, unconscious
+    remove_statuses: Tuple[str, ...] = ()   # снятие статусов (выздоровление)

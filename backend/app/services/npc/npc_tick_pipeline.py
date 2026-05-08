@@ -644,8 +644,10 @@ def _resolve_reactive_movement(
             return None
 
     if not target_node_id or target_node_id == current_node:
-        return None  # Уже на месте или граф не найден
+        logger.warning(f"[PIPELINE][REACTIVE_MOVEMENT][SKIP] npc={npc_id} target={target_node_id} current={current_node}")
+        return None  # Уже на месте или граф не найден — требуется LocalSteering (отдельная система)
     
+    logger.warning(f"[PIPELINE][REACTIVE_MOVEMENT][CREATE] npc={npc_id} target_node={target_node_id} from_node={current_node}")
     return MovementIntent(
         npc_id=npc_id,
         target_node_id=target_node_id,

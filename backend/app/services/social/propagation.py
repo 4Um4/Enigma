@@ -16,7 +16,7 @@ TODO: мигрировать в отдельный модуль, чтобы не
 import logging
 from typing import Any, List, Tuple
 
-from app.models.state_delta import StateDeltas
+from app.models.state_delta import DeltaDomain, EmotionPayload, SocialPayload, StateDeltas
 
 logger = logging.getLogger(__name__)
 
@@ -85,14 +85,31 @@ def propagate_social_rumors(
             if pr.npc_id in _witness_ids:
                 continue
 
+            # v2: Разделяем на EMOTION (stress) и SOCIAL (trust)
             # SocialEngine дельты в диапазоне ~0-1, NPCState — 0-100
-            deltas.append(StateDeltas(
-                npc_id=pr.npc_id,
-                social_target=_actor_id,
-                stress_delta=pr.stress_delta * 100,
-                trust_delta=pr.trust_delta * 100,
-                source="social_propagation",
-            ))
+            if pr.stress_delta != 0.0:
+                deltas.append(StateDeltas(
+                    npc_id=pr.npc_id,
+                    # v1 backward compat
+                    stress_delta=pr.stress_delta * 100,
+                    # v2 domain-tagged payload
+                    domain=DeltaDomain.EMOTION,
+                    payload=EmotionPayload(stress_delta=pr.stress_delta * 100),
+                    source="social_propagation",
+                ))
+
+            if pr.trust_delta != 0.0:
+                deltas.append(StateDeltas(
+                    npc_id=pr.npc_id,
+                    # v1 backward compat
+                    social_target=_actor_id,
+                    trust_delta=pr.trust_delta * 100,
+                    # v2 domain-tagged payload
+                    domain=DeltaDomain.SOCIAL,
+                    target=_actor_id,
+                    payload=SocialPayload(trust_delta=pr.trust_delta * 100),
+                    source="social_propagation",
+                ))
             logger.debug(
                 f"[SOCIAL] {pr.npc_id}: "
                 f"trust{pr.trust_delta:+.3f} "
