@@ -2,7 +2,7 @@
 
 Локальная narrative-RPG с живым миром, где **Python считает причинность**, а **LLM озвучивает результат**.
 
-Проект в этой ветке (`V.0.5.2.9_СМЕНИЛ_подход`) — это рабочее ядро игры **The Fool**: Pygame-клиент, FastAPI backend, тик мира с постоянной time-driven фазой 0.5, память NPC, spatial-контур, cinematic narrative-слой и атомарное сохранение состояния.
+Проект в этой ветке (`V.0.5.3.0.1_НОВАЯ_РЕАЛЬНОСТЬ_1`) — это рабочее ядро игры **The Fool**: Pygame-клиент, FastAPI backend, тик мира с постоянной time-driven фазой 0.5, память NPC, spatial-контур, слой физиологии/impact и cinematic narrative-слой.
 
 ---
 
@@ -31,58 +31,42 @@
 
 ---
 
-## Текущий статус ветки V.0.5.2.9
+## Текущий статус ветки V.0.5.3.0.1
 
 ### Уже реализовано
 
 - Единый `GameLoop` для `run_turn` (REST) и `stream_turn` (SSE) без дублирования пайплайна.
 - `TickOrchestrator` как единая точка тика мира (idle + player finalize) с phase-цепочкой `0 -> 10`.
-- `StateDeltas v2`: введены `DeltaDomain` + typed payloads (`SocialPayload`, `EmotionPayload`, `ReputationPayload`, `IdentityPayload`) с контрактной валидацией.
-- `_aggregate_deltas()` работает в v2-режиме: группировка по `(npc_id, domain, target)` и merge payload-объектов.
-- `StateApplicator` переведен на payload-first чтение с v1 fallback: маршрутизация по доменам стала явной (`EMOTION`, `SOCIAL`, `REPUTATION`, `IDENTITY`).
-- `ReactionSubscriber` и `propagate_social_rumors` разделяют изменения на независимые домены (`EMOTION` и `SOCIAL`), без смешанных дельт.
-- Добавлен `_enrich_with_social_relations()` в `npc_loader`: `village_relations.json` реально попадает в runtime `relationship_cache/base_values`.
-- В `_build_npc_snapshots()` закрыт критический gap: гарантируется `player` entry даже при наличии NPC->NPC отношений.
-- В idle-пути синхронизированы `ctx.npc_states` и `ctx.all_npcs_raw` перед unified mutator (фиксация ADR-004).
-- В spatial-контуре выполнен переход на **Semantic Relocation**: макро-движение теперь атомарно меняет `position`, а `SceneStateManager` сразу резолвит `local_position (x,y)` через `SpatialService`.
-- Удален `TransitTracker` из макро-цепочки: path-переходы ампутированы, выделена чистая LOD-граница (`Macro Traversal` сейчас, `LocalSteering` запланирован отдельно).
-- Spatial-фоллбэки усилены поиском узлов и в формате `location_id:node_id`, и в сокращенном формате.
-- В `scene_init` добавлена инъекция `SpatialService` и для catch-up тиков.
-- `WorldSnapshotBuilder` теперь заполняет `display_name` из runtime-данных NPC, а `SceneStateManager` добавляет имя в старые сохранения.
-- Frontend перешел на двухслойный вывод: `message_log` (NarrativeBeat-пузыри) и `system_log` (системные статусы/ошибки/перемещение).
-- В `TextInput` добавлен `Shift+Enter` для многострочного ввода без отправки.
-- В `NarrativeRenderer` добавлены корректный перенос с сохранением `\n`, улучшенные стили подачи (`SHOUT`, `WHISPER`, `INTERNAL`) и устойчивый рендер курсора.
-- В `game_screen` добавлена анти-эхо фильтрация ответа LLM/NPC через `SequenceMatcher` + разбор многострочного `dm_response` + попытка детекции спикера по известным NPC.
-- Добавлены контрактные тесты `backend/tests/test_state_delta_v2.py` для валидации v1/v2 сосуществования и payload type-safety.
+- `StateDeltas v2` закреплен как основной контракт мутаций: `domain + target + payload`, с валидацией типов payload.
+- Введён `Physiology`-домен: `InjuryDTO`, `PhysiologyPayload`, маршрутизация в `StateApplicator` и отдельная политика редукции `PHYSICS_COMPOSITE`.
+- Добавлен `Impact Propagation Engine` (`backend/app/services/combat/impact_engine.py`) как pure function `Force -> Tissue -> Pain -> Shock`.
+- Добавлен `CombatSubscriber` (Фаза 8): мост `EventDTO -> ImpactIntentDTO -> Physiology deltas` без domain leakage в эмоции.
+- Добавлен `PhysiologyDecayHandler` (Фаза 0.5): leaky integrator для боли/усталости/кровопотери + фазовые статусы (`stagger`, `unconscious`).
+- Зафиксированы заготовки CFRM: `ClusterGraph`, `EventBuffer`, `ClusterOccupancy`, `classify_event` (`backend/app/models/cfrm.py`).
+- В spatial-контуре сохранена LOD-граница: макро-relocation стабилен, микро-движение выделено в отдельный будущий слой (`LocalSteering/Traversal`).
+- Frontend дополнен визуальным сглаживанием поворота игрока (lerp), индикаторами внимания NPC, улучшенными narrative-bubbles и корректным отображением системного лога.
+- Добавлены целевые тесты для новой архитектуры: `test_impact_engine.py`, `test_combat_subscriber.py`, `test_physiology_decay_handler.py`, `test_combat_pipeline_e2e.py`, `test_cfrm_models.py`.
 
 ### Что важно в проекте The Fool после этого шага
 
-- Закрыт критический class багов «сломанный movement pipeline»: теперь `MovementIntent -> SceneChange(position) -> Spatial resolve (x,y)` работает как единый контракт.
-- Появилась устойчивая граница макро/микро движения: макро-узлы больше не маскируют локальное steering-поведение; архитектурный долг выделен явно, а не скрыт в хаках.
-- `StateDeltas v2` стал реальным протоколом изменений, а не декларацией: дельты доменно изолированы, агрегируются детерминированно и применяются единым мутатором.
-- Фронтенд ушел от «плоского чата»: ввод игрока и реплики сцены разделены по роли, что повышает читаемость и снижает когнитивный шум.
-- Заложен практичный контур для боёвки/физиологии: через новые домены можно расширять симуляцию без раздувания `StateDeltas` в god-object.
+- Бой перестал быть «режимом отдельно от мира»: насилие встроено в общий причинный цикл (физика -> шок -> эмоции -> социальные последствия).
+- Появилось онтологическое разделение редукций: алгебраические домены агрегируются, физиология интегрируется как инерционный процесс.
+- Архитектура готовится к CFRM: от императивных «дельта-команд» к локальным причинным полям и событийной редукции.
+- UI перешел от чистого текстового фида к слоистому восприятию сцены: лог/нарратив/визуальное внимание разделены.
 
 ### Внешний референс The Fool (изучено)
 
-Изучен внешний проект **The Fool** (CurseForge modpack, актуальный срез страницы на **8 мая 2026**) как тематический референс по оси «deception/disguise + системный прогресс».
+Изучен внешний проект **The Fool** (CurseForge modpack) как тематический референс по оси deception/disguise + системный прогресс.
 Ссылка: `https://www.curseforge.com/minecraft/modpacks/the-fool`.
 
-Короткая фактология среза:
-- около `28k+` загрузок (на момент среза: `28,189`);
-- версия `Minecraft 1.20.1`, загрузчик `Forge`;
-- последняя публичная сборка: `TheFool-Client-0.0.1-fix3` (дата релиза `15 мая 2025`);
-- выраженный фокус на deception-нарративе, фракционном прогрессе и высоком контентном объёме.
-
-Что зафиксировано как полезный вектор для ENIGMA:
-- ставка на сильную тематику и узнаваемый tone;
-- многослойный прогресс (не только бой, но и социальные/контекстные механики);
-- высокая ценность понятного onboarding и play-guide в документации;
-- явное разделение «core loop» и «операционного onboarding» (у modpack отдельно проговорены ограничения установки и обязательные шаги).
+Что взято как полезный вектор:
+- сильная тематическая идентичность;
+- многослойный прогресс (социальный, контекстный, не только «урон»);
+- явный onboarding и документированный путь входа.
 
 Что сознательно не переносится:
-- ENIGMA не повторяет modpack-архитектуру и не зависит от Minecraft-экосистемы;
-- ядро ENIGMA остается: `LLM = Voice`, `Python = Logic`, с детерминированным state pipeline.
+- ENIGMA не копирует modpack-архитектуру;
+- ядро ENIGMA остается: `LLM = Voice`, `Python = Logic`, с детерминированной причинной моделью.
 
 ---
 
@@ -265,25 +249,26 @@ cd backend
 
 ## Куда движется проект (Roadmap)
 
-Ближайший вектор The Fool:
+Ближайший вектор The Fool формируется из `docs/Tasks/*` (ADR, DTO Registry, ТЗ Преемнику):
 
-1. Завершить унификацию phase handlers на `StateDeltas` и убрать финальные legacy-флаги/мосты.
-2. Довести `StateApplicator` до полноценной поддержки v2 payload-first пути и снять зависимость от v1 fallback-полей.
-3. Закрыть migration gap между `LocationGraph` и `SpatialService` (включая тесты без `skip` и полную нормализацию микрозон).
-4. Докрутить эмоциональную модель Phase 8: адаптивные коэффициенты реакций с учётом контекста сцены/отношений.
-5. Укрепить player cognition + perception pipeline (меньше legacy `dict`, больше типизированных DTO).
-6. Развить cinematic narrative layer: lifetime-эффекты, priority-beats, фильтрация эха на backend-уровне.
-7. Расширить системные тесты для end-to-end сценариев «действие игрока -> коммит мира -> восстановление состояния».
+1. `Sprint 18 / CFRM Foundation`: внедрить в `frontend/map_editor` контракт `TileDTO` с разделением `logic` и `visual`, где физика мира не зависит от картинки.
+2. Ввести `DebugSurface` в домене (`backend/app/domain/surface.py`) и перевести физические расчёты на запросы среды (`friction/noise/collision`) вместо hardcode.
+3. Разделить `SceneRenderer` на compositing pipeline: `Base`, `Membrane`, `Perception`, `Narrative` слои с независимыми debug-флагами.
+4. Добавить `PerceptionMode` switcher (`F1`: `REALITY`, `PLAYER_POV`, `NPC_POV`, `RUMOR_FIELD`, `STRESS_FIELD`) для инженерной отладки причинности и восприятия.
+5. Довести CFRM до runtime: `EventBuffer + ClusterGraph + MembraneField + локальная редукция` как замена глобального mutable world state.
+6. Закрыть spatial-брешь между macro relocation и micro movement: реализовать `LocalSteeringIntent/TraversalState` для непрерывного перемещения внутри узла.
+7. Расширить causal test-pack: e2e сценарии `Physical -> Cognitive -> Social`, включая стабильность редукции при high-load тиках.
+8. Внедрить `PerceptualKernel` в `NPCState` и сделать внимание NPC управляемым бэкендом, а не только UI-эвристикой.
 
 ---
 
-## Для ветки V.0.5.2.9_СМЕНИЛ_подход
+## Для ветки V.0.5.3.0.1_НОВАЯ_РЕАЛЬНОСТЬ_1
 
-Эта ветка фиксирует переход от «частично рабочей миграции» к «контрактно закреплённому ядру»:
-- закреплен протокол `StateDeltas v2` в runtime-применении (`StateApplicator`, `propagation`, тесты контракта);
-- устранен архитектурный клин в movement pipeline через переход на `Semantic Relocation` и атомарный `position -> local_position` resolve;
-- явно отделены уровни пространства: `Macro Traversal` в production, `LocalSteering` вынесен в планируемый слой;
-- усилен cinematic UI-контур: многострочный ввод, фильтрация эха, расширенные стили подачи реплик;
-- обновлена документация ADR/DTO/flow, чтобы архитектурные решения были воспроизводимы для следующей итерации.
+Эта ветка фиксирует переход от «контрактной миграции» к «физико-каузальной модели мира»:
+- слой `Physiology + Impact` встроен в основной тик (`phase 0.5` и `phase 8`) без выделения отдельного режима боя;
+- введён DRSL (`ReductionPolicy`), который разделяет бухгалтерские и инерционные домены;
+- начата формализация CFRM-сущностей (`EventBuffer`, `ClusterGraph`, `ClusterOccupancy`) как базы следующего архитектурного шага;
+- фронтенд подготовлен к режимам восприятия: внимание NPC и визуальная подача уже разделены по слоям;
+- документация `docs/Tasks` синхронизирована с новой причинной моделью и ТЗ преемнику.
 
-Сравнительный отчёт изменений: `COMPARISON_REPORT_V.0.5.2.9_СМЕНИЛ_подход.md`.
+Сравнительный отчёт изменений: `COMPARISON_REPORT_V.0.5.3.0.1_НОВАЯ_РЕАЛЬНОСТЬ_1.md`.

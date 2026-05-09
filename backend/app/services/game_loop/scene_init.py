@@ -51,7 +51,7 @@ def init_scene_state(
 
     Возвращает scene_state dict — центральный state для всего пайплайна.
     """
-    from app.services.state.context_builder import patch_scene_state
+    # Удалено: import patch_scene_state (ADR-0015)
     from app.services.npc.npc_loader import materialize_inventory, get_item_display_name
     from app.services.npc.life_engine import get_life_engine
     from app.core.calendar import Calendar
@@ -97,12 +97,15 @@ def init_scene_state(
             scene_state["player_spatial"]["local_position"]["x"] = player_position[0]
             scene_state["player_spatial"]["local_position"]["y"] = player_position[1]
 
-        patch_scene_state(shared_context, scene_state)
+        # Контекст будет перестроен на следующем тике с актуальным scene_state (ADR-0015)
 
-        # Инициализация game_time_seconds из scene_state
-        _env_time = scene_state.get("environment", {}).get("time_of_day", "07:00")
-        _seconds_in_day = Calendar.parse_hhmm(_env_time)
-        shared_context.game_time_seconds = _seconds_in_day
+        # Инициализация game_time_seconds из scene_state (абсолютное время, переживающее дни)
+        if scene_state.get("game_time_seconds"):
+            shared_context.game_time_seconds = scene_state["game_time_seconds"]
+        else:
+            # Fallback: legacy time_of_day (теряет день/год, но часы идут)
+            _env_time = scene_state.get("environment", {}).get("time_of_day", "07:00")
+            shared_context.game_time_seconds = Calendar.parse_hhmm(_env_time)
     except Exception as e:
         logger.warning(f"[GAME_LOOP] SceneState error: {e}")
 
@@ -129,7 +132,7 @@ def init_scene_state(
         if _spatial_svc:
             _life_engine.set_spatial_service(_spatial_svc)
 
-        for _ in range(max(1, _catch_up)):
+        for _ in range(_catch_up):
             _life_changes += _life_engine.tick(campaign_id, scene_state, runtime_path=loop._get_npc_runtime_path(campaign_id))
         if _life_changes:
             loop.scene_manager.apply_changes(campaign_id, _life_changes, scene_state)

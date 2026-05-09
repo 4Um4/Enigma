@@ -50,6 +50,7 @@ class WorldSnapshotDTO:
     location_id: str
     weather: str
     time_of_day: str
+    game_time_seconds: int = 0
 
 
 def snapshot_npc_positions_to_dict(

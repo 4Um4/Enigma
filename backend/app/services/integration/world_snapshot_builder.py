@@ -59,6 +59,7 @@ class WorldSnapshotBuilder:
             location_id=location_id,
             weather=environment.get("weather_inside", "unknown"),
             time_of_day=environment.get("time_of_day", "day"),
+            game_time_seconds=scene_state.get("game_time_seconds", 0),
         )
 
     def _extract_npc_positions(
@@ -67,12 +68,19 @@ class WorldSnapshotBuilder:
         """Вытаскивает позиции NPC из scene_state['npc_positions']."""
         result: List[NPCPositionDTO] = []
         npc_positions = scene_state.get("npc_positions", {})
+        print(f"[TRACE][SNAPSHOT_BUILD] npc_count={len(npc_positions)} keys={list(npc_positions.keys())[:5]}")
 
         for npc_id, data in npc_positions.items():
             if not data.get("visible", True):
                 continue
 
             local = data.get("local_position", {})
+            print(
+                f"[TRACE][SNAPSHOT] "
+                f"npc={npc_id} "
+                f"x={local.get('x')} "
+                f"y={local.get('y')}"
+            )
             result.append(NPCPositionDTO(
                 npc_id=npc_id,
                 x=local.get("x", 0.0),
@@ -126,4 +134,5 @@ class WorldSnapshotBuilder:
             location_id="",
             weather="unknown",
             time_of_day="day",
+            game_time_seconds=0,
         )

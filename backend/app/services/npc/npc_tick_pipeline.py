@@ -612,6 +612,13 @@ def _resolve_reactive_movement(
                     pass
 
             if target_node_id and target_node_id != current_node:
+                print(
+                    f"[TRACE][INTENT_CREATED] "
+                    f"npc={npc_id} "
+                    f"intent=reactive:flee "
+                    f"target_node={target_node_id} "
+                    f"target_xy=(None,None)"
+                )
                 return MovementIntent(
                     npc_id=npc_id,
                     target_node_id=target_node_id,
@@ -635,6 +642,11 @@ def _resolve_reactive_movement(
         )
         if nearest_ref:
             target_node_id = spatial_service.denormalize_id(nearest_ref.node_id)
+            # ADR-0010: Отсечение микро-зон. Semantic Relocation только по макро-зонам.
+            _MACRO_ZONES = {"main_hall", "bar_area", "kitchen", "entrance", "fireplace", "behind_bar", "inn_rooms", "stage"}
+            if target_node_id and target_node_id not in _MACRO_ZONES:
+                logger.warning(f"[PIPELINE][REACTIVE_MOVEMENT][MACRO_SNAP] npc={npc_id} micro={target_node_id} → main_hall")
+                target_node_id = "main_hall"
     else:
         # @deprecated: fallback на LocationGraph
         try:
@@ -644,10 +656,35 @@ def _resolve_reactive_movement(
             return None
 
     if not target_node_id or target_node_id == current_node:
+        # ADR-0012: Микро-телепорт (LOD0). Если решили подойти и уже в одной зоне — прыгаем к игроку.
+        if intent == "approach" and target_x is not None and target_y is not None:
+            print(
+                f"[TRACE][INTENT_CREATED] "
+                f"npc={npc_id} "
+                f"intent=micro_snap:{intent} "
+                f"target_node={current_node} "
+                f"target_xy=({target_x},{target_y})"
+            )
+            return MovementIntent(
+                npc_id=npc_id,
+                target_node_id=current_node,
+                from_node_id=current_node,
+                location_id=location_id,
+                reason=f"micro_snap:{intent}",
+                priority=PRIORITY_NEEDS,
+                local_target_xy=(target_x, target_y),
+            )
         logger.warning(f"[PIPELINE][REACTIVE_MOVEMENT][SKIP] npc={npc_id} target={target_node_id} current={current_node}")
-        return None  # Уже на месте или граф не найден — требуется LocalSteering (отдельная система)
+        return None  # Уже на месте или граф не найден
     
     logger.warning(f"[PIPELINE][REACTIVE_MOVEMENT][CREATE] npc={npc_id} target_node={target_node_id} from_node={current_node}")
+    print(
+        f"[TRACE][INTENT_CREATED] "
+        f"npc={npc_id} "
+        f"intent=reactive:{intent} "
+        f"target_node={target_node_id} "
+        f"target_xy=({target_x},{target_y})"
+    )
     return MovementIntent(
         npc_id=npc_id,
         target_node_id=target_node_id,

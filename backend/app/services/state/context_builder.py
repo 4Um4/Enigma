@@ -69,7 +69,7 @@ def build_context(
     )
 
 
-def patch_scene_state(context: PipelineContext, scene_state: dict) -> None:
+# Удалено: patch_scene_state (ADR-0015 нарушение причинности)
     """
     Обновляет scene_state внутри уже собранного контекста.
     Вызывается после apply_changes() если SceneState мутировал.

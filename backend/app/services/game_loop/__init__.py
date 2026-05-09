@@ -175,6 +175,10 @@ class GameLoop:
         from app.services.social.social_decay_handler import SocialDecayHandler
         self._tick_orch.add_idle_handler(SocialDecayHandler())
 
+        # PhysiologyDecayHandler — leaky integrator (экспоненциальное затухание боли/усталости)
+        from app.services.combat.physiology_decay_handler import PhysiologyDecayHandler
+        self._tick_orch.add_idle_handler(PhysiologyDecayHandler())
+
     def get_current_tick(self, campaign_id: str) -> int:
         """Единый источник тика — через TemporalEngine (Устав §3)."""
         return self._tick_orch.get_current_tick(campaign_id)
@@ -295,10 +299,31 @@ class GameLoop:
         elapsed_ms = int(time.time() * 1000 - state.start_ms)
         traces = self._build_traces(state, dm_result, elapsed_ms)
 
+        # TASK 1: Force Merge — строим world_snapshot из актуального scene_state (ADR-0014)
+        _ws_dict = None
+        _npc_pos_dict = None
+        if hasattr(state, 'shared_context') and state.shared_context and state.shared_context.scene_state:
+            from app.services.integration.world_snapshot_builder import WorldSnapshotBuilder
+            from dataclasses import asdict
+            _builder = WorldSnapshotBuilder()
+            _ws = _builder.build(state.shared_context.scene_state, tick=self.get_current_tick(req.campaign_id))
+            if _ws:
+                _ws_dict = asdict(_ws)
+                # Критический адаптер: конвертируем List[NPCPositionDTO] в Dict[npc_id, dict]
+                # иначе фронтенд не сможет найти NPC по ключу (предсказание Мастера Тай)
+                _raw_pos = _ws_dict.get("npc_positions")
+                if isinstance(_raw_pos, list):
+                    _npc_pos_dict = {p.get("npc_id"): p for p in _raw_pos if isinstance(p, dict) and "npc_id" in p}
+                    _ws_dict["npc_positions"] = _npc_pos_dict
+                elif isinstance(_raw_pos, dict):
+                    _npc_pos_dict = _raw_pos
+
         return ChatTurnResponse(
             dm_response=dm_result.get("dm_response", ""),
             npc_reactions=dm_result.get("npc_reactions", []),
             world_changes=dm_result.get("world_changes", []),
+            world_snapshot=_ws_dict,
+            npc_positions=_npc_pos_dict,
             journal_entry_id=self.memory_manager.persist_dm_response(
                 req.campaign_id,
                 world_id=req.world_id,

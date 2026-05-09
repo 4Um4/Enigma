@@ -11,6 +11,7 @@ path: /frontend/scene_renderer.py
 """
 from typing import List, Optional, Tuple
 
+import math
 import pygame
 
 from sprite_resolver import get_entity_sprite
@@ -53,6 +54,8 @@ class SceneRenderer:
         self.font_small = pygame.font.SysFont("consolas", 12)
         self.font_audio = pygame.font.SysFont("consolas", 13, italic=True)
         self.font_body = pygame.font.SysFont("consolas", 13)
+        # Lerp для угла поворота (Приоритет 0)
+        self._visual_facing_angle = -1.5708  # -pi/2 (смотрит вверх)
 
     def render(
         self,
@@ -62,6 +65,8 @@ class SceneRenderer:
         walls: List[dict],
         obstacles: List[dict],
         player_xy: Tuple[float, float],
+        player_facing: float = -1.5708,  # -pi/2 по умолчанию (смотрит вверх)
+        dt: float = 0.016,  # Дельта времени для Lerp (Приоритет 0)
     ) -> None:
         """
         Отрисовывает полный кадр.
@@ -87,12 +92,21 @@ class SceneRenderer:
 
         # 3. Препятствия/объекты — только воспринимаемые
         self._draw_entities(scene.entities, cam_x, cam_y)
+        self._draw_obstacles(obstacles, cam_x, cam_y)
 
         # 4. NPC — только воспринимаемые
-        self._draw_npcs(scene.entities, cam_x, cam_y, scene.attention_focus_id)
+        self._draw_npcs(scene.entities, cam_x, cam_y, scene.attention_focus_id, player_xy)
 
         # 5. Игрок — всегда виден
-        self._draw_player(player_xy, cam_x, cam_y)
+        # Lerp сглаживание поворота (Приоритет 0)
+        import math
+        diff = player_facing - self._visual_facing_angle
+        # Кратчайший путь: нормализация разницы углов в диапазон [-pi, pi]
+        diff = (diff + math.pi) % (2 * math.pi) - math.pi
+        # Экспоненциальное сглаживание (~10 рад/сек)
+        self._visual_facing_angle += diff * min(1.0, 10.0 * dt)
+        
+        self._draw_player(player_xy, cam_x, cam_y, self._visual_facing_angle)
 
         # 6. HUD поверх карты — audio events, body state, environment
         self._draw_hud(scene)
@@ -164,12 +178,39 @@ class SceneRenderer:
                 label = self.font_small.render(entity.display_name, True, (220, 220, 220))
                 self.screen.blit(label, (sx, sy - 16))
 
+    def _draw_obstacles(
+        self,
+        obstacles: List[dict],
+        cam_x: float,
+        cam_y: float,
+    ) -> None:
+        """Отрисовывает мебель и препятствия из spatial_obstacles (Приоритет: фикс спрайтов объектов)"""
+        for obj in obstacles:
+            ox = obj.get("x", 0)
+            oy = obj.get("y", 0)
+            size = obj.get("size") or {}
+            ow = size.get("w", obj.get("w", 1))
+            oh = size.get("h", obj.get("h", 1))
+
+            sx, sy = self._w2s(ox - ow / 2, oy - oh / 2, cam_x, cam_y)
+            sw, sh = int(ow * SCALE), int(oh * SCALE)
+
+            obj_type = obj.get("type", "")
+            sprite = get_entity_sprite(obj_type)
+
+            if sprite and sw > 0 and sh > 0:
+                scaled = pygame.transform.scale(sprite, (sw, sh))
+                self.screen.blit(scaled, (sx, sy))
+            else:
+                pygame.draw.rect(self.screen, _COLORS["obstacle_visible"], (sx, sy, sw, sh), border_radius=3)
+
     def _draw_npcs(
         self,
         entities: List[PerceivedEntity],
         cam_x: float,
         cam_y: float,
         focus_id: Optional[str],
+        player_xy: Tuple[float, float],
     ) -> None:
         for entity in entities:
             if entity.entity_type != "npc":
@@ -181,9 +222,10 @@ class SceneRenderer:
 
             is_focused = entity.entity_id == focus_id
 
-            # Спрайт NPC по id (fallback на кружок если не найден)
-            sprite = get_entity_sprite(entity.entity_id)
-            npc_size = 14 if is_focused else 11
+            # Резолв спрайта: приоритет по entity_id, fallback на тип "person" для всех NPC
+            sprite = get_entity_sprite(entity.entity_id) or get_entity_sprite("person")
+            radius = 10 if is_focused else 7
+            npc_size = radius * 2
 
             if sprite:
                 scaled = pygame.transform.scale(sprite, (npc_size, npc_size))
@@ -191,7 +233,6 @@ class SceneRenderer:
                 if is_focused:
                     pygame.draw.circle(self.screen, (255, 255, 255), (sx, sy), npc_size // 2 + 2, 2)
             else:
-                radius = 10 if is_focused else 7
                 color = _COLORS["npc_focused"] if is_focused else _COLORS["npc_body"]
                 pygame.draw.circle(self.screen, color, (sx, sy), radius)
                 if is_focused:
@@ -205,6 +246,22 @@ class SceneRenderer:
 
             # Inference badges — маленькие индикаторы
             self._draw_inference_badges(entity, sx, sy + radius + 4)
+
+            # Визуальный индикатор внимания NPC (Приоритет 1)
+            is_looking_at_player = is_focused or any(inf.type == "communication" for inf in entity.inferences)
+            if is_looking_at_player:
+                player_sx, player_sy = self._w2s(player_xy[0], player_xy[1], cam_x, cam_y)
+                gaze_dx = player_sx - sx
+                gaze_dy = player_sy - sy
+                gaze_dist = math.hypot(gaze_dx, gaze_dy)
+                if gaze_dist > 0:
+                    ndx = gaze_dx / gaze_dist
+                    ndy = gaze_dy / gaze_dist
+                    start_x = sx + ndx * radius
+                    start_y = sy + ndy * radius
+                    end_x = sx + ndx * (radius + 10)
+                    end_y = sy + ndy * (radius + 10)
+                    pygame.draw.line(self.screen, (255, 255, 100), (start_x, start_y), (end_x, end_y), 2)
 
     def _draw_inference_badges(self, entity: PerceivedEntity, sx: int, sy: int) -> None:
         """Рисует маленькие цветные точки для поведенческих выводов"""
@@ -226,13 +283,21 @@ class SceneRenderer:
                 pygame.draw.circle(self.screen, color, (sx + x_offset, sy), 3)
                 x_offset += 8
 
-    def _draw_player(self, xy: Tuple[float, float], cam_x: float, cam_y: float) -> None:
+    def _draw_player(self, xy: Tuple[float, float], cam_x: float, cam_y: float, facing: float) -> None:
+        import math
         sx, sy = self._w2s(xy[0], xy[1], cam_x, cam_y)
-        # Треугольник-маркер игрока
+        # Форма стрелки: базовая ориентация — ВПРАВО (angle = 0)
+        base_points = [
+            (12, 0),   # Наконечник
+            (-6, -8),  # Левое крыло
+            (-6, 8),   # Правое крыло
+        ]
+        cos_a = math.cos(facing)
+        sin_a = math.sin(facing)
+        # Поворот точек вокруг (0,0) и смещение к позиции на экране (sx, sy)
         points = [
-            (sx, sy - 12),
-            (sx - 8, sy + 6),
-            (sx + 8, sy + 6),
+            (bx * cos_a - by * sin_a + sx, bx * sin_a + by * cos_a + sy)
+            for bx, by in base_points
         ]
         pygame.draw.polygon(self.screen, _COLORS["player_body"], points)
         pygame.draw.polygon(self.screen, (255, 255, 255), points, 2)

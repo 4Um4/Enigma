@@ -14,17 +14,17 @@
   "activity_map": {
     "active": {
       "location": "tavern_silver_wolf",
-      "position": "corner_table",
+      "position": "main_hall",
       "display": "observing"
     },
     "planning": {
       "location": "tavern_silver_wolf",
-      "position": "corner_table",
+      "position": "main_hall",
       "display": "observing"
     },
     "working": {
       "location": "tavern_silver_wolf",
-      "position": "corner_table",
+      "position": "main_hall",
       "display": "observing"
     },
     "scouting": {
@@ -34,7 +34,7 @@
     },
     "off_duty": {
       "location": "tavern_silver_wolf",
-      "position": "corner_table",
+      "position": "main_hall",
       "display": "observing"
     },
     "sleeping": {

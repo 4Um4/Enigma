@@ -42,7 +42,7 @@ from app.models.physical import (
     WoundSeverity,
 )
 from app.models.event_resolution import StateChange
-from app.models.state_delta import DeltaDomain, EmotionPayload, IdentityPayload, ReputationPayload, SocialPayload, StateDeltas
+from app.models.state_delta import DeltaDomain, EmotionPayload, IdentityPayload, PhysiologyPayload, ReputationPayload, SocialPayload, StateDeltas
 from app.services.npc.decision_hub import DecisionResult
 from app.services.npc.math_utils import apply_saturation
 from app.services.memory.relationship_store import RelationshipStore
@@ -135,7 +135,7 @@ class StateApplicator:
         Returns:
             (new_state, state_changes) — стейт и список изменений для логов
         """
-        from dataclasses import replace
+        from dataclasses import asdict, replace
         
         new_state = copy.deepcopy(state)
         state_changes: list[StateChange] = []
@@ -394,6 +394,14 @@ class StateApplicator:
         pressure_resistance_delta = deltas.payload.pressure_resistance_delta if domain == DeltaDomain.IDENTITY and isinstance(deltas.payload, IdentityPayload) else deltas.pressure_resistance_delta
         will_state_override = deltas.payload.will_state_override if domain == DeltaDomain.IDENTITY and isinstance(deltas.payload, IdentityPayload) else deltas.will_state_override
 
+        # Physiology Domain: Damage & Stress Propagation System
+        hp_delta = deltas.payload.hp_delta if domain == DeltaDomain.PHYSIOLOGY and isinstance(deltas.payload, PhysiologyPayload) else 0.0
+        pain_delta = deltas.payload.pain_delta if domain == DeltaDomain.PHYSIOLOGY and isinstance(deltas.payload, PhysiologyPayload) else 0.0
+        fatigue_delta = deltas.payload.fatigue_delta if domain == DeltaDomain.PHYSIOLOGY and isinstance(deltas.payload, PhysiologyPayload) else 0.0
+        add_injuries = deltas.payload.add_injuries if domain == DeltaDomain.PHYSIOLOGY and isinstance(deltas.payload, PhysiologyPayload) else ()
+        add_statuses = deltas.payload.add_statuses if domain == DeltaDomain.PHYSIOLOGY and isinstance(deltas.payload, PhysiologyPayload) else ()
+        remove_statuses = deltas.payload.remove_statuses if domain == DeltaDomain.PHYSIOLOGY and isinstance(deltas.payload, PhysiologyPayload) else ()
+
         # Стресс
         if stress_delta != 0.0:
             old = state.stress
@@ -424,6 +432,45 @@ class StateApplicator:
         # Травма
         if new_trauma:
             state.trauma_markers.add(new_trauma)
+
+        # --- Физиология (Physiology Domain) ---
+        if domain == DeltaDomain.PHYSIOLOGY:
+            # Инициализация body_state при первом применении
+            if not state.body_state:
+                state.body_state = {
+                    "current_hp": 100.0, "pain": 0.0, "fatigue": 0.0,
+                    "blood_loss": 0.0, "consciousness": 1.0,
+                    "injuries": [], "modifiers": {}, "statuses": []
+                }
+
+            if hp_delta != 0.0:
+                _max_hp = state.body_state.get("max_hp", 100.0)
+                _cur_hp = state.body_state.get("current_hp", _max_hp)
+                state.body_state["current_hp"] = max(0.0, min(_max_hp, _cur_hp + hp_delta))
+
+            if pain_delta != 0.0:
+                _cur_pain = state.body_state.get("pain", 0.0)
+                state.body_state["pain"] = max(0.0, min(100.0, _cur_pain + pain_delta))
+
+            if fatigue_delta != 0.0:
+                _cur_fat = state.body_state.get("fatigue", 0.0)
+                state.body_state["fatigue"] = max(0.0, min(100.0, _cur_fat + fatigue_delta))
+
+            if blood_loss_delta != 0.0:
+                _cur_blood = state.body_state.get("blood_loss", 0.0)
+                state.body_state["blood_loss"] = max(0.0, min(1.0, _cur_blood + blood_loss_delta))
+
+            if add_injuries:
+                # Конвертируем InjuryDTO в dict для JSON-сериализации
+                state.body_state.setdefault("injuries", []).extend([asdict(inj) for inj in add_injuries])
+
+            if add_statuses:
+                state.body_state.setdefault("statuses", []).extend(add_statuses)
+
+            if remove_statuses:
+                state.body_state["statuses"] = [
+                    s for s in state.body_state.get("statuses", []) if s not in remove_statuses
+                ]
 
         # Causal Ledger — паспорт каждого изменения (Шаг 3)
         # Фаза 4-ROLE.2: emotional_impact для генерации TemporaryDrive

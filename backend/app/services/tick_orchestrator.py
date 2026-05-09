@@ -28,16 +28,37 @@ import logging
 from dataclasses import dataclass, field, replace
 from typing import Any, Dict, List, Optional, Union
 
+from pathlib import Path
+from enum import Enum
+
 from app.domain.tick import TickResultDTO
+from app.models.state_delta import DeltaDomain, StateDeltas
+from app.models.cfrm import EventBuffer, ClusterOccupancy
+
+class ReductionPolicy(Enum):
+    """Политика редукции дельт при агрегации"""
+    ADDITIVE = "additive"
+    BOUNDED_ADDITIVE = "bounded_additive"
+    OVERWRITE = "overwrite"
+    PHYSICS_COMPOSITE = "physics_composite"
+
+DELTA_POLICY_REGISTRY = {
+    DeltaDomain.SOCIAL: ReductionPolicy.ADDITIVE,
+    DeltaDomain.EMOTION: ReductionPolicy.BOUNDED_ADDITIVE,
+    DeltaDomain.REPUTATION: ReductionPolicy.ADDITIVE,
+    DeltaDomain.IDENTITY: ReductionPolicy.OVERWRITE,
+    DeltaDomain.PHYSIOLOGY: ReductionPolicy.PHYSICS_COMPOSITE,
+}
 from app.services.events.event_types import EventType
 from app.services.npc.life_engine import get_life_engine
 from app.services.npc.npc_loader import load_l2_state_from_runtime_dict
 from app.services.npc.topic_extractor import extract_topic
 from app.services.events.event_bus import get_event_bus
-from app.models.phase8 import Phase8Context, Phase8Result
+from app.models.phase8 import Phase8Context, Phase8Handler, Phase8Result
 from app.services.events.perception_subscriber import PerceptionSubscriber
 from app.services.events.reaction_subscriber import ReactionSubscriber
 from app.services.events.social_subscriber import SocialSubscriber
+from app.services.combat.combat_subscriber import CombatSubscriber
 from app.services.events.intent_event_adapter import IntentEventAdapter
 from app.services.spatial.spatial_service import SpatialService
 from app.services.spatial.spatial_event_detector import (
@@ -94,6 +115,9 @@ class _TickContext:
     tick_events: list[dict] | None = None
     # Фаза 0.5: буфер idle-дельт (social decay, reputation decay)
     delta_buffer: list = field(default_factory=list)
+    # ── CFRM Layer 1 & P1: Причинная физика мира ──────────────────────
+    event_buffer: EventBuffer = field(default_factory=EventBuffer)
+    cluster_occupancy: ClusterOccupancy = field(default_factory=ClusterOccupancy)
 
 
 # ── Мостовые DTO для player turn (P1.1b) ──────────────────────────────
@@ -157,6 +181,7 @@ class TickOrchestrator:
         self._perception_sub: PerceptionSubscriber = PerceptionSubscriber(self._get_event_bus())
         self._reaction_sub: ReactionSubscriber = ReactionSubscriber(self._get_event_bus())
         self._social_sub: SocialSubscriber = SocialSubscriber(self._get_event_bus())
+        self._combat_sub: CombatSubscriber = CombatSubscriber(self._get_event_bus())
         # Фаза 0.5: time-driven idle-обработчики
         self._idle_handlers: list = []
         # StateApplicator для apply_batch (единый мутатор)
@@ -735,6 +760,9 @@ class TickOrchestrator:
         Время идёт непрерывно — эксплойты через движение исключены.
         Дельты собираются в ctx.delta_buffer → apply_batch() в Фазе 10.
         """
+        # ADR-002: Время не останавливается. Каждый тик продвигает часы на GAME_TICK_INTERVAL_SECONDS
+        self._advance_idle_time(ctx)
+
         if not self._idle_handlers:
             return
 
@@ -753,6 +781,33 @@ class TickOrchestrator:
 
             if deltas:
                 ctx.delta_buffer.extend(deltas)
+
+    def _advance_idle_time(self, ctx: _TickContext) -> None:
+        """Продвигает игровое время на GAME_TICK_INTERVAL_SECONDS (ADR-002: время не останавливается).
+        Работает даже если shared_context=None (idle-путь), читая время из scene_state.
+        """
+        from app.core.constants import GAME_TICK_INTERVAL_SECONDS
+        from app.core.calendar import Calendar
+
+        current_seconds = 0
+        # Приоритетный источник: shared_context (аккумулирует дни/годы)
+        if ctx.shared_context is not None and hasattr(ctx.shared_context, 'game_time_seconds') and ctx.shared_context.game_time_seconds:
+            current_seconds = ctx.shared_context.game_time_seconds
+        else:
+            # Fallback: legacy time_of_day в scene_state (теряет день/год, но часы идут)
+            _env_time = ctx.scene_state.get("environment", {}).get("time_of_day", "07:00")
+            current_seconds = Calendar.parse_hhmm(_env_time)
+
+        new_seconds = Calendar.advance(current_seconds, GAME_TICK_INTERVAL_SECONDS)
+
+        # Обновляем оба источника данных
+        if ctx.shared_context is not None and hasattr(ctx.shared_context, 'game_time_seconds'):
+            ctx.shared_context.game_time_seconds = new_seconds
+
+        # Сохраняем абсолютное время в scene_state для персистенции и фронтенда
+        ctx.scene_state["game_time_seconds"] = new_seconds
+        new_hhmm = Calendar.format_time(new_seconds)
+        ctx.scene_state.setdefault("environment", {})["time_of_day"] = new_hhmm
 
     @staticmethod
     def _build_npc_snapshots(all_npcs_raw: list) -> list:
@@ -831,32 +886,66 @@ class TickOrchestrator:
                 _faction_rank = npc.get("status_profile", {}).get("faction_rank", {})
                 faction_affiliations = list(_faction_rank.keys())
 
+            # --- Physiology Domain: Body LOD Macro ---
+            # Мастер Тай: body_profile (статика) + body_state (рантайм) → Snapshot
+            # НЕ вычислять effective values здесь! Хранить базу и модификаторы отдельно.
+            body_profile = npc.get("body_profile", {})
+            body_state = npc.get("body_state", {})
+            
+            _max_hp = float(body_profile.get("max_hp", 100.0))
+            _current_hp = float(body_state.get("current_hp", _max_hp))
+            
+            _base_abilities = body_profile.get("abilities", {})
+            _modifiers = body_state.get("modifiers", {})
+            _statuses = body_state.get("statuses", [])
+            
+            # Мастер Тай: Injuries должны группироваться по zone, а не плоским списком
+            _raw_injuries = body_state.get("injuries", [])
+            injuries_by_zone: Dict[str, list] = {}
+            for inj in _raw_injuries:
+                zone = inj.get("target_zone", "unknown")
+                if zone not in injuries_by_zone:
+                    injuries_by_zone[zone] = []
+                injuries_by_zone[zone].append(inj)
+            
             snapshots.append(NPCStateSnapshot(
                 npc_id=npc_id,
                 stress=float(psyche.get("stress", 0.0)),
                 relationship_cache=relationship_cache,
                 base_values=base_values,
                 faction_affiliations=faction_affiliations,
+                # Physiology
+                hp=_current_hp,
+                max_hp=_max_hp,
+                pain=float(body_state.get("pain", 0.0)),
+                fatigue=float(body_state.get("fatigue", 0.0)),
+                blood_loss=float(body_state.get("blood_loss", 0.0)),
+                consciousness=float(body_state.get("consciousness", 1.0)),
+                injuries_by_zone=injuries_by_zone,
+                base_abilities=_base_abilities,
+                modifiers=_modifiers,
+                statuses=_statuses,
             ))
         return snapshots
 
     @staticmethod
     def _aggregate_deltas(deltas: list) -> list:
-        """Дедупликация: группировка по (npc_id, domain, target) v2
-        с суммированием числовых дельт (v1 + v2 payload).
-
-        Устраняет зависимость от порядка применения и шум от множественных источников.
+        """Domain Reduction Semantics Layer (DRSL): редукция по законам физики доменов.
+        
+        Мастер Тай: система не различала коммутативные и некоммутативные эффекты.
+        Бухгалтерия (Social) ≠ Физика (Physiology). 
+        
+        PHYSICS_COMPOSITE (Physiology) обходит merge — это инъекции энергии в тело,
+        они обрабатываются ImpactEngine/StateApplicator как эволюция состояния, а не сумма.
         """
-        from app.models.state_delta import StateDeltas
         from app.models.delta_payloads import (
             SocialPayload, EmotionPayload, ReputationPayload, IdentityPayload
         )
 
-        def _merge_payloads(p1, p2):
-            """Сливает два payload одного домена в новый замороженный объект."""
+        def _reduce_additive(p1, p2):
+            """Сливает два payload для ADDITIVE/BOUNDED_ADDITIVE доменов."""
             if p1 is None: return p2
             if p2 is None: return p1
-            # Защита от смешивания доменов (не должно происходить при правильном ключе)
             if type(p1) != type(p2): return p2 
 
             if isinstance(p1, SocialPayload):
@@ -879,6 +968,7 @@ class TickOrchestrator:
                     reputation_delta=p1.reputation_delta + p2.reputation_delta
                 )
             if isinstance(p1, IdentityPayload):
+                # OVERWRITE: для воли — последний выигрывает, для чисел — сумма
                 return IdentityPayload(
                     identity_integrity_delta=p1.identity_integrity_delta + p2.identity_integrity_delta,
                     pressure_resistance_delta=p1.pressure_resistance_delta + p2.pressure_resistance_delta,
@@ -886,13 +976,27 @@ class TickOrchestrator:
                 )
             return p2
 
-        # v2 ключ: (npc_id, domain, target). Фолбэк для v1: None + v1 таргеты
-        groups: dict[tuple, StateDeltas] = {}
+        # Разделение потоков: Физика (PHYSICS_COMPOSITE) обходит merge
+        physics_deltas = []
+        algebraic_deltas = []
 
         for d in deltas:
             if not isinstance(d, StateDeltas):
                 continue
 
+            policy = DELTA_POLICY_REGISTRY.get(d.domain, ReductionPolicy.ADDITIVE)
+            
+            if policy == ReductionPolicy.PHYSICS_COMPOSITE:
+                # Тело — инерционная система. Дельты передаются как отдельные 
+                # инъекции энергии, не суммируются здесь.
+                physics_deltas.append(d)
+            else:
+                algebraic_deltas.append(d)
+
+        # Бухгалтерская редукция (ADDITIVE / BOUNDED_ADDITIVE / OVERWRITE)
+        groups: dict[tuple, StateDeltas] = {}
+
+        for d in algebraic_deltas:
             # Формируем ключ группировки
             if d.domain is not None:
                 key = (d.npc_id, d.domain, d.target)
@@ -902,19 +1006,27 @@ class TickOrchestrator:
 
             if key in groups:
                 existing = groups[key]
+                policy = DELTA_POLICY_REGISTRY.get(d.domain, ReductionPolicy.ADDITIVE)
                 
-                # Суммируем v1 числовые поля (backward compat для StateApplicator)
-                existing.stress_delta += d.stress_delta
-                existing.emotion_delta += d.emotion_delta
-                existing.trust_delta += d.trust_delta
-                existing.fear_delta += d.fear_delta
-                existing.reputation_delta += d.reputation_delta
-                existing.identity_integrity_delta += d.identity_integrity_delta
-                existing.pressure_resistance_delta += d.pressure_resistance_delta
-                
-                # v1 trait_updates — merge
-                for k, v in d.trait_updates.items():
-                    existing.trait_updates[k] = existing.trait_updates.get(k, 0.0) + v
+                if policy == ReductionPolicy.OVERWRITE and d.domain == DeltaDomain.IDENTITY:
+                    # OVERWRITE: для Identity воли — последний выигрывает, для чисел — сумма
+                    existing.identity_integrity_delta += d.identity_integrity_delta
+                    existing.pressure_resistance_delta += d.pressure_resistance_delta
+                    if d.will_state_override is not None:
+                        existing.will_state_override = d.will_state_override
+                else:
+                    # ADDITIVE / BOUNDED_ADDITIVE: суммируем v1 поля
+                    existing.stress_delta += d.stress_delta
+                    existing.emotion_delta += d.emotion_delta
+                    existing.trust_delta += d.trust_delta
+                    existing.fear_delta += d.fear_delta
+                    existing.reputation_delta += d.reputation_delta
+                    existing.identity_integrity_delta += d.identity_integrity_delta
+                    existing.pressure_resistance_delta += d.pressure_resistance_delta
+                    
+                    # v1 trait_updates — merge
+                    for k, v in d.trait_updates.items():
+                        existing.trait_updates[k] = existing.trait_updates.get(k, 0.0) + v
                 
                 # v1 маршрутизация — дополняем если в existing пусто
                 if d.intent_target is not None: existing.intent_target = d.intent_target
@@ -933,59 +1045,42 @@ class TickOrchestrator:
                 if d.will_state_override is not None:
                     existing.will_state_override = d.will_state_override
 
-                # v2 payload merge
-                existing.payload = _merge_payloads(existing.payload, d.payload)
+                # v2 payload merge (алгебраическая редукция)
+                existing.payload = _reduce_additive(existing.payload, d.payload)
             else:
                 groups[key] = d
 
-        return list(groups.values())
+        # Слияние: алгебраические (свернутые) + физические (как есть, без merge)
+        return list(groups.values()) + physics_deltas
 
     def _phase_8_drain_secondary(self, ctx: _TickContext) -> None:
-        """ФАЗА 8: детерминированный drain накопленных событий.
+        """ФАЗА 8: Layered Reduction (Causal Depth Model).
 
         Шина для фактов (Фазы 2/7), Фаза 8 для обработки.
-        Фиксированный порядок: perception → social.
-        Каждый обработчик: drain_events() → handle(events, ctx) → Phase8Result.
-        Оркестратор применяет результаты к _TickContext.
+        Порядок слоёв: Perception → Physical (Combat) → Cognitive (Reaction) → Social.
+        Physical слой материализуется перед Cognitive для соблюдения причинности
+        без нарушения порядка исполнения (Мастер Тай: Dual Buffer Causal Model).
         """
-        # Фиксированный порядок обработчиков
-        _handlers = [self._perception_sub, self._reaction_sub, self._social_sub]
+        # 1. Perception Layer (КТО видит событие)
+        self._execute_phase8_handler(ctx, self._perception_sub)
 
-        for handler in _handlers:
-            events = handler.drain_events()
+        # 2. Physical Layer (Combat: вычисление урона, генерация shock_impulse)
+        combat_result = self._execute_phase8_handler(ctx, self._combat_sub)
 
-            if not events:
-                continue
+        # Материализация Physical Layer: иммутабельный снимок для Cognitive слоя
+        physical_deltas_tuple: Tuple[StateDeltas, ...] = ()
+        if combat_result and combat_result.deltas:
+            physical_deltas_tuple = tuple(combat_result.deltas)
 
-            # Фаза 8 — event-only по контракту.
-            # shared_context может быть None (idle path) — handlers обрабатывают сами.
+        # 3. Cognitive Layer (Reaction: чтение shock_impulse, генерация страха/паники)
+        self._execute_phase8_handler(
+            ctx, self._reaction_sub, physical_deltas_materialized=physical_deltas_tuple
+        )
 
-            # Формируем READ-ONLY контекст (frozen=True в Phase8Context)
-            _npc_contexts = (
-                ctx.player_result.npc_contexts
-                if ctx.player_result is not None
-                else []
-            )
-            phase8_ctx = Phase8Context(
-                all_npcs_raw=ctx.all_npcs_raw,
-                all_npc_contexts=_npc_contexts,
-                shared_context=ctx.shared_context,
-                campaign_id=ctx.campaign_id,
-                tick_ctx=ctx,
-            )
-
-            try:
-                result = handler.handle(events, phase8_ctx)
-            except Exception as e:
-                # Safeguard: потеря событий в одном тике допустима, крах — нет
-                logger.error(
-                    f"[PHASE_8] {handler.name} handle() failed: {e}. "
-                    f"Events lost this tick."
-                )
-                continue
-
-            # Применяем Phase8Result к _TickContext
-            self._apply_phase8_result(ctx, result, handler.name)
+        # 4. Social Layer (Social: распространение слухов)
+        self._execute_phase8_handler(
+            ctx, self._social_sub, physical_deltas_materialized=physical_deltas_tuple
+        )
 
         # Flush: применяем все накопленные дельты (Phase 0.5 + Phase 8)
         # через единый мутатор → Phase 9 видит обновлённое состояние (ADR-002)
@@ -996,6 +1091,45 @@ class TickOrchestrator:
                     _aggregated, ctx.all_npcs_raw, ctx.campaign_id
                 )
                 ctx.delta_buffer.clear()
+
+    def _execute_phase8_handler(
+        self,
+        ctx: _TickContext,
+        handler: Phase8Handler,
+        physical_deltas_materialized: Tuple[StateDeltas, ...] = (),
+    ) -> Optional[Phase8Result]:
+        """Исполняет один обработчик Фазы 8 с изолированным контекстом."""
+        events = handler.drain_events()
+        if not events:
+            return None
+
+        _npc_contexts = (
+            ctx.player_result.npc_contexts
+            if ctx.player_result is not None
+            else []
+        )
+        phase8_ctx = Phase8Context(
+            all_npcs_raw=ctx.all_npcs_raw,
+            all_npc_contexts=_npc_contexts,
+            shared_context=ctx.shared_context,
+            campaign_id=ctx.campaign_id,
+            tick_ctx=ctx,
+            physical_deltas_materialized=physical_deltas_materialized,
+        )
+
+        try:
+            result = handler.handle(events, phase8_ctx)
+        except Exception as e:
+            # Safeguard: потеря событий в одном тике допустима, крах — нет
+            logger.error(
+                f"[PHASE_8] {handler.name} handle() failed: {e}. "
+                f"Events lost this tick."
+            )
+            return None
+
+        # Применяем Phase8Result к _TickContext
+        self._apply_phase8_result(ctx, result, handler.name)
+        return result
 
     def _apply_phase8_result(
         self,
@@ -1081,7 +1215,7 @@ class TickOrchestrator:
     # ── Хелперы ───────────────────────────────────────────────────────
 
     @staticmethod
-    def _get_npc_runtime_path(campaign_id: str) -> str:
-        """Путь к runtime-данным NPC для кампании."""
+    def _get_npc_runtime_path(campaign_id: str) -> Path:
+        """Путь к runtime-данным NPC для кампании (saves_dir/campaign_id/npc_runtime.json)."""
         from app.core.config import settings
-        return str(settings.RUNTIME_PATH / campaign_id)
+        return Path(settings.saves_dir) / campaign_id / "npc_runtime.json"
