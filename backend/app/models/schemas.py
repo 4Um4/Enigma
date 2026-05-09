@@ -1,3 +1,18 @@
+"""
+Назначение этого модуля — определение схем данных для API и внутреннего использования.
+Здесь описаны Pydantic-модели для валидации и сериализации данных, которые проходят через API и между компонентами системы.
+Схемы включают в себя:
+1. Запросы и ответы для API-эндпоинтов (например, ChatTurnRequest, CharacterUpsertRequest).
+2. Внутренние модели для представления состояния игры (например, CharacterSheet, NPCState, WorldEvent).
+3. Модели для управления сессиями игроков (например, PlayerSession, HeartbeatRequest).
+4. Модели для представления состояния кампании и мира (например, CampaignState, PlayerInfo, WorldFact).
+Эти модели обеспечивают строгую типизацию и валидацию данных, что помогает предотвратить ошибки и обеспечить согласованность данных в системе. Они используются как в API-эндпоинтах, так и во внутренних сервисах для обмена данными между компонентами.
+
+TODO:
+- Разнести модели по нескольким файлам для лучшей организации (например, api_models.py, game_models.py, session_models.py).
+- Добавить комментарии и описания к каждому полю для улучшения документации.
+"""
+
 from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional
@@ -54,6 +69,9 @@ class ChatTurnResponse(BaseModel):
     world_changes: List[str]
     journal_entry_id: str
     traces: List[AgentTrace]
+    # TASK 1: Force Merge — передаём world_snapshot на фронтенд (ADR-0014)
+    world_snapshot: Optional[dict] = None
+    npc_positions: Optional[dict] = None
 
 
 class CharacterSheet(BaseModel):

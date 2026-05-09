@@ -28,7 +28,7 @@
     },
     "eating": {
       "location": "tavern_silver_wolf",
-      "position": "corner_table",
+      "position": "main_hall",
       "display": "eating"
     },
     "resting": {

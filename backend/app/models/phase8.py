@@ -15,12 +15,14 @@ path: backend/app/models/phase8.py
 Назначение: Контракты Фазы 8 — детерминированный drain-этап (Устав §3, Фаза 8)
 Зависимости: app.models.state_delta.StateDeltas, app.domain.events.EventDTO
 Основные сущности: Phase8Context, Phase8Result, Phase8Handler
+
+TODO: после миграции на delta_buffer удалить prop_dirty и весь код, завязанный на него (в т.ч. в оркестраторе)
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, List, Optional, Protocol, Set, runtime_checkable
+from typing import Any, List, Optional, Protocol, Set, Tuple, runtime_checkable
 
 from app.domain.events import EventDTO
 from app.models.state_delta import StateDeltas
@@ -38,6 +40,7 @@ class Phase8Context:
     shared_context: Any                # TODO: типизировать после миграции SharedContext
     campaign_id: str
     tick_ctx: Any                      # TODO: типизировать после миграции _TickContext
+    physical_deltas_materialized: Tuple[StateDeltas, ...] = ()  # Материализованный Physical Layer (t)
 
 
 @dataclass

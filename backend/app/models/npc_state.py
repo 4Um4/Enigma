@@ -468,6 +468,11 @@ class NPCState:
 
     trauma_markers: Set[str] = field(default_factory=set)
 
+    # ── Физиология (Physiology Domain / Body LOD Macro) ────────────────────
+    # Мастер Тай: body_state — рантайм контейнер ВСЕЙ физиологии (HP, pain, fatigue, injuries, modifiers).
+    # Инициализируется из body_profile при загрузке.
+    body_state: Dict[str, Any] = field(default_factory=dict)
+
     # ── Роль (runtime, ФАЗА 4-ROLE) ──────────────────────────────────────────
     # Текущая профессия NPC. Изначально = archetype из config.
     # Может меняться через RoleTransition при определённых условиях.
@@ -524,8 +529,8 @@ class NPCState:
     causal_ledger: List["CausalEntry"] = field(default_factory=list)
 
     # ── Позиция (кэш из SceneState) ───────────────────────────────────────────
-    cached_position: Optional[Tuple[float, float]] = None
-    position_valid:  bool = False
+    # Удалено: cached_position (ADR-0015 призрачный кэш)
+    # Удалено: position_valid (ADR-0015)
 
     def __post_init__(self) -> None:
         """Защита от повреждённых данных на входе."""
@@ -545,17 +550,7 @@ class NPCState:
                     f"NPCState '{self.npc_id}': intent={self.intent} требует intent_target"
                 )
 
-    def _cached_distance_to(self, other_pos: Tuple[float, float]) -> float:
-        """
-        Евклидово расстояние до позиции из кэша.
-        ВНИМАНИЕ: только для визуализации и отладки.
-        DecisionHub читает позиции из SceneState напрямую — не отсюда.
-        """
-        if not self.position_valid or self.cached_position is None:
-            return float("inf")
-        dx = self.cached_position[0] - other_pos[0]
-        dy = self.cached_position[1] - other_pos[1]
-        return math.sqrt(dx * dx + dy * dy)
+    # Удалено: _cached_distance_to (ADR-0015)
 
     def get_top_narrative_facts(self, n: int = 2) -> tuple:
         """Top-N фактов по importance."""
@@ -595,8 +590,6 @@ class NPCState:
             "intent_progress_ticks": self.intent_progress_ticks,
             "last_intent_change":   self.last_intent_change,
             "relationship_cache": dict(self.relationship_cache),
-            "position_valid":     self.position_valid,
-            "cached_position":    list(self.cached_position) if self.cached_position else None,
         }
 
 

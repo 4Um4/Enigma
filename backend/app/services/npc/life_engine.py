@@ -99,15 +99,9 @@ _NEED_DECAY_PER_TICK: float = 0.05
 # Порог для макро-симуляции (в секундах реального времени)
 
 # Fallback для неизвестных NPC
-_DEFAULT_ACTIVITY_MAP: dict[str, tuple[str, str, str]] = {          
-    "working":   ("tavern_silver_wolf", "behind_bar",     "working"),
-    "sleeping": ("tavern_silver_wolf", "corner_table",  "sleeping"),
-    "on_duty":   ("tavern_silver_wolf", "entrance",     "on_duty"),
-    "off Duty":  ("tavern_silver_wolf", "corner_table",  "resting"),
-    "resting":   ("tavern_silver_wolf", "corner_table",  "resting"),
-    "eating":    ("tavern_silver_wolf", "corner_table",  "eating"),
-    "drinking":  ("tavern_silver_wolf", "bar_area",     "drinking"),
-}
+# ADR-0011: Расписание удалено. Движение теперь — следствие социальных потребностей (Social Motility).
+# NPC не телепортируются по расписанию. Макро-перемещение (LOD1) только для редких нужд (кухня, выход).
+_DEFAULT_ACTIVITY_MAP: dict[str, tuple[str, str, str]] = {}
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Случайные события
@@ -799,7 +793,6 @@ class LifeEngine:
                 from_node_id=npc.get("position", ""),
                 location_id=location,
                 reason="random:wanders_to_bar",
-                movement_mode="path",
                 priority=PRIORITY_RANDOM,
             )),
             # NPC становится более бдительным (заметил что-то)
@@ -1000,6 +993,7 @@ class LifeEngine:
         npc.get("routine", {})["current"] = target_activity
 
         from app.domain.movement import PRIORITY_NEEDS
+        # ADR-0010: movement_mode удалён. Макро-перемещение — Semantic Relocation.
         return MovementIntent(
             npc_id=npc_id,
             target_node_id=target_node,
@@ -1007,7 +1001,6 @@ class LifeEngine:
             location_id=target_location,
             reason=f"need_driven:{need_name}={need_value:.2f}",
             priority=PRIORITY_NEEDS,
-            movement_mode="path",
         )
 
     def _simulate_minor(
@@ -1121,6 +1114,7 @@ class LifeEngine:
 
         # ── MovementIntent для MovementEngine (Слой 2) ────────────────────
         from app.domain.movement import PRIORITY_SCHEDULE
+        # ADR-0010: movement_mode удалён. Макро-перемещение — Semantic Relocation.
         intent = MovementIntent(
             npc_id=npc_id,
             target_node_id=new_position,
@@ -1128,7 +1122,6 @@ class LifeEngine:
             location_id=new_location,
             reason=f"schedule:{new_activity}",
             priority=PRIORITY_SCHEDULE,
-            movement_mode="path",
         )
 
         # ── Обновляем NPC dict в памяти ────────────────────────────────────

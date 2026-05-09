@@ -36,6 +36,9 @@ class TurnResult:
     tps: float = 0.0
     game_time_seconds: int = 0  # total_seconds для отображения даты/времени
     error: Optional[str] = None
+    # ADR-0014: Позиции NPC после player action (Force Merge)
+    world_snapshot: Optional[dict] = None
+    npc_positions: Optional[dict] = None
 
 
 class GameLoopBridge:
@@ -135,13 +138,24 @@ class GameLoopBridge:
                 loop.run_until_complete(_collect())
 
         result.dm_text = "".join(dm_parts)
+
+        # ADR-0014: Force Merge — строим npc_positions из актуального scene_state.
+        # npc_orchestration.py уже применил micro-positions через apply_changes()
+        # ДО этого вызова, поэтому get_scene_state() вернёт актуальные координаты.
+        if self._ready and self._loop is not None:
+            try:
+                _scene = self._loop.scene_manager.get_scene_state(campaign_id, location)
+                if _scene and "npc_positions" in _scene:
+                    import copy
+                    result.npc_positions = copy.deepcopy(_scene["npc_positions"])
+                    result.world_snapshot = {"npc_positions": result.npc_positions}
+            except Exception as _ws_err:
+                # Non-critical — позиции обновятся на следующем idle_tick
+                print(f"[BRIDGE] world_snapshot build skipped: {_ws_err}")
+
         return result
 
-    def ensure_scene_initialized(self, campaign_id: str) -> dict:
-        """Инициализирует scene_state из editor JSON если нужно."""
-        if not self._ready or self._loop is None:
-            return {}
-        return self._loop.ensure_scene_initialized(campaign_id)
+    # ADR-0010: Удалён прямой вызов backend-метода. Инициализация сцены — ответственность backend API.
 
     def enrich_scene_spatial(self, scene_state: dict, campaign_id: str) -> None:
         """Обогащает spatial-данные из editor JSON. Делегирует модульную функцию."""

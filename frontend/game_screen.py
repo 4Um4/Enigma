@@ -42,6 +42,8 @@ def _build_perceived_scene(scene_state: dict, config: PerceptionConfig) -> Perce
         x, y = 0.0, 0.0
         if isinstance(pos, dict):
             x, y = float(pos.get("x", 0)), float(pos.get("y", 0))
+        # УБРАНО: render spam (диагностика ADR-0013 завершена, рендерер невиновен)
+        # Рендер spam полностью удалён. Трассировка только при изменении позиции (TASK 4).
             
         entities.append(PerceivedEntity(
             entity_id=npc_id,
@@ -78,13 +80,20 @@ _MOVE_INTERVAL = 0.08  # секунд между шагами
 
 @dataclass
 class _MoveState:
-    """Мутабельное состояние перемещения — передаётся по ссылке"""
+    """Разделение природ: Навигация, Кинетика, Эмбодимент (Устав Мастера Тая)"""
+    # --- Навигация (Куда идём) ---
     target_npc_id: Optional[str] = None
-    direction: Optional[str] = None
-    cooldown: float = 0.0
     path: Optional[list] = None
-    walk_distance_accumulated: float = 0.0  # накопленное расстояние (метры) для расчёта времени
     path_index: int = 0
+    direction: Optional[str] = None  # Легаси
+
+    # --- Кинетика (Как движемся) ---
+    cooldown: float = 0.0
+    walk_distance_accumulated: float = 0.0  # Накопленное расстояние (м) для расчёта времени
+
+    # --- Эмбодимент / Внимание (Куда смотрим) ---
+    facing_angle: float = -math.pi / 2  # Куда смотрит агент (рад). Изначально — вверх
+    facing_mode: str = "VELOCITY"  # "VELOCITY" (по движению), "LOOK_TARGET" (на цель), "FREE" (зафиксирован)
 
 
 def _load_campaign_state(campaign_folder: str) -> Optional[dict]:
@@ -218,9 +227,14 @@ class GameScreen:
 
         # Игровое время — total_seconds от начала эпохи
         # При старте парсим из scene_state, дальше обновляем из ответов backend и движения
-        from constants import TIME_DELTA_WALK_INDOOR, parse_hhmm, format_game_time
-        _env_time_str = scene_state.get("environment", {}).get("time_of_day", "07:00")
-        self.game_time_seconds: int = parse_hhmm(_env_time_str)
+        from constants import TIME_DELTA_WALK_INDOOR, parse_hhmm, format_game_time, format_world_date
+        # Абсолютное время из бэкенда (если есть), иначе legacy time_of_day
+        _gts = scene_state.get("game_time_seconds")
+        if _gts is not None and _gts > 0:
+            self.game_time_seconds: int = _gts
+        else:
+            _env_time_str = scene_state.get("environment", {}).get("time_of_day", "07:00")
+            self.game_time_seconds: int = parse_hhmm(_env_time_str)
 
 
         location_id = scene_state.get("location_id", "unknown")
@@ -272,6 +286,7 @@ class GameScreen:
         _idle_tick_running = [False]   # флаг активного запроса
         _last_telegraph_ms = 0         # cooldown между телеграфами
         _TELEGRAPH_COOLDOWN_MS = 30_000  # 30 сек между телеграфами
+        _time_scale = 1                # Множитель скорости симуляции (1, 4, 10, 50)
         # Маппинг npc_id → имя для телеграфа
         _npc_name_map: dict[str, str] = {}
         try:
@@ -318,6 +333,15 @@ class GameScreen:
                         else:
                             # Закрыли консоль — убираем пузыри с экрана, чтобы не загораживали игру
                             message_log.clear()
+                    # Time Controls: ускорение симуляции (Приоритет 1)
+                    elif event.key == pygame.K_1 and not text_input.focused:
+                        _time_scale = 1
+                    elif event.key == pygame.K_2 and not text_input.focused:
+                        _time_scale = 4
+                    elif event.key == pygame.K_3 and not text_input.focused:
+                        _time_scale = 10
+                    elif event.key == pygame.K_4 and not text_input.focused:
+                        _time_scale = 50
                     # TextInput обрабатывает всё кроме WASD (pass_through)
                     handled = text_input.handle_event(event)
                     # RETURN обрабатывается отдельно — TextInput намеренно возвращает False
@@ -327,7 +351,7 @@ class GameScreen:
                         print("[TELEGRAPH] cancelled — player acted first")
                         
                         # Создаем сценическое событие для пузыря игрока (ТЗ 3 + Мастер тай)
-                        from narrative_beat import NarrativeBeat, DeliveryType, RecognitionLevel
+                        from narrative_beat import NarrativeBeat, DeliveryType, RecognitionLevel, BeatLifetime
                         
                         # Сохраняем текст для фильтрации эха от LLM
                         _last_player_input = text_input.text.strip()
@@ -338,7 +362,8 @@ class GameScreen:
                             is_player=True,
                             delivery=DeliveryType.NORMAL,
                             recognition=RecognitionLevel.KNOWN_NAME,
-                            is_active=True
+                            is_active=True,
+                            creation_tick=pygame.time.get_ticks()
                         )
                         message_log.append(player_beat)
                         
@@ -375,7 +400,7 @@ class GameScreen:
                         text_input.handle_event(event)
                 elif event.type == pygame.TEXTEDITING:
                     text_input.handle_event(event)
-                elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                elif event.type == pygame.MOUSEBUTTONDOWN and False:  # Отключено перемещение кликом мыши
                     clicked_npc = self._handle_click(
                         event.pos, scene_state, focus, walls,
                     )
@@ -430,6 +455,14 @@ class GameScreen:
                                 system_log.append(f"Ты подошёл к {name}")
                                 move.target_npc_id = None
                     else:
+                        # Эмбодимент: Взгляд не следит за узлами пути, он следует за НАМЕРЕНИЕМ
+                        if move.target_npc_id and move.target_npc_id in npc_positions:
+                            lp = npc_positions[move.target_npc_id].get("local_position") or {}
+                            move.facing_angle = math.atan2(lp.get("y", py) - py, lp.get("x", px) - px)
+                            move.facing_mode = "LOOK_TARGET"
+                        else:
+                            move.facing_angle = math.atan2(dy, dx)
+                            move.facing_mode = "VELOCITY"
                         result = try_move(
                             px, py, dx, dy, walls, obstacles, npc_positions,
                             step_size=0.3,
@@ -463,6 +496,8 @@ class GameScreen:
                             dx += kx
                             dy += ky
                     if dx != 0 or dy != 0:
+                        move.facing_angle = math.atan2(dy, dx)
+                        move.facing_mode = "VELOCITY"  # Ручное управление: взгляд = движение
                         result = try_move(
                             px, py, dx, dy, walls, obstacles, npc_positions,
                         )
@@ -479,6 +514,8 @@ class GameScreen:
                     move.walk_distance_accumulated += 0.3  # step_size
                     meters_walked = int(move.walk_distance_accumulated)
                     if meters_walked > 0:
+                        # Оптимистичный рендеринг: фронтенд предсказывает время,
+                        # бэкенд подтвердит его при следующем sync (idle_tick или диалог).
                         self.game_time_seconds += TIME_DELTA_WALK_INDOOR * meters_walked
                         move.walk_distance_accumulated -= meters_walked
 
@@ -497,13 +534,17 @@ class GameScreen:
                     # Fallback на deprecated поле для совместимости
                     _new_positions = _tick_data.get("npc_positions", {})
             if _new_positions:
+                import copy
                 for npc_id, new_data in _new_positions.items():
-                    if npc_id in scene_state.get("npc_positions", {}):
-                        existing = scene_state["npc_positions"][npc_id]
-                        for k, v in new_data.items():
-                            existing[k] = v
-                    else:
-                        scene_state.setdefault("npc_positions", {})[npc_id] = new_data
+                    # ADR-0014: Атомарная замена вместо shallow merge.
+                    # Shallow merge убивал движение: если бэкенд не присылал local_position,
+                    # старые координаты оставались навсегда, и рендерер рисовал призраков.
+                    scene_state.setdefault("npc_positions", {})[npc_id] = copy.deepcopy(new_data)
+                    # TASK 2: Visual Revision Counter — логируем только если координаты реально изменились
+                    _old_lp = scene_state.get("npc_positions", {}).get(npc_id, {}).get("local_position", {})
+                    _new_lp = new_data.get("local_position", {})
+                    if _old_lp != _new_lp:
+                        print(f"[FRAME_RENDER] npc={npc_id} new_xy=({_new_lp.get('x')}, {_new_lp.get('y')})")
 
             if _new_positions:
                 print(f"[IDLE_TICK] merged: {list(_new_positions.keys())}")
@@ -513,10 +554,15 @@ class GameScreen:
                 _pp = _ws.get("player_position")
                 if _pp and len(_pp) == 2:
                     _set_player_xy(scene_state, float(_pp[0]), float(_pp[1]))
+                # ЗАКОН: Фронтенд НЕ конструирует время. Absolute time authority = backend.
+                _ws_gts = _ws.get("game_time_seconds")
+                if _ws_gts is not None and _ws_gts > 0:
+                    scene_state["game_time_seconds"] = _ws_gts
+                    self.game_time_seconds = _ws_gts
+                # time_of_day — только визуальный срез для рендера, не источник истины
                 _ws_tod = _ws.get("time_of_day")
                 if _ws_tod:
                     scene_state.setdefault("environment", {})["time_of_day"] = _ws_tod
-                    self.game_time_seconds = parse_hhmm(_ws_tod)
                 _ws_weather = _ws.get("weather")
                 if _ws_weather:
                     scene_state.setdefault("environment", {})["weather"] = _ws_weather
@@ -559,29 +605,31 @@ class GameScreen:
                 )
                 print(f"[TELEGRAPH] event-driven: {_telegraph_text}")
 
-                # Фаза 2.1 — distance-based интервал: в чате = частый, при ходьбе = редкий
-                if not text_input.focused:
-                    # WASD: чат не в фокусе → NPC двигаются по расстоянию
-                    _nearest = _nearest_npc_distance(scene_state)
-                    _tick_interval = _idle_tick_interval_ms(_nearest)
-                else:
-                    # Диалог: NPC стоят и разговаривают, не "летают" по комнате
-                    _tick_interval = 30_000
-                # Запускаем новый idle_tick если пора и предыдущий завершён
-                if (_now - _last_idle_tick >= _tick_interval
-                        and not _idle_tick_running[0]
-                        and action_queue.pending_count() == 0):
-                    # Фаза 4 — сохраняем позицию на бэкенд перед idle_tick
-                    try:
-                        _bridge = _gateway._bridge
-                        if _bridge.ready:
-                            _bridge.save_scene_state(campaign_folder, scene_state)
-                    except Exception:
-                        pass
-                    _idle_tick_running[0] = True
-                    _last_idle_tick = _now
-                    print(f"[IDLE_TICK] fired at {_now}ms")
-                    threading.Thread(target=_do_idle_tick, daemon=True).start()
+            # Фаза 2.1 — distance-based интервал: в чате = частый, при ходьбе = редкий
+            _now = pygame.time.get_ticks()
+            if not text_input.focused:
+                # WASD: чат не в фокусе → NPC двигаются по расстоянию
+                _nearest = _nearest_npc_distance(scene_state)
+                # Ускорение: делим интервал на time_scale (минимум 500мс чтобы не DDOSить бэкенд)
+                _tick_interval = max(500, _idle_tick_interval_ms(_nearest) // _time_scale)
+            else:
+                # Диалог: NPC стоят и разговаривают, не "летают" по комнате
+                _tick_interval = 30_000
+            # Запускаем новый idle_tick если пора и предыдущий завершён
+            if (_now - _last_idle_tick >= _tick_interval
+                    and not _idle_tick_running[0]
+                    and action_queue.pending_count() == 0):
+                # Фаза 4 — сохраняем позицию на бэкенд перед idle_tick
+                try:
+                    _bridge = _gateway._bridge
+                    if _bridge.ready:
+                        _bridge.save_scene_state(campaign_folder, scene_state)
+                except Exception:
+                    pass
+                _idle_tick_running[0] = True
+                _last_idle_tick = _now
+                print(f"[IDLE_TICK] fired at {_now}ms")
+                threading.Thread(target=_do_idle_tick, daemon=True).start()
 
             # === Poll backend responses ===
             result = action_queue.poll()
@@ -598,9 +646,36 @@ class GameScreen:
                         self.game_time_seconds = _gts
                     # Пауза idle tick: NPC не двигаются пока игрок читает ответ
                     _last_idle_tick = pygame.time.get_ticks() + 1000
-                    from narrative_beat import NarrativeBeat, DeliveryType, RecognitionLevel
+                    from narrative_beat import NarrativeBeat, DeliveryType, RecognitionLevel, BeatLifetime
                     
                     resp = result.response.dm_response
+                    # TASK 1: Force Merge — применяем snapshot из player action немедленно (ADR-0014)
+                    _action_ws = None
+                    if hasattr(result.response, 'world_snapshot') and result.response.world_snapshot:
+                        _action_ws = result.response.world_snapshot
+                    elif isinstance(result.response, dict) and result.response.get("world_snapshot"):
+                        _action_ws = result.response.get("world_snapshot")
+                    
+                    # Диагностика: что реально пришло в ответе?
+                    if isinstance(result.response, dict):
+                        print(f"[TRACE][ACTION_RESP] has_ws={bool(_action_ws)} ws_type={type(_action_ws).__name__} top_keys={list(result.response.keys())[:5]}")
+                    else:
+                        print(f"[TRACE][ACTION_RESP] resp_type={type(result.response).__name__} has_ws={bool(_action_ws)}")
+
+                    if _action_ws and isinstance(_action_ws, dict) and "npc_positions" in _action_ws:
+                        import copy
+                        for npc_id, new_data in _action_ws["npc_positions"].items():
+                            scene_state.setdefault("npc_positions", {})[npc_id] = copy.deepcopy(new_data)
+                            _old_lp = scene_state.get("npc_positions", {}).get(npc_id, {}).get("local_position", {})
+                            _new_lp = new_data.get("local_position", {})
+                            if _old_lp != _new_lp:
+                                print(f"[FRAME_RENDER][ACTION] npc={npc_id} new_xy=({_new_lp.get('x')}, {_new_lp.get('y')})")
+                    elif isinstance(result.response, dict) and "npc_positions" in result.response:
+                        # Fallback: deprecated top-level npc_positions
+                        import copy
+                        for npc_id, new_data in result.response["npc_positions"].items():
+                            scene_state.setdefault("npc_positions", {})[npc_id] = copy.deepcopy(new_data)
+
                     if resp and resp != "Ничего не произошло.":
                         import re
                         from difflib import SequenceMatcher
@@ -678,7 +753,8 @@ class GameScreen:
                                     is_player=False,
                                     delivery=delivery,
                                     recognition=recognition,
-                                    is_active=False
+                                    is_active=False,
+                                    creation_tick=pygame.time.get_ticks()
                                 ))
                         
                     for npc_r in result.response.npc_reactions:
@@ -729,7 +805,8 @@ class GameScreen:
                                 is_player=False,
                                 delivery=delivery,
                                 recognition=recognition,
-                                is_active=False
+                                is_active=False,
+                                creation_tick=pygame.time.get_ticks()
                             ))
 
                 # Telegraph завершился — запускаем следующий если консоль открыта
@@ -759,6 +836,8 @@ class GameScreen:
                 walls=walls,
                 obstacles=obstacles,
                 player_xy=(px, py),
+                player_facing=move.facing_angle,
+                dt=dt,
             )
 
             # HUD
@@ -770,7 +849,25 @@ class GameScreen:
                     self.screen, player_name, text_input.text, text_input._cursor_pos,
                     x=input_bubble_x, y=self.screen.get_height() - 150, max_width=input_bubble_max_w
                 )
-            self._draw_message_log(message_log, system_log, narrative_renderer, player_name)
+            # Bubble Lifetime: обновление возраста и растворение TRANSIENT (Пункт 4)
+            _now = pygame.time.get_ticks()
+            for beat in message_log:
+                if isinstance(beat, NarrativeBeat) and beat.lifetime == BeatLifetime.TRANSIENT:
+                    age_ms = _now - beat.creation_tick
+                    if age_ms > 10000:  # Живет 10 секунд, затем начинает таять
+                        beat.is_fading = True
+                        fade_progress = (age_ms - 10000) / 3000.0  # 3 секунды на фейд-аут
+                        beat.alpha = max(0.0, 255.0 * (1.0 - fade_progress))
+                        if beat.alpha <= 0:
+                            beat.is_active = False
+                    else:
+                        beat.alpha = 255.0
+                        beat.is_fading = False
+                        
+            # Удаление полностью растворившихся пузырей из памяти
+            message_log[:] = [b for b in message_log if b.alpha > 0]
+
+            self._draw_message_log(message_log, system_log, narrative_renderer, player_name, _time_scale)
 
             # HUD: FPS + игровое время
             fps_surf = self.renderer.font_small.render(
@@ -778,10 +875,11 @@ class GameScreen:
             )
             self.screen.blit(fps_surf, (self.screen.get_width() - 70, 4))
             
+            # Выводим полную дату мира (Год, День, Час:Минута)
             time_surf = self.renderer.font_small.render(
-                format_game_time(self.game_time_seconds), True, (140, 140, 140)
+                format_world_date(self.game_time_seconds), True, (140, 140, 140)
             )
-            self.screen.blit(time_surf, (self.screen.get_width() - 280, 4))
+            self.screen.blit(time_surf, (self.screen.get_width() - 380, 4))
 
             pygame.display.flip()
             self.clock.tick(60)
@@ -796,7 +894,7 @@ class GameScreen:
         text_input.rect = pygame.Rect(4, sh - 36, sw - 8, 32)
         text_input.draw(self.screen)
 
-    def _draw_message_log(self, log: list, system_log: list, renderer: 'NarrativeRenderer', player_name: str) -> None:
+    def _draw_message_log(self, log: list, system_log: list, renderer: 'NarrativeRenderer', player_name: str, time_scale: int = 1) -> None:
         """Cinematic Layer: Рисует сценические пузыри вместо плоского чата"""
         from narrative_beat import NarrativeBeat, RecognitionLevel, DeliveryType
         
@@ -811,11 +909,21 @@ class GameScreen:
             msg.is_active = (msg == visible[-1])
             beats.append(msg)
             
-        # === Log Layer: Системные сообщения (верхний правый угол, полупрозрачный) ===
+        # === Time Scale Indicator (Приоритет 1) ===
+        scale_texts = {1: "▶ 1x", 4: "▶▶ 4x", 10: "▶▶▶ 10x", 50: "⏩ 50x"}
+        scale_str = scale_texts.get(time_scale, f"▶ {time_scale}x")
+        sys_font = renderer.font_normal
+        scale_surf = sys_font.render(scale_str, True, (255, 220, 100)) # Желтый цвет для внимания
+        scale_bg = pygame.Surface((scale_surf.get_width() + 8, scale_surf.get_height() + 4), pygame.SRCALPHA)
+        scale_bg.fill((0, 0, 0, 150))
+        scale_x = sw - scale_surf.get_width() - 18
+        scale_bg.blit(scale_surf, (4, 2))
+        self.screen.blit(scale_bg, (scale_x, 10))
+
+        # === Log Layer: Системные сообщения (сдвиг вниз под Time Scale) ===
         if system_log:
-            sys_font = renderer.font_normal
             visible_sys = system_log[-5:] # Последние 5 системных сообщений
-            sys_y = 10
+            sys_y = 10 + scale_surf.get_height() + 6 # Отступаем ниже индикатора скорости
             for sys_msg in reversed(visible_sys):
                 sys_surf = sys_font.render(sys_msg, True, (180, 180, 180))
                 # Полупрозрачный фон
@@ -904,9 +1012,9 @@ class GameScreen:
             )
             move.path_index = 0
             if move.path:
-                system_log.append(f"Идёшь к {intent.target_display_name}")
+                pass  # TODO: Выводить UI-уведомление о движении через NarrativeBeat
             else:
-                system_log.append("Путь не найден")
+                pass  # Путь не найден
                 move.target_npc_id = None
         elif intent.direction:
             move.direction = intent.direction
@@ -915,7 +1023,7 @@ class GameScreen:
                 "north": "север", "south": "юг",
                 "east": "восток", "west": "запад",
             }
-            system_log.append(f"Идёшь на {names.get(intent.direction, intent.direction)}")
+            pass  # TODO: Выводить UI-уведомление о движении через NarrativeBeat
 
     def _handle_click(
         self,

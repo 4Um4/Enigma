@@ -67,3 +67,92 @@ config/npc/archetypes/: Миграция позиций guard.json и merchant.j
 ---
 [SESS_14] Дата: 08.05.2026 22:21: Приоритет 1 (StateDeltas v2) завершён. Создан app/models/delta_payloads.py (frozen dataclasses: SocialPayload, EmotionPayload, ReputationPayload, IdentityPayload). StateDeltas расширен: enum DeltaDomain, поля domain, target, payload. post_init валидирует соответствие payload типу domain (TypeError при несовпадении). Мигрированы на v2: SocialDecayHandler, ReputationEngine, ReactionSubscriber, propagation.py, StateApplicator (tick_recovery). _aggregate_deltas группирует по (npc_id, domain, target) и мержит frozen payloads. ReactionSubscriber разделен на 2 дельты (EMOTION + SOCIAL) вместо 1 смешанной. StateApplicator._apply_deltas извлекает данные из payload с fallback на v1 поля. DecisionHub оставлен на v1 (требует рефакторинга DecisionResult). 400 тестов проходят + 10 новых v2 контрактов.
 ---
+[SESS_14] Дата: 09.05.2026 15:43: Починка бага "Система" (Приоритет 0) и Experiential Architecture (Приоритет 1).В game_screen.py: dm_response теперь разбивается на строки. Спикер извлекается из текста через словарь known_names (из scene_state). Устранена мутация line_stripped, ломавшая парсинг.В game_screen.py: Исправлен фильтр эха npc_reactions — добавлена защита от ложных срабатываний на коротких вводах (is_short_input). Для npc_reactions добавлен парсинг DeliveryType (по маркерам *, (), !!!) и RecognitionLevel (для Мужчина/Женщина).В game_screen.py: Разделение слоев UI. Создан system_log. Все системные сообщения (ошибки, логи движения, переходы) перенаправлены из message_log в system_log. Функция _check_transition_trigger переведена на system_log. Удален дубликат инициализации system_log.В game_screen.py: Реализован Bubble Lifetime. Добавлено поле creation_tick при создании NarrativeBeat. Добавлен цикл обновления возраста для TRANSIENT (живет 5 сек, фейд-аут 2 сек). Добавлена очистка памяти от растворившихся пузырей (alpha <= 0).В narrative_renderer.py: Внедрена визуальная логика DeliveryType (SHOUT=красная рамка 3px/контрастный текст, WHISPER=серый текст 1px, INTERNAL=синяя рамка 1px/голубоватый текст). Шрифты не мельчились ради читаемости. Реализован fade-out пузырей и плашек имен через BLEND_RGBA_MULT с использованием beat.alpha.В game_screen.py: Удален мертвый код адаптации строк в NarrativeBeat внутри _draw_message_log (теперь log содержит только NarrativeBeat). Добавлена отрисовка system_log в верхнем правом углу (полупрозрачный фон).
+---
+[SESS_15] Дата: 09.05.2026 17:16:Domain (Damage & Stress Propagation System) вместо Combat System. Следование вердикту Мастера Тая: "Бой — не отдельная система, а режим предельного давления на ВСЕ системы".
+
+[SESS_15] app/models/delta_payloads.py: Удален CombatPayload. Создан InjuryDTO (target_zone вместо body_part, разделение structural_damage/functional_loss/critical_effects). Создан PhysiologyPayload (hp, pain, fatigue, blood_loss, shock_impulse, add_injuries, add_statuses, remove_statuses).
+
+[SESS_16] Мастер Тай: Domain Reduction Semantics Layer (DRSL). В state_delta.py добавлен enum ReductionPolicy (ADDITIVE, BOUNDED_ADDITIVE, OVERWRITE, PHYSICS_COMPOSITE) и DELTA_POLICY_REGISTRY — конституция мира: каждый домен знает свой закон редукции. _aggregate_deltas в tick_orchestrator.py переписан: PHYSICS_COMPOSITE (Physiology) обходит merge — дельты передаются как инъекции энергии без суммирования. Алгебраические домены (Social, Emotion, Reputation) редуцируются через политики. Удалён бог-свич _merge_payloads, заменён на _reduce_additive.
+
+[SESS_16] CombatSubscriber (combat_subscriber.py): Phase8Handler — мост EventDTO → ImpactEngine. Подписка: PLAYER_ATTACKS, PLAYER_ATTACKED, COMBAT. Извлекает ImpactIntentDTO из EventDTO.payload. Строит снапшоты атакующего/защищающегося (fallback player snapshot). Вызывает resolve_physical_impact(). Возвращает Phase8Result(deltas=physiology_deltas). Порядок Фазы 8: perception → reaction → social → combat.
+
+[SESS_16] PhysiologyDecayHandler (physiology_decay_handler.py): Phase 0.5 idle-handler — Leaky Integrator. S_t = S_{t-1} * exp(-lambda * dt). Боль (lambda=0.05), усталость (0.03), кровопотеря (0.01) экспоненциально затухают. Сознание восстанавливается при низкой боли. Closing drift для обнуления микро-осцилляций. Фазовые переходы: pain > 50 → stagger, consciousness < 0.1 → unconscious.
+
+[SESS_16] NPCStateSnapshot расширен полем statuses: List[str]. _build_npc_snapshots маппит body_state.statuses. CombatSubscriber._build_snapshot и _make_player_snapshot обновлены.
+
+[SESS_16] DeltaDomain исправлен на lowercase значения (social, emotion, physiology) — соответствие конвенции EventType.
+
+[SESS_16] game_loop/__init__.py: подключён PhysiologyDecayHandler как idle-handler.
+
+[SESS_16] tick_orchestrator.py: CombatSubscriber добавлен в _phase_8_drain_secondary (последним). Импорт CombatSubscriber.
+
+[SESS_16] Тесты: 12 CombatSubscriber (test_combat_subscriber.py), 12 PhysiologyDecayHandler (test_physiology_decay_handler.py). Итого: 444 passed, 0 failed.
+
+[SESS_15] app/models/state_delta.py: DeltaDomain.COMBAT удален. Оставлен DeltaDomain.PHYSIOLOGY. PhysiologyPayload добавлен в Union DeltaPayload и _DOMAIN_PAYLOAD_MAP.
+
+[SESS_15] app/models/idle_tick.py: NPCStateSnapshot расширен полями Physiology Domain: hp, max_hp, pain, fatigue, blood_loss, consciousness, injuries_by_zone (группировка по target_zone вместо плоского списка), base_abilities, modifiers (разделение базы и модификаторов по требованию Мастера Тая).
+
+[SESS_15] app/models/npc_state.py: В NPCState добавлено поле body_state: Dict[str, Any] (рантайм-контейнер всей физиологии).
+
+[SESS_15] app/services/tick_orchestrator.py: _build_npc_snapshots() обновлен для маппинга body_profile (статика) + body_state (рантайм) в NPCStateSnapshot. Травмы группируются по target_zone. Effective values НЕ вычисляются (хранятся база и модификаторы отдельно).
+
+[SESS_15] app/services/npc/state_applicator.py: Добавлен хук для DeltaDomain.PHYSIOLOGY. Экстракция полей из PhysiologyPayload. Мутация state.body_state (current_hp, pain, fatigue, blood_loss, injuries, statuses) с ограничениями по шкалам. Инициализация body_state при первом применении.
+
+[SESS_15] app/models/impact.py: Создан ImpactIntentDTO (actor_id, target_id, damage_type, target_zone, force, weapon_reach) и ContactLevel enum (MISS, GLANCING, PARTIAL, SOLID, PERFECT).
+
+[SESS_15] app/services/combat/impact_engine.py: Создан Impact Propagation Engine (Pure Function). Контактная модель вместо RPG Hit Roll (уклонение зависит от боли, усталости, кровопотери). Зональные модификаторы (голова/пах). Типы урона (slash/blunt). Генерация InjuryDTO. Возвращает ТОЛЬКО Physiology-дельты (No Domain Leakage).
+
+[SESS_15] tests/test_impact_engine.py: 10 тестов Contact Resolution, Zone Modifiers, Damage Types, Injury Generation, Determinism. Итого: 420 passed.
+---
+[SESS_15] 09.05.26: Приоритет 1 (Time Controls) — частичная реализация, критические баги.
+
+game_screen.py: Добавлена переменная _time_scale (1, 4, 10, 50) и обработка клавиш 1-4.
+game_screen.py: Добавлен индикатор скорости (▶ 1x) в правом верхнем углу.
+game_screen.py: Вынесен запуск idle_tick из блока proactive_events (починка стояния времени при простое).
+tick_orchestrator.py: Создан _advance_idle_time() для продвижения game_time_seconds на GAME_TICK_INTERVAL_SECONDS (15 мин) за тик.
+tick_orchestrator.py: _get_npc_runtime_path переписан на использование settings.saves_dir.
+scene_init.py: Убран max(1, _catch_up), вызывающий лишние тики и скачки времени при старте.
+time_advance.py: Добавлена запись game_time_seconds в scene_state для персистенции.
+domain/snapshot.py: В WorldSnapshotDTO добавлено поле game_time_seconds: int = 0.
+world_snapshot_builder.py: Передача game_time_seconds из scene_state в DTO.
+[SESS_15] 09.05.26: КРИТИЧЕСКИЕ БАГИ (БЛОКИРУЮЩИЕ РАБОТУ):
+
+tick_orchestrator.py: _get_npc_runtime_path возвращает str вместо Path, ломая load_npcs_merged (AttributeError: 'str' object has no attribute 'exists').
+tick_orchestrator.py: _aggregate_deltas падает с NameError: name 'DELTA_POLICY_REGISTRY' is not defined. Idle-тик и ход игрока полностью сломаны.
+---
+[SESS_16] Дата: 09.05.2026 21:32: Диагностика и частичный фикс NPC Movement Pipeline.
+
+[SESS_16] frontend/game_loop_bridge.py: В TurnResult добавлены поля world_snapshot и npc_positions. После _collect() — построение world_snapshot из актуального scene_state через get_scene_state(), чтобы DirectGameGateway передавал позиции NPC на фронтенд.
+
+[SESS_16] frontend/api_client.py: DirectGameGateway.send_action() теперь передаёт world_snapshot и npc_positions из TurnResult в GameActionResponse (раньше эти поля были None — разрыв pipeline).
+
+[SESS_16] backend/app/services/spatial/movement_engine.py: Добавлена защита micro-position — если from_node_id == target_node_id, macro SceneChange(field="position") не генерируется, предотвращая затирание micro-координат на center node.
+
+[SESS_16] РЕЗУЛЬТАТ: has_ws=True подтверждён в логах. Макро-движение работает (guard_borko → entrance, merchant_goran → market_trading). Micro-snap применяется (blacksmith_orm → координаты рядом с игроком). ОДНАКО: система остаётся «state relocation» — NPC телепортируются, а не двигаются непрерывно. Требуется архитектурный переход к TraversalState (continuous spatial simulation).
+---
+[SESS_16] 09.05.2026 22:41: Починка крашей бэкенда и Визуализация Календаря + Ротация игрока
+
+[SESS_16] backend/app/services/tick_orchestrator.py: Починен критический баг возврата str вместо Path в _get_npc_runtime_path (AttributeError: 'str' object has no attribute 'exists'). Удалена обертка str().[SESS_16] backend/app/services/tick_orchestrator.py: Починен краш NameError: DELTA_POLICY_REGISTRY. Создан enum ReductionPolicy (ADDITIVE, BOUNDED_ADDITIVE, OVERWRITE, PHYSICS_COMPOSITE) и словарь DELTA_POLICY_REGISTRY. Добавлен импорт DeltaDomain.[SESS_16] frontend/constants.py: Добавлена функция format_world_date(seconds) -> str для HUD ("Год X, День Y, HH:MM"). Календарные константы (DAYS_PER_YEAR, SECONDS_PER_DAY и др.) продублированы из бэкенда чистой функцией ради Устава §1.1 (Фронтенд не знает Бэкенд).[SESS_16] frontend/game_screen.py: HUD обновлен для вывода полной даты через format_world_date вместо format_game_time.[SESS_16] frontend/game_screen.py: Проведен онтологический рефакторинг _MoveState. Состояние разделено на 3 природы: Навигация (path, target), Кинетика (cooldown, distance), Эмбодимент/Внимание (facing_angle, facing_mode). Взгляд отвязан от вектора скорости (кинематическая редукция заменена на целенаправленное внимание).[SESS_16] frontend/game_screen.py: Добавлено вычисление facing_angle. При движении по пути к NPC — взгляд прикован к цели (LOOK_TARGET), даже если путь извилистый. При WASD — взгляд по вектору движения (VELOCITY).[SESS_16] frontend/scene_renderer.py: Метод render() и _draw_player() принимают player_facing. Стрелка игрока отрисовывается через математический поворот полигона (cos/sin) вместо статичного треугольника.
+---
+[SESS_17] 09.05.2026 22:53 дата: Архитектурная сессия (Embodied World Simulation & Temporal Arbitration)
+
+[SESS_17] Удалён призрачный кэш: из backend/app/models/npc_state.py удалены поля cached_position, position_valid и метод _cached_distance_to() (нарушали причинность, никто не обновлял).
+
+[SESS_17] Удалена функция patch_scene_state из backend/app/services/state/context_builder.py и её вызов из backend/app/services/game_loop/scene_init.py (in-place мутация контекста для DM-агентов после apply_changes).
+
+[SESS_18] Текущая дата: Спринт 17 — Чистый Визуал
+
+[SESS_18] frontend/scene_renderer.py: Добавлен Lerp для сглаживания поворота стрелки игрока (Приоритет 0). Добавлено поле `_visual_facing_angle` и математика интерполяции в `render()`. Учет перехода через ±π.
+[SESS_18] frontend/game_screen.py: В вызов `renderer.render()` добавлена передача `dt` для работы Lerp.
+[SESS_18] frontend/scene_renderer.py: Добавлен визуальный индикатор внимания NPC (Приоритет 1). Если NPC в фокусе или имеет inference "communication", отрисовывается желтая линия от края кружка к игроку. Метод `_draw_npcs` теперь принимает `player_xy`.
+[SESS_18] frontend/scene_renderer.py: Починен рендер спрайтов объектов (стулья, столы). Создан метод `_draw_obstacles` для отрисовки `spatial_obstacles` из `scene_state`.
+[SESS_18] frontend/scene_renderer.py: Починен fallback спрайтов для NPC. Если спрайт по `entity_id` не найден, используется базовый тип `"person"`.
+[SESS_18] frontend/game_screen.py: Увеличено время жизни NarrativeBeat (TRANSIENT) до 10 секунд, фейд-аут до 3 секунд (было 5с / 2с).
+[SESS_18] frontend/game_screen.py: Отключено перемещение кликом мыши (`MOUSEBUTTONDOWN` заблокирован).
+[SESS_18] frontend/narrative_renderer.py: Добавлены визуальные фильтры для WHISPER (полупрозрачность alpha=200 + серый ореол текста) и уточнена вибрация для SHOUT (1px вместо 2px) (Приоритет 3).
+[SESS_17] Дозачистка orphaned code от ADR-0015: из npc_state.py удалено тело метода _cached_distance_to (строки 554-563, остались внутри post_init после неполного удаления) и ссылка на position_valid в snapshot() (строка 603). 444 теста проходят.
+[SESS_17] Архитектурная сессия с Мастером Таем. Принят ADR-0016: Causal Field Reduction Model (CFRM). Глобальный объект World удалён из онтологии. Мир = локальные причинные пузыри с ограниченной проницаемостью. delta_buffer мёртв (императив), заменён на EventBuffer (декларатив). Snapshot[t] = Reduce(ClusterGraph, EventBuffer, MembraneField). NPC хранит PerceptualKernel, а не world state. Обновлены ADR, DTO Registry.
+---
+
+---

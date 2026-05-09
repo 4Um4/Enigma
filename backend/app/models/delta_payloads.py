@@ -52,24 +52,31 @@ class IdentityPayload:
 class InjuryDTO:
     """Типизированная модель травмы (Injury — контейнер причины).
     
-    Все эффекты (кровотечение, штраф к ловкости, боль) вычисляются из неё.
-    Мастер Тай: никаких bool-флагов, только структурные причины.
+    Мастер Тай: 
+    - severity != injury type. loss of function != destruction.
+    - body_part — это combat interaction zone → target_zone.
     """
-    type: str          # cut, fracture, burn, disease
-    severity: float    # 0.0 - 1.0 (масштаб ущерба)
-    body_part: str     # left_arm, torso, head (для локализации эффектов)
+    damage_type: str              # slash, blunt, burn, disease
+    target_zone: str              # head_eye_l, torso_groin, arm_r (функциональная зона)
+    structural_damage: float      # 0.0 - 1.0 (физическое разрушение тканей)
+    functional_loss: float        # 0.0 - 1.0 (потеря функции зоны)
+    critical_effects: Tuple[str, ...] = ()  # severed, bleeding, infected
 
 
 @dataclass(frozen=True)
 class PhysiologyPayload:
     """Дельты физиологического состояния (Damage & Stress Propagation System).
     
-    Бой, голод, падения, болезни — всё идёт через этот payload.
-    Мастер Тай: PHYSIOLOGY, а не COMBAT. Бой — лишь один из источников давления.
+    Мастер Тай: 
+    - HP — производная (derived abstraction), центр модели — Functional Capacity.
+    - Резолвер не пишет эмоции, он пишет физические последствия и сигналы (shock_impulse).
+    - Эмоции и социалка реагируют на EventDTO с этими сигналами сами.
     """
-    hp_delta: float = 0.0
-    pain_delta: float = 0.0
-    fatigue_delta: float = 0.0
+    hp_delta: float = 0.0                  # Макро-LOD: агрегированная потеря функции
+    pain_delta: float = 0.0                # Боль (0-100)
+    fatigue_delta: float = 0.0             # Усталость (0-100)
+    blood_loss_delta: float = 0.0          # Кровопотеря (0-1.0 шкала)
+    shock_impulse: float = 0.0             # Физический шок / болевой удар (0-1.0) — сигнал для EmotionSubscriber
     add_injuries: Tuple[InjuryDTO, ...] = ()
-    add_statuses: Tuple[str, ...] = ()      # bleeding, poisoned, unconscious
-    remove_statuses: Tuple[str, ...] = ()   # снятие статусов (выздоровление)
+    add_statuses: Tuple[str, ...] = ()     # bleeding, unconscious, crippled
+    remove_statuses: Tuple[str, ...] = ()  # снятие статусов

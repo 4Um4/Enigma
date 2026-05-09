@@ -323,6 +323,17 @@ async def game_action(request: dict, game_loop=Depends(get_game_loop)) -> dict:
         npc_model_key = router_llm.get_model_for_agent("npc")
         npc_cfg = pool.get_model_config(npc_model_key) if pool else None
 
+        # TASK 1: Force Merge — извлекаем world_snapshot из результата тика (ADR-0014)
+        _ws_dict = None
+        _npc_pos_dict = None
+        if hasattr(result, 'world_snapshot') and result.world_snapshot is not None:
+            from dataclasses import asdict
+            _ws_dict = asdict(result.world_snapshot)
+            _npc_pos_dict = {
+                p.npc_id: asdict(p)
+                for p in result.world_snapshot.npc_positions
+            } if result.world_snapshot.npc_positions else {}
+
         return {
             "response": result.dm_response,
             "npc_reactions": result.npc_reactions,
@@ -341,6 +352,9 @@ async def game_action(request: dict, game_loop=Depends(get_game_loop)) -> dict:
                 "path": (npc_cfg.path if npc_cfg else None),
             },
             "active_pool_model": getattr(pool, "active_model_key", None),
+            # TASK 1: Force Merge — передаём world_snapshot на фронтенд (ADR-0014)
+            "world_snapshot": _ws_dict,
+            "npc_positions": _npc_pos_dict,
         }
     except HTTPException:
         raise  # пробрасываем дальше

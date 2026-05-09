@@ -18,6 +18,8 @@ path: /frontend/api_client.py
 Назначение: Слой связи Pygame ↔ Backend. Три уровня: Protocol (что знает Pygame) → Contract (маппинг) → Transport (HTTP). Плюс неблокирующая очередь.
 Зависимости: urllib.request, json, threading, queue (stdlib)
 Основные сущности: GameGateway, GameActionResponse, HttpClient, BackendContract, HttpGameGateway, ActionQueue
+
+TODO:
 """
 
 from __future__ import annotations
@@ -52,6 +54,9 @@ class GameActionResponse:
     world_changes: list[dict]
     journal_entry_id: str | None
     game_time_seconds: int = 0  # total_seconds для HUD
+    # TASK 1: Force Merge — world_snapshot из player action tick (ADR-0014)
+    world_snapshot: dict | None = None
+    npc_positions: dict | None = None
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -226,6 +231,9 @@ class BackendContract:
             world_changes=raw.get("world_changes", []),
             journal_entry_id=raw.get("journal_entry_id"),
             game_time_seconds=raw.get("game_time_seconds", 0),
+            # TASK 1: Force Merge — пробрасываем snapshot позиций (ADR-0014)
+            world_snapshot=raw.get("world_snapshot"),
+            npc_positions=raw.get("npc_positions"),
         )
 
 
@@ -322,6 +330,9 @@ class DirectGameGateway:
             world_changes=[],
             journal_entry_id=None,
             game_time_seconds=result.game_time_seconds,
+            # ADR-0014: Force Merge — пробрасываем позиции NPC на фронтенд
+            world_snapshot=result.world_snapshot,
+            npc_positions=result.npc_positions,
         )
     
     def health(self) -> dict:
@@ -337,8 +348,7 @@ class DirectGameGateway:
         # Инициализируем при первом вызове (долго — загружает модели)
         if not self._bridge.ready:
             self._bridge.initialize()
-        # Компилируем scene_state из editor JSON — чтобы Pygame рендерил до первого хода
-        self._bridge.ensure_scene_initialized(campaign_id)
+        # Инициализация сцены теперь происходит на backend при /player/select (routes.py)
         return {"campaign_id": campaign_id, "player": player_name, "active": True}
     
     def get_session_state(self, campaign_id: str) -> dict:

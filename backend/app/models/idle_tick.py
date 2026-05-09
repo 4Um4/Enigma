@@ -33,6 +33,18 @@ class NPCStateSnapshot(TypedDict):
     base_values: Dict[str, Any]          # {target: base_trust, ...} для drift-расчёта
     faction_affiliations: List[str]      # [faction_id, ...]
 
+    # Physiology Domain: Body LOD Macro (Мастер Тай: Damage & Stress Propagation)
+    hp: float                            # Текущее здоровье (производная абстракция, макро-LOD)
+    max_hp: float                        # Максимум здоровья из body_profile
+    pain: float                          # Текущий уровень боли (0-100)
+    fatigue: float                       # Текущий уровень усталости (0-100)
+    blood_loss: float                    # Кровопотеря (0-1.0)
+    consciousness: float                 # Сознание (0-1.0, 0=кома/обморок, 1=ясность)
+    injuries_by_zone: Dict[str, List[Dict[str, Any]]] # Травмы, сгруппированные по target_zone
+    base_abilities: Dict[str, float]     # Базовые характеристики (из body_profile)
+    modifiers: Dict[str, float]          # Модификаторы (травмы/баффы/экипировка, из body_state)
+    statuses: List[str]                  # Активные статусы (stagger, unconscious, bleeding и т.д.)
+
 
 class IdleTickHandler(Protocol):
     """Протокол для time-driven обработчиков Фазы 0.5.
