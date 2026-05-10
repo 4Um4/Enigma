@@ -341,6 +341,8 @@ class EditorCore:
             {"label": "Экспорт в ZIP...", "action": self._dialog_export_zip,
              "disabled": not self.cm.is_open},
             {"label": "Импорт из ZIP...", "action": self._dialog_import_zip},
+            {"type": "separator"},
+            {"label": "В главное меню", "action": self._exit_to_main_menu},
         ]
         btn_rect = self.btn_file.rect
         self.dialog = DropDownMenu(btn_rect.x, btn_rect.bottom, items)
@@ -459,6 +461,10 @@ class EditorCore:
         self.mode = MODE_WORLD
         self.undo.clear()
         self._show_toast(f"Кампания закрыта: {name}")
+
+    def _exit_to_main_menu(self):
+        """Прерывает цикл редактора и возвращает в главное меню"""
+        self._running = False
 
     def _dialog_new_location(self):
         """Диалог создания новой локации внутри кампании"""
@@ -842,8 +848,8 @@ class EditorCore:
     # === Главный цикл ===
     def run(self):
         """Главный цикл приложения"""
-        running = True
-        while running:
+        self._running = True
+        while self._running:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
@@ -878,9 +884,11 @@ class EditorCore:
                 elif self.room_drawing:
                     self.room_drawing = False
                     self.room_start = None
-                else:
+                elif self.selected_object is not None or self.tool is not None:
                     self.selected_object = None
                     self._set_tool(None)
+                else:
+                    self._running = False  # Выход в главное меню
                     
             elif event.key in (pygame.K_DELETE, pygame.K_BACKSPACE):
                 # Удаление выбранного объекта

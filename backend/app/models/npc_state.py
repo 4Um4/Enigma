@@ -432,6 +432,16 @@ def age_drives(drives: List[TemporaryDrive]) -> List[TemporaryDrive]:
 # ─────────────────────────────────────────────────────────────────────────────
 
 @dataclass
+class PerceptualKernel:
+    """Субъективная модель восприятия NPC. Без строк, только градиенты и напряжения."""
+    threat_gradient: float = 0.0
+    trust_gradient: float = 0.0
+    uncertainty: float = 0.0
+    anomaly_score: float = 0.0
+    last_hostile_direction: Optional[str] = None
+    dominant_emotion: Optional[str] = None
+
+@dataclass
 class NPCState:
     """
     Динамическое состояние NPC. Источник правды для DecisionHub.
@@ -472,6 +482,8 @@ class NPCState:
     # Мастер Тай: body_state — рантайм контейнер ВСЕЙ физиологии (HP, pain, fatigue, injuries, modifiers).
     # Инициализируется из body_profile при загрузке.
     body_state: Dict[str, Any] = field(default_factory=dict)
+    # P2: Субъективная каузальная модель NPC (CFRM)
+    perceptual_kernel: PerceptualKernel = field(default_factory=PerceptualKernel)
 
     # ── Роль (runtime, ФАЗА 4-ROLE) ──────────────────────────────────────────
     # Текущая профессия NPC. Изначально = archetype из config.

@@ -126,10 +126,15 @@ class CharacterSelectScreen:
         self._btn_play_rect = pygame.Rect(0, 0, 0, 0)
         self._btn_create_rect = pygame.Rect(0, 0, 0, 0)
 
-        # Диалог создания персонажа
+        # Диалог создания персонажа: Вектор начальных условий (ADR-0017)
         self._dialog_active = False
-        self._dialog_inputs = {"name": "", "race": "", "class_name": ""}
+        self._dialog_inputs = {"name": "", "archetype": "Drifter", "temperament": "Stoic"}
         self._dialog_focus = "name"
+        # Выбор из предопределенных векторов
+        self._archetypes = ["Laborer", "Soldier", "Merchant", "Drifter", "Noble"]
+        self._temperaments = ["Fearful", "Stoic", "Impulsive", "Calculating"]
+        self._archetype_idx = 3  # Drifter по умолчанию
+        self._temperament_idx = 1  # Stoic по умолчанию
 
         self._layout()
 
@@ -224,7 +229,7 @@ class CharacterSelectScreen:
         # Кнопка «Создать персонажа»
         if self._btn_create_rect.collidepoint(pos):
             self._dialog_active = True
-            self._dialog_inputs = {"name": "", "race": "", "class_name": ""}
+            self._dialog_inputs = {"name": ""}
             self._dialog_focus = "name"
             return
 
@@ -236,7 +241,7 @@ class CharacterSelectScreen:
                 self._selected_index = index
 
     def _handle_dialog_key(self, event: pygame.event.Event) -> None:
-        """Обработка ввода текста в диалоге создания"""
+        """Обработка ввода текста и выбора вектора в диалоге создания (ADR-030)"""
         if event.key == pygame.K_ESCAPE:
             self._dialog_active = False
             return
@@ -244,22 +249,37 @@ class CharacterSelectScreen:
             self._create_character()
             return
         if event.key == pygame.K_TAB:
-            fields = ["name", "race", "class_name"]
+            fields = ["name", "archetype", "temperament"]
             idx = fields.index(self._dialog_focus)
             self._dialog_focus = fields[(idx + 1) % len(fields)]
             return
-        if event.key == pygame.K_BACKSPACE:
-            self._dialog_inputs[self._dialog_focus] = self._dialog_inputs[self._dialog_focus][:-1]
+            
+        # Навигация по векторам стрелками (Архетип и Темперамент)
+        if self._dialog_focus == "archetype":
+            if event.key == pygame.K_RIGHT:
+                self._archetype_idx = (self._archetype_idx + 1) % len(self._archetypes)
+            elif event.key == pygame.K_LEFT:
+                self._archetype_idx = (self._archetype_idx - 1) % len(self._archetypes)
             return
-        # Обычный символ
-        if event.unicode and event.unicode.isprintable() and len(self._dialog_inputs[self._dialog_focus]) < 30:
-            self._dialog_inputs[self._dialog_focus] += event.unicode
+        if self._dialog_focus == "temperament":
+            if event.key == pygame.K_RIGHT:
+                self._temperament_idx = (self._temperament_idx + 1) % len(self._temperaments)
+            elif event.key == pygame.K_LEFT:
+                self._temperament_idx = (self._temperament_idx - 1) % len(self._temperaments)
+            return
+
+        # Ввод текста только для имени
+        if event.key == pygame.K_BACKSPACE:
+            self._dialog_inputs["name"] = self._dialog_inputs["name"][:-1]
+            return
+        if event.unicode and event.unicode.isprintable() and len(self._dialog_inputs["name"]) < 30:
+            self._dialog_inputs["name"] += event.unicode
 
     def _handle_dialog_click(self, pos: tuple[int, int]) -> None:
         """Обработка кликов в диалоге создания персонажа"""
         w, h = self.screen.get_size()
         # Поля ввода — вычисляем позиции как в _draw_dialog
-        fields = [("name", "Имя"), ("race", "Раса"), ("class_name", "Класс")]
+        fields = [("name", "Имя"), ("archetype", "Архетип"), ("temperament", "Темперамент")]
         field_y_start = h // 2 - 60
         for i, (key, label) in enumerate(fields):
             field_rect = pygame.Rect(w // 2 - 150, field_y_start + i * 50, 300, 32)
@@ -285,22 +305,43 @@ class CharacterSelectScreen:
         if not name:
             return
 
-        # Формируем CharacterSheet
+        # Формируем Вектор Начальных Условий (ADR-0017)
+        archetype = self._archetypes[self._archetype_idx]
+        temperament = self._temperaments[self._temperament_idx]
+
+        # Маппинг Темперамента в Психику (drives_base)
+        psyche_map = {
+            "Fearful": {"fear": 0.8, "impulsivity": 0.3, "willpower": 0.4},
+            "Stoic": {"fear": 0.3, "impulsivity": 0.2, "willpower": 0.8},
+            "Impulsive": {"fear": 0.4, "impulsivity": 0.9, "willpower": 0.5},
+            "Calculating": {"fear": 0.2, "impulsivity": 0.1, "willpower": 0.7},
+        }
+
+        # Маппинг Архетипа в Физиологию (body_profile)
+        body_map = {
+            "Laborer": {"max_hp": 120, "strength": 14, "dexterity": 10},
+            "Soldier": {"max_hp": 130, "strength": 15, "dexterity": 12},
+            "Merchant": {"max_hp": 90, "strength": 8, "dexterity": 10},
+            "Drifter": {"max_hp": 100, "strength": 10, "dexterity": 14},
+            "Noble": {"max_hp": 80, "strength": 8, "dexterity": 8},
+        }
+
         new_char = {
             "name": name,
-            "race": self._dialog_inputs["race"].strip() or "Человек",
-            "class_name": self._dialog_inputs["class_name"].strip() or "Авантюрист",
+            "npc_id": "player",  # Гибридная сущность в симуляции
+            "archetype": archetype,
+            "temperament": temperament,
+            "body_profile": body_map.get(archetype, body_map["Drifter"]),
+            "psyche": psyche_map.get(temperament, psyche_map["Stoic"]),
+            # Legacy поля для совместимости со старыми загрузчиками (будут удалены)
+            "race": "Human",
+            "class_name": archetype,
             "level": 1,
-            "stats": {"str": 10, "dex": 10, "con": 10, "int": 10, "wis": 10, "cha": 10},
-            "skills": {},
-            "inventory": [],
-            "spells": [],
-            "portrait": None,
-            "backstory": None,
-            "hp": 10,
-            "max_hp": 10,
-            "ac": 10,
-            "effects": [],
+            "stats": {"str": body_map.get(archetype, {}).get("strength", 10), 
+                      "dex": body_map.get(archetype, {}).get("dexterity", 10), 
+                      "con": 10, "int": 10, "wis": 10, "cha": 10},
+            "hp": body_map.get(archetype, {}).get("max_hp", 100),
+            "max_hp": body_map.get(archetype, {}).get("max_hp", 100),
         }
 
         # Читаем существующих или создаём пустой список
@@ -470,7 +511,7 @@ class CharacterSelectScreen:
         self.screen.blit(title_surf, (panel_rect.x + 20, panel_rect.y + 15))
 
         # Поля ввода
-        fields = [("name", "Имя"), ("race", "Раса"), ("class_name", "Класс")]
+        fields = [("name", "Имя"), ("archetype", "Архетип"), ("temperament", "Темперамент")]
         field_y_start = panel_rect.y + 55
         for i, (key, label) in enumerate(fields):
             label_surf = self.font_desc.render(label, True, _COLORS["text_dim"])
@@ -481,14 +522,24 @@ class CharacterSelectScreen:
             pygame.draw.rect(self.screen, _COLORS["bg_dark"], field_rect, border_radius=4)
             pygame.draw.rect(self.screen, border_color, field_rect, 1, border_radius=4)
 
-            text = self._dialog_inputs[key]
-            if text:
-                text_surf = self.font_desc.render(text, True, _COLORS["text"])
-                self.screen.blit(text_surf, (field_rect.x + 6, field_rect.y + 6))
-            elif self._dialog_focus == key:
-                # Курсор
-                cursor_surf = self.font_desc.render("|", True, _COLORS["accent_blue"])
-                self.screen.blit(cursor_surf, (field_rect.x + 6, field_rect.y + 6))
+            # Рендер содержимого поля в зависимости от типа (ADR-030)
+            if key == "name":
+                text = self._dialog_inputs["name"]
+                if text:
+                    text_surf = self.font_desc.render(text, True, _COLORS["text"])
+                    self.screen.blit(text_surf, (field_rect.x + 6, field_rect.y + 6))
+                elif self._dialog_focus == key:
+                    # Курсор
+                    cursor_surf = self.font_desc.render("|", True, _COLORS["accent_blue"])
+                    self.screen.blit(cursor_surf, (field_rect.x + 6, field_rect.y + 6))
+            elif key == "archetype":
+                val = self._archetypes[self._archetype_idx]
+                text_surf = self.font_desc.render(f"<  {val}  >", True, _COLORS["accent_blue"])
+                self.screen.blit(text_surf, text_surf.get_rect(center=field_rect.center))
+            elif key == "temperament":
+                val = self._temperaments[self._temperament_idx]
+                text_surf = self.font_desc.render(f"<  {val}  >", True, _COLORS["accent_blue"])
+                self.screen.blit(text_surf, text_surf.get_rect(center=field_rect.center))
 
         # Кнопки
         btn_y = field_y_start + len(fields) * 50 + 10

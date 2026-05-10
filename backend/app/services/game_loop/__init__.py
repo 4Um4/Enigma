@@ -202,10 +202,44 @@ class GameLoop:
     def _load_npcs_with_runtime(self, campaign_id: str) -> list:
         """Загружает NPC с наложением runtime (стресс, HP и т.д.).
         Используется в игровом цикле, не для инициализации движков.
+        ADR-030: Инъекция Аватара Игрока (Hybrid Consciousness Entity)
         """
         from app.services.npc.npc_loader import load_npcs_merged
+        from app.services.player_session_service import player_session_service
+        from app.services.character_service import CharacterService
+        import logging
+
         _runtime_path = self._get_npc_runtime_path(campaign_id)
-        return load_npcs_merged(runtime_path=_runtime_path)
+        npcs = load_npcs_merged(runtime_path=_runtime_path)
+
+        # ADR-030: Игрок становится полноправным NPC в симуляции
+        session = player_session_service.get_session(campaign_id)
+        if session and session.player_name:
+            if not any(n.get("id") == "player" or n.get("npc_id") == "player" for n in npcs):
+                try:
+                    _char_svc = CharacterService(root=str(self._saves_dir))
+                    characters = _char_svc.list_characters(campaign_id)
+                    player_char = next((c for c in characters if c.name == session.player_name), None)
+                    if player_char:
+                        # Извлекаем Вектор Начальных Условий
+                        # Используем getattr для совместимости со старыми Pydantic-моделями
+                        player_dict = {
+                            "id": "player",
+                            "npc_id": "player",
+                            "name": player_char.name,
+                            "type": "player_avatar",  # Маркер для WillpowerGate
+                            "archetype": getattr(player_char, "archetype", "Drifter"),
+                            "temperament": getattr(player_char, "temperament", "Stoic"),
+                            "body_profile": getattr(player_char, "body_profile", {}),
+                            "psyche": getattr(player_char, "psyche", {}),
+                            "social_stats": {"trust": 50.0, "fear_of_player": 0.0, "debt": 0.0},
+                            "status_profile": {"faction_rank": {}}
+                        }
+                        npcs.append(player_dict)
+                except Exception as e:
+                    logging.getLogger(__name__).warning(f"[AVATAR_INJECT] Ошибка инъекции аватара: {e}")
+
+        return npcs
 
     def idle_tick(self, campaign_id: str) -> dict:
         """Idle tick — делегирует TickOrchestrator (10 фаз, Устав §3).

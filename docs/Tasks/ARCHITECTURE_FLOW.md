@@ -10,6 +10,7 @@ GC[GraphCompiler compile_graph] -->|graph, connections, alias_map| SS[SpatialSer
 SC_T[SceneState t-1] -->|build_overlay| SS
 SS -->|DI: set_spatial_service| ME[MovementEngine]
 SS -->|get_node with prefix fallback ADR-0009| SSM[SceneStateManager Spatial Reducer ADR-0015]
+SS -->|build_cluster_graph ADR-0029| CG[ClusterGraph]
 end
 
 subgraph Phase_0_2[Фазы 0-2: Input and Simulation]
@@ -17,8 +18,11 @@ P0[Phase 0: LifeEngine] -->|scene_changes| P05
 P0 -->|scene_changes| P2
 P0 -->|ctx.npc_states = ctx.all_npcs_raw| SA_SYNC[State Sync ADR-004]
 P05[Phase 0.5: Idle Services ALWAYS] -->|List StateDeltas| DBUF[delta_buffer]
-PI[Player Input] -->|IntentDTO| P1[Phase 1: Input]
-P1 -->|EventDTO intensity from ACTION_INTENSITY| P2[Phase 2: EventBus]
+PI[Player Input] -->|Raw IntentDTO| IPR[IntentPressureResolver Semantic Translation ADR-031]
+IPR -->|IntentPressureProfile| WPG[WillpowerGate Cumulative Strain Model ADR-031]
+WPG -->|WillResponseDTO| P1[Phase 1: Input]
+P1 -->|EventDTO or WILL_CONFLICT| P2[Phase 2: EventBus]
+P2 -->|attach_cfrm_buffer + classify_event ADR-0029| EB[EventBuffer CausalAxis]
 SS -.->|DI: set_spatial_service| P0
 ME -->|find_path canonical IDs| TT[TransitTracker]
 TT -->|advance_all SceneChange| P0
@@ -37,12 +41,13 @@ PDS -->|StateDeltas domainPHYSIOLOGY payloadPhysiologyPayload pain fatigue blood
 end
 
 subgraph NPC_Loading[NPC Loading Pipeline]
-NPS[config/npc/individuals/*.json] -->|load_archetype_chain| MERG[static NPC dicts]
+NPS[config/npc/individuals/*.json + body_profile ADR-0017] -->|load_archetype_chain| MERG[static NPC dicts]
 MERG -->|+ runtime overlay| RUNTIME[npc_runtime.json]
 RUNTIME --> ENRICH[_enrich_with_social_relations village_relations.json]
 ENRICH -->|relationship_cache NPC-to-NPC + base_values| BODY_INIT[_init_body_state body_profile + body_state ADR-0010]
 BODY_INIT --> LOADED[Loaded NPC dicts with body_state]
 VR[config/npc/social/village_relations.json] -->|load_social_base| ENRICH
+PCHAR[CharacterService Player Avatar ADR-030] -->|inject npc_id=player vector| LOADED
 end
 
 LOADED -.->|all_npcs_raw| SNAP
@@ -71,34 +76,48 @@ CL -->|Energy Transfer| PP[PhysiologyPayload hp pain blood_loss shock_impulse]
 PP --> DBUF_P[delta_buffer]
 end
 
-subgraph Phase_8[Фаза 8: Event-driven Handlers perception → reaction → social → combat]
+subgraph Phase_8[Фаза 8: Layered Reduction ADR-0016]
 P7 -->|drain_events| PER[PerceptionSubscriber]
 P2 -->|drain_events| PER
-P7 -->|drain_events| RXT[ReactionSubscriber]
-P2 -->|drain_events| RXT
-P7 -->|drain_events| SOC[SocialSubscriber]
-P2 -->|drain_events| SOC
-P7 -->|drain_events| CSUB[CombatSubscriber ADR-0012]
+
+PER -->|Phase8Result perceiving_npc_ids| LAYER_SEP{Layer Separator}
+
+LAYER_SEP -->|1. Physical Layer| CSUB[CombatSubscriber ADR-0012]
+P7 -->|drain_events| CSUB
 P2 -->|drain_events| CSUB
 
 CSUB -->|extract ImpactIntentDTO| IE
 IE -->|List StateDeltas PHYSIOLOGY| CSUB
-CSUB -->|Phase8Result deltas| ORCH
+CSUB -->|Phase8Result deltas| MAT[Materialization Tuple StateDeltas ADR-0016]
+
+MAT -->|physical_deltas_materialized| RXT[ReactionSubscriber ADR-0016]
+P7 -->|drain_events| RXT
+P2 -->|drain_events| RXT
+
+MAT -->|physical_deltas_materialized| SOC[SocialSubscriber]
+P7 -->|drain_events| SOC
+P2 -->|drain_events| SOC
 
 PROP[propagate_social_rumors pure function v2 EMOTION+SOCIAL split]
 RXTMOD[_compute_reaction_modifier composure x fear_drive x willpower]
+RXT -->|reads shock_impulse from materialized physical layer| SHOCK_CASCADE[Cascade: Force → Pain → Shock → Emotion ADR-0016]
+SHOCK_CASCADE -->|shock > 0.5| PANIC[emotion_tag=panic]
+SHOCK_CASCADE -->|empathic horror if witness| EMPATHY[stress_delta += shock * 30 * modifier]
 
 RXT -->|uses| RXTMOD
 SOC -->|calls| PROP
 PROP -->|List StateDeltas domainEMOTION + domainSOCIAL| SOC
 
-PER -->|Phase8Result perceiving_npc_ids| RXT
-RXT -->|Phase8Result 2 deltas per NPC EMOTION+SOCIAL| ORCH
+RXT -->|Phase8Result deltas| ORCH
 SOC -->|Phase8Result deltas| ORCH
+CSUB -->|Phase8Result deltas| ORCH
 end
 
 subgraph Phase_9_10[Фазы 9-10: CFRM Reduction and Persistence ADR-0016]
-ORCH[TickOrchestrator] -->|EventBuffer| CFRM[Causal Field Reducer 3-phase ADR-0016]
+ORCH[TickOrchestrator] -.->|_rebuild_cluster_occupancy| CO[ClusterOccupancy ADR-0029]
+EB -->|drain causal facts| CFRM[Causal Field Reducer 3-phase ADR-0016]
+CG -.->|topology| CFRM
+CO -.->|spatial index O1| CFRM
 CFRM -->|Phase 1: Projection| PROJ[ClusterGraph Influence Mapping]
 PROJ -->|Phase 2: Attenuation| ATTEN[MembraneField Decay over Edges]
 ATTEN -->|Phase 3: Local Reduction| LCS[Local Causal Solver per Cluster]
@@ -177,7 +196,7 @@ MSTEP -->|continuous position update| SPATIAL_BUF
 classDef spatial fill:#f9f,stroke:#333,stroke-width:2px;
 class SS,GC,ME,TT,SPATIAL_BUF spatial;
 classDef temporal fill:#dfd,stroke:#333,stroke-width:2px;
-class SNAP_T,SC_T1,REDUCER,SSM temporal;
+class SNAP_T,SC_T1,SSM temporal;
 classDef frontend fill:#bbf,stroke:#333,stroke-width:2px;
 class GL,BRIDGE,PY,PSC,TC,DGW,BRIDGE_TURN,TURN_RESULT,CAL,MOVE,REND frontend;
 classDef lod fill:#f96,stroke:#333,stroke-width:2px;
@@ -188,3 +207,7 @@ classDef time fill:#ff9,stroke:#333,stroke-width:2px;
 class ADV,TA time;
 classDef future fill:#ff0,stroke:#333,stroke-width:2px,stroke-dasharray: 5 5;
 class TRAV,MSTEP future;
+classDef layered fill:#ccf,stroke:#333,stroke-width:3px;
+class MAT,SHOCK_CASCADE,PANIC,EMPATHY,LAYER_SEP layered;
+classDef cfrm fill:#dfd,stroke:#333,stroke-width:2px;
+class CFRM,PROJ,ATTEN,LCS,SA,REP,BSMUT,RAW,EB,CG,CO cfrm;

@@ -74,8 +74,15 @@ class ChatTurnResponse(BaseModel):
     npc_positions: Optional[dict] = None
 
 
+# ADR-030: Avatar Creation Vector — Вектор Начальных Условий Гибридной Сущности
 class CharacterSheet(BaseModel):
     name: str
+    # ADR-030: Вектор Начальных Условий (Hybrid Consciousness)
+    archetype: str = "Drifter"  # Laborer, Soldier, Merchant, Drifter, Noble
+    temperament: str = "Stoic"  # Fearful, Stoic, Impulsive, Calculating
+    body_profile: Dict[str, Any] = Field(default_factory=dict)  # max_hp, abilities
+    psyche: Dict[str, Any] = Field(default_factory=dict)  # fear, impulsivity, willpower
+    # Legacy поля (для совместимости со старыми загрузчиками)
     race: str = ""
     class_name: str = ""
     level: int = 1
@@ -85,12 +92,10 @@ class CharacterSheet(BaseModel):
     spells: List[str] = Field(default_factory=list)
     portrait: Optional[str] = None
     backstory: Optional[str] = None
-    # Дополнительные поля для интерфейса
     hp: int = 10
     max_hp: int = 10
     ac: int = 10
     effects: List[str] = Field(default_factory=list)
-    # NPC Levels: major (important NPCs) or mass (background NPCs)
     importance: Optional[str] = Field(default=None, description="major or mass for NPC importance")
 
 
