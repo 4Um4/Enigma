@@ -32,17 +32,16 @@
       "display": "resting"
     }
   },
-  "combat_stats": {
-    "ac": 12,
-    "attack_bonus": 3,
-    "damage": "1d6+2"
-  },
-  "abilities": {
-    "strength": 12,
-    "dexterity": 10,
-    "constitution": 12,
-    "intelligence": 11,
-    "wisdom": 11,
-    "charisma": 12
+  "body_profile": {
+    "max_hp": 110,
+    "abilities": {
+      "strength": 12,
+      "dexterity": 10,
+      "constitution": 12,
+      "intelligence": 11,
+      "wisdom": 11,
+      "charisma": 12
+    },
+    "base_ac": 12
   }
 }

@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, FrozenSet, List, Set, Tuple
+from typing import Any, Dict, FrozenSet, List, Optional, Protocol, Set, Tuple
 
 from app.domain.events import EventDTO
 
@@ -100,27 +100,28 @@ class EventBuffer:
     Опустошается (drain) 3-фазным редюсером в Фазе 9.
     Заменяет собой императивный delta_buffer.
     """
-    physical_events: List[EventDTO] = field(default_factory=list)
-    cognitive_events: List[EventDTO] = field(default_factory=list)
-    social_events: List[EventDTO] = field(default_factory=list)
+    # P2: Храним не объективные события, а возмущения поля (FieldDisturbance)
+    physical_disturbances: List['FieldDisturbance'] = field(default_factory=list)
+    cognitive_disturbances: List['FieldDisturbance'] = field(default_factory=list)
+    social_disturbances: List['FieldDisturbance'] = field(default_factory=list)
 
-    def add(self, event: EventDTO, axis: CausalAxis) -> None:
-        """Классифицирует и добавляет факт в соответствующий поток."""
+    def add(self, disturbance: 'FieldDisturbance', axis: CausalAxis) -> None:
+        """Классифицирует и добавляет возмущение в соответствующий поток."""
         if axis == CausalAxis.PHYSICAL:
-            self.physical_events.append(event)
+            self.physical_disturbances.append(disturbance)
         elif axis == CausalAxis.COGNITIVE:
-            self.cognitive_events.append(event)
+            self.cognitive_disturbances.append(disturbance)
         elif axis == CausalAxis.SOCIAL:
-            self.social_events.append(event)
+            self.social_disturbances.append(disturbance)
 
-    def drain(self) -> Tuple[List[EventDTO], List[EventDTO], List[EventDTO]]:
-        """Извлекает ВСЕ факты и очищает буфер.
+    def drain(self) -> Tuple[List['FieldDisturbance'], List['FieldDisturbance'], List['FieldDisturbance']]:
+        """Извлекает ВСЕ возмущения и очищает буфер.
         
         Вызывается редюсером. После drain буфер пуст для следующего тика.
         Возвращает кортеж (physical, cognitive, social).
         """
-        p, c, s = self.physical_events, self.cognitive_events, self.social_events
-        self.physical_events, self.cognitive_events, self.social_events = [], [], []
+        p, c, s = self.physical_disturbances, self.cognitive_disturbances, self.social_disturbances
+        self.physical_disturbances, self.cognitive_disturbances, self.social_disturbances = [], [], []
         return p, c, s
 
 
@@ -233,3 +234,109 @@ class ClusterOccupancy:
         old_cluster = self.entity_to_cluster.pop(entity_id, None)
         if old_cluster and old_cluster in self.cluster_to_entities:
             self.cluster_to_entities[old_cluster].discard(entity_id)
+
+# === P2: ОНТОЛОГИЯ СУБЪЕКТИВНОЙ РЕАЛЬНОСТИ (CFRM PHASE 2) ===
+
+class DisturbanceVector(str, Enum):
+    """Векторы возмущения поля. Не 'тип урона', а физика воздействия."""
+    KINETIC = "kinetic"       # Удар, толчок, движение массы
+    ACOUSTIC = "acoustic"     # Звук, крик, грохот
+    MATTER = "matter"         # Кровь, разрушение материи, огонь
+    BEHAVIORAL = "behavioral" # Социальный жест, угроза, бегство
+
+@dataclass(frozen=True)
+class FieldDisturbance:
+    """Возмущение причинного поля. Замена объективному EventDTO для каузального солвера."""
+    origin_cluster: ClusterID
+    disturbance_type: CausalAxis
+    magnitude: float
+    vectors: Tuple[DisturbanceVector, ...]
+    source_entity: str
+
+class ProjectionPolicy(Protocol):
+    """Оператор трансформации возмущения в восприятие. Зависит от состояния наблюдателя."""
+    def project(
+        self, 
+        disturbance: FieldDisturbance, 
+        membrane_factor: float, 
+        observer_kernel: 'PerceptualKernel', 
+        observer_state: Dict[str, Any]
+    ) -> Optional['PerceivedPhenomenon']: ...
+
+@dataclass(frozen=True)
+class PerceivedPhenomenon:
+    """То, что достигло сознания наблюдателя. Не 'событие', а реконструированный феномен."""
+    perceived_intensity: float
+    inferred_cause: str
+    distortion_tag: str
+    phenomenon_type: CausalAxis
+
+@dataclass
+class PhenomenologicalState:
+    """Локальная истина кластера для наблюдателя. Не дельты, а описание реальности."""
+    threat_level: float = 0.0
+    visible_blood: bool = False
+    dominant_sound: Optional[str] = None
+    anomaly_score: float = 0.0
+    nearby_entities: List[str] = field(default_factory=list)
+
+@dataclass(frozen=True)
+class PsychologicalPressure:
+    """Давление реальности на психику. Не 'stress += 15', а векторы воздействия."""
+    fear: float = 0.0
+    uncertainty: float = 0.0
+    aggression_trigger: float = 0.0
+    dominance_shift: float = 0.0
+
+# === P2: ОНТОЛОГИЯ СУБЪЕКТИВНОЙ РЕАЛЬНОСТИ (CFRM PHASE 2) ===
+
+class DisturbanceVector(str, Enum):
+    """Векторы возмущения поля. Не 'тип урона', а физика воздействия."""
+    KINETIC = "kinetic"       # Удар, толчок, движение массы
+    ACOUSTIC = "acoustic"     # Звук, крик, грохот
+    MATTER = "matter"         # Кровь, разрушение материи, огонь
+    BEHAVIORAL = "behavioral" # Социальный жест, угроза, бегство
+
+@dataclass(frozen=True)
+class FieldDisturbance:
+    """Возмущение причинного поля. Замена объективному EventDTO для каузального солвера."""
+    origin_cluster: ClusterID
+    disturbance_type: CausalAxis
+    magnitude: float
+    vectors: Tuple[DisturbanceVector, ...]
+    source_entity: str
+
+class ProjectionPolicy(Protocol):
+    """Оператор трансформации возмущения в восприятие. Зависит от состояния наблюдателя."""
+    def project(
+        self, 
+        disturbance: FieldDisturbance, 
+        membrane_factor: float, 
+        observer_kernel: 'PerceptualKernel', 
+        observer_state: Dict[str, Any]
+    ) -> Optional['PerceivedPhenomenon']: ...
+
+@dataclass(frozen=True)
+class PerceivedPhenomenon:
+    """То, что достигло сознания наблюдателя. Не 'событие', а реконструированный феномен."""
+    perceived_intensity: float
+    inferred_cause: str
+    distortion_tag: str
+    phenomenon_type: CausalAxis
+
+@dataclass
+class PhenomenologicalState:
+    """Локальная истина кластера для наблюдателя. Не дельты, а описание реальности."""
+    threat_level: float = 0.0
+    visible_blood: bool = False
+    dominant_sound: Optional[str] = None
+    anomaly_score: float = 0.0
+    nearby_entities: List[str] = field(default_factory=list)
+
+@dataclass(frozen=True)
+class PsychologicalPressure:
+    """Давление реальности на психику. Не 'stress += 15', а векторы воздействия."""
+    fear: float = 0.0
+    uncertainty: float = 0.0
+    aggression_trigger: float = 0.0
+    dominance_shift: float = 0.0

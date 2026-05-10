@@ -240,6 +240,45 @@ class TickOrchestrator:
         """Добавляет IdleTickHandler для Фазы 0.5 (DI)."""
         self._idle_handlers.append(handler)
 
+    # ── CFRM Layer 1: Spatial Index ─────────────────────────────────────
+
+    def _rebuild_cluster_occupancy(self, ctx: _TickContext) -> None:
+        """Восстанавливает индекс присутствия NPC в кластерах из scene_state.
+        
+        Вызывается на старте каждого тика. Маппит макро-зону (position)
+        каждого NPC на канонический ClusterID.
+        """
+        npc_positions = ctx.scene_state.get("npc_positions", {})
+        location_id = ctx.scene_state.get("location_id", "")
+        
+        for npc_id, data in npc_positions.items():
+            raw_node = data.get("position")
+            if not raw_node:
+                continue
+            
+            # Нормализация до канонического ClusterID (format: "location_id:node_id")
+            if ":" in str(raw_node):
+                cluster_id = str(raw_node)
+            elif location_id:
+                cluster_id = f"{location_id}:{raw_node}"
+            else:
+                cluster_id = str(raw_node)
+                
+            ctx.cluster_occupancy.update_entity(npc_id, cluster_id)
+            
+        # Игрок — тоже наблюдатель в причинном пузыре
+        player_data = npc_positions.get("player")
+        if player_data:
+            raw_player_node = player_data.get("position")
+            if raw_player_node:
+                if ":" in str(raw_player_node):
+                    p_cluster = str(raw_player_node)
+                elif location_id:
+                    p_cluster = f"{location_id}:{raw_player_node}"
+                else:
+                    p_cluster = str(raw_player_node)
+                ctx.cluster_occupancy.update_entity("player", p_cluster)
+
     def execute(
         self,
         campaign_id: str,
@@ -264,6 +303,48 @@ class TickOrchestrator:
             dm_ctx=dm_ctx,
             npc_services=npc_services,
         )
+
+        # CFRM P2: Восстанавливаем пространственный индекс кластеров ДО привязки моста
+        self._rebuild_cluster_occupancy(ctx)
+
+        # CFRM P2: Мост деобъективации — превращение объективных событий в возмущения поля
+        event_bus = self._get_event_bus()
+        
+        def _deobjectify_event(event: 'EventDTO') -> None:
+            """Трансформирует EventDTO в FieldDisturbance на основе контекста тика."""
+            from app.models.cfrm import classify_event, FieldDisturbance, CausalAxis, DisturbanceVector
+            
+            axis = classify_event(event.type)
+            
+            # Определяем кластер происхождения (кто вышел из строя реальности?)
+            origin_cluster = ctx.cluster_occupancy.get_cluster(event.source) or "world:unknown"
+            
+            # Инференс векторов возмущения на основе типа события
+            vectors = []
+            if axis == CausalAxis.PHYSICAL:
+                vectors.append(DisturbanceVector.KINETIC)
+                vectors.append(DisturbanceVector.ACOUSTIC)
+                if event.type in ("PLAYER_ATTACKS", "NPC_ATTACKED"):
+                    vectors.append(DisturbanceVector.MATTER)
+            elif axis == CausalAxis.COGNITIVE:
+                vectors.append(DisturbanceVector.BEHAVIORAL)
+            elif axis == CausalAxis.SOCIAL:
+                vectors.append(DisturbanceVector.ACOUSTIC)
+                vectors.append(DisturbanceVector.BEHAVIORAL)
+
+            # Вычисляем базовую магнитуду возмущения
+            magnitude = event.payload.get("intensity", 0.5)
+            
+            disturbance = FieldDisturbance(
+                origin_cluster=origin_cluster,
+                disturbance_type=axis,
+                magnitude=magnitude,
+                vectors=tuple(vectors),
+                source_entity=event.source
+            )
+            ctx.event_buffer.add(disturbance, axis)
+
+        event_bus.attach_cfrm_bridge(_deobjectify_event)
 
         try:
             if dm_ctx is not None:
@@ -292,6 +373,9 @@ class TickOrchestrator:
             if dm_ctx is not None:
                 return TickPlayerResultDTO(status="error", error=str(e))
             return TickResultDTO(status="error", error=str(e))
+        finally:
+            # CFRM P2: Гарантированно отключаем мост деобъективации в конце тика
+            event_bus.detach_cfrm_bridge()
 
         if dm_ctx is not None:
             return ctx.player_result

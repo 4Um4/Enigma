@@ -13,17 +13,16 @@
                    "breakpoint":  65,
                    "loyalty_true":  30
                },
-    "combat_stats":  {
-                         "ac":  10,
-                         "attack_bonus":  0,
-                         "damage":  "1d4"
-                     },
-    "abilities":  {
-                      "strength":  10,
-                      "dexterity":  10,
-                      "constitution":  10,
-                      "intelligence":  10,
-                      "wisdom":  10,
-                      "charisma":  10
-                  }
+    "body_profile":  {
+                         "max_hp":  100,
+                         "abilities":  {
+                                           "strength":  10,
+                                           "dexterity":  10,
+                                           "constitution":  10,
+                                           "intelligence":  10,
+                                           "wisdom":  10,
+                                           "charisma":  10
+                                       },
+                         "base_ac":  10
+                     }
 }

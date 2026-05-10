@@ -57,76 +57,10 @@ def resolve_physical_attack(
     if action_type not in PHYSICAL_EVENTS or npc_id != target_id or state_l2.max_hp <= 0:
         return state_l2, None
 
-    _reflex_constraints = None
-    try:
-        from app.services.resolution.physical_resolver import PhysicalResolver
-        from app.services.reaction.reflex_resolver import ReflexResolver
-        from app.services.npc.state_applicator import StateApplicator
-
-        _combat = npc_profile.get("combat_stats", {})
-        _resolver = PhysicalResolver()
-        _phys_outcome = _resolver.resolve_attack(
-            attack_bonus=2,
-            target_ac=_combat.get("ac", 10),
-            damage_formula=_combat.get("damage", "1d4"),
-            attacker_id="player",
-        )
-
-        _applicator = StateApplicator(relationship_store=relationship_store)
-        state_l2, _ = _applicator.apply_physical(
-            state=state_l2,
-            outcome=_phys_outcome,
-            current_tick=current_tick,
-        )
-        from app.models.npc_state import NPCState
-        NPCState.write_to_legacy(state_l2, npc_dict_for_write)
-
-        _reflex = ReflexResolver()
-        _reflex_result = _reflex.resolve(
-            outcome=_phys_outcome,
-            npc_id=npc_id,
-            current_hp=state_l2.hp,
-            max_hp=state_l2.max_hp,
-        )
-
-        if _reflex_result.has_constraint:
-            for sig in _reflex_result.decision_signals:
-                if sig.signal_type == "constraint" and sig.constraint:
-                    _reflex_constraints = sig.constraint.to_dict()
-
-        if _phys_outcome.hit and scene_continuity:
-            _npc_display_name = npc_profile.get("name", npc_id)
-            _los = (scene_state or {}).get("line_of_sight", {})
-            _witnesses = [nid for nid, vis in _los.items() if vis and nid != npc_id]
-            _vis_tag = "на глазах у присутствующих " if _witnesses else ""
-            _fact = f"Игрок {_vis_tag}ударил {_npc_display_name}: {_phys_outcome.damage} урона ({_phys_outcome.damage_type.value})"
-            if _phys_outcome.critical:
-                _fact += ", КРИТИЧЕСКИЙ УДАР"
-            scene_continuity.add_fact(_fact)
-
-        if _reflex_result.scene_events:
-            _phys_labels = {
-                "flinched": "дрогнул(а)",
-                "staggered": "отшатнулся(лся) от удара",
-                "cry_of_pain": "воскликнул(а) от боли",
-                "blood_spatter": "появилась кровь",
-                "weapon_dropped_force": "выронил(а) оружие от удара",
-                "fell_to_ground": "упал(а) на землю",
-            }
-            _desc_parts = []
-            for _me in _reflex_result.scene_events:
-                _label = _phys_labels.get(_me.event_type.value, _me.event_type.value)
-                _desc_parts.append(_label)
-                if scene_continuity:
-                    scene_continuity.add_event(f"{_me.event_type.value}_{_me.npc_id}")
-            if _desc_parts and scene_continuity:
-                _existing = scene_continuity.scene_facts[-1] if scene_continuity.scene_facts else ""
-                scene_continuity.scene_facts[-1] = _existing + ", " + ", ".join(_desc_parts)
-
-    except Exception as _phys_err:
-        logger.error(f"[PHYSICAL] Error (non-blocking): {_phys_err}", exc_info=True)
-
-    return state_l2, _reflex_constraints
+    # ADR-0015, ADR-0021: Вся физика и урон перенесены в CombatSubscriber → ImpactEngine
+    # и обрабатываются в Фазе 8 (Layered Reduction).
+    # Рефлексы и урон больше не вычисляются здесь.
+    return state_l2, None
 
 
 # ── Session reset ─────────────────────────────────────────────────────────────

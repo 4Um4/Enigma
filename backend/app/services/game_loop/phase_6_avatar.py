@@ -48,41 +48,9 @@ def update_avatar_from_npc_intents(
                     _avatar_state.emotion = emotion_tag_cls.FEARFUL
                 _avatar_changed = True
 
-                # Физический урон: NPC атакует игрока через PhysicalResolver
-                try:
-                    from app.services.resolution.physical_resolver import PhysicalResolver
-
-                    _npc_real = _npc_ctx.get("real_state", {})
-                    _npc_combat = _npc_real.get("combat_stats", {})
-                    _npc_damage = _npc_combat.get("damage", "1d4")
-                    _npc_atk_bonus = _npc_combat.get("attack_bonus", 2)
-
-                    _player_sheet = avatar_service.load_sheet(campaign_id, player_name)
-                    _player_ac = _player_sheet.ac
-
-                    # Резолвим только если игрок жив и имеет HP
-                    if _avatar_state.max_hp > 0 and _avatar_state.hp > 0:
-                        _phys_resolver = PhysicalResolver()
-                        _phys_outcome = _phys_resolver.resolve_attack(
-                            attack_bonus=_npc_atk_bonus,
-                            target_ac=_player_ac,
-                            damage_formula=_npc_damage,
-                            attacker_id=_npc_ctx["npc_id"],
-                        )
-                        if _phys_outcome.hit and _phys_outcome.damage > 0:
-                            _avatar_state.hp = max(0, _avatar_state.hp - _phys_outcome.damage)
-                            _avatar_changed = True
-                            _npc_id = _npc_ctx["npc_id"]
-                            logger.warning(
-                                f"[AVATAR_DAMAGE] {_npc_id} → player: "
-                                f"dmg={_phys_outcome.damage} crit={_phys_outcome.critical} "
-                                f"hp={_avatar_state.hp}/{_avatar_state.max_hp}"
-                            )
-                        else:
-                            _npc_id = _npc_ctx["npc_id"]
-                            logger.warning(f"[AVATAR_DAMAGE] {_npc_id} → player: MISS")
-                except Exception as _phys_err:
-                    logger.error(f"[AVATAR_DAMAGE] error: {_phys_err}", exc_info=True)
+                # ADR-0015, ADR-0021: Урон аватару от NPC теперь рассчитывается 
+                # через CombatSubscriber → ImpactEngine в Фазе 8 (Layered Reduction).
+                # Прямая мутация HP аватара здесь запрещена.
             elif _intent_val.value == "intimidate":
                 _avatar_state.stress = min(100.0, _avatar_state.stress + 2.0)
                 if _avatar_state.emotion == emotion_tag_cls.NEUTRAL:

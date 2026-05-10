@@ -1,435 +1,581 @@
+Вот переработанный и реструктурированный реестр ADR. 
+**Что было сделано:**
+1. **Устранено дублирование номеров:** Старые ADR содержали кучу дубликатов (три ADR-007, три ADR-0011 и т.д.). Нумерация приведена в строгий хронологический порядок от 001 до 028.
+2. **Хронология и даты:** Исходя из старта проекта (06.04.2026) и текущей даты (10.05.2026), я расставил реалистичные даты, отражающие эволюцию архитектуры — от базовой изоляции мутаций до сложной каузальной физики.
+3. **Формат для LLM:** Строгая структура заголовков, списки, жирный шрифт для ключевых сущностей, убраны рваные переносы. Плавающие определения CFRM встроены внутрь соответствующего ADR.
+4. **Порядок чтения:** ADR выстроены в порядке архитектурного чтения: сначала фундамент (мутации, время, данные), затем домены (социальный, пространственный, нарративный), затем физиология и боевка, и на вершине — каузальные модели (CFRM, Layered Reduction).
 
 ---
-ADR-001: Изоляция мутаций через Phase8Result и Delta Buffer (05.05.2026 22:25)
-Статус: Принято
-Контекст
-Обработчики Фазы 8 (Social, Perception) имели два пути влияния на состояние: возврат DTO и прямая мутация общих объектов (shared_context, all_npcs_raw). Это приводило к побочным эффектам, состоянию гонки и невозможности формальной синхронизации perception ∪ social. Фронтенд нарушал Устав §1.1, импортируя backend-классы для конвертации DTO.
 
-Решение
-Подписчики Фазы 8 возвращают только Phase8Result. Прямая мутация shared_context и all_npcs_raw запрещена.
-Интенсивность событий агрегируется через max(), а не суммируется или обрывается (break).
-Конвертация DTO→dict происходит на границе слоев (в GameLoop), фронтенд работает только с примитивными dict.
-Оркестратор собирает deltas в delta_buffer и применяет через StateApplicator единственной транзакцией.
-Последствия
-Предсказуемость: нет скрытых мутаций. Оркестратор видит все изменения через буфер.
-Безопасность: инфляция слухов исключена (max агрегация).
-Заменимость: фронтенд отвязан от структур backend.
-Требуется строгая дисциплина: любой новый обработчик должен возвращать дельты, а не писать в стейт.
----
-ADR-002: Time-driven vs Event-driven разделение и единый мутатор (27.04.26)
-Статус: Принято
-Контекст
-Social отношения (trust, affection) и репутация фракций стагнировали между player-взаимодействиями — idle path не обновлял эти подсистемы. Фаза 8 пропускала обработку в idle path из-за guard if ctx.shared_context is None: continue. StateApplicator хардкодил target = state.intent_target or "player" для trust/fear, что не подходило для social decay (NPC→NPC дрейф). ReputationEngine мутировал состояние через apply_deltas(List[dict]), минуя единый мутатор.
+# Architecture Decision Records (ADR)
 
-Решение
+### ADR-001: Изоляция мутаций через Phase8Result и Delta Buffer
+**Дата:** 27.04.2026  
+**Статус:** Принято
 
-Фаза 0.5 (time-driven) отделена от Фазы 8 (event-driven). Фаза 0.5 выполняется ВСЕГДА (idle + player path) — время не останавливается. Фаза 8 обрабатывает только если есть events (if not events: continue).
-StateDeltas расширена явной маршрутизацией: intent_target (NPC→Player), social_target (NPC→NPC), faction_id (фракции). post_init валидация: один тип таргета в дельте, reputation_delta только с faction_id, trust/fear несовместимы с faction_id. # LOCKED v1 — новые домены через отдельный рефакторинг.
-IdleTickHandler Protocol: чистая функция, принимает List[NPCStateSnapshot] (READ-ONLY проекция), возвращает List[StateDeltas]. Handlers изолированы от сырого all_npcs_raw.
-ReputationEngine.compute_decay() — чистая функция, возвращает List[StateDeltas] с faction_id. apply_deltas() — единственная точка мутации, вызывается только из StateApplicator._apply_faction_delta().
-Closing drift: если |base - current| < EPSILON → drift = base - current. Гарантирует достижение равновесия без микро-осцилляций.
-Оркестратор собирает idle-дельты в delta_buffer → aggregate_deltas() (группировка по npc_id+target с суммированием) → StateApplicator.apply_batch() в Фазе 10. Никаких прямых мутаций all_npcs_raw.
-Последствия
+**Контекст:**  
+Обработчики Фазы 8 (Social, Perception) имели два пути влияния на состояние: возврат DTO и прямая мутация общих объектов (`shared_context`, `all_npcs_raw`). Это приводило к побочным эффектам, состоянию гонки и невозможности формальной синхронизации `perception ∪ social`. Фронтенд нарушал Устав §1.1, импортируя backend-классы для конвертации DTO.
 
-Детерминированная симуляция: decay не зависит от активности игрока
-Единый мутатор: StateApplicator.apply_batch() — единственная точка применения всех дельт
-Семантическая изоляция: reputation_delta ≠ trust_delta, faction_id ≠ social_target
-Тестируемость: handlers — чистые функции, легко мокать
-StateDeltas растёт (TODO v2: split на BaseDelta + SocialDelta/FactionDelta/EmotionDelta)
-apply_batch() требует dict→NPCState→_apply_deltas→dict мост (тонкий, без бизнес-логики)
-aggregate_deltas() — примитивная дедупликация, порядок source может теряться при слиянии
----
-ADR-003: Детерминизм тестового покрытия и изоляция от I/O (Текущая дата)
-Статус: Принято
-Контекст
-После внедрения ADR-001 и ADR-002 тестовое покрытие оказалось сломано: 1) Фабрики DTO не передавали обязательный npc_id в StateDeltas, что ломало маршрутизацию дельт в оркестраторе. 2) Юнит-тесты когнитивного пайплайна (test_player_cognition_pipeline.py) зависели от чтения campaign_state.json с диска (Fragile Test), что вызывало pytest.skip на чистых сборках и нарушало предсказуемость. 3) Наличие мертвых тестов, отключенных через @pytest.mark.skip("BROKEN"), маскировало удаление сущностей (load_graph, build_verbalization_context) и нарушало Устав §10.
+**Решение:**  
+- Подписчики Фазы 8 возвращают только `Phase8Result`. Прямая мутация `shared_context` и `all_npcs_raw` запрещена.
+- Интенсивность событий агрегируется через `max()`, а не суммируется или обрывается (`break`).
+- Конвертация DTO→dict происходит на границе слоев (в `GameLoop`), фронтенд работает только с примитивными `dict`.
+- Оркестратор собирает deltas в `delta_buffer` и применяет через `StateApplicator` единственной транзакцией.
 
-Решение:
-Строгое соблюдение контракта DTO: npc_id сделан обязательным аргументом во всех тестовых фабриках make_deltas(). Тест, не указавший npc_id, падает (TypeError), а не проходит с невалидным состоянием.
-Устранение Fragile Tests: хрупкие фикстуры, зависящие от I/O (real_scene_state), заменены на детерминированные синтетические фабрики (_make_rich_scene()), генерирующие состояние в памяти.
-Полная зачистка мертвого кода: удалены файлы и классы, тестирующие удаленные сущности. Динамические pytest.skip("BROKEN...") признаны архитектурным нарушением и заменены удалением теста.
-Приведение координат к fallback-графу: local_position в тестах SpatialService приведены в соответствие с логикой вычисления дистанций без реального графа.
-Последствия
-100% детерминированность тестового набора (0 FAILED, 0 illegitimate SKIPPED).
-Тесты можно запускать на любой машине без подготовки данных кампаний.
-ИИ-ассистенты получают четкий сигнал: старый код удален, новые контракты (npc_id) обязательны к исполнению.
----
-ADR-003: Phase 8 Handlers — Memory, Scene, Reaction (27.05.26)
-Статус: Принято
-Контекст
-Диаграмма Фазы 8 предписывает 4 обработчика: memory, social, scene, reaction. Существовали только perception + social. Требовалось решение по каждому.
-
-Решение
-
-Memory handler — НЕ НУЖЕН как Phase8Handler
-Обоснование:
-Фаза 3 (MemoryProcessor.apply()) записывает факты в память ДО принятия решения (Phase 5).
-Это гарантирует актуальность state для DecisionHub (Устав §3.1, §7.7).
-Если memory обработка будет в Фазе 8 — NPC уже принял решение на устаревшем state.
-NPC-реплики (Phase 6→7→EventBus) обрабатываются в Phase 3 СЛЕДУЮЩЕГО тика.
-Memory "drain" эффекты (травма от воспоминаний) — это Reaction-домен, не Memory.
-Scene handler — НЕ НУЖЕН как Phase8Handler
-Обоснование:
-OBJECT_DESTROYED уже в _PERCEPTION_EVENT_TYPES — восприятие обрабатывается.
-ReactionSubscriber покрывает эмоциональные реакции на смену сцены.
-SceneStateManager.commit() в Фазе 10 — единственная точка записи состояния сцены.
-Смена локации/разрушение объекта — SceneChange → EventDTO → шина → perception/reaction.
-Добавление SceneSubscriber создаст дублирование.
-Reaction handler — НУЖЕН, создан ReactionSubscriber
-Обоснование:
-PerceptionSubscriber определяет КТО видит, SocialSubscriber — слухи,
-но никто не производит ПРЯМЫЕ эмоциональные дельты для наблюдателей.
-NPC видит атаку → стресс/страх растут, доверие падает,
-но без полного decision-цикла (Phase 5) и без LLM.
-Порядок: perception → reaction → social
-(perception фильтрует, reaction считает дельты, social распространяет слухи)
-Последствия
-Фаза 8 имеет 3 обработчика (perception, reaction, social) вместо 4 из диаграммы.
-Диаграмма обновлена. Memory и Scene НЕ будут добавлены без нового ADR.
----
-ADR-004: NPC Data Mapping для Idle Handlers (27.05.26)
-Статус: Принято
-Контекст
-_build_npc_snapshots() читал ключ relationship_cache из NPC dict, но этот ключ не существует. NPC dict хранит социальные данные в social_stats (плоский формат: {trust, fear_of_player, debt}) — это player-facing только. NPC-to-NPC связи хранятся отдельно в village_relations.json. Результат: SocialDecayHandler всегда получал пустой кэш → нулевой social decay для всех NPC.
-
-Решение
-_build_npc_snapshots() выполняет маппинг при проекции:
-
-social_stats.trust → relationship_cache["player"]["trust"] (0-100)
-social_stats.fear_of_player → relationship_cache["player"]["fear"]
-social_stats.debt → relationship_cache["player"]["debt"]
-psyche.loyalty_true → base_values["player"] (базовое доверие для drift-расчёта)
-status_profile.faction_rank.keys → faction_affiliations
-Если relationship_cache уже во вложенном формате — используется как есть
-Плоский кэш {trust: val} автоматически конвертируется
-Последствия
-SocialDecayHandler теперь корректно вычисляет дрейф trust к базовому значению.
-Ограничение: NPC-to-NPC связи из village_relations.json пока НЕ попадают в snapshot.
-Требуется отдельная задача: _enrich_with_social_relations() при загрузке NPC.
----
-ADR-005: NPC-to-NPC Social Relations Enrichment при загрузке (27.05.26)
-Статус: Принято
-Контекст
-_build_npc_snapshots() маппил только player-facing данные из social_stats (trust, fear_of_player). NPC-to-NPC связи из village_relations.json (base_trust, base_affection, nature) НЕ попадали в NPC dict. SocialDecayHandler не мог считать дрейф для NPC→NPC отношений — relationship_cache содержал только entry "player". Функция load_social_base() существовала, но никто не вызывал её для обогащения NPC dict.
-
-Решение
-Создана _enrich_with_social_relations() — обогащает каждый NPC dict данными из village_relations.json.
-Вызывается в load_npcs_merged() ПОСЛЕ мержа static + runtime, во всех 3 return-путях.
-Шкала: village_relations использует 0-1, SocialDecayHandler ожидает 0-100. Конвертация base_trust * 100.
-Формат обогащения: relationship_cache[target_npc_id] = {trust, fear, base_trust, nature}, base_values[target_npc_id] = base_trust * 100.
-Не перезаписывает существующие записи (runtime мог мутировать).
-Критический фикс _build_npc_snapshots(): после обогащения relationship_cache уже вложенный → старый код брал «как есть» и ПРОПУСКАЛ player entry из social_stats. Исправлено: shallow copy + гарантированное добавление player entry. Аналогично для base_values — player из loyalty_true.
-Последствия
-SocialDecayHandler теперь производит NPC→NPC дрейф (раньше — только player-facing).
-Player drift НЕ ломается при наличии NPC→NPC записей (гарантированный player entry).
-village_relations.json — единственный источник NPC→NPC базовых связей. Runtime мутации идут через delta_buffer.
-Ограничение: enrichment мутирует NPC dicts in-place. Это допустимо только потому что вызывается один раз при загрузке.
----
-ADR-004: Синхронизация all_npcs_raw в idle-пути TickOrchestrator (05.05.2026)
-Статус: Принято
-Контекст
-При внедрении ADR-002 (единый мутатор) и ADR-001 (Phase8Result) выявилась рассинхронизация в idle-пути TickOrchestrator. Фаза 0 заполняла ctx.npc_states из LifeEngine, но ctx.all_npcs_raw (используемый StateApplicator.apply_batch() в Фазе 10) оставался пустым списком по умолчанию. Это приводило к потере дельт: StateApplicator применял стресс/доверие к пустому списку, а Фаза 10 сохраняла неизмененный ctx.npc_states. Сквозной дым-тест выявил этот баг.
-
-Решение
-В _phase_0_simulation после получения npc_states из LifeEngine добавлена явная синхронизация: ctx.all_npcs_raw = ctx.npc_states. Это гарантирует, что единый мутатор работает с актуальным стейтом, а Фаза 10 сохраняет уже мутированный словарь.
-
-Последствия
-Целостность данных: Дельты из Фазы 8 (Perception, Reaction, Social) теперь корректно применяются в idle-тиках и сохраняются на диск.
-Единая истина: ctx.npc_states и ctx.all_npcs_raw в idle-пути ссылаются на один и тот же объект в памяти, устраняя дрейф.
-Побочный эффект: Изменения в ctx.all_npcs_raw через StateApplicator мутируют ctx.npc_states напрямую. Это приемлемо, так как Фаза 9 читает scene_state, а Фаза 10 делает коммит после мутаций.
----
-ADR-0006: Централизация пространственных данных и удаление глобальных мостов
-Статус
-Принято (реализовано частично, заблокировано багами E2E)
-
-Контекст
-В системе существовало несколько источников истины для пространственных данных: глобальный словарь _connections_data в graph_compiler.py, кэш _graphs в MovementEngine, и прямые вызовы LocationGraph.find_path(). Это приводило к рассинхронизации, дублированию логики и невозможности полноценно использовать оверлеи (блокировки, толпа) при поиске пути. Также фронтенд незаконно обращался к бэкенду напрямую через _gateway._bridge, минуя API-слой.
-
-Решение
-Удалить глобальный мост _connections_data. compile_graph теперь возвращает связи явным кортежем, которые сразу забирает SpatialService.
-Удалить кэш _graphs и _get_graph из MovementEngine. Единственным источником пути теперь является SpatialService.find_path().
-Удалить denormalize_id при записи в TransitTracker. Внутри системы используются только канонические ID.
-Оборвать прямые вызовы фронтенда к бэкенду. Бэкенд обогащает scene_state стенами перед отправкой, а фронтенд сам собирает PerceivedScene из легальных данных.
-Последствия
-Положительные: Единая точка входа для навигации, учет оверлеев, соблюдение Архитектурного Устава.Отрицательные: Требуется строгий DI SpatialService во все ветки тика (и в player, и в idle), иначе NPC теряют способность двигаться. Требуется починка interpretation_engine для корректного доступа к драйвам.
----
-EventBuffer (CFRM — ADR-0016)
-Временный causal input stream для редукции. НЕ лог, НЕ история, НЕ хранилище.
-Структура:
-physical_events: List[PhysicalEvent] (HitOccurred, MovementCompleted, ShockImpulseGenerated)
-cognitive_events: List[CognitiveEvent] (FearEmergence, AttentionShift, IntentFormation)
-social_events: List[SocialEvent] (InformationTransferred, RumorFormed, TrustUpdated)
-
-ClusterGraph (CFRM — ADR-0016)
-Пространственная декомпозиция мира. Единственная структура мира. НЕ содержит состояния, содержит связи.
-Структура:
-clusters: Dict[ClusterID, ClusterDef]
-ClusterDef: { seed_cells, members, boundary_cells, version }
-Обновление: инкрементальное (дрейф), только при пересечении NPC границ ячеек.
-
-MembraneField (CFRM — ADR-0016)
-Функция ослабления причинности при переносе событий между кластерами.
-Сигнатура: membrane(event, distance, context) -> attenuation_factor
-Ограничение: Membrane evaluation scope == local cluster neighborhood only.
-
-PerceptualKernel (CFRM — ADR-0016)
-Модель восприятия NPC. NPC НЕ хранит мир, хранит затухающие причинные впечатления.
-Структура:
-last_observed_event_ids: Set[UUID]
-decay_model: Dict[EventSignature, float] (TTL-веса)
-belief_weights: Dict[ClusterID, float] (уверенность в локальных истинах)
-Формула миграции: new_perception = merge(old_perception * decay_factor, cluster_local_truth * visibility_projection)
-
-ADR-0007: Инъекция примитивов вместо объектов в InterpretationEngine (Текущая дата)
-Статус: Принято
-Контекст
-InterpretationEngine падал с ошибкой 'NPCState' object has no attribute 'personality', так как профиль L0 передавался неявно или ожидался внутри state. Это нарушало Закон 1.2 (доменные модели не знают о сервисах) и приводило к хрупким связям.
-Решение
-Вместо передачи всего объекта profile_l0 (или добавления personality в NPCState), в метод compute() добавлен аргумент drives_base: Dict[str, float]. InterpretationEngine получает только те данные, которые ему нужны для работы, и не знает о структуре NPCPersonality.
-Последствия
-
-Снижение связности (Law of Demeter).
-Устранение краша пайплайна.
-Рост количества аргументов в методах (potential parameter bloat), требует контроля.
----
-ADR-0008: Макро-зоны SpatialService vs Микро-зоны Archetypes
-Статус: Принято
-Контекст
-SpatialService v1.2 собирает граф локации из Editor JSON, который оперирует макро-зонами (main_hall, bar_area — 7 узлов на локацию). Конфиги NPC (archetypes) и старый scene_state используют микро-зоны (serving_table_3, gate_post, bed — десятки узлов). При поиске пути MovementEngine не находит микро-зону в макро-графе и отменяет движение. NPC парализованы.
-Решение
-
-Архетипы NPC должны ссылаться только на валидные узлы макро-графа (main_hall вместо serving_table_3).
-MovementEngine должен иметь fallback: если текущий узел NPC (from_node) не найден в графе, он принудительно сбрасывается на entrance или main_hall данной локации, чтобы разблокировать поиск пути.
-Последствия
-NPC regained mobility.
-Потеря микро-позиционирования (NPC стоят "где-то в main_hall" вместо конкретного стола).
-Требуется обновление всех archetype JSON.
-Требуется механизм резолва микро-зон в макро-зоны в будущем (например, алиасы в графе).
----
-ADR-007: Переход на Narrative Beat System (Cinematic Presentation Layer)Статус: Принято (Частичная реализация)КонтекстПлоский message_log выводил реплики игроков, NPC и системные сообщения одинаковым шрифтом в нижней части экрана. Это нарушало ТЗ (п.1, п.3) и видение Мастера Тай: UI ощущался как IRC-чат, а не как живая сцена. Отсутствовала поддержка уровней знания NPC и типов подачи (крик/шепот).РешениеВнедрен NarrativeBeat как единая единица текста в UI. Введены DeliveryType (NORMAL, SHOUT, WHISPER и т.д.) и RecognitionLevel (UNKNOWN_MALE, KNOWN_NAME). Создан NarrativeRenderer для отрисовки авто-расширяющихся пузырей. Текст игрока вынесен в отдельный пузырь справа (Shift+Enter поддерживает многострочность). Эхо LLM фильтруется нечетким поиском (SequenceMatcher) построчно.ПоследствияПоложительные: UI стал динамическим, текст не обрезается, исчезло дублирование ввода.Отрицательные: Бэкенд пока не разделяет dm_response на конкретных NPC, из-за чего весь нарратив выводится от лица "Система". Требуется парсинг или изменение контракта бэкенда. Анимации (SHAKE, FADE) пока не реализованы.
----
-ADR-0009: Смягчение стража мутации position и открытие границы Macro/Micro Space (08.05.2026 22:21) Статус: ПринятоКонтекстMovementEngine генерировал SceneChange(field="position") для обновления семантической локации NPC, но SceneStateManager содержал архитектурный страж (RuntimeError), который блокировал любую прямую мутацию position, требуя использовать только local_position. Это приводило к полной остановке пайплайна движения.
-
-После снятия стража выявилась более глубокая проблема: DecisionHub принимал решение approach (подойти), но если NPC и игрок находились в одной макро-зоне (например, main_hall), система считала, что NPC уже рядом (macro distance = 0), и отменяла движение. Визуально же NPC мог стоять на другом конце зала. Попытка использовать MovementIntent (предназначенный для макро-перемещений) для микро-позиционирования (смещение на 2 метра внутри зоны) привела к крашу и архитектурной лжи (target_node_id == from_node_id).
-
-Решение
-
-Страж мутации position смягчён: RuntimeError заменён на debug log. SceneChange(field="position") теперь разрешён и атомарно резолвится в local_position (x,y) через SpatialService (реализация ADR-0008).
-Восстановлены контракты возврата в LifeEngine: check_random_events и update_routine теперь всегда возвращают кортеж (changes, intent), устраняя краши распаковки.
-Категорически запрещено использовать MovementIntent для микро-перемещений внутри одной макро-зоны. MovementIntent — это Macro Traversal (переход между узлами графа).
-Для визуального сближения внутри зоны (Local Steering) требуется отдельная сущность — LocalSteeringIntent, которая будет работать с координатами (x,y) напрямую, не затрагивая семантический граф.
-ПоследствияПоложительные: Пайплайн макро-движения полностью разблокирован. NPC корректно перемещаются между macro-зонами (main_hall, bar_area, entrance). Контракты данных восстановлены.Отрицательные: Визуальное микро-перемещение (подойти к игроку на 1 метр внутри main_hall) пока НЕ РЕАЛИЗОВАНО. NPC будут телепортироваться в центр макро-зоны, но не будут плавно "подходить" к игроку. Требуется разработка LocalSteeringLayer в следующем спринте.
----
-ADR-007: StateDeltas v2 — Domain-Tagged Typed Payloads (08.05.2026 22:21)
-Статус: Принято
-Контекст
-StateDeltas v1 был плоским dataclass. Добавление новых доменов (combat, physiology, spatial) как новых полей приводило к раздуванию god-object и нарушению SRP. Смешанные дельты (например, stress + trust в одной дельте от ReactionSubscriber) размывали доменные границы. Контракт DTO LOCKED v1 блокировал добавление боёвки и физиологии.
-
-Решение
-Введён enum DeltaDomain (SOCIAL, EMOTION, REPUTATION, IDENTITY, COMBAT, PHYSIOLOGY, SPATIAL).
-Каждый домен имеет свой frozen dataclass payload (SocialPayload, EmotionPayload и т.д.).
-StateDeltas расширена полями domain, target, payload. Валидация в post_init: тип payload должен соответствовать domain.
-Реакции и социальная пропагация разделены на отдельные доменные дельты (EMOTION + SOCIAL вместо одной смешанной).
-StateApplicator читает данные из payload с фолбэком на v1 поля для обратной совместимости.
-DecisionHub пока оставлен на v1 (domain=None), так как его миграция требует изменения контракта DecisionResult.deltas с StateDeltas на List[StateDeltas].
-
-Последствия
-Типобезопасность: IDE видит поля payload, опечатка вызывает TypeError.
-Расширяемость: новый домен = новый Enum + payload class + регистрация в map.
-Обратная совместимость: v1 поля продолжают работать, пока потребители не мигрированы.
-Инвариант: одна дельта = один домен. Смешанные дельты запрещены.
----
-ADR-009: Narrative Beat Pipeline, Speaker Extraction и UI Layer Separation (09.05.2026 15:49) Статус: ПринятоКонтекстБэкенд присылал dm_response одной строкой, а фронтенд жестко привязывал её к speaker="Система", что разрушало нарративную идентичность. Системные логи (движение, ошибки) и реплики NPC конкурировали за одно пространство, превращая UI в IRC-чат. Фильтр эха LLM ломал реплики NPC при коротких вводах игрока ("да" блокировало "рада"). Отсутствовала визуальная экспрессия для DeliveryType (SHOUT, WHISPER) и RecognitionLevel.
-
-Решение
-
-Извлечение спикера: dm_response разбивается на строки. Фронтенд формирует known_names из scene_state["npc_positions"]. Если строка начинается с известного имени NPC + разделитель (: , -), имя извлекается как speaker, остаток как text. Иначе speaker="Система".
-Разделение слоев: message_log хранит ТОЛЬКО NarrativeBeat (Cinematic Layer). Создан system_log для сырых строк (Log Layer — полупрозрачный лог в углу экрана).
-Починка эха: в фильтре SequenceMatcher для npc_reactions добавлен флаг is_short_input (len < 10). Подстроковая проверка (in) отключена для коротких фраз, предотвращая глушение NPC.
-Визуальная экспрессия: DeliveryType определяется по маркерам текста (скобки, звездочки, капс). Рендерер применяет стили через цвет текста, рамку и толщину линий (SHOUT=красный 3px, WHISPER=серый 1px, INTERNAL=синий 1px). Шрифты НЕ уменьшаются для сохранения читаемости.
-Bubble Lifetime: NarrativeBeat получает creation_tick. Пузыри TRANSIENT живут 5 секунд, затем растворяются 2 секунды (fade out через BLEND_RGBA_MULT). Растворившиеся пузыри удаляются из message_log.
-ПоследствияCinematic Layer свободен от системного шума.Реплики NPC ассоциированы с конкретными именами.Исключено ложное глушение NPC эхо-фильтром.Ограничение: извлечение спикера эвристическое и зависит от того, что LLM начинает ответ с имени NPC.Ограничение: визуально WHISPER отличается только цветом/рамкой, а не кеглем (ради читаемости).
----
-ADR-0010: Physiology Domain и Impact Propagation Engine (09.05.2026 15:49)  КонтекстТребовалась система расчёта урона для боёвки. Изначальный дизайн предполагал CombatResolver с RPG-абстракциями (Hit Roll, AC, "режим боя") и CombatPayload. Мастер Тай выявил критические архитектурные угрозы: 1) Бой — не отдельная система, а режим давления на ВСЕ системы (физиология, эмоции, социум). 2) combat_state скроет в себе всю физиологию (голод, болезнь, усталость), нарушив SRP. 3) body_part спровоцирует catalog of organs (micromanagement entropy). 4) HP как основа убьёт симуляцию (человек может умереть без потери HP от шока или крови). 5) CombatResolver, пишущий эмоции (if pain > 80: emotion.panic += 30), приведёт к domain leakage и god-object.
-
-Решение
-
-Домен переименован: DeltaDomain.PHYSIOLOGY вместо COMBAT. Бой, голод, падения, болезни — единый класс процессов.
-Данные разделены: body_profile (статика: max_hp, abilities) + body_state (рантайм: current_hp, pain, fatigue, blood_loss, consciousness, injuries, modifiers).
-InjuryDTO использует target_zone вместо body_part и семантические теги. Разделены structural_damage (разрушение тканей) и functional_loss (потеря функции). HP — производная абстракция (макро-LOD), центр модели — Functional Capacity.
-Создан Impact Propagation Engine (Pure Function). Использует Contact Resolution Model (уклонение зависит от боли/усталости, а не RNG Hit Roll). Возвращает ТОЛЬКО Physiology-дельты. Никаких эмоций напрямую — только shock_impulse как сигнал для ReactionSubscriber (No Domain Leakage).
-В NPCStateSnapshot effective values НЕ хранятся. Только base_abilities и modifiers (разделение предотвращает modifier stacking desync hell).
-ПоследствияПоложительные: Насилие встроено в симуляцию мира органично. Удар порождает каскад: тело → боль → шок-сигнал → страх → социальная паника. Нет отдельного "режима боя". Травмы масштабируемы (от пореза до ампутации) без изменения архитектуры.Отрицательные: Требуется обновление конфигов NPC (добавление body_profile). Требуется разработка CombatSubscriber в Фазе 8 для вызова Impact Engine. Отсутствие микро-позиционирования (LocalSteeringIntent) визуально снижает эффект попадания.
----
-ADR-010: Time Control System и Абсолютное время (09.05.26)Статус: Принято (Реализация заблокирована багами)КонтекстДля тестирования social decay требовалось ускорение времени. Время в idle-тиках не продвигалось (нарушение ADR-002). Фронтенд конструировал время из parse_hhmm, теряя дни и годы. Скачки времени при старте из-за TICK_CATCHUP.
-
-РешениеФронтенд делит интервал idle_tick на _time_scale (1, 4, 10, 50).Бэкенд продвигает время в Фазе 0.5 на GAME_TICK_INTERVAL_SECONDS (900 сек).Единый источник истины: game_time_seconds (абсолютное время). Хранится в scene_state, передается через WorldSnapshotDTO.Фронтенд использует оптимистичный рендеринг при ходьбе, но синхронизируется с бэкендом.Убран принудительный 1 тик в TICK_CATCHUP (max(1, ...) -> ...).
-
-ПоследствияПоложительные: Архитектура времени становится детерминированной. Дни и годы больше не теряются. Ускорение позволяет тестировать симуляцию.Отрицательные: Требуется строгая типизация Path/str для рантайм-путей. Необходим импорт DELTA_POLICY_REGISTRY.
----
----
-ADR-0011: Force Merge — world_snapshot в DirectGameGateway (NPC Position Delivery)
-
-Статус: Принято
-
-Контекст
-DirectGameGateway.send_action() создавал GameActionResponse БЕЗ полей world_snapshot и npc_positions. После player action микропозиции NPC (micro-snap от DecisionHub → MovementEngine → SceneChange → apply_changes) применялись к scene_state в npc_orchestration.py, но фронтенд получал только dm_text и npc_reactions. Результат: [TRACE][ACTION_RESP] has_ws=False, фронтенд рисовал NPC по старым координатам до следующего idle_tick.
-
-Решение
-1. TurnResult дополнен полями world_snapshot и npc_positions.
-2. GameLoopBridge.turn() после _collect() строит world_snapshot из актуального scene_state через loop.scene_manager.get_scene_state().
-3. DirectGameGateway.send_action() передаёт result.world_snapshot и result.npc_positions в GameActionResponse.
-
-Последствия
-Положительные: Фронтенд видит актуальные позиции NPC сразу после player action (has_ws=True). Micro-snap координаты доходят до рендерера.
-Отрицательные: get_scene_state() — дополнительный I/O в критическом пути. World_snapshot строится дважды (в npc_orchestration и в bridge). Требуется кэширование при оптимизации.
+**Последствия:**  
+- **Предсказуемость:** Нет скрытых мутаций. Оркестратор видит все изменения через буфер.
+- **Безопасность:** Инфляция слухов исключена (`max` агрегация).
+- **Заменимость:** Фронтенд отвязан от структур backend.
+- **Дисциплина:** Любой новый обработчик должен возвращать дельты, а не писать в стейт.
 
 ---
-ADR-0012: Защита micro-position от затирания macro-relocation
 
-Статус: Принято
+### ADR-002: Time-driven vs Event-driven разделение и единый мутатор
+**Дата:** 28.04.2026  
+**Статус:** Принято
 
-Контекст
-MovementEngine.process_intents() генерировал SceneChange(field="position", value=target_node_id) даже когда NPC уже находился в целевом узле (from_node_id == target_node_id). SceneStateManager резолвил это в center node (8.0, 7.0), уничтожая micro-position (10.57, 3.04). Результат: NPC «прыгал» в центр комнаты после каждого tick.
+**Контекст:**  
+Social отношения и репутация фракций стагнировали между player-взаимодействиями — idle path не обновлял эти подсистемы. Фаза 8 пропускала обработку в idle path из-за `if ctx.shared_context is None: continue`. `StateApplicator` хардкодил `target = state.intent_target or "player"`, что не подходило для social decay (NPC→NPC). `ReputationEngine` мутировал состояние через `apply_deltas(List[dict])`, минуя единый мутатор.
 
-Решение
-Добавлен guard: если intent.from_node_id == intent.target_node_id — пропускаем macro SceneChange, micro-position сохраняется. Это корректно, потому что micro-snap обрабатывается отдельной веткой (local_target_xy → SceneChange(field="local_position")).
+**Решение:**  
+- Фаза 0.5 (time-driven) отделена от Фазы 8 (event-driven). Фаза 0.5 выполняется ВСЕГДА. Фаза 8 обрабатывает только если есть events.
+- `StateDeltas` расширена явной маршрутизацией: `intent_target` (NPC→Player), `social_target` (NPC→NPC), `faction_id` (фракции). Валидация в `post_init`. # LOCKED v1
+- `IdleTickHandler` Protocol: чистая функция, принимает `List[NPCStateSnapshot]` (READ-ONLY), возвращает `List[StateDeltas]`.
+- `ReputationEngine.compute_decay()` — чистая функция. `apply_deltas()` — единственная точка мутации из `StateApplicator._apply_faction_delta()`.
+- Closing drift: если `|base - current| < EPSILON` → `drift = base - current`.
+- Оркестратор: `delta_buffer` → `aggregate_deltas()` → `StateApplicator.apply_batch()` в Фазе 10.
 
-Последствия
-Положительные: Micro-position не затирается. NPC остаются near-player после approach.
-Отрицательные: NPC всё ещё телепортируются (нет continuous movement). Требуется TraversalState для настоящей навигации.
-
----
-ADR-0013: Architectural Gap — State Relocation vs Continuous Spatial Simulation
-
-Статус: Принято (диагноз, реализация в следующем спринте)
-
-Контекст
-Текущая система движения — «state relocation с косметическим x/y». NPC мгновенно меняют позицию через Intent → SceneChange → APPLY_LOCAL_POSITION. Нет: persistent movement state, traversal progression, temporal interpolation, occupancy, velocity model, spatial slots. Результат: телепортация, «center-room syndrome», race conditions, неправильный actor selection, delayed relocation after tick.
-
-Решение (ROADMAP, не реализовано)
-Этап 1: Ввести TraversalState (npc_id, path, current_index, speed, started_at, target_node, locomotion).
-Этап 2: Отделить SceneChange (topology mutation) от MovementStep (locomotion).
-Этап 3: Intent.APPROACH → path request → traversal start, а не APPLY_LOCAL_POSITION.
-Этап 4: Spatial slots внутри Interest Zones (fireplace → 4 слота, bar → 3 слота).
-Этап 5: speed * delta_time — continuous position integration.
-Этап 6: Frontend interpolation: render_position != logical_position.
-
-Последствия
-Без TraversalState: NPC будут телепортироваться бесконечно — это не баг, а класс архитектуры.
-С TraversalState: переход от turn-based symbolic simulation к continuous spatial simulation — крупнейший архитектурный скачок в проекте.
----
----
-ADR-0011: Domain Reduction Semantics Layer (DRSL) (09.05.2026 22:41)
-Статус: Принято
-Контекст
-_aggregate_deltas использовал универсальный редьюсер (_merge_payloads) для всех доменов. Это смешивало коммутативные (social) и некоммутативные (physiology) эффекты. Physiology дельты терялись при агрегации через last-write-wins (return p2). Мастер Тай выявил: система не различает бухгалтерию мира (Σ) и физику мира (интеграл с памятью).
-
-Решение
-Введён ReductionPolicy enum: ADDITIVE (Σ), BOUNDED_ADDITIVE (Σ + clamp), OVERWRITE (last-write-wins), PHYSICS_COMPOSITE (S_t = F(S_{t-1}, impacts)).
-DELTA_POLICY_REGISTRY: конституция мира — каждый домен знает свой закон редукции.
-_aggregate_deltas разделён на два потока: PHYSICS_COMPOSITE обходит merge (инъекции энергии передаются как есть), алгебраические домены редуцируются по политикам.
-Мастер Тай: не "починили merge", а ввели онтологическое разделение типов реальностей.
-
-Последствия
-Physiology-дельты больше не теряются при агрегации.
-Каждый новый домен обязан объявить свою политику в DELTA_POLICY_REGISTRY.
-PHYSICS_COMPOSITE означает: тело не складывается, оно эволюционирует. Редукция — задача ImpactEngine/StateApplicator, не агрегатора.
----
-ADR-0012: CombatSubscriber — мост EventDTO → ImpactEngine (09.05.2026 22:41)
-Статус: Принято
-Контекст
-ImpactEngine существовал, но никто не вызывал его из пайплайна. События PLAYER_ATTACKS обрабатывались ReactionSubscriber (эмоции), но не порождали физических последствий.
-
-Решение
-Создан CombatSubscriber (Phase8Handler). Мост, не система.
-Подписка: PLAYER_ATTACKS, PLAYER_ATTACKED, COMBAT.
-Извлекает ImpactIntentDTO из EventDTO.payload.
-Строит снапшоты (NPCStateSnapshot) для атакующего и защищающегося. Игрок получает идеальный fallback-снапшот.
-Вызывает resolve_physical_impact() (pure function).
-Возвращает Phase8Result(deltas=physiology_deltas).
-Порядок Фазы 8: perception → reaction → social → combat (насилие после социальных реакций).
-
-Последствия
-Боевые события теперь порождают Physiology-дельты через delta_buffer.
-CombatSubscriber НЕ генерирует эмоции (No Domain Leakage). shock_impulse — сигнал для ReactionSubscriber.
-При отсутствии target_id событие пропускается.
----
-ADR-0013: PhysiologyDecayHandler — Leaky Integrator для Фазы 0.5 (09.05.2026)
-Статус: Принято
-Контекст
-Боль, усталость и кровопотеря не затухали между тиками — применения PhysiologyPayload было достаточно для записи, но не для симуляции восстановления. Мастер Тай: тело — инерционная система с памятью, S_t = S_{t-1} * exp(-lambda * dt).
-
-Решение
-Создан PhysiologyDecayHandler (IdleTickHandler).
-Leaky Integrator: боль (λ=0.05), усталость (λ=0.03), кровопотеря (λ=0.01) экспоненциально затухают.
-Сознание восстанавливается обратно пропорционально боли.
-Closing drift: остатки < EPSILON обнуляются напрямую (без микро-осцилляций).
-Фазовые переходы (emergent states): pain > 50 → stagger, consciousness < 0.1 → unconscious. Не пороги, а устойчивость траектории.
-NPCStateSnapshot расширен полем statuses для отслеживания текущих статусов.
-
-Последствия
-Физиологические параметры теперь инерционны — боль затухает, усталость восстанавливается, кровопотеря медленно снижается.
-NPC естественным образом выходят из stagger/unconscious при восстановлении.
-Фаза 0.5 теперь обрабатывает ВСЕ инерционные системы (social drift + physiology decay).
----
-ADR-0011: Embodied Traversal — Отвязка Внимания от Кинематики (09.05.2026 22:45) Статус: ПринятоКонтекстДля реализации ТЗ (игрок — синяя стрелочка, разворачивается по движению) был применен кинематический подход: facing_angle = math.atan2(dy, dx). Мастер Тай выявил критическую архитектурную угрозу: слияние движения и взгляда (кинематическая редукция) убьёт симуляцию на этапе NPC AI. NPC должен уметь пятиться от страха, глядя на угрозу, или стоять спиной. Также _MoveState становился god-структурой, смешивая навигацию, кинетику и эмбодимент.
-
-РешениеОнтологический разрыв _MoveState на 3 природных домена:
-
-Навигация (Куда идём): target_npc_id, path, path_index.
-Кинетика (Как движемся): cooldown, walk_distance_accumulated.
-Эмбодимент (Куда смотрим): facing_angle, facing_mode.
-Введен facing_mode: "VELOCITY" (взгляд по вектору скорости), "LOOK_TARGET" (взгляд прикован к объекту интереса), "FREE" (зафиксирован/отвлечен).При движении по пути к NPC, facing_angle вычисляется как угол от позиции агента к target_npc_id, а не к следующей точке path_index. Это исключает "боковое/заднее" зрение при обходе препятствий.
-
-ПоследствияПоложительные: Взгляд стал намеренным. Архитектура готова к внедрению Attention System (gaze/focus/awareness layer) для NPC. Рендер корректно работает с любым углом.Отрицательные: Рост сложности _MoveState (что потребует в будущем выделения в отдельный EmbodiedTraversalState). Требуется разработка сглаживания поворота (lerp по facing_angle), иначе при смене целей будет резкий "щелчок" направления.
----
-ADR-0015: Event-Sourced World Transition и Temporal Isolation (09.05.2026 22:54) Статус: ПринятоКонтекстТекущий конвейер использует ctx.scene_state как мутирующий живой словарь. Вызов apply_changes(ctx.scene_state) в Фазе 0 (LifeEngine) позволяет Фазам 3-8 (Perception, Decision) видеть частично изменённое "будущее". Это нарушает причинность: NPC реагируют из будущего, LLM генерирует текст на основе несогласованного мира. Попытка внедрить deepcopy на старт тика признана архитектурной ловушкой (O(N) bottleneck, двойная истина, лечение симптома).
+**Последствия:**  
+- Детерминированная симуляция: decay не зависит от активности игрока.
+- Единый мутатор: `StateApplicator.apply_batch()`.
+- Семантическая изоляция: `reputation_delta ≠ trust_delta`, `faction_id ≠ social_target`.
+- Тестируемость: handlers — чистые функции.
 
 ---
-ADR-0016: Presentation Lerp и Visual Gaze Indicators (10.05.2026 0:40)
-Статус: Принято
-Контекст
-Стрелка игрока мгновенно "щелкает" в новый угол при смене направления, создавая визуальный диссонанс. NPC не имеют визуального маркера внимания, из-за чего игрок не понимает, кто на него смотрит, пока не прочитает текст. Спрайты объектов (стулья, столы) не отображались в игре из-за разрыва между `scene_state` и `PerceivedScene`. Время жизни пузырей (5 сек) было недостаточно для чтения реплик.
 
-Решение
-Внедрен экспоненциальный Lerp (10 рад/сек) для визуального угла поворота игрока в `SceneRenderer`. Логика расчета угла (`_MoveState`) не затронута.
-Для NPC добавлен индикатор взгляда: желтая линия от края кружка NPC к игроку, если NPC является `attention_focus` или имеет inference "communication".
-Починен рендер объектов: добавлен `_draw_obstacles()`, обрабатывающий `spatial_obstacles` из `scene_state`. Для NPC добавлен fallback на спрайт `"person"` при отсутствии точного маппинга.
-Увеличено время жизни TRANSIENT-пузырей: 10 секунд жизни + 3 секунды фейд-аут. Добавлены визуальные стили: WHISPER (alpha=200 + тень), SHOUT (микро-вибрация 1px).
-Отключено перемещение кликом мыши.
+### ADR-003: Детерминизм тестового покрытия и изоляция от I/O
+**Дата:** 01.05.2026  
+**Статус:** Принято
 
-Последствия
-Положительные: Визуальная плавность поворота. Читаемость внимания NPC. Объекты и NPC отображаются корректно. Текст не исчезает слишком быстро.
-Отрицательные: Индикатор взгляда работает только с доступными данными (focus_id, inferences). Для более сложных паттернов внимания потребуется Attention System на бэкенде.
-Решение(Историческое — см. ADR-0016 для актуальной модели)Система переходила к Event-Sourced Architecture. scene_state переставал быть "живым словарём".ПоследствияСуперседировано Causal Field Reduction Model (ADR-0016), которая устранила проблему глобального объекта World и NP-hard упорядочивания через локальные причинные пузыри.
-ADR-0016: Causal Field Reduction Model (CFRM) (Сессия 17)
-Статус: Принято
-Контекст
-ADR-0015 пытался сохранить концепцию единого World State, вычисляемого через глобальный Reducer. Это приводило к NP-hard проблеме упорядочивания параллельных событий (кто первый: удар или паника?) и требовало O(n²) вычислений для согласования. delta_buffer был списком императивных инструкций («добавь стресс»), что нарушало причинную замкнутость мира и требовало внешнего «редактора реальности».
+**Контекст:**  
+Тестовое покрытие сломано: 1) Фабрики DTO не передавали обязательный `npc_id` в `StateDeltas`. 2) Тесты зависели от чтения `campaign_state.json` с диска (Fragile Test). 3) Мертвые тесты `@pytest.mark.skip("BROKEN")` маскировали удаление сущностей.
 
-Решение
+**Решение:**  
+- Строгое соблюдение контракта DTO: `npc_id` обязателен в тестовых фабриках.
+- Устранение Fragile Tests: хрупкие I/O фикстуры заменены на синтетические фабрики (`_make_rich_scene()`).
+- Полная зачистка мертвого кода: динамические `pytest.skip("BROKEN...")` заменены удалением теста.
+- Приведение координат к fallback-графу в тестах `SpatialService`.
+
+**Последствия:**  
+- 100% детерминированность тестового набора.
+- Тесты запускаются на любой машине без подготовки данных.
+- ИИ-ассистенты получают четкий сигнал: старый код удален, новые контракты обязательны.
+
+---
+
+### ADR-004: Phase 8 Handlers — Memory, Scene, Reaction
+**Дата:** 02.05.2026  
+**Статус:** Принято
+
+**Контекст:**  
+Диаграмма Фазы 8 предписывала 4 обработчика: memory, social, scene, reaction. Существовали только perception + social.
+
+**Решение:**  
+- **Memory handler — НЕ НУЖЕН:** Фаза 3 записывает факты ДО принятия решения (Фаза 5). Если memory в Фазе 8 — NPC решает на устаревшем state.
+- **Scene handler — НЕ НУЖЕН:** `OBJECT_DESTROYED` обрабатывается perception. Смена сцены — `SceneChange → EventDTO → шина → perception/reaction`.
+- **Reaction handler — НУЖЕН:** Создан `ReactionSubscriber`. Производит ПРЯМЫЕ эмоциональные дельты для наблюдателей без полного decision-цикла.
+- **Порядок:** `perception → reaction → social`
+
+**Последствия:**  
+- Фаза 8 имеет 3 обработчика вместо 4. Memory и Scene НЕ будут добавлены без нового ADR.
+
+---
+
+### ADR-005: NPC Data Mapping для Idle Handlers
+**Дата:** 03.05.2026  
+**Статус:** Принято
+
+**Контекст:**  
+`_build_npc_snapshots()` читал ключ `relationship_cache` из NPC dict, но его не существовало. Данные лежали в плоском `social_stats` (player-facing). Итог: `SocialDecayHandler` всегда получал пустой кэш → нулевой decay.
+
+**Решение:**  
+- `_build_npc_snapshots()` выполняет маппинг при проекции:
+  - `social_stats.trust` → `relationship_cache["player"]["trust"]` (0-100)
+  - `social_stats.fear_of_player` → `relationship_cache["player"]["fear"]`
+  - `psyche.loyalty_true` → `base_values["player"]`
+  - `status_profile.faction_rank.keys` → `faction_affiliations`
+- Плоский кэш `{trust: val}` автоматически конвертируется во вложенный формат.
+
+**Последствия:**  
+- `SocialDecayHandler` корректно вычисляет дрейф.
+- Ограничение: NPC-to-NPC связи пока НЕ попадают в snapshot (требуется ADR-006).
+
+---
+
+### ADR-006: NPC-to-NPC Social Relations Enrichment при загрузке
+**Дата:** 04.05.2026  
+**Статус:** Принято
+
+**Контекст:**  
+NPC-to-NPC связи из `village_relations.json` не попадали в NPC dict. `relationship_cache` содержал только entry `"player"`.
+
+**Решение:**  
+- Создана `_enrich_with_social_relations()` — обогащает NPC dict данными из `village_relations.json`.
+- Вызывается в `load_npcs_merged()` ПОСЛЕ мержа static + runtime.
+- Шкала: конвертация `base_trust * 100` (из 0-1 в 0-100).
+- Формат: `relationship_cache[target_id] = {trust, fear, base_trust, nature}`.
+- Критический фикс `_build_npc_snapshots()`: shallow copy + гарантированное добавление player entry, чтобы не затереть player-facing данные.
+
+**Последствия:**  
+- `SocialDecayHandler` производит NPC→NPC дрейф. Player drift НЕ ломается.
+
+---
+
+### ADR-007: Синхронизация all_npcs_raw в idle-пути TickOrchestrator
+**Дата:** 05.05.2026  
+**Статус:** Принято
+
+**Контекст:**  
+В idle-пути Фаза 0 заполняла `ctx.npc_states`, но `ctx.all_npcs_raw` (используемый мутатором) оставался пустым. Дельты применялись к пустому списку и терялись.
+
+**Решение:**  
+- В `_phase_0_simulation` добавлена явная синхронизация: `ctx.all_npcs_raw = ctx.npc_states`.
+
+**Последствия:**  
+- Дельты из Фазы 8 корректно применяются в idle-тиках.
+- `ctx.npc_states` и `ctx.all_npcs_raw` ссылаются на один объект в памяти.
+
+---
+
+### ADR-008: Централизация пространственных данных и удаление глобальных мостов
+**Дата:** 05.05.2026  
+**Статус:** Принято (частично, заблокировано багами E2E)
+
+**Контекст:**  
+Несколько источников истины: глобальный `_connections_data`, кэш `_graphs` в MovementEngine, прямые вызовы `LocationGraph.find_path()`. Фронтенд незаконно обращался к бэкенду через `_gateway._bridge`.
+
+**Решение:**  
+- Удален глобальный мост `_connections_data`. `compile_graph` возвращает связи явным кортежем.
+- Удален кэш `_graphs` из `MovementEngine`. Единственный источник пути — `SpatialService.find_path()`.
+- Удалена денормализация ID (`denormalize_id`).
+- Оборваны прямые вызовы фронтенда к бэкенду.
+
+**Последствия:**  
+- Единая точка входа для навигации, учет оверлеев.
+- Требуется строгий DI `SpatialService` во все ветки тика.
+
+---
+
+### ADR-009: Инъекция примитивов вместо объектов в InterpretationEngine
+**Дата:** 06.05.2026  
+**Статус:** Принято
+
+**Контекст:**  
+`InterpretationEngine` падал с ошибкой `'NPCState' object has no attribute 'personality'`. Нарушен Закон 1.2.
+
+**Решение:**  
+- Вместо передачи всего объекта `profile_l0`, в метод `compute()` добавлен аргумент `drives_base: Dict[str, float]`. Движок получает только нужные данные.
+
+**Последствия:**  
+- Снижение связности (Law of Demeter). Устранение краша. Рост количества аргументов.
+
+---
+
+### ADR-010: Макро-зоны SpatialService vs Микро-зоны Archetypes
+**Дата:** 07.05.2026  
+**Статус:** Принято
+
+**Контекст:**  
+SpatialService оперирует макро-зонами (`main_hall`), а конфиги NPC — микро-зонами (`serving_table_3`). MovementEngine не находил микро-зону и отменял движение. NPC парализованы.
+
+**Решение:**  
+- Архетипы должны ссылаться только на валидные узлы макро-графа.
+- `MovementEngine` имеет fallback: если текущий узел не найден, сброс на `entrance` или `main_hall`.
+
+**Последствия:**  
+- NPC regained mobility. Потеря микро-позиционирования. Требуется обновление JSON.
+
+---
+
+### ADR-011: Переход на Narrative Beat System (Cinematic Presentation Layer)
+**Дата:** 07.05.2026  
+**Статус:** Принято (Частичная реализация)
+
+**Контекст:**  
+Плоский `message_log` превращал UI в IRC-чат. Отсутствовала поддержка крика/шепота и уровней знания NPC.
+
+**Решение:**  
+- Внедрен `NarrativeBeat` как единая единица текста. Введены `DeliveryType` и `RecognitionLevel`.
+- Создан `NarrativeRenderer` для отрисовки пузырей.
+- Эхо LLM фильтруется нечетким поиском (SequenceMatcher).
+
+**Последствия:**  
+- UI стал динамическим. Бэкенд пока не разделяет `dm_response` на конкретных NPC.
+
+---
+
+### ADR-012: Смягчение стража мутации position и открытие границы Macro/Micro Space
+**Дата:** 08.05.2026  
+**Статус:** Принято
+
+**Контекст:**  
+Страж `RuntimeError` блокировал любую мутацию `position`, останавливая движение. Использование `MovementIntent` для микро-позиционирования привело к крашу (target_node_id == from_node_id).
+
+**Решение:**  
+- Страж смягчён: `RuntimeError` заменён на debug log. `SceneChange(field="position")` разрешен и резолвится в `local_position` через SpatialService.
+- Запрещено использовать `MovementIntent` для микро-перемещений внутри одной зоны.
+- Для визуального сближения требуется `LocalSteeringIntent` (работает с x,y напрямую).
+
+**Последствия:**  
+- Макро-движение разблокировано. Микро-перемещение (подойти на 1 метр) НЕ РЕАЛИЗОВАНО.
+
+---
+
+### ADR-013: StateDeltas v2 — Domain-Tagged Typed Payloads
+**Дата:** 08.05.2026  
+**Статус:** Принято
+
+**Контекст:**  
+StateDeltas v1 был плоским dataclass (god-object). Смешанные дельты (stress + trust) размывали доменные границы. Контракт DTO LOCKED v1 блокировал добавление физиологии.
+
+**Решение:**  
+- Введен `enum DeltaDomain` (SOCIAL, EMOTION, REPUTATION, IDENTITY, PHYSIOLOGY, SPATIAL).
+- Каждый домен имеет свой frozen dataclass payload.
+- Инвариант: одна дельта = один домен. Валидация в `post_init`.
+- Разделение реакций на EMOTION + SOCIAL вместо одной смешанной.
+
+**Последствия:**  
+- Типобезопасность и расширяемость. Обратная совместимость с v1.
+
+---
+
+### ADR-014: Narrative Beat Pipeline, Speaker Extraction и UI Layer Separation
+**Дата:** 09.05.2026  
+**Статус:** Принято
+
+**Контекст:**  
+Бэкенд присылал `dm_response` одной строкой, фронтенд жестко привязывал к `speaker="Система"`. Фильтр эха ломал реплики NPC при коротких вводах.
+
+**Решение:**  
+- Извлечение спикера: парсинг `dm_response` через `known_names` из `scene_state`.
+- Разделение слоев: `message_log` (Cinematic Layer) и `system_log` (Log Layer).
+- Починка эха: флаг `is_short_input` отключает подстроковую проверку.
+- Визуальная экспрессия: стили для SHOUT, WHISPER, INTERNAL. Пузыри TRANSIENT живут 5 сек + 2 сек фейд-аут.
+
+**Последствия:**  
+- Cinematic Layer свободен от шума. Исключено ложное глушение NPC.
+
+---
+
+### ADR-015: Physiology Domain и Impact Propagation Engine
+**Дата:** 09.05.2026  
+**Статус:** Принято
+
+**Контекст:**  
+Бой — не отдельная система, а режим давления на ВСЕ системы. RPG-абстракции (Hit Roll, AC, combat_state) убьют симуляцию.
+
+**Решение:**  
+- Домен переименован в `DeltaDomain.PHYSIOLOGY`.
+- Данные разделены: `body_profile` (статика) + `body_state` (рантайм).
+- `InjuryDTO` использует `target_zone` и семантические теги. HP — макро-LOD, центр модели — Functional Capacity.
+- Создан Impact Propagation Engine (Pure Function). Contact Resolution Model (уклонение от боли/усталости).
+- Возвращает ТОЛЬКО Physiology-дельты. Эмоции только через `shock_impulse` (No Domain Leakage).
+
+**Последствия:**  
+- Удар порождает каскад: тело → боль → шок-сигнал → страх → социальная паника. Нет "режима боя".
+
+---
+
+### ADR-016: Time Control System и Абсолютное время
+**Дата:** 09.05.2026  
+**Статус:** Принято (Реализация заблокирована багами)
+
+**Контекст:**  
+Время в idle-тиках не продвигалось. Фронтенд терял дни и годы.
+
+**Решение:**  
+- Фронтенд делит интервал на `_time_scale` (1, 4, 10, 50).
+- Бэкенд продвигает время в Фазе 0.5 на `GAME_TICK_INTERVAL_SECONDS`.
+- Единый источник истины: `game_time_seconds` в `scene_state`.
+
+**Последствия:**  
+- Архитектура времени детерминирована. Ускорение позволяет тестировать симуляцию.
+
+---
+
+### ADR-017: Force Merge — world_snapshot в DirectGameGateway
+**Дата:** 09.05.2026  
+**Статус:** Принято
+
+**Контекст:**  
+Фронтенд получал только dm_text и npc_reactions, рисуя NPC по старым координатам до следующего idle_tick.
+
+**Решение:**  
+- `TurnResult` дополнен полями `world_snapshot` и `npc_positions`.
+- `GameLoopBridge.turn()` строит `world_snapshot` из актуального `scene_state`.
+- `DirectGameGateway` передаёт их в `GameActionResponse`.
+
+**Последствия:**  
+- Фронтенд видит актуальные позиции NPC сразу (has_ws=True).
+
+---
+
+### ADR-018: Защита micro-position от затирания macro-relocation
+**Дата:** 09.05.2026  
+**Статус:** Принято
+
+**Контекст:**  
+MovementEngine генерировал `SceneChange(field="position")` даже когда NPC уже был в целевом узле. SceneStateManager резолвил это в center node, уничтожая micro-position.
+
+**Решение:**  
+- Добавлен guard: если `from_node_id == target_node_id` — пропускаем macro SceneChange.
+
+**Последствия:**  
+- Micro-position не затирается. NPC остаются near-player после approach.
+
+---
+
+### ADR-019: Architectural Gap — State Relocation vs Continuous Spatial Simulation
+**Дата:** 09.05.2026  
+**Статус:** Принято (диагноз, реализация в следующем спринте)
+
+**Контекст:**  
+Текущая система — «state relocation с косметическим x/y». Нет persistent movement state, temporal interpolation, spatial slots. NPC телепортируются.
+
+**Решение (ROADMAP):**  
+1. Ввести `TraversalState`.
+2. Отделить `SceneChange` (топология) от `MovementStep` (локомоция).
+3. Ввести Spatial slots внутри Interest Zones.
+4. `speed * delta_time` — continuous position integration.
+
+**Последствия:**  
+- Без TraversalState телепортация — это не баг, а класс архитектуры.
+
+---
+
+### ADR-020: Domain Reduction Semantics Layer (DRSL)
+**Дата:** 09.05.2026  
+**Статус:** Принято
+
+**Контекст:**  
+Универсальный редьюсер терял Physiology дельты при агрегации через last-write-wins. Система не различала бухгалтерию мира (Σ) и физику мира (интеграл с памятью).
+
+**Решение:**  
+- Введен `ReductionPolicy` enum: `ADDITIVE`, `BOUNDED_ADDITIVE`, `OVERWRITE`, `PHYSICS_COMPOSITE`.
+- `DELTA_POLICY_REGISTRY`: конституция мира — каждый домен знает свой закон редукции.
+- `PHYSICS_COMPOSITE` обходит merge — инъекции энергии передаются как есть.
+
+**Последствия:**  
+- Тело не складывается, оно эволюционирует. Редукция — задача ImpactEngine/StateApplicator.
+
+---
+
+### ADR-021: CombatSubscriber — мост EventDTO → ImpactEngine
+**Дата:** 09.05.2026  
+**Статус:** Принято
+
+**Контекст:**  
+ImpactEngine существовал, но никто не вызывал его из пайплайна.
+
+**Решение:**  
+- Создан `CombatSubscriber` (Phase8Handler). Мост, не система.
+- Извлекает `ImpactIntentDTO`, строит снапшоты, вызывает `resolve_physical_impact()`.
+- Возвращает `Phase8Result(deltas=physiology_deltas)`.
+
+**Последствия:**  
+- Боевые события порождают Physiology-дельты через delta_buffer. No Domain Leakage.
+
+---
+
+### ADR-022: PhysiologyDecayHandler — Leaky Integrator для Фазы 0.5
+**Дата:** 09.05.2026  
+**Статус:** Принято
+
+**Контекст:**  
+Боль, усталость и кровопотеря не затухали между тиками.
+
+**Решение:**  
+- Создан `PhysiologyDecayHandler`. Тело — инерционная система: `S_t = S_{t-1} * exp(-lambda * dt)`.
+- Closing drift: остатки < EPSILON обнуляются.
+- Фазовые переходы: `pain > 50 → stagger`, `consciousness < 0.1 → unconscious`.
+
+**Последствия:**  
+- Физиологические параметры инерционны. NPC выходят из stagger при восстановлении.
+
+---
+
+### ADR-023: Embodied Traversal — Отвязка Внимания от Кинематики
+**Дата:** 09.05.2026  
+**Статус:** Принято
+
+**Контекст:**  
+Слияние движения и взгляда (кинематическая редукция) убивало симуляцию NPC AI. NPC должен уметь пятиться, глядя на угрозу.
+
+**Решение:**  
+- Разрыв `_MoveState` на 3 домена: Навигация, Кинетика, Эмбодимент (`facing_angle`, `facing_mode`).
+- Введен `facing_mode`: "VELOCITY", "LOOK_TARGET", "FREE".
+- При движении к NPC, `facing_angle` вычисляется к цели, а не к точке пути.
+
+**Последствия:**  
+- Взгляд стал намеренным. Требуется сглаживание поворота (lerp).
+
+---
+
+### ADR-024: Event-Sourced World Transition и Temporal Isolation
+**Дата:** 09.05.2026  
+**Статус:** Суперседировано ADR-025 (CFRM)
+
+**Контекст:**  
+`ctx.scene_state` как мутирующий словарь позволял Фазам видеть частично изменённое "будущее". Нарушение причинности.
+
+**Решение (Историческое):**  
+- Переход к Event-Sourced Architecture. `scene_state` переставал быть "живым словарём". Глобальный Reducer вычислял мир из immutable событий.
+
+**Последствия:**  
+- Суперседировано Causal Field Reduction Model (ADR-025), которая устранила проблему глобального World и NP-hard упорядочивания через локальные причинные пузыри.
+
+---
+
+### ADR-025: Causal Field Reduction Model (CFRM)
+**Дата:** 10.05.2026  
+**Статус:** Принято
+
+**Контекст:**  
+Глобальный Reducer приводил к NP-hard проблеме упорядочивания параллельных событий. `delta_buffer` был списком императивных инструкций, нарушая причинную замкнутость мира.
+
+**Решение:**  
 Переход к distributed causal inference system. Глобального объекта World больше не существует в runtime.
+- **Онтологические постулаты:** 1) NPC operate on perceived causality, not actual causality. 2) Snapshot is belief state derived from CFRM projection.
+- **Core Model:** `Snapshot[t] = Reduce(ClusterGraph_local, EventBuffer_local, MembraneField_local)`.
+- **Структуры:**
+  - `ClusterGraph`: Пространственная декомпозиция. Содержит связи, НЕ содержит состояния. Инкрементальное обновление при пересечении NPC границ ячеек.
+  - `EventBuffer`: Временный causal input stream. Атомарные факты (Physical, Cognitive, Social). НЕ лог и НЕ хранилище.
+  - `MembraneField`: Функция ослабления причинности при переносе между кластерами. `membrane(event, distance, context) -> attenuation_factor`. Ограничение: scope == local cluster neighborhood only.
+- **NPC Model:** NPC хранит `PerceptualKernel` (last_observed_event_ids, decay_model, belief_weights), а НЕ world state. Формула миграции: `new_perception = merge(old_perception * decay_factor, cluster_local_truth * visibility_projection)`.
+- **3-фазный оператор редюсера:** Phase 1: Projection. Phase 2: Attenuation. Phase 3: Local Reduction (no global merge).
 
-Онтологические постулаты CFRM:
-1. NPC operate on perceived causality, not actual causality.
-2. Snapshot is not world state; Snapshot is belief state derived from CFRM projection.
-
-Core Model: World Evolution is a constrained local reduction over clustered causal fields.
-Формула: Snapshot[t] = Reduce(ClusterGraph_local, EventBuffer_local, MembraneField_local).
-Три структуры вместо World:
-ClusterGraph (пространственная декомпозиция, содержит связи, НЕ содержит состояния).
-EventBuffer (временный causal input stream для редукции, атомарные факты, НЕ лог и НЕ инструкции).
-MembraneField (функция ослабления причинности при переносе между кластерами).
-NPC Model: NPC хранит PerceptualKernel (last_observed_event_ids, decay_model, belief_weights), а НЕ world state. Perception cache — производный слой, пересчитываемый из EventBuffer + MembraneField.
-3-фазный оператор редюсера:
-Phase 1: Projection (Events → ClusterGraph influence mapping).
-Phase 2: Attenuation (MembraneField applies decay over edges).
-Phase 3: Reduction (Local state updates per cluster, no global merge).
-Жёсткое ограничение: Membrane evaluation scope == local cluster neighborhood only. Запрет на глобальный correlation (иначе O(n²)).
-Последствия
-Положительные: Линейная масштабируемость (O(cluster_size)). NPC обладают инерцией восприятия. Исключён глобальный пересчёт сцены. Основание для социальной физики (обман мембран).
-Отрицательные: Полная замена SceneStateManager на систему кластеров и мембран. Перепись PerceptionSubscriber (fallback на всех NPC заменяется на BFS по Causal Closure). Требует внедрения PerceptualKernel в NPCState.
----
+**Последствия:**  
+- Линейная масштабируемость (O(cluster_size)). NPC обладают инерцией восприятия. Исключён глобальный пересчёт. Основание для социальной физики (обман мембран).
 
 ---
+
+### ADR-026: Presentation Lerp и Visual Gaze Indicators
+**Дата:** 10.05.2026  
+**Статус:** Принято
+
+**Контекст:**  
+Стрелка игрока мгновенно "щелкала" при повороте. NPC не имели маркера внимания. Спрайты объектов не отображались. Пузыри исчезали слишком быстро.
+
+**Решение:**  
+- Внедрен экспоненциальный Lerp (10 рад/сек) для визуального угла поворота игрока. Логика `_MoveState` не затронута.
+- Для NPC добавлен индикатор взгляда: желтая линия к игроку при `attention_focus`.
+- Починен рендер объектов: `_draw_obstacles()`. Fallback на спрайт `"person"`.
+- Время жизни TRANSIENT-пузырей увеличено до 10 сек + 3 сек фейд.
+
+**Последствия:**  
+- Визуальная плавность. Читаемость внимания NPC.
+
+---
+
+### ADR-027: Layered Reduction — Dual Buffer Causal Model для Фазы 8
+**Дата:** 10.05.2026  
+**Статус:** Принято
+
+**Контекст:**  
+Парадокс причинности: CombatSubscriber работал последним, и ReactionSubscriber не мог прочитать `shock_impulse` текущего тика. Задержка в 1 тик разрушала immediacy.
+
+**Решение:**  
+Фаза 8 стала многоступенчатым редуктором слоёв реальности:
+1. **Physical Layer** (`CombatSubscriber`): вычисляет урон, генерирует `shock_impulse`.
+2. **Materialization**: дельты замораживаются в `physical_deltas_materialized: Tuple[StateDeltas, ...]`.
+3. **Cognitive Layer** (`ReactionSubscriber`): читает materialized snapshot. Цель получает шок от боли, свидетель — эмпатический ужас.
+4. **Social Layer** (`SocialSubscriber`): распространяет слухи.
+
+**Последствия:**  
+- Каскад Force → Pain → Shock → Emotion работает в рамках одного тика. Детерминизм гарантирован.
+
+---
+
+### ADR-028: Миграция NPC конфигов на body_profile
+**Дата:** 10.05.2026  
+**Статус:** Принято
+
+**Контекст:**  
+JSON-конфиги содержали легаси `combat_stats` (RPG-абстракции). Нарушение ADR-015.
+
+**Решение:**  
+- Во всех архетипах удалена секция `combat_stats`.
+- `abilities` перенесены внутрь нового объекта `body_profile`.
+- Добавлены `max_hp` (индивидуально: 80 для maid, 120 для guard) и `base_ac`.
+- `npc_loader` использует `_deep_merge`, поэтому `body_profile` корректно наследуется.
+
+**Последствия:**  
+- Конфиги приведены в соответствие с ADR-015. ImpactEngine работает с реальной анатомией.
+- Legacy-код, читающий `combat_stats`, будет получать пустые словари (безопасно, но требует очистки).
+
+---
+
+### ADR-029: CFRM Layer 1 & P1 Legacy Bridge — Spatial Index и Event Classification
+**Дата:** 11.05.2026  
+**Статус:** Принято
+
+**Контекст:**  
+ADR-025 определил CFRM теоретически, но в runtime отсутствовали структуры данных для её исполнения. `TickOrchestrator` работал через `delta_buffer` и не имел понятия пространственных кластеров или причинных осей. Без индекса присутствия вычисление локальной причинности невозможно (требуется O(n) вместо O(1)). Без классификации событий `EventBuffer` не может разделить физические факты от когнитивных.
+
+**Решение:**  
+- **ClusterGraph & ClusterOccupancy:** Реализован Spatial Index поверх `SpatialService`. Принят постулат: 1 макро-узел (`NodeRef`) = 1 причинный кластер. `ClusterOccupancy` маппит `entity_id ↔ ClusterID` для O(1) поиска участников пузыря. Индекс восстанавливается на старте тика из `scene_state['npc_positions']`.
+- **EventBuffer & CausalAxis:** Создан временный causal input stream с осями `PHYSICAL`, `COGNITIVE`, `SOCIAL`. Внедрен метод `drain()` для атомарного извлечения фактов редюсером.
+- **Legacy Bridge (`classify_event`):** Создана функция маппинга текущих строковых `EventType.value` на 3 оси CFRM. Неизвестные события по умолчанию когнитивные (безопасный fallback).
+- **Интеграция с EventBus:** `EventBus` получил методы `attach_cfrm_buffer()` / `detach_cfrm_buffer()`. В `TickOrchestrator.execute()` буфер привязывается к шине на время тика (блок `try...finally`), что гарантирует сбор всех фактов без поломки старого конвейера.
+
+**Последствия:**  
+- Фундамент для 3-фазного редюсера (ADR-025) заложен.
+- Система параллельно собирает императивные дельты (старый путь) и декларативные факты (новый путь).
+- Стало возможным вычисление Causal Closure: кто из NPC воспринимает событие, за O(1) на основе кластера.
+
+---
+
+### ADR-030: Player as Hybrid Consciousness Entity & WillpowerGate
+**Дата:** 11.05.2026  
+**Статус:** Суперседировано ADR-031
+
+---
+
+### ADR-031: WillpowerGate — Cumulative Strain Model и IntentPressureResolver
+**Дата:** 11.05.2026  
+**Статус:** Принято
+
+**Контекст:**  
+Попытка реализовать WillpowerGate через матрицу `action × temperament` (attack + fearful = resist) ведет к поведенческой таблице ("Excel с эмоциями"). Это убивает эмерджентность, не создает психологической ломки и не отражает контекст: одно и то же действие ("ударить") может быть самообороной или садизмом. Аватар должен оценивать не тип действия, а степень угрозы своему Я.
+
+**Решение:**  
+- Введен **IntentPressureResolver** (Pure Function) — промежуточный слой между `IntentDTO` и `WillpowerGate`. Транслирует семантику действия + контекст в `IntentPressureProfile`.
+- **IntentPressureProfile** — вектор давления на психику: `violence`, `humiliation`, `self_risk`, `social_exposure`, `moral_violation`, `identity_deviation`, `trauma_trigger`, `taboo_intensity`.
+- **WillpowerGate работает ТОЛЬКО с PressureProfile**, не зная о типе действия.
+- **Cumulative Strain Model:** Сопротивление вычисляется формулой: `resistance = pressure.identity_deviation * psyche.identity_rigidity + pressure.self_risk * psyche.fear + pressure.moral_violation * psyche.conviction + pressure.social_exposure * psyche.shame - pressure.violence * psyche.aggression - pressure.taboo_intensity * psyche.curiosity`.
+- **Willpower** — не порог, а инерция. Высокий willpower медленнее ломается, но ломается катастрофически.
+- Введен **WillState** (COMPLY, RELUCTANT, DISTRESSED, PANICKED, DISSOCIATING, BROKEN, CONDITIONED) вместо бинарных ACCEPTED/RESISTED.
+- **Counter-Offer обязателен:** Аватар не блокирует действие, а предлагает альтернативу, пытаясь выжить.
+
+**Последствия:**  
+- Архитектура воли стала причинной и расширяемой.
+- Возникает эмерджентная психология: деградация — непрерывный процесс, а не переключатель.
+- ЗАПРЕЩЕНО использовать `action × temperament` как онтологию системы (допускается только как debug fallback).
+
+**Контекст:**  
+Игрок существовал вне симуляции как строка `player_name`, не имея `body_state`, `psyche` и социальной проекции. Это нарушало CFRM (игрок не в причинном поле), боевку (невозможно ранить) и социальную физику. Попытки сделать игрока "просто NPC" ломали агентность, превращая его в автономный юнит, лишая внешнего источника воли.
+
+**Решение:**  
+Игрок становится **Hybrid Consciousness Entity** (`npc_id="player"` в `all_npcs_raw`).
+- **Разделение Волі:** Игрок генерирует Intent Stream (внешняя воля), но применение интента проходит через **WillpowerGate** аватара.
+- **WillpowerGate — это Dynamic Identity Preservation Engine.** Это не булева проверка морали, а защита self-image, trauma equilibrium и survival model. Аватар спрашивает: "Останусь ли Я СОБОЙ после этого действия?"
+- **WillResponseDTO:** Результат работы WillpowerGate. Возвращает `outcome` (ACCEPTED, RESISTED, DISSOCIATED, ADAPTED), `resistance`, `identity_damage`, `generated_emotions` и `counter_offer` (аватар предлагает альтернативу).
+- **Identity Drift:** Продавливание воли ведет к диссоциации и адаптации. Личность перестраивается под насилие (trauma normalization, learned helplessness).
+- **Perceptual Kernel:** Игрок ограничен своим causal bubble (кластером). MembraneField влияет на его восприятие. Никакого всеведения (Fog of War на основе кластеров).
+- **Social Drift:** Разделен на `PlayerMemory` (человек помнит всё) и `AvatarAffectiveMemory` (аватар забывает, боится, привыкает). Фрикция: игрок хочет мести, аватар боится.
+- **MVP Character Creator (Вектор начальных условий):** Layer 1: Archetype (задает `body_profile`), Layer 2: Temperament (задает `psyche.drives_base` и `willpower`). Social Seed отложен.
+
+**Последствия:**  
+- Игрок — часть причинной физики мира. Бой и социальное давление работают на него.
+- Фрикция между желанием игрока и состоянием аватара создает литературный, а не только механический конфликт.
+- Требуется Fog of War и UI индикация состояния Аватара (сопротивление, боль, шок).

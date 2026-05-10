@@ -49,6 +49,22 @@ class EventBus:
         self._handlers: Dict[str, List[EventHandler]] = {}
         self._tick_queue: List[EventDTO] = []
         self._event_log: List[EventDTO] = []   # последние 100 событий для debug
+        # P2 CFRM: Мост для деобъективации событий в возмущения поля
+        self._cfrm_bridge: Optional[Callable[[EventDTO], None]] = None
+
+    # ── CFRM Buffer Control ───────────────────────────────────────────────
+
+    def attach_cfrm_bridge(self, bridge: Callable[[EventDTO], None]) -> None:
+        """Привязывает функцию-мост для деобъективации на время тика.
+        
+        Все события, проходящие через publish(), будут пропущены через мост,
+        превращаясь из объективных EventDTO в возмущения поля (FieldDisturbance).
+        """
+        self._cfrm_bridge = bridge
+
+    def detach_cfrm_bridge(self) -> None:
+        """Отвязывает мост в конце тика."""
+        self._cfrm_bridge = None
 
     # ── Подписка ──────────────────────────────────────────────────────────
 
@@ -86,6 +102,10 @@ class EventBus:
                 f"EventBus.publish() принимает только EventDTO, "
                 f"получен {type(event).__name__}"
             )
+
+        # P2 CFRM: Деобъективация — превращение события в возмущение поля
+        if self._cfrm_bridge is not None:
+            self._cfrm_bridge(event)
 
         results: List[EventDTO] = []
         handlers = self._handlers.get(event.type, [])
