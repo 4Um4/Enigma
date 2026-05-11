@@ -14,7 +14,7 @@ TODO: по мере миграции legacy-кода на v2 постепенн�
 """
 
 import logging
-from typing import List, Set
+from typing import List, Set, Union
 
 from app.models.state_delta import StateDeltas, DeltaDomain, EmotionPayload, SocialPayload
 
@@ -29,7 +29,11 @@ class LegacyStateDeltaAdapter:
     """
 
     @staticmethod
-    def collapse(deltas: List[StateDeltas]) -> StateDeltas:
+    def collapse(deltas: Union[List[StateDeltas], StateDeltas]) -> StateDeltas:
+        # Защита от старых тестов/легаси, которые ещё передают единичный объект
+        if isinstance(deltas, StateDeltas):
+            return deltas
+            
         if not deltas:
             return StateDeltas()
 

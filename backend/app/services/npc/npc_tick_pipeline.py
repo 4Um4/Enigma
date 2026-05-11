@@ -14,6 +14,7 @@
 import logging
 from typing import Any, Optional
 
+from app.services.npc.legacy_delta_adapter import LegacyStateDeltaAdapter
 from app.services.npc.domain_phases import (
     HANDS_OCCUPIED_ACTIVITIES,
     PHYSICAL_EVENTS,
@@ -136,14 +137,16 @@ def create_memory_event(
     elif _evt_type == "player_interacts" and _has_target:
         _summary = f"{_evt_actor} → {_evt_target}: {player_text[:60]}"
         _base = BASE_IMPORTANCE.get(_intent_upper, 0.4)
-        _emotion_boost = min(abs(decision.deltas.emotion_delta) / 5.0, 1.0) * 0.3
+        # ADR-013: Деградационный шлюз v2 -> v1
+        _legacy_d = LegacyStateDeltaAdapter.collapse(decision.deltas)
+        _emotion_boost = min(abs(_legacy_d.emotion_delta) / 5.0, 1.0) * 0.3
         _importance = min(_base + _emotion_boost, 1.0)
     elif _has_target and _intent_upper in (
         "TALK", "TRADE", "HELP", "ATTACK", "FLEE", "GIVE", "ASK", "THREATEN",
     ):
         _summary = f"{_evt_actor} → {_evt_target}: {player_text[:60]}"
         _base = BASE_IMPORTANCE.get(_intent_upper, 0.0)
-        _emotion_boost = min(abs(decision.deltas.emotion_delta) / 5.0, 1.0) * 0.3
+        _emotion_boost = min(abs(_legacy_d.emotion_delta) / 5.0, 1.0) * 0.3
         _importance = min(_base + _emotion_boost, 1.0)
 
     if _importance is not None:
@@ -414,6 +417,40 @@ def run_npc_pipeline(
                 topic=_topic,
             )
 
+            # ADR-035: Reactive Spatial Command Reflex.
+            # Если игрок приказал NPC двигаться (через Semantic Bridge или raw_input), 
+            # перехватываем решение DecisionHub и заставляем NPC подойти.
+            if decision.intent.value not in ("approach", "flee"):
+                _is_move_command = False
+                
+                # Путь 1: Semantic Bridge (если payload содержит semantic_action)
+                _payload = getattr(hub_event, 'payload', {})
+                if isinstance(_payload, dict) and _payload.get("semantic_action") == "MOVE":
+                    _target_ref = _payload.get("target_reference", "").lower()
+                    npc_name = npc_dict.get("name", "").lower()
+                    npc_id_lower = npc_id.lower()
+                    if _target_ref and (_target_ref in npc_name or _target_ref in npc_id_lower):
+                        _is_move_command = True
+                
+                # Путь 2: Raw Text Reflex (Fallback по тексту команды)
+                if not _is_move_command and inp.raw_input:
+                    content = inp.raw_input.lower()
+                    npc_name = npc_dict.get("name", "").lower()
+                    npc_id_lower = npc_id.lower()
+                    
+                    _MOVE_VERBS = ["подойди", "подойти", "иди", "подой", "подходи", "приди", "приходи", "сюда"]
+                    name_mentioned = any(n in content for n in [npc_name, npc_id_lower] if n)
+                    move_requested = any(v in content for v in _MOVE_VERBS)
+                    
+                    if name_mentioned and move_requested:
+                        _is_move_command = True
+
+                if _is_move_command:
+                    from app.domain.decision import Intent
+                    decision.intent = Intent.APPROACH
+                    decision.intent_target = "player"
+                    logger.warning(f"[REFLEX_MOVE] npc={npc_id} forced APPROACH by player command")
+
             # CommunicationIntent → buffer, публикация через Фазу 6 оркестратора (Устав §5.1)
             if decision.communication is not None:
                 buf.communication_intents.append(decision.communication)
@@ -424,12 +461,49 @@ def run_npc_pipeline(
             # DecisionHub решает ЧТО делать, MovementEngine решит КАК (координаты)
             from app.domain.movement import MovementIntent
             _intent_value = decision.intent.value if decision.intent else ""
+            
+            # ADR-035: Реактивный перехват пространственных команд.
+            # Если игрок приказал "MOVE" (или просто использовал глагол приближения), NPC реагирует мгновенно.
+            if _intent_value not in {"approach", "flee"}:
+                _move_triggered = False
+                
+                # Путь 1: Проверяем hub_event на наличие семантики (если Слой 1 пробросил данные)
+                if hasattr(inp, 'hub_event') and inp.hub_event:
+                    _payload = inp.hub_event.payload if hasattr(inp.hub_event, 'payload') else inp.hub_event.get("payload", {})
+                    if _payload.get("semantic_action") == "MOVE":
+                        target_ref = _payload.get("target_reference", "").lower()
+                        if target_ref:
+                            npc_data = inp.scene_state.get("npc_positions", {}).get(npc_id, {})
+                            npc_display_name = npc_data.get("name", npc_data.get("display_name", "")).lower()
+                            npc_id_lower = npc_id.lower()
+                            if target_ref in npc_display_name or target_ref in npc_id_lower:
+                                _move_triggered = True
+                
+                # Путь 2: Hardcoded Text Reflex (Fallback по raw_input, если NLP не пробросило payload)
+                if not _move_triggered and hasattr(inp, 'raw_input') and inp.raw_input:
+                    content = inp.raw_input.lower()
+                    npc_data = inp.scene_state.get("npc_positions", {}).get(npc_id, {})
+                    npc_display_name = npc_data.get("name", npc_data.get("display_name", "")).lower()
+                    npc_id_lower = npc_id.lower()
+                    
+                    _MOVE_VERBS = ["подойди", "подойти", "иди", "подой", "подходи", "приди", "приходи"]
+                    name_mentioned = any(n in content for n in [npc_display_name, npc_id_lower] if n)
+                    move_requested = any(v in content for v in _MOVE_VERBS)
+                    
+                    if name_mentioned and move_requested:
+                        _move_triggered = True
+
+                if _move_triggered:
+                    _intent_value = "approach"
+                    decision.intent_target = "player"
+                    logger.warning(f"[REFLEX_MOVE] npc={npc_id} triggered APPROACH by player command")
+
             _MOVE_INTENTS = {"approach", "flee"}  # Расширять: seek_ally и т.д.
             if _intent_value in _MOVE_INTENTS:
                 _movement = _resolve_reactive_movement(
                     npc_id=npc_id,
                     intent=_intent_value,
-                    intent_target=decision.intent_target,
+                    intent_target=decision.intent_target or "player",
                     scene_state=inp.scene_state,
                     location_id=inp.location,
                     spatial_service=svc.spatial_service if svc else None,
@@ -502,8 +576,9 @@ def run_npc_pipeline(
             _stress_d = 0.0
             _trust_d = 0.0
             try:
-                _stress_d = decision.deltas.stress_delta_effective
-                _trust_d = decision.deltas.trust_delta
+                _legacy_d = LegacyStateDeltaAdapter.collapse(decision.deltas)
+                _stress_d = getattr(_legacy_d, "stress_delta_effective", _legacy_d.stress_delta)
+                _trust_d = _legacy_d.trust_delta
             except Exception as e:
                 logger.warning(f"[DM_FACADE] Failed to parse deltas for {npc_id}: {e}")
 

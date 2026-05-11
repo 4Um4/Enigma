@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import logging
 import random
+import dataclasses
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Set
 
@@ -706,6 +707,11 @@ class DecisionHub:
         elif intent == Intent.OBSERVE.value:
             # Страх делает наблюдение более вероятным
             mod += fear * 0.40
+        elif intent == Intent.APPROACH.value:
+            # ADR-036: Физика Власти. Страх перед авторитетом (directive_obedience)
+            # превращается в мотиватор приближения (подчинения), а не избегания.
+            mod += trust * 0.30
+            mod += fear * 0.45           # страх заставляет подчиняться
         else:
             # Социальные действия (TALK, TRADE, HELP и т.д.)
             mod += trust * 0.30
@@ -1157,77 +1163,81 @@ class DecisionHub:
         from app.services.npc.math_utils import apply_saturation
         from app.models.state_delta import DeltaDomain, EmotionPayload, SocialPayload
 
-        emotion_payload = EmotionPayload()
-        social_payload = SocialPayload()
+        # Локальные аккумуляторы для immutable payload
+        e_stress = 0.0
+        e_emotion = 0.0
+        e_tag = None
+        s_trust = 0.0
+        s_fear = 0.0
         
         # Стресс и гнев от оскорблений
         if event.event_type == "player_insults":
             raw_stress = 12.0 * event.intensity
-            _, emotion_payload.stress_delta = apply_saturation(current=state.stress, delta=raw_stress)
-            emotion_payload.emotion_tag = EmotionTag.ANGRY
-            emotion_payload.emotion_delta = round(15.0 * event.intensity, 2)
+            _, e_stress = apply_saturation(current=state.stress, delta=raw_stress)
+            e_tag = EmotionTag.ANGRY
+            e_emotion = round(15.0 * event.intensity, 2)
             
             raw_trust = -8.0 * event.intensity
-            _, social_payload.trust_delta = apply_saturation(
+            _, s_trust = apply_saturation(
                 current=state.relationship_cache.get("trust", 0.0), delta=raw_trust, min_val=-100.0, max_val=100.0
             )
             raw_fear = -5.0 * event.intensity
-            _, social_payload.fear_delta = apply_saturation(
+            _, s_fear = apply_saturation(
                 current=state.relationship_cache.get("fear", 0.0), delta=raw_fear, min_val=-100.0, max_val=100.0
             )
 
         # Стресс от прямых угроз
         elif event.event_type == "player_threatens":
             raw_stress = 10.0 * event.intensity
-            _, emotion_payload.stress_delta = apply_saturation(current=state.stress, delta=raw_stress)
-            emotion_payload.emotion_tag = EmotionTag.ANGRY
-            emotion_payload.emotion_delta = round(12.0 * event.intensity, 2)
+            _, e_stress = apply_saturation(current=state.stress, delta=raw_stress)
+            e_tag = EmotionTag.ANGRY
+            e_emotion = round(12.0 * event.intensity, 2)
             
             raw_trust = -5.0 * event.intensity
-            _, social_payload.trust_delta = apply_saturation(
+            _, s_trust = apply_saturation(
                 current=state.relationship_cache.get("trust", 0.0), delta=raw_trust, min_val=-100.0, max_val=100.0
             )
             raw_fear = 4.0 * event.intensity
-            _, social_payload.fear_delta = apply_saturation(
+            _, s_fear = apply_saturation(
                 current=state.relationship_cache.get("fear", 0.0), delta=raw_fear, min_val=-100.0, max_val=100.0
             )
 
         # Стресс от косвенных угроз
         elif event.event_type == "player_threatens_indirect":
             raw_stress = 8.0 * event.intensity
-            _, emotion_payload.stress_delta = apply_saturation(current=state.stress, delta=raw_stress)
-            emotion_payload.emotion_tag = EmotionTag.FEARFUL
-            emotion_payload.emotion_delta = round(10.0 * event.intensity, 2)
+            _, e_stress = apply_saturation(current=state.stress, delta=raw_stress)
+            e_tag = EmotionTag.FEARFUL
+            e_emotion = round(10.0 * event.intensity, 2)
             
             raw_trust = -6.0 * event.intensity
-            _, social_payload.trust_delta = apply_saturation(
+            _, s_trust = apply_saturation(
                 current=state.relationship_cache.get("trust", 0.0), delta=raw_trust, min_val=-100.0, max_val=100.0
             )
             raw_fear = 2.5 * event.intensity
-            _, social_payload.fear_delta = apply_saturation(
+            _, s_fear = apply_saturation(
                 current=state.relationship_cache.get("fear", 0.0), delta=raw_fear, min_val=-100.0, max_val=100.0
             )
 
         # Стресс от физического насилия (ADR-0021: сам урон не здесь, а в CombatSubscriber. Здесь только эмоции)
         elif event.event_type == "player_attacks":
             raw_stress = 18.0 * event.intensity
-            _, emotion_payload.stress_delta = apply_saturation(current=state.stress, delta=raw_stress)
-            emotion_payload.emotion_tag = EmotionTag.FEARFUL
-            emotion_payload.emotion_delta = round(20.0 * event.intensity, 2)
+            _, e_stress = apply_saturation(current=state.stress, delta=raw_stress)
+            e_tag = EmotionTag.FEARFUL
+            e_emotion = round(20.0 * event.intensity, 2)
             
             raw_trust = -10.0 * event.intensity
-            _, social_payload.trust_delta = apply_saturation(
+            _, s_trust = apply_saturation(
                 current=state.relationship_cache.get("trust", 0.0), delta=raw_trust, min_val=-100.0, max_val=100.0
             )
             raw_fear = 8.0 * event.intensity
-            _, social_payload.fear_delta = apply_saturation(
+            _, s_fear = apply_saturation(
                 current=state.relationship_cache.get("fear", 0.0), delta=raw_fear, min_val=-100.0, max_val=100.0
             )
 
         # Стресс от насилия рядом
         elif event.event_type in ("combat", "capture") and event.distance <= 5.0:
             raw_stress = 15.0 * event.intensity
-            _, emotion_payload.stress_delta = apply_saturation(current=state.stress, delta=raw_stress)
+            _, e_stress = apply_saturation(current=state.stress, delta=raw_stress)
 
         # Эмоциональная реакция (fallback маппинг)
         emotion_map = {
@@ -1244,37 +1254,56 @@ class DecisionHub:
         }
         for key, (tag, delta) in emotion_map.items():
             if key in event.event_type:
-                emotion_payload.emotion_tag = tag
-                emotion_payload.emotion_delta = round(delta * event.intensity, 2)
+                e_tag = tag
+                e_emotion = round(delta * event.intensity, 2)
                 break
 
         # Отношения: доверие и страх (fallback маппинг)
         if event.event_type in ("combat", "intimidation"):
             raw_trust = -10.0 * event.intensity
-            _, social_payload.trust_delta = apply_saturation(
+            _, s_trust = apply_saturation(
                 current=state.relationship_cache.get("trust", 0.0), delta=raw_trust, min_val=-100.0, max_val=100.0
             )
             raw_fear = +8.0 * event.intensity
-            _, social_payload.fear_delta = apply_saturation(
+            _, s_fear = apply_saturation(
                 current=state.relationship_cache.get("fear", 0.0), delta=raw_fear, min_val=-100.0, max_val=100.0
             )
         elif event.event_type == "help":
-            social_payload.trust_delta = round(+12.0 * event.intensity, 2)
-            social_payload.fear_delta  = round(-5.0  * event.intensity, 2)
+            s_trust = round(+12.0 * event.intensity, 2)
+            s_fear  = round(-5.0  * event.intensity, 2)
 
         # Сборка v2 списка (одна дельта = один домен)
         result_deltas = []
         
         # Эмоция добавляется только если есть изменения
-        if emotion_payload.stress_delta != 0.0 or emotion_payload.emotion_delta != 0.0 or emotion_payload.emotion_tag is not None:
+        if e_stress != 0.0 or e_emotion != 0.0 or e_tag is not None:
             result_deltas.append(
-                StateDeltas(npc_id=state.npc_id, domain=DeltaDomain.EMOTION, target="player", payload=emotion_payload, source=event.event_type)
+                StateDeltas(
+                    npc_id=state.npc_id, 
+                    domain=DeltaDomain.EMOTION, 
+                    target="player", 
+                    payload=EmotionPayload(
+                        stress_delta=e_stress,
+                        emotion_delta=e_emotion,
+                        emotion_tag=e_tag
+                    ), 
+                    source=event.event_type
+                )
             )
             
         # Социальная дельта добавляется только если есть изменения
-        if social_payload.trust_delta != 0.0 or social_payload.fear_delta != 0.0:
+        if s_trust != 0.0 or s_fear != 0.0:
             result_deltas.append(
-                StateDeltas(npc_id=state.npc_id, domain=DeltaDomain.SOCIAL, target="player", payload=social_payload, source=event.event_type)
+                StateDeltas(
+                    npc_id=state.npc_id, 
+                    domain=DeltaDomain.SOCIAL, 
+                    target="player", 
+                    payload=SocialPayload(
+                        trust_delta=s_trust,
+                        fear_delta=s_fear
+                    ), 
+                    source=event.event_type
+                )
             )
 
         # TODO: Trait updates (suspicious) временно отброшены при коллапсе v1->v2, 

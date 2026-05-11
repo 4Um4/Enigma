@@ -1,12 +1,24 @@
 {
   "sheet": {
-    "name": "Демеург",
-    "race": "Человек",
-    "class_name": "Искатель",
+    "name": "Венус",
+    "archetype": "Drifter",
+    "temperament": "Calculating",
+    "body_profile": {
+      "max_hp": 100,
+      "strength": 10,
+      "dexterity": 14
+    },
+    "psyche": {
+      "fear": 0.2,
+      "impulsivity": 0.1,
+      "willpower": 0.7
+    },
+    "race": "Human",
+    "class_name": "Drifter",
     "level": 1,
     "stats": {
       "str": 10,
-      "dex": 10,
+      "dex": 14,
       "con": 10,
       "int": 10,
       "wis": 10,
@@ -17,23 +29,25 @@
     "spells": [],
     "portrait": null,
     "backstory": null,
-    "hp": 10,
-    "max_hp": 10,
+    "hp": 100,
+    "max_hp": 100,
     "ac": 10,
     "effects": [],
     "importance": null
   },
   "profile": {
-    "character_id": "Демеург",
+    "character_id": "Венус",
     "self_integrity": 1.0,
     "values": {},
     "social_constraints": {},
     "npc_trust": {},
     "erosion_accumulator": 0.0,
-    "erosion_events": []
+    "erosion_events": [],
+    "resist_ticks": [],
+    "erosion_stage": "normal"
   },
   "state": {
-    "npc_id": "Демеург",
+    "npc_id": "Венус",
     "stress": 0.0,
     "resentment": 0.0,
     "dependency": 0.0,
@@ -47,8 +61,8 @@
     },
     "trauma_markers": [],
     "current_role": "",
-    "hp": 10,
-    "max_hp": 10,
+    "hp": 100,
+    "max_hp": 100,
     "conditions": {},
     "wounds": [],
     "posture": "standing",

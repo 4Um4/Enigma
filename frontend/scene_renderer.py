@@ -14,6 +14,9 @@ from typing import List, Optional, Tuple
 import math
 import pygame
 
+from presentation_firewall import sanitize_perceptual_input
+from perceptual_momentum import PerceptualMomentum, ManifestationProfile
+
 from sprite_resolver import get_entity_sprite
 from game_types import (
     PerceivedEntity,
@@ -56,6 +59,8 @@ class SceneRenderer:
         self.font_body = pygame.font.SysFont("consolas", 13)
         # Lerp для угла поворота (Приоритет 0)
         self._visual_facing_angle = -1.5708  # -pi/2 (смотрит вверх)
+        # Темпоральная инерция восприятия (S-curve, гистерезис, стохастика)
+        self.momentum = PerceptualMomentum()
 
     def render(
         self,
@@ -67,6 +72,8 @@ class SceneRenderer:
         player_xy: Tuple[float, float],
         player_facing: float = -1.5708,  # -pi/2 по умолчанию (смотрит вверх)
         dt: float = 0.016,  # Дельта времени для Lerp (Приоритет 0)
+        avatar_state: Optional[dict] = None, # ADR-035: Феноменологическая проекция
+        ambient_state: Optional[dict] = None, # ADR-037: Средовое давление
     ) -> None:
         """
         Отрисовывает полный кадр.
@@ -110,6 +117,50 @@ class SceneRenderer:
 
         # 6. HUD поверх карты — audio events, body state, environment
         self._draw_hud(scene)
+
+        # 7. Embodied Perception Interface — искажение рендера от состояния аватара и среды (ADR-035, ADR-037)
+        if avatar_state:
+            sanitized = sanitize_perceptual_input(avatar_state, ambient_state)
+            # Обновляем инерцию восприятия с дельтой времени
+            self.momentum.update(dt, sanitized)
+            self._apply_avatar_perception_overlay(self.momentum.current)
+
+    def _apply_avatar_perception_overlay(self, profile: 'ManifestationProfile') -> None:
+        """Накладывает визуальные искажения на основе Темпоральной Феноменологии.
+        Работает ТОЛЬКО с ManifestationProfile (инерция, S-кривая, стохастика уже применены).
+        """
+        w, h = self.screen.get_size()
+        overlay = pygame.Surface((w, h), pygame.SRCALPHA)
+
+        # 1. Кровавая виньетка (с инерцией из ManifestationProfile)
+        blood_vis = profile.blood_visibility
+        if blood_vis > 0.01:
+            alpha = int(min(150, blood_vis * 200))
+            border_thickness = int(w * 0.15 * blood_vis)
+            pygame.draw.rect(overlay, (180, 0, 0, alpha), (0, 0, w, border_thickness)) # Верх
+            pygame.draw.rect(overlay, (180, 0, 0, alpha), (0, h - border_thickness, w, border_thickness)) # Низ
+            pygame.draw.rect(overlay, (180, 0, 0, alpha), (0, 0, border_thickness, h)) # Лево
+            pygame.draw.rect(overlay, (180, 0, 0, alpha), (w - border_thickness, 0, border_thickness, h)) # Право
+
+        # 2. Туннельное зрение / Помутнение (с инерцией из ManifestationProfile)
+        tunnel_factor = profile.attention_tunneling
+        if tunnel_factor > 0.01: # Порог проявления (гистерезис)
+            alpha = int(min(200, tunnel_factor * 220))
+            vignette_thickness = int(w * 0.25 * tunnel_factor)
+            pygame.draw.rect(overlay, (0, 0, 0, alpha), (0, 0, w, vignette_thickness)) # Верх
+            pygame.draw.rect(overlay, (0, 0, 0, alpha), (0, h - vignette_thickness, w, vignette_thickness)) # Низ
+            pygame.draw.rect(overlay, (0, 0, 0, alpha), (0, 0, vignette_thickness, h)) # Лево
+            pygame.draw.rect(overlay, (0, 0, 0, alpha), (w - vignette_thickness, 0, vignette_thickness, h)) # Право
+
+        # 3. Визуальная нестабильность (тремор экрана) — новый слой оптики
+        if profile.visual_instability > 0.05:
+            shake_x = int(random.gauss(0, profile.visual_instability * 3))
+            shake_y = int(random.gauss(0, profile.visual_instability * 3))
+            self.screen.scroll(shake_x, shake_y)
+
+        # Накладываем финальный оверлей
+        if blood_vis > 0.01 or tunnel_factor > 0.01:
+            self.screen.blit(overlay, (0, 0))
 
     def _w2s(self, wx: float, wy: float, cam_x: float, cam_y: float) -> Tuple[int, int]:
         """Мировые координаты (метры) → экранные (пиксели)"""

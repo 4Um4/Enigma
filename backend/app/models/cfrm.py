@@ -179,12 +179,37 @@ _EVENT_AXIS_MAP: Dict[str, CausalAxis] = {
 }
 
 
-def classify_event(event_type: str) -> CausalAxis:
+class ClassificationSource(Enum):
+    """Источник классификации — эпистемическая природа решения."""
+    HARD_RULE = "hard_rule"      # Жёсткое правило из словаря
+    FALLBACK = "fallback"        # Fallback для неизвестных событий
+    HEURISTIC = "heuristic"      # Эвристика (заготовка на будущее)
+
+@dataclass(frozen=True)
+class ClassificationResult:
+    """Результат классификации события. Первичен не факт, а уверенность в нём."""
+    axis: CausalAxis
+    confidence: float            # 0.0 - 1.0
+    source: ClassificationSource
+
+def classify_event(event_type: str) -> ClassificationResult:
     """Классифицирует EventType в ось CFRM (Legacy Bridge).
     
     Pure function. Используется при наполнении EventBuffer.
+    Возвращает не просто ось, а эпистемическую оценку (ClassificationResult).
     """
-    return _EVENT_AXIS_MAP.get(event_type, CausalAxis.COGNITIVE)
+    if event_type in _EVENT_AXIS_MAP:
+        return ClassificationResult(
+            axis=_EVENT_AXIS_MAP[event_type],
+            confidence=1.0,
+            source=ClassificationSource.HARD_RULE
+        )
+    # Неизвестные события: не убиваем, но даём сигнал downstream о сомнительности
+    return ClassificationResult(
+        axis=CausalAxis.COGNITIVE,
+        confidence=0.2,
+        source=ClassificationSource.FALLBACK
+    )
 
 
 # ── Spatial Index: Вмещаемость кластеров ─────────────────────────────
@@ -243,6 +268,7 @@ class DisturbanceVector(str, Enum):
     ACOUSTIC = "acoustic"     # Звук, крик, грохот
     MATTER = "matter"         # Кровь, разрушение материи, огонь
     BEHAVIORAL = "behavioral" # Социальный жест, угроза, бегство
+    LOCOMOTION = "locomotion" # Перемещение тела в пространстве (шаги, бег)
 
 @dataclass(frozen=True)
 class FieldDisturbance:
@@ -252,9 +278,13 @@ class FieldDisturbance:
     magnitude: float
     vectors: Tuple[DisturbanceVector, ...]
     source_entity: str
+    semantic_seed: Optional[str] = None  # Геном нарратива: "удар", "кража", "крик". Для SOCIAL/COGNITIVE — обязателен.
 
 class ProjectionPolicy(Protocol):
-    """Оператор трансформации возмущения в восприятие. Зависит от состояния наблюдателя."""
+    """Оператор трансформации возмущения в восприятие.
+    ЗАКОН: Политика определяет закон распространения (физику оси).
+    PHYSICAL теряет энергию. COGNITIVE теряет факт, усиливает inference. SOCIAL теряет точность, усиливает драму.
+    Солвер не знает, как меняется реальность — он только вызывает политику."""
     def project(
         self, 
         disturbance: FieldDisturbance, 
@@ -267,8 +297,9 @@ class ProjectionPolicy(Protocol):
 class PerceivedPhenomenon:
     """То, что достигло сознания наблюдателя. Не 'событие', а реконструированный феномен."""
     perceived_intensity: float
-    inferred_cause: str
-    distortion_tag: str
+    perceived_archetype: str  # Реконструированный смысл: "драка", "чистки", "угроза"
+    mutation_stage: int       # Стадия искажения: 0=глазами, 1=с чужих слов, 2=слух
+    distortion_nature: str    # Тип трансформации: "energy_loss", "dramatization", "paranoid_inference"
     phenomenon_type: CausalAxis
 
 @dataclass
@@ -282,61 +313,8 @@ class PhenomenologicalState:
 
 @dataclass(frozen=True)
 class PsychologicalPressure:
-    """Давление реальности на психику. Не 'stress += 15', а векторы воздействия."""
     fear: float = 0.0
     uncertainty: float = 0.0
     aggression_trigger: float = 0.0
     dominance_shift: float = 0.0
-
-# === P2: ОНТОЛОГИЯ СУБЪЕКТИВНОЙ РЕАЛЬНОСТИ (CFRM PHASE 2) ===
-
-class DisturbanceVector(str, Enum):
-    """Векторы возмущения поля. Не 'тип урона', а физика воздействия."""
-    KINETIC = "kinetic"       # Удар, толчок, движение массы
-    ACOUSTIC = "acoustic"     # Звук, крик, грохот
-    MATTER = "matter"         # Кровь, разрушение материи, огонь
-    BEHAVIORAL = "behavioral" # Социальный жест, угроза, бегство
-
-@dataclass(frozen=True)
-class FieldDisturbance:
-    """Возмущение причинного поля. Замена объективному EventDTO для каузального солвера."""
-    origin_cluster: ClusterID
-    disturbance_type: CausalAxis
-    magnitude: float
-    vectors: Tuple[DisturbanceVector, ...]
-    source_entity: str
-
-class ProjectionPolicy(Protocol):
-    """Оператор трансформации возмущения в восприятие. Зависит от состояния наблюдателя."""
-    def project(
-        self, 
-        disturbance: FieldDisturbance, 
-        membrane_factor: float, 
-        observer_kernel: 'PerceptualKernel', 
-        observer_state: Dict[str, Any]
-    ) -> Optional['PerceivedPhenomenon']: ...
-
-@dataclass(frozen=True)
-class PerceivedPhenomenon:
-    """То, что достигло сознания наблюдателя. Не 'событие', а реконструированный феномен."""
-    perceived_intensity: float
-    inferred_cause: str
-    distortion_tag: str
-    phenomenon_type: CausalAxis
-
-@dataclass
-class PhenomenologicalState:
-    """Локальная истина кластера для наблюдателя. Не дельты, а описание реальности."""
-    threat_level: float = 0.0
-    visible_blood: bool = False
-    dominant_sound: Optional[str] = None
-    anomaly_score: float = 0.0
-    nearby_entities: List[str] = field(default_factory=list)
-
-@dataclass(frozen=True)
-class PsychologicalPressure:
-    """Давление реальности на психику. Не 'stress += 15', а векторы воздействия."""
-    fear: float = 0.0
-    uncertainty: float = 0.0
-    aggression_trigger: float = 0.0
-    dominance_shift: float = 0.0
+    directive_obedience: float = 0.0 # ADR-036: Давление подчинения речевому акту (физика власти)

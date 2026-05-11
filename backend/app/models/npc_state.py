@@ -24,6 +24,8 @@ NPCState — центральный узел всей психики.
 
 from __future__ import annotations
 
+from app.models.affect import AffectiveImprint
+
 import math
 _math = math
 from dataclasses import dataclass, field
@@ -484,6 +486,8 @@ class NPCState:
     body_state: Dict[str, Any] = field(default_factory=dict)
     # P2: Субъективная каузальная модель NPC (CFRM)
     perceptual_kernel: PerceptualKernel = field(default_factory=PerceptualKernel)
+    # Аффективная память (history-shaped entity). Универсально для NPC и Avatar.
+    affective_imprints: Tuple["AffectiveImprint", ...] = ()
 
     # ── Роль (runtime, ФАЗА 4-ROLE) ──────────────────────────────────────────
     # Текущая профессия NPC. Изначально = archetype из config.

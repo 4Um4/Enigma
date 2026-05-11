@@ -72,6 +72,8 @@ class ChatTurnResponse(BaseModel):
     # TASK 1: Force Merge — передаём world_snapshot на фронтенд (ADR-0014)
     world_snapshot: Optional[dict] = None
     npc_positions: Optional[dict] = None
+    # Спринт 26: Артефакты Конфликта Воли (Embodied Perception Interface)
+    will_conflict_data: Optional[dict] = None
 
 
 # ADR-030: Avatar Creation Vector — Вектор Начальных Условий Гибридной Сущности

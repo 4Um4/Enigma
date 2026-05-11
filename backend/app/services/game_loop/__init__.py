@@ -83,7 +83,7 @@ from app.services.game_loop.tick_context import (
     _TickContext,  # backward compat alias
 )
 # commit_tick инлайн в TickOrchestrator.finalize_and_commit — phase_8_commit.py удалён
-from app.services.game_loop.phase_1_input import publish_player_action
+from app.services.game_loop.phase_1_input import resolve_player_intent
 from app.services.game_loop.scene_init import init_scene_state
 from app.services.game_loop.dm_phase import run_dm_phase
 from app.services.game_loop.npc_orchestration import run_npc_orchestration
@@ -358,6 +358,7 @@ class GameLoop:
             world_changes=dm_result.get("world_changes", []),
             world_snapshot=_ws_dict,
             npc_positions=_npc_pos_dict,
+            will_conflict_data=shared_context.will_conflict_data,
             journal_entry_id=self.memory_manager.persist_dm_response(
                 req.campaign_id,
                 world_id=req.world_id,
@@ -556,11 +557,19 @@ class GameLoop:
             )
             logger.warning(f"[DEBUG DM] is_valid={dm_result.is_valid}, scene_context={dm_result.scene_context}, error={dm_result.error}")
 
-            # ФАЗА 1 (сырая публикация) — действие игрока → EventBus ДО NPC (Закон 5.1)
-            publish_player_action(
-                _player_name, actions[0].action if actions else "",
-                shared_context.action_type or "player_interacts", location,
+            # ФАЗА 1: Semantic Translation (ADR-031 Fix).
+            # game_loop не вычисляет волю и не публикует события. Только Intent → Pressure.
+            _player_data_dict = _match.dict() if _match else None
+            _resolution = resolve_player_intent(
+                raw_action=actions[0].action if actions else "",
+                action_type=shared_context.action_type or "player_interacts",
+                target=shared_context.player_target_id or "",
+                player_dict=_player_data_dict,
+                scene_context=scene_state, # Инъекция Слоя 2: Передаем NPC для fuzzy matching
             )
+            
+            # Передаем давление в контекст для TickOrchestrator (Causal Resolution)
+            shared_context.intent_resolution = _resolution
 
             # ФАЗА 3-6: NPC оркестрация → TickPlayerResultDTO (Устав §3)
             _player_result: TickPlayerResultDTO = TickPlayerResultDTO()
