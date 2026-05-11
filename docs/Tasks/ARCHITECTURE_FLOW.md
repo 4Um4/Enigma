@@ -18,11 +18,13 @@ P0[Phase 0: LifeEngine] -->|scene_changes| P05
 P0 -->|scene_changes| P2
 P0 -->|ctx.npc_states = ctx.all_npcs_raw| SA_SYNC[State Sync ADR-004]
 P05[Phase 0.5: Idle Services ALWAYS] -->|List StateDeltas| DBUF[delta_buffer]
-PI[Player Input] -->|Raw IntentDTO| IPR[IntentPressureResolver Semantic Translation ADR-031]
+PI[Player Input] -->|Raw Text| IC[IntentCompressor pymorphy3 Fast Path + LLM Slow Path ADR-035]
+IC -->|IntentSemanticField| TR[Target Reference Resolver String to ID]
+TR -->|IntentParametersDTO strict payload ADR-035| IPR[IntentPressureResolver Semantic Translation ADR-031]
 IPR -->|IntentPressureProfile| WPG[WillpowerGate Cumulative Strain Model ADR-031]
 WPG -->|WillResponseDTO| P1[Phase 1: Input]
 P1 -->|EventDTO or WILL_CONFLICT| P2[Phase 2: EventBus]
-P2 -->|attach_cfrm_buffer + classify_event ADR-0029| EB[EventBuffer CausalAxis]
+P2 -->|attach_cfrm_buffer + classify_event -> ClassificationResult ADR-038| EB[EventBuffer CausalAxis]
 SS -.->|DI: set_spatial_service| P0
 ME -->|find_path canonical IDs| TT[TransitTracker]
 TT -->|advance_all SceneChange| P0
@@ -55,8 +57,9 @@ LOADED -.->|all_npcs_raw| SNAP
 subgraph Phase_3_7[Фазы 3-7: Memory and Decision]
 P2 -->|EventDTO| P3[Phase 3: MemoryProcessor]
 P3 -->|Updated NPCState| P4[Phase 4: TopicExtractor]
-P4 -->|Topic| P5[Phase 5: DecisionHub]
+P4 -->|Topic| P5[Phase 5: DecisionHub v2 ADR-032]
 P5 -->|CommunicationIntent| P6[Phase 6: IntentEventAdapter]
+P5 -->|List StateDeltas v2 domain-tagged| LDA[LegacyStateDeltaAdapter v2-v1 Collapse ADR-032]
 P6 -->|EventDTO| P7[Phase 7: EventBus Secondary]
 end
 
@@ -77,10 +80,10 @@ PP --> DBUF_P[delta_buffer]
 end
 
 subgraph Phase_8[Фаза 8: Layered Reduction ADR-0016]
-P7 -->|drain_events| PER[PerceptionSubscriber]
-P2 -->|drain_events| PER
+P7 -.->|cfrm_bridge capture| EB
+P2 -.->|cfrm_bridge capture| EB
 
-PER -->|Phase8Result perceiving_npc_ids| LAYER_SEP{Layer Separator}
+LAYER_SEP{Layer Separator}
 
 LAYER_SEP -->|1. Physical Layer| CSUB[CombatSubscriber ADR-0012]
 P7 -->|drain_events| CSUB
@@ -108,21 +111,31 @@ RXT -->|uses| RXTMOD
 SOC -->|calls| PROP
 PROP -->|List StateDeltas domainEMOTION + domainSOCIAL| SOC
 
+%% --- ADR-036: Social Physics (Directive Interpretation) ---
+DIS[DirectiveInterpretationSubscriber ADR-036] -->|reads semantic_action + target_id| OBEDIENCE[PsychologicalPressure directive_obedience]
+P7 -->|drain_events| DIS
+P2 -->|drain_events| DIS
+OBEDIENCE -->|StateDeltas EMOTION + SOCIAL + directive_obedience| DBUF2
+
 RXT -->|Phase8Result deltas| ORCH
 SOC -->|Phase8Result deltas| ORCH
 CSUB -->|Phase8Result deltas| ORCH
 end
 
-subgraph Phase_9_10[Фазы 9-10: CFRM Reduction and Persistence ADR-0016]
+subgraph Phase_9_10[Фазы 9-10: CFRM P2 Phenomenology & Persistence ADR-0033]
 ORCH[TickOrchestrator] -.->|_rebuild_cluster_occupancy| CO[ClusterOccupancy ADR-0029]
-EB -->|drain causal facts| CFRM[Causal Field Reducer 3-phase ADR-0016]
-CG -.->|topology| CFRM
-CO -.->|spatial index O1| CFRM
-CFRM -->|Phase 1: Projection| PROJ[ClusterGraph Influence Mapping]
-PROJ -->|Phase 2: Attenuation| ATTEN[MembraneField Decay over Edges]
-ATTEN -->|Phase 3: Local Reduction| LCS[Local Causal Solver per Cluster]
+ORCH -->|_deobjectify_event + classify_event ADR-038| EB
+ORCH -->|will_conflict_data -> shared_context ADR-039| P9
+EB -->|drain disturbances| LCS[LocalCausalSolver P2]
+CG -.->|topology| LCS
+CO -.->|spatial index O1| LCS
+LCS -->|PerceivedPhenomenon per observer| PROJ[ProjectionPolicy Physical Cognitive Social]
+PROJ -->|aggregate per entity| PHEN[PhenomenologicalState Local Truth]
+PHEN -->|convert| PRESSURE[PsychologicalPressure fear uncertainty directive_obedience ADR-036]
+PRESSURE -->|generate StateDeltas EMOTION| DBUF2
 
 LCS -->|Patches| SA[StateApplicator.apply_batch v2]
+LDA -.->|collapsed v1 StateDeltas for legacy| SA
 DBUF2 --> CFRM
 SPATIAL_BUF --> CFRM
 DBUF_P --> CFRM
@@ -134,9 +147,12 @@ SA -->|_apply_delta_to_raw dict to NPCState bridge| RAW[all_npcs_raw]
 LCS -->|apply_spatial_events| SSM
 SSM -->|resolve x,y via SpatialService| SC_T1[world_snapshot t+1 PROJECTION ADR-0016]
 
+RAW -.->|player_dict| APA[AvatarPresentationAssembler Translation Layer ADR-035]
+APA -->|AvatarStateDTO| P9
+
 SC_T1 -->|WorldSnapshotDTO| P9[Phase 9: WorldSnapshotBuilder]
 SC_T1 -->|atomic commit| P10[(Phase 10: SQLite)]
-P9 -->|WorldSnapshotDTO| GL
+P9 -->|WorldSnapshotDTO + AvatarStateDTO| GL
 end
 
 subgraph Frontend[Frontend Pygame - Cinematic Presentation Layer]
@@ -178,11 +194,13 @@ DGW -->|GameActionResponse world_snapshot=... npc_positions=...| PY
 PY -->|game_time_seconds| CAL[format_world_date Year Day HH:MM Priority 2]
 CAL -->|HUD Render Top Right| CIN_LAYER
 
-MOVE[_MoveState Navigation Kinetics Embodiment ADR-0011] -->|facing_angle + facing_mode| REND[SceneRenderer.render rotated arrow Lerp via dt Priority 3]
-REND -.->|draw player marker| PY
+MOVE[_MoveState Navigation Kinetics Embodiment ADR-0011] -->|facing_angle + facing_mode| REND[SceneRenderer.render Lerp via dt]
+PY -->|avatar_state from world_snapshot| REND
+REND --> EPI[_apply_avatar_perception_overlay Vignette Blood Distortion ADR-035]
+EPI -.->|final screen blit| PY
 end
 
-P9 -.->|TickResultDTO| GL
+P9 -.->|TickResultDTO + will_conflict_data ADR-039| GL
 CONSTANTS[domain constants.py ACTION_INTENSITY] -.->|imports| P1
 CONSTANTS -.->|imports| P6
 P05 -.->|ALWAYS both paths| DBUF
@@ -211,3 +229,21 @@ classDef layered fill:#ccf,stroke:#333,stroke-width:3px;
 class MAT,SHOCK_CASCADE,PANIC,EMPATHY,LAYER_SEP layered;
 classDef cfrm fill:#dfd,stroke:#333,stroke-width:2px;
 class CFRM,PROJ,ATTEN,LCS,SA,REP,BSMUT,RAW,EB,CG,CO cfrm;
+
+classDef adapter fill:#f88,stroke:#333,stroke-width:2px,stroke-dasharray: 5 5;
+class LDA adapter;
+%% --- ADR-037: Phenomenological Presentation & Resistance Medium ---
+DGW -->|GameActionResponse + will_conflict_data| PY
+PY -->|will_conflict_data| INFECT[TextInput.infect Resistance Medium ADR-037]
+INFECT -->|Моторное сопротивление вводу| PLAYER[Player Input]
+
+PY -->|avatar_state dict| FW[PresentationFirewall sanitize + clamp ADR-037]
+FW -->|SanitizedPerceptualVectors| PM[PerceptualMomentum S-curve + inertia + stochasticity ADR-037]
+PM -->|ManifestationProfile| REND
+
+classDef firewall fill:#f66,stroke:#333,stroke-width:2px;
+classDef momentum fill:#ff9,stroke:#333,stroke-width:2px;
+classDef resistance fill:#f9f,stroke:#333,stroke-width:2px;
+class FW firewall;
+class PM momentum;
+class INFECT resistance;

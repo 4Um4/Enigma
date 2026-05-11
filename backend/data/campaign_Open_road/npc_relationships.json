@@ -1,0 +1,26 @@
+{
+  "blacksmith_orm→player": {
+    "trust": 12.230239291034104,
+    "fear": 0.0
+  },
+  "guard_borko→player": {
+    "trust": 7.529725918795622,
+    "fear": 0.0
+  },
+  "merchant_goran→player": {
+    "trust": 11.077117460549465,
+    "fear": 0.0
+  },
+  "maid_lusya→player": {
+    "trust": 0.020498156174674983,
+    "fear": 0.0
+  },
+  "thief_shadow→player": {
+    "trust": 0.020498156174674983,
+    "fear": 0.0
+  },
+  "tavern_keeper_tornin→player": {
+    "trust": 14.493520776579482,
+    "fear": 0.0
+  }
+}

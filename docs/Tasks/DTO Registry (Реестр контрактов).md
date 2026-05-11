@@ -212,10 +212,10 @@ SPATIAL -> OVERWRITE
 ### ACTION_INTENSITY (domain/constants.py)
 `dict[str, float]`. Ключи: `player_attacks`, `player_threatens`, `dialogue`, `attack`, `move`, `stealth` и др. Fallback = 0.2.
 
-### EventBus (CFRM Extensions — Layer 1 Capture)
-- `attach_cfrm_buffer(buffer: Any)`: Привязывает `EventBuffer` к шине на время тика.
-- `detach_cfrm_buffer()`: Отвязывает буфер (гарантированно вызывается в `finally` блоке `TickOrchestrator`).
-- **Поведение `publish()`:** Если `_cfrm_buffer` привязан, автоматически вызывает `classify_event(event.type)` и `buffer.add(event, axis)` для захвата факта.
+### EventBus (CFRM Extensions — P2 Deobjectification Bridge)
+- `attach_cfrm_bridge(bridge: Callable[[EventDTO], None])`: Привязывает функцию-мост деобъективации на время тика.
+- `detach_cfrm_bridge()`: Отвязывает мост (гарантированно вызывается в `finally` блоке `TickOrchestrator`).
+- **Поведение `publish()`:** Если `_cfrm_bridge` привязан, автоматически вызывает `bridge(event)` для трансформации объективного события в возмущение поля (`FieldDisturbance`).
 
 ---
 
@@ -244,6 +244,7 @@ SPATIAL -> OVERWRITE
 ### WorldSnapshotDTO
 - `tick`: `int`, `version`: `int`, `last_event_id`: `Optional[UUID]`
 - `player_position`: `Tuple[float, float]`, `npc_positions`: `List[NPCPositionDTO]`
+- `avatar_state`: `Optional[AvatarStateDTO] = None` // ADR-035: Феноменологическая проекция аватара
 - `visible_events`: `List[VisibleEventDTO]`, `available_actions`: `List[str]`
 - `location_id`: `str`, `weather`: `str`, `time_of_day`: `str`
 - `game_time_seconds`: `int = 0` // Абсолютное время симуляции
@@ -251,6 +252,25 @@ SPATIAL -> OVERWRITE
 ### NPCPositionDTO
 - `npc_id`: `str`, `x`: `float`, `y`: `float`, `location_id`: `str`, `facing`: `str`, `action`: `str`
 - `display_name`: `str` // КРИТИЧЕСКИ ВАЖНО: заполнять из `data.get("name")`, иначе фронтенд показывает npc_id!
+
+### PhysicalPresentationState (Enum)
+*Визуальное физическое состояние аватара для рендера.*
+- `HEALTHY`, `WOUNDED`, `BLEEDING`, `CRIPPLED`, `DYING`
+
+### MentalPresentationState (Enum)
+*Визуальное ментальное состояние аватара для рендера.*
+- `CALM`, `STRESSED`, `PANICKED`, `DISSOCIATING`, `BROKEN`
+
+### AvatarStateDTO (Frozen Dataclass — Феноменологическая проекция ADR-035)
+*Перевод Simulation Truth в Rendering Projection. Фронтенд не знает о HP или pain.*
+- `physical_state`: `PhysicalPresentationState`
+- `mental_state`: `MentalPresentationState`
+- `movement_instability`: `float` // 0.0-1.0, шаткость походки
+- `visual_distortion`: `float` // 0.0-1.0, размытие, туннельное зрение
+- `blood_visibility`: `float` // 0.0-1.0, кровь на экране/персонаже
+- `breathing_profile`: `str` // calm, heavy, gasping, hyperventilating
+- `dominant_impulse`: `Optional[str]` // "flee", "hide", "surrender"
+- `posture_state`: `str` // upright, hunched, collapsed
 
 ### TurnResult (frontend/game_loop_bridge.py)
 - `action_type`: `str = ""`, `npc_reactions`: `list[dict]`, `dm_text`: `str = ""`
@@ -301,23 +321,76 @@ SPATIAL -> OVERWRITE
 - `COGNITIVE = "cognitive"` // Когнитивная обработка (речь, угрозы, внимание)
 - `SOCIAL = "social"` // Социальная физика (слух, доверие, долг)
 
-### EventBuffer (Dataclass — Временный causal input stream)
-- `physical_events`: `List[EventDTO]`
-- `cognitive_events`: `List[EventDTO]`
-- `social_events`: `List[EventDTO]`
-- Методы: `add(event, axis)`, `drain() -> Tuple[List, List, List]` (Извлекает факты и очищает буфер для следующего тика)
+### EventBuffer (Dataclass — Временный causal input stream P2)
+- `physical_disturbances`: `List[FieldDisturbance]`
+- `cognitive_disturbances`: `List[FieldDisturbance]`
+- `social_disturbances`: `List[FieldDisturbance]`
+- Методы: `add(disturbance, axis)`, `drain() -> Tuple[List, List, List]` (Извлекает возмущения и очищает буфер для следующего тика)
+
+### DisturbanceVector (Enum)
+- `KINETIC = "kinetic"`
+- `ACOUSTIC = "acoustic"`
+- `MATTER = "matter"`
+- `BEHAVIORAL = "behavioral"`
+
+### FieldDisturbance (Frozen Dataclass — Возмущение причинного поля)
+- `origin_cluster`: `ClusterID`
+- `disturbance_type`: `CausalAxis`
+- `magnitude`: `float`
+- `vectors`: `Tuple[DisturbanceVector, ...]`
+- `source_entity`: `str`
+
+### PerceivedPhenomenon (Frozen Dataclass — Субъективный феномен)
+- `perceived_intensity`: `float`
+- `inferred_cause`: `str`
+- `distortion_tag`: `str`
+- `phenomenon_type`: `CausalAxis`
+
+### PhenomenologicalState (Dataclass — Локальная истина кластера)
+- `threat_level`: `float = 0.0`
+- `visible_blood`: `bool = False`
+- `dominant_sound`: `Optional[str] = None`
+- `anomaly_score`: `float = 0.0`
+- `nearby_entities`: `List[str]`
+
+### PsychologicalPressure (Frozen Dataclass — Векторы давления на психику)
+- `fear`: `float = 0.0`
+- `uncertainty`: `float = 0.0`
+- `aggression_trigger`: `float = 0.0`
+- `dominance_shift`: `float = 0.0`
+- `directive_obedience`: `float = 0.0` // ADR-036: Давление подчинения речевому акту (физика власти)`
+
+### PerceptualKernel (Dataclass — Субъективная модель восприятия NPC)
+- `threat_gradient`: `float = 0.0`
+- `trust_gradient`: `float = 0.0`
+- `uncertainty`: `float = 0.0`
+- `anomaly_score`: `float = 0.0`
+- `last_hostile_direction`: `Optional[str] = None`
+- `dominant_emotion`: `Optional[str] = None`
 
 ### ClusterOccupancy (Dataclass — Spatial Index O(1))
 - `entity_to_cluster`: `Dict[str, ClusterID]` // npc_id/player -> cluster_id
 - `cluster_to_entities`: `Dict[ClusterID, Set[str]]` // cluster_id -> set(npc_ids)
 - Методы: `update_entity(entity_id, new_cluster)`, `get_cluster(entity_id)`, `get_entities_in_cluster(cluster_id)`, `remove_entity(entity_id)`
 
-### classify_event() (Legacy Bridge P1)
+### ClassificationSource (Enum — Источник классификации ADR-038)
+- `HARD_RULE = "hard_rule"` // Жёсткое правило из словаря
+- `FALLBACK = "fallback"` // Fallback для неизвестных событий
+- `HEURISTIC = "heuristic"` // Эвристика (заготовка на будущее)
+
+### ClassificationResult (Frozen Dataclass — Эпистемическая оценка ADR-038)
+- `axis`: `CausalAxis`
+- `confidence`: `float` // 0.0-1.0, уверенность классификации
+- `source`: `ClassificationSource`
+
+### classify_event() (Epistemic Bridge ADR-038)
+- Сигнатура: `classify_event(event_type: str) -> ClassificationResult`
+- Маппит текущие `EventType.value` на оси CFRM с оценкой уверенности. Fallback для неизвестных событий -> `COGNITIVE` (confidence=0.2, source=FALLBACK).
 - Сигнатура: `classify_event(event_type: str) -> CausalAxis`
 - Маппит текущие `EventType.value` на 3 оси CFRM. Fallback для неизвестных событий -> `COGNITIVE`.
 
-### _TickContext (TickOrchestrator — обновления Сессии 18)
-- `event_buffer`: `EventBuffer` // Заполняется через EventBus.attach_cfrm_buffer()
+### _TickContext (TickOrchestrator — обновления Сессии 21)
+- `event_buffer`: `EventBuffer` // Заполняется через мост _deobjectify_event (EventBus → FieldDisturbance)
 - `cluster_occupancy`: `ClusterOccupancy` // Восстанавливается на старте тика из scene_state['npc_positions']
 
 ---
@@ -333,6 +406,17 @@ SPATIAL -> OVERWRITE
 - **AvatarAffectiveMemory**: Эмоциональная память аватара. Подвержена затуханию, вытеснению и травмам. Отличается от `PlayerMemory` (памяти человека-игрока).
 
 ---
+
+### IntentParametersDTO (Frozen Dataclass — Строгий транспорт семантики ADR-035)
+Убивает `Dict[str, Any]` в `IntentDTO.parameters`.
+
+- **semantic_action**: `Optional[str]` # MOVE, THREATEN (извлечено Слоем 1)
+- **target_reference**: `Optional[str]` # Сырая ссылка: 'тень', 'борко'
+- **target_id**: `Optional[str]` # ID цели, найденный Слоем 2 (fuzzy matching)
+- **physical_force**: `float = 0.1` # Кинетическая энергия
+- **emotional_charge**: `float = 0.1` # Эмоциональный вклад
+- **social_pressure**: `float = 0.0` # Социальный вес (для Физики Власти)
+- **commitment_level**: `float = 0.8` # Уровень приверженности
 
 ### IntentPressureProfile (Frozen Dataclass)
 Вектор давления намерения на психику аватара. Вычисляется `IntentPressureResolver`.
@@ -384,3 +468,128 @@ SPATIAL -> OVERWRITE
 - `temperament`: `str` — `"Fearful"`, `"Stoic"`, `"Impulsive"`, `"Calculating"`
 - `body_profile`: `Dict[str, Any]` — Сгенерирован из Archetype
 - `psyche`: `Dict[str, Any]` — Сгенерирована из Temperament
+
+---
+
+## X. Intent Compression Layer (Слой 1)
+
+### IntentSemanticField (Pydantic BaseModel)
+Вероятностная реконструкция намерения. Результат работы `IntentCompressor`.
+
+- **action_type**: `ActionType` # MOVE, OBSERVE, INTERACT, ATTACK, THREATEN, PERSUADE, FLIRT, STEAL, GIVE, UNCERTAIN
+- **target_reference**: `Optional[str]` # Сырая ссылка на цель: 'борко', 'тот мужик', 'кружка' (LLM не знает ID!)
+- **target_zone**: `TargetZone` # HEAD, TORSO, ARMS, LEGS, GROIN, UNDEFINED
+- **physical_force**: `float = 0.1` # 0.0-1.0, Кинетическая энергия
+- **emotional_charge**: `float = 0.1` # 0.0-1.0, Эмоциональный вклад
+- **social_pressure**: `float = 0.0` # 0.0-1.0, Социальный вес
+- **commitment_level**: `float = 0.8` # 0.0-1.0, Уровень приверженности
+- **tool_reference**: `Optional[str]` # Сырая ссылка на инструмент
+- **semantic**: `EmotionalVector` # aggression, fear, shame, confidence, desperation (0.0-1.0)
+- **raw_text**: `str` # Исходный текст для феноменологического перевода
+- **confidence**: `ConfidenceVector` # parse, target, emotion, action (0.0-1.0)
+- **ambiguity**: `SemanticAmbiguity` # CLEAR, PARTIAL, AMBIGUOUS
+
+### EmotionalVector (BaseModel)
+- `aggression`: `float = 0.0`
+- `fear`: `float = 0.0`
+- `shame`: `float = 0.0`
+- `confidence`: `float = 0.5`
+- `desperation`: `float = 0.0`
+
+### ConfidenceVector (BaseModel)
+- `parse`: `float = 1.0`
+- `target`: `float = 0.0`
+- `emotion`: `float = 0.8`
+- `action`: `float = 1.0`
+
+---
+
+## XI. DecisionHub v2 & Legacy Bridge
+
+### DecisionResult (backend/app/services/npc/decision_hub.py)
+- `npc_id`: `str`
+- `intent`: `Intent`
+- `intent_target`: `Optional[str]`
+- `score`: `float`
+- `scores_trace`: `Dict[str, float]`
+- `deltas`: `List[StateDeltas]` // ADR-032: Каноничный v2. Доменные payload (Emotion, Social).
+- `narrative_fact`: `Optional[str] = None`
+- `explanation_mode`: `bool = False`
+
+### LegacyStateDeltaAdapter (backend/app/services/npc/legacy_delta_adapter.py)
+*Односторонний деградационный шлюз v2 → v1. Для legacy downstream.*
+- `collapse(deltas: Union[List[StateDeltas], StateDeltas]) -> StateDeltas`
+- Схлопывает `EmotionPayload` и `SocialPayload` в плоский v1 объект.
+- Логирует `[LEGACY_COLLAPSE_WARNING]` при потере доменов (Physiology, Identity).
+
+---
+
+## XII. Affective System & Resonance
+
+### AffectiveImprint (backend/app/models/affect.py)
+*Единица аффективной памяти — остаточное давление опыта.*
+- `source_entity_id`: `str`
+- `trigger_tags`: `tuple[str, ...]` // Семантические теги (violence, public, betrayal)
+- `pain_signature`: `float` // 0.0-1.0
+- `fear_signature`: `float` // 0.0-1.0
+- `humiliation_signature`: `float` // 0.0-1.0
+- `trust_shift`: `float` // -1.0 ... +1.0
+- `reinforcement`: `float` // 0.0-1.0, укрепление при повторном воздействии
+- `decay_rate`: `float` // 0.0-1.0, скорость затухания
+- `created_at`: `int` // game_time_seconds
+- `last_triggered_at`: `int` // game_time_seconds
+
+### ResponseBias (Enum)
+*Спектр реакций на травматический резонанс.*
+- `FEAR`, `AGGRESSION`, `FREEZE`, `SUBMISSION`, `DISSOCIATION`
+
+### ResonanceProfile (backend/app/models/affect.py)
+*Результат сканирования аффективной памяти.*
+- `triggered_imprints`: `tuple[str, ...]`
+- `fear_resonance`, `humiliation_resonance`, `domination_resonance`, `violence_resonance`, `abandonment_resonance`: `float`
+- `certainty_modifier`: `float`
+- `dissociation_risk`: `float`
+- `trigger_strength`: `float`
+- `dominant_bias`: `ResponseBias
+
+### IntentResolution (Frozen Dataclass — Транзитный DTO ADR-034)
+*Результат шлюза Фазы 1. GameLoop публикует артефакты на его основе, не принимая решений.*
+- `original_intent`: `IntentDTO`
+- `resolved_intent`: `Optional[IntentDTO]` // None если заблокировано волей
+- `blocked`: `bool`
+- `transformed`: `bool`
+- `resistance_level`: `float` // 0.0-1.0
+- `override_reason`: `Optional[str]` // WillState.value (почему заблокировано)
+- `will_state`: `Optional[WillState]`
+- `narration_hooks`: `List[str]` // Подсказки для LLM ("дрожит", "плачет")
+- `counter_offer`: `Optional[IntentDTO]` // Альтернатива, предложенная аватаром
+---
+
+## XIII. Спринт 26: Феноменологические и Оптические Контракты
+
+### GameActionResponse (Frontend Extension)
+- will_conflict_data: Optional[dict] // ADR-039: Артефакты Конфликта Воли для Embodied Perception Interface. Содержит state, resistance, narration_hooks, counter_offer_action, counter_offer_text.
+
+### SanitizedPerceptualVectors (Frontend Internal)
+*Результат работы Presentation Firewall. Только скаляры, прошедшие санитизацию.*
+- blood_visibility: float
+- visual_instability: float
+- attention_tunneling: float
+- temporal_distortion: float
+- perceptual_latency: float
+- reality_reconciliation_rate: float
+- emotional_temperature: float
+- proximity_compression: float
+- directional_pressure: Tuple[float, float]
+
+### ManifestationProfile (Frontend Internal)
+*Результат работы Perceptual Momentum. Оптическая деформация для рендерера.*
+- visual_instability: float // Тремор, хроматическая аберрация
+- auditory_distortion: float // Глушение, звон
+- motor_disruption: float // Искажение отклика мыши/клавиш
+- contrast_instability: float // Пульсация контраста
+- attention_tunneling: float // Виньетка, сужение фокуса
+- motion_bias: Tuple[float, float] // Вектор визуального сноса
+- temporal_distortion: float // Лаг рендера
+- temporal_assembly_delay: float // Задержка подтверждения реальности
+- blood_visibility: float // Инерция кровавой виньетки

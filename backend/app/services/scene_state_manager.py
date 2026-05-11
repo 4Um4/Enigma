@@ -1002,6 +1002,8 @@ class SceneStateManager:
             # ── Пространственные данные для коллизий (из editor JSON) ─────
             "spatial_walls":     spatial_walls,
             "spatial_obstacles": spatial_obstacles,
+            # ── ADR-019: Traversal Registry (процесс во времени, а не стейт) ──
+            "active_traversals": {},  # dict[npc_id, TraversalState.dict]
             # ─────────────────────────────────────────────────────────────────
         }
 
@@ -1102,25 +1104,58 @@ class SceneStateManager:
                 entry = pos.setdefault(change.target, {})
                 entry[change.field] = change.value
 
-                # ADR-0008: Мгновенный резолв x,y при смене узла, чтобы NPC двигались на экране
+                # ADR-019: Каузальная ложь (Вариант А). Узел обновляется для CFRM мгновенно,
+                # но визуальная позиция (local_position) НЕ телепортируется. 
+                # Вместо этого порождается TraversalState для плавной интерполяции.
                 if change.field == "position":
-                    print(f"[TRACE][APPLY_LOCAL_POSITION] npc={change.target} value={change.value}")
+                    logger.debug(f"[ARCH GUARD] Causal relocation: npc={change.target} → node={change.value}")
                     location_id = scene_state.get("location_id", "")
                     if location_id and change.value:
                         try:
                             from app.services.spatial.spatial_service import SpatialService
+                            from app.models.traversal import TraversalState
+                            
                             svc = SpatialService.build_for_location(
                                 campaign_id=campaign_id, location_id=location_id, scene_state=scene_state
                             )
-                            # Пробуем с префиксом локации и без (граф хранит tavern_silver_wolf:main_hall)
                             node = svc.get_node(change.value) or svc.get_node(f"{location_id}:{change.value}")
                             if not node:
                                 node = svc.get_node(f"{location_id}:entrance") or svc.get_node(f"{location_id}:main_hall")
+                            
                             if node:
-                                entry["local_position"] = {"x": node.x, "y": node.y}
-                                logger.warning(f"[PIPELINE][SCENE_CHANGE][APPLY] npc={change.target} node={change.value} xy=({node.x:.1f}, {node.y:.1f})")
+                                from_xy = entry.get("local_position", {"x": 0.0, "y": 0.0})
+                                to_xy = {"x": node.x, "y": node.y}
+                                # Телепортация только если уже на месте (микро-перемещение)
+                                if abs(from_xy.get("x", 0) - to_xy.get("x", 0)) < 0.1 and abs(from_xy.get("y", 0) - to_xy.get("y", 0)) < 0.1:
+                                    entry["local_position"] = to_xy
+                                else:
+                                    # Вычисляем расстояние и ожидаемое время прибытия (Authority)
+                                    dx = to_xy["x"] - from_xy.get("x", 0.0)
+                                    dy = to_xy["y"] - from_xy.get("y", 0.0)
+                                    dist = (dx**2 + dy**2) ** 0.5
+                                    speed = 2.0  # MVP хардкод скорости (м/с)
+                                    started_at = scene_state.get("game_time_seconds", 0)
+                                    expected_arrival = started_at + (dist / speed if speed > 0 else 0)
+                                    
+                                    # ADR-019: Сохраняем как dict для JSON-совместимости scene_state
+                                    traversal_dict = {
+                                        "npc_id": change.target,
+                                        "from_node": entry.get("position", change.value),
+                                        "target_node": change.value,
+                                        "path_waypoints": [
+                                            [from_xy.get("x", 0.0), from_xy.get("y", 0.0)], 
+                                            [to_xy["x"], to_xy["y"]]
+                                        ],
+                                        "speed": speed,
+                                        "started_at": started_at,
+                                        "expected_arrival_time": expected_arrival,
+                                        "locomotion": "WALK",
+                                        "status": "MOVING"
+                                    }
+                                    scene_state.setdefault("active_traversals", {})[change.target] = traversal_dict
+                                    logger.info(f"[TRAVERSAL] Start: npc={change.target} to_node={change.value}")
                             else:
-                                logger.error(f"[PIPELINE][SCENE_CHANGE][APPLY_FAILED] npc={change.target} node={change.value} NOT FOUND in SpatialService!")
+                                logger.error(f"[PIPELINE][SCENE_CHANGE][APPLY_FAILED] node={change.value} NOT FOUND")
                         except Exception as exc:
                             logger.error(f"[PIPELINE][SCENE_CHANGE][APPLY_CRASH] npc={change.target} exc={exc}")
 

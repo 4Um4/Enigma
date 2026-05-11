@@ -146,16 +146,23 @@ def idle_tick(campaign_id: str, game_loop=Depends(get_game_loop)) -> dict:
 
         # npc_positions из world_snapshot через конвертер (обратная совместимость)
         _npc_pos_dict: dict = {}
-        if _result.world_snapshot is not None:
-            _npc_pos_dict = snapshot_npc_positions_to_dict(
-                _result.world_snapshot.npc_positions
-            )
+        _ws = _result.get("world_snapshot") if isinstance(_result, dict) else getattr(_result, 'world_snapshot', None)
+        if _ws is not None:
+            _npc_pos = _ws.get("npc_positions") if isinstance(_ws, dict) else getattr(_ws, 'npc_positions', None)
+            # Защита от смены контракта: если пришел dict, а не список объектов
+            if isinstance(_npc_pos, dict):
+                _npc_pos_dict = _npc_pos
+            elif _npc_pos:
+                _npc_pos_dict = snapshot_npc_positions_to_dict(_npc_pos),
+        
+        _status = _result.get("status") if isinstance(_result, dict) else _result.status
+        _events = _result.get("significant_events") if isinstance(_result, dict) else _result.significant_events
+
         return {
-            "status": _result.status,
-            "changes": _result.changes_count,
+            "status": _status,
             "npc_positions": _npc_pos_dict,
-            "events": _result.significant_events,
-            "world_snapshot": _result.world_snapshot,
+            "events": _events,
+            "world_snapshot": _ws,
         }
     except Exception as e:
         import traceback

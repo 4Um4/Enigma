@@ -14,6 +14,8 @@ path: /backend/app/models/pipeline_context.py
 from dataclasses import dataclass, field
 from typing import Any, Optional
 
+from app.models.will import IntentResolution
+
 # TODO: после миграции domain — раскомментировать
 # from app.domain.communication import CommunicationIntent
 # from app.domain.events import EventDTO
@@ -52,6 +54,8 @@ class PipelineContext:
     player_target_name:   str    = ""
     action_type:          str    = ""
     recent_player_actions:list   = field(default_factory=list)
+    intent_resolution:    Optional[IntentResolution] = None # ADR-032: Результат шлюза воли
+    will_conflict_data:   Optional[dict[str, Any]] = None  # ADR-034: Артефакты конфликта воли (для UI Спринт 26)
     
     # ── NPC и их реакции ───────────────────────────────────────────
     active_npc_ids:       list   = field(default_factory=list)

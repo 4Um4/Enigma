@@ -38,10 +38,9 @@ def _build_perceived_scene(scene_state: dict, config: PerceptionConfig) -> Perce
     
     # Конвертируем NPC из scene_state
     for npc_id, npc_data in scene_state.get("npc_positions", {}).items():
-        pos = npc_data.get("local_position") or npc_data.get("position")
-        x, y = 0.0, 0.0
-        if isinstance(pos, dict):
-            x, y = float(pos.get("x", 0)), float(pos.get("y", 0))
+        # ADR-019: Каузальный Lerp. Интерполируем позицию, если NPC в транзите.
+        pos = _resolve_visual_xy(npc_id, scene_state)
+        x, y = float(pos.get("x", 0)), float(pos.get("y", 0))
         # УБРАНО: render spam (диагностика ADR-0013 завершена, рендерер невиновен)
         # Рендер spam полностью удалён. Трассировка только при изменении позиции (TASK 4).
             
@@ -168,6 +167,46 @@ def _idle_tick_interval_ms(nearest_dist: float) -> int:
         return IDLE_TICK_MID_MS
     else:
         return IDLE_TICK_FAR_MS
+
+
+def _resolve_visual_xy(npc_id: str, scene_state: dict) -> dict:
+    """ADR-019: Каузальный Lerp. Вычисляет визуальную позицию NPC с учетом транзитов.
+    Если NPC в движении, интерполирует от from_xy к to_xy на основе game_time_seconds.
+    Если транзита нет — возвращает статичную local_position (Каузальная Истина).
+    """
+    traversals = scene_state.get("active_traversals", [])
+    trav = None
+    
+    # ADR-019: active_traversals приходит как список словарей
+    if isinstance(traversals, list):
+        for t in traversals:
+            if t.get("npc_id") == npc_id:
+                trav = t
+                break
+    elif isinstance(traversals, dict):
+        trav = traversals.get(npc_id) # Fallback для старого формата
+        
+    if trav and trav.get("duration_seconds", 0) > 0:
+        from_xy = trav.get("from_xy", [0, 0])
+        to_xy = trav.get("to_xy", [0, 0])
+        duration = trav["duration_seconds"]
+        started_at = trav.get("started_at", 0)
+        
+        current_time = scene_state.get("game_time_seconds", 0)
+        
+        # Вычисляем прогресс (0.0 - 1.0)
+        progress = (current_time - started_at) / duration
+        progress = max(0.0, min(1.0, progress)) # Clamp
+        
+        # Если прогресс < 1.0, NPC еще в пути (Визуальная Ложь)
+        if progress < 1.0:
+            x = from_xy[0] + (to_xy[0] - from_xy[0]) * progress
+            y = from_xy[1] + (to_xy[1] - from_xy[1]) * progress
+            return {"x": x, "y": y}
+            
+    # Fallback: Транзит завершен или отсутствует. Рисуем по Каузальной Истине
+    npc_data = scene_state.get("npc_positions", {}).get(npc_id, {})
+    return npc_data.get("local_position", {"x": 0, "y": 0})
 
 
 def _check_transition_trigger(scene_state: dict, px: float, py: float, system_log: list) -> None:
@@ -545,20 +584,30 @@ class GameScreen:
                     _new_lp = new_data.get("local_position", {})
                     if _old_lp != _new_lp:
                         print(f"[FRAME_RENDER] npc={npc_id} new_xy=({_new_lp.get('x')}, {_new_lp.get('y')})")
+            # ADR-019: Сохраняем активные транзиты для визуальной интерполяции (Lerp)
+            if _ws and "active_traversals" in _ws:
+                scene_state["active_traversals"] = _ws["active_traversals"]
 
             if _new_positions:
                 print(f"[IDLE_TICK] merged: {list(_new_positions.keys())}")
 
             # Синхронизация player_position и environment из world_snapshot
             if _ws:
-                _pp = _ws.get("player_position")
-                if _pp and len(_pp) == 2:
-                    _set_player_xy(scene_state, float(_pp[0]), float(_pp[1]))
+                # ADR-019: Frontend — авторитет визуальной позиции игрока.
+                # Не перезаписываем локальную позицию из world_snapshot при idle_tick,
+                # иначе мгновенная телепортация на старые координаты бэкенда убьет плавность.
+                # _pp = _ws.get("player_position")
+                # if _pp and len(_pp) == 2:
+                #     _set_player_xy(scene_state, float(_pp[0]), float(_pp[1]))
                 # ЗАКОН: Фронтенд НЕ конструирует время. Absolute time authority = backend.
                 _ws_gts = _ws.get("game_time_seconds")
                 if _ws_gts is not None and _ws_gts > 0:
                     scene_state["game_time_seconds"] = _ws_gts
                     self.game_time_seconds = _ws_gts
+                    
+                # ADR-035: Извлечение феноменологической проекции аватара (Визуальное искажение)
+                if "avatar_state" in _ws:
+                    scene_state["avatar_state"] = _ws["avatar_state"]
                 # time_of_day — только визуальный срез для рендера, не источник истины
                 _ws_tod = _ws.get("time_of_day")
                 if _ws_tod:
@@ -568,7 +617,7 @@ class GameScreen:
                     scene_state.setdefault("environment", {})["weather"] = _ws_weather
 
             # Pressure-driven: если idle_tick принёс proactive события → запускаем телеграф
-            _events = _tick_data.get("events", [])
+            _events = _tick_data.get("events") or [] if _tick_data else []
             # Фильтруем только proactive (не life_engine позиционные)
             _proactive_events = [e for e in _events if e.get("cause") == "idle_pressure"]
             _now_ms = pygame.time.get_ticks()
@@ -670,11 +719,17 @@ class GameScreen:
                             _new_lp = new_data.get("local_position", {})
                             if _old_lp != _new_lp:
                                 print(f"[FRAME_RENDER][ACTION] npc={npc_id} new_xy=({_new_lp.get('x')}, {_new_lp.get('y')})")
+                        # ADR-019: Сохраняем активные транзиты для визуальной интерполяции (Lerp)
+                        if "active_traversals" in _action_ws:
+                            scene_state["active_traversals"] = _action_ws["active_traversals"]
                     elif isinstance(result.response, dict) and "npc_positions" in result.response:
                         # Fallback: deprecated top-level npc_positions
                         import copy
                         for npc_id, new_data in result.response["npc_positions"].items():
                             scene_state.setdefault("npc_positions", {})[npc_id] = copy.deepcopy(new_data)
+                        # ADR-019: Сохраняем активные транзиты (fallback)
+                        if "active_traversals" in result.response:
+                            scene_state["active_traversals"] = result.response["active_traversals"]
 
                     if resp and resp != "Ничего не произошло.":
                         import re
@@ -838,6 +893,8 @@ class GameScreen:
                 player_xy=(px, py),
                 player_facing=move.facing_angle,
                 dt=dt,
+                avatar_state=scene_state.get("avatar_state"),
+                ambient_state=scene_state.get("ambient_phenomenology"),
             )
 
             # HUD

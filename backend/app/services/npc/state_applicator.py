@@ -26,6 +26,7 @@ from typing import Any, Dict, List, Optional
 # Целевая архитектура данных (L2)
 from app.models.npc_state import NPCState
 from app.core.constants import TRAIT_DECAY_RATE, NARRATIVE_CACHE_MAX
+from app.services.npc.legacy_delta_adapter import LegacyStateDeltaAdapter
 
 # Легаси-типы, используемые в логике (Enum'ы и контракты)
 from app.models.npc_state import (
@@ -92,11 +93,15 @@ class StateApplicator:
 
         try:
             self._apply_intent(new_state, result, current_tick)
-            self._apply_progress(new_state, result.deltas)  # счётчик реального прогресса
-            self._apply_deltas(new_state, result.deltas, campaign_id)
+            # ADR-013: Схлопываем v2 -> v1 для легаси-методов StateApplicator.
+            # В будущем StateApplicator.apply() должен нативно итерировать List[StateDeltas].
+            _legacy_deltas = LegacyStateDeltaAdapter.collapse(result.deltas)
+
+            self._apply_progress(new_state, _legacy_deltas)  # счётчик реального прогресса
+            self._apply_deltas(new_state, _legacy_deltas, campaign_id)
 
             # --- ИСПРАВЛЕНО: работаем с new_state и result.deltas ---
-            d = result.deltas
+            d = _legacy_deltas
             
             # Применяем психологические изменения (R6.1)
             new_state.identity_integrity = max(0.0, min(1.0, new_state.identity_integrity + d.identity_integrity_delta))

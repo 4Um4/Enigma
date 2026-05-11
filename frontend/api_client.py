@@ -57,6 +57,8 @@ class GameActionResponse:
     # TASK 1: Force Merge — world_snapshot из player action tick (ADR-0014)
     world_snapshot: dict | None = None
     npc_positions: dict | None = None
+    # Resistance Medium: Данные конфликта воли для заражения UI
+    will_conflict_data: dict | None = None
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -234,6 +236,8 @@ class BackendContract:
             # TASK 1: Force Merge — пробрасываем snapshot позиций (ADR-0014)
             world_snapshot=raw.get("world_snapshot"),
             npc_positions=raw.get("npc_positions"),
+            # Resistance Medium: Проброс конфликта воли
+            will_conflict_data=raw.get("will_conflict_data"),
         )
 
 

@@ -19,10 +19,14 @@ from uuid import uuid4
 from app.domain.events import EventDTO
 from app.models.cfrm import (
     CausalAxis,
+    ClassificationResult,
+    ClassificationSource,
     ClusterDef,
     ClusterGraph,
     ClusterOccupancy,
+    DisturbanceVector,
     EventBuffer,
+    FieldDisturbance,
     classify_event,
 )
 
@@ -70,23 +74,30 @@ class TestClusterGraph:
 
 class TestEventBufferAndClassification:
     def test_classify_physical(self):
-        assert classify_event("combat") == CausalAxis.PHYSICAL
-        assert classify_event("player_attacks") == CausalAxis.PHYSICAL
-        assert classify_event("object_destroyed") == CausalAxis.PHYSICAL
+        result = classify_event("combat")
+        assert result.axis == CausalAxis.PHYSICAL
+        assert result.confidence == 1.0
+        assert result.source == ClassificationSource.HARD_RULE
+        
+        assert classify_event("player_attacks").axis == CausalAxis.PHYSICAL
+        assert classify_event("object_destroyed").axis == CausalAxis.PHYSICAL
 
     def test_classify_cognitive(self):
-        assert classify_event("dialogue") == CausalAxis.COGNITIVE
-        assert classify_event("PLAYER_INSULTS") == CausalAxis.COGNITIVE
-        assert classify_event("npc_spoke") == CausalAxis.COGNITIVE
+        assert classify_event("dialogue").axis == CausalAxis.COGNITIVE
+        assert classify_event("PLAYER_INSULTS").axis == CausalAxis.COGNITIVE
+        assert classify_event("npc_spoke").axis == CausalAxis.COGNITIVE
 
     def test_classify_social(self):
-        assert classify_event("theft") == CausalAxis.SOCIAL
-        assert classify_event("saved_life") == CausalAxis.SOCIAL
-        assert classify_event("betrayal") == CausalAxis.SOCIAL
+        assert classify_event("theft").axis == CausalAxis.SOCIAL
+        assert classify_event("saved_life").axis == CausalAxis.SOCIAL
+        assert classify_event("betrayal").axis == CausalAxis.SOCIAL
 
     def test_classify_unknown_falls_to_cognitive(self):
-        """Неизвестные события по умолчанию когнитивные (безопасный fallback)."""
-        assert classify_event("strange_new_event") == CausalAxis.COGNITIVE
+        """Неизвестные события по умолчанию когнитивные (безопасный fallback) с эпистемической неуверенностью."""
+        result = classify_event("strange_new_event")
+        assert result.axis == CausalAxis.COGNITIVE
+        assert result.confidence == 0.2
+        assert result.source == ClassificationSource.FALLBACK
 
     def test_buffer_add_and_drain(self, make_event):
         """Буфер наполняется по осям и полностью очищается при drain."""
@@ -174,3 +185,59 @@ class TestClusterOccupancy:
 
         assert idx.get_cluster("npc_1") == "loc:hall"
         assert len(idx.cluster_to_entities) == 1
+
+
+# ── Задача 2: Детерминизм классификации ──────────────────────────────────
+
+class TestClassifyEventDeterministic:
+    def test_100_events_determinism_and_buffer_integrity(self):
+        """Система детерминированно классифицирует 100 событий (70 известных, 30 unknown/опечатки) без потерь."""
+        import random
+        random.seed(42)
+        
+        # Генерируем 70 известных событий (повторяем сэмплы)
+        known_events = [
+            "combat", "player_attacks", "object_destroyed", "player_moved",
+            "dialogue", "PLAYER_INSULTS", "npc_spoke", "PLAYER_THREATENS",
+            "theft", "saved_life", "betrayal", "player_helpers",
+            "npc_moved", "player_cast_spell", "object_moved", "sound_emitted",
+            "player_talks", "npc_interacts_npc", "faction_event", "idle"
+        ]
+        # 30 unknown/опечатки
+        unknown_events = [
+            "strange_noise", "player_attacs", "dilogoue", "figth", "run_away",
+            "weather_rain", "npc_dance", "spell_cast", "jump", "swim",
+            "trade_item", "craft_weapon", "read_book", "sleep", "eat_food",
+            "drink_potion", "open_door", "close_window", "sit_chair", "look_mirror",
+            "unknown_gesture", "weird_sound", "glitch", "hack", "mod",
+            "teleport", "fly", "dig", "build", "destroy"
+        ]
+        
+        all_events = (known_events * 4)[:70] + unknown_events  # 70 + 30 = 100
+        random.shuffle(all_events)
+        
+        # Запускаем классификацию дважды
+        results_run_1 = [classify_event(e) for e in all_events]
+        results_run_2 = [classify_event(e) for e in all_events]
+        
+        # Assert 1: Результаты идентичны (ось + уверенность + источник)
+        assert len(results_run_1) == 100
+        assert len(results_run_2) == 100
+        for i in range(100):
+            assert results_run_1[i] == results_run_2[i], f"Неседерминированность на событии '{all_events[i]}'"
+            
+        # Assert 2: Ни одно событие не потеряно при помещении в EventBuffer
+        buf = EventBuffer()
+        for event_type, res in zip(all_events, results_run_1):
+            disturbance = FieldDisturbance(
+                origin_cluster="test:cluster",
+                disturbance_type=res.axis,
+                magnitude=1.0,
+                vectors=(DisturbanceVector.BEHAVIORAL,),
+                source_entity="test_runner"
+            )
+            buf.add(disturbance, res.axis)
+            
+        physical, cognitive, social = buf.drain()
+        total = len(physical) + len(cognitive) + len(social)
+        assert total == 100, f"Потеряно событий в буфере! Было 100, стало {total}"

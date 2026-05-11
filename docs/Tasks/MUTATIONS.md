@@ -162,3 +162,100 @@
 - **WillResponseDTO:** Обновлен для работы с WillState и IntentPressureProfile. Counter-Offer стал обязательным механизмом выживания аватара, а не фичей.
 - **Топология:** Обновлен ARCHITECTURE_FLOW. Внедрен `IntentPressureResolver` между `Player Input` и `WillpowerGate`.
 - **Запрет:** Использование матриц поведения как онтологии системы запрещено (допускается только как debug fallback).
+
+## Сессия 20: Очистка combat_stats и Миграция DecisionHub на v2
+**Дата:** 11.05.2026  
+**Изменения:**
+- **Приоритет 1 (Очистка):** Удалено чтение `combat_stats` из `phase_6_avatar.py` и `domain_phases.py`. Физически удалены мёртвые модули `physical_resolver.py` и `reflex_resolver.py`. Прямая мутация HP аватара в обход ImpactEngine пресечена. **[Рефакторинг]**
+- **Приоритет 2 (Миграция v2):** `DecisionResult.deltas` изменён с `StateDeltas` на `List[StateDeltas]`. Метод `_compute_deltas` переписан: теперь он генерирует иммутабельные `EmotionPayload` и `SocialPayload` через локальные аккумуляторы (ADR-032). **[Контракт]**
+- **Legacy Degradation Adapter:** Создан `legacy_delta_adapter.py`. Внедрён в `npc_tick_pipeline.py`, `state_applicator.py`, `scene_outcome_builder.py` и `r3_direct_builder.py`. Адаптер обрабатывает как старый формат (одиночный `StateDeltas`), так и новый (список), логируя потерю данных при коллапсе. **[Контракт]**
+
+## Сессия 21: Смерть Объективных Событий и Рождение Феноменологии (CFRM P2)
+**Дата:** 11.05.2026  
+**Изменения:**
+- **`backend/app/models/cfrm.py`:** Удалена концепция хранения `EventDTO` в `EventBuffer`. Введены онтологии P2: `FieldDisturbance` (возмущение поля вместо факта), `DisturbanceVector` (кинетика, акустика, материя, поведение), `ProjectionPolicy` (оператор трансформации, зависящий от наблюдателя), `PerceivedPhenomenon` (субъективный феномен), `PhenomenologicalState` (локальная истина), `PsychologicalPressure` (векторы давления на психику). **[Контракт]**
+- **`backend/app/models/npc_state.py`:** Внедрен `PerceptualKernel` — субъективная модель восприятия NPC (без строк, только градиенты: threat, trust, uncertainty, anomaly). Добавлен в `NPCState`. **[Контракт]**
+- **`backend/app/services/events/event_bus.py`:** Удалена прямая привязка `EventBuffer`. Внедрен `cfrm_bridge` — коллбэк-мост для деобъективации. Теперь `EventBus` не знает о структуре буфера, а только вызывает функцию трансформации события в возмущение. **[Рефакторинг]**
+- **`backend/app/services/tick_orchestrator.py`:** Реализовано замыкание `_deobjectify_event`, преобразующее `EventDTO` в `FieldDisturbance` с определением `origin_cluster` через `ClusterOccupancy`. Удален вызов `PerceptionSubscriber` из Фазы 8. В Фазе 9 внедрен вызов `LocalCausalSolver`.
+**[Архитектура]**
+- **`backend/app/services/cfrm/local_causal_solver.py` (Новый):** Создан 3-фазный редюсер (Projection → Attenuation → Local Reduction). Реализованы три политики проекции: `PhysicalProjection` (теряет энергию), `CognitiveProjection` (теряет достоверность, инференс), `SocialProjection` (теряет точность, искажается). Солвер генерирует `PsychologicalPressure`, которое конвертируется в `StateDeltas`. **[Архитектура]**
+- **`backend/app/services/npc/decision_hub.py`:** Починена мутация `frozen` payload-ов (`EmotionPayload`, `SocialPayload`) через `dataclasses.replace()`. **[Багфикс]**
+
+## Сессия 22: WillpowerGate Pipeline & Phase 1 Boundary Adapter (ADR-034)
+**Дата:** 11.05.2026  
+**Изменения:**
+- **`backend/app/models/will.py` (Новый):** Созданы контракты Воли: `IntentPressureProfile` (вектор давления на психику), `WillState` (шкала деградации COMPLY→CONDITIONED), `WillResponseDTO`, `IntentResolution` (транзитный DTO шлюза). **[Контракт]**
+- **`backend/app/services/will.py` (Новый):** Реализована Cumulative Strain Model (ADR-031). Pure functions: `resolve_intent_pressure()` (семантический перевод), `compute_willpower()` (вычисление сопротивления и генерация counter-offer). **[Архитектура]**
+- **`backend/app/services/events/event_types.py`:** Добавлен `WILL_CONFLICT` для публикации блокировки воли. **[Контракт]**
+- **`backend/app/services/tick_orchestrator.py`:** В `_TickContext` добавлено поле `player_intent`. В `_phase_1_input` внедрена логика фильтрации намерения через WillpowerGate. **[Архитектура]**
+- **`backend/app/services/game_loop/phase_1_input.py`:** Рефакторинг в Phase 1 Boundary Adapter. Создана чистая функция `resolve_player_intent()`. Удалена прямая публикация из бизнес-логики. **[Рефакторинг]**
+- **`backend/app/services/game_loop/__init__.py`:** Интеграция шлюза воли. Вызов `publish_player_action` заменен на `resolve_player_intent → publish_resolution`. Результат сохраняется в `shared_context.intent_resolution`. **[Пайплайн]**
+- **`backend/app/models/pipeline_context.py`:** Добавлено поле `intent_resolution: Optional[IntentResolution]`. **[Контракт]**
+- **`backend/tests/test_will.py` (Новый):** 8 юнит-тестов Cumulative Strain Model (трусость, агрессия, стоицизм). **[Тестирование]**
+- **Архитектура:** Принят ADR-034 (Phase 1 Boundary Adapter). Запрещена бизнес-логика воли в `game_loop`. Вариант Б (унификация тика) отложен до разделения слоев.
+
+## Сессия 23: Intent Compression Layer (Слой 1) и Русская Морфология
+**Дата:** 12.05.2026  
+**Изменения:**
+- **`backend/app/domain/intent_profile.py` (Новый):** Создан доменный слой семантического поля намерения. Введены: `ActionType` (расширен UNCERTAIN), `TargetZone`, `SemanticAmbiguity`, `EmotionalVector` (5 осей), `ConfidenceVector` (4 оси), `IntentSemanticField`. **[Контракт]**
+- **`backend/app/services/input/llm_compressor_client.py` (Новый):** Реализован паттерн Strategy + DI для LLM. Создан `LLMCompressorClient` (Protocol) и `LlamaCppCompressorClient` (конкретная реализация с JSON mode). **[Архитектура]**
+- **`backend/app/services/input/intent_compressor.py` (Новый):** Реализован Слой 1 (Сжатие языка). Fast Path использует `pymorphy3` для лемматизации русских слов (обоих видов глаголов). Slow Path вызывает LLM через интерфейс. Галлюцинации LLM отсекаются Pydantic валидацией. **[Архитектура]**
+- **`backend/app/services/game_loop/phase_1_input.py`:** Внедрен Слой 1 (Compression) и заглушка Слоя 2 (Target Resolution) перед вычислением давления на психику (WillpowerGate). **[Пайплайн]**
+- **`backend/tests/test_intent_compressor.py` (Новый):** 4 юнит-теста: Fast Path, Slow Path, LLM Failure, DTO Validation. **[Тестирование]**
+
+## Сессия 24: Affective Resonance System Integration & Legacy Cleanup
+**Дата:** 12.05.2026  
+**Изменения:**
+- **`backend/app/models/affect.py`:** Введены `ResponseBias` (FEAR, AGGRESSION, FREEZE, SUBMISSION, DISSOCIATION) и `ResonanceProfile`. Аффект — это не бафф, а искажение интерпретации. **[Контракт]**
+- **`backend/app/services/affect.py` (Новый):** Реализован двухслойный процессор аффекта. Слой 1 (`scan_affective_resonance`) — чистая детекция совпадения смысловых паттернов. Слой 2 (`distort_pressure`) — искажение давления через ResponseBias. **[Архитектура]**
+- **`backend/app/models/npc_state.py`:** Добавлено поле `affective_imprints: Tuple[AffectiveImprint, ...]` в `NPCState`. Аватар = NPC, память универсальна. **[Контракт]**
+- **`backend/app/services/tick_orchestrator.py`:** В `_phase_1_input` внедрен вызов Аффект-Резонанса между вычислением давления и WillpowerGate. **[Пайплайн]**
+- **Архитектура:** Принят ADR-036 (Affect Resonance & Pressure Distortion).
+- **Legacy Cleanup:** Устранен Double Invocation WillpowerGate (ADR-033). Фаза 1 стала чистым транслятором `Intent → Pressure`. Удален мёртвый код из `phase_1_input.py`. **[Рефакторинг]**
+
+## Сессия 25: WillpowerGate Pipeline & Embodied Perception Interface (ADR-034, ADR-035)
+**Дата:** 12.05.2026  
+**Изменения:**
+- **`backend/app/models/will.py` (Новый):** Созданы контракты Воли: `IntentPressureProfile`, `WillState` (COMPLY→CONDITIONED), `WillResponseDTO`, `IntentResolution`. **[Контракт]**
+- **`backend/app/services/will.py` (Новый):** Реализована Cumulative Strain Model. Pure functions: `resolve_intent_pressure()`, `compute_willpower()`. **[Архитектура]**
+- **`backend/app/models/affect.py` (Новый):** Введена `AffectiveImprint` — единица аффективной памяти (остаточное давление опыта). Подготовка к Этапу 3 Roadmap. **[Контракт]**
+- **`backend/app/services/game_loop/phase_1_input.py`:** Рефакторинг в Phase 1 Boundary Adapter (ADR-034). Создана чистая функция `resolve_player_intent()`. Удалена прямая публикация из бизнес-логики. **[Рефакторинг]**
+- **`backend/app/services/game_loop/__init__.py`:** Интеграция шлюза воли. Замена `publish_player_action` на `resolve_player_intent → publish_resolution`. **[Пайплайн]**
+- **`backend/app/domain/snapshot.py`:** Введены `AvatarStateDTO`, `PhysicalPresentationState`, `MentalPresentationState` (ADR-035). Феноменологическая проекция вместо сырых метрик. **[Контракт]**
+- **`backend/app/services/presentation/avatar_presentation_assembler.py` (Новый):** Создан Translation Layer для трансляции `body_state`/`psyche` в `AvatarStateDTO`. **[Архитектура]**
+- **`backend/app/services/integration/world_snapshot_builder.py`:** Добавлен прием и проброс `avatar_state` в `WorldSnapshotDTO`. **[Пайплайн]**
+- **`frontend/game_screen.py`:** Извлечение `avatar_state` из `world_snapshot` и передача в рендерер. **[UI]**
+- **`frontend/scene_renderer.py`:** Реализован Embodied Perception Interface — метод `_apply_avatar_perception_overlay`. Кровавая виньетка (`blood_visibility`), туннельное зрение (`visual_distortion`), помутнение при диссоциации. Никаких цифр HP, только визуальные искажения. **[UI]**
+- **Архитектура:** Принят ADR-034 (Phase 1 Boundary Adapter) и ADR-035 (Avatar Presentation DTO).
+
+## Сессия 26: Вертикальный срез CFRM, Will Pipeline & Embodied Perception
+**Дата:** 12.05.2026  
+**Изменения:**
+- **`backend/app/models/cfrm.py`:** Введены `ClassificationSource` (Enum) и `ClassificationResult` (frozen dataclass). Функция `classify_event` переписана: возвращает не `CausalAxis`, а `ClassificationResult` с оценкой confidence (1.0 для правил, 0.2 для fallback). **[Контракт]**
+- **`backend/app/services/tick_orchestrator.py`:** Метод `_deobjectify_event` обновлён для работы с `ClassificationResult`, добавлено логирование эпистемической неуверенности. Метод `_rebuild_cluster_occupancy` переписан: добавен сброс индекса (устранение ghost-сущностей), верификация против `all_npcs_raw` и baseline-логирование времени перестроения. Добавлено сохранение артефактов Воли в `shared_context.will_conflict_data`. **[Архитектура]**
+- **`backend/app/services/will.py`:** Починка критического бага нулевого давления. `resolve_intent_pressure` обновлён для распознавания актуальных ключей действий (`player_attacks`, `player_threatens` и их алиасов). Удалена легаси-проверка `unarmed`, несовместимая с `IntentParametersDTO`. **[Багфикс]**
+- **Pipeline Closure (API):** В `PipelineContext`, `ChatTurnResponse` и `GameActionResponse` добавлено поле `will_conflict_data: Optional[dict]`. `GameLoop` пробрасывает данные в ответ API. **[Пайплайн]**
+- **`backend/app/domain/snapshot.py`:** `AvatarStateDTO` расширен феноменологическими скалярами: `perceptual_stability`, `cognitive_coherence`, `sensory_noise`, `motor_disruption`, `perceptual_latency`, `reality_reconciliation_rate`. **[Контракт]**
+- **`backend/app/services/presentation/avatar_presentation_assembler.py`:** Переписан на генерацию непрерывных векторов когнитивного давления вместо визуальных пиксельных команд. **[Рефакторинг]**
+- **`frontend/presentation_firewall.py` (Новый):** Создан шлюз sanitization на границе Бэкенд→Фронтенд. Отсекает категориальные енумы (mental_state), клэмпит скаляры, гасит спайки. **[Архитектура]**
+- **`frontend/perceptual_momentum.py` (Новый):** Темпоральная инерция восприятия. Внедрена S-curve (smoothstep) сборки/распада реальности, асимметричная интерполяция и контролируемый стохастический дрейф. **[Архитектура]**
+- **`frontend/scene_renderer.py`:** Удалено прямое чтение mental_state. Рендерер переведен на потребление ManifestationProfile из PerceptualMomentum. Добавлен визуальный тремор экрана (`visual_instability`). **[Рефакторинг]**
+- **`frontend/text_input.py`:** Внедрена система Resistance Medium. Добавлены методы infect() и exorcise(). При заражении поле ввода заполняется навязанным текстом аватара (красный, джиттер курсора), который игрок должен физически стереть. **[UI/Механика]**
+- **`frontend/api_client.py`:** Мапит `will_conflict_data`. **[Контракт]**
+- **`frontend/game_screen.py`:** Перехват `will_conflict_data`, вызов `text_input.infect()` для моторного сопротивления и создание `NarrativeBeat` (DeliveryType.INTERNAL). **[Пайплайн]**
+- **Sandbox:** Создан `tests/sandbox/sandbox_cfrm_vertical.py` (Осциллограф причинности) и `tests/sandbox/sandbox_will_vertical.py` (Осциллограф Воли). Оба теста зелёные. **[Тестирование]**
+- **Очистка:** Удалён D&D реликты `sandbox_handler.py`. Легаси-бенчмарки перенесены в `tests/sandbox/legacy/`. Артефакты перенесены в `data/sandbox_artifacts/`. **[Рефакторинг]**
+- **Архитектура:** Приняты ADR-037 (Phenomenological Presentation), ADR-038 (Epistemic Classification) и ADR-039 (Will Conflict Data Pipeline).
+
+## Сессия 24: Intent Compression, Social Physics & Causal Sandbox
+**Дата:** 12.05.2026  
+**Изменения:**
+- **`backend/app/domain/intent_profile.py` (Новый):** Создан доменный слой семантического поля намерения. Введены `ActionType` (расширен UNCERTAIN), `TargetZone`, `SemanticAmbiguity`, `EmotionalVector`, `ConfidenceVector`, `IntentSemanticField`. **[Контракт]**
+- **`backend/app/domain/intent.py`:** Убита дыра `Dict[str, Any]`. Внедрен строгий `IntentParametersDTO` (semantic_action, target_reference, target_id, physical_force, emotional_charge, social_pressure). **[Контракт]**
+- **`backend/app/services/input/intent_compressor.py` (Новый):** Реализован Слой 1 (Сжатие языка). Fast Path использует `pymorphy3` для лемматизации русских слов (обоих видов глаголов) и извлечения существительных-целей. Slow Path вызывает LLM через DI. Галлюцинации отсекаются Pydantic. **[Архитектура]**
+- **`backend/app/services/input/llm_compressor_client.py` (Новый):** Реализован паттерн Strategy + DI для LLM-парсинга (LlamaCppCompressorClient). **[Архитектура]**
+- **`backend/app/services/social/directive_interpretation_subscriber.py` (Новый):** Реализована Физика Власти (ADR-036). Трансформирует речевые акты (приказы) в `PsychologicalPressure(directive_obedience)`, искривляя utility-space цели. НЕ генерирует MovementIntent. **[Архитектура]**
+- **`backend/app/services/game_loop/phase_1_input.py`:** Внедрен Слой 1 (Compression) и Слой 2 (Target Resolution через difflib) перед вычислением давления. Проброс `semantic_action`, `target_id` и `social_pressure` в `EventDTO.payload`. **[Пайплайн]**
+- **`backend/app/models/cfrm.py`:** В `PsychologicalPressure` добавлен вектор `directive_obedience`. **[Контракт]**
+- **`backend/tests/sandbox/` (Новый):** Создана Песочница Онтологии (test_causal_movement.py). 7 тестов верифицируют законы реальности: нет прямой мутации, давление — не команда, легитимность влияет на давление. **[Тестирование]**
+- **Архитектура:** Приняты ADR-035 (Intent Compression Layer), ADR-036 (Social Physics). Принят Каузальный Контракт v1.1.

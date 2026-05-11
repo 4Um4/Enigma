@@ -30,6 +30,8 @@ class WorldSnapshotBuilder:
         scene_state: Dict,
         tick: int,
         last_event_id: Optional[str] = None,
+        avatar_state: Optional["AvatarStateDTO"] = None, # ADR-035
+        all_npcs_raw: Optional[List[Dict]] = None, # ADR-037: Для вычисления среды
     ) -> WorldSnapshotDTO:
         """Собирает снимок из финального состояния тика.
         
@@ -44,9 +46,13 @@ class WorldSnapshotBuilder:
         npc_positions = self._extract_npc_positions(scene_state)
         visible_events = self._extract_visible_events(scene_state)
         player_pos = self._extract_player_position(scene_state)
+        self.avatar_state = avatar_state # Проброс проекции в DTO
         location_id = scene_state.get("location_id", "")
         environment = scene_state.get("environment", {})
         version = tick
+
+        # ADR-037: Вычисление средового давления на основе психики NPC в сцене
+        ambient_phenomenology = self._compute_ambient_phenomenology(all_npcs_raw)
 
         return WorldSnapshotDTO(
             tick=tick,
@@ -54,12 +60,15 @@ class WorldSnapshotBuilder:
             last_event_id=last_event_id,
             player_position=player_pos,
             npc_positions=npc_positions,
+            avatar_state=self.avatar_state, # ADR-035: Внедрение феноменологической проекции
+            ambient_phenomenology=ambient_phenomenology, # ADR-037: Средовое давление
             visible_events=visible_events,
             available_actions=self._extract_available_actions(scene_state),
             location_id=location_id,
             weather=environment.get("weather_inside", "unknown"),
             time_of_day=environment.get("time_of_day", "day"),
             game_time_seconds=scene_state.get("game_time_seconds", 0),
+            active_traversals=self._extract_active_traversals(scene_state),
         )
 
     def _extract_npc_positions(
@@ -111,6 +120,56 @@ class WorldSnapshotBuilder:
         spatial = scene_state.get("player_spatial", {})
         local = spatial.get("local_position", {})
         return (local.get("x", 0.0), local.get("y", 0.0))
+
+    def _extract_active_traversals(self, scene_state: Dict) -> list:
+        """Конвертирует TraversalState из scene_state в dict для фронтенда (ADR-019)."""
+        traversals = scene_state.get("active_traversals", {})
+        result = []
+        for npc_id, trav in traversals.items():
+            if trav.get("status") == "MOVING" and len(trav.get("path_waypoints", [])) >= 2:
+                from_xy = trav["path_waypoints"][0]
+                to_xy = trav["path_waypoints"][-1]
+                dist = ((to_xy[0] - from_xy[0])**2 + (to_xy[1] - from_xy[1])**2)**0.5
+                duration = dist / trav.get("speed", 2.0)
+                result.append({
+                    "npc_id": npc_id,
+                    "from_xy": [from_xy[0], from_xy[1]],
+                    "to_xy": [to_xy[0], to_xy[1]],
+                    "duration_seconds": max(0.5, duration),
+                    "started_at": trav.get("started_at", 0), # ADR-019: Фронтенду нужна точка отсчета для lerp
+                    "locomotion": trav.get("locomotion", "WALK")
+                })
+        return result
+
+    def _compute_ambient_phenomenology(self, all_npcs_raw: Optional[List[Dict]]) -> Optional[Dict[str, float]]:
+        """Вычисляет феноменологическое давление среды на основе стресса и страха NPC (ADR-037)."""
+        if not all_npcs_raw:
+            return None
+            
+        total_stress, total_fear, count = 0.0, 0.0, 0
+        for npc in all_npcs_raw:
+            if npc.get("npc_id") == "player":
+                continue
+            psyche = npc.get("psyche", {})
+            total_stress += float(psyche.get("stress", 0.0))
+            total_fear += float(psyche.get("fear", 0.0))
+            count += 1
+            
+        if count == 0:
+            return None
+            
+        # Эмоциональная температура: от -1 (ледяное спокойствие) до 1 (паника/агрессия)
+        avg_neg_emotion = (total_stress + total_fear) / (2 * count)
+        emotional_temperature = (avg_neg_emotion * 2) - 1.0 
+        
+        # Давление скопления: количество NPC нормализованное
+        proximity_compression = min(1.0, count / 5.0) # 5 NPC = максимальное давление
+        
+        return {
+            "emotional_temperature": max(-1.0, min(1.0, emotional_temperature)),
+            "proximity_compression": proximity_compression,
+            "directional_pressure_bias": [0.0, 0.0] # Заглушка: вычисление вектора требует координат
+        }
 
     def _extract_available_actions(
         self, scene_state: Dict

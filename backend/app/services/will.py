@@ -1,0 +1,245 @@
+# path: backend\app\services\will.py
+# Назначение: Вычисление Воли и Давления (ADR-031). Pure Functions.
+# Зависимости: app.domain.intent, app.models.will
+# Основные сущности: resolve_intent_pressure, compute_willpower
+"""
+TODO: В будущем этот слой может быть расширен до полноценного Will Engine, который будет учитывать не только давление от действий игрока, но и внутренние конфликты NPC, их прошлый опыт и динамические изменения психики. Но для MVP достаточно базового транслятора Intent → Pressure и простого Cumulative Strain Model для вычисления реакции NPC.
+"""
+
+from __future__ import annotations
+
+import logging
+from typing import Any, Dict, Optional
+
+from app.domain.intent import IntentDTO
+from app.models.will import IntentPressureProfile, WillResponseDTO, WillState, EmbodiedVector, OriginLayer
+
+logger = logging.getLogger(__name__)
+
+# --- СЛОЙ 1: СЕМАНТИЧЕСКИЙ ПЕРЕВОД (BOOTSTRAP) ---
+
+def resolve_intent_pressure(
+    intent: IntentDTO,
+    context: Optional[Dict[str, Any]] = None,
+) -> IntentPressureProfile:
+    """Транслирует синтаксис действия в семантику давления на психику.
+    
+    MVP (Bootstrap): маппит action + target на вектор давления.
+    В будущем заменяется на LLM-экстрактор или CFRM-наследие.
+    """
+    pressure = IntentPressureProfile()
+    action = intent.action.lower()
+    target = intent.target.lower()
+    
+    # Базовые эвристики давления (Синхронизировано с _EVENT_AXIS_MAP и EventType)
+    if action in ("attack", "player_attacks", "player_attack", "combat"):
+        pressure = IntentPressureProfile(
+            violence=0.8,
+            self_risk=0.4,
+            moral_violation=0.5,
+            identity_deviation=0.6,
+        )
+        # TODO: В будущем использовать intent.parameters.physical_force для модуляции давления
+        
+    elif action == "flee":
+        pressure = IntentPressureProfile(
+            self_risk=0.1,
+            identity_deviation=0.4,  # Страх ломает гордость
+            social_exposure=0.6,     # Позор труса
+        )
+        
+    elif action in ("threaten", "player_threatens", "intimidation", "player_insults"):
+        pressure = IntentPressureProfile(
+            violence=0.3,
+            humiliation=0.6,
+            social_exposure=0.5,
+            moral_violation=0.4,
+        )
+        
+    elif action == "steal":
+        pressure = IntentPressureProfile(
+            social_exposure=0.7,     # Позор вора
+            moral_violation=0.6,
+            taboo_intensity=0.5,
+        )
+
+    elif action in ("talk", "player_talks", "player_spoke", "dialogue", "player_interacts", "idle"):
+        # Разговор обычно безопасен, но зависит от контекста
+        pressure = IntentPressureProfile(
+            identity_deviation=0.05,
+            social_exposure=0.1,
+        )
+        
+    # Модификаторы контекста (если переданы)
+    if context:
+        if context.get("is_desperate"):
+            pressure = IntentPressureProfile(
+                **{k: getattr(pressure, k) * 0.7 for k in pressure.__dataclass_fields__}
+            )
+            
+    return pressure
+
+
+# --- СЛОЙ 2: CUMULATIVE STRAIN MODEL ---
+
+def compute_willpower(
+    pressure: IntentPressureProfile,
+    psyche: Dict[str, float],
+) -> WillResponseDTO:
+    """Вычисляет реакцию аватара на давление (Cumulative Strain Model).
+    
+    НЕ ЗНАЕТ о типе действия. Работает ТОЛЬКО с вектором давления и психикой.
+    Формула (ADR-031):
+    resistance = pressure.identity_deviation * psyche.identity_rigidity
+               + pressure.self_risk * psyche.fear
+               + pressure.moral_violation * psyche.conviction
+               + pressure.social_exposure * psyche.shame
+               - pressure.violence * psyche.aggression
+               - pressure.taboo_intensity * psyche.curiosity
+    """
+    # Извлечение черт с безопасными дефолтами
+    identity_rigidity = psyche.get("identity_rigidity", 0.5)
+    fear = psyche.get("fear", 0.5)
+    conviction = psyche.get("conviction", 0.5)
+    shame = psyche.get("shame", 0.5)
+    aggression = psyche.get("aggression", 0.5)
+    curiosity = psyche.get("curiosity", 0.5)
+    
+    # Расчет кумулятивного напряжения
+    resistance = (
+        pressure.identity_deviation * identity_rigidity
+        + pressure.self_risk * fear
+        + pressure.moral_violation * conviction
+        + pressure.social_exposure * shame
+        - pressure.violence * aggression   # Склонность к насилию снижает сопротивление ему
+        - pressure.taboo_intensity * curiosity # Любопытство снижает страх табу
+    )
+    
+    # Clamp 0.0 - 1.0
+    resistance = max(0.0, min(1.0, resistance))
+    
+    # Определение WillState на основе напряжения
+    state = _map_resistance_to_state(resistance)
+    
+    # Расчет побочных эффектов (Урон идентичности и страх)
+    identity_damage = resistance * pressure.identity_deviation * 0.2 if resistance > 0.4 else 0.0
+    fear_delta = resistance * pressure.self_risk * 0.3
+    
+    # Генерация Counter-Offer (Аватар пытается выжить)
+    counter_offer = _generate_counter_offer(pressure, state)
+    
+    # Нарративные хуки для LLM
+    hooks = _generate_narration_hooks(state, pressure)
+    
+    # Вычисление моторного импульса (ADR-037)
+    embodied_vector = _resolve_embodied_vector(pressure, state)
+    
+    return WillResponseDTO(
+        state=state,
+        resistance=resistance,
+        fear_delta=fear_delta,
+        identity_damage=identity_damage,
+        counter_offer=counter_offer,
+        narration_hooks=hooks,
+        embodied_vector=embodied_vector,
+    )
+
+
+def _map_resistance_to_state(resistance: float) -> WillState:
+    """Маппинг кумулятивного напряжения в шкалу деградации."""
+    if resistance < 0.15:
+        return WillState.COMPLY
+    elif resistance < 0.35:
+        return WillState.RELUCTANT
+    elif resistance < 0.55:
+        return WillState.DISTRESSED
+    elif resistance < 0.75:
+        return WillState.PANICKED
+    elif resistance < 0.90:
+        return WillState.DISSOCIATING
+    elif resistance < 1.0:
+        return WillState.BROKEN
+    else:
+        return WillState.CONDITIONED
+
+
+def _generate_counter_offer(
+    pressure: IntentPressureProfile, 
+    state: WillState
+) -> Optional[IntentDTO]:
+    """Аватар ищет альтернативу, чтобы сохранить Я."""
+    if state in (WillState.COMPLY, WillState.RELUCTANT):
+        return None  # Согласие или легкая неохота не требуют компромисса
+        
+    if pressure.violence > 0.6:
+        # Предлагает избежать прямого насилия
+        return IntentDTO(action="flee", target="", parameters={"reason": "avoid_violence"})
+        
+    if pressure.social_exposure > 0.6:
+        # Предлагает скрытный путь
+        return IntentDTO(action="stealth", target="", parameters={"reason": "avoid_shame"})
+        
+    if pressure.self_risk > 0.6:
+        # Предлагает переговоры или подчинение ради выживания
+        return IntentDTO(action="yield", target="", parameters={"reason": "survival"})
+        
+    return None
+
+
+def _generate_narration_hooks(state: WillState, pressure: IntentPressureProfile) -> list[str]:
+    """Генерирует подсказки для LLM-вербализации."""
+    hooks = []
+    if state == WillState.DISTRESSED:
+        hooks.extend(["дрожит", "голос срывается"])
+    elif state == WillState.PANICKED:
+        hooks.extend(["пятится", "расширенные глаза", "частое дыхание"])
+    elif state == WillState.DISSOCIATING:
+        hooks.extend(["взгляд пустеет", "движения механические", "отстраненный вид"])
+    elif state == WillState.BROKEN:
+        hooks.extend(["опускает голову", "безвольная поза", "слезы без звука"])
+        
+    if pressure.violence > 0.7:
+        hooks.append("отшатывается от крови")
+        
+    return hooks
+
+
+_EMBODIED_TEXT_MAP = {
+    EmbodiedVector.AVOIDANCE: "Убежать...",
+    EmbodiedVector.DESTROY: "Ударить...",
+    EmbodiedVector.COLLAPSE: "Упасть...",
+    EmbodiedVector.SUBMIT: "Подчиниться...",
+    EmbodiedVector.FREEZE: "Замереть...",
+}
+
+def get_embodied_impulse_text(vector: Optional[EmbodiedVector]) -> str:
+    """Транслирует моторный вектор в текст для Resistance Medium (фронтенд)."""
+    if vector is None:
+        return "Сопротивляться..."
+    return _EMBODIED_TEXT_MAP.get(vector, "Сопротивляться...")
+
+
+def _resolve_embodied_vector(
+    pressure: IntentPressureProfile, 
+    state: WillState
+) -> Optional[EmbodiedVector]:
+    """Вычисляет предрефлексивный моторный импульс на основе давления и состояния."""
+    if state in (WillState.COMPLY, WillState.RELUCTANT, WillState.PARTIAL_COMPLY):
+        return None  # Осознанное согласие не порождает бессознательных импульсов
+        
+    if state == WillState.PANICKED or pressure.self_risk > 0.7:
+        return EmbodiedVector.AVOIDANCE
+        
+    if state == WillState.DISSOCIATING or pressure.violence > 0.8:
+        return EmbodiedVector.FREEZE
+        
+    if pressure.violence > 0.5 and pressure.identity_deviation < 0.3:
+        return EmbodiedVector.DESTROY
+        
+    if state == WillState.BROKEN or pressure.humiliation > 0.7:
+        return EmbodiedVector.SUBMIT
+        
+    if pressure.self_risk > 0.5 and state == WillState.DISTRESSED:
+        return EmbodiedVector.COLLAPSE
+        
+    return EmbodiedVector.AVOIDANCE # Дефолтный инстинкт самосохранения

@@ -1,7 +1,7 @@
 """
 Тесты SceneOutcomeBuilder — компрессора реальности для DM.
 
-cd backend; python -m pytest tests/test_scene_outcome_builder.py -v
+python -m pytest backend/tests/test_scene_outcome_builder.py -v
 
 path: backend/tests/test_scene_outcome_builder.py
 Назначение: Покрытие SceneOutcomeBuilder — salience, tension, visibility, latent

@@ -18,6 +18,7 @@ from enum import Enum
 from typing import Dict, List, Optional, Tuple
 
 from app.services.npc.decision_hub import DecisionResult
+from app.services.npc.legacy_delta_adapter import LegacyStateDeltaAdapter
 from app.models.npc_profile import NPCProfileL0
 from app.services.verbalization.verbal_stance import stance_from_decision
 
@@ -555,8 +556,9 @@ class SceneOutcomeBuilder:
         # Visibility — на основе расстояния и LOS
         visibility = self._compute_visibility(npc_id, context)
         
-        # Emotion — из deltas, если есть
-        emotion = decision.deltas.emotion_tag.value if decision.deltas.emotion_tag else None
+        # Emotion — из deltas, если есть (через деградационный шлюз v2->v1)
+        _legacy_d = LegacyStateDeltaAdapter.collapse(decision.deltas)
+        emotion = _legacy_d.emotion_tag.value if _legacy_d.emotion_tag else None
         
         # Latent signals для этого NPC
         npc_latent = self._extract_npc_latent(decision)
@@ -659,7 +661,7 @@ class SceneOutcomeBuilder:
         - is_major_tier: MAJOR NPC бонус
         """
         npc_id = decision.npc_id
-        deltas = decision.deltas
+        deltas = LegacyStateDeltaAdapter.collapse(decision.deltas)
         
         # 1. Proximity (0-1, ближе = выше)
         distance = context.distances.get(npc_id, 10.0)
@@ -722,16 +724,17 @@ class SceneOutcomeBuilder:
             )
         
         # Суммируем стресс и страх
-        raw_stress = sum(abs(d.deltas.stress_delta) for d in decisions)
-        raw_fear = sum(abs(d.deltas.fear_delta) for d in decisions)
+        # ADR-013: Схлопываем v2->v1 для каждого решения в цикле
+        raw_stress = sum(abs(LegacyStateDeltaAdapter.collapse(d.deltas).stress_delta) for d in decisions)
+        raw_fear = sum(abs(LegacyStateDeltaAdapter.collapse(d.deltas).fear_delta) for d in decisions)
         raw_sum = raw_stress + raw_fear
         
         # Нормализация (0.5 суммарной дельты = максимум напряжения)
         level = min(TENSION_CAP, raw_sum / 0.5)
         
         # Определяем trend
-        has_trauma = any(d.deltas.new_trauma for d in decisions)
-        has_will_override = any(d.deltas.will_state_override for d in decisions)
+        has_trauma = any(LegacyStateDeltaAdapter.collapse(d.deltas).new_trauma for d in decisions)
+        has_will_override = any(LegacyStateDeltaAdapter.collapse(d.deltas).will_state_override for d in decisions)
         
         if has_trauma or has_will_override:
             trend = TensionTrend.SPIKE
@@ -748,7 +751,8 @@ class SceneOutcomeBuilder:
         # Sources — вклад каждого NPC
         sources: Dict[str, float] = {}
         for d in decisions:
-            contribution = abs(d.deltas.stress_delta) + abs(d.deltas.fear_delta)
+            _legacy_d = LegacyStateDeltaAdapter.collapse(d.deltas)
+            contribution = abs(_legacy_d.stress_delta) + abs(_legacy_d.fear_delta)
             if contribution > 0.01:  # фильтруем шум
                 sources[d.npc_id] = round(contribution, 3)
         
@@ -771,9 +775,10 @@ class SceneOutcomeBuilder:
         # NPC с максимальным вкладом в напряжение
         max_contributor = max(
             decisions,
-            key=lambda d: abs(d.deltas.stress_delta) + abs(d.deltas.fear_delta),
+            key=lambda d: abs(LegacyStateDeltaAdapter.collapse(d.deltas).stress_delta) + abs(LegacyStateDeltaAdapter.collapse(d.deltas).fear_delta),
         )
-        max_contribution = abs(max_contributor.deltas.stress_delta) + abs(max_contributor.deltas.fear_delta)
+        _mc_d = LegacyStateDeltaAdapter.collapse(max_contributor.deltas)
+        max_contribution = abs(_mc_d.stress_delta) + abs(_mc_d.fear_delta)
         
         # Если вклад незначителен — фокус на среде
         if max_contribution < 0.1:
@@ -812,7 +817,7 @@ class SceneOutcomeBuilder:
         decision: DecisionResult,
     ) -> List[LatentSignal]:
         signals: List[LatentSignal] = []
-        deltas = decision.deltas
+        deltas = LegacyStateDeltaAdapter.collapse(decision.deltas)
         npc_id = decision.npc_id
         
         if deltas.new_trauma:

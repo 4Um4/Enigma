@@ -12,6 +12,7 @@ R3 Direct Mode: DecisionResult → SceneOutcome → DMFrame.
 
 import logging
 from typing import Any
+from app.services.npc.legacy_delta_adapter import LegacyStateDeltaAdapter
 
 logger = logging.getLogger(__name__)
 
@@ -113,13 +114,13 @@ def build_r3_dm_frame(
             logger.warning(f"[PROJECTION] {actor.npc_id}: {p.regime.value} (int={p.intensity}, stab={p.stability})")
     # Дельты от DecisionHub
     for d in _decisions:
-        dl = d.deltas
+        dl = LegacyStateDeltaAdapter.collapse(d.deltas)
         logger.warning(f"[DELTA] {d.npc_id}: intent={d.intent.value} stress_d={dl.stress_delta} trust_d={dl.trust_delta} fear_d={dl.fear_delta}")
 
     # B.3/B.4: Обновляем SceneContinuity из дельт
     _cont = shared_context.scene_continuity or SceneContinuity()
-    _total_stress_d = sum(d.deltas.stress_delta for d in _decisions)
-    _total_trust_d = sum(d.deltas.trust_delta for d in _decisions)
+    _total_stress_d = sum(LegacyStateDeltaAdapter.collapse(d.deltas).stress_delta for d in _decisions)
+    _total_trust_d = sum(LegacyStateDeltaAdapter.collapse(d.deltas).trust_delta for d in _decisions)
     _cont.update_tension(_total_stress_d / 100.0)  # нормализация в 0..1
     _cont.update_emotional_vector({
         "trust": _total_trust_d / 50.0,   # нормализация

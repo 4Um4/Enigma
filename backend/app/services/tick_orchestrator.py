@@ -25,6 +25,8 @@ path: backend/app/services/tick_orchestrator.py
 from __future__ import annotations
 
 import logging
+logger = logging.getLogger(__name__)
+import time
 from dataclasses import dataclass, field, replace
 from typing import Any, Dict, List, Optional, Union
 
@@ -32,6 +34,7 @@ from pathlib import Path
 from enum import Enum
 
 from app.domain.tick import TickResultDTO
+from app.domain.intent import IntentDTO
 from app.models.state_delta import DeltaDomain, StateDeltas
 from app.models.cfrm import EventBuffer, ClusterOccupancy
 
@@ -54,8 +57,14 @@ from app.services.npc.life_engine import get_life_engine
 from app.services.npc.npc_loader import load_l2_state_from_runtime_dict
 from app.services.npc.topic_extractor import extract_topic
 from app.services.events.event_bus import get_event_bus
+from app.services.will import resolve_intent_pressure, compute_willpower
 from app.models.phase8 import Phase8Context, Phase8Handler, Phase8Result
-from app.services.events.perception_subscriber import PerceptionSubscriber
+# P2: PerceptionSubscriber мертв. Восприятие теперь вычисляется LocalCausalSolver
+from app.services.cfrm.local_causal_solver import LocalCausalSolver
+from app.models.cfrm import PhenomenologicalState, PsychologicalPressure
+from app.models.delta_payloads import EmotionPayload
+from app.models.will import IntentPressureProfile, WillResponseDTO, WillState
+from app.models.state_delta import StateDeltas, DeltaDomain
 from app.services.events.reaction_subscriber import ReactionSubscriber
 from app.services.events.social_subscriber import SocialSubscriber
 from app.services.combat.combat_subscriber import CombatSubscriber
@@ -101,6 +110,8 @@ class _TickContext:
     # Player turn: контекст GameLoop для фаз 7-10 (Устав §3 — единая последовательность)
     shared_context: Any = None
     actions: list = field(default_factory=list)
+    player_intent: Optional["IntentDTO"] = None # ADR-031: Канонический интент
+    player_pressure: Optional["IntentPressureProfile"] = None # ADR-031 Fix: Вектор давления из Фазы 1
     rules_result: Dict[str, Any] = field(default_factory=dict)
     r3_direct_mode: bool = True
     # Фаза 10: данные для коммита (мостируются из TickBuffer GameLoop)
@@ -175,13 +186,17 @@ class TickOrchestrator:
         self._life_engine = None
         self._snapshot_builder = None
         self._transit_tracker = None
+        self._spatial_service = None  # ADR-029: Инъекция для CFRM ClusterGraph
         # P1.1f: Social propagation — состояние тика переносим с GameLoop
         self._social_engine_factory: Any = None  # callable(campaign_id) → SocialEngine
-        # §5.1 подписчики EventBus — создаются сразу чтобы не пропускать события
-        self._perception_sub: PerceptionSubscriber = PerceptionSubscriber(self._get_event_bus())
+        # §5.1 подписчики EventBus
+        # P2: PerceptionSubscriber удален. Восприятие перенесено в LocalCausalSolver (Фаза 9)
         self._reaction_sub: ReactionSubscriber = ReactionSubscriber(self._get_event_bus())
         self._social_sub: SocialSubscriber = SocialSubscriber(self._get_event_bus())
         self._combat_sub: CombatSubscriber = CombatSubscriber(self._get_event_bus())
+        
+        # CFRM P2: Каузальный солвер и интерпретатор феноменологии
+        self._causal_solver = LocalCausalSolver()
         # Фаза 0.5: time-driven idle-обработчики
         self._idle_handlers: list = []
         # StateApplicator для apply_batch (единый мутатор)
@@ -248,6 +263,11 @@ class TickOrchestrator:
         Вызывается на старте каждого тика. Маппит макро-зону (position)
         каждого NPC на канонический ClusterID.
         """
+        start_time = time.perf_counter()
+            
+        # Сброс индекса для устранения ghost-сущностей (cache invalidation)
+        ctx.cluster_occupancy = ClusterOccupancy()
+        
         npc_positions = ctx.scene_state.get("npc_positions", {})
         location_id = ctx.scene_state.get("location_id", "")
         
@@ -265,6 +285,17 @@ class TickOrchestrator:
                 cluster_id = str(raw_node)
                 
             ctx.cluster_occupancy.update_entity(npc_id, cluster_id)
+            
+        # Верификация: все NPC из all_npcs_raw должны быть в индексе
+        if hasattr(ctx, 'all_npcs_raw') and ctx.all_npcs_raw:
+            indexed_ids = set(ctx.cluster_occupancy.entity_to_cluster.keys())
+            raw_ids = {npc.get("npc_id") for npc in ctx.all_npcs_raw if npc.get("npc_id")}
+            missing_in_index = raw_ids - indexed_ids
+            if missing_in_index:
+                logger.warning(f"[CFRM] ClusterOccupancy: NPC в all_npcs_raw, но нет в npc_positions: {missing_in_index}")
+                
+        elapsed_ms = (time.perf_counter() - start_time) * 1000
+        logger.info(f"[CFRM] ClusterOccupancy rebuild: {len(npc_positions)} entities in {elapsed_ms:.2f}ms")
             
         # Игрок — тоже наблюдатель в причинном пузыре
         player_data = npc_positions.get("player")
@@ -312,9 +343,15 @@ class TickOrchestrator:
         
         def _deobjectify_event(event: 'EventDTO') -> None:
             """Трансформирует EventDTO в FieldDisturbance на основе контекста тика."""
+            import logging
             from app.models.cfrm import classify_event, FieldDisturbance, CausalAxis, DisturbanceVector
             
-            axis = classify_event(event.type)
+            result = classify_event(event.type)
+            axis = result.axis
+            
+            # Логирование эпистемической неопределённости (событие на границе или неизвестно)
+            if result.confidence < 0.5:
+                logging.warning(f"[CFRM] classify_event: {event.type} -> {axis.value} (confidence={result.confidence}, source={result.source.value})")
             
             # Определяем кластер происхождения (кто вышел из строя реальности?)
             origin_cluster = ctx.cluster_occupancy.get_cluster(event.source) or "world:unknown"
@@ -471,6 +508,8 @@ class TickOrchestrator:
         Устав §3: одна последовательность, один коммит.
         """
         # Создаём внутренний контекст с данными из GameLoop
+        # ADR-031 Fix: Проброс вектора давления из Фазы 1
+        _intent_res = shared_context.intent_resolution
         ctx = _TickContext(
             campaign_id=campaign_id,
             scene_state=shared_context.scene_state or {},
@@ -482,6 +521,8 @@ class TickOrchestrator:
             r3_direct_mode=r3_direct_mode,
             # Мостируем данные из GameLoop TickBuffer
             all_npcs_raw=tick_buffer.all_npcs_raw if tick_buffer else [],
+            player_intent=_intent_res.original_intent if _intent_res else None,
+            player_pressure=_intent_res.pressure_profile if _intent_res else None,
             dirty_npcs=tick_buffer.dirty_npcs if tick_buffer else set(),
             wt_dirty=getattr(tick_buffer, 'wt_dirty', False),
             prop_dirty=getattr(tick_buffer, 'prop_dirty', False),
@@ -489,6 +530,45 @@ class TickOrchestrator:
             # Результат фаз 5-6
             player_result=player_result,
         )
+
+        # ADR-035: Перехват пространственных команд в R3 Direct Path.
+        # Если Слой 1 распознал MOVE, а пайплайн NPC пропустил это, создаем SceneChange напрямую.
+        if ctx.shared_context and hasattr(ctx.shared_context, 'intent_resolution') and ctx.shared_context.intent_resolution:
+            _intent_res = ctx.shared_context.intent_resolution
+            _params = _intent_res.original_intent.parameters if _intent_res.original_intent else None
+            
+            # Безопасное извлечение семантики (это DTO, не dict)
+            _sem_action = getattr(_params, 'semantic_action', None) if _params else None
+            _sem_target = getattr(_params, 'target_reference', None) if _params else None
+            
+            if _sem_action == "MOVE" and _sem_target:
+                _target_ref = _sem_target.lower()
+                
+                # ADR-036: УБИТ DIRECT_REFLEX. Приказ игрока — это НЕ команда движку.
+                # Это социальное давление (directive_obedience), которое искривляет utility-space NPC.
+                # Решение двигаться принимает DecisionHub в СЛЕДУЮЩЕМ тике на основе Воли.
+                # Транзит порождается через Фазу 5 (Decision) -> Фазу 0 (LifeEngine/MovementEngine) -> SceneChange.
+                # Нарушение этого потока = Каузальный Байпас (телепортация без Воли).
+                logger.info(f"[CAUSALITY] Semantic action MOVE detected for '{_target_ref}'. Routing to DirectiveInterpretationSubscriber via EventBus.")
+
+        # ADR-035: Обработка реактивных перемещений (MovementIntents)
+        # В player turn LifeEngine не вызывается, поэтому MovementEngine нужно вызвать вручную
+        if ctx.player_result and ctx.player_result.movement_intents:
+            from app.services.spatial.movement_engine import MovementEngine
+            _loc_id = ctx.scene_state.get("location_id", "")
+            if _loc_id:
+                _spatial_svc = SpatialService.build_for_location(
+                    campaign_id=ctx.campaign_id,
+                    location_id=_loc_id,
+                    scene_state=ctx.scene_state,
+                )
+                me = MovementEngine()
+                me.set_spatial_service(_spatial_svc)
+                _tick = self.get_current_tick(ctx.campaign_id)
+                changes = me.process_intents(ctx.player_result.movement_intents, _tick)
+                if changes and self._scene_manager:
+                    self._scene_manager.apply_changes(ctx.campaign_id, changes, ctx.scene_state)
+                    logger.warning(f"[PLAYER_TURN] Applied {len(changes)} reactive movement changes")
 
         # Фаза 0.5: время не останавливается (decay = всегда)
         self._phase_0_5_idle_services(ctx)
@@ -604,14 +684,147 @@ class TickOrchestrator:
         if changes and self._scene_manager:
             self._scene_manager.apply_changes(ctx.campaign_id, changes, ctx.scene_state)
             logger.debug(f"[TICK_ORCH] Фаза 0: {len(changes)} changes от LifeEngine")
+        
+        # ADR-019: Фаза 0.75 — Authoritative Traversal Lifecycle.
+        # Бэкенд не интерполирует пиксели, но владеет жизненным циклом перемещения.
+        self._process_traversals(ctx)
+
+    def _process_traversals(self, ctx: _TickContext) -> None:
+        """Фаза 0.75: Authoritative Traversal Lifecycle.
+        Проверяем ожидаемое время прибытия. Если время пришло — NPC каузально прибыл.
+        Визуальной интерполяцией владеет фронтенд (Kinematic Illusion).
+        """
+        traversals = ctx.scene_state.get("active_traversals", {})
+        if not traversals:
+            return
+            
+        current_time = ctx.scene_state.get("game_time_seconds", 0)
+        completed_ids = []
+        
+        for npc_id, trav in list(traversals.items()):
+            if trav.get("status") != "MOVING":
+                continue
+            
+            expected_arrival = trav.get("expected_arrival_time", float('inf'))
+            
+            # Если текущее время превысило ожидаемое время прибытия — Транзит завершен
+            if current_time >= expected_arrival:
+                completed_ids.append(npc_id)
+                # Каузальный узел уже обновлен в SceneStateManager (Вариант А).
+                # В будущем здесь: rebuild ClusterOccupancy, генерация ArrivalDisturbance, смена владельца кластера.
+                
+        for npc_id in completed_ids:
+            if npc_id in traversals:
+                del traversals[npc_id]
+                logger.debug(f"[TRAVERSAL] Lifecycle complete: npc={npc_id} arrived causally at tick time {current_time}.")
 
     def _phase_1_input(self, ctx: _TickContext) -> None:
-        """Сбор внешних событий (player action, combat и т.д.).
+        """Фильтрация воли игрока через WillpowerGate (ADR-031).
         
-        В idle_tick нет внешнего ввода — фаза пустая.
-        При player action сюда будут поступать IntentDTO.
+        Если интент угрожает идентичности аватара — возникает конфликт воли.
         """
-        pass
+        if not ctx.player_intent:
+            return # Idle-тик или нет ввода от игрока
+
+        intent = ctx.player_intent
+        
+        # Извлекаем снапшот аватара из симуляции
+        player_dict = next((n for n in ctx.all_npcs_raw if n.get("npc_id") == "player"), None)
+        
+        if not player_dict:
+            logger.warning("[WILL] Аватар игрока не найден, публикация без фильтрации")
+            self._publish_player_intent(ctx, intent)
+            return
+
+        # 1. Вектор давления берется из результата Фазы 1 (Единая точка вычисления)
+        # Повторный вызов resolve_intent_pressure ЗАПРЕЩЕН (каузальная integrity)
+        pressure = ctx.player_pressure if ctx.player_pressure else resolve_intent_pressure(intent)
+        psyche = player_dict.get("psyche", {})
+        
+        # 2. Affect Resonance Scan (Искажение интерпретации реальности)
+        # Травма - это не бафф, это искажение. Resonance -> Distortion -> Will.
+        from app.services.affect import scan_affective_resonance, distort_pressure
+        from app.models.affect import AffectiveImprint
+        imprints = tuple(AffectiveImprint(**imp) for imp in player_dict.get("affective_imprints", []))
+        
+        # TODO: Передать PsychologicalPressure и PerceivedPhenomenon от CFRM P2, когда LocalCausalSolver будет генерировать их для хода игрока
+        resonance = scan_affective_resonance(intent, None, None, imprints)
+        distorted_pressure = distort_pressure(pressure, resonance, psyche)
+        
+        # 3. Вычисление реакции аватара (Cumulative Strain Model на искаженном давлении)
+        will_response = compute_willpower(distorted_pressure, psyche)
+
+        # 4. Маршрутизация исходов
+        if resonance.trigger_strength > 0.1:
+            logger.info(f"[AFFECT] Resonance detected: strength={resonance.trigger_strength:.2f}, bias={resonance.dominant_bias.value}, triggered={resonance.triggered_imprints}")
+            
+        if will_response.state in (WillState.COMPLY, WillState.RELUCTANT, WillState.CONDITIONED):
+            # Аватар подчиняется (возможно, с неохотой или привыканием)
+            self._publish_player_intent(ctx, intent)
+            
+            # Фиксация урона идентичности, если действие сломало волю
+            if will_response.identity_damage > 0:
+                from app.models.delta_payloads import IdentityPayload
+                ctx.delta_buffer.append(StateDeltas(
+                    npc_id="player",
+                    domain=DeltaDomain.IDENTITY,
+                    target="player",
+                    payload=IdentityPayload(identity_integrity_delta=-will_response.identity_damage)
+                ))
+        else:
+            # Аватар сопротивляется. Действие блокируется, публикуется WILL_CONFLICT
+            logger.info(f"[WILL] Аватар сопротивляется! State={will_response.state.value}, R={will_response.resistance:.2f}")
+            from app.domain.events import EventDTO
+            
+            # Сохраняем артефакты конфликта для Embodied Perception Interface (Спринт 27)
+            from app.services.will import get_embodied_impulse_text
+            ctx.shared_context.will_conflict_data = {
+                "original_intent": intent.action,
+                "state": will_response.state.value,
+                "resistance": will_response.resistance,
+                "narration_hooks": will_response.narration_hooks,
+                "counter_offer_action": will_response.counter_offer.action if will_response.counter_offer else None,
+                "origin_layer": will_response.origin_layer.value, # ADR-037: Источник давления
+                "embodied_vector": will_response.embodied_vector.value if will_response.embodied_vector else None, # ADR-037: Моторный импульс
+                "counter_offer_text": get_embodied_impulse_text(will_response.embodied_vector) # Текст генерируется из вектора!
+            }
+            
+            get_event_bus().publish(EventDTO.create(
+                event_type=EventType.WILL_CONFLICT.value,
+                source="player",
+                payload=ctx.shared_context.will_conflict_data
+            ))
+            # Эмоциональный отклик аватара на давление
+            if will_response.fear_delta > 0:
+                ctx.delta_buffer.append(StateDeltas(
+                    npc_id="player",
+                    domain=DeltaDomain.EMOTION,
+                    target="player",
+                    payload=EmotionPayload(stress_delta=will_response.fear_delta * 50, emotion_tag="fear")
+                ))
+
+        # ADR-036: Affective Conditioning (Sensitization & New Trauma)
+        # Аватар учится через боль. Травма укрепляется при подавлении воли.
+        if will_response.identity_damage > 0 or resonance.trigger_strength > 0.1:
+            from app.services.affect import apply_conditioning
+            from dataclasses import asdict
+            current_game_time = ctx.scene_state.get("game_time_seconds", 0)
+            updated_imprints = apply_conditioning(imprints, resonance, will_response, intent, current_game_time)
+            player_dict["affective_imprints"] = [asdict(imp) for imp in updated_imprints]
+
+    def _publish_player_intent(self, ctx: _TickContext, intent: IntentDTO) -> None:
+        """Публикация разрешенного намерения игрока в шину."""
+        _evt_map = {
+            "attack": EventType.PLAYER_ATTACKS,
+            "player_attacks": EventType.PLAYER_ATTACKS,
+        }
+        _resolved_type = _evt_map.get(intent.action, EventType.PLAYER_INTERACTS)
+        from app.domain.events import EventDTO
+        get_event_bus().publish(EventDTO.create(
+            event_type=_resolved_type.value,
+            source="player",
+            payload={"action": intent.action, "target": intent.target}
+        ))
 
     def _phase_2_event_bus_primary(self, ctx: _TickContext) -> None:
         """Первая волна EventBus: пространственные события от MovementEngine (Слой 4).
@@ -838,7 +1051,7 @@ class TickOrchestrator:
     # ── Фаза 0.5: Time-driven idle-сервисы (ВСЕГДА, время не останавливается) ──
 
     def _phase_0_5_idle_services(self, ctx: _TickContext) -> None:
-        """Time-driven decay: social drift, reputation drift.
+        """Time-driven decay: social drift, reputation drift, affective decay.
 
         Выполняется КАЖДЫЙ тик (idle + player path).
         Время идёт непрерывно — эксплойты через движение исключены.
@@ -846,6 +1059,24 @@ class TickOrchestrator:
         """
         # ADR-002: Время не останавливается. Каждый тик продвигает часы на GAME_TICK_INTERVAL_SECONDS
         self._advance_idle_time(ctx)
+        
+        # ADR-036: Affective Decay (Leaky Integrator для памяти)
+        # Травмы затухают со временем, если не подкрепляются.
+        from app.services.affect import decay_affective_imprints
+        from app.models.affect import AffectiveImprint
+        from dataclasses import asdict
+        
+        _current_time = ctx.scene_state.get("game_time_seconds", 0)
+        for npc_dict in ctx.all_npcs_raw:
+            imp_dicts = npc_dict.get("affective_imprints", [])
+            if not imp_dicts: continue
+            try:
+                imprints = tuple(AffectiveImprint(**imp) for imp in imp_dicts)
+                # delta_time берем из константы интервала тика (5 сек)
+                decayed = decay_affective_imprints(imprints, 5.0, _current_time)
+                npc_dict["affective_imprints"] = [asdict(d) for d in decayed]
+            except Exception as e:
+                logger.debug(f"[AFFECT_DECAY] Failed for {npc_dict.get('npc_id')}: {e}")
 
         if not self._idle_handlers:
             return
@@ -1145,9 +1376,8 @@ class TickOrchestrator:
         Physical слой материализуется перед Cognitive для соблюдения причинности
         без нарушения порядка исполнения (Мастер Тай: Dual Buffer Causal Model).
         """
-        # 1. Perception Layer (КТО видит событие)
-        self._execute_phase8_handler(ctx, self._perception_sub)
-
+        # 1. Perception Layer — УДАЛЕН. Вычисляется в Фазе 9 через LocalCausalSolver.
+        
         # 2. Physical Layer (Combat: вычисление урона, генерация shock_impulse)
         combat_result = self._execute_phase8_handler(ctx, self._combat_sub)
 
@@ -1256,11 +1486,68 @@ class TickOrchestrator:
             ctx.prop_dirty = True
 
     def _phase_9_integration(self, ctx: _TickContext) -> None:
-        """WorldSnapshotBuilder: собирает WorldSnapshotDTO из финального state."""
+        """CFRM P2: Вычисление локальной реальности + WorldSnapshotBuilder."""
+        
+        # --- CFRM P2: 3-фазный редюсер и интерпретация давления ---
+        if ctx.event_buffer and ctx.cluster_occupancy and ctx.all_npcs_raw:
+            cluster_graph = self._spatial_service.build_cluster_graph() if self._spatial_service else None
+            if cluster_graph:
+                # Вычисление феноменологической реальности для каждого NPC
+                phenomena_states = self._causal_solver.solve(
+                    event_buffer=ctx.event_buffer,
+                    cluster_graph=cluster_graph,
+                    occupancy=ctx.cluster_occupancy,
+                    all_npcs_raw=ctx.all_npcs_raw
+                )
+                
+                # Интерпретация: Превращение локальной истины в психологическое давление и дельты
+                for entity_id, p_state in phenomena_states.items():
+                    if p_state.threat_level < 0.1 and not p_state.visible_blood:
+                        continue # Слишком слабое возмущение для мутации
+                    
+                    # Генерация давления
+                    pressure = PsychologicalPressure(
+                        fear=p_state.threat_level * 40.0,
+                        uncertainty=p_state.anomaly_score * 20.0,
+                        aggression_trigger=0.0 if p_state.threat_level < 0.5 else p_state.threat_level * 10.0
+                    )
+                    
+                    # Конвертация давления в дельты (downstream)
+                    # TODO P3: Личность NPC (трус/берсерк) должна модулировать эти дельты
+                    stress_val = pressure.fear + pressure.uncertainty
+                    fear_val = pressure.fear * 0.5
+                    
+                    if p_state.visible_blood:
+                        stress_val += 15.0
+                        fear_val += 10.0
+                        
+                    emotion_payload = EmotionPayload(
+                        stress_delta=stress_val,
+                        fear_delta=fear_val,
+                        emotion_tag="panic" if pressure.fear > 30 else "fear"
+                    )
+                        
+                    delta = StateDeltas(
+                        npc_id=entity_id,
+                        domain=DeltaDomain.EMOTION,
+                        target="player", # Источник возмущения пока жестко player
+                        payload=emotion_payload,
+                        source="cfrm_solver"
+                    )
+                    ctx.delta_buffer.append(delta)
+
+        # WorldSnapshotBuilder: собирает WorldSnapshotDTO из финального state
+        # ADR-035: Трансляция стейта аватара в феноменологическую проекцию
+        from app.services.presentation.avatar_presentation_assembler import assemble_avatar_presentation
+        player_dict = next((n for n in ctx.all_npcs_raw if n.get("npc_id") == "player"), None)
+        _avatar_projection = assemble_avatar_presentation(player_dict) if player_dict else None
+        
         builder = self._get_snapshot_builder()
         ctx.world_snapshot = builder.build(
             scene_state=ctx.scene_state,
             tick=ctx.tick_number,
+            avatar_state=_avatar_projection,
+            all_npcs_raw=ctx.all_npcs_raw, # ADR-037: Передаем сырые данные для Ambient Phenomenology
         )
 
     def _phase_10_persistence(self, ctx: _TickContext) -> None:

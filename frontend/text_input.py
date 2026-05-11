@@ -19,6 +19,7 @@ path: /frontend/text_input.py
 """
 from typing import Optional
 
+import random
 import pygame
 
 
@@ -58,6 +59,11 @@ class TextInput:
         self._text: str = ""
         self._cursor_pos: int = 0  # позиция курсора в строке
         self._selection_start: Optional[int] = None  # начало выделения или None
+
+        # Resistance Medium: Заражение ввода (Embodied Will Friction)
+        self._is_possessed: bool = False  # Аватар навязывает свою волю
+        self._intrusive_text: str = ""    # Текст навязанного импульса
+        self._rejection_flash_end: int = 0 # Таймер красной пульсации (Input Rejection Flash)
 
         # История команд
         self._history: list[str] = []
@@ -139,6 +145,25 @@ class TextInput:
 
     # ── Обработка событий ──────────────────────────────────────────────
 
+    def infect(self, impulse_text: str, origin_layer: str = "will_conflict") -> None:
+        """Заражает поле ввода навязанным импульсом аватара.
+        Игрок должен стереть этот текст, чтобы вписать свой, либо нажать Enter (подчиниться).
+        origin_layer определяет природу давления для стилизации (цвет, джиттер).
+        """
+        self._is_possessed = True
+        self._intrusive_text = impulse_text
+        self._infection_origin = origin_layer # ADR-037: Сохраняем источник для рендера
+        self._text = impulse_text
+        self._cursor_pos = len(impulse_text)
+        self._selection_start = None
+        self._update_scroll()
+        self._focused = True # Заставляем игрока обратить внимание на конфликт
+
+    def exorcise(self) -> None:
+        """Снимает заражение, когда игрок преодолевает волю аватара."""
+        self._is_possessed = False
+        self._intrusive_text = ""
+
     def handle_event(self, event: pygame.event.Event) -> bool:
         """
         Обрабатывает событие pygame. Возвращает True если событие обработано.
@@ -169,6 +194,11 @@ class TextInput:
 
         # TEXTINPUT — итоговый введённый текст (после IME)
         if event.type == pygame.TEXTINPUT:
+            # Resistance Medium: Борьба с волей. Ввод символа разрушает навязанный импульс.
+            if self._is_possessed:
+                self.exorcise()
+                self._text = "" # Стираем слова аватара
+                self._cursor_pos = 0
             self._insert_text(event.text)
             return True
 
@@ -513,8 +543,9 @@ class TextInput:
                 )
                 pygame.draw.rect(surface, self.colors["selection"], sel_rect)
 
-        # Рисуем текст
-        text_surf = self.font.render(visible_text, True, self.colors["text"])
+        # Рисуем текст (Красный и полупрозрачный при заражении)
+        text_color = (255, 80, 80) if self._is_possessed else self.colors["text"]
+        text_surf = self.font.render(visible_text, True, text_color)
         surface.blit(text_surf, text_area.topleft)
 
         # Рисуем IME текст (если есть)
@@ -525,5 +556,9 @@ class TextInput:
         # Рисуем курсор (мигает только при фокусе)
         if self._focused:
             cursor_x = text_area.x + (self._cursor_pos - start_char) * char_w
-            cursor_rect = pygame.Rect(cursor_x, text_area.y + 2, 2, text_area.height - 4)
-            pygame.draw.rect(surface, self.colors["cursor"], cursor_rect)
+            # Resistance Medium: Тремор курсора при конфликте воли
+            jitter_x = random.randint(-2, 2) if self._is_possessed else 0
+            jitter_y = random.randint(-1, 1) if self._is_possessed else 0
+            cursor_color = (255, 50, 50) if self._is_possessed else self.colors["cursor"]
+            cursor_rect = pygame.Rect(cursor_x + jitter_x, text_area.y + 2 + jitter_y, 2, text_area.height - 4)
+            pygame.draw.rect(surface, cursor_color, cursor_rect)
