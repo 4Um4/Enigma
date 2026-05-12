@@ -856,18 +856,32 @@ class DecisionHub:
             if intent in (Intent.REPORT.value, Intent.WARN.value):
                 base += 0.2
 
+        # ADR-036: Физика Власти. Приказ (semantic_action=MOVE) искривляет utility-space.
+        # Если приказ направлен на этого NPC, его страх и воля решают, подчинится ли он.
+        _payload = getattr(event, 'payload', {}) or {}
+        _semantic_action = _payload.get("semantic_action") if isinstance(_payload, dict) else None
+        _target_id = _payload.get("target_id") if isinstance(_payload, dict) else None
+        
+        if _semantic_action == "MOVE" and _target_id == state.npc_id:
+            if intent == Intent.APPROACH.value:
+                # Формула из Каузальной Песочницы: Obedience = fear * (1 - willpower)
+                _fear = state.relationship_cache.get("player", {}).get("fear", 0.0) / 100.0
+                _willpower = personality.drives_base.get("control", 0.5) # control как proxy воли
+                _obedience_pressure = _fear * (1.0 - _willpower) + 0.25 # +0.25 базовый авторитет приказа
+                
+                base += _obedience_pressure * 2.0 # Масштабируем давление для победы над FLEE/IDLE
+                logger.debug(f"[PHYSICS_OF_POWER] Obedience pressure for {state.npc_id}: {_obedience_pressure * 2.0}")
+
         # Диалог активирует разговорные интенты, подавляет нелогичные
         if event.event_type == "player_interacts":
             if intent in (Intent.TALK.value, Intent.OBSERVE.value):
                 base += 0.5
-            # NPC обращаются напрямую к этому NPC — логично подойти
-            if intent == Intent.APPROACH.value:
-                base += 0.6
+            # УБИТ ХАРДКОД: if intent == Intent.APPROACH.value: base += 0.6
+            # Теперь подчинение вычисляется через Физику Власти (semantic_action=MOVE)
             if intent in (Intent.REPORT.value, Intent.ATTACK.value, Intent.WARN.value, Intent.INTIMIDATE.value):
                 base -= 0.4
             if intent == Intent.FLEE.value:
                 # Сильное подавление: нейтральный диалог не должен вызывать побег
-                # даже при низком доверии (rel_mod компенсируется контекстом)
                 base -= 0.7
 
         # Фаза 3.4: WorldTick — проактивные интенты получают базовый бонус

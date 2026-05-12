@@ -645,11 +645,16 @@ def _resolve_reactive_movement(
             target_x = lp.get("x")
             target_y = lp.get("y")
         else:
-            # Подходим к игроку
+            # Подходим к игроку (или fallback, если intent_target не найден в npc_positions)
             player_spatial = scene_state.get("player_spatial", {})
             lp = player_spatial.get("local_position", {})
             target_x = lp.get("x")
             target_y = lp.get("y")
+            # ADR-041: Диагностика навигации к игроку
+            if target_x is None or target_y is None:
+                logger.warning(f"[APPROACH_NAV] player_spatial missing local_position! player_spatial={player_spatial}")
+            else:
+                logger.debug(f"[APPROACH_NAV] target=player xy=({target_x},{target_y})")
 
     elif intent == "flee":
         # Угроза = intent_target (источник страха) — от него бежим

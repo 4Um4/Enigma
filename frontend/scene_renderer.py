@@ -54,6 +54,7 @@ class SceneRenderer:
 
     def __init__(self, screen: pygame.Surface):
         self.screen = screen
+        self._prev_npc_positions: Dict[str, Tuple[float, float]] = {} # ADR-037: Для Temporal Assembly Delay
         self.font_small = pygame.font.SysFont("consolas", 12)
         self.font_audio = pygame.font.SysFont("consolas", 13, italic=True)
         self.font_body = pygame.font.SysFont("consolas", 13)
@@ -87,9 +88,20 @@ class SceneRenderer:
         """
         self.screen.fill(_COLORS["bg_dark"])
 
-        # Камера центрирована на игроке
+        # ADR-037: Вычисляем профиль деформации ДО отрисовки, чтобы влиять на камеру и позиции
+        profile = ManifestationProfile()
+        if avatar_state:
+            sanitized = sanitize_perceptual_input(avatar_state, ambient_state)
+            self.momentum.update(dt, sanitized)
+            profile = self.momentum.current
+
+        # Камера центрирована на игроке + Motion Bias (мир "давит" на игрока)
         cam_x = player_xy[0] * SCALE - self.screen.get_width() // 2
         cam_y = player_xy[1] * SCALE - self.screen.get_height() // 2
+        
+        # ADR-037: Motion Bias — снос камеры давлением среды
+        cam_x -= int(profile.motion_bias[0] * SCALE * 2)
+        cam_y -= int(profile.motion_bias[1] * SCALE * 2)
 
         # 1. Пол — вся локация (тёмный)
         self._draw_floor(scene_w, scene_h, cam_x, cam_y)
@@ -101,8 +113,8 @@ class SceneRenderer:
         self._draw_entities(scene.entities, cam_x, cam_y)
         self._draw_obstacles(obstacles, cam_x, cam_y)
 
-        # 4. NPC — только воспринимаемые
-        self._draw_npcs(scene.entities, cam_x, cam_y, scene.attention_focus_id, player_xy)
+        # 4. NPC — только воспринимаемые (с Temporal Delay)
+        self._draw_npcs(scene.entities, cam_x, cam_y, scene.attention_focus_id, player_xy, profile)
 
         # 5. Игрок — всегда виден
         # Lerp сглаживание поворота (Приоритет 0)
@@ -120,10 +132,8 @@ class SceneRenderer:
 
         # 7. Embodied Perception Interface — искажение рендера от состояния аватара и среды (ADR-035, ADR-037)
         if avatar_state:
-            sanitized = sanitize_perceptual_input(avatar_state, ambient_state)
-            # Обновляем инерцию восприятия с дельтой времени
-            self.momentum.update(dt, sanitized)
-            self._apply_avatar_perception_overlay(self.momentum.current)
+            # Профиль уже вычислен в начале рендера, применяем оверлеи
+            self._apply_avatar_perception_overlay(profile)
 
     def _apply_avatar_perception_overlay(self, profile: 'ManifestationProfile') -> None:
         """Накладывает визуальные искажения на основе Темпоральной Феноменологии.
@@ -157,6 +167,15 @@ class SceneRenderer:
             shake_x = int(random.gauss(0, profile.visual_instability * 3))
             shake_y = int(random.gauss(0, profile.visual_instability * 3))
             self.screen.scroll(shake_x, shake_y)
+
+        # ADR-037: Contrast Instability — пульсация контраста (мир "дышит")
+        if profile.contrast_instability > 0.05:
+            alpha = int(random.gauss(0, profile.contrast_instability * 50))
+            alpha = max(0, min(120, alpha)) # Ограничиваем, чтобы не засветить/затемнить полностью
+            contrast_overlay = pygame.Surface((w, h), pygame.SRCALPHA)
+            # Легкая сине-серая пульсация (холодок диссоциации/энтропии)
+            contrast_overlay.fill((100, 100, 140, alpha))
+            self.screen.blit(contrast_overlay, (0, 0))
 
         # Накладываем финальный оверлей
         if blood_vis > 0.01 or tunnel_factor > 0.01:
@@ -262,14 +281,23 @@ class SceneRenderer:
         cam_y: float,
         focus_id: Optional[str],
         player_xy: Tuple[float, float],
+        profile: ManifestationProfile = ManifestationProfile(), # ADR-037
     ) -> None:
+        # ADR-037: Temporal Assembly Delay — инерция сборки реальности
+        delay_factor = profile.temporal_assembly_delay
+        
         for entity in entities:
             if entity.entity_type != "npc":
                 continue
             if not entity.visible:
                 continue
 
-            sx, sy = self._w2s(entity.x, entity.y, cam_x, cam_y)
+            # Интерполяция позиции: при высокой задержке NPC отстают (мир собирается с лагом)
+            prev_x, prev_y = self._prev_npc_positions.get(entity.entity_id, (entity.x, entity.y))
+            render_x = prev_x + (entity.x - prev_x) * (1.0 - delay_factor)
+            render_y = prev_y + (entity.y - prev_y) * (1.0 - delay_factor)
+
+            sx, sy = self._w2s(render_x, render_y, cam_x, cam_y)
 
             is_focused = entity.entity_id == focus_id
 
@@ -313,6 +341,9 @@ class SceneRenderer:
                     end_x = sx + ndx * (radius + 10)
                     end_y = sy + ndy * (radius + 10)
                     pygame.draw.line(self.screen, (255, 255, 100), (start_x, start_y), (end_x, end_y), 2)
+
+            # ADR-037: Сохраняем актуальную позицию NPC для следующего кадра (Temporal Delay)
+            self._prev_npc_positions[entity.entity_id] = (entity.x, entity.y)
 
     def _draw_inference_badges(self, entity: PerceivedEntity, sx: int, sy: int) -> None:
         """Рисует маленькие цветные точки для поведенческих выводов"""
