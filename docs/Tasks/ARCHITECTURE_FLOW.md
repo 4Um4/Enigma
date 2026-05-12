@@ -21,8 +21,8 @@ P05[Phase 0.5: Idle Services ALWAYS] -->|List StateDeltas| DBUF[delta_buffer]
 PI[Player Input] -->|Raw Text| IC[IntentCompressor pymorphy3 Fast Path + LLM Slow Path ADR-035]
 IC -->|IntentSemanticField| TR[Target Reference Resolver String to ID]
 TR -->|IntentParametersDTO strict payload ADR-035| IPR[IntentPressureResolver Semantic Translation ADR-031]
-IPR -->|IntentPressureProfile| WPG[WillpowerGate Cumulative Strain Model ADR-031]
-WPG -->|WillResponseDTO| P1[Phase 1: Input]
+IPR -->|IntentPressureProfile| WPG[WillpowerGate Cumulative Strain Model + EmbodiedVector ADR-040]
+WPG -->|WillResponseDTO origin_layer + embodied_vector| P1[Phase 1: Input]
 P1 -->|EventDTO or WILL_CONFLICT| P2[Phase 2: EventBus]
 P2 -->|attach_cfrm_buffer + classify_event -> ClassificationResult ADR-038| EB[EventBuffer CausalAxis]
 SS -.->|DI: set_spatial_service| P0
@@ -150,7 +150,7 @@ SSM -->|resolve x,y via SpatialService| SC_T1[world_snapshot t+1 PROJECTION ADR-
 RAW -.->|player_dict| APA[AvatarPresentationAssembler Translation Layer ADR-035]
 APA -->|AvatarStateDTO| P9
 
-SC_T1 -->|WorldSnapshotDTO| P9[Phase 9: WorldSnapshotBuilder]
+SC_T1 -->|WorldSnapshotDTO + ambient_phenomenology ADR-040| P9[Phase 9: WorldSnapshotBuilder]
 SC_T1 -->|atomic commit| P10[(Phase 10: SQLite)]
 P9 -->|WorldSnapshotDTO + AvatarStateDTO| GL
 end
@@ -196,7 +196,7 @@ CAL -->|HUD Render Top Right| CIN_LAYER
 
 MOVE[_MoveState Navigation Kinetics Embodiment ADR-0011] -->|facing_angle + facing_mode| REND[SceneRenderer.render Lerp via dt]
 PY -->|avatar_state from world_snapshot| REND
-REND --> EPI[_apply_avatar_perception_overlay Vignette Blood Distortion ADR-035]
+REND --> EPI[_apply_avatar_perception_overlay Motion Bias Temporal Delay Contrast ADR-040]
 EPI -.->|final screen blit| PY
 end
 
@@ -247,3 +247,18 @@ classDef resistance fill:#f9f,stroke:#333,stroke-width:2px;
 class FW firewall;
 class PM momentum;
 class INFECT resistance;
+
+subgraph Causal_Sandbox[Каузальная Песочница ADR-041]
+    CLOCK[DeterministicClock delta=10s] --> TRACE[CausalTrace parent_id linkage]
+    TRACE --> PROBES[PressureProbe UtilityProbe TraversalProbe]
+    PROBES --> SCENARIO[Minimal Obedience Field]
+    SCENARIO --> DIS[DirectiveInterpretationSubscriber]
+    DIS -->|fear_delta| PROBES
+    SCENARIO --> DH_S[DecisionHub Физика Власти ADR-042]
+    DH_S -->|APPROACH wins| PROBES
+    SCENARIO --> SSM_S[SceneStateManager Эмуляция]
+    SSM_S -->|TraversalState duration>0| PROBES
+end
+
+classDef sandbox fill:#ff9,stroke:#333,stroke-width:2px,stroke-dasharray: 5 5;
+class CLOCK,TRACE,PROBES,SCENARIO,DIS,DH_S,SSM_S sandbox;

@@ -242,12 +242,20 @@ SPATIAL -> OVERWRITE
 ## VI. Game Loop, API и Persistence
 
 ### WorldSnapshotDTO
-- `tick`: `int`, `version`: `int`, `last_event_id`: `Optional[UUID]`
-- `player_position`: `Tuple[float, float]`, `npc_positions`: `List[NPCPositionDTO]`
+- `tick`: `int`
+- `version`: `int`
+- `last_event_id`: `Optional[UUID]`
+- `player_position`: `Tuple[float, float]`
+- `npc_positions`: `List[NPCPositionDTO]`
 - `avatar_state`: `Optional[AvatarStateDTO] = None` // ADR-035: Феноменологическая проекция аватара
-- `visible_events`: `List[VisibleEventDTO]`, `available_actions`: `List[str]`
-- `location_id`: `str`, `weather`: `str`, `time_of_day`: `str`
+- `ambient_phenomenology`: `Optional[Dict[str, float]] = None` // ADR-040: Средовое давление (температура, плотность)
+- `visible_events`: `List[VisibleEventDTO]`
+- `available_actions`: `List[str]`
+- `location_id`: `str`
+- `weather`: `str`
+- `time_of_day`: `str`
 - `game_time_seconds`: `int = 0` // Абсолютное время симуляции
+- `active_traversals`: `List[Dict] = field(default_factory=list)` // ADR-019: Транзиты для визуального Lerp. Структура dict: `npc_id, from_xy, to_xy, duration_seconds, started_at` (Добавлено в Сессии 29), `locomotion`.
 
 ### NPCPositionDTO
 - `npc_id`: `str`, `x`: `float`, `y`: `float`, `location_id`: `str`, `facing`: `str`, `action`: `str`
@@ -261,15 +269,18 @@ SPATIAL -> OVERWRITE
 *Визуальное ментальное состояние аватара для рендера.*
 - `CALM`, `STRESSED`, `PANICKED`, `DISSOCIATING`, `BROKEN`
 
-### AvatarStateDTO (Frozen Dataclass — Феноменологическая проекция ADR-035)
+### AvatarStateDTO (Frozen Dataclass — Феноменологическая проекция ADR-035, ADR-040)
 *Перевод Simulation Truth в Rendering Projection. Фронтенд не знает о HP или pain.*
 - `physical_state`: `PhysicalPresentationState`
 - `mental_state`: `MentalPresentationState`
-- `movement_instability`: `float` // 0.0-1.0, шаткость походки
-- `visual_distortion`: `float` // 0.0-1.0, размытие, туннельное зрение
+- `perceptual_stability`: `float` // 0.0-1.0 (1.0 = кристально чистое восприятие)
+- `cognitive_coherence`: `float` // 0.0-1.0 (0.0 = диссоциация)
+- `sensory_noise`: `float` // 0.0-1.0 (звон, пятна, глушение)
+- `motor_disruption`: `float` // 0.0-1.0 (тремор, замедление моторики)
+- `perceptual_latency`: `float` // 0.0-1.0, задержка сборки реальности
+- `reality_reconciliation_rate`: `float` // 0.0-1.0, скорость восстановления когерентности
 - `blood_visibility`: `float` // 0.0-1.0, кровь на экране/персонаже
 - `breathing_profile`: `str` // calm, heavy, gasping, hyperventilating
-- `dominant_impulse`: `Optional[str]` // "flee", "hide", "surrender"
 - `posture_state`: `str` // upright, hunched, collapsed
 
 ### TurnResult (frontend/game_loop_bridge.py)
@@ -410,7 +421,7 @@ SPATIAL -> OVERWRITE
 ### IntentParametersDTO (Frozen Dataclass — Строгий транспорт семантики ADR-035)
 Убивает `Dict[str, Any]` в `IntentDTO.parameters`.
 
-- **semantic_action**: `Optional[str]` # MOVE, THREATEN (извлечено Слоем 1)
+- **semantic_action**: `Optional[str]` # MOVE, THREATEN (извлечено Слоем 1). Критически важно для Физики Власти (ADR-042): триггерит _obedience_pressure.
 - **target_reference**: `Optional[str]` # Сырая ссылка: 'тень', 'борко'
 - **target_id**: `Optional[str]` # ID цели, найденный Слоем 2 (fuzzy matching)
 - **physical_force**: `float = 0.1` # Кинетическая энергия
@@ -445,6 +456,20 @@ SPATIAL -> OVERWRITE
 
 ---
 
+### OriginLayer (Enum — ADR-040)
+*Источник давления на психику аватара.*
+- `WILL_CONFLICT = "will_conflict"`
+- `AFFECTIVE_RESONANCE = "affective_resonance"`
+- `PHYSIOLOGICAL_OVERRIDE = "physiological_override"`
+
+### EmbodiedVector (Enum — ADR-040)
+*Предрефлексивный моторный импульс аватара.*
+- `AVOIDANCE = "avoidance"`     # Избегание, бегство
+- `DESTROY = "destroy"`         # Агрессия, нападение
+- `COLLAPSE = "collapse"`       # Падение, обморок
+- `SUBMIT = "submit"`           # Подчинение, сдача
+- `FREEZE = "freeze"`           # Оцепенение, столбняк
+
 ### WillResponseDTO (Frozen Dataclass — Результат работы WillpowerGate)
 Возвращается, когда воля игрока проходит через психику аватара.
 
@@ -456,6 +481,8 @@ SPATIAL -> OVERWRITE
 - `generated_memories`: `List[dict]` — Следы в аффективной памяти аватара (`MemorySeed`)
 - `counter_offer`: `Optional[IntentDTO]` — Аватар предлагает альтернативу (убежать, подкупить)
 - `narration_hooks`: `List[str]` — Подсказки для LLM (`"плачет"`, `"дрожит"`, `"взгляд пустеет"`)
+- `origin_layer`: `OriginLayer = OriginLayer.WILL_CONFLICT` // ADR-040: Источник давления
+- `embodied_vector`: `Optional[EmbodiedVector] = None` // ADR-040: Моторный импульс (для UI)
 
 ---
 

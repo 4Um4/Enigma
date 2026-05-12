@@ -175,11 +175,22 @@ class CombatSubscriber:
         # Определяем участников
         actor_id = payload.get("actor_id") or getattr(event, 'source', 'player')
         target_id = payload.get("target_id")
+        
+        # ADR-035 FIX: Если Слой 2 не дал ID, пробуем найти по target_reference (имени)
+        if not target_id:
+            target_ref = payload.get("target_reference")
+            if target_ref:
+                for npc_id, npc_dict in npc_by_id.items():
+                    npc_name = npc_dict.get("name", "").lower()
+                    if target_ref in npc_name or npc_name.startswith(target_ref):
+                        target_id = npc_id
+                        logger.debug(f"[COMBAT_SUB] Resolved target_reference '{target_ref}' to npc_id '{target_id}'")
+                        break
 
         if not target_id:
-            logger.debug(
+            logger.warning(
                 f"[COMBAT_SUB] event {getattr(event, 'type', '?')} "
-                f"has no target_id, skip"
+                f"has no target_id and target_reference '{payload.get('target_reference')}' not found. Pipeline DEAD."
             )
             return None
 

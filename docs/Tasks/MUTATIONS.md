@@ -247,7 +247,7 @@
 - **Очистка:** Удалён D&D реликты `sandbox_handler.py`. Легаси-бенчмарки перенесены в `tests/sandbox/legacy/`. Артефакты перенесены в `data/sandbox_artifacts/`. **[Рефакторинг]**
 - **Архитектура:** Приняты ADR-037 (Phenomenological Presentation), ADR-038 (Epistemic Classification) и ADR-039 (Will Conflict Data Pipeline).
 
-## Сессия 24: Intent Compression, Social Physics & Causal Sandbox
+## Сессия 27: Intent Compression, Social Physics & Causal Sandbox
 **Дата:** 12.05.2026  
 **Изменения:**
 - **`backend/app/domain/intent_profile.py` (Новый):** Создан доменный слой семантического поля намерения. Введены `ActionType` (расширен UNCERTAIN), `TargetZone`, `SemanticAmbiguity`, `EmotionalVector`, `ConfidenceVector`, `IntentSemanticField`. **[Контракт]**
@@ -259,3 +259,34 @@
 - **`backend/app/models/cfrm.py`:** В `PsychologicalPressure` добавлен вектор `directive_obedience`. **[Контракт]**
 - **`backend/tests/sandbox/` (Новый):** Создана Песочница Онтологии (test_causal_movement.py). 7 тестов верифицируют законы реальности: нет прямой мутации, давление — не команда, легитимность влияет на давление. **[Тестирование]**
 - **Архитектура:** Приняты ADR-035 (Intent Compression Layer), ADR-036 (Social Physics). Принят Каузальный Контракт v1.1.
+
+## Сессия 28: Выжигание Легаси и Консолидация Феноменологии
+**Дата:** 13.05.2026  
+**Изменения:**
+- **`backend/app/domain/snapshot.py`:** Удалены зомби-поля `visual_distortion`, `movement_instability`, `dominant_impulse` из `AvatarStateDTO`. В `WorldSnapshotDTO` добавлено поле `ambient_phenomenology`. **[Контракт]**
+- **`backend/app/services/presentation/avatar_presentation_assembler.py`:** Очистка от вычисления удаленных полей. Переведен на строгие скаляры. **[Рефакторинг]**
+- **`backend/app/models/will.py`:** Введены `OriginLayer` (источник давления) и `EmbodiedVector` (моторный импульс). `WillResponseDTO` расширена полями `origin_layer` и `embodied_vector`. **[Контракт]**
+- **`backend/app/services/will.py`:** Добавлена функция `_resolve_embodied_vector` для вычисления предрефлексивных импульсов и `get_embodied_impulse_text` для их трансляции в текст. Убран хардкод "Убежать". **[Архитектура]**
+- **`backend/app/services/tick_orchestrator.py`:** Обновлена генерация `will_conflict_data` с передачей `origin_layer`, `embodied_vector` и текста на основе вектора. В `builder.build()` добавлена передача `all_npcs_raw` для среды. **[Пайплайн]**
+- **`backend/app/services/integration/world_snapshot_builder.py`:** Реализован метод `_compute_ambient_phenomenology` для вычисления средового давления (`emotional_temperature`, `proximity_compression`) на основе психики NPC. **[Архитектура]**
+- **`frontend/presentation_firewall.py`:** Удалены хардкод-хаки проверки `mental_state`. Убрана поддержка легаси `visual_distortion`. **[Рефакторинг]**
+- **`frontend/scene_renderer.py`:** Добавлен буфер `_prev_npc_positions` для темпоральной задержки. Вычисление `ManifestationProfile` перенесено в начало `render()`. Добавлен сдвиг камеры (`Motion Bias`), темпоральная интерполяция позиций NPC (`Temporal Assembly Delay`) и пульсация контраста (`Contrast Instability`). **[UI/Архитектура]**
+- **`frontend/text_input.py`:** Метод `infect()` теперь принимает `origin_layer` для стилизации заражения ввода. **[Контракт]**
+- **`frontend/game_screen.py`:** В `renderer.render()` добавлена передача `avatar_state` и `ambient_state`. Обновлен парсинг `will_conflict_data`. **[Пайплайн]**
+- **`backend/tests/sandbox/sandbox_sprint_27.py` (Новый):** Песочница, верифицирующая очистку DTO, логику Embodied Vector, Ambient Phenomenology и Temporal Delay. **[Тестирование]**
+- **Архитектура:** Принят ADR-040 (Sprint 27 Consolidation).
+
+## Сессия 29: Каузальная Песочница, Физика Власти и Убийство Телепортации
+**Дата:** 13.05.2026  
+**Изменения:**
+- **`backend/tests/sandbox/runtime/deterministic_clock.py` (Новый):** Создан детерминированный источник времени для Песочницы. Изолирует симуляцию от реального времени.
+- **`backend/tests/sandbox/runtime/causal_trace.py` (Новый):** Создан регистратор причинности. Хранит `CausalFrame` с `causal_parent_id` для отслеживания генеалогии решений.
+- **`backend/tests/sandbox/probes/` (Новый):** Созданы пробники: `PressureProbe`, `UtilityProbe`, `TraversalProbe`. Наблюдают за фазовыми переходами, не мутируя мир.
+- **`backend/tests/sandbox/fixtures/tavern_world.py` (Новый):** Создана детерминированная фикстура Микрокосма Таверны (Игрок + Тень).
+- **`backend/tests/sandbox/scenarios/minimal_obedience_field.py` (Новый):** Создан вертикальный срез каузальной трубы: Семантика → Давление → Utility → Цель → Транзит. Тест успешно проходит, доказывая, что подчинение рождает легитимное движение (duration=5.59с).
+- **`backend/app/services/npc/decision_hub.py`:** Убит хардкод `base += 0.6` для APPROACH. Внедрена Физика Власти: страх перед авторитетом (`semantic_action=MOVE`) искривляет utility-space, мотивируя приближение. Обратная инверсия: `fear` теперь бустит `Intent.APPROACH`, а не подавляет его.
+- **`backend/app/services/social/directive_interpretation_subscriber.py`:** Обнаружено, что конвертирует давление в `fear_delta` и `stress_delta` (ObediencePressure=0.48).
+- **`backend/app/services/integration/world_snapshot_builder.py`:** В `_extract_active_traversals` добавлено поле `started_at` для фронтендного Lerp.
+- **`frontend/game_screen.py`:** Внедрен Каузальный Lerp (`_resolve_visual_xy`). Функция вычисляет визуальную позицию NPC на основе `active_traversals` и `game_time_seconds`. Исправлены отступы и дубликаты. Проброс `active_traversals` из `world_snapshot` во все три места обновления позиций.
+- **`backend/app/services/tick_orchestrator.py`:** Убит `DIRECT_REFLEX` (байпас Воли). Приказ игрока больше не генерирует `SceneChange` напрямую, а маршрутизируется через EventBus как социальное давление. Добавлен диагностический лог `[APPROACH_NAV]`.
+- **Продакшен-баги (Не починены, требуют Песочницы):** `TICK_CATCHUP` (delta=865с) убивает `TraversalState` в тот же тик. NPC идет к `entrance` вместо позиции игрока (отсутствует лог `[APPROACH_NAV]`, значит `MovementIntent` не создается или перехватывается `LifeEngine`).
