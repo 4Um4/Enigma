@@ -249,20 +249,19 @@ cd backend
 
 ## Куда движется проект (Roadmap)
 
-Ближайший вектор The Fool формируется из `docs/Tasks/*` (ADR, DTO Registry, ТЗ Преемнику):
+Вектор **The Fool** сегодня читается как переход от “механик” к **наблюдаемой причинности** (каузальная песочница + феноменология + pressure→decision замыкание). Это будущее прослеживается напрямую из `docs/Tasks/*`.
 
-1. `Sprint 18 / CFRM Foundation`: внедрить в `frontend/map_editor` контракт `TileDTO` с разделением `logic` и `visual`, где физика мира не зависит от картинки.
-2. Ввести `DebugSurface` в домене (`backend/app/domain/surface.py`) и перевести физические расчёты на запросы среды (`friction/noise/collision`) вместо hardcode.
-3. Разделить `SceneRenderer` на compositing pipeline: `Base`, `Membrane`, `Perception`, `Narrative` слои с независимыми debug-флагами.
-4. Добавить `PerceptionMode` switcher (`F1`: `REALITY`, `PLAYER_POV`, `NPC_POV`, `RUMOR_FIELD`, `STRESS_FIELD`) для инженерной отладки причинности и восприятия.
-5. Довести CFRM до runtime: `EventBuffer + ClusterGraph + MembraneField + локальная редукция` как замена глобального mutable world state.
-6. Закрыть spatial-брешь между macro relocation и micro movement: реализовать `LocalSteeringIntent/TraversalState` для непрерывного перемещения внутри узла.
-7. Расширить causal test-pack: e2e сценарии `Physical -> Cognitive -> Social`, включая стабильность редукции при high-load тиках.
-8. Внедрить `PerceptualKernel` в `NPCState` и сделать внимание NPC управляемым бэкендом, а не только UI-эвристикой.
+1. **CFRM/DTO как runtime-контракт:** усилить связку `EventBuffer + ClusterGraph + MembraneField + LocalCausalSolver` и сделать DTO Registry единственным транспортом между фазами.
+2. **Наблюдаемость причинности:** реорганизовать песочницы в классы (micro/system/stress/phenomenology) и ввести обязательный `CausalTraceLogger` (Field → Membrane → Phenomenon → Pressure → Decision → Commit).
+3. **Pressure → Decision замыкание:** подтвердить, что `PsychologicalPressure(directive_obedience/fear/uncertainty)` напрямую модулирует utility/goal через DecisionHub и фиксируется в causal trace.
+4. **Phenomenology → Presentation:** довести поток “восприятие/феноменология” до `ManifestationProfile/PresentationFirewall`, чтобы фронт отражал субъективные градиенты (а не сырые метрики).
+5. **PerceptionMode/DebugSurface:** добавить переключатели режимов восприятия и слой среды `DebugSurface` для инженерной проверки “что видит NPC”.
+6. **Spatial gap (macro ↔ micro):** закрыть разрыв между перемещением по узлам и локальным steering через `TraversalState/MovementStep` (планируется как непрерывная интеграция).
 
 ---
 
 ## Для ветки V.0.5.3.0.1_НОВАЯ_РЕАЛЬНОСТЬ_1
+
 
 Эта ветка фиксирует переход от «контрактной миграции» к «физико-каузальной модели мира»:
 - слой `Physiology + Impact` встроен в основной тик (`phase 0.5` и `phase 8`) без выделения отдельного режима боя;
