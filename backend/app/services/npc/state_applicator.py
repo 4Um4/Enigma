@@ -43,7 +43,8 @@ from app.models.physical import (
     WoundSeverity,
 )
 from app.models.event_resolution import StateChange
-from app.models.state_delta import DeltaDomain, EmotionPayload, IdentityPayload, PhysiologyPayload, ReputationPayload, SocialPayload, StateDeltas
+from app.models.state_delta import DeltaDomain, StateDeltas
+from app.models.delta_payloads import EmotionPayload, IdentityPayload, PerceptionPayload, PhysiologyPayload, ReputationPayload, SocialPayload
 from app.services.npc.decision_hub import DecisionResult
 from app.services.npc.math_utils import apply_saturation
 from app.services.memory.relationship_store import RelationshipStore
@@ -407,6 +408,12 @@ class StateApplicator:
         add_statuses = deltas.payload.add_statuses if domain == DeltaDomain.PHYSIOLOGY and isinstance(deltas.payload, PhysiologyPayload) else ()
         remove_statuses = deltas.payload.remove_statuses if domain == DeltaDomain.PHYSIOLOGY and isinstance(deltas.payload, PhysiologyPayload) else ()
 
+        # PERCEPTION DOMAIN (ADR-O)
+        threat_gradient_delta = deltas.payload.threat_gradient_delta if domain == DeltaDomain.PERCEPTION and isinstance(deltas.payload, PerceptionPayload) else 0.0
+        uncertainty_delta_perc = deltas.payload.uncertainty_delta if domain == DeltaDomain.PERCEPTION and isinstance(deltas.payload, PerceptionPayload) else 0.0
+        anomaly_score_delta_perc = deltas.payload.anomaly_score_delta if domain == DeltaDomain.PERCEPTION and isinstance(deltas.payload, PerceptionPayload) else 0.0
+        dominant_emotion_hint = deltas.payload.dominant_emotion_hint if domain == DeltaDomain.PERCEPTION and isinstance(deltas.payload, PerceptionPayload) else None
+
         # Стресс
         if stress_delta != 0.0:
             old = state.stress
@@ -476,6 +483,45 @@ class StateApplicator:
                 state.body_state["statuses"] = [
                     s for s in state.body_state.get("statuses", []) if s not in remove_statuses
                 ]
+
+        # --- Восприятие (Perception Domain / ADR-O) ---
+        if domain == DeltaDomain.PERCEPTION:
+            # Инициализация ядра, если его нет
+            if not hasattr(state, 'perceptual_kernel') or state.perceptual_kernel is None:
+                from app.models.npc_state import PerceptualKernel
+                state.perceptual_kernel = PerceptualKernel()
+
+            if threat_gradient_delta != 0.0:
+                state.perceptual_kernel.threat_gradient = max(
+                    0.0, min(1.0, state.perceptual_kernel.threat_gradient + threat_gradient_delta)
+                )
+            if uncertainty_delta_perc != 0.0:
+                state.perceptual_kernel.uncertainty = max(
+                    0.0, min(1.0, state.perceptual_kernel.uncertainty + uncertainty_delta_perc)
+                )
+            if anomaly_score_delta_perc != 0.0:
+                state.perceptual_kernel.anomaly_score = max(
+                    0.0, min(1.0, state.perceptual_kernel.anomaly_score + anomaly_score_delta_perc)
+                )
+            if dominant_emotion_hint:
+                state.perceptual_kernel.dominant_emotion = dominant_emotion_hint
+                
+            # S28: Мерж топологии деформации пространства решений
+            _aggr_inh = getattr(payload, 'aggression_inhibition_delta', 0.0)
+            if _aggr_inh != 0.0:
+                state.perceptual_kernel.aggression_inhibition = max(
+                    0.0, min(1.0, state.perceptual_kernel.aggression_inhibition + _aggr_inh)
+                )
+            _comp_bias = getattr(payload, 'compliance_bias_delta', 0.0)
+            if _comp_bias != 0.0:
+                state.perceptual_kernel.compliance_bias = max(
+                    0.0, min(1.0, state.perceptual_kernel.compliance_bias + _comp_bias)
+                )
+            _init_sup = getattr(payload, 'initiative_suppression_delta', 0.0)
+            if _init_sup != 0.0:
+                state.perceptual_kernel.initiative_suppression = max(
+                    0.0, min(1.0, state.perceptual_kernel.initiative_suppression + _init_sup)
+                )
 
         # Causal Ledger — паспорт каждого изменения (Шаг 3)
         # Фаза 4-ROLE.2: emotional_impact для генерации TemporaryDrive

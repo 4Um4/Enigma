@@ -43,8 +43,14 @@ def _resolve_target_reference(field: IntentSemanticField, scene_context: Any) ->
         # Вариант 2: npc_positions
         if not npc_name_map:
             for npc_id, pos_data in scene_context.get("npc_positions", {}).items():
-                if isinstance(pos_data, dict) and pos_data.get("display_name"):
-                    npc_name_map[pos_data["display_name"].lower()] = npc_id
+                if isinstance(pos_data, dict):
+                    # Поддержка обоих ключей: display_name (DTO) и name (scene_state)
+                    _name = pos_data.get("display_name") or pos_data.get("name")
+                    if _name:
+                        npc_name_map[_name.lower()] = npc_id
+
+    # ADR-046: Диагностика Fuzzy Matching (Слой 2)
+    logger.warning(f"[TARGET_RESOLVE] ref='{ref}', map_size={len(npc_name_map)}, keys={list(npc_name_map.keys())[:5]}")
 
     if not npc_name_map:
         return ""

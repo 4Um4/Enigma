@@ -36,6 +36,7 @@ REPUTATION = "reputation"
 IDENTITY = "identity"
 PHYSIOLOGY = "physiology"
 SPATIAL = "spatial"
+PERCEPTION = "perception"  # ADR-040: Обновление субъективной модели восприятия (PerceptualKernel)
 ```
 
 ### ReductionPolicy (Enum) — DRSL
@@ -78,7 +79,14 @@ SPATIAL -> OVERWRITE
 - `pressure_resistance_delta`: `float = 0.0`
 - `will_state_override`: `Optional[str] = None`
 
+**PerceptionPayload** (ADR-040: Реальность → Восприятие)
+- `threat_gradient_delta`: `float = 0.0` // Рост ощущения угрозы
+- `uncertainty_delta`: `float = 0.0` // Рост неопределённости
+- `anomaly_score_delta`: `float = 0.0` // Рост ощущения аномальности
+- `dominant_emotion_hint`: `Optional[str] = None` // Подсказка для DecisionHub (fear/panic)
+
 **PhysiologyPayload** (Заменила CombatPayload)
+```
 - `hp_delta`: `float = 0.0` // Макро-LOD: агрегированная потеря функции
 - `pain_delta`: `float = 0.0` // 0-100
 - `fatigue_delta`: `float = 0.0` // 0-100
@@ -350,11 +358,13 @@ SPATIAL -> OVERWRITE
 - `magnitude`: `float`
 - `vectors`: `Tuple[DisturbanceVector, ...]`
 - `source_entity`: `str`
+- `semantic_seed`: `Optional[str] = None` // Геном нарратива: "удар", "кража", "крик". Для SOCIAL/COGNITIVE — обязателен.
 
 ### PerceivedPhenomenon (Frozen Dataclass — Субъективный феномен)
 - `perceived_intensity`: `float`
-- `inferred_cause`: `str`
-- `distortion_tag`: `str`
+- `perceived_archetype`: `str` // Реконструированный смысл: "драка", "чистки", "угроза"
+- `mutation_stage`: `int` // Стадия искажения: 0=глазами, 1=с чужих слов, 2=слух
+- `distortion_nature`: `str` // Тип трансформации: "energy_loss", "dramatization", "paranoid_inference"
 - `phenomenon_type`: `CausalAxis`
 
 ### PhenomenologicalState (Dataclass — Локальная истина кластера)

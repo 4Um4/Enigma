@@ -112,14 +112,8 @@ def init_scene_state(
     # 4.1. LifeEngine — тик расписания NPC (без LLM, чистая логика)
     try:
         _life_engine = get_life_engine()
-        from app.core.constants import MAX_CATCH_UP_TICKS
-        _world_elapsed = _life_engine.get_world_ticks_elapsed(campaign_id)
-        _sim_tick = _life_engine.get_current_tick(campaign_id)
-        _delta = max(0, _world_elapsed - _sim_tick)
-        _catch_up = min(_delta, MAX_CATCH_UP_TICKS)
-        logger.warning(f"[TICK_CATCHUP] world={_world_elapsed} sim={_sim_tick} delta={_delta} applying={_catch_up}")
-        _life_changes = []
-        # Инжекция SpatialService v1.2 для TICK_CATCHUP (Баг 2)
+        # ADR-043: Ретроактивная симуляция (TICK_CATCHUP) запрещена.
+        # Выполняется ровно ОДИН тик для инициализации расписания при загрузке сцены.
         from app.services.spatial.spatial_service import SpatialService
         _loc_id = scene_state.get("location_id", "")
         _spatial_svc = None
@@ -132,8 +126,7 @@ def init_scene_state(
         if _spatial_svc:
             _life_engine.set_spatial_service(_spatial_svc)
 
-        for _ in range(_catch_up):
-            _life_changes += _life_engine.tick(campaign_id, scene_state, runtime_path=loop._get_npc_runtime_path(campaign_id))
+        _life_changes = _life_engine.tick(campaign_id, scene_state, runtime_path=loop._get_npc_runtime_path(campaign_id))
         if _life_changes:
             loop.scene_manager.apply_changes(campaign_id, _life_changes, scene_state)
             # Восстанавливаем visual-координаты после мутаций LifeEngine/MovementEngine

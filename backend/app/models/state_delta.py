@@ -32,7 +32,8 @@ class DeltaDomain(Enum):
     REPUTATION = "reputation"
     IDENTITY = "identity"
     PHYSIOLOGY = "physiology"
-    SPATIAL = "spatial"  # FUTURE
+    SPATIAL = "spatial"
+    PERCEPTION = "perception"  # ADR-040: Обновление субъективной модели восприятия (PerceptualKernel)
 
 
 class ReductionPolicy(Enum):

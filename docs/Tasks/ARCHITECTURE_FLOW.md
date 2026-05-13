@@ -85,7 +85,7 @@ P2 -.->|cfrm_bridge capture| EB
 
 LAYER_SEP{Layer Separator}
 
-LAYER_SEP -->|1. Physical Layer| CSUB[CombatSubscriber ADR-0012]
+LAYER_SEP -->|1. Physical Layer| CSUB[CombatSubscriber ADR-0012 Fuzzy Target Resolve]
 P7 -->|drain_events| CSUB
 P2 -->|drain_events| CSUB
 
@@ -126,13 +126,13 @@ subgraph Phase_9_10[Фазы 9-10: CFRM P2 Phenomenology & Persistence ADR-0033]
 ORCH[TickOrchestrator] -.->|_rebuild_cluster_occupancy| CO[ClusterOccupancy ADR-0029]
 ORCH -->|_deobjectify_event + classify_event ADR-038| EB
 ORCH -->|will_conflict_data -> shared_context ADR-039| P9
-EB -->|drain disturbances| LCS[LocalCausalSolver P2]
+EB -->|drain disturbances| LCS[LocalCausalSolver P2 Neighbor Propagation]
 CG -.->|topology| LCS
 CO -.->|spatial index O1| LCS
 LCS -->|PerceivedPhenomenon per observer| PROJ[ProjectionPolicy Physical Cognitive Social]
 PROJ -->|aggregate per entity| PHEN[PhenomenologicalState Local Truth]
 PHEN -->|convert| PRESSURE[PsychologicalPressure fear uncertainty directive_obedience ADR-036]
-PRESSURE -->|generate StateDeltas EMOTION| DBUF2
+PRESSURE -->|generate StateDeltas PERCEPTION ADR-040| DBUF2
 
 LCS -->|Patches| SA[StateApplicator.apply_batch v2]
 LDA -.->|collapsed v1 StateDeltas for legacy| SA
@@ -142,6 +142,7 @@ DBUF_P --> CFRM
 
 SA -->|_apply_faction_delta| REP[ReputationEngine.apply_deltas]
 SA -->|_apply_body_delta| BSMUT[NPCState.body_state mutation]
+SA -->|_apply_perception_delta| PKERN[NPCState.perceptual_kernel mutation ADR-040]
 SA -->|_apply_delta_to_raw dict to NPCState bridge| RAW[all_npcs_raw]
 
 LCS -->|apply_spatial_events| SSM
