@@ -17,6 +17,7 @@ import logging
 from typing import List, Set, Union
 
 from app.models.state_delta import StateDeltas, DeltaDomain, EmotionPayload, SocialPayload
+from app.models.delta_payloads import PerceptionPayload
 
 logger = logging.getLogger(__name__)
 
@@ -56,6 +57,12 @@ class LegacyStateDeltaAdapter:
             elif d.domain == DeltaDomain.SOCIAL and isinstance(d.payload, SocialPayload):
                 collapsed.trust_delta += d.payload.trust_delta
                 collapsed.fear_delta += d.payload.fear_delta
+            elif d.domain == DeltaDomain.PERCEPTION and isinstance(d.payload, PerceptionPayload):
+                # Конвертация когнитивного давления в v1-совместимые стресс и страх
+                collapsed.stress_delta += d.payload.threat_gradient_delta * 20.0
+                collapsed.fear_delta += d.payload.threat_gradient_delta * 10.0
+                if d.payload.dominant_emotion_hint == "panic":
+                    collapsed.emotion_tag = "panic"
             else:
                 # Физиология, Идентичность, Репутация — теряются при коллапсе в v1
                 domain_name = d.domain.value if d.domain else "UNKNOWN"

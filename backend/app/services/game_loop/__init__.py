@@ -358,7 +358,7 @@ class GameLoop:
             world_changes=dm_result.get("world_changes", []),
             world_snapshot=_ws_dict,
             npc_positions=_npc_pos_dict,
-            will_conflict_data=shared_context.will_conflict_data,
+            will_conflict_data=state.shared_context.will_conflict_data if hasattr(state, 'shared_context') and state.shared_context else None,
             journal_entry_id=self.memory_manager.persist_dm_response(
                 req.campaign_id,
                 world_id=req.world_id,
@@ -565,7 +565,7 @@ class GameLoop:
                 action_type=shared_context.action_type or "player_interacts",
                 target=shared_context.player_target_id or "",
                 player_dict=_player_data_dict,
-                scene_context=scene_state, # Инъекция Слоя 2: Передаем NPC для fuzzy matching
+                scene_context=scene_state, # Слой 2 ищет имена в scene_state["npc_positions"]
             )
             
             # Передаем давление в контекст для TickOrchestrator (Causal Resolution)
