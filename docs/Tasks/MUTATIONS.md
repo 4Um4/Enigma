@@ -307,7 +307,7 @@
 - **`backend/tests/test_physiology_flow.py`:** Созданы автотесты каскада `Force → Pain → Shock → Emotion`. **[Тестирование]**
 
 
-## Сессия 31: Спринт 28 — Замыкание Каузального Контура (Pressure → Decision)
+## Сессия 31: Спринт 28 — Каузальная Обсерватория и Эпистемическое Расхождение
 **Дата:** 14.05.2026  
 **Изменения:**
 - **Домен Решения (ADR-043):** Создан `backend/app/domain/decision_context.py`. Введены `UtilityFieldDeformation` (топология давления), `ActionSpaceCompression` (feasibility), `DecisionContext` (мост Ядро→Хаб). Реализован метод `from_kernel()` для прямой проекции без промежуточных DTO.
@@ -316,5 +316,10 @@
 - **DecisionHub v2 (Feasibility Layer):** В `decision_hub.py` добавлен аргумент `decision_ctx`. Внедрено разделение: Фаза 1 (Feasibility Filtering — удаление невозможных действий, `del scores[intent]`), Фаза 2 (Utility Deformation — искривление ландшафта через множители). Убит хардкод `fear * 0.45` для APPROACH.
 - **DirectiveInterpretationSubscriber v2:** Добавлен локальный резолв имен (если `target_id` пуст, ищет по `target_reference` в `npc_states`). Добавлена генерация `IdentityPayload`.
 - **Замыкание пайплайна (TickOrchestrator):** В `execute_player_finalize` внедрен вызов `DirectiveInterpretationSubscriber` напрямую (через `SimpleNamespace`), если обнаружен `semantic_action="MOVE"`. Дельты давления направляются в `delta_buffer`.
-- **Песочница:** Создана `backend/tests/sandbox/micro/test_command_compliance.py`. Тест зелёный, доказывает математическое подавление ATTACK и усиление APPROACH под давлением.
 - **Багфиксы GameLoop:** Починен краш `shared_context.will_conflict_data` (добавлен безопасный доступ).
+- **Песочницы (Приоритет 1):** Создана директория `backend/tests/sandbox/phenomenology/`. Реализован `test_rumor_mutation.py` — верификация эпистемического расхождения истин (свидетель vs. слышавший). Использует реальный `LocalCausalSolver` и инфраструктуру `CausalTrace`. **[Контракт]**
+- **Суперпесочница Весов:** Создан `test_balance_scales.py` — изолированная верификация математики проекций (экспоненциальное затухание физики, инференс стресса, драматизация слухов). **[Тестирование]**
+- Системная Песочница (Замыкание Контура): Создана директория backend/tests/sandbox/system/. Реализован test_causal_closure.py — полный вертикальный срез от Возмущения Поля (Приказ) до Искажения Решения (Подчинение/Агрессия). Проверяет баланс весов в зависимости от психологии NPC. [Тестирование]
+
+- **Архитектурная чистка (Устранение дублирования ADR):** Обнаружен конфликт нумерации ADR-049 от параллельных LLM-сессий. Аудиты вынесены из `ADR-000_IMPACT_TEMPLATE.md` в изолированные файлы `docs/audits/ADR-048_IMPACT.md`, `ADR-049_IMPACT.md` и `ADR-050_IMPACT.md`. Файл шаблона очищен. Каузальная Обсерватория официально зарегистрирована как **ADR-050**. **[Рефакторинг]**
+- **Критический багфикс (найден Песочницей):** Починен `pressure_translator.py` — транслятор давления пытался записать данные в удаленные поля `obedience_amplification` и `social_submission_bias` вместо новых `compliance_bias` и `initiative_suppression`. В рантайме это вызывало бы краш пайплайна подчинения. Также обновлен потребитель `test_command_compliance.py`. **[Багфикс]**

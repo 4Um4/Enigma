@@ -121,7 +121,8 @@ def _npc_distance(npc_id: str, scene_state: dict) -> float:
     Fallback 2: player_distances словарь (до R4.3) → 999.0.
     """
     npc_data    = scene_state.get("npc_positions", {}).get(npc_id, {})
-    player_data = scene_state.get("player_spatial", {})
+    # ADR-048: Игрок читается из единого словаря npc_positions (npc_id="player")
+    player_data = scene_state.get("npc_positions", {}).get("player", {})
 
     # Приоритет 1: евклидово расстояние по local_position
     if npc_data and player_data and isinstance(player_data, dict):
@@ -162,11 +163,12 @@ def _can_see(npc_id: str, scene_state: dict, event_location: str) -> bool:
         return False
 
     npc_data      = scene_state.get("npc_positions", {}).get(npc_id, {})
-    player_spatial = scene_state.get("player_spatial")
+    # ADR-048: Игрок читается из единого словаря npc_positions (npc_id="player")
+    player_data = scene_state.get("npc_positions", {}).get("player", {})
 
     # Приоритет 1: евклидова дистанция по local_position
-    if npc_data and isinstance(player_spatial, dict) and player_spatial:
-        distance = euclidean_distance(npc_data, player_spatial)
+    if npc_data and isinstance(player_data, dict) and player_data:
+        distance = euclidean_distance(npc_data, player_data)
         if distance >= 999.0:
             return False
         # R4: Жёсткий cap 15m — NPC не воспринимает за пределами радиуса

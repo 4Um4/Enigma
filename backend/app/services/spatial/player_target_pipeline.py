@@ -138,7 +138,8 @@ def build_spatial_data_for_dm(location: str, scene_state: dict) -> dict:
     _scene = scene_state
     _npc_positions = _scene.get("npc_positions", {})
 
-    _player_spatial = _scene.get("player_spatial") or {}
+    # ADR-048: Игрок читается из единого словаря npc_positions
+    _player_spatial = _scene.get("npc_positions", {}).get("player", {})
     _player_distances = _scene.get("player_distances", {})
     _npcs_for_builder = []
     for _nid, _npos in _npc_positions.items():

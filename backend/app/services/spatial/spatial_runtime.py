@@ -279,7 +279,8 @@ def extract_scene_for_npc(
 
     # --- Игрок в радиусе восприятия ---
     player_snapshot: dict | None = None
-    player_data = scene_state.get("player_spatial") or {}
+    # ADR-048: Игрок читается из единого словаря npc_positions
+    player_data = scene_state.get("npc_positions", {}).get("player", {})
     if isinstance(player_data, dict) and player_data:
         d_player = euclidean_distance(me, player_data)
         if d_player <= perception_radius:

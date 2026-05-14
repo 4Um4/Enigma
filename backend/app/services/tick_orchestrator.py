@@ -701,7 +701,7 @@ class TickOrchestrator:
         if _spatial_svc:
             engine.set_spatial_service(_spatial_svc)
         
-        changes = engine.tick(ctx.campaign_id, ctx.scene_state, runtime_path=runtime_path)
+        changes, life_intents = engine.tick(ctx.campaign_id, ctx.scene_state, runtime_path=runtime_path)
         ctx.scene_changes = changes or []
         # Заполняем полные стейты для фаз 3-6, 10 (Устав §3.1)
         ctx.npc_states = engine.get_npc_states(ctx.campaign_id)
@@ -709,8 +709,21 @@ class TickOrchestrator:
         ctx.all_npcs_raw = ctx.npc_states
         if changes and self._scene_manager:
             self._scene_manager.apply_changes(ctx.campaign_id, changes, ctx.scene_state)
-            logger.debug(f"[TICK_ORCH] Фаза 0: {len(changes)} changes от LifeEngine")
+            logger.debug(f"[TICK_ORCH] Фаза 0: {len(changes)} cognitive changes от LifeEngine")
         
+        # ADR-049: LifeEngine De-godification. Замыкание контура локомоции.
+        # Намерения расписания обрабатываются через MovementEngine, порождая TraversalState.
+        if life_intents:
+            from app.services.spatial.movement_engine import MovementEngine
+            _loc_id = ctx.scene_state.get("location_id", "")
+            if _loc_id and _spatial_svc:
+                me = MovementEngine()
+                me.set_spatial_service(_spatial_svc)
+                spatial_changes = me.process_intents(life_intents, tick=ctx.tick_number)
+                if spatial_changes and self._scene_manager:
+                    self._scene_manager.apply_changes(ctx.campaign_id, spatial_changes, ctx.scene_state)
+                    logger.info(f"[TICK_ORCH] Фаза 0: {len(spatial_changes)} spatial changes from {len(life_intents)} LifeEngine intents")
+
         # ADR-019: Фаза 0.75 — Authoritative Traversal Lifecycle.
         # Бэкенд не интерполирует пиксели, но владеет жизненным циклом перемещения.
         self._process_traversals(ctx)

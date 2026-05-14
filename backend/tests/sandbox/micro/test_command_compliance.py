@@ -25,7 +25,7 @@ def test_command_pressure_crushes_attack_utility():
     
     # 3. Верифицируем трансляцию (Геометрия, не скрипты)
     assert ctx.deformation.aggression_suppression > 0.5, "Агрессия должна быть топологически подавлена"
-    assert ctx.deformation.obedience_amplification > 0.5, "Подчинение должно быть усилено"
+    assert ctx.deformation.compliance_bias > 0.5, "Подчинение должно быть усилено"
     assert "ATTACK" in ctx.compression.constraints, "Экстремальное сжатие должно блокировать ATTACK"
     assert ctx.compression.constraints["ATTACK"] < 0.2, "Атака должна быть практически невозможна"
     
@@ -52,8 +52,8 @@ def test_command_pressure_crushes_attack_utility():
         escape_amp = 1.0 + deformation.escape_salience
         mock_scores["FLEE"] *= escape_amp
         
-    if deformation.obedience_amplification > 0:
-        obey_amp = 1.0 + deformation.obedience_amplification
+    if deformation.compliance_bias > 0:
+        obey_amp = 1.0 + deformation.compliance_bias
         mock_scores["APPROACH"] *= obey_amp
         
     # 5. Верификация исхода

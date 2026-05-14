@@ -117,7 +117,8 @@ class WorldSnapshotBuilder:
         self, scene_state: Dict
     ) -> Tuple[float, float]:
         """Вытаскивает координаты игрока."""
-        spatial = scene_state.get("player_spatial", {})
+        # ADR-048: Игрок читается из единого словаря npc_positions
+        spatial = scene_state.get("npc_positions", {}).get("player", {})
         local = spatial.get("local_position", {})
         return (local.get("x", 0.0), local.get("y", 0.0))
 

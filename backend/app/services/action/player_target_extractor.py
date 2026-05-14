@@ -445,7 +445,8 @@ class PlayerTargetExtractor:
         """
         if scene_state:
             npc_data = (scene_state.get("npc_positions") or {}).get(npc_id) or {}
-            player_data = scene_state.get("player_spatial") or {}
+            # ADR-048: Игрок читается из единого словаря npc_positions
+            player_data = scene_state.get("npc_positions", {}).get("player", {})
             if npc_data and player_data:
                 spatial_distance = euclidean_distance(
                     a=npc_data,

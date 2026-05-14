@@ -644,55 +644,43 @@ def _resolve_reactive_movement(
     _target_id = intent_target or "player"
 
     if intent == "approach":
-        # Приоритет: npc_positions (истина симуляции) -> player_spatial (legacy/фронтенд)
-        if _target_id in npc_positions:
-            target_entry = npc_positions[_target_id]
-            # ИСТИНА: Текущий макро-узел цели (NPC или Avatar)
-            target_node_id = target_entry.get("position")
-            
-            if not target_node_id:
-                lp = target_entry.get("local_position", {})
-                target_x = lp.get("x")
-                target_y = lp.get("y")
-                if target_x is not None and target_y is not None and spatial_service:
-                    nearest_ref = spatial_service.get_nearest(zone_id=location_id, origin_xy=(target_x, target_y))
-                    if nearest_ref:
-                        target_node_id = spatial_service.denormalize_id(nearest_ref.node_id)
-        elif _target_id == "player":
-            # Fallback: Игрок НЕ находится в npc_positions. Читаем из player_spatial.
-            target_entry = scene_state.get("player_spatial", {})
+        # ADR-048: Игрок внедрен как npc_id="player" (ADR-031), его позиция находится в npc_positions.
+        # player_spatial удален. denormalize_id удален.
+        target_entry = npc_positions.get(_target_id, {})
+        target_node_id = target_entry.get("position")
+
+        if not target_node_id:
+            # Если макро-узел не найден, пробуем резолвить через координаты (local_position)
             lp = target_entry.get("local_position", {})
             target_x = lp.get("x")
             target_y = lp.get("y")
             if target_x is not None and target_y is not None and spatial_service:
                 nearest_ref = spatial_service.get_nearest(zone_id=location_id, origin_xy=(target_x, target_y))
                 if nearest_ref:
-                    target_node_id = spatial_service.denormalize_id(nearest_ref.node_id)
-        else:
-            logger.warning(f"[APPROACH_NAV] target={_target_id} not found! Movement blocked.")
-            return None
+                    # ADR-008: denormalize_id удален. Извлекаем канонический ID напрямую.
+                    target_node_id = getattr(nearest_ref, 'canonical_id', getattr(nearest_ref, 'node_id', str(nearest_ref)))
+            if not target_node_id:
+                logger.warning(f"[APPROACH_NAV] target={_target_id} not found in npc_positions! Movement blocked.")
+                return None
 
     elif intent == "flee":
-        # Приоритет: npc_positions -> player_spatial
+        # ADR-048: Единый пространственный авторитет. Игрок внедрен как npc_id="player".
+        # player_spatial и denormalize_id удалены.
         if _target_id in npc_positions:
             target_entry = npc_positions[_target_id]
             lp = target_entry.get("local_position", {})
             threat_x = lp.get("x")
             threat_y = lp.get("y")
-        elif _target_id == "player":
-            target_entry = scene_state.get("player_spatial", {})
-            lp = target_entry.get("local_position", {})
-            threat_x = lp.get("x")
-            threat_y = lp.get("y")
         else:
-            logger.warning(f"[FLEE_NAV] threat={_target_id} not found! Flee blocked.")
+            logger.warning(f"[FLEE_NAV] threat={_target_id} not found in npc_positions! Flee blocked.")
             return None
 
         if threat_x is not None and threat_y is not None:
             if spatial_service:
                 furthest_ref = spatial_service.get_furthest(zone_id=location_id, origin_xy=(threat_x, threat_y))
                 if furthest_ref:
-                    target_node_id = spatial_service.denormalize_id(furthest_ref.node_id)
+                    # ADR-008: denormalize_id удален. Используем канонический ID напрямую.
+                    target_node_id = getattr(furthest_ref, 'canonical_id', getattr(furthest_ref, 'node_id', str(furthest_ref)))
             else:
                 try:
                     graph = load_graph(location_id)
