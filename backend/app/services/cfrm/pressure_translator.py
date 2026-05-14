@@ -10,9 +10,9 @@ def translate_pressure_to_context(pressure: PsychologicalPressure) -> DecisionCo
     """
     # 1. Топологическая деформация (90% случаев)
     aggression_sup = min(1.0, (pressure.fear * 0.7) + pressure.dominance_shift)
-    obedience_amp = pressure.directive_obedience
+    compliance_bias = pressure.directive_obedience + (pressure.dominance_shift * 0.5)
     escape_sal = pressure.fear * 0.6 + pressure.uncertainty * 0.2
-    social_sub = pressure.dominance_shift * 0.5
+    initiative_sup = pressure.dominance_shift * 0.6 # Доминирование подавляет инициативу
 
     # 2. Экстремальное сжатие (10% случаев - паралич воли)
     constraints = {}
@@ -23,9 +23,9 @@ def translate_pressure_to_context(pressure: PsychologicalPressure) -> DecisionCo
     return DecisionContext(
         deformation=UtilityFieldDeformation(
             aggression_suppression=aggression_sup,
-            obedience_amplification=obedience_amp,
+            compliance_bias=compliance_bias,
             escape_salience=escape_sal,
-            social_submission_bias=social_sub
+            initiative_suppression=initiative_sup
         ),
         compression=ActionSpaceCompression(constraints=constraints),
         source="cfrm_pressure"

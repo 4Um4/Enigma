@@ -281,10 +281,8 @@ class LifeEngine:
                 routine_changes, routine_intent = self.update_routine(npc, current_time)
                 all_changes.extend(routine_changes)
                 if routine_intent:
-                    movement_changes = self._movement_engine.process_intents(
-                        [routine_intent], tick=0,
-                    )
-                    all_changes.extend(movement_changes)
+                    # ADR-049: Удален прямой вызов MovementEngine. Намерение собирается оркестратором.
+                    pass
                 
                 # 2. Стресс — нормализация к baseline
                 psyche = npc.setdefault("psyche", {})
@@ -416,6 +414,7 @@ class LifeEngine:
         if not npcs:
             npcs = load_npcs_merged(runtime_path=runtime_path)
         all_changes: list[SceneChange] = []
+        all_intents: list[MovementIntent] = [] # ADR-049: Сборка намерений
         npcs_updated = False
 
         for npc in npcs:
@@ -451,9 +450,9 @@ class LifeEngine:
 
         logger.info(
             f"[LIFE_ENGINE] Тик #{current_tick} завершён: "
-            f"{len(all_changes)} SceneChange сгенерировано"
+            f"{len(all_changes)} SceneChange, {len(all_intents)} MovementIntent"
         )
-        return all_changes
+        return all_changes, all_intents # ADR-049: Возвращаем намерения в оркестратор
 
     def tick_decisions(
         self,   
@@ -835,73 +834,73 @@ class LifeEngine:
         return events
 
     def _simulate_major(
-        self,
-        npc: dict,
-        current_time: str,
-        tick: int,
-    ) -> tuple[list[SceneChange], "MovementIntent | None"]:
-        """
-        Полная симуляция Major NPC за один тик.
-        Порядок: need-driven → расписание → стресс → случайные события.
-        Need-driven имеет приоритет: если потребность критична — schedule пропускается.
-        """
-        changes: list[SceneChange] = []
+          self,
+          npc: dict,
+          current_time: str,
+          tick: int,
+      ) -> tuple[list[SceneChange], list["MovementIntent"]]:
+          """
+          Полная симуляция Major NPC за один тик.
+          Порядок: need-driven → расписание → стресс → случайные события.
+          Need-driven имеет приоритет: если потребность критична — schedule пропускается.
+          ADR-049: Возвращает list[MovementIntent] вместо прямого исполнения.
+          """
+          changes: list[SceneChange] = []
+          intents: list[MovementIntent] = []
+  
+          # ── D6: сбор всех intent-ов с приоритетами ──
+          candidates: list[MovementIntent] = []
+  
+          # 1. Need-driven: растём потребности, проверяем порог
+          self._tick_needs(npc)
+          need_intent = self._check_need_driven_movement(npc)
+          if need_intent:
+              candidates.append(need_intent)
+  
+          # 2. Расписание (всегда генерирует, но может быть None)
+          routine_changes, routine_intent = self.update_routine(npc, current_time, tick)
+          changes.extend(routine_changes)
+          if routine_intent:
+              candidates.append(routine_intent)
+  
+          # 3. Случайные события (5% шанс) — могут породить intent
+          event_changes, event_intent = self.check_random_events(npc, tick)
+          changes.extend(event_changes)
+          if event_intent:
+              candidates.append(event_intent)
+  
+          # 4. Восстанавливаем стресс (без SceneChange — только данные NPC)
+          self.recover_stress_tick(npc)
+  
+          # ── D6: выбираем лучший intent по priority ──
+          if candidates:
+              candidates.sort(key=lambda i: i.priority, reverse=True)
+              winner = candidates[0]
+              # ADR-049: LifeEngine больше не диктатор. Он не исполняет намерения сам.
+              # Намерение передается в TickOrchestrator для прохождения каузального конвейера.
+              logger.info(f"[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc={winner.npc_id} target={winner.target_node_id} reason={winner.reason}")
+              intents.append(winner)
+              # Обновляем activity в scene_state
+              if winner.reason.startswith("need_driven:"):
+                  target_activity = _NEED_TO_ACTIVITY.get(
+                      winner.reason.split(":")[1].split("=")[0], ""
+                  )
+                  if target_activity:
+                      activity_entry = npc.get("activity_map", {}).get(target_activity, {})
+                      changes.append(SceneChange(
+                          type=ChangeType.NPC_POSITION,
+                          target=winner.npc_id,
+                          field="activity",
+                          value=activity_entry.get("display", target_activity),
+                          cause=f"life_engine_need_driven:{winner.reason}",
+                          tick=tick,
+                      ))
+              logger.debug(
+                  f"[LIFE_ENGINE] {npc.get('id', '?')}: "
+                  f"{len(candidates)} intents, winner={winner.reason} (p={winner.priority})"
+              )
 
-        # ── D6: сбор всех intent-ов с приоритетами ──
-        candidates: list[MovementIntent] = []
-
-        # 1. Need-driven: растим потребности, проверяем порог
-        self._tick_needs(npc)
-        need_intent = self._check_need_driven_movement(npc)
-        if need_intent:
-            candidates.append(need_intent)
-
-        # 2. Расписание (всегда генерирует, но может быть None)
-        routine_changes, routine_intent = self.update_routine(npc, current_time, tick)
-        changes.extend(routine_changes)
-        if routine_intent:
-            candidates.append(routine_intent)
-
-        # 3. Случайные события (5% шанс) — могут породить intent
-        event_changes, event_intent = self.check_random_events(npc, tick)
-        changes.extend(event_changes)
-        if event_intent:
-            candidates.append(event_intent)
-
-        # 4. Восстанавливаем стресс (без SceneChange — только данные NPC)
-        self.recover_stress_tick(npc)
-
-        # ── D6: выбираем лучший intent по priority ──
-        if candidates:
-            candidates.sort(key=lambda i: i.priority, reverse=True)
-            winner = candidates[0]
-            logger.info(f"[PIPELINE][MOVEMENT][INTENT_CONSUME] npc={winner.npc_id} target={winner.target_node_id} from={winner.from_node_id}")
-            intent_changes = self._movement_engine.process_intents(
-                [winner], tick=tick,
-            )
-            logger.info(f"[PIPELINE][MOVEMENT][INTENT_RESULT] npc={winner.npc_id} changes_count={len(intent_changes)}")
-            changes.extend(intent_changes)
-            # Обновляем activity в scene_state
-            if winner.reason.startswith("need_driven:"):
-                target_activity = _NEED_TO_ACTIVITY.get(
-                    winner.reason.split(":")[1].split("=")[0], ""
-                )
-                if target_activity:
-                    activity_entry = npc.get("activity_map", {}).get(target_activity, {})
-                    changes.append(SceneChange(
-                        type=ChangeType.NPC_POSITION,
-                        target=winner.npc_id,
-                        field="activity",
-                        value=activity_entry.get("display", target_activity),
-                        cause=f"life_engine_need_driven:{winner.reason}",
-                        tick=tick,
-                    ))
-            logger.debug(
-                f"[LIFE_ENGINE] {npc.get('id', '?')}: "
-                f"{len(candidates)} intents, winner={winner.reason} (p={winner.priority})"
-            )
-
-        return changes
+          return changes, intents
 
     # ─────────────────────────────────────────────────────────────────────
     # Need-driven movement — перемещение по потребностям
@@ -1005,31 +1004,30 @@ class LifeEngine:
         )
 
     def _simulate_minor(
-        self,
-        npc: dict,
-        current_time: str,
-        tick: int,
-    ) -> list[SceneChange]:
-        """
-        Симуляция Minor NPC раз в MINOR_TICK_INTERVAL тиков.
-        Только расписание + случайные события (без полного стресс-расчёта).
-        """
-        changes: list[SceneChange] = []
-        routine_changes, routine_intent = self.update_routine(npc, current_time, tick)
-        changes.extend(routine_changes)
-        if routine_intent:
-            movement_changes = self._movement_engine.process_intents(
-                [routine_intent], tick=tick,
-            )
-            changes.extend(movement_changes)
-        event_changes, event_intent = self.check_random_events(npc, tick)
-        changes.extend(event_changes)
-        if event_intent:
-            movement_changes = self._movement_engine.process_intents(
-                [event_intent], tick=tick,
-            )
-            changes.extend(movement_changes)
-        return changes
+          self,
+          npc: dict,
+          current_time: str,
+          tick: int,
+      ) -> tuple[list[SceneChange], list["MovementIntent"]]:
+          """
+          Симуляция Minor NPC раз в MINOR_TICK_INTERVAL тиков.
+          Только расписание + случайные события (без полного стресс-расчёта).
+          ADR-049: Возвращает list[MovementIntent] вместо прямого исполнения.
+          """
+          changes: list[SceneChange] = []
+          intents: list[MovementIntent] = []
+          
+          routine_changes, routine_intent = self.update_routine(npc, current_time, tick)
+          changes.extend(routine_changes)
+          if routine_intent:
+              intents.append(routine_intent)
+              
+          event_changes, event_intent = self.check_random_events(npc, tick)
+          changes.extend(event_changes)
+          if event_intent:
+              intents.append(event_intent)
+              
+          return changes, intents
 
     # ─────────────────────────────────────────────────────────────────────────
     # update_routine — обновление по расписанию
@@ -1062,6 +1060,14 @@ class LifeEngine:
         if not schedule:
             return [], None
 
+        # ADR-049: Cognitive Override Guard. Расписание игнорируется при высоком когнитивном давлении.
+        # NPC не идет спать или на работу, если воспринимает реальность как угрожающую.
+        _kernel = npc.get("perceptual_kernel")
+        _threat = _kernel.get("threat_gradient", 0.0) if isinstance(_kernel, dict) else getattr(_kernel, "threat_gradient", 0.0) if _kernel else 0.0
+        if _threat > 0.4:
+            logger.debug(f"[LIFE_ENGINE] {npc_id}: Schedule bypassed due to threat_gradient={_threat:.2f}")
+            return [], None
+
         new_activity = self._get_current_activity(schedule, current_time)
         if not new_activity:
             return [], None
@@ -1078,7 +1084,7 @@ class LifeEngine:
         prev_location = npc.get("location", new_location)
         changes: list[SceneChange] = []
 
-        # ── Генерируем SceneChange (БЕЗ position — через MovementEngine) ──
+        # ── Генерируем когнитивные SceneChange ──
 
         changes.append(SceneChange(
             type=ChangeType.NPC_POSITION,
@@ -1099,19 +1105,21 @@ class LifeEngine:
             tick=tick,
         ))
 
-        if new_location != prev_location:
-            changes.append(SceneChange(
-                type=ChangeType.NPC_POSITION,
-                target=npc_id,
-                field="location",
-                value=new_location,
-                cause="life_engine_schedule",
-                tick=tick,
-            ))
-            logger.info(
-                f"[LIFE_ENGINE] {npc_id}: {prev_location} → {new_location} "
-                f"(активность: {prev_activity} → {new_activity})"
-            )
+        # ADR-049: Запрещена генерация SceneChange для смены location.
+        # Смена локации — физический процесс, реализуемый через MovementIntent → TraversalState.
+        # if new_location != prev_location:
+        #     changes.append(SceneChange(
+        #         type=ChangeType.NPC_POSITION,
+        #         target=npc_id,
+        #         field="location",
+        #         value=new_location,
+        #         cause="life_engine_schedule",
+        #         tick=tick,
+        #     ))
+        #     logger.info(
+        #         f"[LIFE_ENGINE] {npc_id}: {prev_location} → {new_location} "
+        #         f"(активность: {prev_activity} → {new_activity})"
+        #     )
 
         # ── MovementIntent для MovementEngine (Слой 2) ────────────────────
         from app.domain.movement import PRIORITY_SCHEDULE
@@ -1229,14 +1237,10 @@ class LifeEngine:
 
         logger.info(f"[LIFE_ENGINE] {npc_id}: случайное событие '{event_id}'")
 
-        # Если событие требует перемещения — через MovementEngine
-        if movement_intent:
-            movement_changes = self._movement_engine.process_intents(
-                [movement_intent], tick=tick,
-            )
-            changes.extend(movement_changes)
+        # ADR-049: LifeEngine не исполняет движение напрямую. Возвращаем Intent.
+        # Если событие требует перемещения — намерение передается в оркестратор.
 
-        return changes, None
+        return changes, movement_intent
 
     # ─────────────────────────────────────────────────────────────────────────
     # Stress recovery (без SceneChange — только данные NPC)

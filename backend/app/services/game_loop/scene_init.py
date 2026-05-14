@@ -93,7 +93,8 @@ def init_scene_state(
             logger.info(f"[GAME_LOOP] Новая сцена: {location}")
 
         # Применяем позицию игрока от фронтенда в памяти (атомарный commit_tick сохранит)
-        if player_position is not None and scene_state.get("player_spatial", {}).get("local_position"):
+        # ADR-048: Игрок читается из единого словаря npc_positions
+        if player_position is not None and scene_state.get("npc_positions", {}).get("player", {}).get("local_position"):
             scene_state["player_spatial"]["local_position"]["x"] = player_position[0]
             scene_state["player_spatial"]["local_position"]["y"] = player_position[1]
 
@@ -126,9 +127,11 @@ def init_scene_state(
         if _spatial_svc:
             _life_engine.set_spatial_service(_spatial_svc)
 
-        _life_changes = _life_engine.tick(campaign_id, scene_state, runtime_path=loop._get_npc_runtime_path(campaign_id))
+        _life_changes, _life_intents = _life_engine.tick(campaign_id, scene_state, runtime_path=loop._get_npc_runtime_path(campaign_id))
         if _life_changes:
             loop.scene_manager.apply_changes(campaign_id, _life_changes, scene_state)
+        if _life_intents:
+            logger.info(f"[SCENE_INIT] LifeEngine generated {len(_life_intents)} MovementIntents (deferred to first tick)")
             # Восстанавливаем visual-координаты после мутаций LifeEngine/MovementEngine
             # MovementEngine резолвит узлы графа в local_position — перебивая editor JSON
             loop.scene_manager._enrich_local_positions(campaign_id, scene_state)

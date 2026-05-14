@@ -21,7 +21,8 @@ from app.services.spatial.spatial_runtime import (
 
 def _player_xy(scene_state: dict) -> Tuple[float, float]:
     """Извлекает координаты игрока из SceneState"""
-    ps = scene_state.get("player_spatial", {})
+    # ADR-048: Игрок читается из единого словаря npc_positions
+    ps = scene_state.get("npc_positions", {}).get("player", {})
     lp = ps.get("local_position") or {}
     return float(lp.get("x", 0.0)), float(lp.get("y", 0.0))
 

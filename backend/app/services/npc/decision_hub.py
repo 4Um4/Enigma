@@ -779,8 +779,10 @@ class DecisionHub:
             # Для FLEE: fear используется дважды — как буст (rel_mod) и как множитель риска.
             # Это намеренно: страх перед конкретным актором + опасность ситуации — разные сигналы.
             # rel_mod = fear × 0.65 (отношение к актору)
-            # risk_penalty = fear × risk × 0.9 (оценка угрозы ситуации)
-            risk_penalty = round(fear * risk * 0.9, 4)
+            # risk_penalty = (fear + threat_gradient) × risk × 0.9 (оценка угрозы ситуации + когнитивное давление)
+            _kernel = getattr(state, 'perceptual_kernel', None)
+            _perceived_threat = _kernel.threat_gradient if _kernel else 0.0
+            risk_penalty = round((fear + _perceived_threat) * risk * 0.9, 4)
         elif intent == Intent.OBSERVE.value:
             risk_penalty = round(fear * risk * 0.5, 4)      # осторожное наблюдение
         elif intent in (Intent.ATTACK.value, Intent.INTIMIDATE.value):
@@ -897,10 +899,13 @@ class DecisionHub:
                 # Формула из Каузальной Песочницы: Obedience = fear * (1 - willpower)
                 _fear = state.relationship_cache.get("player", {}).get("fear", 0.0) / 100.0
                 _willpower = personality.drives_base.get("control", 0.5) # control как proxy воли
-                _obedience_pressure = _fear * (1.0 - _willpower) + 0.25 # +0.25 базовый авторитет приказа
+                # ADR-049: Замыкание контура Восприятие→Решение. Страх перед авторитетом усиливается немедленной когнитивной угрозой.
+                _kernel = getattr(state, 'perceptual_kernel', None)
+                _perceived_threat = _kernel.threat_gradient if _kernel else 0.0
+                _obedience_pressure = _fear * (1.0 - _willpower) + 0.25 + (_perceived_threat * 0.5)
                 
                 base += _obedience_pressure * 2.0 # Масштабируем давление для победы над FLEE/IDLE
-                logger.debug(f"[PHYSICS_OF_POWER] Obedience pressure for {state.npc_id}: {_obedience_pressure * 2.0}")
+                logger.debug(f"[PHYSICS_OF_POWER] Obedience pressure for {state.npc_id}: {_obedience_pressure * 2.0} (threat_gradient={_perceived_threat})")
 
         # Диалог активирует разговорные интенты, подавляет нелогичные
         if event.event_type == "player_interacts":

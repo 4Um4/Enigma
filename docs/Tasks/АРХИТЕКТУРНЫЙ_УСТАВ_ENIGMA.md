@@ -85,6 +85,8 @@ class CommunicationIntent:
 
 **Закон 2.3.1:** На границе слоёв только DTO. Никаких внутренних моделей (`NPCState`, `EventMemory`) не пересекает границу.
 
+
+python -m pytest backend/tests/sandbox/ -v --tb=short
 ---
 
 ## 3. ФАЗОВАЯ МОДЕЛЬ (Tick Orchestrator)
@@ -117,12 +119,13 @@ class CommunicationIntent:
 ФАЗА 7: EventBus (вторичная волна)
     event_bus.publish(event_from_npc)
 
-ФАЗА 8: Handlers
-    Явно подписанные обработчики (memory, social, scene, reaction)
+ФАЗА 8: Layered Reduction (ADR-016, ADR-027)
+    Многоступенчатая редукция реальности: Physical (Combat) → Materialization → Cognitive (Reaction) → Social.
+    Порядок строго детерминирован. Прямая мутация состояния ЗАПРЕЩЕНА (только через Phase8Result → delta_buffer).
 
-ФАЗА 9: Integration
-    WorldSnapshotBuilder: events → state
-    → собирает WorldSnapshotDTO
+ФАЗА 9: CFRM Integration & Perception (ADR-040, ADR-050)
+    LocalCausalSolver: FieldDisturbance → ProjectionPolicy → PhenomenologicalState → PsychologicalPressure.
+    Обновление PerceptualKernel (PerceptionPayload) и сборка WorldSnapshotDTO + AvatarStateDTO.
 
 ФАЗА 10: Persistence
     SQLite — atomic commit (runtime truth)
