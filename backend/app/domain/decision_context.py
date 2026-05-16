@@ -1,8 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Dict, Optional, TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from backend.app.models.npc_state import PerceptualKernel
+from typing import Dict, Optional
 
 @dataclass(frozen=True)
 class UtilityFieldDeformation:
@@ -30,25 +27,32 @@ class DecisionContext:
 
     @classmethod
     def from_kernel(cls, kernel: "PerceptualKernel") -> "DecisionContext":
-        """Прямая проекция геометрии восприятия в геометрию решений. Без промежуточных DTO."""
-        # 1. Деформация (90% случаев)
-        deformation = UtilityFieldDeformation(
-            aggression_suppression=kernel.aggression_inhibition,
-            initiative_suppression=kernel.initiative_suppression,
-            compliance_bias=kernel.compliance_bias,
-            escape_salience=kernel.threat_gradient * 0.5
-        )
-        
-        # 2. Сжатие / Feasibility (10% - жесткие блокировки)
-        constraints = {}
-        if kernel.initiative_suppression > 0.8:
-            constraints["ATTACK"] = 0.0     # Паралич воли = атака невозможна
-            constraints["INTIMIDATE"] = 0.0
-        if kernel.aggression_inhibition > 0.9 and kernel.compliance_bias > 0.7:
-            constraints["RESIST"] = 0.0     # Тотальное подавление = сопротивление невозможно
+        """
+        ADR-049: Замыкание контура Восприятие→Решение.
+        Проецирует субъективное когнитивное состояние в топологию выбора.
+        Использует getattr для безопасности типов (Domain не знает Models, Закон 1.2).
+        """
+        # 1. Чтение сигналов из ядра (с fallback на базовый PerceptualKernel)
+        _threat = getattr(kernel, 'threat_gradient', 0.0)
+        _compliance = getattr(kernel, 'compliance_bias', 0.0)
+        _aggr_inhibition = getattr(kernel, 'aggression_inhibition', 0.0)
+        _init_suppression = getattr(kernel, 'initiative_suppression', 0.0)
 
-        return cls(
-            deformation=deformation,
-            compression=ActionSpaceCompression(constraints=constraints),
-            source="perceptual_kernel"
+        # 2. Топологическая деформация
+        deformation = UtilityFieldDeformation(
+            aggression_suppression=_aggr_inhibition,
+            initiative_suppression=_init_suppression,
+            compliance_bias=_compliance,
+            escape_salience=_threat * 0.8 # Угроза мотивирует бегство
         )
+
+        # 3. Экстремальное сжатие (паралич воли)
+        constraints: Dict[str, float] = {}
+        if _aggr_inhibition > 0.8:
+            constraints["ATTACK"] = 0.0 # Агрессия невозможна
+        if _init_suppression > 0.8:
+            constraints["INTIMIDATE"] = 0.1 # Инициатива подавлена
+
+        compression = ActionSpaceCompression(constraints=constraints)
+
+        return cls(deformation=deformation, compression=compression, source="perceptual_kernel")

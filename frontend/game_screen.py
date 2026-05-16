@@ -44,6 +44,14 @@ def _build_perceived_scene(scene_state: dict, config: PerceptionConfig) -> Perce
         # УБРАНО: render spam (диагностика ADR-0013 завершена, рендерер невиновен)
         # Рендер spam полностью удалён. Трассировка только при изменении позиции (TASK 4).
             
+        # Спринт 30: извлекаем кинематику для непрерывной интерполяции в рендерере
+        traversals = scene_state.get("active_traversals", [])
+        trav = None
+        if isinstance(traversals, list):
+            trav = next((t for t in traversals if t.get("npc_id") == npc_id), None)
+        elif isinstance(traversals, dict):
+            trav = traversals.get(npc_id)
+
         entities.append(PerceivedEntity(
             entity_id=npc_id,
             entity_type="npc",
@@ -52,7 +60,13 @@ def _build_perceived_scene(scene_state: dict, config: PerceptionConfig) -> Perce
             visible=True,
             los=True,
             display_name=npc_data.get("display_name") or npc_data.get("name") or npc_id.split("_")[-1].capitalize(),
-            in_attention=(config.player_focus.focus_entity_id == npc_id)
+            in_attention=(config.player_focus.focus_entity_id == npc_id),
+            # Спринт 30: Каузальная презентация. Передаем кинематику в рендерер для непрерывного lerp
+            traversal_status=trav.get("status", "IDLE") if trav else "IDLE",
+            path_waypoints=trav.get("path_waypoints", []) if trav else [],
+            current_waypoint_idx=trav.get("current_waypoint_idx", 0) if trav else 0,
+            traversal_progress=float(trav.get("progress", 0.0)) if trav else 0.0,
+            traversal_speed=float(trav.get("speed", 1.5)) if trav else 1.5
         ))
         
     return PerceivedScene(
@@ -186,23 +200,23 @@ def _resolve_visual_xy(npc_id: str, scene_state: dict) -> dict:
     elif isinstance(traversals, dict):
         trav = traversals.get(npc_id) # Fallback для старого формата
         
-    if trav and trav.get("duration_seconds", 0) > 0:
-        from_xy = trav.get("from_xy", [0, 0])
-        to_xy = trav.get("to_xy", [0, 0])
-        duration = trav["duration_seconds"]
-        started_at = trav.get("started_at", 0)
+    # Спринт 30: Каузальная Компрессия Времени. Бэкенд отдает progress и waypoints, а не duration.
+    if trav and trav.get("status") in ("PENDING", "MOVING"):
+        wp = trav.get("path_waypoints", [])
+        idx = trav.get("current_waypoint_idx", 0)
+        progress = float(trav.get("progress", 0.0))
         
-        current_time = scene_state.get("game_time_seconds", 0)
-        
-        # Вычисляем прогресс (0.0 - 1.0)
-        progress = (current_time - started_at) / duration
-        progress = max(0.0, min(1.0, progress)) # Clamp
-        
-        # Если прогресс < 1.0, NPC еще в пути (Визуальная Ложь)
-        if progress < 1.0:
-            x = from_xy[0] + (to_xy[0] - from_xy[0]) * progress
-            y = from_xy[1] + (to_xy[1] - from_xy[1]) * progress
+        # Если есть сегмент пути, интерполируем позицию на срезе тика
+        if wp and idx < len(wp) - 1:
+            from_xy = wp[idx]
+            to_xy = wp[idx + 1]
+            x = float(from_xy[0]) + (float(to_xy[0]) - float(from_xy[0])) * progress
+            y = float(from_xy[1]) + (float(to_xy[1]) - float(from_xy[1])) * progress
             return {"x": x, "y": y}
+        # Если waypoint последний, но статус еще MOVING — рисуем в конечной точке во избежание телепортации
+        elif wp:
+            return {"x": float(wp[-1][0]), "y": float(wp[-1][1])}      
+        
             
     # Fallback: Транзит завершен или отсутствует. Рисуем по Каузальной Истине
     npc_data = scene_state.get("npc_positions", {}).get(npc_id, {})

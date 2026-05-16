@@ -114,7 +114,7 @@ class SceneRenderer:
         self._draw_obstacles(obstacles, cam_x, cam_y)
 
         # 4. NPC — только воспринимаемые (с Temporal Delay)
-        self._draw_npcs(scene.entities, cam_x, cam_y, scene.attention_focus_id, player_xy, profile)
+        self._draw_npcs(scene.entities, cam_x, cam_y, scene.attention_focus_id, player_xy, profile, dt=dt)
 
         # 5. Игрок — всегда виден
         # Lerp сглаживание поворота (Приоритет 0)
@@ -282,6 +282,7 @@ class SceneRenderer:
         focus_id: Optional[str],
         player_xy: Tuple[float, float],
         profile: ManifestationProfile = ManifestationProfile(), # ADR-037
+        dt: float = 0.016, # Спринт 30: дельта времени для непрерывной кинематики
     ) -> None:
         # ADR-037: Temporal Assembly Delay — инерция сборки реальности
         delay_factor = profile.temporal_assembly_delay
@@ -292,10 +293,24 @@ class SceneRenderer:
             if not entity.visible:
                 continue
 
-            # Интерполяция позиции: при высокой задержке NPC отстают (мир собирается с лагом)
             prev_x, prev_y = self._prev_npc_positions.get(entity.entity_id, (entity.x, entity.y))
-            render_x = prev_x + (entity.x - prev_x) * (1.0 - delay_factor)
-            render_y = prev_y + (entity.y - prev_y) * (1.0 - delay_factor)
+            
+            # Спринт 30: Непрерывная презентация. Фронтенд "разархивирует" время через скорость TraversalState
+            if entity.traversal_status in ("PENDING", "MOVING") and entity.traversal_speed > 0:
+                dx, dy = entity.x - prev_x, entity.y - prev_y
+                dist = (dx**2 + dy**2)**0.5
+                step = entity.traversal_speed * dt
+                
+                if dist <= step or dist < 0.01:
+                    # Цель достигнута за этот кадр
+                    render_x, render_y = entity.x, entity.y
+                else:
+                    # Двигаемся к целевой точке пропорционально скорости и dt
+                    ratio = step / dist
+                    render_x, render_y = prev_x + dx * ratio, prev_y + dy * ratio
+            else:
+                # Каузальная истина: без транзита позиция мгновенна (snap)
+                render_x, render_y = entity.x, entity.y
 
             sx, sy = self._w2s(render_x, render_y, cam_x, cam_y)
 
@@ -342,8 +357,9 @@ class SceneRenderer:
                     end_y = sy + ndy * (radius + 10)
                     pygame.draw.line(self.screen, (255, 255, 100), (start_x, start_y), (end_x, end_y), 2)
 
-            # ADR-037: Сохраняем актуальную позицию NPC для следующего кадра (Temporal Delay)
-            self._prev_npc_positions[entity.entity_id] = (entity.x, entity.y)
+            # Спринт 30: Сохраняем визуальную позицию (после интерполяции), а не сырую позицию тика,
+            # чтобы на следующем кадре непрерывное движение продолжилось, а не началось с начала
+            self._prev_npc_positions[entity.entity_id] = (render_x, render_y)
 
     def _draw_inference_badges(self, entity: PerceivedEntity, sx: int, sy: int) -> None:
         """Рисует маленькие цветные точки для поведенческих выводов"""

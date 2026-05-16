@@ -5,12 +5,18 @@ def test_extract_distances_from_spatial_context() -> None:
     extractor = PlayerTargetExtractor()
     scene_state = {
         "location_id": "tavern_silver_wolf",
+        # ADR-048: Игрок внедрен как npc_id="player" в npc_positions
         "player_spatial": {
             "location_id": "tavern_silver_wolf",
             "position": "main_hall",
             "local_position": {"x": 0.0, "y": 0.0},
         },
         "npc_positions": {
+            "player": {
+                "location_id": "tavern_silver_wolf",
+                "position": "main_hall",
+                "local_position": {"x": 0.0, "y": 0.0},
+            },
             "tavern_keeper_tornin": {
                 "location_id": "tavern_silver_wolf",
                 "position": "behind_bar",

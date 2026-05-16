@@ -47,6 +47,7 @@ class MovementEngine:
         self,
         intents: List[MovementIntent],
         tick: int,
+        npc_positions: Optional[Dict] = None, # ADR-056: Collision Avoidance для LOD0
     ) -> List[SceneChange]:
         """Обрабатывает список намерений → список SceneChange.
         
@@ -89,7 +90,8 @@ class MovementEngine:
                     # ADR-0008: Пробуем с префиксом локации (tavern_silver_wolf:main_hall)
                     target_ref = svc.get_node(f"{location_id}:{intent.target_node_id}")
                 if not target_ref:
-                    target_ref = svc.get_node(f"{location_id}:entrance") or svc.get_node(f"{location_id}:main_hall")
+                    # ADR-056: Safe Spatial Fallback. Запрет телепортации к entrance.
+                    target_ref = None
                     if target_ref:
                         logger.debug(f"[MOVEMENT_ENGINE] Целевая микро-зона '{intent.target_node_id}' не найдена, фоллбэк на {target_ref.node_id}")
                         
@@ -105,10 +107,30 @@ class MovementEngine:
                 # ADR-0012: Микро-телепорт (LOD0). Если есть локальные координаты — прыгаем сразу.
                 if intent.local_target_xy:
                     tx, ty = intent.local_target_xy
-                    # Добавляем небольшой разброс, чтобы NPC не встали точно друг в друга
+                    # ADR-056: Collision Avoidance (LOD0 Micro-jitter)
+                    # Ищем свободную точку вокруг цели, чтобы NPC не вставали друг в друга
                     import random
-                    tx += random.uniform(-0.5, 0.5)
-                    ty += random.uniform(-0.5, 0.5)
+                    collision_radius = 0.8
+                    best_x, best_y = tx, ty
+                    if npc_positions:
+                        for attempt in range(5):
+                            cx = tx + random.uniform(-0.8, 0.8)
+                            cy = ty + random.uniform(-0.8, 0.8)
+                            is_colliding = False
+                            for other_id, other_data in npc_positions.items():
+                                if other_id == intent.npc_id: continue
+                                other_pos = other_data.get("local_position", {}) if isinstance(other_data, dict) else {}
+                                ox, oy = other_pos.get("x", 0.0), other_pos.get("y", 0.0)
+                                if ((cx - ox)**2 + (cy - oy)**2)**0.5 < collision_radius:
+                                    is_colliding = True
+                                    break
+                            if not is_colliding:
+                                best_x, best_y = cx, cy
+                                break
+                    else:
+                        best_x = tx + random.uniform(-0.5, 0.5)
+                        best_y = ty + random.uniform(-0.5, 0.5)
+                    tx, ty = best_x, best_y
                     print(
                         f"[TRACE][SCENE_CHANGE_CREATED] "
                         f"npc={intent.npc_id} "
@@ -144,7 +166,8 @@ class MovementEngine:
                     # ADR-0008: Пробуем с префиксом локации (tavern_silver_wolf:main_hall)
                     target_ref = svc.get_node(f"{location_id}:{intent.target_node_id}")
                 if not target_ref:
-                    target_ref = svc.get_node(f"{location_id}:entrance") or svc.get_node(f"{location_id}:main_hall")
+                    # ADR-056: Safe Spatial Fallback. Запрет телепортации к entrance.
+                    target_ref = None
                     if target_ref:
                         logger.debug(f"[MOVEMENT_ENGINE] Целевая зона '{intent.target_node_id}' не найдена, фоллбэк на {target_ref.node_id}")
 

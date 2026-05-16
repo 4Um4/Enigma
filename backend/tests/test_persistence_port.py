@@ -2,7 +2,7 @@
 """Тесты PersistencePort и SceneStateManager.commit()"""
 
 import pytest
-from unittest.mock import MagicMock
+from unittest.mock import ANY, MagicMock
 from app.services.state.persistence_port import PersistencePort
 from app.services.state.json_persistence_adapter import JsonPersistenceAdapter
 from app.services.scene_state_manager import SceneStateManager
@@ -81,7 +81,7 @@ class TestSceneStateManagerCommit:
         assert result == 2
         mock_port.atomic_commit.assert_called_once_with(
             campaign_id="camp-1",
-            scene_state={"location_id": "tavern", "_version": 1},
+            scene_state={"location_id": "tavern", "_version": 1, "last_save_real_time": ANY},
             npc_states=npcs,
             events=None,
         )
@@ -101,7 +101,7 @@ class TestSceneStateManagerCommit:
         assert result == 2
         mock_port.atomic_commit.assert_called_once_with(
             campaign_id="camp-1",
-            scene_state={"location": "tavern", "_version": 1},
+            scene_state={"location": "tavern", "_version": 1, "last_save_real_time": ANY},
             npc_states=None,
             events=None,
         )

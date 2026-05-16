@@ -1,30 +1,30 @@
-# ADR-048 Impact Audit
+# ADR-048 Impact Audit: Authoritative Spatial Spine
 
 ## Измененный АДР
 ADR-048 (Single Source Spatial Authority)
 
 ## Тип изменения
-STANDARD
+ONTOLOGY (ADR-O) — Смена парадигмы: scene_state больше не authority layer для пространственных решений.
 
 ## Измененные домены (Changed Domains)
-- SPATIAL
-- SOCIAL (utility calculation)
+- spatial (введение QueryService как единственного авторитета)
+- decision (npc_tick_pipeline переведён на QueryService)
+- perception (пока читает из scene_state — требует миграции на Этапе 2)
 
 ## Связанные потребители (Downstream Consumers)
-- MovementEngine (читает MovementIntent.target_node_id)
-- SceneStateManager (читает MovementIntent.local_target_xy)
-- TransitTracker (вычисляет длительность транзита)
-- Frontend SceneRenderer (читает active_traversals)
+- npc_tick_pipeline (использует spatial_query.player_distances)
+- DecisionHub (пока не изменён, не читает пространственные данные напрямую)
+- TickOrchestrator (должен инстанцировать SpatialQueryService и пробрасывать в пайплайн)
 
 ## Влияние на производительность (Runtime Impact)
-- RAM Delta: 0
+- RAM Delta: +0.01MB (кэш дистанций в SpatialQueryService)
 - VRAM Delta: 0
-- Tick Latency Delta: -0.5ms (устранен вызов spatial_service.get_nearest для известных сущностей)
+- Tick Latency Delta: +0.1ms (вычисление дистанций через фасад вместо чтения из кэша scene_state)
 
 ## Песочные тесты (Sandbox Tests)
-- tests/sandbox/oscilloscope_closed_loop.py — Проверка замкнутости: Команда → fear_delta → Резолв позиции Игрока → Движение
+- tests/sandbox/system/test_spatial_authority.py (новый — верификация Query-driven доступа)
 
 ## Откат (Rollback)
-1. Вернуть чтение scene_state.get("player_spatial", {}) в _resolve_reactive_movement
-2. Вернуть хардкод _MACRO_ZONES и поиск через get_nearest(x, y)
-3. Удалить тест oscilloscope_closed_loop.py
+1. Удалить `backend/app/services/spatial/spatial_query_service.py`.
+2. В `npc_tick_pipeline.py` вернуть `inp.scene_state.get("player_distances", {})`.
+3. Удалить `spatial_query` из входных DTO.

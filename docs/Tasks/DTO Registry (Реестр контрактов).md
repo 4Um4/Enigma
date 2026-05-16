@@ -78,6 +78,10 @@ SPATIAL -> OVERWRITE
 - `identity_integrity_delta`: `float = 0.0`
 - `pressure_resistance_delta`: `float = 0.0`
 - `will_state_override`: `Optional[str] = None`
+- `recent_directive_data`: `Optional[Dict[str, Any]] = None` // ADR-056: Труба захвата внимания. Формат: {"source": str, "salience": float, "interrupts_routine": bool}`
+- `aggression_inhibition_delta`: `float = 0.0` // ADR-049
+- `compliance_bias_delta`: `float = 0.0` // ADR-049
+- `initiative_suppression_delta`: `float = 0.0` // ADR-049`
 
 **PerceptionPayload** (ADR-040: Реальность → Восприятие)
 - `threat_gradient_delta`: `float = 0.0` // Рост ощущения угрозы
@@ -229,7 +233,7 @@ SPATIAL -> OVERWRITE
 
 ## V. Пространство и Движение
 
-### MovementIntent (LOD1: Macro Traversal)
+### MovementIntent (LOD1: Macro Traversal & LOD0: Micro Steering)
 *Используется ТОЛЬКО для перемещения между узлами макро-графа. ЗАПРЕЩЕНО для микро-перемещений (target == from).*
 
 ### SceneChange(field="position")
@@ -241,7 +245,8 @@ SPATIAL -> OVERWRITE
 ### MovementStep [PLANNED]
 - `npc_id`: `str`, `from_xy`: `tuple[float, float]`, `to_xy`: `tuple[float, float]`, `delta_seconds`: `float`, `traversal_id`: `str`
 
-### LocalSteeringIntent [PLANNED]
+### LocalSteeringIntent [REJECTED - ADR-052]
+*Архитектурное решение: Микро-движение (LOD0) реализовано через существующее поле `local_target_xy` в `MovementIntent` (см. ADR-052). Создание отдельной сущности признано расщеплением Единого Пространственного Авторитета.*
 *Для визуального сближения внутри макро-зоны без изменения `position`.*
 - `npc_id`, `target_entity_id`, `target_xy`, `speed`, `arrival_radius`
 
@@ -388,6 +393,10 @@ SPATIAL -> OVERWRITE
 - `anomaly_score`: `float = 0.0`
 - `last_hostile_direction`: `Optional[str] = None`
 - `dominant_emotion`: `Optional[str] = None`
+- `aggression_inhibition`: `float = 0.0` // ADR-049: Топологическое подавление агрессии
+- `initiative_suppression`: `float = 0.0` // ADR-049: Подавление воли/инициативы
+- `compliance_bias`: `float = 0.0` // ADR-049: Склонность к подчинению`
+- `recent_directive`: `Optional[Dict[str, Any]] = None` // ADR-056: Attention Capture. Формат: {"source": str, "salience": float, "interrupts_routine": bool}`
 
 ### ClusterOccupancy (Dataclass — Spatial Index O(1))
 - `entity_to_cluster`: `Dict[str, ClusterID]` // npc_id/player -> cluster_id
@@ -589,6 +598,13 @@ SPATIAL -> OVERWRITE
 - `trigger_strength`: `float`
 - `dominant_bias`: `ResponseBias
 
+### DecisionContext (Frozen Dataclass — Топология решений ADR-053)
+*Мост Ядро→Хаб. Проекция геометрии восприятия в геометрию решений (Каузальная дискретизация T+1).*
+- **deformation**: `UtilityFieldDeformation` // Непрерывные векторы давления (aggression_suppression, initiative_suppression, compliance_bias, escape_salience)
+- **compression**: `ActionSpaceCompression` // Feasibility-слой. Экстремальное сужение (constraints: Dict[str, float], где 0.0 = действие невозможно)
+- **source**: `Optional[str]` // "perceptual_kernel" (из translate_kernel_to_context) или "cfrm_pressure" (из translate_pressure_to_context)
+- **Трансляция**: Устав §1.2 — домен не знает о моделях. Проекция `PerceptualKernel -> DecisionContext` выполняется в сервисном слое: `pressure_translator.translate_kernel_to_context(kernel)
+
 ### IntentResolution (Frozen Dataclass — Транзитный DTO ADR-034)
 *Результат шлюза Фазы 1. GameLoop публикует артефакты на его основе, не принимая решений.*
 - `original_intent`: `IntentDTO`
@@ -630,3 +646,19 @@ SPATIAL -> OVERWRITE
 - temporal_distortion: float // Лаг рендера
 - temporal_assembly_delay: float // Задержка подтверждения реальности
 - blood_visibility: float // Инерция кровавой виньетки
+
+---
+
+## XIV. Спринт 32: LifeEngine De-godification (ADR-051)
+
+### LifeEngine.tick() Return Contract
+*Смена парадигмы: LifeEngine возвращает намерения, а не исполняет их напрямую.*
+- **Return Type:** `tuple[list[SceneChange], list[MovementIntent]]`
+- `list[SceneChange]`: Когнитивные изменения (activity, visible). Телепортационные `SceneChange(field="location")` ЗАПРЕЩЕНЫ.
+- `list[MovementIntent]`: Пространственные намерения (расписание, потребности, случайные события). Исполняются `TickOrchestrator` через `MovementEngine` для порождения `TraversalState`.
+
+### DirectiveInterpretationSubscriber.handle() Input Contract
+*Починка трубы давления: подписчик получает реальные данные NPC.*
+- **Input:** `handle(event, all_npcs_raw: list[dict])` // Ранее передавался пустой список `[]`.
+- **Зависимость:** Читает `psyche`, `perceptual_kernel` из `all_npcs_raw` для вычисления легитимности и цены отказа.
+```

@@ -58,11 +58,11 @@ class LegacyStateDeltaAdapter:
                 collapsed.trust_delta += d.payload.trust_delta
                 collapsed.fear_delta += d.payload.fear_delta
             elif d.domain == DeltaDomain.PERCEPTION and isinstance(d.payload, PerceptionPayload):
-                # Конвертация когнитивного давления в v1-совместимые стресс и страх
-                collapsed.stress_delta += d.payload.threat_gradient_delta * 20.0
-                collapsed.fear_delta += d.payload.threat_gradient_delta * 10.0
-                if d.payload.dominant_emotion_hint == "panic":
-                    collapsed.emotion_tag = "panic"
+                # ADR-O: Perception больше не конвертируется напрямую в Emotion (процедурный коллапс убит).
+                # Теперь это делает Affective Pipeline (Perception -> AffectivePressure -> EmotionPayload).
+                # В v1 пробрасываем только остаточную неопределенность как фоновый стресс, 
+                # чтобы не терять сигнал полностью, если EmotionPayload не был сгенерирован.
+                collapsed.stress_delta += d.payload.uncertainty_delta * 5.0  # Мультипликатор для усиления эффекта неопределенности в отсутствии полноценного EmotionPayload
             else:
                 # Физиология, Идентичность, Репутация — теряются при коллапсе в v1
                 domain_name = d.domain.value if d.domain else "UNKNOWN"

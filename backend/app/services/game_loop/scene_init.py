@@ -110,11 +110,9 @@ def init_scene_state(
     except Exception as e:
         logger.warning(f"[GAME_LOOP] SceneState error: {e}")
 
-    # 4.1. LifeEngine — тик расписания NPC (без LLM, чистая логика)
+    # 4.1. LifeEngine — аналитическое согласование + 1 тик расписания
     try:
         _life_engine = get_life_engine()
-        # ADR-043: Ретроактивная симуляция (TICK_CATCHUP) запрещена.
-        # Выполняется ровно ОДИН тик для инициализации расписания при загрузке сцены.
         from app.services.spatial.spatial_service import SpatialService
         _loc_id = scene_state.get("location_id", "")
         _spatial_svc = None
@@ -127,6 +125,15 @@ def init_scene_state(
         if _spatial_svc:
             _life_engine.set_spatial_service(_spatial_svc)
 
+        # ADR-047: Аналитический декэй вместо TICK_CATCHUP
+        import time as _time
+        _last_save_ts = scene_state.get("last_save_real_time", 0)
+        _elapsed_real = _time.time() - _last_save_ts if _last_save_ts else 0
+        if _elapsed_real > 60:  # Если прошло больше минуты реального времени
+            _life_engine.reconcile_state(campaign_id, _elapsed_real)
+            logger.info(f"[SCENE_INIT] Reconciled state for {_elapsed_real:.0f}s elapsed")
+
+        # Один тик для инициализации расписания (без ретро-симуляции)
         _life_changes, _life_intents = _life_engine.tick(campaign_id, scene_state, runtime_path=loop._get_npc_runtime_path(campaign_id))
         if _life_changes:
             loop.scene_manager.apply_changes(campaign_id, _life_changes, scene_state)

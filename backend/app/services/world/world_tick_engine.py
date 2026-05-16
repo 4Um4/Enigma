@@ -26,6 +26,8 @@ from app.models.npc_state import Intent, NPCState, WillState
 from app.models.state_delta import StateDeltas
 from app.models.npc_profile import NPCProfileL0
 from app.domain.events import EventDTO
+from app.domain.decision_context import DecisionContext
+from app.services.cfrm.pressure_translator import translate_kernel_to_context
 from app.services.events.event_types import EventType
 
 logger = logging.getLogger(__name__)
@@ -130,6 +132,9 @@ class WorldTickEngine:
             npc_reputation = (reputation_modifiers or {}).get(npc_id, {})
             combined = {**npc_social, **npc_reputation}
 
+            # Каузальное замыкание: консолидированное восприятие T-1 деформирует проактивные решения
+            _decision_ctx = translate_kernel_to_context(state_l2.perceptual_kernel) if hasattr(state_l2, 'perceptual_kernel') and state_l2.perceptual_kernel else None
+
             try:
                 result = hub.compute(
                     state=state_l2,
@@ -137,6 +142,7 @@ class WorldTickEngine:
                     event=tick_event,
                     scene_state=scene_state,
                     social_modifiers=combined if combined else None,
+                    decision_ctx=_decision_ctx,
                 )
 
                 # Только проактивные интенты проходят

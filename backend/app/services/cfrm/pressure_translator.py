@@ -1,4 +1,5 @@
 from backend.app.models.cfrm import PsychologicalPressure
+from backend.app.models.npc_state import PerceptualKernel
 from backend.app.domain.decision_context import (
     DecisionContext, UtilityFieldDeformation, ActionSpaceCompression
 )
@@ -29,4 +30,31 @@ def translate_pressure_to_context(pressure: PsychologicalPressure) -> DecisionCo
         ),
         compression=ActionSpaceCompression(constraints=constraints),
         source="cfrm_pressure"
+    )
+
+
+def translate_kernel_to_context(kernel: PerceptualKernel) -> DecisionContext:
+    """
+    Проекция консолидированного восприятия (T-1) в топологию решений.
+    Вызывается из LifeEngine/WorldTickEngine для передачи каузального контекста в DecisionHub.
+    Разделение reactive (прерывание) и deliberative (решение) слоев.
+    """
+    # 1. Экстремальное сжатие (паралич воли — жесткие блокировки)
+    constraints = {}
+    if kernel.initiative_suppression > 0.8:
+        constraints["ATTACK"] = 0.0
+        constraints["INTIMIDATE"] = 0.0
+    if kernel.aggression_inhibition > 0.9 and kernel.compliance_bias > 0.7:
+        constraints["RESIST"] = 0.0
+
+    # 2. Топологическая деформация (искривление utility-space)
+    return DecisionContext(
+        deformation=UtilityFieldDeformation(
+            aggression_suppression=kernel.aggression_inhibition,
+            initiative_suppression=kernel.initiative_suppression,
+            compliance_bias=kernel.compliance_bias,
+            escape_salience=kernel.threat_gradient * 0.5
+        ),
+        compression=ActionSpaceCompression(constraints=constraints),
+        source="perceptual_kernel"
     )

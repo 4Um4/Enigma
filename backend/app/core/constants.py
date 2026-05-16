@@ -199,7 +199,6 @@ PRESSURE_THRESHOLD: float = 0.5       # порог для триггера те�
 IDLE_DECISION_SCORE_THRESHOLD: Final[float] = 0.15  # порог накопленного давления для триггера телеграфа (~6 тиков)
 IDLE_PRESSURE_ACCUM_RATE: Final[float] = 0.1       # 10% от score за тик
 IDLE_PRESSURE_DECAY_RATE: Final[float] = 0.05      # 5% decay за тик
-MAX_CATCH_UP_TICKS: Final[int] = 10  # лимит catch-up за одно подключение
 MAX_CACHED_CAMPAIGNS: Final[int] = 100
 CAMPAIGN_TTL_SECONDS: Final[int] = 3600
 MACRO_SIM_THRESHOLD_SECONDS: Final[int] = 3600
