@@ -446,6 +446,9 @@ class PerceptualKernel:
     aggression_inhibition: float = 0.0     # Сдерживание агрессивных векторов
     initiative_suppression: float = 0.0    # Подавление активных действий (паралич)
     compliance_bias: float = 0.0           # Смещение в сторону подчинения/approach
+    # ADR-055: Attention Capture — прерывание когнитивной инерции бытовухи.
+    # Не mind-control, а фокус внимания. DecisionHub решает, как реагировать.
+    recent_directive: Optional[Dict[str, Any]] = None # {"source": str, "salience": float, "interrupts_routine": bool}
 
 @dataclass
 class NPCState:

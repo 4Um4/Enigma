@@ -1,0 +1,1 @@
+# Affective Domain: Perception → Pressure → Emotion

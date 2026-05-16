@@ -101,7 +101,13 @@ class DirectiveInterpretationSubscriber:
             payload=IdentityPayload(
                 aggression_inhibition_delta=obedience_intensity * 0.6,  # Подавление агрессии
                 compliance_bias_delta=obedience_intensity * 0.5,       # Смещение к подчинению/approach
-                initiative_suppression_delta=obedience_intensity * 0.2 # Общее торможение воли
+                initiative_suppression_delta=obedience_intensity * 0.05, # Легкое торможение (инерция), НЕ паралич
+                # ADR-056: Attention Capture — прерывает routine, повышает salience
+                recent_directive_data={
+                    "source": event.source,
+                    "salience": obedience_intensity,
+                    "interrupts_routine": True
+                }
             ),
             source="directive_interpretation"
         )

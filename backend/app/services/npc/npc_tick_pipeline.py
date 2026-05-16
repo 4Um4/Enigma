@@ -358,7 +358,12 @@ def run_npc_pipeline(
             _social_mods = {}
             try:
                 if svc.social_engine:
-                    _player_dists_snap = inp.scene_state.get("player_distances", {})
+                    # ADR-048: Spatial Authority. Чтение player_distances из QueryService, не из scene_state
+                    _spatial_query = getattr(inp, 'spatial_query', None)
+                    if _spatial_query:
+                        _player_dists_snap = _spatial_query.player_distances(list(svc.social_engine.all_npc_ids))
+                    else:
+                        _player_dists_snap = inp.scene_state.get("player_distances", {})  # Legacy fallback
                     _extra_evt_types = [sp.event_type for sp in inp.spatial_events] if inp.spatial_events else None
                     _social_mods = svc.social_engine.compute_social_modifiers(
                         npc_id=npc_id,
@@ -693,8 +698,12 @@ def _resolve_reactive_movement(
                 return MovementIntent(npc_id=npc_id, target_node_id=target_node_id, from_node_id=current_node, location_id=location_id, reason="reactive:flee", priority=PRIORITY_NEEDS)
         return None
 
-    # ADR-045: Проверка на нахождение в одной макро-зоне
-    if target_node_id == current_node:
+    # ADR-045: Проверка на нахождение в одной макро-зоне (нормализация префиксов)
+    # Строковое несовпадение "main_hall" и "tavern:main_hall" убивало микро-движение
+    current_base = current_node.split(":")[-1] if current_node else ""
+    target_base = target_node_id.split(":")[-1] if target_node_id else ""
+    
+    if target_base and current_base == target_base:
         # Микро-сближение (LOD0). Цель и NPC в одной зоне — идем к локальным координатам.
         target_entry = npc_positions.get(_target_id, {})
         lp = target_entry.get("local_position", {})
@@ -703,9 +712,15 @@ def _resolve_reactive_movement(
         
         if intent == "approach" and target_x is not None and target_y is not None:
             print(f"[TRACE][INTENT_CREATED] npc={npc_id} intent=micro_snap:{intent} target_node={current_node} target_xy=({target_x},{target_y})")
+            # Возвращаем канонический current_node для трассировки, сравнение было по базе
             return MovementIntent(npc_id=npc_id, target_node_id=current_node, from_node_id=current_node, location_id=location_id, reason=f"micro_snap:{intent}", priority=PRIORITY_NEEDS, local_target_xy=(target_x, target_y))
-        logger.warning(f"[PIPELINE][REACTIVE_MOVEMENT][SKIP] npc={npc_id} already at target macro-zone {current_node}")
-        return None
+        
+        if intent == "flee":
+            # Для побега из той же зоны ищем другой узел
+            logger.info(f"[PIPELINE][REACTIVE_MOVEMENT][FLEE_MICRO] npc={npc_id} пытается бежать из своей зоны")
+        else:
+            logger.warning(f"[PIPELINE][REACTIVE_MOVEMENT][SKIP] npc={npc_id} already at target macro-zone {current_base}, no local coords")
+            return None
 
     if not target_node_id:
         logger.warning(f"[PIPELINE][REACTIVE_MOVEMENT][SKIP] npc={npc_id} target_node_id is None")

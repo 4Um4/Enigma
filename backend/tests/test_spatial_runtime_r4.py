@@ -79,6 +79,13 @@ def _scene() -> dict:
     return {
         "location_id": "tavern_silver_wolf",
         "npc_positions": {
+            # ADR-048: Игрок внедрен как npc_id="player" в npc_positions
+            "player": {
+                "location_id": "tavern_silver_wolf",
+                "position": "main_hall",
+                "local_position": {"x": 0.0, "y": 0.0},
+                "activity": "idle",
+            },
             "npc_a": {
                 "location_id": "tavern_silver_wolf",
                 "position": "behind_bar",

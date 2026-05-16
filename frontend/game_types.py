@@ -60,6 +60,14 @@ class PerceivedEntity:
     display_name: str = ""
     recognition_confidence: float = 0.0
 
+    # --- Traversal Layer (Спринт 30: Dual-Time Ontology) ---
+    # Бэкенд компрессирует время, фронтенд разархивирует его непрерывным движением
+    traversal_status: str = "IDLE"               # PENDING, MOVING, ARRIVED, CANCELLED
+    path_waypoints: list = field(default_factory=list) # Визуальные x,y точки
+    current_waypoint_idx: int = 0
+    traversal_progress: float = 0.0              # 0.0 - 1.0 прогресс между текущими waypoint
+    traversal_speed: float = 1.5                 # Скорость визуальной интерполяции (м/с)
+
     # --- Interpretation Layer ---
     observations: List[str] = field(default_factory=list)
     inferences: List[Inference] = field(default_factory=list)

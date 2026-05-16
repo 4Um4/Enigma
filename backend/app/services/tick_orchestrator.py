@@ -591,7 +591,7 @@ class TickOrchestrator:
                 me = MovementEngine()
                 me.set_spatial_service(_spatial_svc)
                 _tick = self.get_current_tick(ctx.campaign_id)
-                changes = me.process_intents(ctx.player_result.movement_intents, _tick)
+                changes = me.process_intents(ctx.player_result.movement_intents, _tick, ctx.scene_state.get("npc_positions", {}))
                 if changes and self._scene_manager:
                     self._scene_manager.apply_changes(ctx.campaign_id, changes, ctx.scene_state)
                     logger.warning(f"[PLAYER_TURN] Applied {len(changes)} reactive movement changes")
@@ -719,7 +719,7 @@ class TickOrchestrator:
             if _loc_id and _spatial_svc:
                 me = MovementEngine()
                 me.set_spatial_service(_spatial_svc)
-                spatial_changes = me.process_intents(life_intents, tick=ctx.tick_number)
+                spatial_changes = me.process_intents(life_intents, tick=ctx.tick_number, npc_positions=ctx.scene_state.get("npc_positions", {}))
                 if spatial_changes and self._scene_manager:
                     self._scene_manager.apply_changes(ctx.campaign_id, spatial_changes, ctx.scene_state)
                     logger.info(f"[TICK_ORCH] Фаза 0: {len(spatial_changes)} spatial changes from {len(life_intents)} LifeEngine intents")
@@ -1568,6 +1568,41 @@ class TickOrchestrator:
                         source="cfrm_solver"
                     )
                     ctx.delta_buffer.append(delta)
+                    
+                    # ADR-O: Affective Pressure Pipeline (Perception -> Pressure -> Emotion)
+                    # Вычисляем давление на основе проекции ядра (T-1 + delta T)
+                    npc_raw = next((n for n in ctx.all_npcs_raw if n.get("npc_id") == entity_id), None)
+                    if npc_raw:
+                        from app.services.affective.pressure_derivation import derive_affective_pressure
+                        from app.services.affective.emotion_resolution import resolve_emotion_from_pressure
+                        from app.models.npc_state import PerceptualKernel
+                        
+                        psyche = npc_raw.get("psyche", {}).get("drives_base", {})
+                        body_state = npc_raw.get("body_state", {})
+                        pk_dict = npc_raw.get("perceptual_kernel", {})
+                        
+                        # Легковесная проекция: старое ядро + текущая дельта (clamping 0.0-1.0)
+                        projected_kernel = PerceptualKernel(
+                            threat_gradient=min(1.0, max(0.0, pk_dict.get("threat_gradient", 0.0) + perception_payload.threat_gradient_delta)),
+                            uncertainty=min(1.0, max(0.0, pk_dict.get("uncertainty", 0.0) + perception_payload.uncertainty_delta)),
+                            anomaly_score=min(1.0, max(0.0, pk_dict.get("anomaly_score", 0.0) + perception_payload.anomaly_score_delta)),
+                            compliance_bias=pk_dict.get("compliance_bias", 0.0),
+                            aggression_inhibition=pk_dict.get("aggression_inhibition", 0.0),
+                            initiative_suppression=pk_dict.get("initiative_suppression", 0.0)
+                        )
+                        
+                        pressure = derive_affective_pressure(projected_kernel, body_state)
+                        emotion_payload = resolve_emotion_from_pressure(pressure, psyche)
+                        
+                        if emotion_payload:
+                            emotion_delta = StateDeltas(
+                                npc_id=entity_id,
+                                domain=DeltaDomain.EMOTION,
+                                target="player",
+                                payload=emotion_payload,
+                                source="affective_pipeline"
+                            )
+                            ctx.delta_buffer.append(emotion_delta)
 
         # WorldSnapshotBuilder: собирает WorldSnapshotDTO из финального state
         # ADR-035: Трансляция стейта аватара в феноменологическую проекцию

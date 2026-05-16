@@ -109,9 +109,10 @@ python -m pytest backend/tests/sandbox/ -v --tb=short
     TopicExtractor читает STM + L2
     → формирует topic
 
-ФАЗА 5: Decision
-    DecisionHub.compute(topic=topic, state=fresh_state)
+ФАЗА 5: Decision (Каузальная дискретизация T+1)
+    DecisionHub.compute(topic=topic, state=fresh_state, decision_ctx=ctx_T-1)
     → создаёт CommunicationIntent
+    ЗАПРЕТ: Передавать сырые дельты давления из текущего тика. Хаб работает только на консолидированном восприятии прошлого тика (PerceptualKernel → DecisionContext). Это не задержка, а разделение reactive и deliberative слоев.
 
 ФАЗА 6: Post-Decision
     IntentEventAdapter: CommunicationIntent → EventDTO
@@ -123,9 +124,10 @@ python -m pytest backend/tests/sandbox/ -v --tb=short
     Многоступенчатая редукция реальности: Physical (Combat) → Materialization → Cognitive (Reaction) → Social.
     Порядок строго детерминирован. Прямая мутация состояния ЗАПРЕЩЕНА (только через Phase8Result → delta_buffer).
 
-ФАЗА 9: CFRM Integration & Perception (ADR-040, ADR-050)
+ФАЗА 9: CFRM Integration & Perception (ADR-040, ADR-050, ADR-052)
     LocalCausalSolver: FieldDisturbance → ProjectionPolicy → PhenomenologicalState → PsychologicalPressure.
-    Обновление PerceptualKernel (PerceptionPayload) и сборка WorldSnapshotDTO + AvatarStateDTO.
+    Обновление PerceptualKernel (PerceptionPayload). Проекция ядра в DecisionContext через translate_kernel_to_context() для Фазы 5 следующего тика.
+    Сборка WorldSnapshotDTO + AvatarStateDTO.
 
 ФАЗА 10: Persistence
     SQLite — atomic commit (runtime truth)

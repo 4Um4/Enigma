@@ -55,6 +55,15 @@ class ResponseBias(Enum):
 
 
 @dataclass(frozen=True)
+class AffectivePressureDTO:
+    """Промежуточный слой между восприятием и эмоцией. Давление системы на организм."""
+    threat_load: float = 0.0          # Накопленная угроза
+    uncertainty_load: float = 0.0     # Когнитивная перегрузка
+    social_submission: float = 0.0    # Давление подчинения
+    aggression_charge: float = 0.0    # Агрессивный потенциал
+    sensory_overload: float = 0.0     # Сенсорная перегрузка (боль, шум)
+
+
 class ResonanceProfile:
     """Результат сканирования аффективной памяти. Искажение интерпретации, а не бафф.
     

@@ -1119,8 +1119,9 @@ class SceneStateManager:
                                 campaign_id=campaign_id, location_id=location_id, scene_state=scene_state
                             )
                             node = svc.get_node(change.value) or svc.get_node(f"{location_id}:{change.value}")
-                            if not node:
-                                node = svc.get_node(f"{location_id}:entrance") or svc.get_node(f"{location_id}:main_hall")
+                            # ADR-056: Safe Spatial Fallback. Узел не найден — макро-перемещение отменяется.
+                            # if not node:
+                            #     node = svc.get_node(f"{location_id}:entrance") or svc.get_node(f"{location_id}:main_hall")
                             
                             if node:
                                 from_xy = entry.get("local_position", {"x": 0.0, "y": 0.0})
@@ -1349,6 +1350,10 @@ class SceneStateManager:
         # Версия состояния — инкрементируется только при commit(), не при apply_changes()
         # Отдельно от тика: время — ось, состояние — срез (Устав §3)
         scene_state["_version"] = scene_state.get("_version", 0) + 1
+        
+        # ADR-047: Метка реального времени для аналитического согласования при загрузке
+        import time as _time
+        scene_state["last_save_real_time"] = _time.time()
 
         ok = self._persistence.atomic_commit(
             campaign_id=campaign_id,

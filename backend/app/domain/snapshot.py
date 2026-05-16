@@ -62,6 +62,7 @@ class NPCPositionDTO:
     facing: str          # 'north', 'south', 'east', 'west'
     action: str          # 'idle', 'walking', 'talking', 'working'
     display_name: str    # имя для UI
+    initiative_suppression: float = 0.0  # Спринт 30: Cognitive Freeze (0.0-1.0), паралич воли
 
 
 @dataclass(frozen=True)

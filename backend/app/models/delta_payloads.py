@@ -13,7 +13,7 @@ TODO:
 - Добавить SpatialPayload для пространственных дельт.
 """
 from dataclasses import dataclass
-from typing import Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 
 @dataclass(frozen=True)
@@ -49,6 +49,8 @@ class IdentityPayload:
     initiative_suppression_delta: float = 0.0
     compliance_bias_delta: float = 0.0
     will_state_override: Optional[str] = None
+    # ADR-055: Труба захвата внимания (без магических коэффициентов подавления)
+    recent_directive_data: Optional[Dict[str, Any]] = None
 
 
 @dataclass(frozen=True)

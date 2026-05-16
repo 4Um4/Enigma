@@ -522,6 +522,10 @@ class StateApplicator:
                 state.perceptual_kernel.initiative_suppression = max(
                     0.0, min(1.0, state.perceptual_kernel.initiative_suppression + _init_sup)
                 )
+            # ADR-056: Применение Attention Capture
+            _recent_dir = getattr(payload, 'recent_directive_data', None)
+            if _recent_dir:
+                state.perceptual_kernel.recent_directive = _recent_dir
 
         # Causal Ledger — паспорт каждого изменения (Шаг 3)
         # Фаза 4-ROLE.2: emotional_impact для генерации TemporaryDrive
