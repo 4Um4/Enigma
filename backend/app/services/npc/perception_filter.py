@@ -36,7 +36,10 @@ TODO: расширение формулы clarity — добавить эффе�
 """
 from __future__ import annotations
 import logging
-from typing import List, Optional
+from typing import List, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.services.spatial.spatial_query_service import SpatialQueryService
 
 from app.domain.events import EventDTO
 from app.services.spatial.spatial_runtime import (
@@ -69,9 +72,8 @@ def _get_position(entity_data: dict) -> Optional[tuple[float, float]]:
     """
     x = entity_data.get("x")
     y = entity_data.get("y")
-    if x is not None and y is not None:
-        return float(x), float(y)
-    return None
+    # Sourcery: assign-if-exp для компактности
+    return (float(x), float(y)) if x is not None and y is not None else None
 
 
 def _euclidean(a: tuple[float, float], b: tuple[float, float]) -> float:
@@ -113,34 +115,17 @@ def calculate_clarity(
     return round(max(0.0, min(1.0, base)), 3)
 
 
-def _npc_distance(npc_id: str, scene_state: dict) -> float:
+def _npc_distance(npc_id: str, spatial_query: "SpatialQueryService") -> float:
     """
     Расстояние от NPC до игрока в метрах.
-    R4.3: использует player_spatial (canonical) → euclidean_distance по local_position.
-    Fallback 1: прямое Евклидово расстояние из x/y в npc_data и player_position.
-    Fallback 2: player_distances словарь (до R4.3) → 999.0.
+    ADR-048 Phase 2: Единственный источник истины — SpatialQueryService.
+    Фоллбэки удалены как нарушающие Single Spatial Authority.
     """
-    npc_data    = scene_state.get("npc_positions", {}).get(npc_id, {})
-    # ADR-048: Игрок читается из единого словаря npc_positions (npc_id="player")
-    player_data = scene_state.get("npc_positions", {}).get("player", {})
-
-    # Приоритет 1: евклидово расстояние по local_position
-    if npc_data and player_data and isinstance(player_data, dict):
-        spatial_distance = euclidean_distance(npc_data, player_data)
-        if spatial_distance < 999.0:
-            return spatial_distance
-
-    # Приоритет 2: прямое Евклидово по x/y если player_position это dict с координатами.
-    # Защита: player_position может быть строкой ("стоит") — тогда пропускаем.
-    player_pos_raw = scene_state.get("player_position")
-    if isinstance(player_pos_raw, dict):
-        npc_pos    = _get_position(npc_data)
-        player_pos = _get_position(player_pos_raw)
-        if npc_pos is not None and player_pos is not None:
-            return _euclidean(npc_pos, player_pos)
-
-    # Fallback: предвычисленный словарь (совместимость с до-R4.3)
-    return float(scene_state.get("player_distances", {}).get(npc_id, 999.0))
+    if not spatial_query:
+        return 999.0
+    # Запрашиваем дистанцию у фасада пространственного авторитета
+    distances = spatial_query.player_distances([npc_id])
+    return distances.get(npc_id, 999.0)
 
 
 def _npc_is_conscious(npc_id: str, scene_state: dict) -> bool:
@@ -152,63 +137,43 @@ def _npc_is_conscious(npc_id: str, scene_state: dict) -> bool:
     return state not in incap and activity not in {"sleeping", "спит"}
 
 
-def _can_see(npc_id: str, scene_state: dict, event_location: str) -> bool:
+def _can_see(npc_id: str, spatial_query: "SpatialQueryService", event_location: str, scene_state: dict) -> bool:
     """
     NPC видит событие если:
-      - R4.3: находится в радиусе зрения (≤ 15м по координатам)
-      - Fallback: та же строковая локация
-      - Не спит, освещение достаточное
+      - ADR-048: пространственная дистанция запрашивается у SpatialQueryService
+      - Не спит, находится в радиусе зрения (≤ 15м), освещение достаточное
     """
     if not _npc_is_conscious(npc_id, scene_state):
         return False
 
-    npc_data      = scene_state.get("npc_positions", {}).get(npc_id, {})
-    # ADR-048: Игрок читается из единого словаря npc_positions (npc_id="player")
-    player_data = scene_state.get("npc_positions", {}).get("player", {})
-
-    # Приоритет 1: евклидова дистанция по local_position
-    if npc_data and isinstance(player_data, dict) and player_data:
-        distance = euclidean_distance(npc_data, player_data)
-        if distance >= 999.0:
-            return False
-        # R4: Жёсткий cap 15m — NPC не воспринимает за пределами радиуса
-        if distance >= 15.0:
-            return False
-        if not line_of_sight(distance, scene_state):
-            return False
-
-    else:
-        # Приоритет 2: Евклидово из x/y если оба словаря содержат координаты
-        player_pos_raw = scene_state.get("player_position")
-        npc_pos    = _get_position(npc_data)
-        player_pos = _get_position(player_pos_raw) if isinstance(player_pos_raw, dict) else None
-
-        if npc_pos is not None and player_pos is not None:
-            # Оба имеют координаты — считаем напрямую
-            if _euclidean(npc_pos, player_pos) > 15.0:
-                return False
-        else:
-            # Приоритет 3: нет координат — проверяем по строке локации
-            npc_location = npc_data.get("location", "")
-            if npc_location and npc_location != event_location:
-                return False
+    # ADR-048: Дистанция только через SpatialQueryService, никаких фоллбэков
+    distance = _npc_distance(npc_id, spatial_query)
+    
+    if distance >= 999.0:
+        return False
+        
+    # R4: Жёсткий cap 15m — NPC не воспринимает за пределами радиуса
+    if distance >= 15.0:
+        return False
+        
+    if not line_of_sight(distance, scene_state):
+        return False
 
     light = scene_state.get("environment", {}).get("light_level", "dim")
     return _LIGHT_LEVELS.get(light, 1) >= _LIGHT_LEVELS[_MIN_LIGHT_FOR_SIGHT]
 
 
-def _can_hear(npc_id: str, scene_state: dict, radius: float) -> bool:
+def _can_hear(npc_id: str, spatial_query: "SpatialQueryService", radius: float, scene_state: dict) -> bool:
     """
     NPC может слышать событие если:
       - не спит (громкий звук будит — проверяем отдельно)
       - находится в радиусе звука
     """
-    if not _npc_is_conscious(npc_id, scene_state):
-        # Только очень громкий звук (radius > 15) будит спящего
-        if radius <= 15.0:
-            return False
+    # Только очень громкий звук (radius > 15) будит спящего
+    if not _npc_is_conscious(npc_id, scene_state) and radius <= 15.0:
+        return False
 
-    distance = _npc_distance(npc_id, scene_state)
+    distance = _npc_distance(npc_id, spatial_query)
     return distance <= sound_reach(radius, scene_state)
 
 
@@ -216,6 +181,7 @@ def filter_perceiving_npcs(
     npc_ids:        List[str],
     event,                      # GameEvent или dict
     scene_state:    dict,
+    spatial_query:  "SpatialQueryService",
 ) -> List[str]:
     """
     Возвращает список npc_id которые воспринимают данный GameEvent.
@@ -274,15 +240,15 @@ def filter_perceiving_npcs(
         # Звуковые события — проверяем слух (речь слышна дальше чем видна)
         sound_events = {"SOUND_EMITTED", "OBJECT_DESTROYED", "PLAYER_ATTACKED", "PLAYER_SPOKE"}
         if event_type in sound_events:
-            if _can_hear(npc_id, scene_state, radius):
+            if _can_hear(npc_id, spatial_query, radius, scene_state):
                 perceiving.append(npc_id)
             continue
 
         # Визуальные события — проверяем зрение
-        if _can_see(npc_id, scene_state, location):
+        if _can_see(npc_id, spatial_query, location, scene_state):
             perceiving.append(npc_id)
         else:
-            _dist = _npc_distance(npc_id, scene_state)
+            _dist = _npc_distance(npc_id, spatial_query)
             print(f"[PERCEPTION_SKIP] {npc_id}: dist={_dist:.1f}m (not visible)")
 
     logger.debug(
@@ -297,6 +263,7 @@ def build_perception_context(
     npc_name:    str,
     event,
     scene_state: dict,
+    spatial_query: Optional["SpatialQueryService"] = None,
 ) -> str:
     """
     Строит строку для промпта NPC описывающую что именно он воспринял.
@@ -326,17 +293,17 @@ def build_perception_context(
     else:
         return ""
 
-    distance = _npc_distance(npc_id, scene_state)
+    distance = _npc_distance(npc_id, spatial_query)
     dist_str = f"(~{distance:.0f} м)" if distance < 999 else ""
 
     _TEMPLATES = {
         "OBJECT_DESTROYED": f"Ты слышишь треск и грохот {dist_str} — что-то уничтожили.",
-        "OBJECT_CHANGED":   f"Ты замечаешь что {params.get('target_name', 'объект')} изменился {dist_str}.",
-        "PLAYER_ATTACKED":  f"Ты видишь как {actor} атакует кого-то {dist_str}. Угроза реальна.",
-        "SOUND_EMITTED":    f"Ты слышишь {params.get('description', 'звук')} {dist_str}.",
+        "OBJECT_CHANGED": f"Ты замечаешь что {params.get('target_name', 'объект')} изменился {dist_str}.",
+        "PLAYER_ATTACKED": f"Ты видишь как {actor} атакует кого-то {dist_str}. Угроза реальна.",
+        "SOUND_EMITTED": f"Ты слышишь {params.get('description', 'звук')} {dist_str}.",
         "NPC_STATE_CHANGED": f"Ты замечаешь что с кем-то рядом что-то происходит {dist_str}.",
-        "PLAYER_SPOKE":     f"{actor} обращается к кому-то {dist_str}.",
-        "LIGHT_CHANGED":    f"Освещение в помещении изменилось.",
+        "PLAYER_SPOKE": f"{actor} обращается к кому-то {dist_str}.",
+        "LIGHT_CHANGED": "Освещение в помещении изменилось.",
     }
 
     return _TEMPLATES.get(event_type, f"Ты замечаешь событие: {event_type} {dist_str}.")

@@ -1,6 +1,6 @@
-from backend.app.models.cfrm import PsychologicalPressure
-from backend.app.models.npc_state import PerceptualKernel
-from backend.app.domain.decision_context import (
+from app.models.cfrm import PsychologicalPressure
+from app.models.npc_state import PerceptualKernel
+from app.domain.decision_context import (
     DecisionContext, UtilityFieldDeformation, ActionSpaceCompression
 )
 

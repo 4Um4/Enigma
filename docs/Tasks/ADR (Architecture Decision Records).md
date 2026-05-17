@@ -903,6 +903,14 @@ CFRM P2 вычислял `PsychologicalPressure` и напрямую конве�
 - Запрос `approach player` всегда резолвится в актуальный узел кластера, где находится сущность `"player"`.
 - `scene_state` становится строго write-only проекцией для фронтенда (WorldSnapshotBuilder).
 
+**Реализация (Phase 1 — Kill Decision Reads, 17.05.2026):**
+- `SpatialQueryService` поднят из мёртвого кода — впервые инстанцирован в `npc_orchestration.py` и инъектирован через `NpcTickServices.spatial_query`.
+- В `npc_tick_pipeline.py` убраны все fallback-чтения `scene_state.get("player_distances")` и `scene_state.get("npc_positions")`. Внедрён `_pos()` helper через `spatial_query.get_entity_position()`.
+- MOVE reflex переведён на `spatial_query.get_entity_position()`.
+- `scene_state["npc_positions"]` и `scene_state["player_spatial"]` остаются как write-only projection для фронтенда. Backend системы НЕ имеют права читать их обратно.
+- **Phase 2 (Projection Isolation):** миграция `perception_filter`, `memory_manager`, `reaction_priority` на `SpatialQueryService`.
+- **Phase 3 (Derived Presentation Cleanup):** удаление `player_spatial` из `WorldSnapshotDTO`.
+
 ### ADR-050: Causal Observatory & Epistemic Divergence Sandbox
 **Дата:** 14.05.2026  
 **Статус:** Принято
@@ -1002,3 +1010,20 @@ CFRM P2 вычислял `PsychologicalPressure` и напрямую конве�
 - NPC реагирует на давление с задержкой в 1 тик, что физиологично и предсказуемо.
 - Фронтенд обязан перестать телепортировать NPC и перейти на интерполяцию `TraversalState`.
 - `TICK_CATCHUP` подлежит удалению и замене на детерминированную сверку состояния (reconcile).
+
+### ADR-058: Frontend Dual-Time Ontology & Deterministic Client
+**Дата:** 18.05.2026  
+**Статус:** Принято
+
+**Контекст:**  
+Фронтенд телепортировал NPC при каждом тике и предсказывал движение через клиентский `pathfinding`. Это разрушало иллюзию непрерывного времени и нарушало авторитет бэкенда над причинностью. Бэкенд генерировал `TraversalState` (waypoints, progress, speed) и `initiative_suppression`, но фронтенд игнорировал их, используя устаревший `duration_seconds` и локальную симуляцию.
+
+**Решение:**  
+1. **Интерполятор, не предсказатель:** Фронтенд интерполирует `TraversalState` используя `path_waypoints`, `current_waypoint_idx` и `progress`. Рендер непрерывен благодаря `dt` и `traversal_speed`.
+2. **Deterministic Client:** Клиентский `pathfinding` (`find_path`) полностью удален. Движение к NPC — это Intent, отправляемый на бэкенд. Единый источник правды — `WorldSnapshotDTO`.
+3. **Визуализация Cognitive Freeze:** `initiative_suppression` пробрасывается из `NPCPositionDTO` через `PerceivedEntity` в `SceneRenderer` для отрисовки моторного тремора (паралич воли).
+
+**Последствия:**  
+- Движение NPC плавное и честное (отражает каузальную компрессию бэкенда).
+- Фронтенд и бэкенд строго разделены (Устав §1.1).
+- Высокое `initiative_suppression` видно игроку (обратная связь по Elastic Tactical Bubble).

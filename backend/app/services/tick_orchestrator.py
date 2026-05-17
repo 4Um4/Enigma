@@ -277,12 +277,10 @@ class TickOrchestrator:
                 continue
             
             # Нормализация до канонического ClusterID (format: "location_id:node_id")
-            if ":" in str(raw_node):
+            if ":" in str(raw_node) or not location_id:
                 cluster_id = str(raw_node)
-            elif location_id:
-                cluster_id = f"{location_id}:{raw_node}"
             else:
-                cluster_id = str(raw_node)
+                cluster_id = f"{location_id}:{raw_node}"
                 
             ctx.cluster_occupancy.update_entity(npc_id, cluster_id)
             
@@ -290,24 +288,19 @@ class TickOrchestrator:
         if hasattr(ctx, 'all_npcs_raw') and ctx.all_npcs_raw:
             indexed_ids = set(ctx.cluster_occupancy.entity_to_cluster.keys())
             raw_ids = {npc.get("npc_id") for npc in ctx.all_npcs_raw if npc.get("npc_id")}
-            missing_in_index = raw_ids - indexed_ids
-            if missing_in_index:
+            if missing_in_index := raw_ids - indexed_ids:
                 logger.warning(f"[CFRM] ClusterOccupancy: NPC в all_npcs_raw, но нет в npc_positions: {missing_in_index}")
                 
         elapsed_ms = (time.perf_counter() - start_time) * 1000
         logger.info(f"[CFRM] ClusterOccupancy rebuild: {len(npc_positions)} entities in {elapsed_ms:.2f}ms")
             
         # Игрок — тоже наблюдатель в причинном пузыре
-        player_data = npc_positions.get("player")
-        if player_data:
-            raw_player_node = player_data.get("position")
-            if raw_player_node:
-                if ":" in str(raw_player_node):
+        if player_data := npc_positions.get("player"):
+            if raw_player_node := player_data.get("position"):
+                if ":" in str(raw_player_node) or not location_id:
                     p_cluster = str(raw_player_node)
-                elif location_id:
-                    p_cluster = f"{location_id}:{raw_player_node}"
                 else:
-                    p_cluster = str(raw_player_node)
+                    p_cluster = f"{location_id}:{raw_player_node}"
                 ctx.cluster_occupancy.update_entity("player", p_cluster)
 
     def execute(
@@ -434,15 +427,14 @@ class TickOrchestrator:
         npc_services: Any,
     ) -> TickPlayerResultDTO:
         """Player turn делегирует в execute() — единственная точка входа."""
-        result = self.execute(
+        # execute() при dm_ctx возвращает TickPlayerResultDTO
+        return self.execute(  # type: ignore[return-value]
             campaign_id=campaign_id,
             scene_state=scene_state,
             tick_number=dm_ctx.current_tick,
             dm_ctx=dm_ctx,
             npc_services=npc_services,
         )
-        # execute() при dm_ctx возвращает TickPlayerResultDTO
-        return result  # type: ignore[return-value]
 
     # ── Player Turn: decision через legacy pipeline ───────────────────
 
@@ -552,37 +544,60 @@ class TickOrchestrator:
             if _sem_action == "MOVE" and _sem_target:
                 _target_ref = _sem_target.lower()
                 
-                # ADR-036: УБИТ DIRECT_REFLEX. Приказ игрока — это НЕ команда движку.
-                logger.warning(f"[CAUSALITY] Semantic action MOVE detected for '{_target_ref}'. Routing to DirectiveInterpretationSubscriber.")
-                
-                # S28: Замыкание контура. Вызов обработчика давления власти
-                try:
-                    import types
-                    from app.services.social.directive_interpretation_subscriber import DirectiveInterpretationSubscriber
-                    # Передаем ID цели напрямую! Слой 2 уже резолвил имя.
-                    _target_id = getattr(_params, 'target_id', None)
-                    _directive_payload = {
-                        "semantic_action": _sem_action, 
-                        "target_reference": _target_ref,
-                        "target_id": _target_id, # Пробрасываем ID
-                        "social_pressure": 0.8
-                    }
-                    _mock_event = types.SimpleNamespace(payload=_directive_payload)
-                    # Читаем NPC из _TickContext, куда они проброшены из GameLoop (TickBuffer)
-                    # ADR-049: Передача актуальных NPC данных вместо пустого списка
-                    _directive_deltas = DirectiveInterpretationSubscriber().handle(_mock_event, ctx.all_npcs_raw)
-                    if _directive_deltas:
-                        ctx.delta_buffer.extend(_directive_deltas)
-                        logger.warning(f"[DIRECTIVE_COMMIT] Queued {len(_directive_deltas)} deltas. Will be committed in Phase 10.")
-                except Exception as e:
-                    logger.error(f"[CAUSALITY_CRASH] DirectiveInterpretationSubscriber failed: {e}", exc_info=True)
+                # ADR-O: Проверяем, является ли цель NPC. "Восток" — это не NPC.
+                _is_npc_target = any(
+                    _target_ref in n.get("name", "").lower() or _target_ref in n.get("npc_id", "").lower()
+                    for n in ctx.all_npcs_raw
+                ) if ctx.all_npcs_raw else False
+
+                if _is_npc_target:
+                    # Приказ NPC. Маршрутизируем в DirectiveInterpretationSubscriber.
+                    logger.warning(f"[CAUSALITY] Semantic action MOVE detected for NPC '{_target_ref}'. Routing to DirectiveInterpretationSubscriber.")
+                    
+                    # S28: Замыкание контура. Вызов обработчика давления власти
+                    try:
+                        import types
+                        from app.services.social.directive_interpretation_subscriber import DirectiveInterpretationSubscriber
+                        # Передаем ID цели напрямую! Слой 2 уже резолвил имя.
+                        _target_id = getattr(_params, 'target_id', None)
+                        _directive_payload = {
+                            "semantic_action": _sem_action, 
+                            "target_reference": _target_ref,
+                            "target_id": _target_id, # Пробрасываем ID
+                            "social_pressure": 0.8
+                        }
+                        _mock_event = types.SimpleNamespace(payload=_directive_payload)
+                        # Читаем NPC из _TickContext, куда они проброшены из GameLoop (TickBuffer)
+                        # ADR-049: Передача актуальных NPC данных вместо пустого списка
+                        _directive_deltas = DirectiveInterpretationSubscriber().handle(_mock_event, ctx.all_npcs_raw)
+                        if _directive_deltas:
+                            ctx.delta_buffer.extend(_directive_deltas)
+                            # COGNITIVE OVERLAY: Применяем дельты НЕМЕДЛЕННО к raw state,
+                            # чтобы DecisionHub (Фаза 5) видел актуальное давление, а не T-1
+                            for delta in _directive_deltas:
+                                _npc_id = delta.npc_id
+                                _npc_state = next((n for n in ctx.all_npcs_raw if n.get("npc_id") == _npc_id), None)
+                                if not _npc_state:
+                                    continue
+                                # Инжект директивы в PerceptualKernel
+                                if hasattr(delta.payload, 'recent_directive_data') and delta.payload.recent_directive_data:
+                                    _npc_state.setdefault("perceptual_kernel", {})["recent_directive"] = delta.payload.recent_directive_data
+                                # Инжект эмоционального давления (stress, fear)
+                                if hasattr(delta.payload, 'stress_delta') and delta.payload.stress_delta != 0:
+                                    _npc_state.setdefault("emotion", {})["stress"] = _npc_state.get("emotion", {}).get("stress", 0.0) + delta.payload.stress_delta
+                                if hasattr(delta.payload, 'fear_delta') and delta.payload.fear_delta != 0:
+                                    _npc_state.setdefault("social_stats", {})["fear_of_player"] = _npc_state.get("social_stats", {}).get("fear_of_player", 0.1) + delta.payload.fear_delta
+                            logger.warning(f"[COGNITIVE_OVERLAY] Applied {len(_directive_deltas)} directive deltas to NPC raw state for DecisionHub.")
+                    except Exception as e:
+                        logger.error(f"[CAUSALITY_CRASH] DirectiveInterpretationSubscriber failed: {e}", exc_info=True)
+                else:
+                    logger.info(f"[CAUSALITY] MOVE target '{_target_ref}' is not an NPC. Treating as player spatial action.")
 
         # ADR-035: Обработка реактивных перемещений (MovementIntents)
         # В player turn LifeEngine не вызывается, поэтому MovementEngine нужно вызвать вручную
         if ctx.player_result and ctx.player_result.movement_intents:
             from app.services.spatial.movement_engine import MovementEngine
-            _loc_id = ctx.scene_state.get("location_id", "")
-            if _loc_id:
+            if _loc_id := ctx.scene_state.get("location_id", ""):
                 _spatial_svc = SpatialService.build_for_location(
                     campaign_id=ctx.campaign_id,
                     location_id=_loc_id,
@@ -632,8 +647,7 @@ class TickOrchestrator:
 
         # Применяем trust/stress дельты к NPC state
         from app.services.game_loop.npc_state_helpers import apply_npc_state_updates
-        npc_state_updates = npc_result.get("npc_state_updates", [])
-        if npc_state_updates:
+        if npc_state_updates := npc_result.get("npc_state_updates", []):
             apply_npc_state_updates(
                 self._get_memory_manager(), npc_state_updates,
                 npc_dicts=tick_ctx.all_npcs_raw, campaign_id=campaign_id,
@@ -689,15 +703,13 @@ class TickOrchestrator:
         _spatial_svc = None
         if ctx.npc_services and hasattr(ctx.npc_services, "spatial_service") and ctx.npc_services.spatial_service:
             _spatial_svc = ctx.npc_services.spatial_service
-        else:
+        elif _location_id := ctx.scene_state.get("location_id", ""):
             # Fallback для idle_tick: если сервис не передан через npc_services, собираем на лету
-            _location_id = ctx.scene_state.get("location_id", "")
-            if _location_id:
-                _spatial_svc = SpatialService.build_for_location(
-                    campaign_id=ctx.campaign_id,
-                    location_id=_location_id,
-                    scene_state=ctx.scene_state,
-                )
+            _spatial_svc = SpatialService.build_for_location(
+                campaign_id=ctx.campaign_id,
+                location_id=_location_id,
+                scene_state=ctx.scene_state,
+            )
         if _spatial_svc:
             engine.set_spatial_service(_spatial_svc)
         
@@ -777,7 +789,7 @@ class TickOrchestrator:
 
         # 1. Вектор давления берется из результата Фазы 1 (Единая точка вычисления)
         # Повторный вызов resolve_intent_pressure ЗАПРЕЩЕН (каузальная integrity)
-        pressure = ctx.player_pressure if ctx.player_pressure else resolve_intent_pressure(intent)
+        pressure = ctx.player_pressure or resolve_intent_pressure(intent)
         psyche = player_dict.get("psyche", {})
         
         # 2. Affect Resonance Scan (Искажение интерпретации реальности)
@@ -874,11 +886,10 @@ class TickOrchestrator:
         if not ctx.old_npc_positions:
             return
         detector = SpatialEventDetector()
-        _spatial_events = detector.detect_and_publish(
+        if _spatial_events := detector.detect_and_publish(
             old_positions=ctx.old_npc_positions,
             new_scene_state=ctx.scene_state,
-        )
-        if _spatial_events:
+        ):
             ctx.phase_2_events.extend(_spatial_events)
             logger.debug(f"[TICK_ORCH] Фаза 2: {len(_spatial_events)} spatial events")
 
@@ -911,7 +922,8 @@ class TickOrchestrator:
                 new_payload = {**event.payload, "npc_id": npc_id}
                 new_event = replace(event, payload=new_payload)
 
-                mm.apply(new_event, npc_state, campaign_id=ctx.campaign_id)
+                _sq = getattr(ctx.npc_services, 'spatial_query', None) if ctx.npc_services else None
+                mm.apply(new_event, npc_state, campaign_id=ctx.campaign_id, spatial_query=_sq)
                 # Мост обратно: apply() обновил narrative_cache на NPCState,
                 # но Фаза 5 пересоздаёт NPCState из npc_dict (Устав §3.1)
                 NPCState.write_to_legacy(npc_state, npc_dict)
@@ -931,8 +943,9 @@ class TickOrchestrator:
             EventType.NPC_PROXIMITY_CLOSE.value,
             EventType.NPC_PROXIMITY_LEAVE.value,
         ):
-            affected.append(event.payload.get("npc_a", ""))
-            affected.append(event.payload.get("npc_b", ""))
+            affected.extend(
+                (event.payload.get("npc_a", ""), event.payload.get("npc_b", ""))
+            )
 
         return [n for n in affected if n]
 
@@ -994,10 +1007,8 @@ class TickOrchestrator:
         mm = self._get_memory_manager()
         identities: dict[str, dict[str, float]] = {}
         for npc_dict in ctx.npc_states:
-            npc_id = npc_dict.get("id")
-            if npc_id:
-                traits = mm.get_identity_traits(ctx.campaign_id, npc_id)
-                if traits:
+            if npc_id := npc_dict.get("id"):
+                if traits := mm.get_identity_traits(ctx.campaign_id, npc_id):
                     identities[npc_id] = traits
         
         decision_dicts, communication_intents = engine.tick_decisions(
@@ -1208,21 +1219,17 @@ class TickOrchestrator:
             _player_trust = float(ss.get("trust", 0.0))
             _player_fear = float(ss.get("fear_of_player", 0.0))
             _player_debt = float(ss.get("debt", 0.0))
-            if "player" not in relationship_cache:
-                if _player_trust != 0.0 or _player_fear != 0.0 or _player_debt != 0.0:
-                    relationship_cache["player"] = {
-                        "trust": _player_trust,
-                        "fear": _player_fear,
-                        "debt": _player_debt,
-                    }
+            if "player" not in relationship_cache and (_player_trust != 0.0 or _player_fear != 0.0 or _player_debt != 0.0):
+                relationship_cache["player"] = {
+                    "trust": _player_trust,
+                    "fear": _player_fear,
+                    "debt": _player_debt,
+                }
 
             # base_values: базовые значения для drift-расчёта
             # SocialDecayHandler: base_vals.get(target, rel_data.get("base_trust", current))
             existing_bv = npc.get("base_values", {})
-            if existing_bv:
-                base_values = dict(existing_bv)  # shallow copy
-            else:
-                base_values = {}
+            base_values = dict(existing_bv) if existing_bv else {}  # shallow copy
 
             # Гарантируем player base из loyalty_true
             # (после обогащения NPC→NPC, base_values может существовать
@@ -1232,8 +1239,7 @@ class TickOrchestrator:
                 base_values["player"] = _loyalty
 
             # faction_affiliations: список фракций для ReputationDecayHandler
-            existing_fa = npc.get("faction_affiliations", [])
-            if existing_fa:
+            if existing_fa := npc.get("faction_affiliations", []):
                 faction_affiliations = existing_fa
             else:
                 # Извлекаем из status_profile.faction_rank
@@ -1571,8 +1577,14 @@ class TickOrchestrator:
                     
                     # ADR-O: Affective Pressure Pipeline (Perception -> Pressure -> Emotion)
                     # Вычисляем давление на основе проекции ядра (T-1 + delta T)
-                    npc_raw = next((n for n in ctx.all_npcs_raw if n.get("npc_id") == entity_id), None)
-                    if npc_raw:
+                    if npc_raw := next(
+                        (
+                            n
+                            for n in ctx.all_npcs_raw
+                            if n.get("npc_id") == entity_id
+                        ),
+                        None,
+                    ):
                         from app.services.affective.pressure_derivation import derive_affective_pressure
                         from app.services.affective.emotion_resolution import resolve_emotion_from_pressure
                         from app.models.npc_state import PerceptualKernel
@@ -1592,9 +1604,9 @@ class TickOrchestrator:
                         )
                         
                         pressure = derive_affective_pressure(projected_kernel, body_state)
-                        emotion_payload = resolve_emotion_from_pressure(pressure, psyche)
-                        
-                        if emotion_payload:
+                        if emotion_payload := resolve_emotion_from_pressure(
+                            pressure, psyche
+                        ):
                             emotion_delta = StateDeltas(
                                 npc_id=entity_id,
                                 domain=DeltaDomain.EMOTION,

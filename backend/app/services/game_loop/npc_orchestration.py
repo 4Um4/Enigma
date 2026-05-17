@@ -70,10 +70,17 @@ def run_npc_orchestration(
         raise RuntimeError("tick_orchestrator обязателен — параллельный путь удалён")
 
     from app.services.spatial.spatial_service import SpatialService
+    from app.services.spatial.spatial_query_service import SpatialQueryService
     _spatial_svc = SpatialService.build_for_location(
         campaign_id=campaign_id,
         location_id=location,
         scene_state=shared_context.scene_state or {},
+    )
+    # ADR-048: Authoritative Spatial Spine — единственный легитимный источник пространственной истины
+    _scene_state = shared_context.scene_state or {}
+    _spatial_query = SpatialQueryService(
+        npc_positions=_scene_state.get("npc_positions", {}),
+        scene_state=_scene_state,
     )
     _npc_svc = NpcTickServices(
         memory_manager=game_loop.memory_manager,
@@ -83,6 +90,7 @@ def run_npc_orchestration(
         economic_profiles=game_loop._svc.get_or_create_economic_profiles(campaign_id),
         event_bus=get_event_bus(),
         spatial_service=_spatial_svc,
+        spatial_query=_spatial_query,
     )
     from app.services.tick_orchestrator import DMContextDTO
     _dm_ctx = DMContextDTO(
@@ -120,6 +128,11 @@ def run_npc_orchestration(
     for _nid, _activity in _npc_buf.activity_overrides.items():
         if _nid in scene_state.get("npc_positions", {}):
             scene_state["npc_positions"][_nid]["activity"] = _activity
+
+    # Спринт 30: Проброс initiative_suppression для визуализации Cognitive Freeze
+    for _nid, _init_sup in _npc_buf.initiative_suppressions.items():
+        if _nid in scene_state.get("npc_positions", {}):
+            scene_state["npc_positions"][_nid]["initiative_suppression"] = _init_sup
 
     # Реактивное движение NPC — MovementIntent → MovementEngine → SceneChange → apply_changes
     _movement_intents = _tick_result.movement_intents if hasattr(_tick_result, "movement_intents") else []

@@ -87,17 +87,19 @@ class WorldSnapshotBuilder:
             print(
                 f"[TRACE][SNAPSHOT] "
                 f"npc={npc_id} "
-                f"x={local.get('x')} "
-                f"y={local.get('y')}"
+                f"x={local.get('x') or 0.0} "
+                f"y={local.get('y') or 0.0}"
             )
             result.append(NPCPositionDTO(
                 npc_id=npc_id,
-                x=local.get("x", 0.0),
-                y=local.get("y", 0.0),
+                # ADR-FIX: None пробивает дефолт 0.0, если ключ существует. Явный каст.
+                x=local.get("x") or 0.0,
+                y=local.get("y") or 0.0,
                 location_id=data.get("location_id", ""),
                 facing=data.get("facing", "south"),
                 action=data.get("activity", "idle"),
                 display_name=data.get("name", npc_id),
+                initiative_suppression=data.get("initiative_suppression", 0.0),
             ))
 
         return result

@@ -279,3 +279,44 @@ end
 
 classDef sandbox fill:#ff9,stroke:#333,stroke-width:2px,stroke-dasharray: 5 5;
 class CLOCK,TRACE,PHYSICS_TEST,COG_TEST,SOC_TEST,RUMOR_TEST,FULL_OB,BRAVE_RES,EROSION,RECOVERY sandbox;
+
+%% --- ADR-048: Authoritative Spatial Spine ---
+subgraph Spatial_Authority[Spatial Authority ADR-048]
+    direction TB
+    ORCH[npc_orchestration] -->|инстанцирует| SQS[SpatialQueryService]
+    SQS -->|spatial_query| NTS[NpcTickServices]
+    NTS -->|spatial_query| NTP[npc_tick_pipeline]
+    
+    NTP -.->|ЗАПРЕЩЕНО| SS[scene_state spatial reads]
+    
+    SS -->|write-only projection| WSB[WorldSnapshotBuilder]
+    WSB -->|npc_positions player_spatial| FE[Frontend]
+end
+
+classDef spatial fill:#9cf,stroke:#333,stroke-width:2px;
+class ORCH,SQS,NTS,NTP spatial;
+classDef forbidden fill:#f66,stroke:#333,stroke-width:2px,stroke-dasharray: 5 5;
+class SS forbidden;
+
+%% --- ADR-058: Frontend Dual-Time Ontology ---
+subgraph Dual_Time_Ontology[Dual-Time Ontology ADR-058]
+    direction TB
+    WSB[WorldSnapshotBuilder] -->|NPCPositionDTO + initiative_suppression| API[API Route]
+    WSB -->|active_traversals| API
+    
+    API -->|WorldSnapshotDTO| GS[GameScreen]
+    
+    subgraph Frontend_Interpolator[Frontend: Elastic Presentation Layer]
+        GS -->|extract traversals| PE[PerceivedEntity]
+        GS -->|extract initiative_suppression| PE
+        
+        PE -->|waypoints + progress + speed * dt| SR[SceneRenderer Continuous Lerp]
+        PE -->|initiative_suppression > 0.7| SR_TREMOR[SceneRenderer Motor Tremor]
+    end
+    
+    GS -.->|ЗАПРЕЩЕНО| PF[find_path / Client Prediction]
+end
+
+classDef dualtime fill:#9f9,stroke:#333,stroke-width:2px;
+class WSB,API,GS,PE,SR,SR_TREMOR dualtime;
+class PF forbidden;

@@ -54,6 +54,7 @@ def apply_perception_memory(
     player_target_id: str,
     player_text: str,
     campaign_id: str,
+    spatial_query: Optional[Any] = None,
 ) -> Any:
     """ФАЗА 3 (§3.1): Запись восприятия события в память NPC ДО DecisionHub.
 
@@ -99,6 +100,7 @@ def apply_perception_memory(
         event=_evt_dto,
         npc_state=state_l2,
         campaign_id=campaign_id,
+        spatial_query=spatial_query,
     )
     return state_l2
 
@@ -113,6 +115,7 @@ def create_memory_event(
     player_text: str,
     scene_state: dict,
     campaign_id: str,
+    spatial_query: Optional[Any] = None,
 ) -> Any:
     """ФАЗА 1: NPC становятся живыми — запоминаем взаимодействия.
 
@@ -170,6 +173,7 @@ def create_memory_event(
             event=_evt_dto,
             npc_state=state_l2,
             campaign_id=campaign_id,
+            spatial_query=spatial_query,
         )
     return state_l2
 
@@ -334,6 +338,7 @@ def run_npc_pipeline(
                 state_l2 = apply_perception_memory(
                     svc.memory_manager, state_l2, hub_event, npc_id,
                     inp.player_target_id, inp.raw_input, inp.campaign_id,
+                    spatial_query=svc.spatial_query,
                 )
             except Exception as _perc_mem_err:
                 logger.warning(f"[MEMORY] perception apply failed for {npc_id}: {_perc_mem_err}")
@@ -358,12 +363,13 @@ def run_npc_pipeline(
             _social_mods = {}
             try:
                 if svc.social_engine:
-                    # ADR-048: Spatial Authority. Чтение player_distances из QueryService, не из scene_state
-                    _spatial_query = getattr(inp, 'spatial_query', None)
+                    # ADR-048: Spatial Authority. Единственный путь — через SpatialQueryService.
+                    # Чтение player_distances из scene_state ЗАПРЕЩЕНО (ADR-048 Этап 1).
+                    _spatial_query = svc.spatial_query
                     if _spatial_query:
                         _player_dists_snap = _spatial_query.player_distances(list(svc.social_engine.all_npc_ids))
                     else:
-                        _player_dists_snap = inp.scene_state.get("player_distances", {})  # Legacy fallback
+                        _player_dists_snap = {}
                     _extra_evt_types = [sp.event_type for sp in inp.spatial_events] if inp.spatial_events else None
                     _social_mods = svc.social_engine.compute_social_modifiers(
                         npc_id=npc_id,
@@ -378,11 +384,9 @@ def run_npc_pipeline(
             # Фаза 2.4-ECO: экономические модификаторы от потребностей
             _eco_profile = svc.economic_profiles.get(npc_id)
             _eco_result = compute_economy(npc_id, _eco_profile, state_l2)
-            _eco_modifiers = _eco_result["modifiers"]
-
             # Объединяем все модификаторы для DecisionHub
             _all_modifiers = {**interpretation.score_modifiers}
-            if _eco_modifiers:
+            if _eco_modifiers := _eco_result["modifiers"]:
                 for _intent, _mod in _eco_modifiers.items():
                     _all_modifiers[_intent] = _all_modifiers.get(_intent, 0.0) + _mod
 
@@ -408,6 +412,14 @@ def run_npc_pipeline(
                 scene_facts=hub_event.scene_facts,
                 raw_input=inp.raw_input,
             )
+            
+            # ADR-057: Topic Injection. Если внимание захвачено директивой, тема = реакция на неё.
+            # COGNITIVE OVERLAY: Читаем директиву из raw dict (npc_dict), если state_l2 ещё не обновился
+            _dir = getattr(getattr(state_l2, 'perceptual_kernel', None), 'recent_directive', None) \
+                or (isinstance(npc_dict, dict) and npc_dict.get("perceptual_kernel", {}).get("recent_directive"))
+            
+            if _dir:
+                _topic = "разговор" if _dir.get("is_obedience") else "угроза"
 
             # S28: Замыкание каузального контура. Чтение геометрии восприятия
             from app.domain.decision_context import DecisionContext
@@ -420,8 +432,8 @@ def run_npc_pipeline(
                 personality=profile_l0,
                 event=hub_event,
                 identity=_identity,
-                eco_modifiers=_all_modifiers if _all_modifiers else None,
-                social_modifiers=_social_mods if _social_mods else None,
+                eco_modifiers=_all_modifiers or None,
+                social_modifiers=_social_mods or None,
                 reputation_modifiers=_rep_modifiers_for_hub,
                 drive_modifiers=_drive_modifiers_for_hub,
                 reflex_constraints=_reflex_constraints,
@@ -485,7 +497,9 @@ def run_npc_pipeline(
                     if _payload.get("semantic_action") == "MOVE":
                         target_ref = _payload.get("target_reference", "").lower()
                         if target_ref:
-                            npc_data = inp.scene_state.get("npc_positions", {}).get(npc_id, {})
+                            # ADR-048: Spatial Authority — имя NPC через QueryService, не scene_state
+                            _sq = svc.spatial_query if svc else None
+                            npc_data = _sq.get_entity_position(npc_id) if _sq else inp.scene_state.get("npc_positions", {}).get(npc_id, {})
                             npc_display_name = npc_data.get("name", npc_data.get("display_name", "")).lower()
                             npc_id_lower = npc_id.lower()
                             if target_ref in npc_display_name or target_ref in npc_id_lower:
@@ -494,7 +508,9 @@ def run_npc_pipeline(
                 # Путь 2: Hardcoded Text Reflex (Fallback по raw_input, если NLP не пробросило payload)
                 if not _move_triggered and hasattr(inp, 'raw_input') and inp.raw_input:
                     content = inp.raw_input.lower()
-                    npc_data = inp.scene_state.get("npc_positions", {}).get(npc_id, {})
+                    # ADR-048: Spatial Authority — имя NPC через QueryService, не scene_state
+                    _sq = svc.spatial_query if svc else None
+                    npc_data = _sq.get_entity_position(npc_id) if _sq else inp.scene_state.get("npc_positions", {}).get(npc_id, {})
                     npc_display_name = npc_data.get("name", npc_data.get("display_name", "")).lower()
                     npc_id_lower = npc_id.lower()
                     
@@ -519,6 +535,7 @@ def run_npc_pipeline(
                     scene_state=inp.scene_state,
                     location_id=inp.location,
                     spatial_service=svc.spatial_service if svc else None,
+                    spatial_query=svc.spatial_query if svc else None,
                 )
                 if _movement:
                     buf.movement_intents.append(_movement)
@@ -555,6 +572,7 @@ def run_npc_pipeline(
                         player_text=inp.raw_input,
                         scene_state=inp.scene_state,
                         campaign_id=inp.campaign_id,
+                        spatial_query=svc.spatial_query,
                     )
                 except Exception as _mem_err:
                     logger.warning(f"[MEMORY] apply failed for {npc_id}: {_mem_err}")
@@ -567,6 +585,10 @@ def run_npc_pipeline(
                 _new_activity = _INTENT_TO_ACTIVITY.get(state_to_use_for_llm.intent.value, "")
                 if _new_activity:
                     buf.activity_overrides[npc_id] = _new_activity
+                
+                # Спринт 30: Проброс Cognitive Freeze (initiative_suppression) во фронтенд
+                if hasattr(state_to_use_for_llm, 'perceptual_kernel') and state_to_use_for_llm.perceptual_kernel is not None:
+                    buf.initiative_suppressions[npc_id] = state_to_use_for_llm.perceptual_kernel.initiative_suppression
             except Exception as e:
                 logger.warning(f"[DM_FACADE] StateApplicator failed for {npc_id}, using raw state: {e}")
 
@@ -624,6 +646,7 @@ def _resolve_reactive_movement(
     scene_state: dict,
     location_id: str,
     spatial_service: Optional[Any] = None,
+    spatial_query: Optional[Any] = None,  # ADR-048: Authoritative Spatial Spine
 ) -> Optional["MovementIntent"]:
     """Конвертирует пространственный intent в MovementIntent.
 
@@ -635,13 +658,20 @@ def _resolve_reactive_movement(
     - flee: уходит от intent_target → find_furthest_node от позиции угрозы
     
     Если передан spatial_service (v1.2), использует его. Иначе fallback на load_graph.
+    ADR-048: Если передан spatial_query, чтение позиций идёт ТОЛЬКО через него.
     """
     from app.domain.movement import MovementIntent, PRIORITY_NEEDS
     from app.services.spatial.location_graph import load_graph
 
+    # ADR-048: Spatial Authority. Единственный источник пространственной истины.
+    # Чтение npc_positions из scene_state ЗАПРЕЩЕНО для decisions (ADR-048 Этап 1).
+    def _pos(eid: str) -> dict:
+        if spatial_query:
+            return spatial_query.get_entity_position(eid) or {}
+        return scene_state.get("npc_positions", {}).get(eid, {})
+
     # Текущий узел NPC
-    npc_positions = scene_state.get("npc_positions", {})
-    npc_entry = npc_positions.get(npc_id, {})
+    npc_entry = _pos(npc_id)
     current_node = npc_entry.get("position", "")
 
     # ADR-045: Макро-зона цели берется НАПРЯМУЮ из position, без поиска по координатам.
@@ -651,7 +681,7 @@ def _resolve_reactive_movement(
     if intent == "approach":
         # ADR-048: Игрок внедрен как npc_id="player" (ADR-031), его позиция находится в npc_positions.
         # player_spatial удален. denormalize_id удален.
-        target_entry = npc_positions.get(_target_id, {})
+        target_entry = _pos(_target_id)
         target_node_id = target_entry.get("position")
 
         if not target_node_id:
@@ -671,8 +701,8 @@ def _resolve_reactive_movement(
     elif intent == "flee":
         # ADR-048: Единый пространственный авторитет. Игрок внедрен как npc_id="player".
         # player_spatial и denormalize_id удалены.
-        if _target_id in npc_positions:
-            target_entry = npc_positions[_target_id]
+        target_entry = _pos(_target_id)
+        if target_entry:
             lp = target_entry.get("local_position", {})
             threat_x = lp.get("x")
             threat_y = lp.get("y")
@@ -705,7 +735,7 @@ def _resolve_reactive_movement(
     
     if target_base and current_base == target_base:
         # Микро-сближение (LOD0). Цель и NPC в одной зоне — идем к локальным координатам.
-        target_entry = npc_positions.get(_target_id, {})
+        target_entry = _pos(_target_id)
         lp = target_entry.get("local_position", {})
         target_x = lp.get("x")
         target_y = lp.get("y")

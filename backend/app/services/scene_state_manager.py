@@ -29,6 +29,8 @@ SceneState хранится в:
 
 from __future__ import annotations
 
+import contextlib
+
 import json
 import math
 import random
@@ -110,12 +112,6 @@ class ChangeValidator:
             return True, ""
 
         if ct == ChangeType.ENVIRONMENT:
-            return True, ""
-
-        if ct == ChangeType.INVENTORY:
-            return True, ""
-
-        if ct in (ChangeType.EFFECT_ADD, ChangeType.EFFECT_REMOVE):
             return True, ""
 
         return True, ""
@@ -391,8 +387,6 @@ class SceneStateManager:
         if not scene_state:
             return ""
 
-        lines = ["ТВОЁ ПОЛОЖЕНИЕ В СЦЕНЕ:"]
-
         # ── Собственная позиция NPC ───────────────────────────────────────────
         npc_positions = scene_state.get("npc_positions", {})
         own_pos = npc_positions.get(npc_id, {})
@@ -401,7 +395,7 @@ class SceneStateManager:
 
         # SpatialService v1.2 динамически резолвит лейблы узлов
         pos_label = spatial_service.get_node_label(pos_text) if spatial_service else pos_text
-        
+
         _activity_map = {
             "cleaning_tables": "убираешься",
             "serving_tables":  "обслуживаешь зал",
@@ -412,19 +406,18 @@ class SceneStateManager:
         }
         act_label = _activity_map.get(act_text, act_text)
         own_desc = ", ".join(p for p in [pos_label, act_label] if p)
-        lines.append(f"- Ты: {own_desc or 'в локации'}")
 
         # ── Позиция и расстояние игрока ───────────────────────────────────────
         player_pos  = scene_state.get("player_position") or "рядом"
         distances   = scene_state.get("player_distances", {})
         distance_m  = distances.get(npc_id, None)
+        dist_str = f"~{distance_m:.1f} м" if distance_m is not None else "неизвестно"
 
-        if distance_m is not None:
-            dist_str = f"~{distance_m:.1f} м"
-        else:
-            dist_str = "неизвестно"
-
-        lines.append(f"- Игрок: {player_pos}, расстояние до тебя: {dist_str}")
+        lines = [
+            "ТВОЁ ПОЛОЖЕНИЕ В СЦЕНЕ:",
+            f"- Ты: {own_desc or 'в локации'}",
+            f"- Игрок: {player_pos}, расстояние до тебя: {dist_str}",
+        ]
 
         # ── Кому обращается игрок ─────────────────────────────────────────────
         target_id   = scene_state.get("player_target_npc")
@@ -648,7 +641,7 @@ class SceneStateManager:
                 "x2": x1 + ux * wall_len, "y2": y1 + uy * wall_len,
             })
 
-        return segments if segments else []
+        return segments or []
     def _nearest_node_to_xy(self, editor_data: dict, x: float, y: float) -> str:
         """Находит ближайший навигационный узел к координате XY."""
         nodes = editor_data.get("nodes", {})
@@ -867,8 +860,7 @@ class SceneStateManager:
                 }
 
             # --- Точка спавна игрока ---
-            spawn = editor_data.get("player_spawn")
-            if spawn:
+            if spawn := editor_data.get("player_spawn"):
                 player_spawn_node = self._nearest_node_to_xy(
                     editor_data, spawn.get("x", 0), spawn.get("y", 0)
                 )
@@ -880,8 +872,7 @@ class SceneStateManager:
                 wall_id = obj.get("rotation")
                 if not wall_id:
                     continue
-                is_passable = obj.get("passability", {}).get("walk", False)
-                if is_passable:
+                if is_passable := obj.get("passability", {}).get("walk", False):
                     wall_openings.setdefault(wall_id, []).append(obj)
 
             spatial_walls: list[dict] = []
@@ -954,8 +945,7 @@ class SceneStateManager:
             "time_of_day":    time_of_day,
             "weather_inside": time_variant.get("weather_inside", "neutral"),
         }
-        candle_data = time_variant.get("candles")
-        if candle_data:
+        if candle_data := time_variant.get("candles"):
             base_count = candle_data.get("count", 0)
             if base_count > 0:
                 delta = max(1, int(base_count * 0.2))
@@ -1118,12 +1108,10 @@ class SceneStateManager:
                             svc = SpatialService.build_for_location(
                                 campaign_id=campaign_id, location_id=location_id, scene_state=scene_state
                             )
-                            node = svc.get_node(change.value) or svc.get_node(f"{location_id}:{change.value}")
                             # ADR-056: Safe Spatial Fallback. Узел не найден — макро-перемещение отменяется.
-                            # if not node:
-                            #     node = svc.get_node(f"{location_id}:entrance") or svc.get_node(f"{location_id}:main_hall")
-                            
-                            if node:
+                            if node := svc.get_node(change.value) or svc.get_node(
+                                f"{location_id}:{change.value}"
+                            ):
                                 from_xy = entry.get("local_position", {"x": 0.0, "y": 0.0})
                                 to_xy = {"x": node.x, "y": node.y}
                                 # Телепортация только если уже на месте (микро-перемещение)
@@ -1165,11 +1153,7 @@ class SceneStateManager:
                     pos = scene_state.setdefault("npc_positions", {})
                     entry = pos.setdefault(change.target, {})
                     entry["local_position"] = change.value
-                    print(
-                        f"[TRACE][APPLY_LOCAL_POSITION] "
-                        f"npc={change.target} "
-                        f"value={change.value}"
-                    )
+                    logger.debug(f"[APPLY_LOCAL_POSITION] npc={change.target} value={change.value}")
 
             elif ct == ChangeType.NPC_STATE:
                 pos = scene_state.setdefault("npc_positions", {})
@@ -1213,9 +1197,10 @@ class SceneStateManager:
             elif ct == ChangeType.EFFECT_REMOVE:
                 effects = scene_state.get("active_effects", [])
                 scene_state["active_effects"] = [
-                    e for e in effects
-                    if not (e.get("target") == change.target and
-                            e.get("field") == change.field)
+                    e
+                    for e in effects
+                    if e.get("target") != change.target
+                    or e.get("field") != change.field
                 ]
 
         except Exception as e:
@@ -1267,7 +1252,7 @@ class SceneStateManager:
         # Объекты появляются только через carried_objects при инициализации сцены.
         # NarrativeExtractor вправе только обновлять состояния существующих объектов.
         if extraction_result.new_objects:
-            print(f"[R2.1] Заблокировано {len(extraction_result.new_objects)} TEXT→ENTITY попыток")
+            logger.warning(f"[R2.1] Заблокировано {len(extraction_result.new_objects)} TEXT→ENTITY попыток")
 
         # ── FSM: обновление состояний существующих объектов ───────────────
         from app.services.scene.narrative_extractor import STATE_PRIORITY
@@ -1279,7 +1264,7 @@ class SceneStateManager:
                 if new_prio >= old_prio:
                     objects[obj_id]["state"]    = new_state
                     objects[obj_id]["last_tick"] = extraction_result.new_events[0].tick if extraction_result.new_events else 0
-                    print(f"[R2.1] Состояние: {obj_id} → {new_state}")
+                    logger.debug(f"[R2.1] Состояние: {obj_id} → {new_state}")
                     changed = True
 
         # ── События сцены (с canonical для дедупликации) ──────────────────
@@ -1300,7 +1285,7 @@ class SceneStateManager:
                 "tick":       evt.tick,
                 "happened":   True,
             })
-            print(f"[R2.1] Событие: {evt.event_type} / {evt.object_name} (tick={evt.tick})")
+            logger.debug(f"[R2.1] Событие: {evt.event_type} / {evt.object_name} (tick={evt.tick})")
             changed = True
 
         if len(events) > 30:
@@ -1438,7 +1423,7 @@ class SceneStateManager:
 
         if removed:
             self.save_scene_state(campaign_id, scene_state)
-            print(f"[R2.1] prune_dynamic_objects: удалено {removed} объектов")
+            logger.info(f"[R2.1] prune_dynamic_objects: удалено {removed} объектов")
 
         return removed
 
@@ -1467,8 +1452,7 @@ class SceneStateManager:
         template = templates.get(location_id, {})
         initial_nodes: dict[str, str] = {}
         for npc_id, pos_data in template.get("npc_defaults", {}).items():
-            node = pos_data.get("position", "")
-            if node:
+            if node := pos_data.get("position", ""):
                 initial_nodes[npc_id] = node
 
         # Editor JSON — визуальные координаты для начальных позиций
@@ -1483,13 +1467,11 @@ class SceneStateManager:
 
         # SpatialService — единый источник координат узлов (ADR-0006)
         svc = None
-        try:
+        with contextlib.suppress(Exception):
             from app.services.spatial.spatial_service import SpatialService
             svc = SpatialService.build_for_location(
                 campaign_id=campaign_id, location_id=location_id, scene_state=scene_state
             )
-        except Exception:
-            pass
 
         for npc_id, entry in npc_positions.items():
             # Миграция имени: в старых сохранениях отсутствует поле name (Баг 3)
@@ -1512,7 +1494,17 @@ class SceneStateManager:
                     node = svc.get_node(f"{location_id}:entrance") or svc.get_node(f"{location_id}:main_hall")
                 if node:
                     entry["local_position"] = {"x": node.x, "y": node.y}
-            # Иначе — оставляем как есть (координаты уже корректны или данных нет)
+
+            # АРХИТЕКТУРНОЕ ПРИНУЖДЕНИЕ: NPC не может существовать без координат.
+            # Если ни editor, ни граф не дали local_position — дефолт в (0.0, 0.0).
+            # ЗАПРЕТ: Не телепортировать на entrance! NPC остается на месте.
+            local_pos = entry.get("local_position", {})
+            if not isinstance(local_pos, dict) or not isinstance(local_pos.get("x"), (int, float)):
+                entry["local_position"] = {"x": 0.0, "y": 0.0}
+                logger.warning(
+                    f"[SPATIAL_ENFORCEMENT] NPC '{npc_id}' не имеет валидных координат. "
+                    f"Дефолт в (0.0, 0.0) без телепортации."
+                )
 
     def update_npc_position(
         self, campaign_id: str, npc_id: str,
@@ -1522,8 +1514,8 @@ class SceneStateManager:
         save_after = scene_state is None
         if scene_state is None:
             scene_state = self.get_scene_state(campaign_id, "")
-            if scene_state is None:
-                return
+        if scene_state is None:
+            return
 
         pos = scene_state.setdefault("npc_positions", {})
         entry = pos.setdefault(npc_id, {})
@@ -1532,12 +1524,10 @@ class SceneStateManager:
 
         # Синхронизация local_position при движении NPC
         # Без этого euclidean_distance считает от старых координат
-        location_id = scene_state.get("location_id", "")
-        if location_id:
+        if location_id := scene_state.get("location_id", ""):
             try:
                 graph = load_graph(location_id)
-                node = graph.get_node(position)
-                if node:
+                if node := graph.get_node(position):
                     entry["local_position"] = {"x": node.x, "y": node.y}
                 else:
                     logger.warning(
@@ -1618,7 +1608,7 @@ class SceneStateManager:
             lines.append(f"- {name}{count_str}: {state_str}".rstrip(": "))
 
         # Индикатор режима для отладки
-        print(f"[SALIENCE_DEBUG] режим={_scene_mode.value}, объектов_до={len(_raw_objects)}, объектов_после={len(_filtered)}")
+        logger.debug(f"[SALIENCE_DEBUG] режим={_scene_mode.value}, объектов_до={len(_raw_objects)}, объектов_после={len(_filtered)}")
 
         # ── Окружение ─────────────────────────────────────────────────────────
         env = scene_state.get("environment", {})
@@ -1667,7 +1657,7 @@ class SceneStateManager:
                 position = position_map.get(pos.get("position", ""), pos.get("position", ""))
                 visible  = pos.get("visible", True)
                 npc_name = _npc_id_to_display(npc_id)
-                hidden_tag = " [скрыт]" if not visible else ""
+                hidden_tag = "" if visible else " [скрыт]"
                 desc = f"{npc_name}: {position}"
                 lines.append(desc + hidden_tag)
 
@@ -1697,8 +1687,7 @@ class SceneStateManager:
                 if d < 1.0: return "вплотную"
                 if d < 3.0: return "рядом"
                 if d < 6.0: return "близко"
-                if d < 10.0: return "в нескольких шагах"
-                return "далеко"
+                return "в нескольких шагах" if d < 10.0 else "далеко"
             dist_parts = [
                 f"{_npc_id_to_display(nid)}: {_dist_to_word(dist)}"
                 for nid, dist in distances.items()

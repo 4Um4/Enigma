@@ -45,8 +45,9 @@ def _resolve_target_reference(field: IntentSemanticField, scene_context: Any) ->
             for npc_id, pos_data in scene_context.get("npc_positions", {}).items():
                 if isinstance(pos_data, dict):
                     # Поддержка обоих ключей: display_name (DTO) и name (scene_state)
-                    _name = pos_data.get("display_name") or pos_data.get("name")
-                    if _name:
+                    if _name := pos_data.get("display_name") or pos_data.get(
+                        "name"
+                    ):
                         npc_name_map[_name.lower()] = npc_id
 
     # ADR-046: Диагностика Fuzzy Matching (Слой 2)
@@ -57,10 +58,7 @@ def _resolve_target_reference(field: IntentSemanticField, scene_context: Any) ->
 
     # Fuzzy matching (порог 0.6 — терпим к опечаткам и падежам)
     matches = get_close_matches(ref, npc_name_map.keys(), n=1, cutoff=0.6)
-    if matches:
-        return npc_name_map[matches[0]]
-    
-    return ""
+    return npc_name_map[matches[0]] if matches else ""
 
 def resolve_player_intent(
     raw_action: str,
@@ -110,31 +108,14 @@ def resolve_player_intent(
         
     intent = IntentDTO(
         action=final_action,
-        target=resolved_target_id if resolved_target_id else target,
+        target=resolved_target_id or target,
         parameters=_intent_params,
         text=raw_action,
     )
     
-    # ADR-035: Если Слой 1 распознал пространственную команду, пробрасываем её в шину НЕМЕДЛЕННО.
-    # Публикуем даже если target_id не резолвится (NPC найдут себя по target_reference).
-    if semantic_field.action_type.value == "MOVE" and semantic_field.target_reference:
-        try:
-            get_event_bus().publish(EventDTO.create(
-                event_type=EventType.PLAYER_SPOKE.value, # NPC пайплайн обрабатывает только PLAYER_SPOKE
-                source="player",
-                payload={
-                    "semantic_action": "MOVE",
-                    "target_reference": semantic_field.target_reference.lower(),
-                    "target_id": resolved_target_id if resolved_target_id else "", # Передаем что есть
-                    "physical_force": semantic_field.physical_force,
-                    "social_pressure": semantic_field.social_pressure,
-                    "content": raw_action
-                },
-                persistence_level="working",
-            ))
-            logger.warning(f"[SEMANTIC_BRIDGE] Published MOVE command: target_ref={semantic_field.target_reference}")
-        except Exception as e:
-            logger.error(f"[SEMANTIC_BRIDGE] Publish failed: {e}")
+    # ADR-O: УБИТ SEMANTIC MOVE BRIDGE. Игрок говорит → NPC решает.
+    # Фаза ввода не имеет права генерировать imperative movement.
+    # Приказ пробрасывается через Pressure Pipeline → DecisionHub.
 
     # Если аватара нет в симуляции — давление не вычисляется
     if not player_dict:
@@ -246,7 +227,7 @@ def publish_classified_player_event(
             logger.error(f"[SEMANTIC_BRIDGE] Legacy dict parameters detected: {_params}")
 
         if not _semantic_action:
-            logger.debug(f"[SEMANTIC_BRIDGE] No semantic_action in DTO")
+            logger.debug("[SEMANTIC_BRIDGE] No semantic_action in DTO")
         else:
             logger.warning(f"[SEMANTIC_BRIDGE] Extracted: action={_semantic_action}, target={_target_reference}, id={_target_id}")
 
