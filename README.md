@@ -130,6 +130,13 @@ Input -> Intent Compression -> Event -> Pressure -> Decision Geometry
 - `docs/audits/ADR-051_IMPACT.md`
 - `docs/INFO/ENIGMA_global_table.md`
 
+## Future Vector: The Fool, docs/Tasks and docs/audits
+
+- `docs/Tasks` — оперативная карта развития. Здесь архитектурные идеи превращаются в задачи, контракты и ADR, которые задают будущее ENIGMA.
+- `docs/audits` — enforcement layer: impact-отчёты, архитектурные показатели и ограничения, которые проверяют правильность изменений.
+- `The Fool` в ENIGMA не просто игровая тема. Это шаблон мышления: мир задаётся не сюжетом, а структурой правил, причинностью и пространством, в котором LLM остаётся голосом, а не судьёй.
+- Этот проект развивается так, чтобы будущий геймплей шёл от внутренних контрактов и наблюдаемой причинности, а не от внешнего повествования.
+
 ---
 
 ## Current Strategic Tension
