@@ -1,0 +1,322 @@
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"timestamp": "2026-04-21T18:11:26.627973", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 770}
+{"timestamp": "2026-04-21T18:11:26.674697", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 770, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 762, "vram_after_mb": 762}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 42, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 762, "vram_after_mb": 762}
+{"timestamp": "2026-04-21T18:11:56.631519", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 7030}
+{"timestamp": "2026-04-21T18:11:56.678210", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 7030, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 7029, "vram_after_mb": 7029}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 48, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 7029, "vram_after_mb": 7029}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 30137, "status": "complete"}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"timestamp": "2026-04-21T18:18:18.689663", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 896}
+{"timestamp": "2026-04-21T18:18:18.736959", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 896, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 877, "vram_after_mb": 877}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 43, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 876, "vram_after_mb": 876}
+{"timestamp": "2026-04-21T18:18:48.695002", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 7112}
+{"timestamp": "2026-04-21T18:18:48.742415", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 7112, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 7111, "vram_after_mb": 7111}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 44, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 7100, "vram_after_mb": 7100}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 30088, "status": "complete"}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"timestamp": "2026-04-21T18:22:08.013713", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 831}
+{"timestamp": "2026-04-21T18:22:08.060653", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 831, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 815, "vram_after_mb": 815}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 46, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 814, "vram_after_mb": 814}
+{"timestamp": "2026-04-21T18:22:38.037720", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 7041}
+{"timestamp": "2026-04-21T18:22:38.084229", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 7041, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 7041, "vram_after_mb": 7041}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 47, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 7041, "vram_after_mb": 7041}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 30076, "status": "complete"}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"timestamp": "2026-04-21T18:28:55.666253", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 890}
+{"timestamp": "2026-04-21T18:28:55.712479", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 890, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 884, "vram_after_mb": 884}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 46, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 871, "vram_after_mb": 871}
+{"timestamp": "2026-04-21T18:29:25.678428", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6592}
+{"timestamp": "2026-04-21T18:29:25.724870", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6592, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6592, "vram_after_mb": 6592}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 46, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6592, "vram_after_mb": 6592}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 30078, "status": "complete"}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"timestamp": "2026-04-21T18:40:03.959857", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6642}
+{"timestamp": "2026-04-21T18:40:04.005439", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6642, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6616, "vram_after_mb": 6616}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 49, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6610, "vram_after_mb": 6610}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 1745, "status": "complete"}
+{"timestamp": "2026-04-21T18:40:05.992080", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6622}
+{"timestamp": "2026-04-21T18:40:06.039282", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6622, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6622, "vram_after_mb": 6622}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 42, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6622, "vram_after_mb": 6622}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 892, "status": "complete"}
+{"timestamp": "2026-04-21T18:40:07.088811", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6622}
+{"timestamp": "2026-04-21T18:40:07.135794", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6622, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6622, "vram_after_mb": 6622}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 42, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6622, "vram_after_mb": 6622}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 896, "status": "complete"}
+{"timestamp": "2026-04-21T18:40:08.196796", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6622}
+{"timestamp": "2026-04-21T18:40:08.243998", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6622, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6622, "vram_after_mb": 6622}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 45, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6622, "vram_after_mb": 6622}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 860, "status": "complete"}
+{"timestamp": "2026-04-21T18:40:09.248571", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6624}
+{"timestamp": "2026-04-21T18:40:09.295202", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6624, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6624, "vram_after_mb": 6624}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 47, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6624, "vram_after_mb": 6624}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 864, "status": "complete"}
+{"timestamp": "2026-04-21T18:40:10.301874", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6624}
+{"timestamp": "2026-04-21T18:40:10.348511", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6624, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6624, "vram_after_mb": 6624}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 46, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6624, "vram_after_mb": 6624}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 847, "status": "complete"}
+{"timestamp": "2026-04-21T18:40:11.351892", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6624}
+{"timestamp": "2026-04-21T18:40:11.399054", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6624, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6624, "vram_after_mb": 6624}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 77, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6624, "vram_after_mb": 6624}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 868, "status": "complete"}
+{"timestamp": "2026-04-21T18:40:12.465860", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6624}
+{"timestamp": "2026-04-21T18:40:12.512756", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6624, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6624, "vram_after_mb": 6624}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 46, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6624, "vram_after_mb": 6624}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 878, "status": "complete"}
+{"timestamp": "2026-04-21T18:40:13.546356", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6624}
+{"timestamp": "2026-04-21T18:40:13.593164", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6624, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6624, "vram_after_mb": 6624}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 44, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6624, "vram_after_mb": 6624}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 835, "status": "complete"}
+{"timestamp": "2026-04-21T18:40:14.582034", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6624}
+{"timestamp": "2026-04-21T18:40:14.627436", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6624, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6624, "vram_after_mb": 6624}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 48, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6624, "vram_after_mb": 6624}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 855, "status": "complete"}
+{"timestamp": "2026-04-21T18:40:15.642815", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6624}
+{"timestamp": "2026-04-21T18:40:15.689058", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6624, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6624, "vram_after_mb": 6624}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 37, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6626, "vram_after_mb": 6626}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 851, "status": "complete"}
+{"timestamp": "2026-04-21T18:40:16.686082", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6626}
+{"timestamp": "2026-04-21T18:40:16.733279", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6626, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6626, "vram_after_mb": 6626}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 48, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6626, "vram_after_mb": 6626}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 741, "status": "complete"}
+{"timestamp": "2026-04-21T18:40:17.639572", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6626}
+{"timestamp": "2026-04-21T18:40:17.685740", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6626, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6626, "vram_after_mb": 6626}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 54, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6626, "vram_after_mb": 6626}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 716, "status": "complete"}
+{"timestamp": "2026-04-21T18:40:18.563599", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6631}
+{"timestamp": "2026-04-21T18:40:18.610684", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6631, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6631, "vram_after_mb": 6631}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 83, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6631, "vram_after_mb": 6631}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 802, "status": "complete"}
+{"timestamp": "2026-04-21T18:40:19.597245", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6639}
+{"timestamp": "2026-04-21T18:40:19.644773", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6639, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6647, "vram_after_mb": 6647}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 82, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6652, "vram_after_mb": 6652}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 845, "status": "complete"}
+{"timestamp": "2026-04-21T18:40:20.680509", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6648}
+{"timestamp": "2026-04-21T18:40:20.727205", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6648, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6648, "vram_after_mb": 6648}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 52, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6648, "vram_after_mb": 6648}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 840, "status": "complete"}
+{"timestamp": "2026-04-21T18:40:21.727354", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6646}
+{"timestamp": "2026-04-21T18:40:21.775440", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6646, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6646, "vram_after_mb": 6646}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 66, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6646, "vram_after_mb": 6646}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 779, "status": "complete"}
+{"timestamp": "2026-04-21T18:40:22.726464", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6646}
+{"timestamp": "2026-04-21T18:40:22.772884", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6646, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6646, "vram_after_mb": 6646}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 68, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6646, "vram_after_mb": 6646}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 815, "status": "complete"}
+{"timestamp": "2026-04-21T18:40:23.772244", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6646}
+{"timestamp": "2026-04-21T18:40:23.819704", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6646, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6646, "vram_after_mb": 6646}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 68, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6646, "vram_after_mb": 6646}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 855, "status": "complete"}
+{"timestamp": "2026-04-21T18:40:24.851787", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6644}
+{"timestamp": "2026-04-21T18:40:24.898934", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6644, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6644, "vram_after_mb": 6644}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 52, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6644, "vram_after_mb": 6644}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 1126, "status": "complete"}
+{"timestamp": "2026-04-21T18:40:26.169484", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6643}
+{"timestamp": "2026-04-21T18:40:26.217443", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6643, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6643, "vram_after_mb": 6643}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 64, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6643, "vram_after_mb": 6643}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 1001, "status": "complete"}
+{"timestamp": "2026-04-21T18:40:27.390452", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6623}
+{"timestamp": "2026-04-21T18:40:27.436799", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6623, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6621, "vram_after_mb": 6621}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 36, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6621, "vram_after_mb": 6621}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 1221, "status": "complete"}
+{"timestamp": "2026-04-21T18:40:46.605431", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6611}
+{"timestamp": "2026-04-21T18:40:46.652740", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6611, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6611, "vram_after_mb": 6611}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 38, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6611, "vram_after_mb": 6611}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 1214, "status": "complete"}
+{"timestamp": "2026-04-21T21:54:09.936622", "level": "ERROR", "agent": "test", "model": "debug", "error_code": "model_fail", "error_type": "Exception", "error_message": "Provider crash", "traceback": "Traceback (most recent call last):\n  File \"C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\tests\\test_full_error_logging.py\", line 39, in _simulate_and_check\n    raise Exception(exc_msg)\nException: Provider crash\n", "context": {"test": "model_fail", "tb": "Traceback (most recent call last):\n  File \"C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\tests\\test_full_error_logging.py\", line 39, in _simulate_and_check\n    raise Exception(exc_msg)\nException: Provider crash\n"}, "recommendation": "1. \u041f\u0440\u043e\u0432\u0435\u0440\u044c\u0442\u0435 /api/health \u2192 LLM status\n2. data/logs/*.jsonl \u2192 tail -20\n3. ModelPool debug=True \u0432 main.py startup"}
+{"timestamp": "2026-04-21T21:54:09.939217", "level": "ERROR", "agent": "test", "model": "debug", "error_code": "oom", "error_type": "MemoryError", "error_message": "VRAM OOM", "traceback": "Traceback (most recent call last):\n  File \"C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\tests\\test_full_error_logging.py\", line 35, in _simulate_and_check\n    raise MemoryError(exc_msg)\nMemoryError: VRAM OOM\n", "context": {"test": "oom", "tb": "Traceback (most recent call last):\n  File \"C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\tests\\test_full_error_logging.py\", line 35, in _simulate_and_check\n    raise MemoryError(exc_msg)\nMemoryError: VRAM OOM\n"}, "recommendation": "1. nvidia-smi \u2192 \u041f\u0440\u043e\u0432\u0435\u0440\u044c\u0442\u0435 VRAM (<6GB \u0441\u0432\u043e\u0431\u043e\u0434\u043d\u043e)\n2. ModelPool.unload_all() \u0438\u043b\u0438 \u043f\u0435\u0440\u0435\u0437\u0430\u043f\u0443\u0441\u043a \u0441\u0435\u0440\u0432\u0435\u0440\u0430\n3. \u0423\u043c\u0435\u043d\u044c\u0448\u0438\u0442\u0435 gpu_layers \u0432 llama-server (--gpu-layers 25)"}
+{"timestamp": "2026-04-21T21:54:09.940438", "level": "ERROR", "agent": "test", "model": "debug", "error_code": "syntax", "error_type": "SyntaxError", "error_message": "Model parse fail", "traceback": "Traceback (most recent call last):\n  File \"C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\tests\\test_full_error_logging.py\", line 37, in _simulate_and_check\n    raise SyntaxError(exc_msg)\nSyntaxError: Model parse fail\n", "context": {"test": "syntax", "tb": "Traceback (most recent call last):\n  File \"C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\tests\\test_full_error_logging.py\", line 37, in _simulate_and_check\n    raise SyntaxError(exc_msg)\nSyntaxError: Model parse fail\n"}, "recommendation": "1. \u041f\u0440\u043e\u0432\u0435\u0440\u044c\u0442\u0435 model path \u0432 config.py \u2192 available_models\n2. .gguf \u0444\u0430\u0439\u043b \u043f\u043e\u0432\u0440\u0435\u0436\u0434\u0451\u043d? \u041f\u0435\u0440\u0435\u043a\u0430\u0447\u0430\u0439\u0442\u0435\n3. \u041a\u043e\u043d\u0444\u043b\u0438\u043a\u0442 chat template \u0432 \u043f\u0440\u043e\u043c\u043f\u0442\u0435"}
+{"timestamp": "2026-04-21T21:54:09.941578", "level": "ERROR", "agent": "test", "model": "debug", "error_code": "timeout", "error_type": "TimeoutError", "error_message": "LLM timeout", "traceback": "Traceback (most recent call last):\n  File \"C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\tests\\test_full_error_logging.py\", line 33, in _simulate_and_check\n    raise asyncio.TimeoutError(exc_msg)\nTimeoutError: LLM timeout\n", "context": {"test": "timeout", "tb": "Traceback (most recent call last):\n  File \"C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\tests\\test_full_error_logging.py\", line 33, in _simulate_and_check\n    raise asyncio.TimeoutError(exc_msg)\nTimeoutError: LLM timeout\n"}, "recommendation": "1. \u041f\u0440\u043e\u0432\u0435\u0440\u044c\u0442\u0435 llama-server: http://127.0.0.1:8080/health\n2. \u0423\u0432\u0435\u043b\u0438\u0447\u044c\u0442\u0435 model_load_timeout_sec \u0432 config.py\n3. \u041f\u0435\u0440\u0435\u0437\u0430\u043f\u0443\u0441\u0442\u0438\u0442\u0435 backend/start_enigma.bat"}
+{"level": "INFO", "agent": "llm_input", "capability": "Capability.NARRATIVE", "prompt_preview": "Skazhi odnu frazu ot imeni travnitschika", "system_prompt": ""}
+{"level": "INFO", "agent": "llm_input", "capability": "Capability.DIALOGUE", "prompt_preview": "Skazhi chto-nibud vorchlivoe ot imeni starogo gnoma", "system_prompt": ""}
+{"level": "INFO", "agent": "llm_input", "capability": "Capability.RULES_REASONING", "prompt_preview": "Nužén li brosok d20 dlya: popytka vzlamat zamok otvertkoy?", "system_prompt": ""}
+{"level": "INFO", "agent": "llm_input", "capability": "Capability.WORLD_SIMULATION", "prompt_preview": "Sgeneriruy odno kratkoe sobytie v fantazi gorode", "system_prompt": ""}
+{"level": "INFO", "agent": "llm_input", "capability": "Capability.MEMORY_SUMMARIZATION", "prompt_preview": "What happened in the last scene?", "system_prompt": ""}
+{"error_code": "startup_error", "error_message": "Simulated startup error"}
+{"timestamp": "2026-04-21T23:09:58.382562", "level": "ERROR", "agent": "test", "model": "debug", "error_code": "model_fail", "error_type": "Exception", "error_message": "Provider crash", "traceback": "Traceback (most recent call last):\n  File \"C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\tests\\test_full_error_logging.py\", line 39, in _simulate_and_check\n    raise Exception(exc_msg)\nException: Provider crash\n", "context": {"test": "model_fail", "tb": "Traceback (most recent call last):\n  File \"C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\tests\\test_full_error_logging.py\", line 39, in _simulate_and_check\n    raise Exception(exc_msg)\nException: Provider crash\n"}, "recommendation": "1. \u041f\u0440\u043e\u0432\u0435\u0440\u044c\u0442\u0435 /api/health \u2192 LLM status\n2. data/logs/*.jsonl \u2192 tail -20\n3. ModelPool debug=True \u0432 main.py startup"}
+{"timestamp": "2026-04-21T23:09:58.384862", "level": "ERROR", "agent": "test", "model": "debug", "error_code": "oom", "error_type": "MemoryError", "error_message": "VRAM OOM", "traceback": "Traceback (most recent call last):\n  File \"C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\tests\\test_full_error_logging.py\", line 35, in _simulate_and_check\n    raise MemoryError(exc_msg)\nMemoryError: VRAM OOM\n", "context": {"test": "oom", "tb": "Traceback (most recent call last):\n  File \"C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\tests\\test_full_error_logging.py\", line 35, in _simulate_and_check\n    raise MemoryError(exc_msg)\nMemoryError: VRAM OOM\n"}, "recommendation": "1. nvidia-smi \u2192 \u041f\u0440\u043e\u0432\u0435\u0440\u044c\u0442\u0435 VRAM (<6GB \u0441\u0432\u043e\u0431\u043e\u0434\u043d\u043e)\n2. ModelPool.unload_all() \u0438\u043b\u0438 \u043f\u0435\u0440\u0435\u0437\u0430\u043f\u0443\u0441\u043a \u0441\u0435\u0440\u0432\u0435\u0440\u0430\n3. \u0423\u043c\u0435\u043d\u044c\u0448\u0438\u0442\u0435 gpu_layers \u0432 llama-server (--gpu-layers 25)"}
+{"timestamp": "2026-04-21T23:09:58.386007", "level": "ERROR", "agent": "test", "model": "debug", "error_code": "syntax", "error_type": "SyntaxError", "error_message": "Model parse fail", "traceback": "Traceback (most recent call last):\n  File \"C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\tests\\test_full_error_logging.py\", line 37, in _simulate_and_check\n    raise SyntaxError(exc_msg)\nSyntaxError: Model parse fail\n", "context": {"test": "syntax", "tb": "Traceback (most recent call last):\n  File \"C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\tests\\test_full_error_logging.py\", line 37, in _simulate_and_check\n    raise SyntaxError(exc_msg)\nSyntaxError: Model parse fail\n"}, "recommendation": "1. \u041f\u0440\u043e\u0432\u0435\u0440\u044c\u0442\u0435 model path \u0432 config.py \u2192 available_models\n2. .gguf \u0444\u0430\u0439\u043b \u043f\u043e\u0432\u0440\u0435\u0436\u0434\u0451\u043d? \u041f\u0435\u0440\u0435\u043a\u0430\u0447\u0430\u0439\u0442\u0435\n3. \u041a\u043e\u043d\u0444\u043b\u0438\u043a\u0442 chat template \u0432 \u043f\u0440\u043e\u043c\u043f\u0442\u0435"}
+{"timestamp": "2026-04-21T23:09:58.387135", "level": "ERROR", "agent": "test", "model": "debug", "error_code": "timeout", "error_type": "TimeoutError", "error_message": "LLM timeout", "traceback": "Traceback (most recent call last):\n  File \"C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\tests\\test_full_error_logging.py\", line 33, in _simulate_and_check\n    raise asyncio.TimeoutError(exc_msg)\nTimeoutError: LLM timeout\n", "context": {"test": "timeout", "tb": "Traceback (most recent call last):\n  File \"C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\tests\\test_full_error_logging.py\", line 33, in _simulate_and_check\n    raise asyncio.TimeoutError(exc_msg)\nTimeoutError: LLM timeout\n"}, "recommendation": "1. \u041f\u0440\u043e\u0432\u0435\u0440\u044c\u0442\u0435 llama-server: http://127.0.0.1:8080/health\n2. \u0423\u0432\u0435\u043b\u0438\u0447\u044c\u0442\u0435 model_load_timeout_sec \u0432 config.py\n3. \u041f\u0435\u0440\u0435\u0437\u0430\u043f\u0443\u0441\u0442\u0438\u0442\u0435 backend/start_enigma.bat"}
+{"level": "INFO", "agent": "llm_input", "capability": "Capability.NARRATIVE", "prompt_preview": "Skazhi odnu frazu ot imeni travnitschika", "system_prompt": ""}
+{"level": "INFO", "agent": "llm_input", "capability": "Capability.DIALOGUE", "prompt_preview": "Skazhi chto-nibud vorchlivoe ot imeni starogo gnoma", "system_prompt": ""}
+{"level": "INFO", "agent": "llm_input", "capability": "Capability.RULES_REASONING", "prompt_preview": "Nužén li brosok d20 dlya: popytka vzlamat zamok otvertkoy?", "system_prompt": ""}
+{"level": "INFO", "agent": "llm_input", "capability": "Capability.WORLD_SIMULATION", "prompt_preview": "Sgeneriruy odno kratkoe sobytie v fantazi gorode", "system_prompt": ""}
+{"level": "INFO", "agent": "llm_input", "capability": "Capability.MEMORY_SUMMARIZATION", "prompt_preview": "What happened in the last scene?", "system_prompt": ""}
+{"error_code": "startup_error", "error_message": "Simulated startup error"}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"timestamp": "2026-04-21T23:42:26.381381", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 5792}
+{"timestamp": "2026-04-21T23:42:26.443936", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 5792, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 5782, "vram_after_mb": 5782}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 56, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 5782, "vram_after_mb": 5782}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 16901, "status": "complete"}
+{"timestamp": "2026-04-21T23:42:44.962323", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 7914}
+{"timestamp": "2026-04-21T23:42:45.024636", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 7914, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 7914, "vram_after_mb": 7914}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 60, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 7914, "vram_after_mb": 7914}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 1438, "status": "complete"}
+{"timestamp": "2026-04-21T23:42:59.890554", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 7917}
+{"timestamp": "2026-04-21T23:42:59.937859", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 7917, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 7912, "vram_after_mb": 7912}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 45, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 7912, "vram_after_mb": 7912}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 1650, "status": "complete"}
+{"timestamp": "2026-04-21T23:43:01.795846", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 7912}
+{"timestamp": "2026-04-21T23:43:01.840851", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 7912, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 7912, "vram_after_mb": 7912}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 71, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 7912, "vram_after_mb": 7912}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 1388, "status": "complete"}
+{"timestamp": "2026-04-21T23:43:03.442854", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 7912}
+{"timestamp": "2026-04-21T23:43:03.489866", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 7912, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 7912, "vram_after_mb": 7912}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 50, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 7912, "vram_after_mb": 7912}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 1149, "status": "complete"}
+{"timestamp": "2026-04-21T23:43:04.838240", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 7912}
+{"timestamp": "2026-04-21T23:43:04.884539", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 7912, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 7914, "vram_after_mb": 7914}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 76, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 7914, "vram_after_mb": 7914}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 1253, "status": "complete"}
+{"timestamp": "2026-04-21T23:43:06.366622", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 7912}
+{"timestamp": "2026-04-21T23:43:06.414054", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 7912, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 7912, "vram_after_mb": 7912}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 40, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 7912, "vram_after_mb": 7912}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 1195, "status": "complete"}
+{"timestamp": "2026-04-21T23:43:07.777311", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 7912}
+{"timestamp": "2026-04-21T23:43:07.823103", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 7912, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 7912, "vram_after_mb": 7912}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 57, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 7912, "vram_after_mb": 7912}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 1388, "status": "complete"}
+{"timestamp": "2026-04-21T23:43:21.637352", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 7909}
+{"timestamp": "2026-04-21T23:43:21.684119", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 7909, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 7911, "vram_after_mb": 7911}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 63, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 7911, "vram_after_mb": 7911}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 1743, "status": "complete"}
+{"timestamp": "2026-04-21T23:43:23.680960", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 7911}
+{"timestamp": "2026-04-21T23:43:23.726814", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 7911, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 7911, "vram_after_mb": 7911}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 46, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 7911, "vram_after_mb": 7911}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 1140, "status": "complete"}
+{"timestamp": "2026-04-21T23:43:25.059312", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 7911}
+{"timestamp": "2026-04-21T23:43:25.105902", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 7911, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 7911, "vram_after_mb": 7911}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 53, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 7909, "vram_after_mb": 7909}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 1134, "status": "complete"}
+{"timestamp": "2026-04-21T23:43:26.411284", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 7910}
+{"timestamp": "2026-04-21T23:43:26.458823", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 7910, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 7910, "vram_after_mb": 7910}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 41, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 7910, "vram_after_mb": 7910}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 1404, "status": "complete"}
+{"timestamp": "2026-04-21T23:43:28.085994", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 7910}
+{"timestamp": "2026-04-21T23:43:28.164860", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 7910, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 7910, "vram_after_mb": 7910}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 44, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 7910, "vram_after_mb": 7910}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 1367, "status": "complete"}
+{"timestamp": "2026-04-21T23:43:29.706646", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 7910}
+{"timestamp": "2026-04-21T23:43:29.753384", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 7910, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 7910, "vram_after_mb": 7910}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 47, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 7910, "vram_after_mb": 7910}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 1415, "status": "complete"}
+{"timestamp": "2026-04-21T23:43:31.348874", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 7910}
+{"timestamp": "2026-04-21T23:43:31.396020", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 7910, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 7910, "vram_after_mb": 7910}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 50, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 7910, "vram_after_mb": 7910}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 1450, "status": "complete"}
+{"timestamp": "2026-04-21T23:43:33.072914", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 7910}
+{"timestamp": "2026-04-21T23:43:33.119323", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 7910, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 7910, "vram_after_mb": 7910}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 46, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 7910, "vram_after_mb": 7910}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 1082, "status": "complete"}
+{"timestamp": "2026-04-21T23:43:34.390399", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 7910}
+{"timestamp": "2026-04-21T23:43:34.436206", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 7910, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 7910, "vram_after_mb": 7910}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 46, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 7910, "vram_after_mb": 7910}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 880, "status": "complete"}
+{"timestamp": "2026-04-21T23:43:35.502132", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 7910}
+{"timestamp": "2026-04-21T23:43:35.549148", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 7910, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 7910, "vram_after_mb": 7910}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 41, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 7910, "vram_after_mb": 7910}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 1187, "status": "complete"}
+{"timestamp": "2026-04-21T23:43:36.929576", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 7910}
+{"timestamp": "2026-04-21T23:43:36.976368", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 7910, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 7910, "vram_after_mb": 7910}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 61, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 7910, "vram_after_mb": 7910}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 1711, "status": "complete"}

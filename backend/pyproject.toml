@@ -1,0 +1,38 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "enigma-backend"
+version = "0.1.0"
+description = "Local AI Dungeon Master Backend"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi==0.115.0",
+  "uvicorn[standard]==0.30.6",
+  "pydantic==2.9.2",
+  "pydantic-settings==2.5.2",
+  "psutil==6.0.0",
+  "pytest==8.3.3",
+]
+
+[project.optional-dependencies]
+dev = [
+  "httpx==0.28.1",
+  "pypdf==5.1.0",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["backend"]
+testpaths = ["tests"]
+addopts = "-v --tb=short"
+minversion = 7.0
+filterwarnings = [
+  "ignore::DeprecationWarning:uvicorn",
+  "ignore::pytest.PytestCollectionWarning",
+]
+
+[tool.hatch.build.targets.wheel.shared-data]
+"app" = "app"
+

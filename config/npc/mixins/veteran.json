@@ -1,0 +1,16 @@
+{
+  "_version": "1.0",
+  "_type": "mixin",
+  "psyche": {
+    "willpower": 65,
+    "breakpoint": 80
+  },
+  "combat_stats": {
+    "ac": 13,
+    "attack_bonus": 4
+  },
+  "abilities": {
+    "strength": 14,
+    "constitution": 13
+  }
+}

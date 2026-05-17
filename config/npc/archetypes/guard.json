@@ -1,0 +1,52 @@
+{
+  "_version": "1.0",
+  "_type": "archetype",
+  "_inherits": "_base_humanoid",
+  "visible_markers": ["city_guard_armor", "spear", "city_emblem"],
+  "carried_objects": ["spear", "city_guard_armor", "city_emblem"],
+  "routine": {
+    "schedule": {
+      "07:00-19:00": "guarding_gate",
+      "19:00-07:00": "sleeping"
+    }
+  },
+  "activity_map": {
+    "guarding_gate": {
+      "location": "city_gate",
+      "position": "entrance",
+      "display": "guarding_gate"
+    },
+    "on_duty": {
+      "location": "city_gate",
+      "position": "entrance",
+      "display": "guarding_gate"
+    },
+    "working": {
+      "location": "city_gate",
+      "position": "entrance",
+      "display": "guarding_gate"
+    },
+    "off_duty": {
+      "location": "tavern_silver_wolf",
+      "position": "main_hall",
+      "display": "resting"
+    },
+    "sleeping": {
+      "location": "inn_rooms",
+      "position": "main_hall",
+      "display": "sleeping"
+    }
+  },
+  "body_profile": {
+    "max_hp": 120,
+    "abilities": {
+      "strength": 13,
+      "dexterity": 12,
+      "constitution": 12,
+      "intelligence": 9,
+      "wisdom": 11,
+      "charisma": 10
+    },
+    "base_ac": 14
+  }
+}

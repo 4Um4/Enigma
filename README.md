@@ -1,129 +1,161 @@
-# Enigma — Local AI Dungeon Master System
+﻿# ENIGMA / The Fool
+## Chronicle of a Distributed Reality Simulation (2026-03-06 -> 2026-05-14)
 
-Локальная система ИИ-мастера для D&D 5e с мультиагентной архитектурой, переключением моделей и долговременной памятью.
+ENIGMA больше не является "игрой с ИИ-диалогом".
+Это проект по построению **distributed reality simulation**, где:
+- истина распределена по доменам и фазам,
+- состояние рождается из причинности, а не из текста,
+- LLM озвучивает реальность, но не определяет ее.
 
-## Реализовано в MVP
+---
 
-- Backend на **FastAPI**.
-- Multi-agent pipeline:
-  - DM Agent
-  - Rules Agent
-  - NPC Agent
-  - World Simulation Agent
-  - Memory Manager Agent
-- **Трёхслойная память кампании**:
-  1. `WORLD_CANON` (неизменяемый канон мира)
-  2. `CAMPAIGN_MEMORY` (долгосрочная память кампании)
-  3. `SESSION_MEMORY` (краткосрочный контекст сессии)
-- Dynamic context builder перед ходом (`world_canon + campaign_memory + session_memory`).
-- Adventure loader для загрузки локальных кампаний из `data/campaigns/<campaign_id>/`.
-- Runtime переключение LLM-модели через `model` в запросе (`SWITCH MODEL` основа для UI).
-- Локальное JSONL хранение (с дальнейшей заменой на SQLite/vector DB).
+## 1) Origin (March 6-19, 2026): from local DM to stateful loop
 
-## Производительность и системные требования
+**Ветки/вехи:** `V.0.1_alfa1`, `V.0.2_alfa1`, `V.0.3A_alfa1`.
 
-- Минимальный профиль хоста: **CPU уровня i7-9700F** (8+ физических ядер) и **16 ГБ RAM**.
-- Добавлен runtime-check требований перед игровым ходом (можно отключить через `AIDM_ENFORCE_SYSTEM_REQUIREMENTS=false`).
-- Агентные вычисления (Rules/NPC/WorldSimulation) выполняются параллельно через `ThreadPoolExecutor`.
-- Добавлен cache для чтения последних записей памяти и оптимизировано чтение JSONL через tail-подход.
+Система прошла базовый переход:
+- от "LLM-оркестратора" к рабочему игровому циклу,
+- от статических реплик к состоянию NPC,
+- от линейного ответа к модели поведения с памятью и психикой.
 
-## Структура
+Это был этап появления **первичного ядра причинности**: сначала считать мир, потом говорить.
+
+---
+
+## 2) Resuscitation (March 22 - April 25): runtime as a living process
+
+**Ветки/вехи:** `V.0.4A_alfa2` -> `V.0.5.1.3`.
+
+Главная трансформация:
+- "снэпшотный" код превращен в time-driven runtime,
+- добавлены контуры памяти/сцены/сервисной декомпозиции,
+- подготовлена почва для фазового оркестратора.
+
+Проект перестал быть набором механик и начал вести себя как **процесс во времени**.
+
+---
+
+## 3) Orchestrator Surgery (April 26 - May 1): decomposition of control
+
+**Ветки/вехи:** `V.0.5.1.4` -> `V.0.5.2.1`.
+
+Ключевой сдвиг:
+- управление собралось вокруг `TickOrchestrator`,
+- появились жесткие фазовые границы,
+- мутации состояния стали продвигаться через контролируемые контракты.
+
+Это первая точка, где архитектура выбрала **управляемую причинность вместо импровизации**.
+
+---
+
+## 4) Ontology Breakpoint (May 2-9): typed domains, narrative layer, temporal law
+
+**Ветки/вехи:** `V.0.5.2.2` -> `V.0.5.2.9`.
+
+Что изменилось по сути:
+- `StateDeltas v2` и доменная типизация изменений,
+- narrative/presentation отделены от state-truth,
+- время перестало быть счетчиком и стало физикой процесса.
+
+Здесь ENIGMA разошлась с типовой RPG-архитектурой: не "механики+контент", а **онтология+редукция+интеграция**.
+
+---
+
+## 5) New Reality (May 10-14): CFRM and observed causality
+
+**Ветки/вехи:** `V.0.5.3.0.1` -> `V.0.5.3.0.6`.
+
+Сформирован текущий вектор:
+- CFRM (локальные причинные поля),
+- PerceptualKernel и геометрия решения,
+- social pressure как деформация utility-space,
+- sandbox/observatory как проверка причинности, а не только состояния.
+
+Это переход к **наблюдаемой причинности**: симуляция истинна там, где есть каузальное наблюдение.
+
+---
+
+## Architectural Point-of-No-Return (ADR landmarks)
+
+Ключевые ADR, после которых проект стал другим:
+- `ADR-013`: typed domain deltas (`StateDeltas v2`).
+- `ADR-015`: physiology как давление на все домены, не "режим боя".
+- `ADR-025`: CFRM и локальная редукция причинности.
+- `ADR-031`: WillpowerGate (воля как инерционная динамика, не бинарный флаг).
+- `ADR-043`: social directives как pressure field, а не прямые команды.
+- `ADR-047`: observed causality, запрет ретро-симуляции.
+- `ADR-048`: single spatial authority.
+- `ADR-049`: DecisionContext geometry.
+- `ADR-050`: causal observatory.
+- `ADR-051` (через impact/task документы): de-godification LifeEngine.
+
+---
+
+## What ENIGMA Is Now
+
+Текущее определение:
 
 ```text
-backend/
-  app/
-    agents/
-    api/
-    core/
-    models/
-    services/
-data/
-  campaigns/
-  worlds/
-  assets/
-frontend/
-  ui/
-  map/
-  chat/
+Distributed Reality Simulation Engine
+where:
+  LLM = Voice Layer
+  Python = Causal Core
 ```
 
-## Быстрый запуск
+Базовый поток:
 
-```bash
-cd backend
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8000
+```text
+Input -> Intent Compression -> Event -> Pressure -> Decision Geometry
+-> Domain Deltas -> Layered Reduction -> Snapshot Projection -> Persistence
 ```
 
+Границы:
+- frontend не владеет истиной;
+- state меняется только через доменные контракты;
+- события не обходят фазовый протокол;
+- тестируется причинная замкнутость, а не только финальные значения.
 
-## Проверки
+---
 
-```bash
-python -m compileall backend/app
-PYTHONPATH=backend python -m unittest discover -s backend/tests -p "test_*.py"
-```
+## Repository Anchors (source-of-truth files)
+
+- `docs/Tasks/ADR (Architecture Decision Records).md`
+- `docs/Tasks/MUTATIONS.md`
+- `docs/Tasks/DTO Registry (Реестр контрактов).md`
+- `docs/Tasks/CAUSAL_CONTRACT.md`
+- `docs/Tasks/АРХИТЕКТУРНЫЙ_УСТАВ_ENIGMA.md`
+- `docs/audits/ADR-048_IMPACT.md`
+- `docs/audits/ADR-049_IMPACT.md`
+- `docs/audits/ADR-050_IMPACT.md`
+- `docs/audits/ADR-051_IMPACT.md`
+- `docs/INFO/ENIGMA_global_table.md`
+
+## Future Vector: The Fool, docs/Tasks and docs/audits
+
+- `docs/Tasks` — оперативная карта развития. Здесь архитектурные идеи превращаются в задачи, контракты и ADR, которые задают будущее ENIGMA.
+- `docs/audits` — enforcement layer: impact-отчёты, архитектурные показатели и ограничения, которые проверяют правильность изменений.
+- `The Fool` в ENIGMA не просто игровая тема. Это шаблон мышления: мир задаётся не сюжетом, а структурой правил, причинностью и пространством, в котором LLM остаётся голосом, а не судьёй.
+- Этот проект развивается так, чтобы будущий геймплей шёл от внутренних контрактов и наблюдаемой причинности, а не от внешнего повествования.
+
+### V.0.5.3.0.8_ПЕСОЧНИЦЫ_5 (точка сборки)
+
+В текущей песочнице зафиксирован следующий “вектор будущего”, который следует напрямую из обновлений `docs/Tasks` и `docs/audits`:
+- **Legitimacy Gate → Directive Interpretation → Initiative Suppression** как единый state-механизм “молчания/сопротивления” или “обслуживания” директив.
+- **Authoritative Spatial Spine (ADR-048)**: дистанции/позиции становятся консистентным источником через `SpatialQueryService`, а presentation — только проекция.
+- **LOD0 Reactive Micro-Locomotion**: минимально-живой movement-контур, который не ломает причинность и не расходится между decision/perception/snapshot.
+
+См. также:
+- `COMPARISON_REPORT/COMPARISON_REPORT_V.0.5.3.0.8_ПЕСОЧНИЦЫ_5.md`
 
 
-## Готовность игры сейчас
+---
 
-Коротко: **нет, пока не всё в порядке и не всё присутствует** — это MVP backend.
+## Current Strategic Tension
 
-Уже есть:
-- базовый цикл хода игры и журналы
-- layered memory
-- проверка минимального железа
-- базовый импорт мира
+Главный конфликт следующего шага:
+- удержать causality-first архитектуру,
+- не скатиться обратно в script-first поведение при росте фич,
+- довести micro-locomotion (`LocalSteeringIntent`) без разрушения единого spatial authority.
 
-Пока отсутствует/частично:
-- полноценный D&D 5e rules engine
-- desktop UI (chat/map/player/event log)
-- карта с токенами/fog of war
-- фоновый world simulation scheduler
-- production-интеграции LLM провайдеров
-
-Для быстрой проверки добавлен endpoint:
-- `GET /api/status/readiness`
-
-
-## Прогресс разработки
-
-Сейчас прогресс по продуктовой цели ориентировочно **50%**:
-- ✅ есть backend, многослойная память, базовая оркестрация, импорт мира
-- ✅ добавлены персонажи кампании (сохранение/список)
-- ✅ добавлен принудительный world tick и скрытый журнал событий мира
-- ✅ добавлен импорт знаний из PDF/TXT/MD для world/rules/characters/npc/campaign
-- ✅ добавлен базовый combat API (инициатива/ход/атака/урон)
-- ⚠️ нет полноценного desktop UI
-- ⚠️ нет полного rules engine D&D 5e
-- ⚠️ нет production-интеграций LLM провайдеров
-
-## API
-
-- `GET /api/health`
-- `GET /api/system/requirements`
-- `GET /api/status/readiness`
-- `POST /api/campaign/load`
-- `POST /api/world/tick/{world_id}`
-- `POST /api/characters/upsert`
-- `GET /api/characters/{campaign_id}`
-- `POST /api/combat/start`
-- `POST /api/combat/attack`
-- `POST /api/combat/next-turn/{campaign_id}/{combat_id}`
-- `POST /api/knowledge/import`
-- `POST /api/game/turn`
-- `GET /api/session/state/{campaign_id}`
-- `POST /api/import/world`
-
-### Принцип по кубикам
-
-Если игрок не передал `dice_result`, Rules Agent вернёт: **«Сделайте бросок d20»**.
-AI не бросает кубики сам.
-
-## Что дальше
-
-1. Подключить реальные LLM adapters (OpenAI/Anthropic/Gemini/Ollama/LM Studio/llama.cpp/KoboldCPP).
-2. Заменить JSONL memory на SQLite + векторную базу (Chroma/FAISS/Qdrant).
-3. Добавить полную боёвку D&D 5e (атаки, saving throws, состояния, эффекты заклинаний).
-4. Сделать desktop UI с картой, токенами и журналом сессии.
+Если этот баланс удержан, ENIGMA останется симуляцией реальности.
+Если нет, она откатится в RPG-пайплайн с иллюзией причинности.

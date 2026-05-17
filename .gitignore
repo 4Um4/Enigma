@@ -1,2 +1,33 @@
 __pycache__/
 *.pyc
+*.log
+
+# Runtime logs & DB
+*.jsonl
+*.db
+*.db-shm
+*.db-wal
+backend/data/logs/
+saves/
+
+# Models - too large for Git
+Models LLM/
+
+# PDF books - not needed in repo
+data/pdf_drop/
+
+# Temporary trash / moved local cleanup
+COMPARISON_REPORT/
+ROAD_MAP_MUSOR/
+
+# IDE
+.vscode/
+.idea/
+
+# Python virtual env
+.venv/
+venv/
+
+# OS
+.DS_Store
+Thumbs.db

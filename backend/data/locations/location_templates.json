@@ -1,0 +1,197 @@
+{
+  "tavern_silver_wolf": {
+    "name": "Таверна «Серебряный Волк»",
+    "type": "tavern",
+    "default_objects": {
+      "bar_counter": {
+        "name": "барная стойка",
+        "state": "intact",
+        "material": "oak",
+        "hp": 30,
+        "max_hp": 30,
+        "interactable": true
+      },
+      "fireplace": {
+        "name": "очаг",
+        "state": "burning",
+        "light": 40,
+        "interactable": false
+      },
+      "tables": {
+        "name": "столы",
+        "count": 6,
+        "state": "intact",
+        "interactable": true
+      }
+    },
+    "time_variants": {
+      "06:00-10:00": {
+        "light_level": "dim",
+        "noise_level": "silent",
+        "candles": {
+          "state": "unlit"
+        },
+        "weather_inside": "cool_fresh"
+      },
+      "10:00-22:00": {
+        "light_level": "bright",
+        "noise_level": "moderate",
+        "candles": {
+          "state": "lit",
+          "count": 12
+        },
+        "weather_inside": "warm_busy"
+      },
+      "22:00-02:00": {
+        "light_level": "dim",
+        "noise_level": "low",
+        "candles": {
+          "state": "lit",
+          "count": 6
+        },
+        "weather_inside": "warm_smoky"
+      },
+      "02:00-06:00": {
+        "light_level": "dark",
+        "noise_level": "silent",
+        "candles": {
+          "state": "unlit"
+        },
+        "weather_inside": "cold_quiet"
+      }
+    },
+    "npc_defaults": {
+      "tavern_keeper_tornin": {
+        "position": "behind_bar",
+        "activity": "cleaning_tables",
+        "visible": true
+      },
+      "maid_lusya": {
+        "position": "bar_area",
+        "activity": "separving_tables",
+        "visible": true
+      },
+      "thief_shadow": {
+        "position": "corner_table",
+        "activity": "observing",
+        "visible": false
+      }
+    },
+    "connected_locations": [
+      "city_gate",
+      "market_square",
+      "inn_rooms"
+    ]
+  },
+  "city_gate": {
+    "name": "Городские ворота",
+    "type": "exterior",
+    "default_objects": {},
+    "time_variants": {
+      "06:00-22:00": {
+        "light_level": "bright",
+        "noise_level": "moderate"
+      },
+      "22:00-06:00": {
+        "light_level": "dark",
+        "noise_level": "silent"
+      }
+    },
+    "npc_defaults": {},
+    "connected_locations": [
+      "tavern_silver_wolf",
+      "market_square"
+    ],
+    "positions": {
+      "gate_post": {
+        "x": 0.0,
+        "y": 0.0,
+        "connections": ["road_north", "road_south", "guard_shack", "shadows_near_gate"],
+        "label": "на посту у ворот"
+      },
+      "guard_shack": {
+        "x": -3.0,
+        "y": 1.0,
+        "connections": ["gate_post"],
+        "label": "будка стражи"
+      },
+      "shadows_near_gate": {
+        "x": 3.0,
+        "y": 2.0,
+        "connections": ["gate_post", "road_north"],
+        "label": "в тени у стены"
+      },
+      "road_north": {
+        "x": 0.0,
+        "y": -4.0,
+        "connections": ["gate_post", "shadows_near_gate"],
+        "label": "дорога на север"
+      },
+      "road_south": {
+        "x": 0.0,
+        "y": 4.0,
+        "connections": ["gate_post"],
+        "label": "дорога к городу"
+      }
+    }
+  },
+  "market_square": {
+    "name": "Рыночная площадь",
+    "type": "exterior",
+    "default_objects": {},
+    "time_variants": {
+      "08:00-18:00": {
+        "light_level": "bright",
+        "noise_level": "loud"
+      },
+      "18:00-08:00": {
+        "light_level": "dark",
+        "noise_level": "silent"
+      }
+    },
+    "npc_defaults": {},
+    "connected_locations": [
+      "tavern_silver_wolf",
+          "city_gate"
+        ]
+      },
+  "inn_rooms": {
+    "name": "Комнаты постоялого двора",
+    "type": "interior",
+    "default_objects": {},
+    "time_variants": {
+      "22:00-06:00": {
+        "light_level": "dark",
+        "noise_level": "silent"
+      },
+      "06:00-22:00": {
+        "light_level": "dim",
+        "noise_level": "quiet"
+      }
+    },
+    "npc_defaults": {},
+    "connected_locations": [
+      "tavern_silver_wolf"
+    ],
+    "positions": {
+      "bed": {
+        "x": 3.0,
+        "y": 3.0,
+        "label": "кровать",
+        "connections": ["room_center"]
+      },
+      "room_center": {
+        "x": 5.0,
+        "y": 5.0,
+        "label": "центр комнаты",
+        "connections": ["bed", "door"]
+      },
+      "door": {
+        "x": 8.0,
+        "y": 8.0,
+        "label": "у двери",
+        "connections": ["room_center"]
+      }
+    }
+  }
+}

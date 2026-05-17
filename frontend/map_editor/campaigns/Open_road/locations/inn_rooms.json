@@ -1,0 +1,32 @@
+﻿{
+  "filename": "inn_rooms.json",
+  "location_id": "inn_rooms",
+  "label": "Комнаты постоялого двора",
+  "size": { "w": 12, "h": 10 },
+  "grid_cell_size": 1.0,
+  "is_outdoor": false,
+  "rooms": [
+    {
+      "id": "room_0",
+      "name": "Общая спальня",
+      "x": 1.0, "y": 1.0, "width": 10.0, "height": 8.0,
+      "area_sqm": 80.0,
+      "polygon": [[1.0,1.0],[11.0,1.0],[11.0,9.0],[1.0,9.0]]
+    }
+  ],
+  "walls": [],
+  "obstacles": [],
+  "nodes": {
+    "bed_1": { "x": 2.0, "y": 2.0, "label": "Кровать 1", "connections": ["room_center"] },
+    "bed_2": { "x": 5.0, "y": 2.0, "label": "Кровать 2", "connections": ["room_center"] },
+    "bed_3": { "x": 8.0, "y": 2.0, "label": "Кровать 3", "connections": ["room_center"] },
+    "bed_4": { "x": 2.0, "y": 7.0, "label": "Кровать 4", "connections": ["room_center"] },
+    "bed":   { "x": 5.0, "y": 5.0, "label": "Кровать (общий узел)", "connections": ["room_center"] },
+    "room_center": {
+      "x": 5.5, "y": 5.0, "label": "Центр комнаты",
+      "connections": ["bed_1","bed_2","bed_3","bed_4","bed","door"]
+    },
+    "door": { "x": 10.0, "y": 5.0, "label": "Дверь", "connections": ["room_center"] }
+  },
+  "objects": []
+}

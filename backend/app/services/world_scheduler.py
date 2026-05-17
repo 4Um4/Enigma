@@ -29,10 +29,15 @@ class WorldScheduler:
         if last_tick and (now - last_tick) < timedelta(minutes=every_minutes):
             return {"triggered": False, "reason": "interval_not_elapsed", "events": []}
 
-        result = self.world_agent.tick(world_id)
+        # TODO: временная заглушка
+        # будет удалено после: ФАЗА 6 — WorldTickEngine (Python-based, без LLM)
+        # ПРИЧИНА: world_sim_agent использует LLM для генерации событий,
+        # что нарушает главный контракт: "LLM НЕ ПРИНИМАЕТ РЕШЕНИЯ"
+        result = {"world_events": [], "simulation_log": "disabled_pending_phase6"}
+
         event_payload = {
             "visibility": "hidden",
-            "events": result["world_events"],
+            "events": result.get("world_events", []),
         }
         self.memory.store.append(f"world_hidden_events_{world_id}", event_payload)
-        return {"triggered": True, "reason": "ok", "events": result["world_events"]}
+        return {"triggered": True, "reason": "ok", "events": result.get("world_events", [])}

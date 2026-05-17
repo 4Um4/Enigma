@@ -1,0 +1,1586 @@
+{
+  "campaign_id": "Open_road",
+  "campaign_name": "",
+  "players": [],
+  "world_facts": [],
+  "session_summaries": [],
+  "metadata": {},
+  "scene_state": {
+    "location_id": "tavern_silver_wolf",
+    "objects": {
+      "obj_0": {
+        "name": "Барная стойка #1",
+        "type": "bar",
+        "state": "intact",
+        "position": {
+          "x": 4.6,
+          "y": 3.4250000000000003
+        },
+        "size": {
+          "w": 3.0,
+          "h": 1.0,
+          "d": 1.2
+        },
+        "interactable": true
+      },
+      "obj_1": {
+        "name": "Стол #2",
+        "type": "table",
+        "state": "intact",
+        "position": {
+          "x": 8.0,
+          "y": 4.95
+        },
+        "size": {
+          "w": 1.6,
+          "h": 1.32,
+          "d": 0.8
+        },
+        "interactable": true
+      },
+      "obj_2": {
+        "name": "Стол #3",
+        "type": "table",
+        "state": "intact",
+        "position": {
+          "x": 12.025,
+          "y": 7.85
+        },
+        "size": {
+          "w": 1.5,
+          "h": 1.5,
+          "d": 0.8
+        },
+        "interactable": true
+      },
+      "obj_3": {
+        "name": "Стул #4",
+        "type": "chair",
+        "state": "intact",
+        "position": {
+          "x": 7.0,
+          "y": 5.0
+        },
+        "size": {
+          "w": 0.5,
+          "h": 0.5,
+          "d": 0.5
+        },
+        "interactable": true
+      },
+      "obj_4": {
+        "name": "Стул #5",
+        "type": "chair",
+        "state": "intact",
+        "position": {
+          "x": 9.0,
+          "y": 5.0
+        },
+        "size": {
+          "w": 0.5,
+          "h": 0.5,
+          "d": 0.5
+        },
+        "interactable": true
+      },
+      "obj_5": {
+        "name": "Декорация №1",
+        "type": "decoration",
+        "state": "intact",
+        "position": {
+          "x": 7.0,
+          "y": 11.5
+        },
+        "size": {
+          "w": 0.5,
+          "h": 0.5,
+          "d": 0.5
+        },
+        "interactable": true
+      },
+      "obj_6": {
+        "name": "Декорация №2",
+        "type": "decoration",
+        "state": "intact",
+        "position": {
+          "x": 9.0,
+          "y": 11.5
+        },
+        "size": {
+          "w": 0.5,
+          "h": 0.5,
+          "d": 0.5
+        },
+        "interactable": true
+      },
+      "obj_7": {
+        "name": "Стол №3",
+        "type": "table",
+        "state": "intact",
+        "position": {
+          "x": 3.5,
+          "y": 5.0
+        },
+        "size": {
+          "w": 1.5,
+          "h": 0.9,
+          "d": 0.8
+        },
+        "interactable": true
+      },
+      "obj_8": {
+        "name": "Стол №4",
+        "type": "table",
+        "state": "intact",
+        "position": {
+          "x": 3.5,
+          "y": 7.0
+        },
+        "size": {
+          "w": 1.5,
+          "h": 0.9,
+          "d": 0.8
+        },
+        "interactable": true
+      },
+      "obj_9": {
+        "name": "Стол №5",
+        "type": "table",
+        "state": "intact",
+        "position": {
+          "x": 3.5,
+          "y": 9.0
+        },
+        "size": {
+          "w": 1.5,
+          "h": 0.9,
+          "d": 0.8
+        },
+        "interactable": true
+      },
+      "obj_10": {
+        "name": "Стол №6",
+        "type": "table",
+        "state": "intact",
+        "position": {
+          "x": 12.0,
+          "y": 5.0
+        },
+        "size": {
+          "w": 1.5,
+          "h": 0.9,
+          "d": 0.8
+        },
+        "interactable": true
+      },
+      "obj_11": {
+        "name": "Стол №7",
+        "type": "table",
+        "state": "intact",
+        "position": {
+          "x": 8.0,
+          "y": 7.0
+        },
+        "size": {
+          "w": 1.5,
+          "h": 0.9,
+          "d": 0.8
+        },
+        "interactable": true
+      },
+      "obj_12": {
+        "name": "Стол №8",
+        "type": "table",
+        "state": "intact",
+        "position": {
+          "x": 8.0,
+          "y": 9.0
+        },
+        "size": {
+          "w": 1.5,
+          "h": 0.9,
+          "d": 0.8
+        },
+        "interactable": true
+      },
+      "obj_13": {
+        "name": "Стул №3",
+        "type": "chair",
+        "state": "intact",
+        "position": {
+          "x": 8.0,
+          "y": 7.5
+        },
+        "size": {
+          "w": 0.5,
+          "h": 0.5,
+          "d": 0.5
+        },
+        "interactable": true
+      },
+      "obj_14": {
+        "name": "Стул №4",
+        "type": "chair",
+        "state": "intact",
+        "position": {
+          "x": 8.0,
+          "y": 6.5
+        },
+        "size": {
+          "w": 0.52,
+          "h": 0.53,
+          "d": 0.5
+        },
+        "interactable": true
+      },
+      "obj_15": {
+        "name": "Стул №5",
+        "type": "chair",
+        "state": "intact",
+        "position": {
+          "x": 9.0,
+          "y": 9.0
+        },
+        "size": {
+          "w": 0.5,
+          "h": 0.5,
+          "d": 0.5
+        },
+        "interactable": true
+      },
+      "obj_16": {
+        "name": "Стул №6",
+        "type": "chair",
+        "state": "intact",
+        "position": {
+          "x": 7.0,
+          "y": 9.0
+        },
+        "size": {
+          "w": 0.5,
+          "h": 0.5,
+          "d": 0.5
+        },
+        "interactable": true
+      },
+      "obj_17": {
+        "name": "Стул №7",
+        "type": "chair",
+        "state": "intact",
+        "position": {
+          "x": 12.0,
+          "y": 9.0
+        },
+        "size": {
+          "w": 0.5,
+          "h": 0.5,
+          "d": 0.5
+        },
+        "interactable": true
+      },
+      "obj_18": {
+        "name": "Стул №8",
+        "type": "chair",
+        "state": "intact",
+        "position": {
+          "x": 12.0,
+          "y": 7.0
+        },
+        "size": {
+          "w": 0.5,
+          "h": 0.5,
+          "d": 0.5
+        },
+        "interactable": true
+      },
+      "obj_19": {
+        "name": "Стул №9",
+        "type": "chair",
+        "state": "intact",
+        "position": {
+          "x": 12.0,
+          "y": 4.5
+        },
+        "size": {
+          "w": 0.5,
+          "h": 0.5,
+          "d": 0.5
+        },
+        "interactable": true
+      },
+      "obj_20": {
+        "name": "Стул №10",
+        "type": "chair",
+        "state": "intact",
+        "position": {
+          "x": 12.0,
+          "y": 5.5
+        },
+        "size": {
+          "w": 0.5,
+          "h": 0.5,
+          "d": 0.5
+        },
+        "interactable": true
+      },
+      "obj_21": {
+        "name": "Стул №11",
+        "type": "chair",
+        "state": "intact",
+        "position": {
+          "x": 3.5,
+          "y": 4.5
+        },
+        "size": {
+          "w": 0.5,
+          "h": 0.5,
+          "d": 0.5
+        },
+        "interactable": true
+      },
+      "obj_22": {
+        "name": "Стул №12",
+        "type": "chair",
+        "state": "intact",
+        "position": {
+          "x": 3.5,
+          "y": 5.5
+        },
+        "size": {
+          "w": 0.5,
+          "h": 0.5,
+          "d": 0.5
+        },
+        "interactable": true
+      },
+      "obj_23": {
+        "name": "Стул №13",
+        "type": "chair",
+        "state": "intact",
+        "position": {
+          "x": 4.5,
+          "y": 7.0
+        },
+        "size": {
+          "w": 0.5,
+          "h": 0.5,
+          "d": 0.5
+        },
+        "interactable": true
+      },
+      "obj_24": {
+        "name": "Стул №14",
+        "type": "chair",
+        "state": "intact",
+        "position": {
+          "x": 2.5,
+          "y": 7.0
+        },
+        "size": {
+          "w": 0.5,
+          "h": 0.5,
+          "d": 0.5
+        },
+        "interactable": true
+      },
+      "obj_25": {
+        "name": "Стул №15",
+        "type": "chair",
+        "state": "intact",
+        "position": {
+          "x": 3.5,
+          "y": 8.5
+        },
+        "size": {
+          "w": 0.5,
+          "h": 0.5,
+          "d": 0.5
+        },
+        "interactable": true
+      },
+      "obj_26": {
+        "name": "Стул №16",
+        "type": "chair",
+        "state": "intact",
+        "position": {
+          "x": 3.5,
+          "y": 9.5
+        },
+        "size": {
+          "w": 0.5,
+          "h": 0.5,
+          "d": 0.5
+        },
+        "interactable": true
+      },
+      "obj_27": {
+        "name": "Стол №9",
+        "type": "table",
+        "state": "intact",
+        "position": {
+          "x": 16.006944444444446,
+          "y": 2.5
+        },
+        "size": {
+          "w": 4.23,
+          "h": 1.49,
+          "d": 0.8
+        },
+        "interactable": true
+      },
+      "obj_29": {
+        "name": "Стул №17",
+        "type": "chair",
+        "state": "intact",
+        "position": {
+          "x": 14.5,
+          "y": 5.5
+        },
+        "size": {
+          "w": 0.5,
+          "h": 0.5,
+          "d": 0.5
+        },
+        "interactable": true
+      },
+      "obj_30": {
+        "name": "Дверь переход №1",
+        "type": "door_transition",
+        "state": "intact",
+        "position": {
+          "x": 8.0,
+          "y": 12.0
+        },
+        "size": {
+          "w": 1.11,
+          "h": 0.2,
+          "d": 2.2
+        },
+        "interactable": true
+      },
+      "obj_32": {
+        "name": "Дверь №2",
+        "type": "door",
+        "state": "intact",
+        "position": {
+          "x": 14.0,
+          "y": 3.75
+        },
+        "size": {
+          "w": 0.3,
+          "h": 1.08,
+          "d": 2.2
+        },
+        "interactable": true
+      },
+      "obj_33": {
+        "name": "Табурет №1",
+        "type": "stool",
+        "state": "intact",
+        "position": {
+          "x": 8.0,
+          "y": 9.5
+        },
+        "size": {
+          "w": 0.4,
+          "h": 0.4,
+          "d": 0.5
+        },
+        "interactable": true
+      },
+      "obj_34": {
+        "name": "Костер №1",
+        "type": "campfire",
+        "state": "intact",
+        "position": {
+          "x": 10.0,
+          "y": 3.0
+        },
+        "size": {
+          "w": 0.8,
+          "h": 0.8,
+          "d": 0.5
+        },
+        "interactable": true
+      },
+      "obj_35": {
+        "name": "Стул №18",
+        "type": "chair",
+        "state": "intact",
+        "position": {
+          "x": 16.375,
+          "y": 5.625
+        },
+        "size": {
+          "w": 0.5,
+          "h": 0.5,
+          "d": 0.5
+        },
+        "interactable": true
+      },
+      "candles_main": {
+        "name": "свечи",
+        "state": "lit",
+        "count": 13,
+        "interactable": true,
+        "owner": null
+      }
+    },
+    "npc_positions": {
+      "maid_lusya": {
+        "location_id": "tavern_silver_wolf",
+        "position": "corner_table",
+        "activity": "eating",
+        "visible": true,
+        "local_position": {
+          "x": 12.0,
+          "y": 10.0
+        },
+        "editor_room_id": "room_0",
+        "psyche_state": "alert",
+        "location": "tavern_silver_wolf",
+        "stress_delta": 10,
+        "name": "Люся"
+      },
+      "guard_borko": {
+        "location_id": "tavern_silver_wolf",
+        "position": "entrance",
+        "activity": "guarding_gate",
+        "visible": true,
+        "local_position": {
+          "x": 12.0,
+          "y": 9.0
+        },
+        "editor_room_id": "room_0",
+        "location": "city_gate",
+        "stress_delta": 10,
+        "psyche_state": "alert",
+        "name": "Стражник Борко"
+      },
+      "blacksmith_orm": {
+        "location_id": "tavern_silver_wolf",
+        "position": "bar_area",
+        "activity": "",
+        "visible": false,
+        "local_position": {
+          "x": 16.4,
+          "y": 5.55
+        },
+        "editor_room_id": "room_0",
+        "psyche_state": "alert",
+        "stress_delta": 10,
+        "name": "Кузнец Орм"
+      },
+      "tavern_keeper_tornin": {
+        "location_id": "tavern_silver_wolf",
+        "position": "corner_table",
+        "activity": "eating",
+        "visible": true,
+        "local_position": {
+          "x": 12.0,
+          "y": 10.0
+        },
+        "editor_room_id": "room_0",
+        "stress_delta": 10,
+        "location": "tavern_silver_wolf",
+        "psyche_state": "alert",
+        "name": "Торнин Серебряная Луна"
+      },
+      "thief_shadow": {
+        "location_id": "tavern_silver_wolf",
+        "position": "bar_area",
+        "activity": "sleeping",
+        "visible": false,
+        "local_position": {
+          "x": 4.0,
+          "y": 4.0
+        },
+        "editor_room_id": "room_0",
+        "location": "inn_rooms",
+        "name": "Тень"
+      },
+      "merchant_goran": {
+        "location_id": "tavern_silver_wolf",
+        "position": "bar_area",
+        "activity": "haggling",
+        "visible": true,
+        "local_position": {
+          "x": 14.5,
+          "y": 5.5
+        },
+        "editor_room_id": "room_1",
+        "location": "market_square",
+        "psyche_state": "alert",
+        "stress_delta": 10,
+        "name": "Купец Горан"
+      }
+    },
+    "environment": {
+      "light_level": "bright",
+      "noise_level": "moderate",
+      "time_of_day": "12:00",
+      "weather_inside": "warm_busy"
+    },
+    "player_inventory_snapshot": {},
+    "active_effects": [],
+    "player_position": "стоит",
+    "player_spatial": {
+      "location_id": "tavern_silver_wolf",
+      "position": "entrance",
+      "local_position": {
+        "x": 4.414213562373092,
+        "y": 6.439339828220183
+      }
+    },
+    "player_target_npc": "maid_lusya",
+    "player_target_npc_name": "Люся",
+    "player_target_object": null,
+    "player_distances": {
+      "blacksmith_orm": 12.02,
+      "guard_borko": 8.01,
+      "merchant_goran": 10.13,
+      "maid_lusya": 8.38,
+      "thief_shadow": 3.63,
+      "tavern_keeper_tornin": 8.38
+    },
+    "environment_modifiers": {
+      "light": 1.0,
+      "noise": 0.5,
+      "density": 0.3,
+      "danger": 0.1
+    },
+    "spatial_walls": [
+      {
+        "x1": 2.0,
+        "y1": 1.975,
+        "x2": 14.0,
+        "y2": 1.975
+      },
+      {
+        "x1": 2.0,
+        "y1": 2.0,
+        "x2": 2.0,
+        "y2": 12.0
+      },
+      {
+        "x1": 2.0,
+        "y1": 12.0,
+        "x2": 7.445,
+        "y2": 12.0
+      },
+      {
+        "x1": 8.555,
+        "y1": 12.0,
+        "x2": 14.0,
+        "y2": 12.0
+      },
+      {
+        "x1": 14.0,
+        "y1": 2.0,
+        "x2": 18.0,
+        "y2": 2.0
+      },
+      {
+        "x1": 18.0,
+        "y1": 2.0,
+        "x2": 18.0,
+        "y2": 7.0
+      },
+      {
+        "x1": 14.0,
+        "y1": 7.0,
+        "x2": 18.0,
+        "y2": 7.0
+      },
+      {
+        "x1": 14.0,
+        "y1": 2.0,
+        "x2": 14.0,
+        "y2": 3.21
+      },
+      {
+        "x1": 14.0,
+        "y1": 4.29,
+        "x2": 14.0,
+        "y2": 7.0
+      },
+      {
+        "x1": 14.0,
+        "y1": 12.0,
+        "x2": 14.0,
+        "y2": 7.0
+      }
+    ],
+    "spatial_obstacles": [
+      {
+        "x": 3.0999999999999996,
+        "y": 2.9250000000000003,
+        "w": 3.0,
+        "h": 1.0,
+        "id": "obj_0",
+        "blocks_los": true,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": false,
+          "climb_on": false,
+          "walk_around": true
+        }
+      },
+      {
+        "x": 7.2,
+        "y": 4.29,
+        "w": 1.6,
+        "h": 1.32,
+        "id": "obj_1",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": true,
+          "climb_on": true,
+          "walk_around": true
+        }
+      },
+      {
+        "x": 11.275,
+        "y": 7.1,
+        "w": 1.5,
+        "h": 1.5,
+        "id": "obj_2",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": true,
+          "climb_on": true,
+          "walk_around": true
+        }
+      },
+      {
+        "x": 6.75,
+        "y": 4.75,
+        "w": 0.5,
+        "h": 0.5,
+        "id": "obj_3",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": false,
+          "climb_on": true,
+          "walk_around": true
+        }
+      },
+      {
+        "x": 8.75,
+        "y": 4.75,
+        "w": 0.5,
+        "h": 0.5,
+        "id": "obj_4",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": false,
+          "climb_on": true,
+          "walk_around": true
+        }
+      },
+      {
+        "x": 2.75,
+        "y": 4.55,
+        "w": 1.5,
+        "h": 0.9,
+        "id": "obj_7",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": true,
+          "climb_on": true,
+          "walk_around": true
+        }
+      },
+      {
+        "x": 2.75,
+        "y": 6.55,
+        "w": 1.5,
+        "h": 0.9,
+        "id": "obj_8",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": true,
+          "climb_on": true,
+          "walk_around": true
+        }
+      },
+      {
+        "x": 2.75,
+        "y": 8.55,
+        "w": 1.5,
+        "h": 0.9,
+        "id": "obj_9",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": true,
+          "climb_on": true,
+          "walk_around": true
+        }
+      },
+      {
+        "x": 11.25,
+        "y": 4.55,
+        "w": 1.5,
+        "h": 0.9,
+        "id": "obj_10",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": true,
+          "climb_on": true,
+          "walk_around": true
+        }
+      },
+      {
+        "x": 7.25,
+        "y": 6.55,
+        "w": 1.5,
+        "h": 0.9,
+        "id": "obj_11",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": true,
+          "climb_on": true,
+          "walk_around": true
+        }
+      },
+      {
+        "x": 7.25,
+        "y": 8.55,
+        "w": 1.5,
+        "h": 0.9,
+        "id": "obj_12",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": true,
+          "climb_on": true,
+          "walk_around": true
+        }
+      },
+      {
+        "x": 7.75,
+        "y": 7.25,
+        "w": 0.5,
+        "h": 0.5,
+        "id": "obj_13",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": false,
+          "climb_on": true,
+          "walk_around": true
+        }
+      },
+      {
+        "x": 7.74,
+        "y": 6.235,
+        "w": 0.52,
+        "h": 0.53,
+        "id": "obj_14",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": false,
+          "climb_on": true,
+          "walk_around": true
+        }
+      },
+      {
+        "x": 8.75,
+        "y": 8.75,
+        "w": 0.5,
+        "h": 0.5,
+        "id": "obj_15",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": false,
+          "climb_on": true,
+          "walk_around": true
+        }
+      },
+      {
+        "x": 6.75,
+        "y": 8.75,
+        "w": 0.5,
+        "h": 0.5,
+        "id": "obj_16",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": false,
+          "climb_on": true,
+          "walk_around": true
+        }
+      },
+      {
+        "x": 11.75,
+        "y": 8.75,
+        "w": 0.5,
+        "h": 0.5,
+        "id": "obj_17",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": false,
+          "climb_on": true,
+          "walk_around": true
+        }
+      },
+      {
+        "x": 11.75,
+        "y": 6.75,
+        "w": 0.5,
+        "h": 0.5,
+        "id": "obj_18",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": false,
+          "climb_on": true,
+          "walk_around": true
+        }
+      },
+      {
+        "x": 11.75,
+        "y": 4.25,
+        "w": 0.5,
+        "h": 0.5,
+        "id": "obj_19",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": false,
+          "climb_on": true,
+          "walk_around": true
+        }
+      },
+      {
+        "x": 11.75,
+        "y": 5.25,
+        "w": 0.5,
+        "h": 0.5,
+        "id": "obj_20",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": false,
+          "climb_on": true,
+          "walk_around": true
+        }
+      },
+      {
+        "x": 3.25,
+        "y": 4.25,
+        "w": 0.5,
+        "h": 0.5,
+        "id": "obj_21",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": false,
+          "climb_on": true,
+          "walk_around": true
+        }
+      },
+      {
+        "x": 3.25,
+        "y": 5.25,
+        "w": 0.5,
+        "h": 0.5,
+        "id": "obj_22",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": false,
+          "climb_on": true,
+          "walk_around": true
+        }
+      },
+      {
+        "x": 4.25,
+        "y": 6.75,
+        "w": 0.5,
+        "h": 0.5,
+        "id": "obj_23",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": false,
+          "climb_on": true,
+          "walk_around": true
+        }
+      },
+      {
+        "x": 2.25,
+        "y": 6.75,
+        "w": 0.5,
+        "h": 0.5,
+        "id": "obj_24",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": false,
+          "climb_on": true,
+          "walk_around": true
+        }
+      },
+      {
+        "x": 3.25,
+        "y": 8.25,
+        "w": 0.5,
+        "h": 0.5,
+        "id": "obj_25",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": false,
+          "climb_on": true,
+          "walk_around": true
+        }
+      },
+      {
+        "x": 3.25,
+        "y": 9.25,
+        "w": 0.5,
+        "h": 0.5,
+        "id": "obj_26",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": false,
+          "climb_on": true,
+          "walk_around": true
+        }
+      },
+      {
+        "x": 13.891944444444446,
+        "y": 1.755,
+        "w": 4.23,
+        "h": 1.49,
+        "id": "obj_27",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": true,
+          "climb_on": true,
+          "walk_around": true
+        }
+      },
+      {
+        "x": 14.25,
+        "y": 5.25,
+        "w": 0.5,
+        "h": 0.5,
+        "id": "obj_29",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": false,
+          "climb_on": true,
+          "walk_around": true
+        }
+      },
+      {
+        "x": 7.8,
+        "y": 9.3,
+        "w": 0.4,
+        "h": 0.4,
+        "id": "obj_33",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": false,
+          "climb_on": true,
+          "walk_around": true
+        }
+      },
+      {
+        "x": 16.125,
+        "y": 5.375,
+        "w": 0.5,
+        "h": 0.5,
+        "id": "obj_35",
+        "blocks_los": false,
+        "passability": {
+          "walk": false,
+          "jump_over": true,
+          "crawl_under": false,
+          "climb_on": true,
+          "walk_around": true
+        }
+      }
+    ],
+    "raw_scene_events": [
+      {
+        "event_type": "verbal",
+        "actor_id": "player",
+        "target_id": "maid_lusya",
+        "location_id": "tavern_silver_wolf",
+        "tick": 0,
+        "intensity": 0.3,
+        "visibility_radius": 7.4,
+        "summary": "Люся?",
+        "damage": 0,
+        "damage_type": "",
+        "emotion_tag": "",
+        "sound_level": 0.7
+      },
+      {
+        "event_type": "verbal",
+        "actor_id": "player",
+        "target_id": "maid_lusya",
+        "location_id": "tavern_silver_wolf",
+        "tick": 0,
+        "intensity": 0.3,
+        "visibility_radius": 7.4,
+        "summary": "Девушка, не могли бы вы подойти ко мне? Я стою далеко от вас",
+        "damage": 0,
+        "damage_type": "",
+        "emotion_tag": "",
+        "sound_level": 0.7
+      },
+      {
+        "event_type": "verbal",
+        "actor_id": "player",
+        "target_id": "maid_lusya",
+        "location_id": "tavern_silver_wolf",
+        "tick": 0,
+        "intensity": 0.3,
+        "visibility_radius": 7.0,
+        "summary": "Подойдите",
+        "damage": 0,
+        "damage_type": "",
+        "emotion_tag": "",
+        "sound_level": 0.5
+      },
+      {
+        "event_type": "verbal",
+        "actor_id": "player",
+        "target_id": "maid_lusya",
+        "location_id": "tavern_silver_wolf",
+        "tick": 0,
+        "intensity": 0.3,
+        "visibility_radius": 7.4,
+        "summary": "Люся?",
+        "damage": 0,
+        "damage_type": "",
+        "emotion_tag": "",
+        "sound_level": 0.7
+      },
+      {
+        "event_type": "verbal",
+        "actor_id": "player",
+        "target_id": "maid_lusya",
+        "location_id": "tavern_silver_wolf",
+        "tick": 0,
+        "intensity": 0.3,
+        "visibility_radius": 7.4,
+        "summary": "Люся, запомни два яблока да три яблока будет пять апельсинов. Хорошо?",
+        "damage": 0,
+        "damage_type": "",
+        "emotion_tag": "",
+        "sound_level": 0.7
+      },
+      {
+        "event_type": "verbal",
+        "actor_id": "player",
+        "target_id": "maid_lusya",
+        "location_id": "tavern_silver_wolf",
+        "tick": 0,
+        "intensity": 0.3,
+        "visibility_radius": 7.4,
+        "summary": "Люся, два яблока да три яблока - сколько будет?",
+        "damage": 0,
+        "damage_type": "",
+        "emotion_tag": "",
+        "sound_level": 0.7
+      },
+      {
+        "event_type": "verbal",
+        "actor_id": "player",
+        "target_id": "maid_lusya",
+        "location_id": "tavern_silver_wolf",
+        "tick": 0,
+        "intensity": 0.3,
+        "visibility_radius": 7.4,
+        "summary": "Ты забыла что я говорил в прошлый раз?",
+        "damage": 0,
+        "damage_type": "",
+        "emotion_tag": "",
+        "sound_level": 0.7
+      },
+      {
+        "event_type": "verbal",
+        "actor_id": "player",
+        "target_id": "maid_lusya",
+        "location_id": "tavern_silver_wolf",
+        "tick": 0,
+        "intensity": 0.3,
+        "visibility_radius": 7.4,
+        "summary": "Что запомнишь?",
+        "damage": 0,
+        "damage_type": "",
+        "emotion_tag": "",
+        "sound_level": 0.7
+      },
+      {
+        "event_type": "verbal",
+        "actor_id": "player",
+        "target_id": "maid_lusya",
+        "location_id": "tavern_silver_wolf",
+        "tick": 0,
+        "intensity": 0.3,
+        "visibility_radius": 7.4,
+        "summary": "Девушка, не могли бы вы подойти ко мне? Я стою далеко от вас",
+        "damage": 0,
+        "damage_type": "",
+        "emotion_tag": "",
+        "sound_level": 0.7
+      },
+      {
+        "event_type": "verbal",
+        "actor_id": "player",
+        "target_id": "maid_lusya",
+        "location_id": "tavern_silver_wolf",
+        "tick": 0,
+        "intensity": 0.3,
+        "visibility_radius": 7.0,
+        "summary": "Подойдите... Люся",
+        "damage": 0,
+        "damage_type": "",
+        "emotion_tag": "",
+        "sound_level": 0.5
+      },
+      {
+        "event_type": "verbal",
+        "actor_id": "player",
+        "target_id": "maid_lusya",
+        "location_id": "tavern_silver_wolf",
+        "tick": 0,
+        "intensity": 0.3,
+        "visibility_radius": 7.0,
+        "summary": "длвыфтплоывтполжтфыжлптжлцодфутпджлуфктплждтвкфажлдпрджлватфрплджкфуртыпдлуфкощлпотуфщклрпщлуцфоапзщ",
+        "damage": 0,
+        "damage_type": "",
+        "emotion_tag": "",
+        "sound_level": 0.5
+      },
+      {
+        "event_type": "verbal",
+        "actor_id": "player",
+        "target_id": "maid_lusya",
+        "location_id": "tavern_silver_wolf",
+        "tick": 0,
+        "intensity": 0.3,
+        "visibility_radius": 7.4,
+        "summary": "Люся, Привет!",
+        "damage": 0,
+        "damage_type": "",
+        "emotion_tag": "",
+        "sound_level": 0.7
+      },
+      {
+        "event_type": "verbal",
+        "actor_id": "player",
+        "target_id": "maid_lusya",
+        "location_id": "tavern_silver_wolf",
+        "tick": 0,
+        "intensity": 0.3,
+        "visibility_radius": 7.0,
+        "summary": "Девушка, подойдите ко мне",
+        "damage": 0,
+        "damage_type": "",
+        "emotion_tag": "",
+        "sound_level": 0.5
+      },
+      {
+        "event_type": "verbal",
+        "actor_id": "player",
+        "target_id": "maid_lusya",
+        "location_id": "tavern_silver_wolf",
+        "tick": 0,
+        "intensity": 0.3,
+        "visibility_radius": 7.4,
+        "summary": "Люся, не могла бы ты подойти ко мне?",
+        "damage": 0,
+        "damage_type": "",
+        "emotion_tag": "",
+        "sound_level": 0.7
+      },
+      {
+        "event_type": "verbal",
+        "actor_id": "player",
+        "target_id": "maid_lusya",
+        "location_id": "tavern_silver_wolf",
+        "tick": 0,
+        "intensity": 0.3,
+        "visibility_radius": 7.0,
+        "summary": "Девушка, подойдите ко мне",
+        "damage": 0,
+        "damage_type": "",
+        "emotion_tag": "",
+        "sound_level": 0.5
+      },
+      {
+        "event_type": "verbal",
+        "actor_id": "player",
+        "target_id": "maid_lusya",
+        "location_id": "tavern_silver_wolf",
+        "tick": 0,
+        "intensity": 0.3,
+        "visibility_radius": 7.4,
+        "summary": "Люся, вы могли бы подойти ко мне?",
+        "damage": 0,
+        "damage_type": "",
+        "emotion_tag": "",
+        "sound_level": 0.7
+      },
+      {
+        "event_type": "verbal",
+        "actor_id": "player",
+        "target_id": "maid_lusya",
+        "location_id": "tavern_silver_wolf",
+        "tick": 0,
+        "intensity": 0.3,
+        "visibility_radius": 7.0,
+        "summary": "Девушка, подойдите ко мне",
+        "damage": 0,
+        "damage_type": "",
+        "emotion_tag": "",
+        "sound_level": 0.5
+      },
+      {
+        "event_type": "verbal",
+        "actor_id": "player",
+        "target_id": "maid_lusya",
+        "location_id": "tavern_silver_wolf",
+        "tick": 0,
+        "intensity": 0.3,
+        "visibility_radius": 7.0,
+        "summary": "Подойдите, девушка",
+        "damage": 0,
+        "damage_type": "",
+        "emotion_tag": "",
+        "sound_level": 0.5
+      },
+      {
+        "event_type": "verbal",
+        "actor_id": "player",
+        "target_id": "maid_lusya",
+        "location_id": "tavern_silver_wolf",
+        "tick": 0,
+        "intensity": 0.3,
+        "visibility_radius": 7.0,
+        "summary": "Девушка, подойдите ко мне",
+        "damage": 0,
+        "damage_type": "",
+        "emotion_tag": "",
+        "sound_level": 0.5
+      },
+      {
+        "event_type": "verbal",
+        "actor_id": "player",
+        "target_id": "maid_lusya",
+        "location_id": "tavern_silver_wolf",
+        "tick": 0,
+        "intensity": 0.3,
+        "visibility_radius": 7.0,
+        "summary": "Я хотел бы заказать пиво, а вы девушка должны принять мой заказ",
+        "damage": 0,
+        "damage_type": "",
+        "emotion_tag": "",
+        "sound_level": 0.5
+      },
+      {
+        "event_type": "verbal",
+        "actor_id": "player",
+        "target_id": "maid_lusya",
+        "location_id": "tavern_silver_wolf",
+        "tick": 0,
+        "intensity": 0.3,
+        "visibility_radius": 7.0,
+        "summary": "Девушка, сначала подойдите",
+        "damage": 0,
+        "damage_type": "",
+        "emotion_tag": "",
+        "sound_level": 0.5
+      },
+      {
+        "event_type": "verbal",
+        "actor_id": "player",
+        "target_id": "maid_lusya",
+        "location_id": "tavern_silver_wolf",
+        "tick": 0,
+        "intensity": 0.3,
+        "visibility_radius": 7.4,
+        "summary": "Девушка, не могли бы вы подойти ко мне?",
+        "damage": 0,
+        "damage_type": "",
+        "emotion_tag": "",
+        "sound_level": 0.7
+      },
+      {
+        "event_type": "verbal",
+        "actor_id": "player",
+        "target_id": "maid_lusya",
+        "location_id": "tavern_silver_wolf",
+        "tick": 0,
+        "intensity": 0.3,
+        "visibility_radius": 7.0,
+        "summary": "Так идите же сюда, девушка. Я здесь в центре таверны",
+        "damage": 0,
+        "damage_type": "",
+        "emotion_tag": "",
+        "sound_level": 0.5
+      },
+      {
+        "event_type": "verbal",
+        "actor_id": "player",
+        "target_id": "maid_lusya",
+        "location_id": "tavern_silver_wolf",
+        "tick": 0,
+        "intensity": 0.3,
+        "visibility_radius": 7.4,
+        "summary": "Девушка, Люся! Девушка, не могли бы вы подойти сюда?",
+        "damage": 0,
+        "damage_type": "",
+        "emotion_tag": "",
+        "sound_level": 0.7
+      },
+      {
+        "event_type": "verbal",
+        "actor_id": "player",
+        "target_id": "maid_lusya",
+        "location_id": "tavern_silver_wolf",
+        "tick": 0,
+        "intensity": 0.3,
+        "visibility_radius": 7.4,
+        "summary": "Девушка, Люся! Девушка, не могли бы вы подойти сюда?",
+        "damage": 0,
+        "damage_type": "",
+        "emotion_tag": "",
+        "sound_level": 0.7
+      },
+      {
+        "event_type": "verbal",
+        "actor_id": "player",
+        "target_id": "maid_lusya",
+        "location_id": "tavern_silver_wolf",
+        "tick": 0,
+        "intensity": 0.3,
+        "visibility_radius": 7.4,
+        "summary": "Девушка, Люся. Девушка, не могли бы вы подойти сюда?",
+        "damage": 0,
+        "damage_type": "",
+        "emotion_tag": "",
+        "sound_level": 0.7
+      },
+      {
+        "event_type": "verbal",
+        "actor_id": "player",
+        "target_id": "maid_lusya",
+        "location_id": "tavern_silver_wolf",
+        "tick": 0,
+        "intensity": 0.3,
+        "visibility_radius": 7.4,
+        "summary": "Девушка, Люся. Девушка, не могли бы вы подойти сюда?",
+        "damage": 0,
+        "damage_type": "",
+        "emotion_tag": "",
+        "sound_level": 0.7
+      },
+      {
+        "event_type": "verbal",
+        "actor_id": "player",
+        "target_id": "maid_lusya",
+        "location_id": "tavern_silver_wolf",
+        "tick": 0,
+        "intensity": 0.3,
+        "visibility_radius": 7.4,
+        "summary": "Девушка, Люся! Девушка, не могли бы вы подойти сюда?",
+        "damage": 0,
+        "damage_type": "",
+        "emotion_tag": "",
+        "sound_level": 0.7
+      },
+      {
+        "event_type": "verbal",
+        "actor_id": "player",
+        "target_id": "maid_lusya",
+        "location_id": "tavern_silver_wolf",
+        "tick": 0,
+        "intensity": 0.3,
+        "visibility_radius": 7.4,
+        "summary": "Девушка, Люся! Девушка, не могли бы вы подойти сюда?",
+        "damage": 0,
+        "damage_type": "",
+        "emotion_tag": "",
+        "sound_level": 0.7
+      },
+      {
+        "event_type": "verbal",
+        "actor_id": "player",
+        "target_id": "maid_lusya",
+        "location_id": "tavern_silver_wolf",
+        "tick": 0,
+        "intensity": 0.3,
+        "visibility_radius": 7.4,
+        "summary": "Девушка, Люся. Девушка, не могли бы вы подойти сюда?",
+        "damage": 0,
+        "damage_type": "",
+        "emotion_tag": "",
+        "sound_level": 0.7
+      }
+    ],
+    "line_of_sight": {
+      "maid_lusya": true,
+      "guard_borko": true,
+      "blacksmith_orm": true,
+      "tavern_keeper_tornin": true,
+      "thief_shadow": true,
+      "merchant_goran": true
+    },
+    "_salience_event_type": "player_interacts",
+    "_salience_max_stress": 0.21999999999999997,
+    "_salience_target_object": null,
+    "_version": 73
+  }
+}

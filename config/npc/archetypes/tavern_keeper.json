@@ -1,0 +1,47 @@
+{
+  "_version": "1.0",
+  "_type": "archetype",
+  "_inherits": "_base_humanoid",
+  "visible_markers": ["apron", "keys"],
+  "carried_objects": ["apron", "keys", "coin_pouch"],
+  "routine": {
+    "schedule": {
+      "06:00-22:00": "working",
+      "22:00-06:00": "sleeping"
+    }
+  },
+  "activity_map": {
+    "working": {
+      "location": "tavern_silver_wolf",
+      "position": "behind_bar",
+      "display": "cleaning_tables"
+    },
+    "sleeping": {
+      "location": "inn_rooms",
+      "position": "bed",
+      "display": "sleeping"
+    },
+    "eating": {
+      "location": "tavern_silver_wolf",
+      "position": "main_hall",
+      "display": "eating"
+    },
+    "resting": {
+      "location": "inn_rooms",
+      "position": "bed",
+      "display": "resting"
+    }
+  },
+  "body_profile": {
+    "max_hp": 110,
+    "abilities": {
+      "strength": 12,
+      "dexterity": 10,
+      "constitution": 12,
+      "intelligence": 11,
+      "wisdom": 11,
+      "charisma": 12
+    },
+    "base_ac": 12
+  }
+}

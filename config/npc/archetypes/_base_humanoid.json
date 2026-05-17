@@ -1,0 +1,28 @@
+{
+    "_version":  "1.0",
+    "_type":  "base",
+    "tier":  "major",
+    "drives":  {
+                   "control":  0.3,
+                   "significance":  0.25,
+                   "fear":  0.2,
+                   "desire":  0.25
+               },
+    "psyche":  {
+                   "willpower":  50,
+                   "breakpoint":  65,
+                   "loyalty_true":  30
+               },
+    "body_profile":  {
+                         "max_hp":  100,
+                         "abilities":  {
+                                           "strength":  10,
+                                           "dexterity":  10,
+                                           "constitution":  10,
+                                           "intelligence":  10,
+                                           "wisdom":  10,
+                                           "charisma":  10
+                                       },
+                         "base_ac":  10
+                     }
+}

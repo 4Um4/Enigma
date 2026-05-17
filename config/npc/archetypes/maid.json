@@ -1,0 +1,51 @@
+{
+  "_version": "1.0",
+  "_type": "archetype",
+  "_inherits": "_base_humanoid",
+  "visible_markers": ["maid_dress", "tray"],
+  "carried_objects": ["maid_dress", "tray"],
+  "routine": {
+    "schedule": {
+      "08:00-23:00": "serving_tables",
+      "23:00-08:00": "sleeping"
+    }
+  },
+  "activity_map": {
+    "serving_tables": {
+      "location": "tavern_silver_wolf",
+      "position": "main_hall",
+      "display": "serving_tables"
+    },
+    "working": {
+      "location": "tavern_silver_wolf",
+      "position": "main_hall",
+      "display": "serving_tables"
+    },
+    "sleeping": {
+      "location": "inn_rooms",
+      "position": "bed",
+      "display": "sleeping"
+    },
+    "eating": {
+      "location": "tavern_silver_wolf",
+      "position": "main_hall",
+      "display": "eating"
+    },
+    "resting": {
+      "location": "inn_rooms",
+      "position": "bed",
+      "display": "resting"
+    }
+  },
+  "body_profile": {
+    "max_hp": 80,
+    "abilities": {
+      "strength": 8,
+      "dexterity": 11,
+      "constitution": 10,
+      "intelligence": 11,
+      "wisdom": 12,
+      "charisma": 11
+    }
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "_version": "1.0",
+  "_type": "archetype",
+  "_inherits": "_base_humanoid",
+  "visible_markers": ["merchant_robes", "coin_purse", "ledger"],
+  "carried_objects": [],
+  "routine": {
+    "schedule": {
+      "09:00-18:00": "market_trading",
+      "18:00-21:00": "counting_money",
+      "21:00-09:00": "sleeping"
+    }
+  },
+  "activity_map": {
+    "market_trading": {
+      "location": "market_square",
+      "position": "main_hall",
+      "display": "haggling"
+    },
+    "counting_money": {
+      "location": "market_square",
+      "position": "main_hall",
+      "display": "counting_money"
+    },
+    "working": {
+      "location": "market_square",
+      "position": "main_hall",
+      "display": "haggling"
+    },
+    "on_duty": {
+      "location": "market_square",
+      "position": "main_hall",
+      "display": "haggling"
+    },
+    "off_duty": {
+      "location": "tavern_silver_wolf",
+      "position": "main_hall",
+      "display": "drinking"
+    },
+    "sleeping": {
+      "location": "inn_rooms",
+      "position": "main_hall",
+      "display": "sleeping"
+    }
+  },
+  "body_profile": {
+    "max_hp": 90,
+    "abilities": {
+      "strength": 10,
+      "dexterity": 12,
+      "constitution": 11,
+      "intelligence": 14,
+      "wisdom": 13,
+      "charisma": 15
+    },
+    "base_ac": 11
+  }
+}

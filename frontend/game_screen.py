@@ -1,0 +1,1049 @@
+﻿"""
+path: /frontend/game_screen.py
+
+Экран игры — связывает player_cognition pipeline с scene_renderer.
+Загружает состояние кампании, прогоняет pipeline каждый кадр, рендерит результат.
+
+Назначение: Экран игры — загружает кампанию, прогоняет pipeline, рендерит карту, возвращает управление в меню по ESC
+Зависимости: pygame, scene_renderer, player_cognition.pipeline, movement_system, intent_parser, json, pathlib
+Основные сущности: GameScreen, _MoveState
+"""
+
+import contextlib
+import json
+import math
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Optional
+
+import pygame
+
+from scene_renderer import SceneRenderer
+from text_input import TextInput
+from game_types import (
+    PerceptionConfig,
+    PlayerFocus,
+    PlayerMemory,
+    EncounterHistory,
+    PerceivedScene,
+    PerceivedEntity,
+    PerceivedEnvironment,
+)
+# Спринт 31: Локальная физика и парсер интентов удалены. Фронтенд — честный интерполятор.
+
+
+def _build_perceived_scene(scene_state: dict, config: PerceptionConfig) -> PerceivedScene:
+    """Локальная сборка PerceivedScene из scene_state (Закон 1.1: Фронтенд не лезет в бэкенд)."""
+    entities: List[PerceivedEntity] = []
+    
+    # Конвертируем NPC из scene_state
+    for npc_id, npc_data in scene_state.get("npc_positions", {}).items():
+        # ADR-019: Каузальный Lerp. Интерполируем позицию, если NPC в транзите.
+        pos = _resolve_visual_xy(npc_id, scene_state)
+        x, y = float(pos.get("x", 0)), float(pos.get("y", 0))
+        # УБРАНО: render spam (диагностика ADR-0013 завершена, рендерер невиновен)
+        # Рендер spam полностью удалён. Трассировка только при изменении позиции (TASK 4).
+            
+        # Спринт 30: извлекаем кинематику для непрерывной интерполяции в рендерере
+        traversals = scene_state.get("active_traversals", [])
+        trav = None
+        if isinstance(traversals, list):
+            trav = next((t for t in traversals if t.get("npc_id") == npc_id), None)
+        elif isinstance(traversals, dict):
+            trav = traversals.get(npc_id)
+
+        entities.append(PerceivedEntity(
+            entity_id=npc_id,
+            entity_type="npc",
+            x=x,
+            y=y,
+            visible=True,
+            los=True,
+            display_name=npc_data.get("display_name") or npc_data.get("name") or npc_id.split("_")[-1].capitalize(),
+            in_attention=(config.player_focus.focus_entity_id == npc_id),
+            # Спринт 30: Каузальная презентация. Передаем кинематику в рендерер для непрерывного lerp
+            traversal_status=trav.get("status", "IDLE") if trav else "IDLE",
+            path_waypoints=trav.get("path_waypoints", []) if trav else [],
+            current_waypoint_idx=trav.get("current_waypoint_idx", 0) if trav else 0,
+            traversal_progress=float(trav.get("progress", 0.0)) if trav else 0.0,
+            traversal_speed=float(trav.get("speed", 1.5)) if trav else 1.5,
+            # Спринт 30: Модель C — когнитивный паралич рвет моторику
+            initiative_suppression=float(npc_data.get("initiative_suppression", 0.0))
+        ))
+        
+    return PerceivedScene(
+        location_id=scene_state.get("location_id", "unknown"),
+        entities=entities,
+        environment=PerceivedEnvironment(),
+        attention_focus_id=config.player_focus.focus_entity_id
+    )
+# A2: npc_movement удалён — NPC двигает TransitTracker (backend, 1 шаг/тик)
+# Плавная интерполяция между DTO-снимками — отдельная задача
+from api_client import create_game_gateway, ActionQueue
+# Тайминги опроса backend из constants.py (frontend-side)
+from constants import (
+    IDLE_TICK_NEAR_MS, IDLE_TICK_MID_MS, IDLE_TICK_FAR_MS,
+    IDLE_TICK_NEAR_RADIUS, IDLE_TICK_MID_RADIUS,
+)
+
+
+_SAVES_DIR = Path(__file__).resolve().parents[1] / "saves"
+_CAMPAIGNS_DIR = Path(__file__).parent / "map_editor" / "campaigns"
+
+_MOVE_INTERVAL = 0.08  # секунд между шагами
+
+
+@dataclass
+class _MoveState:
+    """Разделение природ: Навигация, Кинетика, Эмбодимент (Устав Мастера Тая)"""
+    # --- Навигация (Куда идём) ---
+    target_npc_id: Optional[str] = None
+    path: Optional[list] = None
+    path_index: int = 0
+    direction: Optional[str] = None  # Легаси
+
+    # --- Кинетика (Как движемся) ---
+    cooldown: float = 0.0
+    walk_distance_accumulated: float = 0.0  # Накопленное расстояние (м) для расчёта времени
+
+    # --- Эмбодимент / Внимание (Куда смотрим) ---
+    facing_angle: float = -math.pi / 2  # Куда смотрит агент (рад). Изначально — вверх
+    facing_mode: str = "VELOCITY"  # "VELOCITY" (по движению), "LOOK_TARGET" (на цель), "FREE" (зафиксирован)
+
+
+def _load_campaign_state(campaign_folder: str) -> Optional[dict]:
+    """Загружает campaign_state.json: приоритет saves/, fallback campaigns/"""
+    state_file = _SAVES_DIR / campaign_folder / "campaign_state.json"
+    if not state_file.exists():
+        state_file = _CAMPAIGNS_DIR / campaign_folder / "campaign_state.json"
+    if not state_file.exists():
+        return None
+    with open(state_file, "r", encoding="utf-8") as f:
+        data = json.loads(f.read().encode().decode("utf-8-sig"))
+    scene = data.get("scene_state")
+    if scene is None:
+        return None
+    if "npc_positions" in data and "npc_positions" not in scene:
+        scene["npc_positions"] = data["npc_positions"]
+    return scene
+
+
+def _load_location_meta(campaign_folder: str, location_id: str) -> dict:
+    """Загружает метаданные локации (размер комнаты)"""
+    locations_dir = _CAMPAIGNS_DIR / campaign_folder / "locations"
+    if not locations_dir.exists():
+        return {"size": {"w": 20, "h": 15}}
+    for json_file in locations_dir.glob("*.json"):
+        try:
+            with open(json_file, "r", encoding="utf-8") as f:
+                loc_data = json.load(f)
+            if loc_data.get("filename", "").replace(".json", "") in location_id:
+                return loc_data
+            for room in loc_data.get("rooms", []):
+                if room.get("id") == location_id:
+                    return loc_data
+        except Exception:
+            continue
+    return {"size": {"w": 20, "h": 15}}
+
+
+def _player_xy(scene_state: dict) -> tuple[float, float]:
+    """Извлекает координаты игрока"""
+    ps = scene_state.get("player_spatial", {})
+    lp = ps.get("local_position") or {}
+    return float(lp.get("x", 5.0)), float(lp.get("y", 5.0))
+
+
+def _set_player_xy(scene_state: dict, x: float, y: float) -> None:
+    """Обновляет координаты игрока в scene_state"""
+    scene_state["player_spatial"]["local_position"]["x"] = x
+    scene_state["player_spatial"]["local_position"]["y"] = y
+
+
+def _nearest_npc_distance(scene_state: dict) -> float:
+    """Минимальное расстояние от игрока до ближайшего NPC с координатами."""
+    px, py = _player_xy(scene_state)
+    min_dist = 999.0
+    for npc_data in scene_state.get("npc_positions", {}).values():
+        lp = npc_data.get("local_position") or {}
+        if not lp:
+            continue
+        nx, ny = float(lp.get("x", 0)), float(lp.get("y", 0))
+        dist = math.hypot(nx - px, ny - py)
+        if dist < min_dist:
+            min_dist = dist
+    return min_dist
+
+
+def _idle_tick_interval_ms(nearest_dist: float) -> int:
+    """Фаза 2.1 — интервал тика зависит от расстояния до ближайшего NPC."""
+    if nearest_dist <= IDLE_TICK_NEAR_RADIUS:
+        return IDLE_TICK_NEAR_MS
+    elif nearest_dist <= IDLE_TICK_MID_RADIUS:
+        return IDLE_TICK_MID_MS
+    else:
+        return IDLE_TICK_FAR_MS
+
+
+def _resolve_visual_xy(npc_id: str, scene_state: dict) -> dict:
+    """ADR-019: Каузальный Lerp. Вычисляет визуальную позицию NPC с учетом транзитов.
+    Если NPC в движении, интерполирует от from_xy к to_xy на основе game_time_seconds.
+    Если транзита нет — возвращает статичную local_position (Каузальная Истина).
+    """
+    traversals = scene_state.get("active_traversals", [])
+    trav = None
+
+    # ADR-019: active_traversals приходит как список словарей
+    if isinstance(traversals, list):
+        for t in traversals:
+            if t.get("npc_id") == npc_id:
+                trav = t
+                break
+    elif isinstance(traversals, dict):
+        trav = traversals.get(npc_id) # Fallback для старого формата
+
+    # Спринт 30: Каузальная Компрессия Времени. Бэкенд отдает progress и waypoints, а не duration.
+    if trav and trav.get("status") in ("PENDING", "MOVING"):
+        wp = trav.get("path_waypoints", [])
+        idx = trav.get("current_waypoint_idx", 0)
+        progress = float(trav.get("progress", 0.0))
+
+        # Если есть сегмент пути, интерполируем позицию на срезе тика
+        if wp:
+            return _extracted_from__resolve_visual_xy_(idx, wp, progress)
+    # Fallback: Транзит завершен или отсутствует. Рисуем по Каузальной Истине
+    npc_data = scene_state.get("npc_positions", {}).get(npc_id, {})
+    return npc_data.get("local_position", {"x": 0, "y": 0})
+
+
+# TODO Rename this here and in `_resolve_visual_xy`
+def _extracted_from__resolve_visual_xy_(idx, wp, progress):
+    if idx >= len(wp) - 1:
+        return {"x": float(wp[-1][0]), "y": float(wp[-1][1])}      
+
+
+    from_xy = wp[idx]
+    to_xy = wp[idx + 1]
+    x = float(from_xy[0]) + (float(to_xy[0]) - float(from_xy[0])) * progress
+    y = float(from_xy[1]) + (float(to_xy[1]) - float(from_xy[1])) * progress
+    return {"x": x, "y": y}
+
+
+def _check_transition_trigger(scene_state: dict, px: float, py: float, system_log: list) -> None:
+    """Проверяет, наступил ли игрок на триггер перехода (door_transition)."""
+    for obj_id, obj_data in scene_state.get("objects", {}).items():
+        if obj_data.get("type") != "door_transition":
+            continue
+        pos = obj_data.get("position", {})
+        size = obj_data.get("size", {})
+        ox, oy = pos.get("x", 0), pos.get("y", 0)
+        ow, oh = size.get("w", 1), size.get("h", 1)
+
+        # Проверка попадания в прямоугольник объекта
+        if (ox - ow / 2 <= px <= ox + ow / 2) and (oy - oh / 2 <= py <= oy + oh / 2):
+            props = obj_data.get("properties", {})
+            target_file = props.get("target_file", "")
+            target_portal = props.get("target_portal", "")
+
+            if target_file:
+                # TODO: будет удалено после: реализации полноценной смены локации через scene_state_manager
+                system_log.append(f"> Переход в {target_file} (портал: {target_portal})...")
+            elif not system_log or "Привязка" not in system_log[-1]:
+                system_log.append("> Дверь никуда не ведёт (не привязана в редакторе)")
+
+
+class GameScreen:
+    """Экран игры — владеет своим циклом, возвращает управление по ESC"""
+
+    def __init__(self, screen: pygame.Surface, clock: pygame.time.Clock):
+        self.screen = screen
+        self.clock = clock
+        self.renderer = SceneRenderer(screen)
+
+    def run(self, campaign_folder: str, player_name: str = "") -> None:
+        """Запускает игровой экран для выбранной кампании"""
+        message_log: list = []  # Cinematic Layer: Только NarrativeBeat
+        system_log: list[str] = []  # Log Layer: Системные сообщения, движение, ошибки
+
+        # Неблокирующая очередь к backend — LLM не замораживает Pygame
+        _gateway, action_queue = create_game_gateway()
+        action_queue.start()
+
+        # Активируем сессию игрока на backend — это ALSO инициализирует сцену из editor JSON
+        if player_name:
+            try:
+                _gateway.create_player_session(campaign_folder, player_name)
+            except Exception as e:
+                system_log.append(f"[!] Backend session: {e}")
+
+        # Загружаем состояние ПОСЛЕ сессии — теперь scene_state уже скомпилирован
+        scene_state = _load_campaign_state(campaign_folder)
+        print(f"[GAME_SCREEN] scene_state loaded: {scene_state is not None}, loc={scene_state.get('location_id') if scene_state else 'N/A'}")
+        if scene_state is None:
+            return
+
+        # Игровое время — total_seconds от начала эпохи
+        # При старте парсим из scene_state, дальше обновляем из ответов backend и движения
+        from constants import TIME_DELTA_WALK_INDOOR, parse_hhmm, format_game_time, format_world_date
+        # Абсолютное время из бэкенда (если есть), иначе legacy time_of_day
+        _gts = scene_state.get("game_time_seconds")
+        if _gts is not None and _gts > 0:
+            self.game_time_seconds: int = _gts
+        else:
+            _env_time_str = scene_state.get("environment", {}).get("time_of_day", "07:00")
+            self.game_time_seconds: int = parse_hhmm(_env_time_str)
+
+
+        location_id = scene_state.get("location_id", "unknown")
+        loc_meta = _load_location_meta(campaign_folder, location_id)
+        scene_w = loc_meta.get("size", {}).get("w", 20)
+        scene_h = loc_meta.get("size", {}).get("h", 15)
+        walls = scene_state.get("spatial_walls", [])
+        obstacles = scene_state.get("spatial_obstacles", [])
+
+        # Состояние восприятия
+        memory = PlayerMemory()
+        encounters = EncounterHistory()
+        focus = PlayerFocus()
+
+        # Состояние перемещения
+        move = _MoveState()
+
+        # Текстовый ввод — виджет с кириллицей и историей
+        sw, sh = self.screen.get_size()
+        _WASD_KEYS = {pygame.K_w, pygame.K_a, pygame.K_s, pygame.K_d}
+        text_input = TextInput(
+            rect=pygame.Rect(4, sh - 36, sw - 8, 32),
+            font=self.renderer.font_small,
+            pass_through_keys=_WASD_KEYS,
+        )
+        text_input.focused = False  # По умолчанию фокус на игре, а не на чате
+        _last_player_input: str = "" # Надежная память последнего ввода для фильтра эха
+
+        # Инициализация Сценического Рендерера (Устав §10)
+        from narrative_renderer import NarrativeRenderer
+        narrative_renderer = NarrativeRenderer(
+            font_normal=self.renderer.font_small,
+            font_bold=self.renderer.font_small # Используем font_small как жирный
+        )
+
+        # WASD → направляющий вектор
+        _WASD_MAP = {
+            pygame.K_w: (0.0, -1.0),
+            pygame.K_s: (0.0, 1.0),
+            pygame.K_a: (-1.0, 0.0),
+            pygame.K_d: (1.0, 0.0),
+        }
+        held_keys: set[int] = set()
+
+        # Idle tick: тикаем мир пока игрок не делает действие
+        # Фаза 2.1 — интервал зависит от расстояния до NPC (см. _idle_tick_interval_ms)
+        _last_idle_tick = pygame.time.get_ticks()
+        _idle_tick_result: list = []   # потокобезопасный буфер результата
+        _idle_tick_running = [False]   # флаг активного запроса
+        _last_telegraph_ms = 0         # cooldown между телеграфами
+        _TELEGRAPH_COOLDOWN_MS = 30_000  # 30 сек между телеграфами
+        _time_scale = 1                # Множитель скорости симуляции (1, 4, 10, 50)
+        # Маппинг npc_id → имя для телеграфа
+        _npc_name_map: dict[str, str] = {}
+        with contextlib.suppress(Exception):
+            import json
+            _npc_dir = Path("config/npc/individuals")
+            if _npc_dir.exists():
+                for _f in _npc_dir.glob("*.json"):
+                    _data = json.loads(_f.read_text(encoding="utf-8"))
+                    _npc_name_map[_data.get("id", "")] = _data.get("name", "")
+        import threading
+
+        def _do_idle_tick():
+            try:
+                result = _gateway.idle_tick(campaign_folder)
+                _idle_tick_result.clear()
+                _idle_tick_result.append(result)
+            except Exception as e:
+                import traceback
+                print(f"[IDLE_TICK] ERROR: {e}\n{traceback.format_exc()}")
+            _idle_tick_running[0] = False
+
+        print(f"[GAME_SCREEN] entering main loop, walls={len(walls)}, obstacles={len(obstacles)}")
+        running = True
+        _frame = 0
+        while running:
+            _frame += 1
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    action_queue.stop()
+                    return
+                elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        action_queue.stop()
+                        return
+                    elif event.key == pygame.K_TAB:
+                        # Переключение фокуса: игра <-> консоль общения
+                        text_input.focused = not text_input.focused
+                        if text_input.focused:
+                            # Открыли консоль — ждём ввода игрока
+                            print("[CONSOLE] opened — waiting for player input")
+                        else:
+                            # Закрыли консоль — убираем пузыри с экрана, чтобы не загораживали игру
+                            message_log.clear()
+                    # Time Controls: ускорение симуляции (Приоритет 1)
+                    elif event.key == pygame.K_1 and not text_input.focused:
+                        _time_scale = 1
+                    elif event.key == pygame.K_2 and not text_input.focused:
+                        _time_scale = 4
+                    elif event.key == pygame.K_3 and not text_input.focused:
+                        _time_scale = 10
+                    elif event.key == pygame.K_4 and not text_input.focused:
+                        _time_scale = 50
+                    # TextInput обрабатывает всё кроме WASD (pass_through)
+                    handled = text_input.handle_event(event)
+                    # RETURN обрабатывается отдельно — TextInput намеренно возвращает False
+                    if event.key == pygame.K_RETURN and not text_input.empty:
+                        # Игрок успел напечатать — отменяем telegraph
+                        action_queue.cancel_telegraph()
+                        print("[TELEGRAPH] cancelled — player acted first")
+
+                        # Создаем сценическое событие для пузыря игрока (ТЗ 3 + Мастер тай)
+                        from narrative_beat import NarrativeBeat, DeliveryType, RecognitionLevel, BeatLifetime
+
+                        # Сохраняем текст для фильтрации эха от LLM
+                        _last_player_input = text_input.text.strip()
+
+                        player_beat = NarrativeBeat(
+                            speaker=player_name,
+                            text=text_input.text.strip(),
+                            is_player=True,
+                            delivery=DeliveryType.NORMAL,
+                            recognition=RecognitionLevel.KNOWN_NAME,
+                            is_active=True,
+                            creation_tick=pygame.time.get_ticks()
+                        )
+                        message_log.append(player_beat)
+
+                        self._handle_text_input(
+                            text_input.text.strip(), scene_state, focus,
+                            walls, obstacles, move, message_log,
+                            scene_w, scene_h,
+                            action_queue, campaign_folder, player_name,
+                        )
+                        text_input.push_history(text_input.text.strip())
+                        text_input.clear() # Очищаем пузырь ввода после отправки
+                    elif event.key in _WASD_MAP:
+                        # WASD двигает персонажа только если чат не в фокусе
+                        if not text_input.focused:
+                            held_keys.add(event.key)
+                            move.target_npc_id = None
+                            move.direction = None
+                elif event.type == pygame.KEYUP:
+                    # Обязательно передаем отпускание клавиш в TextInput,
+                    # иначе инерция (зажатие стрелок/backspace) зависает навсегда
+                    text_input.handle_event(event)
+                    # Сброс флага зажатия WASD для движения персонажа
+                    held_keys.discard(event.key)
+                elif event.type == pygame.TEXTINPUT:
+                    # WASD при зажатии генерирует TEXTINPUT с буквой — фильтруем
+                    _WASD_KEY_TEXT = {pygame.K_w: 'w', pygame.K_a: 'a', pygame.K_s: 's', pygame.K_d: 'd'}
+                    _skip = False
+                    if held_keys and len(event.text) == 1:
+                        for k in held_keys:
+                            if _WASD_KEY_TEXT.get(k) == event.text.lower():
+                                _skip = True
+                                break
+                    if not _skip:
+                        text_input.handle_event(event)
+                elif event.type == pygame.TEXTEDITING:
+                    text_input.handle_event(event)
+                elif event.type == pygame.MOUSEBUTTONDOWN and False:  # Отключено перемещение кликом мыши
+                    clicked_npc = self._handle_click(
+                        event.pos, scene_state, focus, walls,
+                    )
+                    if clicked_npc:
+                        move.target_npc_id = clicked_npc
+                        move.direction = None
+                        text_input.clear()
+                        # Спринт 30: Запрет локальной симуляции. Путь ищет бэкенд.
+                        # Фронтенд только фиксирует цель, локальный pathfinding удален.
+                        system_log.append(f"Идёшь к {clicked_npc}")
+                elif event.type == pygame.VIDEORESIZE:
+                    self.screen = pygame.display.set_mode(
+                        (event.w, event.h), pygame.RESIZABLE
+                    )
+                    self.renderer = SceneRenderer(self.screen)
+
+            # === Перемещение ===
+            dt = self.clock.get_time() / 1000.0
+            move.cooldown -= dt
+            # Обновление физики инерционного повтора курсора в TextInput
+            text_input.update(dt)
+            moved = False
+
+            if move.cooldown <= 0:
+                # Спринт 31: Elastic Time. Движение — это Intent, подтвержденный бэкендом.
+                npc_positions = scene_state.get("npc_positions", {})
+                px, py = _player_xy(scene_state)
+
+                # Движение к NPC: отправляем намерение, бэкенд строит маршрут
+                if move.target_npc_id and move.target_npc_id in npc_positions:
+                    from npc_name_resolver import npc_id_to_display
+                    name = npc_id_to_display(move.target_npc_id)
+                    action_queue.submit(campaign_folder, player_name, f"подойти к {name}", px, py)
+                    move.target_npc_id = None  # Бэкенд взял управление
+
+                # WASD: транслируем вектор в семантическую команду (SemanticBridge на бэкенде)
+                elif held_keys:
+                    dx, dy = 0.0, 0.0
+                    for key in held_keys:
+                        if key in _WASD_MAP:
+                            kx, ky = _WASD_MAP[key]
+                            dx += kx
+                            dy += ky
+                    if dx != 0 or dy != 0:
+                        move.facing_angle = math.atan2(dy, dx)
+                        move.facing_mode = "VELOCITY"
+                        
+                        # Оптимистичный рендер: сдвигаем без коллизий (бэкенд авторитарно откатит при стене)
+                        pred_x = px + dx * 3.0 * dt  # TODO: синхронизировать скорость с TraversalState
+                        pred_y = py + dy * 3.0 * dt
+                        _set_player_xy(scene_state, pred_x, pred_y)
+
+                        _DIR_MAP = {
+                            (0, -1): "север", (0, 1): "юг", (-1, 0): "запад", (1, 0): "восток",
+                            (-1, -1): "северо-запад", (1, -1): "северо-восток",
+                            (-1, 1): "юго-запад", (1, 1): "юго-восток",
+                        }
+                        dir_name = _DIR_MAP.get((int(dx), int(dy)))
+                        # WASD — локальная физика игрока. DM не вызывается.
+                        # Бэкенд узнаёт о позиции игрока при следующем диалоге/действии.
+                        
+                        move.target_npc_id = None
+                        move.direction = None
+                    move.cooldown = _MOVE_INTERVAL
+                    # Накопительное время: 10 сек за каждый полный метр (а не за микро-шаг 0.3)
+                    move.walk_distance_accumulated += 0.3  # step_size
+                    meters_walked = int(move.walk_distance_accumulated)
+                    if meters_walked > 0:
+                        # Оптимистичный рендеринг: фронтенд предсказывает время,
+                        # бэкенд подтвердит его при следующем sync (idle_tick или диалог).
+                        self.game_time_seconds += TIME_DELTA_WALK_INDOOR * meters_walked
+                        move.walk_distance_accumulated -= meters_walked
+
+            # === Idle tick: применяем результат прошлого idle_tick если готов ===
+            _now = pygame.time.get_ticks()
+            _tick_data = {}
+            _new_positions = {}
+            _ws = None
+            if _idle_tick_result:
+                _tick_data = _idle_tick_result.pop()
+                # Канонический источник: world_snapshot.npc_positions (Устав §3, фаза 9)
+                _ws = _tick_data.get("world_snapshot")
+                if _ws and "npc_positions" in _ws:
+                    _new_positions = _ws["npc_positions"]
+                else:
+                    # Fallback на deprecated поле для совместимости
+                    _new_positions = _tick_data.get("npc_positions", {})
+            if _new_positions:
+                import copy
+                for npc_id, new_data in _new_positions.items():
+                    # ADR-0014: Атомарная замена вместо shallow merge.
+                    # Shallow merge убивал движение: если бэкенд не присылал local_position,
+                    # старые координаты оставались навсегда, и рендерер рисовал призраков.
+                    scene_state.setdefault("npc_positions", {})[npc_id] = copy.deepcopy(new_data)
+                    # TASK 2: Visual Revision Counter — логируем только если координаты реально изменились
+                    _old_lp = scene_state.get("npc_positions", {}).get(npc_id, {}).get("local_position", {})
+                    _new_lp = new_data.get("local_position", {})
+                    if _old_lp != _new_lp:
+                        print(f"[FRAME_RENDER] npc={npc_id} new_xy=({_new_lp.get('x')}, {_new_lp.get('y')})")
+            # ADR-019: Сохраняем активные транзиты для визуальной интерполяции (Lerp)
+            if _ws and "active_traversals" in _ws:
+                scene_state["active_traversals"] = _ws["active_traversals"]
+
+            if _new_positions:
+                print(f"[IDLE_TICK] merged: {list(_new_positions.keys())}")
+
+            # Синхронизация player_position и environment из world_snapshot
+            if _ws:
+                # ADR-019: Frontend — авторитет визуальной позиции игрока.
+                # Не перезаписываем локальную позицию из world_snapshot при idle_tick,
+                # иначе мгновенная телепортация на старые координаты бэкенда убьет плавность.
+                # _pp = _ws.get("player_position")
+                # if _pp and len(_pp) == 2:
+                #     _set_player_xy(scene_state, float(_pp[0]), float(_pp[1]))
+                # ЗАКОН: Фронтенд НЕ конструирует время. Absolute time authority = backend.
+                _ws_gts = _ws.get("game_time_seconds")
+                if _ws_gts is not None and _ws_gts > 0:
+                    scene_state["game_time_seconds"] = _ws_gts
+                    self.game_time_seconds = _ws_gts
+
+                # ADR-035: Извлечение феноменологической проекции аватара (Визуальное искажение)
+                if "avatar_state" in _ws:
+                    scene_state["avatar_state"] = _ws["avatar_state"]
+                # time_of_day — только визуальный срез для рендера, не источник истины
+                _ws_tod = _ws.get("time_of_day")
+                if _ws_tod:
+                    scene_state.setdefault("environment", {})["time_of_day"] = _ws_tod
+                _ws_weather = _ws.get("weather")
+                if _ws_weather:
+                    scene_state.setdefault("environment", {})["weather"] = _ws_weather
+
+            # Pressure-driven: если idle_tick принёс proactive события → запускаем телеграф
+            _events = _tick_data.get("events") or [] if _tick_data else []
+            # Фильтруем только proactive (не life_engine позиционные)
+            _proactive_events = [e for e in _events if e.get("cause") == "idle_pressure"]
+            _now_ms = pygame.time.get_ticks()
+            if _proactive_events and action_queue.pending_count() == 0 and (_now_ms - _last_telegraph_ms >= _TELEGRAPH_COOLDOWN_MS):
+                # Берём самое приоритетное событие
+                _ev = _proactive_events[0]
+                _npc_name = ""
+                _npc_id = _ev.get("target", "")
+                # Имя из маппинга конфигов, или из scene_state, или fallback на id
+                _npc_name = _npc_name_map.get(_npc_id, "")
+                if not _npc_name:
+                    _npc_data = scene_state.get("npc_positions", {}).get(_npc_id, {})
+                    _npc_name = _npc_data.get("name") or _npc_data.get("display_name") or _npc_id
+                _last_telegraph_ms = _now_ms
+                _ev_desc = _ev.get("value", "")
+                # Человекочитаемый текст для DM (без технических деталей)
+                _intent_map = {
+                    "observe": "присматривается",
+                    "talk": "хочет поговорить",
+                    "warn": "хочет предупредить",
+                    "report": "хочет что-то сообщить",
+                    "trade": "хочет предложить сделку",
+                    "help": "хочет помочь",
+                    "flee": "пытается уйти",
+                }
+                _readable = _intent_map.get(_ev_desc, "проявляет инициативу")
+                _telegraph_text = f"{_npc_name} {_readable}"
+                _px, _py = _player_xy(scene_state)
+                action_queue.submit_telegraph(
+                    campaign_folder, player_name,
+                    _px,
+                    _py,
+                    action_text=_telegraph_text,
+                )
+                print(f"[TELEGRAPH] event-driven: {_telegraph_text}")
+
+            # Фаза 2.1 — distance-based интервал: в чате = частый, при ходьбе = редкий
+            _now = pygame.time.get_ticks()
+            if not text_input.focused:
+                # WASD: чат не в фокусе → NPC двигаются по расстоянию
+                _nearest = _nearest_npc_distance(scene_state)
+                # Ускорение: делим интервал на time_scale (минимум 500мс чтобы не DDOSить бэкенд)
+                _tick_interval = max(500, _idle_tick_interval_ms(_nearest) // _time_scale)
+            else:
+                # Диалог: NPC стоят и разговаривают, не "летают" по комнате
+                _tick_interval = 30_000
+            # Запускаем новый idle_tick если пора и предыдущий завершён
+            if (_now - _last_idle_tick >= _tick_interval
+                    and not _idle_tick_running[0]
+                    and action_queue.pending_count() == 0):
+                # Фаза 4 — сохраняем позицию на бэкенд перед idle_tick
+                with contextlib.suppress(Exception):
+                    _bridge = _gateway._bridge
+                    if _bridge.ready:
+                        _bridge.save_scene_state(campaign_folder, scene_state)
+                _idle_tick_running[0] = True
+                _last_idle_tick = _now
+                print(f"[IDLE_TICK] fired at {_now}ms")
+                threading.Thread(target=_do_idle_tick, daemon=True).start()
+
+            # === Poll backend responses ===
+            result = action_queue.poll()
+            if result is not None:
+                if result.error:
+                    system_log.append(f"[Ошибка] {result.error}")
+                else:
+                    # Обновляем время из ответа backend
+                    _gts = result.response.game_time_seconds
+                    # Защита от tuple (существующий баг сериализации)
+                    if isinstance(_gts, tuple):
+                        _gts = _gts[0] if _gts else 0
+                    if isinstance(_gts, (int, float)) and _gts > 0:
+                        self.game_time_seconds = _gts
+                    # Пауза idle tick: NPC не двигаются пока игрок читает ответ
+                    _last_idle_tick = pygame.time.get_ticks() + 1000
+                    from narrative_beat import NarrativeBeat, DeliveryType, RecognitionLevel, BeatLifetime
+
+                    resp = result.response.dm_response
+                    # TASK 1: Force Merge — применяем snapshot из player action немедленно (ADR-0014)
+                    _action_ws = None
+                    if hasattr(result.response, 'world_snapshot') and result.response.world_snapshot:
+                        _action_ws = result.response.world_snapshot
+                    elif isinstance(result.response, dict) and result.response.get("world_snapshot"):
+                        _action_ws = result.response.get("world_snapshot")
+
+                    # Диагностика: что реально пришло в ответе?
+                    if isinstance(result.response, dict):
+                        print(f"[TRACE][ACTION_RESP] has_ws={bool(_action_ws)} ws_type={type(_action_ws).__name__} top_keys={list(result.response.keys())[:5]}")
+                    else:
+                        print(f"[TRACE][ACTION_RESP] resp_type={type(result.response).__name__} has_ws={bool(_action_ws)}")
+
+                    if _action_ws and isinstance(_action_ws, dict) and "npc_positions" in _action_ws:
+                        import copy
+                        for npc_id, new_data in _action_ws["npc_positions"].items():
+                            scene_state.setdefault("npc_positions", {})[npc_id] = copy.deepcopy(new_data)
+                            _old_lp = scene_state.get("npc_positions", {}).get(npc_id, {}).get("local_position", {})
+                            _new_lp = new_data.get("local_position", {})
+                            if _old_lp != _new_lp:
+                                print(f"[FRAME_RENDER][ACTION] npc={npc_id} new_xy=({_new_lp.get('x')}, {_new_lp.get('y')})")
+                        # ADR-019: Сохраняем активные транзиты для визуальной интерполяции (Lerp)
+                        if "active_traversals" in _action_ws:
+                            scene_state["active_traversals"] = _action_ws["active_traversals"]
+                    elif isinstance(result.response, dict) and "npc_positions" in result.response:
+                        # Fallback: deprecated top-level npc_positions
+                        import copy
+                        for npc_id, new_data in result.response["npc_positions"].items():
+                            scene_state.setdefault("npc_positions", {})[npc_id] = copy.deepcopy(new_data)
+                        # ADR-019: Сохраняем активные транзиты (fallback)
+                        if "active_traversals" in result.response:
+                            scene_state["active_traversals"] = result.response["active_traversals"]
+
+                    if resp and resp != "Ничего не произошло.":
+                        import re
+                        from difflib import SequenceMatcher
+
+                        # Отладка DM ответа
+                        print(f"[ECHO_DEBUG_DM] DMResp: '{resp.strip()[:80]}...'")
+
+                        # Разбиваем ответ на строки и фильтруем каждую от эха
+                        raw_lines = resp.strip().split('\n')
+
+                        # Извлекаем имена NPC из scene_state для парсинга спикера
+                        known_names = {}
+                        for npc_id, npc_data in scene_state.get("npc_positions", {}).items():
+                            name = npc_data.get("name") or npc_data.get("display_name")
+                            if name:
+                                known_names[name.lower()] = name
+
+                        for line in raw_lines:
+                            line_stripped = line.strip()
+                            if not line_stripped:
+                                continue
+
+                            is_echo_line = False
+                            if _last_player_input:
+                                p_clean = re.sub(r'[^\w\s]', '', _last_player_input).lower()
+                                l_clean = re.sub(r'[^\w\s]', '', line_stripped).lower()
+
+                                # Убираем имя игрока в начале строки для корректного comparison
+                                if l_clean.startswith(player_name.lower()):
+                                    prefix_len = len(player_name)
+                                    if prefix_len < len(line_stripped) and line_stripped[prefix_len] in (':', ',', ' '):
+                                        l_clean = re.sub(r'[^\w\s]', '', line_stripped[prefix_len+1:].strip(' ,.-!:;')).lower()
+
+                                similarity = SequenceMatcher(None, p_clean, l_clean).ratio()
+
+                                # Если строка похожа на ввод — это эхо
+                                # Защита от ложных срабатываний: не используем in-проверку для коротких фраз (имена NPC)
+                                is_short_input = len(p_clean) < 10
+                                if similarity > 0.60:
+                                    is_echo_line = True
+                                elif not is_short_input and (p_clean in l_clean or l_clean in p_clean):
+                                    is_echo_line = True
+
+                            if not is_echo_line:
+                                # Извлечение спикера (Приоритет 0: починка "Системы")
+                                speaker = "Система"
+                                text = line_stripped
+                                recognition = RecognitionLevel.KNOWN_NAME
+                                delivery = DeliveryType.NORMAL
+
+                                for name_lower, name_orig in known_names.items():
+                                    if line_stripped.lower().startswith(name_lower):
+                                        rest = line_stripped[len(name_orig):]
+                                        if rest and rest[0] in (':', ',', '-'):
+                                            speaker = name_orig
+                                            text = rest.lstrip(':, - ').strip()
+                                            break
+
+                                # Определение RecognitionLevel для неизвестных
+                                if speaker in ("Мужчина", "Женщина", "???"):
+                                    recognition = RecognitionLevel.UNKNOWN_FEMALE if speaker == "Женщина" else RecognitionLevel.UNKNOWN_MALE
+
+                                # Определение DeliveryType по маркерам текста (Приоритет 1: Experiential Architecture)
+                                text_lower = text.lower()
+                                if text_lower.startswith("(") and text_lower.endswith(")"):
+                                    delivery = DeliveryType.WHISPER
+                                elif text_lower.startswith("*") and text_lower.endswith("*"):
+                                    delivery = DeliveryType.INTERNAL
+                                elif text.endswith("!!!") or text.isupper():
+                                    delivery = DeliveryType.SHOUT
+
+                                message_log.append(NarrativeBeat(
+                                    speaker=speaker,
+                                    text=text,
+                                    is_player=False,
+                                    delivery=delivery,
+                                    recognition=recognition,
+                                    is_active=False,
+                                    creation_tick=pygame.time.get_ticks()
+                                ))
+
+                    for npc_r in result.response.npc_reactions:
+                        npc_name = npc_r.get("npc_name", "NPC")
+                        npc_text = npc_r.get("reaction", "")
+
+                        # Отладка: выводим всё, что приходит как реплика NPC
+                        print(f"[ECHO_DEBUG_NPC] Name: '{npc_name}' | Text: '{npc_text}' | LastInput: '{_last_player_input}'")
+
+                        if npc_text:
+                            # Защита от эха: если имя NPC совпадает с именем игрока — это эхо
+                            if npc_name.lower() == player_name.lower():
+                                print("[ECHO_DEBUG_NPC] ---> BLOCKED BY NAME!")
+                                continue
+
+                            # Защита от эха: если текст реплики совпадает с последним вводом игрока
+                            if _last_player_input:
+                                import re
+                                from difflib import SequenceMatcher
+                                p_clean = re.sub(r'[^\w\s]', '', _last_player_input).lower()
+                                t_clean = re.sub(r'[^\w\s]', '', npc_text).lower()
+                                similarity = SequenceMatcher(None, p_clean, t_clean).ratio()
+
+                                is_short_input = len(p_clean) < 10
+                                if similarity > 0.60 or (not is_short_input and (p_clean in t_clean or t_clean in p_clean)):
+                                    print("[ECHO_DEBUG_NPC] ---> BLOCKED BY TEXT SIMILARITY!")
+                                    continue
+
+                            # Определение DeliveryType для реакций NPC (Experiential Architecture)
+                            delivery = DeliveryType.NORMAL
+                            npc_text_lower = npc_text.lower()
+                            if npc_text_lower.startswith("(") and npc_text_lower.endswith(")"):
+                                delivery = DeliveryType.WHISPER
+                            elif npc_text_lower.startswith("*") and npc_text_lower.endswith("*"):
+                                delivery = DeliveryType.INTERNAL
+                            elif npc_text.endswith("!!!") or npc_text.isupper():
+                                delivery = DeliveryType.SHOUT
+
+                            # Определение RecognitionLevel для реакций NPC
+                            recognition = RecognitionLevel.KNOWN_NAME
+                            if npc_name in ("Мужчина", "Женщина", "???"):
+                                recognition = RecognitionLevel.UNKNOWN_FEMALE if npc_name == "Женщина" else RecognitionLevel.UNKNOWN_MALE
+
+                            # Реплика NPC становится полноценным пузырем
+                            message_log.append(NarrativeBeat(
+                                speaker=npc_name,
+                                text=npc_text,
+                                is_player=False,
+                                delivery=delivery,
+                                recognition=recognition,
+                                is_active=False,
+                                creation_tick=pygame.time.get_ticks()
+                            ))
+
+                # Telegraph завершился — запускаем следующий если консоль открыта
+                # Telegraph завершился — НЕ перезапускаем автоматически
+                # Следующий Telegraph запустится при следующем Tab
+                if action_queue.is_telegraph_result(result):
+                    print("[TELEGRAPH] completed")
+
+            # === Pipeline ===
+            config = PerceptionConfig(
+                player_focus=focus,
+                player_stress=10.0,
+                player_hp=100,
+                player_max_hp=100,
+                encounter_history=encounters,
+                player_memory=memory,
+            )
+            perceived = _build_perceived_scene(scene_state, config)
+
+            # === Рендер ===
+            px, py = _player_xy(scene_state)
+            self.screen.fill((200, 0, 0))  # ЯРКО-КРАСНЫЙ — если видно, цикл работает
+            self.renderer.render(
+                scene=perceived,
+                scene_w=scene_w,
+                scene_h=scene_h,
+                walls=walls,
+                obstacles=obstacles,
+                player_xy=(px, py),
+                player_facing=move.facing_angle,
+                dt=dt,
+                avatar_state=scene_state.get("avatar_state"),
+                ambient_state=scene_state.get("ambient_phenomenology"),
+            )
+
+            # HUD
+            # Пузырь ввода игрока (ТЗ 3) — правый нижний угол
+            input_bubble_x = self.screen.get_width() // 2 + 20
+            input_bubble_max_w = self.screen.get_width() // 2 - 40
+            if text_input.focused or not text_input.empty:
+                narrative_renderer.draw_input_bubble(
+                    self.screen, player_name, text_input.text, text_input._cursor_pos,
+                    x=input_bubble_x, y=self.screen.get_height() - 150, max_width=input_bubble_max_w
+                )
+            # Bubble Lifetime: обновление возраста и растворение TRANSIENT (Пункт 4)
+            _now = pygame.time.get_ticks()
+            for beat in message_log:
+                if isinstance(beat, NarrativeBeat) and beat.lifetime == BeatLifetime.TRANSIENT:
+                    age_ms = _now - beat.creation_tick
+                    if age_ms > 10000:  # Живет 10 секунд, затем начинает таять
+                        beat.is_fading = True
+                        fade_progress = (age_ms - 10000) / 3000.0  # 3 секунды на фейд-аут
+                        beat.alpha = max(0.0, 255.0 * (1.0 - fade_progress))
+                        if beat.alpha <= 0:
+                            beat.is_active = False
+                    else:
+                        beat.alpha = 255.0
+                        beat.is_fading = False
+
+            # Удаление полностью растворившихся пузырей из памяти
+            message_log[:] = [b for b in message_log if b.alpha > 0]
+
+            self._draw_message_log(message_log, system_log, narrative_renderer, player_name, _time_scale)
+
+            # HUD: FPS + игровое время
+            fps_surf = self.renderer.font_small.render(
+                f"FPS: {int(self.clock.get_fps())}", True, (80, 80, 80)
+            )
+            self.screen.blit(fps_surf, (self.screen.get_width() - 70, 4))
+
+            # Выводим полную дату мира (Год, День, Час:Минута)
+            time_surf = self.renderer.font_small.render(
+                format_world_date(self.game_time_seconds), True, (140, 140, 140)
+            )
+            self.screen.blit(time_surf, (self.screen.get_width() - 380, 4))
+
+            pygame.display.flip()
+            self.clock.tick(60)
+
+    # ── UI методы ──────────────────────────────────────────────────────
+
+    def _draw_input_bar(self, text_input: TextInput) -> None:
+        """Рисует строку ввода через TextInput виджет"""
+        # Обновляем rect на случай ресайза
+        sw = self.screen.get_width()
+        sh = self.screen.get_height()
+        text_input.rect = pygame.Rect(4, sh - 36, sw - 8, 32)
+        text_input.draw(self.screen)
+
+    def _draw_message_log(self, log: list, system_log: list, renderer: 'NarrativeRenderer', player_name: str, time_scale: int = 1) -> None:
+        """Cinematic Layer: Рисует сценические пузыри вместо плоского чата"""
+        from narrative_beat import NarrativeBeat, RecognitionLevel, DeliveryType
+        
+        sh = self.screen.get_height()
+        sw = self.screen.get_width()
+        
+        visible = log[-5:] # Берем последние 5 событий
+        
+        # Конвертация строк больше не нужна — message_log содержит только NarrativeBeat
+        beats = []
+        for msg in visible:
+            msg.is_active = (msg == visible[-1])
+            beats.append(msg)
+            
+        # === Time Scale Indicator (Приоритет 1) ===
+        scale_texts = {1: "▶ 1x", 4: "▶▶ 4x", 10: "▶▶▶ 10x", 50: "⏩ 50x"}
+        scale_str = scale_texts.get(time_scale, f"▶ {time_scale}x")
+        sys_font = renderer.font_normal
+        scale_surf = sys_font.render(scale_str, True, (255, 220, 100)) # Желтый цвет для внимания
+        scale_bg = pygame.Surface((scale_surf.get_width() + 8, scale_surf.get_height() + 4), pygame.SRCALPHA)
+        scale_bg.fill((0, 0, 0, 150))
+        scale_x = sw - scale_surf.get_width() - 18
+        scale_bg.blit(scale_surf, (4, 2))
+        self.screen.blit(scale_bg, (scale_x, 10))
+
+        # === Log Layer: Системные сообщения (сдвиг вниз под Time Scale) ===
+        if system_log:
+            visible_sys = system_log[-5:] # Последние 5 системных сообщений
+            sys_y = 10 + scale_surf.get_height() + 6 # Отступаем ниже индикатора скорости
+            for sys_msg in reversed(visible_sys):
+                sys_surf = sys_font.render(sys_msg, True, (180, 180, 180))
+                # Полупрозрачный фон
+                sys_bg = pygame.Surface((sys_surf.get_width() + 8, sys_surf.get_height() + 4), pygame.SRCALPHA)
+                sys_bg.fill((0, 0, 0, 120))
+                sys_x = sw - sys_surf.get_width() - 18
+                sys_bg.blit(sys_surf, (4, 2))
+                self.screen.blit(sys_bg, (sys_x, sys_y))
+                sys_y += sys_surf.get_height() + 6
+
+        # Правильный расчет позиций Y (снизу вверх, без наложений)
+        # 1. Сначала вычисляем высоту каждого пузыря
+        heights = []
+        max_w = sw // 2 - 40
+        for beat in beats:
+            # Приблизительный расчет высоты (совпадает с логикой NarrativeRenderer)
+            font = renderer.font_normal
+            lines = renderer._wrap_text(beat.text, font, max_w - 24)
+            line_h = font.get_linesize()
+            text_h = len(lines) * line_h
+            bubble_h = text_h + 24
+            name_h = renderer.font_bold.get_linesize() + 6
+            total_h = name_h + bubble_h
+            heights.append(total_h)
+
+        # 2. Рисуем снизу вверх
+        # Отступ снизу для пузыря ввода игрока
+        y_cursor = sh - 170 
+        
+        for i in range(len(beats) - 1, -1, -1):
+            beat = beats[i]
+            h = heights[i]
+            
+            # Рисуем пузырь
+            bx = sw // 2 + 20 if beat.is_player else 20
+                
+            # Сдвигаем курсор вверх на высоту текущего пузыря и рисуем
+            y_cursor -= h
+            renderer.draw_beat(self.screen, beat, bx, y_cursor, max_w)
+            
+            # Отступ между пузырями
+            y_cursor -= 8
+
+    # ── Обработчики ввода ─────────────────────────────────────────────
+
+    def _handle_text_input(
+        self,
+        text: str,
+        scene_state: dict,
+        focus: PlayerFocus,
+        walls: list,
+        obstacles: list,
+        move: _MoveState,
+        message_log: list,
+        scene_w: float = 20.0,
+        scene_h: float = 15.0,
+        action_queue: ActionQueue | None = None,
+        campaign_folder: str = "",
+        player_name: str = "",
+    ) -> None:
+        """Спринт 31: Все текстовые команды — напрямую в бэкенд через Intent"""
+        px, py = _player_xy(scene_state)
+        action_queue.submit(campaign_folder, player_name, text, px, py)
+
+    def _handle_click(
+        self,
+        pos: tuple[int, int],
+        scene_state: dict,
+        focus: PlayerFocus,
+        walls: list,
+    ) -> Optional[str]:
+        """Обрабатывает клик. Возвращает npc_id если клик по NPC"""
+        px, py = _player_xy(scene_state)
+        cam_x = px * 40 - self.screen.get_width() // 2
+        cam_y = py * 40 - self.screen.get_height() // 2
+
+        world_x = (pos[0] + cam_x) / 40
+        world_y = (pos[1] + cam_y) / 40
+
+        best_npc = None
+        best_dist = 1.5
+
+        for npc_id, npc_data in scene_state.get("npc_positions", {}).items():
+            lp = npc_data.get("local_position") or {}
+            nx, ny = lp.get("x", 0), lp.get("y", 0)
+            dist = ((world_x - nx) ** 2 + (world_y - ny) ** 2) ** 0.5
+            if dist < best_dist:
+                best_dist = dist
+                best_npc = npc_id
+
+        if best_npc and focus.focus_entity_id == best_npc:
+            focus.focus_entity_id = None
+            return None
+        elif best_npc:
+            focus.focus_entity_id = best_npc
+            return best_npc
+        return None
+

@@ -1,0 +1,249 @@
+{"timestamp": "2026-04-11T16:31:23.390950", "level": "ERROR", "agent": "test", "model": "debug", "error_code": "model_fail", "error_type": "Exception", "error_message": "Provider crash", "traceback": "Traceback (most recent call last):\n  File \"C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\tests\\test_full_error_logging.py\", line 40, in _simulate_and_check\n    raise Exception(exc_msg)\nException: Provider crash\n", "context": {"test": "model_fail", "tb": "Traceback (most recent call last):\n  File \"C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\tests\\test_full_error_logging.py\", line 40, in _simulate_and_check\n    raise Exception(exc_msg)\nException: Provider crash\n"}, "recommendation": "1. \u041f\u0440\u043e\u0432\u0435\u0440\u044c\u0442\u0435 /api/health \u2192 LLM status\n2. data/logs/*.jsonl \u2192 tail -20\n3. ModelPool debug=True \u0432 main.py startup"}
+{"timestamp": "2026-04-11T16:31:23.402456", "level": "ERROR", "agent": "test", "model": "debug", "error_code": "oom", "error_type": "MemoryError", "error_message": "VRAM OOM", "traceback": "Traceback (most recent call last):\n  File \"C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\tests\\test_full_error_logging.py\", line 36, in _simulate_and_check\n    raise MemoryError(exc_msg)\nMemoryError: VRAM OOM\n", "context": {"test": "oom", "tb": "Traceback (most recent call last):\n  File \"C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\tests\\test_full_error_logging.py\", line 36, in _simulate_and_check\n    raise MemoryError(exc_msg)\nMemoryError: VRAM OOM\n"}, "recommendation": "1. nvidia-smi \u2192 \u041f\u0440\u043e\u0432\u0435\u0440\u044c\u0442\u0435 VRAM (<6GB \u0441\u0432\u043e\u0431\u043e\u0434\u043d\u043e)\n2. ModelPool.unload_all() \u0438\u043b\u0438 \u043f\u0435\u0440\u0435\u0437\u0430\u043f\u0443\u0441\u043a \u0441\u0435\u0440\u0432\u0435\u0440\u0430\n3. \u0423\u043c\u0435\u043d\u044c\u0448\u0438\u0442\u0435 gpu_layers \u0432 llama-server (--gpu-layers 25)"}
+{"timestamp": "2026-04-11T16:31:23.403293", "level": "ERROR", "agent": "test", "model": "debug", "error_code": "syntax", "error_type": "SyntaxError", "error_message": "Model parse fail", "traceback": "Traceback (most recent call last):\n  File \"C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\tests\\test_full_error_logging.py\", line 38, in _simulate_and_check\n    raise SyntaxError(exc_msg)\nSyntaxError: Model parse fail\n", "context": {"test": "syntax", "tb": "Traceback (most recent call last):\n  File \"C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\tests\\test_full_error_logging.py\", line 38, in _simulate_and_check\n    raise SyntaxError(exc_msg)\nSyntaxError: Model parse fail\n"}, "recommendation": "1. \u041f\u0440\u043e\u0432\u0435\u0440\u044c\u0442\u0435 model path \u0432 config.py \u2192 available_models\n2. .gguf \u0444\u0430\u0439\u043b \u043f\u043e\u0432\u0440\u0435\u0436\u0434\u0451\u043d? \u041f\u0435\u0440\u0435\u043a\u0430\u0447\u0430\u0439\u0442\u0435\n3. \u041a\u043e\u043d\u0444\u043b\u0438\u043a\u0442 chat template \u0432 \u043f\u0440\u043e\u043c\u043f\u0442\u0435 (qwen/saiga)"}
+{"timestamp": "2026-04-11T16:31:23.404299", "level": "ERROR", "agent": "test", "model": "debug", "error_code": "timeout", "error_type": "TimeoutError", "error_message": "LLM timeout", "traceback": "Traceback (most recent call last):\n  File \"C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\tests\\test_full_error_logging.py\", line 34, in _simulate_and_check\n    raise asyncio.TimeoutError(exc_msg)\nTimeoutError: LLM timeout\n", "context": {"test": "timeout", "tb": "Traceback (most recent call last):\n  File \"C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\tests\\test_full_error_logging.py\", line 34, in _simulate_and_check\n    raise asyncio.TimeoutError(exc_msg)\nTimeoutError: LLM timeout\n"}, "recommendation": "1. \u041f\u0440\u043e\u0432\u0435\u0440\u044c\u0442\u0435 llama-server: http://127.0.0.1:8080/health\n2. \u0423\u0432\u0435\u043b\u0438\u0447\u044c\u0442\u0435 model_load_timeout_sec \u0432 config.py\n3. \u041f\u0435\u0440\u0435\u0437\u0430\u043f\u0443\u0441\u0442\u0438\u0442\u0435 backend/start_enigma.bat"}
+{"error_code": "startup_error", "error_message": "Simulated startup error"}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6818, "vram_after_mb": 6818}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 39, "status": "complete"}
+{"level": "INFO", "agent": "npc", "status": "model_switch", "vram_before_mb": 6820, "vram_after_mb": 6820}
+{"level": "INFO", "agent": "npc", "error_code": "SUCCESS", "duration_ms": 9331, "status": "complete"}
+{"timestamp": "2026-04-11T20:07:11.848799", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_start", "vram_before_mb": 6803}
+{"timestamp": "2026-04-11T20:07:11.941392", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_success", "vram_after_mb": 6804, "vram_delta_mb": 1}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6810, "vram_after_mb": 6810}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 87, "status": "complete"}
+{"level": "INFO", "agent": "npc", "status": "model_switch", "vram_before_mb": 6810, "vram_after_mb": 6810}
+{"level": "INFO", "agent": "npc", "error_code": "SUCCESS", "duration_ms": 4331, "status": "complete"}
+{"timestamp": "2026-04-11T20:07:55.755203", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_start", "vram_before_mb": 6800}
+{"timestamp": "2026-04-11T20:07:55.832505", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_success", "vram_after_mb": 6804, "vram_delta_mb": 4}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6846, "vram_after_mb": 6846}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 39, "status": "complete"}
+{"level": "INFO", "agent": "npc", "status": "model_switch", "vram_before_mb": 6846, "vram_after_mb": 6846}
+{"level": "INFO", "agent": "npc", "error_code": "SUCCESS", "duration_ms": 47, "status": "complete"}
+{"timestamp": "2026-04-11T20:09:42.446654", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_start", "vram_before_mb": 6846}
+{"timestamp": "2026-04-11T20:09:42.493133", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_success", "vram_after_mb": 6846, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6853, "vram_after_mb": 6853}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 36, "status": "complete"}
+{"level": "INFO", "agent": "npc", "status": "model_switch", "vram_before_mb": 6853, "vram_after_mb": 6853}
+{"level": "INFO", "agent": "npc", "error_code": "SUCCESS", "duration_ms": 46, "status": "complete"}
+{"timestamp": "2026-04-11T20:10:22.693142", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_start", "vram_before_mb": 6853}
+{"timestamp": "2026-04-11T20:10:22.740736", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_success", "vram_after_mb": 6853, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6823, "vram_after_mb": 6823}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 48, "status": "complete"}
+{"level": "INFO", "agent": "npc", "status": "model_switch", "vram_before_mb": 6823, "vram_after_mb": 6823}
+{"level": "INFO", "agent": "npc", "error_code": "SUCCESS", "duration_ms": 9101, "status": "complete"}
+{"timestamp": "2026-04-11T20:11:03.888708", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_start", "vram_before_mb": 6802}
+{"timestamp": "2026-04-11T20:11:03.936007", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_success", "vram_after_mb": 6817, "vram_delta_mb": 15}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6847, "vram_after_mb": 6847}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 42, "status": "complete"}
+{"level": "INFO", "agent": "npc", "status": "model_switch", "vram_before_mb": 6849, "vram_after_mb": 6849}
+{"level": "INFO", "agent": "npc", "error_code": "SUCCESS", "duration_ms": 2476, "status": "complete"}
+{"timestamp": "2026-04-11T20:33:00.264196", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_start", "vram_before_mb": 6859}
+{"timestamp": "2026-04-11T20:33:00.351453", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_success", "vram_after_mb": 6859, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6833, "vram_after_mb": 6833}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 70, "status": "complete"}
+{"level": "INFO", "agent": "npc", "status": "model_switch", "vram_before_mb": 6833, "vram_after_mb": 6833}
+{"level": "INFO", "agent": "npc", "error_code": "SUCCESS", "duration_ms": 2807, "status": "complete"}
+{"timestamp": "2026-04-11T20:33:40.485556", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_start", "vram_before_mb": 6834}
+{"timestamp": "2026-04-11T20:33:40.564384", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_success", "vram_after_mb": 6835, "vram_delta_mb": 1}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6839, "vram_after_mb": 6839}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 36, "status": "complete"}
+{"level": "INFO", "agent": "npc", "status": "model_switch", "vram_before_mb": 6839, "vram_after_mb": 6839}
+{"level": "INFO", "agent": "npc", "error_code": "SUCCESS", "duration_ms": 3415, "status": "complete"}
+{"timestamp": "2026-04-11T20:36:41.272086", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_start", "vram_before_mb": 6836}
+{"timestamp": "2026-04-11T20:36:41.317593", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_success", "vram_after_mb": 6836, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6841, "vram_after_mb": 6841}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 36, "status": "complete"}
+{"level": "INFO", "agent": "npc", "status": "model_switch", "vram_before_mb": 6841, "vram_after_mb": 6841}
+{"level": "INFO", "agent": "npc", "error_code": "SUCCESS", "duration_ms": 5117, "status": "complete"}
+{"timestamp": "2026-04-11T20:37:09.559127", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_start", "vram_before_mb": 6821}
+{"timestamp": "2026-04-11T20:37:09.606432", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_success", "vram_after_mb": 6837, "vram_delta_mb": 16}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6871, "vram_after_mb": 6871}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 52, "status": "complete"}
+{"level": "INFO", "agent": "npc", "status": "model_switch", "vram_before_mb": 6873, "vram_after_mb": 6873}
+{"level": "INFO", "agent": "npc", "error_code": "SUCCESS", "duration_ms": 47, "status": "complete"}
+{"timestamp": "2026-04-11T20:56:02.967057", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_start", "vram_before_mb": 6877}
+{"timestamp": "2026-04-11T20:56:03.014556", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_success", "vram_after_mb": 6879, "vram_delta_mb": 2}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6860, "vram_after_mb": 6860}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 68, "status": "complete"}
+{"level": "INFO", "agent": "npc", "status": "model_switch", "vram_before_mb": 6860, "vram_after_mb": 6860}
+{"level": "INFO", "agent": "npc", "error_code": "SUCCESS", "duration_ms": 75, "status": "complete"}
+{"timestamp": "2026-04-11T20:56:44.383813", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_start", "vram_before_mb": 6860}
+{"timestamp": "2026-04-11T20:56:44.485595", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_success", "vram_after_mb": 6861, "vram_delta_mb": 1}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6858, "vram_after_mb": 6858}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 78, "status": "complete"}
+{"level": "INFO", "agent": "npc", "status": "model_switch", "vram_before_mb": 6858, "vram_after_mb": 6858}
+{"level": "INFO", "agent": "npc", "error_code": "SUCCESS", "duration_ms": 92, "status": "complete"}
+{"timestamp": "2026-04-11T20:57:08.157292", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_start", "vram_before_mb": 6858}
+{"timestamp": "2026-04-11T20:57:08.251529", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_success", "vram_after_mb": 6860, "vram_delta_mb": 2}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6866, "vram_after_mb": 6866}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 49, "status": "complete"}
+{"level": "INFO", "agent": "npc", "status": "model_switch", "vram_before_mb": 6866, "vram_after_mb": 6866}
+{"level": "INFO", "agent": "npc", "error_code": "SUCCESS", "duration_ms": 5852, "status": "complete"}
+{"timestamp": "2026-04-11T21:00:44.156394", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_start", "vram_before_mb": 6832}
+{"timestamp": "2026-04-11T21:00:44.202736", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_success", "vram_after_mb": 6837, "vram_delta_mb": 5}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6854, "vram_after_mb": 6854}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 46, "status": "complete"}
+{"level": "INFO", "agent": "npc", "status": "model_switch", "vram_before_mb": 6854, "vram_after_mb": 6854}
+{"level": "INFO", "agent": "npc", "error_code": "SUCCESS", "duration_ms": 3278, "status": "complete"}
+{"timestamp": "2026-04-11T21:01:29.506099", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_start", "vram_before_mb": 6856}
+{"timestamp": "2026-04-11T21:01:29.552404", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_success", "vram_after_mb": 6856, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6973, "vram_after_mb": 6973}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 46, "status": "complete"}
+{"level": "INFO", "agent": "npc", "status": "model_switch", "vram_before_mb": 6973, "vram_after_mb": 6973}
+{"level": "INFO", "agent": "npc", "error_code": "SUCCESS", "duration_ms": 3272, "status": "complete"}
+{"timestamp": "2026-04-11T21:09:20.920050", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_start", "vram_before_mb": 6973}
+{"timestamp": "2026-04-11T21:09:20.954518", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_success", "vram_after_mb": 6973, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6951, "vram_after_mb": 6951}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 42, "status": "complete"}
+{"level": "INFO", "agent": "npc", "status": "model_switch", "vram_before_mb": 6951, "vram_after_mb": 6951}
+{"level": "INFO", "agent": "npc", "error_code": "SUCCESS", "duration_ms": 47, "status": "complete"}
+{"timestamp": "2026-04-11T21:09:59.421131", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_start", "vram_before_mb": 6951}
+{"timestamp": "2026-04-11T21:09:59.470637", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_success", "vram_after_mb": 6951, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6944, "vram_after_mb": 6944}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 43, "status": "complete"}
+{"level": "INFO", "agent": "npc", "status": "model_switch", "vram_before_mb": 6944, "vram_after_mb": 6944}
+{"level": "INFO", "agent": "npc", "error_code": "SUCCESS", "duration_ms": 7616, "status": "complete"}
+{"timestamp": "2026-04-11T21:24:42.660134", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_start", "vram_before_mb": 6855}
+{"timestamp": "2026-04-11T21:24:42.726476", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_success", "vram_after_mb": 6860, "vram_delta_mb": 5}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6876, "vram_after_mb": 6876}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 43, "status": "complete"}
+{"level": "INFO", "agent": "npc", "status": "model_switch", "vram_before_mb": 6876, "vram_after_mb": 6876}
+{"level": "INFO", "agent": "npc", "error_code": "SUCCESS", "duration_ms": 3777, "status": "complete"}
+{"timestamp": "2026-04-11T21:25:17.098319", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_start", "vram_before_mb": 6902}
+{"timestamp": "2026-04-11T21:25:17.145575", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_success", "vram_after_mb": 6900, "vram_delta_mb": -2}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6877, "vram_after_mb": 6877}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 49, "status": "complete"}
+{"level": "INFO", "agent": "npc", "status": "model_switch", "vram_before_mb": 6877, "vram_after_mb": 6877}
+{"level": "INFO", "agent": "npc", "error_code": "SUCCESS", "duration_ms": 2194, "status": "complete"}
+{"timestamp": "2026-04-11T21:25:52.067053", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_start", "vram_before_mb": 6887}
+{"timestamp": "2026-04-11T21:25:52.114321", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_success", "vram_after_mb": 6887, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6964, "vram_after_mb": 6964}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 41, "status": "complete"}
+{"level": "INFO", "agent": "npc", "status": "model_switch", "vram_before_mb": 6964, "vram_after_mb": 6964}
+{"level": "INFO", "agent": "npc", "error_code": "SUCCESS", "duration_ms": 8422, "status": "complete"}
+{"timestamp": "2026-04-11T21:33:53.878988", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_start", "vram_before_mb": 6917}
+{"timestamp": "2026-04-11T21:33:53.925612", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_success", "vram_after_mb": 6921, "vram_delta_mb": 4}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6893, "vram_after_mb": 6893}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 71, "status": "complete"}
+{"level": "INFO", "agent": "npc", "status": "model_switch", "vram_before_mb": 6893, "vram_after_mb": 6893}
+{"level": "INFO", "agent": "npc", "error_code": "SUCCESS", "duration_ms": 3794, "status": "complete"}
+{"timestamp": "2026-04-11T21:34:11.378155", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_start", "vram_before_mb": 6878}
+{"timestamp": "2026-04-11T21:34:11.426280", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_success", "vram_after_mb": 6879, "vram_delta_mb": 1}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6890, "vram_after_mb": 6890}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 51, "status": "complete"}
+{"level": "INFO", "agent": "npc", "status": "model_switch", "vram_before_mb": 6892, "vram_after_mb": 6892}
+{"level": "INFO", "agent": "npc", "error_code": "SUCCESS", "duration_ms": 5783, "status": "complete"}
+{"timestamp": "2026-04-11T21:35:14.232969", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_start", "vram_before_mb": 6870}
+{"timestamp": "2026-04-11T21:35:14.283138", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_success", "vram_after_mb": 6870, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6894, "vram_after_mb": 6894}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 48, "status": "complete"}
+{"level": "INFO", "agent": "npc", "status": "model_switch", "vram_before_mb": 6894, "vram_after_mb": 6894}
+{"level": "INFO", "agent": "npc", "error_code": "SUCCESS", "duration_ms": 3306, "status": "complete"}
+{"timestamp": "2026-04-11T21:36:05.541908", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_start", "vram_before_mb": 6894}
+{"timestamp": "2026-04-11T21:36:05.591821", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_success", "vram_after_mb": 6894, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6910, "vram_after_mb": 6910}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 55, "status": "complete"}
+{"level": "INFO", "agent": "npc", "status": "model_switch", "vram_before_mb": 6910, "vram_after_mb": 6910}
+{"level": "INFO", "agent": "npc", "error_code": "SUCCESS", "duration_ms": 2486, "status": "complete"}
+{"timestamp": "2026-04-11T21:38:58.543175", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_start", "vram_before_mb": 6910}
+{"timestamp": "2026-04-11T21:38:58.593106", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_success", "vram_after_mb": 6910, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6951, "vram_after_mb": 6951}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 44, "status": "complete"}
+{"timestamp": "2026-04-11T22:00:56.580452", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_start", "vram_before_mb": 6953}
+{"timestamp": "2026-04-11T22:00:56.634844", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_success", "vram_after_mb": 6958, "vram_delta_mb": 5}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6918, "vram_after_mb": 6918}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 91, "status": "complete"}
+{"timestamp": "2026-04-11T22:01:46.742895", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_start", "vram_before_mb": 6918}
+{"timestamp": "2026-04-11T22:01:46.827165", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_success", "vram_after_mb": 6918, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6919, "vram_after_mb": 6919}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 50, "status": "complete"}
+{"timestamp": "2026-04-11T22:02:21.824020", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_start", "vram_before_mb": 6919}
+{"timestamp": "2026-04-11T22:02:21.872893", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_success", "vram_after_mb": 6919, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6964, "vram_after_mb": 6964}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 45, "status": "complete"}
+{"timestamp": "2026-04-11T22:08:06.718324", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_start", "vram_before_mb": 6964}
+{"timestamp": "2026-04-11T22:08:06.771407", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_success", "vram_after_mb": 6964, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6961, "vram_after_mb": 6961}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 44, "status": "complete"}
+{"timestamp": "2026-04-11T22:08:38.189488", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_start", "vram_before_mb": 6961}
+{"timestamp": "2026-04-11T22:08:38.236228", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_success", "vram_after_mb": 6961, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6961, "vram_after_mb": 6961}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 45, "status": "complete"}
+{"timestamp": "2026-04-11T22:09:01.626459", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_start", "vram_before_mb": 6961}
+{"timestamp": "2026-04-11T22:09:01.672866", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_success", "vram_after_mb": 6961, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6951, "vram_after_mb": 6951}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 55, "status": "complete"}
+{"timestamp": "2026-04-11T22:10:01.437658", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_start", "vram_before_mb": 6951}
+{"timestamp": "2026-04-11T22:10:01.487751", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_success", "vram_after_mb": 6952, "vram_delta_mb": 1}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6950, "vram_after_mb": 6950}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 39, "status": "complete"}
+{"timestamp": "2026-04-11T22:10:35.150229", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_start", "vram_before_mb": 6950}
+{"timestamp": "2026-04-11T22:10:35.198397", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_success", "vram_after_mb": 6950, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6843, "vram_after_mb": 6843}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 50, "status": "complete"}
+{"timestamp": "2026-04-11T22:16:31.291297", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_start", "vram_before_mb": 6843}
+{"timestamp": "2026-04-11T22:16:31.326370", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_success", "vram_after_mb": 6843, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6812, "vram_after_mb": 6812}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 44, "status": "complete"}
+{"timestamp": "2026-04-11T22:17:58.750211", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_start", "vram_before_mb": 6812}
+{"timestamp": "2026-04-11T22:17:58.802169", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_success", "vram_after_mb": 6814, "vram_delta_mb": 2}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6798, "vram_after_mb": 6798}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 38, "status": "complete"}
+{"timestamp": "2026-04-11T22:18:23.235291", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_start", "vram_before_mb": 6798}
+{"timestamp": "2026-04-11T22:18:23.307208", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_success", "vram_after_mb": 6798, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6797, "vram_after_mb": 6797}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 40, "status": "complete"}
+{"timestamp": "2026-04-11T22:18:47.256448", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_start", "vram_before_mb": 6797}
+{"timestamp": "2026-04-11T22:18:47.327641", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_success", "vram_after_mb": 6797, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6765, "vram_after_mb": 6765}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 44, "status": "complete"}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6752, "vram_after_mb": 6752}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 44, "status": "complete"}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6780, "vram_after_mb": 6780}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 53, "status": "complete"}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6782, "vram_after_mb": 6782}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 60, "status": "complete"}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6840, "vram_after_mb": 6840}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 40, "status": "complete"}
+{"timestamp": "2026-04-11T23:39:45.500071", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_start", "vram_before_mb": 6840}
+{"timestamp": "2026-04-11T23:39:45.551349", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_success", "vram_after_mb": 6842, "vram_delta_mb": 2}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6821, "vram_after_mb": 6821}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 54, "status": "complete"}
+{"timestamp": "2026-04-11T23:40:32.555666", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_start", "vram_before_mb": 6821}
+{"timestamp": "2026-04-11T23:40:32.622678", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_success", "vram_after_mb": 6821, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6817, "vram_after_mb": 6817}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 38, "status": "complete"}
+{"timestamp": "2026-04-11T23:41:23.302989", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_start", "vram_before_mb": 6817}
+{"timestamp": "2026-04-11T23:41:23.351662", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_success", "vram_after_mb": 6817, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6805, "vram_after_mb": 6805}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 44, "status": "complete"}
+{"timestamp": "2026-04-11T23:42:06.388906", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_start", "vram_before_mb": 6805}
+{"timestamp": "2026-04-11T23:42:06.422575", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_success", "vram_after_mb": 6805, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6809, "vram_after_mb": 6809}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 49, "status": "complete"}
+{"timestamp": "2026-04-11T23:42:41.052249", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_start", "vram_before_mb": 6809}
+{"timestamp": "2026-04-11T23:42:41.100414", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_success", "vram_after_mb": 6809, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6809, "vram_after_mb": 6809}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 35, "status": "complete"}
+{"timestamp": "2026-04-11T23:43:17.385348", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_start", "vram_before_mb": 6809}
+{"timestamp": "2026-04-11T23:43:17.413399", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_success", "vram_after_mb": 6809, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6927, "vram_after_mb": 6927}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 46, "status": "complete"}
+{"timestamp": "2026-04-12T01:09:51.966024", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_start", "vram_before_mb": 6927}
+{"timestamp": "2026-04-12T01:09:51.998635", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_success", "vram_after_mb": 6927, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "rules", "status": "model_switch", "vram_before_mb": 6942, "vram_after_mb": 6942}
+{"level": "INFO", "agent": "rules", "error_code": "SUCCESS", "duration_ms": 46, "status": "complete"}
+{"timestamp": "2026-04-12T01:10:15.682961", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_start", "vram_before_mb": 6942}
+{"timestamp": "2026-04-12T01:10:15.731862", "level": "INFO", "agent": "dm_narrative", "model": "gemma_12b", "status": "load_success", "vram_after_mb": 6942, "vram_delta_mb": 0}

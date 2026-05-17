@@ -1,0 +1,58 @@
+from dataclasses import dataclass, field
+from typing import Dict, Optional
+
+@dataclass(frozen=True)
+class UtilityFieldDeformation:
+    """Топологическое давление на геометрию выбора. Непрерывные векторы."""
+    aggression_suppression: float = 0.0
+    initiative_suppression: float = 0.0
+    compliance_bias: float = 0.0
+    escape_salience: float = 0.0
+
+@dataclass(frozen=True)
+class ActionSpaceCompression:
+    """
+    Feasibility-слой. Экстремальное сужение пространства возможного.
+    0.0 = действие физически/психически невозможно (feasibility = 0).
+    """
+    # TODO(S28): Заменить строковые ключи на enum IntentType при рефакторинге
+    constraints: Dict[str, float] = field(default_factory=dict)
+
+@dataclass(frozen=True)
+class DecisionContext:
+    """Топология пространства решений, собранная из PerceptualKernel."""
+    deformation: UtilityFieldDeformation = field(default_factory=UtilityFieldDeformation)
+    compression: ActionSpaceCompression = field(default_factory=ActionSpaceCompression)
+    source: Optional[str] = None
+
+    @classmethod
+    def from_kernel(cls, kernel: "PerceptualKernel") -> "DecisionContext":
+        """
+        ADR-049: Замыкание контура Восприятие→Решение.
+        Проецирует субъективное когнитивное состояние в топологию выбора.
+        Использует getattr для безопасности типов (Domain не знает Models, Закон 1.2).
+        """
+        # 1. Чтение сигналов из ядра (с fallback на базовый PerceptualKernel)
+        _threat = getattr(kernel, 'threat_gradient', 0.0)
+        _compliance = getattr(kernel, 'compliance_bias', 0.0)
+        _aggr_inhibition = getattr(kernel, 'aggression_inhibition', 0.0)
+        _init_suppression = getattr(kernel, 'initiative_suppression', 0.0)
+
+        # 2. Топологическая деформация
+        deformation = UtilityFieldDeformation(
+            aggression_suppression=_aggr_inhibition,
+            initiative_suppression=_init_suppression,
+            compliance_bias=_compliance,
+            escape_salience=_threat * 0.8 # Угроза мотивирует бегство
+        )
+
+        # 3. Экстремальное сжатие (паралич воли)
+        constraints: Dict[str, float] = {}
+        if _aggr_inhibition > 0.8:
+            constraints["ATTACK"] = 0.0 # Агрессия невозможна
+        if _init_suppression > 0.8:
+            constraints["INTIMIDATE"] = 0.1 # Инициатива подавлена
+
+        compression = ActionSpaceCompression(constraints=constraints)
+
+        return cls(deformation=deformation, compression=compression, source="perceptual_kernel")

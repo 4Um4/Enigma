@@ -1,0 +1,718 @@
+# backend\app\services\memory\memory_manager.py
+"""
+R1.1 + R5.3 — MemoryManager.
+Фасад всей памяти. Теперь поддерживает создание EventMemory с реальным clarity.
+
+TODO:
+
+"""
+
+from __future__ import annotations
+import logging
+from typing import Any, Dict, List, Tuple, Optional, TYPE_CHECKING
+
+logger = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    from app.services.spatial.spatial_query_service import SpatialQueryService
+
+from app.services.memory import LayeredMemory
+from app.services.memory.working_memory import WorkingMemory
+from app.services.memory.importance_engine import score_event, apply_decay
+from app.core.constants import DECAY_EVERY
+from app.services.memory.relationship_store import RelationshipStore
+from app.services.memory.contradiction_resolver import resolve_all
+
+from app.models.npc_state import DiscoveryCrack, EventMemory, MemoryStage, NPCState
+from app.domain.events import EventDTO, CONTRACT_TAGS
+from app.services.npc.perception_filter import calculate_clarity
+
+from app.services.memory.resonance_engine import ResonanceEngine
+from app.services.memory.dialogue_session import DialogueSession
+from app.services.memory.promotion_engine import MemoryPromotionEngine
+from app.core.constants import NARRATIVE_CACHE_MAX
+
+
+class MemoryManager:
+    WORKING_MEMORY_SIZE: int = 20
+
+    def __init__(self, layered_memory: LayeredMemory, data_dir: str = "data") -> None:
+        self._layered = layered_memory
+        self._working = WorkingMemory(maxlen=self.WORKING_MEMORY_SIZE)
+        self._relationships = RelationshipStore(data_dir=data_dir)
+        self._tick_counters: Dict[str, int] = {}
+        self._resonance = ResonanceEngine()
+        # Накопленные черты из ResonanceEngine — фактический NPCIdentityL1 (in-memory)
+        # Ключ: f"{campaign_id}:{npc_id}", значение: {trait_name: weight}
+        # WRITE: только через apply_identity_weights()
+        self._identity_cache: Dict[str, Dict[str, float]] = {}
+        # STM-сессии диалогов. Ключ: campaign_id:npc_id (Закон 4.1.1 — per-NPC)
+        self._dialogue_sessions: Dict[str, DialogueSession] = {}
+
+    @property
+    def working_memory(self) -> WorkingMemory:
+        return self._working
+
+    # ──────────────────────────────────────────────────────────────────────
+    # STM: кратковременная память диалога (Этап 1)
+    # ──────────────────────────────────────────────────────────────────────
+
+    def get_dialogue_session(self, campaign_id: str, npc_id: str) -> DialogueSession:
+        """Возвращает сессию диалога для NPC. Создаёт если нет."""
+        key = f"{campaign_id}:{npc_id}"
+        if key not in self._dialogue_sessions:
+            self._dialogue_sessions[key] = DialogueSession(npc_id=npc_id)
+        return self._dialogue_sessions[key]
+
+    def add_dialogue_turn(self, campaign_id: str, npc_id: str, speaker: str, text: str) -> None:
+        """Добавляет реплику в STM конкретного NPC."""
+        session = self.get_dialogue_session(campaign_id, npc_id)
+        session.add(speaker, text)
+
+    def clear_dialogue_session(self, campaign_id: str, npc_id: str) -> None:
+        """Очищает STM при завершении диалога (NPC ушёл, смена сцены)."""
+        key = f"{campaign_id}:{npc_id}"
+        session = self._dialogue_sessions.pop(key, None)
+        if session is not None:
+            session.clear()
+
+    def clear_all_dialogue_sessions(self, campaign_id: str) -> None:
+        """Очищает все STM-сессии кампании — игрок ушёл из локации."""
+        keys_to_remove = [k for k in self._dialogue_sessions if k.startswith(f"{campaign_id}:")]
+        for key in keys_to_remove:
+            self._dialogue_sessions.pop(key)
+
+    def get_stm_prompt_block(self, campaign_id: str, npc_id: str) -> str:
+        """Возвращает текстуализацию STM для промпта. Пустую строку если нет сессии."""
+        key = f"{campaign_id}:{npc_id}"
+        session = self._dialogue_sessions.get(key)
+        return "" if session is None else session.to_prompt_block()
+
+    # ──────────────────────────────────────────────────────────────────────
+    # EventBus и фазовая модель
+    # ──────────────────────────────────────────────────────────────────────
+    # GameEvent.publish() — Фаза 2 (вход в систему, Закон 5.1).
+    # MemoryManager.apply() — Фаза 3 (обработка для конкретного NPC).
+    # Subscribe невозможен: GameEvent не содержит npc_state,
+    # а npc_state доступен только после Фазы 2.
+    # Поэтому apply() вызывается напрямую из game_loop после NPC-цикла.
+
+    # ──────────────────────────────────────────────────────────────────────
+    # Единственная точка входа события в память (Закон 4.1.2)
+    # Фаза 3 Tick Orchestrator: EventDTO → обновлённый NPCState
+    # ──────────────────────────────────────────────────────────────────────
+    def apply(
+        self,
+        event: EventDTO,
+        npc_state: NPCState,
+        *,
+        campaign_id: str,
+        spatial_query: Optional["SpatialQueryService"] = None,
+    ) -> NPCState:
+        """Принимает EventDTO, создаёт EventMemory, обновляет narrative_cache.
+        
+        Заменяет прямые вызовы create_event_memory + ручную запись
+        в narrative_cache из game_loop.py (нарушение 4.1.2).
+        """
+        payload = event.payload
+        npc_id = payload.get("npc_id", "")
+
+        # 1. Clarity восприятия (расстояние, свет, стресс NPC)
+        scene_state = payload.get("scene_state", {})
+        from app.services.npc.perception_filter import _npc_distance
+        distance = _npc_distance(npc_id, spatial_query)
+        light_level = scene_state.get("environment", {}).get("light_level", "dim")
+        npc_stress = payload.get("npc_stress", getattr(npc_state, "stress", 0.0))
+
+        clarity = calculate_clarity(
+            distance=distance,
+            light_level=light_level,
+            npc_stress=npc_stress,
+        )
+
+        # 2. Важность события
+        emotion_tag = payload.get("emotion_tag", "neutral")
+        importance = payload.get("importance")
+        if importance is None:
+            importance = score_event(
+                event={"type": event.type, **payload},
+                npc_clarity=clarity,
+                npc_stress=npc_stress,
+                emotion_tag=emotion_tag,
+            )
+
+        # 3. Decay rate: негативные эмоции "прилипают"
+        _EMOTION_DECAY_RATE: dict[str, float] = {
+            "angry": 0.03, "fearful": 0.03, "disgusted": 0.03,
+            "grateful": 0.07, "happy": 0.07,
+        }
+        decay_rate = _EMOTION_DECAY_RATE.get(emotion_tag, 0.05)
+        if importance >= 0.90:
+            decay_rate = 0.005
+
+        # Этап 6: обязательства забываются медленнее (×0.4 от базового)
+        _contract_tag_pending = payload.get("contract_tag", "")
+        if _contract_tag_pending in CONTRACT_TAGS:
+            decay_rate *= 0.4
+
+        # 4. Генерация тегов из event.type + emotion_tag (Этап 5 prep)
+        _tags: list[str] = [event.type]
+        if emotion_tag in ("angry", "fearful", "disgusted"):
+            _tags.append("negative")
+        elif emotion_tag in ("grateful", "happy"):
+            _tags.append("positive")
+        else:
+            _tags.append("neutral")
+
+        # 4b. Этап 6: тег контракта — обязательства забываются медленнее
+        contract_tag = payload.get("contract_tag", "")
+        if contract_tag in CONTRACT_TAGS:
+            _tags.append(contract_tag)
+
+        # 5. Создаём EventMemory
+        mem = EventMemory(
+            event_type=event.type,
+            target_id=payload.get("target_id", event.source),
+            emotion_tag=emotion_tag,
+            day=payload.get("day", 0),
+            importance=importance,
+            clarity=clarity,
+            confidence=0.95 if clarity > 0.7 else 0.75,
+            decay_rate=decay_rate,
+            stage=MemoryStage.FRESH,
+            summary=payload.get("summary", ""),
+            npc_id=npc_id,
+            tags=tuple(_tags),
+            is_secret=payload.get("is_secret", False),
+            known_by=tuple(payload.get("known_by", ())),
+            hidden_from=tuple(payload.get("hidden_from", ())),
+            fulfilled=payload.get("fulfilled", False),
+            contract_ref=payload.get("contract_ref", ""),
+        )
+
+        # 6. STM: per-NPC ключ (Закон 4.1.1)
+        self._working.push(f"{campaign_id}:{npc_id}", mem)
+
+        # 7. narrative_cache — ТОЛЬКО через MemoryManager (Закон 4.1.2)
+        cache = list(npc_state.narrative_cache)
+        cache.append(mem)
+        cache.sort(key=lambda f: f.importance, reverse=True)
+        npc_state.narrative_cache = tuple(cache[:NARRATIVE_CACHE_MAX])
+
+        # 8. SQLite persistence — runtime truth (Закон 4.2.1)
+        # event.id как mem_id — трассируемая связь EventDTO → EventMemory
+        _store = self._layered.store
+        if hasattr(_store, "save_event_memory"):
+            _store.save_event_memory(
+                mem_id=str(event.id),
+                campaign_id=campaign_id,
+                mem_data=mem,
+            )
+
+        return npc_state
+
+    # ──────────────────────────────────────────────────────────────────────
+    # SQLite → RAM: восстановление narrative_cache при старте (Закон 4.2.1)
+    # ──────────────────────────────────────────────────────────────────────
+
+    def load_narrative_from_sqlite(
+        self,
+        campaign_id: str,
+        npc_id: str,
+    ) -> Optional[Tuple[EventMemory, ...]]:
+        """Загружает narrative_cache из SQLite. Возвращает None если нет данных —
+        вызывающая сторона fallback'ится на JSON (обратная совместимость)."""
+        _store = self._layered.store
+        if not hasattr(_store, "load_event_memories"):
+            return None
+
+        raw_list = _store.load_event_memories(campaign_id, npc_id)
+        if not raw_list:
+            return None
+
+        _result: List[EventMemory] = []
+        for _d in raw_list:
+            # stage хранится как строка, модель ждёт MemoryStage enum
+            _stage_str = _d.pop("stage", "FRESH")
+            try:
+                _d["stage"] = MemoryStage(_stage_str)
+            except ValueError:
+                _d["stage"] = MemoryStage.FRESH
+            # created_at, id, campaign_id — не поля EventMemory, убираем
+            _d.pop("created_at", None)
+            _d.pop("id", None)
+            _d.pop("campaign_id", None)
+
+            try:
+                _mem = EventMemory(**_d)
+                # Decay при загрузке — NPC загружается раз в тик
+                _mem = _mem.decayed(game_days=1.0)
+                if not _mem.is_forgotten:
+                    _result.append(_mem)
+            except Exception as e:
+                logger.warning(f"[MEMORY] Failed to restore EventMemory for {npc_id}: {e}")
+
+        # Сортировка по importance и лимит — как в apply()
+        _result.sort(key=lambda f: f.importance, reverse=True)
+        return tuple(_result[:NARRATIVE_CACHE_MAX])
+
+    # ──────────────────────────────────────────────────────────────────────
+    # Pressure — доступ к счётчику DialogueSession (Этап 5 prep)
+    # ──────────────────────────────────────────────────────────────────────
+    def get_recent_speech_all_npcs(self, campaign_id: str, limit: int = 5) -> List[str]:
+        """Собирает последние реплики из всех NPC-сессий кампании для DM."""
+        lines: List[str] = []
+        for key, session in self._dialogue_sessions.items():
+            if not key.startswith(f"{campaign_id}:"):
+                continue
+            for turn in session.buffer:
+                speaker = "Игрок" if turn.speaker == "player" else turn.speaker
+                lines.append(f"{speaker}: {turn.text}")
+        return lines[-limit:]
+
+    def get_dialogue_pressure(self, campaign_id: str, npc_id: str) -> int:
+        """Давление по текущей теме диалога."""
+        session = self.get_dialogue_session(campaign_id, npc_id)
+        return session.get_pressure(session.topic) if session else 0
+
+    # ──────────────────────────────────────────────────────────────────────
+    # Suppressed secrets — то что NPC помнит но скрывает (Этап 5.5)
+    # ──────────────────────────────────────────────────────────────────────
+    def get_suppressed_secrets(
+        self,
+        narrative_cache: Tuple[EventMemory, ...],
+        hidden_from_id: str = "player",
+    ) -> List[EventMemory]:
+        """Секреты которые NPC помнит но не раскрыл caller."""
+        return [
+            m for m in narrative_cache
+            if m.is_secret
+            and hidden_from_id in m.hidden_from
+            and not m.is_forgotten
+        ]
+
+    # ──────────────────────────────────────────────────────────────────────
+    # Discovery — раскрытие секретов под давлением (Этап 5.2)
+    # ──────────────────────────────────────────────────────────────────────
+    _PRESSURE_STRENGTH: dict[str, float] = {
+        "physical": 0.45,     # пытки, избиение — самый сильный эффект
+        "threat": 0.35,       # прямая угроза
+        "intimidation": 0.20, # психологическое давление
+        "question": 0.02,     # нудные вопросы — почти ничего
+    }
+
+    def discovery_check(
+        self,
+        memory: EventMemory,
+        *,
+        pressure_type: str = "question",
+        pressure_count: int = 0,
+        npc_stress: float = 0.0,
+        npc_trust: float = 0.0,
+    ) -> DiscoveryCrack:
+        """Определяет уровень трещины в секрете под давлением.
+
+        Формула: resistance - pressure_effect - stress_help
+        - resistance = importance * 0.8 (глубокий секрет сложнее раскрыть)
+        - pressure_effect зависит от ТИПА давления, не от количества вопросов
+        - повторение одного типа даёт убывающий бонус (×1.1, ×1.2, max ×1.5)
+        - низкий trust → упрямство (+resistance)
+        - высокий стресс → хуже врёт (-resistance, но не auto-reveal)
+        """
+        strength = self._PRESSURE_STRENGTH.get(pressure_type, 0.0)
+        if pressure_count > 1:
+            strength *= min(1.0 + (pressure_count - 1) * 0.1, 1.5)
+
+        resistance = memory.importance * 0.8
+        trust_modifier = max(0.0, -npc_trust) * 0.15 if npc_trust < 0 else 0.0
+        stress_modifier = max(0.0, (npc_stress - 0.8)) * 0.15 if npc_stress > 0.8 else 0.0
+
+        total = resistance + trust_modifier - strength - stress_modifier
+
+        if total > 0.5:
+            return DiscoveryCrack.NONE
+        if total > 0.2:
+            return DiscoveryCrack.CRACK
+        return DiscoveryCrack.PARTIAL if total > -0.1 else DiscoveryCrack.BROKEN
+
+    def assess_secrets_under_pressure(
+        self,
+        narrative_cache: Tuple[EventMemory, ...],
+        *,
+        hidden_from_id: str = "player",
+        pressure_type: str = "question",
+        pressure_count: int = 0,
+        npc_stress: float = 0.0,
+        npc_trust: float = 0.0,
+    ) -> List[Tuple[EventMemory, DiscoveryCrack]]:
+        """Проверяет все секреты под давлением, возвращает треснувшие."""
+        result: List[Tuple[EventMemory, DiscoveryCrack]] = []
+        for m in narrative_cache:
+            if not m.is_secret or m.is_forgotten:
+                continue
+            if hidden_from_id not in m.hidden_from:
+                continue
+            crack = self.discovery_check(
+                m,
+                pressure_type=pressure_type,
+                pressure_count=pressure_count,
+                npc_stress=npc_stress,
+                npc_trust=npc_trust,
+            )
+            if crack != DiscoveryCrack.NONE:
+                result.append((m, crack))
+        return result
+
+    # ──────────────────────────────────────────────────────────────────────
+    # Recall — поиск в памяти (Этап 3)
+    # Чистая функция от narrative_cache — не лезет в хранилища.
+    # ──────────────────────────────────────────────────────────────────────
+    def recall(
+        self,
+        narrative_cache: Tuple[EventMemory, ...],
+        *,
+        trigger_tags: Tuple[str, ...] = (),
+        pressure: int = 0,
+        hidden_from_id: str = "",
+        npc_stress: float = 0.0,
+        limit: int = 3,
+        target_npc_id: str = "",
+    ) -> List[EventMemory]:
+        """Ищет релевантные воспоминания из narrative_cache.
+
+        Три режима:
+        1. Триггерный: тег совпал → сортировка по importance.
+        2. По целевому NPC: target_npc_id совпал с target_id → сортировка по importance.
+        3. Случайный: accessibility > 0.2 → сортировка по importance × accessibility.
+
+        Секреты ВСЕГДА фильтруются из recall.
+        Раскрытие секретов — через assess_secrets_under_pressure() отдельно.
+        """
+        if not narrative_cache:
+            return []
+
+        alive = [m for m in narrative_cache if not m.is_forgotten]
+        if hidden_from_id:
+            alive = [m for m in alive if not (m.is_secret and hidden_from_id in m.hidden_from)]
+        if not alive:
+            return []
+
+        # Триггерный поиск: хотя бы один тег совпал
+        triggered: List[EventMemory] = []
+        if trigger_tags:
+            _tag_set = set(trigger_tags)
+            triggered.extend(m for m in alive if _tag_set.intersection(m.tags))
+
+        if triggered:
+            # Сортировка по importance — самые значимые триггеры первые
+            triggered.sort(key=lambda m: m.importance, reverse=True)
+            return triggered[:limit]
+
+        # Этап 7: поиск памяти о конкретном NPC (NPC-NPC взаимодействия)
+        if target_npc_id:
+            if npc_memories := [m for m in alive if m.target_id == target_npc_id]:
+                npc_memories.sort(key=lambda m: m.importance, reverse=True)
+                return npc_memories[:limit]
+
+        # Случайный recall: только доступные воспоминания
+        accessible = [m for m in alive if m.accessibility > 0.2]
+        if not accessible:
+            return []
+
+        # Сортировка: importance × accessibility — баланс значимости и свежести
+        accessible.sort(
+            key=lambda m: m.importance * m.accessibility,
+            reverse=True,
+        )
+        return accessible[:limit]
+
+    # ──────────────────────────────────────────────────────────────────────
+    # Этап 6: контракты и обязательства
+    # ──────────────────────────────────────────────────────────────────────
+    def get_unfulfilled_contracts(
+        self,
+        narrative_cache: Tuple[EventMemory, ...],
+        *,
+        tag_filter: Tuple[str, ...] = (),
+    ) -> List[EventMemory]:
+        """Возвращает невыполненные обязательства из narrative_cache.
+
+        Фильтрует по тегам из CONTRACT_TAGS (promise_given, promise_received, debt).
+        fulfilled=True — исключается (обязательство выполнено).
+        Сортировка: importance DESC — самые pressing первые.
+        """
+        from app.domain.events import CONTRACT_TAGS
+
+        _filter = set(tag_filter) if tag_filter else CONTRACT_TAGS
+        result = [
+            m for m in narrative_cache
+            if not m.is_forgotten
+            and not m.fulfilled
+            and _filter.intersection(m.tags)
+        ]
+        result.sort(key=lambda m: m.importance, reverse=True)
+        return result
+
+    # ──────────────────────────────────────────────────────────────────────
+    # Этап 9: сжатие памяти (Закон 4.1.3 — отдельный класс)
+    # ──────────────────────────────────────────────────────────────────────
+    def compress_narrative_cache(
+        self,
+        narrative_cache: Tuple[EventMemory, ...],
+    ) -> Tuple[EventMemory, ...]:
+        """Сжимает группу похожих событий в одну абстракцию.
+
+        Вызывается после decay — события уже потеряли importance.
+        Возвращает новый кортеж narrative_cache с заменёнными группами.
+        """
+        engine = MemoryPromotionEngine()
+        results = engine.compress(narrative_cache)
+
+        if not results:
+            return narrative_cache
+
+        # Собираем ключи событий, которые были сжаты
+        _removed_keys: set = set()
+        compressed_mems: list = []
+        for r in results:
+            _removed_keys.update(r.removed_ids)
+            compressed_mems.append(r.compressed)
+
+        # Строим новый кэш: не сжатые + сжатые абстракции
+        # Ключ = sequence_id (EventMemory не имеет UUID)
+        kept = [
+            m for m in narrative_cache
+            if f"seq_{m.sequence_id}" not in _removed_keys
+        ]
+        new_cache = kept + compressed_mems
+        new_cache.sort(key=lambda m: m.importance, reverse=True)
+        return tuple(new_cache)
+
+    # ──────────────────────────────────────────────────────────────────────
+    # Persistence — единая точка записи в хранилище (Закон 4.1.2)
+    # game_loop не вызывает layered_memory напрямую.
+    # ──────────────────────────────────────────────────────────────────────
+    def persist_world_canon(
+        self,
+        world_id: str,
+        *,
+        campaign_id: str,
+        source: str,
+        payload: Any,
+    ) -> str:
+        """Запись лора мира в канон. Вызывается при load_campaign."""
+        return self._layered.write_world_canon(
+            world_id,
+            {"campaign_id": campaign_id, "source": source, "payload": payload},
+        )
+
+    def persist_campaign_event(
+        self,
+        campaign_id: str,
+        *,
+        event: str,
+        world_id: str,
+        data: Dict[str, Any],
+    ) -> str:
+        """Запись системного события кампании (load, save, etc)."""
+        return self._layered.write_campaign_memory(
+            campaign_id,
+            {"event": event, "world_id": world_id, **data},
+        )
+
+    def persist_npc_note(
+        self,
+        campaign_id: str,
+        *,
+        note: str,
+        source: str,
+    ) -> str:
+        """Запись заметки об NPC в журнал кампании."""
+        return self._layered.write_npc_memory(
+            campaign_id,
+            {"note": note, "source": source},
+        )
+
+    def read_campaign_history(
+        self,
+        campaign_id: str,
+        *,
+        limit: int = 25,
+    ) -> List[Dict[str, Any]]:
+        """Чтение журнала кампании. Единственная точка чтения из game_loop."""
+        return self._layered.read_campaign_memory(campaign_id, limit=limit)
+
+    def persist_campaign_data(
+        self,
+        campaign_id: str,
+        payload: Dict[str, Any],
+    ) -> str:
+        """Generic запись в журнал кампании. Для специфических случаев
+        (DM-ответ, системное событие) использовать именованные методы."""
+        return self._layered.write_campaign_memory(campaign_id, payload)
+
+    def persist_dm_response(
+        self,
+        campaign_id: str,
+        *,
+        world_id: str,
+        location: str,
+        actions: List[Any],
+        dm_text: str,
+    ) -> str:
+        """Запись DM-ответа в журнал кампании. Возвращает ID записи."""
+        return self._layered.write_campaign_memory(
+            campaign_id,
+            {
+                "world_id": world_id,
+                "location": location,
+                "actions":  actions,
+                "dm":       dm_text,
+            },
+        )
+
+    # ──────────────────────────────────────────────────────────────────────
+    # Основные методы записи (используются game_loop.py) — ЛЕГАСИ, мигрируют на apply()
+    # ──────────────────────────────────────────────────────────────────────
+    
+    def update_relationship(
+        self,
+        campaign_id: str,
+        source: str,
+        target: str,
+        delta: Dict[str, float],
+    ) -> None:
+        self._relationships.update(campaign_id, source, target, delta)
+
+    def get_relationships(self, campaign_id: str) -> Dict[str, Any]:
+        return self._relationships.get_all(campaign_id)
+
+    def update_beliefs(
+        self,
+        beliefs: List[Dict[str, Any]],
+        new_event: Dict[str, Any],
+    ) -> List[Dict[str, Any]]:
+        return resolve_all(beliefs, new_event)
+
+    def get_weights_for_decision(
+        self,
+        campaign_id: str,
+        npc_id: str,
+        target_id: str,
+    ) -> Dict[str, float]:
+        rel = self._relationships.get_pair(campaign_id, npc_id, target_id)
+        recent = self._working.get(f"{campaign_id}:{npc_id}")
+
+        recent_pressure = 0.0
+        for e in recent:
+            if isinstance(e, dict):
+                # Legacy формат
+                if e.get("actor") == target_id or e.get("target") == target_id:
+                    recent_pressure += e.get("importance", 0.0)
+            elif hasattr(e, "npc_id") and e.npc_id == npc_id:
+                # EventMemory — учитываем все события этого NPC
+                recent_pressure += e.importance
+
+        return {
+            "trust": rel.get("trust", 0.0),
+            "fear": rel.get("fear", 0.0),
+            "debt": rel.get("debt", 0.0),
+            "recent_pressure": min(recent_pressure, 100.0),
+        }
+
+    def run_decay_if_needed(
+        self,
+        campaign_id: str,
+        current_tick: int,
+        game_days: float = 1.0,
+    ) -> List[Tuple[str, float]]:
+        """
+        R5.3 + Этап 8 — запускает decay по игровым дням, возвращает identity weights.
+        Триггер: раз в DECAY_EVERY тиков (частота вызова не меняется),
+        но magnitude decay считается в game_days, не в тиках.
+        """
+        last = self._tick_counters.get(campaign_id, 0)
+        if current_tick - last < DECAY_EVERY:
+            return []
+
+        all_weights: List[Tuple[str, float]] = []
+
+        # Старый формат: один буфер на кампанию
+        if self._working.get(campaign_id):
+            all_weights.extend(self._working.apply_decay(campaign_id, game_days=game_days))
+
+        # Новый формат: per-NPC буферы (campaign_id:npc_id)
+        for key in self._working.get_keys_with_prefix(f"{campaign_id}:"):
+            all_weights.extend(self._working.apply_decay(key, game_days=game_days))
+
+        self._tick_counters[campaign_id] = current_tick
+        return all_weights
+
+
+    def detect_resonance(
+        self,
+        campaign_id: str,
+        actor_id: str = "player",
+    ) -> List[Tuple[str, float]]:
+        """
+        R5.4 — детектирует паттерны в WorkingMemory, возвращает trait deltas.
+        Вызывается из python_engines после run_decay_if_needed.
+        Возвращает List[(trait_name, delta)] — тот же формат что и run_decay_if_needed.
+        """
+        events = self._working.get(campaign_id)
+        if not events:
+            return []
+
+        from app.models.npc_state import EventMemory as _EM
+        em_events = [e for e in events if isinstance(e, _EM)]
+
+        patterns = self._resonance.detect(em_events, actor_id=actor_id)
+        return [(p.trait_name, p.trait_delta) for p in patterns]
+
+
+    def apply_identity_weights(
+            self,
+            campaign_id: str,
+            npc_id:      str,
+            weights:     List[Tuple[str, float]],
+        ) -> None:
+            """
+            Применяет trait-дельты из ResonanceEngine в identity_cache.
+            WRITE: только этот метод пишет в _identity_cache.
+            """
+            key = f"{campaign_id}:{npc_id}"
+            cache = self._identity_cache.setdefault(key, {})
+            for trait, delta in weights:
+                current = cache.get(trait, 0.0)
+                cache[trait] = round(max(0.0, min(1.0, current + delta)), 4)
+                
+
+    def get_identity_traits(
+        self,
+        campaign_id: str,
+        npc_id:      str,
+    ) -> Dict[str, float]:
+        """
+        Возвращает накопленные черты NPC из identity_cache.
+        READ: для DecisionHub через DecisionView.identity.active_traits
+        """
+        key = f"{campaign_id}:{npc_id}"
+        return dict(self._identity_cache.get(key, {}))
+
+    def check_identity_promotion(
+        self,
+        campaign_id: str,
+        npc_id: str,
+    ) -> List[Tuple[str, float]]:
+        """Этап 10: проверяет мета-паттерны в накопленных чертах.
+
+        Если комбинация черт удовлетворяет правилу — генерирует новую черту.
+        Возвращает список новых (trait_name, delta) для логирования.
+        Новые черты сразу применяются в identity_cache.
+        """
+        current = self.get_identity_traits(campaign_id, npc_id)
+        engine = MemoryPromotionEngine()
+        new_traits = engine.check_identity(current)
+        if new_traits:
+            self.apply_identity_weights(campaign_id, npc_id, new_traits)
+        return new_traits      

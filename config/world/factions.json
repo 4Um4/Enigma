@@ -1,0 +1,42 @@
+{
+  "_version": "1.0",
+  "_type": "factions",
+  "factions": {
+    "гильдия_воров": {
+      "name": "Гильдия Воров",
+      "nature": "criminal",
+      "base_reputation": -50,
+      "npc_members": ["thief_shadow"],
+      "npc_debtors": ["tavern_keeper_tornin"],
+      "rivals": ["городская_стража"],
+      "allies": []
+    },
+    "городская_стража": {
+      "name": "Городская Стража",
+      "nature": "law_enforcement",
+      "base_reputation": 0,
+      "npc_members": ["guard_borko"],
+      "npc_debtors": [],
+      "rivals": ["гильдия_воров"],
+      "allies": []
+    },
+    "торговая_гильдия": {
+      "name": "Торговая Гильдия",
+      "nature": "merchant",
+      "base_reputation": 10,
+      "npc_members": ["merchant_goran"],
+      "npc_debtors": [],
+      "rivals": [],
+      "allies": ["городская_стража"]
+    },
+    "таверна_серебряный_волк": {
+      "name": "Таверна Серебряный Волк",
+      "nature": "neutral",
+      "base_reputation": 0,
+      "npc_members": ["tavern_keeper_tornin", "maid_lusya"],
+      "npc_debtors": [],
+      "rivals": [],
+      "allies": []
+    }
+  }
+}
