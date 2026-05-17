@@ -68,6 +68,9 @@ class PerceivedEntity:
     traversal_progress: float = 0.0              # 0.0 - 1.0 прогресс между текущими waypoint
     traversal_speed: float = 1.5                 # Скорость визуальной интерполяции (м/с)
 
+    # --- Cognitive Layer (Спринт 30: Визуализация Cognitive Freeze) ---
+    initiative_suppression: float = 0.0          # 0.0-1.0, паралич воли
+
     # --- Interpretation Layer ---
     observations: List[str] = field(default_factory=list)
     inferences: List[Inference] = field(default_factory=list)

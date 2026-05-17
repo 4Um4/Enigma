@@ -107,6 +107,7 @@ class PerceptionSubscriber:
                     npc_ids=_all_npc_ids,
                     event=_event,
                     scene_state=ctx.shared_context.scene_state or {},
+                    spatial_query=getattr(ctx.shared_context, 'spatial_query', None),
                 ))
 
             # Адресат всегда воспринимает + свидетели по perception

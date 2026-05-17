@@ -24,6 +24,7 @@ import sys
 import os
 from dataclasses import dataclass, field
 from typing import Any, Dict, List
+from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -41,7 +42,8 @@ class SandboxConfig:
     seed: int = 42
     score_anomaly_low: float = -1.0
     score_anomaly_high: float = 3.0
-    output_csv: str = "hub_balance_results.csv"
+    # Спринт 30: Артефакты песочницы должны лежать в песочнице, а не в корне проекта
+    output_csv: str = str(Path(__file__).resolve().parent / "hub_balance_results.csv")
 
 
 @dataclass
@@ -330,7 +332,7 @@ class HubReporter:
         ax.legend()
         ax.grid(True, alpha=0.3)
         fig.tight_layout()
-        fig.savefig("hub_balance_score.png", dpi=150)
+        fig.savefig(str(Path(__file__).resolve().parent / "hub_balance_score.png"), dpi=300)
         plt.close(fig)
 
         # 2. Круговая диаграмма intents
@@ -343,7 +345,7 @@ class HubReporter:
         ax.pie(sizes, labels=labels, autopct="%1.1f%%", startangle=140)
         ax.set_title("Распределение Intent")
         fig.tight_layout()
-        fig.savefig("hub_balance_intents.png", dpi=150)
+        fig.savefig(str(Path(__file__).resolve().parent / "hub_balance_intents.png"), dpi=300)
         plt.close(fig)
 
         print("[REPORTER] Графики сохранены: hub_balance_*.png")

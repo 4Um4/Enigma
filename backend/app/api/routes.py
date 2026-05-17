@@ -1,3 +1,4 @@
+import contextlib
 from datetime import datetime
 from typing import Literal, List
 
@@ -70,7 +71,7 @@ def _combat_response(state) -> CombatStateResponse:
 
 @router.get("/ports")
 def get_ports() -> dict:
-    from backend.data.runtime_ports import get_runtime_ports
+    from data.runtime_ports import get_runtime_ports
     return get_runtime_ports()
 
 @router.get("/health")
@@ -80,10 +81,8 @@ async def health() -> dict:
     
     llm_status = check_llm_health(use_cache=True)
     active_campaigns = list(player_session_service._sessions.keys())
-    total_players = sum(
-        1 for camp_id in active_campaigns 
-        if player_session_service.is_player_active(camp_id)
-    )
+    total_players = sum(bool(player_session_service.is_player_active(camp_id))
+                    for camp_id in active_campaigns)
     pool_status = await pool.get_status()
     
     return {
@@ -310,8 +309,7 @@ async def game_action(request: dict, game_loop=Depends(get_game_loop)) -> dict:
         campaign_state = campaign_service.get_campaign_state(campaign_id)
         location = "tavern_silver_wolf"  # дефолт — ID локации, неdisplayName
         if campaign_state:
-            saved_location = campaign_state.metadata.get("current_location")
-            if saved_location:
+            if saved_location := campaign_state.metadata.get("current_location"):
                 location = saved_location
 
         turn_request = ChatTurnRequest(
@@ -381,7 +379,7 @@ def session_state(campaign_id: str, game_loop=Depends(get_game_loop)) -> Session
 
     # Фаза S + 3B: добавляем metadata и scene_state для фронтенда
     # Фронтенд читает metadata.current_location и metadata.time_of_day
-    try:
+    with contextlib.suppress(Exception):
         import json
         # campaign_state.json хранит metadata (location, time) и scene_state напрямую
         cs_path = game_loop.data_dir / "campaigns" / campaign_id / "campaign_state.json"
@@ -390,22 +388,17 @@ def session_state(campaign_id: str, game_loop=Depends(get_game_loop)) -> Session
             # Берём metadata как есть
             meta = cs.get("metadata", {})
             state.layers["metadata"] = meta
-            # scene_state хранится прямо в campaign_state.json
-            raw_scene = cs.get("scene_state")
-            if raw_scene:
+            if raw_scene := cs.get("scene_state"):
                 state.layers["scene_state"] = raw_scene
             elif meta.get("current_location"):
                 # Fallback: запрашиваем через SceneManager
                 try:
-                    scene = game_loop.scene_manager.get_scene_state(
+                    if scene := game_loop.scene_manager.get_scene_state(
                         campaign_id, meta["current_location"]
-                    )
-                    if scene:
+                    ):
                         state.layers["scene_state"] = scene
                 except Exception as e:
                     print(f"[ROUTES] Ошибка получения scene_state: {e}")
-    except Exception:
-        pass
 
     return state
 
@@ -424,9 +417,7 @@ def get_npcs(campaign_id: str, game_loop=Depends(get_game_loop)) -> dict:
             cs_path = game_loop.data_dir / "campaigns" / campaign_id / "campaign_state.json"
             if cs_path.exists():
                 cs = json.loads(cs_path.read_text(encoding="utf-8-sig"))
-                current_location = cs.get("scene_state", {}).get("location_id")
-                if not current_location:
-                    current_location = cs.get("metadata", {}).get("current_location")
+                current_location = cs.get("scene_state", {}).get("location_id") or cs.get("metadata", {}).get("current_location")
         except Exception as e:
             print(f"[ROUTES] Ошибка чтения current_location: {e}")
 
@@ -527,7 +518,7 @@ def get_interface_sessions(campaign_id: str) -> List[dict]:
 @router.post("/player/heartbeat", response_model=HeartbeatResponse)
 def player_heartbeat(request: HeartbeatRequest) -> HeartbeatResponse:
     characters = character_service.list_characters(request.campaign_id)
-    if not any(c.name == request.player_name for c in characters):
+    if all(c.name != request.player_name for c in characters):
         raise HTTPException(status_code=412, detail=f"Персонаж '{request.player_name}' не найден")
     session = player_session_service.heartbeat(request.campaign_id, request.player_name)
     return HeartbeatResponse(active=session.active, player_name=request.player_name, message="Heartbeat обновлён")
@@ -540,10 +531,10 @@ def get_active_players(campaign_id: str) -> List[str]:
 
 @router.get("/player/session/{campaign_id}", response_model=PlayerSessionResponse)
 def get_player_session(campaign_id: str) -> PlayerSessionResponse:
-    session = player_session_service.get_session(campaign_id)
-    if not session:
+    if session := player_session_service.get_session(campaign_id):
+        return PlayerSessionResponse(player=session.player_name, active=player_session_service.is_player_active(campaign_id))
+    else:
         return PlayerSessionResponse(player=None, active=False)
-    return PlayerSessionResponse(player=session.player_name, active=player_session_service.is_player_active(campaign_id))
 
 
 @router.post("/player/session/{campaign_id}", response_model=PlayerSessionResponse)
@@ -552,7 +543,7 @@ def create_player_session(campaign_id: str, request: dict, game_loop=Depends(get
     if not player_name:
         raise HTTPException(status_code=400, detail="Поле 'player' обязательно")
     characters = character_service.list_characters(campaign_id)
-    if not any(c.name == player_name for c in characters):
+    if all(c.name != player_name for c in characters):
         raise HTTPException(status_code=404, detail=f"Персонаж '{player_name}' не найден")
     session = player_session_service.select_player(campaign_id, player_name)
     # Сбрасываем флаг сессии — следующий ход будет session_start (сброс стресса NPC)
@@ -566,7 +557,7 @@ def create_player_session(campaign_id: str, request: dict, game_loop=Depends(get
 @router.post("/player/select", response_model=PlayerSelectResponse)
 def select_player(request: PlayerSelectRequest) -> PlayerSelectResponse:
     characters = character_service.list_characters(request.campaign_id)
-    if not any(c.name == request.player for c in characters):
+    if all(c.name != request.player for c in characters):
         raise HTTPException(status_code=404, detail=f"Персонаж '{request.player}' не найден")
     player_session_service.select_player(request.campaign_id, request.player)
     return PlayerSelectResponse(status="ok", player=request.player)

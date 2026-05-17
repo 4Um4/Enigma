@@ -166,9 +166,7 @@ def _parse_game_time(scene_state: Optional[dict]) -> str:
     if tod in _verbal_map:
         return _verbal_map[tod]
     # Если уже "HH:MM" формат — возвращаем как есть
-    if ":" in str(tod):
-        return str(tod)
-    return "12:00"
+    return str(tod) if ":" in str(tod) else "12:00"
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -254,36 +252,32 @@ class LifeEngine:
         - События: агрегированная вероятность
         """
         idle_seconds = self.get_idle_seconds(campaign_id)
-        
+
         if idle_seconds < MACRO_SIM_THRESHOLD_SECONDS:
             # Короткое отсутствие — обычный тик (или несколько)
             return self.tick(campaign_id, scene_state, runtime_path=runtime_path)
-        
+
         logger.info(
             f"[LIFE_ENGINE] macro_simulate для '{campaign_id}': "
             f"idle={idle_seconds:.0f}s"
         )
-        
+
         from app.services.npc.npc_loader import load_npcs_merged
         npcs = load_npcs_merged(runtime_path=runtime_path)
         all_changes: list[SceneChange] = []
         current_time = _parse_game_time(scene_state)
-        
+
         for npc in npcs:
             tier = npc.get("tier", "major")
             npc_id = npc.get("id", "?")
-            
+
             if tier == "mass":
                 continue
-                
+
             try:
                 # 1. Расписание — прыгаем к текущему слоту
                 routine_changes, routine_intent = self.update_routine(npc, current_time)
                 all_changes.extend(routine_changes)
-                if routine_intent:
-                    # ADR-049: Удален прямой вызов MovementEngine. Намерение собирается оркестратором.
-                    pass
-                
                 # 2. Стресс — нормализация к baseline
                 psyche = npc.setdefault("psyche", {})
                 current_stress = psyche.get("stress", 0)
@@ -293,20 +287,20 @@ class LifeEngine:
                     baseline = 10  # нормальный фоновый стресс
                     decay = 0.3    # за долгое отсутствие сбросить на 70%
                     psyche["stress"] = round(baseline + (current_stress - baseline) * decay)
-                
+
                 # 3. Агрегированные события — вероятность * время
                 # 5% за тик, но мы не считаем тики — используем эвристику
                 if tier == "major" and random.random() < 0.4:  # 40% шанс за долгий idle
                     event_changes = self.check_random_events(npc, self.get_current_tick(campaign_id))
                     all_changes.extend(event_changes)
-                    
+
             except Exception as e:
                 logger.error(f"[LIFE_ENGINE] macro_simulate error for '{npc_id}': {e}")
-        
+
         # Обновляем кэш и tick
         self._npc_cache[campaign_id] = npcs
         self._increment_tick(campaign_id)  # Один тик за всю макро-симуляцию
-        
+
         logger.info(
             f"[LIFE_ENGINE] macro_simulate завершена: "
             f"{len(all_changes)} changes"
@@ -436,7 +430,7 @@ class LifeEngine:
         # LRU: автоочистка перед доступом
         self._evict_stale()
         self._touch(campaign_id)
-        
+
         # Tick: инкремент с персистенцией
         current_tick = self._increment_tick(campaign_id)
         current_time = _parse_game_time(scene_state)
@@ -447,9 +441,7 @@ class LifeEngine:
         )
 
         # Используем кэшированных NPC если есть, иначе загружаем с диска
-        npcs = self._npc_cache.get(campaign_id)
-        if not npcs:
-            npcs = load_npcs_merged(runtime_path=runtime_path)
+        npcs = self._npc_cache.get(campaign_id) or load_npcs_merged(runtime_path=runtime_path)
         all_changes: list[SceneChange] = []
         all_intents: list[MovementIntent] = [] # ADR-049: Сборка намерений
         npcs_updated = False
@@ -466,7 +458,6 @@ class LifeEngine:
                     all_intents.extend(intents)
                     npcs_updated = True
 
-                # ── MINOR: расписание + случайные события раз в N тиков ─────
                 elif tier == "minor":
                     last_minor = npc.get("routine", {}).get("_last_life_tick", 0)
                     if (current_tick - last_minor) >= MINOR_TICK_INTERVAL:
@@ -475,10 +466,6 @@ class LifeEngine:
                         all_intents.extend(intents)
                         npc.setdefault("routine", {})["_last_life_tick"] = current_tick
                         npcs_updated = True
-
-                # ── MASS: только проверяем присутствие (0ms) ─────────────────
-                elif tier == "mass":
-                    pass
 
             except Exception as e:
                 logger.error(f"[LIFE_ENGINE] Ошибка при обработке NPC '{npc_id}': {e}")
@@ -596,7 +583,7 @@ class LifeEngine:
                     event=event,
                     scene_state=scene_state,
                     identity=_identity,
-                    eco_modifiers=interpretation.score_modifiers if interpretation.score_modifiers else None,
+                    eco_modifiers=interpretation.score_modifiers or None,
                     social_modifiers=None,
                     reputation_modifiers=None,
                     drive_modifiers=_drive_mods,
@@ -758,28 +745,30 @@ class LifeEngine:
         # HOT cache hit
         if campaign_id in self._npc_cache:
             return self._npc_cache[campaign_id]
-        
+
         # COLD storage: campaign-specific файл
         campaign_file = self.sessions_dir / campaign_id / "major_npcs.json"
         if campaign_file.exists():
             try:
-                npcs = json.loads(campaign_file.read_text(encoding="utf-8"))
-                self._npc_cache[campaign_id] = npcs
-                return npcs
+                return self._extracted_from__load_npcs_14(campaign_file, campaign_id)
             except (json.JSONDecodeError, OSError) as e:
                 logger.warning(f"[LIFE_ENGINE] Ошибка чтения campaign NPC: {e}")
-        
+
         # Fallback: глобальный файл
         global_file = self._npcs_file()
         if global_file.exists():
             try:
-                npcs = json.loads(global_file.read_text(encoding="utf-8"))
-                self._npc_cache[campaign_id] = npcs
-                return npcs
+                return self._extracted_from__load_npcs_14(global_file, campaign_id)
             except (json.JSONDecodeError, OSError) as e:
                 logger.warning(f"[LIFE_ENGINE] Ошибка чтения global NPC: {e}")
-        
+
         return []
+
+    # TODO Rename this here and in `_load_npcs`
+    def _extracted_from__load_npcs_14(self, arg0, campaign_id):
+        npcs = json.loads(arg0.read_text(encoding="utf-8"))
+        self._npc_cache[campaign_id] = npcs
+        return npcs
 
     def get_npc_states(self, campaign_id: str) -> list[dict]:
         """Возвращает кэшированные NPC states после мутации в tick().
@@ -787,8 +776,7 @@ class LifeEngine:
         Вызывать ТОЛЬКО после tick() в рамках одного тика.
         Если кэш пуст — значит tick() не была вызвана, возвращаем [].
         """
-        cached = self._npc_cache.get(campaign_id)
-        if cached:
+        if cached := self._npc_cache.get(campaign_id):
             return list(cached)
         logger.warning(
             f"[LIFE_ENGINE] get_npc_states: кэш пуст для '{campaign_id}'. "
@@ -813,11 +801,10 @@ class LifeEngine:
         bar_target = "bar_area"  # @deprecated: fallback
         if self._spatial_service:
             from app.models.spatial_contracts import NodeRole
-            bar_ref = self._spatial_service.resolve_node(
+            if bar_ref := self._spatial_service.resolve_node(
                 role=NodeRole.BAR,
                 origin_zone=location,
-            )
-            if bar_ref:
+            ):
                 # MovementEngine ожидает legacy-ID, денормализуем
                 bar_target = self._spatial_service.denormalize_id(bar_ref.node_id)
 
@@ -885,77 +872,75 @@ class LifeEngine:
           current_time: str,
           tick: int,
       ) -> tuple[list[SceneChange], list["MovementIntent"]]:
-          """
+        """
           Полная симуляция Major NPC за один тик.
           Порядок: need-driven → расписание → стресс → случайные события.
           Need-driven имеет приоритет: если потребность критична — schedule пропускается.
           ADR-049: Возвращает list[MovementIntent] вместо прямого исполнения.
           """
-          # ADR-052: Cognitive Override Guard. Паралич воли блокирует любую активность.
-          _kernel = npc.get("perceptual_kernel")
-          _init_sup = _kernel.get("initiative_suppression", 0.0) if isinstance(_kernel, dict) else getattr(_kernel, "initiative_suppression", 0.0) if _kernel else 0.0
-          _recent_dir = _kernel.get("recent_directive") if isinstance(_kernel, dict) else getattr(_kernel, "recent_directive", None) if _kernel else None
-          if _init_sup > 0.7:
-              npc_id = npc.get("id", "unknown")
-              logger.debug(f"[LIFE_ENGINE] {npc_id}: Major cycle bypassed due to initiative_suppression={_init_sup:.2f}")
-              return [], []
+        # ADR-052: Cognitive Override Guard. Паралич воли блокирует любую активность.
+        _kernel = npc.get("perceptual_kernel")
+        _init_sup = _kernel.get("initiative_suppression", 0.0) if isinstance(_kernel, dict) else getattr(_kernel, "initiative_suppression", 0.0) if _kernel else 0.0
+        _recent_dir = _kernel.get("recent_directive") if isinstance(_kernel, dict) else getattr(_kernel, "recent_directive", None) if _kernel else None
+        if _init_sup > 0.7:
+            npc_id = npc.get("id", "unknown")
+            logger.debug(f"[LIFE_ENGINE] {npc_id}: Major cycle bypassed due to initiative_suppression={_init_sup:.2f}")
+            return [], []
 
-          changes: list[SceneChange] = []
-          intents: list[MovementIntent] = []
-  
-          # ── D6: сбор всех intent-ов с приоритетами ──
-          candidates: list[MovementIntent] = []
-  
-          # 1. Need-driven: растём потребности, проверяем порог
-          self._tick_needs(npc)
-          need_intent = self._check_need_driven_movement(npc)
-          if need_intent:
-              candidates.append(need_intent)
-  
-          # 2. Расписание (всегда генерирует, но может быть None)
-          routine_changes, routine_intent = self.update_routine(npc, current_time, tick)
-          changes.extend(routine_changes)
-          if routine_intent:
-              candidates.append(routine_intent)
-  
-          # 3. Случайные события (5% шанс) — могут породить intent
-          event_changes, event_intent = self.check_random_events(npc, tick)
-          changes.extend(event_changes)
-          if event_intent:
-              candidates.append(event_intent)
-  
-          # 4. Восстанавливаем стресс (без SceneChange — только данные NPC)
-          self.recover_stress_tick(npc)
-  
-          # ── D6: выбираем лучший intent по priority ──
-          if candidates:
-              candidates.sort(key=lambda i: i.priority, reverse=True)
-              winner = candidates[0]
-              # ADR-049: LifeEngine больше не диктатор. Он не исполняет намерения сам.
-              # Намерение передается в TickOrchestrator для прохождения каузального конвейера.
-              logger.info(f"[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc={winner.npc_id} target={winner.target_node_id} reason={winner.reason}")
-              intents.append(winner)
-              # Обновляем activity в scene_state
-              if winner.reason.startswith("need_driven:"):
-                  target_activity = _NEED_TO_ACTIVITY.get(
-                      winner.reason.split(":")[1].split("=")[0], ""
-                  )
-                  if target_activity:
-                      activity_entry = npc.get("activity_map", {}).get(target_activity, {})
-                      changes.append(SceneChange(
-                          type=ChangeType.NPC_POSITION,
-                          target=winner.npc_id,
-                          field="activity",
-                          value=activity_entry.get("display", target_activity),
-                          cause=f"life_engine_need_driven:{winner.reason}",
-                          tick=tick,
-                      ))
-              logger.debug(
-                  f"[LIFE_ENGINE] {npc.get('id', '?')}: "
-                  f"{len(candidates)} intents, winner={winner.reason} (p={winner.priority})"
-              )
+        changes: list[SceneChange] = []
+        intents: list[MovementIntent] = []
 
-          return changes, intents
+        # ── D6: сбор всех intent-ов с приоритетами ──
+        candidates: list[MovementIntent] = []
+
+        # 1. Need-driven: растём потребности, проверяем порог
+        self._tick_needs(npc)
+        if need_intent := self._check_need_driven_movement(npc):
+            candidates.append(need_intent)
+
+        # 2. Расписание (всегда генерирует, но может быть None)
+        routine_changes, routine_intent = self.update_routine(npc, current_time, tick)
+        changes.extend(routine_changes)
+        if routine_intent:
+            candidates.append(routine_intent)
+
+        # 3. Случайные события (5% шанс) — могут породить intent
+        event_changes, event_intent = self.check_random_events(npc, tick)
+        changes.extend(event_changes)
+        if event_intent:
+            candidates.append(event_intent)
+
+        # 4. Восстанавливаем стресс (без SceneChange — только данные NPC)
+        self.recover_stress_tick(npc)
+
+        # ── D6: выбираем лучший intent по priority ──
+        if candidates:
+            candidates.sort(key=lambda i: i.priority, reverse=True)
+            winner = candidates[0]
+            # ADR-049: LifeEngine больше не диктатор. Он не исполняет намерения сам.
+            # Намерение передается в TickOrchestrator для прохождения каузального конвейера.
+            logger.info(f"[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc={winner.npc_id} target={winner.target_node_id} reason={winner.reason}")
+            intents.append(winner)
+            # Обновляем activity в scene_state
+            if winner.reason.startswith("need_driven:"):
+                if target_activity := _NEED_TO_ACTIVITY.get(
+                    winner.reason.split(":")[1].split("=")[0], ""
+                ):
+                    activity_entry = npc.get("activity_map", {}).get(target_activity, {})
+                    changes.append(SceneChange(
+                        type=ChangeType.NPC_POSITION,
+                        target=winner.npc_id,
+                        field="activity",
+                        value=activity_entry.get("display", target_activity),
+                        cause=f"life_engine_need_driven:{winner.reason}",
+                        tick=tick,
+                    ))
+            logger.debug(
+                f"[LIFE_ENGINE] {npc.get('id', '?')}: "
+                f"{len(candidates)} intents, winner={winner.reason} (p={winner.priority})"
+            )
+
+        return changes, intents
 
     # ─────────────────────────────────────────────────────────────────────
     # Need-driven movement — перемещение по потребностям
@@ -1143,18 +1128,16 @@ class LifeEngine:
         )
 
         prev_location = npc.get("location", new_location)
-        changes: list[SceneChange] = []
-
-        # ── Генерируем когнитивные SceneChange ──
-
-        changes.append(SceneChange(
-            type=ChangeType.NPC_POSITION,
-            target=npc_id,
-            field="activity",
-            value=activity_display,
-            cause="life_engine_schedule",
-            tick=tick,
-        ))
+        changes: list[SceneChange] = [
+            SceneChange(
+                type=ChangeType.NPC_POSITION,
+                target=npc_id,
+                field="activity",
+                value=activity_display,
+                cause="life_engine_schedule",
+                tick=tick,
+            )
+        ]
 
         going_to_sleep = "sleeping" in new_activity or "resting" in new_activity
         changes.append(SceneChange(
@@ -1205,7 +1188,7 @@ class LifeEngine:
         # но физическое перемещение к новой локации — задача MovementEngine.
         # npc["location"] = new_location
         # npc["position"] = new_position
-        
+
         logger.debug(
             f"[LIFE_ENGINE] {npc_id}: активность {prev_activity!r} → {new_activity!r} "
             f"в {current_time}"
@@ -1220,10 +1203,14 @@ class LifeEngine:
         schedule: {"06:00-22:00": "working", "22:00-06:00": "sleeping"}
         """
         current_minutes = _time_to_minutes(current_time)
-        for time_range, activity in schedule.items():
-            if _in_time_range(time_range, current_minutes):
-                return activity
-        return ""
+        return next(
+            (
+                activity
+                for time_range, activity in schedule.items()
+                if _in_time_range(time_range, current_minutes)
+            ),
+            "",
+        )
 
     def _resolve_position(
         self,
@@ -1241,14 +1228,18 @@ class LifeEngine:
             entry = npc_map[activity]
             return (entry["location"], entry["position"], entry["display"])
 
-        for key, entry in npc_map.items():
-            if activity.startswith(key) or key.startswith(activity):
-                return (entry["location"], entry["position"], entry["display"])
-
-        if activity in _DEFAULT_ACTIVITY_MAP:
-            return _DEFAULT_ACTIVITY_MAP[activity]
-
-        return ("tavern_silver_wolf", "common_area", activity)
+        return next(
+            (
+                (entry["location"], entry["position"], entry["display"])
+                for key, entry in npc_map.items()
+                if activity.startswith(key) or key.startswith(activity)
+            ),
+            (
+                _DEFAULT_ACTIVITY_MAP[activity]
+                if activity in _DEFAULT_ACTIVITY_MAP
+                else ("tavern_silver_wolf", "common_area", activity)
+            ),
+        )
 
     @staticmethod
     def _mood_for_activity(activity: str) -> str:

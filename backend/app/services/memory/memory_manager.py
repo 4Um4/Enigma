@@ -1,13 +1,20 @@
+# backend\app\services\memory\memory_manager.py
 """
 R1.1 + R5.3 — MemoryManager.
 Фасад всей памяти. Теперь поддерживает создание EventMemory с реальным clarity.
+
+TODO:
+
 """
 
 from __future__ import annotations
 import logging
-from typing import Any, Dict, List, Tuple, Optional
+from typing import Any, Dict, List, Tuple, Optional, TYPE_CHECKING
 
 logger = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    from app.services.spatial.spatial_query_service import SpatialQueryService
 
 from app.services.memory import LayeredMemory
 from app.services.memory.working_memory import WorkingMemory
@@ -79,9 +86,7 @@ class MemoryManager:
         """Возвращает текстуализацию STM для промпта. Пустую строку если нет сессии."""
         key = f"{campaign_id}:{npc_id}"
         session = self._dialogue_sessions.get(key)
-        if session is None:
-            return ""
-        return session.to_prompt_block()
+        return "" if session is None else session.to_prompt_block()
 
     # ──────────────────────────────────────────────────────────────────────
     # EventBus и фазовая модель
@@ -102,6 +107,7 @@ class MemoryManager:
         npc_state: NPCState,
         *,
         campaign_id: str,
+        spatial_query: Optional["SpatialQueryService"] = None,
     ) -> NPCState:
         """Принимает EventDTO, создаёт EventMemory, обновляет narrative_cache.
         
@@ -114,7 +120,7 @@ class MemoryManager:
         # 1. Clarity восприятия (расстояние, свет, стресс NPC)
         scene_state = payload.get("scene_state", {})
         from app.services.npc.perception_filter import _npc_distance
-        distance = _npc_distance(npc_id, scene_state)
+        distance = _npc_distance(npc_id, spatial_query)
         light_level = scene_state.get("environment", {}).get("light_level", "dim")
         npc_stress = payload.get("npc_stress", getattr(npc_state, "stress", 0.0))
 
@@ -327,9 +333,7 @@ class MemoryManager:
             return DiscoveryCrack.NONE
         if total > 0.2:
             return DiscoveryCrack.CRACK
-        if total > -0.1:
-            return DiscoveryCrack.PARTIAL
-        return DiscoveryCrack.BROKEN
+        return DiscoveryCrack.PARTIAL if total > -0.1 else DiscoveryCrack.BROKEN
 
     def assess_secrets_under_pressure(
         self,
@@ -397,9 +401,7 @@ class MemoryManager:
         triggered: List[EventMemory] = []
         if trigger_tags:
             _tag_set = set(trigger_tags)
-            for m in alive:
-                if _tag_set.intersection(m.tags):
-                    triggered.append(m)
+            triggered.extend(m for m in alive if _tag_set.intersection(m.tags))
 
         if triggered:
             # Сортировка по importance — самые значимые триггеры первые
@@ -408,8 +410,7 @@ class MemoryManager:
 
         # Этап 7: поиск памяти о конкретном NPC (NPC-NPC взаимодействия)
         if target_npc_id:
-            npc_memories = [m for m in alive if m.target_id == target_npc_id]
-            if npc_memories:
+            if npc_memories := [m for m in alive if m.target_id == target_npc_id]:
                 npc_memories.sort(key=lambda m: m.importance, reverse=True)
                 return npc_memories[:limit]
 

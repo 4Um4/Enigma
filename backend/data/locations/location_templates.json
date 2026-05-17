@@ -171,7 +171,27 @@
     },
     "npc_defaults": {},
     "connected_locations": [
-          "tavern_silver_wolf"
-        ]
+      "tavern_silver_wolf"
+    ],
+    "positions": {
+      "bed": {
+        "x": 3.0,
+        "y": 3.0,
+        "label": "кровать",
+        "connections": ["room_center"]
+      },
+      "room_center": {
+        "x": 5.0,
+        "y": 5.0,
+        "label": "центр комнаты",
+        "connections": ["bed", "door"]
+      },
+      "door": {
+        "x": 8.0,
+        "y": 8.0,
+        "label": "у двери",
+        "connections": ["room_center"]
       }
+    }
+  }
 }

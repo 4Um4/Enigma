@@ -6,7 +6,7 @@
 from __future__ import annotations
 
 import logging
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 from app.domain.movement import MovementIntent
 from app.services.scene_change import SceneChange, ChangeType
@@ -34,13 +34,7 @@ class MovementEngine:
         self._spatial_service = svc
 
 
-    def get_current_node(self, location_id: str, npc_id: str) -> str | None:
-        """Реальный текущий узел NPC если он в пути, иначе None."""
-        return self._transit_tracker.get_current_node(location_id, npc_id)
-
-    def set_transit_tracker(self, tracker: "TransitTracker") -> None:
-        """Устанавливает TransitTracker для pathing-режима."""
-        self._transit_tracker = tracker
+    # ADR-0010: TransitTracker ампутирован. Методы удалены как мертвый код.
 
 
     def process_intents(
@@ -81,30 +75,7 @@ class MovementEngine:
                 continue
 
             for intent in loc_intents:
-                # Резолвим целевой узел в координаты
-                target_x, target_y = None, None
-                target_ref = None  # NodeRef для SpatialService.find_path
-                
-                target_ref = svc.get_node(intent.target_node_id)
-                if not target_ref:
-                    # ADR-0008: Пробуем с префиксом локации (tavern_silver_wolf:main_hall)
-                    target_ref = svc.get_node(f"{location_id}:{intent.target_node_id}")
-                if not target_ref:
-                    # ADR-056: Safe Spatial Fallback. Запрет телепортации к entrance.
-                    target_ref = None
-                    if target_ref:
-                        logger.debug(f"[MOVEMENT_ENGINE] Целевая микро-зона '{intent.target_node_id}' не найдена, фоллбэк на {target_ref.node_id}")
-                        
-                if target_ref:
-                    target_x, target_y = target_ref.x, target_ref.y
-                else:
-                    logger.warning(
-                        f"[MOVEMENT_ENGINE] Узел '{intent.target_node_id}' не найден "
-                        f"для {intent.npc_id} в {location_id}"
-                    )
-                    continue
-
-                # ADR-0012: Микро-телепорт (LOD0). Если есть локальные координаты — прыгаем сразу.
+                # ADR-056: Приоритет LOD0. Если есть локальные координаты, макро-резолв узла не нужен.
                 if intent.local_target_xy:
                     tx, ty = intent.local_target_xy
                     # ADR-056: Collision Avoidance (LOD0 Micro-jitter)
@@ -113,7 +84,7 @@ class MovementEngine:
                     collision_radius = 0.8
                     best_x, best_y = tx, ty
                     if npc_positions:
-                        for attempt in range(5):
+                        for _ in range(5):
                             cx = tx + random.uniform(-0.8, 0.8)
                             cy = ty + random.uniform(-0.8, 0.8)
                             is_colliding = False
@@ -160,17 +131,10 @@ class MovementEngine:
                     )
                     continue
                 
-                # Резолвим целевой узел для фоллбэка и валидации
-                target_ref = svc.get_node(intent.target_node_id)
-                if not target_ref:
-                    # ADR-0008: Пробуем с префиксом локации (tavern_silver_wolf:main_hall)
-                    target_ref = svc.get_node(f"{location_id}:{intent.target_node_id}")
-                if not target_ref:
-                    # ADR-056: Safe Spatial Fallback. Запрет телепортации к entrance.
-                    target_ref = None
-                    if target_ref:
-                        logger.debug(f"[MOVEMENT_ENGINE] Целевая зона '{intent.target_node_id}' не найдена, фоллбэк на {target_ref.node_id}")
-
+                # Резолвим целевой узел в координаты центра (для Semantic Relocation)
+                # ADR-0008: Пробуем с префиксом локации (tavern_silver_wolf:main_hall), если прямой поиск не удался
+                target_ref = svc.get_node(intent.target_node_id) or svc.get_node(f"{location_id}:{intent.target_node_id}")
+                # ADR-056: Резолв цели. Если цели нет — пропускаем.
                 if not target_ref:
                     logger.warning(
                         f"[MOVEMENT_ENGINE] Узел '{intent.target_node_id}' не найден "

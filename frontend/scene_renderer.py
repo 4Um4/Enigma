@@ -314,6 +314,15 @@ class SceneRenderer:
 
             sx, sy = self._w2s(render_x, render_y, cam_x, cam_y)
 
+            # Спринт 30: Визуализация Cognitive Freeze (паралич воли)
+            # При initiative_suppression > 0.7 NPC впадает в моторный тремор
+            if entity.initiative_suppression > 0.7:
+                _freeze_power = (entity.initiative_suppression - 0.7) / 0.3  # Нормализуем 0..1
+                _t = pygame.time.get_ticks()
+                # Синусоидальный тремор создает эффект дрожи, а не рандомного прыжка
+                sx += math.sin(_t * 0.05) * _freeze_power * 2.0
+                sy += math.cos(_t * 0.07) * _freeze_power * 2.0
+
             is_focused = entity.entity_id == focus_id
 
             # Резолв спрайта: приоритет по entity_id, fallback на тип "person" для всех NPC

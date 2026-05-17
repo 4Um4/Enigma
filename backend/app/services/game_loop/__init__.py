@@ -214,30 +214,31 @@ class GameLoop:
 
         # ADR-030: Игрок становится полноправным NPC в симуляции
         session = player_session_service.get_session(campaign_id)
-        if session and session.player_name:
-            if not any(n.get("id") == "player" or n.get("npc_id") == "player" for n in npcs):
-                try:
-                    _char_svc = CharacterService(root=str(self._saves_dir))
-                    characters = _char_svc.list_characters(campaign_id)
-                    player_char = next((c for c in characters if c.name == session.player_name), None)
-                    if player_char:
-                        # Извлекаем Вектор Начальных Условий
-                        # Используем getattr для совместимости со старыми Pydantic-моделями
-                        player_dict = {
-                            "id": "player",
-                            "npc_id": "player",
-                            "name": player_char.name,
-                            "type": "player_avatar",  # Маркер для WillpowerGate
-                            "archetype": getattr(player_char, "archetype", "Drifter"),
-                            "temperament": getattr(player_char, "temperament", "Stoic"),
-                            "body_profile": getattr(player_char, "body_profile", {}),
-                            "psyche": getattr(player_char, "psyche", {}),
-                            "social_stats": {"trust": 50.0, "fear_of_player": 0.0, "debt": 0.0},
-                            "status_profile": {"faction_rank": {}}
-                        }
-                        npcs.append(player_dict)
-                except Exception as e:
-                    logging.getLogger(__name__).warning(f"[AVATAR_INJECT] Ошибка инъекции аватара: {e}")
+        if session and session.player_name and not any(n.get("id") == "player" or n.get("npc_id") == "player" for n in npcs):
+            try:
+                _char_svc = CharacterService(root=str(self._saves_dir))
+                characters = _char_svc.list_characters(campaign_id)
+                if player_char := next(
+                    (c for c in characters if c.name == session.player_name),
+                    None,
+                ):
+                    # Извлекаем Вектор Начальных Условий
+                    # Используем getattr для совместимости со старыми Pydantic-моделями
+                    player_dict = {
+                        "id": "player",
+                        "npc_id": "player",
+                        "name": player_char.name,
+                        "type": "player_avatar",  # Маркер для WillpowerGate
+                        "archetype": getattr(player_char, "archetype", "Drifter"),
+                        "temperament": getattr(player_char, "temperament", "Stoic"),
+                        "body_profile": getattr(player_char, "body_profile", {}),
+                        "psyche": getattr(player_char, "psyche", {}),
+                        "social_stats": {"trust": 50.0, "fear_of_player": 0.0, "debt": 0.0},
+                        "status_profile": {"faction_rank": {}}
+                    }
+                    npcs.append(player_dict)
+            except Exception as e:
+                logging.getLogger(__name__).warning(f"[AVATAR_INJECT] Ошибка инъекции аватара: {e}")
 
         return npcs
 
@@ -340,8 +341,10 @@ class GameLoop:
             from app.services.integration.world_snapshot_builder import WorldSnapshotBuilder
             from dataclasses import asdict
             _builder = WorldSnapshotBuilder()
-            _ws = _builder.build(state.shared_context.scene_state, tick=self.get_current_tick(req.campaign_id))
-            if _ws:
+            if _ws := _builder.build(
+                state.shared_context.scene_state,
+                tick=self.get_current_tick(req.campaign_id),
+            ):
                 _ws_dict = asdict(_ws)
                 # Критический адаптер: конвертируем List[NPCPositionDTO] в Dict[npc_id, dict]
                 # иначе фронтенд не сможет найти NPC по ключу (предсказание Мастера Тай)
@@ -410,11 +413,10 @@ class GameLoop:
             yield event
 
         # NPC реакции — ДО токенов DM
-        npc_reactions = (
+        if npc_reactions := (
             state.npc_result.get("npc_reactions", [])
             + state.npc_result.get("npc_actions", [])
-        )
-        if npc_reactions:
+        ):
             yield {
                 "type":  "npc",
                 "data":  npc_reactions,
@@ -449,8 +451,7 @@ class GameLoop:
         tps = round(token_count / (elapsed_ms / 1000), 1) if elapsed_ms > 0 else 0
 
         # Сохраняем DM-ответ в Campaign Memory ДО yield done — SSE не гарантирует выполнение после
-        dm_full_text_for_mem = "".join(dm_text_parts)
-        if dm_full_text_for_mem:
+        if dm_full_text_for_mem := "".join(dm_text_parts):
             self.memory_manager.persist_dm_response(
                 campaign_id,
                 world_id=world_id,
@@ -460,8 +461,8 @@ class GameLoop:
             )
             # Лог вопроса + ответа для отладки
             _player_msg = next((a.action for a in actions if a.action), "")
-            _preview_q = _player_msg[:80] + "..." if len(_player_msg) > 80 else _player_msg
-            _preview_a = dm_full_text_for_mem[:120] + "..." if len(dm_full_text_for_mem) > 120 else dm_full_text_for_mem
+            _preview_q = f"{_player_msg[:80]}..." if len(_player_msg) > 80 else _player_msg
+            _preview_a = f"{dm_full_text_for_mem[:120]}..." if len(dm_full_text_for_mem) > 120 else dm_full_text_for_mem
             logger.warning(f"[DM] {_preview_q}")
             logger.warning(f"[NPC] {_preview_a}")
 

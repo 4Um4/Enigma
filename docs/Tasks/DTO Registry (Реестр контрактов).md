@@ -423,6 +423,54 @@ SPATIAL -> OVERWRITE
 - `event_buffer`: `EventBuffer` // Заполняется через мост _deobjectify_event (EventBus → FieldDisturbance)
 - `cluster_occupancy`: `ClusterOccupancy` // Восстанавливается на старте тика из scene_state['npc_positions']
 
+### NpcTickInput (backend/app/services/npc/npc_tick_contracts.py)
+Frozen dataclass. Данные для NPC фазы — только чтение.
+- `campaign_id`: `str`
+- `location`: `str`
+- `scene_state`: `dict` // READ-ONLY. Spatial чтение только через NpcTickServices.spatial_query
+- `player_target_id`: `Optional[str]`
+- `hub_event`: `EventContext`
+- `is_session_start`: `bool`
+- `action_type`: `str`
+- `raw_input`: `str`
+- `current_tick`: `int`
+- `all_npcs_raw`: `list` // Legacy-dict NPC (shared reference)
+- `nearby_npcs`: `list`
+- `scene_continuity`: `Any` // SceneContinuity или None
+- `spatial_events`: `list` // Для социальных триггеров
+- `line_of_sight`: `dict`
+
+### NpcTickServices (backend/app/services/npc/npc_tick_contracts.py)
+Frozen dataclass. Сервисы, разрешённые оркестратором ДО вызова фазы.
+- `memory_manager`: `Any`
+- `relationship_store`: `Any`
+- `social_engine`: `Optional[Any]`
+- `reputation_engine`: `Optional[Any]`
+- `economic_profiles`: `Dict[str, Any]`
+- `event_bus`: `Any = None`
+- `spatial_service`: `Optional[Any] = None` // SpatialService v1.2 — навигация (граф, узлы)
+- `spatial_query`: `Optional[Any] = None` // SpatialQueryService — ADR-048 Authoritative Spatial Spine
+
+### NpcTickBuffer (backend/app/services/npc/npc_tick_contracts.py)
+Dataclass. Накопитель результатов NPC фазы — только запись.
+- `dirty_npcs`: `set`
+- `npc_contexts`: `list`
+- `max_npc_stress`: `float = 0.0`
+- `activity_overrides`: `Dict[str, str]`
+- `communication_intents`: `list` // CommunicationIntent для Фазы 6
+- `movement_intents`: `list` // MovementIntent — реактивное движение NPC
+- `published_events`: `list` // DEPRECATED: нарушает §5.1
+
+### SpatialQueryService (backend/app/services/spatial/spatial_query_service.py)
+Authoritative Spatial Spine (ADR-048). Единственный легитимный способ получить пространственную истину для decision/perception/combat/movement.
+- `__init__(npc_positions: Dict[str, dict], cluster_occupancy: Optional[ClusterOccupancy] = None, scene_state: Optional[dict] = None)`
+- `get_entity_position(entity_id: str) -> Optional[dict]` // Словарь с 'local_position', 'position', 'node_id'
+- `distance(entity_a: str, entity_b: str) -> float` // Евклидово расстояние. 999.0 если данных нет
+- `distance_player(npc_id: str) -> float` // Расстояние от NPC до игрока. ADR-048: игрок = entity 'player'
+- `player_distances(npc_ids: List[str]) -> Dict[str, float]` // Словарь дистанций от игрока до списка NPC
+- `visibility(entity_a: str, entity_b: str) -> bool` // Проверка прямой видимости
+- `cluster_relation(entity_a: str, entity_b: str) -> Optional[str]` // 'same', 'adjacent', 'distant', None
+
 ---
 
 ## IX. Player Entity & WillpowerGate (Hybrid Consciousness)
@@ -661,4 +709,26 @@ SPATIAL -> OVERWRITE
 *Починка трубы давления: подписчик получает реальные данные NPC.*
 - **Input:** `handle(event, all_npcs_raw: list[dict])` // Ранее передавался пустой список `[]`.
 - **Зависимость:** Читает `psyche`, `perceptual_kernel` из `all_npcs_raw` для вычисления легитимности и цены отказа.
-```
+
+---
+
+## XV. Спринт 30: Dual-Time Ontology & Каузальная Презентация (ADR-058)
+
+### NPCPositionDTO (Backend API Boundary)
+*Расширено для проброса Cognitive Freeze на фронтенд.*
+- `initiative_suppression`: `float = 0.0` // Спринт 30: Уровень подавления воли (0.0-1.0). Передается из `PerceptualKernel` для визуализации паралича.
+
+### NPCBuffer (Backend Internal)
+*Расширено для агрегации когнитивного состояния перед записью в scene_state.*
+- `initiative_suppressions`: `Dict[str, float]` // Спринт 30: Словарь npc_id -> initiative_suppression. Заполняется в npc_tick_pipeline, применяется в npc_orchestration.
+
+### PerceivedEntity (Frontend Internal)
+*Расширено слоями Traversal и Cognitive для непрерывной презентации.*
+- **Traversal Layer (Спринт 30: Dual-Time Ontology):**
+  - `traversal_status`: `str = "IDLE"` // PENDING, MOVING, ARRIVED, CANCELLED
+  - `path_waypoints`: `list = field(default_factory=list)` // Визуальные x,y точки от бэкенда
+  - `current_waypoint_idx`: `int = 0`
+  - `traversal_progress`: `float = 0.0` // 0.0 - 1.0 прогресс между текущими waypoint
+  - `traversal_speed`: `float = 1.5` // Скорость визуальной интерполяции (м/с)
+- **Cognitive Layer (Спринт 30: Визуализация Cognitive Freeze):**
+  - `initiative_suppression`: `float = 0.0` // 0.0-1.0, паралич воли. При >0.7 рендерер применяет моторный тремор.

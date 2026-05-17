@@ -58,6 +58,8 @@ class NpcTickBuffer:
     max_npc_stress: float = 0.0
     # Activity overrides — оркестратор применит в scene_state ПОСЛЕ фазы
     activity_overrides: Dict[str, str] = field(default_factory=dict)
+    # Спринт 30: Когнитивное подавление для визуализации Cognitive Freeze во фронтенде
+    initiative_suppressions: Dict[str, float] = field(default_factory=dict)
     # CommunicationIntent для Фазы 6 — публикация через оркестратор (Устав §5.1)
     communication_intents: list = field(default_factory=list)
     # MovementIntent — реактивное движение NPC (APPROACH, FLEE и др.)

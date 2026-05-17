@@ -360,3 +360,34 @@
 - **`backend/app/services/spatial/movement_engine.py`:** Внедрен **Safe Spatial Fallback**: при отсутствии узла макро-перемещение отменяется (закомментирован фоллбэк на `entrance`). Внедрен **Collision Avoidance LOD0**: `process_intents` принимает `npc_positions` и ищет свободную точку вокруг цели. **[Архитектура]**
 - **`backend/app/services/scene_state_manager.py`:** Убран фоллбэк на `entrance` при генерации `TraversalState`, предотвращающий пространственные галлюцинации. **[Багфикс]**
 - **`backend/app/services/tick_orchestrator.py`:** В вызовы `MovementEngine.process_intents` добавлена передача `npc_positions` для нужд Collision Avoidance. **[Пайплайн]**
+
+## Сессия 36: Legitimacy Gate & Elastic Time (ADR-057)
+- **`backend/app/core/constants.py`:** `GAME_TICK_INTERVAL_SECONDS` снижен с 900 до 60 секунд. Основа Elastic Time. **[Архитектура]**
+- **`backend/app/services/social/directive_interpretation_subscriber.py`:** Внедрен **Legitimacy Gate**. При отсутствии страха/доверия директива порождает Irritation (снятие блоков агрессии) вместо Obedience (подавление воли). `interrupts_routine` всегда True, добавлен флаг `is_obedience`. **[Архитектура]**
+- **`backend/app/services/npc/npc_tick_pipeline.py`:** Внедрен **Topic Injection**. При наличии `recent_directive` тема переопределяется на `directive_obedience` или `directive_confrontation`, заставляя DecisionHub реагировать. **[Пайплайн]**
+
+## Сессия 37: ADR-048 Authoritative Spatial Spine — Phase 1 (Kill Decision Reads)
+**Дата:** 17.05.2026  
+**Изменения:**
+- **Архитектурная парадигма (Spatial Authority):** Принят принцип ADR-048: `SpatialQueryService` — единственный авторитет для пространственных запросов. Чтение `player_distances` и `npc_positions` из `scene_state` ЗАПРЕЩЕНО для decision/perception/combat/movement. `scene_state` остаётся только presentation projection для фронтенда. **[Архитектура]**
+- **`backend/app/services/spatial/spatial_query_service.py`:** Поднят из мёртвого кода — впервые инстанцирован и инъектирован в пайплайн. **[Пайплайн]**
+- **`backend/app/services/npc/npc_tick_contracts.py`:** В `NpcTickServices` добавлено поле `spatial_query: Optional[Any]`. **[Контракт]**
+- **`backend/app/services/game_loop/npc_orchestration.py`:** Инстанцирование `SpatialQueryService(npc_positions, scene_state)` и инъекция в `NpcTickServices`. **[Пайплайн]**
+- **`backend/app/services/npc/npc_tick_pipeline.py`:** Убран legacy fallback `scene_state.get("player_distances")` — теперь только `SpatialQueryService.player_distances()`. В `_resolve_reactive_movement` добавлен `_pos()` helper через `spatial_query.get_entity_position()`. MOVE reflex переведён на `spatial_query`. **[Архитектура]**
+- **`backend/app/services/spatial/__init__.py`:** Добавлен экспорт `SpatialQueryService`. **[Инфраструктура]**
+- **`docs/audits/ADR-048_IMPACT.md`:** Полный аудит: изменённые домены, запрещённые/разрешённые чтения, rollback plan, Phase 2 roadmap. **[Документация]**
+
+
+## Сессия 38: Спринт 30 — Dual-Time Ontology и Каузальная Презентация (Фронтенд)
+**Дата:** 18.05.2026  
+**Изменения:**
+- **Архитектурная парадигма (Dual-Time Ontology):** Фронтенд перешел на Модель C (Elastic Time Architecture). Симуляция дискретна, презентация непрерывна. Фронтенд больше не телепортирует NPC, он — интерполятор `TraversalState`. **[Архитектура]**
+- **`frontend/game_screen.py`:** Функция `_resolve_visual_xy` переписана на использование `path_waypoints`, `current_waypoint_idx` и `progress` вместо устаревшего `duration_seconds`. Локальный pathfinding (`find_path`) полностью удален (Deterministic Client). **[Архитектура]**
+- **`frontend/game_types.py`:** В `PerceivedEntity` добавлены поля слоя Traversal (`traversal_status`, `path_waypoints`, `current_waypoint_idx`, `traversal_progress`, `traversal_speed`) и слоя Cognitive (`initiative_suppression`). **[Контракт]**
+- **`frontend/scene_renderer.py`:** Реализована непрерывная кинематика на основе `dt` и `traversal_speed`. Реализована визуализация Cognitive Freeze: моторный тремор при `initiative_suppression > 0.7`. **[Рендеринг]**
+- **`backend/app/domain/snapshot.py`:** В `NPCPositionDTO` добавлено поле `initiative_suppression` (default=0.0). **[Контракт]**
+- **`backend/app/services/npc/npc_tick_contracts.py`:** В `NPCBuffer` добавлен словарь `initiative_suppressions`. **[Контракт]**
+- **`backend/app/services/npc/npc_tick_pipeline.py`:** Добавлено извлечение `initiative_suppression` из `perceptual_kernel` и запись в буфер. **[Пайплайн]**
+- **`backend/app/services/game_loop/npc_orchestration.py`:** Добавлен проброс `initiative_suppression` из буфера в `scene_state["npc_positions"]`. **[Пайплайн]**
+- **`backend/app/services/integration/world_snapshot_builder.py`:** Добавлена сборка `initiative_suppression` в `NPCPositionDTO`. **[Пайплайн]**
+- **Очистка корня:** `diagnose_spatial.py` перемещен в `backend/tests/sandbox/`. Артефакты `decision_hub_sandbox.py` перенаправлены в директорию песочницы. **[Инфраструктура]**

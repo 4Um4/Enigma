@@ -55,13 +55,31 @@ class DirectiveInterpretationSubscriber:
 
         # 3. Вычисление Social Interpretation (MVP: берем напрямую из social_pressure в payload)
         # В будущем: учет статуса, вооруженности, прошлого насилия
-        base_social_force = payload.get("social_pressure", 0.5)
+        # ADR-057: Агрегация силы приказа. social_pressure может быть 0.0,
+        # но physical_force или commitment_level делают приказ значимым.
+        base_social_force = max(
+            payload.get("social_pressure", 0.0),
+            payload.get("physical_force", 0.0),
+            payload.get("commitment_level", 0.0)
+        )
+        if base_social_force == 0.0:
+            base_social_force = 0.1  # Минимальный фоллбэк, чтобы не потерять событие
 
-        # 4. Вычисление Psychological Cost of Refusal (MVP: на основе страха цели)
+        # 4. Вычисление Psychological Cost of Refusal (Legitimacy Gate ADR-057)
+        # Если NPC не боится и не доверяет — это не приказ, а раздражающая просьба.
         target_fear = target_dict.get("social_stats", {}).get("fear_of_player", 0.1)
+        target_trust = target_dict.get("social_stats", {}).get("trust", 0.1)
         
-        # Интенсивность давления = сила приказа * готовность подчиниться (страх)
-        obedience_intensity = base_social_force * (0.5 + target_fear)
+        # Легитимность: страх (принуждение) + доверие (авторитет)
+        legitimacy = max(target_fear, target_trust / 100.0) # trust 0-100, fear 0-1
+        
+        if legitimacy > 0.3:
+            # Приказ или просьба от авторитета → Подчинение
+            obedience_intensity = base_social_force * (0.5 + legitimacy)
+        else:
+            # Нет легитимности → Раздражение (Irritation). NPC не подчинится, а разозлится.
+            obedience_intensity = 0.0
+            irritation_intensity = base_social_force * 0.5
 
         # 5. Генерация PsychologicalPressure (искривление пространства полезности)
         pressure = PsychologicalPressure(
@@ -73,45 +91,84 @@ class DirectiveInterpretationSubscriber:
         logger.warning(f"[DIRECTIVE_INTERPRET] Target={target_id}, Action={semantic_action}, ObediencePressure={obedience_intensity:.2f}")
 
         # 6. Конвертация давления в StateDeltas (для StateApplicator)
-        # Эмоциональный отклик (страх, стресс)
-        emotion_delta = StateDeltas(
-            npc_id=target_id,
-            domain=DeltaDomain.EMOTION,
-            payload=EmotionPayload(
-                stress_delta=obedience_intensity * 20.0,
-                emotion_tag="submissive_fear" if obedience_intensity > 0.6 else "unease"
-            ),
-            source="directive_interpretation"
-        )
-        
-        # Социальный отклик (подчинение)
-        social_delta = StateDeltas(
-            npc_id=target_id,
-            domain=DeltaDomain.SOCIAL,
-            payload=SocialPayload(
-                fear_delta=obedience_intensity * 10.0 # Увеличиваем страх перед источником
-            ),
-            source="directive_interpretation"
-        )
+        if obedience_intensity > 0:
+            # Эмоциональный отклик (страх, стресс) — только при легитимности
+            emotion_delta = StateDeltas(
+                npc_id=target_id,
+                domain=DeltaDomain.EMOTION,
+                payload=EmotionPayload(
+                    stress_delta=obedience_intensity * 20.0,
+                    emotion_tag="submissive_fear" if obedience_intensity > 0.6 else "unease"
+                ),
+                source="directive_interpretation"
+            )
+            
+            # Социальный отклик (подчинение)
+            social_delta = StateDeltas(
+                npc_id=target_id,
+                domain=DeltaDomain.SOCIAL,
+                payload=SocialPayload(
+                    fear_delta=obedience_intensity * 10.0 # Увеличиваем страх перед источником
+                ),
+                source="directive_interpretation"
+            )
+        else:
+            # Раздражение (Irritation) — нет легитимности, нет подчинения
+            emotion_delta = StateDeltas(
+                npc_id=target_id,
+                domain=DeltaDomain.EMOTION,
+                payload=EmotionPayload(
+                    stress_delta=irritation_intensity * 10.0,
+                    emotion_tag="annoyance"
+                ),
+                source="directive_interpretation"
+            )
+            social_delta = StateDeltas(
+                npc_id=target_id,
+                domain=DeltaDomain.SOCIAL,
+                payload=SocialPayload(
+                    fear_delta=0.0 # Не боится, а злится
+                ),
+                source="directive_interpretation"
+            )
         
         # S28: Топологический отклик (деформация пространства решений)
-        identity_delta = StateDeltas(
-            npc_id=target_id,
-            domain=DeltaDomain.IDENTITY,
-            payload=IdentityPayload(
-                aggression_inhibition_delta=obedience_intensity * 0.6,  # Подавление агрессии
-                compliance_bias_delta=obedience_intensity * 0.5,       # Смещение к подчинению/approach
-                initiative_suppression_delta=obedience_intensity * 0.05, # Легкое торможение (инерция), НЕ паралич
-                # ADR-056: Attention Capture — прерывает routine, повышает salience
-                recent_directive_data={
-                    "source": event.source,
-                    "salience": obedience_intensity,
-                    "interrupts_routine": True
-                }
-            ),
-            source="directive_interpretation"
-        )
+        if obedience_intensity > 0:
+            # Вектор ПОДЧИНЕНИЯ: подавление агрессии, смещение к approach
+            identity_delta = StateDeltas(
+                npc_id=target_id,
+                domain=DeltaDomain.IDENTITY,
+                payload=IdentityPayload(
+                    aggression_inhibition_delta=obedience_intensity * 0.6,  # Подавление агрессии
+                    compliance_bias_delta=obedience_intensity * 0.5,       # Смещение к подчинению/approach
+                    initiative_suppression_delta=obedience_intensity * 0.05,
+                    recent_directive_data={
+                        "source": getattr(event, 'source', event.payload.get('source', 'player')),
+                        "salience": obedience_intensity,
+                        "interrupts_routine": True,
+                        "is_obedience": True
+                    }
+                ),
+                source="directive_interpretation"
+            )
+        else:
+            # Вектор РАЗДРАЖЕНИЯ: неохотное подчинение для конфронтации
+            # Вор подходит, чтобы послать игрока, а не чтобы подчиняться
+            identity_delta = StateDeltas(
+                npc_id=target_id,
+                domain=DeltaDomain.IDENTITY,
+                payload=IdentityPayload(
+                    aggression_inhibition_delta=irritation_intensity * 0.2, # Слабый контроль гнева
+                    compliance_bias_delta=irritation_intensity * 0.2,       # Слабое подталкивание к подходу (чтобы подойти и высказать)
+                    initiative_suppression_delta=0.0,
+                    recent_directive_data={
+                        "source": getattr(event, 'source', event.payload.get('source', 'player')),
+                        "salience": irritation_intensity,
+                        "interrupts_routine": True, # Прерывает бытовуху, чтобы отреагировать
+                        "is_obedience": False
+                    }
+                ),
+                source="directive_interpretation"
+            )
         
         return [emotion_delta, social_delta, identity_delta]
-
-        return [emotion_delta, social_delta]
