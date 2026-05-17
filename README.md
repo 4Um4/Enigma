@@ -137,6 +137,17 @@ Input -> Intent Compression -> Event -> Pressure -> Decision Geometry
 - `The Fool` в ENIGMA не просто игровая тема. Это шаблон мышления: мир задаётся не сюжетом, а структурой правил, причинностью и пространством, в котором LLM остаётся голосом, а не судьёй.
 - Этот проект развивается так, чтобы будущий геймплей шёл от внутренних контрактов и наблюдаемой причинности, а не от внешнего повествования.
 
+### V.0.5.3.0.8_ПЕСОЧНИЦЫ_5 (точка сборки)
+
+В текущей песочнице зафиксирован следующий “вектор будущего”, который следует напрямую из обновлений `docs/Tasks` и `docs/audits`:
+- **Legitimacy Gate → Directive Interpretation → Initiative Suppression** как единый state-механизм “молчания/сопротивления” или “обслуживания” директив.
+- **Authoritative Spatial Spine (ADR-048)**: дистанции/позиции становятся консистентным источником через `SpatialQueryService`, а presentation — только проекция.
+- **LOD0 Reactive Micro-Locomotion**: минимально-живой movement-контур, который не ломает причинность и не расходится между decision/perception/snapshot.
+
+См. также:
+- `COMPARISON_REPORT/COMPARISON_REPORT_V.0.5.3.0.8_ПЕСОЧНИЦЫ_5.md`
+
+
 ---
 
 ## Current Strategic Tension
