@@ -111,3 +111,18 @@
 ## Coherence Breakpoints
 - Top coherence lifts: `V.0.4.2` (2026-03-22) delta=23.43; `V.0.2_alfa1` (2026-03-18) delta=21.99; `V.0.5.3.0.4_ПЕСОЧНИЦЫ_1` (2026-05-12) delta=16.01; `V.0.5.0.4` (2026-04-09) delta=15.59.
 - Top coherence drops: `V.0.3A_alfa1` (2026-03-19) delta=-25.84; `V.0.4.3` (2026-03-28) delta=-25.63; `V.0.5.2.8_Почти_почти_7` (2026-05-07) delta=-22.22; `V.0.5.0.6` (2026-04-11) delta=-14.44.
+
+---
+
+## Current Branch: V.0.5.3.0.7_ПЕСОЧНИЦЫ_8
+- Date: 2026-05-17
+- Focus: integration of affective pressure, decision-context geometry, authoritative spatial query contracts, and The Fool as a living validation scenario.
+- Value note: the current branch prioritizes causal traceability, enforcement, and sandbox observability over raw line growth.
+- The future implied by `docs/Tasks` and `docs/audits`: keep `The Fool` as the system-level design lens where game logic is expressed through contracts and causal pipelines.
+
+---
+
+## Notes on future orientation
+- `docs/Tasks` are the action plan; they encode the next practical steps for ENIGMA.
+- `docs/audits` are the governance layer; they define what must be reviewed, audited, and preserved.
+- Together they form the future roadmap of The Fool as a distributed reality simulation.

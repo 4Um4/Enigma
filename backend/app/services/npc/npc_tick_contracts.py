@@ -77,4 +77,5 @@ class NpcTickServices:
     reputation_engine: Optional[Any]
     economic_profiles: Dict[str, Any]
     event_bus: Any = None  # Фаза 6-7: IntentEventAdapter → EventBus (§3.3)
-    spatial_service: Optional[Any] = None  # SpatialService v1.2 — навигация
+    spatial_service: Optional[Any] = None  # SpatialService v1.2 — навигация (граф, узлы)
+    spatial_query: Optional[Any] = None    # SpatialQueryService — ADR-048 Authoritative Spatial Spine
