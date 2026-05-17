@@ -16,6 +16,10 @@ Models LLM/
 # PDF books - not needed in repo
 data/pdf_drop/
 
+# Temporary trash / moved local cleanup
+COMPARISON_REPORT/
+ROAD_MAP_MUSOR/
+
 # IDE
 .vscode/
 .idea/
