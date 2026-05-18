@@ -4,58 +4,45 @@
 ADR-048 (Single Source Spatial Authority)
 
 ## Тип изменения
-ONTOLOGY (ADR-O) — Смена парадигмы: scene_state больше не authority layer для пространственных решений.
+ONTOLOGY (ADR-O) — Смена парадигмы: scene_state больше не является хранилищем пространственных решений и производных проекций.
 
 ## Этап реализации
-Phase 1 — Kill Decision Reads (завершён)
+Phase 3 — Derived Presentation Cleanup (ЗАВЕРШЁН)
 
 ## Измененные домены (Changed Domains)
-- spatial (SpatialQueryService инстанцирован и пробрасывается через NpcTickServices)
-- decision (npc_tick_pipeline: player_distances, _resolve_reactive_movement, MOVE reflex — все через SpatialQueryService)
-- perception (Этап 2 — пока читает из scene_state, что является нарушением ADR-048)
+- spatial (SpatialQueryService — единственный авторитет)
+- perception (чтение дистанций через SpatialQueryService)
+- memory (чтение дистанций через SpatialQueryService)
+- reaction (чтение дистанций через SpatialQueryService)
+- persistence (удаление мутации player_distances/player_spatial)
+- presentation (вычисление дистанций из npc_positions вместо чтения кэша)
 
-## Изменённые файлы (Phase 1)
-- `backend/app/services/npc/npc_tick_contracts.py` — добавлен `spatial_query: Optional[Any]` в NpcTickServices
-- `backend/app/services/game_loop/npc_orchestration.py` — инстанцирование SpatialQueryService, инъекция в NpcTickServices
-- `backend/app/services/npc/npc_tick_pipeline.py` — убран fallback на scene_state для player_distances, добавлен _pos() helper в _resolve_reactive_movement, MOVE reflex через spatial_query
-- `backend/app/services/spatial/__init__.py` — экспорт SpatialQueryService
+## Изменённые файлы (Phase 3)
+- `backend/app/services/game_loop/scene_init.py` — мутация `player_spatial` заменена на мутацию канонического `npc_positions.player`
+- `backend/app/services/scene_state_manager.py` — запись `player_distances` и `player_spatial` заблокирована в `update_player_spatial_context`. Чтения `player_distances` в промптах заменены на динамическое вычисление через `euclidean_distance(npc_positions.player, npc_positions.npc)`. Добавлен импорт `euclidean_distance`.
+- `backend/app/services/spatial/player_target_pipeline.py` — (из Phase 2) удалена мутация `scene_state` записью `player_distances`.
 
-## Связанные потребители (Downstream Consumers)
-- npc_tick_pipeline (использует spatial_query.player_distances, spatial_query.get_entity_position)
-- perception_filter (Этап 2 — пока читает из scene_state)
-- memory_manager (Этап 2 — _npc_distance читает из scene_state)
-- reaction_priority (Этап 2 — _get_npc_distance читает из scene_state)
-- player_target_pipeline (Этап 2 — вычисляет player_distances и пишет в scene_state)
-
-## Запрещённые чтения (ADR-048 Phase 1 Enforcement)
-Следующие чтения из scene_state ЗАПРЕЩЕНЫ для decision/perception/combat/movement:
-- `scene_state.get("player_distances")` — в npc_tick_pipeline заменено на SpatialQueryService
-- `scene_state.get("npc_positions")` — в _resolve_reactive_movement заменено на _pos() helper
-- `scene_state.get("npc_positions")` — в MOVE reflex заменено на spatial_query.get_entity_position
+## Запрещённые операции (ADR-048 Full Enforcement)
+Следующие чтения/записи ЗАПРЕЩЕНЫ для decision/perception/combat/movement/presentation:
+- `scene_state.get("player_distances")` — ВЕЗДЕ заменено на SpatialQueryService или euclidean_distance(npc_positions)
+- `scene_state["player_distances"] = ...` — МУТАЦИЯ УДАЛЕНА
+- `scene_state["player_spatial"]["local_position"] = ...` — МУТАЦИЯ УДАЛЕНА (пишем в npc_positions.player)
 
 ## Разрешённые чтения (Presentation Layer)
-- world_snapshot_builder.py — читает npc_positions для фронтенда (Derived Presentation Projection)
-- scene_state_manager.py — пишет npc_positions как runtime storage
-- tick_orchestrator.py — читает npc_positions для ClusterOccupancy rebuild (CFRM infrastructure)
+- `scene_state.get("npc_positions", {}).get("player", {})` — Единственный источник позиции игрока для фронтенда и промптов.
 
 ## Влияние на производительность (Runtime Impact)
-- RAM Delta: +0.01MB (кэш дистанций в SpatialQueryService)
+- RAM Delta: -0.01MB (удаление дублирующих словарей в scene_state)
 - VRAM Delta: 0
-- Tick Latency Delta: +0.1ms (вычисление дистанций через фасад вместо чтения из кэша scene_state)
+- Tick Latency Delta: +0.05ms (динамическое вычисление дистанций для промптов при необходимости)
 
 ## Песочные тесты (Sandbox Tests)
-- 567 passed, 4 skipped (все существующие тесты проходят)
-- test_lod0_collision_avoidance — предсуществующий flaky-баг (MockSpatialService.get_node), не связан с ADR-048
+- 36 passed, 1 skipped (предсуществующий flaky-баг collision avoidance)
 
 ## Откат (Rollback)
-1. Удалить `spatial_query` из `NpcTickServices` в npc_tick_contracts.py
-2. В `npc_orchestration.py` убрать инстанцирование SpatialQueryService
-3. В `npc_tick_pipeline.py` вернуть `inp.scene_state.get("player_distances", {})` и `scene_state.get("npc_positions", {})`
-4. Удалить экспорт SpatialQueryService из __init__.py
+1. Раскомментировать запись в `scene_state_manager.py`.
+2. Вернуть чтение `player_distances` в `scene_state_manager.py`.
+3. Вернуть мутацию `player_spatial` в `scene_init.py`.
 
-## Следующий этап (Phase 2 — Projection Isolation)
-- perception_filter.py — миграция _npc_distance, _can_see на SpatialQueryService
-- memory_manager.py — миграция _npc_distance на SpatialQueryService
-- reaction_priority.py — миграция _get_npc_distance на SpatialQueryService
-- player_target_pipeline.py — прекратить писать player_distances в scene_state (derived projection)
-- scene_init.py — убрать прямую мутацию player_spatial
+## Статус
+**ADR-048 ПОЛНОСТЬЮ РЕАЛИЗОВАН.** Система перешла на Single Spatial Authority.

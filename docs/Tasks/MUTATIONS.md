@@ -309,7 +309,7 @@
 ## Сессия 31: Спринт 28 — Каузальная Обсерватория и Эпистемическое Расхождение
 **Дата:** 14.05.2026  
 **Изменения:**
-- **Домен Решения (ADR-043):** Создан `backend/app/domain/decision_context.py`. Введены `UtilityFieldDeformation` (топология давления), `ActionSpaceCompression` (feasibility), `DecisionContext` (мост Ядро→Хаб). Реализован метод `from_kernel()` для прямой проекции без промежуточных DTO.
+- **Домен Решения (ADR-049):** Создан `backend/app/domain/decision_context.py`. Введены `UtilityFieldDeformation` (топология давления), `ActionSpaceCompression` (feasibility), `DecisionContext` (мост Ядро→Хаб). Реализован метод `from_kernel()` для прямой проекции без промежуточных DTO.
 - **Геометрия Восприятия:** В `PerceptualKernel` (`npc_state.py`) добавлены поля `aggression_inhibition`, `initiative_suppression`, `compliance_bias`.
 - **Payload Топологии:** В `IdentityPayload` (`delta_payloads.py`) добавлены дельты геометрии: `aggression_inhibition_delta`, `compliance_bias_delta`, `initiative_suppression_delta`.
 - **DecisionHub v2 (Feasibility Layer):** В `decision_hub.py` добавлен аргумент `decision_ctx`. Внедрено разделение: Фаза 1 (Feasibility Filtering — удаление невозможных действий, `del scores[intent]`), Фаза 2 (Utility Deformation — искривление ландшафта через множители). Убит хардкод `fear * 0.45` для APPROACH.
@@ -388,6 +388,14 @@
 - **`backend/app/domain/snapshot.py`:** В `NPCPositionDTO` добавлено поле `initiative_suppression` (default=0.0). **[Контракт]**
 - **`backend/app/services/npc/npc_tick_contracts.py`:** В `NPCBuffer` добавлен словарь `initiative_suppressions`. **[Контракт]**
 - **`backend/app/services/npc/npc_tick_pipeline.py`:** Добавлено извлечение `initiative_suppression` из `perceptual_kernel` и запись в буфер. **[Пайплайн]**
-- **`backend/app/services/game_loop/npc_orchestration.py`:** Добавлен проброс `initiative_suppression` из буфера в `scene_state["npc_positions"]`. **[Пайплайн]**
+
+## Сессия 39: Интеграция Causal Diagnostic System (CDS)
+**Дата:** 19.05.2026  
+**Изменения:**
+- **`diagnostics/` (Новый модуль):** Создана инфраструктура наблюдаемости для параллельных LLM-архитекторов. Включает `causal_observer.py` (фоновый поток), `pattern_registry.py` (парсинг regex), `causal_chain_builder.py` (связывание событий в цепи отказа), `report_renderer.py` (генерация LLM-оптимизированного Markdown). **[Архитектура]**
+- **`reports/LAST_SESSION.md` (Новый артефакт):** Автогенерируемый отчет о состоянии системы при каждом запуске игры. Содержит 3 секции (Код, UI, Симуляция) с конкретными фактами, каузальными разрывами и PowerShell-командами для верификации. **[Контракт]**
+- **`game_launcher.py`:** Добавлен хук запуска CDS (`DIAGNOSTICS_ENABLED = True`, `CausalObserver().start()` в фоне, `export()` в блоке `finally`). **[Пайплайн]**
+- **Архитектура:** Принят ADR-059 (CDS & Multi-LLM Observability). CDS работает строго как Read-Only наблюдатель, не влияет на VRAM/FPS. **[Документация]**
+- **`backend/app/services/game_loop/npc_orchestration.py`:** Добавлен проброс `initiative_suppression` из буфера в `NPCPositionDTO` для фронтендного рендера. **[Пайплайн]**`scene_state["npc_positions"]`. **[Пайплайн]**
 - **`backend/app/services/integration/world_snapshot_builder.py`:** Добавлена сборка `initiative_suppression` в `NPCPositionDTO`. **[Пайплайн]**
 - **Очистка корня:** `diagnose_spatial.py` перемещен в `backend/tests/sandbox/`. Артефакты `decision_hub_sandbox.py` перенаправлены в директорию песочницы. **[Инфраструктура]**

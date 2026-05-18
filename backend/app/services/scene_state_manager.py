@@ -43,9 +43,7 @@ from app.core.config import settings
 from app.services.scene_change import SceneChange, ChangeType
 from app.services.state.persistence_port import PersistencePort
 from app.services.spatial.location_graph import load_graph
-
-# Тип для опционального порта сохранения
-from typing import Optional
+from app.services.spatial.spatial_runtime import euclidean_distance
 
 logger = logging.getLogger(__name__)
 
@@ -339,14 +337,17 @@ class SceneStateManager:
         scene_state["player_target_npc_name"] = target_npc_name
         scene_state["player_target_object"]   = target_object_id
 
+        # ADR-048 Phase 3: Запись player_distances и player_spatial ЗАПРЕЩЕНА.
+        # SpatialQueryService является авторитетом. player_distances — derived projection.
+        # Narrative-позиция (player_position как строка "стоит") пока оставлена для DM контекста.
         if player_position is not None:
             scene_state["player_position"] = player_position
 
-        if player_distances is not None:
-            scene_state["player_distances"] = player_distances
+        # if player_distances is not None:
+        #     scene_state["player_distances"] = player_distances
 
-        if player_spatial is not None:
-            scene_state["player_spatial"] = player_spatial
+        # if player_spatial is not None:
+        #     scene_state["player_spatial"] = player_spatial
 
         self.save_scene_state(campaign_id, scene_state)
         logger.info(
@@ -407,11 +408,12 @@ class SceneStateManager:
         act_label = _activity_map.get(act_text, act_text)
         own_desc = ", ".join(p for p in [pos_label, act_label] if p)
 
-        # ── Позиция и расстояние игрока ───────────────────────────────────────
+        # ── Позиция и расстояние игрока (ADR-048: вычисление из npc_positions) ──
         player_pos  = scene_state.get("player_position") or "рядом"
-        distances   = scene_state.get("player_distances", {})
-        distance_m  = distances.get(npc_id, None)
-        dist_str = f"~{distance_m:.1f} м" if distance_m is not None else "неизвестно"
+        _player_data = scene_state.get("npc_positions", {}).get("player", {})
+        _npc_data = scene_state.get("npc_positions", {}).get(npc_id, {})
+        distance_m = euclidean_distance(_player_data, _npc_data)
+        dist_str = f"~{distance_m:.1f} м" if distance_m < 999.0 else "неизвестно"
 
         lines = [
             "ТВОЁ ПОЛОЖЕНИЕ В СЦЕНЕ:",
@@ -1113,7 +1115,9 @@ class SceneStateManager:
                                 f"{location_id}:{change.value}"
                             ):
                                 from_xy = entry.get("local_position", {"x": 0.0, "y": 0.0})
-                                to_xy = {"x": node.x, "y": node.y}
+                                # ADR-056: LOD1 Macro-jitter. NPC не сливаются в центр узла
+                                import random
+                                to_xy = {"x": node.x + random.uniform(-0.4, 0.4), "y": node.y + random.uniform(-0.4, 0.4)}
                                 # Телепортация только если уже на месте (микро-перемещение)
                                 if abs(from_xy.get("x", 0) - to_xy.get("x", 0)) < 0.1 and abs(from_xy.get("y", 0) - to_xy.get("y", 0)) < 0.1:
                                     entry["local_position"] = to_xy
@@ -1668,7 +1672,13 @@ class SceneStateManager:
         target_npc_name = scene_state.get("player_target_npc_name")
         target_npc_id   = scene_state.get("player_target_npc")
         target_obj      = scene_state.get("player_target_object")
-        distances       = scene_state.get("player_distances", {})
+        # ADR-048 Phase 3: Вычисляем дистанции из авторитетного словаря npc_positions
+        _player_data = scene_state.get("npc_positions", {}).get("player", {})
+        distances = {
+            nid: euclidean_distance(_player_data, ndata) 
+            for nid, ndata in scene_state.get("npc_positions", {}).items() 
+            if nid != "player" and euclidean_distance(_player_data, ndata) < 999.0
+        }
 
         lines.append("")
         lines.append("ПРОСТРАНСТВЕННЫЙ КОНТЕКСТ ИГРОКА:")

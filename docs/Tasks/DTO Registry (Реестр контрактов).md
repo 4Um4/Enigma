@@ -646,12 +646,12 @@ Authoritative Spatial Spine (ADR-048). Единственный легитимн
 - `trigger_strength`: `float`
 - `dominant_bias`: `ResponseBias
 
-### DecisionContext (Frozen Dataclass — Топология решений ADR-053)
+### DecisionContext (Frozen Dataclass — Топология решений ADR-049)
 *Мост Ядро→Хаб. Проекция геометрии восприятия в геометрию решений (Каузальная дискретизация T+1).*
 - **deformation**: `UtilityFieldDeformation` // Непрерывные векторы давления (aggression_suppression, initiative_suppression, compliance_bias, escape_salience)
 - **compression**: `ActionSpaceCompression` // Feasibility-слой. Экстремальное сужение (constraints: Dict[str, float], где 0.0 = действие невозможно)
 - **source**: `Optional[str]` // "perceptual_kernel" (из translate_kernel_to_context) или "cfrm_pressure" (из translate_pressure_to_context)
-- **Трансляция**: Устав §1.2 — домен не знает о моделях. Проекция `PerceptualKernel -> DecisionContext` выполняется в сервисном слое: `pressure_translator.translate_kernel_to_context(kernel)
+- **Трансляция**: Устав §1.2 — домен не знает о моделях. Метод `from_kernel()` удален (Сессия 34). Проекция `PerceptualKernel -> DecisionContext` выполняется в сервисном слое: `life_engine.tick_decisions()` (Каузальная дискретизация T+1).
 
 ### IntentResolution (Frozen Dataclass — Транзитный DTO ADR-034)
 *Результат шлюза Фазы 1. GameLoop публикует артефакты на его основе, не принимая решений.*
@@ -732,3 +732,26 @@ Authoritative Spatial Spine (ADR-048). Единственный легитимн
   - `traversal_speed`: `float = 1.5` // Скорость визуальной интерполяции (м/с)
 - **Cognitive Layer (Спринт 30: Визуализация Cognitive Freeze):**
   - `initiative_suppression`: `float = 0.0` // 0.0-1.0, паралич воли. При >0.7 рендерер применяет моторный тремор.
+
+---
+
+## XVI. Инфраструктура Наблюдения: Causal Diagnostic System (ADR-059)
+
+### CausalObserver (Background Thread)
+*Запускается из `game_launcher.py` до pygame loop. Пишет один markdown-файл с тремя секциями. Читается LLM, не человеком.*
+
+### LAST_SESSION.md Structure (LLM Context DTO)
+*Формат оптимизирован для контекстного окна LLM-архитекторов. Конкретные факты, готовые команды, файлы и строки.*
+
+- **Идентификация Архитектора:** Правила определения роли (Код, UI, Симуляция) на основе триггеров первого сообщения.
+- **Секция #1 (Архитектор Кода):** Активные баги требующие патча (с файлом и строкой), последние изменения (из MUTATIONS.md), файлы с TODO/FIXME.
+- **Секция #2 (Архитектор UI):** NPC с координатами/на нулях, визуальные аномалии (телепортации, слияния), что НЕ трогать.
+- **Секция #3 (Архитектор Симуляции):** Tick/Decision health, Movement Pipeline (таблица Intent→Traversal→Coords по NPC), Directive Pipeline (результат приказов), Каузальные разрывы (цепи отказа с PowerShell для верификации).
+
+### PatternRegistry (Diagnostic Regex)
+*Паттерны для парсинга логов игры в реальном времени.*
+- `decisions_zero`: `r"\[TICK_DECISIONS\] end: 0 decisions"`
+- `intent_received`: `r"\[TRACE\]\[ENGINE_RECEIVED\] npc=(\w+)"`
+- `node_not_found`: `r"\[MOVEMENT_ENGINE\] Узел '(\w+)' не найден"`
+- `directive_detected`: `r"\[CAUSALITY\] Semantic action MOVE detected for NPC '(\w+)'"`
+- `obedience_pressure`: `r"\[DIRECTIVE_INTERPRET\] Target=(\w+), Action=(\w+), ObediencePressure=([\d.]+)"

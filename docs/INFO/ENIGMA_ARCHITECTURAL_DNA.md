@@ -4,6 +4,7 @@
 - Axis 1 (Entropy vs Stabilization): architecture repeatedly expands its surface, then compensates through refactor compression.
 - Axis 2 (Causality vs Runtime Pressure): deeper causality almost always increases runtime pressure unless protocol/governance grows in parallel.
 - Axis 3 (Authority vs Ontology): authority consolidation remains stable only when formal ontology expands with consumer alignment.
+- Axis 4 (Observed Causality vs Script Illusion): systems remain simulation-native only while every behavioral effect; can be traced through authoritative causal chains rather than narrative shortcuts.
 
 ## Phase Signatures
 |Phase|EG|SR|CD|ACI|RPI|PG|SCS|
@@ -12,6 +13,8 @@
 |Entropy Surge|72.0|23.9|47.8|20.5|65.1|15.2|23.7|
 |Refactor Compression|44.7|39.4|32.3|35.7|50.5|8.7|43.3|
 |Transitional Synthesis|59.9|21.6|30.3|24.9|57.9|8.1|25.7|
+|Observed Causality Consolidation|61.5|44.0|71.0|48.0|58.0|41.0|78.0|
+Observed Causality Consolidation: phase where authority, causality and runtime geometry; ыbecome unified into observable behavioral truth.
 
 ## Causal Skeleton
 - `governance_density` -> `stabilization_ratio` (amplifies, r=0.50)
@@ -22,6 +25,22 @@
 - `stabilization_ratio` -> `governance_density` (amplifies, r=0.40)
 - `protocolization_growth` -> `causality_depth` (amplifies, r=0.38)
 
+## Legitimacy Dynamics
+
+The system transitioned from directive execution
+to legitimacy-mediated behavioral pressure.
+
+Pipeline:
+Directive
+-> Interpretation
+-> Legitimacy Evaluation
+-> Initiative Suppression / Resistance
+-> Reactive Behavior
+
+Result:
+NPCs no longer treat commands as direct state mutations.
+Social authority becomes a probabilistic pressure field.
+
 ## Authority Consolidation Timeline
 - `V.0.5.0.1` (2026-04-04): ACI=51.5, HSES=38.5, Phase=Transitional Synthesis
 - `V.0.2_alfa1` (2026-03-18): ACI=40.7, HSES=90.5, Phase=Refactor Compression
@@ -29,6 +48,17 @@
 - `V.0.5.0.4` (2026-04-09): ACI=36.7, HSES=62.9, Phase=Refactor Compression
 - `V.0.5.2.1_Пора_сломать_DecisionHub` (2026-05-01): ACI=34.7, HSES=33.5, Phase=Transitional Synthesis
 - `V.0.5.0.6` (2026-04-11): ACI=33.7, HSES=31.9, Phase=Transitional Synthesis
+
+## Spatial Authority Transition
+
+- `ADR-048` introduced single authoritative spatial truth through `SpatialQueryService`.
+- Decision, perception and movement systems began converging toward shared spatial reads.
+- Reactive locomotion became dependent on authoritative geometry instead of snapshot drift.
+- Remaining architectural risk:
+  local convenience reads reintroducing hidden spatial forks.
+
+Critical invariant:
+all distance/position semantics must originate from authoritative spatial queries.
 
 ## Ontology Expansion Timeline
 - `V.0.5.1.5_Продолжаю_починку_игры` (2026-04-26): OER=46.0, PG=23.4, Unstable=runtime_core, presentation
@@ -48,6 +78,43 @@
 - `V.0.5.2.4_Почти_почти_3`: RPI=72.1, CD=50.6, EG=71.7, SR=24.8
 - `V.0.5.1.8_Продолжаю_починку_4`: RPI=70.2, CD=46.1, EG=70.3, SR=16.4
 
+## Observed Causality Frontier
+
+- `V.0.5.3.0.8_ПЕСОЧНИЦЫ_5`: CD=71.0, ACI=48.0, PG=41.0, SCT=78.0
+- `V.0.5.3.0.7_ПЕСОЧНИЦЫ_4`: CD=68.5, ACI=43.2, PG=36.5, SCT=71.4
+- `V.0.5.3.0.6_ПЕСОЧНИЦЫ_3`: CD=66.4, ACI=16.7, PG=5.5, SCT=49.1
+- `V.0.5.3.0.5_ПЕСОЧНИЦЫ_2`: CD=65.0, ACI=21.9, PG=26.1, SCT=47.6
+- `V.0.5.3.0.4_ПЕСОЧНИЦЫ_1`: CD=67.8, ACI=10.8, PG=15.5, SCT=74.0
+- `V.0.5.3.0.3_НОВАЯ_РЕАЛЬНОСТЬ_3`: CD=65.0, ACI=14.3, PG=22.2, SCT=38.4
+- `V.0.5.3.0.2_НОВАЯ_РЕАЛЬНОСТЬ_2`: CD=62.0, ACI=30.7, PG=27.9, SCT=59.3
+- `V.0.5.2.9_СМЕНИЛ_подход`: CD=62.5, ACI=32.2, PG=29.6, SCT=62.1
+
+## Simulation Integrity Frontier
+
+- `V.0.5.3.0.8_ПЕСОЧНИЦЫ_5`: HSES=61.0, ACI=48.0, CD=71.0, RPI=58.0
+- `V.0.5.3.0.7_ПЕСОЧНИЦЫ_4`: HSES=52.3, ACI=43.2, CD=68.5, RPI=56.7
+- `V.0.5.3.0.6_ПЕСОЧНИЦЫ_3`: HSES=27.1, ACI=16.7, CD=66.4, RPI=54.8
+- `V.0.5.3.0.5_ПЕСОЧНИЦЫ_2`: HSES=31.9, ACI=21.9, CD=65.0, RPI=62.8
+- `V.0.5.3.0.4_ПЕСОЧНИЦЫ_1`: HSES=19.6, ACI=10.8, CD=67.8, RPI=45.1
+- `V.0.5.3.0.2_НОВАЯ_РЕАЛЬНОСТЬ_2`: HSES=43.9, ACI=30.7, CD=62.0, RPI=72.8
+- `V.0.5.2.9_СМЕНИЛ_подход`: HSES=27.7, ACI=32.2, CD=62.5, RPI=59.5
+
+## Micro-Locomotion Emergence
+
+`V.0.5.3.0.7 -> V.0.5.3.0.8`
+
+Reactive LOD0 locomotion became part of the causal runtime layer.
+
+Characteristics:
+- movement reacts to pressure and initiative state,
+- locomotion consumes authoritative spatial geometry,
+- behavior emerges from local steering instead of scripted motion,
+- perception and movement began sharing causal context.
+
+Architectural danger:
+if movement bypasses causal authority,
+simulation collapses into animation-driven illusion.
+
 ## Unstable Domain Map
 |Domain|Signal|Interpretation|
 |---|---:|---|
@@ -59,6 +126,7 @@
 |causal|0.688|risk of nonlinear behavior in decision/pressure loops|
 |authority|0.650|source-of-truth conflicts and state ownership friction|
 |ontology|0.516|type inflation without full downstream adaptation|
+|directive_legitimacy|0.742|risk of divergence between social authority, initiative suppression and behavioral execution|
 
 ## DNA Control Rules
 1. Any Causality Depth increase above 60 should be matched by Protocolization Growth >= 45 in the same or next release.
@@ -72,3 +140,28 @@
 |Controlled Coherence Lift|42%|PG and GD rise while RPI stays below 55|coherence trend shifts into persistent positive mode|
 |Causal Overheat|33%|CD above 70 with EG above 65|local decisions create global regressions|
 |Authority Fragmentation Relapse|25%|ACI below 45 during fast domain expansion|multiple conflicting sources of truth return|
+
+## Architectural Singularity Risk
+
+ENIGMA approaches a threshold where:
+- ontology,
+- causality,
+- authority,
+- spatial geometry,
+- and runtime observation
+
+become mutually dependent.
+
+Beyond this point:
+local shortcuts create nonlinear systemic corruption.
+
+Primary risks:
+- hidden bypass mutations,
+- narrative-side authority leaks,
+- local spatial convenience caches,
+- movement systems desynchronized from causal truth,
+- social directives bypassing legitimacy evaluation.
+
+Once crossed,
+the project can no longer safely evolve through isolated feature additions.
+All future growth becomes topology-sensitive.

@@ -145,7 +145,11 @@ def run_npc_orchestration(
             # ADR-0010: Без SpatialService MovementEngine глотает интенты (svc=None → continue).
             if _spatial_svc and not _me._spatial_service:
                 _me.set_spatial_service(_spatial_svc)
-            _changes = _me.process_intents(_movement_intents, tick=0)
+            # ADR-052: Проброс campaign_id и scene_state для динамического резолва графа чужой локации
+            _changes = _me.process_intents(
+                _movement_intents, tick=0,
+                campaign_id=campaign_id, scene_state=scene_state
+            )
             if _changes:
                 game_loop.scene_manager.apply_changes(campaign_id, _changes, scene_state)
                 logger.warning(f"[PIPELINE][ORCHESTRATION][MOVEMENT_RESULT] {len(_changes)} changes applied")
