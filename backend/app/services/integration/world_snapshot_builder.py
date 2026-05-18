@@ -80,6 +80,10 @@ class WorldSnapshotBuilder:
         print(f"[TRACE][SNAPSHOT_BUILD] npc_count={len(npc_positions)} keys={list(npc_positions.keys())[:5]}")
 
         for npc_id, data in npc_positions.items():
+            # ADR-048: player читается через _extract_player_position,
+            # в npc_positions он не нужен — иначе фронтенд рисует его как NPC
+            if npc_id == "player":
+                continue
             if not data.get("visible", True):
                 continue
 

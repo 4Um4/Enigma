@@ -60,7 +60,7 @@ subgraph Phase_3_7[Фазы 3-7: Memory and Decision]
 P2 -->|EventDTO| P3[Phase 3: MemoryProcessor]
 P3 -->|Updated NPCState| P4[Phase 4: TopicExtractor]
 P4 -->|Topic| P5[Phase 5: DecisionHub v2 ADR-032 ADR-049]
-PKERN[NPCState.perceptual_kernel T-1] -.->|translate_kernel_to_context ADR-053| DCTX[DecisionContext ADR-053]
+PKERN[NPCState.perceptual_kernel T-1] -.->|translate_kernel_to_context ADR-049| DCTX[DecisionContext ADR-049]
 PRESSURE[PsychologicalPressure] -.->|translate_pressure_to_context| DCTX
 DCTX -->|decision_ctx T+1 Cognitive Discretization| P5
 P5 -->|CommunicationIntent| P6[Phase 6: IntentEventAdapter]
@@ -320,3 +320,23 @@ end
 classDef dualtime fill:#9f9,stroke:#333,stroke-width:2px;
 class WSB,API,GS,PE,SR,SR_TREMOR dualtime;
 class PF forbidden;
+
+%% --- ADR-059: Causal Diagnostic System (CDS) ---
+subgraph Diagnostic_Layer[Observability Layer: CDS ADR-059]
+    direction TB
+    LAUNCHER[game_launcher.py] -->|DIAGNOSTICS_ENABLED=True start background thread| COBS[CausalObserver]
+    
+    STDOUT[Game stdout/log] -->|pipe/file read| COBS
+    GIT[git log -5 & MUTATIONS.md] -->|read| COBS
+    TODO[Select-String TODO/FIXME] -->|read| COBS
+    
+    COBS -->|parse patterns| PR[PatternRegistry]
+    COBS -->|build chains| CCB[CausalChainBuilder]
+    COBS -->|check health| HC[HealthCheckers tick/movement/spatial]
+    
+    COBS -->|render 3 sections| REND_CDS[ReportRenderer]
+    REND_CDS -->|overwrite| REPORT[reports/LAST_SESSION.md LLM Context]
+end
+
+classDef diagnostic fill:#fcf,stroke:#333,stroke-width:2px,stroke-dasharray: 5 5;
+class LAUNCHER,COBS,STDOUT,GIT,TODO,PR,CCB,HC,REND_CDS,REPORT diagnostic;

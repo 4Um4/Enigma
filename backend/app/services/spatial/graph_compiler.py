@@ -224,7 +224,8 @@ def load_editor_json(
             continue
         for json_file in loc_dir.glob("*.json"):
             try:
-                data = json.loads(json_file.read_text(encoding="utf-8"))
+                # utf-8-sig корректно обрабатывает BOM (EF BB BF)
+                data = json.loads(json_file.read_text(encoding="utf-8-sig"))
                 lid = data.get("location_id", "")
                 label = data.get("label", "")
                 # Точное совпадение
@@ -233,9 +234,9 @@ def load_editor_json(
                 # Частичное совпадение
                 if label and location_id and location_id.lower() in label.lower():
                     return data
-                # Первый файл с nodes
-                if data.get("nodes") and not lid:
-                    return data
+                # Fallback удалён: файл без location_id не может быть
+                # источником графа для произвольной локации — это
+                # порождало подмену inn_rooms → tavern
             except (json.JSONDecodeError, OSError):
                 continue
 

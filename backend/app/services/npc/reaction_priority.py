@@ -8,11 +8,15 @@ LLM только озвучивает. Никакого хардкода имё�
 Вызывается из PythonEngines ПОСЛЕ apply_changes (SceneState уже обновлён).
 """
 
+from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Optional, TYPE_CHECKING
 
 from app.core.constants import MAX_SPEAKERS_PER_TURN
+
+if TYPE_CHECKING:
+    from app.services.spatial.spatial_query_service import SpatialQueryService
 
 logger = logging.getLogger(__name__)
 
@@ -72,15 +76,13 @@ class ReactionScore:
 # ─────────────────────────────────────────────────────────────────────────────
 # Вспомогательные функции
 # ─────────────────────────────────────────────────────────────────────────────
-def _get_npc_distance(npc: dict, scene_state: dict) -> float:
-    """Расстояние из SceneState (player_distances)."""
-    if not scene_state:
+def _get_npc_distance(npc: dict, spatial_query: Optional["SpatialQueryService"]) -> float:
+    """Расстояние от NPC до игрока. ADR-048: Единственный источник истины — SpatialQueryService."""
+    if not spatial_query:
         return 999.0
-    distances = scene_state.get("player_distances", {})
     npc_id = npc.get("id", "")
-    if npc_id in distances:
-        return float(distances[npc_id])
-    return 999.0
+    distances = spatial_query.player_distances([npc_id])
+    return distances.get(npc_id, 999.0)
 
 
 def _is_incapacitated(npc: dict) -> bool:
@@ -129,6 +131,7 @@ def _score_npc(
     scene_state: dict,
     scene_changes: list,
     actor_id: str = "player",
+    spatial_query: Optional["SpatialQueryService"] = None,
 ) -> ReactionScore:
     rs = ReactionScore(npc_id=npc.get("id", "unknown"), npc_name=npc.get("name", "NPC"))
 
@@ -137,7 +140,7 @@ def _score_npc(
         rs.reasons.append("недееспособен")
         return rs
 
-    distance = _get_npc_distance(npc, scene_state)
+    distance = _get_npc_distance(npc, spatial_query)
 
     # Пространственные факторы
     if distance <= 5.0:
@@ -175,6 +178,7 @@ def get_reaction_order(
     scene_changes: list,
     actor_id: str = "player",
     min_score: int = 10,
+    spatial_query: Optional["SpatialQueryService"] = None,
 ) -> list[dict]:
     """
     Публичный API. Возвращает отсортированный список реакций.
@@ -186,7 +190,7 @@ def get_reaction_order(
     scores = []
     for npc in npcs:
         try:
-            rs = _score_npc(npc, scene_state, scene_changes, actor_id)
+            rs = _score_npc(npc, scene_state, scene_changes, actor_id, spatial_query=spatial_query)
             if rs.score >= min_score:
                 scores.append(rs)
         except Exception as e:

@@ -92,11 +92,14 @@ def init_scene_state(
             loop.scene_manager.save_scene_state(campaign_id, scene_state)
             logger.info(f"[GAME_LOOP] Новая сцена: {location}")
 
-        # Применяем позицию игрока от фронтенда в памяти (атомарный commit_tick сохранит)
-        # ADR-048: Игрок читается из единого словаря npc_positions
-        if player_position is not None and scene_state.get("npc_positions", {}).get("player", {}).get("local_position"):
-            scene_state["player_spatial"]["local_position"]["x"] = player_position[0]
-            scene_state["player_spatial"]["local_position"]["y"] = player_position[1]
+        # ADR-048 Phase 3: Позиция игрока пишется ТОЛЬКО в npc_positions.player (Единая Пространственная Власть)
+        # Запись в player_spatial удалена как нарушающая Single Spatial Authority
+        if player_position is not None:
+            _player_node = scene_state.setdefault("npc_positions", {}).setdefault("player", {})
+            _player_node["local_position"] = {
+                "x": player_position[0],
+                "y": player_position[1],
+            }
 
         # Контекст будет перестроен на следующем тике с актуальным scene_state (ADR-0015)
 

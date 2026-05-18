@@ -33,4 +33,11 @@
 *   `test_pressure_modifies_utility_not_commands`
 *   `test_membrane_visibility_enforced`
 *   `test_decision_requires_pressure_provenance`
+
+## 5. Принцип Наблюдаемости (CDS Observability)
+
+**Наблюдение не создает причинность.** Causal Diagnostic System (CDS) и `reports/LAST_SESSION.md` являются проекцией свершившегося. 
+1. **Запрет обратной связи:** Данные из отчетов CDS запрещено парсить и использовать в runtime симуляции для принятия решений.
+2. **Чистота наблюдателя:** Падение CDS не должно прерывать каузальный поток игры. CDS работает в `try/except` и отдельном потоке.
+3. **Каузальные разрывы:** Если CDS обнаруживает разрыв (например, Intent создан, Traversal нет), он фиксирует это для LLM-архитектора, но не инжектит фиксы автоматически.`
 ```

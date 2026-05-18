@@ -32,6 +32,8 @@ class EmotionPayload:
     emotion_delta: float = 0.0
     emotion_tag: Optional[str] = None
     new_trauma: Optional[str] = None
+    # ADR-049: Интеграл аффективного давления (передается в StateApplicator для NPCState.affective_load)
+    affective_load: Optional[float] = None
 
 
 @dataclass(frozen=True)

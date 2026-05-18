@@ -20,9 +20,12 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Callable, Dict, List, Optional
+from typing import Callable, Dict, List, Optional, TYPE_CHECKING
 
 from app.services.action.player_target_extractor import PlayerTargetExtractor
+
+if TYPE_CHECKING:
+    from app.services.spatial.spatial_query_service import SpatialQueryService
 from app.services.spatial.spatial_runtime import euclidean_distance
 from app.services.events.event_bus import get_event_bus
 from app.services.events.event_types import EventType
@@ -73,11 +76,9 @@ def extract_player_target(
         scene_state=_scene_pre if isinstance(_scene_pre, dict) else {},
     )
 
-    # Сохраняем расстояния обратно в scene_state — иначе spatial система всегда видит 5.0
-    if _player_dists and isinstance(_scene_pre, dict):
-        _scene_pre["player_distances"] = _player_dists
-    if _player_pos and isinstance(_scene_pre, dict):
-        _scene_pre["player_position"] = _player_pos
+    # ADR-048 Phase 2: Запись player_distances/player_position в scene_state ЗАПРЕЩЕНА.
+    # SpatialQueryService является единственным авторитетом (Single Spatial Authority).
+    # Semantic target всё ещё сохраняется для контекста диалога.
     if _target_id and isinstance(_scene_pre, dict):
         _scene_pre["player_target_npc"] = _target_id
         _scene_pre["player_target_npc_name"] = _target_name
@@ -133,20 +134,23 @@ def detect_and_publish_spatial_transitions(
     return _spatial_events
 
 
-def build_spatial_data_for_dm(location: str, scene_state: dict) -> dict:
-    """Строит spatial_data из scene_state для DM SceneBuilder."""
+def build_spatial_data_for_dm(location: str, scene_state: dict, spatial_query: Optional["SpatialQueryService"] = None) -> dict:
+    """Строит spatial_data из scene_state для DM SceneBuilder.
+    ADR-048: Дистанции запрашиваются у SpatialQueryService.
+    """
     _scene = scene_state
     _npc_positions = _scene.get("npc_positions", {})
+    _npc_ids = list(_npc_positions.keys())
 
-    # ADR-048: Игрок читается из единого словаря npc_positions
-    _player_spatial = _scene.get("npc_positions", {}).get("player", {})
-    _player_distances = _scene.get("player_distances", {})
+    # ADR-048: Запрос дистанций у авторитетного сервиса
+    if spatial_query:
+        _player_distances = spatial_query.player_distances(_npc_ids)
+    else:
+        _player_distances = {}
+
     _npcs_for_builder = []
-    for _nid, _npos in _npc_positions.items():
-        _dist = euclidean_distance(_player_spatial, _npos)
-        # Если координат нет, euclidean_distance вернёт 999.0 — используем старый fallback
-        if _dist >= 999.0:
-            _dist = _player_distances.get(_nid, 5.0)
+    for _nid in _npc_ids:
+        _dist = _player_distances.get(_nid, 999.0)
         _npcs_for_builder.append({
             "npc_id": _nid,
             "location_id": location,

@@ -22,6 +22,8 @@ backend/app/
     │   ├── llm/          ← Получает промпт, возвращает текст.
     │   └── ...
     └── api/              ← Знает services/. Принимает DTO, выдаёт DTO.
+diagnostics/              ← НЕ ЗНАЕТ о рантайме симуляции. Читает stdout, git, файлы. Пишет в reports/.
+    └── reports/          ← LLM-oriented Markdown (LAST_SESSION.md). Не импортируется в игру.
 ```
 
 **Закон 1.1:** `frontend/` не импортирует `backend/app/` ни под каким предлогом. Даже `constants`. Даже `typing`. Нет.
@@ -213,6 +215,7 @@ event_bus.subscribe(EventType.NPC_SPOKE, social_engine.handle)
 | 7.8 | `WorldTick` возвращает `List[dict]` | События NPC = сироты, никто не обрабатывает |
 | 7.9 | `ResonanceEngine` / `ContradictionResolver` без lifecycle hooks | Мёртвый код, никто не вызывает |
 | 7.10 | YAML как runtime truth | Race conditions, нет транзакций, повреждение данных |
+| 7.11 | CausalObserver мутирует state | Нарушение принципа пассивного наблюдателя, недетерминированность симуляции |
 
 ---
 

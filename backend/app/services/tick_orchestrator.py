@@ -606,7 +606,11 @@ class TickOrchestrator:
                 me = MovementEngine()
                 me.set_spatial_service(_spatial_svc)
                 _tick = self.get_current_tick(ctx.campaign_id)
-                changes = me.process_intents(ctx.player_result.movement_intents, _tick, ctx.scene_state.get("npc_positions", {}))
+                changes = me.process_intents(
+                    ctx.player_result.movement_intents, _tick,
+                    ctx.scene_state.get("npc_positions", {}),
+                    campaign_id=ctx.campaign_id, scene_state=ctx.scene_state
+                )
                 if changes and self._scene_manager:
                     self._scene_manager.apply_changes(ctx.campaign_id, changes, ctx.scene_state)
                     logger.warning(f"[PLAYER_TURN] Applied {len(changes)} reactive movement changes")
@@ -731,7 +735,11 @@ class TickOrchestrator:
             if _loc_id and _spatial_svc:
                 me = MovementEngine()
                 me.set_spatial_service(_spatial_svc)
-                spatial_changes = me.process_intents(life_intents, tick=ctx.tick_number, npc_positions=ctx.scene_state.get("npc_positions", {}))
+                spatial_changes = me.process_intents(
+                    life_intents, tick=ctx.tick_number,
+                    npc_positions=ctx.scene_state.get("npc_positions", {}),
+                    campaign_id=ctx.campaign_id, scene_state=ctx.scene_state
+                )
                 if spatial_changes and self._scene_manager:
                     self._scene_manager.apply_changes(ctx.campaign_id, spatial_changes, ctx.scene_state)
                     logger.info(f"[TICK_ORCH] Фаза 0: {len(spatial_changes)} spatial changes from {len(life_intents)} LifeEngine intents")
@@ -1585,12 +1593,11 @@ class TickOrchestrator:
                         ),
                         None,
                     ):
-                        from app.services.affective.pressure_derivation import derive_affective_pressure
-                        from app.services.affective.emotion_resolution import resolve_emotion_from_pressure
+                        from app.services.affective.affective_integrator import integrate_affective_pressure
+                        from app.services.affective.emotion_transition import resolve_emotion_transition
                         from app.models.npc_state import PerceptualKernel
                         
                         psyche = npc_raw.get("psyche", {}).get("drives_base", {})
-                        body_state = npc_raw.get("body_state", {})
                         pk_dict = npc_raw.get("perceptual_kernel", {})
                         
                         # Легковесная проекция: старое ядро + текущая дельта (clamping 0.0-1.0)
@@ -1603,10 +1610,16 @@ class TickOrchestrator:
                             initiative_suppression=pk_dict.get("initiative_suppression", 0.0)
                         )
                         
-                        pressure = derive_affective_pressure(projected_kernel, body_state)
-                        if emotion_payload := resolve_emotion_from_pressure(
-                            pressure, psyche
-                        ):
+                        # ADR-049: Интеграция аффективного давления (Страх = интеграл угрозы по времени)
+                        current_load = npc_raw.get("affective_load", 0.0)
+                        new_load = integrate_affective_pressure(projected_kernel, current_load, psyche)
+                        
+                        # ADR-049: Фазовый переход эмоции при пересечении порога
+                        if emotion_payload := resolve_emotion_transition(new_load, current_load, psyche):
+                            # Передаем новое значение интеграла в Applicator для сохранения в NPCState
+                            from dataclasses import replace
+                            emotion_payload = replace(emotion_payload, affective_load=new_load)
+                            
                             emotion_delta = StateDeltas(
                                 npc_id=entity_id,
                                 domain=DeltaDomain.EMOTION,
