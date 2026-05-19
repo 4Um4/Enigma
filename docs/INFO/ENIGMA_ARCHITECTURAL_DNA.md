@@ -32,7 +32,7 @@
 |Refactor Compression|44.7|39.4|32.3|35.7|50.5|8.7|43.3|
 |Transitional Synthesis|59.9|21.6|30.3|24.9|57.9|8.1|25.7|
 |Observed Causality Consolidation|61.5|44.0|71.0|48.0|58.0|41.0|78.0|
-|Simulation-Native Orchestration|54.0|58.0|78.0|56.0|52.0|63.0|84.0|
+|Simulation-Native Orchestration|49.0|63.0|82.0|59.0|49.0|68.0|88.0|
 
 Observed Causality Consolidation: phase where authority, causality and runtime geometry become unified into observable behavioral truth.
 
@@ -103,6 +103,8 @@ Social authority becomes a probabilistic pressure field.
 - `V.0.5.3.0.9_Рассвет_1` (2026-05-18):
   ACI=56.0, HSES=68.0, Phase=Simulation-Native Orchestration
 
+- `V.0.5.3.1.0_Рассвет_2` (2026-05-19):
+  ACI=59.0, HSES=72.4, Phase=Simulation-Native Orchestration
 ---
 
 ## Spatial Authority Transition
@@ -149,9 +151,15 @@ from authoritative spatial queries.
 - `V.0.5.0.8` (2026-04-15):
   OER=33.8, PG=7.7, Unstable=runtime_core, spatial
 
+- `V.0.5.3.1.0_Рассвет_2` (2026-05-19):
+  OER=67.0, PG=68.0, Unstable=orchestration, cognition
+
 ---
 
 ## Runtime Pressure Frontier
+
+- `V.0.5.3.1.0_Рассвет_2`:
+  RPI=49.0, CD=82.0, EG=49.0, SR=63.0
 
 - `V.0.5.3.0.9_Рассвет_1`:
   RPI=52.0, CD=78.0, EG=54.0, SR=58.0
@@ -179,10 +187,14 @@ from authoritative spatial queries.
 
 - `V.0.5.1.8_Продолжаю_починку_4`:
   RPI=70.2, CD=46.1, EG=70.3, SR=16.4
+  
 
 ---
 
 ## Observed Causality Frontier
+
+- `V.0.5.3.1.0_Рассвет_2`:
+  CD=82.0, ACI=59.0, PG=68.0, SCT=88.0
 
 - `V.0.5.3.0.9_Рассвет_1`:
   CD=78.0, ACI=56.0, PG=63.0, SCT=84.0
@@ -214,6 +226,9 @@ from authoritative spatial queries.
 ---
 
 ## Simulation Integrity Frontier
+
+- `V.0.5.3.1.0_Рассвет_2`:
+  HSES=72.4, ACI=59.0, CD=82.0, RPI=49.0
 
 - `V.0.5.3.0.9_Рассвет_1`:
   HSES=68.0, ACI=56.0, CD=78.0, RPI=52.0
@@ -264,6 +279,29 @@ Architectural danger:
 over-constraining renderer behavior may collapse
 emergent humanity into deterministic puppetry.
 
+- `V.0.5.3.1.0_Рассвет_2`:
+
+ENIGMA shifted from cognitive externalization
+toward distributed cognitive orchestration.
+
+Characteristics:
+
+- renderer state became secondary,
+- cognitive preprocessing deepened,
+- orchestration gained topology-level influence,
+- memory salience routing stabilized,
+- state compilation became dominant over prompt composition.
+
+Critical shift:
+
+Renderer no longer consumes narrative context directly.
+
+Renderer consumes cognitively filtered state topology.
+
+Architectural danger:
+
+orchestration layers becoming self-referential
+and creating hidden cognitive loops.
 ---
 
 ## Micro-Locomotion Emergence
@@ -343,12 +381,12 @@ simulation collapses into animation-driven illusion.
 
 |Scenario|Probability|Trigger|System Effect|
 |---|---:|---|---|
-|Controlled Coherence Lift|34%|PG and orchestration stabilize while RPI remains below 55|persistent simulation coherence under constrained inference budgets|
-|Renderer Subordination Success|26%|state compilation stabilizes before renderer saturation|NPC coherence persists under low-context rendering|
-|Over-Orchestration Collapse|18%|directive density exceeds emergent flexibility threshold|NPCs degrade into deterministic automata|
-|Causal Overheat|12%|CD above 80 with orchestration instability|local cognition loops generate systemic regressions|
-|Cognitive Runtime Emergence|7%|salience routing + orchestration ecology stabilize together|ENIGMA evolves into simulation-native inference architecture|
-|Latency Cascade Spiral|3%|micro-model orchestration exceeds runtime continuity budget|response delay destroys immersion continuity|
+|Controlled Coherence Lift|38%|PG and orchestration stabilize while RPI remains below 50|persistent coherent simulation behavior|
+|Renderer Subordination Success|29%|state compilation dominates renderer logic|renderer becomes stable behavioral projection layer|
+|Over-Orchestration Collapse|14%|directive density exceeds adaptive thresholds|NPCs become rigid deterministic entities|
+|Causal Overheat|10%|CD above 85 with unstable routing|local cognition loops propagate globally|
+|Cognitive Runtime Emergence|8%|salience ecology stabilizes fully|simulation-native cognition architecture emerges|
+|Latency Cascade Spiral|1%|multi-stage orchestration exceeds runtime budget|interaction continuity collapse|
 
 ---
 
