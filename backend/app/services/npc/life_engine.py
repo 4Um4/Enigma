@@ -527,7 +527,7 @@ class LifeEngine:
         hub = DecisionHub()
         decisions: list[dict] = []
         communication_intents: list[CommunicationIntent] = []
-        print(f"[TICK_DECISIONS] start: {len(npcs)} NPCs")
+        logger.info(f"[TICK_DECISIONS] start: {len(npcs)} NPCs")
 
         for npc in npcs:
             npc_id = npc.get("id", "?")
@@ -542,9 +542,11 @@ class LifeEngine:
                 if state_l2.will_state == WillState.BROKEN:
                     continue
 
-                # Контекст для idle tick — низкая интенсивность, нет стимула
+                # ДОЛГ 2 FIX: idle tick = мир тикает проактивно (WORLD_TICK).
+                # EventType.IDLE убивал все proactive-интенты, давление
+                # никогда не накапливалось, 0 решений за 14 тиков.
                 event = EventContext(
-                    event_type=EventType.IDLE,
+                    event_type=EventType.WORLD_TICK,
                     actor_id=npc_id,
                     success=True,
                     intensity=0.2,
@@ -629,11 +631,11 @@ class LifeEngine:
             except Exception as e:
                 import traceback
                 logger.warning(f"[LIFE_ENGINE] Idle decision error for {npc_id}: {e}\n{traceback.format_exc()}")
-                print(f"[TICK_DECISIONS] error: {npc_id} → {e}")
+                logger.error(f"[TICK_DECISIONS] error: {npc_id} → {e}")
                 print(traceback.format_exc())
                 continue
 
-        print(f"[TICK_DECISIONS] end: {len(decisions)} decisions, {len(communication_intents)} intents")
+        logger.info(f"[TICK_DECISIONS] end: {len(decisions)} decisions, {len(communication_intents)} intents")
         return decisions, communication_intents
 
     def save_npcs(self, campaign_id: str) -> None:
@@ -782,7 +784,7 @@ class LifeEngine:
             f"[LIFE_ENGINE] get_npc_states: кэш пуст для '{campaign_id}'. "
             "tick() не была вызвана перед этим?"
         )
-        return [], [] # ADR-049: Всегда возвращаем кортеж (changes, intents)
+        return []  # БАГ G FIX: get_npc_states возвращает list[dict], не tuple  
 
     # ─────────────────────────────────────────────────────────────────────────
     # Симуляция по тирам

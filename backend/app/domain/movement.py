@@ -10,13 +10,11 @@ from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
-class MovementIntent:
-    """Намерение переместить NPC к целевому узлу.
+class MacroMovementGoal:
+    """LOD1: Навигация по графу локации (двери, зоны, комнаты).
     
-    Генерируется: LifeEngine (schedule/need-driven) или DecisionHub.
+    Генерируется: LifeEngine (schedule/need-driven).
     Обрабатывается: MovementEngine (Слой 2).
-    
-    Не содержит координат — только идентификатор узла графа.
     Конвертация в {x, y} — ответственность MovementEngine.
     """
     npc_id: str
@@ -24,10 +22,23 @@ class MovementIntent:
     from_node_id: str = ""  # текущий узел — для pathfinding (Слой 2)
     location_id: str = ""   # для загрузки правильного графа
     reason: str = ""        # "need_driven:hunger", "schedule:working"
+    priority: float = 0.5   # 0.0–1.0, для разрешения конфликтов intent-ов
 
-    # ADR-0010: movement_mode удалён. Макро-перемещение — Semantic Relocation.
-    priority: float = 0.5            # 0.0–1.0, для разрешения конфликтов intent-ов
-    local_target_xy: Optional[tuple[float, float]] = None  # LOD0: микро-перемещение внутри зоны
+@dataclass(frozen=True)
+class LocalSteeringGoal:
+    """LOD0: Микро-рулежка внутри зоны (уклонение, расхождение, подход).
+    
+    Генерируется: DecisionHub / Reactive Movement.
+    Обрабатывается: MovementEngine (Слой 2).
+    Содержит абсолютные координаты внутри тайла.
+    """
+    npc_id: str
+    local_target_xy: tuple[float, float]  # Целевые координаты
+    reason: str = ""        # "reactive_snap", "collision_avoidance"
+    priority: float = 0.7   # Микро-рулежка приоритетнее макро-маршрутов по умолчанию
+
+# Legacy alias для плавной миграции (будет удален в Phase 4)
+MovementIntent = MacroMovementGoal
 
 
 # Константы приоритетов — выше = важнее (D6)

@@ -40,7 +40,7 @@ def test_micro_movement_with_prefix_mismatch(scene_state_same_zone_prefix_mismat
     assert result is not None, "БАГ: Микро-движение заблокировано из-за несовпадения префиксов!"
     assert result.local_target_xy == (10.0, 10.0), f"ОШИБКА: local_target_xy не совпадает с позицией игрока: {result.local_target_xy}"
     assert "micro_snap" in result.reason, f"ОШИБКА: Причина должна быть micro_snap, а не {result.reason}"
-    assert result.target_node_id == "main_hall", f"ОШИБКА: target_node_id должен быть каноническим 'main_hall'"
+    # ADR-060: Утверждение target_node_id удалено. LOD0 (LocalSteeringGoal) оперирует координатами, а не узлами графа.
 
 def test_micro_movement_clean_case(scene_state_same_zone_clean):
     """ДОКАЗЫВАЕТ: Микро-движение работает в чистом случае (без префиксов)."""

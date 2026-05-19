@@ -483,7 +483,7 @@ def run_npc_pipeline(
 
             # MovementIntent — реактивное движение NPC (APPROACH, FLEE и др.)
             # DecisionHub решает ЧТО делать, MovementEngine решит КАК (координаты)
-            from app.domain.movement import MovementIntent
+            from app.domain.movement import MacroMovementGoal, LocalSteeringGoal
             _intent_value = decision.intent.value if decision.intent else ""
             
             # ADR-035: Реактивный перехват пространственных команд.
@@ -660,7 +660,7 @@ def _resolve_reactive_movement(
     Если передан spatial_service (v1.2), использует его. Иначе fallback на load_graph.
     ADR-048: Если передан spatial_query, чтение позиций идёт ТОЛЬКО через него.
     """
-    from app.domain.movement import MovementIntent, PRIORITY_NEEDS
+    from app.domain.movement import LocalSteeringGoal, MacroMovementGoal, PRIORITY_NEEDS
     from app.services.spatial.location_graph import load_graph
 
     # ADR-048: Spatial Authority. Единственный источник пространственной истины.
@@ -725,7 +725,7 @@ def _resolve_reactive_movement(
 
             if target_node_id and target_node_id != current_node:
                 print(f"[TRACE][INTENT_CREATED] npc={npc_id} intent=reactive:flee target_node={target_node_id}")
-                return MovementIntent(npc_id=npc_id, target_node_id=target_node_id, from_node_id=current_node, location_id=location_id, reason="reactive:flee", priority=PRIORITY_NEEDS)
+                return MacroMovementGoal(npc_id=npc_id, target_node_id=target_node_id, from_node_id=current_node, location_id=location_id, reason="reactive:flee", priority=PRIORITY_NEEDS)
         return None
 
     # ADR-045: Проверка на нахождение в одной макро-зоне (нормализация префиксов)
@@ -743,7 +743,7 @@ def _resolve_reactive_movement(
         if intent == "approach" and target_x is not None and target_y is not None:
             print(f"[TRACE][INTENT_CREATED] npc={npc_id} intent=micro_snap:{intent} target_node={current_node} target_xy=({target_x},{target_y})")
             # Возвращаем канонический current_node для трассировки, сравнение было по базе
-            return MovementIntent(npc_id=npc_id, target_node_id=current_node, from_node_id=current_node, location_id=location_id, reason=f"micro_snap:{intent}", priority=PRIORITY_NEEDS, local_target_xy=(target_x, target_y))
+            return LocalSteeringGoal(npc_id=npc_id, local_target_xy=(target_x, target_y), reason=f"micro_snap:{intent}", priority=PRIORITY_NEEDS)
         
         if intent == "flee":
             # Для побега из той же зоны ищем другой узел
@@ -758,4 +758,4 @@ def _resolve_reactive_movement(
     
     logger.warning(f"[PIPELINE][REACTIVE_MOVEMENT][CREATE] npc={npc_id} target_node={target_node_id} from_node={current_node}")
     print(f"[TRACE][INTENT_CREATED] npc={npc_id} intent=reactive:{intent} target_node={target_node_id}")
-    return MovementIntent(npc_id=npc_id, target_node_id=target_node_id, from_node_id=current_node, location_id=location_id, reason=f"reactive:{intent}", priority=PRIORITY_NEEDS)
+    return MacroMovementGoal(npc_id=npc_id, target_node_id=target_node_id, from_node_id=current_node, location_id=location_id, reason=f"reactive:{intent}", priority=PRIORITY_NEEDS)

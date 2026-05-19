@@ -1,7 +1,8 @@
 """
 path: diagnostics/causal_observer.py
-Назначение: Читает backend-лог в фоновом потоке (tail -f аналог).
-            Парсит строки через COMPILED-паттерны и вызывает методы health-checker-ов.
+Назначение: Пост-мортем анализатор каузальных логов.
+            Читает лог-файл сессии после завершения игры, парсит строки
+            через COMPILED-паттерны и вызывает методы health-checker-ов.
             Crash в этом модуле НЕ должен ронять игру — весь код в try/except.
 Зависимости: diagnostics.pattern_registry,
              diagnostics.health_checkers.tick_health,
@@ -10,10 +11,7 @@ path: diagnostics/causal_observer.py
 """
 
 import ast
-import os
-import re
-import threading
-import time
+import logging
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
@@ -21,116 +19,81 @@ from typing import Optional
 from diagnostics.pattern_registry import COMPILED
 from diagnostics.health_checkers.tick_health import TickHealthChecker, TickHealthReport
 from diagnostics.health_checkers.movement_health import MovementHealthChecker, MovementHealthReport
+from diagnostics.dna_metrics import DNAComputer
+
+logger = logging.getLogger(__name__)
 
 
 class CausalObserver:
     """
-    Фоновый наблюдатель за backend-логом.
-    Запускается через start(), останавливается через stop().
-    После stop() можно вызвать export() для записи LAST_SESSION.md.
+    Пост-мортем наблюдатель: читает лог-файл после завершения игры.
+    Не перехватывает stdout, не ломает SSE.
     """
 
-    def __init__(self, log_dir: Optional[str] = None) -> None:
-        # Определяем директорию логов относительно расположения этого файла
-        if log_dir is None:
-            _root = Path(__file__).parent.parent  # корень Enigma/
-            log_dir = str(_root / "backend" / "logs")
-        self._log_dir = Path(log_dir)
-        self._log_file: Optional[Path] = None   # актуальный лог текущей сессии
-
+    def __init__(self, log_path: Optional[str] = None) -> None:
+        self._log_path = Path(log_path) if log_path else None
         self._tick_checker = TickHealthChecker()
         self._movement_checker = MovementHealthChecker()
-
-        self._thread: Optional[threading.Thread] = None
-        self._stop_event = threading.Event()
         self._started_at = datetime.now()
+        self._dna_computer: Optional[DNAComputer] = None
 
     # ------------------------------------------------------------------
     # Публичный API
     # ------------------------------------------------------------------
 
     def start(self) -> None:
-        """Запускает фоновый поток чтения лога."""
-        try:
-            self._log_file = self._find_latest_log()
-            self._thread = threading.Thread(
-                target=self._run,
-                daemon=True,
-                name="CausalObserver",
-            )
-            self._thread.start()
-        except Exception as exc:
-            print(f"[CDS] Observer start failed (игра продолжится): {exc}")
+        """Заглушка — данные читаются post-mortem из лога."""
+        pass
 
     def stop(self) -> None:
-        """Сигнализирует потоку остановиться и ждёт завершения (max 3 сек)."""
-        try:
-            self._stop_event.set()
-            if self._thread is not None:
-                self._thread.join(timeout=3.0)
-        except Exception:
-            pass
+        """Заглушка."""
+        pass
 
     def export(self, output_path: str) -> None:
         """
-        Строит отчёт и записывает LAST_SESSION.md.
+        Читает лог-файл пост-мортем, строит отчёт и записывает LAST_SESSION.md.
         Вызывается после stop() из game_launcher.py.
         """
         try:
+            self._parse_log_file()
+            
             from diagnostics.report_renderer import ReportRenderer
             tick_report = self._tick_checker.build()
             movement_report = self._movement_checker.build()
-            renderer = ReportRenderer(
+
+            self._dna_computer = DNAComputer(
                 tick_report=tick_report,
                 movement_report=movement_report,
                 started_at=self._started_at,
             )
+
+            renderer = ReportRenderer(
+                tick_report=tick_report,
+                movement_report=movement_report,
+                dna_computer=self._dna_computer,
+                started_at=self._started_at,
+            )
             renderer.write(output_path)
         except Exception as exc:
-            print(f"[CDS] Export failed (игра уже завершилась): {exc}")
+            logger.error(f"[CDS] Export failed: {exc}", exc_info=True)
 
     # ------------------------------------------------------------------
-    # Внутренний поток
+    # Парсинг лога
     # ------------------------------------------------------------------
 
-    def _run(self) -> None:
-        """Главный цикл фонового потока — читает лог построчно."""
-        if self._log_file is None:
+    def _parse_log_file(self) -> None:
+        """Построчно читает лог-файл и диспетчеризует строки."""
+        if not self._log_path or not self._log_path.exists():
+            logger.warning(f"[CDS] Log file not found: {self._log_path}")
             return
-        try:
-            with open(self._log_file, "r", encoding="utf-8", errors="replace") as fh:
-                # Если файл уже существовал — переходим в конец
-                fh.seek(0, 2)
-                while not self._stop_event.is_set():
-                    line = fh.readline()
-                    if not line:
-                        # Проверяем не появился ли новый лог-файл (backend перезапустился)
-                        new_log = self._find_latest_log()
-                        if new_log != self._log_file:
-                            self._log_file = new_log
-                            fh.close()
-                            fh = open(self._log_file, "r", encoding="utf-8", errors="replace")
-                            fh.seek(0, 2)
-                        time.sleep(0.05)
-                        continue
-                    self._dispatch(line.rstrip("\n"))
-        except Exception as exc:
-            print(f"[CDS] Reader thread error: {exc}")
 
-    def _find_latest_log(self) -> Optional[Path]:
-        """Возвращает самый свежий backend_*.log файл."""
-        try:
-            logs = sorted(
-                self._log_dir.glob("backend_*.log"),
-                key=lambda p: p.stat().st_mtime,
-                reverse=True,
-            )
-            return logs[0] if logs else None
-        except Exception:
-            return None
+        logger.info(f"[CDS] Parsing log: {self._log_path}")
+        with open(self._log_path, "r", encoding="utf-8", errors="replace") as fh:
+            for line in fh:
+                self._dispatch(line.rstrip("\n"))
 
     # ------------------------------------------------------------------
-    # Диспетчер строк лога → health-checkers
+    # Диспетчер строк → health-checkers (ЕДИНСТВЕННЫЙ МЕТОД)
     # ------------------------------------------------------------------
 
     def _dispatch(self, line: str) -> None:
@@ -141,9 +104,8 @@ class CausalObserver:
                 self._tick_checker.on_startup_complete()
                 return
 
-            m = COMPILED["llm_server_ok"].search(line)
-            if m:
-                self._tick_checker.on_llm_server_ok(m.group(1))
+            if COMPILED["llm_server_ok"].search(line):
+                self._tick_checker.on_llm_server_ok()
                 return
 
             m = COMPILED["player_select"].search(line)
@@ -171,6 +133,7 @@ class CausalObserver:
             if m:
                 npc, intent, score, event = m.group(1), m.group(2), float(m.group(3)), m.group(4)
                 self._movement_checker.on_decision_hub(npc, intent, score, event)
+                self._tick_checker.on_individual_decision()
                 return
 
             m = COMPILED["state_applied"].search(line)
@@ -184,6 +147,15 @@ class CausalObserver:
                 return
 
             m = COMPILED["llm_response"].search(line)
+            if m:
+                self._tick_checker.on_llm_response(int(m.group(1)))
+                return
+
+            if COMPILED["llm_worker_call"].search(line):
+                self._tick_checker.on_llm_call()
+                return
+
+            m = COMPILED["llm_worker_response"].search(line)
             if m:
                 self._tick_checker.on_llm_response(int(m.group(1)))
                 return
@@ -227,10 +199,20 @@ class CausalObserver:
                 self._movement_checker.on_engine_received(m.group(1), m.group(2))
                 return
 
+            # --- Directive pipeline (для OBI) ---
+            m = COMPILED["obedience_pressure"].search(line)
+            if m:
+                try:
+                    pressure = float(m.group(3))
+                    if self._dna_computer is not None:
+                        self._dna_computer.on_directive(pressure)
+                except Exception:
+                    pass
+                return
+
             # --- Perception ---
             m = COMPILED["perception_filter"].search(line)
             if m:
-                # Парсим список NPC: "['thief_shadow', 'guard_borko']"
                 try:
                     npc_list = ast.literal_eval(m.group(3))
                     self._movement_checker.on_perception_filter(npc_list)
@@ -239,5 +221,4 @@ class CausalObserver:
                 return
 
         except Exception:
-            # Любой сбой диспетчера — тихо глотаем, лог не должен ронять игру
             pass

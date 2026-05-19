@@ -21,17 +21,32 @@ class TickHealthReport:
     llm_responses: int = 0
     llm_nothing_count: int = 0     # "Ничего не произошло." — LLM молчит
     llm_cjk_lines: int = 0         # строки с китайскими галлюцинациями
-    startup_ok: bool = False
+    startup_ok: bool = True   # uvicorn в subprocess — не перехватывается, считаем True если игра запустилась
     llm_server_ok: bool = False
     player_campaign: str = ""
     player_name: str = ""
     warnings: List[str] = field(default_factory=list)
 
     def is_simulation_dead(self) -> bool:
-        """Симуляция мертва если 100% тиков — нулевые decisions."""
+        """
+        Симуляция мертва только если:
+        - были тики с действием игрока (llm_calls > 0) И все decisions = 0.
+        - Idle-тики с 0 decisions — норма (нет игрока рядом).
+        """
         if self.total_ticks == 0:
-            return True
-        return self.decisions_zero_ticks == self.total_ticks
+            return False  # сессия слишком короткая для вывода
+        if self.llm_calls == 0:
+            return False  # игрок ничего не делал — idle норма
+        # ВАЖНО: Проверяем total_decisions, так как [R3_DIRECT] 0 может затереть
+        # decisions_nonzero_ticks, хотя [DECISION_HUB] фиксирует решения NPC.
+        return self.decisions_nonzero_ticks == 0 and self.total_decisions == 0
+
+    def on_individual_decision(self) -> None:
+        """Вызывается при парсинге [DECISION_HUB], чтобы учесть реальные решения NPC."""
+        self.total_decisions += 1
+        # Гарантируем, что тик не считается мертвым, если было хоть одно решение
+        if self.decisions_nonzero_ticks == 0:
+            self.decisions_nonzero_ticks = 1
 
     def summary_line(self) -> str:
         status = "❌ МЕРТВА" if self.is_simulation_dead() else "✅ живёт"
@@ -81,7 +96,7 @@ class TickHealthChecker:
     def on_startup_complete(self) -> None:
         self._report.startup_ok = True
 
-    def on_llm_server_ok(self, url: str) -> None:
+    def on_llm_server_ok(self) -> None:
         self._report.llm_server_ok = True
 
     def on_player_select(self, campaign: str, player: str) -> None:

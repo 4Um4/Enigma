@@ -15,6 +15,7 @@ from typing import Optional
 from diagnostics.health_checkers.tick_health import TickHealthReport
 from diagnostics.health_checkers.movement_health import MovementHealthReport
 from diagnostics.git_reader import GitReader, GitInfo
+from diagnostics.dna_metrics import DNAComputer
 
 
 class ReportRenderer:
@@ -27,11 +28,13 @@ class ReportRenderer:
         self,
         tick_report: TickHealthReport,
         movement_report: MovementHealthReport,
+        dna_computer: Optional[DNAComputer] = None,
         started_at: Optional[datetime] = None,
         project_root: Optional[str] = None,
     ) -> None:
         self._tick = tick_report
         self._movement = movement_report
+        self._dna = dna_computer
         self._started_at = started_at or datetime.now()
         self._git: GitInfo = GitReader(project_root).read()
 
@@ -60,11 +63,25 @@ class ReportRenderer:
         sections = [
             self._header(ts),
             self._section_identification(),
+            self._section_dna(),
             self._section_architect1(),
             self._section_architect2(),
             self._section_architect3(),
         ]
         return "\n\n".join(sections)
+
+    def _section_dna(self) -> str:
+        """Секция DNA — вычисляется и сохраняется в историю."""
+        if self._dna is None:
+            return "## DNA — МЕТРИКИ\n\n_(DNAComputer не инициализирован)_"
+        try:
+            snap = self._dna.compute()
+            prev = self._dna.load_previous()
+            self._dna.save(snap)   # пишем ПОСЛЕ load_previous
+            delta = self._dna.compute_delta(snap, prev)
+            return self._dna.render_section(snap, delta)
+        except Exception as exc:
+            return f"## DNA — МЕТРИКИ\n\n_(ошибка вычисления: {exc})_"
 
     def _header(self, ts: str) -> str:
         campaign = self._tick.player_campaign or "?"

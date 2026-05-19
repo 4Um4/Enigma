@@ -115,7 +115,7 @@ class StateApplicator:
                     new_state.trauma_markers.add("will_broken")
 
             self._apply_trait_decay(new_state)
-            logger.debug(f"[STATE_APPLIED] {new_state.npc_id}: stress={new_state.stress:.1f} intent={new_state.intent}")
+            logger.info(f"[STATE_APPLIED] {new_state.npc_id}: stress={new_state.stress:.1f} intent={new_state.intent}")
             return new_state
 
         except Exception as e:

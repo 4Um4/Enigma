@@ -38,6 +38,17 @@ import logging
 import asyncio
 import subprocess
 import time
+from datetime import datetime
+from pathlib import Path
+
+# CDS: Подключаем Uvicorn-подпроцесс к записи в общий лог-файл
+_CDS_LOG_PATH = Path(__file__).resolve().parents[2] / "backend" / "logs" / "cds_backend.log"
+if _CDS_LOG_PATH.exists():
+    _cds_handler = logging.FileHandler(str(_CDS_LOG_PATH), encoding='utf-8')
+    _cds_handler.setLevel(logging.DEBUG)
+    _cds_handler.setFormatter(logging.Formatter('%(asctime)s %(name)s %(levelname)s: %(message)s'))
+    logging.getLogger().addHandler(_cds_handler)
+    logging.getLogger().setLevel(logging.INFO)
 
 from app.api.routes import router
 from app.api import routes_debug
@@ -63,6 +74,17 @@ DATA_DIR     = BASE_DIR / "backend" / "data"
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """FastAPI lifespan — замена устаревшего @app.on_event('startup'/'shutdown')."""
+    # CDS FileHandler: пишет каузальные факты в файл для пост-мортем анализа LLM
+    # Не трогает stdout, не ломает SSE. Уровень DEBUG ловит [DECISION_HUB] и [STATE_APPLIED].
+    _logs_dir = Path(__file__).resolve().parents[2] / "backend" / "logs"
+    _logs_dir.mkdir(exist_ok=True)
+    _cds_log_path = _logs_dir / f"cds_session_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
+    _cds_handler = logging.FileHandler(str(_cds_log_path), encoding='utf-8')
+    _cds_handler.setLevel(logging.DEBUG)
+    _cds_handler.setFormatter(logging.Formatter('%(asctime)s %(name)s %(levelname)s: %(message)s'))
+    logging.getLogger().addHandler(_cds_handler)
+    logger.info(f"[CDS] FileHandler initialized: {_cds_log_path}")
+
     print("\n=== STARTUP: Enigma Backend ===")
 
     # 1. LLM Router

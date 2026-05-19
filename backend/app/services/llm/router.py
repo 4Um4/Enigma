@@ -20,18 +20,19 @@ from __future__ import annotations
 import asyncio
 import threading
 from enum import Enum
-
 from app.services.logging_tools import jsonl_log
 
 import time
 from dataclasses import dataclass, field
-
 from typing import Optional
 
 import logging
-from app.core.config import settings
 
 logger = logging.getLogger(__name__)
+# Корневой логгер для критической телеметрии, чтобы обойти фильтрацию уровней дочерних логгеров
+_root_logger = logging.getLogger()
+
+from app.core.config import settings
 from app.services.llm.provider import LlmProvider, GenerationParams, ProviderType
 
 
@@ -312,7 +313,7 @@ class ModelRouter:
             Ответ от LLM
         """
         pool = self._get_model_pool()
-        print(f"[R4A_POOL] active_model={pool.active_model_key}")
+        _root_logger.info(f"[R4A_POOL] active_model={pool.active_model_key}")
         
         # Try preferred keys in order
         for model_key in preferred_keys:
@@ -324,9 +325,9 @@ class ModelRouter:
                 if model_provider and model_provider.is_available():
                     try:
                         # Execute request
-                        print(f"[R4A_POOL] calling complete() on {model_key}...")
+                        _root_logger.info(f"[R4A_POOL] calling complete() on {model_key}...")
                         result = model_provider.provider.complete(prompt, params, system_prompt)
-                        print(f"[R4A_POOL] complete() returned {len(result)} chars in {(time.time()-start_time)*1000:.0f}ms")
+                        _root_logger.info(f"[R4A_POOL] complete() returned {len(result)} chars in {(time.time()-start_time)*1000:.0f}ms")
                         
                         # Record metrics
                         latency_ms = (time.time() - start_time) * 1000
@@ -484,7 +485,7 @@ class ModelRouter:
             preferred_keys = self.get_capability_preferences(capability_obj)
             # Если предыдущий запрос завис — abort перед новым и ждём освобождения
             if self._request_in_progress:
-                print(f"[R4A_WORKER] aborting stuck request...")
+                _root_logger.warning(f"[R4A_WORKER] aborting stuck request...")
                 self._abort_generation()
                 # Ждём пока llama-server обработает abort (1с) + закрыет HTTP
                 time.sleep(1.0)
@@ -494,7 +495,7 @@ class ModelRouter:
                     time.sleep(1.0)
             self._request_in_progress = True
             try:
-                print(f"[R4A_WORKER] direct sync call, capability={capability_obj}")
+                _root_logger.info(f"[R4A_WORKER] direct sync call, capability={capability_obj}")
                 _result = self._request_via_pool(
                     capability_obj,
                     preferred_keys=preferred_keys,
@@ -502,10 +503,10 @@ class ModelRouter:
                     params=params,
                     system_prompt=system_prompt,
                 )
-                print(f"[R4A_WORKER] returned {len(_result) if _result else 'None'} chars")
+                _root_logger.info(f"[R4A_WORKER] returned {len(_result) if _result else 0} chars")
                 return _result
             except Exception as e:
-                print(f"[R4A_WORKER] exception: {e}")
+                _root_logger.error(f"[R4A_WORKER] exception: {e}")
                 return ""
             finally:
                 self._request_in_progress = False
