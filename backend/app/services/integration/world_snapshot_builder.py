@@ -7,15 +7,15 @@
 from __future__ import annotations
 
 import logging
-from typing import Dict, List, Optional, Tuple
 
+logger = logging.getLogger(__name__)
+
+from typing import Dict, List, Optional, Tuple
 from app.domain.snapshot import (
     NPCPositionDTO,
     VisibleEventDTO,
     WorldSnapshotDTO,
 )
-
-logger = logging.getLogger(__name__)
 
 
 class WorldSnapshotBuilder:
@@ -74,10 +74,12 @@ class WorldSnapshotBuilder:
     def _extract_npc_positions(
         self, scene_state: Dict
     ) -> List[NPCPositionDTO]:
-        """Вытаскивает позиции NPC из scene_state['npc_positions']."""
+        """Вытаскивает позиции NPC из scene_state['npc_positions'].
+        БАГ I FIX: Фильтрует NPC по текущей локации — NPC в других локациях не отрисовываются."""
         result: List[NPCPositionDTO] = []
         npc_positions = scene_state.get("npc_positions", {})
-        print(f"[TRACE][SNAPSHOT_BUILD] npc_count={len(npc_positions)} keys={list(npc_positions.keys())[:5]}")
+        current_location = scene_state.get("location_id", "")
+        logger.info(f"[TRACE][SNAPSHOT_BUILD] npc_count={len(npc_positions)} keys={list(npc_positions.keys())[:5]} location={current_location}")
 
         for npc_id, data in npc_positions.items():
             # ADR-048: player читается через _extract_player_position,
@@ -86,9 +88,13 @@ class WorldSnapshotBuilder:
                 continue
             if not data.get("visible", True):
                 continue
+            # БАГ I FIX: NPC в другой локации не отрисовываются в текущей
+            npc_loc = data.get("location") or data.get("location_id", "")
+            if npc_loc and current_location and npc_loc != current_location:
+                continue
 
             local = data.get("local_position", {})
-            print(
+            logger.info(
                 f"[TRACE][SNAPSHOT] "
                 f"npc={npc_id} "
                 f"x={local.get('x') or 0.0} "

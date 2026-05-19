@@ -4,6 +4,10 @@
 import json
 import os
 import uuid
+import logging
+
+logger = logging.getLogger(__name__)
+
 from datetime import datetime
 from typing import Dict, Optional
 
@@ -94,7 +98,7 @@ class PlayerSessionService:
                     
                     campaign_id = data["campaign_id"]
                     self._sessions[campaign_id] = session
-                    print(f"[SESSION_LOADED] Campaign: {campaign_id}, Player: {session.player_name}")
+                    logger.info(f"[SESSION_LOADED] Campaign: {campaign_id}, Player: {session.player_name}")
                 except Exception as e:
                     print(f"[SESSION_LOAD_ERROR] File: {filename}, Error: {e}")
         except Exception as e:

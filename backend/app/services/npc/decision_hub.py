@@ -502,7 +502,7 @@ class DecisionHub:
         # Строки (причины срабатывания) отсекаются.
         opp_trace = {f"opp_{k}": v for k, v in opportunity.score_trace.items() if isinstance(v, (int, float))}
 
-        logger.debug(f"[DECISION_HUB] {state.npc_id}: intent={best_intent} score={round(best_score, 3)} event={event.event_type}")
+        logger.info(f"[DECISION_HUB] {state.npc_id}: intent={best_intent} score={round(best_score, 3)} event={event.event_type}")
         _decision = DecisionResult(
             npc_id         = state.npc_id,
             intent         = Intent(best_intent),
@@ -1215,19 +1215,15 @@ class DecisionHub:
         from app.models.state_delta import DeltaDomain, EmotionPayload, SocialPayload
 
         # Локальные аккумуляторы для immutable payload
-        e_stress = 0.0
-        e_emotion = 0.0
-        e_tag = None
+        # ADR-049 Phase 3: Эмоциональные аккумуляторы удалены.
+        # Каузальные эмоции теперь генерируются через AffectiveIntegrator (Фаза 9).
         s_trust = 0.0
         s_fear = 0.0
         
-        # Стресс и гнев от оскорблений
+        # ADR-049 Phase 3: Каузальные эмоции удалены. Оставлена только логика социальных отношений.
+        
+        # Отношения от оскорблений
         if event.event_type == "player_insults":
-            raw_stress = 12.0 * event.intensity
-            _, e_stress = apply_saturation(current=state.stress, delta=raw_stress)
-            e_tag = EmotionTag.ANGRY
-            e_emotion = round(15.0 * event.intensity, 2)
-            
             raw_trust = -8.0 * event.intensity
             _, s_trust = apply_saturation(
                 current=state.relationship_cache.get("trust", 0.0), delta=raw_trust, min_val=-100.0, max_val=100.0
@@ -1237,13 +1233,8 @@ class DecisionHub:
                 current=state.relationship_cache.get("fear", 0.0), delta=raw_fear, min_val=-100.0, max_val=100.0
             )
 
-        # Стресс от прямых угроз
+        # Отношения от прямых угроз
         elif event.event_type == "player_threatens":
-            raw_stress = 10.0 * event.intensity
-            _, e_stress = apply_saturation(current=state.stress, delta=raw_stress)
-            e_tag = EmotionTag.ANGRY
-            e_emotion = round(12.0 * event.intensity, 2)
-            
             raw_trust = -5.0 * event.intensity
             _, s_trust = apply_saturation(
                 current=state.relationship_cache.get("trust", 0.0), delta=raw_trust, min_val=-100.0, max_val=100.0
@@ -1252,13 +1243,6 @@ class DecisionHub:
             _, s_fear = apply_saturation(
                 current=state.relationship_cache.get("fear", 0.0), delta=raw_fear, min_val=-100.0, max_val=100.0
             )
-
-        # Стресс от косвенных угроз
-        elif event.event_type == "player_threatens_indirect":
-            raw_stress = 8.0 * event.intensity
-            _, e_stress = apply_saturation(current=state.stress, delta=raw_stress)
-            e_tag = EmotionTag.FEARFUL
-            e_emotion = round(10.0 * event.intensity, 2)
             
             raw_trust = -6.0 * event.intensity
             _, s_trust = apply_saturation(
@@ -1269,13 +1253,8 @@ class DecisionHub:
                 current=state.relationship_cache.get("fear", 0.0), delta=raw_fear, min_val=-100.0, max_val=100.0
             )
 
-        # Стресс от физического насилия (ADR-0021: сам урон не здесь, а в CombatSubscriber. Здесь только эмоции)
+        # Отношения от физического насилия (ADR-049 Phase 3: стресс/эмоции вынесены в AffectiveIntegrator)
         elif event.event_type == "player_attacks":
-            raw_stress = 18.0 * event.intensity
-            _, e_stress = apply_saturation(current=state.stress, delta=raw_stress)
-            e_tag = EmotionTag.FEARFUL
-            e_emotion = round(20.0 * event.intensity, 2)
-            
             raw_trust = -10.0 * event.intensity
             _, s_trust = apply_saturation(
                 current=state.relationship_cache.get("trust", 0.0), delta=raw_trust, min_val=-100.0, max_val=100.0
@@ -1285,29 +1264,10 @@ class DecisionHub:
                 current=state.relationship_cache.get("fear", 0.0), delta=raw_fear, min_val=-100.0, max_val=100.0
             )
 
-        # Стресс от насилия рядом
-        elif event.event_type in ("combat", "capture") and event.distance <= 5.0:
-            raw_stress = 15.0 * event.intensity
-            _, e_stress = apply_saturation(current=state.stress, delta=raw_stress)
+        # ADR-049 Phase 3: Стресс от насилия рядом удален (генерируется через PerceptualKernel в Фазе 9)
 
-        # Эмоциональная реакция (fallback маппинг)
-        emotion_map = {
-            "combat":      (EmotionTag.FEARFUL,   +20.0),
-            "theft":       (EmotionTag.ANGRY,      +15.0),
-            "intimidation":(EmotionTag.FEARFUL,    +18.0),
-            "help":        (EmotionTag.GRATEFUL,   +12.0),
-            "dialogue_key":(EmotionTag.NEUTRAL,    +5.0),
-            "player_insults":(EmotionTag.ANGRY,    +15.0),
-            "player_threatens":(EmotionTag.ANGRY, +12.0),
-            "player_threatens_indirect":(EmotionTag.FEARFUL, +10.0),
-            "player_attacks":(EmotionTag.FEARFUL, +20.0),
-            "player_interacts":(EmotionTag.NEUTRAL, +2.0),
-        }
-        for key, (tag, delta) in emotion_map.items():
-            if key in event.event_type:
-                e_tag = tag
-                e_emotion = round(delta * event.intensity, 2)
-                break
+        # ADR-049 Phase 3: Реактивный маппинг эмоций удален.
+        # Эмоции теперь рождаются в Аффективном Аккумуляторе (PerceptualKernel -> affective_load -> EmotionPayload)
 
         # Отношения: доверие и страх (fallback маппинг)
         if event.event_type in ("combat", "intimidation"):
@@ -1326,22 +1286,9 @@ class DecisionHub:
         # Сборка v2 списка (одна дельта = один домен)
         result_deltas = []
         
-        # Эмоция добавляется только если есть изменения
-        if e_stress != 0.0 or e_emotion != 0.0 or e_tag is not None:
-            result_deltas.append(
-                StateDeltas(
-                    npc_id=state.npc_id, 
-                    domain=DeltaDomain.EMOTION, 
-                    target="player", 
-                    payload=EmotionPayload(
-                        stress_delta=e_stress,
-                        emotion_delta=e_emotion,
-                        emotion_tag=e_tag
-                    ), 
-                    source=event.event_type
-                )
-            )
-            
+        # ADR-049 Phase 3: EmotionPayload больше не генерируется в DecisionHub.
+        # Каузальные эмоции проходят через Фазу 9 (AffectiveIntegrator).
+
         # Социальная дельта добавляется только если есть изменения
         if s_trust != 0.0 or s_fear != 0.0:
             result_deltas.append(

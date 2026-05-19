@@ -253,7 +253,9 @@ class GameLoop:
         Конвертация DTO→dict происходит ЗДЕСЬ, не в мосту (Устав §1.1).
         Frontend не должен знать про backend-классы.
         """
-        _scene = self.scene_manager.get_scene_state(campaign_id, "")
+        # БАГ G-2 FIX: Гарантируем инициализацию сцены (стены, NPC, время)
+        from app.services.game_loop.scene_init import ensure_scene_initialized
+        _scene = ensure_scene_initialized(self, campaign_id)
         if _scene is None:
             return {"status": "no_scene", "npc_positions": {}}
 

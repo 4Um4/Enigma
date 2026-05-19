@@ -8,7 +8,7 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
-from app.domain.movement import MovementIntent
+from app.domain.movement import MacroMovementGoal, LocalSteeringGoal
 from app.services.scene_change import SceneChange, ChangeType
 from app.services.spatial.transit_tracker import TransitTracker
 
@@ -39,7 +39,7 @@ class MovementEngine:
 
     def process_intents(
         self,
-        intents: List[MovementIntent],
+        intents: List[MacroMovementGoal | LocalSteeringGoal],
         tick: int,
         npc_positions: Optional[Dict] = None, # ADR-056: Collision Avoidance для LOD0
         campaign_id: Optional[str] = None,    # Для динамической сборки графа чужой локации
@@ -53,8 +53,8 @@ class MovementEngine:
         """
         changes: List[SceneChange] = []
 
-        # Группируем по location_id для загрузки графа один раз
-        by_location: dict[str, List[MovementIntent]] = {}
+        # ADR-060: Строгое разделение физик. LOD0 не требует графа локации.
+        by_location: dict[str, List[MacroMovementGoal]] = {}
         for intent in intents:
             print(
                 f"[TRACE][ENGINE_RECEIVED] "
@@ -62,9 +62,14 @@ class MovementEngine:
                 f"reason={intent.reason} "
                 f"local_xy={getattr(intent, 'local_target_xy', 'N/A')}"
             )
-            loc = self._extract_location(intent)
-            by_location.setdefault(loc, []).append(intent)
+            if isinstance(intent, LocalSteeringGoal):
+                # LOD0: Микро-перемещение обрабатывается напрямую, без SpatialService
+                changes.extend(self._resolve_micro_movement(intent, tick, npc_positions))
+            elif isinstance(intent, MacroMovementGoal):
+                loc = intent.location_id or "__UNKNOWN__"
+                by_location.setdefault(loc, []).append(intent)
 
+        # LOD1: Макро-навигация требует SpatialService (граф локации)
         for location_id, loc_intents in by_location.items():
             svc = self._resolve_spatial_service(location_id, campaign_id, scene_state)
             if not svc:
@@ -75,7 +80,7 @@ class MovementEngine:
                 continue
 
             for intent in loc_intents:
-                changes.extend(self._process_single_intent(intent, svc, location_id, tick, npc_positions))
+                changes.extend(self._resolve_macro_relocation(intent, svc, location_id, tick))
 
         return changes
 
@@ -106,26 +111,26 @@ class MovementEngine:
 
     def _process_single_intent(
         self,
-        intent: MovementIntent,
+        intent: MacroMovementGoal | LocalSteeringGoal,
         svc: Any,
         location_id: str,
         tick: int,
         npc_positions: Optional[Dict],
     ) -> List[SceneChange]:
         """Обрабатывает один MovementIntent, возвращая список SceneChange."""
-        # ADR-056: Приоритет LOD0. Если есть локальные координаты, макро-резолв узла не нужен.
-        if intent.local_target_xy:
+        # ADR-060: Строгое разделение физик. Полиморфизм вместо проверки атрибутов.
+        if isinstance(intent, LocalSteeringGoal):
             return self._resolve_micro_movement(intent, tick, npc_positions)
         
         return self._resolve_macro_relocation(intent, svc, location_id, tick)
 
     def _resolve_micro_movement(
         self,
-        intent: MovementIntent,
+        intent: LocalSteeringGoal,
         tick: int,
         npc_positions: Optional[Dict],
     ) -> List[SceneChange]:
-        """ADR-056: LOD0 микро-перемещение с Collision Avoidance (jitter)."""
+        """ADR-056/060: LOD0 микро-перемещение с Collision Avoidance (jitter)."""
         import random
         tx, ty = intent.local_target_xy
         collision_radius = 0.8
@@ -161,12 +166,12 @@ class MovementEngine:
 
     def _resolve_macro_relocation(
         self,
-        intent: MovementIntent,
+        intent: MacroMovementGoal,
         svc: Any,
         location_id: str,
         tick: int,
     ) -> List[SceneChange]:
-        """ADR-0010: LOD1 макро-перемещение (Semantic Relocation)."""
+        """ADR-0010/060: LOD1 макро-перемещение (Semantic Relocation)."""
         # Защита micro-position: если NPC уже в целевом узле — пропускаем
         if intent.from_node_id and intent.from_node_id == intent.target_node_id:
             logger.debug(f"[MOVEMENT_ENGINE] Skip macro: {intent.npc_id} уже в {intent.target_node_id}")
@@ -186,6 +191,7 @@ class MovementEngine:
             value=intent.target_node_id,
             cause=f"semantic_relocation:{intent.reason}",
             tick=tick,
+            target_location_id=location_id,
         )]
 
     @staticmethod

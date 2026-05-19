@@ -60,6 +60,38 @@
         "weather_inside": "cold_quiet"
       }
     },
+    "positions": {
+      "entrance": {
+        "x": 0.0,
+        "y": 5.0,
+        "connections": ["main_hall"],
+        "label": "у входа"
+      },
+      "main_hall": {
+        "x": 0.0,
+        "y": 0.0,
+        "connections": ["entrance", "bar_area", "corner_table"],
+        "label": "в центре зала"
+      },
+      "bar_area": {
+        "x": -3.0,
+        "y": -2.0,
+        "connections": ["main_hall", "behind_bar"],
+        "label": "у стойки"
+      },
+      "behind_bar": {
+        "x": -4.0,
+        "y": -3.0,
+        "connections": ["bar_area"],
+        "label": "за стойкой"
+      },
+      "corner_table": {
+        "x": 3.0,
+        "y": -2.0,
+        "connections": ["main_hall"],
+        "label": "за угловым столом"
+      }
+    },
     "npc_defaults": {
       "tavern_keeper_tornin": {
         "position": "behind_bar",

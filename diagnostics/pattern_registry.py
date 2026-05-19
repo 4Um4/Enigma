@@ -19,7 +19,7 @@ PATTERNS: Dict[str, str] = {
     # [R3_DIRECT] 5 decisions → DMFrame (focus=2, bg=3)
     "decisions_count":      r"\[R3_DIRECT\] (\d+) decisions",
     # [DECISION_HUB] thief_shadow: intent=Intent.IDLE score=0.0 event=player_interacts
-    "decision_hub":         r"\[DECISION_HUB\] (\w+): intent=Intent\.(\w+) score=([\d.]+) event=(\w+)",
+    "decision_hub":         r"\[DECISION_HUB\] (\w+): intent=Intent\.(\w+) score=([\d.]+) event=([\w.]+)",
 
     # --- State / Emotion ---
     # [STATE_APPLIED] maid_lusya: stress=0.2 intent=Intent.OBSERVE
@@ -68,6 +68,9 @@ PATTERNS: Dict[str, str] = {
     # [R4A_POOL] calling complete() / complete() returned N chars
     "llm_call":             r"\[R4A_POOL\] calling complete\(\)",
     "llm_response":         r"\[R4A_POOL\] complete\(\) returned (\d+) chars",
+    # [R4A_WORKER] direct sync call / returned N chars (DirectBridge path)
+    "llm_worker_call":      r"\[R4A_WORKER\] direct sync call",
+    "llm_worker_response":  r"\[R4A_WORKER\] returned (\d+) chars",
     # dm_resp='Ничего не произошло.'
     "llm_nothing":          r"dm_resp='Ничего не произошло\.'",
     # 3+ подряд идущих CJK-символа = галлюцинация на китайском
@@ -93,8 +96,7 @@ PATTERNS: Dict[str, str] = {
     "session_loaded":       r"\[SESSION_LOADED\] Campaign: (\w+), Player: (.+)",
     # Application startup complete
     "startup_complete":     r"Application startup complete",
-    # LLM server доступен
-    "llm_server_ok":        r"✅ LLM server доступен: (.+)",
+    "llm_server_ok":        r"llama-server.{1,30}запущен|LLM.{1,30}доступен",
 }
 
 # ---------------------------------------------------------------------------

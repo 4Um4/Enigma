@@ -17,6 +17,9 @@ from pathlib import Path
 from typing import Optional
 
 import pygame
+import logging
+
+logger = logging.getLogger(__name__)
 
 from scene_renderer import SceneRenderer
 from text_input import TextInput
@@ -559,7 +562,7 @@ class GameScreen:
                 scene_state["active_traversals"] = _ws["active_traversals"]
 
             if _new_positions:
-                print(f"[IDLE_TICK] merged: {list(_new_positions.keys())}")
+                logger.info(f"[IDLE_TICK] merged: {list(_new_positions.keys())}")
 
             # Синхронизация player_position и environment из world_snapshot
             if _ws:
@@ -645,7 +648,7 @@ class GameScreen:
                         _bridge.save_scene_state(campaign_folder, scene_state)
                 _idle_tick_running[0] = True
                 _last_idle_tick = _now
-                print(f"[IDLE_TICK] fired at {_now}ms")
+                logger.info(f"[IDLE_TICK] fired at {_now}ms")
                 threading.Thread(target=_do_idle_tick, daemon=True).start()
 
             # === Poll backend responses ===

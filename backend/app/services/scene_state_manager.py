@@ -1102,18 +1102,24 @@ class SceneStateManager:
                 if change.field == "position":
                     logger.debug(f"[ARCH GUARD] Causal relocation: npc={change.target} → node={change.value}")
                     location_id = scene_state.get("location_id", "")
-                    if location_id and change.value:
+                    # ADR-060: кросс-локационное перемещение — используем целевую локацию из SceneChange
+                    target_loc = getattr(change, 'target_location_id', '') or location_id
+                    if target_loc and change.value:
                         try:
                             from app.services.spatial.spatial_service import SpatialService
                             from app.models.traversal import TraversalState
                             
                             svc = SpatialService.build_for_location(
-                                campaign_id=campaign_id, location_id=location_id, scene_state=scene_state
+                                campaign_id=campaign_id, location_id=target_loc, scene_state=scene_state
                             )
                             # ADR-056: Safe Spatial Fallback. Узел не найден — макро-перемещение отменяется.
                             if node := svc.get_node(change.value) or svc.get_node(
-                                f"{location_id}:{change.value}"
+                                f"{target_loc}:{change.value}"
                             ):
+                                # ADR-060: обновляем локацию NPC при кросс-локационном перемещении
+                                if target_loc != location_id:
+                                    entry["location"] = target_loc
+                                    entry["location_id"] = target_loc
                                 from_xy = entry.get("local_position", {"x": 0.0, "y": 0.0})
                                 # ADR-056: LOD1 Macro-jitter. NPC не сливаются в центр узла
                                 import random

@@ -12,7 +12,7 @@ TODO:
 """
 
 import pytest
-from app.domain.movement import MovementIntent
+from app.domain.movement import LocalSteeringGoal
 from app.services.spatial.movement_engine import MovementEngine
 
 class MockSpatialService:
@@ -35,11 +35,9 @@ def test_lod0_collision_avoidance(engine):
         "npc_2": {"local_position": {"x": 2.0, "y": 2.0}}
     }
     
-    # NPC 2 подходит туда же
-    intent = MovementIntent(
+    # NPC 2 подходит туда же (ADR-060: Чистый LOD0 интент)
+    intent = LocalSteeringGoal(
         npc_id="npc_2",
-        target_node_id="main_hall",
-        from_node_id="corner",
         local_target_xy=(5.0, 5.0), # Цель - позиция игрока/NPC_1
         reason="approach",
         priority=10
