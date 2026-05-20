@@ -332,12 +332,27 @@ async def game_action(request: dict, game_loop=Depends(get_game_loop)) -> dict:
         _ws_dict = None
         _npc_pos_dict = None
         if hasattr(result, 'world_snapshot') and result.world_snapshot is not None:
-            from dataclasses import asdict
-            _ws_dict = asdict(result.world_snapshot)
-            _npc_pos_dict = {
-                p.npc_id: asdict(p)
-                for p in result.world_snapshot.npc_positions
-            } if result.world_snapshot.npc_positions else {}
+            from dataclasses import asdict, is_dataclass
+            # Универсальная конвертация: Dataclass / Pydantic / Dict
+            ws = result.world_snapshot
+            if is_dataclass(ws):
+                _ws_dict = asdict(ws)
+            elif hasattr(ws, "model_dump"):  # Pydantic v2
+                _ws_dict = ws.model_dump()
+            elif hasattr(ws, "dict"):        # Pydantic v1
+                _ws_dict = ws.dict()
+            elif isinstance(ws, dict):
+                _ws_dict = ws
+            
+            if _ws_dict:
+                _raw_positions = _ws_dict.get("npc_positions", [])
+                if isinstance(_raw_positions, dict):
+                    _npc_pos_dict = _raw_positions
+                elif isinstance(_raw_positions, list):
+                    _npc_pos_dict = {
+                        p.get("npc_id", f"npc_{i}"): p 
+                        for i, p in enumerate(_raw_positions) if isinstance(p, dict)
+                    }
 
         return {
             "response": result.dm_response,

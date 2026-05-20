@@ -523,6 +523,14 @@ class TickOrchestrator:
             player_result=player_result,
         )
 
+        # ADR-042 Fix: Инъекция актуального NPC state для DirectiveInterpretationSubscriber.
+        # При ходе игрока Фаза 0 (_phase_0_simulation) пропускается, 
+        # из-за чего ctx.all_npcs_raw остаётся пустым и Труба Воли обрывается (DIRECTIVE_NO_STATE).
+        _life_engine = self._get_life_engine()
+        if _life_engine:
+            ctx.npc_states = _life_engine.get_npc_states(ctx.campaign_id)
+            ctx.all_npcs_raw = ctx.npc_states
+
         # ADR-035: Перехват пространственных команд в R3 Direct Path.
         # Если Слой 1 распознал MOVE, а пайплайн NPC пропустил это, создаем SceneChange напрямую.
         # S28 Debug: Проверка каузального шлюза

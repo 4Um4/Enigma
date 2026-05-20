@@ -240,7 +240,7 @@ SPATIAL -> OVERWRITE
 *Статус: РАЗРЕШЕНО. Атомарно обновляет узел и резолвит `local_position` (x,y) через SpatialService.*
 
 ### TraversalState [PLANNED]
-- `npc_id`: `str`, `path`: `list[tuple[float, float]]`, `current_index`: `int`, `speed`: `float`, `started_at`: `int`, `target_node`: `str`, `locomotion`: `str` (WALK, RUN, SNEAK), `status`: `str` (PENDING, MOVING, ARRIVED, CANCELLED), `arrival_threshold`: `float` (0.3m)
+- `npc_id`: `str`, `path_waypoints`: `list[list[float]]`, `speed`: `float`, `started_tick`: `int`, `duration_ticks`: `int`, `target_node`: `str`, `locomotion`: `str` (WALK, RUN, SNEAK), `status`: `str` (MOVING, ARRIVED, CANCELLED) // ADR-059: Tick-based Dual Time. `started_at` и `arrival_threshold` удалены.
 
 ### MovementStep [PLANNED]
 - `npc_id`: `str`, `from_xy`: `tuple[float, float]`, `to_xy`: `tuple[float, float]`, `delta_seconds`: `float`, `traversal_id`: `str`
@@ -267,8 +267,9 @@ SPATIAL -> OVERWRITE
 - `location_id`: `str`
 - `weather`: `str`
 - `time_of_day`: `str`
-- `game_time_seconds`: `int = 0` // Абсолютное время симуляции
-- `active_traversals`: `List[Dict] = field(default_factory=list)` // ADR-019: Транзиты для визуального Lerp. Структура dict: `npc_id, from_xy, to_xy, duration_seconds, started_at` (Добавлено в Сессии 29), `locomotion`.
+- `game_time_seconds`: `int = 0` // Абсолютное время симуляции (Календарь, ADR-002)
+- `tick`: `int = 0` // Монотонный каузальный тик (Причинность, ADR-059). Инкрементируется строго на +1 каждый тик. Не отматывается назад.
+- `active_traversals`: `List[Dict] = field(default_factory=list)` // ADR-019, ADR-059: Транзиты для визуального Lerp. Структура dict: `npc_id, status, path_waypoints, current_waypoint_idx, started_tick, duration_ticks, speed, locomotion`.
 
 ### NPCPositionDTO
 - `npc_id`: `str`, `x`: `float`, `y`: `float`, `location_id`: `str`, `facing`: `str`, `action`: `str`

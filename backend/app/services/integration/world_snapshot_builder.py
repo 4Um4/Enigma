@@ -89,7 +89,8 @@ class WorldSnapshotBuilder:
             if not data.get("visible", True):
                 continue
             # БАГ I FIX: NPC в другой локации не отрисовываются в текущей
-            npc_loc = data.get("location") or data.get("location_id", "")
+            # ADR-048: location_id — авторитетный источник. "location" — легаси-мусор от переходов.
+            npc_loc = data.get("location_id") or data.get("location", "")
             if npc_loc and current_location and npc_loc != current_location:
                 continue
 
@@ -135,21 +136,24 @@ class WorldSnapshotBuilder:
         return (local.get("x", 0.0), local.get("y", 0.0))
 
     def _extract_active_traversals(self, scene_state: Dict) -> list:
-        """Конвертирует TraversalState из scene_state в dict для фронтенда (ADR-019)."""
+        """Конвертирует TraversalState из scene_state в dict для фронтенда (ADR-019).
+        SnapshotBuilder НЕ мутирует scene_state. Только чистая проекция."""
         traversals = scene_state.get("active_traversals", {})
-        result = []
+        result = [] # Инициализация аккумулятора
+        
         for npc_id, trav in traversals.items():
             if trav.get("status") == "MOVING" and len(trav.get("path_waypoints", [])) >= 2:
                 from_xy = trav["path_waypoints"][0]
                 to_xy = trav["path_waypoints"][-1]
-                dist = ((to_xy[0] - from_xy[0])**2 + (to_xy[1] - from_xy[1])**2)**0.5
-                duration = dist / trav.get("speed", 2.0)
+
                 result.append({
                     "npc_id": npc_id,
-                    "from_xy": [from_xy[0], from_xy[1]],
-                    "to_xy": [to_xy[0], to_xy[1]],
-                    "duration_seconds": max(0.5, duration),
-                    "started_at": trav.get("started_at", 0), # ADR-019: Фронтенду нужна точка отсчета для lerp
+                    "status": "MOVING",
+                    "path_waypoints": [[from_xy[0], from_xy[1]], [to_xy[0], to_xy[1]]],
+                    "current_waypoint_idx": 0,
+                    "started_tick": trav.get("started_tick", 0),
+                    "duration_ticks": trav.get("duration_ticks", 1),
+                    "speed": trav.get("speed", 2.0),
                     "locomotion": trav.get("locomotion", "WALK")
                 })
         return result

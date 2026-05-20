@@ -48,6 +48,7 @@ class MovementHealthReport:
     """Итоговый срез движения всех NPC."""
     npcs: Dict[str, NPCMovementState] = field(default_factory=dict)
     spatial_fallback_triggered: bool = False   # location_templates.json недоступен
+    editor_json_locations: List[str] = field(default_factory=list)  # editor JSON найден — реальный граф
     graph_fallback_locations: List[str] = field(default_factory=list)  # fallback-граф использовался
     total_node_not_found: int = 0
 
@@ -114,6 +115,11 @@ class MovementHealthChecker:
 
     def on_spatial_fallback(self) -> None:
         self._report.spatial_fallback_triggered = True
+
+    def on_editor_json_found(self, location_id: str) -> None:
+        """Editor JSON найден — пространственный граф существует, fallback не критичен."""
+        if location_id not in self._report.editor_json_locations:
+            self._report.editor_json_locations.append(location_id)
 
     def on_graph_fallback(self, location: str) -> None:
         if location not in self._report.graph_fallback_locations:

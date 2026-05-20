@@ -180,6 +180,7 @@ async def lifespan(app: FastAPI):
                     time.sleep(2)
             if _server_ready:
                 print(f"✓ llama-server запущен ({settings.llama_cpp_server_url})")
+                logger.info(f"[STARTUP] llama-server запущен ({settings.llama_cpp_server_url})")
             else:
                 print(f"⚠️ llama-server не отвечает после {settings.model_load_timeout_sec}с")
                 _llama_server_proc = None
@@ -203,6 +204,7 @@ async def lifespan(app: FastAPI):
         mode = "сервер" if provider.use_server else "CLI"
         icon = "✅" if is_available else "⚠️"
         print(f"  {icon} LLM ({mode}): {'доступен' if is_available else 'недоступен'}")
+        logger.info(f"[STARTUP] LLM ({mode}): {'доступен' if is_available else 'недоступен'}")
         if not is_available:
             print("  Игра запущена в offline-режиме. LLM ответы будут недоступны.")
     except asyncio.TimeoutError:

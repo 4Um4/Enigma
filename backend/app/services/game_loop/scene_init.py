@@ -174,6 +174,10 @@ def _load_or_create_scene(
     if preserved_game_time:
         scene_state["game_time_seconds"] = preserved_game_time
 
+    # ADR-0XX: Сохраняем монотонный тик при перезагрузке сцены
+    if hasattr(loop, '_preserved_tick') and loop._preserved_tick:
+        scene_state["tick"] = loop._preserved_tick
+
     _materialize_npc_inventory(loop, scene_state)
     loop.scene_manager.save_scene_state(campaign_id, scene_state)
     logger.info(f"[GAME_LOOP] Новая сцена: {location}")

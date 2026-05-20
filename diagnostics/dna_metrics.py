@@ -157,10 +157,14 @@ class DNAComputer:
         )
 
     def _compute_shi(self) -> float:
-        """SHI = decisions_nonzero_ticks / total_ticks * 100."""
+        """SHI = total_decisions / total_ticks * 100 (capped at 100).
+        Основан на реальных решениях NPC ([DECISION_HUB]/[DECISION_SCORE]),
+        а не на [R3_DIRECT] который может показывать 0 даже при работающих NPC."""
         if self._tick.total_ticks == 0:
             return 0.0
-        return round(self._tick.decisions_nonzero_ticks / self._tick.total_ticks * 100, 1)
+        if self._tick.total_decisions == 0:
+            return 0.0
+        return round(min(self._tick.total_decisions / self._tick.total_ticks * 100, 100.0), 1)
 
     def _compute_npi(self) -> tuple[float, int, int]:
         """
@@ -186,14 +190,18 @@ class DNAComputer:
     def _compute_scf(self) -> float:
         """
         SCF — ступенчатая оценка пространственной целостности:
-        1.0 = нет fallback, нет node_not_found
-        0.5 = есть spatial_fallback но нет node_not_found
+        1.0 = editor JSON найден И нет node_not_found (пространство целостно)
+        0.5 = spatial_fallback но editor JSON найден (legacy fallback некритичен)
+        0.3 = spatial_fallback без editor JSON (пространство деградировано)
         0.0 = есть node_not_found (пространство разрушено)
         """
         if self._movement.total_node_not_found > 0:
             return 0.0
         if self._movement.spatial_fallback_triggered:
-            return 0.5
+            # Если editor JSON найден — fallback location_templates.json некритичен
+            if self._movement.editor_json_locations:
+                return 1.0
+            return 0.3
         return 1.0
 
     def _compute_adr(self) -> tuple[float, int, int]:

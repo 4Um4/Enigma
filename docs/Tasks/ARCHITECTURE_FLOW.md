@@ -6,7 +6,8 @@ SNAP_T -->|Read-Only Feed| P5
 SNAP_T -->|Read-Only Feed| PER
 
 subgraph Spatial_Layer[Spatial Service v1.2: Единый источник пространственных данных]
-GC[GraphCompiler compile_graph] -->|graph, connections, alias_map| SS[SpatialService]
+LOC_DATA[location_templates.json / editor JSON] -->|positions + connections ADR-060| GC[GraphCompiler compile_graph]
+GC -->|graph, connections, alias_map| SS[SpatialService]
 SC_T[SceneState t-1] -->|build_overlay| SS
 SS -->|DI: set_spatial_service| ME[MovementEngine]
 SS -->|get_node with prefix fallback ADR-0009| SSM[SceneStateManager Spatial Reducer ADR-0015]
@@ -21,7 +22,8 @@ P0 -->|life_intents ADR-051| ME
 P0 -->|ctx.npc_states = ctx.all_npcs_raw| SA_SYNC[State Sync ADR-004]
 P05[Phase 0.5: Idle Services ALWAYS] -->|List StateDeltas| DBUF[delta_buffer]
 PI[Player Input] -->|Raw Text| IC[IntentCompressor pymorphy3 Fast Path + LLM Slow Path ADR-035]
-IC -->|IntentSemanticField| TR[Target Reference Resolver String to ID]
+IC[IntentCompressor pymorphy3 Fast Path + LLM Slow Path ADR-035] -->|IntentSemanticField| TR[Target Reference Resolver String to ID ADR-060 Fuzzy Matching]
+SC_T[SceneState t-1] -.->|npc_positions with name| TR
 TR -->|IntentParametersDTO strict payload ADR-035| IPR[IntentPressureResolver Semantic Translation ADR-031]
 IPR -->|IntentPressureProfile| WPG[WillpowerGate Cumulative Strain Model + EmbodiedVector ADR-040]
 WPG -->|WillResponseDTO origin_layer + embodied_vector| P1[Phase 1: Input]
@@ -301,7 +303,7 @@ class SS forbidden;
 %% --- ADR-058: Frontend Dual-Time Ontology ---
 subgraph Dual_Time_Ontology[Dual-Time Ontology ADR-058]
     direction TB
-    WSB[WorldSnapshotBuilder] -->|NPCPositionDTO + initiative_suppression| API[API Route]
+    WSB[WorldSnapshotBuilder] -->|NPCPositionDTO + initiative_suppression| API[API Route Universal Serializer ADR-060]
     WSB -->|active_traversals| API
     
     API -->|WorldSnapshotDTO| GS[GameScreen]
@@ -340,3 +342,26 @@ end
 
 classDef diagnostic fill:#fcf,stroke:#333,stroke-width:2px,stroke-dasharray: 5 5;
 class LAUNCHER,COBS,STDOUT,GIT,TODO,PR,CCB,HC,REND_CDS,REPORT diagnostic;
+
+%% --- ADR-059: Temporal Authority Separation & SnapshotBuilder Immutability ---
+subgraph Temporal_Authority[Temporal Authority Separation ADR-059]
+    direction TB
+    GL_TICK[GameLoop idle_tick & _run_pipeline] -->|tick += 1| SS_TICK[scene_state.tick Monotonic Causal]
+    
+    SS_TICK -->|started_tick + duration_ticks| TRAVERSAL[TraversalState Tick-based]
+    SS_TICK -->|read current_tick| FE_TICK[Frontend scene_state.tick]
+    FE_TICK -->|current_tick| PROGRESS[progress = current - started / duration]
+    TRAVERSAL -->|started_tick, duration_ticks| PROGRESS
+    
+    SS_TICK -->|tick >= completed| SSM_FINAL[SceneStateManager Finalize Traversals & Enrich local_position]
+    SSM_FINAL -->|Immutable Source| WSB_IMMUT[WorldSnapshotBuilder Pure Projection]
+    
+    WSB_IMMUT -.->|ЗАПРЕЩЕНО: delete/mutate traversals| SSM_FINAL
+    CALC_TIME[game_time_seconds // 60] -.->|ЗАПРЕЩЕНО: Circular Dependency| SS_TICK
+    REAL_TIME[time.time / pygame.get_ticks] -.->|ЗАПРЕЩЕНО: Second Clock| PROGRESS
+end
+
+classDef temporalAuth fill:#ccf,stroke:#333,stroke-width:2px;
+class GL_TICK,SS_TICK,TRAVERSAL,FE_TICK,PROGRESS,SSM_FINAL,WSB_IMMUT temporalAuth;
+classDef forbiddenTime fill:#f66,stroke:#333,stroke-width:2px,stroke-dasharray: 5 5;
+class CALC_TIME,REAL_TIME forbiddenTime;
