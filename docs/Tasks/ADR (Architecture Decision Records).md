@@ -665,7 +665,7 @@ ADR-025 определил CFRM теоретически, но в runtime отс
 
 ---
 
-### ADR-033: Single Will Evaluation — Устранение Double Invocation
+### ADR-036: Single Will Evaluation — Устранение Double Invocation
 **Дата:** 11.05.2026  
 **Статус:** Принято
 
@@ -680,7 +680,7 @@ WillpowerGate вызывался дважды за один игровой ци�
 
 ---
 
-### ADR-036: Affect Resonance & Pressure Distortion
+### ADR-037: Affect Resonance & Pressure Distortion
 **Дата:** 12.05.2026  
 **Статус:** Принято
 
@@ -699,27 +699,7 @@ WillpowerGate работал как FSM с resistance coefficients. Травма
 
 ---
 
-### ADR-034: Phase 1 Boundary Adapter & Transitional Runtime Boundary
-**Дата:** 12.05.2026  
-**Статус:** Принято
-
-**Контекст:**  
-Ход игрока обходит `TickOrchestrator`, выполняясь напрямую в `game_loop`. Попытка внедрить `WillpowerGate` прямо в `game_loop` привела бы к размыванию ответственности. Попытка унифицировать пайплайн (Вариант Б — перенос всего в оркестратор) создала бы бог-объект, зависимый от DM/LLM/UI, так как Фазы 3-6 жестко связаны с `shared_context`.
-
-**Решение:**  
-Введен **Phase 1 Boundary Adapter** (транзитный шлюз). `game_loop` вызывает чистую функцию `resolve_player_intent()`, которая возвращает `IntentResolution`. `game_loop` только публикует результат в шину и кладет в `shared_context`.
-- **IntentResolution DTO:** Содержит `original_intent`, `resolved_intent`, `blocked`, `transformed`, `will_state`, `counter_offer`.
-- **Запрет в `game_loop`:** Никакой бизнес-логики воли, боли, страха. Только `resolve -> publish resolution`.
-- **Вариант Б** отложен до выделения `RuntimeContext`, `AgentExecutionService` и `NarrativeBridge`.
-
-**Последствия:**  
-- Воля аватара работает без поломки NPC-оркестрации.
-- `game_loop` лишен права принимать решения о публикации.
-- Конфликт воли (WILL_CONFLICT) порождает возмущение поля, воспринимаемое NPC.
-
----
-
-### ADR-035: Avatar Presentation DTO & Embodied Perception Interface
+### ADR-038: Avatar Presentation DTO & Embodied Perception Interface
 **Дата:** 12.05.2026  
 **Статус:** Принято
 
@@ -737,7 +717,7 @@ WillpowerGate работал как FSM с resistance coefficients. Травма
 - `WorldSnapshotBuilder` остается чистым маппером.
 - Архитектура готова к будущей интеграции с `PerceptualKernel` (искажение рендера от галлюцинаций и травм).
 
-### ADR-037: Phenomenological Presentation & Resistance Medium
+### ADR-039: Phenomenological Presentation & Resistance Medium
 **Дата:** 12.05.2026  
 **Статус:** Принято
 
@@ -747,10 +727,9 @@ WillpowerGate работал как FSM с resistance coefficients. Травма
 **Решение:**  
 Переход к Темпоральному Феноменологическому Рендерингу.
 1. **Presentation Firewall:** На границе Бэкенд→Фронтенд отсекаются все категориальные енумы (MentalPresentationState, PhysicalPresentationState). Фронтенд получает только непрерывные скаляры давления (0.0-1.0).
-2. **Perceptual Momentum:** Внедрена темпоральная инерция (S-curve) и контролируемая стохастика. Эффекты не включаются/выключаются, а деградируют и восстанавливаются по законам когнитивного гистерезиса. Скорость возврата в норму зависит от 
-eality_reconciliation_rate.
+2. **Perceptual Momentum:** Внедрена темпоральная инерция (S-curve) и контролируемая стохастика. Эффекты не включаются/выключаются, а деградируют и восстанавливаются по законам когнитивного гистерезиса. Скорость возврата в норму зависит от reality_reconciliation_rate.
 3. **Resistance Medium:** Конфликт воли аватара реализован как инфекция ввода. При WILL_CONFLICT поле ввода заражается навязанным импульсом (infect()). Игрок должен физически стереть текст аватара, чтобы вписать свой, либо нажать Enter (подчиниться).
-4. **Embodied Impulse:** Бэкенд передает не эмоции, а предрефлексивные моторные векторы (voidance, collapse, destroy).
+4. **Embodied Impulse:** Бэкенд передает не эмоции, а предрефлексивные моторные векторы (avoidance, collapse, destroy).
 
 **Последствия:**  
 - Визуальные эффекты стали инерционными и органичными. Устранено мерцание "PANIC ON/OFF".
@@ -759,7 +738,7 @@ eality_reconciliation_rate.
 
 ---
 
-### ADR-038: Epistemic Classification & ClassificationResult
+### ADR-040: Epistemic Classification & ClassificationResult
 **Дата:** 12.05.2026  
 **Статус:** Принято
 
@@ -780,7 +759,7 @@ eality_reconciliation_rate.
 
 ---
 
-### ADR-039: Will Conflict Data Pipeline & Action Key Sync
+### ADR-041: Will Conflict Data Pipeline & Action Key Sync
 **Дата:** 12.05.2026  
 **Статус:** Принято
 
@@ -798,28 +777,27 @@ eality_reconciliation_rate.
 
 ---
 
-### ADR-035: Intent Compression Layer и Русская Морфология
+### ADR-042: PerceptualKernel Integration & Perception Domain
 **Дата:** 12.05.2026  
 **Статус:** Принято
 
 **Контекст:**  
-Сырой текст игрока не содержал машиночитаемых параметров. Попытка парсить русскую морфологию регекспами приводила к потере флексий. LLM не должна знать ID сущностей мира, а её падение не должно молча лгать от имени мира (подмена ATTACK на OBSERVE).
+CFRM P2 вычислял `PsychologicalPressure` и напрямую конвертировал его в `EmotionPayload` в Фазе 9. Это нарушало порядок природы: реальность должна сначала обновить восприятие (`PerceptualKernel`), и только потом изменённое восприятие может породить эмоцию. Кроме того, отсутствие `PerceptionPayload` заставляло `StateApplicator` игнорировать обновления когнитивных векторов NPC.
 
 **Решение:**  
-- Введен **Слой 1: IntentCompression**. Стоит ДО `WillpowerGate` и `TargetResolution`.
-- **Fast Path:** Использует `pymorphy3` для лемматизации и извлечения целей (NOUN).
-- **Slow Path:** Вызов LLM через `LLMCompressorClient` (DI). LLM извлекает `target_reference` (строка, не ID!). Ответ валидируется Pydantic.
-- **Ambiguity Handling:** При ошибке действие помечается `UNCERTAIN` (не безопасное OBSERVE).
-- **Новый DTO:** `IntentSemanticField` — вероятностное поле, а не команда. `IntentParametersDTO` — строгий транспорт вместо `Dict[str, Any]`.
+1. Введен `DeltaDomain.PERCEPTION` и `PerceptionPayload` (threat_gradient_delta, uncertainty_delta, anomaly_score_delta, dominant_emotion_hint).
+2. `_phase_9_integration` в `TickOrchestrator` переведена на генерацию `PerceptionPayload` вместо `EmotionPayload`.
+3. `StateApplicator` обучен применять `PerceptionPayload` к `NPCState.perceptual_kernel` (clamping 0.0-1.0).
+4. `CombatSubscriber` усилен fuzzy-matching по `target_reference` для предотвращения потери цели при опечатках игрока.
 
 **Последствия:**  
-- Детерминированный парсинг русского языка работает без нейросети.
-- LLM изолирована от бизнес-логики.
-- Убита энтропия `Dict[str, Any]` в параметрах интента.
+- Реальность течёт в восприятие, а не напрямую в эмоции.
+- `PerceptualKernel` накапливает градиент угрозы, который могут читать downstream-системы (DecisionHub, CognitiveProjection).
+- Боевой пайплайн стал устойчив к потере ID целей.
 
 ---
 
-### ADR-036: Social Physics & Directive Interpretation
+### ADR-043: Social Physics & Directive Interpretation
 **Дата:** 12.05.2026  
 **Статус:** Принято
 
@@ -838,7 +816,7 @@ eality_reconciliation_rate.
 - NPC может отказаться, колебаться или подчиниться не полностью.
 - Агро-контроллер убит на корню.
 
-### ADR-040: Sprint 27 Consolidation — Legacy Burnout and Phenomenology Pipeline
+### ADR-044: Sprint 27 Consolidation — Legacy Burnout and Phenomenology Pipeline
 **Дата:** 13.05.2026  
 **Статус:** Принято
 
@@ -856,7 +834,7 @@ eality_reconciliation_rate.
 - Визуальные эффекты инерционны, детерминированы и управляются чистой математикой векторов давления.
 - Конфликт воли имеет моторное воплощение, а не просто текст.
 
-### ADR-041: Causal Oscilloscope & Deterministic Sandbox
+### ADR-045: Causal Oscilloscope & Deterministic Sandbox
 **Дата:** 13.05.2026  
 **Статус:** Принято
 
@@ -873,7 +851,7 @@ eality_reconciliation_rate.
 **Последствия:**  
 Мы можем доказать, что поведение рождается из давления среды, а не из скрипта. Тест `minimal_obedience_field` успешно проходит, доказывая, что приказ рождает Транзит с duration > 0.
 
-### ADR-042: Physics of Power — Inverted Fear in DecisionHub
+### ADR-046: Physics of Power — Inverted Fear in DecisionHub
 **Дата:** 13.05.2026  
 **Статус:** Принято
 
@@ -887,3 +865,60 @@ eality_reconciliation_rate.
 
 **Последствия:**  
 Подчинение стало эмерджентным. Трусливый NPC подходит к источнику власти, смелый — сопротивляется.
+
+### ADR-047: Principle of Observed Causality и Temporal Reconciliation
+**Дата:** 13.05.2026  
+**Статус:** Принято
+
+**Контекст:**  
+Механизм `TICK_CATCHUP` в `scene_init.py` симулировал отсутствующее время через цикл `for _ in range(_catch_up): _life_engine.tick()`. Это порождало ретроактивную фальсификацию причинности: NPC принимали решения, двигались и генерировали эмоции в мире, где EventBus, CFRM и наблюдение были мертвы. Это разрушало темпоральную онтологию ENIGMA и убивало `TraversalState`.
+
+**Решение:**  
+1. **Принцип Наблюдаемой Причинности:** Сложная причинность (решения, движение, социальные акты) существует ТОЛЬКО в наблюдаемом времени (внутри `TickOrchestrator.execute()`).
+2. **Запрет ретро-симуляции:** Цикл `TICK_CATCHUP` удаляется. Никакой симуляции прошедших тиков.
+3. **Аналитическое Согласование (State Reconciliation):** При загрузке сцены мир мгновенно продвигает календарь (`world_time += delta`) и применяет аналитический декэй к базовым потребностям (`hunger += rate * delta`, `fatigue += rate * delta`, `social_trust drift`).
+4. **Разделение Времени:** Симуляция (редкие каузальные обновления) отделена от Презентации (непрерывная интерполяция Lerp). `TraversalState` — это презентационный артефакт, он не вычисляется в отсутствие наблюдателя.
+
+**Последствия:**  
+- Загрузка сейва больше не вызывает фантомных решений.
+- NPC не телепортируются и не умирают от скачков времени.
+- `LifeEngine` получает метод `reconcile_state(elapsed_seconds: float)` вместо голого `tick()`.
+
+---
+
+### ADR-048: Single Source Spatial Authority
+**Дата:** 13.05.2026  
+**Статус:** Принято
+
+**Контекст:**  
+`DecisionHub` и `_resolve_reactive_movement` читали позицию игрока из словаря `scene_state.get("player_spatial", {})`. Это нарушало Каузальный Контракт, порождая расхождение реальностей (divergence), так как `player_spatial`, `scene_state["player_spatial"]` и `npc_positions["player"]` конкурировали за истину. При отсутствии ключа NPC скатывались в `entrance`.
+
+**Решение:**  
+1. **Единый Источник Истины:** Единственной пространственной истиной в runtime является `ClusterOccupancy` и `SpatialRuntime` (через `SpatialService`). Все остальное — вторичные проекции (DTO).
+2. **Запрет прямого чтения `scene_state`:** `DecisionHub`, `_resolve_reactive_movement` и `LifeEngine` ЗАПРЕЩЕНО читать `scene_state` для получения координат. Они обязаны делать запрос через `SpatialQueryService.get_entity_position(entity_id)`.
+3. **`player_spatial` депрекируется** как authority layer. Игрок внедрен в симуляцию как `npc_id="player"` (ADR-031) и обязан запрашиваться наравне с NPC.
+
+**Последствия:**  
+- Устраняется Spatial Resolution Divergence.
+- Запрос `approach player` всегда резолвится в актуальный узел кластера, где находится сущность `"player"`.
+- `scene_state` становится строго write-only проекцией для фронтенда (WorldSnapshotBuilder).
+
+### ADR-049: Causal Pressure Pipeline & DecisionContext Geometry
+**Дата:** 14.05.2026  
+**Статус:** Принято
+
+**Контекст:**  
+Каузальная цепь обрывалась между генерацией давления (CFRM) и принятием решений (DecisionHub). `PsychologicalPressure` не влияло на `utility-space` NPC. Подчинение реализовывалось хардкодом `fear * 0.45`, что являлось эмоциональным скриптингом, а не топологической деформацией. Также отсутствовал механизм `feasibility` (невозможности действия), что мешало моделировать паралич воли.
+
+**Решение:**  
+1. **PerceptualKernel как хранилище топологии:** Внедрены скаляры `aggression_inhibition`, `initiative_suppression`, `compliance_bias` вместо семантических `authority_pressure`.
+2. **DecisionContext:** Создан мост, собирающий геометрию напрямую из `PerceptualKernel` через `from_kernel()`, минуя `PsychologicalPressure` в рантайме решения.
+3. **Feasibility Layer:** В DecisionHub введена фаза удаления действий с `feasibility = 0.0` до скоринга.
+4. **Utility Deformation:** Давление искривляет ландшафт через непрерывные множители (например, `compliance_bias` умножает `APPROACH`), а не через плоские бонусы.
+5. **Замыкание контура:** `DirectiveInterpretationSubscriber` вызывается напрямую в `execute_player_finalize` при команде MOVE, записывая `IdentityPayload` в `delta_buffer`.
+
+**Последствия:**  
+- Каузальная цепь `Команда → Давление → Топология → Решение` замкнута.
+- Подчинение — это не эмоция, а деформация пространства решений.
+- Требуется решение конфликта между каузальным давлением и `LifeEngine` (расписание перебивает давление в тот же тик).
+

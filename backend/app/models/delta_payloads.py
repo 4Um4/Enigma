@@ -42,10 +42,23 @@ class ReputationPayload:
 
 @dataclass(frozen=True)
 class IdentityPayload:
-    """Дельты воли, давления и целостности личности (R6.4 система слома)."""
     identity_integrity_delta: float = 0.0
     pressure_resistance_delta: float = 0.0
+    # S28: Топология деформации пространства решений (PerceptualKernel)
+    aggression_inhibition_delta: float = 0.0
+    initiative_suppression_delta: float = 0.0
+    compliance_bias_delta: float = 0.0
     will_state_override: Optional[str] = None
+
+
+@dataclass(frozen=True)
+class PerceptionPayload:
+    """ADR-O: Дельта обновления PerceptualKernel.
+    Реальность течёт в восприятие, а не напрямую в эмоцию."""
+    threat_gradient_delta: float = 0.0    # Рост ощущения угрозы
+    uncertainty_delta: float = 0.0        # Рост неопределённости
+    anomaly_score_delta: float = 0.0      # Рост ощущения аномальности
+    dominant_emotion_hint: Optional[str] = None  # Подсказка для DecisionHub (fear/panic)
 
 
 @dataclass(frozen=True)

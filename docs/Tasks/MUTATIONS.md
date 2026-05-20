@@ -290,3 +290,31 @@
 - **`frontend/game_screen.py`:** Внедрен Каузальный Lerp (`_resolve_visual_xy`). Функция вычисляет визуальную позицию NPC на основе `active_traversals` и `game_time_seconds`. Исправлены отступы и дубликаты. Проброс `active_traversals` из `world_snapshot` во все три места обновления позиций.
 - **`backend/app/services/tick_orchestrator.py`:** Убит `DIRECT_REFLEX` (байпас Воли). Приказ игрока больше не генерирует `SceneChange` напрямую, а маршрутизируется через EventBus как социальное давление. Добавлен диагностический лог `[APPROACH_NAV]`.
 - **Продакшен-баги (Не починены, требуют Песочницы):** `TICK_CATCHUP` (delta=865с) убивает `TraversalState` в тот же тик. NPC идет к `entrance` вместо позиции игрока (отсутствует лог `[APPROACH_NAV]`, значит `MovementIntent` не создается или перехватывается `LifeEngine`).
+
+## Сессия 30: CFRM Phase 2 Completion & PerceptualKernel Integration
+**Дата:** 13.05.2026  
+**Изменения:**
+- **`backend/app/models/cfrm.py`:** В `FieldDisturbance` добавлен `semantic_seed` (геном нарратива). В `PerceivedPhenomenon` поля `inferred_cause` и `distortion_tag` заменены на `perceived_archetype`, `mutation_stage`, `distortion_nature`. **[Контракт]**
+- **`backend/app/services/cfrm/local_causal_solver.py`:** Политика `PhysicalProjection` переписана на закон потери энергии и формы (`muffled_impact`, `faint_vibration`). `CognitiveProjection` — на инференс и паранойю. `SocialProjection` — на драматизацию. Устранена галлюцинация нейтральных событий. Реализовано распространение каузального пузыря на соседние кластеры (P2.5 Membrane Propagation). **[Архитектура]**
+- **`backend/app/services/affect.py`:** Заменено чтение `inferred_cause` на `perceived_archetype` и `distortion_nature`. Внедрен инференс унижения из `WillState` (починка TODO `humiliation_signature=0.0`). **[Багфикс/Контракт]**
+- **`backend/app/models/state_delta.py`:** Добавлен `DeltaDomain.PERCEPTION`. **[Контракт]**
+- **`backend/app/models/delta_payloads.py`:** Создан `PerceptionPayload` (threat_gradient, uncertainty, anomaly_score, dominant_emotion_hint). **[Контракт]**
+- **`backend/app/services/tick_orchestrator.py`:** В `_phase_9_integration` генерация `EmotionPayload` заменена на `PerceptionPayload`. Реальность теперь обновляет восприятие, а не эмоции напрямую. **[Архитектура]**
+- **`backend/app/services/npc/state_applicator.py`:** Добавлена обработка `DeltaDomain.PERCEPTION` — мутация `NPCState.perceptual_kernel`. **[Пайплайн]**
+- **`backend/app/services/combat/combat_subscriber.py`:** Добавлен fuzzy-matching `target_reference` для восстановления `target_id` при опечатках игрока (починка мёртвого боевого пайплайна). **[Багфикс]**
+- **`backend/tests/sandbox/sandbox_cfrm_vertical.py`:** Осциллограф переписан на использование настоящих `ProjectionPolicy` вместо фальшивой математики. **[Тестирование]**
+- **`backend/tests/sandbox/sandbox_combat_vertical.py`:** Создан Осциллограф Боевой Физики (Удар → Боль → Шок → Страх). **[Тестирование]**
+- **`backend/tests/test_physiology_flow.py`:** Созданы автотесты каскада `Force → Pain → Shock → Emotion`. **[Тестирование]**
+
+
+## Сессия 31: Спринт 28 — Замыкание Каузального Контура (Pressure → Decision)
+**Дата:** 14.05.2026  
+**Изменения:**
+- **Домен Решения (ADR-043):** Создан `backend/app/domain/decision_context.py`. Введены `UtilityFieldDeformation` (топология давления), `ActionSpaceCompression` (feasibility), `DecisionContext` (мост Ядро→Хаб). Реализован метод `from_kernel()` для прямой проекции без промежуточных DTO.
+- **Геометрия Восприятия:** В `PerceptualKernel` (`npc_state.py`) добавлены поля `aggression_inhibition`, `initiative_suppression`, `compliance_bias`.
+- **Payload Топологии:** В `IdentityPayload` (`delta_payloads.py`) добавлены дельты геометрии: `aggression_inhibition_delta`, `compliance_bias_delta`, `initiative_suppression_delta`.
+- **DecisionHub v2 (Feasibility Layer):** В `decision_hub.py` добавлен аргумент `decision_ctx`. Внедрено разделение: Фаза 1 (Feasibility Filtering — удаление невозможных действий, `del scores[intent]`), Фаза 2 (Utility Deformation — искривление ландшафта через множители). Убит хардкод `fear * 0.45` для APPROACH.
+- **DirectiveInterpretationSubscriber v2:** Добавлен локальный резолв имен (если `target_id` пуст, ищет по `target_reference` в `npc_states`). Добавлена генерация `IdentityPayload`.
+- **Замыкание пайплайна (TickOrchestrator):** В `execute_player_finalize` внедрен вызов `DirectiveInterpretationSubscriber` напрямую (через `SimpleNamespace`), если обнаружен `semantic_action="MOVE"`. Дельты давления направляются в `delta_buffer`.
+- **Песочница:** Создана `backend/tests/sandbox/micro/test_command_compliance.py`. Тест зелёный, доказывает математическое подавление ATTACK и усиление APPROACH под давлением.
+- **Багфиксы GameLoop:** Починен краш `shared_context.will_conflict_data` (добавлен безопасный доступ).

@@ -33,7 +33,7 @@ def propagate_social_rumors(
     Возвращает (updated_social_tick, List[StateDeltas]).
     Оркестратор применяет дельты в _apply_phase8_result().
     """
-    _target_id = shared_context.player_target_id
+    _target_id = getattr(shared_context, 'player_target_id', '') if shared_context else ''
 
     # Канонический путь: intensity из EventDTO.payload (Устав §2.1)
     # Агрегация через max() — инфляция слухов недопустима (Стратегическое правило 5)

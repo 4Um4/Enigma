@@ -533,6 +533,13 @@ class TickOrchestrator:
 
         # ADR-035: Перехват пространственных команд в R3 Direct Path.
         # Если Слой 1 распознал MOVE, а пайплайн NPC пропустил это, создаем SceneChange напрямую.
+        # S28 Debug: Проверка каузального шлюза
+        _intent_res_debug = getattr(ctx.shared_context, 'intent_resolution', None) if ctx.shared_context else None
+        logger.warning(f"[S28_GATE] shared_context exists: {ctx.shared_context is not None}, intent_resolution: {_intent_res_debug is not None}")
+        if _intent_res_debug:
+            _params_debug = _intent_res_debug.original_intent.parameters if _intent_res_debug.original_intent else None
+            logger.warning(f"[S28_GATE] params exists: {_params_debug is not None}, data: {_params_debug}")
+
         if ctx.shared_context and hasattr(ctx.shared_context, 'intent_resolution') and ctx.shared_context.intent_resolution:
             _intent_res = ctx.shared_context.intent_resolution
             _params = _intent_res.original_intent.parameters if _intent_res.original_intent else None
@@ -541,15 +548,34 @@ class TickOrchestrator:
             _sem_action = getattr(_params, 'semantic_action', None) if _params else None
             _sem_target = getattr(_params, 'target_reference', None) if _params else None
             
+            logger.warning(f"[S28_CHECK] sem_action={_sem_action}, sem_target={_sem_target}")
             if _sem_action == "MOVE" and _sem_target:
                 _target_ref = _sem_target.lower()
                 
                 # ADR-036: УБИТ DIRECT_REFLEX. Приказ игрока — это НЕ команда движку.
-                # Это социальное давление (directive_obedience), которое искривляет utility-space NPC.
-                # Решение двигаться принимает DecisionHub в СЛЕДУЮЩЕМ тике на основе Воли.
-                # Транзит порождается через Фазу 5 (Decision) -> Фазу 0 (LifeEngine/MovementEngine) -> SceneChange.
-                # Нарушение этого потока = Каузальный Байпас (телепортация без Воли).
-                logger.info(f"[CAUSALITY] Semantic action MOVE detected for '{_target_ref}'. Routing to DirectiveInterpretationSubscriber via EventBus.")
+                logger.warning(f"[CAUSALITY] Semantic action MOVE detected for '{_target_ref}'. Routing to DirectiveInterpretationSubscriber.")
+                
+                # S28: Замыкание контура. Вызов обработчика давления власти
+                try:
+                    import types
+                    from app.services.social.directive_interpretation_subscriber import DirectiveInterpretationSubscriber
+                    # Передаем ID цели напрямую! Слой 2 уже резолвил имя.
+                    _target_id = getattr(_params, 'target_id', None)
+                    _directive_payload = {
+                        "semantic_action": _sem_action, 
+                        "target_reference": _target_ref,
+                        "target_id": _target_id, # Пробрасываем ID
+                        "social_pressure": 0.8
+                    }
+                    _mock_event = types.SimpleNamespace(payload=_directive_payload)
+                    # Читаем NPC из _TickContext, куда они проброшены из GameLoop (TickBuffer)
+                    # ADR-049: Передача актуальных NPC данных вместо пустого списка
+                    _directive_deltas = DirectiveInterpretationSubscriber().handle(_mock_event, ctx.all_npcs_raw)
+                    if _directive_deltas:
+                        ctx.delta_buffer.extend(_directive_deltas)
+                        logger.warning(f"[DIRECTIVE_COMMIT] Queued {len(_directive_deltas)} deltas. Will be committed in Phase 10.")
+                except Exception as e:
+                    logger.error(f"[CAUSALITY_CRASH] DirectiveInterpretationSubscriber failed: {e}", exc_info=True)
 
         # ADR-035: Обработка реактивных перемещений (MovementIntents)
         # В player turn LifeEngine не вызывается, поэтому MovementEngine нужно вызвать вручную
@@ -1500,7 +1526,7 @@ class TickOrchestrator:
                     all_npcs_raw=ctx.all_npcs_raw
                 )
                 
-                # Интерпретация: Превращение локальной истины в психологическое давление и дельты
+                # Интерпретация: Превращение локальной истины в обновление восприятия (ADR-O)
                 for entity_id, p_state in phenomena_states.items():
                     if p_state.threat_level < 0.1 and not p_state.visible_blood:
                         continue # Слишком слабое возмущение для мутации
@@ -1512,26 +1538,20 @@ class TickOrchestrator:
                         aggression_trigger=0.0 if p_state.threat_level < 0.5 else p_state.threat_level * 10.0
                     )
                     
-                    # Конвертация давления в дельты (downstream)
-                    # TODO P3: Личность NPC (трус/берсерк) должна модулировать эти дельты
-                    stress_val = pressure.fear + pressure.uncertainty
-                    fear_val = pressure.fear * 0.5
-                    
-                    if p_state.visible_blood:
-                        stress_val += 15.0
-                        fear_val += 10.0
-                        
-                    emotion_payload = EmotionPayload(
-                        stress_delta=stress_val,
-                        fear_delta=fear_val,
-                        emotion_tag="panic" if pressure.fear > 30 else "fear"
+                    # ADR-O: Реальность обновляет восприятие, а не эмоции напрямую.
+                    # PerceptualKernel накапливает градиент угрозы.
+                    perception_payload = PerceptionPayload(
+                        threat_gradient_delta=pressure.fear / 100.0,  # Нормализация к 0.0-1.0
+                        uncertainty_delta=pressure.uncertainty / 100.0,
+                        anomaly_score_delta=p_state.anomaly_score * 0.5,
+                        dominant_emotion_hint="panic" if pressure.fear > 30 else "fear"
                     )
                         
                     delta = StateDeltas(
                         npc_id=entity_id,
-                        domain=DeltaDomain.EMOTION,
-                        target="player", # Источник возмущения пока жестко player
-                        payload=emotion_payload,
+                        domain=DeltaDomain.PERCEPTION,
+                        target="player",
+                        payload=perception_payload,
                         source="cfrm_solver"
                     )
                     ctx.delta_buffer.append(delta)

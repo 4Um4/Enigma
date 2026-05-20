@@ -435,13 +435,17 @@ def age_drives(drives: List[TemporaryDrive]) -> List[TemporaryDrive]:
 
 @dataclass
 class PerceptualKernel:
-    """Субъективная модель восприятия NPC. Без строк, только градиенты и напряжения."""
+    """Субъективная модель восприятия NPC. Геометрия пространства решений."""
     threat_gradient: float = 0.0
     trust_gradient: float = 0.0
     uncertainty: float = 0.0
     anomaly_score: float = 0.0
     last_hostile_direction: Optional[str] = None
     dominant_emotion: Optional[str] = None
+    # S28: Топология деформации utility-space (накопленное давление)
+    aggression_inhibition: float = 0.0     # Сдерживание агрессивных векторов
+    initiative_suppression: float = 0.0    # Подавление активных действий (паралич)
+    compliance_bias: float = 0.0           # Смещение в сторону подчинения/approach
 
 @dataclass
 class NPCState:

@@ -986,10 +986,11 @@ class LifeEngine:
             f"(need={need_name}={need_value:.2f})"
         )
 
-        # Обновляем NPC dict in-place (для следующего тика)
-        npc["position"] = target_node
-        if target_location:
-            npc["location"] = target_location
+        # ADR-049: Запрещена прямая мутация позиции. LifeEngine — генератор намерений, не диктатор.
+        # Движение реализуется через MovementIntent → MovementEngine → TraversalState.
+        # npc["position"] = target_node
+        # if target_location:
+        #     npc["location"] = target_location
         npc.get("routine", {})["current"] = target_activity
 
         from app.domain.movement import PRIORITY_NEEDS
@@ -1130,9 +1131,12 @@ class LifeEngine:
         routine["mood"]      = self._mood_for_activity(new_activity)
         if "interrupted" not in routine:
             routine["interrupted"] = False
-        npc["location"] = new_location
-        npc["position"] = new_position
-
+        # ADR-049: Запрещена прямая мутация пространства из расписания.
+        # NPC принял решение сменить активность (когнитивный слой), 
+        # но физическое перемещение к новой локации — задача MovementEngine.
+        # npc["location"] = new_location
+        # npc["position"] = new_position
+        
         logger.debug(
             f"[LIFE_ENGINE] {npc_id}: активность {prev_activity!r} → {new_activity!r} "
             f"в {current_time}"
