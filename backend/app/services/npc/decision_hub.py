@@ -232,7 +232,7 @@ class DecisionHub:
         _topic = topic or intent_value
         # Трассировка скоринга: показываем топ-3 интента и их финальный вес
         _top_intents = sorted(_scores.items(), key=lambda x: x[1], reverse=True)[:3] if '_scores' in locals() else []
-        print(
+        logger.info(
             f"[TRACE][DECISION_SCORE] npc={npc_id} winner={intent_value} "
             f"top3={[(i, round(s, 2)) for i, s in _top_intents]}"
         )

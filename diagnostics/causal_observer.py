@@ -126,13 +126,21 @@ class CausalObserver:
 
             m = COMPILED["tick_decisions_end"].search(line)
             if m:
-                self._tick_checker.on_decisions_count(int(m.group(1)))
+                # Не вызываем on_decisions_count() — [R3_DIRECT] уже учитывает тик.
+                # [TICK_DECISIONS] end дублирует подсчёт, завышая total_ticks и занижая SHI.
                 return
 
             m = COMPILED["decision_hub"].search(line)
             if m:
                 npc, intent, score, event = m.group(1), m.group(2), float(m.group(3)), m.group(4)
                 self._movement_checker.on_decision_hub(npc, intent, score, event)
+                self._tick_checker.on_individual_decision()
+                return
+
+            m = COMPILED["decision_score"].search(line)
+            if m:
+                # Резервный канал: [TRACE][DECISION_SCORE] ловит решения
+                # даже если [DECISION_HUB] не совпал (другой формат лога)
                 self._tick_checker.on_individual_decision()
                 return
 
@@ -181,6 +189,11 @@ class CausalObserver:
 
             if COMPILED["spatial_fallback"].search(line):
                 self._movement_checker.on_spatial_fallback()
+                return
+
+            m = COMPILED["editor_json_found"].search(line)
+            if m:
+                self._movement_checker.on_editor_json_found(m.group(1))
                 return
 
             m = COMPILED["graph_fallback"].search(line)

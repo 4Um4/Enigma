@@ -399,3 +399,20 @@
 - **`backend/app/services/game_loop/npc_orchestration.py`:** Добавлен проброс `initiative_suppression` из буфера в `NPCPositionDTO` для фронтендного рендера. **[Пайплайн]**`scene_state["npc_positions"]`. **[Пайплайн]**
 - **`backend/app/services/integration/world_snapshot_builder.py`:** Добавлена сборка `initiative_suppression` в `NPCPositionDTO`. **[Пайплайн]**
 - **Очистка корня:** `diagnose_spatial.py` перемещен в `backend/tests/sandbox/`. Артефакты `decision_hub_sandbox.py` перенаправлены в директорию песочницы. **[Инфраструктура]**
+
+## Сессия 40: Восстановление Пространственного Графа и Починка Слоя Target Resolution
+**Дата:** 20.05.2026  
+**Изменения:**
+- **`backend/data/locations/location_templates.json`:** Добавлена секция `"positions"` для `tavern_silver_wolf` (entrance, main_hall, bar_area, behind_bar, corner_table). Устранена причина SCF=0 и массового FLEE. **[Контракт]**
+- **`backend/app/services/scene_state_manager.py`:** В `get_scene_state()` внедрено обогащение `npc_positions` полем `name` через `_npc_id_to_display(npc_id)`. Починен Fuzzy Matching (Слой 2) для распознавания "Тень" вместо "Shadow". **[Контракт]**
+- **`backend/app/services/integration/world_snapshot_builder.py`:** В `_extract_npc_positions()` изменен приоритет полей: `location_id` теперь авторитетнее легаси-мусора `location`. Починена невидимость Тени во фронтенде. В `_extract_active_traversals()` добавлена инициализация `result: list = []`, устраняющая краш NameError. **[Багфикс]**
+- **`backend/app/api/routes.py`:** В `game_action()` внедрена универсальная сериализация `world_snapshot` (поддержка Dataclass, Pydantic v1/v2, Dict). Устранен краш API `TypeError: asdict() should be called on dataclass instances`. **[Багфикс]**
+
+## Сессия 41: Tick-based Dual Time Ontology и починка Lerp (БАГ D)
+**Дата:** 20.05.2026  
+**Изменения:**
+- `backend/app/services/game_loop/__init__.py`: Внедрён инкремент монотонного каузального тика `scene_state["tick"] = scene_state.get("tick", 0) + 1` в `idle_tick` и `_run_pipeline` (ADR-058). **[Контракт]**
+- `backend/app/services/scene_state_manager.py`: `TraversalState` переведён на тики (`started_tick`, `duration_ticks`). Убиты паразиты `current_tick = game_time_seconds // 60` (круговая зависимость). В `_enrich_local_positions` добавлена защита `active_traversals` от перезаписи `local_position` и убит фоллбэк на `entrance` (устранение телепортации к двери). **[Архитектура]**
+- `backend/app/services/integration/world_snapshot_builder.py`: Метод `_extract_active_traversals` переписан на чистую проекцию (SnapshotBuilder больше не мутирует `scene_state`). Фронтенду отдаются `started_tick` и `duration_ticks` вместо `duration_seconds` и `real_start_ms`. **[Контракт]**
+- `frontend/game_screen.py`: Функция `_resolve_visual_xy` переведена на расчёт `progress` через авторитетный монотонный тик `(current_tick - started_tick) / duration_ticks`. Удалены `time.time()`, `pygame.time.get_ticks()` и `_traversal_start_ms` кэш (устранение второй пары часов). **[Архитектура]**
+- Результат: Lerp работает, NPC по расписанию ходят плавно. Остаток БАГ D: DirectiveInterpretationSubscriber выдаёт ObediencePressure=0.00 для Тени (LegitimacyGate блокирует подчинение), и сущность Player утекает на экран.

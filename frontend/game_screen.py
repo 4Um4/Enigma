@@ -189,32 +189,34 @@ def _idle_tick_interval_ms(nearest_dist: float) -> int:
 
 
 def _resolve_visual_xy(npc_id: str, scene_state: dict) -> dict:
-    """ADR-019: Каузальный Lerp. Вычисляет визуальную позицию NPC с учетом транзитов.
-    Если NPC в движении, интерполирует от from_xy к to_xy на основе game_time_seconds.
-    Если транзита нет — возвращает статичную local_position (Каузальная Истина).
+    """ADR-019: Каузальный Lerp. Tick-based Dual Time.
+    Детерминированная интерполяция на основе тиков симуляции.
     """
     traversals = scene_state.get("active_traversals", [])
     trav = None
 
-    # ADR-019: active_traversals приходит как список словарей
     if isinstance(traversals, list):
         for t in traversals:
             if t.get("npc_id") == npc_id:
                 trav = t
                 break
     elif isinstance(traversals, dict):
-        trav = traversals.get(npc_id) # Fallback для старого формата
+        trav = traversals.get(npc_id)
 
-    # Спринт 30: Каузальная Компрессия Времени. Бэкенд отдает progress и waypoints, а не duration.
     if trav and trav.get("status") in ("PENDING", "MOVING"):
         wp = trav.get("path_waypoints", [])
-        idx = trav.get("current_waypoint_idx", 0)
-        progress = float(trav.get("progress", 0.0))
+        started_tick = int(trav.get("started_tick", 0))
+        duration_ticks = max(1, int(trav.get("duration_ticks", 1)))
+        # Текущий тик из авторитетного источника (scene_state)
+        current_tick = int(scene_state.get("tick", scene_state.get("game_time_seconds", 0) // 60))
 
-        # Если есть сегмент пути, интерполируем позицию на срезе тика
-        if wp:
-            return _extracted_from__resolve_visual_xy_(idx, wp, progress)
-    # Fallback: Транзит завершен или отсутствует. Рисуем по Каузальной Истине
+        if wp and len(wp) >= 2 and duration_ticks > 0:
+            # ADR-0XX: Тик читается напрямую из scene_state (авторитетный источник)
+            current_tick = int(scene_state.get("tick", 0))
+            progress = min(1.0, max(0.0, (current_tick - started_tick) / duration_ticks))
+            return _extracted_from__resolve_visual_xy_(0, wp, progress)
+
+    # Транзит завершён или отсутствует. Рисуем по Каузальной Истине
     npc_data = scene_state.get("npc_positions", {}).get(npc_id, {})
     return npc_data.get("local_position", {"x": 0, "y": 0})
 

@@ -259,10 +259,14 @@ class GameLoop:
         if _scene is None:
             return {"status": "no_scene", "npc_positions": {}}
 
+        # ADR-0XX: Temporal Authority Separation. Монотонный каузальный тик.
+        # Только +1. Никогда не сбрасывается. Не зависит от календаря (game_time_seconds).
+        _scene["tick"] = _scene.get("tick", 0) + 1
+
         result: TickResultDTO = self._tick_orch.execute(
             campaign_id=campaign_id,
             scene_state=_scene,
-            tick_number=self.get_current_tick(campaign_id),
+            tick_number=_scene["tick"], # Авторитетный источник тика
         )
 
         # Конвертация WorldSnapshotDTO → dict для фронтенда
@@ -552,6 +556,12 @@ class GameLoop:
 
         scene_state = init_scene_state(self, campaign_id, location, shared_context, campaign_state,
                                        player_position=player_position)
+
+        # ADR-0XX: Temporal Authority Separation. Монотонный каузальный тик.
+        # Инкрементируется строго на +1 при ЛЮБОМ вводе (idle или player action).
+        scene_state["tick"] = scene_state.get("tick", 0) + 1
+        if hasattr(shared_context, 'current_tick'):
+            shared_context.current_tick = scene_state["tick"]
 
         # ФАЗА 1-3: DM классификация + EventBus + STM + время
         try:

@@ -265,6 +265,10 @@ class SceneStateManager:
         # Миграция: удаляем legacy snapshot_tick (Устав §3 — тик через TemporalEngine)
         if "snapshot_tick" in scene:
             del scene["snapshot_tick"]
+        # ADR-046 Fix: Гарантировать наличие имени (name) в npc_positions для Target Resolution (Слой 2)
+        for npc_id, pos_data in scene.get("npc_positions", {}).items():
+            if isinstance(pos_data, dict) and not pos_data.get("name"):
+                pos_data["name"] = _npc_id_to_display(npc_id)
         return scene
 
     def _enrich_spatial_data(self, campaign_id: str, scene_state: dict) -> None:
@@ -1128,13 +1132,17 @@ class SceneStateManager:
                                 if abs(from_xy.get("x", 0) - to_xy.get("x", 0)) < 0.1 and abs(from_xy.get("y", 0) - to_xy.get("y", 0)) < 0.1:
                                     entry["local_position"] = to_xy
                                 else:
-                                    # Вычисляем расстояние и ожидаемое время прибытия (Authority)
+                                    # Dual-Time Ontology: Транзит привязан к TICK-ам (Детерминированное время)
+                                    import math
                                     dx = to_xy["x"] - from_xy.get("x", 0.0)
                                     dy = to_xy["y"] - from_xy.get("y", 0.0)
                                     dist = (dx**2 + dy**2) ** 0.5
                                     speed = 2.0  # MVP хардкод скорости (м/с)
-                                    started_at = scene_state.get("game_time_seconds", 0)
-                                    expected_arrival = started_at + (dist / speed if speed > 0 else 0)
+                                    
+                                    # 1 тик симуляции = 1 секунда анимации на фронтенде
+                                    duration_ticks = max(1, math.ceil(dist / speed)) if speed > 0 else 1
+                                    # ADR-0XX: Только монотонный тик. Календарь отключен.
+                                    current_tick = scene_state.get("tick", 0)
                                     
                                     # ADR-019: Сохраняем как dict для JSON-совместимости scene_state
                                     traversal_dict = {
@@ -1146,8 +1154,8 @@ class SceneStateManager:
                                             [to_xy["x"], to_xy["y"]]
                                         ],
                                         "speed": speed,
-                                        "started_at": started_at,
-                                        "expected_arrival_time": expected_arrival,
+                                        "started_tick": current_tick,
+                                        "duration_ticks": duration_ticks,
                                         "locomotion": "WALK",
                                         "status": "MOVING"
                                     }
@@ -1494,14 +1502,33 @@ class SceneStateManager:
             # NPC двигался, если есть начальный узел и текущий не совпадает
             npc_moved = initial_node is not None and current_node != initial_node
 
+            # Dual-Time Ontology: Финализация транзитов по TICK-ам (Детерминированное время)
+            active_traversals = scene_state.get("active_traversals", {})
+            # ADR-0XX: Только монотонный тик. Календарь отключен.
+            current_tick = scene_state.get("tick", 0)
+            finished_npcs = [nid for nid, trav in active_traversals.items()
+                             if current_tick >= trav.get("started_tick", 0) + trav.get("duration_ticks", 1)]
+            for nid in finished_npcs:
+                trav = active_traversals[nid]
+                wp = trav.get("path_waypoints", [])
+                if len(wp) >= 2:
+                    entry_fin = npc_positions.get(nid, {})
+                    entry_fin["local_position"] = {"x": wp[-1][0], "y": wp[-1][1]}
+                del active_traversals[nid]
+
+            # ADR-019: Если NPC в активном транзите, local_position управляется Lerp-ом.
+            if npc_id in active_traversals and active_traversals[npc_id].get("status") == "MOVING":
+                continue
+
             if not npc_moved and npc_id in editor_coords:
-                # NPC на начальной позиции (или нет данных о движении) — визуальные координаты
-                entry["local_position"] = dict(editor_coords[npc_id])
+                # LOD0: Не перезаписываем микро-перемещения, если координаты уже валидны
+                lp = entry.get("local_position", {})
+                if not isinstance(lp, dict) or not isinstance(lp.get("x"), (int, float)):
+                    entry["local_position"] = dict(editor_coords[npc_id])
             elif svc and current_node:
                 # NPC двигался — берём координаты из SpatialService (пробуем с префиксом локации)
                 node = svc.get_node(current_node) or svc.get_node(f"{location_id}:{current_node}")
-                if not node:
-                    node = svc.get_node(f"{location_id}:entrance") or svc.get_node(f"{location_id}:main_hall")
+                # КАТЕГОРИЧЕСКИЙ ЗАПРЕТ фоллбэка на entrance! Он вызывает телепортацию к двери.
                 if node:
                     entry["local_position"] = {"x": node.x, "y": node.y}
 
