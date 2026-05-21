@@ -20,8 +20,8 @@ logger = logging.getLogger(__name__)
 def _resolve_initial_time(preserved_game_time: float | None, campaign_state: Any) -> str:
     """Определяет время суток для новой сцены.
     Приоритет: preserved_game_time (аккумулирует дни) > campaign_state > 07:00.
-    """
-    if preserved_game_time:
+    0.0 — это полночь, валидное время. Проверяем через 'is not None'."""
+    if preserved_game_time is not None:
         return Calendar.format_time(preserved_game_time)
     if campaign_state:
         return campaign_state.metadata.get("time_of_day", "07:00")
@@ -29,8 +29,9 @@ def _resolve_initial_time(preserved_game_time: float | None, campaign_state: Any
 
 
 def _extract_preserved_time(shared_context: Any) -> float | None:
-    """БАГ H: Извлекает абсолютное время из shared_context до реинициализации."""
-    if shared_context and hasattr(shared_context, "game_time_seconds") and shared_context.game_time_seconds:
+    """БАГ H: Извлекает абсолютное время из shared_context до реинициализации.
+    0.0 — это полночь, валидное время. Проверяем через 'is not None'."""
+    if shared_context and hasattr(shared_context, "game_time_seconds") and shared_context.game_time_seconds is not None:
         return shared_context.game_time_seconds
     return None
 

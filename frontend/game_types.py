@@ -37,7 +37,7 @@ class PerceivedEntity:
     entity_id: str
 
     # --- что это ---
-    entity_type: Literal["npc", "object", "event"] = "object"
+    entity_type: Literal["player", "npc", "animal", "object", "event"] = "object"
 
     # --- Spatial Layer ---
     x: float = 0.0

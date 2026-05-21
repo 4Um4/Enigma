@@ -16,6 +16,9 @@ BASE_IMPORTANCE: Dict[str, float] = {
     "dialogue_key":    0.60,
     "quest":           0.65,
     "intimidation":    0.55,
+    "player_spoke":    0.50,  # Когнитивные события (речь) важнее casual
+    "player_attacks":  0.80,
+    "will_conflict":   0.70,
     "dialogue_casual": 0.30,
     "movement":        0.15,
     "observation":     0.10,

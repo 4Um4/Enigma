@@ -33,6 +33,16 @@
 |Transitional Synthesis|59.9|21.6|30.3|24.9|57.9|8.1|25.7|
 |Observed Causality Consolidation|61.5|44.0|71.0|48.0|58.0|41.0|78.0|
 |Simulation-Native Orchestration|49.0|63.0|82.0|59.0|49.0|68.0|88.0|
+|Proto-Causal Topology Stabilization:
+  EG=44.2
+  SR=69.1
+  CD=86.5
+  ACI=62.7
+  RPI=47.3
+  PG=74.8
+  SCS=92.1
+  HSES=77.3
+  OER=71.4
 
 Observed Causality Consolidation: phase where authority, causality and runtime geometry become unified into observable behavioral truth.
 
@@ -45,18 +55,54 @@ and renderer behavior.
 
 ## Causal Skeleton
 
-- `governance_density` -> `stabilization_ratio` (amplifies, r=0.50)
-- `causality_depth` -> `governance_density` (amplifies, r=0.48)
-- `protocolization_growth` -> `governance_density` (amplifies, r=0.42)
-- `governance_density` -> `systemic_coherence_score` (amplifies, r=0.40)
-- `causality_depth` -> `stabilization_ratio` (amplifies, r=0.40)
-- `stabilization_ratio` -> `governance_density` (amplifies, r=0.40)
-- `protocolization_growth` -> `causality_depth` (amplifies, r=0.38)
+# Core structural causality
 
-- `salience_routing` -> `stabilization_ratio` (amplifies, r=0.58)
-- `cognitive_externalization` -> `systemic_coherence_score` (amplifies, r=0.61)
-- `renderer_entropy` -> `runtime_pressure_index` (amplifies, r=0.54)
-- `orchestration_density` -> `causality_depth` (amplifies, r=0.67)
+- governance_density -> stabilization_ratio
+  (amplifies, r=0.56)
+
+- causality_depth -> governance_density
+  (amplifies, r=0.54)
+
+- protocolization_growth -> governance_density
+  (amplifies, r=0.46)
+
+- governance_density -> systemic_coherence_score
+  (amplifies, r=0.44)
+
+- causality_depth -> stabilization_ratio
+  (amplifies, r=0.47)
+
+- stabilization_ratio -> governance_density
+  (amplifies, r=0.43)
+
+- protocolization_growth -> causality_depth
+  (amplifies, r=0.41)
+
+# New movement + cognition relations
+
+- spatial_authority_integrity -> stabilization_ratio
+  (amplifies, r=0.64)
+
+- locomotion_causal_alignment -> systemic_coherence_score
+  (amplifies, r=0.59)
+
+- salience_routing -> stabilization_ratio
+  (amplifies, r=0.61)
+
+- cognitive_externalization -> systemic_coherence_score
+  (amplifies, r=0.65)
+
+- orchestration_density -> causality_depth
+  (amplifies, r=0.69)
+
+- renderer_entropy -> runtime_pressure_index
+  (amplifies, r=0.49)
+
+- orchestration_density -> runtime_pressure_index
+  (amplifies, r=0.37)
+
+- legitimacy_density -> initiative_resistance
+  (amplifies, r=0.52)
 
 ---
 
@@ -157,6 +203,18 @@ from authoritative spatial queries.
 ---
 
 ## Runtime Pressure Frontier
+
+- V.0.5.3.1.1_Пространство_и_время:
+
+  EG=44.2
+  SR=69.1
+  CD=86.5
+  ACI=62.7
+  RPI=47.3
+  PG=74.8
+  SCS=92.1
+  HSES=77.3
+  OER=71.4
 
 - `V.0.5.3.1.0_Рассвет_2`:
   RPI=49.0, CD=82.0, EG=49.0, SR=63.0

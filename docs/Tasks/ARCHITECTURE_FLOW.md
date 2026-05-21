@@ -365,3 +365,98 @@ classDef temporalAuth fill:#ccf,stroke:#333,stroke-width:2px;
 class GL_TICK,SS_TICK,TRAVERSAL,FE_TICK,PROGRESS,SSM_FINAL,WSB_IMMUT temporalAuth;
 classDef forbiddenTime fill:#f66,stroke:#333,stroke-width:2px,stroke-dasharray: 5 5;
 class CALC_TIME,REAL_TIME forbiddenTime;
+
+%% --- ADR-061: Directive Pipeline State Injection & Lerp Duration Calculation ---
+subgraph Will_Lerp_Fix[Directive & Lerp Pipeline Fix ADR-061]
+    direction TB
+    LE_GET[LifeEngine.get_npc_states] -->|inject on player turn| TO_CTX[TickOrchestrator.ctx.npc_states & all_npcs_raw]
+    TO_CTX -->|provide state| DIR_SUB[DirectiveInterpretationSubscriber]
+    DIR_SUB -->|calculate honestly| WILL_PIPE[Will Pipeline ObediencePressure > 0]
+    
+    SC_TRAV[scene_state.active_traversals] -->|read waypoints & speed| WSB_CALC[WorldSnapshotBuilder math.hypot dx dy / speed]
+    WSB_CALC -->|project| DTO_DUR[active_traversals duration_ticks CALCULATED]
+    
+    RAW_DUR[scene_state duration_ticks raw] -.->|ЗАПРЕЩЕНО: Blind passthrough| WSB_CALC
+    NO_STATE[Empty all_npcs_raw] -.->|ЗАПРЕЩЕНО: DIRECTIVE_NO_STATE| DIR_SUB
+end
+
+classDef adr061 fill:#cfc,stroke:#333,stroke-width:2px;
+class LE_GET,TO_CTX,DIR_SUB,WILL_PIPE,SC_TRAV,WSB_CALC,DTO_DUR adr061;
+classDef forbiddenBlind fill:#f66,stroke:#333,stroke-width:2px,stroke-dasharray: 5 5;
+class RAW_DUR,NO_STATE forbiddenBlind;
+
+%% --- ADR-062/063/064/065/066: Session 43 - Physics of Power, Ontology & Consciousness Bridge ---
+subgraph Session43[Session 43: Power, Ontology & Consciousness Bridge]
+    direction TB
+    
+    %% ADR-062: Authority of Intent (Legitimacy Gate Fix)
+    INT[Intent social_pressure/commitment] -->|source_authority * context| AUTH_PRES[AuthorityPressure]
+    FEAR[Fear + Trust] -->|internal readiness| LEGIT[Legitimacy]
+    AUTH_PRES -->|multiply| CALC_OB[Obedience = Auth * 0.3 + Legit]
+    AUTH_PRES -->|multiply| CALC_IRR[Irritation = Auth * 0.3 * 1 - Legit]
+    LEGIT -->|is_obedience| IS_OB[is_obedience = legit > 0.1]
+    
+    %% ADR-063: Ontological Typing (Player Leak Fix)
+    NPC_POS[scene_state.npc_positions] -->|read| WSB_TYPE[WorldSnapshotBuilder EntityType]
+    WSB_TYPE -->|mark player| DTO_TYPE[NPCPositionDTO entity_type=PLAYER]
+    WSB_TYPE -->|mark others| DTO_NPC[NPCPositionDTO entity_type=NPC]
+    DTO_TYPE -->|filter| FE_FILTER[Frontend if entity_type != npc skip]
+    DTO_NPC -->|render| FE_FILTER
+    
+    %% ADR-064: Spatial Template Instantiation
+    LOAD_ED[load_editor_json] -->|not found| FALLBACK[location_templates.json]
+    FALLBACK -->|exact match| DEEPCOPY[copy.deepcopy instantiation]
+    DEEPCOPY -->|graph| SPAT_SVC[SpatialService]
+    MUTATE[Direct mutation of template] -.->|ЗАПРЕЩЕНО: Breaks Idea| DEEPCOPY
+    
+    %% ADR-065: Midnight Temporal Continuity
+    SHARED_T[shared_context.game_time_seconds] -->|is not None| PRES_T[preserved_game_time]
+    PRES_T -->|0.0 is valid| INIT_T[_resolve_initial_time]
+    OR_ZERO[or 0] -.->|ЗАПРЕЩЕНО: Kills Midnight| SHARED_T
+    
+    %% ADR-066: Causal Consciousness Bridge
+    DH[DecisionHub Phase 5] -->|direct return| IDLE_GOALS[idle_movement_goals]
+    IDLE_GOALS -->|convert| MACRO_G[MacroMovementGoal]
+    MACRO_G -->|execute| ME[MovementEngine Immediate Action]
+    PRESSURE[Idle Pressure Accumulator] -.->|ЗАПРЕЩЕНО: Delay for spatial| MACRO_G
+end
+
+classDef s43 fill:#ffd700,stroke:#333,stroke-width:2px;
+class INT,FEAR,AUTH_PRES,LEGIT,CALC_OB,CALC_IRR,IS_OB,WSB_TYPE,DTO_TYPE,DTO_NPC,FE_FILTER,LOAD_ED,FALLBACK,DEEPCOPY,SPAT_SVC,SHARED_T,PRES_T,INIT_T,DH,IDLE_GOALS,MACRO_G,ME s43;
+classDef forbiddenS43 fill:#f66,stroke:#333,stroke-width:2px,stroke-dasharray: 5 5;
+class MUTATE,OR_ZERO,PRESSURE forbiddenS43;
+
+%% --- ADR-067: Session 44 - CDS Dual-Channel Detection & SCF Calibration ---
+subgraph Session44[Session 44: CDS Calibration & Entity Bridge]
+    direction TB
+    
+    %% Dual-Channel Decision Detection
+    DH_LOG[DecisionHub logger.info DECISION_HUB] -->|Channel 1| CO_DHB[CausalObserver._dispatch decision_hub]
+    DS_LOG[DecisionHub logger.info DECISION_SCORE] -->|Channel 2| CO_DS[CausalObserver._dispatch decision_score]
+    CO_DHB -->|on_individual_decision| THC_ID[TickHealthChecker.on_individual_decision]
+    CO_DS -->|on_individual_decision| THC_ID
+    THC_ID -->|delegate| THR_ID[TickHealthReport.on_individual_decision]
+    THR_ID -->|increment| SHI_TOTAL[total_decisions++ → SHI = total_dec/total_ticks]
+    
+    %% SCF Calibration
+    ED_FOUND[SCENE Найден editor JSON] -->|pattern| CO_ED[CausalObserver._dispatch editor_json_found]
+    CO_ED -->|on_editor_json_found| MHR_ED[MovementHealthReport.editor_json_locations]
+    MHR_ED -->|non-empty| SCF_OK[SCF = 1.0 override spatial_fallback]
+    SPATIAL_FB[SCENE location_templates fallback] -->|pattern| CO_FB[CausalObserver._dispatch spatial_fallback]
+    CO_FB -->|triggered| SCF_DEG[SCF degraded without editor_json]
+    
+    %% Entity Type Bridge
+    NPC_DICT[NPC dict with id key] -->|id or npc_id| DIR_SUB[DirectiveInterpretationSubscriber]
+    WSB_ET[WorldSnapshotBuilder imports EntityType] -->|no NameError| SNAPSHOT[NPCPositionDTO with entity_type]
+    SNAPSHOT -->|snapshot_npc_positions_to_dict| API_DICT[API dict with entity_type + initiative_suppression]
+    
+    %% Forbidden
+    PRINT_DH[print DECISION_SCORE] -.->|ЗАПРЕЩЕНО: Invisible to CDS| CO_DS
+    MISSING_ID[npc_id only no id] -.->|ЗАПРЕЩЕНО: ObediencePressure=0| DIR_SUB
+    NO_ET_IMPORT[EntityType not imported] -.->|ЗАПРЕЩЕНО: NameError crash| WSB_ET
+end
+
+classDef s44 fill:#e6ccff,stroke:#333,stroke-width:2px;
+class DH_LOG,DS_LOG,CO_DHB,CO_DS,THC_ID,THR_ID,SHI_TOTAL,ED_FOUND,CO_ED,MHR_ED,SCF_OK,SPATIAL_FB,CO_FB,SCF_DEG,NPC_DICT,DIR_SUB,WSB_ET,SNAPSHOT,API_DICT s44;
+classDef forbiddenS44 fill:#f66,stroke:#333,stroke-width:2px,stroke-dasharray: 5 5;
+class PRINT_DH,MISSING_ID,NO_ET_IMPORT forbiddenS44;

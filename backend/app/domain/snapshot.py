@@ -12,6 +12,13 @@ from typing import List, Optional, Tuple
 from uuid import UUID
 
 
+class EntityType(str, Enum):
+    """Онтологический тип сущности в пространстве симуляции (D2 FIX)."""
+    PLAYER = "player"
+    NPC = "npc"
+    OBJECT = "object"
+    ANIMAL = "animal"
+
 class PhysicalPresentationState(str, Enum):
     """Визуальное физическое состояние аватара для рендера."""
     HEALTHY = "healthy"
@@ -62,6 +69,7 @@ class NPCPositionDTO:
     facing: str          # 'north', 'south', 'east', 'west'
     action: str          # 'idle', 'walking', 'talking', 'working'
     display_name: str    # имя для UI
+    entity_type: EntityType = EntityType.NPC  # D2: Онтологический тип для фильтрации рендера
     initiative_suppression: float = 0.0  # Спринт 30: Cognitive Freeze (0.0-1.0), паралич воли
 
 
@@ -118,5 +126,7 @@ def snapshot_npc_positions_to_dict(
             "location_id": pos.location_id,
             "display_name": pos.display_name,
             "name": pos.display_name,
+            "entity_type": pos.entity_type.value if hasattr(pos.entity_type, 'value') else str(pos.entity_type),
+            "initiative_suppression": pos.initiative_suppression,
         }
     return result

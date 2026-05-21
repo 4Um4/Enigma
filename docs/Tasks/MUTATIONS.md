@@ -416,3 +416,42 @@
 - `backend/app/services/integration/world_snapshot_builder.py`: Метод `_extract_active_traversals` переписан на чистую проекцию (SnapshotBuilder больше не мутирует `scene_state`). Фронтенду отдаются `started_tick` и `duration_ticks` вместо `duration_seconds` и `real_start_ms`. **[Контракт]**
 - `frontend/game_screen.py`: Функция `_resolve_visual_xy` переведена на расчёт `progress` через авторитетный монотонный тик `(current_tick - started_tick) / duration_ticks`. Удалены `time.time()`, `pygame.time.get_ticks()` и `_traversal_start_ms` кэш (устранение второй пары часов). **[Архитектура]**
 - Результат: Lerp работает, NPC по расписанию ходят плавно. Остаток БАГ D: DirectiveInterpretationSubscriber выдаёт ObediencePressure=0.00 для Тени (LegitimacyGate блокирует подчинение), и сущность Player утекает на экран.
+
+## Сессия 42: Починка Трубы Воли (Directive Interpretation) и Расширение Lerp-тестов (ADR-059)
+**Дата:** 20.05.2026  
+**Изменения:**
+- **`backend/app/services/tick_orchestrator.py`:** В `execute_player_finalize` добавлена инъекция актуального NPC state (`ctx.npc_states = _life_engine.get_npc_states()`, `ctx.all_npcs_raw = ctx.npc_states`) до выполнения Фазы 1. Починен баг `[DIRECTIVE_NO_STATE]`, из-за которого `DirectiveInterpretationSubscriber` получал пустой список и обнулял `ObediencePressure`. Каузальная Труба Воли (приказы) замкнута. **[Багфикс/Архитектура]**
+- **`backend/app/services/integration/world_snapshot_builder.py`:** В `_extract_active_traversals` добавлено вычисление `duration_ticks` на основе дистанции (`math.hypot`) и `speed`, вместо прямого проброса сырого значения из `scene_state`. Гарантируется консистентность каузальной презентации (ADR-059). **[Контракт]**
+- **`backend/tests/sandbox/test_sandbox_lerp_cycle.py`:** Тесты приведены в соответствие с ADR-059 (Dual-Time Ontology). Устаревшие поля `from_xy`/`to_xy` заменены на `path_waypoints`, `started_at` на `started_tick`, `duration_seconds` на `duration_ticks`. Добавлены параметризованные тесты для различных типов локомоции (WALK, RUN, SNEAK), нулевой дистанции и экстремально длинных путей. **[Тесты]**
+- **Диагностика:** Обнаружена архитектурная слепая зона Фазы 3 (Memory Pipeline): `MemoryProcessor` вызывается только для пространственных событий (`phase_2_events`), из-за чего NPC не формируют воспоминания об атаках, угрозах и диалогах (амнезия). Специалистом рекомендовано внедрение `SignificanceResolver` (EventDTO -> MemoryCandidate) вместо прямого расширения входа. **[Документация/Анализ]**
+
+## Сессия 43: Физика Власти, Онтология Сущностей и Каузальный Мост Сознания
+**Дата:** 21.05.2026  
+**Изменения:**
+- **`backend/app/services/social/directive_interpretation_subscriber.py`:** Внедрена Физика Власти (AuthorityPressure * Receptivity). Разделение векторов подчинения (`obedience_intensity = authority_pressure * legitimacy`) и раздражения (`irritation_intensity = authority_pressure * 0.3 * (1.0 - legitimacy)`). Бесстрашные NPC теперь реагируют на вооружённые приказы конфронтацией, а не полным игнором. **[Архитектура]**
+- **`backend/app/domain/snapshot.py`:** Добавлен `EntityType(Enum)` (PLAYER, NPC, ANIMAL, OBJECT). В `NPCPositionDTO` добавлено поле `entity_type: EntityType = EntityType.NPC`. **[Контракт]**
+- **`backend/app/services/integration/world_snapshot_builder.py`:** Проброс `entity_type` в DTO. Снятие хардкод-фильтра `if npc_id == "player"`, замена на онтологическую пометку `entity_type = EntityType.PLAYER`. **[Пайплайн]**
+- **`frontend/game_types.py`:** Расширен `Literal` для `entity_type` (добавлены `"player"`, `"animal"`). **[Контракт]**
+- **`frontend/game_screen.py`:** Внедрён онтологический фильтр рендера (`if entity_type != "npc": continue`). Презентационный слой защищён от любых утечек сырых данных. **[Архитектура]**
+- **`backend/app/services/spatial/graph_compiler.py`:** Добавлен легитимный fallback на `location_templates.json` в `load_editor_json` с инстанциацией через `copy.deepcopy()`. Восстановление работы пространственного графа при отсутствии editor JSON. **[Багфикс/Архитектура]**
+- **`backend/app/services/game_loop/scene_init.py`:** Починка БАГ H (регресс времени). Замена `if preserved_game_time:` на `if preserved_game_time is not None:` в `_extract_preserved_time` и `_resolve_initial_time`. Защита полуночи (`0.0 == False`). **[Багфикс]**
+- **`backend/app/services/game_loop/__init__.py`:** Устранение анти-паттерна `or 0` в API-границе (замена на `getattr(state.shared_context, "game_time_seconds", 0)`). **[Багфикс]**
+- **`backend/app/services/npc/life_engine.py`:** Починка SHI=0% (Мир Сомнамбула). `tick_decisions` теперь напрямую возвращает `idle_movement_goals` (тройки npc_id, intent, target). Починена потеря цели намерения (`intent_target` вместо `npc_id`). **[Архитектура]**
+- **`backend/app/services/tick_orchestrator.py`:** Внедрён Каузальный Мост Сознания (Фаза 5). Прямая конвертация `idle_movement_goals` в `MacroMovementGoal` и выполнение через `MovementEngine`. Тело больше не глухо к решениям сознания в idle-пути. **[Архитектура]**
+
+## Сессия 44: CDS Mass Calibration — SHI, SCF, NPI, Obedience, EntityType
+**Дата:** 21.05.2026  
+**Изменения:**
+- **`backend/app/services/npc/decision_hub.py`:** `[TRACE][DECISION_SCORE]` переведён с `print()` на `logger.info()`. CDS теперь видит решения NPC в лог-файле. **[Багфикс/CDS]**
+- **`diagnostics/health_checkers/tick_health.py`:** Добавлен делегат `TickHealthChecker.on_individual_decision()` → `_report.on_individual_decision()`. Без него `_dispatch` вызывал несуществующий метод и получал `AttributeError`, глотаемый `try/except`. Добавлена `_pl()` для русской морфологии (1 вызов, 2 вызова, 5 вызовов). **[Багфикс/CDS]**
+- **`diagnostics/health_checkers/movement_health.py`:** Добавлено поле `editor_json_locations: List[str]` и метод `on_editor_json_found()`. CDS теперь отличает ложный spatial_fallback (editor JSON найден) от реальной деградации. **[Контракт/CDS]**
+- **`diagnostics/pattern_registry.py`:** Добавлены паттерны `decision_score` (`[TRACE][DECISION_SCORE]`) и `editor_json_found` (`[SCENE] Найден editor JSON`). Резервный канал решений + калибровка SCF. Итого 37 паттернов. **[Контракт/CDS]**
+- **`diagnostics/causal_observer.py`:** Добавлен handler для `decision_score` → `on_individual_decision()`. Убран вызов `on_decisions_count()` для `tick_decisions_end` (двойной счёт `total_ticks`). Добавлен handler для `editor_json_found` → `on_editor_json_found()`. **[Багфикс/CDS]**
+- **`diagnostics/dna_metrics.py`:** `_compute_shi()` переписан на `total_decisions / total_ticks` вместо `decisions_nonzero_ticks / total_ticks`. `_compute_scf()` расширен: `editor_json_locations` отменяет `spatial_fallback_triggered` (SCF=1.0 вместо ложного 0.5). **[Архитектура/CDS]**
+- **`diagnostics/report_renderer.py`:** Добавлена `_pluralize(n, one, few, many)` для русской морфологии числительных. Заменено `{n} раз` на `_pluralize(n, 'раз', 'раза', 'раз')` и аналогично для строк/вызовов. **[CDS]**
+- **`backend/app/main.py`:** Добавлен `logger.info()` рядом с `print()` для статуса LLM-сервера (`[STARTUP] llama-server запущен`, `[STARTUP] LLM доступен`). CDS теперь детектирует LLM-сервер из лог-файла. **[Багфикс/CDS]**
+- **`backend/app/services/social/directive_interpretation_subscriber.py`:** Добавлена проверка `n.get("id")` рядом с `n.get("npc_id")` в резолве цели и поиске NPC state. NPC dicts из `_load_npcs_with_runtime` используют `"id"`, не `"npc_id"` — это было причиной `ObediencePressure=0.00`. **[Багфикс]**
+- **`backend/app/services/integration/world_snapshot_builder.py`:** Добавлен импорт `EntityType` из `app.domain.snapshot`. Устранён `NameError: name 'EntityType' is not defined`, крашивший каждый тик на Фазе 9 (NPI=0% регрессия). **[Багфикс]**
+- **`backend/app/domain/snapshot.py`:** В `snapshot_npc_positions_to_dict()` добавлены поля `entity_type` (значение enum) и `initiative_suppression`. Ранее данные терялись на границе backend→frontend. **[Контракт]**
+- **`РЕЖИМ РАБОТЫ.md`:** Добавлена секция 3.6 «Smoke-test верификация» — обязательная проверка через изолированный Python-вызов после каждого фикса. **[Документация]**
+- **Результат DNA:** SHI: 0→100%, SCF: 0→1.0, NPI: 0→86%. ObediencePressure: 0→0.72 (при fear=0.3).

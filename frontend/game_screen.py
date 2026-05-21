@@ -41,6 +41,12 @@ def _build_perceived_scene(scene_state: dict, config: PerceptionConfig) -> Perce
     
     # Конвертируем NPC из scene_state
     for npc_id, npc_data in scene_state.get("npc_positions", {}).items():
+        # D2 FIX: Онтологический тип. Рендерим только NPC. Player, Animal, Object управляются другими системами.
+        # Поддержка legacy-данных: если entity_type нет, inferred из ID.
+        entity_type = npc_data.get("entity_type", "player" if npc_id == "player" else "npc")
+        if entity_type != "npc":
+            continue
+            
         # ADR-019: Каузальный Lerp. Интерполируем позицию, если NPC в транзите.
         pos = _resolve_visual_xy(npc_id, scene_state)
         x, y = float(pos.get("x", 0)), float(pos.get("y", 0))
@@ -57,7 +63,7 @@ def _build_perceived_scene(scene_state: dict, config: PerceptionConfig) -> Perce
 
         entities.append(PerceivedEntity(
             entity_id=npc_id,
-            entity_type="npc",
+            entity_type=entity_type,  # D2: Передаём вычисленный онтологический тип
             x=x,
             y=y,
             visible=True,

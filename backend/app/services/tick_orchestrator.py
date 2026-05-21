@@ -917,14 +917,23 @@ class TickOrchestrator:
         Пишет в STM + SQLite. narrative_cache синхронизируется обратно
         в npc_dict через NPCState.write_to_legacy (Устав §3.1).
         """
-        if not ctx.phase_2_events:
+        # Сливаем пространственные и когнитивные события (починка амнезии Фазы 3)
+        events_to_remember = list(ctx.phase_2_events)
+        bus = self._get_event_bus()
+        for evt in bus.get_recent_events(50):
+            if evt.type in ("PLAYER_SPOKE", "PLAYER_ATTACKS", "WILL_CONFLICT", "player_threatens"):
+                if evt not in events_to_remember:
+                    events_to_remember.append(evt)
+
+        if not events_to_remember:
+            return
             return
 
         mm = self._get_memory_manager()
         from app.models.npc_state import NPCState
         processed = 0
 
-        for event in ctx.phase_2_events:
+        for event in events_to_remember:
             for npc_id in self._resolve_affected_npcs(event):
                 npc_dict = next(
                     (n for n in ctx.npc_states if n.get("id") == npc_id),
@@ -984,7 +993,7 @@ class TickOrchestrator:
             stm_text = ""
 
             # 1. Проверяем spatial events затронувшие этого NPC
-            for event in ctx.phase_2_events:
+            for event in events_to_remember:
                 affected = self._resolve_affected_npcs(event)
                 if npc_id in affected:
                     topic = extract_topic(
@@ -1027,7 +1036,7 @@ class TickOrchestrator:
                 if traits := mm.get_identity_traits(ctx.campaign_id, npc_id):
                     identities[npc_id] = traits
         
-        decision_dicts, communication_intents = engine.tick_decisions(
+        decision_dicts, communication_intents, idle_movement_goals = engine.tick_decisions(
             ctx.campaign_id, ctx.scene_state,
             topics=ctx.npc_topics, identities=identities,
         )
@@ -1035,6 +1044,45 @@ class TickOrchestrator:
         ctx.communication_intents = communication_intents or []
         if decision_dicts:
             logger.debug(f"[TICK_ORCH] Фаза 5: {len(decision_dicts)} decisions, {len(communication_intents)} intents")
+
+        # КАУЗАЛЬНЫЙ МОСТ: Конвертация когнитивных решений в пространственные намерения.
+        # В player-пути это делает npc_tick_pipeline. В idle-пути мост отсутствовал — мир замирал.
+        # Теперь работает напрямую: DecisionHub -> MovementIntent, без ожидания давления.
+        _spatial_intents = []
+        
+        for npc_id, intent_val, intent_target in (idle_movement_goals or []):
+            from app.domain.movement import MacroMovementGoal
+            _spatial_intents.append(MacroMovementGoal(
+                npc_id=npc_id,
+                intent=intent_val,
+                intent_target=intent_target,
+                scene_state=ctx.scene_state,
+                location_id=ctx.scene_state.get("location_id", "")
+            ))
+        
+        if _spatial_intents:
+            _spatial_svc = None
+            if ctx.npc_services and hasattr(ctx.npc_services, "spatial_service") and ctx.npc_services.spatial_service:
+                _spatial_svc = ctx.npc_services.spatial_service
+            elif _location_id := ctx.scene_state.get("location_id", ""):
+                _spatial_svc = SpatialService.build_for_location(
+                    campaign_id=ctx.campaign_id,
+                    location_id=_location_id,
+                    scene_state=ctx.scene_state,
+                )
+            
+            if _spatial_svc:
+                from app.services.spatial.movement_engine import MovementEngine
+                me = MovementEngine()
+                me.set_spatial_service(_spatial_svc)
+                spatial_changes = me.process_intents(
+                    _spatial_intents, tick=ctx.tick_number,
+                    npc_positions=ctx.scene_state.get("npc_positions", {}),
+                    campaign_id=ctx.campaign_id, scene_state=ctx.scene_state
+                )
+                if spatial_changes and self._scene_manager:
+                    self._scene_manager.apply_changes(ctx.campaign_id, spatial_changes, ctx.scene_state)
+                    logger.info(f"[TICK_ORCH] Фаза 5: {len(spatial_changes)} spatial changes from idle decisions")
 
     def _phase_6_post_decision(self, ctx: _TickContext) -> None:
         """IntentEventAdapter: CommunicationIntent → EventDTO (Устав §3.3).

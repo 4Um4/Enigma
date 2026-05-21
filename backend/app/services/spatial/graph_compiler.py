@@ -240,5 +240,19 @@ def load_editor_json(
             except (json.JSONDecodeError, OSError):
                 continue
 
+    # Fallback: если в кампании нет своего editor JSON, ищем в глобальном location_templates.json
+    templates_path = _PROJECT_ROOT / "backend" / "data" / "locations" / "location_templates.json"
+    if templates_path.exists():
+        try:
+            templates_data = json.loads(templates_path.read_text(encoding="utf-8-sig"))
+            loc_data = templates_data.get(location_id)
+            if loc_data and "nodes" in loc_data:
+                logger.info(f"[SPATIAL] Using location_templates.json fallback for '{location_id}'")
+                # Шаблон инстанцируется, чтобы мутации в scene_state не ломали "идею" локации
+                import copy
+                return copy.deepcopy(loc_data)
+        except (json.JSONDecodeError, OSError):
+            pass
+
     logger.warning(f"[GRAPH_COMPILER] editor JSON не найден для {campaign_id}/{location_id}")
     return None

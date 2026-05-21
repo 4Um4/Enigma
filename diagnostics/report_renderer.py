@@ -18,6 +18,15 @@ from diagnostics.git_reader import GitReader, GitInfo
 from diagnostics.dna_metrics import DNAComputer
 
 
+def _pluralize(n: int, one: str, few: str, many: str) -> str:
+    """Русская морфология: 1 раз, 2 раза, 5 раз."""
+    if n % 10 == 1 and n % 100 != 11:
+        return f"{n} {one}"
+    if 2 <= n % 10 <= 4 and not (12 <= n % 100 <= 14):
+        return f"{n} {few}"
+    return f"{n} {many}"
+
+
 class ReportRenderer:
     """
     Принимает готовые report-объекты и рендерит markdown.
@@ -247,8 +256,8 @@ _(см. секции #1 и #3 — файлы backend/app/services/)_
 
 **Tick Pipeline:**
 {tick.summary_line()}
-- LLM "Ничего не произошло": {tick.llm_nothing_count} раз
-- LLM CJK-галлюцинации: {tick.llm_cjk_lines} строк
+- LLM "Ничего не произошло": {_pluralize(tick.llm_nothing_count, 'раз', 'раза', 'раз')}
+- LLM CJK-галлюцинации: {_pluralize(tick.llm_cjk_lines, 'строка', 'строки', 'строк')}
 - Стартап backend: {"✅" if tick.startup_ok else "❌"}
 - LLM сервер: {"✅" if tick.llm_server_ok else "❌ (не доступен при старте)"}
 

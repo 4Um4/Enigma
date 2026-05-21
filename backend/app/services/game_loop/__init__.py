@@ -477,7 +477,7 @@ class GameLoop:
             "tokens": token_count,
             "ms": elapsed_ms,
             "tps": tps,
-            "game_time_seconds": state.shared_context.game_time_seconds or 0,
+            "game_time_seconds": getattr(state.shared_context, "game_time_seconds", 0),
         }
 
         # R2.1: NarrativeExtractor R2.2.8

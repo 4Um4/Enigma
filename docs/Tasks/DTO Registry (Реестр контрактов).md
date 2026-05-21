@@ -269,11 +269,17 @@ SPATIAL -> OVERWRITE
 - `time_of_day`: `str`
 - `game_time_seconds`: `int = 0` // Абсолютное время симуляции (Календарь, ADR-002)
 - `tick`: `int = 0` // Монотонный каузальный тик (Причинность, ADR-059). Инкрементируется строго на +1 каждый тик. Не отматывается назад.
-- `active_traversals`: `List[Dict] = field(default_factory=list)` // ADR-019, ADR-059: Транзиты для визуального Lerp. Структура dict: `npc_id, status, path_waypoints, current_waypoint_idx, started_tick, duration_ticks, speed, locomotion`.
+- `active_traversals`: `List[Dict] = field(default_factory=list)` // ADR-019, ADR-059, ADR-061: Транзиты для визуального Lerp. Структура dict: `npc_id, status, path_waypoints, current_waypoint_idx, started_tick, duration_ticks, speed, locomotion`. ВАЖНО: `duration_ticks` ВЫЧИСЛЯЕТСЯ в `WorldSnapshotBuilder` как `math.hypot(dx, dy) / speed`, а не берется из `scene_state` напрямую (ADR-061). [DEPRECATED: чтение duration_ticks из scene_state]
+
+### EntityType (Enum — ADR-063)
+*Онтологический тип сущности для фильтрации рендера.*
+- `PLAYER`, `NPC`, `ANIMAL`, `OBJECT`
 
 ### NPCPositionDTO
 - `npc_id`: `str`, `x`: `float`, `y`: `float`, `location_id`: `str`, `facing`: `str`, `action`: `str`
 - `display_name`: `str` // КРИТИЧЕСКИ ВАЖНО: заполнять из `data.get("name")`, иначе фронтенд показывает npc_id!
+- `entity_type`: `EntityType = EntityType.NPC` // ADR-063: Онтологический тип. Фронтенд фильтрует по нему, а не по хардкоду ID
+
 
 ### PhysicalPresentationState (Enum)
 *Визуальное физическое состояние аватара для рендера.*
@@ -716,23 +722,25 @@ Authoritative Spatial Spine (ADR-048). Единственный легитимн
 ## XV. Спринт 30: Dual-Time Ontology & Каузальная Презентация (ADR-058)
 
 ### NPCPositionDTO (Backend API Boundary)
-*Расширено для проброса Cognitive Freeze на фронтенд.*
+*Расширено для проброса Cognitive Freeze и Онтологического Типа на фронтенд.*
 - `initiative_suppression`: `float = 0.0` // Спринт 30: Уровень подавления воли (0.0-1.0). Передается из `PerceptualKernel` для визуализации паралича.
+- `entity_type`: `EntityType = EntityType.NPC` // Спринт 43 (ADR-063): Онтологический тип сущности. Player помечается как PLAYER.
 
 ### NPCBuffer (Backend Internal)
 *Расширено для агрегации когнитивного состояния перед записью в scene_state.*
 - `initiative_suppressions`: `Dict[str, float]` // Спринт 30: Словарь npc_id -> initiative_suppression. Заполняется в npc_tick_pipeline, применяется в npc_orchestration.
 
 ### PerceivedEntity (Frontend Internal)
-*Расширено слоями Traversal и Cognitive для непрерывной презентации.*
-- **Traversal Layer (Спринт 30: Dual-Time Ontology):**
-  - `traversal_status`: `str = "IDLE"` // PENDING, MOVING, ARRIVED, CANCELLED
-  - `path_waypoints`: `list = field(default_factory=list)` // Визуальные x,y точки от бэкенда
-  - `current_waypoint_idx`: `int = 0`
-  - `traversal_progress`: `float = 0.0` // 0.0 - 1.0 прогресс между текущими waypoint
-  - `traversal_speed`: `float = 1.5` // Скорость визуальной интерполяции (м/с)
-- **Cognitive Layer (Спринт 30: Визуализация Cognitive Freeze):**
-  - `initiative_suppression`: `float = 0.0` // 0.0-1.0, паралич воли. При >0.7 рендерер применяет моторный тремор.
+*Расширено слоями Traversal, Cognitive и Ontology для непрерывной презентации.*
+    - `entity_type`: `Literal["player", "npc", "animal", "object", "event"] = "object"` // ADR-063: Онтологический тип. Фильтр рендера: `if entity_type != "npc": continue`
+  - **Traversal Layer (Спринт 30: Dual-Time Ontology):**
+    - `traversal_status`: `str = "IDLE"` // PENDING, MOVING, ARRIVED, CANCELLED
+    - `path_waypoints`: `list = field(default_factory=list)` // Визуальные x,y точки от бэкенда
+    - `current_waypoint_idx`: `int = 0`
+    - `traversal_progress`: `float = 0.0` // 0.0 - 1.0 прогресс между текущими waypoint
+    - `traversal_speed`: `float = 1.5` // Скорость визуальной интерполяции (м/с)
+  - **Cognitive Layer (Спринт 30: Визуализация Cognitive Freeze):**
+    - `initiative_suppression`: `float = 0.0` // 0.0-1.0, паралич воли. При >0.7 рендерер применяет моторный тремор.
 
 ---
 
@@ -755,4 +763,33 @@ Authoritative Spatial Spine (ADR-048). Единственный легитимн
 - `intent_received`: `r"\[TRACE\]\[ENGINE_RECEIVED\] npc=(\w+)"`
 - `node_not_found`: `r"\[MOVEMENT_ENGINE\] Узел '(\w+)' не найден"`
 - `directive_detected`: `r"\[CAUSALITY\] Semantic action MOVE detected for NPC '(\w+)'"`
-- `obedience_pressure`: `r"\[DIRECTIVE_INTERPRET\] Target=(\w+), Action=(\w+), ObediencePressure=([\d.]+)"
+- `obedience_pressure`: `r"\[DIRECTIVE_INTERPRET\] Target=(\w+), Action=(\w+), ObediencePressure=([\d.]+)"`
+
+---
+
+## XVII. Спринт 44: CDS Mass Calibration & Entity Type Bridge
+
+### PatternRegistry (Расширение Спринт 44)
+*Добавлены 2 паттерна для dual-channel decision detection и SCF-калибровки. Итого 37 паттернов.*
+- `decision_score`: `r"\[TRACE\]\[DECISION_SCORE\] npc=(\w+) winner=Intent\.(\w+)"` // Резервный канал: ловит решения даже если [DECISION_HUB] не совпал
+- `editor_json_found`: `r"\[SCENE\] Найден editor JSON.*location_id=(\w+)"` // Калибровка SCF: editor JSON найден → fallback некритичен
+
+### TickHealthChecker (Расширение Спринт 44)
+*Добавлен делегат для on_individual_decision() — ранее AttributeError глотался try/except.*
+- `on_individual_decision()`: делегат → `self._report.on_individual_decision()` // Вызывается из CausalObserver._dispatch при [DECISION_HUB] или [DECISION_SCORE]
+- `_pl(n, one, few, many)`: staticmethod // Русская морфология числительных (1 вызов, 2 вызова, 5 вызовов)
+
+### MovementHealthReport (Расширение Спринт 44)
+*Добавлено поле для калибровки SCF.*
+- `editor_json_locations`: `List[str]` // Локации, для которых editor JSON найден. Отменяет spatial_fallback_triggered для SCF.
+- `on_editor_json_found(location_id)`: метод // Добавляет location_id в editor_json_locations
+
+### snapshot_npc_positions_to_dict (Расширение Спринт 44)
+*Добавлены 2 поля, ранее терявшиеся на границе backend→frontend.*
+- `entity_type`: `str` // Значение EntityType enum ("player", "npc"). Извлекается через `.value` или `str()`.
+- `initiative_suppression`: `float` // Из NPCPositionDTO. Для фронтендного Cognitive Freeze рендера.
+
+### DirectiveInterpretationSubscriber.handle() (Контракт Спринт 44)
+*Расширена совместимость с NPC dicts, использующими "id" вместо "npc_id".*
+- Поиск цели: проверяет `n.get("npc_id") or n.get("id")` // NPC из _load_npcs_with_runtime используют "id"
+- Поиск target_dict: `n.get("npc_id") == target_id or n.get("id") == target_id` // Оба ключа

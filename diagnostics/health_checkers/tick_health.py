@@ -48,12 +48,22 @@ class TickHealthReport:
         if self.decisions_nonzero_ticks == 0:
             self.decisions_nonzero_ticks = 1
 
+    @staticmethod
+    def _pl(n: int, one: str, few: str, many: str) -> str:
+        """Русская морфология числительных."""
+        if n % 10 == 1 and n % 100 != 11:
+            return f"{n} {one}"
+        if 2 <= n % 10 <= 4 and not (12 <= n % 100 <= 14):
+            return f"{n} {few}"
+        return f"{n} {many}"
+
     def summary_line(self) -> str:
         status = "❌ МЕРТВА" if self.is_simulation_dead() else "✅ живёт"
         return (
             f"Тиков: {self.total_ticks} | "
             f"Decisions > 0: {self.decisions_nonzero_ticks}/{self.total_ticks} | "
-            f"LLM: {self.llm_calls} вызовов / {self.llm_responses} ответов | "
+            f"LLM: {self._pl(self.llm_calls, 'вызов', 'вызова', 'вызовов')} / "
+            f"{self._pl(self.llm_responses, 'ответ', 'ответа', 'ответов')} | "
             f"Симуляция: {status}"
         )
 
@@ -102,6 +112,10 @@ class TickHealthChecker:
     def on_player_select(self, campaign: str, player: str) -> None:
         self._report.player_campaign = campaign
         self._report.player_name = player
+
+    def on_individual_decision(self) -> None:
+        """Вызывается при парсинге [DECISION_HUB]/[DECISION_SCORE] — реальные решения NPC."""
+        self._report.on_individual_decision()
 
     # --- Финальный отчёт ---
 

@@ -10,11 +10,14 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+import math
+
 from typing import Dict, List, Optional, Tuple
 from app.domain.snapshot import (
     NPCPositionDTO,
     VisibleEventDTO,
     WorldSnapshotDTO,
+    EntityType,
 )
 
 
@@ -82,10 +85,9 @@ class WorldSnapshotBuilder:
         logger.info(f"[TRACE][SNAPSHOT_BUILD] npc_count={len(npc_positions)} keys={list(npc_positions.keys())[:5]} location={current_location}")
 
         for npc_id, data in npc_positions.items():
-            # ADR-048: player читается через _extract_player_position,
-            # в npc_positions он не нужен — иначе фронтенд рисует его как NPC
-            if npc_id == "player":
-                continue
+            # D2 FIX: Онтологический тип. Player передаётся на фронтенд как EntityType.PLAYER.
+            # Фронтенд фильтрует по типу, а не по хардкоду ID.
+            entity_type = EntityType.PLAYER if npc_id == "player" else EntityType.NPC
             if not data.get("visible", True):
                 continue
             # БАГ I FIX: NPC в другой локации не отрисовываются в текущей
@@ -110,6 +112,7 @@ class WorldSnapshotBuilder:
                 facing=data.get("facing", "south"),
                 action=data.get("activity", "idle"),
                 display_name=data.get("name", npc_id),
+                entity_type=entity_type,  # D2: Передаём онтологический тип
                 initiative_suppression=data.get("initiative_suppression", 0.0),
             ))
 
@@ -145,6 +148,8 @@ class WorldSnapshotBuilder:
             if trav.get("status") == "MOVING" and len(trav.get("path_waypoints", [])) >= 2:
                 from_xy = trav["path_waypoints"][0]
                 to_xy = trav["path_waypoints"][-1]
+                speed = trav.get("speed", 2.0)
+                duration_ticks = (math.hypot(to_xy[0] - from_xy[0], to_xy[1] - from_xy[1]) / speed) if speed > 0 else 0.0
 
                 result.append({
                     "npc_id": npc_id,
@@ -152,8 +157,10 @@ class WorldSnapshotBuilder:
                     "path_waypoints": [[from_xy[0], from_xy[1]], [to_xy[0], to_xy[1]]],
                     "current_waypoint_idx": 0,
                     "started_tick": trav.get("started_tick", 0),
-                    "duration_ticks": trav.get("duration_ticks", 1),
-                    "speed": trav.get("speed", 2.0),
+                    # ADR-059: Билдер вычисляет duration_ticks на основе скорости и дистанции, 
+                    # чтобы гарантировать консистентность каузальной презентации
+                    "duration_ticks": duration_ticks,
+                    "speed": speed,
                     "locomotion": trav.get("locomotion", "WALK")
                 })
         return result

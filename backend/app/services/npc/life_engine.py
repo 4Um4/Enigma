@@ -527,6 +527,7 @@ class LifeEngine:
         hub = DecisionHub()
         decisions: list[dict] = []
         communication_intents: list[CommunicationIntent] = []
+        idle_movement_goals: list[tuple[str, str, str]] = []  # (npc_id, intent_value, intent_target)
         logger.info(f"[TICK_DECISIONS] start: {len(npcs)} NPCs")
 
         for npc in npcs:
@@ -593,6 +594,11 @@ class LifeEngine:
                     topic=topics.get(npc_id) if topics else None,
                     decision_ctx=_decision_ctx,
                 )
+                
+                # Извлекаем прямой интент движения (не ждем накопления давления)
+                _intent_val = result.intent.value if result.intent else "none"
+                if _intent_val in ("approach", "flee", "wander", "steal") and result.intent_target:
+                    idle_movement_goals.append((npc_id, _intent_val, result.intent_target))
 
                 # Фаза 2.2 — накопление давления (in-memory)
                 _key = (campaign_id, npc_id)
@@ -620,7 +626,7 @@ class LifeEngine:
                         "npc_id": npc_id,
                         "cause": "idle_pressure",
                         "type": "proactive",
-                        "target": npc_id,
+                        "target": result.intent_target or npc_id,  # FIX: Сохраняем реальную цель (кого боимся/к кому идём)
                         "field": "intent",
                         "value": f"{result.intent.value if result.intent else 'observe'}",
                         "topic": topics.get(npc_id, "наблюдение") if topics else "наблюдение",
@@ -635,8 +641,8 @@ class LifeEngine:
                 print(traceback.format_exc())
                 continue
 
-        logger.info(f"[TICK_DECISIONS] end: {len(decisions)} decisions, {len(communication_intents)} intents")
-        return decisions, communication_intents
+        logger.info(f"[TICK_DECISIONS] end: {len(decisions)} decisions, {len(communication_intents)} intents, {len(idle_movement_goals)} movement_goals")
+        return decisions, communication_intents, idle_movement_goals
 
     def save_npcs(self, campaign_id: str) -> None:
         """
