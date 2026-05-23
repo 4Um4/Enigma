@@ -69,7 +69,11 @@ def run_dm_phase(
         logger.warning(f"[TARGET] Extract error: {_te}")
 
     # Spatial data для DM SceneBuilder (ADR-048: передаём SpatialQueryService)
-    _spatial_data = build_spatial_data_for_dm(location, shared_context.scene_state or {}, spatial_query=getattr(shared_context, 'spatial_query', None))
+    _scene_for_dm = shared_context.scene_state or {}
+    _npc_pos_count = len(_scene_for_dm.get("npc_positions", {}))
+    if _npc_pos_count == 0:
+        logger.warning(f"[DM_PHASE] scene_state has NO npc_positions! scene_state keys={list(_scene_for_dm.keys())[:10]}")
+    _spatial_data = build_spatial_data_for_dm(location, _scene_for_dm, spatial_query=getattr(shared_context, 'spatial_query', None))
 
     # R1: DM видит прошлую речь NPC — из DialogueSession
     try:

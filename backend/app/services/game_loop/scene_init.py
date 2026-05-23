@@ -21,7 +21,7 @@ def _resolve_initial_time(preserved_game_time: float | None, campaign_state: Any
     """Определяет время суток для новой сцены.
     Приоритет: preserved_game_time (аккумулирует дни) > campaign_state > 07:00.
     """
-    if preserved_game_time:
+    if preserved_game_time is not None:
         return Calendar.format_time(preserved_game_time)
     if campaign_state:
         return campaign_state.metadata.get("time_of_day", "07:00")
@@ -30,7 +30,7 @@ def _resolve_initial_time(preserved_game_time: float | None, campaign_state: Any
 
 def _extract_preserved_time(shared_context: Any) -> float | None:
     """БАГ H: Извлекает абсолютное время из shared_context до реинициализации."""
-    if shared_context and hasattr(shared_context, "game_time_seconds") and shared_context.game_time_seconds:
+    if shared_context and hasattr(shared_context, "game_time_seconds") and shared_context.game_time_seconds is not None:
         return shared_context.game_time_seconds
     return None
 
@@ -63,11 +63,16 @@ def _update_player_position(scene_state: dict, player_position: tuple[float, flo
         return
     node = scene_state.setdefault("npc_positions", {}).setdefault("player", {})
     node["local_position"] = {"x": player_position[0], "y": player_position[1]}
+    # ADR-048: Player как полноправный агент npc_positions. _resolve_reactive_movement ищет position.
+    if not node.get("position"):
+        _ps = scene_state.get("player_spatial", {})
+        if _ps and _ps.get("position"):
+            node["position"] = _ps["position"]
 
 
 def _sync_game_time(scene_state: dict, shared_context: Any) -> None:
     """Синхронизирует game_time_seconds: scene_state → shared_context."""
-    if scene_state.get("game_time_seconds"):
+    if scene_state.get("game_time_seconds") is not None:
         shared_context.game_time_seconds = scene_state["game_time_seconds"]
     else:
         env_time = scene_state.get("environment", {}).get("time_of_day", "07:00")
@@ -171,7 +176,7 @@ def _load_or_create_scene(
     time_of_day = _resolve_initial_time(preserved_game_time, campaign_state)
     scene_state = loop.scene_manager.initialize_scene(campaign_id, location, time_of_day)
 
-    if preserved_game_time:
+    if preserved_game_time is not None:
         scene_state["game_time_seconds"] = preserved_game_time
 
     # ADR-0XX: Сохраняем монотонный тик при перезагрузке сцены

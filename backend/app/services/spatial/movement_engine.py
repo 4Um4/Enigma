@@ -99,6 +99,10 @@ class MovementEngine:
             if campaign_id and location_id and scene_state is not None:
                 from app.services.spatial.spatial_service import SpatialService
                 svc = SpatialService.build_for_location(campaign_id, location_id, scene_state)
+                if svc:
+                    logger.warning(f"[MOVEMENT_ENGINE] Пересобрал SpatialService для {location_id} (needs_dynamic={needs_dynamic})")
+                else:
+                    logger.error(f"[MOVEMENT_ENGINE] build_for_location вернул None для {location_id}!")
             elif needs_dynamic:
                 # Нет данных для сборки чужой локации — запрещаем использование текущего графа
                 logger.error(

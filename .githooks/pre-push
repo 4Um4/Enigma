@@ -1,0 +1,15 @@
+#!/bin/sh
+
+echo "[HOOK] Running sandbox tests..."
+
+PYTHONPATH=backend python -m pytest \
+  backend/tests/sandbox/micro/test_lod_arbitration.py \
+  backend/tests/sandbox/test_causal_bridge_integration.py \
+  -q
+
+if [ $? -ne 0 ]; then
+    echo "[FAILED] Sandbox failed"
+    exit 1
+fi
+
+echo "[OK] Sandbox passed"

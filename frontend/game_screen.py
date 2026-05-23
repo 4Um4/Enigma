@@ -41,6 +41,9 @@ def _build_perceived_scene(scene_state: dict, config: PerceptionConfig) -> Perce
     
     # Конвертируем NPC из scene_state
     for npc_id, npc_data in scene_state.get("npc_positions", {}).items():
+        # БАГ D2 FIX: Player не рендерится как NPC
+        if npc_id == "player":
+            continue
         # ADR-019: Каузальный Lerp. Интерполируем позицию, если NPC в транзите.
         pos = _resolve_visual_xy(npc_id, scene_state)
         x, y = float(pos.get("x", 0)), float(pos.get("y", 0))

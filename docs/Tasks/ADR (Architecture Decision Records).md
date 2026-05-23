@@ -1218,3 +1218,76 @@ LifeEngine действовал как бог-объект: напрямую м�
 - Каузальная труба ввода полностью жива: LLM понимает обращения к NPC по-русски.  
 - NPC отображаются на своих местах и перемещаются плавно (Lerp).  
 - API стабильно: краши сериализации `world_snapshot` устранены.
+
+### ADR-061: Raw Memory Pipeline & Dynamic Thresholds
+**Дата:** 22.05.2026  
+**Статус:** Принято
+
+**Контекст:**  
+Фаза 3 (`_phase_3_memory`) была искусственно ослеплена: она обрабатывала только `ctx.phase_2_events` (пространственные события от `SpatialEventDetector`), полностью игнорируя когнитивные и социальные `EventDTO` (`PLAYER_SPOKE`, `WILL_CONFLICT`). NPC жили в "вечном настоящем", забывая слова игрока на следующем тике. Существовало искушение внедрить раннюю семантическую склейку (MemoryTransactionAggregator) для сборки красивых нарративов, но это убивало бы каузальность (порядок событий).
+
+**Решение:**  
+1. **Снятие шор Фазы 3:** `_phase_3_memory` теперь дренажит не только `phase_2_events`, но и когнитивные события напрямую из `EventBus` (через `bus.get_recent_events()`).
+2. **Запрет ранней нарративной склейки:** Память хранит сырые атомы (`EventAtom`) с тиками, сохраняя порядок и причины. Смысл кристаллизуется из сырца в downstream слоях (LLM, DecisionHub), а не на входе.
+3. **Динамический порог значимости:** В `importance_engine.py` добавлены веса для когнитивных событий (`player_spoke: 0.50`). `MemoryManager.apply()` сохраняет сырой текст (`raw_input` / `content`) в `EventMemory.summary`.
+
+**Последствия:**  
+- NPC запоминают абсурдные факты ("2 яблока + 3 яблока = груша") и воспроизводят их через LLM. Доказано феноменологическим тестом.
+- Каузальная труба от уха (Фаза 1) до рта (LLM) восстановлена без искажений на входе.
+- Риск: память может забиваться шумом, если пороги значимости настроены неверно. Требуется мониторинг `narrative_cache` size.
+
+### ADR-062: LOD0/LOD1 Intent Arbitration
+**Дата:** 22.05.2026  
+**Статус:** Принято
+
+**Контекст:**  
+Если NPC имел одновременно MacroMovementGoal (LOD1, маршрут) и LocalSteeringGoal (LOD0, уклонение от столкновения), `MovementEngine.process_intents()` получал их в порядке "победитель забирает всё" из LifeEngine. Если LOD0 побеждал, макро-цель терялась. Если LOD1 побеждал — NPC игнорировал столкновение. Проблема была не в `MovementEngine` (он исполнитель), а в отсутствии арбитража до него.
+
+**Решение:**  
+1. **Арбитраж ДО MovementEngine:** Внедрен слой слияния интентов в `TickOrchestrator` перед вызовом `process_intents()`.
+2. **Порядок исполнения:** Если у NPC есть интенты разных LOD, они сортируются: Macro (LOD1) исполняется первым, Micro (LOD0) корректирует позицию следом. `isinstance(x, LocalSteeringGoal)` используется как ключ сортировки (False < True).
+3. **Гарантия целостности маршрута:** Уклонение не убивает макро-цель. NPC шагнет в сторону и продолжит путь.
+
+**Последствия:**  
+- NPC больше не теряют цель маршрута из-за реактивных микро-уклонений.
+- `MovementEngine` остается чистым исполнителем (execution-only), логика приоритизации вынесена на уровень выше.
+- Риск: если LOD0 требует полной остановки (например, стена), текущая логика всё равно заставит сделать макро-шаг. Требуется расширение статусов `TraversalState` в будущем (SUSPENDED), но сейчас это избыточно.
+
+### ADR-063: FLEE Pipeline Silent Death Fix & LegitimacyGate Diagnostics
+**Дата:** 22.05.2026  
+**Статус:** Принято
+
+**Контекст:**  
+NPC с intent=FLEE не двигались на экране. Причина оказалась двухуровневой:  
+1. **Silent Death в npc_tick_pipeline:** Если `spatial_service` передан, но `get_furthest()` возвращал `None`, код НЕ падал в fallback на `load_graph()`. Intent умирал молча.  
+2. **LegitimacyGate блокировка:** `DirectiveInterpretationSubscriber` отклонял приказы NPC с `fear < 0.3` и `trust < 30`. Все NPC имели дефолтные значения `fear=0.1, trust=0.1`, что делало подчинение невозможным.  
+3. **Double Truth в пространстве:** Архетипы NPC хардкодили `"position": "main_hall"`, но в Editor JSON (`tavern.json`) этого узла не существовало (там `hall_center`). `MovementEngine.get_node("main_hall")` возвращал `None`, и Traversal не создавался.
+
+**Решение:**  
+1. **Fallback restore:** В `npc_tick_pipeline.py` изменена логика: если `spatial_service` не дал результат, система откатывается на `load_graph()` вместо молчаливой смерти.  
+2. **FLEE delegation:** Заглушка `pass` в `life_engine.py` заменена на логирование делегирования в `npc_tick_pipeline`.  
+3. **E2E тест с LLM:** Создан `test_directive_obedience_pipeline.py`, доказывающий, что при `fear=0.8` каузальная цепь Текст → LLM → Intent → Directive → Obedience работает. LLM корректно извлёк `ACTION: MOVE, TARGET: БОРКО`.  
+4. **Архетипы НЕ менялись:** Замена `main_hall` → `hall_center` в архетипах отложена до полного аудита Editor JSON узлов, чтобы не сломать другие локации.
+
+**Последствия:**  
+- FLEE Intent больше не умирает молча при проблемах с `spatial_service`.  
+- Доказано, что LegitimacyGate работает корректно — проблема в дефолтных данных NPC, а не в коде.  
+- Выявлена Double Truth: `_builtin_templates()` и `location_templates.json` создают фантомные узлы, конфликтующие с Editor JSON. Требуется ADR по миграции на единственный источник истины (Editor JSON).
+
+### ADR-064: Schema Enforcement (location_id) & Will Deafness Fix
+**Дата:** 23.05.2026  
+**Статус:** Принято
+
+**Контекст:**  
+1. **SCF=0 (Spatial Coherence Failure):** `graph_compiler` отклонял Editor JSON, созданный Map Editor, так как в нём отсутствовало обязательное поле `location_id`. Парсер искал точное совпадение, не находил и возвращал `None`. Граф не создавался, NPC стояли на нулях.  
+2. **SHI=0% (Simulation Freeze):** Функция `resolve_intent_pressure` в `will.py` содержала маппинг давления ТОЛЬКО для боевых действий (`player_attacks`). Социальные директивы и приказы (`player_social`, `player_moves`) возвращали нулевой вектор давления. Воля аватара была "слепа" к приказам.
+
+**Решение:**  
+1. **Schema Enforcement (Data Layer):** `data_manager.py` (Map Editor) теперь автоматически инъектирует `location_id` из имени файла при сохранении, если поле пустое.  
+2. **Compatibility Resolver (Validation Layer):** В `graph_compiler.py` добавлен мягкий фоллбэк для legacy-файлов без `location_id`. Инференс строго по префиксу имени файла (`tavern` → `tavern_silver_wolf`), с отвержением при коллизиях (`gate`).  
+3. **Will Deafness Fix:** В `resolve_intent_pressure` добавлена ветка для социальных директив (`player_social`, `player_moves`, `move`, `approach`, `halt`, `order`), генерирующая ненулевое давление `identity_deviation` и `social_exposure`.
+
+**Последствия:**  
+- Пространственный граф собирается (SCF > 0). Коллизии локаций исключены.  
+- Труба Воли реагирует на приказы (SHI > 0). NPC способны испытывать давление от социальных директив.  
+- Legacy Editor JSON требуют миграции (инъекции `location_id`) либо полагаются на Compatibility Resolver с ворнингом DEPRECATION.

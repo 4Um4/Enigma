@@ -416,7 +416,7 @@ def run_npc_pipeline(
             # ADR-057: Topic Injection. Если внимание захвачено директивой, тема = реакция на неё.
             # COGNITIVE OVERLAY: Читаем директиву из raw dict (npc_dict), если state_l2 ещё не обновился
             _dir = getattr(getattr(state_l2, 'perceptual_kernel', None), 'recent_directive', None) \
-                or (isinstance(npc_dict, dict) and npc_dict.get("perceptual_kernel", {}).get("recent_directive"))
+                or (isinstance(_npc_dict_for_write, dict) and _npc_dict_for_write.get("perceptual_kernel", {}).get("recent_directive"))
             
             if _dir:
                 _topic = "разговор" if _dir.get("is_obedience") else "угроза"
@@ -444,6 +444,7 @@ def run_npc_pipeline(
             # ADR-035: Reactive Spatial Command Reflex.
             # Если игрок приказал NPC двигаться (через Semantic Bridge или raw_input), 
             # перехватываем решение DecisionHub и заставляем NPC подойти.
+            logger.warning(f"[REFLEX_DEBUG] npc={npc_id} name={_npc_dict_for_write.get('name','')} intent={decision.intent.value} raw_input={repr(inp.raw_input[:80]) if inp.raw_input else 'NONE'}")
             if decision.intent.value not in ("approach", "flee"):
                 _is_move_command = False
                 
@@ -451,7 +452,7 @@ def run_npc_pipeline(
                 _payload = getattr(hub_event, 'payload', {})
                 if isinstance(_payload, dict) and _payload.get("semantic_action") == "MOVE":
                     _target_ref = _payload.get("target_reference", "").lower()
-                    npc_name = npc_dict.get("name", "").lower()
+                    npc_name = _npc_dict_for_write.get("name", "").lower()
                     npc_id_lower = npc_id.lower()
                     if _target_ref and (_target_ref in npc_name or _target_ref in npc_id_lower):
                         _is_move_command = True
@@ -459,7 +460,7 @@ def run_npc_pipeline(
                 # Путь 2: Raw Text Reflex (Fallback по тексту команды)
                 if not _is_move_command and inp.raw_input:
                     content = inp.raw_input.lower()
-                    npc_name = npc_dict.get("name", "").lower()
+                    npc_name = _npc_dict_for_write.get("name", "").lower()
                     npc_id_lower = npc_id.lower()
                     
                     _MOVE_VERBS = ["подойди", "подойти", "иди", "подой", "подходи", "приди", "приходи", "сюда"]
@@ -470,9 +471,15 @@ def run_npc_pipeline(
                         _is_move_command = True
 
                 if _is_move_command:
-                    from app.domain.decision import Intent
-                    decision.intent = Intent.APPROACH
-                    decision.intent_target = "player"
+                    from app.models.npc_state import Intent
+                    import dataclasses
+                    # v2.2 Mutation Pipeline: Иммутабельная мутация (AgentAction.intent — read-only property)
+                    new_result = dataclasses.replace(
+                        decision.decision,
+                        intent=Intent.APPROACH,
+                        intent_target="player"
+                    )
+                    decision = dataclasses.replace(decision, decision=new_result)
                     logger.warning(f"[REFLEX_MOVE] npc={npc_id} forced APPROACH by player command")
 
             # CommunicationIntent → buffer, публикация через Фазу 6 оркестратора (Устав §5.1)
@@ -493,8 +500,8 @@ def run_npc_pipeline(
                 
                 # Путь 1: Проверяем hub_event на наличие семантики (если Слой 1 пробросил данные)
                 if hasattr(inp, 'hub_event') and inp.hub_event:
-                    _payload = inp.hub_event.payload if hasattr(inp.hub_event, 'payload') else inp.hub_event.get("payload", {})
-                    if _payload.get("semantic_action") == "MOVE":
+                    _payload = getattr(inp.hub_event, 'payload', None) or {}
+                    if isinstance(_payload, dict) and _payload.get("semantic_action") == "MOVE":
                         target_ref = _payload.get("target_reference", "").lower()
                         if target_ref:
                             # ADR-048: Spatial Authority — имя NPC через QueryService, не scene_state
@@ -683,6 +690,7 @@ def _resolve_reactive_movement(
         # player_spatial удален. denormalize_id удален.
         target_entry = _pos(_target_id)
         target_node_id = target_entry.get("position")
+        logger.warning(f"[APPROACH_NAV] npc={npc_id} target={_target_id} position={target_node_id} entry_keys={list(target_entry.keys()) if target_entry else 'EMPTY'}")
 
         if not target_node_id:
             # Если макро-узел не найден, пробуем резолвить через координаты (local_position)
@@ -693,7 +701,7 @@ def _resolve_reactive_movement(
                 nearest_ref = spatial_service.get_nearest(zone_id=location_id, origin_xy=(target_x, target_y))
                 if nearest_ref:
                     # ADR-008: denormalize_id удален. Извлекаем канонический ID напрямую.
-                    target_node_id = getattr(nearest_ref, 'canonical_id', getattr(nearest_ref, 'node_id', str(nearest_ref)))
+                    target_node_id = getattr(nearest_ref, 'node_id', str(nearest_ref))
             if not target_node_id:
                 logger.warning(f"[APPROACH_NAV] target={_target_id} not found in npc_positions! Movement blocked.")
                 return None
@@ -715,8 +723,12 @@ def _resolve_reactive_movement(
                 furthest_ref = spatial_service.get_furthest(zone_id=location_id, origin_xy=(threat_x, threat_y))
                 if furthest_ref:
                     # ADR-008: denormalize_id удален. Используем канонический ID напрямую.
-                    target_node_id = getattr(furthest_ref, 'canonical_id', getattr(furthest_ref, 'node_id', str(furthest_ref)))
-            else:
+                    target_node_id = getattr(furthest_ref, 'node_id', str(furthest_ref))
+                else:
+                    # PIPELINE FIX: SpatialService не нашёл дальний узел (зона без узлов или зона не совпадает)
+                    logger.warning(f"[FLEE_NAV] spatial_service.get_furthest() вернул None для зоны {location_id}")
+            if not target_node_id:
+                # Fallback на LocationGraph только если SpatialService не дал результата
                 try:
                     graph = load_graph(location_id)
                     target_node_id = graph.find_furthest_node(threat_x, threat_y)

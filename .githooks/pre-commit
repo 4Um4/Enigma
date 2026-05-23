@@ -1,0 +1,23 @@
+#!/bin/sh
+
+echo "[HOOK] Compile check..."
+
+python -m compileall backend
+python -m compileall frontend
+
+if [ $? -ne 0 ]; then
+    echo "[FAILED] Compile failed"
+    exit 1
+fi
+
+echo "[HOOK] Checking architecture impact..."
+
+git diff --cached --name-only | grep -E "backend/app/domain|backend/app/dto|backend/app/services"
+
+if [ $? -eq 0 ]; then
+    echo ""
+    echo "[WARNING] ADR IMPACT AUDIT REQUIRED"
+    echo ""
+fi
+
+echo "[OK]"

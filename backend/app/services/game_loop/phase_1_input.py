@@ -96,8 +96,10 @@ def resolve_player_intent(
         final_action = action_type
 
     # ADR-035: Строгая типизация семантики (Убийство Dict[str, Any])
+    # ЗАПРЕЩЕНО превращать UNCERTAIN в None — это убивает S28 Gate и Трубу Воли.
+    # Система должна знать, что действие неопределено, а не считать, что его нет.
     _intent_params = IntentParametersDTO(
-        semantic_action=semantic_field.action_type.value if semantic_field.action_type != ActionType.UNCERTAIN else None,
+        semantic_action=semantic_field.action_type.value,
         target_reference=semantic_field.target_reference,
         target_id=resolved_target_id, # Инъекция ID из Слоя 2
         physical_force=semantic_field.physical_force,
