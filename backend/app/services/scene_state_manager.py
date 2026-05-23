@@ -982,7 +982,7 @@ class SceneStateManager:
             "player_position":      "стоит",     # текущая поза/позиция игрока
             "player_spatial": {
                 "location_id": location_id,
-                "position": player_spawn_node or "main_hall",
+                "position": player_spawn_node or "entrance",
                 "local_position": {
                     "x": editor_data.get("player_spawn", {}).get("x", 0.0) if editor_data else 0.0,
                     "y": editor_data.get("player_spawn", {}).get("y", 0.0) if editor_data else 0.0,
@@ -1516,9 +1516,13 @@ class SceneStateManager:
                     entry_fin["local_position"] = {"x": wp[-1][0], "y": wp[-1][1]}
                 del active_traversals[nid]
 
-            # ADR-019: Если NPC в активном транзите, local_position управляется Lerp-ом.
+            # ADR-019: Если NPC в активном транзите с валидными координатами — пропускаем.
+            # Но если координат НЕТ — это баг инициализации, fall through к восстановлению.
             if npc_id in active_traversals and active_traversals[npc_id].get("status") == "MOVING":
-                continue
+                lp = entry.get("local_position", {})
+                if isinstance(lp, dict) and isinstance(lp.get("x"), (int, float)):
+                    continue
+                logger.warning(f"[SPATIAL_ENFORCEMENT] NPC '{npc_id}' в транзите без координат! Пробуем восстановить.")
 
             if not npc_moved and npc_id in editor_coords:
                 # LOD0: Не перезаписываем микро-перемещения, если координаты уже валидны

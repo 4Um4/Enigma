@@ -1,5 +1,5 @@
 ﻿# ENIGMA / The Fool
-## Chronicle of a Distributed Reality Simulation (2026-03-06 -> 2026-05-14)
+## Chronicle of a Distributed Reality Simulation (2026-03-06 -> 2026-05-23)
 
 ENIGMA больше не является "игрой с ИИ-диалогом".
 Это проект по построению **distributed reality simulation**, где:
@@ -72,6 +72,23 @@ ENIGMA больше не является "игрой с ИИ-диалогом".
 - sandbox/observatory как проверка причинности, а не только состояния.
 
 Это переход к **наблюдаемой причинности**: симуляция истинна там, где есть каузальное наблюдение.
+
+---
+
+## 6) Space and Time (May 21-23): The Fool as embodied simulation
+
+**Ветки/вехи:** `V.0.5.3.1.1_Пространство_и_время` -> `V.0.5.3.1.3_Пространство_и_время_3`.
+
+Текущий этап переводит The Fool из набора игровых намерений в проверяемый embodied runtime:
+- player turn больше не теряет реальный `scene_state`;
+- NPC получают пространственный контекст через `npc_positions`, `position` и `SpatialService`;
+- воля и директивы начинают учитывать социальное давление, страх, доверие и профессиональный долг;
+- когнитивные решения NPC могут порождать `MovementIntent`, а не только текст или внутренний state;
+- LOD0/LOD1 movement проходит через арбитраж, чтобы микро-реакции не уничтожали маршрут;
+- память сохраняет сырое событие, если смысловая сводка ещё не кристаллизована.
+
+Практический смысл для игры The Fool:
+мир начинает отвечать не только репликой, но телом. Приказ "подойди", страх, служебная роль, позиция игрока и координаты сцены становятся частью одной причинной цепи: **текст -> intent -> directive pressure -> will/legitimacy -> decision -> movement -> scene mutation -> projection**.
 
 ---
 
@@ -154,8 +171,23 @@ Input -> Intent Compression -> Event -> Pressure -> Decision Geometry
 
 Главный конфликт следующего шага:
 - удержать causality-first архитектуру,
-- не скатиться обратно в script-first поведение при росте фич,
-- довести micro-locomotion (`LocalSteeringIntent`) без разрушения единого spatial authority.
+- не скатиться обратно в script-first поведение при росте embodied-фич,
+- довести directive obedience, movement arbitration и player/NPC spatial projection без второго источника истины.
 
 Если этот баланс удержан, ENIGMA останется симуляцией реальности.
 Если нет, она откатится в RPG-пайплайн с иллюзией причинности.
+
+---
+
+## Current Snapshot: V.0.5.3.1.3_Пространство_и_время_3
+
+Ключевая сборка дня:
+- causal bridge: `DecisionHub`/`LifeEngine` -> `MovementIntent` -> `MovementEngine` -> `SceneStateManager`;
+- ADR-048 enforcement: единый путь получения `SpatialService` через резолвер оркестратора;
+- The Fool runtime: игрок не рендерится как NPC, но присутствует как spatial actor;
+- LegitimacyGate: MOVE/ORDER/HALT входят в контур воли и социального давления;
+- sandbox coverage: causal bridge, LOD arbitration, directive obedience, memory phenomenology;
+- dependency/causal diagnostics: добавлены графы зависимостей, APS и causal audit scripts.
+
+См. новый разбор:
+- `COMPARISON_REPORT/COMPARISON_REPORT_V.0.5.3.1.2_Пространство_и_время_2_vs_V.0.5.3.1.3_Пространство_и_время_3.md`

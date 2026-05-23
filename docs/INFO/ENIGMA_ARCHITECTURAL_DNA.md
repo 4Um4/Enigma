@@ -33,6 +33,7 @@
 |Transitional Synthesis|59.9|21.6|30.3|24.9|57.9|8.1|25.7|
 |Observed Causality Consolidation|61.5|44.0|71.0|48.0|58.0|41.0|78.0|
 |Simulation-Native Orchestration|49.0|63.0|82.0|59.0|49.0|68.0|88.0|
+|Embodied Space-Time Runtime|52.0|66.0|84.0|63.0|54.0|72.0|90.0|
 
 Observed Causality Consolidation: phase where authority, causality and runtime geometry become unified into observable behavioral truth.
 
@@ -40,6 +41,10 @@ Simulation-Native Orchestration:
 phase where cognition becomes externalized from language generation
 and orchestration layers begin governing salience, memory routing
 and renderer behavior.
+
+Embodied Space-Time Runtime:
+phase where cognitive decisions, will pressure, social directives
+and spatial movement are connected into one observable player/NPC loop.
 
 ---
 
@@ -105,6 +110,9 @@ Social authority becomes a probabilistic pressure field.
 
 - `V.0.5.3.1.0_Рассвет_2` (2026-05-19):
   ACI=59.0, HSES=72.4, Phase=Simulation-Native Orchestration
+
+- `V.0.5.3.1.3_Пространство_и_время_3` (2026-05-23):
+  ACI=63.0, HSES=75.0, Phase=Embodied Space-Time Runtime
 ---
 
 ## Spatial Authority Transition
@@ -154,12 +162,18 @@ from authoritative spatial queries.
 - `V.0.5.3.1.0_Рассвет_2` (2026-05-19):
   OER=67.0, PG=68.0, Unstable=orchestration, cognition
 
+- `V.0.5.3.1.3_Пространство_и_время_3` (2026-05-23):
+  OER=70.0, PG=72.0, Unstable=orchestration, spatial, directive_legitimacy
+
 ---
 
 ## Runtime Pressure Frontier
 
 - `V.0.5.3.1.0_Рассвет_2`:
   RPI=49.0, CD=82.0, EG=49.0, SR=63.0
+
+- `V.0.5.3.1.3_Пространство_и_время_3`:
+  RPI=54.0, CD=84.0, EG=52.0, SR=66.0
 
 - `V.0.5.3.0.9_Рассвет_1`:
   RPI=52.0, CD=78.0, EG=54.0, SR=58.0
@@ -196,6 +210,9 @@ from authoritative spatial queries.
 - `V.0.5.3.1.0_Рассвет_2`:
   CD=82.0, ACI=59.0, PG=68.0, SCT=88.0
 
+- `V.0.5.3.1.3_Пространство_и_время_3`:
+  CD=84.0, ACI=63.0, PG=72.0, SCT=90.0
+
 - `V.0.5.3.0.9_Рассвет_1`:
   CD=78.0, ACI=56.0, PG=63.0, SCT=84.0
 
@@ -229,6 +246,9 @@ from authoritative spatial queries.
 
 - `V.0.5.3.1.0_Рассвет_2`:
   HSES=72.4, ACI=59.0, CD=82.0, RPI=49.0
+
+- `V.0.5.3.1.3_Пространство_и_время_3`:
+  HSES=75.0, ACI=63.0, CD=84.0, RPI=54.0
 
 - `V.0.5.3.0.9_Рассвет_1`:
   HSES=68.0, ACI=56.0, CD=78.0, RPI=52.0
@@ -302,6 +322,45 @@ Architectural danger:
 
 orchestration layers becoming self-referential
 and creating hidden cognitive loops.
+---
+
+## Embodied Space-Time Runtime
+
+- `V.0.5.3.1.3_Пространство_и_время_3`:
+
+ENIGMA shifted from spatial/time declarations
+toward an embodied player/NPC runtime.
+
+Characteristics:
+
+- player turn receives the real `scene_state`
+  before DM/spatial construction;
+- `player` becomes a spatial actor in `npc_positions`
+  but is filtered out of NPC presentation;
+- `LifeEngine.tick_decisions()` returns movement intents
+  alongside decision and communication outputs;
+- `TickOrchestrator` resolves `SpatialService`
+  through one ADR-048 authority path;
+- directive interpretation combines fear, trust,
+  professional duty and will pressure;
+- memory can preserve raw reality when summary is absent;
+- sandbox tests now cover causal bridge,
+  LOD arbitration, directive obedience and memory phenomenology.
+
+Critical shift:
+
+Movement is no longer an animation-side consequence.
+
+Movement becomes a committed result of cognition,
+social pressure and spatial authority.
+
+Architectural danger:
+
+diagnostic fallbacks and emergency spatial rebuilds
+must remain temporary evidence collectors.
+
+They must not become a second spatial truth.
+
 ---
 
 ## Micro-Locomotion Emergence

@@ -1,0 +1,76 @@
+{
+  "scene_state": {
+    "location_id": "tavern_silver_wolf",
+    "tick": 0,
+    "game_time_seconds": 28800,
+    "environment": {
+      "time_of_day": "08:00",
+      "light": 1.0
+    },
+    "npc_positions": {
+      "player": {
+        "local_position": {
+          "x": 10.0,
+          "y": 10.0
+        },
+        "position": "main_hall",
+        "name": "Игрок"
+      },
+      "tavern_keeper_tornin": {
+        "local_position": {
+          "x": 5.0,
+          "y": 5.0
+        },
+        "position": "bar_area",
+        "name": "Торнин",
+        "location_id": "tavern_silver_wolf",
+        "visible": true,
+        "activity": "working"
+      },
+      "thief_shadow": {
+        "local_position": {
+          "x": 15.0,
+          "y": 15.0
+        },
+        "position": "bed",
+        "name": "Тень",
+        "location_id": "tavern_silver_wolf",
+        "visible": true,
+        "activity": "sleeping"
+      },
+      "maid_lusya": {
+        "local_position": {
+          "x": 10.0,
+          "y": 10.0
+        },
+        "position": "bar_area",
+        "name": "Люся",
+        "location_id": "tavern_silver_wolf",
+        "visible": true,
+        "activity": "serving_tables"
+      }
+    },
+    "active_traversals": {
+      "maid_lusya": {
+        "npc_id": "maid_lusya",
+        "from_node": "bar_area",
+        "target_node": "bar_area",
+        "path_waypoints": [
+          [
+            10.0,
+            10.0
+          ],
+          [
+            4.637817702427299,
+            4.97685839511564
+          ]
+        ],
+        "speed": 2.0,
+        "started_tick": 0,
+        "duration_ticks": 4,
+        "locomotion": "WALK",
+        "status": "MOVING"
+      }
+    }
+  }
+}

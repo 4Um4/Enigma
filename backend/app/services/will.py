@@ -63,6 +63,15 @@ def resolve_intent_pressure(
             taboo_intensity=0.5,
         )
 
+    # ADR-031 & ADR-043: Социальные директивы и приказы.
+    # Без этого Воля аватара слепа к командам "Подойди", "Стой" (SHI=0%).
+    elif action in ("player_social", "player_moves", "move", "approach", "halt", "order"):
+        pressure = IntentPressureProfile(
+            identity_deviation=0.3,  # Подчинение чужой воле искажает "Я"
+            social_exposure=0.4,     # Выставление себя на обозрение
+            humiliation=0.1,         # Потеря агентности (базовая степень)
+        )
+
     elif action in ("talk", "player_talks", "player_spoke", "dialogue", "player_interacts", "idle"):
         # Разговор обычно безопасен, но зависит от контекста
         pressure = IntentPressureProfile(

@@ -1,4 +1,4 @@
-flowchart TD
+﻿flowchart TD
 %% === ADR-0015: IMMUTABLE SNAPSHOT FEED (Temporal Isolation) ===
 SNAP_T[world_snapshot t IMMUTABLE ADR-0015] -->|Read-Only Feed| P0
 SNAP_T -->|Read-Only Feed| P3
@@ -365,3 +365,56 @@ classDef temporalAuth fill:#ccf,stroke:#333,stroke-width:2px;
 class GL_TICK,SS_TICK,TRAVERSAL,FE_TICK,PROGRESS,SSM_FINAL,WSB_IMMUT temporalAuth;
 classDef forbiddenTime fill:#f66,stroke:#333,stroke-width:2px,stroke-dasharray: 5 5;
 class CALC_TIME,REAL_TIME forbiddenTime;
+
+%% --- ADR-061 & ADR-062: Causal Memory & LOD Arbitration ---
+subgraph Sprint36[Сессия 42: Каузальная Память и Арбитраж Движения]
+    direction TB
+    
+    %% Memory Flow
+    EB_P2[EventBus Primary] -->|spatial| P2E[phase_2_events]
+    EB_COG[EventBus Cognitive PLAYER_SPOKE] -->|get_recent_events| ETR[events_to_remember]
+    P2E --> ETR
+    
+    ETR -->|apply| MM[MemoryManager]
+    MM -->|summary = raw_input| EM[EventMemory L2 Cache]
+    EM -->|recall| VC[VerbalizationContext recalled_facts]
+    VC -->|add_npc_l2_memory| LLM[LLM Prompt]
+    
+    %% Movement Arbitration Flow
+    LE[LifeEngine tick_decisions] -->|winner-takes-all| CAND[Mixed Intent List]
+    CAND -->|ADR-060.1 Arbitration| MERGED[merged_intents: Macro first, Micro second]
+    MERGED -->|process_intents| ME[MovementEngine]
+    
+    %% Forbidden
+    EB_COG -.->|ЗАПРЕЩЕНО: Игнорировать когнитивные события| P2E
+    CAND -.->|ЗАПРЕЩЕНО: Прямая передача без арбитража| ME
+end
+
+classDef sprint36 fill:#ffd700,stroke:#333,stroke-width:2px;
+class EB_P2,EB_COG,P2E,ETR,MM,EM,VC,LLM,LE,CAND,MERGED,ME sprint36;
+
+
+%% --- ADR-064: Schema Enforcement & Will Deafness Fix ---
+subgraph Sprint45[Сессия 45: Оживление Графа и Трубы Воли]
+    direction TB
+    
+    %% Spatial Graph Flow (SCF=0 Fix)
+    EDIT_JSON[Map Editor JSON] -->|save| DM[data_manager]
+    DM -->|inject location_id| EDIT_JSON
+    EDIT_JSON -->|load_editor_json| GC[graph_compiler]
+    GC -->|Strict Match or Valid Inferred| SS[SpatialService]
+    GC -.->|DEPRECATION: Fallback by prefix| SS
+    GC -.->|REJECT: Collision / No ID| X[Dead Graph SCF=0]
+    
+    %% Will Pipeline Flow (SHI=0% Fix)
+    SOCIAL[player_social / player_moves] -->|action| RIP[resolve_intent_pressure]
+    RIP -->|identity_deviation > 0.3| IPP[IntentPressureProfile]
+    IPP -->|input| WG[WillpowerGate]
+    
+    %% Forbidden
+    DM -.->|ЗАПРЕЩЕНО: Сохранять без location_id| EDIT_JSON
+    SOCIAL -.->|ЗАПРЕЩЕНО: Возвращать нулевое давление| RIP
+end
+
+classDef sprint45 fill:#b30059,stroke:#333,stroke-width:2px;
+class EDIT_JSON,DM,GC,SS,X,SOCIAL,RIP,IPP,WG sprint45;

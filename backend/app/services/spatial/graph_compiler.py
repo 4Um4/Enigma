@@ -234,9 +234,20 @@ def load_editor_json(
                 # Частичное совпадение
                 if label and location_id and location_id.lower() in label.lower():
                     return data
-                # Fallback удалён: файл без location_id не может быть
-                # источником графа для произвольной локации — это
-                # порождало подмену inn_rooms → tavern
+                # ADR-061: Compatibility Resolver для legacy данных (без location_id).
+                # Строгое правило: инференс только по точному совпадению префикса имени файла.
+                # Пример: tavern.json -> tavern_silver_wolf (OK), но gate.json -> gate_house (REJECT, если есть gate_town)
+                if not lid and data.get("rooms"):
+                    inferred_lid = json_file.stem.lower()
+                    # Проверяем, что целевой location_id начинается с имени файла
+                    if location_id.lower().startswith(inferred_lid):
+                        logger.warning(
+                            f"[GRAPH_COMPILER] DEPRECATION: Файл {json_file.name} не имеет поля 'location_id'. "
+                            f"Инференс из имени файла: '{inferred_lid}'. Заполните поле в Map Editor!"
+                        )
+                        return data
+                    else:
+                        logger.error(f"[GRAPH_COMPILER] REJECT: Файл {json_file.name} не имеет location_id и имя не совпадает с {location_id}")
             except (json.JSONDecodeError, OSError):
                 continue
 

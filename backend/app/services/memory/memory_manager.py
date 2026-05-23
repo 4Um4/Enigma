@@ -180,7 +180,8 @@ class MemoryManager:
             confidence=0.95 if clarity > 0.7 else 0.75,
             decay_rate=decay_rate,
             stage=MemoryStage.FRESH,
-            summary=payload.get("summary", ""),
+            # Сохраняем сырую реальность (raw_text), смысл кристаллизуется в LLM
+            summary=payload.get("summary") or payload.get("raw_input") or payload.get("content", ""),
             npc_id=npc_id,
             tags=tuple(_tags),
             is_secret=payload.get("is_secret", False),

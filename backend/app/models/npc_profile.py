@@ -57,6 +57,9 @@ class NPCProfileL0:
     author_notes: str = ""
     inventory_rules: Optional[InventoryProfile] = None
     gender: str = "male"  # "male", "female", "other" — для гендерных окончаний в narrative
+    # v2.2 Spatial Ontology: Архетип профессии. Инъектируется из _archetype при загрузке.
+    # L1 Bridge: В будущем заменит _archetype на core.compliance_bias
+    archetype: str = "commoner"  # "maid", "guard", "thief", "tavern_keeper" и т.д.
 
 
 # --- СЛОЙ L1: ИДЕНТИЧНОСТЬ (MEDIAN DYNAMICS) ---

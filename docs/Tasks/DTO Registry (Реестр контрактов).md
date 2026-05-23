@@ -1,4 +1,4 @@
-Вот переработанный и реструктурированный реестр DTO. 
+﻿Вот переработанный и реструктурированный реестр DTO. 
 **Что было сделано:**
 1. **Архитектурная группировка:** Вместо хронологического списка, DTO разбиты на логические слои (Ядро домена, Фаза 8/Каузальность, NPC Проецирование, События, Пространство, API, Фронтенд, CFRM). Это позволяет ИИ сразу понимать контекст принадлежности структуры.
 2. **Интеграция обновлений:** Блок "Session 18 Updates" и другие исторические вставки влиты прямо в актуальные контракты. Никаких "добавлено в сессии X" — только финальное состояние.
@@ -197,8 +197,46 @@ SPATIAL -> OVERWRITE
 - Формат: `relationship_cache[target_id] = {trust: base_trust*100, fear: 0.0, base_trust: base_trust*100, nature: str}`
 - Шкала: 0-1 (JSON) → 0-100 (relationship_cache). Конвертация ×100.
 
----
+### EventMemory (backend/app/models/npc_state.py)
+*Единица L2 памяти — смысловой след события.*
+- `event_type`: `str`
+- `target_id`: `str`
+- `emotion_tag`: `str`
+- `day`: `int`
+- `importance`: `float` // 0.0–1.0, затухает со временем
+- `clarity`: `float = 1.0` // насколько чётко NPC воспринял событие
+- `confidence`: `float = 1.0`
+- `decay_rate`: `float = 0.05`
+- `stage`: `MemoryStage = MemoryStage.FRESH`
+- `summary`: `str = ""` // Спринт 36: заполняется из `raw_input`/`content` EventDTO для сохранения сырой реальности
+- `npc_id`: `str = ""`
+- `tags`: `Tuple[str, ...] = ()`
+- `is_secret`: `bool = False`
+- `known_by`: `Tuple[str, ...] = ()`
+- `hidden_from`: `Tuple[str, ...] = ()`
+- `accessibility`: `float = 1.0`
+- `fulfilled`: `bool = False`
+- `contract_ref`: `str = ""`
+- `is_compressed`: `bool = False`
+- `compressed_from`: `Tuple[str, ...] = ()`
 
+### BASE_IMPORTANCE (backend/app/services/memory/importance_engine.py)
+*Базовые веса значимости по типу события. Спринт 36: добавлены когнитивные веса.*
+- `combat`: `0.85`
+- `vandalism`: `0.75`
+- `theft`: `0.70`
+- `dialogue_key`: `0.60`
+- `quest`: `0.65`
+- `intimidation`: `0.55`
+- `player_spoke`: `0.50` // Когнитивные события (речь игрока)
+- `player_attacks`: `0.80`
+- `will_conflict`: `0.70`
+- `dialogue_casual`: `0.30`
+- `movement`: `0.15`
+- `observation`: `0.10`
+  
+  ---
+  
 ## IV. События и Действия (Input Stream)
 
 ### EventDTO (Устав §2.1)
@@ -245,10 +283,22 @@ SPATIAL -> OVERWRITE
 ### MovementStep [PLANNED]
 - `npc_id`: `str`, `from_xy`: `tuple[float, float]`, `to_xy`: `tuple[float, float]`, `delta_seconds`: `float`, `traversal_id`: `str`
 
-### LocalSteeringIntent [REJECTED - ADR-052]
-*Архитектурное решение: Микро-движение (LOD0) реализовано через существующее поле `local_target_xy` в `MovementIntent` (см. ADR-052). Создание отдельной сущности признано расщеплением Единого Пространственного Авторитета.*
-*Для визуального сближения внутри макро-зоны без изменения `position`.*
-- `npc_id`, `target_entity_id`, `target_xy`, `speed`, `arrival_radius`
+### MacroMovementGoal (backend/app/domain/movement.py)
+*LOD1: Макро-перемещение по графу узлов. Используется для маршрутизации между зонами.*
+- `npc_id`: `str`
+- `target_node_id`: `str`
+- `reason`: `str = ""` // "schedule:working", "need_driven:hunger"
+- `priority`: `float = 0.5`
+
+### LocalSteeringGoal (backend/app/domain/movement.py)
+*LOD0: Микро-рулежка внутри зоны (уклонение, расхождение, подход).*
+- `npc_id`: `str`
+- `local_target_xy`: `tuple[float, float]`
+- `reason`: `str = ""` // "reactive_snap", "collision_avoidance"
+- `priority`: `float = 0.7` // Микро-рулежка приоритетнее макро по умолчанию, но арбитраж (ADR-060.1) гарантирует исполнение Macro первым.
+
+### MovementIntent (Legacy Alias)
+*Alias для `MacroMovementGoal`. Используется в legacy-коде до полной миграции.*`
 
 ---
 
@@ -274,6 +324,15 @@ SPATIAL -> OVERWRITE
 ### NPCPositionDTO
 - `npc_id`: `str`, `x`: `float`, `y`: `float`, `location_id`: `str`, `facing`: `str`, `action`: `str`
 - `display_name`: `str` // КРИТИЧЕСКИ ВАЖНО: заполнять из `data.get("name")`, иначе фронтенд показывает npc_id!
+
+### Editor JSON Schema (Map Editor -> Backend)
+*Контракт файла локации, создаваемого Map Editor (`data_manager.py`) и потребляемого `graph_compiler.py`.*
+**СХЕМА (ADR-061/064):**
+- `location_id`: `str` — **ОБЯЗАТЕЛЬНО**. Ключ для компиляции графа. Автоинжектируется из имени файла при сохранении в Map Editor, если пусто.
+- `filename`: `str` — Имя файла (например, `tavern.json`).
+- `label`: `str` — Читаемое название.
+- `nodes`: `Dict[str, NodeData]` — Узлы графа и их `connections`.
+*Fallback:* Если `location_id` отсутствует, `graph_compiler` применяет Compatibility Resolver (инференс по префиксу имени файла), но логирует DEPRECATION. При коллизиях (gate_house vs gate_town) — REJECT.
 
 ### PhysicalPresentationState (Enum)
 *Визуальное физическое состояние аватара для рендера.*
@@ -498,7 +557,8 @@ Authoritative Spatial Spine (ADR-048). Единственный легитимн
 - **commitment_level**: `float = 0.8` # Уровень приверженности
 
 ### IntentPressureProfile (Frozen Dataclass)
-Вектор давления намерения на психику аватара. Вычисляется `IntentPressureResolver`.
+Вектор давления намерения на психику аватара. Вычисляет `IntentPressureResolver` (ADR-031, ADR-064).
+Обрабатывает боевые, физические и **социальные директивы** (`player_social`, `player_moves`). Глухая Воля (SHI=0%) устранена.
 
     violence: float = 0.0         # 0.0-1.0, физическое насилие
     humiliation: float = 0.0      # 0.0-1.0, унижение (своё или чужое)

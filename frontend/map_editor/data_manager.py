@@ -665,6 +665,11 @@ class DataManager:
         if filename not in self.locations:
             return False
         self.locations[filename]["modified_at"] = datetime.now().isoformat()
+        # ADR-061: Schema Enforcement. location_id ОБЯЗАН быть заполнен.
+        # Если UI не заполнил — наследуем из имени файла (tavern.json -> tavern)
+        if not self.locations[filename].get("location_id"):
+            inferred_id = filename.replace(".json", "")
+            self.locations[filename]["location_id"] = inferred_id
         path = self.base_dir / filename
         with open(path, "w", encoding="utf-8") as f:
             json.dump(self.locations[filename], f, indent=2, ensure_ascii=False)

@@ -95,7 +95,7 @@ def test_tick_orchestrator_full_loop_player_attacks():
     life_engine_mock = MagicMock()
     life_engine_mock.tick.return_value = ([], [])  # Фаза 0: нет физ. изменений, нет life_intents
     life_engine_mock.get_npc_states.return_value = [npc_raw]
-    life_engine_mock.tick_decisions.return_value = ([], [])  # Фаза 5: нет решений
+    life_engine_mock.tick_decisions.return_value = ([], [], [])  # Фаза 5: нет решений (decisions, comms, movements)
     orchestrator._life_engine = life_engine_mock
     
     # Устраняем зависимость от app.core.config.settings.RUNTIME_PATH

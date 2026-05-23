@@ -557,6 +557,10 @@ class GameLoop:
         scene_state = init_scene_state(self, campaign_id, location, shared_context, campaign_state,
                                        player_position=player_position)
 
+        # КРИТИЧЕСКИ: shared_context должен ссылаться на реальный scene_state, а не на пустой {}
+        # Без этого player-путь работает без NPC и пространства
+        shared_context.scene_state = scene_state
+
         # ADR-0XX: Temporal Authority Separation. Монотонный каузальный тик.
         # Инкрементируется строго на +1 при ЛЮБОМ вводе (idle или player action).
         scene_state["tick"] = scene_state.get("tick", 0) + 1

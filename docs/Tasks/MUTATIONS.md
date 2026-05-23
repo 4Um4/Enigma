@@ -416,3 +416,45 @@
 - `backend/app/services/integration/world_snapshot_builder.py`: Метод `_extract_active_traversals` переписан на чистую проекцию (SnapshotBuilder больше не мутирует `scene_state`). Фронтенду отдаются `started_tick` и `duration_ticks` вместо `duration_seconds` и `real_start_ms`. **[Контракт]**
 - `frontend/game_screen.py`: Функция `_resolve_visual_xy` переведена на расчёт `progress` через авторитетный монотонный тик `(current_tick - started_tick) / duration_ticks`. Удалены `time.time()`, `pygame.time.get_ticks()` и `_traversal_start_ms` кэш (устранение второй пары часов). **[Архитектура]**
 - Результат: Lerp работает, NPC по расписанию ходят плавно. Остаток БАГ D: DirectiveInterpretationSubscriber выдаёт ObediencePressure=0.00 для Тени (LegitimacyGate блокирует подчинение), и сущность Player утекает на экран.
+
+## Сессия 42: Каузальная Память и Арбитраж Движения (Спринт 36)
+**Дата:** 22.05.2026  
+**Изменения:**
+- **`backend/app/services/tick_orchestrator.py`:** Фаза 3 (`_phase_3_memory`) больше не слепа к когнитивным событиям. Добавлен дренаж `PLAYER_SPOKE`, `PLAYER_ATTACKS`, `WILL_CONFLICT` из `EventBus` в `events_to_remember` наравне с пространственными событиями. Починена амнезия NPC (БАГ Memory Pipeline Amnesia). **[Багфикс]**
+- **`backend/app/services/memory/importance_engine.py`:** В `BASE_IMPORTANCE` добавлены веса для когнитивных событий: `player_spoke: 0.50`, `player_attacks: 0.80`, `will_conflict: 0.70`. Динамический порог значимости. **[Контракт]**
+- **`backend/app/services/memory/memory_manager.py`:** В `apply()` исправлено сохранение сырой реальности: `summary` теперь заполняется из `raw_input` или `content`, если `summary` отсутствует. Смысл кристаллизуется в LLM, а не на входе. **[Архитектура]**
+- **`backend/app/services/tick_orchestrator.py`:** Внедрен арбитраж LOD0/LOD1 (ADR-060.1) ДО вызова `MovementEngine`. Если у NPC есть Macro (LOD1) и Micro (LOD0) интенты, Macro исполняется первым, Micro корректирует позицию. **[Архитектура]**
+- **`backend/tests/sandbox/phenomenology/test_memory_fixation.py`:** Создан феноменологический тест когнитивного контура памяти. Проверяет фиксацию абсурдных фактов ("2 яблока + 3 яблока = груша") и деградацию истины ("Я — дерево"). Требует живого LLM-сервера. **[Тест]**
+- **`backend/tests/sandbox/micro/test_lod_arbitration.py`:** Создан тест арбитража LOD0/LOD1. Проверяет, что MacroMovementGoal всегда исполняется перед LocalSteeringGoal. **[Тест]**
+- **`backend/tests/sandbox/test_sandbox_lerp_cycle.py`:** Тест приведен в соответствие с ADR-059 (Tick-based Dual Time). Удалены ссылки на `from_xy`, `to_xy`, `started_at`, `duration_seconds`. **[Рефакторинг]**
+- Аудит `LegacyStateDeltaAdapter`: Мост `PerceptionPayload.uncertainty_delta` → `stress_delta` уже работает. Потери данных нет. **[Аудит]**
+- Аудит `Temporal Reconciliation (ADR-047)`: Аналитический декэй (`reconcile_state`) уже реализован. `TICK_CATCHUP` мертв. **[Аудит]**
+
+## Сессия 44: Починка FLEE Pipeline и E2E Валидация LegitimacyGate
+**Дата:** 22.05.2026  
+**Изменения:**
+- **`backend/app/services/npc/npc_tick_pipeline.py`:** Починен silent death FLEE intent. Если `spatial_service.get_furthest()` возвращает `None`, система теперь корректно откатывается на `load_graph()` вместо молчаливой смерти Intent. **[Багфикс]**
+- **`backend/app/services/npc/life_engine.py`:** Заглушка `pass` для FLEE intent заменена на логирование делегирования в `npc_tick_pipeline`. **[Багфикс]**
+- **`backend/tests/sandbox/phenomenology/test_directive_obedience_pipeline.py`:** Создан E2E тест с реальным LLM, доказывающий, что каузальная цепь Текст → LLM → Intent → Directive → Obedience работает при `fear > 0.3`. LLM корректно извлёк `ACTION: MOVE, TARGET: БОРКО` из текста. **[Тест]**
+Преемник, форматирование и логика мутаций подготовлены. Делаю инъекцию в `MUTATIONS.md`.
+- **Диагностика Double Truth:** Доказано, что `_builtin_templates()` и `location_templates.json` создают фантомную реальность, конфликтующую с Editor JSON. NPC архетипы хардкодят `"main_hall"`, которого нет в `tavern.json` (там `hall_center`), что убивает Traversal. **[Диагностика]**
+
+## Сессия 45: Оживление Пространственного Графа (SCF=0) и Трубы Воли (SHI=0%)
+**Дата:** 23.05.2026  
+**Изменения:**
+- **`frontend/map_editor/data_manager.py`:** Внедрена инъекция `location_id` из имени файла при сохранении (ADR-061 Schema Enforcement). Устранена причина DOUBLE TRUTH — Editor JSON без `location_id` отвергался `graph_compiler`. **[Контракт]**
+- **`backend/app/services/spatial/graph_compiler.py`:** Добавлен умный Compatibility Resolver для legacy Editor JSON без `location_id`. Инференс строго по префиксу имени файла (`tavern` → `tavern_silver_wolf`), с rejects при коллизиях (`gate` → `gate_house`). Убивает подмену локаций, но спасает от смерти графа. **[Архитектура]**
+- **`frontend/map_editor/campaigns/my_cam/locations/tavern.json`:** Миграция данных. Инъектировано поле `"location_id": "tavern_silver_wolf"`. **[Данные]**
+- **`backend/app/services/scene_state_manager.py`:** Дефолтный спавн игрока изменён с хардкода `"main_hall"` на `"entrance"`. **[Багфикс]**
+- **`backend/app/services/will.py`:** Починен SHI=0% (Глухая Воля). В `resolve_intent_pressure` добавлен маппинг социальных директив (`player_social`, `player_moves`, `move`, `approach`, `halt`, `order`) в вектор давления (`identity_deviation`, `social_exposure`, `humiliation`). Ранее Воля была слепа к приказам. **[Багфикс]**
+- **`backend/tests/sandbox/phenomenology/`:** Созданы и прошли 4 феноменологических теста: `test_will_absolute_obedience`, `test_will_directive_conflict` (SHI>0), `test_memory_absurd_fixation` (сырой текст без интерпретации), `test_memory_truth_decay` (immutable decay через `dataclasses.replace`). **[Тест]**
+
+## Сессия 45b: Оживление Player Pipeline (SHI=0% корень найден)
+**Дата:** 23.05.2026
+**Изменения:**
+- **`backend/app/services/npc/npc_tick_pipeline.py`:** Критический фикс — `inp.hub_event.get("payload", {})` заменён на `getattr(inp.hub_event, 'payload', None) or {}`. `EventContext` — dataclass без `.get()`, вызов падал с `AttributeError` на КАЖДОМ ходе игрока. Корень SHI=0%. **[Багфикс — КРИТИЧЕСКИЙ]**
+- **`backend/app/services/npc/npc_tick_pipeline.py`:** 4 ссылки `npc_dict` заменены на `_npc_dict_for_write` (строки 419, 447, 455, 463). При рефакторинге переменная была переименована, но ссылки не обновлены → `NameError`. **[Багфикс]**
+- **`backend/app/services/social/directive_interpretation_subscriber.py`:** Fallback на `drives.fear` и `psyche.loyalty_true` при `social_stats.fear_of_player == 0`. Устранена Double Truth: конфиги содержат `drives.fear`, но подписчик читал `social_stats.fear_of_player` (всегда 0). **[Багфикс]**
+- **`frontend/game_screen.py`:** Добавлен фильтр `if npc_id == "player": continue` в цикл рендера NPC. Игрок больше не отображается как отдельный NPC на экране. **[Багфикс]**
+- **`backend/app/services/tick_orchestrator.py`:** Исправлен ложный лог `[PHASE_5_PLAYER] all_npcs_raw=0`. Теперь показывает `dm.all_npcs_raw` (реальный источник данных). **[Диагностика]**
+- **`scripts/APS.py`:** Фикс `bottleneck_score=0` для всех доменных модулей. Имя модуля `backend.app.services...` не совпадало с `app.services...` из `normalize_import`. Убран `backend.` префикс. Реальный граф: `npc_state` (bs=270), `decision_hub` (bs=156), `tick_orchestrator` (bs=92). **[Инфраструктура]**
