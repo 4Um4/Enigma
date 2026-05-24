@@ -642,11 +642,11 @@ Global size:
 |Project files in git scope|2,299|
 |Text/source files|712|
 |Binary/asset files|1,587|
-|Total text lines|140,117|
+|Total text lines|140,118|
 |Python files|406|
 |Python lines|68,097|
 |Markdown files|167|
-|Markdown lines|24,684|
+|Markdown lines|24,685|
 
 Semantic distribution:
 
@@ -655,7 +655,7 @@ Semantic distribution:
 |backend causal runtime|249|249|40,446|causal core: domains, services, orchestration, DTO/state logic|
 |backend tests and sandbox|102|102|13,111|regression, sandbox, causal/phenomenology validation|
 |frontend and editor|1,567|30|13,660|pygame UI, map editor, projection, interaction layer|
-|architecture docs and reports|212|185|36,542|ADR, Tasks, DNA, audits, session memory, comparison reports|
+|architecture docs and reports|212|185|36,543|ADR, Tasks, DNA, audits, session memory, comparison reports|
 |world data and runtime state|80|70|17,728|campaigns, sessions, world state, location templates|
 |diagnostics and tooling|24|22|13,551|dependency maps, audit scripts, project dump tooling|
 |config and launch surface|20|20|1,296|startup, repository rules, operator docs|
@@ -668,7 +668,7 @@ Extension distribution:
 |---|---:|---:|---|
 |`.png`|1,561|0|asset corpus dominates file count, not logic complexity|
 |`.py`|406|68,097|primary executable complexity|
-|`.md`|167|24,684|architecture/task/report memory|
+|`.md`|167|24,685|architecture/task/report memory|
 |`.json`|48|19,447|state, contracts, configs, generated dependency data|
 |`.jsonl`|44|12,563|event/memory/log traces|
 |`.svg`|24|1,520|generated dependency/graph visualization|
