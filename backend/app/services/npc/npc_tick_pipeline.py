@@ -689,22 +689,29 @@ def _resolve_reactive_movement(
         # ADR-048: Игрок внедрен как npc_id="player" (ADR-031), его позиция находится в npc_positions.
         # player_spatial удален. denormalize_id удален.
         target_entry = _pos(_target_id)
-        target_node_id = target_entry.get("position")
-        logger.warning(f"[APPROACH_NAV] npc={npc_id} target={_target_id} position={target_node_id} entry_keys={list(target_entry.keys()) if target_entry else 'EMPTY'}")
+        # v2.2 Spatial Ontology: Для approach микро-позиция (local_position) приоритетнее макро-узла (position).
+        # Макро-узел игрока может быть "entrance", но его local_position указывает точное место.
+        lp = target_entry.get("local_position", {})
+        target_x = lp.get("x")
+        target_y = lp.get("y")
+        target_node_id = None
+        print(f"[DIAG][APPROACH_NAV] npc={npc_id} target_id={_target_id} player_xy=({target_x},{target_y}) player_entry_keys={list(target_entry.keys())} position={target_entry.get('position')}")
+        
+        # Путь 1: Точное позиционирование через local_position (предпочтительно)
+        if target_x is not None and target_y is not None and spatial_service:
+            nearest_ref = spatial_service.get_nearest(zone_id=location_id, origin_xy=(target_x, target_y))
+            if nearest_ref:
+                target_node_id = getattr(nearest_ref, 'node_id', str(nearest_ref))
+        
+        # Путь 2: Fallback на макро-узел (если нет spatial_service или координат)
+        if not target_node_id:
+            target_node_id = target_entry.get("position")
+            
+        logger.warning(f"[APPROACH_NAV] npc={npc_id} target={_target_id} resolved_node={target_node_id} has_xy={target_x is not None} xy=({target_x},{target_y}) fallback={target_entry.get('position')}")
 
         if not target_node_id:
-            # Если макро-узел не найден, пробуем резолвить через координаты (local_position)
-            lp = target_entry.get("local_position", {})
-            target_x = lp.get("x")
-            target_y = lp.get("y")
-            if target_x is not None and target_y is not None and spatial_service:
-                nearest_ref = spatial_service.get_nearest(zone_id=location_id, origin_xy=(target_x, target_y))
-                if nearest_ref:
-                    # ADR-008: denormalize_id удален. Извлекаем канонический ID напрямую.
-                    target_node_id = getattr(nearest_ref, 'node_id', str(nearest_ref))
-            if not target_node_id:
-                logger.warning(f"[APPROACH_NAV] target={_target_id} not found in npc_positions! Movement blocked.")
-                return None
+            logger.warning(f"[APPROACH_NAV] target={_target_id} not found in npc_positions! Movement blocked.")
+            return None
 
     elif intent == "flee":
         # ADR-048: Единый пространственный авторитет. Игрок внедрен как npc_id="player".
@@ -770,4 +777,4 @@ def _resolve_reactive_movement(
     
     logger.warning(f"[PIPELINE][REACTIVE_MOVEMENT][CREATE] npc={npc_id} target_node={target_node_id} from_node={current_node}")
     print(f"[TRACE][INTENT_CREATED] npc={npc_id} intent=reactive:{intent} target_node={target_node_id}")
-    return MacroMovementGoal(npc_id=npc_id, target_node_id=target_node_id, from_node_id=current_node, location_id=location_id, reason=f"reactive:{intent}", priority=PRIORITY_NEEDS)
+    return MacroMovementGoal(npc_id=npc_id, target_node_id=target_node_id, from_node_id=current_node, location_id=location_id, reason=f"reactive:{intent}", priority=PRIORITY_NEEDS, target_local_xy=(target_x, target_y) if intent == "approach" and target_x is not None and target_y is not None else None)

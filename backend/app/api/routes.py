@@ -375,6 +375,8 @@ async def game_action(request: dict, game_loop=Depends(get_game_loop)) -> dict:
             # TASK 1: Force Merge — передаём world_snapshot на фронтенд (ADR-0014)
             "world_snapshot": _ws_dict,
             "npc_positions": _npc_pos_dict,
+            # ADR-041: Проброс конфликта воли для Resistance Medium фронтенда
+            "will_conflict_data": getattr(result, 'will_conflict_data', None),
         }
     except HTTPException:
         raise  # пробрасываем дальше

@@ -56,6 +56,15 @@ class MovementEngine:
         # ADR-060: Строгое разделение физик. LOD0 не требует графа локации.
         by_location: dict[str, List[MacroMovementGoal]] = {}
         for intent in intents:
+            # ADR-XXXX: Инвариант — один Intent обрабатывается ровно один раз
+            if getattr(intent, 'processed', False):
+                raise RuntimeError(
+                    f"[ARCHITECTURE_VIOLATION] MovementIntent для {getattr(intent, 'npc_id', '?')} "
+                    f"уже обработан '{getattr(intent, 'processor', '?')}'. "
+                    f"Двойная обработка = двойное будущее = телепортация."
+                )
+            intent.processed = True
+            intent.processor = "MovementEngine"
             print(
                 f"[TRACE][ENGINE_RECEIVED] "
                 f"npc={intent.npc_id} "
@@ -187,7 +196,7 @@ class MovementEngine:
             logger.warning(f"[MOVEMENT_ENGINE] Узел '{intent.target_node_id}' не найден для {intent.npc_id} в {location_id}")
             return []
         
-        logger.info(f"[PIPELINE][MOVEMENT][RELOCATE] npc={intent.npc_id} → zone={intent.target_node_id} reason={intent.reason}")
+        logger.info(f"[PIPELINE][MOVEMENT][RELOCATE] npc={intent.npc_id} → zone={intent.target_node_id} reason={intent.reason} exact_xy={intent.target_local_xy}")
         return [SceneChange(
             type=ChangeType.NPC_POSITION,
             target=intent.npc_id,
@@ -196,6 +205,7 @@ class MovementEngine:
             cause=f"semantic_relocation:{intent.reason}",
             tick=tick,
             target_location_id=location_id,
+            target_local_xy=intent.target_local_xy,  # ADR-065: Точные координаты цели
         )]
 
     @staticmethod

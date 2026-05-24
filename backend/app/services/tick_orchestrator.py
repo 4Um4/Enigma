@@ -470,7 +470,7 @@ class TickOrchestrator:
         """
         dm = ctx.dm_ctx
         _dm_npcs = len(dm.all_npcs_raw) if dm and dm.all_npcs_raw else 0
-        logger.warning(f"[PHASE_5_PLAYER] ENTER: nearby_npcs={len(ctx.nearby_npcs) if hasattr(ctx, 'nearby_npcs') else '?'}, dm.all_npcs_raw={_dm_npcs}")
+        logger.warning(f"[PHASE_5_PLAYER] ENTER: nearby_npcs={len(dm.nearby_npcs) if dm and dm.nearby_npcs else 0}, dm.all_npcs_raw={_dm_npcs}")
         from app.services.npc.npc_tick_contracts import NpcTickInput, NpcTickBuffer
         from app.services.npc.npc_tick_pipeline import run_npc_pipeline
         npc_input = NpcTickInput(
@@ -636,9 +636,11 @@ class TickOrchestrator:
 
         # ADR-035: Обработка реактивных перемещений (MovementIntents)
         # В player turn LifeEngine не вызывается, поэтому MovementEngine нужно вызвать вручную
+        print(f"[DIAG] player_result={ctx.player_result is not None} movement_intents={len(ctx.player_result.movement_intents) if ctx.player_result and ctx.player_result.movement_intents else 0}")
         if ctx.player_result and ctx.player_result.movement_intents:
             from app.services.spatial.movement_engine import MovementEngine
             _spatial_svc = self._resolve_spatial_service(ctx)
+            print(f"[DIAG] spatial_svc={_spatial_svc is not None} scene_manager={self._scene_manager is not None}")
             if _spatial_svc:
                 me = MovementEngine()
                 me.set_spatial_service(_spatial_svc)
@@ -648,9 +650,12 @@ class TickOrchestrator:
                     ctx.scene_state.get("npc_positions", {}),
                     campaign_id=ctx.campaign_id, scene_state=ctx.scene_state
                 )
+                print(f"[DIAG] changes={len(changes)} scene_manager={self._scene_manager is not None}")
                 if changes and self._scene_manager:
                     self._scene_manager.apply_changes(ctx.campaign_id, changes, ctx.scene_state)
                     logger.warning(f"[PLAYER_TURN] Applied {len(changes)} reactive movement changes")
+                elif changes and not self._scene_manager:
+                    print(f"[DIAG] CRITICAL: scene_manager is None! Changes lost!")
             else:
                 logger.error("[SPATIAL_AUTHORITY] SpatialService отсутствует, реактивное движение заблокировано.")
 

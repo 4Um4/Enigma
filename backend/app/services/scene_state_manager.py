@@ -1124,10 +1124,27 @@ class SceneStateManager:
                                 if target_loc != location_id:
                                     entry["location"] = target_loc
                                     entry["location_id"] = target_loc
-                                from_xy = entry.get("local_position", {"x": 0.0, "y": 0.0})
-                                # ADR-056: LOD1 Macro-jitter. NPC не сливаются в центр узла
-                                import random
-                                to_xy = {"x": node.x + random.uniform(-0.4, 0.4), "y": node.y + random.uniform(-0.4, 0.4)}
+                                # ADR-065: Если local_position инвалидна (0,0) или отсутствует, 
+                                # резолвим из центра текущего узла, чтобы NPC не начинали путь от входа.
+                                from_xy = entry.get("local_position", {})
+                                if not isinstance(from_xy, dict) or not isinstance(from_xy.get("x"), (int, float)) or (abs(from_xy.get("x", 0.0)) < 0.01 and abs(from_xy.get("y", 0.0)) < 0.01):
+                                    _from_node_val = entry.get("position", "")
+                                    if _from_node_val and svc:
+                                        _from_ref = svc.get_node(_from_node_val) or svc.get_node(f"{target_loc}:{_from_node_val}")
+                                        if _from_ref:
+                                            from_xy = {"x": _from_ref.x, "y": _from_ref.y}
+                                            logger.info(f"[SPATIAL_RECOVERY] NPC {change.target} восстановил from_xy из узла {_from_node_val}: ({from_xy['x']}, {from_xy['y']})")
+                                if not isinstance(from_xy, dict) or not isinstance(from_xy.get("x"), (int, float)):
+                                    from_xy = {"x": 0.0, "y": 0.0}
+
+                                # ADR-065: Если есть точные координаты цели (approach player), используем их вместо центра узла
+                                exact_xy = getattr(change, 'target_local_xy', None)
+                                if exact_xy and isinstance(exact_xy, (tuple, list)) and len(exact_xy) == 2:
+                                    to_xy = {"x": float(exact_xy[0]), "y": float(exact_xy[1])}
+                                else:
+                                    # ADR-056: LOD1 Macro-jitter. NPC не сливаются в центр узла
+                                    import random
+                                    to_xy = {"x": node.x + random.uniform(-0.4, 0.4), "y": node.y + random.uniform(-0.4, 0.4)}
                                 # Телепортация только если уже на месте (микро-перемещение)
                                 if abs(from_xy.get("x", 0) - to_xy.get("x", 0)) < 0.1 and abs(from_xy.get("y", 0) - to_xy.get("y", 0)) < 0.1:
                                     entry["local_position"] = to_xy
@@ -1495,6 +1512,24 @@ class SceneStateManager:
             # Миграция имени: в старых сохранениях отсутствует поле name (Баг 3)
             if "name" not in entry:
                 entry["name"] = _npc_id_to_display(npc_id)
+
+            # ADR-048 FIX: Синхронизация позиционной истины игрока.
+            # Фронтенд пишет в player_spatial, бэкенд читает npc_positions.
+            # Без этого макро-узел игрока всегда "entrance", и NPC идут ко входу.
+            if npc_id == "player":
+                _ps = scene_state.get("player_spatial", {})
+                _plp = _ps.get("local_position", {})
+                if isinstance(_plp, dict) and isinstance(_plp.get("x"), (int, float)):
+                    entry["local_position"] = _plp
+                    if svc:
+                        _px, _py = _plp.get("x", 0.0), _plp.get("y", 0.0)
+                        _p_node_ref = svc.get_nearest(zone_id=location_id, origin_xy=(_px, _py))
+                        if _p_node_ref:
+                            _p_node_id = getattr(_p_node_ref, 'node_id', str(_p_node_ref))
+                            if _p_node_id.startswith(f"{location_id}:"):
+                                _p_node_id = _p_node_id.split(":")[-1]
+                            entry["position"] = _p_node_id
+                continue # Игрок не нуждается в enrichment из editor_coords
 
             current_node = entry.get("position", "")
             initial_node = initial_nodes.get(npc_id)

@@ -493,3 +493,211 @@ the project can no longer safely evolve
 through isolated feature additions.
 
 All future growth becomes topology-sensitive.
+
+---
+
+## Repository Magnitude Snapshot
+
+Measured on branch `V.0.5.3.1.3_Пространство_и_время_3`.
+
+Scope:
+
+- counted through `git ls-files`;
+- excludes `.git`, `.venv`, untracked cache and local ignored files;
+- line count includes text-like tracked files only;
+- binary/reference assets are counted as files, not as lines.
+
+Global size:
+
+|Metric|Value|
+|---|---:|
+|Tracked files|2,279|
+|Text/source files|694|
+|Binary/asset files|1,585|
+|Total tracked text lines|155,775|
+|Python files|406|
+|Python lines|77,693|
+|Canonical backend runtime Python files|249|
+|Canonical backend runtime Python lines|46,214|
+|Backend test Python files|101|
+|Backend test Python lines|15,170|
+|Frontend Python files|23|
+|Frontend Python lines|10,626|
+
+Semantic distribution:
+
+|Area|Files|Text files|Lines|Meaning|
+|---|---:|---:|---:|---|
+|backend causal runtime|249|249|46,214|causal core: domains, services, orchestration, DTO/state logic|
+|architecture docs and reports|194|167|42,482|ADR, Tasks, DNA, reports, governance memory|
+|world data and runtime state|95|85|18,647|campaigns, sessions, logs, memory/event state|
+|tests and sandbox|102|102|15,313|regression, sandbox, phenomenology, causal validation|
+|frontend and map editor|1,567|30|14,595|UI, editor, projection, plus large pixel asset corpus|
+|diagnostics and tooling|22|22|13,674|dependency graphs, hooks, audit/smoke scripts|
+|root and legacy utilities|23|21|2,905|launcher, legacy scripts, config surface|
+|embedded AppAgent reference|18|17|1,931|external/experimental agent reference code|
+|assets and reference binaries|9|0|14|PDF/binary reference surface|
+
+Extension distribution:
+
+|Type|Files|Lines|Interpretation|
+|---|---:|---:|---|
+|`.png`|1,561|0|dominates file count, not logic complexity|
+|`.py`|406|77,693|primary executable complexity|
+|`.md`|147|30,520|architecture/task/report memory|
+|`.json`|48|19,447|state, contracts, configs, generated dependency data|
+|`.jsonl`|44|12,563|event/memory/log traces|
+|`.svg`|24|1,579|generated dependency/graph visualization|
+
+Interpretation:
+
+ENIGMA is no longer a small prototype by code volume.
+
+By executable size alone, `77.7k` Python lines places it in the
+medium-to-large indie/tooling range. The canonical backend runtime
+at `46.2k` lines is already comparable to a finished specialized
+simulation tool, a custom game backend, or a compact domain engine.
+
+It is not comparable to a commercial engine or large shipped RPG
+by raw size. Those projects often reach hundreds of thousands or
+millions of lines when engine, editor, content pipeline, platform
+code and production assets are included. ENIGMA is smaller in raw
+industrial volume.
+
+But by architectural density it is heavier than a typical hobby
+RPG prototype of the same line count because the code is not just
+feature scripting. Large parts of the runtime are responsibility
+boundaries:
+
+- event/intent contracts;
+- state mutation pipeline;
+- NPC cognition and decision topology;
+- memory and salience routing;
+- spatial authority;
+- temporal/runtime orchestration;
+- frontend projection firewall;
+- diagnostics and causal observability.
+
+The main complexity signal is therefore not `155.8k` text lines.
+
+The main complexity signal is this ratio:
+
+```text
+backend causal runtime: 46.2k lines
+architecture/governance memory: 42.5k lines
+tests/sandbox: 15.3k lines
+world/runtime traces: 18.6k lines
+```
+
+This means the project is architecture-heavy:
+nearly every runtime expansion is accompanied by documentation,
+diagnostics, state traces or sandbox validation.
+
+Assessment:
+
+|Dimension|Level|Reason|
+|---|---|---|
+|Prototype size|exceeded|runtime + docs + tests are already beyond prototype scale|
+|Finished indie feature scale|approaching|core systems exist, but integration hardening remains incomplete|
+|Simulation-engine complexity|medium|many domains exist, but ownership contracts still need enforcement|
+|Content/game completion|early-to-mid|world data and UX are smaller than the causal backend|
+|Maintainability pressure|high|runtime core, docs and diagnostics are all growing at once|
+|Refactor need|selective|local compression is needed around hot ownership boundaries, not broad rewrite|
+
+Conclusion:
+
+ENIGMA's size is consistent with an unfinished but serious
+medium-complexity simulation project.
+
+Compared with completed projects of similar intent, the code volume
+is plausible, but the distribution is unusual:
+
+- backend architecture is mature relative to gameplay content;
+- documentation/governance is unusually large;
+- asset count is high, but mostly pixel/editor material;
+- tests exist, but are still behind the causal surface area;
+- completion risk comes from integration and ownership drift,
+  not from lack of raw implementation.
+
+Confidence: 86/100.
+
+---
+
+## Repository Magnitude Snapshot — V.0.5.3.1.4_Чиним_НЕРВЫ_1
+
+Measured on branch `V.0.5.3.1.4_Чиним_НЕРВЫ_1`.
+
+Scope:
+
+- counted through `git ls-files --cached --others --exclude-standard`;
+- includes tracked files and new untracked files prepared for this snapshot;
+- excludes `.git`, `.venv`, ignored caches and local ignored runtime trash;
+- line count includes text-like project files only;
+- binary/reference assets are counted as files, not as lines.
+
+Global size:
+
+|Metric|Value|
+|---|---:|
+|Project files in git scope|2,299|
+|Text/source files|712|
+|Binary/asset files|1,587|
+|Total text lines|140,117|
+|Python files|406|
+|Python lines|68,097|
+|Markdown files|167|
+|Markdown lines|24,684|
+
+Semantic distribution:
+
+|Area|Files|Text files|Lines|Meaning|
+|---|---:|---:|---:|---|
+|backend causal runtime|249|249|40,446|causal core: domains, services, orchestration, DTO/state logic|
+|backend tests and sandbox|102|102|13,111|regression, sandbox, causal/phenomenology validation|
+|frontend and editor|1,567|30|13,660|pygame UI, map editor, projection, interaction layer|
+|architecture docs and reports|212|185|36,542|ADR, Tasks, DNA, audits, session memory, comparison reports|
+|world data and runtime state|80|70|17,728|campaigns, sessions, world state, location templates|
+|diagnostics and tooling|24|22|13,551|dependency maps, audit scripts, project dump tooling|
+|config and launch surface|20|20|1,296|startup, repository rules, operator docs|
+|reference and external material|9|1|10|reference material, external/legacy/experimental surface|
+|other tracked surface|36|33|3,773|miscellaneous tracked project files|
+
+Extension distribution:
+
+|Type|Files|Lines|Interpretation|
+|---|---:|---:|---|
+|`.png`|1,561|0|asset corpus dominates file count, not logic complexity|
+|`.py`|406|68,097|primary executable complexity|
+|`.md`|167|24,684|architecture/task/report memory|
+|`.json`|48|19,447|state, contracts, configs, generated dependency data|
+|`.jsonl`|44|12,563|event/memory/log traces|
+|`.svg`|24|1,520|generated dependency/graph visualization|
+
+Interpretation:
+
+The current repository is already beyond prototype size by structure, even after document compression.
+
+The important signal is not raw volume alone. The project is asymmetric:
+
+- backend causal runtime is the real engine mass;
+- docs/reports are unusually large because architecture is part of the control system;
+- frontend file count is asset-heavy, while executable frontend logic is much smaller;
+- world/runtime state exists, but content volume is still below the causal engine;
+- tests and sandbox exist, but trail the number of ownership-sensitive runtime paths.
+
+Relative to completed projects:
+
+|Comparison target|Fit|
+|---|---|
+|small hobby RPG prototype|larger and more architecturally dense|
+|finished compact indie narrative tool|comparable in backend/runtime complexity|
+|finished simulation-heavy indie game|below final content/UX volume, but plausible engine-core scale|
+|commercial RPG or general-purpose engine|much smaller by raw code/assets|
+
+Assessment:
+
+ENIGMA is best described as an unfinished medium-complexity simulation engine with early-to-mid game content.
+
+Its size is plausible for a serious solo/experimental simulation project, but its distribution is unusual: the causal backend and governance memory are more mature than the player-facing game layer. That means completion risk is not "need more code"; the risk is ownership drift between spatial truth, decision ownership, projection and persistence.
+
+Confidence: 87/100.

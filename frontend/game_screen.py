@@ -562,9 +562,6 @@ class GameScreen:
                     _new_lp = new_data.get("local_position", {})
                     if _old_lp != _new_lp:
                         print(f"[FRAME_RENDER] npc={npc_id} new_xy=({_new_lp.get('x')}, {_new_lp.get('y')})")
-            # ADR-019: Сохраняем активные транзиты для визуальной интерполяции (Lerp)
-            if _ws and "active_traversals" in _ws:
-                scene_state["active_traversals"] = _ws["active_traversals"]
 
             if _new_positions:
                 logger.info(f"[IDLE_TICK] merged: {list(_new_positions.keys())}")
@@ -698,6 +695,9 @@ class GameScreen:
                         # ADR-019: Сохраняем активные транзиты для визуальной интерполяции (Lerp)
                         if "active_traversals" in _action_ws:
                             scene_state["active_traversals"] = _action_ws["active_traversals"]
+                        # ADR-035: Обновление феноменологической проекции аватара при действии
+                        if "avatar_state" in _action_ws:
+                            scene_state["avatar_state"] = _action_ws["avatar_state"]
                     elif isinstance(result.response, dict) and "npc_positions" in result.response:
                         # Fallback: deprecated top-level npc_positions
                         import copy
@@ -706,6 +706,9 @@ class GameScreen:
                         # ADR-019: Сохраняем активные транзиты (fallback)
                         if "active_traversals" in result.response:
                             scene_state["active_traversals"] = result.response["active_traversals"]
+                        # ADR-035: Обновление феноменологической проекции аватара (fallback)
+                        if "avatar_state" in result.response:
+                            scene_state["avatar_state"] = result.response["avatar_state"]
 
                     if resp and resp != "Ничего не произошло.":
                         import re
@@ -787,6 +790,14 @@ class GameScreen:
                                     is_active=False,
                                     creation_tick=pygame.time.get_ticks()
                                 ))
+
+                    # ADR-041: Resistance Medium — инфекция поля ввода при конфликте воли
+                    _wc_data = getattr(result.response, 'will_conflict_data', None)
+                    if _wc_data and hasattr(self, 'text_input'):
+                        _impulse = _wc_data.get("impulse_text", _wc_data.get("counter_offer", ""))
+                        _origin = _wc_data.get("origin_layer", "will_conflict")
+                        if _impulse:
+                            self.text_input.infect(impulse_text=_impulse, origin_layer=_origin)
 
                     for npc_r in result.response.npc_reactions:
                         npc_name = npc_r.get("npc_name", "NPC")
