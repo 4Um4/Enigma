@@ -1,48 +1,27 @@
-# ADR-048 Impact Audit: Authoritative Spatial Spine
+### Итоги промежуточного фикса: "Проклятие Входной Двери"
 
-## Измененный АДР
-ADR-048 (Single Source Spatial Authority)
+**ROOT CAUSE:** Нарушение ADR-048. `SpatialQueryService` читал `npc_positions["player"]["position"]`, который инициализировался как `"entrance"` при загрузке сцены и **никогда не обновлялся** при перемещении игрока. Все NPC, решившие подойти к игроку, получали целевой узел `entrance` и послушно шли ко входу.
 
-## Тип изменения
-ONTOLOGY (ADR-O) — Смена парадигмы: scene_state больше не является хранилищем пространственных решений и производных проекций.
+**FIX:** Внедрена динамическая синхронизация в `npc_orchestration.py`: перед созданием `SpatialQueryService` система читает актуальные координаты из `player_spatial`, резолвит макро-узел через `SpatialService.get_nearest()` и обновляет `npc_positions["player"]`. Теперь цель `"player"` — это живая пространственная истина, а не статичный спавн.
 
-## Этап реализации
-Phase 3 — Derived Presentation Cleanup (ЗАВЕРШЁН)
+Файл: docs/audits/ADR-048_IMPACT_PLAYER_SYNC.md
 
-## Измененные домены (Changed Domains)
-- spatial (SpatialQueryService — единственный авторитет)
-- perception (чтение дистанций через SpatialQueryService)
-- memory (чтение дистанций через SpatialQueryService)
-- reaction (чтение дистанций через SpatialQueryService)
-- persistence (удаление мутации player_distances/player_spatial)
-- presentation (вычисление дистанций из npc_positions вместо чтения кэша)
+```markdown
+# ADR-048 Impact Audit: Player Spatial Sync
+## Changed Domains
+- Spatial (Player Position Authority)
 
-## Изменённые файлы (Phase 3)
-- `backend/app/services/game_loop/scene_init.py` — мутация `player_spatial` заменена на мутацию канонического `npc_positions.player`
-- `backend/app/services/scene_state_manager.py` — запись `player_distances` и `player_spatial` заблокирована в `update_player_spatial_context`. Чтения `player_distances` в промптах заменены на динамическое вычисление через `euclidean_distance(npc_positions.player, npc_positions.npc)`. Добавлен импорт `euclidean_distance`.
-- `backend/app/services/spatial/player_target_pipeline.py` — (из Phase 2) удалена мутация `scene_state` записью `player_distances`.
+## Downstream Consumers
+- SpatialQueryService
+- _resolve_reactive_movement (APPROACH intent)
+- DecisionHub (distance scoring)
 
-## Запрещённые операции (ADR-048 Full Enforcement)
-Следующие чтения/записи ЗАПРЕЩЕНЫ для decision/perception/combat/movement/presentation:
-- `scene_state.get("player_distances")` — ВЕЗДЕ заменено на SpatialQueryService или euclidean_distance(npc_positions)
-- `scene_state["player_distances"] = ...` — МУТАЦИЯ УДАЛЕНА
-- `scene_state["player_spatial"]["local_position"] = ...` — МУТАЦИЯ УДАЛЕНА (пишем в npc_positions.player)
+## Runtime Impact
+- RAM: 0 (обновляет существующий dict)
+- Latency: +1 вызов SpatialService.get_nearest() на ход игрока (O(1) для малого графа)
 
-## Разрешённые чтения (Presentation Layer)
-- `scene_state.get("npc_positions", {}).get("player", {})` — Единственный источник позиции игрока для фронтенда и промптов.
+## Sandbox Tests
+- 48 passed (регрессия отсутствует)
 
-## Влияние на производительность (Runtime Impact)
-- RAM Delta: -0.01MB (удаление дублирующих словарей в scene_state)
-- VRAM Delta: 0
-- Tick Latency Delta: +0.05ms (динамическое вычисление дистанций для промптов при необходимости)
-
-## Песочные тесты (Sandbox Tests)
-- 36 passed, 1 skipped (предсуществующий flaky-баг collision avoidance)
-
-## Откат (Rollback)
-1. Раскомментировать запись в `scene_state_manager.py`.
-2. Вернуть чтение `player_distances` в `scene_state_manager.py`.
-3. Вернуть мутацию `player_spatial` в `scene_init.py`.
-
-## Статус
-**ADR-048 ПОЛНОСТЬЮ РЕАЛИЗОВАН.** Система перешла на Single Spatial Authority.
+## Rollback
+Удалить блок `_ps = _scene_state.get("player_spatial", {})...` в npc_orchestration.py

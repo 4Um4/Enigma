@@ -175,6 +175,28 @@ Simulation Truth (CFRM, Deltas)
 16. **Ретро-симуляция:** `TICK_CATCHUP` с циклом `LifeEngine.tick()` ❌ → только `reconcile_state(elapsed_seconds)` (ADR-047)
 17. **Кэш-фантомы:** Не очищен `__pycache__` после рефакторинга DTO ❌ → обязательная очистка перед запуском
 
+### 4.5. Запреты на Время и Пространство
+
+18. **Зависимость времени от игрока:** 
+    ❌ tick += 1 внутри player.action()
+    ✅ world_clock.advance() перед всем
+
+19. **Ретросимуляция дальних регионов:**
+    ❌ for i in range(missed_ticks): npc.tick()
+    ✅ compress_state() / expand_state() при смене локации
+
+20. **Прямое редактирование сжатого состояния:**
+    ❌ lod_state.compressed["mood"] = 0.5
+    ✅ только через StateApplicator
+
+21. **Время как свойство сущности:**
+    ❌ npc.birth_time = world_clock.tick (сохраняем абсолютный тик)
+    ✅ только производные (age, time_alive, и т.д. как функции WorldClock)
+
+22. **Множественные источники LOD уровня:**
+    ❌ NPC сам определяет свой LOD
+    ✅ только LODManager определяет LOD для всех
+
 ---
 
 ## 5. СПИСОК ПЕСОЧНИЦ (Fail Conditions)

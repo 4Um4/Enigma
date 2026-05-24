@@ -11,6 +11,8 @@ GC -->|graph, connections, alias_map| SS[SpatialService]
 SC_T[SceneState t-1] -->|build_overlay| SS
 SS -->|DI: set_spatial_service| ME[MovementEngine]
 SS -->|get_node with prefix fallback ADR-0009| SSM[SceneStateManager Spatial Reducer ADR-0015]
+SSM -->|current_tick >= started_tick + duration_ticks| SSM_FINAL[_enrich_local_positions Finalize Traversals & Set local_position ADR-059]
+SSM_FINAL -->|Immutable Source| WSB_IMMUT[WorldSnapshotBuilder Pure Projection]
 SS -->|build_cluster_graph ADR-0029| CG[ClusterGraph]
 end
 
@@ -101,17 +103,17 @@ CSUB -->|extract ImpactIntentDTO| IE
 IE -->|List StateDeltas PHYSIOLOGY| CSUB
 CSUB -->|Phase8Result deltas| MAT[Materialization Tuple StateDeltas ADR-0016]
 
-MAT -->|physical_deltas_materialized| RXT[ReactionSubscriber ADR-0016]
+MAT -->|ctx.physical_deltas_materialized| RXT[reaction_subscriber.ReactionSubscriber ADR-0016]
 P7 -->|drain_events| RXT
 P2 -->|drain_events| RXT
 
-MAT -->|physical_deltas_materialized| SOC[SocialSubscriber]
+MAT -->|physical_deltas_materialized| SOC[social_subscriber.SocialSubscriber]
 P7 -->|drain_events| SOC
 P2 -->|drain_events| SOC
 
 PROP[propagate_social_rumors pure function v2 EMOTION+SOCIAL split]
 RXTMOD[_compute_reaction_modifier composure x fear_drive x willpower]
-RXT -->|reads shock_impulse from materialized physical layer| SHOCK_CASCADE[Cascade: Force → Pain → Shock → Emotion ADR-0016]
+RXT -->|reads shock_impulse from ctx.physical_deltas_materialized| SHOCK_CASCADE[Cascade: Force → Pain → Shock → Emotion ADR-0016]
 SHOCK_CASCADE -->|shock > 0.5| PANIC[emotion_tag=panic]
 SHOCK_CASCADE -->|empathic horror if witness| EMPATHY[stress_delta += shock * 30 * modifier]
 
@@ -120,10 +122,17 @@ SOC -->|calls| PROP
 PROP -->|List StateDeltas domainEMOTION + domainSOCIAL| SOC
 
 %% --- ADR-036: Social Physics (Directive Interpretation) ---
-DIS[DirectiveInterpretationSubscriber ADR-036] -->|reads semantic_action + target_id| OBEDIENCE[PsychologicalPressure directive_obedience]
+DIS[DirectiveInterpretationSubscriber ADR-036] -->|calculates legitimacy = maxfear_trust/100| LEGIT{legitimacy > 0.3 Internal Check ADR-057}
 P7 -->|drain_events| DIS
 P2 -->|drain_events| DIS
-OBEDIENCE -->|StateDeltas EMOTION + SOCIAL + directive_obedience| DBUF2
+LEGIT -->|Has Legitimacy| OBEY_INT[obedience_intensity > 0 StateDeltas EMOTION+SOCIAL+directive_obedience]
+LEGIT -->|No Legitimacy| IRR_INT[irritation_intensity > 0 StateDeltas EMOTION+SOCIAL+stress]
+OBEY_INT -->|submissive_fear / unease| DBUF2
+IRR_INT -->|aggression_inhibition unlock| DBUF2
+
+%% Bug #6 Fix: Fallback injection
+LE_COLD[LifeEngine Cold Cache] -.->|Empty State| DIS
+DM_CTX[TickContext.all_npcs_raw via DMContextDTO Fallback ADR-064] -.->|Inject if Cold| DIS
 
 RXT -->|Phase8Result deltas| ORCH
 SOC -->|Phase8Result deltas| ORCH
@@ -243,12 +252,13 @@ classDef adapter fill:#f88,stroke:#333,stroke-width:2px,stroke-dasharray: 5 5;
 class LDA adapter;
 %% --- ADR-037: Phenomenological Presentation & Resistance Medium ---
 DGW -->|GameActionResponse + will_conflict_data| PY
-PY -->|will_conflict_data| INFECT[TextInput.infect Resistance Medium ADR-037]
-INFECT -->|Моторное сопротивление вводу| PLAYER[Player Input]
+PY -.->|will_conflict_data ADR-041 UNWIRED| INFECT[text_input.TextInput.infect Resistance Medium ADR-039]
+INFECT -.->|Моторное сопротивление вводу| PLAYER[Player Input]
 
-PY -->|avatar_state dict| FW[PresentationFirewall sanitize + clamp ADR-037]
-FW -->|SanitizedPerceptualVectors| PM[PerceptualMomentum S-curve + inertia + stochasticity ADR-037]
-PM -->|ManifestationProfile| REND
+PY -->|avatar_state dict DIRECT PASS| REND[scene_renderer.SceneRenderer render]
+PY -.->|avatar_state dict UNWIRED| FW[presentation_firewall.PresentationFirewall sanitize + clamp ADR-037]
+FW -.->|SanitizedPerceptualVectors| PM[perceptual_momentum.PerceptualMomentum S-curve + inertia ADR-037]
+PM -.->|ManifestationProfile| REND
 
 classDef firewall fill:#f66,stroke:#333,stroke-width:2px;
 classDef momentum fill:#ff9,stroke:#333,stroke-width:2px;
@@ -418,3 +428,46 @@ end
 
 classDef sprint45 fill:#b30059,stroke:#333,stroke-width:2px;
 class EDIT_JSON,DM,GC,SS,X,SOCIAL,RIP,IPP,WG sprint45;
+
+
+%% --- ADR-061/066: Player Position Authority & llama-server Guard ---
+subgraph Sprint46[Сессия 46: Player Position Authority]
+    direction TB
+    
+    %% Player Position Authority (ADR-061)
+    FE[Frontend player_x/y HTTP POST] -->|player_position| SI[scene_init._update_player_position ADR-061]
+    SI -->|ЕДИНСТВЕННЫЙ ПИСАТЕЛЬ| NP[npc_positions.player.local_position]
+    NO[npc_orchestration] -->|reads NP directly| SSS[SpatialService.get_nearest]
+    SSS -->|resolved_node| PIPE[npc_tick_pipeline APPROACH_NAV]
+    
+    %% player_spatial = DEAD source
+    PS[player_spatial DEAD SOURCE] -.->|ЗАПРЕЩЕНО: запись ADR-048 Phase 3| NP
+    NO -.->|ЗАПРЕЩЕНО: читать из player_spatial| PS
+    
+    %% llama-server double-launch guard (ADR-066)
+    MAIN2[main.py lifespan] -->|pre-check health| LLAMA[llama-server :8080]
+    MAIN2 -->|_llama_started_by_us=True| GUARD[shutdown guard]
+    GUARD -->|kill only if ours| LLAMA
+    ATX[atexit._kill_llama_server] -->|kill only if ours| LLAMA
+end
+
+classDef sprint46 fill:#0066cc,stroke:#333,stroke-width:2px;
+class FE,SI,NP,NO,SSS,PIPE,PS,MAIN2,LLAMA,GUARD,ATX sprint46;
+
+
+%% --- ADR-064/065: Directive Continuity & Spatial Authority Consolidation ---
+subgraph Sprint47[Сессия 47: Труба Воли и Spatial Authority]
+    direction TB
+    
+    %% Will Pipeline Continuity - Bug 6 Fix
+    LE2[LifeEngine Cache] -->|Cold Cache returns empty| DIS[DirectiveInterpretationSubscriber]
+    DM_CTX[DMContextDTO.all_npcs_raw] -->|Fallback injected by TickOrchestrator| DIS
+    DIS -->|ObediencePressure greater 0| OBEY[Social Physics Engine]
+    
+    %% Spatial Authority Consolidation
+    GL[GameLoop] -->|Inject via NpcTickServices| SS2[SpatialService]
+    TO[TickOrchestrator] -->|resolves spatial service| SS2
+    TO -.->|FORBIDDEN manual build| SS2
+end
+
+classDef sprint47 fill:#0066cc,stroke:#333,stroke-width:2px;

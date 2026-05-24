@@ -14,15 +14,16 @@ from pathlib import Path
 
 # Глобальная ссылка на процесс llama-server — для atexit
 _llama_server_proc = None
+_llama_started_by_us = False
 
 import atexit
 import time
 import subprocess
 
 def _kill_llama_server() -> None:
-    """Гарантированное убийство llama-server при любом выходе."""
-    global _llama_server_proc
-    if _llama_server_proc is not None:
+    """Гарантированное убийство llama-server при любом выходе — только если МЫ его запустили."""
+    global _llama_server_proc, _llama_started_by_us
+    if _llama_server_proc is not None and _llama_started_by_us:
         try:
             _llama_server_proc.terminate()
             _llama_server_proc.wait(timeout=3)
@@ -148,46 +149,56 @@ async def lifespan(app: FastAPI):
 
     # 5.5 Авто-старт llama-server (если URL настроен)
     _llama_server_proc = None
+    _llama_started_by_us = False
     if settings.llama_cpp_server_url:
+        # Защита от двойного запуска: если llama-server уже работает — не стартовать новый.
+        # Без этого второй инстанс при shutdown убивает llama-server первого.
         try:
-            server_cmd = [
-                settings.llama_cpp_server_executable,
-                "-m", settings.llama_cpp_model_path,
-                "-ngl", str(settings.gpu_layers),
-                "-c", str(settings.ctx_size),
-                "-t", str(settings.threads),
-                "--port", "8080",
-                "--host", "127.0.0.1",
-            ]
-            _llama_server_proc = subprocess.Popen(
-                server_cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                creationflags=subprocess.CREATE_NO_WINDOW if hasattr(subprocess, 'CREATE_NO_WINDOW') else 0,
-            )
-            # Ждём пока сервер поднимется (проверяем HTTP)
             import urllib.request
-            _server_ready = False
-            for _attempt in range(int(settings.model_load_timeout_sec / 2)):
-                try:
-                    urllib.request.urlopen(
-                        f"{settings.llama_cpp_server_url}/health",
-                        timeout=2,
-                    )
-                    _server_ready = True
-                    break
-                except Exception:
-                    time.sleep(2)
-            if _server_ready:
-                print(f"✓ llama-server запущен ({settings.llama_cpp_server_url})")
-                logger.info(f"[STARTUP] llama-server запущен ({settings.llama_cpp_server_url})")
-            else:
-                print(f"⚠️ llama-server не отвечает после {settings.model_load_timeout_sec}с")
+            urllib.request.urlopen(f"{settings.llama_cpp_server_url}/health", timeout=2)
+            print(f"✓ llama-server уже запущен ({settings.llama_cpp_server_url})")
+        except Exception:
+            # Не запущен — стартуем
+            try:
+                server_cmd = [
+                    settings.llama_cpp_server_executable,
+                    "-m", settings.llama_cpp_model_path,
+                    "-ngl", str(settings.gpu_layers),
+                    "-c", str(settings.ctx_size),
+                    "-t", str(settings.threads),
+                    "--port", "8080",
+                    "--host", "127.0.0.1",
+                ]
+                _llama_server_proc = subprocess.Popen(
+                    server_cmd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    creationflags=subprocess.CREATE_NO_WINDOW if hasattr(subprocess, 'CREATE_NO_WINDOW') else 0,
+                )
+                # Ждём пока сервер поднимется (проверяем HTTP)
+                import urllib.request
+                _server_ready = False
+                for _attempt in range(int(settings.model_load_timeout_sec / 2)):
+                    try:
+                        urllib.request.urlopen(
+                            f"{settings.llama_cpp_server_url}/health",
+                            timeout=2,
+                        )
+                        _server_ready = True
+                        break
+                    except Exception:
+                        time.sleep(2)
+                if _server_ready:
+                    print(f"✓ llama-server запущен ({settings.llama_cpp_server_url})")
+                    logger.info(f"[STARTUP] llama-server запущен ({settings.llama_cpp_server_url})")
+                    _llama_started_by_us = True
+                else:
+                    print(f"⚠️ llama-server не отвечает после {settings.model_load_timeout_sec}с")
+                    _llama_server_proc = None
+            except Exception as e:
+                logger.warning(f"[STARTUP] llama-server start failed: {e}")
+                print(f"⚠️ llama-server не запущен: {e}")
                 _llama_server_proc = None
-        except Exception as e:
-            logger.warning(f"[STARTUP] llama-server start failed: {e}")
-            print(f"⚠️ llama-server не запущен: {e}")
-            _llama_server_proc = None
 
     # 6. LLM server health check (НЕ блокирует старт при недоступности)
     print("\n=== Проверка LLM сервера ===")
@@ -223,8 +234,8 @@ async def lifespan(app: FastAPI):
     yield  # приложение работает
 
     # ── SHUTDOWN ──
-    # Убиваем llama-server
-    if _llama_server_proc is not None:
+    # Убиваем llama-server — только если МЫ его запустили (не чужой процесс)
+    if _llama_server_proc is not None and _llama_started_by_us:
         try:
             _llama_server_proc.terminate()
             _llama_server_proc.wait(timeout=5)
