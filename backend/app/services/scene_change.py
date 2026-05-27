@@ -49,7 +49,9 @@ class SceneChange:
     field:  str
     value:  Any
     cause:  str
+    target_local_xy: Optional[tuple[float, float]] = None  # ADR-065: Точные координаты внутри узла (для подхода к игроку)
     tick:   int = 0
+    target_location_id: str = ""  # ADR-060: для кросс-локационных перемещений
 
     def to_dict(self) -> dict:
         """Сериализация для JSONL логирования и передачи в orchestrator."""
@@ -60,6 +62,7 @@ class SceneChange:
             "value":  self.value,
             "cause":  self.cause,
             "tick":   self.tick,
+            "target_location_id": self.target_location_id,
         }
 
 

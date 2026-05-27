@@ -216,6 +216,29 @@ class TickOrchestrator:
         """
         return self._get_life_engine().get_current_tick(campaign_id)
 
+    def _resolve_spatial_service(self, ctx: _TickContext) -> Optional[Any]:
+        """ADR-048: Единственный легитимный способ получить SpatialService.
+        Приоритет: Инъекция GameLoop -> Аварийная сборка (с предупреждением).
+        Кэш не используется для подмены отсутствующего сервиса в новом контексте.
+        """
+        # 1. Авторитетный источник: передан через NpcTickServices из npc_orchestration
+        if ctx.npc_services and hasattr(ctx.npc_services, 'spatial_service') and ctx.npc_services.spatial_service:
+            self._spatial_service = ctx.npc_services.spatial_service
+            return self._spatial_service
+            
+        # 2. Аварийная сборка из scene_state (если GameLoop не пробросил сервис)
+        _loc_id = ctx.scene_state.get("location_id", "")
+        if _loc_id:
+            logger.warning(f"[SPATIAL_AUTHORITY] ADR-048 VIOLATION: SpatialService собран вручную для {_loc_id}. GameLoop не пробросил сервис!")
+            self._spatial_service = SpatialService.build_for_location(
+                campaign_id=ctx.campaign_id,
+                location_id=_loc_id,
+                scene_state=ctx.scene_state,
+            )
+            return self._spatial_service
+            
+        return None
+
     def _get_memory_manager(self):
         if self._memory_manager is None:
             raise RuntimeError("MemoryManager не внедрён — передайте через конструктор")
@@ -445,10 +468,11 @@ class TickOrchestrator:
         Фазы 8-10 выполнит _run_pipeline (finalize, commit).
         Здесь — только decision + state mutation + IntentEventAdapter.
         """
+        dm = ctx.dm_ctx
+        _dm_npcs = len(dm.all_npcs_raw) if dm and dm.all_npcs_raw else 0
+        logger.warning(f"[PHASE_5_PLAYER] ENTER: nearby_npcs={len(dm.nearby_npcs) if dm and dm.nearby_npcs else 0}, dm.all_npcs_raw={_dm_npcs}")
         from app.services.npc.npc_tick_contracts import NpcTickInput, NpcTickBuffer
         from app.services.npc.npc_tick_pipeline import run_npc_pipeline
-
-        dm = ctx.dm_ctx
         npc_input = NpcTickInput(
             campaign_id=ctx.campaign_id,
             location=ctx.scene_state.get("location_id", ""),
@@ -523,6 +547,23 @@ class TickOrchestrator:
             player_result=player_result,
         )
 
+        # ADR-042 Fix: Инъекция актуального NPC state для DirectiveInterpretationSubscriber.
+        # При ходе игрока Фаза 0 (_phase_0_simulation) пропускается, 
+        # из-за чего ctx.all_npcs_raw остаётся пустым и Труба Воли обрывается (DIRECTIVE_NO_STATE).
+        _life_engine = self._get_life_engine()
+        if _life_engine:
+            ctx.npc_states = _life_engine.get_npc_states(ctx.campaign_id)
+            # ЗАЩИТА ОТ ЗАТИРАНИЯ: LifeEngine возвращает [] если tick() не вызывался.
+            # Нельзя убивать загруженных NPC из-за пустого кэша.
+            if ctx.npc_states:
+                ctx.all_npcs_raw = ctx.npc_states
+            
+            # ADR-064 Fix: Fallback на DMContextDTO, так как LifeEngine возвращает []
+            # при холодном кэше (ход игрока до idle-тика). Каузальная труба Воли не должна обрываться.
+            if not ctx.all_npcs_raw and ctx.dm_ctx and ctx.dm_ctx.all_npcs_raw:
+                ctx.all_npcs_raw = ctx.dm_ctx.all_npcs_raw
+                logger.info("[CAUSALITY] all_npcs_raw загружен из dm_ctx (LifeEngine кэш пуст).")
+
         # ADR-035: Перехват пространственных команд в R3 Direct Path.
         # Если Слой 1 распознал MOVE, а пайплайн NPC пропустил это, создаем SceneChange напрямую.
         # S28 Debug: Проверка каузального шлюза
@@ -595,21 +636,28 @@ class TickOrchestrator:
 
         # ADR-035: Обработка реактивных перемещений (MovementIntents)
         # В player turn LifeEngine не вызывается, поэтому MovementEngine нужно вызвать вручную
+        print(f"[DIAG] player_result={ctx.player_result is not None} movement_intents={len(ctx.player_result.movement_intents) if ctx.player_result and ctx.player_result.movement_intents else 0}")
         if ctx.player_result and ctx.player_result.movement_intents:
             from app.services.spatial.movement_engine import MovementEngine
-            if _loc_id := ctx.scene_state.get("location_id", ""):
-                _spatial_svc = SpatialService.build_for_location(
-                    campaign_id=ctx.campaign_id,
-                    location_id=_loc_id,
-                    scene_state=ctx.scene_state,
-                )
+            _spatial_svc = self._resolve_spatial_service(ctx)
+            print(f"[DIAG] spatial_svc={_spatial_svc is not None} scene_manager={self._scene_manager is not None}")
+            if _spatial_svc:
                 me = MovementEngine()
                 me.set_spatial_service(_spatial_svc)
                 _tick = self.get_current_tick(ctx.campaign_id)
-                changes = me.process_intents(ctx.player_result.movement_intents, _tick, ctx.scene_state.get("npc_positions", {}))
+                changes = me.process_intents(
+                    ctx.player_result.movement_intents, _tick,
+                    ctx.scene_state.get("npc_positions", {}),
+                    campaign_id=ctx.campaign_id, scene_state=ctx.scene_state
+                )
+                print(f"[DIAG] changes={len(changes)} scene_manager={self._scene_manager is not None}")
                 if changes and self._scene_manager:
                     self._scene_manager.apply_changes(ctx.campaign_id, changes, ctx.scene_state)
                     logger.warning(f"[PLAYER_TURN] Applied {len(changes)} reactive movement changes")
+                elif changes and not self._scene_manager:
+                    print(f"[DIAG] CRITICAL: scene_manager is None! Changes lost!")
+            else:
+                logger.error("[SPATIAL_AUTHORITY] SpatialService отсутствует, реактивное движение заблокировано.")
 
         # Фаза 0.5: время не останавливается (decay = всегда)
         self._phase_0_5_idle_services(ctx)
@@ -699,17 +747,8 @@ class TickOrchestrator:
         runtime_path = self._get_npc_runtime_path(ctx.campaign_id)
         # ADR-0010: TransitTracker больше не передаётся в LifeEngine/MovementEngine
         
-        # Инжекция SpatialService v1.2 для семантической навигации
-        _spatial_svc = None
-        if ctx.npc_services and hasattr(ctx.npc_services, "spatial_service") and ctx.npc_services.spatial_service:
-            _spatial_svc = ctx.npc_services.spatial_service
-        elif _location_id := ctx.scene_state.get("location_id", ""):
-            # Fallback для idle_tick: если сервис не передан через npc_services, собираем на лету
-            _spatial_svc = SpatialService.build_for_location(
-                campaign_id=ctx.campaign_id,
-                location_id=_location_id,
-                scene_state=ctx.scene_state,
-            )
+        # ADR-048: Авторитетный SpatialService берется из единого резолвера
+        _spatial_svc = self._resolve_spatial_service(ctx)
         if _spatial_svc:
             engine.set_spatial_service(_spatial_svc)
         
@@ -731,7 +770,11 @@ class TickOrchestrator:
             if _loc_id and _spatial_svc:
                 me = MovementEngine()
                 me.set_spatial_service(_spatial_svc)
-                spatial_changes = me.process_intents(life_intents, tick=ctx.tick_number, npc_positions=ctx.scene_state.get("npc_positions", {}))
+                spatial_changes = me.process_intents(
+                    life_intents, tick=ctx.tick_number,
+                    npc_positions=ctx.scene_state.get("npc_positions", {}),
+                    campaign_id=ctx.campaign_id, scene_state=ctx.scene_state
+                )
                 if spatial_changes and self._scene_manager:
                     self._scene_manager.apply_changes(ctx.campaign_id, spatial_changes, ctx.scene_state)
                     logger.info(f"[TICK_ORCH] Фаза 0: {len(spatial_changes)} spatial changes from {len(life_intents)} LifeEngine intents")
@@ -1001,6 +1044,7 @@ class TickOrchestrator:
         identity, drive_modifiers, cognitive_distortion, topic (Устав §3.1).
         CommunicationIntents передаются в Фазу 6 для публикации (Устав §3.3).
         """
+        logger.warning(f"[PHASE_5] ENTER: is_player={ctx.is_player_turn if hasattr(ctx, 'is_player_turn') else '?'}, npc_states={len(ctx.npc_states) if hasattr(ctx, 'npc_states') else '?'}")
         engine = self._get_life_engine()
         
         # Собираем identity L1 для каждого NPC — кристаллизованные черты личности
@@ -1011,7 +1055,7 @@ class TickOrchestrator:
                 if traits := mm.get_identity_traits(ctx.campaign_id, npc_id):
                     identities[npc_id] = traits
         
-        decision_dicts, communication_intents = engine.tick_decisions(
+        decision_dicts, communication_intents, movement_intents = engine.tick_decisions(
             ctx.campaign_id, ctx.scene_state,
             topics=ctx.npc_topics, identities=identities,
         )
@@ -1019,6 +1063,43 @@ class TickOrchestrator:
         ctx.communication_intents = communication_intents or []
         if decision_dicts:
             logger.debug(f"[TICK_ORCH] Фаза 5: {len(decision_dicts)} decisions, {len(communication_intents)} intents")
+
+        # Каузальный мост: когнитивные решения → пространственное движение
+        if movement_intents:
+            from app.services.spatial.movement_engine import MovementEngine
+            from app.domain.movement import MacroMovementGoal, LocalSteeringGoal
+            
+            # ADR-060.1: Арбитраж LOD0/LOD1 ДО исполнения. 
+            # Гарантирует, что LOD0 (уклонение) не убивает LOD1 (маршрут).
+            # Порядок: LOD1 (Macro) выполняется первым, LOD0 (Micro) корректирует позицию.
+            _merged_intents = []
+            _per_npc = {}
+            for i in movement_intents:
+                _nid = getattr(i, 'npc_id', None)
+                if _nid: _per_npc.setdefault(_nid, []).append(i)
+                else: _merged_intents.append(i) # Без npc_id — сразу на исполнение
+                
+            for _nid, _intents in _per_npc.items():
+                if len(_intents) > 1:
+                    # Сортируем: Macro (LOD1) идет первым, Micro (LOD0) корректирует
+                    _intents.sort(key=lambda x: isinstance(x, LocalSteeringGoal))
+                _merged_intents.extend(_intents)
+            
+            _spatial_svc = self._resolve_spatial_service(ctx)
+            if _spatial_svc:
+                me = MovementEngine()
+                me.set_spatial_service(_spatial_svc)
+                spatial_changes = me.process_intents(
+                    _merged_intents, tick=ctx.tick_number,
+                    npc_positions=ctx.scene_state.get("npc_positions", {}),
+                    campaign_id=ctx.campaign_id, scene_state=ctx.scene_state
+                )
+                if spatial_changes and self._scene_manager:
+                    self._scene_manager.apply_changes(ctx.campaign_id, spatial_changes, ctx.scene_state)
+                if spatial_changes:
+                    logger.info(f"[CAUSAL_BRIDGE] Фаза 5: {len(spatial_changes)} spatial changes from {len(movement_intents)} cognitive intents")
+            else:
+                logger.error("[SPATIAL_AUTHORITY] SpatialService отсутствует, движение решений заблокировано.")
 
     def _phase_6_post_decision(self, ctx: _TickContext) -> None:
         """IntentEventAdapter: CommunicationIntent → EventDTO (Устав §3.3).
@@ -1585,12 +1666,11 @@ class TickOrchestrator:
                         ),
                         None,
                     ):
-                        from app.services.affective.pressure_derivation import derive_affective_pressure
-                        from app.services.affective.emotion_resolution import resolve_emotion_from_pressure
+                        from app.services.affective.affective_integrator import integrate_affective_pressure
+                        from app.services.affective.emotion_transition import resolve_emotion_transition
                         from app.models.npc_state import PerceptualKernel
                         
                         psyche = npc_raw.get("psyche", {}).get("drives_base", {})
-                        body_state = npc_raw.get("body_state", {})
                         pk_dict = npc_raw.get("perceptual_kernel", {})
                         
                         # Легковесная проекция: старое ядро + текущая дельта (clamping 0.0-1.0)
@@ -1603,10 +1683,16 @@ class TickOrchestrator:
                             initiative_suppression=pk_dict.get("initiative_suppression", 0.0)
                         )
                         
-                        pressure = derive_affective_pressure(projected_kernel, body_state)
-                        if emotion_payload := resolve_emotion_from_pressure(
-                            pressure, psyche
-                        ):
+                        # ADR-049: Интеграция аффективного давления (Страх = интеграл угрозы по времени)
+                        current_load = npc_raw.get("affective_load", 0.0)
+                        new_load = integrate_affective_pressure(projected_kernel, current_load, psyche)
+                        
+                        # ADR-049: Фазовый переход эмоции при пересечении порога
+                        if emotion_payload := resolve_emotion_transition(new_load, current_load, psyche):
+                            # Передаем новое значение интеграла в Applicator для сохранения в NPCState
+                            from dataclasses import replace
+                            emotion_payload = replace(emotion_payload, affective_load=new_load)
+                            
                             emotion_delta = StateDeltas(
                                 npc_id=entity_id,
                                 domain=DeltaDomain.EMOTION,

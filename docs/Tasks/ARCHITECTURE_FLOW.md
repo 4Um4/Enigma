@@ -1,4 +1,4 @@
-flowchart TD
+﻿flowchart TD
 %% === ADR-0015: IMMUTABLE SNAPSHOT FEED (Temporal Isolation) ===
 SNAP_T[world_snapshot t IMMUTABLE ADR-0015] -->|Read-Only Feed| P0
 SNAP_T -->|Read-Only Feed| P3
@@ -6,10 +6,13 @@ SNAP_T -->|Read-Only Feed| P5
 SNAP_T -->|Read-Only Feed| PER
 
 subgraph Spatial_Layer[Spatial Service v1.2: Единый источник пространственных данных]
-GC[GraphCompiler compile_graph] -->|graph, connections, alias_map| SS[SpatialService]
+LOC_DATA[location_templates.json / editor JSON] -->|positions + connections ADR-060| GC[GraphCompiler compile_graph]
+GC -->|graph, connections, alias_map| SS[SpatialService]
 SC_T[SceneState t-1] -->|build_overlay| SS
 SS -->|DI: set_spatial_service| ME[MovementEngine]
 SS -->|get_node with prefix fallback ADR-0009| SSM[SceneStateManager Spatial Reducer ADR-0015]
+SSM -->|current_tick >= started_tick + duration_ticks| SSM_FINAL[_enrich_local_positions Finalize Traversals & Set local_position ADR-059]
+SSM_FINAL -->|Immutable Source| WSB_IMMUT[WorldSnapshotBuilder Pure Projection]
 SS -->|build_cluster_graph ADR-0029| CG[ClusterGraph]
 end
 
@@ -21,7 +24,8 @@ P0 -->|life_intents ADR-051| ME
 P0 -->|ctx.npc_states = ctx.all_npcs_raw| SA_SYNC[State Sync ADR-004]
 P05[Phase 0.5: Idle Services ALWAYS] -->|List StateDeltas| DBUF[delta_buffer]
 PI[Player Input] -->|Raw Text| IC[IntentCompressor pymorphy3 Fast Path + LLM Slow Path ADR-035]
-IC -->|IntentSemanticField| TR[Target Reference Resolver String to ID]
+IC[IntentCompressor pymorphy3 Fast Path + LLM Slow Path ADR-035] -->|IntentSemanticField| TR[Target Reference Resolver String to ID ADR-060 Fuzzy Matching]
+SC_T[SceneState t-1] -.->|npc_positions with name| TR
 TR -->|IntentParametersDTO strict payload ADR-035| IPR[IntentPressureResolver Semantic Translation ADR-031]
 IPR -->|IntentPressureProfile| WPG[WillpowerGate Cumulative Strain Model + EmbodiedVector ADR-040]
 WPG -->|WillResponseDTO origin_layer + embodied_vector| P1[Phase 1: Input]
@@ -60,7 +64,7 @@ subgraph Phase_3_7[Фазы 3-7: Memory and Decision]
 P2 -->|EventDTO| P3[Phase 3: MemoryProcessor]
 P3 -->|Updated NPCState| P4[Phase 4: TopicExtractor]
 P4 -->|Topic| P5[Phase 5: DecisionHub v2 ADR-032 ADR-049]
-PKERN[NPCState.perceptual_kernel T-1] -.->|translate_kernel_to_context ADR-053| DCTX[DecisionContext ADR-053]
+PKERN[NPCState.perceptual_kernel T-1] -.->|translate_kernel_to_context ADR-049| DCTX[DecisionContext ADR-049]
 PRESSURE[PsychologicalPressure] -.->|translate_pressure_to_context| DCTX
 DCTX -->|decision_ctx T+1 Cognitive Discretization| P5
 P5 -->|CommunicationIntent| P6[Phase 6: IntentEventAdapter]
@@ -99,17 +103,17 @@ CSUB -->|extract ImpactIntentDTO| IE
 IE -->|List StateDeltas PHYSIOLOGY| CSUB
 CSUB -->|Phase8Result deltas| MAT[Materialization Tuple StateDeltas ADR-0016]
 
-MAT -->|physical_deltas_materialized| RXT[ReactionSubscriber ADR-0016]
+MAT -->|ctx.physical_deltas_materialized| RXT[reaction_subscriber.ReactionSubscriber ADR-0016]
 P7 -->|drain_events| RXT
 P2 -->|drain_events| RXT
 
-MAT -->|physical_deltas_materialized| SOC[SocialSubscriber]
+MAT -->|physical_deltas_materialized| SOC[social_subscriber.SocialSubscriber]
 P7 -->|drain_events| SOC
 P2 -->|drain_events| SOC
 
 PROP[propagate_social_rumors pure function v2 EMOTION+SOCIAL split]
 RXTMOD[_compute_reaction_modifier composure x fear_drive x willpower]
-RXT -->|reads shock_impulse from materialized physical layer| SHOCK_CASCADE[Cascade: Force → Pain → Shock → Emotion ADR-0016]
+RXT -->|reads shock_impulse from ctx.physical_deltas_materialized| SHOCK_CASCADE[Cascade: Force → Pain → Shock → Emotion ADR-0016]
 SHOCK_CASCADE -->|shock > 0.5| PANIC[emotion_tag=panic]
 SHOCK_CASCADE -->|empathic horror if witness| EMPATHY[stress_delta += shock * 30 * modifier]
 
@@ -118,10 +122,17 @@ SOC -->|calls| PROP
 PROP -->|List StateDeltas domainEMOTION + domainSOCIAL| SOC
 
 %% --- ADR-036: Social Physics (Directive Interpretation) ---
-DIS[DirectiveInterpretationSubscriber ADR-036] -->|reads semantic_action + target_id| OBEDIENCE[PsychologicalPressure directive_obedience]
+DIS[DirectiveInterpretationSubscriber ADR-036] -->|calculates legitimacy = maxfear_trust/100| LEGIT{legitimacy > 0.3 Internal Check ADR-057}
 P7 -->|drain_events| DIS
 P2 -->|drain_events| DIS
-OBEDIENCE -->|StateDeltas EMOTION + SOCIAL + directive_obedience| DBUF2
+LEGIT -->|Has Legitimacy| OBEY_INT[obedience_intensity > 0 StateDeltas EMOTION+SOCIAL+directive_obedience]
+LEGIT -->|No Legitimacy| IRR_INT[irritation_intensity > 0 StateDeltas EMOTION+SOCIAL+stress]
+OBEY_INT -->|submissive_fear / unease| DBUF2
+IRR_INT -->|aggression_inhibition unlock| DBUF2
+
+%% Bug #6 Fix: Fallback injection
+LE_COLD[LifeEngine Cold Cache] -.->|Empty State| DIS
+DM_CTX[TickContext.all_npcs_raw via DMContextDTO Fallback ADR-064] -.->|Inject if Cold| DIS
 
 RXT -->|Phase8Result deltas| ORCH
 SOC -->|Phase8Result deltas| ORCH
@@ -241,12 +252,13 @@ classDef adapter fill:#f88,stroke:#333,stroke-width:2px,stroke-dasharray: 5 5;
 class LDA adapter;
 %% --- ADR-037: Phenomenological Presentation & Resistance Medium ---
 DGW -->|GameActionResponse + will_conflict_data| PY
-PY -->|will_conflict_data| INFECT[TextInput.infect Resistance Medium ADR-037]
-INFECT -->|Моторное сопротивление вводу| PLAYER[Player Input]
+PY -.->|will_conflict_data ADR-041 UNWIRED| INFECT[text_input.TextInput.infect Resistance Medium ADR-039]
+INFECT -.->|Моторное сопротивление вводу| PLAYER[Player Input]
 
-PY -->|avatar_state dict| FW[PresentationFirewall sanitize + clamp ADR-037]
-FW -->|SanitizedPerceptualVectors| PM[PerceptualMomentum S-curve + inertia + stochasticity ADR-037]
-PM -->|ManifestationProfile| REND
+PY -->|avatar_state dict DIRECT PASS| REND[scene_renderer.SceneRenderer render]
+PY -.->|avatar_state dict UNWIRED| FW[presentation_firewall.PresentationFirewall sanitize + clamp ADR-037]
+FW -.->|SanitizedPerceptualVectors| PM[perceptual_momentum.PerceptualMomentum S-curve + inertia ADR-037]
+PM -.->|ManifestationProfile| REND
 
 classDef firewall fill:#f66,stroke:#333,stroke-width:2px;
 classDef momentum fill:#ff9,stroke:#333,stroke-width:2px;
@@ -301,7 +313,7 @@ class SS forbidden;
 %% --- ADR-058: Frontend Dual-Time Ontology ---
 subgraph Dual_Time_Ontology[Dual-Time Ontology ADR-058]
     direction TB
-    WSB[WorldSnapshotBuilder] -->|NPCPositionDTO + initiative_suppression| API[API Route]
+    WSB[WorldSnapshotBuilder] -->|NPCPositionDTO + initiative_suppression| API[API Route Universal Serializer ADR-060]
     WSB -->|active_traversals| API
     
     API -->|WorldSnapshotDTO| GS[GameScreen]
@@ -320,3 +332,142 @@ end
 classDef dualtime fill:#9f9,stroke:#333,stroke-width:2px;
 class WSB,API,GS,PE,SR,SR_TREMOR dualtime;
 class PF forbidden;
+
+%% --- ADR-059: Causal Diagnostic System (CDS) ---
+subgraph Diagnostic_Layer[Observability Layer: CDS ADR-059]
+    direction TB
+    LAUNCHER[game_launcher.py] -->|DIAGNOSTICS_ENABLED=True start background thread| COBS[CausalObserver]
+    
+    STDOUT[Game stdout/log] -->|pipe/file read| COBS
+    GIT[git log -5 & MUTATIONS.md] -->|read| COBS
+    TODO[Select-String TODO/FIXME] -->|read| COBS
+    
+    COBS -->|parse patterns| PR[PatternRegistry]
+    COBS -->|build chains| CCB[CausalChainBuilder]
+    COBS -->|check health| HC[HealthCheckers tick/movement/spatial]
+    
+    COBS -->|render 3 sections| REND_CDS[ReportRenderer]
+    REND_CDS -->|overwrite| REPORT[reports/LAST_SESSION.md LLM Context]
+end
+
+classDef diagnostic fill:#fcf,stroke:#333,stroke-width:2px,stroke-dasharray: 5 5;
+class LAUNCHER,COBS,STDOUT,GIT,TODO,PR,CCB,HC,REND_CDS,REPORT diagnostic;
+
+%% --- ADR-059: Temporal Authority Separation & SnapshotBuilder Immutability ---
+subgraph Temporal_Authority[Temporal Authority Separation ADR-059]
+    direction TB
+    GL_TICK[GameLoop idle_tick & _run_pipeline] -->|tick += 1| SS_TICK[scene_state.tick Monotonic Causal]
+    
+    SS_TICK -->|started_tick + duration_ticks| TRAVERSAL[TraversalState Tick-based]
+    SS_TICK -->|read current_tick| FE_TICK[Frontend scene_state.tick]
+    FE_TICK -->|current_tick| PROGRESS[progress = current - started / duration]
+    TRAVERSAL -->|started_tick, duration_ticks| PROGRESS
+    
+    SS_TICK -->|tick >= completed| SSM_FINAL[SceneStateManager Finalize Traversals & Enrich local_position]
+    SSM_FINAL -->|Immutable Source| WSB_IMMUT[WorldSnapshotBuilder Pure Projection]
+    
+    WSB_IMMUT -.->|ЗАПРЕЩЕНО: delete/mutate traversals| SSM_FINAL
+    CALC_TIME[game_time_seconds // 60] -.->|ЗАПРЕЩЕНО: Circular Dependency| SS_TICK
+    REAL_TIME[time.time / pygame.get_ticks] -.->|ЗАПРЕЩЕНО: Second Clock| PROGRESS
+end
+
+classDef temporalAuth fill:#ccf,stroke:#333,stroke-width:2px;
+class GL_TICK,SS_TICK,TRAVERSAL,FE_TICK,PROGRESS,SSM_FINAL,WSB_IMMUT temporalAuth;
+classDef forbiddenTime fill:#f66,stroke:#333,stroke-width:2px,stroke-dasharray: 5 5;
+class CALC_TIME,REAL_TIME forbiddenTime;
+
+%% --- ADR-061 & ADR-062: Causal Memory & LOD Arbitration ---
+subgraph Sprint36[Сессия 42: Каузальная Память и Арбитраж Движения]
+    direction TB
+    
+    %% Memory Flow
+    EB_P2[EventBus Primary] -->|spatial| P2E[phase_2_events]
+    EB_COG[EventBus Cognitive PLAYER_SPOKE] -->|get_recent_events| ETR[events_to_remember]
+    P2E --> ETR
+    
+    ETR -->|apply| MM[MemoryManager]
+    MM -->|summary = raw_input| EM[EventMemory L2 Cache]
+    EM -->|recall| VC[VerbalizationContext recalled_facts]
+    VC -->|add_npc_l2_memory| LLM[LLM Prompt]
+    
+    %% Movement Arbitration Flow
+    LE[LifeEngine tick_decisions] -->|winner-takes-all| CAND[Mixed Intent List]
+    CAND -->|ADR-060.1 Arbitration| MERGED[merged_intents: Macro first, Micro second]
+    MERGED -->|process_intents| ME[MovementEngine]
+    
+    %% Forbidden
+    EB_COG -.->|ЗАПРЕЩЕНО: Игнорировать когнитивные события| P2E
+    CAND -.->|ЗАПРЕЩЕНО: Прямая передача без арбитража| ME
+end
+
+classDef sprint36 fill:#ffd700,stroke:#333,stroke-width:2px;
+class EB_P2,EB_COG,P2E,ETR,MM,EM,VC,LLM,LE,CAND,MERGED,ME sprint36;
+
+
+%% --- ADR-064: Schema Enforcement & Will Deafness Fix ---
+subgraph Sprint45[Сессия 45: Оживление Графа и Трубы Воли]
+    direction TB
+    
+    %% Spatial Graph Flow (SCF=0 Fix)
+    EDIT_JSON[Map Editor JSON] -->|save| DM[data_manager]
+    DM -->|inject location_id| EDIT_JSON
+    EDIT_JSON -->|load_editor_json| GC[graph_compiler]
+    GC -->|Strict Match or Valid Inferred| SS[SpatialService]
+    GC -.->|DEPRECATION: Fallback by prefix| SS
+    GC -.->|REJECT: Collision / No ID| X[Dead Graph SCF=0]
+    
+    %% Will Pipeline Flow (SHI=0% Fix)
+    SOCIAL[player_social / player_moves] -->|action| RIP[resolve_intent_pressure]
+    RIP -->|identity_deviation > 0.3| IPP[IntentPressureProfile]
+    IPP -->|input| WG[WillpowerGate]
+    
+    %% Forbidden
+    DM -.->|ЗАПРЕЩЕНО: Сохранять без location_id| EDIT_JSON
+    SOCIAL -.->|ЗАПРЕЩЕНО: Возвращать нулевое давление| RIP
+end
+
+classDef sprint45 fill:#b30059,stroke:#333,stroke-width:2px;
+class EDIT_JSON,DM,GC,SS,X,SOCIAL,RIP,IPP,WG sprint45;
+
+
+%% --- ADR-061/066: Player Position Authority & llama-server Guard ---
+subgraph Sprint46[Сессия 46: Player Position Authority]
+    direction TB
+    
+    %% Player Position Authority (ADR-061)
+    FE[Frontend player_x/y HTTP POST] -->|player_position| SI[scene_init._update_player_position ADR-061]
+    SI -->|ЕДИНСТВЕННЫЙ ПИСАТЕЛЬ| NP[npc_positions.player.local_position]
+    NO[npc_orchestration] -->|reads NP directly| SSS[SpatialService.get_nearest]
+    SSS -->|resolved_node| PIPE[npc_tick_pipeline APPROACH_NAV]
+    
+    %% player_spatial = DEAD source
+    PS[player_spatial DEAD SOURCE] -.->|ЗАПРЕЩЕНО: запись ADR-048 Phase 3| NP
+    NO -.->|ЗАПРЕЩЕНО: читать из player_spatial| PS
+    
+    %% llama-server double-launch guard (ADR-066)
+    MAIN2[main.py lifespan] -->|pre-check health| LLAMA[llama-server :8080]
+    MAIN2 -->|_llama_started_by_us=True| GUARD[shutdown guard]
+    GUARD -->|kill only if ours| LLAMA
+    ATX[atexit._kill_llama_server] -->|kill only if ours| LLAMA
+end
+
+classDef sprint46 fill:#0066cc,stroke:#333,stroke-width:2px;
+class FE,SI,NP,NO,SSS,PIPE,PS,MAIN2,LLAMA,GUARD,ATX sprint46;
+
+
+%% --- ADR-064/065: Directive Continuity & Spatial Authority Consolidation ---
+subgraph Sprint47[Сессия 47: Труба Воли и Spatial Authority]
+    direction TB
+    
+    %% Will Pipeline Continuity - Bug 6 Fix
+    LE2[LifeEngine Cache] -->|Cold Cache returns empty| DIS[DirectiveInterpretationSubscriber]
+    DM_CTX[DMContextDTO.all_npcs_raw] -->|Fallback injected by TickOrchestrator| DIS
+    DIS -->|ObediencePressure greater 0| OBEY[Social Physics Engine]
+    
+    %% Spatial Authority Consolidation
+    GL[GameLoop] -->|Inject via NpcTickServices| SS2[SpatialService]
+    TO[TickOrchestrator] -->|resolves spatial service| SS2
+    TO -.->|FORBIDDEN manual build| SS2
+end
+
+classDef sprint47 fill:#0066cc,stroke:#333,stroke-width:2px;

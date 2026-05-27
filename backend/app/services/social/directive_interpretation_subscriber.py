@@ -39,7 +39,7 @@ class DirectiveInterpretationSubscriber:
                 npc_name = n.get("name", "").lower()
                 npc_id = n.get("npc_id", "").lower()
                 if target_ref in npc_name or target_ref in npc_id:
-                    target_id = n.get("npc_id")
+                    target_id = n.get("npc_id") or n.get("id")
                     logger.info(f"[DIRECTIVE_RESOLVE] Resolved target_ref '{target_ref}' to ID '{target_id}'")
                     break
                     
@@ -47,7 +47,7 @@ class DirectiveInterpretationSubscriber:
             return []
 
         # 2. Находим цель в npc_states (если доступно)
-        target_dict = next((n for n in npc_states if n.get("npc_id") == target_id), None)
+        target_dict = next((n for n in npc_states if (n.get("npc_id") or n.get("id")) == target_id), None)
         if not target_dict:
             # S28: В player turn npc_states пуст. Используем fallback, т.к. ID уже известен.
             logger.info(f"[DIRECTIVE_NO_STATE] NPC {target_id} state not loaded, using base fear 0.1")
@@ -67,11 +67,26 @@ class DirectiveInterpretationSubscriber:
 
         # 4. Вычисление Psychological Cost of Refusal (Legitimacy Gate ADR-057)
         # Если NPC не боится и не доверяет — это не приказ, а раздражающая просьба.
-        target_fear = target_dict.get("social_stats", {}).get("fear_of_player", 0.1)
-        target_trust = target_dict.get("social_stats", {}).get("trust", 0.1)
+        # ADR-005: social_stats.fear_of_player — динамическое, drives.fear — базовое (seed)
+        target_fear = target_dict.get("social_stats", {}).get("fear_of_player", 0.0)
+        if target_fear == 0.0:
+            # Fallback на drives.fear — врождённая осторожность NPC
+            target_fear = target_dict.get("drives", {}).get("fear", 0.1)
+        target_trust = target_dict.get("social_stats", {}).get("trust", 0.0)
+        if target_trust == 0.0:
+            # Fallback на psyche.loyalty_true — базовая лояльность
+            target_trust = float(target_dict.get("psyche", {}).get("loyalty_true", 0.0))
         
         # Легитимность: страх (принуждение) + доверие (авторитет)
         legitimacy = max(target_fear, target_trust / 100.0) # trust 0-100, fear 0-1
+        
+        # L1 BRIDGE: Professional Duty (MVP для compliance_bias).
+        # Обслуживающий персонал обязан подчиняться запросам MOVE (подзыв).
+        # В будущем заменяется на: npc.living.core.compliance_bias
+        _archetype = str(target_dict.get("_archetype", "")).lower()
+        _service_archetypes = {"maid", "tavern_keeper", "servant", "waiter", "bartender"}
+        if semantic_action == "MOVE" and _archetype in _service_archetypes:
+            legitimacy = max(legitimacy, 0.7)  # Высокая легитимность по долгу службы
         
         if legitimacy > 0.3:
             # Приказ или просьба от авторитета → Подчинение

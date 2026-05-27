@@ -253,14 +253,20 @@ class GameLoop:
         Конвертация DTO→dict происходит ЗДЕСЬ, не в мосту (Устав §1.1).
         Frontend не должен знать про backend-классы.
         """
-        _scene = self.scene_manager.get_scene_state(campaign_id, "")
+        # БАГ G-2 FIX: Гарантируем инициализацию сцены (стены, NPC, время)
+        from app.services.game_loop.scene_init import ensure_scene_initialized
+        _scene = ensure_scene_initialized(self, campaign_id)
         if _scene is None:
             return {"status": "no_scene", "npc_positions": {}}
+
+        # ADR-0XX: Temporal Authority Separation. Монотонный каузальный тик.
+        # Только +1. Никогда не сбрасывается. Не зависит от календаря (game_time_seconds).
+        _scene["tick"] = _scene.get("tick", 0) + 1
 
         result: TickResultDTO = self._tick_orch.execute(
             campaign_id=campaign_id,
             scene_state=_scene,
-            tick_number=self.get_current_tick(campaign_id),
+            tick_number=_scene["tick"], # Авторитетный источник тика
         )
 
         # Конвертация WorldSnapshotDTO → dict для фронтенда
@@ -550,6 +556,16 @@ class GameLoop:
 
         scene_state = init_scene_state(self, campaign_id, location, shared_context, campaign_state,
                                        player_position=player_position)
+
+        # КРИТИЧЕСКИ: shared_context должен ссылаться на реальный scene_state, а не на пустой {}
+        # Без этого player-путь работает без NPC и пространства
+        shared_context.scene_state = scene_state
+
+        # ADR-0XX: Temporal Authority Separation. Монотонный каузальный тик.
+        # Инкрементируется строго на +1 при ЛЮБОМ вводе (idle или player action).
+        scene_state["tick"] = scene_state.get("tick", 0) + 1
+        if hasattr(shared_context, 'current_tick'):
+            shared_context.current_tick = scene_state["tick"]
 
         # ФАЗА 1-3: DM классификация + EventBus + STM + время
         try:

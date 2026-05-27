@@ -1,34 +1,36 @@
-# ADR-049 Impact Audit
+# ADR-049 Impact Audit: Causal Pressure Pipeline & Affective Accumulation
 
 ## Измененный АДР
-ADR-049: Causal Pressure Pipeline & DecisionContext Geometry (Замыкание контуров)
+ADR-049 (Замыкание контуров Восприятие-Эмоция-Решение)
 
 ## Тип изменения
 ONTOLOGY (ADR-O)
 
-## Измененные домены (Changed Domains)
-- perception (Врезка PerceptualKernel в скоринг DecisionHub)
-- emotion (Конвертация PerceptionPayload в Legacy Adapter)
-- temporal (Cognitive Override Guard в LifeEngine)
-- spatial (Устранение player_spatial и denormalize_id)
+## Этап 1: DecisionContext Geometry (ЗАВЕРШЁН)
+- Врезка PerceptualKernel в скоринг DecisionHub.
+- Cognitive Override Guard в LifeEngine.
 
-## Связанные потребители (Downstream Consumers)
-- DecisionHub (теперь читает threat_gradient для APPROACH и FLEE)
-- LifeEngine (теперь уважает когнитивное давление выше 0.4)
-- LegacyStateDeltaAdapter (теперь конвертирует PerceptionPayload в v1 стресс/страх)
-- npc_tick_pipeline._resolve_reactive_movement (теперь читает игрока из единого авторитета)
+## Этап 2: Affective Accumulation Pipeline (ЗАВЕРШЁН)
+- Внедрение субъективного аффективного коллапса (Интеграл угрозы по времени).
+
+## Этап 3: Legacy Hardcode Deprecation (ЗАВЕРШЁН)
+- Ампутация реактивного маппинга событий в эмоции из DecisionHub.
+- Очищена зона ответственности: DecisionHub больше не генерирует EmotionPayload.
+
+## Изменённые файлы (Этап 3)
+- `backend/app/services/npc/decision_hub.py` — удалены `e_stress`, `e_emotion`, `e_tag`. Удален блок `emotion_map`. Удалена генерация `EmotionPayload` в сборке дельт. Социальные дельты (`s_trust`, `s_fear`) сохранены, так как отношения — это рефлекс, а не аффективный коллапс.
 
 ## Влияние на производительность (Runtime Impact)
 - RAM Delta: 0
 - VRAM Delta: 0
-- Tick Latency Delta: +0.1ms (чтение kernel в DecisionHub), -1.5ms (отмена расписания при стрессе экономит тики)
+- Tick Latency Delta: -0.05ms (удаление цикла маппинга эмоций)
 
 ## Песочные тесты (Sandbox Tests)
-- tests/sandbox/oscilloscope_closed_loop.py — Проверка замкнутости: Команда → fear_delta → Резолв позиции Игрока → Движение
-- tests/sandbox/minimal_obedience_field.py — Валидация Физики Власти с учетом PerceptualKernel
+- 37 passed, 0 failed
 
 ## Откат (Rollback)
-1. Вернуть scene_state.get("player_spatial", {}) в _resolve_reactive_movement (ветки approach и flee).
-2. Удалить чтение state.perceptual_kernel из _relationship_modifier и risk_penalty в decision_hub.py.
-3. Удалить Cognitive Override Guard из life_engine.py.
-4. Удалить блок DeltaDomain.PERCEPTION из legacy_delta_adapter.py.
+1. Вернуть блоки вычисления `e_stress`, `e_emotion`, `e_tag` и `emotion_map` в метод `_compute_deltas`.
+2. Вернуть генерацию `EmotionPayload` в сборку `result_deltas`.
+```
+
+---

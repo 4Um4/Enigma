@@ -115,7 +115,7 @@ class StateApplicator:
                     new_state.trauma_markers.add("will_broken")
 
             self._apply_trait_decay(new_state)
-            logger.debug(f"[STATE_APPLIED] {new_state.npc_id}: stress={new_state.stress:.1f} intent={new_state.intent}")
+            logger.info(f"[STATE_APPLIED] {new_state.npc_id}: stress={new_state.stress:.1f} intent={new_state.intent}")
             return new_state
 
         except Exception as e:
@@ -436,6 +436,11 @@ class StateApplicator:
             ))
         if emotion_tag is not None:
             state.emotion = emotion_tag
+            
+        # ADR-049: Сохранение интеграла аффективного давления (из EmotionPayload)
+        affective_load_val = deltas.payload.affective_load if domain == DeltaDomain.EMOTION and isinstance(deltas.payload, EmotionPayload) and deltas.payload.affective_load is not None else None
+        if affective_load_val is not None:
+            state.affective_load = affective_load_val
 
         # Traits overlay
         for trait, value in deltas.trait_updates.items():

@@ -3,20 +3,22 @@ path: backend/app/domain/movement.py
 Назначение: Intent перемещения NPC. Пересекает границу Decision → Execution.
 Зависимости: dataclasses
 Основные сущности: MovementIntent
+
+TODO:
+- В будущем можно расширить до более сложной иерархии (например, MacroMovementIntent, LocalSteeringIntent), если потребуется более четкое разделение между разными типами перемещения.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import Optional
 
 
-@dataclass(frozen=True)
-class MovementIntent:
-    """Намерение переместить NPC к целевому узлу.
+@dataclass
+class MacroMovementGoal:
+    """LOD1: Навигация по графу локации (двери, зоны, комнаты).
     
-    Генерируется: LifeEngine (schedule/need-driven) или DecisionHub.
+    Генерируется: LifeEngine (schedule/need-driven).
     Обрабатывается: MovementEngine (Слой 2).
-    
-    Не содержит координат — только идентификатор узла графа.
     Конвертация в {x, y} — ответственность MovementEngine.
     """
     npc_id: str
@@ -24,16 +26,35 @@ class MovementIntent:
     from_node_id: str = ""  # текущий узел — для pathfinding (Слой 2)
     location_id: str = ""   # для загрузки правильного графа
     reason: str = ""        # "need_driven:hunger", "schedule:working"
+    priority: float = 0.5   # 0.0–1.0, для разрешения конфликтов intent-ов
+    target_local_xy: Optional[tuple[float, float]] = None  # ADR-065: Точные координаты цели внутри узла (для подхода к игроку)
+    # ADR-XXXX: Инвариант единого владения причинностью. Один Intent → один process_intents() → одно будущее.
+    processed: bool = field(default=False, init=False)
+    processor: Optional[str] = field(default=None, init=False)
 
-    # ADR-0010: movement_mode удалён. Макро-перемещение — Semantic Relocation.
-    priority: float = 0.5            # 0.0–1.0, для разрешения конфликтов intent-ов
-    local_target_xy: Optional[tuple[float, float]] = None  # LOD0: микро-перемещение внутри зоны
+
+@dataclass
+class LocalSteeringGoal:
+    """LOD0: Микро-рулежка внутри зоны (уклонение, расхождение, подход).
+    
+    Генерируется: DecisionHub / Reactive Movement.
+    Обрабатывается: MovementEngine (Слой 2).
+    Содержит абсолютные координаты внутри тайла.
+    """
+    npc_id: str
+    local_target_xy: tuple[float, float]  # Целевые координаты
+    reason: str = ""        # "reactive_snap", "collision_avoidance"
+    priority: float = 0.7   # Микро-рулежка приоритетнее макро-маршрутов по умолчанию
+    # ADR-XXXX: Инвариант единого владения причинностью
+    processed: bool = field(default=False, init=False)
+    processor: Optional[str] = field(default=None, init=False)
 
 
-# Константы приоритетов — выше = важнее (D6)
-# Порядок из Диаграммы 9: flee > combat > needs > schedule > random
-PRIORITY_FLEE: float = 1.0
-PRIORITY_COMBAT: float = 0.85
-PRIORITY_NEEDS: float = 0.7
-PRIORITY_SCHEDULE: float = 0.5
-PRIORITY_RANDOM: float = 0.3
+# Legacy alias для плавной миграции (будет удален в Phase 4)
+MovementIntent = MacroMovementGoal
+
+# Приоритеты intent-ов (для разрешения конфликтов)
+PRIORITY_RANDOM   = 0.3   # Случайное блуждание
+PRIORITY_NEEDS    = 0.5   # Базовые потребности (голод, отдых)
+PRIORITY_SCHEDULE = 0.6   # Расписание (работа, сон)
+PRIORITY_REACTIVE = 0.8   # Реактивное движение (approach, flee)

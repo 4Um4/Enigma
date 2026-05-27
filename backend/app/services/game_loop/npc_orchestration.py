@@ -78,6 +78,22 @@ def run_npc_orchestration(
     )
     # ADR-048: Authoritative Spatial Spine — единственный легитимный источник пространственной истины
     _scene_state = shared_context.scene_state or {}
+    
+    # ADR-048: npc_positions.player — авторитетный источник позиции игрока.
+    # _update_player_position (scene_init) уже записал актуальные координаты от фронтенда.
+    # player_spatial НЕ обновляется (запись запрещена ADR-048 Phase 3) — читать из него ЗАПРЕЩЕНО.
+    # Fallback на player_spatial только если фронтенд не прислал позицию (npc_positions.player пуст).
+    _player_entry = _scene_state.setdefault("npc_positions", {}).setdefault("player", {})
+    _plp = _player_entry.get("local_position") or _scene_state.get("player_spatial", {}).get("local_position", {})
+    if isinstance(_plp, dict) and isinstance(_plp.get("x"), (int, float)):
+        if _spatial_svc:
+            _p_node_ref = _spatial_svc.get_nearest(zone_id=location, origin_xy=(_plp.get("x", 0.0), _plp.get("y", 0.0)))
+            if _p_node_ref:
+                _p_node_id = getattr(_p_node_ref, 'node_id', str(_p_node_ref))
+                if _p_node_id.startswith(f"{location}:"):
+                    _p_node_id = _p_node_id.split(":")[-1]
+                _player_entry["position"] = _p_node_id
+
     _spatial_query = SpatialQueryService(
         npc_positions=_scene_state.get("npc_positions", {}),
         scene_state=_scene_state,
@@ -134,25 +150,10 @@ def run_npc_orchestration(
         if _nid in scene_state.get("npc_positions", {}):
             scene_state["npc_positions"][_nid]["initiative_suppression"] = _init_sup
 
-    # Реактивное движение NPC — MovementIntent → MovementEngine → SceneChange → apply_changes
+    # ADR-XXXX: Единственный владелец исполнения MovementIntent — TickOrchestrator.
+    # npc_orchestration только собирает контекст и пробрасывает DTO.
+    # ЗАПРЕТ: process_intents(), apply_changes(), мутация position/local_position
     _movement_intents = _tick_result.movement_intents if hasattr(_tick_result, "movement_intents") else []
-    if _movement_intents:
-        try:
-            from app.services.spatial.movement_engine import MovementEngine
-            from app.services.npc.life_engine import get_life_engine
-            _life_engine = get_life_engine()
-            _me = _life_engine._movement_engine
-            # ADR-0010: Без SpatialService MovementEngine глотает интенты (svc=None → continue).
-            if _spatial_svc and not _me._spatial_service:
-                _me.set_spatial_service(_spatial_svc)
-            _changes = _me.process_intents(_movement_intents, tick=0)
-            if _changes:
-                game_loop.scene_manager.apply_changes(campaign_id, _changes, scene_state)
-                logger.warning(f"[PIPELINE][ORCHESTRATION][MOVEMENT_RESULT] {len(_changes)} changes applied")
-                # Удалена загрузка удалённого load_graph и перезапись local_position строкой
-                # SceneStateManager.apply_changes уже резолвит x,y через SpatialService
-        except Exception as _move_err:
-            logger.warning(f"[MOVEMENT] Ошибка реактивного движения: {_move_err}")
 
     # ФАЗА 3.5: Reputation impact — влияние действий на репутацию фракций
     _rep_eng = game_loop._svc.get_reputation_engine()

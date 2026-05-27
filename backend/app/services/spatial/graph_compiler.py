@@ -224,7 +224,8 @@ def load_editor_json(
             continue
         for json_file in loc_dir.glob("*.json"):
             try:
-                data = json.loads(json_file.read_text(encoding="utf-8"))
+                # utf-8-sig корректно обрабатывает BOM (EF BB BF)
+                data = json.loads(json_file.read_text(encoding="utf-8-sig"))
                 lid = data.get("location_id", "")
                 label = data.get("label", "")
                 # Точное совпадение
@@ -233,9 +234,20 @@ def load_editor_json(
                 # Частичное совпадение
                 if label and location_id and location_id.lower() in label.lower():
                     return data
-                # Первый файл с nodes
-                if data.get("nodes") and not lid:
-                    return data
+                # ADR-061: Compatibility Resolver для legacy данных (без location_id).
+                # Строгое правило: инференс только по точному совпадению префикса имени файла.
+                # Пример: tavern.json -> tavern_silver_wolf (OK), но gate.json -> gate_house (REJECT, если есть gate_town)
+                if not lid and data.get("rooms"):
+                    inferred_lid = json_file.stem.lower()
+                    # Проверяем, что целевой location_id начинается с имени файла
+                    if location_id.lower().startswith(inferred_lid):
+                        logger.warning(
+                            f"[GRAPH_COMPILER] DEPRECATION: Файл {json_file.name} не имеет поля 'location_id'. "
+                            f"Инференс из имени файла: '{inferred_lid}'. Заполните поле в Map Editor!"
+                        )
+                        return data
+                    else:
+                        logger.error(f"[GRAPH_COMPILER] REJECT: Файл {json_file.name} не имеет location_id и имя не совпадает с {location_id}")
             except (json.JSONDecodeError, OSError):
                 continue
 

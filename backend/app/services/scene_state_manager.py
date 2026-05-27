@@ -43,9 +43,7 @@ from app.core.config import settings
 from app.services.scene_change import SceneChange, ChangeType
 from app.services.state.persistence_port import PersistencePort
 from app.services.spatial.location_graph import load_graph
-
-# Тип для опционального порта сохранения
-from typing import Optional
+from app.services.spatial.spatial_runtime import euclidean_distance
 
 logger = logging.getLogger(__name__)
 
@@ -267,6 +265,10 @@ class SceneStateManager:
         # Миграция: удаляем legacy snapshot_tick (Устав §3 — тик через TemporalEngine)
         if "snapshot_tick" in scene:
             del scene["snapshot_tick"]
+        # ADR-046 Fix: Гарантировать наличие имени (name) в npc_positions для Target Resolution (Слой 2)
+        for npc_id, pos_data in scene.get("npc_positions", {}).items():
+            if isinstance(pos_data, dict) and not pos_data.get("name"):
+                pos_data["name"] = _npc_id_to_display(npc_id)
         return scene
 
     def _enrich_spatial_data(self, campaign_id: str, scene_state: dict) -> None:
@@ -339,14 +341,17 @@ class SceneStateManager:
         scene_state["player_target_npc_name"] = target_npc_name
         scene_state["player_target_object"]   = target_object_id
 
+        # ADR-048 Phase 3: Запись player_distances и player_spatial ЗАПРЕЩЕНА.
+        # SpatialQueryService является авторитетом. player_distances — derived projection.
+        # Narrative-позиция (player_position как строка "стоит") пока оставлена для DM контекста.
         if player_position is not None:
             scene_state["player_position"] = player_position
 
-        if player_distances is not None:
-            scene_state["player_distances"] = player_distances
+        # if player_distances is not None:
+        #     scene_state["player_distances"] = player_distances
 
-        if player_spatial is not None:
-            scene_state["player_spatial"] = player_spatial
+        # if player_spatial is not None:
+        #     scene_state["player_spatial"] = player_spatial
 
         self.save_scene_state(campaign_id, scene_state)
         logger.info(
@@ -407,11 +412,12 @@ class SceneStateManager:
         act_label = _activity_map.get(act_text, act_text)
         own_desc = ", ".join(p for p in [pos_label, act_label] if p)
 
-        # ── Позиция и расстояние игрока ───────────────────────────────────────
+        # ── Позиция и расстояние игрока (ADR-048: вычисление из npc_positions) ──
         player_pos  = scene_state.get("player_position") or "рядом"
-        distances   = scene_state.get("player_distances", {})
-        distance_m  = distances.get(npc_id, None)
-        dist_str = f"~{distance_m:.1f} м" if distance_m is not None else "неизвестно"
+        _player_data = scene_state.get("npc_positions", {}).get("player", {})
+        _npc_data = scene_state.get("npc_positions", {}).get(npc_id, {})
+        distance_m = euclidean_distance(_player_data, _npc_data)
+        dist_str = f"~{distance_m:.1f} м" if distance_m < 999.0 else "неизвестно"
 
         lines = [
             "ТВОЁ ПОЛОЖЕНИЕ В СЦЕНЕ:",
@@ -976,7 +982,7 @@ class SceneStateManager:
             "player_position":      "стоит",     # текущая поза/позиция игрока
             "player_spatial": {
                 "location_id": location_id,
-                "position": player_spawn_node or "main_hall",
+                "position": player_spawn_node or "entrance",
                 "local_position": {
                     "x": editor_data.get("player_spawn", {}).get("x", 0.0) if editor_data else 0.0,
                     "y": editor_data.get("player_spawn", {}).get("y", 0.0) if editor_data else 0.0,
@@ -1100,31 +1106,60 @@ class SceneStateManager:
                 if change.field == "position":
                     logger.debug(f"[ARCH GUARD] Causal relocation: npc={change.target} → node={change.value}")
                     location_id = scene_state.get("location_id", "")
-                    if location_id and change.value:
+                    # ADR-060: кросс-локационное перемещение — используем целевую локацию из SceneChange
+                    target_loc = getattr(change, 'target_location_id', '') or location_id
+                    if target_loc and change.value:
                         try:
                             from app.services.spatial.spatial_service import SpatialService
                             from app.models.traversal import TraversalState
                             
                             svc = SpatialService.build_for_location(
-                                campaign_id=campaign_id, location_id=location_id, scene_state=scene_state
+                                campaign_id=campaign_id, location_id=target_loc, scene_state=scene_state
                             )
                             # ADR-056: Safe Spatial Fallback. Узел не найден — макро-перемещение отменяется.
                             if node := svc.get_node(change.value) or svc.get_node(
-                                f"{location_id}:{change.value}"
+                                f"{target_loc}:{change.value}"
                             ):
-                                from_xy = entry.get("local_position", {"x": 0.0, "y": 0.0})
-                                to_xy = {"x": node.x, "y": node.y}
+                                # ADR-060: обновляем локацию NPC при кросс-локационном перемещении
+                                if target_loc != location_id:
+                                    entry["location"] = target_loc
+                                    entry["location_id"] = target_loc
+                                # ADR-065: Если local_position инвалидна (0,0) или отсутствует, 
+                                # резолвим из центра текущего узла, чтобы NPC не начинали путь от входа.
+                                from_xy = entry.get("local_position", {})
+                                if not isinstance(from_xy, dict) or not isinstance(from_xy.get("x"), (int, float)) or (abs(from_xy.get("x", 0.0)) < 0.01 and abs(from_xy.get("y", 0.0)) < 0.01):
+                                    _from_node_val = entry.get("position", "")
+                                    if _from_node_val and svc:
+                                        _from_ref = svc.get_node(_from_node_val) or svc.get_node(f"{target_loc}:{_from_node_val}")
+                                        if _from_ref:
+                                            from_xy = {"x": _from_ref.x, "y": _from_ref.y}
+                                            logger.info(f"[SPATIAL_RECOVERY] NPC {change.target} восстановил from_xy из узла {_from_node_val}: ({from_xy['x']}, {from_xy['y']})")
+                                if not isinstance(from_xy, dict) or not isinstance(from_xy.get("x"), (int, float)):
+                                    from_xy = {"x": 0.0, "y": 0.0}
+
+                                # ADR-065: Если есть точные координаты цели (approach player), используем их вместо центра узла
+                                exact_xy = getattr(change, 'target_local_xy', None)
+                                if exact_xy and isinstance(exact_xy, (tuple, list)) and len(exact_xy) == 2:
+                                    to_xy = {"x": float(exact_xy[0]), "y": float(exact_xy[1])}
+                                else:
+                                    # ADR-056: LOD1 Macro-jitter. NPC не сливаются в центр узла
+                                    import random
+                                    to_xy = {"x": node.x + random.uniform(-0.4, 0.4), "y": node.y + random.uniform(-0.4, 0.4)}
                                 # Телепортация только если уже на месте (микро-перемещение)
                                 if abs(from_xy.get("x", 0) - to_xy.get("x", 0)) < 0.1 and abs(from_xy.get("y", 0) - to_xy.get("y", 0)) < 0.1:
                                     entry["local_position"] = to_xy
                                 else:
-                                    # Вычисляем расстояние и ожидаемое время прибытия (Authority)
+                                    # Dual-Time Ontology: Транзит привязан к TICK-ам (Детерминированное время)
+                                    import math
                                     dx = to_xy["x"] - from_xy.get("x", 0.0)
                                     dy = to_xy["y"] - from_xy.get("y", 0.0)
                                     dist = (dx**2 + dy**2) ** 0.5
                                     speed = 2.0  # MVP хардкод скорости (м/с)
-                                    started_at = scene_state.get("game_time_seconds", 0)
-                                    expected_arrival = started_at + (dist / speed if speed > 0 else 0)
+                                    
+                                    # 1 тик симуляции = 1 секунда анимации на фронтенде
+                                    duration_ticks = max(1, math.ceil(dist / speed)) if speed > 0 else 1
+                                    # ADR-0XX: Только монотонный тик. Календарь отключен.
+                                    current_tick = scene_state.get("tick", 0)
                                     
                                     # ADR-019: Сохраняем как dict для JSON-совместимости scene_state
                                     traversal_dict = {
@@ -1136,8 +1171,8 @@ class SceneStateManager:
                                             [to_xy["x"], to_xy["y"]]
                                         ],
                                         "speed": speed,
-                                        "started_at": started_at,
-                                        "expected_arrival_time": expected_arrival,
+                                        "started_tick": current_tick,
+                                        "duration_ticks": duration_ticks,
                                         "locomotion": "WALK",
                                         "status": "MOVING"
                                     }
@@ -1478,20 +1513,61 @@ class SceneStateManager:
             if "name" not in entry:
                 entry["name"] = _npc_id_to_display(npc_id)
 
+            # ADR-048 FIX: Синхронизация позиционной истины игрока.
+            # Фронтенд пишет в player_spatial, бэкенд читает npc_positions.
+            # Без этого макро-узел игрока всегда "entrance", и NPC идут ко входу.
+            if npc_id == "player":
+                _ps = scene_state.get("player_spatial", {})
+                _plp = _ps.get("local_position", {})
+                if isinstance(_plp, dict) and isinstance(_plp.get("x"), (int, float)):
+                    entry["local_position"] = _plp
+                    if svc:
+                        _px, _py = _plp.get("x", 0.0), _plp.get("y", 0.0)
+                        _p_node_ref = svc.get_nearest(zone_id=location_id, origin_xy=(_px, _py))
+                        if _p_node_ref:
+                            _p_node_id = getattr(_p_node_ref, 'node_id', str(_p_node_ref))
+                            if _p_node_id.startswith(f"{location_id}:"):
+                                _p_node_id = _p_node_id.split(":")[-1]
+                            entry["position"] = _p_node_id
+                continue # Игрок не нуждается в enrichment из editor_coords
+
             current_node = entry.get("position", "")
             initial_node = initial_nodes.get(npc_id)
 
             # NPC двигался, если есть начальный узел и текущий не совпадает
             npc_moved = initial_node is not None and current_node != initial_node
 
+            # Dual-Time Ontology: Финализация транзитов по TICK-ам (Детерминированное время)
+            active_traversals = scene_state.get("active_traversals", {})
+            # ADR-0XX: Только монотонный тик. Календарь отключен.
+            current_tick = scene_state.get("tick", 0)
+            finished_npcs = [nid for nid, trav in active_traversals.items()
+                             if current_tick >= trav.get("started_tick", 0) + trav.get("duration_ticks", 1)]
+            for nid in finished_npcs:
+                trav = active_traversals[nid]
+                wp = trav.get("path_waypoints", [])
+                if len(wp) >= 2:
+                    entry_fin = npc_positions.get(nid, {})
+                    entry_fin["local_position"] = {"x": wp[-1][0], "y": wp[-1][1]}
+                del active_traversals[nid]
+
+            # ADR-019: Если NPC в активном транзите с валидными координатами — пропускаем.
+            # Но если координат НЕТ — это баг инициализации, fall through к восстановлению.
+            if npc_id in active_traversals and active_traversals[npc_id].get("status") == "MOVING":
+                lp = entry.get("local_position", {})
+                if isinstance(lp, dict) and isinstance(lp.get("x"), (int, float)):
+                    continue
+                logger.warning(f"[SPATIAL_ENFORCEMENT] NPC '{npc_id}' в транзите без координат! Пробуем восстановить.")
+
             if not npc_moved and npc_id in editor_coords:
-                # NPC на начальной позиции (или нет данных о движении) — визуальные координаты
-                entry["local_position"] = dict(editor_coords[npc_id])
+                # LOD0: Не перезаписываем микро-перемещения, если координаты уже валидны
+                lp = entry.get("local_position", {})
+                if not isinstance(lp, dict) or not isinstance(lp.get("x"), (int, float)):
+                    entry["local_position"] = dict(editor_coords[npc_id])
             elif svc and current_node:
                 # NPC двигался — берём координаты из SpatialService (пробуем с префиксом локации)
                 node = svc.get_node(current_node) or svc.get_node(f"{location_id}:{current_node}")
-                if not node:
-                    node = svc.get_node(f"{location_id}:entrance") or svc.get_node(f"{location_id}:main_hall")
+                # КАТЕГОРИЧЕСКИЙ ЗАПРЕТ фоллбэка на entrance! Он вызывает телепортацию к двери.
                 if node:
                     entry["local_position"] = {"x": node.x, "y": node.y}
 
@@ -1668,7 +1744,13 @@ class SceneStateManager:
         target_npc_name = scene_state.get("player_target_npc_name")
         target_npc_id   = scene_state.get("player_target_npc")
         target_obj      = scene_state.get("player_target_object")
-        distances       = scene_state.get("player_distances", {})
+        # ADR-048 Phase 3: Вычисляем дистанции из авторитетного словаря npc_positions
+        _player_data = scene_state.get("npc_positions", {}).get("player", {})
+        distances = {
+            nid: euclidean_distance(_player_data, ndata) 
+            for nid, ndata in scene_state.get("npc_positions", {}).items() 
+            if nid != "player" and euclidean_distance(_player_data, ndata) < 999.0
+        }
 
         lines.append("")
         lines.append("ПРОСТРАНСТВЕННЫЙ КОНТЕКСТ ИГРОКА:")

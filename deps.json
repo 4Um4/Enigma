@@ -1,0 +1,5477 @@
+{
+  "backend.app.main": {
+    "imports": [
+      "contextlib",
+      "fastapi",
+      "fastapi.middleware.cors",
+      "fastapi.staticfiles",
+      "fastapi.responses",
+      "pathlib",
+      "atexit",
+      "time",
+      "subprocess",
+      "logging",
+      "asyncio",
+      "subprocess",
+      "time",
+      "datetime",
+      "pathlib",
+      "app.api.routes",
+      "app.api",
+      "app.api.routes_stream",
+      "app.api.world_routes",
+      "app.core.config",
+      "app.core.runtime_config",
+      "app.services.llm",
+      "app.services.error_interpreter",
+      "app.services.vram_monitor",
+      "app.services.llm.provider_manager",
+      "app.services.logging_tools",
+      "app.services.llm.llama_cpp_provider",
+      "app.services.game_loop_builder",
+      "app.services.llm.provider_manager",
+      "urllib.request"
+    ],
+    "imported_by": []
+  },
+  "contextlib": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.main",
+      "backend.app.api.routes",
+      "backend.app.services.scene_state_manager"
+    ]
+  },
+  "fastapi": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.main",
+      "backend.app.api.routes",
+      "backend.app.api.routes",
+      "backend.app.api.routes_debug",
+      "backend.app.api.routes_stream",
+      "backend.app.api.routes_stream",
+      "backend.app.api.world_routes",
+      "backend.app.services.game_loop_accessor"
+    ]
+  },
+  "fastapi.middleware.cors": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.main"
+    ]
+  },
+  "fastapi.staticfiles": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.main"
+    ]
+  },
+  "fastapi.responses": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.main",
+      "backend.app.api.routes_stream"
+    ]
+  },
+  "pathlib": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.main",
+      "backend.app.main",
+      "backend.app.core.config",
+      "backend.app.core.config",
+      "backend.app.core.runtime_config",
+      "backend.app.core.settings_dm",
+      "backend.app.core.settings_npc",
+      "backend.app.core.settings_rules",
+      "backend.app.core.settings_world",
+      "backend.app.services.adventure_loader",
+      "backend.app.services.campaign_state_service",
+      "backend.app.services.character_service",
+      "backend.app.services.combat_service",
+      "backend.app.services.error_interpreter",
+      "backend.app.services.game_loop_builder",
+      "backend.app.services.logging_tools",
+      "backend.app.services.pdf_drop_importer",
+      "backend.app.services.player_avatar_service",
+      "backend.app.services.scene_state_manager",
+      "backend.app.services.system_requirements",
+      "backend.app.services.tick_orchestrator",
+      "backend.app.services.action.dm_router",
+      "backend.app.services.game.combat_math",
+      "backend.app.services.game_loop.service_factories",
+      "backend.app.services.game_loop.__init__",
+      "backend.app.services.llm.llama_cpp_provider",
+      "backend.app.services.llm.provider_manager",
+      "backend.app.services.memory.layered_memory",
+      "backend.app.services.memory.relationship_store",
+      "backend.app.services.memory.sqlite_store",
+      "backend.app.services.memory.yaml_export",
+      "backend.app.services.npc.life_engine",
+      "backend.app.services.npc.npc_loader",
+      "backend.app.services.npc.role_transition",
+      "backend.app.services.social.reputation_engine",
+      "backend.app.services.spatial.graph_compiler",
+      "backend.app.services.spatial.location_graph",
+      "backend.app.services.spatial.spatial_runtime",
+      "backend.app.services.state.json_persistence_adapter",
+      "backend.app.services.state.sqlite_persistence_adapter",
+      "backend.app.services.temporal.temporal_engine",
+      "backend.app.services.verbalization.prompt_loader"
+    ]
+  },
+  "atexit": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.main"
+    ]
+  },
+  "time": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.main",
+      "backend.app.main",
+      "backend.app.api.routes",
+      "backend.app.api.routes_debug",
+      "backend.app.domain.events",
+      "backend.app.services.scene_state_manager",
+      "backend.app.services.tick_orchestrator",
+      "backend.app.services.vram_monitor",
+      "backend.app.services.game_loop.agent_runner",
+      "backend.app.services.game_loop.scene_init",
+      "backend.app.services.game_loop.__init__",
+      "backend.app.services.llm.health",
+      "backend.app.services.llm.llama_cpp_provider",
+      "backend.app.services.llm.mock_provider",
+      "backend.app.services.llm.provider_manager",
+      "backend.app.services.llm.router",
+      "backend.app.services.npc.life_engine",
+      "backend.app.services.spatial.spatial_event_detector"
+    ]
+  },
+  "subprocess": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.main",
+      "backend.app.main",
+      "backend.app.services.vram_monitor",
+      "backend.app.services.llm.llama_cpp_provider"
+    ]
+  },
+  "logging": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.main",
+      "backend.app.core.config",
+      "backend.app.services.affect",
+      "backend.app.services.character_service",
+      "backend.app.services.error_interpreter",
+      "backend.app.services.game_loop_builder",
+      "backend.app.services.player_avatar_service",
+      "backend.app.services.player_session_service",
+      "backend.app.services.scene_state_manager",
+      "backend.app.services.tick_orchestrator",
+      "backend.app.services.tick_orchestrator",
+      "backend.app.services.vram_monitor",
+      "backend.app.services.will",
+      "backend.app.services.action.object_resolver",
+      "backend.app.services.action.player_target_extractor",
+      "backend.app.services.cfrm.local_causal_solver",
+      "backend.app.services.character.character_filter",
+      "backend.app.services.character.character_filter_applicator",
+      "backend.app.services.character.front_applicator",
+      "backend.app.services.character.front_engine",
+      "backend.app.services.combat.combat_subscriber",
+      "backend.app.services.combat.physiology_decay_handler",
+      "backend.app.services.economy.economic_modifier",
+      "backend.app.services.economy.economy_tracker",
+      "backend.app.services.economy.need_engine",
+      "backend.app.services.economy.trade_resolver",
+      "backend.app.services.economy.transaction_engine",
+      "backend.app.services.events.event_bus",
+      "backend.app.services.events.perception_subscriber",
+      "backend.app.services.events.reaction_subscriber",
+      "backend.app.services.events.social_subscriber",
+      "backend.app.services.game.physics_validator",
+      "backend.app.services.game_loop.agent_runner",
+      "backend.app.services.game_loop.agent_runner",
+      "backend.app.services.game_loop.dm_phase",
+      "backend.app.services.game_loop.npc_orchestration",
+      "backend.app.services.game_loop.npc_state_helpers",
+      "backend.app.services.game_loop.phase_1_input",
+      "backend.app.services.game_loop.phase_2_world_tick",
+      "backend.app.services.game_loop.phase_6_avatar",
+      "backend.app.services.game_loop.scene_init",
+      "backend.app.services.game_loop.service_factories",
+      "backend.app.services.game_loop.time_advance",
+      "backend.app.services.game_loop.__init__",
+      "backend.app.services.game_loop.__init__",
+      "backend.app.services.integration.world_snapshot_builder",
+      "backend.app.services.llm.provider_manager",
+      "backend.app.services.llm.router",
+      "backend.app.services.memory.layered_memory",
+      "backend.app.services.memory.memory_manager",
+      "backend.app.services.memory.relationship_store",
+      "backend.app.services.memory.sqlite_store",
+      "backend.app.services.memory.working_memory_tick",
+      "backend.app.services.memory.yaml_export",
+      "backend.app.services.npc.condition_engine",
+      "backend.app.services.npc.decision_hub",
+      "backend.app.services.npc.domain_phases",
+      "backend.app.services.npc.legacy_delta_adapter",
+      "backend.app.services.npc.life_engine",
+      "backend.app.services.npc.npc_loader",
+      "backend.app.services.npc.npc_tick_pipeline",
+      "backend.app.services.npc.perception_filter",
+      "backend.app.services.npc.reaction_priority",
+      "backend.app.services.npc.role_transition",
+      "backend.app.services.npc.state_applicator",
+      "backend.app.services.scene.r3_direct_builder",
+      "backend.app.services.scene.scene_event_layer",
+      "backend.app.services.simulation.world_state",
+      "backend.app.services.social.directive_interpretation_subscriber",
+      "backend.app.services.social.propagation",
+      "backend.app.services.social.reputation_decay_handler",
+      "backend.app.services.social.reputation_engine",
+      "backend.app.services.social.social_decay_handler",
+      "backend.app.services.social.social_engine",
+      "backend.app.services.spatial.graph_compiler",
+      "backend.app.services.spatial.location_graph",
+      "backend.app.services.spatial.movement_engine",
+      "backend.app.services.spatial.player_target_pipeline",
+      "backend.app.services.spatial.player_target_pipeline",
+      "backend.app.services.spatial.player_target_pipeline",
+      "backend.app.services.spatial.spatial_event_detector",
+      "backend.app.services.spatial.spatial_overlay",
+      "backend.app.services.spatial.spatial_service",
+      "backend.app.services.spatial.transit_tracker",
+      "backend.app.services.state.json_persistence_adapter",
+      "backend.app.services.state.sqlite_persistence_adapter",
+      "backend.app.services.temporal.temporal_engine",
+      "backend.app.services.world.world_tick_engine"
+    ]
+  },
+  "asyncio": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.main",
+      "backend.app.agents.dm_agent",
+      "backend.app.services.game_loop.agent_runner",
+      "backend.app.services.game_loop.__init__",
+      "backend.app.services.llm.provider_manager",
+      "backend.app.services.llm.router"
+    ]
+  },
+  "datetime": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.main",
+      "backend.app.api.routes",
+      "backend.app.api.routes_stream",
+      "backend.app.core.error_logger",
+      "backend.app.models.schemas",
+      "backend.app.services.campaign_state_service",
+      "backend.app.services.error_interpreter",
+      "backend.app.services.logging_tools",
+      "backend.app.services.player_session_service",
+      "backend.app.services.scene_state_manager",
+      "backend.app.services.world_scheduler",
+      "backend.app.services.game.combat_math",
+      "backend.app.services.llm.provider_manager",
+      "backend.app.services.memory.layered_memory",
+      "backend.app.services.memory.sqlite_store",
+      "backend.app.services.state.sqlite_persistence_adapter",
+      "backend.app.services.temporal.temporal_engine"
+    ]
+  },
+  "app.api.routes": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.main"
+    ]
+  },
+  "app.api": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.main"
+    ]
+  },
+  "app.api.routes_stream": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.main"
+    ]
+  },
+  "app.api.world_routes": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.main"
+    ]
+  },
+  "app.core.config": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.main",
+      "backend.app.agents.dm_agent",
+      "backend.app.agents.dm_agent",
+      "backend.app.api.routes",
+      "backend.app.api.routes",
+      "backend.app.services.error_interpreter",
+      "backend.app.services.game_loop_builder",
+      "backend.app.services.logging_tools",
+      "backend.app.services.player_session_service",
+      "backend.app.services.scene_state_manager",
+      "backend.app.services.tick_orchestrator",
+      "backend.app.services.game_loop.__init__",
+      "backend.app.services.llm.anthropic_provider",
+      "backend.app.services.llm.factory",
+      "backend.app.services.llm.health",
+      "backend.app.services.llm.llama_cpp_provider",
+      "backend.app.services.llm.ollama_provider",
+      "backend.app.services.llm.openai_provider",
+      "backend.app.services.llm.provider_manager",
+      "backend.app.services.llm.router",
+      "backend.app.services.llm.vllm_provider",
+      "backend.app.services.npc.life_engine",
+      "backend.app.services.spatial.spatial_runtime",
+      "backend.app.services.verbalization.prompt_loader"
+    ]
+  },
+  "app.core.runtime_config": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.main"
+    ]
+  },
+  "app.services.llm": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.main",
+      "backend.app.agents.dm_agent",
+      "backend.app.agents.world_sim_agent"
+    ]
+  },
+  "app.services.error_interpreter": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.main",
+      "backend.app.api.routes_debug",
+      "backend.app.services.game_loop.agent_runner",
+      "backend.app.services.game_loop.__init__",
+      "backend.app.services.llm.provider_manager",
+      "backend.app.services.llm.provider_manager"
+    ]
+  },
+  "app.services.vram_monitor": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.main",
+      "backend.app.api.routes_debug",
+      "backend.app.services.game_loop.agent_runner",
+      "backend.app.services.game_loop.__init__",
+      "backend.app.services.llm.provider_manager"
+    ]
+  },
+  "app.services.llm.provider_manager": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.main",
+      "backend.app.main",
+      "backend.app.agents.dm_agent",
+      "backend.app.api.routes",
+      "backend.app.api.routes",
+      "backend.app.api.routes_debug",
+      "backend.app.services.game_loop.agent_runner",
+      "backend.app.services.game_loop.agent_runner",
+      "backend.app.services.llm.router",
+      "backend.app.services.llm.router",
+      "backend.app.services.llm.router",
+      "backend.app.services.llm.__init__"
+    ]
+  },
+  "app.services.logging_tools": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.main",
+      "backend.app.agents.dm_agent",
+      "backend.app.services.game_loop.agent_runner",
+      "backend.app.services.game_loop.__init__",
+      "backend.app.services.llm.router"
+    ]
+  },
+  "app.services.llm.llama_cpp_provider": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.main",
+      "backend.app.services.llm.factory",
+      "backend.app.services.llm.__init__"
+    ]
+  },
+  "app.services.game_loop_builder": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.main"
+    ]
+  },
+  "urllib.request": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.main",
+      "backend.app.core.config",
+      "backend.app.services.llm.anthropic_provider",
+      "backend.app.services.llm.llama_cpp_provider",
+      "backend.app.services.llm.ollama_provider",
+      "backend.app.services.llm.openai_provider",
+      "backend.app.services.llm.vllm_provider"
+    ]
+  },
+  "backend.app.__init__": {
+    "imports": [],
+    "imported_by": []
+  },
+  "backend.app.agents.dm_agent": {
+    "imports": [
+      "json",
+      "asyncio",
+      "threading",
+      "typing",
+      "app.models.schemas",
+      "app.services.llm",
+      "app.services.llm.provider",
+      "app.core.config",
+      "app.services.logging_tools",
+      "app.services.verbalization.prompt_loader",
+      "app.services.scene_state_manager",
+      "app.services.verbalization.dm_contract_builder",
+      "app.core.config",
+      "dataclasses",
+      "app.services.verbalization.response_validator",
+      "app.services.llm.router",
+      "app.services.llm.provider_manager",
+      "app.services.verbalization.scene_outcome_builder",
+      "app.services.scene.scene_state_manager",
+      "app.core.constants"
+    ],
+    "imported_by": []
+  },
+  "json": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.agents.dm_agent",
+      "backend.app.api.routes",
+      "backend.app.api.routes",
+      "backend.app.api.routes_stream",
+      "backend.app.core.error_logger",
+      "backend.app.services.adventure_loader",
+      "backend.app.services.campaign_state_service",
+      "backend.app.services.character_service",
+      "backend.app.services.combat_service",
+      "backend.app.services.error_interpreter",
+      "backend.app.services.logging_tools",
+      "backend.app.services.player_avatar_service",
+      "backend.app.services.player_session_service",
+      "backend.app.services.scene_state_manager",
+      "backend.app.services.action.dm_router",
+      "backend.app.services.game.combat_math",
+      "backend.app.services.input.llm_compressor_client",
+      "backend.app.services.llm.anthropic_provider",
+      "backend.app.services.llm.llama_cpp_provider",
+      "backend.app.services.llm.ollama_provider",
+      "backend.app.services.llm.openai_provider",
+      "backend.app.services.llm.parser",
+      "backend.app.services.llm.provider_manager",
+      "backend.app.services.llm.vllm_provider",
+      "backend.app.services.memory.layered_memory",
+      "backend.app.services.memory.relationship_store",
+      "backend.app.services.memory.sqlite_store",
+      "backend.app.services.npc.life_engine",
+      "backend.app.services.npc.npc_loader",
+      "backend.app.services.simulation.world_state",
+      "backend.app.services.social.reputation_engine",
+      "backend.app.services.spatial.graph_compiler",
+      "backend.app.services.spatial.location_graph",
+      "backend.app.services.spatial.spatial_runtime",
+      "backend.app.services.state.json_persistence_adapter",
+      "backend.app.services.state.sqlite_persistence_adapter",
+      "backend.app.services.temporal.temporal_engine"
+    ]
+  },
+  "threading": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.agents.dm_agent",
+      "backend.app.services.llm.llama_cpp_provider",
+      "backend.app.services.llm.provider_manager",
+      "backend.app.services.llm.router"
+    ]
+  },
+  "typing": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.agents.dm_agent",
+      "backend.app.agents.world_sim_agent",
+      "backend.app.api.routes",
+      "backend.app.api.world_routes",
+      "backend.app.core.calendar",
+      "backend.app.core.config",
+      "backend.app.core.constants",
+      "backend.app.core.error_logger",
+      "backend.app.core.settings_npc",
+      "backend.app.core.settings_world",
+      "backend.app.domain.communication",
+      "backend.app.domain.decision_context",
+      "backend.app.domain.events",
+      "backend.app.domain.intent",
+      "backend.app.domain.intent_profile",
+      "backend.app.domain.snapshot",
+      "backend.app.domain.tick",
+      "backend.app.models.behavior_mask",
+      "backend.app.models.cfrm",
+      "backend.app.models.character",
+      "backend.app.models.delta_payloads",
+      "backend.app.models.economy",
+      "backend.app.models.event_resolution",
+      "backend.app.models.front",
+      "backend.app.models.idle_tick",
+      "backend.app.models.impact",
+      "backend.app.models.interpretation",
+      "backend.app.models.locomotion",
+      "backend.app.models.npc_profile",
+      "backend.app.models.npc_state",
+      "backend.app.models.phase8",
+      "backend.app.models.physical",
+      "backend.app.models.pipeline_context",
+      "backend.app.models.schemas",
+      "backend.app.models.social",
+      "backend.app.models.spatial_contracts",
+      "backend.app.models.state_delta",
+      "backend.app.models.traversal",
+      "backend.app.models.will",
+      "backend.app.services.adventure_loader",
+      "backend.app.services.affect",
+      "backend.app.services.campaign_state_service",
+      "backend.app.services.character_service",
+      "backend.app.services.combat_service",
+      "backend.app.services.error_interpreter",
+      "backend.app.services.knowledge_ingest",
+      "backend.app.services.player_avatar_service",
+      "backend.app.services.player_session_service",
+      "backend.app.services.scene_change",
+      "backend.app.services.scene_state_manager",
+      "backend.app.services.system_requirements",
+      "backend.app.services.tick_orchestrator",
+      "backend.app.services.vram_monitor",
+      "backend.app.services.will",
+      "backend.app.services.action.dm_orchestrator",
+      "backend.app.services.action.dm_router",
+      "backend.app.services.action.dm_scene_builder",
+      "backend.app.services.action.object_resolver",
+      "backend.app.services.action.player_target_extractor",
+      "backend.app.services.affective.affective_integrator",
+      "backend.app.services.affective.emotion_resolution",
+      "backend.app.services.affective.emotion_transition",
+      "backend.app.services.cfrm.local_causal_solver",
+      "backend.app.services.character.character_filter",
+      "backend.app.services.character.character_filter_applicator",
+      "backend.app.services.character.front_applicator",
+      "backend.app.services.combat.combat_subscriber",
+      "backend.app.services.combat.impact_engine",
+      "backend.app.services.combat.physiology_decay_handler",
+      "backend.app.services.economy.economic_modifier",
+      "backend.app.services.economy.economy_tracker",
+      "backend.app.services.economy.market_state",
+      "backend.app.services.economy.need_engine",
+      "backend.app.services.economy.opportunity_engine",
+      "backend.app.services.economy.profile_factory",
+      "backend.app.services.economy.psycho_economy",
+      "backend.app.services.economy.stress_calculator",
+      "backend.app.services.economy.trade_resolver",
+      "backend.app.services.economy.transaction_engine",
+      "backend.app.services.economy.traveller",
+      "backend.app.services.events.event_bus",
+      "backend.app.services.events.perception_subscriber",
+      "backend.app.services.events.reaction_subscriber",
+      "backend.app.services.events.social_subscriber",
+      "backend.app.services.game.combat_math",
+      "backend.app.services.game.physics_validator",
+      "backend.app.services.game_loop.dm_phase",
+      "backend.app.services.game_loop.npc_orchestration",
+      "backend.app.services.game_loop.npc_state_helpers",
+      "backend.app.services.game_loop.phase_1_input",
+      "backend.app.services.game_loop.phase_2_world_tick",
+      "backend.app.services.game_loop.phase_6_avatar",
+      "backend.app.services.game_loop.scene_init",
+      "backend.app.services.game_loop.service_factories",
+      "backend.app.services.game_loop.tick_context",
+      "backend.app.services.game_loop.__init__",
+      "backend.app.services.input.intent_compressor",
+      "backend.app.services.input.llm_compressor_client",
+      "backend.app.services.integration.world_snapshot_builder",
+      "backend.app.services.llm.anthropic_provider",
+      "backend.app.services.llm.health",
+      "backend.app.services.llm.llama_cpp_provider",
+      "backend.app.services.llm.ollama_provider",
+      "backend.app.services.llm.openai_provider",
+      "backend.app.services.llm.parser",
+      "backend.app.services.llm.provider",
+      "backend.app.services.llm.provider_manager",
+      "backend.app.services.llm.router",
+      "backend.app.services.llm.vllm_provider",
+      "backend.app.services.memory.contradiction_resolver",
+      "backend.app.services.memory.dialogue_session",
+      "backend.app.services.memory.importance_engine",
+      "backend.app.services.memory.layered_memory",
+      "backend.app.services.memory.memory_manager",
+      "backend.app.services.memory.promotion_engine",
+      "backend.app.services.memory.relationship_store",
+      "backend.app.services.memory.resonance_engine",
+      "backend.app.services.memory.sqlite_store",
+      "backend.app.services.memory.working_memory",
+      "backend.app.services.memory.working_memory_tick",
+      "backend.app.services.memory.yaml_export",
+      "backend.app.services.npc.break_progress_engine",
+      "backend.app.services.npc.condition_engine",
+      "backend.app.services.npc.decision_hub",
+      "backend.app.services.npc.domain_phases",
+      "backend.app.services.npc.interpretation_engine",
+      "backend.app.services.npc.legacy_delta_adapter",
+      "backend.app.services.npc.life_engine",
+      "backend.app.services.npc.math_utils",
+      "backend.app.services.npc.npc_loader",
+      "backend.app.services.npc.npc_tick_contracts",
+      "backend.app.services.npc.npc_tick_pipeline",
+      "backend.app.services.npc.perception_engine",
+      "backend.app.services.npc.perception_filter",
+      "backend.app.services.npc.reaction_priority",
+      "backend.app.services.npc.resolution_engine",
+      "backend.app.services.npc.role_transition",
+      "backend.app.services.npc.state_applicator",
+      "backend.app.services.npc.topic_extractor",
+      "backend.app.services.player_cognition.attention_layer",
+      "backend.app.services.player_cognition.cognitive_distortion",
+      "backend.app.services.player_cognition.interpretation_layer",
+      "backend.app.services.player_cognition.memory_layer",
+      "backend.app.services.player_cognition.perception_layer",
+      "backend.app.services.player_cognition.pipeline",
+      "backend.app.services.player_cognition.recognition_layer",
+      "backend.app.services.player_cognition.spatial_layer",
+      "backend.app.services.player_cognition.types",
+      "backend.app.services.player_cognition.uncertainty_layer",
+      "backend.app.services.presentation.avatar_presentation_assembler",
+      "backend.app.services.reaction.micro_event",
+      "backend.app.services.reaction.reaction_resolver",
+      "backend.app.services.reaction.reaction_rules",
+      "backend.app.services.scene.narrative_extractor",
+      "backend.app.services.scene.r3_direct_builder",
+      "backend.app.services.scene.salience_engine",
+      "backend.app.services.scene.scene_event_emitter",
+      "backend.app.services.scene.scene_event_layer",
+      "backend.app.services.simulation.world_state",
+      "backend.app.services.social.directive_interpretation_subscriber",
+      "backend.app.services.social.propagation",
+      "backend.app.services.social.reputation_decay_handler",
+      "backend.app.services.social.reputation_engine",
+      "backend.app.services.social.social_decay_handler",
+      "backend.app.services.social.social_engine",
+      "backend.app.services.spatial.graph_compiler",
+      "backend.app.services.spatial.location_graph",
+      "backend.app.services.spatial.movement_engine",
+      "backend.app.services.spatial.player_target_pipeline",
+      "backend.app.services.spatial.role_resolver",
+      "backend.app.services.spatial.spatial_events",
+      "backend.app.services.spatial.spatial_event_detector",
+      "backend.app.services.spatial.spatial_overlay",
+      "backend.app.services.spatial.spatial_query_service",
+      "backend.app.services.spatial.spatial_runtime",
+      "backend.app.services.spatial.spatial_service",
+      "backend.app.services.spatial.transit_tracker",
+      "backend.app.services.state.context_builder",
+      "backend.app.services.state.json_persistence_adapter",
+      "backend.app.services.state.sqlite_persistence_adapter",
+      "backend.app.services.temporal.temporal_engine",
+      "backend.app.services.verbalization.contract_base",
+      "backend.app.services.verbalization.dm_contract_builder",
+      "backend.app.services.verbalization.npc_response_validator",
+      "backend.app.services.verbalization.prompt_loader",
+      "backend.app.services.verbalization.response_validator",
+      "backend.app.services.verbalization.scene_continuity",
+      "backend.app.services.verbalization.scene_outcome_builder",
+      "backend.app.services.verbalization.state_interpreter",
+      "backend.app.services.verbalization.verbalization_context",
+      "backend.app.services.verbalization.verbal_stance",
+      "backend.app.services.world.world_ontology",
+      "backend.app.services.world.world_tick_engine"
+    ]
+  },
+  "app.models.schemas": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.agents.dm_agent",
+      "backend.app.agents.rules_agent",
+      "backend.app.api.routes",
+      "backend.app.services.campaign_state_service",
+      "backend.app.services.character_service",
+      "backend.app.services.player_avatar_service",
+      "backend.app.services.player_session_service",
+      "backend.app.services.readiness",
+      "backend.app.services.game_loop.__init__",
+      "backend.app.services.game_loop.__init__"
+    ]
+  },
+  "app.services.llm.provider": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.agents.dm_agent",
+      "backend.app.services.llm.anthropic_provider",
+      "backend.app.services.llm.factory",
+      "backend.app.services.llm.llama_cpp_provider",
+      "backend.app.services.llm.mock_provider",
+      "backend.app.services.llm.ollama_provider",
+      "backend.app.services.llm.openai_provider",
+      "backend.app.services.llm.provider_manager",
+      "backend.app.services.llm.router",
+      "backend.app.services.llm.vllm_provider",
+      "backend.app.services.llm.__init__"
+    ]
+  },
+  "app.services.verbalization.prompt_loader": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.agents.dm_agent"
+    ]
+  },
+  "app.services.scene_state_manager": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.agents.dm_agent",
+      "backend.app.api.world_routes",
+      "backend.app.services.game_loop_builder",
+      "backend.app.services.game_loop.__init__",
+      "backend.app.services.player_cognition.recognition_layer"
+    ]
+  },
+  "app.services.verbalization.dm_contract_builder": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.agents.dm_agent"
+    ]
+  },
+  "dataclasses": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.agents.dm_agent",
+      "backend.app.agents.rules_agent",
+      "backend.app.api.routes",
+      "backend.app.core.calendar",
+      "backend.app.domain.communication",
+      "backend.app.domain.decision_context",
+      "backend.app.domain.events",
+      "backend.app.domain.intent",
+      "backend.app.domain.movement",
+      "backend.app.domain.snapshot",
+      "backend.app.domain.tick",
+      "backend.app.models.affect",
+      "backend.app.models.behavior_mask",
+      "backend.app.models.cfrm",
+      "backend.app.models.character",
+      "backend.app.models.delta_payloads",
+      "backend.app.models.economy",
+      "backend.app.models.event_resolution",
+      "backend.app.models.front",
+      "backend.app.models.impact",
+      "backend.app.models.interpretation",
+      "backend.app.models.locomotion",
+      "backend.app.models.npc_profile",
+      "backend.app.models.npc_state",
+      "backend.app.models.phase8",
+      "backend.app.models.physical",
+      "backend.app.models.pipeline_context",
+      "backend.app.models.psychological",
+      "backend.app.models.scene_event",
+      "backend.app.models.social",
+      "backend.app.models.spatial_contracts",
+      "backend.app.models.state_delta",
+      "backend.app.models.temporal",
+      "backend.app.models.traversal",
+      "backend.app.models.will",
+      "backend.app.services.affect",
+      "backend.app.services.combat_service",
+      "backend.app.services.knowledge_ingest",
+      "backend.app.services.pdf_drop_importer",
+      "backend.app.services.scene_change",
+      "backend.app.services.system_requirements",
+      "backend.app.services.tick_orchestrator",
+      "backend.app.services.tick_orchestrator",
+      "backend.app.services.tick_orchestrator",
+      "backend.app.services.tick_orchestrator",
+      "backend.app.services.action.dm_orchestrator",
+      "backend.app.services.action.dm_router",
+      "backend.app.services.action.dm_scene_builder",
+      "backend.app.services.character.character_filter",
+      "backend.app.services.character.front_engine",
+      "backend.app.services.economy.economic_modifier",
+      "backend.app.services.economy.need_engine",
+      "backend.app.services.economy.opportunity_engine",
+      "backend.app.services.economy.psycho_economy",
+      "backend.app.services.economy.trade_resolver",
+      "backend.app.services.economy.transaction_engine",
+      "backend.app.services.economy.traveller",
+      "backend.app.services.events.event_bus",
+      "backend.app.services.game_loop.tick_context",
+      "backend.app.services.game_loop.__init__",
+      "backend.app.services.game_loop.__init__",
+      "backend.app.services.game_loop.__init__",
+      "backend.app.services.llm.llama_cpp_provider",
+      "backend.app.services.llm.mock_provider",
+      "backend.app.services.llm.provider",
+      "backend.app.services.llm.provider_manager",
+      "backend.app.services.llm.router",
+      "backend.app.services.llm.vllm_provider",
+      "backend.app.services.memory.dialogue_session",
+      "backend.app.services.memory.layered_memory",
+      "backend.app.services.memory.promotion_engine",
+      "backend.app.services.memory.resonance_engine",
+      "backend.app.services.memory.sqlite_store",
+      "backend.app.services.memory.sqlite_store",
+      "backend.app.services.npc.break_progress_engine",
+      "backend.app.services.npc.decision_hub",
+      "backend.app.services.npc.decision_hub",
+      "backend.app.services.npc.npc_tick_contracts",
+      "backend.app.services.npc.reaction_priority",
+      "backend.app.services.npc.resolution_engine",
+      "backend.app.services.npc.role_transition",
+      "backend.app.services.npc.role_transition",
+      "backend.app.services.npc.state_applicator",
+      "backend.app.services.player_cognition.attention_layer",
+      "backend.app.services.player_cognition.cognitive_distortion",
+      "backend.app.services.player_cognition.memory_layer",
+      "backend.app.services.player_cognition.pipeline",
+      "backend.app.services.player_cognition.recognition_layer",
+      "backend.app.services.player_cognition.types",
+      "backend.app.services.reaction.micro_event",
+      "backend.app.services.scene.narrative_extractor",
+      "backend.app.services.scene.scene_event_layer",
+      "backend.app.services.simulation.world_state",
+      "backend.app.services.social.reputation_engine",
+      "backend.app.services.spatial.location_graph",
+      "backend.app.services.spatial.player_target_pipeline",
+      "backend.app.services.spatial.spatial_events",
+      "backend.app.services.spatial.transit_tracker",
+      "backend.app.services.verbalization.dm_contract_builder",
+      "backend.app.services.verbalization.response_validator",
+      "backend.app.services.verbalization.scene_continuity",
+      "backend.app.services.verbalization.scene_outcome_builder",
+      "backend.app.services.verbalization.state_interpreter",
+      "backend.app.services.verbalization.verbalization_context",
+      "backend.app.services.verbalization.verbal_stance",
+      "backend.app.services.world.world_tick_engine"
+    ]
+  },
+  "app.services.verbalization.response_validator": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.agents.dm_agent",
+      "backend.app.services.verbalization.npc_response_validator"
+    ]
+  },
+  "app.services.llm.router": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.agents.dm_agent",
+      "backend.app.api.routes",
+      "backend.app.services.game_loop.agent_runner",
+      "backend.app.services.llm.provider_manager",
+      "backend.app.services.llm.__init__"
+    ]
+  },
+  "app.services.verbalization.scene_outcome_builder": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.agents.dm_agent",
+      "backend.app.services.scene.r3_direct_builder"
+    ]
+  },
+  "app.services.scene.scene_state_manager": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.agents.dm_agent"
+    ]
+  },
+  "app.core.constants": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.agents.dm_agent",
+      "backend.app.core.calendar",
+      "backend.app.models.economy",
+      "backend.app.services.tick_orchestrator",
+      "backend.app.services.economy.economy_tracker",
+      "backend.app.services.economy.trade_resolver",
+      "backend.app.services.economy.traveller",
+      "backend.app.services.game_loop.scene_init",
+      "backend.app.services.game_loop.time_advance",
+      "backend.app.services.memory.importance_engine",
+      "backend.app.services.memory.memory_manager",
+      "backend.app.services.memory.memory_manager",
+      "backend.app.services.npc.decision_hub",
+      "backend.app.services.npc.interpretation_engine",
+      "backend.app.services.npc.life_engine",
+      "backend.app.services.npc.life_engine",
+      "backend.app.services.npc.reaction_priority",
+      "backend.app.services.npc.resolution_engine",
+      "backend.app.services.npc.state_applicator",
+      "backend.app.services.player_cognition.perception_layer",
+      "backend.app.services.spatial.spatial_runtime",
+      "backend.app.services.temporal.temporal_engine",
+      "backend.app.services.temporal.temporal_engine",
+      "backend.app.services.world.world_tick_engine"
+    ]
+  },
+  "backend.app.agents.rules_agent": {
+    "imports": [
+      "random",
+      "dataclasses",
+      "app.models.schemas",
+      "enum"
+    ],
+    "imported_by": []
+  },
+  "random": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.agents.rules_agent",
+      "backend.app.services.scene_state_manager",
+      "backend.app.services.scene_state_manager",
+      "backend.app.services.combat.impact_engine",
+      "backend.app.services.economy.market_state",
+      "backend.app.services.economy.traveller",
+      "backend.app.services.game.combat_math",
+      "backend.app.services.llm.llama_cpp_provider",
+      "backend.app.services.llm.mock_provider",
+      "backend.app.services.npc.decision_hub",
+      "backend.app.services.npc.life_engine",
+      "backend.app.services.npc.resolution_engine",
+      "backend.app.services.npc.state_applicator",
+      "backend.app.services.player_cognition.attention_layer",
+      "backend.app.services.reaction.reaction_rules",
+      "backend.app.services.spatial.movement_engine"
+    ]
+  },
+  "enum": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.agents.rules_agent",
+      "backend.app.core.constants",
+      "backend.app.domain.intent_profile",
+      "backend.app.domain.snapshot",
+      "backend.app.models.affect",
+      "backend.app.models.behavior_mask",
+      "backend.app.models.cfrm",
+      "backend.app.models.character",
+      "backend.app.models.economy",
+      "backend.app.models.front",
+      "backend.app.models.impact",
+      "backend.app.models.npc_state",
+      "backend.app.models.physical",
+      "backend.app.models.scene_event",
+      "backend.app.models.scene_mode",
+      "backend.app.models.schemas",
+      "backend.app.models.spatial_contracts",
+      "backend.app.models.state_delta",
+      "backend.app.models.will",
+      "backend.app.services.scene_change",
+      "backend.app.services.tick_orchestrator",
+      "backend.app.services.action.dm_router",
+      "backend.app.services.character.character_filter",
+      "backend.app.services.economy.market_state",
+      "backend.app.services.economy.need_engine",
+      "backend.app.services.economy.traveller",
+      "backend.app.services.events.event_types",
+      "backend.app.services.llm.provider",
+      "backend.app.services.llm.provider_manager",
+      "backend.app.services.llm.router",
+      "backend.app.services.npc.role_transition",
+      "backend.app.services.player_cognition.memory_layer",
+      "backend.app.services.player_cognition.types",
+      "backend.app.services.reaction.micro_event",
+      "backend.app.services.verbalization.scene_outcome_builder",
+      "backend.app.services.verbalization.state_interpreter"
+    ]
+  },
+  "backend.app.agents.world_sim_agent": {
+    "imports": [
+      "typing",
+      "app.services.llm"
+    ],
+    "imported_by": []
+  },
+  "backend.app.agents.__init__": {
+    "imports": [],
+    "imported_by": []
+  },
+  "backend.app.api.routes": {
+    "imports": [
+      "contextlib",
+      "datetime",
+      "typing",
+      "fastapi",
+      "app.domain.snapshot",
+      "app.models.schemas",
+      "app.services.character_service",
+      "app.services.combat_service",
+      "app.services.knowledge_ingest",
+      "app.services.llm.health",
+      "fastapi",
+      "app.services.game_loop_accessor",
+      "app.services.readiness",
+      "app.services.campaign_state_service",
+      "app.services.player_session_service",
+      "app.services.llm.provider_manager",
+      "app.services.llm.router",
+      "app.core.config",
+      "time",
+      "os",
+      "app.core.config",
+      "data.runtime_ports",
+      "app.services.llm.provider_manager",
+      "app.services.game_loop.scene_init",
+      "app.services.knowledge_ingest",
+      "app.services.campaign_state_service",
+      "json",
+      "app.services.npc.npc_loader",
+      "traceback",
+      "dataclasses",
+      "traceback",
+      "json"
+    ],
+    "imported_by": []
+  },
+  "app.domain.snapshot": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.api.routes",
+      "backend.app.api.world_routes",
+      "backend.app.domain.tick",
+      "backend.app.services.game_loop.__init__",
+      "backend.app.services.integration.world_snapshot_builder",
+      "backend.app.services.presentation.avatar_presentation_assembler"
+    ]
+  },
+  "app.services.character_service": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.api.routes",
+      "backend.app.services.game_loop_builder",
+      "backend.app.services.game_loop.__init__",
+      "backend.app.services.game_loop.__init__"
+    ]
+  },
+  "app.services.combat_service": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.api.routes"
+    ]
+  },
+  "app.services.knowledge_ingest": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.api.routes",
+      "backend.app.api.routes",
+      "backend.app.services.pdf_drop_importer"
+    ]
+  },
+  "app.services.llm.health": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.api.routes"
+    ]
+  },
+  "app.services.game_loop_accessor": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.api.routes",
+      "backend.app.api.routes_debug",
+      "backend.app.api.routes_stream"
+    ]
+  },
+  "app.services.readiness": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.api.routes"
+    ]
+  },
+  "app.services.campaign_state_service": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.api.routes",
+      "backend.app.api.routes",
+      "backend.app.api.routes_stream",
+      "backend.app.services.game_loop.scene_init"
+    ]
+  },
+  "app.services.player_session_service": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.api.routes",
+      "backend.app.api.routes_stream",
+      "backend.app.services.game_loop.__init__"
+    ]
+  },
+  "os": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.api.routes",
+      "backend.app.core.error_logger",
+      "backend.app.services.player_session_service",
+      "backend.app.services.system_requirements",
+      "backend.app.services.vram_monitor",
+      "backend.app.services.llm.llama_cpp_provider"
+    ]
+  },
+  "data.runtime_ports": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.api.routes",
+      "backend.app.core.runtime_config"
+    ]
+  },
+  "app.services.game_loop.scene_init": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.api.routes",
+      "backend.app.services.game_loop.__init__",
+      "backend.app.services.game_loop.__init__"
+    ]
+  },
+  "app.services.npc.npc_loader": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.api.routes",
+      "backend.app.services.game_loop_builder",
+      "backend.app.services.scene_state_manager",
+      "backend.app.services.tick_orchestrator",
+      "backend.app.services.game_loop.phase_2_world_tick",
+      "backend.app.services.game_loop.scene_init",
+      "backend.app.services.game_loop.service_factories",
+      "backend.app.services.game_loop.service_factories",
+      "backend.app.services.game_loop.__init__",
+      "backend.app.services.npc.life_engine",
+      "backend.app.services.npc.life_engine",
+      "backend.app.services.npc.life_engine",
+      "backend.app.services.npc.npc_tick_pipeline"
+    ]
+  },
+  "traceback": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.api.routes",
+      "backend.app.api.routes",
+      "backend.app.core.error_logger",
+      "backend.app.services.error_interpreter",
+      "backend.app.services.llm.provider_manager",
+      "backend.app.services.llm.router",
+      "backend.app.services.npc.life_engine"
+    ]
+  },
+  "backend.app.api.routes_debug": {
+    "imports": [
+      "time",
+      "fastapi",
+      "app.services.llm.provider_manager",
+      "app.services.error_interpreter",
+      "app.services.vram_monitor",
+      "app.services.game_loop_accessor",
+      "app.core.game_loop"
+    ],
+    "imported_by": []
+  },
+  "app.core.game_loop": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.api.routes_debug"
+    ]
+  },
+  "backend.app.api.routes_stream": {
+    "imports": [
+      "__future__",
+      "json",
+      "datetime",
+      "fastapi",
+      "fastapi.responses",
+      "fastapi",
+      "app.services.game_loop_accessor",
+      "app.services.player_session_service",
+      "app.services.campaign_state_service"
+    ],
+    "imported_by": []
+  },
+  "__future__": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.api.routes_stream",
+      "backend.app.api.world_routes",
+      "backend.app.core.calendar",
+      "backend.app.domain.events",
+      "backend.app.domain.intent",
+      "backend.app.domain.movement",
+      "backend.app.domain.snapshot",
+      "backend.app.domain.tick",
+      "backend.app.models.affect",
+      "backend.app.models.behavior_mask",
+      "backend.app.models.cfrm",
+      "backend.app.models.character",
+      "backend.app.models.economy",
+      "backend.app.models.event_resolution",
+      "backend.app.models.front",
+      "backend.app.models.idle_tick",
+      "backend.app.models.interpretation",
+      "backend.app.models.npc_profile",
+      "backend.app.models.npc_state",
+      "backend.app.models.phase8",
+      "backend.app.models.physical",
+      "backend.app.models.psychological",
+      "backend.app.models.spatial_contracts",
+      "backend.app.models.temporal",
+      "backend.app.models.will",
+      "backend.app.services.affect",
+      "backend.app.services.game_loop_builder",
+      "backend.app.services.knowledge_ingest",
+      "backend.app.services.pdf_drop_importer",
+      "backend.app.services.player_avatar_service",
+      "backend.app.services.scene_change",
+      "backend.app.services.scene_state_manager",
+      "backend.app.services.tick_orchestrator",
+      "backend.app.services.will",
+      "backend.app.services.action.dm_orchestrator",
+      "backend.app.services.action.dm_router",
+      "backend.app.services.action.dm_scene_builder",
+      "backend.app.services.action.object_resolver",
+      "backend.app.services.affective.affective_integrator",
+      "backend.app.services.affective.emotion_transition",
+      "backend.app.services.cfrm.local_causal_solver",
+      "backend.app.services.character.character_filter",
+      "backend.app.services.character.front_engine",
+      "backend.app.services.combat.combat_subscriber",
+      "backend.app.services.combat.physiology_decay_handler",
+      "backend.app.services.economy.economic_modifier",
+      "backend.app.services.economy.economy_tracker",
+      "backend.app.services.economy.market_state",
+      "backend.app.services.economy.need_engine",
+      "backend.app.services.economy.opportunity_engine",
+      "backend.app.services.economy.profile_factory",
+      "backend.app.services.economy.psycho_economy",
+      "backend.app.services.economy.stress_calculator",
+      "backend.app.services.economy.trade_resolver",
+      "backend.app.services.economy.transaction_engine",
+      "backend.app.services.economy.traveller",
+      "backend.app.services.events.event_bus",
+      "backend.app.services.events.event_types",
+      "backend.app.services.events.perception_subscriber",
+      "backend.app.services.events.reaction_subscriber",
+      "backend.app.services.events.social_subscriber",
+      "backend.app.services.game_loop.service_factories",
+      "backend.app.services.game_loop.__init__",
+      "backend.app.services.integration.world_snapshot_builder",
+      "backend.app.services.llm.anthropic_provider",
+      "backend.app.services.llm.factory",
+      "backend.app.services.llm.health",
+      "backend.app.services.llm.llama_cpp_provider",
+      "backend.app.services.llm.mock_provider",
+      "backend.app.services.llm.ollama_provider",
+      "backend.app.services.llm.openai_provider",
+      "backend.app.services.llm.provider",
+      "backend.app.services.llm.provider_manager",
+      "backend.app.services.llm.router",
+      "backend.app.services.llm.vllm_provider",
+      "backend.app.services.memory.contradiction_resolver",
+      "backend.app.services.memory.importance_engine",
+      "backend.app.services.memory.memory_manager",
+      "backend.app.services.memory.promotion_engine",
+      "backend.app.services.memory.relationship_store",
+      "backend.app.services.memory.resonance_engine",
+      "backend.app.services.memory.sqlite_store",
+      "backend.app.services.memory.working_memory",
+      "backend.app.services.memory.working_memory_tick",
+      "backend.app.services.npc.condition_engine",
+      "backend.app.services.npc.decision_hub",
+      "backend.app.services.npc.interpretation_engine",
+      "backend.app.services.npc.life_engine",
+      "backend.app.services.npc.math_utils",
+      "backend.app.services.npc.npc_loader",
+      "backend.app.services.npc.npc_tick_contracts",
+      "backend.app.services.npc.perception_engine",
+      "backend.app.services.npc.perception_filter",
+      "backend.app.services.npc.reaction_priority",
+      "backend.app.services.npc.resolution_engine",
+      "backend.app.services.npc.role_transition",
+      "backend.app.services.npc.state_applicator",
+      "backend.app.services.presentation.avatar_presentation_assembler",
+      "backend.app.services.scene.narrative_extractor",
+      "backend.app.services.scene.scene_event_layer",
+      "backend.app.services.simulation.world_state",
+      "backend.app.services.social.reputation_decay_handler",
+      "backend.app.services.social.reputation_engine",
+      "backend.app.services.social.social_decay_handler",
+      "backend.app.services.spatial.graph_compiler",
+      "backend.app.services.spatial.location_graph",
+      "backend.app.services.spatial.movement_engine",
+      "backend.app.services.spatial.player_target_pipeline",
+      "backend.app.services.spatial.role_resolver",
+      "backend.app.services.spatial.spatial_event_detector",
+      "backend.app.services.spatial.spatial_overlay",
+      "backend.app.services.spatial.spatial_query_service",
+      "backend.app.services.spatial.spatial_runtime",
+      "backend.app.services.spatial.spatial_service",
+      "backend.app.services.spatial.transit_tracker",
+      "backend.app.services.state.json_persistence_adapter",
+      "backend.app.services.state.persistence_port",
+      "backend.app.services.state.sqlite_persistence_adapter",
+      "backend.app.services.temporal.temporal_engine",
+      "backend.app.services.world.world_tick_engine"
+    ]
+  },
+  "backend.app.api.world_routes": {
+    "imports": [
+      "__future__",
+      "typing",
+      "fastapi",
+      "app.domain.snapshot",
+      "app.services.scene_state_manager",
+      "app.services.integration.world_snapshot_builder",
+      "app.services.npc.life_engine"
+    ],
+    "imported_by": []
+  },
+  "app.services.integration.world_snapshot_builder": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.api.world_routes",
+      "backend.app.services.tick_orchestrator",
+      "backend.app.services.game_loop.__init__"
+    ]
+  },
+  "app.services.npc.life_engine": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.api.world_routes",
+      "backend.app.services.tick_orchestrator",
+      "backend.app.services.game_loop.npc_orchestration",
+      "backend.app.services.game_loop.scene_init",
+      "backend.app.services.game_loop.scene_init"
+    ]
+  },
+  "backend.app.api.__init__": {
+    "imports": [],
+    "imported_by": []
+  },
+  "backend.app.core.calendar": {
+    "imports": [
+      "__future__",
+      "dataclasses",
+      "typing",
+      "app.core.constants"
+    ],
+    "imported_by": []
+  },
+  "backend.app.core.config": {
+    "imports": [
+      "pydantic_settings",
+      "pydantic",
+      "pathlib",
+      "typing",
+      "logging",
+      "runtime_config",
+      "runtime_config",
+      "urllib.request",
+      "pathlib"
+    ],
+    "imported_by": []
+  },
+  "pydantic_settings": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.core.config",
+      "backend.app.core.settings_dm",
+      "backend.app.core.settings_npc"
+    ]
+  },
+  "pydantic": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.core.config",
+      "backend.app.domain.intent_profile",
+      "backend.app.models.schemas"
+    ]
+  },
+  "runtime_config": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.core.config",
+      "backend.app.core.config"
+    ]
+  },
+  "backend.app.core.constants": {
+    "imports": [
+      "enum",
+      "typing"
+    ],
+    "imported_by": []
+  },
+  "backend.app.core.error_logger": {
+    "imports": [
+      "json",
+      "os",
+      "traceback",
+      "datetime",
+      "typing"
+    ],
+    "imported_by": []
+  },
+  "backend.app.core.runtime_config": {
+    "imports": [
+      "pathlib",
+      "sys",
+      "data.runtime_ports"
+    ],
+    "imported_by": []
+  },
+  "sys": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.core.runtime_config"
+    ]
+  },
+  "backend.app.core.settings_dm": {
+    "imports": [
+      "pydantic_settings",
+      "pathlib"
+    ],
+    "imported_by": []
+  },
+  "backend.app.core.settings_npc": {
+    "imports": [
+      "pathlib",
+      "typing",
+      "pydantic_settings"
+    ],
+    "imported_by": []
+  },
+  "backend.app.core.settings_rules": {
+    "imports": [
+      "config",
+      "pathlib"
+    ],
+    "imported_by": []
+  },
+  "config": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.core.settings_rules",
+      "backend.app.core.settings_world"
+    ]
+  },
+  "backend.app.core.settings_world": {
+    "imports": [
+      "pathlib",
+      "config",
+      "typing"
+    ],
+    "imported_by": []
+  },
+  "backend.app.core.__init__": {
+    "imports": [],
+    "imported_by": []
+  },
+  "backend.app.domain.communication": {
+    "imports": [
+      "dataclasses",
+      "typing"
+    ],
+    "imported_by": []
+  },
+  "backend.app.domain.constants": {
+    "imports": [],
+    "imported_by": []
+  },
+  "backend.app.domain.decision_context": {
+    "imports": [
+      "dataclasses",
+      "typing"
+    ],
+    "imported_by": []
+  },
+  "backend.app.domain.events": {
+    "imports": [
+      "__future__",
+      "time",
+      "dataclasses",
+      "typing",
+      "uuid"
+    ],
+    "imported_by": []
+  },
+  "uuid": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.domain.events",
+      "backend.app.domain.snapshot",
+      "backend.app.services.campaign_state_service",
+      "backend.app.services.player_session_service",
+      "backend.app.services.memory.layered_memory",
+      "backend.app.services.memory.sqlite_store",
+      "backend.app.services.scene.narrative_extractor",
+      "backend.app.services.verbalization.dm_contract_builder"
+    ]
+  },
+  "backend.app.domain.intent": {
+    "imports": [
+      "__future__",
+      "dataclasses",
+      "typing"
+    ],
+    "imported_by": []
+  },
+  "backend.app.domain.intent_profile": {
+    "imports": [
+      "pydantic",
+      "typing",
+      "enum"
+    ],
+    "imported_by": []
+  },
+  "backend.app.domain.movement": {
+    "imports": [
+      "__future__",
+      "dataclasses"
+    ],
+    "imported_by": []
+  },
+  "backend.app.domain.snapshot": {
+    "imports": [
+      "__future__",
+      "dataclasses",
+      "enum",
+      "typing",
+      "uuid"
+    ],
+    "imported_by": []
+  },
+  "backend.app.domain.tick": {
+    "imports": [
+      "__future__",
+      "dataclasses",
+      "typing",
+      "app.domain.snapshot"
+    ],
+    "imported_by": []
+  },
+  "backend.app.domain.__init__": {
+    "imports": [],
+    "imported_by": []
+  },
+  "backend.app.models.affect": {
+    "imports": [
+      "__future__",
+      "dataclasses",
+      "enum"
+    ],
+    "imported_by": []
+  },
+  "backend.app.models.behavior_mask": {
+    "imports": [
+      "__future__",
+      "dataclasses",
+      "enum",
+      "typing"
+    ],
+    "imported_by": []
+  },
+  "backend.app.models.candidates": {
+    "imports": [],
+    "imported_by": []
+  },
+  "backend.app.models.cfrm": {
+    "imports": [
+      "__future__",
+      "dataclasses",
+      "enum",
+      "typing",
+      "app.domain.events"
+    ],
+    "imported_by": []
+  },
+  "app.domain.events": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.models.cfrm",
+      "backend.app.models.phase8",
+      "backend.app.services.tick_orchestrator",
+      "backend.app.services.tick_orchestrator",
+      "backend.app.services.events.event_bus",
+      "backend.app.services.events.intent_event_adapter",
+      "backend.app.services.events.perception_subscriber",
+      "backend.app.services.events.reaction_subscriber",
+      "backend.app.services.events.social_subscriber",
+      "backend.app.services.game_loop.phase_1_input",
+      "backend.app.services.memory.memory_manager",
+      "backend.app.services.memory.memory_manager",
+      "backend.app.services.memory.working_memory_tick",
+      "backend.app.services.npc.npc_tick_pipeline",
+      "backend.app.services.npc.npc_tick_pipeline",
+      "backend.app.services.npc.perception_filter",
+      "backend.app.services.simulation.world_state",
+      "backend.app.services.social.directive_interpretation_subscriber",
+      "backend.app.services.spatial.player_target_pipeline",
+      "backend.app.services.spatial.spatial_event_detector",
+      "backend.app.services.world.world_tick_engine"
+    ]
+  },
+  "backend.app.models.character": {
+    "imports": [
+      "__future__",
+      "dataclasses",
+      "enum",
+      "typing",
+      "app.models.front"
+    ],
+    "imported_by": []
+  },
+  "app.models.front": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.models.character",
+      "backend.app.services.character.front_applicator",
+      "backend.app.services.character.front_engine"
+    ]
+  },
+  "backend.app.models.delta_payloads": {
+    "imports": [
+      "dataclasses",
+      "typing"
+    ],
+    "imported_by": []
+  },
+  "backend.app.models.economy": {
+    "imports": [
+      "__future__",
+      "dataclasses",
+      "enum",
+      "typing",
+      "app.core.constants"
+    ],
+    "imported_by": []
+  },
+  "backend.app.models.event_resolution": {
+    "imports": [
+      "__future__",
+      "dataclasses",
+      "typing"
+    ],
+    "imported_by": []
+  },
+  "backend.app.models.front": {
+    "imports": [
+      "__future__",
+      "dataclasses",
+      "enum",
+      "typing"
+    ],
+    "imported_by": []
+  },
+  "backend.app.models.idle_tick": {
+    "imports": [
+      "__future__",
+      "typing",
+      "app.models.state_delta"
+    ],
+    "imported_by": []
+  },
+  "app.models.state_delta": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.models.idle_tick",
+      "backend.app.models.phase8",
+      "backend.app.services.tick_orchestrator",
+      "backend.app.services.tick_orchestrator",
+      "backend.app.services.combat.impact_engine",
+      "backend.app.services.combat.physiology_decay_handler",
+      "backend.app.services.events.reaction_subscriber",
+      "backend.app.services.npc.decision_hub",
+      "backend.app.services.npc.decision_hub",
+      "backend.app.services.npc.legacy_delta_adapter",
+      "backend.app.services.npc.state_applicator",
+      "backend.app.services.social.directive_interpretation_subscriber",
+      "backend.app.services.social.propagation",
+      "backend.app.services.social.reputation_decay_handler",
+      "backend.app.services.social.reputation_engine",
+      "backend.app.services.social.reputation_engine",
+      "backend.app.services.social.social_decay_handler",
+      "backend.app.services.world.world_tick_engine"
+    ]
+  },
+  "backend.app.models.impact": {
+    "imports": [
+      "dataclasses",
+      "typing",
+      "enum"
+    ],
+    "imported_by": []
+  },
+  "backend.app.models.interpretation": {
+    "imports": [
+      "__future__",
+      "dataclasses",
+      "typing",
+      "app.models.psychological"
+    ],
+    "imported_by": []
+  },
+  "app.models.psychological": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.models.interpretation",
+      "backend.app.models.npc_state",
+      "backend.app.services.npc.interpretation_engine",
+      "backend.app.services.npc.state_applicator"
+    ]
+  },
+  "backend.app.models.locomotion": {
+    "imports": [
+      "dataclasses",
+      "typing"
+    ],
+    "imported_by": []
+  },
+  "backend.app.models.npc_profile": {
+    "imports": [
+      "__future__",
+      "dataclasses",
+      "typing"
+    ],
+    "imported_by": []
+  },
+  "backend.app.models.npc_state": {
+    "imports": [
+      "__future__",
+      "app.models.affect",
+      "math",
+      "dataclasses",
+      "enum",
+      "typing",
+      "app.models.behavior_mask",
+      "app.models.psychological",
+      "app.models.physical"
+    ],
+    "imported_by": []
+  },
+  "app.models.affect": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.models.npc_state",
+      "backend.app.services.affect",
+      "backend.app.services.tick_orchestrator",
+      "backend.app.services.tick_orchestrator",
+      "backend.app.services.affective.emotion_resolution",
+      "backend.app.services.affective.pressure_derivation"
+    ]
+  },
+  "math": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.models.npc_state",
+      "backend.app.services.scene_state_manager",
+      "backend.app.services.scene_state_manager",
+      "backend.app.services.action.player_target_extractor",
+      "backend.app.services.combat.physiology_decay_handler",
+      "backend.app.services.npc.math_utils",
+      "backend.app.services.npc.perception_filter",
+      "backend.app.services.player_cognition.recognition_layer",
+      "backend.app.services.player_cognition.spatial_layer",
+      "backend.app.services.social.social_decay_handler",
+      "backend.app.services.spatial.location_graph",
+      "backend.app.services.spatial.spatial_event_detector",
+      "backend.app.services.spatial.spatial_runtime",
+      "backend.app.services.spatial.spatial_service"
+    ]
+  },
+  "app.models.behavior_mask": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.models.npc_state",
+      "backend.app.services.player_avatar_service",
+      "backend.app.services.economy.opportunity_engine",
+      "backend.app.services.npc.decision_hub",
+      "backend.app.services.npc.domain_phases"
+    ]
+  },
+  "app.models.physical": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.models.npc_state",
+      "backend.app.services.player_avatar_service",
+      "backend.app.services.npc.state_applicator",
+      "backend.app.services.verbalization.state_interpreter"
+    ]
+  },
+  "backend.app.models.phase8": {
+    "imports": [
+      "__future__",
+      "dataclasses",
+      "typing",
+      "app.domain.events",
+      "app.models.state_delta"
+    ],
+    "imported_by": []
+  },
+  "backend.app.models.physical": {
+    "imports": [
+      "__future__",
+      "dataclasses",
+      "enum",
+      "typing"
+    ],
+    "imported_by": []
+  },
+  "backend.app.models.pipeline_context": {
+    "imports": [
+      "dataclasses",
+      "typing",
+      "app.models.will"
+    ],
+    "imported_by": []
+  },
+  "app.models.will": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.models.pipeline_context",
+      "backend.app.services.affect",
+      "backend.app.services.tick_orchestrator",
+      "backend.app.services.will",
+      "backend.app.services.game_loop.phase_1_input"
+    ]
+  },
+  "backend.app.models.psychological": {
+    "imports": [
+      "__future__",
+      "dataclasses"
+    ],
+    "imported_by": []
+  },
+  "backend.app.models.scene_event": {
+    "imports": [
+      "dataclasses",
+      "enum"
+    ],
+    "imported_by": []
+  },
+  "backend.app.models.scene_mode": {
+    "imports": [
+      "enum"
+    ],
+    "imported_by": []
+  },
+  "backend.app.models.schemas": {
+    "imports": [
+      "datetime",
+      "enum",
+      "typing",
+      "pydantic"
+    ],
+    "imported_by": []
+  },
+  "backend.app.models.social": {
+    "imports": [
+      "dataclasses",
+      "typing"
+    ],
+    "imported_by": []
+  },
+  "backend.app.models.spatial_contracts": {
+    "imports": [
+      "__future__",
+      "dataclasses",
+      "enum",
+      "typing",
+      "hashlib"
+    ],
+    "imported_by": []
+  },
+  "hashlib": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.models.spatial_contracts"
+    ]
+  },
+  "backend.app.models.state_delta": {
+    "imports": [
+      "dataclasses",
+      "enum",
+      "typing",
+      "app.models.delta_payloads",
+      "app.models.npc_state"
+    ],
+    "imported_by": []
+  },
+  "app.models.delta_payloads": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.models.state_delta",
+      "backend.app.models.will",
+      "backend.app.services.tick_orchestrator",
+      "backend.app.services.tick_orchestrator",
+      "backend.app.services.tick_orchestrator",
+      "backend.app.services.affective.emotion_resolution",
+      "backend.app.services.affective.emotion_transition",
+      "backend.app.services.combat.impact_engine",
+      "backend.app.services.combat.physiology_decay_handler",
+      "backend.app.services.events.reaction_subscriber",
+      "backend.app.services.npc.legacy_delta_adapter",
+      "backend.app.services.npc.state_applicator",
+      "backend.app.services.social.directive_interpretation_subscriber"
+    ]
+  },
+  "app.models.npc_state": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.models.state_delta",
+      "backend.app.services.player_avatar_service",
+      "backend.app.services.tick_orchestrator",
+      "backend.app.services.tick_orchestrator",
+      "backend.app.services.affective.affective_integrator",
+      "backend.app.services.affective.pressure_derivation",
+      "backend.app.services.cfrm.local_causal_solver",
+      "backend.app.services.cfrm.pressure_translator",
+      "backend.app.services.economy.opportunity_engine",
+      "backend.app.services.game_loop.phase_2_world_tick",
+      "backend.app.services.game_loop.__init__",
+      "backend.app.services.memory.importance_engine",
+      "backend.app.services.memory.memory_manager",
+      "backend.app.services.memory.memory_manager",
+      "backend.app.services.memory.promotion_engine",
+      "backend.app.services.memory.resonance_engine",
+      "backend.app.services.memory.sqlite_store",
+      "backend.app.services.memory.working_memory",
+      "backend.app.services.npc.break_progress_engine",
+      "backend.app.services.npc.condition_engine",
+      "backend.app.services.npc.decision_hub",
+      "backend.app.services.npc.decision_hub",
+      "backend.app.services.npc.domain_phases",
+      "backend.app.services.npc.domain_phases",
+      "backend.app.services.npc.domain_phases",
+      "backend.app.services.npc.interpretation_engine",
+      "backend.app.services.npc.life_engine",
+      "backend.app.services.npc.npc_loader",
+      "backend.app.services.npc.npc_loader",
+      "backend.app.services.npc.npc_loader",
+      "backend.app.services.npc.npc_tick_pipeline",
+      "backend.app.services.npc.resolution_engine",
+      "backend.app.services.npc.role_transition",
+      "backend.app.services.npc.state_applicator",
+      "backend.app.services.npc.state_applicator",
+      "backend.app.services.npc.state_applicator",
+      "backend.app.services.npc.state_applicator",
+      "backend.app.services.verbalization.state_interpreter",
+      "backend.app.services.verbalization.verbalization_context",
+      "backend.app.services.world.world_tick_engine"
+    ]
+  },
+  "backend.app.models.temporal": {
+    "imports": [
+      "__future__",
+      "dataclasses"
+    ],
+    "imported_by": []
+  },
+  "backend.app.models.traversal": {
+    "imports": [
+      "dataclasses",
+      "typing"
+    ],
+    "imported_by": []
+  },
+  "backend.app.models.will": {
+    "imports": [
+      "__future__",
+      "dataclasses",
+      "enum",
+      "typing",
+      "app.domain.intent",
+      "app.models.delta_payloads"
+    ],
+    "imported_by": []
+  },
+  "app.domain.intent": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.models.will",
+      "backend.app.services.affect",
+      "backend.app.services.tick_orchestrator",
+      "backend.app.services.will",
+      "backend.app.services.game_loop.phase_1_input"
+    ]
+  },
+  "backend.app.models.__init__": {
+    "imports": [],
+    "imported_by": []
+  },
+  "backend.app.services.adventure_loader": {
+    "imports": [
+      "json",
+      "pathlib",
+      "typing"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.affect": {
+    "imports": [
+      "__future__",
+      "logging",
+      "typing",
+      "app.domain.intent",
+      "app.models.affect",
+      "app.models.cfrm",
+      "app.models.will",
+      "dataclasses"
+    ],
+    "imported_by": []
+  },
+  "app.models.cfrm": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.affect",
+      "backend.app.services.tick_orchestrator",
+      "backend.app.services.tick_orchestrator",
+      "backend.app.services.tick_orchestrator",
+      "backend.app.services.cfrm.local_causal_solver",
+      "backend.app.services.cfrm.pressure_translator",
+      "backend.app.services.social.directive_interpretation_subscriber",
+      "backend.app.services.spatial.spatial_query_service",
+      "backend.app.services.spatial.spatial_service"
+    ]
+  },
+  "backend.app.services.campaign_state_service": {
+    "imports": [
+      "json",
+      "datetime",
+      "pathlib",
+      "typing",
+      "uuid",
+      "app.models.schemas"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.character_service": {
+    "imports": [
+      "json",
+      "logging",
+      "pathlib",
+      "typing",
+      "app.models.schemas",
+      "app.models.character"
+    ],
+    "imported_by": []
+  },
+  "app.models.character": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.character_service",
+      "backend.app.services.player_avatar_service",
+      "backend.app.services.character.character_filter",
+      "backend.app.services.character.front_engine"
+    ]
+  },
+  "backend.app.services.combat_service": {
+    "imports": [
+      "json",
+      "dataclasses",
+      "pathlib",
+      "typing"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.error_interpreter": {
+    "imports": [
+      "traceback",
+      "json",
+      "logging",
+      "datetime",
+      "pathlib",
+      "typing",
+      "app.core.config"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.game_loop_accessor": {
+    "imports": [
+      "fastapi",
+      "app.services.game_loop"
+    ],
+    "imported_by": []
+  },
+  "app.services.game_loop": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.game_loop_accessor",
+      "backend.app.services.game_loop_builder"
+    ]
+  },
+  "backend.app.services.game_loop_builder": {
+    "imports": [
+      "__future__",
+      "logging",
+      "pathlib",
+      "app.core.config",
+      "app.services.game_loop",
+      "app.services.adventure_loader",
+      "app.services.system_requirements",
+      "app.services.memory",
+      "app.services.memory.sqlite_store",
+      "app.services.memory.memory_manager",
+      "app.services.world_scheduler",
+      "app.services.character_service",
+      "app.services.player_avatar_service",
+      "app.services.scene_state_manager",
+      "app.services.state.sqlite_persistence_adapter",
+      "app.services.action.dm_orchestrator",
+      "app.agents.dm_agent",
+      "app.agents.rules_agent",
+      "app.agents.world_sim_agent",
+      "app.services.npc.npc_loader"
+    ],
+    "imported_by": []
+  },
+  "app.services.adventure_loader": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.game_loop_builder",
+      "backend.app.services.game_loop.__init__"
+    ]
+  },
+  "app.services.system_requirements": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.game_loop_builder",
+      "backend.app.services.game_loop.__init__"
+    ]
+  },
+  "app.services.memory": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.game_loop_builder",
+      "backend.app.services.world_scheduler",
+      "backend.app.services.memory.memory_manager"
+    ]
+  },
+  "app.services.memory.sqlite_store": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.game_loop_builder"
+    ]
+  },
+  "app.services.memory.memory_manager": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.game_loop_builder",
+      "backend.app.services.knowledge_ingest",
+      "backend.app.services.memory.working_memory_tick"
+    ]
+  },
+  "app.services.world_scheduler": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.game_loop_builder",
+      "backend.app.services.game_loop.__init__"
+    ]
+  },
+  "app.services.player_avatar_service": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.game_loop_builder"
+    ]
+  },
+  "app.services.state.sqlite_persistence_adapter": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.game_loop_builder"
+    ]
+  },
+  "app.services.action.dm_orchestrator": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.game_loop_builder",
+      "backend.app.services.game_loop.__init__"
+    ]
+  },
+  "app.agents.dm_agent": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.game_loop_builder"
+    ]
+  },
+  "app.agents.rules_agent": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.game_loop_builder"
+    ]
+  },
+  "app.agents.world_sim_agent": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.game_loop_builder",
+      "backend.app.services.world_scheduler"
+    ]
+  },
+  "backend.app.services.knowledge_ingest": {
+    "imports": [
+      "__future__",
+      "dataclasses",
+      "io",
+      "typing",
+      "pypdf",
+      "app.services.memory.memory_manager"
+    ],
+    "imported_by": []
+  },
+  "io": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.knowledge_ingest"
+    ]
+  },
+  "pypdf": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.knowledge_ingest"
+    ]
+  },
+  "backend.app.services.logging_tools": {
+    "imports": [
+      "json",
+      "datetime",
+      "pathlib",
+      "app.core.config"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.pdf_drop_importer": {
+    "imports": [
+      "__future__",
+      "dataclasses",
+      "pathlib",
+      "app.services.knowledge_ingest"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.player_avatar_service": {
+    "imports": [
+      "__future__",
+      "json",
+      "logging",
+      "pathlib",
+      "typing",
+      "app.models.schemas",
+      "app.models.character",
+      "app.models.npc_state",
+      "app.models.physical",
+      "app.models.behavior_mask"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.player_session_service": {
+    "imports": [
+      "json",
+      "os",
+      "uuid",
+      "logging",
+      "datetime",
+      "typing",
+      "app.models.schemas",
+      "app.core.config"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.readiness": {
+    "imports": [
+      "app.models.schemas"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.scene_change": {
+    "imports": [
+      "__future__",
+      "dataclasses",
+      "enum",
+      "typing"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.scene_state_manager": {
+    "imports": [
+      "__future__",
+      "contextlib",
+      "json",
+      "math",
+      "random",
+      "logging",
+      "datetime",
+      "pathlib",
+      "typing",
+      "app.core.config",
+      "app.services.scene_change",
+      "app.services.state.persistence_port",
+      "app.services.spatial.location_graph",
+      "app.services.spatial.spatial_runtime",
+      "app.services.scene.narrative_extractor",
+      "app.services.scene.narrative_extractor",
+      "time",
+      "app.services.scene.narrative_extractor",
+      "app.services.scene.salience_engine",
+      "app.models.scene_mode",
+      "app.services.npc.npc_loader",
+      "shutil",
+      "app.services.spatial.spatial_service",
+      "app.services.spatial.spatial_service",
+      "app.models.traversal",
+      "random",
+      "math"
+    ],
+    "imported_by": []
+  },
+  "app.services.scene_change": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.scene_state_manager",
+      "backend.app.services.npc.life_engine",
+      "backend.app.services.npc.reaction_priority",
+      "backend.app.services.spatial.movement_engine",
+      "backend.app.services.spatial.transit_tracker"
+    ]
+  },
+  "app.services.state.persistence_port": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.scene_state_manager",
+      "backend.app.services.state.json_persistence_adapter",
+      "backend.app.services.state.sqlite_persistence_adapter",
+      "backend.app.services.state.__init__"
+    ]
+  },
+  "app.services.spatial.location_graph": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.scene_state_manager",
+      "backend.app.services.npc.npc_tick_pipeline",
+      "backend.app.services.spatial.spatial_runtime"
+    ]
+  },
+  "app.services.spatial.spatial_runtime": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.scene_state_manager",
+      "backend.app.services.action.player_target_extractor",
+      "backend.app.services.action.player_target_extractor",
+      "backend.app.services.npc.perception_filter",
+      "backend.app.services.player_cognition.perception_layer",
+      "backend.app.services.player_cognition.spatial_layer",
+      "backend.app.services.spatial.player_target_pipeline",
+      "backend.app.services.spatial.spatial_query_service"
+    ]
+  },
+  "app.services.scene.narrative_extractor": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.scene_state_manager",
+      "backend.app.services.scene_state_manager",
+      "backend.app.services.scene_state_manager",
+      "backend.app.services.game_loop.__init__",
+      "backend.app.services.game_loop.__init__"
+    ]
+  },
+  "app.services.scene.salience_engine": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.scene_state_manager",
+      "backend.app.services.action.dm_scene_builder"
+    ]
+  },
+  "app.models.scene_mode": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.scene_state_manager",
+      "backend.app.services.scene.salience_engine"
+    ]
+  },
+  "shutil": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.scene_state_manager",
+      "backend.app.services.vram_monitor",
+      "backend.app.services.llm.llama_cpp_provider"
+    ]
+  },
+  "app.services.spatial.spatial_service": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.scene_state_manager",
+      "backend.app.services.scene_state_manager",
+      "backend.app.services.tick_orchestrator",
+      "backend.app.services.game_loop.npc_orchestration",
+      "backend.app.services.game_loop.scene_init",
+      "backend.app.services.spatial.movement_engine"
+    ]
+  },
+  "app.models.traversal": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.scene_state_manager"
+    ]
+  },
+  "backend.app.services.system_requirements": {
+    "imports": [
+      "dataclasses",
+      "pathlib",
+      "typing",
+      "os",
+      "psutil"
+    ],
+    "imported_by": []
+  },
+  "psutil": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.system_requirements"
+    ]
+  },
+  "backend.app.services.tick_orchestrator": {
+    "imports": [
+      "__future__",
+      "logging",
+      "time",
+      "dataclasses",
+      "typing",
+      "pathlib",
+      "enum",
+      "app.domain.tick",
+      "app.domain.intent",
+      "app.models.state_delta",
+      "app.models.cfrm",
+      "app.services.events.event_types",
+      "app.services.npc.life_engine",
+      "app.services.npc.npc_loader",
+      "app.services.npc.topic_extractor",
+      "app.services.events.event_bus",
+      "app.services.will",
+      "app.models.phase8",
+      "app.services.cfrm.local_causal_solver",
+      "app.models.cfrm",
+      "app.models.delta_payloads",
+      "app.models.will",
+      "app.models.state_delta",
+      "app.services.events.reaction_subscriber",
+      "app.services.events.social_subscriber",
+      "app.services.combat.combat_subscriber",
+      "app.services.events.intent_event_adapter",
+      "app.services.spatial.spatial_service",
+      "app.services.spatial.spatial_event_detector",
+      "app.services.spatial.transit_tracker",
+      "app.services.integration.world_snapshot_builder",
+      "app.services.npc.npc_tick_contracts",
+      "app.services.npc.npc_tick_pipeline",
+      "app.services.game_loop.npc_state_helpers",
+      "app.services.memory.working_memory_tick",
+      "app.services.memory.working_memory_tick",
+      "app.services.affect",
+      "app.models.affect",
+      "app.domain.events",
+      "app.models.npc_state",
+      "app.services.affect",
+      "app.models.affect",
+      "dataclasses",
+      "app.core.constants",
+      "app.core.calendar",
+      "app.models.idle_tick",
+      "app.models.delta_payloads",
+      "app.services.presentation.avatar_presentation_assembler",
+      "app.core.config",
+      "logging",
+      "app.models.cfrm",
+      "app.services.spatial.movement_engine",
+      "app.services.scene.r3_direct_builder",
+      "app.services.spatial.movement_engine",
+      "app.domain.events",
+      "app.services.will",
+      "app.services.affect",
+      "dataclasses",
+      "app.services.spatial.movement_engine",
+      "app.domain.movement",
+      "app.models.delta_payloads",
+      "types",
+      "app.services.social.directive_interpretation_subscriber",
+      "app.services.affective.affective_integrator",
+      "app.services.affective.emotion_transition",
+      "app.models.npc_state",
+      "dataclasses"
+    ],
+    "imported_by": []
+  },
+  "app.domain.tick": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.tick_orchestrator",
+      "backend.app.services.game_loop.__init__"
+    ]
+  },
+  "app.services.events.event_types": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.tick_orchestrator",
+      "backend.app.services.combat.combat_subscriber",
+      "backend.app.services.events.event_bus",
+      "backend.app.services.events.perception_subscriber",
+      "backend.app.services.events.reaction_subscriber",
+      "backend.app.services.events.social_subscriber",
+      "backend.app.services.events.__init__",
+      "backend.app.services.game_loop.phase_1_input",
+      "backend.app.services.memory.working_memory_tick",
+      "backend.app.services.npc.decision_hub",
+      "backend.app.services.npc.decision_hub",
+      "backend.app.services.npc.decision_hub",
+      "backend.app.services.npc.decision_hub",
+      "backend.app.services.npc.life_engine",
+      "backend.app.services.spatial.player_target_pipeline",
+      "backend.app.services.spatial.spatial_event_detector",
+      "backend.app.services.world.world_tick_engine"
+    ]
+  },
+  "app.services.npc.topic_extractor": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.tick_orchestrator",
+      "backend.app.services.npc.npc_tick_pipeline",
+      "backend.app.services.npc.npc_tick_pipeline"
+    ]
+  },
+  "app.services.events.event_bus": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.tick_orchestrator",
+      "backend.app.services.combat.combat_subscriber",
+      "backend.app.services.events.perception_subscriber",
+      "backend.app.services.events.reaction_subscriber",
+      "backend.app.services.events.social_subscriber",
+      "backend.app.services.events.__init__",
+      "backend.app.services.game_loop.npc_orchestration",
+      "backend.app.services.game_loop.phase_1_input",
+      "backend.app.services.game_loop.__init__",
+      "backend.app.services.memory.working_memory_tick",
+      "backend.app.services.spatial.player_target_pipeline",
+      "backend.app.services.spatial.spatial_event_detector"
+    ]
+  },
+  "app.services.will": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.tick_orchestrator",
+      "backend.app.services.tick_orchestrator",
+      "backend.app.services.game_loop.phase_1_input"
+    ]
+  },
+  "app.models.phase8": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.tick_orchestrator",
+      "backend.app.services.combat.combat_subscriber",
+      "backend.app.services.events.perception_subscriber",
+      "backend.app.services.events.reaction_subscriber",
+      "backend.app.services.events.social_subscriber"
+    ]
+  },
+  "app.services.cfrm.local_causal_solver": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.tick_orchestrator"
+    ]
+  },
+  "app.services.events.reaction_subscriber": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.tick_orchestrator"
+    ]
+  },
+  "app.services.events.social_subscriber": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.tick_orchestrator",
+      "backend.app.services.events.__init__"
+    ]
+  },
+  "app.services.combat.combat_subscriber": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.tick_orchestrator"
+    ]
+  },
+  "app.services.events.intent_event_adapter": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.tick_orchestrator"
+    ]
+  },
+  "app.services.spatial.spatial_event_detector": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.tick_orchestrator"
+    ]
+  },
+  "app.services.spatial.transit_tracker": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.tick_orchestrator",
+      "backend.app.services.spatial.movement_engine"
+    ]
+  },
+  "app.services.npc.npc_tick_contracts": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.tick_orchestrator",
+      "backend.app.services.game_loop.npc_orchestration",
+      "backend.app.services.npc.npc_tick_pipeline"
+    ]
+  },
+  "app.services.npc.npc_tick_pipeline": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.tick_orchestrator"
+    ]
+  },
+  "app.services.game_loop.npc_state_helpers": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.tick_orchestrator"
+    ]
+  },
+  "app.services.memory.working_memory_tick": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.tick_orchestrator",
+      "backend.app.services.tick_orchestrator"
+    ]
+  },
+  "app.services.affect": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.tick_orchestrator",
+      "backend.app.services.tick_orchestrator",
+      "backend.app.services.tick_orchestrator"
+    ]
+  },
+  "app.core.calendar": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.tick_orchestrator",
+      "backend.app.services.game_loop.scene_init",
+      "backend.app.services.game_loop.time_advance"
+    ]
+  },
+  "app.models.idle_tick": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.tick_orchestrator",
+      "backend.app.services.combat.combat_subscriber",
+      "backend.app.services.combat.combat_subscriber",
+      "backend.app.services.combat.impact_engine",
+      "backend.app.services.combat.physiology_decay_handler",
+      "backend.app.services.social.reputation_decay_handler",
+      "backend.app.services.social.social_decay_handler"
+    ]
+  },
+  "app.services.presentation.avatar_presentation_assembler": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.tick_orchestrator"
+    ]
+  },
+  "app.services.spatial.movement_engine": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.tick_orchestrator",
+      "backend.app.services.tick_orchestrator",
+      "backend.app.services.tick_orchestrator",
+      "backend.app.services.game_loop.npc_orchestration",
+      "backend.app.services.npc.life_engine"
+    ]
+  },
+  "app.services.scene.r3_direct_builder": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.tick_orchestrator"
+    ]
+  },
+  "app.domain.movement": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.tick_orchestrator",
+      "backend.app.services.npc.life_engine",
+      "backend.app.services.npc.life_engine",
+      "backend.app.services.npc.life_engine",
+      "backend.app.services.npc.npc_tick_pipeline",
+      "backend.app.services.npc.npc_tick_pipeline",
+      "backend.app.services.spatial.movement_engine"
+    ]
+  },
+  "types": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.tick_orchestrator"
+    ]
+  },
+  "app.services.social.directive_interpretation_subscriber": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.tick_orchestrator"
+    ]
+  },
+  "app.services.affective.affective_integrator": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.tick_orchestrator",
+      "backend.app.services.affective._init_"
+    ]
+  },
+  "app.services.affective.emotion_transition": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.tick_orchestrator",
+      "backend.app.services.affective._init_"
+    ]
+  },
+  "backend.app.services.vram_monitor": {
+    "imports": [
+      "logging",
+      "os",
+      "subprocess",
+      "time",
+      "shutil",
+      "typing"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.will": {
+    "imports": [
+      "__future__",
+      "logging",
+      "typing",
+      "app.domain.intent",
+      "app.models.will"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.world_scheduler": {
+    "imports": [
+      "datetime",
+      "app.agents.world_sim_agent",
+      "app.services.memory"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.__init__": {
+    "imports": [],
+    "imported_by": []
+  },
+  "backend.app.services.action.dm_orchestrator": {
+    "imports": [
+      "__future__",
+      "dataclasses",
+      "typing",
+      "app.services.action.dm_router",
+      "app.services.action.dm_scene_builder",
+      "app.services.npc.decision_hub"
+    ],
+    "imported_by": []
+  },
+  "app.services.action.dm_router": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.action.dm_orchestrator",
+      "backend.app.services.action.dm_scene_builder",
+      "backend.app.services.action.dm_scene_builder"
+    ]
+  },
+  "app.services.action.dm_scene_builder": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.action.dm_orchestrator"
+    ]
+  },
+  "app.services.npc.decision_hub": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.action.dm_orchestrator",
+      "backend.app.services.action.dm_scene_builder",
+      "backend.app.services.action.dm_scene_builder",
+      "backend.app.services.game_loop.dm_phase",
+      "backend.app.services.npc.interpretation_engine",
+      "backend.app.services.npc.life_engine",
+      "backend.app.services.npc.npc_tick_contracts",
+      "backend.app.services.npc.npc_tick_pipeline",
+      "backend.app.services.npc.state_applicator",
+      "backend.app.services.reaction.reaction_resolver",
+      "backend.app.services.reaction.reaction_rules",
+      "backend.app.services.verbalization.scene_outcome_builder",
+      "backend.app.services.world.world_tick_engine"
+    ]
+  },
+  "backend.app.services.action.dm_router": {
+    "imports": [
+      "__future__",
+      "json",
+      "re",
+      "dataclasses",
+      "enum",
+      "pathlib",
+      "typing",
+      "pymorphy3",
+      "app.domain.constants"
+    ],
+    "imported_by": []
+  },
+  "re": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.action.dm_router",
+      "backend.app.services.action.object_resolver",
+      "backend.app.services.game.physics_validator",
+      "backend.app.services.game_loop.time_advance",
+      "backend.app.services.input.intent_compressor",
+      "backend.app.services.llm.llama_cpp_provider",
+      "backend.app.services.llm.parser",
+      "backend.app.services.scene.narrative_extractor",
+      "backend.app.services.verbalization.response_validator"
+    ]
+  },
+  "pymorphy3": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.action.dm_router",
+      "backend.app.services.action.object_resolver",
+      "backend.app.services.action.player_target_extractor",
+      "backend.app.services.action.player_target_extractor",
+      "backend.app.services.input.intent_compressor",
+      "backend.app.services.verbalization.state_interpreter"
+    ]
+  },
+  "app.domain.constants": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.action.dm_router",
+      "backend.app.services.combat.combat_subscriber",
+      "backend.app.services.events.reaction_subscriber",
+      "backend.app.services.game_loop.phase_1_input"
+    ]
+  },
+  "backend.app.services.action.dm_scene_builder": {
+    "imports": [
+      "__future__",
+      "dataclasses",
+      "typing",
+      "app.services.action.dm_router",
+      "app.services.npc.decision_hub",
+      "app.services.scene.salience_engine",
+      "app.services.action.dm_router",
+      "app.services.npc.decision_hub"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.action.object_resolver": {
+    "imports": [
+      "__future__",
+      "logging",
+      "typing",
+      "pymorphy3",
+      "re"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.action.player_target_extractor": {
+    "imports": [
+      "typing",
+      "logging",
+      "app.services.spatial.spatial_runtime",
+      "pymorphy3",
+      "app.services.action.object_resolver",
+      "pymorphy3",
+      "app.services.spatial.spatial_runtime",
+      "math"
+    ],
+    "imported_by": []
+  },
+  "app.services.action.object_resolver": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.action.player_target_extractor"
+    ]
+  },
+  "backend.app.services.affective.affective_integrator": {
+    "imports": [
+      "__future__",
+      "typing",
+      "app.models.npc_state"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.affective.emotion_resolution": {
+    "imports": [
+      "app.models.affect",
+      "app.models.delta_payloads",
+      "typing"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.affective.emotion_transition": {
+    "imports": [
+      "__future__",
+      "app.models.delta_payloads",
+      "typing"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.affective.pressure_derivation": {
+    "imports": [
+      "app.models.affect",
+      "app.models.npc_state"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.affective._init_": {
+    "imports": [
+      "app.services.affective.affective_integrator",
+      "app.services.affective.emotion_transition"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.cfrm.local_causal_solver": {
+    "imports": [
+      "__future__",
+      "logging",
+      "typing",
+      "app.models.cfrm",
+      "app.models.npc_state"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.cfrm.pressure_translator": {
+    "imports": [
+      "app.models.cfrm",
+      "app.models.npc_state",
+      "app.domain.decision_context"
+    ],
+    "imported_by": []
+  },
+  "app.domain.decision_context": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.cfrm.pressure_translator",
+      "backend.app.services.npc.life_engine",
+      "backend.app.services.npc.npc_tick_pipeline",
+      "backend.app.services.world.world_tick_engine"
+    ]
+  },
+  "backend.app.services.character.character_filter": {
+    "imports": [
+      "__future__",
+      "logging",
+      "dataclasses",
+      "enum",
+      "typing",
+      "app.models.character"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.character.character_filter_applicator": {
+    "imports": [
+      "logging",
+      "typing",
+      "app.services.character.character_filter"
+    ],
+    "imported_by": []
+  },
+  "app.services.character.character_filter": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.character.character_filter_applicator"
+    ]
+  },
+  "backend.app.services.character.front_applicator": {
+    "imports": [
+      "logging",
+      "typing",
+      "app.services.character.front_engine",
+      "app.models.front"
+    ],
+    "imported_by": []
+  },
+  "app.services.character.front_engine": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.character.front_applicator"
+    ]
+  },
+  "backend.app.services.character.front_engine": {
+    "imports": [
+      "__future__",
+      "logging",
+      "dataclasses",
+      "app.models.character",
+      "app.models.front"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.combat.combat_subscriber": {
+    "imports": [
+      "__future__",
+      "logging",
+      "typing",
+      "app.domain.constants",
+      "app.models.impact",
+      "app.models.phase8",
+      "app.services.combat.impact_engine",
+      "app.services.events.event_bus",
+      "app.services.events.event_types",
+      "app.models.idle_tick",
+      "app.models.idle_tick"
+    ],
+    "imported_by": []
+  },
+  "app.models.impact": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.combat.combat_subscriber",
+      "backend.app.services.combat.impact_engine"
+    ]
+  },
+  "app.services.combat.impact_engine": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.combat.combat_subscriber"
+    ]
+  },
+  "backend.app.services.combat.impact_engine": {
+    "imports": [
+      "random",
+      "typing",
+      "app.models.impact",
+      "app.models.idle_tick",
+      "app.models.state_delta",
+      "app.models.delta_payloads"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.combat.physiology_decay_handler": {
+    "imports": [
+      "__future__",
+      "logging",
+      "math",
+      "typing",
+      "app.models.delta_payloads",
+      "app.models.idle_tick",
+      "app.models.state_delta"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.combat.__init__": {
+    "imports": [],
+    "imported_by": []
+  },
+  "backend.app.services.economy.economic_modifier": {
+    "imports": [
+      "__future__",
+      "logging",
+      "dataclasses",
+      "typing",
+      "app.models.economy",
+      "app.services.economy.need_engine"
+    ],
+    "imported_by": []
+  },
+  "app.models.economy": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.economy.economic_modifier",
+      "backend.app.services.economy.economy_tracker",
+      "backend.app.services.economy.need_engine",
+      "backend.app.services.economy.profile_factory",
+      "backend.app.services.economy.psycho_economy",
+      "backend.app.services.economy.stress_calculator",
+      "backend.app.services.economy.trade_resolver",
+      "backend.app.services.economy.transaction_engine",
+      "backend.app.services.economy.transaction_engine"
+    ]
+  },
+  "app.services.economy.need_engine": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.economy.economic_modifier",
+      "backend.app.services.economy.stress_calculator",
+      "backend.app.services.game_loop.phase_2_world_tick",
+      "backend.app.services.npc.domain_phases"
+    ]
+  },
+  "backend.app.services.economy.economy_tracker": {
+    "imports": [
+      "__future__",
+      "logging",
+      "typing",
+      "app.core.constants",
+      "app.models.economy",
+      "app.services.economy.psycho_economy"
+    ],
+    "imported_by": []
+  },
+  "app.services.economy.psycho_economy": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.economy.economy_tracker",
+      "backend.app.services.economy.profile_factory"
+    ]
+  },
+  "backend.app.services.economy.market_state": {
+    "imports": [
+      "__future__",
+      "random",
+      "abc",
+      "enum",
+      "typing"
+    ],
+    "imported_by": []
+  },
+  "abc": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.economy.market_state",
+      "backend.app.services.llm.provider",
+      "backend.app.services.state.persistence_port"
+    ]
+  },
+  "backend.app.services.economy.need_engine": {
+    "imports": [
+      "__future__",
+      "logging",
+      "dataclasses",
+      "enum",
+      "typing",
+      "app.models.economy"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.economy.opportunity_engine": {
+    "imports": [
+      "__future__",
+      "dataclasses",
+      "typing",
+      "app.models.behavior_mask",
+      "app.models.npc_state"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.economy.profile_factory": {
+    "imports": [
+      "__future__",
+      "typing",
+      "app.models.economy",
+      "app.services.economy.psycho_economy"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.economy.psycho_economy": {
+    "imports": [
+      "__future__",
+      "dataclasses",
+      "typing",
+      "app.models.economy"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.economy.stress_calculator": {
+    "imports": [
+      "__future__",
+      "typing",
+      "app.models.economy",
+      "app.services.economy.need_engine"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.economy.trade_resolver": {
+    "imports": [
+      "__future__",
+      "logging",
+      "dataclasses",
+      "typing",
+      "app.models.economy",
+      "app.core.constants",
+      "app.services.economy.transaction_engine"
+    ],
+    "imported_by": []
+  },
+  "app.services.economy.transaction_engine": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.economy.trade_resolver"
+    ]
+  },
+  "backend.app.services.economy.transaction_engine": {
+    "imports": [
+      "__future__",
+      "logging",
+      "dataclasses",
+      "typing",
+      "app.models.economy",
+      "app.models.economy"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.economy.traveller": {
+    "imports": [
+      "__future__",
+      "random",
+      "dataclasses",
+      "enum",
+      "typing",
+      "app.core.constants",
+      "app.services.economy.market_state"
+    ],
+    "imported_by": []
+  },
+  "app.services.economy.market_state": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.economy.traveller"
+    ]
+  },
+  "backend.app.services.economy.__init__": {
+    "imports": [
+      "app.services.economy.economy_tracker"
+    ],
+    "imported_by": []
+  },
+  "app.services.economy.economy_tracker": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.economy.__init__",
+      "backend.app.services.game_loop.service_factories"
+    ]
+  },
+  "backend.app.services.events.event_bus": {
+    "imports": [
+      "__future__",
+      "logging",
+      "typing",
+      "dataclasses",
+      "app.domain.events",
+      "app.services.events.event_types"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.events.event_types": {
+    "imports": [
+      "__future__",
+      "enum"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.events.intent_event_adapter": {
+    "imports": [
+      "app.domain.communication",
+      "app.domain.events"
+    ],
+    "imported_by": []
+  },
+  "app.domain.communication": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.events.intent_event_adapter",
+      "backend.app.services.npc.decision_hub",
+      "backend.app.services.npc.life_engine"
+    ]
+  },
+  "backend.app.services.events.perception_subscriber": {
+    "imports": [
+      "__future__",
+      "logging",
+      "typing",
+      "app.domain.events",
+      "app.models.phase8",
+      "app.services.events.event_bus",
+      "app.services.events.event_types",
+      "app.services.npc.perception_filter"
+    ],
+    "imported_by": []
+  },
+  "app.services.npc.perception_filter": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.events.perception_subscriber",
+      "backend.app.services.memory.memory_manager",
+      "backend.app.services.memory.memory_manager",
+      "backend.app.services.player_cognition.perception_layer"
+    ]
+  },
+  "backend.app.services.events.reaction_subscriber": {
+    "imports": [
+      "__future__",
+      "logging",
+      "typing",
+      "app.domain.constants",
+      "app.domain.events",
+      "app.models.phase8",
+      "app.models.state_delta",
+      "app.models.delta_payloads",
+      "app.services.events.event_bus",
+      "app.services.events.event_types"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.events.social_subscriber": {
+    "imports": [
+      "__future__",
+      "logging",
+      "typing",
+      "app.domain.events",
+      "app.models.phase8",
+      "app.services.events.event_bus",
+      "app.services.events.event_types",
+      "app.services.social.propagation"
+    ],
+    "imported_by": []
+  },
+  "app.services.social.propagation": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.events.social_subscriber"
+    ]
+  },
+  "backend.app.services.events.__init__": {
+    "imports": [
+      "app.services.events.event_bus",
+      "app.services.events.event_types",
+      "app.services.events.perception_subscriber",
+      "app.services.events.social_subscriber"
+    ],
+    "imported_by": []
+  },
+  "app.services.events.perception_subscriber": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.events.__init__"
+    ]
+  },
+  "backend.app.services.game.combat_math": {
+    "imports": [
+      "random",
+      "json",
+      "datetime",
+      "typing",
+      "pathlib"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.game.physics_validator": {
+    "imports": [
+      "re",
+      "logging",
+      "typing"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.game.__init__": {
+    "imports": [],
+    "imported_by": []
+  },
+  "backend.app.services.game_loop.agent_runner": {
+    "imports": [
+      "asyncio",
+      "logging",
+      "time",
+      "app.services.vram_monitor",
+      "app.services.error_interpreter",
+      "app.services.logging_tools",
+      "logging",
+      "app.services.llm.router",
+      "app.services.llm.provider_manager",
+      "app.services.llm.provider_manager"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.game_loop.dm_phase": {
+    "imports": [
+      "logging",
+      "typing",
+      "app.services.game_loop.phase_1_input",
+      "app.services.game_loop.time_advance",
+      "app.services.spatial.player_target_pipeline",
+      "app.services.scene.scene_event_layer",
+      "app.services.npc.decision_hub"
+    ],
+    "imported_by": []
+  },
+  "app.services.game_loop.phase_1_input": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.game_loop.dm_phase",
+      "backend.app.services.game_loop.__init__"
+    ]
+  },
+  "app.services.game_loop.time_advance": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.game_loop.dm_phase"
+    ]
+  },
+  "app.services.spatial.player_target_pipeline": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.game_loop.dm_phase"
+    ]
+  },
+  "app.services.scene.scene_event_layer": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.game_loop.dm_phase"
+    ]
+  },
+  "backend.app.services.game_loop.npc_orchestration": {
+    "imports": [
+      "logging",
+      "typing",
+      "app.services.character.character_filter_applicator",
+      "app.services.events.event_bus",
+      "app.services.game_loop.phase_2_world_tick",
+      "app.services.npc.npc_tick_contracts",
+      "app.services.verbalization.scene_continuity",
+      "app.services.spatial.spatial_service",
+      "app.services.spatial.spatial_query_service",
+      "app.services.tick_orchestrator",
+      "app.services.tick_orchestrator",
+      "app.services.spatial.movement_engine",
+      "app.services.npc.life_engine"
+    ],
+    "imported_by": []
+  },
+  "app.services.character.character_filter_applicator": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.game_loop.npc_orchestration"
+    ]
+  },
+  "app.services.game_loop.phase_2_world_tick": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.game_loop.npc_orchestration"
+    ]
+  },
+  "app.services.verbalization.scene_continuity": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.game_loop.npc_orchestration",
+      "backend.app.services.game_loop.__init__",
+      "backend.app.services.scene.r3_direct_builder"
+    ]
+  },
+  "app.services.spatial.spatial_query_service": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.game_loop.npc_orchestration",
+      "backend.app.services.memory.memory_manager",
+      "backend.app.services.npc.perception_filter",
+      "backend.app.services.npc.reaction_priority",
+      "backend.app.services.spatial.player_target_pipeline",
+      "backend.app.services.spatial.__init__"
+    ]
+  },
+  "app.services.tick_orchestrator": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.game_loop.npc_orchestration",
+      "backend.app.services.game_loop.npc_orchestration",
+      "backend.app.services.game_loop.__init__"
+    ]
+  },
+  "backend.app.services.game_loop.npc_state_helpers": {
+    "imports": [
+      "logging",
+      "typing"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.game_loop.phase_1_input": {
+    "imports": [
+      "logging",
+      "typing",
+      "difflib",
+      "app.domain.events",
+      "app.domain.intent",
+      "app.domain.intent_profile",
+      "app.models.will",
+      "app.services.events.event_bus",
+      "app.services.events.event_types",
+      "app.services.will",
+      "app.domain.constants",
+      "app.services.input.intent_compressor"
+    ],
+    "imported_by": []
+  },
+  "difflib": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.game_loop.phase_1_input"
+    ]
+  },
+  "app.domain.intent_profile": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.game_loop.phase_1_input",
+      "backend.app.services.input.intent_compressor",
+      "backend.app.services.input.llm_compressor_client"
+    ]
+  },
+  "app.services.input.intent_compressor": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.game_loop.phase_1_input"
+    ]
+  },
+  "backend.app.services.game_loop.phase_2_world_tick": {
+    "imports": [
+      "logging",
+      "typing",
+      "app.services.game_loop.tick_context",
+      "app.services.npc.npc_loader",
+      "app.services.npc.state_applicator",
+      "app.models.npc_state",
+      "app.services.economy.need_engine"
+    ],
+    "imported_by": []
+  },
+  "app.services.game_loop.tick_context": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.game_loop.phase_2_world_tick",
+      "backend.app.services.game_loop.__init__"
+    ]
+  },
+  "app.services.npc.state_applicator": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.game_loop.phase_2_world_tick",
+      "backend.app.services.game_loop.service_factories",
+      "backend.app.services.npc.npc_tick_pipeline"
+    ]
+  },
+  "backend.app.services.game_loop.phase_6_avatar": {
+    "imports": [
+      "logging",
+      "typing"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.game_loop.scene_init": {
+    "imports": [
+      "logging",
+      "time",
+      "typing",
+      "app.core.calendar",
+      "app.services.npc.npc_loader",
+      "app.services.spatial.spatial_service",
+      "app.services.npc.life_engine",
+      "app.core.constants",
+      "app.services.npc.life_engine",
+      "app.services.campaign_state_service"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.game_loop.service_factories": {
+    "imports": [
+      "__future__",
+      "logging",
+      "pathlib",
+      "typing",
+      "app.services.economy.economy_tracker",
+      "app.services.economy.profile_factory",
+      "app.services.world.world_ontology",
+      "app.services.npc.npc_loader",
+      "app.services.npc.state_applicator",
+      "app.services.npc.npc_loader",
+      "app.services.social.social_engine",
+      "app.services.social.reputation_engine"
+    ],
+    "imported_by": []
+  },
+  "app.services.economy.profile_factory": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.game_loop.service_factories"
+    ]
+  },
+  "app.services.world.world_ontology": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.game_loop.service_factories",
+      "backend.app.services.npc.npc_loader"
+    ]
+  },
+  "app.services.social.social_engine": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.game_loop.service_factories",
+      "backend.app.services.social.__init__"
+    ]
+  },
+  "app.services.social.reputation_engine": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.game_loop.service_factories",
+      "backend.app.services.social.reputation_decay_handler"
+    ]
+  },
+  "backend.app.services.game_loop.tick_context": {
+    "imports": [
+      "dataclasses",
+      "typing"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.game_loop.time_advance": {
+    "imports": [
+      "re",
+      "logging",
+      "app.core.constants",
+      "app.core.calendar"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.game_loop.__init__": {
+    "imports": [
+      "__future__",
+      "asyncio",
+      "logging",
+      "time",
+      "dataclasses",
+      "pathlib",
+      "typing",
+      "app.models.schemas",
+      "app.services.action.dm_orchestrator",
+      "app.services.events.event_bus",
+      "app.services.tick_orchestrator",
+      "app.domain.tick",
+      "app.services.game_loop.agent_runner",
+      "app.services.state.context_builder",
+      "app.models.pipeline_context",
+      "app.services.scene_state_manager",
+      "app.services.world_scheduler",
+      "app.services.character_service",
+      "app.services.verbalization.scene_continuity",
+      "app.services.vram_monitor",
+      "app.services.error_interpreter",
+      "app.services.logging_tools",
+      "app.core.config",
+      "app.services.adventure_loader",
+      "app.services.system_requirements",
+      "app.models.schemas",
+      "app.services.game_loop.tick_context",
+      "app.services.game_loop.phase_1_input",
+      "app.services.game_loop.scene_init",
+      "app.services.game_loop.dm_phase",
+      "app.services.game_loop.npc_orchestration",
+      "app.services.world.world_tick_engine",
+      "app.services.game_loop.service_factories",
+      "app.services.social.social_decay_handler",
+      "app.services.combat.physiology_decay_handler",
+      "app.services.npc.npc_loader",
+      "app.services.player_session_service",
+      "app.services.character_service",
+      "logging",
+      "app.services.game_loop.scene_init",
+      "dataclasses",
+      "app.domain.snapshot",
+      "app.services.social.reputation_decay_handler",
+      "app.services.scene.narrative_extractor",
+      "app.services.integration.world_snapshot_builder",
+      "dataclasses",
+      "app.services.scene.narrative_extractor",
+      "app.services.game_loop.phase_6_avatar",
+      "app.services.game_loop.phase_6_avatar",
+      "app.models.npc_state"
+    ],
+    "imported_by": []
+  },
+  "app.services.game_loop.agent_runner": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.game_loop.__init__"
+    ]
+  },
+  "app.services.state.context_builder": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.game_loop.__init__"
+    ]
+  },
+  "app.models.pipeline_context": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.game_loop.__init__",
+      "backend.app.services.state.context_builder"
+    ]
+  },
+  "app.services.game_loop.dm_phase": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.game_loop.__init__"
+    ]
+  },
+  "app.services.game_loop.npc_orchestration": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.game_loop.__init__"
+    ]
+  },
+  "app.services.world.world_tick_engine": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.game_loop.__init__"
+    ]
+  },
+  "app.services.game_loop.service_factories": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.game_loop.__init__"
+    ]
+  },
+  "app.services.social.social_decay_handler": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.game_loop.__init__"
+    ]
+  },
+  "app.services.combat.physiology_decay_handler": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.game_loop.__init__"
+    ]
+  },
+  "app.services.social.reputation_decay_handler": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.game_loop.__init__"
+    ]
+  },
+  "app.services.game_loop.phase_6_avatar": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.game_loop.__init__",
+      "backend.app.services.game_loop.__init__"
+    ]
+  },
+  "backend.app.services.input.intent_compressor": {
+    "imports": [
+      "re",
+      "typing",
+      "app.domain.intent_profile",
+      "app.services.input.llm_compressor_client",
+      "pymorphy3"
+    ],
+    "imported_by": []
+  },
+  "app.services.input.llm_compressor_client": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.input.intent_compressor"
+    ]
+  },
+  "backend.app.services.input.llm_compressor_client": {
+    "imports": [
+      "json",
+      "httpx",
+      "typing",
+      "app.domain.intent_profile"
+    ],
+    "imported_by": []
+  },
+  "httpx": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.input.llm_compressor_client",
+      "backend.app.services.llm.health"
+    ]
+  },
+  "backend.app.services.integration.world_snapshot_builder": {
+    "imports": [
+      "__future__",
+      "logging",
+      "typing",
+      "app.domain.snapshot"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.integration.__init__": {
+    "imports": [],
+    "imported_by": []
+  },
+  "backend.app.services.llm.anthropic_provider": {
+    "imports": [
+      "__future__",
+      "json",
+      "urllib.request",
+      "urllib.error",
+      "typing",
+      "app.services.llm.provider",
+      "app.core.config"
+    ],
+    "imported_by": []
+  },
+  "urllib.error": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.llm.anthropic_provider",
+      "backend.app.services.llm.llama_cpp_provider",
+      "backend.app.services.llm.ollama_provider",
+      "backend.app.services.llm.openai_provider",
+      "backend.app.services.llm.vllm_provider"
+    ]
+  },
+  "backend.app.services.llm.factory": {
+    "imports": [
+      "__future__",
+      "app.core.config",
+      "app.core.settings_dm",
+      "app.core.settings_npc",
+      "app.core.settings_world",
+      "app.core.settings_rules",
+      "app.services.llm.provider",
+      "app.services.llm.llama_cpp_provider",
+      "app.services.llm.openai_provider",
+      "app.services.llm.anthropic_provider",
+      "app.services.llm.ollama_provider",
+      "app.services.llm.vllm_provider",
+      "app.services.llm.mock_provider"
+    ],
+    "imported_by": []
+  },
+  "app.core.settings_dm": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.llm.factory"
+    ]
+  },
+  "app.core.settings_npc": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.llm.factory"
+    ]
+  },
+  "app.core.settings_world": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.llm.factory"
+    ]
+  },
+  "app.core.settings_rules": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.llm.factory"
+    ]
+  },
+  "app.services.llm.openai_provider": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.llm.factory",
+      "backend.app.services.llm.__init__"
+    ]
+  },
+  "app.services.llm.anthropic_provider": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.llm.factory",
+      "backend.app.services.llm.__init__"
+    ]
+  },
+  "app.services.llm.ollama_provider": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.llm.factory",
+      "backend.app.services.llm.__init__"
+    ]
+  },
+  "app.services.llm.vllm_provider": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.llm.factory",
+      "backend.app.services.llm.__init__"
+    ]
+  },
+  "app.services.llm.mock_provider": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.llm.factory",
+      "backend.app.services.llm.__init__"
+    ]
+  },
+  "backend.app.services.llm.health": {
+    "imports": [
+      "__future__",
+      "time",
+      "typing",
+      "httpx",
+      "app.core.config"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.llm.llama_cpp_provider": {
+    "imports": [
+      "__future__",
+      "os",
+      "random",
+      "re",
+      "json",
+      "subprocess",
+      "threading",
+      "urllib.request",
+      "urllib.error",
+      "dataclasses",
+      "pathlib",
+      "typing",
+      "app.core.config",
+      "app.services.llm.provider",
+      "shutil",
+      "time",
+      "tempfile"
+    ],
+    "imported_by": []
+  },
+  "tempfile": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.llm.llama_cpp_provider"
+    ]
+  },
+  "backend.app.services.llm.mock_provider": {
+    "imports": [
+      "__future__",
+      "time",
+      "random",
+      "dataclasses",
+      "app.services.llm.provider"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.llm.ollama_provider": {
+    "imports": [
+      "__future__",
+      "json",
+      "urllib.request",
+      "urllib.error",
+      "typing",
+      "app.services.llm.provider",
+      "app.core.config"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.llm.openai_provider": {
+    "imports": [
+      "__future__",
+      "json",
+      "urllib.request",
+      "urllib.error",
+      "typing",
+      "app.services.llm.provider",
+      "app.core.config"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.llm.parser": {
+    "imports": [
+      "json",
+      "re",
+      "typing"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.llm.provider": {
+    "imports": [
+      "__future__",
+      "abc",
+      "dataclasses",
+      "enum",
+      "typing"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.llm.provider_manager": {
+    "imports": [
+      "__future__",
+      "asyncio",
+      "json",
+      "logging",
+      "threading",
+      "time",
+      "datetime",
+      "dataclasses",
+      "enum",
+      "pathlib",
+      "typing",
+      "app.core.config",
+      "app.services.error_interpreter",
+      "app.services.vram_monitor",
+      "app.services.llm.provider",
+      "app.services.llm.router",
+      "app.services.error_interpreter",
+      "app.services.llm.factory",
+      "traceback",
+      "app.services.llm.factory"
+    ],
+    "imported_by": []
+  },
+  "app.services.llm.factory": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.llm.provider_manager",
+      "backend.app.services.llm.provider_manager",
+      "backend.app.services.llm.router",
+      "backend.app.services.llm.__init__"
+    ]
+  },
+  "backend.app.services.llm.router": {
+    "imports": [
+      "__future__",
+      "asyncio",
+      "threading",
+      "enum",
+      "app.services.logging_tools",
+      "time",
+      "dataclasses",
+      "typing",
+      "logging",
+      "app.core.config",
+      "app.services.llm.provider",
+      "app.services.llm.provider_manager",
+      "app.services.llm.factory",
+      "app.services.llm.provider_manager",
+      "app.services.llm.provider_manager",
+      "traceback"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.llm.vllm_provider": {
+    "imports": [
+      "__future__",
+      "json",
+      "urllib.request",
+      "urllib.error",
+      "dataclasses",
+      "typing",
+      "app.services.llm.provider",
+      "app.core.config"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.llm.__init__": {
+    "imports": [
+      "app.services.llm.provider",
+      "app.services.llm.router",
+      "app.services.llm.factory",
+      "app.services.llm.provider_manager",
+      "app.services.llm.llama_cpp_provider",
+      "app.services.llm.openai_provider",
+      "app.services.llm.anthropic_provider",
+      "app.services.llm.ollama_provider",
+      "app.services.llm.vllm_provider",
+      "app.services.llm.mock_provider"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.memory.contradiction_resolver": {
+    "imports": [
+      "__future__",
+      "typing"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.memory.dialogue_session": {
+    "imports": [
+      "dataclasses",
+      "typing"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.memory.importance_engine": {
+    "imports": [
+      "__future__",
+      "typing",
+      "app.models.npc_state",
+      "app.core.constants"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.memory.layered_memory": {
+    "imports": [
+      "dataclasses",
+      "json",
+      "collections",
+      "datetime",
+      "pathlib",
+      "typing",
+      "uuid",
+      "logging"
+    ],
+    "imported_by": []
+  },
+  "collections": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.memory.layered_memory",
+      "backend.app.services.memory.working_memory",
+      "backend.app.services.npc.life_engine",
+      "backend.app.services.spatial.graph_compiler",
+      "backend.app.services.spatial.location_graph"
+    ]
+  },
+  "backend.app.services.memory.memory_manager": {
+    "imports": [
+      "__future__",
+      "logging",
+      "typing",
+      "app.services.memory",
+      "app.services.memory.working_memory",
+      "app.services.memory.importance_engine",
+      "app.core.constants",
+      "app.services.memory.relationship_store",
+      "app.services.memory.contradiction_resolver",
+      "app.models.npc_state",
+      "app.domain.events",
+      "app.services.npc.perception_filter",
+      "app.services.memory.resonance_engine",
+      "app.services.memory.dialogue_session",
+      "app.services.memory.promotion_engine",
+      "app.core.constants",
+      "app.services.spatial.spatial_query_service",
+      "app.services.npc.perception_filter",
+      "app.domain.events",
+      "app.models.npc_state"
+    ],
+    "imported_by": []
+  },
+  "app.services.memory.working_memory": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.memory.memory_manager"
+    ]
+  },
+  "app.services.memory.importance_engine": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.memory.memory_manager"
+    ]
+  },
+  "app.services.memory.relationship_store": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.memory.memory_manager",
+      "backend.app.services.npc.state_applicator"
+    ]
+  },
+  "app.services.memory.contradiction_resolver": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.memory.memory_manager"
+    ]
+  },
+  "app.services.memory.resonance_engine": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.memory.memory_manager"
+    ]
+  },
+  "app.services.memory.dialogue_session": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.memory.memory_manager"
+    ]
+  },
+  "app.services.memory.promotion_engine": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.memory.memory_manager"
+    ]
+  },
+  "backend.app.services.memory.promotion_engine": {
+    "imports": [
+      "__future__",
+      "dataclasses",
+      "typing",
+      "app.models.npc_state"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.memory.relationship_store": {
+    "imports": [
+      "__future__",
+      "json",
+      "logging",
+      "pathlib",
+      "typing"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.memory.resonance_engine": {
+    "imports": [
+      "__future__",
+      "dataclasses",
+      "typing",
+      "app.models.npc_state"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.memory.sqlite_store": {
+    "imports": [
+      "__future__",
+      "json",
+      "logging",
+      "sqlite3",
+      "datetime",
+      "pathlib",
+      "typing",
+      "uuid",
+      "dataclasses",
+      "dataclasses",
+      "app.models.npc_state"
+    ],
+    "imported_by": []
+  },
+  "sqlite3": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.memory.sqlite_store",
+      "backend.app.services.state.sqlite_persistence_adapter"
+    ]
+  },
+  "backend.app.services.memory.working_memory": {
+    "imports": [
+      "__future__",
+      "collections",
+      "typing",
+      "app.models.npc_state"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.memory.working_memory_tick": {
+    "imports": [
+      "__future__",
+      "logging",
+      "typing",
+      "app.domain.events",
+      "app.models.temporal",
+      "app.services.events.event_bus",
+      "app.services.events.event_types",
+      "app.services.memory.memory_manager"
+    ],
+    "imported_by": []
+  },
+  "app.models.temporal": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.memory.working_memory_tick",
+      "backend.app.services.temporal.init",
+      "backend.app.services.temporal.temporal_engine"
+    ]
+  },
+  "backend.app.services.memory.yaml_export": {
+    "imports": [
+      "logging",
+      "pathlib",
+      "typing",
+      "yaml"
+    ],
+    "imported_by": []
+  },
+  "yaml": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.memory.yaml_export"
+    ]
+  },
+  "backend.app.services.memory.__init__": {
+    "imports": [
+      "app.services.memory.layered_memory"
+    ],
+    "imported_by": []
+  },
+  "app.services.memory.layered_memory": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.memory.__init__"
+    ]
+  },
+  "backend.app.services.npc.break_progress_engine": {
+    "imports": [
+      "dataclasses",
+      "typing",
+      "app.models.npc_state"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.npc.condition_engine": {
+    "imports": [
+      "__future__",
+      "logging",
+      "typing",
+      "app.models.npc_state",
+      "app.services.reaction.micro_event"
+    ],
+    "imported_by": []
+  },
+  "app.services.reaction.micro_event": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.npc.condition_engine",
+      "backend.app.services.reaction.reaction_resolver",
+      "backend.app.services.reaction.reaction_rules",
+      "backend.app.services.reaction.__init__"
+    ]
+  },
+  "backend.app.services.npc.decision_hub": {
+    "imports": [
+      "__future__",
+      "logging",
+      "random",
+      "dataclasses",
+      "dataclasses",
+      "typing",
+      "app.models.npc_profile",
+      "app.models.npc_state",
+      "app.domain.communication",
+      "app.models.npc_state",
+      "app.models.state_delta",
+      "app.services.events.event_types",
+      "app.models.behavior_mask",
+      "app.core.constants",
+      "app.services.economy.opportunity_engine",
+      "app.services.events.event_types",
+      "app.services.events.event_types",
+      "app.services.events.event_types",
+      "app.services.npc.math_utils",
+      "app.models.state_delta"
+    ],
+    "imported_by": []
+  },
+  "app.models.npc_profile": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.npc.decision_hub",
+      "backend.app.services.npc.npc_loader",
+      "backend.app.services.verbalization.scene_outcome_builder",
+      "backend.app.services.world.world_tick_engine"
+    ]
+  },
+  "app.services.economy.opportunity_engine": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.npc.decision_hub"
+    ]
+  },
+  "app.services.npc.math_utils": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.npc.decision_hub",
+      "backend.app.services.npc.state_applicator"
+    ]
+  },
+  "backend.app.services.npc.domain_phases": {
+    "imports": [
+      "logging",
+      "typing",
+      "app.models.npc_state",
+      "app.models.behavior_mask",
+      "app.models.npc_state",
+      "app.services.npc.condition_engine",
+      "app.services.economy.need_engine",
+      "app.services.economy.economic_modifier",
+      "app.services.economy.stress_calculator",
+      "app.services.reaction.reaction_resolver",
+      "app.models.npc_state"
+    ],
+    "imported_by": []
+  },
+  "app.services.npc.condition_engine": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.npc.domain_phases"
+    ]
+  },
+  "app.services.economy.economic_modifier": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.npc.domain_phases"
+    ]
+  },
+  "app.services.economy.stress_calculator": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.npc.domain_phases"
+    ]
+  },
+  "app.services.reaction.reaction_resolver": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.npc.domain_phases"
+    ]
+  },
+  "backend.app.services.npc.interpretation_engine": {
+    "imports": [
+      "__future__",
+      "typing",
+      "app.core.constants",
+      "app.models.interpretation",
+      "app.models.npc_state",
+      "app.models.psychological",
+      "app.services.npc.decision_hub"
+    ],
+    "imported_by": []
+  },
+  "app.models.interpretation": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.npc.interpretation_engine"
+    ]
+  },
+  "backend.app.services.npc.legacy_delta_adapter": {
+    "imports": [
+      "logging",
+      "typing",
+      "app.models.state_delta",
+      "app.models.delta_payloads"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.npc.life_engine": {
+    "imports": [
+      "__future__",
+      "json",
+      "logging",
+      "random",
+      "time",
+      "collections",
+      "pathlib",
+      "typing",
+      "app.core.config",
+      "app.services.scene_change",
+      "app.domain.movement",
+      "app.services.spatial.movement_engine",
+      "app.core.constants",
+      "app.services.temporal.temporal_engine",
+      "app.services.npc.npc_loader",
+      "app.services.npc.npc_loader",
+      "app.core.constants",
+      "app.services.npc.decision_hub",
+      "app.services.npc.npc_loader",
+      "app.services.events.event_types",
+      "app.models.npc_state",
+      "app.domain.decision_context",
+      "app.services.cfrm.pressure_translator",
+      "app.services.npc.interpretation_engine",
+      "app.domain.communication",
+      "app.domain.movement",
+      "app.domain.movement",
+      "app.models.spatial_contracts",
+      "traceback"
+    ],
+    "imported_by": []
+  },
+  "app.services.temporal.temporal_engine": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.npc.life_engine",
+      "backend.app.services.temporal.init"
+    ]
+  },
+  "app.services.cfrm.pressure_translator": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.npc.life_engine",
+      "backend.app.services.world.world_tick_engine"
+    ]
+  },
+  "app.services.npc.interpretation_engine": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.npc.life_engine",
+      "backend.app.services.npc.npc_tick_pipeline"
+    ]
+  },
+  "app.models.spatial_contracts": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.npc.life_engine",
+      "backend.app.services.spatial.graph_compiler",
+      "backend.app.services.spatial.role_resolver",
+      "backend.app.services.spatial.spatial_overlay",
+      "backend.app.services.spatial.spatial_service"
+    ]
+  },
+  "backend.app.services.npc.math_utils": {
+    "imports": [
+      "__future__",
+      "math",
+      "typing"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.npc.npc_loader": {
+    "imports": [
+      "__future__",
+      "json",
+      "logging",
+      "pathlib",
+      "typing",
+      "app.models.npc_profile",
+      "app.models.npc_state",
+      "app.services.world.world_ontology",
+      "app.models.npc_state",
+      "app.models.npc_state"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.npc.npc_tick_contracts": {
+    "imports": [
+      "__future__",
+      "dataclasses",
+      "typing",
+      "app.services.npc.decision_hub"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.npc.npc_tick_pipeline": {
+    "imports": [
+      "logging",
+      "typing",
+      "app.services.npc.legacy_delta_adapter",
+      "app.services.npc.domain_phases",
+      "app.domain.events",
+      "app.domain.events",
+      "app.services.verbalization.state_interpreter",
+      "app.services.npc.topic_extractor",
+      "app.services.verbalization.verbalization_context",
+      "app.services.npc.npc_loader",
+      "app.services.npc.decision_hub",
+      "app.services.npc.interpretation_engine",
+      "app.models.npc_state",
+      "app.services.npc.state_applicator",
+      "app.services.npc.npc_tick_contracts",
+      "app.domain.movement",
+      "app.services.spatial.location_graph",
+      "app.services.npc.topic_extractor",
+      "app.domain.decision_context",
+      "app.domain.movement",
+      "app.domain.decision"
+    ],
+    "imported_by": []
+  },
+  "app.services.npc.legacy_delta_adapter": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.npc.npc_tick_pipeline",
+      "backend.app.services.npc.state_applicator",
+      "backend.app.services.scene.r3_direct_builder",
+      "backend.app.services.verbalization.scene_outcome_builder"
+    ]
+  },
+  "app.services.npc.domain_phases": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.npc.npc_tick_pipeline"
+    ]
+  },
+  "app.services.verbalization.state_interpreter": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.npc.npc_tick_pipeline",
+      "backend.app.services.verbalization.npc_response_validator",
+      "backend.app.services.verbalization.scene_outcome_builder"
+    ]
+  },
+  "app.services.verbalization.verbalization_context": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.npc.npc_tick_pipeline"
+    ]
+  },
+  "app.domain.decision": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.npc.npc_tick_pipeline"
+    ]
+  },
+  "backend.app.services.npc.perception_engine": {
+    "imports": [
+      "__future__",
+      "typing"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.npc.perception_filter": {
+    "imports": [
+      "__future__",
+      "logging",
+      "typing",
+      "app.domain.events",
+      "app.services.spatial.spatial_runtime",
+      "math",
+      "app.services.spatial.spatial_query_service"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.npc.reaction_priority": {
+    "imports": [
+      "__future__",
+      "logging",
+      "dataclasses",
+      "typing",
+      "app.core.constants",
+      "app.services.spatial.spatial_query_service",
+      "app.services.scene_change"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.npc.resolution_engine": {
+    "imports": [
+      "__future__",
+      "random",
+      "dataclasses",
+      "typing",
+      "app.core.constants",
+      "app.models.npc_state"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.npc.role_transition": {
+    "imports": [
+      "__future__",
+      "logging",
+      "dataclasses",
+      "enum",
+      "pathlib",
+      "typing",
+      "app.models.npc_state",
+      "dataclasses"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.npc.state_applicator": {
+    "imports": [
+      "__future__",
+      "copy",
+      "logging",
+      "typing",
+      "app.models.npc_state",
+      "app.core.constants",
+      "app.services.npc.legacy_delta_adapter",
+      "app.models.npc_state",
+      "app.models.psychological",
+      "app.models.physical",
+      "app.models.event_resolution",
+      "app.models.state_delta",
+      "app.models.delta_payloads",
+      "app.services.npc.decision_hub",
+      "app.services.npc.math_utils",
+      "app.services.memory.relationship_store",
+      "dataclasses",
+      "random",
+      "app.models.npc_state",
+      "app.models.npc_state"
+    ],
+    "imported_by": []
+  },
+  "copy": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.npc.state_applicator"
+    ]
+  },
+  "app.models.event_resolution": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.npc.state_applicator"
+    ]
+  },
+  "backend.app.services.npc.topic_extractor": {
+    "imports": [
+      "typing"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.npc.__init__": {
+    "imports": [],
+    "imported_by": []
+  },
+  "backend.app.services.player_cognition.attention_layer": {
+    "imports": [
+      "dataclasses",
+      "typing",
+      "app.services.player_cognition.types",
+      "random"
+    ],
+    "imported_by": []
+  },
+  "app.services.player_cognition.types": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.player_cognition.attention_layer",
+      "backend.app.services.player_cognition.cognitive_distortion",
+      "backend.app.services.player_cognition.interpretation_layer",
+      "backend.app.services.player_cognition.memory_layer",
+      "backend.app.services.player_cognition.perception_layer",
+      "backend.app.services.player_cognition.pipeline",
+      "backend.app.services.player_cognition.recognition_layer",
+      "backend.app.services.player_cognition.spatial_layer",
+      "backend.app.services.player_cognition.uncertainty_layer",
+      "backend.app.services.player_cognition.__init__"
+    ]
+  },
+  "backend.app.services.player_cognition.cognitive_distortion": {
+    "imports": [
+      "dataclasses",
+      "typing",
+      "app.services.player_cognition.types"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.player_cognition.interpretation_layer": {
+    "imports": [
+      "typing",
+      "app.services.player_cognition.types"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.player_cognition.memory_layer": {
+    "imports": [
+      "dataclasses",
+      "enum",
+      "typing",
+      "app.services.player_cognition.types"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.player_cognition.perception_layer": {
+    "imports": [
+      "typing",
+      "app.core.constants",
+      "app.services.player_cognition.types",
+      "app.services.npc.perception_filter",
+      "app.services.spatial.spatial_runtime"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.player_cognition.pipeline": {
+    "imports": [
+      "dataclasses",
+      "typing",
+      "app.services.player_cognition.types",
+      "app.services.player_cognition.spatial_layer",
+      "app.services.player_cognition.perception_layer",
+      "app.services.player_cognition.attention_layer",
+      "app.services.player_cognition.recognition_layer",
+      "app.services.player_cognition.interpretation_layer",
+      "app.services.player_cognition.cognitive_distortion",
+      "app.services.player_cognition.memory_layer",
+      "app.services.player_cognition.uncertainty_layer"
+    ],
+    "imported_by": []
+  },
+  "app.services.player_cognition.spatial_layer": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.player_cognition.pipeline",
+      "backend.app.services.player_cognition.__init__"
+    ]
+  },
+  "app.services.player_cognition.perception_layer": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.player_cognition.pipeline",
+      "backend.app.services.player_cognition.__init__"
+    ]
+  },
+  "app.services.player_cognition.attention_layer": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.player_cognition.pipeline",
+      "backend.app.services.player_cognition.__init__"
+    ]
+  },
+  "app.services.player_cognition.recognition_layer": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.player_cognition.pipeline",
+      "backend.app.services.player_cognition.__init__"
+    ]
+  },
+  "app.services.player_cognition.interpretation_layer": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.player_cognition.pipeline",
+      "backend.app.services.player_cognition.__init__"
+    ]
+  },
+  "app.services.player_cognition.cognitive_distortion": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.player_cognition.pipeline",
+      "backend.app.services.player_cognition.__init__"
+    ]
+  },
+  "app.services.player_cognition.memory_layer": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.player_cognition.pipeline",
+      "backend.app.services.player_cognition.__init__"
+    ]
+  },
+  "app.services.player_cognition.uncertainty_layer": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.player_cognition.pipeline",
+      "backend.app.services.player_cognition.__init__"
+    ]
+  },
+  "backend.app.services.player_cognition.recognition_layer": {
+    "imports": [
+      "dataclasses",
+      "typing",
+      "app.services.player_cognition.types",
+      "app.services.scene_state_manager",
+      "math"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.player_cognition.spatial_layer": {
+    "imports": [
+      "math",
+      "typing",
+      "app.services.player_cognition.types",
+      "app.services.spatial.spatial_runtime"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.player_cognition.types": {
+    "imports": [
+      "dataclasses",
+      "enum",
+      "typing"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.player_cognition.uncertainty_layer": {
+    "imports": [
+      "typing",
+      "app.services.player_cognition.types"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.player_cognition.__init__": {
+    "imports": [
+      "app.services.player_cognition.types",
+      "app.services.player_cognition.spatial_layer",
+      "app.services.player_cognition.perception_layer",
+      "app.services.player_cognition.attention_layer",
+      "app.services.player_cognition.recognition_layer",
+      "app.services.player_cognition.interpretation_layer",
+      "app.services.player_cognition.cognitive_distortion",
+      "app.services.player_cognition.memory_layer",
+      "app.services.player_cognition.uncertainty_layer",
+      "app.services.player_cognition.pipeline"
+    ],
+    "imported_by": []
+  },
+  "app.services.player_cognition.pipeline": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.player_cognition.__init__"
+    ]
+  },
+  "backend.app.services.presentation.avatar_presentation_assembler": {
+    "imports": [
+      "__future__",
+      "typing",
+      "app.domain.snapshot"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.reaction.micro_event": {
+    "imports": [
+      "dataclasses",
+      "enum",
+      "typing"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.reaction.reaction_resolver": {
+    "imports": [
+      "typing",
+      "app.services.npc.decision_hub",
+      "app.services.reaction.micro_event",
+      "app.services.reaction.reaction_rules"
+    ],
+    "imported_by": []
+  },
+  "app.services.reaction.reaction_rules": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.reaction.reaction_resolver"
+    ]
+  },
+  "backend.app.services.reaction.reaction_rules": {
+    "imports": [
+      "random",
+      "typing",
+      "app.services.npc.decision_hub",
+      "app.services.reaction.micro_event"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.reaction.__init__": {
+    "imports": [
+      "app.services.reaction.micro_event"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.scene.narrative_extractor": {
+    "imports": [
+      "__future__",
+      "re",
+      "uuid",
+      "dataclasses",
+      "typing"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.scene.r3_direct_builder": {
+    "imports": [
+      "logging",
+      "typing",
+      "app.services.npc.legacy_delta_adapter",
+      "app.services.verbalization.scene_outcome_builder",
+      "app.services.verbalization.scene_continuity"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.scene.salience_engine": {
+    "imports": [
+      "typing",
+      "app.models.scene_mode"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.scene.scene_event_emitter": {
+    "imports": [
+      "typing",
+      "app.models.scene_event"
+    ],
+    "imported_by": []
+  },
+  "app.models.scene_event": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.scene.scene_event_emitter"
+    ]
+  },
+  "backend.app.services.scene.scene_event_layer": {
+    "imports": [
+      "__future__",
+      "logging",
+      "dataclasses",
+      "typing",
+      "app.services.scene.scene_event_emitter"
+    ],
+    "imported_by": []
+  },
+  "app.services.scene.scene_event_emitter": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.scene.scene_event_layer"
+    ]
+  },
+  "backend.app.services.scene.__init__": {
+    "imports": [],
+    "imported_by": []
+  },
+  "backend.app.services.simulation.world_state": {
+    "imports": [
+      "__future__",
+      "dataclasses",
+      "json",
+      "logging",
+      "typing",
+      "app.domain.events"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.simulation.__init__": {
+    "imports": [],
+    "imported_by": []
+  },
+  "backend.app.services.social.directive_interpretation_subscriber": {
+    "imports": [
+      "logging",
+      "typing",
+      "app.domain.events",
+      "app.models.cfrm",
+      "app.models.delta_payloads",
+      "app.models.state_delta"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.social.propagation": {
+    "imports": [
+      "logging",
+      "typing",
+      "app.models.state_delta"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.social.reputation_decay_handler": {
+    "imports": [
+      "__future__",
+      "logging",
+      "typing",
+      "app.models.idle_tick",
+      "app.models.state_delta",
+      "app.services.social.reputation_engine"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.social.reputation_engine": {
+    "imports": [
+      "__future__",
+      "json",
+      "logging",
+      "dataclasses",
+      "pathlib",
+      "typing",
+      "app.models.state_delta",
+      "app.models.state_delta"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.social.social_decay_handler": {
+    "imports": [
+      "__future__",
+      "logging",
+      "math",
+      "typing",
+      "app.models.idle_tick",
+      "app.models.state_delta"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.social.social_engine": {
+    "imports": [
+      "logging",
+      "typing",
+      "app.models.social"
+    ],
+    "imported_by": []
+  },
+  "app.models.social": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.social.social_engine"
+    ]
+  },
+  "backend.app.services.social.__init__": {
+    "imports": [
+      "app.services.social.social_engine"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.spatial.graph_compiler": {
+    "imports": [
+      "__future__",
+      "json",
+      "logging",
+      "collections",
+      "pathlib",
+      "typing",
+      "app.models.spatial_contracts",
+      "app.services.spatial.role_resolver"
+    ],
+    "imported_by": []
+  },
+  "app.services.spatial.role_resolver": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.spatial.graph_compiler"
+    ]
+  },
+  "backend.app.services.spatial.location_graph": {
+    "imports": [
+      "__future__",
+      "json",
+      "logging",
+      "math",
+      "dataclasses",
+      "pathlib",
+      "typing",
+      "collections"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.spatial.movement_engine": {
+    "imports": [
+      "__future__",
+      "logging",
+      "typing",
+      "app.domain.movement",
+      "app.services.scene_change",
+      "app.services.spatial.transit_tracker",
+      "random",
+      "app.services.spatial.spatial_service"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.spatial.player_target_pipeline": {
+    "imports": [
+      "__future__",
+      "logging",
+      "dataclasses",
+      "typing",
+      "app.services.action.player_target_extractor",
+      "app.services.spatial.spatial_runtime",
+      "app.services.events.event_bus",
+      "app.services.events.event_types",
+      "app.domain.events",
+      "app.services.spatial.spatial_query_service",
+      "app.services.spatial.spatial_events",
+      "logging",
+      "logging"
+    ],
+    "imported_by": []
+  },
+  "app.services.action.player_target_extractor": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.spatial.player_target_pipeline"
+    ]
+  },
+  "app.services.spatial.spatial_events": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.spatial.player_target_pipeline",
+      "backend.app.services.spatial.__init__"
+    ]
+  },
+  "backend.app.services.spatial.role_resolver": {
+    "imports": [
+      "__future__",
+      "typing",
+      "app.models.spatial_contracts"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.spatial.spatial_events": {
+    "imports": [
+      "dataclasses",
+      "typing"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.spatial.spatial_event_detector": {
+    "imports": [
+      "__future__",
+      "logging",
+      "math",
+      "time",
+      "typing",
+      "app.domain.events",
+      "app.services.events.event_types",
+      "app.services.events.event_bus"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.spatial.spatial_overlay": {
+    "imports": [
+      "__future__",
+      "logging",
+      "typing",
+      "app.models.spatial_contracts"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.spatial.spatial_query_service": {
+    "imports": [
+      "__future__",
+      "typing",
+      "app.services.spatial.spatial_runtime",
+      "app.models.cfrm"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.spatial.spatial_runtime": {
+    "imports": [
+      "__future__",
+      "math",
+      "typing",
+      "app.core.config",
+      "app.core.constants",
+      "app.services.spatial.location_graph",
+      "json",
+      "pathlib"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.spatial.spatial_service": {
+    "imports": [
+      "__future__",
+      "heapq",
+      "logging",
+      "math",
+      "typing",
+      "app.models.cfrm",
+      "app.models.spatial_contracts",
+      "app.services.spatial.graph_compiler",
+      "app.services.spatial.spatial_overlay"
+    ],
+    "imported_by": []
+  },
+  "heapq": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.spatial.spatial_service"
+    ]
+  },
+  "app.services.spatial.graph_compiler": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.spatial.spatial_service"
+    ]
+  },
+  "app.services.spatial.spatial_overlay": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.spatial.spatial_service"
+    ]
+  },
+  "backend.app.services.spatial.transit_tracker": {
+    "imports": [
+      "__future__",
+      "logging",
+      "dataclasses",
+      "typing",
+      "app.services.scene_change"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.spatial.__init__": {
+    "imports": [
+      "app.services.spatial.spatial_events",
+      "app.services.spatial.spatial_query_service"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.state.context_builder": {
+    "imports": [
+      "typing",
+      "app.services.simulation.world_state",
+      "app.models.pipeline_context"
+    ],
+    "imported_by": []
+  },
+  "app.services.simulation.world_state": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.state.context_builder"
+    ]
+  },
+  "backend.app.services.state.json_persistence_adapter": {
+    "imports": [
+      "__future__",
+      "json",
+      "logging",
+      "pathlib",
+      "typing",
+      "app.services.state.persistence_port"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.state.persistence_port": {
+    "imports": [
+      "__future__",
+      "abc"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.state.sqlite_persistence_adapter": {
+    "imports": [
+      "__future__",
+      "json",
+      "logging",
+      "sqlite3",
+      "datetime",
+      "pathlib",
+      "typing",
+      "app.services.state.persistence_port"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.state.__init__": {
+    "imports": [
+      "app.services.state.persistence_port"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.temporal.init": {
+    "imports": [
+      "app.services.temporal.temporal_engine",
+      "app.models.temporal"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.temporal.temporal_engine": {
+    "imports": [
+      "__future__",
+      "json",
+      "logging",
+      "datetime",
+      "pathlib",
+      "typing",
+      "app.core.constants",
+      "app.models.temporal",
+      "app.core.constants"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.verbalization.contract_base": {
+    "imports": [
+      "typing"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.verbalization.dm_contract_builder": {
+    "imports": [
+      "dataclasses",
+      "typing",
+      "uuid",
+      "app.services.verbalization.contract_base"
+    ],
+    "imported_by": []
+  },
+  "app.services.verbalization.contract_base": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.verbalization.dm_contract_builder",
+      "backend.app.services.verbalization.response_validator"
+    ]
+  },
+  "backend.app.services.verbalization.npc_response_validator": {
+    "imports": [
+      "typing",
+      "app.services.verbalization.response_validator",
+      "app.services.verbalization.state_interpreter"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.verbalization.prompt_loader": {
+    "imports": [
+      "pathlib",
+      "typing",
+      "app.core.config"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.verbalization.response_validator": {
+    "imports": [
+      "re",
+      "dataclasses",
+      "typing",
+      "app.services.verbalization.contract_base"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.verbalization.scene_continuity": {
+    "imports": [
+      "dataclasses",
+      "typing"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.verbalization.scene_outcome_builder": {
+    "imports": [
+      "dataclasses",
+      "enum",
+      "typing",
+      "app.services.npc.decision_hub",
+      "app.services.npc.legacy_delta_adapter",
+      "app.models.npc_profile",
+      "app.services.verbalization.verbal_stance",
+      "app.services.verbalization.state_interpreter"
+    ],
+    "imported_by": []
+  },
+  "app.services.verbalization.verbal_stance": {
+    "imports": [],
+    "imported_by": [
+      "backend.app.services.verbalization.scene_outcome_builder"
+    ]
+  },
+  "backend.app.services.verbalization.state_interpreter": {
+    "imports": [
+      "dataclasses",
+      "typing",
+      "enum",
+      "app.models.npc_state",
+      "app.models.physical",
+      "pymorphy3"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.verbalization.verbalization_context": {
+    "imports": [
+      "dataclasses",
+      "typing",
+      "app.models.npc_state"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.verbalization.verbal_stance": {
+    "imports": [
+      "dataclasses",
+      "typing"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.verbalization.__init__": {
+    "imports": [],
+    "imported_by": []
+  },
+  "backend.app.services.world.world_ontology": {
+    "imports": [
+      "typing"
+    ],
+    "imported_by": []
+  },
+  "backend.app.services.world.world_tick_engine": {
+    "imports": [
+      "__future__",
+      "logging",
+      "dataclasses",
+      "typing",
+      "app.core.constants",
+      "app.models.npc_state",
+      "app.models.state_delta",
+      "app.models.npc_profile",
+      "app.domain.events",
+      "app.domain.decision_context",
+      "app.services.cfrm.pressure_translator",
+      "app.services.events.event_types",
+      "app.services.npc.decision_hub"
+    ],
+    "imported_by": []
+  }
+}

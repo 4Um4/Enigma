@@ -88,11 +88,20 @@ class FastPathResponder:
 Внедрить экспоненциальные кривые затухания (Salience Decay Curves):
 
 ```python
-def calculate_salience(event: EventMemory, current_tick: int) -> float:
+def calculate_salience(event: Union[EventMemory, Episode, SurvivalImprint], current_tick: int) -> float:
     delta_t = current_tick - event.tick
     
-    if event.domain == DeltaDomain.IDENTITY or "trauma" in event.tags:
+    # Эпизоды нарушения ожиданий (Восприятие.md) - долговечны
+    if isinstance(event, Episode) and event.action in ["HURT_ME", "SAVED_ME"]:
         decay = math.exp(-0.05 * delta_t)  # IMMORTAL LAYER
+        
+    # Пространственные стратегии (ADR-060) - затухают при смене контекста
+    elif isinstance(event, SurvivalImprint):
+        decay = math.exp(-0.15 * delta_t)
+        
+    # Стандартная травма
+    elif event.domain == DeltaDomain.IDENTITY or "trauma" in event.tags:
+        decay = math.exp(-0.05 * delta_t)
     elif event.domain == DeltaDomain.PHYSIOLOGY and event.payload.pain > 50:
         decay = math.exp(-0.3 * delta_t)   # Боль держится
     elif event.type in ["routine", "fluff", "greeting"]:
@@ -242,11 +251,20 @@ class FastPathResponder:
 Внедрить экспоненциальные кривые затухания (Salience Decay Curves):
 
 ```python
-def calculate_salience(event: EventMemory, current_tick: int) -> float:
+def calculate_salience(event: Union[EventMemory, Episode, SurvivalImprint], current_tick: int) -> float:
     delta_t = current_tick - event.tick
     
-    if event.domain == DeltaDomain.IDENTITY or "trauma" in event.tags:
+    # Эпизоды нарушения ожиданий (Восприятие.md) - долговечны
+    if isinstance(event, Episode) and event.action in ["HURT_ME", "SAVED_ME"]:
         decay = math.exp(-0.05 * delta_t)  # IMMORTAL LAYER
+        
+    # Пространственные стратегии (ADR-060) - затухают при смене контекста
+    elif isinstance(event, SurvivalImprint):
+        decay = math.exp(-0.15 * delta_t)
+        
+    # Стандартная травма
+    elif event.domain == DeltaDomain.IDENTITY or "trauma" in event.tags:
+        decay = math.exp(-0.05 * delta_t)
     elif event.domain == DeltaDomain.PHYSIOLOGY and event.payload.pain > 50:
         decay = math.exp(-0.3 * delta_t)   # Боль держится
     elif event.type in ["routine", "fluff", "greeting"]:

@@ -17,6 +17,9 @@ from pathlib import Path
 from typing import Optional
 
 import pygame
+import logging
+
+logger = logging.getLogger(__name__)
 
 from scene_renderer import SceneRenderer
 from text_input import TextInput
@@ -38,6 +41,9 @@ def _build_perceived_scene(scene_state: dict, config: PerceptionConfig) -> Perce
     
     # Конвертируем NPC из scene_state
     for npc_id, npc_data in scene_state.get("npc_positions", {}).items():
+        # БАГ D2 FIX: Player не рендерится как NPC
+        if npc_id == "player":
+            continue
         # ADR-019: Каузальный Lerp. Интерполируем позицию, если NPC в транзите.
         pos = _resolve_visual_xy(npc_id, scene_state)
         x, y = float(pos.get("x", 0)), float(pos.get("y", 0))
@@ -186,32 +192,34 @@ def _idle_tick_interval_ms(nearest_dist: float) -> int:
 
 
 def _resolve_visual_xy(npc_id: str, scene_state: dict) -> dict:
-    """ADR-019: Каузальный Lerp. Вычисляет визуальную позицию NPC с учетом транзитов.
-    Если NPC в движении, интерполирует от from_xy к to_xy на основе game_time_seconds.
-    Если транзита нет — возвращает статичную local_position (Каузальная Истина).
+    """ADR-019: Каузальный Lerp. Tick-based Dual Time.
+    Детерминированная интерполяция на основе тиков симуляции.
     """
     traversals = scene_state.get("active_traversals", [])
     trav = None
 
-    # ADR-019: active_traversals приходит как список словарей
     if isinstance(traversals, list):
         for t in traversals:
             if t.get("npc_id") == npc_id:
                 trav = t
                 break
     elif isinstance(traversals, dict):
-        trav = traversals.get(npc_id) # Fallback для старого формата
+        trav = traversals.get(npc_id)
 
-    # Спринт 30: Каузальная Компрессия Времени. Бэкенд отдает progress и waypoints, а не duration.
     if trav and trav.get("status") in ("PENDING", "MOVING"):
         wp = trav.get("path_waypoints", [])
-        idx = trav.get("current_waypoint_idx", 0)
-        progress = float(trav.get("progress", 0.0))
+        started_tick = int(trav.get("started_tick", 0))
+        duration_ticks = max(1, int(trav.get("duration_ticks", 1)))
+        # Текущий тик из авторитетного источника (scene_state)
+        current_tick = int(scene_state.get("tick", scene_state.get("game_time_seconds", 0) // 60))
 
-        # Если есть сегмент пути, интерполируем позицию на срезе тика
-        if wp:
-            return _extracted_from__resolve_visual_xy_(idx, wp, progress)
-    # Fallback: Транзит завершен или отсутствует. Рисуем по Каузальной Истине
+        if wp and len(wp) >= 2 and duration_ticks > 0:
+            # ADR-0XX: Тик читается напрямую из scene_state (авторитетный источник)
+            current_tick = int(scene_state.get("tick", 0))
+            progress = min(1.0, max(0.0, (current_tick - started_tick) / duration_ticks))
+            return _extracted_from__resolve_visual_xy_(0, wp, progress)
+
+    # Транзит завершён или отсутствует. Рисуем по Каузальной Истине
     npc_data = scene_state.get("npc_positions", {}).get(npc_id, {})
     return npc_data.get("local_position", {"x": 0, "y": 0})
 
@@ -554,12 +562,9 @@ class GameScreen:
                     _new_lp = new_data.get("local_position", {})
                     if _old_lp != _new_lp:
                         print(f"[FRAME_RENDER] npc={npc_id} new_xy=({_new_lp.get('x')}, {_new_lp.get('y')})")
-            # ADR-019: Сохраняем активные транзиты для визуальной интерполяции (Lerp)
-            if _ws and "active_traversals" in _ws:
-                scene_state["active_traversals"] = _ws["active_traversals"]
 
             if _new_positions:
-                print(f"[IDLE_TICK] merged: {list(_new_positions.keys())}")
+                logger.info(f"[IDLE_TICK] merged: {list(_new_positions.keys())}")
 
             # Синхронизация player_position и environment из world_snapshot
             if _ws:
@@ -645,7 +650,7 @@ class GameScreen:
                         _bridge.save_scene_state(campaign_folder, scene_state)
                 _idle_tick_running[0] = True
                 _last_idle_tick = _now
-                print(f"[IDLE_TICK] fired at {_now}ms")
+                logger.info(f"[IDLE_TICK] fired at {_now}ms")
                 threading.Thread(target=_do_idle_tick, daemon=True).start()
 
             # === Poll backend responses ===
@@ -690,6 +695,9 @@ class GameScreen:
                         # ADR-019: Сохраняем активные транзиты для визуальной интерполяции (Lerp)
                         if "active_traversals" in _action_ws:
                             scene_state["active_traversals"] = _action_ws["active_traversals"]
+                        # ADR-035: Обновление феноменологической проекции аватара при действии
+                        if "avatar_state" in _action_ws:
+                            scene_state["avatar_state"] = _action_ws["avatar_state"]
                     elif isinstance(result.response, dict) and "npc_positions" in result.response:
                         # Fallback: deprecated top-level npc_positions
                         import copy
@@ -698,6 +706,9 @@ class GameScreen:
                         # ADR-019: Сохраняем активные транзиты (fallback)
                         if "active_traversals" in result.response:
                             scene_state["active_traversals"] = result.response["active_traversals"]
+                        # ADR-035: Обновление феноменологической проекции аватара (fallback)
+                        if "avatar_state" in result.response:
+                            scene_state["avatar_state"] = result.response["avatar_state"]
 
                     if resp and resp != "Ничего не произошло.":
                         import re
@@ -779,6 +790,14 @@ class GameScreen:
                                     is_active=False,
                                     creation_tick=pygame.time.get_ticks()
                                 ))
+
+                    # ADR-041: Resistance Medium — инфекция поля ввода при конфликте воли
+                    _wc_data = getattr(result.response, 'will_conflict_data', None)
+                    if _wc_data and hasattr(self, 'text_input'):
+                        _impulse = _wc_data.get("impulse_text", _wc_data.get("counter_offer", ""))
+                        _origin = _wc_data.get("origin_layer", "will_conflict")
+                        if _impulse:
+                            self.text_input.infect(impulse_text=_impulse, origin_layer=_origin)
 
                     for npc_r in result.response.npc_reactions:
                         npc_name = npc_r.get("npc_name", "NPC")

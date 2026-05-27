@@ -103,6 +103,11 @@ def _load_archetype_chain(individual_data: Dict[str, Any]) -> Dict[str, Any]:
     # 4. Индивидуальные данные (высший приоритет — конкретный NPC)
     merged = _deep_merge(merged, individual_data)
     
+    # v2.2 Spatial Ontology: Сохраняем _archetype для инъекции в NPCProfileL0.
+    # _deep_merge пропускает ключи с '_', поэтому инъектируем явно после мержа.
+    if "_archetype" in individual_data:
+        merged["_archetype"] = individual_data["_archetype"]
+    
     return merged
 
 
@@ -397,6 +402,7 @@ def load_profile_from_legacy_json(raw_data: Dict[str, Any]) -> NPCProfileL0:
             name=raw_data.get("name", "Unknown"),
             tier=raw_data.get("tier", "minor"),
             gender=raw_data.get("gender", "male"),
+            archetype=raw_data.get("_archetype", "commoner"),
             drives_base=drives_base,
             psyche_base=psyche_base,
             # voice_profile и backstory берем из JSON.

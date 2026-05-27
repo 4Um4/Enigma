@@ -305,7 +305,7 @@ class LifeEngine:
             f"[LIFE_ENGINE] macro_simulate завершена: "
             f"{len(all_changes)} changes"
         )
-        return all_changes, all_intents # ADR-049: Всегда возвращаем кортеж (changes, intents)
+        return all_changes, [] # ADR-049: macro_simulate не генерирует intents (только tick)
 
     # ─────────────────────────────────────────────────────────────────────────
     # LRU защита для HOT кэша
@@ -486,7 +486,7 @@ class LifeEngine:
         scene_state: dict,
         topics: Optional[dict[str, str]] = None,
         identities: Optional[dict[str, dict[str, float]]] = None,
-    ) -> tuple[list[dict], list]:
+    ) -> tuple[list[dict], list, list]:
         """
         Фаза 5 — DecisionHub для NPC в idle tick.
         Чистая математика, без LLM.
@@ -523,11 +523,20 @@ class LifeEngine:
                 f"[LIFE_ENGINE] tick_decisions: кэш пуст для '{campaign_id}'. "
                 "Phase 0 (tick) не была вызвана перед Phase 5?"
             )
-            return [], [] # ADR-049: Всегда возвращаем кортеж (changes, intents)
+            return [], [], [] # ADR-049: Всегда возвращаем кортеж (decisions, comms, movements)        # Читаем из кэша — после Phase 0 там уже мутации (Устав §3.1)
+        npcs = self._npc_cache.get(campaign_id)
+        if not npcs:
+            logger.error(
+                f"[LIFE_ENGINE] tick_decisions: кэш пуст для '{campaign_id}'. "
+                "Phase 0 (tick) не была вызвана перед Phase 5?"
+            )
+            return [], [], [] # ADR-049: Всегда возвращаем кортеж (decisions, comms, movements)
+        logger.warning(f"[TICK_DECISIONS] cache_hit: {len(npcs)} NPCs for '{campaign_id}'")
         hub = DecisionHub()
         decisions: list[dict] = []
         communication_intents: list[CommunicationIntent] = []
-        print(f"[TICK_DECISIONS] start: {len(npcs)} NPCs")
+        movement_intents: list[MovementIntent] = []
+        logger.info(f"[TICK_DECISIONS] start: {len(npcs)} NPCs")
 
         for npc in npcs:
             npc_id = npc.get("id", "?")
@@ -542,9 +551,11 @@ class LifeEngine:
                 if state_l2.will_state == WillState.BROKEN:
                     continue
 
-                # Контекст для idle tick — низкая интенсивность, нет стимула
+                # ДОЛГ 2 FIX: idle tick = мир тикает проактивно (WORLD_TICK).
+                # EventType.IDLE убивал все proactive-интенты, давление
+                # никогда не накапливалось, 0 решений за 14 тиков.
                 event = EventContext(
-                    event_type=EventType.IDLE,
+                    event_type=EventType.WORLD_TICK,
                     actor_id=npc_id,
                     success=True,
                     intensity=0.2,
@@ -612,6 +623,38 @@ class LifeEngine:
                 if result.communication is not None:
                     communication_intents.append(result.communication)
 
+                # Каузальный мост: невербальные пространственные решения → MovementIntent
+                if result.intent and result.intent.value in ("APPROACH", "FLEE"):
+                    # В idle-пути (WORLD_TICK) intent_target == npc_id — нет смысла подходить к себе.
+                    # Fallback: approach/flee к игроку как основному социальному объекту.
+                    _move_target = result.intent_target if result.intent_target and result.intent_target != npc_id else "player"
+                    _target_pos = scene_state.get("npc_positions", {}).get(_move_target, {})
+                    _target_node = _target_pos.get("position", "")
+                    if result.intent.value == "APPROACH" and _target_node:
+                        movement_intents.append(MovementIntent(
+                            npc_id=npc_id,
+                            target_node_id=_target_node,
+                            reason=f"decision:approach_target={_move_target}",
+                            priority=0.7,
+                        ))
+                        logger.warning(f"[CAUSAL_BRIDGE] APPROACH: npc={npc_id} → target={_move_target} node={_target_node}")
+                    elif result.intent.value == "FLEE":
+                        # FLEE: ищем позицию NPC и узел, ближайший к нему, но не к угрозе
+                        _npc_pos = scene_state.get("npc_positions", {}).get(npc_id, {})
+                        _npc_node = _npc_pos.get("position", "")
+                        if _npc_node:
+                            movement_intents.append(MovementIntent(
+                                npc_id=npc_id,
+                                target_node_id=_npc_node,
+                                reason=f"decision:flee_stay={_move_target}",
+                                priority=1.0,
+                            ))
+                            logger.warning(f"[CAUSAL_BRIDGE] FLEE: npc={npc_id} stays at {_npc_node} (flee from {_move_target})")
+                        else:
+                            logger.warning(f"[CAUSAL_BRIDGE] FLEE BLOCKED: npc={npc_id} has no position node")
+                    elif result.intent.value == "APPROACH" and not _target_node:
+                        logger.warning(f"[CAUSAL_BRIDGE] APPROACH BLOCKED: npc={npc_id} target={_move_target} has no position (entry={list(_target_pos.keys()) if _target_pos else 'EMPTY'})")
+
                 # Триггер когда давление накопилось
                 if _new_pressure >= IDLE_DECISION_SCORE_THRESHOLD:
                     decisions.append({
@@ -621,6 +664,7 @@ class LifeEngine:
                         "target": npc_id,
                         "field": "intent",
                         "value": f"{result.intent.value if result.intent else 'observe'}",
+                        "intent_target": result.intent_target,
                         "topic": topics.get(npc_id, "наблюдение") if topics else "наблюдение",
                     })
                     # Сброс давления после триггера
@@ -629,12 +673,12 @@ class LifeEngine:
             except Exception as e:
                 import traceback
                 logger.warning(f"[LIFE_ENGINE] Idle decision error for {npc_id}: {e}\n{traceback.format_exc()}")
-                print(f"[TICK_DECISIONS] error: {npc_id} → {e}")
+                logger.error(f"[TICK_DECISIONS] error: {npc_id} → {e}")
                 print(traceback.format_exc())
                 continue
 
-        print(f"[TICK_DECISIONS] end: {len(decisions)} decisions, {len(communication_intents)} intents")
-        return decisions, communication_intents
+        logger.info(f"[TICK_DECISIONS] end: {len(decisions)} decisions, {len(communication_intents)} comms, {len(movement_intents)} movements")
+        return decisions, communication_intents, movement_intents
 
     def save_npcs(self, campaign_id: str) -> None:
         """
@@ -782,7 +826,7 @@ class LifeEngine:
             f"[LIFE_ENGINE] get_npc_states: кэш пуст для '{campaign_id}'. "
             "tick() не была вызвана перед этим?"
         )
-        return [], [] # ADR-049: Всегда возвращаем кортеж (changes, intents)
+        return []  # БАГ G FIX: get_npc_states возвращает list[dict], не tuple  
 
     # ─────────────────────────────────────────────────────────────────────────
     # Симуляция по тирам

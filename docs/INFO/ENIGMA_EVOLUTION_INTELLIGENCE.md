@@ -64,6 +64,53 @@
 |V.0.5.3.0.4_ПЕСОЧНИЦЫ_1|2026-05-12|65.6|43.5|35.6|56.1|67.8|10.8|20.3|19.6|45.1|19.3|15.5|74.0|breakout_up|Transitional Synthesis|none|
 |V.0.5.3.0.5_ПЕСОЧНИЦЫ_2|2026-05-14|65.2|35.8|55.5|57.5|65.0|21.9|32.4|31.9|62.8|37.1|26.1|47.6|down|Causal Stress Integration|runtime_core, causal|
 |V.0.5.3.0.6_ПЕСОЧНИЦЫ_3|2026-05-14|68.6|38.3|57.0|75.6|66.4|16.7|26.9|27.1|54.8|32.1|5.5|49.1|flat|Entropy Surge|spatial, runtime_core|
+|V.0.5.3.0.7_ПЕСОЧНИЦЫ_4|2026-05-16|63.4|41.7|44.2|81.3|72.8|38.4|35.7|46.2|58.9|33.8|31.5|71.4|breakout_up|Causal Governance Consolidation|directive_authority, spatial, initiative|
+|V.0.5.3.0.8_ПЕСОЧНИЦЫ_5|2026-05-17|59.8|48.9|39.5|88.6|78.1|57.2|42.6|63.8|52.7|29.4|44.8|83.7|breakout_up|Distributed Social Physics|initiative, social_pressure, locomotion|
+
+## Extended Metric Interpretation (post-ADR-048/049/050)
+
+- `EG` — больше не просто “хаос изменений”, а степень расширения причинного пространства.
+- `SR` — устойчивость causal-loop после интеграции новых pressure domains.
+- `SC` — интенсивность перестройки смысловой геометрии runtime.
+- `GD` — плотность enforceable contracts между фазами/доменами.
+- `CD` — глубина многослойной причинности (decision → pressure → spatial → projection).
+- `ACI` — степень консолидации authority-spines (`SpatialQueryService`, directive legitimacy, orchestration law).
+- `OER` — скорость расширения онтологии симуляции без collapse в script-layer.
+- `HSES` — устранение скрытых truth-sources и bypass-состояний.
+- `RPI` — суммарное давление runtime на устойчивость causal execution.
+- `RI` — интенсивность хирургии архитектуры.
+- `PG` — перевод implicit behavior в formalized protocols/contracts.
+- `SCT` — долгосрочная когерентность distributed causality.
+
+## New Phase Definitions
+
+|Phase|Meaning|
+|---|---|
+|Distributed Social Physics|Социальное давление начинает существовать как causal field, а не как dialogue logic.|
+|Causal Governance Consolidation|Власть и легитимность переходят из “поведения NPC” в enforceable runtime geometry.|
+|Embodied Causality Threshold|Movement, hesitation, suppression и perception начинают сливаться в единую embodied cognition систему.|
+|Civilization Pressure Runtime|Мир хранит не события, а остаточные градиенты нерешённого давления.|
+
+## Emerging System Trajectory (May 2026+)
+
+```text
+Phase I:
+Stateful Runtime
+↓
+Phase II:
+Causal Orchestrator
+↓
+Phase III:
+Observed Reality Simulation
+↓
+Phase IV:
+Distributed Social Physics
+↓
+Phase V:
+Civilization Pressure Runtime
+↓
+Phase VI:
+Mythogenic Causal Ecology
 
 ## Branch-Family Trends
 |Branch Family|N|EG avg|SR avg|RPI avg|PG avg|Delta Coherence|Phase End|

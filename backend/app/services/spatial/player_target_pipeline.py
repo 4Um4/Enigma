@@ -20,9 +20,12 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Callable, Dict, List, Optional
+from typing import Callable, Dict, List, Optional, TYPE_CHECKING
 
 from app.services.action.player_target_extractor import PlayerTargetExtractor
+
+if TYPE_CHECKING:
+    from app.services.spatial.spatial_query_service import SpatialQueryService
 from app.services.spatial.spatial_runtime import euclidean_distance
 from app.services.events.event_bus import get_event_bus
 from app.services.events.event_types import EventType
@@ -73,11 +76,9 @@ def extract_player_target(
         scene_state=_scene_pre if isinstance(_scene_pre, dict) else {},
     )
 
-    # Сохраняем расстояния обратно в scene_state — иначе spatial система всегда видит 5.0
-    if _player_dists and isinstance(_scene_pre, dict):
-        _scene_pre["player_distances"] = _player_dists
-    if _player_pos and isinstance(_scene_pre, dict):
-        _scene_pre["player_position"] = _player_pos
+    # ADR-048 Phase 2: Запись player_distances/player_position в scene_state ЗАПРЕЩЕНА.
+    # SpatialQueryService является единственным авторитетом (Single Spatial Authority).
+    # Semantic target всё ещё сохраняется для контекста диалога.
     if _target_id and isinstance(_scene_pre, dict):
         _scene_pre["player_target_npc"] = _target_id
         _scene_pre["player_target_npc_name"] = _target_name
@@ -133,26 +134,59 @@ def detect_and_publish_spatial_transitions(
     return _spatial_events
 
 
-def build_spatial_data_for_dm(location: str, scene_state: dict) -> dict:
-    """Строит spatial_data из scene_state для DM SceneBuilder."""
+def build_spatial_data_for_dm(location: str, scene_state: dict, spatial_query: Optional["SpatialQueryService"] = None) -> dict:
+    """Строит spatial_data из scene_state для DM SceneBuilder.
+    ADR-048: Дистанции запрашиваются у SpatialQueryService.
+    """
     _scene = scene_state
     _npc_positions = _scene.get("npc_positions", {})
+    _npc_ids = list(_npc_positions.keys())
+    # КРИТИЧЕСКАЯ ДИАГНОСТИКА: почему npc_positions пустой?
+    if not _npc_ids:
+        _scene_keys = list(_scene.keys())[:10] if isinstance(_scene, dict) else type(_scene).__name__
+        import logging as _log
+        _log.getLogger(__name__).error(f"[SPATIAL_DATA] EMPTY npc_positions! scene_state keys={_scene_keys}, location={location}")
 
-    # ADR-048: Игрок читается из единого словаря npc_positions
-    _player_spatial = _scene.get("npc_positions", {}).get("player", {})
-    _player_distances = _scene.get("player_distances", {})
+    # ADR-048: Запрос дистанций у авторитетного сервиса
+    if spatial_query:
+        _player_distances = spatial_query.player_distances(_npc_ids)
+    else:
+        # Fallback 1: player_distances из scene_state (non-spatial сборки)
+        _scene_dists = _scene.get("player_distances") or {}
+        # Fallback 2: вычисляем euclidean из npc_positions
+        _player_pos = _npc_positions.get("player", {}).get("local_position", {})
+        _px, _py = _player_pos.get("x", 0.0), _player_pos.get("y", 0.0)
+        _player_distances = {}
+        for _nid in _npc_ids:
+            if _nid == "player":
+                continue
+            if _nid in _scene_dists:
+                _player_distances[_nid] = _scene_dists[_nid]
+            else:
+                _lp = _npc_positions.get(_nid, {}).get("local_position", {})
+                _nx, _ny = _lp.get("x"), _lp.get("y")
+                if isinstance(_nx, (int, float)) and isinstance(_ny, (int, float)):
+                    _player_distances[_nid] = ((_px - _nx) ** 2 + (_py - _ny) ** 2) ** 0.5
+
     _npcs_for_builder = []
-    for _nid, _npos in _npc_positions.items():
-        _dist = euclidean_distance(_player_spatial, _npos)
-        # Если координат нет, euclidean_distance вернёт 999.0 — используем старый fallback
-        if _dist >= 999.0:
-            _dist = _player_distances.get(_nid, 5.0)
+    for _nid in _npc_ids:
+        if _nid == "player":
+            continue  # Игрок не должен быть в nearby_npcs
+        _dist = _player_distances.get(_nid)
+        if _dist is None:
+            continue  # Нет дистанции — не включаем (bug_risk: 999.0 ломает фильтр видимости)
         _npcs_for_builder.append({
             "npc_id": _nid,
             "location_id": location,
             "distance_to_player": _dist,
             "facing_towards_player": True,
         })
+    # Диагностика: почему nearby_npcs может быть пустым?
+    _player_lp = _npc_positions.get("player", {}).get("local_position", {})
+    _has_player = "player" in _npc_positions
+    _player_xy_valid = isinstance(_player_lp.get("x"), (int, float)) and isinstance(_player_lp.get("y"), (int, float))
+    import logging as _log
+    _log.getLogger(__name__).warning(f"[SPATIAL_DATA] result={len(_npcs_for_builder)}/{len(_npc_ids)}, has_player={_has_player}, player_xy_valid={_player_xy_valid}, spatial_query={spatial_query is not None}, distances_sample={list(_player_distances.items())[:3]}")
 
     return {
         "location_id": location,

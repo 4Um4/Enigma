@@ -416,7 +416,7 @@ def run_npc_pipeline(
             # ADR-057: Topic Injection. Если внимание захвачено директивой, тема = реакция на неё.
             # COGNITIVE OVERLAY: Читаем директиву из raw dict (npc_dict), если state_l2 ещё не обновился
             _dir = getattr(getattr(state_l2, 'perceptual_kernel', None), 'recent_directive', None) \
-                or (isinstance(npc_dict, dict) and npc_dict.get("perceptual_kernel", {}).get("recent_directive"))
+                or (isinstance(_npc_dict_for_write, dict) and _npc_dict_for_write.get("perceptual_kernel", {}).get("recent_directive"))
             
             if _dir:
                 _topic = "разговор" if _dir.get("is_obedience") else "угроза"
@@ -444,6 +444,7 @@ def run_npc_pipeline(
             # ADR-035: Reactive Spatial Command Reflex.
             # Если игрок приказал NPC двигаться (через Semantic Bridge или raw_input), 
             # перехватываем решение DecisionHub и заставляем NPC подойти.
+            logger.warning(f"[REFLEX_DEBUG] npc={npc_id} name={_npc_dict_for_write.get('name','')} intent={decision.intent.value} raw_input={repr(inp.raw_input[:80]) if inp.raw_input else 'NONE'}")
             if decision.intent.value not in ("approach", "flee"):
                 _is_move_command = False
                 
@@ -451,7 +452,7 @@ def run_npc_pipeline(
                 _payload = getattr(hub_event, 'payload', {})
                 if isinstance(_payload, dict) and _payload.get("semantic_action") == "MOVE":
                     _target_ref = _payload.get("target_reference", "").lower()
-                    npc_name = npc_dict.get("name", "").lower()
+                    npc_name = _npc_dict_for_write.get("name", "").lower()
                     npc_id_lower = npc_id.lower()
                     if _target_ref and (_target_ref in npc_name or _target_ref in npc_id_lower):
                         _is_move_command = True
@@ -459,7 +460,7 @@ def run_npc_pipeline(
                 # Путь 2: Raw Text Reflex (Fallback по тексту команды)
                 if not _is_move_command and inp.raw_input:
                     content = inp.raw_input.lower()
-                    npc_name = npc_dict.get("name", "").lower()
+                    npc_name = _npc_dict_for_write.get("name", "").lower()
                     npc_id_lower = npc_id.lower()
                     
                     _MOVE_VERBS = ["подойди", "подойти", "иди", "подой", "подходи", "приди", "приходи", "сюда"]
@@ -470,9 +471,15 @@ def run_npc_pipeline(
                         _is_move_command = True
 
                 if _is_move_command:
-                    from app.domain.decision import Intent
-                    decision.intent = Intent.APPROACH
-                    decision.intent_target = "player"
+                    from app.models.npc_state import Intent
+                    import dataclasses
+                    # v2.2 Mutation Pipeline: Иммутабельная мутация (AgentAction.intent — read-only property)
+                    new_result = dataclasses.replace(
+                        decision.decision,
+                        intent=Intent.APPROACH,
+                        intent_target="player"
+                    )
+                    decision = dataclasses.replace(decision, decision=new_result)
                     logger.warning(f"[REFLEX_MOVE] npc={npc_id} forced APPROACH by player command")
 
             # CommunicationIntent → buffer, публикация через Фазу 6 оркестратора (Устав §5.1)
@@ -483,7 +490,7 @@ def run_npc_pipeline(
 
             # MovementIntent — реактивное движение NPC (APPROACH, FLEE и др.)
             # DecisionHub решает ЧТО делать, MovementEngine решит КАК (координаты)
-            from app.domain.movement import MovementIntent
+            from app.domain.movement import MacroMovementGoal, LocalSteeringGoal
             _intent_value = decision.intent.value if decision.intent else ""
             
             # ADR-035: Реактивный перехват пространственных команд.
@@ -493,8 +500,8 @@ def run_npc_pipeline(
                 
                 # Путь 1: Проверяем hub_event на наличие семантики (если Слой 1 пробросил данные)
                 if hasattr(inp, 'hub_event') and inp.hub_event:
-                    _payload = inp.hub_event.payload if hasattr(inp.hub_event, 'payload') else inp.hub_event.get("payload", {})
-                    if _payload.get("semantic_action") == "MOVE":
+                    _payload = getattr(inp.hub_event, 'payload', None) or {}
+                    if isinstance(_payload, dict) and _payload.get("semantic_action") == "MOVE":
                         target_ref = _payload.get("target_reference", "").lower()
                         if target_ref:
                             # ADR-048: Spatial Authority — имя NPC через QueryService, не scene_state
@@ -660,7 +667,7 @@ def _resolve_reactive_movement(
     Если передан spatial_service (v1.2), использует его. Иначе fallback на load_graph.
     ADR-048: Если передан spatial_query, чтение позиций идёт ТОЛЬКО через него.
     """
-    from app.domain.movement import MovementIntent, PRIORITY_NEEDS
+    from app.domain.movement import LocalSteeringGoal, MacroMovementGoal, PRIORITY_NEEDS
     from app.services.spatial.location_graph import load_graph
 
     # ADR-048: Spatial Authority. Единственный источник пространственной истины.
@@ -682,21 +689,29 @@ def _resolve_reactive_movement(
         # ADR-048: Игрок внедрен как npc_id="player" (ADR-031), его позиция находится в npc_positions.
         # player_spatial удален. denormalize_id удален.
         target_entry = _pos(_target_id)
-        target_node_id = target_entry.get("position")
+        # v2.2 Spatial Ontology: Для approach микро-позиция (local_position) приоритетнее макро-узла (position).
+        # Макро-узел игрока может быть "entrance", но его local_position указывает точное место.
+        lp = target_entry.get("local_position", {})
+        target_x = lp.get("x")
+        target_y = lp.get("y")
+        target_node_id = None
+        print(f"[DIAG][APPROACH_NAV] npc={npc_id} target_id={_target_id} player_xy=({target_x},{target_y}) player_entry_keys={list(target_entry.keys())} position={target_entry.get('position')}")
+        
+        # Путь 1: Точное позиционирование через local_position (предпочтительно)
+        if target_x is not None and target_y is not None and spatial_service:
+            nearest_ref = spatial_service.get_nearest(zone_id=location_id, origin_xy=(target_x, target_y))
+            if nearest_ref:
+                target_node_id = getattr(nearest_ref, 'node_id', str(nearest_ref))
+        
+        # Путь 2: Fallback на макро-узел (если нет spatial_service или координат)
+        if not target_node_id:
+            target_node_id = target_entry.get("position")
+            
+        logger.warning(f"[APPROACH_NAV] npc={npc_id} target={_target_id} resolved_node={target_node_id} has_xy={target_x is not None} xy=({target_x},{target_y}) fallback={target_entry.get('position')}")
 
         if not target_node_id:
-            # Если макро-узел не найден, пробуем резолвить через координаты (local_position)
-            lp = target_entry.get("local_position", {})
-            target_x = lp.get("x")
-            target_y = lp.get("y")
-            if target_x is not None and target_y is not None and spatial_service:
-                nearest_ref = spatial_service.get_nearest(zone_id=location_id, origin_xy=(target_x, target_y))
-                if nearest_ref:
-                    # ADR-008: denormalize_id удален. Извлекаем канонический ID напрямую.
-                    target_node_id = getattr(nearest_ref, 'canonical_id', getattr(nearest_ref, 'node_id', str(nearest_ref)))
-            if not target_node_id:
-                logger.warning(f"[APPROACH_NAV] target={_target_id} not found in npc_positions! Movement blocked.")
-                return None
+            logger.warning(f"[APPROACH_NAV] target={_target_id} not found in npc_positions! Movement blocked.")
+            return None
 
     elif intent == "flee":
         # ADR-048: Единый пространственный авторитет. Игрок внедрен как npc_id="player".
@@ -715,8 +730,12 @@ def _resolve_reactive_movement(
                 furthest_ref = spatial_service.get_furthest(zone_id=location_id, origin_xy=(threat_x, threat_y))
                 if furthest_ref:
                     # ADR-008: denormalize_id удален. Используем канонический ID напрямую.
-                    target_node_id = getattr(furthest_ref, 'canonical_id', getattr(furthest_ref, 'node_id', str(furthest_ref)))
-            else:
+                    target_node_id = getattr(furthest_ref, 'node_id', str(furthest_ref))
+                else:
+                    # PIPELINE FIX: SpatialService не нашёл дальний узел (зона без узлов или зона не совпадает)
+                    logger.warning(f"[FLEE_NAV] spatial_service.get_furthest() вернул None для зоны {location_id}")
+            if not target_node_id:
+                # Fallback на LocationGraph только если SpatialService не дал результата
                 try:
                     graph = load_graph(location_id)
                     target_node_id = graph.find_furthest_node(threat_x, threat_y)
@@ -725,7 +744,7 @@ def _resolve_reactive_movement(
 
             if target_node_id and target_node_id != current_node:
                 print(f"[TRACE][INTENT_CREATED] npc={npc_id} intent=reactive:flee target_node={target_node_id}")
-                return MovementIntent(npc_id=npc_id, target_node_id=target_node_id, from_node_id=current_node, location_id=location_id, reason="reactive:flee", priority=PRIORITY_NEEDS)
+                return MacroMovementGoal(npc_id=npc_id, target_node_id=target_node_id, from_node_id=current_node, location_id=location_id, reason="reactive:flee", priority=PRIORITY_NEEDS)
         return None
 
     # ADR-045: Проверка на нахождение в одной макро-зоне (нормализация префиксов)
@@ -743,7 +762,7 @@ def _resolve_reactive_movement(
         if intent == "approach" and target_x is not None and target_y is not None:
             print(f"[TRACE][INTENT_CREATED] npc={npc_id} intent=micro_snap:{intent} target_node={current_node} target_xy=({target_x},{target_y})")
             # Возвращаем канонический current_node для трассировки, сравнение было по базе
-            return MovementIntent(npc_id=npc_id, target_node_id=current_node, from_node_id=current_node, location_id=location_id, reason=f"micro_snap:{intent}", priority=PRIORITY_NEEDS, local_target_xy=(target_x, target_y))
+            return LocalSteeringGoal(npc_id=npc_id, local_target_xy=(target_x, target_y), reason=f"micro_snap:{intent}", priority=PRIORITY_NEEDS)
         
         if intent == "flee":
             # Для побега из той же зоны ищем другой узел
@@ -758,4 +777,4 @@ def _resolve_reactive_movement(
     
     logger.warning(f"[PIPELINE][REACTIVE_MOVEMENT][CREATE] npc={npc_id} target_node={target_node_id} from_node={current_node}")
     print(f"[TRACE][INTENT_CREATED] npc={npc_id} intent=reactive:{intent} target_node={target_node_id}")
-    return MovementIntent(npc_id=npc_id, target_node_id=target_node_id, from_node_id=current_node, location_id=location_id, reason=f"reactive:{intent}", priority=PRIORITY_NEEDS)
+    return MacroMovementGoal(npc_id=npc_id, target_node_id=target_node_id, from_node_id=current_node, location_id=location_id, reason=f"reactive:{intent}", priority=PRIORITY_NEEDS, target_local_xy=(target_x, target_y) if intent == "approach" and target_x is not None and target_y is not None else None)

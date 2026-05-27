@@ -60,7 +60,7 @@ class SpatialService:
         graph, connections, alias_map = compile_graph(editor_data, location_id)
         overlay = build_overlay_from_scene(scene_state)
 
-        return SpatialService(graph, connections, alias_map, overlay)
+        return SpatialService(graph, connections, alias_map, overlay, location_id=location_id)
 
     def __init__(
         self,
@@ -68,11 +68,13 @@ class SpatialService:
         connections: Dict[str, Set[str]],
         alias_map: Dict[str, str],
         overlay: SpatialOverlay,
+        location_id: str = "",  # Сохраняем принадлежность к локации для динамического резолва
     ) -> None:
         self._graph = graph            # canonical_id → NodeRef
         self._connections = connections # canonical_id → set[canonical_id]
         self._alias_map = alias_map    # legacy_id → canonical_id
         self._overlay = overlay
+        self._location_id = location_id  # ADR-052: Сохраняем для мультисценового резолва
         self._path_cache: Dict[Tuple[str, str, str, Urgency], List[NodeRef]] = {}
 
     # ── Overlay обновление ────────────────────────────────────────────

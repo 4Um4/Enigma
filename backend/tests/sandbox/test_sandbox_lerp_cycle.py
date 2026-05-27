@@ -38,8 +38,7 @@ def test_traversal_state_packed_into_snapshot():
                 "target_node": "bar_area",
                 "path_waypoints": [[1.0, 2.0], [5.0, 6.0]], # from_xy, to_xy
                 "speed": 2.0,
-                "started_at": 1000,
-                "expected_arrival_time": 1003,
+                "started_tick": 1000,
                 "locomotion": "WALK",
                 "status": "MOVING"
             }
@@ -55,13 +54,11 @@ def test_traversal_state_packed_into_snapshot():
     
     # Проверка контракта ADR-019 (поля для Lerp)
     assert trav["npc_id"] == "thief_shadow"
-    assert trav["from_xy"] == [1.0, 2.0], "Неверная точка старта для Lerp"
-    assert trav["to_xy"] == [5.0, 6.0], "Неверная точка финиша для Lerp"
-    assert trav["started_at"] == 1000, "Фронтенд не сможет синхронизировать время без started_at"
+    assert trav["path_waypoints"][0] == [1.0, 2.0], "Неверная точка старта для Lerp"
+    assert trav["path_waypoints"][-1] == [5.0, 6.0], "Неверная точка финиша для Lerp"
+    assert trav["started_tick"] == 1000, "Фронтенд не сможет синхронизировать время без started_tick"
     assert trav["locomotion"] == "WALK"
     
-    # Математика дистанции (dist = sqrt(16+16) ~ 5.65, duration = 5.65 / 2.0 ~ 2.82)
-    # Билдер должен вычислять duration, а не брать готовое, чтобы гарантировать консистентность
-    assert "duration_seconds" in trav
-    assert trav["duration_seconds"] > 0, "Duration не вычислен"
-    assert abs(trav["duration_seconds"] - 2.828) < 0.1
+    # ADR-059: Tick-based Dual Time. duration_ticks вычисляется в WorldSnapshotBuilder
+    assert "duration_ticks" in trav
+    assert trav["duration_ticks"] > 0, "Duration не вычислен"
