@@ -34,6 +34,7 @@ class DeltaDomain(Enum):
     PHYSIOLOGY = "physiology"
     SPATIAL = "spatial"
     PERCEPTION = "perception"  # ADR-040: Обновление субъективной модели восприятия (PerceptualKernel)
+    WILL = "WILL" # Каузальный след конфликта воли (ADR-039)
 
 
 class ReductionPolicy(Enum):

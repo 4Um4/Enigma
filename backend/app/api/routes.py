@@ -376,7 +376,8 @@ async def game_action(request: dict, game_loop=Depends(get_game_loop)) -> dict:
             "world_snapshot": _ws_dict,
             "npc_positions": _npc_pos_dict,
             # ADR-041: Проброс конфликта воли для Resistance Medium фронтенда
-            "will_conflict_data": getattr(result, 'will_conflict_data', None),
+            # ADR-075: Строгий контракт. result — это Pydantic ChatTurnResponse.
+            "will_conflict_data": result.will_conflict_data,
         }
     except HTTPException:
         raise  # пробрасываем дальше

@@ -1124,9 +1124,25 @@ class SceneStateManager:
                                 if target_loc != location_id:
                                     entry["location"] = target_loc
                                     entry["location_id"] = target_loc
-                                # ADR-065: Если local_position инвалидна (0,0) или отсутствует, 
-                                # резолвим из центра текущего узла, чтобы NPC не начинали путь от входа.
+                                # ADR-065 + Ghost Position Paradox fix:
+                                # Если NPC уже в активном транзите, вычисляем его ТЕКУЩУЮ
+                                # интерполированную позицию как from_xy. Иначе новый транзит
+                                # начнётся со старой позиции → визуальная телепортация назад.
                                 from_xy = entry.get("local_position", {})
+                                _active_travs = scene_state.get("active_traversals", {})
+                                if change.target in _active_travs:
+                                    _old_trav = _active_travs[change.target]
+                                    _wp = _old_trav.get("path_waypoints", [])
+                                    if len(_wp) >= 2:
+                                        _started = int(_old_trav.get("started_tick", 0))
+                                        _dur = max(1, int(_old_trav.get("duration_ticks", 1)))
+                                        _cur_tick = scene_state.get("tick", 0)
+                                        _prog = min(1.0, max(0.0, (_cur_tick - _started) / _dur))
+                                        from_xy = {
+                                            "x": _wp[0][0] + (_wp[-1][0] - _wp[0][0]) * _prog,
+                                            "y": _wp[0][1] + (_wp[-1][1] - _wp[0][1]) * _prog,
+                                        }
+                                        logger.info(f"[GHOST_FIX] NPC {change.target} interpolated from_xy=({from_xy['x']:.1f}, {from_xy['y']:.1f}) progress={_prog:.2f}")
                                 if not isinstance(from_xy, dict) or not isinstance(from_xy.get("x"), (int, float)) or (abs(from_xy.get("x", 0.0)) < 0.01 and abs(from_xy.get("y", 0.0)) < 0.01):
                                     _from_node_val = entry.get("position", "")
                                     if _from_node_val and svc:
@@ -1551,9 +1567,24 @@ class SceneStateManager:
                     entry_fin["local_position"] = {"x": wp[-1][0], "y": wp[-1][1]}
                 del active_traversals[nid]
 
-            # ADR-019: Если NPC в активном транзите с валидными координатами — пропускаем.
-            # Но если координат НЕТ — это баг инициализации, fall through к восстановлению.
+            # GAP12 FIX: Призрачная Позиция. Если NPC в LOD1-транзите, бэкенд-сервисы (CFRM/ImpactEngine)
+            # видят его в стартовом узле. Это ложь. Вычисляем интерполированную позицию.
             if npc_id in active_traversals and active_traversals[npc_id].get("status") == "MOVING":
+                trav = active_traversals[npc_id]
+                wp = trav.get("path_waypoints", [])
+                if len(wp) >= 2:
+                    # Простая линейная интерполяция по прогрессу между текущими waypoints
+                    idx = trav.get("current_waypoint_idx", 0)
+                    prog = trav.get("progress", 0.0)
+                    if idx < len(wp) - 1:
+                        x1, y1 = wp[idx]
+                        x2, y2 = wp[idx+1]
+                        ix = x1 + (x2 - x1) * prog
+                        iy = y1 + (y2 - y1) * prog
+                        entry["local_position"] = {"x": ix, "y": iy}
+                        entry["in_transit"] = True  # Флаг для сервисов: координаты в движении
+                        continue
+                # Фоллбэк, если waypoints нет или структура битая
                 lp = entry.get("local_position", {})
                 if isinstance(lp, dict) and isinstance(lp.get("x"), (int, float)):
                     continue
@@ -1565,7 +1596,11 @@ class SceneStateManager:
                 if not isinstance(lp, dict) or not isinstance(lp.get("x"), (int, float)):
                     entry["local_position"] = dict(editor_coords[npc_id])
             elif svc and current_node:
-                # NPC двигался — берём координаты из SpatialService (пробуем с префиксом локации)
+                # NPC двигался — берём координаты из SpatialService (проблем с префиксом локации)
+                # LOD0 Guard: Не перезаписываем микро-перемещения из пайплайна (micro_snap, collision_avoidance)
+                lp = entry.get("local_position", {})
+                if isinstance(lp, dict) and isinstance(lp.get("x"), (int, float)):
+                    continue  # Позиция уже установлена пайплайном — не трогаем
                 node = svc.get_node(current_node) or svc.get_node(f"{location_id}:{current_node}")
                 # КАТЕГОРИЧЕСКИЙ ЗАПРЕТ фоллбэка на entrance! Он вызывает телепортацию к двери.
                 if node:

@@ -97,3 +97,13 @@ class PhysiologyPayload:
     add_injuries: Tuple[InjuryDTO, ...] = ()
     add_statuses: Tuple[str, ...] = ()     # bleeding, unconscious, crippled
     remove_statuses: Tuple[str, ...] = ()  # снятие статусов
+
+
+@dataclass(frozen=True)
+class WillConflictPayload:
+    """ADR-031/039: Результат столкновения намерения Игрока с идентичностью Аватара.
+    Передается через DeltaBuffer (DeltaDomain.WILL), а не через shared_context."""
+    state: str                     # WillState.value (RELUCTANT, DISTRESSED, etc.)
+    resistance: float              # Сила сопротивления (0.0 - 1.0)
+    embodied_vector: Optional[str] # Моторный импульс (AVOIDANCE, FREEZE, etc.)
+    identity_damage: float         # Нанесенный урон идентичности

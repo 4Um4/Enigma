@@ -1,0 +1,112 @@
+domain: SPATIAL
+description: "Пространство и локомоция. SpatialService — единственный авторитет координат."
+nodes:
+  SpatialService:
+    type: service
+    layer: Domain
+    label: "Spatial Query Service v1.2"
+  MovementEngine:
+    type: service
+    layer: Application
+    label: "Movement Engine"
+  SceneStateManager:
+    type: service
+    layer: Application
+    label: "Scene State Manager"
+  TraversalState:
+    type: domain
+    layer: Domain
+    label: "Traversal State (LOD1)"
+  SceneChange:
+    type: dto
+    layer: Domain
+    label: "SceneChange (Projection)"
+  GraphCompiler:
+    type: service
+    layer: Infrastructure
+    label: "Graph Compiler"
+  EditorJSON:
+    type: database
+    layer: Infrastructure
+    label: "location_templates.json"
+  BuiltinFallback:
+    type: dto
+    layer: Infrastructure
+    label: "Builtin Fallback Graph"
+edges:
+  - from: EditorJSON
+    to: GraphCompiler
+    label: "load_editor_json"
+    condition: "If file exists and valid"
+    code_ref: "graph_compiler.py"
+  - from: BuiltinFallback
+    to: GraphCompiler
+    label: "fallback graph"
+    condition: "BREAK-2: JSON NOT FOUND -> Builtin"
+    code_ref: "graph_compiler.py"
+    edge_type: dotted
+  - from: GraphCompiler
+    to: SpatialService
+    label: "compiles graph"
+    condition: "Strict match or valid inferred"
+    code_ref: "spatial_service.py"
+  - from: SpatialService
+    to: MovementEngine
+    label: "reads graph & positions"
+    condition: "O(1) spatial index"
+    code_ref: "spatial_service.py"
+    adr_ref: "ADR-048"
+  - from: MovementEngine
+    to: SpatialService
+    label: "get_node(target_id)"
+    condition: "BREAK-N: Node 'main_hall' missing in fallback -> returns None"
+    code_ref: "spatial_service.py"
+    adr_ref: "BREAK-N"
+    edge_type: dotted
+  - from: MovementEngine
+    to: SceneChange
+    label: "produces"
+    condition: "Only if get_node() != None"
+    code_ref: "movement_engine.py"
+    adr_ref: "ADR-052"
+  - from: SceneChange
+    to: SceneStateManager
+    label: "applied by"
+  - from: SceneStateManager
+    to: TraversalState
+    label: "enriches & interpolates"
+    condition: "in_transit flag, interpolation by progress"
+    code_ref: "scene_state_manager.py:1145,1585"
+    adr_ref: "GAP12 FIX"
+constraints:
+  - source: MovementEngine
+    target: SceneState
+    rule: "FORBIDDEN: Direct mutation (ADR-066)"
+    code_ref: "ADR-066"
+  - source: SceneStateManager
+    target: SpatialService
+    rule: "FORBIDDEN: Mutate graph"
+    code_ref: "ADR-008"
+  - source: Enrichment
+    target: LOD0_Position
+    rule: "FORBIDDEN: Overwrite pipeline position (ADR-072)"
+    condition: "If position already valid, skip"
+    code_ref: "ADR-072"
+sequences:
+  - title: "Broken Traversal Flow (Node Not Found - BREAK-N)"
+    participants: [DecisionHub, MovementEngine, SpatialService, SceneStateManager]
+    steps:
+      - from: DecisionHub
+        to: MovementEngine
+        message: "1. Intent(FLEE, target=main_hall)"
+      - from: MovementEngine
+        to: SpatialService
+        message: "2. get_node('main_hall')"
+      - from: SpatialService
+        to: MovementEngine
+        message: "3. Return None (Node missing in fallback)"
+        type: dotted
+      - from: MovementEngine
+        to: SceneStateManager
+        message: "4. No Traversal created -> coords=None"
+        type: dotted

@@ -53,10 +53,16 @@ def scan_affective_resonance(
     acc_abandonment = 0.0
     
     # Сбор семантического контекста текущего момента
+    # ADR-035: Приоритет semantic_action из parameters. Защита от AttributeError и None.
+    _action = (getattr(intent, 'parameters', None) and intent.parameters.semantic_action 
+               or getattr(intent, 'action', "") or "").lower()
+    _target = (getattr(intent, 'parameters', None) and intent.parameters.target_reference 
+               or getattr(intent, 'target', "") or "").lower()
     context_tags = set()
-    context_tags.add(intent.action.lower())
-    if intent.target:
-        context_tags.add(intent.target.lower())
+    if _action:
+        context_tags.add(_action)
+    if _target:
+        context_tags.add(_target)
     if phenomenon:
         if phenomenon.perceived_archetype:
             context_tags.add(phenomenon.perceived_archetype.lower())
@@ -297,7 +303,7 @@ def apply_conditioning(
         if is_submissive_state:
             humiliation = 0.5 # Базовое унижение от подчинения
             # Угрозы и оскорбления усиливают унижение
-            if "threaten" in intent.action.lower() or "insult" in intent.action.lower():
+            if "threaten" in _action or "insult" in _action:
                 humiliation += 0.3
                 
         # Проверка эмоций: если есть стыд или позор — тоже унижение
@@ -306,9 +312,9 @@ def apply_conditioning(
                 humiliation += 0.4
                 
         new_imp = AffectiveImprint(
-            source_entity_id=intent.target or "unknown",
-            trigger_tags=(intent.action.lower(),), # Базовый тег
-            pain_signature=0.5 if "attack" in intent.action else 0.1,
+            source_entity_id=_target or "unknown",
+            trigger_tags=(_action,), # Базовый тег
+            pain_signature=0.5 if "attack" in _action else 0.1,
             fear_signature=will_response.fear_delta,
             humiliation_signature=round(min(1.0, humiliation), 2), # Унижение выведено из состояния воли
             trust_shift=-0.2,

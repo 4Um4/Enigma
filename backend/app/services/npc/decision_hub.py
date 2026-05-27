@@ -169,6 +169,8 @@ class EventContext:
     witness_count:           int   = 1
     location:                str   = ""
     day:                     int   = 0
+    # GAP10 FIX: ID цели события. Без этого DecisionHub даёт бонус APPROACH всем NPC в зоне.
+    target_id:               Optional[str] = None
     # Видимые маркеры угрозы — что NPC воспринимает, не реальные stats игрока
     visible_threat_markers:  List[str] = field(default_factory=list)
     # Текущая активность цели — для контекстной релевантности
@@ -910,7 +912,9 @@ class DecisionHub:
                 logger.debug(f"[PHYSICS_OF_POWER] Obedience pressure for {state.npc_id}: {_obedience_pressure * 2.0} (threat_gradient={_perceived_threat})")
 
         # Диалог активирует разговорные интенты, подавляет нелогичные
-        if event.event_type == "player_interacts":
+        # GAP10 FIX: Бонус получают только целевые NPC, а не все в зоне слышимости.
+        is_targeted = (event.target_id is None or event.target_id == state.npc_id)
+        if event.event_type == "player_interacts" and is_targeted:
             if intent in (Intent.TALK.value, Intent.OBSERVE.value):
                 base += 0.5
             # УБИТ ХАРДКОД: if intent == Intent.APPROACH.value: base += 0.6

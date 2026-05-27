@@ -77,7 +77,9 @@ def resolve_player_intent(
     try:
         from app.services.input.intent_compressor import IntentCompressor
         _compressor = IntentCompressor(llm_client=None)
+        print(f"[DIAG][LAYER1] raw_action={raw_action!r}")
         semantic_field = _compressor._fast_path_parse(raw_action)
+        print(f"[DIAG][LAYER1] result={semantic_field}")
         if semantic_field:
             logger.warning(f"[LAYER1] Fast path success: action={semantic_field.action_type}, target_ref={semantic_field.target_reference}")
     except Exception as e:
@@ -208,7 +210,9 @@ def publish_classified_player_event(
         "stealth": EventType.PLAYER_MOVED,
     }
     _raw_type = shared_context.action_type or "dialogue"
-    _resolved_type = _evt_map.get(_raw_type, EventType.PLAYER_SPOKE)
+    # ADR-082: Case-Insensitive Routing. NLP возвращает 'ATTACK', маппинг ждет 'attack'.
+    # Без .lower() удар уходит в PLAYER_SPOKE, минуя CombatSubscriber и ImpactEngine.
+    _resolved_type = _evt_map.get(_raw_type.lower(), EventType.PLAYER_SPOKE)
     _evt_radius = 15.0 if _resolved_type == EventType.PLAYER_ATTACKED else 999.0
     _intensity = ACTION_INTENSITY.get(_raw_type, 0.2)
     # ADR-035: Извлекаем строгую семантику из IntentParametersDTO

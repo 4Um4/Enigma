@@ -53,6 +53,13 @@ class DirectiveInterpretationSubscriber:
             logger.info(f"[DIRECTIVE_NO_STATE] NPC {target_id} state not loaded, using base fear 0.1")
             target_dict = {"social_stats": {"fear_of_player": 0.1}}
 
+        # GAP4 FIX: Ингибирование Шоком. Бессознательное тело не подчиняется приказам.
+        _body = target_dict.get("body_state", {}) or {}
+        _shock = _body.get("shock_impulse", 0.0)
+        if _shock > 0.7:
+            logger.info(f"[DIRECTIVE_SHOCK_INHIBIT] Target {target_id} in shock ({_shock:.2f}), cannot obey")
+            return []
+
         # 3. Вычисление Social Interpretation (MVP: берем напрямую из social_pressure в payload)
         # В будущем: учет статуса, вооруженности, прошлого насилия
         # ADR-057: Агрегация силы приказа. social_pressure может быть 0.0,
@@ -66,16 +73,26 @@ class DirectiveInterpretationSubscriber:
             base_social_force = 0.1  # Минимальный фоллбэк, чтобы не потерять событие
 
         # 4. Вычисление Psychological Cost of Refusal (Legitimacy Gate ADR-057)
-        # Если NPC не боится и не доверяет — это не приказ, а раздражающая просьба.
-        # ADR-005: social_stats.fear_of_player — динамическое, drives.fear — базовое (seed)
-        target_fear = target_dict.get("social_stats", {}).get("fear_of_player", 0.0)
-        if target_fear == 0.0:
-            # Fallback на drives.fear — врождённая осторожность NPC
-            target_fear = target_dict.get("drives", {}).get("fear", 0.1)
-        target_trust = target_dict.get("social_stats", {}).get("trust", 0.0)
-        if target_trust == 0.0:
-            # Fallback на psyche.loyalty_true — базовая лояльность
-            target_trust = float(target_dict.get("psyche", {}).get("loyalty_true", 0.0))
+        # GAP13 FIX: Источник власти — не только Игрок. Если приказ от NPC, ищем страх перед ним.
+        source_id = getattr(event, 'source', event.payload.get("source", "player"))
+        
+        if source_id == "player":
+            target_fear = target_dict.get("social_stats", {}).get("fear_of_player", 0.0)
+            if target_fear == 0.0:
+                # Fallback на drives.fear — врождённая осторожность NPC
+                target_fear = target_dict.get("drives", {}).get("fear", 0.1)
+            target_trust = target_dict.get("social_stats", {}).get("trust", 0.0)
+            if target_trust == 0.0:
+                # Fallback на psyche.loyalty_true — базовая лояльность
+                target_trust = float(target_dict.get("psyche", {}).get("loyalty_true", 0.0))
+        else:
+            # NPC-to-NPC Social Physics. Читаем страх/доверие к источнику из relationship_cache
+            _rc = target_dict.get("relationship_cache", {})
+            target_fear = _rc.get(f"fear_{source_id}", 0.0)
+            target_trust = _rc.get(f"trust_{source_id}", 0.0)
+            # Фоллбэк: если отношений нет, базовая дистанция к другому взрослому NPC
+            if target_fear == 0.0 and target_trust == 0.0:
+                target_fear = 0.2  # Базовая социальная дистанция
         
         # Легитимность: страх (принуждение) + доверие (авторитет)
         legitimacy = max(target_fear, target_trust / 100.0) # trust 0-100, fear 0-1
@@ -149,12 +166,16 @@ class DirectiveInterpretationSubscriber:
         
         # S28: Топологический отклик (деформация пространства решений)
         if obedience_intensity > 0:
+            # ADR-086: Личность влияет на подавление. Храбрые (fear < 0.3) сопротивляются подавлению агрессии.
+            _fear = target_dict.get("drives", {}).get("fear", 0.5)
+            _courage_factor = 1.0 - max(0.0, min(1.0, _fear)) # Чем меньше страх, тем меньше подавление
+            
             # Вектор ПОДЧИНЕНИЯ: подавление агрессии, смещение к approach
             identity_delta = StateDeltas(
                 npc_id=target_id,
                 domain=DeltaDomain.IDENTITY,
                 payload=IdentityPayload(
-                    aggression_inhibition_delta=obedience_intensity * 0.6,  # Подавление агрессии
+                    aggression_inhibition_delta=obedience_intensity * 0.6 * _courage_factor,
                     compliance_bias_delta=obedience_intensity * 0.5,       # Смещение к подчинению/approach
                     initiative_suppression_delta=obedience_intensity * 0.05,
                     recent_directive_data={

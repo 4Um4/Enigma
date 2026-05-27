@@ -1,0 +1,85 @@
+domain: PHYSIOLOGY
+description: "Физиология и бой. Тело — инерционная система. Каскад: Сила → Боль → Шок → Эмоция."
+nodes:
+  ImpactEngine:
+    type: service
+    layer: Domain
+    label: "Impact Engine (Pure Function)"
+  CombatSubscriber:
+    type: service
+    layer: Application
+    label: "Combat Subscriber"
+  PhysiologyPayload:
+    type: dto
+    layer: Domain
+    label: "PhysiologyPayload (pain, blood_loss, shock_impulse)"
+  DecayHandler:
+    type: service
+    layer: Domain
+    label: "Leaky Integrator (Decay)"
+  StateInterpreter:
+    type: service
+    layer: Application
+    label: "State Interpreter (LLM Bridge)"
+edges:
+  - from: CombatSubscriber
+    to: ImpactEngine
+    label: "resolves contact"
+    condition: "Fuzzy target resolve"
+    code_ref: "combat_subscriber.py"
+    adr_ref: "ADR-021"
+  - from: ImpactEngine
+    to: PhysiologyPayload
+    label: "computes"
+    condition: "Physics composite (DRSL)"
+    code_ref: "impact_engine.py"
+    adr_ref: "ADR-015"
+    edge_type: thick
+  - from: PhysiologyPayload
+    to: DeltaBuffer
+    label: "flushed to"
+    condition: "Only PhysiologyPayload"
+    code_ref: "physiology.py"
+    adr_ref: "ADR-020"
+  - from: DecayHandler
+    to: DeltaBuffer
+    label: "time-driven decay (Phase 0.5)"
+    condition: "Leaky integrator exp(-lambda*dt)"
+    code_ref: "physiology.py"
+    adr_ref: "ADR-022"
+  - from: PhysiologyPayload
+    to: StateInterpreter
+    label: "provides pain & shock"
+    condition: "Overrides HP for LLM prompt (GAP5)"
+    code_ref: "state_interpreter.py:273-291"
+    adr_ref: "GAP5 FIX"
+    edge_type: dotted
+constraints:
+  - source: CombatSubscriber
+    target: Emotion
+    rule: "FORBIDDEN: Domain Leakage (ADR-021)"
+    code_ref: "ADR-021"
+    adr_ref: "Layered Reduction"
+  - source: StateInterpreter
+    target: HP_Ratio
+    rule: "FORBIDDEN: Ignore pain/shock"
+    condition: "pain > 0.6 or shock > 0.5 overrides HP"
+    code_ref: "state_interpreter.py:273"
+    adr_ref: "GAP5 FIX"
+sequences:
+  - title: "Combat Impact Cascade"
+    participants: [CombatSubscriber, ImpactEngine, DeltaBuffer, CognitiveOverlay, StateInterpreter]
+    steps:
+      - from: CombatSubscriber
+        to: ImpactEngine
+        message: "1. Resolve physical contact"
+      - from: ImpactEngine
+        to: DeltaBuffer
+        message: "2. Emit PhysiologyPayload (pain, shock)"
+      - from: DeltaBuffer
+        to: CognitiveOverlay
+        message: "3. Check shock_impulse > 0.5 (GAP1 T+0)"
+        type: dotted
+      - from: DeltaBuffer
+        to: StateInterpreter
+        message: "4. Translate to LLM state (pain overrides HP)"

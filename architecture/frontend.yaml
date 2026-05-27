@@ -1,0 +1,72 @@
+domain: FRONTEND
+description: "Фронтенд, Эмбодимент и API мост. Сенсорный орган игрока, искажающийся вместе с аватаром."
+nodes:
+  GameScreen:
+    type: service
+    layer: UI
+    label: "Pygame GameScreen"
+  TextInput:
+    type: service
+    layer: UI
+    label: "TextInput (Resistance Medium)"
+  PresentationFirewall:
+    type: service
+    layer: UI
+    label: "Presentation Firewall"
+  PerceptualMomentum:
+    type: service
+    layer: UI
+    label: "Perceptual Momentum (S-curve)"
+  APIRoutes:
+    type: api
+    layer: Infrastructure
+    label: "FastAPI Routes"
+edges:
+  - from: GameScreen
+    to: APIRoutes
+    label: "POST /action (IntentDTO)"
+    condition: "On Enter key"
+    code_ref: "api_client.py"
+    edge_type: thick
+  - from: APIRoutes
+    to: TickOrchestrator
+    label: "resolve_player_intent()"
+    condition: "Validate DTO"
+    code_ref: "routes.py"
+  - from: StateApplicator
+    to: APIRoutes
+    label: "WorldSnapshotDTO + will_conflict"
+    condition: "End of action tick"
+    code_ref: "routes.py"
+    adr_ref: "ADR-068"
+  - from: APIRoutes
+    to: GameScreen
+    label: "JSON Response"
+    condition: "ActionQueue poll"
+    code_ref: "api_client.py"
+  - from: GameScreen
+    to: TextInput
+    label: "infect() - motor resistance"
+    condition: "will_conflict_data not None"
+    code_ref: "game_screen.py:808"
+    adr_ref: "ADR-039"
+    edge_type: dotted
+  - from: GameScreen
+    to: PresentationFirewall
+    label: "sanitize_perceptual_input()"
+    condition: "On avatar_state update"
+    code_ref: "game_screen.py:890"
+  - from: PresentationFirewall
+    to: PerceptualMomentum
+    label: "SanitizedPerceptualVectors"
+    condition: "S-curve inertia"
+    code_ref: "game_screen.py:893"
+constraints:
+  - source: Frontend
+    target: BackendInternals
+    rule: "FORBIDDEN: Import backend.app (Устав §1.1)"
+    code_ref: "Устав §1.1"
+  - source: APIRoutes
+    target: NPCState
+    rule: "FORBIDDEN: Pass internal state to UI"
+    code_ref: "Устав §6.1"

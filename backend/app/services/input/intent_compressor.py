@@ -29,8 +29,8 @@ _ACTION_LEMMAS = {
     ActionType.MOVE: {"пойти", "идти", "подойти", "подходить", "перейти", "переходить", "бежать", "бегать", "шагнуть", "шагать", "приблизиться", "приближаться", "сопровождать", "сопровождай", "следовать", "следуй", "отойди", "отступить", "отступай", "посторониться", "посторонись"},
     ActionType.OBSERVE: {"осмотреть", "осматривать", "изучить", "изучать", "посмотреть", "смотреть", "оглядеть", "оглядывать", "увидеть", "видеть", "заметить", "замечать", "рассмотреть", "рассматривать"},
     ActionType.INTERACT: {"взять", "брать", "открыть", "открывать", "использовать", "пользоваться", "положить", "класть", "дать", "давать", "поднять", "поднимать"},
-    ActionType.ATTACK: {"бить", "ударить", "ударять", "атаковать", "врезать", "убить", "убивать", "поразить", "поражать", "рубить", "колоть"},
-    ActionType.THREATEN: {"угрожать", "пригрозить", "пугать", "напугать", "запугивать"},
+    ActionType.ATTACK: {"бить", "выбить", "побить", "избить", "отбить", "пробить", "разбить", "забить", "добить", "отколотить", "наказать", "прикончить", "замахнуться", "ударить", "ударять", "атаковать", "врезать", "убить", "убивать", "поразить", "поражать", "рубить", "колоть", "расправиться", "калечить", "покалечить", "искалечить", "укусить", "кусать", "откусить", "откусывать", "покусать", "отгрызть", "грызть", "цапнуть", "расцарапать", "царапать", "душить", "задушить", "толкнуть", "толкать", "пнуть", "пинать", "плевать", "оплевать", "стукнуть", "шлёпнуть", "дать", "заехать", "вмазать"},
+    ActionType.THREATEN: {"угрожать", "пригрозить", "пугать", "напугать", "запугивать", "запугать", "шантажировать", "пристрастить", "устрашить", "устрашать"},
     ActionType.PERSUADE: {"уговаривать", "уговорить", "убеждать", "убедить", "просить", "попросить", "умолять"},
 }
 
@@ -98,12 +98,28 @@ class IntentCompressor:
                     target_ref = token.lower() # Нормализуем в нижний регистр для fuzzy matching
                     break
             
+            # GAP11 FIX: Если NOUN не найден, но есть наречия/местоимения 1-го лица -> цель "player"
+            if not target_ref:
+                _player_indicators = {"сюда", "ко", "мне", "меня", "нас", "нами"}
+                if not lemmas.isdisjoint(_player_indicators):
+                    target_ref = "player"
+            
+        # ADR-035 FIX: Fast Path обязан генерировать вектор эмоций, иначе Труба Воли мертва
+        _semantic = EmotionalVector() # дефолт
+        if matched_action == ActionType.ATTACK:
+            _semantic = EmotionalVector(aggression=0.8, confidence=0.8)
+        elif matched_action == ActionType.THREATEN:
+            _semantic = EmotionalVector(aggression=0.5, fear=0.3, confidence=0.7)
+        elif matched_action == ActionType.MOVE:
+            _semantic = EmotionalVector(confidence=0.6)
+        
         return IntentSemanticField(
             action_type=matched_action,
-            target_reference=target_ref, # Теперь "Тень, подойди" даст target_ref="тень"
+            target_reference=target_ref,
             raw_text=raw_text,
             physical_force=physical,
             emotional_charge=emotional,
+            semantic=_semantic, # ИНЪЕКЦИЯ ЖИВОГО ВЕКТОРА
             confidence=ConfidenceVector(action=0.9, parse=1.0, target=0.8 if target_ref else 0.3, emotion=0.5),
             ambiguity=SemanticAmbiguity.PARTIAL
         )

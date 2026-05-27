@@ -701,3 +701,11 @@ ENIGMA is best described as an unfinished medium-complexity simulation engine wi
 Its size is plausible for a serious solo/experimental simulation project, but its distribution is unusual: the causal backend and governance memory are more mature than the player-facing game layer. That means completion risk is not "need more code"; the risk is ownership drift between spatial truth, decision ownership, projection and persistence.
 
 Confidence: 87/100.
+
+Architectural Mass (AM)
+AM =
+новые зависимости
++
+новые инварианты
++
+новые точки владения состоянием

@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 from typing import Dict, List, Optional, Tuple
 from app.domain.snapshot import (
     NPCPositionDTO,
+    PlayerPerceptionDTO,
     VisibleEventDTO,
     WorldSnapshotDTO,
 )
@@ -32,6 +33,7 @@ class WorldSnapshotBuilder:
         last_event_id: Optional[str] = None,
         avatar_state: Optional["AvatarStateDTO"] = None, # ADR-035
         all_npcs_raw: Optional[List[Dict]] = None, # ADR-037: Для вычисления среды
+        player_perception: Optional["PlayerPerceptionDTO"] = None, # ТЗ EMBODIED UI PERCEPTION
     ) -> WorldSnapshotDTO:
         """Собирает снимок из финального состояния тика.
         
@@ -62,6 +64,7 @@ class WorldSnapshotBuilder:
             npc_positions=npc_positions,
             avatar_state=self.avatar_state, # ADR-035: Внедрение феноменологической проекции
             ambient_phenomenology=ambient_phenomenology, # ADR-037: Средовое давление
+            player_perception=player_perception, # ТЗ EMBODIED UI: Симметричная онтология
             visible_events=visible_events,
             available_actions=self._extract_available_actions(scene_state),
             location_id=location_id,

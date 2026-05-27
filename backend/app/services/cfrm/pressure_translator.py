@@ -1,3 +1,4 @@
+from typing import Optional, Dict, Any
 from app.models.cfrm import PsychologicalPressure
 from app.models.npc_state import PerceptualKernel
 from app.domain.decision_context import (
@@ -33,7 +34,7 @@ def translate_pressure_to_context(pressure: PsychologicalPressure) -> DecisionCo
     )
 
 
-def translate_kernel_to_context(kernel: PerceptualKernel) -> DecisionContext:
+def translate_kernel_to_context(kernel: PerceptualKernel, body_state: Optional[Dict[str, Any]] = None) -> DecisionContext:
     """
     Проекция консолидированного восприятия (T-1) в топологию решений.
     Вызывается из LifeEngine/WorldTickEngine для передачи каузального контекста в DecisionHub.
@@ -46,6 +47,21 @@ def translate_kernel_to_context(kernel: PerceptualKernel) -> DecisionContext:
         constraints["INTIMIDATE"] = 0.0
     if kernel.aggression_inhibition > 0.9 and kernel.compliance_bias > 0.7:
         constraints["RESIST"] = 0.0
+
+    # GAP3 FIX: Соматическое Вето. Физиология vetoирует решения мозга.
+    if body_state:
+        pain = body_state.get("pain", 0.0)
+        shock = body_state.get("shock_impulse", 0.0)
+        blood_loss = body_state.get("blood_loss", 0.0)
+
+        if pain > 0.8:
+            constraints["FLEE"] = 0.0  # Боль не позволяет бегствовать
+        if shock > 0.7:
+            constraints["ATTACK"] = 0.0  # Шок гасит агрессию
+        if blood_loss > 0.6:
+            # Кровопотеря снижает feasibility всех физических действий до 0.3
+            for action in ["FLEE", "ATTACK", "APPROACH", "MANIPULATE"]:
+                constraints[action] = min(constraints.get(action, 1.0), 0.3)
 
     # 2. Топологическая деформация (искривление utility-space)
     return DecisionContext(

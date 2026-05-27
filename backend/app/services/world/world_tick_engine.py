@@ -133,7 +133,10 @@ class WorldTickEngine:
             combined = {**npc_social, **npc_reputation}
 
             # Каузальное замыкание: консолидированное восприятие T-1 деформирует проактивные решения
-            _decision_ctx = translate_kernel_to_context(state_l2.perceptual_kernel) if hasattr(state_l2, 'perceptual_kernel') and state_l2.perceptual_kernel else None
+            # GAP3 FIX: Передаем body_state для соматического вето
+            _body = getattr(state_l2, 'body_state', None)
+            _kernel = getattr(state_l2, 'perceptual_kernel', None)
+            _decision_ctx = translate_kernel_to_context(_kernel, body_state=_body) if _kernel else None
 
             try:
                 result = hub.compute(

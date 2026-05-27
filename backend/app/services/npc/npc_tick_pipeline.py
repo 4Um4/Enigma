@@ -343,6 +343,13 @@ def run_npc_pipeline(
             except Exception as _perc_mem_err:
                 logger.warning(f"[MEMORY] perception apply failed for {npc_id}: {_perc_mem_err}")
 
+            # R7: BeliefTransitionEngine — обновить убеждения до DecisionHub
+            try:
+                from app.services.npc.belief_transition_engine import BeliefTransitionEngine
+                BeliefTransitionEngine().integrate(state_l2, hub_event, inp.current_tick)
+            except Exception as _belief_err:
+                logger.warning(f"[BELIEF] belief update failed for {npc_id}: {_belief_err}")
+
             # 1.6. CognitiveDistortion: модификаторы для DecisionHub (ШАГ C.1)
             # Distortion НЕ искажает state — возвращает модификаторы score
             interpretation = InterpretationEngine().compute(
@@ -405,6 +412,18 @@ def run_npc_pipeline(
                 if _drive_mods:
                     _drive_modifiers_for_hub = _drive_mods
 
+            # R7: BeliefModifierResolver — убеждения → drive_modifiers
+            from app.services.npc.belief_modifier_resolver import BeliefModifierResolver
+            _belief_mods = BeliefModifierResolver().resolve(state_l2.beliefs)
+            if _belief_mods:
+                if _drive_modifiers_for_hub:
+                    for _bk, _bv in _belief_mods.items():
+                        _drive_modifiers_for_hub[_bk] = round(
+                            _drive_modifiers_for_hub.get(_bk, 0.0) + _bv, 4
+                        )
+                else:
+                    _drive_modifiers_for_hub = _belief_mods
+
             # Фаза 4 (§3.2): TopicExtractor — ДО DecisionHub
             from app.services.npc.topic_extractor import extract_topic
             _topic = extract_topic(
@@ -442,45 +461,43 @@ def run_npc_pipeline(
             )
 
             # ADR-035: Reactive Spatial Command Reflex.
-            # Если игрок приказал NPC двигаться (через Semantic Bridge или raw_input), 
-            # перехватываем решение DecisionHub и заставляем NPC подойти.
+            # Приказ игрока перекрывает ЛЮБОЕ решение DecisionHub, включая flee.
+            # Ghost Position Paradox: если NPC в транзите, его решение может быть устаревшим.
+            # Игрок — авторитетный источник причинности (ADR-061).
             logger.warning(f"[REFLEX_DEBUG] npc={npc_id} name={_npc_dict_for_write.get('name','')} intent={decision.intent.value} raw_input={repr(inp.raw_input[:80]) if inp.raw_input else 'NONE'}")
-            if decision.intent.value not in ("approach", "flee"):
-                _is_move_command = False
+            _is_move_command = False
+            
+            # Путь 1: Semantic Bridge (если payload содержит semantic_action)
+            _payload = getattr(hub_event, 'payload', {})
+            if isinstance(_payload, dict) and _payload.get("semantic_action") == "MOVE":
+                _target_ref = _payload.get("target_reference", "").lower()
+                npc_name = _npc_dict_for_write.get("name", "").lower()
+                npc_id_lower = npc_id.lower()
+                # Частичное совпадение: "торнин" совпадёт даже если полное имя "торнин серебряная луна"
+                _name_words = [w for w in npc_name.split() if len(w) >= 3]
                 
-                # Путь 1: Semantic Bridge (если payload содержит semantic_action)
-                _payload = getattr(hub_event, 'payload', {})
-                if isinstance(_payload, dict) and _payload.get("semantic_action") == "MOVE":
-                    _target_ref = _payload.get("target_reference", "").lower()
-                    npc_name = _npc_dict_for_write.get("name", "").lower()
-                    npc_id_lower = npc_id.lower()
-                    if _target_ref and (_target_ref in npc_name or _target_ref in npc_id_lower):
-                        _is_move_command = True
-                
-                # Путь 2: Raw Text Reflex (Fallback по тексту команды)
-                if not _is_move_command and inp.raw_input:
-                    content = inp.raw_input.lower()
-                    npc_name = _npc_dict_for_write.get("name", "").lower()
-                    npc_id_lower = npc_id.lower()
-                    
-                    _MOVE_VERBS = ["подойди", "подойти", "иди", "подой", "подходи", "приди", "приходи", "сюда"]
-                    name_mentioned = any(n in content for n in [npc_name, npc_id_lower] if n)
-                    move_requested = any(v in content for v in _MOVE_VERBS)
-                    
-                    if name_mentioned and move_requested:
-                        _is_move_command = True
+                # GAP11 FIX: Если цель "player" или не указана (подразумевается подход к игроку)
+                # Это означает "подойди ко мне" — команда адресована текущему NPC.
+                if _target_ref in ("player", ""):
+                    _is_move_command = True
+                elif _target_ref in npc_name or _target_ref in npc_id_lower or any(_target_ref in w or w in _target_ref for w in _name_words):
+                    _is_move_command = True
+            
+            # Путь 2: Hardcoded Text Reflex УБИТ (GAP11 FIX)
+            # Semantic Bridge (Путь 1) теперь полностью обрабатывает "подойди сюда" и "торнин подойди"
+            # благодаря _fast_path_parse, возвращающему target_reference='player' или 'торнин'.
 
-                if _is_move_command:
-                    from app.models.npc_state import Intent
-                    import dataclasses
-                    # v2.2 Mutation Pipeline: Иммутабельная мутация (AgentAction.intent — read-only property)
-                    new_result = dataclasses.replace(
-                        decision.decision,
-                        intent=Intent.APPROACH,
-                        intent_target="player"
-                    )
-                    decision = dataclasses.replace(decision, decision=new_result)
-                    logger.warning(f"[REFLEX_MOVE] npc={npc_id} forced APPROACH by player command")
+            if _is_move_command and decision.intent.value != "approach":
+                from app.models.npc_state import Intent
+                import dataclasses
+                # Игрок приказал — перекрываем flee/ignore/any → APPROACH
+                new_result = dataclasses.replace(
+                    decision.decision,
+                    intent=Intent.APPROACH,
+                    intent_target="player"
+                )
+                decision = dataclasses.replace(decision, decision=new_result)
+                logger.warning(f"[REFLEX_MOVE] npc={npc_id} forced APPROACH by player command (overrode {decision.intent.value})")
 
             # CommunicationIntent → buffer, публикация через Фазу 6 оркестратора (Устав §5.1)
             if decision.communication is not None:
@@ -509,29 +526,18 @@ def run_npc_pipeline(
                             npc_data = _sq.get_entity_position(npc_id) if _sq else inp.scene_state.get("npc_positions", {}).get(npc_id, {})
                             npc_display_name = npc_data.get("name", npc_data.get("display_name", "")).lower()
                             npc_id_lower = npc_id.lower()
-                            if target_ref in npc_display_name or target_ref in npc_id_lower:
+                            # Частичное совпадение: "торнин" совпадёт даже если полное имя "торнин серебряная луна"
+                            _name_words2 = [w for w in npc_display_name.split() if len(w) >= 3]
+                            if target_ref in npc_display_name or target_ref in npc_id_lower or any(target_ref in w or w in target_ref for w in _name_words2):
                                 _move_triggered = True
                 
-                # Путь 2: Hardcoded Text Reflex (Fallback по raw_input, если NLP не пробросило payload)
-                if not _move_triggered and hasattr(inp, 'raw_input') and inp.raw_input:
-                    content = inp.raw_input.lower()
-                    # ADR-048: Spatial Authority — имя NPC через QueryService, не scene_state
-                    _sq = svc.spatial_query if svc else None
-                    npc_data = _sq.get_entity_position(npc_id) if _sq else inp.scene_state.get("npc_positions", {}).get(npc_id, {})
-                    npc_display_name = npc_data.get("name", npc_data.get("display_name", "")).lower()
-                    npc_id_lower = npc_id.lower()
-                    
-                    _MOVE_VERBS = ["подойди", "подойти", "иди", "подой", "подходи", "приди", "приходи"]
-                    name_mentioned = any(n in content for n in [npc_display_name, npc_id_lower] if n)
-                    move_requested = any(v in content for v in _MOVE_VERBS)
-                    
-                    if name_mentioned and move_requested:
-                        _move_triggered = True
+                # GAP11 FIX: Дублирующий хардкод-рефлекс удален. 
+                # Semantic Bridge корректно пробрасывает MOVE и target_reference.
 
-                if _move_triggered:
+                if _is_move_command:
                     _intent_value = "approach"
                     decision.intent_target = "player"
-                    logger.warning(f"[REFLEX_MOVE] npc={npc_id} triggered APPROACH by player command")
+                    logger.warning(f"[REFLEX_MOVE] npc={npc_id} triggered APPROACH by Semantic Bridge (GAP11 FIX)")
 
             _MOVE_INTENTS = {"approach", "flee"}  # Расширять: seek_ally и т.д.
             if _intent_value in _MOVE_INTENTS:

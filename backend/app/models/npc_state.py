@@ -35,6 +35,7 @@ from typing import Any, Dict, List, Optional, Set, Tuple, Union
 from app.models.behavior_mask import BehaviorMaskState
 from app.models.psychological import CausalEntry
 from app.models.physical import ThreatAccumulator
+from app.models.npc.beliefs import BeliefState, BeliefFragment
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -490,6 +491,11 @@ class NPCState:
     behavior_mask: BehaviorMaskState = field(default_factory=BehaviorMaskState)
 
     trauma_markers: Set[str] = field(default_factory=set)
+
+    # R7: Эпистемический слой — что NPC считает истиной о мире.
+    # WRITE: только BeliefTransitionEngine.
+    # READ: DecisionHub.compute() через beliefs.as_modifiers().
+    beliefs: "BeliefState" = field(default_factory=BeliefState)
 
     # ── Физиология (Physiology Domain / Body LOD Macro) ────────────────────
     # Мастер Тай: body_state — рантайм контейнер ВСЕЙ физиологии (HP, pain, fatigue, injuries, modifiers).

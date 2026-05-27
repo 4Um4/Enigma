@@ -1,0 +1,51 @@
+domain: DIAGNOSTICS
+description: "Наблюдаемость и диагностика. CDS читает следы системы, не создавая причинности."
+nodes:
+  CausalObserver:
+    type: service
+    layer: Application
+    label: "Causal Observer (CDS)"
+  DeterministicClock:
+    type: domain
+    layer: Domain
+    label: "Deterministic Clock"
+  CausalTrace:
+    type: domain
+    layer: Domain
+    label: "Causal Trace"
+  GameStdout:
+    type: queue
+    layer: Infrastructure
+    label: "Game Process stdout/logs"
+  GitHistory:
+    type: database
+    layer: Infrastructure
+    label: "Git Log & File System"
+edges:
+  - from: GameStdout
+    to: CausalObserver
+    label: "reads logs"
+    condition: "Regex patterns, pipe/file read"
+    code_ref: "causal_observer.py"
+  - from: GitHistory
+    to: CausalObserver
+    label: "reads git log & TODOs"
+    condition: "Every session start"
+    code_ref: "causal_observer.py"
+  - from: DeterministicClock
+    to: CausalTrace
+    label: "provides tick context"
+  - from: CausalObserver
+    to: CausalTrace
+    label: "writes traces"
+    condition: "Passive, try/except isolated"
+    code_ref: "causal_observer.py"
+constraints:
+  - source: CausalObserver
+    target: Runtime_State
+    rule: "FORBIDDEN: Feedback loop into simulation"
+    code_ref: "Устав §11.1"
+  - source: CDS
+    target: Pipeline
+    rule: "FORBIDDEN: Interrupt causal flow on crash"
+    code_ref: "Устав §11.2"

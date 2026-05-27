@@ -19,6 +19,8 @@ class SanitizedPerceptualVectors:
     temporal_distortion: float = 0.0      # Лаг рендера, "размазывание" кадров
     perceptual_latency: float = 0.0       # Задержка сборки реальности
     reality_reconciliation_rate: float = 1.0 # Скорость возврата в норму
+    sensory_noise: float = 0.0            # ADR-084: Визуальный шум от конфликта воли (дрожь, артефакты)
+    motor_disruption: float = 0.0          # ADR-084: Моторный тремор (камера, курсор) от Воли или Шока
     
     # Средовые векторы (заглушка до интеграции AmbientPhenomenologyDTO)
     emotional_temperature: float = 0.0    # -1.0 (лед) до 1.0 (жар)
@@ -47,6 +49,7 @@ def sanitize_perceptual_input(
     latency = float(avatar_state.get("perceptual_latency", 0.0))
     recon_rate = float(avatar_state.get("reality_reconciliation_rate", 1.0))
     blood = float(avatar_state.get("blood_visibility", 0.0))
+    motor = float(avatar_state.get("motor_disruption", 0.0)) # ADR-084: Тремор от Воли
 
     # Firewall: Жёсткое ограничение диапазонов
     vectors = SanitizedPerceptualVectors(
@@ -56,6 +59,8 @@ def sanitize_perceptual_input(
         temporal_distortion=_clamp(1.0 - coherence + latency),
         perceptual_latency=_clamp(latency),
         reality_reconciliation_rate=_clamp(recon_rate),
+        sensory_noise=_clamp(noise), # ADR-084: Проброс шума конфликта воли
+        motor_disruption=_clamp(motor), # ADR-084: Проброс моторного тремора
     )
 
     # Средовая обработка (AmbientPhenomenologyDTO)

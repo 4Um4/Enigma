@@ -28,8 +28,11 @@ def resolve_intent_pressure(
     В будущем заменяется на LLM-экстрактор или CFRM-наследие.
     """
     pressure = IntentPressureProfile()
-    action = intent.action.lower()
-    target = intent.target.lower()
+    # ADR-035: Приоритет semantic_action из parameters. Защита от AttributeError и None.
+    action = (getattr(intent, 'parameters', None) and intent.parameters.semantic_action 
+              or getattr(intent, 'action', "") or "").lower()
+    target = (getattr(intent, 'parameters', None) and intent.parameters.target_reference 
+              or getattr(intent, 'target', "") or "").lower()
     
     # Базовые эвристики давления (Синхронизировано с _EVENT_AXIS_MAP и EventType)
     if action in ("attack", "player_attacks", "player_attack", "combat"):
@@ -113,6 +116,13 @@ def compute_willpower(
     shame = psyche.get("shame", 0.5)
     aggression = psyche.get("aggression", 0.5)
     curiosity = psyche.get("curiosity", 0.5)
+    
+    # GAP2 FIX: Амнезия Воли. Травмы закаляют идентичность.
+    # Обиженный NPC упрямее. Каждая травма повышает resistance к давлению.
+    trauma_markers = psyche.get("trauma_markers", [])
+    if isinstance(trauma_markers, (list, set, tuple)) and len(trauma_markers) > 0:
+        # Каждая травма добавляет 0.1 к rigidity (максимум +0.3, чтобы не стать бессмертным)
+        identity_rigidity = min(1.0, identity_rigidity + min(len(trauma_markers) * 0.1, 0.3))
     
     # Расчет кумулятивного напряжения
     resistance = (
@@ -233,8 +243,12 @@ def _resolve_embodied_vector(
     state: WillState
 ) -> Optional[EmbodiedVector]:
     """Вычисляет предрефлексивный моторный импульс на основе давления и состояния."""
+    # ADR-083: Инвариант Насилия. Неохотное согласие (RELUCTANT) на насилие 
+    # подавляет волю, но не инстинкты. Тело сопротивляется убийству.
     if state in (WillState.COMPLY, WillState.RELUCTANT, WillState.PARTIAL_COMPLY):
-        return None  # Осознанное согласие не порождает бессознательных импульсов
+        if pressure.violence > 0.3 or pressure.self_risk > 0.3:
+            return EmbodiedVector.FREEZE  # Моторный ступор (дрожь рук, отвращение)
+        return None  # Обычное социальное согласие не порождает моторных импульсов
         
     if state == WillState.PANICKED or pressure.self_risk > 0.7:
         return EmbodiedVector.AVOIDANCE
@@ -252,3 +266,27 @@ def _resolve_embodied_vector(
         return EmbodiedVector.COLLAPSE
         
     return EmbodiedVector.AVOIDANCE # Дефолтный инстинкт самосохранения
+
+
+def compose_pressure_from_tags(base_pressure: IntentPressureProfile, tags: list[str]) -> IntentPressureProfile:
+    """Накладывает семантические теги интента на базовое давление.
+    Решает проблему 'hello = humiliation 0.4'."""
+    _mod = {
+        "coercive": {"identity_deviation": 0.3, "humiliation": 0.2},
+        "humiliating": {"identity_deviation": 0.4, "humiliation": 0.6, "moral_violation": 0.3},
+        "moral": {"moral_violation": 0.5, "identity_deviation": 0.2},
+        "violent_threat": {"violence": 0.5, "moral_violation": 0.4}
+    }
+    
+    deltas = {k: 0.0 for k in IntentPressureProfile.__dataclass_fields__}
+    for tag in tags:
+        for field, val in _mod.get(tag, {}).items():
+            deltas[field] += val
+            
+    return IntentPressureProfile(
+        violence=base_pressure.violence + deltas.get("violence", 0),
+        humiliation=base_pressure.humiliation + deltas.get("humiliation", 0),
+        self_risk=base_pressure.self_risk + deltas.get("self_risk", 0),
+        moral_violation=base_pressure.moral_violation + deltas.get("moral_violation", 0),
+        identity_deviation=base_pressure.identity_deviation + deltas.get("identity_deviation", 0)
+    )

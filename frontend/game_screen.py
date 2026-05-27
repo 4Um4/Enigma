@@ -21,6 +21,9 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+from perceptual_momentum import PerceptualMomentum
+from presentation_firewall import sanitize_perceptual_input
+
 from scene_renderer import SceneRenderer
 from text_input import TextInput
 from game_types import (
@@ -325,7 +328,8 @@ class GameScreen:
             font=self.renderer.font_small,
             pass_through_keys=_WASD_KEYS,
         )
-        text_input.focused = False  # По умолчанию фокус на игре, а не на чате
+        self.text_input = text_input # ADR-041 FIX: Привязка к self для Embodiment
+        self.text_input.focused = False  # По умолчанию фокус на игре, а не на чате
         _last_player_input: str = "" # Надежная память последнего ввода для фильтра эха
 
         # Инициализация Сценического Рендерера (Устав §10)
@@ -410,6 +414,8 @@ class GameScreen:
                     if event.key == pygame.K_RETURN and not text_input.empty:
                         # Игрок успел напечатать — отменяем telegraph
                         action_queue.cancel_telegraph()
+                        # ADR-039: Сброс Resistance Medium после успешного ввода
+                        text_input.exorcise()
                         print("[TELEGRAPH] cancelled — player acted first")
 
                         # Создаем сценическое событие для пузыря игрока (ТЗ 3 + Мастер тай)
@@ -583,6 +589,11 @@ class GameScreen:
                 # ADR-035: Извлечение феноменологической проекции аватара (Визуальное искажение)
                 if "avatar_state" in _ws:
                     scene_state["avatar_state"] = _ws["avatar_state"]
+                # ТЗ EMBODIED UI PERCEPTION: Извлечение наблюдений игрока
+                if "player_perception" in _ws:
+                    scene_state["player_perception"] = _ws["player_perception"]
+                    _cues_count = len(_ws["player_perception"].get("peripheral_cues", []))
+                    print(f"[PERCEPTION_FE_TRACE] Idle tick: cues_received={_cues_count}")
                 # time_of_day — только визуальный срез для рендера, не источник истины
                 _ws_tod = _ws.get("time_of_day")
                 if _ws_tod:
@@ -695,9 +706,17 @@ class GameScreen:
                         # ADR-019: Сохраняем активные транзиты для визуальной интерполяции (Lerp)
                         if "active_traversals" in _action_ws:
                             scene_state["active_traversals"] = _action_ws["active_traversals"]
+                            print(f"[DIAG][FE_ACTION] traversals_received: {list(_action_ws['active_traversals'].keys()) if isinstance(_action_ws['active_traversals'], dict) else len(_action_ws['active_traversals'])}")
+                        else:
+                            print(f"[DIAG][FE_ACTION] NO active_traversals in _action_ws! keys={list(_action_ws.keys())}")
                         # ADR-035: Обновление феноменологической проекции аватара при действии
                         if "avatar_state" in _action_ws:
                             scene_state["avatar_state"] = _action_ws["avatar_state"]
+                        # ТЗ EMBODIED UI PERCEPTION: Извлечение наблюдений игрока
+                        if "player_perception" in _action_ws:
+                            scene_state["player_perception"] = _action_ws["player_perception"]
+                            _cues_count = len(_action_ws["player_perception"].get("peripheral_cues", []))
+                            print(f"[PERCEPTION_FE_TRACE] Action tick: cues_received={_cues_count}")
                     elif isinstance(result.response, dict) and "npc_positions" in result.response:
                         # Fallback: deprecated top-level npc_positions
                         import copy
@@ -709,6 +728,11 @@ class GameScreen:
                         # ADR-035: Обновление феноменологической проекции аватара (fallback)
                         if "avatar_state" in result.response:
                             scene_state["avatar_state"] = result.response["avatar_state"]
+                        # ТЗ EMBODIED UI PERCEPTION: Извлечение наблюдений игрока (fallback)
+                        if "player_perception" in result.response:
+                            scene_state["player_perception"] = result.response["player_perception"]
+                            _cues_count = len(result.response["player_perception"].get("peripheral_cues", []))
+                            print(f"[PERCEPTION_FE_TRACE] Action fallback: cues_received={_cues_count}")
 
                     if resp and resp != "Ничего не произошло.":
                         import re
@@ -793,11 +817,25 @@ class GameScreen:
 
                     # ADR-041: Resistance Medium — инфекция поля ввода при конфликте воли
                     _wc_data = getattr(result.response, 'will_conflict_data', None)
-                    if _wc_data and hasattr(self, 'text_input'):
-                        _impulse = _wc_data.get("impulse_text", _wc_data.get("counter_offer", ""))
-                        _origin = _wc_data.get("origin_layer", "will_conflict")
-                        if _impulse:
-                            self.text_input.infect(impulse_text=_impulse, origin_layer=_origin)
+                    # ADR-039/075: Resistance Medium — замыкание трубы воли в UI
+                    print(f"[EMBODIMENT_TRACE] Will Conflict Data: {_wc_data}")
+                    if _wc_data:
+                        _impulse = _wc_data.get("counter_offer_text") or str(_wc_data.get("embodied_vector", ""))
+                        if _impulse and hasattr(self, 'text_input') and self.text_input:
+                            print(f"[EMBODIMENT_INFECT] Infecting input with: '{_impulse}'")
+                            self.text_input.infect(impulse_text=str(_impulse), origin_layer="will_conflict")
+                        
+                        # ADR-084: Embodiment Vision Suturing. Конфликт воли искажает визуал (тремор, виньетка).
+                        _res = _wc_data.get("resistance", 0)
+                        if _res > 0.05:
+                            if "avatar_state" not in scene_state or scene_state["avatar_state"] is None:
+                                scene_state["avatar_state"] = {}
+                            # Инжектим стресс/диссонанс в аватара, чтобы PresentationFirewall дал тремор
+                            scene_state["avatar_state"]["perceptual_stability"] = max(0.0, 1.0 - _res * 4.0)
+                            scene_state["avatar_state"]["cognitive_coherence"] = max(0.0, 1.0 - _res * 3.0)
+                            scene_state["avatar_state"]["sensory_noise"] = _res * 3.0
+                            scene_state["avatar_state"]["motor_disruption"] = _res * 5.0 # Сильный тремор при сопротивлении
+                            print(f"[EMBODIMENT_VISION] Injected instability: res={_res:.2f}, stability={scene_state['avatar_state']['perceptual_stability']:.2f}, motor={scene_state['avatar_state']['motor_disruption']:.2f}")
 
                     for npc_r in result.response.npc_reactions:
                         npc_name = npc_r.get("npc_name", "NPC")
@@ -868,6 +906,11 @@ class GameScreen:
             )
             perceived = _build_perceived_scene(scene_state, config)
 
+            # === ADR-037: Феноменологический рендеринг ===
+            # Рендерер сам применяет Файрвол и Импульс (sanitize + momentum).
+            # GameScreen только инжектит скаляры Воли в сырой dict.
+            avatar_state = scene_state.get("avatar_state")
+
             # === Рендер ===
             px, py = _player_xy(scene_state)
             self.screen.fill((200, 0, 0))  # ЯРКО-КРАСНЫЙ — если видно, цикл работает
@@ -880,7 +923,7 @@ class GameScreen:
                 player_xy=(px, py),
                 player_facing=move.facing_angle,
                 dt=dt,
-                avatar_state=scene_state.get("avatar_state"),
+                avatar_state=avatar_state,
                 ambient_state=scene_state.get("ambient_phenomenology"),
             )
 
@@ -912,6 +955,42 @@ class GameScreen:
             message_log[:] = [b for b in message_log if b.alpha > 0]
 
             self._draw_message_log(message_log, system_log, narrative_renderer, player_name, _time_scale)
+
+            # ТЗ EMBODIED UI PERCEPTION: Слои 2-3 (Атмосфера и Центральное внимание)
+            # Рендерим активные восприятия по центру экрана с затуханием (intensity -> alpha)
+            _perception_data = scene_state.get("player_perception")
+            if _perception_data and _perception_data.get("active_perceptions"):
+                _center_x = self.screen.get_width() // 2
+                _start_y = int(self.screen.get_height() * 0.35) # Немного выше центра
+                
+                for p in _perception_data["active_perceptions"]:
+                    _text = p.get("text", "")
+                    _intensity = p.get("intensity", 0.0)
+                    if not _text or _intensity <= 0.0:
+                        continue
+                    
+                    # Размер шрифта зависит от значимости (крупнее = важнее)
+                    _font_size = 36 if _intensity > 0.7 else 28
+                    _font = pygame.font.Font(None, _font_size)
+                    _alpha = int(max(0, min(255, _intensity * 255)))
+                    
+                    _text_surf = _font.render(_text, True, (220, 220, 220))
+                    _text_surf.set_alpha(_alpha)
+                    
+                    _text_rect = _text_surf.get_rect(center=(_center_x, _start_y))
+                    self.screen.blit(_text_surf, _text_rect)
+                    _start_y += _text_rect.height + 5 # Сдвиг вниз для следующего восприятия
+
+            # ТЗ EMBODIED UI PERCEPTION: Слой 1 (ВРЕМЕННЫЙ ДЕБАГ-РЕНДЕР)
+            # Показываем периферические наблюдения в правом верхнем углу, чтобы верифицировать пайплайн
+            if _perception_data and _perception_data.get("peripheral_cues"):
+                _cue_y = 20
+                _cue_font = self.renderer.font_small
+                for cue in _perception_data["peripheral_cues"]:
+                    _cue_text = f"👁 {cue.get('hover_text', '...')}"
+                    _cue_surf = _cue_font.render(_cue_text, True, (180, 180, 220))
+                    self.screen.blit(_cue_surf, (self.screen.get_width() - _cue_surf.get_width() - 10, _cue_y))
+                    _cue_y += 18
 
             # HUD: FPS + игровое время
             fps_surf = self.renderer.font_small.render(
@@ -1065,4 +1144,3 @@ class GameScreen:
             focus.focus_entity_id = best_npc
             return best_npc
         return None
-

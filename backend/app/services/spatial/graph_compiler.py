@@ -48,113 +48,128 @@ def compile_graph(
     """
     if not editor_data:
         logger.error(f"[GRAPH_COMPILER] editor_data is None для {location_id}. Возвращаем пустой граф.")
-        return {}, {}
-        
-    raw_nodes = editor_data.get("nodes", {})
-    raw_passages = editor_data.get("passages", [])
+        return {}, {}, {}
 
     graph: Dict[str, NodeRef] = {}
-    alias_map: Dict[str, str] = {}
-    # Собираем все подключения: canonical_id → set[canonical_id]
     connections: Dict[str, Set[str]] = {}
+    alias_map: Dict[str, str] = {}
 
-    # ── Обрабатываем nodes ────────────────────────────────────────────
-    for editor_id, node_data in raw_nodes.items():
-        canonical_id = f"{location_id}:{editor_id}"
-        x = float(node_data.get("x", 0.0))
-        y = float(node_data.get("y", 0.0))
-        label = str(node_data.get("label", ""))
-        node_conns = set(node_data.get("connections", []))
+    # Поддержка обоих форматов: "rooms" (новый) и "nodes" (старый)
+    rooms_raw = editor_data.get("rooms", editor_data.get("nodes", {}))
+    
+    # Map Editor отдаёт узлы как список [{id, x, y...}], компилятор ждёт словарь {id: {x, y...}}
+    if isinstance(rooms_raw, list):
+        rooms = {}
+        for item in rooms_raw:
+            if isinstance(item, dict):
+                rid = item.get("id", item.get("room_id", f"node_{len(rooms)}"))
+                rooms[rid] = item
+    elif isinstance(rooms_raw, dict):
+        rooms = rooms_raw
+    else:
+        logger.warning(f"[GRAPH_COMPILER] Неверный тип узлов в {location_id}: {type(rooms_raw)}")
+        return {}, {}, {}
 
-        # Роль выводится из label + node_id
-        role = resolve_role(node_label=label, node_id=editor_id)
+    if not rooms:
+        logger.warning(f"[GRAPH_COMPILER] Нет узлов (rooms/nodes) в {location_id}")
+        return {}, {}, {}
 
-        # Теги — пока пустые (будущий слой editor UI)
-        tags: List[str] = []
-
+    # 1. Компиляция узлов
+    for room_id, room_data in rooms.items():
+        canonical_id = f"{location_id}:{room_id}"
+        x = room_data.get("x", 0.0)
+        y = room_data.get("y", 0.0)
+        
+        # Формируем NodeRef. Резолвер принимает только строковые типы, не весь dict.
         node_ref = NodeRef(
             node_id=canonical_id,
-            role=role,
-            tags=tags,
             x=x,
             y=y,
+            role=resolve_role(
+                node_label=room_data.get("name", room_id), 
+                editor_type=room_data.get("type"), 
+                node_id=room_id
+            ),
+            tags=room_data.get("tags", []),
             zone_id=location_id,
-            level=level,
+            level=level
         )
         graph[canonical_id] = node_ref
-        alias_map[editor_id] = canonical_id
+        
+        # Маппинг: legacy_id → canonical_id
+        alias_map[room_id] = canonical_id
+        
+        # Инъекция алиасов (для поиска "кухня" вместо "kitchen")
+        for alias in room_data.get("aliases", []):
+            alias_map[alias.lower()] = canonical_id
 
-        # Подключения — пока в legacy-формате, резолвим позже
-        connections[canonical_id] = set()
-        for conn_id in node_conns:
-            # Коннекты внутри той же локации
-            conn_canonical = f"{location_id}:{conn_id}"
-            connections[canonical_id].add(conn_canonical)
+    # 2. Компиляция связей
+    passages = editor_data.get("passages", editor_data.get("connections", []))
+    
+    # ADR-073: Adjacency Inference. Если Map Editor не дал явные passages (или их мало),
+    # компилятор выводит связи из смежности полигонов комнат. Двери фильтруют проходимость, 
+    # но не определяют существование топологии (разрушаемость = путь открывается).
+    if not passages and len(rooms) > 1:
+        logger.info(f"[GRAPH_COMPILER] passages пуст. Запуск Adjacency Inference для {location_id}")
+        passages = _infer_connections_from_adjacency(rooms)
 
-    # ── Обрабатываем passages (двери, переходы, лестницы) ────────────
-    for passage in raw_passages:
-        passage_id = passage.get("id", "")
-        if not passage_id:
-            continue
+    for passage in passages:
+        from_legacy = passage.get("from")
+        to_legacy = passage.get("to")
+        
+        from_canonical = alias_map.get(from_legacy, f"{location_id}:{from_legacy}")
+        to_canonical = alias_map.get(to_legacy, f"{location_id}:{to_legacy}")
+        
+        if from_canonical in graph and to_canonical in graph:
+            connections.setdefault(from_canonical, set()).add(to_canonical)
+            # Двунаправленная связь по умолчанию (если не указано иное)
+            if not passage.get("one_way", False):
+                connections.setdefault(to_canonical, set()).add(from_canonical)
+        else:
+            logger.warning(f"[GRAPH_COMPILER] Пропуск связи {from_legacy}→{to_legacy}: узел не найден в графе")
 
-        canonical_id = f"{location_id}:{passage_id}"
-        if canonical_id in graph:
-            continue  # Уже обработан как node
-
-        x = float(passage.get("position", {}).get("x", 0.0))
-        y = float(passage.get("position", {}).get("y", 0.0))
-        label = str(passage.get("label", ""))
-        editor_type = str(passage.get("type", ""))
-
-        # Роль из type (door/ladder/transition → TRANSITION)
-        role = resolve_role(
-            node_label=label,
-            editor_type=editor_type if editor_type else None,
-        )
-
-        tags: List[str] = [editor_type] if editor_type else []
-
-        node_ref = NodeRef(
-            node_id=canonical_id,
-            role=role,
-            tags=tags,
-            x=x,
-            y=y,
-            zone_id=location_id,
-            level=level,
-        )
-        graph[canonical_id] = node_ref
-        alias_map[passage_id] = canonical_id
-
-        # Passages не имеют connections в editor JSON — изолированы пока
-        connections[canonical_id] = set()
-
-    # ── Резолвим подключения ──────────────────────────────────────────
-    # Проверяем что все referenced connections существуют в графе
-    for canonical_id, conn_set in connections.items():
-        valid_conns = {c for c in conn_set if c in graph}
-        if len(valid_conns) != len(conn_set):
-            missing = conn_set - valid_conns
-            logger.warning(
-                f"[GRAPH_COMPILER] Узел {canonical_id}: "
-                f"подключения на несуществующие узлы: {missing}"
-            )
-        connections[canonical_id] = valid_conns
-
-    # ── Валидация связности ───────────────────────────────────────────
     _validate_connectivity(graph, connections, location_id)
-
-    # ── Сохраняем connections в tags для совместимости ────────────────
-    # NodeRef immutable — connections храним отдельно
-    # Возвращаем вместе с графом
-
-    logger.info(
-        f"[GRAPH_COMPILER] {location_id}: {len(graph)} узлов, "
-        f"{sum(len(c) for c in connections.values())//2} рёбер"
-    )
 
     return graph, connections, alias_map
 
+def _infer_connections_from_adjacency(rooms: Dict[str, dict], tolerance: float = 0.5) -> List[dict]:
+    """Выводит связи между комнатами на основе смежности их bounding box.
+    Если две комнаты имеют общую стену (пересечение по оси > tolerance), 
+    между ними создаётся passage. Это масштабируемая основа: двери потом модифицируют этот путь."""
+    connections = []
+    room_ids = list(rooms.keys())
+    
+    for i in range(len(room_ids)):
+        for j in range(i + 1, len(room_ids)):
+            r1 = rooms[room_ids[i]]
+            r2 = rooms[room_ids[j]]
+            
+            # Bounding Box: x, y, width, height
+            x1_min, y1_min = r1.get("x", 0.0), r1.get("y", 0.0)
+            x1_max = x1_min + r1.get("width", 0.0)
+            y1_max = y1_min + r1.get("height", 0.0)
+            
+            x2_min, y2_min = r2.get("x", 0.0), r2.get("y", 0.0)
+            x2_max = x2_min + r2.get("width", 0.0)
+            y2_max = y2_min + r2.get("height", 0.0)
+            
+            # Вертикальная общая стена (r1 справа или слева от r2)
+            if abs(x1_max - x2_min) < tolerance or abs(x2_max - x1_min) < tolerance:
+                # Проверяем перекрытие по Y
+                y_overlap = min(y1_max, y2_max) - max(y1_min, y2_min)
+                if y_overlap > tolerance:
+                    connections.append({"from": room_ids[i], "to": room_ids[j]})
+                    continue
+                    
+            # Горизонтальная общая стена (r1 над или под r2)
+            if abs(y1_max - y2_min) < tolerance or abs(y2_max - y1_min) < tolerance:
+                # Проверяем перекрытие по X
+                x_overlap = min(x1_max, x2_max) - max(x1_min, x2_min)
+                if x_overlap > tolerance:
+                    connections.append({"from": room_ids[i], "to": room_ids[j]})
+                    continue
+                    
+    return connections
 
 def _validate_connectivity(
     graph: Dict[str, NodeRef],
@@ -236,7 +251,6 @@ def load_editor_json(
                     return data
                 # ADR-061: Compatibility Resolver для legacy данных (без location_id).
                 # Строгое правило: инференс только по точному совпадению префикса имени файла.
-                # Пример: tavern.json -> tavern_silver_wolf (OK), но gate.json -> gate_house (REJECT, если есть gate_town)
                 if not lid and data.get("rooms"):
                     inferred_lid = json_file.stem.lower()
                     # Проверяем, что целевой location_id начинается с имени файла
@@ -246,9 +260,8 @@ def load_editor_json(
                             f"Инференс из имени файла: '{inferred_lid}'. Заполните поле в Map Editor!"
                         )
                         return data
-                    else:
-                        logger.error(f"[GRAPH_COMPILER] REJECT: Файл {json_file.name} не имеет location_id и имя не совпадает с {location_id}")
-            except (json.JSONDecodeError, OSError):
+            except (json.JSONDecodeError, OSError) as e:
+                logger.error(f"[GRAPH_COMPILER] Ошибка чтения {json_file.name}: {e}")
                 continue
 
     logger.warning(f"[GRAPH_COMPILER] editor JSON не найден для {campaign_id}/{location_id}")

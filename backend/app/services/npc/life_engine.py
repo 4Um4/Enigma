@@ -586,7 +586,10 @@ class LifeEngine:
 
                 # Каузальное замыкание: консолидированное восприятие T-1 деформирует пространство решений.
                 # Логика проекции вынесена в pressure_translator (устранение дублирования Устав §10).
-                _decision_ctx = translate_kernel_to_context(state_l2.perceptual_kernel) if hasattr(state_l2, 'perceptual_kernel') and state_l2.perceptual_kernel else None
+                # GAP3 FIX: Передаем body_state для соматического вето
+                _body = getattr(state_l2, 'body_state', None)
+                _kernel = getattr(state_l2, 'perceptual_kernel', None)
+                _decision_ctx = translate_kernel_to_context(_kernel, body_state=_body) if _kernel else None
 
                 result = hub.compute(
                     state=state_l2,
@@ -1150,12 +1153,15 @@ class LifeEngine:
         _recent_dir = _kernel.get("recent_directive") if isinstance(_kernel, dict) else getattr(_kernel, "recent_directive", None) if _kernel else None
         if _recent_dir and _recent_dir.get("interrupts_routine"):
             logger.debug(f"[LIFE_ENGINE] {npc_id}: Schedule bypassed due to Attention Capture from {_recent_dir.get('source')}")
-            # ADR-056: Consumption Mechanism. Сжигаем директиву после использования, 
-            # чтобы NPC мог вернуться к расписанию в следующем тике (если нет нового приказа).
-            if isinstance(_kernel, dict):
-                _kernel["recent_directive"] = None
-            elif hasattr(_kernel, "recent_directive"):
-                _kernel.recent_directive = None
+            # GAP9 FIX: Не сжигаем директиву мгновенно! Иначе на следующем тике LifeEngine снова уложит NPC спать,
+            # перезаписав реактивный транзит (reactive:approach). Сон прерывается до снижения угрозы.
+            return [], None
+
+        # ADR-081: Physical Urgency Wake. Угроза пробуждает NPC из сна.
+        # Скалярная оценка: если угроза рядом и велика — расписание ломается.
+        _threat = _kernel.get("threat_gradient", 0.0) if isinstance(_kernel, dict) else getattr(_kernel, "threat_gradient", 0.0) if _kernel else 0.0
+        if _threat > 0.7:
+            logger.debug(f"[LIFE_ENGINE] {npc_id}: Schedule bypassed due to proximate physical threat ({_threat:.2f})")
             return [], None
 
         new_activity = self._get_current_activity(schedule, current_time)
@@ -1166,6 +1172,15 @@ class LifeEngine:
 
         if new_activity == prev_activity:
             return [], None
+
+        # GAP9 FIX: Реалистичное Пробуждение. Если NPC напуган или в стрессе, он не может уснуть.
+        # Угроза (threat_gradient) и стресс — непрерывные скаляры, в отличие от сгорающей директивы.
+        if "sleeping" in new_activity or "resting" in new_activity:
+            _threat = _kernel.get("threat_gradient", 0.0) if isinstance(_kernel, dict) else getattr(_kernel, 'threat_gradient', 0.0) if _kernel else 0.0
+            _stress = npc.get("stress", 0.0)
+            if _threat > 0.3 or _stress > 50:
+                logger.debug(f"[LIFE_ENGINE] {npc_id}: Sleep bypassed — threat={_threat:.2f}, stress={_stress}")
+                return [], None
 
         new_location, new_position, activity_display = self._resolve_position(
             npc, new_activity

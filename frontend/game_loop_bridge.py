@@ -39,6 +39,8 @@ class TurnResult:
     # ADR-0014: Позиции NPC после player action (Force Merge)
     world_snapshot: Optional[dict] = None
     npc_positions: Optional[dict] = None
+    # ADR-075: Строгий контракт Эмбодимента. Если поле пропадёт — краш схемы, а не тихий None.
+    will_conflict_data: Optional[dict] = None
 
 
 class GameLoopBridge:
@@ -119,6 +121,9 @@ class GameLoopBridge:
                     result.ms = event.get("ms", 0)
                     result.tps = event.get("tps", 0.0)
                     result.game_time_seconds = event.get("game_time_seconds", 0),
+                    # ADR-075: Извлечение Эмбодимента из финального SSE пакета.
+                    # Если бэкенд не пришлёт ключ, dataclass даст None.
+                    result.will_conflict_data = event.get("will_conflict_data")
                 elif etype == "error":
                     result.error = event.get("text", "неизвестная ошибка")
 
@@ -149,6 +154,10 @@ class GameLoopBridge:
                     import copy
                     result.npc_positions = copy.deepcopy(_scene["npc_positions"])
                     result.world_snapshot = {"npc_positions": result.npc_positions}
+                    # ADR-019: Без active_traversals фронтенд не может интерполировать движение
+                    if "active_traversals" in _scene:
+                        result.world_snapshot["active_traversals"] = copy.deepcopy(_scene["active_traversals"])
+                    print(f"[DIAG][BRIDGE] traversals_in_scene={'active_traversals' in _scene} count={len(_scene.get('active_traversals', {}))} npcs_with_traversal={list(_scene.get('active_traversals', {}).keys())}")
             except Exception as _ws_err:
                 # Non-critical — позиции обновятся на следующем idle_tick
                 print(f"[BRIDGE] world_snapshot build skipped: {_ws_err}")

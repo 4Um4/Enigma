@@ -1,0 +1,18 @@
+﻿{
+  "location_id": "tavern_silver_wolf",
+  "label": "Tavern Silver Wolf",
+  "rooms": {
+    "main_hall": {"x": 500, "y": 400, "aliases": ["main_hall", "hall", "center"]},
+    "kitchen": {"x": 300, "y": 200, "aliases": ["kitchen"]},
+    "entrance": {"x": 500, "y": 600, "aliases": ["entrance", "door"]},
+    "bar_area": {"x": 400, "y": 400, "aliases": ["bar_area", "bar", "counter"]},
+    "corner_table": {"x": 600, "y": 300, "aliases": ["corner_table", "corner"]}
+  },
+  "passages": [
+    {"from": "main_hall", "to": "kitchen"},
+    {"from": "main_hall", "to": "entrance"},
+    {"from": "main_hall", "to": "bar_area"},
+    {"from": "main_hall", "to": "corner_table"},
+    {"from": "bar_area", "to": "kitchen"}
+  ]
+}

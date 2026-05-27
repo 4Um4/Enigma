@@ -315,6 +315,15 @@ class LocalCausalSolver:
         psyche = data.get("psyche", {})
         social_stats = data.get("social_stats", {})
         
+        # GAP7 FIX: Аватар игрока инжектирован в all_npcs_raw (ADR-068), но его стейт
+        # может использовать другие ключи. Обеспечиваем парсинг для игрока.
+        if entity_id == "player":
+            return {
+                "consciousness": body_state.get("consciousness", 1.0),
+                "stress": psyche.get("stress", 0.0),
+                "fear": psyche.get("fear", 0.0)  # Игрок не имеет fear_of_player, но имеет свой страх
+            }
+        
         return {
             "consciousness": body_state.get("consciousness", 1.0),
             "stress": psyche.get("stress", 0.0),

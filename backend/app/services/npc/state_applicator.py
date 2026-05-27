@@ -94,6 +94,14 @@ class StateApplicator:
 
         try:
             self._apply_intent(new_state, result, current_tick)
+            
+            # ADR-039: Перехватываем WillConflictPayload до коллапса в v1, чтобы не потерять его
+            will_conflict_for_ui = None
+            for d in result.deltas:
+                if d.domain == DeltaDomain.WILL and isinstance(d.payload, WillConflictPayload):
+                    will_conflict_for_ui = d.payload
+                    break
+            
             # ADR-013: Схлопываем v2 -> v1 для легаси-методов StateApplicator.
             # В будущем StateApplicator.apply() должен нативно итерировать List[StateDeltas].
             _legacy_deltas = LegacyStateDeltaAdapter.collapse(result.deltas)
@@ -115,6 +123,18 @@ class StateApplicator:
                     new_state.trauma_markers.add("will_broken")
 
             self._apply_trait_decay(new_state)
+            
+            # ADR-039: Записываем конфликт Волы в raw dict, чтобы AvatarPresentationAssembler его увидел
+            if will_conflict_for_ui and new_state.npc_id == "player":
+                self._apply_delta_to_raw(
+                    {"npc_id": "player", "will_conflict_data": {
+                        "resistance": will_conflict_for_ui.resistance,
+                        "embodied_vector": will_conflict_for_ui.embodied_vector
+                    }}, 
+                    StateDeltas(npc_id="player", domain=DeltaDomain.WILL, target="player", payload=will_conflict_for_ui), 
+                    campaign_id
+                )
+            
             logger.info(f"[STATE_APPLIED] {new_state.npc_id}: stress={new_state.stress:.1f} intent={new_state.intent}")
             return new_state
 
@@ -404,6 +424,7 @@ class StateApplicator:
         hp_delta = deltas.payload.hp_delta if domain == DeltaDomain.PHYSIOLOGY and isinstance(deltas.payload, PhysiologyPayload) else 0.0
         pain_delta = deltas.payload.pain_delta if domain == DeltaDomain.PHYSIOLOGY and isinstance(deltas.payload, PhysiologyPayload) else 0.0
         fatigue_delta = deltas.payload.fatigue_delta if domain == DeltaDomain.PHYSIOLOGY and isinstance(deltas.payload, PhysiologyPayload) else 0.0
+        blood_loss_delta = deltas.payload.blood_loss_delta if domain == DeltaDomain.PHYSIOLOGY and isinstance(deltas.payload, PhysiologyPayload) else 0.0
         add_injuries = deltas.payload.add_injuries if domain == DeltaDomain.PHYSIOLOGY and isinstance(deltas.payload, PhysiologyPayload) else ()
         add_statuses = deltas.payload.add_statuses if domain == DeltaDomain.PHYSIOLOGY and isinstance(deltas.payload, PhysiologyPayload) else ()
         remove_statuses = deltas.payload.remove_statuses if domain == DeltaDomain.PHYSIOLOGY and isinstance(deltas.payload, PhysiologyPayload) else ()

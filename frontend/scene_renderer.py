@@ -12,6 +12,7 @@ path: /frontend/scene_renderer.py
 from typing import List, Optional, Tuple
 
 import math
+import random
 import pygame
 
 from presentation_firewall import sanitize_perceptual_input
@@ -94,6 +95,9 @@ class SceneRenderer:
             sanitized = sanitize_perceptual_input(avatar_state, ambient_state)
             self.momentum.update(dt, sanitized)
             profile = self.momentum.current
+            # ADR-084: Визуальный след убран из консоли (60 фпс спам). Диагностика через CDS.
+            # if profile.blood_visibility > 0.01 or profile.attention_tunneling > 0.01:
+            #     print(f"[RENDER_TRACE] blood={profile.blood_visibility:.2f}, tunnel={profile.attention_tunneling:.2f}, noise={profile.visual_instability:.2f}")
 
         # Камера центрирована на игроке + Motion Bias (мир "давит" на игрока)
         cam_x = player_xy[0] * SCALE - self.screen.get_width() // 2

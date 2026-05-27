@@ -39,11 +39,16 @@ class DecisionContext:
         _init_suppression = getattr(kernel, 'initiative_suppression', 0.0)
 
         # 2. Топологическая деформация
+        # Инвариант: Угроза искривляет utility в зависимости от смелости (инверсия inhibition).
+        # Храбрые (низкий _aggr_inhibition) контратакуют. Трусливые бегут.
+        _fight_or_flight = _threat * 0.8
         deformation = UtilityFieldDeformation(
-            aggression_suppression=_aggr_inhibition,
+            # Снижение подавления агрессии при угрозе у храбрых (агрессивная защита)
+            aggression_suppression=max(0.0, _aggr_inhibition - (_fight_or_flight if _aggr_inhibition < 0.3 else 0.0)),
             initiative_suppression=_init_suppression,
             compliance_bias=_compliance,
-            escape_salience=_threat * 0.8 # Угроза мотивирует бегство
+            # Бегство мотивирует только трусливых (высокий _aggr_inhibition)
+            escape_salience=_fight_or_flight if _aggr_inhibition >= 0.3 else 0.0
         )
 
         # 3. Экстремальное сжатие (паралич воли)

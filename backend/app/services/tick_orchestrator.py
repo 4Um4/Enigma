@@ -216,26 +216,34 @@ class TickOrchestrator:
         """
         return self._get_life_engine().get_current_tick(campaign_id)
 
-    def _resolve_spatial_service(self, ctx: _TickContext) -> Optional[Any]:
+    def _resolve_spatial_service(self, ctx: "_TickContext") -> Optional["SpatialService"]:
         """ADR-048: Единственный легитимный способ получить SpatialService.
         Приоритет: Инъекция GameLoop -> Аварийная сборка (с предупреждением).
         Кэш не используется для подмены отсутствующего сервиса в новом контексте.
         """
         # 1. Авторитетный источник: передан через NpcTickServices из npc_orchestration
-        if ctx.npc_services and hasattr(ctx.npc_services, 'spatial_service') and ctx.npc_services.spatial_service:
+        _has_svc = ctx.npc_services and hasattr(ctx.npc_services, 'spatial_service') and ctx.npc_services.spatial_service
+        print(f"[DIAG][SPATIAL_RESOLVE] npc_services={ctx.npc_services is not None}, has_svc={_has_svc}")
+        if _has_svc:
             self._spatial_service = ctx.npc_services.spatial_service
             return self._spatial_service
             
         # 2. Аварийная сборка из scene_state (если GameLoop не пробросил сервис)
         _loc_id = ctx.scene_state.get("location_id", "")
+        print(f"[DIAG][SPATIAL_RESOLVE] loc_id='{_loc_id}', campaign_id='{ctx.campaign_id}'")
         if _loc_id:
-            logger.warning(f"[SPATIAL_AUTHORITY] ADR-048 VIOLATION: SpatialService собран вручную для {_loc_id}. GameLoop не пробросил сервис!")
-            self._spatial_service = SpatialService.build_for_location(
-                campaign_id=ctx.campaign_id,
-                location_id=_loc_id,
-                scene_state=ctx.scene_state,
-            )
-            return self._spatial_service
+            try:
+                logger.warning(f"[SPATIAL_AUTHORITY] ADR-048 VIOLATION: SpatialService собран вручную для {_loc_id}. GameLoop не пробросил сервис!")
+                self._spatial_service = SpatialService.build_for_location(
+                    campaign_id=ctx.campaign_id,
+                    location_id=_loc_id,
+                    scene_state=ctx.scene_state,
+                )
+                print(f"[DIAG][SPATIAL_RESOLVE] Emergency build result: {self._spatial_service is not None}")
+                return self._spatial_service
+            except Exception as e:
+                print(f"[DIAG][SPATIAL_RESOLVE] CRASH during emergency build: {type(e).__name__}: {e}")
+                return None
             
         return None
 
@@ -333,6 +341,7 @@ class TickOrchestrator:
         tick_number: int = 0,
         dm_ctx: Optional["DMContextDTO"] = None,
         npc_services: Optional[Any] = None,
+        spatial_service: Optional[Any] = None, # ADR-048: Инъекция от GameLoop
     ) -> Union[TickResultDTO, TickPlayerResultDTO]:
         """Единственная точка входа для тика мира.
 
@@ -342,6 +351,10 @@ class TickOrchestrator:
         """
         if scene_state is None:
             return TickResultDTO(status="no_scene")
+
+        # ADR-048: Приоритет инъекции от GameLoop. Если нет — аварийная сборка.
+        if spatial_service:
+            self._spatial_service = spatial_service
 
         ctx = _TickContext(
             campaign_id=campaign_id,
@@ -524,28 +537,29 @@ class TickOrchestrator:
         Устав §3: одна последовательность, один коммит.
         """
         # Создаём внутренний контекст с данными из GameLoop
-        # ADR-031 Fix: Проброс вектора давления из Фазы 1
+          # ADR-031 Fix: Проброс вектора давления из Фазы 1
         _intent_res = shared_context.intent_resolution
         ctx = _TickContext(
-            campaign_id=campaign_id,
+            campaign_id=shared_context.scene_state.get("location_id", ""),
             scene_state=shared_context.scene_state or {},
             tick_number=shared_context.current_tick or 0,
             dm_ctx=None,  # уже обработан в tick_player_turn
             shared_context=shared_context,
-            actions=actions,
-            rules_result=rules_result,
-            r3_direct_mode=r3_direct_mode,
             # Мостируем данные из GameLoop TickBuffer
             all_npcs_raw=tick_buffer.all_npcs_raw if tick_buffer else [],
             player_intent=_intent_res.original_intent if _intent_res else None,
             player_pressure=_intent_res.pressure_profile if _intent_res else None,
+            player_result=player_result,  # FIX: Без этого ctx.player_result=None → return None → краш finalize_result
             dirty_npcs=tick_buffer.dirty_npcs if tick_buffer else set(),
             wt_dirty=getattr(tick_buffer, 'wt_dirty', False),
             prop_dirty=getattr(tick_buffer, 'prop_dirty', False),
             max_npc_stress=getattr(tick_buffer, 'max_npc_stress', 0.0),
-            # Результат фаз 5-6
-            player_result=player_result,
-        )
+                        )
+        
+        # ADR-034 FIX: Исполнение Фазы 1 (WillpowerGate) для хода Игрока.
+        # Без этого Интент Игрока пролетает мимо Воли, и Аватар покорно соглашается на всё.
+        if ctx.player_intent:
+            self._phase_1_input(ctx)
 
         # ADR-042 Fix: Инъекция актуального NPC state для DirectiveInterpretationSubscriber.
         # При ходе игрока Фаза 0 (_phase_0_simulation) пропускается, 
@@ -628,6 +642,11 @@ class TickOrchestrator:
                                     _npc_state.setdefault("emotion", {})["stress"] = _npc_state.get("emotion", {}).get("stress", 0.0) + delta.payload.stress_delta
                                 if hasattr(delta.payload, 'fear_delta') and delta.payload.fear_delta != 0:
                                     _npc_state.setdefault("social_stats", {})["fear_of_player"] = _npc_state.get("social_stats", {}).get("fear_of_player", 0.1) + delta.payload.fear_delta
+                                # GAP1 FIX: Темпоральная симметрия. Критический шок инжектится так же мгновенно, как директива.
+                                # Слово не должно лететь быстрее Топора. Бессознательное тело = нокаут сейчас, не в следующем тике.
+                                if hasattr(delta.payload, 'shock_impulse') and getattr(delta.payload, 'shock_impulse', 0.0) > 0.5:
+                                    _npc_state.setdefault("body_state", {})["shock_impulse"] = getattr(_npc_state.get("body_state", {}), "shock_impulse", 0.0) + delta.payload.shock_impulse
+                                    _npc_state.setdefault("body_state", {})["consciousness"] = max(0.0, 1.0 - delta.payload.shock_impulse)
                             logger.warning(f"[COGNITIVE_OVERLAY] Applied {len(_directive_deltas)} directive deltas to NPC raw state for DecisionHub.")
                     except Exception as e:
                         logger.error(f"[CAUSALITY_CRASH] DirectiveInterpretationSubscriber failed: {e}", exc_info=True)
@@ -817,18 +836,27 @@ class TickOrchestrator:
         
         Если интент угрожает идентичности аватара — возникает конфликт воли.
         """
+        # БЕЗУСЛОВНАЯ ДИАГНОСТИКА: Вызывается ли метод вообще?
+        import sys
+        print(f"[WILL_TRACE_UNCONDITIONAL] _phase_1_input CALLED. Has intent: {ctx.player_intent is not None}", file=sys.stderr, flush=True)
+        
         if not ctx.player_intent:
             return # Idle-тик или нет ввода от игрока
 
         intent = ctx.player_intent
+        _sem_action = getattr(intent, 'parameters', None) and intent.parameters.semantic_action or getattr(intent, 'action', 'UNKNOWN')
+        _sem_target = getattr(intent, 'parameters', None) and intent.parameters.target_id or getattr(intent, 'target', 'UNKNOWN')
+        logger.warning(f"[WILL_TRACE] 1. Intent action: '{_sem_action}', target: '{_sem_target}', NPCs in raw: {len(ctx.all_npcs_raw)}")
         
         # Извлекаем снапшот аватара из симуляции
         player_dict = next((n for n in ctx.all_npcs_raw if n.get("npc_id") == "player"), None)
         
         if not player_dict:
-            logger.warning("[WILL] Аватар игрока не найден, публикация без фильтрации")
+            logger.error(f"[WILL_TRACE] FAIL: Аватар 'player' НЕ НАЙДЕН в all_npcs_raw (len={len(ctx.all_npc_raw)}). Воля отключена!")
             self._publish_player_intent(ctx, intent)
             return
+            
+        logger.warning(f"[WILL_TRACE] 2. Avatar found. Psyche: {player_dict.get('psyche', {})}")
 
         # 1. Вектор давления берется из результата Фазы 1 (Единая точка вычисления)
         # Повторный вызов resolve_intent_pressure ЗАПРЕЩЕН (каузальная integrity)
@@ -848,6 +876,10 @@ class TickOrchestrator:
         # 3. Вычисление реакции аватара (Cumulative Strain Model на искаженном давлении)
         will_response = compute_willpower(distorted_pressure, psyche)
 
+        # ДИАГНОСТИКА: Почему нет конфликта?
+        logger.warning(f"[WILL_TRACE] 2. Pressure: identity={pressure.identity_deviation:.2f}, humiliation={pressure.humiliation:.2f}")
+        logger.warning(f"[WILL_TRACE] 3. Will state: {will_response.state.value}, Resistance: {will_response.resistance:.2f}")
+
         # 4. Маршрутизация исходов
         if resonance.trigger_strength > 0.1:
             logger.info(f"[AFFECT] Resonance detected: strength={resonance.trigger_strength:.2f}, bias={resonance.dominant_bias.value}, triggered={resonance.triggered_imprints}")
@@ -856,7 +888,7 @@ class TickOrchestrator:
             # Аватар подчиняется (возможно, с неохотой или привыканием)
             self._publish_player_intent(ctx, intent)
             
-            # Фиксация урона идентичности, если действие сломало волю
+            # Фиксация урона идентичности
             if will_response.identity_damage > 0:
                 from app.models.delta_payloads import IdentityPayload
                 ctx.delta_buffer.append(StateDeltas(
@@ -865,29 +897,67 @@ class TickOrchestrator:
                     target="player",
                     payload=IdentityPayload(identity_integrity_delta=-will_response.identity_damage)
                 ))
+
+            # ADR-039 FIX: Если Аватар подчинился неохотно (RELUCTANT+) или получил урон — 
+            # это каузальное событие Воли. Пишем в ОБЕ трубы: DeltaBuffer (для NPC/истории) и shared_context (для API Игрока)
+            if will_response.state != WillState.COMPLY or will_response.identity_damage > 0:
+                from app.models.delta_payloads import WillConflictPayload
+                ctx.delta_buffer.append(StateDeltas(
+                    npc_id="player",
+                    domain=DeltaDomain.WILL,
+                    target="player",
+                    payload=WillConflictPayload(
+                        state=will_response.state.value,
+                        resistance=will_response.resistance,
+                        embodied_vector=will_response.embodied_vector.value if will_response.embodied_vector else None,
+                        identity_damage=will_response.identity_damage
+                    )
+                ))
+                from app.services.will import get_embodied_impulse_text
+                ctx.shared_context.will_conflict_data = {
+                    "original_intent": getattr(intent, 'parameters', None) and intent.parameters.semantic_action or getattr(intent, 'action', "UNKNOWN"),
+                    "state": will_response.state.value,
+                    "resistance": will_response.resistance,
+                    "embodied_vector": will_response.embodied_vector.value if will_response.embodied_vector else None,
+                    "counter_offer_text": get_embodied_impulse_text(will_response.embodied_vector) if will_response.embodied_vector else None
+                }
+                logger.info(f"[WILL] Conflict data written: state={will_response.state.value}, R={will_response.resistance:.2f}")
         else:
             # Аватар сопротивляется. Действие блокируется, публикуется WILL_CONFLICT
             logger.info(f"[WILL] Аватар сопротивляется! State={will_response.state.value}, R={will_response.resistance:.2f}")
             from app.domain.events import EventDTO
+            from app.models.delta_payloads import WillConflictPayload
             
-            # Сохраняем артефакты конфликта для Embodied Perception Interface (Спринт 27)
+            # Генерируем структурный конфликт Воли через DeltaBuffer
+            ctx.delta_buffer.append(StateDeltas(
+                npc_id="player",
+                domain=DeltaDomain.WILL,
+                target="player",
+                payload=WillConflictPayload(
+                    state=will_response.state.value,
+                    resistance=will_response.resistance,
+                    embodied_vector=will_response.embodied_vector.value if will_response.embodied_vector else None,
+                    identity_damage=will_response.identity_damage
+                )
+            ))
+            
+            # Восстанавливаем запись в shared_context для API ответа
             from app.services.will import get_embodied_impulse_text
             ctx.shared_context.will_conflict_data = {
-                "original_intent": intent.action,
+                "original_intent": getattr(intent, 'parameters', None) and intent.parameters.semantic_action or getattr(intent, 'action', "UNKNOWN"),
                 "state": will_response.state.value,
                 "resistance": will_response.resistance,
-                "narration_hooks": will_response.narration_hooks,
-                "counter_offer_action": will_response.counter_offer.action if will_response.counter_offer else None,
-                "origin_layer": will_response.origin_layer.value, # ADR-037: Источник давления
-                "embodied_vector": will_response.embodied_vector.value if will_response.embodied_vector else None, # ADR-037: Моторный импульс
-                "counter_offer_text": get_embodied_impulse_text(will_response.embodied_vector) # Текст генерируется из вектора!
+                "embodied_vector": will_response.embodied_vector.value if will_response.embodied_vector else None,
+                "counter_offer_text": get_embodied_impulse_text(will_response.embodied_vector) if will_response.embodied_vector else None
             }
             
+            # Публикуем событие блокировки для других систем (DM, NPC реакция)
             get_event_bus().publish(EventDTO.create(
                 event_type=EventType.WILL_CONFLICT.value,
                 source="player",
-                payload=ctx.shared_context.will_conflict_data
+                payload={"state": will_response.state.value, "resistance": will_response.resistance}
             ))
+            
             # Эмоциональный отклик аватара на давление
             if will_response.fear_delta > 0:
                 ctx.delta_buffer.append(StateDeltas(
@@ -912,12 +982,13 @@ class TickOrchestrator:
             "attack": EventType.PLAYER_ATTACKS,
             "player_attacks": EventType.PLAYER_ATTACKS,
         }
-        _resolved_type = _evt_map.get(intent.action, EventType.PLAYER_INTERACTS)
+        _act = getattr(intent, 'action', "") or ""
+        _resolved_type = _evt_map.get(_act, EventType.PLAYER_INTERACTS)
         from app.domain.events import EventDTO
         get_event_bus().publish(EventDTO.create(
             event_type=_resolved_type.value,
             source="player",
-            payload={"action": intent.action, "target": intent.target}
+            payload={"action": _act, "target": getattr(intent, 'target', "") or ""}
         ))
 
     def _phase_2_event_bus_primary(self, ctx: _TickContext) -> None:
@@ -1707,6 +1778,25 @@ class TickOrchestrator:
         from app.services.presentation.avatar_presentation_assembler import assemble_avatar_presentation
         player_dict = next((n for n in ctx.all_npcs_raw if n.get("npc_id") == "player"), None)
         _avatar_projection = assemble_avatar_presentation(player_dict) if player_dict else None
+
+        # ТЗ EMBODIED UI PERCEPTION: Симметричная онтология восприятия (Слои 1-5)
+        from app.services.perception.phenomenology_projection_service import PhenomenologyProjectionService
+        from app.services.perception.perceptual_attention_service import PerceptualAttentionService
+        from app.domain.snapshot import AvatarStateDTO
+        
+        _projector = PhenomenologyProjectionService()
+        _attention = PerceptualAttentionService()
+        _location_id = ctx.scene_state.get("location_id", "")
+        
+        # Шаг 1: Генерация смыслов (Сырые стейты -> PerceptionEvent)
+        _perception_events = _projector.project(ctx.all_npcs_raw, ctx.tick_number, _location_id)
+        # Шаг 2: Диафрагма внимания (PerceptionEvent + AvatarState -> PlayerPerceptionDTO)
+        # Защита от None: если аватар не найден, используем дефолтный стейт (без искажений)
+        _avatar_for_perception = _avatar_projection if _avatar_projection else AvatarStateDTO()
+        _player_perception = _attention.build_perception(_perception_events, _avatar_for_perception, ctx.tick_number)
+        
+        # PIPELINE TRACE: Верификация генерации смыслов
+        logger.info(f"[PERCEPTION_TRACE] Events={len(_perception_events)} | Active={len(_player_perception.active_perceptions)} | Cues={len(_player_perception.peripheral_cues)}")
         
         builder = self._get_snapshot_builder()
         ctx.world_snapshot = builder.build(
@@ -1714,6 +1804,7 @@ class TickOrchestrator:
             tick=ctx.tick_number,
             avatar_state=_avatar_projection,
             all_npcs_raw=ctx.all_npcs_raw, # ADR-037: Передаем сырые данные для Ambient Phenomenology
+            player_perception=_player_perception, # ТЗ EMBODIED UI: Передаем наблюдения игрока
         )
 
     def _phase_10_persistence(self, ctx: _TickContext) -> None:

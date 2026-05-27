@@ -24,3 +24,6 @@ class TickResultDTO:
     significant_events: List[dict] = field(default_factory=list)
     world_snapshot: Optional[WorldSnapshotDTO] = None
     error: Optional[str] = None
+    # ADR-075: Строго типизированный транспорт Эмбодимента через каузальную границу API.
+    # None по умолчанию (нет конфликта = нет моторного сопротивления).
+    will_conflict_data: Optional[dict] = None

@@ -1,0 +1,113 @@
+﻿domain: AUTHORITY
+description: "Воля, Давление, Решения и Социум. Подчинение требует легитимности. Решения из искривленного utility."
+nodes:
+  WillpowerGate:
+    type: service
+    layer: Application
+    label: "WillpowerGate (Cumulative Strain)"
+  DecisionHub:
+    type: service
+    layer: Application
+    label: "Decision Hub v2 (Utility Deformation)"
+    style: {fill: "#e8f5e9", stroke: "#1b5e20", "stroke-width": "4px"} # Ядро принятия решений
+  IntentEventAdapter:
+    type: service
+    layer: Application
+    label: "Intent Event Adapter"
+  DirectiveInterpreter:
+    type: service
+    layer: Domain
+    label: "Directive Interpretation Subscriber"
+  CFRMSolver:
+    type: service
+    layer: Domain
+    label: "Local Causal Solver (CFRM P2)"
+  BodyState:
+    type: dto
+    layer: Domain
+    label: "Body State (Physiology)"
+  SourceID:
+    type: dto
+    layer: Domain
+    label: "Source ID (Social Authority)"
+  EventDTO:
+    type: dto
+    layer: Domain
+    label: "Event DTO (NPC_SPOKE)"
+edges:
+  - from: WillpowerGate
+    to: DecisionHub
+    label: "provides resistance & identity_rigidity"
+    condition: "trauma_markers > 0 -> +0.1 identity_rigidity"
+    code_ref: "will.py:122-125"
+    adr_ref: "GAP2 FIX"
+    edge_type: thick
+  - from: BodyState
+    to: DirectiveInterpreter
+    label: "inhibits obedience"
+    condition: "shock_impulse > 0.7 -> return []"
+    code_ref: "directive_interpretation_subscriber.py:58"
+    adr_ref: "GAP4 FIX"
+    edge_type: dotted
+  - from: BodyState
+    to: DecisionHub
+    label: "Somatic Veto"
+    condition: "pain > 0.8 blocks FLEE; shock > 0.7 blocks ATTACK"
+    code_ref: "pressure_translator.py:52"
+    adr_ref: "GAP3 FIX"
+    edge_type: dotted
+  - from: SourceID
+    to: DirectiveInterpreter
+    label: "NPC-to-NPC legitimacy"
+    condition: "fear_{source_id} > 0.3"
+    code_ref: "directive_interpretation_subscriber.py:77-92"
+    adr_ref: "GAP13 FIX"
+  - from: DirectiveInterpreter
+    to: DeltaBuffer
+    label: "generates obedience/irritation"
+    condition: "legitimacy > 0.3 -> obedience; else -> irritation"
+    code_ref: "directive_interpretation_subscriber.py:93-97"
+    adr_ref: "ADR-057"
+  - from: IntentEventAdapter
+    to: EventDTO
+    label: "preserves semantic_action & target_id"
+    condition: "Always if present in CommunicationIntent"
+    code_ref: "intent_event_adapter.py:46-47"
+    adr_ref: "GAP8 FIX"
+  - from: CFRMSolver
+    to: PlayerObserver
+    label: "parses avatar psyche"
+    condition: "Player is observer candidate"
+    code_ref: "local_causal_solver.py:320-324"
+    adr_ref: "GAP7 FIX"
+constraints:
+  - source: DecisionHub
+    target: Raw_Delta
+    rule: "FORBIDDEN: Use T+0 pressure (Only T-1)"
+    code_ref: "ADR-050"
+    adr_ref: "Устав §3.5"
+  - source: DirectiveInterpreter
+    target: MovementIntent
+    rule: "FORBIDDEN: Direct movement generation"
+    code_ref: "ADR-043"
+    adr_ref: "Social Physics"
+sequences:
+  - title: "Player Command Execution Flow"
+    participants: [PlayerInput, DirectiveInterpreter, BodyState, WillpowerGate, DecisionHub]
+    steps:
+      - from: PlayerInput
+        to: DirectiveInterpreter
+        message: "1. Command received (source=player)"
+      - from: BodyState
+        to: DirectiveInterpreter
+        message: "2. Check shock_impulse < 0.7 (GAP4)"
+        type: dotted
+      - from: DirectiveInterpreter
+        to: WillpowerGate
+        message: "3. Push directive_obedience pressure"
+      - from: WillpowerGate
+        to: DecisionHub
+        message: "4. Compute resistance (trauma_markers check GAP2)"
+      - from: DecisionHub
+        to: DecisionHub
+        message: "5. Generate Intent (APPROACH/FLEE)"

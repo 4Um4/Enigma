@@ -4,7 +4,7 @@
 # Основные сущности: ExposureLevel, CommunicationIntent
 
 from dataclasses import dataclass
-from typing import Literal
+from typing import Literal, Optional
 
 
 @dataclass(frozen=True)
@@ -27,6 +27,8 @@ class CommunicationIntent:
     intent_type: str       # 'диалог', 'приказ', 'ложь', 'вопрос'
     emotional_state: str   # 'злость', 'страх', 'любопытство'
     exposure_level: ExposureLevel
+    semantic_action: Optional[str] = None   # GAP8 FIX: Тип социального акта (MOVE, THREATEN, PERSUADE, GIVE)
+    target_id: Optional[str] = None         # GAP8 FIX: ID цели директивы (для NPC-to-NPC Social Physics)
 
     def __post_init__(self) -> None:
         # Устав 7.2: пустой topic = LLM плывёт по ассоциациям

@@ -162,10 +162,7 @@ async def lifespan(app: FastAPI):
             try:
                 server_cmd = [
                     settings.llama_cpp_server_executable,
-                    "-m", settings.llama_cpp_model_path,
-                    "-ngl", str(settings.gpu_layers),
-                    "-c", str(settings.ctx_size),
-                    "-t", str(settings.threads),
+                    "-m", settings.llama_cpp_model_path, # ADR-087: Без флага модели сервер крашится!
                     "--port", "8080",
                     "--host", "127.0.0.1",
                 ]

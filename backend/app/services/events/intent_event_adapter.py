@@ -42,6 +42,9 @@ class IntentEventAdapter:
                 "intent_type": intent.intent_type,
                 "emotional_state": intent.emotional_state,
                 "exposure_semantic": intent.exposure_level.semantic,
+                # GAP8 FIX: Сохраняем семантику директив, иначе DirectiveInterpretationSubscriber глух
+                "semantic_action": getattr(intent, 'semantic_action', None),
+                "target_id": getattr(intent, 'target_id', None),
             },
             visibility=_visibility_map.get(
                 intent.exposure_level.semantic, "public"

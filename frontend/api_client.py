@@ -337,7 +337,14 @@ class DirectGameGateway:
             # ADR-0014: Force Merge — пробрасываем позиции NPC на фронтенд
             world_snapshot=result.world_snapshot,
             npc_positions=result.npc_positions,
+            # ADR-075: Строгий контракт Эмбодимента. Никаких getattr. Если поля нет — значит схема мертва.
+            will_conflict_data=result.will_conflict_data,
         )
+        # ADR-075 DIAG: Диагностический след. Показывает, дошли ли данные до шлюза.
+        if hasattr(result, "will_conflict_data"):
+            print(f"[EMBODIMENT_PIPELINE] gateway received={result.will_conflict_data is not None}")
+        else:
+            print("[EMBODIMENT_PIPELINE] field missing on result")
     
     def health(self) -> dict:
         return {"status": "ok", "mode": "direct"}

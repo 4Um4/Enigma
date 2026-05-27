@@ -232,12 +232,14 @@ class StateInterpreter:
         """Основной метод: NPCState → человекочитаемое описание."""
         hp_ratio = state.hp / state.max_hp if state.max_hp > 0 else 1.0
         gender = getattr(state, "gender", "male")
+        # GAP5 FIX: Читаем живую физиологию, а не только RPG-абстракцию HP
+        body_state = getattr(state, 'body_state', {}) or {}
 
         return NPCStateDescription(
             name=state.npc_id,
             intent=self._intent_to_word(state.intent),
             emotional_state=_apply_gender(self._stress_to_word(state.stress), gender),
-            physical_state=_apply_gender(self._hp_to_word(hp_ratio), gender),
+            physical_state=_apply_gender(self._physical_state_to_word(hp_ratio, body_state), gender),
             posture=self._posture_to_word(state.posture),
             conditions=self._conditions_to_list(state.conditions, gender),
             can_speak=self.derive_can_speak(state.posture, state.conditions),
@@ -253,7 +255,7 @@ class StateInterpreter:
         return UrgencyLevel.CALM.value
 
     def _hp_to_word(self, ratio: float) -> str:
-        """HP ratio 0-1 → описание раны."""
+        """HP ratio 0-1 → описание раны (legacy fallback)."""
         if ratio <= 0.0:
             return PhysicalState.INCAPACITATED.value
         if ratio < 0.25:
@@ -263,6 +265,30 @@ class StateInterpreter:
         if ratio < 0.9:
             return PhysicalState.SCRATCHED.value
         return PhysicalState.UNHARMED.value
+
+    def _physical_state_to_word(self, hp_ratio: float, body_state: dict) -> str:
+        """GAP5 FIX: Физиология говорит правду. Боль и шок перекрывают RPG-абстракцию HP.
+        NPC с 80% HP, но с агонизирующей болью (pain: 0.9) больше не "слегка ранен".
+        """
+        pain = body_state.get("pain", 0.0)
+        shock = body_state.get("shock_impulse", 0.0)
+        blood_loss = body_state.get("blood_loss", 0.0)
+
+        # Шок доминирует: NPC в нокауте или на грани
+        if shock > 0.8:
+            return PhysicalState.INCAPACITATED.value
+        # Экстремальная боль или кровопотеря = критическое состояние
+        if pain > 0.9 or blood_loss > 0.7:
+            return PhysicalState.CRITICAL.value
+        # Сильная боль или средний шок = серьезное ранение
+        if pain > 0.6 or shock > 0.5:
+            return PhysicalState.WOUNDED.value
+        # Кровотечение или ноющая боль = легкое ранение
+        if blood_loss > 0.3 or pain > 0.3:
+            return PhysicalState.SCRATCHED.value
+
+        # Фоллбэк на HP, если физиология не дает сигналов
+        return self._hp_to_word(hp_ratio)
 
     def _intent_to_word(self, intent: Optional[Intent]) -> str:
         """Intent enum → описание на русском."""

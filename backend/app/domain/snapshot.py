@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 from uuid import UUID
 
 
@@ -50,6 +50,9 @@ class AvatarStateDTO:
     blood_visibility: float = 0.0        # 0.0-1.0, кровь на экране/персонаже
     breathing_profile: str = "calm"      # calm, heavy, gasping, hyperventilating
     posture_state: str = "upright"       # upright, hunched, collapsed
+    # ADR-039: Embodied Will Friction
+    will_resistance: float = 0.0        # Сила сопротивления (0.0 - 1.0)
+    embodied_vector: Optional[str] = None # Моторный импульс (AVOIDANCE, FREEZE)
 
 
 @dataclass(frozen=True)
@@ -76,6 +79,60 @@ class VisibleEventDTO:
 
 
 @dataclass(frozen=True)
+class AvatarDesyncDTO:
+    """Визуальное искажение без поломки управления (Слой 0: Подсознание).
+    ADR-039/ТЗ EMBODIED UI: Запрет на лаг ввода. Только инерция камеры и шлейфы."""
+    camera_inertia: float = 0.0     # Смещение/запаздывание камеры
+    motion_trail: float = 0.0        # Шлейф при движении
+    auditory_muffle: float = 0.0     # Глушение звуков
+
+
+@dataclass(frozen=True)
+class ActivePerception:
+    """Активное восприятие игрока с инерцией затухания (Слои 2-3: Атмосфера и Центральное внимание)."""
+    text: str
+    intensity: float           # Текущая яркость (1.0 = только что замечено)
+    decay_rate: float          # Скорость затухания (например, -0.05 за тик)
+    created_tick: int
+
+
+@dataclass(frozen=True)
+class PeripheralCueDTO:
+    """Периферическое наблюдение за NPC (Слой 1: Наблюдение, не диагноз).
+    ЗАПРЕТ: Текст строго внешний ("Замер"), без телепатии ("Боится")."""
+    npc_id: str
+    cue_type: str              # "FREEZE", "HURRY", "AVOID_GAZE"
+    hover_text: str            # "Замер на месте", "Отвел взгляд"
+
+
+@dataclass(frozen=True)
+class ReconstructionEventDTO:
+    """Каузальная Реконструкция (Слой 5: Постфактум)."""
+    text: str
+    tick: int
+
+
+@dataclass(frozen=True)
+class PlayerPerceptionDTO:
+    """Линза восприятия игрока. Тупой рендер.
+    ТЗ EMBODIED UI: Фронтенд получает этот объект и ничего не вычисляет."""
+    # Слой 0: Подсознание (вычисляется из AvatarStateDTO)
+    avatar_desync: Optional[AvatarDesyncDTO] = None
+    
+    # Слой 1-3: Активные восприятия (отсортированы по приоритету)
+    active_perceptions: List[ActivePerception] = field(default_factory=list)
+    
+    # Слой 1: Периферия (кто сейчас выделяется в толпе)
+    peripheral_cues: List[PeripheralCueDTO] = field(default_factory=list)
+    
+    # Слой 4: Эхо
+    echo_count: int = 0
+    
+    # Слой 5: Реконструкция
+    reconstruction_events: List[ReconstructionEventDTO] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
 class WorldSnapshotDTO:
     """Снимок мира на конец тика.
     
@@ -96,6 +153,7 @@ class WorldSnapshotDTO:
     active_traversals: List[Dict] = field(default_factory=list) # ADR-019
     avatar_state: Optional[AvatarStateDTO] = None # ADR-035: Феноменологическая проекция
     ambient_phenomenology: Optional[Dict[str, float]] = None # ADR-037: Средовое давление (температура, плотность)
+    player_perception: Optional[PlayerPerceptionDTO] = None # ТЗ EMBODIED UI: Симметричная онтология восприятия
 
 
 def snapshot_npc_positions_to_dict(

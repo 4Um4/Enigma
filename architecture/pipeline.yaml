@@ -1,0 +1,114 @@
+domain: PIPELINE
+description: "Фундамент симуляции и время. Дискретная каузальность, мутации только через DeltaBuffer."
+nodes:
+  TickOrchestrator:
+    type: service
+    layer: Application
+    label: "Tick Orchestrator"
+    style: {fill: "#e1f5fe", stroke: "#0277bd", "stroke-width": "4px"} # Выделен жирным
+  LifeEngine:
+    type: service
+    layer: Application
+    label: "Life Engine (De-godified)"
+  DeltaBuffer:
+    type: queue
+    layer: Domain
+    label: "Delta Buffer (Event Bus)"
+  StateApplicator:
+    type: service
+    layer: Application
+    label: "State Applicator"
+  CognitiveOverlay:
+    type: service
+    layer: Application
+    label: "Cognitive Overlay (T+0)"
+  SQLiteDB:
+    type: database
+    layer: Infrastructure
+    label: "Runtime SQLite"
+  LlamaServer:
+    type: external
+    layer: Infrastructure
+    label: "LLM API (llama-server :8080)"
+edges:
+  - from: LifeEngine
+    to: DeltaBuffer
+    label: "emits intents & deltas"
+    condition: "tick_decisions() produces StateDeltas"
+    code_ref: "life_engine.py"
+    adr_ref: "ADR-051"
+    edge_type: thick # Жирная линия - основной поток
+  - from: TickOrchestrator
+    to: DeltaBuffer
+    label: "aggregates Phase 8 results"
+    condition: "Always on tick"
+    code_ref: "tick_orchestrator.py"
+    adr_ref: "ADR-066"
+  - from: DeltaBuffer
+    to: StateApplicator
+    label: "apply_batch()"
+    condition: "Aggregated at end of tick"
+    code_ref: "state_applicator.py"
+    adr_ref: "ADR-001"
+    edge_type: thick
+  - from: CognitiveOverlay
+    to: StateApplicator
+    label: "injects shock_impulse > 0.5"
+    condition: "shock_impulse > 0.5 (T+0 injection)"
+    code_ref: "tick_orchestrator.py:634"
+    adr_ref: "GAP1 FIX"
+    edge_type: dotted # Пунктир - инъекция в обход буфера
+  - from: StateApplicator
+    to: SQLiteDB
+    label: "commits state"
+    condition: "Atomic commit"
+    code_ref: "state_applicator.py"
+  - from: TickOrchestrator
+    to: LlamaServer
+    label: "query LLM"
+    condition: "Action tick"
+    code_ref: "game_loop_bridge.py"
+    edge_type: dotted # Пунктир - внешний запрос
+  - from: GameScreen
+    to: APIRoutes
+    label: "POST /action (IntentDTO)"
+    condition: "On Enter key. 'сюда'/'мне' -> target_ref='player' (GAP11 FIX)"
+    code_ref: "intent_compressor.py:93-98"
+    edge_type: thick
+constraints:
+  - source: LifeEngine
+    target: NPC_Position
+    rule: "FORBIDDEN: Direct mutation (ADR-051)"
+    code_ref: "ADR-051"
+    adr_ref: "De-godification"
+  - source: Any
+    target: State
+    rule: "FORBIDDEN: Bypass DeltaBuffer"
+    code_ref: "ADR-001"
+    adr_ref: "Core Pipeline"
+  - source: TickOrchestrator
+    target: Time
+    rule: "FORBIDDEN: TICK_CATCHUP loops (ADR-047)"
+    code_ref: "ADR-047"
+    adr_ref: "No Retro-simulation"
+sequences:
+  - title: "Pipeline Tick Execution Flow"
+    participants: [TickOrchestrator, LifeEngine, DeltaBuffer, StateApplicator, SQLiteDB]
+    steps:
+      - from: TickOrchestrator
+        to: LifeEngine
+        message: "1. Run tick_decisions()"
+      - from: LifeEngine
+        to: DeltaBuffer
+        message: "2. Push StateDeltas"
+        type: dotted
+      - from: TickOrchestrator
+        to: DeltaBuffer
+        message: "3. Push Phase 8 deltas"
+        type: dotted
+      - from: TickOrchestrator
+        to: StateApplicator
+        message: "4. Trigger apply_batch()"
+      - from: StateApplicator
+        to: SQLiteDB
+        message: "5. Atomic commit"

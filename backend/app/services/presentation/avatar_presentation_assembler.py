@@ -102,6 +102,13 @@ def assemble_avatar_presentation(player_dict: Dict[str, Any]) -> AvatarStateDTO:
         breathing_profile = "calm"
         posture_state = "upright"
 
+    # ADR-035 Trace: Диагностика эмбодимента (видит ли ассемблер боль?)
+    if pain > 0.01 or stress > 0.01 or fear > 0.01:
+        print(f"[ASSEMBLER_TRACE] pain={pain:.2f}, stress={stress:.2f}, fear={fear:.2f} -> stability={perceptual_stability:.2f}, coherence={cognitive_coherence:.2f}, noise={sensory_noise:.2f}")
+
+    # ADR-039: Извлечение конфликта воли (если StateApplicатор его записал)
+    will_data = player_dict.get("will_conflict_data", {})
+
     return AvatarStateDTO(
         physical_state=phys_state,
         mental_state=mental_state,
@@ -114,4 +121,6 @@ def assemble_avatar_presentation(player_dict: Dict[str, Any]) -> AvatarStateDTO:
         blood_visibility=blood_visibility,
         breathing_profile=breathing_profile,
         posture_state=posture_state,
+        will_resistance=float(will_data.get("resistance", 0.0)),
+        embodied_vector=will_data.get("embodied_vector"),
     )

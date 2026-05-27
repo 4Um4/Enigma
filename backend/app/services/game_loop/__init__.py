@@ -224,6 +224,17 @@ class GameLoop:
                 ):
                     # Извлекаем Вектор Начальных Условий
                     # Используем getattr для совместимости со старыми Pydantic-моделями
+                    # ADR-035: Инъекция живого состояния аватара (плоть и кровь)
+                    # Шаблон персонажа (player_char) — это кости. Нам нужна живая ткань из avatar_service.
+                    _avatar_state = self.avatar_service.load_state(campaign_id, player_char.name)
+                    _live_body = getattr(_avatar_state, 'body_state', None) or {}
+                    _live_psyche = {
+                        "stress": getattr(_avatar_state, 'stress', 0.0),
+                        "fear": getattr(_avatar_state, 'fear', 0.0),
+                        "willpower": getattr(_avatar_state, 'willpower', 1.0),
+                        "emotion": getattr(_avatar_state, 'emotion', 'NEUTRAL'),
+                    }
+                    
                     player_dict = {
                         "id": "player",
                         "npc_id": "player",
@@ -232,7 +243,8 @@ class GameLoop:
                         "archetype": getattr(player_char, "archetype", "Drifter"),
                         "temperament": getattr(player_char, "temperament", "Stoic"),
                         "body_profile": getattr(player_char, "body_profile", {}),
-                        "psyche": getattr(player_char, "psyche", {}),
+                        "body_state": _live_body,  # Живая плоть: pain, blood_loss
+                        "psyche": _live_psyche,    # Живой разум: stress, fear
                         "social_stats": {"trust": 50.0, "fear_of_player": 0.0, "debt": 0.0},
                         "status_profile": {"faction_rank": {}}
                     }
@@ -263,10 +275,25 @@ class GameLoop:
         # Только +1. Никогда не сбрасывается. Не зависит от календаря (game_time_seconds).
         _scene["tick"] = _scene.get("tick", 0) + 1
 
+        # ADR-048: GameLoop собирает SpatialService и инжектит в TickOrchestrator.
+        _loc_id = _scene.get("location_id", "")
+        _spatial_svc = None
+        if _loc_id:
+            from app.services.spatial.spatial_service import SpatialService
+            try:
+                _spatial_svc = SpatialService.build_for_location(
+                    campaign_id=campaign_id,
+                    location_id=_loc_id,
+                    scene_state=_scene
+                )
+            except Exception as e:
+                logger.warning(f"[SPATIAL_AUTHORITY] SpatialService build failed: {e}")
+        
         result: TickResultDTO = self._tick_orch.execute(
             campaign_id=campaign_id,
             scene_state=_scene,
             tick_number=_scene["tick"], # Авторитетный источник тика
+            spatial_service=_spatial_svc, # ИНЪЕКЦИЯ
         )
 
         # Конвертация WorldSnapshotDTO → dict для фронтенда
@@ -291,6 +318,8 @@ class GameLoop:
             "npc_positions": _npc_pos_dict,  # DEPRECATED: читать из world_snapshot
             "events": result.significant_events,
             "world_snapshot": _ws,
+            # ADR-075: Idle-тики не содержат Волевых конфликтов (нет действия игрока).
+            "will_conflict_data": None,
         }
 
     async def run_turn(self, req: ChatTurnRequest) -> ChatTurnResponse:
@@ -367,7 +396,8 @@ class GameLoop:
             world_changes=dm_result.get("world_changes", []),
             world_snapshot=_ws_dict,
             npc_positions=_npc_pos_dict,
-            will_conflict_data=state.shared_context.will_conflict_data if hasattr(state, 'shared_context') and state.shared_context else None,
+            # ADR-075: Строгий проброс Эмбодимента.
+            will_conflict_data=state.shared_context.will_conflict_data if state.shared_context else None,
             journal_entry_id=self.memory_manager.persist_dm_response(
                 req.campaign_id,
                 world_id=req.world_id,
@@ -478,6 +508,8 @@ class GameLoop:
             "ms": elapsed_ms,
             "tps": tps,
             "game_time_seconds": state.shared_context.game_time_seconds or 0,
+            # ADR-075: Проброс Эмбодимента через SSE. Фронтенд собирает GameActionResponse из этого словаря.
+            "will_conflict_data": state.shared_context.will_conflict_data if state.shared_context else None,
         }
 
         # R2.1: NarrativeExtractor R2.2.8
@@ -626,7 +658,8 @@ class GameLoop:
         except Exception as _fin_err:
             logger.error(f"[GAME_LOOP] Finalize error: {_fin_err}", exc_info=True)
             npc_result = {}
-            shared_context.npc_contexts = _player_result.npc_contexts
+            # Защита: _player_result может быть None если execute_player_finalize вернул None
+            shared_context.npc_contexts = getattr(_player_result, 'npc_contexts', []) or []
 
         # Avatar update — после perception (shared_context.npc_contexts отфильтрован)
         try:
