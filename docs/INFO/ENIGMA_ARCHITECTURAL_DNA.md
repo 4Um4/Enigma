@@ -48,6 +48,81 @@ and spatial movement are connected into one observable player/NPC loop.
 
 ---
 
+## Branch DNA Metric Timeline
+
+Purpose:
+
+make the branch-by-branch trajectory visible, not only the phase averages.
+
+Source:
+
+- `V.0.1_alfa1` through `V.0.5.3.0.6_ПЕСОЧНИЦЫ_3`: `docs/INFO/enigma_evolution_metrics_derived.csv`;
+- `V.0.5.3.0.7_ПЕСОЧНИЦЫ_4` through `V.0.5.3.1.5_Чиним_НЕРВЫ_2`: curated continuation from existing DNA phase signatures, comparison reports and repository branch snapshots;
+- `SCS` means `systemic_coherence_score`, not raw LOC and not simple commit size.
+
+|Branch|Date|EG|SR|CD|ACI|RPI|PG|SCS|Phase|
+|---|---|---:|---:|---:|---:|---:|---:|---:|---|
+|V.0.1_alfa1|2026-03-15|56.0|16.7|10.3|14.7|48.5|0.0|25.1|Transitional Synthesis|
+|V.0.2_alfa1|2026-03-18|35.5|39.4|29.3|40.7|52.6|0.0|47.1|Refactor Compression|
+|V.0.3A_alfa1|2026-03-19|56.6|15.7|41.7|18.7|55.9|2.7|21.3|Transitional Synthesis|
+|V.0.4A_alfa2|2026-03-22|64.3|15.9|32.0|17.1|60.9|0.8|20.5|Transitional Synthesis|
+|V.0.4.2|2026-03-22|44.6|36.4|44.5|38.0|53.2|15.3|44.0|Refactor Compression|
+|V.0.4.3|2026-03-28|59.9|18.3|37.0|20.1|75.0|0.0|18.3|Transitional Synthesis|
+|V.0.4.4.1|2026-04-02|62.4|17.9|33.2|27.6|58.7|3.2|21.8|Transitional Synthesis|
+|V.0.5.0.1|2026-04-04|66.3|16.0|16.1|51.5|65.6|0.0|25.8|Transitional Synthesis|
+|V.0.5.0.2|2026-04-07|65.6|21.4|42.6|19.6|53.6|6.8|20.0|Transitional Synthesis|
+|V.0.5.0.3|2026-04-07|71.6|19.5|55.7|7.6|53.8|5.6|18.9|Entropy Surge|
+|V.0.5.0.4|2026-04-09|55.0|33.0|35.7|36.7|60.9|4.1|34.5|Refactor Compression|
+|V.0.5.0.5|2026-04-10|41.0|36.6|10.1|30.2|46.8|1.5|41.1|Refactor Compression|
+|V.0.5.0.6|2026-04-11|64.8|23.4|12.9|33.7|52.8|4.3|26.7|Transitional Synthesis|
+|V.0.5.0.7|2026-04-12|71.4|21.1|33.5|20.1|59.1|16.6|22.1|Entropy Surge|
+|V.0.5.0.8|2026-04-15|75.4|19.6|23.8|23.4|58.2|7.7|19.5|Entropy Surge|
+|V.0.5.0.9|2026-04-19|53.9|6.0|8.8|12.3|58.0|1.4|12.5|Transitional Synthesis|
+|V.0.5.1.0_Починил_ллм|2026-04-22|67.5|19.9|41.0|31.0|65.9|9.3|20.9|Transitional Synthesis|
+|V.0.5.1.1_Встроил_ТИК_ТАК|2026-04-23|58.9|13.8|11.5|19.4|52.4|1.5|21.9|Transitional Synthesis|
+|V.0.5.1.2_Встроил_ПАМЯТЬ_0.1и0.2|2026-04-25|60.1|8.5|13.3|26.1|58.8|0.0|19.5|Transitional Synthesis|
+|V.0.5.1.3_Встроил_Кратковременную_память|2026-04-25|56.7|11.3|10.9|21.4|56.4|6.3|21.4|Transitional Synthesis|
+|V.0.5.1.4_Начал_чинить_GAME_LOOP|2026-04-26|66.9|30.4|33.0|11.0|55.7|13.1|30.1|Transitional Synthesis|
+|V.0.5.1.5_Продолжаю_починку_игры|2026-04-26|78.0|28.6|31.4|25.6|73.9|23.4|27.6|Entropy Surge|
+|V.0.5.1.6_Продолжаю_починку_2|2026-04-28|52.3|28.7|12.1|32.1|54.3|8.3|32.0|Transitional Synthesis|
+|V.0.5.1.7_Продолжаю_починку_3|2026-04-28|55.6|22.2|13.7|33.4|56.7|0.0|29.5|Transitional Synthesis|
+|V.0.5.1.8_Продолжаю_починку_4|2026-04-30|70.3|16.4|46.1|19.4|70.2|11.5|18.6|Entropy Surge|
+|V.0.5.1.9_Продолжаю_починку_5|2026-04-30|64.3|24.5|14.7|18.7|56.4|30.0|26.7|Transitional Synthesis|
+|V.0.5.2.0_Починил_запуск_игры|2026-05-01|71.0|23.2|34.0|19.6|62.8|17.7|24.3|Entropy Surge|
+|V.0.5.2.1_Пора_сломать_DecisionHub|2026-05-01|20.8|22.7|5.0|34.7|45.1|0.4|34.0|Transitional Synthesis|
+|V.0.5.2.2_Почти_почти|2026-05-02|64.7|19.9|53.0|31.8|73.1|18.3|23.5|Transitional Synthesis|
+|V.0.5.2.3_Почти_почти_2|2026-05-02|70.2|18.7|50.2|23.0|75.4|7.3|17.7|Entropy Surge|
+|V.0.5.2.4_Почти_почти_3|2026-05-03|71.7|24.8|50.6|28.0|72.1|15.9|25.6|Entropy Surge|
+|V.0.5.2.5_Почти_почти_4|2026-05-04|61.0|25.0|58.0|33.4|73.1|13.6|26.9|Transitional Synthesis|
+|V.0.5.2.6_Почти_почти_5|2026-05-05|60.6|38.2|39.4|27.2|48.7|13.5|37.5|Transitional Synthesis|
+|V.0.5.2.7_Почти_почти_6|2026-05-06|47.6|51.5|41.8|32.9|38.8|22.6|49.9|Refactor Compression|
+|V.0.5.2.8_Почти_почти_7|2026-05-07|67.9|26.6|56.8|17.9|59.4|15.8|27.7|Transitional Synthesis|
+|V.0.5.2.9_СМЕНИЛ_подход|2026-05-08|65.7|32.0|62.5|32.2|59.5|29.6|35.8|Transitional Synthesis|
+|V.0.5.3.0.1_НОВАЯ_РЕАЛЬНОСТЬ_1|2026-05-10|71.7|22.7|54.7|17.2|64.8|20.8|23.3|Entropy Surge|
+|V.0.5.3.0.2_НОВАЯ_РЕАЛЬНОСТЬ_2|2026-05-11|71.9|27.0|62.0|30.7|72.8|27.9|29.5|Entropy Surge|
+|V.0.5.3.0.3_НОВАЯ_РЕАЛЬНОСТЬ_3|2026-05-12|72.4|26.3|65.0|14.3|63.5|22.2|21.7|Entropy Surge|
+|V.0.5.3.0.4_ПЕСОЧНИЦЫ_1|2026-05-12|65.6|43.5|67.8|10.8|45.1|15.5|37.8|Transitional Synthesis|
+|V.0.5.3.0.5_ПЕСОЧНИЦЫ_2|2026-05-14|65.2|35.8|65.0|21.9|62.8|26.1|36.2|Causal Stress Integration|
+|V.0.5.3.0.6_ПЕСОЧНИЦЫ_3|2026-05-14|68.6|38.3|66.4|16.7|54.8|5.5|35.6|Entropy Surge|
+|V.0.5.3.0.7_ПЕСОЧНИЦЫ_4|2026-05-16|63.4|41.7|72.8|38.4|58.9|31.5|71.4|Causal Governance Consolidation|
+|V.0.5.3.0.8_ПЕСОЧНИЦЫ_5|2026-05-17|59.8|48.9|78.1|57.2|52.7|44.8|78.0|Distributed Social Physics|
+|V.0.5.3.0.9_Рассвет_1|2026-05-19|54.0|58.0|78.0|56.0|52.0|63.0|84.0|Simulation-Native Orchestration|
+|V.0.5.3.1.0_Рассвет_2|2026-05-19|49.0|63.0|82.0|59.0|49.0|68.0|88.0|Simulation-Native Orchestration|
+|V.0.5.3.1.1_Пространство_и_время|2026-05-21|50.0|64.0|82.5|60.0|50.0|69.0|88.5|Simulation-Native Orchestration|
+|V.0.5.3.1.2_Пространство_и_время_2|2026-05-21|51.0|65.0|83.2|61.5|52.0|70.5|89.0|Embodied Space-Time Runtime|
+|V.0.5.3.1.3_Пространство_и_время_3|2026-05-23|52.0|66.0|84.0|63.0|54.0|72.0|90.0|Embodied Space-Time Runtime|
+|V.0.5.3.1.4_Чиним_НЕРВЫ_1|2026-05-24|47.0|70.0|85.0|66.0|48.0|74.0|91.0|Embodied Space-Time Runtime|
+|V.0.5.3.1.5_Чиним_НЕРВЫ_2|2026-05-31|58.0|68.0|88.0|69.0|57.0|78.0|92.0|Embodied Phenomenology Runtime|
+
+Reading:
+
+- Early project: high `EG`, low `SCS`; large movement, weak coherence.
+- `V.0.5.2.7` is the first visible compression spike: `SR=51.5`, `RPI=38.8`.
+- `V.0.5.3.0.7 -> V.0.5.3.1.5` is the real architectural turn: causality and protocolization rise while runtime pressure stops dominating.
+- The current branch is not "less foolish"; it is more instrumented. The stupidity signal moved from chaos (`EG`) into explicit pressure (`RPI`) and protocol cost (`PG`).
+
+---
+
 ## Causal Skeleton
 
 - `governance_density` -> `stabilization_ratio` (amplifies, r=0.50)
