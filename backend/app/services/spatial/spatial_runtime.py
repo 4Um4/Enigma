@@ -6,7 +6,7 @@ R4 runtime: расстояния XY, LOS, звук, извлечение кон�
 Например, извлечение nearby NPC для major и minor NPC — с разными радиусами и LOS, но общей логикой определения расстояния и видимости.
 Также сюда входят функции для проверки LOS, расчёта звукового радиуса и т.д.
 
-Зависимости: использует LocationGraph для расчёта расстояний по узлам, а также данные о стенах и препятствиях из scene_state.
+Зависимости: использует SpatialService для расчёта расстояний по узлам (ADR-102), а также данные о стенах и препятствиях из scene_state.
 Входные данные: словарь scene_state с ключами location_id, npc_positions, player_spatial, spatial_walls, spatial_obstacles, environment_modifiers и т.д.
 Выходные данные: функции возвращают числовые расстояния, булевы значения LOS, а также извлечённые данные для NPC (nearby, player snapshot, available actions).
 
@@ -30,7 +30,7 @@ from typing import Iterable, Optional
 
 from app.core.config import settings
 from app.core.constants import PERCEPTION_FALLBACK_DISTANCE, PERCEPTION_RADIUS
-from app.services.spatial.location_graph import LocationGraph, load_graph, local_xy_distance
+# ADR-102: load_graph и LocationGraph удалены — заменены на SpatialService
 
 
 def _loc(entity: dict, fallback_location_id: str) -> str:
@@ -71,13 +71,14 @@ def resolve_distance_between_entities(
     scene_state: dict,
     a: dict,
     b: dict,
-    graph: Optional[LocationGraph] = None,
+    spatial_service: Optional["SpatialService"] = None,
 ) -> float:
     """
     R4.3: дистанция в метрах = расстояние между узлами графа + local XY смещение.
+    ADR-102: Использует SpatialService вместо мёртвого load_graph().
 
-    graph — предзагруженный граф для batch-операций (например, в extract_scene_for_npc).
-    Если не передан — загружается автоматически (с кэшем, I/O только при первом вызове).
+    spatial_service — предзагруженный сервис для batch-операций.
+    Если не передан — создаётся из scene_state (campaign_id + location_id).
     Возвращает 999.0 если сущности в разных локациях или узлы не определены.
     """
     location_id = scene_state.get("location_id", "")
@@ -89,10 +90,25 @@ def resolve_distance_between_entities(
     if not node_a or not node_b:
         return 999.0
 
-    if graph is None:
-        graph = load_graph(location_id, data_dir=str(settings.data_dir))
+    if spatial_service is None:
+        from app.services.spatial.spatial_service import SpatialService
+        campaign_id = scene_state.get("campaign_id", "")
+        if not campaign_id:
+            return 999.0
+        spatial_service = SpatialService.build_for_location(
+            campaign_id=campaign_id, location_id=location_id, scene_state=scene_state
+        )
 
-    return local_xy_distance(graph, node_a, node_b, _local(a), _local(b))
+    if spatial_service is None:
+        return 999.0
+
+    node_ref_a = spatial_service.get_node(node_a)
+    node_ref_b = spatial_service.get_node(node_b)
+    if node_ref_a is None or node_ref_b is None:
+        return 999.0
+
+    base = spatial_service.world_distance(node_ref_a.xy, node_ref_b.xy)
+    return round(base + math.dist(_local(a), _local(b)), 2)
 
 
 def _point_to_segment_dist(px: float, py: float, x1: float, y1: float, x2: float, y2: float) -> float:
@@ -250,7 +266,6 @@ def extract_scene_for_npc(
         return {"nearby": [], "player": None, "available_actions": ["wait"]}
 
     location_id = scene_state.get("location_id", "")
-    graph = load_graph(location_id, data_dir=str(settings.data_dir))
 
     # --- Другие NPC в радиусе восприятия ---
     nearby: list[dict] = []

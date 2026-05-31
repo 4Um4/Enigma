@@ -1296,7 +1296,7 @@ class LifeEngine:
             (
                 _DEFAULT_ACTIVITY_MAP[activity]
                 if activity in _DEFAULT_ACTIVITY_MAP
-                else ("tavern_silver_wolf", "common_area", activity)
+                else (npc.get("location", "unknown"), "common_area", activity)
             ),
         )
 

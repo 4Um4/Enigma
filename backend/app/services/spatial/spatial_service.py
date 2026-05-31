@@ -280,6 +280,8 @@ class SpatialService:
         Возвращает список NodeRef от ближайшего к start_xy узла до target_node.
         Пустой список если путь не найден.
         """
+        if target_node is None:
+            return []
         target_id = target_node.node_id
 
         # Находим стартовый узел (ближайший к start_xy в той же зоне)
@@ -393,9 +395,13 @@ class SpatialService:
         self,
         zone_id: str,
         origin_xy: Tuple[float, float],
+        exclude_node_ids: Optional[Set[str]] = None,
     ) -> Optional[NodeRef]:
-        """Самый дальний узел в зоне. Для FLEE: позиция угрозы → самый дальний узел."""
+        """Самый дальний узел в зоне. Для FLEE: позиция угрозы → самый дальний узел.
+        exclude_node_ids — узлы, которые нужно исключить (например, текущий узел NPC)."""
         candidates = [n for n in self._graph.values() if n.zone_id == zone_id]
+        if exclude_node_ids:
+            candidates = [n for n in candidates if n.node_id not in exclude_node_ids]
         if not candidates:
             return None
 

@@ -68,6 +68,12 @@ class PerceivedEntity:
     traversal_progress: float = 0.0              # 0.0 - 1.0 прогресс между текущими waypoint
     traversal_speed: float = 1.5                 # Скорость визуальной интерполяции (м/с)
 
+    # --- Embodied Trace Layer (The Fool v2: Моторные следы) ---
+    is_frozen: bool = False
+    is_shaking: bool = False
+    instability: float = 0.0
+    perception_cues: list = field(default_factory=list) # Словари {cue_key: str}
+
     # --- Cognitive Layer (Спринт 30: Визуализация Cognitive Freeze) ---
     initiative_suppression: float = 0.0          # 0.0-1.0, паралич воли
 

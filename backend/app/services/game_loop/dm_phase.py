@@ -104,7 +104,8 @@ def run_dm_phase(
     # Публикация + STM + время — только при валидном результате
     if dm_result.is_valid:
         _raw_type = shared_context.action_type or "dialogue"
-        publish_classified_player_event(shared_context, location, campaign_id, raw_input)
+        # ADR-091 FIX: publish_classified_player_event перенесён в __init__.py
+        # ПОСЛЕ установки intent_resolution — иначе _semantic_action=None
         # STM: реплика игрока в сессию целевого NPC
         if _raw_type in ("dialogue", "player_interacts") and shared_context.player_target_id:
             game_loop.memory_manager.add_dialogue_turn(

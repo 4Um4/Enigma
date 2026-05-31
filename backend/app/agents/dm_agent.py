@@ -306,6 +306,31 @@ class DmAgent:
                     player_state_block = "Состояние игрока (факт — отражай в повествовании):\n" + "\n".join(_lines)
         builder.add_player_state(player_state_block)
         
+        # Блок 4.5: Наблюдаемые симптомы NPC (The Fool: только видимые следы, не внутренние состояния)
+        # Читаем embodied_traces из доменного PlayerPerceptionDTO (не API-версию с peripheral_cues)
+        if context and not _is_light_dialog:
+            _perception = getattr(context, 'player_perception', None) if hasattr(context, 'player_perception') else (context.get('player_perception') if isinstance(context, dict) else None)
+            _traces = []
+            if isinstance(_perception, dict):
+                _traces = _perception.get('embodied_traces', [])
+            elif _perception and hasattr(_perception, 'embodied_traces'):
+                _traces = _perception.embodied_traces
+            if _traces:
+                _obs_lines = []
+                for _t in _traces:
+                    if isinstance(_t, dict):
+                        _npc_name = _t.get('npc_name', _t.get('npc_id', '???'))
+                        # Собираем наблюдаемые моторные симптомы (не эмоции!)
+                        _symptoms = []
+                        if _t.get('is_shaking'): _symptoms.append("дрожит")
+                        if _t.get('is_frozen'): _symptoms.append("окаменел")
+                        if _t.get('locomotion_instability', 0) > 0.3: _symptoms.append("покачивается")
+                        if _t.get('posture_rigidity', 0) > 0.5: _symptoms.append("напряжённая поза")
+                        if _symptoms:
+                            _obs_lines.append(f"- {_npc_name}: {', '.join(_symptoms)}")
+                if _obs_lines:
+                    builder.add_custom_block("Наблюдаемые симптомы NPC (видимые — отражай в повествовании)", "\n".join(_obs_lines))
+        
         # Блок 5: Проверки — для диалога пропускаем автоуспех
         if not _is_light_dialog:
             checks = rules_result.get("checks", []) if rules_result else []

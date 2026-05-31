@@ -56,6 +56,7 @@ class SceneRenderer:
     def __init__(self, screen: pygame.Surface):
         self.screen = screen
         self._prev_npc_positions: Dict[str, Tuple[float, float]] = {} # ADR-037: Для Temporal Assembly Delay
+        self._hover_npc_id: Optional[str] = None # The Fool v2: Для тултипов наблюдений
         self.font_small = pygame.font.SysFont("consolas", 12)
         self.font_audio = pygame.font.SysFont("consolas", 13, italic=True)
         self.font_body = pygame.font.SysFont("consolas", 13)
@@ -260,13 +261,13 @@ class SceneRenderer:
     ) -> None:
         """Отрисовывает мебель и препятствия из spatial_obstacles (Приоритет: фикс спрайтов объектов)"""
         for obj in obstacles:
+            # Бэкенд отдаёт x, y как левый верхний угол (scene_state_manager:560)
             ox = obj.get("x", 0)
             oy = obj.get("y", 0)
-            size = obj.get("size") or {}
-            ow = size.get("w", obj.get("w", 1))
-            oh = size.get("h", obj.get("h", 1))
+            ow = obj.get("w", 1)
+            oh = obj.get("h", 1)
 
-            sx, sy = self._w2s(ox - ow / 2, oy - oh / 2, cam_x, cam_y)
+            sx, sy = self._w2s(ox, oy, cam_x, cam_y)
             sw, sh = int(ow * SCALE), int(oh * SCALE)
 
             obj_type = obj.get("type", "")
@@ -318,14 +319,13 @@ class SceneRenderer:
 
             sx, sy = self._w2s(render_x, render_y, cam_x, cam_y)
 
-            # Спринт 30: Визуализация Cognitive Freeze (паралич воли)
-            # При initiative_suppression > 0.7 NPC впадает в моторный тремор
-            if entity.initiative_suppression > 0.7:
-                _freeze_power = (entity.initiative_suppression - 0.7) / 0.3  # Нормализуем 0..1
-                _t = pygame.time.get_ticks()
-                # Синусоидальный тремор создает эффект дрожи, а не рандомного прыжка
-                sx += math.sin(_t * 0.05) * _freeze_power * 2.0
-                sy += math.cos(_t * 0.07) * _freeze_power * 2.0
+            # The Fool v2: Моторный рендер (тупой, без эмоций)
+            if entity.is_frozen:
+                pass # Заморожен — микро-анимации idle будут пропущены
+            if entity.is_shaking:
+                _amp = int(entity.instability * 6)
+                sx += random.randint(-_amp, _amp)
+                sy += random.randint(-_amp, _amp)
 
             is_focused = entity.entity_id == focus_id
 
@@ -373,6 +373,20 @@ class SceneRenderer:
             # Спринт 30: Сохраняем визуальную позицию (после интерполяции), а не сырую позицию тика,
             # чтобы на следующем кадре непрерывное движение продолжилось, а не началось с начала
             self._prev_npc_positions[entity.entity_id] = (render_x, render_y)
+            
+            # Отслеживание наведения мыши (для тултипов) — используем экранные координаты
+            _mouse_x, _mouse_y = pygame.mouse.get_pos()
+            if abs(_mouse_x - sx) < 25 and abs(_mouse_y - sy) < 25:
+                self._hover_npc_id = entity.entity_id
+            
+            # Рисуем тултип наблюдения при наведении (hover_text уже на русском из API)
+            if self._hover_npc_id == entity.entity_id and entity.perception_cues:
+                for _cue in entity.perception_cues:
+                    _txt = _cue.get("hover_text") or _cue.get("cue_type", "...")
+                    _font = pygame.font.SysFont("segoeui", 14)
+                    _surf = _font.render(_txt, True, (255, 255, 230))
+                    self.screen.blit(_surf, (sx - _surf.get_width()//2, sy - 30))
+                    break # Показываем только первый (самый важный) cue
 
     def _draw_inference_badges(self, entity: PerceivedEntity, sx: int, sy: int) -> None:
         """Рисует маленькие цветные точки для поведенческих выводов"""

@@ -20,6 +20,8 @@ import asyncio
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
+import logging
+logger = logging.getLogger(__name__)
 
 # GameLoop из backend — тип не аннотируем (Закон 1.1: frontend не знает классы backend)
 # Доступ только через self._loop в runtime
@@ -153,11 +155,14 @@ class GameLoopBridge:
                 if _scene and "npc_positions" in _scene:
                     import copy
                     result.npc_positions = copy.deepcopy(_scene["npc_positions"])
-                    result.world_snapshot = {"npc_positions": result.npc_positions}
+                    # ADR-090: Сохраняем player_perception от бэкенда, не перезаписываем весь snapshot
+                    if not isinstance(result.world_snapshot, dict):
+                        result.world_snapshot = {}
+                    result.world_snapshot["npc_positions"] = result.npc_positions
                     # ADR-019: Без active_traversals фронтенд не может интерполировать движение
                     if "active_traversals" in _scene:
                         result.world_snapshot["active_traversals"] = copy.deepcopy(_scene["active_traversals"])
-                    print(f"[DIAG][BRIDGE] traversals_in_scene={'active_traversals' in _scene} count={len(_scene.get('active_traversals', {}))} npcs_with_traversal={list(_scene.get('active_traversals', {}).keys())}")
+                    logger.debug(f"[PIPELINE][MOVEMENT] traversals_in_scene={'active_traversals' in _scene} count={len(_scene.get('active_traversals', {}))} npcs_with_traversal={list(_scene.get('active_traversals', {}).keys())}")
             except Exception as _ws_err:
                 # Non-critical — позиции обновятся на следующем idle_tick
                 print(f"[BRIDGE] world_snapshot build skipped: {_ws_err}")

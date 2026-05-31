@@ -13,6 +13,36 @@ from app.services.npc.perception_filter import (
     calculate_clarity
 )
 
+import math
+from unittest.mock import MagicMock
+
+
+def _make_spatial_mock(scene: dict) -> MagicMock:
+    """
+    Mock SpatialQueryService из scene dict.
+    Вычисляет дистанцию из (x,y) координат NPC и player_position.
+    NPC без координат → 999.0 (вне радиуса).
+    """
+    mock = MagicMock()
+    player_pos = scene.get("player_position", {})
+    npc_positions = scene.get("npc_positions", {})
+    px = float(player_pos.get("x", 0.0))
+    py = float(player_pos.get("y", 0.0))
+
+    def _player_distances(npc_ids):
+        result = {}
+        for nid in npc_ids:
+            pos = npc_positions.get(nid, {})
+            if "x" in pos and "y" in pos:
+                dx = float(pos["x"]) - px
+                dy = float(pos["y"]) - py
+                result[nid] = math.sqrt(dx * dx + dy * dy)
+            else:
+                result[nid] = 999.0
+        return result
+
+    mock.player_distances.side_effect = _player_distances
+    return mock
 
 def _scene(npc_positions: dict, player_pos: dict,
            light: str = "bright") -> dict:
@@ -26,27 +56,30 @@ def _scene(npc_positions: dict, player_pos: dict,
 class TestNpcDistance:
 
     def test_uses_coordinates_when_available(self) -> None:
-        """R4.3: дистанция считается из (x,y), не из словаря."""
+        """R4.3: дистанция через SpatialQueryService (3-4-5 треугольник)."""
         scene = _scene(
             npc_positions={"guard": {"x": 3.0, "y": 4.0, "activity": "working"}},
             player_pos={"x": 0.0, "y": 0.0},
         )
-        # 3-4-5 треугольник
-        assert _npc_distance("guard", scene) == pytest.approx(5.0)
+        sq = _make_spatial_mock(scene)
+        assert _npc_distance("guard", sq) == pytest.approx(5.0)
 
-    def test_fallback_to_player_distances(self) -> None:
-        """Без координат — fallback на player_distances."""
-        scene = {
-            "npc_positions": {"guard": {"activity": "working"}},
-            "player_position": {},
-            "player_distances": {"guard": 12.5},
-        }
-        assert _npc_distance("guard", scene) == pytest.approx(12.5)
+    def test_uses_spatial_query_service(self) -> None:
+        """_npc_distance делегирует запрос SpatialQueryService."""
+        mock_sq = MagicMock()
+        mock_sq.player_distances.return_value = {"guard": 12.5}
+        assert _npc_distance("guard", mock_sq) == pytest.approx(12.5)
+        mock_sq.player_distances.assert_called_once_with(["guard"])
 
     def test_unknown_npc_returns_999(self) -> None:
-        """Неизвестный NPC — возвращает 999 (далеко)."""
-        scene = _scene({}, {"x": 0.0, "y": 0.0})
-        assert _npc_distance("ghost", scene) == 999.0
+        """Неизвестный NPC — SpatialQueryService не знает его → 999."""
+        mock_sq = MagicMock()
+        mock_sq.player_distances.return_value = {}
+        assert _npc_distance("ghost", mock_sq) == 999.0
+
+    def test_none_spatial_query_returns_999(self) -> None:
+        """None spatial_query → 999 (защитный fallback)."""
+        assert _npc_distance("guard", None) == 999.0
 
 
 class TestCanSee:
@@ -57,7 +90,8 @@ class TestCanSee:
             npc_positions={"npc1": {"x": 10.0, "y": 0.0, "activity": "working"}},
             player_pos={"x": 0.0, "y": 0.0},
         )
-        assert _can_see("npc1", scene, "tavern") is True
+        sq = _make_spatial_mock(scene)
+        assert _can_see("npc1", sq, "tavern", scene) is True
 
     def test_npc_beyond_15m_cannot_see(self) -> None:
         """NPC в 20м не видит событие."""
@@ -65,7 +99,8 @@ class TestCanSee:
             npc_positions={"npc1": {"x": 20.0, "y": 0.0, "activity": "working"}},
             player_pos={"x": 0.0, "y": 0.0},
         )
-        assert _can_see("npc1", scene, "tavern") is False
+        sq = _make_spatial_mock(scene)
+        assert _can_see("npc1", sq, "tavern", scene) is False
 
     def test_sleeping_npc_cannot_see(self) -> None:
         """Спящий NPC не видит даже рядом."""
@@ -73,7 +108,8 @@ class TestCanSee:
             npc_positions={"npc1": {"x": 1.0, "y": 0.0, "activity": "sleeping"}},
             player_pos={"x": 0.0, "y": 0.0},
         )
-        assert _can_see("npc1", scene, "tavern") is False
+        sq = _make_spatial_mock(scene)
+        assert _can_see("npc1", sq, "tavern", scene) is False
 
     def test_dark_room_npc_cannot_see(self) -> None:
         """В темноте NPC не видит."""
@@ -82,17 +118,18 @@ class TestCanSee:
             player_pos={"x": 0.0, "y": 0.0},
             light="dark",
         )
-        assert _can_see("npc1", scene, "tavern") is False
+        sq = _make_spatial_mock(scene)
+        assert _can_see("npc1", sq, "tavern", scene) is False
 
-    def test_fallback_to_location_string(self) -> None:
-        """Без координат — проверка по строке локации."""
+    def test_npc_without_coordinates_cannot_see(self) -> None:
+        """NPC без координат: дистанция 999 → не видит (ADR-048)."""
         scene = {
             "npc_positions": {"npc1": {"location": "tavern", "activity": "working"}},
-            "player_position": {},
+            "player_position": {"x": 0.0, "y": 0.0},
             "environment": {"light_level": "bright"},
         }
-        assert _can_see("npc1", scene, "tavern") is True
-        assert _can_see("npc1", scene, "dungeon") is False
+        sq = _make_spatial_mock(scene)
+        assert _can_see("npc1", sq, "tavern", scene) is False
 
 
 class TestCanHear:
@@ -103,7 +140,8 @@ class TestCanHear:
             npc_positions={"npc1": {"x": 5.0, "y": 0.0, "activity": "sleeping"}},
             player_pos={"x": 0.0, "y": 0.0},
         )
-        assert _can_hear("npc1", scene, radius=20.0) is True
+        sq = _make_spatial_mock(scene)
+        assert _can_hear("npc1", sq, radius=20.0, scene_state=scene) is True
 
     def test_quiet_sound_does_not_wake_sleeping_npc(self) -> None:
         """Тихий звук radius=5 не будит спящего."""
@@ -111,7 +149,8 @@ class TestCanHear:
             npc_positions={"npc1": {"x": 3.0, "y": 0.0, "activity": "sleeping"}},
             player_pos={"x": 0.0, "y": 0.0},
         )
-        assert _can_hear("npc1", scene, radius=5.0) is False
+        sq = _make_spatial_mock(scene)
+        assert _can_hear("npc1", sq, radius=5.0, scene_state=scene) is False
 
     def test_awake_npc_hears_within_radius(self) -> None:
         """Бодрствующий NPC слышит звук в пределах радиуса."""
@@ -119,8 +158,9 @@ class TestCanHear:
             npc_positions={"npc1": {"x": 8.0, "y": 0.0, "activity": "working"}},
             player_pos={"x": 0.0, "y": 0.0},
         )
-        assert _can_hear("npc1", scene, radius=10.0) is True
-        assert _can_hear("npc1", scene, radius=5.0)  is False
+        sq = _make_spatial_mock(scene)
+        assert _can_hear("npc1", sq, radius=10.0, scene_state=scene) is True
+        assert _can_hear("npc1", sq, radius=5.0,  scene_state=scene) is False
 
 
 class TestFilterIntegration:
@@ -149,8 +189,9 @@ class TestFilterIntegration:
             "visible_to": [],
             "audible_to": [],
         }
+        sq = _make_spatial_mock(scene)
         result = filter_perceiving_npcs(
-            ["guard_close", "guard_far"], event, scene
+            ["guard_close", "guard_far"], event, scene, sq
         )
         assert "guard_close" in result, "Близкий NPC должен воспринять событие"
         assert "guard_far"   not in result, "Дальний NPC не должен воспринять событие"      

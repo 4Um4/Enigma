@@ -74,17 +74,51 @@ def compile_graph(
         logger.warning(f"[GRAPH_COMPILER] Нет узлов (rooms/nodes) в {location_id}")
         return {}, {}, {}
 
+    # ADR-091: Фильтрация container-комнат (внешних границ от Map Editor)
+    # Комната, полностью содержащая другую — это внешняя граница, не навигационная зона.
+    room_ids = list(rooms.keys())
+    container_ids = set()
+    
+    for i in range(len(room_ids)):
+        for j in range(len(room_ids)):
+            if i == j: continue
+            r1 = rooms[room_ids[i]]
+            r2 = rooms[room_ids[j]]
+            
+            x1_min, y1_min = r1.get("x", 0.0), r1.get("y", 0.0)
+            x1_max = x1_min + r1.get("width", 0.0)
+            y1_max = y1_min + r1.get("height", 0.0)
+            
+            x2_min, y2_min = r2.get("x", 0.0), r2.get("y", 0.0)
+            x2_max = x2_min + r2.get("width", 0.0)
+            y2_max = y2_min + r2.get("height", 0.0)
+            
+            # Если r1 полностью содержит r2
+            if x1_min <= x2_min + 0.5 and y1_min <= y2_min + 0.5 and \
+               x1_max >= x2_max - 0.5 and y1_max >= y2_max - 0.5:
+                container_ids.add(room_ids[i])
+                logger.warning(f"[GRAPH_COMPILER] Комната '{room_ids[i]}' содержит '{room_ids[j]}'. Это внешняя граница — исключена из графа.")
+
+    if container_ids:
+        rooms = {rid: data for rid, data in rooms.items() if rid not in container_ids}
+
     # 1. Компиляция узлов
     for room_id, room_data in rooms.items():
         canonical_id = f"{location_id}:{room_id}"
-        x = room_data.get("x", 0.0)
-        y = room_data.get("y", 0.0)
+        # Map Editor отдаёт x, y как левый верхний угол. Вычисляем центроид для NodeRef.
+        rx = room_data.get("x", 0.0)
+        ry = room_data.get("y", 0.0)
+        rw = room_data.get("width") or room_data.get("w") or 0.0
+        rh = room_data.get("height") or room_data.get("h") or 0.0
+        
+        center_x = rx + rw / 2
+        center_y = ry + rh / 2
         
         # Формируем NodeRef. Резолвер принимает только строковые типы, не весь dict.
         node_ref = NodeRef(
             node_id=canonical_id,
-            x=x,
-            y=y,
+            x=center_x,
+            y=center_y,
             role=resolve_role(
                 node_label=room_data.get("name", room_id), 
                 editor_type=room_data.get("type"), 
@@ -110,7 +144,6 @@ def compile_graph(
     # компилятор выводит связи из смежности полигонов комнат. Двери фильтруют проходимость, 
     # но не определяют существование топологии (разрушаемость = путь открывается).
     if not passages and len(rooms) > 1:
-        logger.info(f"[GRAPH_COMPILER] passages пуст. Запуск Adjacency Inference для {location_id}")
         passages = _infer_connections_from_adjacency(rooms)
 
     for passage in passages:
@@ -266,3 +299,69 @@ def load_editor_json(
 
     logger.warning(f"[GRAPH_COMPILER] editor JSON не найден для {campaign_id}/{location_id}")
     return None
+
+def _infer_adjacency_from_bounds(rooms: dict, tolerance: float = 0.5) -> list:
+    """Инференс смежности: если bounding box-ы комнат имеют общую стену,
+    между ними создаётся passage. Это масштабируемая основа: двери потом модифицируют этот путь.
+    ADR-091: Комната, полностью содержащая другую — это внешняя граница (container), не навигационная зона."""
+    
+    # ADR-091: Фильтрация container-комнат (внешних границ от Map Editor)
+    room_ids = list(rooms.keys())
+    container_ids = set()
+    
+    for i in range(len(room_ids)):
+        for j in range(len(room_ids)):
+            if i == j: continue
+            r1 = rooms[room_ids[i]]
+            r2 = rooms[room_ids[j]]
+            
+            x1_min, y1_min = r1.get("x", 0.0), r1.get("y", 0.0)
+            x1_max = x1_min + r1.get("width", 0.0)
+            y1_max = y1_min + r1.get("height", 0.0)
+            
+            x2_min, y2_min = r2.get("x", 0.0), r2.get("y", 0.0)
+            x2_max = x2_min + r2.get("width", 0.0)
+            y2_max = y2_min + r2.get("height", 0.0)
+            
+            # Если r1 полностью содержит r2
+            if x1_min <= x2_min + tolerance and y1_min <= y2_min + tolerance and \
+               x1_max >= x2_max - tolerance and y1_max >= y2_max - tolerance:
+                container_ids.add(room_ids[i])
+                logger.warning(f"[GRAPH_COMPILER] Комната '{room_ids[i]}' содержит '{room_ids[j]}'. Это внешняя граница — исключена из графа.")
+
+    filtered_rooms = {rid: rooms[rid] for rid in rooms if rid not in container_ids}
+    
+    connections = []
+    filtered_ids = list(filtered_rooms.keys())
+    
+    for i in range(len(filtered_ids)):
+        for j in range(i + 1, len(filtered_ids)):
+            r1 = filtered_rooms[filtered_ids[i]]
+            r2 = filtered_rooms[filtered_ids[j]]
+            
+            # Bounding Box: x, y, width, height
+            x1_min, y1_min = r1.get("x", 0.0), r1.get("y", 0.0)
+            x1_max = x1_min + r1.get("width", 0.0)
+            y1_max = y1_min + r1.get("height", 0.0)
+            
+            x2_min, y2_min = r2.get("x", 0.0), r2.get("y", 0.0)
+            x2_max = x2_min + r2.get("width", 0.0)
+            y2_max = y2_min + r2.get("height", 0.0)
+            
+            # Вертикальная общая стена (r1 справа или слева от r2)
+            if abs(x1_max - x2_min) < tolerance or abs(x2_max - x1_min) < tolerance:
+                # Проверяем перекрытие по Y
+                y_overlap = min(y1_max, y2_max) - max(y1_min, y2_min)
+                if y_overlap > tolerance:
+                    connections.append({"from": filtered_ids[i], "to": filtered_ids[j]})
+                    continue
+                    
+            # Горизонтальная общая стена (r1 над или под r2)
+            if abs(y1_max - y2_min) < tolerance or abs(y2_max - y1_min) < tolerance:
+                # Проверяем перекрытие по X
+                x_overlap = min(x1_max, x2_max) - max(x1_min, x2_min)
+                if x_overlap > tolerance:
+                    connections.append({"from": filtered_ids[i], "to": filtered_ids[j]})
+                    continue
+                    
+    return connections

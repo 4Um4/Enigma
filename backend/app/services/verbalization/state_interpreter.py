@@ -270,9 +270,9 @@ class StateInterpreter:
         """GAP5 FIX: Физиология говорит правду. Боль и шок перекрывают RPG-абстракцию HP.
         NPC с 80% HP, но с агонизирующей болью (pain: 0.9) больше не "слегка ранен".
         """
-        pain = body_state.get("pain", 0.0)
-        shock = body_state.get("shock_impulse", 0.0)
-        blood_loss = body_state.get("blood_loss", 0.0)
+        pain = body_state.get("pain", 0.0) / 100.0     # Нормализация 0-100 → 0-1 (как pressure_derivation.py:24)
+        shock = body_state.get("shock_impulse", 0.0)    # Уже 0-1 (tick_orchestrator.py:650)
+        blood_loss = body_state.get("blood_loss", 0.0)  # Уже 0-1 (state_applicator.py:499)
 
         # Шок доминирует: NPC в нокауте или на грани
         if shock > 0.8:

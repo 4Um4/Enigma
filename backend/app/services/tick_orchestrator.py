@@ -222,15 +222,18 @@ class TickOrchestrator:
         Кэш не используется для подмены отсутствующего сервиса в новом контексте.
         """
         # 1. Авторитетный источник: передан через NpcTickServices из npc_orchestration
-        _has_svc = ctx.npc_services and hasattr(ctx.npc_services, 'spatial_service') and ctx.npc_services.spatial_service
-        print(f"[DIAG][SPATIAL_RESOLVE] npc_services={ctx.npc_services is not None}, has_svc={_has_svc}")
-        if _has_svc:
+        if ctx.npc_services and hasattr(ctx.npc_services, 'spatial_service') and ctx.npc_services.spatial_service:
             self._spatial_service = ctx.npc_services.spatial_service
             return self._spatial_service
-            
+
+        # 1.5. Кэш текущего тика: tick_player_turn уже резолвил сервис,
+        # но execute_player_finalize создаёт новый _TickContext без npc_services (ADR-065).
+        # Переиспользуем уже установленный сервис вместо аварийной сборки.
+        if self._spatial_service:
+            return self._spatial_service
+
         # 2. Аварийная сборка из scene_state (если GameLoop не пробросил сервис)
         _loc_id = ctx.scene_state.get("location_id", "")
-        print(f"[DIAG][SPATIAL_RESOLVE] loc_id='{_loc_id}', campaign_id='{ctx.campaign_id}'")
         if _loc_id:
             try:
                 logger.warning(f"[SPATIAL_AUTHORITY] ADR-048 VIOLATION: SpatialService собран вручную для {_loc_id}. GameLoop не пробросил сервис!")
@@ -239,10 +242,9 @@ class TickOrchestrator:
                     location_id=_loc_id,
                     scene_state=ctx.scene_state,
                 )
-                print(f"[DIAG][SPATIAL_RESOLVE] Emergency build result: {self._spatial_service is not None}")
                 return self._spatial_service
             except Exception as e:
-                print(f"[DIAG][SPATIAL_RESOLVE] CRASH during emergency build: {type(e).__name__}: {e}")
+                logger.error(f"[SPATIAL_AUTHORITY] Crash during emergency build: {type(e).__name__}: {e}")
                 return None
             
         return None
@@ -390,7 +392,7 @@ class TickOrchestrator:
             if axis == CausalAxis.PHYSICAL:
                 vectors.append(DisturbanceVector.KINETIC)
                 vectors.append(DisturbanceVector.ACOUSTIC)
-                if event.type in ("PLAYER_ATTACKS", "NPC_ATTACKED"):
+                if event.type in ("PLAYER_ATTACKS", "PLAYER_ATTACKED", "NPC_ATTACKED"):
                     vectors.append(DisturbanceVector.MATTER)
             elif axis == CausalAxis.COGNITIVE:
                 vectors.append(DisturbanceVector.BEHAVIORAL)
@@ -540,7 +542,7 @@ class TickOrchestrator:
           # ADR-031 Fix: Проброс вектора давления из Фазы 1
         _intent_res = shared_context.intent_resolution
         ctx = _TickContext(
-            campaign_id=shared_context.scene_state.get("location_id", ""),
+            campaign_id=campaign_id, # ПОЧИНКА: Берем из аргумента, а не из location_id!
             scene_state=shared_context.scene_state or {},
             tick_number=shared_context.current_tick or 0,
             dm_ctx=None,  # уже обработан в tick_player_turn
@@ -655,11 +657,11 @@ class TickOrchestrator:
 
         # ADR-035: Обработка реактивных перемещений (MovementIntents)
         # В player turn LifeEngine не вызывается, поэтому MovementEngine нужно вызвать вручную
-        print(f"[DIAG] player_result={ctx.player_result is not None} movement_intents={len(ctx.player_result.movement_intents) if ctx.player_result and ctx.player_result.movement_intents else 0}")
+        logger.debug(f"[PIPELINE][MOVEMENT] player_result={ctx.player_result is not None} movement_intents={len(ctx.player_result.movement_intents) if ctx.player_result and ctx.player_result.movement_intents else 0}")
         if ctx.player_result and ctx.player_result.movement_intents:
             from app.services.spatial.movement_engine import MovementEngine
             _spatial_svc = self._resolve_spatial_service(ctx)
-            print(f"[DIAG] spatial_svc={_spatial_svc is not None} scene_manager={self._scene_manager is not None}")
+            logger.debug(f"[PIPELINE][MOVEMENT] spatial_svc={_spatial_svc is not None} scene_manager={self._scene_manager is not None}")
             if _spatial_svc:
                 me = MovementEngine()
                 me.set_spatial_service(_spatial_svc)
@@ -669,21 +671,40 @@ class TickOrchestrator:
                     ctx.scene_state.get("npc_positions", {}),
                     campaign_id=ctx.campaign_id, scene_state=ctx.scene_state
                 )
-                print(f"[DIAG] changes={len(changes)} scene_manager={self._scene_manager is not None}")
+                logger.debug(f"[PIPELINE][MOVEMENT] changes={len(changes)} scene_manager={self._scene_manager is not None}")
                 if changes and self._scene_manager:
                     self._scene_manager.apply_changes(ctx.campaign_id, changes, ctx.scene_state)
                     logger.warning(f"[PLAYER_TURN] Applied {len(changes)} reactive movement changes")
                 elif changes and not self._scene_manager:
-                    print(f"[DIAG] CRITICAL: scene_manager is None! Changes lost!")
+                    logger.error("[PIPELINE][MOVEMENT] CRITICAL: scene_manager is None! Changes lost!")
             else:
                 logger.error("[SPATIAL_AUTHORITY] SpatialService отсутствует, реактивное движение заблокировано.")
 
         # Фаза 0.5: время не останавливается (decay = всегда)
         self._phase_0_5_idle_services(ctx)
         # Фазы 8→9→10 — единая последовательность (Устав §3)
+        # Диагностика: проверяем pending до drain
         self._phase_8_player_handlers(ctx)
         self._phase_9_player_integration(ctx)
         self._phase_10_player_persistence(ctx)
+
+        # Perception pipeline для action tick (тот же что idle tick)
+        # Без этого action response не содержит player_perception → cues_received=0
+        # ADR-092: Perception pipeline для action tick
+        if ctx.scene_state and ctx.all_npcs_raw:
+            if not hasattr(self, '_manifest_svc'):
+                from app.services.perception.behavior_manifestation_service import BehaviorManifestationService
+                from app.services.perception.phenomenology_projection_service import PhenomenologyProjectionService
+                self._manifest_svc = BehaviorManifestationService()
+                self._project_svc = PhenomenologyProjectionService()
+            
+            _traces = self._manifest_svc.produce_traces(ctx.scene_state, all_npcs_raw=ctx.all_npcs_raw)
+            _player_perception = self._project_svc.project(_traces, ctx.scene_state, tick=ctx.tick_number)
+            
+            # Сохраняем для __init__.py snapshot builder
+            if ctx.shared_context:
+                ctx.shared_context.player_perception = _player_perception
+                ctx.shared_context.all_npcs_raw_snapshot = ctx.all_npcs_raw
 
         # Возвращаем обновлённый результат (с finalize_result)
         return ctx.player_result
@@ -1433,6 +1454,7 @@ class TickOrchestrator:
                 fatigue=float(body_state.get("fatigue", 0.0)),
                 blood_loss=float(body_state.get("blood_loss", 0.0)),
                 consciousness=float(body_state.get("consciousness", 1.0)),
+                shock_impulse=float(body_state.get("shock_impulse", 0.0)),
                 injuries_by_zone=injuries_by_zone,
                 base_abilities=_base_abilities,
                 modifiers=_modifiers,
@@ -1563,7 +1585,10 @@ class TickOrchestrator:
                 groups[key] = d
 
         # Слияние: алгебраические (свернутые) + физические (как есть, без merge)
-        return list(groups.values()) + physics_deltas
+        _result = list(groups.values()) + physics_deltas
+        if physics_deltas:
+            logger.debug(f"[AGGREGATE] algebraic={len(groups.values())} physics={len(physics_deltas)} physics_domains={[d.domain for d in physics_deltas[:3]]}")
+        return _result
 
     def _phase_8_drain_secondary(self, ctx: _TickContext) -> None:
         """ФАЗА 8: Layered Reduction (Causal Depth Model).
@@ -1611,6 +1636,9 @@ class TickOrchestrator:
     ) -> Optional[Phase8Result]:
         """Исполняет один обработчик Фазы 8 с изолированным контекстом."""
         events = handler.drain_events()
+        _handler_name = getattr(handler, '__class__', type(handler)).__name__
+        if events:
+            logger.debug(f"[PHASE8_DRAIN] handler={_handler_name} events={len(events)} types={[getattr(e, 'type', '?') for e in events[:3]]}")
         if not events:
             return None
 
@@ -1619,19 +1647,28 @@ class TickOrchestrator:
             if ctx.player_result is not None
             else []
         )
-        phase8_ctx = Phase8Context(
-            all_npcs_raw=ctx.all_npcs_raw,
-            all_npc_contexts=_npc_contexts,
-            shared_context=ctx.shared_context,
-            campaign_id=ctx.campaign_id,
-            tick_ctx=ctx,
-            physical_deltas_materialized=physical_deltas_materialized,
-        )
+        try:
+            phase8_ctx = Phase8Context(
+                all_npcs_raw=ctx.all_npcs_raw,
+                all_npc_contexts=_npc_contexts,
+                shared_context=ctx.shared_context,
+                campaign_id=ctx.campaign_id,
+                tick_ctx=ctx,
+                physical_deltas_materialized=physical_deltas_materialized,
+            )
+        except Exception as _ctx_err:
+            print(f"[PHASE8_CTX_CRASH] handler={_handler_name} error={type(_ctx_err).__name__}: {_ctx_err}")
+            import traceback
+            traceback.print_exc()
+            return None
 
         try:
             result = handler.handle(events, phase8_ctx)
         except Exception as e:
-            # Safeguard: потеря событий в одном тике допустима, крах — нет
+            # Safeguard: потеря событий в одном тике допустима, краш — нет
+            print(f"[PHASE8_CRASH] handler={handler.name} error={type(e).__name__}: {e}")
+            import traceback
+            traceback.print_exc()
             logger.error(
                 f"[PHASE_8] {handler.name} handle() failed: {e}. "
                 f"Events lost this tick."
@@ -1754,6 +1791,19 @@ class TickOrchestrator:
                             initiative_suppression=pk_dict.get("initiative_suppression", 0.0)
                         )
                         
+                        # ТЗ EMBODIED UI: Генерация ProjectionFrame (T+0)
+                        from app.domain.perception import ProjectionFrame
+                        if projected_kernel.threat_gradient > 0.05 or projected_kernel.initiative_suppression > 0.2:
+                            signal = "avoid_gaze" if projected_kernel.threat_gradient > 0.5 else ("freeze" if projected_kernel.initiative_suppression > 0.7 else "calm")
+                            _projection_frames.append(ProjectionFrame(
+                                entity_id=entity_id,
+                                threat=projected_kernel.threat_gradient,
+                                suppression=projected_kernel.initiative_suppression,
+                                salience=max(projected_kernel.threat_gradient, projected_kernel.initiative_suppression),
+                                embodied_signal=signal,
+                                expires_tick=ctx.tick_number + 3
+                            ))
+
                         # ADR-049: Интеграция аффективного давления (Страх = интеграл угрозы по времени)
                         current_load = npc_raw.get("affective_load", 0.0)
                         new_load = integrate_affective_pressure(projected_kernel, current_load, psyche)
@@ -1779,25 +1829,33 @@ class TickOrchestrator:
         player_dict = next((n for n in ctx.all_npcs_raw if n.get("npc_id") == "player"), None)
         _avatar_projection = assemble_avatar_presentation(player_dict) if player_dict else None
 
-        # ТЗ EMBODIED UI PERCEPTION: Симметричная онтология восприятия (Слои 1-5)
-        from app.services.perception.phenomenology_projection_service import PhenomenologyProjectionService
+        # ТЗ EMBODIED UI PERCEPTION: Правильный пайплайн T+0
+        from app.domain.perception import ProjectionFrame
         from app.services.perception.perceptual_attention_service import PerceptualAttentionService
+        from app.services.perception.phenomenology_projection_service import PhenomenologyProjectionService
         from app.domain.snapshot import AvatarStateDTO
         
-        _projector = PhenomenologyProjectionService()
-        _attention = PerceptualAttentionService()
-        _location_id = ctx.scene_state.get("location_id", "")
+        # Безопасная инициализация фреймов (создаются в CFRM блоке выше)
+        if '_projection_frames' not in locals():
+            _projection_frames: List[ProjectionFrame] = []
+
+        # The Fool v2: BehaviorManifestation (Фаза 8.5) + Phenomenology Projection (Фаза 9)
+        from app.services.perception.behavior_manifestation_service import BehaviorManifestationService
+        from app.services.perception.phenomenology_projection_service import PhenomenologyProjectionService
+        from app.domain.snapshot import AvatarStateDTO, PlayerPerceptionDTO
+        if not hasattr(self, '_manifest_svc'):
+            self._manifest_svc = BehaviorManifestationService()
+            self._project_svc = PhenomenologyProjectionService()
+            self._attention_svc = PerceptualAttentionService()
+            
+        # Шаг 1: Моторные следы (Тело -> Наблюдение)
+        _traces = self._manifest_svc.produce_traces(ctx.scene_state, all_npcs_raw=ctx.all_npcs_raw)
         
-        # Шаг 1: Генерация смыслов (Сырые стейты -> PerceptionEvent)
-        _perception_events = _projector.project(ctx.all_npcs_raw, ctx.tick_number, _location_id)
-        # Шаг 2: Диафрагма внимания (PerceptionEvent + AvatarState -> PlayerPerceptionDTO)
-        # Защита от None: если аватар не найден, используем дефолтный стейт (без искажений)
-        _avatar_for_perception = _avatar_projection if _avatar_projection else AvatarStateDTO()
-        _player_perception = _attention.build_perception(_perception_events, _avatar_for_perception, ctx.tick_number)
+        # Шаг 2: Трансляция следов в смыслы (без телепатии) + Диафрагма внимания
+        _player_perception = self._project_svc.project(_traces, ctx.scene_state, tick=ctx.tick_number)
         
-        # PIPELINE TRACE: Верификация генерации смыслов
-        logger.info(f"[PERCEPTION_TRACE] Events={len(_perception_events)} | Active={len(_player_perception.active_perceptions)} | Cues={len(_player_perception.peripheral_cues)}")
-        
+        logger.debug(f"[PERCEPTION_PIPELINE] T+0 SUCCESS: Traces={len(_traces)} | Cues={len(_player_perception.active_perceptions)}")
+
         builder = self._get_snapshot_builder()
         ctx.world_snapshot = builder.build(
             scene_state=ctx.scene_state,

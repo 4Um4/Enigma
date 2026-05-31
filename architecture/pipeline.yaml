@@ -30,6 +30,38 @@ nodes:
     type: external
     layer: Infrastructure
     label: "LLM API (llama-server :8080)"
+  TickContext:
+    type: dto
+    layer: Application
+    label: "Tick Context"
+  BehaviorManifestationService:
+    type: service
+    layer: Application
+    label: "Behavior Manifestation Service"
+  PhenomenologyProjectionService:
+    type: service
+    layer: Application
+    label: "Phenomenology Projection Service"
+  WorldSnapshotBuilder:
+    type: service
+    layer: Application
+    label: "World Snapshot Builder"
+  EmbodiedTraceDTO:
+    type: dto
+    layer: Domain
+    label: "Embodied Trace DTO"
+  PlayerPerceptionDTO:
+    type: dto
+    layer: Domain
+    label: "Player Perception DTO"
+  DMAgent:
+    type: service
+    layer: Application
+    label: "DM Agent (Narrative)"
+  PipelineContext:
+    type: dto
+    layer: Application
+    label: "Pipeline Context"
 edges:
   - from: LifeEngine
     to: DeltaBuffer
@@ -63,6 +95,30 @@ edges:
     label: "commits state"
     condition: "Atomic commit"
     code_ref: "state_applicator.py"
+  - from: StateApplicator
+    to: BehaviorManifestationService
+    label: "reads npc_positions (stress_delta, psyche_state)"
+    condition: "Phase 8.5"
+    code_ref: "behavior_manifestation_service.py"
+    adr_ref: "The Fool v2"
+  - from: BehaviorManifestationService
+    to: PhenomenologyProjectionService
+    label: "EmbodiedTraceDTO"
+    condition: "Phase 9"
+    code_ref: "phenomenology_projection_service.py"
+    adr_ref: "The Fool v2"
+  - from: PhenomenologyProjectionService
+    to: WorldSnapshotBuilder
+    label: "Domain PlayerPerceptionDTO"
+    condition: "Phase 9"
+    code_ref: "world_snapshot_builder.py"
+    adr_ref: "The Fool v2"
+  - from: WorldSnapshotBuilder
+    to: APIRoutes
+    label: "Canonical PlayerPerceptionDTO (peripheral_cues, embodied_traces)"
+    condition: "API Response"
+    code_ref: "routes.py"
+    adr_ref: "The Fool v2"
   - from: TickOrchestrator
     to: LlamaServer
     label: "query LLM"
@@ -75,6 +131,24 @@ edges:
     condition: "On Enter key. 'сюда'/'мне' -> target_ref='player' (GAP11 FIX)"
     code_ref: "intent_compressor.py:93-98"
     edge_type: thick
+  - from: TickOrchestrator
+    to: TickContext
+    label: "creates context"
+    condition: "Must use authentic campaign_id"
+    code_ref: "tick_orchestrator.py"
+    adr_ref: "ADR-089"
+  - from: TickOrchestrator
+    to: PipelineContext
+    label: "writes player_perception"
+    condition: "Phase 9: embodied_traces from PhenomenologyProjection"
+    code_ref: "tick_orchestrator.py:712"
+    adr_ref: "ADR-093"
+  - from: PipelineContext
+    to: DMAgent
+    label: "reads embodied_traces (observable symptoms only)"
+    condition: "The Fool: DM sees traces, not internal states"
+    code_ref: "dm_agent.py:309-324"
+    adr_ref: "ADR-093"
 constraints:
   - source: LifeEngine
     target: NPC_Position
@@ -89,8 +163,53 @@ constraints:
   - source: TickOrchestrator
     target: Time
     rule: "FORBIDDEN: TICK_CATCHUP loops (ADR-047)"
+  - source: TickOrchestrator
+    target: TickContext
+    rule: "FORBIDDEN: Emergency SpatialService build when cache exists (ADR-065)"
+    condition: "execute_player_finalize creates _TickContext without npc_services — must reuse self._spatial_service"
+    adr_ref: "ADR-065"
     code_ref: "ADR-047"
     adr_ref: "No Retro-simulation"
+  - source: TickOrchestrator
+    target: TickContext
+    rule: "FORBIDDEN: Use location_id as campaign_id (ADR-089)"
+    condition: "location_id is room, campaign_id is world"
+    code_ref: "tick_orchestrator.py"
+    adr_ref: "ADR-089"
+ownership:
+  DeltaBuffer:
+    owner: "TickOrchestrator"
+    creates: "Various services via event_bus.publish"
+    modifies: "StateApplicator (apply_batch)"
+    reads: "StateApplicator"
+    constraint: "ALL state mutations MUST go through DeltaBuffer. Direct mutation = architectural violation (ADR-001)."
+  TickContext:
+    owner: "TickOrchestrator"
+    creates: "TickOrchestrator"
+    modifies: "TickOrchestrator"
+    reads: "SpatialService, MovementEngine"
+  PipelineContext:
+    owner: "TickOrchestrator"
+    creates: "context_builder"
+    modifies: "TickOrchestrator (writes player_perception)"
+    reads: "DMAgent, NPC orchestration"
+  WorldSnapshotDTO:
+    owner: "WorldSnapshotBuilder"
+    creates: "WorldSnapshotBuilder (immutable projection)"
+    modifies: "N/A"
+    reads: "APIRoutes → Frontend"
+    constraint: "Snapshot is a PROJECTION, not state. Must not be written back."
+  EmbodiedTraceDTO:
+    owner: "BehaviorManifestationService"
+    creates: "BehaviorManifestationService"
+    modifies: "N/A (immutable)"
+    reads: "PhenomenologyProjectionService"
+    constraint: "Rule X: only body_state inputs. No psyche. No emotions."
+  PlayerPerceptionDTO:
+    owner: "PhenomenologyProjectionService"
+    creates: "PhenomenologyProjectionService"
+    modifies: "N/A (immutable)"
+    reads: "WorldSnapshotBuilder"
 sequences:
   - title: "Pipeline Tick Execution Flow"
     participants: [TickOrchestrator, LifeEngine, DeltaBuffer, StateApplicator, SQLiteDB]

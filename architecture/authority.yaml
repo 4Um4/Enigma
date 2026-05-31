@@ -34,6 +34,14 @@ nodes:
     type: dto
     layer: Domain
     label: "Event DTO (NPC_SPOKE)"
+  IntentCompressor:
+    type: service
+    layer: Application
+    label: "Intent Compressor (Fast Path)"
+  EmotionalVector:
+    type: dto
+    layer: Domain
+    label: "Emotional Vector (Aggression/Fear)"
 edges:
   - from: WillpowerGate
     to: DecisionHub
@@ -80,6 +88,18 @@ edges:
     condition: "Player is observer candidate"
     code_ref: "local_causal_solver.py:320-324"
     adr_ref: "GAP7 FIX"
+  - from: IntentCompressor
+    to: EmotionalVector
+    label: "injects emotions in Fast Path"
+    condition: "ATTACK -> aggression=0.8; THREATEN -> aggression=0.5"
+    code_ref: "intent_compressor.py:130"
+    adr_ref: "ADR-088"
+  - from: EmotionalVector
+    to: WillpowerGate
+    label: "provides emotional charge"
+    condition: "Determines resistance level"
+    code_ref: "will.py"
+    adr_ref: "ADR-088"
 constraints:
   - source: DecisionHub
     target: Raw_Delta
@@ -91,6 +111,40 @@ constraints:
     rule: "FORBIDDEN: Direct movement generation"
     code_ref: "ADR-043"
     adr_ref: "Social Physics"
+  - source: IntentCompressor
+    target: EmotionalVector
+    rule: "FORBIDDEN: Return default 0.0 vector for ATTACK (ADR-088)"
+    condition: "Must inject aggression > 0"
+    code_ref: "ADR-088"
+  - source: StateInterpreter
+    target: EmotionTag
+    rule: "FORBIDDEN: Derive psychological state from stress (ADR-104)"
+    condition: "stress → UrgencyLevel.SCARED duplicates EmotionTag set by EmotionResolution. EmotionResolution uses personality; StateInterpreter does not. Same stress produces FEARFUL for anxious NPC but ANGRY for aggressive NPC — StateInterpreter cannot know this."
+    code_ref: "state_interpreter.py:46-50"
+    adr_ref: "ADR-104"
+    severity: CRITICAL
+ownership:
+  EmotionTag:
+    owner: "EmotionResolution (physiology domain)"
+    creates: "EmotionResolution"
+    modifies: "EmotionResolution via EmotionPayload"
+    reads: "DecisionHub, Verbalization, scene_outcome_builder"
+    constraint: "ONE owner. StateInterpreter may READ but never COMPUTE EmotionTag."
+  EmotionalVector:
+    owner: "IntentCompressor"
+    creates: "IntentCompressor (Fast Path + Slow Path)"
+    modifies: "N/A (immutable per intent)"
+    reads: "WillpowerGate"
+  WillState:
+    owner: "WillpowerGate"
+    creates: "WillpowerGate"
+    modifies: "WillpowerGate"
+    reads: "VerbalizationContext, DecisionHub"
+  DecisionResult:
+    owner: "DecisionHub"
+    creates: "DecisionHub (from utility deformation)"
+    modifies: "N/A (immutable)"
+    reads: "StateApplicator, Verbalization, scene_outcome_builder"
 sequences:
   - title: "Player Command Execution Flow"
     participants: [PlayerInput, DirectiveInterpreter, BodyState, WillpowerGate, DecisionHub]
@@ -111,3 +165,12 @@ sequences:
       - from: DecisionHub
         to: DecisionHub
         message: "5. Generate Intent (APPROACH/FLEE)"
+  - title: "Fast Path Emotional Injection Flow (ADR-088)"
+    participants: [IntentCompressor, EmotionalVector, WillpowerGate]
+    steps:
+      - from: IntentCompressor
+        to: EmotionalVector
+        message: "1. Map ActionType.ATTACK -> aggression=0.8"
+      - from: EmotionalVector
+        to: WillpowerGate
+        message: "2. Evaluate resistance based on aggression"

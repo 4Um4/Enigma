@@ -140,9 +140,17 @@ def test_sound_reach_modified_by_noise_and_density() -> None:
 
 
 def test_perception_filter_uses_spatial_runtime() -> None:
+    from unittest.mock import MagicMock
     scene = _scene()
-    assert _can_see("npc_b", scene, "tavern_silver_wolf") is True
-    assert _can_hear("npc_far", scene, radius=1.0) is False
+
+    _distances = {"npc_b": 5.0, "npc_far": 25.0}
+    mock_sq = MagicMock()
+    mock_sq.player_distances.side_effect = (
+        lambda ids: {nid: _distances.get(nid, 999.0) for nid in ids}
+    )
+
+    assert _can_see("npc_b", mock_sq, "tavern_silver_wolf", scene) is True
+    assert _can_hear("npc_far", mock_sq, radius=1.0, scene_state=scene) is False
 
 
 def test_extract_scene_awareness_returns_nearby_and_actions() -> None:

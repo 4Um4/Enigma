@@ -83,7 +83,7 @@ from app.services.game_loop.tick_context import (
     _TickContext,  # backward compat alias
 )
 # commit_tick инлайн в TickOrchestrator.finalize_and_commit — phase_8_commit.py удалён
-from app.services.game_loop.phase_1_input import resolve_player_intent
+from app.services.game_loop.phase_1_input import resolve_player_intent, publish_classified_player_event
 from app.services.game_loop.scene_init import init_scene_state
 from app.services.game_loop.dm_phase import run_dm_phase
 from app.services.game_loop.npc_orchestration import run_npc_orchestration
@@ -376,9 +376,14 @@ class GameLoop:
             from app.services.integration.world_snapshot_builder import WorldSnapshotBuilder
             from dataclasses import asdict
             _builder = WorldSnapshotBuilder()
+            # ADR-092: Проброс perception из TickOrchestrator для action tick
+            _pp = getattr(state.shared_context, 'player_perception', None)
+            _anr = getattr(state.shared_context, 'all_npcs_raw_snapshot', None)
             if _ws := _builder.build(
                 state.shared_context.scene_state,
                 tick=self.get_current_tick(req.campaign_id),
+                player_perception=_pp,
+                all_npcs_raw=_anr,
             ):
                 _ws_dict = asdict(_ws)
                 # Критический адаптер: конвертируем List[NPCPositionDTO] в Dict[npc_id, dict]
@@ -619,6 +624,14 @@ class GameLoop:
             
             # Передаем давление в контекст для TickOrchestrator (Causal Resolution)
             shared_context.intent_resolution = _resolution
+
+            # ADR-091 FIX: Публикация ПОСЛЕ intent_resolution (иначе _semantic_action=None)
+            # Раньше вызывался в run_dm_phase ДО resolve_player_intent → override не работал
+            if dm_result.is_valid:
+                publish_classified_player_event(
+                    shared_context, location, campaign_id,
+                    actions[0].action if actions else "",
+                )
 
             # ФАЗА 3-6: NPC оркестрация → TickPlayerResultDTO (Устав §3)
             _player_result: TickPlayerResultDTO = TickPlayerResultDTO()

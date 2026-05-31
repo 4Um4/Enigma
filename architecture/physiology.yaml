@@ -21,6 +21,47 @@ nodes:
     type: service
     layer: Application
     label: "State Interpreter (LLM Bridge)"
+  PerceptualKernel:
+    type: dto
+    layer: Domain
+    label: "Perceptual Kernel (threat/uncertainty/anomaly)"
+    description: "Raw perception signals. No psychology. threat_gradient is a FACT, not an emotion."
+  PressureDerivation:
+    type: service
+    layer: Domain
+    label: "Pressure Derivation (Primary Signals)"
+    description: "Translates PerceptualKernel + body_state into AffectivePressureDTO. No psychology — only primary signal derivation."
+  EmotionResolution:
+    type: service
+    layer: Domain
+    label: "Emotion Resolution (Pressure → Emotion)"
+    description: "SOLE OWNER of psychological resolution. threat+personality → fear/panic/rage. No other service may duplicate this."
+  AffectiveIntegrator:
+    type: service
+    layer: Domain
+    label: "Affective Integrator (Time Integral)"
+    description: "Accumulates affective pressure over time. Fear = integral of threat over time."
+  EmotionTag:
+    type: dto
+    layer: Domain
+    label: "Emotion Tag (fearful/angry/panic)"
+    description: "Psychological state. ONLY written by EmotionResolution. Read by DecisionHub, Verbalization."
+  UrgencyLevel:
+    type: dto
+    layer: Application
+    label: "Urgency Level (Duplicates EmotionTag — ADR-104)"
+    description: "stress → SCARED/PANIC/BROKEN duplicates EmotionTag. Two owners for one concept."
+    diagnosis:
+      runtime_consumer: "none — NPCStateDescription.emotional_state not read by any service"
+      architectural_overlap: "Overlaps EmotionTag (set by EmotionResolution with personality context)"
+      current_status: "dormant/dead — candidate for removal after contract audit"
+      confidence: "95%"
+      note: "Double Truth does not manifest in runtime because this path has no consumers. But architectural overlap still exists — two owners for one concept."
+  Psyche:
+    type: dto
+    layer: Domain
+    label: "Psyche (fear_drive, willpower — personality traits)"
+    description: "Stable personality parameters. Modulates emotion resolution thresholds. Not state — traits."
 edges:
   - from: CombatSubscriber
     to: ImpactEngine
@@ -43,10 +84,10 @@ edges:
     adr_ref: "ADR-020"
   - from: DecayHandler
     to: DeltaBuffer
-    label: "time-driven decay (Phase 0.5)"
-    condition: "Leaky integrator exp(-lambda*dt)"
-    code_ref: "physiology.py"
-    adr_ref: "ADR-022"
+    label: "time-driven decay (Phase 0.5) — pain/fatigue/blood_loss/shock_impulse"
+    condition: "Leaky integrator exp(-lambda*dt). SHOCK_DECAY_LAMBDA=0.08 (~8%/tick)"
+    code_ref: "physiology_decay_handler.py"
+    adr_ref: "ADR-022, ADR-109"
   - from: PhysiologyPayload
     to: StateInterpreter
     label: "provides pain & shock"
@@ -54,6 +95,73 @@ edges:
     code_ref: "state_interpreter.py:273-291"
     adr_ref: "GAP5 FIX"
     edge_type: dotted
+  - from: PhysiologyPayload
+    to: BehaviorManifestationService
+    label: "body_state (pain/blood_loss/shock_impulse) read via all_npcs_raw"
+    condition: "Rule X: only physiology, not emotions (ADR-101)"
+    code_ref: "behavior_manifestation_service.py:42-56, state_applicator.py:474-515"
+    adr_ref: "ADR-101"
+  - from: BehaviorManifestationService
+    to: PhenomenologyProjectionService
+    label: "EmbodiedTraceDTO (instability, micro_pause, action_interruption)"
+    condition: "Phase 8.5 → Phase 9"
+    code_ref: "phenomenology_projection_service.py:19-61"
+    adr_ref: "ADR-101"
+  - from: PhenomenologyProjectionService
+    to: PlayerPerceptionDTO
+    label: "cue_keys (WINCING, BLEEDING, HOLDING_SIDE, STAGGERED)"
+    condition: "Phase 9 projection"
+    code_ref: "phenomenology_projection_service.py:24-38"
+    adr_ref: "ADR-101"
+  - from: StateInterpreter
+    to: VerbalizationContext
+    label: "physical_state (pain/shock/blood_loss → words)"
+    condition: "interpret() called in npc_tick_pipeline, pain normalized /100.0"
+    code_ref: "npc_tick_pipeline.py:208, state_interpreter.py:273"
+    adr_ref: "ADR-094"
+  - from: PerceptualKernel
+    to: PressureDerivation
+    label: "threat_gradient + uncertainty + anomaly"
+    condition: "Primary perception signals — no psychology"
+    code_ref: "pressure_derivation.py:24-33"
+    adr_ref: "ADR-049"
+  - from: BodyState
+    to: PressureDerivation
+    label: "pain modulates threat; fatigue → sensory overload"
+    condition: "Physiology modulates affective pressure"
+    code_ref: "pressure_derivation.py:24,36"
+    adr_ref: "ADR-049"
+  - from: PressureDerivation
+    to: EmotionResolution
+    label: "AffectivePressureDTO (threat_load, uncertainty_load, aggression_charge)"
+    condition: "Pure function: perception+body → pressure vector"
+    code_ref: "pressure_derivation.py:38-43"
+    adr_ref: "ADR-049"
+  - from: Psyche
+    to: EmotionResolution
+    label: "personality modulates panic threshold"
+    condition: "fear_drive lowers threshold; willpower raises it"
+    code_ref: "emotion_resolution.py:23-27"
+    adr_ref: "ADR-049"
+  - from: EmotionResolution
+    to: EmotionTag
+    label: "threat+personality → fear/panic/rage/confusion"
+    condition: "ONLY owner of psychological resolution"
+    code_ref: "emotion_resolution.py:33-46"
+    adr_ref: "ADR-049"
+  - from: EmotionResolution
+    to: NPCState_stress
+    label: "stress_delta (aggregated load)"
+    condition: "Side effect: stress accumulates from all emotion triggers"
+    code_ref: "emotion_resolution.py:35-46"
+    adr_ref: "ADR-049"
+  - from: NPCState_stress
+    to: UrgencyLevel
+    label: "CRITICAL: stress → SCARED/PANIC/BROKEN (DUPLICATES EmotionTag)"
+    condition: "Same concept, different owner. Causes Double Truth when personality differs."
+    code_ref: "state_interpreter.py:46-50"
+    adr_ref: "ADR-104"
+    edge_type: thick
 constraints:
   - source: CombatSubscriber
     target: Emotion
@@ -66,6 +174,159 @@ constraints:
     condition: "pain > 0.6 or shock > 0.5 overrides HP"
     code_ref: "state_interpreter.py:273"
     adr_ref: "GAP5 FIX"
+  - source: StateInterpreter
+    target: Pain_Scale
+    rule: "FORBIDDEN: Read pain without /100.0 normalization"
+    condition: "StateApplicator writes 0-100, interpreters read 0-1"
+    code_ref: "state_interpreter.py:273, state_applicator.py:491"
+    adr_ref: "ADR-094"
+  - source: BehaviorManifestationService
+    target: Emotion
+    rule: "FORBIDDEN: Read psyche (fear/stress) instead of body_state (Rule X, ADR-101)"
+    condition: "Motor traces computed ONLY from body_state.pain/blood_loss/shock_impulse"
+    code_ref: "behavior_manifestation_service.py"
+    adr_ref: "ADR-101"
+  - source: NPCStateAdapter
+    target: BodyState
+    rule: "FORBIDDEN: from_legacy/write_to_legacy without body_state (ADR-100)"
+    condition: "body_state must be serialized/deserialized or physiology lost between ticks"
+    code_ref: "npc_state.py:631-673"
+    adr_ref: "ADR-100"
+  - source: StateApplicator
+    target: asdict
+    rule: "FORBIDDEN: Local-scope asdict import (ADR-099)"
+    condition: "asdict MUST be module-level or add_injuries crashes entire delta"
+    code_ref: "state_applicator.py:1-24"
+    adr_ref: "ADR-099"
+  - source: UrgencyLevel
+    target: EmotionTag
+    rule: "FORBIDDEN: Duplicate psychological resolution (ADR-104)"
+    condition: "UrgencyLevel (SCARED/PANIC/BROKEN) duplicates EmotionTag (fearful/panic). Double Truth does not manifest in runtime because UrgencyLevel path has no consumers, but two owners for one concept = architectural debt."
+    code_ref: "state_interpreter.py:46-50, emotion_resolution.py:33-46"
+    adr_ref: "ADR-104"
+    severity: HIGH
+  - source: StateInterpreter
+    target: EmotionTag
+    rule: "FORBIDDEN: Compute psychology from stress (ADR-104)"
+    condition: "StateInterpreter may read body_state (pain/shock/blood_loss) → PhysicalState, but MUST NOT derive psychological categories (UrgencyLevel.SCARED etc) from stress. That is EmotionResolution's job. Currently dormant (no consumer) but must not be reactivated without contract audit."
+    code_ref: "state_interpreter.py:46-50"
+    adr_ref: "ADR-104"
+    severity: HIGH
+  - source: DecayHandler
+    target: ShockImmortality
+    rule: "FORBIDDEN: shock_impulse without decay (ADR-109)"
+    condition: "PhysiologyDecayHandler MUST compute shock_impulse decay with SHOCK_DECAY_LAMBDA. Without it, shock=0.96 stays forever while pain decays."
+    code_ref: "physiology_decay_handler.py"
+    adr_ref: "ADR-109"
+    severity: CRITICAL
+  - source: StateApplicator
+    target: ShockDeltaBlock
+    rule: "FORBIDDEN: shock_impulse > 0.0 check instead of != 0.0 (ADR-109)"
+    condition: "Decay produces negative delta. Condition > 0.0 blocks decay = permanent shock."
+    code_ref: "state_applicator.py:516-518"
+    adr_ref: "ADR-109"
+    severity: CRITICAL
+  - source: NPCStateSnapshot
+    target: ShockBlindness
+    rule: "FORBIDDEN: NPCStateSnapshot without shock_impulse field (ADR-109, ADR-110)"
+    condition: "Without this field, DecayHandler and CombatSubscriber see shock=0.0 always."
+    code_ref: "idle_tick.py, combat_subscriber.py"
+    adr_ref: "ADR-109, ADR-110"
+    severity: HIGH
+ownership:
+  PerceptualKernel:
+    owner: "CFRMSolver"
+    creates: "CFRMSolver (from perception events)"
+    modifies: "PerceptionPayload via DeltaBuffer"
+    reads: "PressureDerivation, DecisionHub"
+    layer: "State (raw signal)"
+  BodyState:
+    owner: "ImpactEngine"
+    creates: "ImpactEngine (via PhysiologyPayload)"
+    modifies: "StateApplicator (from DeltaBuffer)"
+    reads: "StateInterpreter, BehaviorManifestationService, DecisionHub, PressureDerivation"
+    layer: "State (raw signal)"
+  AffectivePressureDTO:
+    owner: "PressureDerivation"
+    creates: "PressureDerivation (pure function)"
+    modifies: "N/A (immutable)"
+    reads: "EmotionResolution"
+    layer: "Interpretation (primary signal)"
+  EmotionTag:
+    owner: "EmotionResolution"
+    creates: "EmotionResolution (with Psyche context)"
+    modifies: "EmotionResolution via EmotionPayload → DeltaBuffer"
+    reads: "DecisionHub, scene_outcome_builder, VerbalizationContext"
+    layer: "Psychological Resolution (NOT StateInterpreter)"
+    constraint: "ONLY EmotionResolution may set EmotionTag. StateInterpreter MUST read it, not compute it."
+  NPCState_stress:
+    owner: "EmotionResolution (side effect)"
+    creates: "EmotionResolution (stress_delta)"
+    modifies: "StateApplicator (from DeltaBuffer)"
+    reads: "StateInterpreter (dormant path), scene_state_manager"
+    layer: "Aggregated Load (NOT a raw signal)"
+    constraint: "stress is already an interpreted quantity from EmotionResolution. Reading it as if it were raw = architectural error. StateInterpreter reads it for UrgencyLevel which has no runtime consumer."
+  PhysicalState:
+    owner: "StateInterpreter"
+    creates: "StateInterpreter (from body_state: pain/shock/blood_loss)"
+    modifies: "N/A (pure function output)"
+  shock_impulse_decay:
+    owner: "PhysiologyDecayHandler"
+    creates: "PhysiologyDecayHandler (negative delta via SHOCK_DECAY_LAMBDA=0.08)"
+    modifies: "StateApplicator (from DeltaBuffer)"
+    reads: "NPCStateSnapshot.shock_impulse"
+    layer: "Decay (Phase 0.5)"
+    constraint: "shock_impulse decay MUST exist or shock becomes permanent (ADR-109)."
+    reads: "VerbalizationContext.physical_state → LLM prompt"
+    layer: "Interpretation (physiological, LEGIT)"
+    constraint: "PhysicalState is legitimate — it reads raw body_state, not psychological state. LIVE path — reaches LLM."
+  UrgencyLevel:
+    owner: "StateInterpreter (overlaps EmotionTag owner)"
+    creates: "StateInterpreter (from NPCState.stress)"
+    modifies: "N/A"
+    reads: "NPCStateDescription.emotional_state — BUT no downstream consumer"
+    layer: "DUPLICATE of EmotionTag (dormant)"
+    diagnosis:
+      runtime_consumer: "none"
+      architectural_overlap: "Same concept as EmotionTag but without personality context"
+      current_status: "dormant/dead — candidate for removal after contract audit"
+      confidence: "95%"
+    constraint: "Two owners for one concept. Double Truth does not manifest in runtime (no consumer), but architectural overlap still exists."
+  VerbalizationContext_emotion:
+    owner: "npc_tick_pipeline (sets from state_for_llm.emotion.value)"
+    creates: "npc_tick_pipeline:229"
+    modifies: "N/A"
+    reads: "NO RUNTIME CONSUMER FOUND"
+    layer: "Verbalization (unresolved)"
+    diagnosis:
+      runtime_consumer: "none found — no agent or builder reads verbalization_ctx.emotion"
+      current_status: "unresolved — dormant or dead, requires investigation"
+      confidence: "60%"
+      note: "May be prepared for future verbalization layer. Do not delete until proven nobody SHOULD read it."
+  VerbalizationContext_emotional_nuance:
+    owner: "npc_tick_pipeline (sets from generate_emotional_nuance)"
+    creates: "npc_tick_pipeline:236"
+    modifies: "N/A"
+    reads: "NO RUNTIME CONSUMER FOUND"
+    layer: "Verbalization (unresolved)"
+    diagnosis:
+      runtime_consumer: "none found — no agent or builder reads verbalization_ctx.emotional_nuance"
+      current_status: "unresolved — dormant or dead, requires investigation"
+      confidence: "60%"
+      note: "generate_emotional_nuance produces rich descriptions from EmotionTag. May be intended for future NPC speech pipeline. Do not delete until proven nobody SHOULD read it."
+  EmbodiedTraceDTO:
+    owner: "BehaviorManifestationService"
+    creates: "BehaviorManifestationService (from body_state)"
+    modifies: "N/A (immutable)"
+    reads: "PhenomenologyProjectionService, WorldSnapshotBuilder, DMAgent"
+    layer: "Manifestation (observable)"
+    constraint: "Only body_state inputs. Rule X: no psyche reads."
+  PlayerPerceptionDTO:
+    owner: "PhenomenologyProjectionService"
+    creates: "PhenomenologyProjectionService (from EmbodiedTraceDTO)"
+    modifies: "N/A (immutable)"
+    reads: "WorldSnapshotBuilder, Frontend"
+    layer: "Verbalization (audience: player)"
 sequences:
   - title: "Combat Impact Cascade"
     participants: [CombatSubscriber, ImpactEngine, DeltaBuffer, CognitiveOverlay, StateInterpreter]

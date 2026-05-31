@@ -709,3 +709,120 @@ AM =
 новые инварианты
 +
 новые точки владения состоянием
+
+---
+
+## Repository Magnitude Snapshot — V.0.5.3.1.5_Чиним_НЕРВЫ_2
+
+Measured on 31 May 2026 before final GitHub publication.
+
+Scope:
+
+- counted through `git -c core.quotepath=false ls-files --cached --others --exclude-standard -z`;
+- includes tracked files and new untracked files prepared for this snapshot;
+- excludes `.git`, `.venv`, ignored caches and ignored runtime trash;
+- text line count includes text-like project files only;
+- binary/reference assets are counted as files, not as lines.
+
+Global size:
+
+|Metric|Value|
+|---|---:|
+|Project files in git scope|2,506|
+|Text/source files|914|
+|Binary/asset files|1,592|
+|Total text lines|195,835|
+|Python files|418|
+|Python lines|80,056|
+|Markdown files|346|
+|Markdown lines|63,248|
+
+Semantic distribution:
+
+|Area|Files|Text files|Lines|Meaning|
+|---|---:|---:|---:|---|
+|backend causal runtime|259|259|47,918|domain/services/models/API runtime, causal tick, NPC, spatial, perception|
+|backend tests and sandbox|104|104|15,512|regression and causal validation surface|
+|frontend and editor|1,572|35|19,850|pygame UI, map editor, projection/rendering layer, pixel assets|
+|architecture docs and reports|397|367|75,927|ADR, task memory, audits, generated architecture, session reports|
+|world data and runtime state|88|77|14,328|campaign/session/world/config state|
+|diagnostics and tooling|15|13|12,569|audit scripts, graph/build tooling, dependency snapshots, LFS bundles|
+|config and launch surface|5|5|592|operator entrypoints and repository rules|
+|reference and external material|9|1|14|external reference material|
+|other tracked surface|57|53|9,125|miscellaneous tracked files|
+
+Extension distribution:
+
+|Type|Files|Lines|Interpretation|
+|---|---:|---:|---|
+|`.png`|1,561|0|asset corpus dominates file count, not logic complexity|
+|`.py`|418|80,056|primary executable complexity|
+|`.md`|346|63,248|architecture/task/report memory grew sharply|
+|`.json`|56|24,510|state, contracts, configs, campaign/editor data|
+|`.jsonl`|44|12,563|event/memory/log traces|
+|`.svg`|24|1,579|generated dependency/graph visualization|
+|`.pdf`|10|0|reference material, not runtime complexity|
+|`.yaml`|7|1,099|architecture authority maps|
+
+Interpretation:
+
+ENIGMA crossed a new threshold: the repository is no longer just a medium codebase with large assets. It is now a medium-to-large solo simulation project with unusually high architectural memory.
+
+The important change from `V.0.5.3.1.4` is not only growth from `68.1k` to `80.1k` Python lines. The stronger signal is the redistribution:
+
+- backend causal runtime grew from `40.4k` to `47.9k` semantic runtime lines;
+- architecture/docs/reports grew from `36.5k` to `75.9k` lines;
+- frontend/editor text grew from `13.7k` to `19.9k` lines;
+- tests/sandbox grew from `13.1k` to `15.5k` lines;
+- project file count grew from `2,299` to `2,506`.
+
+The project is architecture-heavy by design. That is acceptable for ENIGMA because architecture is part of the control system, not decorative documentation. But the ratio now requires discipline:
+
+```text
+backend causal runtime: 47.9k lines
+architecture/governance memory: 75.9k lines
+tests/sandbox: 15.5k lines
+frontend/editor executable text: 19.9k lines
+```
+
+Current complexity class:
+
+|Comparison target|Fit|
+|---|---|
+|small hobby RPG prototype|far exceeded|
+|finished compact narrative tool|comparable or larger in backend/governance complexity|
+|finished simulation-heavy indie game|plausible engine-core scale, still below final content/UX polish|
+|commercial RPG/general engine|still much smaller by raw production volume|
+
+The Fool assessment:
+
+The most valuable 7-day movement is not raw size. It is the emergence of a visible causal loop:
+
+```text
+physiology/state constraints
+-> embodied traces
+-> player perception
+-> frontend symptom rendering
+-> DM observational narration
+```
+
+This is the point where ENIGMA becomes more game-like: internal simulation starts crossing the boundary as observable evidence, not as exposed hidden truth.
+
+7-day productivity assessment:
+
+|Dimension|Assessment|
+|---|---|
+|Raw implementation volume|very high|
+|Architectural consolidation|high|
+|The Fool/player-facing value|high and strategically important|
+|Integration risk|high|
+|Test coverage relative to new surface|behind the growth curve|
+|Completion signal|engine-core advanced, game/content layer still early-to-mid|
+
+Conclusion:
+
+The amount done in 7 days is large by solo-project standards. More importantly, it is not empty volume: the project gained a real perception/embodiment vertical. The risk is no longer "not enough code"; the risk is ownership drift between physiology, projection, snapshot, frontend and DM narration.
+
+Next quality pressure should be selective: strengthen tests and contracts around The Fool vertical, not broad refactoring.
+
+Confidence: 86/100.

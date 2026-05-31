@@ -40,6 +40,7 @@ class NPCStateSnapshot(TypedDict):
     fatigue: float                       # Текущий уровень усталости (0-100)
     blood_loss: float                    # Кровопотеря (0-1.0)
     consciousness: float                 # Сознание (0-1.0, 0=кома/обморок, 1=ясность)
+    shock_impulse: float                 # Физический шок / болевой удар (0-1.0) — затухает как pain
     injuries_by_zone: Dict[str, List[Dict[str, Any]]] # Травмы, сгруппированные по target_zone
     base_abilities: Dict[str, float]     # Базовые характеристики (из body_profile)
     modifiers: Dict[str, float]          # Модификаторы (травмы/баффы/экипировка, из body_state)

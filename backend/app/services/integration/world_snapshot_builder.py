@@ -12,7 +12,9 @@ logger = logging.getLogger(__name__)
 
 from typing import Dict, List, Optional, Tuple
 from app.domain.snapshot import (
+    ActivePerception,
     NPCPositionDTO,
+    PeripheralCueDTO,
     PlayerPerceptionDTO,
     VisibleEventDTO,
     WorldSnapshotDTO,
@@ -64,7 +66,7 @@ class WorldSnapshotBuilder:
             npc_positions=npc_positions,
             avatar_state=self.avatar_state, # ADR-035: Внедрение феноменологической проекции
             ambient_phenomenology=ambient_phenomenology, # ADR-037: Средовое давление
-            player_perception=player_perception, # ТЗ EMBODIED UI: Симметричная онтология
+            player_perception=self._convert_perception(player_perception, tick=tick), # ТЗ EMBODIED UI: domain → API DTO конвертация
             visible_events=visible_events,
             available_actions=self._extract_available_actions(scene_state),
             location_id=location_id,
@@ -72,6 +74,70 @@ class WorldSnapshotBuilder:
             time_of_day=environment.get("time_of_day", "day"),
             game_time_seconds=scene_state.get("game_time_seconds", 0),
             active_traversals=self._extract_active_traversals(scene_state),
+        )
+
+    # Маппинг cue_key → hover_text (наблюдение, не диагноз — Правило X: телепатия запрещена)
+    _CUE_TEXT_MAP = {
+        "FROZEN": "Замер на месте",
+        "TENSE_POSTURE": "Напряжённая поза",
+        "SWAYING": "Покачивается",
+        "UNEVEN_STANCE": "Неустойчивая стойка",
+        "ABRUPT_STOP": "Резко остановился",
+        "FREQUENT_PAUSES": "Часто останавливается",
+        "BLOOD_VISIBLE": "Кровь на одежде",
+        "PAIN_REACTION": "Держится за рану",
+    }
+
+    _ATM_TEXT_MAP = {
+        "ATMOSPHERE_THICK_TENSION": "Напряжение висит в воздухе",
+        "ATMOSPHERE_UNEASY": "Обстановка тревожная",
+    }
+
+    def _convert_perception(self, domain_perception, tick: int = 0) -> Optional[PlayerPerceptionDTO]:
+        """Конвертация domain PlayerPerceptionDTO → API PlayerPerceptionDTO.
+
+        Domain DTO (embodied_trace) кладёт cue-дикты в active_perceptions.
+        API DTO (snapshot) разделяет на peripheral_cues (PeripheralCueDTO) и
+        active_perceptions (ActivePerception с text/intensity).
+        Без конвертации asdict() сериализует domain DTO, и фронтенд
+        не находит ключ 'peripheral_cues'.
+        """
+        if domain_perception is None:
+            return None
+
+        # Если уже API DTO — пропускаем (isinstance не сработает при одинаковых именах,
+        # проверяем по наличию поля peripheral_cues)
+        if hasattr(domain_perception, 'peripheral_cues'):
+            return domain_perception
+
+        peripheral_cues = []
+        active_perceptions = []
+
+        # Cue-дикты с npc_id → PeripheralCueDTO (Слой 1: периферия)
+        for cue in getattr(domain_perception, 'active_perceptions', []):
+            if isinstance(cue, dict) and "npc_id" in cue:
+                cue_key = cue.get("cue_key", "UNKNOWN")
+                peripheral_cues.append(PeripheralCueDTO(
+                    npc_id=cue["npc_id"],
+                    cue_type=cue_key,
+                    hover_text=self._CUE_TEXT_MAP.get(cue_key, cue_key),
+                ))
+
+        # Атмосфера → ActivePerception (Слой 2: фоновая температура)
+        atm_key = getattr(domain_perception, 'atmosphere_key', None)
+        atm_intensity = getattr(domain_perception, 'atmosphere_intensity', 0.0)
+        if atm_key:
+            active_perceptions.append(ActivePerception(
+                text=self._ATM_TEXT_MAP.get(atm_key, atm_key),
+                intensity=atm_intensity,
+                decay_rate=-0.05,
+                created_tick=tick,
+            ))
+
+        return PlayerPerceptionDTO(
+            active_perceptions=active_perceptions,
+            peripheral_cues=peripheral_cues,
+            embodied_traces=getattr(domain_perception, 'embodied_traces', []),
         )
 
     def _extract_npc_positions(

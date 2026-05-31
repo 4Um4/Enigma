@@ -130,6 +130,9 @@ class PlayerPerceptionDTO:
     
     # Слой 5: Реконструкция
     reconstruction_events: List[ReconstructionEventDTO] = field(default_factory=list)
+    
+    # The Fool: Моторные следы для физического рендера (дрожь, замер)
+    embodied_traces: List[dict] = field(default_factory=list) 
 
 
 @dataclass(frozen=True)

@@ -25,7 +25,9 @@ TODO:
 from __future__ import annotations
 
 import json
+import logging
 import threading
+logger = logging.getLogger(__name__)
 import time
 import uuid
 import urllib.request
@@ -342,7 +344,7 @@ class DirectGameGateway:
         )
         # ADR-075 DIAG: Диагностический след. Показывает, дошли ли данные до шлюза.
         if hasattr(result, "will_conflict_data"):
-            print(f"[EMBODIMENT_PIPELINE] gateway received={result.will_conflict_data is not None}")
+            logger.debug(f"[PIPELINE][EMBODIMENT] gateway received={result.will_conflict_data is not None}")
         else:
             print("[EMBODIMENT_PIPELINE] field missing on result")
     

@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import copy
 import logging
+from dataclasses import asdict
 from typing import Any, Dict, List, Optional
 
 # Целевая архитектура данных (L2)
@@ -428,6 +429,7 @@ class StateApplicator:
         add_injuries = deltas.payload.add_injuries if domain == DeltaDomain.PHYSIOLOGY and isinstance(deltas.payload, PhysiologyPayload) else ()
         add_statuses = deltas.payload.add_statuses if domain == DeltaDomain.PHYSIOLOGY and isinstance(deltas.payload, PhysiologyPayload) else ()
         remove_statuses = deltas.payload.remove_statuses if domain == DeltaDomain.PHYSIOLOGY and isinstance(deltas.payload, PhysiologyPayload) else ()
+        shock_impulse = deltas.payload.shock_impulse if domain == DeltaDomain.PHYSIOLOGY and isinstance(deltas.payload, PhysiologyPayload) and hasattr(deltas.payload, 'shock_impulse') else 0.0
 
         # PERCEPTION DOMAIN (ADR-O)
         threat_gradient_delta = deltas.payload.threat_gradient_delta if domain == DeltaDomain.PERCEPTION and isinstance(deltas.payload, PerceptionPayload) else 0.0
@@ -477,7 +479,7 @@ class StateApplicator:
             if not state.body_state:
                 state.body_state = {
                     "current_hp": 100.0, "pain": 0.0, "fatigue": 0.0,
-                    "blood_loss": 0.0, "consciousness": 1.0,
+                    "blood_loss": 0.0, "consciousness": 1.0, "shock_impulse": 0.0,
                     "injuries": [], "modifiers": {}, "statuses": []
                 }
 
@@ -509,6 +511,11 @@ class StateApplicator:
                 state.body_state["statuses"] = [
                     s for s in state.body_state.get("statuses", []) if s not in remove_statuses
                 ]
+            
+            # Шоковый импульс: аддитивный с потолком 1.0, decay даёт отрицательную дельту
+            if shock_impulse != 0.0:
+                _cur_shock = state.body_state.get("shock_impulse", 0.0)
+                state.body_state["shock_impulse"] = max(0.0, min(1.0, _cur_shock + shock_impulse))
 
         # --- Восприятие (Perception Domain / ADR-O) ---
         if domain == DeltaDomain.PERCEPTION:
@@ -707,10 +714,14 @@ class StateApplicator:
         for d in npc_deltas:
             if d.npc_id:
                 by_npc.setdefault(d.npc_id, []).append(d)
+        if by_npc:
+            _phys_npcs = [nid for nid, ds in by_npc.items() if any(d.domain == DeltaDomain.PHYSIOLOGY for d in ds)]
+            if _phys_npcs:
+                logger.debug(f"[APPLY_BATCH] npc_count={len(by_npc)} physiology_npcs={_phys_npcs}")
 
         # Применяем через тонкий мост: dict → NPCState → _apply_deltas → dict
         for npc_dict in all_npcs_raw:
-            npc_id = npc_dict.get("id")
+            npc_id = npc_dict.get("id") or npc_dict.get("npc_id")
             if npc_id not in by_npc:
                 continue
             for delta in by_npc[npc_id]:
@@ -741,6 +752,10 @@ class StateApplicator:
                 f"'{npc_dict.get('id', '?')}': {e}. Delta пропущена."
             )
             return
+
+        # Проверка physiology после apply (ADR-105)
+        if deltas.domain == DeltaDomain.PHYSIOLOGY:
+            logger.debug(f"[APPLY_RAW] npc={npc_dict.get('id', '?')} pain={state.body_state.get('pain', '?') if state.body_state else '?'} shock={state.body_state.get('shock_impulse', '?') if state.body_state else '?'}")
 
         # NPCState → dict
         NPCState.write_to_legacy(state, npc_dict)

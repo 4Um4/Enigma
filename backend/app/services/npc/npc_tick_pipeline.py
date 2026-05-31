@@ -134,14 +134,16 @@ def create_memory_event(
     _importance = None
     _summary = ""
 
+    # ADR-013: Деградационный шлюз v2 -> v1 — вычисляем ДО ветвления
+    # Иначе _legacy_d не определена в третьем elif → UnboundLocalError → память мертва
+    _legacy_d = LegacyStateDeltaAdapter.collapse(decision.deltas)
+
     if _evt_type in ("npc_interacts_npc", "npc_proximity_close"):
         _summary = f"{_evt_actor} → {_evt_target}: {_intent_val}"
         _importance = 0.6
     elif _evt_type == "player_interacts" and _has_target:
         _summary = f"{_evt_actor} → {_evt_target}: {player_text[:60]}"
         _base = BASE_IMPORTANCE.get(_intent_upper, 0.4)
-        # ADR-013: Деградационный шлюз v2 -> v1
-        _legacy_d = LegacyStateDeltaAdapter.collapse(decision.deltas)
         _emotion_boost = min(abs(_legacy_d.emotion_delta) / 5.0, 1.0) * 0.3
         _importance = min(_base + _emotion_boost, 1.0)
     elif _has_target and _intent_upper in (
@@ -205,6 +207,7 @@ def build_verbalization_context(
 
     _scene_hint = raw_input[:500].strip() if raw_input else ""
     _interpreter = StateInterpreter()
+    _npc_desc = _interpreter.interpret(state_for_llm)  # GAP5 FIX: Витализм — боль и шок перекрывают HP
 
     # Этап 3.5-3.6 + 5: Recall с поддержкой секретов
     _pressure = memory_manager.get_dialogue_pressure(campaign_id, profile_l0.id) if campaign_id else 0
@@ -225,6 +228,7 @@ def build_verbalization_context(
         tier=profile_l0.tier,
         emotion=state_for_llm.emotion.value,
         will_state=state_for_llm.will_state.value,
+        physical_state=_npc_desc.physical_state,  # GAP5 FIX: Витализм
         intent=decision.intent.value,
         intent_target=decision.intent_target,
         topic=topic,
@@ -701,7 +705,7 @@ def _resolve_reactive_movement(
         target_x = lp.get("x")
         target_y = lp.get("y")
         target_node_id = None
-        print(f"[DIAG][APPROACH_NAV] npc={npc_id} target_id={_target_id} player_xy=({target_x},{target_y}) player_entry_keys={list(target_entry.keys())} position={target_entry.get('position')}")
+        logger.debug(f"[PIPELINE][NAV] npc={npc_id} target_id={_target_id} player_xy=({target_x},{target_y}) position={target_entry.get('position')}")
         
         # Путь 1: Точное позиционирование через local_position (предпочтительно)
         if target_x is not None and target_y is not None and spatial_service:
@@ -733,7 +737,10 @@ def _resolve_reactive_movement(
 
         if threat_x is not None and threat_y is not None:
             if spatial_service:
-                furthest_ref = spatial_service.get_furthest(zone_id=location_id, origin_xy=(threat_x, threat_y))
+                # ADR-102: Исключаем текущий узел NPC из FLEE-кандидатов (бегство из своей зоны бессмысленно)
+                _canonical_current = spatial_service.normalize_id(current_node) if current_node else ""
+                _exclude = {_canonical_current} if _canonical_current else set()
+                furthest_ref = spatial_service.get_furthest(zone_id=location_id, origin_xy=(threat_x, threat_y), exclude_node_ids=_exclude)
                 if furthest_ref:
                     # ADR-008: denormalize_id удален. Используем канонический ID напрямую.
                     target_node_id = getattr(furthest_ref, 'node_id', str(furthest_ref))
@@ -748,7 +755,9 @@ def _resolve_reactive_movement(
                 except Exception:
                     pass
 
-            if target_node_id and target_node_id != current_node:
+            # ADR-102: Нормализация перед сравнением (legacy 'room_1' != canonical 'tavern:room_1')
+            _norm_current = spatial_service.normalize_id(current_node) if spatial_service and current_node else current_node
+            if target_node_id and target_node_id != _norm_current:
                 print(f"[TRACE][INTENT_CREATED] npc={npc_id} intent=reactive:flee target_node={target_node_id}")
                 return MacroMovementGoal(npc_id=npc_id, target_node_id=target_node_id, from_node_id=current_node, location_id=location_id, reason="reactive:flee", priority=PRIORITY_NEEDS)
         return None

@@ -101,6 +101,8 @@ class CombatSubscriber:
         """
         if not events:
             return Phase8Result()
+        
+        logger.debug(f"[COMBAT_HANDLE] events={len(events)} types={[getattr(e, 'type', '?') for e in events[:3]]}")
 
         # Строим dict npc_id → npc_dict для быстрого доступа
         npc_by_id: dict[str, dict] = {}
@@ -112,10 +114,15 @@ class CombatSubscriber:
         deltas = []
         events_processed = 0
 
+        logger.debug(f"[COMBAT_SUB] npc_by_id keys={list(npc_by_id.keys())[:10]}")
+
         for event in events:
             intent = self._extract_impact_intent(event, npc_by_id)
             if intent is None:
+                logger.debug(f"[COMBAT_SUB] intent=None for event type={getattr(event, 'type', '?')}")
                 continue
+
+            logger.debug(f"[COMBAT_SUB] intent OK: actor={intent.actor_id} target={intent.target_id} force={intent.force:.1f}")
 
             # Получаем снапшоты атакующего и защищающегося
             attacker_snapshot = self._build_snapshot(intent.actor_id, npc_by_id)
@@ -124,7 +131,7 @@ class CombatSubscriber:
             if defender_snapshot is None:
                 # Нет цели — нет воздействия (но атакующий устаёт)
                 logger.debug(
-                    f"[COMBAT_SUB] target {intent.target_id} not found, skip"
+                    f"[COMBAT_SUB] target {intent.target_id} not found in npc_by_id, skip"
                 )
                 continue
 
@@ -140,16 +147,11 @@ class CombatSubscriber:
                 rng_seed=hash((event.id if hasattr(event, 'id') else 0, intent.actor_id, intent.target_id)) & 0xFFFFFFFF,
             )
 
+            logger.debug(f"[COMBAT_SUB] impact_deltas count={len(impact_deltas)}")
             deltas.extend(impact_deltas)
             events_processed += 1
 
-        if deltas:
-            logger.debug(
-                f"[COMBAT_SUB] {len(events)} events, "
-                f"{events_processed} impacts resolved, "
-                f"{len(deltas)} physiology deltas"
-            )
-
+        logger.debug(f"[COMBAT_SUB_RESULT] events_in={len(events)} processed={events_processed} deltas={len(deltas)}")
         return Phase8Result(
             deltas=deltas,
             events_processed=events_processed,
@@ -171,6 +173,8 @@ class CombatSubscriber:
         payload = event.payload if hasattr(event, 'payload') else {}
         if not isinstance(payload, dict):
             payload = {}
+
+        logger.debug(f"[COMBAT_EXTRACT] type={getattr(event, 'type', '?')} payload_keys={list(payload.keys())[:10]} target_id={payload.get('target_id')} actor={getattr(event, 'source', '?')}")
 
         # Определяем участников
         actor_id = payload.get("actor_id") or getattr(event, 'source', 'player')
@@ -260,6 +264,7 @@ class CombatSubscriber:
             fatigue=float(body_state.get("fatigue", 0.0)),
             blood_loss=float(body_state.get("blood_loss", 0.0)),
             consciousness=float(body_state.get("consciousness", 1.0)),
+            shock_impulse=float(body_state.get("shock_impulse", 0.0)),
             injuries_by_zone=injuries_by_zone,
             base_abilities=_base_abilities,
             modifiers=_modifiers,
@@ -287,6 +292,7 @@ class CombatSubscriber:
             fatigue=0.0,
             blood_loss=0.0,
             consciousness=1.0,
+            shock_impulse=0.0,
             injuries_by_zone={},
             base_abilities={"strength": 15.0, "dexterity": 12.0},
             modifiers={},

@@ -74,6 +74,9 @@ class PipelineContext:
     front_type:           str    = ""
     world_pressure:       float  = 0.0
     
+    # ── Наблюдение (The Fool: только видимые симптомы, не внутренние состояния) ──
+    player_perception:    Any    = None  # Фаза 9: peripheral_cues, embodied_traces
+    
     # ── Сложные объекты (будут строго типизированы на следующих шагах) 
     dm_result:            Any    = None
     scene_continuity:     Any    = None

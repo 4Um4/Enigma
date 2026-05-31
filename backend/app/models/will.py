@@ -78,6 +78,8 @@ class WillResponseDTO:
     narration_hooks: List[str] = field(default_factory=list) # Подсказки для LLM
     origin_layer: OriginLayer = OriginLayer.WILL_CONFLICT     # Источник давления
     embodied_vector: Optional[EmbodiedVector] = None          # Моторный импульс (для UI)
+    social_signal: Optional[str] = None                       # The Fool Phase 2: Социальный сигнал (для CFRM)
+    crowd_threat_level: Optional[float] = None                # The Fool Phase 2: Уровень угрозы для толпы (0.0-1.0)
 
 
 @dataclass(frozen=True)

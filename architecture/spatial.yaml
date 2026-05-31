@@ -24,27 +24,62 @@ nodes:
   GraphCompiler:
     type: service
     layer: Infrastructure
-    label: "Graph Compiler"
+    label: "Graph Compiler (v2 - List format + Adjacency)"
+  AdjacencyInference:
+    type: service
+    layer: Domain
+    label: "Adjacency Inference"
+    description: "Выводит связи из смежности полигонов (ADR-073)"
   EditorJSON:
     type: database
     layer: Infrastructure
-    label: "location_templates.json"
+    label: "Map Editor JSON (rooms as list)"
   BuiltinFallback:
     type: dto
     layer: Infrastructure
     label: "Builtin Fallback Graph"
+  SpatialRuntime:
+    type: service
+    layer: Domain
+    label: "Spatial Runtime (LOS, Sound, Scene Extraction)"
+    description: "ADR-102: Использует SpatialService вместо мёртвого load_graph(). Требует campaign_id в scene_state."
+  LocationGraph:
+    type: dto
+    layer: Domain
+    label: "LocationGraph (DEPRECATED — ADR-102)"
+    description: "Легаси load_graph() возвращает пустой граф. Заменён на SpatialService."
 edges:
   - from: EditorJSON
     to: GraphCompiler
     label: "load_editor_json"
-    condition: "If file exists and valid"
+    condition: "Parses rooms array & polygons"
     code_ref: "graph_compiler.py"
   - from: BuiltinFallback
     to: GraphCompiler
     label: "fallback graph"
     condition: "BREAK-2: JSON NOT FOUND -> Builtin"
     code_ref: "graph_compiler.py"
+  - from: SpatialRuntime
+    to: SpatialService
+    label: "resolve_distance + extract_scene (ADR-102)"
+    condition: "Требует campaign_id в scene_state. Fallback на euclidean_distance если SpatialService=None"
+    code_ref: "spatial_runtime.py:98"
+  - from: SceneStateManager
+    to: SpatialRuntime
+    label: "enriches scene_state with campaign_id (ADR-102)"
+    condition: "Инжект campaign_id для SpatialService.build_for_location()"
+    code_ref: "scene_state_manager.py:272"
     edge_type: dotted
+  - from: GraphCompiler
+    to: AdjacencyInference
+    label: "triggers if passages empty"
+    condition: "If no explicit passages provided"
+    adr_ref: "ADR-073"
+  - from: AdjacencyInference
+    to: GraphCompiler
+    label: "returns inferred passages"
+    condition: "Based on polygon bounding box intersection"
+    adr_ref: "ADR-073"
   - from: GraphCompiler
     to: SpatialService
     label: "compiles graph"
@@ -92,6 +127,34 @@ constraints:
     rule: "FORBIDDEN: Overwrite pipeline position (ADR-072)"
     condition: "If position already valid, skip"
     code_ref: "ADR-072"
+  - source: GraphCompiler
+    target: EditorJSON
+    rule: "FORBIDDEN: Require manual passages if polygons are adjacent (ADR-073)"
+    condition: "Must use Adjacency Inference"
+    code_ref: "ADR-073"
+  - source: SpatialService
+    target: TickContext
+    rule: "FORBIDDEN: Use location_id as campaign_id (ADR-089)"
+    condition: "Campaign ID must be authentic"
+    code_ref: "tick_orchestrator.py"
+  - source: TickOrchestrator
+    target: SpatialService
+    rule: "FORBIDDEN: Emergency build_for_location when self._spatial_service already resolved (ADR-065)"
+    condition: "tick_player_turn resolves service; execute_player_finalize reuses cache via _resolve_spatial_service step 1.5"
+    code_ref: "tick_orchestrator.py:225-232"
+    adr_ref: "ADR-065"
+  - source: GraphCompiler
+    target: EditorJSON
+    rule: "FORBIDDEN: Use room x,y as node coordinates (must use centroid x+w/2, y+h/2)"
+    condition: "Prevents NPC teleportation to room corners (ADR-095)"
+    code_ref: "graph_compiler.py:108-115"
+    adr_ref: "ADR-095"
+  - source: GameScreen
+    target: WorldSnapshotDTO
+    rule: "FORBIDDEN: Overwrite local_position for NPC in MOVING status (ADR-096)"
+    condition: "Must preserve TraversalState interpolation"
+    code_ref: "game_screen.py:794-799"
+    adr_ref: "ADR-096"
 sequences:
   - title: "Broken Traversal Flow (Node Not Found - BREAK-N)"
     participants: [DecisionHub, MovementEngine, SpatialService, SceneStateManager]
@@ -110,3 +173,18 @@ sequences:
         to: SceneStateManager
         message: "4. No Traversal created -> coords=None"
         type: dotted
+  - title: "Adjacency Inference Success Flow (ADR-073)"
+    participants: [EditorJSON, GraphCompiler, AdjacencyInference, SpatialService]
+    steps:
+      - from: EditorJSON
+        to: GraphCompiler
+        message: "1. Load rooms (as list) with empty passages"
+      - from: GraphCompiler
+        to: AdjacencyInference
+        message: "2. Pass rooms for adjacency check"
+      - from: AdjacencyInference
+        to: GraphCompiler
+        message: "3. Return inferred passages (based on bounding box)"
+      - from: GraphCompiler
+        to: SpatialService
+        message: "4. Compile connected graph"

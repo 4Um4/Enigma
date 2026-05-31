@@ -65,11 +65,11 @@ class MovementEngine:
                 )
             intent.processed = True
             intent.processor = "MovementEngine"
-            print(
-                f"[TRACE][ENGINE_RECEIVED] "
+            logger.debug(
+                f"[PIPELINE][MOVEMENT] "
                 f"npc={intent.npc_id} "
                 f"reason={intent.reason} "
-                f"local_xy={getattr(intent, 'local_target_xy', 'N/A')}"
+                f"local_xy={getattr(intent, 'target_local_xy', 'N/A')}"
             )
             if isinstance(intent, LocalSteeringGoal):
                 # LOD0: Микро-перемещение обрабатывается напрямую, без SpatialService
@@ -196,7 +196,13 @@ class MovementEngine:
             logger.warning(f"[MOVEMENT_ENGINE] Узел '{intent.target_node_id}' не найден для {intent.npc_id} в {location_id}")
             return []
         
-        logger.info(f"[PIPELINE][MOVEMENT][RELOCATE] npc={intent.npc_id} → zone={intent.target_node_id} reason={intent.reason} exact_xy={intent.target_local_xy}")
+        # ADR-090: Если intent не имеет точных координат (schedule/flee), берём центр узла из графа.
+        # Без этого scene_state_manager не создаёт TraversalState, и NPC телепортируется.
+        target_xy = intent.target_local_xy
+        if target_xy is None and hasattr(target_ref, 'x') and hasattr(target_ref, 'y'):
+            target_xy = (target_ref.x, target_ref.y)
+            
+        logger.info(f"[PIPELINE][MOVEMENT][RELOCATE] npc={intent.npc_id} → zone={intent.target_node_id} reason={intent.reason} exact_xy={target_xy}")
         return [SceneChange(
             type=ChangeType.NPC_POSITION,
             target=intent.npc_id,
@@ -205,7 +211,7 @@ class MovementEngine:
             cause=f"semantic_relocation:{intent.reason}",
             tick=tick,
             target_location_id=location_id,
-            target_local_xy=intent.target_local_xy,  # ADR-065: Точные координаты цели
+            target_local_xy=target_xy,  # ADR-065: Точные координаты цели
         )]
 
     @staticmethod

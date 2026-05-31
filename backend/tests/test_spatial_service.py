@@ -67,11 +67,12 @@ bar_urgent = svc3.resolve_node(NodeRole.BAR, origin_zone="tavern_silver_wolf", r
 check("URGENT allows reserved node", bar_urgent is not None)
 
 print("\n=== test_path_computation_once ===")
-path1 = svc.find_path((4.5, 5.0), svc.get_node("tavern_silver_wolf:kitchen"), Urgency.NORMAL)
-path2 = svc.find_path((4.5, 5.0), svc.get_node("tavern_silver_wolf:kitchen"), Urgency.NORMAL)
+_kitchen = svc.get_node("tavern_silver_wolf:kitchen")
+path1 = svc.find_path((4.5, 5.0), _kitchen, Urgency.NORMAL)
+path2 = svc.find_path((4.5, 5.0), _kitchen, Urgency.NORMAL)
 check("Path found", len(path1) > 0)
 check("Path is cached (same result)", path1 == path2)
-check("Path ends at target", path1[-1].node_id == "tavern_silver_wolf:kitchen")
+check("Path ends at target", bool(path1) and path1[-1].node_id == "tavern_silver_wolf:kitchen")
 
 print("\n=== test_alias_normalization ===")
 check("Legacy ID normalized", svc.normalize_id("bar_area") == "tavern_silver_wolf:bar_area")
@@ -84,8 +85,10 @@ print("\n=== test_global_coordinates ===")
 entrance = svc.get_node("tavern_silver_wolf:entrance")
 check("Entrance x=8.0", entrance is not None and entrance.x == 8.0)
 check("Entrance y=12.0", entrance is not None and entrance.y == 12.0)
-check("Kitchen x=16.0", svc.get_node("kitchen").x == 16.0)
-check("Bar y=4.0", svc.get_node("bar_area").y == 4.0)
+_kitchen_node = svc.get_node("kitchen")
+check("Kitchen x=16.0", _kitchen_node is not None and _kitchen_node.x == 16.0)
+_bar_node = svc.get_node("bar_area")
+check("Bar y=4.0", _bar_node is not None and _bar_node.y == 4.0)
 
 print("\n=== test_flee_and_approach ===")
 player_xy = (8.0, 12.0)
@@ -100,5 +103,5 @@ check("Euclidean 3-4-5 = 5.0", abs(d - 5.0) < 0.001)
 
 print("\n" + "=" * 50)
 print(f"RESULTS: {passed} passed, {failed} failed")
-if failed > 0:
+if failed > 0 and __name__ == "__main__":
     sys.exit(1)

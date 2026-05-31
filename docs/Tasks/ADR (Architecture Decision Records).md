@@ -16,6 +16,8 @@
 - **ADR-059 (Dual-Time Ontology):** Транзиты привязаны к монотонному каузальному `scene_state["tick"]`, а не к реальному времени. Тик сохраняется при загрузке (`_preserved_tick`).
 - **ADR-065 (Spatial Authority Consolidation):** Убита трехкратная ручная сборка `SpatialService.build_for_location()` в `TickOrchestrator`. Внедрен `_resolve_spatial_service()`.
 - **ADR-066 (Single Movement Ownership):** Убит двойной вызов `process_intents()` в `npc_orchestration.py` и `TickOrchestrator`. Единственный владелец исполнения `MovementIntent` — `TickOrchestrator`. В доменную модель добавлен инвариант: повторная обработка интента с `processed=True` вызывает `RuntimeError`. Один Intent → один Executor → одно будущее.
+- **ADR-089 (Campaign ID Integrity):** Убита подмена `campaign_id` на `location_id` в `execute_player_finalize`. `campaign_id` берется из аргумента функции, а не из `scene_state`. Нарушение приводило к смерти `SpatialService` при ходе игрока (поиск графа в несуществующей папке кампании).
+- **ADR-102 (SpatialService replaces load_graph + FLEE Fix):** Убит мёртвый `load_graph()` — возвращал пустой граф (0 узлов) после удаления fallback. Заменён на `SpatialService.build_for_location()` в `spatial_runtime.py`. Для работы SpatialService добавлен инжект `campaign_id` в `scene_state` через `get_scene_state()`. Также починен FLEE-резолв: `get_furthest()` теперь принимает `exclude_node_ids` для исключения текущего узла NPC; нормализация legacy ID (`room_1` → `tavern:room_1`) перед сравнением устраняет бегство NPC в свой же узел. Также `spatial_obstacles` пробрасывает `type` (bar, table, chair) из editor JSON на фронтенд для рендера спрайтов вместо заглушек.
 
 **✅ ВЕРИФИЦИРОВАННЫЕ ПОЧИНКИ (Аудит S50-53):**
 - **GAP1 (Когнитивный Оверлей):** УБИТ ADR-081. Темпоральная асимметрия устранена. Критический шок (`shock_impulse > 0.5`) инжектится в `all_npcs_raw` мгновенно (T+0) наравне с директивами. *Верифицировано: `tick_orchestrator.py:634`*.
@@ -29,6 +31,10 @@
 - ❌ Прямая мутация стейта в обход `DeltaBuffer`.
 - ❌ Циклы `tick()` для нагона времени (TICK_CATCHUP).
 - ❌ Формирование ответа Фазы 8 через `List[dict]`.
+- ❌ Подмена `campaign_id` на `location_id` в `_TickContext` (ADR-089).
+- ❌ Использование `load_graph()` — мёртвый код, возвращает пустой граф (ADR-102).
+- ❌ Сравнение legacy ID (`room_1`) с canonical ID (`tavern:room_1`) без нормализации через `spatial_service.normalize_id()` (ADR-102).
+- ❌ FLEE без исключения текущего узла NPC из кандидатов (ADR-102).
 
 ---
 
@@ -47,6 +53,7 @@
 - **ADR-064 (Directive Data Continuity):** Убит Баг #6 (Глухая Воля). `DirectiveInterpretationSubscriber` получает `all_npcs_raw` через fallback на `DMContextDTO`.
 - **ADR-067 (Player Command Override):** Приказ игрока перекрывает ЛЮБОЕ решение DecisionHub, включая `flee`. Игрок — авторитетный источник причинности (ADR-061). Убран guard `if decision.intent.value not in ("approach", "flee")` — рефлекс проверяется всегда, override происходит при несовпадении с `approach`.
 - **ADR-068 (Partial Name Matching):** NPC с составными именами ("торнин серебряная луна") теперь отзываются на часть имени ("торнин"). Рефлекс проверяет отдельные слова (≥3 символа), а не только полное имя. Без этого NPC с длинными именами были глухи к приказам.
+- **ADR-088 (Fast Path Emotional Injection):** Убит мертвый `EmotionalVector` в Fast Path. `IntentCompressor` теперь маппит `ActionType` в эмоции (ATTACK → aggression=0.8). Без этого Воля аватара не видела агрессию и сопротивлялась на 15%.
 
 **✅ ВЕРИФИЦИРОВАННЫЕ ПОЧИНКИ (Аудит S50-53):**
 - **GAP2 (Амнезия Сопротивления):** УБИТ ADR-082. `compute_willpower` читает `trauma_markers`. Каждая травма повышает `identity_rigidity` на +0.1 (макс +0.3). *Верифицировано: `will.py:122-125`*.
@@ -61,6 +68,7 @@
 - ❌ Вызов WillpowerGate более 1 раза за цикл.
 - ❌ Использование RPG-матриц поведения как онтологии.
 - ❌ Передача сырых дельт давления из текущего тика в DecisionHub (только T-1) — *НАРУШЕНО хаком COGNITIVE_OVERLAY (см. Раздел 1)*.
+- ❌ Возврат дефолтного `EmotionalVector` (aggression=0.0) из `IntentCompressor` для ATTACK (ADR-088).
 
 ---
 
@@ -101,6 +109,9 @@
 - **ADR-070 (Ghost Position Interpolation):** При создании нового транзита, если NPC уже в активном транзите, `from_xy` вычисляется интерполяцией текущего прогресса по waypoints старого транзита. Без этого новый транзит начинался с устаревшей `local_position` → визуальная телепортация назад.
 - **ADR-071 (Bridge Traversal Propagation):** `game_loop_bridge.py` пробрасывает `active_traversals` в `world_snapshot`. Без этого фронтенд не мог интерполировать движение — `_resolve_visual_xy` не находил waypoints и рисовал по `local_position` (старая позиция).
 - **ADR-072 (Enrichment LOD0 Guard):** `_enrich_local_positions` больше не перетирает `local_position` для сдвинувшихся NPC. Если позиция уже валидна (установлена пайплайном), enrichment пропускает. Ранее NPC, получивший `micro_snap`, при следующей загрузке `scene_state` перетирался на центр узла из графа.
+- **ADR-073 (Adjacency Inference):** Внедрен алгоритм вывода связей из смежности полигонов в `graph_compiler.py`. Если Map Editor не дал `passages`, компилятор автоматически строит связи между комнатами на основе пересечения bounding box. Двери фильтруют проходимость, но не определяют топологию (поддержка разрушаемости).
+- **ADR-095 (Centroid Graph Compilation):** `graph_compiler.py` вычисляет центр комнаты (`x + w/2`, `y + h/2`) вместо левого верхнего угла. Устраняет телепортацию NPC в углы стен при макро-движении (FLEE/schedule).
+- **ADR-096 (Frontend Traversal Respect):** Если NPC в статусе `MOVING`, фронтенд не перезаписывает `local_position` из `npc_positions`, позволяя рендереру плавно интерполировать движение. Устраняет массовую телепортацию при Action-тиках.
 
 **✅ ВЕРИФИЦИРОВАННЫЕ ПОЧИНКИ (Аудит S50-53):**
 - **GAP12 (Парадокс Призрачной Позиции):** Убит [S50]. `_enrich_local_positions` вычисляет интерполированную позицию для NPC в активном транзите. *Верифицировано: `scene_state_manager.py:1145,1585`*.
@@ -111,7 +122,14 @@
 
 GAP11 (Хардкод Глаголов): УБИТ S54. Хардкод _MOVE_VERBS удалён. IntentCompressor распознаёт наречия/местоимения 1-го лица ("сюда", "мне") и устанавливает target_reference='player'. Semantic Bridge пробрасывает MOVE + player в пайплайн. Верифицировано: intent_compressor.py:93-98, npc_tick_pipeline.py:467-472.
 
+✅ ВЕРИФИЦИРОВАННЫЕ ПОЧИНКИ (Аудит S58):
+- **Mass FLEE Teleportation:** УБИТ ADR-096 [S58]. Фронтенд перезаписывал `local_position` из `npc_positions`, игнорируя `active_traversals`. Рендерер не мог интерполировать движение, телепортируя NPC в центр целевого узла. Решение: блокировка обновления `local_position` при статусе `MOVING`. *Верифицировано: S58, NPC плавно перемещаются между комнатами при FLEE*.
+- **Corner Trap Teleportation:** УБИТ ADR-095 [S58]. `graph_compiler` использовал левый верхний угол комнаты как координату узла. NPC прыгали в углы стен при макро-движении. Решение: вычисление центроида. *Верифицировано: S58, `graph_compiler.py` возвращает центр комнаты*.
+- **Double Truth Spatial Graphs (Debt):** ВЕРИФИЦИРОВАН РАЗРЫВ [S58]. Обнаружено дублирование: канонический `SpatialService` (`graph_compiler.py`) и легаси `LocationGraph` (`location_graph.py`). Легаси-граф не знает про центроиды, используется `spatial_runtime.py` для расчёта дистанций.
+
 **Архитектурные запреты:**
+- ❌ Использование левого верхнего угла комнаты как позиции узла в навигационном графе (только центроид ADR-095).
+- ❌ Перезапись `local_position` для NPC в статусе `MOVING` из `npc_positions` (нарушает трубу TraversalState ADR-096).
 - ❌ Прямая мутация `npc["position"]` или `npc["location"]`.
 - ❌ Чтение позиций из `scene_state` (только `SpatialQueryService`).
 - ❌ Вызов `scene_manager.apply_changes()` из подписчиков.
@@ -120,6 +138,7 @@ GAP11 (Хардкод Глаголов): УБИТ S54. Хардкод _MOVE_VERB
 - ❌ Повторная обработка `MovementIntent` (инвариант `processed=True`).
 - ❌ `_enrich_local_positions` перетирает `local_position`, установленный пайплайном (LOD0 guard).
 - ❌ Хардкод языковых глаголов в `npc_tick_pipeline.py` (после починки Semantic Bridge).
+- ❌ Зависимость компиляции графа от ручной простановки `passages` при наличии полигонов комнат (ADR-073).
 
 ---
 
@@ -137,10 +156,36 @@ GAP11 (Хардкод Глаголов): УБИТ S54. Хардкод _MOVE_VERB
 **✅ ВЕРИФИЦИРОВАННЫЕ ПОЧИНКИ (Аудит S54):**
 - **NameError blood_loss_delta:** УБИТ ADR-084. `state_applicator.py` использовал переменную без извлечения из `PhysiologyPayload`. Добавлена строка экстракции. *Верифицировано: `state_applicator.py:427`*.
 
+**✅ ВЕРИФИЦИРОВАННЫЕ ПОЧИНКИ (Аудит S59):**
+- **Silent Loss Physiology (asdict):** УБИТ ADR-099. `state_applicator.py` — `asdict` не импортирован на уровне модуля (только внутри локальной области строки 164). При `add_injuries` непустом (structural_damage > 20) → `NameError` → ВСЯ PhysiologyPayload дельта пропускалась → `body_state` никогда не создавался. Фикс: `from dataclasses import asdict` на уровне модуля. *Верифицировано: S59, `[PHASE8_APPLY] npc=thief_shadow body_state_keys=['current_hp', 'pain', ...]`*.
+- **Serialization Black Hole (body_state):** УБИТ ADR-100. `NPCState.write_to_legacy()` не писал `body_state` в npc_dict → физиология терялась при каждой сериализации. `NPCStateAdapter.from_legacy()` не читал `body_state` → state.body_state всегда начинался пустым. Фикс: добавлено чтение/запись `body_state` в оба метода. *Верифицировано: S59, idle tick `body_state=FOUND pain=48.58`*.
+- **Rule X Violation (BehaviorManifestation):** УБИТ ADR-101. `BehaviorManifestationService._manifest_npc()` читал только `stress_delta` и `psyche_state`, полностью игнорируя `body_state` (pain/blood_loss/shock_impulse) — прямое нарушение Правила X (CAUSAL_CONTRACT §7). Фикс: построение `body_state_map` из `all_npcs_raw`, чтение физиологии для вычисления `locomotion_instability`, `micro_pause_density`, `action_interruption`. *Верифицировано: S59, `[ACTION_PERCEPT] npc=thief_shadow instab=1.00 mpd=1.00 act_int=0.96`*.
+- **shock_impulse Not Applied:** УБИТ ADR-102. `StateApplicator._apply_deltas()` извлекал `shock_impulse` из payload, но не применял его к `body_state`. Поле существовало в `PhysiologyPayload`, но терялось при записи. Фикс: добавлено `state.body_state["shock_impulse"] = min(1.0, _cur_shock + shock_impulse)`. *Верифицировано: S59, `shock=0.96` персистируется между тиками*.
+- **NPC ID Fallback (apply_batch):** УБИТ ADR-103. `StateApplicator.apply_batch()` искал NPC только по `npc_dict.get("id")`, но NPC dict может использовать `"npc_id"`. Фикс: `npc_dict.get("id") or npc_dict.get("npc_id")`. *Верифицировано: S59, дельты применяются корректно*.
+- **Idle Tick Perception Blindness:** УБИТ ADR-104. `_phase_9_integration()` вызывал `produce_traces()` без `all_npcs_raw` → `body_state` всегда `None` в idle тиках. Фикс: передача `all_npcs_raw=ctx.all_npcs_raw`. *Верифицировано: S59, idle tick `[MANIFEST_RAW] all_npcs_raw count=6`*.
+
+**✅ ВЕРИФИЦИРОВАННЫЕ ПОЧИНКИ (Аудит S60):**
+- **Semantic Action Lost in Transit:** УБИТ ADR-105. `publish_classified_player_event` вызывался в `dm_phase.py` ДО `resolve_player_intent()` → `shared_context.intent_resolution` был `None` → `_semantic_action=None` → ADR-091 override не срабатывал. Фикс: перенос вызова в `__init__.py` ПОСЛЕ установки `intent_resolution`. *Верифицировано: S60, `[ADR-091] IntentCompressor override: DM_Router='player_attacks' → IC='attack'`*.
+- **UnboundLocalError _legacy_d (Memory Black Hole):** УБИТ ADR-106. В `npc_tick_pipeline.py` `_legacy_d = LegacyStateDeltaAdapter.collapse()` определена внутри первого `elif` (стр.144), но читалась во втором `elif` (стр.152) → `UnboundLocalError` → `[MEMORY] apply failed` для 6/6 NPC каждый тик. Память была полностью мертва. Фикс: вынесено до ветвления if/elif. *Верифицировано: S60, `[MEMORY] apply failed` исчез из логов*.
+- **VerbalizationContext TypeError:** УБИТ ADR-107. `intent_target: Optional[str]` без `= None` — мина замедленного действия. `physical_state` дефолт заменён с `"невредим"` на `"unharmed"` (L10n-safe). *Верифицировано: S60, smoke-test пройден*.
+- **UrgencyLevel Duplicates EmotionTag:** ДИАГНОСТИРОВАН ADR-108. `StateInterpreter._stress_to_word()` вычисляет `UrgencyLevel` (SCARED/PANIC/BROKEN) из `NPCState.stress`, дублируя `EmotionTag` (fearful/panic) который вычисляется `EmotionResolution` с учётом личности. Трассировка показала: `NPCStateDescription.emotional_state` — мёртвое поле (нет потребителей). `VerbalizationContext.emotion` и `emotional_nuance` — dormant (потребитель не найден, статус unresolved). Double Truth не проявляется в runtime (нет потребителя у UrgencyLevel), но архитектурный долг существует — два владельца одной концепции. Зафиксировано в `architecture/physiology.yaml`. *Верифицировано: S60, полная трассировка 6 путей эмоций к LLM*.
+
+**✅ ВЕРИФИЦИРОВАННЫЕ ПОЧИНКИ (Аудит S60b):**
+- **Shock Immortality (shock_impulse без decay):** УБИТ ADR-109. `shock_impulse` не затухал между тиками — боль уменьшалась (48→46), а шок оставался 0.96 бесконечно. 4 причины: (1) `NPCStateSnapshot` не содержал поле `shock_impulse`; (2) `_build_npc_snapshots()` не извлекал из `body_state`; (3) `PhysiologyDecayHandler.handle()` не вычислял decay для shock; (4) `StateApplicator` проверял `shock_impulse > 0.0` — блокировал отрицательные дельты decay. Фикс: добавлено `SHOCK_DECAY_LAMBDA=0.08` (~8% за тик, быстрее боли), поле в snapshot, извлечение, условие `!= 0.0`. *Верифицировано: S60b, `shock=0.6→0.5539→0.5113`*.
+- **CombatSubscriber NPCStateSnapshot без shock_impulse:** УБИТ ADR-110. `_build_snapshot()` и `_make_player_snapshot()` в `combat_subscriber.py` не передавали `shock_impulse` в `NPCStateSnapshot` → ImpactEngine видел `shock=0.0` всегда. Фикс: добавлено поле в оба метода. *Верифицировано: S60b, компиляция без ошибок*.
+- **Print-диагностика в production:** УБИТ ADR-111. 13 `print()` вызовов в `combat_subscriber.py`, `tick_orchestrator.py`, `state_applicator.py` — протокол VIII.5 требовал print для диагностики, но в production это шум. Конвертированы в `logger.debug()`. Safeguard print'ы (PHASE8_CTX_CRASH, PHASE8_CRASH) оставлены. *Верифицировано: S60b, компиляция без ошибок*.
+
 **Архитектурные запреты:**
 - ❌ Прямая мутация HP аватара в обход `ImpactEngine`.
 - ❌ `CombatSubscriber` пишет в Emotion (Domain Leakage).
 - ❌ Использование RPG-абстракций (Hit Roll, AC).
+- ❌ `BehaviorManifestationService` читает эмоции (psyche.fear/stress) вместо физиологии (body_state.pain/blood_loss/shock_impulse) — Правило X (CAUSAL_CONTRACT §7).
+- ❌ `write_to_legacy` / `from_legacy` без сериализации `body_state` — физиология теряется между тиками.
+- ❌ `StateInterpreter` вычисляет психологические категории (UrgencyLevel.SCARED и др.) из `stress` — это дублирует `EmotionResolution` без учёта личности (ADR-108).
+- ❌ Вызов `publish_classified_player_event` ДО `resolve_player_intent` — `_semantic_action` всегда `None` (ADR-105).
+- ❌ `shock_impulse` без decay в `PhysiologyDecayHandler` — шок становится перманентным (ADR-109).
+- ❌ `StateApplicator` проверяет `shock_impulse > 0.0` вместо `!= 0.0` — блокирует отрицательные дельты decay (ADR-109).
+- ❌ `NPCStateSnapshot` без поля `shock_impulse` — decay handler и combat subscriber слепы к шоку (ADR-109, ADR-110).
 
 ---
 
@@ -178,10 +223,21 @@ GAP11 (Хардкод Глаголов): УБИТ S54. Хардкод _MOVE_VERB
 - **Эмбодимент Отключен (Embodiment Unwired):** Убит [S48/S53]. `GameScreen` извлекает `will_conflict_data` и вызывает `text_input.infect()`. `avatar_state` обновляется, передаваясь в `PresentationFirewall` и `PerceptualMomentum`. Аватар получает давление от паники толпы (GAP7).
 - **Труба Эмбодимента Замкнута:** УБИТ ADR-086. `will_conflict_data` проверенно доходит от `tick_orchestrator` через `shared_context` (та же ссылка `id()`) до `text_input.infect()` на фронтенде. Поле ввода заражается моторным импульсом ("Замереть..."). *Верифицировано: рантайм-аудит `[EMBODIMENT_TRACE]` показывает `{'state': 'reluctant', 'resistance': 0.15, 'embodied_vector': 'freeze', 'counter_offer_text': 'Замереть...'}`*.
 - **Расширение Fast Path словаря:** УБИТ ADR-087. `IntentCompressor._ACTION_LEMMAS` расширен приставочными глаголами (`выбить`, `откусить`, `укусить`, `душить`, `пнуть` и т.д.). pymorphy3 даёт лемму приставочного глагола как есть, не сворачивая к корню. *Верифицировано: `intent_compressor.py:32`*.
+- **The Fool v2 Pipeline:** УБИТ ADR-092. Визуализация моторных следов (дрожь, замер, тултипы) не отображалась на экране, несмотря на наличие данных в `PerceivedEntity`. Причина 1: `game_loop_bridge.py` перезаписывал `world_snapshot` целиком, уничтожая `player_perception` при idle-тиках. Причина 2: `scene_renderer.py` применял смещение дрожи к мировым координатам `render_x/y` ПОСЛЕ отрисовки спрайта по экранным `sx/sy`, и ховер-зона улетала. Решение: мост обновляет только `npc_positions` в существующем snapshot. Рендерер применяет `is_shaking` и `instability` к `sx/sy` ДО `self.screen.blit()`. *Верифицировано: S56, NPC дрожат, тултипы "Напряженная поза" появляются при наведении*.
+- **The Fool Phase 3 (DM Observational Pipeline):** УБИТ ADR-093 [S57]. DM-агент был слеп к наблюдаемым симптомам NPC — `player_perception` с `embodied_traces` не пробрасывался в DM-контракт. Также `player_perception` не был легализован в `PipelineContext` (архитектурное нарушение). Решение: поле `player_perception` добавлено в `PipelineContext`; DM-агент читает `embodied_traces` (не `peripheral_cues` — те существуют только в API-ответе для фронтенда) и формирует блок "Наблюдаемые симптомы NPC" с моторными симптомами (дрожит, покачивается, напряжённая поза). DM описывает видимые следы, а не внутренние состояния. *Верифицировано: S57, DM-промпт содержит блок симптомов, LLM описывает "зрачки расширены от ужаса и напряжения"*.
+- **RPG Vitalism Revival (StateInterpreter Alive):** УБИТ ADR-094 [S57]. `StateInterpreter.interpret()` импортировался в `npc_tick_pipeline.py`, но НИКОГДА не вызывался — мёртвый код. `VerbalizationContext` не имел поля `physical_state`. Шкала `pain` в `StateApplicator` — 0-100, а пороги в `StateInterpreter` — 0.9/0.6/0.3 (под 0-1). Решение: нормализация `pain / 100.0` при чтении; `interpret()` вызывается в `build_verbalization_context`; поле `physical_state` добавлено в `VerbalizationContext`. NPC знает свою боль при само-вербализации. *Верифицировано: S57, `_npc_desc = _interpreter.interpret(state_for_llm)` в `npc_tick_pipeline.py:208`*.
+- **Push-out Resolution:** УБИТ ADR-097 [S58]. Булева проверка коллизий приводила к застреванию игрока между стульями и столами (Corner Trap). Решение: Push-out Resolution (выталкивание по вектору проникновения) + уменьшение `PLAYER_RADIUS` до 0.25. *Верифицировано: S58, игрок скользит вдоль мебели*.
+- **AABB Coordinate Contract:** УБИТ ADR-098 [S58]. `scene_renderer.py` трактовал `x, y` как центр объекта, сдвигая визуал влево-вверх от реальной физики. Решение: чтение `x, y` как левого верхнего угла (соответствует бэкенду). *Верифицировано: S58, визуал мебели совпадает с хитбоксами*.
 
 **Архитектурные запреты:**
+- ❌ Булева блокировка коллизий игрока (только Push-out Resolution ADR-097).
+- ❌ Перезапись `result.world_snapshot` целиком в `game_loop_bridge.py` (уничтожает `player_perception`). Только точечное обновление ключей.
+- ❌ Применение моторных смещений (дрожь) к координатам ПОСЛЕ отрисовки спрайта. Смещение применяется ТОЛЬКО ДО `self.screen.blit()`.
 - ❌ Импорт `backend/app/` во фронтенд (Устав §1.1).
 - ❌ Передача Игроку внутренних метрик NPC (HP, fear).
+- ❌ DM-агент читает внутренние состояния NPC (pain, fear, shock) напрямую вместо `embodied_traces` (Kernel Leakage).
+- ❌ Масштабная несовместимость: `StateApplicator` пишет `pain` в 0-100, а интерпретаторы читают в 0-1 (нормализация `/100` обязательна).
+- ❌ Обработка клавиши `Ё` только через `pygame.K_BACKQUOTE` без `event.unicode` (русская раскладка Windows).
 - ❌ Использование `asdict()` на границе API без валидации.
 
 ---

@@ -42,6 +42,9 @@ def _build_perceived_scene(scene_state: dict, config: PerceptionConfig) -> Perce
     """Локальная сборка PerceivedScene из scene_state (Закон 1.1: Фронтенд не лезет в бэкенд)."""
     entities: List[PerceivedEntity] = []
     
+    # RUNTIME DATA ARCHEOLOGY: Проверяем совпадение npc_id
+    _pp = scene_state.get("player_perception") or {}
+    
     # Конвертируем NPC из scene_state
     for npc_id, npc_data in scene_state.get("npc_positions", {}).items():
         # БАГ D2 FIX: Player не рендерится как NPC
@@ -77,7 +80,12 @@ def _build_perceived_scene(scene_state: dict, config: PerceptionConfig) -> Perce
             traversal_progress=float(trav.get("progress", 0.0)) if trav else 0.0,
             traversal_speed=float(trav.get("speed", 1.5)) if trav else 1.5,
             # Спринт 30: Модель C — когнитивный паралич рвет моторику
-            initiative_suppression=float(npc_data.get("initiative_suppression", 0.0))
+            initiative_suppression=float(npc_data.get("initiative_suppression", 0.0)),
+            # The Fool v2: Инъекция моторных следов и наблюдений
+            is_frozen=next((t.get("is_frozen", False) for t in (scene_state.get("player_perception") or {}).get("embodied_traces") or [] if t.get("npc_id") == npc_id), False),
+            is_shaking=next((t.get("is_shaking", False) for t in (scene_state.get("player_perception") or {}).get("embodied_traces") or [] if t.get("npc_id") == npc_id), False),
+            instability=next((t.get("locomotion_instability", 0.0) for t in (scene_state.get("player_perception") or {}).get("embodied_traces") or [] if t.get("npc_id") == npc_id), 0.0),
+            perception_cues=[c for c in (scene_state.get("player_perception") or {}).get("peripheral_cues", []) if c.get("npc_id") == npc_id]
         ))
         
     return PerceivedScene(
@@ -167,6 +175,81 @@ def _set_player_xy(scene_state: dict, x: float, y: float) -> None:
     """Обновляет координаты игрока в scene_state"""
     scene_state["player_spatial"]["local_position"]["x"] = x
     scene_state["player_spatial"]["local_position"]["y"] = y
+
+
+PLAYER_RADIUS = 0.25  # Радиус коллизии игрока (в метрах)
+
+
+def _resolve_player_collisions(px: float, py: float, walls: list, obstacles: list) -> tuple[float, float]:
+    """Выталкивает игрока из стен и препятствий (Push-out Resolution).
+    Возвращает скорректированные координаты. Обеспечивает скольжение вдоль стен."""
+    
+    # 1. Стены (отрезки)
+    for wall in walls:
+        x1, y1 = wall.get("x1", 0), wall.get("y1", 0)
+        x2, y2 = wall.get("x2", 0), wall.get("y2", 0)
+        dx, dy = x2 - x1, y2 - y1
+        if dx == 0 and dy == 0:
+            proj_x, proj_y = x1, y1
+        else:
+            t = max(0, min(1, ((px - x1) * dx + (py - y1) * dy) / (dx * dx + dy * dy)))
+            proj_x = x1 + t * dx
+            proj_y = y1 + t * dy
+            
+        diff_x = px - proj_x
+        diff_y = py - proj_y
+        dist = math.hypot(diff_x, diff_y)
+        
+        if dist < PLAYER_RADIUS:
+            if dist == 0:
+                # Выталкиваем по перпендикуляру к стене
+                nx, ny = -dy, dx
+                norm = math.hypot(nx, ny)
+                if norm > 0:
+                    nx, ny = nx / norm, ny / norm
+                else:
+                    nx, ny = 0, 1
+                px += nx * PLAYER_RADIUS
+                py += ny * PLAYER_RADIUS
+            else:
+                push = PLAYER_RADIUS - dist
+                px += (diff_x / dist) * push
+                py += (diff_y / dist) * push
+
+    # 2. Препятствия (AABB прямоугольники). Бэкенд отдаёт левый верхний угол (x, y) + (w, h)
+    for obj in obstacles:
+        left = obj.get("x", 0)
+        top = obj.get("y", 0)
+        right = left + obj.get("w", 0)
+        bottom = top + obj.get("h", 0)
+        
+        # Ближайшая точка на прямоугольнике к игроку
+        closest_x = max(left, min(px, right))
+        closest_y = max(top, min(py, bottom))
+        
+        diff_x = px - closest_x
+        diff_y = py - closest_y
+        dist = math.hypot(diff_x, diff_y)
+        
+        if dist < PLAYER_RADIUS:
+            if dist == 0:
+                # Игрок внутри прямоугольника — выталкиваем по кратчайшей оси
+                overlap_left = px - left
+                overlap_right = right - px
+                overlap_top = py - top
+                overlap_bottom = bottom - py
+                
+                min_overlap = min(overlap_left, overlap_right, overlap_top, overlap_bottom)
+                if min_overlap == overlap_left: px = left - PLAYER_RADIUS
+                elif min_overlap == overlap_right: px = right + PLAYER_RADIUS
+                elif min_overlap == overlap_top: py = top - PLAYER_RADIUS
+                else: py = bottom + PLAYER_RADIUS
+            else:
+                push = PLAYER_RADIUS - dist
+                px += (diff_x / dist) * push
+                py += (diff_y / dist) * push
+                
+    return px, py
 
 
 def _nearest_npc_distance(scene_state: dict) -> float:
@@ -268,6 +351,7 @@ class GameScreen:
 
     def __init__(self, screen: pygame.Surface, clock: pygame.time.Clock):
         self.screen = screen
+        self.show_obs_console = False  # Консоль наблюдений (клавиша Ё)
         self.clock = clock
         self.renderer = SceneRenderer(screen)
 
@@ -289,7 +373,7 @@ class GameScreen:
 
         # Загружаем состояние ПОСЛЕ сессии — теперь scene_state уже скомпилирован
         scene_state = _load_campaign_state(campaign_folder)
-        print(f"[GAME_SCREEN] scene_state loaded: {scene_state is not None}, loc={scene_state.get('location_id') if scene_state else 'N/A'}")
+        logger.debug(f"[GAME_SCREEN] scene_state loaded: {scene_state is not None}, loc={scene_state.get('location_id') if scene_state else 'N/A'}")
         if scene_state is None:
             return
 
@@ -311,6 +395,7 @@ class GameScreen:
         scene_h = loc_meta.get("size", {}).get("h", 15)
         walls = scene_state.get("spatial_walls", [])
         obstacles = scene_state.get("spatial_obstacles", [])
+        logger.debug(f"[PIPELINE][INPUT] entering main loop, walls={len(walls)}, obstacles={len(obstacles)}")
 
         # Состояние восприятия
         memory = PlayerMemory()
@@ -377,7 +462,7 @@ class GameScreen:
                 print(f"[IDLE_TICK] ERROR: {e}\n{traceback.format_exc()}")
             _idle_tick_running[0] = False
 
-        print(f"[GAME_SCREEN] entering main loop, walls={len(walls)}, obstacles={len(obstacles)}")
+        logger.debug(f"[PIPELINE][INPUT] entering main loop, walls={len(walls)}, obstacles={len(obstacles)}")
         running = True
         _frame = 0
         while running:
@@ -408,6 +493,8 @@ class GameScreen:
                         _time_scale = 10
                     elif event.key == pygame.K_4 and not text_input.focused:
                         _time_scale = 50
+                    elif not text_input.focused and (event.key == pygame.K_BACKQUOTE or getattr(event, 'unicode', '') in ('ё', 'Ё')):
+                        self.show_obs_console = not self.show_obs_console
                     # TextInput обрабатывает всё кроме WASD (pass_through)
                     handled = text_input.handle_event(event)
                     # RETURN обрабатывается отдельно — TextInput намеренно возвращает False
@@ -513,12 +600,24 @@ class GameScreen:
                             dx += kx
                             dy += ky
                     if dx != 0 or dy != 0:
+                        # Нормализация вектора (устранение бага диагонального ускорения)
+                        length = math.hypot(dx, dy)
+                        if length > 0:
+                            dx /= length
+                            dy /= length
+                        
                         move.facing_angle = math.atan2(dy, dx)
                         move.facing_mode = "VELOCITY"
                         
-                        # Оптимистичный рендер: сдвигаем без коллизий (бэкенд авторитарно откатит при стене)
-                        pred_x = px + dx * 3.0 * dt  # TODO: синхронизировать скорость с TraversalState
-                        pred_y = py + dy * 3.0 * dt
+                        # Физика: скольжение вдоль стен через Push-out Resolution
+                        speed = 8.0 * dt
+                        
+                        pred_x = px + dx * speed
+                        pred_y = py + dy * speed
+                        
+                        # Применяем выталкивание для расчётной позиции
+                        pred_x, pred_y = _resolve_player_collisions(pred_x, pred_y, walls, obstacles)
+                        
                         _set_player_xy(scene_state, pred_x, pred_y)
 
                         _DIR_MAP = {
@@ -592,8 +691,6 @@ class GameScreen:
                 # ТЗ EMBODIED UI PERCEPTION: Извлечение наблюдений игрока
                 if "player_perception" in _ws:
                     scene_state["player_perception"] = _ws["player_perception"]
-                    _cues_count = len(_ws["player_perception"].get("peripheral_cues", []))
-                    print(f"[PERCEPTION_FE_TRACE] Idle tick: cues_received={_cues_count}")
                 # time_of_day — только визуальный срез для рендера, не источник истины
                 _ws_tod = _ws.get("time_of_day")
                 if _ws_tod:
@@ -698,25 +795,33 @@ class GameScreen:
                     if _action_ws and isinstance(_action_ws, dict) and "npc_positions" in _action_ws:
                         import copy
                         for npc_id, new_data in _action_ws["npc_positions"].items():
-                            scene_state.setdefault("npc_positions", {})[npc_id] = copy.deepcopy(new_data)
+                            # ADR-092: Каузальная труба движения. Если NPC в транзите, 
+                            # не перезаписываем local_position — рендерер интерполирует его через TraversalState.
                             _old_lp = scene_state.get("npc_positions", {}).get(npc_id, {}).get("local_position", {})
+                            _travs = _action_ws.get("active_traversals", {})
+                            _in_transit = npc_id in _travs and _travs[npc_id].get("status") == "MOVING"
+                            if _in_transit and "local_position" in new_data:
+                                new_data = copy.deepcopy(new_data)
+                                del new_data["local_position"]
+                            scene_state.setdefault("npc_positions", {})[npc_id] = copy.deepcopy(new_data)
                             _new_lp = new_data.get("local_position", {})
                             if _old_lp != _new_lp:
                                 print(f"[FRAME_RENDER][ACTION] npc={npc_id} new_xy=({_new_lp.get('x')}, {_new_lp.get('y')})")
                         # ADR-019: Сохраняем активные транзиты для визуальной интерполяции (Lerp)
                         if "active_traversals" in _action_ws:
                             scene_state["active_traversals"] = _action_ws["active_traversals"]
-                            print(f"[DIAG][FE_ACTION] traversals_received: {list(_action_ws['active_traversals'].keys()) if isinstance(_action_ws['active_traversals'], dict) else len(_action_ws['active_traversals'])}")
+                            _trav_keys = list(_action_ws['active_traversals'].keys()) if isinstance(_action_ws['active_traversals'], dict) else []
+                            print(f"[PIPELINE][MOVEMENT] traversals_received: keys={_trav_keys} count={len(_trav_keys)}")
+                            for _tid, _tdata in (_action_ws['active_traversals'].items() if isinstance(_action_ws['active_traversals'], dict) else []):
+                                print(f"[PIPELINE][TRAVERSAL] npc={_tid} status={_tdata.get('status')} from={_tdata.get('from_node')} to={_tdata.get('target_node')} wp_count={len(_tdata.get('path_waypoints', []))}")
                         else:
-                            print(f"[DIAG][FE_ACTION] NO active_traversals in _action_ws! keys={list(_action_ws.keys())}")
+                            print(f"[PIPELINE][MOVEMENT] NO active_traversals in action_ws! keys={list(_action_ws.keys())[:10]}")
                         # ADR-035: Обновление феноменологической проекции аватара при действии
                         if "avatar_state" in _action_ws:
                             scene_state["avatar_state"] = _action_ws["avatar_state"]
                         # ТЗ EMBODIED UI PERCEPTION: Извлечение наблюдений игрока
                         if "player_perception" in _action_ws:
                             scene_state["player_perception"] = _action_ws["player_perception"]
-                            _cues_count = len(_action_ws["player_perception"].get("peripheral_cues", []))
-                            print(f"[PERCEPTION_FE_TRACE] Action tick: cues_received={_cues_count}")
                     elif isinstance(result.response, dict) and "npc_positions" in result.response:
                         # Fallback: deprecated top-level npc_positions
                         import copy
@@ -731,8 +836,6 @@ class GameScreen:
                         # ТЗ EMBODIED UI PERCEPTION: Извлечение наблюдений игрока (fallback)
                         if "player_perception" in result.response:
                             scene_state["player_perception"] = result.response["player_perception"]
-                            _cues_count = len(result.response["player_perception"].get("peripheral_cues", []))
-                            print(f"[PERCEPTION_FE_TRACE] Action fallback: cues_received={_cues_count}")
 
                     if resp and resp != "Ничего не произошло.":
                         import re
@@ -818,11 +921,11 @@ class GameScreen:
                     # ADR-041: Resistance Medium — инфекция поля ввода при конфликте воли
                     _wc_data = getattr(result.response, 'will_conflict_data', None)
                     # ADR-039/075: Resistance Medium — замыкание трубы воли в UI
-                    print(f"[EMBODIMENT_TRACE] Will Conflict Data: {_wc_data}")
+                    logger.debug(f"[PIPELINE][EMBODIMENT] Will Conflict Data: {_wc_data}")
                     if _wc_data:
                         _impulse = _wc_data.get("counter_offer_text") or str(_wc_data.get("embodied_vector", ""))
                         if _impulse and hasattr(self, 'text_input') and self.text_input:
-                            print(f"[EMBODIMENT_INFECT] Infecting input with: '{_impulse}'")
+                            logger.debug(f"[PIPELINE][EMBODIMENT] Infecting input with: '{_impulse}'")
                             self.text_input.infect(impulse_text=str(_impulse), origin_layer="will_conflict")
                         
                         # ADR-084: Embodiment Vision Suturing. Конфликт воли искажает визуал (тремор, виньетка).
@@ -835,7 +938,7 @@ class GameScreen:
                             scene_state["avatar_state"]["cognitive_coherence"] = max(0.0, 1.0 - _res * 3.0)
                             scene_state["avatar_state"]["sensory_noise"] = _res * 3.0
                             scene_state["avatar_state"]["motor_disruption"] = _res * 5.0 # Сильный тремор при сопротивлении
-                            print(f"[EMBODIMENT_VISION] Injected instability: res={_res:.2f}, stability={scene_state['avatar_state']['perceptual_stability']:.2f}, motor={scene_state['avatar_state']['motor_disruption']:.2f}")
+                            logger.debug(f"[PIPELINE][EMBODIMENT] Injected instability: res={_res:.2f}, stability={scene_state['avatar_state']['perceptual_stability']:.2f}, motor={scene_state['avatar_state']['motor_disruption']:.2f}")
 
                     for npc_r in result.response.npc_reactions:
                         npc_name = npc_r.get("npc_name", "NPC")
@@ -981,16 +1084,22 @@ class GameScreen:
                     self.screen.blit(_text_surf, _text_rect)
                     _start_y += _text_rect.height + 5 # Сдвиг вниз для следующего восприятия
 
-            # ТЗ EMBODIED UI PERCEPTION: Слой 1 (ВРЕМЕННЫЙ ДЕБАГ-РЕНДЕР)
-            # Показываем периферические наблюдения в правом верхнем углу, чтобы верифицировать пайплайн
-            if _perception_data and _perception_data.get("peripheral_cues"):
-                _cue_y = 20
-                _cue_font = self.renderer.font_small
-                for cue in _perception_data["peripheral_cues"]:
-                    _cue_text = f"👁 {cue.get('hover_text', '...')}"
-                    _cue_surf = _cue_font.render(_cue_text, True, (180, 180, 220))
-                    self.screen.blit(_cue_surf, (self.screen.get_width() - _cue_surf.get_width() - 10, _cue_y))
-                    _cue_y += 18
+            # Консоль наблюдений (клавиша Ё): периферические наблюдения с привязкой к npc_id
+            if self.show_obs_console and _perception_data and _perception_data.get("peripheral_cues"):
+                _cues = _perception_data["peripheral_cues"]
+                _box_h = len(_cues) * 18 + 15
+                _box_w = 420
+                _obs_bg = pygame.Surface((_box_w, _box_h), pygame.SRCALPHA)
+                _obs_bg.fill((0, 0, 0, 180))
+                self.screen.blit(_obs_bg, (10, 15))
+                
+                _obs_y = 20
+                for cue in _cues:
+                    _npc_id = cue.get('npc_id', '???')
+                    _cue_text = f"[OBS] {_npc_id}: {cue.get('hover_text', '...')}"
+                    _cue_surf = self.renderer.font_small.render(_cue_text, True, (200, 200, 200))
+                    self.screen.blit(_cue_surf, (15, _obs_y))
+                    _obs_y += 18
 
             # HUD: FPS + игровое время
             fps_surf = self.renderer.font_small.render(

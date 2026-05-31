@@ -3,6 +3,12 @@ path: build_graph.py
 Назначение: Генерация ARCHITECTURE_FLOW.md из YAML (Flowchart + Sequence + Micro-details)
 Зависимости: PyYAML, os, glob
 Основные сущности: ArchitectureGraphBuilder
+
+Запуск: python build_graph.py
+
+TODO:
+- [x] Базовая генерация flowchart из YAML
+- [x] Поддержка кастомных стилей узлов
 """
 
 import yaml

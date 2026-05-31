@@ -50,6 +50,21 @@ class ConfidenceVector(BaseModel):
     emotion: float = Field(default=0.8, ge=0.0, le=1.0)
     action: float = Field(default=1.0, ge=0.0, le=1.0)
 
+class SocialSignal(str, Enum):
+    """Социальный сигнал. Что видят наблюдатели в поведении."""
+    NONE = "none"
+    DISCOMFORT = "discomfort"
+    FEAR = "fear"
+    VIOLENCE = "violence"
+    PREDATOR_ALERT = "predator_alert"
+
+class CrowdThreatLevel(float, Enum):
+    """Уровень угрозы для поля CFRM. Насколько это опасно для толпы."""
+    NONE = 0.0
+    LOW = 0.2
+    MEDIUM = 0.5
+    HIGH = 0.8
+
 class IntentSemanticField(BaseModel):
     """Слой 1: Вероятностная реконструкция намерения. Не команда, а поле."""
     action_type: ActionType

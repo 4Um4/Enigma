@@ -7,6 +7,7 @@ DecisionHub → StateApplicator → NPCState.write_to_legacy → dict обнов
 
 from app.models.npc_state import NPCState, Intent, WillState, EmotionTag
 from app.services.npc.decision_hub import DecisionResult, StateDeltas
+from app.models.state_delta import DeltaDomain, EmotionPayload
 from app.services.npc.state_applicator import StateApplicator
 from unittest.mock import MagicMock
 
@@ -24,14 +25,15 @@ def test_pipeline_stress_increases_in_dict():
     # 2. stress_delta — INPUT (запрашиваемое изменение), не stress_delta_effective (OUTPUT)
     deltas = StateDeltas(
         npc_id="test_npc",
-        stress_delta=15.0,
+        domain=DeltaDomain.EMOTION,
+        payload=EmotionPayload(stress_delta=15.0),
     )
     result = DecisionResult(
         npc_id="test_npc",
         intent=Intent.FLEE,
         intent_target="player",
         score=0.8,
-        deltas=deltas,
+        deltas=[deltas],
         scores_trace={},
         narrative_fact=None,
     )
@@ -74,7 +76,7 @@ def test_pipeline_intent_written_to_dict():
         intent=Intent.FLEE,
         intent_target="player",
         score=0.8,
-        deltas=deltas,
+        deltas=[deltas],
         scores_trace={},
         narrative_fact=None,
     )

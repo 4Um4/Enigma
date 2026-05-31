@@ -70,3 +70,15 @@ constraints:
     target: NPCState
     rule: "FORBIDDEN: Pass internal state to UI"
     code_ref: "Устав §6.1"
+  - source: GameScreen
+    target: SpatialObstacles
+    rule: "FORBIDDEN: Boolean collision check (must use Push-out Resolution)"
+    condition: "Prevents Corner Trap between furniture (ADR-097)"
+    code_ref: "game_screen.py:188-247"
+    adr_ref: "ADR-097"
+  - source: SceneRenderer
+    target: SpatialObstacles
+    rule: "FORBIDDEN: Treat obstacle x,y as center (must use as top-left corner)"
+    condition: "Matches backend contract in scene_state_manager.py:559-567 (ADR-098)"
+    code_ref: "scene_renderer.py:263-270"
+    adr_ref: "ADR-098"

@@ -388,10 +388,10 @@ class TestSocialModifiersIntegration:
     def test_empty_social_modifiers_no_effect(self, base_state, base_personality):
         """social_modifiers={} — без эффекта."""
         event = EventContext(event_type="player_interacts", actor_id="player")
-        result_base = DecisionHub().compute(
+        result_base = DecisionHub(seed=42).compute(
             state=base_state, personality=base_personality, event=event,
         )
-        result_empty = DecisionHub().compute(
+        result_empty = DecisionHub(seed=42).compute(
             state=base_state, personality=base_personality, event=event,
             social_modifiers={},
         )

@@ -40,6 +40,7 @@ PAIN_DECAY_LAMBDA: float = 0.05       # Боль затухает ~5% за ти�
 FATIGUE_DECAY_LAMBDA: float = 0.03    # Усталость медленнее (восстановление)
 BLOOD_LOSS_DECAY_LAMBDA: float = 0.01 # Кровопотеря ещё медленнее (свертывание)
 CONSCIOUSNESS_RECOVERY: float = 0.02  # Восстановление сознания
+SHOCK_DECAY_LAMBDA: float = 0.08     # Шок затухает быстрее боли (~8% за тик)
 
 PHYSIOLOGY_DECAY_EPSILON: float = 0.001  # Порог closing drift (кровопотеря даёт дельты ~0.005 при blood_loss=0.5)
 
@@ -80,12 +81,14 @@ class PhysiologyDecayHandler:
             current_fatigue = npc.get("fatigue", 0.0)
             current_blood_loss = npc.get("blood_loss", 0.0)
             current_consciousness = npc.get("consciousness", 1.0)
+            current_shock = npc.get("shock_impulse", 0.0)
 
             # Пропускаем NPC без физиологических изменений
             if (current_pain <= PHYSIOLOGY_DECAY_EPSILON
                     and current_fatigue <= PHYSIOLOGY_DECAY_EPSILON
                     and current_blood_loss <= PHYSIOLOGY_DECAY_EPSILON
-                    and current_consciousness >= 1.0 - PHYSIOLOGY_DECAY_EPSILON):
+                    and current_consciousness >= 1.0 - PHYSIOLOGY_DECAY_EPSILON
+                    and current_shock <= PHYSIOLOGY_DECAY_EPSILON):
                 continue
 
             # --- Leaky Integrator: экспоненциальное затухание ---
@@ -102,6 +105,10 @@ class PhysiologyDecayHandler:
             # Кровопотеря медленно снижается (свертывание крови)
             blood_after_decay = current_blood_loss * math.exp(-BLOOD_LOSS_DECAY_LAMBDA)
             blood_loss_delta = _closing_drift(blood_after_decay, 0.0) - current_blood_loss
+
+            # Шок затухает быстрее боли — это острый сигнал, не хроническое состояние
+            shock_after_decay = current_shock * math.exp(-SHOCK_DECAY_LAMBDA)
+            shock_delta = _closing_drift(shock_after_decay, 0.0) - current_shock
 
             # Сознание восстанавливается (обратно пропорционально боли)
             if current_consciousness < 1.0:
@@ -121,7 +128,8 @@ class PhysiologyDecayHandler:
             if (abs(pain_delta) < PHYSIOLOGY_DECAY_EPSILON
                     and abs(fatigue_delta) < PHYSIOLOGY_DECAY_EPSILON
                     and abs(blood_loss_delta) < PHYSIOLOGY_DECAY_EPSILON
-                    and abs(consciousness_delta) < PHYSIOLOGY_DECAY_EPSILON):
+                    and abs(consciousness_delta) < PHYSIOLOGY_DECAY_EPSILON
+                    and abs(shock_delta) < PHYSIOLOGY_DECAY_EPSILON):
                 continue
 
             # --- Фазовые переходы (emergent states) ---
@@ -154,6 +162,7 @@ class PhysiologyDecayHandler:
                     pain_delta=round(pain_delta, 4),
                     fatigue_delta=round(fatigue_delta, 4),
                     blood_loss_delta=round(blood_loss_delta, 4),
+                    shock_impulse=round(shock_delta, 4),
                     add_statuses=add_statuses,
                     remove_statuses=remove_statuses,
                 ),

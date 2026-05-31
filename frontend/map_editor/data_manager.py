@@ -514,7 +514,7 @@ class DataManager:
         self.locations[filename] = {
             "filename": filename,
             "label": label or filename.replace(".json", ""),
-            "location_id": "",  # заполнить в UI — связывает с location_id в игре
+            "location_id": filename.replace(".json", ""),  # ADR-061: Инференс из имени файла при создании
             "origin": {"x": pos_x, "y": pos_y},
             "size": {"w": width, "h": height},
             "grid_cell_size": 1.0,

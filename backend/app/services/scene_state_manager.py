@@ -42,7 +42,7 @@ from typing import Optional
 from app.core.config import settings
 from app.services.scene_change import SceneChange, ChangeType
 from app.services.state.persistence_port import PersistencePort
-from app.services.spatial.location_graph import load_graph
+# ADR-102: load_graph удалён — заменён на SpatialService
 from app.services.spatial.spatial_runtime import euclidean_distance
 
 logger = logging.getLogger(__name__)
@@ -269,6 +269,8 @@ class SceneStateManager:
         for npc_id, pos_data in scene.get("npc_positions", {}).items():
             if isinstance(pos_data, dict) and not pos_data.get("name"):
                 pos_data["name"] = _npc_id_to_display(npc_id)
+        # ADR-102: Инжект campaign_id для SpatialService (замена мёртвого load_graph)
+        scene["campaign_id"] = campaign_id
         return scene
 
     def _enrich_spatial_data(self, campaign_id: str, scene_state: dict) -> None:
@@ -562,6 +564,7 @@ class SceneStateManager:
                     "w": size.get("w", 0),
                     "h": size.get("h", 0),
                     "id": obj.get("id", ""),
+                    "type": obj.get("type", "decoration"),
                     "blocks_los": obj.get("cover", 0) >= 0.8,
                     "passability": obj.get("passability", {}),
                 })
@@ -903,6 +906,7 @@ class SceneStateManager:
                         "w": size.get("w", 0),
                         "h": size.get("h", 0),
                         "id": obj.get("id", ""),
+                        "type": obj.get("type", "decoration"),
                         # LOS блокируют только массивные объекты (полки), а не столы/стулья
                         "blocks_los": obj.get("cover", 0) >= 0.8,
                         # Сохраняем passability для data-driven фильтрации коллизий (Posture FSM)
@@ -1203,6 +1207,7 @@ class SceneStateManager:
                 elif change.field == "local_position" and isinstance(change.value, dict):
                     pos = scene_state.setdefault("npc_positions", {})
                     entry = pos.setdefault(change.target, {})
+                    print(f"[DIAG_LOC_MUTATE] npc={change.target} line=1207 reason=direct_local_position value={change.value}")
                     entry["local_position"] = change.value
                     logger.debug(f"[APPLY_LOCAL_POSITION] npc={change.target} value={change.value}")
 
@@ -1518,11 +1523,13 @@ class SceneStateManager:
 
         # SpatialService — единый источник координат узлов (ADR-0006)
         svc = None
-        with contextlib.suppress(Exception):
+        try:
             from app.services.spatial.spatial_service import SpatialService
             svc = SpatialService.build_for_location(
                 campaign_id=campaign_id, location_id=location_id, scene_state=scene_state
             )
+        except Exception as e:
+            logger.error(f"[SPATIAL_ENFORCEMENT] Ошибка сборки SpatialService для location_id={location_id}: {e}")
 
         for npc_id, entry in npc_positions.items():
             # Миграция имени: в старых сохранениях отсутствует поле name (Баг 3)
@@ -1633,21 +1640,23 @@ class SceneStateManager:
         entry["position"] = position
         entry["activity"] = activity
 
-        # Синхронизация local_position при движении NPC
-        # Без этого euclidean_distance считает от старых координат
+        # ADR-092: Синхронизация local_position через канонический SpatialService.
+        # Легаси load_graph() (Double Truth) удалён — он не знал про центроиды и ADR-091.
         if location_id := scene_state.get("location_id", ""):
             try:
-                graph = load_graph(location_id)
-                if node := graph.get_node(position):
-                    entry["local_position"] = {"x": node.x, "y": node.y}
-                else:
-                    logger.warning(
-                        f"[SPATIAL] Узел '{position}' не найден в графе '{location_id}' "
-                        f"для NPC {npc_id} — local_position не обновлён"
-                    )
+                svc = self._ensure_spatial_service(location_id, scene_state)
+                if svc:
+                    node = svc.get_node(position) or svc.get_node(f"{location_id}:{position}")
+                    if node:
+                        entry["local_position"] = {"x": node.x, "y": node.y}
+                    else:
+                        logger.warning(
+                            f"[SPATIAL] Узел '{position}' не найден в SpatialService '{location_id}' "
+                            f"для NPC {npc_id} — local_position не обновлён"
+                        )
             except Exception as exc:
                 logger.warning(
-                    f"[SPATIAL] Не загрузить граф '{location_id}' для NPC {npc_id}: {exc} "
+                    f"[SPATIAL] Ошибка SpatialService для NPC {npc_id}: {exc} "
                     f"— local_position не обновлён"
                 )
 

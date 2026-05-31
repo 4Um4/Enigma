@@ -77,9 +77,9 @@ def resolve_player_intent(
     try:
         from app.services.input.intent_compressor import IntentCompressor
         _compressor = IntentCompressor(llm_client=None)
-        print(f"[DIAG][LAYER1] raw_action={raw_action!r}")
+        logger.debug(f"[PIPELINE][INPUT] raw_action={raw_action!r}")
         semantic_field = _compressor._fast_path_parse(raw_action)
-        print(f"[DIAG][LAYER1] result={semantic_field}")
+        logger.debug(f"[PIPELINE][INPUT] result={semantic_field}")
         if semantic_field:
             logger.warning(f"[LAYER1] Fast path success: action={semantic_field.action_type}, target_ref={semantic_field.target_reference}")
     except Exception as e:
@@ -236,6 +236,25 @@ def publish_classified_player_event(
             logger.debug("[SEMANTIC_BRIDGE] No semantic_action in DTO")
         else:
             logger.warning(f"[SEMANTIC_BRIDGE] Extracted: action={_semantic_action}, target={_target_reference}, id={_target_id}")
+    
+    # ADR-091: IntentCompressor Priority Override
+    # IntentCompressor (50+ ATTACK глаголов) — авторитет классификации.
+    # DM Router (16 глаголов) перезаписывает "укусить/толкнуть/душить" → player_interacts.
+    # Без override: ATTACK → PLAYER_SPOKE → CombatSubscriber не вызывается → нет крови/боли.
+    # ADR-091 diagnostics removed — override logic confirmed working
+    if _semantic_action:
+        _IC_PRIORITY_MAP = {
+            "ATTACK": "attack",
+            "THREATEN": "player_threatens",
+            "STEAL": "player_steals",
+            "MOVE": "move",
+        }
+        _ic_override = _IC_PRIORITY_MAP.get(_semantic_action)
+        if _ic_override and _ic_override != _raw_type:
+            print(f"[ADR-091] IntentCompressor override: DM_Router='{_raw_type}' → IC='{_ic_override}'")
+            _raw_type = _ic_override
+            _resolved_type = _evt_map.get(_raw_type.lower(), EventType.PLAYER_SPOKE)
+            _evt_radius = 15.0 if _resolved_type == EventType.PLAYER_ATTACKED else 999.0
 
     _payload = {
         "location": location,
@@ -263,4 +282,4 @@ def publish_classified_player_event(
         radius=_evt_radius,
     )
     get_event_bus().publish(_game_evt)
-    logger.warning(f"[EVENT_BUS] Published: {_game_evt.type}, target={_game_evt.payload.get('target_id')}, intensity={_intensity}")
+    logger.warning(f"[EVENT_BUS] Published: {_game_evt.type}, target={_game_evt.payload.get('target_id')}, action_type={_raw_type}")

@@ -14,6 +14,11 @@ from typing import Any, Dict, Optional
 from app.domain.intent import IntentDTO
 from app.models.will import IntentPressureProfile, WillResponseDTO, WillState, EmbodiedVector, OriginLayer
 
+from app.domain.intent_profile import (
+    IntentSemanticField, ActionType, TargetZone, SemanticAmbiguity, 
+    EmotionalVector, ConfidenceVector, SocialSignal, CrowdThreatLevel
+)
+
 logger = logging.getLogger(__name__)
 
 # --- СЛОЙ 1: СЕМАНТИЧЕСКИЙ ПЕРЕВОД (BOOTSTRAP) ---
@@ -67,12 +72,15 @@ def resolve_intent_pressure(
         )
 
     # ADR-031 & ADR-043: Социальные директивы и приказы.
-    # Без этого Воля аватара слепа к командам "Подойди", "Стой" (SHI=0%).
+    # The Fool Phase 2: Игрок — источник приказа, а не цель.
+    # Подчинение чужой воле (identity_deviation) и социальный риск (social_exposure)
+    # испытывает ЦЕЛЬ (NPC), а не ИСТОЧНИК (Игрок).
+    # Для игрока, отдающего приказ, давление минимально.
     elif action in ("player_social", "player_moves", "move", "approach", "halt", "order"):
         pressure = IntentPressureProfile(
-            identity_deviation=0.3,  # Подчинение чужой воле искажает "Я"
-            social_exposure=0.4,     # Выставление себя на обозрение
-            humiliation=0.1,         # Потеря агентности (базовая степень)
+            identity_deviation=0.05,  # Игрок проявляет агентность, не подчиняется
+            social_exposure=0.05,     # Минимальный социальный фрикшн
+            humiliation=0.0,          # Игрок не унижается, отдавая приказ
         )
 
     elif action in ("talk", "player_talks", "player_spoke", "dialogue", "player_interacts", "idle"):
@@ -151,7 +159,11 @@ def compute_willpower(
     hooks = _generate_narration_hooks(state, pressure)
     
     # Вычисление моторного импульса (ADR-037)
-    embodied_vector = _resolve_embodied_vector(pressure, state)
+    # The Fool Phase 2: Безопасная распаковка 3 слоёв
+    _embodied_result = _resolve_embodied_vector(pressure, state)
+    embodied_vector = _embodied_result[0] if _embodied_result else None
+    social_signal = _embodied_result[1] if _embodied_result else SocialSignal.NONE
+    crowd_threat = _embodied_result[2] if _embodied_result else CrowdThreatLevel.NONE
     
     return WillResponseDTO(
         state=state,
@@ -161,6 +173,8 @@ def compute_willpower(
         counter_offer=counter_offer,
         narration_hooks=hooks,
         embodied_vector=embodied_vector,
+        social_signal=social_signal.value, # Проброс для CFRM
+        crowd_threat_level=crowd_threat.value, # Проброс для CFRM
     )
 
 
@@ -241,31 +255,43 @@ def get_embodied_impulse_text(vector: Optional[EmbodiedVector]) -> str:
 def _resolve_embodied_vector(
     pressure: IntentPressureProfile, 
     state: WillState
-) -> Optional[EmbodiedVector]:
-    """Вычисляет предрефлексивный моторный импульс на основе давления и состояния."""
+) -> Optional[tuple]:
+    """The Fool Phase 2: Вычисляет моторный импульс, социальный сигнал и уровень угрозы.
+    Возвращает: (EmbodiedVector, SocialSignal, CrowdThreatLevel) или None.
+    """
     # ADR-083: Инвариант Насилия. Неохотное согласие (RELUCTANT) на насилие 
     # подавляет волю, но не инстинкты. Тело сопротивляется убийству.
     if state in (WillState.COMPLY, WillState.RELUCTANT, WillState.PARTIAL_COMPLY):
         if pressure.violence > 0.3 or pressure.self_risk > 0.3:
-            return EmbodiedVector.FREEZE  # Моторный ступор (дрожь рук, отвращение)
+            return EmbodiedVector.FREEZE, SocialSignal.VIOLENCE, CrowdThreatLevel.MEDIUM
         return None  # Обычное социальное согласие не порождает моторных импульсов
         
+    # Паника или критический риск = бегство, высокий сигнал угрозы.
     if state == WillState.PANICKED or pressure.self_risk > 0.7:
-        return EmbodiedVector.AVOIDANCE
+        return EmbodiedVector.AVOIDANCE, SocialSignal.PREDATOR_ALERT, CrowdThreatLevel.HIGH
         
+    # Диссоциация или экстремальное насилие = ступор
     if state == WillState.DISSOCIATING or pressure.violence > 0.8:
-        return EmbodiedVector.FREEZE
+        return EmbodiedVector.FREEZE, SocialSignal.FEAR, CrowdThreatLevel.MEDIUM
         
+    # Холодная ярость (насилие без искажения идентичности)
     if pressure.violence > 0.5 and pressure.identity_deviation < 0.3:
-        return EmbodiedVector.DESTROY
+        return EmbodiedVector.DESTROY, SocialSignal.VIOLENCE, CrowdThreatLevel.HIGH
         
+    # Слом воли или крайнее унижение
     if state == WillState.BROKEN or pressure.humiliation > 0.7:
-        return EmbodiedVector.SUBMIT
+        return EmbodiedVector.SUBMIT, SocialSignal.DISCOMFORT, CrowdThreatLevel.NONE
         
+    # Риск + тревога = коллапс
     if pressure.self_risk > 0.5 and state == WillState.DISTRESSED:
-        return EmbodiedVector.COLLAPSE
+        return EmbodiedVector.COLLAPSE, SocialSignal.FEAR, CrowdThreatLevel.MEDIUM
         
-    return EmbodiedVector.AVOIDANCE # Дефолтный инстинкт самосохранения
+    # The Fool Phase 2: Социальная тревога = моторный ступор, но низкая угроза для толпы.
+    if state == WillState.DISTRESSED:
+        return EmbodiedVector.FREEZE, SocialSignal.DISCOMFORT, CrowdThreatLevel.LOW
+        
+    # Дефолтный инстинкт: осторожное отступление без массовой паники.
+    return EmbodiedVector.WITHDRAW, SocialSignal.FEAR, CrowdThreatLevel.LOW
 
 
 def compose_pressure_from_tags(base_pressure: IntentPressureProfile, tags: list[str]) -> IntentPressureProfile:

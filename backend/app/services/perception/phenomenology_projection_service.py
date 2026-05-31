@@ -1,79 +1,76 @@
-# path: backend/app/services/perception/phenomenology_projection_service.py
-# Назначение: Перевод Simulation Truth (NPC states) в PerceptionEvent.
-# ЗАПРЕТ: Телепатия. Сервис не имеет права читать fear/trust напрямую для текстов.
-# Зависимости: app.domain.perception
+"""
+Назначение: Сервис для интерпретации моторных следов NPC в субъективный опыт Игрока.
+Переводит физические следы в восприятие. Читает только тело, не читает эмоции.
+Зависимости: logging, app.domain.embodied_trace
+"""
 
-from __future__ import annotations
+import logging
+from typing import List, Dict, Optional
+from app.domain.embodied_trace import EmbodiedTraceDTO, PlayerPerceptionDTO
 
-from typing import Dict, List
-
-from app.domain.perception import PerceptionEvent
-
+logger = logging.getLogger(__name__)
 
 class PhenomenologyProjectionService:
-    """Переводит сырые стейты NPC в смыслы (PerceptionEvent).
-    
-    Если NPC имеет высокий initiative_suppression, он "замер".
-    Если NPC имеет высокий fear, он "отворачивается" (избегание взгляда).
     """
-
-    def project(
-        self, 
-        all_npcs_raw: List[Dict], 
-        current_tick: int,
-        current_location_id: str = ""
-    ) -> List[PerceptionEvent]:
-        """Сканирует NPC и генерирует события восприятия."""
-        events: List[PerceptionEvent] = []
-
-        for npc_dict in all_npcs_raw:
-            # Фильтруем NPC не в нашей локации (если передан ID)
-            npc_loc = npc_dict.get("location_id") or npc_dict.get("location", "")
-            if current_location_id and npc_loc and npc_loc != current_location_id:
-                continue
-
-            npc_id = npc_dict.get("npc_id") or npc_dict.get("id", "unknown") # Починка слепоты (id vs npc_id)
-            psyche = npc_dict.get("psyche", {})
-            body = npc_dict.get("body_state", {})
-
-            # --- Слой 1: Периферия (Наблюдение за поведением) ---
-            # 1. Когнитивный ступор (Cognitive Freeze)
-            initiative_sup = float(psyche.get("initiative_suppression", 0.0))
-            if initiative_sup > 0.7:
-                events.append(PerceptionEvent(
-                    salience=0.6 + (initiative_sup - 0.7) * 1.0, # 0.6 - 0.9
-                    category="PERIPHERAL",
-                    semantic_seed="замер",
-                    source_cluster=npc_id,
-                    expiration_tick=current_tick + 3 # Наблюдение живет 3 тика
-                ))
-
-            # 2. Избегание контакта (Fear -> Avoid Gaze)
-            fear = float(psyche.get("fear", 0.0))
-            # Fallback: Если NPC формирует интент бегства, он визуально отводит взгляд/дергается,
-            # даже если скаляр fear в словаре еще не обновился 
-            active_intent = npc_dict.get("active_intent", "")
-            is_fleeing = "flee" in str(active_intent).lower()
+    ФАЗА 9: Интерпретация моторных следов в субъективные семантические ключи.
+    Возвращает доменный DTO, который _convert_perception переводит в каноничный API-формат.
+    """
+    
+    def project(self, traces: List[EmbodiedTraceDTO], scene_state: dict, tick: int = 0) -> PlayerPerceptionDTO:
+        cues = []
+        
+        # Периферические сигналы от моторных следов (семантические ключи для i18n)
+        for trace in traces:
+            if getattr(trace, 'is_frozen', False):
+                cues.append({"npc_id": trace.npc_id, "cue_key": "FROZEN"})
+            elif getattr(trace, 'posture_rigidity', 0.0) > 0.4:
+                cues.append({"npc_id": trace.npc_id, "cue_key": "TENSE_POSTURE"})
+                
+            if getattr(trace, 'is_shaking', False):
+                cues.append({"npc_id": trace.npc_id, "cue_key": "SWAYING"})
+            elif getattr(trace, 'locomotion_instability', 0.0) > 0.3:
+                cues.append({"npc_id": trace.npc_id, "cue_key": "UNEVEN_STANCE"})
+                
+            if getattr(trace, 'action_interruption', 0.0) > 0.6:
+                cues.append({"npc_id": trace.npc_id, "cue_key": "ABRUPT_STOP"})
+                
+            if getattr(trace, 'micro_pause_density', 0.0) > 0.5:
+                cues.append({"npc_id": trace.npc_id, "cue_key": "FREQUENT_PAUSES"})
             
-            if fear > 0.6 or is_fleeing:
-                events.append(PerceptionEvent(
-                    salience=0.4 + (max(fear - 0.6, 0.0)) * 0.5,
-                    category="PERIPHERAL",
-                    semantic_seed="отворачивается" if not is_fleeing else "отворачивается",
-                    source_cluster=npc_id,
-                    expiration_tick=current_tick + 2
-                ))
-
-            # --- Слой 2: Атмосфера (Средовое давление) ---
-            # Если в локации много стресса, это фон
-            stress = float(psyche.get("stress", 0.0))
-            if stress > 50.0:
-                events.append(PerceptionEvent(
-                    salience=0.3,
-                    category="ATMOSPHERE",
-                    semantic_seed="напряжение",
-                    source_cluster=npc_id,
-                    expiration_tick=current_tick + 5
-                ))
-
-        return events
+            # Правило X: видимые следы физического повреждения (читаем тело, не эмоции)
+            _instab = getattr(trace, 'locomotion_instability', 0.0)
+            _rigid = getattr(trace, 'posture_rigidity', 0.0)
+            _mpd = getattr(trace, 'micro_pause_density', 0.0)
+            _act_int = getattr(trace, 'action_interruption', 0.0)
+            
+            if _rigid > 0.5 and _instab > 0.4:
+                cues.append({"npc_id": trace.npc_id, "cue_key": "WINCING"})
+            if _mpd > 0.5 and _rigid > 0.4:
+                cues.append({"npc_id": trace.npc_id, "cue_key": "HOLDING_SIDE"})
+            if _mpd > 0.3 and _instab > 0.5:
+                cues.append({"npc_id": trace.npc_id, "cue_key": "BLEEDING"})
+            if _act_int > 0.6:
+                cues.append({"npc_id": trace.npc_id, "cue_key": "STAGGERED"})
+        
+        # Атмосфера локации (из коллективного стресса)
+        npc_positions = scene_state.get("npc_positions", {})
+        total_stress = sum(float(d.get("stress_delta", 0)) for d in npc_positions.values() if isinstance(d, dict))
+        avg_stress = total_stress / max(1, len(npc_positions))
+        
+        atm_key = None
+        atm_intensity = 0.0
+        if avg_stress > 10.0:
+            atm_key = "ATMOSPHERE_THICK_TENSION"
+            atm_intensity = min(1.0, avg_stress / 20.0)
+        elif avg_stress > 4.0:
+            atm_key = "ATMOSPHERE_UNEASY"
+            atm_intensity = min(1.0, avg_stress / 10.0)
+        
+        logger.info(f"[PERCEPTION_PROJECTOR] Traces={len(traces)} Cues={len(cues)}")
+        
+        return PlayerPerceptionDTO(
+            active_perceptions=cues,
+            atmosphere_key=atm_key,
+            atmosphere_intensity=atm_intensity,
+            embodied_traces=[t.__dict__ if hasattr(t, '__dict__') else dict(t) for t in traces]
+        )

@@ -45,8 +45,9 @@ class VerbalizationContext:
     emotion: str
     will_state: str
     intent: str
-    intent_target: Optional[str]
-    topic: str = ""  # из TopicExtractor (Фаза 4), пустая строка = провод не подключён
+    intent_target: Optional[str] = None  # ADR-103: default для безопасности field order
+    physical_state: str = "unharmed"  # GAP5 FIX: vitality — pain/shock override HP. L10n in prompt builder
+    topic: str = ""  # Phase 4 (TopicExtractor). Empty = wire not connected
 
     # Python-сгенерированная фактура
     scene_hint: str = ""

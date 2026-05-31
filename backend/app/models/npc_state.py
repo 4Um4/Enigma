@@ -671,6 +671,11 @@ class NPCState:
         if state.causal_ledger:
             npc_dict["causal_ledger"] = [entry.to_dict() for entry in state.causal_ledger]
 
+        # body_state — ВСЯ физиология (pain, blood_loss, shock_impulse, injuries, statuses)
+        # Без этого body_state теряется при каждой сериализации → боль/кровь невидимы
+        if state.body_state:
+            npc_dict["body_state"] = state.body_state
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # NPCStateAdapter — миграция без большого взрыва
@@ -708,6 +713,9 @@ class NPCStateAdapter:
             causal_ledger = [
                 CausalEntry.from_dict(e) for e in npc_dict.get("causal_ledger", [])
             ],
+            # body_state — физиология (pain, blood_loss, shock_impulse, injuries, statuses)
+            # Без этого state.body_state всегда пустой → StateApplicator пересоздаёт его каждый раз
+            body_state = dict(npc_dict.get("body_state", {})),
         )
 
 # ─────────────────────────────────────────────────────────────────────────────
