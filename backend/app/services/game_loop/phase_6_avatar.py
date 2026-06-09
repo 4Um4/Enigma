@@ -64,7 +64,7 @@ def update_avatar_from_npc_intents(
 
         if _avatar_changed:
             avatar_service.save_state(campaign_id, _avatar_state)
-            logger.warning(f"[AVATAR] stress={_avatar_state.stress:.1f} emotion={_avatar_state.emotion.value}")
+            logger.warning(f"[AVATAR] stress={_avatar_state.stress:.1f} emotion={_avatar_state.emotion.value if hasattr(_avatar_state.emotion, 'value') else _avatar_state.emotion}")
     except Exception as _av_err:
         logger.warning(f"[AVATAR] update error: {_av_err}")
 
@@ -91,4 +91,5 @@ def avatar_to_prompt(state) -> dict:
         "wounds": wounds_str,
         "conditions": conds_str,
         "identity_integrity": round(state.identity_integrity, 2),
+        "life_status": (state.body_state or {}).get("life_status", "ALIVE") if hasattr(state, 'body_state') else "ALIVE",
     }

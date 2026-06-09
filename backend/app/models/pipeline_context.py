@@ -37,6 +37,8 @@ class PipelineContext:
     
     # ── Результаты Python-движков (из context_builder) ────────────
     python_engines:       dict   = field(default_factory=dict)
+    combat_data:          dict   = field(default_factory=dict)  # Фаза 8: исход боя для DM (pain, shock, injuries)
+    all_npcs_raw_snapshot: Any    = None  # Фаза 9: полный снимок NPC state (description, title)
     npc_contexts:         list   = field(default_factory=list)
     recent_session:       list   = field(default_factory=list)
     recent_memory:        list   = field(default_factory=list)
@@ -65,6 +67,7 @@ class PipelineContext:
     character_filter:     dict   = field(default_factory=dict)
     
     # ── Пространственные и социальные события ──────────────────────
+    spatial_query:        Any    = None  # ADR-121: SpatialQueryService — ADR-048 Authoritative Spatial Spine
     spatial_events:       list   = field(default_factory=list)
     scene_events:         list   = field(default_factory=list)
     social_propagation:   list   = field(default_factory=list)

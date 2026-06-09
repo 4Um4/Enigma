@@ -77,7 +77,10 @@ def run_npc_orchestration(
         scene_state=shared_context.scene_state or {},
     )
     # ADR-048: Authoritative Spatial Spine — единственный легитимный источник пространственной истины
-    _scene_state = shared_context.scene_state or {}
+    _scene_state = shared_context.scene_state
+    if _scene_state is None:
+        logger.error("[SCENE_IDENTITY] npc_orchestration: shared_context.scene_state is None! Traversals will be lost.")
+        return TickPlayerResultDTO()
     
     # ADR-048: npc_positions.player — авторитетный источник позиции игрока.
     # _update_player_position (scene_init) уже записал актуальные координаты от фронтенда.
@@ -109,6 +112,8 @@ def run_npc_orchestration(
         spatial_query=_spatial_query,
     )
     from app.services.tick_orchestrator import DMContextDTO
+    _pl = getattr(ctx.hub_event, 'payload', '<NO_PAYLOAD>') if ctx.hub_event else '<NO_HUB_EVENT>'
+    logger.debug(f"[ARCHAE-ORCH] hub_event id={id(ctx.hub_event) if ctx.hub_event else 0} payload={_pl} event_type={getattr(ctx.hub_event, 'event_type', 'NO_TYPE')}")
     _dm_ctx = DMContextDTO(
         hub_event=ctx.hub_event,
         nearby_npcs=shared_context.dm_result.scene_context.nearby_npcs,
@@ -125,7 +130,7 @@ def run_npc_orchestration(
     _tick_result = tick_orchestrator.tick_player_turn(
         campaign_id=campaign_id,
         location=location,
-        scene_state=shared_context.scene_state or {},
+        scene_state=shared_context.scene_state,
         dm_ctx=_dm_ctx,
         npc_services=_npc_svc,
     )
@@ -154,6 +159,7 @@ def run_npc_orchestration(
     # npc_orchestration только собирает контекст и пробрасывает DTO.
     # ЗАПРЕТ: process_intents(), apply_changes(), мутация position/local_position
     _movement_intents = _tick_result.movement_intents if hasattr(_tick_result, "movement_intents") else []
+    print(f"[ORCH_INTENT_CHECK] _tick_result type={type(_tick_result).__name__} has_attr={hasattr(_tick_result, 'movement_intents')} movement_intents={_movement_intents} count={len(_movement_intents)}")
 
     # ФАЗА 3.5: Reputation impact — влияние действий на репутацию фракций
     _rep_eng = game_loop._svc.get_reputation_engine()

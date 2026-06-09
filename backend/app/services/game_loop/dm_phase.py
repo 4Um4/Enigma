@@ -97,9 +97,13 @@ def run_dm_phase(
     shared_context.dm_result = dm_result
 
     # Сохраняем классификацию из Router
+    logger.debug(f"[DIAG_DM_RESULT] is_valid={dm_result.is_valid} has_event_ctx={dm_result.event_context is not None} error={getattr(dm_result, 'error', None)}")
     if dm_result.event_context:
         shared_context.action_type = dm_result.event_context.event_type
         logger.warning(f"[EVENT_TYPE] Router classified as: {dm_result.event_context.event_type}")
+
+    # Rule 47: Инициализация ДО условных веток — Python Scoping Trap
+    _sem_payload = {}
 
     # Публикация + STM + время — только при валидном результате
     if dm_result.is_valid:
@@ -107,10 +111,12 @@ def run_dm_phase(
         # ADR-091 FIX: publish_classified_player_event перенесён в __init__.py
         # ПОСЛЕ установки intent_resolution — иначе _semantic_action=None
         # STM: реплика игрока в сессию целевого NPC
-        if _raw_type in ("dialogue", "player_interacts") and shared_context.player_target_id:
+        # P1 ARCH: STM привязывается к Intent target, не к Shadow state.
+        _stm_target_id = _sem_payload.get("target_id")
+        if _raw_type in ("dialogue", "player_interacts") and _stm_target_id:
             game_loop.memory_manager.add_dialogue_turn(
                 campaign_id=campaign_id,
-                npc_id=shared_context.player_target_id,
+                npc_id=_stm_target_id,
                 speaker="player",
                 text=raw_input,
             )
@@ -123,7 +129,7 @@ def run_dm_phase(
     # Scene Event Layer — всегда, даже если DM ошибся
     _scene_events = emit_and_accumulate_scene_events(
         action_type=shared_context.action_type or "player_interacts",
-        target_id=shared_context.player_target_id or "",
+        target_id=_sem_payload.get("target_id", ""),
         location_id=location,
         tick=shared_context.current_tick or 0,
         action_text=raw_input,
@@ -132,11 +138,52 @@ def run_dm_phase(
     shared_context.scene_events = _scene_events
 
     # HubEvent для NPC фазы — только при валидном DM
+    logger.debug(f"[DIAG_HUB_ASSIGN] is_valid={dm_result.is_valid} has_scene_ctx={dm_result.scene_context is not None} prev_hub={ctx.hub_event}")
     if dm_result.is_valid and dm_result.scene_context:
         if dm_result.scene_context.line_of_sight is not None:
             scene_state["line_of_sight"] = dm_result.scene_context.line_of_sight
-        ctx.hub_event = dm_result.event_context or HubEventContext(
+        # Проброс semantic_action из phase_1_input в EventContext.payload
+        # Без этого DecisionHub не видит MOVE-команды и obedience boost не работает
+        _base_event = dm_result.event_context or HubEventContext(
             event_type="player_interacts", actor_id="player",
         )
+        # _sem_payload уже инициализирован наверху функции (Rule 47 fix)
+        if shared_context and hasattr(shared_context, 'intent_resolution') and shared_context.intent_resolution:
+            _params = shared_context.intent_resolution.original_intent.parameters if shared_context.intent_resolution.original_intent else None
+            if _params:
+                _sa = getattr(_params, 'semantic_action', None)
+                _tid = getattr(_params, 'target_id', None)
+                _tref = getattr(_params, 'target_reference', None)
+                if _sa:
+                    _sem_payload["semantic_action"] = _sa
+                if _tid:
+                    _sem_payload["target_id"] = _tid
+                if _tref:
+                    _sem_payload["target_reference"] = _tref.lower()
+        # P1 ARCH: Referential Closure Principle. 
+        # EventContext отражает ТОЛЬКО Intent. 
+        # Запрет fallback на shared_context (Ghost Causality).
+
+        _intent_target_id = _sem_payload.get("target_id")
+        
+        # P1 ARCH: Referential Closure (§ENIGMA-005) + Incompleteness Semantics (§ENIGMA-006).
+        # Запрет fallback на shared_context. 
+        # Если Intent не дал ID, сохраняем Unresolved Reference.
+        import dataclasses
+        
+        if _intent_target_id:
+            # Intent полностью замкнут — цель известна
+            if getattr(_base_event, 'target_id', None) is None:
+                _base_event = dataclasses.replace(_base_event, target_id=_intent_target_id)
+            ctx.hub_event = dataclasses.replace(_base_event, payload=_sem_payload)
+        else:
+            # Intent недоспецифицирован. 
+            # target_id = None, но payload сохраняет target_reference (например, "люся").
+            # Это не "нет цели", это "Неразрешённая ссылка".
+            ctx.hub_event = dataclasses.replace(
+                _base_event,
+                target_id=None,
+                payload=_sem_payload  # _sem_payload содержит semantic_action и target_reference
+            )
 
     return dm_result

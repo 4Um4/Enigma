@@ -48,6 +48,10 @@ _SAFE_TYPES: frozenset = frozenset({
 })
 
 
+# WRITE PATH 1/2: BeliefTransitionEngine → BeliefState
+# Реактивный (R7): обновляет убеждения из текущего события per-tick.
+# Второй writer — CoherenceBeliefAggregator (R8).
+# Без правила мёрджа между ними. См. BeliefState docstring.
 class BeliefTransitionEngine:
     """
     Обновляет NPCState.beliefs из EventContext.

@@ -1,252 +1,376 @@
-# MUTATIONS.md — Доменно-Каузальная Эволюция ENIGMA
+# MUTATIONS.md — Каузальная Эволюция ENIGMA
 
-> **Формат:** Домен → Текущий контракт → Эволюция (ключевые сессии) → Архитектурные запреты.
-> ИИ-ассистенту: читай только нужный домен для получения полного контекста.
+> **Формат:** Домен → Хронология сессий → Запреты. Ищи по `Ctrl+F S##` или домену.
 
 ---
 
-## 1. ПРОСТРАНСТВО И ДВИЖЕНИЕ (Spatial & Locomotion)
-**Текущая истина:** `SpatialQueryService` — единственный авторитет. Движение — это *результат* давления и решения, а не команда. Фронтенд — интерполятор, а не телепортер.
+## 0. НАВИГАЦИЯ
 
-**Эволюция:**
-- **S04:** Централизация через `SpatialService` v1.2, убит хардкод локаций.
-- **S10:** Запрет `MovementIntent` для микро-перемещений (требуется `LocalSteeringIntent`, позже отклонен в пользу LOD0 в `MovementIntent`).
-- **S29:** Убийство телепортации. Внедрен Каузальный Lerp на фронтенде. `DIRECT_REFLEX` удален — приказ идет через EventBus.
-- **S32:** LifeEngine De-godification. Лишен права мутации позиции и вызова MovementEngine напрямую.
-- **S33:** Нормализация префиксов макро-зон (LOD0 fix).
-- **S35:** Safe Spatial Fallback. Отмена перемещения при отсутствии узла (убран фоллбэк на `entrance`). Collision Avoidance LOD0.
-- **S37:** Authoritative Spatial Spine (ADR-048). `SpatialQueryService` инстанцирован. Чтение `scene_state["player_distances"]` запрещено.
-- **S38:** Dual-Time Ontology на фронтенде. `_resolve_visual_xy` работает через `path_waypoints` + `progress`. Локальный pathfinding удален.
-- **S46:** Убита перезапись позиции игрока из протухшего `player_spatial`. `npc_orchestration.py` читал `player_spatial.local_position` (запись запрещена ADR-048 Phase 3 — всегда протухший spawn) и перезаписывал `npc_positions.player.local_position`, убивая актуальные координаты от фронтенда. Фикс: читать из `npc_positions.player` напрямую, только резолвить ближайший узел. Также починен лог `PHASE_5_PLAYER nearby_npcs=?` — читалось с `_TickContext` (нет атрибута), исправлено на `dm.nearby_npcs`.
-- **S47:** Консолидация `SpatialService` в `TickOrchestrator`. Внедрен `_resolve_spatial_service()`, убивший трехкратную ручную сборку `build_for_location()`.
-- **S47:** ОТМЕНЕНО: Попытка динамической синхронизации `npc_positions.player` из `player_spatial` и внедрение точных координат цели (`target_locaыl_xy`) откатана. Изменения ломали рантайм-конвейер движения и вызывали массовую телепортацию NPC. Проблема пространственного резолва игрока требует иного подхода.
-- **S49:** Инвариант единого владения причинностью движения. `npc_orchestration.py` лишиён права вызывать `process_intents()` и `apply_changes()` — единственный владелец `TickOrchestrator`. В доменную модель (`MacroMovementGoal`, `LocalSteeringGoal`) добавлены поля `processed` и `processor` — повторная обработка интента вызывает `RuntimeError`.
-- **S49:** Проброс `target_local_xy` в `MacroMovementGoal` при `reactive:approach`. Ранее координаты цели (позиция игрока) вычислялись в `_resolve_reactive_movement`, но терялись при создании `MacroMovementGoal` → NPC шли к центру узла вместо точной позиции игрока.
-- **S49:** Рефлекс теперь перекрывает ЛЮБОЕ решение DecisionHub, включая `flee`. Убран guard `if decision.intent.value not in ("approach", "flee")` — приказ игрока = авторитетный источник причинности (ADR-061).
-- **S49:** Частичное совпадение имени NPC. "торнин" теперь совпадает с "торнин серебряная луна" — рефлекс проверяет отдельные слова имени (≥3 символа), а не только полное имя. Без этого NPC с длинными именами были глухи к приказам.
-- **S49:** Ghost Position Fix. При создании нового транзита, если NPC уже в активном транзите, `from_xy` вычисляется интерполяцией текущего прогресса, а не берётся из устаревшего `local_position`.
-- **S49:** Bridge пробрасывает `active_traversals` в `world_snapshot`. Без этого фронтенд не мог интерполировать движение — NPC либо телепортировались, либо стояли на месте.
-- **S49:** `_enrich_local_positions` больше не перетирает `local_position` для сдвинувшихся NPC. Добавлен LOD0 guard: если позиция уже валидна (установлена пайплайном), enrichment пропускает.
+| С | Дата | Домен | Тип | Теги |
+|---|------|-------|-----|------|
+| S03 | ? | 6 | Эвол | - |
+| S04 | ? | 1 | Эвол | - |
+| S08 | ? | 6 | Эвол | - |
+| S10 | ? | 1/7 | Эвол | - |
+| S16 | ? | 4 | Эвол | - |
+| S18 | ? | 7 | Эвол | - |
+| S19 | ? | 2 | ADR | ADR-031 |
+| S20 | ? | 4 | Эвол | - |
+| S21 | ? | 2/3 | Эвол | - |
+| S24 | ? | 2 | ADR | ADR-036 |
+| S25 | ? | 2/7 | Эвол | - |
+| S26 | ? | 3/7 | Эвол | - |
+| S27 | ? | 6 | Эвол | - |
+| S28 | ? | 5/7 | Эвол | - |
+| S29 | ? | 1/2 | Эвол | - |
+| S30 | ? | 3/4 | Эвол | - |
+| S31 | ? | 2 | ADR | ADR-050 |
+| S32 | ? | 1/6 | Эвол | - |
+| S33 | ? | 1 | FIX | - |
+| S34 | ? | 5 | Эвол | - |
+| S35 | ? | 1/2 | Эвол | - |
+| S36 | ? | 2/5 | ADR | ADR-058 |
+| S37 | ? | 1 | ADR | ADR-048 |
+| S38 | ? | 1/3 | Эвол | - |
+| S39 | ? | 7/8 | Эвол | - |
+| S46 | ? | 1 | ADR | ADR-048 |
+| S47 | ? | 1/6 | FIX | - |
+| S48 | ? | 2/4/5/6/7 | GAP | - |
+| S49 | ? | 1/2/5 | GAP | ADR-061 |
+| S50 | 28.05.26 | 1/2/6 | FIX | GAP3 |
+| S51 | 28.05.26 | 1/4/6 | FIX | GAP9 |
+| S52 | 28.05.26 | 2/6 | FIX | GAP13 |
+| S53 | 28.05.26 | 2/3/5 | FIX | GAP7 |
+| S54 | 26.05.26 | 1/2/4/5/7 | FIX | ADR-084,GAP11 |
+| S55 | 17.05.26 | 2/5 | FIX | ADR-088 |
+| S56 | 27.05.26 | 7 | Эвол | - |
+| S57 | 30.05.26 | 4/7 | Эвол | - |
+| S58 | 30.05.26 | 1 | ADR | ADR-092 |
+| S59 | 30.05.26 | 1/4/5/7 | FIX | ADR-102 |
+| S60 | 31.05.26 | 2/4/5/7 | FIX | ADR-091 |
+| S61 | 02.06.26 | 1/4/5/7 | ADR | ADR-114 |
+| S62 | 03.06.26 | 3 | FIX | - |
+| S63 | ? | 9 | ADR | ADR-116 |
+| S64 | 03.06.26 | 2 | FIX | ADR-036 |
+| S65 | 04.06.26 | 1/5/8 | Эвол | - |
+| S66 | ? | 9 | ADR | ADR-123 |
+| S67 | 2026-06-05 | 1/4/5 | FIX | ADR-123 |
+| S68 | 05.06.26 | 1/2 | ADR | ADR-124 |
+| S69 | 06.06.26 | 1/2 | FIX | - |
+| S70 | 07.06.26 | 1/5 | FIX | ADR-SCENE-LOCK |
+| S71 | 06.06.26 | 2 | Эвол | - |
+| S72 | 08.06.26 | 4/5/7/8 | FIX | ADR-128 |
+| S73 | 08.06.26 | 1/2/5 | FIX | ADR-130 |
+| S74 | 08.06.26 | 2/5 | FIX | DRF Split-Brain, ДОЛГ 4.2 |
+| S75 | 08.06.26 | 2/4/5/7/9 | FIX+ONTO | ADR-137, ADR-094, ADR-138 |
+| S76 | 09.06.26 | 1/2/4/5/7/9 | FIX+ONTO | ADR-O-139, ADR-O-140, NPIC, MapEditor |
+| S77 | 08.06.26 | 5/7 | FIX | ADR-140 |
+
+**Легенда:** GAP=разрыв, FIX=закрыт, ADR=решение, Эвол=изменение
+
+---
+
+## 1. ДОМЕНЫ И ЭВОЛЮЦИЯ
+
+### 1. ПРОСТРАНСТВО И ДВИЖЕНИЕ (Spatial & Locomotion)
+
+**Истина:** `SpatialQueryService` — единственный авторитет. Движение — это *результат* давления и решения, а не команда. Фронтенд — интерполятор, а не телепортер.
+
+- ⚪ **S04** [?] Централизация через `SpatialService` v1.2, убит хардкод локаций.
+- ⚪ **S10** [?] Запрет `MovementIntent` для микроперемещений (требуется `LocalSteeringIntent`, позже
+- ⚪ **S29** [?] Убийство телепортации. Внедрен Каузальный Lerp на фронтенде. `DIRECT_REFLEX` удален —
+- ⚪ **S32** [?] LifeEngine Degodification. Лишен права мутации позиции и вызова MovementEngine напрям
+- 🟢 **S33** [?] Нормализация префиксов макрозон (LOD0 fix).
+- ⚪ **S35** [?] Safe Spatial Fallback. Отмена перемещения при отсутствии узла (убран фоллбэк на `entr
+- 🔵 **S37** [?] Authoritative Spatial Spine (ADR048). `SpatialQueryService` инстанцирован. Чтение `sc
+- ⚪ **S38** [?] DualTime Ontology на фронтенде. `_resolve_visual_xy` работает через `path_waypoints`
+- 🔵 **S46** [?] Убита перезапись позиции игрока из протухшего `player_spatial`. `npc_orchestration.py
+- 🟢 **S47** [?] Консолидация `SpatialService` в `TickOrchestrator`. Внедрен `_resolve_spatial_service
+- 🔴 **S49** [?] Инвариант единого владения причинностью движения. `npc_orchestration.py` лишиён права
+- 🟢 **S50** [28.05.26] GAP12 УБИТ. `_enrich_local_positions` вычисляет интерполированную позицию для NPC в а
+- 🟢 **S51** [28.05.26] GAP9 УБИТ. Реалистичное Пробуждение. Сон блокируется непрерывными скалярами `threat_g
+- 🟢 **S54** [26.05.26] Хардкод _MOVE_VERBS удален из npc_tick_pipeline.py. Semantic Bridge замкнут: IntentCo
+- 🔵 **S58** [30.05.26] Фронтенд: Физика WASD (Pushout Resolution). Игрок больше не застревает между мебелью.
+- 🟢 **S59** [30.05.26] ADR102: `load_graph()` мёртв — возвращает пустой граф (0 узлов). Заменён на `SpatialS
+- 🔵 **S61** [02.06.26] ADR114: Spatial Paralysis убит. `graph_compiler.py` не создавал rolebased алиасов — l
+- ⚪ **S65** [04.06.26] Инвариант 2 Запечатан: LLM не может галлюцинировать движение. (1) `VerbalizationConte
+- 🟢 **S67** [2026-06-05] ADR121: Двухслойная топология в graph_compiler. `nodes` (dict) — навигационная тополо
+- 🔵 **S68** [05.06.26] ADR125: Target ID SSOT Clarification. Обнаружена незавершённая миграция архитектуры р
+- 🟢 **S76** [09.06.26] Новые чанки мира: city_gate.json, market_square.json. Формат World Partition (rooms=[], nodes навигация, is_outdoor=true, adjacency связи). Добавлена adjacency в tavern.json. **Корень БАГ U найден:** room_2 (x=2, y=2, w=16, h=10) поглощала room_0 и room_1 в tavern.json — граф навигации содержал узел-чёрную дыру.
+- 🟢 **S69** [06.06.26] Ontology Merge Step 1: Relationship Cache Precedence Contract. Обнаружена бифуркация
+- 🔴 **S70** [07.06.26] **КРИТИЧЕСКИЙ БАГ `unlock_tick` GUARD:** `unlock_tick()` вызывал `save_scene_state()` при `_tick_locked=True` → guard в `save_scene_state()` делал `return` без сохранения → **active_traversals НИКОГДА не записывались на диск**. Фикс: переставлена строка `self._tick_locked = False` ДО вызова `save_scene_state()`. Smoke test подтвердил round-trip: save→load→traversals идентичны. Runtime верифицирован: NPC реально двигаются через несколько тиков. Диагностика `[UNLOCK_TRACE]`, `[SAVE_TRACE]`, `[IDLE_TRACE]` оставлена как observability layer до прохождения стресс-теста.
+
+### 2. ВОЛЯ, ДАВЛЕНИЕ И РЕШЕНИЕ (Will, Pressure & Decision)
+
+**Истина:** Решения рождаются из искривленного давления (Utility Deformation). Воля — инерция, а не порог. Подчинение требует легитимности.
+
+- 🔵 **S19** [?] WillpowerGate (ADR031). Cumulative Strain Model вместо бинарки. Шкала COMPLY → CONDIT
+- ⚪ **S21** [?] Убийство объективных событий. Давление генерирует `PsychologicalPressure`, а не прямы
+- 🔵 **S24** [?] Affective Resonance (ADR036). Аффект искажает давление через `ResponseBias`.
+- ⚪ **S25** [?] Embodied Vector. Предрефлексивные моторные импульсы.
+- ⚪ **S29** [?] Убийство телепортации. Внедрен Каузальный Lerp на фронтенде. `DIRECT_REFLEX` удален —
+- 🔵 **S31** [?] DecisionContext (ADR050). Feasibility Layer (удаление невозможных действий) и Utility
+- ⚪ **S35** [?] Safe Spatial Fallback. Отмена перемещения при отсутствии узла (убран фоллбэк на `entr
+- 🔵 **S36** [?] Legitimacy Gate (ADR058). Нет страха/доверия = Irritation (агрессия) вместо Obedience
+- 🔴 **S48** [?] Починка обрыва Трубы Воли на границе API. `routes.py` теперь пробрасывает `will_confl
+- 🔴 **S49** [?] Инвариант единого владения причинностью движения. `npc_orchestration.py` лишиён права
+- 🟢 **S50** [28.05.26] GAP12 УБИТ. `_enrich_local_positions` вычисляет интерполированную позицию для NPC в а
+- 🟢 **S52** [28.05.26] GAP10 УБИТ. `EventContext` обогащён `target_id`. DecisionHub фильтрует бонус `APPROAC
+- 🟢 **S53** [28.05.26] GAP2 УБИТ. Амнезия Воли вылечена. `compute_willpower` читает `trauma_markers`. Каждая
+- 🟢 **S54** [26.05.26] Хардкод _MOVE_VERBS удален из npc_tick_pipeline.py. Semantic Bridge замкнут: IntentCo
+- 🟢 **S55** [17.05.26] УБИТ Мертвый Вектор Эмоций (ADR088). `IntentCompressor._fast_path_parse` возвращал `E
+- 🟢 **S60** [31.05.26] УБИТ `_semantic_action=None` (ADR091). `publish_classified_player_event` вызывался в
+- 🟢 **S64** [03.06.26] УБИТ PHYSICS_OF_POWER NameError. `_context_relevance(self, intent, event)` не имел па
+- 🔵 **S68** [05.06.26] ADR125: Target ID SSOT Clarification. Обнаружена незавершённая миграция архитектуры р
+- 🟢 **S69** [06.06.26] Ontology Merge Step 1: Relationship Cache Precedence Contract. Обнаружена бифуркация
+- ⚪ **S71** [06.06.26] §ENIGMAS72 Закон Релятивистского Восприятия. Система перешла от централизованной инте
+- 🔴 **S74** [08.06.26] ДОЛГ 4.2: Causal Scoring Overlay. DRF претензии теперь влияют на приоритет интентов через аддитивный скоринг: `priority += energy × weight × alignment`. Веса: SURVIVAL=0.15, SOCIAL=0.10, ROUTINE=0.02. Убит сломанный clamp `max(priority, 90/70)` (масштабная ошибка при шкале 0.0–1.0). Overlay унифицирован для idle и player путей через `_apply_drf_scoring_overlay()`. Viability veto (SURVIVAL подавляет ROUTINE) ОСОЗНАННО НЕ реализован в MovementEngine — конфликт мотиваций должен решаться ДО генерации интента (ДОЛГ 4.3).
+- 🔵 **S75** [08.06.26] Убит Вечный Двигатель Страха (ADR-138). `integrate_affective_pressure` переведён на Асимметричный Аттрактор (Гистерезис). Рост (0.30) быстрый, спад (0.05 + will*0.1) медленный. Убит AFFECTIVE_BOOT.
+- 🔴 **S76** [09.06.26] ДОЛГ 5 ЗАКРЫТ: NPIC & Somatic Gating (ADR-O-139). Тело = gate of perception. Убит fallback {"social_stats": {"fear_of_player": 0.1}} в DirectiveInterpretationSubscriber — создавал "логических призраков". Shock > 0.7 теперь блокирует интерпретацию ДО семантического парсинга (Somatic Gate), а не после. Инвертирован каузальный порядок: Body → Somatic Gate → Semantic Parsing → Legitimacy → Action.
+- 🔴 **S75** [08.06.26] ДОЛГ 4.3: Viability Pre-Generation Gate (ADR-O-137). Сдвиг парадигмы: от пост-генерационного скоринга к pre-генерационному сжатию пространства действий. Введён `IntentDomain` enum (SURVIVAL/SOCIAL/ROUTINE/EXPLORATION) — онтологический базис намерений. Добавлено поле `domain` в `MacroMovementGoal`. `_compute_viability_mask()` проекция PerceptualKernel → допустимые домены: threat > 0.3 → ROUTINE исключён, initiative_suppression > 0.7 → только SURVIVAL. Gate стоит ДО вызовов `update_routine()`, `_check_need_driven_movement()`, `check_random_events()` — генераторы НЕ вызываются для нежизнеспособных доменов. Устранена «зомби-каузальность». DRF claim использует `winner.domain.value`. 11 sandbox-тестов верифицируют mask, gate и типизацию.
+
+### 3. ВОСПРИЯТИЕ И ФЕНОМЕНОЛОГИЯ (CFRM & Perception)
+
+**Истина:** Объективных фактов нет. Есть возмущения поля (`FieldDisturbance`), которые проецируются в субъективные феномены в зависимости от наблюдателя.
+
+- ⚪ **S21** [?] Убийство объективных событий. Давление генерирует `PsychologicalPressure`, а не прямы
+- ⚪ **S26** [?] Epistemic Classification. Оценка уверенности (confidence) при классификации.
+- ⚪ **S30** [?] CFRM Phase 2. `semantic_seed` (геном нарратива). Проекция теряет энергию/форму (физик
+- ⚪ **S38** [?] DualTime Ontology на фронтенде. `_resolve_visual_xy` работает через `path_waypoints`
+- 🟢 **S53** [28.05.26] GAP2 УБИТ. Амнезия Воли вылечена. `compute_willpower` читает `trauma_markers`. Каждая
+- 🟢 **S62** [03.06.26] DOUBLE TRUTH `threat_gradient` УБИТ. `NPCState.write_to_legacy()` не писал `perceptua
+
+### 4. ФИЗИОЛОГИЯ И БОЙ (Physiology & Combat)
+
+**Истина:** Тело — материальный объект. Удар — чистая физика контакта, которая порождает боль и шок, а шок уже транслируется в эмоции.
+
+- ⚪ **S16** [?] Каскад Shock → Emotion (ReactionSubscriber извлекает `shock_impulse`).
+- ⚪ **S20** [?] Очистка `combat_stats`. Перенос способностей в `body_profile`.
+- ⚪ **S30** [?] CFRM Phase 2. `semantic_seed` (геном нарратива). Проекция теряет энергию/форму (физик
+- 🔴 **S48** [?] Починка обрыва Трубы Воли на границе API. `routes.py` теперь пробрасывает `will_confl
+- 🟢 **S51** [28.05.26] GAP9 УБИТ. Реалистичное Пробуждение. Сон блокируется непрерывными скалярами `threat_g
+- 🟢 **S54** [26.05.26] Хардкод _MOVE_VERBS удален из npc_tick_pipeline.py. Semantic Bridge замкнут: IntentCo
+- ⚪ **S57** [30.05.26] RPG Витализм: нормализация шкалы `pain` (0100 → 01) в `StateInterpreter._physical_sta
+- 🟢 **S59** [30.05.26] ADR102: `load_graph()` мёртв — возвращает пустой граф (0 узлов). Заменён на `SpatialS
+- 🟢 **S60** [31.05.26] УБИТ `_semantic_action=None` (ADR091). `publish_classified_player_event` вызывался в
+- 🔵 **S61** [02.06.26] ADR114: Spatial Paralysis убит. `graph_compiler.py` не создавал rolebased алиасов — l
+- 🟢 **S67** [2026-06-05] ADR121: Двухслойная топология в graph_compiler. `nodes` (dict) — навигационная тополо
+- 🔴 **S72** [08.06.26] ADR-128 P0: DECAY_INJURY_LOST — NPC injuries терялись после cache miss. Root cause: LifeEngine `_load_npcs()` не читал SQLite при cache miss — write path существовал (atomic_commit), но read path отсутствовал. После TTL/LRU eviction injuries, blood_loss, affective_load терялись навсегда. Фикс: трёхуровневая иерархия восстановления RAM → SQLite → static config. `is not None` семантика для None vs [] (пустая кампания ≠ отсутствующая).
+- 🔴 **S72** [08.06.26] ADR-128 P0: Player injuries LOST — AvatarService `_state_to_dict()` не сериализовал `body_state`, `affective_load`, `perceptual_kernel`. Двойная онтология: wounds/conditions (legacy identity layer) ≠ body_state (simulation truth). Фикс: body_state = SSOT, wounds/conditions = legacy projection. Добавлена сериализация body_state + affective_load + perceptual_kernel в `_state_to_dict()` и `_state_from_dict()`.
+- 🔴 **S73** [08.06.26] ADR-130 G1: Schedule Override Reactive Movement — `update_routine()` мутировал `routine["current"]="sleeping"` и создавал schedule intent (0.6) поверх активного reactive traversal (0.8). Root cause: update_routine не получал scene_state и не видел active_traversals. Фикс: scene_state передан через _simulate_major/minor → update_routine. Movement Lock guard: если NPC в статусе MOVING — schedule заблокирован. Traversal = commitment, schedule = suggestion.
+- 🔴 **S73** [08.06.26] ADR-130 G2: Uninvited NPC Approach — `_context_relevance()` читал `event.target_id` (None) без fallback на `event.payload["target_id"]`. dm_scene_builder не пробрасывает target_id в EventContext, но dm_phase.py пишет его в payload. Без fallback ВСЕ NPC в зоне получали бонус APPROACH/TALK/OBSERVE. Фикс: _effective_tid с payload fallback.
+- 🔴 **S74** [08.06.26] P1: Player Combat Snapshot EntityView Shift. `_make_player_snapshot()` в `combat_subscriber.py` больше не возвращает захардкоженного бессмертного игрока (hp=100, pain=0). Теперь принимает `player_dict` из `ctx.all_npcs_raw` и читает живой `body_state` (Rule 60). Убит легаси-принцип "Мастер Тай: игрок — источник давления, а не его жертва". Игрок стал симулируемой физической сущностью в бою.
+- 🔴 **S75** [08.06.26] ADR-094 MSOC: CRITICAL BUG — `pressure_translator.py` читал `pain` (0-100) без нормализации при пороге 0.8. Результат: FLEE блокировался при pain > 0.8% — ЛЮБОЙ удар блокировал бегство. Фикс: `pain = body_state.get("pain", 0.0) / 100.0`. Теперь FLEE блокируется только при pain > 80/100 = тяжёлая травма.
+- 🔴 **S75** [08.06.26] ADR-094 MSOC: `avatar_presentation_assembler.py` читал `pain`/`fatigue` (0-100) без нормализации при порогах 0-1. Результат: pain=60 → CRIPPLED вместо WOUNDED. Фикс: `/ 100.0` для обоих полей. DEAD override добавлен — при life_status=DEAD все проекции обнуляются, posture=collapsed, breathing=none. Убран `ASSEMBLER_TRACE` diagnostic print.
+- 🔴 **S76** [09.06.26] NPIC Sentinel: Введена константа BODY_STATE_DISABLED в npc_state.py. Отсутствие тела = инертная материя (shock=1.0, pain=100), а не нейтральное состояние (§ENIGMA-003). Устраняет State Starvation Collapse при холодном старте.
+- 🟢 **S75** [08.06.26] Контракт шкал физиологии зафиксирован (ADR-094 MSOC). `body_state` SSOT: `pain`/`fatigue` = 0-100, `blood_loss`/`shock_impulse` = 0-1. Потребители с порогами 0-1 обязаны нормализовать `/100.0`. Верифицированные нормализаторы: state_interpreter, pressure_derivation, tick_orchestrator, avatar_presentation_assembler, pressure_translator. Верифицированные 0-100 потребители: behavior_manifestation_service, vital_state.
+- 🟢 **S76** [08.06.26] ADR-140: DM Death Scene Pipeline. DM получает life_status из player_state через avatar_to_prompt и генерирует death scene narration. Death Guard вызывает DM вместо хардкод-строки. DM НЕ вычисляет смерть — только читает замороженный факт S74-S75. 6 sandbox-тестов верифицируют: avatar_to_prompt проброс, death block инжект, negative test (ALIVE без death block), DM-no-compute (legacy pdata без life_status).
+- 🟢 **S77** [08.06.26] ADR-141: Убит разрыв Injury → Pain. `InjuryProcessor` генерирует `pain_delta` из свойств раны (компенсирует Decay). Раненый NPC поддерживает хроническую боль, питающую `BehaviorManifestationService` → `EmbodiedTrace` → DM narration. Труба симптомов больше не высыхает после первого тика.
+
+### 5. ТРУБА ОРКЕСТРАТОРА И ВРЕМЯ (Pipeline & Elastic Time)
+
+**Истина:** Симуляция дискретна (каузальность), презентация непрерывна. `LifeEngine` — лоббист давления, а не бог-мутатор.
+
+- ⚪ **S28** [?] Выжигание легаси. Удаление зомбиполей из `AvatarStateDTO`.
+- ⚪ **S34** [?] DualTime Ontology. Запрет ретросимуляции. `LifeEngine.tick()` возвращает интенты, а н
+- 🔵 **S36** [?] Legitimacy Gate (ADR058). Нет страха/доверия = Irritation (агрессия) вместо Obedience
+- 🔴 **S48** [?] Починка обрыва Трубы Воли на границе API. `routes.py` теперь пробрасывает `will_confl
+- 🔴 **S49** [?] Инвариант единого владения причинностью движения. `npc_orchestration.py` лишиён права
+- 🟢 **S53** [28.05.26] GAP2 УБИТ. Амнезия Воли вылечена. `compute_willpower` читает `trauma_markers`. Каждая
+- 🟢 **S54** [26.05.26] Хардкод _MOVE_VERBS удален из npc_tick_pipeline.py. Semantic Bridge замкнут: IntentCo
+- 🟢 **S55** [17.05.26] УБИТ Мертвый Вектор Эмоций (ADR088). `IntentCompressor._fast_path_parse` возвращал `E
+- 🟢 **S59** [30.05.26] ADR102: `load_graph()` мёртв — возвращает пустой граф (0 узлов). Заменён на `SpatialS
+- 🟢 **S60** [31.05.26] УБИТ `_semantic_action=None` (ADR091). `publish_classified_player_event` вызывался в
+- 🔵 **S61** [02.06.26] ADR114: Spatial Paralysis убит. `graph_compiler.py` не создавал rolebased алиасов — l
+- ⚪ **S65** [04.06.26] Инвариант 2 Запечатан: LLM не может галлюцинировать движение. (1) `VerbalizationConte
+- 🟢 **S67** [2026-06-05] ADR121: Двухслойная топология в graph_compiler. `nodes` (dict) — навигационная тополо
+- 🔵 **S70** [07.06.26] LLM Infrastructure Resilience. (1) `server_cmd` в `main.py` не имел флагов GPU (`-ngl`, `-c`, `-t`) → модель 5.4 ГБ грузилась на CPU → таймаут 60с → сервер считался "не поднявшимся" → NPC немые. Фикс: добавлены `str(settings.gpu_layers)`, `str(settings.ctx_size)`, `str(settings.threads)`. (2) `stderr=subprocess.PIPE` скрывал причину падения процесса. Фикс: stderr пишется в `logs/llama_server_stderr.log`. Добавлена проверка `proc.poll()` после spawn — мгновенный краш виден в логе. (3) При таймауте `_llama_server_proc = None` без kill → сиротский процесс жрал RAM/CPU. Фикс: terminate+kill при таймауте. (4) `_restart_llama_server()` — при потере LLM во время игры пробует перезапустить и повторить запрос. REST endpoint `/api/debug/llm/restart` для ручного рестарта. (5) game_loop/__init__.py: при LLM error вызывается `_restart_llama_server()` с одним retry. (6) idle_tick НЕ создаёт traversals — это НЕ баг, а архитектурное разделение: idle обновляет мир, traversals создаются только при action/reaction.
+- 🔴 **S72** [08.06.26] ADR-128: LifeEngine cache recovery замкнут. (1) `set_persistence()` — инъекция PersistencePort в LifeEngine (паттерн `set_spatial_service()`). (2) `_load_npcs()` — при cache miss сначала читает SQLite (`persistence.load_npc_runtime()`), затем fallback на static config. (3) `get_npc_states()` — при cache miss вызывает `_load_npcs()` вместо возврата `[]`. (4) Wiring: `game_loop_builder.py` инжектит `SqlitePersistenceAdapter` в singleton.
+- 🟢 **S73** [08.06.26] ADR-130: Movement Lock + Target Resolution. (1) `update_routine()` получил `scene_state` param — проверяет `active_traversals[npc_id].status=="MOVING"` перед мутацией. (2) `_simulate_major()` и `_simulate_minor()` пробрасывают `scene_state`. (3) `_context_relevance()` проверяет `payload["target_id"]` как fallback при `event.target_id is None`. Два корневых разрыва G1/G2 закрыты.
+- 🔴 **S74** [08.06.26] P0: Action Eligibility Gate (Death Guard). В `game_loop/__init__.py` добавлен инвариантный слой: проверка `_avatar_state.body_state["life_status"]` ДО `lock_for_tick`. Мёртвый игрок получает ранний `ChatTurnResponse` (Game Over) и отсекается от каузального загрязнения `scene_state` (Rule 59).
+- 🔴 **S74** [08.06.26] P0: DRF Split-Brain Fix. `execute()` и `execute_player_finalize()` создавали независимые `_TickContext` с отдельными `DRFBus()` (default_factory). Claims писались в BUS_A, drain читал из BUS_B → `[DRF_FIELD] claim_field is EMPTY`. Фикс: DRFBus перенесён на уровень экземпляра оркестратора (`self._drf_bus = DRFBus()` в `__init__`). Оба метода передают `drf_bus=self._drf_bus`. Добавлен `_drf_bus.stream.clear()` на начало `execute()`. Idle `_phase_10_persistence` получил drain (ранее отсутствовал). Верифицировано через `id()` диагностику: один bus_id на весь lifecycle.
+- 🔵 **S74** [08.06.26] DRFExecutionContext: Scoped Causal Ledger. Pipeline получает `drf_ctx: DRFExecutionContext` (tick_id + npc_id + bus), а не голый `drf_bus`. Claim автоматически наследует npc_id и tick_id через `drf_ctx.emit()`. Убран monkey-patch `run_npc_pipeline.drf_bus = ctx.drf_bus`. Внутри NPC loop создаётся scoped контекст: `_npc_drf_ctx = drf_ctx.for_npc(npc_id)`.
+- 🔴 **S76** [09.06.26] Normalization Gate: `tick_orchestrator.py` инжектит `BODY_STATE_DISABLED` для NPC без `body_state` в `ctx.all_npcs_raw` перед использованием. Full Veto в `pressure_translator.py` при отсутствии тела: нет тела = нет действий (`constraints[action] = 0.0`), а не нулевое влияние.
+- 🔵 **S75** [08.06.26] ADR-137: Death Guard v2 — world continues after player death. `game_loop/__init__.py` включает `npc_positions` из `LifeEngine` cache в death snapshot. Онтология: смерть = потеря агентности, не конец симуляции. Мёртвый игрок видит death overlay, но NPC продолжают двигаться.
+- 🔵 **S75** [08.06.26] PK Idle Decay & Cache Sync. `PerceptualKernel` (threat, uncertainty, anomaly) затухает в Фазе 0.5 (Rule 38). `LifeEngine.update_cache()` вызывается после idle-дельт. Убран скрытый источник реконструкции страха.
+
+### 6. ПАМЯТЬ И СОЦИУМ (Memory & Social Physics)
+
+**Истина:** Память многослойна. Социальные акты (приказы) искривляют utility-space цели, а не генерируют `MovementIntent` напрямую.
+
+- ⚪ **S03** [?] Мультисобытийность Perception.
+- ⚪ **S08** [?] Обогащение NPC социальными связями из `village_relations.json`.
+- ⚪ **S27** [?] Физика Власти. `DirectiveInterpretationSubscriber` транслирует приказы в `directive_o
+- ⚪ **S32** [?] LifeEngine Degodification. Лишен права мутации позиции и вызова MovementEngine напрям
+- 🟢 **S47** [?] Консолидация `SpatialService` в `TickOrchestrator`. Внедрен `_resolve_spatial_service
+- 🔴 **S48** [?] Починка обрыва Трубы Воли на границе API. `routes.py` теперь пробрасывает `will_confl
+- 🟢 **S50** [28.05.26] GAP12 УБИТ. `_enrich_local_positions` вычисляет интерполированную позицию для NPC в а
+- 🟢 **S51** [28.05.26] GAP9 УБИТ. Реалистичное Пробуждение. Сон блокируется непрерывными скалярами `threat_g
+- 🟢 **S52** [28.05.26] GAP10 УБИТ. `EventContext` обогащён `target_id`. DecisionHub фильтрует бонус `APPROAC
+
+### 7. ФРОНТЕНД И ПРЕЗЕНТАЦИЯ (UI & Embodiment)
+
+**Истина:** Фронтенд — это сенсорный орган игрока. Он искажается, болеет и сопротивляется, не зная внутренних метрик бэкенда.
+
+- ⚪ **S10** [?] Запрет `MovementIntent` для микроперемещений (требуется `LocalSteeringIntent`, позже
+- ⚪ **S18** [?] Создание Персонажа через Вектор Начальных Условий (Архетип + Темперамент).
+- ⚪ **S25** [?] Embodied Vector. Предрефлексивные моторные импульсы.
+- ⚪ **S26** [?] Epistemic Classification. Оценка уверенности (confidence) при классификации.
+- ⚪ **S28** [?] Выжигание легаси. Удаление зомбиполей из `AvatarStateDTO`.
+- ⚪ **S39** [?] Интеграция CDS. Фронтенд не парсит отчёты симуляции.
+- 🔴 **S48** [?] Починка обрыва Трубы Воли на границе API. `routes.py` теперь пробрасывает `will_confl
+- 🟢 **S54** [26.05.26] Хардкод _MOVE_VERBS удален из npc_tick_pipeline.py. Semantic Bridge замкнут: IntentCo
+- ⚪ **S56** [27.05.26] The Fool v2 — визуализация моторных следов (дрожь/замер) и тултипов наблюдений замкну
+- ⚪ **S57** [30.05.26] RPG Витализм: нормализация шкалы `pain` (0100 → 01) в `StateInterpreter._physical_sta
+- 🟢 **S59** [30.05.26] ADR102: `load_graph()` мёртв — возвращает пустой граф (0 узлов). Заменён на `SpatialS
+- 🟢 **S60** [31.05.26] УБИТ `_semantic_action=None` (ADR091). `publish_classified_player_event` вызывался в
+- 🔵 **S61** [02.06.26] ADR114: Spatial Paralysis убит. `graph_compiler.py` не создавал rolebased алиасов — l
+- 🔴 **S72** [08.06.26] ADR-128: PlayerAvatarService сериализует body_state. `_state_to_dict()` добавлены `body_state`, `affective_load`, `perceptual_kernel`. `_state_from_dict()` восстанавливает через `dict(data.get("body_state", {}))`, `float(data.get("affective_load", 0.0))`, `_pk_from_dict(data.get("perceptual_kernel", {}))`. Импорт `_pk_from_dict` из `npc_state.py`. Player injuries теперь переживают save/load.
+- 🟢 **S76** [09.06.26] Map Editor: Shift+ЛКМ перетаскивание локаций (смещение `origin`). Удаление локаций из кампании. Outdoor поддержка (объекты, NPC, надписи разрешены вне комнат при `is_outdoor=true`). Очистка меню (убраны дубли "Сохранить всё", "Открыть кампанию" заменено на проводник).
+- 🔴 **S75** [08.06.26] ADR-137: Death Feedback Pipeline замкнут. `AvatarStateDTO.life_status` поле добавлено. `PhysicalPresentationState.DEAD` enum. Frontend `GameScreen` рендерит death overlay ("ВЫ МЕРТВЫ") при `life_status=DEAD`. `AvatarPresentationAssembler` DEAD override обнуляет все проекции (stability=0.0, coherence=0.0, noise=1.0, posture=collapsed, breathing=none).
+- 🟢 **S76** [08.06.26] ADR-140: avatar_to_prompt пробрасывает life_status в pdata. DM death scene block инжектится через DMContractBuilder.add_custom_block. Death Guard вызывает DM через run_agent_safe вместо хардкод-строки (с fallback при Exception).
+
+### 8. НАБЛЮДАЕМОСТЬ И ДИАГНОСТИКА (CDS)
+
+**Истина:** Наблюдение не создает причинность. CDS — пассивный аудиторе.
+
+- ⚪ **S39** [?] Интеграция CDS. Фронтенд не парсит отчёты симуляции.
+- ⚪ **S65** [04.06.26] Инвариант 2 Запечатан: LLM не может галлюцинировать движение. (1) `VerbalizationConte
+- 🟢 **S72** [08.06.26] P3: Уборка диагностического шума после расследования ADR-128. Удалены: `[DIAG_FROM_LEGACY]`, `[LEGACY_READ]`, `[RAW_BEFORE_FL]`, `[VITAL_PRE]`, `[PRE_WTL]`, `[POST_WTL]`. Понижены до DEBUG: `[INJURY_APPLIED]`, `[CONSCIOUSNESS_DROP]`, `[APPLY_OK]`, `[LEGACY_READ_LOST]`. Файлы: `npc_state.py`, `state_applicator.py`.
+- 🟢 **S74** [08.06.26] Sandbox Tests: Написаны 7 тестов для ADR-128 (persistence) и ADR-130 (movement). Строго по §12.3 Устава: объекты создаются через фабрики/реальные словари, а не прямые конструкторы. Тесты: `test_player_body_state_survives_save_load` (Rule 54/55), `test_wounds_not_used_as_physiology_source` (Rule 56), `test_movement_lock_blocks_schedule_on_active_traversal` (Rule 57), `test_target_id_payload_fallback_prevents_uninvited_approach` (Rule 58).
+
+### 9. SOCIAL & AFFECTIVE ARCHITECTURE (SSOT & CAUSAL DERIVATION)
+
+**Истина:** Отношения — это граф (ребро), а не свойство узла. Аффективная нагрузка — интеграл с гистерезисом, релаксирующий к цели, а не магическая батарейка или мгновенная проекция.
+
+- 🔵 **S63** [?] (1) `load_l2_state_from_runtime_dict()` (npc_loader.py) — добавлены 5 полей в констру
+- 🔵 **S66** [?] (1) `RelationshipStore` назначен Единственным Источником Истины (SSOT) для всех социа
+- 🔵 **S76** [09.06.26] ADR-O-140 спроектирован: World Partition Topology. Локация = чанк сериализации, не мир сама по себе. Мир непрерывен. `location_id` = инфраструктура загрузки, не онтология NPC. `adjacency` — связи между чанками для сшивки навигационных графов. `door_transition` остаётся только для магических порталов/лестниц.
+- 🔵 **S75** [08.06.26] Убит Вечный Двигатель Страха (ADR-138). `integrate_affective_pressure` переведён на Асимметричный Аттрактор (Гистерезис). Рост (0.30) быстрый, спад (0.05 + will*0.1) медленный. Убит AFFECTIVE_BOOT.
+
+## 2. АРХИТЕКТУРНЫЕ ЗАПРЕТЫ
+
+- [Пространство] LLM описывает движение NPC без подтверждения от MovementEngine (Инвариант 2: Нарратив ≠ Физика).
+- [UI] DM контракт без блока о перемещениях NPC — LLM галлюцинирует локомоцию.
+- [Воля] Мгновенное сжигание `recent_directive` в LifeEngine (GAP9).
+- [Пространство] Прямая мутация `npc["position"]` или `npc["location"]`.
+- [Пространство] Чтение дистанций из `scene_state` (только через `SpatialQueryService`).
+- [Прочее] Вызов `scene_manager.apply_changes()` из подписчиков (`SceneChange` — проекция для фронтенда).
+- [Пространство] Использование `TraversalState` без `MovementEngine`.
+- [Воля] Вызов `process_intents()` или `apply_changes()` из `npc_orchestration.py` (единственный владелец — `TickOrchestrator`).
+- [Пространство] Повторная обработка `MovementIntent` (инвариант `processed=True`).
+- [Pipeline] Хардкод языковых глаголов в `npc_tick_pipeline.py` (после починки Semantic Bridge).
+- [Пространство] `SpatialQueryService.visibility()` вызывает `is_line_of_sight_clear` с неправильным порядком аргументов — scene_state получает float, крашит `.get()` (ADR-129).
+- [Пространство] CEI-2 использует `is_movement_blocked` вместо `is_blocked_by_wall` — мебель (walk=False) блокирует макро-навигацию между комнатами. Мебель = LOD0, не стена (ADR-129).
+- [Пространство] spatial_runtime consumer-функции без `normalize_scene_state()` — type corruption (list/float/None) крашит pipeline (ADR-129).
+- [Пространство] `_enrich_local_positions` перетирает `local_position`, установленный пайплайном (LOD0 guard).
+- [Пространство] Использование `load_graph()` — мёртвый код, возвращает пустой граф. Заменён на `SpatialService.build_for_location()` (ADR-102).
+- [Пространство] Сравнение legacy ID (`room_1`) с canonical ID (`tavern:room_1`) без нормализации через `spatial_service.normalize_id()`.
+- [Пространство] `graph_compiler.py` без role-based aliases — legacy-имена не резолвятся → Spatial Paralysis (ADR-114).
+- [Воля] Обращение к `intent.action` в `will.py`/`affect.py` без fallback на `parameters.semantic_action` (ADR-035).
+- [Восприятие] Фиксированные множители в CFRM (threat×40, anomaly×20) — движок не интерпретирует (§ENIGMA-S72).
+- [Эмоции] Хардкод весов affective_load (0.6/0.3/0.1) — веса из drives_base (§ENIGMA-S72).
+- [Прочее] Хардкод семантических весов в DecisionHub (+0.5/+0.7/+0.2) — модуляция через drives_base (§ENIGMA-S72).
+- [Восприятие] Конвертация uncertainty_delta → stress_delta в LegacyStateDeltaAdapter — нарушение §ENIGMA-004.
+- [Эмоции] Назначение dominant_emotion_hint из движка — эмоция только через Affective Pipeline (§ENIGMA-S72).
+- [Эмоции] Универсальная конвертация эмоция→действие (fear→flee для всех) — drives_base определяет направление разрядки (§ENIGMA-S72).
+- [Воля] Вызов WillpowerGate более 1 раза за цикл.
+- [Физиология] Генерация эмоций напрямую из CombatSubscriber (только PhysiologyPayload).
+- [Прочее] Передача сырых дельт давления из текущего тика в DecisionHub (только консолидированное восприятие T-1).
+- [Воля] Пустой `topic` в `CommunicationIntent`.
+- [Прочее] Хранение `EventDTO` в `EventBuffer` (только `FieldDisturbance`).
+- [Прочее] Обход `LocalCausalSolver` при генерации давления.
+- [Прочее] Мутация состояния из CausalObserver (только пассивная фиксация).
+- [Восприятие] `write_to_legacy` / `from_legacy` без сериализации `perceptual_kernel` и `affective_load` — восприятие и аффект теряются между тиками (DOUBLE TRUTH).
+- [Прочее] Использование полей дельт в `state_applicator` без извлечения из payload (все физиологические поля требуют явного extraction).
+- [Физиология] Прямая мутация HP аватара в обход `ImpactEngine`.
+- [Физиология] Использование `hp_ratio` в `state_interpreter` без учета `pain/shock/blood_loss` (GAP5).
+- [Физиология] Масштабная несовместимость: `StateApplicator` пишет `pain` в 0-100, а интерпретаторы читают в 0-1 (нормализация `/100` обязательна при чтении из `body_state`).
+- [Физиология] `CombatSubscriber` пишет в Emotion (Domain Leakage). Только `PhysiologyPayload`.
+- [Физиология] `BehaviorManifestationService` читает эмоции (psyche.fear/stress) вместо физиологии (body_state.pain/blood_loss/shock_impulse) — Правило X (CAUSAL_CONTRACT §7).
+- [Физиология] `write_to_legacy` / `from_legacy` без сериализации `body_state` — физиология теряется между тиками.
+- [Физиология] `shock_impulse` без decay в `PhysiologyDecayHandler` — шок становится перманентным (ADR-105).
+- [Физиология] `StateApplicator` проверяет `shock_impulse > 0.0` вместо `!= 0.0` — блокирует отрицательные дельты decay (ADR-105).
+- [Восприятие] `BehaviorManifestationService`/`PhenomenologyProjectionService` читают `stress_delta`/`psyche_state` для моторных искажений и атмосферы — Semantic Inflation (ADR-112, Rule 28).
+- [Pipeline] Создание `_TickContext` без `player_result` при ходе игрока (инвариант: player turn всегда имеет результат).
+- [Pipeline] Ретро-симуляция (цикл `LifeEngine.tick()` для нагона).
+- [Pipeline] Мутация состояния в обход `DeltaBuffer → apply_batch()`.
+- [Прочее] Чтение `scene_state` оркестратором для бизнес-логики (только для проекции).
+- [Восприятие] `_apply_runtime_overlay` без белых списков для `affective_load`, `emotion`, `body_state`, `perceptual_kernel` — вычисленное состояние затирается статикой (Инвариант 1).
+- [Персистенция] `_load_npcs_with_runtime` без прайминга LifeEngine cache после чтения с диска — каждый player turn перечитывает YAML.
+- [UI] Фейковый нарратив при краше LLM ("Твоё сознание мутнеет...") — каузальное мошенничество. Только честное системное сообщение (ADR-113, Rule 29).
+- [UI] `agent_runner.py` возвращает `None` при LLM timeout/exception — вызывающий код крашится на `.get()` (ADR-113).
+- [Память] Публикация в память в обход `MemoryManager`.
+- [Воля] Хардкод `fear_of_player` в `DirectiveInterpretationSubscriber` для NPC-источников (GAP13).
+- [Пространство] `DirectiveInterpretationSubscriber` генерирует `MovementIntent`.
+- [Воля] Вызов `DirectiveInterpretationSubscriber` без инъекции `all_npcs_raw` (иначе ObediencePressure=0.00).
+- [Воля] Возврат `UNCERTAIN` из `IntentCompressor` на известные приставочные глаголы ATTACK/THREATEN (словарь должен покрывать pymorphy3 леммы).
+- [Прочее] Применение моторных смещений (дрожь) к экранным координатам ПОСЛЕ отрисовки спрайта. Смещение применяется ТОЛЬКО ДО `self.screen.blit()`.
+- [Пространство] Перезапись `result.world_snapshot` целиком в `game_loop_bridge.py` (уничтожает `player_perception`). Только точечное обновление `result.world_snapshot["npc_positions"]`.
+- [Прочее] Импорт `backend/app/` во фронтенд (Устав §1.1).
+- [Физиология] Передача Игроку внутренних метрик NPC (HP, fear, trust). Только наблюдаемые симптомы ("дрожит", "кровоточит").
+- [Восприятие] DM-агент читает внутренние состояния NPC (pain, fear, shock) напрямую вместо наблюдаемых симптомов (`embodied_traces`). Kernel Leakage = архитектурный баг.
+- [Прочее] Обработка клавиши `Ё` только через `pygame.K_BACKQUOTE` без проверки `event.unicode` (русская раскладка Windows не генерирует BACKQUOTE).
+- [Сериализация] Использование `asdict()` на границе API без Pydantic/Dataclass валидации.
+- [Прочее] Обратная связь из CDS в рантайм симуляции.
+- [Прочее] Прерывание каузального потока при падении CDS.
+- [Прочее] `logger.debug` для крахов аффективного decay — отказы должны быть уровня WARNING (Инвариант 3).
+- [Pipeline] `print()` для Phase 8 крахов — должен быть структурированный `[PIPELINE][CRITICAL]` или `[PHASE8_CRASH]` (Инвариант 3).
+- [Pipeline] CDS не парсит пред-шинные отказы — pipeline умирает молча (Инвариант 3).
+- [Прочее] Персистенция `relationship_cache` внутри `NPCState` (DOUBLE TRUTH). Только `RelationshipStore` пишет на диск.
+- [Эмоции] Использование плоского формата `{"fear": 0.5}` в `relationship_cache`. Только вложенный: `{"player": {"fear": 50.0}}`.
+- [Эмоции] Использование интегратора с утечкой (`load + incoming - recovery`) для `affective_load` — аттрактор насыщения, вечный страх (ADR-138). Только асимметричный аттрактор (гистерезис).
+- [Восприятие] Отсутствие idle-decay для `PerceptualKernel` (threat, uncertainty, anomaly) — вечный реконструктор страха (Rule 38, ADR-138).
+- [Эмоции] AFFECTIVE_BOOT / подтягивание `affective_load` до порога `emotion_tag` — положительная обратная связь (ADR-138).
+- [Восприятие] Хранение `threat_gradient` навсегда без decay или recompute. (Текущий decay — временная мера, пока не реализован Gen 3: `perceive_world()`).
+- [Восприятие] Создание `NPCState` через прямой конструктор `NPCState(...)` без передачи `emotion`, `affective_load`, `body_state`, `perceptual_kernel`. Только через `from_legacy()` или `load_l2_state_from_runtime_dict()` с полным набором полей (ADR-116).
+- [Pipeline] `unlock_tick()` снимает `_tick_locked` ПОСЛЕ `save_scene_state()` — guard блокирует финальный персист, traversals теряются (ADR-SCENE-LOCK).
+- [Pipeline] Запуск llama-server без флагов GPU (`-ngl`, `-c`, `-t`) — модель грузится на CPU, таймаут, NPC немые.
+- [Pipeline] `stderr=subprocess.PIPE` при запуске llama-server — silent death без диагностики.
+- [Pipeline] `_llama_server_proc = None` без terminate/kill — сиротский процесс жрёт RAM.
+- [Pipeline] Отсутствие recovery при падении LLM — игра остаётся немой навсегда.
+- [Персистенция] LifeEngine `_load_npcs()` без SQLite read-back — runtime state теряется после cache eviction (ADR-128).
+- [Персистенция] `load_npc_runtime()` возвращает `[]` — нельзя отличить пустую кампанию от отсутствующей. Только `is not None` проверка (ADR-128).
+- [Персистенция] AvatarService `_state_to_dict()` без `body_state` — player injuries теряются при каждой загрузке (ADR-128).
+- [Персистенция] AvatarService `_state_from_dict()` без `body_state`/`affective_load`/`perceptual_kernel` — аватар сбрасывается в NEUTRAL/0.0 при каждой загрузке (ADR-128).
+- [Физиология] Двойная онтология: wounds/conditions (legacy) ≠ body_state (runtime). body_state = SSOT, wounds = legacy projection (ADR-128).
+- [Pipeline] update_routine() без scene_state — не видит active_traversals, перезаписывает reactive traversal schedule intent (ADR-130).
+- [Воля] _context_relevance() без payload["target_id"] fallback — все NPC считаются целевыми при player_interacts (ADR-130).
+- [Pipeline] Обработка player action без проверки `life_status` — мёртвый игрок не может действовать (Rule 59, ADR-127).
+- [Физиология] `_make_player_snapshot()` без чтения `avatar_state.body_state` — статический снапшот = бессмертный в бою (Rule 60, ADR-128).
+- [Pipeline] Создание DRFBus через `default_factory=DRFBus` в `_TickContext` — split-brain при двух контекстах (ADR-131). Только instance-level bus оркестратора.
+- [Pipeline] Monkey-patch функции для инъекции шины (`func.drf_bus = ...`) — нарушает причинную прозрачность (ADR-131).
+- [Pipeline] DRF overlay только в idle path — player path обходит арбитраж (ДОЛГ 4.2 fix: unified overlay).
+- [Воля] Viability veto через `_drf_killed` флаг или `priority=0` в MovementEngine — скрытый скоринг вместо viability (ДОЛГ 4.3).
+- [Воля] Viability veto через парсинг строк (`"schedule" in reason`) — ломается при смене имён (ДОЛГ 4.3: только через IntentDomain, ADR-O-137).
+- [Воля] Viability через пост-генерационную фильтрацию кандидатов вместо pre-generation gate — ROUTINE уже мутирует `routine["current"]` и создаёт SceneChange до фильтрации (ADR-O-137).
+- [Воля] `MovementIntent` без поля `domain` — viability mask не может работать, онтологическая неполнота (ADR-O-137).
+- [Воля] Clamp override `max(priority, 90)` при шкале 0.0–1.0 — уничтожение шкалы (ДОЛГ 4.2 fix: аддитивный скоринг).
+- [Физиология] Чтение `pain`/`fatigue` без нормализации `/100.0` в потребителях с порогами 0-1 — MSOC (ADR-094, Rule 63/64).
+- [UI] `AvatarStateDTO` без поля `life_status` — фронтенд слеп к смерти (ADR-137, Rule 81).
+- [Pipeline] Death Guard без `npc_positions` в `world_snapshot` — мир замерзает при смерти игрока (ADR-137, Rule 82).
+- [Физиология] Контракт шкал: body_state pain/fatigue = 0-100, blood_loss/shock = 0-1. Потребители с порогами 0-1 обязаны нормализовать (ADR-094 MSOC, Rule 83).
+- [Нарратив] DM narration без проверки player life_status — каузальный обман (ADR-140).
+- [Нарратив] avatar_to_prompt без life_status — DM слеп к смерти (ADR-140).
+- [Нарратив] Death Guard без вызова DM — подмена нарратива хардкодом (ADR-140).
+
+---
+
+## 3. ОТКРЫТЫЕ РАЗРЫВЫ
+
 - **S49:** ВЕРИФИЦИРОВАН РАЗРЫВ: LifeEngine перезаписывает реактивные транзиты (`reactive:approach`) schedule-интентами (`schedule:sleeping`) каждый idle tick. NPC не доходит до игрока — его постоянно редиректят в кровать. Требует механизм пробуждения (отложено).
-- **S51:** GAP5 УБИТ. `state_interpreter.py` читает `pain`, `shock_impulse` и `blood_loss` из `body_state`. Боль и шок перекрывают HP. Агония = "тяжело ранен", нокаут = "без сознания". Каузальный мост Физиология → Речь замкнут.
-- **S51:** GAP4 УБИТ. `DirectiveInterpretationSubscriber` ингибируется шоком. `shock > 0.7` → `return []`. Бессознательное тело не подчиняется приказам.
-- **S51:** GAP9 УБИТ. Реалистичное Пробуждение. Сон блокируется непрерывными скалярами `threat_gradient > 0.3` и `stress > 50`. `recent_directive` больше не сжигается мгновенно, предотвращая повторное укладывание в кровать на следующем тике.
-- **S52:** GAP10 УБИТ. `EventContext` обогащён `target_id`. DecisionHub фильтрует бонус `APPROACH` — только целевой NPC получает реакцию на `player_interacts`. Свидетели больше не подходят.
-- **S52:** GAP13 УБИТ. `DirectiveInterpretationSubscriber` больше не хардкодит `fear_of_player`. Если источник приказа — NPC, легитимность вычисляется из `relationship_cache.fear_{source_id}`. Дорога к NPC-to-NPC иерархии открыта.
-- **S53:** GAP1 УБИТ. Темпоральная асимметрия устранена. Когнитивный Оверлей теперь инжектит критический шок (`shock_impulse > 0.5`) мгновенно (T+0) вместе с директивами. Топор летит со скоростью слова.
-- **S53:** GAP2 УБИТ. Амнезия Воли вылечена. `compute_willpower` читает `trauma_markers`. Каждая травма добавляет +0.1 к `identity_rigidity` (макс +0.3). Предательство закаляет.
-- **S53:** GAP7 УБИТ. Слепота Аватара устранена. `_extract_observer_state` в `LocalCausalSolver` корректно парсит `psyche` игрока. Аватар получает давление от паники толпы.
-- **S50:** GAP8 УБИТ. `CommunicationIntent` обогащен `semantic_action` и `target_id`. `IntentEventAdapter` пробрасывает их в payload `NPC_SPOKE`. `DirectiveInterpretationSubscriber` больше не получает пустышку. Труба Воли размурована.
-- **S50:** GAP3 УБИТ. `translate_kernel_to_context` принимает `body_state`. Внедрено Соматическое Вето: `pain > 0.8` обнуляет `FLEE`, `shock > 0.7` обнуляет `ATTACK`, `blood_loss > 0.6` режет `feasibility` физических действий до 0.3. Тело vetoирует Мозг.
-- **S50:** GAP12 УБИТ. `_enrich_local_positions` вычисляет интерполированную позицию для NPC в активном транзите (LOD1). Бэкенд-сервисы видят истину, введен флаг `in_transit`.
 - **S49:** ВЕРИФИЦИРОВАН РАЗРЫВ: Незваные NPC (`blacksmith_orm`, `merchant_goran`) получают `approach` от DecisionHub при команде, адресованной другому NPC. Требует фильтр целевого NPC (отложено).
 - **S49:** ВЕРИФИЦИРОВАН РАЗРЫВ: Хардкод русских глаголов в `npc_tick_pipeline.py` — нарушает локализуемость и разделение ответственности. `IntentCompressor` уже умеет классифицировать `MOVE` через pymorphy3, но Semantic Bridge (`S28_GATE`) возвращает `UNCERTAIN` — результат теряется на пути от `phase_1_input` до `hub_event`. После починки Bridge хардкод должен быть удалён.
-- **[S50] 28.05.26:** GAP12 УБИТ. `_enrich_local_positions` вычисляет интерполированную позицию для NPC в активном транзите (LOD1). Бэкенд-сервисы видят истину, введен флаг `in_transit`.
-- **[S51] 28.05.26:** GAP9 УБИТ. Реалистичное Пробуждение. Сон блокируется непрерывными скалярами `threat_gradient > 0.3` и `stress > 50`. `recent_directive` больше не сжигается мгновенно, предотвращая повторное укладывание в кровать на следующем тике.
-- **[S54] GAP11 УБИТ:** Хардкод _MOVE_VERBS удален из npc_tick_pipeline.py. Semantic Bridge замкнут: IntentCompressor теперь распознает "сюда"/"мне" как target_reference='player', пайплайн корректно реагирует на semantic_action=MOVE без текстовых костылей.
-- **[S54] ADR-084 (The Fool Phase 2):** Убито семантическое смешение EmbodiedVector. Разделены слои: EmbodiedImpulse (моторика), SocialSignal (наблюдаемость), CrowdThreatLevel (угроза для CFRM). Социальная тревога (DISTRESSED) больше не генерирует AVOIDANCE и PREDATOR_ALERT, предотвращая массовую панику толпы от приказа "подойди".
-- **[S58] 30.05.26:** Фронтенд: Физика WASD (Push-out Resolution). Игрок больше не застревает между мебелью. Коллизии разрешаются выталкиванием по вектору проникновения. Уменьшен хитбокс (`PLAYER_RADIUS = 0.25`).
-- **[S58] 30.05.26:** Фронтенд: Контракт рендера препятствий. `scene_renderer.py` теперь читает `x, y` как левый верхний угол (соответствует бэкенду), устраняя визуальный сдвиг хитбоксов мебели.
-- **[S58] 30.05.26:** Бэкенд: Центроиды узлов графа. `graph_compiler.py` теперь вычисляет центр комнаты (`x + w/2`, `y + h/2`) вместо использования левого верхнего угла. Устранена телепортация NPC в углы стен при FLEE.
-- **[S58] 30.05.26:** Фронтенд: Уважение TraversalState (ADR-092). Если NPC в статусе `MOVING`, фронтенд не перезаписывает его `local_position` из `npc_positions`, позволяя рендереру плавно интерполировать движение. Устранена массовая телепортация при Action-тиках.
-- **[S59] 30.05.26:** ADR-102: `load_graph()` мёртв — возвращает пустой граф (0 узлов). Заменён на `SpatialService.build_for_location()` в `spatial_runtime.py`. Для работы SpatialService добавлен инжект `campaign_id` в `scene_state` через `get_scene_state()`.
-- **[S59] 30.05.26:** ADR-102: `spatial_obstacles` теперь передаёт поле `type` (bar, table, chair...) из editor JSON на фронтенд. `scene_renderer.py` маппит типы на спрайты через `sprite_resolver.py` вместо прямоугольных заглушек.
-- **[S59] 30.05.26:** ADR-102: FLEE-резолв починен. `get_furthest()` теперь принимает `exclude_node_ids` для исключения текущего узла NPC. Нормализация legacy ID (`room_1` → `tavern:room_1`) перед сравнением устраняет бегство NPC в свой же узел.
-- **[S59] 30.05.26:** Фронтенд: Починен `UnboundLocalError` для `_old_lp` в `game_screen.py:807`. Чтение старой позиции NPC до перезаписи.
-
-**Архитектурные запреты:**
-- ❌ Мгновенное сжигание `recent_directive` в LifeEngine (GAP9).
-- ❌ Прямая мутация `npc["position"]` или `npc["location"]`.
-- ❌ Чтение дистанций из `scene_state` (только через `SpatialQueryService`).
-- ❌ Вызов `scene_manager.apply_changes()` из подписчиков (`SceneChange` — проекция для фронтенда).
-- ❌ Использование `TraversalState` без `MovementEngine`.
-- ❌ Вызов `process_intents()` или `apply_changes()` из `npc_orchestration.py` (единственный владелец — `TickOrchestrator`).
-- ❌ Повторная обработка `MovementIntent` (инвариант `processed=True`).
-- ❌ Хардкод языковых глаголов в `npc_tick_pipeline.py` (после починки Semantic Bridge).
-- ❌ `_enrich_local_positions` перетирает `local_position`, установленный пайплайном (LOD0 guard).
-- ❌ Использование `load_graph()` — мёртвый код, возвращает пустой граф. Заменён на `SpatialService.build_for_location()` (ADR-102).
-- ❌ Сравнение legacy ID (`room_1`) с canonical ID (`tavern:room_1`) без нормализации через `spatial_service.normalize_id()`.
-
----
-
-## 2. ВОЛЯ, ДАВЛЕНИЕ И РЕШЕНИЕ (Will, Pressure & Decision)
-**Текущая истина:** Решения рождаются из искривленного давления (Utility Deformation). Воля — инерция, а не порог. Подчинение требует легитимности.
-
-**Эволюция:**
-- **S19:** WillpowerGate (ADR-031). Cumulative Strain Model вместо бинарки. Шкала COMPLY → CONDITIONED.
-- **S21:** Убийство объективных событий. Давление генерирует `PsychologicalPressure`, а не прямые команды.
-- **S24:** Affective Resonance (ADR-036). Аффект искажает давление через `ResponseBias`.
-- **S25:** Embodied Vector. Предрефлексивные моторные импульсы.
-- **S29:** DecisionHub: убит хардкод `base += 0.6` для APPROACH. Страх бустит приближение к авторитету.
-- **S31:** DecisionContext (ADR-050). Feasibility Layer (удаление невозможных действий) и Utility Deformation.
-- **S35:** Attention Capture. Замена хардкод-порога `initiative_suppression > 0.7` на `recent_directive` (сжигание директивы после использования).
-- **S36:** Legitimacy Gate (ADR-058). Нет страха/доверия = Irritation (агрессия) вместо Obedience.
-- **S48:** Починка обрыва Трубы Воли на границе API. `routes.py` теперь пробрасывает `will_conflict_data` в JSON-ответе для Action-тиков (ранее поле удалялось при сборке ответа, фронтенд всегда получал `None`, инфекция поля ввода была невозможна).
-- **S49:** Приказ игрока перекрывает ЛЮБОЕ решение DecisionHub. Рефлекс не пропускается при `intent=flee` — игрок является авторитетным источником причинности (ADR-061). Если NPC решил бежать, но игрок приказал подойти — NPC подходит.
-- **[S50] 28.05.26:** GAP3 УБИТ. `translate_kernel_to_context` принимает `body_state`. Внедрено Соматическое Вето: `pain > 0.8` обнуляет `FLEE`, `shock > 0.7` обнуляет `ATTACK`, `blood_loss > 0.6` режет `feasibility` физических действий до 0.3. Тело vetoирует Мозг.
-- **[S52] 28.05.26:** GAP10 УБИТ. `EventContext` обогащён `target_id`. DecisionHub фильтрует бонус `APPROACH` — только целевой NPC получает реакцию на `player_interacts`. Свидетели больше не подходят.
-- **[S53] 28.05.26:** GAP2 УБИТ. Амнезия Воли вылечена. `compute_willpower` читает `trauma_markers`. Каждая травма добавляет +0.1 к `identity_rigidity` (макс +0.3). Предательство закаляет.
-- **[S54] 26.05.26:** УБИТ Silent Crash Трубы Воли. `will.py` и `affect.py` обращались к `intent.action`, в то время как DTO содержит `semantic_action` в `parameters`. Добавлен безопасный fallback с приоритетом `parameters.semantic_action`. Воля больше не умирает тихо при `AttributeError`.
-- **[S55] 17.05.26:** УБИТ Мертвый Вектор Эмоций (ADR-088). `IntentCompressor._fast_path_parse` возвращал `EmotionalVector` с нулями (aggression=0.0), так как не заполнял поле `semantic`. Внедрен маппинг `ActionType -> EmotionalVector` (ATTACK -> aggression=0.8). Воля аватара теперь адекватно сопротивляется агрессии (resistance вырос с 0.15 до ожидаемых значений).
-- **[S60] 31.05.26:** УБИТ `_semantic_action=None` (ADR-091). `publish_classified_player_event` вызывался в `dm_phase.py` ДО `resolve_player_intent()` → `shared_context.intent_resolution` был `None` → ADR-091 override не срабатывал. Фикс: перенос вызова в `__init__.py` ПОСЛЕ установки `intent_resolution`. Runtime верифицирован: `[ADR-091] IntentCompressor override: DM_Router='player_attacks' → IC='attack'`.
-
-**Архитектурные запреты:**
-- ❌ Обращение к `intent.action` в `will.py`/`affect.py` без fallback на `parameters.semantic_action` (ADR-035).
-- ❌ Вызов WillpowerGate более 1 раза за цикл.
-- ❌ Генерация эмоций напрямую из CombatSubscriber (только PhysiologyPayload).
-- ❌ Передача сырых дельт давления из текущего тика в DecisionHub (только консолидированное восприятие T-1).
-- ❌ Пустой `topic` в `CommunicationIntent`.
-
----
-
-## 3. ВОСПРИЯТИЕ И ФЕНОМЕНОЛОГИЯ (CFRM & Perception)
-**Текущая истина:** Объективных фактов нет. Есть возмущения поля (`FieldDisturbance`), которые проецируются в субъективные феномены в зависимости от наблюдателя.
-
-**Эволюция:**
-- **S15-17:** CFRM Layer 1. Введение `ClusterGraph`, `EventBuffer`, `MembraneField`.
-- **S21:** Смерть объективных событий. `EventBus` не хранит факты, а деобъектифицирует их через мост.
-- **S26:** Epistemic Classification. Оценка уверенности (confidence) при классификации.
-- **S30:** CFRM Phase 2. `semantic_seed` (геном нарратива). Проекция теряет энергию/форму (физика), достоверность (когнитивка), искажается (социалка).
-- **S38:** Визуализация Cognitive Freeze на фронтенде (тремор при `initiative_suppression > 0.7`).
-- **[S53] 28.05.26:** GAP7 УБИТ. Слепота Аватара устранена. `_extract_observer_state` в `LocalCausalSolver` корректно парсит `psyche.fear` для игрока. Аватар получает давление от паники толпы.
-
-**Архитектурные запреты:**
-- ❌ Хранение `EventDTO` в `EventBuffer` (только `FieldDisturbance`).
-- ❌ Обход `LocalCausalSolver` при генерации давления.
-- ❌ Мутация состояния из CausalObserver (только пассивная фиксация).
-
----
-
-## 4. ФИЗИОЛОГИЯ И БОЙ (Physiology & Combat)
-**Текущая истина:** Тело — материальный объект. Удар — чистая физика контакта, которая порождает боль и шок, а шок уже транслируется в эмоции.
-
-**Эволюция:**
-- **S12-14:** Создание `ImpactEngine`, `PhysiologyPayload`, `InjuryDTO`. Убийство RPG Hit Roll.
-- **S16:** Каскад Shock → Emotion (ReactionSubscriber извлекает `shock_impulse`).
-- **S20:** Очистка `combat_stats`. Перенос способностей в `body_profile`.
-- **S30:** Fuzzy-matching `target_reference` в CombatSubscriber (починка мертвого пайплайна).
-- **S48:** ВЕРИФИЦИРОВАНО: RPG Витализм в `state_interpreter.py`. Оценка физического состояния NPC идет по `hp_ratio`, игнорируя `pain`, `shock_impulse` и `blood_loss`. NPC с 80% HP, но `pain: 0.9` описывается LLM как "слегка ранен". Мост Физиология → Речь оборван. (УБИТО в S51).
-- **[S51] 28.05.26:** GAP5 УБИТ. `state_interpreter.py` читает `pain`, `shock_impulse` и `blood_loss` из `body_state`. Боль и шок перекрывают HP. Агония = "тяжело ранен", нокаут = "без сознания". Каузальный мост Физиология → Речь замкнут.
-- **[S54] 26.05.26:** УБИТ `NameError: blood_loss_delta`. `state_applicator.py` использовал переменную без извлечения из `PhysiologyPayload`. Добавлена строка экстракции.
-- **[S57] 30.05.26:** RPG Витализм: нормализация шкалы `pain` (0-100 → 0-1) в `StateInterpreter._physical_state_to_word`. Ранее пороги были 0.9/0.6/0.3 (под 0-1), а `StateApplicator` пишет 0-100 — боль никогда не срабатывала. Также оживлён мёртвый `StateInterpreter.interpret()` — метод импортировался, но никогда не вызывался. `VerbalizationContext` обогащён полем `physical_state`. NPC теперь знает свою боль при само-вербализации.
-
-- **[S59] 30.05.26:** УБИТ Silent Loss Physiology. `state_applicator.py`: `asdict` не импортирован на уровне модуля → краш при `add_injuries` → ВСЯ PhysiologyPayload дельта пропускалась молча (`body_state` никогда не создавался). Фикс: `from dataclasses import asdict` на уровне модуля.
-- **[S59] 30.05.26:** УБИТ Serialization Black Hole. `NPCState.write_to_legacy()` не писал `body_state` в npc_dict → физиология терялась при каждой сериализации. `NPCStateAdapter.from_legacy()` не читал `body_state` → state.body_state всегда начинался пустым. Фикс: добавлено чтение/запись `body_state` в оба метода.
-- **[S59] 30.05.26:** УБИТ Rule X Violation. `BehaviorManifestationService._manifest_npc()` читал только `stress_delta` и `psyche_state` из `npc_positions`, полностью игнорируя `body_state` (pain/blood_loss/shock_impulse). Фикс: построение `body_state_map` из `all_npcs_raw`, чтение физиологии для вычисления `locomotion_instability`, `micro_pause_density`, `action_interruption`.
-- **[S59] 30.05.26:** `StateApplicator._apply_deltas()` — добавлено применение `shock_impulse` к `body_state` (ранее поле существовало в `PhysiologyPayload`, но не экстрактилось и не применялось).
-- **[S59] 30.05.26:** `PhenomenologyProjectionService` — добавлены cue_keys для боли/крови/шока: WINCING (rigidity+instability), HOLDING_SIDE (micro_pause+rigidity), BLEEDING (micro_pause+instability), STAGGERED (action_interruption).
-- **[S59] 30.05.26:** `StateApplicator.apply_batch()` — fallback на `"npc_id"` при поиске NPC dict (ранее искал только по `"id"`, что ломало применение дельт для NPC с ключом `"npc_id"`).
-- **[S60] 31.05.26:** УБИТ Memory Black Hole. `_legacy_d = LegacyStateDeltaAdapter.collapse()` определена внутри `elif` (стр.144), но читалась в другом `elif` (стр.152) → `UnboundLocalError` → `[MEMORY] apply failed` для 6/6 NPC каждый тик. Память была полностью мертва. Фикс: вынесено до ветвления.
-- **[S60] 31.05.26:** УБИТ Shock Immortality. `shock_impulse` не затухал между тиками (0.9→0.9→0.9 бесконечно). 4 файла: (1) `NPCStateSnapshot` — добавлено поле `shock_impulse`; (2) `_build_npc_snapshots` — извлечение из `body_state`; (3) `PhysiologyDecayHandler` — leaky integrator `SHOCK_DECAY_LAMBDA=0.08` (~8% за тик); (4) `StateApplicator` — разрешена отрицательная дельта `shock_impulse != 0.0` вместо `> 0.0`. Runtime верифицирован: shock=0.6→0.55→0.51.
-- **[S60] 31.05.26:** Combat pipeline верифицирован end-to-end: `PLAYER_ATTACKED → CombatSubscriber → ImpactEngine(2 deltas) → _aggregate_deltas(PHYSICS_COMPOSITE) → apply_batch → body_state(pain=36→34→48→59)`. Print-диагностика конвертирована в `logger.debug`.
-
-**Архитектурные запреты:**
-- ❌ Использование полей дельт в `state_applicator` без извлечения из payload (все физиологические поля требуют явного extraction).
-- ❌ Прямая мутация HP аватара в обход `ImpactEngine`.
-- ❌ Использование `hp_ratio` в `state_interpreter` без учета `pain/shock/blood_loss` (GAP5).
-- ❌ Масштабная несовместимость: `StateApplicator` пишет `pain` в 0-100, а интерпретаторы читают в 0-1 (нормализация `/100` обязательна при чтении из `body_state`).
-- ❌ `CombatSubscriber` пишет в Emotion (Domain Leakage). Только `PhysiologyPayload`.
-- ❌ `BehaviorManifestationService` читает эмоции (psyche.fear/stress) вместо физиологии (body_state.pain/blood_loss/shock_impulse) — Правило X (CAUSAL_CONTRACT §7).
-- ❌ `write_to_legacy` / `from_legacy` без сериализации `body_state` — физиология теряется между тиками.
-- ❌ `shock_impulse` без decay в `PhysiologyDecayHandler` — шок становится перманентным (ADR-105).
-- ❌ `StateApplicator` проверяет `shock_impulse > 0.0` вместо `!= 0.0` — блокирует отрицательные дельты decay (ADR-105).
-- **[S60] 31.05.26:** ДИАГНОСТИКА: StateInterpreter Ownership Audit (ADR-104). Обнаружено: `UrgencyLevel` (SCARED/PANIC/BROKEN) дублирует `EmotionTag` (fearful/panic) — два владельца одной концепции. Трассировка показала: `NPCStateDescription.emotional_state` (из UrgencyLevel) — мёртвое поле, не читается ни одним сервисом. `VerbalizationContext.emotion` и `emotional_nuance` — dormant (потребитель не найден, но статус unresolved). `PhysicalState` (из body_state) — живой и легитимный. Double Truth не проявляется в runtime (нет потребителя), но архитектурный долг существует. Зафиксировано в `architecture/physiology.yaml`.
-
----
-
-## 5. ТРУБА ОРКЕСТРАТОРА И ВРЕМЯ (Pipeline & Elastic Time)
-**Текущая истина:** Симуляция дискретна (каузальность), презентация непрерывна. `LifeEngine` — лоббист давления, а не бог-мутатор.
-
-**Эволюция:**
-- **S01-06:** Выстраивание фаз. Внедрение `DeltaBuffer` как единого канала мутации.
-- **S28:** Выжигание легаси. Удаление зомби-полей из `AvatarStateDTO`.
-- **S34:** Dual-Time Ontology. Запрет ретро-симуляции. `LifeEngine.tick()` возвращает интенты, а не меняет мир напрямую.
-- **S36:** `GAME_TICK_INTERVAL_SECONDS` снижен с 900 до 60 (основа Elastic Time).
-- **S48:** Реанимация Плоти Аватара в `game_loop/__init__.py`. Сборка `player_dict` для `all_npcs_raw` обогащена `body_state` и `psyche` из `avatar_service.load_state()`. Ранее аватар передавался как пустой шаблон ("скелет"), из-за чего `AvatarPresentationAssembler` получал дефолтные нули и не мог вычислить `pain`/`stress` для оверлеев.
-- **S49:** Устранение двойной обработки MovementIntent. `npc_orchestration.py` вызывал `process_intents()` + `apply_changes()` параллельно с `TickOrchestrator` → каждый интент обрабатывался дважды → двойной транзит → телепортация. Убран дубликат, добавлен инвариант `processed` в доменную модель.
 - **S49:** ВЕРИФИЦИРОВАН РАЗРЫВ: `game_loop_bridge.py` не пробрасывал `active_traversals` в `world_snapshot` → фронтенд не мог интерполировать движение. Исправлено: bridge копирует `active_traversals` из `scene_state`.
-- **[S53] 28.05.26:** GAP1 УБИТ. Темпоральная асимметрия устранена. Когнитивный Оверлей теперь инжектит критический шок (`shock_impulse > 0.5`) мгновенно (T+0) вместе с директивами. Топор летит со скоростью слова.
-- **[S54] 26.05.26:** УБИТ `NoneType finalize_result`. `execute_player_finalize` в `tick_orchestrator.py` не пробрасывал `player_result` в `_TickContext`, из-за чего метод возвращал `None` и крашил пайплайн.
-- **[S55] 17.05.26:** УБИТ Каузальный Разрыв Spatial Pipe. В `execute_player_finalize` исправлена критическая подмена `campaign_id` на `location_id` при создании `_TickContext`. Ранее `SpatialService.build_for_location` искал граф в `campaigns/tavern_silver_wolf/` (не существует) вместо `campaigns/Open_road/` (где лежит карта), из-за чего пространственный пайплайн молча умирал при ходе игрока.
-- **[S59] 30.05.26:** УБИТ Idle Tick Perception Blindness. `_phase_9_integration()` вызывал `produce_traces()` без `all_npcs_raw` → `body_state` всегда `None` в idle тиках → NPC с болью/кровью не проявляли симптомы. Фикс: передача `all_npcs_raw=ctx.all_npcs_raw`.
-- **[S60] 31.05.26:** УБИТ `UnboundLocalError: _legacy_d`. В `npc_tick_pipeline.py:144` дублирующий вызов `LegacyStateDeltaAdapter.collapse()` внутри `elif` — переменная `_legacy_d` определялась повторно. Удалён дубль, верхнее вычисление (строка 139) уже корректно.
-- **[S60] 31.05.26:** УБИТ `TypeError: non-default argument`. `VerbalizationContext.intent_target: Optional[str]` без `= None` — мина замедленного действия. Добавлен дефолт. `physical_state` дефолт заменён с `"невредим"` на `"unharmed"` (L10n-safe).
-
-**Архитектурные запреты:**
-- ❌ Создание `_TickContext` без `player_result` при ходе игрока (инвариант: player turn всегда имеет результат).
-- ❌ Ретро-симуляция (цикл `LifeEngine.tick()` для нагона).
-- ❌ Мутация состояния в обход `DeltaBuffer → apply_batch()`.
-- ❌ Чтение `scene_state` оркестратором для бизнес-логики (только для проекции).
 
 ---
 
-## 6. ПАМЯТЬ И СОЦИУМ (Memory & Social Physics)
-**Текущая истина:** Память многослойна. Социальные акты (приказы) искривляют utility-space цели, а не генерируют `MovementIntent` напрямую.
+## 4. МЕТА
 
-**Эволюция:**
-- **S03:** Мультисобытийность Perception.
-- **S08:** Обогащение NPC социальными связями из `village_relations.json`.
-- **S27:** Физика Власти. `DirectiveInterpretationSubscriber` транслирует приказы в `directive_obedience`. Не генерирует движение.
-- **S32:** Починка трубы давления: `DirectiveInterpretationSubscriber().handle()` получает `ctx.all_npcs_raw`.
-- **S47:** Баг #6 (Глухая Воля) УБИТ. `DirectiveInterpretationSubscriber` теперь получает `all_npcs_raw` через fallback на `DMContextDTO` при холодном кэше `LifeEngine` в ходе игрока. `ObediencePressure` больше не возвращается нулевым.
-- **S48:** ВЕРИФИЦИРОВАНО: Семантическая Глухота. `IntentEventAdapter` при конвертации `CommunicationIntent` в `EventDTO(NPC_SPOKE)` выбрасывает `semantic_action` и `target_id`. Событие становится семантически пустым. Это блокирует реализацию NPC-to-NPC Social Physics, так как подписчик не может распознать приказ или угрозу. (УБИТО в S50).
-- **[S50] 28.05.26:** GAP8 УБИТ. `CommunicationIntent` обогащен `semantic_action` и `target_id`. `IntentEventAdapter` пробрасывает их в payload `NPC_SPOKE`. `DirectiveInterpretationSubscriber` больше не получает пустышку. Труба Воли размурована.
-- **[S51] 28.05.26:** GAP4 УБИТ. `DirectiveInterpretationSubscriber` ингибируется шоком. `shock > 0.7` → `return []`. Бессознательное тело не подчиняется приказам.
-- **[S52] 28.05.26:** GAP13 УБИТ. `DirectiveInterpretationSubscriber` больше не хардкодит `fear_of_player`. Если источник приказа — NPC, легитимность вычисляется из `relationship_cache.fear_{source_id}`. Дорога к NPC-to-NPC иерархии открыта.
-
-**Архитектурные запреты:**
-- ❌ Публикация в память в обход `MemoryManager`.
-- ❌ Хардкод `fear_of_player` в `DirectiveInterpretationSubscriber` для NPC-источников (GAP13).
-- ❌ `DirectiveInterpretationSubscriber` генерирует `MovementIntent`.
-- ❌ Вызов `DirectiveInterpretationSubscriber` без инъекции `all_npcs_raw` (иначе ObediencePressure=0.00).
-
----
-
-## 7. ФРОНТЕНД И ПРЕЗЕНТАЦИЯ (UI & Embodiment)
-**Текущая истина:** Фронтенд — это сенсорный орган игрока. Он искажается, болеет и сопротивляется, не зная внутренних метрик бэкенда.
-
-**Эволюция:**
-- **S10:** NarrativeBeat, пузыри Persona 5 стиля.
-- **S18:** Создание Персонажа через Вектор Начальных Условий (Архетип + Темперамент).
-- **S25:** Embodied Perception Interface. Виньетки, туннельное зрение.
-- **S26:** Presentation Firewall (санитайз скаляров), Perceptual Momentum (S-curve сборки реальности).
-- **S28:** Resistance Medium. Заражение поля ввода (`text_input.infect()`) навязанным текстом аватара.
-- **S39:** Интеграция CDS. Фронтенд не парсит отчёты симуляции.
-- **S48:** Замыкание Нервной Системы Эмбодимента. `GameScreen` извлекает `will_conflict_data` из Action-ответа и вызывает `text_input.infect()`. `avatar_state` обновляется при Action-тиках, передаваясь в `PresentationFirewall` и `PerceptualMomentum`. В `player_dict` (all_npcs_raw) инъектированы `body_state` и `psyche` из `avatar_service` (Реанимация Плоти), чтобы `AvatarPresentationAssembler` получал живые скаляры вместо дефолтных нулей. Провода подключены, ожидается починка генераторов (S49+).
-- **[S54] 26.05.26:** Труба Эмбодимента ЗАМКНУТА. `will_conflict_data` проверенно доходит от `tick_orchestrator` до `text_input.infect()` на фронтенде. Поле ввода заражается моторным импульсом (например, "Замереть...") при конфликте воли. Словарь `IntentCompressor` расширен приставочными глаголами (выбить, откусить, укусить и т.д.) — Fast Path больше не возвращает `UNCERTAIN` на агрессивные действия.
-- **[S56] 27.05.26:** The Fool v2 — визуализация моторных следов (дрожь/замер) и тултипов наблюдений замкнута от бэкенда до экрана. Бэкенд генерирует `embodied_traces` и `peripheral_cues` только на основе наблюдаемых симптомов (`stress_delta`, `psyche_state` -> "Напряженная поза", "Дрожит"). Починена потеря данных: `game_loop_bridge.py` больше не затирает `player_perception` при idle-тиках. Починен рендер: моторные смещения перенесены ДО отрисовки спрайта в `scene_renderer.py`.
-- **[S57] 30.05.26:** Удалён дебаг-рендер `[OBS]` из правого верхнего угла экрана (дублировал тултипы без `npc_id`). Создана консоль наблюдений по клавише `Ё` (`pygame.K_BACKQUOTE` + `event.unicode` для русской раскладки) — полупрозрачная панель с `[OBS] npc_id: симптом`. Поддержка `event.unicode` обязательна на Windows.
-- **[S57] 30.05.26:** DM-агент теперь читает `embodied_traces` из `player_perception` (Фаза 9) и формирует блок "Наблюдаемые симптомы NPC". DM описывает видимые следы (дрожит, покачивается), а не внутренние состояния (pain, fear). Поле `player_perception` легализовано в `PipelineContext`. The Fool: Physiology → Manifestation → Perception → Narrative.
-- **[S59] 30.05.26:** Combat → Pain/Blood → UI Pipeline ЗАМКНУТ. 9 фиксов: (1) `asdict` не импортирован на уровне модуля `state_applicator.py` → краш при `add_injuries` → ВСЯ дельта пропускалась; (2) `write_to_legacy` не писал `body_state` обратно в npc_dict → физиология терялась при каждой сериализации; (3) `from_legacy` не читал `body_state` → state.body_state всегда пустой; (4) `BehaviorManifestationService` не читал `body_state` из `all_npcs_raw` (Правило X violation); (5) `apply_batch` fallback на `"npc_id"` при поиске NPC; (6) `PhenomenologyProjectionService` — cue_keys для боли/крови (WINCING/HOLDING_SIDE/BLEEDING/STAGGERED); (7) `StateApplicator` — применение `shock_impulse` к body_state; (8) Idle tick perception не передавал `all_npcs_raw` в `produce_traces()`; (9) `CombatSubscriber` — диагностический `[COMBAT_HANDLE]` лог.
-- **[S59] 30.05.26:** ADR-102: `spatial_obstacles` пробрасывает `type` (bar, table, chair) из editor JSON на фронтенд. `scene_renderer.py` маппит типы на спрайты через `sprite_resolver.py` вместо прямоугольных заглушек.
-- **[S59] 30.05.26:** Починен `UnboundLocalError` для `_old_lp` в `game_screen.py`. Чтение старой позиции NPC до перезаписи из `npc_positions`.
-
-**Архитектурные запреты:**
-- ❌ Возврат `UNCERTAIN` из `IntentCompressor` на известные приставочные глаголы ATTACK/THREATEN (словарь должен покрывать pymorphy3 леммы).
-- ❌ Применение моторных смещений (дрожь) к экранным координатам ПОСЛЕ отрисовки спрайта. Смещение применяется ТОЛЬКО ДО `self.screen.blit()`.
-- ❌ Перезапись `result.world_snapshot` целиком в `game_loop_bridge.py` (уничтожает `player_perception`). Только точечное обновление `result.world_snapshot["npc_positions"]`.
-- ❌ Импорт `backend/app/` во фронтенд (Устав §1.1).
-- ❌ Передача Игроку внутренних метрик NPC (HP, fear, trust). Только наблюдаемые симптомы ("дрожит", "кровоточит").
-- ❌ DM-агент читает внутренние состояния NPC (pain, fear, shock) напрямую вместо наблюдаемых симптомов (`embodied_traces`). Kernel Leakage = архитектурный баг.
-- ❌ Обработка клавиши `Ё` только через `pygame.K_BACKQUOTE` без проверки `event.unicode` (русская раскладка Windows не генерирует BACKQUOTE).
-- ❌ Использование `asdict()` на границе API без Pydantic/Dataclass валидации.
-
----
-
-## 8. НАБЛЮДАЕМОСТЬ И ДИАГНОСТИКА (CDS)
-**Текущая истина:** Наблюдение не создает причинность. CDS — пассивный аудиторе.
-
-**Эволюция:**
-- **S29-31:** Создание Каузальных Песочниц (Deterministic Clock, Causal Trace, Probes).
-- **S39:** Интеграция Causal Diagnostic System. Анализ stdout/git/логов без вмешательства в рантайм.
-
-**Архитектурные запреты:**
-- ❌ Обратная связь из CDS в рантайм симуляции.
-- ❌ Прерывание каузального потока при падении CDS.
-
----
-
-### Почему этот формат лучше для ИИ:
-1. **Контекстная локальность:** Чтобы починить баг с движением, ИИ читает секцию 1 и видит *всю* историю и *все* запреты без шума от починки UI.
-2. **Защита от легаси:** Секция явно показывает, что `LifeEngine` больше не бог (S32), а `SpatialQueryService` — авторитет (S37). ИИ не предложит вернуть `DIRECT_REFLEX`.
-3. **Каузальная целостность:** Формат отражает саму суть ENIGMA — система разделена на домены давления, а не на хронологию коммитов.
+| Показатель | Значение |
+|------------|----------|
+| Сессий | 57 |
+| Запретов | 108 |
+| Доменов | 9 |
+| Открытых разрывов | 3 |
+| Диапазон | S03—S77 |

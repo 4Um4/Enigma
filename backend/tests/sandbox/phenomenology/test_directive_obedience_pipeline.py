@@ -110,7 +110,8 @@ def test_legitimacy_gate_allows_high_fear():
         "social_stats": {
             "fear_of_player": 0.8,
             "trust": 10.0
-        }
+        },
+        "body_state": {"disabled": False, "shock_impulse": 0.0}
     }
 
     event = types.SimpleNamespace(
@@ -143,7 +144,8 @@ def test_legitimacy_gate_blocks_low_fear_thief():
         "social_stats": {
             "fear_of_player": 0.1,
             "trust": 0.1
-        }
+        },
+        "body_state": {"disabled": False, "shock_impulse": 0.0}
     }
 
     event = types.SimpleNamespace(

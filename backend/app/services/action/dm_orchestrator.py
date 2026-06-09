@@ -103,7 +103,9 @@ class DMOrchestrator:
         
         # --- Этап 3: Дополнительная валидация (Scene-based) ---
         # Проверка: цель NPC реально видит игрока?
-        if target_npc_id and target_npc_id not in scene_ctx.line_of_sight:
+        # ADR-O-112: Физический контакт отменяет LOS — если игрока бьют, он "видит" атакующего
+        _is_physical_contact = router_result.raw_event and getattr(router_result.raw_event, 'event_type', '') in ("player_attacks", "combat")
+        if target_npc_id and target_npc_id not in scene_ctx.line_of_sight and not _is_physical_contact:
             return DMResult(
                 is_valid=False,
                 error=f"Validator: NPC '{target_npc_id}' не видит игрока — действие невозможно"

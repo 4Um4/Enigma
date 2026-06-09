@@ -17,6 +17,8 @@ import re
 import json
 import subprocess
 import threading
+import time
+import logging
 import urllib.request
 import urllib.error
 from dataclasses import dataclass
@@ -175,15 +177,29 @@ class LlamaCppProvider(StreamingLlmProvider):
             method="POST",
         )
 
-        try:
-            with urllib.request.urlopen(req, timeout=settings.llama_cpp_timeout_sec) as resp:
-                body = json.loads(resp.read().decode("utf-8"))
-                return body.get("content", "")
-        except urllib.error.URLError as e:
-            raise RuntimeError(
-                f"Не удалось подключиться к llama-server ({self.server_url}). "
-                "Убедитесь что llama-server запущен."
-            ) from e
+        # ADR-113: Retry с exponential backoff при краше llama-server
+        max_retries = 3
+        backoff_delays = [1.0, 2.0, 2.0]
+        last_error = None
+        
+        for attempt in range(max_retries):
+            try:
+                with urllib.request.urlopen(req, timeout=settings.llama_cpp_timeout_sec) as resp:
+                    body = json.loads(resp.read().decode("utf-8"))
+                    return body.get("content", "")
+            except (urllib.error.URLError, ConnectionResetError, OSError, TimeoutError) as e:
+                last_error = e
+                if attempt < max_retries - 1:
+                    delay = backoff_delays[attempt]
+                    logger.warning(f"[LLM_RETRY] attempt {attempt+1}/{max_retries} failed: {type(e).__name__}: {e}. Retrying in {delay}s...")
+                    time.sleep(delay)
+                else:
+                    logger.error(f"[LLM_RETRY] all {max_retries} attempts failed. Last error: {type(e).__name__}: {e}")
+        
+        raise RuntimeError(
+            f"Не удалось подключиться к llama-server ({self.server_url}) после {max_retries} попыток. "
+            f"Последняя ошибка: {type(last_error).__name__}: {last_error}"
+        ) from last_error
 
     def abort_generation(self) -> None:
         """Прервать текущую генерацию (server — HTTP abort, CLI — kill процесса)."""
@@ -328,38 +344,56 @@ class LlamaCppProvider(StreamingLlmProvider):
         )
 
         full_content = ""
+        logger = logging.getLogger(__name__)
 
-        try:
-            with urllib.request.urlopen(req, timeout=settings.llama_cpp_timeout_sec) as resp:
-                # Читаем напрямую — BufferedReader буферизовал весь ответ целиком
-                while True:
-                    line = resp.readline()
-                    if not line:
-                        break
-                    line = line.decode("utf-8").strip()
-                    if not line:
-                        continue
-                    if line.startswith("data:"):
-                        data_str = line[5:].strip()
-                        if not data_str:
-                            continue
-                        try:
-                            chunk = json.loads(data_str)
-                            token = chunk.get("content", "")
-                            if token:
-                                full_content += token
-                                if callback:
-                                    callback(token)
-                            if chunk.get("stop"):
-                                break
-                        except json.JSONDecodeError:
-                            continue
+        # ADR-113: Retry с exponential backoff + partial recovery при обрыве стрима
+        max_retries = 3
+        backoff_delays = [1.0, 2.0, 2.0]
+        last_error = None
 
-        except urllib.error.URLError as e:
-            raise RuntimeError(
-                f"Не удалось подключиться к llama-server ({self.server_url}). "
-                "Убедитесь что llama-server запущен."
-            ) from e
+        for attempt in range(max_retries):
+            try:
+                with urllib.request.urlopen(req, timeout=settings.llama_cpp_timeout_sec) as resp:
+                    while True:
+                        line = resp.readline()
+                        if not line:
+                            break
+                        line = line.decode("utf-8").strip()
+                        if not line:
+                            continue
+                        if line.startswith("data:"):
+                            data_str = line[5:].strip()
+                            if not data_str:
+                                continue
+                            try:
+                                chunk = json.loads(data_str)
+                                token = chunk.get("content", "")
+                                if token:
+                                    full_content += token
+                                    if callback:
+                                        callback(token)
+                                if chunk.get("stop"):
+                                    break
+                            except json.JSONDecodeError:
+                                continue
+                # Успешное завершение стрима
+                break
+            except (urllib.error.URLError, ConnectionResetError, OSError, TimeoutError) as e:
+                last_error = e
+                # Partial recovery: если уже получили >20 символов — используем
+                if len(full_content) > 20:
+                    logger.warning(f"[LLM_RETRY] Stream broke after {len(full_content)} chars on attempt {attempt+1}. Using partial content.")
+                    break
+                if attempt < max_retries - 1:
+                    delay = backoff_delays[attempt]
+                    logger.warning(f"[LLM_RETRY] attempt {attempt+1}/{max_retries} failed: {type(e).__name__}: {e}. Retrying in {delay}s...")
+                    time.sleep(delay)
+                else:
+                    logger.error(f"[LLM_RETRY] all {max_retries} attempts failed. Last error: {type(e).__name__}: {e}")
+                    raise RuntimeError(
+                        f"Не удалось подключиться к llama-server ({self.server_url}) после {max_retries} попыток. "
+                        f"Последняя ошибка: {type(last_error).__name__}: {last_error}"
+                    ) from last_error
 
         return _strip_thinking(full_content)
 

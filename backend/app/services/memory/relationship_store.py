@@ -141,19 +141,19 @@ class RelationshipStore:
         source: str,
         target: str,
     ) -> Dict[str, float]:
-        """Возвращает отношение source→target как числовой словарь.
-        Используется Decision Hub для получения весов формулы score().
-        Если пара не существует — возвращает нули (нейтральные отношения).
-        """
         if not source or not target:
-            return {attr: 0.0 for attr in RELATIONSHIP_KEYS}
+            return {}
         data = self._load(campaign_id)
         key  = f"{source}→{target}"
-        raw  = data.get(key, {})
-        # Нормализация: хранится -100..100, DecisionHub ожидает -1.0..1.0.
-        # Saturation встроена через _clamp при записи — здесь только масштаб.
+        raw  = data.get(key)
+        
+        # ОНТОЛОГИЧЕСКОЕ ИСПРАВЛЕНИЕ: Нет записи = Нет знания (Vacuum).
+        # Мы больше не материализуем 0.0 из пустоты.
+        if raw is None:
+            return {}
+            
         return {
-            attr: round(float(raw.get(attr, 0.0)) / 100.0, 4)
-            for attr in RELATIONSHIP_KEYS
+            attr: round(float(val), 4)
+            for attr, val in raw.items() if attr in RELATIONSHIP_KEYS
         }
 

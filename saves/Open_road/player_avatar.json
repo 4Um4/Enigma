@@ -48,7 +48,7 @@
   },
   "state": {
     "npc_id": "Венус",
-    "stress": 0.0,
+    "stress": 100.0,
     "resentment": 0.0,
     "dependency": 0.0,
     "identity_integrity": 1.0,
@@ -61,13 +61,40 @@
     },
     "trauma_markers": [],
     "current_role": "",
-    "hp": 100,
+    "hp": 0,
     "max_hp": 100,
     "conditions": {},
     "wounds": [],
     "posture": "standing",
-    "emotion": "neutral",
+    "body_state": {
+      "current_hp": 46.60000000000003,
+      "pain": 51.580899999999986,
+      "fatigue": 63.16479999999999,
+      "blood_loss": 0.23239999999999994,
+      "consciousness": 0.0,
+      "shock_impulse": 0.7902000000000001,
+      "injuries": [],
+      "modifiers": {},
+      "statuses": [
+        "unconscious"
+      ],
+      "life_status": "ALIVE"
+    },
+    "emotion": "fearful",
     "emotion_delta": 0.0,
-    "state_modifiers": {}
+    "state_modifiers": {},
+    "affective_load": 0.0,
+    "perceptual_kernel": {
+      "threat_gradient": 0.0,
+      "trust_gradient": 0.0,
+      "uncertainty": 0.0,
+      "anomaly_score": 0.0,
+      "last_hostile_direction": null,
+      "dominant_emotion": null,
+      "aggression_inhibition": 0.0,
+      "initiative_suppression": 0.0,
+      "compliance_bias": 0.0,
+      "recent_directive": null
+    }
   }
 }

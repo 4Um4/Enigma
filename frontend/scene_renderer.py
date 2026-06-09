@@ -321,11 +321,16 @@ class SceneRenderer:
 
             # The Fool v2: Моторный рендер (тупой, без эмоций)
             if entity.is_frozen:
-                pass # Заморожен — микро-анимации idle будут пропущены
+                # ADR-141: Окаменелость — лёгкий визуальный замедлитель (пока без tint)
+                pass
             if entity.is_shaking:
-                _amp = int(entity.instability * 6)
+                _amp = int(entity.instability * 16)  # ADR-141: Радикальное усиление дрожи (было 6)
                 sx += random.randint(-_amp, _amp)
                 sy += random.randint(-_amp, _amp)
+            
+            # ADR-141: Stagger — пошатывание при боли/шоке (вертикальная просадка позы)
+            if entity.instability > 0.5:
+                sy += int(entity.instability * 4)  # Проседание корпуса вниз
 
             is_focused = entity.entity_id == focus_id
 

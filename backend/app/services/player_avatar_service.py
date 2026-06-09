@@ -27,6 +27,7 @@ from app.models.schemas import CharacterSheet
 from app.models.character import CharacterProfile
 from app.models.npc_state import (
     NPCState,
+    _pk_from_dict,
 )
 from app.models.physical import Condition, Wound
 from app.models.behavior_mask import BehaviorMaskState
@@ -221,10 +222,21 @@ class PlayerAvatarService:
             "conditions": conditions,
             "wounds": wounds,
             "posture": state.posture,
+            # ADR-128: body_state — SSOT физиологии (injuries, blood_loss, pain, shock_impulse).
+            # Без этого injuries теряются при save_state() — AvatarService сериализует
+            # wounds/conditions (legacy), но не body_state (runtime truth).
+            "body_state": state.body_state if state.body_state else {},
             # Эмоции
             "emotion": state.emotion.value if hasattr(state.emotion, "value") else str(state.emotion),
             "emotion_delta": state.emotion_delta,
             "state_modifiers": state.state_modifiers,
+            # ADR-128: Runtime-поля, теряющиеся без сериализации.
+            # Без affective_load/emotion/perceptual_kernel аватар
+            # сбрасывается в NEUTRAL при каждой загрузке.
+            "affective_load": state.affective_load,
+            "perceptual_kernel": {
+                k: v for k, v in state.perceptual_kernel.__dict__.items()
+            } if state.perceptual_kernel else {},
         }
 
     def _state_from_dict(self, data: dict) -> NPCState:
@@ -280,9 +292,18 @@ class PlayerAvatarService:
             conditions=conditions,
             wounds=wounds,
             posture=data.get("posture", "standing"),
+            # ADR-128: body_state — SSOT физиологии. Без этого injuries,
+            # blood_loss, pain, shock_impulse теряются при каждой загрузке.
+            body_state=dict(data.get("body_state", {})),
+            # ADR-128: affective_load — интеграл давления. Без этого
+            # эмоциональный pipeline сбрасывается в 0.0 при каждой загрузке.
+            affective_load=float(data.get("affective_load", 0.0)),
             emotion=data.get("emotion", "neutral"),
             emotion_delta=float(data.get("emotion_delta", 0.0)),
             state_modifiers=data.get("state_modifiers", {}),
+            # ADR-128: perceptual_kernel — субъективная модель восприятия.
+            # Без этого threat_gradient/initiative_suppression = 0.0 при каждой загрузке.
+            perceptual_kernel=_pk_from_dict(data.get("perceptual_kernel", {})),
         )
 
 

@@ -73,7 +73,7 @@ class SqlitePersistenceAdapter(PersistencePort):
         conn = self._get_conn()
         conn.execute(
             "INSERT OR REPLACE INTO state_kv (key, value, updated_at) VALUES (?, ?, ?)",
-            (key, json.dumps(value, ensure_ascii=False), datetime.now(timezone.utc).isoformat()),
+            (key, json.dumps(value, ensure_ascii=False, default=lambda o: list(o) if isinstance(o, set) else str(o)), datetime.now(timezone.utc).isoformat()),
         )
 
     def _select(self, key: str) -> Optional[dict]:

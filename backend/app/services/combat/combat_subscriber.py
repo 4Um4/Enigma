@@ -38,6 +38,7 @@ _COMBAT_EVENT_TYPES: list[EventType] = [
     EventType.PLAYER_ATTACKS,
     EventType.PLAYER_ATTACKED,
     EventType.COMBAT,
+    EventType.ACTOR_ATTACKS,  # ADR-O-112: Труба NPC агрессии
 ]
 
 # Дефолтные параметры воздействия (если payload неполный)
@@ -106,15 +107,28 @@ class CombatSubscriber:
 
         # Строим dict npc_id → npc_dict для быстрого доступа
         npc_by_id: dict[str, dict] = {}
+        _player_dict_for_snapshot = None  # P1: Для передачи в _make_player_snapshot
         for npc in ctx.all_npcs_raw:
             npc_id = npc.get("id") or npc.get("npc_id")
             if npc_id:
                 npc_by_id[npc_id] = npc
+                # Сохраняем player_dict для боевого снапшота (ADR-128, Rule 60)
+                if npc_id == "player":
+                    _player_dict_for_snapshot = npc
 
         deltas = []
         events_processed = 0
+        missed_targets = []  # Цели вне досягаемости — для DM
 
-        logger.debug(f"[COMBAT_SUB] npc_by_id keys={list(npc_by_id.keys())[:10]}")
+        # Максимальная дистанция рукопашной атаки (м) + запас на weapon_reach
+        _MAX_MELEE_RANGE = 3.0
+
+        # Извлекаем дистанции до NPC из scene_state для проверки досягаемости
+        _distances = {}
+        if ctx.shared_context and hasattr(ctx.shared_context, 'scene_state'):
+            _distances = ctx.shared_context.scene_state.get("player_distances", {})
+
+        logger.debug(f"[COMBAT_SUB] npc_by_id keys={list(npc_by_id.keys())[:10]} distances={bool(_distances)}")
 
         for event in events:
             intent = self._extract_impact_intent(event, npc_by_id)
@@ -124,20 +138,40 @@ class CombatSubscriber:
 
             logger.debug(f"[COMBAT_SUB] intent OK: actor={intent.actor_id} target={intent.target_id} force={intent.force:.1f}")
 
+            # Range gate: атака не достигает цели если та слишком далеко
+            # Проверяем только для атак игрока (actor_id == "player")
+            if intent.actor_id == "player" and _distances:
+                _dist_to_target = _distances.get(intent.target_id, 0.0)
+                _effective_range = _MAX_MELEE_RANGE + intent.weapon_reach
+                if _dist_to_target > _effective_range:
+                    logger.info(
+                        f"[COMBAT_SUB] {intent.target_id} is {_dist_to_target:.1f}m away — "
+                        f"out of melee range ({_effective_range:.1f}m). Attack misses."
+                    )
+                    missed_targets.append({"npc_id": intent.target_id, "distance": round(_dist_to_target, 1), "max_range": round(_effective_range, 1)})
+                    events_processed += 1
+                    continue
+
             # Получаем снапшоты атакующего и защищающегося
             attacker_snapshot = self._build_snapshot(intent.actor_id, npc_by_id)
             defender_snapshot = self._build_snapshot(intent.target_id, npc_by_id)
 
             if defender_snapshot is None:
-                # Нет цели — нет воздействия (но атакующий устаёт)
-                logger.debug(
-                    f"[COMBAT_SUB] target {intent.target_id} not found in npc_by_id, skip"
-                )
-                continue
+                # ADR-O-112: Игрок может быть целью. Строим снапшот защиты.
+                # P1 FIX: Передаём player_dict с живым body_state (Rule 60)
+                if intent.target_id == "player":
+                    defender_snapshot = self._make_player_snapshot(_player_dict_for_snapshot)
+                else:
+                    # Нет цели — нет воздействия (но атакующий устаёт)
+                    logger.debug(
+                        f"[COMBAT_SUB] target {intent.target_id} not found in npc_by_id, skip"
+                    )
+                    continue
 
-            # Если атакующий не найден (игрок), используем идеальный снапшот
+            # Если атакующий не найден (игрок), строим снапшот из живого body_state
+            # P1 FIX: Передаём player_dict с живым body_state (Rule 60)
             if attacker_snapshot is None:
-                attacker_snapshot = self._make_player_snapshot()
+                attacker_snapshot = self._make_player_snapshot(_player_dict_for_snapshot)
 
             # Вызов физического интегратора (Pure Function)
             impact_deltas = resolve_physical_impact(
@@ -151,11 +185,14 @@ class CombatSubscriber:
             deltas.extend(impact_deltas)
             events_processed += 1
 
-        logger.debug(f"[COMBAT_SUB_RESULT] events_in={len(events)} processed={events_processed} deltas={len(deltas)}")
-        return Phase8Result(
+        logger.debug(f"[COMBAT_SUB_RESULT] events_in={len(events)} processed={events_processed} deltas={len(deltas)} missed={len(missed_targets)}")
+        result = Phase8Result(
             deltas=deltas,
             events_processed=events_processed,
         )
+        # Добавляем промахи как атрибут — tick_orchestrator прочитает для DM
+        result.missed_targets = missed_targets  # type: ignore[attr-defined]
+        return result
 
     def _extract_impact_intent(
         self, event, npc_by_id: dict[str, dict]
@@ -272,13 +309,33 @@ class CombatSubscriber:
         )
 
     @staticmethod
-    def _make_player_snapshot() -> dict:
-        """Идеальный снапшот игрока (не NPC, нет в all_npcs_raw).
-
-        Мастер Тай: игрок — это источник давления, а не его жертва.
-        Его тело не моделируется, но его способности влияют на Contact Resolution.
+    def _make_player_snapshot(player_dict: Optional[dict] = None) -> dict:
+        """Снапшот игрока для Combat Resolution (ADR-O-112, ADR-128).
+        
+        P1 FIX: Если player_dict доступен из all_npcs_raw — читаем живой body_state.
+        Без этого тяжело раненый игрок трактуется как полностью боеспособный (Rule 60).
+        Fallback на дефолты — только если player_dict отсутствует (крайний случай).
         """
         from app.models.idle_tick import NPCStateSnapshot
+
+        # Извлекаем body_state из player_dict, если он есть в all_npcs_raw
+        _body = player_dict.get("body_state", {}) if player_dict else {}
+        _body_profile = player_dict.get("body_profile", {}) if player_dict else {}
+        
+        _max_hp = float(_body_profile.get("max_hp", 100.0))
+        _current_hp = float(_body.get("current_hp", _max_hp))
+        _base_abilities = _body_profile.get("abilities", {"strength": 15.0, "dexterity": 12.0})
+        _modifiers = _body.get("modifiers", {})
+        _statuses = _body.get("statuses", [])
+        
+        # Injuries grouped by zone (как в _build_snapshot для NPC)
+        _raw_injuries = _body.get("injuries", [])
+        injuries_by_zone: dict[str, list] = {}
+        for inj in _raw_injuries:
+            zone = inj.get("target_zone", "unknown")
+            if zone not in injuries_by_zone:
+                injuries_by_zone[zone] = []
+            injuries_by_zone[zone].append(inj)
 
         return NPCStateSnapshot(
             npc_id="player",
@@ -286,15 +343,16 @@ class CombatSubscriber:
             relationship_cache={},
             base_values={},
             faction_affiliations=[],
-            hp=100.0,
-            max_hp=100.0,
-            pain=0.0,
-            fatigue=0.0,
-            blood_loss=0.0,
-            consciousness=1.0,
-            shock_impulse=0.0,
-            injuries_by_zone={},
-            base_abilities={"strength": 15.0, "dexterity": 12.0},
-            modifiers={},
-            statuses=[],
+            hp=_current_hp,
+            max_hp=_max_hp,
+            pain=float(_body.get("pain", 0.0)),
+            fatigue=float(_body.get("fatigue", 0.0)),
+            blood_loss=float(_body.get("blood_loss", 0.0)),
+            consciousness=float(_body.get("consciousness", 1.0)),
+            shock_impulse=float(_body.get("shock_impulse", 0.0)),
+            life_status=_body.get("life_status", "ALIVE"),
+            injuries_by_zone=injuries_by_zone,
+            base_abilities=_base_abilities,
+            modifiers=_modifiers,
+            statuses=_statuses,
         )

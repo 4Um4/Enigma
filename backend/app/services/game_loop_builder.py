@@ -36,6 +36,12 @@ def build_game_loop(data_dir: Path) -> GameLoop:
     layered_memory = LayeredMemory(store)
     memory_manager = MemoryManager(layered_memory, data_dir=str(data_dir))
     persistence    = SqlitePersistenceAdapter(saves_dir / "enigma_runtime.db")
+
+    # ADR-128: Инжекция PersistencePort в LifeEngine для read-back
+    # при cache miss. Без этого injuries теряются после TTL/LRU eviction.
+    from app.services.npc.life_engine import get_life_engine
+    get_life_engine().set_persistence(persistence)
+
     scene_manager  = SceneStateManager(data_dir, persistence=persistence, saves_dir=saves_dir)
     char_service   = CharacterService(root=str(saves_dir))
     avatar_service = PlayerAvatarService(root=str(saves_dir))

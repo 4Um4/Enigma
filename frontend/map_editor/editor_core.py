@@ -97,6 +97,8 @@ class EditorCore:
         # Состояние
         self.mode = MODE_WORLD
         self.current_file: Optional[str] = None
+        self._dragging_location: Optional[str] = None
+        self._drag_offset = (0, 0)
         self.tool = None  # None = режим покоя (выделение)
         self.selected_object: Optional[Tuple[str, Any]] = None
         
@@ -323,20 +325,22 @@ class EditorCore:
         """Показывает выпадающее меню File"""
         items = [
             {"label": "Новая кампания...", "action": self._dialog_create_campaign},
-            {"label": "Открыть кампанию...", "action": self._dialog_open_campaign},
-            {"label": "Открыть папку...", "action": self._dialog_open_folder},
-            {"label": "Открыть файл...", "action": self._dialog_open_file},
+            {"label": "Открыть кампанию...", "action": self._dialog_open_folder},
+            {"type": "separator"},
             {"label": "Закрыть кампанию", "action": self._close_campaign,
              "disabled": not self.cm.is_open},
             {"type": "separator"},
             {"label": "Новая локация...", "action": self._dialog_new_location,
              "disabled": not self.cm.is_open},
+            {"label": "Удалить локацию...", "action": self._dialog_delete_location,
+             "disabled": not self.cm.is_open or not self.current_file},
+            {"type": "separator"},
+            {"label": "Сохранить всё", "action": self._save_campaign,
+             "shortcut": "Ctrl+Shift+S", "disabled": not self.cm.is_open},
             {"label": "Сохранить", "action": self._quick_save,
              "shortcut": "Ctrl+S", "disabled": not self.current_file},
             {"label": "Сохранить как...", "action": self._dialog_save_as,
              "disabled": not self.current_file},
-            {"label": "Сохранить всё", "action": self._save_all,
-             "disabled": not self.cm.is_open},
             {"type": "separator"},
             {"label": "Экспорт в ZIP...", "action": self._dialog_export_zip,
              "disabled": not self.cm.is_open},
@@ -378,7 +382,16 @@ class EditorCore:
         fields = [{"key": "choice", "label": "Кампания", "value": options[0], "type": "choice",
                     "options": options}]
         def on_confirm(inputs):
-            idx = options.index(inputs["choice"])
+            choice = inputs["choice"]
+            # Безопасный поиск: точное совпадение или по началу строки
+            idx = -1
+            for i, opt in enumerate(options):
+                if opt == choice or opt.startswith(choice):
+                    idx = i
+                    break
+            if idx < 0:
+                self._show_toast(f"Кампания не найдена: {choice}")
+                return
             ok, err = self.cm.open_campaign(folders[idx])
             if ok:
                 self.current_file = None
@@ -493,6 +506,35 @@ class EditorCore:
             except ValueError:
                 self._show_toast("Ошибка: неверный формат размеров")
         self.dialog = ModalDialog(self.screen, "Новая локация", fields, on_confirm)
+
+    def _save_campaign(self):
+        """Сохраняет ВСЕ локации текущей кампании"""
+        if not self.cm.is_open:
+            self._show_toast("Нет открытой кампании")
+            return
+        count = self.cm.save_all_locations()
+        self._show_toast(f"Кампания сохранена ({count} локаций)")
+
+    def _dialog_delete_location(self):
+        """Диалог удаления текущей локации из кампании"""
+        if not self.current_file or not self.cm.is_open:
+            return
+        loc_name = self.dm.locations[self.current_file].get("label", self.current_file)
+        fields = [{"key": "confirm", "label": f"Удалить '{loc_name}'? (да/нет)", "value": "нет", "type": "choice",
+                    "options": ["нет", "да"]}]
+        def on_confirm(inputs):
+            if inputs["confirm"] == "да":
+                # Удаляем файл с диска
+                loc_path = self.cm.campaign_path / "locations" / self.current_file
+                if loc_path.exists():
+                    loc_path.unlink()
+                # Удаляем из памяти
+                if self.current_file in self.dm.locations:
+                    del self.dm.locations[self.current_file]
+                self.current_file = None
+                self.mode = MODE_WORLD
+                self._show_toast(f"Локация удалена: {loc_name}")
+        self.dialog = ModalDialog(self.screen, "Удаление локации", fields, on_confirm)
 
     def _quick_save(self):
         """Быстрое сохранение текущей локации"""
@@ -1054,13 +1096,27 @@ class EditorCore:
         mx, my = pygame.mouse.get_pos()
         
         if event.type == pygame.MOUSEBUTTONDOWN:
-            if event.button == 1:  # ЛКМ - выбор локации
-                for fname, data in self.dm.locations.items():
-                    rect = self._get_location_screen_rect(fname)
-                    if rect and rect.collidepoint(mx, my):
-                        self.current_file = fname
-                        self._toggle_mode()
-                        return
+            if event.button == 1:
+                mods = pygame.key.get_mods()
+                # Shift+ЛКМ — перетаскивание локации (смещение origin)
+                if mods & pygame.KMOD_SHIFT:
+                    for fname, data in self.dm.locations.items():
+                        rect = self._get_location_screen_rect(fname)
+                        if rect and rect.collidepoint(mx, my):
+                            self._dragging_location = fname
+                            self._drag_offset = (
+                                mx - rect.x,
+                                my - rect.y
+                            )
+                            return
+                else:
+                    # ЛКМ — выбор локации и переход в режим редактирования
+                    for fname, data in self.dm.locations.items():
+                        rect = self._get_location_screen_rect(fname)
+                        if rect and rect.collidepoint(mx, my):
+                            self.current_file = fname
+                            self._toggle_mode()
+                            return
                         
             elif event.button == 2:
                 # Колёсико — перемещение камеры
@@ -1069,11 +1125,23 @@ class EditorCore:
         elif event.type == pygame.MOUSEBUTTONUP:
             if event.button == 2:
                 self.dragging_camera = False
+            if event.button == 1 and hasattr(self, '_dragging_location') and self._dragging_location:
+                self._dragging_location = None
                 
         elif event.type == pygame.MOUSEMOTION:
             if self.dragging_camera:
                 self.camera_x += event.rel[0]
                 self.camera_y += event.rel[1]
+            elif hasattr(self, '_dragging_location') and self._dragging_location:
+                # Перетаскивание локации — обновляем origin
+                fname = self._dragging_location
+                data = self.dm.locations.get(fname)
+                if data:
+                    new_sx = mx - self._drag_offset[0]
+                    new_sy = my - self._drag_offset[1]
+                    # Конвертируем экранные координаты обратно в мировые
+                    data["origin"]["x"] = (new_sx - self.camera_x) / (SCALE * self.zoom)
+                    data["origin"]["y"] = (new_sy - self.camera_y) / (SCALE * self.zoom)
 
 
     def _handle_local_event(self, event: pygame.event.Event):
@@ -1242,8 +1310,10 @@ class EditorCore:
             self.room_start = (gx, gy)
             
         elif self.tool == TOOL_OBJECT:
-            # Запрещаем ставить объекты вне комнат
-            if not self._is_point_in_any_room(wx, wy):
+            # Для уличных локаций разрешаем объекты вне комнат
+            loc_data = self.dm.locations.get(self.current_file, {})
+            is_outdoor = loc_data.get("is_outdoor", False)
+            if not is_outdoor and not self._is_point_in_any_room(wx, wy):
                 self._show_toast("Объекты можно размещать только внутри комнат")
                 return
             # Создаём объект
@@ -1284,8 +1354,10 @@ class EditorCore:
                 self._show_toast("Нет стены рядом — кликните ближе к стене")
             
         elif self.tool == TOOL_LABEL:
-            # Запрещаем ставить надписи вне комнат
-            if not self._is_point_in_any_room(wx, wy):
+            # Для уличных локаций разрешаем надписи вне комнат
+            loc_data = self.dm.locations.get(self.current_file, {})
+            is_outdoor = loc_data.get("is_outdoor", False)
+            if not is_outdoor and not self._is_point_in_any_room(wx, wy):
                 self._show_toast("Надписи можно размещать только внутри комнат")
                 return
             # Создаём надпись — сначала спрашиваем текст
@@ -1302,8 +1374,10 @@ class EditorCore:
             self.dialog = ModalDialog(self.screen, "Новая надпись", fields, on_confirm)
             
         elif self.tool == TOOL_NPC:
-            # Запрещаем ставить NPC вне комнат
-            if not self._is_point_in_any_room(wx, wy):
+            # Для уличных локаций разрешаем NPC вне комнат
+            loc_data = self.dm.locations.get(self.current_file, {})
+            is_outdoor = loc_data.get("is_outdoor", False)
+            if not is_outdoor and not self._is_point_in_any_room(wx, wy):
                 self._show_toast("NPC можно размещать только внутри комнат")
                 return
             if not self.selected_npc_id:

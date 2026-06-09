@@ -155,14 +155,23 @@ class MemoryManager:
         if _contract_tag_pending in CONTRACT_TAGS:
             decay_rate *= 0.4
 
-        # 4. Генерация тегов из event.type + emotion_tag (Этап 5 prep)
-        _tags: list[str] = [event.type]
+        # 4. Генерация тегов: механика + семантика + эмоция
+        _tags: list[str] = [event.type]  # механический тип сохраняем для совместимости
         if emotion_tag in ("angry", "fearful", "disgusted"):
             _tags.append("negative")
         elif emotion_tag in ("grateful", "happy"):
             _tags.append("positive")
         else:
             _tags.append("neutral")
+
+        # R8: EventSemanticTagger — социальный смысл события (изолирован от downstream)
+        from app.services.memory.event_semantic_tagger import EventSemanticTagger
+        _semantic_tags = EventSemanticTagger().tag(
+            event_type=event.type,
+            actor_id=event.source or "",
+            intensity=getattr(event, "intensity", 1.0),
+        )
+        _tags.extend(_semantic_tags)
 
         # 4b. Этап 6: тег контракта — обязательства забываются медленнее
         contract_tag = payload.get("contract_tag", "")
@@ -185,6 +194,7 @@ class MemoryManager:
             npc_id=npc_id,
             tags=tuple(_tags),
             is_secret=payload.get("is_secret", False),
+            actor_id=event.source or "",
             known_by=tuple(payload.get("known_by", ())),
             hidden_from=tuple(payload.get("hidden_from", ())),
             fulfilled=payload.get("fulfilled", False),
@@ -614,10 +624,11 @@ class MemoryManager:
                 # EventMemory — учитываем все события этого NPC
                 recent_pressure += e.importance
 
+        # Нормализация 0-100 → 0-1 для DecisionHub
         return {
-            "trust": rel.get("trust", 0.0),
-            "fear": rel.get("fear", 0.0),
-            "debt": rel.get("debt", 0.0),
+            "trust": rel.get("trust", 0.0) / 100.0,
+            "fear": rel.get("fear", 0.0) / 100.0,
+            "debt": rel.get("debt", 0.0) / 100.0,
             "recent_pressure": min(recent_pressure, 100.0),
         }
 
@@ -650,6 +661,36 @@ class MemoryManager:
         return all_weights
 
 
+    def assess_beliefs(
+        self,
+        campaign_id:  str,
+        npc_id:       str,
+        current_tick: int,
+    ) -> List[Tuple["BeliefType", "BeliefFragment"]]:
+        """
+        R8: Оценить убеждения NPC из накопленных воспоминаний.
+        Вызывается независимо от decay — разная частота.
+        """
+        from app.services.memory.evidence_mapper import SemanticTagEvidenceMapper
+        from app.services.memory.belief_aggregator import CoherenceBeliefAggregator
+        from app.models.npc_state import EventMemory
+
+        key = f"{campaign_id}:{npc_id}"
+        memories = self._working.get(key) or []
+
+        mapper = SemanticTagEvidenceMapper()
+        all_evidence = []
+        for mem in memories:
+            if isinstance(mem, EventMemory):
+                all_evidence.extend(mapper.extract(mem))
+
+        if not all_evidence:
+            return []
+
+        aggregator = CoherenceBeliefAggregator()
+        return aggregator.assess(all_evidence, current_tick)
+
+
     def detect_resonance(
         self,
         campaign_id: str,
@@ -672,20 +713,20 @@ class MemoryManager:
 
 
     def apply_identity_weights(
-            self,
-            campaign_id: str,
-            npc_id:      str,
-            weights:     List[Tuple[str, float]],
-        ) -> None:
-            """
-            Применяет trait-дельты из ResonanceEngine в identity_cache.
-            WRITE: только этот метод пишет в _identity_cache.
-            """
-            key = f"{campaign_id}:{npc_id}"
-            cache = self._identity_cache.setdefault(key, {})
-            for trait, delta in weights:
-                current = cache.get(trait, 0.0)
-                cache[trait] = round(max(0.0, min(1.0, current + delta)), 4)
+        self,
+        campaign_id: str,
+        npc_id:      str,
+        weights:     List[Tuple[str, float]],
+    ) -> None:
+        """
+        Применяет trait-дельты из ResonanceEngine в identity_cache.
+        WRITE: только этот метод пишет в _identity_cache.
+        """
+        key = f"{campaign_id}:{npc_id}"
+        cache = self._identity_cache.setdefault(key, {})
+        for trait, delta in weights:
+            current = cache.get(trait, 0.0)
+            cache[trait] = round(max(0.0, min(1.0, current + delta)), 4)
                 
 
     def get_identity_traits(

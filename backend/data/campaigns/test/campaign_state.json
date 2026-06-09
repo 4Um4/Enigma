@@ -53,7 +53,7 @@
     "active_traversals": {
       "maid_lusya": {
         "npc_id": "maid_lusya",
-        "from_node": "bar_area",
+        "from_node": "main_hall",
         "target_node": "bar_area",
         "path_waypoints": [
           [

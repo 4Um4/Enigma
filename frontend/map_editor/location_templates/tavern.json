@@ -1180,7 +1180,7 @@
     }
   ],
   "created_at": "2024-01-15T10:30:00",
-  "modified_at": "2026-04-17T17:27:25.000002",
+  "modified_at": "2026-06-09T01:22:35.158303",
   "origin": {
     "x": 0,
     "y": 0
@@ -1242,5 +1242,6 @@
     "z": 0
   },
   "global_coords": true,
-  "labels": []
+  "labels": [],
+  "location_id": "tavern"
 }

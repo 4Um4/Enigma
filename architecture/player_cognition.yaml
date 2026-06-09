@@ -1,0 +1,169 @@
+domain: PLAYER_COGNITION
+description: "Когнитивный фильтр игрока: восприятие искажается усталостью, страхом, расстоянием. Игрок не видит всю правду."
+
+nodes:
+  PlayerCognitionPipeline:
+    type: service
+    layer: Application
+    label: "Player Cognition Pipeline"
+    description: "Собирает воспринятую сцену: perception → spatial → recognition → attention → memory → uncertainty → distortion → interpretation."
+    code_ref: "player_cognition/pipeline.py"
+  PerceptionLayer:
+    type: service
+    layer: Domain
+    label: "Perception Layer"
+    description: "Видимость/слышимость: light_level, is_visible, is_audible. Фильтрует сущности по физическим условиям."
+    code_ref: "player_cognition/perception_layer.py"
+  SpatialLayer:
+    type: service
+    layer: Domain
+    label: "Spatial Layer"
+    description: "compute_distance_and_los + extract_spatial_data. Расстояние и линия видимости."
+    code_ref: "player_cognition/spatial_layer.py"
+  RecognitionLayer:
+    type: service
+    layer: Domain
+    label: "Recognition Layer"
+    description: "Узнавание NPC: EncounterHistory, confidence, display_name. Незнакомец = 'высокая фигура в плаще'."
+    code_ref: "player_cognition/recognition_layer.py"
+  AttentionLayer:
+    type: service
+    layer: Domain
+    label: "Attention Layer"
+    description: "_base_attention_score → stochastic_roll. Не всё замечается. Усталость снижает внимание."
+    code_ref: "player_cognition/attention_layer.py"
+  MemoryLayer:
+    type: service
+    layer: Domain
+    label: "Memory Layer"
+    description: "PlayerMemory: tier (IMMEDIATE/SHORT/LONG), update_from_perception. Что помнит игрок."
+    code_ref: "player_cognition/memory_layer.py"
+  UncertaintyLayer:
+    type: service
+    layer: Domain
+    label: "Uncertainty Layer"
+    description: "distortion_penalty → неуверенность восприятия. Дальше = больше шума."
+    code_ref: "player_cognition/uncertainty_layer.py"
+  CognitiveDistortion:
+    type: service
+    layer: Domain
+    label: "Cognitive Distortion"
+    description: "_compute_bias: усталость, стресс, страх → bias на восприятие. Игрок видит искажённую реальность."
+    code_ref: "player_cognition/cognitive_distortion.py"
+  InterpretationLayer:
+    type: service
+    layer: Domain
+    label: "Interpretation Layer"
+    description: "tier1 (entity facts) + tier2 (inferences from distortions). Что игрок думает о увиденном."
+    code_ref: "player_cognition/interpretation_layer.py"
+  PerceivedScene:
+    type: dto
+    layer: Domain
+    label: "Perceived Scene"
+    description: "Финальный DTO: PerceivedEnvironment + body_state + inferences. То, что игрок реально 'видит'."
+    code_ref: "player_cognition/types.py"
+
+edges:
+  - from: PerceptionLayer
+    to: SpatialLayer
+    label: "visible/audible entities → distance + LOS"
+    condition: "Only perceived entities get spatial data"
+    code_ref: "player_cognition/perception_layer.py"
+  - from: SpatialLayer
+    to: RecognitionLayer
+    label: "spatial data → recognition confidence"
+    condition: "Distance affects recognition confidence"
+    code_ref: "player_cognition/spatial_layer.py"
+  - from: RecognitionLayer
+    to: AttentionLayer
+    label: "recognized entities → attention filter"
+    condition: "Known entities get higher attention score"
+    code_ref: "player_cognition/recognition_layer.py"
+  - from: AttentionLayer
+    to: MemoryLayer
+    label: "attended entities → memory update"
+    condition: "Only attended entities enter memory"
+    code_ref: "player_cognition/attention_layer.py"
+  - from: MemoryLayer
+    to: UncertaintyLayer
+    label: "memory tier → uncertainty bonus"
+    condition: "Known entities = less uncertainty"
+    code_ref: "player_cognition/memory_layer.py"
+  - from: UncertaintyLayer
+    to: CognitiveDistortion
+    label: "uncertain entities → distortion input"
+    condition: "High uncertainty + stress = more distortion"
+    code_ref: "player_cognition/uncertainty_layer.py"
+  - from: CognitiveDistortion
+    to: InterpretationLayer
+    label: "biased perception → inference"
+    condition: "Distorted inputs produce wrong inferences"
+    code_ref: "player_cognition/cognitive_distortion.py"
+  - from: InterpretationLayer
+    to: PerceivedScene
+    label: "inferences → final scene"
+    condition: "All layers contribute to PerceivedScene"
+    code_ref: "player_cognition/interpretation_layer.py"
+  - from: PlayerCognitionPipeline
+    to: WorldSnapshotBuilder
+    label: "PerceivedScene → snapshot enrichment"
+    condition: "Pipeline output feeds into WorldSnapshotDTO"
+    code_ref: "player_cognition/pipeline.py"
+
+constraints:
+  - source: CognitiveDistortion
+    target: ObjectiveReality
+    rule: "REQUIRED: Player MUST NOT see objective reality directly"
+    condition: "All perception goes through distortion pipeline. Fatigue, fear, distance = information loss."
+    severity: HIGH
+  - source: RecognitionLayer
+    target: NPCName
+    rule: "REQUIRED: Unknown NPC MUST have generic description"
+    condition: "First encounter = no name. 'Высокая фигура', not 'Тень'. Name revealed through interaction."
+    severity: MEDIUM
+
+ownership:
+  PlayerMemory:
+    owner: "MemoryLayer"
+    creates: "MemoryLayer (per session)"
+    modifies: "update_from_perception, new_turn"
+    reads: "RecognitionLayer (encounter history)"
+    constraint: "Per-player. Not shared with NPCs. Decays over time."
+  PerceivedScene:
+    owner: "PlayerCognitionPipeline"
+    creates: "build_perceived_scene()"
+    modifies: "N/A (immutable per tick)"
+    reads: "WorldSnapshotBuilder, API routes"
+    constraint: "Projection only. Must not feed back into NPC simulation."
+
+sequences:
+  - title: "Player Cognition Pipeline"
+    participants: [SceneState, PerceptionLayer, SpatialLayer, RecognitionLayer, AttentionLayer, MemoryLayer, UncertaintyLayer, CognitiveDistortion, InterpretationLayer]
+    steps:
+      - from: SceneState
+        to: PerceptionLayer
+        message: "1. Raw scene state"
+      - from: PerceptionLayer
+        to: SpatialLayer
+        message: "2. Visible/audible entities"
+      - from: SpatialLayer
+        to: RecognitionLayer
+        message: "3. Distance + LOS data"
+      - from: RecognitionLayer
+        to: AttentionLayer
+        message: "4. Recognition confidence"
+      - from: AttentionLayer
+        to: MemoryLayer
+        message: "5. Attended entities"
+      - from: MemoryLayer
+        to: UncertaintyLayer
+        message: "6. Memory tier per entity"
+      - from: UncertaintyLayer
+        to: CognitiveDistortion
+        message: "7. Uncertainty scores"
+      - from: CognitiveDistortion
+        to: InterpretationLayer
+        message: "8. Biased perception"
+      - from: InterpretationLayer
+        to: PerceivedScene
+        message: "9. Final: PerceivedScene"

@@ -42,10 +42,32 @@ class BeliefType(str, Enum):
 
 class BeliefState:
     """
-    Убеждения NPC — тупой контейнер.
+    Убеждения NPC — контейнер.
 
-    Никакой логики решений внутри.
-    Логика: BeliefModifierResolver (следующий шаг).
+    # =========================================================================
+    # BELIEF ARCHITECTURE WARNING (R8 checkpoint)
+    #
+    # Система содержит ДВА независимых writer'а:
+    #
+    #   1. BeliefTransitionEngine (R7) — реактивные episodic обновления
+    #   2. CoherenceBeliefAggregator (R8) — pattern-derived semantic обновления
+    #
+    # Это НЕ одна и та же эпистемическая операция.
+    # Сейчас: последний writer побеждает.
+    #
+    # Правильная архитектура (пока не реализована):
+    #
+    #   Observations → ObservationLayer → BeliefProjector → BeliefState
+    #
+    # Убеждение должно рождаться из вывода (inference),
+    # а не из усреднения значений (weighted interpolation).
+    #
+    # НЕ вводить взвешенный merger здесь
+    # без предварительного определения эпистемической семантики.
+    #
+    # Статус: осознанный компромисс (R8).
+    # Пересмотреть после стабилизации SceneState ownership и CDS.
+    # =========================================================================
     """
 
     def __init__(self) -> None:

@@ -79,6 +79,7 @@ def resolve_player_intent(
         _compressor = IntentCompressor(llm_client=None)
         logger.debug(f"[PIPELINE][INPUT] raw_action={raw_action!r}")
         semantic_field = _compressor._fast_path_parse(raw_action)
+        logger.debug(f"[ARCHAE-FASTPATH] raw={raw_action!r} result={semantic_field.action_type if semantic_field else 'None'} target_ref={semantic_field.target_reference if semantic_field else 'N/A'}")
         logger.debug(f"[PIPELINE][INPUT] result={semantic_field}")
         if semantic_field:
             logger.warning(f"[LAYER1] Fast path success: action={semantic_field.action_type}, target_ref={semantic_field.target_reference}")
@@ -87,6 +88,7 @@ def resolve_player_intent(
 
     if semantic_field is None:
         # Fallback: если словарь не распознал действие, используем базовый UNCERTAIN профиль
+        logger.debug(f"[ARCHAE-FASTPATH-FALLBACK] raw={raw_action!r} → UNCERTAIN (fast_path returned None)")
         semantic_field = IntentSemanticField(raw_text=raw_action, action_type=ActionType.UNCERTAIN)
     
     # 2. Слой 2: Разрешение цели (Строка -> ID)

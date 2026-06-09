@@ -21,7 +21,7 @@ def test_fearful_npc_submits(subscriber):
         'payload': {"semantic_action": "MOVE", "target_id": "npc_1", "social_pressure": 0.8},
         'source': 'player'
     })()
-    npc_states = [{"npc_id": "npc_1", "social_stats": {"fear_of_player": 0.8, "trust": 10}}]
+    npc_states = [{"npc_id": "npc_1", "social_stats": {"fear_of_player": 0.8, "trust": 0.0}, "body_state": {"disabled": False, "shock_impulse": 0.0}}] # Высокий страх + валидное тело
     
     deltas = subscriber.handle(event, npc_states)
     identity_delta = next((d for d in deltas if d.domain == DeltaDomain.IDENTITY), None)
@@ -41,7 +41,7 @@ def test_brave_npc_gets_annoyed(subscriber):
         'payload': {"semantic_action": "MOVE", "target_id": "npc_2", "social_pressure": 0.8},
         'source': 'player'
     })()
-    npc_states = [{"npc_id": "npc_2", "social_stats": {"fear_of_player": 0.05, "trust": 5}}] # Низкий страх, низкое доверие
+    npc_states = [{"npc_id": "npc_2", "social_stats": {"fear_of_player": 0.05, "trust": 5}, "body_state": {"disabled": False, "shock_impulse": 0.0}}] # Низкий страх + валидное тело
     
     deltas = subscriber.handle(event, npc_states)
     identity_delta = next((d for d in deltas if d.domain == DeltaDomain.IDENTITY), None)

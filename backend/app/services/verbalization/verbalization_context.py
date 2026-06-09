@@ -60,6 +60,11 @@ class VerbalizationContext:
     # Физические ограничения — для ResponseValidator
     can_speak: bool = True
     can_move: bool = True
+    # Инвариант 2: Обязательная проекция намерения
+    # is_moving=True означает что MovementEngine создал TraversalState
+    # LLM может описывать локомоцию ТОЛЬКО если is_moving=True
+    is_moving: bool = False
+    movement_intent: str = ""  # APPROACH, FLEE, RETREAT и т.д.
 
     # Гендер — для правильных окончаний в речи NPC
     gender: str = "male"

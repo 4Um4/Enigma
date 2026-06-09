@@ -58,11 +58,13 @@ class LegacyStateDeltaAdapter:
                 collapsed.trust_delta += d.payload.trust_delta
                 collapsed.fear_delta += d.payload.fear_delta
             elif d.domain == DeltaDomain.PERCEPTION and isinstance(d.payload, PerceptionPayload):
-                # ADR-O: Perception больше не конвертируется напрямую в Emotion (процедурный коллапс убит).
-                # Теперь это делает Affective Pipeline (Perception -> AffectivePressure -> EmotionPayload).
-                # В v1 пробрасываем только остаточную неопределенность как фоновый стресс, 
-                # чтобы не терять сигнал полностью, если EmotionPayload не был сгенерирован.
-                collapsed.stress_delta += d.payload.uncertainty_delta * 5.0  # Мультипликатор для усиления эффекта неопределенности в отсутствии полноценного EmotionPayload
+                # S72 / §ENIGMA-004: УБИТ глобальный коллапс Vacuum → stress.
+                # Неопределённость теперь обрабатывается персонально через Affective Pipeline:
+                #   PerceptionPayload.uncertainty_delta → PK.uncertainty → affective_load (× drives weight)
+                #     → EmotionPayload.stress_delta
+                # Конвертация uncertainty → stress_delta в обход личности = нарушение
+                # Закона Эпистемического Демпфирования (Vacuum — транзиентный, не глобальный).
+                pass  # PERCEPTION domain: PK обновляется через StateApplicator напрямую
             else:
                 # Физиология, Идентичность, Репутация — теряются при коллапсе в v1
                 domain_name = d.domain.value if d.domain else "UNKNOWN"

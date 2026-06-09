@@ -151,7 +151,12 @@ class GameLoopBridge:
         # ДО этого вызова, поэтому get_scene_state() вернёт актуальные координаты.
         if self._ready and self._loop is not None:
             try:
-                _scene = self._loop.scene_manager.get_scene_state(campaign_id, location)
+                # ADR-SCENE-LOCK: Используем закэшированный scene_state вместо rehydrate.
+                # get_scene_state() создаёт НОВЫЙ dict из persistence → traversals теряются.
+                # ADR-SCENE-LOCK: Используем закэшированный scene_state вместо rehydrate.
+                # get_scene_state() создаёт НОВЫЙ dict из persistence → traversals теряются.
+                _mgr = self._loop.scene_manager
+                _scene = _mgr._tick_scene if (_mgr._tick_locked and _mgr._tick_scene is not None) else _mgr.get_scene_state(campaign_id, location)
                 if _scene and "npc_positions" in _scene:
                     import copy
                     result.npc_positions = copy.deepcopy(_scene["npc_positions"])
@@ -162,6 +167,12 @@ class GameLoopBridge:
                     # ADR-019: Без active_traversals фронтенд не может интерполировать движение
                     if "active_traversals" in _scene:
                         result.world_snapshot["active_traversals"] = copy.deepcopy(_scene["active_traversals"])
+                    # ADR-019 FIX: Без tick фронтенд не может вычислить progress → NPC стоят.
+                    # Tick — временной authority для traversal интерполяции.
+                    if "tick" in _scene:
+                        result.world_snapshot["tick"] = _scene["tick"]
+                    if "game_time_seconds" in _scene:
+                        result.world_snapshot["game_time_seconds"] = _scene["game_time_seconds"]
                     logger.debug(f"[PIPELINE][MOVEMENT] traversals_in_scene={'active_traversals' in _scene} count={len(_scene.get('active_traversals', {}))} npcs_with_traversal={list(_scene.get('active_traversals', {}).keys())}")
             except Exception as _ws_err:
                 # Non-critical — позиции обновятся на следующем idle_tick

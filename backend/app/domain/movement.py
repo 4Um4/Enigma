@@ -9,8 +9,21 @@ TODO:
 """
 from __future__ import annotations
 
+import enum
 from dataclasses import dataclass, field
 from typing import Optional
+
+
+class IntentDomain(enum.Enum):
+    """Онтологический домен намерения. Определяет, в каком слое причинности существует действие.
+    
+    Viability: наличие SURVIVAL давления исключает ROUTINE домен из пространства кандидатов.
+    Это не предпочтение (priority), а физика возможностей — NPC не может «выбрать» работу при беге.
+    """
+    SURVIVAL = "SURVIVAL"   # Угроза, бегство, оборона
+    SOCIAL = "SOCIAL"       # Взаимодействие, подход, разговор
+    ROUTINE = "ROUTINE"     # Расписание, работа, сон, рутина
+    EXPLORATION = "EXPLORATION"  # Исследование, случайные события
 
 
 @dataclass
@@ -26,6 +39,7 @@ class MacroMovementGoal:
     from_node_id: str = ""  # текущий узел — для pathfinding (Слой 2)
     location_id: str = ""   # для загрузки правильного графа
     reason: str = ""        # "need_driven:hunger", "schedule:working"
+    domain: IntentDomain = IntentDomain.ROUTINE  # ДОЛГ 4.3: Онтологический домен намерения
     priority: float = 0.5   # 0.0–1.0, для разрешения конфликтов intent-ов
     target_local_xy: Optional[tuple[float, float]] = None  # ADR-065: Точные координаты цели внутри узла (для подхода к игроку)
     # ADR-XXXX: Инвариант единого владения причинностью. Один Intent → один process_intents() → одно будущее.

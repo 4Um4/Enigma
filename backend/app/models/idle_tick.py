@@ -41,10 +41,15 @@ class NPCStateSnapshot(TypedDict):
     blood_loss: float                    # Кровопотеря (0-1.0)
     consciousness: float                 # Сознание (0-1.0, 0=кома/обморок, 1=ясность)
     shock_impulse: float                 # Физический шок / болевой удар (0-1.0) — затухает как pain
+    life_status: str                     # ADR-124: "ALIVE" или "DEAD" — DEATH LOCK для decay handlers
     injuries_by_zone: Dict[str, List[Dict[str, Any]]] # Травмы, сгруппированные по target_zone
     base_abilities: Dict[str, float]     # Базовые характеристики (из body_profile)
     modifiers: Dict[str, float]          # Модификаторы (травмы/баффы/экипировка, из body_state)
     statuses: List[str]                  # Активные статусы (stagger, unconscious, bleeding и т.д.)
+
+    # Affective Domain: Psyche LOD Macro (S74: Temporal Mind)
+    affective_load: float                # Аффективный интеграл (0-1.0) — затухает в idle
+    emotion: str                         # Текущий эмоциональный тег (neutral/fearful/panic) — коллапсирует при decay
 
 
 class IdleTickHandler(Protocol):

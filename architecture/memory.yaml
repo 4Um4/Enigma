@@ -1,0 +1,291 @@
+domain: MEMORY
+description: "Память NPC: STM → L2 → Campaign. Только MemoryManager пишет. Слои памяти — фундамент причинности (Устав §4)."
+
+nodes:
+  MemoryManager:
+    type: service
+    layer: Application
+    label: "Memory Manager"
+    description: "Единственный писатель в память (Устав §4.1.2). Читает STM + L2, применяет события, продвигает в Campaign."
+    code_ref: "memory/memory_manager.py"
+  LayeredMemory:
+    type: service
+    layer: Application
+    label: "Layered Memory (STM/L2/Campaign)"
+    description: "Трёхуровневая иерархия: STM (5 реплик) → L2 (narrative_cache) → Campaign (YAML/SQLite)."
+    code_ref: "memory/layered_memory.py"
+  DialogueSession:
+    type: dto
+    layer: Domain
+    label: "Dialogue Session (STM)"
+    description: "RAM, per-NPC, 5 реплик. При завершении диалога → промотируется в L2."
+    code_ref: "memory/dialogue_session.py"
+  PromotionEngine:
+    type: service
+    layer: Domain
+    label: "Memory Promotion Engine"
+    description: "Переносит session → campaign по правилам (importance > threshold). Отдельный процесс, НЕ метод LayeredMemory."
+    code_ref: "memory/promotion_engine.py"
+  ImportanceEngine:
+    type: service
+    layer: Domain
+    label: "Importance Engine"
+    description: "Вычисляет значимость события для продвижения в долгосрочную память."
+    code_ref: "memory/importance_engine.py"
+  WorkingMemory:
+    type: dto
+    layer: Domain
+    label: "Working Memory"
+    description: "Per-NPC, НЕ per-campaign. Общий буфер на всех = уничтожение индивидуальности (Устав §4.1.1)."
+    code_ref: "memory/working_memory.py"
+  ResonanceEngine:
+    type: service
+    layer: Domain
+    label: "Resonance Engine"
+    description: "Сканирует аффективные отпечатки (AffectiveImprint) на совпадение паттернов с текущим интентом."
+    code_ref: "memory/resonance_engine.py"
+  ContradictionResolver:
+    type: service
+    layer: Domain
+    label: "Contradiction Resolver"
+    description: "Разрешает противоречия между новыми событиями и существующими убеждениями."
+    code_ref: "memory/contradiction_resolver.py"
+  BeliefAggregator:
+    type: service
+    layer: Domain
+    label: "Belief Aggregator"
+    description: "Агрегирует свидетельства в убеждения (BeliefEntry)."
+    code_ref: "memory/belief_aggregator.py"
+  EvidenceMapper:
+    type: service
+    layer: Domain
+    label: "Evidence Mapper"
+    description: "Маппит события в доказательства для убеждений."
+    code_ref: "memory/evidence_mapper.py"
+  BeliefTransitionEngine:
+    type: service
+    layer: Domain
+    label: "Belief Transition Engine"
+    description: "Управляет переходами убеждений (рост, ослабление, отмена)."
+    code_ref: "npc/belief_transition_engine.py"
+  BeliefModifierResolver:
+    type: service
+    layer: Domain
+    label: "Belief Modifier Resolver"
+    description: "Резолвит модификаторы убеждений из событий."
+    code_ref: "npc/belief_modifier_resolver.py"
+  SQLiteMemoryStore:
+    type: database
+    layer: Infrastructure
+    label: "SQLite Memory Store"
+    description: "Persistence для памяти. Atomic commit."
+    code_ref: "memory/sqlite_store.py"
+  YAMLMemoryExport:
+    type: service
+    layer: Infrastructure
+    label: "YAML Memory Export"
+    description: "Экспорт памяти для человека (snapshot). НЕ runtime truth (Устав §4.2.2)."
+    code_ref: "memory/yaml_export.py"
+  NarrativeCache:
+    type: dto
+    layer: Domain
+    label: "Narrative Cache (L2)"
+    description: "Per-NPC, RAM. Tuple[EventMemory]. Продвигается в Campaign при importance > threshold."
+    code_ref: "memory/layered_memory.py"
+  EventSemanticTagger:
+    type: service
+    layer: Domain
+    label: "Event Semantic Tagger"
+    description: "Тегирует события для семантического поиска в памяти."
+    code_ref: "memory/event_semantic_tagger.py"
+  RelationshipStore:
+    type: service
+    layer: Domain
+    label: "Relationship Store"
+    description: "Хранит и обновляет relationship_cache (trust, fear, debt)."
+    code_ref: "memory/relationship_store.py"
+  TopicExtractor:
+    type: service
+    layer: Application
+    label: "Topic Extractor"
+    description: "Извлекает тему для DecisionHub (Фаза 4). topic не может быть пустым (Устав §3.2)."
+    code_ref: "npc/topic_extractor.py"
+
+edges:
+  - from: MemoryManager
+    to: LayeredMemory
+    label: "apply(event, npc_state)"
+    condition: "Every event after EventBus (Phase 3)"
+    code_ref: "memory/memory_manager.py"
+    adr_ref: "Устав §3.1"
+  - from: LayeredMemory
+    to: DialogueSession
+    label: "STM write/read"
+    condition: "Per-NPC, 5 реплик"
+    code_ref: "memory/dialogue_session.py"
+  - from: DialogueSession
+    to: PromotionEngine
+    label: "promote on dialogue end"
+    condition: "importance > threshold"
+    code_ref: "memory/promotion_engine.py"
+  - from: PromotionEngine
+    to: SQLiteMemoryStore
+    label: "campaign write"
+    condition: "Atomic commit"
+    code_ref: "memory/sqlite_store.py"
+  - from: PromotionEngine
+    to: YAMLMemoryExport
+    label: "snapshot for human"
+    condition: "On demand or session end"
+    code_ref: "memory/yaml_export.py"
+  - from: ResonanceEngine
+    to: WillpowerGate
+    label: "scan_affective_resonance → distort_pressure"
+    condition: "Trauma pattern match amplifies pressure (ADR-037)"
+    code_ref: "affect.py:scan_affective_resonance"
+    adr_ref: "ADR-037"
+  - from: ImportanceEngine
+    to: PromotionEngine
+    label: "importance score"
+    condition: "Determines if memory promotes to campaign"
+    code_ref: "memory/importance_engine.py"
+  - from: EventSemanticTagger
+    to: LayeredMemory
+    label: "semantic tags for retrieval"
+    condition: "After event processing"
+    code_ref: "memory/event_semantic_tagger.py"
+  - from: TopicExtractor
+    to: DecisionHub
+    label: "topic for decision"
+    condition: "Phase 4: topic must not be empty (Устав §3.2)"
+    code_ref: "npc/topic_extractor.py"
+    adr_ref: "Устав §3.2"
+  - from: BeliefAggregator
+    to: BeliefTransitionEngine
+    label: "aggregated evidence → belief update"
+    condition: "After event processing"
+    code_ref: "npc/belief_transition_engine.py"
+  - from: ContradictionResolver
+    to: BeliefTransitionEngine
+    label: "contradiction detected → belief revision"
+    condition: "New event contradicts existing belief"
+    code_ref: "memory/contradiction_resolver.py"
+  - from: RelationshipStore
+    to: StateApplicator
+    label: "relationship_cache updates"
+    condition: "Via DeltaBuffer (Устав §4.1.2)"
+    code_ref: "memory/relationship_store.py"
+
+constraints:
+  - source: Any
+    target: MemoryManager
+    rule: "FORBIDDEN: Write to memory bypassing MemoryManager (Устав §4.1.2)"
+    condition: "Only MemoryManager may write. Direct write_session_memory() from game_loop = double write, layer desync."
+    code_ref: "Устав §4.1.2"
+    severity: CRITICAL
+  - source: DialogueSession
+    target: WorkingMemory
+    rule: "REQUIRED: WorkingMemory is per-NPC (Устав §4.1.1)"
+    condition: "Shared buffer = destruction of individuality. Each NPC must have own STM."
+    code_ref: "Устав §4.1.1"
+    severity: HIGH
+  - source: PromotionEngine
+    target: LayeredMemory
+    rule: "FORBIDDEN: Promotion as method of LayeredMemory (Устав §4.1.3)"
+    condition: "Must be separate process. LayeredMemory should not know about promotion logic."
+    code_ref: "Устав §4.1.3"
+  - source: YAMLMemoryExport
+    target: RuntimeTruth
+    rule: "FORBIDDEN: YAML as runtime truth (Устав §4.2.2)"
+    condition: "YAML is snapshot for humans. SQLite is runtime truth. No transactions = data corruption."
+    code_ref: "Устав §4.2.2"
+    severity: CRITICAL
+  - source: DecisionHub
+    target: TopicExtractor
+    rule: "REQUIRED: Topic must not be empty (Устав §3.2)"
+    condition: "Empty topic → LLM hallucinates. TopicExtractor runs at Phase 4, before DecisionHub (Phase 5)."
+    code_ref: "npc/topic_extractor.py"
+    adr_ref: "Устав §3.2"
+    severity: HIGH
+
+ownership:
+  STM:
+    owner: "DialogueSession"
+    creates: "DialogueSession (from event)"
+    modifies: "MemoryManager.apply()"
+    reads: "DecisionHub (via _memory_penalty), Verbalization"
+    layer: "RAM (volatile)"
+    constraint: "Per-NPC. Max 5 entries. Promotes to L2 on dialogue end."
+  L2_NarrativeCache:
+    owner: "LayeredMemory"
+    creates: "LayeredMemory (from STM promotion)"
+    modifies: "MemoryManager"
+    reads: "DecisionHub (_memory_penalty), TopicExtractor"
+    layer: "RAM (session-persistent)"
+    constraint: "Per-NPC. Promotes to Campaign when importance > threshold."
+  Campaign_Memory:
+    owner: "SQLiteMemoryStore"
+    creates: "PromotionEngine (from L2)"
+    modifies: "MemoryManager (on load)"
+    reads: "DecisionHub (long-term context), Verbalization"
+    layer: "SQLite (persistent)"
+    constraint: "Atomic commit. All or nothing (Устав §4.2.1)."
+  BeliefSystem:
+    owner: "BeliefAggregator + BeliefTransitionEngine"
+    creates: "BeliefAggregator (from events)"
+    modifies: "BeliefTransitionEngine (contradictions, strengthening, weakening)"
+    reads: "DecisionHub, VerbalizationContext, ConditionEngine"
+    layer: "Identity (crystallized traits)"
+    constraint: "Beliefs are L1 identity — not state. They change slowly, not per-tick."
+  RelationshipCache:
+    owner: "RelationshipStore + StateApplicator"
+    creates: "RelationshipStore (from social events)"
+    modifies: "StateApplicator (via DeltaBuffer)"
+    reads: "DecisionHub (_relationship_modifier), WillpowerGate, DirectiveInterpreter"
+    layer: "State (per-tick)"
+    constraint: "trust, fear, debt — key social dimensions. Updated via DeltaBuffer only."
+
+sequences:
+  - title: "Memory Application Flow (Phase 3)"
+    participants: [EventBus, MemoryManager, LayeredMemory, STM, L2, StateApplicator]
+    steps:
+      - from: EventBus
+        to: MemoryManager
+        message: "1. Event published"
+      - from: MemoryManager
+        to: LayeredMemory
+        message: "2. apply(event, npc_state)"
+      - from: LayeredMemory
+        to: STM
+        message: "3. Write to DialogueSession"
+      - from: LayeredMemory
+        to: L2
+        message: "4. Update narrative_cache"
+      - from: MemoryManager
+        to: StateApplicator
+        message: "5. write_to_legacy (sync back to npc_dict)"
+  - title: "Memory Promotion Flow"
+    participants: [STM, ImportanceEngine, PromotionEngine, Campaign, SQLite]
+    steps:
+      - from: STM
+        to: ImportanceEngine
+        message: "1. Compute importance score"
+      - from: ImportanceEngine
+        to: PromotionEngine
+        message: "2. Score > threshold?"
+      - from: PromotionEngine
+        to: Campaign
+        message: "3. Promote to campaign memory"
+      - from: Campaign
+        to: SQLite
+        message: "4. Atomic commit"
+  - title: "Affective Resonance Scan (ADR-037)"
+    participants: [Intent, AffectiveImprints, ResonanceEngine, WillpowerGate]
+    steps:
+      - from: Intent
+        to: ResonanceEngine
+        message: "1. scan_affective_resonance(intent, None, None, imprints)"
+      - from: ResonanceEngine
+        to: WillpowerGate
+        message: "2. distort_pressure(pressure, resonance, psyche)"
+        type: dotted

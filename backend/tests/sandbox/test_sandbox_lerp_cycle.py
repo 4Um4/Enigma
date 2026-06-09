@@ -50,7 +50,7 @@ def test_traversal_state_packed_into_snapshot():
     
     # THEN: active_traversals содержит корректные данные для фронтенд-интерполяции
     assert len(snapshot.active_traversals) == 1, "Транзит потерян при сборке снапшота!"
-    trav = snapshot.active_traversals[0]
+    trav = snapshot.active_traversals["thief_shadow"]
     
     # Проверка контракта ADR-019 (поля для Lerp)
     assert trav["npc_id"] == "thief_shadow"

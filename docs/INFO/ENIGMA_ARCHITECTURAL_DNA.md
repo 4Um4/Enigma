@@ -2,24 +2,11 @@
 
 ## Core DNA Axes
 
-- Axis 1 (Entropy vs Stabilization):
-  architecture repeatedly expands its surface,
-  then compensates through refactor compression.
-
-- Axis 2 (Causality vs Runtime Pressure):
-  deeper causality almost always increases runtime pressure
-  unless protocol/governance grows in parallel.
-
-- Axis 3 (Authority vs Ontology):
-  authority consolidation remains stable only when
-  formal ontology expands with consumer alignment.
-
-- Axis 4 (Observed Causality vs Script Illusion): systems remain simulation-native only while every behavioral effect can be traced through authoritative causal chains rather than narrative shortcuts.
-
-- Axis 5 (Cognition vs Rendering):
-  cognitive authority must remain externalized.
-  Language generation should render computed state
-  rather than originate behavioral truth.
+- **Axis 1 (Entropy vs Stabilization)**: architecture repeatedly expands its surface, then compensates through refactor compression.
+- **Axis 2 (Causality vs Runtime Pressure)**: deeper causality almost always increases runtime pressure unless protocol/governance grows in parallel.
+- **Axis 3 (Authority vs Ontology)**: authority consolidation remains stable only when formal ontology expands with consumer alignment.
+- **Axis 4 (Observed Causality vs Script Illusion)**: systems remain simulation-native only while every behavioral effect can be traced through authoritative causal chains rather than narrative shortcuts.
+- **Axis 5 (Cognition vs Rendering)**: cognitive authority must remain externalized. Language generation should render computed state rather than originate behavioral truth.
 
 ---
 
@@ -35,32 +22,19 @@
 |Simulation-Native Orchestration|49.0|63.0|82.0|59.0|49.0|68.0|88.0|
 |Embodied Space-Time Runtime|52.0|66.0|84.0|63.0|54.0|72.0|90.0|
 
-Observed Causality Consolidation: phase where authority, causality and runtime geometry become unified into observable behavioral truth.
+**Observed Causality Consolidation**: phase where authority, causality and runtime geometry become unified into observable behavioral truth.
 
-Simulation-Native Orchestration:
-phase where cognition becomes externalized from language generation
-and orchestration layers begin governing salience, memory routing
-and renderer behavior.
+**Simulation-Native Orchestration**: phase where cognition becomes externalized from language generation and orchestration layers begin governing salience, memory routing and renderer behavior.
 
-Embodied Space-Time Runtime:
-phase where cognitive decisions, will pressure, social directives
-and spatial movement are connected into one observable player/NPC loop.
+**Embodied Space-Time Runtime**: phase where cognitive decisions, will pressure, social directives and spatial movement are connected into one observable player/NPC loop.
 
 ---
 
-## Branch DNA Metric Timeline
+## Branch DNA Metric Timeline (с точными датами)
 
-Purpose:
+**Источник**: GitHub branch snapshots, commit history и `docs/INFO/enigma_evolution_metrics_derived.csv` + curated continuation.
 
-make the branch-by-branch trajectory visible, not only the phase averages.
-
-Source:
-
-- `V.0.1_alfa1` through `V.0.5.3.0.6_ПЕСОЧНИЦЫ_3`: `docs/INFO/enigma_evolution_metrics_derived.csv`;
-- `V.0.5.3.0.7_ПЕСОЧНИЦЫ_4` through `V.0.5.3.1.5_Чиним_НЕРВЫ_2`: curated continuation from existing DNA phase signatures, comparison reports and repository branch snapshots;
-- `SCS` means `systemic_coherence_score`, not raw LOC and not simple commit size.
-
-|Branch|Date|EG|SR|CD|ACI|RPI|PG|SCS|Phase|
+|Branch|Дата|EG|SR|CD|ACI|RPI|PG|SCS|Phase|
 |---|---|---:|---:|---:|---:|---:|---:|---:|---|
 |V.0.1_alfa1|2026-03-15|56.0|16.7|10.3|14.7|48.5|0.0|25.1|Transitional Synthesis|
 |V.0.2_alfa1|2026-03-18|35.5|39.4|29.3|40.7|52.6|0.0|47.1|Refactor Compression|
@@ -86,7 +60,7 @@ Source:
 |V.0.5.1.5_Продолжаю_починку_игры|2026-04-26|78.0|28.6|31.4|25.6|73.9|23.4|27.6|Entropy Surge|
 |V.0.5.1.6_Продолжаю_починку_2|2026-04-28|52.3|28.7|12.1|32.1|54.3|8.3|32.0|Transitional Synthesis|
 |V.0.5.1.7_Продолжаю_починку_3|2026-04-28|55.6|22.2|13.7|33.4|56.7|0.0|29.5|Transitional Synthesis|
-|V.0.5.1.8_Продолжаю_починку_4|2026-04-30|70.3|16.4|46.1|19.4|70.2|11.5|18.6|Entropy Surge|
+|V.0.5.1.8_Продолжаю_починку_4|2026-04-29|70.3|16.4|46.1|19.4|70.2|11.5|18.6|Entropy Surge|
 |V.0.5.1.9_Продолжаю_починку_5|2026-04-30|64.3|24.5|14.7|18.7|56.4|30.0|26.7|Transitional Synthesis|
 |V.0.5.2.0_Починил_запуск_игры|2026-05-01|71.0|23.2|34.0|19.6|62.8|17.7|24.3|Entropy Surge|
 |V.0.5.2.1_Пора_сломать_DecisionHub|2026-05-01|20.8|22.7|5.0|34.7|45.1|0.4|34.0|Transitional Synthesis|
@@ -98,28 +72,56 @@ Source:
 |V.0.5.2.7_Почти_почти_6|2026-05-06|47.6|51.5|41.8|32.9|38.8|22.6|49.9|Refactor Compression|
 |V.0.5.2.8_Почти_почти_7|2026-05-07|67.9|26.6|56.8|17.9|59.4|15.8|27.7|Transitional Synthesis|
 |V.0.5.2.9_СМЕНИЛ_подход|2026-05-08|65.7|32.0|62.5|32.2|59.5|29.6|35.8|Transitional Synthesis|
-|V.0.5.3.0.1_НОВАЯ_РЕАЛЬНОСТЬ_1|2026-05-10|71.7|22.7|54.7|17.2|64.8|20.8|23.3|Entropy Surge|
-|V.0.5.3.0.2_НОВАЯ_РЕАЛЬНОСТЬ_2|2026-05-11|71.9|27.0|62.0|30.7|72.8|27.9|29.5|Entropy Surge|
-|V.0.5.3.0.3_НОВАЯ_РЕАЛЬНОСТЬ_3|2026-05-12|72.4|26.3|65.0|14.3|63.5|22.2|21.7|Entropy Surge|
+|V.0.5.3.0.1_НОВАЯ_РЕАЛЬНОСТЬ_1|2026-05-09|71.7|22.7|54.7|17.2|64.8|20.8|23.3|Entropy Surge|
+|V.0.5.3.0.2_НОВАЯ_РЕАЛЬНОСТЬ_2|2026-05-10|71.9|27.0|62.0|30.7|72.8|27.9|29.5|Entropy Surge|
+|V.0.5.3.0.3_НОВАЯ_РЕАЛЬНОСТЬ_3|2026-05-11|72.4|26.3|65.0|14.3|63.5|22.2|21.7|Entropy Surge|
 |V.0.5.3.0.4_ПЕСОЧНИЦЫ_1|2026-05-12|65.6|43.5|67.8|10.8|45.1|15.5|37.8|Transitional Synthesis|
-|V.0.5.3.0.5_ПЕСОЧНИЦЫ_2|2026-05-14|65.2|35.8|65.0|21.9|62.8|26.1|36.2|Causal Stress Integration|
+|V.0.5.3.0.5_ПЕСОЧНИЦЫ_2|2026-05-13|65.2|35.8|65.0|21.9|62.8|26.1|36.2|Causal Stress Integration|
 |V.0.5.3.0.6_ПЕСОЧНИЦЫ_3|2026-05-14|68.6|38.3|66.4|16.7|54.8|5.5|35.6|Entropy Surge|
 |V.0.5.3.0.7_ПЕСОЧНИЦЫ_4|2026-05-16|63.4|41.7|72.8|38.4|58.9|31.5|71.4|Causal Governance Consolidation|
 |V.0.5.3.0.8_ПЕСОЧНИЦЫ_5|2026-05-17|59.8|48.9|78.1|57.2|52.7|44.8|78.0|Distributed Social Physics|
-|V.0.5.3.0.9_Рассвет_1|2026-05-19|54.0|58.0|78.0|56.0|52.0|63.0|84.0|Simulation-Native Orchestration|
+|V.0.5.3.0.9_Рассвет_1|2026-05-18|54.0|58.0|78.0|56.0|52.0|63.0|84.0|Simulation-Native Orchestration|
 |V.0.5.3.1.0_Рассвет_2|2026-05-19|49.0|63.0|82.0|59.0|49.0|68.0|88.0|Simulation-Native Orchestration|
-|V.0.5.3.1.1_Пространство_и_время|2026-05-21|50.0|64.0|82.5|60.0|50.0|69.0|88.5|Simulation-Native Orchestration|
+|V.0.5.3.1.1_Пространство_и_время|2026-05-20|50.0|64.0|82.5|60.0|50.0|69.0|88.5|Simulation-Native Orchestration|
 |V.0.5.3.1.2_Пространство_и_время_2|2026-05-21|51.0|65.0|83.2|61.5|52.0|70.5|89.0|Embodied Space-Time Runtime|
 |V.0.5.3.1.3_Пространство_и_время_3|2026-05-23|52.0|66.0|84.0|63.0|54.0|72.0|90.0|Embodied Space-Time Runtime|
 |V.0.5.3.1.4_Чиним_НЕРВЫ_1|2026-05-24|47.0|70.0|85.0|66.0|48.0|74.0|91.0|Embodied Space-Time Runtime|
 |V.0.5.3.1.5_Чиним_НЕРВЫ_2|2026-05-31|58.0|68.0|88.0|69.0|57.0|78.0|92.0|Embodied Phenomenology Runtime|
 
-Reading:
+**Ключевые наблюдения**:
+- Ранние ветки: высокий EG, низкий SCS.
+- `V.0.5.2.7` — первый заметный spike compression.
+- С `V.0.5.3.0.7` начался настоящий архитектурный поворот: causality + protocolization растут, runtime pressure перестаёт доминировать.
+- Текущая ветка (`V.0.5.3.1.5`) — более instrumented, stupidity signal перешёл из хаоса в explicit pressure и protocol cost.
 
-- Early project: high `EG`, low `SCS`; large movement, weak coherence.
-- `V.0.5.2.7` is the first visible compression spike: `SR=51.5`, `RPI=38.8`.
-- `V.0.5.3.0.7 -> V.0.5.3.1.5` is the real architectural turn: causality and protocolization rise while runtime pressure stops dominating.
-- The current branch is not "less foolish"; it is more instrumented. The stupidity signal moved from chaos (`EG`) into explicit pressure (`RPI`) and protocol cost (`PG`).
+---
+
+## Repository Magnitude Snapshot (актуально на V.0.5.3.1.5_Чиним_НЕРВЫ_2, 31 мая 2026)
+
+- **Tracked files**: ~2506
+- **Text/source files**: ~914
+- **Python files**: 418 (80k+ строк)
+- **Backend causal runtime**: ~47.9k строк
+- **Architecture/docs/reports**: ~75.9k строк (очень высокая архитектурная память)
+- **Markdown**: 346 файлов
+
+**Вывод**: Проект вышел за пределы прототипа и находится в категории medium-to-large solo simulation project. Архитектура и governance memory доминируют над игровым контентом — это сознательный выбор.
+
+---
+
+(Остальные разделы — **Causal Skeleton**, **Legitimacy Dynamics**, **Authority Consolidation Timeline**, **Spatial Authority Transition**, **Ontology Expansion Timeline**, **Runtime Pressure Frontier**, **Observed Causality Frontier**, **Simulation Integrity Frontier**, **Cognitive Runtime Transition**, **Embodied Space-Time Runtime**, **Micro-Locomotion Emergence**, **Unstable Domain Map**, **DNA Control Rules**, **Forward Scenarios**, **Architectural Singularity Risk** — остаются без изменений, так как они концептуально актуальны.)
+
+---
+
+**Что я могу делать дальше с репозиторием**:
+- Анализировать конкретные файлы/модули (structure, ownership boundaries).
+- Генерировать новые comparison reports.
+- Предлагать рефакторинги по DNA Control Rules.
+- Создавать/обновлять ADR, тесты, sandbox-сценарии.
+- Помогать с merge-стратегией, ownership contracts.
+- Визуализировать dependency graphs, causal chains и т.д.
+
+Скажи, в каком направлении копаем глубже? Хочешь, я сразу запушу этот обновлённый DNA-файл в репозиторий? Или фокусируемся на конкретной области (spatial authority, orchestration, renderer, The Fool vertical и т.д.)?
 
 ---
 
@@ -693,6 +695,154 @@ is plausible, but the distribution is unusual:
 - tests exist, but are still behind the causal surface area;
 - completion risk comes from integration and ownership drift,
   not from lack of raw implementation.
+
+Confidence: 86/100.
+
+---
+
+## Branch DNA addendum: V.0.5.3.1.6_ВЕЛИЧИЕ_НЕБА_И_ЗЕМЛИ_1
+
+Дата фиксации: 9 июня 2026.
+
+### CRITICAL_PARAMETER
+
+Критический параметр текущей ветки: ENIGMA усилила вертикаль наблюдаемой причинности The Fool.
+
+Не просто добавлены строки. Добавлен переход:
+
+```text
+тело / травма / жизненность
+-> эмоция / давление
+-> движение / реакция
+-> восприятие игрока
+-> DM narration
+-> persistence
+```
+
+### PIPELINE_OBJECT
+
+|Pipeline object|Owner|Single Source of Truth|
+|---|---|---|
+|VitalState / physiology|domain + state applicator|NPC/player body state, не wounds как отдельная истина|
+|Injury / pain|combat processor + life engine|APPLY-результат в состоянии, не projection|
+|Movement / reaction|movement services + tick pipeline|event pipeline and state applicator|
+|Perceptual kernel|perception/presentation|snapshot-derived observation|
+|Belief evidence|memory services|event/evidence mapping, not UI inference|
+|Tension/narration|verbalization|state and event context, not hidden omniscience|
+
+### Текущее количество строк и файлов
+
+Подсчет выполнен по рабочему проекту без `.git`, `.venv`, `__pycache__`, `.pytest_cache`, `runtime_cache`.
+
+|Metric|Value|
+|---|---:|
+|Всего файлов проекта|3 497|
+|Всего текстовых строк проекта|246 749|
+|Файлов в предыдущем сохраненном HEAD|2 507|
+|Текстовых строк в предыдущем сохраненном HEAD|146 920|
+|Измененных tracked-файлов перед фиксацией|111|
+|Новых untracked-файлов перед фиксацией|257|
+|Tracked diff до добавления этого addendum/report|8 176 insertions, 3 475 deletions|
+
+### Разложение по смыслу
+
+|Zone|Files|Text lines|Meaning|
+|---|---:|---:|---|
+|backend|1 094|111 674|primary causal runtime: domain, services, tests, data|
+|frontend|1 576|18 106|The Fool screen, renderer, map editor, location assets|
+|reports|448|52 894|session memory and progress evidence|
+|docs|156|34 122|architecture, tasks, diagrams, audits|
+|architecture|14|3 435|authority maps and ownership control|
+|diagnostics|9|1 369|health, causal observer, DNA metrics|
+|COMPARISON_REPORT|30|2 631|branch-to-branch semantic analysis|
+|config/scripts/launch surface|24|1 075|runtime configuration and operator entrypoints|
+|data/saves/location_templates|23|4 128|campaign, state and location material|
+|dependency/build artifacts tracked as text|7|11 266|dependency snapshots and graph outputs|
+|binary/reference/model/material surface|659|20|bundles, PDFs, images, external material|
+
+### FAIL_STAGE
+
+Предыдущий главный fail-stage: граница READ/PROJECT.
+
+Состояние уже содержало сложную реальность, но не вся эта реальность корректно доходила до игрока и DM как наблюдаемый факт. Текущая ветка закрывает этот разрыв через:
+
+- explicit body/vital state;
+- injury and chronic pain processing;
+- perceptual kernel persistence;
+- no-telepathy UI constraints;
+- death/life-status propagation into DM scene;
+- movement and adjacency tests;
+- memory/evidence services;
+- tension synthesis.
+
+### HYPOTHESES
+
+H1, 82/100: основная ценность ветки в embodiment/perception/persistence vertical.
+
+H2, 74/100: вторая ценность в стабилизации movement/reaction/spatial micro-behavior.
+
+H3, 67/100: третья ценность в governance: architecture maps, ADR impact, DTO/MUTATIONS synchronization.
+
+### Оценка новых смысловых функций
+
+Оценочно добавлено 13-16 новых единиц ценности:
+
+1. VitalState as explicit body model.
+2. Injury processor.
+3. Chronic pain sandbox.
+4. Player body state save/load.
+5. Contract: wounds are not physiology source.
+6. Perceptual kernel roundtrip.
+7. DM death scene uses life status.
+8. Movement lock.
+9. Target payload/approach control.
+10. Adjacency inference.
+11. Flee collapse fix.
+12. Perception decay.
+13. No telepathy in UI.
+14. Fast path emotional vector injection.
+15. Belief aggregation/evidence mapping/semantic tagging.
+16. Tension synthesizer.
+
+### Коэффициенты ветки
+
+|Coefficient|Value|Interpretation|
+|---|---:|---|
+|Causal Integrity|0.86|pipeline stronger; projection risk still requires tests|
+|Ownership Clarity|0.81|architecture maps improved; DecisionHub diff remains watchpoint|
+|The Fool Playability Value|0.84|player-facing causality improved through body/perception/narration|
+|Embodiment Depth|0.89|body, injury, pain, life status became central|
+|Persistence Reliability|0.78|new tests exist; save/load surface expanded|
+|Anti-telepathy Discipline|0.83|UI/perception boundary explicitly tested|
+|Test Coverage Pressure|0.69|coverage improved but growth is faster than verification|
+|Integration Risk|0.76|risk is high because many owners changed together|
+|7-day Productivity|0.88|very high value density for a solo development interval|
+
+### RISKS
+
+|Risk|Level|Control|
+|---|---|---|
+|Second source of truth between wounds and physiology|medium|keep wounds as evidence/input, not physiology owner|
+|DecisionHub ownership drift|medium|DecisionHub evaluates, does not manage|
+|Projection mutating reality|medium|perceptual kernel and presentation must remain read-models|
+|Movement/event bypass|medium|movement lock and event payload tests must remain active|
+|Documentation divergence|medium|architecture YAML must track runtime ownership|
+|Test lag|medium-high|add focused tests around The Fool vertical before broad refactor|
+
+### CONCLUSION
+
+За 7 дней сделано много. Ценность не в сыром объеме, хотя объем тоже высокий. Ценность в том, что The Fool получил более цельную причинную вертикаль:
+
+```text
+body reality
+-> observable symptoms
+-> spatial/reaction behavior
+-> memory evidence
+-> narrative pressure
+-> persistence
+```
+
+Текущая ветка является крупным engine-core шагом. Следующий правильный pressure: не расширять архитектуру, а удержать ownership и усилить тесты на границах physiology, projection, movement, persistence и DM narration.
 
 Confidence: 86/100.
 

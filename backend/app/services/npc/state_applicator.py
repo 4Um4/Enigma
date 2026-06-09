@@ -27,6 +27,7 @@ from typing import Any, Dict, List, Optional
 # Целевая архитектура данных (L2)
 from app.models.npc_state import NPCState
 from app.core.constants import TRAIT_DECAY_RATE, NARRATIVE_CACHE_MAX
+from app.domain.vital_state import evaluate_vital_state, LifeStatus
 from app.services.npc.legacy_delta_adapter import LegacyStateDeltaAdapter
 
 # Легаси-типы, используемые в логике (Enum'ы и контракты)
@@ -119,9 +120,15 @@ class StateApplicator:
 
             # Прямое переопределение воли (R6.4)
             if d.will_state_override:
-                new_state.will_state = d.will_state_override
-                if d.will_state_override == WillState.BROKEN:
-                    new_state.trauma_markers.add("will_broken")
+                  new_state.will_state = d.will_state_override
+                  if d.will_state_override == WillState.BROKEN:
+                      new_state.trauma_markers.add("will_broken")
+                      
+                      # S71: Identity Mutation Kernel v0 (Scalar Deformation)
+                      # Слом воли запускает структурную мутацию личности
+                      from app.services.npc.break_progress_engine import compute_mutation, apply_drives_mutation
+                      _drive_mutations = compute_mutation(new_state, "will_broken")
+                      apply_drives_mutation(new_state, _drive_mutations)
 
             self._apply_trait_decay(new_state)
             
@@ -458,12 +465,32 @@ class StateApplicator:
                 state.emotion_delta + emotion_delta
             ))
         if emotion_tag is not None:
-            state.emotion = emotion_tag
+            from app.models.npc_state import _emotion_from_str, EmotionTag
+            _converted = _emotion_from_str(emotion_tag) if isinstance(emotion_tag, str) else emotion_tag
             
-        # ADR-049: Сохранение интеграла аффективного давления (из EmotionPayload)
-        affective_load_val = deltas.payload.affective_load if domain == DeltaDomain.EMOTION and isinstance(deltas.payload, EmotionPayload) and deltas.payload.affective_load is not None else None
-        if affective_load_val is not None:
-            state.affective_load = affective_load_val
+            # §ENIGMA-AFFECTIVE-SOVEREIGNTY Статья 3: Диагностика.
+            # Эмоция обязана соответствовать интегралу. Если интеграл высок (panic/fear),
+            # а рефлекс пытается поставить слабую эмоцию (suspicious) — это нарушение суверенитета.
+            # S75-FIX: PANIC и ANXIOUS не существуют в EmotionTag enum.
+            # Канонические значения: panic→fearful, anxious→suspicious (npc_state.py:757-763).
+            # Без фикса AttributeError крашит весь _apply_deltas → affective_load не обновляется.
+            if state.affective_load >= 0.6 and _converted not in (EmotionTag.FEARFUL, EmotionTag.SUSPICIOUS):
+                logger.warning(f"[SOVEREIGNTY_VIOLATION] npc={state.npc_id} load={state.affective_load:.3f} but emotion={_converted}. Integral overridden by reflex?")
+            
+            logger.debug(f"[STATE_APPLY_EMOTION] npc={state.npc_id} tag_in={emotion_tag} tag_out={_converted} prev={state.emotion}")
+            state.emotion = _converted
+            
+        # §ENIGMA-DUAL-CIRCUIT: Разделение Контуров.
+        # Интеграл (affective_load) пишется ТОЛЬКО из AffectivePipeline.
+        # Рефлексы (ReactionSubscriber) приносят emotion_tag, но НЕ affective_load.
+        # Мы не уничтожаем интеграл снимком, если пайплайн не дал нагрузку.
+        # Интеграл имеет право затухать независимо от эмоции.
+        if domain == DeltaDomain.EMOTION and isinstance(deltas.payload, EmotionPayload):
+            _payload_load = getattr(deltas.payload, 'affective_load', None)
+            # §ENIGMA-DUAL-CIRCUIT: Разрешаем затухание до 0.0 (S74).
+            # Условие > 0.0 блокировало decay, замораживая интеграл.
+            if _payload_load is not None:
+                state.affective_load = min(1.0, max(0.0, _payload_load))
 
         # Traits overlay
         for trait, value in deltas.trait_updates.items():
@@ -472,6 +499,11 @@ class StateApplicator:
         # Травма
         if new_trauma:
             state.trauma_markers.add(new_trauma)
+
+            # S71: Мутация при других типах травм
+            from app.services.npc.break_progress_engine import compute_mutation, apply_drives_mutation
+            _drive_mutations = compute_mutation(state, new_trauma)
+            apply_drives_mutation(state, _drive_mutations)
 
         # --- Физиология (Physiology Domain) ---
         if domain == DeltaDomain.PHYSIOLOGY:
@@ -503,6 +535,7 @@ class StateApplicator:
             if add_injuries:
                 # Конвертируем InjuryDTO в dict для JSON-сериализации
                 state.body_state.setdefault("injuries", []).extend([asdict(inj) for inj in add_injuries])
+                logger.debug(f"[INJURY_APPLIED] npc={state.npc_id} total_injuries={len(state.body_state.get('injuries', []))} new={[i.damage_type for i in add_injuries]}")
 
             if add_statuses:
                 state.body_state.setdefault("statuses", []).extend(add_statuses)
@@ -516,6 +549,40 @@ class StateApplicator:
             if shock_impulse != 0.0:
                 _cur_shock = state.body_state.get("shock_impulse", 0.0)
                 state.body_state["shock_impulse"] = max(0.0, min(1.0, _cur_shock + shock_impulse))
+
+            # ADR-124: Consciousness derivation из физиологии
+            # Сознание — НЕ аккумулятор. Это производная от blood_loss и shock_impulse.
+            # Кровопотеря и шок — ПРИЧИНЫ потери сознания, не пороги.
+            # Формула: consciousness = max(0, 1 - blood_loss^1.5 * 2.0 - shock_impulse * 1.5)
+            # Нелинейность: лёгкая кровопотеря почти не влияет, тяжёлая — обрушивает.
+            # Consciousness может только УПАСТЬ от физиологии в этом шаге.
+            # Восстановление — через DecayHandler (recovery), но физиология — авторитетнее.
+            _bl = state.body_state.get("blood_loss", 0.0)
+            _si = state.body_state.get("shock_impulse", 0.0)
+            _physiological_consciousness = max(0.0, 1.0 - (_bl ** 1.5) * 2.0 - _si * 1.5)
+            _cur_consciousness = state.body_state.get("consciousness", 1.0)
+            if _physiological_consciousness < _cur_consciousness:
+                state.body_state["consciousness"] = round(_physiological_consciousness, 4)
+                logger.debug(f"[CONSCIOUSNESS_DROP] npc={state.npc_id} bl={_bl:.3f} shock={_si:.3f} old={_cur_consciousness:.3f} new={state.body_state['consciousness']:.3f}")
+
+            # §ENIGMA-AFFECTIVE-SOVEREIGNTY v2: Закон Сохранения Эмоциональной Энергии.
+            # PHYSIOLOGY fallback УБИТ. Причина: pain и shock уже включены в
+            # AffectiveIntegrator через psyche dict (inc = threat×fear + pain + shock).
+            # Двойной пересчёт здесь нарушал бы сохранение: нагрузка считалась бы
+            # дважды за один тик. Единственный писатель — AffectivePipeline.
+            pass
+
+            # Transitional: vital_state evaluation after PHYSIOLOGY domain.
+            # Legacy hp-based death paths are being removed (combat_math.apply_damage is dead code).
+            # TODO: Move to end-of-tick reconciliation phase after ALL domains applied,
+            # not just PHYSIOLOGY. Future processes (InfectionProcess, HypoxiaProcess,
+            # PoisonProcess) will modify body_state through other domains too.
+            _life_status = evaluate_vital_state(state.body_state)
+            state.body_state["life_status"] = _life_status.value
+            if _life_status == LifeStatus.DEAD:
+                logger.warning(f"[DEATH_CERTIFIED] npc={state.npc_id} bl={state.body_state.get('blood_loss',0):.3f} structural={sum(float(i.get('structural_damage',0)) for i in state.body_state.get('injuries',[])):.3f}")
+            if _life_status == LifeStatus.DEAD:
+                logger.warning(f"[DEATH_CERTIFIED] npc={state.npc_id} life_status={_life_status.value} bl={state.body_state.get('blood_loss',0):.3f} structural={sum(float(i.get('structural_damage',0)) for i in state.body_state.get('injuries',[])):.3f}")
 
         # --- Восприятие (Perception Domain / ADR-O) ---
         if domain == DeltaDomain.PERCEPTION:
@@ -536,28 +603,37 @@ class StateApplicator:
                 state.perceptual_kernel.anomaly_score = max(
                     0.0, min(1.0, state.perceptual_kernel.anomaly_score + anomaly_score_delta_perc)
                 )
+
+            # §ENIGMA-AFFECTIVE-SOVEREIGNTY v2: PERCEPTION domain НЕ пишет в affective_load.
+            # Изменение угрозы/неопределённости — это входной сигнал для интегратора.
+            # Нагрузка изменится только когда AffectivePipeline обработает этот сигнал,
+            # или через Fallback Compute в EMOTION/PHYSIOLOGY блоках.
+            pass
+
+            # S72: dominant_emotion_hint всегда None (CFRM больше не назначает эмоцию).
+            # Эмоция резолвится только через Affective Pipeline → EmotionResolution.
+            # Сохраняем запись на случай явной установки из ReactionSubscriber (ADR-117).
             if dominant_emotion_hint:
                 state.perceptual_kernel.dominant_emotion = dominant_emotion_hint
                 
             # S28: Мерж топологии деформации пространства решений
-            _aggr_inh = getattr(payload, 'aggression_inhibition_delta', 0.0)
+            _aggr_inh = getattr(deltas.payload, 'aggression_inhibition_delta', 0.0)
             if _aggr_inh != 0.0:
                 state.perceptual_kernel.aggression_inhibition = max(
                     0.0, min(1.0, state.perceptual_kernel.aggression_inhibition + _aggr_inh)
                 )
-            _comp_bias = getattr(payload, 'compliance_bias_delta', 0.0)
+            _comp_bias = getattr(deltas.payload, 'compliance_bias_delta', 0.0)
             if _comp_bias != 0.0:
                 state.perceptual_kernel.compliance_bias = max(
                     0.0, min(1.0, state.perceptual_kernel.compliance_bias + _comp_bias)
                 )
-            _init_sup = getattr(payload, 'initiative_suppression_delta', 0.0)
+            _init_sup = getattr(deltas.payload, 'initiative_suppression_delta', 0.0)
             if _init_sup != 0.0:
                 state.perceptual_kernel.initiative_suppression = max(
                     0.0, min(1.0, state.perceptual_kernel.initiative_suppression + _init_sup)
                 )
             # ADR-056: Применение Attention Capture
-            _recent_dir = getattr(payload, 'recent_directive_data', None)
-            if _recent_dir:
+            if _recent_dir := getattr(deltas.payload, 'recent_directive_data', None):
                 state.perceptual_kernel.recent_directive = _recent_dir
 
         # Causal Ledger — паспорт каждого изменения (Шаг 3)
@@ -647,11 +723,12 @@ class StateApplicator:
                         "fear":  fear_delta,
                     },
                 )
-                # Обновляем кэш в NPCState из свежих данных
+                # P1 ARCH: Заполнение read-cache из SSOT (RelationshipStore).
+                # Мутация допустима только как проекция из единственного владельца.
                 fresh = self._rel_store.get_pair(
                     campaign_id, state.npc_id, _target
                 )
-                state.relationship_cache.update(fresh)
+                state.relationship_cache.setdefault(_target, {}).update(fresh)
 
 
     def _apply_trait_decay(self, state: NPCState) -> None:
@@ -751,7 +828,9 @@ class StateApplicator:
                 f"[STATE_APPLICATOR] _apply_delta_to_raw ошибка для "
                 f"'{npc_dict.get('id', '?')}': {e}. Delta пропущена."
             )
+            logger.error(f"[STATE_APPLICATOR] EXCEPTION TYPE={type(e).__name__} ARGS={e.args}", exc_info=True)
             return
+        logger.debug(f"[APPLY_OK] npc={state.npc_id} domain={deltas.domain} bs_keys={list(state.body_state.keys())[:5] if state.body_state else 'EMPTY'}")
 
         # Проверка physiology после apply (ADR-105)
         if deltas.domain == DeltaDomain.PHYSIOLOGY:

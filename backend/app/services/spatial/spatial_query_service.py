@@ -65,7 +65,7 @@ class SpatialQueryService:
         ax, ay = local_a.get("x", 0.0), local_a.get("y", 0.0)
         bx, by = local_b.get("x", 0.0), local_b.get("y", 0.0)
         dist = euclidean_distance(pos_a, pos_b)
-        return is_line_of_sight_clear(dist, self._scene_state, ax, ay, bx, by)
+        return is_line_of_sight_clear(ax, ay, bx, by, self._scene_state)
 
     def cluster_relation(self, entity_a: str, entity_b: str) -> Optional[str]:
         """Отношение кластеров: 'same', 'adjacent', 'distant', None если данных нет."""

@@ -33,7 +33,7 @@ class IntentEventAdapter:
         }
 
         return EventDTO.create(
-            event_type="npc_spoke",
+            event_type="actor_attacks" if getattr(intent, 'intent_type', '') == "attack" else "npc_spoke",
             source=intent.speaker,
             payload={
                 "npc_id": intent.speaker,

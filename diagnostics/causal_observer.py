@@ -149,6 +149,27 @@ class CausalObserver:
                 self._movement_checker.on_state_applied(m.group(1), float(m.group(2)), m.group(3))
                 return
 
+            # --- Pipeline pre-bus failures (Инвариант 3: Наблюдаемость отказа) ---
+            if COMPILED["pipeline_critical"].search(line):
+                self._tick_checker.on_pipeline_critical()
+                return
+
+            if COMPILED["causality_crash"].search(line):
+                self._tick_checker.on_causality_crash()
+                return
+
+            if COMPILED["phase8_crash"].search(line):
+                self._tick_checker.on_phase8_crash()
+                return
+
+            if COMPILED["tick_orch_error"].search(line):
+                self._tick_checker.on_tick_orch_error()
+                return
+
+            if COMPILED["affect_decay_fail"].search(line):
+                self._tick_checker.on_affect_decay_fail()
+                return
+
             # --- LLM health ---
             if COMPILED["llm_call"].search(line):
                 self._tick_checker.on_llm_call()

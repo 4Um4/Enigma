@@ -37,7 +37,7 @@ from app.domain.constants import ACTION_INTENSITY
 from app.domain.events import EventDTO
 from app.models.phase8 import Phase8Context, Phase8Result
 from app.models.state_delta import DeltaDomain, StateDeltas
-from app.models.delta_payloads import EmotionPayload, PhysiologyPayload, SocialPayload
+from app.models.delta_payloads import EmotionPayload, PerceptionPayload, PhysiologyPayload, SocialPayload
 from app.services.events.event_bus import EventBus
 from app.services.events.event_types import EventType
 
@@ -175,7 +175,10 @@ class ReactionSubscriber:
         PerceptionSubscriber) или fallback на всех NPC.
         """
         if not events:
+            logger.warning(f"[REACTION_SUB] handle() called with 0 events — no emotional reactions this tick")
             return Phase8Result()
+        
+        logger.warning(f"[REACTION_SUB] handle() called with {len(events)} events types={[getattr(e, 'type', '?') for e in events[:3]]}")
 
         # Извлекаем физический шок из материализованного Physical Layer (t)
         shock_by_npc: dict[str, float] = {}
@@ -188,7 +191,9 @@ class ReactionSubscriber:
         # Определяем реагирующих NPC
         perceiving_ids = self._get_perceiving_ids(ctx)
         if not perceiving_ids:
+            logger.warning(f"[REACTION_SUB] perceiving_ids EMPTY — no NPC to react. all_npcs_raw={len(ctx.all_npcs_raw) if ctx.all_npcs_raw else 0}")
             return Phase8Result()
+        logger.warning(f"[REACTION_SUB] perceiving_ids count={len(perceiving_ids)} ids={list(perceiving_ids)[:5]}")
 
         # Строим dict npc_id → npc_dict для быстрого доступа
         npc_by_id: dict[str, dict] = {}
@@ -244,10 +249,37 @@ class ReactionSubscriber:
                     fear_delta += round(shock * 15.0 * modifier, 2)
                     if shock > 0.5:
                         emotion_tag = "panic"
+                
+                # ADR-116: Эмоция из уровня стресса (не только из shock)
+                # Без этого emotion_tag=None при attack без combat → state.emotion=NEUTRAL → _emotion_modifier()=0.0
+                if emotion_tag is None and stress_delta > 0:
+                    if stress_delta >= 15.0:
+                        emotion_tag = "fear"
+                    elif stress_delta >= 8.0:
+                        emotion_tag = "anxious"
 
                 # Пропускаем нулевые дельты
                 if stress_delta == 0.0 and fear_delta == 0.0 and trust_delta == 0.0:
                     continue
+
+                # ADR-123: Combat → Perception мост. Свидетели насилия получают threat_gradient_delta.
+                # Без этого PerceptualKernel.threat_gradient = 0.0 после боя → fear=0.0.
+                # Боль — это физиология. Угроза — это восприятие. Они независимы.
+                _threat_delta = 0.0
+                if shock > 0.0:
+                    _threat_delta = min(0.5, shock * 2.0)  # Шок от удара → угроза
+                elif rule_key in ("player_attacked", "player_attack", "combat"):
+                    _threat_delta = 0.3 * intensity  # Свидетельство насилия → угроза
+                
+                if _threat_delta > 0.0:
+                    deltas.append(StateDeltas(
+                        npc_id=npc_id,
+                        domain=DeltaDomain.PERCEPTION,
+                        payload=PerceptionPayload(
+                            threat_gradient_delta=round(_threat_delta, 3),
+                        ),
+                        source="reaction_perception",
+                    ))
 
                 # v2: Разделяем на EMOTION (stress) и SOCIAL (trust, fear)
                 try:
@@ -288,11 +320,16 @@ class ReactionSubscriber:
                     )
 
         if deltas:
-            logger.debug(
+            # ADR-116: Диагностика — какие дельты и emotion_tag генерируются
+            _emo_deltas = [d for d in deltas if d.domain == DeltaDomain.EMOTION]
+            _emo_tags = [getattr(d.payload, 'emotion_tag', None) for d in _emo_deltas]
+            logger.warning(
                 f"[REACTION_SUB] {len(events)} events, "
                 f"{len(perceiving_ids)} perceivers, "
-                f"{len(deltas)} deltas"
+                f"{len(deltas)} deltas, emotion_deltas={len(_emo_deltas)}, tags={_emo_tags}"
             )
+        else:
+            logger.warning(f"[REACTION_SUB] 0 deltas from {len(events)} events, {len(perceiving_ids)} perceivers, rule_key={events[0].type.lower() if events else 'NONE'}")
 
         return Phase8Result(
             deltas=deltas,
@@ -310,9 +347,9 @@ class ReactionSubscriber:
             perceiving_list = getattr(
                 ctx.shared_context, "perceiving_npcs", None
             )
-            # None = не установлен → fallback; [] = никто не увидел → пусто
+            # §ENIGMA-003: [] ≠ None. [] = валидная проекция "никто не увидел". None = сбой сбора.
             if perceiving_list is not None:
-                return set(perceiving_list)
+                return set(perceiving_list) # Пустой список вернёт пустой set()
 
         # Fallback: все NPC из all_npcs_raw
         return {

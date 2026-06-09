@@ -1,0 +1,93 @@
+domain: STATE
+description: "Персистентность и контекст: абстрактный порт, SQLite/JSON адаптеры, context builder. Runtime truth = SQLite."
+
+nodes:
+  PersistencePort:
+    type: interface
+    layer: Domain
+    label: "Persistence Port (ABC)"
+    description: "Абстракция: save_scene, load_scene, save_npcs, atomic_commit. Реализации: SQLite, JSON."
+    code_ref: "state/persistence_port.py"
+  SqlitePersistenceAdapter:
+    type: service
+    layer: Infrastructure
+    label: "SQLite Persistence Adapter"
+    description: "Key-value JSON blob в state_kv. json.dumps с default handler для set. Runtime truth."
+    code_ref: "state/sqlite_persistence_adapter.py"
+  JsonPersistenceAdapter:
+    type: service
+    layer: Infrastructure
+    label: "JSON Persistence Adapter (Legacy)"
+    description: "Файловая персистентность. Fallback когда SQLite недоступен."
+    code_ref: "state/json_persistence_adapter.py"
+  ContextBuilder:
+    type: service
+    layer: Application
+    label: "Context Builder"
+    description: "build_context: scene_state → TickContext. get_npc_context: фильтрация по npc_id."
+    code_ref: "state/context_builder.py"
+
+edges:
+  - from: PersistencePort
+    to: SqlitePersistenceAdapter
+    label: "primary implementation"
+    condition: "Default. Atomic commit. Runtime truth (Устав §4.2.1)."
+    code_ref: "state/sqlite_persistence_adapter.py"
+  - from: PersistencePort
+    to: JsonPersistenceAdapter
+    label: "fallback implementation"
+    condition: "Legacy. No transactions = data corruption risk (Устав §4.2.3)."
+    code_ref: "state/json_persistence_adapter.py"
+  - from: StateApplicator
+    to: PersistencePort
+    label: "atomic_commit(campaign_id, scene_state, npc_dicts)"
+    condition: "End of tick. All or nothing (Устав §4.2.1)."
+    code_ref: "npc/state_applicator.py"
+  - from: ContextBuilder
+    to: TickOrchestrator
+    label: "build_context → TickContext"
+    condition: "Every tick start"
+    code_ref: "state/context_builder.py"
+
+constraints:
+  - source: JsonPersistenceAdapter
+    target: RuntimeTruth
+    rule: "FORBIDDEN: JSON as runtime truth (Устав §4.2.2)"
+    condition: "JSON = fallback/snapshot. No transactions = data corruption. SQLite is primary."
+    code_ref: "Устав §4.2.2"
+    severity: CRITICAL
+  - source: StateApplicator
+    target: PersistencePort
+    rule: "REQUIRED: atomic_commit for all saves (Устав §4.2.1)"
+    condition: "Three separate JSON files = desync bug. Must commit atomically."
+    code_ref: "Устав §4.2.1"
+    severity: CRITICAL
+  - source: SqlitePersistenceAdapter
+    target: JSON
+    rule: "REQUIRED: json.dumps with default handler for set (ADR-117)"
+    condition: "Python set types must be serialized. Without handler = TypeError."
+    code_ref: "sqlite_persistence_adapter.py:76"
+    adr_ref: "ADR-117"
+    severity: HIGH
+  - source: NPCLoader
+    target: NPCState
+    rule: "REQUIRED: _apply_runtime_overlay must include affective_load, emotion, emotion_delta, body_state, perceptual_kernel, narrative_cache in whitelist (Invariant 1, ADR-118)"
+    condition: "Without these keys in _RUNTIME_TOP_LEVEL_KEYS, computed state is overwritten by static config on every disk read → DOUBLE TRUTH"
+    code_ref: "npc/npc_loader.py:_RUNTIME_TOP_LEVEL_KEYS"
+    adr_ref: "ADR-118"
+    severity: CRITICAL
+  - source: GameLoop
+    target: LifeEngine
+    rule: "REQUIRED: engine.update_cache() after load_npcs_merged() — prevent re-reading disk every player turn (Invariant 1, ADR-118)"
+    condition: "Without cache priming, every player turn reads static YAML from disk and overwrites computed affective_load/emotion/body_state"
+    code_ref: "game_loop/__init__.py:_load_npcs_with_runtime"
+    adr_ref: "ADR-118"
+    severity: CRITICAL
+
+ownership:
+  PersistenceState:
+    owner: "SqlitePersistenceAdapter (primary)"
+    creates: "atomic_commit"
+    modifies: "atomic_commit (overwrite)"
+    reads: "load_scene, load_npc_runtime"
+    constraint: "SQLite = runtime truth. JSON = legacy/fallback. Single writer."

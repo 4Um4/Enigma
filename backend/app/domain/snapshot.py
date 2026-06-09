@@ -19,6 +19,7 @@ class PhysicalPresentationState(str, Enum):
     BLEEDING = "bleeding"
     CRIPPLED = "crippled"
     DYING = "dying"
+    DEAD = "dead"  # ADR-127: Необратимая смерть
 
 
 class MentalPresentationState(str, Enum):
@@ -50,6 +51,7 @@ class AvatarStateDTO:
     blood_visibility: float = 0.0        # 0.0-1.0, кровь на экране/персонаже
     breathing_profile: str = "calm"      # calm, heavy, gasping, hyperventilating
     posture_state: str = "upright"       # upright, hunched, collapsed
+    life_status: str = "ALIVE"           # ADR-127: "ALIVE" или "DEAD" — feedback смерти для фронтенда
     # ADR-039: Embodied Will Friction
     will_resistance: float = 0.0        # Сила сопротивления (0.0 - 1.0)
     embodied_vector: Optional[str] = None # Моторный импульс (AVOIDANCE, FREEZE)
@@ -153,7 +155,7 @@ class WorldSnapshotDTO:
     time_of_day: str
     visible_events: List[VisibleEventDTO] = field(default_factory=list)
     game_time_seconds: int = 0
-    active_traversals: List[Dict] = field(default_factory=list) # ADR-019
+    active_traversals: Dict[str, Dict] = field(default_factory=dict) # ADR-019, CEI-2: Dict[npc_id, data] — синхронно с scene_state
     avatar_state: Optional[AvatarStateDTO] = None # ADR-035: Феноменологическая проекция
     ambient_phenomenology: Optional[Dict[str, float]] = None # ADR-037: Средовое давление (температура, плотность)
     player_perception: Optional[PlayerPerceptionDTO] = None # ТЗ EMBODIED UI: Симметричная онтология восприятия

@@ -5,6 +5,18 @@ nodes:
     type: service
     layer: Application
     label: "Causal Observer (CDS)"
+  TickHealthChecker:
+    type: service
+    layer: Application
+    label: "Tick Health Checker"
+  PatternRegistry:
+    type: service
+    layer: Application
+    label: "Pattern Registry (Compiled Regex)"
+  DNAComputer:
+    type: service
+    layer: Application
+    label: "DNA Metrics Computer"
   DeterministicClock:
     type: domain
     layer: Domain
@@ -40,6 +52,26 @@ edges:
     label: "writes traces"
     condition: "Passive, try/except isolated"
     code_ref: "causal_observer.py"
+  - from: CausalObserver
+    to: TickHealthChecker
+    label: "dispatches parsed events"
+    condition: "Pattern match from registry"
+    code_ref: "causal_observer.py:_dispatch"
+  - from: PatternRegistry
+    to: CausalObserver
+    label: "provides compiled patterns"
+    condition: "COMPILED dict at init"
+    code_ref: "pattern_registry.py"
+  - from: TickHealthChecker
+    to: DNAComputer
+    label: "provides TickHealthReport"
+    condition: "After log parsing complete"
+    code_ref: "dna_metrics.py"
+  - from: DNAComputer
+    to: CausalTrace
+    label: "writes DNA snapshot + PFI"
+    condition: "After session end"
+    code_ref: "dna_metrics.py"
 constraints:
   - source: CausalObserver
     target: Runtime_State
@@ -49,3 +81,11 @@ constraints:
     target: Pipeline
     rule: "FORBIDDEN: Interrupt causal flow on crash"
     code_ref: "Устав §11.2"
+  - source: TickOrchestrator
+    target: CausalObserver
+    rule: "REQUIRED: Log pre-bus failures as [PIPELINE][CRITICAL], [PHASE8_CRASH], [AFFECT_DECAY] — CDS must see pipeline crashes (Invariant 3, ADR-120)"
+    code_ref: "tick_orchestrator.py"
+  - source: TickHealthChecker
+    target: DNAComputer
+    rule: "REQUIRED: Report prebus_failures and affect_decay_fails in DNASnapshot — PFI metric (Invariant 3, ADR-120)"
+    code_ref: "dna_metrics.py"

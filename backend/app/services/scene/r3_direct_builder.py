@@ -98,13 +98,40 @@ def build_r3_dm_frame(
         if ctx.get("verbalization_ctx") and ctx["verbalization_ctx"].topic
     }
 
-    # Строим SceneOutcome → DMFrame (с психологической проекцией)
+    # ADR-131: Извлекаем affective_load из NPC state для трёхосевой модели
+    _npc_affective_loads = {}
+    for _nid, _state in _state_snapshots.items():
+        if isinstance(_state, dict):
+            _load = _state.get("affective_load")
+            if _load is not None:
+                try:
+                    _npc_affective_loads[_nid] = float(_load)
+                except (TypeError, ValueError):
+                    pass
+    
+    # ADR-131: Извлекаем coherence из avatar state (если доступен)
+    _avatar_coherence = 1.0  # дефолт — ясный ум
+    _player_state = shared_context.player_state or {}
+    if isinstance(_player_state, dict):
+        for _pname, _pdata in _player_state.items():
+            if isinstance(_pdata, dict):
+                _coh = _pdata.get("cognitive_coherence")
+                if _coh is not None:
+                    try:
+                        _avatar_coherence = float(_coh)
+                    except (TypeError, ValueError):
+                        pass
+                break  # берём первого игрока
+    
+    # Строим SceneOutcome → DMFrame (с психологической проекцией + ADR-131 трёхосевая модель)
     _scene = _builder.build(
         _decisions, _scene_ctx,
         state_snapshots=_state_snapshots,
         distortion_biases=_distortion_biases,
         npc_profiles=_npc_profiles,
         topics=_npc_topics,
+        npc_affective_loads=_npc_affective_loads,
+        avatar_coherence=_avatar_coherence,
     )
 
     # Диагностика ProjectionLayer + DecisionHub

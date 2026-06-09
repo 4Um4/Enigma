@@ -1,0 +1,182 @@
+domain: ECONOMY
+description: "Экономика NPC: потребности, торговля, психо-экономика. Стресс от нужды, транзакции, рынок."
+
+nodes:
+  EconomyTracker:
+    type: service
+    layer: Application
+    label: "Economy Tracker"
+    description: "Отслеживает доход, разговоры, дневные нужды. Сброс дня. Пишет в DecisionHub контекст."
+    code_ref: "economy/economy_tracker.py"
+  NeedEngine:
+    type: service
+    layer: Domain
+    label: "Need Engine"
+    description: "Тикает потребности NPC. DriveType → NeedDrive. Авто-удовлетворение, wealth_stress, obligation_stress."
+    code_ref: "economy/need_engine.py"
+  PsychoEconomy:
+    type: service
+    layer: Domain
+    label: "Psycho Economy"
+    description: "Психологический профиль экономики: decay_modifier, savings_tendency, risk_tolerance, consumption_frequency."
+    code_ref: "economy/psycho_economy.py"
+  TradeResolver:
+    type: service
+    layer: Application
+    label: "Trade Resolver"
+    description: "Резолвит торговлю: determine_needed_good → find_seller → calculate_price → execute."
+    code_ref: "economy/trade_resolver.py"
+  TransactionEngine:
+    type: service
+    layer: Domain
+    label: "Transaction Engine"
+    description: "Исполнение транзакций: execute_sale, execute_employment, process_contract_payments. Atomic."
+    code_ref: "economy/transaction_engine.py"
+  MarketState:
+    type: dto
+    layer: Domain
+    label: "Market State"
+    description: "Фаза рынка (BOOM/STABLE/RECESSION/CRASH). visit_probability, demand_bias."
+    code_ref: "economy/market_state.py"
+  OpportunityEngine:
+    type: service
+    layer: Domain
+    label: "Opportunity Engine"
+    description: "Вычисляет экономические возможности на основе контекста."
+    code_ref: "economy/opportunity_engine.py"
+  EconomicModifier:
+    type: service
+    layer: Domain
+    label: "Economic Modifier"
+    description: "Модификаторы цен от wealth профиля. to_dict для DeltaBuffer."
+    code_ref: "economy/economic_modifier.py"
+  StressCalculator:
+    type: service
+    layer: Domain
+    label: "Stress Calculator"
+    description: "calculate_economic_stress: потребности → стресс для DecisionHub."
+    code_ref: "economy/stress_calculator.py"
+  TravellerGenerator:
+    type: service
+    layer: Domain
+    label: "Traveller Generator"
+    description: "Генерирует путешественников: maybe_generate → TravellerVisit (visit_type, buy_cost)."
+    code_ref: "economy/traveller.py"
+  ProfileFactory:
+    type: service
+    layer: Domain
+    label: "Profile Factory"
+    description: "create_profile_from_npc: npc_dict → EconomicProfile."
+    code_ref: "economy/profile_factory.py"
+
+edges:
+  - from: NeedEngine
+    to: StressCalculator
+    label: "need stress → economic_stress"
+    condition: "get_wealth_stress + get_obligation_stress → calculate_economic_stress"
+    code_ref: "economy/stress_calculator.py"
+  - from: StressCalculator
+    to: DecisionHub
+    label: "economic_stress → utility modifier"
+    condition: "Phase 5: economic stress deforms utility (buy vs talk vs work)"
+    code_ref: "npc/decision_hub.py"
+  - from: TradeResolver
+    to: TransactionEngine
+    label: "resolve_tick → execute_sale/employment"
+    condition: "Determine good → find seller → calculate price → execute"
+    code_ref: "economy/trade_resolver.py"
+  - from: MarketState
+    to: TradeResolver
+    label: "market phase → price modifier"
+    condition: "CRASH = high prices, BOOM = low prices"
+    code_ref: "economy/market_state.py"
+  - from: PsychoEconomy
+    to: NeedEngine
+    label: "decay_modifier + consumption_frequency"
+    condition: "Personality shapes how fast needs decay and how often NPC consumes"
+    code_ref: "economy/psycho_economy.py"
+  - from: ProfileFactory
+    to: NeedEngine
+    label: "EconomicProfile → need calculation"
+    condition: "From npc_dict to structured profile"
+    code_ref: "economy/profile_factory.py"
+  - from: EconomyTracker
+    to: DecisionHub
+    label: "ticks_since_talk + daily_income → context"
+    condition: "Phase 4-5: economic context for decision"
+    code_ref: "economy/economy_tracker.py"
+  - from: OpportunityEngine
+    to: DecisionHub
+    label: "opportunity result → action option"
+    condition: "Phase 5: economic opportunity adds to action space"
+    code_ref: "economy/opportunity_engine.py"
+  - from: TravellerGenerator
+    to: TradeResolver
+    label: "traveller visit → trade opportunity"
+    condition: "maybe_generate on tick → new buyer/seller"
+    code_ref: "economy/traveller.py"
+  - from: EconomicModifier
+    to: TradeResolver
+    label: "wealth modifier → price adjustment"
+    condition: "calculate(profile) → price modification"
+    code_ref: "economy/economic_modifier.py"
+  - from: TransactionEngine
+    to: DeltaBuffer
+    label: "transaction result → state delta"
+    condition: "Money transfer = state mutation via DeltaBuffer"
+    code_ref: "economy/transaction_engine.py"
+
+constraints:
+  - source: TransactionEngine
+    target: NPCState
+    rule: "FORBIDDEN: Direct mutation of NPC money"
+    condition: "All money transfers MUST go through DeltaBuffer (Устав §4.1.2 analogue)"
+    severity: HIGH
+  - source: NeedEngine
+    target: DecisionHub
+    rule: "REQUIRED: Critical needs MUST influence decision"
+    condition: "is_critical() → must generate pressure on DecisionHub. Starving NPC cannot ignore food."
+    severity: HIGH
+
+ownership:
+  EconomicProfile:
+    owner: "ProfileFactory"
+    creates: "create_profile_from_npc"
+    modifies: "N/A (immutable per tick)"
+    reads: "NeedEngine, TradeResolver, EconomicModifier"
+    constraint: "Per-NPC. Created fresh each tick from npc_dict."
+  NeedState:
+    owner: "NeedEngine"
+    creates: "NeedEngine.tick()"
+    modifies: "NeedEngine (auto_satisfy, stress accumulation)"
+    reads: "StressCalculator, DecisionHub"
+    constraint: "Per-NPC, per-tick. Not persisted directly — recalculated from profile."
+  MarketState:
+    owner: "MarketState (self-managed)"
+    creates: "RandomMarketState.__init__"
+    modifies: "MarketState.tick()"
+    reads: "TradeResolver, TravellerGenerator"
+    constraint: "Global. Single instance per campaign. Phase transitions are stochastic."
+
+sequences:
+  - title: "Economy Tick Flow (Phase 2)"
+    participants: [NeedEngine, StressCalculator, MarketState, TravellerGenerator, TradeResolver, TransactionEngine, DeltaBuffer]
+    steps:
+      - from: NeedEngine
+        to: StressCalculator
+        message: "1. wealth_stress + obligation_stress"
+      - from: StressCalculator
+        to: DecisionHub
+        message: "2. economic_stress → utility modifier"
+      - from: MarketState
+        to: TradeResolver
+        message: "3. market phase → price context"
+      - from: TravellerGenerator
+        to: TradeResolver
+        message: "4. maybe_generate visitor"
+      - from: TradeResolver
+        to: TransactionEngine
+        message: "5. resolve_tick → execute transactions"
+      - from: TransactionEngine
+        to: DeltaBuffer
+        message: "6. Money deltas"
