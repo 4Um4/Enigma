@@ -141,28 +141,24 @@ class MemoryManager:
                 emotion_tag=emotion_tag,
             )
 
-        # 3. Decay rate: негативные эмоции "прилипают"
-        _EMOTION_DECAY_RATE: dict[str, float] = {
-            "angry": 0.03, "fearful": 0.03, "disgusted": 0.03,
-            "grateful": 0.07, "happy": 0.07,
-        }
-        decay_rate = _EMOTION_DECAY_RATE.get(emotion_tag, 0.05)
+        # ADR-O-206: Causal Purity. Decay rate определяется важностью (функцией ошибки модели),
+        # а не оракулом EmotionTag. Чем важнее событие (больше ошибка), тем медленнее забывается.
         if importance >= 0.90:
-            decay_rate = 0.005
+            decay_rate = 0.005  # Структурный шок
+        elif importance > 0.6:
+            decay_rate = 0.03   # Значимая коррекция модели
+        else:
+            decay_rate = 0.05   # Предсказуемое событие
 
         # Этап 6: обязательства забываются медленнее (×0.4 от базового)
         _contract_tag_pending = payload.get("contract_tag", "")
         if _contract_tag_pending in CONTRACT_TAGS:
             decay_rate *= 0.4
 
-        # 4. Генерация тегов: механика + семантика + эмоция
-        _tags: list[str] = [event.type]  # механический тип сохраняем для совместимости
-        if emotion_tag in ("angry", "fearful", "disgusted"):
-            _tags.append("negative")
-        elif emotion_tag in ("grateful", "happy"):
-            _tags.append("positive")
-        else:
-            _tags.append("neutral")
+        # ADR-O-206: Causal Purity. Удаляем наивную классификацию на основе EmotionTag.
+        # Семантическую окраску (угроза/социум/аномалия) определяет EventSemanticTagger ниже.
+        # Оставляем только базовый механический тег.
+        _tags: list[str] = [event.type]  
 
         # R8: EventSemanticTagger — социальный смысл события (изолирован от downstream)
         from app.services.memory.event_semantic_tagger import EventSemanticTagger
@@ -273,12 +269,15 @@ class MemoryManager:
     def get_recent_speech_all_npcs(self, campaign_id: str, limit: int = 5) -> List[str]:
         """Собирает последние реплики из всех NPC-сессий кампании для DM."""
         lines: List[str] = []
+        _session_count = 0
         for key, session in self._dialogue_sessions.items():
             if not key.startswith(f"{campaign_id}:"):
                 continue
+            _session_count += 1
             for turn in session.buffer:
                 speaker = "Игрок" if turn.speaker == "player" else turn.speaker
                 lines.append(f"{speaker}: {turn.text}")
+        print(f"[STM_READ] campaign={campaign_id} sessions={_session_count} total_turns={len(lines)} keys={list(self._dialogue_sessions.keys())}")
         return lines[-limit:]
 
     def get_dialogue_pressure(self, campaign_id: str, npc_id: str) -> int:

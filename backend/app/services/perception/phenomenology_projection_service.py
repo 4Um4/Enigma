@@ -52,6 +52,35 @@ class PhenomenologyProjectionService:
             if _act_int > 0.6:
                 cues.append({"npc_id": trace.npc_id, "cue_key": "STAGGERED"})
         
+        # ADR-MANIFEST: Наблюдаемые физические проявления (НЕ эмоции!)
+        # Multi-manifest: NPC может быть одновременно напряжён И неуверен
+        # Цвет = тип физики, не значение
+        manifestations = {}
+        for trace in traces:
+            _nid = trace.npc_id
+            _rigid = getattr(trace, 'posture_rigidity', 0.0)
+            _instab = getattr(trace, 'locomotion_instability', 0.0)
+            _mpd = getattr(trace, 'micro_pause_density', 0.0)
+            _act_int = getattr(trace, 'action_interruption', 0.0)
+            _frozen = getattr(trace, 'is_frozen', False)
+            
+            _tags = []
+            if _frozen or _rigid > 0.7:
+                _tags.append("MANIFEST_RIGID")      # оцепенение — застывание тела
+            if _rigid > 0.4 and not (_frozen or _rigid > 0.7):
+                _tags.append("MANIFEST_TENSE")      # напряжение — мышечный тонус
+            if _instab > 0.5:
+                _tags.append("MANIFEST_UNSTABLE")   # неуверенность — потеря координации
+            if _mpd > 0.5:
+                _tags.append("MANIFEST_RESTLESS")   # суетливость — избыточная моторика
+            if _act_int > 0.6:
+                _tags.append("MANIFEST_ALERT")      # реактивность — резкая смена действия
+            if _rigid > 0.4 and _instab > 0.4:
+                _tags.append("MANIFEST_SUFFERING")  # деградация — боль+шаткость
+            
+            if _tags:
+                manifestations[_nid] = _tags
+
         # Атмосфера локации (Rule X: из наблюдаемых моторных следов, НЕ из эмоций)
         # Считаем долю NPC с видимыми моторными симптомами
         npc_positions = scene_state.get("npc_positions", {})
@@ -76,5 +105,6 @@ class PhenomenologyProjectionService:
             active_perceptions=cues,
             atmosphere_key=atm_key,
             atmosphere_intensity=atm_intensity,
-            embodied_traces=[t.__dict__ if hasattr(t, '__dict__') else dict(t) for t in traces]
+            embodied_traces=[t.__dict__ if hasattr(t, '__dict__') else dict(t) for t in traces],
+            manifestations=manifestations,
         )

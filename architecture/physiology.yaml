@@ -1,5 +1,5 @@
 domain: PHYSIOLOGY
-description: "Физиология и бой. Тело — инерционная система. Каскад: Сила → Боль → Шок → Эмоция."
+description: "Физиология и бой. Тело — инерционная система. Каскад: Сила → Боль → Шок → Эмоция. Идентичность модулирует восприятие."
 nodes:
   ImpactEngine:
     type: service
@@ -14,6 +14,18 @@ nodes:
     type: dto
     layer: Domain
     label: "PhysiologyPayload (pain, blood_loss, shock_impulse)"
+  BodyState:
+    type: domain
+    layer: Domain
+    label: "Body State (Physiology Container)"
+    description: "Runtime truth of NPC physiology. pain/fatigue 0-100, blood_loss/shock 0-1, life_status ALIVE/DEAD, injuries list. SSOT for physical reality."
+  BODY_STATE_DISABLED:
+    type: domain
+    layer: Domain
+    label: "BODY_STATE_DISABLED (Sentinel)"
+    description: "ADR-O-139: Константа sentinel. Используется когда body_state отсутствует в NPC dict. Значения: disabled=True, shock=1.0, pain=100.0, blood_loss=1.0, consciousness=0.0. Инертная материя, не логический призрак (§ENIGMA-003)."
+    code_ref: "models/npc_state.py"
+    adr_ref: "ADR-O-139"
   DecayHandler:
     type: service
     layer: Domain
@@ -22,14 +34,14 @@ nodes:
     type: service
     layer: Domain
     label: "Injury Processor (Injury → Physiology Bridge)"
-    description: "Phase 0.5: читает injuries_by_zone, выводит blood_loss_delta из свойств ран (зона, тип, глубина). Не читает строковые флаги. IdleTickHandler."
+    description: "Phase 0.5: читает injuries_by_zone, выводит blood_loss_delta и pain_delta из свойств ран (зона, тип, глубина). Не читает строковые флаги. Компенсирует экспоненциальное затухание PhysiologyDecayHandler (ADR-141)."
     code_ref: "combat/injury_processor.py"
-    adr_ref: "ADR-123"
+    adr_ref: "ADR-123, ADR-141"
   VitalStateEvaluator:
     type: service
     layer: Domain
     label: "Vital State Evaluator (BodyState → LifeStatus)"
-    description: "Pure function. ЕДИНСТВЕННЫЙ владелец решения о жизни/смерти. Три оси: evaluate_vital_state(), is_conscious(), is_capable(). DEATH LOCK (ADR-127): если life_status==DEAD — возвращает DEAD немедленно (первая проверка). Два пути смерти: blood_loss≥0.9 и structural≥1.5."
+    description: "Pure function. ЕДИНСТВЕННЫЙ владелец решения о жизни/смерти. Три оси: evaluate_vital_state(), is_conscious(), is_capable(). DEATH LOCK (ADR-127): если life_status==DEAD — возвращает DEAD немедленно."
     code_ref: "domain/vital_state.py"
     adr_ref: "ADR-123, ADR-127"
   LifeStatus:
@@ -50,9 +62,9 @@ nodes:
     type: service
     layer: Application
     label: "Pressure Translator (Somatic Veto)"
-    description: "Translates PerceptualKernel + body_state into DecisionContext. NORMALIZES pain /100.0 (ADR-094 MSOC). Somatic Veto: pain>0.8 blocks FLEE, shock>0.7 blocks ATTACK, blood_loss>0.6 limits physical actions."
+    description: "Translates PerceptualKernel + body_state into DecisionContext. NORMALIZES pain /100.0 (ADR-094 MSOC). Somatic Veto: pain>0.8 blocks FLEE, shock>0.7 blocks ATTACK, blood_loss>0.6 limits physical actions. Full Veto for BODY_STATE_DISABLED."
     code_ref: "cfrm/pressure_translator.py"
-    adr_ref: "ADR-094, GAP3"
+    adr_ref: "ADR-094, GAP3, ADR-O-139"
   AvatarPresentationAssembler:
     type: service
     layer: Application
@@ -70,8 +82,9 @@ nodes:
   PerceptualKernel:
     type: dto
     layer: Domain
-    label: "Perceptual Kernel (threat/uncertainty/anomaly)"
-    description: "Raw perception signals. No psychology. threat_gradient is a FACT, not an emotion."
+    label: "Perceptual Kernel (threat/uncertainty/anomaly/somatic_urgency)"
+    description: "Raw perception signals + somatic urgency. No psychology. threat_gradient is a FACT, not an emotion. somatic_urgency = (pain_norm + shock_norm) / 2.0 — perceived bodily distress (ADR-O-143). Modulated by willpower in integrator."
+    adr_ref: "ADR-O-143"
   PressureDerivation:
     type: service
     layer: Domain
@@ -86,8 +99,9 @@ nodes:
     type: service
     layer: Domain
     label: "Affective Integrator (Time Integral)"
-    description: "Страх = интеграл угрозы по времени. incoming = tg*0.6 + unc*0.3 + anom*0.1. decay = 0.05 + willpower*0.1. clamped [0.0, 1.5]."
+    description: "Страх = интеграл угрозы по времени. target_load = threat*fear + uncertainty*control + anomaly*significance + somatic_urgency*(1-will*0.5). Somatic urgency modulated by willpower (ADR-O-143, §ENIGMA-S72). decay = 0.05 + willpower*0.1. clamped [0.0, 1.0]."
     code_ref: "affective/affective_integrator.py"
+    adr_ref: "ADR-138, ADR-O-143"
   EmotionTransition:
     type: service
     layer: Domain
@@ -114,9 +128,6 @@ nodes:
     description: "Читает shock_impulse из материализованных Physiology дельт. Генерирует страх/панику напрямую (без аккумулятора)."
     code_ref: "events/reaction_subscriber.py"
     constraint: "Generates EmotionPayload WITHOUT affective_load → _aggregate_deltas must handle None in merge (ADR-117)."
-    layer: Domain
-    label: "Affective Integrator (Time Integral)"
-    description: "Accumulates affective pressure over time. Fear = integral of threat over time."
   EmotionTag:
     type: dto
     layer: Domain
@@ -155,10 +166,10 @@ edges:
     adr_ref: "ADR-022, ADR-109"
   - from: InjuryProcessor
     to: DeltaBuffer
-    label: "injury-driven bleeding (Phase 0.5) — blood_loss_delta from wound properties"
-    condition: "bleeding_rate = structural_damage * zone_rate * damage_type_modifier. Zone rates: neck=0.035, chest=0.025, arm=0.012. Type mods: slash=1.5, blunt=0.15, burn=0.05."
+    label: "injury-driven bleeding + chronic pain (Phase 0.5)"
+    condition: "blood_loss_delta = structural_damage * zone_rate * type_modifier. pain_delta = structural_damage * zone_modifier * type_modifier (ADR-141). Compensates exponential decay."
     code_ref: "combat/injury_processor.py"
-    adr_ref: "ADR-123"
+    adr_ref: "ADR-123, ADR-141"
   - from: StateApplicator
     to: VitalStateEvaluator
     label: "evaluates body_state after PHYSIOLOGY domain"
@@ -228,10 +239,16 @@ edges:
     adr_ref: "ADR-094"
   - from: PerceptualKernel
     to: PressureDerivation
-    label: "threat_gradient + uncertainty + anomaly"
-    condition: "Primary perception signals — no psychology"
+    label: "threat_gradient + uncertainty + anomaly + somatic_urgency"
+    condition: "Primary perception signals — no psychology. Somatic urgency reflects bodily distress (ADR-O-143)."
     code_ref: "pressure_derivation.py:24-33"
-    adr_ref: "ADR-049"
+    adr_ref: "ADR-049, ADR-O-143"
+  - from: BodyState
+    to: PerceptualKernel
+    label: "somatic_urgency = (pain_norm + shock_norm) / 2.0"
+    condition: "ADR-O-143: Pain/shock bypass to psyche killed. Goes through PK lens instead. Modulated by willpower in AffectiveIntegrator."
+    code_ref: "perceptual_kernel.py, affective_integrator.py"
+    adr_ref: "ADR-O-143"
   - from: BodyState
     to: PressureDerivation
     label: "pain modulates threat; fatigue → sensory overload"
@@ -264,10 +281,10 @@ edges:
     adr_ref: "ADR-049"
   - from: PerceptualKernel
     to: AffectiveIntegrator
-    label: "threat_gradient * 0.6 + uncertainty * 0.3 + anomaly * 0.1"
-    condition: "Every tick (idle + player turn)"
+    label: "threat_gradient * 0.6 + uncertainty * 0.3 + anomaly * 0.1 + somatic_urgency * (1.0 - will*0.5)"
+    condition: "Every tick (idle + player turn). Somatic urgency modulated by willpower (ADR-O-143)."
     code_ref: "affective/affective_integrator.py:28-32"
-    adr_ref: "ADR-049, ADR-117"
+    adr_ref: "ADR-049, ADR-117, ADR-O-143"
   - from: AffectiveIntegrator
     to: EmotionTransition
     label: "new_load vs prev_load → threshold crossing?"
@@ -294,6 +311,13 @@ edges:
     code_ref: "npc_state.py:635-800"
     adr_ref: "ADR-115, ADR-116, ADR-117"
     constraint: "MUST round-trip: npc_id, body_state, perceptual_kernel, emotion, emotion_delta. Missing ANY = silent reset to default. relationship_cache and affective_load are NOT serialized (ADR-121/122)."
+  - from: TickOrchestrator
+    to: BODY_STATE_DISABLED
+    label: "injects sentinel for NPC without body_state (Normalization Gate)"
+    condition: "ADR-O-139: Before use in DirectiveInterpretationSubscriber and PressureTranslator. No body_state = inert matter."
+    code_ref: "tick_orchestrator.py"
+    adr_ref: "ADR-O-139"
+    edge_type: dotted
 constraints:
   - source: CombatSubscriber
     target: Emotion
@@ -328,7 +352,7 @@ constraints:
   - source: NPCStateAdapter
     target: PerceptualKernel
     rule: "FORBIDDEN: from_legacy/write_to_legacy without perceptual_kernel (ADR-115). relationship_cache and affective_load MUST NOT be serialized (ADR-121/122)."
-    condition: "PerceptualKernel (10 fields) must be serialized/deserialized or DOUBLE TRUTH. relationship_cache is read-only projection from RelationshipStore (SSOT). affective_load is derived from PerceptualKernel + BodyState in StateApplicator."
+    condition: "PerceptualKernel (11 fields, incl. somatic_urgency ADR-O-143) must be serialized/deserialized or DOUBLE TRUTH. relationship_cache is read-only projection from RelationshipStore (SSOT). affective_load is derived from PerceptualKernel + BodyState in StateApplicator."
     code_ref: "npc_state.py:680-695, _pk_from_dict()"
     adr_ref: "ADR-115"
     severity: CRITICAL
@@ -516,22 +540,51 @@ constraints:
   - source: AvatarStateDTO
     target: life_status
     rule: "REQUIRED: AvatarStateDTO MUST contain life_status field (Rule 81, ADR-137)"
-    condition: "Without life_status in AvatarStateDTO, frontend cannot detect player death. Assembler reads body_state['life_status'] and passes through. DEAD override zeros ALL projections: stability=0.0, coherence=0.0, noise=1.0, motor=1.0, posture=collapsed, breathing=none."
+    condition: "Without life_status in AvatarStateDTO, frontend cannot detect player death. Assembler reads body_state['life_status'] and passes through. DEAD override zeros ALL projections: stability=0.0, coherence=0.0, noise=1.0, motor=1.0, posture=collapsed,breathing=none."
     code_ref: "snapshot.py:34-56, avatar_presentation_assembler.py:37-47"
     adr_ref: "ADR-137"
+    severity: HIGH
+  # --- NPIC & SOMATIC GATES ---
+  - source: Any
+    target: BodyState
+    rule: "REQUIRED: Inject BODY_STATE_DISABLED for NPC without body_state (ADR-O-139 NPIC)"
+    condition: "No body_state ≠ neutral state (§ENIGMA-003). Missing body = inert matter (disabled=True, shock=1.0). Fallback without sentinel creates logical ghosts."
+    code_ref: "tick_orchestrator.py"
+    adr_ref: "ADR-O-139"
+    severity: CRITICAL
+  - source: DirectiveInterpretationSubscriber
+    target: BodyState
+    rule: "FORBIDDEN: Shock > 0.7 check AFTER semantic parsing (ADR-O-139)"
+    condition: "Body determines availability of interpretation. Causal order: Body → Somatic Gate → Semantic Parsing → Legitimacy → Action."
+    code_ref: "directive_interpretation_subscriber.py"
+    adr_ref: "ADR-O-139"
+    severity: CRITICAL
+  - source: PerceptualKernel
+    target: Psyche
+    rule: "FORBIDDEN: Somatic Bypass (Injecting pain/shock directly into psyche dict) (ADR-O-143)"
+    condition: "Pain/shock MUST go through PerceptualKernel.somatic_urgency and be modulated by willpower in AffectiveIntegrator."
+    code_ref: "affective_integrator.py"
+    adr_ref: "ADR-O-143"
+    severity: CRITICAL
+  - source: InjuryProcessor
+    target: PainDelta
+    rule: "REQUIRED: InjuryProcessor MUST generate pain_delta alongside blood_loss_delta (ADR-141)"
+    condition: "Pain decay is exponential. Without pain_delta from wounds, chronic pain dries up, severing the Injury → Pain → EmbodiedTrace → DM narration pipeline."
+    code_ref: "injury_processor.py"
+    adr_ref: "ADR-141"
     severity: HIGH
 ownership:
   PerceptualKernel:
     owner: "CFRMSolver"
     creates: "CFRMSolver (from perception events)"
     modifies: "PerceptionPayload via DeltaBuffer"
-    reads: "PressureDerivation, DecisionHub"
-    layer: "State (raw signal)"
+    reads: "PressureDerivation, DecisionHub, AffectiveIntegrator"
+    layer: "State (raw signal + somatic_urgency)"
   BodyState:
     owner: "ImpactEngine"
     creates: "ImpactEngine (via PhysiologyPayload)"
     modifies: "StateApplicator (from DeltaBuffer)"
-    reads: "StateInterpreter, BehaviorManifestationService, DecisionHub, PressureDerivation"
+    reads: "StateInterpreter, BehaviorManifestationService, DecisionHub, PressureDerivation, PerceptualKernel (somatic_urgency)"
     layer: "State (raw signal)"
   AffectivePressureDTO:
     owner: "PressureDerivation"
@@ -579,17 +632,17 @@ ownership:
     owner: "StateApplicator (recomputation on delta apply)"
     creates: "Derived from active causes in StateApplicator"
     modifies: "NPCState.affective_load (recomputed, not accumulated)"
-    reads: "NPCState.perceptual_kernel (threat_gradient, uncertainty, anomaly_score), NPCState.body_state (pain, shock_impulse)"
+    reads: "NPCState.perceptual_kernel (threat_gradient, uncertainty, anomaly_score, somatic_urgency), NPCState.body_state (pain, shock_impulse)"
     layer: "State (derived property — NOT persisted)"
-    constraint: "DERIVED PROPERTY (ADR-122). Formula: min(1.0, threat*0.6 + uncertainty*0.3 + anomaly*0.1 + pain/100*0.3 + shock*0.4). Recomputed in StateApplicator when PerceptionPayload or PhysiologyPayload applied. NOT serialized in from_legacy/write_to_legacy. NOT carried in EmotionPayload as accumulator. PerceptualKernel decay (Gen 2, PhysiologyDecayHandler) or perceive_world (Gen 3, future) ensures affective_load naturally decreases when causes fade."
-    adr_ref: "ADR-122"
+    constraint: "DERIVED PROPERTY (ADR-122). Formula: min(1.0, threat*0.6 + uncertainty*0.3 + anomaly*0.1 + somatic_urgency*(1-will*0.5)). Recomputed in StateApplicator when PerceptionPayload or PhysiologyPayload applied. NOT serialized in from_legacy/write_to_legacy. PerceptualKernel decay ensures affective_load naturally decreases."
+    adr_ref: "ADR-122, ADR-O-143"
   EmotionPayload_affective_load:
     owner: "OBSOLETE — informational only (ADR-122)"
     creates: "AffectivePipeline or ReactionSubscriber (for logging)"
     modifies: "No state mutation. StateApplicator ignores this field for affective_load update."
     reads: "No runtime consumers for state mutation"
     layer: "DTO (informational trace)"
-    constraint: "affective_load in EmotionPayload is informational/diagnostic only. StateApplicator recomputes NPCState.affective_load from PerceptualKernel + BodyState, ignoring this payload field. Merge logic can still preserve field for observability but MUST NOT use it as source of truth for NPCState.affective_load."
+    constraint: "affective_load in EmotionPayload is informational/diagnostic only. StateApplicator recomputes NPCState.affective_load from PerceptualKernel + BodyState, ignoring this payload field."
     adr_ref: "ADR-122"
   LifeStatus:
     owner: "VitalStateEvaluator"
@@ -597,16 +650,16 @@ ownership:
     modifies: "StateApplicator writes body_state['life_status']. PhysiologyDecayHandler reads NPCStateSnapshot.life_status — skips DEAD."
     reads: "DecisionHub (guard), PhysiologyDecayHandler (skip DEAD), perception_filter (future), scene_state_manager (future)"
     layer: "State (derived property with irreversibility invariant)"
-    constraint: "SOLE AUTHORITY on life/death. No other module may declare NPC dead. DEATH LOCK (ADR-127): DEAD→ALIVE transition FORBIDDEN via normal physiology. Only RevivalSystem (not yet implemented) may reverse death. Transitional: only blood_loss and structural processes kill. Future: InjuryProcessor will spawn Process objects that modify body_state in multiple ways."
+    constraint: "SOLE AUTHORITY on life/death. DEATH LOCK (ADR-127): DEAD→ALIVE transition FORBIDDEN via normal physiology."
     adr_ref: "ADR-123, ADR-127"
   InjuryProcessor:
     owner: "InjuryProcessor (IdleTickHandler)"
-    creates: "PhysiologyPayload(blood_loss_delta) from wound properties"
+    creates: "PhysiologyPayload(blood_loss_delta, pain_delta) from wound properties"
     modifies: "DeltaBuffer (Phase 0.5)"
     reads: "NPCStateSnapshot.injuries_by_zone"
     layer: "Process (Injury → Physiology bridge)"
-    constraint: "Properties not flags. bleeding_rate = structural_damage * zone_rate * type_modifier. No string flag reads for logic."
-    adr_ref: "ADR-123"
+    constraint: "Properties not flags. bleeding_rate = structural_damage * zone_rate * type_modifier. pain_delta = structural_damage * zone_modifier * type_modifier. No string flag reads for logic."
+    adr_ref: "ADR-123, ADR-141"
   UrgencyLevel:
     owner: "StateInterpreter (overlaps EmotionTag owner)"
     creates: "StateInterpreter (from NPCState.stress)"
@@ -629,7 +682,6 @@ ownership:
       runtime_consumer: "none found — no agent or builder reads verbalization_ctx.emotion"
       current_status: "unresolved — dormant or dead, requires investigation"
       confidence: "60%"
-      note: "May be prepared for future verbalization layer. Do not delete until proven nobody SHOULD read it."
   VerbalizationContext_emotional_nuance:
     owner: "npc_tick_pipeline (sets from generate_emotional_nuance)"
     creates: "npc_tick_pipeline:236"
@@ -640,7 +692,6 @@ ownership:
       runtime_consumer: "none found — no agent or builder reads verbalization_ctx.emotional_nuance"
       current_status: "unresolved — dormant or dead, requires investigation"
       confidence: "60%"
-      note: "generate_emotional_nuance produces rich descriptions from EmotionTag. May be intended for future NPC speech pipeline. Do not delete until proven nobody SHOULD read it."
   EmbodiedTraceDTO:
     owner: "BehaviorManifestationService"
     creates: "BehaviorManifestationService (from body_state)"
@@ -660,7 +711,7 @@ ownership:
     modifies: "StateApplicator.apply_batch()"
     reads: "ALL body_state consumers"
     layer: "State (raw signal — scale contract)"
-    constraint: "CONTRACT: body_state['pain'] and body_state['fatigue'] stored in 0-100 scale (StateApplicator SSOT). blood_loss and shock_impulse stored in 0-1 scale. Consumers with 0-1 thresholds MUST normalize pain/fatigue /100.0. Verified normalizers: state_interpreter.py (L248), pressure_derivation.py (L24/L36), tick_orchestrator.py (L2235), avatar_presentation_assembler.py (L34-35), pressure_translator.py (L53). Verified 0-100 consumers (no normalization): behavior_manifestation_service.py (thresholds 10/20/50/80), vital_state.py (_PAIN_INCAPACITATED=70.0). FORBIDDEN: reading pain with 0-1 thresholds without /100.0 normalization (ADR-094 MSOC)."
+    constraint: "CONTRACT: body_state['pain'] and body_state['fatigue'] stored in 0-100 scale. blood_loss and shock_impulse stored in 0-1 scale. Consumers with 0-1 thresholds MUST normalize pain/fatigue /100.0. FORBIDDEN: reading pain with 0-1 thresholds without /100.0 normalization (ADR-094 MSOC)."
     adr_ref: "ADR-094"
   AvatarStateDTO_Ownership:
     owner: "AvatarPresentationAssembler"
@@ -668,7 +719,7 @@ ownership:
     modifies: "N/A (immutable frozen dataclass)"
     reads: "WorldSnapshotBuilder → APIRoutes → Frontend (GameScreen)"
     layer: "Presentation (phenomenological projection)"
-    constraint: "Assembler is PROJECTION BOUNDARY (L0→Presentation). Reads body_state (0-100 SSOT), normalizes pain/fatigue /100.0, outputs 0-1 scalars. life_status passed through for death feedback. DEAD override zeros ALL projections. PhysicalPresentationState enum includes DEAD state."
+    constraint: "Assembler is PROJECTION BOUNDARY (L0→Presentation). Reads body_state (0-100 SSOT), normalizes pain/fatigue /100.0, outputs 0-1 scalars. life_status passed through for death feedback. DEAD override zeros ALL projections."
     adr_ref: "ADR-137, ADR-094"
   PressureTranslator_Ownership:
     owner: "PressureTranslator"
@@ -676,15 +727,15 @@ ownership:
     modifies: "N/A (pure function)"
     reads: "DecisionHub (translate_kernel_to_context)"
     layer: "Interpretation (somatic veto)"
-    constraint: "CRITICAL: pain MUST be normalized /100.0 before threshold comparison. Without normalization, Somatic Veto (pain>0.8 blocks FLEE) fires at 0.8% pain — FLEE permanently blocked for any injured NPC. shock_impulse and blood_loss already in 0-1 scale — no normalization needed."
-    adr_ref: "ADR-094, GAP3"
+    constraint: "CRITICAL: pain MUST be normalized /100.0 before threshold comparison. Without normalization, Somatic Veto fires at 0.8% pain. Full Veto for BODY_STATE_DISABLED."
+    adr_ref: "ADR-094, GAP3, ADR-O-139"
   LifeStatus_Feedback:
     owner: "VitalStateEvaluator (derives) → AvatarPresentationAssembler (projects) → Frontend (renders)"
     creates: "VitalStateEvaluator.evaluate_vital_state() → body_state['life_status']"
     modifies: "StateApplicator writes to body_state"
     reads: "AvatarPresentationAssembler → AvatarStateDTO.life_status → GameScreen death overlay"
     layer: "State → Presentation (death feedback pipeline)"
-    constraint: "Death feedback pipeline (ADR-137): body_state['life_status'] → AvatarStateDTO.life_status → Frontend overlay. DEAD override in assembler zeros all projections. GameScreen renders 'ВЫ МЕРТВЫ' overlay when life_status=DEAD. World continues after death (npc_positions in death snapshot)."
+    constraint: "Death feedback pipeline (ADR-137): body_state['life_status'] → AvatarStateDTO.life_status → Frontend overlay. World continues after death."
     adr_ref: "ADR-137"
 sequences:
   - title: "Combat Impact Cascade"
@@ -708,7 +759,7 @@ sequences:
     steps:
       - from: PerceptualKernel
         to: AffectiveIntegrator
-        message: "1. threat_gradient * 0.6 + uncertainty * 0.3 + anomaly * 0.1"
+        message: "1. threat*0.6 + uncertainty*0.3 + anomaly*0.1 + somatic_urgency*(1-will*0.5)"
       - from: AffectiveIntegrator
         to: EmotionTransition
         message: "2. new_load vs prev_load → threshold crossing?"
@@ -723,3 +774,30 @@ sequences:
         to: LifeEngine
         message: "5. update_cache() — persist between ticks"
         type: dotted
+  - title: "Injury Chronic Pain Bridge (ADR-141)"
+    participants: [InjuryProcessor, PhysiologyDecayHandler, BodyState, EmbodiedTraceDTO]
+    steps:
+      - from: InjuryProcessor
+        to: DeltaBuffer
+        message: "1. Emit pain_delta + blood_loss_delta from wound properties"
+      - from: PhysiologyDecayHandler
+        to: DeltaBuffer
+        message: "2. Emit negative pain_delta (exponential decay)"
+      - from: DeltaBuffer
+        to: BodyState
+        message: "3. Apply net pain (chronic maintains positive value)"
+      - from: BodyState
+        to: EmbodiedTraceDTO
+        message: "4. Motor traces visible to player (wincing, holding side)"
+  - title: "Somatic Urgency Modulation (ADR-O-143)"
+    participants: [BodyState, PerceptualKernel, AffectiveIntegrator, DecisionContext]
+    steps:
+      - from: BodyState
+        to: PerceptualKernel
+        message: "1. somatic_urgency = (pain_norm + shock_norm) / 2.0"
+      - from: PerceptualKernel
+        to: AffectiveIntegrator
+        message: "2. somatic_urgency * (1.0 - willpower * 0.5) → target_load"
+      - from: AffectiveIntegrator
+        to: DecisionContext
+        message: "3. Feasibility constraints (Somatic Veto via PressureTranslator)"

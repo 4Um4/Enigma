@@ -82,6 +82,8 @@ class GameLoopBridge:
         location: str = "tavern_silver_wolf",
         player_x: float = 0.0,
         player_y: float = 0.0,
+        world_x: float | None = None,
+        world_y: float | None = None,
     ) -> TurnResult:
         """
         Синхронный вызов хода. Собирает все события из stream_turn().
@@ -94,7 +96,21 @@ class GameLoopBridge:
         result = TurnResult()
         dm_parts: list[str] = []
 
-        # Получаем campaign_state для location
+        # S82: Spatial Oracle — если есть мировые координаты, вычисляем location из реестра.
+        # Это тот же deterministic oracle, что и в routes.py — единая истина.
+        # player_position (local) — legacy, игнорируется для spatial logic.
+        if world_x is not None and world_y is not None:
+            try:
+                from app.services.spatial.spatial_registry import SpatialRegistry
+                _registry = SpatialRegistry.get_or_load(campaign_id)
+                if _registry is not None:
+                    _actual_chunks = _registry.find_chunks(world_x, world_y)
+                    if _actual_chunks:
+                        location = _actual_chunks[0].location_id
+            except Exception:
+                pass  # Fallback к saved location
+
+        # Получаем campaign_state для location (fallback если oracle не сработал)
         campaign_state = self._get_campaign_state(campaign_id)
         if campaign_state:
             saved = campaign_state.metadata.get("current_location")
@@ -216,6 +232,16 @@ class GameLoopBridge:
         if not self._ready or self._loop is None:
             return
         self._loop.scene_manager.apply_changes(campaign_id, changes, scene_state)
+
+    def get_characters(self, campaign_id: str) -> list[dict]:
+        """ADR-O-146: Персонажи через backend API, не через файлы (Law 1.1)."""
+        if not self._ready or self._loop is None:
+            return []
+        try:
+            characters = self._loop.character_service.list_characters(campaign_id)
+            return [c.model_dump() for c in characters]
+        except Exception:
+            return []
 
     def idle_tick(self, campaign_id: str) -> dict:
         """Idle tick через TickOrchestrator (10 фаз, Устав §3).

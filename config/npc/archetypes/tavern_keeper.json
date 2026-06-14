@@ -17,8 +17,8 @@
       "display": "cleaning_tables"
     },
     "sleeping": {
-      "location": "inn_rooms",
-      "position": "bed",
+      "location": "tavern_silver_wolf",
+      "position": "kitchen",
       "display": "sleeping"
     },
     "eating": {
@@ -27,8 +27,8 @@
       "display": "eating"
     },
     "resting": {
-      "location": "inn_rooms",
-      "position": "bed",
+      "location": "tavern_silver_wolf",
+      "position": "fireplace",
       "display": "resting"
     }
   },

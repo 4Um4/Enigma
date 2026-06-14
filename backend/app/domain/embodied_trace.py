@@ -37,3 +37,4 @@ class PlayerPerceptionDTO:
     atmosphere_key: Optional[str] = None
     atmosphere_intensity: float = 0.0
     embodied_traces: list = field(default_factory=list)    # Список dicts моторных следов
+    manifestations: dict = field(default_factory=dict)     # {npc_id: [manifest_key, ...]} — наблюдаемые проявления

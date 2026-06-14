@@ -25,9 +25,8 @@ class JsonPersistenceAdapter(PersistencePort):
     """
     
     def __init__(self, data_dir: Path, saves_dir: Optional[Path] = None) -> None:
-        self._campaigns_dir = data_dir / "campaigns"
-        # Runtime-сохранения — в отдельную папку (static/runtime разделение)
-        self._saves_dir = Path(saves_dir) if saves_dir else data_dir / "campaigns"
+        # ADR-O-146: _campaigns_dir удалён — мёртвый путь. Runtime через _saves_dir.
+        self._saves_dir = Path(saves_dir) if saves_dir else data_dir / "saves"
         # TODO: временная заглушка — save_npcs пишет в major_npcs.json (legacy путь)
         # будет удалено после: полного отказа от save_npcs в пользу save_npc_runtime
         self._npcs_path = data_dir / "npcs" / "major_npcs.json"
@@ -98,6 +97,22 @@ class JsonPersistenceAdapter(PersistencePort):
         except (OSError, json.JSONDecodeError) as e:
             logger.error(f"[PERSISTENCE] Error loading NPC runtime: {e}")
             return None
+
+    def delete_campaign(self, campaign_id: str) -> None:
+        """Удаляет все данные кампании (JSON файлы в saves/<campaign_id>/).
+        New Game: полная очистка persistence-слоя."""
+        campaign_dir = self._saves_dir / campaign_id
+        if not campaign_dir.exists():
+            return
+        removed = []
+        for fname in ["campaign_state.json", "npc_runtime.json",
+                       "npc_relationships.json", "campaign_meta.json",
+                       "player_avatar.json"]:
+            fpath = campaign_dir / fname
+            if fpath.exists():
+                fpath.unlink()
+                removed.append(fname)
+        logger.info(f"[PERSISTENCE] Campaign deleted: {campaign_id}, removed: {removed}")
 
     def atomic_commit(
         self,

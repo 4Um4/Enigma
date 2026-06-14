@@ -10,7 +10,7 @@ from pathlib import Path
 
 from app.core.config import settings
 from app.services.game_loop import GameLoop
-from app.services.adventure_loader import AdventureLoader
+# AdventureLoader удалён (ADR-O-146)
 from app.services.system_requirements import SystemRequirements
 from app.services.memory import LayeredMemory
 from app.services.memory.sqlite_store import SqliteMemoryStore
@@ -34,7 +34,8 @@ def build_game_loop(data_dir: Path) -> GameLoop:
     # Закон 4.2.1: SQLite = runtime truth
     store          = SqliteMemoryStore(saves_dir / "enigma_memory.db")
     layered_memory = LayeredMemory(store)
-    memory_manager = MemoryManager(layered_memory, data_dir=str(data_dir))
+    # ADR-O-146: RelationshipStore пишет в saves/ (runtime world), не data/ (static world)
+    memory_manager = MemoryManager(layered_memory, data_dir=str(saves_dir))
     persistence    = SqlitePersistenceAdapter(saves_dir / "enigma_runtime.db")
 
     # ADR-128: Инжекция PersistencePort в LifeEngine для read-back
@@ -83,7 +84,7 @@ def build_game_loop(data_dir: Path) -> GameLoop:
         dm_agent            = DmAgent(),
         rules_agent         = RulesAgent(),
         load_npcs_func      = load_npcs,
-        adventure_loader    = AdventureLoader(data_dir / "campaigns"),
+        # AdventureLoader удалён (ADR-O-146) — vestigial, нет файлов world_lore/npc/locations
         system_requirements = SystemRequirements(
             min_physical_cores = settings.min_cpu_physical_cores,
             min_ram_gb         = settings.min_ram_gb,

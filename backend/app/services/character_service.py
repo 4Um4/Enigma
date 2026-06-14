@@ -18,7 +18,7 @@ class CharacterService:
     - CharacterProfile (character_profiles.json) — психология: ценности, integrity
     """
 
-    def __init__(self, root: str = "data/campaigns") -> None:
+    def __init__(self, root: str = "saves") -> None:
         self.root = Path(root)
         self.root.mkdir(parents=True, exist_ok=True)
 

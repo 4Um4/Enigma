@@ -17,6 +17,10 @@ nodes:
     type: service
     layer: UI
     label: "Perceptual Momentum (S-curve)"
+  I18n:
+    type: service
+    layer: UI
+    label: "Localization Module (i18n)"
   APIRoutes:
     type: api
     layer: Infrastructure
@@ -61,6 +65,18 @@ edges:
     label: "SanitizedPerceptualVectors"
     condition: "S-curve inertia"
     code_ref: "game_screen.py:893"
+  - from: GameScreen
+    to: I18n
+    label: "t(), activity_ru(), manifest_color()"
+    condition: "All user-facing strings"
+    code_ref: "game_screen.py, scene_renderer.py"
+    adr_ref: "ADR-i18n"
+  - from: APIRoutes
+    to: GameScreen
+    label: "manifestations (List[ManifestationDTO])"
+    condition: "WorldSnapshot.player_perception"
+    code_ref: "world_snapshot_builder.py"
+    adr_ref: "ADR-O-147"
 constraints:
   - source: Frontend
     target: BackendInternals
@@ -82,3 +98,21 @@ constraints:
     condition: "Matches backend contract in scene_state_manager.py:559-567 (ADR-098)"
     code_ref: "scene_renderer.py:263-270"
     adr_ref: "ADR-098"
+  - source: GameScreen
+    target: Emotion
+    rule: "FORBIDDEN: Show emotions (fearful, anxious) — only observable manifestations (tense, rigid)"
+    condition: "Player perceives body, not mind (ADR-O-147)"
+    code_ref: "game_screen.py"
+    adr_ref: "ADR-O-147"
+  - source: GameScreen
+    target: PerceptionData
+    rule: "FORBIDDEN: Compute manifest in GameScreen — only read from perception data"
+    condition: "Backend is sole source of truth (ADR-O-147)"
+    code_ref: "game_screen.py"
+    adr_ref: "ADR-O-147"
+  - source: GameScreen
+    target: Manifestations
+    rule: "FORBIDDEN: Mix cues and manifestations — separate channels"
+    condition: "Different semantic layers (ADR-O-147)"
+    code_ref: "phenomenology_projection_service.py, game_screen.py"
+    adr_ref: "ADR-O-147"

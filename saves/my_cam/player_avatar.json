@@ -1,6 +1,10 @@
 {
   "sheet": {
     "name": "Михаил",
+    "archetype": "Drifter",
+    "temperament": "Stoic",
+    "body_profile": {},
+    "psyche": {},
     "race": "Эльф",
     "class_name": "Плут",
     "level": 1,
@@ -54,8 +58,24 @@
     "conditions": {},
     "wounds": [],
     "posture": "standing",
+    "body_state": {},
     "emotion": "neutral",
     "emotion_delta": 0.0,
-    "state_modifiers": {}
+    "state_modifiers": {},
+    "affective_load": 0.0,
+    "perceptual_kernel": {
+      "threat_gradient": 0.0,
+      "trust_gradient": 0.0,
+      "uncertainty": 0.0,
+      "anomaly_score": 0.0,
+      "last_hostile_direction": null,
+      "dominant_emotion": null,
+      "aggression_inhibition": 0.0,
+      "initiative_suppression": 0.0,
+      "compliance_bias": 0.0,
+      "somatic_urgency": 0.0,
+      "recent_directive": null
+    },
+    "gender": "male"
   }
 }

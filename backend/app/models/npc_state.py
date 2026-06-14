@@ -44,7 +44,11 @@ logger = logging.getLogger(__name__)
 # NPIC Sentinel: Отсутствие данных ≠ нейтральное состояние (§ENIGMA-003).
 # Если body_state утерян при холодном старте, NPC переходит в DISABLED состояние.
 # Это физический инвариант: агент существует как инертная материя, а не как логический призрак.
-BODY_STATE_DISABLED = {
+# ADR-O-146: IMMUTABLE sentinel — dict() копия обязательна при присвоении.
+# Прямое присвоение _npc["body_state"] = BODY_STATE_DISABLED ЗАПРЕЩЕНО —
+# shared reference мутируется StateApplicator, заражая ВСЕХ NPC.
+BODY_STATE_DISABLED: dict = dict  # type: ignore[assignment] —陷阱 guard, используйте dict(BODY_STATE_DISABLED_DATA)
+BODY_STATE_DISABLED_DATA = {
     "disabled": True,
     "shock_impulse": 1.0,
     "pain": 100.0,
@@ -52,6 +56,23 @@ BODY_STATE_DISABLED = {
     "consciousness": 0.0,
     "current_hp": 0,
     "fatigue": 100.0
+}
+
+# Здоровое тело — инжектируется при New Game для NPC из static config.
+# Отсутствие body_state ≠ нейтральное состояние (§ENIGMA-003),
+# но New Game = свежий мир, где все NPC живы и здоровы.
+BODY_STATE_HEALTHY = {
+    "current_hp": 100,
+    "max_hp": 100,
+    "pain": 0.0,
+    "fatigue": 0.0,
+    "blood_loss": 0.0,
+    "consciousness": 1.0,
+    "shock_impulse": 0.0,
+    "injuries": [],
+    "modifiers": {},
+    "statuses": [],
+    "life_status": "ALIVE",
 }
 
 
@@ -468,6 +489,11 @@ class PerceptualKernel:
     aggression_inhibition: float = 0.0     # Сдерживание агрессивных векторов
     initiative_suppression: float = 0.0    # Подавление активных действий (паралич)
     compliance_bias: float = 0.0           # Смещение в сторону подчинения/approach
+    # ADR-O-143: Somatic Axis — воспринимаемый телесный дистресс (§ENIGMA-S72).
+    # НЕ raw pain/shock, а их проекция через PerceptualKernel.
+    # Модулируется личностью (willpower → somatic_resistance) в affective_integrator.
+    # Пересчитывается каждый тик из body_state (производное поле, не аккумулируемое).
+    somatic_urgency: float = 0.0           # (pain_norm + shock_norm) / 2.0
     # ADR-055: Attention Capture — прерывание когнитивной инерции бытовухи.
     # Не mind-control, а фокус внимания. DecisionHub решает, как реагировать.
     recent_directive: Optional[Dict[str, Any]] = None # {"source": str, "salience": float, "interrupts_routine": bool}
@@ -488,6 +514,8 @@ class NPCState:
     # ADR-049: Интеграл аффективного давления среды (0.0 – 1.5+).
     # Накапливает threat/uncertainty с течением времени. Вызывает эмоциональный коллапс при превышении порога.
     affective_load: float = 0.0
+    # SEL Trace State: Ожидание угрозы (Baseline). Пишется только через sel_trace_commit.
+    affective_memory: float = 0.0
 
     # R6.1 — накопленная скрытая агрессия к источнику давления.
     # Используется при выборе FAKE_SUBMISSION и BETRAYAL.
@@ -534,6 +562,14 @@ class NPCState:
 
     # История смен ролей для отладки и CausalLedger.
     role_history: List["RoleChangeEntry"] = field(default_factory=list)
+
+    # ── Драйвы личности — runtime canonical (ADR-139: Single Write Authority) ──
+    # ЕДИНСТВЕННЫЙ write-path для mutation engine.
+    # Инициализируется из npc_dict["drives"] при from_legacy (Layer 2 → runtime).
+    # NPCPersonality.drives_base = seed (Layer 1, read-only, used once at spawn).
+    # npc_dict["drives"] = serialization mirror (written by write_to_legacy).
+    # ADR-139 TABOO: drives_runtime НЕ читается из personality после spawn.
+    drives_runtime: Dict[str, float] = field(default_factory=dict)
 
     # ── Временные драйвы (ФАЗА 4-ROLE.2) ────────────────────────────────────
     # Порождены сильными эмоциональными ударами (emotional_impact > 0.7).
@@ -663,6 +699,12 @@ class NPCState:
         npc_dict["npc_id"] = state.npc_id
         npc_dict["id"]     = state.npc_id
 
+        # ADR-139: drives_runtime → npc_dict["drives"] (serialization mirror).
+        # Write authority = state.drives_runtime. npc_dict = projection only.
+        # Без этого mutation engine теряет результаты между тиками.
+        if state.drives_runtime:
+            npc_dict["drives"] = dict(state.drives_runtime)
+
         # Физическое состояние (сохраняется между тиками)
         npc_dict["hp"]     = state.hp
         npc_dict["max_hp"] = state.max_hp
@@ -723,12 +765,14 @@ class NPCState:
                 "aggression_inhibition": pk.aggression_inhibition,
                 "initiative_suppression": pk.initiative_suppression,
                 "compliance_bias": pk.compliance_bias,
+                "somatic_urgency": pk.somatic_urgency,  # ADR-O-143: воспринимаемый телесный дистресс
                 "recent_directive": pk.recent_directive,
             }
 
         # affective_load — интеграл давления (ADR-049)
-        # Без этого эмоциональный аккумулятор сбрасывается каждый тик
         npc_dict["affective_load"] = state.affective_load
+        # affective_memory — ожидание угрозы (SEL Baseline)
+        npc_dict["affective_memory"] = state.affective_memory
 
         # emotion — текущая эмоция (ADR-116)
         # Без этого emotion сбрасывается в NEUTRAL каждый тик → DOUBLE TRUTH → _emotion_modifier() = 0.0
@@ -757,6 +801,7 @@ def _pk_from_dict(pk_dict: dict) -> PerceptualKernel:
         aggression_inhibition=float(pk_dict.get("aggression_inhibition", 0.0)),
         initiative_suppression=float(pk_dict.get("initiative_suppression", 0.0)),
         compliance_bias=float(pk_dict.get("compliance_bias", 0.0)),
+        somatic_urgency=float(pk_dict.get("somatic_urgency", 0.0)),  # ADR-O-143
         recent_directive=pk_dict.get("recent_directive"),
     )
 
@@ -794,10 +839,32 @@ class NPCStateAdapter:
         """Создаёт NPCState из legacy npc dict."""
         psyche = npc_dict.get("psyche", {})
         ss     = npc_dict.get("social_stats", {})
+
+        # ADR-139: drives_runtime — Restore Gate (Single Write Authority).
+        # Вычисляем ДО return — нельзя присваивать внутри аргументов вызова.
+        # Spawn: npc_dict["drives"] → state.drives_runtime.
+        # Если drives отсутствуют — fallback на defaults (как personality_from_legacy).
+        import math as _math
+        _drives_raw = dict(npc_dict.get("drives", {
+            "control": 0.25, "significance": 0.25,
+            "fear": 0.25,    "desire": 0.25,
+        }))
+        # Restore Gate: нормализация при загрузке из persistence
+        if _drives_raw:
+            _total = sum(_drives_raw.values())
+            if _total > 0 and abs(_total - 1.0) > 1e-6:
+                for _dk in _drives_raw:
+                    _drives_raw[_dk] /= _total
+            for _dk, _dv in list(_drives_raw.items()):
+                if _math.isnan(_dv) or _math.isinf(_dv):
+                    _drives_raw[_dk] = 0.25
+                elif not (0.0 <= _dv <= 1.0):
+                    _drives_raw[_dk] = max(0.01, min(1.0, _dv))
+
         return NPCState(
             npc_id            = npc_dict.get("npc_id", npc_dict.get("id", "unknown")),
             stress            = float(psyche.get("stress", 0)),
-
+            drives_runtime    = _drives_raw,
             # R6.1/R6.4 — новые параметры личности (если отсутствуют — дефолты)
             resentment        = float(psyche.get("resentment", 0.0)),
             dependency        = float(psyche.get("dependency", 0.0)),
@@ -821,6 +888,8 @@ class NPCStateAdapter:
             perceptual_kernel = _pk_from_dict(npc_dict.get("perceptual_kernel", {})),
             # affective_load — восстановление интеграла давления (ADR-049)
             affective_load = float(npc_dict.get("affective_load", 0.0)),
+            # affective_memory — восстановление ожидания угрозы (SEL Baseline)
+            affective_memory = float(npc_dict.get("affective_memory", 0.0)),
             # emotion — восстановление текущей эмоции (ADR-116)
             # Без этого emotion = NEUTRAL каждый тик → _emotion_modifier() = 0.0
             emotion = _emotion_from_str(npc_dict.get("emotion", "neutral")),

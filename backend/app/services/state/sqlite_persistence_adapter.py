@@ -119,6 +119,21 @@ class SqlitePersistenceAdapter(PersistencePort):
             logger.debug(f"[SQLITE_PERSISTENCE] NPC runtime saved: {session_id} ({len(npc_dicts)} records)")
         except sqlite3.Error as e:
             logger.error(f"[SQLITE_PERSISTENCE] Error saving NPC runtime: {e}")
+
+    def delete_campaign(self, campaign_id: str) -> None:
+        """Удаляет все данные кампании (scene + runtime) из SQLite.
+        New Game: полная очистка persistence-слоя."""
+        try:
+            conn = self._get_conn()
+            conn.execute(
+                "DELETE FROM state_kv WHERE key = ? OR key = ?",
+                (f"scene:{campaign_id}", f"runtime:{campaign_id}")
+            )
+            conn.commit()
+            logger.info(f"[SQLITE_PERSISTENCE] Campaign deleted: {campaign_id}")
+        except sqlite3.Error as e:
+            logger.error(f"[SQLITE_PERSISTENCE] Error deleting campaign {campaign_id}: {e}")
+            self._get_conn().rollback()
             self._get_conn().rollback()
 
     def load_scene(self, campaign_id: str) -> dict | None:

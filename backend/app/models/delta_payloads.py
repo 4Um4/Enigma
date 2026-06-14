@@ -34,6 +34,8 @@ class EmotionPayload:
     new_trauma: Optional[str] = None
     # ADR-049: Интеграл аффективного давления (передается в StateApplicator для NPCState.affective_load)
     affective_load: Optional[float] = None
+    # SEL: Ожидание угрозы (Baseline). Легальный канал записи в M-слой.
+    affective_memory: Optional[float] = None
 
 
 @dataclass(frozen=True)

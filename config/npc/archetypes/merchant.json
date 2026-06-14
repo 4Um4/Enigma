@@ -14,22 +14,22 @@
   "activity_map": {
     "market_trading": {
       "location": "market_square",
-      "position": "main_hall",
+      "position": "merchant_row",
       "display": "haggling"
     },
     "counting_money": {
       "location": "market_square",
-      "position": "main_hall",
+      "position": "merchant_row",
       "display": "counting_money"
     },
     "working": {
       "location": "market_square",
-      "position": "main_hall",
+      "position": "merchant_row",
       "display": "haggling"
     },
     "on_duty": {
       "location": "market_square",
-      "position": "main_hall",
+      "position": "merchant_row",
       "display": "haggling"
     },
     "off_duty": {
@@ -38,8 +38,8 @@
       "display": "drinking"
     },
     "sleeping": {
-      "location": "inn_rooms",
-      "position": "main_hall",
+      "location": "city_gate",
+      "position": "gate_courtyard",
       "display": "sleeping"
     }
   },

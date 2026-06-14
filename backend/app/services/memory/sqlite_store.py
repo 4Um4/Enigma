@@ -288,6 +288,17 @@ class SqliteMemoryStore:
             logger.error(f"[SQLITE] batch save failed for {npc_id}: {e}")
             self._conn.rollback()
 
+    def delete_campaign(self, campaign_id: str) -> int:
+        """Удаляет все записи кампании из обеих таблиц.
+        Вызывается из new_game() для полной очистки памяти."""
+        cur = self._conn.cursor()
+        cur.execute("DELETE FROM event_memories WHERE campaign_id = ?", (campaign_id,))
+        deleted_events = cur.rowcount
+        cur.execute("DELETE FROM entries WHERE collection LIKE ?", (f"%{campaign_id}%",))
+        deleted_entries = cur.rowcount
+        self._conn.commit()
+        return deleted_events + deleted_entries
+
     def close(self) -> None:
         if self._conn:
             self._conn.close()

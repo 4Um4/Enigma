@@ -59,10 +59,17 @@ def score_event(
 
     # 3. Модификатор стресса и эмоции
     stress_mod = 1.0
-    if npc_stress > 70 and emotion_tag in (EmotionTag.ANGRY.value, EmotionTag.FEARFUL.value):
-        stress_mod = 1.25   # стресс усиливает значимость угрозы/обиды
-    elif npc_stress > 50:
-        stress_mod = 1.10
+    # ADR-O-205: Memory Projection. 
+    # Память фиксирует не "страх", а структурный разрыв (величину ошибки предсказания).
+    # Высокий Surprise (delta в Котле) = яркая память, независимо от того, какой драйв победил.
+    # ADR-O-206 Cut 4: Causal Purity. 
+    # Никаких производных аффективного состояния. Только ошибка модели мира.
+    prediction_error = abs(event.get("prediction_error", 0.0)) # Чистый |O - P| из Котла
+    
+    if npc_stress > 70 and prediction_error > 0.2:
+        stress_mod = 1.25   # Ошибка предсказания при высоком стрессе = яркая память
+    elif npc_stress > 50 or prediction_error > 0.1:
+        stress_mod = 1.10   # Умеренная значимость
 
     # 4. Финальная важность
     importance = base * clarity_mod * stress_mod

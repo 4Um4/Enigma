@@ -162,8 +162,12 @@ class EditorCore:
         if info:
             print(f"Спрайтшит загружен: {info['cols']}x{info['rows']} тайлов")
         
-        # Приветственное сообщение
-        self._show_toast("Добро пожаловать! Создайте локацию через меню File")
+        # Автооткрытие кампании Open_road
+        ok, err = self.cm.open_campaign("Open_road")
+        if ok:
+            self._show_toast("Кампания: Open_road")
+        else:
+            self._show_toast("Добро пожаловать! Создайте кампанию через меню File")
     
     def _init_ui(self):
         """Инициализирует элементы интерфейса"""
@@ -544,6 +548,7 @@ class EditorCore:
             self.cm.save_location(self.current_file)
         else:
             self.dm.save(self.current_file)
+        self._rebuild_spatial_registry()
         self._show_toast(f"Сохранено: {self.current_file}")
 
     def _dialog_save_as(self):
@@ -578,9 +583,20 @@ class EditorCore:
             self._show_toast(f"Ошибка сохранения: {e}")
 
     def _save_all(self):
-        """Сохраняет все локации кампании"""
         count = self.cm.save_all_locations()
+        self._rebuild_spatial_registry()
         self._show_toast(f"Сохранено локаций: {count}")
+
+    def _rebuild_spatial_registry(self) -> None:
+        """S80.2: Запрашивает перестроение реестра через Gateway.
+        Editor — только триггер, не владелец истины."""
+        try:
+            from spatial_compilation_gateway import SpatialCompilationGateway
+            campaign_id = self.dm.base_dir.parent.name
+            SpatialCompilationGateway.request_rebuild(campaign_id)
+        except Exception as e:
+            import logging as _logging
+            _logging.getLogger(__name__).warning(f"[SPATIAL_REGISTRY] Ошибка компиляции: {e}")
 
     def _dialog_export_zip(self):
         """Диалог экспорта кампании в zip"""
@@ -946,6 +962,7 @@ class EditorCore:
                         self.cm.save_location(self.current_file)
                     else:
                         self.dm.save(self.current_file)
+                    self._rebuild_spatial_registry()
                     self._show_toast(f"Сохранено: {self.current_file}")
                     
             elif event.key == pygame.K_z and pygame.key.get_mods() & pygame.KMOD_CTRL:
@@ -966,6 +983,12 @@ class EditorCore:
 
             elif event.key == pygame.K_c and pygame.key.get_mods() & pygame.KMOD_CTRL:
                 self._copy_selection()
+                    
+            elif event.key == pygame.K_F2:
+                # F2 — переименовать выделенный объект
+                if self.selected_object and self.tool is None:
+                    mx, my = pygame.mouse.get_pos()
+                    self._handle_double_click(mx, my)
 
             elif event.key == pygame.K_v and pygame.key.get_mods() & pygame.KMOD_CTRL:
                 self._paste_clipboard()
@@ -1019,8 +1042,8 @@ class EditorCore:
         # Перетаскивание выделенной сущности — после хэндлов и кнопок
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             mx, my = event.pos
-            if self.tool is None and self.selected_object and not self._resizing:
-                if self._is_on_selected(mx, my):
+            if self.tool is None and self.selected_object and not self._resizing and not self.property_panel.rect.collidepoint(mx, my):
+                if self._is_on_selected(mx, my) and self.selected_object is not None:
                     etype, eid = self.selected_object
                     orig = self._get_drag_orig(etype, eid)
                     if orig:
@@ -1030,7 +1053,7 @@ class EditorCore:
         # Кнопки поворота/зеркала на холсте — приоритет над панелью свойств
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             mx, my = event.pos
-            if self.tool is None and self.selected_object and self.selected_object[0] == "object":
+            if self.tool is None and self.selected_object and self.selected_object[0] == "object" and not self.property_panel.rect.collidepoint(mx, my):
                 for btn in self._get_rotation_buttons(self.selected_object[1]):
                     if btn["rect"].collidepoint(mx, my):
                         obj = next((o for o in self.dm.locations[self.current_file]["objects"] if o.get("id") == self.selected_object[1]), None)
@@ -1055,6 +1078,9 @@ class EditorCore:
         action = self.property_panel.handle_event(event)
         if action:
             self._handle_property_action(action)
+            return
+        # Поглощаем клики внутри панели — чтобы не деселектить объекты
+        if event.type == pygame.MOUSEBUTTONDOWN and self.property_panel.rect.collidepoint(event.pos):
             return
         
         # Основное взаимодействие
@@ -1196,7 +1222,7 @@ class EditorCore:
                                 old_w, old_h, new_w, new_h
                             ))
                     self._resizing = None
-                elif self._dragging_entity:
+                elif self._dragging_entity and self.selected_object is not None:
                     mx_now, my_now = event.pos
                     total_dx = mx_now - self._dragging_entity["start_mx"]
                     total_dy = my_now - self._dragging_entity["start_my"]
@@ -1219,15 +1245,16 @@ class EditorCore:
                 self.dragging_camera = False
                 
         elif event.type == pygame.MOUSEMOTION:
-            if self._dragging_entity:
+            if self._dragging_entity and self.selected_object is not None:
                 mx_now, my_now = event.pos
                 total_dx = mx_now - self._dragging_entity["start_mx"]
                 total_dy = my_now - self._dragging_entity["start_my"]
                 scale = 1.0 / (SCALE * self.zoom)
                 dx_world = total_dx * scale
                 dy_world = total_dy * scale
-                etype, eid = self.selected_object
-                self._apply_drag(etype, eid, self._dragging_entity["orig"], dx_world, dy_world)
+                if self.selected_object is not None:
+                    etype, eid = self.selected_object
+                    self._apply_drag(etype, eid, self._dragging_entity["orig"], dx_world, dy_world)
             elif self._resizing:
                 obj = next((o for o in self.dm.locations[self.current_file]["objects"] if o.get("id") == self._resizing["obj_id"]), None)
                 if obj:
@@ -1753,6 +1780,16 @@ class EditorCore:
                 self.selected_object = None
                 return
         
+        # Точка спавна игрока
+        spawn = loc.get("player_spawn")
+        if spawn:
+            sx, sy = self.world_to_screen(spawn["x"], spawn["y"])
+            if abs(sx - mx) < 15 and abs(sy - my) < 15:
+                del loc["player_spawn"]
+                self._show_toast("Точка спавна удалена")
+                self.selected_object = None
+                return
+        
         # Стены
         for wall in loc.get("walls", []):
             sx1, sy1 = self.world_to_screen(wall["x1"], wall["y1"])
@@ -1824,6 +1861,45 @@ class EditorCore:
         
         obj_type, obj_key = self.selected_object
         loc = self.dm.locations[self.current_file]
+        
+        if action == "create_perimeter_walls" and obj_type == "room":
+            room = next((r for r in loc["rooms"] if r["id"] == obj_key), None)
+            if room:
+                existing = self._find_room_perimeter_walls(room)
+                
+                if existing:
+                    # Стены есть → УДАЛЯЕМ их
+                    for wall in existing:
+                        self.dm.remove_wall(self.current_file, wall["id"])
+                    self._show_toast(f"Удалено стен: {len(existing)} для {room['name']}")
+                else:
+                    # Стен нет → СОЗДАЁМ их
+                    thickness = 0.2
+                    poly = room.get("polygon")
+                    created = 0
+                    
+                    if poly and len(poly) >= 3:
+                        for i in range(len(poly)):
+                            x1, y1 = poly[i]
+                            x2, y2 = poly[(i + 1) % len(poly)]
+                            self.dm.add_wall(self.current_file, x1, y1, x2, y2, "wall", thickness)
+                            created += 1
+                    else:
+                        rx, ry = room["x"], room["y"]
+                        rw, rh = room["width"], room["height"]
+                        perimeter = [
+                            (rx, ry, rx + rw, ry),
+                            (rx + rw, ry, rx + rw, ry + rh),
+                            (rx, ry + rh, rx + rw, ry + rh),
+                            (rx, ry, rx, ry + rh),
+                        ]
+                        for wx1, wy1, wx2, wy2 in perimeter:
+                            self.dm.add_wall(self.current_file, wx1, wy1, wx2, wy2, "wall", thickness)
+                            created += 1
+                    self._show_toast(f"Создано стен: {created} для {room['name']}")
+                
+                self._update_property_panel()
+            return
         
         if action == "rename":
             old_name = self.dm.get_entity_name(self.current_file, obj_type, obj_key)
@@ -1982,6 +2058,7 @@ class EditorCore:
                 items = [
                     {"type": "label", "text": f"Комната: {room['name']}", "important": True},
                     {"type": "toggle", "label": "✏️ Переименовать", "action": "rename"},
+                    {"type": "toggle", "label": "🔨 Стены по периметру", "value": len(self._find_room_perimeter_walls(room)) > 0, "action": "create_perimeter_walls"},
                     {"type": "value", "label": "X", "value": f"{room['x']:.1f}"},
                     {"type": "value", "label": "Y", "value": f"{room['y']:.1f}"},
                     {"type": "value", "label": "Ширина", "value": f"{room['width']:.1f}"},
@@ -2660,7 +2737,7 @@ class EditorCore:
         
         if self.mode == MODE_LOCAL:
             undo_info = f" | Отмена:{self.undo.undo_label}" if self.undo.can_undo else ""
-            camp_info = f" | Кампания: {self.cm.campaign_data['name']}" if self.cm.is_open else " | (без кампании)"
+            camp_info = f" | Кампания: {self.cm.campaign_data.get('name', self.cm.current_campaign_name or '?')}" if self.cm.is_open else " | (без кампании)"
             info = f"X:{wx:.1f} Y:{wy:.1f} | Этаж:{self.current_z} | Zoom:{self.zoom:.1f}x | {self.current_file or '—'}{camp_info}{undo_info}"
         else:
             info = f"Карта мира | Локаций: {len(self.dm.locations)}"
@@ -2694,6 +2771,45 @@ class EditorCore:
         
         pygame.draw.rect(self.screen, COLORS["border"], (x, y, w, h), 1, border_radius=6)
         self.screen.blit(text, (x + padding, y + padding // 2))
+
+
+    def _find_room_perimeter_walls(self, room: dict) -> list:
+        """Находит стены, совпадающие с рёбрами комнаты (прямоугольной или полигональной)"""
+        if not self.current_file:
+            return []
+        loc = self.dm.locations[self.current_file]
+        walls = loc.get("walls", [])
+        if not walls:
+            return []
+        
+        # Собираем рёбра комнаты
+        edges = []
+        poly = room.get("polygon")
+        if poly and len(poly) >= 3:
+            for i in range(len(poly)):
+                edges.append((poly[i][0], poly[i][1], poly[(i+1) % len(poly)][0], poly[(i+1) % len(poly)][1]))
+        else:
+            rx, ry = room["x"], room["y"]
+            rw, rh = room["width"], room["height"]
+            edges = [
+                (rx, ry, rx + rw, ry),
+                (rx + rw, ry, rx + rw, ry + rh),
+                (rx, ry + rh, rx + rw, ry + rh),
+                (rx, ry, rx, ry + rh),
+            ]
+        
+        # Ищем стены, совпадающие с рёбрами (прямо или наоборот)
+        matched = []
+        for wall in walls:
+            for ex1, ey1, ex2, ey2 in edges:
+                direct = (abs(wall["x1"] - ex1) < 0.3 and abs(wall["y1"] - ey1) < 0.3 and
+                          abs(wall["x2"] - ex2) < 0.3 and abs(wall["y2"] - ey2) < 0.3)
+                reverse = (abs(wall["x1"] - ex2) < 0.3 and abs(wall["y1"] - ey2) < 0.3 and
+                           abs(wall["x2"] - ex1) < 0.3 and abs(wall["y2"] - ey1) < 0.3)
+                if direct or reverse:
+                    matched.append(wall)
+                    break
+        return matched
 
 
 # Точка входа

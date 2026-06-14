@@ -199,7 +199,10 @@ def build_verbalization_context(
         VerbalizationContext, generate_emotional_nuance,
     )
 
-    _drives_raw = profile_l0.drives_base
+    # ADR-139: drives из runtime canonical (state), НЕ из frozen profile.
+    # profile_l0.drives_base = seed (Layer 1). state.drives_runtime = current (Layer 2).
+    # DecisionHub должен видеть ТЕКУЩИЕ драйвы (с учётом мутаций), не seed.
+    _drives_raw = getattr(state, 'drives_runtime', None) or profile_l0.drives_base
     if isinstance(_drives_raw, dict) and _drives_raw:
         _dominant_drive = max(_drives_raw.items(), key=lambda x: x[1])[0]
     else:
@@ -484,27 +487,33 @@ def run_npc_pipeline(
 
             # S28: Замыкание каузального контура. Чтение геометрии восприятия
             from app.domain.decision_context import DecisionContext
-            _decision_ctx = None
-            # S74: Подготовка AffectField для инъекции в DecisionContext
-            _aff_load = getattr(state_l2, "affective_load", 0.0)
-            if hasattr(state_l2, 'perceptual_kernel') and state_l2.perceptual_kernel:
-                _decision_ctx = DecisionContext.from_kernel(state_l2.perceptual_kernel)
-                # S74: Shadow Emotion Bleed injection.
-                # Заменяем контекст, внедряя непрерывное аффективное поле.
-                _decision_ctx = DecisionContext(
-                    deformation=_decision_ctx.deformation,
-                    compression=_decision_ctx.compression,
-                    source=_decision_ctx.source,
-                    affective_load=_aff_load,
-                    affective_velocity=0.0,  # TODO: вычислять из prev_load в S75
-                    affective_acceleration=0.0
-                )
+            # STEP A: PressureTranslator — единственный авторитетный вход DecisionContext.
+            # Ручная пересборка и from_kernel() запрещены (нарушает Somatic Veto и Viability Gate).
+            from app.services.cfrm.pressure_translator import translate_kernel_to_context
+            _body = getattr(state_l2, 'body_state', None)
+            _kernel = getattr(state_l2, 'perceptual_kernel', None)
+            _decision_ctx = translate_kernel_to_context(_kernel, body_state=_body) if _kernel else None
 
             _pl = getattr(hub_event, 'payload', '<NO_PAYLOAD>')
             logger.debug(f"[DIAG_PRE_HUB] npc={npc_id} topic={_topic} event={hub_event.event_type} payload={_pl} reflex={_reflex_constraints} emotion={state_l2.emotion} affective_load={state_l2.affective_load}")
+            # ADR-O-208 / L3-P2: Снятие когнитивной слепоты.
+            # DecisionHub получает эфемерную проекцию драйвов (L3), а не L0 архетип.
+            from app.services.npc.l1_chronicle import L1Chronicle
+            from app.services.npc.drive_resolver import DriveResolver
+            
+            # ВНИМАНИЕ: L1Chronicle — stateful сущность. Здесь нужен доступ к единому экземпляру.
+            # Если pipeline не имеет доступа к self.l1_chronicle, он должен быть проброшен через DI.
+            # Временное решение: получаем через сервис-локатор или self, если pipeline инстанцирован оркестратором.
+            _chronicle = getattr(self, 'l1_chronicle', None) or getattr(svc, 'l1_chronicle', L1Chronicle())
+            _resolver = getattr(self, 'drive_resolver', None) or getattr(svc, 'drive_resolver', DriveResolver())
+            
+            _l1_events = _chronicle.query_weighted(npc_id, current_tick=svc.tick_number if hasattr(svc, 'tick_number') else 0)
+            _effective_drives = _resolver.resolve_drives(profile_l0, _l1_events)
+
             decision = DecisionHub().compute(
                 state=state_l2,
                 personality=profile_l0,
+                effective_drives=_effective_drives, # L3-P2: Единственная реальность
                 event=hub_event,
                 identity=_identity,
                 eco_modifiers=_all_modifiers or None,
@@ -513,7 +522,7 @@ def run_npc_pipeline(
                 drive_modifiers=_drive_modifiers_for_hub,
                 reflex_constraints=_reflex_constraints,
                 topic=_topic,
-                decision_ctx=_decision_ctx, # Передаём геометрию давления
+                decision_ctx=_decision_ctx,
             )
 
             # ADR-035: Reactive Spatial Command Reflex.

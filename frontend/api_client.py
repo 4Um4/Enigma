@@ -61,6 +61,8 @@ class GameActionResponse:
     npc_positions: dict | None = None
     # Resistance Medium: Данные конфликта воли для заражения UI
     will_conflict_data: dict | None = None
+    # S82: Backend подтверждает spatial truth. Frontend reconciles при расхождении.
+    confirmed_location_id: str | None = None
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -81,6 +83,8 @@ class GameGateway(Protocol):
         action_text: str,
         player_x: float = 0.0,
         player_y: float = 0.0,
+        world_x: float | None = None,
+        world_y: float | None = None,
     ) -> GameActionResponse:
         """Отправить действие игрока. Блокирующий — вызывать из worker thread."""
         ...
@@ -89,6 +93,10 @@ class GameGateway(Protocol):
         """Проверка здоровья backend."""
         ...
     
+    def new_game(self, campaign_id: str) -> dict:
+        """ADR-O-146: Сброс runtime мира к чистому static."""
+        return self._t.post(f"/api/game/new/{campaign_id}", {})
+
     def create_player_session(
         self, campaign_id: str, player_name: str
     ) -> dict:
@@ -187,16 +195,23 @@ class BackendContract:
         action_text: str,
         player_x: float = 0.0,
         player_y: float = 0.0,
+        world_x: float | None = None,
+        world_y: float | None = None,
     ) -> GameActionResponse:
         """Маппинг: доменные аргументы → JSON payload → JSON response → доменный объект."""
-        raw = self._t.post("/api/game/action", {
+        payload = {
             "campaign": campaign_id,
             "player": player_name,
             "action": action_text,
             "player_x": player_x,
             "player_y": player_y,
             "is_telegraph": getattr(action_text, '_is_telegraph', False),
-        })
+        }
+        # S82: Мировые координаты — PRIMARY spatial input. Отправляем только если есть.
+        if world_x is not None and world_y is not None:
+            payload["world_x"] = world_x
+            payload["world_y"] = world_y
+        raw = self._t.post("/api/game/action", payload)
         return self._map_action_response(raw)
     
     def health(self) -> dict:
@@ -226,6 +241,10 @@ class BackendContract:
             {"campaign_id": campaign_id, "world_id": world_id},
         )
     
+    def new_game(self, campaign_id: str) -> dict:
+        """ADR-O-146: Сброс runtime мира к чистому static."""
+        return self._t.post(f"/api/game/new/{campaign_id}", {})
+    
     @staticmethod
     def _map_action_response(raw: dict) -> GameActionResponse:
         """Маппинг JSON → доменный объект. Единственное место с полями ответа."""
@@ -240,6 +259,8 @@ class BackendContract:
             npc_positions=raw.get("npc_positions"),
             # Resistance Medium: Проброс конфликта воли
             will_conflict_data=raw.get("will_conflict_data"),
+            # S82: Backend подтверждает spatial truth. Frontend reconciles при расхождении.
+            confirmed_location_id=raw.get("confirmed_location_id"),
         )
 
 
@@ -263,11 +284,17 @@ class HttpGameGateway:
         action_text: str,
         player_x: float = 0.0,
         player_y: float = 0.0,
+        world_x: float | None = None,
+        world_y: float | None = None,
     ) -> GameActionResponse:
-        return self._contract.send_action(campaign_id, player_name, action_text, player_x, player_y)
+        return self._contract.send_action(campaign_id, player_name, action_text, player_x, player_y, world_x, world_y)
     
     def health(self) -> dict:
         return self._contract.health()
+    
+    def new_game(self, campaign_id: str) -> dict:
+        """ADR-O-146: Сброс runtime мира к чистому static."""
+        return self._contract.new_game(campaign_id)
     
     def create_player_session(
         self, campaign_id: str, player_name: str
@@ -313,18 +340,23 @@ class DirectGameGateway:
         action_text: str,
         player_x: float = 0.0,
         player_y: float = 0.0,
+        world_x: float | None = None,
+        world_y: float | None = None,
     ) -> GameActionResponse:
         # Инициализируем при первом вызове (долго — загружает модели)
         if not self._bridge.ready:
             self._bridge.initialize()
         
         # Координаты игрока передаются в GameLoop для пространственных интентов (APPROACH и др.)
+        # S82: world_x/y пробрасываются для Spatial Oracle (если bridge поддерживает)
         result = self._bridge.turn(
             campaign_id=campaign_id,
             player_name=player_name,
             action_text=action_text,
             player_x=player_x,
             player_y=player_y,
+            world_x=world_x,
+            world_y=world_y,
         )
         
         if result.error:
@@ -351,6 +383,17 @@ class DirectGameGateway:
     def health(self) -> dict:
         return {"status": "ok", "mode": "direct"}
     
+    def new_game(self, campaign_id: str) -> dict:
+        """ADR-O-146: Сброс runtime мира к чистому static."""
+        try:
+            from game_loop_bridge import get_game_loop_bridge
+            _bridge = get_game_loop_bridge()
+            if _bridge.ready and hasattr(_bridge, '_loop') and hasattr(_bridge._loop, 'new_game'):
+                return _bridge._loop.new_game(campaign_id)
+            return {"reset": True, "campaign_id": campaign_id, "files_removed": []}
+        except Exception as e:
+            return {"reset": False, "campaign_id": campaign_id, "error": str(e)}
+    
     def _advance_time_by_movement(self, campaign_id: str, distance: float) -> None:
         """Удалено: время продвигается в game_screen.py при каждом шаге через Calendar."""
         pass
@@ -368,17 +411,10 @@ class DirectGameGateway:
         return {"campaign_id": campaign_id}
     
     def get_characters(self, campaign_id: str) -> list[dict]:
-        # Читаем напрямую из characters.json
-        from pathlib import Path
-        char_file = Path("data/campaigns") / campaign_id / "characters.json"
-        if not char_file.exists():
+        # ADR-O-146: Через bridge, не через файлы. Law 1.1 — frontend не читает backend данные напрямую.
+        if not self._bridge.ready:
             return []
-        try:
-            import json
-            with open(char_file, "r", encoding="utf-8-sig") as f:
-                return json.load(f)
-        except Exception:
-            return []
+        return self._bridge.get_characters(campaign_id)
     
     def idle_tick(self, campaign_id: str) -> dict:
         """Idle tick через TickOrchestrator (10 фаз, Устав §3).
@@ -435,6 +471,8 @@ class FallbackGateway:
         action_text: str,
         player_x: float = 0.0,
         player_y: float = 0.0,
+        world_x: float | None = None,
+        world_y: float | None = None,
     ) -> GameActionResponse:
         # Если HTTP помечен мёртвым — пробуем заново каждые _retry_interval запросов
         if self._primary_healthy is False:
@@ -444,17 +482,17 @@ class FallbackGateway:
                 if self._try_primary_health():
                     self._primary_healthy = True
             if self._primary_healthy is False:
-                return self._fallback.send_action(campaign_id, player_name, action_text, player_x, player_y)
+                return self._fallback.send_action(campaign_id, player_name, action_text, player_x, player_y, world_x, world_y)
         
         try:
-            result = self._primary.send_action(campaign_id, player_name, action_text, player_x, player_y)
+            result = self._primary.send_action(campaign_id, player_name, action_text, player_x, player_y, world_x, world_y)
             self._primary_healthy = True
             self._requests_since_fail = 0
             return result
         except BackendError:
             self._primary_healthy = False
             self._requests_since_fail = 0
-            return self._fallback.send_action(campaign_id, player_name, action_text, player_x, player_y)
+            return self._fallback.send_action(campaign_id, player_name, action_text, player_x, player_y, world_x, world_y)
     
     def _try_primary_health(self) -> bool:
         """Тихая проверка — не бросает исключение."""
@@ -472,6 +510,16 @@ class FallbackGateway:
         except Exception:
             self._primary_healthy = False
             return {"status": "degraded", "mode": "direct_fallback"}
+    
+    def new_game(self, campaign_id: str) -> dict:
+        """ADR-O-146: Сброс runtime мира к чистому static."""
+        try:
+            result = self._primary.new_game(campaign_id)
+            self._primary_healthy = True
+            return result
+        except Exception:
+            self._primary_healthy = False
+            return self._fallback.new_game(campaign_id)
     
     def create_player_session(
         self, campaign_id: str, player_name: str
@@ -538,8 +586,12 @@ class _PendingAction:
     player_name: str
     action_text: str
     submitted_at: float
-    player_x: float = 0.0  # координаты для синхронизации с бэкендом
+    player_x: float = 0.0  # локальные координаты (legacy)
     player_y: float = 0.0
+    # S82: Мировые координаты — PRIMARY spatial input для backend oracle.
+    # Backend вычисляет actual_chunk НЕЗАВИСИМО. Никаких prediction-подсказок.
+    world_x: float | None = None
+    world_y: float | None = None
     is_telegraph: bool = False  # NPC телеграф — не действие игрока
 
 
@@ -608,6 +660,8 @@ class ActionQueue:
         action_text: str,
         player_x: float = 0.0,
         player_y: float = 0.0,
+        world_x: float | None = None,
+        world_y: float | None = None,
     ) -> str:
         """
         Добавить действие в очередь. Неблокирующий — возвращает сразу.
@@ -624,6 +678,8 @@ class ActionQueue:
             submitted_at=time.monotonic(),
             player_x=player_x,
             player_y=player_y,
+            world_x=world_x,
+            world_y=world_y,
         ))
         return action_id
     
@@ -650,6 +706,8 @@ class ActionQueue:
         player_name: str,
         player_x: float = 0.0,
         player_y: float = 0.0,
+        world_x: float | None = None,
+        world_y: float | None = None,
         action_text: str | None = None,
     ) -> str:
         """
@@ -666,6 +724,8 @@ class ActionQueue:
             submitted_at=time.monotonic(),
             player_x=player_x,
             player_y=player_y,
+            world_x=world_x,
+            world_y=world_y,
             is_telegraph=True,
         ))
         return action_id
@@ -700,6 +760,8 @@ class ActionQueue:
                     action_text=_text,
                     player_x=pending.player_x,
                     player_y=pending.player_y,
+                    world_x=pending.world_x,
+                    world_y=pending.world_y,
                 )
                 self._output.put(CompletedAction(
                     action_id=pending.action_id,

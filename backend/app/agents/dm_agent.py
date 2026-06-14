@@ -89,6 +89,9 @@ class DmAgent:
                 world_result, world_canon_exists, context,
             )
         except Exception as e:
+            import traceback
+            print(f"[DM_AGENT_CRASH] {type(e).__name__}: {e}")
+            traceback.print_exc()
             jsonl_log({"level": "ERROR", "agent": "dm_agent", "error": str(e)})
             return self._fallback_narrate()
 
@@ -261,33 +264,57 @@ class DmAgent:
             if _target_id:
                 # Обновляем sticky только для явного таргета, не для fallback
                 self._last_target_id = _target_id
-                _target_name = _target_id
-                # Имя берём из DMFrame (NpcOutcome.name заполняется из real_state)
+                # ADR-O-148: Каноническое имя NPC — единый источник истины.
+                # DM НИКОГДА не должен видеть npc_id ("maid_lusya") — только display_name ("Люся").
+                # Приоритет: DMFrame → _npc_id_to_display (config cache) → эвристика
+                _target_name = _target_id  # абсолютный fallback
+                # 1. Попытка из DMFrame (NpcOutcome.name из runtime state)
                 if _dm_frame:
                     for _npc in _dm_frame.focus_npcs + _dm_frame.background_npcs:
                         if _npc.npc_id == _target_id and _npc.name and _npc.npc_id != _npc.name:
                             _target_name = _npc.name
                             break
+                # 2. Если DMFrame не дал имени — используем канонический резолвер
+                if _target_name == _target_id:
+                    from app.services.scene_state_manager import _npc_id_to_display
+                    _resolved = _npc_id_to_display(_target_id)
+                    if _resolved != _target_id:
+                        _target_name = _resolved
                 builder.add_custom_block(
                     "Обращение игрока",
-                    f"Игрок обращается напрямую к {_target_name}. Этот NPC должен отреагировать — ответить словами или действием. Остальные NPC реагируют как наблюдатели."
+                    f"Игрок обращается напрямую к {_target_name}. {_target_name} ОБЯЗАН ответить — реплика в кавычках. Это диалог, NPC говорит. Остальные NPC — наблюдатели (могут отреагировать мимикой или жестом, но молчат)."
                 )
         
-        # Блок 3: Сцена — для диалога пропускаем (объекты не релевантны)
-        if not _is_light_dialog:
-            scene_block = ""
-            if context:
-                scene_state = context.get("scene_state", {})
-                if scene_state:
+        # Блок 3: Сцена — ADR-DM-001: ВСЕГДА минимум (локация + кто рядом)
+        # Full mode: полная сцена с объектами. Light mode: только локация + присутствующие NPC.
+        scene_block = ""
+        if context:
+            scene_state = context.get("scene_state", {})
+            if scene_state:
+                if not _is_light_dialog:
+                    # Полная сцена (объекты, мебель, атмосфера)
                     try:
                         scene_block = SceneStateManager.get_scene_description(scene_state) + "\n\n"
                     except Exception as e:
                         jsonl_log({"level": "ERROR", "agent": "dm_agent", "error": f"Scene build error: {e}"})
-            builder.add_scene(scene_block, location)
+                else:
+                    # Минимальная сцена для диалога — кто в комнате
+                    _npc_pos = scene_state.get("npc_positions", {})
+                    _present = []
+                    for _nid, _ndata in _npc_pos.items():
+                        if _nid == "player":
+                            continue
+                        _nname = _ndata.get("name", _nid) if isinstance(_ndata, dict) else _nid
+                        _activity = _ndata.get("activity", "") if isinstance(_ndata, dict) else ""
+                        _act_str = f" ({_activity})" if _activity else ""
+                        _present.append(f"{_nname}{_act_str}")
+                    if _present:
+                        scene_block = f"В помещении: {', '.join(_present)}.\n\n"
+        builder.add_scene(scene_block, location)
         
-        # Блок 4: Состояние игрока — для диалога только если есть раны/состояния
+        # Блок 4: Состояние игрока — ВСЕГДА если есть раны/стресс, skip только если полностью спокойный
         player_state_block = ""
-        _skip_player_state = _is_light_dialog
+        _skip_player_state = False  # ADR-DM-001: никогда не пропускать автоматически
         if context and context.get("player_state"):
             _lines = []
             for pname, pdata in context["player_state"].items():
@@ -343,8 +370,8 @@ class DmAgent:
             )
         
         # Блок 4.5: Наблюдаемые симптомы NPC (The Fool: только видимые следы, не внутренние состояния)
-        # Читаем embodied_traces из доменного PlayerPerceptionDTO (не API-версию с peripheral_cues)
-        if context and not _is_light_dialog:
+        # ADR-DM-001: Симптомы — ВСЕГДА. DM описывает что видит игрок, даже в диалоге.
+        if context:
             _perception = getattr(context, 'player_perception', None) if hasattr(context, 'player_perception') else (context.get('player_perception') if isinstance(context, dict) else None)
             _traces = []
             if isinstance(_perception, dict):
@@ -369,11 +396,11 @@ class DmAgent:
                     builder.add_custom_block("Наблюдаемые симптомы NPC (видимые — отражай в повествовании)", "\n".join(_obs_lines))
         
         # Блок 4.7: Контекст NPC (роль, описание — для правдоподобного нарратива)
-        # Получаем NPC данные — поддерживаем и dataclass (getattr) и dict (get)
+        # ADR-DM-001: NPC онтология — ВСЕГДА в промпте. Без этого DM не знает КТО перед ним.
         _anr = getattr(context, 'all_npcs_raw_snapshot', None) if context else None
         if _anr is None and isinstance(context, dict):
             _anr = context.get('all_npcs_raw_snapshot')
-        if _anr and not _is_light_dialog:
+        if _anr:
             _npc_ctx_lines = []
             for _npc in _anr:
                 if not isinstance(_npc, dict):
@@ -591,7 +618,7 @@ class DmAgent:
             pass
         
         # Fallback — только если файл промпта отсутствует
-        return "Ты — Мастер Подземелий D&D 5e. Отвечай на русском. 2-3 предложения. Не говори за игрока."
+        return "Ты — Мастер Подземелий D&D 5e. Отвечай ТОЛЬКО по-русски. НЕ ПИШИ по-китайски (中文). 2-3 предложения. Не говори за игрока."
 
     @staticmethod
     def _as_dict(ctx) -> dict:
@@ -647,9 +674,14 @@ class DmAgent:
         if isinstance(raw, str):
             try:
                 result = json.loads(raw)
+                # json.loads может вернуть str/int/list — оборачиваем в dict
+                if not isinstance(result, dict):
+                    result = {"dm_response": str(result).strip()}
             except Exception:
-                jsonl_log({"level": "WARN", "agent": "dm_agent", "error": "JSON parse failed", "raw_preview": raw[:300]})
-                return self._fallback_narrate()
+                # LLM вернул чистый текст вместо JSON — оборачиваем как dm_response
+                # Это нормальное поведение для 7B моделей, не умеющих JSON-формат
+                jsonl_log({"level": "INFO", "agent": "dm_agent", "note": "plain text response (no JSON)", "raw_preview": raw[:200]})
+                result = {"dm_response": raw.strip()}
         else:
             result = raw if isinstance(raw, dict) else {"dm_response": str(raw)}
 
@@ -658,6 +690,37 @@ class DmAgent:
         from app.services.verbalization.response_validator import ResponseValidator
         validator = ResponseValidator(contract)
         validation = validator.validate(dm_text)
+
+        if validation.is_fallback and validation.violation == "non_russian":
+            # ADR-O-147: CJK Retry — модель сгенерировала китайский.
+            # Вместо слепого fallback — повторяем запрос с усиленным языковым якорем.
+            _RUSSIAN_REINFORCE = (
+                "\n\n!!! ВНИМАНИЕ: Твой предыдущий ответ содержал китайские иероглифы. "
+                "Это КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО. Пиши ТОЛЬКО по-русски. "
+                "Каждое слово — русское. Ни одного китайского символа. !!!\n"
+            )
+            _reinforced_system = contract.system_prompt + _RUSSIAN_REINFORCE
+            jsonl_log({"level": "WARN", "agent": "dm_agent", "event": "cjk_retry_1", "original_preview": dm_text[:100]})
+
+            raw_retry = self.router.request_for_agent(
+                agent_name="dm",
+                prompt=contract.user_prompt,
+                system_prompt=_reinforced_system,
+                params=GenerationParams(max_tokens=220),
+            )
+            if isinstance(raw_retry, str):
+                try:
+                    result = json.loads(raw_retry)
+                    # json.loads может вернуть str/int/list — оборачиваем в dict
+                    if not isinstance(result, dict):
+                        result = {"dm_response": str(result).strip()}
+                except Exception:
+                    result = {"dm_response": raw_retry.strip()}
+            else:
+                result = raw_retry if isinstance(raw_retry, dict) else {"dm_response": str(raw_retry)}
+
+            dm_text = result.get("dm_response", "")
+            validation = validator.validate(dm_text)
 
         if validation.is_fallback:
             jsonl_log({"level": "WARN", "agent": "dm_agent", "violation": validation.violation, "fallback_text": validation.text})
@@ -713,6 +776,11 @@ class DmAgent:
                 yield str(result)
             return
 
+        # Router observability: streaming проходит ЧЕРЕЗ Router, не в обход (ADR-147)
+        _router = self.router
+        _stream_ctx = _router.notify_stream_start("dm_narrative", "narrative")
+        _total_chars = [0]  # mutable counter для closure (thread-safe via GIL)
+
         q: asyncio.Queue[str | None] = asyncio.Queue()
         loop = asyncio.get_running_loop()
 
@@ -728,6 +796,7 @@ class DmAgent:
                     if not token:
                         continue
                     buffer += token
+                    _total_chars[0] += len(token)
 
                     if _has_stop_token(buffer):
                         clean = _strip_stop_tokens(buffer)
@@ -752,6 +821,12 @@ class DmAgent:
                 if not loop.is_closed():
                     asyncio.run_coroutine_threadsafe(q.put(f"\n[Ошибка стриминга: {e}]"), loop)
             finally:
+                # Router observability: streaming завершён (ADR-147)
+                if _stream_ctx is not None:
+                    try:
+                        _router.notify_stream_end(_stream_ctx, _total_chars[0])
+                    except Exception:
+                        pass
                 if not loop.is_closed():
                     asyncio.run_coroutine_threadsafe(q.put(None), loop)
 

@@ -45,6 +45,12 @@ class PersistencePort(ABC):
         ...
 
     @abstractmethod
+    def delete_campaign(self, campaign_id: str) -> None:
+        """Удаляет все данные кампании (scene + runtime) из persistence.
+        Используется при New Game для полной очистки всех слоёв."""
+        ...
+
+    @abstractmethod
     def atomic_commit(
         self,
         campaign_id: str,

@@ -56,6 +56,8 @@ from app.services.scene_change import (
 from app.domain.movement import MovementIntent, PRIORITY_RANDOM, IntentDomain
 from app.services.spatial.movement_engine import MovementEngine
 
+import copy
+
 logger = logging.getLogger(__name__)
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -463,6 +465,7 @@ class LifeEngine:
 
         # Используем кэшированных NPC если есть, иначе загружаем с диска
         npcs = self._npc_cache.get(campaign_id) or load_npcs_merged(runtime_path=runtime_path)
+        print(f"[LIFE_SET] tick={current_tick} npcs={sorted([n.get('id', '?') for n in npcs]) if npcs else []}")
         all_changes: list[SceneChange] = []
         all_intents: list[MovementIntent] = [] # ADR-049: Сборка намерений
         npcs_updated = False
@@ -507,6 +510,7 @@ class LifeEngine:
         scene_state: dict,
         topics: Optional[dict[str, str]] = None,
         identities: Optional[dict[str, dict[str, float]]] = None,
+        effective_drives_map: Optional[dict[str, Any]] = None,
     ) -> tuple[list[dict], list, list]:
         """
         Фаза 5 — DecisionHub для NPC в idle tick.
@@ -612,10 +616,20 @@ class LifeEngine:
                 _kernel = getattr(state_l2, 'perceptual_kernel', None)
                 _decision_ctx = translate_kernel_to_context(_kernel, body_state=_body) if _kernel else None
 
+                # ADR-O-208: effective_drives — обязательный аргумент DecisionHub.compute()
+                # Вычисляется в TickOrchestrator через DriveResolver + L1Chronicle.
+                # STEP A: L3 обязателен. Отсутствие L3 — pipeline fault (Инвариант L3-P2).
+                # Фоллбек на L0 (drives_base) уничтожен. Нулевая проекция != отсутствие проекции.
+                _effective_drives = (effective_drives_map or {}).get(npc_id)
+                if _effective_drives is None:
+                    logger.error(f"[PIPELINE_FAULT][L3_MISSING] npc={npc_id} lacks EffectiveDrives (L3) in LifeEngine. Idle tick skipped.")
+                    continue
+
                 result = hub.compute(
                     state=state_l2,
                     personality=profile_l0,
                     event=event,
+                    effective_drives=_effective_drives,
                     scene_state=scene_state,
                     identity=_identity,
                     eco_modifiers=interpretation.score_modifiers or None,
@@ -799,6 +813,43 @@ class LifeEngine:
         self._npc_cache.pop(campaign_id, None)
         self._temporal.invalidate_cache(campaign_id)
 
+    def reset_campaign(self, campaign_id: str) -> list[dict]:
+        """Сброс NPC кампании к чистому static config с healthy body_state.
+        Вызывается из new_game() ПОСЛЕ очистки persistence.
+        1. Очищает кэш
+        2. Загружает NPC из static config (fallback в _load_npcs)
+        3. Инжектит BODY_STATE_HEALTHY для NPC без body_state
+        4. Сохраняет в persistence для следующих загрузок
+        5. Обновляет кэш"""
+        from app.models.npc_state import BODY_STATE_HEALTHY
+        # Очистка кэша
+        self._npc_cache.pop(campaign_id, None)
+        self._last_access.pop(campaign_id, None)
+        # Загрузка из static (persistence уже очищен, будет fallback)
+        npcs = self._load_npcs(campaign_id)
+        # ADR-O-146: Принудительный сброс ВСЕГО runtime состояния.
+        # Новая игра = чистый лист. Старый body_state с pain=95 — не "disabled",
+        # но должен быть перезаписан. Аналогично affective_load, emotion, PK.
+        for npc in npcs:
+            npc["body_state"] = dict(BODY_STATE_HEALTHY)
+            npc["affective_load"] = 0.0
+            npc["emotion"] = "neutral"
+            npc["emotion_delta"] = 0.0
+            npc["perceptual_kernel"] = {}
+            npc["narrative_cache"] = []
+            npc.pop("wounds", None)
+            npc.pop("conditions", None)
+        # Сохранение в persistence для следующих загрузок
+        if self._persistence is not None:
+            self._persistence.save_npc_runtime(campaign_id, npcs)
+        # Обновление кэша
+        self._npc_cache[campaign_id] = npcs
+        logger.info(
+            f"[LIFE_ENGINE] Campaign '{campaign_id}' reset: "
+            f"{len(npcs)} NPCs with healthy body_state"
+        )
+        return npcs
+
     def update_cache(self, campaign_id: str, npc_dicts: list[dict]) -> None:
         """Обновляет HOT кэш NPC мутированными данными после apply_batch.
         
@@ -868,6 +919,16 @@ class LifeEngine:
     # TODO Rename this here and in `_load_npcs`
     def _extracted_from__load_npcs_14(self, arg0, campaign_id):
         npcs = json.loads(arg0.read_text(encoding="utf-8"))
+        # ENTITY BIRTH CONTRACT: COLD-2 fallback — прямое чтение JSON минуя
+        # load_npcs_merged. Без нормализации NPC приходят без body_state и npc_id
+        # → SOMATIC_VETO блокирует когнитивный pipeline.
+        # Это единственный оставшийся путь, обходящий Entity Birth Contract.
+        from app.models.npc_state import BODY_STATE_HEALTHY
+        for npc in npcs:
+            if not npc.get("body_state"):
+                npc["body_state"] = dict(BODY_STATE_HEALTHY)
+            if "npc_id" not in npc and "id" in npc:
+                npc["npc_id"] = npc["id"]
         self._npc_cache[campaign_id] = npcs
         return npcs
 
@@ -879,7 +940,7 @@ class LifeEngine:
         blood_loss, shock_impulse) теряется после TTL/LRU eviction.
         """
         if cached := self._npc_cache.get(campaign_id):
-            return list(cached)
+            return copy.deepcopy(cached)
 
         # ADR-128: Cold recovery — пробуем восстановить из персистенса
         recovered = self._load_npcs(campaign_id)
@@ -888,7 +949,7 @@ class LifeEngine:
                 f"[LIFE_ENGINE] get_npc_states: восстановлен из cold storage "
                 f"({campaign_id}, {len(recovered)} NPC)"
             )
-            return list(recovered)
+            return copy.deepcopy(recovered)
 
         logger.warning(
             f"[LIFE_ENGINE] get_npc_states: кэш пуст для '{campaign_id}'. "
@@ -994,6 +1055,13 @@ class LifeEngine:
           ДОЛГ 4.3: Viability Pre-Generation Gate — ROUTINE не генерируется при SURVIVAL давлении.
           """
         npc_id = npc.get("id", "unknown")
+
+        # ADR-O-142A: Arousal Gate — missing wake edge (sleeping → idle)
+        # Behavior transition gate: определяет, должен ли спящий NPC пробудиться.
+        # НЕ трогает body_state["consciousness"] — поведенческий переход, не физиологический.
+        _wake_changes = self._arousal_gate(npc, tick)
+        if _wake_changes:
+            return _wake_changes, []  # NPC только что проснулся — пропускаем schedule
 
         # ── ДОЛГ 4.3: Viability Pre-Generation Gate ──
         # Вычисляем допустимые домены ДО генерации кандидатов.
@@ -1195,6 +1263,116 @@ class LifeEngine:
             priority=PRIORITY_NEEDS,
         )
 
+    def _arousal_gate(self, npc: dict, tick: int) -> list[SceneChange]:
+        """ADR-O-142A: Behavior transition gate — missing wake edge.
+
+        Arousal Gate определяет, должен ли спящий NPC пробудиться.
+        Это behavior transition gate, НЕ consciousness transition.
+        Не трогает body_state["consciousness"].
+
+        Формула (скорректирована по результатам сценарного анализа):
+          wake_pressure  = threat*0.35 + (pain/100)*0.25 + directive_salience*0.3 + acoustic*0.1
+          sleep_resistance = (fatigue/100)*0.4 + 0.05 + depth*0.1
+
+        Ключевые сценарии:
+          fatigue=0.1, threat=0.5      → pressure=0.175 > resist=0.09  → WAKE ✓
+          fatigue=0.5, directive=0.8   → pressure=0.24  > resist=0.25  → спит (устал)
+          fatigue=0.5, dir=0.8+thr=0.5 → pressure=0.415 > resist=0.25  → WAKE ✓
+          fatigue=0.8, no stimuli      → pressure=0     < resist=0.37  → спит ✓
+          fatigue=0.8, thr=0.8+pain=0.5→ pressure=0.405 > resist=0.37  → WAKE ✓
+
+        Переход: sleeping/resting → idle (через SceneChange pipeline)
+        Побочный эффект: routine["current"] = "" (нет активности)
+
+        Returns:
+            Список SceneChange если NPC пробуждён, [] если нет.
+        """
+        _routine = npc.get("routine", {})
+        _current = _routine.get("current", "")
+
+        # Gate применяется только к спящим NPC
+        if "sleeping" not in _current and "resting" not in _current:
+            return []
+
+        # Когнитивный паралич (initiative_suppression > 0.7) замораживает ВСЁ,
+        # включая пробуждение. NPC не может действовать — не может и проснуться.
+        _kernel = npc.get("perceptual_kernel")
+        _init_sup = _kernel.get("initiative_suppression", 0.0) if isinstance(_kernel, dict) else getattr(_kernel, "initiative_suppression", 0.0) if _kernel else 0.0
+        if _init_sup > 0.7:
+            return []
+
+        # Attention Capture (recent_directive.interrupts_routine=True) замораживает
+        # поведенческие переходы. Arousal Gate не должен перекрывать когнитивный захват.
+        _rd = _kernel.get("recent_directive") if isinstance(_kernel, dict) else getattr(_kernel, "recent_directive", None) if _kernel else None
+        if _rd and isinstance(_rd, dict) and _rd.get("interrupts_routine"):
+            return []
+
+        # ── Wake pressure ──────────────────────────────────────────────
+        _threat = 0.0
+        _directive_salience = 0.0
+        if isinstance(_kernel, dict):
+            _threat = _kernel.get("threat_gradient", 0.0)
+            # Приказ от игрока — сильный сигнал пробуждения (но НЕ если interrupts_routine=True —
+            # это уже обработано guard'ом выше)
+            _directive_salience = 0.8 if _rd else 0.0
+        elif _kernel:
+            _threat = getattr(_kernel, "threat_gradient", 0.0)
+            _directive_salience = 0.8 if _rd else 0.0
+
+        _body = npc.get("body_state", {})
+        if isinstance(_body, dict):
+            # MSOC: pain/fatigue хранятся в 0-100, нормализуем к 0-1 (ADR-094)
+            _pain = float(_body.get("pain", 0.0)) / 100.0
+            _fatigue = float(_body.get("fatigue", 0.0)) / 100.0
+        else:
+            _pain = 0.0
+            _fatigue = 0.0
+
+        # TODO: acoustic из scene_state environment.noise (пока недоступен в LifeEngine)
+        _acoustic = 0.0
+
+        wake_pressure = _threat * 0.35 + _pain * 0.25 + _directive_salience * 0.3 + _acoustic * 0.1
+
+        # ── Sleep resistance ───────────────────────────────────────────
+        # TODO: depth — требует записи _sleep_start_tick в update_routine
+        _depth = 0.0
+        sleep_resistance = _fatigue * 0.4 + 0.05 + _depth * 0.1
+
+        if wake_pressure > sleep_resistance:
+            npc_id = npc.get("id", "unknown")
+            logger.info(
+                f"[AROUSAL_GATE] {npc_id}: WAKE — "
+                f"pressure={wake_pressure:.3f} > resistance={sleep_resistance:.3f} "
+                f"(threat={_threat:.2f}, pain={_pain:.2f}, directive={_directive_salience:.2f})"
+            )
+
+            # Transition: sleeping/resting → нет активности
+            # НЕ вводим "awake" как состояние мира (ADR-O-142A constraint)
+            _routine["current"] = ""
+
+            changes = [
+                SceneChange(
+                    type=ChangeType.NPC_POSITION,
+                    target=npc_id,
+                    field="activity",
+                    value="",
+                    cause="arousal_gate",
+                    tick=tick,
+                ),
+                SceneChange(
+                    type=ChangeType.NPC_POSITION,
+                    target=npc_id,
+                    field="visible",
+                    value=True,
+                    cause="arousal_gate",
+                    tick=tick,
+                ),
+            ]
+
+            return changes
+
+        return []
+
     @staticmethod
     def _compute_viability_mask(npc: dict) -> set[IntentDomain]:
         """ДОЛГ 4.3: Viability Projection — какие домены действий допустимы для NPC.
@@ -1221,8 +1399,15 @@ class LifeEngine:
         
         _viable: set[IntentDomain] = {IntentDomain.SURVIVAL, IntentDomain.SOCIAL, IntentDomain.ROUTINE, IntentDomain.EXPLORATION}
         
+        # ADR-O-209: Trait-driven viability modulation.
+        # Traumatized NPC входит в SURVIVAL режим при более низкой угрозе.
+        _identity = npc.get("identity") or {}
+        _active_traits = _identity.active_traits if hasattr(_identity, 'active_traits') else _identity.get("active_traits", {})
+        _trauma_mod = _active_traits.get("traumatized", 0.0) * 0.25  # Макс эффект: снижение порога с 0.3 до 0.05
+        _survival_threshold = 0.3 - _trauma_mod
+        
         # SURVIVAL ⟂ ROUTINE: угроза сжимает пространство — рутина невозможна
-        if _threat > 0.3:
+        if _threat > _survival_threshold:
             _viable.discard(IntentDomain.ROUTINE)
         
         # Паралич воли: подавление инициативы сжимает всё до SURVIVAL
@@ -1246,6 +1431,11 @@ class LifeEngine:
           ADR-049: Возвращает list[MovementIntent] вместо прямого исполнения.
           ДОЛГ 4.3: Viability Pre-Generation Gate — ROUTINE не генерируется при SURVIVAL давлении.
           """
+          # ADR-O-142A: Arousal Gate — missing wake edge (sleeping → idle)
+          _wake_changes = self._arousal_gate(npc, tick)
+          if _wake_changes:
+              return _wake_changes, []  # NPC только что проснулся
+
           _viable = self._compute_viability_mask(npc)
           changes: list[SceneChange] = []
           intents: list[MovementIntent] = []
@@ -1449,6 +1639,21 @@ class LifeEngine:
         if activity in npc_map:
             entry = npc_map[activity]
             return (entry["location"], entry["position"], entry["display"])
+
+        # S85: Semantic Spatial Binding — резолв через SpatialService
+        if self._spatial_service:
+            from app.models.spatial_contracts import NodeRole
+            _ACTIVITY_TO_ROLE_MAP = {
+                "drinking": NodeRole.BAR, "serving_tables": NodeRole.BAR,
+                "cleaning_tables": NodeRole.TABLE, "sleeping": NodeRole.BED,
+                "resting": NodeRole.BED, "working": NodeRole.WORKBENCH,
+                "eating": NodeRole.TABLE, "idle": NodeRole.DEFAULT,
+            }
+            role = _ACTIVITY_TO_ROLE_MAP.get(activity)
+            if role:
+                ref = self._spatial_service.resolve_node(role=role, origin_zone=npc.get("location"))
+                if ref:
+                    return (ref.zone_id, ref.node_id, activity)
 
         return next(
             (

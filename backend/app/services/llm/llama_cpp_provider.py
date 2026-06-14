@@ -33,6 +33,8 @@ from app.services.llm.provider import (
     StreamingLlmProvider,
 )
 
+logger = logging.getLogger(__name__)
+
 # Regex для вырезания thinking блоков (страховка)
 _THINK_RE = re.compile(r'<think>.*?</think>', re.DOTALL)
 # Regex для незакрытых thinking блоков (<think> без </think>)
@@ -344,7 +346,6 @@ class LlamaCppProvider(StreamingLlmProvider):
         )
 
         full_content = ""
-        logger = logging.getLogger(__name__)
 
         # ADR-113: Retry с exponential backoff + partial recovery при обрыве стрима
         max_retries = 3

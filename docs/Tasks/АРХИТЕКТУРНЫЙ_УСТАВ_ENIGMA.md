@@ -118,6 +118,7 @@ backend/app/
     └── api/              ← Знает services/. Принимает DTO, выдаёт DTO.
 diagnostics/              ← НЕ ЗНАЕТ о рантайме симуляции. Читает stdout, git, файлы. Пишет в reports/.
     └── reports/          ← LLM-oriented Markdown (LAST_SESSION.md). Не импортируется в игру.
+    │   └── identity/          ← L1 Chronicle (append-only), DriveResolver (pure projection)
 ```
 
 **Закон 1.1:** `frontend/` не импортирует `backend/app/` ни под каким предлогом. Даже `constants`. Даже `typing`. Нет.
@@ -310,6 +311,7 @@ event_bus.subscribe(EventType.NPC_SPOKE, social_engine.handle)
 | 7.9 | `ResonanceEngine` / `ContradictionResolver` без lifecycle hooks | Мёртвый код, никто не вызывает |
 | 7.10 | YAML как runtime truth | Race conditions, нет транзакций, повреждение данных |
 | 7.11 | CausalObserver мутирует state | Нарушение принципа пассивного наблюдателя, недетерминированность симуляции |
+| 7.12 | Удаление событий из L1Chronicle | Нарушение append-only истории (ADR-O-208) || 7.13 | Кэширование EffectiveDrives (L3-P1) | Эфемерная проекция, рассинхрон с L1 (ADR-O-208) || 7.14 | Коммит состояния с NaN, sum!=1.0, или bounds violation | Краш тика через OntologyViolationError (ADR-O-207) || 7.15 | Desire в RiskPerceptionProfile | Риск ≠ готовность рисковать (ADR-O-146) || 7.16 | Viability veto через пост-генерационную фильтрацию | ROUTINE уже мутирует state до фильтрации (ADR-O-137) |
 
 ---
 

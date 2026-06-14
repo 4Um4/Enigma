@@ -1,9 +1,12 @@
+import logging
 from typing import Optional, Dict, Any
 from app.models.cfrm import PsychologicalPressure
 from app.models.npc_state import PerceptualKernel
 from app.domain.decision_context import (
     DecisionContext, UtilityFieldDeformation, ActionSpaceCompression
 )
+
+logger = logging.getLogger(__name__)
 
 def translate_pressure_to_context(pressure: PsychologicalPressure) -> DecisionContext:
     """

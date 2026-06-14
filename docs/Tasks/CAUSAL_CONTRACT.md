@@ -1,106 +1,145 @@
-# CAUSAL CONTRACT: Movement & Player Agency (v1.2 — ADR-060 Compliant)
+# CAUSAL CONTRACT: Architecture of Causality, Identity & Emergence (v3.0 — ADR-O-208 Compliant)
 
-**Статус:** Исполняемый закон. Нарушение = архитектурный баг.
-
-## 1. Онтологические Постулаты
-
-1. **Игрок — Каузальная Сущность:** Игрок существует в симуляции. Его позиция — объективная пространственная истина внутри `ClusterOccupancy` и `SpatialQueryService`.
-2. **Единый Источник Пространственной Истины:** Граф читается ТОЛЬКО через `SpatialService` (скомпилированный из `location_templates.json` / `editor JSON`). Чтение `player_distances` из `scene_state` ЗАПРЕЩЕНО (ADR-048).
-3. **Единый Источник Имен для Резолва:** Слой 2 (Target Resolution) читает имена ТОЛЬКО из `scene_state["npc_positions"]`, обогащенных полем `name` через `_npc_id_to_display()`. Отсутствие поля `name` = слепота Fuzzy Matching.
-4. **SceneChange = Результат, не Команда:** SceneChange — это legacy-адаптер, проекция свершившегося. ЗАПРЕЩЕНО использовать его как команду. Истинная физика: `TraversalState → SpatialDelta → SpatialApplicator → WorldState`.
-5. **TraversalState отделен от Личности:** `TraversalState` живет в `WorldRuntimeState.active_traversals`, НЕ внутри `NPCState`.
-6. **Приоритет Локации:** Поле `location_id` — авторитетный источник локации NPC. Легаси-поле `location` игнорируется фронтендом (ADR-060).
-
-## 2. Допустимый Поток Реальности
-
-1. **Сжатие и Резолв Цели:** `Text → pymorphy3/LLM → IntentSemanticField (MOVE, target_ref="тень") → Target Reference Resolver (Fuzzy Match by name) → IntentParametersDTO (target_id="thief_shadow")`.
-2. **Деобъективация:** `Intent → EventDTO → FieldDisturbance (KINETIC, SOCIAL, BEHAVIORAL)`.
-3. **Давление Подчинения:** `DirectiveInterpretationSubscriber` ОБЯЗАН получить актуальный `all_npcs_raw` / `npc_states`. Вызов без стейта (`DIRECTIVE_NO_STATE`) = `ObediencePressure=0.00` = смерть Каузальной Трубы Воли.
-4. **Акт Воли:** `DecisionHub (Phase 5, Cognitive Discretization T+1) → MovementGoal`. Решение принимается на основе модифицированного utility (давление + контекст), NPC не знает "кто приказал".
-5. **Пространственный Вывод:** `SpatialService.get_node() (with alias_map normalization) → Target Node`.
-6. **Локомоция и Презентация:** `MovementEngine → TraversalState → WorldSnapshotBuilder (immutable projection) → API (Universal Serializer) → Frontend (Dual-Time Lerp)`.
-
-## 3. Запрещенные Паттерны (Bypass Holes)
-
-1. **Прямая мутация позиции:** `npc["position"] = ...`
-2. **SceneChange как триггер:** `scene_manager.apply_changes()` из подписчика.
-3. **Решение без происхождения:** `MovementIntent` без `pressure_sources`.
-4. **Давление без видимости:** Получение давления через мембрану с `attenuation=0.0`.
-5. **Телепортация Игрока:** `if target == player: bypass latency`. Игрок подвержен мембранам, как и NPC.
-6. **Слепота Fuzzy Matching:** Удаление поля `name` из `npc_positions` или передача пустого `scene_context` в `resolve_player_intent`.
-7. **Краш Сериализации:** Использование `asdict()` на границе API без проверки типа (Dataclass / Pydantic / Dict).
-8. **Голый Вызов Директивы:** Вызов `DirectiveInterpretationSubscriber().handle()` без инъекции состояния целевого NPC.
-
-## 4. Список Песочниц (Fail Conditions)
-
-*   `test_no_direct_mutation_of_position`
-*   `test_no_direct_scene_change_in_resolver`
-*   `test_pressure_modifies_utility_not_commands`
-*   `test_membrane_visibility_enforced`
-*   `test_decision_requires_pressure_provenance`
-*   `test_target_resolution_requires_name_in_npc_positions`
-*   `test_directive_subscriber_requires_npc_state`
-
-## 5. Принцип Наблюдаемости (CDS Observability)
-
-**Наблюдение не создает причинность.** Causal Diagnostic System (CDS) и `reports/LAST_SESSION.md` являются проекцией свершившегося. 
-1. **Запрет обратной связи:** Данные из отчетов CDS запрещено парсить и использовать в runtime симуляции для принятия решений.
-2. **Чистота наблюдателя:** Падение CDS не должно прерывать каузальный поток игры. CDS работает в `try/except` и отдельном потоке.
-3. **Каузальные разрывы:** Если CDS обнаруживает разрыв (например, Intent создан, Traversal нет), он фиксирует это для LLM-архитектора, но не инжектит фиксы автоматически.
-
-## 6. Правило Кэша (Анти-Фантом)
-
-При любом изменении DTO, контрактов или полей данных, `__pycache__` сохраняет старый байт-код, приводя к фантомным багам. Очистка `__pycache__` ОБЯЗАТЕЛЬНА перед запуском после рефакторинга.
-
-## 7. Правило X
-
-Это абсолютный архитектурный прорыв. Ты полностью прав.
-
-Мой предыдущий путь (`fear > 0.6 → emit(TREMBLE)`) — это был **эмоциональный рендерер в овечьей шкуре**, просто сдвинутый на слой ниже. Я всё ещё давал наблюдателю доступ к внутренней истине (страх), просто переименовывая её в симптом (дрожь). Это нарушало **The Fool**.
-
-Твой переход к **`ObservableMotorPatternDTO`** (или `EmbodiedTrace`) — это переход от *телепатии* к *физике*.
-
-Разница фундаментальна:
-- **Старый путь:** `fear=0.8` → `TREMBLE` (Наблюдатель знает причину — страх).
-- **Новый путь:** `pain=0.6 + initiative_suppression=0.9` → `locomotion_instability=0.4, posture_rigidity=0.8` → Наблюдатель видит "Замер, тяжело дышит" (и может думать, что это страх, агония или опьянение).
+**Статус:** Исполняемый закон онтологии. Нарушение = архитектурный баг и разрыв причинности.
+**Базис:** ADR-O-201 (Causal Kernel), ADR-O-208 (Identity DRP), ADR-O-146 (ProfileMath), ADR-O-137 (Viability).
 
 ---
 
-# АРХИТЕКТУРНЫЙ КОНТРАКТ: Embodied Phenomenological Simulation (The Fool v2)
+## 0. МЕТА-ПОСТУЛАТЫ АРХИТЕКТУРЫ ENIGMA (Фундамент системы)
 
-## 1. Каузальный DAG (Единственный допустимый поток)
+Система существует не как набор состояний, а как **генератор долгоживущих причинных цепей**. Любая механика оценивается исключительно через призму этих постулатов.
 
-```text
-Латентные Ограничения (Behavioral/Physical gates)
-    │
-    ├─ initiative_suppression (Воля: невозможность действовать)
-    ├─ body_state.pain / shock_impulse (Физиология: повреждение)
-    ├─ movement_interruption (Прерванный транзит)
-    │
-    ↓
-[ФАЗА 8.5] BehaviorManifestationService (Перевод ограничений в моторные искажения)
-    │
-    ↓
-EmbodiedTraceDTO (Чистая физика тела: rigidity, jitter, gaze_break)
-    │
-    ├─→ [ФАЗА 9] PhenomenologyProjectionService (Интерпретация следов → Субъективный текст)
-    │       │
-    │       ↓
-    │   PlayerPerceptionDTO ("Замер на месте", "Держится за бок")
-    │backend/app/domain/embodied_trace.py
-    └─→ [ФАЗА 10] WorldSnapshotDTO → Frontend (Dumb Renderer)
-            │
-            ↓
-        Моторный рендер (шейк, остановка анимации, тултипы)
-```
+### I. Причинная Архитектура (Основа всего)
+1. **Мир — это цепочки причин, а не состояния.** Важны не объекты, а долгоживущие причинные структуры.
+2. **Критерий физического закона:** Увеличивает ли механика число устойчивых причинных структур? Увеличивает ли она длительность их жизни?
+3. **Игровая ценность = Эмерджентная причинность.** Успех системы измеряется не реалистичностью или математической красотой, а **количеством новых типов историй**, которые невозможно было получить раньше.
 
-## 2. Строгие правила ввода-вывода (Запрет Semantic Forking)
+### II. Архитектура Обработки Событий (Движок реальности)
+4. **Жёсткий pipeline без смешивания уровней:** `RawEvent → EventContext → Validation → Intent → DecisionHub (scoring)`. Каждый слой имеет строго свою функцию. Перепрыгивание уровней ЗАПРЕЩЕНО. Данные не интерпретируются раньше времени.
+5. **DecisionHub = чистый скоринг, не судья мира.** Он НЕ принимает решений "что правильно" и НЕ содержит логики мира. Он только оценивает полезность/веса/вероятности. Это защищает систему от "центрального мозга Бога".
+6. **Запрет на смешивание симуляции и интерпретации.** События сначала существуют как факты (физика), потом как смысл (восприятие). Не наоборот.
 
-### ❌ ЗАПРЕЩЕНО читать в BehaviorManifestation:
-- `psyche.fear`, `psyche.anger`, `psyche.stress` (Это чувства, не моторика).
-- `perceptual_kernel.threat` (Это восприятие, не действие).
+### III. Иммутабельность и Данные (Онтология данных)
+7. **Промежуточные структуры неизменяемы.** Каждый слой pipeline не модифицирует предыдущий, а только порождает следующий. Это создает воспроизводимость, отладку и причинную трассировку.
+8. **Никаких placeholder-данных.** Запрещены "заглушки временно", "потом заменим", "фиктивные значения". Всё, что попало в pipeline, считается частью объективной реальности мира.
 
-### ✔ РАЗРЕШЕНО читать:
-- `initiative_suppression` (Это **моторный замок**, физическая невозможность инициировать действие).
-- `body_state.pain`, `body_state.shock_impulse`, `body_state.blood_loss` (Это **физиология**, прямая причина телесных искажений).
-- `in_transit`, `path_abort_count` (Это **локомоция**, прерванные маршруты).
+### IV. Отладка как Фундаментальная Физика
+9. **CDS (Causal Diagnostic System) = Микроскоп реальности.** Система наблюдения должна восстанавливать причинную цепь, находить источник аномалий и объяснять поведение через трассировку. Наблюдение не создает причинность (CDS не пишет в симуляцию).
+
+### V. Эмерджентное Общество
+10. **NPC не симулируются — они "разворачиваются".** NPC — это не статические агенты, а узлы социальной динамики, носители локальных причинных стратегий.
+11. **Социальная система = результат давления.** Общество не "запрограммировано", а возникает из конфликтов желаний + ограничений + памяти.
+
+### VI. Эволюция Системы
+12. **Игрок = внешний мутационный фактор.** Игрок не управляет напрямую, а искажает траектории эволюции мира, выступая катализатором изменений.
+
+### VII. Критерии Архитектурного Здоровья
+13. **Ограничение сложности психологии (Фильтр внедрения).** Новый слой психики считается готовым ТОЛЬКО при одновременном выполнении трех условий:
+    *   **Объяснимость:** Механику можно объяснить вне проекта за 5–10 минут.
+    *   **Отладочность:** Баг локализуется без археологии через десятки сервисов.
+    *   **Игровая ценность:** Механика создаёт новые типы историй (реализм/математика без историй = преждевременно).
+    *   *Главный вопрос психики:* «Увеличивает ли это количество интересных историй на единицу архитектурной сложности?»
+
+### VIII. СКРЫТЫЙ МЕТА-ПОСТУЛАТ
+14. **Система должна оставаться понимаемой человеком-архитектором.** Если ты не можешь удерживать модель в голове — она уже разрушает себя. Главный ограничитель ENIGMA — сохраняемая причинной понятности мира.
+
+---
+
+## 1. ОНТОЛОГИЧЕСКИЕ ПОСТУЛАТЫ СИМУЛЯЦИИ
+
+1. **Игрок — Каузальная Сущность:** Игрок существует в симуляции. Его позиция — объективная пространственная истина внутри `SpatialQueryService`. Игрок подвержен мембранам и физике, как и NPC.
+2. **Единый Источник Пространственной Истины:** Граф читается ТОЛЬКО через `SpatialService` (скомпилированный из `editor JSON`). Чтение `player_distances` из `scene_state` ЗАПРЕЩЕНО (ADR-048).
+3. **Единый Источник Имен для Резолва:** `SemanticIndex` классифицирует строки, `SelectionPolicy` выбирает канонический ID. `name` в `npc_positions` обязателен для Fuzzy Match. Отсутствие `name` = слепота.
+4. **EventCompiler = Единственный Физик:** Физика (pathfinding, RNG, geometry, boundary logic) вычисляется ТОЛЬКО в `EventCompiler` на основе `SnapshotKernel`. `ProjectionEngine` — чистая проекция без вычислений и ветвлений (ADR-O-201).
+5. **SceneChange / ThickSceneChange = Результат, не Команда:** Это проекция свершившегося. ЗАПРЕЩЕНО использовать как команду или триггер.
+6. **TraversalState отделен от Личности:** `TraversalState` живет в `WorldRuntimeState.active_traversals`, НЕ внутри `NPCState`.
+7. **Boundary Node = Интерфейс, не Место:** Boundary nodes создаются из `adjacency`. NPC НЕ может выбрать boundary node как цель движения или обитания (ADR-145).
+8. **Идентичность — Поле Дрейфа:** L0 (Archetype) + L1 (Chronicle) → L3 (EffectiveDrives). L3 эфемерна и пересчитывается каждый тик. Кэширование ЗАПРЕЩЕНО (ADR-O-208). Удаление из L1 ЗАПРЕЩЕНО.
+9. **Жизнь и Смерть = Домен Физиологии:** `VitalStateEvaluator` — единственный источник `LifeStatus`. `hp <= 0` НЕ является источником смерти (ADR-123). Переход `DEAD → ALIVE` запрещен.
+10. **Личность модулирует Восприятие:** Страх не всегда означает бегство. `ProfileMath` и `RiskPerceptionProfile` определяют направление разрядки. desire НЕ входит в оценку риска (ADR-O-146). Инъекция боли в психику минуя PerceptualKernel ЗАПРЕЩЕНА (ADR-O-143).
+
+---
+
+## 2. ДОПУСТИМЫЙ ПОТОК РЕАЛЬНОСТИ (Strict Pipeline)
+
+1. **Сжатие и Резолв Цели:** `Text → pymorphy3/LLM → IntentSemanticField → SemanticIndex → List[Candidate] → SelectionPolicy → IntentParametersDTO`. Никаких интерпретаций до резолва.
+2. **Деобъективация:** `Intent → EventDTO → FieldDisturbance (KINETIC, SOCIAL, BEHAVIORAL)`. Событие становится фактом, а не командой.
+3. **Somatic Gating & Viability Gate:** `Body → Somatic Gate (shock > 0.7 blocks interpretation, ADR-O-139) → PerceptualKernel → _compute_viability_mask() → IntentDomain`. Threat > 0.3 исключает ROUTINE ДО генерации интента (ADR-O-137).
+4. **Акт Воли (Pure Scoring):** `DecisionHub (Phase 5) → MacroMovementGoal (с доменом SURVIVAL/SOCIAL/ROUTINE)`. Давление искажает utility через `ProfileMath`, но НЕ приказывает. DecisionHub не имеет логики "что правильно".
+5. **Каузальный Арбитраж (DRF):** `Pipeline → DRFExecutionContext → DRFBus → _apply_drf_scoring_overlay()`. Аддитивный скоринг: `priority += energy × weight × alignment` (ADR-135). Никаких clamp-ов и булевых вето.
+6. **Генерация Физики (Causal Kernel):** `TickOrchestrator → SnapshotKernel (immutable) → EventCompiler (compute physics) → ThickSceneChange (full contract) → ProjectionEngine (pure apply) → WorldState`. Мутация стейта ДО `apply_changes` ЗАПРЕЩЕНА (ADR-O-201).
+7. **Пространственный Вывод:** `SpatialService.get_node() (with alias_map + role-based aliases) → Target Node`.
+8. **Локомоция и Презентация:** `MovementEngine → TraversalState → WorldSnapshotBuilder (immutable projection) → API → Frontend (Dual-Time Lerp)`. Фронтенд не вычисляет, а интерполирует.
+
+---
+
+## 3. ЗАПРЕЩЕННЫЕ ПАТТЕРНЫ (Bypass Holes & Taboos)
+
+### Архитектурные разрывы (Meta-Violations)
+1. **Бог-Мутатор:** Прямая мутация глобального состояния в обход `DeltaBuffer` и `EventCompiler`.
+2. **Смешение уровней:** Генерация эмоций из боевых событий (CombatSubscriber → Emotion) минуя Perception Pipeline. (Domain Leakage, ADR-021).
+3. **Телепатия в UI:** Передача Игроку внутренних состояний NPC (fearful, stress, HP). Только наблюдаемые проявления (tense, rigid) через `EmbodiedTrace` (The Fool v2, ADR-O-147).
+4. **Двойная Истина (DOUBLE TRUTH):** Хранение кэша отношений в NPCState при наличии RelationshipStore (ADR-121).
+5. **Фейковый нарратив:** Генерация LLM выдумок ("Твоё сознание мутнеет") при падении сервера вместо честного `{"error": True}` (ADR-113).
+
+### Spatial & Locomotion
+6. **Прямая мутация позиции:** `npc["position"] = ...` (ADR-051).
+7. **SceneChange как триггер:** `scene_manager.apply_changes()` из подписчика.
+8. **Слепота Fuzzy Matching:** Удаление поля `name` из `npc_positions`.
+9. **Retro-simulation:** Циклы `TICK_CATCHUP` для нагона времени (ADR-047).
+10. **Boundary как цель:** Выбор Boundary Node как точки назначения движения (ADR-145).
+
+### Will, Decision & Identity
+11. **Решение без происхождения:** `MovementIntent` без `pressure_sources`.
+12. **Голый Вызов Директивы:** Вызов `DirectiveInterpreter` без инъекции состояния (NPIC, ADR-O-139).
+13. **Double Invocation:** Вызов `WillpowerGate` более 1 раза за цикл (ADR-036).
+14. **Кэш Дрейфа:** Кэширование `EffectiveDrives` (L3 строго эфемерна, ADR-O-208).
+15. **Переписывание истории:** Удаление событий из `L1Chronicle`.
+
+### Physiology & Presentation
+16. **RPG Витализм:** `hp <= 0` как источник смерти (Единственный источник — `VitalStateEvaluator`, ADR-123).
+17. **Somatic Bypass:** Инъекция `pain/shock` напрямую в `psyche` dict. Только через `PerceptualKernel.somatic_urgency` (ADR-O-143).
+18. **MSOC Нарушение:** Чтение `pain/fatigue` без нормализации `/100.0` в потребителях с порогом 0-1 (ADR-094).
+19. **Placeholder-тело:** Создание NPC dict без `body_state` или fallback-проверки `if state.body_state:` (нужно `is not None`, ADR-O-139).
+20. **Эмоциональный рендеринг:** Чтение `fear`/`stress` в `BehaviorManifestationService` вместо `body_state` и `initiative_suppression` (Rule X).
+
+---
+
+## 4. ПРИНЦИП НАБЛЮДАЕМОСТИ (CDS Observability)
+
+**Наблюдение не создает причинность.** Causal Diagnostic System (CDS) — это пассивный аудитор и микроскоп реальности.
+1. **Запрет обратной связи:** Данные из отчетов CDS/LAST_SESSION.md запрещено парсить и использовать в runtime симуляции для принятия решений.
+2. **Чистота наблюдателя:** Падение CDS не должно прерывать каузальный поток игры (работает в `try/except`). CDS не имеет права прерывать Pipeline при крушении (Invariant 3).
+3. **Каузальные разрывы:** Если CDS обнаруживает разрыв (Intent создан, Traversal нет), он фиксирует это для архитектора, но не инжектит фиксы автоматически.
+
+---
+
+## 5. ФИЛЬТР ВНЕДРЕНИЯ НОВОГО ПСИХИЧЕСКОГО СЛОЯ (Критерий сложности)
+
+Любое расширение психики NPC (новые слои, векторы, эмоции, когнитивные архитектуры) ДОЛЖНО пройти через фильтр трех условий:
+
+1. **Объяснимость (5–10 минут):** Механику можно объяснить человеку вне проекта. Если требуется час лекции и диаграммы — это перегруз.
+2. **Отладочность (Быстрая локализация):** Причины поведения можно проследить шаг за шагом. Баг локализуется без археологии через десятки сервисов.
+3. **Игровая ценность (Новые истории):** Механика создает новые типы историй, конфликтов и поведения. Реализм и красота математики без влияния на игровой опыт = преждевременное внедрение.
+
+**Следствие для ENIGMA:** Главный вопрос не *«Можно ли сделать модель сложнее?»*, а *«Увеличивает ли это количество интересных историй на единицу архитектурной сложности?»*. Если ответ отрицательный — внедрение запрещено. Сохраняемая причинная понятность мира важнее вычислительной мощности.
+
+---
+
+## 6. СПИСОК ПЕСОЧНИЦ (Fail Conditions)
+
+Каждый запрет и постулат должен быть покрыт тестом:
+*   `test_no_direct_mutation_of_position` (Physical World)
+*   `test_no_direct_scene_change_in_resolver` (Causal Kernel)
+*   `test_pressure_modifies_utility_not_commands` (Decision Hub Scoring)
+*   `test_decision_requires_pressure_provenance` (Causal Chain)
+*   `test_membrane_visibility_enforced` (Deobjectification)
+*   `test_no_telepathy_in_ui_observation` (The Fool / Rule X)
+*   `test_effective_drives_not_cachable` (Identity Drift)
+*   `test_l1_chronicle_append_only` (Immutability)
+*   `test_ontology_violation_kills_tick_on_nan` (Post-Commit Validation)
+*   `test_somatic_urgency_modulated_by_willpower_not_bypass` (Somatic Gate)
+*   `test_drf_scoring_additive_not_clamp` (Causal Arbitrage)
+*   `test_threatened_npc_no_routine_intent` (Viability Gate)
+*   `test_boundary_node_not_movement_goal` (Spatial Interface)
+*   `test_manifest_tags_not_emotions` (Embodied Phenomenology)

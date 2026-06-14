@@ -39,10 +39,9 @@ class PlayerSessionService:
     
     def _get_sessions_dir(self) -> str:
         """Получить путь к директории сессий."""
-        # ИСПРАВЛЕНИЕ: было 4x os.path.dirname(__file__) → Enigma/data/sessions/ (неверно).
-        # settings.data_dir = Enigma/backend/data/ — совпадает с campaigns/, npcs/, logs/.
-        # Итог: Enigma/backend/data/sessions/ (верно).
-        sessions_dir = os.path.join(settings.data_dir, "sessions")
+        # ADR-O-146: Сессии живут внутри saves/ (runtime world), не data/ (static world)
+        # saves/<campaign_id>/session.json — единая точка runtime состояния
+        sessions_dir = os.path.join(settings.saves_dir)
         
         # Создаем директорию если не существует
         if not os.path.exists(sessions_dir):

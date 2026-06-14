@@ -1,0 +1,65 @@
+domain: IDENTITY
+description: "Домен Идентичности и Онтологии (DOM-10). Фазово-заблокированное поле дрейфа, кристаллизующееся во времени. L0 (Восприятие) + L1 (Хроника) → L3 (Эффективные Драйвы)."
+nodes:
+  L1Chronicle:
+    type: domain
+    layer: Domain
+    label: "L1 Chronicle (Append-Only)"
+  DriveResolver:
+    type: domain
+    layer: Domain
+    label: "Drive Resolver (Pure Function L0+L1→L3)"
+  EffectiveDrives:
+    type: dto
+    layer: Domain
+    label: "Effective Drives (Ephemeral L3 Projection)"
+  OntologyViolationError:
+    type: domain
+    layer: Domain
+    label: "Ontology Violation Error (L5 Guard)"
+  TraitDriftEvent:
+    type: dto
+    layer: Domain
+    label: "Trait Drift Event (L1 Record)"
+  CalibrationEngine:
+    type: service
+    layer: Application
+    label: "Calibration Engine & Stability Kernel (Target)"
+edges:
+  - from: TraitDriftEvent
+    to: L1Chronicle
+    label: "appends drift record"
+    condition: "World pressure mutates identity"
+    code_ref: "l1_chronicle.py:append"
+  - from: L1Chronicle
+    to: DriveResolver
+    label: "provides weighted history"
+    condition: "Tick start"
+    code_ref: "drive_resolver.py:resolve_drives"
+  - from: DriveResolver
+    to: EffectiveDrives
+    label: "computes ephemeral projection"
+    condition: "Pure function from archetype + chronicle"
+    code_ref: "drive_resolver.py"
+  - from: EffectiveDrives
+    to: CalibrationEngine
+    label: "checks for oscillation"
+    condition: "Post-resolution"
+    code_ref: "calibration_engine.py (Target)"
+constraints:
+  - source: Any
+    target: L1Chronicle
+    rule: "FORBIDDEN: Deletion from L1Chronicle (Append-only history)"
+    code_ref: "ADR-O-208"
+  - source: Any
+    target: EffectiveDrives
+    rule: "FORBIDDEN: Caching EffectiveDrives (L3-P1 is strictly ephemeral)"
+    code_ref: "ADR-O-208"
+  - source: StateApplicator
+    target: OntologyViolationError
+    rule: "REQUIRED: Raise OntologyViolationError and kill tick on NaN, sum!=1.0, or bounds violation"
+    code_ref: "ADR-O-207"
+  - source: CalibrationEngine
+    target: DriveResolver
+    rule: "REQUIRED: Prevent uncalibrated drift of base drives (Anti-oscillation)"
+    code_ref: "ADR-O-211"

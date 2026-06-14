@@ -257,6 +257,14 @@ async def import_knowledge(
     )
 
 
+@router.post("/avatar/gender")
+async def set_avatar_gender(payload: dict):
+    """ADR-GENDER: Эндпоинт смены пола аватара."""
+    gender = payload.get("gender", "male")
+    game_loop.avatar_service.set_gender(gender)
+    return {"status": "ok", "gender": gender}
+
+
 @router.post("/game/turn", response_model=ChatTurnResponse)
 async def game_turn(request: ChatTurnRequest) -> ChatTurnResponse:
     if request.actions:
@@ -317,11 +325,54 @@ async def game_action(request: dict, game_loop=Depends(get_game_loop)) -> dict:
         if player_x != 0.0 or player_y != 0.0:
             _player_pos = (player_x, player_y)
 
+        # S82: Backend = deterministic spatial oracle.
+        # Вычисляет actual_chunk из world_position НЕЗАВИСИМО от frontend prediction.
+        # ИНВАРИАНТ: world_position = PRIMARY spatial input.
+        # player_position = LEGACY, игнорируется для spatial logic.
+        _world_x_raw = request.get("world_x")
+        _world_y_raw = request.get("world_y")
+        world_x: float | None = float(_world_x_raw) if _world_x_raw is not None else None
+        world_y: float | None = float(_world_y_raw) if _world_y_raw is not None else None
+        confirmed_location_id: str | None = None
+
         campaign_state = campaign_service.get_campaign_state(campaign_id)
-        location = "tavern_silver_wolf"  # дефолт — ID локации, неdisplayName
+        location = "tavern_silver_wolf"  # дефолт — ID локации, не displayName
         if campaign_state:
             if saved_location := campaign_state.metadata.get("current_location"):
                 location = saved_location
+
+        # S82: Spatial Oracle — backend ВЫЧИСЛЯЕТ actual_chunk из world_position.
+        # (0,0) — валидная координата. Проверяем is not None, а не != 0.
+        # Backend ВСЕГДА пересчитывает. Никогда не доверяет frontend prediction.
+        if world_x is not None and world_y is not None:
+            try:
+                from app.services.spatial.spatial_registry import SpatialRegistry
+                _registry = SpatialRegistry.get_or_load(campaign_id)
+                if _registry is not None:
+                    _actual_chunks = _registry.find_chunks(world_x, world_y)
+                    if _actual_chunks:
+                        _actual_chunk_id = _actual_chunks[0].location_id
+                        if _actual_chunk_id != location:
+                            logger.info(
+                                f"[SPATIAL_ORACLE] location updated: "
+                                f"{location} → {_actual_chunk_id} "
+                                f"(world=({world_x:.1f}, {world_y:.1f}))"
+                            )
+                        location = _actual_chunk_id
+                        confirmed_location_id = _actual_chunk_id
+                        # Обновляем metadata для следующего запроса
+                        # S83: Сохраняем world_position — idle_tick сможет вызвать Oracle
+                        if campaign_state:
+                            campaign_state.metadata["current_location"] = _actual_chunk_id
+                            campaign_state.metadata["player_world_x"] = world_x
+                            campaign_state.metadata["player_world_y"] = world_y
+                    else:
+                        logger.warning(
+                            f"[SPATIAL_ORACLE] world_position ({world_x:.1f}, {world_y:.1f}) "
+                            f"outside all chunks — using saved location"
+                        )
+            except Exception as e:
+                logger.warning(f"[SPATIAL_ORACLE] Registry lookup failed: {e}")
 
         turn_request = ChatTurnRequest(
             world_id=campaign_id,
@@ -333,6 +384,8 @@ async def game_action(request: dict, game_loop=Depends(get_game_loop)) -> dict:
         )
 
         result = await game_loop.run_turn(turn_request)
+        if result is None:
+            raise HTTPException(status_code=500, detail="Game loop returned None — internal pipeline failure")
 
         # Мета о моделях (для UI/дебага). Не ломает старые клиенты.
         dm_cfg = pool.get_model_config(dm_model_key) if pool else None
@@ -365,6 +418,9 @@ async def game_action(request: dict, game_loop=Depends(get_game_loop)) -> dict:
                         for i, p in enumerate(_raw_positions) if isinstance(p, dict)
                     }
 
+        if result is None:
+            raise HTTPException(status_code=500, detail="Game loop returned None — internal pipeline failure")
+        
         return {
             "response": result.dm_response,
             "npc_reactions": result.npc_reactions,
@@ -389,6 +445,8 @@ async def game_action(request: dict, game_loop=Depends(get_game_loop)) -> dict:
             # ADR-041: Проброс конфликта воли для Resistance Medium фронтенда
             # ADR-075: Строгий контракт. result — это Pydantic ChatTurnResponse.
             "will_conflict_data": result.will_conflict_data,
+            # S82: Backend подтверждает spatial truth. Frontend reconciles при расхождении.
+            "confirmed_location_id": confirmed_location_id,
         }
     except HTTPException:
         raise  # пробрасываем дальше
@@ -411,7 +469,7 @@ def session_state(campaign_id: str, game_loop=Depends(get_game_loop)) -> Session
     with contextlib.suppress(Exception):
         import json
         # campaign_state.json хранит metadata (location, time) и scene_state напрямую
-        cs_path = game_loop.data_dir / "campaigns" / campaign_id / "campaign_state.json"
+        cs_path = game_loop.saves_dir / campaign_id / "campaign_state.json"
         if cs_path.exists():
             cs = json.loads(cs_path.read_text(encoding="utf-8-sig"))
             # Берём metadata как есть
@@ -443,7 +501,7 @@ def get_npcs(campaign_id: str, game_loop=Depends(get_game_loop)) -> dict:
         current_location = None
         try:
             import json
-            cs_path = game_loop.data_dir / "campaigns" / campaign_id / "campaign_state.json"
+            cs_path = game_loop.saves_dir / campaign_id / "campaign_state.json"
             if cs_path.exists():
                 cs = json.loads(cs_path.read_text(encoding="utf-8-sig"))
                 current_location = cs.get("scene_state", {}).get("location_id") or cs.get("metadata", {}).get("current_location")
@@ -564,6 +622,13 @@ def get_player_session(campaign_id: str) -> PlayerSessionResponse:
         return PlayerSessionResponse(player=session.player_name, active=player_session_service.is_player_active(campaign_id))
     else:
         return PlayerSessionResponse(player=None, active=False)
+
+
+@router.post("/game/new/{campaign_id}")
+def new_game(campaign_id: str, game_loop=Depends(get_game_loop)) -> dict:
+    """ADR-O-146: Сброс runtime мира к чистому static. Оставляет персонажей."""
+    result = game_loop.new_game(campaign_id)
+    return result
 
 
 @router.post("/player/session/{campaign_id}", response_model=PlayerSessionResponse)

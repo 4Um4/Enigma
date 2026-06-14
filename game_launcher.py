@@ -57,9 +57,16 @@ def _ensure_backend_running() -> subprocess.Popen:
         pass  # backend не запущен — это норма при первичном запуске
 
     # Запускаем uvicorn в фоне
+    # BUG M FIX: Перенаправляем stdout/stderr subprocess в CDS лог,
+    # чтобы print()-маркеры (DRF_EMIT, IDLE_TRACE, TRAV_CREATE_PRE и т.д.)
+    # были видны CausalObserver. Без этого 89 критических маркеров слепы.
+    _cds_log_for_subprocess = Path(_BACKEND_DIR) / "logs" / "cds_backend.log"
+    _subprocess_log = open(str(_cds_log_for_subprocess), "a", encoding="utf-8")
     proc = subprocess.Popen(
         [sys.executable, "-m", "uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", "8000"],
         cwd=_BACKEND_DIR,
+        stdout=_subprocess_log,
+        stderr=_subprocess_log,
     )
 
     # Ждём готовности
@@ -130,6 +137,46 @@ def main() -> None:
                 screen, clock, menu = _init_menu_display()
 
             elif action == MenuAction.NEW_GAME:
+                screen = pygame.display.get_surface()
+                select_screen = CampaignSelectScreen(screen, clock)
+                selected_folder = select_screen.run()
+                if selected_folder is not None:
+                    # ADR-O-146: New Game = сброс runtime мира
+                    # Ждём готовности backend (race condition: uvicorn мог ещё не подняться)
+                    import time as _time
+                    _backend_ok = False
+                    for _attempt in range(15):
+                        try:
+                            import urllib.request as _ur
+                            with _ur.urlopen(f"{_BACKEND_URL}/api/health", timeout=2) as _hr:
+                                if _hr.status == 200:
+                                    _backend_ok = True
+                                    break
+                        except Exception:
+                            pass
+                        _time.sleep(1)
+                    if _backend_ok:
+                        try:
+                            from api_client import HttpClient
+                            _http = HttpClient(base_url=_BACKEND_URL)
+                            _http.post(f"/api/game/new/{selected_folder}", payload={})
+                            print(f"  ✓ Runtime сброшен для '{selected_folder}'")
+                        except Exception as e:
+                            print(f"  ⚠ New game reset failed: {e}")
+                    else:
+                        print(f"  ⚠ Backend не отвечает 15с, сброс пропущен")
+                    screen = pygame.display.get_surface()
+                    char_screen = CharacterSelectScreen(screen, clock, selected_folder)
+                    selected_char = char_screen.run()
+                    if selected_char is not None:
+                        screen = pygame.display.get_surface()
+                        game_screen = GameScreen(screen, clock)
+                        game_screen.run(selected_folder, selected_char)
+                # Возвращаемся в меню — пересоздаём поверхность и меню
+                screen, clock, menu = _init_menu_display()
+
+            elif action == MenuAction.CONTINUE:
+                # ADR-O-146: Continue = загрузка существующего сохранения (без сброса)
                 screen = pygame.display.get_surface()
                 select_screen = CampaignSelectScreen(screen, clock)
                 selected_folder = select_screen.run()

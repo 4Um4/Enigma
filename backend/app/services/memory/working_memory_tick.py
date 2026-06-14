@@ -41,11 +41,22 @@ def write_npc_reactions_to_memory(
     """
     # Обратная маппинг имя → npc_id для STM-записи
     name_to_id: Dict[str, str] = {}
+    id_to_name: Dict[str, str] = {}
     if isinstance(all_npcs_raw, dict):
         for nid, ndata in all_npcs_raw.items():
             nname = ndata.get("name", "") if isinstance(ndata, dict) else ""
             if nname:
                 name_to_id[nname.lower()] = nid
+                id_to_name[nid] = nname
+    elif isinstance(all_npcs_raw, list):
+        for ndata in all_npcs_raw:
+            if not isinstance(ndata, dict):
+                continue
+            nid = ndata.get("npc_id", "")
+            nname = ndata.get("name", "")
+            if nid and nname:
+                name_to_id[nname.lower()] = nid
+                id_to_name[nid] = nname
 
     for reaction in npc_reactions:
         if not isinstance(reaction, str):
@@ -73,11 +84,14 @@ def write_npc_reactions_to_memory(
             logger.debug(f"[EVENT_BUS] npc_speech publish skipped: {bus_err}")
 
         # STM: записываем реплику NPC в его сессию (Закон 4.1.2)
+        # Используем имя NPC как speaker — DM должен видеть "Купец Горан", не "merchant_goran"
         if matched_id:
+            _speaker_name = id_to_name.get(matched_id, matched_id)
+            print(f"[STM_WRITE] npc={matched_id} speaker={_speaker_name} text={npc_text[:60]}")
             memory_manager.add_dialogue_turn(
                 campaign_id=campaign_id,
                 npc_id=matched_id,
-                speaker=matched_id,
+                speaker=_speaker_name,
                 text=npc_text,
             )
 

@@ -1,0 +1,47 @@
+{
+  "_version": "1.0",
+  "_type": "archetype",
+  "_inherits": "_base_humanoid",
+  "visible_markers": ["hammer", "leather_apron", "burn_scars", "soot"],
+  "carried_objects": ["hammer", "tongs", "leather_apron"],
+  "routine": {
+    "schedule": {
+      "06:00-20:00": "working",
+      "20:00-06:00": "sleeping"
+    }
+  },
+  "activity_map": {
+    "working": {
+      "location": "market_square",
+      "position": "workshop_area",
+      "display": "forging"
+    },
+    "sleeping": {
+      "location": "market_square",
+      "position": "workshop_area",
+      "display": "sleeping"
+    },
+    "eating": {
+      "location": "tavern_silver_wolf",
+      "position": "main_hall",
+      "display": "eating"
+    },
+    "resting": {
+      "location": "tavern_silver_wolf",
+      "position": "fireplace",
+      "display": "drinking"
+    }
+  },
+  "body_profile": {
+    "max_hp": 130,
+    "abilities": {
+      "strength": 16,
+      "dexterity": 10,
+      "constitution": 16,
+      "intelligence": 12,
+      "wisdom": 14,
+      "charisma": 8
+    },
+    "base_ac": 12
+  }
+}

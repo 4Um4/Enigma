@@ -60,7 +60,7 @@ def compile_graph(
     """
     if not editor_data:
         logger.error(f"[GRAPH_COMPILER] editor_data is None для {location_id}. Возвращаем пустой граф.")
-        return {}, {}, {}
+        return {}, {}, {}, {}
 
     graph: Dict[str, NodeRef] = {}
     connections: Dict[str, Set[str]] = {}
@@ -160,7 +160,7 @@ def compile_graph(
 
     if not _has_nav and not rooms:
         logger.warning(f"[GRAPH_COMPILER] Нет узлов (rooms/nodes) в {location_id}")
-        return {}, {}, {}
+        return {}, {}, {}, {}
 
     # ── Room → graph (orphan rooms + name enrichment) ──────────────
     # Для каждой комнаты проверяем: есть ли навигационный узел,
@@ -284,15 +284,32 @@ def compile_graph(
                     f"узел не найден в графе"
                 )
 
+    # ── Layer 3: Boundary Nodes (ДОЛГ 6.2) ──────────────────────────
+    # Читаем adjacency и создаём виртуальные узлы выхода из чанка.
+    # Boundary node — семантическая точка перехода в соседний чанк.
+    boundary_map: Dict[str, dict] = {}
+    adjacency = editor_data.get("adjacency")
+    if isinstance(adjacency, dict) and adjacency and graph:
+        _create_boundary_nodes(
+            graph=graph,
+            connections=connections,
+            alias_map=alias_map,
+            boundary_map=boundary_map,
+            location_id=location_id,
+            adjacency=adjacency,
+        )
+
     _validate_connectivity(graph, connections, location_id)
 
     logger.info(
         f"[GRAPH_COMPILER] {location_id}: compiled {len(graph)} nodes, "
         f"{sum(len(v) for v in connections.values()) // 2} edges, "
-        f"{len(alias_map)} aliases (nav={_has_nav}, rooms={_has_rooms})"
+        f"{len(alias_map)} aliases, "
+        f"{len(boundary_map)} boundaries (nav={_has_nav}, rooms={_has_rooms})"
     )
 
-    return graph, connections, alias_map
+    # ДОЛГ 6.2: _legacy_compile не имеет adjacency → boundary_map пуста
+    return graph, connections, alias_map, boundary_map
     rooms_raw = editor_data.get("rooms", editor_data.get("nodes", {}))
     
     # Map Editor отдаёт узлы как список [{id, x, y...}], компилятор ждёт словарь {id: {x, y...}}
@@ -306,11 +323,11 @@ def compile_graph(
         rooms = rooms_raw
     else:
         logger.warning(f"[GRAPH_COMPILER] Неверный тип узлов в {location_id}: {type(rooms_raw)}")
-        return {}, {}, {}
+        return {}, {}, {}, {}
 
     if not rooms:
         logger.warning(f"[GRAPH_COMPILER] Нет узлов (rooms/nodes) в {location_id}")
-        return {}, {}, {}
+        return {}, {}, {}, {}
 
     # ADR-091: Фильтрация container-комнат (внешних границ от Map Editor)
     # Комната, полностью содержащая другую — это внешняя граница, не навигационная зона.
@@ -414,7 +431,8 @@ def compile_graph(
 
     _validate_connectivity(graph, connections, location_id)
 
-    return graph, connections, alias_map
+    # ДОЛГ 6.2: _legacy_compile не имеет adjacency → boundary_map пуста
+    return graph, connections, alias_map, {}
 
 def _infer_connections_from_adjacency(rooms: Dict[str, dict], tolerance: float = 0.5) -> List[dict]:
     """Выводит связи между комнатами на основе смежности их bounding box.
@@ -454,6 +472,125 @@ def _infer_connections_from_adjacency(rooms: Dict[str, dict], tolerance: float =
                     continue
                     
     return connections
+
+# ── Boundary Nodes (ДОЛГ 6.2) ────────────────────────────────────────
+
+# Противоположные направления для резолва entry-узла в соседнем чанке
+_OPPOSITE_DIRECTION = {
+    "east": "west",
+    "west": "east",
+    "north": "south",
+    "south": "north",
+}
+
+
+def _create_boundary_nodes(
+    graph: Dict[str, NodeRef],
+    connections: Dict[str, Set[str]],
+    alias_map: Dict[str, str],
+    boundary_map: Dict[str, dict],
+    location_id: str,
+    adjacency: dict,
+) -> None:
+    """Создаёт виртуальные граничные узлы по декларации adjacency.
+
+    Для каждого направления (east, west, north, south) создаётся:
+    - Boundary node на краю текущего чанка
+    - Связь с ближайшим существующим узлом
+    - Метаданные в boundary_map для навигации при переходе
+
+    Boundary node НЕ создаёт связь с узлом соседнего чанка напрямую —
+    это ответственность MovementEngine при cross-chunk transition.
+    """
+    if not graph:
+        return
+
+    # Вычисляем bounding box существующих узлов (исключая уже созданные boundary)
+    internal_nodes = {
+        nid: nref for nid, nref in graph.items()
+        if nref.role != NodeRole.BOUNDARY
+    }
+    if not internal_nodes:
+        return
+
+    xs = [nref.x for nref in internal_nodes.values()]
+    ys = [nref.y for nref in internal_nodes.values()]
+    min_x, max_x = min(xs), max(xs)
+    min_y, max_y = min(ys), max(ys)
+    center_x = (min_x + max_x) / 2.0
+    center_y = (min_y + max_y) / 2.0
+
+    # Маржа — boundary node ставится за пределами bounding box
+    margin = 2.0
+
+    for direction, neighbor_chunk in adjacency.items():
+        if not isinstance(neighbor_chunk, str) or not neighbor_chunk:
+            continue
+
+        # Координаты boundary node — на краю чанка в направлении выхода
+        if direction == "east":
+            bx, by = max_x + margin, center_y
+        elif direction == "west":
+            bx, by = min_x - margin, center_y
+        elif direction == "south":
+            bx, by = center_x, max_y + margin
+        elif direction == "north":
+            bx, by = center_x, min_y - margin
+        else:
+            logger.warning(f"[GRAPH_COMPILER] Неизвестное направление adjacency: {direction}")
+            continue
+
+        boundary_id = f"{location_id}:exit_{direction}"
+        entry_direction = _OPPOSITE_DIRECTION.get(direction, direction)
+
+        # Создаём boundary node
+        node_ref = NodeRef(
+            node_id=boundary_id,
+            role=NodeRole.BOUNDARY,
+            tags=["boundary:exit", f"direction:{direction}", f"neighbor:{neighbor_chunk}", f"entry_direction:{entry_direction}"],
+            x=bx,
+            y=by,
+            zone_id=location_id,
+        )
+        graph[boundary_id] = node_ref
+        alias_map[f"exit_{direction}"] = boundary_id
+
+        # Метаданные для cross-chunk навигации
+        boundary_map[boundary_id] = {
+            "direction": direction,
+            "neighbor_chunk": neighbor_chunk,
+            "entry_direction": entry_direction,
+            "entry_node_hint": f"{neighbor_chunk}:exit_{entry_direction}",
+        }
+
+        # Связываем с ближайшим внутренним узлом (1-2 узла для надёжности)
+        # Расстояние от boundary до каждого внутреннего узла
+        distances = []
+        for nid, nref in internal_nodes.items():
+            dist = ((nref.x - bx) ** 2 + (nref.y - by) ** 2) ** 0.5
+            distances.append((dist, nid))
+        distances.sort()
+
+        # Соединяем с ближайшим узлом (если он не слишком далеко)
+        if distances:
+            closest_dist, closest_id = distances[0]
+            # Минимальный порог: margin * 3 (гарантирует связь даже при одном узле)
+            max_link_dist = max(max_x - min_x, max_y - min_y, margin * 3) * 0.8
+            if closest_dist <= max_link_dist:
+                connections.setdefault(boundary_id, set()).add(closest_id)
+                connections.setdefault(closest_id, set()).add(boundary_id)
+                # Если есть второй близкий узел — тоже связываем (для альтернативных путей)
+                if len(distances) > 1:
+                    d2, id2 = distances[1]
+                    if d2 <= max_link_dist and d2 <= closest_dist * 1.5:
+                        connections.setdefault(boundary_id, set()).add(id2)
+                        connections.setdefault(id2, set()).add(boundary_id)
+
+        logger.info(
+            f"[GRAPH_COMPILER] Boundary node: {boundary_id} → "
+            f"{neighbor_chunk} ({direction}), linked to {closest_id}"
+        )
+
 
 def _validate_connectivity(
     graph: Dict[str, NodeRef],
@@ -513,9 +650,10 @@ def load_editor_json(
         dict из editor JSON или None
     """
     if search_dirs is None:
+        # ADR-O-146: Единственный источник карт — map_editor/campaigns.
+        # backend/data/campaigns — мёртвый путь, удалён.
         search_dirs = [
             _PROJECT_ROOT / "frontend" / "map_editor" / "campaigns" / campaign_id / "locations",
-            _PROJECT_ROOT / "backend" / "data" / "campaigns" / campaign_id / "locations",
         ]
 
     for loc_dir in search_dirs:

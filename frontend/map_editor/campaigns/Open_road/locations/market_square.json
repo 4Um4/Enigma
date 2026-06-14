@@ -12,10 +12,107 @@
   },
   "grid_cell_size": 1.0,
   "is_outdoor": true,
-  "rooms": [],
-  "walls": [],
+  "rooms": [
+    {
+      "id": "room_0",
+      "name": "Ткацкая гильдия",
+      "x": -5.0,
+      "y": 15.0,
+      "width": 11.5,
+      "height": 25.0,
+      "polygon": [
+        [
+          -5.0,
+          15.0
+        ],
+        [
+          6.5,
+          15.0
+        ],
+        [
+          6.5,
+          40.0
+        ],
+        [
+          -5.0,
+          40.0
+        ]
+      ],
+      "area_sqm": 287.5
+    }
+  ],
+  "walls": [
+    {
+      "id": "wall_0",
+      "type": "wall",
+      "x1": -5.0,
+      "y1": 15.0,
+      "x2": 6.5,
+      "y2": 15.0,
+      "thickness": 0.2
+    },
+    {
+      "id": "wall_1",
+      "type": "wall",
+      "x1": 6.5,
+      "y1": 15.0,
+      "x2": 6.5,
+      "y2": 40.0,
+      "thickness": 0.2
+    },
+    {
+      "id": "wall_2",
+      "type": "wall",
+      "x1": 6.5,
+      "y1": 40.0,
+      "x2": -5.0,
+      "y2": 40.0,
+      "thickness": 0.2
+    },
+    {
+      "id": "wall_3",
+      "type": "wall",
+      "x1": -5.0,
+      "y1": 40.0,
+      "x2": -5.0,
+      "y2": 15.0,
+      "thickness": 0.2
+    }
+  ],
   "obstacles": [],
-  "objects": [],
+  "objects": [
+    {
+      "id": "obj_0",
+      "name": "Дверь №1",
+      "type": "door",
+      "position": {
+        "x": 6.5,
+        "y": 17.0971968
+      },
+      "size": {
+        "w": 0.2,
+        "h": 2.07,
+        "d": 2.2
+      },
+      "rotation": "wall_1",
+      "passability": {
+        "walk": true,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": false,
+        "walk_around": true
+      },
+      "cover": 0.0,
+      "color": "#D2691E",
+      "show_name": false,
+      "properties": {
+        "open": true,
+        "locked": false,
+        "durability": 20,
+        "visibility_through": 0.1
+      }
+    }
+  ],
   "passages": [],
   "portals": [],
   "npcs": [],
@@ -28,7 +125,8 @@
       "connections": [
         "merchant_row",
         "alley_shadows",
-        "north_approach"
+        "north_approach",
+        "workshop_area"
       ]
     },
     "merchant_row": {
@@ -54,18 +152,26 @@
       "connections": [
         "square_center"
       ]
+    },
+    "workshop_area": {
+      "x": 5.0,
+      "y": 8.0,
+      "label": "Кузница",
+      "connections": [
+        "square_center"
+      ]
     }
-  },
-  "player_spawn": {
-    "x": 9.5,
-    "y": 25.583333333333332,
-    "z": 0
   },
   "global_coords": true,
   "created_at": "2026-06-09T00:00:00",
-  "modified_at": "2026-06-09T00:00:00",
+  "modified_at": "2026-06-14T23:09:47.765235",
   "adjacency": {
     "north": "tavern_silver_wolf",
     "east": "city_gate"
+  },
+  "player_spawn": {
+    "x": -4.0,
+    "y": 15.875,
+    "z": 0
   }
 }

@@ -83,6 +83,20 @@ constraints:
     code_ref: "game_loop/__init__.py:_load_npcs_with_runtime"
     adr_ref: "ADR-118"
     severity: CRITICAL
+  - source: ProjectionEngine
+    target: Simulation
+    rule: "REQUIRED: apply_changes = pure projection operator, NOT simulator (ADR-O-201)"
+    condition: "6 mutations identified in scene_state_manager.apply_change(): (1) SpatialService.build_for_location (2) random.uniform (3) is_blocked_by_wall + find_path (4) traversal_dict construction (5) node.x/y → local_position (6) direct dict mutation before apply. All must migrate to EventCompiler. Projection = state[t+1] = state[t] ⊕ ThickSceneChange[]."
+    code_ref: "scene_state_manager.py:1153-1446"
+    adr_ref: "ADR-O-201"
+    severity: CRITICAL
+  - source: ProjectionEngine
+    target: WorldKnowledge
+    rule: "FORBIDDEN: apply_changes queries world state beyond target entity (ADR-O-201)"
+    condition: "Pure projection reads only the entity being mutated. No SpatialService queries, no active_traversals reads, no pathfinding lookups. All context provided in ThickSceneChange."
+    code_ref: "scene_state_manager.py:apply_change"
+    adr_ref: "ADR-O-201"
+    severity: HIGH
 
 ownership:
   PersistenceState:
@@ -91,3 +105,17 @@ ownership:
     modifies: "atomic_commit (overwrite)"
     reads: "load_scene, load_npc_runtime"
     constraint: "SQLite = runtime truth. JSON = legacy/fallback. Single writer."
+  SnapshotState:
+    owner: "TickOrchestrator (creates, freezes)"
+    creates: "WorldSnapshot per tick from scene_state + spatial_graph"
+    modifies: "N/A (immutable)"
+    reads: "EventCompiler (sole consumer)"
+    constraint: "ADR-O-201: Frozen copy of all state needed for event compilation. Must include boundary_map, spatial_graph, rng_seed. No references to live objects — deep copy required. Violation of immutability = non-deterministic replay."
+    adr_ref: "ADR-O-201"
+  ProjectionState:
+    owner: "SceneStateManager (apply_change refactored to ProjectionEngine)"
+    creates: "State mutations via dict assignment only"
+    modifies: "scene_state entries from ThickSceneChange fields"
+    reads: "ThickSceneChange (complete physical contract, no computation needed)"
+    constraint: "ADR-O-201: Pure function. No branching >1 level, no service calls, no RNG, no pathfinding. state[t+1] = state[t] ⊕ ThickSceneChange[]. Migration phases: 0 (shadow) → 1 (dual rail) → 2 (alignment) → 3 (takeover)."
+    adr_ref: "ADR-O-201"

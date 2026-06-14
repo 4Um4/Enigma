@@ -17,6 +17,7 @@ import pygame
 class MenuAction(Enum):
     """Действия, которые может выбрать игрок в меню"""
     NEW_GAME = auto()
+    CONTINUE = auto()
     EDITOR = auto()
     SETTINGS = auto()
     EXIT = auto()
@@ -90,8 +91,41 @@ class GameMenu:
         self.font_button = pygame.font.SysFont("consolas", 20, bold=True)
         self.font_small = pygame.font.SysFont("consolas", 14)
 
+        # ADR-O-146: Фоновое изображение + анимация дыма
+        self._bg_image = self._load_background()
+        self._smoke_emitters: list = []
+        self._init_smoke()
+
         self._buttons: list[_MenuButton] = []
         self._build_buttons()
+    
+    def _load_background(self) -> Optional[pygame.Surface]:
+        """Загружает и масштабирует фоновое изображение меню."""
+        try:
+            from pathlib import Path
+            # Приоритет: JPG (оптимизированный) > PNG (оригинал)
+            bg_path = Path(__file__).parent / "menu_bg.jpg"
+            if not bg_path.exists():
+                bg_path = Path(__file__).parent / "map_editor" / "pixels" / "game_menu.png"
+            if not bg_path.exists():
+                return None
+            img = pygame.image.load(str(bg_path))
+            return img.convert()  # Оптимизация: без alpha для скорости
+        except Exception:
+            return None
+    
+    def _init_smoke(self) -> None:
+        """Инициализирует эммитеры дыма (трубы на фоне)."""
+        try:
+            from menu_effects import SmokeEmitter
+            # Координаты труб в нормализованном виде (0-1)
+            # Точные позиции подберём по реальному изображению
+            self._smoke_emitters = [
+                SmokeEmitter(0.22, 0.18, rate=6.0),   # Труба таверны
+                SmokeEmitter(0.78, 0.25, rate=4.0),   # Дальняя труба
+            ]
+        except Exception:
+            self._smoke_emitters = []
 
     def _build_buttons(self) -> None:
         """Пересчитывает позиции кнопок при изменении размера окна"""
@@ -101,7 +135,7 @@ class GameMenu:
         btn_w = 280
         btn_h = 50
         gap = 16
-        total_h = 4 * btn_h + 3 * gap
+        total_h = 5 * btn_h + 4 * gap
         start_y = h // 2 - total_h // 2 + 40
         x = w // 2 - btn_w // 2
 
@@ -111,12 +145,15 @@ class GameMenu:
                         "Новая игра", C["btn_primary"], C["btn_primary_hover"],
                         lambda: self._set_action(MenuAction.NEW_GAME)),
             _MenuButton(x, start_y + btn_h + gap, btn_w, btn_h,
+                        "Продолжить", C["btn_primary"], C["btn_primary_hover"],
+                        lambda: self._set_action(MenuAction.CONTINUE)),
+            _MenuButton(x, start_y + 2 * (btn_h + gap), btn_w, btn_h,
                         "Редактор карт", C["btn_secondary"], C["btn_secondary_hover"],
                         lambda: self._set_action(MenuAction.EDITOR)),
-            _MenuButton(x, start_y + 2 * (btn_h + gap), btn_w, btn_h,
+            _MenuButton(x, start_y + 3 * (btn_h + gap), btn_w, btn_h,
                         "Настройки", C["btn_secondary"], C["btn_secondary_hover"],
                         lambda: self._set_action(MenuAction.SETTINGS)),
-            _MenuButton(x, start_y + 3 * (btn_h + gap), btn_w, btn_h,
+            _MenuButton(x, start_y + 4 * (btn_h + gap), btn_w, btn_h,
                         "Выход", C["btn_danger"], C["btn_danger_hover"],
                         lambda: self._set_action(MenuAction.EXIT)),
         ]
@@ -159,8 +196,31 @@ class GameMenu:
         return self._result
 
     def _draw(self) -> None:
-        self.screen.fill(_MENU_COLORS["bg_dark"])
         w, h = self.screen.get_size()
+        
+        # Фоновое изображение — масштабирование с сохранением пропорций (cover)
+        if self._bg_image is not None:
+            bg_w, bg_h = self._bg_image.get_size()
+            scale = max(w / bg_w, h / bg_h)
+            scaled_w = int(bg_w * scale)
+            scaled_h = int(bg_h * scale)
+            scaled_bg = pygame.transform.smoothscale(self._bg_image, (scaled_w, scaled_h))
+            # Центрируем обрезку
+            offset_x = (w - scaled_w) // 2
+            offset_y = (h - scaled_h) // 2
+            self.screen.blit(scaled_bg, (offset_x, offset_y))
+            # Затемнение для читаемости текста
+            overlay = pygame.Surface((w, h), pygame.SRCALPHA)
+            overlay.fill((0, 0, 0, 120))
+            self.screen.blit(overlay, (0, 0))
+        else:
+            self.screen.fill(_MENU_COLORS["bg_dark"])
+        
+        # Анимация дыма
+        dt = self.clock.get_time() / 1000.0
+        for emitter in self._smoke_emitters:
+            emitter.update(dt)
+            emitter.draw(self.screen, w, h)
 
         # Заголовок
         title_surf = self.font_title.render("ENIGMA", True, _MENU_COLORS["accent_blue"])

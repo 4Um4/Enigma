@@ -56,6 +56,8 @@ class ChatTurnRequest(BaseModel):
     actions: List[PlayerAction]
     # Позиция игрока от фронтенда — применяется в init_scene_state, сохраняется атомарно в commit_tick
     player_position: Optional[tuple[float, float]] = None
+    # S82: Мировые координаты — spatial oracle input. Backend вычисляет actual_chunk независимо.
+    world_position: Optional[tuple[float, float]] = None
 
 
 class AgentTrace(BaseModel):

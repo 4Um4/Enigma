@@ -243,20 +243,12 @@ class ReactionSubscriber:
                     if target_id and target_id != npc_id:
                         shock = shock_by_npc.get(target_id, 0.0)
 
-                emotion_tag = None
+                # CIR: Phase 8 (Reflex) лишена права генерировать эмоции (S-слой).
+                # Она эмитит только причинные намёки (stress_delta, fear_delta) — M-слой.
+                # Интерпретация стресса как "fear"/"panic" происходит исключительно в Phase 9 (Affective Pipeline).
                 if shock > 0.0:
                     stress_delta += round(shock * 30.0 * modifier, 2)
                     fear_delta += round(shock * 15.0 * modifier, 2)
-                    if shock > 0.5:
-                        emotion_tag = "panic"
-                
-                # ADR-116: Эмоция из уровня стресса (не только из shock)
-                # Без этого emotion_tag=None при attack без combat → state.emotion=NEUTRAL → _emotion_modifier()=0.0
-                if emotion_tag is None and stress_delta > 0:
-                    if stress_delta >= 15.0:
-                        emotion_tag = "fear"
-                    elif stress_delta >= 8.0:
-                        emotion_tag = "anxious"
 
                 # Пропускаем нулевые дельты
                 if stress_delta == 0.0 and fear_delta == 0.0 and trust_delta == 0.0:
@@ -291,7 +283,8 @@ class ReactionSubscriber:
                             stress_delta=stress_delta,
                             # v2 domain-tagged payload
                             domain=DeltaDomain.EMOTION,
-                            payload=EmotionPayload(stress_delta=stress_delta, emotion_tag=emotion_tag),
+                            # CIR: Рефлекс передаёт только стресс (M-hint). Эмоция и интеграл вычисляются в Phase 9.
+                            payload=EmotionPayload(stress_delta=stress_delta, emotion_tag=None, affective_load=None),
                             source="reaction",
                         ))
 

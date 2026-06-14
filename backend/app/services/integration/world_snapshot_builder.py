@@ -11,14 +11,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 from typing import Dict, List, Optional, Tuple
-from app.domain.snapshot import (
-    ActivePerception,
-    NPCPositionDTO,
-    PeripheralCueDTO,
-    PlayerPerceptionDTO,
-    VisibleEventDTO,
-    WorldSnapshotDTO,
-)
+from app.domain.snapshot import WorldSnapshotDTO, NPCPositionDTO, VisibleEventDTO, PlayerPerceptionDTO, AvatarStateDTO, PeripheralCueDTO, ActivePerception, ManifestationDTO
 
 
 class WorldSnapshotBuilder:
@@ -134,9 +127,17 @@ class WorldSnapshotBuilder:
                 created_tick=tick,
             ))
 
+        # ADR-MANIFEST: Конвертируем domain manifestations → API ManifestationDTO
+        _api_manifestations = []
+        _domain_manifests = getattr(domain_perception, 'manifestations', {})
+        if _domain_manifests:
+            for _nid, _tags in _domain_manifests.items():
+                _api_manifestations.append(ManifestationDTO(npc_id=_nid, tags=list(_tags)))
+
         return PlayerPerceptionDTO(
             active_perceptions=active_perceptions,
             peripheral_cues=peripheral_cues,
+            manifestations=_api_manifestations,
             embodied_traces=getattr(domain_perception, 'embodied_traces', []),
         )
 

@@ -6,8 +6,8 @@
   "carried_objects": ["maid_dress", "tray"],
   "routine": {
     "schedule": {
-      "08:00-23:00": "serving_tables",
-      "23:00-08:00": "sleeping"
+      "14:00-06:00": "serving_tables",
+      "06:00-14:00": "sleeping"
     }
   },
   "activity_map": {
@@ -22,8 +22,8 @@
       "display": "serving_tables"
     },
     "sleeping": {
-      "location": "inn_rooms",
-      "position": "bed",
+      "location": "tavern_silver_wolf",
+      "position": "kitchen",
       "display": "sleeping"
     },
     "eating": {
@@ -32,8 +32,8 @@
       "display": "eating"
     },
     "resting": {
-      "location": "inn_rooms",
-      "position": "bed",
+      "location": "tavern_silver_wolf",
+      "position": "fireplace",
       "display": "resting"
     }
   },

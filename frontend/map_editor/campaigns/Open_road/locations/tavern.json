@@ -11,27 +11,27 @@
     {
       "id": "room_0",
       "name": "Главный зал",
-      "x": 2.0,
-      "y": 2.0,
+      "x": 1.9975999999999985,
+      "y": 1.9992,
       "width": 12.0,
       "height": 10.0,
       "area_sqm": 120.0,
       "polygon": [
         [
-          2.0,
-          2.0
+          1.9975999999999985,
+          1.9992
         ],
         [
-          14.0,
-          2.0
+          13.997599999999995,
+          1.9992
         ],
         [
-          14.0,
-          12.0
+          13.997599999999995,
+          11.9992
         ],
         [
-          2.0,
-          12.0
+          1.9975999999999985,
+          11.9992
         ]
       ]
     },
@@ -213,7 +213,7 @@
       "type": "bar",
       "position": {
         "x": 4.6,
-        "y": 3.4250000000000003
+        "y": 3.5742992
       },
       "size": {
         "w": 3.0,
@@ -892,8 +892,8 @@
         "y": 2.5
       },
       "size": {
-        "w": 4.23,
-        "h": 1.49,
+        "w": 3.86,
+        "h": 1.51,
         "d": 0.8
       },
       "rotation": 0,
@@ -913,12 +913,12 @@
       "name": "Стул №17",
       "type": "chair",
       "position": {
-        "x": 14.5,
-        "y": 5.5
+        "x": 15.4,
+        "y": 3.49
       },
       "size": {
-        "w": 0.5,
-        "h": 0.5,
+        "w": 0.98,
+        "h": 1.13,
         "d": 0.5
       },
       "rotation": 0,
@@ -1059,15 +1059,15 @@
       "name": "Стул №18",
       "type": "chair",
       "position": {
-        "x": 16.375,
-        "y": 5.625
+        "x": 17.005,
+        "y": 3.525
       },
       "size": {
-        "w": 0.5,
-        "h": 0.5,
+        "w": 0.95,
+        "h": 0.92,
         "d": 0.5
       },
-      "rotation": 0,
+      "rotation": 0.0,
       "passability": {
         "walk": false,
         "jump_over": true,
@@ -1079,6 +1079,122 @@
       "color": "#A0522D",
       "show_name": false,
       "properties": {}
+    },
+    {
+      "id": "obj_36",
+      "name": "Кровать №1",
+      "type": "bed",
+      "position": {
+        "x": 17.5,
+        "y": 6.0
+      },
+      "size": {
+        "w": 2.0,
+        "h": 1.0,
+        "d": 0.6
+      },
+      "rotation": 270.0,
+      "passability": {
+        "walk": false,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": true,
+        "walk_around": true
+      },
+      "cover": 0.2,
+      "color": "#8B4513",
+      "show_name": false,
+      "properties": {}
+    },
+    {
+      "id": "obj_37",
+      "name": "Кровать №2",
+      "type": "bed",
+      "position": {
+        "x": 14.5,
+        "y": 6.0521024
+      },
+      "size": {
+        "w": 2.0,
+        "h": 1.0,
+        "d": 0.6
+      },
+      "rotation": 270.0,
+      "passability": {
+        "walk": false,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": true,
+        "walk_around": true
+      },
+      "cover": 0.2,
+      "color": "#8B4513",
+      "show_name": false,
+      "properties": {}
+    },
+    {
+      "id": "obj_38",
+      "name": "Окно №1",
+      "type": "window",
+      "position": {
+        "x": 2.035328000000001,
+        "y": 5.135808
+      },
+      "size": {
+        "w": 0.2,
+        "h": 2.53,
+        "d": 1.5
+      },
+      "rotation": "wall_1",
+      "passability": {
+        "walk": false,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": true,
+        "walk_around": true
+      },
+      "cover": 0.0,
+      "color": "#87CEEB",
+      "show_name": false,
+      "properties": {
+        "opacity": 0.3,
+        "destructible": true,
+        "durability": 15,
+        "sound_attenuation": 0.3,
+        "visibility_through": 0.8
+      }
+    },
+    {
+      "id": "obj_39",
+      "name": "Окно №2",
+      "type": "window",
+      "position": {
+        "x": 2.0353280000000016,
+        "y": 9.469631999999999
+      },
+      "size": {
+        "w": 0.2,
+        "h": 3.02,
+        "d": 1.5
+      },
+      "rotation": "wall_1",
+      "passability": {
+        "walk": false,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": true,
+        "walk_around": true
+      },
+      "cover": 0.0,
+      "color": "#87CEEB",
+      "show_name": false,
+      "properties": {
+        "opacity": 0.3,
+        "destructible": true,
+        "durability": 15,
+        "sound_attenuation": 0.3,
+        "visibility_through": 0.8
+      }
     }
   ],
   "portals": [
@@ -1148,7 +1264,7 @@
     }
   ],
   "created_at": "2024-01-15T10:30:00",
-  "modified_at": "2026-06-09T01:57:10.011399",
+  "modified_at": "2026-06-13T18:24:17.653530",
   "origin": {
     "x": 0,
     "y": 0

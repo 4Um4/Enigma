@@ -101,18 +101,29 @@ def generate_emotional_nuance(state: NPCState) -> str:
     stress = state.stress
     traits = state.state_modifiers
 
-    if state.emotion == EmotionTag.ANGRY:
+    # ADR-O-205: Narrative Projection. 
+    # Нарратив строится на основе победившего драйва (dominant_drive), а не EmotionTag.
+    # Разум рассказывает себе историю о причине действия.
+    _dominant_drive = getattr(state, 'dominant_drive', 'neutral')
+    _redirect = getattr(state, 'redirect_magnitude', 0.0)
+
+    if _dominant_drive == "control" and _redirect > 0:
+        if stress > 70:
+            parts.append("сцепив зубы, подавляет панику железной волей")
+        else:
+            parts.append("холодно и расчётливо контролирует ситуацию")
+    elif _dominant_drive == "fear" or _redirect < 0:
+        if stress > 70:
+            parts.append("напуган до дрожи, оглядывается")
+        else:
+            parts.append("настороженный, готов к бегству")
+    elif state.emotion == EmotionTag.ANGRY: # Оставляем чистый гнев как есть
         if stress > 70:
             parts.append("зол, едва сдерживается — голос на грани срыва")
         elif stress < 30:
             parts.append("зол холодно и расчётливо")
         else:
             parts.append("раздражён")
-    elif state.emotion == EmotionTag.FEARFUL:
-        if stress > 70:
-            parts.append("напуган до дрожи, оглядывается")
-        else:
-            parts.append("настороженный, готов к бегству")
     elif state.emotion == EmotionTag.GRATEFUL:
         if traits.get("suspicious", 0) > 0.4:
             parts.append("благодарен, но всё ещё подозревает подвох")

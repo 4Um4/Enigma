@@ -57,10 +57,16 @@ class SpatialService:
             logger.warning(f"[SPATIAL] editor JSON не найден для {campaign_id}/{location_id}")
             return None
 
-        graph, connections, alias_map = compile_graph(editor_data, location_id)
+        result = compile_graph(editor_data, location_id)
+        # ДОЛГ 6.2: compile_graph возвращает 4 элемента (добавлен boundary_map)
+        if len(result) == 4:
+            graph, connections, alias_map, boundary_map = result
+        else:
+            graph, connections, alias_map = result
+            boundary_map = {}
         overlay = build_overlay_from_scene(scene_state)
 
-        return SpatialService(graph, connections, alias_map, overlay, location_id=location_id)
+        return SpatialService(graph, connections, alias_map, overlay, location_id=location_id, boundary_map=boundary_map)
 
     def __init__(
         self,
@@ -69,12 +75,14 @@ class SpatialService:
         alias_map: Dict[str, str],
         overlay: SpatialOverlay,
         location_id: str = "",  # Сохраняем принадлежность к локации для динамического резолва
+        boundary_map: Optional[Dict[str, dict]] = None,  # ДОЛГ 6.2: boundary node → neighbor info
     ) -> None:
         self._graph = graph            # canonical_id → NodeRef
         self._connections = connections # canonical_id → set[canonical_id]
         self._alias_map = alias_map    # legacy_id → canonical_id
         self._overlay = overlay
         self._location_id = location_id  # ADR-052: Сохраняем для мультисценового резолва
+        self._boundary_map = boundary_map or {}  # ДОЛГ 6.2
         self._path_cache: Dict[Tuple[str, str, str, Urgency], List[NodeRef]] = {}
 
     # ── Overlay обновление ────────────────────────────────────────────
@@ -86,6 +94,23 @@ class SpatialService:
         if new_hash != old_hash:
             self._path_cache.clear()
         self._overlay = overlay
+
+    # ── Boundary Nodes (ДОЛГ 6.2) ────────────────────────────────────
+
+    @property
+    def boundary_map(self) -> Dict[str, dict]:
+        """Карта граничных узлов: boundary_node_id → {direction, neighbor_chunk, entry_direction, entry_node_hint}."""
+        return self._boundary_map
+
+    def is_boundary_node(self, node_id: str) -> bool:
+        """Проверяет, является ли узел граничным (выход из чанка)."""
+        canonical = self.normalize_id(node_id)
+        return canonical in self._boundary_map
+
+    def get_boundary_info(self, node_id: str) -> Optional[dict]:
+        """Возвращает информацию о переходе для boundary node."""
+        canonical = self.normalize_id(node_id)
+        return self._boundary_map.get(canonical)
 
     # ── Нормализация ID ───────────────────────────────────────────────
 

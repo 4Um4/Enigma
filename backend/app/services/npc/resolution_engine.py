@@ -211,7 +211,8 @@ class ResolutionEngine:
         control → структурный подход → +0.1
         fear    → нерешительность → -0.1
         """
-        drives   = personality.drives_base
+        # L3-P2: Резолвер видит проекцию
+        drives   = dict(effective_drives.values) if effective_drives else personality.drives_base
         dominant = max(drives, key=drives.get)
         modifiers = {
             "control":      +0.10,
@@ -227,8 +228,9 @@ class ResolutionEngine:
         Высокий control → оптимист: завышает expected, рискует.
         Высокий fear → пессимист: занижает expected, осторожен.
         """
-        control = personality.drives_base.get("control", 0.25)
-        fear    = personality.drives_base.get("fear", 0.25)
+        # L3-P2: Калибровка оптимизма/пессимизма на основе проекции
+        control = effective_drives.get("control", 0.25) if effective_drives else personality.drives_base.get("control", 0.25)
+        fear    = effective_drives.get("fear", 0.25) if effective_drives else personality.drives_base.get("fear", 0.25)
         # Оптимизм/пессимизм — разница двух доминирующих сил
         return round((control - fear) * 0.3, 4)
 
@@ -266,7 +268,8 @@ class ResolutionEngine:
         if surprise <= SURPRISE_THRESHOLD:
             return None
 
-        drives   = personality.drives_base
+        # L3-P2: Резолвер видит проекцию
+        drives   = dict(effective_drives.values) if effective_drives else personality.drives_base
         dominant = max(drives, key=drives.get)
 
         if gap < 0:

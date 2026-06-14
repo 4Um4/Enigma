@@ -115,6 +115,14 @@ class ReconstructionEventDTO:
 
 
 @dataclass(frozen=True)
+class ManifestationDTO:
+    """Наблюдаемое физическое проявление NPC (НЕ эмоция!).
+    Моторный паттерн, который аватар видит телесно: застыл, дрожит, суетится.
+    Multi-manifest: NPC может быть одновременно напряжён И неуверен."""
+    npc_id: str
+    tags: List[str] = field(default_factory=list)     # ["MANIFEST_TENSE", "MANIFEST_ALERT"]
+
+@dataclass(frozen=True)
 class PlayerPerceptionDTO:
     """Линза восприятия игрока. Тупой рендер.
     ТЗ EMBODIED UI: Фронтенд получает этот объект и ничего не вычисляет."""
@@ -126,6 +134,9 @@ class PlayerPerceptionDTO:
     
     # Слой 1: Периферия (кто сейчас выделяется в толпе)
     peripheral_cues: List[PeripheralCueDTO] = field(default_factory=list)
+    
+    # Слой 1.5: Наблюдаемые физические проявления (моторные, НЕ эмоции)
+    manifestations: List[ManifestationDTO] = field(default_factory=list)
     
     # Слой 4: Эхо
     echo_count: int = 0
@@ -154,6 +165,8 @@ class WorldSnapshotDTO:
     weather: str
     time_of_day: str
     visible_events: List[VisibleEventDTO] = field(default_factory=list)
+    # ADR-JOURNAL: Очередь последних 100 реплик. SSOT формируется на бэкенде.
+    dialog_journal: List[Dict[str, str]] = field(default_factory=list)
     game_time_seconds: int = 0
     active_traversals: Dict[str, Dict] = field(default_factory=dict) # ADR-019, CEI-2: Dict[npc_id, data] — синхронно с scene_state
     avatar_state: Optional[AvatarStateDTO] = None # ADR-035: Феноменологическая проекция

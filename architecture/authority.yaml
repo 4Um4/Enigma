@@ -1,5 +1,5 @@
 ﻿domain: AUTHORITY
-description: "Воля, Давление, Решения и Социум. Подчинение требует легитимности. Решения из искривленного utility."
+description: "Воля, Давление, Решения и Социум. Подчинение требует легитимности. Решения из искривленного utility. Личность = направление разрядки."
 nodes:
   WillpowerGate:
     type: service
@@ -9,9 +9,9 @@ nodes:
     type: service
     layer: Application
     label: "Decision Hub v2 (Utility Deformation)"
-    style: {fill: "#e8f5e9", stroke: "#1b5e20", "stroke-width": "4px"} # Ядро принятия решений
-    description: "S72: _context_relevance modulates event salience through drives_base (fear→violence, control→theft, significance→social, desire→dialogue). NO hardcoded semantic weights. Personality determines what events mean."
-    adr_ref: "§ENIGMA-S72"
+    style: {fill: "#e8f5e9", stroke: "#1b5e20", "stroke-width": "4px"}
+    description: "S72: _context_relevance modulates event salience through drives_base. Delegates _compute_deltas to SocialDeltaEngine and _compute_risk to perceive_risk via RiskPerceptionProfile (ADR-O-146)."
+    adr_ref: "§ENIGMA-S72, ADR-O-146"
   IntentEventAdapter:
     type: service
     layer: Application
@@ -20,19 +20,19 @@ nodes:
     type: service
     layer: Domain
     label: "Directive Interpretation Subscriber"
-    description: "NPIC (ADR-O-139): Body is gate of perception, not modifier. Somatic Gate checks shock > 0.7 BEFORE semantic parsing. Fallback without body_state is FORBIDDEN — creates logical ghosts. Sentinel BODY_STATE_DISABLED blocks cognitive interpretation entirely."
+    description: "NPIC (ADR-O-139): Body is gate of perception. Somatic Gate checks shock > 0.7 BEFORE semantic parsing. Fallback without body_state is FORBIDDEN."
     adr_ref: "ADR-O-139"
   CFRMSolver:
     type: service
     layer: Domain
     label: "Local Causal Solver (CFRM P2)"
-    description: "S72: Produces raw signals only (threat_level, anomaly_score as 0-1). NO fixed multipliers (×40/×20). NO dominant_emotion_hint. Interpretation is delegated to personality via AffectivePipeline."
+    description: "S72: Produces raw signals only. NO fixed multipliers. Interpretation delegated to personality."
     adr_ref: "§ENIGMA-S72"
   BodyState:
     type: dto
     layer: Domain
     label: "Body State (Physiology)"
-    description: "NPIC Sentinel (ADR-O-139): BODY_STATE_DISABLED constant when absent. No body = inert matter, not logical ghost. Normalization Gate in TickOrchestrator injects sentinel before use."
+    description: "NPIC Sentinel (ADR-O-139). BODY_STATE_DISABLED constant when absent."
     adr_ref: "ADR-O-139"
   SourceID:
     type: dto
@@ -54,65 +54,117 @@ nodes:
     type: service
     layer: Application
     label: "Affective Pipeline (Emotion from Pressure)"
-    description: "Runs in BOTH idle and player turn. Integrates PerceptualKernel pressure, resolves emotion transitions. Affective_load is recomputed from active causes (ADR-122), not accumulated as battery. S72: Weights are drives-based (fear→threat, control→uncertainty, significance→anomaly), not hardcoded 0.6/0.3/0.1. All three emotion thresholds (anxious/fearful/panic) are personalized via fear_drive + willpower."
-    code_ref: "tick_orchestrator.py:_run_affective_pipeline, affective_integrator.py, emotion_transition.py"
+    description: "Runs in BOTH idle and player turn. Weights are drives-based (fear→threat, control→uncertainty, significance→anomaly). All thresholds personalized."
     adr_ref: "ADR-117, ADR-122, §ENIGMA-S72"
   LifeEngine:
     type: service
     layer: Application
     label: "Life Engine (Cache + Simulation)"
-    description: "Owns _npc_cache. MUST be updated via update_cache() after apply_batch. _load_npcs_with_runtime MUST read cache first."
-    code_ref: "life_engine.py"
-    adr_ref: "ADR-117"
+    description: "Owns _npc_cache. Owns Viability Pre-Generation Gate (ADR-O-137) and Arousal Gate (ADR-O-142A)."
+    adr_ref: "ADR-117, ADR-O-137, ADR-O-142A"
   GameLoop:
     type: service
     layer: Application
     label: "Game Loop (Pipeline Controller)"
-    description: "Owns _load_npcs_with_runtime. MUST check LifeEngine cache before load_npcs_merged. Contains Action Eligibility Gate (ADR-131): checks player life_status BEFORE lock_for_tick. Death Guard v2 (ADR-137): includes npc_positions in death snapshot — world continues after player death."
-    code_ref: "game_loop/__init__.py"
+    description: "Contains Action Eligibility Gate (ADR-131). Death Guard v2 (ADR-137)."
     adr_ref: "ADR-117, ADR-131, ADR-137"
   PressureTranslator:
     type: service
     layer: Application
     label: "Pressure Translator (Somatic Veto)"
-    description: "Translates PerceptualKernel + body_state into DecisionContext (feasibility constraints). NORMALIZES pain /100.0 (ADR-094 MSOC). Somatic Veto: pain>0.8 blocks FLEE, shock>0.7 blocks ATTACK, blood_loss>0.6 limits physical actions."
-    code_ref: "cfrm/pressure_translator.py"
+    description: "Translates PerceptualKernel + body_state into DecisionContext. NORMALIZES pain /100.0 (ADR-094 MSOC)."
     adr_ref: "ADR-094, GAP3"
   AvatarPresentationAssembler:
     type: service
     layer: Application
-    label: "Avatar Presentation Assembler (Player Phenomenology)"
-    description: "Translates player_dict into AvatarStateDTO. NORMALIZES pain/fatigue /100.0 (ADR-094 MSOC). Reads life_status — DEAD override zeros all projections."
-    code_ref: "presentation/avatar_presentation_assembler.py"
+    label: "Avatar Presentation Assembler"
     adr_ref: "ADR-094, ADR-137"
   AvatarStateDTO:
     type: dto
     layer: Domain
     label: "Avatar State DTO (life_status + perceptual scalars)"
-    description: "Phenomenological projection for frontend. Contains life_status field for death feedback. PhysicalPresentationState includes DEAD enum. Frontend renders death overlay when life_status=DEAD."
-    code_ref: "domain/snapshot.py:34-56"
     adr_ref: "ADR-137"
   DRFBus:
     type: queue
     layer: Application
     label: "DRF Bus (Causal Field Bus)"
-    description: "Instance-level bus for DRF claims. Owned by TickOrchestrator (self._drf_bus). FORBIDDEN: default_factory per _TickContext (split-brain, ADR-134). Cleared at start of execute()."
-    code_ref: "tick_orchestrator.py"
+    description: "Instance-level bus. Owned by TickOrchestrator (ADR-134)."
     adr_ref: "ADR-134"
   DRFExecutionContext:
     type: dto
     layer: Application
     label: "DRF Execution Context (Scoped Causal Ledger)"
-    description: "Scoped causal ledger: tick_id + npc_id + bus. Created by TickOrchestrator, scoped per NPC via for_npc(). Replaces bare drf_bus parameter (ADR-136)."
-    code_ref: "tick_orchestrator.py, npc_tick_pipeline.py"
+    description: "Scoped causal ledger: tick_id + npc_id + bus. Replaces bare drf_bus (ADR-136)."
     adr_ref: "ADR-136"
   NPCStateAdapter:
     type: service
     layer: Application
     label: "NPCState Adapter (Serialization Bridge)"
-    description: "from_legacy/write_to_legacy round-trip. Loses field = DOUBLE TRUTH."
-    code_ref: "npc_state.py"
     adr_ref: "ADR-115, ADR-116, ADR-117"
+  # --- PERSONALITY MATH LAYER (DOM-02 / DOM-10) ---
+  ProfileMath:
+    type: domain
+    layer: Domain
+    label: "Profile Math (Causal Geometry of Character)"
+    description: "ADR-O-146: Аттракторная модель характера. Трёхфазная drive_multiplier(). Единственный источник множителей для SocialDeltaEngine и RiskPerceptionProfile. Изолирует домены друг от друга."
+    code_ref: "decision/profile_math.py"
+    adr_ref: "ADR-O-146"
+  SocialDeltaEngine:
+    type: domain
+    layer: Domain
+    label: "Social Delta Engine"
+    description: "ADR-O-146: Заменяет инлайн _compute_deltas в DecisionHub. Модулирует социальные дельты через RelationshipResponseProfile."
+    code_ref: "decision/social_deltas.py"
+  VillageMemoryField:
+    type: domain
+    layer: Domain
+    label: "Village Memory Field"
+    description: "ADR-O-212: ЕДИНСТВЕННАЯ социальная истина. Функция аппроксимации поведения группы. Ingest = event-driven, Decay/Diffusion = tick-driven."
+    code_ref: "social/village_memory_field.py"
+    adr_ref: "ADR-O-212"
+  SocialMemoryUpdater:
+    type: service
+    layer: Application
+    label: "Social Memory Updater"
+    description: "ADR-O-212: Обновляет VillageMemoryField. event-driven ingest + tick-driven decay/diffusion."
+    code_ref: "social/social_memory_updater.py"
+    adr_ref: "ADR-O-212"
+  InstitutionalInertia:
+    type: domain
+    layer: Domain
+    label: "Institutional Inertia"
+    description: "ADR-O-212: Защита от экспоненциальной эскалации. target = f(consensus), actual += (target - actual) * adaptation_rate"
+    code_ref: "social/institutional_inertia.py"
+    adr_ref: "ADR-O-212"
+  InstitutionLayer:
+    type: domain
+    layer: Domain
+    label: "Village Institution Layer"
+    description: "ADR-O-212: Медленные структурные коэффициенты мира. Рождается как агрегат давления памяти. Влияет через Decision Bias Layer."
+    code_ref: "social/institutional_inertia.py"
+    adr_ref: "ADR-O-212"
+    adr_ref: "ADR-O-146"
+  RiskPerceptionProfile:
+    type: domain
+    layer: Domain
+    label: "Risk Perception Profile"
+    description: "ADR-O-146: Двухфазная модель: compute_objective_risk() → объективная истина, perceive() → субъективное восприятие. desire НЕ входит (риск ≠ готовность рисковать)."
+    code_ref: "decision/risk_profile.py, decision/risk.py"
+    adr_ref: "ADR-O-146"
+  RelationshipStore:
+    type: domain
+    layer: Domain
+    label: "Relationship Store (SSOT)"
+    description: "ADR-121: Единственный SSOT социальных отношений. Масштаб 0-100. Персистенция внутри NPCState ЗАПРЕЩЕНА."
+    code_ref: "relationship_store.py"
+    adr_ref: "ADR-121"
+  IntentDomain:
+    type: domain
+    layer: Domain
+    label: "Intent Domain (SURVIVAL/SOCIAL/ROUTINE/EXPLORATION)"
+    description: "ADR-O-137: Онтологический базис намерений. Viability mask проекция PerceptualKernel → IntentDomain."
+    code_ref: "domain/movement.py"
+    adr_ref: "ADR-O-137"
 edges:
   - from: WillpowerGate
     to: DecisionHub
@@ -156,7 +208,6 @@ edges:
   - from: CFRMSolver
     to: PlayerObserver
     label: "parses avatar psyche"
-    condition: "Player is observer candidate"
     code_ref: "local_causal_solver.py:320-324"
     adr_ref: "GAP7 FIX"
   - from: IntentCompressor
@@ -168,65 +219,120 @@ edges:
   - from: EmotionalVector
     to: WillpowerGate
     label: "provides emotional charge"
-    condition: "Determines resistance level"
     code_ref: "will.py"
     adr_ref: "ADR-088"
   - from: AffectivePipeline
     to: DecisionHub
     label: "EmotionTag → _emotion_modifier() → utility deformation"
-    condition: "FEARFUL: FLEE +0.35, ATTACK -0.25. ANGRY: ATTACK +0.30. SUSPICIOUS: OBSERVE +0.25."
+    condition: "FEARFUL: FLEE +0.35, ATTACK -0.25. ANGRY: ATTACK +0.30."
     code_ref: "decision_hub.py:966-994"
     adr_ref: "ADR-117"
     edge_type: thick
   - from: AffectivePipeline
     to: DeltaBuffer
-    label: "EmotionPayload (affective_load, emotion_tag, stress_delta)"
-    condition: "On threshold crossing or sustaining"
+    label: "EmotionPayload"
     code_ref: "tick_orchestrator.py:_run_affective_pipeline"
     adr_ref: "ADR-117"
   - from: ReactionSubscriber
     to: AffectivePipeline
     label: "sets emotion directly (bypasses accumulator)"
-    condition: "ReactionSubscriber creates EmotionPayload without affective_load → Anti-DOUBLE TRUTH bootstrap required"
+    condition: "Anti-DOUBLE TRUTH bootstrap required"
     code_ref: "reaction_subscriber.py:275"
     adr_ref: "ADR-117"
     edge_type: dotted
   - from: VitalStateEvaluator
     to: AvatarPresentationAssembler
-    label: "body_state['life_status'] → AvatarStateDTO.life_status (death feedback)"
-    condition: "Assembler reads life_status from body_state. DEAD override zeros all projections. Frontend death overlay triggers on life_status=DEAD (ADR-137)."
+    label: "body_state['life_status'] → AvatarStateDTO.life_status"
     code_ref: "avatar_presentation_assembler.py:30-37"
     adr_ref: "ADR-137"
   - from: AvatarPresentationAssembler
     to: AvatarStateDTO
     label: "assemble_avatar_presentation → normalized phenomenological projection"
-    condition: "NORMALIZES pain/fatigue /100.0 (ADR-094 MSOC). Without normalization: pain=60 → CRIPPLED (wrong). After: pain=0.6 → WOUNDED (correct)."
     code_ref: "avatar_presentation_assembler.py:34-35"
     adr_ref: "ADR-094"
   - from: BodyState
     to: PressureTranslator
     label: "pain (normalized /100.0) + shock + blood_loss → Somatic Veto constraints"
-    condition: "NORMALIZES pain /100.0 (ADR-094 MSOC). CRITICAL BUG FIXED: without normalization pain=0.8% always blocks FLEE. After fix: FLEE blocked only at pain>80/100."
     code_ref: "pressure_translator.py:53-64"
     adr_ref: "ADR-094"
   - from: PressureTranslator
     to: DecisionContext
     label: "DecisionContext with feasibility constraints"
-    condition: "Constraints: FLEE=0 if pain>0.8, ATTACK=0 if shock>0.7, physical limited if blood_loss>0.6"
     code_ref: "pressure_translator.py:57-64"
     adr_ref: "GAP3"
   - from: TickOrchestrator
     to: DRFBus
-    label: "owns self._drf_bus (instance-level, not per _TickContext)"
-    condition: "ADR-134: DRFBus on TickOrchestrator instance. Both execute() and execute_player_finalize() pass drf_bus=self._drf_bus. Bus cleared at start of execute()."
+    label: "owns self._drf_bus (instance-level)"
     code_ref: "tick_orchestrator.py"
     adr_ref: "ADR-134"
   - from: DRFBus
     to: DRFExecutionContext
     label: "drf_ctx = DRFExecutionContext(tick_id, npc_id, bus) — scoped per NPC"
-    condition: "ADR-136: Pipeline receives drf_ctx, not bare drf_bus. Claims auto-inherit npc_id and tick_id. for_npc() creates scoped child context."
     code_ref: "tick_orchestrator.py, npc_tick_pipeline.py"
     adr_ref: "ADR-136"
+  # --- PERSONALITY MATH EDGES ---
+  - from: ProfileMath
+    to: SocialDeltaEngine
+    label: "computes RelationshipResponseProfile multipliers"
+    condition: "ADR-O-146: fear_from_aggression, trust_from_help etc. Pure function."
+    code_ref: "decision/social_deltas.py"
+    adr_ref: "ADR-O-146"
+  - from: ProfileMath
+    to: RiskPerceptionProfile
+    label: "computes threat_sensitivity and sense_of_control"
+    condition: "ADR-O-146: desire NOT included (risk ≠ readiness)."
+    code_ref: "decision/risk_profile.py"
+    adr_ref: "ADR-O-146"
+  - from: SocialDeltaEngine
+    to: DecisionHub
+    label: "process(state, personality, event, intent) → List[StateDeltas]"
+    condition: "Replaces inline _compute_deltas. Modulated by RelationshipResponseProfile."
+    code_ref: "decision_hub.py"
+    adr_ref: "ADR-O-146"
+  # --- SOCIAL PHYSICS EDGES (ADR-O-212) ---
+  - from: EventBus
+    to: SocialMemoryUpdater
+    label: "EventDTO (COMBAT/DEATH/SOCIAL)"
+    condition: "Ingest on event occurrence"
+    adr_ref: "ADR-O-212"
+  - from: SocialMemoryUpdater
+    to: VillageMemoryField
+    label: "ingest(event) / decay()"
+    condition: "Updates consensus_risk, witness_count, agent_profiles"
+    adr_ref: "ADR-O-212"
+  - from: VillageMemoryField
+    to: InstitutionLayer
+    label: "consensus_risk, myth_level"
+    condition: "Drives target institutional state"
+    adr_ref: "ADR-O-212"
+  - from: InstitutionalInertia
+    to: InstitutionLayer
+    label: "adaptation_rate filter"
+    condition: "actual += (target - actual) * α. Prevents instant escalation."
+    adr_ref: "ADR-O-212"
+  - from: InstitutionLayer
+    to: DecisionHub
+    label: "Decision Bias (effective_risk modifier)"
+    condition: "effective_risk = base_risk * 0.6 + consensus_risk * 0.4"
+    adr_ref: "ADR-O-212"
+  - from: RiskPerceptionProfile
+    to: DecisionHub
+    label: "perceive_risk() replaces _compute_risk()"
+    condition: "Two-phase model: objective risk → subjective perception. DecisionHub calls perceive_risk() instead of self._compute_risk()."
+    code_ref: "decision_hub.py, decision/risk.py"
+    adr_ref: "ADR-O-146"
+  - from: RelationshipStore
+    to: DecisionHub
+    label: "provides read-only relationship_cache (0-100 scale)"
+    condition: "ADR-121: SSOT. Cache is ephemeral per-tick projection. Consumers normalize 0-100 → 0-1."
+    code_ref: "decision_hub.py"
+    adr_ref: "ADR-121"
+  - from: PerceptualKernel
+    to: IntentDomain
+    label: "Viability mask projection"
+    condition: "ADR-O-137: threat_gradient > 0.3 → EXCLUDE ROUTINE domain. Gate stands BEFORE generators."
+    code_ref: "life_engine.py"
+    adr_ref: "ADR-O-137"
 constraints:
   - source: DecisionHub
     target: Raw_Delta
@@ -246,154 +352,219 @@ constraints:
   - source: StateInterpreter
     target: EmotionTag
     rule: "FORBIDDEN: Derive psychological state from stress (ADR-104)"
-    condition: "stress → UrgencyLevel.SCARED duplicates EmotionTag set by EmotionResolution. EmotionResolution uses personality; StateInterpreter does not. Same stress produces FEARFUL for anxious NPC but ANGRY for aggressive NPC — StateInterpreter cannot know this."
     code_ref: "state_interpreter.py:46-50"
     adr_ref: "ADR-104"
     severity: CRITICAL
   - source: AffectivePipeline
     target: DecisionHub
     rule: "REQUIRED: Affective pipeline must run in player turn (ADR-117)"
-    condition: "Without _run_affective_pipeline in _phase_9_player_integration, emotion freezes between player actions. affective_load decays to 0 but emotion stays stale."
     code_ref: "tick_orchestrator.py:1282"
     adr_ref: "ADR-117"
     severity: CRITICAL
   - source: ReactionSubscriber
     target: AffectivePipeline
     rule: "REQUIRED: Anti-DOUBLE TRUTH bootstrap when emotion != NEUTRAL but affective_load < threshold (ADR-117)"
-    condition: "ReactionSubscriber sets emotion=fearful with affective_load=None. If pipeline sees load=0.0 + emotion=fearful, must bootstrap load from emotion level. Otherwise accumulator and emotion contradict."
     code_ref: "tick_orchestrator.py:_run_affective_pipeline"
     adr_ref: "ADR-117"
     severity: HIGH
   - source: NPCStateAdapter
     target: EmotionTag
     rule: "FORBIDDEN: from_legacy/write_to_legacy without emotion and emotion_delta (ADR-116)"
-    condition: "load_l2_state_from_runtime_dict() MUST pass emotion, emotion_delta, affective_load, body_state, perceptual_kernel to NPCState constructor. Without this, DecisionHub sees emotion=NEUTRAL every tick → _emotion_modifier()=0.0 → emotionally blind decisions."
     code_ref: "npc_loader.py:496, npc_state.py:760-804"
     adr_ref: "ADR-116"
     severity: CRITICAL
   - source: DecisionHub
     target: relationship_cache
-    rule: "REQUIRED: relationship_cache = nested {target_id: {trust: 0-100, fear: 0-100}}. SSOT = RelationshipStore. NOT persisted in NPCState (ADR-121 FIX). Consumers normalize 0-100 → 0-1."
-    condition: "PHYSICS_OF_POWER and _score_components read from nested cache: state.relationship_cache.get('player', {}).get('fear', 0.0) / 100.0. Flat format or persistence in from_legacy = DOUBLE TRUTH."
+    rule: "REQUIRED: relationship_cache = nested {target_id: {trust: 0-100, fear: 0-100}}. SSOT = RelationshipStore. NOT persisted in NPCState (ADR-121). Consumers normalize 0-100 → 0-1."
     code_ref: "decision_hub.py:789, decision_hub.py:935"
-    adr_ref: "ADR-036"
+    adr_ref: "ADR-121"
     severity: CRITICAL
   - source: DecisionHub
     target: APPROACH_score
-    rule: "REQUIRED: PHYSICS_OF_POWER boost must be applied directly to scores[APPROACH] in compute(), not via _context_relevance (ADR-036 FIX)"
-    condition: "In _context_relevance, boost is diluted through drive_weight (APPROACH drive='desire' ≈0.25). 2.7 × 0.25 ≈ 0.675 loses to OBSERVE (fear×0.40 direct). Direct boost in compute() ensures APPROACH wins."
+    rule: "REQUIRED: PHYSICS_OF_POWER boost directly to scores[APPROACH], not via _context_relevance (ADR-036 FIX)"
     code_ref: "decision_hub.py:293-303"
     adr_ref: "ADR-036"
     severity: HIGH
   - source: LifeEngine
     target: update_routine
-    rule: "REQUIRED: Movement Lock — update_routine MUST check scene_state.active_traversals before mutating routine or creating schedule intent (ADR-130)"
-    condition: "If NPC has active traversal with status=MOVING, schedule is blocked. Traversal = commitment, schedule = suggestion. Without guard, schedule overwrites reactive movement every idle tick. update_routine must receive scene_state param from engine.tick() → _simulate_major/minor()."
+    rule: "REQUIRED: Movement Lock — check active_traversals before mutating routine (ADR-130)"
     code_ref: "life_engine.py:1227-1233"
     adr_ref: "ADR-130"
     severity: CRITICAL
+  - source: LifeEngine
+    target: _arousal_gate
+    rule: "REQUIRED: Arousal Gate — missing wake edge (ADR-O-142A). Behavior transition gate, NOT consciousness."
+    condition: "wake_pressure = threat*0.35 + pain_norm*0.25 + directive*0.3 + acoustic*0.1. Guards: initiative_suppression > 0.7 or attention_capture blocks wake. 'awake' NOT introduced as state."
+    code_ref: "life_engine.py:_arousal_gate()"
+    adr_ref: "ADR-O-142A"
+    severity: HIGH
   - source: DecisionHub
     target: _context_relevance
-    rule: "REQUIRED: Payload target_id fallback — _context_relevance MUST check EventContext.payload['target_id'] when EventContext.target_id is None (ADR-130)"
-    condition: "dm_scene_builder does not propagate target_id to EventContext.target_id, but dm_phase.py writes it to payload. Without fallback, ALL NPCs in zone receive APPROACH/TALK/OBSERVE bonus — uninvited NPCs approach player. Check payload first, then fall back to None meaning 'general interaction'."
+    rule: "REQUIRED: Payload target_id fallback (ADR-130)"
+    condition: "MUST check EventContext.payload['target_id'] when EventContext.target_id is None. Without fallback ALL NPCs get APPROACH bonus."
     code_ref: "decision_hub.py:1039-1049"
     adr_ref: "ADR-130"
     severity: HIGH
   - source: Engine
     target: Emotion
     rule: "FORBIDDEN: Engine generates meaning or assigns emotion (§ENIGMA-S72)"
-    condition: "CFRM must not apply fixed multipliers (×40/×20) to raw signals. dominant_emotion_hint must be None. Affective load weights must come from drives_base. DecisionHub must not use hardcoded semantic weights. Legacy adapter must not convert uncertainty→stress."
-    code_ref: "tick_orchestrator.py:1846-1858, affective_integrator.py:28-32, decision_hub.py:973-1031, legacy_delta_adapter.py:60-65"
+    condition: "CFRM no fixed multipliers. No dominant_emotion_hint. Weights from drives_base. No hardcoded semantic weights."
+    code_ref: "tick_orchestrator.py, affective_integrator.py, decision_hub.py"
     adr_ref: "§ENIGMA-S72"
     severity: CRITICAL
   - source: DecisionHub
     target: EmotionTag
     rule: "REQUIRED: _emotion_modifier must receive drives_base (§ENIGMA-S72)"
-    condition: "Emotion = energy, Personality = direction. FEARFUL does not always mean FLEE. control-heavy NPC redirects fear into preemptive ATTACK. fear-heavy amplifies FLEE. Without drives_base, emotion_modifier applies universal anthropology (fear=flee for all), violating S72."
+    condition: "Emotion = energy, Personality = direction. FEARFUL does not always mean FLEE."
     code_ref: "decision_hub.py:1056-1084"
     adr_ref: "§ENIGMA-S72"
     severity: HIGH
   - source: LegacyStateDeltaAdapter
     target: stress_delta
     rule: "FORBIDDEN: Convert uncertainty_delta to stress_delta (§ENIGMA-004)"
-    condition: "Uncertainty is a perception feature, not a global stress source. Converting it bypasses personality and creates shared stress field. Only EmotionPayload.stress_delta (from AffectivePipeline) may modify stress."
     code_ref: "legacy_delta_adapter.py:60-65"
-    adr_ref: "§ENIGMA-004, §ENIGMA-S72"
+    adr_ref: "§ENIGMA-004"
     severity: CRITICAL
   - source: AvatarPresentationAssembler
     target: pain_fatigue
-    rule: "REQUIRED: Normalize pain/fatigue /100.0 before threshold comparison (Rule 63, ADR-094 MSOC)"
-    condition: "body_state SSOT stores pain/fatigue in 0-100 scale. Assembler thresholds are 0-1 (0.5=WOUNDED, 0.8=CRIPPLED). Without normalization: pain=60 → CRIPPLED for moderate injury. Fix: pain = float(body.get('pain', 0.0)) / 100.0"
+    rule: "REQUIRED: Normalize pain/fatigue /100.0 before threshold comparison (ADR-094 MSOC)"
     code_ref: "avatar_presentation_assembler.py:34-35"
     adr_ref: "ADR-094"
     severity: CRITICAL
   - source: PressureTranslator
     target: pain
-    rule: "REQUIRED: Normalize pain /100.0 before Somatic Veto thresholds (Rule 64, ADR-094 MSOC)"
-    condition: "CRITICAL BUG (S75): pain > 0.8 with raw pain (0-100) means FLEE blocked at 0.8% pain — ALWAYS blocked for any injured NPC. Fix: pain = body_state.get('pain', 0.0) / 100.0. After fix: FLEE blocked only when pain > 80/100 = severe injury."
+    rule: "REQUIRED: Normalize pain /100.0 before Somatic Veto thresholds (ADR-094 MSOC)"
     code_ref: "pressure_translator.py:53"
     adr_ref: "ADR-094"
     severity: CRITICAL
   - source: AvatarStateDTO
     target: life_status
-    rule: "REQUIRED: AvatarStateDTO MUST contain life_status field (Rule 81, ADR-137)"
-    condition: "Without life_status in AvatarStateDTO, frontend cannot detect player death. Assembler reads body_state['life_status'] and passes through. DEAD override zeros ALL projections. Frontend renders death overlay when life_status=DEAD."
+    rule: "REQUIRED: AvatarStateDTO MUST contain life_status field (ADR-137)"
     code_ref: "snapshot.py:34-56"
     adr_ref: "ADR-137"
     severity: HIGH
   - source: GameLoop
     target: WorldSnapshotDTO
-    rule: "REQUIRED: Death Guard MUST include npc_positions in world_snapshot (Rule 82, ADR-137)"
-    condition: "When player is DEAD, early return ChatTurnResponse MUST contain world_snapshot with avatar_state (life_status=DEAD) AND npc_positions from LifeEngine cache. Without npc_positions, world freezes visually. World continues after death (ontology: death = loss of agency, not end of simulation)."
+    rule: "REQUIRED: Death Guard MUST include npc_positions in world_snapshot (ADR-137)"
     code_ref: "game_loop/__init__.py:653-690"
     adr_ref: "ADR-137"
     severity: HIGH
   - source: TickOrchestrator
     target: DRFBus
-    rule: "FORBIDDEN: DRFBus via default_factory in _TickContext — split-brain (Rule 73, ADR-134)"
-    condition: "execute() and execute_player_finalize() created independent _TickContext with separate DRFBus via default_factory. Claims written to BUS_A, drain read from BUS_B. Fix: DRFBus on TickOrchestrator instance (self._drf_bus), passed as parameter."
+    rule: "FORBIDDEN: DRFBus via default_factory in _TickContext — split-brain (ADR-134)"
     code_ref: "tick_orchestrator.py"
     adr_ref: "ADR-134"
     severity: CRITICAL
   - source: Any
     target: DRFBus
-    rule: "FORBIDDEN: Monkey-patch function for bus injection (Rule 74, ADR-134)"
-    condition: "func.drf_bus = ... violates causal transparency. Use explicit parameter passing or DRFExecutionContext."
+    rule: "FORBIDDEN: Monkey-patch function for bus injection (ADR-134)"
     code_ref: "tick_orchestrator.py"
     adr_ref: "ADR-134"
     severity: HIGH
+  # --- SOCIAL PHYSICS CONSTRAINTS (ADR-O-212) ---
+  - source: Any
+    target: VillageMemoryField
+    rule: "REQUIRED: VillageMemoryField is the ONLY social truth (ADR-O-212)"
+    condition: "FORBIDDEN: Narrative Gravity as a separate data layer (Double Truth risk). Narrative is a derived effect."
+    adr_ref: "ADR-O-212"
+    severity: CRITICAL
+  - source: InstitutionLayer
+    target: InstitutionalInertia
+    rule: "REQUIRED: Institutional Inertia prevents instant escalation (ADR-O-212)"
+    condition: "FORBIDDEN: Instant mutation of InstitutionLayer state. actual += (target - actual) * adaptation_rate"
+    adr_ref: "ADR-O-212"
+    severity: CRITICAL
+  - source: InstitutionalInertia
+    target: InstitutionalInertia
+    rule: "REQUIRED: resistance_to_change > 0.0 (ADR-O-212)"
+    condition: "FORBIDDEN: resistance_to_change = 0.0 (turns institutions into reactive triggers)"
+    adr_ref: "ADR-O-212"
+    severity: HIGH
+  - source: VillageMemoryField
+    target: VillageMemoryField
+    rule: "REQUIRED: myth_level requires multi-location + witnesses + contradiction (ADR-O-212)"
+    condition: "FORBIDDEN: Compute myth_level from kill count alone."
+    adr_ref: "ADR-O-212"
+    severity: HIGH
   - source: TickOrchestrator
     target: DRFExecutionContext
-    rule: "REQUIRED: Pass drf_ctx (not bare drf_bus) to pipeline (Rule 76, ADR-136)"
-    condition: "Pipeline receives DRFExecutionContext (tick_id + npc_id + bus), not bare drf_bus. Claims auto-inherit npc_id and tick_id via drf_ctx.emit(). for_npc() creates scoped child context inside NPC loop."
+    rule: "REQUIRED: Pass drf_ctx to pipeline (ADR-136)"
     code_ref: "tick_orchestrator.py, npc_tick_pipeline.py"
     adr_ref: "ADR-136"
     severity: HIGH
   - source: TickOrchestrator
     target: MovementIntent
-    rule: "REQUIRED: DRF scoring overlay in BOTH idle and player paths (Rule 77, ADR-135)"
-    condition: "DRF claims influence intent priority via additive scoring: priority += energy × weight × alignment. Weights: SURVIVAL=0.15, SOCIAL=0.10, ROUTINE=0.02. Overlay MUST be applied in both idle and player turn paths via _apply_drf_scoring_overlay()."
+    rule: "REQUIRED: DRF scoring overlay in BOTH idle and player paths (ADR-135)"
     code_ref: "tick_orchestrator.py"
     adr_ref: "ADR-135"
     severity: HIGH
   - source: Any
     target: priority_scale
-    rule: "FORBIDDEN: Clamp override max(priority, N) at 0.0-1.0 scale (Rule 80, ADR-135)"
-    condition: "max(priority, 90) or max(priority, 70) at 0.0-1.0 scale destroys the scale. Priority is float 0.0-1.0. Clamp values must be in same scale."
+    rule: "FORBIDDEN: Clamp override max(priority, N) at 0.0-1.0 scale (ADR-135)"
     code_ref: "tick_orchestrator.py"
     adr_ref: "ADR-135"
     severity: HIGH
+  # --- PERSONALITY MATH CONSTRAINTS ---
+  - source: ProfileMath
+    target: RelationshipProfile
+    rule: "FORBIDDEN: Import _drive_multiplier from relationship_profile. Only from profile_math (ADR-O-146)"
+    condition: "Isolates domains. Cross-domain import hides dependencies."
+    adr_ref: "ADR-O-146"
+    severity: HIGH
+  - source: RiskPerceptionProfile
+    target: Desire
+    rule: "FORBIDDEN: desire in RiskPerceptionProfile (ADR-O-146)"
+    condition: "Risk ≠ readiness to take risks. Desire → utility scoring, not perception."
+    adr_ref: "ADR-O-146"
+    severity: CRITICAL
+  - source: ProfileMath
+    target: DriveMultiplier
+    rule: "REQUIRED: drive_multiplier(0.25) MUST return exactly 1.0 (ADR-O-146)"
+    condition: "Invariant for backward compatibility. Violation breaks existing balance."
+    adr_ref: "ADR-O-146"
+    severity: CRITICAL
+  - source: DecisionHub
+    target: SocialDeltaEngine
+    rule: "REQUIRED: _compute_deltas delegated to SocialDeltaEngine.process() (ADR-O-146)"
+    condition: "Inline _compute_deltas in DecisionHub is FORBIDDEN."
+    adr_ref: "ADR-O-146"
+    severity: HIGH
+  - source: DecisionHub
+    target: RiskPerceptionProfile
+    rule: "REQUIRED: _compute_risk delegated to perceive_risk() (ADR-O-146)"
+    condition: "Inline _compute_risk without personality modulation is FORBIDDEN."
+    adr_ref: "ADR-O-146"
+    severity: HIGH
+  # --- VIABILITY & TARGET CONSTRAINTS ---
+  - source: LifeEngine
+    target: IntentDomain
+    rule: "REQUIRED: Viability Pre-Generation Gate (ADR-O-137). Threat excludes ROUTINE BEFORE intent generation."
+    condition: "Post-generation filtering (zombie causality) is FORBIDDEN. Gate stands BEFORE generators."
+    adr_ref: "ADR-O-137"
+    severity: CRITICAL
+  - source: MacroMovementGoal
+    target: IntentDomain
+    rule: "REQUIRED: MovementIntent MUST have domain field (ADR-O-137)"
+    condition: "Without domain, viability mask cannot work. Ontological incompleteness."
+    adr_ref: "ADR-O-137"
+    severity: HIGH
+  - source: TickOrchestrator
+    target: IntentParametersDTO
+    rule: "DEPRECATED: target_id field (ADR-125)"
+    condition: "Truth goes via intent.target. ADR-124 remains as load-bearing cable until native route built."
+    adr_ref: "ADR-125"
+    severity: MEDIUM
 ownership:
   EmotionTag:
     owner: "AffectivePipeline (via emotion_transition.py)"
-    creates: "AffectivePipeline (resolve_emotion_transition with personalized thresholds)"
-    modifies: "AffectivePipeline via EmotionPayload, or ReactionSubscriber (direct bypass with Anti-DOUBLE TRUTH bootstrap)"
-    reads: "DecisionHub (_emotion_modifier), Verbalization, scene_outcome_builder"
-    constraint: "ONE owner. Engine (CFRM) MUST NOT assign dominant_emotion_hint. StateInterpreter may READ but never COMPUTE EmotionTag. All three emotion thresholds (anxious/fearful/panic) are personalized via fear_drive + willpower (§ENIGMA-S72)."
+    creates: "AffectivePipeline or ReactionSubscriber"
+    modifies: "AffectivePipeline via EmotionPayload"
+    reads: "DecisionHub (_emotion_modifier), Verbalization"
+    constraint: "ONE owner. Engine MUST NOT assign dominant_emotion_hint."
     adr_ref: "§ENIGMA-S72"
   EmotionalVector:
     owner: "IntentCompressor"
-    creates: "IntentCompressor (Fast Path + Slow Path)"
+    creates: "IntentCompressor"
     modifies: "N/A (immutable per intent)"
     reads: "WillpowerGate"
   WillState:
@@ -405,63 +576,94 @@ ownership:
     owner: "DecisionHub"
     creates: "DecisionHub (from utility deformation)"
     modifies: "N/A (immutable)"
-    reads: "StateApplicator, Verbalization, scene_outcome_builder"
+    reads: "StateApplicator, Verbalization"
   EmotionTag_utility:
-    owner: "AffectivePipeline (sets via EmotionPayload) → DecisionHub (_emotion_modifier reads)"
-    creates: "AffectivePipeline (or ReactionSubscriber direct)"
-    modifies: "StateApplicator (applies to NPCState.emotion via _emotion_from_str)"
-    reads: "DecisionHub (_emotion_modifier: FEARFUL→FLEE+0.35, ATTACK-0.25; ANGRY→ATTACK+0.30; SUSPICIOUS→OBSERVE+0.25)"
-    serializes: "write_to_legacy → npc_dict['emotion'] → load_l2_state_from_runtime_dict → _emotion_from_str → NPCState.emotion"
-    layer: "Utility Deformation"
-    constraint: "If emotion=NEUTRAL (pipeline broken or load_l2 missing fields), _emotion_modifier returns 0.0 for ALL intents. Fear does not increase FLEE, anger does not increase ATTACK. NPC decisions are emotionally blind."
+    owner: "AffectivePipeline → DecisionHub"
+    creates: "AffectivePipeline"
+    modifies: "StateApplicator"
+    reads: "DecisionHub (_emotion_modifier)"
+    constraint: "If emotion=NEUTRAL, _emotion_modifier returns 0.0. NPC decisions emotionally blind."
     adr_ref: "ADR-116, ADR-117"
   LifeEngine_Cache:
     owner: "LifeEngine"
     creates: "LifeEngine.tick() or load_npcs_merged()"
-    modifies: "update_cache() after apply_batch (ADR-117)"
-    reads: "get_npc_states(), _load_npcs_with_runtime()"
-    constraint: "After apply_batch mutates npc_dict, LifeEngine._npc_cache MUST be updated. GameLoop._load_npcs_with_runtime MUST check cache before loading from file. Without this, every player turn loads static config, losing affective_load, emotion, body_state."
+    modifies: "update_cache() after apply_batch"
+    reads: "get_npc_states()"
+    constraint: "CRITICAL: Must update_cache after apply_batch or next tick loads static config."
     adr_ref: "ADR-117"
   AvatarStateDTO_Ownership:
     owner: "AvatarPresentationAssembler"
-    creates: "AvatarStateDTO from player_dict (body_state + psyche)"
-    modifies: "N/A (immutable frozen dataclass)"
-    reads: "WorldSnapshotBuilder → APIRoutes → Frontend (GameScreen)"
-    layer: "Presentation (phenomenological projection)"
-    constraint: "Assembler is PROJECTION BOUNDARY (L0→Presentation). Reads body_state (0-100 SSOT), normalizes pain/fatigue /100.0, outputs 0-1 scalars. life_status passed through for death feedback. DEAD override zeros ALL projections. PhysicalPresentationState enum includes DEAD state."
+    creates: "AvatarStateDTO"
+    modifies: "N/A (immutable)"
+    reads: "WorldSnapshotBuilder"
+    constraint: "PROJECTION BOUNDARY. NORMALIZES pain/fatigue. DEAD override zeros all."
     adr_ref: "ADR-137, ADR-094"
   PressureTranslator_Ownership:
     owner: "PressureTranslator"
-    creates: "DecisionContext (feasibility constraints) from PerceptualKernel + body_state"
+    creates: "DecisionContext"
     modifies: "N/A (pure function)"
-    reads: "DecisionHub (translate_kernel_to_context)"
-    layer: "Interpretation (somatic veto)"
-    constraint: "CRITICAL: pain MUST be normalized /100.0 before threshold comparison. Without normalization, Somatic Veto (pain>0.8 blocks FLEE) fires at 0.8% pain — FLEE permanently blocked for any injured NPC. shock_impulse and blood_loss already in 0-1 scale — no normalization needed."
+    reads: "DecisionHub"
+    constraint: "CRITICAL: pain MUST be normalized /100.0. shock/blood_loss already 0-1."
     adr_ref: "ADR-094, GAP3"
   DRFBus_Ownership:
     owner: "TickOrchestrator (self._drf_bus)"
-    creates: "TickOrchestrator.__init__() — single instance per orchestrator"
-    modifies: "Claims written by pipeline phases, drained by persistence"
+    creates: "TickOrchestrator.__init__() — single instance"
+    modifies: "Claims written, drained by persistence"
     reads: "_apply_drf_scoring_overlay(), _phase_10_persistence()"
-    layer: "Application (causal field bus)"
-    constraint: "CRITICAL: DRFBus MUST live on TickOrchestrator instance, NOT in _TickContext default_factory. Two _TickContext objects = two buses = split-brain (claims in A, drain from B). Bus cleared (stream.clear()) at start of execute(). Idle _phase_10_persistence MUST have drain."
+    constraint: "CRITICAL: Instance-level, NOT default_factory. Idle drain required."
     adr_ref: "ADR-134"
   DRFExecutionContext_Ownership:
-    owner: "TickOrchestrator (creates root drf_ctx)"
-    creates: "DRFExecutionContext(tick_id, bus) at start of tick"
-    modifies: "Scoped per NPC via for_npc(npc_id)"
-    reads: "npc_tick_pipeline (receives drf_ctx, emits claims via drf_ctx.emit())"
-    layer: "Application (scoped causal ledger)"
-    constraint: "Pipeline receives drf_ctx, not bare drf_bus. Claims auto-inherit npc_id and tick_id. Monkey-patching function.drf_bus = ... is FORBIDDEN (Rule 74)."
+    owner: "TickOrchestrator"
+    creates: "DRFExecutionContext(tick_id, bus)"
+    modifies: "Scoped per NPC via for_npc()"
+    reads: "npc_tick_pipeline"
+    constraint: "Pipeline receives drf_ctx. Monkey-patching FORBIDDEN."
     adr_ref: "ADR-136"
   ActionEligibilityGate:
     owner: "GameLoop (run_turn)"
     creates: "Early return ChatTurnResponse if player DEAD"
-    modifies: "None (prevents pipeline execution)"
+    modifies: "None"
     reads: "_avatar_state.body_state['life_status']"
-    layer: "Application (death guard)"
-    constraint: "CRITICAL: Player action MUST NOT be processed if life_status='DEAD'. Guard placed after avatar load and BEFORE lock_for_tick. Death Guard v2 (ADR-137): includes npc_positions from LifeEngine cache — world continues after death. Ontology: death = loss of agency, not end of simulation."
+    constraint: "CRITICAL: Dead player cannot act. World continues after death."
     adr_ref: "ADR-131, ADR-137"
+  ProfileMath_Ownership:
+    owner: "ProfileMath (Pure Function)"
+    creates: "drive_multiplier(drive, min_mult=0.2) → float"
+    modifies: "N/A (no state)"
+    reads: "SocialDeltaEngine, RiskPerceptionProfile"
+    constraint: "CRITICAL: drive_multiplier(0.25) MUST return 1.0. Only source of multipliers."
+    adr_ref: "ADR-O-146"
+  SocialDeltaEngine_Ownership:
+    owner: "DecisionHub (delegates)"
+    creates: "List[StateDeltas]"
+    modifies: "DeltaBuffer"
+    reads: "ProfileMath (RelationshipResponseProfile)"
+    constraint: "Replaces inline _compute_deltas. Modulated by personality."
+    adr_ref: "ADR-O-146"
+  RiskPerceptionProfile_Ownership:
+    owner: "DecisionHub (delegates)"
+    creates: "perceive_risk(event, state, drives_base) → float"
+    modifies: "N/A (pure function)"
+    reads: "ProfileMath (threat_sensitivity, sense_of_control)"
+    constraint: "Two-phase model. Desire FORBIDDEN in risk. Risk ≠ readiness."
+    adr_ref: "ADR-O-146"
+  RelationshipStore_Ownership:
+    owner: "RelationshipStore"
+    creates: "Initial load + runtime mutations via DeltaBuffer"
+    modifies: "DeltaBuffer (Social domain)"
+    reads: "DecisionHub (read-only ephemeral cache)"
+    constraint: "SSOT. Persistance in NPCState FORBIDDEN. Scale 0-100. Consumers normalize."
+    adr_ref: "ADR-121"
+  BehaviorLaboratory:
+    owner: "DecisionHub / IntentDomain (validates)"
+    creates: "Trait economy probes and viability measurements"
+    modifies: "N/A (read-only state projection)"
+    reads: "DecisionHub, EffectiveDrives, IntentDomain, ProfileMath"
+    layer: "Validation (SUPERBOX)"
+    constraint: "Measures trait purchasing power in real DecisionHub scoring. Validates Viability Gate (ADR-O-137) and Personality Math Layer (ADR-O-146)."
+    adr_ref: "ADR-O-137, ADR-O-146"
+    path: "backend/tests/sandbox/SUPERBOX/behavior_laboratory.py"
+    suites: ["trait_economy_probe"]
 sequences:
   - title: "Player Command Execution Flow"
     participants: [PlayerInput, DirectiveInterpreter, BodyState, WillpowerGate, DecisionHub]
@@ -471,14 +673,14 @@ sequences:
         message: "1. Command received (source=player)"
       - from: BodyState
         to: DirectiveInterpreter
-        message: "2. Somatic Gate: shock_impulse < 0.7 required for interpretation (ADR-O-139)"
+        message: "2. Somatic Gate: shock_impulse < 0.7 required (ADR-O-139)"
         type: dotted
       - from: DirectiveInterpreter
         to: WillpowerGate
         message: "3. Push directive_obedience pressure"
       - from: WillpowerGate
         to: DecisionHub
-        message: "4. Compute resistance (trauma_markers check GAP2)"
+        message: "4. Compute resistance"
       - from: DecisionHub
         to: DecisionHub
         message: "5. Generate Intent (APPROACH/FLEE)"
@@ -496,13 +698,46 @@ sequences:
     steps:
       - from: PerceptualKernel
         to: AffectivePipeline
-        message: "1. threat_gradient × fear_drive + uncertainty × control_drive + anomaly × significance_drive → affective_load (S72: weights from drives_base, not hardcoded)"
+        message: "1. threat × fear + uncertainty × control + anomaly × significance → affective_load"
       - from: AffectivePipeline
         to: EmotionTag
-        message: "2. resolve_emotion_transition with personalized thresholds (fear_drive lowers, willpower raises) → FEARFUL/ANXIOUS/PANIC"
+        message: "2. resolve_emotion_transition (personalized thresholds) → FEARFUL"
       - from: EmotionTag
         to: DecisionHub
         message: "3. _emotion_modifier: FEARFUL → FLEE +0.35, ATTACK -0.25"
       - from: DecisionHub
         to: DecisionHub
-        message: "4. _context_relevance: fear_drive modulates violence salience, control_drive modulates theft, significance modulates social (S72: personality determines what events mean)"
+        message: "4. _context_relevance: personality determines what events mean"
+  - title: "Personality Math Flow (ADR-O-146)"
+    participants: [DrivesBase, ProfileMath, SocialDeltaEngine, RiskPerceptionProfile, DecisionHub]
+    steps:
+      - from: DrivesBase
+        to: ProfileMath
+        message: "1. fear=0.6, control=0.3, significance=0.4"
+      - from: ProfileMath
+        to: SocialDeltaEngine
+        message: "2. RelationshipResponseProfile (fear_from_aggression=1.79)"
+      - from: ProfileMath
+        to: RiskPerceptionProfile
+        message: "3. threat_sensitivity=1.5, sense_of_control=0.8 (NO desire)"
+      - from: SocialDeltaEngine
+        to: DecisionHub
+        message: "4. Modulated social deltas (trust/fear)"
+      - from: RiskPerceptionProfile
+        to: DecisionHub
+        message: "5. perceive_risk(): objective risk → subjective risk"
+  - title: "Viability Pre-Generation Gate Flow (ADR-O-137)"
+    participants: [PerceptualKernel, IntentDomain, LifeEngine, DecisionHub]
+    steps:
+      - from: PerceptualKernel
+        to: IntentDomain
+        message: "1. threat_gradient > 0.3 → EXCLUDE ROUTINE domain"
+      - from: IntentDomain
+        to: LifeEngine
+        message: "2. Viability mask: Call ONLY SURVIVAL generators"
+      - from: LifeEngine
+        to: DecisionHub
+        message: "3. Generate intent with domain=SURVIVAL"
+      - from: DecisionHub
+        to: DecisionHub
+        message: "4. Post-gen filtering FORBIDDEN (zombie causality)"

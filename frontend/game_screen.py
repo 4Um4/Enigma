@@ -97,6 +97,7 @@ def _build_perceived_scene(scene_state: dict, config: PerceptionConfig) -> Perce
 # A2: npc_movement удалён — NPC двигает TransitTracker (backend, 1 шаг/тик)
 # Плавная интерполяция между DTO-снимками — отдельная задача
 from api_client import create_game_gateway, ActionQueue
+from i18n import t, activity_ru, manifest_color
 # Тайминги опроса backend из constants.py (frontend-side)
 from constants import (
     IDLE_TICK_NEAR_MS, IDLE_TICK_MID_MS, IDLE_TICK_FAR_MS,
@@ -217,7 +218,15 @@ def _resolve_player_collisions(px: float, py: float, walls: list, obstacles: lis
                 py += (diff_y / dist) * push
 
     # 2. Препятствия (AABB прямоугольники). Бэкенд отдаёт левый верхний угол (x, y) + (w, h)
+    # S81-ФИКС: Проходимые объекты не блокируют движение
+    # Data-driven: passability.walk=True → проходимо. Fallback: type в _PASSABLE_TYPES
+    _PASSABLE_TYPES = {"door", "door_transition", "transition", "window"}
     for obj in obstacles:
+        _passthrough = obj.get("passability", {}).get("walk", None)
+        if _passthrough is True:
+            continue
+        if _passthrough is None and obj.get("type", "") in _PASSABLE_TYPES:
+            continue
         left = obj.get("x", 0)
         top = obj.get("y", 0)
         right = left + obj.get("w", 0)
@@ -362,12 +371,21 @@ class GameScreen:
     def __init__(self, screen: pygame.Surface, clock: pygame.time.Clock):
         self.screen = screen
         self.show_obs_console = False  # Консоль наблюдений (клавиша Ё)
+        self.show_journal = False      # ADR-JOURNAL: Журнал диалогов (клавиша J / О)
+        self.dialog_journal = []       # ADR-JOURNAL: Накопительный лог диалогов
+        self.npc_speech_bubbles = {}   # ADR-SPEECH: Речевые облачка над NPC {name: {text, tick}}
+        self.player_speech_bubble = None  # ADR-SPEECH: Облачко над головой игрока
+        self.npc_manifest_indicators = {}  # ADR-MANIFEST: Наблюдаемые физические проявления
         self.clock = clock
         self.renderer = SceneRenderer(screen)
 
     def run(self, campaign_folder: str, player_name: str = "") -> None:
         """Запускает игровой экран для выбранной кампании"""
         message_log: list = []  # Cinematic Layer: Только NarrativeBeat
+        self.dialog_journal = []       # ADR-JOURNAL: Сброс журнала при новой сессии
+        self.npc_speech_bubbles = {}   # ADR-SPEECH: Сброс облачек при новой сессии
+        self.player_speech_bubble = None  # ADR-SPEECH: Сброс облачка игрока
+        self.npc_manifest_indicators = {}  # ADR-MANIFEST: Сброс проявлений
         system_log: list[str] = []  # Log Layer: Системные сообщения, движение, ошибки
 
         # Неблокирующая очередь к backend — LLM не замораживает Pygame
@@ -403,8 +421,38 @@ class GameScreen:
         loc_meta = _load_location_meta(campaign_folder, location_id)
         scene_w = loc_meta.get("size", {}).get("w", 20)
         scene_h = loc_meta.get("size", {}).get("h", 15)
-        walls = scene_state.get("spatial_walls", [])
-        obstacles = scene_state.get("spatial_obstacles", [])
+
+        # S80.3b: Multi-chunk контекст — стены всех видимых локаций
+        _world_ctx = None
+        _floor_rects = None
+        # S82: Инициализация ДО первого использования (ранее была на строке 499 → UnboundLocalError при доступе в строке 438)
+        _last_world_pos: list[float | None] = [None, None]
+        try:
+            from spatial_compilation_gateway import SpatialCompilationGateway
+            from world_context import SpatialDataLoader, ContextResolver
+            _registry = SpatialCompilationGateway.get_registry(campaign_folder)
+            if _registry is not None:
+                _loader = SpatialDataLoader()
+                _resolver = ContextResolver(_registry, _loader)
+                _px, _py = _player_xy(scene_state)
+                _world_px, _world_py = _resolver.local_to_world(_px, _py, location_id)
+                # S82: Сохраняем мировые координаты для Spatial Oracle (отправляются в API)
+                _last_world_pos[0] = _world_px
+                _last_world_pos[1] = _world_py
+                _world_ctx = _resolver.resolve(_world_px, _world_py, campaign_id=campaign_folder)
+                walls = list(_world_ctx.collidable_walls)
+                obstacles = list(_world_ctx.collidable_obstacles)
+                _floor_rects = [vc.spatial.floor_rect for vc in _world_ctx.visible_chunks]
+                logger.debug(f"[PIPELINE][INPUT] multi-chunk: {len(_world_ctx.visible_chunks)} chunks, {len(walls)} walls")
+                logger.debug(f"[WORLD_CTX] location_id={location_id} walls={len(walls)} obstacles={len(obstacles)} visible_chunks={[vc.descriptor.location_id for vc in _world_ctx.visible_chunks]} scene=({scene_w},{scene_h})")
+            else:
+                walls = scene_state.get("spatial_walls", [])
+                obstacles = scene_state.get("spatial_obstacles", [])
+        except Exception as e:
+            logger.warning(f"[PIPELINE][INPUT] spatial context fallback: {e}")
+            walls = scene_state.get("spatial_walls", [])
+            obstacles = scene_state.get("spatial_obstacles", [])
+
         logger.debug(f"[PIPELINE][INPUT] entering main loop, walls={len(walls)}, obstacles={len(obstacles)}")
 
         # Состояние восприятия
@@ -445,10 +493,13 @@ class GameScreen:
 
         # Idle tick: тикаем мир пока игрок не делает действие
         # Фаза 2.1 — интервал зависит от расстояния до NPC (см. _idle_tick_interval_ms)
-        _last_idle_tick = pygame.time.get_ticks()
+        _last_idle_tick = 0  # Немедленный первый idle_tick — мир стартует сразу
         _idle_tick_result: list = []   # потокобезопасный буфер результата
         _idle_tick_running = [False]   # флаг активного запроса
         _last_telegraph_ms = 0         # cooldown между телеграфами
+        # S82: Мировые координаты для Spatial Oracle. Обновляются каждый кадр.
+        # Backend использует как PRIMARY spatial input — вычисляет actual_chunk НЕЗАВИСИМО.
+        # _last_world_pos инициализирован выше (перед try-блоком SpatialRegistry)
         _TELEGRAPH_COOLDOWN_MS = 30_000  # 30 сек между телеграфами
         _time_scale = 1                # Множитель скорости симуляции (1, 4, 10, 50)
         # Маппинг npc_id → имя для телеграфа
@@ -484,7 +535,11 @@ class GameScreen:
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
                         action_queue.stop()
+                        running = False
                         return
+                    # ADR-JOURNAL: Переключение журнала (J / Русская О), только если консоль НЕ в фокусе
+                    elif not text_input.focused and (event.key == pygame.K_j or event.unicode == 'о'):
+                        self.show_journal = not self.show_journal
                     elif event.key == pygame.K_TAB:
                         # Переключение фокуса: игра <-> консоль общения
                         text_input.focused = not text_input.focused
@@ -531,12 +586,17 @@ class GameScreen:
                             creation_tick=pygame.time.get_ticks()
                         )
                         message_log.append(player_beat)
+                        # ADR-JOURNAL: Записываем фразу игрока в журнал
+                        self.dialog_journal.append({"speaker": player_name, "text": text_input.text.strip()})
+                        # ADR-SPEECH: Облачко над головой игрока
+                        self.player_speech_bubble = {"text": text_input.text.strip(), "tick": pygame.time.get_ticks()}
 
                         self._handle_text_input(
                             text_input.text.strip(), scene_state, focus,
                             walls, obstacles, move, message_log,
                             scene_w, scene_h,
                             action_queue, campaign_folder, player_name,
+                            last_world_pos=_last_world_pos,
                         )
                         text_input.push_history(text_input.text.strip())
                         text_input.clear() # Очищаем пузырь ввода после отправки
@@ -598,7 +658,7 @@ class GameScreen:
                 if move.target_npc_id and move.target_npc_id in npc_positions:
                     from npc_name_resolver import npc_id_to_display
                     name = npc_id_to_display(move.target_npc_id)
-                    action_queue.submit(campaign_folder, player_name, f"подойти к {name}", px, py)
+                    action_queue.submit(campaign_folder, player_name, f"подойти к {name}", px, py, _last_world_pos[0], _last_world_pos[1])
                     move.target_npc_id = None  # Бэкенд взял управление
 
                 # WASD: транслируем вектор в семантическую команду (SemanticBridge на бэкенде)
@@ -622,13 +682,31 @@ class GameScreen:
                         # Физика: скольжение вдоль стен через Push-out Resolution
                         speed = 8.0 * dt
                         
-                        pred_x = px + dx * speed
-                        pred_y = py + dy * speed
+                        # S81-ФИКС: Координатная истина — движение в МИРОВЫХ координатах
+                        # walls/obstacles из SpatialDataLoader уже мировые.
+                        # Конвертируем локальную позицию в мировую, двигаем, коллизии в мировых,
+                        # конвертируем обратно в локальную для хранения.
+                        _world_px, _world_py = px, py  # default: local = world
+                        if _world_ctx is not None:
+                            _world_px, _world_py = _resolver.local_to_world(px, py, location_id)
                         
-                        # Применяем выталкивание для расчётной позиции
-                        pred_x, pred_y = _resolve_player_collisions(pred_x, pred_y, walls, obstacles)
+                        pred_wx = _world_px + dx * speed
+                        pred_wy = _world_py + dy * speed
                         
-                        _set_player_xy(scene_state, pred_x, pred_y)
+                        # Коллизии в мировых координатах
+                        pred_wx, pred_wy = _resolve_player_collisions(pred_wx, pred_wy, walls, obstacles)
+                        
+                        # S82: Обновляем мировые координаты для Spatial Oracle
+                        _last_world_pos[0] = pred_wx
+                        _last_world_pos[1] = pred_wy
+                        
+                        # Конвертируем обратно в локальные для хранения
+                        if _world_ctx is not None:
+                            pred_lx, pred_ly = _resolver.world_to_local(pred_wx, pred_wy, location_id)
+                        else:
+                            pred_lx, pred_ly = pred_wx, pred_wy
+                        
+                        _set_player_xy(scene_state, pred_lx, pred_ly)
 
                         _DIR_MAP = {
                             (0, -1): "север", (0, 1): "юг", (-1, 0): "запад", (1, 0): "восток",
@@ -749,6 +827,8 @@ class GameScreen:
                     campaign_folder, player_name,
                     _px,
                     _py,
+                    world_x=_last_world_pos[0],
+                    world_y=_last_world_pos[1],
                     action_text=_telegraph_text,
                 )
                 print(f"[TELEGRAPH] event-driven: {_telegraph_text}")
@@ -807,6 +887,34 @@ class GameScreen:
                         print(f"[TRACE][ACTION_RESP] has_ws={bool(_action_ws)} ws_type={type(_action_ws).__name__} top_keys={list(result.response.keys())[:5]}")
                     else:
                         print(f"[TRACE][ACTION_RESP] resp_type={type(result.response).__name__} has_ws={bool(_action_ws)}")
+
+                    # S82: Spatial Oracle reconciliation.
+                    # Backend подтверждает actual_chunk. Если отличается — обновляем location_id.
+                    # Backend НИКОГДА не перемещает игрока. Только обновляет simulation scope.
+                    _confirmed_loc = getattr(result.response, 'confirmed_location_id', None)
+                    if _confirmed_loc is None and isinstance(result.response, dict):
+                        _confirmed_loc = result.response.get("confirmed_location_id")
+                    if _confirmed_loc and _confirmed_loc != location_id:
+                        logger.info(
+                            f"[SPATIAL_RECONCILE] location_id corrected: "
+                            f"{location_id} → {_confirmed_loc}"
+                        )
+                        location_id = _confirmed_loc
+                        scene_state["location_id"] = _confirmed_loc
+                        logger.info(f"[WORLD_CTX] RECONCILE location_id={location_id} walls={len(walls)} obstacles={len(obstacles)} scene=({scene_w},{scene_h})")
+                        # S82.1: Пересчитываем local_position с новым origin.
+                        # Без этого local_position остаётся вычисленным от старого origin,
+                        # и на следующем кадре local_to_world даст неверный world_position.
+                        if _world_ctx is not None and _last_world_pos[0] is not None and _last_world_pos[1] is not None:
+                            new_lx, new_ly = _resolver.world_to_local(
+                                _last_world_pos[0], _last_world_pos[1], _confirmed_loc
+                            )
+                            _set_player_xy(scene_state, new_lx, new_ly)
+                            logger.info(
+                                f"[SPATIAL_RECONCILE] local_position recalculated: "
+                                f"world=({_last_world_pos[0]:.2f},{_last_world_pos[1]:.2f}) "
+                                f"→ local=({new_lx:.2f},{new_ly:.2f}) via origin({_confirmed_loc})"
+                            )
 
                     if _action_ws and isinstance(_action_ws, dict) and "npc_positions" in _action_ws:
                         import copy
@@ -962,6 +1070,8 @@ class GameScreen:
                                     is_active=False,
                                     creation_tick=pygame.time.get_ticks()
                                 ))
+                                # ADR-JOURNAL: Записываем фразу рассказчика/NPC в журнал
+                                self.dialog_journal.append({"speaker": speaker, "text": text})
 
                     # ADR-041: Resistance Medium — инфекция поля ввода при конфликте воли
                     _wc_data = getattr(result.response, 'will_conflict_data', None)
@@ -985,57 +1095,24 @@ class GameScreen:
                             scene_state["avatar_state"]["motor_disruption"] = _res * 5.0 # Сильный тремор при сопротивлении
                             logger.debug(f"[PIPELINE][EMBODIMENT] Injected instability: res={_res:.2f}, stability={scene_state['avatar_state']['perceptual_stability']:.2f}, motor={scene_state['avatar_state']['motor_disruption']:.2f}")
 
-                    for npc_r in result.response.npc_reactions:
-                        npc_name = npc_r.get("npc_name", "NPC")
-                        npc_text = npc_r.get("reaction", "")
+                    # npc_reactions → речевые облачка над головой NPC (не в чат!)
+                    for npc_r in (result.response.npc_reactions or []):
+                        if isinstance(npc_r, dict):
+                            npc_name = npc_r.get("npc_name", "NPC")
+                            npc_text = npc_r.get("reaction", "")
+                        elif isinstance(npc_r, str) and ":" in npc_r:
+                            _parts = npc_r.split(":", 1)
+                            npc_name = _parts[0].strip()
+                            npc_text = _parts[1].strip()
+                        else:
+                            npc_name = "NPC"
+                            npc_text = str(npc_r) if npc_r else ""
 
-                        # Отладка: выводим всё, что приходит как реплика NPC
                         print(f"[ECHO_DEBUG_NPC] Name: '{npc_name}' | Text: '{npc_text}' | LastInput: '{_last_player_input}'")
 
                         if npc_text:
-                            # Защита от эха: если имя NPC совпадает с именем игрока — это эхо
-                            if npc_name.lower() == player_name.lower():
-                                print("[ECHO_DEBUG_NPC] ---> BLOCKED BY NAME!")
-                                continue
-
-                            # Защита от эха: если текст реплики совпадает с последним вводом игрока
-                            if _last_player_input:
-                                import re
-                                from difflib import SequenceMatcher
-                                p_clean = re.sub(r'[^\w\s]', '', _last_player_input).lower()
-                                t_clean = re.sub(r'[^\w\s]', '', npc_text).lower()
-                                similarity = SequenceMatcher(None, p_clean, t_clean).ratio()
-
-                                is_short_input = len(p_clean) < 10
-                                if similarity > 0.60 or (not is_short_input and (p_clean in t_clean or t_clean in p_clean)):
-                                    print("[ECHO_DEBUG_NPC] ---> BLOCKED BY TEXT SIMILARITY!")
-                                    continue
-
-                            # Определение DeliveryType для реакций NPC (Experiential Architecture)
-                            delivery = DeliveryType.NORMAL
-                            npc_text_lower = npc_text.lower()
-                            if npc_text_lower.startswith("(") and npc_text_lower.endswith(")"):
-                                delivery = DeliveryType.WHISPER
-                            elif npc_text_lower.startswith("*") and npc_text_lower.endswith("*"):
-                                delivery = DeliveryType.INTERNAL
-                            elif npc_text.endswith("!!!") or npc_text.isupper():
-                                delivery = DeliveryType.SHOUT
-
-                            # Определение RecognitionLevel для реакций NPC
-                            recognition = RecognitionLevel.KNOWN_NAME
-                            if npc_name in ("Мужчина", "Женщина", "???"):
-                                recognition = RecognitionLevel.UNKNOWN_FEMALE if npc_name == "Женщина" else RecognitionLevel.UNKNOWN_MALE
-
-                            # Реплика NPC становится полноценным пузырем
-                            message_log.append(NarrativeBeat(
-                                speaker=npc_name,
-                                text=npc_text,
-                                is_player=False,
-                                delivery=delivery,
-                                recognition=recognition,
-                                is_active=False,
-                                creation_tick=pygame.time.get_ticks()
-                            ))
+                            # Речь NPC → облачко над головой (не дублируем в message_log и журнал)
+                            self.npc_speech_bubbles[npc_name] = {"text": npc_text, "tick": pygame.time.get_ticks()}
 
                 # Telegraph завершился — запускаем следующий если консоль открыта
                 # Telegraph завершился — НЕ перезапускаем автоматически
@@ -1061,18 +1138,50 @@ class GameScreen:
 
             # === Рендер ===
             px, py = _player_xy(scene_state)
+            # ADR-SPEECH: Истечение речевых облачек
+            _now_sp = pygame.time.get_ticks()
+            self.npc_speech_bubbles = {k: v for k, v in self.npc_speech_bubbles.items() if _now_sp - v["tick"] < 6000}
+            if self.player_speech_bubble and _now_sp - self.player_speech_bubble["tick"] > 4000:
+                self.player_speech_bubble = None
+
+            # ADR-MANIFEST: Читаем наблюдаемые проявления из perception data (бэкенд — источник истины)
+            _manifest_indicators = {}
+            _perc = scene_state.get("player_perception") or {}
+            # API отдаёт manifestations как list[ManifestationDTO], конвертируем в dict
+            _raw_manifests = _perc.get("manifestations", [])
+            if isinstance(_raw_manifests, list):
+                for _m in _raw_manifests:
+                    _nid = _m.get("npc_id", "") if isinstance(_m, dict) else getattr(_m, "npc_id", "")
+                    _tags = _m.get("tags", []) if isinstance(_m, dict) else getattr(_m, "tags", [])
+                    if _nid and _nid != "player" and _tags:
+                        _texts = [t(f"manifest:{_tag.replace('MANIFEST_', '').lower()}") for _tag in _tags]
+                        _first_key = f"manifest:{_tags[0].replace('MANIFEST_', '').lower()}" if _tags else None
+                        _color = manifest_color(_first_key) if _first_key else (160, 160, 160)
+                        _manifest_indicators[_nid] = {"tags": _tags, "text": ", ".join(_texts), "color": _color}
+
+            self.npc_manifest_indicators = _manifest_indicators
             self.screen.fill((200, 0, 0))  # ЯРКО-КРАСНЫЙ — если видно, цикл работает
+            # S81-ФИКС: Камера следует за ИГРОКОМ, а не за статичным _world_ctx
+            # Конвертируем ТЕКУЩУЮ локальную позицию в мировую для камеры
+            _render_px, _render_py = px, py
+            if _world_ctx is not None:
+                _render_px, _render_py = _resolver.local_to_world(px, py, location_id)
+
             self.renderer.render(
                 scene=perceived,
                 scene_w=scene_w,
                 scene_h=scene_h,
                 walls=walls,
                 obstacles=obstacles,
-                player_xy=(px, py),
+                player_xy=(_render_px, _render_py),
                 player_facing=move.facing_angle,
                 dt=dt,
                 avatar_state=avatar_state,
                 ambient_state=scene_state.get("ambient_phenomenology"),
+                speech_bubbles=self.npc_speech_bubbles,
+                player_speech=self.player_speech_bubble,
+                mood_indicators=self.npc_manifest_indicators,
+                floor_rects=_floor_rects,
             )
 
             # HUD
@@ -1129,22 +1238,63 @@ class GameScreen:
                     self.screen.blit(_text_surf, _text_rect)
                     _start_y += _text_rect.height + 5 # Сдвиг вниз для следующего восприятия
 
-            # Консоль наблюдений (клавиша Ё): периферические наблюдения с привязкой к npc_id
-            if self.show_obs_console and _perception_data and _perception_data.get("peripheral_cues"):
-                _cues = _perception_data["peripheral_cues"]
-                _box_h = len(_cues) * 18 + 15
-                _box_w = 420
-                _obs_bg = pygame.Surface((_box_w, _box_h), pygame.SRCALPHA)
-                _obs_bg.fill((0, 0, 0, 180))
-                self.screen.blit(_obs_bg, (10, 15))
-                
-                _obs_y = 20
-                for cue in _cues:
-                    _npc_id = cue.get('npc_id', '???')
-                    _cue_text = f"[OBS] {_npc_id}: {cue.get('hover_text', '...')}"
-                    _cue_surf = self.renderer.font_small.render(_cue_text, True, (200, 200, 200))
-                    self.screen.blit(_cue_surf, (15, _obs_y))
-                    _obs_y += 18
+            # Консоль наблюдений (клавиша Ё): что аватар видит/слышит/чувствует
+            if self.show_obs_console:
+                _obs_lines = []
+                _obs_npc_pos = scene_state.get("npc_positions", {})
+                _obs_perception = (scene_state.get("player_perception") or {})
+                _obs_cues = _obs_perception.get("peripheral_cues", [])
+                _obs_traces = _obs_perception.get("embodied_traces", [])
+                # Строим маппинг npc_id → наблюдаемые симптомы (через i18n)
+                _obs_symptoms = {}
+                for _c in _obs_cues:
+                    _nid = _c.get("npc_id", "???")
+                    _ck = _c.get("cue_key", "")
+                    _sym_ru = t(f"sym:{_ck.lower()}", _ck)
+                    _obs_symptoms.setdefault(_nid, []).append(_sym_ru)
+                for _tr in _obs_traces:
+                    _nid = _tr.get("npc_id", "")
+                    if _nid and _nid != "player":
+                        if _tr.get("is_frozen"): _obs_symptoms.setdefault(_nid, []).append(t("sym:frozen"))
+                        if _tr.get("is_shaking"): _obs_symptoms.setdefault(_nid, []).append(t("sym:shaking"))
+                        if _tr.get("locomotion_instability", 0) > 0.3: _obs_symptoms.setdefault(_nid, []).append(t("sym:uneven_stance"))
+                        if _tr.get("posture_rigidity", 0) > 0.4: _obs_symptoms.setdefault(_nid, []).append(t("sym:tense_posture"))
+                        if _tr.get("action_interruption", 0) > 0.6: _obs_symptoms.setdefault(_nid, []).append(t("sym:abrupt_stop"))
+                        if _tr.get("micro_pause_density", 0) > 0.5: _obs_symptoms.setdefault(_nid, []).append(t("sym:frequent_pauses"))
+                # Собираем строки для каждого видимого NPC
+                for _nid, _ndata in _obs_npc_pos.items():
+                    if _nid == "player": continue
+                    _nloc = _ndata.get("location_id") or _ndata.get("location", "")
+                    _cur_loc = scene_state.get("location_id", "")
+                    if _nloc and _cur_loc and _nloc != _cur_loc: continue
+                    _nname = _ndata.get("name") or _ndata.get("display_name") or _nid
+                    _nact = _ndata.get("activity", "")
+                    _sym_str = ", ".join(_obs_symptoms.get(_nid, []))
+                    # Наблюдаемые физические проявления из бэкенда
+                    _manif_info = self.npc_manifest_indicators.get(_nid)
+                    _manif_text = ""
+                    if _manif_info and _manif_info.get("text"):
+                        _manif_text = f" [{_manif_info.get('text', '')}]"
+                    if _sym_str:
+                        _obs_lines.append(f"{_nname}: {_sym_str}{_manif_text}")
+                    elif _nact:
+                        _obs_lines.append(f"{_nname}: {activity_ru(_nact)}{_manif_text}")
+                    else:
+                        _obs_lines.append(f"{_nname}{_manif_text}")
+                # Рендерим панель
+                if _obs_lines:
+                    _box_h = len(_obs_lines) * 20 + 30
+                    _box_w = 400
+                    _obs_bg = pygame.Surface((_box_w, _box_h), pygame.SRCALPHA)
+                    _obs_bg.fill((0, 0, 0, 200))
+                    self.screen.blit(_obs_bg, (10, 10))
+                    _title_s = self.renderer.font_small.render(t("ui:obs_title"), True, (160, 170, 220))
+                    self.screen.blit(_title_s, (15, 15))
+                    _obs_y = 35
+                    for _oline in _obs_lines:
+                        _obs_s = self.renderer.font_small.render(f"  {_oline}", True, (200, 200, 200))
+                        self.screen.blit(_obs_s, (15, _obs_y))
+                        _obs_y += 20
 
             # HUD: FPS + игровое время
             fps_surf = self.renderer.font_small.render(
@@ -1172,6 +1322,65 @@ class GameScreen:
                 _subtxt = _subfont.render("Смерть необратима. Мир продолжает жить без вас.", True, (140, 140, 140))
                 _subrect = _subtxt.get_rect(center=(self.screen.get_width() // 2, self.screen.get_height() // 2 + 50))
                 self.screen.blit(_subtxt, _subrect)
+
+            # === ADR-JOURNAL: VN-стиль журнал (клавиша J) ===
+            if self.show_journal and isinstance(scene_state, dict):
+                _panel_width = self.screen.get_width() // 3
+                _journal_surf = pygame.Surface((_panel_width, self.screen.get_height()), pygame.SRCALPHA)
+                _journal_surf.fill((20, 20, 30, 220))
+                
+                _font_title = pygame.font.Font(None, 32)
+                _title_surf = _font_title.render("--- Журнал Диалогов (J) ---", True, (218, 165, 32))
+                _journal_surf.blit(_title_surf, (15, 15))
+                
+                _journal_data = self.dialog_journal
+                _y_offset = 45
+                
+                if not _journal_data:
+                    _font_text = pygame.font.Font(None, 22)
+                    _empty_surf = _font_text.render("(Журнал пуст. Сначала поговорите с NPC)", True, (140, 140, 140))
+                    _journal_surf.blit(_empty_surf, (15, _y_offset))
+                else:
+                    _font_name = pygame.font.Font(None, 26)
+                    _font_text = pygame.font.Font(None, 22)
+                    
+                    # Отрисовка снизу вверх (новые реплики внизу)
+                    for _entry in reversed(_journal_data):
+                        _speaker = _entry.get("speaker", "???")
+                        _text = _entry.get("text", "")
+                        
+                        # Цветовая кодировка
+                        if _speaker == "Рассказчик": _color = (218, 165, 32)   # Золотой
+                        elif _speaker == "NPC": _color = (100, 149, 237)       # Голубой
+                        else: _color = (200, 200, 200)                         # Нейтральный
+                        
+                        _name_surf = _font_name.render(f"{_speaker}:", True, _color)
+                        _journal_surf.blit(_name_surf, (15, _y_offset))
+                        _y_offset += 24
+                        
+                        # Перенос текста по ширине панели
+                        _words = _text.split(' ')
+                        _lines = []
+                        _current_line = ""
+                        for _word in _words:
+                            _test_line = _current_line + _word + " "
+                            if _font_text.size(_test_line)[0] < _panel_width - 30:
+                                _current_line = _test_line
+                            else:
+                                _lines.append(_current_line)
+                                _current_line = _word + " "
+                        _lines.append(_current_line)
+                        
+                        for _line in _lines:
+                            _text_surf = _font_text.render(_line, True, (220, 220, 220))
+                            _journal_surf.blit(_text_surf, (15, _y_offset))
+                            _y_offset += 20
+                        
+                        _y_offset += 10
+                        if _y_offset > self.screen.get_height() - 40:
+                            break
+                            
+                self.screen.blit(_journal_surf, (self.screen.get_width() - _panel_width, 0))
 
             pygame.display.flip()
             self.clock.tick(60)
@@ -1275,10 +1484,13 @@ class GameScreen:
         action_queue: ActionQueue | None = None,
         campaign_folder: str = "",
         player_name: str = "",
+        last_world_pos: list | None = None,
     ) -> None:
         """Спринт 31: Все текстовые команды — напрямую в бэкенд через Intent"""
         px, py = _player_xy(scene_state)
-        action_queue.submit(campaign_folder, player_name, text, px, py)
+        _wx = last_world_pos[0] if last_world_pos else None
+        _wy = last_world_pos[1] if last_world_pos else None
+        action_queue.submit(campaign_folder, player_name, text, px, py, _wx, _wy)
 
     def _handle_click(
         self,

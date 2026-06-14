@@ -1,14 +1,24 @@
 # backend\app\services\npc\break_progress_engine.py
 """
-DEPRECATED: BreakProgressEngine не подключён к пайплайну (Устав §7.9).
-Нарушает закон: "ResonanceEngine / ContradictionResolver без lifecycle hooks — мёртвый код"
-Будет удалён после подключения к TickOrchestrator или переписан на StateDeltas.
-R6.4 — BreakProgressEngine: процесс давления → трещины → слом.
-Не принимает решений. Выдаёт дельты для StateApplicator.
+ADR-TIFL-003: Двигатель Кристаллизации Идентичности (ICDF + ICL).
+Воскрешён из статуса DEPRECATED. Подключён к TickOrchestrator через контур TIFL.
+
+Выполняет две функции:
+1. Острые мутации (TRAUMA_TOPOLOGY): символические травмы (например, "will_broken"), 
+   вызываемые через StateApplicator.
+2. Непрерывный дрейф (compute_continuous_drift): фоновая адаптация личности 
+   на основе чистой ошибки предсказания (prediction_error) из Котла.
+   
+ВНИМАНИЕ (Технический долг - ADR-CNSRL): 
+Функции дрейфа используют isinstance(dict | NPCState) для совместимости 
+с сырым словарем npc_raw из TickOrchestrator. 
+Это нарушает принцип единой онтологии данных (Canonical State Unification). 
+Требуется ADR по унификации представления состояния для устранения 
+неявного полиморфизма и гарантии Replay Determinism.
 """
 
 from dataclasses import dataclass
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 from app.models.npc_state import NPCState, WillState
 # EventContext не нужен — BreakProgressEngine работает на накопленном состоянии,
 # не на конкретном событии. Вызов возможен в любой момент тика.
@@ -154,20 +164,89 @@ def compute_mutation(state: 'NPCState', trauma_type: str) -> Dict[str, float]:
     return {k: v * plasticity for k, v in drive_deltas.items()}
 
 
-def apply_drives_mutation(state: 'NPCState', mutations: Dict[str, float]) -> None:
+# ADR-O-208: Ампутация apply_drives_mutation.
+# TIFL больше не мутирует состояние напрямую. Он генерирует события деформации L1.
+# Закон Сохранения Я теперь обеспечивается DriveResolver при проекции, а не записью в сырой словарь.
+
+
+# ADR-TIFL-003: Identity Constraint Layer (Fixed Topology)
+# Матрица связности драйвов. Определяет "физику психики".
+# Положительные значения = Антагонизм (конфликтуют, создают напряжение если оба высоки).
+# Отрицательные значения = Синергия (усиливают друг друга, тянутся к одному полюсу).
+DRIVE_COUPLING: Dict[str, Dict[str, float]] = {
+    "fear":        {"fear": 0.0, "control": 0.6, "significance": 0.2, "desire": 0.1},
+    "control":     {"fear": 0.6, "control": 0.0, "significance": -0.3, "desire": -0.2},
+    "significance":{"fear": 0.2, "control": -0.3, "significance": 0.0, "desire": -0.4},
+    "desire":      {"fear": 0.1, "control": -0.2, "significance": -0.4, "desire": 0.0},
+}
+
+from typing import List # Добавь это в начало файла, если там нет typing
+
+def compute_continuous_drift(effective_drives: "EffectiveDrives", npc_id: str, rigidity: float, prediction_error: float, error_vector: Dict[str, float], current_tick: int) -> List["TraitDriftEvent"]:
     """
-    Применяет мутацию к drives_base с Законом Сохранения Я (sum=1.0).
-    Защита от Renormalization Collapse: драйв не может упасть ниже 0.01.
+    ADR-TIFL-003: ICDF + ICL / ADR-O-208: DRP Phase II.
+    TIFL работает ТОЛЬКО с эфемерной проекцией (L3). L0 и state для него не существуют.
+    ВЫВОД: List[TraitDriftEvent] (давление мира).
     """
-    if not mutations or not hasattr(state, 'drives_base') or not isinstance(state.drives_base, dict):
-        return
-        
-    # Применение дельт с энтропийным полом (0.01)
-    for drive, delta in mutations.items():
-        old_val = state.drives_base.get(drive, 0.25)
-        state.drives_base[drive] = max(0.01, old_val + delta)
+    from app.domain.identity_events import TraitDriftEvent
     
-    # Ренормализация (Закон Сохранения Я)
-    total = sum(state.drives_base.values())
-    if total > 0:
-        state.drives_base = {k: v / total for k, v in state.drives_base.items()}
+    # L3-P2: Чтение ТОЛЬКО из проекции. Никаких сырых словарей или объектов.
+    _drives_base = dict(effective_drives.values) 
+
+    if not error_vector or prediction_error < 0.05:
+        prediction_error = 0.0 
+    elif not _drives_base:
+        return []
+
+    # Пластичность передана извне. TIFL больше не лезет в psyche.
+    plasticity = max(0.1, 1.0 - rigidity)
+    total_mass = sum(_drives_base.values())
+    if total_mass <= 0:
+        return {}
+
+    # --- 1. ВНЕШНИЙ ДРЕЙФ (ICDF: Ошибка мира) ---
+    LEARNING_RATE = 0.005 
+    shift_magnitude = prediction_error * LEARNING_RATE * plasticity
+    
+    external_drifts = {}
+    for drive in _drives_base.keys():
+        gain = shift_magnitude * error_vector.get(drive, 0.0)
+        loss_tax = shift_magnitude * (_drives_base[drive] / total_mass)
+        external_drifts[drive] = gain - loss_tax
+
+    # --- 2. ВНУТРЕННЯЯ РЕЛАКСАЦИЯ (ICL: Тяга к аттрактору) ---
+    # Сила, толкающая личность к минимуму внутреннего напряжения.
+    RELAXATION_RATE = 0.002 * plasticity
+    relaxation_drifts = {}
+    
+    for drive_k in _drives_base.keys():
+        # Градиент напряжения по драйву k: сумма влияний всех связанных драйвов
+        coupling_row = DRIVE_COUPLING.get(drive_k, {})
+        # dTension/dDrive_k = sum(Coupling_kj * Drive_j)
+        # Чтобы уменьшить напряжение, мы двигаемся ПРОТИВ градиента: -dTension/dDrive_k
+        force = 0.0
+        for drive_j, coupling_val in coupling_row.items():
+            if drive_j in _drives_base:
+                # Антагонист (coupling > 0): если другой драйв высок, толкает этот вниз (разводит).
+                # Синергист (coupling < 0): если другой драйв высок, тянет этот вверх (сводит).
+                force -= coupling_val * _drives_base[drive_j]
+                
+        relaxation_drifts[drive_k] = force * RELAXATION_RATE
+
+    # --- 3. СУММАРНЫЙ ДРЕЙФ (Генерация событий L1) ---
+    total_drifts = {}
+    for drive in _drives_base.keys():
+        total_drifts[drive] = external_drifts.get(drive, 0.0) + relaxation_drifts.get(drive, 0.0)
+        
+    # ADR-O-208: TIFL больше не мутирует. Он генерирует события деформации L1.
+    events = []
+    for trait, delta in total_drifts.items():
+        if abs(delta) > 1e-6:  # Отсекаем шум
+            events.append(TraitDriftEvent(
+                npc_id=npc_id,
+                trait=trait,
+                delta=delta,
+                source="tifl_pressure_model",
+                tick=current_tick
+            ))
+    return events

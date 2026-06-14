@@ -29,6 +29,7 @@ class NodeRole(Enum):
     WORKBENCH = "workbench"  # Верстак, кузня, рабочее место
     MARKET = "market"        # Рынок, прилавок, торговля
     TRANSITION = "transition"  # Лестницы, двери, люки, порталы
+    BOUNDARY = "boundary"    # Выход из чанка в соседний (ДОЛГ 6.2)
     DEFAULT = "default"      # Узел без явной роли
 
 

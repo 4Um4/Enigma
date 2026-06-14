@@ -214,3 +214,37 @@ The Fool стал ближе к embodied simulation: NPC теперь не пр�
 
 См. новый разбор:
 - `COMPARISON_REPORT/COMPARISON_REPORT_V.0.5.3.1.3_Пространство_и_время_3_vs_V.0.5.3.1.4_Чиним_НЕРВЫ_1.md`
+
+---
+
+## Current Snapshot: V.0.5.3.1.7_ВЕЛИЧИЕ_НЕБА_И_ЗЕМЛИ_2
+
+Сборка фиксирует переход ENIGMA/The Fool от embodied runtime к более явному удержанию identity, projection, spatial compilation and scheduler readiness.
+
+Ключевые изменения:
+- добавлен explicit identity контур: `identity_events`, `l1_chronicle`, `drive_resolver`, `architecture/identity.yaml`;
+- DecisionHub разгружен в локальные decision-модули: profile math, risk, relationship profile, social deltas;
+- добавлены `EventCompiler`, `ProjectionEngine`, `WorldSnapshot` and `ThickSceneChange` как явные transform/projection объекты;
+- spatial runtime усилен `SpatialRegistry`, backend graph compilation and frontend spatial compilation gateway/orchestrator;
+- frontend получил world context, menu/effects/i18n and renderer updates for more observable play;
+- sandbox/test surface вырос: calibration, SUPERBOX, causal kernel, projection engine, event compiler, social phase tests;
+- repository mass compressed: файлов стало больше, но общий текстовый объем уменьшился за счет удаления/архивации старого report/reference шума.
+
+Размер относительно предыдущей сохраненной ветки `V.0.5.3.1.6_ВЕЛИЧИЕ_НЕБА_И_ЗЕМЛИ_1`:
+
+|Metric|Previous|Current|Delta|
+|---|---:|---:|---:|
+|Project files|2,760|2,848|+88|
+|Text/source files|1,167|1,246|+79|
+|Total text lines|239,507|154,071|-85,436|
+|Python files|442|485|+43|
+|Markdown files|561|589|+28|
+
+Практический смысл:
+The Fool получил более сильный контур `state -> compiled event -> projection -> spatial observation -> frontend/DM output`. Это не просто объем работы; это укрепление ownership между реальностью backend, картой пространства, наблюдаемой сценой и голосом LLM.
+
+Главный риск следующего шага:
+не дать projection, frontend spatial compiler или scheduler стать вторыми источниками истины. Execution должен исполнять фазы, Projection должен читать, DecisionHub должен оценивать.
+
+Подробный DNA-разбор:
+- `docs/INFO/ENIGMA_ARCHITECTURAL_DNA.md`

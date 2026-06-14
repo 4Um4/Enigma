@@ -189,6 +189,16 @@ class CausalObserver:
                 self._tick_checker.on_llm_response(int(m.group(1)))
                 return
 
+            # Streaming path observability (ADR-147)
+            if COMPILED["llm_stream_call"].search(line):
+                self._tick_checker.on_llm_call()
+                return
+
+            m = COMPILED["llm_stream_response"].search(line)
+            if m:
+                self._tick_checker.on_llm_response(int(m.group(1)))
+                return
+
             if COMPILED["llm_nothing"].search(line):
                 self._tick_checker.on_llm_nothing()
                 return

@@ -700,6 +700,226 @@ Confidence: 86/100.
 
 ---
 
+## Branch DNA addendum: V.0.5.3.1.7_ВЕЛИЧИЕ_НЕБА_И_ЗЕМЛИ_2
+
+Дата фиксации: 15 июня 2026.
+
+### CRITICAL_PARAMETER
+
+Критический параметр ветки: ENIGMA перешла от embodied runtime к слою удержания идентичности, проекции и пространственной компиляции.
+
+Главная ценность не в росте строк. Наоборот, текстовая масса проекта уменьшилась после удаления/архивации старого справочного и отчетного хвоста. Ценность ветки в том, что новые runtime-системы добавлены вокруг уже существующих owners:
+
+```text
+identity pressure
+-> event compilation
+-> projection read-model
+-> spatial registry / traversal contract
+-> scheduler/game-loop integration
+-> frontend observable context
+```
+
+### PIPELINE_OBJECT
+
+|Pipeline object|Owner|Single Source of Truth|
+|---|---|---|
+|Identity drift / L1 events|`identity_events`, `l1_chronicle`, NPC state|identity state and event stream, not narration|
+|Decision risk/social delta|`backend/app/services/npc/decision/*`|DecisionHub evaluates; decision submodules compute local pressures|
+|Compiled event|`EventCompiler`|domain event input + explicit compilation contract|
+|Projection read-model|`ProjectionEngine`, `WorldSnapshot`|state snapshot; projection does not mutate reality|
+|Spatial registry|`SpatialRegistry`, graph compiler, frontend compiler gateway|compiled spatial artifact, not ad hoc frontend geometry|
+|Thick scene change / traversal|`ThickSceneChange`, `MovementEngine`, `SceneStateManager`|APPLY result committed through scene mutation path|
+|Runtime scheduler/game-loop|`game_loop`, `tick_orchestrator`|orchestration phases, not execution-side architectural decisions|
+
+### CREATE -> READ -> TRANSFORM -> APPLY -> COMMIT -> PROJECT
+
+```text
+CREATE:
+  player/NPC events, spatial edits, identity pressures, scheduler ticks
+
+READ:
+  NPC state, world snapshot, spatial registry, campaign/session state
+
+TRANSFORM:
+  event compiler, risk/profile math, social deltas, projection engine,
+  graph compiler and scheduler routing
+
+APPLY:
+  state applicator, movement engine, scene state manager, persistence adapters
+
+COMMIT:
+  JSON/SQLite persistence, campaign/session save state, compiled spatial artifact
+
+PROJECT:
+  WorldSnapshot, frontend world context, scene renderer, DM contract/context
+```
+
+### Single Source of Truth
+
+Single Source of Truth strengthened, but not closed.
+
+Positive signal:
+
+- projection separated as read-model;
+- spatial registry made explicit;
+- persistence port broadened without making frontend authoritative;
+- DecisionHub was split toward evaluative submodules rather than direct control;
+- architecture YAML maps were expanded to make ownership visible.
+
+Remaining pressure:
+
+- scheduler/game-loop integration touches many owners at once;
+- frontend spatial compilation must not become an alternate spatial truth;
+- projection engine must remain read-only;
+- identity drift must be committed through state/event ownership, not through narrative symptoms.
+
+### Текущее количество строк и файлов
+
+Подсчет выполнен по git scope: `git ls-files --cached --others --exclude-standard`.
+
+|Metric|Previous branch `V.0.5.3.1.6`|Current branch `V.0.5.3.1.7`|Delta|
+|---|---:|---:|---:|
+|Project files|2,760|2,848|+88|
+|Text/source files|1,167|1,246|+79|
+|Total text lines|239,507|154,071|-85,436|
+|Python files|442|485|+43|
+|Markdown files|561|589|+28|
+
+Semantic distribution:
+
+|Area|Previous files / lines|Current files / lines|Meaning|
+|---|---:|---:|---|
+|backend causal runtime|267 / 51,743|284 / 56,140|runtime owners grew: identity, event compiler, projection, decision submodules|
+|backend tests and sandbox|121 / 16,889|148 / 22,867|validation surface grew faster than runtime, good signal|
+|frontend and editor|1,576 / 19,064|1,585 / 27,231|world context, spatial compilation, menu/effects, renderer growth|
+|architecture authority maps|14 / 3,470|15 / 4,374|ownership maps expanded, especially identity|
+|architecture docs and reports|607 / 110,565|638 / 18,551|large compression: old report/history mass removed or archived|
+|world data and runtime state|82 / 17,847|83 / 17,108|stable content/state surface|
+|diagnostics and tooling|9 / 1,611|9 / 1,624|stable diagnostic footprint|
+|config and launch surface|21 / 1,508|23 / 1,602|small operator/config growth|
+|other project surface|54 / 16,796|54 / 4,574|dependency/bundle/reference text compressed|
+
+Interpretation:
+
+The project did not inflate blindly. It added `+43` Python files and `+27` sandbox/test files while reducing total text by `85.4k` lines. That means the branch is not "empty volume"; it is structural growth plus repository compression.
+
+### FAIL_STAGE
+
+Primary fail-stage before this branch: TRANSFORM/APPLY boundary.
+
+Runtime had many local truths: decision pressure, spatial movement, projection state, scheduler intent and identity drift could be reasoned about, but the pipeline did not yet make enough of them explicit as compiled objects with owners.
+
+This branch reduces that failure by making several implicit transformations explicit:
+
+- decision subdomain split: profile math, risk, relationship profile, social deltas;
+- event compiler added as a transform owner;
+- projection engine added as projection/read-model owner;
+- spatial registry introduced for compiled map truth;
+- thick scene change and world snapshot models added;
+- scheduler/game-loop tasking documented.
+
+### HYPOTHESES
+
+|Hypothesis|Probability|Reason|
+|---|---:|---|
+|H1: main value is ownership clarification around identity/projection/spatial compilation|84/100|new files are concentrated in explicit owners and architecture maps|
+|H2: second value is validation growth, not only feature growth|78/100|sandbox/test files increased from 121 to 148|
+|H3: third value is repository compression and archival hygiene|73/100|docs/reports text dropped sharply while source/test surface grew|
+
+### Оценка новых смысловых функций
+
+Оценочно добавлено 14-18 новых единиц ценности:
+
+1. Identity architecture map.
+2. Identity event model.
+3. L1 chronicle.
+4. Drive resolver.
+5. Decision subpackage boundary.
+6. Relationship response profile.
+7. Risk profile and objective/perceived risk split.
+8. Social delta engine.
+9. Event compiler.
+10. Projection engine.
+11. WorldSnapshot model.
+12. ThickSceneChange / traversal contract model.
+13. Spatial registry backend model.
+14. Frontend spatial registry builder.
+15. Frontend spatial compilation gateway/orchestrator.
+16. World context loader/resolver.
+17. Calibration / ISK sandbox.
+18. SUPERBOX laboratories and deterministic replay reports.
+
+### Коэффициенты ветки
+
+|Coefficient|Value|Interpretation|
+|---|---:|---|
+|Causal Integrity|0.88|compiled event/projection/spatial owners reduce hidden transformations|
+|Ownership Clarity|0.85|identity, spatial and decision ownership became more explicit|
+|The Fool Playability Value|0.82|frontend world context and spatial compilation improve player-facing embodiment|
+|Embodiment Depth|0.86|body layer remains strong; this branch extends identity/spatial behavior rather than physiology itself|
+|Projection Discipline|0.84|projection has a named engine, but must stay read-only|
+|Scheduler Readiness|0.79|game-loop/scheduler direction is documented and partially wired; integration risk remains|
+|Test Coverage Pressure|0.76|test/sandbox growth is substantial, but new runtime owners still need contract tests|
+|Repository Hygiene|0.81|large text reduction with source/test growth is positive compression|
+|7-day Productivity|0.90|high value density: structural systems, validation, cleanup and frontend context all moved|
+
+### FIX_SCOPE
+
+Minimal next fix scope is not a broad refactor.
+
+Priority scope:
+
+- contract tests around `EventCompiler -> StateApplicator`;
+- read-only tests for `ProjectionEngine`;
+- spatial registry parity test between backend registry and frontend compiler output;
+- scheduler phase test proving execution does not choose architecture;
+- identity drift persistence test proving narrative does not own identity truth.
+
+### RISKS
+
+|Risk|Level|Control|
+|---|---|---|
+|Projection becomes hidden state writer|medium|projection engine must be tested as read-model only|
+|Frontend spatial compiler becomes second spatial authority|medium-high|backend registry remains canonical; frontend consumes compiled artifact|
+|Decision submodules start managing instead of evaluating|medium|DecisionHub remains evaluator; apply/commit stays outside decision layer|
+|Scheduler absorbs architecture decisions|medium-high|scheduler executes phases, does not choose ownership|
+|Compression accidentally removes useful governance memory|medium|archived zips must be discoverable; DNA keeps semantic summary|
+
+### ALTERNATIVES
+
+Alternative A: preserve all deleted docs/history inline.
+
+Rejected for current branch: it would increase retrieval noise and keep repository mass high without improving runtime truth.
+
+Alternative B: introduce a new orchestration layer for identity/projection/spatial integration.
+
+Rejected for current branch: existing owners are sufficient; new layer would increase complexity before contracts prove need.
+
+Alternative C: treat frontend compiler as source of map truth.
+
+Rejected: violates spatial ownership. Frontend can compile/preview, but runtime truth must remain backend-owned or explicitly exported as artifact.
+
+### CONCLUSION
+
+За эти дни сделано много.
+
+Главное достижение: проект не просто вырос, он стал более управляемым. `V.0.5.3.1.7` добавляет новые смысловые функции вокруг identity, projection, spatial compilation, scheduler readiness and validation, при этом общий текстовый объем уменьшился на `85,436` строк.
+
+Это редкий хороший профиль ветки:
+
+```text
+source/test ownership grows
+legacy/report noise shrinks
+runtime objects become explicit
+projection and spatial truth receive names
+```
+
+The Fool получил не только новые механики, а более сильную способность удерживать причинную реальность между backend state, spatial map, frontend observation and DM narration.
+
+Confidence: 87/100.
+
+---
+
 ## Branch DNA addendum: V.0.5.3.1.6_ВЕЛИЧИЕ_НЕБА_И_ЗЕМЛИ_1
 
 Дата фиксации: 9 июня 2026.

@@ -32,8 +32,8 @@
       "display": "resting"
     },
     "sleeping": {
-      "location": "inn_rooms",
-      "position": "main_hall",
+      "location": "city_gate",
+      "position": "gate_courtyard",
       "display": "sleeping"
     }
   },

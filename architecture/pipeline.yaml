@@ -1,5 +1,5 @@
 domain: PIPELINE
-description: "Фундамент симуляции и время. Дискретная каузальность, мутации только через DeltaBuffer."
+description: "Фундамент симуляции и время. Дискретная каузальность, мутации только через DeltaBuffer. Идентичность — поле дрейфа."
 nodes:
   TickOrchestrator:
     type: service
@@ -129,13 +129,91 @@ nodes:
     description: "Scoped causal ledger: tick_id + npc_id + bus. Created by TickOrchestrator, scoped per NPC via for_npc(). Replaces bare drf_bus parameter (ADR-136)."
     code_ref: "tick_orchestrator.py, npc_tick_pipeline.py"
     adr_ref: "ADR-136"
+  SnapshotKernel:
+    type: dto
+    layer: Domain
+    label: "WorldSnapshot (Immutable Reality Slice)"
+    description: "ADR-O-201: Замороженный срез вселенной в момент t. Содержит spatial_graph, npc_state, traversal_state, boundary_map, rng_seed. Только значения, никаких live-объектов. Единственная реальность, доступная системе."
+    code_ref: "models/world_snapshot.py (NEW)"
+    adr_ref: "ADR-O-201"
+  EventCompiler:
+    type: service
+    layer: Application
+    label: "Event Compiler (Physics Generator)"
+    description: "ADR-O-201: Единственное место, где существует геометрия, pathfinding, boundary logic, RNG, AI decision. НЕ изменяет мир. Вычисляет все последствия заранее. Snapshot → ThickSceneChange[]."
+    code_ref: "services/event_compiler.py (NEW)"
+    adr_ref: "ADR-O-201"
+  ThickSceneChange:
+    type: dto
+    layer: Domain
+    label: "Thick Scene Change (Full Physical Contract)"
+    description: "ADR-O-201: SceneChange с полной вычисленной физикой. Содержит SpatialResolution, MotionPlan, BoundaryResolution. Редьюсер применяет без вычислений."
+    code_ref: "models/thick_scene_change.py (NEW)"
+    adr_ref: "ADR-O-201"
+  EquivalenceValidator:
+    type: service
+    layer: Application
+    label: "Equivalence Validator (Drift Detector + DEPRECATION Layer)"
+    description: "ADR-O-201 ФАЗА 2: Суд причинности. 4 метода валидации. 5 классов drift. DEPRECATION-слой маппит drift на Rule-номера мутаций apply_change. Переключение власти только при 0 C/D/E drift за 100k+ comparisons."
+    code_ref: "services/equivalence_validator.py"
+    adr_ref: "ADR-O-201"
+  ProjectionEngine:
+    type: service
+    layer: Application
+    label: "Projection Engine (Pure State Writer)"
+    description: "ADR-O-201: Чистая функция проекции. state[t+1] = state[t] ⊕ ThickSceneChange[]. ЗАПРЕЩЕНО: pathfinding, spatial queries, RNG, decision making, branching >1 уровня."
+    code_ref: "scene_state_manager.py (apply_change refactored)"
+    adr_ref: "ADR-O-201"
   GameLoop:
     type: service
     layer: Application
     label: "Game Loop (Pipeline Controller)"
-    description: "Orchestrates player turn, idle tick, DM phases. Owns _load_npcs_with_runtime and TickBuffer. Contains Action Eligibility Gate (ADR-131): checks player life_status BEFORE lock_for_tick — dead players cannot act or pollute scene_state."
+    description: "Orchestrates player turn, idle tick, DM phases. Owns _load_npcs_with_runtime and TickBuffer. Contains Action Eligibility Gate (ADR-131)."
     code_ref: "game_loop/__init__.py"
     adr_ref: "ADR-131"
+  # --- IDENTITY LAYER (DOM-10) ---
+  L1Chronicle:
+    type: domain
+    layer: Domain
+    label: "L1 Chronicle (Append-Only History)"
+    description: "ADR-O-208: Append-only хранилище событий деформации идентичности. Удаление запрещено. Записывает TraitDriftEvent."
+    code_ref: "services/npc/l1_chronicle.py"
+    adr_ref: "ADR-O-208"
+  DriveResolver:
+    type: domain
+    layer: Domain
+    label: "Drive Resolver (Pure Function L0+L1→L3)"
+    description: "ADR-O-208: Чистая функция вычисления проекции драйвов. Не имеет состояния."
+    code_ref: "services/npc/drive_resolver.py"
+    adr_ref: "ADR-O-208"
+  EffectiveDrives:
+    type: dto
+    layer: Domain
+    label: "Effective Drives (Ephemeral L3 Projection)"
+    description: "ADR-O-208: Эфемерная, неизменяемая проекция драйвов (MappingProxyType). Запрещено кэшировать (L3-P1)."
+    code_ref: "domain/identity_events.py"
+    adr_ref: "ADR-O-208"
+  CalibrationEngine:
+    type: service
+    layer: Application
+    label: "Calibration Engine & Identity Stability Kernel"
+    description: "ADR-O-211: Предотвращает неконтролируемый осциллирующий дрейф базовых драйвов. Возвращает драйвы к аттрактору."
+    code_ref: "services/npc/calibration_engine.py"
+    adr_ref: "ADR-O-211"
+  OntologyViolationError:
+    type: domain
+    layer: Domain
+    label: "Ontology Violation Error (L5 Post-Commit Guard)"
+    description: "ADR-O-207: Выбрасывается при нарушении Закона Сохранения Я (sum!=1.0), выходе за границы [0,1] или NaN. Убивает тик."
+    code_ref: "domain/exceptions.py"
+    adr_ref: "ADR-O-207"
+  IntentDomain:
+    type: domain
+    layer: Domain
+    label: "Intent Domain (SURVIVAL/SOCIAL/ROUTINE/EXPLORATION)"
+    description: "ADR-O-137: Онтологический базис намерений. Viability mask проекция PerceptualKernel → IntentDomain."
+    code_ref: "domain/movement.py"
+    adr_ref: "ADR-O-137"
 edges:
   - from: LifeEngine
     to: DeltaBuffer
@@ -144,6 +222,20 @@ edges:
     code_ref: "life_engine.py"
     adr_ref: "ADR-051"
     edge_type: thick # Жирная линия - основной поток
+  - from: PerceptualKernel
+    to: LifeEngine
+    label: "threat_gradient + recent_directive → Arousal Gate wake_pressure"
+    condition: "ADR-O-142A: Arousal Gate reads PK to compute wake_pressure."
+    code_ref: "life_engine.py:_arousal_gate()"
+    adr_ref: "ADR-O-142A"
+    edge_type: dotted
+  - from: LifeEngine
+    to: SceneStateManager
+    label: "SceneChange(activity='', cause='arousal_gate') → apply_changes()"
+    condition: "ADR-O-142A: Arousal Gate produces SceneChange for wake transition."
+    code_ref: "life_engine.py:_arousal_gate()"
+    adr_ref: "ADR-O-142A"
+    edge_type: dotted
   - from: TickOrchestrator
     to: DeltaBuffer
     label: "aggregates Phase 8 results"
@@ -172,7 +264,7 @@ edges:
   - from: StateApplicator
     to: BehaviorManifestationService
     label: "reads npc_positions (body_state only: pain/blood_loss/shock)"
-    condition: "Phase 8.5. Rule X: motor traces ONLY from physiology. Reading stress_delta/psyche_state = Semantic Inflation (ADR-112)."
+    condition: "Phase 8.5. Rule X: motor traces ONLY from physiology."
     code_ref: "behavior_manifestation_service.py"
     adr_ref: "The Fool v2, ADR-112"
   - from: BehaviorManifestationService
@@ -196,14 +288,14 @@ edges:
   - from: TickOrchestrator
     to: LlamaServer
     label: "query LLM (3 retries, backoff 1s/2s/2s, partial stream recovery)"
-    condition: "Action tick. ADR-113: retry on ConnectionReset/OSError/Timeout. Honest error on permanent failure — no fake narrative."
-    code_ref: "llama_cpp_provider.py, agent_runner.py, __init__.py"
+    condition: "Action tick. ADR-113: Honest error on permanent failure."
+    code_ref: "llama_cpp_provider.py"
     adr_ref: "ADR-113"
     edge_type: dotted
   - from: GameScreen
     to: APIRoutes
     label: "POST /action (IntentDTO)"
-    condition: "On Enter key. 'сюда'/'мне' -> target_ref='player' (GAP11 FIX)"
+    condition: "On Enter key."
     code_ref: "intent_compressor.py:93-98"
     edge_type: thick
   - from: TickOrchestrator
@@ -233,19 +325,19 @@ edges:
   - from: NPCStateAdapter
     to: SqlitePersistenceAdapter
     label: "npc_dict → json.dumps → state_kv table"
-    condition: "Commit via SceneStateManager.atomic_commit. default= handler for set types."
+    condition: "Commit via SceneStateManager.atomic_commit."
     code_ref: "sqlite_persistence_adapter.py:71-77"
     adr_ref: "ADR-117"
   - from: TickOrchestrator
     to: AffectivePipeline
     label: "calls _run_affective_pipeline(ctx)"
-    condition: "Phase 9: target_load derived from PK+body. Integral relaxes via Hysteresis. NO leaky integrator."
+    condition: "Phase 9: target_load derived from PK+body. Integral relaxes via Hysteresis."
     code_ref: "tick_orchestrator.py"
     adr_ref: "ADR-138"
   - from: AffectiveDecayHandler
     to: DeltaBuffer
     label: "EmotionPayload (decay deltas for affective_load, emotion_tag)"
-    condition: "Idle tick. Phase 0.5. PK decay applied directly to all_npcs_raw."
+    condition: "Idle tick. Phase 0.5."
     code_ref: "tick_orchestrator.py"
     adr_ref: "ADR-138"
   - from: AffectivePipeline
@@ -258,66 +350,104 @@ edges:
     to: LifeEngine
     label: "update_cache(campaign_id, npc_dicts)"
     condition: "After apply_batch — persist mutated data between ticks"
-    code_ref: "life_engine.py:779-786, tick_orchestrator.py:1317-1319, 2003-2005"
+    code_ref: "life_engine.py:779-786"
     adr_ref: "ADR-117"
   - from: LifeEngine
     to: SqlitePersistenceAdapter
-    label: "load_npc_runtime(campaign_id) — SQLite read-back on cache miss (ADR-128)"
-    condition: "ADR-128: При TTL/LRU eviction LifeEngine восстанавливает NPC state из SQLite (COLD-1), затем fallback на static config (COLD-2). Без этого injuries, blood_loss, affective_load теряются навсегда. Семантика: None = записи нет, [] = пустая кампания (не fallback)."
-    code_ref: "life_engine.py:_load_npcs, game_loop_builder.py"
+    label: "load_npc_runtime(campaign_id) — SQLite read-back on cache miss"
+    condition: "ADR-128: При TTL/LRU eviction восстановление из SQLite."
+    code_ref: "life_engine.py:_load_npcs"
     adr_ref: "ADR-128"
   - from: GameLoop
     to: LifeEngine
     label: "get_npc_states(campaign_id) — cache first, file fallback"
-    condition: "_load_npcs_with_runtime MUST check LifeEngine cache before load_npcs_merged. Without this, every player turn loads static config."
+    condition: "_load_npcs_with_runtime MUST check LifeEngine cache before load_npcs_merged."
     code_ref: "game_loop/__init__.py:214-218"
     adr_ref: "ADR-117"
   - from: StateApplicator
     to: AvatarPresentationAssembler
     label: "player_dict.body_state → AvatarStateDTO (phenomenological projection)"
-    condition: "Assembler reads life_status for death feedback. NORMALIZES pain/fatigue /100.0 (ADR-094 MSOC). DEAD override zeros all projections. Rule X: no psyche reads for motor traces."
+    condition: "Assembler reads life_status. NORMALIZES pain/fatigue /100.0 (ADR-094)."
     code_ref: "avatar_presentation_assembler.py:21-126"
     adr_ref: "ADR-137, ADR-094"
   - from: AvatarPresentationAssembler
     to: AvatarStateDTO
     label: "assemble_avatar_presentation → AvatarStateDTO with life_status"
-    condition: "AvatarStateDTO includes life_status field. Frontend checks life_status=DEAD for death overlay."
+    condition: "AvatarStateDTO includes life_status field."
     code_ref: "snapshot.py:34-56"
     adr_ref: "ADR-137"
   - from: AvatarStateDTO
     to: WorldSnapshotBuilder
     label: "AvatarStateDTO embedded in WorldSnapshotDTO"
-    condition: "WorldSnapshotDTO.avatar_state carries phenomenological projection to frontend."
+    condition: "WorldSnapshotDTO.avatar_state carries phenomenological projection."
     code_ref: "snapshot.py:157"
     adr_ref: "ADR-035"
   - from: PerceptualKernel
     to: PressureTranslator
     label: "kernel + body_state → DecisionContext (feasibility constraints)"
-    condition: "NORMALIZES pain /100.0 (ADR-094 MSOC). Somatic Veto: pain>0.8 blocks FLEE, shock>0.7 blocks ATTACK. Without normalization, pain=0.8% always blocks FLEE."
+    condition: "NORMALIZES pain /100.0. Somatic Veto: pain>0.8 blocks FLEE."
     code_ref: "pressure_translator.py:51-64"
     adr_ref: "ADR-094, GAP3"
   - from: TickOrchestrator
     to: DRFBus
     label: "owns self._drf_bus (instance-level, not per _TickContext)"
-    condition: "ADR-134: DRFBus on TickOrchestrator instance, not default_factory in _TickContext. Both execute() and execute_player_finalize() pass drf_bus=self._drf_bus. Bus cleared at start of execute()."
+    condition: "ADR-134: Both execute() and execute_player_finalize() pass drf_bus=self._drf_bus."
     code_ref: "tick_orchestrator.py"
     adr_ref: "ADR-134"
   - from: DRFBus
     to: DRFExecutionContext
     label: "drf_ctx = DRFExecutionContext(tick_id, npc_id, bus) — scoped per NPC"
-    condition: "ADR-136: Pipeline receives drf_ctx, not bare drf_bus. Claims auto-inherit npc_id and tick_id via drf_ctx.emit(). for_npc() creates scoped child context."
+    condition: "ADR-136: Claims auto-inherit npc_id and tick_id via drf_ctx.emit()."
     code_ref: "tick_orchestrator.py, npc_tick_pipeline.py"
     adr_ref: "ADR-136"
+  # --- IDENTITY EDGES ---
+  - from: DeltaBuffer
+    to: L1Chronicle
+    label: "appends TraitDriftEvent from IdentityPayload"
+    condition: "World pressure mutates identity (ADR-O-208)"
+    code_ref: "l1_chronicle.py"
+    adr_ref: "ADR-O-208"
+  - from: L1Chronicle
+    to: DriveResolver
+    label: "provides weighted history (L1)"
+    condition: "Tick start"
+    code_ref: "drive_resolver.py:resolve_drives"
+    adr_ref: "ADR-O-208"
+  - from: DriveResolver
+    to: EffectiveDrives
+    label: "computes ephemeral projection (L3)"
+    condition: "Pure function from archetype + chronicle"
+    code_ref: "drive_resolver.py"
+    adr_ref: "ADR-O-208"
+  - from: EffectiveDrives
+    to: CalibrationEngine
+    label: "checks for oscillation"
+    condition: "Post-resolution (ADR-O-211)"
+    code_ref: "calibration_engine.py"
+    adr_ref: "ADR-O-211"
+  - from: EffectiveDrives
+    to: DecisionHub
+    label: "modulates utility deformation and risk perception"
+    condition: "Replaces hardcoded weights (§ENIGMA-S72)"
+    adr_ref: "ADR-O-146"
+  - from: EffectiveDrives
+    to: PressureTranslator
+    label: "provides willpower for Somatic Urgency modulation"
+    condition: "ADR-O-143: somatic_urgency * (1.0 - willpower * 0.5)"
+    adr_ref: "ADR-O-143"
+  - from: PerceptualKernel
+    to: IntentDomain
+    label: "Viability mask projection"
+    condition: "ADR-O-137: threat_gradient > 0.3 excludes ROUTINE domain"
+    adr_ref: "ADR-O-137"
 constraints:
   - source: LifeEngine
     target: NPC_Position
     rule: "FORBIDDEN: Direct mutation (ADR-051)"
-    code_ref: "ADR-051"
     adr_ref: "De-godification"
   - source: Any
     target: State
     rule: "FORBIDDEN: Bypass DeltaBuffer"
-    code_ref: "ADR-001"
     adr_ref: "Core Pipeline"
   - source: TickOrchestrator
     target: Time
@@ -325,163 +455,160 @@ constraints:
   - source: TickOrchestrator
     target: TickContext
     rule: "FORBIDDEN: Emergency SpatialService build when cache exists (ADR-065)"
-    condition: "execute_player_finalize creates _TickContext without npc_services — must reuse self._spatial_service"
     adr_ref: "ADR-065"
-    code_ref: "ADR-047"
-    adr_ref: "No Retro-simulation"
   - source: TickOrchestrator
     target: TickContext
     rule: "FORBIDDEN: Use location_id as campaign_id (ADR-089)"
-    condition: "location_id is room, campaign_id is world"
-    code_ref: "tick_orchestrator.py"
     adr_ref: "ADR-089"
   - source: DMAgent
     target: FakeNarrative
     rule: "FORBIDDEN: Fake narrative fallback on LLM failure (ADR-113)"
-    condition: "On permanent LLM failure, return honest system message. No 'Твоё сознание мутнеет...' — that's causal fraud."
-    code_ref: "agent_runner.py, __init__.py"
-    adr_ref: "ADR-113"
     severity: HIGH
   - source: NPCStateAdapter
     target: NPCState
     rule: "REQUIRED: Round-trip integrity — every field in NPCState must survive from_legacy→write_to_legacy cycle (ADR-117)"
-    condition: "Missing write in write_to_legacy = field resets to default next tick. Missing read in from_legacy = field always default. Both = DOUBLE TRUTH."
-    code_ref: "npc_state.py"
-    adr_ref: "ADR-117"
     severity: CRITICAL
   - source: _aggregate_deltas
     target: EmotionPayload
     rule: "REQUIRED: Merge MUST preserve all fields from both payloads (ADR-117)"
-    condition: "When ReactionSubscriber EmotionPayload(affective_load=None) merges with AffectivePipeline EmotionPayload(affective_load=0.6), result MUST have affective_load=0.6. Pattern: p2.field if p2.field is not None else p1.field."
-    code_ref: "tick_orchestrator.py:1534-1541"
-    adr_ref: "ADR-117"
     severity: CRITICAL
   - source: StateApplicator
     target: relationship_cache
     rule: "REQUIRED: Partial Social Graph Projection (S69)"
-    condition: "npc_tick_pipeline MUST load relationship_cache for player + nearby_npcs. Star Schema (player-only) = Observer Collapse Bug (ADR-126). Asymmetric perception is a feature (The Fool)."
-    code_ref: "npc_tick_pipeline.py:346-355"
-    adr_ref: "ADR-126"
     severity: HIGH
   - source: DecisionHub
     target: relationship_cache
     rule: "REQUIRED: Precedence Contract (Graph > Scalar > Vacuum) via _get_rel_value (S69)"
-    condition: "Direct reads of relationship_cache keys (e.g., get('fear', 0.0)) are FORBIDDEN. Vacuum = False Consistency risk. Must use _get_rel_value or Epistemic Layer (S70)."
-    code_ref: "decision_hub.py:_get_rel_value"
-    adr_ref: "ADR-126"
     severity: HIGH
   - source: TickOrchestrator
     target: IntentParametersDTO
     rule: "DEPRECATED: target_id field (ADR-125)"
-    condition: "IntentParametersDTO.target_id is factually dead. Truth goes via PlayerTargetExtractor → shared_context → intent.target. ADR-124 remains as load-bearing cable for EventContext.target_id until native route is built."
-    code_ref: "intent.py:21"
-    adr_ref: "ADR-125"
     severity: MEDIUM
   - source: LifeEngine
     target: LifeEngine
     rule: "REQUIRED: update_cache() called after every apply_batch (ADR-117)"
-    condition: "Without this, LifeEngine._npc_cache holds stale pre-mutation data. Next tick: engine.tick() uses cache, overwrites all mutations."
-    code_ref: "life_engine.py:779-786"
-    adr_ref: "ADR-117"
     severity: CRITICAL
   - source: LifeEngine
     target: SqlitePersistenceAdapter
     rule: "REQUIRED: SQLite read-back on cache miss (ADR-128)"
-    condition: "LifeEngine._load_npcs() MUST try persistence.load_npc_runtime() before falling back to static config. Without this, runtime state (injuries, blood_loss, affective_load) is lost after TTL/LRU eviction. Three-tier hierarchy: RAM (HOT) → SQLite (COLD-1) → static JSON (COLD-2). Empty list [] ≠ None — empty campaign must not trigger static fallback."
-    code_ref: "life_engine.py:_load_npcs, game_loop_builder.py"
-    adr_ref: "ADR-128"
     severity: CRITICAL
   - source: PlayerAvatarService
     target: body_state
-    rule: "REQUIRED: body_state/affective_load/perceptual_kernel serialization in _state_to_dict/_state_from_dict (ADR-128)"
-    condition: "PlayerAvatarService MUST serialize and deserialize body_state (injuries, blood_loss, pain, shock_impulse), affective_load, perceptual_kernel. Without this, player injuries and emotional state are lost on every save/load. wounds/conditions are legacy identity layer — body_state is runtime simulation truth (SSOT)."
-    code_ref: "player_avatar_service.py:_state_to_dict, _state_from_dict"
-    adr_ref: "ADR-128"
+    rule: "REQUIRED: body_state/affective_load/perceptual_kernel serialization (ADR-128)"
     severity: CRITICAL
   - source: GameLoop
     target: PlayerAction
-    rule: "REQUIRED: Action Eligibility Gate — check player life_status BEFORE lock_for_tick (Rule 59, ADR-131)"
-    condition: "GameLoop.run_turn() MUST check _avatar_state.body_state['life_status'] after loading avatar and BEFORE lock_for_tick. If DEAD — early return ChatTurnResponse (GameOver). Without this, dead player can act, attack, and pollute scene_state — causal fraud."
-    code_ref: "game_loop/__init__.py:648-662"
-    adr_ref: "ADR-131"
+    rule: "REQUIRED: Action Eligibility Gate — check player life_status BEFORE lock_for_tick (ADR-131)"
     severity: CRITICAL
   - source: AvatarPresentationAssembler
     target: pain_fatigue
-    rule: "REQUIRED: Normalize pain/fatigue /100.0 before threshold comparison (Rule 63, ADR-094 MSOC)"
-    condition: "body_state SSOT stores pain/fatigue in 0-100 scale. Assembler thresholds are 0-1. Without normalization: pain=60 → 60>0.8 = True → CRIPPLED for any scratch. pain=0.8% → FLEE blocked in pressure_translator. Contract: body_state=0-100, Decision/Presentation=0-1, Motor=0-100 (behavior_manifestation thresholds correct as-is)."
-    code_ref: "avatar_presentation_assembler.py:34-35, pressure_translator.py:53"
-    adr_ref: "ADR-094"
+    rule: "REQUIRED: Normalize pain/fatigue /100.0 before threshold comparison (ADR-094 MSOC)"
     severity: CRITICAL
   - source: PressureTranslator
     target: pain
-    rule: "REQUIRED: Normalize pain /100.0 before Somatic Veto thresholds (Rule 64, ADR-094 MSOC)"
-    condition: "CRITICAL BUG (S75): pain > 0.8 with raw pain (0-100) means FLEE is blocked at 0.8% pain — effectively ALWAYS blocked for any injured NPC. Fix: pain = body_state.get('pain', 0.0) / 100.0. After fix: FLEE blocked only when pain > 80/100 = severe injury."
-    code_ref: "pressure_translator.py:53"
-    adr_ref: "ADR-094"
+    rule: "REQUIRED: Normalize pain /100.0 before Somatic Veto thresholds (ADR-094 MSOC)"
     severity: CRITICAL
   - source: AvatarStateDTO
     target: life_status
-    rule: "REQUIRED: AvatarStateDTO MUST contain life_status field (Rule 81, ADR-137)"
-    condition: "Without life_status in AvatarStateDTO, frontend cannot detect player death. Assembler reads body_state['life_status'] and passes through. Frontend renders death overlay when life_status='DEAD'."
-    code_ref: "snapshot.py:34-56"
-    adr_ref: "ADR-137"
+    rule: "REQUIRED: AvatarStateDTO MUST contain life_status field (ADR-137)"
     severity: HIGH
   - source: GameLoop
     target: WorldSnapshotDTO
-    rule: "REQUIRED: Death Guard MUST include npc_positions in world_snapshot (Rule 82, ADR-137)"
-    condition: "When player is DEAD, early return ChatTurnResponse MUST contain world_snapshot with avatar_state (life_status=DEAD) AND npc_positions from LifeEngine cache. Without npc_positions, world freezes visually — NPCs stop moving on screen. World continues after death (ontology: death = loss of agency, not end of simulation)."
-    code_ref: "game_loop/__init__.py:653-690"
-    adr_ref: "ADR-137"
+    rule: "REQUIRED: Death Guard MUST include npc_positions in world_snapshot (ADR-137)"
     severity: HIGH
   - source: TickOrchestrator
     target: DRFBus
-    rule: "FORBIDDEN: DRFBus via default_factory in _TickContext — split-brain (Rule 73, ADR-134)"
-    condition: "execute() and execute_player_finalize() created independent _TickContext with separate DRFBus via default_factory. Claims written to BUS_A, drain read from BUS_B. Fix: DRFBus on TickOrchestrator instance (self._drf_bus), passed as parameter."
-    code_ref: "tick_orchestrator.py"
-    adr_ref: "ADR-134"
+    rule: "FORBIDDEN: DRFBus via default_factory in _TickContext — split-brain (ADR-134)"
     severity: CRITICAL
   - source: Any
     target: DRFBus
-    rule: "FORBIDDEN: Monkey-patch function for bus injection (Rule 74, ADR-134)"
-    condition: "func.drf_bus = ... violates causal transparency. Use explicit parameter passing or DRFExecutionContext."
-    code_ref: "tick_orchestrator.py"
-    adr_ref: "ADR-134"
+    rule: "FORBIDDEN: Monkey-patch function for bus injection (ADR-134)"
     severity: HIGH
   - source: TickOrchestrator
     target: DRFExecutionContext
-    rule: "REQUIRED: Pass drf_ctx (not bare drf_bus) to pipeline (Rule 76, ADR-136)"
-    condition: "Pipeline receives DRFExecutionContext (tick_id + npc_id + bus), not bare drf_bus. Claims auto-inherit npc_id and tick_id via drf_ctx.emit(). for_npc() creates scoped child context inside NPC loop."
-    code_ref: "tick_orchestrator.py, npc_tick_pipeline.py"
-    adr_ref: "ADR-136"
+    rule: "REQUIRED: Pass drf_ctx (not bare drf_bus) to pipeline (ADR-136)"
     severity: HIGH
   - source: TickOrchestrator
     target: MovementIntent
-    rule: "REQUIRED: DRF scoring overlay in BOTH idle and player paths (Rule 77, ADR-135)"
-    condition: "DRF claims influence intent priority via additive scoring: priority += energy × weight × alignment. Weights: SURVIVAL=0.15, SOCIAL=0.10, ROUTINE=0.02. Overlay MUST be applied in both idle and player turn paths via _apply_drf_scoring_overlay(). Player path bypass = arbitration gap."
-    code_ref: "tick_orchestrator.py"
-    adr_ref: "ADR-135"
+    rule: "REQUIRED: DRF scoring overlay in BOTH idle and player paths (ADR-135)"
     severity: HIGH
   - source: Any
     target: priority_scale
-    rule: "FORBIDDEN: Clamp override max(priority, N) at 0.0-1.0 scale (Rule 80, ADR-135)"
-    condition: "max(priority, 90) or max(priority, 70) at 0.0-1.0 scale destroys the scale — all priorities become 0.9+. Priority is float 0.0-1.0. Clamp values must be in same scale."
-    code_ref: "tick_orchestrator.py"
-    adr_ref: "ADR-135"
+    rule: "FORBIDDEN: Clamp override max(priority, N) at 0.0-1.0 scale (ADR-135)"
     severity: HIGH
   - source: AffectivePipeline
     target: affective_load
-    rule: "REQUIRED: Asymmetric Attractor (Hysteresis). NO leaky integrator (Rule 84, ADR-138)"
-    condition: "FORBIDDEN: load + incoming - recovery. Target load derived from causes. affective_load relaxes towards target_load with rate 0.30 (up) / 0.05+will*0.1 (down). Bootstrapping load to emotion_tag = AFFECTIVE_BOOT (FORBIDDEN)."
-    code_ref: "affective/affective_integrator.py"
-    adr_ref: "ADR-138"
+    rule: "REQUIRED: Asymmetric Attractor (Hysteresis). NO leaky integrator (ADR-138)"
     severity: CRITICAL
   - source: AffectiveDecayHandler
     target: PerceptualKernel
     rule: "REQUIRED: PK Idle Decay (Rule 38/85, ADR-138)"
-    condition: "threat_gradient, uncertainty, anomaly_score MUST decay in Phase 0.5. Without this, Phase 9 reconstructs fear from phantom threats. Cache sync (update_cache) MUST be called after idle deltas."
-    code_ref: "tick_orchestrator.py"
-    adr_ref: "ADR-138"
     severity: CRITICAL
+  - source: ProjectionEngine
+    target: SpatialService
+    rule: "FORBIDDEN: SpatialService query inside apply_changes (Rule 117, ADR-O-201)"
+    severity: CRITICAL
+  - source: ProjectionEngine
+    target: RNG
+    rule: "FORBIDDEN: RNG inside apply_changes (Rule 118, ADR-O-201)"
+    severity: CRITICAL
+  - source: ProjectionEngine
+    target: Pathfinding
+    rule: "FORBIDDEN: Pathfinding inside apply_changes (Rule 119, ADR-O-201)"
+    severity: CRITICAL
+  - source: ProjectionEngine
+    target: TraversalState
+    rule: "FORBIDDEN: Traversal creation inside apply_changes (Rule 120, ADR-O-201)"
+    severity: CRITICAL
+  - source: ProjectionEngine
+    target: Geometry
+    rule: "FORBIDDEN: Geometric computation inside apply_changes (Rule 121, ADR-O-201)"
+    severity: CRITICAL
+  - source: TickOrchestrator
+    target: SceneState
+    rule: "FORBIDDEN: Direct state mutation before apply_changes (Rule 122, ADR-O-201)"
+    severity: CRITICAL
+  - source: ThickSceneChange
+    target: SpatialResolution
+    rule: "REQUIRED: SceneChange with full SpatialResolution for NPC_POSITION (Rule 123, ADR-O-201)"
+    severity: HIGH
+  - source: ProjectionEngine
+    target: BranchingLogic
+    rule: "FORBIDDEN: apply_changes with branching logic >1 level (Rule 124, ADR-O-201)"
+    severity: HIGH
+  - source: SnapshotKernel
+    target: Mutation
+    rule: "FORBIDDEN: Snapshot mutation after creation (Rule 125, ADR-O-201)"
+    severity: CRITICAL
+  - source: EquivalenceValidator
+    target: DriftIndex
+    rule: "FORBIDDEN: Drift Index with Class D (Causal) or E (Ontological) in production (Rule 126, ADR-O-201)"
+    severity: CRITICAL
+  # --- IDENTITY CONSTRAINTS ---
+  - source: Any
+    target: L1Chronicle
+    rule: "FORBIDDEN: Deletion from L1Chronicle (Append-only history) (ADR-O-208)"
+    severity: CRITICAL
+  - source: Any
+    target: EffectiveDrives
+    rule: "FORBIDDEN: Caching EffectiveDrives (L3-P1 is strictly ephemeral) (ADR-O-208)"
+    severity: CRITICAL
+  - source: StateApplicator
+    target: OntologyViolationError
+    rule: "REQUIRED: Raise OntologyViolationError and kill tick on NaN, sum!=1.0, or bounds violation (ADR-O-207)"
+    severity: CRITICAL
+  - source: CalibrationEngine
+    target: DriveResolver
+    rule: "REQUIRED: Prevent uncalibrated drift of base drives (Anti-oscillation) (ADR-O-211)"
+    severity: HIGH
+  - source: LifeEngine
+    target: IntentDomain
+    rule: "REQUIRED: Viability Pre-Generation Gate. Threat excludes ROUTINE domain BEFORE intent generation (ADR-O-137)"
+    severity: CRITICAL
+  - source: MacroMovementGoal
+    target: IntentDomain
+    rule: "REQUIRED: MovementIntent MUST have domain field for viability mask (ADR-O-137)"
+    severity: HIGH
 ownership:
   DeltaBuffer:
     owner: "TickOrchestrator"
@@ -528,78 +655,152 @@ ownership:
     creates: "from_legacy creates NPCState from dict"
     modifies: "write_to_legacy writes NPCState back to dict"
     reads: "All downstream consumers of npc_dict"
-    constraint: "CRITICAL: Core fields in NPCState MUST have both read (from_legacy) and write (write_to_legacy). Missing ANY = silent reset to default. Fields requiring round-trip: npc_id, body_state, perceptual_kernel (10 sub-fields), emotion, emotion_delta, affective_load (L0 integral, ADR-138), trauma_markers, stress, will_state, narrative_cache, causal_ledger, hp, max_hp. relationship_cache is NOT round-tripped (ADR-121)."
+    constraint: "CRITICAL: Core fields in NPCState MUST have both read and write. Missing ANY = silent reset. Fields: npc_id, body_state, perceptual_kernel (11 sub-fields incl. somatic_urgency), emotion, affective_load, trauma_markers, stress, will_state, narrative_cache, causal_ledger. relationship_cache is NOT round-tripped (ADR-121)."
     adr_ref: "ADR-115, ADR-116, ADR-117, ADR-138"
   LifeEngine_Cache:
     owner: "LifeEngine"
     creates: "LifeEngine.tick() or load_npcs_merged() or persistence.load_npc_runtime()"
     modifies: "update_cache() after apply_batch"
     reads: "get_npc_states(), _load_npcs_with_runtime(), _load_npcs() with SQLite read-back"
-    constraint: "CRITICAL: After apply_batch mutates npc_dict, LifeEngine._npc_cache MUST be updated with same data. Otherwise next tick uses stale cache, overwriting all mutations. GameLoop._load_npcs_with_runtime MUST check cache before loading from file. ADR-128: On cache miss, _load_npcs() MUST try SQLite read-back (COLD-1) before static config (COLD-2). Three-tier: RAM → SQLite → static JSON."
+    constraint: "CRITICAL: After apply_batch mutates npc_dict, LifeEngine._npc_cache MUST be updated. GameLoop._load_npcs_with_runtime MUST check cache before loading from file. ADR-128: On cache miss, _load_npcs() MUST try SQLite read-back (COLD-1) before static config (COLD-2)."
     adr_ref: "ADR-117, ADR-128"
   AffectivePipeline_PlayerTurn:
     owner: "TickOrchestrator (_phase_9_player_integration)"
     creates: "_run_affective_pipeline(ctx)"
     modifies: "DeltaBuffer (EmotionPayload)"
     reads: "ctx.all_npcs_raw (npc_raw.affective_load, emotion, perceptual_kernel, drives, psyche)"
-    constraint: "MUST run in BOTH idle and player turn paths. Without player turn path, emotion freezes between player actions — affective_load decays to 0 but emotion stays stale."
+    constraint: "MUST run in BOTH idle and player turn paths."
     adr_ref: "ADR-117"
   MovementLock:
     owner: "LifeEngine (update_routine)"
     creates: "None (guard only)"
     modifies: "None (prevents state mutation)"
     reads: "scene_state.active_traversals[npc_id].status"
-    constraint: "CRITICAL: If NPC has active traversal with status=MOVING, update_routine MUST return early — no schedule intent, no routine mutation. Traversal = commitment, schedule = suggestion. Without this, schedule overwrites reactive movement every idle tick (G1). Three-tier priority: reactive (0.8) > schedule (0.6) > random (0.3). But priority arbitration is insufficient because update_routine mutates routine['current'] BEFORE intent comparison."
+    constraint: "CRITICAL: If NPC has active traversal with status=MOVING, update_routine MUST return early."
     adr_ref: "ADR-130"
   TargetResolution:
     owner: "DecisionHub (_context_relevance)"
     creates: "is_targeted bool for utility scoring"
     modifies: "APPROACH/TALK/OBSERVE scores"
     reads: "EventContext.target_id, EventContext.payload['target_id']"
-    constraint: "CRITICAL: _context_relevance MUST check EventContext.payload['target_id'] as fallback when EventContext.target_id is None. dm_scene_builder does not propagate target_id to EventContext.target_id, but dm_phase.py writes it to payload. Without fallback, ALL NPCs in zone receive APPROACH/TALK/OBSERVE bonus — uninvited NPCs approach player (G2)."
+    constraint: "CRITICAL: _context_relevance MUST check EventContext.payload['target_id'] as fallback."
     adr_ref: "ADR-130"
+  SnapshotKernel:
+    owner: "TickOrchestrator (creates per tick)"
+    creates: "WorldSnapshot from scene_state + spatial_graph + npc_states"
+    modifies: "N/A (immutable after creation)"
+    reads: "EventCompiler (sole consumer)"
+    constraint: "CRITICAL: Snapshot = frozen reality for tick t. No live objects, no services, no runtime references."
+    adr_ref: "ADR-O-201"
+  EventCompiler:
+    owner: "TickOrchestrator (owns lifecycle)"
+    creates: "ThickSceneChange[] from Snapshot + Intents"
+    modifies: "N/A (does not touch world state)"
+    reads: "SnapshotKernel (frozen), NPC Intents, Player Input"
+    constraint: "CRITICAL: ONLY place where pathfinding, boundary logic, RNG, geometry computation exist. Deterministic given same snapshot + seed."
+    adr_ref: "ADR-O-201"
+  ThickSceneChange:
+    owner: "EventCompiler (creates)"
+    creates: "EventCompiler.compile(snapshot)"
+    modifies: "N/A (immutable after creation)"
+    reads: "ProjectionEngine (applies), EquivalenceValidator (validates)"
+    constraint: "CRITICAL: Must contain complete SpatialResolution, MotionPlan, BoundaryResolution."
+    adr_ref: "ADR-O-201"
+  EquivalenceValidator:
+    owner: "TickOrchestrator (invokes per tick via _validate_shadow_vs_legacy)"
+    creates: "DriftReport[]"
+    modifies: "N/A (observation only)"
+    reads: "SceneChange (legacy), ThickSceneChange (shadow), scene_state, active_traversals"
+    constraint: "CRITICAL: 4 validate methods. 5 drift classes. DEPRECATION layer maps drift class+field → Rule number. Takeover criteria: 0 C/D/E drift over 100k+ comparisons."
+    adr_ref: "ADR-O-201"
+  ProjectionEngine:
+    owner: "SceneStateManager (apply_change refactored)"
+    creates: "State mutations (dict assignments only)"
+    modifies: "scene_state (via ThickSceneChange application)"
+    reads: "ThickSceneChange (complete physical contract)"
+    constraint: "CRITICAL: Pure projection function. FORBIDDEN: pathfinding, spatial queries, RNG, decision making."
+    adr_ref: "ADR-O-201"
   ActionEligibilityGate:
     owner: "GameLoop (run_turn)"
     creates: "Early return ChatTurnResponse if player DEAD"
     modifies: "None (prevents pipeline execution)"
     reads: "_avatar_state.body_state['life_status']"
-    constraint: "CRITICAL: Player action MUST NOT be processed if life_status='DEAD'. Guard placed after avatar load (line 648) and BEFORE lock_for_tick (line 662). Dead player acting = causal fraud and scene_state pollution. S75: Death Guard v2 includes npc_positions from LifeEngine cache — world continues after death."
+    constraint: "CRITICAL: Player action MUST NOT be processed if life_status='DEAD'."
     adr_ref: "ADR-131, ADR-137"
   AvatarStateDTO_Pipeline:
     owner: "AvatarPresentationAssembler"
     creates: "AvatarStateDTO from player_dict (body_state + psyche)"
     modifies: "N/A (immutable frozen dataclass)"
     reads: "WorldSnapshotBuilder → APIRoutes → Frontend (GameScreen)"
-    constraint: "Assembler is PROJECTION BOUNDARY (L0→Presentation). Reads body_state (0-100 SSOT), normalizes pain/fatigue /100.0, outputs 0-1 scalars. life_status passed through for death feedback. DEAD override zeros ALL projections. Rule X: no psyche reads for motor traces — only body_state."
+    constraint: "Assembler is PROJECTION BOUNDARY (L0→Presentation). life_status passed through for death feedback. DEAD override zeros ALL projections."
     adr_ref: "ADR-137, ADR-094"
   PressureTranslator_Pipeline:
     owner: "PressureTranslator"
     creates: "DecisionContext (feasibility constraints) from PerceptualKernel + body_state"
     modifies: "N/A (pure function)"
     reads: "DecisionHub (translate_kernel_to_context)"
-    constraint: "CRITICAL: pain MUST be normalized /100.0 before threshold comparison. Without normalization, Somatic Veto (pain>0.8 blocks FLEE) fires at 0.8% pain — FLEE permanently blocked for any injured NPC. shock_impulse and blood_loss already in 0-1 scale — no normalization needed."
+    constraint: "CRITICAL: pain MUST be normalized /100.0 before threshold comparison."
     adr_ref: "ADR-094, GAP3"
   DRFBus_Ownership:
     owner: "TickOrchestrator (self._drf_bus)"
     creates: "TickOrchestrator.__init__() — single instance per orchestrator"
     modifies: "Claims written by pipeline phases, drained by persistence"
     reads: "_apply_drf_scoring_overlay(), _phase_10_persistence()"
-    constraint: "CRITICAL: DRFBus MUST live on TickOrchestrator instance, NOT in _TickContext default_factory. Two _TickContext objects = two buses = split-brain (claims in A, drain from B). Bus cleared (stream.clear()) at start of execute(). Idle _phase_10_persistence MUST have drain — without it idle claims are lost."
+    constraint: "CRITICAL: DRFBus MUST live on TickOrchestrator instance, NOT in _TickContext default_factory."
     adr_ref: "ADR-134"
   DRFExecutionContext_Ownership:
     owner: "TickOrchestrator (creates root drf_ctx)"
     creates: "DRFExecutionContext(tick_id, bus) at start of tick"
     modifies: "Scoped per NPC via for_npc(npc_id)"
     reads: "npc_tick_pipeline (receives drf_ctx, emits claims via drf_ctx.emit())"
-    constraint: "Pipeline receives drf_ctx, not bare drf_bus. Claims auto-inherit npc_id and tick_id. Monkey-patching function.drf_bus = ... is FORBIDDEN (Rule 74)."
+    constraint: "Pipeline receives drf_ctx, not bare drf_bus. Monkey-patching function.drf_bus = ... is FORBIDDEN."
     adr_ref: "ADR-136"
   PhysiologyScaleContract:
     owner: "StateApplicator (writes body_state as SSOT)"
     creates: "body_state dict with pain/fatigue 0-100, blood_loss/shock_impulse 0-1"
     modifies: "StateApplicator.apply_batch()"
     reads: "ALL body_state consumers"
-    constraint: "CONTRACT: body_state['pain'] and body_state['fatigue'] stored in 0-100 scale (StateApplicator SSOT, L525/L529). blood_loss and shock_impulse stored in 0-1 scale. Consumers with 0-1 thresholds MUST normalize pain/fatigue /100.0. Verified normalizers: state_interpreter.py (L248), pressure_derivation.py (L24/L36), tick_orchestrator.py (L2235). Verified 0-100 consumers: behavior_manifestation_service.py (thresholds 10/20/50/80), vital_state.py (_PAIN_INCAPACITATED=70.0). FORBIDDEN: reading pain with 0-1 thresholds without /100.0 (ADR-094 MSOC)."
+    constraint: "CONTRACT: body_state['pain'] and body_state['fatigue'] stored in 0-100 scale. Consumers with 0-1 thresholds MUST normalize pain/fatigue /100.0."
     adr_ref: "ADR-094"
+  ArousalGate_BehaviorTransition:
+    owner: "LifeEngine (_arousal_gate method)"
+    creates: "SceneChange(field='activity', value='', cause='arousal_gate')"
+    modifies: "routine['current'] → '' (clears sleeping/resting)"
+    reads: "PerceptualKernel, body_state (pain, fatigue)"
+    constraint: "ADR-O-142A: Arousal Gate = behavior transition gate, NOT consciousness transition. FORBIDDEN: 'awake' as activity value. FORBIDDEN: Wake when initiative_suppression > 0.7."
+    adr_ref: "ADR-O-142A"
+  # --- IDENTITY OWNERSHIP ---
+  L1Chronicle_Ownership:
+    owner: "NPCState / npc_tick_pipeline"
+    creates: "TraitDriftEvent on world pressure"
+    modifies: "Append-only. FORBIDDEN: Deletion."
+    reads: "DriveResolver (query_weighted)"
+    constraint: "CRITICAL: Append-only history of identity deformation. Deletion = rewriting history (ADR-O-208)."
+    adr_ref: "ADR-O-208"
+  DriveResolver_Ownership:
+    owner: "TickOrchestrator / LifeEngine"
+    creates: "EffectiveDrives (L3 projection)"
+    modifies: "N/A (pure function)"
+    reads: "L1Chronicle, Archetype (Base Drives L0)"
+    constraint: "CRITICAL: MUST be recalculated every tick. EffectiveDrives is ephemeral L3-P1. Caching = stale identity (ADR-O-208)."
+    adr_ref: "ADR-O-208"
+  OntologyGuard:
+    owner: "StateApplicator"
+    creates: "OntologyViolationError"
+    modifies: "Kills tick (Runtime Crash)"
+    reads: "NPCState.drives_base, EffectiveDrives.values"
+    constraint: "CRITICAL: Checks bounds [0,1], NaN, sum(drives)==1.0. Violation = invalid reality state. Must kill tick to prevent persistence of corrupted ontology (ADR-O-207)."
+    adr_ref: "ADR-O-207"
+  DriftLaboratory:
+    owner: "EquivalenceValidator (validates)"
+    creates: "DriftResult (stress test reports)"
+    modifies: "N/A (read-only runtime snapshot)"
+    reads: "TickOrchestrator, SceneStateManager, EventCompiler"
+    layer: "Validation (SUPERBOX)"
+    constraint: "Stress-tests Dual Rail pipeline (ADR-O-201). Validates Class A-E drift accumulation and Phase 3 readiness. Uses real production code, not mocks."
+    adr_ref: "ADR-O-201"
+    path: "backend/tests/sandbox/SUPERBOX/drift_laboratory.py"
+    suites: ["mass_traversal", "save_load_storm", "chunk_migration", "long_horizon"]
 sequences:
   - title: "Pipeline Tick Execution Flow"
     participants: [TickOrchestrator, LifeEngine, DeltaBuffer, StateApplicator, SQLiteDB]
@@ -644,7 +845,7 @@ sequences:
         message: "6. scene_state['avatar_state'] → renderer"
       - from: GameScreen
         to: GameScreen
-        message: "7. If life_status='DEAD': render death overlay (ВАС МЕРТВЫ)"
+        message: "7. If life_status='DEAD': render death overlay"
   - title: "Death Guard v2 — World Continues (ADR-137)"
     participants: [GameLoop, LifeEngine, AvatarPresentationAssembler, APIRoutes]
     steps:
@@ -677,7 +878,7 @@ sequences:
         message: "3. pain / 100.0 → 0-1 scale. Somatic Veto: pain>0.8 blocks FLEE"
       - from: BehaviorManifestationService
         to: BehaviorManifestationService
-        message: "4. pain raw 0-100. Thresholds: 10=instability, 20=rigidity, 50=instability scale, 80=rigidity scale. NO normalization — motor layer works in 0-100"
+        message: "4. pain raw 0-100. Thresholds: 10/20/50/80. NO normalization — motor layer works in 0-100"
   - title: "DRF Causal Field Flow (ADR-134/136)"
     participants: [TickOrchestrator, DRFBus, DRFExecutionContext, npc_tick_pipeline, MovementEngine]
     steps:
@@ -699,3 +900,76 @@ sequences:
       - from: TickOrchestrator
         to: MovementEngine
         message: "6. Intents with DRF-adjusted priority → process_intents()"
+  - title: "Causal Kernel Pipeline Flow (ADR-O-201)"
+    participants: [TickOrchestrator, SnapshotKernel, EventCompiler, ThickSceneChange, ProjectionEngine, WorldState]
+    steps:
+      - from: TickOrchestrator
+        to: SnapshotKernel
+        message: "1. Create immutable snapshot(scene_state, spatial_graph, rng_seed)"
+      - from: SnapshotKernel
+        to: EventCompiler
+        message: "2. Frozen snapshot + NPC intents + player input"
+      - from: EventCompiler
+        to: ThickSceneChange
+        message: "3. compile() → List[ThickSceneChange] with full SpatialResolution + MotionPlan + BoundaryResolution"
+      - from: ThickSceneChange
+        to: ProjectionEngine
+        message: "4. Apply complete physical contracts (no computation needed)"
+      - from: ProjectionEngine
+        to: WorldState
+        message: "5. state[t+1] = state[t] ⊕ ThickSceneChange[] (pure dict assignment)"
+  - title: "Equivalence Validation Flow (ADR-O-201 ФАЗА 2)"
+    participants: [TickOrchestrator, EventCompiler, ThickSceneChange, SceneChange, EquivalenceValidator, DriftReport]
+    steps:
+      - from: TickOrchestrator
+        to: EventCompiler
+        message: "1. Shadow compile(snapshot) alongside legacy pipeline"
+      - from: EventCompiler
+        to: ThickSceneChange
+        message: "2. Shadow output (full physical contract)"
+      - from: TickOrchestrator
+        to: SceneChange
+        message: "3. Legacy output (current physics)"
+      - from: TickOrchestrator
+        to: EquivalenceValidator
+        message: "4a-d. validate_position/topology/boundary/traversal"
+      - from: EquivalenceValidator
+        to: DriftReport
+        message: "5. Classify drift (A-E) + DEPRECATION mapping"
+      - from: TickOrchestrator
+        to: DriftReport
+        message: "6. Accumulate stats + phase3 readiness indicator"
+  # --- IDENTITY SEQUENCES ---
+  - title: "Identity Resolution Flow (ADR-O-208)"
+    participants: [WorldPressure, L1Chronicle, DriveResolver, EffectiveDrives, CalibrationEngine, DecisionHub]
+    steps:
+      - from: WorldPressure
+        to: L1Chronicle
+        message: "1. Append TraitDriftEvent (trait, delta, source, tick)"
+      - from: L1Chronicle
+        to: DriveResolver
+        message: "2. query_weighted(npc_id, current_tick) → L1 History"
+      - from: DriveResolver
+        to: EffectiveDrives
+        message: "3. resolve_drives(archetype_L0, l1_events) → L3 Projection"
+      - from: EffectiveDrives
+        to: CalibrationEngine
+        message: "4. Check for oscillation, return to attractor"
+      - from: CalibrationEngine
+        to: DecisionHub
+        message: "5. Modulate utility (social deltas, risk perception)"
+  - title: "Viability Pre-Generation Gate Flow (ADR-O-137)"
+    participants: [PerceptualKernel, IntentDomain, LifeEngine, MacroMovementGoal]
+    steps:
+      - from: PerceptualKernel
+        to: IntentDomain
+        message: "1. _compute_viability_mask(): threat_gradient > 0.3 → EXCLUDE ROUTINE"
+      - from: IntentDomain
+        to: LifeEngine
+        message: "2. Gate: Call generators ONLY for viable domains"
+      - from: LifeEngine
+        to: MacroMovementGoal
+        message: "3. Generate intent with domain=IntentDomain.SURVIVAL"
+      - from: LifeEngine
+        to: LifeEngine
+        message: "4. FORBIDDEN: Post-generation filtering (zombie causality)"

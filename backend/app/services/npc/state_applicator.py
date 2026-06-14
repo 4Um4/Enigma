@@ -124,11 +124,18 @@ class StateApplicator:
                   if d.will_state_override == WillState.BROKEN:
                       new_state.trauma_markers.add("will_broken")
                       
-                      # S71: Identity Mutation Kernel v0 (Scalar Deformation)
-                      # Слом воли запускает структурную мутацию личности
-                      from app.services.npc.break_progress_engine import compute_mutation, apply_drives_mutation
-                      _drive_mutations = compute_mutation(new_state, "will_broken")
-                      apply_drives_mutation(new_state, _drive_mutations)
+                      # ADR-O-208: L1 Event Sourced Identity.
+                      # Слом воли больше не мутирует драйвы напрямую (убийство вандала).
+                      # Он генерирует событие деформации L1, которое DriveResolver
+                      # интегрирует в проекцию личности на следующем шаге.
+                      from app.domain.identity_events import TraitDriftEvent
+                      _l1_events.append(TraitDriftEvent(
+                          npc_id=new_state.npc_id,
+                          trait="control",
+                          delta=-0.15,
+                          source="will_break_system",
+                          tick=0  # Tick будет проставлен Orchestratorом при коммите в L1EventStream
+                      ))
 
             self._apply_trait_decay(new_state)
             
@@ -465,32 +472,39 @@ class StateApplicator:
                 state.emotion_delta + emotion_delta
             ))
         if emotion_tag is not None:
-            from app.models.npc_state import _emotion_from_str, EmotionTag
-            _converted = _emotion_from_str(emotion_tag) if isinstance(emotion_tag, str) else emotion_tag
+            # SCC: StateApplicator НЕ имеет права писать S-слой в M-слой.
+            # Interpretation (emotion_tag) применяется ТОЛЬКО через semantic_buffer в Phase 10.
+            # Единственное исключение: affective_decay (Phase 0.5) — это легальная физика времени.
+            if deltas.source != "affective_decay":
+                logger.debug(f"[SCC_BLOCK] npc={state.npc_id} emotion_tag={emotion_tag} blocked. S-writes to M forbidden.")
+            else:
+                from app.models.npc_state import _emotion_from_str, EmotionTag
+                _converted = _emotion_from_str(emotion_tag) if isinstance(emotion_tag, str) else emotion_tag
+                state.emotion = _converted
+                logger.debug(f"[SCC_PASS] npc={state.npc_id} decay emotion={_converted} applied to M.")
             
-            # §ENIGMA-AFFECTIVE-SOVEREIGNTY Статья 3: Диагностика.
-            # Эмоция обязана соответствовать интегралу. Если интеграл высок (panic/fear),
-            # а рефлекс пытается поставить слабую эмоцию (suspicious) — это нарушение суверенитета.
-            # S75-FIX: PANIC и ANXIOUS не существуют в EmotionTag enum.
-            # Канонические значения: panic→fearful, anxious→suspicious (npc_state.py:757-763).
-            # Без фикса AttributeError крашит весь _apply_deltas → affective_load не обновляется.
-            if state.affective_load >= 0.6 and _converted not in (EmotionTag.FEARFUL, EmotionTag.SUSPICIOUS):
-                logger.warning(f"[SOVEREIGNTY_VIOLATION] npc={state.npc_id} load={state.affective_load:.3f} but emotion={_converted}. Integral overridden by reflex?")
-            
-            logger.debug(f"[STATE_APPLY_EMOTION] npc={state.npc_id} tag_in={emotion_tag} tag_out={_converted} prev={state.emotion}")
-            state.emotion = _converted
-            
-        # §ENIGMA-DUAL-CIRCUIT: Разделение Контуров.
-        # Интеграл (affective_load) пишется ТОЛЬКО из AffectivePipeline.
-        # Рефлексы (ReactionSubscriber) приносят emotion_tag, но НЕ affective_load.
-        # Мы не уничтожаем интеграл снимком, если пайплайн не дал нагрузку.
-        # Интеграл имеет право затухать независимо от эмоции.
+        # SCC: affective_load — интеграл давления. Пишется в M ТОЛЬКО через decay.
+        # Аффективный pipeline (Phase 9) и Рефлексы (Phase 8) блокируются.
         if domain == DeltaDomain.EMOTION and isinstance(deltas.payload, EmotionPayload):
             _payload_load = getattr(deltas.payload, 'affective_load', None)
-            # §ENIGMA-DUAL-CIRCUIT: Разрешаем затухание до 0.0 (S74).
-            # Условие > 0.0 блокировало decay, замораживая интеграл.
             if _payload_load is not None:
-                state.affective_load = min(1.0, max(0.0, _payload_load))
+                if deltas.source == "affective_decay":
+                    state.affective_load = min(1.0, max(0.0, _payload_load))
+                    logger.debug(f"[SCC_PASS] npc={state.npc_id} decay affective_load={_payload_load:.3f} applied to M.")
+                else:
+                    logger.debug(f"[SCC_BLOCK] npc={state.npc_id} affective_load={_payload_load:.3f} blocked. S-writes to M forbidden.")
+            
+            # SEL: Trace Δ Layer commit. Легальный канал записи инерции и ожидания в M-слой.
+            # Строго ограничен источником sel_trace_commit, чтобы избежать несанкционированных S-записей.
+            if deltas.source == "sel_trace_commit" and isinstance(deltas.payload, EmotionPayload):
+                _payload_memory = getattr(deltas.payload, 'affective_memory', None)
+                if _payload_memory is not None:
+                    state.affective_memory = min(1.0, max(0.0, _payload_memory))
+                
+                _payload_load = getattr(deltas.payload, 'affective_load', None)
+                if _payload_load is not None:
+                    state.affective_load = min(1.0, max(0.0, _payload_load))
+                    logger.debug(f"[SEL_COMMIT] npc={state.npc_id} affective_load={_payload_load:.3f}, memory={_payload_memory:.3f} applied to M.")
 
         # Traits overlay
         for trait, value in deltas.trait_updates.items():
@@ -810,31 +824,65 @@ class StateApplicator:
         deltas: StateDeltas,
         campaign_id: str,
     ) -> None:
-        """Тонкий сериализационный мост: dict → NPCState → _apply_deltas() → dict.
-
-        Никакой бизнес-логики, расчётов или условных ветвлений.
-        Вся причинность живёт в _apply_deltas.
+        """Временный мост (до L1 Materialization в Orchestrator).
+        Конвертирует dict → NPCState и передаёт в чистый Commit Kernel.
         """
         from app.models.npc_state import NPCStateAdapter
 
-        # dict → NPCState
+        # L1: Материализация (будет перенесена в Orchestrator на Этапе 5)
         state = NPCStateAdapter.from_legacy(npc_dict)
+        
+        # Делегирование в Commit Kernel
+        self.apply_deltas_and_commit(state, npc_dict, deltas, campaign_id)
 
-        # Применяем через единственный путь мутаций
-        try:
-            self._apply_deltas(state, deltas, campaign_id)
-        except Exception as e:
-            logger.error(
-                f"[STATE_APPLICATOR] _apply_delta_to_raw ошибка для "
-                f"'{npc_dict.get('id', '?')}': {e}. Delta пропущена."
+    def apply_deltas_and_commit(
+        self,
+        state: NPCState,
+        npc_dict: dict,
+        deltas: StateDeltas,
+        campaign_id: str,
+    ) -> None:
+        """Commit Kernel (L3/L4/L5): Чистый редьюсер, L5 пост-чек, строгий коммит.
+        
+        Никакой бизнес-логики, исправлений или try/except.
+        Ошибка мутации = смерть тика (causal consistency).
+        """
+        import math
+        from app.domain.exceptions import OntologyViolationError
+
+        # L3: Pure fold (мутация state)
+        # try/except УНИЧТОЖЕН. Если _apply_deltas падает — падает весь тик.
+        self._apply_deltas(state, deltas, campaign_id)
+
+        # L5: Post-Commit Validation Gate (No Repair Principle)
+        # L5A: Structural Existence — ADR-139 Single Write Authority.
+        # ЕДИНСТВЕННЫЙ read point для L5A = state.drives_runtime (execution layer).
+        # НЕ читает npc_dict (persistence), НЕ читает personality (seed).
+        drives = getattr(state, 'drives_runtime', None)
+        if not drives or not isinstance(drives, dict):
+            raise OntologyViolationError(
+                f"NPC '{state.npc_id}': Нарушение структурного контракта (L5A). "
+                f"drives_runtime отсутствует или пуст. Личность не существует."
             )
-            logger.error(f"[STATE_APPLICATOR] EXCEPTION TYPE={type(e).__name__} ARGS={e.args}", exc_info=True)
-            return
-        logger.debug(f"[APPLY_OK] npc={state.npc_id} domain={deltas.domain} bs_keys={list(state.body_state.keys())[:5] if state.body_state else 'EMPTY'}")
 
-        # Проверка physiology после apply (ADR-105)
-        if deltas.domain == DeltaDomain.PHYSIOLOGY:
-            logger.debug(f"[APPLY_RAW] npc={npc_dict.get('id', '?')} pain={state.body_state.get('pain', '?') if state.body_state else '?'} shock={state.body_state.get('shock_impulse', '?') if state.body_state else '?'}")
+        total_mass = sum(drives.values())
+        if abs(total_mass - 1.0) > 1e-6:
+            raise OntologyViolationError(
+                f"NPC '{state.npc_id}': Закон Сохранения Я нарушен. "
+                f"Сумма драйвов = {total_mass:.6f}, ожидается 1.0"
+            )
 
-        # NPCState → dict
+        for drive_name, value in drives.items():
+            if math.isnan(value) or math.isinf(value):
+                raise OntologyViolationError(
+                    f"NPC '{state.npc_id}': Драйв '{drive_name}' содержит невалидное значение ({value}). "
+                    f"Термоядерный распад личности."
+                )
+            if not (0.0 <= value <= 1.0):
+                raise OntologyViolationError(
+                    f"NPC '{state.npc_id}': Драйв '{drive_name}'={value:.4f} вышел за физические пределы [0, 1]. "
+                    f"Нарушение онтологии мира."
+                )
+
+        # L4: Commit (проекция в транспортный формат)
         NPCState.write_to_legacy(state, npc_dict)

@@ -27,7 +27,8 @@ class RelationshipStore:
         self._cache: Dict[str, Dict[str, Any]] = {}
 
     def _path(self, campaign_id: str) -> Path:
-        folder = self._root / f"campaign_{campaign_id}"
+        # ADR-O-146: saves/<campaign_id>/npc_relationships.json (без префикса campaign_)
+        folder = self._root / campaign_id
         folder.mkdir(parents=True, exist_ok=True)
         return folder / "npc_relationships.json"
 

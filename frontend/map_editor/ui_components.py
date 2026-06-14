@@ -657,6 +657,6 @@ class PropertyPanel:
             elif item.get("type") == "value":
                 y += 24
             elif item.get("type") == "section":
-                y += 5 + 26  # разделитель + текст — как в draw
+                y += 5 + 8 + 26  # разделитель + линия + текст — как в draw
             y += 5  # общий отступ после каждого элемента — как в draw
         return None

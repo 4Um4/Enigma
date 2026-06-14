@@ -61,6 +61,10 @@ from app.services.economy.opportunity_engine import (
     OpportunityEngine,
     OpportunityResult,
 )
+from app.services.npc.decision.social_deltas import SocialDeltaEngine
+from app.services.npc.decision.risk import perceive_risk
+
+
 
 
 # ── Проактивные интенты: доступны только при WORLD_TICK ──────────────────────
@@ -226,6 +230,9 @@ class DecisionHub:
     def __init__(self, seed: Optional[int] = None) -> None:
         # seed per-session — воспроизводимость при отладке (решение №12)
         self._rng = random.Random(seed)
+        self._social_delta_engine = SocialDeltaEngine()
+        self._last_redirect = 0.0  # инициализация scoring component
+        self._last_dominant_drive = "neutral"  # redirect direction: control/fear/neutral
 
     # Вербальные интенты — для них строится CommunicationIntent (Устав 2.2)
     _VERBAL_INTENTS: Set[str] = {
@@ -290,6 +297,7 @@ class DecisionHub:
         state:           NPCState,
         personality:     NPCProfileL0,
         event:           EventContext,
+        effective_drives: "EffectiveDrives", # L3-P2: Единственный источник истины драйвов
         scene_state:     Optional[Dict[str, Any]] = None,
         opportunity_ctx: Optional[OpportunityContext] = None,
         identity:        Optional["NPCIdentityL1"] = None,
@@ -341,8 +349,8 @@ class DecisionHub:
 
         # L1 черты: только из NPCIdentityL1
         active_traits: Dict[str, float] = identity.active_traits if identity else {}
-        possible = self._get_possible_intents(state, personality, event, opportunity)
-        scores   = self._score_all(state, personality, event, possible, opportunity, active_traits, decision_ctx=decision_ctx)
+        possible = self._get_possible_intents(state, personality, event, opportunity, effective_drives=effective_drives)
+        scores   = self._score_all(state, personality, event, possible, opportunity, active_traits, decision_ctx=decision_ctx, effective_drives=effective_drives)
 
         # ADR-036: Физика Власти. Приказ (semantic_action=MOVE) искривляет utility-space.
         # Прямой boost к APPROACH score — без размывания через drive_weight.
@@ -351,7 +359,8 @@ class DecisionHub:
         _tid_pop = _payload_pop.get("target_id") if isinstance(_payload_pop, dict) else None
         if _sa_pop == "MOVE" and _tid_pop == state.npc_id and Intent.APPROACH.value in scores:
             _fear_raw = DecisionHub._get_rel_value(state, "player", "fear")
-            _will_pop = personality.drives_base.get("control", 0.5)
+            # L3-P2: Воля определяется текущей проекцией, не архетипом
+            _will_pop = effective_drives.get("control", 0.5)
             _kernel_pop = getattr(state, 'perceptual_kernel', None)
             _threat_pop = _kernel_pop.threat_gradient if _kernel_pop else 0.0
 
@@ -641,6 +650,7 @@ class DecisionHub:
         personality: NPCPersonality,
         event:       EventContext,
         opportunity: OpportunityResult,
+        effective_drives: Optional["EffectiveDrives"] = None,
     ) -> List[str]:
         from app.services.events.event_types import EventType
 
@@ -655,7 +665,7 @@ class DecisionHub:
             # Фильтруем проактивные интенты при реактивных событиях
             if not _is_proactive_tick and intent in PROACTIVE_INTENTS:
                 continue
-            if self._is_intent_available(intent, state, personality, opportunity):
+            if self._is_intent_available(intent, state, personality, opportunity, effective_drives=effective_drives):
                 filtered.append(intent)
 
         filtered.append(Intent.IDLE.value)
@@ -667,6 +677,7 @@ class DecisionHub:
         state:       NPCState,
         personality: NPCPersonality,
         opportunity: OpportunityResult,
+        effective_drives: Optional["EffectiveDrives"] = None,
     ) -> bool:
         """
         Фильтр доступности intent по состоянию NPC.
@@ -688,7 +699,9 @@ class DecisionHub:
             # Трусливый (fear доминирует) → ограничен до безопасных
             # Смелый (desire доминирует) → действует по природе
             # Контролирующий (control доминирует) → удерживает стабильность
-            drives = getattr(personality, 'drives_base', {})
+            # STEP A: L3 обязателен. Фоллбек на L0 (drives_base) удалён (Инвариант L3-P2).
+            # Если L3 нет — это pipeline fault, обрабатываемый на уровне выше.
+            drives = dict(effective_drives.values)
             fear = drives.get("fear", 0.25)
             desire = drives.get("desire", 0.25)
             control = drives.get("control", 0.25)
@@ -722,6 +735,7 @@ class DecisionHub:
         opportunity:  OpportunityResult,
         active_traits: Dict[str, float] = None,  # L1 черты, опционально
         decision_ctx: Optional["DecisionContext"] = None,  # S74: Affective Field Propagation
+        effective_drives: Optional["EffectiveDrives"] = None,  # L3-P2: проекция драйвов
     ) -> Dict[str, float]:
         """
         Считает score для каждого доступного intent.
@@ -729,7 +743,8 @@ class DecisionHub:
         """
         scores: Dict[str, float] = {}
         inertia     = self._intent_inertia(state)
-        fear_drive  = personality.drives_base.get("fear", 0.0)
+        # L3-P2: Страх определяется текущей проекцией, не архетипом
+        fear_drive  = effective_drives.get("fear", 0.0) if effective_drives else 0.0
         skip_aggro  = fear_drive > 0.6  # early exit для трусливых NPC
         logger.debug(f"[DIAG_SCORE_ALL] npc={state.npc_id} fear_drive={fear_drive:.2f} skip_aggro={skip_aggro} possible={possible}")
 
@@ -745,9 +760,9 @@ class DecisionHub:
                     continue
 
             components = self._score_components(intent_str, state, personality, event, opportunity, active_traits or {}, decision_ctx=decision_ctx)
-            base = sum(components.values())
+            base = sum(v for k, v in components.items() if isinstance(v, (int, float)))
             if intent_str in (Intent.ATTACK.value, Intent.FLEE.value):
-                logger.debug(f"[DIAG_COMPONENTS] npc={state.npc_id} intent={intent_str} base={base:.3f} comps={ {k:round(v,3) for k,v in components.items()} }")
+                logger.debug(f"[DIAG_COMPONENTS] npc={state.npc_id} intent={intent_str} base={base:.3f} comps={ {k:(round(v,3) if isinstance(v, (int, float)) else v) for k,v in components.items()} }")
             
             # R8: BehaviorMask модификатор — маска умножает score, не блокирует
             mask_mod = self._behavior_mask_modifier(intent_str, state)
@@ -881,7 +896,7 @@ class DecisionHub:
         # Все чтения идут через унифицированный accessor _get_rel_value (§ENIGMA-003)
         fear   = (DecisionHub._get_rel_value(state, "player", "fear") or 0.0) / 100.0
         trust  = (DecisionHub._get_rel_value(state, "player", "trust") or 0.0) / 100.0
-        risk   = self._compute_risk(event, state)
+        risk   = perceive_risk(event, state, personality.drives_base)
 
         drive_score  = self._drive_relevance(intent, drives, event, state=state, personality=personality)
         emotion_mod  = self._emotion_modifier(
@@ -939,6 +954,9 @@ class DecisionHub:
             "risk_penalty": risk_penalty,
             "trait":        round(trait_mod, 4),
             "opportunity":  round(opportunity_mod, 4),
+            # ADR-O-205: Проекция причины для Нарратива
+            "redirect":     round(self._last_redirect, 4),
+            "dominant_drive": self._last_dominant_drive,
         }
 
     def _score_one(
@@ -1180,6 +1198,11 @@ class DecisionHub:
             # Желание + низкий страх = альтруистическая экспансия
             redirect = _energy * _desire_dev * 0.7 - _energy * _fear_dev * 0.2
 
+        # ADR-O-205: Спасение вектора причины для Narrative Projection
+        # redirect и победивший драйв передаются наверх для формирования Нарратива
+        self._last_redirect = redirect
+        self._last_dominant_drive = "control" if redirect > 0 and _control_dev > _fear_dev else ("fear" if redirect < 0 else "neutral")
+        
         return _field_mod + redirect
 
     def _trait_modifier(
@@ -1434,112 +1457,21 @@ class DecisionHub:
         event:       EventContext,
         intent:      str,
     ) -> List[StateDeltas]:
+        """R2-P1: Делегирует социальные дельты SocialDeltaEngine.
+
+        DecisionHub больше не определяет "что значит событие".
+        Модуляция личностью — внутри SocialDeltaEngine
+        через RelationshipResponseProfile (drives_base → множители).
+
+        При нейтральных drives (0.25) результат идентичен старому коду.
+        Исправлен баг: player_threatens объединял два перезаписанных блока.
         """
-        Вычисляет доменные дельты v2 (ADR-013: Domain-Tagged Typed Payloads).
-        Возвращает список, разделяя Emotion и Social.
-        """
-        from app.services.npc.math_utils import apply_saturation
-        from app.models.state_delta import DeltaDomain, EmotionPayload, SocialPayload
-
-        # Локальные аккумуляторы для immutable payload
-        # ADR-049 Phase 3: Эмоциональные аккумуляторы удалены.
-        # Каузальные эмоции теперь генерируются через AffectiveIntegrator (Фаза 9).
-        s_trust = 0.0
-        s_fear = 0.0
-        
-        # ADR-049 Phase 3: Каузальные эмоции удалены. Оставлена только логика социальных отношений.
-        
-        # Отношения от оскорблений
-        if event.event_type == "player_insults":
-            raw_trust = -8.0 * event.intensity
-            _, s_trust = apply_saturation(
-                current=DecisionHub._get_rel_value(state, "player", "trust"), delta=raw_trust, min_val=-100.0, max_val=100.0
-            )
-            raw_fear = -5.0 * event.intensity
-            _, s_fear = apply_saturation(
-                current=DecisionHub._get_rel_value(state, "player", "fear"), delta=raw_fear, min_val=-100.0, max_val=100.0
-            )
-
-        # Отношения от прямых угроз
-        elif event.event_type == "player_threatens":
-            raw_trust = -5.0 * event.intensity
-            _, s_trust = apply_saturation(
-                current=DecisionHub._get_rel_value(state, "player", "trust"), delta=raw_trust, min_val=-100.0, max_val=100.0
-            )
-            raw_fear = 4.0 * event.intensity
-            _, s_fear = apply_saturation(
-                current=DecisionHub._get_rel_value(state, "player", "fear"), delta=raw_fear, min_val=-100.0, max_val=100.0
-            )
-            
-            raw_trust = -6.0 * event.intensity
-            _, s_trust = apply_saturation(
-                current=DecisionHub._get_rel_value(state, "player", "trust"), delta=raw_trust, min_val=-100.0, max_val=100.0
-            )
-            raw_fear = 2.5 * event.intensity
-            _, s_fear = apply_saturation(
-                current=DecisionHub._get_rel_value(state, "player", "fear"), delta=raw_fear, min_val=-100.0, max_val=100.0
-            )
-
-        # Отношения от физического насилия (ADR-049 Phase 3: стресс/эмоции вынесены в AffectiveIntegrator)
-        elif event.event_type == "player_attacks":
-            raw_trust = -10.0 * event.intensity
-            _, s_trust = apply_saturation(
-                current=DecisionHub._get_rel_value(state, "player", "trust"), delta=raw_trust, min_val=-100.0, max_val=100.0
-            )
-            raw_fear = 8.0 * event.intensity
-            _, s_fear = apply_saturation(
-                current=DecisionHub._get_rel_value(state, "player", "fear"), delta=raw_fear, min_val=-100.0, max_val=100.0
-            )
-
-        # ADR-049 Phase 3: Стресс от насилия рядом удален (генерируется через PerceptualKernel в Фазе 9)
-
-        # ADR-049 Phase 3: Реактивный маппинг эмоций удален.
-        # Эмоции теперь рождаются в Аффективном Аккумуляторе (PerceptualKernel -> affective_load -> EmotionPayload)
-
-        # Отношения: доверие и страх (fallback маппинг)
-        if event.event_type in ("combat", "intimidation"):
-            # §ENIGMA-003: Vacuum (None) резолвится в baseline 0.0 для создания новой причинной структуры
-            cur_trust = DecisionHub._get_rel_value(state, "player", "trust")
-            cur_fear = DecisionHub._get_rel_value(state, "player", "fear")
-
-            raw_trust = -10.0 * event.intensity
-            _, s_trust = apply_saturation(
-                current=cur_trust if cur_trust is not None else 0.0, delta=raw_trust, min_val=-100.0, max_val=100.0
-            )
-            raw_fear = +8.0 * event.intensity
-            _, s_fear = apply_saturation(
-                current=cur_fear if cur_fear is not None else 0.0, delta=raw_fear, min_val=-100.0, max_val=100.0
-            )
-        elif event.event_type == "help":
-            s_trust = round(+12.0 * event.intensity, 2)
-            s_fear  = round(-5.0  * event.intensity, 2)
-
-        # Сборка v2 списка (одна дельта = один домен)
-        result_deltas = []
-        
-        # ADR-049 Phase 3: EmotionPayload больше не генерируется в DecisionHub.
-        # Каузальные эмоции проходят через Фазу 9 (AffectiveIntegrator).
-
-        # Социальная дельта добавляется только если есть изменения
-        if s_trust != 0.0 or s_fear != 0.0:
-            result_deltas.append(
-                StateDeltas(
-                    npc_id=state.npc_id, 
-                    domain=DeltaDomain.SOCIAL, 
-                    target="player", 
-                    payload=SocialPayload(
-                        trust_delta=s_trust,
-                        fear_delta=s_fear
-                    ), 
-                    source=event.event_type
-                )
-            )
-
-        # TODO: Trait updates (suspicious) временно отброшены при коллапсе v1->v2, 
-        # так как DeltaDomain.IDENTITY пока не генерируется в DecisionHub.
-        # Будет реализовано в ADR-030 (WillpowerGate / Identity Drift).
-
-        return result_deltas
+        return self._social_delta_engine.process(
+            state=state,
+            personality=personality,
+            event=event,
+            intent=intent,
+        )
 
 
     def _explain_mode(

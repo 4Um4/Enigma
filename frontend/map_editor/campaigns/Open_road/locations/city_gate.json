@@ -12,10 +12,1965 @@
   },
   "grid_cell_size": 1.0,
   "is_outdoor": true,
-  "rooms": [],
-  "walls": [],
+  "rooms": [
+    {
+      "id": "room_0",
+      "name": "Центральный вход",
+      "x": 15.998848076799998,
+      "y": 5.000512512000006,
+      "width": 13.5,
+      "height": 8.5,
+      "polygon": [
+        [
+          15.998848076799998,
+          5.000512512000006
+        ],
+        [
+          29.498848076799995,
+          5.000512512000006
+        ],
+        [
+          29.498848076799995,
+          13.500512512000006
+        ],
+        [
+          15.998848076799998,
+          13.500512512000006
+        ]
+      ],
+      "area_sqm": 114.8
+    },
+    {
+      "id": "room_1",
+      "name": "Центральный двор",
+      "x": 29.5,
+      "y": 1.5,
+      "width": 14.5,
+      "height": 17.0,
+      "polygon": [
+        [
+          29.5,
+          1.5
+        ],
+        [
+          44.0,
+          1.5
+        ],
+        [
+          44.0,
+          18.5
+        ],
+        [
+          29.5,
+          18.5
+        ]
+      ],
+      "area_sqm": 246.5
+    },
+    {
+      "id": "room_2",
+      "name": "Караульная",
+      "x": 29.5,
+      "y": 0.0,
+      "width": 7.5,
+      "height": 5.0,
+      "polygon": [
+        [
+          29.5,
+          0.0
+        ],
+        [
+          37.0,
+          0.0
+        ],
+        [
+          37.0,
+          5.0
+        ],
+        [
+          29.5,
+          5.0
+        ]
+      ],
+      "area_sqm": 37.5
+    },
+    {
+      "id": "room_3",
+      "name": "Сад",
+      "x": 43.9140036608,
+      "y": -0.042998169599999976,
+      "width": 6.0,
+      "height": 20.0,
+      "polygon": [
+        [
+          43.9140036608,
+          -0.042998169599999976
+        ],
+        [
+          49.9140036608,
+          -0.042998169599999976
+        ],
+        [
+          49.9140036608,
+          19.9570018304
+        ],
+        [
+          43.9140036608,
+          19.9570018304
+        ]
+      ],
+      "area_sqm": 120.0
+    }
+  ],
+  "walls": [
+    {
+      "id": "wall_0",
+      "type": "wall",
+      "x1": 29.5,
+      "y1": 0.0,
+      "x2": 37.0,
+      "y2": 0.0,
+      "thickness": 0.2
+    },
+    {
+      "id": "wall_1",
+      "type": "wall",
+      "x1": 37.0,
+      "y1": 0.0,
+      "x2": 37.0,
+      "y2": 5.0,
+      "thickness": 0.2
+    },
+    {
+      "id": "wall_2",
+      "type": "wall",
+      "x1": 37.0,
+      "y1": 5.0,
+      "x2": 29.5,
+      "y2": 5.0,
+      "thickness": 0.2
+    },
+    {
+      "id": "wall_3",
+      "type": "wall",
+      "x1": 29.5,
+      "y1": 5.0,
+      "x2": 29.5,
+      "y2": 0.0,
+      "thickness": 0.2
+    }
+  ],
   "obstacles": [],
-  "objects": [],
+  "objects": [
+    {
+      "id": "obj_0",
+      "name": "Стол №1",
+      "type": "table",
+      "position": {
+        "x": 34.5,
+        "y": 3.0
+      },
+      "size": {
+        "w": 1.5,
+        "h": 0.9,
+        "d": 0.8
+      },
+      "rotation": "",
+      "passability": {
+        "walk": false,
+        "jump_over": true,
+        "crawl_under": true,
+        "climb_on": true,
+        "walk_around": true
+      },
+      "cover": 0.5,
+      "color": "#8B7355",
+      "show_name": false,
+      "properties": {}
+    },
+    {
+      "id": "obj_1",
+      "name": "Стул №1",
+      "type": "chair",
+      "position": {
+        "x": 34.5,
+        "y": 2.5
+      },
+      "size": {
+        "w": 0.5,
+        "h": 0.5,
+        "d": 0.5
+      },
+      "rotation": "",
+      "passability": {
+        "walk": false,
+        "jump_over": true,
+        "crawl_under": false,
+        "climb_on": true,
+        "walk_around": true
+      },
+      "cover": 0.3,
+      "color": "#A0522D",
+      "show_name": false,
+      "properties": {}
+    },
+    {
+      "id": "obj_2",
+      "name": "Дверь №1",
+      "type": "door",
+      "position": {
+        "x": 33.0,
+        "y": 5.0
+      },
+      "size": {
+        "w": 1.0,
+        "h": 0.2,
+        "d": 2.2
+      },
+      "rotation": "wall_2",
+      "passability": {
+        "walk": true,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": false,
+        "walk_around": true
+      },
+      "cover": 0.0,
+      "color": "#D2691E",
+      "show_name": false,
+      "properties": {
+        "open": true,
+        "locked": false,
+        "durability": 20,
+        "visibility_through": 0.1
+      }
+    },
+    {
+      "id": "obj_3",
+      "name": "Ель №1",
+      "type": "spruce",
+      "position": {
+        "x": 45.5,
+        "y": 2.0
+      },
+      "size": {
+        "w": 1.0,
+        "h": 1.0,
+        "d": 4.0
+      },
+      "rotation": "",
+      "passability": {
+        "walk": false,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": true,
+        "walk_around": true
+      },
+      "cover": 0.8,
+      "color": "#006400",
+      "show_name": false,
+      "properties": {}
+    },
+    {
+      "id": "obj_4",
+      "name": "Ель №2",
+      "type": "spruce",
+      "position": {
+        "x": 47.5,
+        "y": 2.0
+      },
+      "size": {
+        "w": 1.0,
+        "h": 1.0,
+        "d": 4.0
+      },
+      "rotation": "",
+      "passability": {
+        "walk": false,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": true,
+        "walk_around": true
+      },
+      "cover": 0.8,
+      "color": "#006400",
+      "show_name": false,
+      "properties": {}
+    },
+    {
+      "id": "obj_5",
+      "name": "Ель №3",
+      "type": "spruce",
+      "position": {
+        "x": 48.0,
+        "y": 4.5
+      },
+      "size": {
+        "w": 1.0,
+        "h": 1.0,
+        "d": 4.0
+      },
+      "rotation": "",
+      "passability": {
+        "walk": false,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": true,
+        "walk_around": true
+      },
+      "cover": 0.8,
+      "color": "#006400",
+      "show_name": false,
+      "properties": {}
+    },
+    {
+      "id": "obj_6",
+      "name": "Ель №4",
+      "type": "spruce",
+      "position": {
+        "x": 44.5,
+        "y": 9.0
+      },
+      "size": {
+        "w": 1.0,
+        "h": 1.0,
+        "d": 4.0
+      },
+      "rotation": "",
+      "passability": {
+        "walk": false,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": true,
+        "walk_around": true
+      },
+      "cover": 0.8,
+      "color": "#006400",
+      "show_name": false,
+      "properties": {}
+    },
+    {
+      "id": "obj_7",
+      "name": "Ель №5",
+      "type": "spruce",
+      "position": {
+        "x": 45.5,
+        "y": 11.0
+      },
+      "size": {
+        "w": 1.0,
+        "h": 1.0,
+        "d": 4.0
+      },
+      "rotation": "",
+      "passability": {
+        "walk": false,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": true,
+        "walk_around": true
+      },
+      "cover": 0.8,
+      "color": "#006400",
+      "show_name": false,
+      "properties": {}
+    },
+    {
+      "id": "obj_8",
+      "name": "Ель №6",
+      "type": "spruce",
+      "position": {
+        "x": 46.5,
+        "y": 15.5
+      },
+      "size": {
+        "w": 1.0,
+        "h": 1.0,
+        "d": 4.0
+      },
+      "rotation": "",
+      "passability": {
+        "walk": false,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": true,
+        "walk_around": true
+      },
+      "cover": 0.8,
+      "color": "#006400",
+      "show_name": false,
+      "properties": {}
+    },
+    {
+      "id": "obj_9",
+      "name": "Ель №7",
+      "type": "spruce",
+      "position": {
+        "x": 45.5,
+        "y": 20.0
+      },
+      "size": {
+        "w": 1.0,
+        "h": 1.0,
+        "d": 4.0
+      },
+      "rotation": "",
+      "passability": {
+        "walk": false,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": true,
+        "walk_around": true
+      },
+      "cover": 0.8,
+      "color": "#006400",
+      "show_name": false,
+      "properties": {}
+    },
+    {
+      "id": "obj_10",
+      "name": "Ель №8",
+      "type": "spruce",
+      "position": {
+        "x": 48.5,
+        "y": 17.5
+      },
+      "size": {
+        "w": 1.0,
+        "h": 1.0,
+        "d": 4.0
+      },
+      "rotation": "",
+      "passability": {
+        "walk": false,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": true,
+        "walk_around": true
+      },
+      "cover": 0.8,
+      "color": "#006400",
+      "show_name": false,
+      "properties": {}
+    },
+    {
+      "id": "obj_11",
+      "name": "Ель №9",
+      "type": "spruce",
+      "position": {
+        "x": 48.0,
+        "y": 15.0
+      },
+      "size": {
+        "w": 1.0,
+        "h": 1.0,
+        "d": 4.0
+      },
+      "rotation": "",
+      "passability": {
+        "walk": false,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": true,
+        "walk_around": true
+      },
+      "cover": 0.8,
+      "color": "#006400",
+      "show_name": false,
+      "properties": {}
+    },
+    {
+      "id": "obj_12",
+      "name": "Ель №10",
+      "type": "spruce",
+      "position": {
+        "x": 47.0,
+        "y": 12.5
+      },
+      "size": {
+        "w": 1.0,
+        "h": 1.0,
+        "d": 4.0
+      },
+      "rotation": "",
+      "passability": {
+        "walk": false,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": true,
+        "walk_around": true
+      },
+      "cover": 0.8,
+      "color": "#006400",
+      "show_name": false,
+      "properties": {}
+    },
+    {
+      "id": "obj_13",
+      "name": "Ель №11",
+      "type": "spruce",
+      "position": {
+        "x": 47.0,
+        "y": 9.0
+      },
+      "size": {
+        "w": 1.0,
+        "h": 1.0,
+        "d": 4.0
+      },
+      "rotation": "",
+      "passability": {
+        "walk": false,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": true,
+        "walk_around": true
+      },
+      "cover": 0.8,
+      "color": "#006400",
+      "show_name": false,
+      "properties": {}
+    },
+    {
+      "id": "obj_14",
+      "name": "Ель №12",
+      "type": "spruce",
+      "position": {
+        "x": 46.5,
+        "y": 6.5
+      },
+      "size": {
+        "w": 1.0,
+        "h": 1.0,
+        "d": 4.0
+      },
+      "rotation": "",
+      "passability": {
+        "walk": false,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": true,
+        "walk_around": true
+      },
+      "cover": 0.8,
+      "color": "#006400",
+      "show_name": false,
+      "properties": {}
+    },
+    {
+      "id": "obj_15",
+      "name": "Ель №13",
+      "type": "spruce",
+      "position": {
+        "x": 45.5,
+        "y": 5.0
+      },
+      "size": {
+        "w": 1.0,
+        "h": 1.0,
+        "d": 4.0
+      },
+      "rotation": "",
+      "passability": {
+        "walk": false,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": true,
+        "walk_around": true
+      },
+      "cover": 0.8,
+      "color": "#006400",
+      "show_name": false,
+      "properties": {}
+    },
+    {
+      "id": "obj_16",
+      "name": "Дерево №1",
+      "type": "tree",
+      "position": {
+        "x": 46.5,
+        "y": 3.0
+      },
+      "size": {
+        "w": 1.0,
+        "h": 1.0,
+        "d": 5.0
+      },
+      "rotation": "",
+      "passability": {
+        "walk": false,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": true,
+        "walk_around": true
+      },
+      "cover": 0.7,
+      "color": "#228B22",
+      "show_name": false,
+      "properties": {}
+    },
+    {
+      "id": "obj_17",
+      "name": "Дерево №2",
+      "type": "tree",
+      "position": {
+        "x": 46.0,
+        "y": 4.0
+      },
+      "size": {
+        "w": 1.0,
+        "h": 1.0,
+        "d": 5.0
+      },
+      "rotation": "",
+      "passability": {
+        "walk": false,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": true,
+        "walk_around": true
+      },
+      "cover": 0.7,
+      "color": "#228B22",
+      "show_name": false,
+      "properties": {}
+    },
+    {
+      "id": "obj_18",
+      "name": "Дерево №3",
+      "type": "tree",
+      "position": {
+        "x": 46.5,
+        "y": 8.5
+      },
+      "size": {
+        "w": 1.0,
+        "h": 1.0,
+        "d": 5.0
+      },
+      "rotation": "",
+      "passability": {
+        "walk": false,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": true,
+        "walk_around": true
+      },
+      "cover": 0.7,
+      "color": "#228B22",
+      "show_name": false,
+      "properties": {}
+    },
+    {
+      "id": "obj_19",
+      "name": "Дерево №4",
+      "type": "tree",
+      "position": {
+        "x": 48.0,
+        "y": 9.5
+      },
+      "size": {
+        "w": 1.0,
+        "h": 1.0,
+        "d": 5.0
+      },
+      "rotation": "",
+      "passability": {
+        "walk": false,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": true,
+        "walk_around": true
+      },
+      "cover": 0.7,
+      "color": "#228B22",
+      "show_name": false,
+      "properties": {}
+    },
+    {
+      "id": "obj_20",
+      "name": "Дерево №5",
+      "type": "tree",
+      "position": {
+        "x": 48.0,
+        "y": 11.5
+      },
+      "size": {
+        "w": 1.0,
+        "h": 1.0,
+        "d": 5.0
+      },
+      "rotation": "",
+      "passability": {
+        "walk": false,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": true,
+        "walk_around": true
+      },
+      "cover": 0.7,
+      "color": "#228B22",
+      "show_name": false,
+      "properties": {}
+    },
+    {
+      "id": "obj_21",
+      "name": "Дерево №6",
+      "type": "tree",
+      "position": {
+        "x": 46.0,
+        "y": 14.0
+      },
+      "size": {
+        "w": 1.0,
+        "h": 1.0,
+        "d": 5.0
+      },
+      "rotation": "",
+      "passability": {
+        "walk": false,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": true,
+        "walk_around": true
+      },
+      "cover": 0.7,
+      "color": "#228B22",
+      "show_name": false,
+      "properties": {}
+    },
+    {
+      "id": "obj_22",
+      "name": "Дерево №7",
+      "type": "tree",
+      "position": {
+        "x": 46.0,
+        "y": 16.0
+      },
+      "size": {
+        "w": 1.0,
+        "h": 1.0,
+        "d": 5.0
+      },
+      "rotation": "",
+      "passability": {
+        "walk": false,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": true,
+        "walk_around": true
+      },
+      "cover": 0.7,
+      "color": "#228B22",
+      "show_name": false,
+      "properties": {}
+    },
+    {
+      "id": "obj_23",
+      "name": "Яблоня №1",
+      "type": "apple_tree",
+      "position": {
+        "x": 47.0,
+        "y": 8.0
+      },
+      "size": {
+        "w": 1.0,
+        "h": 1.0,
+        "d": 4.0
+      },
+      "rotation": "",
+      "passability": {
+        "walk": false,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": true,
+        "walk_around": true
+      },
+      "cover": 0.7,
+      "color": "#8B4513",
+      "show_name": false,
+      "properties": {}
+    },
+    {
+      "id": "obj_24",
+      "name": "Яблоня №2",
+      "type": "apple_tree",
+      "position": {
+        "x": 48.5,
+        "y": 4.0
+      },
+      "size": {
+        "w": 1.0,
+        "h": 1.0,
+        "d": 4.0
+      },
+      "rotation": "",
+      "passability": {
+        "walk": false,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": true,
+        "walk_around": true
+      },
+      "cover": 0.7,
+      "color": "#8B4513",
+      "show_name": false,
+      "properties": {}
+    },
+    {
+      "id": "obj_25",
+      "name": "Яблоня №3",
+      "type": "apple_tree",
+      "position": {
+        "x": 48.5,
+        "y": 2.0
+      },
+      "size": {
+        "w": 1.0,
+        "h": 1.0,
+        "d": 4.0
+      },
+      "rotation": "",
+      "passability": {
+        "walk": false,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": true,
+        "walk_around": true
+      },
+      "cover": 0.7,
+      "color": "#8B4513",
+      "show_name": false,
+      "properties": {}
+    },
+    {
+      "id": "obj_26",
+      "name": "Яблоня №4",
+      "type": "apple_tree",
+      "position": {
+        "x": 46.0,
+        "y": 3.5
+      },
+      "size": {
+        "w": 1.0,
+        "h": 1.0,
+        "d": 4.0
+      },
+      "rotation": "",
+      "passability": {
+        "walk": false,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": true,
+        "walk_around": true
+      },
+      "cover": 0.7,
+      "color": "#8B4513",
+      "show_name": false,
+      "properties": {}
+    },
+    {
+      "id": "obj_27",
+      "name": "Яблоня №5",
+      "type": "apple_tree",
+      "position": {
+        "x": 49.0,
+        "y": 9.0
+      },
+      "size": {
+        "w": 1.0,
+        "h": 1.0,
+        "d": 4.0
+      },
+      "rotation": "",
+      "passability": {
+        "walk": false,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": true,
+        "walk_around": true
+      },
+      "cover": 0.7,
+      "color": "#8B4513",
+      "show_name": false,
+      "properties": {}
+    },
+    {
+      "id": "obj_28",
+      "name": "Яблоня №6",
+      "type": "apple_tree",
+      "position": {
+        "x": 48.5,
+        "y": 12.0
+      },
+      "size": {
+        "w": 1.0,
+        "h": 1.0,
+        "d": 4.0
+      },
+      "rotation": "",
+      "passability": {
+        "walk": false,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": true,
+        "walk_around": true
+      },
+      "cover": 0.7,
+      "color": "#8B4513",
+      "show_name": false,
+      "properties": {}
+    },
+    {
+      "id": "obj_29",
+      "name": "Яблоня №7",
+      "type": "apple_tree",
+      "position": {
+        "x": 46.5,
+        "y": 16.0
+      },
+      "size": {
+        "w": 1.0,
+        "h": 1.0,
+        "d": 4.0
+      },
+      "rotation": "",
+      "passability": {
+        "walk": false,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": true,
+        "walk_around": true
+      },
+      "cover": 0.7,
+      "color": "#8B4513",
+      "show_name": false,
+      "properties": {}
+    },
+    {
+      "id": "obj_30",
+      "name": "Яблоня №8",
+      "type": "apple_tree",
+      "position": {
+        "x": 45.0,
+        "y": 15.0
+      },
+      "size": {
+        "w": 1.0,
+        "h": 1.0,
+        "d": 4.0
+      },
+      "rotation": "",
+      "passability": {
+        "walk": false,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": true,
+        "walk_around": true
+      },
+      "cover": 0.7,
+      "color": "#8B4513",
+      "show_name": false,
+      "properties": {}
+    },
+    {
+      "id": "obj_31",
+      "name": "Яблоня №9",
+      "type": "apple_tree",
+      "position": {
+        "x": 45.0,
+        "y": 12.0
+      },
+      "size": {
+        "w": 1.0,
+        "h": 1.0,
+        "d": 4.0
+      },
+      "rotation": "",
+      "passability": {
+        "walk": false,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": true,
+        "walk_around": true
+      },
+      "cover": 0.7,
+      "color": "#8B4513",
+      "show_name": false,
+      "properties": {}
+    },
+    {
+      "id": "obj_32",
+      "name": "Яблоня №10",
+      "type": "apple_tree",
+      "position": {
+        "x": 47.0,
+        "y": 10.0
+      },
+      "size": {
+        "w": 1.0,
+        "h": 1.0,
+        "d": 4.0
+      },
+      "rotation": "",
+      "passability": {
+        "walk": false,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": true,
+        "walk_around": true
+      },
+      "cover": 0.7,
+      "color": "#8B4513",
+      "show_name": false,
+      "properties": {}
+    },
+    {
+      "id": "obj_33",
+      "name": "Трава №1",
+      "type": "grass",
+      "position": {
+        "x": 45.0,
+        "y": 3.0
+      },
+      "size": {
+        "w": 0.5,
+        "h": 0.5,
+        "d": 0.3
+      },
+      "rotation": "",
+      "passability": {
+        "walk": true,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": false,
+        "walk_around": true
+      },
+      "cover": 0.1,
+      "color": "#32CD32",
+      "show_name": false,
+      "properties": {}
+    },
+    {
+      "id": "obj_34",
+      "name": "Трава №2",
+      "type": "grass",
+      "position": {
+        "x": 47.5,
+        "y": 1.0
+      },
+      "size": {
+        "w": 0.5,
+        "h": 0.5,
+        "d": 0.3
+      },
+      "rotation": "",
+      "passability": {
+        "walk": true,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": false,
+        "walk_around": true
+      },
+      "cover": 0.1,
+      "color": "#32CD32",
+      "show_name": false,
+      "properties": {}
+    },
+    {
+      "id": "obj_35",
+      "name": "Трава №3",
+      "type": "grass",
+      "position": {
+        "x": 48.0,
+        "y": 2.0
+      },
+      "size": {
+        "w": 0.5,
+        "h": 0.5,
+        "d": 0.3
+      },
+      "rotation": "",
+      "passability": {
+        "walk": true,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": false,
+        "walk_around": true
+      },
+      "cover": 0.1,
+      "color": "#32CD32",
+      "show_name": false,
+      "properties": {}
+    },
+    {
+      "id": "obj_36",
+      "name": "Трава №4",
+      "type": "grass",
+      "position": {
+        "x": 48.0,
+        "y": 9.0
+      },
+      "size": {
+        "w": 0.5,
+        "h": 0.5,
+        "d": 0.3
+      },
+      "rotation": "",
+      "passability": {
+        "walk": true,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": false,
+        "walk_around": true
+      },
+      "cover": 0.1,
+      "color": "#32CD32",
+      "show_name": false,
+      "properties": {}
+    },
+    {
+      "id": "obj_37",
+      "name": "Трава №5",
+      "type": "grass",
+      "position": {
+        "x": 47.0,
+        "y": 8.0
+      },
+      "size": {
+        "w": 0.5,
+        "h": 0.5,
+        "d": 0.3
+      },
+      "rotation": "",
+      "passability": {
+        "walk": true,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": false,
+        "walk_around": true
+      },
+      "cover": 0.1,
+      "color": "#32CD32",
+      "show_name": false,
+      "properties": {}
+    },
+    {
+      "id": "obj_38",
+      "name": "Трава №6",
+      "type": "grass",
+      "position": {
+        "x": 44.5,
+        "y": 6.0
+      },
+      "size": {
+        "w": 0.5,
+        "h": 0.5,
+        "d": 0.3
+      },
+      "rotation": "",
+      "passability": {
+        "walk": true,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": false,
+        "walk_around": true
+      },
+      "cover": 0.1,
+      "color": "#32CD32",
+      "show_name": false,
+      "properties": {}
+    },
+    {
+      "id": "obj_39",
+      "name": "Трава №7",
+      "type": "grass",
+      "position": {
+        "x": 47.0,
+        "y": 5.0
+      },
+      "size": {
+        "w": 0.5,
+        "h": 0.5,
+        "d": 0.3
+      },
+      "rotation": "",
+      "passability": {
+        "walk": true,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": false,
+        "walk_around": true
+      },
+      "cover": 0.1,
+      "color": "#32CD32",
+      "show_name": false,
+      "properties": {}
+    },
+    {
+      "id": "obj_40",
+      "name": "Трава №8",
+      "type": "grass",
+      "position": {
+        "x": 48.0,
+        "y": 7.0
+      },
+      "size": {
+        "w": 0.5,
+        "h": 0.5,
+        "d": 0.3
+      },
+      "rotation": "",
+      "passability": {
+        "walk": true,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": false,
+        "walk_around": true
+      },
+      "cover": 0.1,
+      "color": "#32CD32",
+      "show_name": false,
+      "properties": {}
+    },
+    {
+      "id": "obj_41",
+      "name": "Трава №9",
+      "type": "grass",
+      "position": {
+        "x": 45.5,
+        "y": 8.0
+      },
+      "size": {
+        "w": 0.5,
+        "h": 0.5,
+        "d": 0.3
+      },
+      "rotation": "",
+      "passability": {
+        "walk": true,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": false,
+        "walk_around": true
+      },
+      "cover": 0.1,
+      "color": "#32CD32",
+      "show_name": false,
+      "properties": {}
+    },
+    {
+      "id": "obj_42",
+      "name": "Трава №10",
+      "type": "grass",
+      "position": {
+        "x": 46.0,
+        "y": 9.0
+      },
+      "size": {
+        "w": 0.5,
+        "h": 0.5,
+        "d": 0.3
+      },
+      "rotation": "",
+      "passability": {
+        "walk": true,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": false,
+        "walk_around": true
+      },
+      "cover": 0.1,
+      "color": "#32CD32",
+      "show_name": false,
+      "properties": {}
+    },
+    {
+      "id": "obj_43",
+      "name": "Трава №11",
+      "type": "grass",
+      "position": {
+        "x": 47.5,
+        "y": 13.0
+      },
+      "size": {
+        "w": 0.5,
+        "h": 0.5,
+        "d": 0.3
+      },
+      "rotation": "",
+      "passability": {
+        "walk": true,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": false,
+        "walk_around": true
+      },
+      "cover": 0.1,
+      "color": "#32CD32",
+      "show_name": false,
+      "properties": {}
+    },
+    {
+      "id": "obj_44",
+      "name": "Трава №12",
+      "type": "grass",
+      "position": {
+        "x": 48.0,
+        "y": 16.0
+      },
+      "size": {
+        "w": 0.5,
+        "h": 0.5,
+        "d": 0.3
+      },
+      "rotation": "",
+      "passability": {
+        "walk": true,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": false,
+        "walk_around": true
+      },
+      "cover": 0.1,
+      "color": "#32CD32",
+      "show_name": false,
+      "properties": {}
+    },
+    {
+      "id": "obj_45",
+      "name": "Трава №13",
+      "type": "grass",
+      "position": {
+        "x": 45.5,
+        "y": 17.5
+      },
+      "size": {
+        "w": 0.5,
+        "h": 0.5,
+        "d": 0.3
+      },
+      "rotation": "",
+      "passability": {
+        "walk": true,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": false,
+        "walk_around": true
+      },
+      "cover": 0.1,
+      "color": "#32CD32",
+      "show_name": false,
+      "properties": {}
+    },
+    {
+      "id": "obj_46",
+      "name": "Трава №14",
+      "type": "grass",
+      "position": {
+        "x": 45.0,
+        "y": 17.0
+      },
+      "size": {
+        "w": 0.5,
+        "h": 0.5,
+        "d": 0.3
+      },
+      "rotation": "",
+      "passability": {
+        "walk": true,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": false,
+        "walk_around": true
+      },
+      "cover": 0.1,
+      "color": "#32CD32",
+      "show_name": false,
+      "properties": {}
+    },
+    {
+      "id": "obj_47",
+      "name": "Трава №15",
+      "type": "grass",
+      "position": {
+        "x": 45.0,
+        "y": 14.0
+      },
+      "size": {
+        "w": 0.5,
+        "h": 0.5,
+        "d": 0.3
+      },
+      "rotation": "",
+      "passability": {
+        "walk": true,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": false,
+        "walk_around": true
+      },
+      "cover": 0.1,
+      "color": "#32CD32",
+      "show_name": false,
+      "properties": {}
+    },
+    {
+      "id": "obj_48",
+      "name": "Трава №16",
+      "type": "grass",
+      "position": {
+        "x": 45.5,
+        "y": 13.5
+      },
+      "size": {
+        "w": 0.5,
+        "h": 0.5,
+        "d": 0.3
+      },
+      "rotation": "",
+      "passability": {
+        "walk": true,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": false,
+        "walk_around": true
+      },
+      "cover": 0.1,
+      "color": "#32CD32",
+      "show_name": false,
+      "properties": {}
+    },
+    {
+      "id": "obj_49",
+      "name": "Трава №17",
+      "type": "grass",
+      "position": {
+        "x": 47.5,
+        "y": 18.0
+      },
+      "size": {
+        "w": 0.5,
+        "h": 0.5,
+        "d": 0.3
+      },
+      "rotation": "",
+      "passability": {
+        "walk": true,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": false,
+        "walk_around": true
+      },
+      "cover": 0.1,
+      "color": "#32CD32",
+      "show_name": false,
+      "properties": {}
+    },
+    {
+      "id": "obj_50",
+      "name": "Трава №18",
+      "type": "grass",
+      "position": {
+        "x": 47.5,
+        "y": 18.5
+      },
+      "size": {
+        "w": 0.5,
+        "h": 0.5,
+        "d": 0.3
+      },
+      "rotation": "",
+      "passability": {
+        "walk": true,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": false,
+        "walk_around": true
+      },
+      "cover": 0.1,
+      "color": "#32CD32",
+      "show_name": false,
+      "properties": {}
+    },
+    {
+      "id": "obj_51",
+      "name": "Трава №19",
+      "type": "grass",
+      "position": {
+        "x": 48.5,
+        "y": 14.0
+      },
+      "size": {
+        "w": 0.5,
+        "h": 0.5,
+        "d": 0.3
+      },
+      "rotation": "",
+      "passability": {
+        "walk": true,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": false,
+        "walk_around": true
+      },
+      "cover": 0.1,
+      "color": "#32CD32",
+      "show_name": false,
+      "properties": {}
+    },
+    {
+      "id": "obj_52",
+      "name": "Трава №20",
+      "type": "grass",
+      "position": {
+        "x": 49.0,
+        "y": 13.0
+      },
+      "size": {
+        "w": 0.5,
+        "h": 0.5,
+        "d": 0.3
+      },
+      "rotation": "",
+      "passability": {
+        "walk": true,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": false,
+        "walk_around": true
+      },
+      "cover": 0.1,
+      "color": "#32CD32",
+      "show_name": false,
+      "properties": {}
+    },
+    {
+      "id": "obj_53",
+      "name": "Трава №21",
+      "type": "grass",
+      "position": {
+        "x": 48.5,
+        "y": 9.0
+      },
+      "size": {
+        "w": 0.5,
+        "h": 0.5,
+        "d": 0.3
+      },
+      "rotation": "",
+      "passability": {
+        "walk": true,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": false,
+        "walk_around": true
+      },
+      "cover": 0.1,
+      "color": "#32CD32",
+      "show_name": false,
+      "properties": {}
+    },
+    {
+      "id": "obj_54",
+      "name": "Трава №22",
+      "type": "grass",
+      "position": {
+        "x": 48.5,
+        "y": 6.0
+      },
+      "size": {
+        "w": 0.5,
+        "h": 0.5,
+        "d": 0.3
+      },
+      "rotation": "",
+      "passability": {
+        "walk": true,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": false,
+        "walk_around": true
+      },
+      "cover": 0.1,
+      "color": "#32CD32",
+      "show_name": false,
+      "properties": {}
+    },
+    {
+      "id": "obj_55",
+      "name": "Трава №23",
+      "type": "grass",
+      "position": {
+        "x": 48.5,
+        "y": 5.0
+      },
+      "size": {
+        "w": 0.5,
+        "h": 0.5,
+        "d": 0.3
+      },
+      "rotation": "",
+      "passability": {
+        "walk": true,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": false,
+        "walk_around": true
+      },
+      "cover": 0.1,
+      "color": "#32CD32",
+      "show_name": false,
+      "properties": {}
+    },
+    {
+      "id": "obj_56",
+      "name": "Палатка №1",
+      "type": "tent",
+      "position": {
+        "x": 31.5,
+        "y": 7.0
+      },
+      "size": {
+        "w": 2.0,
+        "h": 2.0,
+        "d": 2.0
+      },
+      "rotation": "",
+      "passability": {
+        "walk": false,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": false,
+        "walk_around": true
+      },
+      "cover": 0.8,
+      "color": "#D2691E",
+      "show_name": false,
+      "properties": {}
+    },
+    {
+      "id": "obj_57",
+      "name": "Палатка №2",
+      "type": "tent",
+      "position": {
+        "x": 36.0,
+        "y": 7.5
+      },
+      "size": {
+        "w": 2.0,
+        "h": 2.0,
+        "d": 2.0
+      },
+      "rotation": "",
+      "passability": {
+        "walk": false,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": false,
+        "walk_around": true
+      },
+      "cover": 0.8,
+      "color": "#D2691E",
+      "show_name": false,
+      "properties": {}
+    },
+    {
+      "id": "obj_58",
+      "name": "Палатка №3",
+      "type": "tent",
+      "position": {
+        "x": 41.0,
+        "y": 7.0
+      },
+      "size": {
+        "w": 2.0,
+        "h": 2.0,
+        "d": 2.0
+      },
+      "rotation": "",
+      "passability": {
+        "walk": false,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": false,
+        "walk_around": true
+      },
+      "cover": 0.8,
+      "color": "#D2691E",
+      "show_name": false,
+      "properties": {}
+    },
+    {
+      "id": "obj_59",
+      "name": "Палатка №4",
+      "type": "tent",
+      "position": {
+        "x": 32.0,
+        "y": 11.5
+      },
+      "size": {
+        "w": 2.0,
+        "h": 2.0,
+        "d": 2.0
+      },
+      "rotation": "",
+      "passability": {
+        "walk": false,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": false,
+        "walk_around": true
+      },
+      "cover": 0.8,
+      "color": "#D2691E",
+      "show_name": false,
+      "properties": {}
+    },
+    {
+      "id": "obj_60",
+      "name": "Палатка №5",
+      "type": "tent",
+      "position": {
+        "x": 36.5,
+        "y": 11.5
+      },
+      "size": {
+        "w": 2.0,
+        "h": 2.0,
+        "d": 2.0
+      },
+      "rotation": "",
+      "passability": {
+        "walk": false,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": false,
+        "walk_around": true
+      },
+      "cover": 0.8,
+      "color": "#D2691E",
+      "show_name": false,
+      "properties": {}
+    },
+    {
+      "id": "obj_61",
+      "name": "Палатка №6",
+      "type": "tent",
+      "position": {
+        "x": 41.5,
+        "y": 12.0
+      },
+      "size": {
+        "w": 2.0,
+        "h": 2.0,
+        "d": 2.0
+      },
+      "rotation": "",
+      "passability": {
+        "walk": false,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": false,
+        "walk_around": true
+      },
+      "cover": 0.8,
+      "color": "#D2691E",
+      "show_name": false,
+      "properties": {}
+    },
+    {
+      "id": "obj_62",
+      "name": "Палатка №7",
+      "type": "tent",
+      "position": {
+        "x": 31.5,
+        "y": 15.5
+      },
+      "size": {
+        "w": 2.0,
+        "h": 2.0,
+        "d": 2.0
+      },
+      "rotation": "",
+      "passability": {
+        "walk": false,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": false,
+        "walk_around": true
+      },
+      "cover": 0.8,
+      "color": "#D2691E",
+      "show_name": false,
+      "properties": {}
+    },
+    {
+      "id": "obj_63",
+      "name": "Палатка №8",
+      "type": "tent",
+      "position": {
+        "x": 36.0,
+        "y": 15.5
+      },
+      "size": {
+        "w": 2.0,
+        "h": 2.0,
+        "d": 2.0
+      },
+      "rotation": "",
+      "passability": {
+        "walk": false,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": false,
+        "walk_around": true
+      },
+      "cover": 0.8,
+      "color": "#D2691E",
+      "show_name": false,
+      "properties": {}
+    },
+    {
+      "id": "obj_64",
+      "name": "Палатка №9",
+      "type": "tent",
+      "position": {
+        "x": 41.5,
+        "y": 15.5
+      },
+      "size": {
+        "w": 2.0,
+        "h": 2.0,
+        "d": 2.0
+      },
+      "rotation": "",
+      "passability": {
+        "walk": false,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": false,
+        "walk_around": true
+      },
+      "cover": 0.8,
+      "color": "#D2691E",
+      "show_name": false,
+      "properties": {}
+    },
+    {
+      "id": "obj_65",
+      "name": "Костер №1",
+      "type": "campfire",
+      "position": {
+        "x": 41.0,
+        "y": 9.5
+      },
+      "size": {
+        "w": 0.8,
+        "h": 0.8,
+        "d": 0.5
+      },
+      "rotation": "",
+      "passability": {
+        "walk": true,
+        "jump_over": true,
+        "crawl_under": false,
+        "climb_on": false,
+        "walk_around": true
+      },
+      "cover": 0.0,
+      "color": "#FF4500",
+      "show_name": false,
+      "properties": {
+        "light_radius": 5.0,
+        "temperature": 800
+      }
+    },
+    {
+      "id": "obj_66",
+      "name": "Окно №1",
+      "type": "window",
+      "position": {
+        "x": 29.5,
+        "y": 2.5
+      },
+      "size": {
+        "w": 0.2,
+        "h": 3.42,
+        "d": 1.5
+      },
+      "rotation": "wall_3",
+      "passability": {
+        "walk": false,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": true,
+        "walk_around": true
+      },
+      "cover": 0.0,
+      "color": "#87CEEB",
+      "show_name": false,
+      "properties": {
+        "opacity": 0.3,
+        "destructible": true,
+        "durability": 15,
+        "sound_attenuation": 0.3,
+        "visibility_through": 0.8
+      }
+    },
+    {
+      "id": "obj_67",
+      "name": "Декорация №1",
+      "type": "decoration",
+      "position": {
+        "x": 32.0,
+        "y": 4.5
+      },
+      "size": {
+        "w": 0.5,
+        "h": 0.5,
+        "d": 0.5
+      },
+      "rotation": "",
+      "passability": {
+        "walk": true,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": false,
+        "walk_around": true
+      },
+      "cover": 0.0,
+      "color": "#90EE90",
+      "show_name": false,
+      "properties": {}
+    },
+    {
+      "id": "obj_68",
+      "name": "Декорация №2",
+      "type": "decoration",
+      "position": {
+        "x": 34.0,
+        "y": 4.5
+      },
+      "size": {
+        "w": 0.61,
+        "h": 0.71,
+        "d": 0.5
+      },
+      "rotation": "",
+      "passability": {
+        "walk": true,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": false,
+        "walk_around": true
+      },
+      "cover": 0.0,
+      "color": "#90EE90",
+      "show_name": false,
+      "properties": {}
+    }
+  ],
   "passages": [],
   "portals": [],
   "npcs": [],
@@ -36,7 +1991,8 @@
       "connections": [
         "gate_road",
         "guard_post",
-        "gate_courtyard"
+        "gate_courtyard",
+        "entrance"
       ]
     },
     "guard_post": {
@@ -54,18 +2010,26 @@
       "connections": [
         "gate_arch"
       ]
+    },
+    "entrance": {
+      "x": 11.5,
+      "y": 16.0,
+      "label": "Вход с площади",
+      "connections": [
+        "gate_arch"
+      ]
     }
-  },
-  "player_spawn": {
-    "x": 31.333333333333332,
-    "y": 7.666666666666667,
-    "z": 0
   },
   "global_coords": true,
   "created_at": "2026-06-09T00:00:00",
-  "modified_at": "2026-06-09T00:00:00",
+  "modified_at": "2026-06-14T23:09:47.765721",
   "adjacency": {
     "west": "tavern_silver_wolf",
     "south": "market_square"
+  },
+  "player_spawn": {
+    "x": 20.91666666666666,
+    "y": 1.0416666666666667,
+    "z": 0
   }
 }

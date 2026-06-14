@@ -1,0 +1,18 @@
+{
+  "scene_state": {
+    "location_id": "tavern",
+    "npc_positions": {
+      "npc_lusya": {
+        "position": "city_gate:entry_west",
+        "local_position": {
+          "x": 20.0,
+          "y": 15.0
+        },
+        "location": "city_gate",
+        "location_id": "city_gate"
+      }
+    },
+    "active_traversals": {},
+    "tick": 10
+  }
+}

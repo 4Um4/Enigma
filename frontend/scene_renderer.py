@@ -77,6 +77,10 @@ class SceneRenderer:
         dt: float = 0.016,  # Дельта времени для Lerp (Приоритет 0)
         avatar_state: Optional[dict] = None, # ADR-035: Феноменологическая проекция
         ambient_state: Optional[dict] = None, # ADR-037: Средовое давление
+        speech_bubbles: Optional[dict] = None,   # ADR-SPEECH: Облачка над NPC
+        player_speech: Optional[dict] = None,     # ADR-SPEECH: Облачко над игроком
+        mood_indicators: Optional[dict] = None,    # ADR-MANIFEST: Наблюдаемые физические проявления
+        floor_rects: Optional[List[tuple]] = None,  # S80.3b: Multi-chunk floors [(ox,oy,w,h), ...]
     ) -> None:
         """
         Отрисовывает полный кадр.
@@ -108,8 +112,11 @@ class SceneRenderer:
         cam_x -= int(profile.motion_bias[0] * SCALE * 2)
         cam_y -= int(profile.motion_bias[1] * SCALE * 2)
 
-        # 1. Пол — вся локация (тёмный)
-        self._draw_floor(scene_w, scene_h, cam_x, cam_y)
+        # 1. Пол — все видимые чанки (S80.3b: бесшовный мир)
+        if floor_rects:
+            self._draw_floors(floor_rects, cam_x, cam_y)
+        else:
+            self._draw_floor(scene_w, scene_h, cam_x, cam_y)
 
         # 2. Стены — геометрия комнаты (видны всегда, но ярче если в LOS)
         self._draw_walls(walls, cam_x, cam_y, scene)
@@ -119,7 +126,7 @@ class SceneRenderer:
         self._draw_obstacles(obstacles, cam_x, cam_y)
 
         # 4. NPC — только воспринимаемые (с Temporal Delay)
-        self._draw_npcs(scene.entities, cam_x, cam_y, scene.attention_focus_id, player_xy, profile, dt=dt)
+        self._draw_npcs(scene.entities, cam_x, cam_y, scene.attention_focus_id, player_xy, profile, dt=dt, speech_bubbles=speech_bubbles or {}, manifest_indicators=mood_indicators or {})
 
         # 5. Игрок — всегда виден
         # Lerp сглаживание поворота (Приоритет 0)
@@ -130,7 +137,7 @@ class SceneRenderer:
         # Экспоненциальное сглаживание (~10 рад/сек)
         self._visual_facing_angle += diff * min(1.0, 10.0 * dt)
         
-        self._draw_player(player_xy, cam_x, cam_y, self._visual_facing_angle)
+        self._draw_player(player_xy, cam_x, cam_y, self._visual_facing_angle, player_speech=player_speech)
 
         # 6. HUD поверх карты — audio events, body state, environment
         self._draw_hud(scene)
@@ -191,9 +198,18 @@ class SceneRenderer:
         return int(wx * SCALE - cam_x), int(wy * SCALE - cam_y)
 
     def _draw_floor(self, w: float, h: float, cam_x: float, cam_y: float) -> None:
+        """Single-chunk floor (legacy compatibility)."""
         sx, sy = self._w2s(0, 0, cam_x, cam_y)
         sw, sh = int(w * SCALE), int(h * SCALE)
         pygame.draw.rect(self.screen, _COLORS["floor_dim"], (sx, sy, sw, sh))
+
+    def _draw_floors(self, floor_rects: list, cam_x: float, cam_y: float) -> None:
+        """Multi-chunk floors (S80.3b). Рисует пол для каждого видимого чанка."""
+        for rect in floor_rects:
+            ox, oy, w, h = rect[0], rect[1], rect[2], rect[3]
+            sx, sy = self._w2s(ox, oy, cam_x, cam_y)
+            sw, sh = int(w * SCALE), int(h * SCALE)
+            pygame.draw.rect(self.screen, _COLORS["floor_dim"], (sx, sy, sw, sh))
 
     def _draw_walls(
         self,
@@ -221,37 +237,14 @@ class SceneRenderer:
         cam_x: float,
         cam_y: float,
     ) -> None:
-        for entity in entities:
-            if entity.entity_type != "object":
-                continue
-            if not entity.visible:
-                continue
+        # S81-ФИКС: Объекты рендерятся ТОЛЬКО через _draw_obstacles (top-left координаты).
+        # _draw_entities использовал center-based offset (ox - ow/2), что давало
+        # двойной рендер + смещение + растягивание объектов.
+        # Подписи и attention-выделение перенесены в _draw_obstacles.
+        pass
 
-            raw = entity._raw_data
-            ox, oy = entity.x, entity.y
-            size = raw.get("size") or {}
-            ow, oh = size.get("w", 1), size.get("h", 1)
-
-            sx, sy = self._w2s(ox - ow / 2, oy - oh / 2, cam_x, cam_y)
-            sw, sh = int(ow * SCALE), int(oh * SCALE)
-
-            # TODO: убрать raw после добавления obj_type в PerceivedEntity
-            obj_type = raw.get("type", "") if raw else ""
-            sprite = get_entity_sprite(obj_type)
-
-            if sprite:
-                # Масштабируем тайл под физический размер объекта
-                scaled = pygame.transform.scale(sprite, (sw, sh))
-                self.screen.blit(scaled, (sx, sy))
-            else:
-                # Резервная отрисовка если спрайт не найден
-                color = _COLORS["object_visible"] if entity.in_attention else _COLORS["object"]
-                pygame.draw.rect(self.screen, color, (sx, sy, sw, sh), border_radius=3)
-
-            # Подпись если в фокусе
-            if entity.in_attention and entity.display_name:
-                label = self.font_small.render(entity.display_name, True, (220, 220, 220))
-                self.screen.blit(label, (sx, sy - 16))
+    # S81: Типы объектов, которые проходимы (не блокируют движение)
+    _PASSABLE_TYPES = {"door", "door_transition", "transition", "window"}
 
     def _draw_obstacles(
         self,
@@ -259,7 +252,8 @@ class SceneRenderer:
         cam_x: float,
         cam_y: float,
     ) -> None:
-        """Отрисовывает мебель и препятствия из spatial_obstacles (Приоритет: фикс спрайтов объектов)"""
+        """Отрисовывает мебель и препятствия из spatial_obstacles (top-left координаты).
+        Проходимые объекты (двери) рисуются полупрозрачными."""
         for obj in obstacles:
             # Бэкенд отдаёт x, y как левый верхний угол (scene_state_manager:560)
             ox = obj.get("x", 0)
@@ -271,13 +265,24 @@ class SceneRenderer:
             sw, sh = int(ow * SCALE), int(oh * SCALE)
 
             obj_type = obj.get("type", "")
+            # Data-driven: passability.walk приоритетнее type-хардкода
+            is_passable = obj.get("passability", {}).get("walk", False) or obj_type in self._PASSABLE_TYPES
+
             sprite = get_entity_sprite(obj_type)
 
             if sprite and sw > 0 and sh > 0:
                 scaled = pygame.transform.scale(sprite, (sw, sh))
+                if is_passable:
+                    # Полупрозрачный рендер для проходимых объектов
+                    scaled.set_alpha(160)
                 self.screen.blit(scaled, (sx, sy))
             else:
-                pygame.draw.rect(self.screen, _COLORS["obstacle_visible"], (sx, sy, sw, sh), border_radius=3)
+                if is_passable:
+                    # Проходимые объекты — пунктирная рамка
+                    color = (100, 180, 100)
+                    pygame.draw.rect(self.screen, color, (sx, sy, sw, sh), 1, border_radius=3)
+                else:
+                    pygame.draw.rect(self.screen, _COLORS["obstacle_visible"], (sx, sy, sw, sh), border_radius=3)
 
     def _draw_npcs(
         self,
@@ -288,6 +293,8 @@ class SceneRenderer:
         player_xy: Tuple[float, float],
         profile: ManifestationProfile = ManifestationProfile(), # ADR-037
         dt: float = 0.016, # Спринт 30: дельта времени для непрерывной кинематики
+        speech_bubbles: dict = None, # ADR-SPEECH
+        manifest_indicators: dict = None, # ADR-MANIFEST
     ) -> None:
         # ADR-037: Temporal Assembly Delay — инерция сборки реальности
         delay_factor = profile.temporal_assembly_delay
@@ -324,7 +331,7 @@ class SceneRenderer:
                 # ADR-141: Окаменелость — лёгкий визуальный замедлитель (пока без tint)
                 pass
             if entity.is_shaking:
-                _amp = int(entity.instability * 16)  # ADR-141: Радикальное усиление дрожи (было 6)
+                _amp = int(entity.instability * 7)  # ADR-141: Радикальное усиление дрожи (было 6)
                 sx += random.randint(-_amp, _amp)
                 sy += random.randint(-_amp, _amp)
             
@@ -356,10 +363,82 @@ class SceneRenderer:
                 label = self.font_small.render(entity.display_name, True, name_color)
                 self.screen.blit(label, (sx - label.get_width() // 2, sy - radius - 16))
 
+            # ADR-MANIFEST: Наблюдаемые физические проявления (цветной текст под именем)
+            _manifests = manifest_indicators or {}
+            _manif = _manifests.get(entity.entity_id)
+            if _manif and _manif.get("text"):
+                _manif_text = _manif.get("text", "")
+                _manif_color = _manif.get("color", (160, 160, 160))
+                _manif_surf = self.font_small.render(_manif_text, True, _manif_color)
+                self.screen.blit(_manif_surf, (sx - _manif_surf.get_width() // 2, sy + radius + 14))
+
+            # ADR-SPEECH: Речевое облачко над головой NPC (перенос по словам, обрезка по предложению)
+            _bubbles = speech_bubbles or {}
+            _bubble_data = _bubbles.get(entity.display_name) if entity.display_name else None
+            if _bubble_data:
+                _age = pygame.time.get_ticks() - _bubble_data["tick"]
+                if _age < 6000:
+                    _alpha = 255 if _age < 4500 else int(255 * (1.0 - (_age - 4500) / 1500.0))
+                    _btxt = _bubble_data["text"]
+                    _max_w = 180  # максимальная ширина облачка в пикселях
+                    _max_lines = 3
+                    _line_h = self.font_small.get_height() + 2
+                    # Перенос по словам
+                    _words = _btxt.split(' ')
+                    _lines = []
+                    _cur = ""
+                    for _w in _words:
+                        _test = (_cur + " " + _w).strip()
+                        if self.font_small.size(_test)[0] <= _max_w:
+                            _cur = _test
+                        else:
+                            if _cur:
+                                _lines.append(_cur)
+                            _cur = _w
+                    if _cur:
+                        _lines.append(_cur)
+                    # Обрезка по предложению если >3 строк
+                    if len(_lines) > _max_lines:
+                        _combined = ' '.join(_lines[:_max_lines])
+                        _last_sent = max(_combined.rfind('.'), _combined.rfind('!'), _combined.rfind('?'), _combined.rfind('—'))
+                        if _last_sent > len(_combined) // 2:
+                            _lines = _combined[:_last_sent + 1].split('\n')
+                            # Пересобираем с переносом
+                            _words2 = _combined[:_last_sent + 1].split(' ')
+                            _lines = []
+                            _cur2 = ""
+                            for _w2 in _words2:
+                                _test2 = (_cur2 + " " + _w2).strip()
+                                if self.font_small.size(_test2)[0] <= _max_w:
+                                    _cur2 = _test2
+                                else:
+                                    if _cur2:
+                                        _lines.append(_cur2)
+                                    _cur2 = _w2
+                            if _cur2:
+                                _lines.append(_cur2)
+                        else:
+                            _lines = _lines[:_max_lines]
+                            _lines[-1] = _lines[-1].rstrip(' ,—') + "…"
+                    _bub_h = len(_lines) * _line_h + 10
+                    # Находим самую широкую строку для ширины облачка
+                    _bub_w = max(self.font_small.size(l)[0] for l in _lines) + 14 if _lines else 40
+                    _bub_x = sx - _bub_w // 2
+                    _bub_y = sy - radius - 22 - _bub_h
+                    _bg = pygame.Surface((_bub_w, _bub_h), pygame.SRCALPHA)
+                    _bg.fill((25, 25, 45, min(_alpha, 210)))
+                    pygame.draw.rect(_bg, (160, 170, 220, _alpha), _bg.get_rect(), 1, border_radius=4)
+                    self.screen.blit(_bg, (_bub_x, _bub_y))
+                    for _li, _ll in enumerate(_lines):
+                        _ls = self.font_small.render(_ll, True, (255, 255, 255))
+                        _la = _ls.copy()
+                        _la.set_alpha(_alpha)
+                        self.screen.blit(_la, (_bub_x + 7, _bub_y + 5 + _li * _line_h))
+
             # Inference badges — маленькие индикаторы
             self._draw_inference_badges(entity, sx, sy + radius + 4)
 
-            # Визуальный индикатор внимания NPC (Приоритет 1)
+            # Визуальный индикатор внимания NPC — утолщённая линия + стрелка поверх PNG
             is_looking_at_player = is_focused or any(inf.type == "communication" for inf in entity.inferences)
             if is_looking_at_player:
                 player_sx, player_sy = self._w2s(player_xy[0], player_xy[1], cam_x, cam_y)
@@ -369,11 +448,21 @@ class SceneRenderer:
                 if gaze_dist > 0:
                     ndx = gaze_dx / gaze_dist
                     ndy = gaze_dy / gaze_dist
-                    start_x = sx + ndx * radius
-                    start_y = sy + ndy * radius
-                    end_x = sx + ndx * (radius + 10)
-                    end_y = sy + ndy * (radius + 10)
-                    pygame.draw.line(self.screen, (255, 255, 100), (start_x, start_y), (end_x, end_y), 2)
+                    # Линия начинается чуть внутри спрайта и выходит далеко за край
+                    start_x = sx + ndx * (radius - 2)
+                    start_y = sy + ndy * (radius - 2)
+                    end_x = sx + ndx * (radius + 18)
+                    end_y = sy + ndy * (radius + 18)
+                    gaze_color = (255, 255, 80)
+                    pygame.draw.line(self.screen, gaze_color, (start_x, start_y), (end_x, end_y), 3)
+                    # Стрелка на конце для однозначного чтения направления поверх текстур
+                    arrow_len = 6
+                    perp_x, perp_y = -ndy, ndx
+                    arrow_p1 = (end_x - ndx * arrow_len + perp_x * arrow_len * 0.5,
+                                end_y - ndy * arrow_len + perp_y * arrow_len * 0.5)
+                    arrow_p2 = (end_x - ndx * arrow_len - perp_x * arrow_len * 0.5,
+                                end_y - ndy * arrow_len - perp_y * arrow_len * 0.5)
+                    pygame.draw.polygon(self.screen, gaze_color, [(end_x, end_y), arrow_p1, arrow_p2])
 
             # Спринт 30: Сохраняем визуальную позицию (после интерполяции), а не сырую позицию тика,
             # чтобы на следующем кадре непрерывное движение продолжилось, а не началось с начала
@@ -413,14 +502,14 @@ class SceneRenderer:
                 pygame.draw.circle(self.screen, color, (sx + x_offset, sy), 3)
                 x_offset += 8
 
-    def _draw_player(self, xy: Tuple[float, float], cam_x: float, cam_y: float, facing: float) -> None:
+    def _draw_player(self, xy: Tuple[float, float], cam_x: float, cam_y: float, facing: float, player_speech: Optional[dict] = None) -> None:
         import math
         sx, sy = self._w2s(xy[0], xy[1], cam_x, cam_y)
-        # Форма стрелки: базовая ориентация — ВПРАВО (angle = 0)
+        # Форма стрелки: увеличена для читаемости взгляда поверх PNG текстур
         base_points = [
-            (12, 0),   # Наконечник
-            (-6, -8),  # Левое крыло
-            (-6, 8),   # Правое крыло
+            (16, 0),   # Наконечник
+            (-8, -11),  # Левое крыло
+            (-8, 11),   # Правое крыло
         ]
         cos_a = math.cos(facing)
         sin_a = math.sin(facing)
@@ -429,8 +518,67 @@ class SceneRenderer:
             (bx * cos_a - by * sin_a + sx, bx * sin_a + by * cos_a + sy)
             for bx, by in base_points
         ]
+        # Яркий контур 3px для видимости поверх любых текстур
         pygame.draw.polygon(self.screen, _COLORS["player_body"], points)
-        pygame.draw.polygon(self.screen, (255, 255, 255), points, 2)
+        pygame.draw.polygon(self.screen, (200, 230, 255), points, 3)
+
+        # ADR-SPEECH: Речевое облачко над головой игрока (перенос по словам, обрезка по предложению)
+        if player_speech:
+            _age = pygame.time.get_ticks() - player_speech["tick"]
+            if _age < 4000:
+                _alpha = 255 if _age < 2500 else int(255 * (1.0 - (_age - 2500) / 1500.0))
+                _btxt = player_speech["text"]
+                _max_w = 180
+                _max_lines = 2  # игрок обычно говорит короче
+                _line_h = self.font_small.get_height() + 2
+                # Перенос по словам
+                _words = _btxt.split(' ')
+                _lines = []
+                _cur = ""
+                for _w in _words:
+                    _test = (_cur + " " + _w).strip()
+                    if self.font_small.size(_test)[0] <= _max_w:
+                        _cur = _test
+                    else:
+                        if _cur:
+                            _lines.append(_cur)
+                        _cur = _w
+                if _cur:
+                    _lines.append(_cur)
+                # Обрезка по предложению если >2 строк
+                if len(_lines) > _max_lines:
+                    _combined = ' '.join(_lines[:_max_lines])
+                    _last_sent = max(_combined.rfind('.'), _combined.rfind('!'), _combined.rfind('?'), _combined.rfind('—'))
+                    if _last_sent > len(_combined) // 2:
+                        _words2 = _combined[:_last_sent + 1].split(' ')
+                        _lines = []
+                        _cur2 = ""
+                        for _w2 in _words2:
+                            _test2 = (_cur2 + " " + _w2).strip()
+                            if self.font_small.size(_test2)[0] <= _max_w:
+                                _cur2 = _test2
+                            else:
+                                if _cur2:
+                                    _lines.append(_cur2)
+                                _cur2 = _w2
+                        if _cur2:
+                            _lines.append(_cur2)
+                    else:
+                        _lines = _lines[:_max_lines]
+                        _lines[-1] = _lines[-1].rstrip(' ,—') + "…"
+                _bub_h = len(_lines) * _line_h + 10
+                _bub_w = max(self.font_small.size(l)[0] for l in _lines) + 14 if _lines else 40
+                _bub_x = sx - _bub_w // 2
+                _bub_y = sy - 28 - _bub_h
+                _bg = pygame.Surface((_bub_w, _bub_h), pygame.SRCALPHA)
+                _bg.fill((15, 30, 50, min(_alpha, 210)))
+                pygame.draw.rect(_bg, (80, 160, 240, _alpha), _bg.get_rect(), 1, border_radius=4)
+                self.screen.blit(_bg, (_bub_x, _bub_y))
+                for _li, _ll in enumerate(_lines):
+                    _ls = self.font_small.render(_ll, True, (200, 230, 255))
+                    _la = _ls.copy()
+                    _la.set_alpha(_alpha)
+                    self.screen.blit(_la, (_bub_x + 7, _bub_y + 5 + _li * _line_h))
 
     def _draw_hud(self, scene: PerceivedScene) -> None:
         """Отрисовывает текстовый HUD поверх карты"""

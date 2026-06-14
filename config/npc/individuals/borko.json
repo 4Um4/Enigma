@@ -40,7 +40,7 @@
     "planning_revenge": false,
     "is_dead": false
   },
-  "location": "inn_rooms",
+  "location": "tavern_silver_wolf",
   "hp": 30,
   "max_hp": 30,
   "origin_events": [

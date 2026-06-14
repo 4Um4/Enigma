@@ -521,6 +521,21 @@ class ModelRouter:
             future = asyncio.run_coroutine_threadsafe(coro, loop)
             return future.result(timeout=60)
     
+    # --- Streaming Observability (ADR-147) ---
+    # Router — единственный владелец observability LLM-вызовов.
+    # Streaming проходит ЧЕРЕЗ Router, не в обход.
+
+    def notify_stream_start(self, agent_name: str, capability: str | Capability) -> dict:
+        """Уведомляет Router о начале streaming LLM-вызова. Эмитит [R4A_STREAM] маркер для CDS."""
+        cap = self._normalize_capability(capability)
+        _root_logger.info(f"[R4A_STREAM] calling stream_tokens(), agent={agent_name}, capability={cap.value}")
+        return {"start_time": time.time(), "agent_name": agent_name, "capability": cap.value}
+
+    def notify_stream_end(self, ctx: dict, chars_produced: int) -> None:
+        """Уведомляет Router о завершении streaming LLM-вызова. Эмитит [R4A_STREAM] маркер для CDS."""
+        elapsed_ms = (time.time() - ctx["start_time"]) * 1000
+        _root_logger.info(f"[R4A_STREAM] stream complete, {chars_produced} chars in {elapsed_ms:.0f}ms")
+
     def set_capability_for_agent(self, agent_name: str, capability: Capability | str) -> None:
         """Установить маппинг агент → capability."""
         if isinstance(capability, str):

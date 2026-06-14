@@ -31,9 +31,14 @@ def integrate_affective_pressure(
     _w_threat = psyche.get("fear", 0.25)
     _w_uncertainty = psyche.get("control", 0.25)
     _w_anomaly = psyche.get("significance", 0.25)
-    # S72-FIX: Физиология — мгновенный сигнал, не проходит через PerceptualKernel.
-    _pain = psyche.get("pain", 0.0)
-    _shock = psyche.get("shock", 0.0)
+
+    willpower = psyche.get("willpower", 0.5)
+
+    # ADR-O-143: Somatic Axis (§ENIGMA-S72 compliance).
+    # Боль/шок проходят через PerceptualKernel.somatic_urgency и модулируются личностью.
+    # willpower → somatic_resistance: высокая воля снижает воспринимаемый дистресс,
+    # но не обнуляет (порог 0.5 — даже стоик чувствует боль).
+    _w_somatic = 1.0 - willpower * 0.5  # willpower ∈ [0,1] → _w_somatic ∈ [0.5, 1.0]
 
     # S75-R2 FIX: Hysteresis Model (Асимметричная Адаптация).
     # Убран аттрактор насыщения (incoming > recovery = вечный страх 1.0).
@@ -43,10 +48,8 @@ def integrate_affective_pressure(
         getattr(kernel, 'threat_gradient', 0.0) * _w_threat +
         getattr(kernel, 'uncertainty', 0.0) * _w_uncertainty +
         getattr(kernel, 'anomaly_score', 0.0) * _w_anomaly +
-        _pain + _shock
+        getattr(kernel, 'somatic_urgency', 0.0) * _w_somatic
     )
-
-    willpower = psyche.get("willpower", 0.5)
 
     if target_load > current_load:
         # Путь ВВЕРХ: Быстрая реакция на угрозу (рефлекс выживания)

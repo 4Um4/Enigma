@@ -18,7 +18,7 @@ class CombatState:
 class CombatService:
     """Simple local D&D-like combat flow: initiative, turn order and attack resolution."""
 
-    def __init__(self, root: str = "data/campaigns") -> None:
+    def __init__(self, root: str = "saves") -> None:
         self.root = Path(root)
         self.root.mkdir(parents=True, exist_ok=True)
 

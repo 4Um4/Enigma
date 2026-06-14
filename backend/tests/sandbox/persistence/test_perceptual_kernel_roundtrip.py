@@ -28,6 +28,7 @@ def test_perceptual_kernel_survives_legacy_roundtrip():
             "aggression_inhibition": 0.8,
             "initiative_suppression": 0.3,
             "compliance_bias": 0.1,
+            "somatic_urgency": 0.65,  # ADR-O-143: воспринимаемый телесный дистресс
             "recent_directive": "MOVE"
         }
     }

@@ -2,7 +2,7 @@
 Campaign State Service - "тёплый" слой между каноном мира и сессией.
 Интерфейс спроектирован для легкой миграции на SQLite.
 
-Storage: data/campaigns/{campaign_id}/campaign_state.json
+Storage: saves/{campaign_id}/campaign_meta.json
 """
 import json
 from datetime import datetime, timezone
@@ -19,7 +19,13 @@ class CampaignStateService:
     Предоставляет абстрактный интерфейс для работы с данными кампании.
     """
     
-    def __init__(self, root: str = "data/campaigns") -> None:
+    # ADR-O-146: Campaign metadata (players, world_facts) живёт в saves/ (runtime world)
+    # Не data/campaigns (static world). Имя файла campaign_meta.json чтобы не
+    # коллизировать с SceneStateManager который пишет campaign_state.json
+    def __init__(self, root: str = "") -> None:
+        if not root:
+            from app.core.config import settings
+            root = settings.saves_dir
         self.root = Path(root)
         self.root.mkdir(parents=True, exist_ok=True)
     
@@ -31,7 +37,9 @@ class CampaignStateService:
     
     def _state_file(self, campaign_id: str) -> Path:
         """Получить путь к файлу состояния кампании."""
-        return self._campaign_dir(campaign_id) / "campaign_state.json"
+        # ADR-O-146: campaign_meta.json — метаданные кампании (игроки, факты)
+        # SceneStateManager владеет campaign_state.json (scene_state)
+        return self._campaign_dir(campaign_id) / "campaign_meta.json"
     
     def _now_iso(self) -> str:
         """Получить текущее время в ISO формате."""

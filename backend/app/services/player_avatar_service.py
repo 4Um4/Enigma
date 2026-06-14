@@ -45,8 +45,10 @@ class PlayerAvatarService:
     - state: NPCState — живое состояние (stress, emotion, wounds, conditions)
     """
 
-    def __init__(self, root: str = "data/campaigns") -> None:
+    def __init__(self, root: str = "saves") -> None:
         self.root = Path(root)
+        # ADR-JOURNAL: Буфер последних 100 реплик (RAM SSOT)
+        self._dialog_journal: List[Dict[str, str]] = []
 
     def _avatar_path(self, campaign_id: str) -> Path:
         return self.root / campaign_id / "player_avatar.json"
@@ -237,6 +239,10 @@ class PlayerAvatarService:
             "perceptual_kernel": {
                 k: v for k, v in state.perceptual_kernel.__dict__.items()
             } if state.perceptual_kernel else {},
+            # ADR-GENDER: Персистенция пола аватара. Без этого поле теряется при save/load.
+            "gender": state.gender,
+            # ADR-JOURNAL: Персистенция истории диалогов
+            "dialog_journal": self._dialog_journal,
         }
 
     def _state_from_dict(self, data: dict) -> NPCState:
@@ -304,7 +310,25 @@ class PlayerAvatarService:
             # ADR-128: perceptual_kernel — субъективная модель восприятия.
             # Без этого threat_gradient/initiative_suppression = 0.0 при каждой загрузке.
             perceptual_kernel=_pk_from_dict(data.get("perceptual_kernel", {})),
+            # ADR-GENDER: Восстановление пола аватара из персистенции.
+            gender=data.get("gender", "male"),
         )
+        # ADR-JOURNAL: Восстановление журнала из персистенции
+        self._dialog_journal = data.get("dialog_journal", [])
+
+    # ── ADR-JOURNAL: Управление очередью реплик ───────────────────
+    def append_journal(self, speaker: str, text: str):
+        """Добавление реплики в журнал. Инвариант J-100 (FIFO)."""
+        if not text:
+            return
+        self._dialog_journal.append({"speaker": speaker, "text": text})
+        # Ограничение 100 последних высказываний
+        if len(self._dialog_journal) > 100:
+            self._dialog_journal = self._dialog_journal[-100:]
+
+    def get_journal(self) -> list:
+        """Возвращает буфер журнала для проекции во WorldSnapshotDTO."""
+        return self._dialog_journal
 
 
 # Глобальный экземпляр

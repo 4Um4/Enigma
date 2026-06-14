@@ -50,7 +50,7 @@ from app.services.vram_monitor import get_vram_monitor
 from app.services.error_interpreter import get_error_interpreter
 from app.services.logging_tools import jsonl_log
 from app.core.config import settings
-from app.services.adventure_loader import AdventureLoader
+# AdventureLoader удалён (ADR-O-146) — vestigial слой, нет файлов для загрузки
 from app.services.system_requirements import SystemRequirements
 from app.models.schemas import CampaignLoadResponse
 
@@ -115,7 +115,7 @@ class GameLoop:
         dm_agent,
         rules_agent,
         load_npcs_func,
-        adventure_loader: AdventureLoader,
+        # adventure_loader удалён (ADR-O-146)
         system_requirements: SystemRequirements,
         saves_dir: Optional[Path] = None,
     ):
@@ -132,7 +132,8 @@ class GameLoop:
         self.rules_agent      = rules_agent
         self._load_npcs           = load_npcs_func  # static только (для движков)
         # self._data_dir удалён — runtime через self._saves_dir, config через self.data_dir
-        self.adventure_loader     = adventure_loader
+        # ADR-O-146: AdventureLoader удалён — vestigial слой (нет файлов world_lore.txt/npc.json/locations.json).
+        # load_campaign() инлайнит пустой результат вместо вызова загрузчика.
         self.system_requirements  = system_requirements
         self._campaign_world_index: dict[str, str] = {}
         self._session_started_campaigns: set = set()    
@@ -187,6 +188,11 @@ class GameLoop:
         from app.services.affective.affective_decay_handler import AffectiveDecayHandler
         self._tick_orch.add_idle_handler(AffectiveDecayHandler())
 
+    @property
+    def saves_dir(self) -> Path:
+        """ADR-O-146: Публичный доступ к saves_dir. Единый runtime путь."""
+        return self._saves_dir
+
     def get_current_tick(self, campaign_id: str) -> int:
         """Единый источник тика — через TemporalEngine (Устав §3)."""
         return self._tick_orch.get_current_tick(campaign_id)
@@ -195,6 +201,159 @@ class GameLoop:
     # ────────────────────────────────────────────────────────────────────────────
     # ПУБЛИЧНЫЙ API
     # ────────────────────────────────────────────────────────────────────────────
+
+    # ADR-O-146: New Game Reset — сброс runtime мира при сохранении static
+    def new_game(self, campaign_id: str) -> dict:
+        """Сбрасывает runtime состояние кампании к чистому static.
+        
+        Полная очистка: SQLite + JSON + все кэши.
+        Переинициализация: сцена из editor JSON + NPC со здоровым body_state.
+        Источник чистого мира: config/npc/ + map_editor/campaigns/
+        Оставляет: characters.json, character_profiles.json (выбор персонажа)
+        
+        Returns: {"reset": True, "campaign_id": str, "files_removed": [str]}
+        """
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        removed = []
+        saves_campaign = self._saves_dir / campaign_id
+        
+        # === 1. ОЧИСТКА PERSISTENCE (SQLite: scene + runtime) ===
+        # КОРЕНЬ БАГА: раньше не чистили SQLite → LifeEngine читал старый runtime
+        try:
+            persistence = self.scene_manager._persistence
+            if persistence:
+                persistence.delete_campaign(campaign_id)
+                removed.append("sqlite:scene+runtime")
+                logger.info(f"[NEW_GAME] SQLite cleared for '{campaign_id}'")
+        except Exception as e:
+            logger.warning(f"[NEW_GAME] SQLite cleanup failed: {e}")
+        
+        # === 2. ОЧИСТКА JSON ФАЙЛОВ в saves/<campaign_id>/ ===
+        runtime_files = [
+            "npc_runtime.json",
+            "campaign_state.json", 
+            "player_avatar.json",
+            "npc_relationships.json",
+            "campaign_meta.json",
+        ]
+        for fname in runtime_files:
+            fpath = saves_campaign / fname
+            if fpath.exists():
+                fpath.unlink()
+                removed.append(fname)
+                logger.info(f"[NEW_GAME] Removed: {fpath}")
+        
+        # === 3. СБРОС ОТНОШЕНИЙ (RelationshipStore: кэш + диск) ===
+        try:
+            rel_store = self.memory_manager._relationships
+            rel_store.reset_campaign(campaign_id)
+            if campaign_id in rel_store._cache:
+                del rel_store._cache[campaign_id]
+        except Exception as e:
+            logger.warning(f"[NEW_GAME] RelationshipStore reset failed: {e}")
+        
+        # === 4. СБРОС СЕССИИ ===
+        try:
+            from app.services.player_session_service import player_session_service
+            player_session_service.deactivate_player(campaign_id)
+            player_session_service._delete_session_from_disk(campaign_id)
+        except Exception as e:
+            logger.warning(f"[NEW_GAME] Session reset failed: {e}")
+        
+        # === 5. СБРОС + ПЕРЕИНИЦИАЛИЗАЦИЯ NPC (healthy body_state) ===
+        # КОРЕНЬ БАГА: раньше только чистили кэш → NPC грузились без body_state
+        # → Normalization Gate инжектил BODY_STATE_DISABLED (shock=1.0, pain=100)
+        try:
+            engine = self._get_life_engine()
+            engine.reset_campaign(campaign_id)
+        except Exception as e:
+            logger.warning(f"[NEW_GAME] LifeEngine NPC reset failed: {e}")
+        
+        # === 6. ПЕРЕИНИЦИАЛИЗАЦИЯ СЦЕНЫ из editor JSON ===
+        # КОРЕНЬ БАГА: раньше сцена не пересоздавалась → get_scene_state() = None
+        try:
+            self.scene_manager.reinit_campaign(campaign_id)
+        except Exception as e:
+            logger.warning(f"[NEW_GAME] Scene reinit failed: {e}")
+        
+        # === 7. СБРОС LRU-КЭША загрузчика ===
+        self._load_npcs.cache_clear() if hasattr(self._load_npcs, 'cache_clear') else None
+        
+        # === 8. СБРОС preserved_tick (иначе scene_init восстановит старый) ===
+        if hasattr(self, '_preserved_tick'):
+            self._preserved_tick = None
+        
+        # === 9. СБРОС MemoryManager (narrative_cache + dialogue sessions) ===
+        try:
+            self.memory_manager.clear_all_dialogue_sessions(campaign_id)
+            # Сброс тик-счётчика MemoryManager
+            if hasattr(self.memory_manager, '_tick_counters'):
+                self.memory_manager._tick_counters.pop(campaign_id, None)
+        except Exception as e:
+            logger.warning(f"[NEW_GAME] MemoryManager reset failed: {e}")
+        
+        # === 10. СБРОС TemporalEngine (tick=0 + удаление world_tick.json) ===
+        try:
+            engine_temporal = self._get_life_engine()._temporal
+            # cleanup_campaign: чистит RAM кэши + _last_decay_tick
+            engine_temporal.cleanup_campaign(campaign_id)
+            # Явно ставим tick=0 в RAM (иначе _load_tick прочитает старый с диска)
+            engine_temporal._tick_cache[campaign_id] = 0
+            # Удаляем world_tick.json с диска — следующий _load_tick вернёт 0
+            _wt_path = self._saves_dir / campaign_id / "world_tick.json"
+            if _wt_path.exists():
+                _wt_path.unlink()
+                removed.append("world_tick.json")
+        except Exception as e:
+            logger.warning(f"[NEW_GAME] TemporalEngine reset failed: {e}")
+        
+        # === 11. СБРОС СЕССИИ АВАТАРА (player body_state из предыдущей игры) ===
+        try:
+            from app.services.player_avatar_service import player_avatar_service
+            # Удаляем файл аватара — старый мёртвый body_state не переживает new_game
+            _avatar_path = self._saves_dir / campaign_id / "player_avatar.json"
+            if _avatar_path.exists():
+                _avatar_path.unlink()
+                removed.append("player_avatar.json")
+            # Сброс RAM-кэша аватара
+            if hasattr(player_avatar_service, '_cache'):
+                player_avatar_service._cache.pop(campaign_id, None)
+        except Exception as e:
+            logger.warning(f"[NEW_GAME] Avatar session reset failed: {e}")
+        
+        # === 12. СБРОС ПАМЯТИ NPC (narrative_cache + campaign history) ===
+        try:
+            # Очистить все dialogue sessions (STM)
+            self.memory_manager.clear_all_dialogue_sessions(campaign_id)
+            # Сброс тик-счётчика MemoryManager
+            if hasattr(self.memory_manager, '_tick_counters'):
+                self.memory_manager._tick_counters.pop(campaign_id, None)
+            # Очистить narrative_cache всех NPC в LifeEngine кэше
+            engine = self._get_life_engine()
+            cached_npcs = engine._npc_cache.get(campaign_id, [])
+            for npc in cached_npcs:
+                npc.pop("narrative_cache", None)
+                npc.pop("wounds", None)
+                npc.pop("conditions", None)
+            if cached_npcs:
+                engine.update_cache(campaign_id, cached_npcs)
+        except Exception as e:
+            logger.warning(f"[NEW_GAME] Memory reset failed: {e}")
+        
+        # === 12. ОЧИСТКА SQLITE ПАМЯТИ (старые воспоминания) ===
+        try:
+            _store = self.memory_manager._layered.store
+            if hasattr(_store, "delete_campaign"):
+                _deleted = _store.delete_campaign(campaign_id)
+                removed.append(f"sqlite:memories({_deleted})")
+                logger.info(f"[NEW_GAME] SQLite memories cleared: {_deleted} rows")
+        except Exception as e:
+            logger.warning(f"[NEW_GAME] SQLite memory cleanup failed: {e}")
+
+        logger.info(f"[NEW_GAME] Campaign '{campaign_id}' fully reset. Removed: {removed}")
+        return {"reset": True, "campaign_id": campaign_id, "files_removed": removed}
 
     def reset_session_flag(self, campaign_id: str) -> None:
         """Сбрасывает флаг начала сессии — следующий ход будет session_start.
@@ -250,7 +409,10 @@ class GameLoop:
                     # ADR-035: Инъекция живого состояния аватара (плоть и кровь)
                     # Шаблон персонажа (player_char) — это кости. Нам нужна живая ткань из avatar_service.
                     _avatar_state = self.avatar_service.load_state(campaign_id, player_char.name)
-                    _live_body = getattr(_avatar_state, 'body_state', None) or {}
+                    from app.models.npc_state import BODY_STATE_HEALTHY
+                    _live_body = getattr(_avatar_state, 'body_state', None)
+                    if not _live_body:  # None или {} — новый аватар без сохранённой физиологии
+                        _live_body = dict(BODY_STATE_HEALTHY)
                     _live_psyche = {
                         "stress": getattr(_avatar_state, 'stress', 0.0),
                         "fear": getattr(_avatar_state, 'fear', 0.0),
@@ -275,6 +437,14 @@ class GameLoop:
             except Exception as e:
                 logging.getLogger(__name__).warning(f"[AVATAR_INJECT] Ошибка инъекции аватара: {e}")
 
+        # ADR-O-146: Страховка body_state для ВСЕХ NPC (не только аватара).
+        # Если load_npcs_merged вернул static NPC без body_state — инжектим HEALTHY.
+        # Без этого Normalization Gate впрыснет DISABLED (pain=100, shock=1.0) → смерть/кома.
+        from app.models.npc_state import BODY_STATE_HEALTHY
+        for _npc in npcs:
+            if not _npc.get("body_state"):
+                _npc["body_state"] = dict(BODY_STATE_HEALTHY)
+
         return npcs
 
     def idle_tick(self, campaign_id: str) -> dict:
@@ -288,22 +458,56 @@ class GameLoop:
         Конвертация DTO→dict происходит ЗДЕСЬ, не в мосту (Устав §1.1).
         Frontend не должен знать про backend-классы.
         """
-        # БАГ G-2 FIX: Гарантируем инициализацию сцены (стены, NPC, время)
+        # S83.1: idle_tick = tick boundary compliant path.
+        # Одна точка входа в мир. Не второй мир — та же причинная система.
+
+        # Шаг 1: Подготовка — гарантируем что сцена существует (стены, NPC, время)
         from app.services.game_loop.scene_init import ensure_scene_initialized
-        _scene = ensure_scene_initialized(self, campaign_id)
+        ensure_scene_initialized(self, campaign_id)
+
+        # Шаг 2: location_id из campaign_state (S82 canonical source), не из get_scene_state()
+        from app.services.campaign_state_service import get_campaign_state_service
+        _campaign_svc = get_campaign_state_service()
+        _cs = _campaign_svc.get_campaign_state(campaign_id) if _campaign_svc else None
+        _loc_id = (_cs.metadata.get("current_location", "") if _cs else "") or "tavern_silver_wolf"
+
+        # Шаг 3: LOCK — единственный источник truth для этого тика
+        _scene = self.scene_manager.lock_for_tick(campaign_id, _loc_id)
         if _scene is None:
             return {"status": "no_scene", "npc_positions": {}}
 
-        # ДИАГНОСТИКА: Проверяем — переживают ли traversals idle_tick
-        _trav_before = list(_scene.get("active_traversals", {}).keys())
-        print(f"[IDLE_TRACE] BEFORE tick={_scene.get('tick')} scene_id={id(_scene)} traversals={_trav_before}")
-
-        # ADR-0XX: Temporal Authority Separation. Монотонный каузальный тик.
-        # Только +1. Никогда не сбрасывается. Не зависит от календаря (game_time_seconds).
+        # Шаг 4: Монотонный каузальный тик
         _scene["tick"] = _scene.get("tick", 0) + 1
 
-        # ADR-048: GameLoop собирает SpatialService и инжектит в TickOrchestrator.
+        # S83: Tick Coherence — idle_tick тоже использует Spatial Oracle.
         _loc_id = _scene.get("location_id", "")
+        try:
+            from app.services.campaign_state_service import get_campaign_state_service
+            _campaign_svc = get_campaign_state_service()
+            _cs = _campaign_svc.get_campaign_state(campaign_id) if _campaign_svc else None
+            if _cs:
+                _saved_wx = _cs.metadata.get("player_world_x")
+                _saved_wy = _cs.metadata.get("player_world_y")
+                # (0,0) — валидная координата. Проверяем is not None (запрет #311).
+                if _saved_wx is not None and _saved_wy is not None:
+                    from app.services.spatial.spatial_registry import SpatialRegistry
+                    _registry = SpatialRegistry.get_or_load(campaign_id)
+                    if _registry is not None:
+                        _actual_chunks = _registry.find_chunks(_saved_wx, _saved_wy)
+                        if _actual_chunks:
+                            _oracle_loc = _actual_chunks[0].location_id
+                            if _oracle_loc != _loc_id:
+                                logger.info(
+                                    f"[SPATIAL_ORACLE_IDLE] location_id corrected: "
+                                    f"{_loc_id} → {_oracle_loc} "
+                                    f"(world=({_saved_wx:.1f}, {_saved_wy:.1f}))"
+                                )
+                                _loc_id = _oracle_loc
+                                _scene["location_id"] = _oracle_loc
+        except Exception as e:
+            logger.warning(f"[SPATIAL_ORACLE_IDLE] Oracle lookup failed, using saved location: {e}")
+
+        # ADR-048: GameLoop собирает SpatialService и инжектит в TickOrchestrator.
         _spatial_svc = None
         if _loc_id:
             from app.services.spatial.spatial_service import SpatialService
@@ -343,6 +547,11 @@ class GameLoop:
             if _ws.get("last_event_id") is not None:
                 _ws["last_event_id"] = str(_ws["last_event_id"])
 
+        # S83.1: UNLOCK — единственная точка persist для idle_tick.
+        # commit_tick_result() уже обновил _tick_scene результатом тика.
+        # unlock_tick сохраняет его на диск.
+        self.scene_manager.unlock_tick(campaign_id)
+
         return {
             "status": result.status,
             "changes": result.changes_count,
@@ -363,6 +572,11 @@ class GameLoop:
                                          req.world_id, req.location,
                                          is_session_start=_is_session_start_rest,
                                          player_position=req.player_position)
+
+        # Death Guard: если pipeline вернул ранний ChatTurnResponse (игрок мёртв)
+        from app.models.schemas import ChatTurnResponse as _CTR
+        if isinstance(state, _CTR):
+            return state
 
         dm_result = await run_agent_safe(
             "dm", self.dm_agent,
@@ -406,6 +620,40 @@ class GameLoop:
                     will_conflict_data=None,
                 )
         logger.debug(f"[DM_RESULT] type={type(dm_result).__name__}")
+
+        # RCE: Reality Commit Extractor — извлекаем npc_reactions из DM-нарратива
+        # Инвариант: ни один LLM-выход не считается состоянием мира, пока не прошёл RCE-коммит
+        if isinstance(dm_result, dict) and dm_result.get("dm_response"):
+            from app.services.memory.rce import extract_speech_events
+            _anr_rce = getattr(state.shared_context, 'all_npcs_raw_snapshot', None)
+            # Fallback: загружаем NPC из рантайма, если snapshot пуст
+            if not _anr_rce:
+                try:
+                    _anr_rce = self._load_npcs_with_runtime(req.campaign_id)
+                except Exception:
+                    _anr_rce = []
+            _target_id = getattr(state.shared_context, 'player_target_id', None)
+            _player_name = req.actions[0].player_name if req.actions else None
+            _rce_reactions = extract_speech_events(
+                dm_text=dm_result.get("dm_response", ""),
+                target_npc_id=_target_id,
+                all_npcs_raw=_anr_rce,
+                player_name=_player_name,
+            )
+            if _rce_reactions:
+                # Инжектим извлечённые реакции обратно в dm_result для downstream
+                dm_result["npc_reactions"] = _rce_reactions
+                # Записываем в STM — теперь мир помнит, что NPC говорил
+                try:
+                    from app.services.memory.working_memory_tick import write_npc_reactions_to_memory
+                    write_npc_reactions_to_memory(
+                        self.memory_manager,
+                        _rce_reactions,
+                        _anr_rce if isinstance(_anr_rce, (dict, list)) else {},
+                        req.campaign_id,
+                    )
+                except Exception as _rce_err:
+                    logger.warning(f"[RCE] STM write failed: {_rce_err}")
 
         # R2.1: NarrativeExtractor R2.2.8 — синхронный путь (REST)
         try:
@@ -460,7 +708,24 @@ class GameLoop:
         # ADR-SCENE-LOCK: Разблокируем тик — финальный персист кэша.
         self.scene_manager.unlock_tick(req.campaign_id)
 
-        return ChatTurnResponse(
+        # ADR-JOURNAL: Логирование реплик в буфер аватара (SSOT)
+        # 1. Сначала логируем действие самого игрока
+        for _a in req.actions:
+            if _a.action:
+                self.avatar_service.append_journal(speaker=_a.player_name, text=_a.action)
+
+        # 2. Логируем ответ DM. (DM-ответ уже включает в себя реплики NPC, 
+        # поэтому отдельный лог npc_reactions УБРАН во избежание дублирования "DM дважды отвечает")
+        if dm_result:
+            _dm_text = dm_result.get("dm_response", "")
+            if _dm_text:
+                self.avatar_service.append_journal(speaker="Рассказчик", text=_dm_text)
+
+        # Инжект журнала в WorldSnapshot (если снапшот собран)
+        if _ws_dict is not None:
+            _ws_dict["dialog_journal"] = self.avatar_service.get_journal()
+
+        _final_response = ChatTurnResponse(
             dm_response=dm_result.get("dm_response", ""),
             npc_reactions=dm_result.get("npc_reactions", []),
             world_changes=dm_result.get("world_changes", []),
@@ -477,6 +742,7 @@ class GameLoop:
             ),
             traces=traces,
         )
+        return _final_response
 
     async def stream_turn(
         self,
@@ -513,6 +779,25 @@ class GameLoop:
             is_session_start=is_session_start,
             player_position=player_position,
         )
+
+        # Death Guard: если pipeline вернул ранний ChatTurnResponse (игрок мёртв)
+        # Аналог проверки в run_turn (строка ~451), но для SSE-потока
+        from app.models.schemas import ChatTurnResponse as _CTR_STREAM
+        if isinstance(state, _CTR_STREAM):
+            # Для SSE — отправляем DM-ответ как токен и завершаем с флагом смерти
+            if state.dm_response:
+                yield {"type": "token", "text": state.dm_response, "n": 1}
+            yield {
+                "type": "done",
+                "death": True,
+                "tokens": 1,
+                "ms": 0,
+                "tps": 0.0,
+                "game_time_seconds": 0,
+                "will_conflict_data": None,
+                "world_snapshot": state.world_snapshot,
+            }
+            return
 
         # Модели — метаинфо
         async for event in yield_model_info(state):
@@ -930,7 +1215,8 @@ class GameLoop:
         return {"meets": report.meets, **report.details}
 
     def load_campaign(self, campaign_id: str, world_id: str) -> CampaignLoadResponse:
-        loaded = self.adventure_loader.load_campaign(campaign_id)
+        # ADR-O-146: AdventureLoader удалён. Файлов world_lore/npc.json/locations.json не существует.
+        loaded: dict = {"status": "not_found", "files": {}}
         self._campaign_world_index[campaign_id] = world_id
         for filename, payload in loaded.get("files", {}).items():
             self.memory_manager.persist_world_canon(
@@ -979,3 +1265,35 @@ class GameLoop:
                 self._campaign_world_index[campaign_id] = item["world_id"]
                 return item["world_id"]
         return "manual"
+
+    def dispose(self) -> None:
+        """Закрывает все ресурсы (SQLite connections, cached services).
+        
+        Вызывать при shutdown/teardown. После dispose() GameLoop непригоден.
+        Закрывает:
+        - SqlitePersistenceAdapter (enigma_runtime.db)
+        - SqliteMemoryStore (enigma_memory.db)
+        - TickOrchestrator cached SpatialService
+        """
+        # 1. Persistence adapter (enigma_runtime.db) — через scene_manager
+        if hasattr(self, 'scene_manager') and self.scene_manager is not None:
+            _persistence = getattr(self.scene_manager, '_persistence', None)
+            if _persistence is not None and hasattr(_persistence, 'close'):
+                _persistence.close()
+
+        # 2. Memory store (enigma_memory.db) — через memory_manager → layered → store
+        if hasattr(self, 'memory_manager') and self.memory_manager is not None:
+            _layered = getattr(self.memory_manager, '_layered', None)
+            if _layered is not None:
+                _store = getattr(_layered, 'store', None)
+                if _store is not None and hasattr(_store, 'close'):
+                    _store.close()
+
+        # 3. Освобождаем cached spatial service
+        if hasattr(self, '_tick_orch') and self._tick_orch is not None:
+            self._tick_orch._spatial_service = None
+
+        # 4. Обнуляем NPC loader — предотвращаем stale cache
+        self._load_npcs = lambda runtime_path=None: []
+
+        logger.info("[GAME_LOOP] Disposed — all SQLite connections closed, services released")

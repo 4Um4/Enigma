@@ -75,6 +75,9 @@ PATTERNS: Dict[str, str] = {
     # [R4A_WORKER] direct sync call / returned N chars (DirectBridge path)
     "llm_worker_call":      r"\[R4A_WORKER\] direct sync call",
     "llm_worker_response":  r"\[R4A_WORKER\] returned (\d+) chars",
+    # [R4A_STREAM] calling stream_tokens() / stream complete, N chars (Streaming path — ADR-147)
+    "llm_stream_call":      r"\[R4A_STREAM\] calling stream_tokens\(\)",
+    "llm_stream_response":  r"\[R4A_STREAM\] stream complete, (\d+) chars",
     # dm_resp='Ничего не произошло.'
     "llm_nothing":          r"dm_resp='Ничего не произошло\.'",
     # 3+ подряд идущих CJK-символа = галлюцинация на китайском

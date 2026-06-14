@@ -1,22 +1,26 @@
 domain: DIAGNOSTICS
-description: "Наблюдаемость и диагностика. CDS читает следы системы, не создавая причинности."
+description: "Наблюдаемость и диагностика. CDS читает следы системы, не создавая причинности. Инвариант 3: Пред-шинные отказы не молчат."
 nodes:
   CausalObserver:
     type: service
     layer: Application
     label: "Causal Observer (CDS)"
+    description: "Passive observer. Reads logs and traces. Must not mutate runtime state."
   TickHealthChecker:
     type: service
     layer: Application
     label: "Tick Health Checker"
+    description: "Parses pre-bus failures and affect decay fails. Produces TickHealthReport (ADR-120)."
   PatternRegistry:
     type: service
     layer: Application
     label: "Pattern Registry (Compiled Regex)"
+    description: "Contains patterns for pre-bus failures: pipeline_critical, causality_crash, phase8_crash, tick_orch_error, affect_decay_fail (ADR-120)."
   DNAComputer:
     type: service
     layer: Application
     label: "DNA Metrics Computer"
+    description: "Computes DNASnapshot and DNADelta. Calculates PFI (Pre-Bus Failure Index)."
   DeterministicClock:
     type: domain
     layer: Domain
@@ -33,6 +37,28 @@ nodes:
     type: database
     layer: Infrastructure
     label: "Git Log & File System"
+  Router:
+    type: service
+    layer: Application
+    label: "DM Router (Execution Gate)"
+    description: "ADR-147: Single point of LLM execution. Notifies CDS of stream start/end for observability. Bypass (e.g. direct stream_tokens) causes CDS blindness (CVS=0.00)."
+    code_ref: "dm_router.py"
+    adr_ref: "ADR-147"
+  TickHealthReport:
+    type: dto
+    layer: Domain
+    label: "Tick Health Report"
+    description: "Contains prebus_failures and affect_decay_fails counts for PFI calculation (ADR-120)."
+  DNASnapshot:
+    type: dto
+    layer: Domain
+    label: "DNA Snapshot"
+    description: "Accumulated metrics including PFI (Pre-Bus Failure Index = prebus_failures / total_ticks * 100)."
+  DNADelta:
+    type: dto
+    layer: Domain
+    label: "DNA Delta"
+    description: "Diff between sessions. Includes PFI change to track stability trends."
 edges:
   - from: GameStdout
     to: CausalObserver
@@ -72,6 +98,22 @@ edges:
     label: "writes DNA snapshot + PFI"
     condition: "After session end"
     code_ref: "dna_metrics.py"
+  - from: Router
+    to: CausalObserver
+    label: "notify_stream_start/end — LLM execution gate (ADR-147)"
+    condition: "On LLM call start/stop. Prevents CDS blindness during streaming."
+    code_ref: "dm_router.py"
+    adr_ref: "ADR-147"
+  - from: TickHealthChecker
+    to: TickHealthReport
+    label: "produces health report"
+    condition: "Aggregates prebus_failures and affect_decay_fails"
+  - from: DNAComputer
+    to: DNASnapshot
+    label: "computes snapshot with PFI"
+  - from: DNAComputer
+    to: DNADelta
+    label: "computes delta between sessions"
 constraints:
   - source: CausalObserver
     target: Runtime_State
@@ -83,9 +125,22 @@ constraints:
     code_ref: "Устав §11.2"
   - source: TickOrchestrator
     target: CausalObserver
-    rule: "REQUIRED: Log pre-bus failures as [PIPELINE][CRITICAL], [PHASE8_CRASH], [AFFECT_DECAY] — CDS must see pipeline crashes (Invariant 3, ADR-120)"
+    rule: "REQUIRED: Log pre-bus failures as [PIPELINE][CRITICAL], [PHASE8_CRASH], [AFFECT_DECAY] (Invariant 3, ADR-120)"
+    condition: "logger.warning with structured tags. logger.debug FORBIDDEN for crashes."
     code_ref: "tick_orchestrator.py"
+    adr_ref: "ADR-120"
+    severity: CRITICAL
   - source: TickHealthChecker
     target: DNAComputer
     rule: "REQUIRED: Report prebus_failures and affect_decay_fails in DNASnapshot — PFI metric (Invariant 3, ADR-120)"
+    condition: "PFI (Pre-Bus Failure Index) = prebus_failures / total_ticks * 100. Measures pipeline stability."
     code_ref: "dna_metrics.py"
+    adr_ref: "ADR-120"
+    severity: HIGH
+  - source: Router
+    target: CausalObserver
+    rule: "REQUIRED: Notify stream start/end for observability (ADR-147)"
+    condition: "Direct streaming bypassing Router causes CDS blindness (CVS=0.00). Router is the single execution gate."
+    code_ref: "dm_router.py"
+    adr_ref: "ADR-147"
+    severity: HIGH

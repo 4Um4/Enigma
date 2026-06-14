@@ -329,6 +329,15 @@ def load_npcs_merged(runtime_path: Optional[Path] = None) -> List[Dict[str, Any]
     # 2. Если нет runtime — обогащаем и возвращаем static
     if not runtime_path or not runtime_path.exists():
         _enrich_with_social_relations(static_npcs, social_base)
+
+        # ENTITY BIRTH CONTRACT (дублируется для обоих путей выхода из функции)
+        from app.models.npc_state import BODY_STATE_HEALTHY
+        for npc in static_npcs:
+            if not npc.get("body_state"):
+                npc["body_state"] = dict(BODY_STATE_HEALTHY)
+            if "npc_id" not in npc and "id" in npc:
+                npc["npc_id"] = npc["id"]
+
         logger.info(f"[NPC_LOADER] No runtime file, loaded {len(static_npcs)} NPCs from config only")
         return static_npcs
     
@@ -342,6 +351,14 @@ def load_npcs_merged(runtime_path: Optional[Path] = None) -> List[Dict[str, Any]
     except Exception as e:
         logger.warning(f"[NPC_LOADER] Failed to load runtime {runtime_path}: {e}, using static only")
         _enrich_with_social_relations(static_npcs, social_base)
+
+        from app.models.npc_state import BODY_STATE_HEALTHY
+        for npc in static_npcs:
+            if not npc.get("body_state"):
+                npc["body_state"] = dict(BODY_STATE_HEALTHY)
+            if "npc_id" not in npc and "id" in npc:
+                npc["npc_id"] = npc["id"]
+
         return static_npcs
     
     # 4. Мержим runtime поверх static
@@ -357,6 +374,20 @@ def load_npcs_merged(runtime_path: Optional[Path] = None) -> List[Dict[str, Any]
             logger.debug(f"[NPC_LOADER] {npc_id}: static only (no runtime data)")
     
     _enrich_with_social_relations(result, social_base)
+
+    # ENTITY BIRTH CONTRACT: NPC входит в систему как полностью валидная сущность.
+    # Без этого idle path (LifeEngine.tick → load_npcs_merged) получает NPC без body_state
+    # → SOMATIC_VETO блокирует когнитивный pipeline → NPC = инертные объекты.
+    # GameLoop._load_npcs_with_runtime дублировал эту логику (ADR-O-146) —
+    # но idle path обходит GameLoop, вызывая load_npcs_merged напрямую.
+    from app.models.npc_state import BODY_STATE_HEALTHY
+    for npc in result:
+        if not npc.get("body_state"):
+            npc["body_state"] = dict(BODY_STATE_HEALTHY)
+        # npc_id из "id" — единый инвариант идентичности
+        if "npc_id" not in npc and "id" in npc:
+            npc["npc_id"] = npc["id"]
+
     logger.info(f"[NPC_LOADER] Loaded {len(result)} NPCs (config + runtime from {runtime_path.name})")
     return result
 

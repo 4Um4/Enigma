@@ -1,10 +1,16 @@
 domain: SPATIAL
-description: "Пространство и локомоция. SpatialService — единственный авторитет координат."
+description: "Пространство и локомоция. SpatialService — единственный авторитет координат. Boundary = интерфейс перехода."
 nodes:
   SpatialService:
     type: service
     layer: Domain
     label: "Spatial Query Service v1.2"
+    description: "Единственный авторитет пространственного графа и узлов."
+  SpatialQueryService:
+    type: service
+    layer: Domain
+    label: "Spatial Query Service (Read Authority)"
+    description: "ADR-048: Единственный авторитетный источник чтения дистанций и позиций для бизнес-логики. Чтение scene_state['player_distances'] ЗАПРЕЩЕНО."
   MovementEngine:
     type: service
     layer: Application
@@ -21,10 +27,16 @@ nodes:
     type: dto
     layer: Domain
     label: "SceneChange (Projection)"
+    description: "Проекция свершившегося. Не является командой."
+  MacroMovementGoal:
+    type: dto
+    layer: Domain
+    label: "Macro Movement Goal (LOD1)"
+    description: "ADR-060: Объединяет LOD0 и LOD1. ADR-O-137: Включает поле IntentDomain (SURVIVAL/SOCIAL/ROUTINE/EXPLORATION). MovementIntent - легаси алиас."
   GraphCompiler:
     type: service
     layer: Infrastructure
-    label: "Graph Compiler (v2 - List format + Adjacency)"
+    label: "Graph Compiler (v2 - List format + Adjacency + Boundary)"
   AdjacencyInference:
     type: service
     layer: Domain
@@ -48,6 +60,26 @@ nodes:
     layer: Domain
     label: "LocationGraph (DEPRECATED — ADR-102)"
     description: "Легаси load_graph() возвращает пустой граф. Заменён на SpatialService."
+  BoundaryNode:
+    type: domain
+    layer: Domain
+    label: "Boundary Node (exit_{direction})"
+    description: "ДОЛГ 6.2 (ADR-145): Виртуальный узел на границе чанка. Создаётся из adjacency. NodeRole.BOUNDARY. НЕ является местом — только интерфейс перехода. NPC не может выбирать как цель."
+  BoundaryMap:
+    type: dto
+    layer: Domain
+    label: "boundary_map (Dict[str, dict])"
+    description: "ДОЛГ 6.2 (ADR-145): 4-й элемент возврата compile_graph. SpatialService хранит и предоставляет через is_boundary_node/get_boundary_info."
+  SemanticIndex:
+    type: service
+    layer: Domain
+    label: "Semantic Index Layer"
+    description: "ADR-301: Разделяет интерпретацию строки от физического разрешения узла. Возвращает List[Candidate]."
+  EventCompiler:
+    type: service
+    layer: Application
+    label: "Event Compiler (Physics Generator)"
+    description: "ADR-O-201: Компилирует физические события. Резолвит boundary nodes при компиляции (факт пересечения), НЕ в apply_changes."
 edges:
   - from: EditorJSON
     to: GraphCompiler
@@ -82,22 +114,35 @@ edges:
     adr_ref: "ADR-073"
   - from: GraphCompiler
     to: SpatialService
-    label: "compiles graph"
-    condition: "Strict match or valid inferred"
+    label: "compiles graph + boundary_map"
+    condition: "Strict match or valid inferred. Returns 4 элемента (nodes, edges, alias_map, boundary_map)"
     code_ref: "spatial_service.py"
   - from: SpatialService
+    to: SpatialQueryService
+    label: "provides read-only spatial API"
+    condition: "O(1) queries for positions, LOS, distances"
+    adr_ref: "ADR-048"
+  - from: SpatialQueryService
     to: MovementEngine
     label: "reads graph & positions"
     condition: "O(1) spatial index"
-    code_ref: "spatial_service.py"
+    code_ref: "spatial_query_service.py"
     adr_ref: "ADR-048"
-  - from: MovementEngine
-    to: SpatialService
+  - from: SpatialService
+    to: MovementEngine
     label: "get_node(target_id)"
-    condition: "BREAK-N: Node 'main_hall' missing in fallback -> returns None"
+    condition: "Direct access for node resolution"
     code_ref: "spatial_service.py"
-    adr_ref: "BREAK-N"
-    edge_type: dotted
+  - from: SemanticIndex
+    to: SpatialService
+    label: "resolves semantic targets to canonical IDs"
+    condition: "Returns List[Candidate] with scoring"
+    adr_ref: "ADR-301"
+  - from: DecisionHub
+    to: MacroMovementGoal
+    label: "produces domain-typed movement goal"
+    condition: "Goal contains IntentDomain for viability mask"
+    adr_ref: "ADR-O-137"
   - from: MovementEngine
     to: SceneChange
     label: "produces"
@@ -113,6 +158,11 @@ edges:
     condition: "in_transit flag, interpolation by progress"
     code_ref: "scene_state_manager.py:1145,1585"
     adr_ref: "GAP12 FIX"
+  - from: EventCompiler
+    to: BoundaryNode
+    label: "resolves boundary transitions at compile time"
+    condition: "Uses frozen snapshot, NOT live SpatialService. ADR-O-201"
+    code_ref: "event_compiler.py"
 constraints:
   - source: MovementEngine
     target: SceneState
@@ -158,51 +208,103 @@ constraints:
   - source: GraphCompiler
     target: LegacyName
     rule: "REQUIRED: Role-based legacy aliases in alias_map (ADR-114)"
-    condition: "GraphCompiler MUST inject role-based aliases (bed→canonical, bar_area→canonical) and name-aliases (main_hall→canonical) so schedule/FLEE targets resolve. Without this, NPC get 'node not found' and freeze."
+    condition: "GraphCompiler MUST inject role-based aliases (bed→canonical, bar_area→canonical) and name-aliases so schedule/FLEE targets resolve."
     code_ref: "graph_compiler.py:134-153"
     adr_ref: "ADR-114"
     severity: HIGH
   - source: SpatialQueryService
     target: SpatialRuntime
     rule: "FORBIDDEN: Wrong argument order in is_line_of_sight_clear call (ADR-129)"
-    condition: "Must call is_line_of_sight_clear(ax, ay, bx, by, scene_state), NOT is_line_of_sight_clear(dist, scene_state, ax, ay, bx, by)"
+    condition: "Must call is_line_of_sight_clear(ax, ay, bx, by, scene_state)"
     code_ref: "spatial_query_service.py:68"
     adr_ref: "ADR-129"
     severity: CRITICAL
   - source: SceneStateManager
     target: SpatialRuntime
     rule: "FORBIDDEN: CEI-2 uses is_movement_blocked instead of is_blocked_by_wall (ADR-129)"
-    condition: "Furniture (walk=False) is LOD0 obstacle, NOT wall. CEI-2 macro-routing MUST use is_blocked_by_wall only. is_movement_blocked blocks legitimate 2-node paths through doorways."
-    code_ref: "scene_state_manager.py:1276, npc_tick_pipeline.py:870"
+    condition: "Furniture (walk=False) is LOD0 obstacle, NOT wall. Macro-routing MUST use is_blocked_by_wall only."
+    code_ref: "scene_state_manager.py:1276"
     adr_ref: "ADR-129"
     severity: HIGH
   - source: SpatialRuntime
     target: SceneState
     rule: "REQUIRED: normalize_scene_state() on every consumer function (ADR-129)"
-    condition: "All 8 consumer functions in spatial_runtime.py MUST call normalize_scene_state() as first line. Prevents AttributeError on type corruption (list/float/None)."
+    condition: "All 8 consumer functions in spatial_runtime.py MUST call normalize_scene_state() as first line."
     code_ref: "spatial_runtime.py"
     adr_ref: "ADR-129"
     severity: HIGH
   - source: SceneStateManager
     target: SceneState
     rule: "REQUIRED: isinstance(scene, dict) guard in get_scene_state and get_scene_state_uncached (ADR-129)"
-    condition: "Non-dict from persistence MUST be rejected with warning, not propagated to spatial pipeline."
+    condition: "Non-dict from persistence MUST be rejected with warning."
     code_ref: "scene_state_manager.py:255,319"
     adr_ref: "ADR-129"
     severity: HIGH
   - source: TickOrchestrator
     target: MovementEngine
     rule: "REQUIRED: DRF scoring overlay applied to movement intents in BOTH idle and player paths (ADR-135)"
-    condition: "priority += energy × weight × alignment. Weights: SURVIVAL=0.15, SOCIAL=0.10, ROUTINE=0.02. Without overlay in player path, schedule intents bypass arbitration. FORBIDDEN: viability veto via _drf_killed flag or priority=0 in MovementEngine — use scoring, not killing."
+    condition: "priority += energy × weight × alignment. FORBIDDEN: viability veto via _drf_killed flag or priority=0."
     code_ref: "tick_orchestrator.py"
     adr_ref: "ADR-135"
     severity: HIGH
   - source: MovementEngine
     target: priority_scale
     rule: "FORBIDDEN: Clamp override max(priority, N) at 0.0-1.0 scale (ADR-135)"
-    condition: "max(priority, 90) or max(priority, 70) at 0.0-1.0 scale destroys the scale — all priorities become 0.9+. Priority is float 0.0-1.0."
+    condition: "max(priority, 90) at 0.0-1.0 scale destroys the scale."
     code_ref: "tick_orchestrator.py"
     adr_ref: "ADR-135"
+    severity: HIGH
+  - source: BoundaryNode
+    target: SpatialService
+    rule: "FORBIDDEN: Boundary node as movement goal or dwelling (Rule 108, ADR-145)"
+    condition: "Boundary node = graph interface, not a place. NPC may pass through but never select as destination."
+    code_ref: "graph_compiler.py"
+    adr_ref: "ADR-145"
+    severity: HIGH
+  - source: GraphCompiler
+    target: BoundaryNode
+    rule: "REQUIRED: Create boundary nodes from adjacency (ADR-145)"
+    condition: "compile_graph reads adjacency and creates virtual exit nodes per direction. boundary_map returned as 4th element."
+    code_ref: "graph_compiler.py"
+    adr_ref: "ADR-145"
+    severity: HIGH
+  - source: EventCompiler
+    target: BoundaryResolution
+    rule: "REQUIRED: Boundary resolution in EventCompiler, NOT in apply_changes (ADR-O-201)"
+    condition: "SpatialService.is_boundary_node() are runtime queries = non-determinism inside reducer. EventCompiler resolves boundary at compile time using frozen snapshot."
+    code_ref: "event_compiler.py (NEW)"
+    adr_ref: "ADR-O-201"
+    severity: CRITICAL
+  - source: ProjectionEngine
+    target: SpatialService
+    rule: "FORBIDDEN: SpatialService.build_for_location() inside Projection Engine (ADR-O-201)"
+    condition: "Spatial graph must come from SnapshotKernel, not live service."
+    code_ref: "scene_state_manager.py:1230"
+    adr_ref: "ADR-O-201"
+    severity: CRITICAL
+  - source: SemanticIndex
+    target: Any
+    rule: "FORBIDDEN: SemanticIndex returns single canonical_id (Must return List[Candidate])"
+    condition: "Separation of interpretation and decision"
+    adr_ref: "ADR-301"
+    severity: HIGH
+  - source: MacroMovementGoal
+    target: IntentDomain
+    rule: "REQUIRED: MovementIntent MUST have domain field (ADR-O-137)"
+    condition: "Viability mask requires domain to pre-filter impossible intents (SURVIVAL/SOCIAL/ROUTINE/EXPLORATION)"
+    adr_ref: "ADR-O-137"
+    severity: HIGH
+  - source: LifeEngine
+    target: SceneStateManager
+    rule: "REQUIRED: Movement Lock — update_routine MUST check scene_state.active_traversals before mutating routine (ADR-130)"
+    condition: "Traversal = commitment, schedule = suggestion. Schedule cannot override reactive traversal."
+    adr_ref: "ADR-130"
+    severity: HIGH
+  - source: SpatialQueryService
+    target: SceneState
+    rule: "FORBIDDEN: Read distances or positions directly from scene_state (ADR-048)"
+    condition: "scene_state['player_distances'] is DEPRECATED. Use SpatialQueryService."
+    adr_ref: "ADR-048"
     severity: HIGH
 sequences:
   - title: "Broken Traversal Flow (Node Not Found - BREAK-N)"
@@ -222,6 +324,21 @@ sequences:
         to: SceneStateManager
         message: "4. No Traversal created -> coords=None"
         type: dotted
+  - title: "Boundary Node Creation Flow (ДОЛГ 6.2, ADR-145)"
+    participants: [EditorJSON, GraphCompiler, BoundaryNode, SpatialService]
+    steps:
+      - from: EditorJSON
+        to: GraphCompiler
+        message: "1. Load nodes + adjacency (east: city_gate, south: market_square)"
+      - from: GraphCompiler
+        to: BoundaryNode
+        message: "2. _create_boundary_nodes(): exit_east, exit_south"
+      - from: BoundaryNode
+        to: SpatialService
+        message: "3. boundary_map: {exit_east → {neighbor: city_gate, entry_direction: west}}"
+      - from: SpatialService
+        to: SpatialService
+        message: "4. is_boundary_node() / get_boundary_info() for MovementEngine"
   - title: "Adjacency Inference Success Flow (ADR-073)"
     participants: [EditorJSON, GraphCompiler, AdjacencyInference, SpatialService]
     steps:
@@ -237,3 +354,21 @@ sequences:
       - from: GraphCompiler
         to: SpatialService
         message: "4. Compile connected graph"
+  - title: "Semantic Target Resolution Flow (ADR-301)"
+    participants: [IntentCompressor, SemanticIndex, CandidateScoring, SelectionPolicy, SpatialService]
+    steps:
+      - from: IntentCompressor
+        to: SemanticIndex
+        message: "1. Target reference string (e.g., 'тень')"
+      - from: SemanticIndex
+        to: SemanticIndex
+        message: "2. Classify string (CANONICAL/ROLE_ALIAS/FUZZY)"
+      - from: SemanticIndex
+        to: CandidateScoring
+        message: "3. Return List[Candidate]"
+      - from: CandidateScoring
+        to: SelectionPolicy
+        message: "4. Score and select (STRICT_MAX/STABLE/DIVERSE)"
+      - from: SelectionPolicy
+        to: SpatialService
+        message: "5. get_node(canonical_id)"
