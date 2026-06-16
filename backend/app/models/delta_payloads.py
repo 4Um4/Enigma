@@ -49,6 +49,10 @@ class IdentityPayload:
     identity_integrity_delta: float = 0.0
     pressure_resistance_delta: float = 0.0
     # S28: Топология деформации пространства решений (PerceptualKernel)
+    # ADR-O-304: Single Material Update Rule. Решённая физика личности от CalibrationEngine.
+    # StateApplicator НЕ пересчитывает, только слепо записывает.
+    drives_snapshot: Optional[Dict[str, float]] = None
+    strain_snapshot: Optional[Dict[str, float]] = None
     aggression_inhibition_delta: float = 0.0
     initiative_suppression_delta: float = 0.0
     compliance_bias_delta: float = 0.0

@@ -87,6 +87,9 @@
   Taboo: ❌ Передача голого `drf_bus` в pipeline
   Files: tick_orchestrator.py, npc_tick_pipeline.py
 
+`ADR-148` [STD] **EventDTO Default Radius Sentinel** — Дефолтный `radius=999.0` в `EventDTO.create` является латентным риском для аудио-событий (пробивает мембраны `_can_hear`), но не влияет на визуальные (`_can_see` игнорирует поле). Замена на `PERCEPTION_RADIUS["major"]` разрешена только при появлении runtime-бага со слухом.
+  Files: domain/events.py, services/npc/perception_filter.py, services/spatial/player_target_pipeline.py
+
 `ADR-SCENE-LOCK` [FIX] **Tick Unlock Guard** — `unlock_tick()` вызывал `save_scene_state()` при `_tick_locked=True`
   Taboo: ❌ Снятие `_tick_locked` после вызова сохранения состояния
   Files: scene_state_manager.py
@@ -153,7 +156,7 @@
 `ADR-067` [STD] **Player Command Override** — Приказ игрока перекрывает ЛЮБОЕ решение DecisionHub
   Files: tick_orchestrator.py, npc_tick_pipeline.py
 
-`ADR-068` [FIX] **Partial Name Matching** — NPC с составными именами отзываются на часть имени (≥3 символа)
+`ADR-068` [FIX] **Partial Name Matching** — NPC с составными именами отзываются на часть имени (≥3 символов)
   Files: npc_tick_pipeline.py
 
 `ADR-081` [STD] **Cognitive Overlay (T+0)** — Инжект шок-импульса > 0.5 мгновенно через Когнитивный Оверлей
@@ -173,6 +176,20 @@
 `ADR-O-146` [ONTO] **Personality Math Layer (Causal Geometry of Character)** — Аттракторная модель характера. `drive_multiplier()`
   Taboo: ❌ Импорт `_drive_multiplier` из relationship_profile. ❌ desire в RiskPerceptionProfile
   Files: decision/profile_math.py, decision/relationship_profile.py, decision/social_deltas.py, decision/risk_profile.py
+
+`ADR-O-304` [ONTO] **L3 & DecisionContext Pipeline Unification & Projection-Native Transition** — Устранение Split-Brain. PressureTranslator=SSOT контекста (Somatic Veto), TickOrchestrator=SSOT L3-карты. DecisionHub стал projection-native (L0/drives_base изгнан из скоринга, риск-оценки и инерции)
+  Taboo: ❌ Ручная сборка DecisionContext (from_kernel). ❌ Локальный DriveResolver/L1Chronicle в npc_tick_pipeline. ❌ Чтение personality.drives_base в принятии решений (только EffectiveDrives)
+  Files: decision_hub.py, tick_orchestrator.py, npc_tick_pipeline.py, pressure_translator.py, npc_tick_contracts.py, life_engine.py
+
+`ADR-152` [STD] **Capture-Based Causal Trace (7.4 WHY-Log) — _score_all переведена в чистую функцию, возвращающую кортеж (scores, components_trace). WHY-лог берёт готовый breakdown победителя из components_trace без повторного вычисления и side-channel. Устранён риск temporal coupling и дрейфа шума при логировании. Taboo: ❌ Side-channel (self._last_trace) для хранения трассировки скоринга. ❌ Повторный вызов _score_components для логирования причин. ❌ Изменение return shape внутренних методов без аудита call-sites Files: decision_hub.py
+
+`ADR-149` [FIX] **Schedule Freeze — Need Override & Two-Layer Dispatch** — Убит Schedule Freeze: need-driven (priority=0.8) перезаписывает schedule (priority=0.6). Schedule не генерируется если need-driven уже выбран. `routine["current"]` синхронизируется при победе need-driven (BUG SC FIX). Rate: 0.070 → 2.0/tick (28.5x)
+  Taboo: ❌ Need priority ниже schedule при критической потребности. ❌ `routine["current"]` не обновлять при need-driven победе (DOUBLE TRUTH freeze). ❌ Schedule генерировать когда need-driven уже выбран
+  Files: life_engine.py
+
+`ADR-150` [STD] **Need-Driven Semantic Spatial Binding** — Need-driven `_check_need_driven_movement` резолвит target через `SpatialService.resolve_node(role=NodeRole)` при отсутствии `activity_map` entry. `_NEED_ROLE_MAP` мапит потребности в пространственные роли (hunger→TABLE, socializing→BAR, shelter_urge→BED). Rate рост: 0.27 → 0.40/tick
+  Taboo: ❌ Need-driven возвращать None при отсутствии activity_map (молчаливая смерть интента). ❌ Отсутствие записи в `_NEED_ROLE_MAP` для новых потребностей
+  Files: life_engine.py, spatial_service.py
 
 ---
 
@@ -235,7 +252,7 @@
 `ADR-053` [FIX] **LifeEngine Intent Pipeline Restoration** — Намерения не теряются на границе LifeEngine → TickOrchestrator
   Files: life_engine.py, tick_orchestrator.py
 
-`ADR-058` [STD] **Frontend Dual-Time Ontology** — Разделение времени симуляции и рендера. Интерполяция `path_waypoints`
+`ADR-058` [STD] **Frontend Dual-time Ontology** — Разделение времени симуляции и рендера. Интерполяция `path_waypoints`
   Files: game_loop_bridge.py, scene_renderer.py
 
 `ADR-060` [ONTO] **Movement Ontology Split** — `MovementIntent` объединяет LOD0 и LOD1
@@ -297,6 +314,10 @@
 `ADR-S82.0` [STD] **Spatial Authority Contract** — Строгий контракт единого владельца пространственных данных
   Taboo: ❌ Запрет дублирования пространственной логики
   Files: spatial_service.py, scene_state_manager.py
+
+`ADR-S85.1` [FIX] **Semantic Spatial Binding** — Устранён корневой разрыв навигации. `LifeEngine._resolve_position` использует локальный `_ACTIVITY_TO_ROLE_MAP` и вызывает `SpatialService.resolve_node(role=NodeRole)`. Убит фоллбэк в несуществующий узел `common_area`. S89: Расширен для need-driven пути через `_NEED_ROLE_MAP` (ADR-150).
+  Taboo: ❌ Возврат к строковым фоллбэкам вроде `common_area` в `_resolve_position`. ❌ Need-driven без semantic fallback при отсутствии activity_map
+  Files: backend/app/services/npc/life_engine.py, backend/app/services/spatial/spatial_service.py
 
 ---
 
@@ -506,6 +527,14 @@
 `ADR-147` [FIX] **LLM Streaming Observability Gate** — Убит теневой streaming path
   Files: router.py, pattern_registry.py, causal_observer.py
 
+`ADR-S85.3` [FIX] **SUPERBOX Idle Stability & Observer Fix** — Добавлен режим `idle_simulation_stability` в DriftLaboratory. Исправлена оптика метрики `UNIQUE_NODES_VISITED`: чтение позиций переведено на `scene_state["npc_positions"]` (SSOT), вместо кэша `LifeEngine`.
+  Taboo: ❌ Чтение пространственных позиций NPC из кэша `LifeEngine` в метриках тестов.
+  Files: backend/tests/sandbox/SUPERBOX/drift_laboratory.py
+
+`ADR-151` [STD] **Probe → Telemetry Transition** — Диагностические print-зонды классифицированы на 3 слоя: 🟢 Essential (print — всегда видны: GATE_*, NPC_SET, DRF_*, TIFL_DRIFT, GATE_ZOMBIE), 🟡 Condensed (logger.debug — видны при DEBUG level: NEED_TRACE, SCHED_TRACE, AFF_*, SEL_DIAG, DRF_VOTE), 🔴 Removed (полностью убраны: MOVEMENT_DEBUG, SCENE_CHANGE_DIAG, TRAV_CHECK_P1, дубликаты в player path). Убиты пустые блоки от некорректного удаления.
+  Taboo: ❌ Удалять print-зонды без замены на logger.debug. ❌ Пустые блоки после удаления probe (SyntaxError)
+  Files: tick_orchestrator.py, life_engine.py, movement_engine.py
+
 ---
 
 ## DOM-09: SOCIAL & AFFECTIVE ARCHITECTURE (SSOT & Causal Derivation)
@@ -545,13 +574,22 @@
 `ADR-O-209/210` [ONTO] **Phase-Locked Identity & Bounded Spatial Field Coupling** — Фазовая блокировка идентичности и ограниченная связь с пространственным полем
   Files: decision/profile_math.py, spatial_service.py
 
-`ADR-O-211` [ONTO] **Calibration Engine & Identity Stability Kernel** — Двигатель калибровки и ядро стабильности. Анти-осцилляция
-  Taboo: ❌ Неконтролируемый дрейф базовых драйвов без калибровки
+`ADR-O-211` [ONTO] **Calibration Engine & Identity Stability Kernel** — 💀 DEPRECATED для скалярных драйвов. Переведён в pass-through режим. Стресс-тест (50k тиков) выявил накопление шума (Test C: интеграл осцилляций). Стабилизация драйвов признана тупиком — кристаллизоваться должны причины (Убеждения), а не эмоции (скаляры)
+  Taboo: ❌ Гистерезис на скалярных драйвах (накопление шума от немотивированных угроз). ❌ Мутация drives_runtime минуя Belief Layer
   Files: services/npc/calibration_engine.py
 
 `ADR-O-212` [ONTO] **Social Physics Inertia & Approximation** — Социальная физика — функция аппроксимации поведения группы во времени. 4 слоя: Физика, Психика, Общество (VillageMemoryField), Политика (InstitutionLayer). Институциональная инерция запрещает мгновенную эскалацию
   Taboo: ❌ Narrative Gravity как отдельный слой данных (Double Truth). ❌ Мгновенная реакция InstitutionLayer. ❌ resistance_to_change = 0.0. ❌ myth_level от количества убийств
   Files: social/village_memory_field.py, social/social_memory_updater.py, social/institutional_inertia.py
+
+`ADR-O-305` [ONTO] **Causal Map & Belief Layer (World Model Formation)** — Обучение = формирование каузальной карты мира, а не мутация драйвов. Pattern Detector группирует L1Chronicle по source → Evidence of Persistence → Belief Crystallization (семантическая привязка "волки=опасность"). Belief → Policy Injection в DecisionHub
+  Status: PROPOSED
+  Taboo: ❌ Кристаллизация абстрактного страха без привязки к источнику (иллюзия скалярного обучения). ❌ Drives Do Not Learn (Invariant L3-P4)
+  Files: (Future) belief_crystallization_engine.py, pattern_detector.py, decision_hub.py
+
+`ADR-S85.2` [STD] **Archetype vs Individual Data Separation** — Архетип = Профессия (содержит только `schedule`), Индивид = Должность (содержит `activity_map` для кросс-локаций). Удалены захардкоженные пространственные привязки из архетипов.
+  Taboo: ❌ Хранение `activity_map` с конкретными координатами (напр. `tavern_silver_wolf:main_hall`) внутри архетипов.
+  Files: config/npc/archetypes/*.json, config/npc/individuals/*.json
 
 `ADR-TIFL-001` [ONTO] **Temporal Identity Formation Layer** — Формирование идентичности во времени. Темпоральный слой L1
   Files: services/npc/l1_chronicle.py

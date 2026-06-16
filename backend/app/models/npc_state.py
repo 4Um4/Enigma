@@ -570,6 +570,8 @@ class NPCState:
     # npc_dict["drives"] = serialization mirror (written by write_to_legacy).
     # ADR-139 TABOO: drives_runtime НЕ читается из personality после spawn.
     drives_runtime: Dict[str, float] = field(default_factory=dict)
+    # ADR-O-304: Накопленная энергия деформации для CalibrationEngine (физика фазового перехода)
+    strain_memory: Dict[str, float] = field(default_factory=dict)
 
     # ── Временные драйвы (ФАЗА 4-ROLE.2) ────────────────────────────────────
     # Порождены сильными эмоциональными ударами (emotional_impact > 0.7).
@@ -704,6 +706,9 @@ class NPCState:
         # Без этого mutation engine теряет результаты между тиками.
         if state.drives_runtime:
             npc_dict["drives"] = dict(state.drives_runtime)
+        # ADR-O-304: Сериализация энергии деформации (TSHL state)
+        if state.strain_memory:
+            npc_dict["strain_memory"] = dict(state.strain_memory)
 
         # Физическое состояние (сохраняется между тиками)
         npc_dict["hp"]     = state.hp

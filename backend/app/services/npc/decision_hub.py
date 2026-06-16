@@ -350,7 +350,7 @@ class DecisionHub:
         # L1 черты: только из NPCIdentityL1
         active_traits: Dict[str, float] = identity.active_traits if identity else {}
         possible = self._get_possible_intents(state, personality, event, opportunity, effective_drives=effective_drives)
-        scores   = self._score_all(state, personality, event, possible, opportunity, active_traits, decision_ctx=decision_ctx, effective_drives=effective_drives)
+        scores, components_trace = self._score_all(state, personality, event, possible, opportunity, active_traits, decision_ctx=decision_ctx, effective_drives=effective_drives)
 
         # ADR-036: Физика Власти. Приказ (semantic_action=MOVE) искривляет utility-space.
         # Прямой boost к APPROACH score — без размывания через drive_weight.
@@ -522,9 +522,12 @@ class DecisionHub:
             _is_target = (event.target_id is not None and event.target_id == state.npc_id)
             if _is_target and Intent.ATTACK.value in scores:
                 _self_defense = 1.0 + event.intensity
-                scores[Intent.ATTACK.value] = round(scores.get(Intent.ATTACK.value, 0.0) * _self_defense, 4)
-                # Ослабляем FLEE при прямой атаке — инстинкт самосохранения сменяется боем
-                if Intent.FLEE.value in scores and scores.get(Intent.FLEE.value, 0.0) > 0:
+                _attack_score_pre = scores.get(Intent.ATTACK.value, 0.0)
+                scores[Intent.ATTACK.value] = round(_attack_score_pre * _self_defense, 4)
+                
+                # Ослабляем FLEE при прямой атаке ТОЛЬКО если ATTACK действительно валиден.
+                # Иначе fear_early_exit убил ATTACK, и штраф к FLEE парализует NPC (он не бьёт и не бежит).
+                if _attack_score_pre > 0.0 and Intent.FLEE.value in scores and scores.get(Intent.FLEE.value, 0.0) > 0:
                     scores[Intent.FLEE.value] = round(scores.get(Intent.FLEE.value, 0.0) * 0.6, 4)
             elif not _is_target:
                 # Свидетель насилия: бегство предпочтительнее атаки
@@ -555,7 +558,8 @@ class DecisionHub:
                 scores[current_intent_str_pre] + commitment * COMMITMENT_BONUS_K, 4
             )
             # Switching cost — вычитается из всех остальных
-            cost = self._switching_cost(state, personality, commitment)
+            # ПУТЬ А: Проброс L3 в инерцию личности
+            cost = self._switching_cost(state, personality, commitment, effective_drives=effective_drives)
             for k in scores:
                 if k != current_intent_str_pre:
                     scores[k] = round(scores[k] - cost, 4)
@@ -586,6 +590,21 @@ class DecisionHub:
                 accumulated *= 0.85
             state.pressure_accumulator[acc_key] = accumulated
         
+        # 7.4: WHY-лог. Чтение capture-based трассировки (чистая функция).
+        _why_comps = components_trace.get(best_candidate_str, {})
+        _why_fmt = {k: round(v, 3) for k, v in _why_comps.items() if isinstance(v, (int, float))}
+        _threat_total = _threat_acc.total if _threat_acc else 0.0
+        
+        logger.debug(
+            f"[WHY][DECISION] npc={state.npc_id} | "
+            f"winner={best_candidate_str} ({best_score:.3f}) | "
+            f"threat={_threat_total:.1f} | "
+            f"comps={_why_fmt} | "
+            f"current={current_intent_str} ({current_score:.3f}) | "
+            f"threshold={threshold:.3f} | pressure={pressure:.3f} | "
+            f"accumulated={accumulated:.3f} | force_switch={force_switch}"
+        )
+
         # ── Решение: сменить или удержать ──
         switched = False
         if force_switch or pressure >= threshold or accumulated >= threshold:
@@ -742,6 +761,7 @@ class DecisionHub:
         Early exit: трусливый NPC (fear > 0.6) не рассматривает агрессию.
         """
         scores: Dict[str, float] = {}
+        components_trace: Dict[str, Dict[str, Any]] = {}  # 7.4: Чистая трассировка без side-channel
         inertia     = self._intent_inertia(state)
         # L3-P2: Страх определяется текущей проекцией, не архетипом
         fear_drive  = effective_drives.get("fear", 0.0) if effective_drives else 0.0
@@ -759,7 +779,7 @@ class DecisionHub:
                     logger.debug(f"[DIAG_AGGRO_SKIP] npc={state.npc_id} intent={intent_str} reason=fear_early_exit unlocked={opportunity.unlocked_intents}")
                     continue
 
-            components = self._score_components(intent_str, state, personality, event, opportunity, active_traits or {}, decision_ctx=decision_ctx)
+            components = self._score_components(intent_str, state, personality, event, opportunity, active_traits or {}, decision_ctx=decision_ctx, effective_drives=effective_drives)
             base = sum(v for k, v in components.items() if isinstance(v, (int, float)))
             if intent_str in (Intent.ATTACK.value, Intent.FLEE.value):
                 logger.debug(f"[DIAG_COMPONENTS] npc={state.npc_id} intent={intent_str} base={base:.3f} comps={ {k:(round(v,3) if isinstance(v, (int, float)) else v) for k,v in components.items()} }")
@@ -786,8 +806,9 @@ class DecisionHub:
             # Clamp: score не уходит за физические пределы формулы
             # Верхний предел 3.0 — теоретический максимум суммы всех компонентов
             scores[intent_str] = round(max(-2.0, min(3.0, base + noise)), 4)
+            components_trace[intent_str] = components
 
-        return scores
+        return scores, components_trace
 
     def _behavior_mask_modifier(
         self,
@@ -886,19 +907,22 @@ class DecisionHub:
         opportunity:   OpportunityResult,
         active_traits: Dict[str, float] = None,  # L1 черты из NPCIdentityL1
         decision_ctx:  Optional["DecisionContext"] = None,  # S74: Affective Field Propagation
+        effective_drives: Optional["EffectiveDrives"] = None,  # ПУТЬ А: L3 проекция драйвов
     ) -> Dict[str, float]:
         """
         Возвращает словарь компонентов score — для полного trace в R4.2.
         Каждый компонент виден отдельно: что именно перевесило.
         """
-        drives = personality.drives_base
+        # ПУТЬ А: L3 — единственный источник драйвов для скоринга. L0 запрещён (Инвариант L3-P2).
+        # Если L3 нет — скоринг идёт с дефолтными весами (.get = 0.25), а не по архетипу.
+        drives = dict(effective_drives.values) if effective_drives else {}
         # ENIGMA-REL-001: Запрет прямого доступа к relationship_cache (DOUBLE TRUTH)
         # Все чтения идут через унифицированный accessor _get_rel_value (§ENIGMA-003)
         fear   = (DecisionHub._get_rel_value(state, "player", "fear") or 0.0) / 100.0
         trust  = (DecisionHub._get_rel_value(state, "player", "trust") or 0.0) / 100.0
-        risk   = perceive_risk(event, state, personality.drives_base)
+        risk   = perceive_risk(event, state, drives)  # L3 вместо L0
 
-        drive_score  = self._drive_relevance(intent, drives, event, state=state, personality=personality)
+        drive_score  = self._drive_relevance(intent, drives, event, state=state, personality=personality, effective_drives=effective_drives)
         emotion_mod  = self._emotion_modifier(
             intent, 
             state.emotion, 
@@ -961,14 +985,17 @@ class DecisionHub:
 
     def _score_one(
         self,
-        intent:      str,
-        state:       NPCState,
-        personality: NPCPersonality,
-        event:       EventContext,
-        opportunity: OpportunityResult,  # Добавлен недостающий параметр
+        intent:           str,
+        state:            NPCState,
+        personality:      NPCPersonality,
+        event:            EventContext,
+        opportunity:      OpportunityResult,
+        active_traits:    Dict[str, float] = None,
+        decision_ctx:     Optional["DecisionContext"] = None,
+        effective_drives: Optional["EffectiveDrives"] = None,
     ) -> float:
         """Суммарный score без компонентов — для внутреннего использования."""
-        return sum(self._score_components(intent, state, personality, event, opportunity, active_traits or {}, decision_ctx=decision_ctx).values())
+        return sum(self._score_components(intent, state, personality, event, opportunity, active_traits or {}, decision_ctx=decision_ctx, effective_drives=effective_drives).values())
 
     def _drive_relevance(
         self,
@@ -977,6 +1004,7 @@ class DecisionHub:
         event:   EventContext,
         state:   Optional["NPCState"] = None,
         personality: Optional["NPCPersonality"] = None,
+        effective_drives: Optional[Any] = None,
     ) -> float:
         """drive_weight × context_relevance."""
         # Маппинг intent → доминирующий drive
@@ -1006,11 +1034,11 @@ class DecisionHub:
         drive_weight = drives.get(drive_key, 0.25)
 
         # context_relevance — насколько событие активирует этот drive
-        context_relevance = self._context_relevance(intent, event, state=state, personality=personality)
+        context_relevance = self._context_relevance(intent, event, state=state, personality=personality, effective_drives=effective_drives)
 
         return round(drive_weight * context_relevance, 4)
 
-    def _context_relevance(self, intent: str, event: EventContext, state: Optional["NPCState"] = None, personality: Optional["NPCPersonality"] = None) -> float:
+    def _context_relevance(self, intent: str, event: EventContext, state: Optional["NPCState"] = None, personality: Optional["NPCPersonality"] = None, effective_drives: Optional["EffectiveDrives"] = None) -> float:
         """Насколько событие релевантно данному intent. 0.0–2.0.
         
         S72 / §ENIGMA-S72: Значимость события = функция личности, не функция движка.
@@ -1020,8 +1048,9 @@ class DecisionHub:
           significance → реакция на социальное давление (свидетели)
           desire       → готовность к социальному взаимодействию
         """
-        # S72: Извлечение линзы реальности из личности
-        _drives = getattr(personality, 'drives_base', {}) if personality else {}
+        # ПУТЬ А: S72 + L3. Линза реальности из текущей проекции, а не архетипа.
+        # L0 запрещён. Отсутствие L3 = нейтральная линза (дефолты 0.25).
+        _drives = dict(effective_drives.values) if effective_drives else {}
         _fear = _drives.get("fear", 0.25)
         _control = _drives.get("control", 0.25)
         _significance = _drives.get("significance", 0.25)
@@ -1396,6 +1425,7 @@ class DecisionHub:
         state:       NPCState,
         personality: NPCPersonality,
         commitment:  float,
+        effective_drives: Optional["EffectiveDrives"] = None,  # ПУТЬ А: L3 проекция
     ) -> float:
         """
         Стоимость смены intent — вычитается из score всех НЕ текущих интентов.
@@ -1410,8 +1440,10 @@ class DecisionHub:
         # Ось 2: эмоциональная вовлечённость (высокий стресс = труднее переключиться)
         emotion_cost = min(state.stress / 100.0, 1.0) * SWITCHING_COST_EMOTION_K
 
-        # Ось 3: соответствие identity (если intent совпадает с доминирующим drive)
-        current_drive = max(personality.drives_base, key=personality.drives_base.get) if personality.drives_base else ""
+        # ПУТЬ А: Ось 3. Identity определяется текущей деформацией (L3), не архетипом (L0).
+        # L0 оставлен как initial seed только для загрузки.
+        _drives = dict(effective_drives.values) if effective_drives else {}
+        current_drive = max(_drives, key=_drives.get) if _drives else ""
         _DRIVE_INTENTS = {
             "control":      {Intent.ATTACK.value, Intent.WARN.value, Intent.INTIMIDATE.value, Intent.BLOCK_PATH.value, Intent.AMBUSH.value},
             "fear":         {Intent.FLEE.value, Intent.OBSERVE.value},

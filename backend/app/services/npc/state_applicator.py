@@ -115,8 +115,16 @@ class StateApplicator:
             d = _legacy_deltas
             
             # Применяем психологические изменения (R6.1)
-            new_state.identity_integrity = max(0.0, min(1.0, new_state.identity_integrity + d.identity_integrity_delta))
+            new_state.identity_integrity = max(0.0, min(1.0, new_state.identity_integrity + d.identity_integrity_delta))    
             new_state.pressure_resistance = max(0.0, min(2.0, new_state.pressure_resistance + d.pressure_resistance_delta))
+
+            # ADR-O-304: Single Material Update Rule.
+            # Запись решённой физики личности (L3_stable и strain_memory).
+            # StateApplicator НЕ пересчитывает, только проецирует в состояние.
+            if d.drives_snapshot is not None:
+                new_state.drives_runtime = d.drives_snapshot
+            if d.strain_snapshot is not None:
+                new_state.strain_memory = d.strain_snapshot
 
             # Прямое переопределение воли (R6.4)
             if d.will_state_override:

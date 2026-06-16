@@ -501,14 +501,12 @@ def run_npc_pipeline(
             from app.services.npc.l1_chronicle import L1Chronicle
             from app.services.npc.drive_resolver import DriveResolver
             
-            # ВНИМАНИЕ: L1Chronicle — stateful сущность. Здесь нужен доступ к единому экземпляру.
-            # Если pipeline не имеет доступа к self.l1_chronicle, он должен быть проброшен через DI.
-            # Временное решение: получаем через сервис-локатор или self, если pipeline инстанцирован оркестратором.
-            _chronicle = getattr(self, 'l1_chronicle', None) or getattr(svc, 'l1_chronicle', L1Chronicle())
-            _resolver = getattr(self, 'drive_resolver', None) or getattr(svc, 'drive_resolver', DriveResolver())
-            
-            _l1_events = _chronicle.query_weighted(npc_id, current_tick=svc.tick_number if hasattr(svc, 'tick_number') else 0)
-            _effective_drives = _resolver.resolve_drives(profile_l0, _l1_events)
+            # STEP B: L3 поставляется TickOrchestrator (SSOT). Локальный DriveResolver уничтожен.
+            # Отсутствие L3 в карте — диагностический сигнал, NPC пропускает тик.
+            _effective_drives = (inp.effective_drives_map or {}).get(npc_id)
+            if _effective_drives is None:
+                logger.warning(f"[L3_MISSING] npc={npc_id} lacks EffectiveDrives in Pipeline. Tick skipped.")
+                continue
 
             decision = DecisionHub().compute(
                 state=state_l2,

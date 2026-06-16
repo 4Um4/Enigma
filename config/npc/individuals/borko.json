@@ -40,6 +40,19 @@
     "planning_revenge": false,
     "is_dead": false
   },
+  "routine": {
+    "schedule": {
+      "08:00-22:00": "drinking",
+      "22:00-08:00": "sleeping"
+    }
+  },
+  "activity_map": {
+    "drinking": { "location": "tavern_silver_wolf", "position": "corner_table", "display": "drinking" },
+    "sleeping": { "location": "tavern_silver_wolf", "position": "corner_table", "display": "sleeping" },
+    "working": { "location": "city_gate", "position": "entrance", "display": "on_duty" },
+    "guarding_gate": { "location": "city_gate", "position": "entrance", "display": "guarding_gate" },
+    "on_duty": { "location": "city_gate", "position": "entrance", "display": "guarding_gate" }
+  },
   "location": "tavern_silver_wolf",
   "hp": 30,
   "max_hp": 30,

@@ -68,6 +68,7 @@ class MovementEngine:
                 target_pos = intent.target_node_id
 
                 if current_pos and current_pos == target_pos:
+                    print(f"[GATE_B1_COLLAPSE] npc={npc_id} current={current_pos} target={target_pos} loc={getattr(intent, 'location_id', '?')}")
                     logger.debug(
                         f"[SPATIAL_GATE] COLLAPSE: npc={npc_id} already at {target_pos} "
                         f"reason={getattr(intent, 'reason', '?')}"
@@ -75,6 +76,8 @@ class MovementEngine:
                     continue  # spatial no-op — desire сворачивается
 
             validated.append(intent)
+            if isinstance(intent, MacroMovementGoal):
+                print(f"[GATE_B1_ACCEPT] npc={intent.npc_id} current={npc_positions.get(intent.npc_id, {}).get('position', '')} target={intent.target_node_id} loc={getattr(intent, 'location_id', '?')}")
 
         _skipped = len(intents) - len(validated)
         if _skipped > 0:

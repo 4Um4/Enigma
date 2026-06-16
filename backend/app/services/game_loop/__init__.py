@@ -1253,7 +1253,16 @@ class GameLoop:
         state.world_id            = world_id
         state.session_log         = []
         state.dice_input_required = False
-        state.layers              = {}
+        
+        # S85: Получаем scene_state из SceneStateManager (SSOT), а не из JSON.
+        # location_id="" означает, что нас интересует текущая локация без фильтрации.
+        scene = self.scene_manager.get_scene_state(campaign_id, location_id="")
+        state.scene_state = scene if scene else {}
+        state.metadata = {} # Заглушка, метаданные пока не используются фронтендом
+        
+        return state
+        state.layers = {"scene_state": scene} if scene else {}
+        
         return state
 
     def _resolve_world_id(self, campaign_id: str) -> str:

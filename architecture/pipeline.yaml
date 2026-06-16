@@ -196,10 +196,24 @@ nodes:
   CalibrationEngine:
     type: service
     layer: Application
-    label: "Calibration Engine & Identity Stability Kernel"
-    description: "ADR-O-211: Предотвращает неконтролируемый осциллирующий дрейф базовых драйвов. Возвращает драйвы к аттрактору."
+    label: "Calibration Engine (Pass-through / Deprecated for scalars)"
+    description: "ADR-O-211 DEPRECATION: Попытка стабилизации скалярных драйвов провалилась (Test C: интеграл шума). Переведён в pass-through. Кристаллизация перенесена в Belief Layer."
     code_ref: "services/npc/calibration_engine.py"
     adr_ref: "ADR-O-211"
+  PatternDetector:
+    type: service
+    layer: Application
+    label: "Pattern Detector (Source Grouping & Noise Filter)"
+    description: "ADR-O-305: Группирует L1Chronicle события по полю source. Если частота появления source превышает шумовой порог, генерирует EvidenceOfPersistence."
+    status: PROPOSED
+    adr_ref: "ADR-O-305"
+  BeliefCrystallizationEngine:
+    type: service
+    layer: Application
+    label: "Belief Crystallization Engine"
+    description: "ADR-O-305: Преобразует устойчивые паттерны в семантические убеждения ('волки=опасность'). Инжектит сдвиги политики в DecisionHub."
+    status: PROPOSED
+    adr_ref: "ADR-O-305"
   OntologyViolationError:
     type: domain
     layer: Domain
@@ -609,6 +623,25 @@ constraints:
     target: IntentDomain
     rule: "REQUIRED: MovementIntent MUST have domain field for viability mask (ADR-O-137)"
     severity: HIGH
+  # --- S88 PIPELINE INTEGRITY CONSTRAINTS ---
+  - source: TickOrchestrator
+    target: active_traversals
+    rule: "REQUIRED: Zombie cleanup — COMPLETED traversals MUST be removed from active_traversals after processing (S87 БАГ Z)"
+    condition: "COMPLETED traversals accumulate infinitely without cleanup. Zombie cleanup runs after _process_traversals cycle."
+    code_ref: "tick_orchestrator.py:zombie_cleanup"
+    severity: CRITICAL
+  - source: TickOrchestrator
+    target: _compute_effective_drives
+    rule: "REQUIRED: Unpack tuple result — _compute_effective_drives returns (map, updates), NOT dict (S88 БАГ T)"
+    condition: "Assigning tuple to effective_drives_map causes AttributeError in LifeEngine.tick_decisions. Must unpack: map, updates = _compute_effective_drives(...)"
+    code_ref: "tick_orchestrator.py:611,1685"
+    severity: CRITICAL
+  - source: _score_components
+    target: _drive_relevance
+    rule: "REQUIRED: Propagate effective_drives through _drive_relevance to _context_relevance (S88 БАГ E)"
+    condition: "_drive_relevance must accept effective_drives parameter and pass it to _context_relevance. NameError if missing."
+    code_ref: "decision_hub.py:905,980-987"
+    severity: CRITICAL
 ownership:
   DeltaBuffer:
     owner: "TickOrchestrator"
@@ -940,7 +973,7 @@ sequences:
         to: DriftReport
         message: "6. Accumulate stats + phase3 readiness indicator"
   # --- IDENTITY SEQUENCES ---
-  - title: "Identity Resolution Flow (ADR-O-208)"
+  - title: "Identity Resolution Flow (ADR-O-208 / ADR-O-304)"
     participants: [WorldPressure, L1Chronicle, DriveResolver, EffectiveDrives, CalibrationEngine, DecisionHub]
     steps:
       - from: WorldPressure
@@ -954,10 +987,22 @@ sequences:
         message: "3. resolve_drives(archetype_L0, l1_events) → L3 Projection"
       - from: EffectiveDrives
         to: CalibrationEngine
-        message: "4. Check for oscillation, return to attractor"
+        message: "4. Pass-through (No scalar mutation, Test C fix)"
       - from: CalibrationEngine
         to: DecisionHub
-        message: "5. Modulate utility (social deltas, risk perception)"
+        message: "5. Deliver L3_stable (Projection-native scoring)"
+  - title: "Belief Formation Flow (ADR-O-305)"
+    participants: [L1Chronicle, PatternDetector, BeliefCrystallizationEngine, DecisionHub]
+    steps:
+      - from: L1Chronicle
+        to: PatternDetector
+        message: "1. Group TraitDriftEvents by source, calculate persistence frequency"
+      - from: PatternDetector
+        to: BeliefCrystallizationEngine
+        message: "2. If frequency > noise_threshold, emit EvidenceOfPersistence(source, trait)"
+      - from: BeliefCrystallizationEngine
+        to: DecisionHub
+        message: "3. Crystallize into Belief (source → policy_shift). Inject via belief_modifiers"
   - title: "Viability Pre-Generation Gate Flow (ADR-O-137)"
     participants: [PerceptualKernel, IntentDomain, LifeEngine, MacroMovementGoal]
     steps:

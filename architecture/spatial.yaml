@@ -19,6 +19,11 @@ nodes:
     type: service
     layer: Application
     label: "Scene State Manager"
+  LifeEngine:
+    type: service
+    layer: Application
+    label: "Life Engine"
+    description: "S85.1: Резолвит цели через SpatialService.resolve_node(role=NodeRole)."
   TraversalState:
     type: domain
     layer: Domain
@@ -133,6 +138,12 @@ edges:
     label: "get_node(target_id)"
     condition: "Direct access for node resolution"
     code_ref: "spatial_service.py"
+  - from: LifeEngine
+    to: SpatialService
+    label: "resolve_node(role=NodeRole) (S85.1)"
+    condition: "Activity -> _ACTIVITY_TO_ROLE_MAP -> resolve_node(role, origin_zone)"
+    adr_ref: "ADR-S85.1"
+    code_ref: "life_engine.py"
   - from: SemanticIndex
     to: SpatialService
     label: "resolves semantic targets to canonical IDs"
@@ -209,6 +220,29 @@ constraints:
     target: LegacyName
     rule: "REQUIRED: Role-based legacy aliases in alias_map (ADR-114)"
     condition: "GraphCompiler MUST inject role-based aliases (bed→canonical, bar_area→canonical) and name-aliases so schedule/FLEE targets resolve."
+  - source: EventCompiler
+    target: SpatialService
+    rule: "FORBIDDEN: Node lookup in snapshot.spatial_service for cross-location SceneChange (S88 БАГ S)"
+    condition: "SpatialService is per-location scope. Cross-location SceneChange must bypass E3 and go directly to boundary_snap. SceneChange carries value, target_location_id, target_local_xy — self-sufficient."
+    code_ref: "event_compiler.py:168-173"
+    severity: CRITICAL
+  - source: EventCompiler
+    target: SceneChange
+    rule: "REQUIRED: boundary_snap fallback uses change.value and change.target_local_xy when node=None (S88 БАГ S)"
+    condition: "Cross-location: node unavailable in current svc. change.value = authoritative node name. change.target_local_xy = coordinates from MovementEngine."
+    code_ref: "event_compiler.py:231-234"
+    severity: HIGH
+  - source: TickOrchestrator
+    target: SpatialService
+    rule: "REQUIRED: SpatialService per-location scope — get_node() cannot resolve cross-location nodes (S88)"
+    condition: "canonical_id = location_id:node_id. normalize_id() searches alias_map of CURRENT location only. Cross-location lookup always fails."
+    code_ref: "spatial_service.py:117-129"
+    severity: HIGH
+  - source: DataManager
+    target: EditorJSON
+    rule: "REQUIRED: Map editor nodes added via DataManager.add_node() — NOT manual JSON editing (S88 БАГ N)"
+    condition: "DataManager guarantees format consistency. Manual JSON editing risks schema mismatch."
+    code_ref: "data_manager.py:847-858"
     code_ref: "graph_compiler.py:134-153"
     adr_ref: "ADR-114"
     severity: HIGH
@@ -300,6 +334,13 @@ constraints:
     condition: "Traversal = commitment, schedule = suggestion. Schedule cannot override reactive traversal."
     adr_ref: "ADR-130"
     severity: HIGH
+  - source: LifeEngine
+    target: _resolve_position
+    rule: "FORBIDDEN: Fallback to string nodes like 'common_area' (S85.1)"
+    condition: "Must use _ACTIVITY_TO_ROLE_MAP and SpatialService.resolve_node(role=NodeRole)"
+    adr_ref: "ADR-S85.1"
+    code_ref: "life_engine.py:1633"
+    severity: HIGH
   - source: SpatialQueryService
     target: SceneState
     rule: "FORBIDDEN: Read distances or positions directly from scene_state (ADR-048)"
@@ -324,6 +365,21 @@ sequences:
         to: SceneStateManager
         message: "4. No Traversal created -> coords=None"
         type: dotted
+  - title: "Semantic Spatial Binding Flow (ADR-S85.1)"
+    participants: [LifeEngine, SpatialService, NodeRef]
+    steps:
+      - from: LifeEngine
+        to: LifeEngine
+        message: "1. Get activity (e.g., 'drinking')"
+      - from: LifeEngine
+        to: LifeEngine
+        message: "2. Map to NodeRole.BAR via _ACTIVITY_TO_ROLE_MAP"
+      - from: LifeEngine
+        to: SpatialService
+        message: "3. resolve_node(role=BAR, origin_zone=current_loc)"
+      - from: SpatialService
+        to: LifeEngine
+        message: "4. Return NodeRef (canonical_id, x, y)"
   - title: "Boundary Node Creation Flow (ДОЛГ 6.2, ADR-145)"
     participants: [EditorJSON, GraphCompiler, BoundaryNode, SpatialService]
     steps:

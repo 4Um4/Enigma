@@ -259,6 +259,9 @@ class BackendContract:
             npc_positions=raw.get("npc_positions"),
             # Resistance Medium: Проброс конфликта воли
             will_conflict_data=raw.get("will_conflict_data"),
+            # S85: Проброс scene_state и metadata для инициализации UI
+            scene_state=raw.get("scene_state", {}),
+            metadata=raw.get("metadata", {}),
             # S82: Backend подтверждает spatial truth. Frontend reconciles при расхождении.
             confirmed_location_id=raw.get("confirmed_location_id"),
         )

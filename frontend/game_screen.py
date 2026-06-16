@@ -129,40 +129,8 @@ class _MoveState:
     facing_mode: str = "VELOCITY"  # "VELOCITY" (по движению), "LOOK_TARGET" (на цель), "FREE" (зафиксирован)
 
 
-def _load_campaign_state(campaign_folder: str) -> Optional[dict]:
-    """Загружает campaign_state.json: приоритет saves/, fallback campaigns/"""
-    state_file = _SAVES_DIR / campaign_folder / "campaign_state.json"
-    if not state_file.exists():
-        state_file = _CAMPAIGNS_DIR / campaign_folder / "campaign_state.json"
-    if not state_file.exists():
-        return None
-    with open(state_file, "r", encoding="utf-8") as f:
-        data = json.loads(f.read().encode().decode("utf-8-sig"))
-    scene = data.get("scene_state")
-    if scene is None:
-        return None
-    if "npc_positions" in data and "npc_positions" not in scene:
-        scene["npc_positions"] = data["npc_positions"]
-    return scene
-
-
-def _load_location_meta(campaign_folder: str, location_id: str) -> dict:
-    """Загружает метаданные локации (размер комнаты)"""
-    locations_dir = _CAMPAIGNS_DIR / campaign_folder / "locations"
-    if not locations_dir.exists():
-        return {"size": {"w": 20, "h": 15}}
-    for json_file in locations_dir.glob("*.json"):
-        try:
-            with open(json_file, "r", encoding="utf-8") as f:
-                loc_data = json.load(f)
-            if loc_data.get("filename", "").replace(".json", "") in location_id:
-                return loc_data
-            for room in loc_data.get("rooms", []):
-                if room.get("id") == location_id:
-                    return loc_data
-        except Exception:
-            continue
-    return {"size": {"w": 20, "h": 15}}
+# S85: Функции _load_campaign_state и _load_location_meta удалены.
+# Чтение JSON-зеркал запрещено (Frontend Debt Cleanup).
 
 
 def _player_xy(scene_state: dict) -> tuple[float, float]:
@@ -399,16 +367,15 @@ class GameScreen:
             except Exception as e:
                 system_log.append(f"[!] Backend session: {e}")
 
-        # Загружаем состояние ПОСЛЕ сессии — теперь scene_state уже скомпилирован
-        scene_state = _load_campaign_state(campaign_folder)
-        logger.debug(f"[GAME_SCREEN] scene_state loaded: {scene_state is not None}, loc={scene_state.get('location_id') if scene_state else 'N/A'}")
-        if scene_state is None:
+        # S85: Загружаем состояние через API (SSOT — SceneStateManager на бэкенде)
+        _session_data = _gateway.get_session_state(campaign_folder)
+        scene_state = _session_data.get("scene_state", {})
+        logger.debug(f"[GAME_SCREEN] scene_state loaded: {bool(scene_state)}, loc={scene_state.get('location_id', 'N/A')}")
+        if not scene_state:
             return
 
         # Игровое время — total_seconds от начала эпохи
-        # При старте парсим из scene_state, дальше обновляем из ответов backend и движения
         from constants import TIME_DELTA_WALK_INDOOR, parse_hhmm, format_game_time, format_world_date
-        # Абсолютное время из бэкенда (если есть), иначе legacy time_of_day
         _gts = scene_state.get("game_time_seconds")
         if _gts is not None and _gts > 0:
             self.game_time_seconds: int = _gts
@@ -416,11 +383,10 @@ class GameScreen:
             _env_time_str = scene_state.get("environment", {}).get("time_of_day", "07:00")
             self.game_time_seconds: int = parse_hhmm(_env_time_str)
 
-
         location_id = scene_state.get("location_id", "unknown")
-        loc_meta = _load_location_meta(campaign_folder, location_id)
-        scene_w = loc_meta.get("size", {}).get("w", 20)
-        scene_h = loc_meta.get("size", {}).get("h", 15)
+        
+        # S85: Размеры комнаты берем из SpatialCompilationGateway (а не из JSON)
+        scene_w, scene_h = 20.0, 15.0  # Fallback по умолчанию
 
         # S80.3b: Multi-chunk контекст — стены всех видимых локаций
         _world_ctx = None
@@ -443,6 +409,10 @@ class GameScreen:
                 walls = list(_world_ctx.collidable_walls)
                 obstacles = list(_world_ctx.collidable_obstacles)
                 _floor_rects = [vc.spatial.floor_rect for vc in _world_ctx.visible_chunks]
+                # S85: Извлекаем размеры комнаты из первого видимого чанка
+                if _floor_rects:
+                    _r = _floor_rects[0]
+                    scene_w, scene_h = _r[2], _r[3]
                 logger.debug(f"[PIPELINE][INPUT] multi-chunk: {len(_world_ctx.visible_chunks)} chunks, {len(walls)} walls")
                 logger.debug(f"[WORLD_CTX] location_id={location_id} walls={len(walls)} obstacles={len(obstacles)} visible_chunks={[vc.descriptor.location_id for vc in _world_ctx.visible_chunks]} scene=({scene_w},{scene_h})")
             else:

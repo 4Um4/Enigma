@@ -86,10 +86,10 @@ _NEED_TO_ACTIVITY: Dict[str, str] = {
 }
 
 # Порог: если value >= threshold → NPC идёт удовлетворять потребность
-_NEED_THRESHOLD: float = 0.7
+_NEED_THRESHOLD: float = 0.5
 
 # Прирост за тик, если активность не удовлетворяет потребность
-_NEED_DECAY_PER_TICK: float = 0.05
+_NEED_DECAY_PER_TICK: float = 0.08
 
 # Восстановление стресса за тик (см. psyche_engine)
 # ── Tick Architecture (Блок 1) ──────────────────────────────────────────────
@@ -465,7 +465,7 @@ class LifeEngine:
 
         # Используем кэшированных NPC если есть, иначе загружаем с диска
         npcs = self._npc_cache.get(campaign_id) or load_npcs_merged(runtime_path=runtime_path)
-        print(f"[LIFE_SET] tick={current_tick} npcs={sorted([n.get('id', '?') for n in npcs]) if npcs else []}")
+        logger.debug(f"[LIFE_SET] tick={current_tick} npcs={sorted([n.get('id', '?') for n in npcs]) if npcs else []}")
         all_changes: list[SceneChange] = []
         all_intents: list[MovementIntent] = [] # ADR-049: Сборка намерений
         npcs_updated = False
@@ -714,7 +714,7 @@ class LifeEngine:
                 import traceback
                 logger.warning(f"[LIFE_ENGINE] Idle decision error for {npc_id}: {e}\n{traceback.format_exc()}")
                 logger.error(f"[TICK_DECISIONS] error: {npc_id} → {e}")
-                print(traceback.format_exc())
+                logger.error(f"[LIFE_ENGINE] Error processing NPC {npc_id}: {e}")
                 continue
 
         logger.info(f"[TICK_DECISIONS] end: {len(decisions)} decisions, {len(communication_intents)} comms, {len(movement_intents)} movements")
@@ -1090,10 +1090,17 @@ class LifeEngine:
             self._tick_needs(npc)
             if need_intent := self._check_need_driven_movement(npc):
                 need_intent.domain = IntentDomain.ROUTINE
+                # S89: Need-driven OVERRIDE — критическая потребность перезаписывает schedule
+                # Модель: schedule = constitution, needs = emergency signals
+                # Когда потребность > threshold → schedule пропускается (не конкурирует)
+                need_intent.priority = 0.8  # PRIORITY_REACTIVE level — выше schedule
                 candidates.append(need_intent)
 
-        # 2. Расписание: только если ROUTINE жизнеспособен
-        if IntentDomain.ROUTINE in _viable:
+        # 2. Расписание: только если ROUTINE жизнеспособен И нет критической потребности
+        # S89: Need override — если need_intent уже в кандидатах, schedule не генерируется
+        # Модель: голодный кузнец не идёт на работу, он идёт есть
+        _has_critical_need = any(c.reason.startswith("need_driven:") for c in candidates)
+        if IntentDomain.ROUTINE in _viable and not _has_critical_need:
             routine_changes, routine_intent = self.update_routine(npc, current_time, tick, scene_state=scene_state)
             changes.extend(routine_changes)
             if routine_intent:
@@ -1137,7 +1144,7 @@ class LifeEngine:
             }
             if self._claim_bus is not None:
                 self._claim_bus.emit(_claim)
-                print(f"[DRF_EMIT] source=life_engine npc={winner.npc_id} vector={winner.reason} bus_id={id(self._claim_bus)} stream_size={len(self._claim_bus.stream)}")
+                logger.debug(f"[DRF_EMIT] source=life_engine npc={winner.npc_id} vector={winner.reason} bus_id={id(self._claim_bus)} stream_size={len(self._claim_bus.stream)}")
             
             intents.append(winner)
             # Обновляем activity в scene_state
@@ -1154,6 +1161,14 @@ class LifeEngine:
                         cause=f"life_engine_need_driven:{winner.reason}",
                         tick=tick,
                     ))
+                    # BUG SC FIX: Обновление routine.current при победе need-driven
+                    # Без этого routine.current остаётся на schedule activity, пока NPC
+                    # физически на need-driven позиции → DOUBLE TRUTH → Schedule Freeze
+                    # Голодный NPC решил есть → routine.current = "eating" →
+                    # _tick_needs сбросит hunger → schedule вернёт NPC на работу
+                    _routine = npc.setdefault("routine", {})
+                    _routine["current"] = target_activity
+                    _routine["mood"] = self._mood_for_activity(target_activity)
             logger.debug(
                 f"[LIFE_ENGINE] {npc.get('id', '?')}: "
                 f"{len(candidates)} intents, winner={winner.reason} (p={winner.priority})"
@@ -1220,7 +1235,7 @@ class LifeEngine:
         if not urgent_needs:
             return None
 
-        # Самая срочная первой
+        # Самая срочной первой
         urgent_needs.sort(key=lambda x: x[1], reverse=True)
         need_name, need_value = urgent_needs[0]
 
@@ -1228,7 +1243,29 @@ class LifeEngine:
         if not target_activity:
             return None
 
+        # S89: Диагностика need-driven
+        _has_am = target_activity in activity_map
+        logger.debug(f"[NEED_TRACE] npc={npc_id} need={need_name}:{need_value:.2f} activity={target_activity} has_am={_has_am}")
+
         target_entry = activity_map.get(target_activity)
+
+        # S89: Semantic spatial binding fallback для need-driven
+        # Если activity_map не имеет нужной активности (напр. "socializing"),
+        # резолвим через SpatialService по роли — как в _resolve_position
+        if not target_entry and self._spatial_service:
+            from app.models.spatial_contracts import NodeRole
+            _NEED_ROLE_MAP = {
+                "eating": NodeRole.TABLE, "sleeping": NodeRole.BED,
+                "resting": NodeRole.BED, "working": NodeRole.WORKBENCH,
+                "socializing": NodeRole.BAR, "drinking": NodeRole.BAR,
+                "haggling": NodeRole.MARKET, "guarding_gate": NodeRole.ENTRANCE,
+            }
+            _role = _NEED_ROLE_MAP.get(target_activity)
+            if _role:
+                _ref = self._spatial_service.resolve_node(role=_role, origin_zone=npc.get("location"))
+                if _ref:
+                    target_entry = {"location": _ref.zone_id, "position": _ref.node_id, "display": target_activity}
+
         if not target_entry:
             return None
 
@@ -1522,6 +1559,10 @@ class LifeEngine:
 
         prev_activity = npc.get("routine", {}).get("current", "")
 
+        # S89: Диагностика Schedule Freeze — отслеживание переходов активности
+        if new_activity != prev_activity:
+            logger.debug(f"[SCHED_TRACE] npc={npc_id} prev={prev_activity!r} new={new_activity!r} CHANGE")
+
         if new_activity == prev_activity:
             return [], None
 
@@ -1648,6 +1689,9 @@ class LifeEngine:
                 "cleaning_tables": NodeRole.TABLE, "sleeping": NodeRole.BED,
                 "resting": NodeRole.BED, "working": NodeRole.WORKBENCH,
                 "eating": NodeRole.TABLE, "idle": NodeRole.DEFAULT,
+                "observing": NodeRole.TABLE, "active": NodeRole.TABLE,
+                "planning": NodeRole.TABLE, "guarding_gate": NodeRole.ENTRANCE,
+                "socializing": NodeRole.BAR, "haggling": NodeRole.MARKET,
             }
             role = _ACTIVITY_TO_ROLE_MAP.get(activity)
             if role:

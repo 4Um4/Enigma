@@ -48,6 +48,8 @@ class NpcTickInput:
     scene_continuity: Any  # SceneContinuity или None
     spatial_events: list   # Для социальных триггеров (ревность по proximity)
     line_of_sight: dict    # Из dm_result.scene_context.line_of_sight
+    effective_drives_map: Optional[Dict[str, "EffectiveDrives"]] = None  # STEP B: L3 проекция от TickOrchestrator (SSOT)
+    """TODO:effective_drives_map: Optional[Dict[str, Any]] = None  # STEP B: L3 проекция от TickOrchestrator (SSOT)"""
 
 
 @dataclass

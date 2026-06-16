@@ -165,7 +165,13 @@ class EventCompiler:
             logger.warning("[SHADOW_COMPILER] No spatial service in snapshot")
             return None
 
-        # E3: Node lookup
+        # E3: Node lookup — ONLY for same-location movement
+        # Cross-location: target node is in a different location's graph,
+        # current svc cannot resolve it. SceneChange already carries
+        # target_local_xy from MovementEngine (authoritative source).
+        if target_loc != snapshot.location_id:
+            return self._compile_boundary_snap(snapshot, change, None, target_loc, svc)
+
         node = svc.get_node(change.value) or svc.get_node(
             f"{target_loc}:{change.value}"
         )
@@ -176,9 +182,7 @@ class EventCompiler:
             )
             return None
 
-        # E4 vs E5-E16: Cross-location vs same-location
-        if target_loc != snapshot.location_id:
-            return self._compile_boundary_snap(snapshot, change, node, target_loc, svc)
+        # E5-E16: Same-location movement
 
         return self._compile_same_location_movement(
             snapshot, change, node, svc
@@ -224,6 +228,11 @@ class EventCompiler:
         if target_loc and not neighbor_chunk:
             neighbor_chunk = target_loc
 
+        # Cross-location: node is None — use SceneChange data
+        # (authoritative: MovementEngine already resolved coordinates)
+        _target_node = node.node_id if node else change.value
+        _target_xy = (node.x, node.y) if node else getattr(change, 'target_local_xy', (0.0, 0.0))
+
         return ThickSceneChange(
             change_type=change.type.value,
             target=change.target,
@@ -237,9 +246,9 @@ class EventCompiler:
                 source_location=snapshot.location_id,
                 target_location=target_loc,
                 source_node="",
-                target_node=node.node_id,
+                target_node=_target_node,
                 source_xy=(0.0, 0.0),
-                target_xy=(node.x, node.y),
+                target_xy=_target_xy,
             ),
             boundary=BoundaryResolution(
                 is_boundary=is_boundary,

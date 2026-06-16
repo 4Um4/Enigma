@@ -60,8 +60,8 @@ nodes:
     type: service
     layer: Application
     label: "Life Engine (Cache + Simulation)"
-    description: "Owns _npc_cache. Owns Viability Pre-Generation Gate (ADR-O-137) and Arousal Gate (ADR-O-142A)."
-    adr_ref: "ADR-117, ADR-O-137, ADR-O-142A"
+    description: "Owns _npc_cache. Owns Viability Pre-Generation Gate (ADR-O-137) and Arousal Gate (ADR-O-142A). Two-layer dispatch: need-driven (priority=0.8) overrides schedule (priority=0.6) when critical (ADR-149)."
+    adr_ref: "ADR-117, ADR-O-137, ADR-O-142A, ADR-149, ADR-150"
   GameLoop:
     type: service
     layer: Application
@@ -554,6 +554,43 @@ constraints:
     condition: "Truth goes via intent.target. ADR-124 remains as load-bearing cable until native route built."
     adr_ref: "ADR-125"
     severity: MEDIUM
+  # --- SCHEDULE FREEZE & NEED OVERRIDE CONSTRAINTS (ADR-149) ---
+  - source: LifeEngine
+    target: NeedIntent
+    rule: "REQUIRED: Need-driven priority (0.8) MUST override schedule priority (0.6) when need >= threshold (ADR-149)"
+    condition: "Two-layer dispatch: need = emergency signal, schedule = constitution. Schedule NOT generated when need-driven already selected."
+    code_ref: "life_engine.py:_simulate_major"
+    adr_ref: "ADR-149"
+    severity: CRITICAL
+  - source: LifeEngine
+    target: routine_current
+    rule: "REQUIRED: routine['current'] MUST update when need-driven wins (ADR-149 BUG SC FIX)"
+    condition: "Without this: DOUBLE TRUTH — NPC physically at eating position but routine.current='working'. _tick_needs never resets hunger. Schedule Freeze."
+    code_ref: "life_engine.py:_simulate_major"
+    adr_ref: "ADR-149"
+    severity: CRITICAL
+  - source: LifeEngine
+    target: ScheduleIntent
+    rule: "REQUIRED: Skip schedule generation when need-driven intent already in candidates (ADR-149)"
+    condition: "Two-layer dispatch: if _has_critical_need, schedule generator is not invoked. Prevents schedule from overriding critical needs at priority level."
+    code_ref: "life_engine.py:_simulate_major"
+    adr_ref: "ADR-149"
+    severity: HIGH
+  # --- NEED-DRIVEN SEMANTIC SPATIAL BINDING (ADR-150) ---
+  - source: LifeEngine
+    target: NeedIntent
+    rule: "REQUIRED: Need-driven MUST resolve target via SpatialService.resolve_node() when activity_map entry missing (ADR-150)"
+    condition: "_NEED_ROLE_MAP maps needs to NodeRole (hunger→TABLE, socializing→BAR, shelter_urge→BED). Without fallback: need intent silently dies, need saturates at 1.0 forever."
+    code_ref: "life_engine.py:_check_need_driven_movement"
+    adr_ref: "ADR-150"
+    severity: HIGH
+  - source: LifeEngine
+    target: _NEED_ROLE_MAP
+    rule: "REQUIRED: Every _NEED_TO_ACTIVITY entry MUST have corresponding _NEED_ROLE_MAP entry (ADR-150)"
+    condition: "Missing role map entry = silent death of need-driven intent for that need type."
+    code_ref: "life_engine.py"
+    adr_ref: "ADR-150"
+    severity: HIGH
 ownership:
   EmotionTag:
     owner: "AffectivePipeline (via emotion_transition.py)"

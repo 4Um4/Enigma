@@ -59,6 +59,11 @@ nodes:
     layer: Domain
     label: "DNA Delta"
     description: "Diff between sessions. Includes PFI change to track stability trends."
+  DriftLaboratory:
+    type: service
+    layer: Application
+    label: "Drift Laboratory (SUPERBOX)"
+    description: "S85.3: Stress-tests pipeline. Idle stability mode verifies traversal lifecycle and node visits."
 edges:
   - from: GameStdout
     to: CausalObserver
@@ -114,6 +119,12 @@ edges:
   - from: DNAComputer
     to: DNADelta
     label: "computes delta between sessions"
+  - from: DriftLaboratory
+    to: CausalTrace
+    label: "records drift snapshots"
+    condition: "S85.3: Idle stability test logs activity changes and traversals."
+    code_ref: "drift_laboratory.py"
+    adr_ref: "ADR-S85.3"
 constraints:
   - source: CausalObserver
     target: Runtime_State
@@ -144,3 +155,25 @@ constraints:
     code_ref: "dm_router.py"
     adr_ref: "ADR-147"
     severity: HIGH
+  - source: DriftLaboratory
+    target: SceneState
+    rule: "REQUIRED: Read spatial positions from scene_state[npc_positions] (SSOT), not LifeEngine cache (ADR-S85.3)"
+    condition: "Metrics like UNIQUE_NODES_VISITED must observe runtime truth, not diagnostic projection."
+    code_ref: "drift_laboratory.py"
+    adr_ref: "ADR-S85.3"
+    severity: HIGH
+  # --- PROBE → TELEMETRY TRANSITION (ADR-151) ---
+  - source: Any
+    target: PrintProbe
+    rule: "REQUIRED: Print probes MUST NOT be deleted without replacement (ADR-151)"
+    condition: "Three tiers: 🟢 Essential (print: GATE_*, NPC_SET, DRF_*, TIFL_DRIFT, ZOMBIE), 🟡 Condensed (logger.debug: NEED_TRACE, SCHED_TRACE, AFF_*), 🔴 Removed (deleted entirely). Empty blocks after removal = SyntaxError."
+    code_ref: "tick_orchestrator.py, life_engine.py, movement_engine.py"
+    adr_ref: "ADR-151"
+    severity: HIGH
+  - source: Any
+    target: EmptyBlock
+    rule: "FORBIDDEN: Empty code block after probe removal — causes IndentationError (ADR-151)"
+    condition: "When replacing print() with comment or logger.debug, ensure the containing block (if/else/for) has at least one executable statement or pass."
+    code_ref: "tick_orchestrator.py"
+    adr_ref: "ADR-151"
+    severity: CRITICAL

@@ -1,5 +1,5 @@
 domain: IDENTITY
-description: "Домен Идентичности и Онтологии (DOM-10). Фазово-заблокированное поле дрейфа, кристаллизующееся во времени. L0 (Восприятие) + L1 (Хроника) → L3 (Эффективные Драйвы)."
+description: "Домен Идентичности и Онтологии (DOM-10). Фазово-заблокированное поле дрейфа. L0 (Архетип) + L1 (Хроника) → L3 (Проекция). Стабилизация скалярных драйвов признана тупиком (Test C). Кристаллизация перенесена в Belief Layer (Убеждения)."
 nodes:
   L1Chronicle:
     type: domain
@@ -24,7 +24,32 @@ nodes:
   CalibrationEngine:
     type: service
     layer: Application
-    label: "Calibration Engine & Stability Kernel (Target)"
+    label: "Calibration Engine (Pass-through / Deprecated for scalars)"
+    status: DEPRECATED_FOR_SCALARS
+  DecisionHub:
+    type: service
+    layer: Application
+    label: "Decision Hub (Projection-Native Scoring)"
+  PatternDetector:
+    type: service
+    layer: Application
+    label: "Pattern Detector (L1 Source Grouping)"
+    status: PROPOSED
+  BeliefCrystallizationEngine:
+    type: service
+    layer: Application
+    label: "Belief Crystallization (Evidence of Persistence → Semantic Policy)"
+    status: PROPOSED
+  ArchetypeConfig:
+    type: database
+    layer: Infrastructure
+    label: "Archetype Config JSON (Profession)"
+    description: "S85.2: Defines behavioral schedule (routine). Spatial activity_map prohibited."
+  IndividualConfig:
+    type: database
+    layer: Infrastructure
+    label: "Individual Config JSON (Position)"
+    description: "S85.2: Contains specific activity_map for cross-location routing."
 edges:
   - from: TraitDriftEvent
     to: L1Chronicle
@@ -43,9 +68,39 @@ edges:
     code_ref: "drive_resolver.py"
   - from: EffectiveDrives
     to: CalibrationEngine
-    label: "checks for oscillation"
-    condition: "Post-resolution"
-    code_ref: "calibration_engine.py (Target)"
+    label: "pass-through (no scalar mutation)"
+    condition: "ADR-O-211 DEPRECATION: Test C noise accumulation"
+    code_ref: "calibration_engine.py"
+  - from: CalibrationEngine
+    to: DecisionHub
+    label: "delivers L3_stable"
+    condition: "Projection-native scoring (ADR-O-304)"
+    code_ref: "tick_orchestrator.py"
+  - from: L1Chronicle
+    to: PatternDetector
+    label: "query by source, detect persistence frequency"
+    condition: "ADR-O-305: Grouping by source field"
+    code_ref: "pattern_detector.py (Target)"
+  - from: PatternDetector
+    to: BeliefCrystallizationEngine
+    label: "generate EvidenceOfPersistence"
+    condition: "ADR-O-305: Frequency > noise threshold"
+    code_ref: "belief_crystallization_engine.py (Target)"
+  - from: BeliefCrystallizationEngine
+    to: DecisionHub
+    label: "inject belief_modifiers / active_traits"
+    condition: "ADR-O-305: Source-specific policy shift"
+    code_ref: "decision_hub.py"
+  - from: ArchetypeConfig
+    to: DriveResolver
+    label: "provides L0 archetype"
+    condition: "Base personality traits and schedule"
+    code_ref: "npc_loader.py"
+  - from: IndividualConfig
+    to: DriveResolver
+    label: "merges individual overrides"
+    condition: "Specific schedule/activity_map overrides"
+    code_ref: "npc_loader.py"
 constraints:
   - source: Any
     target: L1Chronicle
@@ -60,6 +115,32 @@ constraints:
     rule: "REQUIRED: Raise OntologyViolationError and kill tick on NaN, sum!=1.0, or bounds violation"
     code_ref: "ADR-O-207"
   - source: CalibrationEngine
-    target: DriveResolver
-    rule: "REQUIRED: Prevent uncalibrated drift of base drives (Anti-oscillation)"
-    code_ref: "ADR-O-211"
+    target: EffectiveDrives
+    rule: "DEPRECATED for scalar mutation (Test C noise accumulation). Pass-through mode ONLY"
+    code_ref: "ADR-O-211 DEPRECATION"
+  - source: DecisionHub
+    target: EffectiveDrives
+    rule: "REQUIRED: Projection-native scoring. L0 (drives_base) prohibited in scoring"
+    code_ref: "ADR-O-304"
+  - source: BeliefCrystallizationEngine
+    target: DecisionHub
+    rule: "REQUIRED: Beliefs modify policy via source-specific vectors, NOT abstract scalar fear"
+    code_ref: "ADR-O-305"
+  - source: PatternDetector
+    target: L1Chronicle
+    rule: "REQUIRED: Group by source. Do not accumulate noise from uncorrelated events"
+    code_ref: "ADR-O-305"
+  - source: ArchetypeConfig
+    target: SpatialService
+    rule: "FORBIDDEN: Storing activity_map with concrete coordinates inside archetypes (ADR-S85.2)"
+    condition: "Archetype = Profession (schedule only). Individual = Position (activity_map)."
+    adr_ref: "ADR-S85.2"
+    code_ref: "config/npc/archetypes/*.json"
+    severity: HIGH
+  - source: IndividualConfig
+    target: SpatialService
+    rule: "REQUIRED: Cross-location activity_map MUST be defined in individual config (ADR-S85.2)"
+    condition: "Individual defines concrete locations (e.g., city_gate:entrance) for their specific job."
+    adr_ref: "ADR-S85.2"
+    code_ref: "config/npc/individuals/*.json"
+    severity: HIGH

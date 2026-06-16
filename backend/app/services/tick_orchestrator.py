@@ -199,6 +199,11 @@ class _TickContext:
     max_npc_stress: float = 0.0
     # Фаза 10: данные для атомарного коммита
     npc_states: list[dict] = field(default_factory=list)
+    # STEP B: L3 проекция (EffectiveDrives). Вычисляется один раз за тик, доступна обоим путям.
+    effective_drives_map: Dict[str, "EffectiveDrives"] = field(default_factory=dict)
+    # TSHL: Обновления для StateApplicator (пока в безопасном режиме)
+    drives_updates: Dict[str, Dict[str, float]] = field(default_factory=dict)
+    strain_updates: Dict[str, Dict[str, float]] = field(default_factory=dict)
     # tick_events: все события тика для аудита (decision_events + spatial + handlers)
     tick_events: list[dict] | None = None
     # Фаза 0.5: буфер idle-дельт (social decay, reputation decay)
@@ -604,6 +609,10 @@ class TickOrchestrator:
         logger.warning(f"[PHASE_5_PLAYER] ENTER: nearby_npcs={len(dm.nearby_npcs) if dm and dm.nearby_npcs else 0}, dm.all_npcs_raw={_dm_npcs}")
         from app.services.npc.npc_tick_contracts import NpcTickInput, NpcTickBuffer
         from app.services.npc.npc_tick_pipeline import run_npc_pipeline
+
+        # STEP B + TSHL: L3 для player path.
+        ctx.effective_drives_map, ctx.drives_updates, ctx.strain_updates = self._compute_effective_drives(dm.all_npcs_raw or [], ctx.tick_number)
+
         # DRF: Создаём frame context с привязкой к tick (npc_id привяжется в loop)
         _drf_ctx = DRFExecutionContext(tick_id=ctx.tick_number, bus=ctx.drf_bus)
         _pl = getattr(dm.hub_event, 'payload', '<NO_PAYLOAD>') if dm.hub_event else '<NO_HUB_EVENT>'
@@ -623,6 +632,7 @@ class TickOrchestrator:
             scene_continuity=dm.scene_continuity,
             spatial_events=dm.spatial_events,
             line_of_sight=dm.line_of_sight,
+            effective_drives_map=ctx.effective_drives_map,  # STEP B: L3 SSOT
         )
 
         npc_buffer = NpcTickBuffer()
@@ -800,16 +810,16 @@ class TickOrchestrator:
         # ADR-035: Обработка реактивных перемещений (MovementIntents)
         # В player turn LifeEngine не вызывается, поэтому MovementEngine нужно вызвать вручную
         _mi = ctx.player_result.movement_intents if ctx.player_result else None
-        print(f"[MOVEMENT_INTENT_CHECK] player_result={ctx.player_result is not None} movement_intents={_mi} count={len(_mi) if _mi else 0}")
+        # [MOVEMENT_INTENT_CHECK] removed S89 — probe → telemetry transition
         if ctx.player_result and ctx.player_result.movement_intents:
             from app.services.spatial.movement_engine import MovementEngine
             _spatial_svc = self._resolve_spatial_service(ctx)
-            print(f"[MOVEMENT_DEBUG] spatial_svc={_spatial_svc is not None} scene_manager={self._scene_manager is not None}")
+            # [MOVEMENT_DEBUG] removed S89
             if _spatial_svc:
                 me = MovementEngine()
                 me.set_spatial_service(_spatial_svc)
                 _tick = self.get_current_tick(ctx.campaign_id)
-                print(f"[MOVEMENT_DEBUG] Calling process_intents with {len(ctx.player_result.movement_intents)} intents, tick={_tick}")
+                # [MOVEMENT_DEBUG] removed S89
                 # ДОЛГ 4.2: Causal Scoring Overlay — аддитивный скоринг давления
                 self._apply_drf_scoring_overlay(ctx.player_result.movement_intents, ctx)
                 changes = me.process_intents(
@@ -817,17 +827,12 @@ class TickOrchestrator:
                     ctx.scene_state.get("npc_positions", {}),
                     campaign_id=ctx.campaign_id, scene_state=ctx.scene_state
                 )
-                print(f"[MOVEMENT_DEBUG] process_intents returned {len(changes)} changes")
-                for _di, _ch in enumerate(changes):
-                    print(f"[SCENE_CHANGE_DIAG] idx={_di} field={getattr(_ch, 'field', '?')} target={getattr(_ch, 'target', '?')} value={getattr(_ch, 'value', '?')}")
-                # DIAGNOSTIC: Как SceneChange объекты выглядят?
-                for _di, _ch in enumerate(changes):
-                    print(f"[SCENE_CHANGE_DIAG] idx={_di} field={getattr(_ch, 'field', '?')} target={getattr(_ch, 'target', '?')} value={getattr(_ch, 'value', '?')}")
+                # [MOVEMENT_DEBUG] removed S89 — probe → telemetry transition
                 logger.debug(f"[PIPELINE][MOVEMENT] changes={len(changes)} scene_manager={self._scene_manager is not None}")
                 if changes and self._scene_manager:
                     self._apply_with_shadow_observation(ctx, changes, phase_label="REACTIVE_MOVE")
                     logger.warning(f"[PLAYER_TURN] Applied {len(changes)} reactive movement changes")
-                    print(f"[TRAV_CHECK_P1] after_apply_changes: id(ctx.scene_state)={id(ctx.scene_state)} active_traversals={list(ctx.scene_state.get('active_traversals', {}).keys())}")
+                    # [TRAV_CHECK_P1] removed S89
                 elif changes and not self._scene_manager:
                     logger.error("[PIPELINE][MOVEMENT] CRITICAL: scene_manager is None! Changes lost!")
             else:
@@ -1350,7 +1355,7 @@ class TickOrchestrator:
         """
         # БЕЗУСЛОВНАЯ ДИАГНОСТИКА: Вызывается ли метод вообще?
         import sys
-        print(f"[WILL_TRACE_UNCONDITIONAL] _phase_1_input CALLED. Has intent: {ctx.player_intent is not None}", file=sys.stderr, flush=True)
+        logger.debug(f"[WILL_TRACE] _phase_1_input CALLED. Has intent: {ctx.player_intent is not None}")
         
         if not ctx.player_intent:
             return # Idle-тик или нет ввода от игрока
@@ -1620,6 +1625,48 @@ class TickOrchestrator:
 
         logger.debug(f"[TICK_ORCH] Фаза 4: {len(ctx.npc_topics)} topics извлечено")
 
+    def _compute_effective_drives(self, npc_list: list[dict], tick_number: int) -> Tuple[Dict[str, "EffectiveDrives"], Dict[str, Dict[str, float]], Dict[str, Dict[str, float]]]:
+        """STEP B + TSHL: Вычисление L3_raw и фильтрация в L3_stable через CalibrationEngine.
+        Возвращает L3_stable (для DecisionHub), drives_updates и strain_updates (для StateApplicator).
+        """
+        from app.domain.identity_events import EffectiveDrives
+        from app.services.npc.calibration_engine import CalibrationEngine
+        
+        effective_drives_map: Dict[str, EffectiveDrives] = {}
+        drives_updates: Dict[str, Dict[str, float]] = {}
+        strain_updates: Dict[str, Dict[str, float]] = {}
+        
+        if hasattr(self, 'drive_resolver') and hasattr(self, 'l1_chronicle'):
+            from app.models.npc_state import personality_from_legacy
+            _calibration = CalibrationEngine()
+            
+            for npc_dict in npc_list:
+                _nid = npc_dict.get("id") or npc_dict.get("npc_id")
+                if _nid:
+                    _profile_l0 = personality_from_legacy(npc_dict)
+                    _l1_events = self.l1_chronicle.query_weighted(_nid, tick_number)
+                    _projection = self.drive_resolver.resolve_drives(_profile_l0, _l1_events)
+                    
+                    if isinstance(_projection, EffectiveDrives):
+                        l3_raw = _projection
+                    else:
+                        l3_raw = EffectiveDrives.from_dict(_projection)
+                    
+                    # TSHL: Фильтруем L3_raw через фазовый переход
+                    _prev_runtime = npc_dict.get("drives", {})
+                    _prev_strain = npc_dict.get("strain_memory", {})
+                    _baseline_l0 = dict(_profile_l0.drives_base)
+                    
+                    l3_stable, drives_update, strain_update = _calibration.stabilize(
+                        l3_raw, _prev_runtime, _baseline_l0, _prev_strain
+                    )
+                    
+                    effective_drives_map[_nid] = l3_stable
+                    drives_updates[_nid] = drives_update
+                    strain_updates[_nid] = strain_update
+                    
+        return effective_drives_map, drives_updates, strain_updates
+
     def _phase_5_decision(self, ctx: _TickContext) -> None:
         """DecisionHub: создаёт CommunicationIntent для каждого NPC.
         
@@ -1638,29 +1685,13 @@ class TickOrchestrator:
                 if traits := mm.get_identity_traits(ctx.campaign_id, npc_id):
                     identities[npc_id] = traits
         
-        # ADR-O-208: Вычисляем effective_drives (L3) для каждого NPC
-        # DriveResolver живёт в TickOrchestrator, LifeEngine его не имеет.
-        # Без этого DecisionHub.compute() падает на обязательном аргументе.
-        effective_drives_map: dict[str, Any] = {}
-        if hasattr(self, 'drive_resolver') and hasattr(self, 'l1_chronicle'):
-            from app.models.npc_state import personality_from_legacy
-            from app.domain.identity_events import EffectiveDrives
-            for npc_dict in ctx.npc_states:
-                _nid = npc_dict.get("id") or npc_dict.get("npc_id")
-                if _nid:
-                    _profile_l0 = personality_from_legacy(npc_dict)
-                    _l1_events = self.l1_chronicle.query_weighted(_nid, ctx.tick_number)
-                    _projection = self.drive_resolver.resolve_drives(_profile_l0, _l1_events)
-                    # Guard: resolve_drives может вернуть dict или уже EffectiveDrives
-                    if isinstance(_projection, EffectiveDrives):
-                        effective_drives_map[_nid] = _projection
-                    else:
-                        effective_drives_map[_nid] = EffectiveDrives.from_dict(_projection)
+        # STEP B + TSHL: L3 карта, обновления драйвов и strain.
+        ctx.effective_drives_map, ctx.drives_updates, ctx.strain_updates = self._compute_effective_drives(ctx.npc_states, ctx.tick_number)
 
         decision_dicts, communication_intents, movement_intents = engine.tick_decisions(
             ctx.campaign_id, ctx.scene_state,
             topics=ctx.npc_topics, identities=identities,
-            effective_drives_map=effective_drives_map,
+            effective_drives_map=ctx.effective_drives_map,
         )
         ctx.decision_events = decision_dicts or []
         ctx.communication_intents = communication_intents or []
@@ -1743,9 +1774,9 @@ class TickOrchestrator:
         Также запускает аффективный pipeline (ADR-049) для player turn.
         """
         import sys
-        print(f"[P9_DIAG] _phase_9 ENTERED. shared_context is None: {ctx.shared_context is None}", file=sys.stderr, flush=True)
+        logger.debug(f"[P9_DIAG] _phase_9 ENTERED. shared_context is None: {ctx.shared_context is None}")
         if ctx.shared_context is None:
-            print("[P9_DIAG] ABORT: shared_context is None!", file=sys.stderr, flush=True)
+            logger.debug("[P9_DIAG] ABORT: shared_context is None!")
             return
 
         # DSTC: Удалён досрочный apply_batch (S75-FIX).
@@ -1777,10 +1808,10 @@ class TickOrchestrator:
             for c in _claims:
                 _npc_claims[c.get("target_npc", "unknown")].append(f"{c.get('pressure_type', '?')}:{c.get('vector', '?')}({c.get('energy', 0.0):.1f})")
             for npc, claims_str in _npc_claims.items():
-                print(f"[DRF_FIELD] npc={npc} pressures={claims_str}")
+                logger.debug(f"[DRF_FIELD] npc={npc} pressures={claims_str}")
         else:
-            print("[DRF_FIELD] claim_field is EMPTY this tick")
-            
+            # [DRF_FIELD] claim_field is EMPTY this tick
+            pass
         if ctx.shared_context is None:
             return
 
@@ -1873,7 +1904,7 @@ class TickOrchestrator:
         # S73-DIAG: Проверка призрачного decay (мёртвая ли психика в snapshot?)
         if snapshots:
             _sample = snapshots[0]
-            print(f"[AFF_DEBUG] handlers={[type(h).__name__ for h in self._idle_handlers]} aff_load={_sample.get('affective_load', '<MISSING>')} emo={_sample.get('emotion', '<MISSING>')}")
+            logger.debug(f"[AFF_DEBUG] handlers={[type(h).__name__ for h in self._idle_handlers]} aff_load={_sample.get('affective_load', '<MISSING>')} emo={_sample.get('emotion', '<MISSING>')}")
 
         for handler in self._idle_handlers:
             try:
@@ -2511,7 +2542,7 @@ class TickOrchestrator:
                             # TIFL TELEMETRY: Наблюдение за пульсом кристаллизации идентичности
                             _vec_str = ", ".join(f"{k}:{v:.2f}" for k, v in _error_vector.items())
                             _drift_str = ", ".join(f"{e.trait}:{e.delta:+.5f}" for e in _drift_events)
-                            print(f"[TIFL_DRIFT] npc={entity_id} err={_abs_error:.3f} vec=[{_vec_str}] drift=[{_drift_str}]", file=sys.stderr, flush=True)
+                            # [TIFL_DRIFT] duplicate of idle path — see line 2550
                         pk_dict = npc_raw.get("perceptual_kernel", {})
                         
                         # ADR-116: Диагностика входа в affective pipeline
@@ -2637,7 +2668,7 @@ class TickOrchestrator:
         Без этого affective_load не растёт при player turn → emotion=NEUTRAL → _emotion_modifier()=0.0.
         """
         import sys
-        print(f"[SEL_DIAG] _run_affective_pipeline ENTERED. Snapshot is None: {ctx.interpretation_snapshot is None}", file=sys.stderr, flush=True)
+        logger.debug(f"[SEL_DIAG] _run_affective_pipeline ENTERED. Snapshot is None: {ctx.interpretation_snapshot is None}")
         # DSTC: Ленивое создание interpretation_snapshot, если Pipeline вызван до Phase 9 (например, в player turn)
         import copy
         if ctx.interpretation_snapshot is None:
@@ -2763,7 +2794,7 @@ class TickOrchestrator:
                     # TIFL TELEMETRY: Наблюдение за пульсом кристаллизации идентичности
                     _vec_str = ", ".join(f"{k}:{v:.2f}" for k, v in _error_vector.items())
                     _drift_str = ", ".join(f"{k}:{v:+.5f}" for k, v in _drifts.items())
-                    print(f"[TIFL_DRIFT] npc={entity_id} err={_abs_error:.3f} vec=[{_vec_str}] drift=[{_drift_str}]", file=sys.stderr, flush=True)
+                    logger.debug(f"[TIFL_DRIFT] npc={entity_id} err={_abs_error:.3f} vec=[{_vec_str}] drift=[{_drift_str}]")
 
             # 1. Обновление базового ожидания (Prior / Котёл)
             MEMORY_DECAY_RATE = 0.85  # Скорость забывания (клапан сброса)
@@ -2883,9 +2914,10 @@ class TickOrchestrator:
             for c in _claims:
                 _npc_claims[c.get("target_npc", c.get("npc_id", "unknown"))].append(f"{c.get('pressure_type', '?')}:{c.get('vector', '?')}({c.get('energy', 0.0):.1f})")
             for npc, claims_str in _npc_claims.items():
-                print(f"[DRF_FIELD] npc={npc} pressures={claims_str}")
+                logger.debug(f"[DRF_FIELD] npc={npc} pressures={claims_str}")
         else:
-            print("[DRF_FIELD] claim_field is EMPTY this tick")
+            # [DRF_FIELD] claim_field is EMPTY this tick
+            pass
 
         if self._scene_manager is None:
             logger.warning("[TICK_ORCH] Фаза 10: нет scene_manager — коммит пропущен")
@@ -2977,7 +3009,7 @@ class TickOrchestrator:
             _old_priority = _intent.priority
             _intent.priority = min(1.0, _intent.priority + _drf_bonus)
             if _drf_bonus > 0.01:
-                print(f"[DRF_VOTE] npc={_npc_id} base={_old_priority:.2f} bonus={_drf_bonus:.3f} final={_intent.priority:.2f}")
+                logger.debug(f"[DRF_VOTE] npc={_npc_id} base={_old_priority:.2f} bonus={_drf_bonus:.3f} final={_intent.priority:.2f}")
 
     # ── Хелперы ───────────────────────────────────────────────────────
 

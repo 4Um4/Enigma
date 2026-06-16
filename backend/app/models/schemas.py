@@ -137,7 +137,8 @@ class SessionInterfaceState(BaseModel):
     players: List[str] = Field(default_factory=list)
     session_log: List[str] = Field(default_factory=list)
     dice_input_required: bool = False
-    layers: Dict[str, Any] = Field(default_factory=dict)
+    scene_state: Dict[str, Any] = Field(default_factory=dict)
+    metadata: Dict[str, Any] = Field(default_factory=dict)
 
 
 class ReadinessCheck(BaseModel):

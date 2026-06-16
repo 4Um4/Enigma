@@ -27,7 +27,6 @@ flowchart TD
     subgraph APPLICATION[Application Layer]
     direction TB
         WillpowerGate("WillpowerGate (Cumulative Strain)"):::application
-        DecisionHub("Decision Hub v2 (Utility Deformation)"):::application
         IntentEventAdapter("Intent Event Adapter"):::application
         SocialMemoryUpdater("Social Memory Updater"):::application
         CausalObserver("Causal Observer (CDS)"):::application
@@ -35,8 +34,10 @@ flowchart TD
         PatternRegistry("Pattern Registry (Compiled Regex)"):::application
         DNAComputer("DNA Metrics Computer"):::application
         Router("DM Router (Execution Gate)"):::application
+        DriftLaboratory("Drift Laboratory (SUPERBOX)"):::application
         EconomyTracker("Economy Tracker"):::application
         TradeResolver("Trade Resolver"):::application
+        DecisionHub("Decision Hub (Projection-Native Scoring)"):::application
         IntentCompressor("Intent Compressor"):::application
         MemoryManager("Memory Manager"):::application
         LayeredMemory("Layered Memory (STM/L2/Campaign)"):::application
@@ -45,14 +46,15 @@ flowchart TD
         WillService("Will (IntentPressureResolver + WillpowerGate + Affect)"):::application
         ReactionSubscriber("Reaction Subscriber (Cognitive Layer)"):::application
         AffectivePipeline("Affective Pipeline (_run_affective_pipeline)"):::application
-        LifeEngine("Life Engine (De-godified)"):::application
         GameLoop("Game Loop (Pipeline Controller)"):::application
         PressureTranslator("Pressure Translator (Somatic Veto)"):::application
         AvatarPresentationAssembler("Avatar Presentation Assembler"):::application
         DRFBus(("DRF Bus (Causal Field Bus)")):::application
         DRFExecutionContext["DRF Execution Context (Scoped Causal Ledger)"]:::application
         NPCStateAdapter("NPCState Adapter (Serialization Bridge)"):::application
-        CalibrationEngine("Calibration Engine & Identity Stability Kernel"):::application
+        CalibrationEngine("Calibration Engine (Pass-through / Deprecated for scalars)"):::application
+        PatternDetector("Pattern Detector (Source Grouping & Noise Filter)"):::application
+        BeliefCrystallizationEngine("Belief Crystallization Engine"):::application
         TickOrchestrator("Tick Orchestrator"):::application
         StateApplicator("State Applicator"):::application
         CognitiveOverlay("Cognitive Overlay (T+0)"):::application
@@ -66,6 +68,7 @@ flowchart TD
         EquivalenceValidator("Equivalence Validator (Drift Detector + DEPRECATION Layer)"):::application
         ProjectionEngine("Projection Engine (Pure State Writer)"):::application
         PlayerCognitionPipeline("Player Cognition Pipeline"):::application
+        LifeEngine("Life Engine"):::application
         EventCompiler("Event Compiler (Physics Generator)"):::application
         MovementEngine("Movement Engine"):::application
         SceneStateManager("Scene State Manager"):::application
@@ -182,6 +185,8 @@ flowchart TD
         GameStdout(("Game Process stdout/logs")):::infrastructure
         GitHistory[("Git Log & File System")]:::infrastructure
         APIRoutes[["FastAPI Routes"]]:::infrastructure
+        ArchetypeConfig[("Archetype Config JSON (Profession)")]:::infrastructure
+        IndividualConfig[("Individual Config JSON (Position)")]:::infrastructure
         LLMCompressorClient("LLM Compressor Client (Protocol)"):::infrastructure
         LlamaCppCompressorClient("LlamaCpp Compressor Client"):::infrastructure
         SQLiteMemoryStore[("SQLite Memory Store")]:::infrastructure
@@ -197,7 +202,6 @@ flowchart TD
     end
 
     %% === КАСТОМНЫЕ СТИЛИ УЗЛОВ ===
-    style DecisionHub fill:#e8f5e9,stroke:#1b5e20,stroke-width:4px;
     style TickOrchestrator fill:#e1f5fe,stroke:#0277bd,stroke-width:4px;
 
     %% === ПОТОКИ ДАННЫХ ===
@@ -242,6 +246,7 @@ flowchart TD
     TickHealthChecker -->|"produces health report"| TickHealthReport
     DNAComputer -->|"computes snapshot with PFI"| DNASnapshot
     DNAComputer -->|"computes delta between sessions"| DNADelta
+    DriftLaboratory -->|"records drift snapshots"| CausalTrace
     NeedEngine -->|"need stress → economic_stress"| StressCalculator
     StressCalculator -->|"economic_stress → utility modifier"| DecisionHub
     TradeResolver -->|"resolve_tick → execute_sale/employment"| TransactionEngine
@@ -265,7 +270,13 @@ flowchart TD
     TraitDriftEvent -->|"appends drift record"| L1Chronicle
     L1Chronicle -->|"provides weighted history"| DriveResolver
     DriveResolver -->|"computes ephemeral projection"| EffectiveDrives
-    EffectiveDrives -->|"checks for oscillation"| CalibrationEngine
+    EffectiveDrives -->|"pass-through (no scalar mutation)"| CalibrationEngine
+    CalibrationEngine -->|"delivers L3_stable"| DecisionHub
+    L1Chronicle -->|"query by source, detect persistence frequency"| PatternDetector
+    PatternDetector -->|"generate EvidenceOfPersistence"| BeliefCrystallizationEngine
+    BeliefCrystallizationEngine -->|"inject belief_modifiers / active_traits"| DecisionHub
+    ArchetypeConfig -->|"provides L0 archetype"| DriveResolver
+    IndividualConfig -->|"merges individual overrides"| DriveResolver
     GameScreen -->|"raw text input"| IntentCompressor
     IntentCompressor -->|"Slow Path: complex intent → LLM"| LLMCompressorClient
     IntentCompressor -->|"IntentSemanticField → pressure source"| DecisionHub
@@ -369,6 +380,7 @@ flowchart TD
     SpatialService -->|"provides read-only spatial API"| SpatialQueryService
     SpatialQueryService -->|"reads graph & positions"| MovementEngine
     SpatialService -->|"get_node(target_id)"| MovementEngine
+    LifeEngine -->|"resolve_node(role=NodeRole) (S85.1)"| SpatialService
     SemanticIndex -->|"resolves semantic targets to canonical IDs"| SpatialService
     DecisionHub -->|"produces domain-typed movement goal"| MacroMovementGoal
     MovementEngine -->|"produces"| SceneChange
@@ -431,11 +443,19 @@ flowchart TD
     LifeEngine -.->|"🚫 REQUIRED: Viability Pre-Generation Gate (ADR-O-137). Threat excludes ROUTINE BEFORE intent generation."| IntentDomain:::forbidden
     MacroMovementGoal -.->|"🚫 REQUIRED: MovementIntent MUST have domain field (ADR-O-137)"| IntentDomain:::forbidden
     TickOrchestrator -.->|"🚫 DEPRECATED: target_id field (ADR-125)"| IntentParametersDTO:::forbidden
+    LifeEngine -.->|"🚫 REQUIRED: Need-driven priority (0.8) MUST override schedule priority (0.6) when need >= threshold (ADR-149)"| NeedIntent:::forbidden
+    LifeEngine -.->|"🚫 REQUIRED: routine['current'] MUST update when need-driven wins (ADR-149 BUG SC FIX)"| routine_current:::forbidden
+    LifeEngine -.->|"🚫 REQUIRED: Skip schedule generation when need-driven intent already in candidates (ADR-149)"| ScheduleIntent:::forbidden
+    LifeEngine -.->|"🚫 REQUIRED: Need-driven MUST resolve target via SpatialService.resolve_node() when activity_map entry missing (ADR-150)"| NeedIntent:::forbidden
+    LifeEngine -.->|"🚫 REQUIRED: Every _NEED_TO_ACTIVITY entry MUST have corresponding _NEED_ROLE_MAP entry (ADR-150)"| _NEED_ROLE_MAP:::forbidden
     CausalObserver -.->|"🚫 FORBIDDEN: Feedback loop into simulation"| Runtime_State:::forbidden
     CDS -.->|"🚫 FORBIDDEN: Interrupt causal flow on crash"| Pipeline:::forbidden
     TickOrchestrator -.->|"🚫 REQUIRED: Log pre-bus failures as [PIPELINE][CRITICAL], [PHASE8_CRASH], [AFFECT_DECAY] (Invariant 3, ADR-120)"| CausalObserver:::forbidden
     TickHealthChecker -.->|"🚫 REQUIRED: Report prebus_failures and affect_decay_fails in DNASnapshot — PFI metric (Invariant 3, ADR-120)"| DNAComputer:::forbidden
     Router -.->|"🚫 REQUIRED: Notify stream start/end for observability (ADR-147)"| CausalObserver:::forbidden
+    DriftLaboratory -.->|"🚫 REQUIRED: Read spatial positions from scene_state[npc_positions] (SSOT), not LifeEngine cache (ADR-S85.3)"| SceneState:::forbidden
+    Any -.->|"🚫 REQUIRED: Print probes MUST NOT be deleted without replacement (ADR-151)"| PrintProbe:::forbidden
+    Any -.->|"🚫 FORBIDDEN: Empty code block after probe removal — causes IndentationError (ADR-151)"| EmptyBlock:::forbidden
     TransactionEngine -.->|"🚫 FORBIDDEN: Direct mutation of NPC money"| NPCState:::forbidden
     NeedEngine -.->|"🚫 REQUIRED: Critical needs MUST influence decision"| DecisionHub:::forbidden
     Frontend -.->|"🚫 FORBIDDEN: Import backend.app (Устав §1.1)"| BackendInternals:::forbidden
@@ -448,7 +468,12 @@ flowchart TD
     Any -.->|"🚫 FORBIDDEN: Deletion from L1Chronicle (Append-only history)"| L1Chronicle:::forbidden
     Any -.->|"🚫 FORBIDDEN: Caching EffectiveDrives (L3-P1 is strictly ephemeral)"| EffectiveDrives:::forbidden
     StateApplicator -.->|"🚫 REQUIRED: Raise OntologyViolationError and kill tick on NaN, sum!=1.0, or bounds violation"| OntologyViolationError:::forbidden
-    CalibrationEngine -.->|"🚫 REQUIRED: Prevent uncalibrated drift of base drives (Anti-oscillation)"| DriveResolver:::forbidden
+    CalibrationEngine -.->|"🚫 DEPRECATED for scalar mutation (Test C noise accumulation). Pass-through mode ONLY"| EffectiveDrives:::forbidden
+    DecisionHub -.->|"🚫 REQUIRED: Projection-native scoring. L0 (drives_base) prohibited in scoring"| EffectiveDrives:::forbidden
+    BeliefCrystallizationEngine -.->|"🚫 REQUIRED: Beliefs modify policy via source-specific vectors, NOT abstract scalar fear"| DecisionHub:::forbidden
+    PatternDetector -.->|"🚫 REQUIRED: Group by source. Do not accumulate noise from uncorrelated events"| L1Chronicle:::forbidden
+    ArchetypeConfig -.->|"🚫 FORBIDDEN: Storing activity_map with concrete coordinates inside archetypes (ADR-S85.2)"| SpatialService:::forbidden
+    IndividualConfig -.->|"🚫 REQUIRED: Cross-location activity_map MUST be defined in individual config (ADR-S85.2)"| SpatialService:::forbidden
     IntentCompressor -.->|"🚫 FORBIDDEN: Return default 0.0 vector for ATTACK (ADR-088)"| EmotionalVector:::forbidden
     Any -.->|"🚫 FORBIDDEN: Write to memory bypassing MemoryManager (Устав §4.1.2)"| MemoryManager:::forbidden
     DialogueSession -.->|"🚫 REQUIRED: WorkingMemory is per-NPC (Устав §4.1.1)"| WorkingMemory:::forbidden
@@ -534,6 +559,9 @@ flowchart TD
     CalibrationEngine -.->|"🚫 REQUIRED: Prevent uncalibrated drift of base drives (Anti-oscillation) (ADR-O-211)"| DriveResolver:::forbidden
     LifeEngine -.->|"🚫 REQUIRED: Viability Pre-Generation Gate. Threat excludes ROUTINE domain BEFORE intent generation (ADR-O-137)"| IntentDomain:::forbidden
     MacroMovementGoal -.->|"🚫 REQUIRED: MovementIntent MUST have domain field for viability mask (ADR-O-137)"| IntentDomain:::forbidden
+    TickOrchestrator -.->|"🚫 REQUIRED: Zombie cleanup — COMPLETED traversals MUST be removed from active_traversals after processing (S87 БАГ Z)"| active_traversals:::forbidden
+    TickOrchestrator -.->|"🚫 REQUIRED: Unpack tuple result — _compute_effective_drives returns (map, updates), NOT dict (S88 БАГ T)"| _compute_effective_drives:::forbidden
+    _score_components -.->|"🚫 REQUIRED: Propagate effective_drives through _drive_relevance to _context_relevance (S88 БАГ E)"| _drive_relevance:::forbidden
     CognitiveDistortion -.->|"🚫 REQUIRED: Player MUST NOT see objective reality directly"| ObjectiveReality:::forbidden
     RecognitionLayer -.->|"🚫 REQUIRED: Unknown NPC MUST have generic description"| NPCName:::forbidden
     ReactionResolver -.->|"🚫 REQUIRED: Anti-DOUBLE TRUTH bootstrap (ADR-117)"| AffectivePipeline:::forbidden
@@ -547,6 +575,10 @@ flowchart TD
     GraphCompiler -.->|"🚫 FORBIDDEN: Use room x,y as node coordinates (must use centroid x+w/2, y+h/2)"| EditorJSON:::forbidden
     GameScreen -.->|"🚫 FORBIDDEN: Overwrite local_position for NPC in MOVING status (ADR-096)"| WorldSnapshotDTO:::forbidden
     GraphCompiler -.->|"🚫 REQUIRED: Role-based legacy aliases in alias_map (ADR-114)"| LegacyName:::forbidden
+    EventCompiler -.->|"🚫 FORBIDDEN: Node lookup in snapshot.spatial_service for cross-location SceneChange (S88 БАГ S)"| SpatialService:::forbidden
+    EventCompiler -.->|"🚫 REQUIRED: boundary_snap fallback uses change.value and change.target_local_xy when node=None (S88 БАГ S)"| SceneChange:::forbidden
+    TickOrchestrator -.->|"🚫 REQUIRED: SpatialService per-location scope — get_node() cannot resolve cross-location nodes (S88)"| SpatialService:::forbidden
+    DataManager -.->|"🚫 REQUIRED: Map editor nodes added via DataManager.add_node() — NOT manual JSON editing (S88 БАГ N)"| EditorJSON:::forbidden
     SpatialQueryService -.->|"🚫 FORBIDDEN: Wrong argument order in is_line_of_sight_clear call (ADR-129)"| SpatialRuntime:::forbidden
     SceneStateManager -.->|"🚫 FORBIDDEN: CEI-2 uses is_movement_blocked instead of is_blocked_by_wall (ADR-129)"| SpatialRuntime:::forbidden
     SpatialRuntime -.->|"🚫 REQUIRED: normalize_scene_state() on every consumer function (ADR-129)"| SceneState:::forbidden
@@ -560,6 +592,7 @@ flowchart TD
     SemanticIndex -.->|"🚫 FORBIDDEN: SemanticIndex returns single canonical_id (Must return List[Candidate])"| Any:::forbidden
     MacroMovementGoal -.->|"🚫 REQUIRED: MovementIntent MUST have domain field (ADR-O-137)"| IntentDomain:::forbidden
     LifeEngine -.->|"🚫 REQUIRED: Movement Lock — update_routine MUST check scene_state.active_traversals before mutating routine (ADR-130)"| SceneStateManager:::forbidden
+    LifeEngine -.->|"🚫 FORBIDDEN: Fallback to string nodes like 'common_area' (S85.1)"| _resolve_position:::forbidden
     SpatialQueryService -.->|"🚫 FORBIDDEN: Read distances or positions directly from scene_state (ADR-048)"| SceneState:::forbidden
     JsonPersistenceAdapter -.->|"🚫 FORBIDDEN: JSON as runtime truth (Устав §4.2.2)"| RuntimeTruth:::forbidden
     StateApplicator -.->|"🚫 REQUIRED: atomic_commit for all saves (Устав §4.2.1)"| PersistencePort:::forbidden
@@ -889,7 +922,7 @@ EquivalenceValidator->>DriftReport: 5. Classify drift (A-E) + DEPRECATION mappin
 TickOrchestrator->>DriftReport: 6. Accumulate stats + phase3 readiness indicator
 ```
 
-### Identity Resolution Flow (ADR-O-208)
+### Identity Resolution Flow (ADR-O-208 / ADR-O-304)
 
 ```mermaid
 sequenceDiagram
@@ -902,8 +935,21 @@ participant DecisionHub
 WorldPressure->>L1Chronicle: 1. Append TraitDriftEvent (trait, delta, source, tick)
 L1Chronicle->>DriveResolver: 2. query_weighted(npc_id, current_tick) → L1 History
 DriveResolver->>EffectiveDrives: 3. resolve_drives(archetype_L0, l1_events) → L3 Projection
-EffectiveDrives->>CalibrationEngine: 4. Check for oscillation, return to attractor
-CalibrationEngine->>DecisionHub: 5. Modulate utility (social deltas, risk perception)
+EffectiveDrives->>CalibrationEngine: 4. Pass-through (No scalar mutation, Test C fix)
+CalibrationEngine->>DecisionHub: 5. Deliver L3_stable (Projection-native scoring)
+```
+
+### Belief Formation Flow (ADR-O-305)
+
+```mermaid
+sequenceDiagram
+participant L1Chronicle
+participant PatternDetector
+participant BeliefCrystallizationEngine
+participant DecisionHub
+L1Chronicle->>PatternDetector: 1. Group TraitDriftEvents by source, calculate persistence frequency
+PatternDetector->>BeliefCrystallizationEngine: 2. If frequency > noise_threshold, emit EvidenceOfPersistence(source, trait)
+BeliefCrystallizationEngine->>DecisionHub: 3. Crystallize into Belief (source → policy_shift). Inject via belief_modifiers
 ```
 
 ### Viability Pre-Generation Gate Flow (ADR-O-137)
@@ -956,6 +1002,19 @@ DecisionHub->>MovementEngine: 1. Intent(FLEE, target=main_hall)
 MovementEngine->>SpatialService: 2. get_node('main_hall')
 SpatialService-->>MovementEngine: 3. Return None (Node missing in fallback)
 MovementEngine-->>SceneStateManager: 4. No Traversal created -> coords=None
+```
+
+### Semantic Spatial Binding Flow (ADR-S85.1)
+
+```mermaid
+sequenceDiagram
+participant LifeEngine
+participant SpatialService
+participant NodeRef
+LifeEngine->>LifeEngine: 1. Get activity (e.g., 'drinking')
+LifeEngine->>LifeEngine: 2. Map to NodeRole.BAR via _ACTIVITY_TO_ROLE_MAP
+LifeEngine->>SpatialService: 3. resolve_node(role=BAR, origin_zone=current_loc)
+SpatialService->>LifeEngine: 4. Return NodeRef (canonical_id, x, y)
 ```
 
 ### Boundary Node Creation Flow (ДОЛГ 6.2, ADR-145)
@@ -1073,6 +1132,7 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | TickHealthChecker | TickHealthReport | produces health report | Aggregates prebus_failures and affect_decay_fails | `-` | - |
 | DNAComputer | DNASnapshot | computes snapshot with PFI | - | `-` | - |
 | DNAComputer | DNADelta | computes delta between sessions | - | `-` | - |
+| DriftLaboratory | CausalTrace | records drift snapshots | S85.3: Idle stability test logs activity changes and traversals. | `drift_laboratory.py` | ADR-S85.3 |
 | NeedEngine | StressCalculator | need stress → economic_stress | get_wealth_stress + get_obligation_stress → calculate_economic_stress | `economy/stress_calculator.py` | - |
 | StressCalculator | DecisionHub | economic_stress → utility modifier | Phase 5: economic stress deforms utility (buy vs talk vs work) | `npc/decision_hub.py` | - |
 | TradeResolver | TransactionEngine | resolve_tick → execute_sale/employment | Determine good → find seller → calculate price → execute | `economy/trade_resolver.py` | - |
@@ -1096,7 +1156,13 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | TraitDriftEvent | L1Chronicle | appends drift record | World pressure mutates identity | `l1_chronicle.py:append` | - |
 | L1Chronicle | DriveResolver | provides weighted history | Tick start | `drive_resolver.py:resolve_drives` | - |
 | DriveResolver | EffectiveDrives | computes ephemeral projection | Pure function from archetype + chronicle | `drive_resolver.py` | - |
-| EffectiveDrives | CalibrationEngine | checks for oscillation | Post-resolution | `calibration_engine.py (Target)` | - |
+| EffectiveDrives | CalibrationEngine | pass-through (no scalar mutation) | ADR-O-211 DEPRECATION: Test C noise accumulation | `calibration_engine.py` | - |
+| CalibrationEngine | DecisionHub | delivers L3_stable | Projection-native scoring (ADR-O-304) | `tick_orchestrator.py` | - |
+| L1Chronicle | PatternDetector | query by source, detect persistence frequency | ADR-O-305: Grouping by source field | `pattern_detector.py (Target)` | - |
+| PatternDetector | BeliefCrystallizationEngine | generate EvidenceOfPersistence | ADR-O-305: Frequency > noise threshold | `belief_crystallization_engine.py (Target)` | - |
+| BeliefCrystallizationEngine | DecisionHub | inject belief_modifiers / active_traits | ADR-O-305: Source-specific policy shift | `decision_hub.py` | - |
+| ArchetypeConfig | DriveResolver | provides L0 archetype | Base personality traits and schedule | `npc_loader.py` | - |
+| IndividualConfig | DriveResolver | merges individual overrides | Specific schedule/activity_map overrides | `npc_loader.py` | - |
 | GameScreen | IntentCompressor | raw text input | Phase 1: player typed command | `input/intent_compressor.py` | - |
 | IntentCompressor | LLMCompressorClient | Slow Path: complex intent → LLM | Fast Path failed or ambiguous. 3 retries. | `input/intent_compressor.py:_slow_path_parse` | - |
 | IntentCompressor | DecisionHub | IntentSemanticField → pressure source | ATTACK → aggression. THREATEN → aggression. 'сюда'/'мне' → target_ref='player' | `input/intent_compressor.py` | ADR-088 |
@@ -1200,6 +1266,7 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | SpatialService | SpatialQueryService | provides read-only spatial API | O(1) queries for positions, LOS, distances | `-` | ADR-048 |
 | SpatialQueryService | MovementEngine | reads graph & positions | O(1) spatial index | `spatial_query_service.py` | ADR-048 |
 | SpatialService | MovementEngine | get_node(target_id) | Direct access for node resolution | `spatial_service.py` | - |
+| LifeEngine | SpatialService | resolve_node(role=NodeRole) (S85.1) | Activity -> _ACTIVITY_TO_ROLE_MAP -> resolve_node(role, origin_zone) | `life_engine.py` | ADR-S85.1 |
 | SemanticIndex | SpatialService | resolves semantic targets to canonical IDs | Returns List[Candidate] with scoring | `-` | ADR-301 |
 | DecisionHub | MacroMovementGoal | produces domain-typed movement goal | Goal contains IntentDomain for viability mask | `-` | ADR-O-137 |
 | MovementEngine | SceneChange | produces | Only if get_node() != None | `movement_engine.py` | ADR-052 |
@@ -1265,11 +1332,19 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | LifeEngine | IntentDomain | REQUIRED: Viability Pre-Generation Gate (ADR-O-137). Threat excludes ROUTINE BEFORE intent generation. | `-` |
 | MacroMovementGoal | IntentDomain | REQUIRED: MovementIntent MUST have domain field (ADR-O-137) | `-` |
 | TickOrchestrator | IntentParametersDTO | DEPRECATED: target_id field (ADR-125) | `-` |
+| LifeEngine | NeedIntent | REQUIRED: Need-driven priority (0.8) MUST override schedule priority (0.6) when need >= threshold (ADR-149) | `life_engine.py:_simulate_major` |
+| LifeEngine | routine_current | REQUIRED: routine['current'] MUST update when need-driven wins (ADR-149 BUG SC FIX) | `life_engine.py:_simulate_major` |
+| LifeEngine | ScheduleIntent | REQUIRED: Skip schedule generation when need-driven intent already in candidates (ADR-149) | `life_engine.py:_simulate_major` |
+| LifeEngine | NeedIntent | REQUIRED: Need-driven MUST resolve target via SpatialService.resolve_node() when activity_map entry missing (ADR-150) | `life_engine.py:_check_need_driven_movement` |
+| LifeEngine | _NEED_ROLE_MAP | REQUIRED: Every _NEED_TO_ACTIVITY entry MUST have corresponding _NEED_ROLE_MAP entry (ADR-150) | `life_engine.py` |
 | CausalObserver | Runtime_State | FORBIDDEN: Feedback loop into simulation | `Устав §11.1` |
 | CDS | Pipeline | FORBIDDEN: Interrupt causal flow on crash | `Устав §11.2` |
 | TickOrchestrator | CausalObserver | REQUIRED: Log pre-bus failures as [PIPELINE][CRITICAL], [PHASE8_CRASH], [AFFECT_DECAY] (Invariant 3, ADR-120) | `tick_orchestrator.py` |
 | TickHealthChecker | DNAComputer | REQUIRED: Report prebus_failures and affect_decay_fails in DNASnapshot — PFI metric (Invariant 3, ADR-120) | `dna_metrics.py` |
 | Router | CausalObserver | REQUIRED: Notify stream start/end for observability (ADR-147) | `dm_router.py` |
+| DriftLaboratory | SceneState | REQUIRED: Read spatial positions from scene_state[npc_positions] (SSOT), not LifeEngine cache (ADR-S85.3) | `drift_laboratory.py` |
+| Any | PrintProbe | REQUIRED: Print probes MUST NOT be deleted without replacement (ADR-151) | `tick_orchestrator.py, life_engine.py, movement_engine.py` |
+| Any | EmptyBlock | FORBIDDEN: Empty code block after probe removal — causes IndentationError (ADR-151) | `tick_orchestrator.py` |
 | TransactionEngine | NPCState | FORBIDDEN: Direct mutation of NPC money | `-` |
 | NeedEngine | DecisionHub | REQUIRED: Critical needs MUST influence decision | `-` |
 | Frontend | BackendInternals | FORBIDDEN: Import backend.app (Устав §1.1) | `Устав §1.1` |
@@ -1282,7 +1357,12 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | Any | L1Chronicle | FORBIDDEN: Deletion from L1Chronicle (Append-only history) | `ADR-O-208` |
 | Any | EffectiveDrives | FORBIDDEN: Caching EffectiveDrives (L3-P1 is strictly ephemeral) | `ADR-O-208` |
 | StateApplicator | OntologyViolationError | REQUIRED: Raise OntologyViolationError and kill tick on NaN, sum!=1.0, or bounds violation | `ADR-O-207` |
-| CalibrationEngine | DriveResolver | REQUIRED: Prevent uncalibrated drift of base drives (Anti-oscillation) | `ADR-O-211` |
+| CalibrationEngine | EffectiveDrives | DEPRECATED for scalar mutation (Test C noise accumulation). Pass-through mode ONLY | `ADR-O-211 DEPRECATION` |
+| DecisionHub | EffectiveDrives | REQUIRED: Projection-native scoring. L0 (drives_base) prohibited in scoring | `ADR-O-304` |
+| BeliefCrystallizationEngine | DecisionHub | REQUIRED: Beliefs modify policy via source-specific vectors, NOT abstract scalar fear | `ADR-O-305` |
+| PatternDetector | L1Chronicle | REQUIRED: Group by source. Do not accumulate noise from uncorrelated events | `ADR-O-305` |
+| ArchetypeConfig | SpatialService | FORBIDDEN: Storing activity_map with concrete coordinates inside archetypes (ADR-S85.2) | `config/npc/archetypes/*.json` |
+| IndividualConfig | SpatialService | REQUIRED: Cross-location activity_map MUST be defined in individual config (ADR-S85.2) | `config/npc/individuals/*.json` |
 | IntentCompressor | EmotionalVector | FORBIDDEN: Return default 0.0 vector for ATTACK (ADR-088) | `ADR-088` |
 | Any | MemoryManager | FORBIDDEN: Write to memory bypassing MemoryManager (Устав §4.1.2) | `Устав §4.1.2` |
 | DialogueSession | WorkingMemory | REQUIRED: WorkingMemory is per-NPC (Устав §4.1.1) | `Устав §4.1.1` |
@@ -1368,6 +1448,9 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | CalibrationEngine | DriveResolver | REQUIRED: Prevent uncalibrated drift of base drives (Anti-oscillation) (ADR-O-211) | `-` |
 | LifeEngine | IntentDomain | REQUIRED: Viability Pre-Generation Gate. Threat excludes ROUTINE domain BEFORE intent generation (ADR-O-137) | `-` |
 | MacroMovementGoal | IntentDomain | REQUIRED: MovementIntent MUST have domain field for viability mask (ADR-O-137) | `-` |
+| TickOrchestrator | active_traversals | REQUIRED: Zombie cleanup — COMPLETED traversals MUST be removed from active_traversals after processing (S87 БАГ Z) | `tick_orchestrator.py:zombie_cleanup` |
+| TickOrchestrator | _compute_effective_drives | REQUIRED: Unpack tuple result — _compute_effective_drives returns (map, updates), NOT dict (S88 БАГ T) | `tick_orchestrator.py:611,1685` |
+| _score_components | _drive_relevance | REQUIRED: Propagate effective_drives through _drive_relevance to _context_relevance (S88 БАГ E) | `decision_hub.py:905,980-987` |
 | CognitiveDistortion | ObjectiveReality | REQUIRED: Player MUST NOT see objective reality directly | `-` |
 | RecognitionLayer | NPCName | REQUIRED: Unknown NPC MUST have generic description | `-` |
 | ReactionResolver | AffectivePipeline | REQUIRED: Anti-DOUBLE TRUTH bootstrap (ADR-117) | `tick_orchestrator.py:_run_affective_pipeline` |
@@ -1380,7 +1463,11 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | TickOrchestrator | SpatialService | FORBIDDEN: Emergency build_for_location when self._spatial_service already resolved (ADR-065) | `tick_orchestrator.py:225-232` |
 | GraphCompiler | EditorJSON | FORBIDDEN: Use room x,y as node coordinates (must use centroid x+w/2, y+h/2) | `graph_compiler.py:108-115` |
 | GameScreen | WorldSnapshotDTO | FORBIDDEN: Overwrite local_position for NPC in MOVING status (ADR-096) | `game_screen.py:794-799` |
-| GraphCompiler | LegacyName | REQUIRED: Role-based legacy aliases in alias_map (ADR-114) | `graph_compiler.py:134-153` |
+| GraphCompiler | LegacyName | REQUIRED: Role-based legacy aliases in alias_map (ADR-114) | `-` |
+| EventCompiler | SpatialService | FORBIDDEN: Node lookup in snapshot.spatial_service for cross-location SceneChange (S88 БАГ S) | `event_compiler.py:168-173` |
+| EventCompiler | SceneChange | REQUIRED: boundary_snap fallback uses change.value and change.target_local_xy when node=None (S88 БАГ S) | `event_compiler.py:231-234` |
+| TickOrchestrator | SpatialService | REQUIRED: SpatialService per-location scope — get_node() cannot resolve cross-location nodes (S88) | `spatial_service.py:117-129` |
+| DataManager | EditorJSON | REQUIRED: Map editor nodes added via DataManager.add_node() — NOT manual JSON editing (S88 БАГ N) | `graph_compiler.py:134-153` |
 | SpatialQueryService | SpatialRuntime | FORBIDDEN: Wrong argument order in is_line_of_sight_clear call (ADR-129) | `spatial_query_service.py:68` |
 | SceneStateManager | SpatialRuntime | FORBIDDEN: CEI-2 uses is_movement_blocked instead of is_blocked_by_wall (ADR-129) | `scene_state_manager.py:1276` |
 | SpatialRuntime | SceneState | REQUIRED: normalize_scene_state() on every consumer function (ADR-129) | `spatial_runtime.py` |
@@ -1394,6 +1481,7 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | SemanticIndex | Any | FORBIDDEN: SemanticIndex returns single canonical_id (Must return List[Candidate]) | `-` |
 | MacroMovementGoal | IntentDomain | REQUIRED: MovementIntent MUST have domain field (ADR-O-137) | `-` |
 | LifeEngine | SceneStateManager | REQUIRED: Movement Lock — update_routine MUST check scene_state.active_traversals before mutating routine (ADR-130) | `-` |
+| LifeEngine | _resolve_position | FORBIDDEN: Fallback to string nodes like 'common_area' (S85.1) | `life_engine.py:1633` |
 | SpatialQueryService | SceneState | FORBIDDEN: Read distances or positions directly from scene_state (ADR-048) | `-` |
 | JsonPersistenceAdapter | RuntimeTruth | FORBIDDEN: JSON as runtime truth (Устав §4.2.2) | `Устав §4.2.2` |
 | StateApplicator | PersistencePort | REQUIRED: atomic_commit for all saves (Устав §4.2.1) | `Устав §4.2.1` |

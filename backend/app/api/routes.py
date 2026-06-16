@@ -385,7 +385,14 @@ async def game_action(request: dict, game_loop=Depends(get_game_loop)) -> dict:
 
         result = await game_loop.run_turn(turn_request)
         if result is None:
+            logger.error("[ROUTES] game_loop.run_turn returned None — pipeline failure")
             raise HTTPException(status_code=500, detail="Game loop returned None — internal pipeline failure")
+
+        # S85: Защита от None в player_result (краш при выходе из таверны)
+        _player_result = getattr(result, 'player_result', None)
+        if _player_result is None:
+            logger.error("[ROUTES] TickResultDTO.player_result is None — pipeline failure")
+            raise HTTPException(status_code=500, detail="Player result is None — internal pipeline failure")
 
         # Мета о моделях (для UI/дебага). Не ломает старые клиенты.
         dm_cfg = pool.get_model_config(dm_model_key) if pool else None
@@ -463,30 +470,6 @@ async def game_action(request: dict, game_loop=Depends(get_game_loop)) -> dict:
 def session_state(campaign_id: str, game_loop=Depends(get_game_loop)) -> SessionInterfaceState:
     state = game_loop.session_state(campaign_id)
     state.players = [char.name for char in character_service.list_characters(campaign_id)]
-
-    # Фаза S + 3B: добавляем metadata и scene_state для фронтенда
-    # Фронтенд читает metadata.current_location и metadata.time_of_day
-    with contextlib.suppress(Exception):
-        import json
-        # campaign_state.json хранит metadata (location, time) и scene_state напрямую
-        cs_path = game_loop.saves_dir / campaign_id / "campaign_state.json"
-        if cs_path.exists():
-            cs = json.loads(cs_path.read_text(encoding="utf-8-sig"))
-            # Берём metadata как есть
-            meta = cs.get("metadata", {})
-            state.layers["metadata"] = meta
-            if raw_scene := cs.get("scene_state"):
-                state.layers["scene_state"] = raw_scene
-            elif meta.get("current_location"):
-                # Fallback: запрашиваем через SceneManager
-                try:
-                    if scene := game_loop.scene_manager.get_scene_state(
-                        campaign_id, meta["current_location"]
-                    ):
-                        state.layers["scene_state"] = scene
-                except Exception as e:
-                    print(f"[ROUTES] Ошибка получения scene_state: {e}")
-
     return state
 
 

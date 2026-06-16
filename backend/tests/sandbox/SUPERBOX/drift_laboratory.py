@@ -59,6 +59,9 @@ class DriftConfig:
     # projection parity (CSSE Stage 2)
     projection_parity_ticks: int = 10_000      # 10k тиков dual-reality sync
 
+    # idle simulation stability
+    idle_stability_ticks: int = 1000           # 1000 тиков для проверки циклов расписания
+
 
 @dataclass
 class DriftSnapshot:
@@ -161,6 +164,7 @@ class DriftLaboratory:
                 "long_horizon": self._mode_long_horizon,
                 "replay_determinism": self._mode_replay_determinism,
                 "projection_parity": self._mode_projection_parity,
+                "idle_simulation_stability": self._mode_idle_simulation_stability,
             }
 
             runner = mode_map.get(mode)
@@ -938,6 +942,126 @@ class DriftLaboratory:
                     print(f"         [{category}] npc={npc_id} field={field}")
                     print(f"           legacy:   {lv_s}")
                     print(f"           projected: {pv_s}")
+
+    # ─── Mode H: Idle Simulation Stability ─────────────────────────
+
+    def _mode_idle_simulation_stability(self, result: DriftResult) -> None:
+        """
+        Mode H: Idle Simulation Stability
+        Проверяет: живое поведение NPC, цикличность расписания, утечки active_traversals.
+        Метрики: ACTIVITY_CHANGES, TRAVERSALS_CREATED, TRAVERSALS_FINISHED, UNIQUE_NODES_VISITED, ACTIVE_TRAVERSAL_LEAK, SCHEDULE_CYCLE_OK.
+        """
+        print(f"\n--- MODE H: Idle Simulation Stability ({self.config.idle_stability_ticks} ticks) ---")
+        
+        stats = {
+            "ticks": 0,
+            "activity_changes": 0,
+            "traversals_created": 0,
+            "traversals_finished": 0,
+            "unique_nodes_visited": set(),
+            "max_active_traversals": 0,
+            "schedule_cycle_ok": False,
+            "active_traversal_leak": False,
+        }
+        
+        # История активностей для проверки цикличности
+        npc_activity_history = {} # npc_id -> set of activities
+        
+        _engine = self._game_loop._get_life_engine()
+        
+        start = time.time()
+        
+        for tick in range(1, self.config.idle_stability_ticks + 1):
+            # Снимок ДО тика
+            _npcs_before = _engine.get_npc_states(self.config.campaign_id) if _engine else []
+            _travs_before = set(self._scene_state.get("active_traversals", {}).keys())
+            
+            # Тик
+            self._run_idle_tick_direct()
+            
+            # Актуализируем scene_state
+            self._scene_state = self._scene_manager.get_scene_state(
+                self.config.campaign_id, self.config.location_id
+            ) or {}
+            _npcs_after = _engine.get_npc_states(self.config.campaign_id) if _engine else []
+            _travs_after = set(self._scene_state.get("active_traversals", {}).keys())
+            
+            # Метрики
+            stats["ticks"] += 1
+            
+            # 1. Traversals
+            created = _travs_after - _travs_before
+            finished = _travs_before - _travs_after
+            stats["traversals_created"] += len(created)
+            stats["traversals_finished"] += len(finished)
+            
+            current_trav_count = len(_travs_after)
+            if current_trav_count > stats["max_active_traversals"]:
+                stats["max_active_traversals"] = current_trav_count
+                
+            # Утечка: если активных транзитов больше, чем NPC, и они не заканчиваются
+            if current_trav_count > len(_npcs_after) + 5: # допустимая погрешность
+                stats["active_traversal_leak"] = True
+            
+            # 2. Activities & Positions
+            _npcs_after_map = {n.get("id"): n for n in _npcs_after}
+            _pos_map_after = self._scene_state.get("npc_positions", {})
+            for npc_id, npc in _npcs_after_map.items():
+                activity = npc.get("routine", {}).get("current", "")
+                pos = _pos_map_after.get(npc_id, {}).get("position", "")
+                
+                if pos:
+                    stats["unique_nodes_visited"].add((npc_id, pos))
+                    
+                if npc_id in npc_activity_history:
+                    if activity and activity in npc_activity_history[npc_id]:
+                        stats["schedule_cycle_ok"] = True
+                    npc_activity_history[npc_id].add(activity)
+                else:
+                    npc_activity_history[npc_id] = {activity}
+                    
+            # 3. Activity Changes (грубый подсчет по разнице)
+            _npcs_before_map = {n.get("id"): n for n in _npcs_before}
+            for npc_id, npc in _npcs_after_map.items():
+                act_before = _npcs_before_map.get(npc_id, {}).get("routine", {}).get("current", "")
+                act_after = npc.get("routine", {}).get("current", "")
+                if act_before != act_after and act_after != "":
+                    stats["activity_changes"] += 1
+            
+            # Периодический save/load для проверки персистенции
+            if tick % 100 == 0:
+                try:
+                    self._scene_manager.commit(
+                        campaign_id=self.config.campaign_id,
+                        scene_state=self._scene_state,
+                        npc_dicts=_npcs_after,
+                    )
+                    _persistence = getattr(self._scene_manager, '_persistence', None)
+                    _loaded = _persistence.load_npc_runtime(self.config.campaign_id) if _persistence else None
+                    if _loaded and _engine:
+                        _engine.update_cache(self.config.campaign_id, _loaded)
+                except Exception as e:
+                    print(f"  [STABILITY] Save/Load error at tick {tick}: {e}")
+                    
+            if tick % 200 == 0:
+                print(f"  [STABILITY] tick {tick}/{self.config.idle_stability_ticks}: travs={len(_travs_after)} changes={stats['activity_changes']} visited={len(stats['unique_nodes_visited'])}")
+                
+        result.final_stats = {
+            "ACTIVITY_CHANGES": stats["activity_changes"],
+            "TRAVERSALS_CREATED": stats["traversals_created"],
+            "TRAVERSALS_FINISHED": stats["traversals_finished"],
+            "UNIQUE_NODES_VISITED": len(stats["unique_nodes_visited"]),
+            "MAX_ACTIVE_TRAVERSALS": stats["max_active_traversals"],
+            "ACTIVE_TRAVERSAL_LEAK": "YES" if stats["active_traversal_leak"] else "NO",
+            "SCHEDULE_CYCLE_OK": "YES" if stats["schedule_cycle_ok"] else "NO",
+        }
+        
+        print(f"\n--- IDLE SIMULATION STABILITY SUMMARY ---")
+        for k, v in result.final_stats.items():
+            print(f"  {k}: {v}")
+            
+        if stats["activity_changes"] == 0:
+            print(f"\n  ⚠️ WARNING: Activity changes = 0. Внутриигровое время (game_time) не продвигается в idle_tick.")
 
     # ─── Mode F: RNG Consumption Order Contract Audit ──────────────
 

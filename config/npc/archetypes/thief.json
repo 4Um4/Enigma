@@ -11,38 +11,6 @@
       "14:00-20:00": "planning"
     }
   },
-  "activity_map": {
-    "active": {
-      "location": "tavern_silver_wolf",
-      "position": "main_hall",
-      "display": "observing"
-    },
-    "planning": {
-      "location": "tavern_silver_wolf",
-      "position": "main_hall",
-      "display": "observing"
-    },
-    "working": {
-      "location": "tavern_silver_wolf",
-      "position": "main_hall",
-      "display": "observing"
-    },
-    "scouting": {
-      "location": "city_gate",
-      "position": "gate_courtyard",
-      "display": "hiding"
-    },
-    "off_duty": {
-      "location": "tavern_silver_wolf",
-      "position": "corner_table",
-      "display": "observing"
-    },
-    "sleeping": {
-      "location": "tavern_silver_wolf",
-      "position": "corner_table",
-      "display": "sleeping"
-    }
-  },
   "body_profile": {
     "max_hp": 90,
     "abilities": {
