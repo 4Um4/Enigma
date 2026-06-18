@@ -225,8 +225,10 @@ class EventCompiler:
                     entry_node = f"{neighbor_chunk}:entrance"
 
         # Если target_location_id задан напрямую (от _process_traversals)
+        # node is None для cross-location movement, но это IS boundary transition
         if target_loc and not neighbor_chunk:
             neighbor_chunk = target_loc
+            is_boundary = True
 
         # Cross-location: node is None — use SceneChange data
         # (authoritative: MovementEngine already resolved coordinates)

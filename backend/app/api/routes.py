@@ -384,15 +384,9 @@ async def game_action(request: dict, game_loop=Depends(get_game_loop)) -> dict:
         )
 
         result = await game_loop.run_turn(turn_request)
-        if result is None:
-            logger.error("[ROUTES] game_loop.run_turn returned None — pipeline failure")
-            raise HTTPException(status_code=500, detail="Game loop returned None — internal pipeline failure")
-
-        # S85: Защита от None в player_result (краш при выходе из таверны)
-        _player_result = getattr(result, 'player_result', None)
-        if _player_result is None:
-            logger.error("[ROUTES] TickResultDTO.player_result is None — pipeline failure")
-            raise HTTPException(status_code=500, detail="Player result is None — internal pipeline failure")
+        if result is None or not hasattr(result, 'dm_response'):
+            logger.error("[ROUTES] game_loop.run_turn returned None or invalid object — pipeline failure")
+            raise HTTPException(status_code=500, detail="Game loop returned invalid response — internal pipeline failure")
 
         # Мета о моделях (для UI/дебага). Не ломает старые клиенты.
         dm_cfg = pool.get_model_config(dm_model_key) if pool else None

@@ -29,7 +29,7 @@ class BehaviorManifestationService:
     ЗАПРЕТ: Не читает psyche (fear, anger). Только моторные замки и физиологию.
     """
     
-    def produce_traces(self, scene_state, all_npcs_raw=None, semantic_buffer=None) -> list[EmbodiedTraceDTO]:
+    def produce_traces(self, scene_state, all_npcs_raw=None) -> list[EmbodiedTraceDTO]:
         traces = []
         if not scene_state or not isinstance(scene_state, dict):
             return traces
@@ -47,38 +47,17 @@ class BehaviorManifestationService:
                     body_state_map[nid] = npc["body_state"]
             logger.debug(f"[MANIFEST] all_npcs_raw count={len(all_npcs_raw)} body_state_ids={list(body_state_map.keys())}")
         
-        # SIL: Строим маппинг npc_id → emotion/affective_load.
-        # Приоритет S-слою (semantic_buffer, T+0) — актуальная интерпретация.
-        # Если S-слоя нет, берём M-слой (all_npcs_raw, T-1) — фон.
-        _emotion_map: dict[str, tuple] = {}
-        if semantic_buffer:
-            for nid, frame in semantic_buffer.items():
-                if frame and frame.tick_id > 0: # Защита от afterimage bug
-                    _emotion_map[nid] = (
-                        frame.emotion_tag or "neutral",
-                        frame.affective_load if frame.affective_load is not None else 0.0
-                    )
-        if all_npcs_raw:
-            for npc in all_npcs_raw:
-                nid = npc.get("id") or npc.get("npc_id")
-                if nid and nid not in _emotion_map:
-                    _emotion_map[nid] = (
-                        npc.get("emotion", "neutral"),
-                        float(npc.get("affective_load", 0.0))
-                    )
         for npc_id, npc_data in npc_positions.items():
             if npc_id == "player": continue
             body_state = body_state_map.get(npc_id)
-            _emo, _aload = _emotion_map.get(npc_id, ("neutral", 0.0))
-            trace = self._manifest_npc(npc_id, npc_data, body_state, emotion=_emo, affective_load=_aload)
+            trace = self._manifest_npc(npc_id, npc_data, body_state)
             if trace.locomotion_instability > 0.05 or trace.posture_rigidity > 0.05 or trace.micro_pause_density > 0.05:
                 traces.append(trace)
         return traces
 
-    def _manifest_npc(self, npc_id: str, data: dict, body_state: dict = None, emotion: str = "neutral", affective_load: float = 0.0) -> EmbodiedTraceDTO:
-        # Rule X (ADR-101): Моторика определяется физиологией + наблюдаемыми моторными проявлениями эмоций
+    def _manifest_npc(self, npc_id: str, data: dict, body_state: dict = None) -> EmbodiedTraceDTO:
+        # Rule X (ADR-101/112): Моторика определяется строго физиологией и PerceptualKernel
         # НЕ телепатия: мы не читаем "NPC боится", мы наблюдаем дрожь рук и напряжённую позу
-        # Эмоция → моторный паттерн — это перевод внутреннего в наблюдаемое (как в реальности)
         in_transit = bool(data.get("in_transit", False))
         
         # Читаем физиологию из body_state
@@ -101,32 +80,20 @@ class BehaviorManifestationService:
         _emo_micro_pause = 0.0
         _emo_action_interrupt = 0.0
         
-        # ADR-O-205: Motor Projection. 
-        # Тело не знает о драйвах и решениях. Оно реагирует на сырую физику стимула.
+        # ADR-O-205: Motor Projection (Rule X Enforcement).
+        # Тело не знает о эмоциях (интерпретациях). Оно реагирует на сырую физику стимула.
         # threat_gradient -> ригидность (замер)
-        # affective_velocity -> тремор (внезапность)
-        # somatic_urgency -> боль/шок
+        # pain/shock_impulse -> тремор и прерывание (ниже)
         _kernel = data.get("perceptual_kernel")
         if _kernel:
             _threat = getattr(_kernel, 'threat_gradient', 0.0)
-            _vel = data.get("affective_velocity", 0.0)
-            _somatic = getattr(_kernel, 'somatic_urgency', 0.0)
             
-            _emo_rigidity = min(0.8, _threat * 0.9)         # Замер от угрозы
-            _emo_instability = min(0.7, max(0.0, _vel) * 0.8) # Тремор от резкого скачка стресса
-            _emo_micro_pause = min(0.5, _somatic * 0.6)      # Заминка от боли/шока
-            _emo_micro_pause = min(0.6, affective_load * 0.7)
-            _emo_instability = min(0.3, affective_load * 0.3)
-        elif emotion == "angry" and affective_load > 0.3:
-            _emo_rigidity = min(0.7, affective_load * 0.8)
-            _emo_action_interrupt = min(0.5, affective_load * 0.4)
-        elif emotion == "panic" and affective_load > 0.3:
-            _emo_instability = min(0.8, affective_load * 0.9)
-            _emo_micro_pause = min(0.7, affective_load * 0.6)
-            _emo_action_interrupt = min(0.6, affective_load * 0.5)
+            # ADR-O-205: Когнитивно-моторные рефлексы (только восприятие, не физиология)
+            _emo_rigidity = min(0.8, _threat * 0.9)           # Замер от осознанной угрозы
+            # Тремор (instability) формируется строго от боли и шока ниже (Rule X)
         
-        # Вычисляем моторные искажения (физиология + эмоциональные моторные проявления)
-        # 1. Замер/Напряжение: защитный рефлекс от боли + мышечный замок от шока + страх/гнев
+        # Вычисляем моторные искажения (строго физиология + PerceptualKernel, Rule X)
+        # 1. Замер/Напряжение: защитный рефлекс от боли + мышечный замок от шока + угроза
         posture_rigidity = _emo_rigidity
         if pain > 20.0:
             posture_rigidity = min(1.0, pain / 80.0)
@@ -148,7 +115,7 @@ class BehaviorManifestationService:
             micro_pause = max(micro_pause, min(1.0, fatigue / 80.0))
         
         # 4. Прерывание действия: шок прерывает текущую активность
-        action_interrupt = min(1.0, shock_impulse) if shock_impulse > 0.5 else 0.0
+        action_interrupt = max(_emo_action_interrupt, min(1.0, shock_impulse) if shock_impulse > 0.5 else 0.0)
         
         # [DIAG S61] Снятие слепка причинных факторов (Правило X vs Semantic Inflation)
         logger.debug(f"[MANIFEST_DIAG] npc={npc_id} pain={pain:.2f} shock_imp={shock_impulse:.2f} → instab={instability:.2f} rigid={posture_rigidity:.2f}")

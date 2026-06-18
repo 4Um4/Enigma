@@ -72,6 +72,7 @@ flowchart TD
         EventCompiler("Event Compiler (Physics Generator)"):::application
         MovementEngine("Movement Engine"):::application
         SceneStateManager("Scene State Manager"):::application
+        BoundaryRouter("Boundary Router"):::application
         ContextBuilder("Context Builder"):::application
         TemporalEngine("Temporal Engine"):::application
         StateInterpreter("State Interpreter (LLM Bridge)"):::application
@@ -567,6 +568,8 @@ flowchart TD
     ReactionResolver -.->|"🚫 REQUIRED: Anti-DOUBLE TRUTH bootstrap (ADR-117)"| AffectivePipeline:::forbidden
     ReactionResolver -.->|"🚫 FORBIDDEN: Reactions must NOT bypass DecisionHub for movement"| DecisionHub:::forbidden
     MovementEngine -.->|"🚫 FORBIDDEN: Direct mutation (ADR-066)"| SceneState:::forbidden
+    GraphCompiler -.->|"🚫 FORBIDDEN: Добавлять orphan rooms в навигационный граф при наличии nodes (жёсткая двухслойная топология ADR-121)"| SpatialService:::forbidden
+    MovementEngine -.->|"🚫 FORBIDDEN: Генерировать кросс-локационный SceneChange напрямую, минуя boundary node (ДОЛГ 6.2)"| SceneChange:::forbidden
     SceneStateManager -.->|"🚫 FORBIDDEN: Mutate graph"| SpatialService:::forbidden
     Enrichment -.->|"🚫 FORBIDDEN: Overwrite pipeline position (ADR-072)"| LOD0_Position:::forbidden
     GraphCompiler -.->|"🚫 FORBIDDEN: Require manual passages if polygons are adjacent (ADR-073)"| EditorJSON:::forbidden
@@ -1061,6 +1064,30 @@ CandidateScoring->>SelectionPolicy: 4. Score and select (STRICT_MAX/STABLE/DIVER
 SelectionPolicy->>SpatialService: 5. get_node(canonical_id)
 ```
 
+### Interaction
+
+```mermaid
+sequenceDiagram
+```
+
+### Interaction
+
+```mermaid
+sequenceDiagram
+```
+
+### Interaction
+
+```mermaid
+sequenceDiagram
+```
+
+### Interaction
+
+```mermaid
+sequenceDiagram
+```
+
 ### NPC Verbalization Flow (Phase 5-7)
 
 ```mermaid
@@ -1456,6 +1483,8 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | ReactionResolver | AffectivePipeline | REQUIRED: Anti-DOUBLE TRUTH bootstrap (ADR-117) | `tick_orchestrator.py:_run_affective_pipeline` |
 | ReactionResolver | DecisionHub | FORBIDDEN: Reactions must NOT bypass DecisionHub for movement | `-` |
 | MovementEngine | SceneState | FORBIDDEN: Direct mutation (ADR-066) | `ADR-066` |
+| GraphCompiler | SpatialService | FORBIDDEN: Добавлять orphan rooms в навигационный граф при наличии nodes (жёсткая двухслойная топология ADR-121) | `S91.1` |
+| MovementEngine | SceneChange | FORBIDDEN: Генерировать кросс-локационный SceneChange напрямую, минуя boundary node (ДОЛГ 6.2) | `S91.1` |
 | SceneStateManager | SpatialService | FORBIDDEN: Mutate graph | `ADR-008` |
 | Enrichment | LOD0_Position | FORBIDDEN: Overwrite pipeline position (ADR-072) | `ADR-072` |
 | GraphCompiler | EditorJSON | FORBIDDEN: Require manual passages if polygons are adjacent (ADR-073) | `ADR-073` |

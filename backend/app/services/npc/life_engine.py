@@ -470,6 +470,26 @@ class LifeEngine:
         all_intents: list[MovementIntent] = [] # ADR-049: Сборка намерений
         npcs_updated = False
 
+        # FIX: Фильтруем NPC по локации. Симуляция (расписание, потребности) 
+        # выполняется только для NPC, физически находящихся в текущей сцене.
+        # Без этого MovementEngine ошибочно перенаправляет NPC из других локаций 
+        # на boundary-узлы текущей сцены (CROSS_LOC_INTERCEPT bug).
+        _active_loc = scene_state.get("location_id", "") if scene_state else ""
+        if _active_loc:
+            print(f"[DIAG_FILTER] active_loc={_active_loc}")
+            print(f"[DIAG_FILTER] npc_positions keys: {list(scene_state.get('npc_positions', {}).keys())}")
+            for nid, pdata in scene_state.get("npc_positions", {}).items():
+                print(f"[DIAG_FILTER] pos {nid}: loc={pdata.get('location', 'MISSING')} loc_id={pdata.get('location_id', 'MISSING')}")
+            print(f"[DIAG_FILTER] npcs cache locations: {[(n.get('id'), n.get('location', 'MISSING')) for n in npcs]}")
+            
+            _active_npc_ids = set()
+            for npc_id, pos_data in scene_state.get("npc_positions", {}).items():
+                # Проверяем поле location или location_id внутри позиции NPC
+                if pos_data.get("location") == _active_loc or pos_data.get("location_id") == _active_loc:
+                    _active_npc_ids.add(npc_id)
+            npcs = [n for n in npcs if n.get("id") in _active_npc_ids]
+            logger.info(f"[LIFE_ENGINE] Отфильтровано {len(npcs)} NPC для локации '{_active_loc}'")
+
         for npc in npcs:
             tier   = npc.get("tier", "major")
             npc_id = npc.get("id", "?")
@@ -1265,6 +1285,14 @@ class LifeEngine:
                 _ref = self._spatial_service.resolve_node(role=_role, origin_zone=npc.get("location"))
                 if _ref:
                     target_entry = {"location": _ref.zone_id, "position": _ref.node_id, "display": target_activity}
+                elif target_activity in ("resting", "sleeping"):
+                    # Fallback: BED не найден → отдых на любом доступном узле (скамейка, земля)
+                    # sleeping требует BED строго, resting — нет
+                    if target_activity == "resting":
+                        _ref = self._spatial_service.resolve_node(role=NodeRole.DEFAULT, origin_zone=npc.get("location"))
+                        if _ref:
+                            target_entry = {"location": _ref.zone_id, "position": _ref.node_id, "display": target_activity}
+                            logger.debug(f"[NEED_TRACE] npc={npc_id} BED not found, resting fallback to DEFAULT node {_ref.node_id}")
 
         if not target_entry:
             return None

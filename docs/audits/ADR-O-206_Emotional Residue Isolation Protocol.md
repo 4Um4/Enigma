@@ -15,7 +15,7 @@
 **5. Откат:** Вернуть словари `_EMOTION_DECAY_RATE` и проверки `emotion_tag in ...` в память.
 
 **6. Регрессия:**
-*   `test_memory_weight_by_surprise.py` — Важность памяти зависит от `affective_velocity`/`delta`, а не от строки "fearful".
+*   `test_memory_weight_by_surprise.py` — Важность памяти зависит от `delta` (скорость изменения `affective_load`), а не от строки "fearful". `affective_velocity` удалён из архитектуры (ADR-101/112).
 *   `test_memory_decay_by_causal_depth.py` — Скорость забывания зависит от величины ошибки модели, а не от строки "angry".
 
 ---
@@ -42,7 +42,7 @@
 ```python
     # ADR-O-206: Emotional Residue Isolation. 
     # Важность памяти определяется структурным разрывом (Surprise), а не оракулом EmotionTag.
-    # Высокая скорость изменения нагрузки (affective_velocity) = яркая память.
+    # Высокая скорость изменения нагрузки (delta affective_load) = яркая память.
     stress_mod = 1.0
     _surprise_delta = abs(affective_load - prev_affective_load) if affective_load is not None else 0.0
     if npc_stress > 70 and _surprise_delta > 0.2:

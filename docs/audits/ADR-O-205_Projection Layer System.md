@@ -10,7 +10,7 @@
 *   `causality/pipeline` (Изменение структуры `EmotionPayload`)
 
 **3. Связанные потребители (Downstream):**
-*   `BehaviorManifestationService` — Переводится на сырые сигналы (`threat_gradient`, `affective_velocity`, `somatic_urgency`).
+*   `BehaviorManifestationService` — Переводится на сырые сигналы (`threat_gradient`, `pain`, `shock_impulse`). `affective_velocity` удалён за нарушение Rule X (ADR-101/112).
 *   `VerbalizationContext` / `VerbalStance` — Переводится на чтение вектора `redirect` (победивший драйв) вместо `state.emotion`.
 *   `ImportanceEngine` / `MemoryManager` — Переводится на чтение `error_vector` (величина расхождения) и `dominant_drive` вместо `emotion_tag`.
 *   `StateApplicator` — Изменяет правила сериализации (запись трёх проекций вместо одного тега).

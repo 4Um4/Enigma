@@ -927,8 +927,7 @@ class DecisionHub:
             intent, 
             state.emotion, 
             drives=drives, 
-            affective_load=decision_ctx.affective_load if decision_ctx else 0.0,
-            affective_velocity=decision_ctx.affective_velocity if decision_ctx else 0.0
+            affective_load=decision_ctx.affective_load if decision_ctx else 0.0
         )
         rel_mod      = self._relationship_modifier(intent, trust, fear)
         trait_mod    = self._trait_modifier(intent, active_traits or {})
@@ -1131,7 +1130,7 @@ class DecisionHub:
 
         return min(base, 2.0)
 
-    def _emotion_modifier(self, intent: str, emotion: EmotionTag, drives: Optional[Dict[str, float]] = None, affective_load: float = 0.0, affective_velocity: float = 0.0) -> float:
+    def _emotion_modifier(self, intent: str, emotion: EmotionTag, drives: Optional[Dict[str, float]] = None, affective_load: float = 0.0) -> float:
         """S74.5: Инверсия Причинности. Поле правит, тег резонирует.
         
         AffectField (load + velocity) — первичный драйвер деформации utility.
@@ -1143,7 +1142,7 @@ class DecisionHub:
         _field_mod = 0.0
         if affective_load > 0.05:
             # Ускорение угрозы (velocity > 0) усиливает реакцию (срочность)
-            _urgency = 1.0 + max(0.0, affective_velocity) * 2.0
+            _urgency = 1.0
             _fear_drive = (drives or {}).get("fear", 0.25)
             _control_drive = (drives or {}).get("control", 0.25)
 
@@ -1189,7 +1188,7 @@ class DecisionHub:
         # Эмоция — лишь этикетка для UI/LLM, а не причина поведения.
         
         # 1. Энергия поля (непрерывная скалярная величина)
-        _energy = affective_load * (1.0 + max(0.0, affective_velocity) * 1.5)
+        _energy = affective_load * 1.0
         
         # Без энергии поля или личности — нет деформации
         if _energy < 0.01 or not drives:

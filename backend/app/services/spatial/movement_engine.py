@@ -132,8 +132,27 @@ class MovementEngine:
                 # LOD0: Микро-перемещение обрабатывается напрямую, без SpatialService
                 changes.extend(self._resolve_micro_movement(intent, tick, npc_positions))
             elif isinstance(intent, MacroMovementGoal):
-                loc = intent.location_id or "__UNKNOWN__"
-                by_location.setdefault(loc, []).append(intent)
+                target_loc = intent.location_id or "__UNKNOWN__"
+                # S91.1: Cross-location routing intercept (ДОЛГ 6.2)
+                # Если цель в другом чанке, направляем NPC в boundary node текущего чанка.
+                if scene_state and target_loc != "__UNKNOWN__":
+                    current_loc = npc_positions.get(intent.npc_id, {}).get("location", scene_state.get("location_id", ""))
+                    if current_loc and target_loc != current_loc:
+                        current_svc = self._resolve_spatial_service(current_loc, campaign_id, scene_state)
+                        if current_svc:
+                            boundary_node = current_svc.get_boundary_to_neighbor(target_loc)
+                            if boundary_node:
+                                logger.info(f"[CROSS_LOC_INTERCEPT] npc={intent.npc_id} target={target_loc} rerouted to boundary {boundary_node.node_id} in {current_loc}")
+                                # Перенаправляем интент на boundary node текущей локации
+                                intent.target_node_id = boundary_node.node_id.split(":")[-1]
+                                intent.location_id = current_loc
+                                target_loc = current_loc
+                            else:
+                                logger.warning(f"[CROSS_LOC_INTERCEPT] No boundary node in {current_loc} to {target_loc} for {intent.npc_id}")
+                        else:
+                            logger.warning(f"[CROSS_LOC_INTERCEPT] No SpatialService for current_loc={current_loc}")
+                
+                by_location.setdefault(target_loc, []).append(intent)
 
         # LOD1: Макро-навигация требует SpatialService (граф локации)
         for location_id, loc_intents in by_location.items():

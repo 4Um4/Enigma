@@ -138,7 +138,7 @@ class GameLoopBridge:
                     result.tokens = event.get("tokens", 0)
                     result.ms = event.get("ms", 0)
                     result.tps = event.get("tps", 0.0)
-                    result.game_time_seconds = event.get("game_time_seconds", 0),
+                    result.game_time_seconds = event.get("game_time_seconds", 0)
                     # ADR-075: Извлечение Эмбодимента из финального SSE пакета.
                     # Если бэкенд не пришлёт ключ, dataclass даст None.
                     result.will_conflict_data = event.get("will_conflict_data")

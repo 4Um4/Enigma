@@ -159,6 +159,8 @@ class _TickContext:
     campaign_id: str
     scene_state: dict
     tick_number: int
+    # ADR-134: Instance-level bus — обязательно передаётся без дефолта (выше полей с default_factory)
+    drf_bus: DRFBus
     # Слой 4: позиции NPC ДО тика (для детекции переходов)
     old_npc_positions: dict = field(default_factory=dict)
     # Фаза 0: изменения от LifeEngine
@@ -212,7 +214,7 @@ class _TickContext:
     event_buffer: EventBuffer = field(default_factory=EventBuffer)
     cluster_occupancy: ClusterOccupancy = field(default_factory=ClusterOccupancy)
     # DRF: Unified Causal Bus — единая память причинных напряжений тика.
-    drf_bus: DRFBus = field(default_factory=DRFBus)
+    # (Перемещён выше, до полей с дефолтами)
 
 
 # ── Мостовые DTO для player turn (P1.1b) ──────────────────────────────
@@ -897,8 +899,8 @@ class TickOrchestrator:
                 self._manifest_svc = BehaviorManifestationService()
                 self._project_svc = PhenomenologyProjectionService()
             
-            # SIL: Передаём semantic_buffer для T+0 визуализации эмоций
-            _traces = self._manifest_svc.produce_traces(ctx.scene_state, all_npcs_raw=ctx.all_npcs_raw, semantic_buffer=ctx.semantic_buffer)
+            # Rule X: Моторные следы строятся строго из физиологии и PerceptualKernel
+            _traces = self._manifest_svc.produce_traces(ctx.scene_state, all_npcs_raw=ctx.all_npcs_raw)
             _player_perception = self._project_svc.project(_traces, ctx.scene_state, tick=ctx.tick_number)
             
             # Сохраняем для __init__.py snapshot builder
@@ -2643,9 +2645,8 @@ class TickOrchestrator:
             self._attention_svc = PerceptualAttentionService()
             
         # Шаг 1: Моторные следы (Тело -> Наблюдение)
-        # DSTC + SIL: Передаём interpretation_snapshot (физика тика) и semantic_buffer (интерпретация тика).
-        # M₀ больше не является источником истины для визуализации внутри тика.
-        _traces = self._manifest_svc.produce_traces(ctx.scene_state, all_npcs_raw=_npc_truth_source, semantic_buffer=ctx.semantic_buffer)
+        # Rule X: Строго физиология + PerceptualKernel. Semantic Layer изолирован от моторики.
+        _traces = self._manifest_svc.produce_traces(ctx.scene_state, all_npcs_raw=_npc_truth_source)
         
         # Шаг 2: Трансляция следов в смыслы (без телепатии) + Диафрагма внимания
         _player_perception = self._project_svc.project(_traces, ctx.scene_state, tick=ctx.tick_number)

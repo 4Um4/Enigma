@@ -191,6 +191,14 @@
   Taboo: ❌ Need-driven возвращать None при отсутствии activity_map (молчаливая смерть интента). ❌ Отсутствие записи в `_NEED_ROLE_MAP` для новых потребностей
   Files: life_engine.py, spatial_service.py
 
+`ADR-159` [FIX] **Shelter Urge Saturation — BED Role Extension & DEFAULT Fallback** — Убита вечная saturation shelter_urge: 1) RoleResolver: добавлены "караульн", "палатк" в BED-ключевые слова → Караульня/Караульная/Палатки стали BED-узлами. 2) _check_need_driven_movement: resting fallback на DEFAULT при отсутствии BED (скамейка, земля). sleeping требует BED строго. Rate: 2.0 → 2.55/tick (+27.5%)
+  Taboo: ❌ resting без semantic fallback при отсутствии BED-узлов в локации. ❌ Добавлять BED-ключевые слова без проверки ложных срабатываний на других картах
+  Files: role_resolver.py, life_engine.py
+
+`ADR-152` [STD] Capture-Based Causal Trace (7.4 WHY-Log) — _score_all переведена в чистую функцию, возвращающую кортеж (scores, components_trace). WHY-лог берёт готовый breakdown победителя из components_trace без повторного вычисления и side-channel. Устранён риск temporal coupling и дрейфа шума при логировании. Taboo: ❌ Side-channel (self._last_trace) для хранения трассировки скоринга. ❌ Повторный вызов _score_components для логирования причин. ❌ Изменение return shape внутренних методов без аудита call-sites Files: decision_hub.py
+
+`ADR-153` [FIX] Self-Defense Paralysis Fix — Устранён баг паралича воли: fear_early_exit убивал ATTACK (ставил -1.0), но пост-хок буст самообороны слепо штрафовал FLEE (* 0.6), предполагая, что ATTACK станет доминантным. В результате NPC не бил и не бежал. Фикс: штраф к FLEE применяется только если ATTACK валиден (> 0.0). Taboo: ❌ Штраф FLEE при мёртвом ATTACK (паралич выживания). ❌ Игнорировать _attack_score_pre перед применением _self_defense модификатора Files: decision_hub.py
+
 ---
 
 ## DOM-03: PERCEPTION & PHENOMENOLOGY (CFRM)
@@ -318,6 +326,10 @@
 `ADR-S85.1` [FIX] **Semantic Spatial Binding** — Устранён корневой разрыв навигации. `LifeEngine._resolve_position` использует локальный `_ACTIVITY_TO_ROLE_MAP` и вызывает `SpatialService.resolve_node(role=NodeRole)`. Убит фоллбэк в несуществующий узел `common_area`. S89: Расширен для need-driven пути через `_NEED_ROLE_MAP` (ADR-150).
   Taboo: ❌ Возврат к строковым фоллбэкам вроде `common_area` в `_resolve_position`. ❌ Need-driven без semantic fallback при отсутствии activity_map
   Files: backend/app/services/npc/life_engine.py, backend/app/services/spatial/spatial_service.py
+
+`ADR-S91.1` [FIX] **Cross-Location Boundary Routing & Graph Topology Strictness** — Убиты изолированные компоненты и кросс-локационная телепортация. 1) GraphCompiler: orphan rooms (без навигационного узла) исключаются из графа при активной nav-топологии (nodes). 2) MovementEngine: кросс-локационные MacroMovementGoal перехватываются и перенаправляются на boundary node (exit_east/west/etc.) текущей локации через SpatialService.get_boundary_to_neighbor(). 3) _TickContext: поле drf_bus перемещено выше полей с default_factory для совместимости с Python dataclass. Rate: 2.55 -> 2.695/tick.
+  Taboo: ❌ Добавлять orphan rooms в навигационный граф при наличии nodes. ❌ Генерировать кросс-локационный SceneChange напрямую, минуя boundary node. ❌ Использовать drf_bus после полей с default в dataclass.
+  Files: graph_compiler.py, spatial_service.py, movement_engine.py, tick_orchestrator.py
 
 ---
 
@@ -599,3 +611,11 @@
 
 `ADR-TIFL-003` [ONTO] **Identity Constraint Layer & Thermodynamic Crystallization** — Слой ограничений идентичности и кристаллизация черт
   Files: services/npc/drive_resolver.py
+
+`ADR-O-306` [ONTO] **Epistemic Heterogeneity & Triple Membrane** — L1 Chronicle каждого NPC — персонализированная запись, не объективная хроника. L1 фильтруется через Тройную Мембрану: Физическую, Личностную и Социальную (Norm-модулированные пороги). InstitutionLayer только модулирует пороги (Социальная Линза), не инжектит события
+  Taboo: ❌ Инъекция событий в L1 Chronicle из социальных слоев. ❌ Игнорирование Norm-модуляции порогов восприятия
+  Files: perceptual_kernel.py, l1_chronicle.py, social/institution_layer.py
+
+`ADR-O-307` [ONTO] **Asymmetric Trauma & Belief Revision** — Опровержение убеждения в 6 раз сильнее подтверждения. Belief формируется только при personal_persistence (Опыт > Давления)
+  Taboo: ❌ Симметричное обновление confidence убеждений
+  Files: (Future) belief_crystallization_engine.py, pattern_detector.py

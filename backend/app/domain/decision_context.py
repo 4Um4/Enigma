@@ -28,7 +28,7 @@ class DecisionContext:
     # Интеграл аффекта и его производные пробиваются в когницию,
     # даже если дискретный emotion_tag ещё NEUTRAL.
     affective_load: float = 0.0
-    affective_velocity: float = 0.0
+    # (affective_velocity удалён за нарушение Rule X — ADR-101/112)
     affective_acceleration: float = 0.0
 
     @classmethod

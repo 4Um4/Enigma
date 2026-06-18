@@ -1297,30 +1297,38 @@ class SceneStateManager:
                     target_loc = getattr(change, 'target_location_id', '') or location_id
                     if target_loc and change.value:
                         try:
+                            print(f"[DIAG_TRY] npc={change.target} target_loc={target_loc} change_value={change.value}")
                             from app.services.spatial.spatial_service import SpatialService
                             from app.models.traversal import TraversalState
                             
                             svc = SpatialService.build_for_location(
                                 campaign_id=campaign_id, location_id=target_loc, scene_state=scene_state
                             )
-                            # ADR-056: Safe Spatial Fallback. Узел не найден — макро-перемещение отменяется.
-                            if node := svc.get_node(change.value) or svc.get_node(
-                                f"{target_loc}:{change.value}"
-                            ):
+                            _diag_node = svc.get_node(change.value) or svc.get_node(f"{target_loc}:{change.value}")
+                            if not _diag_node:
+                                print(f"[DIAG_NODE] npc={change.target} NODE NOT FOUND in apply_changes: {change.value} loc={target_loc} svc_keys={list(svc._graph.keys())[:10]}")
+                            if node := _diag_node:
                                 # ADR-060 + ДОЛГ 6.2: кросс-локационное перемещение
                                 if target_loc != location_id:
-                                    entry["location"] = target_loc
-                                    entry["location_id"] = target_loc
-                                    # ДОЛГ 6.2: Boundary completion — snap без traversal.
-                                    # NPC уже завершил движение, материализуем в новом чанке.
-                                    # SceneChange = semantic, apply_changes = geometric resolver.
-                                    entry["position"] = change.value
-                                    if node:
-                                        entry["local_position"] = {"x": node.x, "y": node.y}
-                                    logger.info(
-                                        f"[BOUNDARY_SNAP] npc={change.target} "
-                                        f"relocated to chunk={target_loc} node={change.value}"
-                                    )
+                                    # FIX: Prevent teleportation for intra-location moves in other scenes.
+                                    # Если NPC не находится в текущей сцене, мы не можем применить к нему изменения здесь.
+                                    _npc_current_loc = entry.get("location", location_id)
+                                    if _npc_current_loc != location_id:
+                                        entry["position"] = _old_position  # Revert semantic position
+                                        logger.debug(f"[APPLY_CHANGES] Skip intra-location move for {change.target} in {target_loc} (active scene: {location_id})")
+                                    else:
+                                        entry["location"] = target_loc
+                                        entry["location_id"] = target_loc
+                                        # ДОЛГ 6.2: Boundary completion — snap без traversal.
+                                        # NPC уже завершил движение, материализуем в новом чанке.
+                                        # SceneChange = semantic, apply_changes = geometric resolver.
+                                        entry["position"] = change.value
+                                        if node:
+                                            entry["local_position"] = {"x": node.x, "y": node.y}
+                                        logger.info(
+                                            f"[BOUNDARY_SNAP] npc={change.target} "
+                                            f"relocated to chunk={target_loc} node={change.value}"
+                                        )
                                 else:
                                     # ADR-065 + Ghost Position Paradox fix:
                                     # Если NPC уже в активном транзите, вычисляем его ТЕКУЩУЮ
@@ -1447,8 +1455,9 @@ class SceneStateManager:
                                                 scene_state.setdefault("active_traversals", {})[change.target] = traversal_dict
                                                 logger.info(f"[TRAVERSAL] Start: npc={change.target} to_node={change.value} blocked={_blocked} waypoints={len(_waypoints)}")
                                                 print(f"[TRAVERSAL_COMMIT] npc={change.target} id(scene_state)={id(scene_state)} active_traversals_now={list(scene_state.get('active_traversals', {}).keys())}")
-                                        except Exception:
-                                            pass
+                                        except Exception as _trav_exc:
+                                            logger.error(f"[TRAVERSAL_CRASH] npc={change.target} exc={_trav_exc}", exc_info=True)
+                                            _create_traversal = False
                             else:
                                 logger.error(f"[PIPELINE][SCENE_CHANGE][APPLY_FAILED] node={change.value} NOT FOUND")
                         except Exception as exc:

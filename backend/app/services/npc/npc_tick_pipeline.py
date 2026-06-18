@@ -755,11 +755,10 @@ def _resolve_reactive_movement(
     - approach: идёт к intent_target (игрок/NPC) → ближайший к цели узел графа
     - flee: уходит от intent_target → find_furthest_node от позиции угрозы
     
-    Если передан spatial_service (v1.2), использует его. Иначе fallback на load_graph.
+    ADR-102: Единственный источник графа — SpatialService. load_graph удалён.
     ADR-048: Если передан spatial_query, чтение позиций идёт ТОЛЬКО через него.
     """
     from app.domain.movement import LocalSteeringGoal, MacroMovementGoal, PRIORITY_REACTIVE
-    from app.services.spatial.location_graph import load_graph
 
     # ADR-048: Spatial Authority. Единственный источник пространственной истины.
     # Чтение npc_positions из scene_state ЗАПРЕЩЕНО для decisions (ADR-048 Этап 1).
@@ -836,12 +835,9 @@ def _resolve_reactive_movement(
                     # PIPELINE FIX: SpatialService не нашёл дальний узел (зона без узлов или зона не совпадает)
                     logger.warning(f"[FLEE_NAV] spatial_service.get_furthest() вернул None для зоны {location_id}")
             if not target_node_id:
-                # Fallback на LocationGraph только если SpatialService не дал результата
-                try:
-                    graph = load_graph(location_id)
-                    target_node_id = graph.find_furthest_node(threat_x, threat_y)
-                except Exception:
-                    pass
+                # ADR-102: SpatialService — единственный авторитет. Fallback на load_graph убит.
+                # Если узел не найден, NPC останется на месте (или перейдёт к micro_flee ниже).
+                logger.warning(f"[FLEE_NAV] SpatialService не нашёл узел для zone={location_id}. Fallback на load_graph отменён (ADR-102).")
 
             # ADR-102: Нормализация перед сравнением (legacy 'room_1' != canonical 'tavern:room_1')
             _norm_current = spatial_service.normalize_id(current_node) if spatial_service and current_node else current_node

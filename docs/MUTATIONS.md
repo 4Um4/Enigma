@@ -175,6 +175,8 @@
 - 🔵 **S83+** ADR-TIFL-001: Temporal Identity Formation Layer.
 - 🔵 **S83+** ADR-TIFL-002: Identity as Competitive Drift Field (ICDF).
 - 🔵 **S83+** ADR-TIFL-003: Identity Constraint Layer & Thermodynamic Crystallization.
+- 🔵 **S84** ADR-O-306: Epistemic Heterogeneity & Triple Membrane. L1 Chronicle = персонализированная хроника. Тройная Мембрана (Физика, Личность, Социум) фильтрует L1. InstitutionLayer модулирует пороги PerceptualKernel.
+- 🔵 **S84** ADR-O-307: Asymmetric Trauma & Belief Revision. Введён множитель x6 для опровержений. Belief формируется только от personal_persistence.
 
 ---
 

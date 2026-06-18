@@ -112,6 +112,13 @@ class SpatialService:
         canonical = self.normalize_id(node_id)
         return self._boundary_map.get(canonical)
 
+    def get_boundary_to_neighbor(self, neighbor_loc: str) -> Optional[NodeRef]:
+        """S91.1: Возвращает boundary node, ведущую в соседний чанк."""
+        for b_id, b_info in self._boundary_map.items():
+            if b_info.get("neighbor_chunk") == neighbor_loc:
+                return self.get_node(b_id)
+        return None
+
     # ── Нормализация ID ───────────────────────────────────────────────
 
     def normalize_id(self, raw_id: str) -> str:

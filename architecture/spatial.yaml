@@ -85,6 +85,12 @@ nodes:
     layer: Application
     label: "Event Compiler (Physics Generator)"
     description: "ADR-O-201: Компилирует физические события. Резолвит boundary nodes при компиляции (факт пересечения), НЕ в apply_changes."
+  BoundaryRouter:
+    type: service
+    layer: Application
+    label: "Boundary Router"
+    description: "S91.1: Перехватывает кросс-локационные MacroMovementGoal и перенаправляет на boundary node текущей локации. (Логика внутри MovementEngine)"
+
 edges:
   - from: EditorJSON
     to: GraphCompiler
@@ -179,6 +185,14 @@ constraints:
     target: SceneState
     rule: "FORBIDDEN: Direct mutation (ADR-066)"
     code_ref: "ADR-066"
+  - source: GraphCompiler
+    target: SpatialService
+    rule: "FORBIDDEN: Добавлять orphan rooms в навигационный граф при наличии nodes (жёсткая двухслойная топология ADR-121)"
+    code_ref: "S91.1"
+  - source: MovementEngine
+    target: SceneChange
+    rule: "FORBIDDEN: Генерировать кросс-локационный SceneChange напрямую, минуя boundary node (ДОЛГ 6.2)"
+    code_ref: "S91.1"
   - source: SceneStateManager
     target: SpatialService
     rule: "FORBIDDEN: Mutate graph"
@@ -428,3 +442,21 @@ sequences:
       - from: SelectionPolicy
         to: SpatialService
         message: "5. get_node(canonical_id)"
+
+  # S91.1: Cross-Location Boundary Routing
+  - from: MovementEngine
+    to: MovementEngine
+    label: "Cross-Loc Intercept"
+    condition: "target_loc != current_loc → reroute to boundary"
+  - from: MovementEngine
+    to: SpatialService
+    label: "get_boundary_to_neighbor"
+    condition: "neighbor_loc"
+  - from: SpatialService
+    to: MovementEngine
+    label: "NodeRef"
+    condition: "exit_east/west/etc."
+  - from: MovementEngine
+    to: SceneChange
+    label: "Reroute to Boundary"
+    condition: "field=position, value=boundary_node_id"

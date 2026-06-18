@@ -211,7 +211,14 @@ def compile_graph(
                         alias_map[alias.lower()] = _target
                 continue
 
-            # Orphan room — нет навигационного представления
+            # ADR-S91.1: Навигационная топология (nodes) — первичный источник графа.
+            # Если есть nodes, orphan rooms (без навигационного узла) — это физические контейнеры (LOS/коллизии),
+            # а не точки пути. Добавление их в graph создаёт изолированные компоненты.
+            if _has_nav:
+                logger.debug(f"[GRAPH_COMPILER] Orphan room '{room_id}' пропущена (nav layer active).")
+                continue
+
+            # Orphan room — нет навигационного представления (fallback mode: graph = rooms)
             rx = room_data.get("x", 0.0)
             ry = room_data.get("y", 0.0)
             rw = room_data.get("width") or room_data.get("w") or 0.0
