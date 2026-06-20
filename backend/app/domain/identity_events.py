@@ -37,16 +37,43 @@ class EffectiveDrives:
 
 @dataclass(frozen=True)
 class TraitDriftEvent:
-    """Единичная запись о давлении мира на личность.
+    """Единичная запись о давлении мира на личность (L1 -> L1.5 Contract).
     
-    Не изменяет состояние напрямую. 
-    Является входом для DriveResolver для вычисления проекции драйвов.
+    ADR-O-305A: Строгий математический мост между L1 Chronicle и PatternDetector.
+    Содержит направленный вектор effect_value (-1.0 до 1.0) и observation_weight.
+    event_type существует исключительно как provenance и запрещён в формулах.
     """
-    npc_id: str
-    trait: str       # Имя драйва (fear, control, significance, desire)
-    delta: float     # Величина деформации (может быть отрицательной)
-    source: str      # Каузальный источник (tifl_pressure, will_break, resonance)
-    tick: int        # Метка времени симуляции
+    tick_id: int
+    target_id: str
+    source_id: str
+    effect_value: float
+    observation_weight: float = 1.0
+    event_type: str = "generic"
+
+@dataclass(frozen=True)
+class EvidenceOfPersistence:
+    """Агрегированная статистика PatternDetector (L1.5).
+    
+    ADR-O-306: Чистая статистика. Не содержит психологических полей (trait, emotion).
+    Является входом для BeliefCrystallizationEngine (L2.5).
+    """
+    source_id: str
+    cumulative_effect: float
+    behavior_variance: float
+
+@dataclass(frozen=True)
+class CrystallizedBelief:
+    """
+    Психологическая проекция агрегированной статистики (L2.5).
+    
+    ADR-O-305: Сформирован BeliefCrystallizationEngine на основе EvidenceOfPersistence
+    и модулирован drives_base (L0). 
+    ADR-O-307: Подвержен асимметричной травме (x6 множитель для опровержений).
+    """
+    source_id: str
+    trait: str           # fear, trust, loyalty (психологический якорь)
+    weight: float        # Уверенность в убеждении (0.0 - 1.0)
+    last_updated_tick: int
 
 
 class L1EventStream(Protocol):

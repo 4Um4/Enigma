@@ -125,6 +125,12 @@ edges:
     condition: "S85.3: Idle stability test logs activity changes and traversals."
     code_ref: "drift_laboratory.py"
     adr_ref: "ADR-S85.3"
+  - from: BeliefCrystallizationEngine
+    to: CausalObserver
+    label: "logs crystallization & decay events"
+    condition: "S85.2: CDS observes belief formation to detect stagnation or hyper-instability."
+    code_ref: "belief_crystallization_engine.py"
+    adr_ref: "ADR-O-305"
 constraints:
   - source: CausalObserver
     target: Runtime_State
@@ -166,8 +172,8 @@ constraints:
   - source: Any
     target: PrintProbe
     rule: "REQUIRED: Print probes MUST NOT be deleted without replacement (ADR-151)"
-    condition: "Three tiers: 🟢 Essential (print: GATE_*, NPC_SET, DRF_*, TIFL_DRIFT, ZOMBIE), 🟡 Condensed (logger.debug: NEED_TRACE, SCHED_TRACE, AFF_*), 🔴 Removed (deleted entirely). Empty blocks after removal = SyntaxError."
-    code_ref: "tick_orchestrator.py, life_engine.py, movement_engine.py"
+    condition: "Three tiers: 🟢 Essential (print: GATE_*, NPC_SET, DRF_*, TIFL_DRIFT, ZOMBIE, BELIEF), 🟡 Condensed (logger.debug: NEED_TRACE, SCHED_TRACE, AFF_*), 🔴 Removed (deleted entirely). Empty blocks after removal = SyntaxError."
+    code_ref: "tick_orchestrator.py, life_engine.py, movement_engine.py, belief_crystallization_engine.py"
     adr_ref: "ADR-151"
     severity: HIGH
   - source: Any

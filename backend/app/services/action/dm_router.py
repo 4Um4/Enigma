@@ -20,21 +20,33 @@ from typing import List, Optional
 
 # --- Инициализация данных на уровне модуля (Data-Driven) ---
 
+import logging
+_module_logger = logging.getLogger(__name__)
+
 _INSULTS_PATH = Path(__file__).parent.parent.parent.parent / "data" / "insults_ru.json"
 try:
     _INSULT_ROOTS: set[str] = set(json.loads(_INSULTS_PATH.read_text("utf-8"))["roots"])
-except Exception:
+except Exception as _insult_err:
+    # ИСПРАВЛЕНО: раньше empty set молча глотал ошибку → оскорбления
+    # не распознавались без видимой причины. Теперь WARN в лог.
+    _module_logger.warning(
+        f"[DM_ROUTER] insults_ru.json not loaded ({_insult_err}). "
+        f"Insult detection DISABLED. Path: {_INSULTS_PATH}"
+    )
     _INSULT_ROOTS: set[str] = set()
 
 _DIRECTED_AT_PATTERN = re.compile(r"(?i)\b(ты|тебя|тебе|вас|вам|твой|твоя|твоё|твои|вы)\b")
 
-# Инициализация морфологии один раз
+# Инициализация морфологии один раз (Optional Dependency: Degraded Mode if missing)
 _MORPH = None
 try:
     import pymorphy3 as pymorphy
     _MORPH = pymorphy.MorphAnalyzer()
-except Exception:
-    pass
+except ImportError:
+    _module_logger.warning(
+        "[DM_ROUTER] pymorphy3 NOT INSTALLED. Lemmatization DISABLED (Degraded Mode). "
+        "Intent extraction accuracy reduced. Run: pip install pymorphy3"
+    )
 
 # Леммы действий — pymorphy3 сведёт все формы к этим
 _ACTION_LEMMAS: dict[str, frozenset[str]] = {
@@ -116,7 +128,10 @@ class DMRouter:
     _PHYSICAL_ACTIONS: frozenset[str] = frozenset({
         "player_attacks",
         "player_steals",
-        "player_fleses",
+        # ИСПРАВЛЕНО: 'player_fleses' → 'player_flees'. Опечатка: 'e' и 's'
+        # перепутаны местами. _classify_action возвращал "player_flees" (правильно),
+        # но сравнение шло со сломанной строкой → побег классифицировался как VERBAL.
+        "player_flees",
         "player_insults",
     })
 

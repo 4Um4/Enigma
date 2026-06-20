@@ -111,7 +111,28 @@ class MockProvider(StreamingLlmProvider):
             time.sleep(self._config.response_delay_sec / max(len(words), 1))
     
     def _pick_response(self, prompt: str) -> str:
-        """Выбирает ответ на основе контекста промпта."""
+        """Выбирает ответ на основе контекста промпта.
+
+        ВНИМАНИЕ: MockProvider возвращает ответы с префиксом '[Mock] ...'.
+        ResponseValidator._contains_non_russian должен отклонять такие ответы
+        (т.к. 'Mock' — английское слово). Если валидатор пропускает —
+        MockProvider утекает в продакшен, что НЕДОПУСТИМО.
+        """
+        # Защита от утекания в продакшен: проверяем environment
+        import os
+        _env = os.getenv("ENIGMA_ENV", "production").lower()
+        if _env == "production":
+            # В продакшене MockProvider не должен отдавать ответы.
+            # Возвращаем пустую строку → ResponseValidator._fallback("empty")
+            # → игрок видит "Ничего не произошло." вместо "[Mock] ..."
+            import logging
+            logging.getLogger(__name__).error(
+                "[MOCK_PROVIDER] MockProvider called in production! "
+                "Falling back to empty response. "
+                "Set ENIGMA_ENV=test or development to allow mock responses."
+            )
+            return ""
+
         prompt_lower = prompt.lower()
         
         # Простая эвристика по ключевым словам

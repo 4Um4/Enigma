@@ -10,33 +10,6 @@
       "19:00-07:00": "sleeping"
     }
   },
-  "activity_map": {
-    "guarding_gate": {
-      "location": "city_gate",
-      "position": "entrance",
-      "display": "guarding_gate"
-    },
-    "on_duty": {
-      "location": "city_gate",
-      "position": "entrance",
-      "display": "guarding_gate"
-    },
-    "working": {
-      "location": "city_gate",
-      "position": "entrance",
-      "display": "guarding_gate"
-    },
-    "off_duty": {
-      "location": "tavern_silver_wolf",
-      "position": "main_hall",
-      "display": "resting"
-    },
-    "sleeping": {
-      "location": "city_gate",
-      "position": "gate_courtyard",
-      "display": "sleeping"
-    }
-  },
   "body_profile": {
     "max_hp": 120,
     "abilities": {

@@ -38,8 +38,11 @@ _ACTION_LEMMAS = {
 _ACTION_LEMMAS_FLAT = set(lemma for s in _ACTION_LEMMAS.values() for lemma in s)
 
 _INTENSITY_LEMMAS = {
-    "high": {"весь", "дурь", "резко", "сильно", "мощно", "яростно", "немедленно", "живо", "приказываю", "быстро"},
-    "low": {"осторожно", "медленно", "тихо", "аккуратно", "слегка", "немного"}
+    # ИСПРАВЛЕНО: убраны 'весь' (местоимение — 'весь день' давало false positive
+    # high intensity) и 'дурь' (существительное — 'дурь прошла' давало false positive).
+    # Добавлены реальные маркеры высокой интенсивности.
+    "high": {"резко", "сильно", "мощно", "яростно", "немедленно", "живо", "приказываю", "быстро", "исступлённо", "неистово", "бешено", "стремительно", "мгновенно", "беспощадно"},
+    "low": {"осторожно", "медленно", "тихо", "аккуратно", "слегка", "немного", "плавно", "мягко"}
 }
 
 class IntentCompressor:
@@ -149,7 +152,18 @@ class IntentCompressor:
                 raw_text=raw_text,
                 confidence=ConfidenceVector(parse=0.8, target=0.6, emotion=0.7, action=0.8)
             )
-        except Exception:
+        except Exception as _parse_err:
+            # ИСПРАВЛЕНО: раньше except Exception: pass молча возвращал UNCERTAIN.
+            # Любая ошибка в структуре LLM-ответа (KeyError, TypeError, pydantic
+            # ValidationError) → теряли весь LLM-ответ без WARN-лога. Теперь логируем
+            # raw response + тип ошибки.
+            import logging
+            _logger = logging.getLogger(__name__)
+            _logger.warning(
+                f"[INTENT_COMPRESSOR] slow_path_parse failed: "
+                f"{type(_parse_err).__name__}: {_parse_err}. "
+                f"Raw LLM response: {llm_response}"
+            )
             return IntentSemanticField(
                 action_type=ActionType.UNCERTAIN,
                 raw_text=raw_text,

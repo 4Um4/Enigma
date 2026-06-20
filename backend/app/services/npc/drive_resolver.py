@@ -37,9 +37,11 @@ class DriveResolver:
             if weight < _PERCEPTION_THRESHOLD:
                 continue
                 
-            effective_delta = event.delta * weight
-            if event.trait in drives:
-                drives[event.trait] += effective_delta
+            # ADR-O-208: TraitDriftEvent больше не содержит поля 'trait' или 'delta'.
+            # L1 Chronicle хранит сырую статистику (effect_value, source_id).
+            # Модуляция drives_base через L1 временно отключена (до интеграции Belief Layer).
+            # L3 Projection = L0 Archetype (safe fallback).
+            pass
         
         # 3. Закон Сохранения Я (Нормализация mass=1.0)
         for trait in drives:

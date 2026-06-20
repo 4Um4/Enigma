@@ -10,28 +10,6 @@
       "20:00-06:00": "sleeping"
     }
   },
-  "activity_map": {
-    "working": {
-      "location": "market_square",
-      "position": "workshop_area",
-      "display": "forging"
-    },
-    "sleeping": {
-      "location": "market_square",
-      "position": "workshop_area",
-      "display": "sleeping"
-    },
-    "eating": {
-      "location": "tavern_silver_wolf",
-      "position": "main_hall",
-      "display": "eating"
-    },
-    "resting": {
-      "location": "tavern_silver_wolf",
-      "position": "fireplace",
-      "display": "drinking"
-    }
-  },
   "body_profile": {
     "max_hp": 130,
     "abilities": {

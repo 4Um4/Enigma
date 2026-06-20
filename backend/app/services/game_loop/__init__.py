@@ -118,6 +118,7 @@ class GameLoop:
         # adventure_loader удалён (ADR-O-146)
         system_requirements: SystemRequirements,
         saves_dir: Optional[Path] = None,
+        store = None,
     ):
         self.data_dir         = data_dir
         self._saves_dir       = Path(saves_dir) if saves_dir else data_dir / "campaigns"
@@ -153,6 +154,7 @@ class GameLoop:
             scene_manager=scene_manager,
             memory_manager=memory_manager,
             event_bus=get_event_bus(),
+            store=store,
         )
         # P1.1f: внедряем фабрику SocialEngine в TickOrchestrator
         self._tick_orch.set_social_engine_factory(self._svc.get_social_engine)
@@ -527,9 +529,11 @@ class GameLoop:
             spatial_service=_spatial_svc, # ИНЪЕКЦИЯ
         )
 
-        # ДИАГНОСТИКА: Проверяем — появились ли traversals после execute
-        _trav_after = list(_scene.get("active_traversals", {}).keys())
-        print(f"[IDLE_TRACE] AFTER tick={_scene.get('tick')} traversals={_trav_after}")
+        # ДИАГНОСТИКА: Читаем из authoritative source (scene_manager._tick_scene),
+        # а не из устаревшей ссылки _scene (execute работает с deepcopy).
+        _auth_scene = self.scene_manager._tick_scene if self.scene_manager else None
+        _trav_after = list(_auth_scene.get("active_traversals", {}).keys()) if _auth_scene else list(_scene.get("active_traversals", {}).keys())
+        print(f"[IDLE_TRACE] AFTER tick={_scene.get('tick')} traversals={_trav_after} source={'tick_scene' if _auth_scene else 'stale_ref'}")
 
         # Конвертация WorldSnapshotDTO → dict для фронтенда
         from dataclasses import asdict

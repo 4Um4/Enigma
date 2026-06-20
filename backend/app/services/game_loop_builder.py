@@ -76,6 +76,7 @@ def build_game_loop(data_dir: Path) -> GameLoop:
         saves_dir           = saves_dir,
         data_dir            = data_dir,
         memory_manager      = memory_manager,
+        store               = store,
         dm_orchestrator     = dm_orchestrator,
         scene_manager       = scene_manager,
         world_scheduler     = world_scheduler,

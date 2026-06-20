@@ -141,7 +141,12 @@ class ResolutionEngine:
         normalized = (raw_roll - 1) / (D20_SIDES - 1)   # → [0..1]
 
         # ── Bias — суммарное смещение от состояния системы ────────────────────
-        bias = self._compute_bias(state, personality, context_modifier)
+        # L3-P2: эффективные драйвы из state.drives_runtime (L3), не из personality.drives_base (L0).
+        from app.domain.identity_events import EffectiveDrives
+        _ed = None
+        if hasattr(state, "drives_runtime") and state.drives_runtime:
+            _ed = EffectiveDrives.from_dict(dict(state.drives_runtime))
+        bias = self._compute_bias(state, personality, context_modifier, effective_drives=_ed)
 
         # ── Итоговое значение ─────────────────────────────────────────────────
         raw_final = normalized * DICE_WEIGHT + bias * BIAS_WEIGHT
@@ -187,16 +192,21 @@ class ResolutionEngine:
         state:            NPCState,
         personality:      NPCPersonality,
         context_modifier: float,
+        effective_drives: Optional["EffectiveDrives"] = None,
     ) -> float:
         """
         bias = stat_modifier + calibration_bias + npc_state_modifier + context_modifier
         Суммарный bias: ограничивается [-0.5, +0.5].
+
+        effective_drives: L3 проекция (текущие драйвы). Если None — fallback на
+        personality.drives_base (L0 seed). L3 предпочтительнее: NPC решает на
+        основе текущего состояния, не стартового.
         """
         # stat_modifier: drives дают смещение к успеху/провалу
-        stat_mod = self._stat_modifier(personality)
+        stat_mod = self._stat_modifier(personality, effective_drives)
 
         # calibration_bias: характер NPC — важняк завышает шансы, трус занижает
-        calib = self._calibration_bias(personality)
+        calib = self._calibration_bias(personality, effective_drives)
 
         # npc_state_modifier: стресс и воля влияют на исполнение
         state_mod = self._npc_state_modifier(state)
@@ -205,14 +215,25 @@ class ResolutionEngine:
         raw = stat_mod + calib + state_mod + context_modifier
         return max(-0.5, min(0.5, raw))
 
-    def _stat_modifier(self, personality: NPCPersonality) -> float:
+    def _stat_modifier(
+        self,
+        personality: NPCPersonality,
+        effective_drives: Optional["EffectiveDrives"] = None,
+    ) -> float:
         """
-        drives_base влияют на базовую эффективность действий.
+        drives влияют на базовую эффективность действий.
         control → структурный подход → +0.1
         fear    → нерешительность → -0.1
+
+        effective_drives: L3 проекция (предпочтительно) или None → fallback на L0.
         """
-        # L3-P2: Резолвер видит проекцию
-        drives   = dict(effective_drives.values) if effective_drives else personality.drives_base
+        # L3-P2: Резолвер видит проекцию (L3), fallback на L0 seed.
+        if effective_drives is not None:
+            drives = dict(effective_drives.values)
+        else:
+            drives = dict(personality.drives_base)
+        if not drives:
+            return 0.0
         dominant = max(drives, key=drives.get)
         modifiers = {
             "control":      +0.10,
@@ -222,15 +243,23 @@ class ResolutionEngine:
         }
         return modifiers.get(dominant, 0.0)
 
-    def _calibration_bias(self, personality: NPCPersonality) -> float:
+    def _calibration_bias(
+        self,
+        personality: NPCPersonality,
+        effective_drives: Optional["EffectiveDrives"] = None,
+    ) -> float:
         """
         Личная точность прогнозов NPC.
         Высокий control → оптимист: завышает expected, рискует.
         Высокий fear → пессимист: занижает expected, осторожен.
         """
-        # L3-P2: Калибровка оптимизма/пессимизма на основе проекции
-        control = effective_drives.get("control", 0.25) if effective_drives else personality.drives_base.get("control", 0.25)
-        fear    = effective_drives.get("fear", 0.25) if effective_drives else personality.drives_base.get("fear", 0.25)
+        # L3-P2: Калибровка на основе проекции (L3), fallback на L0.
+        if effective_drives is not None:
+            control = effective_drives.get("control", 0.25)
+            fear    = effective_drives.get("fear", 0.25)
+        else:
+            control = personality.drives_base.get("control", 0.25)
+            fear    = personality.drives_base.get("fear", 0.25)
         # Оптимизм/пессимизм — разница двух доминирующих сил
         return round((control - fear) * 0.3, 4)
 
@@ -259,6 +288,7 @@ class ResolutionEngine:
         gap:         float,
         surprise:    float,
         personality: NPCPersonality,
+        effective_drives: Optional["EffectiveDrives"] = None,
     ) -> Optional[str]:
         """
         Эмоциональная реакция на расхождение ожидания и реальности.
@@ -268,8 +298,13 @@ class ResolutionEngine:
         if surprise <= SURPRISE_THRESHOLD:
             return None
 
-        # L3-P2: Резолвер видит проекцию
-        drives   = dict(effective_drives.values) if effective_drives else personality.drives_base
+        # L3-P2: Резолвер видит проекцию (L3), fallback на L0.
+        if effective_drives is not None:
+            drives = dict(effective_drives.values)
+        else:
+            drives = dict(personality.drives_base)
+        if not drives:
+            return None
         dominant = max(drives, key=drives.get)
 
         if gap < 0:

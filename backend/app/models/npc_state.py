@@ -583,12 +583,30 @@ class NPCState:
     # НЕОБРАТИМЫЕ изменения: wounds — формируют идентичность NPC.
     # ПОЛУОБРАТИМЫЕ: conditions — затухают, но влияют на решения.
     # ОБРАТИМЫЕ: hp, threat — меняются каждый тик.
-    hp: int = 0
-    max_hp: int = 0
+    #
+    # ADR-HP-UNIFICATION: hp/max_hp — deprecated. Canonical source = body_state["current_hp"]
+    # и body_state["max_hp"]. Поля оставлены для обратной совместимости со старым
+    # combat code, но НЕ должны писаться напрямую. Используйте body_state.
+    hp: int = 0 # deprecated, читается из body_state через effective_hp
+    max_hp: int = 0 # deprecated
     conditions: Dict[str, "Condition"] = field(default_factory=dict)
     wounds: List["Wound"] = field(default_factory=list)
     threat_accumulator: "ThreatAccumulator" = field(default_factory=lambda: ThreatAccumulator())
     posture: str = "standing"  # standing, staggered, prone
+
+    @property
+    def effective_hp(self) -> float:
+        """Canonical HP: читает из body_state. ADR-HP-UNIFICATION."""
+        if self.body_state and "current_hp" in self.body_state:
+            return float(self.body_state["current_hp"])
+        return float(self.hp) # fallback на deprecated поле
+
+    @property
+    def effective_max_hp(self) -> float:
+        """Canonical max HP: читает из body_state."""
+        if self.body_state and "max_hp" in self.body_state:
+            return float(self.body_state["max_hp"])
+        return float(self.max_hp) # fallback
 
     # ── Эмоция (накопительная) ────────────────────────────────────────────────
     emotion:        EmotionTag = EmotionTag.NEUTRAL

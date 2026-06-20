@@ -11,38 +11,6 @@
       "21:00-09:00": "sleeping"
     }
   },
-  "activity_map": {
-    "market_trading": {
-      "location": "market_square",
-      "position": "merchant_row",
-      "display": "haggling"
-    },
-    "counting_money": {
-      "location": "market_square",
-      "position": "merchant_row",
-      "display": "counting_money"
-    },
-    "working": {
-      "location": "market_square",
-      "position": "merchant_row",
-      "display": "haggling"
-    },
-    "on_duty": {
-      "location": "market_square",
-      "position": "merchant_row",
-      "display": "haggling"
-    },
-    "off_duty": {
-      "location": "tavern_silver_wolf",
-      "position": "main_hall",
-      "display": "drinking"
-    },
-    "sleeping": {
-      "location": "city_gate",
-      "position": "gate_courtyard",
-      "display": "sleeping"
-    }
-  },
   "body_profile": {
     "max_hp": 90,
     "abilities": {

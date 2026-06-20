@@ -1,5 +1,5 @@
 domain: PHYSIOLOGY
-description: "Физиология и бой. Тело — инерционная система. Каскад: Сила → Боль → Шок → Эмоция. Идентичность модулирует восприятие."
+description: "Физиология и бой. Тело — инерционная система. Каскад: Сила → Боль → Шок → Эмоция. Идентичность модулирует восприятие. Актуализировано: S86 (HP Unification)."
 nodes:
   ImpactEngine:
     type: service
@@ -18,7 +18,7 @@ nodes:
     type: domain
     layer: Domain
     label: "Body State (Physiology Container)"
-    description: "Runtime truth of NPC physiology. pain/fatigue 0-100, blood_loss/shock 0-1, life_status ALIVE/DEAD, injuries list. SSOT for physical reality."
+    description: "Runtime truth of NPC physiology. pain/fatigue 0-100, blood_loss/shock 0-1, current_hp (canonical ADR-HP-UNIFICATION), life_status ALIVE/DEAD, injuries list. SSOT for physical reality."
   BODY_STATE_DISABLED:
     type: domain
     layer: Domain
@@ -112,14 +112,14 @@ nodes:
     type: service
     layer: Application
     label: "NPCState Adapter (Serialization Bridge)"
-    description: "from_legacy / write_to_legacy — единственная точка конвертации dict↔NPCState. Теряет поле = DOUBLE TRUTH."
+    description: "from_legacy / write_to_legacy — единственная точка конвертации dict↔NPCState. Теряет поле = DOUBLE TRUTH. ADR-S85.1.1: TickOrchestrator использует NPCStateAdapter, а не NPCState.from_legacy."
     code_ref: "npc_state.py"
     constraint: "Every field in NPCState MUST have corresponding read in from_legacy AND write in write_to_legacy. Missing field = silent data loss."
   WillService:
     type: service
     layer: Application
     label: "Will (IntentPressureResolver + WillpowerGate + Affect)"
-    description: "Трансляция интента → давление → искажение → сопротивление. Травма повышает rigididity."
+    description: "Трансляция интента → давление → искажение → сопротивление. Травма повышает rigididity. ADR-S85.1.1: WillState импортируется из app.models.will."
     code_ref: "will.py, affect.py"
   ReactionSubscriber:
     type: service
@@ -170,6 +170,12 @@ edges:
     condition: "blood_loss_delta = structural_damage * zone_rate * type_modifier. pain_delta = structural_damage * zone_modifier * type_modifier (ADR-141). Compensates exponential decay."
     code_ref: "combat/injury_processor.py"
     adr_ref: "ADR-123, ADR-141"
+  - from: StateApplicator
+    to: BodyState
+    label: "writes damage to body_state['current_hp'] (ADR-HP-UNIFICATION)"
+    condition: "Direct write to state.hp is FORBIDDEN. body_state['current_hp'] is canonical."
+    code_ref: "npc/state_applicator.py"
+    adr_ref: "ADR-HP-UNIFICATION"
   - from: StateApplicator
     to: VitalStateEvaluator
     label: "evaluates body_state after PHYSIOLOGY domain"
@@ -573,6 +579,19 @@ constraints:
     code_ref: "injury_processor.py"
     adr_ref: "ADR-141"
     severity: HIGH
+  # --- S85.1 PIPELINE STABILIZATION CONSTRAINTS ---
+  - source: TickOrchestrator
+    target: NPCState
+    rule: "FORBIDDEN: Using NPCState.from_legacy. MUST use NPCStateAdapter.from_legacy (ADR-S85.1.1)"
+    severity: HIGH
+  # --- S86 HP UNIFICATION CONSTRAINT ---
+  - source: StateApplicator
+    target: HP
+    rule: "FORBIDDEN: Direct write to state.hp. MUST write to body_state['current_hp'] (ADR-HP-UNIFICATION)"
+    condition: "state.hp is deprecated. body_state['current_hp'] is the canonical source of truth for health. state.hp is synced only for legacy combat code."
+    code_ref: "npc/state_applicator.py, npc_state.py"
+    adr_ref: "ADR-HP-UNIFICATION"
+    severity: CRITICAL
 ownership:
   PerceptualKernel:
     owner: "CFRMSolver"
@@ -586,6 +605,14 @@ ownership:
     modifies: "StateApplicator (from DeltaBuffer)"
     reads: "StateInterpreter, BehaviorManifestationService, DecisionHub, PressureDerivation, PerceptualKernel (somatic_urgency)"
     layer: "State (raw signal)"
+  HP_Unification_Ownership:
+    owner: "StateApplicator / NPCState"
+    creates: "Mutations via DeltaBuffer"
+    modifies: "body_state['current_hp']"
+    reads: "NPCState.effective_hp (property fallback)"
+    layer: "State"
+    constraint: "CRITICAL: body_state['current_hp'] is canonical. state.hp is deprecated projection. Direct write to state.hp is FORBIDDEN (ADR-HP-UNIFICATION)."
+    adr_ref: "ADR-HP-UNIFICATION"
   AffectivePressureDTO:
     owner: "PressureDerivation"
     creates: "PressureDerivation (pure function)"

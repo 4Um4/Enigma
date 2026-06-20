@@ -394,7 +394,10 @@ class SceneOutcomeBuilder:
                     "наблюдает"
                 )
                 gender = getattr(npc, "gender", "male")
-                line = f"- {npc.name or npc_id} {intent_desc}"
+                # ИСПРАВЛЕНО: npc_id не определён в scope цикла — только npc.
+                # Должно быть npc.npc_id. До фикса любой NPC без name → NameError →
+                # _dm_frame_block = "" → DM терял блок «Ключевые NPC».
+                line = f"- {npc.name or npc.npc_id} {intent_desc}"
                 # pronoun-подсказка для 7B — без неё модель галлюцинирует пол
                 if gender not in ("male", "female", "мужской", "женский"):
                     line += " [он]"

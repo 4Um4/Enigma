@@ -1,5 +1,5 @@
 ﻿domain: AUTHORITY
-description: "Воля, Давление, Решения и Социум. Подчинение требует легитимности. Решения из искривленного utility. Личность = направление разрядки."
+description: "Воля, Давление, Решения и Социум. Подчинение требует легитимности. Решения из искривленного utility. Личность = направление разрядки. S85.2: Решения искривляются L2.5 кристаллизованными убеждениями. S86: BreakProgressEngine и BehaviorMask интегрированы в пайплайн решения."
 nodes:
   WillpowerGate:
     type: service
@@ -10,8 +10,8 @@ nodes:
     layer: Application
     label: "Decision Hub v2 (Utility Deformation)"
     style: {fill: "#e8f5e9", stroke: "#1b5e20", "stroke-width": "4px"}
-    description: "S72: _context_relevance modulates event salience through drives_base. Delegates _compute_deltas to SocialDeltaEngine and _compute_risk to perceive_risk via RiskPerceptionProfile (ADR-O-146)."
-    adr_ref: "§ENIGMA-S72, ADR-O-146"
+    description: "S72: _context_relevance modulates event salience through drives_base. Delegates _compute_deltas to SocialDeltaEngine and _compute_risk to perceive_risk via RiskPerceptionProfile (ADR-O-146). ADR-152: _score_all возвращает (scores, components_trace) для WHY-лога. ADR-153: Штраф FLEE применяется только если ATTACK валиден. S85.2: Принимает drive_modifiers от L2.5 Belief Layer (CrystallizedBeliefModifierResolver)."
+    adr_ref: "§ENIGMA-S72, ADR-O-146, ADR-152, ADR-153, ADR-O-305"
   IntentEventAdapter:
     type: service
     layer: Application
@@ -60,8 +60,8 @@ nodes:
     type: service
     layer: Application
     label: "Life Engine (Cache + Simulation)"
-    description: "Owns _npc_cache. Owns Viability Pre-Generation Gate (ADR-O-137) and Arousal Gate (ADR-O-142A). Two-layer dispatch: need-driven (priority=0.8) overrides schedule (priority=0.6) when critical (ADR-149)."
-    adr_ref: "ADR-117, ADR-O-137, ADR-O-142A, ADR-149, ADR-150"
+    description: "Owns _npc_cache. Owns Viability Pre-Generation Gate (ADR-O-137) and Arousal Gate (ADR-O-142A). Two-layer dispatch: need-driven (priority=0.8) overrides schedule (priority=0.6) when critical (ADR-149). ADR-154: _simulate_major blocks ALL intent generation for NPCs with status=MOVING."
+    adr_ref: "ADR-117, ADR-O-137, ADR-O-142A, ADR-149, ADR-150, ADR-154"
   GameLoop:
     type: service
     layer: Application
@@ -142,8 +142,7 @@ nodes:
     label: "Village Institution Layer"
     description: "ADR-O-212: Медленные структурные коэффициенты мира. Рождается как агрегат давления памяти. Влияет через Decision Bias Layer."
     code_ref: "social/institutional_inertia.py"
-    adr_ref: "ADR-O-212"
-    adr_ref: "ADR-O-146"
+    adr_ref: "ADR-O-212, ADR-O-146"
   RiskPerceptionProfile:
     type: domain
     layer: Domain
@@ -165,6 +164,27 @@ nodes:
     description: "ADR-O-137: Онтологический базис намерений. Viability mask проекция PerceptualKernel → IntentDomain."
     code_ref: "domain/movement.py"
     adr_ref: "ADR-O-137"
+  # --- L2.5 BELIEF INTEGRATION (S85.2) ---
+  CrystallizedBeliefModifierResolver:
+    type: service
+    layer: Application
+    label: "Crystallized Belief Modifier Resolver (L2.5 -> Drive Modifiers)"
+    description: "S85.2: Translates CrystallizedBelief into drive_modifiers for DecisionHub. Fear boosts FLEE/WARN, Trust boosts TALK/HELP."
+    code_ref: "npc/crystallized_belief_modifier_resolver.py"
+    adr_ref: "ADR-O-305"
+  # --- S86 WILL & MASK INTEGRATION ---
+  BreakProgressEngine:
+    type: service
+    layer: Application
+    label: "Break Progress Engine"
+    description: "S86: Fully wired into _phase_5_decision. Generates canonical TraitDriftEvent (target_id, effect_value). Evaluates will_state breaks before DecisionHub."
+    adr_ref: "ADR-S86.3"
+  BehaviorMaskEvaluator:
+    type: service
+    layer: Application
+    label: "Behavior Mask Evaluator"
+    description: "S86: Evaluates WillState and relationship_cache to assign COLLAPSE/FAKE_SUBMISSION/BETRAYAL masks before DecisionHub. Hysteresis layer to prevent social role flickering."
+    adr_ref: "ADR-S86.4"
 edges:
   - from: WillpowerGate
     to: DecisionHub
@@ -333,6 +353,37 @@ edges:
     condition: "ADR-O-137: threat_gradient > 0.3 → EXCLUDE ROUTINE domain. Gate stands BEFORE generators."
     code_ref: "life_engine.py"
     adr_ref: "ADR-O-137"
+  # --- L2.5 BELIEF EDGES (S85.2) ---
+  - from: CrystallizedBeliefStore
+    to: CrystallizedBeliefModifierResolver
+    label: "get_beliefs() → List[CrystallizedBelief]"
+    code_ref: "crystallized_belief_store.py"
+    adr_ref: "ADR-O-305"
+  - from: CrystallizedBeliefModifierResolver
+    to: DecisionHub
+    label: "resolve() → drive_modifiers (Dict[str, float])"
+    condition: "S85.2: L2.5 beliefs deform utility alongside L3 drives and L1.5 social context."
+    code_ref: "npc_tick_pipeline.py"
+    adr_ref: "ADR-O-305"
+    edge_type: thick
+  # --- S86 WILL & MASK EDGES ---
+  - from: TickOrchestrator
+    to: BreakProgressEngine
+    label: "calculates will_state breaks"
+    condition: "Before DecisionHub in _phase_5_decision"
+    adr_ref: "ADR-S86.3"
+  - from: BreakProgressEngine
+    to: L1Chronicle
+    label: "commits TraitDriftEvent (target_id, effect_value)"
+    adr_ref: "ADR-O-208.1"
+  - from: TickOrchestrator
+    to: BehaviorMaskEvaluator
+    label: "evaluates mask before DecisionHub"
+    condition: "Based on WillState and relationship_cache"
+    adr_ref: "ADR-S86.4"
+  - from: BehaviorMaskEvaluator
+    to: DecisionHub
+    label: "applies social mask to utility scoring"
 constraints:
   - source: DecisionHub
     target: Raw_Delta
@@ -591,6 +642,29 @@ constraints:
     code_ref: "life_engine.py"
     adr_ref: "ADR-150"
     severity: HIGH
+  # --- S85.1 PIPELINE STABILIZATION CONSTRAINTS ---
+  - source: LifeEngine
+    target: MovingNPC
+    rule: "FORBIDDEN: LifeEngine generating intents for NPC in status MOVING (ADR-154)"
+    severity: CRITICAL
+  # --- S85.2 L2.5 BELIEF CONSTRAINTS ---
+  - source: CrystallizedBeliefModifierResolver
+    target: DecisionHub
+    rule: "REQUIRED: L2.5 beliefs MUST be injected as drive_modifiers, not bypassing scoring (ADR-O-305)"
+    condition: "S85.2: Beliefs deform utility. Direct state mutation or overriding intent scores is FORBIDDEN."
+    adr_ref: "ADR-O-305"
+    severity: CRITICAL
+  # --- S86 WILL & MASK CONSTRAINTS ---
+  - source: BreakProgressEngine
+    target: TraitDriftEvent
+    rule: "FORBIDDEN: Using legacy fields (npc_id, tick, trait, delta). MUST use (target_id, tick_id, effect_value) (ADR-O-208.1)"
+    severity: CRITICAL
+    adr_ref: "ADR-O-208.1"
+  - source: BehaviorMaskEvaluator
+    target: BehaviorMask
+    rule: "REQUIRED: Mask must be quasi-stable (hysteresis). Prevent social role flickering (ADR-S86.4)"
+    severity: HIGH
+    adr_ref: "ADR-S86.4"
 ownership:
   EmotionTag:
     owner: "AffectivePipeline (via emotion_transition.py)"
@@ -608,7 +682,7 @@ ownership:
     owner: "WillpowerGate"
     creates: "WillpowerGate"
     modifies: "WillpowerGate"
-    reads: "VerbalizationContext, DecisionHub"
+    reads: "VerbalizationContext, DecisionHub, BreakProgressEngine"
   DecisionResult:
     owner: "DecisionHub"
     creates: "DecisionHub (from utility deformation)"
@@ -701,6 +775,20 @@ ownership:
     adr_ref: "ADR-O-137, ADR-O-146"
     path: "backend/tests/sandbox/SUPERBOX/behavior_laboratory.py"
     suites: ["trait_economy_probe"]
+  BreakProgressEngine_Ownership:
+    owner: "TickOrchestrator (_phase_5_decision)"
+    creates: "TraitDriftEvent with ADR-O-305A fields"
+    modifies: "NPCState (will_state, identity_integrity)"
+    reads: "NPCStateAdapter.from_legacy"
+    constraint: "CRITICAL: MUST use new TraitDriftEvent fields (target_id, tick_id, effect_value). Runs before DecisionHub."
+    adr_ref: "ADR-S86.3, ADR-O-208.1"
+  BehaviorMaskEvaluator_Ownership:
+    owner: "TickOrchestrator (_phase_5_decision)"
+    creates: "BehaviorMaskState (COLLAPSE, FAKE_SUBMISSION, BETRAYAL)"
+    modifies: "NPCState.behavior_mask"
+    reads: "WillState, relationship_cache"
+    constraint: "CRITICAL: Must act as a hysteresis layer to prevent mask flickering. Runs before DecisionHub."
+    adr_ref: "ADR-S86.4"
 sequences:
   - title: "Player Command Execution Flow"
     participants: [PlayerInput, DirectiveInterpreter, BodyState, WillpowerGate, DecisionHub]
@@ -778,3 +866,31 @@ sequences:
       - from: DecisionHub
         to: DecisionHub
         message: "4. Post-gen filtering FORBIDDEN (zombie causality)"
+  - title: "L2.5 Belief Injection Flow (ADR-O-305)"
+    participants: [CrystallizedBeliefStore, CrystallizedBeliefModifierResolver, DecisionHub]
+    steps:
+      - from: CrystallizedBeliefStore
+        to: CrystallizedBeliefModifierResolver
+        message: "1. get_beliefs(npc_id) → List[CrystallizedBelief]"
+      - from: CrystallizedBeliefModifierResolver
+        to: DecisionHub
+        message: "2. resolve() → Dict[str, float] (e.g. {FLEE: +0.4})"
+      - from: DecisionHub
+        to: DecisionHub
+        message: "3. _score_all: belief mods merged with drive_modifiers and affective mods"
+  - title: "Will Break & Behavior Mask Flow (S86)"
+    participants: [TickOrchestrator, BreakProgressEngine, BehaviorMaskEvaluator, DecisionHub]
+    steps:
+      - from: TickOrchestrator
+        to: BreakProgressEngine
+        message: "1. _phase_5_decision: Calculate will_state breaks"
+      - from: BreakProgressEngine
+        to: L1Chronicle
+        message: "2. Commit TraitDriftEvent (if broken)"
+        type: dotted
+      - from: TickOrchestrator
+        to: BehaviorMaskEvaluator
+        message: "3. Evaluate COLLAPSE/FAKE_SUBMISSION/BETRAYAL"
+      - from: BehaviorMaskEvaluator
+        to: DecisionHub
+        message: "4. Apply mask to utility scoring"

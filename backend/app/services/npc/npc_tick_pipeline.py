@@ -202,7 +202,8 @@ def build_verbalization_context(
     # ADR-139: drives из runtime canonical (state), НЕ из frozen profile.
     # profile_l0.drives_base = seed (Layer 1). state.drives_runtime = current (Layer 2).
     # DecisionHub должен видеть ТЕКУЩИЕ драйвы (с учётом мутаций), не seed.
-    _drives_raw = getattr(state, 'drives_runtime', None) or profile_l0.drives_base
+    # ИСПРАВЛЕНО: аргумент называется state_for_llm, не state. NameError на `state`.
+    _drives_raw = getattr(state_for_llm, 'drives_runtime', None) or profile_l0.drives_base
     if isinstance(_drives_raw, dict) and _drives_raw:
         _dominant_drive = max(_drives_raw.items(), key=lambda x: x[1])[0]
     else:
@@ -397,8 +398,16 @@ def run_npc_pipeline(
 
             # 1.6. CognitiveDistortion: модификаторы для DecisionHub (ШАГ C.1)
             # Distortion НЕ искажает state — возвращает модификаторы score
+            # L3-P2: InterpretationEngine должен видеть ТЕКУЩИЕ драйвы (L3),
+            # не стартовый профиль (L0). Раньше передавался profile_l0.drives_base,
+            # что означало: NPC интерпретирует события на основании стартовых драйвов,
+            # игнорируя накопленную деформацию.
+            _drives_for_interp = (
+                getattr(state_l2, 'drives_runtime', None)
+                or profile_l0.drives_base
+            )
             interpretation = InterpretationEngine().compute(
-                state=state_l2, event=hub_event, drives_base=profile_l0.drives_base
+                state=state_l2, event=hub_event, drives_base=_drives_for_interp
             )
 
             # 2. Этап 5: Запуск DecisionHub с L1 чертами + distortion модификаторы
@@ -468,6 +477,22 @@ def run_npc_pipeline(
                         )
                 else:
                     _drive_modifiers_for_hub = _belief_mods
+
+            # L2.5: Crystallized Belief Modifier Resolver — ADR-O-305
+            # Читает кристаллизованные убеждения из хранилища и конвертирует в drive_modifiers
+            _crystallized_store = getattr(svc, 'crystallized_belief_store', None)
+            if _crystallized_store:
+                from app.services.npc.crystallized_belief_modifier_resolver import CrystallizedBeliefModifierResolver
+                _crystallized_beliefs = _crystallized_store.get_beliefs(npc_id)
+                _crystallized_mods = CrystallizedBeliefModifierResolver().resolve(_crystallized_beliefs)
+                if _crystallized_mods:
+                    if _drive_modifiers_for_hub:
+                        for _ck, _cv in _crystallized_mods.items():
+                            _drive_modifiers_for_hub[_ck] = round(
+                                _drive_modifiers_for_hub.get(_ck, 0.0) + _cv, 4
+                            )
+                    else:
+                        _drive_modifiers_for_hub = _crystallized_mods
 
             # Фаза 4 (§3.2): TopicExtractor — ДО DecisionHub
             from app.services.npc.topic_extractor import extract_topic

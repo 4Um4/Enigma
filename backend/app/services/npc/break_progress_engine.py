@@ -243,10 +243,9 @@ def compute_continuous_drift(effective_drives: "EffectiveDrives", npc_id: str, r
     for trait, delta in total_drifts.items():
         if abs(delta) > 1e-6:  # Отсекаем шум
             events.append(TraitDriftEvent(
-                npc_id=npc_id,
-                trait=trait,
-                delta=delta,
-                source="tifl_pressure_model",
-                tick=current_tick
+                tick_id=current_tick,
+                target_id=npc_id,
+                source_id="tifl_pressure_model",
+                effect_value=float(delta)
             ))
     return events

@@ -97,6 +97,13 @@ constraints:
     code_ref: "scene_state_manager.py:apply_change"
     adr_ref: "ADR-O-201"
     severity: HIGH
+  - source: StateApplicator
+    target: HP
+    rule: "FORBIDDEN: Direct write to state.hp. MUST write to body_state['current_hp'] (ADR-HP-UNIFICATION)"
+    condition: "state.hp is deprecated. body_state['current_hp'] is the canonical source of truth for health."
+    code_ref: "npc/state_applicator.py, npc_state.py"
+    adr_ref: "ADR-HP-UNIFICATION"
+    severity: CRITICAL
 
 ownership:
   PersistenceState:
@@ -119,3 +126,7 @@ ownership:
     reads: "ThickSceneChange (complete physical contract, no computation needed)"
     constraint: "ADR-O-201: Pure function. No branching >1 level, no service calls, no RNG, no pathfinding. state[t+1] = state[t] ⊕ ThickSceneChange[]. Migration phases: 0 (shadow) → 1 (dual rail) → 2 (alignment) → 3 (takeover)."
     adr_ref: "ADR-O-201"
+  HP_Unification_Ownership:
+    owner: "StateApplicator / NPCState"
+    constraint: "CRITICAL: body_state['current_hp'] is canonical. state.hp is deprecated projection."
+    adr_ref: "ADR-HP-UNIFICATION"

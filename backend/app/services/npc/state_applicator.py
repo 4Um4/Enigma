@@ -194,8 +194,15 @@ class StateApplicator:
         
         try:
             # 1. HP
-            old_hp = new_state.hp
-            new_state.hp = max(0, new_state.hp - outcome.damage)
+            # ADR-HP-UNIFICATION: пишем в body_state, не в deprecated hp поле.
+            old_hp = new_state.effective_hp
+            _max_hp = new_state.effective_max_hp
+            _new_hp = max(0.0, old_hp - outcome.damage)
+            if not new_state.body_state:
+                new_state.body_state = {"current_hp": _max_hp, "max_hp": _max_hp}
+            new_state.body_state["current_hp"] = min(_max_hp, _new_hp)
+            # Sync deprecated поле для обратной совместимости
+            new_state.hp = int(_new_hp)
             state_changes.append(StateChange(
                 target_id=new_state.npc_id,
                 field="hp",
@@ -521,11 +528,47 @@ class StateApplicator:
         # Травма
         if new_trauma:
             state.trauma_markers.add(new_trauma)
-
-            # S71: Мутация при других типах травм
-            from app.services.npc.break_progress_engine import compute_mutation, apply_drives_mutation
+            # S71: Мутация при других типах травм.
+            # ADR-O-208: TIFL больше не мутирует состояние напрямую через
+            # apply_drives_mutation (функция удалена). compute_mutation возвращает
+            # дельты, которые мы применяем через TraitDriftEvent → L1Chronicle →
+            # DriveResolver на следующем тике. Это сохраняет Закон Сохранения Я
+            # (нормализация в DriveResolver, не в мутаторе).
+            from app.services.npc.break_progress_engine import compute_mutation
+            from app.domain.identity_events import TraitDriftEvent
             _drive_mutations = compute_mutation(state, new_trauma)
-            apply_drives_mutation(state, _drive_mutations)
+            if _drive_mutations:
+                # Генерируем L1 события деформации
+                _tick = getattr(state, "intent_formed_at", 0)
+                # Канонический контракт TraitDriftEvent (ADR-O-305A)
+                _events = [
+                    TraitDriftEvent(
+                        tick_id=_tick,
+                        target_id=state.npc_id,
+                        source_id=f"trauma:{new_trauma}",
+                        effect_value=delta,
+                        observation_weight=1.0,
+                        event_type=f"trauma:{trait}"
+                    )
+                    for trait, delta in _drive_mutations.items()
+                ]
+                # Запись в L1Chronicle (если есть в state)
+                _chronicle = getattr(state, "_l1_chronicle", None)
+                if _chronicle is not None:
+                    _chronicle.commit_tick_buffer(_events, _tick)
+                else:
+                    # Fallback: прямая запись в drives_runtime (но без нормализации!)
+                    # Это компромисс — лучше, чем ImportError, но хуже, чем L1.
+                    import logging
+                    logging.getLogger(__name__).warning(
+                        f"[STATE_APPLICATOR] L1Chronicle not attached to state {state.npc_id}, "
+                        f"applying trauma drives directly to drives_runtime (no normalization)."
+                    )
+                    if not state.drives_runtime:
+                        state.drives_runtime = dict(getattr(state, "drives_base", {}))
+                    for trait, delta in _drive_mutations.items():
+                        if trait in state.drives_runtime:
+                            state.drives_runtime[trait] = max(0.01, state.drives_runtime[trait] + delta)
 
         # --- Физиология (Physiology Domain) ---
         if domain == DeltaDomain.PHYSIOLOGY:
@@ -607,12 +650,40 @@ class StateApplicator:
                 logger.warning(f"[DEATH_CERTIFIED] npc={state.npc_id} life_status={_life_status.value} bl={state.body_state.get('blood_loss',0):.3f} structural={sum(float(i.get('structural_damage',0)) for i in state.body_state.get('injuries',[])):.3f}")
 
         # --- Восприятие (Perception Domain / ADR-O) ---
-        if domain == DeltaDomain.PERCEPTION:
-            # Инициализация ядра, если его нет
-            if not hasattr(state, 'perceptual_kernel') or state.perceptual_kernel is None:
-                from app.models.npc_state import PerceptualKernel
-                state.perceptual_kernel = PerceptualKernel()
+        # BUG-001 FIX: директивные perception-поля (aggression_inhibition_delta,
+        # compliance_bias_delta, initiative_suppression_delta, recent_directive_data)
+        # применяются НЕЗАВИСИМО от DeltaDomain. Раньше они были внутри
+        # `if domain == DeltaDomain.PERCEPTION:`, но DirectiveInterpretationSubscriber
+        # отправляет их с DeltaDomain.IDENTITY → поля терялись → каузальная труба
+        # приказов была мертва.
 
+        # Шаг 1: инициализация PerceptualKernel (один раз, любой domain)
+        if not hasattr(state, 'perceptual_kernel') or state.perceptual_kernel is None:
+            from app.models.npc_state import PerceptualKernel
+            state.perceptual_kernel = PerceptualKernel()
+
+        # Шаг 2: директивные perception-поля — применяются всегда (любой domain)
+        # Это каузальная труба воли: приказ → pressure → PerceptualKernel.
+        _aggr_inh = getattr(deltas.payload, 'aggression_inhibition_delta', 0.0)
+        if _aggr_inh != 0.0:
+            state.perceptual_kernel.aggression_inhibition = max(
+                0.0, min(1.0, state.perceptual_kernel.aggression_inhibition + _aggr_inh)
+            )
+        _comp_bias = getattr(deltas.payload, 'compliance_bias_delta', 0.0)
+        if _comp_bias != 0.0:
+            state.perceptual_kernel.compliance_bias = max(
+                0.0, min(1.0, state.perceptual_kernel.compliance_bias + _comp_bias)
+            )
+        _init_sup = getattr(deltas.payload, 'initiative_suppression_delta', 0.0)
+        if _init_sup != 0.0:
+            state.perceptual_kernel.initiative_suppression = max(
+                0.0, min(1.0, state.perceptual_kernel.initiative_suppression + _init_sup)
+            )
+        if _recent_dir := getattr(deltas.payload, 'recent_directive_data', None):
+            state.perceptual_kernel.recent_directive = _recent_dir
+
+        # Шаг 3: PERCEPTION-специфичные поля (threat/uncertainty/anomaly)
+        if domain == DeltaDomain.PERCEPTION:
             if threat_gradient_delta != 0.0:
                 state.perceptual_kernel.threat_gradient = max(
                     0.0, min(1.0, state.perceptual_kernel.threat_gradient + threat_gradient_delta)
@@ -627,36 +698,11 @@ class StateApplicator:
                 )
 
             # §ENIGMA-AFFECTIVE-SOVEREIGNTY v2: PERCEPTION domain НЕ пишет в affective_load.
-            # Изменение угрозы/неопределённости — это входной сигнал для интегратора.
-            # Нагрузка изменится только когда AffectivePipeline обработает этот сигнал,
-            # или через Fallback Compute в EMOTION/PHYSIOLOGY блоках.
             pass
 
-            # S72: dominant_emotion_hint всегда None (CFRM больше не назначает эмоцию).
-            # Эмоция резолвится только через Affective Pipeline → EmotionResolution.
-            # Сохраняем запись на случай явной установки из ReactionSubscriber (ADR-117).
+            # S72: dominant_emotion_hint
             if dominant_emotion_hint:
                 state.perceptual_kernel.dominant_emotion = dominant_emotion_hint
-                
-            # S28: Мерж топологии деформации пространства решений
-            _aggr_inh = getattr(deltas.payload, 'aggression_inhibition_delta', 0.0)
-            if _aggr_inh != 0.0:
-                state.perceptual_kernel.aggression_inhibition = max(
-                    0.0, min(1.0, state.perceptual_kernel.aggression_inhibition + _aggr_inh)
-                )
-            _comp_bias = getattr(deltas.payload, 'compliance_bias_delta', 0.0)
-            if _comp_bias != 0.0:
-                state.perceptual_kernel.compliance_bias = max(
-                    0.0, min(1.0, state.perceptual_kernel.compliance_bias + _comp_bias)
-                )
-            _init_sup = getattr(deltas.payload, 'initiative_suppression_delta', 0.0)
-            if _init_sup != 0.0:
-                state.perceptual_kernel.initiative_suppression = max(
-                    0.0, min(1.0, state.perceptual_kernel.initiative_suppression + _init_sup)
-                )
-            # ADR-056: Применение Attention Capture
-            if _recent_dir := getattr(deltas.payload, 'recent_directive_data', None):
-                state.perceptual_kernel.recent_directive = _recent_dir
 
         # Causal Ledger — паспорт каждого изменения (Шаг 3)
         # Фаза 4-ROLE.2: emotional_impact для генерации TemporaryDrive

@@ -299,6 +299,26 @@ class SqliteMemoryStore:
         self._conn.commit()
         return deleted_events + deleted_entries
 
+    def execute(self, sql: str, params: tuple = ()) -> int:
+        """
+        PUBLIC API: Выполняет произвольный SQL-запрос (INSERT/UPDATE/DELETE) 
+        и коммитит. Возвращает lastrowid или количество затронутых строк.
+        Используется сервисами, владеющими своей схемой (например, L1Chronicle).
+        """
+        cur = self._conn.cursor()
+        cur.execute(sql, params)
+        self._conn.commit()
+        return cur.lastrowid or cur.rowcount
+
+    def query(self, sql: str, params: tuple = ()) -> List[Dict[str, Any]]:
+        """
+        PUBLIC API: Выполняет SELECT запрос и возвращает список словарей.
+        row_factory уже настроен на sqlite3.Row в _connect().
+        """
+        cur = self._conn.cursor()
+        cur.execute(sql, params)
+        return [dict(row) for row in cur.fetchall()]
+
     def close(self) -> None:
         if self._conn:
             self._conn.close()

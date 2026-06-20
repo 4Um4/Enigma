@@ -1,12 +1,12 @@
 domain: MEMORY
-description: "Память NPC: STM → L2 → Campaign. Только MemoryManager пишет. Слои памяти — фундамент причинности (Устав §4)."
+description: "Память NPC: STM → L2 → Campaign. Только MemoryManager пишет. Слои памяти — фундамент причинности (Устав §4). S86: Контур памяти замкнут (compress idle, promote on event)."
 
 nodes:
   MemoryManager:
     type: service
     layer: Application
     label: "Memory Manager"
-    description: "Единственный писатель в память (Устав §4.1.2). Читает STM + L2, применяет события, продвигает в Campaign."
+    description: "Единственный писатель в память (Устав §4.1.2). Читает STM + L2, применяет события, продвигает в Campaign. S86: compress_narrative_cache (idle), check_identity_promotion (event-conditioned)."
     code_ref: "memory/memory_manager.py"
   LayeredMemory:
     type: service
@@ -175,6 +175,19 @@ edges:
     label: "relationship_cache updates"
     condition: "Via DeltaBuffer (Устав §4.1.2)"
     code_ref: "memory/relationship_store.py"
+  # --- S86 MEMORY CONTOUR EDGES ---
+  - from: TickOrchestrator
+    to: MemoryManager
+    label: "_phase_3_memory: compress_narrative_cache"
+    condition: "Every 10 ticks (idle allowed - structural optimization)"
+    code_ref: "tick_orchestrator.py"
+    adr_ref: "ADR-S86.7"
+  - from: TickOrchestrator
+    to: MemoryManager
+    label: "_phase_3_memory: check_identity_promotion"
+    condition: "Every 50 ticks (REQUIRES phase_2_events - prevents phantom drift)"
+    code_ref: "tick_orchestrator.py"
+    adr_ref: "ADR-S86.7"
 
 constraints:
   - source: Any
@@ -207,6 +220,13 @@ constraints:
     code_ref: "npc/topic_extractor.py"
     adr_ref: "Устав §3.2"
     severity: HIGH
+  - source: MemoryManager
+    target: IdentityPromotion
+    rule: "FORBIDDEN: check_identity_promotion in idle ticks without phase_2_events. Prevents phantom identity drift (ADR-S86.7)"
+    condition: "Memory cannot generate new identity without causal input. Structural compression (compress_narrative_cache) is allowed in idle."
+    code_ref: "tick_orchestrator.py"
+    adr_ref: "ADR-S86.7"
+    severity: CRITICAL
 
 ownership:
   STM:
@@ -288,4 +308,14 @@ sequences:
       - from: ResonanceEngine
         to: WillpowerGate
         message: "2. distort_pressure(pressure, resonance, psyche)"
+        type: dotted
+  - title: "Memory Promotion & Compression Flow (S86)"
+    participants: [TickOrchestrator, MemoryManager, LayeredMemory]
+    steps:
+      - from: TickOrchestrator
+        to: MemoryManager
+        message: "1. compress_narrative_cache (Every 10 ticks, idle allowed)"
+      - from: TickOrchestrator
+        to: MemoryManager
+        message: "2. check_identity_promotion (Every 50 ticks, ONLY if phase_2_events)"
         type: dotted

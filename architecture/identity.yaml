@@ -1,10 +1,11 @@
 domain: IDENTITY
-description: "Домен Идентичности и Онтологии (DOM-10). Фазово-заблокированное поле дрейфа. L0 (Архетип) + L1 (Хроника) → L3 (Проекция). Стабилизация скалярных драйвов признана тупиком (Test C). Кристаллизация перенесена в Belief Layer (Убеждения)."
+description: "Домен Идентичности и Онтологии (DOM-10). Фазово-заблокированное поле дрейфа. L0 (Архетип) + L1 (Хроника) → L1.5 (Статистика) → L2.5 (Убеждения) → L3 (Проекция). Стабилизация скалярных драйвов признана тупиком (Test C). Кристаллизация перенесена в Belief Layer (Убеждения). S85.2: Контур L1.5 -> L2.5 -> DecisionHub замкнут. S86: L1Chronicle персистирована в SQLite, BreakProgressEngine интегрирован в пайплайн."
 nodes:
   L1Chronicle:
     type: domain
     layer: Domain
     label: "L1 Chronicle (Append-Only)"
+    description: "ADR-O-208.2 (S86): Backed by SQLite (l1_chronicle_events). In-memory dict is cache only. Uses canonical TraitDriftEvent (target_id, tick_id, effect_value)."
   DriveResolver:
     type: domain
     layer: Domain
@@ -21,11 +22,13 @@ nodes:
     type: dto
     layer: Domain
     label: "Trait Drift Event (L1 Record)"
+    description: "ADR-O-208.1: Символическая смерть старого контракта. Поля: tick_id, target_id, source_id, effect_value, observation_weight, event_type. Immutable."
   CalibrationEngine:
     type: service
     layer: Application
     label: "Calibration Engine (Pass-through / Deprecated for scalars)"
     status: DEPRECATED_FOR_SCALARS
+    description: "ADR-O-211 (S86): Pass-through ONLY. Applying ctx.drives_updates to state.drives_runtime is FORBIDDEN to prevent noise accumulation."
   DecisionHub:
     type: service
     layer: Application
@@ -33,13 +36,34 @@ nodes:
   PatternDetector:
     type: service
     layer: Application
-    label: "Pattern Detector (L1 Source Grouping)"
-    status: PROPOSED
+    label: "Pattern Detector (L1.5 Source Grouping & Noise Filter)"
+    status: VERIFIED
+  EvidenceOfPersistence:
+    type: dto
+    layer: Domain
+    label: "Evidence Of Persistence (L1.5 Aggregate)"
+    description: "Чистая статистика. Поля: source_id, cumulative_effect, behavior_variance."
   BeliefCrystallizationEngine:
     type: service
     layer: Application
-    label: "Belief Crystallization (Evidence of Persistence → Semantic Policy)"
-    status: PROPOSED
+    label: "Belief Crystallization Engine (L2.5)"
+    status: VERIFIED
+    description: "Проекция статистики в CrystallizedBelief. Асимметричная травма (x6) и энтропия (Decay)."
+  CrystallizedBelief:
+    type: dto
+    layer: Domain
+    label: "Crystallized Belief (L2.5 Projection)"
+    description: "Поля: source_id, trait, weight, last_updated_tick. Подвержен энтропии."
+  CrystallizedBeliefStore:
+    type: service
+    layer: Application
+    label: "Crystallized Belief Store (L2.5 Storage)"
+    status: VERIFIED
+  CrystallizedBeliefModifierResolver:
+    type: service
+    layer: Application
+    label: "Crystallized Belief Modifier Resolver (L2.5 -> Drive Modifiers)"
+    status: VERIFIED
   ArchetypeConfig:
     type: database
     layer: Infrastructure
@@ -50,12 +74,23 @@ nodes:
     layer: Infrastructure
     label: "Individual Config JSON (Position)"
     description: "S85.2: Contains specific activity_map for cross-location routing."
+  BreakProgressEngine:
+    type: service
+    layer: Application
+    label: "Break Progress Engine"
+    description: "S86: Fully wired into _phase_5_decision. Generates canonical TraitDriftEvent (target_id, effect_value)."
 edges:
   - from: TraitDriftEvent
     to: L1Chronicle
     label: "appends drift record"
     condition: "World pressure mutates identity"
     code_ref: "l1_chronicle.py:append"
+  - from: BreakProgressEngine
+    to: L1Chronicle
+    label: "commits TraitDriftEvent (target_id, effect_value)"
+    condition: "WillState breaks or deforms"
+    code_ref: "break_progress_engine.py"
+    adr_ref: "ADR-O-208.1"
   - from: L1Chronicle
     to: DriveResolver
     label: "provides weighted history"
@@ -78,19 +113,33 @@ edges:
     code_ref: "tick_orchestrator.py"
   - from: L1Chronicle
     to: PatternDetector
-    label: "query by source, detect persistence frequency"
-    condition: "ADR-O-305: Grouping by source field"
-    code_ref: "pattern_detector.py (Target)"
+    label: "query_raw() → List[TraitDriftEvent]"
+    condition: "ADR-O-305A: Группировка по source_id"
+    code_ref: "pattern_detector.py"
   - from: PatternDetector
+    to: EvidenceOfPersistence
+    label: "detect() → List[EvidenceOfPersistence]"
+    condition: "Комбинированная variance (дисперсия + осцилляция). Event_type отсечён."
+    code_ref: "pattern_detector.py"
+  - from: EvidenceOfPersistence
     to: BeliefCrystallizationEngine
-    label: "generate EvidenceOfPersistence"
-    condition: "ADR-O-305: Frequency > noise threshold"
-    code_ref: "belief_crystallization_engine.py (Target)"
+    label: "aggregated statistics"
+    condition: "Модуляция через drives_base (L0)"
+    code_ref: "belief_crystallization_engine.py"
   - from: BeliefCrystallizationEngine
+    to: CrystallizedBeliefStore
+    label: "crystallize() → update_beliefs()"
+    condition: "ADR-O-305: Формирование CrystallizedBelief"
+    code_ref: "belief_crystallization_engine.py, crystallized_belief_store.py"
+  - from: CrystallizedBeliefStore
+    to: CrystallizedBeliefModifierResolver
+    label: "get_beliefs() → List[CrystallizedBelief]"
+    code_ref: "crystallized_belief_modifier_resolver.py"
+  - from: CrystallizedBeliefModifierResolver
     to: DecisionHub
-    label: "inject belief_modifiers / active_traits"
-    condition: "ADR-O-305: Source-specific policy shift"
-    code_ref: "decision_hub.py"
+    label: "resolve() → drive_modifiers (Dict[str, float])"
+    condition: "S85.2: L2.5 beliefs deform utility alongside L3 drives"
+    code_ref: "npc_tick_pipeline.py"
   - from: ArchetypeConfig
     to: DriveResolver
     label: "provides L0 archetype"
@@ -118,6 +167,16 @@ constraints:
     target: EffectiveDrives
     rule: "DEPRECATED for scalar mutation (Test C noise accumulation). Pass-through mode ONLY"
     code_ref: "ADR-O-211 DEPRECATION"
+  - source: CalibrationEngine
+    target: DrivesRuntime
+    rule: "FORBIDDEN: Applying ctx.drives_updates to state.drives_runtime. CalibrationEngine MUST be pass-through (ADR-O-211)"
+    severity: CRITICAL
+    code_ref: "ADR-O-211 (S86)"
+  - source: BreakProgressEngine
+    target: TraitDriftEvent
+    rule: "FORBIDDEN: Using legacy fields (npc_id, tick, trait, delta). MUST use (target_id, tick_id, effect_value) (ADR-O-208.1)"
+    severity: CRITICAL
+    code_ref: "ADR-O-208.1"
   - source: DecisionHub
     target: EffectiveDrives
     rule: "REQUIRED: Projection-native scoring. L0 (drives_base) prohibited in scoring"
@@ -144,3 +203,20 @@ constraints:
     adr_ref: "ADR-S85.2"
     code_ref: "config/npc/individuals/*.json"
     severity: HIGH
+  # --- S85.2 BELIEF LAYER CONSTRAINTS ---
+  - source: PatternDetector
+    target: EventType
+    rule: "FORBIDDEN: Using event_type in mathematical formulas (ADR-O-305A)"
+    severity: CRITICAL
+  - source: PatternDetector
+    target: Psychology
+    rule: "FORBIDDEN: PatternDetector reading emotions, drives, or beliefs (ADR-O-306)"
+    severity: CRITICAL
+  - source: BeliefCrystallizationEngine
+    target: L1Chronicle
+    rule: "FORBIDDEN: BeliefCrystallizationEngine reading L1Chronicle directly. MUST use EvidenceOfPersistence (ADR-O-305)"
+    severity: CRITICAL
+  - source: BeliefCrystallizationEngine
+    target: CrystallizedBelief
+    rule: "REQUIRED: Asymmetric Trauma (x6 multiplier) and Belief Decay Model (ADR-O-307 / ADR-O-305.1)"
+    severity: CRITICAL

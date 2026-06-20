@@ -134,11 +134,13 @@ def run_npc_orchestration(
         dm_ctx=_dm_ctx,
         npc_services=_npc_svc,
     )
+    # TZ-08 v0.2: Player-specific поля убраны из TickResultDTO. Временный fallback на пустые значения
+    # до полного перехода DM-агента на post-state чтение WorldSnapshotDTO.
     _npc_buf = NpcTickBuffer(
-        npc_contexts=_tick_result.npc_contexts,
-        dirty_npcs=_tick_result.dirty_npcs,
-        activity_overrides=_tick_result.activity_overrides,
-        max_npc_stress=_tick_result.max_npc_stress,
+        npc_contexts=getattr(_tick_result, 'npc_contexts', []),
+        dirty_npcs=getattr(_tick_result, 'dirty_npcs', set()),
+        activity_overrides=getattr(_tick_result, 'activity_overrides', {}),
+        max_npc_stress=getattr(_tick_result, 'max_npc_stress', 0.0),
     )
 
     # Проекция результатов обратно в оркестратор
@@ -158,7 +160,7 @@ def run_npc_orchestration(
     # ADR-XXXX: Единственный владелец исполнения MovementIntent — TickOrchestrator.
     # npc_orchestration только собирает контекст и пробрасывает DTO.
     # ЗАПРЕТ: process_intents(), apply_changes(), мутация position/local_position
-    _movement_intents = _tick_result.movement_intents if hasattr(_tick_result, "movement_intents") else []
+    _movement_intents = getattr(_tick_result, "movement_intents", [])
     print(f"[ORCH_INTENT_CHECK] _tick_result type={type(_tick_result).__name__} has_attr={hasattr(_tick_result, 'movement_intents')} movement_intents={_movement_intents} count={len(_movement_intents)}")
 
     # ФАЗА 3.5: Reputation impact — влияние действий на репутацию фракций

@@ -133,12 +133,20 @@ class ProjectionEngine:
                 )
             elif thick.traversal.status == "COMPLETED":
                 # Завершение traversal (projection of EventCompiler computation)
+                # ADR-XXX: Transition через FSM, не прямое присвоение
+                from app.domain.traversal_schema import transition_traversal
                 traversals = scene_state.get("active_traversals", {})
                 if thick.target in traversals:
-                    traversals[thick.target]["status"] = "COMPLETED"
-                    logger.debug(
-                        f"[PROJECTION] Traversal COMPLETED: npc={thick.target}"
-                    )
+                    _transitioned = transition_traversal(traversals[thick.target], "COMPLETED")
+                    if _transitioned:
+                        logger.debug(
+                            f"[PROJECTION] Traversal COMPLETED: npc={thick.target}"
+                        )
+                    else:
+                        logger.warning(
+                            f"[PROJECTION] Traversal COMPLETED blocked for npc={thick.target} — "
+                            f"current status={traversals[thick.target].get('status')}"
+                        )
 
         return True
 

@@ -45,6 +45,9 @@ from app.core.config import settings
 import time
 import os
 
+import logging
+logger = logging.getLogger(__name__)
+
 router = APIRouter()
 readiness_service = ReadinessService()
 from app.core.config import settings
@@ -163,7 +166,11 @@ def idle_tick(campaign_id: str, game_loop=Depends(get_game_loop)) -> dict:
             if isinstance(_npc_pos, dict):
                 _npc_pos_dict = _npc_pos
             elif _npc_pos:
-                _npc_pos_dict = snapshot_npc_positions_to_dict(_npc_pos),
+                # ИСПРАВЛЕНО: убрана trailing comma. Раньше _npc_pos_dict становился
+                # 1-tuple (dict,), после JSON — list с одним dict. Frontend .items()
+                # на list падал. Сейчас ветка не срабатывает (game_loop.idle_tick
+                # уже конвертирует), но баг скрытый.
+                _npc_pos_dict = snapshot_npc_positions_to_dict(_npc_pos)
         
         _status = _result.get("status") if isinstance(_result, dict) else _result.status
         _events = _result.get("significant_events") if isinstance(_result, dict) else _result.significant_events
@@ -452,12 +459,30 @@ async def game_action(request: dict, game_loop=Depends(get_game_loop)) -> dict:
     except HTTPException:
         raise  # пробрасываем дальше
     except Exception as e:
+        import logging
         import traceback
-        error_path = "C:/DDD/Codex/VSC_Enigma/Enigma/backend/error.log"
-        with open(error_path, "w", encoding="utf-8") as f:
-            f.write(traceback.format_exc())
-        print(f"🔥 Ошибка записана в {error_path}")
-        raise HTTPException(status_code=500, detail="Internal Server Error (см. error.log)")
+        logger = logging.getLogger(__name__)
+
+        # ИСПРАВЛЕНО: Windows-путь заменён на относительный от BASE_DIR.
+        # Раньше на Linux open("C:/DDD/...") падал с FileNotFoundError ВНУТРИ except,
+        # оригинальная exception терялась, frontend видел 500 без тела.
+        from app.core.config import settings
+        try:
+            error_log_dir = Path(settings.data_dir).parent / "logs"
+            error_log_dir.mkdir(exist_ok=True)
+            error_path = error_log_dir / "error.log"
+            with open(error_path, "w", encoding="utf-8") as f:
+                f.write(traceback.format_exc())
+            logger.error(f"[GAME_ACTION] error.log written to {error_path}")
+        except Exception as log_err:
+            logger.error(f"[GAME_ACTION] failed to write error.log: {log_err}")
+
+        # Полный traceback в cds_backend.log
+        logger.error(f"[GAME_ACTION] {e}\n{traceback.format_exc()}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Internal Server Error: {str(e)[:200]}"
+        )
 
 
 @router.get("/session/state/{campaign_id}", response_model=SessionInterfaceState)

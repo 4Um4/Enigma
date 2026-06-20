@@ -1,5 +1,5 @@
 domain: SPATIAL
-description: "Пространство и локомоция. SpatialService — единственный авторитет координат. Boundary = интерфейс перехода."
+description: "Пространство и локомоция. SpatialService — единственный авторитет координат. Boundary = интерфейс перехода. Актуализировано: S85.1 (Pipeline Stabilization & Traversal Lock)."
 nodes:
   SpatialService:
     type: service
@@ -18,12 +18,13 @@ nodes:
   SceneStateManager:
     type: service
     layer: Application
-    label: "Scene State Manager"
+    label: "Scene State Manager (Projection Engine)"
+    description: "ADR-130.1: Блокирует перезапись активных транзитов (status=MOVING). ADR-130.2: Обрабатывает cause=traversal_complete как проекцию local_position (snap), не создавая новый маршрут."
   LifeEngine:
     type: service
     layer: Application
     label: "Life Engine"
-    description: "S85.1: Резолвит цели через SpatialService.resolve_node(role=NodeRole)."
+    description: "S85.1: Резолвит цели через SpatialService.resolve_node(role=NodeRole). ADR-154: _simulate_major блокирует генерацию интентов для NPC со статусом MOVING."
   TraversalState:
     type: domain
     layer: Domain
@@ -32,12 +33,12 @@ nodes:
     type: dto
     layer: Domain
     label: "SceneChange (Projection)"
-    description: "Проекция свершившегося. Не является командой."
+    description: "Проекция свершившегося. Не является командой. ADR-130.2: При cause=traversal_complete выступает фактом завершения движения, а не запросом на новый маршрут."
   MacroMovementGoal:
     type: dto
     layer: Domain
     label: "Macro Movement Goal (LOD1)"
-    description: "ADR-060: Объединяет LOD0 и LOD1. ADR-O-137: Включает поле IntentDomain (SURVIVAL/SOCIAL/ROUTINE/EXPLORATION). MovementIntent - легаси алиас."
+    description: "ADR-060: Объединяет LOD0 и LOD1. ADR-O-137: Включает поле IntentDomain (SURVIVAL/SOCIAL/ROUTINE/EXPLORATION)."
   GraphCompiler:
     type: service
     layer: Infrastructure
@@ -59,7 +60,7 @@ nodes:
     type: service
     layer: Domain
     label: "Spatial Runtime (LOS, Sound, Scene Extraction)"
-    description: "ADR-102: Использует SpatialService вместо мёртвого load_graph(). Требует campaign_id в scene_state. ADR-129: normalize_scene_state() — firewall против type corruption. Все 8 consumer-функций защищены."
+    description: "ADR-102: Использует SpatialService вместо мёртвого load_graph(). ADR-129: normalize_scene_state() — firewall против type corruption."
   LocationGraph:
     type: dto
     layer: Domain
@@ -69,7 +70,7 @@ nodes:
     type: domain
     layer: Domain
     label: "Boundary Node (exit_{direction})"
-    description: "ДОЛГ 6.2 (ADR-145): Виртуальный узел на границе чанка. Создаётся из adjacency. NodeRole.BOUNDARY. НЕ является местом — только интерфейс перехода. NPC не может выбирать как цель."
+    description: "ДОЛГ 6.2 (ADR-145): Виртуальный узел на границе чанка. Создаётся из adjacency. NodeRole.BOUNDARY. НЕ является местом — только интерфейс перехода."
   BoundaryMap:
     type: dto
     layer: Domain
@@ -84,12 +85,17 @@ nodes:
     type: service
     layer: Application
     label: "Event Compiler (Physics Generator)"
-    description: "ADR-O-201: Компилирует физические события. Резолвит boundary nodes при компиляции (факт пересечения), НЕ в apply_changes."
+    description: "ADR-O-201: Компилирует физические события. ADR-O-201.1: Принудительно устанавливает is_boundary=True при наличии target_loc. ADR-O-201.3: Использует (0.0, 0.0) fallback вместо None для target_xy."
   BoundaryRouter:
     type: service
     layer: Application
     label: "Boundary Router"
     description: "S91.1: Перехватывает кросс-локационные MacroMovementGoal и перенаправляет на boundary node текущей локации. (Логика внутри MovementEngine)"
+  EquivalenceValidator:
+    type: service
+    layer: Application
+    label: "Equivalence Validator"
+    description: "ADR-O-201.2: validate_topology отключен для кросс-локационных переходов, так как узлы физически разные (exit_east vs exit_west)."
 
 edges:
   - from: EditorJSON
@@ -172,9 +178,9 @@ edges:
   - from: SceneStateManager
     to: TraversalState
     label: "enriches & interpolates"
-    condition: "in_transit flag, interpolation by progress"
+    condition: "in_transit flag, interpolation by progress. ADR-130.2: On traversal_complete snaps position, does NOT create new TraversalState."
     code_ref: "scene_state_manager.py:1145,1585"
-    adr_ref: "GAP12 FIX"
+    adr_ref: "GAP12 FIX, ADR-130.2"
   - from: EventCompiler
     to: BoundaryNode
     label: "resolves boundary transitions at compile time"
@@ -215,137 +221,115 @@ constraints:
   - source: TickOrchestrator
     target: SpatialService
     rule: "FORBIDDEN: Emergency build_for_location when self._spatial_service already resolved (ADR-065)"
-    condition: "tick_player_turn resolves service; execute_player_finalize reuses cache via _resolve_spatial_service step 1.5"
     code_ref: "tick_orchestrator.py:225-232"
     adr_ref: "ADR-065"
   - source: GraphCompiler
     target: EditorJSON
     rule: "FORBIDDEN: Use room x,y as node coordinates (must use centroid x+w/2, y+h/2)"
-    condition: "Prevents NPC teleportation to room corners (ADR-095)"
     code_ref: "graph_compiler.py:108-115"
     adr_ref: "ADR-095"
   - source: GameScreen
     target: WorldSnapshotDTO
     rule: "FORBIDDEN: Overwrite local_position for NPC in MOVING status (ADR-096)"
-    condition: "Must preserve TraversalState interpolation"
     code_ref: "game_screen.py:794-799"
     adr_ref: "ADR-096"
   - source: GraphCompiler
     target: LegacyName
     rule: "REQUIRED: Role-based legacy aliases in alias_map (ADR-114)"
-    condition: "GraphCompiler MUST inject role-based aliases (bed→canonical, bar_area→canonical) and name-aliases so schedule/FLEE targets resolve."
   - source: EventCompiler
     target: SpatialService
     rule: "FORBIDDEN: Node lookup in snapshot.spatial_service for cross-location SceneChange (S88 БАГ S)"
-    condition: "SpatialService is per-location scope. Cross-location SceneChange must bypass E3 and go directly to boundary_snap. SceneChange carries value, target_location_id, target_local_xy — self-sufficient."
     code_ref: "event_compiler.py:168-173"
     severity: CRITICAL
   - source: EventCompiler
     target: SceneChange
     rule: "REQUIRED: boundary_snap fallback uses change.value and change.target_local_xy when node=None (S88 БАГ S)"
-    condition: "Cross-location: node unavailable in current svc. change.value = authoritative node name. change.target_local_xy = coordinates from MovementEngine."
     code_ref: "event_compiler.py:231-234"
     severity: HIGH
   - source: TickOrchestrator
     target: SpatialService
     rule: "REQUIRED: SpatialService per-location scope — get_node() cannot resolve cross-location nodes (S88)"
-    condition: "canonical_id = location_id:node_id. normalize_id() searches alias_map of CURRENT location only. Cross-location lookup always fails."
     code_ref: "spatial_service.py:117-129"
     severity: HIGH
   - source: DataManager
     target: EditorJSON
     rule: "REQUIRED: Map editor nodes added via DataManager.add_node() — NOT manual JSON editing (S88 БАГ N)"
-    condition: "DataManager guarantees format consistency. Manual JSON editing risks schema mismatch."
-    code_ref: "data_manager.py:847-858"
-    code_ref: "graph_compiler.py:134-153"
+    code_ref: "data_manager.py:847-858, graph_compiler.py:134-153"
     adr_ref: "ADR-114"
     severity: HIGH
   - source: SpatialQueryService
     target: SpatialRuntime
     rule: "FORBIDDEN: Wrong argument order in is_line_of_sight_clear call (ADR-129)"
-    condition: "Must call is_line_of_sight_clear(ax, ay, bx, by, scene_state)"
     code_ref: "spatial_query_service.py:68"
     adr_ref: "ADR-129"
     severity: CRITICAL
   - source: SceneStateManager
     target: SpatialRuntime
     rule: "FORBIDDEN: CEI-2 uses is_movement_blocked instead of is_blocked_by_wall (ADR-129)"
-    condition: "Furniture (walk=False) is LOD0 obstacle, NOT wall. Macro-routing MUST use is_blocked_by_wall only."
     code_ref: "scene_state_manager.py:1276"
     adr_ref: "ADR-129"
     severity: HIGH
   - source: SpatialRuntime
     target: SceneState
     rule: "REQUIRED: normalize_scene_state() on every consumer function (ADR-129)"
-    condition: "All 8 consumer functions in spatial_runtime.py MUST call normalize_scene_state() as first line."
     code_ref: "spatial_runtime.py"
     adr_ref: "ADR-129"
     severity: HIGH
   - source: SceneStateManager
     target: SceneState
     rule: "REQUIRED: isinstance(scene, dict) guard in get_scene_state and get_scene_state_uncached (ADR-129)"
-    condition: "Non-dict from persistence MUST be rejected with warning."
     code_ref: "scene_state_manager.py:255,319"
     adr_ref: "ADR-129"
     severity: HIGH
   - source: TickOrchestrator
     target: MovementEngine
     rule: "REQUIRED: DRF scoring overlay applied to movement intents in BOTH idle and player paths (ADR-135)"
-    condition: "priority += energy × weight × alignment. FORBIDDEN: viability veto via _drf_killed flag or priority=0."
     code_ref: "tick_orchestrator.py"
     adr_ref: "ADR-135"
     severity: HIGH
   - source: MovementEngine
     target: priority_scale
     rule: "FORBIDDEN: Clamp override max(priority, N) at 0.0-1.0 scale (ADR-135)"
-    condition: "max(priority, 90) at 0.0-1.0 scale destroys the scale."
     code_ref: "tick_orchestrator.py"
     adr_ref: "ADR-135"
     severity: HIGH
   - source: BoundaryNode
     target: SpatialService
     rule: "FORBIDDEN: Boundary node as movement goal or dwelling (Rule 108, ADR-145)"
-    condition: "Boundary node = graph interface, not a place. NPC may pass through but never select as destination."
     code_ref: "graph_compiler.py"
     adr_ref: "ADR-145"
     severity: HIGH
   - source: GraphCompiler
     target: BoundaryNode
     rule: "REQUIRED: Create boundary nodes from adjacency (ADR-145)"
-    condition: "compile_graph reads adjacency and creates virtual exit nodes per direction. boundary_map returned as 4th element."
     code_ref: "graph_compiler.py"
     adr_ref: "ADR-145"
     severity: HIGH
   - source: EventCompiler
     target: BoundaryResolution
     rule: "REQUIRED: Boundary resolution in EventCompiler, NOT in apply_changes (ADR-O-201)"
-    condition: "SpatialService.is_boundary_node() are runtime queries = non-determinism inside reducer. EventCompiler resolves boundary at compile time using frozen snapshot."
     code_ref: "event_compiler.py (NEW)"
     adr_ref: "ADR-O-201"
     severity: CRITICAL
   - source: ProjectionEngine
     target: SpatialService
     rule: "FORBIDDEN: SpatialService.build_for_location() inside Projection Engine (ADR-O-201)"
-    condition: "Spatial graph must come from SnapshotKernel, not live service."
     code_ref: "scene_state_manager.py:1230"
     adr_ref: "ADR-O-201"
     severity: CRITICAL
   - source: SemanticIndex
     target: Any
     rule: "FORBIDDEN: SemanticIndex returns single canonical_id (Must return List[Candidate])"
-    condition: "Separation of interpretation and decision"
     adr_ref: "ADR-301"
     severity: HIGH
   - source: MacroMovementGoal
     target: IntentDomain
     rule: "REQUIRED: MovementIntent MUST have domain field (ADR-O-137)"
-    condition: "Viability mask requires domain to pre-filter impossible intents (SURVIVAL/SOCIAL/ROUTINE/EXPLORATION)"
     adr_ref: "ADR-O-137"
     severity: HIGH
   - source: LifeEngine
     target: SceneStateManager
     rule: "REQUIRED: Movement Lock — update_routine MUST check scene_state.active_traversals before mutating routine (ADR-130)"
-    condition: "Traversal = commitment, schedule = suggestion. Schedule cannot override reactive traversal."
     adr_ref: "ADR-130"
     severity: HIGH
   - source: LifeEngine
@@ -360,6 +344,31 @@ constraints:
     rule: "FORBIDDEN: Read distances or positions directly from scene_state (ADR-048)"
     condition: "scene_state['player_distances'] is DEPRECATED. Use SpatialQueryService."
     adr_ref: "ADR-048"
+    severity: HIGH
+  # --- S85.1 PIPELINE STABILIZATION CONSTRAINTS ---
+  - source: LifeEngine
+    target: MovingNPC
+    rule: "FORBIDDEN: LifeEngine generating intents for NPC in status MOVING (ADR-154)"
+    severity: CRITICAL
+  - source: SceneStateManager
+    target: ActiveTraversal
+    rule: "FORBIDDEN: apply_changes overwriting active traversal with status MOVING (ADR-130.1)"
+    severity: CRITICAL
+  - source: SceneStateManager
+    target: TraversalComplete
+    rule: "FORBIDDEN: Creating new TraversalState for cause=traversal_complete. MUST snap local_position (ADR-130.2)"
+    severity: CRITICAL
+  - source: EventCompiler
+    target: BoundaryFlag
+    rule: "REQUIRED: EventCompiler MUST set is_boundary=True when target_loc is present (ADR-O-201.1)"
+    severity: CRITICAL
+  - source: EventCompiler
+    target: NullCoordinate
+    rule: "FORBIDDEN: Using None for SpatialResolution.target_xy. MUST use (0.0, 0.0) fallback (ADR-O-201.3)"
+    severity: CRITICAL
+  - source: EquivalenceValidator
+    target: CrossLocationTopology
+    rule: "FORBIDDEN: validate_topology for cross-location transitions. Nodes are physically different (ADR-O-201.2)"
     severity: HIGH
 sequences:
   - title: "Broken Traversal Flow (Node Not Found - BREAK-N)"
@@ -442,6 +451,18 @@ sequences:
       - from: SelectionPolicy
         to: SpatialService
         message: "5. get_node(canonical_id)"
+  - title: "Traversal Complete Snap Flow (ADR-130.2)"
+    participants: [TickOrchestrator, SceneChange, SceneStateManager, SceneState]
+    steps:
+      - from: TickOrchestrator
+        to: SceneChange
+        message: "1. Emits SceneChange(cause='traversal_complete')"
+      - from: SceneChange
+        to: SceneStateManager
+        message: "2. apply_changes receives change"
+      - from: SceneStateManager
+        to: SceneState
+        message: "3. Snaps local_position to target node coordinates. DOES NOT create new TraversalState."
 
   # S91.1: Cross-Location Boundary Routing
   - from: MovementEngine

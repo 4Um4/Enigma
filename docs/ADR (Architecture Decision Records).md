@@ -11,7 +11,7 @@
 |-----|---------|
 | [STD] | Standard architectural decision |
 | [ONTO] | Ontology shift (fundamental paradigm change) |
-| [FIX] | Verified runtime bugfix (audit session S50-S83) |
+| [FIX] | Verified runtime bugfix (audit session S50-S86) |
 | [DEP] | Deprecated / dead concept |
 | `→` | Primary downstream consumer |
 | `⚡` | Verified in runtime audit |
@@ -20,6 +20,10 @@
 ---
 
 ## DOM-01: FOUNDATION (Core Pipeline, Time, State, Spatial Core)
+
+`ADR-O-308` [ONTO] **Silent Failure Prohibition & Optional Dependency Isolation** — Скрытые баги (except Exception: pass) признаны нарушением Causal Contract §0.IV. Опциональные NLP-зависимости (pymorphy3) переведены в Degraded Mode с обязательным логированием, чтобы отсутствие утилитарного пакета не крашило онтологическое ядро.
+  Taboo: ❌ Пустые `except Exception: pass` без логирования. ❌ Жёсткий fail-fast для пакетов уровня Language Layer. ❌ Хранение мёртвых конфигов (`config.json`) с абсолютными путями в активной директории.
+  Files: dm_router.py, intent_compressor.py, dm_agent.py, config.json.deprecated
 
 `ADR-001` [STD] **Delta Buffer** — Единственный путь мутации: Phase8Result → delta_buffer → StateApplicator.apply_batch()
   Taboo: ❌ Прямая мутация `all_npcs_raw` в обход DeltaBuffer
@@ -100,6 +104,9 @@
 `ADR-S83.1` [ONTO] **Tick = Pure Function Evaluation** — Тик — это чистая функция вычисления состояния, а не объект с побочными эффектами
   Files: tick_orchestrator.py
 
+`ADR-S86.1` [FIX] **TZ-02 Execution Pipeline Restoration** — Устранены `ImportError` (`apply_drives_mutation`), `NameError` (`effective_drives`, `state` vs `state_for_llm`) и удалён дубликат TIFL-блока. Пайплайн восстановлен.
+  Files: tick_orchestrator.py, state_applicator.py, npc_tick_pipeline.py, resolution_engine.py
+
 `ADR-O-137` [ONTO] **Viability Pre-Generation Gate (ДОЛГ 4.3)** — Сдвиг к pre-генерационному сжатию пространства действий
   Taboo: ❌ Viability veto через парсинг строк. ❌ Пост-генерационная фильтрация
   Files: life_engine.py, domain/movement.py, npc_tick_pipeline.py
@@ -111,6 +118,18 @@
 `ADR-O-201` [ONTO] **Causal Kernel Architecture** — `apply_changes` → чистый projection operator. Миграция в 4 фазы
   Status: PHASE_2_COMPLETE
   Files: scene_change.py, scene_state_manager.py, event_compiler.py, equivalence_validator.py
+
+`ADR-O-201.1` [FIX] **Boundary Drift Fix (S85.1)** — `EventCompiler._compile_boundary_snap` принудительно устанавливает `is_boundary=True` при наличии `target_loc`, устраняя ложный дрейф `legacy_is_boundary=True vs shadow_is_boundary=False`.
+  Files: event_compiler.py
+
+`ADR-O-201.2` [FIX] **Topology Drift Fix (S85.1)** — `EquivalenceValidator.validate_topology` отключен для кросс-локационных переходов (`_shadow_target_location`), так как узлы физически разные (напр. `exit_east` vs `exit_west`).
+  Files: tick_orchestrator.py
+
+`ADR-O-201.3` [FIX] **Null Coordinate Fix (S85.1)** — `EventCompiler` использует `(0.0, 0.0)` fallback вместо `None` для `SpatialResolution.target_xy`, устраняя `DRIFT[E]` (missing in shadow).
+  Files: event_compiler.py
+
+`ADR-S85.1.1` [FIX] **Import & Adapter Fix (S85.1)** — `WillState` импортирован из `app.models.will` (не `vital_state`). `NPCStateAdapter.from_legacy` используется в `TickOrchestrator` вместо несуществующего `NPCState.from_legacy`.
+  Files: tick_orchestrator.py
 
 `ADR-O-204` [ONTO] **Phase 3 Preconditions — Causal Kernel Surgery** — Предусловия для миграции Каузального Ядра (Фаза 3)
   Files: scene_state_manager.py, event_compiler.py
@@ -177,11 +196,9 @@
   Taboo: ❌ Импорт `_drive_multiplier` из relationship_profile. ❌ desire в RiskPerceptionProfile
   Files: decision/profile_math.py, decision/relationship_profile.py, decision/social_deltas.py, decision/risk_profile.py
 
-`ADR-O-304` [ONTO] **L3 & DecisionContext Pipeline Unification & Projection-Native Transition** — Устранение Split-Brain. PressureTranslator=SSOT контекста (Somatic Veto), TickOrchestrator=SSOT L3-карты. DecisionHub стал projection-native (L0/drives_base изгнан из скоринга, риск-оценки и инерции)
+`ADR-O-304` [ONTO] **L3 & DecisionContext Pipeline Unification & Projection-Native Transition** — Устранение Split-Brain. PressureTranslator=SSOT контекста (Somatic Veto), TickOrchestrator=SSOT L3-карты. DecisionHub стал projection-native (L0/drives_base изгнан из скоринга, риск-оценок и инерции)
   Taboo: ❌ Ручная сборка DecisionContext (from_kernel). ❌ Локальный DriveResolver/L1Chronicle в npc_tick_pipeline. ❌ Чтение personality.drives_base в принятии решений (только EffectiveDrives)
   Files: decision_hub.py, tick_orchestrator.py, npc_tick_pipeline.py, pressure_translator.py, npc_tick_contracts.py, life_engine.py
-
-`ADR-152` [STD] **Capture-Based Causal Trace (7.4 WHY-Log) — _score_all переведена в чистую функцию, возвращающую кортеж (scores, components_trace). WHY-лог берёт готовый breakdown победителя из components_trace без повторного вычисления и side-channel. Устранён риск temporal coupling и дрейфа шума при логировании. Taboo: ❌ Side-channel (self._last_trace) для хранения трассировки скоринга. ❌ Повторный вызов _score_components для логирования причин. ❌ Изменение return shape внутренних методов без аудита call-sites Files: decision_hub.py
 
 `ADR-149` [FIX] **Schedule Freeze — Need Override & Two-Layer Dispatch** — Убит Schedule Freeze: need-driven (priority=0.8) перезаписывает schedule (priority=0.6). Schedule не генерируется если need-driven уже выбран. `routine["current"]` синхронизируется при победе need-driven (BUG SC FIX). Rate: 0.070 → 2.0/tick (28.5x)
   Taboo: ❌ Need priority ниже schedule при критической потребности. ❌ `routine["current"]` не обновлять при need-driven победе (DOUBLE TRUTH freeze). ❌ Schedule генерировать когда need-driven уже выбран
@@ -191,13 +208,25 @@
   Taboo: ❌ Need-driven возвращать None при отсутствии activity_map (молчаливая смерть интента). ❌ Отсутствие записи в `_NEED_ROLE_MAP` для новых потребностей
   Files: life_engine.py, spatial_service.py
 
-`ADR-159` [FIX] **Shelter Urge Saturation — BED Role Extension & DEFAULT Fallback** — Убита вечная saturation shelter_urge: 1) RoleResolver: добавлены "караульн", "палатк" в BED-ключевые слова → Караульня/Караульная/Палатки стали BED-узлами. 2) _check_need_driven_movement: resting fallback на DEFAULT при отсутствии BED (скамейка, земля). sleeping требует BED строго. Rate: 2.0 → 2.55/tick (+27.5%)
-  Taboo: ❌ resting без semantic fallback при отсутствии BED-узлов в локации. ❌ Добавлять BED-ключевые слова без проверки ложных срабатываний на других картах
-  Files: role_resolver.py, life_engine.py
+`ADR-152` [STD] **Capture-Based Causal Trace (7.4 WHY-Log)** — _score_all переведена в чистую функцию, возвращающую кортеж (scores, components_trace). WHY-лог берёт готовый breakdown победителя из components_trace без повторного вычисления и side-channel. Устранён риск temporal coupling и дрейфа шума при логировании. 
+  Taboo: ❌ Side-channel (self._last_trace) для хранения трассировки скоринга. ❌ Повторный вызов _score_components для логирования причин. ❌ Изменение return shape внутренних методов без аудита call-sites 
+  Files: decision_hub.py
 
-`ADR-152` [STD] Capture-Based Causal Trace (7.4 WHY-Log) — _score_all переведена в чистую функцию, возвращающую кортеж (scores, components_trace). WHY-лог берёт готовый breakdown победителя из components_trace без повторного вычисления и side-channel. Устранён риск temporal coupling и дрейфа шума при логировании. Taboo: ❌ Side-channel (self._last_trace) для хранения трассировки скоринга. ❌ Повторный вызов _score_components для логирования причин. ❌ Изменение return shape внутренних методов без аудита call-sites Files: decision_hub.py
+`ADR-153` [FIX] **Self-Defense Paralysis Fix** — Устранён баг паралича воли: fear_early_exit убивал ATTACK (ставил -1.0), но пост-хок буст самообороны слепо штрафовал FLEE (* 0.6), предполагая, что ATTACK станет доминантным. В результате NPC не бил и не бежал. Фикс: штраф к FLEE применяется только если ATTACK валиден (> 0.0). 
+  Taboo: ❌ Штраф FLEE при мёртвом ATTACK (паралич выживания). ❌ Игнорировать _attack_score_pre перед применением _self_defense модификатора 
+  Files: decision_hub.py
 
-`ADR-153` [FIX] Self-Defense Paralysis Fix — Устранён баг паралича воли: fear_early_exit убивал ATTACK (ставил -1.0), но пост-хок буст самообороны слепо штрафовал FLEE (* 0.6), предполагая, что ATTACK станет доминантным. В результате NPC не бил и не бежал. Фикс: штраф к FLEE применяется только если ATTACK валиден (> 0.0). Taboo: ❌ Штраф FLEE при мёртвом ATTACK (паралич выживания). ❌ Игнорировать _attack_score_pre перед применением _self_defense модификатора Files: decision_hub.py
+`ADR-154` [FIX] **LifeEngine Movement Lock (S85.1)** — `LifeEngine._simulate_major` полностью блокирует генерацию интентов (schedule + need-driven) для NPC в статусе `MOVING`. Устранён "бесконечный бег" и топологические дрейфы, возникавшие из-за перезаписи активного транзита.
+  Files: life_engine.py
+
+`ADR-S86.2` [FIX] **TZ-02 BUG-001: Directive Perception Pipe (S86)** — Директивные perception-поля (`aggression_inhibition_delta`, `compliance_bias_delta` и др.) вынесены из-под доменного шлюза `if domain == DeltaDomain.PERCEPTION:`. Каузальная труба воли (приказ → pressure → PerceptualKernel) открыта.
+  Files: state_applicator.py
+
+`ADR-S86.3` [FIX] **TZ-02 BreakProgressEngine Integration (S86)** — `BreakProgressEngine.calculate` подключен к `_phase_5_decision` (до DecisionHub). `WillState.BROKEN` достижим. Состояния воли фиксируются в `L1Chronicle`.
+  Files: tick_orchestrator.py
+
+`ADR-S86.4` [STD] **TZ-02 BehaviorMask Hysteresis (S86)** — `BehaviorMask` назначается на основе state перед DecisionHub. Введён как квазистабильный (гистерезисный) социальный слой, предотвращающий мерцание социальных ролей.
+  Files: tick_orchestrator.py
 
 ---
 
@@ -233,6 +262,12 @@
 `ADR-O-147` [ONTO] **Manifest Layer — Observable Physical Manifestations** — Эмоции NPC → моторные проявления → наблюдаемые теги
   Taboo: ❌ Показ эмоций (fearful). ❌ Смешивание cues и manifestations
   Files: behavior_manifestation_service.py, phenomenology_projection_service.py, game_screen.py
+
+`ADR-S86.5` [FIX] **TZ-02 InterpretationEngine L3 Sync (S86)** — `InterpretationEngine` переведён на чтение `drives_runtime` (L3) вместо `drives_base` (L0). NPC интерпретирует мир на основе текущей деформации.
+  Files: npc_tick_pipeline.py, life_engine.py
+
+`ADR-S86.6` [FIX] **TZ-02 Verbalization L3 Sync (S86)** — `build_verbalization_context` использует `state_for_llm` для извлечения `drives_runtime`. Устранён `NameError` и рассинхрон LLM со симуляцией.
+  Files: npc_tick_pipeline.py
 
 ---
 
@@ -307,6 +342,14 @@
 
 `ADR-130` [FIX] **Movement Lock & Target Resolution** — `update_routine()` traversal-aware
   Files: life_engine.py, decision_hub.py
+
+`ADR-130.1` [FIX] **apply_changes Movement Lock (S85.1)** — `apply_changes` блокирует перезапись активного транзита (`status="MOVING"`). Устранён баг "бесконечного бега".
+  Taboo: ❌ Перезапись активного транзита (`status="MOVING"`) в `apply_changes`.
+  Files: scene_state_manager.py
+
+`ADR-130.2` [FIX] **Traversal Complete Snap (S85.1)** — `apply_changes` обрабатывает `cause="traversal_complete"` как проекцию `local_position` (snap), а не создание нового `TraversalState`.
+  Taboo: ❌ Создание нового `TraversalState` для `cause="traversal_complete"`.
+  Files: scene_state_manager.py
 
 `ADR-145` [STD] **Boundary Transition Pipeline (ДОЛГ 6.2)** — Двухфазная реальность: смысл → материализация
   Taboo: ❌ Boundary node как цель движения. ❌ Boundary resolution при создании traversal
@@ -417,6 +460,10 @@
   Taboo: ❌ `InjuryProcessor` генерирует `blood_loss` без `pain_delta`
   Files: injury_processor.py
 
+`ADR-HP-UNIFICATION` [STD] **DOUBLE TRUTH HP Elimination (S86)** — Канонический источник HP — `body_state["current_hp"]`. Устаревший `state.hp` оставлен как deprecated-проекция и синхронизируется с `body_state` при уроне.
+  Taboo: ❌ Прямая запись в `state.hp` в обход `body_state["current_hp"]`.
+  Files: npc_state.py, state_applicator.py
+
 ---
 
 ## DOM-06: SOCIAL & MEMORY
@@ -450,6 +497,10 @@
 
 `ADR-126` [FIX] **Relationship Cache Ontology Merge** — Сборка расширена до Partial Social Graph
   Files: npc_tick_pipeline.py, decision_hub.py
+
+`ADR-S86.7` [STD] **TZ-02 Event-Conditioned Memory Promotion (S86)** — Контур памяти замкнут с инвариантом: "Memory cannot generate new identity without causal input". `compress_narrative_cache` (структурное сжатие) работает в idle. `check_identity_promotion` (L2.5 кристаллизация) работает только при наличии `phase_2_events`.
+  Taboo: ❌ Запуск L2.5 кристаллизации в idle-тиках без `phase_2_events` (фантомный дрейф личности).
+  Files: tick_orchestrator.py, memory_manager.py
 
 ---
 
@@ -543,9 +594,16 @@
   Taboo: ❌ Чтение пространственных позиций NPC из кэша `LifeEngine` в метриках тестов.
   Files: backend/tests/sandbox/SUPERBOX/drift_laboratory.py
 
+`ADR-S85.1.2` [FIX] **SUPERBOX Pipeline Stabilization (S85.1)** — Устранены краши пайплайна (`AttributeError`, `ImportError`, `NameError`) в `L1Chronicle` и `TickOrchestrator`. Достигнут стабильный rate `comparisons=21/15 ticks`.
+  Files: backend/app/services/npc/l1_chronicle.py, backend/app/services/tick_orchestrator.py
+
 `ADR-151` [STD] **Probe → Telemetry Transition** — Диагностические print-зонды классифицированы на 3 слоя: 🟢 Essential (print — всегда видны: GATE_*, NPC_SET, DRF_*, TIFL_DRIFT, GATE_ZOMBIE), 🟡 Condensed (logger.debug — видны при DEBUG level: NEED_TRACE, SCHED_TRACE, AFF_*, SEL_DIAG, DRF_VOTE), 🔴 Removed (полностью убраны: MOVEMENT_DEBUG, SCENE_CHANGE_DIAG, TRAV_CHECK_P1, дубликаты в player path). Убиты пустые блоки от некорректного удаления.
   Taboo: ❌ Удалять print-зонды без замены на logger.debug. ❌ Пустые блоки после удаления probe (SyntaxError)
   Files: tick_orchestrator.py, life_engine.py, movement_engine.py
+
+`ADR-IMMUNE-001` [STD] **Causal Invariant Checker (S86)** — Внедрена иммунная система ENIGMA (`backend/tests/sandbox/invariants/`). Тесты `test_hp_double_truth_invariant` и `test_l3_ephemeral_invariant` защищают систему от будущих разрывов между физикой, L0 и L3.
+  Taboo: ❌ Игнорирование падения тестов в `invariants/` ради запуска фич.
+  Files: backend/tests/sandbox/invariants/test_cross_layer_consistency.py
 
 ---
 
@@ -583,21 +641,32 @@
   Taboo: ❌ Кэширование EffectiveDrives. ❌ Удаление из L1Chronicle
   Files: domain/identity_events.py, services/npc/l1_chronicle.py, services/npc/drive_resolver.py
 
+`ADR-O-208.1` [FIX] **TraitDriftEvent Contract Fix (S85.1)** — `BreakProgressEngine` и `L1Chronicle` переведены на новые поля ADR-O-208 (`target_id`, `tick_id`, `effect_value`). Удалены обращения к устаревшим `npc_id`, `tick`, `trait`, `delta`.
+  Taboo: ❌ Чтение устаревших полей (`npc_id`, `tick`, `trait`, `delta`) из `TraitDriftEvent`.
+  Files: backend/app/services/npc/break_progress_engine.py, backend/app/services/npc/l1_chronicle.py
+
+`ADR-O-208.2` [STD] **L1Chronicle SQLite Persistence (S86)** — `L1Chronicle` стал персистентным (SQLite). Внедрена схема `l1_chronicle_events`. DI замкнут от `GameLoop` до `L1Chronicle`. Контракт `TraitDriftEvent` полностью канонизирован.
+  Files: backend/app/services/npc/l1_chronicle.py, backend/app/services/memory/sqlite_store.py, backend/app/services/game_loop_builder.py
+
 `ADR-O-209/210` [ONTO] **Phase-Locked Identity & Bounded Spatial Field Coupling** — Фазовая блокировка идентичности и ограниченная связь с пространственным полем
   Files: decision/profile_math.py, spatial_service.py
 
 `ADR-O-211` [ONTO] **Calibration Engine & Identity Stability Kernel** — 💀 DEPRECATED для скалярных драйвов. Переведён в pass-through режим. Стресс-тест (50k тиков) выявил накопление шума (Test C: интеграл осцилляций). Стабилизация драйвов признана тупиком — кристаллизоваться должны причины (Убеждения), а не эмоции (скаляры)
-  Taboo: ❌ Гистерезис на скалярных драйвах (накопление шума от немотивированных угроз). ❌ Мутация drives_runtime минуя Belief Layer
+  Taboo: ❌ Гистерезис на скалярных драйвах (накопление шума от немотивированных угроз). ❌ Мутация drives_runtime минуя Belief Layer (применение ctx.drives_updates к стейту запрещено).
   Files: services/npc/calibration_engine.py
 
 `ADR-O-212` [ONTO] **Social Physics Inertia & Approximation** — Социальная физика — функция аппроксимации поведения группы во времени. 4 слоя: Физика, Психика, Общество (VillageMemoryField), Политика (InstitutionLayer). Институциональная инерция запрещает мгновенную эскалацию
   Taboo: ❌ Narrative Gravity как отдельный слой данных (Double Truth). ❌ Мгновенная реакция InstitutionLayer. ❌ resistance_to_change = 0.0. ❌ myth_level от количества убийств
   Files: social/village_memory_field.py, social/social_memory_updater.py, social/institutional_inertia.py
 
-`ADR-O-305` [ONTO] **Causal Map & Belief Layer (World Model Formation)** — Обучение = формирование каузальной карты мира, а не мутация драйвов. Pattern Detector группирует L1Chronicle по source → Evidence of Persistence → Belief Crystallization (семантическая привязка "волки=опасность"). Belief → Policy Injection в DecisionHub
-  Status: PROPOSED
-  Taboo: ❌ Кристаллизация абстрактного страха без привязки к источнику (иллюзия скалярного обучения). ❌ Drives Do Not Learn (Invariant L3-P4)
-  Files: (Future) belief_crystallization_engine.py, pattern_detector.py, decision_hub.py
+`ADR-O-305` [ONTO] **Belief Crystallization Engine (L2.5)** — Трёхслойная модель формирования убеждений: L1 (Факты) → L1.5 (PatternDetector: чистая статистика) → L2.5 (Belief Engine: психологическая проекция). PatternDetector группирует L1Chronicle по source_id и генерирует EvidenceOfPersistence (cumulative_effect, behavior_variance). Belief Engine интерпретирует статистику в CrystallizedBelief (trait) с учётом личности и Асимметричной Травмы. Belief → Policy Injection в DecisionHub
+  Status: VERIFIED
+  Taboo: ❌ Наличие полей trait/emotion в PatternDetector (нарушение ADR-O-306). ❌ BeliefCrystallizationEngine читает L1Chronicle напрямую (работает только через EvidenceOfPersistence). ❌ Скалярный Страх (убеждение без source_id). ❌ Drives Do Not Learn (Invariant L3-P4)
+  Files: pattern_detector.py, belief_crystallization_engine.py, crystallized_belief_store.py, crystallized_belief_modifier_resolver.py, domain/identity_events.py
+
+`ADR-O-305.1` [ONTO] **Belief Decay Model (S85.2)** — Внедрена энтропия убеждений (`BELIEF_DECAY_TAU`). Убеждения растворяются без подкрепления, предотвращая статическую кристаллизацию личности.
+  Taboo: ❌ Отсутствие Decay для CrystallizedBelief.
+  Files: belief_crystallization_engine.py
 
 `ADR-S85.2` [STD] **Archetype vs Individual Data Separation** — Архетип = Профессия (содержит только `schedule`), Индивид = Должность (содержит `activity_map` для кросс-локаций). Удалены захардкоженные пространственные привязки из архетипов.
   Taboo: ❌ Хранение `activity_map` с конкретными координатами (напр. `tavern_silver_wolf:main_hall`) внутри архетипов.
@@ -618,4 +687,8 @@
 
 `ADR-O-307` [ONTO] **Asymmetric Trauma & Belief Revision** — Опровержение убеждения в 6 раз сильнее подтверждения. Belief формируется только при personal_persistence (Опыт > Давления)
   Taboo: ❌ Симметричное обновление confidence убеждений
-  Files: (Future) belief_crystallization_engine.py, pattern_detector.py
+  Files: belief_crystallization_engine.py, pattern_detector.py
+
+`ADR-O-305A` [ONTO] **Evidence Semantics (L1 → L1.5 Contract)** — Строгий математический мост между L1 Chronicle и PatternDetector. `TraitDriftEvent` содержит направленный вектор `effect_value` (-1.0 до 1.0) и `observation_weight`. PatternDetector агрегирует данные в `EvidenceOfPersistence` (cumulative_effect, frequency_per_tick, behavior_variance). `event_type` существует исключительно как provenance и запрещён в формулах
+  Taboo: ❌ Использование `event_type` в математических формулах PatternDetector. ❌ Выход `effect_value` за пределы [-1.0, 1.0]. ❌ Зависимость `NOISE_THRESHOLD` от размера окна (только абсолютный `MIN_EVENTS`)
+  Files: pattern_detector.py, domain/identity_events.py

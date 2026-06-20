@@ -470,26 +470,6 @@ class LifeEngine:
         all_intents: list[MovementIntent] = [] # ADR-049: Сборка намерений
         npcs_updated = False
 
-        # FIX: Фильтруем NPC по локации. Симуляция (расписание, потребности) 
-        # выполняется только для NPC, физически находящихся в текущей сцене.
-        # Без этого MovementEngine ошибочно перенаправляет NPC из других локаций 
-        # на boundary-узлы текущей сцены (CROSS_LOC_INTERCEPT bug).
-        _active_loc = scene_state.get("location_id", "") if scene_state else ""
-        if _active_loc:
-            print(f"[DIAG_FILTER] active_loc={_active_loc}")
-            print(f"[DIAG_FILTER] npc_positions keys: {list(scene_state.get('npc_positions', {}).keys())}")
-            for nid, pdata in scene_state.get("npc_positions", {}).items():
-                print(f"[DIAG_FILTER] pos {nid}: loc={pdata.get('location', 'MISSING')} loc_id={pdata.get('location_id', 'MISSING')}")
-            print(f"[DIAG_FILTER] npcs cache locations: {[(n.get('id'), n.get('location', 'MISSING')) for n in npcs]}")
-            
-            _active_npc_ids = set()
-            for npc_id, pos_data in scene_state.get("npc_positions", {}).items():
-                # Проверяем поле location или location_id внутри позиции NPC
-                if pos_data.get("location") == _active_loc or pos_data.get("location_id") == _active_loc:
-                    _active_npc_ids.add(npc_id)
-            npcs = [n for n in npcs if n.get("id") in _active_npc_ids]
-            logger.info(f"[LIFE_ENGINE] Отфильтровано {len(npcs)} NPC для локации '{_active_loc}'")
-
         for npc in npcs:
             tier   = npc.get("tier", "major")
             npc_id = npc.get("id", "?")
@@ -612,8 +592,14 @@ class LifeEngine:
                 )
 
                 # Когнитивные искажения — idle NPC подвержены накопленным bias (Устав §3.1)
+                # L3-P2: InterpretationEngine должен видеть ТЕКУЩИЕ драйвы (L3),
+                # не стартовый профиль (L0).
+                _drives_for_interp = (
+                    getattr(state_l2, 'drives_runtime', None)
+                    or profile_l0.drives_base
+                )
                 interpretation = InterpretationEngine().compute(
-                    state=state_l2, event=event, drives_base=profile_l0.drives_base
+                    state=state_l2, event=event, drives_base=_drives_for_interp
                 )
 
                 # Drive modifiers из temporary_drives
@@ -1098,6 +1084,16 @@ class LifeEngine:
         if _init_sup > 0.7:
             logger.debug(f"[LIFE_ENGINE] {npc_id}: Major cycle bypassed due to initiative_suppression={_init_sup:.2f}")
             return [], []
+
+        # ADR-130: Movement Lock. Если NPC уже в активном транзите — 
+        # LifeEngine не генерирует новые интенты (ни schedule, ни need-driven).
+        # Это предотвращает "бесконечный бег" и топологические дрейфы.
+        if scene_state:
+            _active_travs = scene_state.get("active_traversals", {})
+            _my_trav = _active_travs.get(npc_id)
+            if _my_trav and _my_trav.get("status") == "MOVING":
+                logger.debug(f"[LIFE_ENGINE] {npc_id}: Major cycle bypassed — active traversal (target={_my_trav.get('target_node', '?')})")
+                return [], []
 
         changes: list[SceneChange] = []
         intents: list[MovementIntent] = []

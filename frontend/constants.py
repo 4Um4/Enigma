@@ -10,6 +10,11 @@ path: /frontend/constants.py
 Основные сущности: IDLE_TICK_*
 """
 
+# ─── Версия проекта ────────────────────────────────────────────────
+# Единственное место во frontend, где версия задаётся явно.
+# Истина: backend/pyproject.toml (строка 7). Здесь дублируется для UI.
+PROJECT_VERSION: str = "v0.1.0"
+
 # Тайминги опроса backend в зависимости от расстояния до ближайшего NPC
 IDLE_TICK_NEAR_MS: int = 2_000
 IDLE_TICK_MID_MS: int = 8_000

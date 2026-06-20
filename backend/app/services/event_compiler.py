@@ -233,7 +233,9 @@ class EventCompiler:
         # Cross-location: node is None — use SceneChange data
         # (authoritative: MovementEngine already resolved coordinates)
         _target_node = node.node_id if node else change.value
-        _target_xy = (node.x, node.y) if node else getattr(change, 'target_local_xy', (0.0, 0.0))
+        # FIX: getattr возвращает None, если атрибут существует, но равен None.
+        # Используем 'or' для fallback на (0.0, 0.0), чтобы избежать None в SpatialResolution.
+        _target_xy = (node.x, node.y) if node else (getattr(change, 'target_local_xy', None) or (0.0, 0.0))
 
         return ThickSceneChange(
             change_type=change.type.value,
@@ -379,18 +381,18 @@ class EventCompiler:
         ) if self._DEFAULT_SPEED > 0 else 1
 
         # E16: Traversal contract (все поля для scene_state)
+        # ADR-XXX: Единственный разрешённый способ создания traversal_dict — через build_traversal_dict()
+        from app.domain.traversal_schema import build_traversal_dict
         current_tick = snapshot.tick
-        traversal_fields = {
-            "npc_id": change.target,
-            "from_node": spatial.source_node or change.value,
-            "target_node": change.value,
-            "path_waypoints": waypoints,
-            "speed": self._DEFAULT_SPEED,
-            "started_tick": current_tick,
-            "duration_ticks": duration_ticks,
-            "locomotion": "WALK",
-            "status": "MOVING",
-        }
+        traversal_fields = build_traversal_dict(
+            npc_id=change.target,
+            from_node=spatial.source_node or change.value,
+            target_node=change.value,
+            path_waypoints=waypoints,
+            started_tick=current_tick,
+            duration_ticks=duration_ticks,
+            speed=self._DEFAULT_SPEED,
+        )
 
         motion = MotionPlan(
             is_teleport=False,

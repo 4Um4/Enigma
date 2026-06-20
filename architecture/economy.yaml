@@ -1,5 +1,5 @@
 domain: ECONOMY
-description: "Экономика NPC: потребности, торговля, психо-экономика. Стресс от нужды, транзакции, рынок."
+description: "Экономика NPC: потребности, торговля, психо-экономика. Стресс от нужды, транзакции, рынок. S85.2: Экономические решения конкурируют с когнитивными убеждениями (L2.5) в DecisionHub."
 
 nodes:
   EconomyTracker:
@@ -78,7 +78,7 @@ edges:
   - from: StressCalculator
     to: DecisionHub
     label: "economic_stress → utility modifier"
-    condition: "Phase 5: economic stress deforms utility (buy vs talk vs work)"
+    condition: "Phase 5: economic stress deforms utility (buy vs talk vs work). S85.2: Competes with L2.5 Belief Modifiers."
     code_ref: "npc/decision_hub.py"
   - from: TradeResolver
     to: TransactionEngine
@@ -135,7 +135,7 @@ constraints:
   - source: NeedEngine
     target: DecisionHub
     rule: "REQUIRED: Critical needs MUST influence decision"
-    condition: "is_critical() → must generate pressure on DecisionHub. Starving NPC cannot ignore food."
+    condition: "is_critical() → must generate pressure on DecisionHub. Starving NPC cannot ignore food. (Unless L2.5 Belief overrides, e.g. fasting for faith)."
     severity: HIGH
 
 ownership:

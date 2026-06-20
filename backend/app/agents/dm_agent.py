@@ -132,11 +132,11 @@ class DmAgent:
             _scene_block = ""
             _scene_state = context.get("scene_state", {}) if context else {}
             if _scene_state:
-                try:
-                    from app.services.scene.scene_state_manager import SceneStateManager
-                    _scene_block = SceneStateManager.get_scene_description(_scene_state) + "\n\n"
-                except Exception:
-                    pass
+                # ИСПРАВЛЕНО: путь импорта. Реальный модуль — app.services.scene_state_manager
+                # (без '.scene.' в середине). Убран try/except: pass — он маскировал
+                # ModuleNotFoundError, и вводная сцена всегда была пустой.
+                from app.services.scene_state_manager import SceneStateManager
+                _scene_block = SceneStateManager.get_scene_description(_scene_state) + "\n\n"
             builder.add_custom_block("ВВОДНАЯ СЦЕНА", 
                 f"{_scene_block}Текущая локация: {(context or {}).get('location_id', 'таверна')}\n\n"
                 "Напиши атмосферное описание от второго лица ('ты видишь...'). 2-3 предложения. Без вопросов."

@@ -8,10 +8,10 @@
 
 | Показатель | Значение |
 |------------|----------|
-| Сессий | 83+ |
+| Сессий | 86 |
 | Доменов | 10 |
-| Консолидированных запретов | 72 |
-| Диапазон | S03—S83+ |
+| Консолидированных запретов | 82 |
+| Диапазон | S03—S86 |
 
 ---
 
@@ -50,6 +50,11 @@
 - 🔵 **S83+** ADR-GL-202: Generative Constraint Execution Model (GCO). Ленивое вычисление графа каузальности.
 - 🔵 **S83+** ADR-O-204: Phase 3 Preconditions — Causal Kernel Surgery.
 - 🔵 **S83+** ADR-O-205: Projection Layer System. Слой проекции физики в наблюдаемую реальность.
+- 🟢 **S85.1** ADR-O-201: Boundary Drift Fix. `EventCompiler._compile_boundary_snap` принудительно устанавливает `is_boundary=True` при наличии `target_loc`.
+- 🟢 **S85.1** ADR-O-201: Topology Drift Fix. `EquivalenceValidator.validate_topology` отключен для кросс-локационных переходов (узлы физически разные).
+- 🟢 **S85.1** ADR-O-201: Null Coordinate Fix. `EventCompiler` использует `(0.0, 0.0)` fallback вместо `None` для `SpatialResolution.target_xy`.
+- 🟢 **S85.1** Import Fix: `WillState` импортирован из `app.models.will` (не `vital_state`). `NPCStateAdapter` используется вместо `NPCState.from_legacy`.
+- 🟢 **S86** ТЗ-02 (Часть A): Восстановлена исполняемость пайплайна. Устранены `ImportError` (`apply_drives_mutation`), `NameError` (`effective_drives`, `state` vs `state_for_llm`). Удалён дубликат TIFL-блока.
 
 ### DOM-02: WILL, PRESSURE & DECISION
 
@@ -70,6 +75,10 @@
 - ⚪ **S71** §ENIGMA-S72 Закон Релятивистского Восприятия. Система перешла от централизованной интерпретации к модуляции личностью.
 - 🔴 **S74** ДОЛГ 4.2: Causal Scoring Overlay (ADR-135). DRF претензии влияют на приоритет аддитивно. Убит сломанный clamp.
 - 🔵 **S81** ADR-O-146: Personality Math Layer. Введен `profile_math.py`. Социальные дельты и риск модулируются личностью.
+- 🟢 **S85.1** ADR-130: `LifeEngine._simulate_major` теперь полностью блокирует генерацию интентов (schedule + need-driven) для NPC в статусе `MOVING`. Устранён "бесконечный бег" и топологические дрейфы.
+- 🟢 **S86** ТЗ-02 (Шаг 1): BUG-001 закрыт. Директивные `perception`-поля применяются вне зависимости от `DeltaDomain`. Каузальная труба воли (приказ → pressure → PerceptualKernel) открыта.
+- 🟢 **S86** ТЗ-02 (Шаг 7): `BreakProgressEngine.calculate` подключен к `_phase_5_decision` (до DecisionHub). `WillState.BROKEN` достижим.
+- ⚪ **S86** ТЗ-02 (Шаг 8): `BehaviorMask` назначается на основе state. Введён как гистерезисный (квазистабильный) социальный слой между состоянием NPC и DecisionHub.
 
 ### DOM-03: PERCEPTION & PHENOMENOLOGY (CFRM)
 
@@ -82,6 +91,7 @@
 - 🔵 **S78** ADR-O-142: State Resolution Binding. Двухуровневая модель сознания. Arousal Gate = FSM MUTATOR.
 - 🟢 **S62** DOUBLE TRUTH `threat_gradient` УБИТ. `NPCState.write_to_legacy()` теперь пишет `perceptual_kernel`.
 - 🔵 **S83+** ADR-302: SIL, DSTC & SEL (Active Inference). Сдвиг к Активному Выводу.
+- 🟢 **S86** ТЗ-02 (Шаг 6): `InterpretationEngine` переведён на чтение `drives_runtime` (L3) вместо `drives_base` (L0). NPC интерпретирует мир на основе текущей деформации.
 
 ### DOM-04: SPATIAL & LOCOMOTION
 
@@ -104,6 +114,8 @@
 - 🟢 **S80** ADR-O-142A: Arousal Gate — missing wake edge закрыт. Спящий NPC пробуждается при wake_pressure.
 - 🔵 **S82.0** ADR-S82.0: Spatial Authority Contract. Строгий контракт единого владельца пространственных данных.
 - 🔵 **S83+** ADR-303: Coordinate Truth & Physical World Unification (Map Editor).
+- 🟢 **S85.1** ADR-130 Guard: `apply_changes` блокирует перезапись активного транзита (`status="MOVING"`). Устранён баг "бесконечного бега".
+- 🟢 **S85.1** Traversal Complete Fix: `apply_changes` обрабатывает `cause="traversal_complete"` как проекцию `local_position` (snap), а не создание нового `TraversalState`.
 
 ### DOM-05: PHYSIOLOGY & COMBAT
 
@@ -121,6 +133,7 @@
 - 🟢 **S76** NPIC Sentinel: Введена константа BODY_STATE_DISABLED (§ENIGMA-003).
 - 🟢 **S76** ADR-140: DM Death Scene Pipeline. DM получает life_status через avatar_to_prompt.
 - 🟢 **S77** ADR-141: Убит разрыв Injury → Pain. `InjuryProcessor` генерирует `pain_delta` из свойств раны.
+- 🟢 **S86** ТЗ-02 (Шаг 12): DOUBLE TRUTH HP устранена. Канонический источник — `body_state["current_hp"]`. Устаревший `state.hp` оставлен как deprecated-проекция и синхронизируется с `body_state` при уроне.
 
 ### DOM-06: SOCIAL & MEMORY
 
@@ -130,6 +143,7 @@
 - ⚪ **S08** Обогащение NPC социальными связями из `village_relations.json`.
 - ⚪ **S27** Физика Власти. `DirectiveInterpretationSubscriber` транслирует приказы в давление.
 - 🔵 **S66** `RelationshipStore` назначен Единственным Источником Истины (SSOT).
+- 🟢 **S86** ТЗ-02 (Шаг 11): Контур памяти замкнут с соблюдением инварианта "Memory cannot generate new identity without causal input". `compress_narrative_cache` (структурное сжатие) работает в idle. `check_identity_promotion` (L2.5 кристаллизация) работает только при наличии `phase_2_events` (запрет на фантомный дрейф).
 
 ### DOM-07: FRONTEND, PRESENTATION & INPUT
 
@@ -152,6 +166,8 @@
 - 🟢 **S72** P3: Уборка диагностического шума. Удалены TRACE-принты, понижены до DEBUG.
 - 🟢 **S74** Sandbox Tests: 7 тестов для ADR-128/130 по §12.3 Устава.
 - 🟢 **S83** ADR-147: LLM Streaming Observability Gate. Убит теневой streaming path, CDS видит execution gate.
+- 🟢 **S85.1** SUPERBOX Stabilization: Устранены краши пайплайна (`AttributeError`, `ImportError`, `NameError`) в `L1Chronicle` и `TickOrchestrator`. Достигнут стабильный rate `comparisons=21/15 ticks`.
+- 🔵 **S86** ТЗ-02 (Иммунная система): Внедрён Causal Invariant Checker (`backend/tests/sandbox/invariants/`). Тесты `test_hp_double_truth_invariant` и `test_l3_ephemeral_invariant` защищают систему от будущих разрывов между физикой, L0 и L3.
 
 ### DOM-09: SOCIAL & AFFECTIVE ARCHITECTURE (SSOT & Causal Derivation)
 
@@ -177,6 +193,26 @@
 - 🔵 **S83+** ADR-TIFL-003: Identity Constraint Layer & Thermodynamic Crystallization.
 - 🔵 **S84** ADR-O-306: Epistemic Heterogeneity & Triple Membrane. L1 Chronicle = персонализированная хроника. Тройная Мембрана (Физика, Личность, Социум) фильтрует L1. InstitutionLayer модулирует пороги PerceptualKernel.
 - 🔵 **S84** ADR-O-307: Asymmetric Trauma & Belief Revision. Введён множитель x6 для опровержений. Belief формируется только от personal_persistence.
+- 🟢 **S84** P0 FIX: ADR-101/112 (Rule X). BehaviorManifestationService переведён на чтение body_state и PerceptualKernel. Удалён скрытый канал affective_velocity.
+- 🟢 **S84** P0 FIX: ADR-102. Вырезан fallback на load_graph() из npc_tick_pipeline. SpatialService становится единым fail-closed авторитетом.
+- 🟢 **S84** P0 FIX: ADR-134. Удалён default_factory=DRFBus в _TickContext. Шина DRFBus стала instance-level, Split-Brain устранён.
+- 🟢 **S84** P0 FIX: ADR-S85.2. Из архетипов (guard, blacksmith, merchant, tavern_keeper) удалён activity_map. Пространственная привязка теперь строго на уровне индивидов.
+- 🔵 **S84** ADR-O-305 / 305A: Belief Crystallization Engine & Evidence Semantics. Зафиксирован контракт L1->L1.5->L2.5. PatternDetector объявлен чистым статистическим слоем. Написаны 8 BDD-тестов (песочниц) для L1.5.
+- 🟢 **S85** ТЗ-1: Массовый фикс silent failures и скрытых багов (Шаги 1-8). 
+  - `dm_agent.py`: Убит `try/except: pass`, маскировавший неверный импорт `SceneStateManager`.
+  - `scene_outcome_builder.py`: Фикс `NameError` при генерации блока "Ключевые NPC" для DM.
+  - `routes.py`: Убрана trailing comma (tuple bug), Windows-путь `error.log` заменён на относительный, добавлен отсутствующий `logger`.
+  - `dm_router.py`: Фикс опечатки `player_fleses`, убраны `except Exception: pass` для `_INSULT_ROOTS` и `_MORPH`.
+  - `intent_compressor.py`: Очищены мусорные леммы (`весь`, `дурь`), добавлено логирование LLM-ошибок в `slow_path_parse`.
+  - `mock_provider.py`: Добавлена защита от утекания Mock-ответов в production через `ENIGMA_ENV`.
+- ⚪ **S85** ТЗ-1: Архитектурная ревизия опциональных зависимостей. `pymorphy3` переведён в статус Optional Dependency. Внедрён Degraded Mode: при отсутствии пакета NLP-обработка деградирует до regex-only с `WARNING` в лог, но каузальный конвейер не падает. Файл `backend/config.json` переименован в `.deprecated` (мёртвый код с захардкоженными путями).
+- 🟢 **S85.1** TraitDriftEvent Contract Fix: `BreakProgressEngine` и `L1Chronicle` переведены на новые поля ADR-O-208 (`target_id`, `tick_id`, `effect_value`). Удалены обращения к устаревшим `npc_id`, `tick`, `trait`, `delta`.
+- 🔵 **S85.2** ТЗ-2: Реализован L1.5 (PatternDetector). `TraitDriftEvent` и `EvidenceOfPersistence` переведены на строгий контракт ADR-O-305A. Внедрена комбинированная `behavior_variance` (стат. дисперсия + временная осцилляция). `event_type` физически отсечён от математики.
+- 🔵 **S85.2** ТЗ-3: Реализован L2.5 (BeliefCrystallizationEngine). Внедрена `CrystallizedBelief` (source_id, trait, weight). Реализована Асимметричная Травма (x6 множитель при опровержении, ADR-O-307).
+- ⚪ **S85.2** L2.5 Integration: В `npc_tick_pipeline.py` внедрён `CrystallizedBeliefModifierResolver` для инъекции убеждений в `DecisionHub`. В `TickOrchestrator` (Фаза 9) замкнут контур генерации L1 -> L1.5 -> L2.5.
+- 🟢 **S85.2** Belief Decay Model: Внедрена энтропия убеждений (`BELIEF_DECAY_TAU`). Убеждения растворяются без подкрепления, предотвращая статическую кристаллизацию личности.
+- 🔴 **S86** ТЗ-02 (Шаг 9): `L1Chronicle` стал персистентным (SQLite). Внедрена схема `l1_chronicle_events`. DI замкнут от `GameLoop` до `L1Chronicle`. Контракт `TraitDriftEvent` (`target_id`, `tick_id`, `effect_value`) полностью канонизирован.
+- 💀 **S86** ТЗ-02 (Шаг 10 ОТМЕНЁН): Применение `ctx.drives_updates` к `state.drives_runtime` ЗАПРЕЩЕНО. `CalibrationEngine` оставлен в pass-through режиме. Мутация скалярных драйвов минуя Belief Layer (L2.5) нарушает ADR-O-208/211. L3 проекция строго эфемерна.
 
 ---
 
@@ -190,82 +226,92 @@
 5. ❌ `if state.body_state:` (falsy dict) — использовать `is not None`
 6. ❌ Переход `DEAD → ALIVE` через обычную физиологию
 7. ❌ Снятие `_tick_locked` после вызова сохранения состояния
+8. ❌ Прямая запись в `state.hp` в обход `body_state["current_hp"]` (HP Double Truth) (ADR-HP-UNIFICATION)
 
 ### Will & Decision
-8. ❌ Вызов WillpowerGate более 1 раза за цикл
-9. ❌ Использование RPG-матриц поведения как онтологии
-10. ❌ Передача сырых дельт давления из текущего тика в DecisionHub (только T-1)
-11. ❌ Возврат дефолтного `EmotionalVector` (aggression=0.0) из `IntentCompressor` для ATTACK
-12. ❌ Использование переменных из локальной области другой функции (Python scoping trap)
-13. ❌ Чтение `intent.action` без fallback на `parameters.semantic_action`
+9. ❌ Вызов WillpowerGate более 1 раза за цикл
+10. ❌ Использование RPG-матриц поведения как онтологии
+11. ❌ Передача сырых дельт давления из текущего тика в DecisionHub (только T-1)
+12. ❌ Возврат дефолтного `EmotionalVector` (aggression=0.0) из `IntentCompressor` для ATTACK
+13. ❌ Использование переменных из локальной области другой функции (Python scoping trap)
+14. ❌ Чтение `intent.action` без fallback на `parameters.semantic_action`
 
 ### Spatial & Movement
-14. ❌ Использование `load_graph()` — мёртвый код
-15. ❌ Сравнение legacy ID с canonical ID без `normalize_id()`
-16. ❌ FLEE без исключения текущего узла NPC из кандидатов
-17. ❌ Левый верхний угол комнаты как позиция узла в навигационном графе
-18. ❌ Перезапись `local_position` для NPC в статусе `MOVING`
-19. ❌ Прямая мутация `npc["position"]` или `npc["location"]`
-20. ❌ Чтение позиций из `scene_state` (только `SpatialQueryService`)
-21. ❌ Вызов `scene_manager.apply_changes()` из подписчиков
-22. ❌ Вызов `process_intents()` или `apply_changes()` из `npc_orchestration.py`
-23. ❌ Повторная обработка `MovementIntent` (инвариант `processed=True`)
-24. ❌ `_enrich_local_positions` перетирает `local_position`, установленный пайплайном
-25. ❌ `graph_compiler.py` без role-based aliases
-26. ❌ `SpatialQueryService.visibility()` с неправильным порядком аргументов
-27. ❌ CEI-2 использует `is_movement_blocked` для макро-навигации
-28. ❌ spatial_runtime consumer-функции без `normalize_scene_state()`
-29. ❌ Boundary node как цель движения или место обитания NPC
+15. ❌ Использование `load_graph()` — мёртвый код
+16. ❌ Сравнение legacy ID с canonical ID без `normalize_id()`
+17. ❌ FLEE без исключения текущего узла NPC из кандидатов
+18. ❌ Левый верхний угол комнаты как позиция узла в навигационном графе
+19. ❌ Перезапись `local_position` для NPC в статусе `MOVING`
+20. ❌ Прямая мутация `npc["position"]` или `npc["location"]`
+21. ❌ Чтение позиций из `scene_state` (только `SpatialQueryService`)
+22. ❌ Вызов `scene_manager.apply_changes()` из подписчиков
+23. ❌ Вызов `process_intents()` или `apply_changes()` из `npc_orchestration.py`
+24. ❌ Повторная обработка `MovementIntent` (инвариант `processed=True`)
+25. ❌ `_enrich_local_positions` перетирает `local_position`, установленный пайплайном
+26. ❌ `graph_compiler.py` без role-based aliases
+27. ❌ `SpatialQueryService.visibility()` с неправильным порядком аргументов
+28. ❌ CEI-2 использует `is_movement_blocked` для макро-навигации
+29. ❌ spatial_runtime consumer-функции без `normalize_scene_state()`
+30. ❌ Boundary node как цель движения или место обитания NPC
+31. ❌ Перезапись активного транзита (`status="MOVING"`) в `apply_changes` (ADR-130 Guard)
+32. ❌ Создание нового `TraversalState` для `cause="traversal_complete"` (нужен только snap `local_position`)
 
 ### Perception & Phenomenology
-30. ❌ Хранение `EventDTO` в `EventBuffer` (только `FieldDisturbance`)
-31. ❌ Обход `LocalCausalSolver` при генерации давления
-32. ❌ Мутация состояния из `CausalObserver`
-33. ❌ Прямая генерация эмоций из боевых событий (только через Perception)
-34. ❌ `write_to_legacy` / `from_legacy` без `perceptual_kernel` и `affective_load`
-35. ❌ Показ эмоций (fearful, anxious) — только наблюдаемые проявления (tense, rigid)
-36. ❌ Смешивание cues и manifestations — отдельные каналы
-37. ❌ Вычисление manifest в GameScreen — только чтение из perception data
-38. ❌ Инъекция pain/shock напрямую в psyche dict (только через PK.somatic_urgency)
+33. ❌ Хранение `EventDTO` в `EventBuffer` (только `FieldDisturbance`)
+34. ❌ Обход `LocalCausalSolver` при генерации давления
+35. ❌ Мутация состояния из `CausalObserver`
+36. ❌ Прямая генерация эмоций из боевых событий (только через Perception)
+37. ❌ `write_to_legacy` / `from_legacy` без `perceptual_kernel` и `affective_load`
+38. ❌ Показ эмоций (fearful, anxious) — только наблюдаемые проявления (tense, rigid)
+39. ❌ Смешивание cues и manifestations — отдельные каналы
+40. ❌ Вычисление manifest в GameScreen — только чтение из perception data
+41. ❌ Инъекция pain/shock напрямую в psyche dict (только через PK.somatic_urgency)
 
 ### Physiology & Combat
-39. ❌ Прямая мутация HP аватара в обход `ImpactEngine`
-40. ❌ `CombatSubscriber` пишет в Emotion (Domain Leakage)
-41. ❌ `BehaviorManifestationService` читает эмоции вместо физиологии (Rule X)
-42. ❌ Вызов `publish_classified_player_event` ДО `resolve_player_intent`
-43. ❌ `shock_impulse` без decay в `PhysiologyDecayHandler`
-44. ❌ `StateApplicator` проверяет `shock_impulse > 0.0` вместо `!= 0.0`
-45. ❌ `NPCStateSnapshot` без поля `shock_impulse`
-46. ❌ `PhysiologyDecayHandler` без проверки `life_status == "DEAD"`
-47. ❌ `evaluate_vital_state` без DEATH LOCK
-48. ❌ Двойная онтология: `wounds/conditions` (legacy) ≠ `body_state` (runtime truth)
-49. ❌ Обработка player action без проверки `life_status`
-50. ❌ `_make_player_snapshot()` без чтения `avatar_state.body_state`
-51. ❌ Чтение `pain`/`fatigue` без нормализации `/100.0` в потребителях с порогами 0-1 (MSOC)
+42. ❌ Прямая мутация HP аватара в обход `ImpactEngine`
+43. ❌ `CombatSubscriber` пишет в Emotion (Domain Leakage)
+44. ❌ `BehaviorManifestationService` читает эмоции вместо физиологии (Rule X)
+45. ❌ Вызов `publish_classified_player_event` ДО `resolve_player_intent`
+46. ❌ `shock_impulse` без decay в `PhysiologyDecayHandler`
+47. ❌ `StateApplicator` проверяет `shock_impulse > 0.0` вместо `!= 0.0`
+48. ❌ `NPCStateSnapshot` без поля `shock_impulse`
+49. ❌ `PhysiologyDecayHandler` без проверки `life_status == "DEAD"`
+50. ❌ `evaluate_vital_state` без DEATH LOCK
+51. ❌ Двойная онтология: `wounds/conditions` (legacy) ≠ `body_state` (runtime truth)
+52. ❌ Обработка player action без проверки `life_status`
+53. ❌ `_make_player_snapshot()` без чтения `avatar_state.body_state`
+54. ❌ Чтение `pain`/`fatigue` без нормализации `/100.0` в потребителях с порогами 0-1 (MSOC)
 
 ### Frontend & Presentation
-52. ❌ Булева блокировка коллизий игрока (только Push-out Resolution)
-53. ❌ Перезапись `result.world_snapshot` целиком в `game_loop_bridge.py`
-54. ❌ Применение моторных смещений ПОСЛЕ отрисовки спрайта
-55. ❌ Импорт `backend/app/` во фронтенд (Устав §1.1)
-56. ❌ Передача игроку внутренних метрик NPC (HP, fear)
-57. ❌ DM читает внутренние состояния NPC вместо `embodied_traces`
-58. ❌ Фейковый нарратив при краше LLM ("Твоё сознание мутнеет...")
+55. ❌ Булева блокировка коллизий игрока (только Push-out Resolution)
+56. ❌ Перезапись `result.world_snapshot` целиком в `game_loop_bridge.py`
+57. ❌ Применение моторных смещений ПОСЛЕ отрисовки спрайта
+58. ❌ Импорт `backend/app/` во фронтенд (Устав §1.1)
+59. ❌ Передача игроку внутренних метрик NPC (HP, fear)
+60. ❌ DM читает внутренние состояния NPC вместо `embodied_traces`
+61. ❌ Фейковый нарратив при краше LLM ("Твоё сознание мутнеет...")
 
 ### Serialization & Persistence
-59. ❌ `write_to_legacy` / `from_legacy` без `body_state`
-60. ❌ Прямой конструктор `NPCState(...)` в тестах (только `from_legacy`)
-61. ❌ `_apply_runtime_overlay` без белых списков для вычисленных полей (Invariant 1)
-62. ❌ Персистенция `relationship_cache` внутри `NPCState` (SSOT = RelationshipStore)
-63. ❌ Использование интегратора с утечкой для `affective_load` (только аттрактор насыщения)
-64. ❌ Отсутствие idle-decay для `PerceptualKernel` (Rule 38)
-65. ❌ AFFECTIVE_BOOT / подтягивание `affective_load` до порога `emotion_tag`
-66. ❌ LifeEngine `_load_npcs()` без SQLite read-back
-67. ❌ `load_npc_runtime()` возвращает `[]` вместо `None`
+62. ❌ `write_to_legacy` / `from_legacy` без `body_state`
+63. ❌ Прямой конструктор `NPCState(...)` в тестах (только `from_legacy`)
+64. ❌ `_apply_runtime_overlay` без белых списков для вычисленных полей (Invariant 1)
+65. ❌ Персистенция `relationship_cache` внутри `NPCState` (SSOT = RelationshipStore)
+66. ❌ Использование интегратора с утечкой для `affective_load` (только аттрактор насыщения)
+67. ❌ Отсутствие idle-decay для `PerceptualKernel` (Rule 38)
+68. ❌ AFFECTIVE_BOOT / подтягивание `affective_load` до порога `emotion_tag`
+69. ❌ LifeEngine `_load_npcs()` без SQLite read-back
+70. ❌ `load_npc_runtime()` возвращает `[]` вместо `None`
 
 ### Identity & Ontology
-68. ❌ Кэширование `EffectiveDrives` (L3-P1 эфемерна)
-69. ❌ Удаление событий из `L1Chronicle`
-70. ❌ Коммит состояния с NaN или sum(drives) != 1.0 (OntologyViolationError)
-71. ❌ Viability veto через `_drf_killed` или парсинг строк (только IntentDomain gate)
-72. ❌ `MovementIntent` без поля `domain`
+71. ❌ Кэширование `EffectiveDrives` (L3-P1 эфемерна)
+72. ❌ Удаление событий из `L1Chronicle`
+73. ❌ Коммит состояния с NaN или sum(drives) != 1.0 (OntologyViolationError)
+74. ❌ Viability veto через `_drf_killed` или парсинг строк (только IntentDomain gate)
+75. ❌ `MovementIntent` без поля `domain`
+76. ❌ Чтение устаревших полей (`npc_id`, `tick`, `trait`, `delta`) из `TraitDriftEvent` (использовать `target_id`, `tick_id`, `effect_value`)
+77. ❌ Использование `event_type` в математических формулах L1.5 (PatternDetector) (ADR-O-305A)
+78. ❌ Наличие полей `trait`/`emotion` в `PatternDetector` или `EvidenceOfPersistence` (нарушение ADR-O-306)
+79. ❌ `BeliefCrystallizationEngine` читает `L1Chronicle` напрямую (работает только через `EvidenceOfPersistence`) (ADR-O-305)
+80. ❌ Скалярный страх (`CrystallizedBelief` без `source_id`) / Отсутствие `Decay` для `CrystallizedBelief`
+81. ❌ Мутация `state.drives_runtime` (L0) минуя Belief Layer (L2.5) через `CalibrationEngine` (ADR-O-208/211)
+82. ❌ Запуск L2.5 кристаллизации (`check_identity_promotion`) в idle-тиках без `phase_2_events` (фантомный дрейф личности)

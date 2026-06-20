@@ -251,8 +251,11 @@ class SceneStateManager:
         и будущие мутации в TickContext протекут в persistence buffer (L4 temporal alias).
         """
         import copy
+        _trav_keys = list(result_snapshot.get("active_traversals", {}).keys()) if isinstance(result_snapshot, dict) else []
+        print(f"[COMMIT_TRACE] campaign={campaign_id} tick={result_snapshot.get('tick')} trav_keys={_trav_keys} id={id(result_snapshot)}")
         if self._tick_campaign_id == campaign_id:
             self._tick_scene = copy.deepcopy(result_snapshot)
+            print(f"[COMMIT_TRACE] _tick_scene updated, trav_keys_after={list(self._tick_scene.get('active_traversals', {}).keys())}")
             logger.debug(f"[S83.1] commit_tick_result: persistence target updated for {campaign_id}")
         else:
             logger.warning(f"[S83.1] commit_tick_result: campaign mismatch {campaign_id} vs {self._tick_campaign_id}")
@@ -1291,23 +1294,51 @@ class SceneStateManager:
                 # но визуальная позиция (local_position) НЕ телепортируется. 
                 # Вместо этого порождается TraversalState для плавной интерполяции.
                 if change.field == "position":
-                    logger.debug(f"[ARCH GUARD] Causal relocation: npc={change.target} → node={change.value}")
-                    location_id = scene_state.get("location_id", "")
+                    # FIX: traversal_complete уже вычислил физику (Target Node). 
+                    # Просто проецируем координаты. Создание нового TraversalState здесь 
+                    # вызовет бесконечный цикл и топологический дрейф.
+                    if getattr(change, 'cause', '') == 'traversal_complete':
+                        location_id = scene_state.get("location_id", "")
+                        target_loc = getattr(change, 'target_location_id', '') or location_id
+                        try:
+                            from app.services.spatial.spatial_service import SpatialService
+                            svc = SpatialService.build_for_location(campaign_id=campaign_id, location_id=target_loc, scene_state=scene_state)
+                            if node := svc.get_node(change.value) or svc.get_node(f"{target_loc}:{change.value}"):
+                                entry["local_position"] = {"x": node.x, "y": node.y}
+                            if target_loc:
+                                entry["location"] = target_loc
+                                entry["location_id"] = target_loc
+                            logger.info(f"[TRAVERSAL_COMPLETE] npc={change.target} snapped to {change.value} loc={target_loc}")
+                        except Exception as e:
+                            logger.error(f"[TRAVERSAL_COMPLETE] Failed to snap {change.target}: {e}")
+                        # ADR-XXX: Traversal Lifecycle — SSM owns status transition via FSM.
+                        # Позиция зафиксирована → traversal завершён → transition MOVING→COMPLETED.
+                        # Zombie cleanup происходит в apply_changes ПОСЛЕ всех individual apply_change.
+                        from app.domain.traversal_schema import transition_traversal
+                        _at = scene_state.get("active_traversals", {})
+                        if change.target in _at:
+                            _transitioned = transition_traversal(_at[change.target], "COMPLETED")
+                            if _transitioned:
+                                logger.debug(f"[TRAVERSAL_FSM] npc={change.target} status → COMPLETED (SSM ownership)")
+                            else:
+                                logger.warning(f"[TRAVERSAL_FSM] npc={change.target} transition to COMPLETED blocked — current status={_at[change.target].get('status')}")
+                    else:
+                        logger.debug(f"[ARCH GUARD] Causal relocation: npc={change.target} → node={change.value}")
+                        location_id = scene_state.get("location_id", "")
                     # ADR-060: кросс-локационное перемещение — используем целевую локацию из SceneChange
                     target_loc = getattr(change, 'target_location_id', '') or location_id
                     if target_loc and change.value:
                         try:
-                            print(f"[DIAG_TRY] npc={change.target} target_loc={target_loc} change_value={change.value}")
                             from app.services.spatial.spatial_service import SpatialService
                             from app.models.traversal import TraversalState
                             
                             svc = SpatialService.build_for_location(
                                 campaign_id=campaign_id, location_id=target_loc, scene_state=scene_state
                             )
-                            _diag_node = svc.get_node(change.value) or svc.get_node(f"{target_loc}:{change.value}")
-                            if not _diag_node:
-                                print(f"[DIAG_NODE] npc={change.target} NODE NOT FOUND in apply_changes: {change.value} loc={target_loc} svc_keys={list(svc._graph.keys())[:10]}")
-                            if node := _diag_node:
+                            # ADR-056: Safe Spatial Fallback. Узел не найден — макро-перемещение отменяется.
+                            if node := svc.get_node(change.value) or svc.get_node(
+                                f"{target_loc}:{change.value}"
+                            ):
                                 # ADR-060 + ДОЛГ 6.2: кросс-локационное перемещение
                                 if target_loc != location_id:
                                     # FIX: Prevent teleportation for intra-location moves in other scenes.
@@ -1422,15 +1453,22 @@ class SceneStateManager:
                                                 _create_traversal = False
                                                 
                                             if _create_traversal:
-                                                # DIAG_V & GUARD: Инвариант "Один NPC = один активный Traversal"
+                                                # ADR-130: Movement Lock. Если NPC уже в активном транзите — 
+                                                # расписание НЕ может перезаписать его движение. 
+                                                # Schedule = suggestion, traversal = commitment.
                                                 _active_travs_check = scene_state.get("active_traversals", {})
                                                 if change.target in _active_travs_check:
-                                                    _old_target = _active_travs_check[change.target].get("target_node")
-                                                    print(f"[TRAV_CREATE] npc={change.target} already_active=True old_target={_old_target} new_target={change.value}")
-                                                    # Если NPC уже движется в тот же узел — перезапись бессмысленна и вызовет визуальную заморозку
-                                                    if _old_target == change.value:
-                                                        logger.warning(f"[BUG_V_GUARD] npc={change.target} already moving to {change.value} — TRAVERSAL RECREATE SKIPPED")
+                                                    _old_trav = _active_travs_check[change.target]
+                                                    _old_target = _old_trav.get("target_node")
+                                                    _old_status = _old_trav.get("status")
+                                                    print(f"[TRAV_CREATE] npc={change.target} already_active=True status={_old_status} old_target={_old_target} new_target={change.value}")
+                                                    
+                                                    # Запрещаем перезапись ЛЮБОГО активного транзита (не только совпадающего по цели)
+                                                    if _old_status == "MOVING":
+                                                        logger.warning(f"[ADR-130_GUARD] npc={change.target} active traversal to {_old_target} — NEW TARGET {change.value} REJECTED")
                                                         _create_traversal = False
+                                                        # Восстанавливаем старую позицию, чтобы LifeEngine не думал, что NPC уже на месте
+                                                        entry["position"] = _old_position
                                                 
                                                 if _create_traversal:
                                                     _waypoints.append(_wp_to)
@@ -1441,17 +1479,17 @@ class SceneStateManager:
                                                     _wdy = _waypoints[_wi + 1][1] - _waypoints[_wi][1]
                                                     dist += (_wdx * _wdx + _wdy * _wdy) ** 0.5
                                                 duration_ticks = max(1, math.ceil(dist / speed)) if speed > 0 else 1
-                                                traversal_dict = {
-                                                    "npc_id": change.target,
-                                                    "from_node": _old_position or change.value,
-                                                    "target_node": change.value,
-                                                    "path_waypoints": _waypoints,
-                                                    "speed": speed,
-                                                    "started_tick": current_tick,
-                                                    "duration_ticks": duration_ticks,
-                                                    "locomotion": "WALK",
-                                                    "status": "MOVING"
-                                                }
+                                                # ADR-XXX: Единственный разрешённый способ создания traversal_dict
+                                                from app.domain.traversal_schema import build_traversal_dict
+                                                traversal_dict = build_traversal_dict(
+                                                    npc_id=change.target,
+                                                    from_node=_old_position or change.value,
+                                                    target_node=change.value,
+                                                    path_waypoints=_waypoints,
+                                                    started_tick=current_tick,
+                                                    duration_ticks=duration_ticks,
+                                                    speed=speed,
+                                                )
                                                 scene_state.setdefault("active_traversals", {})[change.target] = traversal_dict
                                                 logger.info(f"[TRAVERSAL] Start: npc={change.target} to_node={change.value} blocked={_blocked} waypoints={len(_waypoints)}")
                                                 print(f"[TRAVERSAL_COMMIT] npc={change.target} id(scene_state)={id(scene_state)} active_traversals_now={list(scene_state.get('active_traversals', {}).keys())}")
@@ -1546,6 +1584,16 @@ class SceneStateManager:
             if isinstance(ch, SceneChange) and
                self.apply_change(campaign_id, ch, scene_state)
         )
+        # ADR-XXX: Traversal Lifecycle — Zombie cleanup (SSOT owner).   
+        # После применения всех changes: удаляем terminal-статусы (COMPLETED, CANCELLED).
+        # Порядок: apply_change (transition MOVING→COMPLETED) → cleanup (delete terminal).
+        from app.domain.traversal_schema import TRAVERSAL_TRANSITIONS
+        _active_traversals = scene_state.get("active_traversals", {})
+        _zombie_ids = [nid for nid, t in list(_active_traversals.items()) if not TRAVERSAL_TRANSITIONS.get(t.get("status", ""), set())]
+        for _zid in _zombie_ids:
+            del _active_traversals[_zid]
+        if _zombie_ids:
+            print(f"[GATE_ZOMBIE] SSM cleaned={len(_zombie_ids)} zombies remaining={len(_active_traversals)}")
         if applied_count:
             logger.info(f"[SCENE] Применено {applied_count}/{len(changes)} изменений (in-memory, persist=Phase10)")
         return applied_count

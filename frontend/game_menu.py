@@ -238,5 +238,7 @@ class GameMenu:
             btn.draw(self.screen, self.font_button)
 
         # Версия
-        ver_surf = self.font_small.render("v0.1.0", True, _MENU_COLORS["text_dim"])
+        # ИСПРАВЛЕНО: версия берётся из constants.py, а не хардкодится.
+        from constants import PROJECT_VERSION
+        ver_surf = self.font_small.render(PROJECT_VERSION, True, _MENU_COLORS["text_dim"])
         self.screen.blit(ver_surf, (w - ver_surf.get_width() - 12, h - 24))

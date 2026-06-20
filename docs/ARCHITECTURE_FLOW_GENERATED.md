@@ -39,7 +39,6 @@ flowchart TD
         TradeResolver("Trade Resolver"):::application
         DecisionHub("Decision Hub (Projection-Native Scoring)"):::application
         IntentCompressor("Intent Compressor"):::application
-        MemoryManager("Memory Manager"):::application
         LayeredMemory("Layered Memory (STM/L2/Campaign)"):::application
         TopicExtractor("Topic Extractor"):::application
         CombatSubscriber("Combat Subscriber"):::application
@@ -52,9 +51,12 @@ flowchart TD
         DRFBus(("DRF Bus (Causal Field Bus)")):::application
         DRFExecutionContext["DRF Execution Context (Scoped Causal Ledger)"]:::application
         NPCStateAdapter("NPCState Adapter (Serialization Bridge)"):::application
-        CalibrationEngine("Calibration Engine (Pass-through / Deprecated for scalars)"):::application
-        PatternDetector("Pattern Detector (Source Grouping & Noise Filter)"):::application
-        BeliefCrystallizationEngine("Belief Crystallization Engine"):::application
+        CrystallizedBeliefModifierResolver("Crystallized Belief Modifier Resolver (L2.5 -> Drive Modifiers)"):::application
+        CalibrationEngine("Calibration Engine (Pass-through / Deprecated)"):::application
+        PatternDetector("Pattern Detector (L1.5 Source Grouping & Noise Filter)"):::application
+        BeliefCrystallizationEngine("Belief Crystallization Engine (L2.5)"):::application
+        CrystallizedBeliefStore("Crystallized Belief Store (L2.5 Storage)"):::application
+        MemoryManager("Memory Manager"):::application
         TickOrchestrator("Tick Orchestrator"):::application
         StateApplicator("State Applicator"):::application
         CognitiveOverlay("Cognitive Overlay (T+0)"):::application
@@ -65,13 +67,15 @@ flowchart TD
         DMAgent("DM Agent (Narrative)"):::application
         PipelineContext["Pipeline Context"]:::application
         AffectiveDecayHandler("Affective Decay Handler (Phase 0.5)"):::application
-        EquivalenceValidator("Equivalence Validator (Drift Detector + DEPRECATION Layer)"):::application
         ProjectionEngine("Projection Engine (Pure State Writer)"):::application
+        BehaviorMaskEvaluator("Behavior Mask Evaluator"):::application
+        BreakProgressEngine("Break Progress Engine"):::application
         PlayerCognitionPipeline("Player Cognition Pipeline"):::application
         LifeEngine("Life Engine"):::application
         EventCompiler("Event Compiler (Physics Generator)"):::application
+        EquivalenceValidator("Equivalence Validator"):::application
         MovementEngine("Movement Engine"):::application
-        SceneStateManager("Scene State Manager"):::application
+        SceneStateManager("Scene State Manager (Projection Engine)"):::application
         BoundaryRouter("Boundary Router"):::application
         ContextBuilder("Context Builder"):::application
         TemporalEngine("Temporal Engine"):::application
@@ -142,6 +146,8 @@ flowchart TD
         DriveResolver("Drive Resolver (Pure Function L0+L1→L3)"):::domain
         EffectiveDrives["Effective Drives (Ephemeral L3 Projection)"]:::domain
         OntologyViolationError("Ontology Violation Error (L5 Post-Commit Guard)"):::domain
+        EvidenceOfPersistence["Evidence Of Persistence (L1.5 Aggregate)"]:::domain
+        CrystallizedBelief["Crystallized Belief (L2.5 Projection)"]:::domain
         DeltaBuffer(("Delta Buffer (Event Bus)")):::domain
         EmbodiedTraceDTO["Embodied Trace DTO"]:::domain
         PlayerPerceptionDTO["Player Perception DTO"]:::domain
@@ -235,6 +241,8 @@ flowchart TD
     RiskPerceptionProfile -->|"perceive_risk() replaces _compute_risk()"| DecisionHub
     RelationshipStore -->|"provides read-only relationship_cache (0-100 scale)"| DecisionHub
     PerceptualKernel -->|"Viability mask projection"| IntentDomain
+    CrystallizedBeliefStore -->|"get_beliefs() → List[CrystallizedBelief]"| CrystallizedBeliefModifierResolver
+    CrystallizedBeliefModifierResolver ==>|"resolve() → drive_modifiers (Dict[str, float])"| DecisionHub
     GameStdout -->|"reads logs"| CausalObserver
     GitHistory -->|"reads git log & TODOs"| CausalObserver
     DeterministicClock -->|"provides tick context"| CausalTrace
@@ -248,6 +256,7 @@ flowchart TD
     DNAComputer -->|"computes snapshot with PFI"| DNASnapshot
     DNAComputer -->|"computes delta between sessions"| DNADelta
     DriftLaboratory -->|"records drift snapshots"| CausalTrace
+    BeliefCrystallizationEngine -->|"logs crystallization & decay events"| CausalObserver
     NeedEngine -->|"need stress → economic_stress"| StressCalculator
     StressCalculator -->|"economic_stress → utility modifier"| DecisionHub
     TradeResolver -->|"resolve_tick → execute_sale/employment"| TransactionEngine
@@ -273,9 +282,12 @@ flowchart TD
     DriveResolver -->|"computes ephemeral projection"| EffectiveDrives
     EffectiveDrives -->|"pass-through (no scalar mutation)"| CalibrationEngine
     CalibrationEngine -->|"delivers L3_stable"| DecisionHub
-    L1Chronicle -->|"query by source, detect persistence frequency"| PatternDetector
-    PatternDetector -->|"generate EvidenceOfPersistence"| BeliefCrystallizationEngine
-    BeliefCrystallizationEngine -->|"inject belief_modifiers / active_traits"| DecisionHub
+    L1Chronicle -->|"query_raw() → List[TraitDriftEvent]"| PatternDetector
+    PatternDetector -->|"detect() → List[EvidenceOfPersistence]"| EvidenceOfPersistence
+    EvidenceOfPersistence -->|"aggregated statistics"| BeliefCrystallizationEngine
+    BeliefCrystallizationEngine -->|"crystallize() → update_beliefs()"| CrystallizedBeliefStore
+    CrystallizedBeliefStore -->|"get_beliefs() → List[CrystallizedBelief]"| CrystallizedBeliefModifierResolver
+    CrystallizedBeliefModifierResolver -->|"resolve() → drive_modifiers (Dict[str, float])"| DecisionHub
     ArchetypeConfig -->|"provides L0 archetype"| DriveResolver
     IndividualConfig -->|"merges individual overrides"| DriveResolver
     GameScreen -->|"raw text input"| IntentCompressor
@@ -323,42 +335,36 @@ flowchart TD
     NPCStateAdapter -->|"from_legacy / write_to_legacy round-trip"| NPCStateAdapter
     TickOrchestrator -.->|"injects sentinel for NPC without body_state (Normalization Gate)"| BODY_STATE_DISABLED
     LifeEngine ==>|"emits intents & deltas"| DeltaBuffer
-    PerceptualKernel -.->|"threat_gradient + recent_directive → Arousal Gate wake_pressure"| LifeEngine
-    LifeEngine -.->|"SceneChange(activity='', cause='arousal_gate') → apply_changes()"| SceneStateManager
     TickOrchestrator -->|"aggregates Phase 8 results"| DeltaBuffer
     DeltaBuffer ==>|"apply_batch()"| StateApplicator
     CognitiveOverlay -.->|"injects shock_impulse > 0.5"| StateApplicator
     StateApplicator -->|"commits state"| SQLiteDB
-    StateApplicator -->|"reads npc_positions (body_state only: pain/blood_loss/shock)"| BehaviorManifestationService
+    StateApplicator -->|"reads npc_positions (body_state only)"| BehaviorManifestationService
     BehaviorManifestationService -->|"EmbodiedTraceDTO"| PhenomenologyProjectionService
     PhenomenologyProjectionService -->|"Domain PlayerPerceptionDTO"| WorldSnapshotBuilder
-    WorldSnapshotBuilder -->|"Canonical PlayerPerceptionDTO (peripheral_cues, embodied_traces)"| APIRoutes
-    TickOrchestrator -.->|"query LLM (3 retries, backoff 1s/2s/2s, partial stream recovery)"| LlamaServer
+    WorldSnapshotBuilder -->|"Canonical PlayerPerceptionDTO"| APIRoutes
+    TickOrchestrator -.->|"query LLM (3 retries)"| LlamaServer
     GameScreen ==>|"POST /action (IntentDTO)"| APIRoutes
-    TickOrchestrator -->|"creates context"| TickContext
-    TickOrchestrator -->|"writes player_perception"| PipelineContext
-    PipelineContext -->|"reads embodied_traces (observable symptoms only)"| DMAgent
     DeltaBuffer -->|"dict → NPCState → _apply_deltas → write_to_legacy → dict"| NPCStateAdapter
-    NPCStateAdapter -->|"npc_dict → json.dumps → state_kv table"| SqlitePersistenceAdapter
     TickOrchestrator -->|"calls _run_affective_pipeline(ctx)"| AffectivePipeline
-    AffectiveDecayHandler -->|"EmotionPayload (decay deltas for affective_load, emotion_tag)"| DeltaBuffer
-    AffectivePipeline -->|"EmotionPayload (affective_load, emotion_tag, stress_delta)"| DeltaBuffer
     StateApplicator -->|"update_cache(campaign_id, npc_dicts)"| LifeEngine
-    LifeEngine -->|"load_npc_runtime(campaign_id) — SQLite read-back on cache miss"| SqlitePersistenceAdapter
-    GameLoop -->|"get_npc_states(campaign_id) — cache first, file fallback"| LifeEngine
-    StateApplicator -->|"player_dict.body_state → AvatarStateDTO (phenomenological projection)"| AvatarPresentationAssembler
-    AvatarPresentationAssembler -->|"assemble_avatar_presentation → AvatarStateDTO with life_status"| AvatarStateDTO
-    AvatarStateDTO -->|"AvatarStateDTO embedded in WorldSnapshotDTO"| WorldSnapshotBuilder
-    PerceptualKernel -->|"kernel + body_state → DecisionContext (feasibility constraints)"| PressureTranslator
-    TickOrchestrator -->|"owns self._drf_bus (instance-level, not per _TickContext)"| DRFBus
-    DRFBus -->|"drf_ctx = DRFExecutionContext(tick_id, npc_id, bus) — scoped per NPC"| DRFExecutionContext
+    LifeEngine -->|"load_npc_runtime — SQLite read-back"| SqlitePersistenceAdapter
+    StateApplicator -->|"player_dict.body_state → AvatarStateDTO"| AvatarPresentationAssembler
+    TickOrchestrator -->|"owns self._drf_bus (instance-level)"| DRFBus
+    TickOrchestrator -->|"_phase_3_memory (compress idle, promote on event)"| MemoryManager
+    TickOrchestrator -->|"_phase_5_decision (evaluates mask before DecisionHub)"| BehaviorMaskEvaluator
+    TickOrchestrator -->|"calculates will_state breaks"| BreakProgressEngine
+    BreakProgressEngine -->|"commits TraitDriftEvent (target_id, effect_value)"| L1Chronicle
+    L1Chronicle -->|"persists events to l1_chronicle_events"| SQLiteDB
     DeltaBuffer -->|"appends TraitDriftEvent from IdentityPayload"| L1Chronicle
     L1Chronicle -->|"provides weighted history (L1)"| DriveResolver
     DriveResolver -->|"computes ephemeral projection (L3)"| EffectiveDrives
-    EffectiveDrives -->|"checks for oscillation"| CalibrationEngine
-    EffectiveDrives -->|"modulates utility deformation and risk perception"| DecisionHub
-    EffectiveDrives -->|"provides willpower for Somatic Urgency modulation"| PressureTranslator
-    PerceptualKernel -->|"Viability mask projection"| IntentDomain
+    L1Chronicle -->|"query_raw() → List[TraitDriftEvent]"| PatternDetector
+    PatternDetector -->|"detect() → List[EvidenceOfPersistence]"| EvidenceOfPersistence
+    EvidenceOfPersistence -->|"aggregated statistics"| BeliefCrystallizationEngine
+    BeliefCrystallizationEngine -->|"crystallize() → update_beliefs()"| CrystallizedBeliefStore
+    CrystallizedBeliefStore -->|"get_beliefs() → List[CrystallizedBelief]"| CrystallizedBeliefModifierResolver
+    CrystallizedBeliefModifierResolver -->|"resolve() → drive_modifiers (Dict[str, float])"| DecisionHub
     PerceptionLayer -->|"visible/audible entities → distance + LOS"| SpatialLayer
     SpatialLayer -->|"spatial data → recognition confidence"| RecognitionLayer
     RecognitionLayer -->|"recognized entities → attention filter"| AttentionLayer
@@ -449,6 +455,8 @@ flowchart TD
     LifeEngine -.->|"🚫 REQUIRED: Skip schedule generation when need-driven intent already in candidates (ADR-149)"| ScheduleIntent:::forbidden
     LifeEngine -.->|"🚫 REQUIRED: Need-driven MUST resolve target via SpatialService.resolve_node() when activity_map entry missing (ADR-150)"| NeedIntent:::forbidden
     LifeEngine -.->|"🚫 REQUIRED: Every _NEED_TO_ACTIVITY entry MUST have corresponding _NEED_ROLE_MAP entry (ADR-150)"| _NEED_ROLE_MAP:::forbidden
+    LifeEngine -.->|"🚫 FORBIDDEN: LifeEngine generating intents for NPC in status MOVING (ADR-154)"| MovingNPC:::forbidden
+    CrystallizedBeliefModifierResolver -.->|"🚫 REQUIRED: L2.5 beliefs MUST be injected as drive_modifiers, not bypassing scoring (ADR-O-305)"| DecisionHub:::forbidden
     CausalObserver -.->|"🚫 FORBIDDEN: Feedback loop into simulation"| Runtime_State:::forbidden
     CDS -.->|"🚫 FORBIDDEN: Interrupt causal flow on crash"| Pipeline:::forbidden
     TickOrchestrator -.->|"🚫 REQUIRED: Log pre-bus failures as [PIPELINE][CRITICAL], [PHASE8_CRASH], [AFFECT_DECAY] (Invariant 3, ADR-120)"| CausalObserver:::forbidden
@@ -475,6 +483,10 @@ flowchart TD
     PatternDetector -.->|"🚫 REQUIRED: Group by source. Do not accumulate noise from uncorrelated events"| L1Chronicle:::forbidden
     ArchetypeConfig -.->|"🚫 FORBIDDEN: Storing activity_map with concrete coordinates inside archetypes (ADR-S85.2)"| SpatialService:::forbidden
     IndividualConfig -.->|"🚫 REQUIRED: Cross-location activity_map MUST be defined in individual config (ADR-S85.2)"| SpatialService:::forbidden
+    PatternDetector -.->|"🚫 FORBIDDEN: Using event_type in mathematical formulas (ADR-O-305A)"| EventType:::forbidden
+    PatternDetector -.->|"🚫 FORBIDDEN: PatternDetector reading emotions, drives, or beliefs (ADR-O-306)"| Psychology:::forbidden
+    BeliefCrystallizationEngine -.->|"🚫 FORBIDDEN: BeliefCrystallizationEngine reading L1Chronicle directly. MUST use EvidenceOfPersistence (ADR-O-305)"| L1Chronicle:::forbidden
+    BeliefCrystallizationEngine -.->|"🚫 REQUIRED: Asymmetric Trauma (x6 multiplier) and Belief Decay Model (ADR-O-307 / ADR-O-305.1)"| CrystallizedBelief:::forbidden
     IntentCompressor -.->|"🚫 FORBIDDEN: Return default 0.0 vector for ATTACK (ADR-088)"| EmotionalVector:::forbidden
     Any -.->|"🚫 FORBIDDEN: Write to memory bypassing MemoryManager (Устав §4.1.2)"| MemoryManager:::forbidden
     DialogueSession -.->|"🚫 REQUIRED: WorkingMemory is per-NPC (Устав §4.1.1)"| WorkingMemory:::forbidden
@@ -518,51 +530,43 @@ flowchart TD
     DirectiveInterpretationSubscriber -.->|"🚫 FORBIDDEN: Shock > 0.7 check AFTER semantic parsing (ADR-O-139)"| BodyState:::forbidden
     PerceptualKernel -.->|"🚫 FORBIDDEN: Somatic Bypass (Injecting pain/shock directly into psyche dict) (ADR-O-143)"| Psyche:::forbidden
     InjuryProcessor -.->|"🚫 REQUIRED: InjuryProcessor MUST generate pain_delta alongside blood_loss_delta (ADR-141)"| PainDelta:::forbidden
+    TickOrchestrator -.->|"🚫 FORBIDDEN: Using NPCState.from_legacy. MUST use NPCStateAdapter.from_legacy (ADR-S85.1.1)"| NPCState:::forbidden
     LifeEngine -.->|"🚫 FORBIDDEN: Direct mutation (ADR-051)"| NPC_Position:::forbidden
     Any -.->|"🚫 FORBIDDEN: Bypass DeltaBuffer"| State:::forbidden
     TickOrchestrator -.->|"🚫 FORBIDDEN: TICK_CATCHUP loops (ADR-047)"| Time:::forbidden
     TickOrchestrator -.->|"🚫 FORBIDDEN: Emergency SpatialService build when cache exists (ADR-065)"| TickContext:::forbidden
     TickOrchestrator -.->|"🚫 FORBIDDEN: Use location_id as campaign_id (ADR-089)"| TickContext:::forbidden
     DMAgent -.->|"🚫 FORBIDDEN: Fake narrative fallback on LLM failure (ADR-113)"| FakeNarrative:::forbidden
-    NPCStateAdapter -.->|"🚫 REQUIRED: Round-trip integrity — every field in NPCState must survive from_legacy→write_to_legacy cycle (ADR-117)"| NPCState:::forbidden
-    _aggregate_deltas -.->|"🚫 REQUIRED: Merge MUST preserve all fields from both payloads (ADR-117)"| EmotionPayload:::forbidden
-    StateApplicator -.->|"🚫 REQUIRED: Partial Social Graph Projection (S69)"| relationship_cache:::forbidden
-    DecisionHub -.->|"🚫 REQUIRED: Precedence Contract (Graph > Scalar > Vacuum) via _get_rel_value (S69)"| relationship_cache:::forbidden
-    TickOrchestrator -.->|"🚫 DEPRECATED: target_id field (ADR-125)"| IntentParametersDTO:::forbidden
+    NPCStateAdapter -.->|"🚫 REQUIRED: Round-trip integrity (ADR-117)"| NPCState:::forbidden
     LifeEngine -.->|"🚫 REQUIRED: update_cache() called after every apply_batch (ADR-117)"| LifeEngine:::forbidden
     LifeEngine -.->|"🚫 REQUIRED: SQLite read-back on cache miss (ADR-128)"| SqlitePersistenceAdapter:::forbidden
-    PlayerAvatarService -.->|"🚫 REQUIRED: body_state/affective_load/perceptual_kernel serialization (ADR-128)"| body_state:::forbidden
-    GameLoop -.->|"🚫 REQUIRED: Action Eligibility Gate — check player life_status BEFORE lock_for_tick (ADR-131)"| PlayerAction:::forbidden
-    AvatarPresentationAssembler -.->|"🚫 REQUIRED: Normalize pain/fatigue /100.0 before threshold comparison (ADR-094 MSOC)"| pain_fatigue:::forbidden
-    PressureTranslator -.->|"🚫 REQUIRED: Normalize pain /100.0 before Somatic Veto thresholds (ADR-094 MSOC)"| pain:::forbidden
+    GameLoop -.->|"🚫 REQUIRED: Action Eligibility Gate (ADR-131)"| PlayerAction:::forbidden
+    AvatarPresentationAssembler -.->|"🚫 REQUIRED: Normalize pain/fatigue /100.0 (ADR-094 MSOC)"| pain_fatigue:::forbidden
+    PressureTranslator -.->|"🚫 REQUIRED: Normalize pain /100.0 (ADR-094 MSOC)"| pain:::forbidden
     AvatarStateDTO -.->|"🚫 REQUIRED: AvatarStateDTO MUST contain life_status field (ADR-137)"| life_status:::forbidden
-    GameLoop -.->|"🚫 REQUIRED: Death Guard MUST include npc_positions in world_snapshot (ADR-137)"| WorldSnapshotDTO:::forbidden
-    TickOrchestrator -.->|"🚫 FORBIDDEN: DRFBus via default_factory in _TickContext — split-brain (ADR-134)"| DRFBus:::forbidden
-    Any -.->|"🚫 FORBIDDEN: Monkey-patch function for bus injection (ADR-134)"| DRFBus:::forbidden
-    TickOrchestrator -.->|"🚫 REQUIRED: Pass drf_ctx (not bare drf_bus) to pipeline (ADR-136)"| DRFExecutionContext:::forbidden
-    TickOrchestrator -.->|"🚫 REQUIRED: DRF scoring overlay in BOTH idle and player paths (ADR-135)"| MovementIntent:::forbidden
-    Any -.->|"🚫 FORBIDDEN: Clamp override max(priority, N) at 0.0-1.0 scale (ADR-135)"| priority_scale:::forbidden
+    TickOrchestrator -.->|"🚫 FORBIDDEN: DRFBus via default_factory in _TickContext (ADR-134)"| DRFBus:::forbidden
     AffectivePipeline -.->|"🚫 REQUIRED: Asymmetric Attractor (Hysteresis). NO leaky integrator (ADR-138)"| affective_load:::forbidden
-    AffectiveDecayHandler -.->|"🚫 REQUIRED: PK Idle Decay (Rule 38/85, ADR-138)"| PerceptualKernel:::forbidden
     ProjectionEngine -.->|"🚫 FORBIDDEN: SpatialService query inside apply_changes (Rule 117, ADR-O-201)"| SpatialService:::forbidden
     ProjectionEngine -.->|"🚫 FORBIDDEN: RNG inside apply_changes (Rule 118, ADR-O-201)"| RNG:::forbidden
     ProjectionEngine -.->|"🚫 FORBIDDEN: Pathfinding inside apply_changes (Rule 119, ADR-O-201)"| Pathfinding:::forbidden
     ProjectionEngine -.->|"🚫 FORBIDDEN: Traversal creation inside apply_changes (Rule 120, ADR-O-201)"| TraversalState:::forbidden
-    ProjectionEngine -.->|"🚫 FORBIDDEN: Geometric computation inside apply_changes (Rule 121, ADR-O-201)"| Geometry:::forbidden
-    TickOrchestrator -.->|"🚫 FORBIDDEN: Direct state mutation before apply_changes (Rule 122, ADR-O-201)"| SceneState:::forbidden
-    ThickSceneChange -.->|"🚫 REQUIRED: SceneChange with full SpatialResolution for NPC_POSITION (Rule 123, ADR-O-201)"| SpatialResolution:::forbidden
-    ProjectionEngine -.->|"🚫 FORBIDDEN: apply_changes with branching logic >1 level (Rule 124, ADR-O-201)"| BranchingLogic:::forbidden
-    SnapshotKernel -.->|"🚫 FORBIDDEN: Snapshot mutation after creation (Rule 125, ADR-O-201)"| Mutation:::forbidden
-    EquivalenceValidator -.->|"🚫 FORBIDDEN: Drift Index with Class D (Causal) or E (Ontological) in production (Rule 126, ADR-O-201)"| DriftIndex:::forbidden
     Any -.->|"🚫 FORBIDDEN: Deletion from L1Chronicle (Append-only history) (ADR-O-208)"| L1Chronicle:::forbidden
     Any -.->|"🚫 FORBIDDEN: Caching EffectiveDrives (L3-P1 is strictly ephemeral) (ADR-O-208)"| EffectiveDrives:::forbidden
     StateApplicator -.->|"🚫 REQUIRED: Raise OntologyViolationError and kill tick on NaN, sum!=1.0, or bounds violation (ADR-O-207)"| OntologyViolationError:::forbidden
-    CalibrationEngine -.->|"🚫 REQUIRED: Prevent uncalibrated drift of base drives (Anti-oscillation) (ADR-O-211)"| DriveResolver:::forbidden
-    LifeEngine -.->|"🚫 REQUIRED: Viability Pre-Generation Gate. Threat excludes ROUTINE domain BEFORE intent generation (ADR-O-137)"| IntentDomain:::forbidden
-    MacroMovementGoal -.->|"🚫 REQUIRED: MovementIntent MUST have domain field for viability mask (ADR-O-137)"| IntentDomain:::forbidden
-    TickOrchestrator -.->|"🚫 REQUIRED: Zombie cleanup — COMPLETED traversals MUST be removed from active_traversals after processing (S87 БАГ Z)"| active_traversals:::forbidden
-    TickOrchestrator -.->|"🚫 REQUIRED: Unpack tuple result — _compute_effective_drives returns (map, updates), NOT dict (S88 БАГ T)"| _compute_effective_drives:::forbidden
-    _score_components -.->|"🚫 REQUIRED: Propagate effective_drives through _drive_relevance to _context_relevance (S88 БАГ E)"| _drive_relevance:::forbidden
+    LifeEngine -.->|"🚫 FORBIDDEN: LifeEngine generating intents for NPC in status MOVING (ADR-154)"| MovingNPC:::forbidden
+    ProjectionEngine -.->|"🚫 FORBIDDEN: apply_changes overwriting active traversal with status MOVING (ADR-130.1)"| ActiveTraversal:::forbidden
+    ProjectionEngine -.->|"🚫 FORBIDDEN: Creating new TraversalState for cause=traversal_complete. MUST snap local_position (ADR-130.2)"| TraversalComplete:::forbidden
+    EventCompiler -.->|"🚫 FORBIDDEN: Using None for SpatialResolution.target_xy. MUST use (0.0, 0.0) fallback (ADR-O-201.3)"| NullCoordinate:::forbidden
+    EquivalenceValidator -.->|"🚫 FORBIDDEN: validate_topology for cross-location transitions. Nodes are physically different (ADR-O-201.2)"| CrossLocationTopology:::forbidden
+    TickOrchestrator -.->|"🚫 FORBIDDEN: Using NPCState.from_legacy. MUST use NPCStateAdapter.from_legacy (ADR-S85.1.1)"| NPCState:::forbidden
+    BreakProgressEngine -.->|"🚫 FORBIDDEN: Using legacy fields (npc_id, tick, trait, delta). MUST use (target_id, tick_id, effect_value) (ADR-O-208.1)"| TraitDriftEvent:::forbidden
+    StateApplicator -.->|"🚫 FORBIDDEN: Direct write to state.hp. MUST write to body_state['current_hp'] (ADR-HP-UNIFICATION)"| HP:::forbidden
+    CalibrationEngine -.->|"🚫 FORBIDDEN: Applying ctx.drives_updates to state.drives_runtime. CalibrationEngine MUST be pass-through (ADR-O-211)"| DrivesRuntime:::forbidden
+    MemoryManager -.->|"🚫 FORBIDDEN: check_identity_promotion in idle ticks without phase_2_events. Prevents phantom identity drift (ADR-S86.7)"| IdentityPromotion:::forbidden
+    PatternDetector -.->|"🚫 FORBIDDEN: Using event_type in mathematical formulas (ADR-O-305A)"| EventType:::forbidden
+    PatternDetector -.->|"🚫 FORBIDDEN: PatternDetector reading emotions, drives, or beliefs (ADR-O-306)"| Psychology:::forbidden
+    BeliefCrystallizationEngine -.->|"🚫 FORBIDDEN: BeliefCrystallizationEngine reading L1Chronicle directly. MUST use EvidenceOfPersistence (ADR-O-305)"| L1Chronicle:::forbidden
+    BeliefCrystallizationEngine -.->|"🚫 REQUIRED: Asymmetric Trauma (x6 multiplier) and Belief Decay Model (ADR-O-307 / ADR-O-305.1)"| CrystallizedBelief:::forbidden
     CognitiveDistortion -.->|"🚫 REQUIRED: Player MUST NOT see objective reality directly"| ObjectiveReality:::forbidden
     RecognitionLayer -.->|"🚫 REQUIRED: Unknown NPC MUST have generic description"| NPCName:::forbidden
     ReactionResolver -.->|"🚫 REQUIRED: Anti-DOUBLE TRUTH bootstrap (ADR-117)"| AffectivePipeline:::forbidden
@@ -597,6 +601,12 @@ flowchart TD
     LifeEngine -.->|"🚫 REQUIRED: Movement Lock — update_routine MUST check scene_state.active_traversals before mutating routine (ADR-130)"| SceneStateManager:::forbidden
     LifeEngine -.->|"🚫 FORBIDDEN: Fallback to string nodes like 'common_area' (S85.1)"| _resolve_position:::forbidden
     SpatialQueryService -.->|"🚫 FORBIDDEN: Read distances or positions directly from scene_state (ADR-048)"| SceneState:::forbidden
+    LifeEngine -.->|"🚫 FORBIDDEN: LifeEngine generating intents for NPC in status MOVING (ADR-154)"| MovingNPC:::forbidden
+    SceneStateManager -.->|"🚫 FORBIDDEN: apply_changes overwriting active traversal with status MOVING (ADR-130.1)"| ActiveTraversal:::forbidden
+    SceneStateManager -.->|"🚫 FORBIDDEN: Creating new TraversalState for cause=traversal_complete. MUST snap local_position (ADR-130.2)"| TraversalComplete:::forbidden
+    EventCompiler -.->|"🚫 REQUIRED: EventCompiler MUST set is_boundary=True when target_loc is present (ADR-O-201.1)"| BoundaryFlag:::forbidden
+    EventCompiler -.->|"🚫 FORBIDDEN: Using None for SpatialResolution.target_xy. MUST use (0.0, 0.0) fallback (ADR-O-201.3)"| NullCoordinate:::forbidden
+    EquivalenceValidator -.->|"🚫 FORBIDDEN: validate_topology for cross-location transitions. Nodes are physically different (ADR-O-201.2)"| CrossLocationTopology:::forbidden
     JsonPersistenceAdapter -.->|"🚫 FORBIDDEN: JSON as runtime truth (Устав §4.2.2)"| RuntimeTruth:::forbidden
     StateApplicator -.->|"🚫 REQUIRED: atomic_commit for all saves (Устав §4.2.1)"| PersistencePort:::forbidden
     SqlitePersistenceAdapter -.->|"🚫 REQUIRED: json.dumps with default handler for set (ADR-117)"| JSON:::forbidden
@@ -685,6 +695,18 @@ PerceptualKernel->>IntentDomain: 1. threat_gradient > 0.3 → EXCLUDE ROUTINE do
 IntentDomain->>LifeEngine: 2. Viability mask: Call ONLY SURVIVAL generators
 LifeEngine->>DecisionHub: 3. Generate intent with domain=SURVIVAL
 DecisionHub->>DecisionHub: 4. Post-gen filtering FORBIDDEN (zombie causality)
+```
+
+### L2.5 Belief Injection Flow (ADR-O-305)
+
+```mermaid
+sequenceDiagram
+participant CrystallizedBeliefStore
+participant CrystallizedBeliefModifierResolver
+participant DecisionHub
+CrystallizedBeliefStore->>CrystallizedBeliefModifierResolver: 1. get_beliefs(npc_id) → List[CrystallizedBelief]
+CrystallizedBeliefModifierResolver->>DecisionHub: 2. resolve() → Dict[str, float] (e.g. {FLEE: +0.4})
+DecisionHub->>DecisionHub: 3. _score_all: belief mods merged with drive_modifiers and affective mods
 ```
 
 ### Economy Tick Flow (Phase 2)
@@ -818,76 +840,10 @@ participant LifeEngine
 participant DeltaBuffer
 participant StateApplicator
 participant SQLiteDB
-TickOrchestrator->>LifeEngine: 1. Run tick_decisions()
+TickOrchestrator->>LifeEngine: 1. Run tick_decisions() (Skips MOVING NPCs)
 LifeEngine-->>DeltaBuffer: 2. Push StateDeltas
-TickOrchestrator-->>DeltaBuffer: 3. Push Phase 8 deltas
-TickOrchestrator->>StateApplicator: 4. Trigger apply_batch()
-StateApplicator->>SQLiteDB: 5. Atomic commit
-```
-
-### Player Death Feedback Flow (ADR-137)
-
-```mermaid
-sequenceDiagram
-participant GameLoop
-participant AvatarPresentationAssembler
-participant AvatarStateDTO
-participant WorldSnapshotBuilder
-participant APIRoutes
-participant GameScreen
-GameLoop->>GameLoop: 1. load_state() → check body_state['life_status']
-GameLoop->>AvatarPresentationAssembler: 2. If ALIVE: assemble_avatar_presentation(player_dict)
-AvatarPresentationAssembler->>AvatarStateDTO: 3. AvatarStateDTO(life_status='ALIVE', pain=pain/100.0, ...)
-AvatarStateDTO->>WorldSnapshotBuilder: 4. Embedded in WorldSnapshotDTO.avatar_state
-WorldSnapshotBuilder->>APIRoutes: 5. WorldSnapshotDTO → JSON response
-APIRoutes->>GameScreen: 6. scene_state['avatar_state'] → renderer
-GameScreen->>GameScreen: 7. If life_status='DEAD': render death overlay
-```
-
-### Death Guard v2 — World Continues (ADR-137)
-
-```mermaid
-sequenceDiagram
-participant GameLoop
-participant LifeEngine
-participant AvatarPresentationAssembler
-participant APIRoutes
-GameLoop->>GameLoop: 1. _avatar_state.body_state['life_status'] == 'DEAD'
-GameLoop->>LifeEngine: 2. get_npc_states(campaign_id) — world still lives
-LifeEngine->>GameLoop: 3. Cached npc_dicts
-GameLoop->>AvatarPresentationAssembler: 4. Assemble death avatar (all projections zeroed, life_status=DEAD)
-GameLoop->>APIRoutes: 5. ChatTurnResponse(world_snapshot={avatar_state: death, npc_positions: cached})
-```
-
-### ADR-094 MSOC Normalization Flow
-
-```mermaid
-sequenceDiagram
-participant StateApplicator
-participant AvatarPresentationAssembler
-participant PressureTranslator
-participant BehaviorManifestationService
-StateApplicator->>StateApplicator: 1. Writes body_state: pain=0-100, fatigue=0-100, blood_loss=0-1, shock_impulse=0-1
-AvatarPresentationAssembler->>AvatarPresentationAssembler: 2. pain / 100.0 → 0-1 scale. Thresholds: 0.5=WOUNDED, 0.8=CRIPPLED
-PressureTranslator->>PressureTranslator: 3. pain / 100.0 → 0-1 scale. Somatic Veto: pain>0.8 blocks FLEE
-BehaviorManifestationService->>BehaviorManifestationService: 4. pain raw 0-100. Thresholds: 10/20/50/80. NO normalization — motor layer works in 0-100
-```
-
-### DRF Causal Field Flow (ADR-134/136)
-
-```mermaid
-sequenceDiagram
-participant TickOrchestrator
-participant DRFBus
-participant DRFExecutionContext
-participant npc_tick_pipeline
-participant MovementEngine
-TickOrchestrator->>DRFBus: 1. self._drf_bus.stream.clear() at start of execute()
-TickOrchestrator->>DRFExecutionContext: 2. DRFExecutionContext(tick_id, npc_id, bus)
-DRFExecutionContext->>npc_tick_pipeline: 3. drf_ctx.for_npc(npc_id) — scoped per NPC
-npc_tick_pipeline->>DRFBus: 4. drf_ctx.emit(reason, energy, vector) — claims auto-inherit npc_id
-TickOrchestrator->>TickOrchestrator: 5. _apply_drf_scoring_overlay() — both idle and player paths (ADR-135)
-TickOrchestrator->>MovementEngine: 6. Intents with DRF-adjusted priority → process_intents()
+TickOrchestrator->>StateApplicator: 3. Trigger apply_batch() (Writes to body_state['current_hp'])
+StateApplicator->>SQLiteDB: 4. Atomic commit
 ```
 
 ### Causal Kernel Pipeline Flow (ADR-O-201)
@@ -900,73 +856,56 @@ participant EventCompiler
 participant ThickSceneChange
 participant ProjectionEngine
 participant WorldState
-TickOrchestrator->>SnapshotKernel: 1. Create immutable snapshot(scene_state, spatial_graph, rng_seed)
-SnapshotKernel->>EventCompiler: 2. Frozen snapshot + NPC intents + player input
-EventCompiler->>ThickSceneChange: 3. compile() → List[ThickSceneChange] with full SpatialResolution + MotionPlan + BoundaryResolution
-ThickSceneChange->>ProjectionEngine: 4. Apply complete physical contracts (no computation needed)
-ProjectionEngine->>WorldState: 5. state[t+1] = state[t] ⊕ ThickSceneChange[] (pure dict assignment)
+TickOrchestrator->>SnapshotKernel: 1. Create immutable snapshot
+SnapshotKernel->>EventCompiler: 2. Frozen snapshot + NPC intents
+EventCompiler->>ThickSceneChange: 3. compile() → ThickSceneChange (with boundary fix & 0.0 fallback)
+ThickSceneChange->>ProjectionEngine: 4. Apply physical contracts
+ProjectionEngine->>WorldState: 5. state[t+1] = state[t] ⊕ ThickSceneChange[]
 ```
 
-### Equivalence Validation Flow (ADR-O-201 ФАЗА 2)
+### Traversal Complete Snap Flow (ADR-130.2)
 
 ```mermaid
 sequenceDiagram
 participant TickOrchestrator
-participant EventCompiler
-participant ThickSceneChange
 participant SceneChange
-participant EquivalenceValidator
-participant DriftReport
-TickOrchestrator->>EventCompiler: 1. Shadow compile(snapshot) alongside legacy pipeline
-EventCompiler->>ThickSceneChange: 2. Shadow output (full physical contract)
-TickOrchestrator->>SceneChange: 3. Legacy output (current physics)
-TickOrchestrator->>EquivalenceValidator: 4a-d. validate_position/topology/boundary/traversal
-EquivalenceValidator->>DriftReport: 5. Classify drift (A-E) + DEPRECATION mapping
-TickOrchestrator->>DriftReport: 6. Accumulate stats + phase3 readiness indicator
+participant ProjectionEngine
+participant SceneState
+TickOrchestrator->>SceneChange: 1. Emits SceneChange(cause='traversal_complete')
+SceneChange->>ProjectionEngine: 2. apply_changes receives change
+ProjectionEngine->>SceneState: 3. Snaps local_position to target node coordinates. DOES NOT create new TraversalState.
 ```
 
-### Identity Resolution Flow (ADR-O-208 / ADR-O-304)
+### Identity & Belief Crystallization Flow (ADR-O-305)
 
 ```mermaid
 sequenceDiagram
 participant WorldPressure
 participant L1Chronicle
-participant DriveResolver
-participant EffectiveDrives
-participant CalibrationEngine
-participant DecisionHub
-WorldPressure->>L1Chronicle: 1. Append TraitDriftEvent (trait, delta, source, tick)
-L1Chronicle->>DriveResolver: 2. query_weighted(npc_id, current_tick) → L1 History
-DriveResolver->>EffectiveDrives: 3. resolve_drives(archetype_L0, l1_events) → L3 Projection
-EffectiveDrives->>CalibrationEngine: 4. Pass-through (No scalar mutation, Test C fix)
-CalibrationEngine->>DecisionHub: 5. Deliver L3_stable (Projection-native scoring)
-```
-
-### Belief Formation Flow (ADR-O-305)
-
-```mermaid
-sequenceDiagram
-participant L1Chronicle
+participant SQLiteDB
 participant PatternDetector
 participant BeliefCrystallizationEngine
+participant CrystallizedBeliefStore
 participant DecisionHub
-L1Chronicle->>PatternDetector: 1. Group TraitDriftEvents by source, calculate persistence frequency
-PatternDetector->>BeliefCrystallizationEngine: 2. If frequency > noise_threshold, emit EvidenceOfPersistence(source, trait)
-BeliefCrystallizationEngine->>DecisionHub: 3. Crystallize into Belief (source → policy_shift). Inject via belief_modifiers
+WorldPressure->>L1Chronicle: 1. Append TraitDriftEvent (target_id, tick_id, effect_value)
+L1Chronicle->>SQLiteDB: 2. Persist to l1_chronicle_events (ADR-O-208.2)
+L1Chronicle->>PatternDetector: 3. query_raw() → List[TraitDriftEvent]
+PatternDetector->>BeliefCrystallizationEngine: 4. detect() → List[EvidenceOfPersistence] (pure statistics)
+BeliefCrystallizationEngine->>CrystallizedBeliefStore: 5. crystallize(drives_base) → CrystallizedBelief (with x6 trauma & decay)
+CrystallizedBeliefStore->>DecisionHub: 6. resolve() → drive_modifiers (injects into utility scoring)
 ```
 
-### Viability Pre-Generation Gate Flow (ADR-O-137)
+### Memory Promotion & Behavior Mask Flow (S86)
 
 ```mermaid
 sequenceDiagram
-participant PerceptualKernel
-participant IntentDomain
-participant LifeEngine
-participant MacroMovementGoal
-PerceptualKernel->>IntentDomain: 1. _compute_viability_mask(): threat_gradient > 0.3 → EXCLUDE ROUTINE
-IntentDomain->>LifeEngine: 2. Gate: Call generators ONLY for viable domains
-LifeEngine->>MacroMovementGoal: 3. Generate intent with domain=IntentDomain.SURVIVAL
-LifeEngine->>LifeEngine: 4. FORBIDDEN: Post-generation filtering (zombie causality)
+participant TickOrchestrator
+participant MemoryManager
+participant BehaviorMaskEvaluator
+participant DecisionHub
+TickOrchestrator->>MemoryManager: 1. _phase_3_memory: compress_narrative_cache (idle). check_identity_promotion (ONLY if phase_2_events)
+TickOrchestrator->>BehaviorMaskEvaluator: 2. _phase_5_decision: Evaluate WillState & relationships for COLLAPSE/FAKE_SUBMISSION/BETRAYAL
+BehaviorMaskEvaluator->>DecisionHub: 3. Apply mask to utility scoring
 ```
 
 ### Player Cognition Pipeline
@@ -1064,6 +1003,19 @@ CandidateScoring->>SelectionPolicy: 4. Score and select (STRICT_MAX/STABLE/DIVER
 SelectionPolicy->>SpatialService: 5. get_node(canonical_id)
 ```
 
+### Traversal Complete Snap Flow (ADR-130.2)
+
+```mermaid
+sequenceDiagram
+participant TickOrchestrator
+participant SceneChange
+participant SceneStateManager
+participant SceneState
+TickOrchestrator->>SceneChange: 1. Emits SceneChange(cause='traversal_complete')
+SceneChange->>SceneStateManager: 2. apply_changes receives change
+SceneStateManager->>SceneState: 3. Snaps local_position to target node coordinates. DOES NOT create new TraversalState.
+```
+
 ### Interaction
 
 ```mermaid
@@ -1147,6 +1099,8 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | RiskPerceptionProfile | DecisionHub | perceive_risk() replaces _compute_risk() | Two-phase model: objective risk → subjective perception. DecisionHub calls perceive_risk() instead of self._compute_risk(). | `decision_hub.py, decision/risk.py` | ADR-O-146 |
 | RelationshipStore | DecisionHub | provides read-only relationship_cache (0-100 scale) | ADR-121: SSOT. Cache is ephemeral per-tick projection. Consumers normalize 0-100 → 0-1. | `decision_hub.py` | ADR-121 |
 | PerceptualKernel | IntentDomain | Viability mask projection | ADR-O-137: threat_gradient > 0.3 → EXCLUDE ROUTINE domain. Gate stands BEFORE generators. | `life_engine.py` | ADR-O-137 |
+| CrystallizedBeliefStore | CrystallizedBeliefModifierResolver | get_beliefs() → List[CrystallizedBelief] | - | `crystallized_belief_store.py` | ADR-O-305 |
+| CrystallizedBeliefModifierResolver | DecisionHub | resolve() → drive_modifiers (Dict[str, float]) | S85.2: L2.5 beliefs deform utility alongside L3 drives and L1.5 social context. | `npc_tick_pipeline.py` | ADR-O-305 |
 | GameStdout | CausalObserver | reads logs | Regex patterns, pipe/file read | `causal_observer.py` | - |
 | GitHistory | CausalObserver | reads git log & TODOs | Every session start | `causal_observer.py` | - |
 | DeterministicClock | CausalTrace | provides tick context | - | `-` | - |
@@ -1160,8 +1114,9 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | DNAComputer | DNASnapshot | computes snapshot with PFI | - | `-` | - |
 | DNAComputer | DNADelta | computes delta between sessions | - | `-` | - |
 | DriftLaboratory | CausalTrace | records drift snapshots | S85.3: Idle stability test logs activity changes and traversals. | `drift_laboratory.py` | ADR-S85.3 |
+| BeliefCrystallizationEngine | CausalObserver | logs crystallization & decay events | S85.2: CDS observes belief formation to detect stagnation or hyper-instability. | `belief_crystallization_engine.py` | ADR-O-305 |
 | NeedEngine | StressCalculator | need stress → economic_stress | get_wealth_stress + get_obligation_stress → calculate_economic_stress | `economy/stress_calculator.py` | - |
-| StressCalculator | DecisionHub | economic_stress → utility modifier | Phase 5: economic stress deforms utility (buy vs talk vs work) | `npc/decision_hub.py` | - |
+| StressCalculator | DecisionHub | economic_stress → utility modifier | Phase 5: economic stress deforms utility (buy vs talk vs work). S85.2: Competes with L2.5 Belief Modifiers. | `npc/decision_hub.py` | - |
 | TradeResolver | TransactionEngine | resolve_tick → execute_sale/employment | Determine good → find seller → calculate price → execute | `economy/trade_resolver.py` | - |
 | MarketState | TradeResolver | market phase → price modifier | CRASH = high prices, BOOM = low prices | `economy/market_state.py` | - |
 | PsychoEconomy | NeedEngine | decay_modifier + consumption_frequency | Personality shapes how fast needs decay and how often NPC consumes | `economy/psycho_economy.py` | - |
@@ -1185,9 +1140,12 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | DriveResolver | EffectiveDrives | computes ephemeral projection | Pure function from archetype + chronicle | `drive_resolver.py` | - |
 | EffectiveDrives | CalibrationEngine | pass-through (no scalar mutation) | ADR-O-211 DEPRECATION: Test C noise accumulation | `calibration_engine.py` | - |
 | CalibrationEngine | DecisionHub | delivers L3_stable | Projection-native scoring (ADR-O-304) | `tick_orchestrator.py` | - |
-| L1Chronicle | PatternDetector | query by source, detect persistence frequency | ADR-O-305: Grouping by source field | `pattern_detector.py (Target)` | - |
-| PatternDetector | BeliefCrystallizationEngine | generate EvidenceOfPersistence | ADR-O-305: Frequency > noise threshold | `belief_crystallization_engine.py (Target)` | - |
-| BeliefCrystallizationEngine | DecisionHub | inject belief_modifiers / active_traits | ADR-O-305: Source-specific policy shift | `decision_hub.py` | - |
+| L1Chronicle | PatternDetector | query_raw() → List[TraitDriftEvent] | ADR-O-305A: Группировка по source_id | `pattern_detector.py` | - |
+| PatternDetector | EvidenceOfPersistence | detect() → List[EvidenceOfPersistence] | Комбинированная variance (дисперсия + осцилляция). Event_type отсечён. | `pattern_detector.py` | - |
+| EvidenceOfPersistence | BeliefCrystallizationEngine | aggregated statistics | Модуляция через drives_base (L0) | `belief_crystallization_engine.py` | - |
+| BeliefCrystallizationEngine | CrystallizedBeliefStore | crystallize() → update_beliefs() | ADR-O-305: Формирование CrystallizedBelief | `belief_crystallization_engine.py, crystallized_belief_store.py` | - |
+| CrystallizedBeliefStore | CrystallizedBeliefModifierResolver | get_beliefs() → List[CrystallizedBelief] | - | `crystallized_belief_modifier_resolver.py` | - |
+| CrystallizedBeliefModifierResolver | DecisionHub | resolve() → drive_modifiers (Dict[str, float]) | S85.2: L2.5 beliefs deform utility alongside L3 drives | `npc_tick_pipeline.py` | - |
 | ArchetypeConfig | DriveResolver | provides L0 archetype | Base personality traits and schedule | `npc_loader.py` | - |
 | IndividualConfig | DriveResolver | merges individual overrides | Specific schedule/activity_map overrides | `npc_loader.py` | - |
 | GameScreen | IntentCompressor | raw text input | Phase 1: player typed command | `input/intent_compressor.py` | - |
@@ -1234,43 +1192,37 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | ReactionSubscriber | DeltaBuffer | EmotionPayload (stress_delta, emotion_tag, affective_load=None) | Direct emotion from shock — bypasses accumulator | `reaction_subscriber.py:275` | ADR-117 |
 | NPCStateAdapter | NPCStateAdapter | from_legacy / write_to_legacy round-trip | Every apply_batch call. Loses field = DOUBLE TRUTH. | `npc_state.py:635-800` | ADR-115, ADR-116, ADR-117 |
 | TickOrchestrator | BODY_STATE_DISABLED | injects sentinel for NPC without body_state (Normalization Gate) | ADR-O-139: Before use in DirectiveInterpretationSubscriber and PressureTranslator. No body_state = inert matter. | `tick_orchestrator.py` | ADR-O-139 |
-| LifeEngine | DeltaBuffer | emits intents & deltas | tick_decisions() produces StateDeltas | `life_engine.py` | ADR-051 |
-| PerceptualKernel | LifeEngine | threat_gradient + recent_directive → Arousal Gate wake_pressure | ADR-O-142A: Arousal Gate reads PK to compute wake_pressure. | `life_engine.py:_arousal_gate()` | ADR-O-142A |
-| LifeEngine | SceneStateManager | SceneChange(activity='', cause='arousal_gate') → apply_changes() | ADR-O-142A: Arousal Gate produces SceneChange for wake transition. | `life_engine.py:_arousal_gate()` | ADR-O-142A |
-| TickOrchestrator | DeltaBuffer | aggregates Phase 8 results | Always on tick | `tick_orchestrator.py` | ADR-066 |
-| DeltaBuffer | StateApplicator | apply_batch() | Aggregated at end of tick | `state_applicator.py` | ADR-001 |
-| CognitiveOverlay | StateApplicator | injects shock_impulse > 0.5 | shock_impulse > 0.5 (T+0 injection) | `tick_orchestrator.py:634` | GAP1 FIX |
-| StateApplicator | SQLiteDB | commits state | Atomic commit | `state_applicator.py` | - |
-| StateApplicator | BehaviorManifestationService | reads npc_positions (body_state only: pain/blood_loss/shock) | Phase 8.5. Rule X: motor traces ONLY from physiology. | `behavior_manifestation_service.py` | The Fool v2, ADR-112 |
-| BehaviorManifestationService | PhenomenologyProjectionService | EmbodiedTraceDTO | Phase 9 | `phenomenology_projection_service.py` | The Fool v2 |
-| PhenomenologyProjectionService | WorldSnapshotBuilder | Domain PlayerPerceptionDTO | Phase 9 | `world_snapshot_builder.py` | The Fool v2 |
-| WorldSnapshotBuilder | APIRoutes | Canonical PlayerPerceptionDTO (peripheral_cues, embodied_traces) | API Response | `routes.py` | The Fool v2 |
-| TickOrchestrator | LlamaServer | query LLM (3 retries, backoff 1s/2s/2s, partial stream recovery) | Action tick. ADR-113: Honest error on permanent failure. | `llama_cpp_provider.py` | ADR-113 |
-| GameScreen | APIRoutes | POST /action (IntentDTO) | On Enter key. | `intent_compressor.py:93-98` | - |
-| TickOrchestrator | TickContext | creates context | Must use authentic campaign_id | `tick_orchestrator.py` | ADR-089 |
-| TickOrchestrator | PipelineContext | writes player_perception | Phase 9: embodied_traces from PhenomenologyProjection | `tick_orchestrator.py:712` | ADR-093 |
-| PipelineContext | DMAgent | reads embodied_traces (observable symptoms only) | The Fool: DM sees traces, not internal states | `dm_agent.py:309-324` | ADR-093 |
-| DeltaBuffer | NPCStateAdapter | dict → NPCState → _apply_deltas → write_to_legacy → dict | Every apply_batch call. Round-trip MUST preserve all fields. | `state_applicator.py:742-776` | ADR-117 |
-| NPCStateAdapter | SqlitePersistenceAdapter | npc_dict → json.dumps → state_kv table | Commit via SceneStateManager.atomic_commit. | `sqlite_persistence_adapter.py:71-77` | ADR-117 |
-| TickOrchestrator | AffectivePipeline | calls _run_affective_pipeline(ctx) | Phase 9: target_load derived from PK+body. Integral relaxes via Hysteresis. | `tick_orchestrator.py` | ADR-138 |
-| AffectiveDecayHandler | DeltaBuffer | EmotionPayload (decay deltas for affective_load, emotion_tag) | Idle tick. Phase 0.5. | `tick_orchestrator.py` | ADR-138 |
-| AffectivePipeline | DeltaBuffer | EmotionPayload (affective_load, emotion_tag, stress_delta) | On threshold crossing or sustaining | `tick_orchestrator.py:_run_affective_pipeline` | ADR-117 |
-| StateApplicator | LifeEngine | update_cache(campaign_id, npc_dicts) | After apply_batch — persist mutated data between ticks | `life_engine.py:779-786` | ADR-117 |
-| LifeEngine | SqlitePersistenceAdapter | load_npc_runtime(campaign_id) — SQLite read-back on cache miss | ADR-128: При TTL/LRU eviction восстановление из SQLite. | `life_engine.py:_load_npcs` | ADR-128 |
-| GameLoop | LifeEngine | get_npc_states(campaign_id) — cache first, file fallback | _load_npcs_with_runtime MUST check LifeEngine cache before load_npcs_merged. | `game_loop/__init__.py:214-218` | ADR-117 |
-| StateApplicator | AvatarPresentationAssembler | player_dict.body_state → AvatarStateDTO (phenomenological projection) | Assembler reads life_status. NORMALIZES pain/fatigue /100.0 (ADR-094). | `avatar_presentation_assembler.py:21-126` | ADR-137, ADR-094 |
-| AvatarPresentationAssembler | AvatarStateDTO | assemble_avatar_presentation → AvatarStateDTO with life_status | AvatarStateDTO includes life_status field. | `snapshot.py:34-56` | ADR-137 |
-| AvatarStateDTO | WorldSnapshotBuilder | AvatarStateDTO embedded in WorldSnapshotDTO | WorldSnapshotDTO.avatar_state carries phenomenological projection. | `snapshot.py:157` | ADR-035 |
-| PerceptualKernel | PressureTranslator | kernel + body_state → DecisionContext (feasibility constraints) | NORMALIZES pain /100.0. Somatic Veto: pain>0.8 blocks FLEE. | `pressure_translator.py:51-64` | ADR-094, GAP3 |
-| TickOrchestrator | DRFBus | owns self._drf_bus (instance-level, not per _TickContext) | ADR-134: Both execute() and execute_player_finalize() pass drf_bus=self._drf_bus. | `tick_orchestrator.py` | ADR-134 |
-| DRFBus | DRFExecutionContext | drf_ctx = DRFExecutionContext(tick_id, npc_id, bus) — scoped per NPC | ADR-136: Claims auto-inherit npc_id and tick_id via drf_ctx.emit(). | `tick_orchestrator.py, npc_tick_pipeline.py` | ADR-136 |
-| DeltaBuffer | L1Chronicle | appends TraitDriftEvent from IdentityPayload | World pressure mutates identity (ADR-O-208) | `l1_chronicle.py` | ADR-O-208 |
-| L1Chronicle | DriveResolver | provides weighted history (L1) | Tick start | `drive_resolver.py:resolve_drives` | ADR-O-208 |
-| DriveResolver | EffectiveDrives | computes ephemeral projection (L3) | Pure function from archetype + chronicle | `drive_resolver.py` | ADR-O-208 |
-| EffectiveDrives | CalibrationEngine | checks for oscillation | Post-resolution (ADR-O-211) | `calibration_engine.py` | ADR-O-211 |
-| EffectiveDrives | DecisionHub | modulates utility deformation and risk perception | Replaces hardcoded weights (§ENIGMA-S72) | `-` | ADR-O-146 |
-| EffectiveDrives | PressureTranslator | provides willpower for Somatic Urgency modulation | ADR-O-143: somatic_urgency * (1.0 - willpower * 0.5) | `-` | ADR-O-143 |
-| PerceptualKernel | IntentDomain | Viability mask projection | ADR-O-137: threat_gradient > 0.3 excludes ROUTINE domain | `-` | ADR-O-137 |
+| LifeEngine | DeltaBuffer | emits intents & deltas | - | `-` | - |
+| TickOrchestrator | DeltaBuffer | aggregates Phase 8 results | - | `-` | - |
+| DeltaBuffer | StateApplicator | apply_batch() | - | `-` | - |
+| CognitiveOverlay | StateApplicator | injects shock_impulse > 0.5 | - | `-` | - |
+| StateApplicator | SQLiteDB | commits state | - | `-` | - |
+| StateApplicator | BehaviorManifestationService | reads npc_positions (body_state only) | - | `-` | - |
+| BehaviorManifestationService | PhenomenologyProjectionService | EmbodiedTraceDTO | - | `-` | - |
+| PhenomenologyProjectionService | WorldSnapshotBuilder | Domain PlayerPerceptionDTO | - | `-` | - |
+| WorldSnapshotBuilder | APIRoutes | Canonical PlayerPerceptionDTO | - | `-` | - |
+| TickOrchestrator | LlamaServer | query LLM (3 retries) | - | `-` | - |
+| GameScreen | APIRoutes | POST /action (IntentDTO) | - | `-` | - |
+| DeltaBuffer | NPCStateAdapter | dict → NPCState → _apply_deltas → write_to_legacy → dict | - | `-` | - |
+| TickOrchestrator | AffectivePipeline | calls _run_affective_pipeline(ctx) | - | `-` | - |
+| StateApplicator | LifeEngine | update_cache(campaign_id, npc_dicts) | - | `-` | - |
+| LifeEngine | SqlitePersistenceAdapter | load_npc_runtime — SQLite read-back | - | `-` | - |
+| StateApplicator | AvatarPresentationAssembler | player_dict.body_state → AvatarStateDTO | - | `-` | - |
+| TickOrchestrator | DRFBus | owns self._drf_bus (instance-level) | - | `-` | - |
+| TickOrchestrator | MemoryManager | _phase_3_memory (compress idle, promote on event) | - | `-` | - |
+| TickOrchestrator | BehaviorMaskEvaluator | _phase_5_decision (evaluates mask before DecisionHub) | - | `-` | - |
+| TickOrchestrator | BreakProgressEngine | calculates will_state breaks | - | `tick_orchestrator.py:_phase_5_decision` | - |
+| BreakProgressEngine | L1Chronicle | commits TraitDriftEvent (target_id, effect_value) | - | `break_progress_engine.py` | ADR-O-208.1 |
+| L1Chronicle | SQLiteDB | persists events to l1_chronicle_events | - | `-` | ADR-O-208.2 |
+| DeltaBuffer | L1Chronicle | appends TraitDriftEvent from IdentityPayload | - | `-` | - |
+| L1Chronicle | DriveResolver | provides weighted history (L1) | - | `-` | - |
+| DriveResolver | EffectiveDrives | computes ephemeral projection (L3) | - | `-` | - |
+| L1Chronicle | PatternDetector | query_raw() → List[TraitDriftEvent] | - | `-` | ADR-O-305A |
+| PatternDetector | EvidenceOfPersistence | detect() → List[EvidenceOfPersistence] | - | `-` | - |
+| EvidenceOfPersistence | BeliefCrystallizationEngine | aggregated statistics | - | `-` | - |
+| BeliefCrystallizationEngine | CrystallizedBeliefStore | crystallize() → update_beliefs() | - | `-` | ADR-O-305 |
+| CrystallizedBeliefStore | CrystallizedBeliefModifierResolver | get_beliefs() → List[CrystallizedBelief] | - | `-` | - |
+| CrystallizedBeliefModifierResolver | DecisionHub | resolve() → drive_modifiers (Dict[str, float]) | - | `-` | - |
 | PerceptionLayer | SpatialLayer | visible/audible entities → distance + LOS | Only perceived entities get spatial data | `player_cognition/perception_layer.py` | - |
 | SpatialLayer | RecognitionLayer | spatial data → recognition confidence | Distance affects recognition confidence | `player_cognition/spatial_layer.py` | - |
 | RecognitionLayer | AttentionLayer | recognized entities → attention filter | Known entities get higher attention score | `player_cognition/recognition_layer.py` | - |
@@ -1298,7 +1250,7 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | DecisionHub | MacroMovementGoal | produces domain-typed movement goal | Goal contains IntentDomain for viability mask | `-` | ADR-O-137 |
 | MovementEngine | SceneChange | produces | Only if get_node() != None | `movement_engine.py` | ADR-052 |
 | SceneChange | SceneStateManager | applied by | - | `-` | - |
-| SceneStateManager | TraversalState | enriches & interpolates | in_transit flag, interpolation by progress | `scene_state_manager.py:1145,1585` | GAP12 FIX |
+| SceneStateManager | TraversalState | enriches & interpolates | in_transit flag, interpolation by progress. ADR-130.2: On traversal_complete snaps position, does NOT create new TraversalState. | `scene_state_manager.py:1145,1585` | GAP12 FIX, ADR-130.2 |
 | EventCompiler | BoundaryNode | resolves boundary transitions at compile time | Uses frozen snapshot, NOT live SpatialService. ADR-O-201 | `event_compiler.py` | - |
 | PersistencePort | SqlitePersistenceAdapter | primary implementation | Default. Atomic commit. Runtime truth (Устав §4.2.1). | `state/sqlite_persistence_adapter.py` | - |
 | PersistencePort | JsonPersistenceAdapter | fallback implementation | Legacy. No transactions = data corruption risk (Устав §4.2.3). | `state/json_persistence_adapter.py` | - |
@@ -1364,13 +1316,15 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | LifeEngine | ScheduleIntent | REQUIRED: Skip schedule generation when need-driven intent already in candidates (ADR-149) | `life_engine.py:_simulate_major` |
 | LifeEngine | NeedIntent | REQUIRED: Need-driven MUST resolve target via SpatialService.resolve_node() when activity_map entry missing (ADR-150) | `life_engine.py:_check_need_driven_movement` |
 | LifeEngine | _NEED_ROLE_MAP | REQUIRED: Every _NEED_TO_ACTIVITY entry MUST have corresponding _NEED_ROLE_MAP entry (ADR-150) | `life_engine.py` |
+| LifeEngine | MovingNPC | FORBIDDEN: LifeEngine generating intents for NPC in status MOVING (ADR-154) | `-` |
+| CrystallizedBeliefModifierResolver | DecisionHub | REQUIRED: L2.5 beliefs MUST be injected as drive_modifiers, not bypassing scoring (ADR-O-305) | `-` |
 | CausalObserver | Runtime_State | FORBIDDEN: Feedback loop into simulation | `Устав §11.1` |
 | CDS | Pipeline | FORBIDDEN: Interrupt causal flow on crash | `Устав §11.2` |
 | TickOrchestrator | CausalObserver | REQUIRED: Log pre-bus failures as [PIPELINE][CRITICAL], [PHASE8_CRASH], [AFFECT_DECAY] (Invariant 3, ADR-120) | `tick_orchestrator.py` |
 | TickHealthChecker | DNAComputer | REQUIRED: Report prebus_failures and affect_decay_fails in DNASnapshot — PFI metric (Invariant 3, ADR-120) | `dna_metrics.py` |
 | Router | CausalObserver | REQUIRED: Notify stream start/end for observability (ADR-147) | `dm_router.py` |
 | DriftLaboratory | SceneState | REQUIRED: Read spatial positions from scene_state[npc_positions] (SSOT), not LifeEngine cache (ADR-S85.3) | `drift_laboratory.py` |
-| Any | PrintProbe | REQUIRED: Print probes MUST NOT be deleted without replacement (ADR-151) | `tick_orchestrator.py, life_engine.py, movement_engine.py` |
+| Any | PrintProbe | REQUIRED: Print probes MUST NOT be deleted without replacement (ADR-151) | `tick_orchestrator.py, life_engine.py, movement_engine.py, belief_crystallization_engine.py` |
 | Any | EmptyBlock | FORBIDDEN: Empty code block after probe removal — causes IndentationError (ADR-151) | `tick_orchestrator.py` |
 | TransactionEngine | NPCState | FORBIDDEN: Direct mutation of NPC money | `-` |
 | NeedEngine | DecisionHub | REQUIRED: Critical needs MUST influence decision | `-` |
@@ -1390,6 +1344,10 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | PatternDetector | L1Chronicle | REQUIRED: Group by source. Do not accumulate noise from uncorrelated events | `ADR-O-305` |
 | ArchetypeConfig | SpatialService | FORBIDDEN: Storing activity_map with concrete coordinates inside archetypes (ADR-S85.2) | `config/npc/archetypes/*.json` |
 | IndividualConfig | SpatialService | REQUIRED: Cross-location activity_map MUST be defined in individual config (ADR-S85.2) | `config/npc/individuals/*.json` |
+| PatternDetector | EventType | FORBIDDEN: Using event_type in mathematical formulas (ADR-O-305A) | `-` |
+| PatternDetector | Psychology | FORBIDDEN: PatternDetector reading emotions, drives, or beliefs (ADR-O-306) | `-` |
+| BeliefCrystallizationEngine | L1Chronicle | FORBIDDEN: BeliefCrystallizationEngine reading L1Chronicle directly. MUST use EvidenceOfPersistence (ADR-O-305) | `-` |
+| BeliefCrystallizationEngine | CrystallizedBelief | REQUIRED: Asymmetric Trauma (x6 multiplier) and Belief Decay Model (ADR-O-307 / ADR-O-305.1) | `-` |
 | IntentCompressor | EmotionalVector | FORBIDDEN: Return default 0.0 vector for ATTACK (ADR-088) | `ADR-088` |
 | Any | MemoryManager | FORBIDDEN: Write to memory bypassing MemoryManager (Устав §4.1.2) | `Устав §4.1.2` |
 | DialogueSession | WorkingMemory | REQUIRED: WorkingMemory is per-NPC (Устав §4.1.1) | `Устав §4.1.1` |
@@ -1433,51 +1391,43 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | DirectiveInterpretationSubscriber | BodyState | FORBIDDEN: Shock > 0.7 check AFTER semantic parsing (ADR-O-139) | `directive_interpretation_subscriber.py` |
 | PerceptualKernel | Psyche | FORBIDDEN: Somatic Bypass (Injecting pain/shock directly into psyche dict) (ADR-O-143) | `affective_integrator.py` |
 | InjuryProcessor | PainDelta | REQUIRED: InjuryProcessor MUST generate pain_delta alongside blood_loss_delta (ADR-141) | `injury_processor.py` |
+| TickOrchestrator | NPCState | FORBIDDEN: Using NPCState.from_legacy. MUST use NPCStateAdapter.from_legacy (ADR-S85.1.1) | `-` |
 | LifeEngine | NPC_Position | FORBIDDEN: Direct mutation (ADR-051) | `-` |
 | Any | State | FORBIDDEN: Bypass DeltaBuffer | `-` |
 | TickOrchestrator | Time | FORBIDDEN: TICK_CATCHUP loops (ADR-047) | `-` |
 | TickOrchestrator | TickContext | FORBIDDEN: Emergency SpatialService build when cache exists (ADR-065) | `-` |
 | TickOrchestrator | TickContext | FORBIDDEN: Use location_id as campaign_id (ADR-089) | `-` |
 | DMAgent | FakeNarrative | FORBIDDEN: Fake narrative fallback on LLM failure (ADR-113) | `-` |
-| NPCStateAdapter | NPCState | REQUIRED: Round-trip integrity — every field in NPCState must survive from_legacy→write_to_legacy cycle (ADR-117) | `-` |
-| _aggregate_deltas | EmotionPayload | REQUIRED: Merge MUST preserve all fields from both payloads (ADR-117) | `-` |
-| StateApplicator | relationship_cache | REQUIRED: Partial Social Graph Projection (S69) | `-` |
-| DecisionHub | relationship_cache | REQUIRED: Precedence Contract (Graph > Scalar > Vacuum) via _get_rel_value (S69) | `-` |
-| TickOrchestrator | IntentParametersDTO | DEPRECATED: target_id field (ADR-125) | `-` |
+| NPCStateAdapter | NPCState | REQUIRED: Round-trip integrity (ADR-117) | `-` |
 | LifeEngine | LifeEngine | REQUIRED: update_cache() called after every apply_batch (ADR-117) | `-` |
 | LifeEngine | SqlitePersistenceAdapter | REQUIRED: SQLite read-back on cache miss (ADR-128) | `-` |
-| PlayerAvatarService | body_state | REQUIRED: body_state/affective_load/perceptual_kernel serialization (ADR-128) | `-` |
-| GameLoop | PlayerAction | REQUIRED: Action Eligibility Gate — check player life_status BEFORE lock_for_tick (ADR-131) | `-` |
-| AvatarPresentationAssembler | pain_fatigue | REQUIRED: Normalize pain/fatigue /100.0 before threshold comparison (ADR-094 MSOC) | `-` |
-| PressureTranslator | pain | REQUIRED: Normalize pain /100.0 before Somatic Veto thresholds (ADR-094 MSOC) | `-` |
+| GameLoop | PlayerAction | REQUIRED: Action Eligibility Gate (ADR-131) | `-` |
+| AvatarPresentationAssembler | pain_fatigue | REQUIRED: Normalize pain/fatigue /100.0 (ADR-094 MSOC) | `-` |
+| PressureTranslator | pain | REQUIRED: Normalize pain /100.0 (ADR-094 MSOC) | `-` |
 | AvatarStateDTO | life_status | REQUIRED: AvatarStateDTO MUST contain life_status field (ADR-137) | `-` |
-| GameLoop | WorldSnapshotDTO | REQUIRED: Death Guard MUST include npc_positions in world_snapshot (ADR-137) | `-` |
-| TickOrchestrator | DRFBus | FORBIDDEN: DRFBus via default_factory in _TickContext — split-brain (ADR-134) | `-` |
-| Any | DRFBus | FORBIDDEN: Monkey-patch function for bus injection (ADR-134) | `-` |
-| TickOrchestrator | DRFExecutionContext | REQUIRED: Pass drf_ctx (not bare drf_bus) to pipeline (ADR-136) | `-` |
-| TickOrchestrator | MovementIntent | REQUIRED: DRF scoring overlay in BOTH idle and player paths (ADR-135) | `-` |
-| Any | priority_scale | FORBIDDEN: Clamp override max(priority, N) at 0.0-1.0 scale (ADR-135) | `-` |
+| TickOrchestrator | DRFBus | FORBIDDEN: DRFBus via default_factory in _TickContext (ADR-134) | `-` |
 | AffectivePipeline | affective_load | REQUIRED: Asymmetric Attractor (Hysteresis). NO leaky integrator (ADR-138) | `-` |
-| AffectiveDecayHandler | PerceptualKernel | REQUIRED: PK Idle Decay (Rule 38/85, ADR-138) | `-` |
 | ProjectionEngine | SpatialService | FORBIDDEN: SpatialService query inside apply_changes (Rule 117, ADR-O-201) | `-` |
 | ProjectionEngine | RNG | FORBIDDEN: RNG inside apply_changes (Rule 118, ADR-O-201) | `-` |
 | ProjectionEngine | Pathfinding | FORBIDDEN: Pathfinding inside apply_changes (Rule 119, ADR-O-201) | `-` |
 | ProjectionEngine | TraversalState | FORBIDDEN: Traversal creation inside apply_changes (Rule 120, ADR-O-201) | `-` |
-| ProjectionEngine | Geometry | FORBIDDEN: Geometric computation inside apply_changes (Rule 121, ADR-O-201) | `-` |
-| TickOrchestrator | SceneState | FORBIDDEN: Direct state mutation before apply_changes (Rule 122, ADR-O-201) | `-` |
-| ThickSceneChange | SpatialResolution | REQUIRED: SceneChange with full SpatialResolution for NPC_POSITION (Rule 123, ADR-O-201) | `-` |
-| ProjectionEngine | BranchingLogic | FORBIDDEN: apply_changes with branching logic >1 level (Rule 124, ADR-O-201) | `-` |
-| SnapshotKernel | Mutation | FORBIDDEN: Snapshot mutation after creation (Rule 125, ADR-O-201) | `-` |
-| EquivalenceValidator | DriftIndex | FORBIDDEN: Drift Index with Class D (Causal) or E (Ontological) in production (Rule 126, ADR-O-201) | `-` |
 | Any | L1Chronicle | FORBIDDEN: Deletion from L1Chronicle (Append-only history) (ADR-O-208) | `-` |
 | Any | EffectiveDrives | FORBIDDEN: Caching EffectiveDrives (L3-P1 is strictly ephemeral) (ADR-O-208) | `-` |
 | StateApplicator | OntologyViolationError | REQUIRED: Raise OntologyViolationError and kill tick on NaN, sum!=1.0, or bounds violation (ADR-O-207) | `-` |
-| CalibrationEngine | DriveResolver | REQUIRED: Prevent uncalibrated drift of base drives (Anti-oscillation) (ADR-O-211) | `-` |
-| LifeEngine | IntentDomain | REQUIRED: Viability Pre-Generation Gate. Threat excludes ROUTINE domain BEFORE intent generation (ADR-O-137) | `-` |
-| MacroMovementGoal | IntentDomain | REQUIRED: MovementIntent MUST have domain field for viability mask (ADR-O-137) | `-` |
-| TickOrchestrator | active_traversals | REQUIRED: Zombie cleanup — COMPLETED traversals MUST be removed from active_traversals after processing (S87 БАГ Z) | `tick_orchestrator.py:zombie_cleanup` |
-| TickOrchestrator | _compute_effective_drives | REQUIRED: Unpack tuple result — _compute_effective_drives returns (map, updates), NOT dict (S88 БАГ T) | `tick_orchestrator.py:611,1685` |
-| _score_components | _drive_relevance | REQUIRED: Propagate effective_drives through _drive_relevance to _context_relevance (S88 БАГ E) | `decision_hub.py:905,980-987` |
+| LifeEngine | MovingNPC | FORBIDDEN: LifeEngine generating intents for NPC in status MOVING (ADR-154) | `-` |
+| ProjectionEngine | ActiveTraversal | FORBIDDEN: apply_changes overwriting active traversal with status MOVING (ADR-130.1) | `-` |
+| ProjectionEngine | TraversalComplete | FORBIDDEN: Creating new TraversalState for cause=traversal_complete. MUST snap local_position (ADR-130.2) | `-` |
+| EventCompiler | NullCoordinate | FORBIDDEN: Using None for SpatialResolution.target_xy. MUST use (0.0, 0.0) fallback (ADR-O-201.3) | `-` |
+| EquivalenceValidator | CrossLocationTopology | FORBIDDEN: validate_topology for cross-location transitions. Nodes are physically different (ADR-O-201.2) | `-` |
+| TickOrchestrator | NPCState | FORBIDDEN: Using NPCState.from_legacy. MUST use NPCStateAdapter.from_legacy (ADR-S85.1.1) | `-` |
+| BreakProgressEngine | TraitDriftEvent | FORBIDDEN: Using legacy fields (npc_id, tick, trait, delta). MUST use (target_id, tick_id, effect_value) (ADR-O-208.1) | `-` |
+| StateApplicator | HP | FORBIDDEN: Direct write to state.hp. MUST write to body_state['current_hp'] (ADR-HP-UNIFICATION) | `-` |
+| CalibrationEngine | DrivesRuntime | FORBIDDEN: Applying ctx.drives_updates to state.drives_runtime. CalibrationEngine MUST be pass-through (ADR-O-211) | `-` |
+| MemoryManager | IdentityPromotion | FORBIDDEN: check_identity_promotion in idle ticks without phase_2_events. Prevents phantom identity drift (ADR-S86.7) | `-` |
+| PatternDetector | EventType | FORBIDDEN: Using event_type in mathematical formulas (ADR-O-305A) | `-` |
+| PatternDetector | Psychology | FORBIDDEN: PatternDetector reading emotions, drives, or beliefs (ADR-O-306) | `-` |
+| BeliefCrystallizationEngine | L1Chronicle | FORBIDDEN: BeliefCrystallizationEngine reading L1Chronicle directly. MUST use EvidenceOfPersistence (ADR-O-305) | `-` |
+| BeliefCrystallizationEngine | CrystallizedBelief | REQUIRED: Asymmetric Trauma (x6 multiplier) and Belief Decay Model (ADR-O-307 / ADR-O-305.1) | `-` |
 | CognitiveDistortion | ObjectiveReality | REQUIRED: Player MUST NOT see objective reality directly | `-` |
 | RecognitionLayer | NPCName | REQUIRED: Unknown NPC MUST have generic description | `-` |
 | ReactionResolver | AffectivePipeline | REQUIRED: Anti-DOUBLE TRUTH bootstrap (ADR-117) | `tick_orchestrator.py:_run_affective_pipeline` |
@@ -1496,7 +1446,7 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | EventCompiler | SpatialService | FORBIDDEN: Node lookup in snapshot.spatial_service for cross-location SceneChange (S88 БАГ S) | `event_compiler.py:168-173` |
 | EventCompiler | SceneChange | REQUIRED: boundary_snap fallback uses change.value and change.target_local_xy when node=None (S88 БАГ S) | `event_compiler.py:231-234` |
 | TickOrchestrator | SpatialService | REQUIRED: SpatialService per-location scope — get_node() cannot resolve cross-location nodes (S88) | `spatial_service.py:117-129` |
-| DataManager | EditorJSON | REQUIRED: Map editor nodes added via DataManager.add_node() — NOT manual JSON editing (S88 БАГ N) | `graph_compiler.py:134-153` |
+| DataManager | EditorJSON | REQUIRED: Map editor nodes added via DataManager.add_node() — NOT manual JSON editing (S88 БАГ N) | `data_manager.py:847-858, graph_compiler.py:134-153` |
 | SpatialQueryService | SpatialRuntime | FORBIDDEN: Wrong argument order in is_line_of_sight_clear call (ADR-129) | `spatial_query_service.py:68` |
 | SceneStateManager | SpatialRuntime | FORBIDDEN: CEI-2 uses is_movement_blocked instead of is_blocked_by_wall (ADR-129) | `scene_state_manager.py:1276` |
 | SpatialRuntime | SceneState | REQUIRED: normalize_scene_state() on every consumer function (ADR-129) | `spatial_runtime.py` |
@@ -1512,6 +1462,12 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | LifeEngine | SceneStateManager | REQUIRED: Movement Lock — update_routine MUST check scene_state.active_traversals before mutating routine (ADR-130) | `-` |
 | LifeEngine | _resolve_position | FORBIDDEN: Fallback to string nodes like 'common_area' (S85.1) | `life_engine.py:1633` |
 | SpatialQueryService | SceneState | FORBIDDEN: Read distances or positions directly from scene_state (ADR-048) | `-` |
+| LifeEngine | MovingNPC | FORBIDDEN: LifeEngine generating intents for NPC in status MOVING (ADR-154) | `-` |
+| SceneStateManager | ActiveTraversal | FORBIDDEN: apply_changes overwriting active traversal with status MOVING (ADR-130.1) | `-` |
+| SceneStateManager | TraversalComplete | FORBIDDEN: Creating new TraversalState for cause=traversal_complete. MUST snap local_position (ADR-130.2) | `-` |
+| EventCompiler | BoundaryFlag | REQUIRED: EventCompiler MUST set is_boundary=True when target_loc is present (ADR-O-201.1) | `-` |
+| EventCompiler | NullCoordinate | FORBIDDEN: Using None for SpatialResolution.target_xy. MUST use (0.0, 0.0) fallback (ADR-O-201.3) | `-` |
+| EquivalenceValidator | CrossLocationTopology | FORBIDDEN: validate_topology for cross-location transitions. Nodes are physically different (ADR-O-201.2) | `-` |
 | JsonPersistenceAdapter | RuntimeTruth | FORBIDDEN: JSON as runtime truth (Устав §4.2.2) | `Устав §4.2.2` |
 | StateApplicator | PersistencePort | REQUIRED: atomic_commit for all saves (Устав §4.2.1) | `Устав §4.2.1` |
 | SqlitePersistenceAdapter | JSON | REQUIRED: json.dumps with default handler for set (ADR-117) | `sqlite_persistence_adapter.py:76` |
