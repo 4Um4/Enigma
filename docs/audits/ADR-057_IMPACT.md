@@ -1,4 +1,4 @@
-# ADR-057 Impact Audit: Legitimacy Gate & Elastic Time Foundation
+﻿# ADR-057 Impact Audit: Legitimacy Gate & Elastic Time Foundation
 
 ## Changed Domains
 - SOCIAL (DirectiveInterpretationSubscriber: Legitimacy Gate)
@@ -25,7 +25,7 @@
 3. Удалить инжект темы в `npc_tick_pipeline.py`.
 ```
 
-Файл: docs/Tasks/ADR (Architecture Decision Records).md
+Файл: docs/ADR (Architecture Decision Records).md
 
 ```markdown
 ### ADR-057: Legitimacy Gate & Elastic Time Foundation

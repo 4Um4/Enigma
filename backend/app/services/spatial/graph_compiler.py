@@ -162,6 +162,26 @@ def compile_graph(
         logger.warning(f"[GRAPH_COMPILER] Нет узлов (rooms/nodes) в {location_id}")
         return {}, {}, {}, {}
 
+    # ── Извлечение физической геометрии (ETKE-IK v1) ─────────────
+    # Геометрия комнат нужна WorldTopologyProvider для вычисления AffordanceVector.
+    rooms_geometry: Dict[str, List[Tuple[float, float]]] = {}
+    for room_id, room_data in rooms.items():
+        polygon = room_data.get("polygon")
+        if polygon and isinstance(polygon, list) and len(polygon) >= 3:
+            rooms_geometry[room_id] = [(float(p[0]), float(p[1])) for p in polygon]
+        else:
+            rx = room_data.get("x", 0.0)
+            ry = room_data.get("y", 0.0)
+            rw = room_data.get("width") or room_data.get("w") or 0.0
+            rh = room_data.get("height") or room_data.get("h") or 0.0
+            if rw > 0 and rh > 0:
+                rooms_geometry[room_id] = [
+                    (rx, ry),
+                    (rx + rw, ry),
+                    (rx + rw, ry + rh),
+                    (rx, ry + rh)
+                ]
+
     # ── Room → graph (orphan rooms + name enrichment) ──────────────
     # Для каждой комнаты проверяем: есть ли навигационный узел,
     # представляющий эту комнату? Если да — обогащаем alias_map.
@@ -316,7 +336,8 @@ def compile_graph(
     )
 
     # ДОЛГ 6.2: _legacy_compile не имеет adjacency → boundary_map пуста
-    return graph, connections, alias_map, boundary_map
+    # ETKE-IK v1: возвращаем rooms_geometry 5-м элементом
+    return graph, connections, alias_map, boundary_map, rooms_geometry
     rooms_raw = editor_data.get("rooms", editor_data.get("nodes", {}))
     
     # Map Editor отдаёт узлы как список [{id, x, y...}], компилятор ждёт словарь {id: {x, y...}}

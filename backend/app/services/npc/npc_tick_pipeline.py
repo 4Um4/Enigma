@@ -182,6 +182,10 @@ def create_memory_event(
 
 # ── Verbalization context builder ───────────────────────────────────────────
 
+
+# TODO: EXPRESSION LAYER (ADR-TZ05-1). Функция временно размещена здесь, но не является частью симуляционного ядра.
+# Подлежит переносу в DM/LLM verbalization слой и переписыванию на observed_state вместо state_for_llm.
+# В execution path (run_npc_pipeline) вызов удалён.
 def build_verbalization_context(
     memory_manager: Any,
     profile_l0: Any,
@@ -720,14 +724,9 @@ def run_npc_pipeline(
                 _npc_dict_for_write, npc_id,
             )
 
-            # 4. Упаковка в VerbalizationContext (Enum -> Строки для LLM)
-            verb_ctx = build_verbalization_context(
-                svc.memory_manager, profile_l0, state_to_use_for_llm, decision,
-                hub_event, inp.raw_input,
-                campaign_id=inp.campaign_id,
-                topic=_topic,
-            )
-
+            # Epistemic Boundary (ADR-TZ08-4): Ядро не генерирует VerbalizationContext.
+            # LLM-промпты будут собираться в game_loop. В ядре остаётся только topic.
+            
             # Формируем единый контекст NPC
             _stress_d = 0.0
             _trust_d = 0.0
@@ -744,13 +743,16 @@ def run_npc_pipeline(
                 "npc_id": npc_id,
                 "tier": profile_l0.tier,
                 "profile_l0": profile_l0,           # ФАЗА 0: для voice/backstory/author_notes
-                "verbalization_ctx": verb_ctx,       # КЛЮЧ: Переключает агента на путь R3!
-                "decision_result": decision,          # Для будущего StateApplicator
-                "distortion_bias": interpretation.bias,  # Для ProjectionLayer (речь)
-                "real_state": _npc_dict_for_write,    # Legacy dict для ProjectionLayer
-                "trust_delta": _trust_d,              # Для StateApplicator
-                "stress_delta": _stress_d,            # Для StateApplicator
-                "micro_events": _micro_events,        # ШАГ 0.5: физические реакции
+                "topic": _topic,                    # ФАЗА 4: тема NPC из TopicExtractor (Устав 3.2)
+                "decision_result": decision,          # Для R3 Direct Builder
+                # Epistemic Boundary: Ядро генерирует только наблюдаемый слепок.
+                # Ментальные объекты (psyche, social_stats, stress) исключены.
+                "observed_state": {
+                    "name": _npc_dict_for_write.get("name", npc_id),
+                    "description": _npc_dict_for_write.get("description", ""),
+                    "narrative_cache": _npc_dict_for_write.get("narrative_cache", [])
+                },
+                "micro_events": _micro_events,        # ШАГ 0.5: физические реакции для R3
                 "perceived_events": _perceived,       # Scene Event Layer: что NPC воспринимает
             })
 

@@ -1,5 +1,5 @@
-# ADR-O-305 Impact Audit: Belief Crystallization Engine (L2.5)
-> Этот файл — детальный аудит ADR-O-305. Единый атлас всех ADR: `docs\Tasks\ADR (Architecture Decision Records).md`
+﻿# ADR-O-305 Impact Audit: Belief Crystallization Engine (L2.5)
+> Этот файл — детальный аудит ADR-O-305. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
 
 ## Changed Domains
 - DOM-10: IDENTITY & ONTOLOGY (L2.5 Belief Layer)

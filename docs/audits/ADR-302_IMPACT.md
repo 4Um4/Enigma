@@ -1,6 +1,6 @@
 ﻿# ADR-302 Impact Audit: SIL, DSTC & SEL (Active Inference)
 
-> Этот файл — детальный аудит эволюции ADR-302. Единый атлас всех ADR: `docs\Tasks\ADR (Architecture Decision Records).md`
+> Этот файл — детальный аудит эволюции ADR-302. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
 
 ## Changed Domains
 - emotion/affective (SIL isolation, Semantic Echo elimination, **SEL Active Inference добавление**)

@@ -52,6 +52,8 @@ flowchart TD
         DRFExecutionContext["DRF Execution Context (Scoped Causal Ledger)"]:::application
         NPCStateAdapter("NPCState Adapter (Serialization Bridge)"):::application
         CrystallizedBeliefModifierResolver("Crystallized Belief Modifier Resolver (L2.5 -> Drive Modifiers)"):::application
+        BreakProgressEngine("Break Progress Engine"):::application
+        BehaviorMaskEvaluator("Behavior Mask Evaluator"):::application
         CalibrationEngine("Calibration Engine (Pass-through / Deprecated)"):::application
         PatternDetector("Pattern Detector (L1.5 Source Grouping & Noise Filter)"):::application
         BeliefCrystallizationEngine("Belief Crystallization Engine (L2.5)"):::application
@@ -68,14 +70,16 @@ flowchart TD
         PipelineContext["Pipeline Context"]:::application
         AffectiveDecayHandler("Affective Decay Handler (Phase 0.5)"):::application
         ProjectionEngine("Projection Engine (Pure State Writer)"):::application
-        BehaviorMaskEvaluator("Behavior Mask Evaluator"):::application
-        BreakProgressEngine("Break Progress Engine"):::application
         PlayerCognitionPipeline("Player Cognition Pipeline"):::application
         LifeEngine("Life Engine"):::application
         EventCompiler("Event Compiler (Physics Generator)"):::application
         EquivalenceValidator("Equivalence Validator"):::application
         MovementEngine("Movement Engine"):::application
         SceneStateManager("Scene State Manager (Projection Engine)"):::application
+        WorldTopologyProvider("World Topology Provider (ETKE-IK Gateway)"):::application
+        CollisionAvoidance("Collision Avoidance (Reactive Layer)"):::application
+        SteeringResolver("Steering Resolver (ETKE-IK)"):::application
+        MotionIntegrator("Motion Integrator (ETKE-IK)"):::application
         BoundaryRouter("Boundary Router"):::application
         ContextBuilder("Context Builder"):::application
         TemporalEngine("Temporal Engine"):::application
@@ -167,9 +171,15 @@ flowchart TD
         ReactionRules("Reaction Rules"):::domain
         SpatialService("Spatial Query Service v1.2"):::domain
         SpatialQueryService("Spatial Query Service (Read Authority)"):::domain
-        TraversalState("Traversal State (LOD1)"):::domain
+        TraversalDict("Traversal Dict (LOD1)"):::domain
         SceneChange["SceneChange (Projection)"]:::domain
         MacroMovementGoal["Macro Movement Goal (LOD1)"]:::domain
+        AffordanceVector("Affordance Vector (Field Capabilities)"):::domain
+        BodySchema("Body Schema (Kinematic Profile)"):::domain
+        DriveVector["Drive Vector (Continuous Movement Intent)"]:::domain
+        KinematicProfile["Kinematic Profile (Frontend Output)"]:::domain
+        MotionPrimitive("Motion Primitive (Enum)"):::domain
+        RoomsGeometry["Rooms Geometry (Polygons)"]:::domain
         AdjacencyInference("Adjacency Inference"):::domain
         SpatialRuntime("Spatial Runtime (LOS, Sound, Scene Extraction)"):::domain
         LocationGraph["LocationGraph (DEPRECATED — ADR-102)"]:::domain
@@ -200,7 +210,7 @@ flowchart TD
         YAMLMemoryExport("YAML Memory Export"):::infrastructure
         SQLiteDB[("Runtime SQLite")]:::infrastructure
         LlamaServer[["LLM API (llama-server :8080)"]]:::infrastructure
-        GraphCompiler("Graph Compiler (v2 - List format + Adjacency + Boundary)"):::infrastructure
+        GraphCompiler("Graph Compiler (v2 - List format + Adjacency + Boundary + Geometry)"):::infrastructure
         EditorJSON[("Map Editor JSON (rooms as list)")]:::infrastructure
         BuiltinFallback["Builtin Fallback Graph"]:::infrastructure
         SqlitePersistenceAdapter("SQLite Persistence Adapter"):::infrastructure
@@ -243,6 +253,10 @@ flowchart TD
     PerceptualKernel -->|"Viability mask projection"| IntentDomain
     CrystallizedBeliefStore -->|"get_beliefs() → List[CrystallizedBelief]"| CrystallizedBeliefModifierResolver
     CrystallizedBeliefModifierResolver ==>|"resolve() → drive_modifiers (Dict[str, float])"| DecisionHub
+    TickOrchestrator -->|"calculates will_state breaks"| BreakProgressEngine
+    BreakProgressEngine -->|"commits TraitDriftEvent (target_id, effect_value)"| L1Chronicle
+    TickOrchestrator -->|"evaluates mask before DecisionHub"| BehaviorMaskEvaluator
+    BehaviorMaskEvaluator -->|"applies social mask to utility scoring"| DecisionHub
     GameStdout -->|"reads logs"| CausalObserver
     GitHistory -->|"reads git log & TODOs"| CausalObserver
     DeterministicClock -->|"provides tick context"| CausalTrace
@@ -278,6 +292,7 @@ flowchart TD
     GameScreen -->|"t(), activity_ru(), manifest_color()"| I18n
     APIRoutes -->|"manifestations (List[ManifestationDTO])"| GameScreen
     TraitDriftEvent -->|"appends drift record"| L1Chronicle
+    BreakProgressEngine -->|"commits TraitDriftEvent (target_id, effect_value)"| L1Chronicle
     L1Chronicle -->|"provides weighted history"| DriveResolver
     DriveResolver -->|"computes ephemeral projection"| EffectiveDrives
     EffectiveDrives -->|"pass-through (no scalar mutation)"| CalibrationEngine
@@ -305,11 +320,14 @@ flowchart TD
     BeliefAggregator -->|"aggregated evidence → belief update"| BeliefTransitionEngine
     ContradictionResolver -->|"contradiction detected → belief revision"| BeliefTransitionEngine
     RelationshipStore -->|"relationship_cache updates"| StateApplicator
+    TickOrchestrator -->|"_phase_3_memory: compress_narrative_cache"| MemoryManager
+    TickOrchestrator -->|"_phase_3_memory: check_identity_promotion"| MemoryManager
     CombatSubscriber -->|"resolves contact"| ImpactEngine
     ImpactEngine ==>|"computes"| PhysiologyPayload
     PhysiologyPayload -->|"flushed to"| DeltaBuffer
     DecayHandler -->|"time-driven decay (Phase 0.5) — pain/fatigue/blood_loss/shock_impulse"| DeltaBuffer
     InjuryProcessor -->|"injury-driven bleeding + chronic pain (Phase 0.5)"| DeltaBuffer
+    StateApplicator -->|"writes damage to body_state['current_hp'] (ADR-HP-UNIFICATION)"| BodyState
     StateApplicator -->|"evaluates body_state after PHYSIOLOGY domain"| VitalStateEvaluator
     VitalStateEvaluator -->|"DEAD/UNCONSCIOUS → IDLE guard"| DecisionHub
     PhysiologyPayload -.->|"provides pain & shock"| StateInterpreter
@@ -377,13 +395,22 @@ flowchart TD
     EventBus -->|"EventDTO → micro events classification"| ReactionRules
     ReactionRules -->|"List[MicroEvent] → resolve"| ReactionResolver
     ReactionResolver -->|"immediate reaction → EmotionPayload"| DeltaBuffer
+    DriveVector -->|"resolve(drive, body, affordance)"| SteeringResolver
+    SteeringResolver -->|"produces velocity"| KinematicProfile
+    KinematicProfile -->|"integrate(position, velocity)"| MotionIntegrator
+    MotionIntegrator -->|"updates position & exertion"| KinematicProfile
+    SpatialService -->|"provides discrete geometry"| WorldTopologyProvider
+    WorldTopologyProvider -->|"query_affordance_field(region, pos)"| AffordanceVector
     EditorJSON -->|"load_editor_json"| GraphCompiler
     BuiltinFallback -->|"fallback graph"| GraphCompiler
     SpatialRuntime -->|"resolve_distance + extract_scene (ADR-102)"| SpatialService
     SceneStateManager -.->|"enriches scene_state with campaign_id (ADR-102)"| SpatialRuntime
     GraphCompiler -->|"triggers if passages empty"| AdjacencyInference
     AdjacencyInference -->|"returns inferred passages"| GraphCompiler
-    GraphCompiler -->|"compiles graph + boundary_map"| SpatialService
+    GraphCompiler -->|"compiles graph + boundary_map + rooms_geometry"| SpatialService
+    SpatialService -->|"is_point_in_bounds(x, y)"| WorldTopologyProvider
+    LifeEngine -->|"generates with MotionPrimitive"| DriveVector
+    DriveVector -->|"apply(drive, pos, topology)"| CollisionAvoidance
     SpatialService -->|"provides read-only spatial API"| SpatialQueryService
     SpatialQueryService -->|"reads graph & positions"| MovementEngine
     SpatialService -->|"get_node(target_id)"| MovementEngine
@@ -392,7 +419,7 @@ flowchart TD
     DecisionHub -->|"produces domain-typed movement goal"| MacroMovementGoal
     MovementEngine -->|"produces"| SceneChange
     SceneChange -->|"applied by"| SceneStateManager
-    SceneStateManager -->|"enriches & interpolates"| TraversalState
+    SceneStateManager -->|"enriches, interpolates & transitions"| TraversalDict
     EventCompiler -->|"resolves boundary transitions at compile time"| BoundaryNode
     PersistencePort -->|"primary implementation"| SqlitePersistenceAdapter
     PersistencePort -->|"fallback implementation"| JsonPersistenceAdapter
@@ -457,6 +484,8 @@ flowchart TD
     LifeEngine -.->|"🚫 REQUIRED: Every _NEED_TO_ACTIVITY entry MUST have corresponding _NEED_ROLE_MAP entry (ADR-150)"| _NEED_ROLE_MAP:::forbidden
     LifeEngine -.->|"🚫 FORBIDDEN: LifeEngine generating intents for NPC in status MOVING (ADR-154)"| MovingNPC:::forbidden
     CrystallizedBeliefModifierResolver -.->|"🚫 REQUIRED: L2.5 beliefs MUST be injected as drive_modifiers, not bypassing scoring (ADR-O-305)"| DecisionHub:::forbidden
+    BreakProgressEngine -.->|"🚫 FORBIDDEN: Using legacy fields (npc_id, tick, trait, delta). MUST use (target_id, tick_id, effect_value) (ADR-O-208.1)"| TraitDriftEvent:::forbidden
+    BehaviorMaskEvaluator -.->|"🚫 REQUIRED: Mask must be quasi-stable (hysteresis). Prevent social role flickering (ADR-S86.4)"| BehaviorMask:::forbidden
     CausalObserver -.->|"🚫 FORBIDDEN: Feedback loop into simulation"| Runtime_State:::forbidden
     CDS -.->|"🚫 FORBIDDEN: Interrupt causal flow on crash"| Pipeline:::forbidden
     TickOrchestrator -.->|"🚫 REQUIRED: Log pre-bus failures as [PIPELINE][CRITICAL], [PHASE8_CRASH], [AFFECT_DECAY] (Invariant 3, ADR-120)"| CausalObserver:::forbidden
@@ -478,6 +507,8 @@ flowchart TD
     Any -.->|"🚫 FORBIDDEN: Caching EffectiveDrives (L3-P1 is strictly ephemeral)"| EffectiveDrives:::forbidden
     StateApplicator -.->|"🚫 REQUIRED: Raise OntologyViolationError and kill tick on NaN, sum!=1.0, or bounds violation"| OntologyViolationError:::forbidden
     CalibrationEngine -.->|"🚫 DEPRECATED for scalar mutation (Test C noise accumulation). Pass-through mode ONLY"| EffectiveDrives:::forbidden
+    CalibrationEngine -.->|"🚫 FORBIDDEN: Applying ctx.drives_updates to state.drives_runtime. CalibrationEngine MUST be pass-through (ADR-O-211)"| DrivesRuntime:::forbidden
+    BreakProgressEngine -.->|"🚫 FORBIDDEN: Using legacy fields (npc_id, tick, trait, delta). MUST use (target_id, tick_id, effect_value) (ADR-O-208.1)"| TraitDriftEvent:::forbidden
     DecisionHub -.->|"🚫 REQUIRED: Projection-native scoring. L0 (drives_base) prohibited in scoring"| EffectiveDrives:::forbidden
     BeliefCrystallizationEngine -.->|"🚫 REQUIRED: Beliefs modify policy via source-specific vectors, NOT abstract scalar fear"| DecisionHub:::forbidden
     PatternDetector -.->|"🚫 REQUIRED: Group by source. Do not accumulate noise from uncorrelated events"| L1Chronicle:::forbidden
@@ -493,6 +524,7 @@ flowchart TD
     PromotionEngine -.->|"🚫 FORBIDDEN: Promotion as method of LayeredMemory (Устав §4.1.3)"| LayeredMemory:::forbidden
     YAMLMemoryExport -.->|"🚫 FORBIDDEN: YAML as runtime truth (Устав §4.2.2)"| RuntimeTruth:::forbidden
     DecisionHub -.->|"🚫 REQUIRED: Topic must not be empty (Устав §3.2)"| TopicExtractor:::forbidden
+    MemoryManager -.->|"🚫 FORBIDDEN: check_identity_promotion in idle ticks without phase_2_events. Prevents phantom identity drift (ADR-S86.7)"| IdentityPromotion:::forbidden
     CombatSubscriber -.->|"🚫 FORBIDDEN: Domain Leakage (ADR-021)"| Emotion:::forbidden
     StateInterpreter -.->|"🚫 FORBIDDEN: Ignore pain/shock"| HP_Ratio:::forbidden
     StateInterpreter -.->|"🚫 FORBIDDEN: Read pain without /100.0 normalization"| Pain_Scale:::forbidden
@@ -531,6 +563,7 @@ flowchart TD
     PerceptualKernel -.->|"🚫 FORBIDDEN: Somatic Bypass (Injecting pain/shock directly into psyche dict) (ADR-O-143)"| Psyche:::forbidden
     InjuryProcessor -.->|"🚫 REQUIRED: InjuryProcessor MUST generate pain_delta alongside blood_loss_delta (ADR-141)"| PainDelta:::forbidden
     TickOrchestrator -.->|"🚫 FORBIDDEN: Using NPCState.from_legacy. MUST use NPCStateAdapter.from_legacy (ADR-S85.1.1)"| NPCState:::forbidden
+    StateApplicator -.->|"🚫 FORBIDDEN: Direct write to state.hp. MUST write to body_state['current_hp'] (ADR-HP-UNIFICATION)"| HP:::forbidden
     LifeEngine -.->|"🚫 FORBIDDEN: Direct mutation (ADR-051)"| NPC_Position:::forbidden
     Any -.->|"🚫 FORBIDDEN: Bypass DeltaBuffer"| State:::forbidden
     TickOrchestrator -.->|"🚫 FORBIDDEN: TICK_CATCHUP loops (ADR-047)"| Time:::forbidden
@@ -549,13 +582,14 @@ flowchart TD
     ProjectionEngine -.->|"🚫 FORBIDDEN: SpatialService query inside apply_changes (Rule 117, ADR-O-201)"| SpatialService:::forbidden
     ProjectionEngine -.->|"🚫 FORBIDDEN: RNG inside apply_changes (Rule 118, ADR-O-201)"| RNG:::forbidden
     ProjectionEngine -.->|"🚫 FORBIDDEN: Pathfinding inside apply_changes (Rule 119, ADR-O-201)"| Pathfinding:::forbidden
-    ProjectionEngine -.->|"🚫 FORBIDDEN: Traversal creation inside apply_changes (Rule 120, ADR-O-201)"| TraversalState:::forbidden
+    ProjectionEngine -.->|"🚫 FORBIDDEN: Traversal creation inside apply_changes (Rule 120, ADR-O-201)"| TraversalDict:::forbidden
     Any -.->|"🚫 FORBIDDEN: Deletion from L1Chronicle (Append-only history) (ADR-O-208)"| L1Chronicle:::forbidden
     Any -.->|"🚫 FORBIDDEN: Caching EffectiveDrives (L3-P1 is strictly ephemeral) (ADR-O-208)"| EffectiveDrives:::forbidden
     StateApplicator -.->|"🚫 REQUIRED: Raise OntologyViolationError and kill tick on NaN, sum!=1.0, or bounds violation (ADR-O-207)"| OntologyViolationError:::forbidden
     LifeEngine -.->|"🚫 FORBIDDEN: LifeEngine generating intents for NPC in status MOVING (ADR-154)"| MovingNPC:::forbidden
     ProjectionEngine -.->|"🚫 FORBIDDEN: apply_changes overwriting active traversal with status MOVING (ADR-130.1)"| ActiveTraversal:::forbidden
-    ProjectionEngine -.->|"🚫 FORBIDDEN: Creating new TraversalState for cause=traversal_complete. MUST snap local_position (ADR-130.2)"| TraversalComplete:::forbidden
+    ProjectionEngine -.->|"🚫 FORBIDDEN: Creating new traversal_dict for cause=traversal_complete. MUST snap local_position (ADR-130.2, ADR-TRAV-FSM)"| TraversalComplete:::forbidden
+    ProjectionEngine -.->|"🚫 FORBIDDEN: Direct mutation of traversal status. MUST use transition_traversal() FSM (ADR-TRAV-FSM)"| TraversalStatus:::forbidden
     EventCompiler -.->|"🚫 FORBIDDEN: Using None for SpatialResolution.target_xy. MUST use (0.0, 0.0) fallback (ADR-O-201.3)"| NullCoordinate:::forbidden
     EquivalenceValidator -.->|"🚫 FORBIDDEN: validate_topology for cross-location transitions. Nodes are physically different (ADR-O-201.2)"| CrossLocationTopology:::forbidden
     TickOrchestrator -.->|"🚫 FORBIDDEN: Using NPCState.from_legacy. MUST use NPCStateAdapter.from_legacy (ADR-S85.1.1)"| NPCState:::forbidden
@@ -582,6 +616,10 @@ flowchart TD
     GraphCompiler -.->|"🚫 FORBIDDEN: Use room x,y as node coordinates (must use centroid x+w/2, y+h/2)"| EditorJSON:::forbidden
     GameScreen -.->|"🚫 FORBIDDEN: Overwrite local_position for NPC in MOVING status (ADR-096)"| WorldSnapshotDTO:::forbidden
     GraphCompiler -.->|"🚫 REQUIRED: Role-based legacy aliases in alias_map (ADR-114)"| LegacyName:::forbidden
+    WorldTopologyProvider -.->|"🚫 REQUIRED: Non-uniform field. MUST query is_point_in_bounds. (S90 Audit)"| AffordanceVector:::forbidden
+    CollisionAvoidance -.->|"🚫 REQUIRED: MUST execute before SteeringResolver. Modifies direction/intensity based on geometry. (S90 Audit)"| DriveVector:::forbidden
+    LifeEngine -.->|"🚫 REQUIRED: drive_vector list MUST contain 4 elements [dx, dy, intensity, primitive_str]. (S90 Audit)"| DriveVector:::forbidden
+    Frontend -.->|"🚫 REQUIRED: MotionRenderRouter. MUST check velocity first (ETKE-IK), then path_waypoints (FSM). (S90 Audit)"| WorldSnapshotDTO:::forbidden
     EventCompiler -.->|"🚫 FORBIDDEN: Node lookup in snapshot.spatial_service for cross-location SceneChange (S88 БАГ S)"| SpatialService:::forbidden
     EventCompiler -.->|"🚫 REQUIRED: boundary_snap fallback uses change.value and change.target_local_xy when node=None (S88 БАГ S)"| SceneChange:::forbidden
     TickOrchestrator -.->|"🚫 REQUIRED: SpatialService per-location scope — get_node() cannot resolve cross-location nodes (S88)"| SpatialService:::forbidden
@@ -603,7 +641,9 @@ flowchart TD
     SpatialQueryService -.->|"🚫 FORBIDDEN: Read distances or positions directly from scene_state (ADR-048)"| SceneState:::forbidden
     LifeEngine -.->|"🚫 FORBIDDEN: LifeEngine generating intents for NPC in status MOVING (ADR-154)"| MovingNPC:::forbidden
     SceneStateManager -.->|"🚫 FORBIDDEN: apply_changes overwriting active traversal with status MOVING (ADR-130.1)"| ActiveTraversal:::forbidden
-    SceneStateManager -.->|"🚫 FORBIDDEN: Creating new TraversalState for cause=traversal_complete. MUST snap local_position (ADR-130.2)"| TraversalComplete:::forbidden
+    SceneStateManager -.->|"🚫 FORBIDDEN: Creating new traversal_dict for cause=traversal_complete. MUST snap local_position (ADR-130.2, ADR-TRAV-FSM)"| TraversalComplete:::forbidden
+    SceneStateManager -.->|"🚫 FORBIDDEN: Direct mutation of traversal status (status = ...). MUST use transition_traversal() FSM (ADR-TRAV-FSM)"| TraversalStatus:::forbidden
+    WorldSnapshotBuilder -.->|"🚫 REQUIRED: Must propagate current_waypoint_idx from runtime dict to frontend projection (ADR-TRAV-FSM)"| current_waypoint_idx:::forbidden
     EventCompiler -.->|"🚫 REQUIRED: EventCompiler MUST set is_boundary=True when target_loc is present (ADR-O-201.1)"| BoundaryFlag:::forbidden
     EventCompiler -.->|"🚫 FORBIDDEN: Using None for SpatialResolution.target_xy. MUST use (0.0, 0.0) fallback (ADR-O-201.3)"| NullCoordinate:::forbidden
     EquivalenceValidator -.->|"🚫 FORBIDDEN: validate_topology for cross-location transitions. Nodes are physically different (ADR-O-201.2)"| CrossLocationTopology:::forbidden
@@ -614,6 +654,7 @@ flowchart TD
     GameLoop -.->|"🚫 REQUIRED: engine.update_cache() after load_npcs_merged() — prevent re-reading disk every player turn (Invariant 1, ADR-118)"| LifeEngine:::forbidden
     ProjectionEngine -.->|"🚫 REQUIRED: apply_changes = pure projection operator, NOT simulator (ADR-O-201)"| Simulation:::forbidden
     ProjectionEngine -.->|"🚫 FORBIDDEN: apply_changes queries world state beyond target entity (ADR-O-201)"| WorldKnowledge:::forbidden
+    StateApplicator -.->|"🚫 FORBIDDEN: Direct write to state.hp. MUST write to body_state['current_hp'] (ADR-HP-UNIFICATION)"| HP:::forbidden
     TickOrchestrator -.->|"🚫 FORBIDDEN: TICK_CATCHUP loops (ADR-047)"| Time:::forbidden
     StateInterpreter -.->|"🚫 FORBIDDEN: Derive psychological state from stress (ADR-104)"| EmotionTag:::forbidden
     StateInterpreter -.->|"🚫 FORBIDDEN: Ignore pain/shock"| HP_Ratio:::forbidden
@@ -709,6 +750,20 @@ CrystallizedBeliefModifierResolver->>DecisionHub: 2. resolve() → Dict[str, flo
 DecisionHub->>DecisionHub: 3. _score_all: belief mods merged with drive_modifiers and affective mods
 ```
 
+### Will Break & Behavior Mask Flow (S86)
+
+```mermaid
+sequenceDiagram
+participant TickOrchestrator
+participant BreakProgressEngine
+participant BehaviorMaskEvaluator
+participant DecisionHub
+TickOrchestrator->>BreakProgressEngine: 1. _phase_5_decision: Calculate will_state breaks
+BreakProgressEngine-->>L1Chronicle: 2. Commit TraitDriftEvent (if broken)
+TickOrchestrator->>BehaviorMaskEvaluator: 3. Evaluate COLLAPSE/FAKE_SUBMISSION/BETRAYAL
+BehaviorMaskEvaluator->>DecisionHub: 4. Apply mask to utility scoring
+```
+
 ### Economy Tick Flow (Phase 2)
 
 ```mermaid
@@ -770,6 +825,17 @@ participant ResonanceEngine
 participant WillpowerGate
 Intent->>ResonanceEngine: 1. scan_affective_resonance(intent, None, None, imprints)
 ResonanceEngine-->>WillpowerGate: 2. distort_pressure(pressure, resonance, psyche)
+```
+
+### Memory Promotion & Compression Flow (S86)
+
+```mermaid
+sequenceDiagram
+participant TickOrchestrator
+participant MemoryManager
+participant LayeredMemory
+TickOrchestrator->>MemoryManager: 1. compress_narrative_cache (Every 10 ticks, idle allowed)
+TickOrchestrator-->>MemoryManager: 2. check_identity_promotion (Every 50 ticks, ONLY if phase_2_events)
 ```
 
 ### Combat Impact Cascade
@@ -863,7 +929,7 @@ ThickSceneChange->>ProjectionEngine: 4. Apply physical contracts
 ProjectionEngine->>WorldState: 5. state[t+1] = state[t] ⊕ ThickSceneChange[]
 ```
 
-### Traversal Complete Snap Flow (ADR-130.2)
+### Traversal Complete Snap & FSM Flow (ADR-130.2, ADR-TRAV-FSM)
 
 ```mermaid
 sequenceDiagram
@@ -873,7 +939,7 @@ participant ProjectionEngine
 participant SceneState
 TickOrchestrator->>SceneChange: 1. Emits SceneChange(cause='traversal_complete')
 SceneChange->>ProjectionEngine: 2. apply_changes receives change
-ProjectionEngine->>SceneState: 3. Snaps local_position to target node coordinates. DOES NOT create new TraversalState.
+ProjectionEngine->>SceneState: 3. Snaps local_position to target node coordinates. Calls transition_traversal(COMPLETED). DOES NOT create new traversal_dict.
 ```
 
 ### Identity & Belief Crystallization Flow (ADR-O-305)
@@ -1003,7 +1069,7 @@ CandidateScoring->>SelectionPolicy: 4. Score and select (STRICT_MAX/STABLE/DIVER
 SelectionPolicy->>SpatialService: 5. get_node(canonical_id)
 ```
 
-### Traversal Complete Snap Flow (ADR-130.2)
+### Traversal Complete Snap & FSM Flow (ADR-130.2, ADR-TRAV-FSM)
 
 ```mermaid
 sequenceDiagram
@@ -1013,7 +1079,7 @@ participant SceneStateManager
 participant SceneState
 TickOrchestrator->>SceneChange: 1. Emits SceneChange(cause='traversal_complete')
 SceneChange->>SceneStateManager: 2. apply_changes receives change
-SceneStateManager->>SceneState: 3. Snaps local_position to target node coordinates. DOES NOT create new TraversalState.
+SceneStateManager->>SceneState: 3. Snaps local_position. Calls transition_traversal(MOVING->COMPLETED). DOES NOT create new traversal.
 ```
 
 ### Interaction
@@ -1101,6 +1167,10 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | PerceptualKernel | IntentDomain | Viability mask projection | ADR-O-137: threat_gradient > 0.3 → EXCLUDE ROUTINE domain. Gate stands BEFORE generators. | `life_engine.py` | ADR-O-137 |
 | CrystallizedBeliefStore | CrystallizedBeliefModifierResolver | get_beliefs() → List[CrystallizedBelief] | - | `crystallized_belief_store.py` | ADR-O-305 |
 | CrystallizedBeliefModifierResolver | DecisionHub | resolve() → drive_modifiers (Dict[str, float]) | S85.2: L2.5 beliefs deform utility alongside L3 drives and L1.5 social context. | `npc_tick_pipeline.py` | ADR-O-305 |
+| TickOrchestrator | BreakProgressEngine | calculates will_state breaks | Before DecisionHub in _phase_5_decision | `-` | ADR-S86.3 |
+| BreakProgressEngine | L1Chronicle | commits TraitDriftEvent (target_id, effect_value) | - | `-` | ADR-O-208.1 |
+| TickOrchestrator | BehaviorMaskEvaluator | evaluates mask before DecisionHub | Based on WillState and relationship_cache | `-` | ADR-S86.4 |
+| BehaviorMaskEvaluator | DecisionHub | applies social mask to utility scoring | - | `-` | - |
 | GameStdout | CausalObserver | reads logs | Regex patterns, pipe/file read | `causal_observer.py` | - |
 | GitHistory | CausalObserver | reads git log & TODOs | Every session start | `causal_observer.py` | - |
 | DeterministicClock | CausalTrace | provides tick context | - | `-` | - |
@@ -1136,6 +1206,7 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | GameScreen | I18n | t(), activity_ru(), manifest_color() | All user-facing strings | `game_screen.py, scene_renderer.py` | ADR-i18n |
 | APIRoutes | GameScreen | manifestations (List[ManifestationDTO]) | WorldSnapshot.player_perception | `world_snapshot_builder.py` | ADR-O-147 |
 | TraitDriftEvent | L1Chronicle | appends drift record | World pressure mutates identity | `l1_chronicle.py:append` | - |
+| BreakProgressEngine | L1Chronicle | commits TraitDriftEvent (target_id, effect_value) | WillState breaks or deforms | `break_progress_engine.py` | ADR-O-208.1 |
 | L1Chronicle | DriveResolver | provides weighted history | Tick start | `drive_resolver.py:resolve_drives` | - |
 | DriveResolver | EffectiveDrives | computes ephemeral projection | Pure function from archetype + chronicle | `drive_resolver.py` | - |
 | EffectiveDrives | CalibrationEngine | pass-through (no scalar mutation) | ADR-O-211 DEPRECATION: Test C noise accumulation | `calibration_engine.py` | - |
@@ -1163,11 +1234,14 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | BeliefAggregator | BeliefTransitionEngine | aggregated evidence → belief update | After event processing | `npc/belief_transition_engine.py` | - |
 | ContradictionResolver | BeliefTransitionEngine | contradiction detected → belief revision | New event contradicts existing belief | `memory/contradiction_resolver.py` | - |
 | RelationshipStore | StateApplicator | relationship_cache updates | Via DeltaBuffer (Устав §4.1.2) | `memory/relationship_store.py` | - |
+| TickOrchestrator | MemoryManager | _phase_3_memory: compress_narrative_cache | Every 10 ticks (idle allowed - structural optimization) | `tick_orchestrator.py` | ADR-S86.7 |
+| TickOrchestrator | MemoryManager | _phase_3_memory: check_identity_promotion | Every 50 ticks (REQUIRES phase_2_events - prevents phantom drift) | `tick_orchestrator.py` | ADR-S86.7 |
 | CombatSubscriber | ImpactEngine | resolves contact | Fuzzy target resolve | `combat_subscriber.py` | ADR-021 |
 | ImpactEngine | PhysiologyPayload | computes | Physics composite (DRSL) | `impact_engine.py` | ADR-015 |
 | PhysiologyPayload | DeltaBuffer | flushed to | Only PhysiologyPayload | `physiology.py` | ADR-020 |
 | DecayHandler | DeltaBuffer | time-driven decay (Phase 0.5) — pain/fatigue/blood_loss/shock_impulse | Leaky integrator exp(-lambda*dt). SHOCK_DECAY_LAMBDA=0.08 (~8%/tick) | `physiology_decay_handler.py` | ADR-022, ADR-109 |
 | InjuryProcessor | DeltaBuffer | injury-driven bleeding + chronic pain (Phase 0.5) | blood_loss_delta = structural_damage * zone_rate * type_modifier. pain_delta = structural_damage * zone_modifier * type_modifier (ADR-141). Compensates exponential decay. | `combat/injury_processor.py` | ADR-123, ADR-141 |
+| StateApplicator | BodyState | writes damage to body_state['current_hp'] (ADR-HP-UNIFICATION) | Direct write to state.hp is FORBIDDEN. body_state['current_hp'] is canonical. | `npc/state_applicator.py` | ADR-HP-UNIFICATION |
 | StateApplicator | VitalStateEvaluator | evaluates body_state after PHYSIOLOGY domain | Writes body_state['life_status']. DEATH LOCK (ADR-127): evaluate_vital_state проверяет life_status==DEAD первой — блокирует реинкарнацию. Decay handler пропускает DEAD NPC. | `npc/state_applicator.py` | ADR-123, ADR-127 |
 | VitalStateEvaluator | DecisionHub | DEAD/UNCONSCIOUS → IDLE guard | Blocks decision-making for dead or unconscious NPCs. Sole authority on life/death. | `npc/decision_hub.py` | ADR-123 |
 | PhysiologyPayload | StateInterpreter | provides pain & shock | Overrides HP for LLM prompt (GAP5) | `state_interpreter.py:273-291` | GAP5 FIX |
@@ -1235,13 +1309,22 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | EventBus | ReactionRules | EventDTO → micro events classification | Every published event. _is_threat_event check. | `reaction/reaction_rules.py` | - |
 | ReactionRules | ReactionResolver | List[MicroEvent] → resolve | Filtered by type, distance, visibility | `reaction/reaction_resolver.py` | - |
 | ReactionResolver | DeltaBuffer | immediate reaction → EmotionPayload | Bypasses affective accumulator. Sets emotion directly (ADR-117). | `reaction/reaction_resolver.py` | ADR-117 |
+| DriveVector | SteeringResolver | resolve(drive, body, affordance) | - | `-` | - |
+| SteeringResolver | KinematicProfile | produces velocity | - | `-` | - |
+| KinematicProfile | MotionIntegrator | integrate(position, velocity) | - | `-` | - |
+| MotionIntegrator | KinematicProfile | updates position & exertion | - | `-` | - |
+| SpatialService | WorldTopologyProvider | provides discrete geometry | WorldTopologyProvider wraps SpatialService to compute continuous affordance | `-` | - |
+| WorldTopologyProvider | AffordanceVector | query_affordance_field(region, pos) | Returns field capabilities for any (x,y) | `-` | - |
 | EditorJSON | GraphCompiler | load_editor_json | Parses rooms array & polygons | `graph_compiler.py` | - |
 | BuiltinFallback | GraphCompiler | fallback graph | BREAK-2: JSON NOT FOUND -> Builtin | `graph_compiler.py` | - |
 | SpatialRuntime | SpatialService | resolve_distance + extract_scene (ADR-102) | Требует campaign_id в scene_state. Fallback на euclidean_distance если SpatialService=None | `spatial_runtime.py:98` | - |
 | SceneStateManager | SpatialRuntime | enriches scene_state with campaign_id (ADR-102) | Инжект campaign_id для SpatialService.build_for_location() | `scene_state_manager.py:272` | - |
 | GraphCompiler | AdjacencyInference | triggers if passages empty | If no explicit passages provided | `-` | ADR-073 |
 | AdjacencyInference | GraphCompiler | returns inferred passages | Based on polygon bounding box intersection | `-` | ADR-073 |
-| GraphCompiler | SpatialService | compiles graph + boundary_map | Strict match or valid inferred. Returns 4 элемента (nodes, edges, alias_map, boundary_map) | `spatial_service.py` | - |
+| GraphCompiler | SpatialService | compiles graph + boundary_map + rooms_geometry | S90: Возвращает 5 элементов (nodes, edges, alias_map, boundary_map, rooms_geometry) | `spatial_service.py` | - |
+| SpatialService | WorldTopologyProvider | is_point_in_bounds(x, y) | S90: Ray-casting проверка внутри полигона для вычисления AffordanceVector. | `-` | - |
+| LifeEngine | DriveVector | generates with MotionPrimitive | S90: LifeEngine добавляет 4-й элемент (primitive) в drive_vector list на основе affective_load. | `-` | - |
+| DriveVector | CollisionAvoidance | apply(drive, pos, topology) | S90: Проверка геометрии впереди. Возвращает скорректированный DriveVector. | `-` | - |
 | SpatialService | SpatialQueryService | provides read-only spatial API | O(1) queries for positions, LOS, distances | `-` | ADR-048 |
 | SpatialQueryService | MovementEngine | reads graph & positions | O(1) spatial index | `spatial_query_service.py` | ADR-048 |
 | SpatialService | MovementEngine | get_node(target_id) | Direct access for node resolution | `spatial_service.py` | - |
@@ -1250,7 +1333,7 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | DecisionHub | MacroMovementGoal | produces domain-typed movement goal | Goal contains IntentDomain for viability mask | `-` | ADR-O-137 |
 | MovementEngine | SceneChange | produces | Only if get_node() != None | `movement_engine.py` | ADR-052 |
 | SceneChange | SceneStateManager | applied by | - | `-` | - |
-| SceneStateManager | TraversalState | enriches & interpolates | in_transit flag, interpolation by progress. ADR-130.2: On traversal_complete snaps position, does NOT create new TraversalState. | `scene_state_manager.py:1145,1585` | GAP12 FIX, ADR-130.2 |
+| SceneStateManager | TraversalDict | enriches, interpolates & transitions | Uses transition_traversal() for FSM (PENDING->MOVING->COMPLETED). ADR-130.2: On traversal_complete snaps position, does NOT create new traversal. | `scene_state_manager.py:1145,1585` | ADR-TRAV-FSM, ADR-130.2 |
 | EventCompiler | BoundaryNode | resolves boundary transitions at compile time | Uses frozen snapshot, NOT live SpatialService. ADR-O-201 | `event_compiler.py` | - |
 | PersistencePort | SqlitePersistenceAdapter | primary implementation | Default. Atomic commit. Runtime truth (Устав §4.2.1). | `state/sqlite_persistence_adapter.py` | - |
 | PersistencePort | JsonPersistenceAdapter | fallback implementation | Legacy. No transactions = data corruption risk (Устав §4.2.3). | `state/json_persistence_adapter.py` | - |
@@ -1318,6 +1401,8 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | LifeEngine | _NEED_ROLE_MAP | REQUIRED: Every _NEED_TO_ACTIVITY entry MUST have corresponding _NEED_ROLE_MAP entry (ADR-150) | `life_engine.py` |
 | LifeEngine | MovingNPC | FORBIDDEN: LifeEngine generating intents for NPC in status MOVING (ADR-154) | `-` |
 | CrystallizedBeliefModifierResolver | DecisionHub | REQUIRED: L2.5 beliefs MUST be injected as drive_modifiers, not bypassing scoring (ADR-O-305) | `-` |
+| BreakProgressEngine | TraitDriftEvent | FORBIDDEN: Using legacy fields (npc_id, tick, trait, delta). MUST use (target_id, tick_id, effect_value) (ADR-O-208.1) | `-` |
+| BehaviorMaskEvaluator | BehaviorMask | REQUIRED: Mask must be quasi-stable (hysteresis). Prevent social role flickering (ADR-S86.4) | `-` |
 | CausalObserver | Runtime_State | FORBIDDEN: Feedback loop into simulation | `Устав §11.1` |
 | CDS | Pipeline | FORBIDDEN: Interrupt causal flow on crash | `Устав §11.2` |
 | TickOrchestrator | CausalObserver | REQUIRED: Log pre-bus failures as [PIPELINE][CRITICAL], [PHASE8_CRASH], [AFFECT_DECAY] (Invariant 3, ADR-120) | `tick_orchestrator.py` |
@@ -1339,6 +1424,8 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | Any | EffectiveDrives | FORBIDDEN: Caching EffectiveDrives (L3-P1 is strictly ephemeral) | `ADR-O-208` |
 | StateApplicator | OntologyViolationError | REQUIRED: Raise OntologyViolationError and kill tick on NaN, sum!=1.0, or bounds violation | `ADR-O-207` |
 | CalibrationEngine | EffectiveDrives | DEPRECATED for scalar mutation (Test C noise accumulation). Pass-through mode ONLY | `ADR-O-211 DEPRECATION` |
+| CalibrationEngine | DrivesRuntime | FORBIDDEN: Applying ctx.drives_updates to state.drives_runtime. CalibrationEngine MUST be pass-through (ADR-O-211) | `ADR-O-211 (S86)` |
+| BreakProgressEngine | TraitDriftEvent | FORBIDDEN: Using legacy fields (npc_id, tick, trait, delta). MUST use (target_id, tick_id, effect_value) (ADR-O-208.1) | `ADR-O-208.1` |
 | DecisionHub | EffectiveDrives | REQUIRED: Projection-native scoring. L0 (drives_base) prohibited in scoring | `ADR-O-304` |
 | BeliefCrystallizationEngine | DecisionHub | REQUIRED: Beliefs modify policy via source-specific vectors, NOT abstract scalar fear | `ADR-O-305` |
 | PatternDetector | L1Chronicle | REQUIRED: Group by source. Do not accumulate noise from uncorrelated events | `ADR-O-305` |
@@ -1354,6 +1441,7 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | PromotionEngine | LayeredMemory | FORBIDDEN: Promotion as method of LayeredMemory (Устав §4.1.3) | `Устав §4.1.3` |
 | YAMLMemoryExport | RuntimeTruth | FORBIDDEN: YAML as runtime truth (Устав §4.2.2) | `Устав §4.2.2` |
 | DecisionHub | TopicExtractor | REQUIRED: Topic must not be empty (Устав §3.2) | `npc/topic_extractor.py` |
+| MemoryManager | IdentityPromotion | FORBIDDEN: check_identity_promotion in idle ticks without phase_2_events. Prevents phantom identity drift (ADR-S86.7) | `tick_orchestrator.py` |
 | CombatSubscriber | Emotion | FORBIDDEN: Domain Leakage (ADR-021) | `ADR-021` |
 | StateInterpreter | HP_Ratio | FORBIDDEN: Ignore pain/shock | `state_interpreter.py:273` |
 | StateInterpreter | Pain_Scale | FORBIDDEN: Read pain without /100.0 normalization | `state_interpreter.py:273, state_applicator.py:491` |
@@ -1392,6 +1480,7 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | PerceptualKernel | Psyche | FORBIDDEN: Somatic Bypass (Injecting pain/shock directly into psyche dict) (ADR-O-143) | `affective_integrator.py` |
 | InjuryProcessor | PainDelta | REQUIRED: InjuryProcessor MUST generate pain_delta alongside blood_loss_delta (ADR-141) | `injury_processor.py` |
 | TickOrchestrator | NPCState | FORBIDDEN: Using NPCState.from_legacy. MUST use NPCStateAdapter.from_legacy (ADR-S85.1.1) | `-` |
+| StateApplicator | HP | FORBIDDEN: Direct write to state.hp. MUST write to body_state['current_hp'] (ADR-HP-UNIFICATION) | `npc/state_applicator.py, npc_state.py` |
 | LifeEngine | NPC_Position | FORBIDDEN: Direct mutation (ADR-051) | `-` |
 | Any | State | FORBIDDEN: Bypass DeltaBuffer | `-` |
 | TickOrchestrator | Time | FORBIDDEN: TICK_CATCHUP loops (ADR-047) | `-` |
@@ -1410,13 +1499,14 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | ProjectionEngine | SpatialService | FORBIDDEN: SpatialService query inside apply_changes (Rule 117, ADR-O-201) | `-` |
 | ProjectionEngine | RNG | FORBIDDEN: RNG inside apply_changes (Rule 118, ADR-O-201) | `-` |
 | ProjectionEngine | Pathfinding | FORBIDDEN: Pathfinding inside apply_changes (Rule 119, ADR-O-201) | `-` |
-| ProjectionEngine | TraversalState | FORBIDDEN: Traversal creation inside apply_changes (Rule 120, ADR-O-201) | `-` |
+| ProjectionEngine | TraversalDict | FORBIDDEN: Traversal creation inside apply_changes (Rule 120, ADR-O-201) | `-` |
 | Any | L1Chronicle | FORBIDDEN: Deletion from L1Chronicle (Append-only history) (ADR-O-208) | `-` |
 | Any | EffectiveDrives | FORBIDDEN: Caching EffectiveDrives (L3-P1 is strictly ephemeral) (ADR-O-208) | `-` |
 | StateApplicator | OntologyViolationError | REQUIRED: Raise OntologyViolationError and kill tick on NaN, sum!=1.0, or bounds violation (ADR-O-207) | `-` |
 | LifeEngine | MovingNPC | FORBIDDEN: LifeEngine generating intents for NPC in status MOVING (ADR-154) | `-` |
 | ProjectionEngine | ActiveTraversal | FORBIDDEN: apply_changes overwriting active traversal with status MOVING (ADR-130.1) | `-` |
-| ProjectionEngine | TraversalComplete | FORBIDDEN: Creating new TraversalState for cause=traversal_complete. MUST snap local_position (ADR-130.2) | `-` |
+| ProjectionEngine | TraversalComplete | FORBIDDEN: Creating new traversal_dict for cause=traversal_complete. MUST snap local_position (ADR-130.2, ADR-TRAV-FSM) | `-` |
+| ProjectionEngine | TraversalStatus | FORBIDDEN: Direct mutation of traversal status. MUST use transition_traversal() FSM (ADR-TRAV-FSM) | `-` |
 | EventCompiler | NullCoordinate | FORBIDDEN: Using None for SpatialResolution.target_xy. MUST use (0.0, 0.0) fallback (ADR-O-201.3) | `-` |
 | EquivalenceValidator | CrossLocationTopology | FORBIDDEN: validate_topology for cross-location transitions. Nodes are physically different (ADR-O-201.2) | `-` |
 | TickOrchestrator | NPCState | FORBIDDEN: Using NPCState.from_legacy. MUST use NPCStateAdapter.from_legacy (ADR-S85.1.1) | `-` |
@@ -1443,6 +1533,10 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | GraphCompiler | EditorJSON | FORBIDDEN: Use room x,y as node coordinates (must use centroid x+w/2, y+h/2) | `graph_compiler.py:108-115` |
 | GameScreen | WorldSnapshotDTO | FORBIDDEN: Overwrite local_position for NPC in MOVING status (ADR-096) | `game_screen.py:794-799` |
 | GraphCompiler | LegacyName | REQUIRED: Role-based legacy aliases in alias_map (ADR-114) | `-` |
+| WorldTopologyProvider | AffordanceVector | REQUIRED: Non-uniform field. MUST query is_point_in_bounds. (S90 Audit) | `-` |
+| CollisionAvoidance | DriveVector | REQUIRED: MUST execute before SteeringResolver. Modifies direction/intensity based on geometry. (S90 Audit) | `-` |
+| LifeEngine | DriveVector | REQUIRED: drive_vector list MUST contain 4 elements [dx, dy, intensity, primitive_str]. (S90 Audit) | `-` |
+| Frontend | WorldSnapshotDTO | REQUIRED: MotionRenderRouter. MUST check velocity first (ETKE-IK), then path_waypoints (FSM). (S90 Audit) | `-` |
 | EventCompiler | SpatialService | FORBIDDEN: Node lookup in snapshot.spatial_service for cross-location SceneChange (S88 БАГ S) | `event_compiler.py:168-173` |
 | EventCompiler | SceneChange | REQUIRED: boundary_snap fallback uses change.value and change.target_local_xy when node=None (S88 БАГ S) | `event_compiler.py:231-234` |
 | TickOrchestrator | SpatialService | REQUIRED: SpatialService per-location scope — get_node() cannot resolve cross-location nodes (S88) | `spatial_service.py:117-129` |
@@ -1464,7 +1558,9 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | SpatialQueryService | SceneState | FORBIDDEN: Read distances or positions directly from scene_state (ADR-048) | `-` |
 | LifeEngine | MovingNPC | FORBIDDEN: LifeEngine generating intents for NPC in status MOVING (ADR-154) | `-` |
 | SceneStateManager | ActiveTraversal | FORBIDDEN: apply_changes overwriting active traversal with status MOVING (ADR-130.1) | `-` |
-| SceneStateManager | TraversalComplete | FORBIDDEN: Creating new TraversalState for cause=traversal_complete. MUST snap local_position (ADR-130.2) | `-` |
+| SceneStateManager | TraversalComplete | FORBIDDEN: Creating new traversal_dict for cause=traversal_complete. MUST snap local_position (ADR-130.2, ADR-TRAV-FSM) | `-` |
+| SceneStateManager | TraversalStatus | FORBIDDEN: Direct mutation of traversal status (status = ...). MUST use transition_traversal() FSM (ADR-TRAV-FSM) | `-` |
+| WorldSnapshotBuilder | current_waypoint_idx | REQUIRED: Must propagate current_waypoint_idx from runtime dict to frontend projection (ADR-TRAV-FSM) | `-` |
 | EventCompiler | BoundaryFlag | REQUIRED: EventCompiler MUST set is_boundary=True when target_loc is present (ADR-O-201.1) | `-` |
 | EventCompiler | NullCoordinate | FORBIDDEN: Using None for SpatialResolution.target_xy. MUST use (0.0, 0.0) fallback (ADR-O-201.3) | `-` |
 | EquivalenceValidator | CrossLocationTopology | FORBIDDEN: validate_topology for cross-location transitions. Nodes are physically different (ADR-O-201.2) | `-` |
@@ -1475,6 +1571,7 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | GameLoop | LifeEngine | REQUIRED: engine.update_cache() after load_npcs_merged() — prevent re-reading disk every player turn (Invariant 1, ADR-118) | `game_loop/__init__.py:_load_npcs_with_runtime` |
 | ProjectionEngine | Simulation | REQUIRED: apply_changes = pure projection operator, NOT simulator (ADR-O-201) | `scene_state_manager.py:1153-1446` |
 | ProjectionEngine | WorldKnowledge | FORBIDDEN: apply_changes queries world state beyond target entity (ADR-O-201) | `scene_state_manager.py:apply_change` |
+| StateApplicator | HP | FORBIDDEN: Direct write to state.hp. MUST write to body_state['current_hp'] (ADR-HP-UNIFICATION) | `npc/state_applicator.py, npc_state.py` |
 | TickOrchestrator | Time | FORBIDDEN: TICK_CATCHUP loops (ADR-047) | `ADR-047` |
 | StateInterpreter | EmotionTag | FORBIDDEN: Derive psychological state from stress (ADR-104) | `state_interpreter.py:46-50` |
 | StateInterpreter | HP_Ratio | FORBIDDEN: Ignore pain/shock | `state_interpreter.py:273` |

@@ -172,6 +172,8 @@ class _TickContext:
     npc_topics: dict = field(default_factory=dict)
     # Фаза 5: CommunicationIntent для каждого NPC (пока пустой — legacy pipeline)
     communication_intents: list = field(default_factory=list)
+    # TZ-08 v0.2: Narrative Projection (для LLM/UI). Артефакт тика, а не player_result.
+    npc_contexts: list = field(default_factory=list)
     # Фаза 5: решения DecisionHub
     decision_events: list = field(default_factory=list)
     # SIL: S-слой (интерпретация). Визуализация читает отсюда (T+0), DecisionHub из M-слоя (T-1)
@@ -571,6 +573,7 @@ class TickOrchestrator:
             changes_count=len(ctx.scene_changes),
             significant_events=ctx.decision_events,
             world_snapshot=ctx.world_snapshot,
+            npc_contexts=ctx.npc_contexts,
         )
 
     # ── Player Turn (тонкая обёртка) ────────────────────────────────
@@ -759,6 +762,7 @@ class TickOrchestrator:
             ctx.communication_intents = npc_buffer.communication_intents
 
         logger.info(f"[TICK_PLAYER_INTENT] npc_buffer.movement_intents={npc_buffer.movement_intents} count={len(npc_buffer.movement_intents)}")
+        ctx.npc_contexts = npc_buffer.npc_contexts
         ctx.player_result = TickPlayerResultDTO(
             npc_contexts=npc_buffer.npc_contexts,
             dirty_npcs=npc_buffer.dirty_npcs,
@@ -930,13 +934,11 @@ class TickOrchestrator:
         # Фаза 0.5: время не останавливается (decay = всегда)
         self._phase_0_5_idle_services(ctx)
 
-        # ── ФИКС P0: Передать npc_contexts из player_result в shared_context ──
-        # Без этого build_r3_dm_frame() видит пустой npc_contexts → "NPC не предпринимают значимых действий"
-        if ctx.player_result:
-            _pr = ctx.player_result
-            if getattr(_pr, 'npc_contexts', None):
-                ctx.shared_context.npc_contexts = _pr.npc_contexts
-                logger.warning(f"[P0_FIX] npc_contexts transferred: {len(_pr.npc_contexts)} contexts")
+        # ── ФИКС P0: Передать npc_contexts в shared_context ──
+        # Без этого DM-агент видит пустой npc_contexts → "NPC не предпринимают значимых действий"
+        if ctx.npc_contexts:
+            ctx.shared_context.npc_contexts = ctx.npc_contexts
+            logger.warning(f"[P0_FIX] npc_contexts transferred: {len(ctx.npc_contexts)} contexts")
             # Создать человекочитаемое описание действий NPC для DM контракта
             if getattr(_pr, 'movement_intents', None):
                 _npc_names = {n.get("npc_id"): n.get("name", n.get("npc_id", "???"))
@@ -1003,58 +1005,6 @@ class TickOrchestrator:
         return ctx.player_result
 
     # ── Player Turn: finalize + commit ─────────────────────────────────
-
-    def _phase_finalize(
-        self,
-        tick_ctx: Any,  # TickBuffer — lazy import чтобы избежать циклической зависимости
-        actions: list,
-        shared_context: Any,
-        campaign_id: str,
-        rules_result: Dict[str, Any],
-        r3_direct_mode: bool = True,
-    ) -> dict:
-        """ФАЗА 7-8: R3 frame + NPC state + memory + working memory + decay.
-
-        Перенесено из finalize_phase.py — TickOrchestrator владеет логикой.
-        Использует внедрённые memory_manager вместо game_loop.
-        Lazy-импорты чтобы избежать циклической зависимости с game_loop/.
-        """
-        # R3 Direct Mode: DecisionResult → SceneOutcome → DMFrame
-        if r3_direct_mode:
-            from app.services.scene.r3_direct_builder import build_r3_dm_frame
-            npc_result = build_r3_dm_frame(shared_context, actions, rules_result)
-        else:
-            npc_result = {}
-
-        # Применяем trust/stress дельты к NPC state
-        from app.services.game_loop.npc_state_helpers import apply_npc_state_updates
-        if npc_state_updates := npc_result.get("npc_state_updates", []):
-            apply_npc_state_updates(
-                self._get_memory_manager(), npc_state_updates,
-                npc_dicts=tick_ctx.all_npcs_raw, campaign_id=campaign_id,
-            )
-
-        # Working Memory: ответы NPC → STM + L2
-        from app.services.memory.working_memory_tick import write_npc_reactions_to_memory
-        write_npc_reactions_to_memory(
-            self._get_memory_manager(),
-            npc_result.get("npc_reactions", []),
-            tick_ctx.all_npcs_raw,
-            campaign_id,
-        )
-
-        # Decay через TemporalContext — единое расписание (Устав §8)
-        from app.services.memory.working_memory_tick import run_decay_and_resonance
-        _temporal = self._get_life_engine().get_temporal_context(campaign_id)
-        run_decay_and_resonance(
-            self._get_memory_manager(), campaign_id, _temporal,
-            shared_context.active_npc_ids,
-        )
-        # Фиксируем выполнение decay, чтобы счётчик сбросился
-        if _temporal.should_run_memory_decay:
-            self._get_life_engine().mark_decay_executed(campaign_id)
-
-        return npc_result
 
     # ── Слой 4: подготовка ────────────────────────────────────────────
 
@@ -1124,6 +1074,96 @@ class TickOrchestrator:
         # ADR-019: Фаза 0.75 — Authoritative Traversal Lifecycle.
         # Бэкенд не интерполирует пиксели, но владеет жизненным циклом перемещения.
         self._process_traversals(ctx)
+        
+        # ETKE-IK v1: Непрерывное движение (параллельная ветка).
+        # Обрабатывает DriveVector для NPC без активных макро-транзитов.
+        self._process_continuous_motion(ctx, _spatial_svc)
+
+    def _process_continuous_motion(self, ctx: _TickContext, _spatial_svc: Optional["SpatialService"] = None) -> None:
+        """ETKE-IK v1: Непрерывная кинематика (SteeringResolver + MotionIntegrator).
+        
+        Если у NPC есть DriveVector и нет активного MovementIntent,
+        его позиция вычисляется через непрерывное поле возможностей.
+        """
+        from app.services.motion.motion_pipeline import SteeringResolver, MotionIntegrator, CollisionAvoidance
+        from app.domain.motion_core import BodySchema, DriveVector, MotionPrimitive
+        from app.services.spatial.world_topology_provider import WorldTopologyProvider
+        
+        npc_positions = ctx.scene_state.get("npc_positions", {})
+        active_traversals = ctx.scene_state.get("active_traversals", {})
+        continuous_changes = []
+        
+        # Провайдер поля возможностей
+        wtp = WorldTopologyProvider(_spatial_svc)
+        
+        # TODO: В будущем LifeEngine будет класть DriveVector в npc_state.
+        # Пока читаем заглушку (если её нет — пропускаем).
+        for npc_data in ctx.all_npcs_raw:
+            npc_id = npc_data.get("id", npc_data.get("npc_id", ""))
+            if not npc_id or npc_id in active_traversals:
+                continue
+                
+            dv_raw = npc_data.get("drive_vector")
+            if not dv_raw:
+                continue
+            
+            # ETKE-IK v2: Чтение MotionPrimitive (4-й элемент, fallback на approach)
+            _prim_name = dv_raw[3] if len(dv_raw) > 3 else "approach"
+            drive = DriveVector(
+                direction=(dv_raw[0], dv_raw[1]),
+                intensity=dv_raw[2],
+                primitive=MotionPrimitive(_prim_name)
+            )
+            
+            pos_data = npc_positions.get(npc_id, {})
+            current_pos = pos_data.get("local_position", {"x": 0.0, "y": 0.0})
+            current_vel = pos_data.get("velocity", (0.0, 0.0))
+            current_exertion = pos_data.get("exertion_level", 0.0)
+            
+            body = BodySchema()
+            
+            affordance = wtp.query_affordance_field(
+                ctx.scene_state.get("location_id", ""),
+                (current_pos.get("x", 0.0), current_pos.get("y", 0.0))
+            )
+            
+            # ETKE-IK v2: Реактивная коррекция направления перед вычислением скорости
+            _pos_tuple = (current_pos.get("x", 0.0), current_pos.get("y", 0.0))
+            _loc_id = ctx.scene_state.get("location_id", "")
+            drive = CollisionAvoidance.apply(drive=drive, pos=_pos_tuple, topology=wtp, region=_loc_id)
+            
+            new_vel = SteeringResolver.resolve(
+                drive=drive, body=body, affordance=affordance,
+                current_velocity=current_vel, dt=0.1
+            )
+            
+            new_pos = MotionIntegrator.integrate(
+                position=(current_pos.get("x", 0.0), current_pos.get("y", 0.0)),
+                velocity=new_vel, body=body, affordance=affordance, dt=0.1
+            )
+            
+            new_exertion = MotionIntegrator.compute_exertion(
+                velocity=new_vel, body=body,
+                current_exertion=current_exertion, dt=0.1
+            )
+            
+            continuous_changes.append(SceneChange(
+                type=ChangeType.NPC_POSITION, target=npc_id, field="local_position",
+                value={"x": new_pos[0], "y": new_pos[1]},
+                cause="etke_continuous_motion", tick=ctx.tick_number
+            ))
+            continuous_changes.append(SceneChange(
+                type=ChangeType.NPC_STATE, target=npc_id, field="velocity",
+                value=new_vel, cause="etke_continuous_motion", tick=ctx.tick_number
+            ))
+            continuous_changes.append(SceneChange(
+                type=ChangeType.NPC_STATE, target=npc_id, field="exertion_level",
+                value=new_exertion, cause="etke_continuous_motion", tick=ctx.tick_number
+            ))
+
+        if continuous_changes and self._scene_manager:
+            self._apply_with_shadow_observation(ctx, continuous_changes, phase_label="ETKE_CONTINUOUS")
+            logger.debug(f"[ETKE] Processed continuous motion for {len(continuous_changes)//3} NPCs")
 
     def _process_traversals(self, ctx: _TickContext) -> None:
         """Фаза 0.75: Authoritative Traversal Lifecycle (STL Phase 1).
@@ -2008,17 +2048,25 @@ class TickOrchestrator:
             logger.debug("[P9_DIAG] ABORT: shared_context is None!")
             return
 
-        # DSTC: Удалён досрочный apply_batch (S75-FIX).
-        # Мутация M₀ запрещена. Phase 9 создаст interpretation_snapshot и применит дельты туда.
+        # TZ-08 v0.2: dm_frame вынесен в game_loop. Здесь только работа с памятью NPC.
+        from app.services.memory.working_memory_tick import write_npc_reactions_to_memory, run_decay_and_resonance
+        if ctx.shared_context and ctx.shared_context.npc_contexts:
+            write_npc_reactions_to_memory(
+                self._get_memory_manager(),
+                ctx.shared_context.npc_contexts,
+                ctx.all_npcs_raw,
+                ctx.campaign_id,
+            )
 
-        _finalize = self._phase_finalize(
-            ctx, ctx.actions, ctx.shared_context, ctx.campaign_id,
-            ctx.rules_result, ctx.r3_direct_mode,
+        # Decay через TemporalContext — единое расписание (Устав §8)
+        _temporal = self._get_life_engine().get_temporal_context(ctx.campaign_id)
+        run_decay_and_resonance(
+            self._get_memory_manager(), ctx.campaign_id, _temporal,
+            ctx.shared_context.active_npc_ids if ctx.shared_context else [],
         )
-
-        # Сохраняем для возврата из execute()
-        if ctx.player_result is not None:
-            ctx.player_result.finalize_result = _finalize
+        # Фиксируем выполнение decay, чтобы счётчик сбросился
+        if _temporal.should_run_memory_decay:
+            self._get_life_engine().mark_decay_executed(ctx.campaign_id)
 
         # ADR-049: Аффективный pipeline перенесён в tick_player_turn (SEL CRITICAL FIX).
         # Больше не зависит от guard-условия shared_context в этом методе.
@@ -2540,8 +2588,8 @@ class TickOrchestrator:
             return None
 
         _npc_contexts = (
-            ctx.player_result.npc_contexts
-            if ctx.player_result is not None
+            ctx.npc_contexts
+            if ctx.npc_contexts
             else []
         )
         try:
@@ -2593,8 +2641,8 @@ class TickOrchestrator:
         # Perception: фильтруем NPC контексты
         if result.perceiving_npc_ids is not None and ctx.shared_context is not None:
             _all_ctxs = (
-                ctx.player_result.npc_contexts
-                if ctx.player_result is not None
+                ctx.npc_contexts
+                if ctx.npc_contexts
                 else []
             )
             _filtered = [
@@ -2877,46 +2925,28 @@ class TickOrchestrator:
         # ADR-035: Трансляция стейта аватара в феноменологическую проекцию
         from app.services.presentation.avatar_presentation_assembler import assemble_avatar_presentation
         # DSTC: Читаем NPC из interpretation_snapshot (M₀ + deltas), а не из M₀.
-        # Иначе аватар будет отражать состояние до декея и рефлексов.
         _npc_truth_source = ctx.interpretation_snapshot if ctx.interpretation_snapshot is not None else ctx.all_npcs_raw
         player_dict = next((n for n in _npc_truth_source if n.get("npc_id") == "player"), None)
         _avatar_projection = assemble_avatar_presentation(player_dict) if player_dict else None
 
-        # ТЗ EMBODIED UI PERCEPTION: Правильный пайплайн T+0
-        from app.domain.perception import ProjectionFrame
-        from app.services.perception.perceptual_attention_service import PerceptualAttentionService
-        from app.services.perception.phenomenology_projection_service import PhenomenologyProjectionService
-        from app.domain.snapshot import AvatarStateDTO
-        
-        # Безопасная инициализация фреймов (создаются в CFRM блоке выше)
-        if '_projection_frames' not in locals():
-            _projection_frames: List[ProjectionFrame] = []
-
-        # The Fool v2: BehaviorManifestation (Фаза 8.5) + Phenomenology Projection (Фаза 9)
-        from app.services.perception.behavior_manifestation_service import BehaviorManifestationService
-        from app.services.perception.phenomenology_projection_service import PhenomenologyProjectionService
-        from app.domain.snapshot import AvatarStateDTO, PlayerPerceptionDTO
+        # TZ-08 v0.2: Perception pipeline — internal causal observability layer (post-mutation).
+        # Формирует модель наблюдаемости мира на основе state_t+1.
         if not hasattr(self, '_manifest_svc'):
+            from app.services.perception.behavior_manifestation_service import BehaviorManifestationService
+            from app.services.perception.phenomenology_projection_service import PhenomenologyProjectionService
             self._manifest_svc = BehaviorManifestationService()
             self._project_svc = PhenomenologyProjectionService()
-            self._attention_svc = PerceptualAttentionService()
             
-        # Шаг 1: Моторные следы (Тело -> Наблюдение)
-        # Rule X: Строго физиология + PerceptualKernel. Semantic Layer изолирован от моторики.
         _traces = self._manifest_svc.produce_traces(ctx.scene_state, all_npcs_raw=_npc_truth_source)
-        
-        # Шаг 2: Трансляция следов в смыслы (без телепатии) + Диафрагма внимания
         _player_perception = self._project_svc.project(_traces, ctx.scene_state, tick=ctx.tick_number)
-        
-        logger.debug(f"[PERCEPTION_PIPELINE] T+0 SUCCESS: Traces={len(_traces)} | Cues={len(_player_perception.active_perceptions)}")
 
         builder = self._get_snapshot_builder()
         ctx.world_snapshot = builder.build(
             scene_state=ctx.scene_state,
             tick=ctx.tick_number,
             avatar_state=_avatar_projection,
-            all_npcs_raw=ctx.all_npcs_raw, # ADR-037: Передаем сырые данные для Ambient Phenomenology
-            player_perception=_player_perception, # ТЗ EMBODIED UI: Передаем наблюдения игрока
+            all_npcs_raw=ctx.all_npcs_raw,
+            player_perception=_player_perception,
         )
 
     def _run_affective_pipeline(self, ctx: _TickContext) -> None:

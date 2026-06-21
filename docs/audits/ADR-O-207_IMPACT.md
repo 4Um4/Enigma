@@ -1,7 +1,7 @@
-# ADR-O-207 Impact Audit: Runtime Ontology Collapse Plan (ROCP v1.1)
+﻿# ADR-O-207 Impact Audit: Runtime Ontology Collapse Plan (ROCP v1.1)
 
 > Этот файл — детальный аудит перехода к строгой 4+1-слойной онтологии рантайма и уничтожению Dual-Type State.
-> Единый атлас всех ADR: `docs\Tasks\ADR (Architecture Decision Records).md`
+> Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
 
 ## Changed Domains
 - **core/runtime** (Введение 4+1 слойной модели, уничтожение `isinstance(dict | NPCState)`)

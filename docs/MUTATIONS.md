@@ -8,10 +8,10 @@
 
 | Показатель | Значение |
 |------------|----------|
-| Сессий | 86 |
+| Сессий | 90 |
 | Доменов | 10 |
-| Консолидированных запретов | 82 |
-| Диапазон | S03—S86 |
+| Консолидированных запретов | 86 |
+| Диапазон | S03—S90 |
 
 ---
 
@@ -28,6 +28,15 @@
 ---
 
 ## 1. ДОМЕНЫ И ЭВОЛЮЦИЯ
+
+- 🔵 **TZ-08 v0.2** Строгая миграция ядра в Event-Driven модель.
+  - Внедрён `InterventionEvent` как единственный внешний входной протокол.
+  - `execute()` стал чистой функцией `state_t + events → state_t+1`. Ветвление `dm_ctx` убито.
+  - Фаза 1 разделена на NPIC, routing и WillpowerGate.
+  - `RulesAgent` заменён на синхронный `RulesSubscriber` (pure reducer).
+  - `execute_player_finalize` депрекирован (no-op).
+  - `TickResultDTO` очищен от physical `movement_intents` и player-specific полей. `npc_contexts` (Narrative Projection) перенесены в `_TickContext` как артефакт тика.
+  - Удалён мёртвый код двойного применения дельт (`apply_npc_state_updates`).
 
 ### DOM-01: FOUNDATION (Core Pipeline, Time, State)
 
@@ -76,6 +85,8 @@
 - 🔴 **S74** ДОЛГ 4.2: Causal Scoring Overlay (ADR-135). DRF претензии влияют на приоритет аддитивно. Убит сломанный clamp.
 - 🔵 **S81** ADR-O-146: Personality Math Layer. Введен `profile_math.py`. Социальные дельты и риск модулируются личностью.
 - 🟢 **S85.1** ADR-130: `LifeEngine._simulate_major` теперь полностью блокирует генерацию интентов (schedule + need-driven) для NPC в статусе `MOVING`. Устранён "бесконечный бег" и топологические дрейфы.
+- 🔵 **S86** ADR-TZ08-6: Онтологическое разделение контрактов. Внедрён `observed_state` (name, description, narrative_cache) в `npc_tick_pipeline.py`. `real_state` и `distortion_bias` полностью удалены из генерации ядра. `r3_direct_builder` переведён на чтение безопасной проекции. Эпистемический Барьер обеспечен на уровне генерации данных.
+- 🔵 **S86** ADR-TZ05-1: Изгнание LLM-логики из ядра. Функция `build_verbalization_context` и класс `VerbalizationContext` удалены из `npc_tick_pipeline.py`. Ядро больше не собирает ментальные объекты для LLM. Передаётся только строка `topic`. `r3_direct_builder` обновлён для чтения `topic` напрямую.
 - 🟢 **S86** ТЗ-02 (Шаг 1): BUG-001 закрыт. Директивные `perception`-поля применяются вне зависимости от `DeltaDomain`. Каузальная труба воли (приказ → pressure → PerceptualKernel) открыта.
 - 🟢 **S86** ТЗ-02 (Шаг 7): `BreakProgressEngine.calculate` подключен к `_phase_5_decision` (до DecisionHub). `WillState.BROKEN` достижим.
 - ⚪ **S86** ТЗ-02 (Шаг 8): `BehaviorMask` назначается на основе state. Введён как гистерезисный (квазистабильный) социальный слой между состоянием NPC и DecisionHub.
@@ -116,6 +127,11 @@
 - 🔵 **S83+** ADR-303: Coordinate Truth & Physical World Unification (Map Editor).
 - 🟢 **S85.1** ADR-130 Guard: `apply_changes` блокирует перезапись активного транзита (`status="MOVING"`). Устранён баг "бесконечного бега".
 - 🟢 **S85.1** Traversal Complete Fix: `apply_changes` обрабатывает `cause="traversal_complete"` как проекцию `local_position` (snap), а не создание нового `TraversalState`.
+- 🔵 **S87** ADR-TRAV-FSM: Завершена миграция ownership перемещений. `SceneStateManager` стал единственным владельцем lifecycle (через FSM `transition_traversal`). `TickOrchestrator` и `ProjectionEngine` переведены в read-only. `current_waypoint_idx` пробрасывается в `WorldSnapshotBuilder`. Удалён мёртвый код `models/traversal.py`.
+- 🔵 S86 Завершение миграции TZ-08 v0.2 и запуск Epistemic Boundary. DM-агент изолирован от ментальных объектов NPC (stress_delta, recalled_facts и др.). RulesAgent заменён на синхронный RulesSubscriber (pure reducer) в game_loop. build_r3_dm_frame перенесён в game_loop. Ядро больше не генерирует нарратив. Удалён мёртвый метод _phase_finalize из tick_orchestrator.py. Внедрён WorldProjectionBuffer как будущий слой оффскрин-симуляции.
+- 🔵 **S87** ADR-TRAV-NOOP: Внедрена State-Based Idempotency в `EventCompiler`. Идемпотентность изменения позиции (`current == target`) определяется инвариантом состояния, а не семантикой события (`cause`). Устранены ложные `[SHADOW_COMPILER] FAILED` при завершении транзитов.
+- 🔵 **S88** ADR-ETKE-L0: Заложен фундамент ETKE-IK v1 (Embodied Topology & Interaction Kernel). Созданы DTO непрерывной кинематики (AffordanceVector, BodySchema, DriveVector, KinematicProfile) и вычислительное ядро (SteeringResolver, MotionIntegrator, WorldTopologyProvider). Пайплайн интегрирован в TickOrchestrator как параллельная ветка (_process_continuous_motion). Движение переведено из функции графа в результат преобразования DriveVector через поле возможностей.
+- 🔵 **S89** ADR-ETKE-ACT1: CAUSAL_BRIDGE → Motion Routing Layer. Двухконтурная модель движения формализована: `same_node + has_coords` → DriveVector (ETKE-IK, непрерывная кинематика), `different_node` → MovementIntent (Traversal FSM, дискретный граф). Введён `MOTION_ROUTING_THRESHOLD` и жизненный цикл DriveVector (очистка при каждом `tick_decisions`, запись в npc dict, потребление `_process_continuous_motion` на следующем тике по модели T-1). FLEE в same_node = инвертированный вектор (отталкивание, intensity=1.0). SUPERBOX: 351 comparisons, rate 1.755/tick.
 
 ### DOM-05: PHYSIOLOGY & COMBAT
 
@@ -213,6 +229,13 @@
 - 🟢 **S85.2** Belief Decay Model: Внедрена энтропия убеждений (`BELIEF_DECAY_TAU`). Убеждения растворяются без подкрепления, предотвращая статическую кристаллизацию личности.
 - 🔴 **S86** ТЗ-02 (Шаг 9): `L1Chronicle` стал персистентным (SQLite). Внедрена схема `l1_chronicle_events`. DI замкнут от `GameLoop` до `L1Chronicle`. Контракт `TraitDriftEvent` (`target_id`, `tick_id`, `effect_value`) полностью канонизирован.
 - 💀 **S86** ТЗ-02 (Шаг 10 ОТМЕНЁН): Применение `ctx.drives_updates` к `state.drives_runtime` ЗАПРЕЩЕНО. `CalibrationEngine` оставлен в pass-through режиме. Мутация скалярных драйвов минуя Belief Layer (L2.5) нарушает ADR-O-208/211. L3 проекция строго эфемерна.
+
+### DOM-04: SPATIAL & LOCOMOTION (S90 AUDIT)
+
+- 🔵 **S90** ADR-S90.1: WorldTopologyProvider v1. `SpatialService` расширен хранением `rooms_geometry` (полигоны). Введён `is_point_in_bounds(x, y)`. `WorldTopologyProvider` формирует non-uniform `AffordanceVector`.
+- 🔵 **S90** ADR-S90.2: Motion Policy Layer. Введён `Enum MotionPrimitive` (APPROACH, FLEE, RETREAT, PATROL). `LifeEngine` генерирует 4-элементный `drive_vector`. Интенсивность FLEE модулируется `affective_load`.
+- 🔵 **S90** ADR-S90.3: CollisionAvoidance. Внедрён реактивный слой в `motion_pipeline.py` (до `SteeringResolver`). Проверяет `Affordance` впереди движения и смещает вектор перпендикулярно при `can_pass < 0.5`.
+- 🔵 **S90** ADR-S90.4: MotionRenderRouter. Фронтенд реализует гибридный рендер: `velocity` (ETKE-IK) → инерция; `active_traversals` (FSM) → `path_waypoints`. `NPCPositionDTO` расширен.
 
 ---
 

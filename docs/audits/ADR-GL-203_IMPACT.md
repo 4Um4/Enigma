@@ -1,10 +1,10 @@
-# ADR-GL-203 Impact Audit: Error-Geometry System, Dynamic Ontology & Execution Order Semantics
+﻿# ADR-GL-203 Impact Audit: Error-Geometry System, Dynamic Ontology & Execution Order Semantics
 > 🚨 **АРХИТЕКТУРНЫЙ ВЕРДИКТ: ДОКУМЕНТ ПОЛНОСТЬЮ ДЕКЛАССИРОВАН (VOID)**
 > Археология рантайма (Сессия S-XX) доказала, что диагноз "Скалярный Коллапс" был ложным. DecisionHub уже использует векторную логику (`redirect` + `drives`), игнорируя `EmotionTag`. 
 > Попытка внедрить Error-Geometry (тензоры, softmax) была бы лечением вылеченной болезни ценой разрушения работающей гидравлики Котла.
 > Истинная проблема — Феноменологическая Шизофрения (использование EmotionTag как универсальной шины) — решена в **ADR-O-205 (PLS)** и **ADR-O-206 (CPA)**.
 > Этот файл — детальный аудит эволюции аффективной архитектуры ENIGMA: от скалярного аккумулятора до системы динамической онтологии, и далее — до детерминированной каузальной машины вывода с псевдослучайным возбуждением.
-> Единый атлас всех ADR: `docs\Tasks\ADR (Architecture Decision Records).md`
+> Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
 
 ## Changed Domains
 - emotion/affective (Полный отказ от скалярного `affective_load` в пользу вектора распределения вероятностей по осям интерпретации)

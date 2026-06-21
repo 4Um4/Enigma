@@ -1,5 +1,5 @@
 domain: PIPELINE
-description: "Фундамент симуляции и время. Дискретная каузальность, мутации только через DeltaBuffer. Идентичность — поле дрейфа."
+description: "Фундамент симуляции и время. Дискретная каузальность, мутации только через DeltaBuffer. Идентичность — поле дрейфа. Актуализировано: S86 + ADR-TRAV-FSM."
 nodes:
   TickOrchestrator:
     type: service
@@ -128,7 +128,7 @@ nodes:
     type: service
     layer: Application
     label: "Projection Engine (Pure State Writer)"
-    description: "ADR-130.1: Блокирует перезапись активных транзитов. ADR-130.2: Snaps local_position на traversal_complete."
+    description: "ADR-130.1: Блокирует перезапись активных транзитов. ADR-130.2: Snaps local_position на traversal_complete. ADR-TRAV-FSM: Read-only projection of traversal statuses. SSM owns FSM."
   GameLoop:
     type: service
     layer: Application
@@ -382,7 +382,7 @@ constraints:
     rule: "FORBIDDEN: Pathfinding inside apply_changes (Rule 119, ADR-O-201)"
     severity: CRITICAL
   - source: ProjectionEngine
-    target: TraversalState
+    target: TraversalDict
     rule: "FORBIDDEN: Traversal creation inside apply_changes (Rule 120, ADR-O-201)"
     severity: CRITICAL
   - source: Any
@@ -407,7 +407,11 @@ constraints:
     severity: CRITICAL
   - source: ProjectionEngine
     target: TraversalComplete
-    rule: "FORBIDDEN: Creating new TraversalState for cause=traversal_complete. MUST snap local_position (ADR-130.2)"
+    rule: "FORBIDDEN: Creating new traversal_dict for cause=traversal_complete. MUST snap local_position (ADR-130.2, ADR-TRAV-FSM)"
+    severity: CRITICAL
+  - source: ProjectionEngine
+    target: TraversalStatus
+    rule: "FORBIDDEN: Direct mutation of traversal status. MUST use transition_traversal() FSM (ADR-TRAV-FSM)"
     severity: CRITICAL
   - source: EventCompiler
     target: NullCoordinate
@@ -481,7 +485,7 @@ ownership:
     constraint: "CRITICAL: ONLY place where pathfinding, boundary logic exist. MUST use (0.0, 0.0) fallback."
   ProjectionEngine:
     owner: "SceneStateManager (apply_change refactored)"
-    constraint: "CRITICAL: Pure projection. MUST snap position on traversal_complete. MUST NOT overwrite MOVING traversals."
+    constraint: "CRITICAL: Pure projection. MUST snap position on traversal_complete. MUST NOT overwrite MOVING traversals. MUST NOT mutate traversal status directly (ADR-TRAV-FSM)."
   L1Chronicle_Ownership:
     owner: "BreakProgressEngine / npc_tick_pipeline"
     constraint: "CRITICAL: Append-only. Uses new TraitDriftEvent contract (target_id, tick_id). Backed by SQLite."
@@ -496,6 +500,9 @@ ownership:
     owner: "TickOrchestrator (Phase 9)"
     creates: "CrystallizedBelief"
     constraint: "CRITICAL: Belief Engine must not bypass store."
+  TraversalLifecycle:
+    owner: "SceneStateManager (apply_changes)"
+    constraint: "CRITICAL: SSM is the SOLE owner of traversal status transitions (MOVING->COMPLETED etc.) via transition_traversal() FSM. ProjectionEngine is read-only. (ADR-TRAV-FSM)"
 sequences:
   - title: "Pipeline Tick Execution Flow"
     participants: [TickOrchestrator, LifeEngine, DeltaBuffer, StateApplicator, SQLiteDB]
@@ -531,7 +538,7 @@ sequences:
       - from: ProjectionEngine
         to: WorldState
         message: "5. state[t+1] = state[t] ⊕ ThickSceneChange[]"
-  - title: "Traversal Complete Snap Flow (ADR-130.2)"
+  - title: "Traversal Complete Snap & FSM Flow (ADR-130.2, ADR-TRAV-FSM)"
     participants: [TickOrchestrator, SceneChange, ProjectionEngine, SceneState]
     steps:
       - from: TickOrchestrator
@@ -542,7 +549,7 @@ sequences:
         message: "2. apply_changes receives change"
       - from: ProjectionEngine
         to: SceneState
-        message: "3. Snaps local_position to target node coordinates. DOES NOT create new TraversalState."
+        message: "3. Snaps local_position to target node coordinates. Calls transition_traversal(COMPLETED). DOES NOT create new traversal_dict."
   - title: "Identity & Belief Crystallization Flow (ADR-O-305)"
     participants: [WorldPressure, L1Chronicle, SQLiteDB, PatternDetector, BeliefCrystallizationEngine, CrystallizedBeliefStore, DecisionHub]
     steps:

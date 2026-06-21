@@ -42,6 +42,7 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 import random
 import time
 from collections import OrderedDict
@@ -59,6 +60,13 @@ from app.services.spatial.movement_engine import MovementEngine
 import copy
 
 logger = logging.getLogger(__name__)
+
+# ── Motion Routing: порог микро/макро перемещения ──
+# NPC и цель в одном узле графа → DriveVector (ETKE-IK, непрерывная кинематика).
+# NPC и цель в разных узлах → MovementIntent (Traversal FSM, дискретный граф).
+# Порог не влияет на маршрутизацию (решение = same_node vs different_node),
+# но используется для логирования и будущей адаптивной интенсивности.
+MOTION_ROUTING_THRESHOLD = 5.0  # единиц координат (для logging / future use)
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Константы и маппинги
@@ -474,6 +482,11 @@ class LifeEngine:
             tier   = npc.get("tier", "major")
             npc_id = npc.get("id", "?")
 
+            # Motion Router: очистка устаревшего DriveVector от предыдущего тика.
+            # DriveVector эфемерен — если DecisionHub не сгенерировал новый,
+            # NPC должен остановиться (нет давления = нет движения, ADR-O-208 L3-P1).
+            npc.pop("drive_vector", None)
+
             try:
                 # ── MAJOR: полная симуляция каждый тик ──────────────────────
                 if tier == "major":
@@ -667,28 +680,91 @@ class LifeEngine:
                 if result.communication is not None:
                     communication_intents.append(result.communication)
 
-                # Каузальный мост: невербальные пространственные решения → MovementIntent
+                # ── Motion Routing Layer (CAUSAL_BRIDGE v2) ──────────────
+                # Политика маршрутизации движения:
+                #   Макро (MovementIntent + Traversal FSM): смена узла графа, кросс-локация
+                #   Микро (DriveVector + ETKE-IK): подход/уклонение в пределах одного узла
+                # DriveVector записывается в npc dict и потребляется на следующем тике
+                # _process_continuous_motion (T-1 модель, как PerceptualKernel → DecisionContext).
                 if result.intent and result.intent.value in ("APPROACH", "FLEE"):
                     # В idle-пути (WORLD_TICK) intent_target == npc_id — нет смысла подходить к себе.
                     # Fallback: approach/flee к игроку как основному социальному объекту.
                     _move_target = result.intent_target if result.intent_target and result.intent_target != npc_id else "player"
-                    _target_pos = scene_state.get("npc_positions", {}).get(_move_target, {})
-                    _target_node = _target_pos.get("position", "")
-                    if result.intent.value == "APPROACH" and _target_node:
-                        movement_intents.append(MovementIntent(
-                            npc_id=npc_id,
-                            target_node_id=_target_node,
-                            reason=f"decision:approach_target={_move_target}",
-                            domain=IntentDomain.SOCIAL,
-                            priority=0.7,
-                        ))
-                        logger.warning(f"[CAUSAL_BRIDGE] APPROACH: npc={npc_id} → target={_move_target} node={_target_node}")
+                    _npc_pos_entry = scene_state.get("npc_positions", {}).get(npc_id, {})
+                    _target_pos_entry = scene_state.get("npc_positions", {}).get(_move_target, {})
+                    _npc_node = _npc_pos_entry.get("position", "")
+                    _target_node = _target_pos_entry.get("position", "")
+
+                    # Координаты для микро-маршрутизации (ETKE-IK)
+                    _npc_xy = _npc_pos_entry.get("local_position")
+                    _target_xy = _target_pos_entry.get("local_position")
+                    _same_node = bool(_npc_node and _target_node and _npc_node == _target_node)
+                    _has_coords = bool(_npc_xy and _target_xy)
+
+                    # Вектор направления и расстояние (для маршрутизации и логирования)
+                    _dx, _dy, _distance = 0.0, 0.0, float('inf')
+                    if _same_node and _has_coords:
+                        _dx = _target_xy.get("x", 0.0) - _npc_xy.get("x", 0.0)
+                        _dy = _target_xy.get("y", 0.0) - _npc_xy.get("y", 0.0)
+                        _distance = math.hypot(_dx, _dy)
+
+                    if result.intent.value == "APPROACH":
+                        if _same_node and _has_coords:
+                            # ── Микро: подход через DriveVector (ETKE-IK) ──
+                            # MovementIntent на тот же узел = no-op, поэтому
+                            # перенаправляем в непрерывный контур.
+                            _mag = math.hypot(_dx, _dy)
+                            if _mag > 0.01:
+                                # ETKE-IK v2: Добавлен primitive (approach)
+                                npc["drive_vector"] = [_dx / _mag, _dy / _mag, 0.7, "approach"]
+                                logger.info(
+                                    f"[MOTION_ROUTER] APPROACH→DriveVector: "
+                                    f"npc={npc_id} target={_move_target} dist={_distance:.1f}"
+                                )
+                            else:
+                                logger.debug(f"[MOTION_ROUTER] APPROACH SKIP: npc={npc_id} already at target (dist={_distance:.2f})")
+                        elif _target_node:
+                            # ── Макро: подход через MovementIntent (Traversal FSM) ──
+                            movement_intents.append(MovementIntent(
+                                npc_id=npc_id,
+                                target_node_id=_target_node,
+                                reason=f"decision:approach_target={_move_target}",
+                                domain=IntentDomain.SOCIAL,
+                                priority=0.7,
+                            ))
+                            logger.warning(
+                                f"[MOTION_ROUTER] APPROACH→MovementIntent: "
+                                f"npc={npc_id} → target={_move_target} node={_target_node}"
+                            )
+                        else:
+                            logger.warning(
+                                f"[MOTION_ROUTER] APPROACH BLOCKED: npc={npc_id} "
+                                f"target={_move_target} has no position "
+                                f"(entry={list(_target_pos_entry.keys()) if _target_pos_entry else 'EMPTY'})"
+                            )
+
                     elif result.intent.value == "FLEE":
-                        # FLEE: ищем позицию NPC и узел, ближайший к нему, но не к угрозе
-                        _npc_pos = scene_state.get("npc_positions", {}).get(npc_id, {})
-                        _npc_node = _npc_pos.get("position", "")
-                        # ADR-114: FLEE резолвится через alias_map (main_hall → tavern_silver_wolf:room_0)
-                        if _npc_node:
+                        if _same_node and _has_coords:
+                            # ── Микро: уклонение через DriveVector (ETKE-IK) ──
+                            # Вектор ОТ угрозы (инвертированный direction).
+                            # Интенсивность 1.0 = максимальное усилие (SURVIVAL домен).
+                            # same_node = DriveVector ВСЕГДА: MovementIntent на тот же узел = no-op.
+                            _mag = math.hypot(_dx, _dy)
+                            if _mag > 0.01:
+                                # ETKE-IK v2: Motion Policy Layer (FLEE vs RETREAT)
+                                _load = npc.get("affective_load", 0.0)
+                                _primitive_name = "retreat" if _load < 0.7 else "flee"
+                                _intensity = 0.5 if _primitive_name == "retreat" else 1.0
+                                npc["drive_vector"] = [-_dx / _mag, -_dy / _mag, _intensity, _primitive_name]
+                                logger.info(
+                                    f"[MOTION_ROUTER] {_primitive_name.upper()}→DriveVector: "
+                                    f"npc={npc_id} away={_move_target} dist={_distance:.1f}"
+                                )
+                            else:
+                                logger.debug(f"[MOTION_ROUTER] FLEE SKIP: npc={npc_id} already far from threat (dist={_distance:.2f})")
+                        elif _npc_node:
+                            # ── Макро: остаться на текущем узле (FSM, legacy safe-node) ──
+                            # ADR-114: FLEE резолвится через alias_map
                             movement_intents.append(MovementIntent(
                                 npc_id=npc_id,
                                 target_node_id=_npc_node,
@@ -696,10 +772,12 @@ class LifeEngine:
                                 domain=IntentDomain.SURVIVAL,
                                 priority=1.0,
                             ))
+                            logger.warning(
+                                f"[MOTION_ROUTER] FLEE→MovementIntent: "
+                                f"npc={npc_id} stay={_npc_node}"
+                            )
                         else:
-                            logger.warning(f"[CAUSAL_BRIDGE] FLEE BLOCKED: npc={npc_id} has no position node")
-                    elif result.intent.value == "APPROACH" and not _target_node:
-                        logger.warning(f"[CAUSAL_BRIDGE] APPROACH BLOCKED: npc={npc_id} target={_move_target} has no position (entry={list(_target_pos.keys()) if _target_pos else 'EMPTY'})")
+                            logger.warning(f"[MOTION_ROUTER] FLEE BLOCKED: npc={npc_id} has no position node")
 
                 # Триггер когда давление накопилось
                 if _new_pressure >= IDLE_DECISION_SCORE_THRESHOLD:

@@ -1,5 +1,5 @@
-# ADR-GL-202 Impact Audit: Generative Constraint Execution Model (GCO)
-> Этот файл — детальный аудит онтологического сдвига ENIGMA. Единый атлас всех ADR: `docs\Tasks\ADR (Architecture Decision Records).md`
+﻿# ADR-GL-202 Impact Audit: Generative Constraint Execution Model (GCO)
+> Этот файл — детальный аудит онтологического сдвига ENIGMA. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
 
 ## Суть сдвига
 Переход от императивной симуляции (TickOrchestrator + DeltaBuffer + DRFBus) к функциональной генерации состояния (Lazy Deterministic State Reconstruction).

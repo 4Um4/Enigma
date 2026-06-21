@@ -1,6 +1,6 @@
-# ADR-S83.1 Impact Audit: Tick = Pure Function Evaluation
+﻿# ADR-S83.1 Impact Audit: Tick = Pure Function Evaluation
 
-> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs\Tasks\ADR (Architecture Decision Records).md`
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
 > **Актуализация:** S83.1 — переход от reactive mutation к functional evaluation внутри тика.
 
 ---

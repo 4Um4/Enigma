@@ -1,5 +1,5 @@
-# ADR-O-146 Impact Audit: Personality Math Layer (Causal Geometry of Character)
-> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs\Tasks\ADR (Architecture Decision Records).md`
+﻿# ADR-O-146 Impact Audit: Personality Math Layer (Causal Geometry of Character)
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
 
 ## Changed Domains
 - DOM-02 (Will, Pressure & Decision) — SocialDeltaEngine заменяет инлайн _compute_deltas

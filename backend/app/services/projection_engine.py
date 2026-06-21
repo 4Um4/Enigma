@@ -121,31 +121,36 @@ class ProjectionEngine:
                 entry["location"] = _neighbor
                 entry["location_id"] = _neighbor
 
-        # 4. Traversal contract (Rule 134 — EventCompiler authority)
+        # 4. Traversal contract — ProjectionEngine = observer, SSM = lifecycle owner
         if thick.traversal:
             if thick.traversal.status == "NEW":
-                # Рождение traversal — единственный автор (Rule 134)
-                scene_state.setdefault("active_traversals", {})[thick.target] = dict(thick.traversal.fields)
+                # ADR-XXX: Рождение traversal — ProjectionEngine прокидывает dict,
+                # но статусная мутация теперь через SSM FSM. Создание остаётся здесь,
+                # так как это первичная запись (transition None→MOVING).
+                from app.domain.traversal_schema import build_traversal_dict
+                _fields = thick.traversal.fields
+                scene_state.setdefault("active_traversals", {})[thick.target] = _fields
                 logger.debug(
                     f"[PROJECTION] Traversal NEW: npc={thick.target} "
                     f"target={thick.value} "
-                    f"duration={thick.traversal.fields.get('duration_ticks', '?')}"
+                    f"duration={_fields.get('duration_ticks', '?')}"
                 )
             elif thick.traversal.status == "COMPLETED":
-                # Завершение traversal (projection of EventCompiler computation)
-                # ADR-XXX: Transition через FSM, не прямое присвоение
-                from app.domain.traversal_schema import transition_traversal
+                # ADR-XXX: ProjectionEngine = READ-ONLY observer.
+                # Transition MOVING→COMPLETED выполняется ТОЛЬКО через SSM FSM.
+                # ProjectionEngine больше не пишет статус в active_traversals.
                 traversals = scene_state.get("active_traversals", {})
                 if thick.target in traversals:
-                    _transitioned = transition_traversal(traversals[thick.target], "COMPLETED")
-                    if _transitioned:
+                    _current_status = traversals[thick.target].get("status")
+                    if _current_status == "COMPLETED":
                         logger.debug(
-                            f"[PROJECTION] Traversal COMPLETED: npc={thick.target}"
+                            f"[PROJECTION] Traversal COMPLETED confirmed (read-only): npc={thick.target}"
                         )
                     else:
-                        logger.warning(
-                            f"[PROJECTION] Traversal COMPLETED blocked for npc={thick.target} — "
-                            f"current status={traversals[thick.target].get('status')}"
+                        logger.info(
+                            f"[PROJECTION] Traversal COMPLETED shadow vs legacy drift: "
+                            f"npc={thick.target} shadow=COMPLETED legacy={_current_status} "
+                            f"(SSM FSM will transition)"
                         )
 
         return True

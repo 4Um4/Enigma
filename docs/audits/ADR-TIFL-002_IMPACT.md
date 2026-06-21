@@ -1,7 +1,7 @@
-# ADR-TIFL-002 Impact Audit: Identity as Competitive Drift Field (ICDF)
+﻿# ADR-TIFL-002 Impact Audit: Identity as Competitive Drift Field (ICDF)
 
 > Этот файл — детальный аудит перехода от линейного усиления драйвов к конкурентному перераспределению массы личности.
-> Единый атлас всех ADR: `docs\Tasks\ADR (Architecture Decision Records).md`
+> Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
 
 ## Changed Domains
 - **npc/identity** (Отказ от точечной атрибуции ошибки `error_drive` в пользу вектора распределённого напряжения `error_vector`).

@@ -137,6 +137,14 @@
 `ADR-O-205` [ONTO] **Projection Layer System** — Слой проекции физики в наблюдаемую реальность. Изоляция мутаций
   Files: scene_state_manager.py, projection_engine.py
 
+`ADR-TZ08-1` [ONTO] **Strict Event-Driven Kernel (InterventionEvent)** — Ядро симуляции переведено на event-driven модель. Введён контракт `InterventionEvent` (`app/contracts/interventions.py`), заменяющий `dm_ctx` и `TickMode`. Ядро не знает слова "player", только interventions. 
+  Taboo: ❌ Передача `dm_ctx` в `TickOrchestrator` как активного контракта. ❌ Ветвление `if dm_ctx is not None:` внутри `execute()`.
+  Files: contracts/interventions.py, tick_orchestrator.py
+
+`ADR-TZ08-2` [ONTO] **Immutable Core Pipeline (_run_core_phases)** — Ветвление логики ядра убито. Введён единый метод `_run_core_phases`, вызываемый всегда. Фаза 1 разделена на 3 независимых подслоя: NPIC normalize, Intervention routing, WillpowerGate. `execute_player_finalize` стал no-op.
+  Taboo: ❌ Возврат `TickPlayerResultDTO` из `execute()`. Ядро возвращает только `TickResultDTO`.
+  Files: tick_orchestrator.py, domain/tick.py
+
 ---
 
 ## DOM-02: WILL, PRESSURE & DECISION
@@ -227,6 +235,20 @@
 
 `ADR-S86.4` [STD] **TZ-02 BehaviorMask Hysteresis (S86)** — `BehaviorMask` назначается на основе state перед DecisionHub. Введён как квазистабильный (гистерезисный) социальный слой, предотвращающий мерцание социальных ролей.
   Files: tick_orchestrator.py
+
+`ADR-TZ08-3` [ONTO] **Rules as Pure Reducer (RulesSubscriber)** — Асинхронный RulesAgent удалён. Введён `RulesSubscriber` (`app/services/events/rules_subscriber.py`) как pure reducer: `function(event, snapshot) → delta`. Не имеет состояния, не мутирует снапшот, использует детерминированный seed для бросков d20. 
+  Taboo: ❌ Асинхронные вызовы LLM/Rules внутри `game_loop` до применения состояния. ❌ Наличие state/cache в RulesSubscriber.
+  Files: events/rules_subscriber.py
+
+`ADR-TZ08-5` [ONTO] Narrative Projection in game_loop — Вычисление dm_frame и RulesDelta перенесено из TickOrchestrator в game_loop. Ядро возвращает только state_t+1 (TickResultDTO). Taboo: ❌ Вызов LLM или Rules-агентов внутри _run_core_phases. Files: game_loop/init.py, events/rules_subscriber.py`ADR-TZ08-5` [ONTO] Narrative Projection in game_loop — Вычисление dm_frame и RulesDelta перенесено из TickOrchestrator в game_loop. Ядро возвращает только state_t+1 (TickResultDTO). Taboo: ❌ Вызов LLM или Rules-агентов внутри _run_core_phases. Files: game_loop/init.py, events/rules_subscriber.py
+
+`ADR-TZ08-6` [ONTO] **Ontological Separation (observed_state)** — Разделение контрактов в момент генерации. Ядро генерирует `observed_state` (только name, description, narrative_cache) вместо `real_state` (сырой legacy dict с ментальными объектами). Эпистемический Барьер обеспечен онтологически, а не через runtime-фильтры. `WorldProjectionBuffer` зафиксирован как будущий слой оффскрин-симуляции, не влияющий на DM-контур.
+  Taboo: ❌ Генерация `real_state` или `distortion_bias` в `npc_tick_pipeline.py`. ❌ Восстановление ментальных полей через инференс в `observed_state`.
+  Files: npc/npc_tick_pipeline.py, scene/r3_direct_builder.py
+
+`ADR-TZ05-1` [ONTO] **LLM Context Exile** — Вынос LLM-логики из execution path ядра. Вызов `build_verbalization_context` удалён из `run_npc_pipeline`. Ядро больше не формирует промпты и не собирает ментальные объекты для LLM (physical_state, recalled_facts, suppressed_secrets) в потоке симуляции. Единственная передача темы диалога осуществляется через поле `topic`. Сама функция `build_verbalization_context` сохранена как EXPRESSION LAYER и маркирована TODO для переноса в verbalization слой и переписывания на `observed_state`.
+  Taboo: ❌ Вызов `build_verbalization_context` внутри execution path (`run_npc_pipeline`). ❌ Импорт `VerbalizationContext` в execution path ядра.
+  Files: npc/npc_tick_pipeline.py, scene/r3_direct_builder.py
 
 ---
 
@@ -351,6 +373,24 @@
   Taboo: ❌ Создание нового `TraversalState` для `cause="traversal_complete"`.
   Files: scene_state_manager.py
 
+`ADR-TRAV-FSM` [STD] **Traversal Lifecycle FSM & Ownership Migration** — Завершена миграция ownership. `SceneStateManager` — единственный владелец lifecycle перемещений. Внедрена FSM (`transition_traversal`) для переключения статусов (PENDING → MOVING → COMPLETED/CANCELLED → cleanup). `ProjectionEngine` и `TickOrchestrator` переведены в режим read-only / эмиттеров фактов. Persistence `current_waypoint_idx` проброшен в WorldSnapshotBuilder. Верифицировано 200-тиковым прогоном SUPERBOX.
+  Taboo: ❌ Прямая мутация `status = "COMPLETED"` в обход `transition_traversal()`. ❌ Хардкод `current_waypoint_idx` в проекциях.
+  Files: scene_state_manager.py, projection_engine.py, tick_orchestrator.py, traversal_schema.py, world_snapshot_builder.py
+
+`ADR-TRAV-NOOP` [STD] **State-Based Idempotency in EventCompiler** — Идемпотентность изменения позиции (`NPC_POSITION`) определяется инвариантом состояния (`current_state == target_state`), а не семантикой события (`cause`). `EventCompiler` возвращает `None` (NOOP) до запуска тяжёлой логики компиляции, если NPC уже находится на целевом узле. Устраняет ложные срабатывания `[SHADOW_COMPILER] FAILED` при штатном завершении транзитов (traversal_complete) и повышает устойчивость к будущим типам событий (teleport, sync).
+  Taboo: ❌ Привязка логики фильтрации идемпотентности к полям `cause` (Semantic Coupling).
+  Files: event_compiler.py
+
+`ADR-ETKE-L0` [ONTO] **ETKE-IK v1: Motion Core Data Structures** — Закладка онтологии непрерывного движения и её интеграция в TickOrchestrator. Введены L0 DTO (AffordanceVector, BodySchema, DriveVector, KinematicProfile) и L2 сервисы (SteeringResolver, MotionIntegrator, WorldTopologyProvider). Пайплайн развёрнут как параллельная ветка (_process_continuous_motion), которая активируется при наличии DriveVector и отсутствии активного макро-транзита. Движение переведено из функции графа в результат преобразования вектора давления через физически-ориентированное поле возможностей. Taboo: ❌ Использование MovementIntent для микро-перемещений (LOD0) после полного внедрения ETKE-IK. ❌ Прямой запрос полигонов из SpatialService в обход WorldTopologyProvider для нужд непрерывного движения. Files: domain/motion_core.py, services/motion/motion_pipeline.py, services/spatial/world_topology_provider.py, services/tick_orchestrator.py
+
+`ADR-ETKE-L2` [ONTO] **ETKE-IK v1: Motion Pipeline & Topology Provider** — Внедрены вычислительные компоненты непрерывного движения. `SteeringResolver` вычисляет `velocity` из `DriveVector` с учётом `AffordanceVector` (grip, drag) и `BodySchema`. `MotionIntegrator` выполняет интеграцию Эйлера (`position += v*dt`) и расчёт усталости. `WorldTopologyProvider` стал единым шлюзом, транслирующим дискретную геометрию `SpatialService` в непрерывное поле возможностей. Пайплайн развёрнут как параллельная подсистема.
+  Taboo: ❌ Прямой запрос полигонов из `SpatialService` в обход `WorldTopologyProvider` для нужд непрерывного движения.
+  Files: services/motion/motion_pipeline.py, services/spatial/world_topology_provider.py
+
+`ADR-ETKE-ACT1` [ONTO] **Motion Routing Layer (CAUSAL_BRIDGE v2)** — CAUSAL_BRIDGE формализован как полислойный маршрутизатор движения. Геометрический инвариант `same_node vs different_node` определяет контур: `same_node + has_coords` → DriveVector (ETKE-IK, непрерывная кинематика внутри узла), `different_node` → MovementIntent (Traversal FSM, дискретный граф). FLEE в same_node = инвертированный вектор отталкивания (intensity=1.0, SURVIVAL). APPROACH в same_node = нормированный вектор притяжения (intensity=0.7, SOCIAL). Жизненный цикл DriveVector: очистка при каждом `tick_decisions` → запись в npc dict → потребление `_process_continuous_motion` на следующем тике (модель T-1). `MOTION_ROUTING_THRESHOLD` зарезервирован для будущей адаптивной интенсивности.
+  Taboo: ❌ CAUSAL_BRIDGE генерирует MovementIntent для same_node перемещений (no-op, должен использовать DriveVector). ❌ DriveVector без очистки при каждом tick_decisions (эффемерность L3-P1). ❌ FLEE через DriveVector с неинвертированным direction (NPC должен удаляться от угрозы).
+  Files: services/npc/life_engine.py, services/tick_orchestrator.py, domain/motion_core.py
+
 `ADR-145` [STD] **Boundary Transition Pipeline (ДОЛГ 6.2)** — Двухфазная реальность: смысл → материализация
   Taboo: ❌ Boundary node как цель движения. ❌ Boundary resolution при создании traversal
   Files: graph_compiler.py, spatial_contracts.py, tick_orchestrator.py
@@ -375,6 +415,22 @@
   Files: graph_compiler.py, spatial_service.py, movement_engine.py, tick_orchestrator.py
 
 ---
+
+`ADR-S90.1` [ONTO] **WorldTopologyProvider v1: Hybrid Geometry** — `SpatialService` расширен хранением `rooms_geometry` (полигоны). Введён метод `is_point_in_bounds(x, y)`. `WorldTopologyProvider` использует его для формирования non-uniform `AffordanceVector` (`can_stand=0.0` вне полигонов). Граф и физика объединены без нарушения обратной совместимости.
+  Taboo: ❌ Возврат к uniform `AffordanceVector` (константные значения без проверки `is_point_in_bounds`).
+  Files: graph_compiler.py, spatial_service.py, world_topology_provider.py
+
+`ADR-S90.2` [ONTO] **Motion Policy Layer (MotionPrimitive)** — Введён `Enum MotionPrimitive` (APPROACH, FLEE, RETREAT, PATROL). `LifeEngine` генерирует 4-элементный список `drive_vector` `[dx, dy, intensity, primitive]`. Интенсивность FLEE модулируется `affective_load` (RETREAT при < 0.7).
+  Taboo: ❌ Возврат к 3-элементному `drive_vector`. ❌ Хардкод интенсивности FLEE = 1.0 без учёта нагрузки.
+  Files: motion_core.py, life_engine.py, tick_orchestrator.py
+
+`ADR-S90.3` [STD] **CollisionAvoidance (Reactive Spatial Correction)** — Внедрён реактивный слой в `motion_pipeline.py`. Работает ДО `SteeringResolver`. Проверяет `Affordance` (через `WorldTopologyProvider`) в точке впереди движения. Если `can_pass < 0.5` — смещает вектор перпендикулярно (left/right fallback) или останавливает (тупик).
+  Taboo: ❌ Вызов `SteeringResolver` до `CollisionAvoidance`.
+  Files: motion_pipeline.py
+
+`ADR-S90.4` [STD] **MotionRenderRouter (Hybrid Frontend)** — Фронтенд реализует диспетчеризацию рендера: если есть `velocity` (ETKE-IK) — интерполяция по инерции; если есть `active_traversals` (FSM) — интерполяция по `path_waypoints`. `NPCPositionDTO` расширен полями `velocity` и `exertion_level`.
+  Taboo: ❌ Прямое чтение `local_position` без проверки `velocity` и `active_traversals`.
+  Files: game_screen.py, snapshot.py, world_snapshot_builder.py
 
 ## DOM-05: PHYSIOLOGY & COMBAT
 
@@ -563,6 +619,8 @@
 `ADR-i18n` [STD] **Localization Module** — Единый файл локализации
   Taboo: ❌ Inline-словари activity_ru в game_screen
   Files: i18n.py, game_screen.py
+
+`ADR-TZ08-4` [ONTO] Epistemic Boundary (DM as Observer) — DM-агент переведён в режим строго локальной эпистемики. Нарратив рождается исключительно из player_perception и rules_result. Доступ к внутренним состояниям NPC (stress_delta, trust_delta, real_state, recalled_facts, suppressed_secrets) заблокирован на уровне r3_direct_builder и dm_agent. Taboo: ❌ Чтение ментальных объектов NPC в слое интерпретации. ❌ Возврат dm_frame из ядра симуляции. Files: scene/r3_direct_builder.py, agents/dm_agent.py, tick_orchestrator.py, game_loop/init.py
 
 ---
 

@@ -74,6 +74,16 @@ class EventCompiler:
 
         # NPC_POSITION — полная компиляция
         if change.field == "position":
+            # State-based Idempotency: если NPC уже на целевом узле — это NOOP.
+            # Не зависит от cause (traversal_complete, teleport, sync и т.д.).
+            # Инвариант: current_state == target_state => отсутствие причинной структуры.
+            _current_pos = self._get_source_node(snapshot, change)
+            if _current_pos and _current_pos == change.value:
+                logger.debug(
+                    f"[SHADOW_COMPILER] NOOP: target={change.target} "
+                    f"field=position value={change.value} (already at target node)"
+                )
+                return None
             result = self._compile_position_change(snapshot, change)
         elif change.field == "local_position":
             result = self._compile_local_position_change(snapshot, change)

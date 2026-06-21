@@ -24,7 +24,7 @@ def build_r3_dm_frame(
 ) -> dict:
     """Строит DMFrame из DecisionResult[] + обновляет SceneContinuity.
 
-    Мутирует shared_context (scene_continuity, npc_recalled_memory, npc_suppressed_secrets).
+    Мутирует shared_context (scene_continuity).
     Возвращает npc_result dict для дальнейшей обработки в game_loop.
     """
     from app.services.verbalization.scene_outcome_builder import (
@@ -52,7 +52,9 @@ def build_r3_dm_frame(
         in _scene_state.get("line_of_sight", {}).items()
         if is_visible
     }
-    _tiers = {ctx["npc_id"]: ctx.get("tier", "minor") for ctx in _filtered_ctxs}
+    # Epistemic Boundary: DM не читает внутренние уровни NPC (tier) из контекстов, 
+    # только локальную физическую видимость.
+    _tiers = {}
 
     # R5: Определяем успех физического действия из rules_agent
     _player_success = True  # VERBAL действия всегда "успешны" (нет броска)
@@ -74,17 +76,14 @@ def build_r3_dm_frame(
         player_target_id=_target_id,
     )
 
-    # Собираем снапшоты для ProjectionLayer (реальное состояние + искажения)
+    # Epistemic Boundary (ADR-TZ08-4): Читаем только наблюдаемый слепок (observed_state).
+    # Ментальные объекты (real_state, distortion_bias) больше не генерируются ядром.
     _state_snapshots = {
-        ctx["npc_id"]: ctx["real_state"]
+        ctx["npc_id"]: ctx["observed_state"]
         for ctx in _filtered_ctxs
-        if ctx.get("real_state")
+        if ctx.get("observed_state")
     }
-    _distortion_biases = {
-        ctx["npc_id"]: ctx["distortion_bias"]
-        for ctx in _filtered_ctxs
-        if ctx.get("distortion_bias")
-    }
+    
     # ФАЗА 0: профили NPC для voice_profile, backstory, author_notes
     _npc_profiles = {
         ctx["npc_id"]: ctx["profile_l0"]
@@ -93,21 +92,12 @@ def build_r3_dm_frame(
     }
     # ФАЗА 4: темы NPC из TopicExtractor (Устав 3.2)
     _npc_topics = {
-        ctx["npc_id"]: ctx["verbalization_ctx"].topic
+        ctx["npc_id"]: ctx["topic"]
         for ctx in _filtered_ctxs
-        if ctx.get("verbalization_ctx") and ctx["verbalization_ctx"].topic
+        if ctx.get("topic")
     }
 
-    # ADR-131: Извлекаем affective_load из NPC state для трёхосевой модели
-    _npc_affective_loads = {}
-    for _nid, _state in _state_snapshots.items():
-        if isinstance(_state, dict):
-            _load = _state.get("affective_load")
-            if _load is not None:
-                try:
-                    _npc_affective_loads[_nid] = float(_load)
-                except (TypeError, ValueError):
-                    pass
+    # Epistemic Boundary: affective_load скрыт от DM-агента.
     
     # ADR-131: Извлекаем coherence из avatar state (если доступен)
     _avatar_coherence = 1.0  # дефолт — ясный ум
@@ -127,10 +117,10 @@ def build_r3_dm_frame(
     _scene = _builder.build(
         _decisions, _scene_ctx,
         state_snapshots=_state_snapshots,
-        distortion_biases=_distortion_biases,
+        distortion_biases={},
         npc_profiles=_npc_profiles,
         topics=_npc_topics,
-        npc_affective_loads=_npc_affective_loads,
+        npc_affective_loads={},
         avatar_coherence=_avatar_coherence,
     )
 
@@ -140,18 +130,17 @@ def build_r3_dm_frame(
             p = actor.psychological
             logger.warning(f"[PROJECTION] {actor.npc_id}: {p.regime.value} (int={p.intensity}, stab={p.stability})")
     # Дельты от DecisionHub
-    for d in _decisions:
-        dl = LegacyStateDeltaAdapter.collapse(d.deltas)
-        logger.warning(f"[DELTA] {d.npc_id}: intent={d.intent.value} stress_d={dl.stress_delta} trust_d={dl.trust_delta} fear_d={dl.fear_delta}")
+    # Epistemic Boundary: Внутренние дельты (stress/trust) скрыты от DM. 
+    # DM судит по проявлениям (manifestations), а не по скрытым математическим сдвигам.
 
     # B.3/B.4: Обновляем SceneContinuity из дельт
     _cont = shared_context.scene_continuity or SceneContinuity()
-    _total_stress_d = sum(LegacyStateDeltaAdapter.collapse(d.deltas).stress_delta for d in _decisions)
-    _total_trust_d = sum(LegacyStateDeltaAdapter.collapse(d.deltas).trust_delta for d in _decisions)
-    _cont.update_tension(_total_stress_d / 100.0)  # нормализация в 0..1
+    # Epistemic Boundary: Внутренние дельты (stress/trust) скрыты от DM. 
+    # DM судит по проявлениям (manifestations), а не по скрытым математическим сдвигам.
+    _cont.update_tension(0.0)
     _cont.update_emotional_vector({
-        "trust": _total_trust_d / 50.0,   # нормализация
-        "tension": _total_stress_d / 50.0,
+        "trust": 0.0,
+        "tension": 0.0,
         "confusion": 0.3 if len(_decisions) > 2 else 0.0,  # много NPC = хаос
     })
     # Флаги ключевых событий
@@ -189,8 +178,7 @@ def build_r3_dm_frame(
     # ШАГ 0.5: MicroEvents → SceneContinuity флаги/события
     for ctx in _filtered_ctxs:
         for me in ctx.get("micro_events", []):
-            _npc_name = ctx.get("verbalization_ctx")
-            _name = _npc_name.npc_name if _npc_name else me.npc_id
+            _name = ctx.get("observed_state", {}).get("name") or me.npc_id
             if me.event_type.value == "object_dropped":
                 _cont.add_flag(f"{_name}_dropped_object")
                 _cont.add_event(f"{_name} уронил(а) предмет")
@@ -227,37 +215,8 @@ def build_r3_dm_frame(
     # B.3/B.4: Передаём SceneContinuity в контекст для DM prompt
     shared_context.scene_continuity = _cont
 
-    # Этап 4.1: Собираем recalled_facts из npc_contexts для DM промпта
-    _recalled_for_dm = []
-    for _nctx in shared_context.npc_contexts or []:
-        _vc = _nctx.get("verbalization_ctx")
-        if _vc and _vc.recalled_facts:
-            _recalled_for_dm.append({
-                "npc_name": _vc.npc_name,
-                "facts": _vc.recalled_facts,
-            })
-    shared_context.npc_recalled_memory = _recalled_for_dm
-    # Этап 5.5: suppressed secrets для DM
-    _suppressed_for_dm = []
-    for _nctx in shared_context.npc_contexts or []:
-        _vc = _nctx.get("verbalization_ctx")
-        if _vc and _vc.suppressed_secrets:
-            _suppressed_for_dm.append({
-                "npc_name": _vc.npc_name,
-                "count": len(_vc.suppressed_secrets),
-            })
-    shared_context.npc_suppressed_secrets = _suppressed_for_dm
-    # Этап 10: накопленные черты NPC для вербализации
-    _identity_for_dm = []
-    for _nctx in shared_context.npc_contexts or []:
-        _vc = _nctx.get("verbalization_ctx")
-        _traits = _nctx.get("identity_traits", {})
-        if _vc and _traits:
-            _identity_for_dm.append({
-                "npc_name": _vc.npc_name,
-                "traits": _traits,
-            })
-    shared_context.npc_identity_traits = _identity_for_dm
+    # Epistemic Boundary: Ментальные объекты NPC скрыты от DM-агента. 
+    # DM описывает только то, что физически проявлено в player_perception.
 
     logger.warning(f"[R3_DIRECT] {len(_decisions)} decisions → DMFrame (focus={len(_dm_frame.focus_npcs)}, bg={len(_dm_frame.background_npcs)})")
 

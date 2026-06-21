@@ -240,6 +240,10 @@ class SceneOutcomeBuilder:
         decisions: List[DecisionResult],
         context: SceneContext,
         state_snapshots: Optional[Dict[str, dict]] = None,
+        # TODO: Semantic Debt (Backlog). Epistemic Boundary (ADR-TZ08-6) закрыл утечку ментальных объектов выше по потоку.
+        # r3_direct_builder передаёт сюда пустые словари. Логика внутри builder работает на дефолтах.
+        # Требуется рефакторинг: переименование `real_state` → `observed_state`, удаление мёртвых веток `distortion_bias`.
+        # Приоритет: LOW (non-blocking, refactor-only). Не трогать до отдельной архитектурной задачи.
         distortion_biases: Optional[Dict[str, "DistortionProfile"]] = None,
         npc_profiles: Optional[Dict[str, NPCProfileL0]] = None,
         topics: Optional[Dict[str, str]] = None,
@@ -467,76 +471,23 @@ class SceneOutcomeBuilder:
 
     def _project_psychology(
         self,
-        real_state: dict,
-        distortion_bias: Optional["DistortionProfile"] = None,
+        observed_state: dict,
         intent: str = "idle",
+        emotion_tag: Optional[str] = None,
     ) -> Optional[PsychologicalSignature]:
         """
-        ProjectionLayer — субъективная интерпретация объективного состояния.
+        Symbolic Interpretation Layer (Epistemic Boundary).
         
-        Числа остаются реальными, интерпретация — искажённая.
-        LLM получает regime (категория), не числа (Fog of War).
+        DM выводит психологию исключительно из наблюдаемых действий (intent + emotion).
+        Числовые пороги скрытой каузальности (stress/trust/fear) больше не используются 
+        в DM-контуре. Внутренняя динамика остаётся в simulation layer.
         """
-        if not real_state:
+        if not observed_state:
             return None
 
-        psyche = real_state.get("psyche", {})
-        social = real_state.get("social_stats", {})
-
-        stress = float(psyche.get("stress", 0))
-        trust = float(social.get("trust", 0))
-        fear = float(social.get("fear_of_player", 0))
-        integrity = float(psyche.get("identity_integrity", 1.0))
-
-        # Искажения от CognitiveDistortion
-        threat_bias   = distortion_bias.threat_bias   if distortion_bias else 0.0
-        trust_bias    = distortion_bias.trust_bias    if distortion_bias else 0.0
-        salience_bias = distortion_bias.salience_bias if distortion_bias else 0.0
-
-        # ── Определение regime (детерминированное, не LLM) ──
+        # ── Определение regime (символьная интерпретация) ──
         regime = PsychologicalRegime.NEUTRAL
 
-        # Пороги перехода психологического режима
-        _THREAT_HOSTILE_THRESHOLD = 20.0
-        _THREAT_DEFENSIVE_THRESHOLD = 5.0
-        _TRUST_WITHDRAWN_THRESHOLD = -10.0
-        _STRESS_UNSTABLE_THRESHOLD = 30.0
-        _INTEGRITY_UNSTABLE_THRESHOLD = 0.6
-        _STRESS_COLLAPSE_THRESHOLD = 50.0
-
-        # Высокая угроза (реальная + искажённая)
-        effective_threat = fear + threat_bias * 50
-        if effective_threat > _THREAT_HOSTILE_THRESHOLD:
-            regime = PsychologicalRegime.HOSTILE
-        elif effective_threat > _THREAT_DEFENSIVE_THRESHOLD:
-            regime = PsychologicalRegime.DEFENSIVE
-
-        # Низкое доверие (усиленное искажением)
-        effective_trust = trust + trust_bias * 30
-        if effective_trust < _TRUST_WITHDRAWN_THRESHOLD and regime == PsychologicalRegime.NEUTRAL:
-            regime = PsychologicalRegime.WITHDRAWN
-
-        # Высокий стресс + нестабильность
-        if stress > _STRESS_UNSTABLE_THRESHOLD and integrity < _INTEGRITY_UNSTABLE_THRESHOLD:
-            regime = PsychologicalRegime.UNSTABLE
-        elif stress > _STRESS_COLLAPSE_THRESHOLD:
-            regime = PsychologicalRegime.UNSTABLE
-
-        # Позитивные состояния
-        _TRUST_COOPERATIVE_THRESHOLD = 10.0
-        _STRESS_COOPERATIVE_THRESHOLD = 20.0
-        if effective_trust > _TRUST_COOPERATIVE_THRESHOLD and stress < _STRESS_COOPERATIVE_THRESHOLD:
-            regime = PsychologicalRegime.COOPERATIVE
-
-        # Скрытые мотивы: низкая целостность + средний стресс
-        _INTEGRITY_MANIPULATIVE_THRESHOLD = 0.5
-        _STRESS_MANIPULATIVE_MIN = 20.0
-        _STRESS_MANIPULATIVE_MAX = 40.0
-        if integrity < _INTEGRITY_MANIPULATIVE_THRESHOLD and _STRESS_MANIPULATIVE_MIN < stress < _STRESS_MANIPULATIVE_MAX and regime == PsychologicalRegime.NEUTRAL:
-            regime = PsychologicalRegime.MANIPULATIVE
-
-        # ── Intent override: если числа ещё не накоплены, intent даёт fallback ──
-        # Применяется только когда режим всё ещё NEUTRAL (числа не перебили)
         _INTENT_REGIME: dict[str, PsychologicalRegime] = {
             "flee":    PsychologicalRegime.DEFENSIVE,
             "attack":  PsychologicalRegime.HOSTILE,
@@ -545,18 +496,22 @@ class SceneOutcomeBuilder:
             "resist":  PsychologicalRegime.HOSTILE,
             "hide":    PsychologicalRegime.DEFENSIVE,
         }
-        if regime == PsychologicalRegime.NEUTRAL and intent in _INTENT_REGIME:
+        if intent in _INTENT_REGIME:
             regime = _INTENT_REGIME[intent]
 
-        # ── Intensity (насколько выражен режим) ──
-        intensity = min(1.0, (stress / 100.0) + abs(effective_threat - 30) / 70.0 + salience_bias)
-        intensity = max(0.0, min(1.0, intensity))
+        # Эмоциональная модуляция режима
+        if emotion_tag == "angry" and regime == PsychologicalRegime.NEUTRAL:
+            regime = PsychologicalRegime.HOSTILE
+        elif emotion_tag == "fearful" and regime == PsychologicalRegime.NEUTRAL:
+            regime = PsychologicalRegime.DEFENSIVE
+        elif emotion_tag == "panic":
+            regime = PsychologicalRegime.UNSTABLE
 
-        # ── Stability (на грани ли смены) ──
-        stability = integrity
-        if stress > 50:
-            stability -= (stress - 50) * 0.01
-        stability = max(0.0, min(1.0, stability))
+        # ── Intensity & Stability (статические дефолты) ──
+        # В будущем могут выводиться из density of narrative_cache, 
+        # но не из сырых ментальных чисел.
+        intensity = 0.5 if regime != PsychologicalRegime.NEUTRAL else 0.1
+        stability = 1.0 if regime == PsychologicalRegime.NEUTRAL else 0.7
 
         return PsychologicalSignature(
             regime=regime,
@@ -592,28 +547,12 @@ class SceneOutcomeBuilder:
         # Voice constraints из профиля NPC
         voice_constraints = self._build_voice_constraints(npc_id, context, profile)
         
-        # ProjectionLayer — субъективная интерпретация психики
+        # Symbolic Interpretation Layer: вывод психологии из наблюдаемых действий
         _intent_str = decision.intent.value if hasattr(decision.intent, 'value') else str(decision.intent)
-        psychological = self._project_psychology(real_state, distortion_bias or {}, intent=_intent_str)
+        psychological = self._project_psychology(real_state, intent=_intent_str, emotion_tag=emotion)
         
-        # B.2: Stance — поведенческая форма для DM prompt
-        stance = None
-        if real_state:
-            _psyche = real_state.get("psyche", {})
-            _social = real_state.get("social_stats", {})
-            _stress = float(_psyche.get("stress", 0))
-            _fear = float(_social.get("fear_of_player", 0))
-            _trust = float(_social.get("trust", 0))
-            _integrity = float(_psyche.get("identity_integrity", 1.0))
-            _collapse = _integrity < 0.3
-            stance = stance_from_decision(
-                intent=decision.intent.value if hasattr(decision.intent, 'value') else str(decision.intent),
-                stress=_stress,
-                fear=_fear,
-                trust=_trust,
-                emotion_tag=emotion,
-                collapse=_collapse,
-            )
+        # B.2: Stance — поведенческая форма для DM prompt (без числовых порогов)
+        stance = stance_from_decision(intent=_intent_str, emotion_tag=emotion)
         
         # Первое предложение description — даёт модели зацепку вместо пустоты
         _desc_snippet = ""

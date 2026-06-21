@@ -1,6 +1,6 @@
-# ADR-S82.0 Impact Audit: Spatial Authority Contract
+﻿# ADR-S82.0 Impact Audit: Spatial Authority Contract
 
-> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs\Tasks\ADR (Architecture Decision Records).md`
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
 > **Актуализация:** S82 построил Spatial Reconciliation Loop — backend = deterministic oracle, frontend = sensor + physics.
 
 ---

@@ -1173,7 +1173,7 @@ class SceneStateManager:
             "spatial_walls":     spatial_walls,
             "spatial_obstacles": spatial_obstacles,
             # ── ADR-019: Traversal Registry (процесс во времени, а не стейт) ──
-            "active_traversals": {},  # dict[npc_id, TraversalState.dict]
+            "active_traversals": {},  # dict[npc_id, traversal_dict]
             # ── ADR-O-146: Новая игра начинается с tick=0, время 12:00 ──
             "tick": 0,
             # ─────────────────────────────────────────────────────────────────
@@ -1275,7 +1275,7 @@ class SceneStateManager:
                 pos = scene_state.setdefault("npc_positions", {})
                 entry = pos.setdefault(change.target, {})
                 # BUG V FIX: Сохраняем старую позицию ДО мутации entry.
-                # Иначе from_node в TraversalState всегда равен target_node,
+                # Иначе from_node в traversal_dict всегда равен target_node,
                 # т.к. строка ниже перезаписывает position до чтения на строках 1151/1187
                 _old_position = entry.get("position", "")
                 
@@ -1284,7 +1284,7 @@ class SceneStateManager:
                     print(f"[TRAV_CREATE_PRE] npc={change.target} current_position={_old_position} new_target={change.value} already_active={change.target in scene_state.get('active_traversals', {})}")
                 
                 # [DIAG_V] Детектирование двойной мутации позиции за тик
-                if change.field == "position" and _old_position == change.value:
+                if change.field == "position" and _old_position == change.value and getattr(change, 'cause', '') != 'traversal_complete':
                     print(f"[DIAG_V] DUPLICATE_POSITION_CHANGE npc={change.target} node={change.value} cause={getattr(change, 'cause', '?')}")
                     logger.warning(f"[DIAG_V] DUPLICATE_POSITION_CHANGE npc={change.target} node={change.value} — from_node == target_node risk!")
 
@@ -1292,10 +1292,10 @@ class SceneStateManager:
 
                 # ADR-019: Каузальная ложь (Вариант А). Узел обновляется для CFRM мгновенно,
                 # но визуальная позиция (local_position) НЕ телепортируется. 
-                # Вместо этого порождается TraversalState для плавной интерполяции.
+                # Вместо этого порождается traversal_dict для плавной интерполяции.
                 if change.field == "position":
                     # FIX: traversal_complete уже вычислил физику (Target Node). 
-                    # Просто проецируем координаты. Создание нового TraversalState здесь 
+                    # Просто проецируем координаты. Создание нового traversal_dict здесь 
                     # вызовет бесконечный цикл и топологический дрейф.
                     if getattr(change, 'cause', '') == 'traversal_complete':
                         location_id = scene_state.get("location_id", "")
@@ -1330,7 +1330,6 @@ class SceneStateManager:
                     if target_loc and change.value:
                         try:
                             from app.services.spatial.spatial_service import SpatialService
-                            from app.models.traversal import TraversalState
                             
                             svc = SpatialService.build_for_location(
                                 campaign_id=campaign_id, location_id=target_loc, scene_state=scene_state

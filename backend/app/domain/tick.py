@@ -27,3 +27,6 @@ class TickResultDTO:
     # ADR-075: Строго типизированный транспорт Эмбодимента через каузальную границу API.
     # None по умолчанию (нет конфликта = нет моторного сопротивления).
     will_conflict_data: Optional[dict] = None
+    # TZ-08 v0.2: Narrative Projection. Данные для LLM-генерации, вычисленные ядром.
+    # Формируются в любом тике (idle/player) на основе State+Decision.
+    npc_contexts: list = field(default_factory=list)

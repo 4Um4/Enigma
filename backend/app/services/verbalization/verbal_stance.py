@@ -56,73 +56,52 @@ class VerbalStance:
 
 def stance_from_decision(
     intent: str,
-    stress: float,
-    fear: float,
-    trust: float,
     emotion_tag: Optional[str] = None,
-    pride: float = 0.5,
-    collapse: bool = False,
 ) -> VerbalStance:
     """
-    Маппинг Decision → Stance.
-
-    Вход: числа из DecisionHub (не текст, не контекст).
-    Выход: VerbalStance для DM prompt.
+    Маппинг Decision → Stance (Symbolic Interpretation Layer).
+    
+    Epistemic Boundary: Форма поведения выводится исключительно из наблюдаемых 
+    действий (intent + emotion). Числовые ментальные поля (stress, fear, trust) 
+    остаются скрытой причинностью в simulation layer и не экспонируются.
     """
-    if collapse:
-        return VerbalStance(stance="dissociated", tone="fearful", urgency=0.1)
-
-    # Определяем stance по intent
     stance: StanceType = "observe"
     tone: ToneType = "neutral"
-    urgency = min(1.0, (stress + fear) / 100.0)
+    urgency = 0.3  # Базовая срочность
 
     if intent in ("attack", "intimidate", "warn"):
-        if stress > 60 or pride > 0.7:
-            stance = "confront"
-            tone = "aggressive"
-        else:
-            stance = "threaten"
-            tone = "cold"
+        stance = "confront" if emotion_tag == "angry" else "threaten"
+        tone = "aggressive" if emotion_tag == "angry" else "cold"
+        urgency = 0.8
     elif intent == "talk":
-        if stress > 50:
-            stance = "probe"
-            tone = "tense"
-        elif trust < -20:
-            stance = "dismiss"
-            tone = "cold"
-        else:
-            stance = "probe"
-            tone = "neutral"
+        stance = "probe"
+        tone = "tense" if emotion_tag == "fearful" else "neutral"
+        urgency = 0.5
     elif intent == "flee":
         stance = "submit"
         tone = "fearful"
+        urgency = 0.9
     elif intent == "report":
         stance = "dismiss"
         tone = "cold"
-        urgency *= 0.5
+        urgency = 0.4
     elif intent == "help":
         stance = "probe"
         tone = "neutral"
-        urgency *= 0.8
+        urgency = 0.6
     elif intent == "trade":
         stance = "probe"
         tone = "neutral"
-        urgency *= 0.3
-    elif intent == "observe":
-        if stress > 40:
-            tone = "tense"
-        else:
-            tone = "neutral"
-    elif intent == "idle":
+        urgency = 0.3
+    elif intent in ("observe", "idle"):
         stance = "observe"
-        tone = "neutral"
-        urgency *= 0.3
+        tone = "tense" if emotion_tag == "fearful" else "neutral"
+        urgency = 0.2
 
-    # Коррекция tone по emotion_tag
-    if emotion_tag == "angry" and tone not in ("aggressive", "cold"):
-        tone = "aggressive"
-    elif emotion_tag == "fearful" and tone not in ("fearful", "tense"):
+    # Override при панике (сигнал от ядра о коллапсе воли)
+    if emotion_tag == "panic":
+        stance = "dissociated"
         tone = "fearful"
+        urgency = 0.1
 
     return VerbalStance(stance=stance, tone=tone, urgency=round(urgency, 2))

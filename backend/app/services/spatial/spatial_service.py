@@ -59,14 +59,27 @@ class SpatialService:
 
         result = compile_graph(editor_data, location_id)
         # ДОЛГ 6.2: compile_graph возвращает 4 элемента (добавлен boundary_map)
-        if len(result) == 4:
+        # ETKE-IK v1: compile_graph возвращает 5 элементов (добавлен rooms_geometry)
+        if len(result) == 5:
+            graph, connections, alias_map, boundary_map, rooms_geometry = result
+        elif len(result) == 4:
             graph, connections, alias_map, boundary_map = result
+            rooms_geometry = {}
         else:
             graph, connections, alias_map = result
             boundary_map = {}
+            rooms_geometry = {}
         overlay = build_overlay_from_scene(scene_state)
 
-        return SpatialService(graph, connections, alias_map, overlay, location_id=location_id, boundary_map=boundary_map)
+        return SpatialService(
+            graph, 
+            connections, 
+            alias_map, 
+            overlay, 
+            location_id=location_id, 
+            boundary_map=boundary_map,
+            rooms_geometry=rooms_geometry
+        )
 
     def __init__(
         self,
@@ -76,6 +89,7 @@ class SpatialService:
         overlay: SpatialOverlay,
         location_id: str = "",  # Сохраняем принадлежность к локации для динамического резолва
         boundary_map: Optional[Dict[str, dict]] = None,  # ДОЛГ 6.2: boundary node → neighbor info
+        rooms_geometry: Optional[Dict[str, List[Tuple[float, float]]]] = None, # ETKE-IK v1
     ) -> None:
         self._graph = graph            # canonical_id → NodeRef
         self._connections = connections # canonical_id → set[canonical_id]
@@ -83,6 +97,7 @@ class SpatialService:
         self._overlay = overlay
         self._location_id = location_id  # ADR-052: Сохраняем для мультисценового резолва
         self._boundary_map = boundary_map or {}  # ДОЛГ 6.2
+        self._rooms_geometry = rooms_geometry or {} # ETKE-IK v1
         self._path_cache: Dict[Tuple[str, str, str, Urgency], List[NodeRef]] = {}
 
     # ── Overlay обновление ────────────────────────────────────────────
@@ -118,6 +133,41 @@ class SpatialService:
             if b_info.get("neighbor_chunk") == neighbor_loc:
                 return self.get_node(b_id)
         return None
+
+    def get_zone_id(self, x: float, y: float) -> Optional[str]:
+        """S91: Возвращает zone_id (room_id) полигона, в котором находится точка.
+        Используется WorldTopologyProvider для кэширования деформаций (DynamicAffordanceField).
+        Возвращает None, если точка вне полигонов.
+        """
+        if not self._rooms_geometry:
+            return None  # Fallback: если геометрии нет, зоны не определены
+            
+        for zone_id, polygon in self._rooms_geometry.items():
+            # Алгоритм Ray Casting (even-odd rule)
+            n = len(polygon)
+            inside = False
+            p1x, p1y = polygon[0]
+            for i in range(n + 1):
+                p2x, p2y = polygon[i % n]
+                if y > min(p1y, p2y):
+                    if y <= max(p1y, p2y):
+                        if x <= max(p1x, p2x):
+                            if p1y != p2y:
+                                xinters = (y - p1y) * (p2x - p1x) / (p2y - p1y) + p1x
+                            if p1x == p2x or x <= xinters:
+                                inside = not inside
+                p1x, p1y = p2x, p2y
+            if inside:
+                return zone_id
+        return None
+
+    def is_point_in_bounds(self, x: float, y: float) -> bool:
+        """ETKE-IK v1: Проверяет, находится ли точка внутри физической геометрии комнат.
+        Используется WorldTopologyProvider для вычисления AffordanceVector.
+        """
+        if not self._rooms_geometry:
+            return True  # Fallback: если геометрии нет, считаем всё проходимым
+        return self.get_zone_id(x, y) is not None
 
     # ── Нормализация ID ───────────────────────────────────────────────
 

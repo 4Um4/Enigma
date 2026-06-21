@@ -1,5 +1,5 @@
-# ADR-O-142A Impact Audit
-> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs\Tasks\ADR (Architecture Decision Records).md`
+﻿# ADR-O-142A Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
 
 ## Changed Domains
 - DOM-02 (Will, Pressure & Decision) — Arousal Gate внутри LifeEngine

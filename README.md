@@ -136,11 +136,11 @@ Input -> Intent Compression -> Event -> Pressure -> Decision Geometry
 
 ## Repository Anchors (source-of-truth files)
 
-- `docs/Tasks/ADR (Architecture Decision Records).md`
-- `docs/Tasks/MUTATIONS.md`
-- `docs/Tasks/DTO Registry (Реестр контрактов).md`
-- `docs/Tasks/CAUSAL_CONTRACT.md`
-- `docs/Tasks/АРХИТЕКТУРНЫЙ_УСТАВ_ENIGMA.md`
+- `docs/ADR (Architecture Decision Records).md`
+- `docs/MUTATIONS.md`
+- `docs/DTO Registry (Реестр контрактов).md`
+- `docs/CAUSAL_CONTRACT.md`
+- `docs/АРХИТЕКТУРНЫЙ_УСТАВ_ENIGMA.md`
 - `docs/audits/ADR-048_IMPACT.md`
 - `docs/audits/ADR-049_IMPACT.md`
 - `docs/audits/ADR-050_IMPACT.md`

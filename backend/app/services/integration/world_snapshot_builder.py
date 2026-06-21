@@ -181,6 +181,8 @@ class WorldSnapshotBuilder:
                 action=data.get("activity", "idle"),
                 display_name=data.get("name", npc_id),
                 initiative_suppression=data.get("initiative_suppression", 0.0),
+                velocity=data.get("velocity", (0.0, 0.0)),
+                exertion_level=data.get("exertion_level", 0.0),
             ))
 
         return result
@@ -206,7 +208,7 @@ class WorldSnapshotBuilder:
         return (local.get("x", 0.0), local.get("y", 0.0))
 
     def _extract_active_traversals(self, scene_state: Dict) -> dict:
-        """Проецирует TraversalState из scene_state для фронтенда (ADR-019, CEI-2).
+        """Проецирует active_traversals из scene_state для фронтенда (ADR-019, CEI-2).
         SnapshotBuilder НЕ мутирует scene_state. Только чистая проекция.
         Возвращает Dict[npc_id, traversal_data] — синхронно с scene_state форматом.
         CEI-2 FIX: сохраняет ПОЛНЫЙ path_waypoints (без 2-point collapse)."""
@@ -232,7 +234,7 @@ class WorldSnapshotBuilder:
                         "from_node": trav.get("from_node", ""),
                         "target_node": trav.get("target_node", ""),
                         "path_waypoints": normalized_wp,
-                        "current_waypoint_idx": 0,
+                        "current_waypoint_idx": trav.get("current_waypoint_idx", 0),
                         "started_tick": trav.get("started_tick", 0),
                         "duration_ticks": trav.get("duration_ticks", 1),
                         "speed": trav.get("speed", 2.0),

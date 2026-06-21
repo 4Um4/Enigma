@@ -1,5 +1,5 @@
-# ADR-140 Impact Audit
-> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs\Tasks\ADR (Architecture Decision Records).md`
+﻿# ADR-140 Impact Audit
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
 
 ## Суть
 DM получает life_status из player_state через avatar_to_prompt и генерирует death scene narration.

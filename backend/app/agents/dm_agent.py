@@ -198,64 +198,8 @@ class DmAgent:
         if _recent_speech:
             builder.add_npc_stm("\n".join(_recent_speech))
         
-        # Блок 2.5: L2 память NPC — recalled_facts (Этап 4)
-        _recalled = (context or {}).get("npc_recalled_memory", [])
-        if _recalled:
-            _mem_lines = []
-            for _entry in _recalled:
-                _npc_name = _entry.get("npc_name", "NPC")
-                for _f in _entry.get("facts", []):
-                    if not _f.summary:
-                        continue
-                    if _f.importance > 0.7:
-                        _qualifier = "хорошо помнит"
-                    elif _f.importance > 0.4:
-                        _qualifier = "кажется, помнит"
-                    else:
-                        _qualifier = "смутно припоминает"
-                    # Этап 8: текстуализация по игровому времени
-                    _game_ts = (context or {}).get("game_time_seconds", 0)
-                    if _game_ts:
-                        from app.core.constants import SECONDS_PER_DAY
-                        _days_ago = (_game_ts // SECONDS_PER_DAY) - _f.day
-                        if _days_ago < 1:
-                            _tq = "только что"
-                        elif _days_ago < 7:
-                            _tq = "на днях"
-                        elif _days_ago < 30:
-                            _tq = f"{_days_ago} дн. назад"
-                        else:
-                            _tq = "давно"
-                        _mem_lines.append(f"- {_npc_name} {_qualifier} ({_tq}): {_f.summary}")
-                    else:
-                        _mem_lines.append(f"- {_npc_name} {_qualifier}: {_f.summary}")
-            if _mem_lines:
-                builder.add_npc_l2_memory("\n".join(_mem_lines[:5]))
-        
-        # Блок 2.5b: Подавленные секреты — "ты помнишь, но молчишь" (Этап 5.5)
-        _suppressed = (context or {}).get("npc_suppressed_secrets", [])
-        if _suppressed:
-            _secret_lines = []
-            for _entry in _suppressed:
-                _npc_name = _entry.get("npc_name", "NPC")
-                _count = _entry.get("count", 0)
-                if _count > 0:
-                    _secret_lines.append(f"- {_npc_name} явно что-то скрывает ({_count} тайн)")
-            if _secret_lines:
-                builder.add_custom_block("Скрытое", "\n".join(_secret_lines[:3]))
-
-        # Блок 2.5c: Накопленные черты NPC — "ты осторожен с незнакомцами" (Этап 10)
-        _identity = (context or {}).get("npc_identity_traits", [])
-        if _identity:
-            _trait_lines = []
-            for _entry in _identity:
-                _npc_name = _entry.get("npc_name", "NPC")
-                _traits = _entry.get("traits", {})
-                if _traits:
-                    _desc = ", ".join(f"{k} ({v:.0%})" for k, v in _traits.items())
-                    _trait_lines.append(f"- {_npc_name}: {_desc}")
-            if _trait_lines:
-                builder.add_custom_block("Накопленные черты", "\n".join(_trait_lines[:5]))
+        # Epistemic Boundary: Ментальные объекты NPC (L2 память, секреты, черты) 
+        # скрыты от DM-агента. DM описывает только то, что физически проявлено.
 
         # Блок 2.6: Кому обращается игрок — без этого DM не знает что NPC должен отвечать
         if context:

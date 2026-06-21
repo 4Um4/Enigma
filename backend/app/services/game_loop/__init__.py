@@ -1107,16 +1107,33 @@ class GameLoop:
 
         shared_context.python_engines = python_engines_result
 
-        # ФАЗА 7: Rules агент (асинхронный — не зависит от npc_contexts)
+        # ФАЗА 7: RulesSubscriber (pure reducer) — вычисляет D&D механику (TZ-08 v0.2)
+        from app.services.events.rules_subscriber import RulesSubscriber
+        from app.services.events.event_types import EventType
+        
         _action_type = shared_context.action_type or "player_interacts"
-        _rules_context = {"classification": [{
-            "player": actions[0].player_name,
-            "type": self.dm_orchestrator._router.get_rules_action_type(_action_type),
-        }]}
-        rules_result = await run_agent_safe(
-            "rules", self.rules_agent, (actions, _rules_context), {},
-        )
-        logger.warning(f"[RULES] action_type={_action_type} → {_rules_context['classification'][0]['type']}")
+        _rules_action_type = self.dm_orchestrator._router.get_rules_action_type(_action_type)
+        
+        # Формируем event для подписчика
+        _rules_event = type('Event', (), {
+            'type': 'player_attacks' if 'attack' in _rules_action_type.lower() else 'player_interacts',
+            'payload': {'target_id': shared_context.player_target_id},
+            'source': actions[0].player_name if actions else 'player',
+            'id': f'rules_{shared_context.current_tick}'
+        })()
+        
+        # Формируем snapshot для подписчика
+        _rules_snapshot = {
+            'all_npcs_raw': _ctx.all_npcs_raw or [],
+            'tick_number': shared_context.current_tick or 0
+        }
+        
+        _rules_sub = RulesSubscriber()
+        _rules_delta = _rules_sub.handle(_rules_event, _rules_snapshot)
+        
+        # Преобразуем RulesDelta в формат, ожидаемый DM-агентом
+        rules_result = {"checks": _rules_delta.checks} if _rules_delta else {}
+        logger.warning(f"[RULES] action_type={_action_type} → {_rules_action_type} (synchronous reducer)")
 
         # ADR-O-112: Actor-Agnostic Physiology. Инжектируем Аватар в all_npcs_raw для трубы урона.
         _avatar_state = self.avatar_service.load_state(campaign_id, _player_name)
@@ -1129,13 +1146,14 @@ class GameLoop:
                 _ctx.all_npcs_raw = [n for n in _ctx.all_npcs_raw if n.get("npc_id") != "player"]
                 _ctx.all_npcs_raw.append(_avatar_dict)
 
-        # ФАЗЫ 8-10: Perception + Social + Finalize + Commit (Устав §3 — единая последовательность)
+        # ФАЗЫ 8-10: Ядро (execute) уже выполнило все фазы симуляции и сформировало perception_snapshot.
+        # Здесь game_loop только строит нарративную проекцию (dm_frame) для DM-агента.
         try:
-            _player_result = self._tick_orch.execute_player_finalize(
-                _player_result, _ctx, shared_context, actions, campaign_id,
-                rules_result, r3_direct_mode=R3_DIRECT_MODE,
-            )
-            npc_result = _player_result.finalize_result or {}
+            from app.services.scene.r3_direct_builder import build_r3_dm_frame
+            npc_result = build_r3_dm_frame(
+                shared_context, actions, rules_result
+            ) if R3_DIRECT_MODE else {}
+            
             # SCENE_IDENTITY: проверяем, что scene_state не потерял traversals после finalize
             print(f"[TRAV_CHECK_P1_5] after_finalize_return: id={id(shared_context.scene_state)} traversals={list(shared_context.scene_state.get('active_traversals', {}).keys())}")
             

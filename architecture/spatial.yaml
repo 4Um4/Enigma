@@ -1,11 +1,11 @@
 domain: SPATIAL
-description: "Пространство и локомоция. SpatialService — единственный авторитет координат. Boundary = интерфейс перехода. Актуализировано: S85.1 (Pipeline Stabilization & Traversal Lock)."
+description: "Пространство и локомоция. SpatialService — единственный авторитет координат. Boundary = интерфейс перехода. Актуализировано: S85.1 (Pipeline Stabilization & Traversal Lock) + ADR-TRAV-FSM (FSM Ownership)."
 nodes:
   SpatialService:
     type: service
     layer: Domain
     label: "Spatial Query Service v1.2"
-    description: "Единственный авторитет пространственного графа и узлов."
+    description: "Единственный авторитет пространственного графа и узлов. S90: Хранит rooms_geometry и предоставляет is_point_in_bounds(x,y) для ETKE-IK."
   SpatialQueryService:
     type: service
     layer: Domain
@@ -19,16 +19,17 @@ nodes:
     type: service
     layer: Application
     label: "Scene State Manager (Projection Engine)"
-    description: "ADR-130.1: Блокирует перезапись активных транзитов (status=MOVING). ADR-130.2: Обрабатывает cause=traversal_complete как проекцию local_position (snap), не создавая новый маршрут."
+    description: "ADR-130.1: Блокирует перезапись активных транзитов (status=MOVING). ADR-130.2: Обрабатывает cause=traversal_complete как проекцию local_position (snap), не создавая новый маршрут. ADR-TRAV-FSM: Единственный владелец lifecycle перемещений (transition_traversal)."
   LifeEngine:
     type: service
     layer: Application
     label: "Life Engine"
     description: "S85.1: Резолвит цели через SpatialService.resolve_node(role=NodeRole). ADR-154: _simulate_major блокирует генерацию интентов для NPC со статусом MOVING."
-  TraversalState:
+  TraversalDict:
     type: domain
     layer: Domain
-    label: "Traversal State (LOD1)"
+    label: "Traversal Dict (LOD1)"
+    description: "Runtime dict представляющий активные перемещения. SSM владеет lifecycle через FSM. TraversalState dataclass удалён (ADR-TRAV-FSM)."
   SceneChange:
     type: dto
     layer: Domain
@@ -39,10 +40,62 @@ nodes:
     layer: Domain
     label: "Macro Movement Goal (LOD1)"
     description: "ADR-060: Объединяет LOD0 и LOD1. ADR-O-137: Включает поле IntentDomain (SURVIVAL/SOCIAL/ROUTINE/EXPLORATION)."
+    # --- ETKE-IK v1: MOTION CORE (L0) ---
+  AffordanceVector:
+    type: domain
+    layer: Domain
+    label: "Affordance Vector (Field Capabilities)"
+    description: "ETKE-IK v1: Физические возможности среды (can_stand, surface_grip, light_level). Заменяет дискретные узлы на непрерывное поле."
+  BodySchema:
+    type: domain
+    layer: Domain
+    label: "Body Schema (Kinematic Profile)"
+    description: "ETKE-IK v1: Кинематические ограничения тела NPC (max_velocity, acceleration, stamina). Расширяет body_state."
+  DriveVector:
+    type: dto
+    layer: Domain
+    label: "Drive Vector (Continuous Movement Intent)"
+    description: "ETKE-IK v1: Замена MovementIntent для микро-уровня. Содержит direction (x,y) и intensity (0-1). Тело само ищет путь в поле возможностей."
+  KinematicProfile:
+    type: dto
+    layer: Domain
+    label: "Kinematic Profile (Frontend Output)"
+    description: "ETKE-IK v1: Выходной профиль движения для фронтенда (velocity, posture, facing, exertion_level). Результат работы SteeringResolver и MotionIntegrator."
+  WorldTopologyProvider:
+    type: service
+    layer: Application
+    label: "World Topology Provider (ETKE-IK Gateway)"
+    description: "S90: Формирует non-uniform AffordanceVector. Внутри полигона → can_stand=1.0, снаружи → 0.0."
+  MotionPrimitive:
+    type: domain
+    layer: Domain
+    label: "Motion Primitive (Enum)"
+    description: "S90: Семантический примитив движения (APPROACH, FLEE, RETREAT, PATROL). Сохраняется в DriveVector."
+  CollisionAvoidance:
+    type: service
+    layer: Application
+    label: "Collision Avoidance (Reactive Layer)"
+    description: "S90: Реактивная коррекция DriveVector. Проверяет Affordance впереди движения и смещает вектор перпендикулярно при can_pass < 0.5."
+  SteeringResolver:
+    type: service
+    layer: Application
+    label: "Steering Resolver (ETKE-IK)"
+    description: "ETKE-IK v1: Вычисляет скорость (velocity) из DriveVector с учетом Affordance и BodySchema."
+  MotionIntegrator:
+    type: service
+    layer: Application
+    label: "Motion Integrator (ETKE-IK)"
+    description: "ETKE-IK v1: Интегрирует скорость в позицию (position += v*dt). Вычисляет усталость."
   GraphCompiler:
     type: service
     layer: Infrastructure
-    label: "Graph Compiler (v2 - List format + Adjacency + Boundary)"
+    label: "Graph Compiler (v2 - List format + Adjacency + Boundary + Geometry)"
+    description: "S90: Извлекает rooms_geometry (polygons) и передаёт 5-м элементом в compile_graph."
+  RoomsGeometry:
+    type: dto
+    layer: Domain
+    label: "Rooms Geometry (Polygons)"
+    description: "S90: Физическая геометрия комнат (Dict[room_id, List[Tuple[x,y]]]). Хранится в SpatialService."
   AdjacencyInference:
     type: service
     layer: Domain
@@ -98,6 +151,26 @@ nodes:
     description: "ADR-O-201.2: validate_topology отключен для кросс-локационных переходов, так как узлы физически разные (exit_east vs exit_west)."
 
 edges:
+  - from: DriveVector
+    to: SteeringResolver
+    label: "resolve(drive, body, affordance)"
+  - from: SteeringResolver
+    to: KinematicProfile
+    label: "produces velocity"
+  - from: KinematicProfile
+    to: MotionIntegrator
+    label: "integrate(position, velocity)"
+  - from: MotionIntegrator
+    to: KinematicProfile
+    label: "updates position & exertion"
+  - from: SpatialService
+    to: WorldTopologyProvider
+    label: "provides discrete geometry"
+    condition: "WorldTopologyProvider wraps SpatialService to compute continuous affordance"
+  - from: WorldTopologyProvider
+    to: AffordanceVector
+    label: "query_affordance_field(region, pos)"
+    condition: "Returns field capabilities for any (x,y)"
   - from: EditorJSON
     to: GraphCompiler
     label: "load_editor_json"
@@ -131,9 +204,21 @@ edges:
     adr_ref: "ADR-073"
   - from: GraphCompiler
     to: SpatialService
-    label: "compiles graph + boundary_map"
-    condition: "Strict match or valid inferred. Returns 4 элемента (nodes, edges, alias_map, boundary_map)"
+    label: "compiles graph + boundary_map + rooms_geometry"
+    condition: "S90: Возвращает 5 элементов (nodes, edges, alias_map, boundary_map, rooms_geometry)"
     code_ref: "spatial_service.py"
+  - from: SpatialService
+    to: WorldTopologyProvider
+    label: "is_point_in_bounds(x, y)"
+    condition: "S90: Ray-casting проверка внутри полигона для вычисления AffordanceVector."
+  - from: LifeEngine
+    to: DriveVector
+    label: "generates with MotionPrimitive"
+    condition: "S90: LifeEngine добавляет 4-й элемент (primitive) в drive_vector list на основе affective_load."
+  - from: DriveVector
+    to: CollisionAvoidance
+    label: "apply(drive, pos, topology)"
+    condition: "S90: Проверка геометрии впереди. Возвращает скорректированный DriveVector."
   - from: SpatialService
     to: SpatialQueryService
     label: "provides read-only spatial API"
@@ -176,11 +261,11 @@ edges:
     to: SceneStateManager
     label: "applied by"
   - from: SceneStateManager
-    to: TraversalState
-    label: "enriches & interpolates"
-    condition: "in_transit flag, interpolation by progress. ADR-130.2: On traversal_complete snaps position, does NOT create new TraversalState."
+    to: TraversalDict
+    label: "enriches, interpolates & transitions"
+    condition: "Uses transition_traversal() for FSM (PENDING->MOVING->COMPLETED). ADR-130.2: On traversal_complete snaps position, does NOT create new traversal."
     code_ref: "scene_state_manager.py:1145,1585"
-    adr_ref: "GAP12 FIX, ADR-130.2"
+    adr_ref: "ADR-TRAV-FSM, ADR-130.2"
   - from: EventCompiler
     to: BoundaryNode
     label: "resolves boundary transitions at compile time"
@@ -236,6 +321,22 @@ constraints:
   - source: GraphCompiler
     target: LegacyName
     rule: "REQUIRED: Role-based legacy aliases in alias_map (ADR-114)"
+  - source: WorldTopologyProvider
+    target: AffordanceVector
+    rule: "REQUIRED: Non-uniform field. MUST query is_point_in_bounds. (S90 Audit)"
+    severity: CRITICAL
+  - source: CollisionAvoidance
+    target: DriveVector
+    rule: "REQUIRED: MUST execute before SteeringResolver. Modifies direction/intensity based on geometry. (S90 Audit)"
+    severity: HIGH
+  - source: LifeEngine
+    target: DriveVector
+    rule: "REQUIRED: drive_vector list MUST contain 4 elements [dx, dy, intensity, primitive_str]. (S90 Audit)"
+    severity: HIGH
+  - source: Frontend
+    target: WorldSnapshotDTO
+    rule: "REQUIRED: MotionRenderRouter. MUST check velocity first (ETKE-IK), then path_waypoints (FSM). (S90 Audit)"
+    severity: CRITICAL
   - source: EventCompiler
     target: SpatialService
     rule: "FORBIDDEN: Node lookup in snapshot.spatial_service for cross-location SceneChange (S88 БАГ S)"
@@ -345,7 +446,7 @@ constraints:
     condition: "scene_state['player_distances'] is DEPRECATED. Use SpatialQueryService."
     adr_ref: "ADR-048"
     severity: HIGH
-  # --- S85.1 PIPELINE STABILIZATION CONSTRAINTS ---
+  # --- S85.1 PIPELINE STABILIZATION & ADR-TRAV-FSM CONSTRAINTS ---
   - source: LifeEngine
     target: MovingNPC
     rule: "FORBIDDEN: LifeEngine generating intents for NPC in status MOVING (ADR-154)"
@@ -356,8 +457,16 @@ constraints:
     severity: CRITICAL
   - source: SceneStateManager
     target: TraversalComplete
-    rule: "FORBIDDEN: Creating new TraversalState for cause=traversal_complete. MUST snap local_position (ADR-130.2)"
+    rule: "FORBIDDEN: Creating new traversal_dict for cause=traversal_complete. MUST snap local_position (ADR-130.2, ADR-TRAV-FSM)"
     severity: CRITICAL
+  - source: SceneStateManager
+    target: TraversalStatus
+    rule: "FORBIDDEN: Direct mutation of traversal status (status = ...). MUST use transition_traversal() FSM (ADR-TRAV-FSM)"
+    severity: CRITICAL
+  - source: WorldSnapshotBuilder
+    target: current_waypoint_idx
+    rule: "REQUIRED: Must propagate current_waypoint_idx from runtime dict to frontend projection (ADR-TRAV-FSM)"
+    severity: HIGH
   - source: EventCompiler
     target: BoundaryFlag
     rule: "REQUIRED: EventCompiler MUST set is_boundary=True when target_loc is present (ADR-O-201.1)"
@@ -451,7 +560,7 @@ sequences:
       - from: SelectionPolicy
         to: SpatialService
         message: "5. get_node(canonical_id)"
-  - title: "Traversal Complete Snap Flow (ADR-130.2)"
+  - title: "Traversal Complete Snap & FSM Flow (ADR-130.2, ADR-TRAV-FSM)"
     participants: [TickOrchestrator, SceneChange, SceneStateManager, SceneState]
     steps:
       - from: TickOrchestrator
@@ -462,7 +571,7 @@ sequences:
         message: "2. apply_changes receives change"
       - from: SceneStateManager
         to: SceneState
-        message: "3. Snaps local_position to target node coordinates. DOES NOT create new TraversalState."
+        message: "3. Snaps local_position. Calls transition_traversal(MOVING->COMPLETED). DOES NOT create new traversal."
 
   # S91.1: Cross-Location Boundary Routing
   - from: MovementEngine

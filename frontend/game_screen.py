@@ -255,8 +255,8 @@ def _idle_tick_interval_ms(nearest_dist: float) -> int:
 
 
 def _resolve_visual_xy(npc_id: str, scene_state: dict) -> dict:
-    """ADR-019: Каузальный Lerp. Tick-based Dual Time.
-    Детерминированная интерполяция на основе тиков симуляции.
+    """ADR-019 + ETKE-IK: MotionRenderRouter.
+    Выбирает источник интерполяции: VelocityRenderer (ETKE-IK) или WaypointRenderer (FSM).
     """
     traversals = scene_state.get("active_traversals", [])
     trav = None
@@ -269,6 +269,16 @@ def _resolve_visual_xy(npc_id: str, scene_state: dict) -> dict:
     elif isinstance(traversals, dict):
         trav = traversals.get(npc_id)
 
+    # 1. ETKE-IK VelocityRenderer: если есть velocity — прогнозируем позицию (инерция)
+    npc_data = scene_state.get("npc_positions", {}).get(npc_id, {})
+    vel = npc_data.get("velocity", (0.0, 0.0))
+    if isinstance(vel, (list, tuple)) and (abs(vel[0]) > 0.01 or abs(vel[1]) > 0.01):
+        lp = npc_data.get("local_position", {"x": 0.0, "y": 0.0})
+        _target_x = lp.get("x", 0.0) + vel[0] * 0.1
+        _target_y = lp.get("y", 0.0) + vel[1] * 0.1
+        return {"x": _target_x, "y": _target_y}
+
+    # 2. Traversal FSM WaypointRenderer: если есть active_traversals — интерполируем по графу
     if trav and trav.get("status") in ("PENDING", "MOVING"):
         wp = trav.get("path_waypoints", [])
         started_tick = int(trav.get("started_tick", 0))
@@ -284,8 +294,7 @@ def _resolve_visual_xy(npc_id: str, scene_state: dict) -> dict:
             segment_frac = segment_progress - segment_idx
             return _extracted_from__resolve_visual_xy_(segment_idx, wp, segment_frac)
 
-    # Транзит завершён или отсутствует. Рисуем по Каузальной Истине
-    npc_data = scene_state.get("npc_positions", {}).get(npc_id, {})
+    # 3. Fallback: Каузальная Истина (нет движения)
     lp = npc_data.get("local_position")
     if isinstance(lp, dict) and isinstance(lp.get("x"), (int, float)):
         return lp

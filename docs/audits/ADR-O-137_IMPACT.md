@@ -1,6 +1,6 @@
-# ADR-O-137 Impact Audit: Viability Pre-Generation Gate (ДОЛГ 4.3)
+﻿# ADR-O-137 Impact Audit: Viability Pre-Generation Gate (ДОЛГ 4.3)
 
-> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs\Tasks\ADR (Architecture Decision Records).md`
+> Этот файл — детальный аудит ОДНОГО ADR. Единый атлас всех ADR: `docs/ADR (Architecture Decision Records).md`
 
 ## Changed Domains
 - **DOM-02:** Will, Pressure & Decision — viability gate в LifeEngine

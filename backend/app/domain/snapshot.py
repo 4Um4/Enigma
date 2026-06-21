@@ -68,6 +68,8 @@ class NPCPositionDTO:
     action: str          # 'idle', 'walking', 'talking', 'working'
     display_name: str    # имя для UI
     initiative_suppression: float = 0.0  # Спринт 30: Cognitive Freeze (0.0-1.0), паралич воли
+    velocity: Tuple[float, float] = (0.0, 0.0) # ETKE-IK: Вектор скорости для непрерывного рендера
+    exertion_level: float = 0.0       # ETKE-IK: Уровень усталости (0.0-1.0)
 
 
 @dataclass(frozen=True)
@@ -194,5 +196,7 @@ def snapshot_npc_positions_to_dict(
             "location_id": pos.location_id,
             "display_name": pos.display_name,
             "name": pos.display_name,
+            "velocity": pos.velocity,
+            "exertion_level": pos.exertion_level,
         }
     return result
