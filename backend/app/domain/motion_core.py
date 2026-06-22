@@ -16,7 +16,7 @@ class MotionPrimitive(Enum):
     APPROACH = "approach"
     FLEE = "flee"
     RETREAT = "retreat"
-    PATROL = "patrol"
+    SOCIAL_DRIFT = "social_drift" # S91: Замена PATROL. Социально оправданное микро-перемещение.
 
 @dataclass(frozen=True)
 class AffordanceVector:
@@ -83,4 +83,32 @@ class KinematicProfile:
     facing: float = 0.0  # угол в радианах
     exertion_level: float = 0.0  # 0.0 - 1.0 (усталость)
 
-# TODO: DynamicAffordanceField и SocialTraceField будут реализованы в WorldTopologyProvider
+
+@dataclass(frozen=True)
+class DeformationRecord:
+    """S91: Запись о динамической деформации среды (стигмергия).
+    
+    Хранит причину, силу и время жизни деформации.
+    Семантика magnitude: ABSOLUTE OVERRIDE. 
+    Значение перезаписывает базовое поле в AffordanceVector.
+    """
+    deformation_type: str  # Имя поля в AffordanceVector (напр. "surface_grip", "can_pass")
+    magnitude: float       # Absolute Override (0.0 - 1.0)
+    created_tick: int      # Тик создания (для decay и history)
+    ttl: int               # Time-to-live в тиках (0 = вечная)
+    source_id: str         # Кто/что вызвал деформацию (npc_id, "system", weather_event_id)
+
+@dataclass(frozen=True)
+class TracePayload:
+    """S91: Эмиттер стигмергического следа (SocialTraceField).
+    
+    Генерируется при движении NPC или акте насилия.
+    Накапливается в DynamicAffordanceField для изменения свойств среды.
+    """
+    region: str            # location_id
+    zone_id: str           # ID комнаты/полигона
+    trace_type: str        # "movement_density" или "safety_confidence"
+    magnitude: float       # Сила следа (0.0 - 1.0)
+    created_tick: int      # Тик создания
+    ttl: int               # Time-to-live в тиках (0 = вечная)
+    source_id: str         # npc_id или "combat_event"

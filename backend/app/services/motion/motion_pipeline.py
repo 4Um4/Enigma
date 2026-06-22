@@ -17,17 +17,22 @@ if TYPE_CHECKING:
 class CollisionAvoidance:
     """ETKE-IK 2.1: Реактивный слой коррекции направления.
     
-    Работает ДО SteeringResolver. Проверяет геометрию (Affordance) по курсу движения.
-    Если впереди стена (can_pass < 0.1) — пытается сместиться влево или вправо.
+    Работает ДО SteeringResolver. Проверяет геометрию (Affordance) и других NPC по курсу движения.
+    Если впереди стена (can_pass < 0.1) или NPC — пытается сместиться влево или вправо.
+    
+    TODO (S92+): Заменить brute-force O(N²) на Spatial Hash / KD-Tree при достижении 100+ NPC.
     """
     LOOK_AHEAD = 1.5  # Дистанция проверки (в координатах)
+    NPC_RADIUS = 0.8  # Радиус избегания других NPC
     
     @staticmethod
     def apply(
         drive: DriveVector,
         pos: Tuple[float, float],
         topology: 'WorldTopologyProvider',
-        region: str
+        region: str,
+        npc_positions: Optional[Dict[str, dict]] = None,
+        current_npc_id: Optional[str] = None
     ) -> DriveVector:
         if drive.intensity <= 0.0:
             return drive
@@ -35,27 +40,88 @@ class CollisionAvoidance:
         # Точка перед нами
         future_pos = (pos[0] + drive.direction[0] * CollisionAvoidance.LOOK_AHEAD,
                       pos[1] + drive.direction[1] * CollisionAvoidance.LOOK_AHEAD)
-        aff = topology.query_affordance_field(region, future_pos)
         
-        if aff.can_pass >= 0.5:
-            return drive  # Путь свободен
+        # S91: Проверка геометрии (стены)
+        aff = topology.query_affordance_field(region, future_pos)
+        if aff.can_pass < 0.5:
+            return CollisionAvoidance._try_sides(drive, pos, topology, region, npc_positions, current_npc_id)
             
+        # S91: Проверка других NPC (с учётом их скорости)
+        if npc_positions:
+            for npc_id, npc_pos_data in npc_positions.items():
+                if npc_id == current_npc_id:
+                    continue
+                other_pos = npc_pos_data.get("local_position", {})
+                if not other_pos:
+                    continue
+                ox, oy = other_pos.get("x", 0.0), other_pos.get("y", 0.0)
+                
+                # S91: Предсказываем позицию другого NPC (Velocity Awareness)
+                other_vel = npc_pos_data.get("velocity", (0.0, 0.0))
+                other_future_x = ox + other_vel[0] * 0.1  # dt = 0.1
+                other_future_y = oy + other_vel[1] * 0.1
+                
+                dist = math.hypot(future_pos[0] - other_future_x, future_pos[1] - other_future_y)
+                if dist < CollisionAvoidance.NPC_RADIUS:
+                    return CollisionAvoidance._try_sides(drive, pos, topology, region, npc_positions, current_npc_id)
+        
+        return drive  # Путь свободен
+
+    @staticmethod
+    def _try_sides(
+        drive: DriveVector,
+        pos: Tuple[float, float],
+        topology: 'WorldTopologyProvider',
+        region: str,
+        npc_positions: Optional[Dict[str, dict]] = None,
+        current_npc_id: Optional[str] = None
+    ) -> DriveVector:
+        """Проверяет левый и правый векторы для уклонения."""
         # Проверяем левый вектор (перпендикуляр)
         left_dir = (-drive.direction[1], drive.direction[0])
         left_pos = (pos[0] + left_dir[0] * CollisionAvoidance.LOOK_AHEAD,
                     pos[1] + left_dir[1] * CollisionAvoidance.LOOK_AHEAD)
         if topology.query_affordance_field(region, left_pos).can_pass >= 0.5:
-            return DriveVector(left_dir, drive.intensity * 0.8, drive.primitive)
-            
+            if not CollisionAvoidance._check_npc_collision(left_pos, npc_positions, current_npc_id):
+                return DriveVector(left_dir, drive.intensity * 0.8, drive.primitive)
+                
         # Проверяем правый вектор
         right_dir = (drive.direction[1], -drive.direction[0])
         right_pos = (pos[0] + right_dir[0] * CollisionAvoidance.LOOK_AHEAD,
                      pos[1] + right_dir[1] * CollisionAvoidance.LOOK_AHEAD)
         if topology.query_affordance_field(region, right_pos).can_pass >= 0.5:
-            return DriveVector(right_dir, drive.intensity * 0.8, drive.primitive)
-            
+            if not CollisionAvoidance._check_npc_collision(right_pos, npc_positions, current_npc_id):
+                return DriveVector(right_dir, drive.intensity * 0.8, drive.primitive)
+                
         # Тупик — останавливаемся
         return DriveVector((0.0, 0.0), 0.0, drive.primitive)
+
+    @staticmethod
+    def _check_npc_collision(
+        check_pos: Tuple[float, float],
+        npc_positions: Optional[Dict[str, dict]] = None,
+        current_npc_id: Optional[str] = None
+    ) -> bool:
+        """S91: Проверяет, есть ли NPC в указанной точке (с учётом скорости)."""
+        if not npc_positions:
+            return False
+        for npc_id, npc_pos_data in npc_positions.items():
+            if npc_id == current_npc_id:
+                continue
+            other_pos = npc_pos_data.get("local_position", {})
+            if not other_pos:
+                continue
+            ox, oy = other_pos.get("x", 0.0), other_pos.get("y", 0.0)
+            
+            # S91: Предсказываем позицию другого NPC
+            other_vel = npc_pos_data.get("velocity", (0.0, 0.0))
+            other_future_x = ox + other_vel[0] * 0.1
+            other_future_y = oy + other_vel[1] * 0.1
+            
+            dist = math.hypot(check_pos[0] - other_future_x, check_pos[1] - other_future_y)
+            if dist < CollisionAvoidance.NPC_RADIUS:
+                return True
+        return False
 
 class SteeringResolver:
     """ETKE-IK 2.1: Вычисляет вектор скорости на основе давления (DriveVector) и среды.
@@ -154,6 +220,9 @@ class MotionIntegrator:
         
         # TODO: Проверка коллизий с affordance (can_pass == 0.0 -> стена)
         # Пока оставляем как есть, коллизии будут в WorldTopologyProvider.
+        
+        # S91: Эмит стигмергического следа (movement_density)
+        # В будущем будет вызывать DynamicAffordanceField.apply_trace()
         
         return (new_x, new_y)
         

@@ -343,7 +343,8 @@ async def game_action(request: dict, game_loop=Depends(get_game_loop)) -> dict:
         confirmed_location_id: str | None = None
 
         campaign_state = campaign_service.get_campaign_state(campaign_id)
-        location = "tavern_silver_wolf"  # дефолт — ID локации, не displayName
+        # A1-FIX: Убран хардкод "tavern_silver_wolf". Используем официальный API SceneStateManager.
+        location = game_loop.scene_manager.find_starting_location(campaign_id)
         if campaign_state:
             if saved_location := campaign_state.metadata.get("current_location"):
                 location = saved_location
@@ -373,6 +374,8 @@ async def game_action(request: dict, game_loop=Depends(get_game_loop)) -> dict:
                             campaign_state.metadata["current_location"] = _actual_chunk_id
                             campaign_state.metadata["player_world_x"] = world_x
                             campaign_state.metadata["player_world_y"] = world_y
+                            # A1-FIX: Atomic commit (Устав §4.2.1). Persistence parity with Direct path.
+                            campaign_service.save(campaign_id)
                     else:
                         logger.warning(
                             f"[SPATIAL_ORACLE] world_position ({world_x:.1f}, {world_y:.1f}) "

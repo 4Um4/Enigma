@@ -778,6 +778,79 @@ class LifeEngine:
                             )
                         else:
                             logger.warning(f"[MOTION_ROUTER] FLEE BLOCKED: npc={npc_id} has no position node")
+                else:
+                    # S91: SOCIAL_DRIFT — Intent Attribution Layer.
+                    # NPC выбирает социально значимый якорь (бар, вход, стол, группа NPC).
+                    _npc_pos_entry = scene_state.get("npc_positions", {}).get(npc_id, {})
+                    _npc_xy = _npc_pos_entry.get("local_position")
+                    if _npc_xy:
+                        _target_xy = npc.get("social_drift_target")
+                        _dist_to_target = math.hypot(_target_xy.get("x", 0.0) - _npc_xy.get("x", 0.0), _target_xy.get("y", 0.0) - _npc_xy.get("y", 0.0)) if _target_xy else float('inf')
+                        
+                        # S91: Memory Bias — укрепляем привычку при достижении якоря
+                        if _target_xy and _dist_to_target < 0.5:
+                            _visited_anchor = npc.get("current_anchor_type", "observe_area")
+                            npc.setdefault("anchor_affinity", {})
+                            npc["anchor_affinity"][_visited_anchor] = npc["anchor_affinity"].get(_visited_anchor, 0.0) + 1.0
+                        
+                        # Выбираем новую цель, если её нет или мы её достигли
+                        if not _target_xy or _dist_to_target < 0.5:
+                            import random
+                            from app.models.spatial_contracts import NodeRole
+                            
+                            # S91: Preference Drift — затухание привычек со временем
+                            _affinity = npc.get("anchor_affinity", {})
+                            for k in list(_affinity.keys()):
+                                _affinity[k] = max(0.0, _affinity[k] - 0.05)
+                            npc["anchor_affinity"] = _affinity
+                            
+                            # S91: Intent Scoring Layer (Utility Competition + Memory Bias)
+                            _body = npc.get("body_state", {})
+                            _hunger = _body.get("hunger", 0.0) / 100.0
+                            _fatigue = _body.get("fatigue", 0.0) / 100.0
+                            _kernel = npc.get("perceptual_kernel")
+                            _threat = _kernel.get("threat_gradient", 0.0) if isinstance(_kernel, dict) else 0.0
+                            
+                            _scores = {
+                                "bar": (_hunger * 10.0 + 1.0) * (1.0 + _affinity.get("bar", 0.0)),
+                                "table": (_fatigue * 10.0 + 1.0) * (1.0 + _affinity.get("table", 0.0)),
+                                "entrance": (_threat * 15.0 + 0.5) * (1.0 + _affinity.get("entrance", 0.0)),
+                                "npc_cluster": ((1.0 - _threat) * 8.0 + 2.0) * (1.0 + _affinity.get("npc_cluster", 0.0))
+                            }
+                            _anchor_type = max(_scores, key=_scores.get)
+                            npc["current_anchor_type"] = _anchor_type # Запоминаем для Memory Bias
+                            _anchor_xy = None
+                            _intent_mask = "observe_area"
+                            
+                            if _anchor_type != "npc_cluster" and self._spatial_service:
+                                _role_map = {"bar": NodeRole.BAR, "entrance": NodeRole.ENTRANCE, "table": NodeRole.TABLE}
+                                _ref = self._spatial_service.resolve_node(role=_role_map[_anchor_type], origin_zone=npc.get("location"))
+                                if _ref:
+                                    _anchor_xy = {"x": float(_ref.x), "y": float(_ref.y)}
+                                    _intent_mask = {"bar": "get_drink", "entrance": "check_entrance", "table": "sit_down"}.get(_anchor_type, "observe_area")
+                            else:
+                                _all_npcs = scene_state.get("npc_positions", {})
+                                _other_npcs = [v for k, v in _all_npcs.items() if k != npc_id and v.get("local_position")]
+                                if _other_npcs:
+                                    _target_npc = random.choice(_other_npcs)
+                                    _anchor_xy = _target_npc.get("local_position")
+                                    _intent_mask = "eavesdrop"
+                                else:
+                                    _angle = random.uniform(0, 2 * math.pi)
+                                    _anchor_xy = {"x": _npc_xy.get("x", 0.0) + math.cos(_angle) * 2.0, "y": _npc_xy.get("y", 0.0) + math.sin(_angle) * 2.0}
+                                    _intent_mask = "seek_quiet_corner"
+                                    
+                            if _anchor_xy:
+                                _target_xy = _anchor_xy
+                                npc["social_drift_target"] = _target_xy
+                                npc["intent_mask"] = _intent_mask
+
+                        _dx = _target_xy.get("x", 0.0) - _npc_xy.get("x", 0.0)
+                        _dy = _target_xy.get("y", 0.0) - _npc_xy.get("y", 0.0)
+                        _mag = math.hypot(_dx, _dy)
+                        
+                        if _mag > 0.01:
+                            npc["drive_vector"] = [_dx / _mag, _dy / _mag, 0.2, "social_drift"]
 
                 # Триггер когда давление накопилось
                 if _new_pressure >= IDLE_DECISION_SCORE_THRESHOLD:

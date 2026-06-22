@@ -172,7 +172,19 @@ class DMContractBuilder:
             system = system_prompt
         else:
             system = DM_SYSTEM_PROMPT_HARDCORE if self._hardcore else DM_SYSTEM_PROMPT
-        user = "\n\n".join(self._blocks)
+            
+        # B3-FIX: forbidden-блок из контракта (single source of truth, pure render).
+        blocks = list(self._blocks)
+        forbidden = list(DMContract._forbidden_tuple)
+        if forbidden:
+            forbidden_parts = ["### КАТЕГОРИЧЕСКИЕ ЗАПРЕТЫ:"]
+            for i, action in enumerate(forbidden, 1):
+                forbidden_parts.append(f"{i}. НЕ {action}.")
+            forbidden_parts.append("")
+            forbidden_parts.append("Нарушение → ответ отклоняется.")
+            blocks.append("\n".join(forbidden_parts))
+            
+        user = "\n\n".join(blocks)
         
         return DMContract(
             system_prompt=system,

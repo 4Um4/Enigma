@@ -52,6 +52,8 @@ class Settings(BaseSettings):
 
     llama_cpp_server_url: str = "http://127.0.0.1:8080"
     llama_cpp_max_tokens: int = 1024
+    dm_max_tokens: int = 220  # A7-FIX: было хардкожено в 4 местах dm_agent.py
+    environment: str = "production"  # B4-FIX: production | development | test
     llama_cpp_timeout_sec: int = 30
     model_load_timeout_sec: int = 60
 

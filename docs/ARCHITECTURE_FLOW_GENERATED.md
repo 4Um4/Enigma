@@ -70,13 +70,15 @@ flowchart TD
         PipelineContext["Pipeline Context"]:::application
         AffectiveDecayHandler("Affective Decay Handler (Phase 0.5)"):::application
         ProjectionEngine("Projection Engine (Pure State Writer)"):::application
+        WorldProjectionBuffer("World Projection Buffer (Shadow Causality)"):::application
         PlayerCognitionPipeline("Player Cognition Pipeline"):::application
         LifeEngine("Life Engine"):::application
         EventCompiler("Event Compiler (Physics Generator)"):::application
         EquivalenceValidator("Equivalence Validator"):::application
-        MovementEngine("Movement Engine"):::application
         SceneStateManager("Scene State Manager (Projection Engine)"):::application
+        MovementEngine("Movement Engine"):::application
         WorldTopologyProvider("World Topology Provider (ETKE-IK Gateway)"):::application
+        DynamicAffordanceField("Dynamic Affordance Field (Dual-Layer Stigmergy)"):::application
         CollisionAvoidance("Collision Avoidance (Reactive Layer)"):::application
         SteeringResolver("Steering Resolver (ETKE-IK)"):::application
         MotionIntegrator("Motion Integrator (ETKE-IK)"):::application
@@ -157,6 +159,7 @@ flowchart TD
         PlayerPerceptionDTO["Player Perception DTO"]:::domain
         SnapshotKernel["WorldSnapshot (Immutable Reality Slice)"]:::domain
         ThickSceneChange["Thick Scene Change (Full Physical Contract)"]:::domain
+        WorldProjectionEvent["World Projection Event (Derived Narrative)"]:::domain
         PerceptionLayer("Perception Layer"):::domain
         SpatialLayer("Spatial Layer"):::domain
         RecognitionLayer("Recognition Layer"):::domain
@@ -178,6 +181,8 @@ flowchart TD
         BodySchema("Body Schema (Kinematic Profile)"):::domain
         DriveVector["Drive Vector (Continuous Movement Intent)"]:::domain
         KinematicProfile["Kinematic Profile (Frontend Output)"]:::domain
+        DeformationRecord["Deformation Record (Hard Stigmergy DTO)"]:::domain
+        TracePayload["Trace Payload (Soft Stigmergy DTO)"]:::domain
         MotionPrimitive("Motion Primitive (Enum)"):::domain
         RoomsGeometry["Rooms Geometry (Polygons)"]:::domain
         AdjacencyInference("Adjacency Inference"):::domain
@@ -383,6 +388,8 @@ flowchart TD
     BeliefCrystallizationEngine -->|"crystallize() → update_beliefs()"| CrystallizedBeliefStore
     CrystallizedBeliefStore -->|"get_beliefs() → List[CrystallizedBelief]"| CrystallizedBeliefModifierResolver
     CrystallizedBeliefModifierResolver -->|"resolve() → drive_modifiers (Dict[str, float])"| DecisionHub
+    SceneStateManager -.->|"calls project(state_t, state_t-1) inside commit()"| WorldProjectionBuffer
+    WorldProjectionBuffer -->|"generates derived events"| WorldProjectionEvent
     PerceptionLayer -->|"visible/audible entities → distance + LOS"| SpatialLayer
     SpatialLayer -->|"spatial data → recognition confidence"| RecognitionLayer
     RecognitionLayer -->|"recognized entities → attention filter"| AttentionLayer
@@ -399,8 +406,15 @@ flowchart TD
     SteeringResolver -->|"produces velocity"| KinematicProfile
     KinematicProfile -->|"integrate(position, velocity)"| MotionIntegrator
     MotionIntegrator -->|"updates position & exertion"| KinematicProfile
-    SpatialService -->|"provides discrete geometry"| WorldTopologyProvider
+    SpatialService -->|"get_zone_id(x, y) & geometry"| WorldTopologyProvider
     WorldTopologyProvider -->|"query_affordance_field(region, pos)"| AffordanceVector
+    TickOrchestrator -.->|"owns instance (S91)"| DynamicAffordanceField
+    DynamicAffordanceField -.->|"injected via constructor"| WorldTopologyProvider
+    TickOrchestrator -->|"purge_hard_overrides(current_tick)"| DynamicAffordanceField
+    TickOrchestrator -->|"step_decay()"| DynamicAffordanceField
+    DynamicAffordanceField -->|"stores & queries (Hard Layer)"| DeformationRecord
+    DynamicAffordanceField -->|"accumulates (Soft Layer)"| TracePayload
+    TickOrchestrator -->|"apply_trace(TracePayload)"| DynamicAffordanceField
     EditorJSON -->|"load_editor_json"| GraphCompiler
     BuiltinFallback -->|"fallback graph"| GraphCompiler
     SpatialRuntime -->|"resolve_distance + extract_scene (ADR-102)"| SpatialService
@@ -408,7 +422,12 @@ flowchart TD
     GraphCompiler -->|"triggers if passages empty"| AdjacencyInference
     AdjacencyInference -->|"returns inferred passages"| GraphCompiler
     GraphCompiler -->|"compiles graph + boundary_map + rooms_geometry"| SpatialService
-    SpatialService -->|"is_point_in_bounds(x, y)"| WorldTopologyProvider
+    SpatialService -->|"get_zone_id(x, y) & is_point_in_bounds(x, y)"| WorldTopologyProvider
+    TickOrchestrator -.->|"owns instance (S91)"| DynamicAffordanceField
+    DynamicAffordanceField -.->|"injected via constructor"| WorldTopologyProvider
+    WorldTopologyProvider -->|"apply_deformation(region, zone_id, record)"| DynamicAffordanceField
+    TickOrchestrator -->|"purge_expired(current_tick)"| DynamicAffordanceField
+    DynamicAffordanceField -->|"stores & queries"| DeformationRecord
     LifeEngine -->|"generates with MotionPrimitive"| DriveVector
     DriveVector -->|"apply(drive, pos, topology)"| CollisionAvoidance
     SpatialService -->|"provides read-only spatial API"| SpatialQueryService
@@ -601,6 +620,10 @@ flowchart TD
     PatternDetector -.->|"🚫 FORBIDDEN: PatternDetector reading emotions, drives, or beliefs (ADR-O-306)"| Psychology:::forbidden
     BeliefCrystallizationEngine -.->|"🚫 FORBIDDEN: BeliefCrystallizationEngine reading L1Chronicle directly. MUST use EvidenceOfPersistence (ADR-O-305)"| L1Chronicle:::forbidden
     BeliefCrystallizationEngine -.->|"🚫 REQUIRED: Asymmetric Trauma (x6 multiplier) and Belief Decay Model (ADR-O-307 / ADR-O-305.1)"| CrystallizedBelief:::forbidden
+    TickOrchestrator -.->|"🚫 FORBIDDEN: Direct call. Projection MUST be called inside SceneStateManager.commit() (ADR-O-309)"| WorldProjectionBuffer:::forbidden
+    WorldProjectionBuffer -.->|"🚫 FORBIDDEN: Mutation of world state. Pure function only (ADR-O-309)"| State:::forbidden
+    WorldProjectionBuffer -.->|"🚫 FORBIDDEN: Internal state/cache. Stateless projection only (ADR-O-309)"| Cache:::forbidden
+    SceneStateManager -.->|"🚫 REQUIRED: Deep immutable snapshot (copy.deepcopy) of state_t to prevent temporal cross-contamination (ADR-O-309)"| State_t_minus_1:::forbidden
     CognitiveDistortion -.->|"🚫 REQUIRED: Player MUST NOT see objective reality directly"| ObjectiveReality:::forbidden
     RecognitionLayer -.->|"🚫 REQUIRED: Unknown NPC MUST have generic description"| NPCName:::forbidden
     ReactionResolver -.->|"🚫 REQUIRED: Anti-DOUBLE TRUTH bootstrap (ADR-117)"| AffectivePipeline:::forbidden
@@ -1297,6 +1320,8 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | BeliefCrystallizationEngine | CrystallizedBeliefStore | crystallize() → update_beliefs() | - | `-` | ADR-O-305 |
 | CrystallizedBeliefStore | CrystallizedBeliefModifierResolver | get_beliefs() → List[CrystallizedBelief] | - | `-` | - |
 | CrystallizedBeliefModifierResolver | DecisionHub | resolve() → drive_modifiers (Dict[str, float]) | - | `-` | - |
+| SceneStateManager | WorldProjectionBuffer | calls project(state_t, state_t-1) inside commit() | - | `-` | - |
+| WorldProjectionBuffer | WorldProjectionEvent | generates derived events | - | `-` | - |
 | PerceptionLayer | SpatialLayer | visible/audible entities → distance + LOS | Only perceived entities get spatial data | `player_cognition/perception_layer.py` | - |
 | SpatialLayer | RecognitionLayer | spatial data → recognition confidence | Distance affects recognition confidence | `player_cognition/spatial_layer.py` | - |
 | RecognitionLayer | AttentionLayer | recognized entities → attention filter | Known entities get higher attention score | `player_cognition/recognition_layer.py` | - |
@@ -1313,8 +1338,15 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | SteeringResolver | KinematicProfile | produces velocity | - | `-` | - |
 | KinematicProfile | MotionIntegrator | integrate(position, velocity) | - | `-` | - |
 | MotionIntegrator | KinematicProfile | updates position & exertion | - | `-` | - |
-| SpatialService | WorldTopologyProvider | provides discrete geometry | WorldTopologyProvider wraps SpatialService to compute continuous affordance | `-` | - |
-| WorldTopologyProvider | AffordanceVector | query_affordance_field(region, pos) | Returns field capabilities for any (x,y) | `-` | - |
+| SpatialService | WorldTopologyProvider | get_zone_id(x, y) & geometry | S91: Возвращает zone_id для кэширования деформаций и базовую геометрию. | `-` | - |
+| WorldTopologyProvider | AffordanceVector | query_affordance_field(region, pos) | S91: Мержит базовую геометрию, Hard Overrides и Soft Traces. | `-` | - |
+| TickOrchestrator | DynamicAffordanceField | owns instance (S91) | Персистентный стигмергический слой. Переживает тики. | `-` | - |
+| DynamicAffordanceField | WorldTopologyProvider | injected via constructor | S91: Провайдер мержит деформации и следы с базовой геометрией. | `-` | - |
+| TickOrchestrator | DynamicAffordanceField | purge_hard_overrides(current_tick) | S91: Очистка истекших структурных деформаций в Фазе 0.5. | `-` | - |
+| TickOrchestrator | DynamicAffordanceField | step_decay() | S91: Экспоненциальный decay поведенческих следов в Фазе 0.5. | `-` | - |
+| DynamicAffordanceField | DeformationRecord | stores & queries (Hard Layer) | S91: Хранит DeformationRecord по ключу (region, zone_id, deformation_type). | `-` | - |
+| DynamicAffordanceField | TracePayload | accumulates (Soft Layer) | S91: Накапливает TracePayload.magnitude по ключу (region, zone_id, trace_type). | `-` | - |
+| TickOrchestrator | DynamicAffordanceField | apply_trace(TracePayload) | S91: Эмит стигмергических следов (movement_density, safety_confidence). | `-` | - |
 | EditorJSON | GraphCompiler | load_editor_json | Parses rooms array & polygons | `graph_compiler.py` | - |
 | BuiltinFallback | GraphCompiler | fallback graph | BREAK-2: JSON NOT FOUND -> Builtin | `graph_compiler.py` | - |
 | SpatialRuntime | SpatialService | resolve_distance + extract_scene (ADR-102) | Требует campaign_id в scene_state. Fallback на euclidean_distance если SpatialService=None | `spatial_runtime.py:98` | - |
@@ -1322,7 +1354,12 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | GraphCompiler | AdjacencyInference | triggers if passages empty | If no explicit passages provided | `-` | ADR-073 |
 | AdjacencyInference | GraphCompiler | returns inferred passages | Based on polygon bounding box intersection | `-` | ADR-073 |
 | GraphCompiler | SpatialService | compiles graph + boundary_map + rooms_geometry | S90: Возвращает 5 элементов (nodes, edges, alias_map, boundary_map, rooms_geometry) | `spatial_service.py` | - |
-| SpatialService | WorldTopologyProvider | is_point_in_bounds(x, y) | S90: Ray-casting проверка внутри полигона для вычисления AffordanceVector. | `-` | - |
+| SpatialService | WorldTopologyProvider | get_zone_id(x, y) & is_point_in_bounds(x, y) | S91: Возвращает zone_id для кэширования деформаций и bool для базовой проверки. | `-` | - |
+| TickOrchestrator | DynamicAffordanceField | owns instance (S91) | Персистентный стигмергический слой. Переживает тики. | `-` | - |
+| DynamicAffordanceField | WorldTopologyProvider | injected via constructor | S91: Провайдер мержит деформации с базовой геометрией. | `-` | - |
+| WorldTopologyProvider | DynamicAffordanceField | apply_deformation(region, zone_id, record) | S91: Делегирует применение деформации в State-object. | `-` | - |
+| TickOrchestrator | DynamicAffordanceField | purge_expired(current_tick) | S91: Очистка истекших деформаций в Фазе 0.5 (Temporalization Layer). | `-` | - |
+| DynamicAffordanceField | DeformationRecord | stores & queries | S91: Хранит DeformationRecord по ключу (region, zone_id, deformation_type). | `-` | - |
 | LifeEngine | DriveVector | generates with MotionPrimitive | S90: LifeEngine добавляет 4-й элемент (primitive) в drive_vector list на основе affective_load. | `-` | - |
 | DriveVector | CollisionAvoidance | apply(drive, pos, topology) | S90: Проверка геометрии впереди. Возвращает скорректированный DriveVector. | `-` | - |
 | SpatialService | SpatialQueryService | provides read-only spatial API | O(1) queries for positions, LOS, distances | `-` | ADR-048 |
@@ -1518,6 +1555,10 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | PatternDetector | Psychology | FORBIDDEN: PatternDetector reading emotions, drives, or beliefs (ADR-O-306) | `-` |
 | BeliefCrystallizationEngine | L1Chronicle | FORBIDDEN: BeliefCrystallizationEngine reading L1Chronicle directly. MUST use EvidenceOfPersistence (ADR-O-305) | `-` |
 | BeliefCrystallizationEngine | CrystallizedBelief | REQUIRED: Asymmetric Trauma (x6 multiplier) and Belief Decay Model (ADR-O-307 / ADR-O-305.1) | `-` |
+| TickOrchestrator | WorldProjectionBuffer | FORBIDDEN: Direct call. Projection MUST be called inside SceneStateManager.commit() (ADR-O-309) | `-` |
+| WorldProjectionBuffer | State | FORBIDDEN: Mutation of world state. Pure function only (ADR-O-309) | `-` |
+| WorldProjectionBuffer | Cache | FORBIDDEN: Internal state/cache. Stateless projection only (ADR-O-309) | `-` |
+| SceneStateManager | State_t_minus_1 | REQUIRED: Deep immutable snapshot (copy.deepcopy) of state_t to prevent temporal cross-contamination (ADR-O-309) | `-` |
 | CognitiveDistortion | ObjectiveReality | REQUIRED: Player MUST NOT see objective reality directly | `-` |
 | RecognitionLayer | NPCName | REQUIRED: Unknown NPC MUST have generic description | `-` |
 | ReactionResolver | AffectivePipeline | REQUIRED: Anti-DOUBLE TRUTH bootstrap (ADR-117) | `tick_orchestrator.py:_run_affective_pipeline` |

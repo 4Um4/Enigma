@@ -229,6 +229,9 @@
 - 🟢 **S85.2** Belief Decay Model: Внедрена энтропия убеждений (`BELIEF_DECAY_TAU`). Убеждения растворяются без подкрепления, предотвращая статическую кристаллизацию личности.
 - 🔴 **S86** ТЗ-02 (Шаг 9): `L1Chronicle` стал персистентным (SQLite). Внедрена схема `l1_chronicle_events`. DI замкнут от `GameLoop` до `L1Chronicle`. Контракт `TraitDriftEvent` (`target_id`, `tick_id`, `effect_value`) полностью канонизирован.
 - 💀 **S86** ТЗ-02 (Шаг 10 ОТМЕНЁН): Применение `ctx.drives_updates` к `state.drives_runtime` ЗАПРЕЩЕНО. `CalibrationEngine` оставлен в pass-through режиме. Мутация скалярных драйвов минуя Belief Layer (L2.5) нарушает ADR-O-208/211. L3 проекция строго эфемерна.
+- 🔵 **S88** Epistemic Boundary (Symbolic Interpretation Layer): DM-контур переведён на символьную интерпретацию. `stance_from_decision` и `_project_psychology` переведены на чтение `observed_state` и `intent`. Числовые пороги `stress/fear/trust` удалены из вербализации.
+- 🔵 **S88** WorldProjectionBuffer (Shadow Causality): Реализован как pure function (ADR-O-309). Инкапсулирован внутри `SceneStateManager.commit()`. Внедрён strict temporal sealing (diff state_t vs state_t-1). `TickOrchestrator` очищен от логики истории состояний.
+- 💀 **S88** LLM Context Exile: Функция `build_verbalization_context` полностью удалена из ядра симуляции (`npc_tick_pipeline.py`). Ядро больше не формирует промпты.
 
 ### DOM-04: SPATIAL & LOCOMOTION (S90 AUDIT)
 
@@ -236,6 +239,23 @@
 - 🔵 **S90** ADR-S90.2: Motion Policy Layer. Введён `Enum MotionPrimitive` (APPROACH, FLEE, RETREAT, PATROL). `LifeEngine` генерирует 4-элементный `drive_vector`. Интенсивность FLEE модулируется `affective_load`.
 - 🔵 **S90** ADR-S90.3: CollisionAvoidance. Внедрён реактивный слой в `motion_pipeline.py` (до `SteeringResolver`). Проверяет `Affordance` впереди движения и смещает вектор перпендикулярно при `can_pass < 0.5`.
 - 🔵 **S90** ADR-S90.4: MotionRenderRouter. Фронтенд реализует гибридный рендер: `velocity` (ETKE-IK) → инерция; `active_traversals` (FSM) → `path_waypoints`. `NPCPositionDTO` расширен.
+
+### S91: STIGMERGY & SOCIAL DRIFT (Cognitive Motion)
+
+- 🔵 **S91** ЭТАП 1: DynamicAffordanceField (Dual-Layer). Введён state-object для стигмергии. Слой 1: Hard Overrides (`DeformationRecord`, Absolute Override, TTL). Слой 2: Soft Traces (`TracePayload`, накопление, decay). `WorldTopologyProvider` стал чистым фасадом. `TickOrchestrator` владеет персистентным инстансом. Очистка в Фазе 0.5 (`purge_hard_overrides`, `step_decay`).
+- 🔵 **S91** ЭТАП 2: SocialTraceField. Внедрена эмиссия поведенческих следов: `movement_density` (в `_process_continuous_motion`) и `safety_confidence` (в `_apply_phase8_result`). Следы накапливаются и влияют на `AffordanceVector` (например, толпа увеличивает `drag_coefficient`).
+- 🔵 **S91** ЭТАП 3: Motion Router & Social Drift. 
+  - Внедрено NPC-to-NPC Collision Avoidance с Velocity Awareness (предсказание позиций).
+  - `PATROL` примитив заменён на `SOCIAL_DRIFT`.
+  - Внедрён Intent Attribution Layer: NPC выбирает социально значимый якорь (бар, вход, стол, группа NPC) на основе Intent Scoring (потребности + угроза) и Memory Bias (anchor_affinity).
+- 🔵 **S91** ТЗ-05: LLM Contract & DM-Agent Repair. 
+  - Внедрён DM Output Contract Layer (`DMResponseNormalizer`).
+  - Валидатор очищен от эвристик: восстановлена статистическая фильтрация (A6), убрано ложное срабатывание на тире (A5), удалён `_force_static` (B5).
+  - Внедрена блокировка повторов через `recent_text` (A4).
+  - `max_tokens` вынесен в `config.py` (A7).
+  - В промпт и `DMContractBuilder` добавлены строгий JSON-формат и динамический forbidden-блок (B1/B2/B3).
+  - `MockProvider` заблокирован в production (B4).
+  - После аудита зависимостей удалён мёртвый код: `parser.py`, `npc_response_validator.py`, 4 cloud-провайдера (C2/C3/C5).
 
 ---
 

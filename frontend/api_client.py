@@ -63,6 +63,10 @@ class GameActionResponse:
     will_conflict_data: dict | None = None
     # S82: Backend подтверждает spatial truth. Frontend reconciles при расхождении.
     confirmed_location_id: str | None = None
+    # A1-FIX: S85 fields — проброс scene_state и metadata для инициализации UI.
+    # Раньше передавались в _map_action_response, но отсутствовали в dataclass → TypeError.
+    scene_state: dict | None = None
+    metadata: dict | None = None
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -376,6 +380,10 @@ class DirectGameGateway:
             npc_positions=result.npc_positions,
             # ADR-075: Строгий контракт Эмбодимента. Никаких getattr. Если поля нет — значит схема мертва.
             will_conflict_data=result.will_conflict_data,
+            # A1-FIX: Проброс S85 fields и spatial truth. Contract parity with HTTP mode.
+            scene_state=result.scene_state,
+            metadata=result.metadata,
+            confirmed_location_id=result.confirmed_location_id,
         )
         # ADR-075 DIAG: Диагностический след. Показывает, дошли ли данные до шлюза.
         if hasattr(result, "will_conflict_data"):

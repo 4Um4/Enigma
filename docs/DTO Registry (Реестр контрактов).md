@@ -91,9 +91,15 @@
 - **`DriveVector`** (`domain/motion_core.py`): Замена MovementIntent для микро-уровня. Поля: `direction` (Tuple[float, float]), `intensity` (float 0-1). Тело само ищет путь в поле возможностей.
 - **`KinematicProfile`** (`domain/motion_core.py`): Выходной профиль движения для фронтенда. Поля: `velocity`, `posture`, `facing`, `exertion_level`.
 
-**Motion Routing Layer (ADR-ETKE-ACT1)**
-- **`drive_vector` в npc dict**: `[dx, dy, intensity]` — список из 3 float. Записывается Motion Router в `LifeEngine.tick_decisions()` (Фаза 5), потребляется `_process_continuous_motion()` (Фаза 0.8) на следующем тике. Эфемерен — очищается при каждом `tick_decisions`. Правила маршрутизации: `same_node + has_coords` → DriveVector (ETKE-IK); `different_node` → MovementIntent (FSM). APPROACH: intensity=0.7, direction=нормированный вектор к цели. FLEE: intensity=1.0, direction=инвертированный вектор от угрозы.
-  🚫 ЗАПРЕТ: DriveVector без очистки при каждом tick_decisions (L3-P1 эфемерность). ❌ FLEE с неинвертированным direction. ❌ MovementIntent для same_node (no-op, обязан идти через DriveVector).
+**Motion Routing Layer (ADR-ETKE-ACT1, ADR-S91)**
+- **`drive_vector` в npc dict**: `[dx, dy, intensity, primitive_str]` — список из 4 элементов. Записывается Motion Router в `LifeEngine.tick_decisions()` (Фаза 5), потребляется `_process_continuous_motion()` (Фаза 0.8) на следующем тике. Эфемерен — очищается при каждом `tick_decisions`. Правила маршрутизации: `same_node + has_coords` → DriveVector (ETKE-IK); `different_node` → MovementIntent (FSM). APPROACH: intensity=0.7. FLEE: intensity=1.0 (или 0.5 для RETREAT). SOCIAL_DRIFT: intensity=0.2 (микро-перемещение к якорю).
+  🚫 ЗАПРЕТ: DriveVector без очистки при каждом tick_decisions (L3-P1 эфемерность). ❌ FLEE с неинвертированным direction. ❌ MovementIntent для same_node (no-op, обязан идти через DriveVector). ❌ Использование рандомного `PATROL` (убивает социальную глубину, использовать `SOCIAL_DRIFT`).
+
+**S91: Stigmergy & Dynamic Affordance DTOs**
+- **`DeformationRecord`** (`domain/motion_core.py`): Запись о структурной деформации среды (Hard Override). Поля: `deformation_type` (str), `magnitude` (float, Absolute Override), `created_tick` (int), `ttl` (int, 0=вечная), `source_id` (str). 
+- **`TracePayload`** (`domain/motion_core.py`): Эмиттер поведенческого следа (Soft Trace). Поля: `region` (str), `zone_id` (str), `trace_type` (str, напр. "movement_density"), `magnitude` (float), `created_tick` (int), `ttl` (int), `source_id` (str).
+- **`DynamicAffordanceField`** (`services/spatial/world_topology_provider.py`): State-object с двумя слоями. 1. Hard Override Layer (`Dict[region, Dict[zone_id, Dict[type, DeformationRecord]]]`). 2. Soft Trace Layer (`Dict[region, Dict[zone_id, Dict[type, float]]]`). Методы: `apply_deformation`, `apply_trace`, `purge_hard_overrides`, `step_decay`.
+  🚫 ЗАПРЕТ: Хранение состояния внутри `WorldTopologyProvider`. ❌ Очистка региона при смене локации.
 
 🚫 **КАУЗАЛЬНЫЕ ЗАПРЕТЫ:**
 - ❌ Boundary resolution при создании traversal — только при завершении (факт пересечения, не свойство маршрута)
@@ -183,6 +189,8 @@
 - **`DriveResolver`** (`services/npc/drive_resolver.py`): Чистая функция вычисления проекции (L0 + L1 -> L3) (ADR-O-208). Метод: `resolve_drives(archetype, l1_events_weighted) -> EffectiveDrives`. Не имеет состояния.
 - **`RulesSubscriber`** (`services/events/rules_subscriber.py`): Pure Reducer (TZ-08 v0.2). Вычисляет механику D&D 5e (DC, броски, урон) на основе event + snapshot.
   Возвращает `RulesDelta` (damage, success, checks metadata).
+
+- **`WorldProjectionEvent`** (`domain/world_projection.py`): Наблюдаемый вторичный эффект, порождённый буфером проекций (ADR-O-309). Frozen dataclass. Поля: `event_id` (str), `tick` (int), `projection_type` (ProjectionType: RUMOR/REPUTATION/AMBIENT), `source_id` (str), `location_id` (str), `description` (str), `salience` (float, 0..1), `target_id` (Optional[str]).
 
 
 🚫 **КАУЗАЛЬНЫЕ ЗАПРЕТЫ (ADR-O-207, ADR-O-208, ADR-O-211, ADR-O-305, S85.1/S85.2/S86):**

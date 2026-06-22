@@ -38,10 +38,7 @@ from app.services.llm.provider_manager import (
 
 # Конкретные провайдеры — доступны для явного импорта при необходимости
 from app.services.llm.llama_cpp_provider import LlamaCppProvider, create_llama_cpp_provider
-from app.services.llm.openai_provider import OpenAIProvider
-from app.services.llm.anthropic_provider import AnthropicProvider
-from app.services.llm.ollama_provider import OllamaProvider
-from app.services.llm.vllm_provider import VllmProvider, create_vllm_provider
+# C5-FIX: Удалены импорты мёртвых провайдеров
 from app.services.llm.mock_provider import MockProvider, MockConfig, create_mock_provider
 
 __all__ = [
@@ -78,11 +75,7 @@ __all__ = [
     # Concrete providers (replaceable)
     "LlamaCppProvider",
     "create_llama_cpp_provider",
-    "OpenAIProvider",
-    "AnthropicProvider",
-    "OllamaProvider",
-    "VllmProvider",
-    "create_vllm_provider",
+    # C5-FIX: Мёртвые провайдеры удалены из __all__
     "MockProvider",
     "MockConfig",
     "create_mock_provider",

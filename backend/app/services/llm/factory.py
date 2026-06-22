@@ -20,10 +20,7 @@ from app.core.settings_world import world_settings
 from app.core.settings_rules import rules_settings
 from app.services.llm.provider import LlmProvider, ProviderType
 from app.services.llm.llama_cpp_provider import create_llama_cpp_provider
-from app.services.llm.openai_provider import OpenAIProvider
-from app.services.llm.anthropic_provider import AnthropicProvider
-from app.services.llm.ollama_provider import OllamaProvider
-from app.services.llm.vllm_provider import create_vllm_provider
+# C5-FIX: Удалены импорты мёртвых провайдеров
 from app.services.llm.mock_provider import create_mock_provider
 
 
@@ -64,33 +61,15 @@ class ProviderFactory:
                     server_url=endpoint,
                 )
             
-            case ProviderType.OPENAI:
-                return OpenAIProvider(
-                    endpoint=endpoint or "https://api.openai.com/v1",
-                    api_key=api_key or getattr(settings, "openai_api_key", None),
-                    model=model_path or "gpt-4",
-                )
-            
-            case ProviderType.ANTHROPIC:
-                return AnthropicProvider(
-                    api_key=api_key or getattr(settings, "anthropic_api_key", None),
-                    model=model_path or "claude-3-opus-20240229",
-                )
-            
-            case ProviderType.OLLAMA:
-                return OllamaProvider(
-                    endpoint=endpoint or "http://localhost:11434",
-                    model=model_path or "llama2",
-                )
-            
-            case ProviderType.VLLM:
-                return create_vllm_provider(
-                    endpoint=endpoint,
-                    model=model_path,
-                    api_key=api_key,
-                )
-            
             case ProviderType.MOCK:
+                # B4-FIX: MockProvider excluded from production (No fallback reality).
+                from app.core.config import settings
+                if settings.environment == "production":
+                    raise RuntimeError(
+                        "[LLM_FACTORY] CRITICAL: MockProvider in production. "
+                        "Mock is simulation of simulation — no place in runtime reality. "
+                        "Set settings.environment='development' to allow."
+                    )
                 return create_mock_provider()
             
             case _:
