@@ -729,12 +729,15 @@ class NPCState:
             npc_dict["strain_memory"] = dict(state.strain_memory)
 
         # Физическое состояние (сохраняется между тиками)
-        npc_dict["hp"]     = state.hp
-        npc_dict["max_hp"] = state.max_hp
+        # ADR-HP-UNIFICATION: Пишем канонический HP из body_state.
+        npc_dict["hp"]     = state.effective_hp
+        npc_dict["max_hp"] = state.effective_max_hp
 
         # Психика
         psyche["stress"]       = state.stress
         psyche["state"]        = state.will_state.value
+        psyche["identity_integrity"] = state.identity_integrity
+        psyche["pressure_resistance"] = state.pressure_resistance
         psyche["trauma_flags"] = list(state.trauma_markers) if isinstance(state.trauma_markers, (set, list, tuple)) else []
 
         # Социальные статы (из relationship_cache → player entry)

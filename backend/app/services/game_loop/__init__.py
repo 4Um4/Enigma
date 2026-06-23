@@ -14,6 +14,8 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import threading
+from typing import Dict
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -190,6 +192,17 @@ class GameLoop:
         from app.services.affective.affective_decay_handler import AffectiveDecayHandler
         self._tick_orch.add_idle_handler(AffectiveDecayHandler())
 
+        # TZ-08 Addendum: Time Skip Executor (Observation Layer)
+        from app.services.world.time_skip_executor import TimeSkipExecutor
+        self._time_skip = TimeSkipExecutor(self._tick_orch)
+        self._skip_locks: Dict[str, threading.Lock] = {} # Real locks per campaign
+
+    def _get_skip_lock(self, campaign_id: str) -> threading.Lock:
+        """Возвращает lock для конкретной кампании, защищающий от параллельных skip/idle."""
+        if campaign_id not in self._skip_locks:
+            self._skip_locks[campaign_id] = threading.Lock()
+        return self._skip_locks[campaign_id]
+
     @property
     def saves_dir(self) -> Path:
         """ADR-O-146: Публичный доступ к saves_dir. Единый runtime путь."""
@@ -313,15 +326,16 @@ class GameLoop:
         
         # === 11. СБРОС СЕССИИ АВАТАРА (player body_state из предыдущей игры) ===
         try:
-            from app.services.player_avatar_service import player_avatar_service
             # Удаляем файл аватара — старый мёртвый body_state не переживает new_game
             _avatar_path = self._saves_dir / campaign_id / "player_avatar.json"
             if _avatar_path.exists():
                 _avatar_path.unlink()
                 removed.append("player_avatar.json")
-            # Сброс RAM-кэша аватара
-            if hasattr(player_avatar_service, '_cache'):
-                player_avatar_service._cache.pop(campaign_id, None)
+            # Сброс RAM-кэша аватара (используем DI-инстанс, а не глобальный синглтон)
+            if hasattr(self.avatar_service, '_cache'):
+                self.avatar_service._cache.pop(campaign_id, None)
+            # B1.3-FIX: Сброс RAM-кэша журнала диалогов при new_game (устранение утечки)
+            self.avatar_service.clear_journal(campaign_id)
         except Exception as e:
             logger.warning(f"[NEW_GAME] Avatar session reset failed: {e}")
         
@@ -379,6 +393,15 @@ class GameLoop:
         engine = self._get_life_engine()
         if engine:
             return engine.get_npc_states(campaign_id) or []
+        return []
+
+    def _resolve_npcs_light_snapshot(self, campaign_id: str) -> list:
+        """TZ-08 Addendum: Лёгкий срез для детекторов Time Skip.
+        Делегирует в LifeEngine.get_npc_light_states, чтобы не нарушать инкапсуляцию кэша.
+        """
+        engine = self._get_life_engine()
+        if engine:
+            return engine.get_npc_light_states(campaign_id)
         return []
 
     def _project_perception(self, campaign_id: str, scene_state: dict, all_npcs_raw: list):
@@ -464,6 +487,60 @@ class GameLoop:
                 _npc["body_state"] = dict(BODY_STATE_HEALTHY)
 
         return npcs
+
+    def skip_time(self, campaign_id: str, ticks: int) -> dict:
+        """Промотка времени через TimeSkipExecutor (TZ-08 Addendum).
+        Использует Policy B (остановка на значимом событии).
+        """
+        lock = self._get_skip_lock(campaign_id)
+        if not lock.acquire(blocking=False):
+            return {"status": "skip_in_progress", "npc_positions": {}}
+            
+        try:
+            from app.services.game_loop.scene_init import ensure_scene_initialized
+            ensure_scene_initialized(self, campaign_id)
+            
+            _scene = self.scene_manager.lock_for_tick(campaign_id, "")
+            if _scene is None:
+                return {"status": "no_scene", "npc_positions": {}}
+                
+            _spatial_svc = None
+            _loc_id = _scene.get("location_id", "")
+            if _loc_id:
+                from app.services.spatial.spatial_service import SpatialService
+                try:
+                    _spatial_svc = SpatialService.build_for_location(
+                        campaign_id=campaign_id, location_id=_loc_id, scene_state=_scene
+                    )
+                except Exception as e:
+                    logger.warning(f"[SPATIAL_AUTHORITY] SpatialService build failed: {e}")
+                    
+            result = self._time_skip.skip(
+                campaign_id=campaign_id,
+                scene_state=_scene,
+                ticks=ticks,
+                policy="B", # Останавливаемся на значимых событиях
+                spatial_service=_spatial_svc,
+                get_npcs_callback=self._resolve_npcs_light_snapshot # Используем лёгкий срез
+            )
+            
+            # Формируем world_snapshot для фронтенда
+            _all_npcs = self._resolve_npcs_snapshot(campaign_id)
+            _ws = None
+            if result.final_state:
+                from app.services.integration.world_snapshot_builder import WorldSnapshotBuilder
+                _builder = WorldSnapshotBuilder()
+                _ws = _builder.build(result.final_state, result.final_state.get("tick", 0), None, _all_npcs)
+                
+            return {
+                "status": "ok",
+                "stop_reason": result.stop_reason,
+                "ticks_skipped": result.ticks_skipped,
+                "world_snapshot": _ws,
+                "events": result.stops,
+            }
+        finally:
+            lock.release()
 
     def idle_tick(self, campaign_id: str) -> dict:
         """Idle tick — делегирует TickOrchestrator (10 фаз, Устав §3).
@@ -551,10 +628,11 @@ class GameLoop:
             _perception = self._project_perception(campaign_id, _scene, _all_npcs_raw)
             if _perception:
                 import dataclasses
-                result.world_snapshot = dataclasses.replace(
+                _new_ws = dataclasses.replace(
                     result.world_snapshot, 
                     player_perception=_perception
                 )
+                result = dataclasses.replace(result, world_snapshot=_new_ws)
 
         # ДИАГНОСТИКА: Читаем из authoritative source (scene_manager._tick_scene),
         # а не из устаревшей ссылки _scene (execute работает с deepcopy).
@@ -564,16 +642,13 @@ class GameLoop:
 
         # Конвертация WorldSnapshotDTO → dict для фронтенда
         from dataclasses import asdict
-        from app.domain.snapshot import snapshot_npc_positions_to_dict
 
         _ws: dict | None = None
         _npc_pos_dict: dict = {}
         if result.world_snapshot is not None:
             _ws = asdict(result.world_snapshot)
-            _npc_pos_dict = snapshot_npc_positions_to_dict(
-                result.world_snapshot.npc_positions
-            )
-            _ws["npc_positions"] = _npc_pos_dict
+            # A2-FIX: npc_positions уже Dict[str, NPCPositionDTO] (canonical). Адаптер удалён.
+            _npc_pos_dict = _ws.get("npc_positions", {})
             # UUID → строка для JSON-совместимости
             if _ws.get("last_event_id") is not None:
                 _ws["last_event_id"] = str(_ws["last_event_id"])
@@ -738,14 +813,8 @@ class GameLoop:
                 all_npcs_raw=_anr,
             ):
                 _ws_dict = asdict(_ws)
-                # Критический адаптер: конвертируем List[NPCPositionDTO] в Dict[npc_id, dict]
-                # иначе фронтенд не сможет найти NPC по ключу (предсказание Мастера Тай)
-                _raw_pos = _ws_dict.get("npc_positions")
-                if isinstance(_raw_pos, list):
-                    _npc_pos_dict = {p.get("npc_id"): p for p in _raw_pos if isinstance(p, dict) and "npc_id" in p}
-                    _ws_dict["npc_positions"] = _npc_pos_dict
-                elif isinstance(_raw_pos, dict):
-                    _npc_pos_dict = _raw_pos
+                # A2-FIX: npc_positions уже Dict[str, NPCPositionDTO] (canonical). Адаптер удалён.
+                _npc_pos_dict = _ws_dict.get("npc_positions")
 
         # ADR-SCENE-LOCK: Разблокируем тик — финальный персист кэша.
         self.scene_manager.unlock_tick(req.campaign_id)
@@ -754,18 +823,21 @@ class GameLoop:
         # 1. Сначала логируем действие самого игрока
         for _a in req.actions:
             if _a.action:
-                self.avatar_service.append_journal(speaker=_a.player_name, text=_a.action)
+                # B1.3-FIX: Передача campaign_id для привязки журнала к кампании
+                self.avatar_service.append_journal(campaign_id=req.campaign_id, speaker=_a.player_name, text=_a.action)
 
         # 2. Логируем ответ DM. (DM-ответ уже включает в себя реплики NPC, 
         # поэтому отдельный лог npc_reactions УБРАН во избежание дублирования "DM дважды отвечает")
         if dm_result:
             _dm_text = dm_result.get("dm_response", "")
             if _dm_text:
-                self.avatar_service.append_journal(speaker="Рассказчик", text=_dm_text)
+                # B1.3-FIX: Передача campaign_id для привязки журнала к кампании
+                self.avatar_service.append_journal(campaign_id=req.campaign_id, speaker="Рассказчик", text=_dm_text)
 
         # Инжект журнала в WorldSnapshot (если снапшот собран)
         if _ws_dict is not None:
-            _ws_dict["dialog_journal"] = self.avatar_service.get_journal()
+            # B1.3-FIX: Передача campaign_id для получения журнала
+            _ws_dict["dialog_journal"] = self.avatar_service.get_journal(req.campaign_id)
 
         _final_response = ChatTurnResponse(
             dm_response=dm_result.get("dm_response", ""),

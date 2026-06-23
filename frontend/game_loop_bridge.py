@@ -165,6 +165,18 @@ class GameLoopBridge:
                     # ADR-075: Извлечение Эмбодимента из финального SSE пакета.
                     # Если бэкенд не пришлёт ключ, dataclass даст None.
                     result.will_conflict_data = event.get("will_conflict_data")
+                    # A2-FIX: Извлечение WorldSnapshotDTO из SSE пакета (Tri-ontology system fix).
+                    # Раньше игнорировалось, и ниже bridge пихал сырой scene_state → Double Truth.
+                    _ws_obj = event.get("world_snapshot")
+                    if _ws_obj is not None:
+                        from dataclasses import asdict, is_dataclass
+                        if is_dataclass(_ws_obj):
+                            result.world_snapshot = asdict(_ws_obj)
+                            # A2-FIX: npc_positions уже Dict (canonical). Адаптер удалён.
+                            result.npc_positions = result.world_snapshot.get("npc_positions", {})
+                        elif isinstance(_ws_obj, dict):
+                            result.world_snapshot = _ws_obj
+                            result.npc_positions = _ws_obj.get("npc_positions", {})
                 elif etype == "error":
                     result.error = event.get("text", "неизвестная ошибка")
 
@@ -185,37 +197,17 @@ class GameLoopBridge:
 
         result.dm_text = "".join(dm_parts)
 
-        # ADR-0014: Force Merge — строим npc_positions из актуального scene_state.
-        # npc_orchestration.py уже применил micro-positions через apply_changes()
-        # ДО этого вызова, поэтому get_scene_state() вернёт актуальные координаты.
-        if self._ready and self._loop is not None:
-            try:
-                # ADR-SCENE-LOCK: Используем закэшированный scene_state вместо rehydrate.
-                # get_scene_state() создаёт НОВЫЙ dict из persistence → traversals теряются.
-                # ADR-SCENE-LOCK: Используем закэшированный scene_state вместо rehydrate.
-                # get_scene_state() создаёт НОВЫЙ dict из persistence → traversals теряются.
-                _mgr = self._loop.scene_manager
-                _scene = _mgr._tick_scene if (_mgr._tick_locked and _mgr._tick_scene is not None) else _mgr.get_scene_state(campaign_id, location)
-                if _scene and "npc_positions" in _scene:
-                    import copy
-                    result.npc_positions = copy.deepcopy(_scene["npc_positions"])
-                    # ADR-090: Сохраняем player_perception от бэкенда, не перезаписываем весь snapshot
-                    if not isinstance(result.world_snapshot, dict):
-                        result.world_snapshot = {}
-                    result.world_snapshot["npc_positions"] = result.npc_positions
-                    # ADR-019: Без active_traversals фронтенд не может интерполировать движение
-                    if "active_traversals" in _scene:
-                        result.world_snapshot["active_traversals"] = copy.deepcopy(_scene["active_traversals"])
-                    # ADR-019 FIX: Без tick фронтенд не может вычислить progress → NPC стоят.
-                    # Tick — временной authority для traversal интерполяции.
-                    if "tick" in _scene:
-                        result.world_snapshot["tick"] = _scene["tick"]
-                    if "game_time_seconds" in _scene:
-                        result.world_snapshot["game_time_seconds"] = _scene["game_time_seconds"]
-                    logger.debug(f"[PIPELINE][MOVEMENT] traversals_in_scene={'active_traversals' in _scene} count={len(_scene.get('active_traversals', {}))} npcs_with_traversal={list(_scene.get('active_traversals', {}).keys())}")
-            except Exception as _ws_err:
-                # Non-critical — позиции обновятся на следующем idle_tick
-                print(f"[BRIDGE] world_snapshot build skipped: {_ws_err}")
+        # A2-FIX: Устранена Tri-ontology system. 
+        # Раньше здесь bridge перезаписывал канонический WorldSnapshotDTO сырым scene_state.
+        # Теперь WorldSnapshotDTO читается из SSE пакета (событие "done") в _collect().
+        # Если по какой-то причине world_snapshot отсутствует (legacy path), fallback на пустой dict.
+        if not isinstance(result.world_snapshot, dict):
+            result.world_snapshot = {}
+            result.npc_positions = {}
+            logger.warning("[BRIDGE] WorldSnapshotDTO missing in SSE 'done' event. Falling back to empty.")
+        else:
+            # Гарантируем, что npc_positions внутри world_snapshot синхронизированы с топ-уровнем
+            result.npc_positions = result.world_snapshot.get("npc_positions", {})
 
         return result
 

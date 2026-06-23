@@ -23,7 +23,7 @@ def test_adjacency_inference_without_passages():
         ]
     }
     
-    graph, connections, alias_map, _boundary_map = compile_graph(editor_data, location_id="tavern")
+    graph, connections, alias_map, _boundary_map, _rooms_geometry = compile_graph(editor_data, location_id="tavern")
     
     # Граф должен содержать обе комнаты
     assert "tavern:hall" in graph, "Комната hall не попала в граф"

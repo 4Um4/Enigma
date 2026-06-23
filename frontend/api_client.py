@@ -115,6 +115,12 @@ class GameGateway(Protocol):
         """Получить список персонажей."""
         ...
     
+    def skip_time(self, campaign_id: str, ticks: int) -> dict:
+        """
+        Промотка времени (Time Skip).
+        """
+        return self._t.post(f"/api/game/skip_time/{campaign_id}?ticks={ticks}", {})
+
     def idle_tick(self, campaign_id: str) -> dict:
         """
         Тик мира без действия игрока.
@@ -457,6 +463,15 @@ class DirectGameGateway:
 # ═══════════════════════════════════════════════════════════════════════
 
 class FallbackGateway:
+
+    def skip_time(self, campaign_id: str, ticks: int) -> dict:
+        """FIX-2: FallbackGateway не имел skip_time — вызывало AttributeError."""
+        # Делегируем в primary gateway, если есть
+        if self._primary and hasattr(self._primary, 'skip_time'):
+            return self._primary.skip_time(campaign_id, ticks)
+        # Если нет — заглушка (возвращаем пустой результат)
+        logger.warning("[FALLBACK_GATEWAY] skip_time not available, returning empty")
+        return {"status": "skipped", "ticks": 0}
     """
     HTTP приоритет, Direct fallback при обрыве.
     

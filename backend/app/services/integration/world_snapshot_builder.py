@@ -112,7 +112,7 @@ class WorldSnapshotBuilder:
                 cue_key = cue.get("cue_key", "UNKNOWN")
                 peripheral_cues.append(PeripheralCueDTO(
                     npc_id=cue["npc_id"],
-                    cue_type=cue_key,
+                    cue_key=cue_key, # A3-FIX: renamed from cue_type
                     hover_text=self._CUE_TEXT_MAP.get(cue_key, cue_key),
                 ))
 
@@ -143,10 +143,11 @@ class WorldSnapshotBuilder:
 
     def _extract_npc_positions(
         self, scene_state: Dict
-    ) -> List[NPCPositionDTO]:
+    ) -> Dict[str, NPCPositionDTO]:
         """Вытаскивает позиции NPC из scene_state['npc_positions'].
-        БАГ I FIX: Фильтрует NPC по текущей локации — NPC в других локациях не отрисовываются."""
-        result: List[NPCPositionDTO] = []
+        БАГ I FIX: Фильтрует NPC по текущей локации — NPC в других локациях не отрисовываются.
+        A2-FIX: Возвращает Dict[str, NPCPositionDTO] напрямую, не List."""
+        result: Dict[str, NPCPositionDTO] = {}
         npc_positions = scene_state.get("npc_positions", {})
         current_location = scene_state.get("location_id", "")
         logger.info(f"[TRACE][SNAPSHOT_BUILD] npc_count={len(npc_positions)} keys={list(npc_positions.keys())[:5]} location={current_location}")
@@ -171,19 +172,18 @@ class WorldSnapshotBuilder:
                 f"x={local.get('x') or 0.0} "
                 f"y={local.get('y') or 0.0}"
             )
-            result.append(NPCPositionDTO(
+            result[npc_id] = NPCPositionDTO(
                 npc_id=npc_id,
-                # ADR-FIX: None пробивает дефолт 0.0, если ключ существует. Явный каст.
-                x=local.get("x") or 0.0,
-                y=local.get("y") or 0.0,
+                # A2-FIX: Передаем local_position как есть (Dict[str, float])
+                local_position={"x": local.get("x") or 0.0, "y": local.get("y") or 0.0},
                 location_id=data.get("location_id", ""),
                 facing=data.get("facing", "south"),
-                action=data.get("activity", "idle"),
-                display_name=data.get("name", npc_id),
+                activity=data.get("activity", "idle"),
+                name=data.get("name", npc_id),
                 initiative_suppression=data.get("initiative_suppression", 0.0),
                 velocity=data.get("velocity", (0.0, 0.0)),
                 exertion_level=data.get("exertion_level", 0.0),
-            ))
+            )
 
         return result
 
@@ -288,7 +288,8 @@ class WorldSnapshotBuilder:
             version=0,
             last_event_id=None,
             player_position=(0.0, 0.0),
-            npc_positions=[],
+            # A2-FIX: empty default changed from list to dict
+            npc_positions={},
             visible_events=[],
             available_actions=["look", "move"],
             location_id="",

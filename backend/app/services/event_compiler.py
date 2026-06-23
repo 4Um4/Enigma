@@ -236,8 +236,11 @@ class EventCompiler:
 
         # Если target_location_id задан напрямую (от _process_traversals)
         # node is None для cross-location movement, но это IS boundary transition
-        if target_loc and not neighbor_chunk:
-            neighbor_chunk = target_loc
+        if target_loc:
+            if not neighbor_chunk:
+                neighbor_chunk = target_loc
+            if not entry_node:
+                entry_node = f"{target_loc}:entry_west" # ADR-O-201.1: Fallback to default entry node
             is_boundary = True
 
         # Cross-location: node is None — use SceneChange data

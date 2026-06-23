@@ -349,17 +349,21 @@ class GameScreen:
         self.screen = screen
         self.show_obs_console = False  # Консоль наблюдений (клавиша Ё)
         self.show_journal = False      # ADR-JOURNAL: Журнал диалогов (клавиша J / О)
-        self.dialog_journal = []       # ADR-JOURNAL: Накопительный лог диалогов
+        # B1.3-FIX: dialog_journal — из backend world_snapshot, не локальный.
+        # Раньше: self.dialog_journal = [] → двойное хранение, рассинхрон на Continue.
+        # Теперь: читаем из _ws["dialog_journal"] при каждом sync.
+        self._dialog_journal_backend: list = [] # cache из backend
         self.npc_speech_bubbles = {}   # ADR-SPEECH: Речевые облачка над NPC {name: {text, tick}}
         self.player_speech_bubble = None  # ADR-SPEECH: Облачко над головой игрока
         self.npc_manifest_indicators = {}  # ADR-MANIFEST: Наблюдаемые физические проявления
         self.clock = clock
         self.renderer = SceneRenderer(screen)
+        self._resistance_visual_intensity = 0.0 # B1.2-FIX: визуальный интенсити для тремора
 
     def run(self, campaign_folder: str, player_name: str = "") -> None:
         """Запускает игровой экран для выбранной кампании"""
         message_log: list = []  # Cinematic Layer: Только NarrativeBeat
-        self.dialog_journal = []       # ADR-JOURNAL: Сброс журнала при новой сессии
+        self._dialog_journal_backend = []       # B1.3-FIX: Сброс кэша журнала при новой сессии
         self.npc_speech_bubbles = {}   # ADR-SPEECH: Сброс облачек при новой сессии
         self.player_speech_bubble = None  # ADR-SPEECH: Сброс облачка игрока
         self.npc_manifest_indicators = {}  # ADR-MANIFEST: Сброс проявлений
@@ -502,6 +506,17 @@ class GameScreen:
                 print(f"[IDLE_TICK] ERROR: {e}\n{traceback.format_exc()}")
             _idle_tick_running[0] = False
 
+        def _do_skip_time(ticks: int):
+            _idle_tick_running[0] = True
+            try:
+                result = _gateway.skip_time(campaign_folder, ticks)
+                _idle_tick_result.clear()
+                _idle_tick_result.append(result)
+            except Exception as e:
+                import traceback
+                print(f"[SKIP_TIME] ERROR: {e}\n{traceback.format_exc()}")
+            _idle_tick_running[0] = False
+
         logger.debug(f"[PIPELINE][INPUT] entering main loop, walls={len(walls)}, obstacles={len(obstacles)}")
         running = True
         _frame = 0
@@ -530,13 +545,13 @@ class GameScreen:
                             message_log.clear()
                     # Time Controls: ускорение симуляции (Приоритет 1)
                     elif event.key == pygame.K_1 and not text_input.focused:
-                        _time_scale = 1
+                        threading.Thread(target=lambda: _do_skip_time(10), daemon=True).start()
                     elif event.key == pygame.K_2 and not text_input.focused:
-                        _time_scale = 4
+                        threading.Thread(target=lambda: _do_skip_time(100), daemon=True).start()
                     elif event.key == pygame.K_3 and not text_input.focused:
-                        _time_scale = 10
+                        threading.Thread(target=lambda: _do_skip_time(500), daemon=True).start()
                     elif event.key == pygame.K_4 and not text_input.focused:
-                        _time_scale = 50
+                        threading.Thread(target=lambda: _do_skip_time(2000), daemon=True).start()
                     elif not text_input.focused and (event.key == pygame.K_BACKQUOTE or getattr(event, 'unicode', '') in ('ё', 'Ё')):
                         self.show_obs_console = not self.show_obs_console
                     # TextInput обрабатывает всё кроме WASD (pass_through)
@@ -565,8 +580,9 @@ class GameScreen:
                             creation_tick=pygame.time.get_ticks()
                         )
                         message_log.append(player_beat)
-                        # ADR-JOURNAL: Записываем фразу игрока в журнал
-                        self.dialog_journal.append({"speaker": player_name, "text": text_input.text.strip()})
+                        # B1.3-FIX: НЕ добавляем локально. Backend вернёт обновлённый
+                        # journal в следующем world_snapshot.
+                        pass
                         # ADR-SPEECH: Облачко над головой игрока
                         self.player_speech_bubble = {"text": text_input.text.strip(), "tick": pygame.time.get_ticks()}
 
@@ -703,9 +719,12 @@ class GameScreen:
                     move.walk_distance_accumulated += 0.3  # step_size
                     meters_walked = int(move.walk_distance_accumulated)
                     if meters_walked > 0:
-                        # Оптимистичный рендеринг: фронтенд предсказывает время,
-                        # бэкенд подтвердит его при следующем sync (idle_tick или диалог).
-                        self.game_time_seconds += TIME_DELTA_WALK_INDOOR * meters_walked
+                        # B1.1-FIX: frontend НЕ конструирует время.
+                        # Absolute time authority = backend (Устав §3).
+                        # Раньше: self.game_time_seconds += ... → dual truth.
+                        # Теперь: только backend продвигает время (через advance_game_time).
+                        # Frontend отображает значение из world_snapshot.
+                        pass # время обновится из world_snapshot при следующем sync
                         move.walk_distance_accumulated -= meters_walked
 
             # === Idle tick: применяем результат прошлого idle_tick если готов ===
@@ -764,6 +783,11 @@ class GameScreen:
                 # ТЗ EMBODIED UI PERCEPTION: Извлечение наблюдений игрока
                 if "player_perception" in _ws:
                     scene_state["player_perception"] = _ws["player_perception"]
+                # B1.3-FIX: синхронизируем journal из backend (строгая обработка, без спама логов)
+                if "dialog_journal" in _ws:
+                    self._dialog_journal_backend = _ws["dialog_journal"]
+                else:
+                    logger.debug("[GAME_SCREEN] dialog_journal missing in world_snapshot (idle_ws)")
                 # time_of_day — только визуальный срез для рендера, не источник истины
                 _ws_tod = _ws.get("time_of_day")
                 if _ws_tod:
@@ -950,6 +974,11 @@ class GameScreen:
                         # ТЗ EMBODIED UI PERCEPTION: Извлечение наблюдений игрока
                         if "player_perception" in _action_ws:
                             scene_state["player_perception"] = _action_ws["player_perception"]
+                        # B1.3-FIX: синхронизируем journal из backend (action response path)
+                        if "dialog_journal" in _action_ws:
+                            self._dialog_journal_backend = _action_ws["dialog_journal"]
+                        else:
+                            logger.debug("[GAME_SCREEN] dialog_journal missing in action response")
                     elif isinstance(result.response, dict) and "npc_positions" in result.response:
                         # Fallback: deprecated top-level npc_positions
                         import copy
@@ -958,6 +987,11 @@ class GameScreen:
                         # ADR-019: Сохраняем активные транзиты (fallback)
                         if "active_traversals" in result.response:
                             scene_state["active_traversals"] = result.response["active_traversals"]
+                        # B1.3-FIX: синхронизируем journal из backend (fallback path)
+                        if "dialog_journal" in result.response:
+                            self._dialog_journal_backend = result.response["dialog_journal"]
+                        else:
+                            logger.debug("[GAME_SCREEN] dialog_journal missing in action response (fallback)")
                         # ADR-035: Обновление феноменологической проекции аватара (fallback)
                         if "avatar_state" in result.response:
                             scene_state["avatar_state"] = result.response["avatar_state"]
@@ -1049,8 +1083,9 @@ class GameScreen:
                                     is_active=False,
                                     creation_tick=pygame.time.get_ticks()
                                 ))
-                                # ADR-JOURNAL: Записываем фразу рассказчика/NPC в журнал
-                                self.dialog_journal.append({"speaker": speaker, "text": text})
+                                # B1.3-FIX: НЕ добавляем локально. Backend вернёт обновлённый
+                                # journal в следующем world_snapshot.
+                                pass
 
                     # ADR-041: Resistance Medium — инфекция поля ввода при конфликте воли
                     _wc_data = getattr(result.response, 'will_conflict_data', None)
@@ -1064,15 +1099,24 @@ class GameScreen:
                         
                         # ADR-084: Embodiment Vision Suturing. Конфликт воли искажает визуал (тремор, виньетка).
                         _res = _wc_data.get("resistance", 0)
-                        if _res > 0.05:
-                            if "avatar_state" not in scene_state or scene_state["avatar_state"] is None:
-                                scene_state["avatar_state"] = {}
-                            # Инжектим стресс/диссонанс в аватара, чтобы PresentationFirewall дал тремор
-                            scene_state["avatar_state"]["perceptual_stability"] = max(0.0, 1.0 - _res * 4.0)
-                            scene_state["avatar_state"]["cognitive_coherence"] = max(0.0, 1.0 - _res * 3.0)
-                            scene_state["avatar_state"]["sensory_noise"] = _res * 3.0
-                            scene_state["avatar_state"]["motor_disruption"] = _res * 5.0 # Сильный тремор при сопротивлении
-                            logger.debug(f"[PIPELINE][EMBODIMENT] Injected instability: res={_res:.2f}, stability={scene_state['avatar_state']['perceptual_stability']:.2f}, motor={scene_state['avatar_state']['motor_disruption']:.2f}")
+                        # B1.2-FIX: frontend НЕ перезаписывает avatar_state полностью.
+                        # Backend avatar_presentation_assembler уже посчитал базовые скаляры.
+                        # Но конфликт воли (_res) — это локальный фронтенд-эвент, который бэкенд
+                        # может не успеть отразить в motor_disruption. Поэтому мы МЕРДЖИМ
+                        # _res в motor_disruption, не перетирая другие поля.
+                        if _res > 0:
+                            self._resistance_visual_intensity = _res
+                            _av = scene_state.get("avatar_state")
+                            if not isinstance(_av, dict):
+                                _av = {}
+                                scene_state["avatar_state"] = _av
+                            _base_motor = float(_av.get("motor_disruption", 0.0))
+                            _av["motor_disruption"] = max(_base_motor, _res * 5.0)
+                            _base_noise = float(_av.get("sensory_noise", 0.0))
+                            _av["sensory_noise"] = max(_base_noise, _res * 3.0)
+                            logger.debug(f"[PIPELINE][EMBODIMENT] merged will_conflict: res={_res:.2f}, motor={_av['motor_disruption']:.2f}")
+                        else:
+                            self._resistance_visual_intensity = 0.0
 
                     # npc_reactions → речевые облачка над головой NPC (не в чат!)
                     for npc_r in (result.response.npc_reactions or []):
@@ -1312,7 +1356,8 @@ class GameScreen:
                 _title_surf = _font_title.render("--- Журнал Диалогов (J) ---", True, (218, 165, 32))
                 _journal_surf.blit(_title_surf, (15, 15))
                 
-                _journal_data = self.dialog_journal
+                # B1.3-FIX: читаем из backend cache
+                _journal_data = self._dialog_journal_backend
                 _y_offset = 45
                 
                 if not _journal_data:

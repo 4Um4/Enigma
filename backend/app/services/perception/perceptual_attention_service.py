@@ -64,7 +64,7 @@ class PerceptualAttentionService:
                 if event.category == "PERIPHERAL":
                     peripheral_cues.append(PeripheralCueDTO(
                         npc_id=event.source_cluster,
-                        cue_type=self._seed_to_cue_type(event.semantic_seed),
+                        cue_key=self._seed_to_cue_key(event.semantic_seed),
                         hover_text=OBSERVATION_TEXTS.get(event.semantic_seed, event.semantic_seed)
                     ))
                 elif event.category in ("ATMOSPHERE", "CENTRAL"):
@@ -88,7 +88,7 @@ class PerceptualAttentionService:
             peripheral_cues=peripheral_cues
         )
 
-    def _seed_to_cue_type(self, semantic_seed: str) -> str:
+    def _seed_to_cue_key(self, semantic_seed: str) -> str:
         if "замер" in semantic_seed: return "FREEZE"
         if "отворач" in semantic_seed: return "AVOID_GAZE"
         if "тороп" in semantic_seed: return "HURRY"

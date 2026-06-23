@@ -1341,9 +1341,9 @@ class SceneStateManager:
                                 # ADR-060 + ДОЛГ 6.2: кросс-локационное перемещение
                                 if target_loc != location_id:
                                     # FIX: Prevent teleportation for intra-location moves in other scenes.
-                                    # Если NPC не находится в текущей сцене, мы не можем применить к нему изменения здесь.
+                                    # Если NPC не находится в целевой сцене (target_loc), это чужой апдейт.
                                     _npc_current_loc = entry.get("location", location_id)
-                                    if _npc_current_loc != location_id:
+                                    if _npc_current_loc != target_loc and _npc_current_loc != location_id:
                                         entry["position"] = _old_position  # Revert semantic position
                                         logger.debug(f"[APPLY_CHANGES] Skip intra-location move for {change.target} in {target_loc} (active scene: {location_id})")
                                     else:

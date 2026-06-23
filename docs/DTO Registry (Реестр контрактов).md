@@ -208,6 +208,22 @@
 - ❌ ЗАПРЕТ: Мутация state, асинхронность, наличие internal state/cache. Детерминированность RNG обязательна (seed from event_id + tick).
 ---
 
+## 9. TIME SKIP (Observation Layer)
+**Поток:** TimeSkipExecutor → Kernel.execute() → TickResultDTO → Detectors → TimeSkipResult.
+
+**Актуальные DTO:**
+- **`TimeSkipResult`** (`services/world/time_skip_executor.py`): Результат промотки времени. Поля: `final_state`, `event_log`, `stop_reason`, `ticks_skipped`, `stops`, `significant_event`, `checkpoints`, `summary`.
+- **`SignificantEvent`** (`services/world/time_skip_executor.py`): Остановка Policy B. Поля: `type` (str), `tick` (int), `details` (Dict).
+- **`Milestone`** (`services/world/time_skip_executor.py`): Запомненный этап для Policy C. Поля: `type`, `tick`, `details`, `requires_playback`.
+- **`MilestoneCheckpoint`** (`services/world/time_skip_executor.py`): Sparse checkpoint. Поля: `tick`, `state` (deepcopy of scene_state), `milestone`.
+
+🚫 **КАУЗАЛЬНЫЕ ЗАПРЕТЫ:**
+- ❌ **Second Simulator (TZ-08 Addendum):** Создание отдельного симулятора для long-duration events. Time Skip — это только многократный вызов `Kernel.execute()`.
+- ❌ **Hardcoded SSOT:** Прямой вызов `LifeEngine` из детекторов. Используется `get_npcs_callback`.
+- ❌ **Direct Cache Access:** Прямой доступ к `LifeEngine._npc_cache` из `GameLoop` или детекторов. Используется `LifeEngine.get_npc_light_states()`.
+- ❌ **Time Advancement in Kernel:** `TimeSkipExecutor` (или `GameLoop`) инкрементирует тик, ядро остаётся pure function.
+- ❌ **Deferred Commit in Kernel:** `TickOrchestrator.execute()` обязан завершать commit состояния ДО возврата, иначе детекторы Time Skip прочитают устаревший SSOT.
+
 ### Список Песочниц (Fail Conditions)
 Каждый запрет из этого реестра должен быть покрыт тестом:
 - `test_no_direct_mutation_of_position` (Rule 1)

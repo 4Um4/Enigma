@@ -1089,6 +1089,21 @@ class LifeEngine:
         self._npc_cache[campaign_id] = npcs
         return npcs
 
+    def get_npc_light_states(self, campaign_id: str) -> list[dict]:
+        """Возвращает лёгкий срез NPC states для детекторов Time Skip.
+        Извлекает только npc_id, life_status, identity_integrity и drives без deepcopy.
+        """
+        cached = self._npc_cache.get(campaign_id, [])
+        light_snap = []
+        for n in cached:
+            light_snap.append({
+                "npc_id": n.get("npc_id"),
+                "body_state": {"life_status": n.get("body_state", {}).get("life_status", "ALIVE")},
+                "psyche": {"identity_integrity": n.get("psyche", {}).get("identity_integrity", 1.0)},
+                "drives": n.get("drives", {}).copy()
+            })
+        return light_snap
+
     def get_npc_states(self, campaign_id: str) -> list[dict]:
         """Возвращает кэшированные NPC states после мутации в tick().
         
