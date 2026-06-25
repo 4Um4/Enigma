@@ -50,6 +50,29 @@ class L1Chronicle:
         """Lazy load из SQLite при первом обращении."""
         if self._loaded or self._store is None:
             return
+        
+        # FIX: Если campaign_id пустой — auto-detect из SQLite (последняя активная кампания).
+        _campaign_to_load = self._campaign_id
+        if not _campaign_to_load:
+            try:
+                _rows = self._store.query(
+                    "SELECT campaign_id FROM l1_chronicle_events "
+                    "GROUP BY campaign_id ORDER BY MAX(tick_id) DESC LIMIT 1"
+                )
+                if _rows:
+                    _campaign_to_load = _rows[0]["campaign_id"]
+                    _logger.info(
+                        f"[L1_CHRONICLE] auto-bound to campaign='{_campaign_to_load}' "
+                        f"(no explicit bind_campaign call)"
+                    )
+                    self._campaign_id = _campaign_to_load
+            except Exception:
+                pass  # SQLite может быть пустой — это норма для нового game_loop
+        
+        if not _campaign_to_load:
+            self._loaded = True
+            return  # Нечего загружать
+
         try:
             # Создаём таблицу, если её нет
             self._store.execute("""

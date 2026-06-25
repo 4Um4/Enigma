@@ -98,7 +98,8 @@ class WorldTickEngine:
         decisions: List[ProactiveDecision] = []
         events: List[EventDTO] = []
 
-        hub = DecisionHub()
+        # KERNEL-ISOLATION: hub создаётся per-NPC внутри цикла (с deterministic RNG).
+        hub = None
 
         # Множество проактивных интентов — только они учитываются из world_tick
         proactive_intents: set = {
@@ -112,6 +113,15 @@ class WorldTickEngine:
             if state_l2.hp <= 0:
                 continue
             if state_l2.will_state == WillState.BROKEN:
+                continue
+
+            # ADR-O-208: effective_drives — обязательный аргумент DecisionHub.compute()
+            _effective_drives = (effective_drives_map or {}).get(npc_id)
+            if _effective_drives is None:
+                logger.error(
+                    f"[PIPELINE_FAULT][L3_MISSING] npc={npc_id} lacks EffectiveDrives (L3) "
+                    f"in WorldTick. Proactive decision skipped."
+                )
                 continue
 
             # Формируем EventContext для world_tick
@@ -138,15 +148,22 @@ class WorldTickEngine:
             _kernel = getattr(state_l2, 'perceptual_kernel', None)
             _decision_ctx = translate_kernel_to_context(_kernel, body_state=_body) if _kernel else None
 
+            # KERNEL-ISOLATION: per-NPC deterministic RNG.
+            from app.services.npc.kernel_rng import KernelRNG
+            _rng = KernelRNG(tick=tick_num, npc_id=npc_id)
+            hub = DecisionHub(rng=_rng)
+
             try:
                 result = hub.compute(
                     state=state_l2,
                     personality=profile_l0,
                     event=tick_event,
+                    effective_drives=_effective_drives,  # L3-P2 mandatory
                     scene_state=scene_state,
                     social_modifiers=combined if combined else None,
                     decision_ctx=_decision_ctx,
                 )
+                print(f"[DECISION_HUB] npc={npc_id} tick={tick_num} intent={result.intent.value} score={result.score:.3f} [world_tick]", flush=True)
 
                 # Только проактивные интенты проходят
                 if result.intent not in proactive_intents:

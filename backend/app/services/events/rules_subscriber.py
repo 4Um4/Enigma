@@ -55,7 +55,14 @@ class RulesSubscriber:
     SUBSCRIBED_EVENTS = frozenset({
         "PLAYER_ATTACKED", "ACTOR_ATTACKS", "COMBAT",
         "player_attacks", "actor_attacks",
+        "player_interacts", "PLAYER_INTERACTS"
     })
+
+    # Эвристики для социальных действий (без LLM)
+    _TRUST_POSITIVE_ACTIONS = {"комплимент", "сказать", "поговорить", "помочь"}
+    _ATTRACTION_ACTIONS = {"комплимент", "сказать"}
+    _GIVE_MONEY_ACTIONS = {"деньги", "отдать", "заплатить"}
+    _TRADE_ACTIONS = {"купить", "торгов", "сделка", "эль", "пиво"}
 
     def __init__(self):
         pass # No state. Pure function container.
@@ -71,8 +78,23 @@ class RulesSubscriber:
 
         try:
             target_id = self._extract_target(event)
+            
+            # SHI-FIX TRADE: Fallback на трактирщика для "купить" без явной цели
+            if not target_id:
+                _raw_input = snapshot.get('raw_input', '').lower()
+                if any(w in _raw_input for w in self._TRADE_ACTIONS):
+                    for _n in snapshot.get('all_npcs_raw', []):
+                        _arch = str(_n.get("_archetype", "")).lower()
+                        if _arch in ("tavern_keeper", "merchant", "bartender", "innkeeper"):
+                            target_id = _n.get("npc_id") or _n.get("id")
+                            logger.warning(f"[RULES_TRADE_FALLBACK] no explicit target, resolved to tavern_keeper: {target_id}")
+                            break
             if not target_id:
                 return None
+
+            # SHI-FIX: Маршрутизация социальных действий
+            if event_type in ("player_interacts", "PLAYER_INTERACTS"):
+                return self._handle_social(event, target_id, snapshot)
 
             target_npc = self._find_npc(target_id, snapshot.get('all_npcs_raw', []))
             if not target_npc:
@@ -120,6 +142,59 @@ class RulesSubscriber:
         except Exception as e:
             logger.error(f"[RULES_REDUCER] failed: {e}", exc_info=True)
             return None
+
+
+    def _handle_social(self, event: Any, target_id: str, snapshot: Dict[str, Any]) -> Optional[RulesDelta]:
+        """Обработка социальных действий (SOCIAL/LOVE/TRADE) без LLM."""
+        _raw_input = snapshot.get('raw_input', '').lower()
+        _semantic_action = event.payload.get('semantic_action', '')
+        
+        # Если Fast Path не распознал действие, используем эвристики
+        if not _semantic_action or _semantic_action == "UNCERTAIN":
+            if any(w in _raw_input for w in self._TRUST_POSITIVE_ACTIONS): _semantic_action = "COMPLIMENT"
+            elif any(w in _raw_input for w in self._GIVE_MONEY_ACTIONS): _semantic_action = "GIVE_MONEY"
+            elif any(w in _raw_input for w in self._TRADE_ACTIONS): _semantic_action = "TRADE"
+            else: _semantic_action = "INTERACT"
+            
+        trust_delta = 0.0
+        attraction_delta = 0.0
+        
+        if _semantic_action == "COMPLIMENT":
+            trust_delta = 2.0
+            attraction_delta = 1.0
+        elif _semantic_action == "GIVE_MONEY":
+            trust_delta = 5.0
+        elif _semantic_action == "TRADE":
+            _player_npc = next((n for n in snapshot.get('all_npcs_raw', []) if n.get("npc_id") == "player" or n.get("id") == "player"), None)
+            if _player_npc:
+                _bs = _player_npc.setdefault("body_state", {})
+                _current_money = float(_bs.get("money", 0))
+                if _current_money >= 5.0:
+                    _bs["money"] = _current_money - 5.0
+                    logger.warning(f"[RULES_TRADE] player spent 5.0G, remaining: {_bs['money']}G")
+        
+        if trust_delta > 0 or attraction_delta > 0:
+            _rel_store = snapshot.get('relationship_store')
+            _campaign_id = snapshot.get('campaign_id')
+            if _rel_store and _campaign_id:
+                # Запись в SSOT (оба направления)
+                _rel_store.update(_campaign_id, "player", target_id, {"trust": trust_delta, "attraction": attraction_delta})
+                _rel_store.update(_campaign_id, target_id, "player", {"trust": trust_delta, "attraction": attraction_delta})
+                
+                # Инжект в target_npc.relationship_cache для DecisionHub
+                _target_npc = next((n for n in snapshot.get('all_npcs_raw', []) if n.get("npc_id") == target_id or n.get("id") == target_id), None)
+                if _target_npc:
+                    _rc = _target_npc.setdefault("relationship_cache", {})
+                    _player_rc = _rc.setdefault("player", {})
+                    _player_rc["trust"] = _player_rc.get("trust", 0.0) + trust_delta
+                    _player_rc["attraction"] = _player_rc.get("attraction", 0.0) + attraction_delta
+
+        return RulesDelta(
+            target_id=target_id,
+            action_type="SANDBOX_SOCIAL",
+            success=True,
+            checks=[{"type": "social", "action": _semantic_action, "trust_delta": trust_delta}]
+        )
 
     # ── Pure helper methods (read-only) ──────────────────────────────
     def _extract_target(self, event: Any) -> Optional[str]:

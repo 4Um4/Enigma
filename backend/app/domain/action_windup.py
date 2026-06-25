@@ -6,7 +6,7 @@ path: backend/app/domain/action_windup.py
 """
 from __future__ import annotations
 from dataclasses import dataclass, field
-from typing import Optional, Literal
+from typing import Optional, Any, List
 from enum import Enum
 
 class WindupStatus(str, Enum):
@@ -20,7 +20,7 @@ class ActionWindup:
     """Окно подготовки к значимому действию (ADR-O-310).
     
     Не хранится в NPCState (эпемерно для боя).
-    Живёт в TickContext.windup_registry.
+    Живёт в TickOrchestrator._windup_registry.
     """
     actor_id: str
     target_id: str
@@ -30,3 +30,5 @@ class ActionWindup:
     status: WindupStatus = WindupStatus.PENDING
     # Условие прерывания: например, порог шока или уровня HP
     interrupt_shock_threshold: float = 0.7
+    # ADR-O-310: Замороженный EventDTO, который будет опубликован по завершении.
+    pending_event: Optional[Any] = None
