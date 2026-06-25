@@ -13,9 +13,13 @@
 
 import logging
 import copy
-from typing import Any, Optional
+from typing import Any, Callable, Optional, TYPE_CHECKING
 
 from app.domain.tick import TickState, TickMutation
+
+if TYPE_CHECKING:
+    from app.services.npc.kernel_rng import KernelRNG
+from app.services.npc.kernel_rng import KernelRNG
 from app.services.npc.legacy_delta_adapter import LegacyStateDeltaAdapter
 from app.services.npc.domain_phases import (
     HANDS_OCCUPIED_ACTIVITIES,
@@ -45,7 +49,8 @@ class NpcTickPipeline:
     def run(
         state: TickState,
         svc: Any = None,  # Временный костыль для миграции
-        drf_ctx: Optional[Any] = None
+        drf_ctx: Optional[Any] = None,
+        rng_factory: Optional[Callable[[str], "KernelRNG"]] = None
     ) -> TickMutation:
         from app.services.npc.npc_loader import load_profile_from_legacy_json, load_l2_state_from_runtime_dict
         from app.services.npc.decision_hub import DecisionHub
@@ -222,7 +227,10 @@ class NpcTickPipeline:
             _effective_drives = state.effective_drives_map.get(npc_id)
             if _effective_drives is None: continue
 
-            decision = DecisionHub().compute(
+            # KERNEL-ISOLATION: DecisionHub получает deterministic RNG, привязанный к (tick, npc_id).
+            # Раньше был DecisionHub() без seed → non-deterministic. Это первый CRITICAL leak.
+            _rng = KernelRNG(tick=state.tick_id, npc_id=npc_id)
+            decision = DecisionHub(rng=_rng).compute(
                 state=state_l2, personality=profile_l0, effective_drives=_effective_drives,
                 event=_event_for_interp, identity=_identity, eco_modifiers=_all_modifiers or None,
                 social_modifiers=_social_mods or None, reputation_modifiers=_rep_modifiers_for_hub,
@@ -804,7 +812,10 @@ def build_verbalization_context(
                 logger.warning(f"[L3_MISSING] npc={npc_id} lacks EffectiveDrives in Pipeline. Tick skipped.")
                 continue
 
-            decision = DecisionHub().compute(
+            # KERNEL-ISOLATION: DecisionHub получает deterministic RNG, привязанный к (tick, npc_id).
+            # Раньше был DecisionHub() без seed → non-deterministic. Это второй CRITICAL leak.
+            _rng = KernelRNG(tick=inp.current_tick, npc_id=npc_id)
+            decision = DecisionHub(rng=_rng).compute(
                 state=state_l2,
                 personality=profile_l0,
                 effective_drives=_effective_drives, # L3-P2: Единственная реальность

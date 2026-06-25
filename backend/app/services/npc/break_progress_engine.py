@@ -57,7 +57,11 @@ class BreakProgressEngine:
         Формула: pressure = fear + stress + failures - support
         Вызывается ДО DecisionHub — в python_engines, для всех NPC в локации.
         """
-        fear = state.relationship_cache.get("fear", 0.0) * 100  # нормализуем 0-100
+        # ADR-O-146: Давление вычисляется из восприятия (affective_load, threat)
+        # и физиологии (stress), а не из сырого кэша отношений.
+        _threat = state.perceptual_kernel.threat_gradient * 100 if state.perceptual_kernel else 0.0
+        _affect = state.affective_load * 100
+        fear = max(_threat, _affect)  # Берём доминирующий источник страха
         stress = state.stress
         failures = recent_failures * 10  # каждая неудача +10 к давлению
         

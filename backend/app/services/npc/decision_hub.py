@@ -16,7 +16,10 @@ import logging
 import random
 import dataclasses
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.services.npc.kernel_rng import KernelRNG
 
 logger = logging.getLogger(__name__)
 
@@ -227,9 +230,28 @@ class DecisionHub:
     """
 
 
-    def __init__(self, seed: Optional[int] = None) -> None:
-        # seed per-session — воспроизводимость при отладке (решение №12)
-        self._rng = random.Random(seed)
+    def __init__(
+        self,
+        rng: Optional["KernelRNG"] = None,
+        seed: Optional[int] = None,
+    ) -> None:
+        """Инициализация DecisionHub с детерминированным источником RNG.
+
+        Args:
+            rng: Экземпляр KernelRNG (предпочтительно). Если передан, используется как источник RNG.
+                 Должен быть привязан к (tick, npc_id) для воспроизводимости (replay determinism).
+            seed: Устаревший параметр seed. Используется ТОЛЬКО если rng is None.
+                  Оставлен для обратной совместимости с тестами.
+
+        KERNEL-ISOLATION: в production ВСЕГДА передаётся rng (не seed).
+        seed=None + rng=None → недетерминированно (ТОЛЬКО ДЛЯ DEBUG).
+        """
+        if rng is not None:
+            self._rng = rng
+        else:
+            # Легаси-путь или debug. random.Random(None) → недетерминированно.
+            self._rng = random.Random(seed)
+
         self._social_delta_engine = SocialDeltaEngine()
         self._last_redirect = 0.0  # инициализация scoring component
         self._last_dominant_drive = "neutral"  # redirect direction: control/fear/neutral
