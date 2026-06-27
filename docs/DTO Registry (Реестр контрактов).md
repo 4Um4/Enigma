@@ -1,5 +1,5 @@
 ﻿# DTO Registry — Каузальный Атлас Контрактов ENIGMA
-**Основание:** CAUSAL CONTRACT v2.0 (2026-05-21), ADR-O-208 / ADR-O-305A (S85.2), ТЗ-02 (S86)
+**Основание:** CAUSAL CONTRACT v2.0 (2026-05-21), ADR-O-208 / ADR-O-305A (S85.2), ТЗ-02 (S86), ADR-O-301 (S93)
 
 > **Формат:** Домен пайплайна → Поток данных → Актуальные DTO → 🚫 КАУЗАЛЬНЫЕ ЗАПРЕТЫ (HARD CONSTRAINTS).
 > ИИ-ассистенту: Нарушение правила из блока 🚫 = архитектурный баг, равносильный крашу пайплайна.
@@ -41,7 +41,7 @@
 ---
 
 ## 2. ВОЛЯ И ДАВЛЕНИЕ (Will & Pressure)
-**Поток:** Параметры намерения → Вектор давления → Исказжение аффектом → Вычисление сопротивления.
+**Поток:** Параметры намерения → Вектор давления → Исказждение аффектом → Вычисление сопротивления.
 
 **Актуальные DTO:**
 - **`IntentPressureProfile`** (`models/will.py`): Вектор давления на психику.
@@ -84,6 +84,8 @@
 - **`MacroMovementGoal`** (`domain/movement.py`): LOD1. Содержит `target_node_id`, `from_node_id`, `target_local_xy`, **`domain: IntentDomain`** (ADR-O-137), `processed` (bool). Повторная обработка с `processed=True` вызывает `RuntimeError`.
 - **`TraversalState`** (`models/`): Физическое состояние перемещения. `source_node`, `target_node`, `waypoints`, `progress` (0.0-1.0), `speed`, `created_tick`.
 - **`SceneChange`**: Проекция свершившегося. **Boundary Transition Pipeline (ADR-145):** `target_location_id` заполняется ТОЛЬКО в `_process_traversals()` при факте пересечения boundary node. **ADR-130.2 (S85.1):** При `cause="traversal_complete"` `apply_changes` делает snap `local_position`, не создавая новый `TraversalState`.
+- **`KernelRNG`** (`services/npc/kernel_rng.py`): Единственный источник случайности в kernel layer (ADR-O-301). Привязан к `(tick, npc_id, salt)`. Создаётся через `_TickContext.rng_factory` в `TickOrchestrator` и передаётся в `NpcTickPipeline.run()`.
+- **`DecisionHub`** (`services/npc/decision_hub.py`): Принимает `rng: Optional[KernelRNG]` в конструкторе. В production ВСЕГДА передаётся `rng`. `seed` оставлен только для legacy-тестов. Вызов `DecisionHub()` без аргументов запрещён (ADR-O-301).
 
 **ETKE-IK v1: Motion Core DTOs**
 - **`AffordanceVector`** (`domain/motion_core.py`): Физические возможности среды (can_stand, surface_grip, light_level, exposure). Заменяет дискретные узлы на непрерывное поле.
@@ -113,6 +115,8 @@
 - ❌ **LifeEngine Intent Generation for Moving NPC (ADR-154, S85.1):** `LifeEngine._simulate_major` ЗАПРЕЩЕНО генерировать интенты для NPC в статусе `MOVING`.
 - ❌ **Traversal Overwrite in apply_changes (ADR-130.1, S85.1):** Перезапись активного транзита (`status="MOVING"`) в `apply_changes` запрещена.
 - ❌ **New Traversal on Complete (ADR-130.2, S85.1):** Создание нового `TraversalState` для `cause="traversal_complete"` запрещено (нужен только snap).
+- ❌ **Голый DecisionHub() (ADR-O-301):** Вызов `DecisionHub()` без передачи `rng` запрещён. Использование глобального `random.*` в kernel layer запрещено.
+- ❌ **Нарушение изоляции подсистем (ADR-O-301):** Создание `KernelRNG` без `salt` (или использование одного `salt` для разных подсистем) запрещено. Каждая подсистема (DecisionHub, LifeEngine, MovementEngine) обязана иметь свой `salt`.
 
 ---
 
@@ -159,10 +163,12 @@
 **Поток:** Runtime Истина → Феноменологическая Проекция → Фронтенд.
 
 **Актуальные DTO:**
-- **`WorldSnapshotDTO`** (`domain/snapshot.py`): `npc_positions`, `active_traversals`, `avatar_state`, `ambient_phenomenology`.
+        if- **`WorldSnapshotDTO`** (`domain/snapshot.py`): `npc_positions` (**Dict[str, NPCPositionDTO]**, ADR-TZ03-1 A2-FIX), `active_traversals`, `avatar_state`, `ambient_phenomenology`.
 - **`AvatarStateDTO`** (`domain/snapshot.py`): Непрерывные скаляры + **`life_status`** (ADR-137). Вычисляется через `AvatarPresentationAssembler`.
 - **`PlayerPerceptionDTO`** (`domain/snapshot.py`): `embodied_traces`, `peripheral_cues`, **`manifestations`** (ADR-O-147), `active_perceptions`, `avatar_desync`.
 - **`ManifestationDTO`** (`domain/snapshot.py`, ADR-O-147): Наблюдаемое физическое проявление NPC. Поля: `npc_id`, `tags` (List[str]). НЕ эмоция!
+- **`PeripheralCueDTO`** (`domain/snapshot.py`): Периферическое наблюдение. Поля: `npc_id`, **`cue_key`** (renamed from `cue_type`, ADR-TZ03-1 A3-FIX), `hover_text`. executed_windups > 0:
+            print(f"[TICK_ORCH] Фаза 7: {executed_windups} windups executed (EventDTO published)")
 
 🚫 **КАУЗАЛЬНЫЕ ЗАПРЕТЫ (Контракт §4.3, §4.4):**
 - ❌ **Телепатия в UI (Rule 11):** Передача Игроку внутренних состояний NPC запрещена.
@@ -206,6 +212,8 @@
 - ❌ **Scalar Fear / No Decay (ADR-O-305.1):** Скалярный страх (`CrystallizedBelief` без `source_id`) и отсутствие Decay для `CrystallizedBelief` запрещены.
 - ❌ **Phantom Identity Drift (ADR-S86.7):** Запуск `check_identity_promotion` (L2.5 кристаллизация) в idle-тиках без `phase_2_events` запрещен. Память не может генерировать идентичность без каузального входа.
 - ❌ ЗАПРЕТ: Мутация state, асинхронность, наличие internal state/cache. Детерминированность RNG обязательна (seed from event_id + tick).
+- ❌ **Глобальный random (ADR-O-301):** Использование `random.*` в kernel layer запрещено. Все вызовы должны идти через `KernelRNG(tick, npc_id, salt)`.
+
 ---
 
 ## 9. TIME SKIP (Observation Layer)
@@ -264,3 +272,6 @@
 - `test_belief_engine_no_direct_l1_read` (ADR-O-305)
 - `test_hp_double_truth_invariant` (ADR-HP-UNIFICATION, S86)
 - `test_l3_ephemeral_invariant` (ADR-O-211 / ADR-IMMUNE-001, S86)
+- `test_kernel_rng_determinism` (ADR-O-301)
+- `test_no_global_random_in_kernel` (ADR-O-301)
+- `test_decision_hub_requires_rng` (ADR-O-301)

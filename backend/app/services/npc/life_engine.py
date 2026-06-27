@@ -487,6 +487,10 @@ class LifeEngine:
             tier   = npc.get("tier", "major")
             npc_id = npc.get("id", "?")
 
+            # KERNEL-ISOLATION: Единый deterministic RNG для LifeEngine на этом тике.
+            # Изолирован от MovementEngine и DecisionHub через salt="life_events".
+            _rng = KernelRNG(tick=current_tick, npc_id=npc_id, salt="life_events")
+
             # Motion Router: очистка устаревшего DriveVector от предыдущего тика.
             # DriveVector эфемерен — если DecisionHub не сгенерировал новый,
             # NPC должен остановиться (нет давления = нет движения, ADR-O-208 L3-P1).
@@ -495,7 +499,7 @@ class LifeEngine:
             try:
                 # ── MAJOR: полная симуляция каждый тик ──────────────────────
                 if tier == "major":
-                    changes, intents = self._simulate_major(npc, current_time, current_tick, scene_state)
+                    changes, intents = self._simulate_major(npc, current_time, current_tick, scene_state, rng=_rng)
                     all_changes.extend(changes)
                     all_intents.extend(intents)
                     npcs_updated = True
@@ -503,7 +507,7 @@ class LifeEngine:
                 elif tier == "minor":
                     last_minor = npc.get("routine", {}).get("_last_life_tick", 0)
                     if (current_tick - last_minor) >= MINOR_TICK_INTERVAL:
-                        changes, intents = self._simulate_minor(npc, current_time, current_tick, scene_state)
+                        changes, intents = self._simulate_minor(npc, current_time, current_tick, scene_state, rng=_rng)
                         all_changes.extend(changes)
                         all_intents.extend(intents)
                         npc.setdefault("routine", {})["_last_life_tick"] = current_tick
@@ -583,9 +587,9 @@ class LifeEngine:
 
         for npc in npcs:
             npc_id = npc.get("id", "?")
-            # KERNEL-ISOLATION: deterministic RNG для idle tick.
+            # KERNEL-ISOLATION: deterministic RNG для idle tick (tick_decisions).
             _tick = self.get_current_tick(campaign_id)
-            _rng = KernelRNG(tick=_tick, npc_id=npc_id)
+            _rng = KernelRNG(tick=_tick, npc_id=npc_id, salt="life_events")
             hub = DecisionHub(rng=_rng)
 
             try:
@@ -1227,6 +1231,7 @@ class LifeEngine:
           current_time: str,
           tick: int,
           scene_state: Optional[dict] = None,
+          rng: Optional[KernelRNG] = None
       ) -> tuple[list[SceneChange], list["MovementIntent"]]:
         """
           Полная симуляция Major NPC за один тик.
@@ -1300,7 +1305,7 @@ class LifeEngine:
 
         # 3. Случайные события: только если EXPLORATION жизнеспособен
         if IntentDomain.EXPLORATION in _viable:
-            event_changes, event_intent = self.check_random_events(npc, tick)
+            event_changes, event_intent = self.check_random_events(npc, tick, rng=rng)
             changes.extend(event_changes)
             if event_intent:
                 event_intent.domain = IntentDomain.EXPLORATION
@@ -1660,6 +1665,7 @@ class LifeEngine:
           current_time: str,
           tick: int,
           scene_state: Optional[dict] = None,
+          rng: Optional[KernelRNG] = None
       ) -> tuple[list[SceneChange], list["MovementIntent"]]:
           """
           Симуляция Minor NPC раз в MINOR_TICK_INTERVAL тиков.
@@ -1684,7 +1690,7 @@ class LifeEngine:
                   intents.append(routine_intent)
           
           if IntentDomain.EXPLORATION in _viable:
-              event_changes, event_intent = self.check_random_events(npc, tick)
+              event_changes, event_intent = self.check_random_events(npc, tick, rng=rng)
               changes.extend(event_changes)
               if event_intent:
                   event_intent.domain = IntentDomain.EXPLORATION
@@ -1946,7 +1952,8 @@ class LifeEngine:
         """
         npc_id   = npc.get("id", "unknown")
         if rng is None:
-            rng = KernelRNG(tick=tick, npc_id=npc_id)
+            # KERNEL-ISOLATION: Фоллбэк с salt="life_events" для изоляции потока.
+            rng = KernelRNG(tick=tick, npc_id=npc_id, salt="life_events")
         activity = npc.get("routine", {}).get("current", "")
 
         if "sleeping" in activity:

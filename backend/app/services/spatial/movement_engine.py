@@ -219,16 +219,21 @@ class MovementEngine:
         tick: int,
         npc_positions: Optional[Dict],
     ) -> List[SceneChange]:
-        """ADR-056/060: LOD0 микро-перемещение с Collision Avoidance (jitter)."""
-        import random
+        """ADR-056/060: LOD0 микро-перемещение с Collision Avoidance (jitter).
+        
+        KERNEL-ISOLATION: Использует KernelRNG с salt="movement_jitter" для 
+        независимого потока случайностей, изолированного от DecisionHub и событий.
+        """
+        from app.services.npc.kernel_rng import KernelRNG
+        rng = KernelRNG(tick=tick, npc_id=intent.npc_id, salt="movement_jitter")
         tx, ty = intent.local_target_xy
         collision_radius = 0.8
         best_x, best_y = tx, ty
         
         if npc_positions:
             for _ in range(10): # Увеличено с 5 для стабильности обхода коллизий
-                cx = tx + random.uniform(-1.0, 1.0) # Расширено с 0.8 для выхода за collision_radius
-                cy = ty + random.uniform(-1.0, 1.0)
+                cx = tx + rng.uniform(-1.0, 1.0) # Расширено с 0.8 для выхода за collision_radius
+                cy = ty + rng.uniform(-1.0, 1.0)
                 is_colliding = any(
                     ((cx - other_data.get("local_position", {}).get("x", 0.0))**2 +
                      (cy - other_data.get("local_position", {}).get("y", 0.0))**2)**0.5 < collision_radius
@@ -238,8 +243,8 @@ class MovementEngine:
                     best_x, best_y = cx, cy
                     break
         else:
-            best_x = tx + random.uniform(-0.5, 0.5)
-            best_y = ty + random.uniform(-0.5, 0.5)
+            best_x = tx + rng.uniform(-0.5, 0.5)
+            best_y = ty + rng.uniform(-0.5, 0.5)
             
         tx, ty = best_x, best_y
         print(f"[TRACE][SCENE_CHANGE_CREATED] npc={intent.npc_id} x={tx:.1f} y={ty:.1f}")

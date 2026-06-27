@@ -128,7 +128,22 @@ class L1Chronicle:
         self._ensure_loaded()
         if event.target_id not in self._events:
             self._events[event.target_id] = []
+        
+        # Idempotency Guard: предотвращаем дублирование событий 
+        # с одинаковым tick_id, target_id и event_type.
+        _exists = any(
+            e.tick_id == event.tick_id and e.event_type == event.event_type
+            for e in self._events[event.target_id]
+        )
+        if _exists:
+            return # Событие уже зафиксировано
+            
         self._events[event.target_id].append(event)
+
+        # S-93: TTL / Eviction. Окно памяти 500 последних событий.
+        MAX_EVENTS_PER_NPC = 500
+        if len(self._events[event.target_id]) > MAX_EVENTS_PER_NPC:
+            self._events[event.target_id] = self._events[event.target_id][-MAX_EVENTS_PER_NPC:]
 
         # Персистентная запись
         if self._store is not None:
@@ -151,7 +166,14 @@ class L1Chronicle:
         """Атомарная фиксация буфера от Оркестратора. Валидация времени — задача Оркестратора."""
         self._ensure_loaded()
         for event in buffer:
-            self.append(event)
+            # Idempotency Guard: предотвращаем дублирование событий в рамках одного тика
+            # для одного и того же target_id и event_type.
+            _exists = any(
+                e.tick_id == event.tick_id and e.target_id == event.target_id and e.event_type == event.event_type
+                for e in self._events.get(event.target_id, [])
+            )
+            if not _exists:
+                self.append(event)
 
     def query_raw(self, npc_id: str, t_from: int = 0) -> List[TraitDriftEvent]:
         """Чтение сырой правды без фильтрации весов (Fix 1)."""

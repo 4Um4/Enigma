@@ -593,11 +593,12 @@ class SceneOutcomeBuilder:
 
         return NpcOutcome(
             npc_id=npc_id,
-            name=(profile.name if profile else None) or (real_state.get("name") if isinstance(real_state, dict) else None) or npc_id,
+            # FIX: Используем getattr для безопасности, так как может прийти NPCPersonality вместо NPCProfileL0
+            name=(getattr(profile, 'name', None) if profile else None) or (real_state.get("name") if isinstance(real_state, dict) else None) or npc_id,
             description_snippet=_desc_snippet,
             intent=decision.intent.value if hasattr(decision.intent, 'value') else str(decision.intent),
             emotion=emotion,
-            gender=profile.gender if profile else "male",
+            gender=getattr(profile, 'gender', 'male') if profile else "male",
             salience=salience,
             visibility=visibility,
             voice_constraints=voice_constraints,

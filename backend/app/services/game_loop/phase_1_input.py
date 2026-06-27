@@ -285,3 +285,4 @@ def publish_classified_player_event(
     )
     get_event_bus().publish(_game_evt)
     logger.warning(f"[EVENT_BUS] Published: {_game_evt.type}, target={_game_evt.payload.get('target_id')}, action_type={_raw_type}")
+    # L1 Фиксация перенесена в npc_orchestration.py (единая точка каузальной эмиссии).

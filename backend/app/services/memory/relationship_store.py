@@ -13,7 +13,7 @@ from typing import Any, Dict
 
 logger = logging.getLogger(__name__)
 
-RELATIONSHIP_KEYS = ("trust", "fear", "debt", "respect")
+RELATIONSHIP_KEYS = ("trust", "fear", "debt", "respect", "attraction")
 
 
 def _clamp(value: float, lo: float = -100.0, hi: float = 100.0) -> float:

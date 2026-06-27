@@ -1149,6 +1149,7 @@ class GameLoop:
             shared_context.current_tick = scene_state["tick"]
 
         # ФАЗА 1-3: DM классификация + EventBus + STM + время
+        _match = None # Инициализация во избежание UnboundLocalError
         try:
             dm_result = run_dm_phase(
                 self, actions, shared_context, scene_state, _ctx, campaign_id, location,

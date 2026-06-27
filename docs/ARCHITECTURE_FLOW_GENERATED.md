@@ -63,6 +63,8 @@ flowchart TD
         StateApplicator("State Applicator"):::application
         CognitiveOverlay("Cognitive Overlay (T+0)"):::application
         TickContext["Tick Context"]:::application
+        KernelRNG("Kernel RNG (Deterministic)"):::application
+        NpcTickPipeline("Npc Tick Pipeline (Pure Reducer)"):::application
         BehaviorManifestationService("Behavior Manifestation Service"):::application
         PhenomenologyProjectionService("Phenomenology Projection Service"):::application
         WorldSnapshotBuilder("World Snapshot Builder"):::application
@@ -70,6 +72,7 @@ flowchart TD
         PipelineContext["Pipeline Context"]:::application
         AffectiveDecayHandler("Affective Decay Handler (Phase 0.5)"):::application
         ProjectionEngine("Projection Engine (Pure State Writer)"):::application
+        TimeSkipExecutor("Time Skip (Observation Layer)"):::application
         WorldProjectionBuffer("World Projection Buffer (Shadow Causality)"):::application
         PlayerCognitionPipeline("Player Cognition Pipeline"):::application
         LifeEngine("Life Engine"):::application
@@ -291,6 +294,8 @@ flowchart TD
     APIRoutes -->|"resolve_player_intent()"| TickOrchestrator
     StateApplicator -->|"WorldSnapshotDTO + will_conflict"| APIRoutes
     APIRoutes -->|"JSON Response"| GameScreen
+    GameScreen -->|"GET /api/world_state (polling)"| APIRoutes
+    GameScreen -->|"POST /api/game/action/stream (SSE)"| APIRoutes
     GameScreen -.->|"infect() - motor resistance"| TextInput
     GameScreen -->|"sanitize_perceptual_input()"| PresentationFirewall
     PresentationFirewall -->|"SanitizedPerceptualVectors"| PerceptualMomentum
@@ -374,6 +379,10 @@ flowchart TD
     LifeEngine -->|"load_npc_runtime — SQLite read-back"| SqlitePersistenceAdapter
     StateApplicator -->|"player_dict.body_state → AvatarStateDTO"| AvatarPresentationAssembler
     TickOrchestrator -->|"owns self._drf_bus (instance-level)"| DRFBus
+    TickOrchestrator -->|"creates rng_factory (lambda npc_id: KernelRNG(tick, npc_id))"| TickContext
+    TickContext -->|"passes rng_factory"| NpcTickPipeline
+    NpcTickPipeline -->|"calls rng_factory(npc_id) to get deterministic RNG"| KernelRNG
+    KernelRNG -->|"provides deterministic rng (salt='decision_hub')"| DecisionHub
     TickOrchestrator -->|"_phase_3_memory (compress idle, promote on event)"| MemoryManager
     TickOrchestrator -->|"_phase_5_decision (evaluates mask before DecisionHub)"| BehaviorMaskEvaluator
     TickOrchestrator -->|"calculates will_state breaks"| BreakProgressEngine
@@ -390,6 +399,8 @@ flowchart TD
     CrystallizedBeliefModifierResolver -->|"resolve() → drive_modifiers (Dict[str, float])"| DecisionHub
     SceneStateManager -.->|"calls project(state_t, state_t-1) inside commit()"| WorldProjectionBuffer
     WorldProjectionBuffer -->|"generates derived events"| WorldProjectionEvent
+    TimeSkipExecutor -->|"kernel.execute() loop"| TickOrchestrator
+    GameLoop -->|"get_npcs_callback"| TimeSkipExecutor
     PerceptionLayer -->|"visible/audible entities → distance + LOS"| SpatialLayer
     SpatialLayer -->|"spatial data → recognition confidence"| RecognitionLayer
     RecognitionLayer -->|"recognized entities → attention filter"| AttentionLayer
@@ -522,6 +533,14 @@ flowchart TD
     GameScreen -.->|"🚫 FORBIDDEN: Show emotions (fearful, anxious) — only observable manifestations (tense, rigid)"| Emotion:::forbidden
     GameScreen -.->|"🚫 FORBIDDEN: Compute manifest in GameScreen — only read from perception data"| PerceptionData:::forbidden
     GameScreen -.->|"🚫 FORBIDDEN: Mix cues and manifestations — separate channels"| Manifestations:::forbidden
+    GameScreen -.->|"🚫 FORBIDDEN: Mutate game_time_seconds (+=) in frontend. Backend is sole time authority."| GameState:::forbidden
+    GameScreen -.->|"🚫 FORBIDDEN: Override avatar_state fields in frontend. Backend is sole avatar authority."| AvatarState:::forbidden
+    GameScreen -.->|"🚫 FORBIDDEN: Append to dialog_journal locally in frontend. Read from backend."| DialogJournal:::forbidden
+    GameScreen -.->|"🚫 FORBIDDEN: Use contextlib.suppress(Exception) on system boundaries. Use try/except with logger."| NPCNamesConfig:::forbidden
+    GameLoopBridge -.->|"🚫 FORBIDDEN: Silent pass (except Exception: pass) in Spatial Oracle. Log errors."| SpatialOracle:::forbidden
+    WorldSnapshotBuilder -.->|"🚫 REQUIRED: Return npc_positions as Dict[str, NPCPositionDTO], not List."| NPCPositionDTO:::forbidden
+    PeripheralCueDTO -.->|"🚫 REQUIRED: Use cue_key field (renamed from cue_type)."| Frontend:::forbidden
+    _MinimalFrontendRegistry -.->|"🚫 REQUIRED: Implement find_chunks method."| SpatialOracle:::forbidden
     Any -.->|"🚫 FORBIDDEN: Deletion from L1Chronicle (Append-only history)"| L1Chronicle:::forbidden
     Any -.->|"🚫 FORBIDDEN: Caching EffectiveDrives (L3-P1 is strictly ephemeral)"| EffectiveDrives:::forbidden
     StateApplicator -.->|"🚫 REQUIRED: Raise OntologyViolationError and kill tick on NaN, sum!=1.0, or bounds violation"| OntologyViolationError:::forbidden
@@ -593,6 +612,8 @@ flowchart TD
     LifeEngine -.->|"🚫 REQUIRED: update_cache() called after every apply_batch (ADR-117)"| LifeEngine:::forbidden
     LifeEngine -.->|"🚫 REQUIRED: SQLite read-back on cache miss (ADR-128)"| SqlitePersistenceAdapter:::forbidden
     GameLoop -.->|"🚫 REQUIRED: Action Eligibility Gate (ADR-131)"| PlayerAction:::forbidden
+    Any -.->|"🚫 FORBIDDEN: DecisionHub() without rng. All kernel randomness MUST go through KernelRNG (ADR-O-301)"| DecisionHub:::forbidden
+    Any -.->|"🚫 FORBIDDEN: Use of global random.* in kernel layer. Must use KernelRNG(tick, npc_id, salt) (ADR-O-301)"| KernelLayer:::forbidden
     AvatarPresentationAssembler -.->|"🚫 REQUIRED: Normalize pain/fatigue /100.0 (ADR-094 MSOC)"| pain_fatigue:::forbidden
     PressureTranslator -.->|"🚫 REQUIRED: Normalize pain /100.0 (ADR-094 MSOC)"| pain:::forbidden
     AvatarStateDTO -.->|"🚫 REQUIRED: AvatarStateDTO MUST contain life_status field (ADR-137)"| life_status:::forbidden
@@ -1223,6 +1244,8 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | APIRoutes | TickOrchestrator | resolve_player_intent() | Validate DTO | `routes.py` | - |
 | StateApplicator | APIRoutes | WorldSnapshotDTO + will_conflict | End of action tick | `routes.py` | ADR-068 |
 | APIRoutes | GameScreen | JSON Response | ActionQueue poll | `api_client.py` | - |
+| GameScreen | APIRoutes | GET /api/world_state (polling) | Idle tick / read-only observation | `api_client.py` | ADR-TZ03-1 |
+| GameScreen | APIRoutes | POST /api/game/action/stream (SSE) | Progressive rendering (future) | `api_client.py` | ADR-TZ03-1 |
 | GameScreen | TextInput | infect() - motor resistance | will_conflict_data not None | `game_screen.py:808` | ADR-039 |
 | GameScreen | PresentationFirewall | sanitize_perceptual_input() | On avatar_state update | `game_screen.py:890` | - |
 | PresentationFirewall | PerceptualMomentum | SanitizedPerceptualVectors | S-curve inertia | `game_screen.py:893` | - |
@@ -1306,6 +1329,10 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | LifeEngine | SqlitePersistenceAdapter | load_npc_runtime — SQLite read-back | - | `-` | - |
 | StateApplicator | AvatarPresentationAssembler | player_dict.body_state → AvatarStateDTO | - | `-` | - |
 | TickOrchestrator | DRFBus | owns self._drf_bus (instance-level) | - | `-` | - |
+| TickOrchestrator | TickContext | creates rng_factory (lambda npc_id: KernelRNG(tick, npc_id)) | - | `-` | ADR-O-301 |
+| TickContext | NpcTickPipeline | passes rng_factory | - | `-` | ADR-O-301 |
+| NpcTickPipeline | KernelRNG | calls rng_factory(npc_id) to get deterministic RNG | - | `-` | ADR-O-301 |
+| KernelRNG | DecisionHub | provides deterministic rng (salt='decision_hub') | - | `-` | ADR-O-301 |
 | TickOrchestrator | MemoryManager | _phase_3_memory (compress idle, promote on event) | - | `-` | - |
 | TickOrchestrator | BehaviorMaskEvaluator | _phase_5_decision (evaluates mask before DecisionHub) | - | `-` | - |
 | TickOrchestrator | BreakProgressEngine | calculates will_state breaks | - | `tick_orchestrator.py:_phase_5_decision` | - |
@@ -1322,6 +1349,8 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | CrystallizedBeliefModifierResolver | DecisionHub | resolve() → drive_modifiers (Dict[str, float]) | - | `-` | - |
 | SceneStateManager | WorldProjectionBuffer | calls project(state_t, state_t-1) inside commit() | - | `-` | - |
 | WorldProjectionBuffer | WorldProjectionEvent | generates derived events | - | `-` | - |
+| TimeSkipExecutor | TickOrchestrator | kernel.execute() loop | - | `-` | - |
+| GameLoop | TimeSkipExecutor | get_npcs_callback | - | `-` | - |
 | PerceptionLayer | SpatialLayer | visible/audible entities → distance + LOS | Only perceived entities get spatial data | `player_cognition/perception_layer.py` | - |
 | SpatialLayer | RecognitionLayer | spatial data → recognition confidence | Distance affects recognition confidence | `player_cognition/spatial_layer.py` | - |
 | RecognitionLayer | AttentionLayer | recognized entities → attention filter | Known entities get higher attention score | `player_cognition/recognition_layer.py` | - |
@@ -1457,6 +1486,14 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | GameScreen | Emotion | FORBIDDEN: Show emotions (fearful, anxious) — only observable manifestations (tense, rigid) | `game_screen.py` |
 | GameScreen | PerceptionData | FORBIDDEN: Compute manifest in GameScreen — only read from perception data | `game_screen.py` |
 | GameScreen | Manifestations | FORBIDDEN: Mix cues and manifestations — separate channels | `phenomenology_projection_service.py, game_screen.py` |
+| GameScreen | GameState | FORBIDDEN: Mutate game_time_seconds (+=) in frontend. Backend is sole time authority. | `game_screen.py` |
+| GameScreen | AvatarState | FORBIDDEN: Override avatar_state fields in frontend. Backend is sole avatar authority. | `game_screen.py` |
+| GameScreen | DialogJournal | FORBIDDEN: Append to dialog_journal locally in frontend. Read from backend. | `game_screen.py` |
+| GameScreen | NPCNamesConfig | FORBIDDEN: Use contextlib.suppress(Exception) on system boundaries. Use try/except with logger. | `game_screen.py` |
+| GameLoopBridge | SpatialOracle | FORBIDDEN: Silent pass (except Exception: pass) in Spatial Oracle. Log errors. | `game_loop_bridge.py` |
+| WorldSnapshotBuilder | NPCPositionDTO | REQUIRED: Return npc_positions as Dict[str, NPCPositionDTO], not List. | `world_snapshot_builder.py` |
+| PeripheralCueDTO | Frontend | REQUIRED: Use cue_key field (renamed from cue_type). | `snapshot.py` |
+| _MinimalFrontendRegistry | SpatialOracle | REQUIRED: Implement find_chunks method. | `spatial_compilation_orchestrator.py` |
 | Any | L1Chronicle | FORBIDDEN: Deletion from L1Chronicle (Append-only history) | `ADR-O-208` |
 | Any | EffectiveDrives | FORBIDDEN: Caching EffectiveDrives (L3-P1 is strictly ephemeral) | `ADR-O-208` |
 | StateApplicator | OntologyViolationError | REQUIRED: Raise OntologyViolationError and kill tick on NaN, sum!=1.0, or bounds violation | `ADR-O-207` |
@@ -1528,6 +1565,8 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | LifeEngine | LifeEngine | REQUIRED: update_cache() called after every apply_batch (ADR-117) | `-` |
 | LifeEngine | SqlitePersistenceAdapter | REQUIRED: SQLite read-back on cache miss (ADR-128) | `-` |
 | GameLoop | PlayerAction | REQUIRED: Action Eligibility Gate (ADR-131) | `-` |
+| Any | DecisionHub | FORBIDDEN: DecisionHub() without rng. All kernel randomness MUST go through KernelRNG (ADR-O-301) | `-` |
+| Any | KernelLayer | FORBIDDEN: Use of global random.* in kernel layer. Must use KernelRNG(tick, npc_id, salt) (ADR-O-301) | `-` |
 | AvatarPresentationAssembler | pain_fatigue | REQUIRED: Normalize pain/fatigue /100.0 (ADR-094 MSOC) | `-` |
 | PressureTranslator | pain | REQUIRED: Normalize pain /100.0 (ADR-094 MSOC) | `-` |
 | AvatarStateDTO | life_status | REQUIRED: AvatarStateDTO MUST contain life_status field (ADR-137) | `-` |

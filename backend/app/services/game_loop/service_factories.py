@@ -29,7 +29,8 @@ class ServiceFactory:
         data_dir: Path,
     ) -> None:
         self._load_npcs = load_npcs_func
-        self._data_dir = data_dir
+        # FIX: Гарантируем Path, иначе оператор / падает с TypeError: unsupported operand type(s) for /: 'str' and 'str'
+        self._data_dir = Path(data_dir)
 
         # Кэши — mutable, заполняются при первом обращении
         self._social_engine: Optional[Any] = None

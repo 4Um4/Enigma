@@ -35,6 +35,7 @@ class DeltaDomain(Enum):
     SPATIAL = "spatial"
     PERCEPTION = "perception"  # ADR-040: Обновление субъективной модели восприятия (PerceptualKernel)
     WILL = "WILL" # Каузальный след конфликта воли (ADR-039)
+    DOPAMINE = "dopamine" # S-93: Reward Prediction Error (FEP). Эфемерный сигнал ошибки предсказания.
 
 
 class ReductionPolicy(Enum):

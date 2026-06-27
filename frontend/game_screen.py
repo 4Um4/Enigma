@@ -487,13 +487,16 @@ class GameScreen:
         _time_scale = 1                # Множитель скорости симуляции (1, 4, 10, 50)
         # Маппинг npc_id → имя для телеграфа
         _npc_name_map: dict[str, str] = {}
-        with contextlib.suppress(Exception):
+        # C1-FIX: убран contextlib.suppress(Exception). Ошибки чтения конфигов логируем.
+        try:
             import json
             _npc_dir = Path("config/npc/individuals")
             if _npc_dir.exists():
                 for _f in _npc_dir.glob("*.json"):
                     _data = json.loads(_f.read_text(encoding="utf-8"))
                     _npc_name_map[_data.get("id", "")] = _data.get("name", "")
+        except Exception as e:
+            logger.error(f"[NPC_NAMES] Failed to load individuals config: {e}")
         import threading
 
         def _do_idle_tick():

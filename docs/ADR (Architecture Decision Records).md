@@ -150,6 +150,14 @@
   Taboo: ❌ Возврат `TickPlayerResultDTO` из `execute()`. Ядро возвращает только `TickResultDTO`.
   Files: tick_orchestrator.py, domain/tick.py
 
+`ADR-O-301` [ONTO] **Kernel Isolation Repair** — Убиты 5 пробоев детерминизма и 3 голых `DecisionHub()`. Внедрён `KernelRNG(tick, npc_id, salt)`. Единая фабрика в `_TickContext`.
+  Taboo: ❌ Использование `random.*` в kernel layer. ❌ `DecisionHub()` без `rng`.
+  Files: kernel_rng.py, tick_orchestrator.py, decision_hub.py, npc_tick_pipeline.py, life_engine.py, movement_engine.py, state_applicator.py
+
+`ADR-TZ03-1` [ONTO] **Single Causal Authority (Tri-Ontology System Elimination)** — Уничтожена три-онтологическая система (backend kernel truth / frontend inferred truth / fallback truth). Backend — единственный источник истины, frontend — pure renderer. Фронтенд лишён права генерировать время, аватара и журнал. DTO канонизированы (`npc_positions` как `Dict`, `cue_key`). Silent failures (`except: pass`, `suppress(Exception)`) заменены на логирование. Spatial Oracle логирует ошибки. API-поверхность готова к SSE/WorldState (dual-channel: causal + observational).
+  Taboo: ❌ `game_time_seconds +=` во фронтенде. ❌ `avatar_state` override во фронтенде. ❌ `dialog_journal.append` во фронтенде. ❌ `contextlib.suppress(Exception)` на системных границах. ❌ `except Exception: pass` в Spatial Oracle. ❌ `snapshot_npc_positions_to_dict` адаптер. ❌ `cue_type` в `PeripheralCueDTO` (использовать `cue_key`).
+  Files: frontend/api_client.py, frontend/game_screen.py, frontend/game_loop_bridge.py, frontend/spatial_compilation_orchestrator.py, backend/app/domain/snapshot.py, backend/app/services/integration/world_snapshot_builder.py, backend/app/api/routes.py
+
 ---
 
 ## DOM-02: WILL, PRESSURE & DECISION

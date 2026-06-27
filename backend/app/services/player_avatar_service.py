@@ -101,8 +101,16 @@ class PlayerAvatarService:
             return _state
         
         _default = NPCState(npc_id=player_name)
-        if not _default.body_state: _default.body_state = {}
-        _default.body_state["money"] = 50  # 50 золотых старт
+        if not _default.body_state:
+            _default.body_state = {}
+        _default.body_state["money"] = _default.body_state.get("money", 48)
+        # SHI-FIX AVATAR: базовая психика для WillpowerGate.
+        _default.drives = {"control": 0.25, "significance": 0.25, "fear": 0.25, "desire": 0.25}
+        _default.psyche = {"willpower": 50, "breakpoint": 70, "loyalty_true": 0}
+        
+        # S-93 AVATAR_RESISTANCE: аватар должен сопротивляться действиям, противоречащим его природе
+        # (например, "оскорбить бога" для паладина). WillpowerGate вернёт RESIST и сгенерирует stress.
+        # Пока заглушка, возвращающая корректный стейт. Полная логика будет в DecisionHub.
         return _default
 
     def load_sheet(self, campaign_id: str, player_name: str) -> CharacterSheet:
@@ -260,8 +268,7 @@ class PlayerAvatarService:
             } if state.perceptual_kernel else {},
             # ADR-GENDER: Персистенция пола аватара. Без этого поле теряется при save/load.
             "gender": state.gender,
-            # ADR-JOURNAL: Персистенция истории диалогов
-            "dialog_journal": self._dialog_journal,
+            # B1.3-FIX: Журнал обрабатывается в save_avatar/save_state, здесь ему не место.
         }
 
     def _state_from_dict(self, data: dict) -> NPCState:
@@ -309,7 +316,6 @@ class PlayerAvatarService:
             identity_integrity=float(data.get("identity_integrity", 1.0)),
             pressure_resistance=float(data.get("pressure_resistance", 0.0)),
             will_state=data.get("will_state", "free"),
-            willpower=int(data.get("willpower", 50)),  # SHI-FIX AVATAR: базовая воля для сопротивления
             behavior_mask=mask,
             trauma_markers=set(data.get("trauma_markers", [])),
             current_role=data.get("current_role", ""),
@@ -333,8 +339,7 @@ class PlayerAvatarService:
             # ADR-GENDER: Восстановление пола аватара из персистенции.
             gender=data.get("gender", "male"),
         )
-        # ADR-JOURNAL: Восстановление журнала из персистенции
-        self._dialog_journal = data.get("dialog_journal", [])
+        # B1.3-FIX: Журнал обрабатывается в load_avatar, здесь ему не место.
 
     # ── ADR-JOURNAL: Управление очередью реплик ───────────────────
     def append_journal(self, campaign_id: str, speaker: str, text: str):

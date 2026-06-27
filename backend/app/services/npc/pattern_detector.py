@@ -34,10 +34,16 @@ class PatternDetector:
     ADR-O-305A: event_type является provenance only и физически отсекается на входе.
     """
 
-    def query_evidence(self, npc_id: str, source_id: str = "") -> List[EvidenceOfPersistence]:
-        """SHI-FIX: Proxy for causal_validation test. Returns evidence for a specific NPC."""
-        # В реальности PatternDetector работает с L1Chronicle, но для теста мы возвращаем пустой список,
-        # если метод не реализован полностью. Тест проверит наличие метода.
+    def query_evidence(self, npc_id: str, chronicle_or_source: object = None, source_id_filter: str = "") -> List[EvidenceOfPersistence]:
+        """S-93: Возвращает evidence для NPC из L1Chronicle.
+        Читает L1, передаёт в detect().
+        """
+        # Защита от вызова с строковым аргументом (source_id) вместо объекта chronicle
+        if chronicle_or_source and hasattr(chronicle_or_source, 'query_raw'):
+            events = chronicle_or_source.query_raw(npc_id)
+            if source_id_filter:
+                events = [e for e in events if e.source_id == source_id_filter]
+            return self.detect(events)
         return []
 
     def detect(self, events: Iterable[TraitDriftEvent], chronicle: Optional[object] = None) -> List[EvidenceOfPersistence]:

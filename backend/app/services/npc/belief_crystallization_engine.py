@@ -74,10 +74,14 @@ class BeliefCrystallizationEngine:
                 target_trait = "fear"
                 # Модуляция личностью: высокий fear_drive делает NPC более чувствительным к угрозам
                 sensitivity = drives_base.get("fear", 0.25)
+                # ADR-O-307: Асимметричная травма. Опровержение в 6 раз сильнее.
+                effect_magnitude = abs(evidence.cumulative_effect) * TRAUMA_MULTIPLIER
             else:
                 target_trait = "trust"
                 # Модуляция личностью: высокий significance или desire делает NPC ценящим помощь
                 sensitivity = drives_base.get("significance", 0.25) + drives_base.get("desire", 0.25)
+                # Позитивный эффект не имеет множителя
+                effect_magnitude = evidence.cumulative_effect
                 
             # Базовый вес формируемого убеждения (нормализованный к 1.0)
             # Учитываем magnitude эффекта и чувствительность личности

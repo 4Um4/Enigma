@@ -36,6 +36,17 @@ nodes:
     type: dto
     layer: Application
     label: "Tick Context"
+    description: "ADR-O-301: Contains rng_factory for deterministic KernelRNG creation per NPC."
+  KernelRNG:
+    type: service
+    layer: Application
+    label: "Kernel RNG (Deterministic)"
+    description: "ADR-O-301: The ONLY randomness source in kernel layer. Bound to (tick, npc_id, salt). Guarantees replay determinism."
+  NpcTickPipeline:
+    type: service
+    layer: Application
+    label: "Npc Tick Pipeline (Pure Reducer)"
+    description: "ADR-O-301: Receives rng_factory from TickContext. Passes deterministic rng to DecisionHub."
   BehaviorManifestationService:
     type: service
     layer: Application
@@ -287,6 +298,22 @@ edges:
     to: DRFBus
     label: "owns self._drf_bus (instance-level)"
   - from: TickOrchestrator
+    to: TickContext
+    label: "creates rng_factory (lambda npc_id: KernelRNG(tick, npc_id))"
+    adr_ref: "ADR-O-301"
+  - from: TickContext
+    to: NpcTickPipeline
+    label: "passes rng_factory"
+    adr_ref: "ADR-O-301"
+  - from: NpcTickPipeline
+    to: KernelRNG
+    label: "calls rng_factory(npc_id) to get deterministic RNG"
+    adr_ref: "ADR-O-301"
+  - from: KernelRNG
+    to: DecisionHub
+    label: "provides deterministic rng (salt='decision_hub')"
+    adr_ref: "ADR-O-301"
+  - from: TickOrchestrator
     to: MemoryManager
     label: "_phase_3_memory (compress idle, promote on event)"
   - from: TickOrchestrator
@@ -382,6 +409,14 @@ constraints:
   - source: GameLoop
     target: PlayerAction
     rule: "REQUIRED: Action Eligibility Gate (ADR-131)"
+    severity: CRITICAL
+  - source: Any
+    target: DecisionHub
+    rule: "FORBIDDEN: DecisionHub() without rng. All kernel randomness MUST go through KernelRNG (ADR-O-301)"
+    severity: CRITICAL
+  - source: Any
+    target: KernelLayer
+    rule: "FORBIDDEN: Use of global random.* in kernel layer. Must use KernelRNG(tick, npc_id, salt) (ADR-O-301)"
     severity: CRITICAL
   - source: AvatarPresentationAssembler
     target: pain_fatigue

@@ -121,10 +121,15 @@ class GameLoopBridge:
         # S82: Spatial Oracle — если есть мировые координаты, вычисляем location из реестра.
         # Это тот же deterministic oracle, что и в routes.py — единая истина.
         if world_x is not None and world_y is not None:
+            # B2-FIX: Spatial Oracle no-silent-failure. Логируем ошибки, не глотаем.
             try:
                 from app.services.spatial.spatial_registry import SpatialRegistry
                 _registry = SpatialRegistry.get_or_load(campaign_id)
-                if _registry is not None:
+                if _registry is None:
+                    logger.warning(f"[SPATIAL_ORACLE] registry not loaded for campaign={campaign_id}. Fallback to saved location.")
+                elif not hasattr(_registry, 'find_chunks'):
+                    logger.error(f"[SPATIAL_ORACLE] registry {_registry.__class__.__name__} has no find_chunks method. Fallback to saved location.")
+                else:
                     _actual_chunks = _registry.find_chunks(world_x, world_y)
                     if _actual_chunks:
                         location = _actual_chunks[0].location_id
@@ -137,8 +142,10 @@ class GameLoopBridge:
                             # A1-FIX: Atomic commit (Устав §4.2.1). Persistence parity with HTTP path.
                             from app.services.campaign_state_service import get_campaign_state_service
                             get_campaign_state_service().save(campaign_id)
-            except Exception:
-                pass  # Fallback к saved location
+                    else:
+                        logger.debug(f"[SPATIAL_ORACLE] no chunks for ({world_x}, {world_y}). Fallback to saved location.")
+            except Exception as e:
+                logger.warning(f"[SPATIAL_ORACLE] find_chunks failed: {e}. Fallback to saved location.")
 
         async def _collect() -> None:
             async for event in self._loop.stream_turn(

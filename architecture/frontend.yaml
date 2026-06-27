@@ -49,6 +49,18 @@ edges:
     condition: "ActionQueue poll"
     code_ref: "api_client.py"
   - from: GameScreen
+    to: APIRoutes
+    label: "GET /api/world_state (polling)"
+    condition: "Idle tick / read-only observation"
+    code_ref: "api_client.py"
+    adr_ref: "ADR-TZ03-1"
+  - from: GameScreen
+    to: APIRoutes
+    label: "POST /api/game/action/stream (SSE)"
+    condition: "Progressive rendering (future)"
+    code_ref: "api_client.py"
+    adr_ref: "ADR-TZ03-1"
+  - from: GameScreen
     to: TextInput
     label: "infect() - motor resistance"
     condition: "will_conflict_data not None"
@@ -116,3 +128,43 @@ constraints:
     condition: "Different semantic layers (ADR-O-147)"
     code_ref: "phenomenology_projection_service.py, game_screen.py"
     adr_ref: "ADR-O-147"
+  - source: GameScreen
+    target: GameState
+    rule: "FORBIDDEN: Mutate game_time_seconds (+=) in frontend. Backend is sole time authority."
+    code_ref: "game_screen.py"
+    adr_ref: "ADR-TZ03-1"
+  - source: GameScreen
+    target: AvatarState
+    rule: "FORBIDDEN: Override avatar_state fields in frontend. Backend is sole avatar authority."
+    code_ref: "game_screen.py"
+    adr_ref: "ADR-TZ03-1"
+  - source: GameScreen
+    target: DialogJournal
+    rule: "FORBIDDEN: Append to dialog_journal locally in frontend. Read from backend."
+    code_ref: "game_screen.py"
+    adr_ref: "ADR-TZ03-1"
+  - source: GameScreen
+    target: NPCNamesConfig
+    rule: "FORBIDDEN: Use contextlib.suppress(Exception) on system boundaries. Use try/except with logger."
+    code_ref: "game_screen.py"
+    adr_ref: "ADR-TZ03-1"
+  - source: GameLoopBridge
+    target: SpatialOracle
+    rule: "FORBIDDEN: Silent pass (except Exception: pass) in Spatial Oracle. Log errors."
+    code_ref: "game_loop_bridge.py"
+    adr_ref: "ADR-TZ03-1"
+  - source: WorldSnapshotBuilder
+    target: NPCPositionDTO
+    rule: "REQUIRED: Return npc_positions as Dict[str, NPCPositionDTO], not List."
+    code_ref: "world_snapshot_builder.py"
+    adr_ref: "ADR-TZ03-1"
+  - source: PeripheralCueDTO
+    target: Frontend
+    rule: "REQUIRED: Use cue_key field (renamed from cue_type)."
+    code_ref: "snapshot.py"
+    adr_ref: "ADR-TZ03-1"
+  - source: _MinimalFrontendRegistry
+    target: SpatialOracle
+    rule: "REQUIRED: Implement find_chunks method."
+    code_ref: "spatial_compilation_orchestrator.py"
+    adr_ref: "ADR-TZ03-1"

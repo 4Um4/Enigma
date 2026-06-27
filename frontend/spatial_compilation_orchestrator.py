@@ -159,3 +159,20 @@ class _MinimalFrontendRegistry:
     def load(cls, path: Path) -> '_MinimalFrontendRegistry':
         with open(path, "r", encoding="utf-8") as f:
             return cls(json.load(f))
+
+    def find_chunks(self, world_x: float, world_y: float) -> list:
+        """C2-FIX: Добавлен find_chunks для совместимости с SpatialOracle.
+        Раньше отсутствовал -> Spatial Oracle падал с AttributeError, маскируемым except Exception: pass.
+        """
+        result = []
+        # Проверка формата данных: ожидаем список чанков в data["chunks"]
+        chunks = self.data.get("chunks", [])
+        for chunk in chunks:
+            origin_x = float(chunk.get("origin_x", 0))
+            origin_y = float(chunk.get("origin_y", 0))
+            width = float(chunk.get("width", 0))
+            height = float(chunk.get("height", 0))
+            if (origin_x <= world_x <= origin_x + width and
+                origin_y <= world_y <= origin_y + height):
+                result.append(chunk)
+        return result

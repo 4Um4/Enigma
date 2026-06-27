@@ -46,7 +46,7 @@ from app.models.physical import (
 )
 from app.models.event_resolution import StateChange
 from app.models.state_delta import DeltaDomain, StateDeltas
-from app.models.delta_payloads import EmotionPayload, IdentityPayload, PerceptionPayload, PhysiologyPayload, ReputationPayload, SocialPayload
+from app.models.delta_payloads import EmotionPayload, IdentityPayload, PerceptionPayload, PhysiologyPayload, ReputationPayload, SocialPayload, DopaminePayload
 from app.services.npc.decision_hub import DecisionResult
 from app.services.npc.math_utils import apply_saturation
 from app.services.memory.relationship_store import RelationshipStore
@@ -121,6 +121,21 @@ class StateApplicator:
             # ADR-O-208: L3 (EffectiveDrives) строго эфемерна.
             # Кэширование drives_runtime через StateApplicator ЗАПРЕЩЕНО.
             # Убраны d.drives_snapshot и d.strain_snapshot (их нет в StateDeltas).
+
+            # SHI-FIX COMMAND: Применяем IdentityPayload (compliance_bias, recent_directive)
+            # к PerceptualKernel. Обрабатываем оригинальные deltas до коллапса в v1.
+            from app.models.delta_payloads import IdentityPayload
+            # FIX: Убран локальный импорт DeltaDomain, который вызывал UnboundLocalError.
+            # Глобальный импорт в начале файла уже присутствует.
+            for _orig_delta in result.deltas:
+                if _orig_delta.domain == DeltaDomain.IDENTITY and isinstance(_orig_delta.payload, IdentityPayload):
+                    if hasattr(new_state, 'perceptual_kernel') and new_state.perceptual_kernel:
+                        _pk = new_state.perceptual_kernel
+                        _pk.compliance_bias = max(-1.0, min(1.0, _pk.compliance_bias + getattr(_orig_delta.payload, 'compliance_bias_delta', 0.0)))
+                        _pk.aggression_inhibition = max(-1.0, min(1.0, _pk.aggression_inhibition + getattr(_orig_delta.payload, 'aggression_inhibition_delta', 0.0)))
+                        _pk.initiative_suppression = max(-1.0, min(1.0, _pk.initiative_suppression + getattr(_orig_delta.payload, 'initiative_suppression_delta', 0.0)))
+                        if getattr(_orig_delta.payload, 'recent_directive_data', None):
+                            _pk.recent_directive = _orig_delta.payload.recent_directive_data
 
             # Прямое переопределение воли (R6.4)
             if d.will_state_override:
@@ -240,7 +255,10 @@ class StateApplicator:
                     ))
             
             # 4. Wound check — при значительном уроне или крите
-            wound = self._check_wound(outcome, new_state, current_tick)
+            # KERNEL-ISOLATION: передаём deterministic rng.
+            from app.services.npc.kernel_rng import KernelRNG
+            _wound_rng = KernelRNG(tick=current_tick, npc_id=new_state.npc_id, salt="wound_gen")
+            wound = self._check_wound(outcome, new_state, current_tick, rng=_wound_rng)
             if wound:
                 new_state.wounds.append(wound)
                 state_changes.append(StateChange(
@@ -287,8 +305,15 @@ class StateApplicator:
         outcome: PhysicalOutcome,
         state: NPCState,
         tick: int,
+        rng: Optional["KernelRNG"] = None,
     ) -> Optional[Wound]:
-        """Проверяет необходимость создания wound."""
+        """Проверяет необходимость создания wound.
+
+        KERNEL-ISOLATION: rng must be provided for replay determinism.
+        """
+        from app.services.npc.kernel_rng import KernelRNG
+        if rng is None:
+            rng = KernelRNG(tick=tick, npc_id=state.npc_id, salt="wound_gen")
         if not outcome.hit or outcome.damage <= 0:
             return None
         
@@ -309,17 +334,17 @@ class StateApplicator:
         persistent = severity in (WoundSeverity.SEVERE, WoundSeverity.CRIPPLING)
         
         # Выбор части тела (упрощённый рандом)
-        import random
+        # KERNEL-ISOLATION: deterministic RNG вместо global random.
         body_parts = ["head", "torso", "arm_left", "arm_right", "leg_left", "leg_right"]
         # Бланжинг лучше попадает в торс
         if outcome.damage_type == DamageType.BLUDGEONING:
             weights = [1, 3, 2, 2, 1, 1]
         elif outcome.damage_type == DamageType.PIERCING:
             weights = [2, 2, 1, 1, 1, 1]
-        else:  # slashing
+        else: # slashing
             weights = [1, 2, 2, 2, 1, 1]
-        
-        body_part = random.choices(body_parts, weights=weights, k=1)[0]
+
+        body_part = rng.choices(body_parts, weights=weights, k=1)[0]
         
         heal_ticks = 0 if persistent else max(10, 50 - outcome.damage)
         
@@ -441,6 +466,29 @@ class StateApplicator:
 
         trust_delta = deltas.payload.trust_delta if domain == DeltaDomain.SOCIAL and isinstance(deltas.payload, SocialPayload) else deltas.trust_delta
         fear_delta = deltas.payload.fear_delta if domain == DeltaDomain.SOCIAL and isinstance(deltas.payload, SocialPayload) else deltas.fear_delta
+
+        # S-93: Reward Prediction Error (FEP) & EMA Ownership
+        if domain == DeltaDomain.SOCIAL and isinstance(deltas.payload, SocialPayload) and hasattr(self, '_expectation_store') and self._expectation_store is not None:
+            _source = "player" # В S-93 PE работает только для player
+            exp = self._expectation_store.get_expectation(npc_id, _source)
+            
+            # Нормализация: max trust_delta = +12.0, max fear_delta = +8.0
+            actual_reward = max(0.0, trust_delta) / 12.0
+            actual_threat = max(0.0, fear_delta) / 8.0
+            pe_reward = actual_reward - exp.expected_reward
+            
+            # Модуляция: разочарование (PE < -0.3) удваивает падение trust
+            if pe_reward < -0.3 and trust_delta < 0:
+                trust_delta *= 2.0
+                logger.info(f"[PE_DISAPPOINTMENT] NPC={npc_id} PE={pe_reward:.2f} Trust fall doubled.")
+                
+            # Обновляем EMA ожидания (Single Writer)
+            self._expectation_store.update_expectation(
+                npc_id=npc_id,
+                source_id=_source,
+                actual_reward=actual_reward,
+                actual_threat=actual_threat
+            )
 
         identity_integrity_delta = deltas.payload.identity_integrity_delta if domain == DeltaDomain.IDENTITY and isinstance(deltas.payload, IdentityPayload) else deltas.identity_integrity_delta
         pressure_resistance_delta = deltas.payload.pressure_resistance_delta if domain == DeltaDomain.IDENTITY and isinstance(deltas.payload, IdentityPayload) else deltas.pressure_resistance_delta

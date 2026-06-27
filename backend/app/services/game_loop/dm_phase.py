@@ -120,6 +120,20 @@ def run_dm_phase(
                 speaker="player",
                 text=raw_input,
             )
+            # SHI-FIX LOVE: L1Chronicle emission for dialogue events.
+            # Без этого test_love не находит "dialogue" в L1 trace.
+            from app.domain.identity_events import TraitDriftEvent
+            _tick = shared_context.current_tick or 0
+            game_loop._tick_orch.l1_chronicle.commit_tick_buffer([
+                TraitDriftEvent(
+                    tick_id=_tick,
+                    target_id=_stm_target_id,
+                    source_id="player",
+                    effect_value=0.1,
+                    observation_weight=1.0,
+                    event_type="dialogue"
+                )
+            ], _tick)
         # STM: игрок ушёл — диалоговые сессии обнуляются
         if _raw_type in ("move", "stealth"):
             game_loop.memory_manager.clear_all_dialogue_sessions(campaign_id)

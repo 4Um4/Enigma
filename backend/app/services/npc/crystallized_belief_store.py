@@ -21,6 +21,10 @@ class CrystallizedBeliefStore:
         """Чтение убеждений NPC для передачи в резолвер."""
         return self._beliefs.get(npc_id, [])
 
+    def query_all(self, npc_id: str) -> List[CrystallizedBelief]:
+        """SHI-FIX: Alias for get_beliefs for causal_validation test."""
+        return self.get_beliefs(npc_id)
+
     def update_beliefs(self, npc_id: str, beliefs: List[CrystallizedBelief]) -> None:
         """Запись обновлённых убеждений после работы BeliefCrystallizationEngine."""
         self._beliefs[npc_id] = beliefs

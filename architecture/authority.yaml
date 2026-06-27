@@ -10,8 +10,8 @@ nodes:
     layer: Application
     label: "Decision Hub v2 (Utility Deformation)"
     style: {fill: "#e8f5e9", stroke: "#1b5e20", "stroke-width": "4px"}
-    description: "S72: _context_relevance modulates event salience through drives_base. Delegates _compute_deltas to SocialDeltaEngine and _compute_risk to perceive_risk via RiskPerceptionProfile (ADR-O-146). ADR-152: _score_all возвращает (scores, components_trace) для WHY-лога. ADR-153: Штраф FLEE применяется только если ATTACK валиден. S85.2: Принимает drive_modifiers от L2.5 Belief Layer (CrystallizedBeliefModifierResolver)."
-    adr_ref: "§ENIGMA-S72, ADR-O-146, ADR-152, ADR-153, ADR-O-305"
+    description: "S72: _context_relevance modulates event salience through drives_base. Delegates _compute_deltas to SocialDeltaEngine and _compute_risk to perceive_risk via RiskPerceptionProfile (ADR-O-146). ADR-152: _score_all возвращает (scores, components_trace) для WHY-лога. ADR-153: Штраф FLEE применяется только если ATTACK валиден. S85.2: Принимает drive_modifiers от L2.5 Belief Layer (CrystallizedBeliefModifierResolver). ADR-O-301: Принимает rng (KernelRNG) в конструкторе. Вызов DecisionHub() без rng запрещен."
+    adr_ref: "§ENIGMA-S72, ADR-O-146, ADR-152, ADR-153, ADR-O-305, ADR-O-301"
   IntentEventAdapter:
     type: service
     layer: Application

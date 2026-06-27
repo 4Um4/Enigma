@@ -135,6 +135,34 @@ def run_npc_orchestration(
         dm_ctx=_dm_ctx,
         npc_services=_npc_svc,
     )
+    
+    # SHI-FIX CAUSAL: L1 Фиксация на основе semantic_action (Fast Path).
+    _sem_action = ""
+    if shared_context.intent_resolution and shared_context.intent_resolution.original_intent:
+        _params = shared_context.intent_resolution.original_intent.parameters
+        if _params:
+            _sem_action = getattr(_params, 'semantic_action', "").upper()
+    
+    _target_id = shared_context.player_target_id or ""
+    _tick = shared_context.current_tick or 0
+    
+    if _target_id and _sem_action:
+        from app.domain.identity_events import TraitDriftEvent
+        _l1_events = []
+        
+        if _sem_action in ("MOVE", "THREATEN", "PERSUADE", "GIVE"):
+            _l1_events.append(TraitDriftEvent(tick_id=_tick, target_id=_target_id, source_id="player", effect_value=0.3, observation_weight=1.0, event_type="directive"))
+        elif _sem_action == "ATTACK":
+            _l1_events.append(TraitDriftEvent(tick_id=_tick, target_id=_target_id, source_id="player", effect_value=-0.9, observation_weight=1.0, event_type="attack"))
+            _l1_events.append(TraitDriftEvent(tick_id=_tick, target_id=_target_id, source_id="combat", effect_value=-0.5, observation_weight=1.0, event_type="damage"))
+            
+        if _l1_events:
+            try:
+                tick_orchestrator.l1_chronicle.bind_campaign(campaign_id)
+                tick_orchestrator.l1_chronicle.commit_tick_buffer(_l1_events, _tick)
+                logger.warning(f"[L1_FIXATION] sem_action={_sem_action} → L1: target={_target_id} tick={_tick}")
+            except Exception as _l1_err:
+                logger.warning(f"[L1_FIXATION] failed: {_l1_err}")
      # TZ-08 v0.2: Чтение Narrative Projection из единого TickResultDTO.
     _npc_buf = NpcTickBuffer(
         npc_contexts=_tick_result.npc_contexts,

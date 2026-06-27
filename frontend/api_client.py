@@ -74,6 +74,9 @@ class GameActionResponse:
 # ═══════════════════════════════════════════════════════════════════════
 
 class GameGateway(Protocol):
+    """B3-FIX: Протокол расширен методами send_action_stream и get_world_state.
+    Заготовка для будущей миграции на SSE и автономный бэкенд.
+    """
     """
     Чистый интерфейс шлюза к backend.
     Pygame вызывает ТОЛЬКО эти методы.
@@ -335,6 +338,31 @@ class HttpGameGateway:
     def idle_tick(self, campaign_id: str) -> dict:
         return self._contract.idle_tick(campaign_id)
 
+    def send_action_stream(
+        self,
+        campaign_id: str,
+        player_name: str,
+        action_text: str,
+        player_x: float = 0.0,
+        player_y: float = 0.0,
+        world_x: float | None = None,
+        world_y: float | None = None,
+    ):
+        """B3-FIX: SSE streaming заглушка. Делегирует в contract, если поддерживается.
+        Возвращает генератор токенов DM-ответа.
+        """
+        if hasattr(self._contract, 'send_action_stream'):
+            return self._contract.send_action_stream(
+                campaign_id, player_name, action_text, player_x, player_y, world_x, world_y
+            )
+        raise NotImplementedError("SSE streaming is not supported by this contract.")
+
+    def get_world_state(self, campaign_id: str, after_tick: int | None = None) -> dict | None:
+        """B3-FIX: Read-only запрос состояния мира для polling'а.
+        Не продвигает симуляцию (не выполняет tick).
+        """
+        return get_world_state(campaign_id, after_tick, base_url=self._contract._base_url)
+
     def save_scene_state(self, campaign_id: str, scene_state: dict) -> None:
         return self._contract.save_scene_state(campaign_id, scene_state)
 
@@ -467,6 +495,19 @@ class DirectGameGateway:
             import traceback
             print(f"[IDLE_TICK_CLIENT] ERROR: {e}\n{traceback.format_exc()}")
             return {"status": "error", "error": str(e), "npc_positions": {}}
+
+    def send_action_stream(self, *args, **kwargs):
+        """B3-FIX: SSE не поддерживается в Direct mode (нет HTTP-сервера)."""
+        raise NotImplementedError("SSE streaming is not supported in Direct mode.")
+
+    def get_world_state(self, campaign_id: str, after_tick: int | None = None) -> dict | None:
+        """B3-FIX: Возвращает текущий WorldSnapshot из GameLoop без выполнения тика."""
+        from game_loop_bridge import get_game_loop_bridge
+        _bridge = get_game_loop_bridge()
+        if not _bridge.ready or not _bridge._loop:
+            return None
+        # Возвращаем кэшированный снапшот
+        return _bridge._loop.get_world_snapshot(campaign_id)
 
     def save_scene_state(self, campaign_id: str, scene_state: dict) -> None:
         """B1.4-FIX: push scene_state to backend via Direct bridge."""

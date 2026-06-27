@@ -8,10 +8,10 @@
 
 | Показатель | Значение |
 |------------|----------|
-| Сессий | 90 |
+| Сессий | 94 |
 | Доменов | 10 |
-| Консолидированных запретов | 86 |
-| Диапазон | S03—S90 |
+| Консолидированных запретов | 88 |
+| Диапазон | S03—S94 |
 
 ---
 
@@ -72,6 +72,8 @@
 - 🟢 **S85.1** ADR-O-201: Null Coordinate Fix. `EventCompiler` использует `(0.0, 0.0)` fallback вместо `None` для `SpatialResolution.target_xy`.
 - 🟢 **S85.1** Import Fix: `WillState` импортирован из `app.models.will` (не `vital_state`). `NPCStateAdapter` используется вместо `NPCState.from_legacy`.
 - 🟢 **S86** ТЗ-02 (Часть A): Восстановлена исполняемость пайплайна. Устранены `ImportError` (`apply_drives_mutation`), `NameError` (`effective_drives`, `state` vs `state_for_llm`). Удалён дубликат TIFL-блока.
+- 🔵 **S93** ADR-O-301: Kernel Isolation Repair v0.1. Внедрён `KernelRNG(tick, npc_id, salt)`. Убиты 5 утечек детерминизма (`random.*` в kernel layer) и 3 голых `DecisionHub()`. Создана единая фабрика `rng_factory` в `_TickContext`. Подсистемы (DecisionHub, LifeEngine, MovementEngine, StateApplicator) изолированы через `salt`. SUPERBOX: rate=1.540/tick.
+- 🔵 **S94** ТЗ-03: Frontend ↔ Backend Contract Repair. Устранена tri-ontology system. Установлена Single Causal Authority. A1: GameActionResponse расширен scene_state и metadata. A2: WorldSnapshotDTO.npc_positions канонизирован как Dict[str, NPCPositionDTO], адаптер удалён. A3: PeripheralCueDTO.cue_type → cue_key. B1: Frontend authority removal (5 sub-fixes): фронтенд лишён права генерировать время, аватара, журнал. B2: Spatial Oracle no-silent-failure. B3: Dual-channel architecture (idle_tick остаётся causal clock, get_world_state добавлен как observational layer). C1: contextlib.suppress(Exception) заменён на явный try/except. C2: _MinimalFrontendRegistry.find_chunks добавлен. Создан backend/tests/test_tz3_contract_repair.py (11 тестов).
 
 ### DOM-02: WILL, PRESSURE & DECISION
 
@@ -378,3 +380,4 @@
 80. ❌ Скалярный страх (`CrystallizedBelief` без `source_id`) / Отсутствие `Decay` для `CrystallizedBelief`
 81. ❌ Мутация `state.drives_runtime` (L0) минуя Belief Layer (L2.5) через `CalibrationEngine` (ADR-O-208/211)
 82. ❌ Запуск L2.5 кристаллизации (`check_identity_promotion`) в idle-тиках без `phase_2_events` (фантомный дрейф личности)
+83. ❌ Использование `random.*` в kernel layer. ❌ Вызов `DecisionHub()` без `rng`. (ADR-O-301)
