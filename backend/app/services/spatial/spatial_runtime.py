@@ -113,7 +113,8 @@ def resolve_distance_between_entities(
         campaign_id = scene_state.get("campaign_id", "")
         if not campaign_id:
             return 999.0
-        spatial_service = SpatialService.build_for_location(
+        from app.services.spatial.spatial_factory import SpatialFactory
+        spatial_service = SpatialFactory.build_for_campaign(
             campaign_id=campaign_id, location_id=location_id, scene_state=scene_state
         )
 

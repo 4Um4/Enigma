@@ -156,11 +156,16 @@ def run_dm_phase(
     if dm_result.is_valid and dm_result.scene_context:
         if dm_result.scene_context.line_of_sight is not None:
             scene_state["line_of_sight"] = dm_result.scene_context.line_of_sight
-        # Проброс semantic_action из phase_1_input в EventContext.payload
-        # Без этого DecisionHub не видит MOVE-команды и obedience boost не работает
-        _base_event = dm_result.event_context or HubEventContext(
-            event_type="player_interacts", actor_id="player",
-        )
+        # ADR-ACTION-BRIDGE: Гарантируем, что DecisionHub получит EventContext, а не EventDTO.
+        # EventDTO имеет поле 'type', EventContext имеет 'event_type' и прямые поля семантики.
+        _raw_event = dm_result.event_context
+        if isinstance(_raw_event, HubEventContext):
+            _base_event = _raw_event
+        else:
+            _base_event = HubEventContext(
+                event_type=getattr(_raw_event, 'type', "player_interacts"),
+                actor_id=getattr(_raw_event, 'source', "player"),
+            )
         # _sem_payload уже инициализирован наверху функции (Rule 47 fix)
         if shared_context and hasattr(shared_context, 'intent_resolution') and shared_context.intent_resolution:
             _params = shared_context.intent_resolution.original_intent.parameters if shared_context.intent_resolution.original_intent else None
@@ -168,9 +173,12 @@ def run_dm_phase(
                 _sa = getattr(_params, 'semantic_action', None)
                 _tid = getattr(_params, 'target_id', None)
                 _tref = getattr(_params, 'target_reference', None)
+                # ADR-ACTION-BRIDGE: Инъекция семантики в EventContext
                 if _sa:
+                    _base_event.semantic_action = _sa
                     _sem_payload["semantic_action"] = _sa
                 if _tid:
+                    _base_event.target_id = _tid
                     _sem_payload["target_id"] = _tid
                 if _tref:
                     _sem_payload["target_reference"] = _tref.lower()

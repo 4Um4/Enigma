@@ -189,6 +189,12 @@ TIME_SECONDS_PER_MINUTE: int = 60
 # Достаточно для LifeEngine, DecisionHub, NeedEngine.
 GAME_TICK_INTERVAL_SECONDS: int = 60  # ADR-057: 1 минута. Основа для Elastic Time (15 минут убивали физику)
 
+# ADR-O-302: Numeric substep для интегратора Эйлера (разрешение солвера).
+ETKE_IK_SUBSTEP_DT: float = 0.1
+
+# ADR-O-302: Базовый коэффициент затухания аффективной памяти (per second).
+AFFECT_DECAY_BASE_RATE: float = 0.05
+
 # Давление для телеграфа — от реального молчания при открытом TAB
 # Игрок молчит → давление растёт → телеграф
 # Игрок пишет → давление НЕ растёт

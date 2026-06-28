@@ -74,17 +74,23 @@ class EventCompiler:
 
         # NPC_POSITION — полная компиляция
         if change.field == "position":
-            # State-based Idempotency: если NPC уже на целевом узле — это NOOP.
-            # Не зависит от cause (traversal_complete, teleport, sync и т.д.).
-            # Инвариант: current_state == target_state => отсутствие причинной структуры.
-            _current_pos = self._get_source_node(snapshot, change)
-            if _current_pos and _current_pos == change.value:
-                logger.debug(
-                    f"[SHADOW_COMPILER] NOOP: target={change.target} "
-                    f"field=position value={change.value} (already at target node)"
-                )
-                return None
-            result = self._compile_position_change(snapshot, change)
+            # ADR-TRAV-NOOP: cause="traversal_complete" — это факт ЗАВЕРШЕНИЯ движения, не начало нового.
+            # Legacy apply_changes (scene_state_manager.py:1300-1324) уже сделал: snap local_position + transition MOVING→COMPLETED.
+            # Shadow compiler НЕ должен создавать новый traversal — он должен только зафиксировать spatial resolution.
+            if getattr(change, 'cause', '') == 'traversal_complete':
+                result = self._compile_traversal_completion(snapshot, change)
+            else:
+                # State-based Idempotency: если NPC уже на целевом узле — это NOOP.
+                # Не зависит от cause (traversal_complete, teleport, sync и т.д.).
+                # Инвариант: current_state == target_state => отсутствие причинной структуры.
+                _current_pos = self._get_source_node(snapshot, change)
+                if _current_pos and _current_pos == change.value:
+                    logger.debug(
+                        f"[SHADOW_COMPILER] NOOP: target={change.target} "
+                        f"field=position value={change.value} (already at target node)"
+                    )
+                    return None
+                result = self._compile_position_change(snapshot, change)
         elif change.field == "local_position":
             result = self._compile_local_position_change(snapshot, change)
         else:
@@ -104,6 +110,72 @@ class EventCompiler:
             )
 
         return result
+
+    def _compile_traversal_completion(
+        self, snapshot: WorldSnapshot, change: SceneChange
+    ) -> Optional[ThickSceneChange]:
+        """ADR-TRAV-NOOP: Compilation of traversal_complete SceneChange.
+        
+        Legacy apply_changes (scene_state_manager.py:1300-1324) уже сделал:
+          1. entry["position"] = change.value (semantic position snap)
+          2. entry["local_position"] = node.x, node.y (geometric snap)
+          3. transition MOVING → COMPLETED (FSM)
+        
+        Shadow compiler НЕ создаёт новый traversal. Возвращает ThickSceneChange
+        с traversal.status="COMPLETED" — это факт завершения, не начало движения.
+        
+        Без этого guard'а shadow будет компилировать "position change" как новое
+        перемещение → phantom traversal → бесконечный цикл (BUG-PHANTOM-TRAV).
+        """
+        svc = snapshot.spatial_service
+        if svc is None:
+            logger.warning("[SHADOW_COMPILER] traversal_complete: no spatial service")
+            return None
+        
+        target_loc = getattr(change, 'target_location_id', '') or snapshot.location_id
+        target_node_id = change.value
+        
+        # Lookup target node (same logic as _compile_position_change)
+        node = svc.get_node(target_node_id) or svc.get_node(f"{target_loc}:{target_node_id}")
+        if node is None:
+            logger.warning(
+                f"[SHADOW_COMPILER] traversal_complete: node not found: {target_node_id}"
+            )
+            return None
+        
+        target_xy = (node.x, node.y)
+        # Source = same as target — movement completed, NPC is AT target
+        source_xy = target_xy
+        
+        return ThickSceneChange(
+            change_type=change.type.value,
+            target=change.target,
+            field=change.field,
+            value=change.value,
+            cause=change.cause,  # "traversal_complete"
+            tick=change.tick,
+            target_local_xy=getattr(change, 'target_local_xy', None),
+            spatial=SpatialResolution(
+                source_location=target_loc,
+                target_location=target_loc,
+                source_node=target_node_id,
+                target_node=target_node_id,
+                source_xy=source_xy,
+                target_xy=target_xy,
+            ),
+            motion=MotionPlan(
+                is_teleport=True,  # snap, not movement
+                is_path_blocked=False,
+                waypoints=(),
+                distance=0.0,
+                duration_ticks=0,
+                speed=0.0,
+            ),
+            traversal=TraversalContract(
+                status="COMPLETED",  # ← KEY: completed, not NEW
+                fields={},
+            ),
+        )
 
     # ── Passthrough ───────────────────────────────────────────────
 

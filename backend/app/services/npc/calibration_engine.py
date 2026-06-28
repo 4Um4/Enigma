@@ -58,8 +58,8 @@ class CalibrationEngine:
         if strain_memory is None:
             strain_memory = {}
             
-        # БЕЗОПАСНЫЙ РЕЖИМ (Test C Fix): 
-        # CalibrationEngine переведён в режим прямого пропускания (pass-through),
-        # пока не будет внедрён Pattern Detector (Evidence of Persistence).
-        # Без детекции паттернов strain_memory накапливает шум (Test C).
-        return l3_raw, dict(l3_raw.values), {}
+        # ФИНАЛЬНЫЙ РЕЖИМ (ADR-O-211 / S96):
+        # CalibrationEngine исключён из графа мутаций состояния (Pure Projection Gate).
+        # Эмоциональное взросление делегировано в L2.5 (BeliefCrystallizationEngine).
+        # Мутация drives_runtime запрещена. Возвращает пустые словари.
+        return l3_raw, {}, {}

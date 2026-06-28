@@ -62,6 +62,10 @@ DELTA_POLICY_REGISTRY: Dict[DeltaDomain, ReductionPolicy] = {
     DeltaDomain.IDENTITY: ReductionPolicy.OVERWRITE,
     DeltaDomain.PHYSIOLOGY: ReductionPolicy.PHYSICS_COMPOSITE,
     DeltaDomain.SPATIAL: ReductionPolicy.OVERWRITE,  # Позиция = факт
+    # DEBT-DET-03: Явная политика для ранее неявных доменов
+    DeltaDomain.PERCEPTION: ReductionPolicy.ADDITIVE,  # Угрозы/аномалии накапливаются
+    DeltaDomain.WILL: ReductionPolicy.OVERWRITE,       # Конфликт воли = факт текущего тика
+    DeltaDomain.DOPAMINE: ReductionPolicy.ADDITIVE,    # Ошибки предсказания накапливаются
 }
 
 

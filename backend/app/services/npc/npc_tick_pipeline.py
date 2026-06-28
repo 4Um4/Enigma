@@ -66,6 +66,8 @@ class NpcTickPipeline:
         _is_player_turn = state.hub_event is not None
         _npcs_to_process = state.nearby_npcs if _is_player_turn else state.all_npcs_raw
         
+        logger.debug(f"[SHI_TRACE_2] NpcTickPipeline.run ENTERED. is_player_turn={_is_player_turn} npcs_to_process={len(_npcs_to_process or [])} nearby_npcs={len(state.nearby_npcs or [])} all_npcs={len(state.all_npcs_raw or [])}")
+
         communication_intents: list = []
         movement_intents: list = []
         npc_deltas: list = []
@@ -170,7 +172,8 @@ class NpcTickPipeline:
                     logger.warning(f"[GAME_LOOP] Ошибка social_engine.compute: {e}")
 
             _eco_profile = svc.economic_profiles.get(npc_id) if svc and hasattr(svc, 'economic_profiles') else None
-            _eco_result = compute_economy(npc_id, _eco_profile, state_l2)
+            _current_activity = npc.get("routine", {}).get("current", "")
+            _eco_result = compute_economy(npc_id, _eco_profile, state_l2, _current_activity)
             _all_modifiers = {**interpretation.score_modifiers}
             if _eco_modifiers := _eco_result["modifiers"]:
                 for _intent, _mod in _eco_modifiers.items():
@@ -236,8 +239,10 @@ class NpcTickPipeline:
                 drive_modifiers=_drive_modifiers_for_hub, reflex_constraints=_reflex_constraints,
                 topic=_topic, decision_ctx=_decision_ctx,
             )
-            # SHI-FIX: логируем решение для CDS — без этого SHI=0% (симуляция работает, но невидима)
-            print(f"[DECISION_HUB] npc={npc_id} tick={state.tick_id} intent={decision.intent.value} score={decision.score:.3f}", flush=True)
+            # SHI-FIX: логируем решение для CDS в строгом формате (pattern_registry.py:22).
+            # Без этого SHI=0% (симуляция работает, но невидима).
+            _evt_type = getattr(state.hub_event, 'event_type', 'unknown')
+            logger.warning(f"[DECISION_HUB] {npc_id}: intent=Intent.{decision.intent.value} score={decision.score:.3f} event={_evt_type}")
 
             _is_move_command = False
             if state.hub_event:
@@ -283,7 +288,7 @@ class NpcTickPipeline:
                 _attack_emotion = _emotion_raw.value if hasattr(_emotion_raw, 'value') else _emotion_raw
                 _attack_intent = CommunicationIntent(
                     speaker=npc_id, audience=decision.intent_target or "player", topic="attack", intent_type="attack",
-                    emotional_state=_attack_emotion, exposure_level=ExposureLevel(semantic="shout", physical_radius=15.0),
+                    emotional_state=_attack_emotion, exposure_level=ExposureLevel.from_semantic("shout"),
                     semantic_action="ATTACK", target_id=decision.intent_target or "player",
                 )
                 communication_intents.append(_attack_intent)
@@ -690,6 +695,15 @@ def build_verbalization_context(
                 state=state_l2, event=hub_event, drives_base=_drives_for_interp
             )
 
+            # S-93: Active Inference — инъекция PE-модификаторов
+            _pe_mods = state.pe_modifiers_map.get(npc_id, {}) if hasattr(state, 'pe_modifiers_map') else {}
+            if _pe_mods:
+                if _drive_modifiers_for_hub:
+                    for _pk, _pv in _pe_mods.items():
+                        _drive_modifiers_for_hub[_pk] = round(_drive_modifiers_for_hub.get(_pk, 0.0) + _pv, 4)
+                else:
+                    _drive_modifiers_for_hub = _pe_mods
+
             # 2. Этап 5: Запуск DecisionHub с L1 чертами + distortion модификаторы
             _identity_traits = svc.memory_manager.get_identity_traits(
                 campaign_id=inp.campaign_id,
@@ -720,11 +734,15 @@ def build_verbalization_context(
                         extra_event_types=_extra_evt_types,
                     )
             except Exception as e:
-                logger.warning(f"[GAME_LOOP] Ошибка decision_hub.compute: {e}")
+                import traceback
+                print(f"[SHI_DEBUG_CRASH] Ошибка compute_social_modifiers: {e}", flush=True)
+                traceback.print_exc()
+                logger.warning(f"[GAME_LOOP] Ошибка compute_social_modifiers: {e}")
 
             # Фаза 2.4-ECO: экономические модификаторы от потребностей
             _eco_profile = svc.economic_profiles.get(npc_id)
-            _eco_result = compute_economy(npc_id, _eco_profile, state_l2)
+            _current_activity = npc.get("routine", {}).get("current", "")
+            _eco_result = compute_economy(npc_id, _eco_profile, state_l2, _current_activity)
             # Объединяем все модификаторы для DecisionHub
             _all_modifiers = {**interpretation.score_modifiers}
             if _eco_modifiers := _eco_result["modifiers"]:
@@ -829,7 +847,11 @@ def build_verbalization_context(
                 topic=_topic,
                 decision_ctx=_decision_ctx,
             )
-            print(f"[DECISION_HUB] npc={npc_id} tick={inp.current_tick} intent={decision.intent.value} score={decision.score:.3f}", flush=True)
+            # SHI-FIX: логируем решение для CDS в строгом формате (pattern_registry.py:22).
+            # Без этого SHI=0% (симуляция работает, но невидима).
+            _evt_type = getattr(_event_for_interp, 'event_type', 'unknown')
+            _evt_class = type(_event_for_interp).__name__
+            logger.warning(f"[DECISION_HUB] {npc_id}: intent=Intent.{decision.intent.value} score={decision.score:.3f} event={_evt_type} class={_evt_class} sa={getattr(_event_for_interp, 'semantic_action', None)}")
 
             # ADR-035: Reactive Spatial Command Reflex.
             # Приказ игрока перекрывает ЛЮБОЕ решение DecisionHub, включая flee.
@@ -938,7 +960,7 @@ def build_verbalization_context(
                     topic="attack",
                     intent_type="attack",
                     emotional_state=_attack_emotion,
-                    exposure_level=ExposureLevel(semantic="shout", physical_radius=15.0),  # Бой — громкое публичное событие
+                    exposure_level=ExposureLevel.from_semantic("shout"),
                     semantic_action="ATTACK",
                     target_id=decision.intent_target or "player",
                 )
@@ -1076,6 +1098,17 @@ def _resolve_reactive_movement(
     # Текущий узел NPC
     npc_entry = _pos(npc_id)
     current_node = npc_entry.get("position", "")
+    
+    # FIX: Если position пустое (data integrity bug), восстанавливаем из local_position через SpatialService.
+    if not current_node and spatial_service:
+        _lp = npc_entry.get("local_position", {})
+        _x = _lp.get("x")
+        _y = _lp.get("y")
+        if _x is not None and _y is not None:
+            _nearest = spatial_service.get_nearest(zone_id=location_id, origin_xy=(_x, _y))
+            if _nearest:
+                current_node = getattr(_nearest, 'node_id', str(_nearest))
+                logger.debug(f"[PIPELINE][NAV] npc={npc_id} recovered current_node={current_node} from xy=({_x},{_y})")
 
     # ADR-045: Макро-зона цели берется НАПРЯМУЮ из position, без поиска по координатам.
     target_node_id: Optional[str] = None

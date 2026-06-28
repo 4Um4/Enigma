@@ -195,6 +195,7 @@ flowchart TD
         BoundaryMap["boundary_map (Dict[str, dict])"]:::domain
         SemanticIndex("Semantic Index Layer"):::domain
         PersistencePort("Persistence Port (ABC)"):::domain
+        GameTimeConstants("Game Time Constants (ADR-O-302)"):::domain
         VerbalizationContext["Verbalization Context"]:::domain
         ContentProfile["Content Profile"]:::domain
         NarrativeContractProtocol("Narrative Contract Protocol"):::domain
@@ -303,7 +304,7 @@ flowchart TD
     APIRoutes -->|"manifestations (List[ManifestationDTO])"| GameScreen
     TraitDriftEvent -->|"appends drift record"| L1Chronicle
     BreakProgressEngine -->|"commits TraitDriftEvent (target_id, effect_value)"| L1Chronicle
-    L1Chronicle -->|"provides weighted history"| DriveResolver
+    CrystallizedBeliefStore -->|"provides L2.5 beliefs for projection"| DriveResolver
     DriveResolver -->|"computes ephemeral projection"| EffectiveDrives
     EffectiveDrives -->|"pass-through (no scalar mutation)"| CalibrationEngine
     CalibrationEngine -->|"delivers L3_stable"| DecisionHub
@@ -457,6 +458,8 @@ flowchart TD
     ContextBuilder -->|"build_context → TickContext"| TickOrchestrator
     TemporalEngine -->|"temporal context + tick counter"| TickOrchestrator
     TemporalEngine -->|"mark_decay_executed → skip double decay"| DecayHandler
+    GameTimeConstants -->|"GAME_TICK_INTERVAL_SECONDS, ETKE_IK_SUBSTEP_DT"| TickOrchestrator
+    GameTimeConstants -->|"GAME_TICK_INTERVAL_SECONDS (REAL_TIME_BRIDGE), AFFECT_DECAY_BASE_RATE"| LifeEngine
     StateInterpreter -->|"physical_state (pain/shock/blood_loss → words)"| VerbalizationContext
     VerbalizationContext -->|"context → contract assembly"| DMContractBuilder
     DMContractBuilder -->|"build() → contract"| DMContract
@@ -556,6 +559,8 @@ flowchart TD
     PatternDetector -.->|"🚫 FORBIDDEN: PatternDetector reading emotions, drives, or beliefs (ADR-O-306)"| Psychology:::forbidden
     BeliefCrystallizationEngine -.->|"🚫 FORBIDDEN: BeliefCrystallizationEngine reading L1Chronicle directly. MUST use EvidenceOfPersistence (ADR-O-305)"| L1Chronicle:::forbidden
     BeliefCrystallizationEngine -.->|"🚫 REQUIRED: Asymmetric Trauma (x6 multiplier) and Belief Decay Model (ADR-O-307 / ADR-O-305.1)"| CrystallizedBelief:::forbidden
+    DriveResolver -.->|"🚫 FORBIDDEN: DriveResolver reading L1Chronicle directly. Must consume CrystallizedBelief (L2.5) from CrystallizedBeliefStore (ADR-S96.1)"| L1Chronicle:::forbidden
+    DriveResolver -.->|"🚫 FORBIDDEN: L3=L0 fallback (pass statement). L3 MUST be deformed by L2.5 beliefs if they exist (ADR-S96.1)"| EffectiveDrives:::forbidden
     IntentCompressor -.->|"🚫 FORBIDDEN: Return default 0.0 vector for ATTACK (ADR-088)"| EmotionalVector:::forbidden
     Any -.->|"🚫 FORBIDDEN: Write to memory bypassing MemoryManager (Устав §4.1.2)"| MemoryManager:::forbidden
     DialogueSession -.->|"🚫 REQUIRED: WorkingMemory is per-NPC (Устав §4.1.1)"| WorkingMemory:::forbidden
@@ -700,6 +705,9 @@ flowchart TD
     ProjectionEngine -.->|"🚫 FORBIDDEN: apply_changes queries world state beyond target entity (ADR-O-201)"| WorldKnowledge:::forbidden
     StateApplicator -.->|"🚫 FORBIDDEN: Direct write to state.hp. MUST write to body_state['current_hp'] (ADR-HP-UNIFICATION)"| HP:::forbidden
     TickOrchestrator -.->|"🚫 FORBIDDEN: TICK_CATCHUP loops (ADR-047)"| Time:::forbidden
+    SimulationLayer -.->|"🚫 FORBIDDEN: datetime.now() or time.time() in simulation layer (§15.1, ADR-O-302)"| WallClock:::forbidden
+    Any -.->|"🚫 FORBIDDEN: Deriving ticks from real time (§14.1)"| Time:::forbidden
+    MotionPipeline -.->|"🚫 FORBIDDEN: Magic numbers for dt/delta_time"| Time:::forbidden
     StateInterpreter -.->|"🚫 FORBIDDEN: Derive psychological state from stress (ADR-104)"| EmotionTag:::forbidden
     StateInterpreter -.->|"🚫 FORBIDDEN: Ignore pain/shock"| HP_Ratio:::forbidden
     StateInterpreter -.->|"🚫 FORBIDDEN: Read pain without /100.0 normalization"| Pain_Scale:::forbidden
@@ -1253,8 +1261,8 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | APIRoutes | GameScreen | manifestations (List[ManifestationDTO]) | WorldSnapshot.player_perception | `world_snapshot_builder.py` | ADR-O-147 |
 | TraitDriftEvent | L1Chronicle | appends drift record | World pressure mutates identity | `l1_chronicle.py:append` | - |
 | BreakProgressEngine | L1Chronicle | commits TraitDriftEvent (target_id, effect_value) | WillState breaks or deforms | `break_progress_engine.py` | ADR-O-208.1 |
-| L1Chronicle | DriveResolver | provides weighted history | Tick start | `drive_resolver.py:resolve_drives` | - |
-| DriveResolver | EffectiveDrives | computes ephemeral projection | Pure function from archetype + chronicle | `drive_resolver.py` | - |
+| CrystallizedBeliefStore | DriveResolver | provides L2.5 beliefs for projection | Tick start | `drive_resolver.py:resolve_drives` | ADR-S96.1 |
+| DriveResolver | EffectiveDrives | computes ephemeral projection | Pure function from archetype (L0) + beliefs (L2.5) | `drive_resolver.py` | ADR-S96.1 |
 | EffectiveDrives | CalibrationEngine | pass-through (no scalar mutation) | ADR-O-211 DEPRECATION: Test C noise accumulation | `calibration_engine.py` | - |
 | CalibrationEngine | DecisionHub | delivers L3_stable | Projection-native scoring (ADR-O-304) | `tick_orchestrator.py` | - |
 | L1Chronicle | PatternDetector | query_raw() → List[TraitDriftEvent] | ADR-O-305A: Группировка по source_id | `pattern_detector.py` | - |
@@ -1407,6 +1415,8 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | ContextBuilder | TickOrchestrator | build_context → TickContext | Every tick start | `state/context_builder.py` | - |
 | TemporalEngine | TickOrchestrator | temporal context + tick counter | Every tick start. campaign_id scoped. | `temporal/temporal_engine.py` | - |
 | TemporalEngine | DecayHandler | mark_decay_executed → skip double decay | Prevents decay running twice per tick | `temporal/temporal_engine.py` | - |
+| GameTimeConstants | TickOrchestrator | GAME_TICK_INTERVAL_SECONDS, ETKE_IK_SUBSTEP_DT | Time semantics isolation (ADR-O-302). ETKE_IK_DT удалён как мёртвый код. | `core/constants.py` | - |
+| GameTimeConstants | LifeEngine | GAME_TICK_INTERVAL_SECONDS (REAL_TIME_BRIDGE), AFFECT_DECAY_BASE_RATE | Reconcile state & affective decay | `core/constants.py` | - |
 | StateInterpreter | VerbalizationContext | physical_state (pain/shock/blood_loss → words) | interpret() called in npc_tick_pipeline. Pain normalized /100.0 | `npc_tick_pipeline.py:208, state_interpreter.py:273` | ADR-094 |
 | VerbalizationContext | DMContractBuilder | context → contract assembly | Phase 6: build DM prompt from NPC context | `verbalization/dm_contract_builder.py` | - |
 | DMContractBuilder | DMContract | build() → contract | Builder pattern: add_player_action, add_scene, add_player_state... | `verbalization/dm_contract_builder.py` | - |
@@ -1509,6 +1519,8 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | PatternDetector | Psychology | FORBIDDEN: PatternDetector reading emotions, drives, or beliefs (ADR-O-306) | `-` |
 | BeliefCrystallizationEngine | L1Chronicle | FORBIDDEN: BeliefCrystallizationEngine reading L1Chronicle directly. MUST use EvidenceOfPersistence (ADR-O-305) | `-` |
 | BeliefCrystallizationEngine | CrystallizedBelief | REQUIRED: Asymmetric Trauma (x6 multiplier) and Belief Decay Model (ADR-O-307 / ADR-O-305.1) | `-` |
+| DriveResolver | L1Chronicle | FORBIDDEN: DriveResolver reading L1Chronicle directly. Must consume CrystallizedBelief (L2.5) from CrystallizedBeliefStore (ADR-S96.1) | `-` |
+| DriveResolver | EffectiveDrives | FORBIDDEN: L3=L0 fallback (pass statement). L3 MUST be deformed by L2.5 beliefs if they exist (ADR-S96.1) | `-` |
 | IntentCompressor | EmotionalVector | FORBIDDEN: Return default 0.0 vector for ATTACK (ADR-088) | `ADR-088` |
 | Any | MemoryManager | FORBIDDEN: Write to memory bypassing MemoryManager (Устав §4.1.2) | `Устав §4.1.2` |
 | DialogueSession | WorkingMemory | REQUIRED: WorkingMemory is per-NPC (Устав §4.1.1) | `Устав §4.1.1` |
@@ -1653,6 +1665,9 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | ProjectionEngine | WorldKnowledge | FORBIDDEN: apply_changes queries world state beyond target entity (ADR-O-201) | `scene_state_manager.py:apply_change` |
 | StateApplicator | HP | FORBIDDEN: Direct write to state.hp. MUST write to body_state['current_hp'] (ADR-HP-UNIFICATION) | `npc/state_applicator.py, npc_state.py` |
 | TickOrchestrator | Time | FORBIDDEN: TICK_CATCHUP loops (ADR-047) | `ADR-047` |
+| SimulationLayer | WallClock | FORBIDDEN: datetime.now() or time.time() in simulation layer (§15.1, ADR-O-302) | `ADR-O-302` |
+| Any | Time | FORBIDDEN: Deriving ticks from real time (§14.1) | `ADR-O-302` |
+| MotionPipeline | Time | FORBIDDEN: Magic numbers for dt/delta_time | `ADR-O-302` |
 | StateInterpreter | EmotionTag | FORBIDDEN: Derive psychological state from stress (ADR-104) | `state_interpreter.py:46-50` |
 | StateInterpreter | HP_Ratio | FORBIDDEN: Ignore pain/shock | `state_interpreter.py:273` |
 | StateInterpreter | Pain_Scale | FORBIDDEN: Read pain without /100.0 normalization | `state_interpreter.py:273, state_applicator.py:491` |

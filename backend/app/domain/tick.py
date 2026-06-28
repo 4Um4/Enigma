@@ -32,6 +32,7 @@ def create_tick_state(
     all_npcs_raw: list,
     effective_drives_map: dict,
     interventions: list,
+    pe_modifiers_map: Optional[dict] = None,
     hub_event: Optional[Any] = None,
     player_target_id: Optional[str] = None,
     action_type: str = "idle",
@@ -51,6 +52,7 @@ def create_tick_state(
         all_npcs_raw=tuple(map(frozen, all_npcs_raw)),
         effective_drives_map=frozen(effective_drives_map),
         interventions=tuple(interventions),
+        pe_modifiers_map=frozen(pe_modifiers_map) if pe_modifiers_map else {},
         hub_event=hub_event,
         player_target_id=player_target_id,
         action_type=action_type,
@@ -76,6 +78,7 @@ class TickState:
     all_npcs_raw: Tuple[Any, ...]                # Tuple of MappingProxyType
     effective_drives_map: Any                    # MappingProxyType
     interventions: Tuple[Any, ...]               # Tuple
+    pe_modifiers_map: Any                        # MappingProxyType (S-93: Active Inference)
     # Поля игрока (заполняются из interventions, если source="player")
     hub_event: Optional[Any] = None
     player_target_id: Optional[str] = None

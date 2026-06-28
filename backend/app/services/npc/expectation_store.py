@@ -74,6 +74,17 @@ class ExpectationStore:
         self._cache[key] = exp
         return exp
 
+    def decay(self, dt_game_seconds: float) -> None:
+        """S-93: Затухание ожиданий. Вызывается в Phase 0.5."""
+        if dt_game_seconds <= 0: return
+        _decay_rate = 0.01  # 1% в секунду
+        _factor = math.exp(-_decay_rate * dt_game_seconds)
+        
+        for key, exp in self._cache.items():
+            exp.expected_reward *= _factor
+            exp.expected_threat *= _factor
+            exp.confidence *= _factor
+
     def update_expectation(self, npc_id: str, source_id: str, actual_reward: float, actual_threat: float):
         key = (npc_id, source_id)
         exp = self.get_expectation(npc_id, source_id)

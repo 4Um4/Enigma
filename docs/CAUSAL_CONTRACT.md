@@ -98,6 +98,11 @@ L3 — это флюид (текучая физика момента). drives_ru
 13. **Double Invocation:** Вызов `WillpowerGate` более 1 раза за цикл (ADR-036).
 14. **Кэш Дрейфа:** Кэширование `EffectiveDrives` (L3 строго эфемерна, ADR-O-208).
 15. **Переписывание истории:** Удаление событий из `L1Chronicle`.
+16. **Голый DecisionHub():** Вызов `DecisionHub()` без передачи `rng`. Использование `random.*` в kernel layer (ADR-O-301).
+17. **Устаревшие конвейеры:** Возврат `TickPlayerResultDTO` или передача `DMContextDTO` как активной логики в ядро (ADR-TZ08-1).
+18. **Phantom Identity Drift:** Запуск `check_identity_promotion` (L2.5) в idle-тиках без `phase_2_events` (ADR-S86.7).
+19. **HP Double Truth:** Прямая запись в `state.hp` в обход `body_state["current_hp"]` (ADR-HP-UNIFICATION).
+20. **Фантомные сущности:** Генерация интентов и дельт для NPC с `life_status="DEAD"` (ADR-S93.1).
 
 ### Physiology & Presentation
 16. **RPG Витализм:** `hp <= 0` как источник смерти (Единственный источник — `VitalStateEvaluator`, ADR-123).
@@ -148,6 +153,12 @@ L3 — это флюид (текучая физика момента). drives_ru
 *   `test_manifest_tags_not_emotions` (Embodied Phenomenology)
 *   `test_l1_chronicle_is_personalized` (Epistemic Heterogeneity)
 *   `test_social_norm_modulates_perception_threshold` (Triple Membrane)
+*   `test_kernel_rng_determinism` (Kernel Isolation)
+*   `test_no_global_random_in_kernel` (Kernel Isolation)
+*   `test_hp_double_truth_invariant` (Physiology Truth)
+*   `test_l3_ephemeral_invariant` (Identity Drift)
+*   `test_life_engine_skips_moving_npcs` (State Integrity)
+*   `test_dead_npc_execution_lock` (Causal Pipeline Purity)
 
 ---
 

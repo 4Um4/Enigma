@@ -47,13 +47,6 @@ class TickHealthReport:
         # decisions_nonzero_ticks, хотя [DECISION_HUB] фиксирует решения NPC.
         return self.decisions_nonzero_ticks == 0 and self.total_decisions == 0
 
-    def on_individual_decision(self) -> None:
-        """Вызывается при парсинге [DECISION_HUB], чтобы учесть реальные решения NPC."""
-        self.total_decisions += 1
-        # Гарантируем, что тик не считается мертвым, если было хоть одно решение
-        if self.decisions_nonzero_ticks == 0:
-            self.decisions_nonzero_ticks = 1
-
     def summary_line(self) -> str:
         status = "❌ МЕРТВА" if self.is_simulation_dead() else "✅ живёт"
         return (
@@ -76,6 +69,13 @@ class TickHealthChecker:
         self._current_tick_decisions: int = 0
 
     # --- Точки входа (вызываются из causal_observer) ---
+
+    def on_individual_decision(self) -> None:
+        """Вызывается при парсинге [DECISION_HUB], чтобы учесть реальные решения NPC."""
+        self._report.total_decisions += 1
+        # Гарантируем, что тик не считается мертвым, если было хоть одно решение
+        if self._report.decisions_nonzero_ticks == 0:
+            self._report.decisions_nonzero_ticks = 1
 
     def on_decisions_count(self, count: int) -> None:
         """Сработал [R3_DIRECT] с N decisions."""

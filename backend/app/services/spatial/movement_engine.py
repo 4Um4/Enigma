@@ -10,7 +10,7 @@ from typing import Any, Dict, List, Optional
 
 from app.domain.movement import MacroMovementGoal, LocalSteeringGoal
 from app.services.scene_change import SceneChange, ChangeType
-from app.services.spatial.transit_tracker import TransitTracker
+# A5-FIX: TransitTracker мёртв (ADR-0010), удалён.
 
 logger = logging.getLogger(__name__)
 
@@ -182,8 +182,8 @@ class MovementEngine:
         # Если сервиса нет или локация чужая — пытаемся собрать на лету
         if not svc or needs_dynamic:
             if campaign_id and location_id and scene_state is not None:
-                from app.services.spatial.spatial_service import SpatialService
-                svc = SpatialService.build_for_location(campaign_id, location_id, scene_state)
+                from app.services.spatial.spatial_factory import SpatialFactory
+                svc = SpatialFactory.build_for_campaign(campaign_id, location_id, scene_state)
                 if svc:
                     logger.warning(f"[MOVEMENT_ENGINE] Пересобрал SpatialService для {location_id} (needs_dynamic={needs_dynamic})")
                 else:

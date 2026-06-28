@@ -80,7 +80,7 @@ from app.services.spatial.spatial_event_detector import (
     SpatialEventDetector,
     _npc_positions_snapshot,
 )
-from app.services.spatial.transit_tracker import TransitTracker
+# A5-FIX: TransitTracker мёртв (ADR-0010), удалён.
 # SpatialService v1.2 заменяет location_graph. Прямой импорт запрещён контрактом.
 from app.services.integration.world_snapshot_builder import WorldSnapshotBuilder
 # ADR-O-201 ФАЗА 1: Dual Rail Execution
@@ -309,12 +309,16 @@ class TickOrchestrator:
         # Ленивая инициализация для оставшихся
         self._life_engine = None
         self._snapshot_builder = None
-        self._transit_tracker = None
+        # A5-FIX: TransitTracker удалён.
         self._spatial_service = None  # ADR-029: Инъекция для CFRM ClusterGraph
         # ADR-O-310: Action Windup Registry. Живёт на уровне Orchestrator, переживает тики.
         # Ключ: (campaign_id, actor_id). Значение: List[ActionWindup].
         # Изоляция по campaign_id предотвращает коллизии в мульти-кампаниях.
         self._windup_registry: Dict[Tuple[str, str], List[Any]] = {}
+        
+        # DEBT-310.1: Hold & Release Gate storage. Хранит отложенные CommunicationIntent.
+        # Ключ: intent_id. Значение: CommunicationIntent.
+        self._pending_intents: Dict[str, Any] = {}
         # S91: Персистентные стигмергические слои (DynamicAffordanceField + Provider)
         from app.services.spatial.world_topology_provider import WorldTopologyProvider, DynamicAffordanceField
         self._dynamic_field = DynamicAffordanceField()
@@ -346,9 +350,10 @@ class TickOrchestrator:
         from app.services.npc.belief_crystallization_engine import BeliefCrystallizationEngine
         from app.services.npc.crystallized_belief_store import CrystallizedBeliefStore
         self.l1_chronicle = L1Chronicle(store=store)
+        # S-93: PatternDetector получает ссылку на L1Chronicle для запроса сырых событий
+        self.pattern_detector = PatternDetector(chronicle=self.l1_chronicle)
         self.drive_resolver = DriveResolver()
         # L1.5 / L2.5: Статистика и Кристаллизация убеждений (ADR-O-305)
-        self.pattern_detector = PatternDetector()
         self.belief_engine = BeliefCrystallizationEngine()
         self.crystallized_belief_store = CrystallizedBeliefStore()
         # ReputationEngine для reputation decay
@@ -394,7 +399,8 @@ class TickOrchestrator:
         if _loc_id:
             try:
                 logger.warning(f"[SPATIAL_AUTHORITY] ADR-048 VIOLATION: SpatialService собран вручную для {_loc_id}. GameLoop не пробросил сервис!")
-                self._spatial_service = SpatialService.build_for_location(
+                from app.services.spatial.spatial_factory import SpatialFactory
+                self._spatial_service = SpatialFactory.build_for_campaign(
                     campaign_id=ctx.campaign_id,
                     location_id=_loc_id,
                     scene_state=ctx.scene_state,
@@ -422,10 +428,7 @@ class TickOrchestrator:
             self._snapshot_builder = WorldSnapshotBuilder()
         return self._snapshot_builder
 
-    def _get_transit_tracker(self):
-        if self._transit_tracker is None:
-            self._transit_tracker = TransitTracker()
-        return self._transit_tracker
+    # A5-FIX: _get_transit_tracker удалён (мёртвый код).
 
     def set_social_engine_factory(self, factory: Any) -> None:
         """Внедряет фабрику SocialEngine (DI)."""
@@ -454,7 +457,7 @@ class TickOrchestrator:
         Вызывается на старте каждого тика. Маппит макро-зону (position)
         каждого NPC на канонический ClusterID.
         """
-        start_time = time.perf_counter()
+        start_time = time.perf_counter()  # §15.2: Telemetry (profiling)
             
         # Сброс индекса для устранения ghost-сущностей (cache invalidation)
         ctx.cluster_occupancy = ClusterOccupancy()
@@ -482,7 +485,7 @@ class TickOrchestrator:
             if missing_in_index := raw_ids - indexed_ids:
                 logger.warning(f"[CFRM] ClusterOccupancy: NPC в all_npcs_raw, но нет в npc_positions: {missing_in_index}")
                 
-        elapsed_ms = (time.perf_counter() - start_time) * 1000
+        elapsed_ms = (time.perf_counter() - start_time) * 1000  # §15.2: Telemetry (profiling)
         logger.info(f"[CFRM] ClusterOccupancy rebuild: {len(npc_positions)} entities in {elapsed_ms:.2f}ms")
             
         # Игрок — тоже наблюдатель в причинном пузыре
@@ -1087,6 +1090,7 @@ class TickOrchestrator:
         """
         from app.services.motion.motion_pipeline import SteeringResolver, MotionIntegrator, CollisionAvoidance
         from app.domain.motion_core import BodySchema, DriveVector, MotionPrimitive
+        from app.core.constants import ETKE_IK_SUBSTEP_DT
         
         npc_positions = ctx.scene_state.get("npc_positions", {})
         active_traversals = ctx.scene_state.get("active_traversals", {})
@@ -1138,12 +1142,12 @@ class TickOrchestrator:
             
             new_vel = SteeringResolver.resolve(
                 drive=drive, body=body, affordance=affordance,
-                current_velocity=current_vel, dt=0.1
+                current_velocity=current_vel, dt=ETKE_IK_SUBSTEP_DT
             )
             
             new_pos = MotionIntegrator.integrate(
                 position=(current_pos.get("x", 0.0), current_pos.get("y", 0.0)),
-                velocity=new_vel, body=body, affordance=affordance, dt=0.1
+                velocity=new_vel, body=body, affordance=affordance, dt=ETKE_IK_SUBSTEP_DT
             )
             
             new_exertion = MotionIntegrator.compute_exertion(
@@ -1833,8 +1837,8 @@ class TickOrchestrator:
                 _nid = npc_dict.get("id") or npc_dict.get("npc_id")
                 if _nid:
                     _profile_l0 = personality_from_legacy(npc_dict)
-                    _l1_events = self.l1_chronicle.query_weighted(_nid, tick_number)
-                    _projection = self.drive_resolver.resolve_drives(_profile_l0, _l1_events)
+                    _beliefs = self.crystallized_belief_store.get_beliefs(_nid)
+                    _projection = self.drive_resolver.resolve_drives(_profile_l0, _beliefs)
                     
                     if isinstance(_projection, EffectiveDrives):
                         l3_raw = _projection
@@ -1969,12 +1973,28 @@ class TickOrchestrator:
                 break
 
         # 3. Execute: Сборка TickState и вызов Pure Reducer
+        # ADR-123: Death Lock. Мёртвые полностью исключаются из reasoning pipeline.
+        _alive_npcs = [n for n in (ctx.all_npcs_raw or ctx.npc_states) if n.get("body_state", {}).get("life_status") != "DEAD"]
+
+        # S-93: Active Inference. Сборка PE-модификаторов из ExpectationStore.
+        _pe_mods_map: dict[str, dict[str, float]] = {}
+        if hasattr(self, '_expectation_store') and self._expectation_store is not None:
+            from app.services.npc.pe_modifier_resolver import PEModifierResolver
+            _pe_resolver = PEModifierResolver()
+            for npc_dict in _alive_npcs:
+                if npc_id := npc_dict.get("id"):
+                    _exp = self._expectation_store.get_expectation(npc_id, "player")
+                    _pe_mods = _pe_resolver.resolve(_exp)
+                    if _pe_mods:
+                        _pe_mods_map[npc_id] = _pe_mods
+
         _tick_state = create_tick_state(
             tick_id=ctx.tick_number,
             campaign_id=ctx.campaign_id,
             scene_state=ctx.scene_state,
-            all_npcs_raw=ctx.all_npcs_raw or ctx.npc_states,
+            all_npcs_raw=_alive_npcs,
             effective_drives_map=ctx.effective_drives_map,
+            pe_modifiers_map=_pe_mods_map,
             interventions=ctx.interventions,
             hub_event=_dm_ctx.hub_event if _dm_ctx else None,
             player_target_id=_dm_ctx.player_target_id if _dm_ctx else None,
@@ -2124,7 +2144,7 @@ class TickOrchestrator:
             
             # ADR-O-310: Windup Write Gate
             if getattr(intent, 'intent_type', '') == "attack":
-                from app.domain.action_windup import ActionWindup, WindupStatus
+                from app.domain.action_windup import ActionWindup, WindupStatus, ActionCommitment
                 _actor_id = getattr(intent, 'speaker', '')
                 _target_id = getattr(intent, 'target_id', '')
                 
@@ -2135,14 +2155,17 @@ class TickOrchestrator:
                         self._windup_registry[_reg_key] = []
                     
                     # B1.5-FIX: Защита от накопления (Deduplication).
-                    # Если у актора уже есть PENDING windup для этого же target и action_type,
-                    # не создаём новый (даём текущему завершиться).
                     _has_active = any(
                         w.target_id == _target_id and w.action_type == "attack" and w.status == WindupStatus.PENDING
                         for w in self._windup_registry[_reg_key]
                     )
                     
                     if not _has_active:
+                        import uuid
+                        # DEBT-310.1: Сохраняем сам интент, генерируем ID для него.
+                        _intent_id = uuid.uuid4().hex
+                        self._pending_intents[_intent_id] = intent
+                        
                         # Создаём окно подготовки (пока статичная длительность = 2 тика для тестов)
                         windup = ActionWindup(
                             actor_id=_actor_id,
@@ -2151,15 +2174,11 @@ class TickOrchestrator:
                             started_tick=ctx.tick_number,
                             duration_ticks=2,
                             status=WindupStatus.PENDING,
-                            pending_event=event # ADR-O-310: Freeze EventDTO
+                            held_intent_id=_intent_id # DEBT-310.1: Pure temporal gate
                         )
                         # Добавляем в стек подготовок актёра (на уровне Orchestrator)
                         self._windup_registry[_reg_key].append(windup)
                         windups_created += 1
-                        
-                        # Помечаем EventDTO флагом is_windup (для будущего CombatSubscriber)
-                        event.payload["is_windup"] = True
-                        event.payload["windup_duration"] = 2
                         
                         # ADR-O-310: НЕ публикуем EventDTO сейчас. Он будет опубликован в Фазе 7.
                         continue # Пропускаем bus.publish(event) ниже
@@ -2167,24 +2186,25 @@ class TickOrchestrator:
             bus.publish(event)
             converted += 1
 
-        logger.debug(f"[TICK_ORCH] Фаза 6: {converted} intents → EventDTO, {windups_created} windups created")
+        logger.info(f"[TICK_ORCH] Фаза 6: {converted} intents → EventDTO, {windups_created} windups created")
 
     def _phase_7_windup_resolution(self, ctx: _TickContext) -> None:
         """ADR-O-310: Windup Execution Gate.
         
         Проверяет self._windup_registry на завершённые подготовки.
         Если windup завершён (started_tick + duration_ticks <= ctx.tick_number),
-        публикует отложенный EventDTO в EventBus.
+        реконструирует CommunicationIntent из ActionCommitment и передаёт в IntentEventAdapter.
         """
         import dataclasses
         from app.domain.action_windup import WindupStatus
+        from app.services.events.intent_event_adapter import IntentEventAdapter
         
         bus = get_event_bus()
+        adapter = IntentEventAdapter()
         executed_windups = 0
         
         for _reg_key, windups in list(self._windup_registry.items()):
             _campaign_id, _actor_id = _reg_key
-            # B1.5-FIX: Изоляция по campaign_id
             if _campaign_id != ctx.campaign_id:
                 continue
                 
@@ -2192,21 +2212,55 @@ class TickOrchestrator:
             for windup in windups:
                 if windup.status == WindupStatus.PENDING:
                     if windup.started_tick + windup.duration_ticks <= ctx.tick_number:
-                        # Windup completed! Publish the frozen event.
-                        if windup.pending_event:
-                            bus.publish(windup.pending_event)
-                            executed_windups += 1
-                        # Replace with completed status (frozen dataclass)
-                        windup = dataclasses.replace(windup, status=WindupStatus.COMPLETED)
-                updated_windups.append(windup)
+                        # DEBT-310.1: Windup completed! Pure release of held intent.
+                        if windup.held_intent_id:
+                            _held_intent = self._pending_intents.pop(windup.held_intent_id, None)
+                            if _held_intent:
+                                _actor_id = getattr(_held_intent, 'speaker', '')
+                                _target_id = getattr(_held_intent, 'target_id', '')
+                                
+                                # DEBT-310.2: Minimal Guard - Stale Intent Validation
+                                _is_stale = False
+                                _reason = ""
+                                
+                                # 1. Actor validation
+                                _actor_dict = next((n for n in ctx.all_npcs_raw if n.get("npc_id") == _actor_id or n.get("id") == _actor_id), None)
+                                if not _actor_dict:
+                                    _is_stale, _reason = True, "actor_missing"
+                                elif _actor_dict.get("body_state", {}).get("life_status") == "DEAD":
+                                    _is_stale, _reason = True, "actor_dead"
+                                    
+                                # 2. Target validation (if actor is valid)
+                                if not _is_stale and _target_id:
+                                    if _target_id == "player":
+                                        if "player" not in ctx.scene_state.get("npc_positions", {}):
+                                            _is_stale, _reason = True, "target_player_missing"
+                                    else:
+                                        _target_dict = next((n for n in ctx.all_npcs_raw if n.get("npc_id") == _target_id or n.get("id") == _target_id), None)
+                                        if _target_dict and _target_dict.get("body_state", {}).get("life_status") == "DEAD":
+                                            _is_stale, _reason = True, "target_dead"
+                                        elif not _target_dict and _target_id not in ctx.scene_state.get("npc_positions", {}):
+                                            _is_stale, _reason = True, "target_missing"
+                                
+                                if _is_stale:
+                                    logger.info(f"[PHASE_7][STALE_INTERRUPT] npc={_actor_id} target={_target_id} reason={_reason}")
+                                    windup = dataclasses.replace(windup, status=WindupStatus.INTERRUPTED)
+                                else:
+                                    event = adapter.to_event(_held_intent)
+                                    bus.publish(event)
+                                    executed_windups += 1
+                                    windup = dataclasses.replace(windup, status=WindupStatus.COMPLETED)
+                            else:
+                                windup = dataclasses.replace(windup, status=WindupStatus.COMPLETED)
+                        else:
+                            windup = dataclasses.replace(windup, status=WindupStatus.COMPLETED)
+                if windup.status == WindupStatus.PENDING:
+                    updated_windups.append(windup)
             
-            # Cleanup completed/interrupted windups to prevent registry bloat
             self._windup_registry[_reg_key] = [w for w in updated_windups if w.status == WindupStatus.PENDING]
 
         if executed_windups > 0:
-            logger.debug(f"[TICK_ORCH] Фаза 7: {executed_windups} windups executed (EventDTO published)")
-
-    # ── Player Turn: фазы 8-10 (Устав §3 — единая последовательность) ──
+            logger.info(f"[TICK_ORCH] Фаза 7: {executed_windups} windups executed (EventDTO published)")
 
     def _phase_8_player_handlers(self, ctx: _TickContext) -> None:
         """Player turn: Фаза 8 — делегирует в _phase_8_drain_secondary().
@@ -2333,10 +2387,23 @@ class TickOrchestrator:
         # S91: Очистка истекших деформаций среды (Temporalization Layer)
         self._dynamic_field.purge_hard_overrides(current_tick=ctx.tick_number)
         self._dynamic_field.step_decay()   
-        # ADR-036: Affective Decay (Leaky Integrator для памяти)
+        
+        # S-93: PE Decay (Per-Tick, Elastic Time).
+        # Инвариант: PE остаётся строго индивидуальным bias-layer.
+        # Ожидания затухают со временем, привязанным к game_time_seconds.
+        if hasattr(self, '_expectation_store') and self._expectation_store is not None:
+            from app.core.constants import GAME_TICK_INTERVAL_SECONDS
+            # Берем dt из разницы времени, или фоллбэк на константу тика (5 сек)
+            _dt_game = ctx.scene_state.get("game_time_seconds", 0)
+            _prev_time = ctx.scene_state.get("prev_game_time_seconds", _dt_game - GAME_TICK_INTERVAL_SECONDS)
+            _delta_dt = max(0.1, _dt_game - _prev_time)
+            self._expectation_store.decay(_delta_dt)
+
+        # ADR-036 / ADR-O-302: Affective Decay (Leaky Integrator для памяти)
         # Травмы затухают со временем, если не подкрепляются.
         from app.services.affect import decay_affective_imprints
         from app.models.affect import AffectiveImprint
+        from app.core.constants import GAME_TICK_INTERVAL_SECONDS
         from dataclasses import asdict
         _current_time = ctx.scene_state.get("game_time_seconds", 0)
         for npc_dict in ctx.all_npcs_raw:
@@ -2344,8 +2411,8 @@ class TickOrchestrator:
             if not imp_dicts: continue
             try:
                 imprints = tuple(AffectiveImprint(**imp) for imp in imp_dicts)
-                # delta_time берем из константы интервала тика (5 сек)
-                decayed = decay_affective_imprints(imprints, 5.0, _current_time)
+                # ADR-O-302: delta_time = GAME_TICK_INTERVAL_SECONDS (60 сек). Магическое число 5.0 убито.
+                decayed = decay_affective_imprints(imprints, float(GAME_TICK_INTERVAL_SECONDS), _current_time)
                 npc_dict["affective_imprints"] = [asdict(d) for d in decayed]
             except Exception as e:
                 # Инвариант 3: Аффективный decay — критический процесс, не debug
@@ -2986,8 +3053,8 @@ class TickOrchestrator:
                         # TIFL требует _drives_projection и _psyche_raw на вход.
                         from app.models.npc_state import personality_from_legacy
                         _profile_l0 = personality_from_legacy(npc_raw)
-                        _l1_events = self.l1_chronicle.query_weighted(entity_id, ctx.tick_number)
-                        _drives_projection = self.drive_resolver.resolve_drives(_profile_l0, _l1_events)
+                        _beliefs = self.crystallized_belief_store.get_beliefs(entity_id)
+                        _drives_projection = self.drive_resolver.resolve_drives(_profile_l0, _beliefs)
 
                         _psyche_raw = npc_raw.get("psyche", {})
                         psyche = {
@@ -2998,17 +3065,22 @@ class TickOrchestrator:
                         }
 
                         # Active Inference: prediction error для TIFL
-                        # Вычисляем нагрузку на PerceptualKernel из drives + perception deltas
                         _drive_fear = _drives_projection.get("fear", 0.25)
                         _drive_control = _drives_projection.get("control", 0.25)
                         _drive_significance = _drives_projection.get("significance", 0.25)
-                        _pk_load = min(1.0,
+                        
+                        # ADR-O-208 / L3-P2: TIFL получает эфемерную проекцию, а не сырой стейт
+                        from app.services.npc.break_progress_engine import compute_continuous_drift
+                        _rigidity = _psyche_raw.get("identity_rigidity", 0.5) if _psyche_raw else 0.5
+                        
+                        # Легковесная проекция ядра для TIFL (на основе дельт)
+                        _pk_load_for_tifl = min(1.0,
                             perception_payload.threat_gradient_delta * _drive_fear +
                             perception_payload.uncertainty_delta * _drive_control +
                             perception_payload.anomaly_score_delta * _drive_significance
                         )
                         _prev_memory = float(npc_raw.get("affective_memory", 0.0))
-                        _delta = _pk_load - _prev_memory
+                        _delta = _pk_load_for_tifl - _prev_memory
                         _abs_error = abs(_delta)
                         _error_vector = {"fear": 0.33, "control": 0.33, "significance": 0.33}
                         if _abs_error > 0.05:
@@ -3022,12 +3094,6 @@ class TickOrchestrator:
                                 "significance": _w_signif / _total_w,
                             }
 
-                        # ADR-O-208 / L3-P2: TIFL получает эфемерную проекцию, а не сырой стейт
-                        from app.services.npc.break_progress_engine import compute_continuous_drift
-                        
-                        # Снимаем ригидность для расчёта пластичности
-                        _rigidity = _psyche_raw.get("identity_rigidity", 0.5) if _psyche_raw else 0.5
-                        
                         _drift_events = compute_continuous_drift(
                             effective_drives=_drives_projection,
                             npc_id=entity_id,
@@ -3037,25 +3103,14 @@ class TickOrchestrator:
                             current_tick=ctx.tick_number
                         )
                         if _drift_events:
-                            # Фиксация давления в Хронике (L1)
                             self.l1_chronicle.commit_tick_buffer(_drift_events, ctx.tick_number)
-                            # TIFL TELEMETRY: Наблюдение за пульсом кристаллизации идентичности
-                            _vec_str = ", ".join(f"{k}:{v:.2f}" for k, v in _error_vector.items())
-                            _drift_str = ", ".join(f"{e.source_id}:{e.effect_value:+.5f}" for e in _drift_events)
-                            # [TIFL_DRIFT] duplicate of idle path — see line 2550
+
                         pk_dict = npc_raw.get("perceptual_kernel", {})
-                        
-                        # ADR-116: Диагностика входа в affective pipeline
-                        logger.debug(f"[AFFECTIVE_ENTRY] npc={entity_id} fear={psyche['fear']:.2f} will={psyche['willpower']:.2f}")
-                        
-                        # ADR-O-143: Somatic urgency из body_state для idle path.
-                        # Без этого боль/шок не влияют на affective_load в idle-тиках.
                         _body_idle = npc_raw.get("body_state") or {}
-                        _pain_norm_idle = float(_body_idle.get("pain", 0.0)) / 100.0  # ADR-094: 0-100 → 0-1
-                        _shock_norm_idle = float(_body_idle.get("shock_impulse", 0.0))  # уже 0-1
+                        _pain_norm_idle = float(_body_idle.get("pain", 0.0)) / 100.0
+                        _shock_norm_idle = float(_body_idle.get("shock_impulse", 0.0))
                         _somatic_urg_idle = (_pain_norm_idle + _shock_norm_idle) / 2.0
 
-                        # Легковесная проекция: старое ядро + текущая дельта (clamping 0.0-1.0)
                         projected_kernel = PerceptualKernel(
                             threat_gradient=min(1.0, max(0.0, pk_dict.get("threat_gradient", 0.0) + perception_payload.threat_gradient_delta)),
                             uncertainty=min(1.0, max(0.0, pk_dict.get("uncertainty", 0.0) + perception_payload.uncertainty_delta)),
@@ -3063,10 +3118,9 @@ class TickOrchestrator:
                             compliance_bias=pk_dict.get("compliance_bias", 0.0),
                             aggression_inhibition=pk_dict.get("aggression_inhibition", 0.0),
                             initiative_suppression=pk_dict.get("initiative_suppression", 0.0),
-                            somatic_urgency=_somatic_urg_idle,  # ADR-O-143: воспринимаемый телесный дистресс
+                            somatic_urgency=_somatic_urg_idle,
                         )
                         
-                        # ТЗ EMBODIED UI: Генерация ProjectionFrame (T+0)
                         from app.domain.perception import ProjectionFrame
                         if "_projection_frames" not in locals():
                             _projection_frames = []
@@ -3081,17 +3135,16 @@ class TickOrchestrator:
                                 expires_tick=ctx.tick_number + 3
                             ))
 
-                        # ADR-049: Интеграция аффективного давления (Страх = интеграл угрозы по времени)
-                        current_load = npc_raw.get("affective_load", 0.0)
-                        new_load = integrate_affective_pressure(projected_kernel, current_load, psyche)
+                        # ADR-049: Единый интегратор аффективного давления
+                        current_load = float(npc_raw.get("affective_load", 0.0))
+                        current_memory = float(npc_raw.get("affective_memory", 0.0))
+                        new_load, new_memory = integrate_affective_pressure(
+                            kernel=projected_kernel,
+                            psyche=psyche,
+                            current_load=current_load,
+                            current_memory=current_memory
+                        )
                         
-                        # S74: Anti-DOUBLE TRUTH BOOTSTRAP УБИТ.
-                        # Этот блок создавал "вечный двигатель страха": эмоция удерживала интеграл
-                        # от затухания, а интеграл удерживал эмоцию. В S74/S75 поле первично,
-                        # тег вторичен. Если нагрузка падает ниже порога, эмоция ДОЛЖНА
-                        # коллапсировать, а не подтягивать физику под себя.
-                        
-                        # ADR-049: Фазовый переход эмоции при пересечении порога
                         emotion_payload = resolve_emotion_transition(new_load, current_load, psyche)
                         
                         # §ENIGMA-DUAL-CIRCUIT: Sustaining Loop УБИТ (S73).
@@ -3229,8 +3282,8 @@ class TickOrchestrator:
             # Котёл читает ТОЛЬКО эфемерную проекцию из DriveResolver (L0 + L1).
             from app.models.npc_state import personality_from_legacy
             _profile_l0 = personality_from_legacy(npc_raw)
-            _l1_events = self.l1_chronicle.query_weighted(entity_id, ctx.tick_number)
-            _drives_projection = self.drive_resolver.resolve_drives(_profile_l0, _l1_events)
+            _beliefs = self.crystallized_belief_store.get_beliefs(entity_id)
+            _drives_projection = self.drive_resolver.resolve_drives(_profile_l0, _beliefs)
 
             # S72: Drives Projection как Линза Реальности.
             _drive_fear = _drives_projection.get("fear", 0.25)
@@ -3266,87 +3319,18 @@ class TickOrchestrator:
             if entity_id in ("thief_shadow", "guard_borko"):
                 print(f"[AFF_SOURCE] npc={entity_id} pain_raw={_body.get('pain', 0.0)} shock_raw={_body.get('shock_impulse', 0.0)} somatic_urg={_somatic_urg:.3f} prev_aff={npc_raw.get('affective_load', 0.0)} emo={npc_raw.get('emotion', '?')}")
 
-            # SIL: Устранение Semantic Echo (обратной онтологической мутации S ← M).
-            # Phase 9 ОБЯЗАНА вычислять current_load строго из PerceptualKernel (T+0 snapshot),
-            # а не из all_npcs_raw (T-1 M-state). Иначе прошлый страх питает сам себя.
-            # Асимметричный аттрактор (гистерезис) управляется только через PerceptualKernel,
-            # который обновляется Phase 0.5 (decay) и Perception events.
-            # SEL: Мгновенное восприятие (Сенсорный вход / Реальность)
-            pk_load = min(1.0,
-                    projected_kernel.threat_gradient * _drive_fear +
-                    projected_kernel.uncertainty * _drive_control +
-                    projected_kernel.anomaly_score * _drive_significance +
-                    projected_kernel.somatic_urgency
-                )
-
-            # SEL Trace Δ Layer: Active Inference (Предиктивное кодирование)
-            prev_memory = float(npc_raw.get("affective_memory", 0.0))
-            delta = pk_load - prev_memory  # Ошибка предсказания (Surprise)
-
-            # TIFL PROBE: Телеметрия источника энергии для Кристаллизации Личности
+            # ADR-049: Единый интегратор аффективного давления
+            current_load = float(npc_raw.get("affective_load", 0.0))
+            current_memory = float(npc_raw.get("affective_memory", 0.0))
+            new_load, new_memory = integrate_affective_pressure(
+                kernel=projected_kernel,
+                psyche=psyche,
+                current_load=current_load,
+                current_memory=current_memory
+            )
+            
             if entity_id in ("thief_shadow", "guard_borko", "merchant_goran"):
-                print(f"[TIFL_PROBE] npc={entity_id} pk={pk_load:.3f} mem={prev_memory:.3f} delta={delta:.3f}", file=sys.stderr, flush=True)
-
-            # ADR-TIFL-002: Identity as Competitive Drift Field (ICDF).
-            # Ошибка предсказания — это распределённое напряжение, а не вина одного драйва.
-            _abs_error = abs(delta)
-            if _abs_error > 0.05 and entity_id != "player":
-                # Вычисляем вклад каждого драйва в текущую нагрузку (кто как сильно реагировал)
-                _w_fear = projected_kernel.threat_gradient * _drive_fear
-                _w_control = projected_kernel.uncertainty * _drive_control
-                _w_signif = projected_kernel.anomaly_score * _drive_significance
-                
-                # Нормализуем в вектор распределения ответственности (softmax-like)
-                _total_w = _w_fear + _w_control + _w_signif + 1e-6
-                _error_vector = {
-                    "fear": _w_fear / _total_w,
-                    "control": _w_control / _total_w,
-                    "significance": _w_signif / _total_w
-                }
-                
-                # ADR-O-208: TIFL генерирует L1 события, не мутирует state напрямую.
-                # Этот блок — дубликат логики из строк 2528-2543 (idle path).
-                # Удалён, чтобы избежать:
-                # 1. TypeError: compute_continuous_drift не принимает state= kwarg
-                # 2. ImportError: apply_drives_mutation не существует
-                #
-                # Правильный путь — строки 2528-2543, где compute_continuous_drift
-                # вызывается с правильной сигнатурой и результат идёт в L1Chronicle.
-                pass
-
-            # 1. Обновление базового ожидания (Prior / Котёл)
-            MEMORY_DECAY_RATE = 0.85  # Скорость забывания (клапан сброса)
-            TRAUMA_SCAR_RATE = 0.2    # Скорость обучения (шрам от неожиданности)
-            affective_memory = min(1.0, prev_memory * MEMORY_DECAY_RATE + pk_load * TRAUMA_SCAR_RATE)
-
-            # 2. Эмоциональный ответ (Posterior / Affective Load)
-            # Базовое напряжение (ожидание) + Реакция на неожиданность (ошибка предсказания)
-            SURPRISE_GAIN = 1.2  # Коэффициент чувствительности к ошибке предсказания (усиление шока)
-            current_load = min(1.0, affective_memory + abs(delta) * SURPRISE_GAIN)
-
-            # ADR-O-143: psyche = только веса личности, без физиологических сигналов.
-            psyche = {
-                "fear": _drive_fear,
-                "control": _drive_control,
-                "significance": _drive_significance,
-                "willpower": min(1.0, _psyche_raw.get("willpower", 50) / 100.0),
-            }
-
-            new_load = integrate_affective_pressure(projected_kernel, current_load, psyche)
-
-            # S72-FIX: Эпистемический потолок. affective_load не может превышать 1.0.
-            # Без этого аккумулятор переполняется при высоком threat + высокий fear_drive.
-            # Runtime-доказательство: maid_lusya load=1.332 при threat=1.0, fear=0.45.
-            new_load = min(1.0, new_load)
-
-            # §ENIGMA-DUAL-CIRCUIT: AFFECTIVE_BOOT УБИТ.
-            # Бутстрап создавал "вечный двигатель страха": рефлекс ставил эмоцию,
-            # бутстрап подтягивал интеграл до порога эмоции, интеграл держал эмоцию,
-            # бутстрап снова подтягивал. Интеграл не мог затухнуть.
-            # Фикс: Разделение контуров. Интеграл (load) — честная память.
-            # Рефлекс (emotion_tag) — быстрая реакция. DecisionHub использует оба
-            # через _emotion_modifier. Искусственная синхронизация НЕ НУЖНА.
-            pass  # Потолок и для bootstrap
+                print(f"[TIFL_PROBE] npc={entity_id} new_load={new_load:.3f} new_mem={new_memory:.3f}", file=sys.stderr, flush=True)
 
             emotion_payload = resolve_emotion_transition(new_load, current_load, psyche)
 
@@ -3387,8 +3371,8 @@ class TickOrchestrator:
                 domain=DeltaDomain.EMOTION,
                 target="system",
                 payload=EmotionPayload(
-                    affective_load=new_load,           # Финальная нагрузка (с учётом воли)
-                    affective_memory=affective_memory  # Обновлённый baseline (ожидание)
+                    affective_load=new_load,
+                    affective_memory=new_memory
                 ),
                 source="sel_trace_commit"
             ))
@@ -3399,7 +3383,7 @@ class TickOrchestrator:
             # S73-DIAG: Отслеживание источника эмоции для диагностики конкуренции контуров
             _e_tag = emotion_payload.emotion_tag if emotion_payload else (npc_raw.get("emotion", "neutral") or "neutral")
             _e_src = "TRANSITION" if emotion_payload else "NONE"
-            _prev_src = "memory" if prev_memory > 0.01 else "pk"
+            _prev_src = "memory" if current_memory > 0.01 else "pk"
             _incoming_val = (
                 projected_kernel.threat_gradient * _drive_fear +
                 projected_kernel.uncertainty * _drive_control +

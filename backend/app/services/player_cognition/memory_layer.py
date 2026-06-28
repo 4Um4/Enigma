@@ -33,7 +33,7 @@ class MemoryEntry:
     entity_id: str
     entity_type: str
     display_name: str
-    last_seen_time: float          # time.time()
+    last_seen_time: float          # _turn_count (ticks, not wall-clock)
     encounter_count: int = 0
     last_clarity: float = 0.0      # чёткость при последней встрече
     key_observations: List[str] = field(default_factory=list)

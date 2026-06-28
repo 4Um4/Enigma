@@ -71,7 +71,8 @@ def run_npc_orchestration(
 
     from app.services.spatial.spatial_service import SpatialService
     from app.services.spatial.spatial_query_service import SpatialQueryService
-    _spatial_svc = SpatialService.build_for_location(
+    from app.services.spatial.spatial_factory import SpatialFactory
+    _spatial_svc = SpatialFactory.build_for_campaign(
         campaign_id=campaign_id,
         location_id=location,
         scene_state=shared_context.scene_state or {},

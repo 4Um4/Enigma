@@ -133,39 +133,13 @@ class TemporalEngine:
         self._ticks_since_save.clear()
         self._last_decay_tick.clear()
 
-    def get_idle_seconds(self, campaign_id: str) -> float:
-        """Сколько секунд прошло с последнего тика. inf если тик никогда не был."""
-        path = self._tick_file_path(campaign_id)
-        if not path.exists():
-            return float('inf')
-        try:
-            data = json.loads(path.read_text(encoding="utf-8-sig"))
-            last_ts = data.get("updated_at")
-            if not last_ts:
-                return float('inf')
-            last_dt = datetime.fromisoformat(last_ts)
-            return (datetime.now() - last_dt).total_seconds()
-        except (json.JSONDecodeError, OSError, ValueError):
-            return float('inf')
+    # ADR-O-302 / DEBT-TIME-3: get_idle_seconds УДАЛЁН.
+    # Метод вычислял idle time через datetime.now(), что нарушало §14 (Law of Singular Time)
+    # и §15.1 (Law of Wall-Clock Isolation). TICK_CATCHUP мёртв с ADR-047.
 
-    def get_world_ticks_elapsed(self, campaign_id: str) -> int:
-        """
-        Вычисляет сколько тиков ДОЛЖНО было пройти с момента создания кампании.
-        Основан на реальном времени (world_time), не на sim_tick.
-        """
-        from app.core.constants import TICK_REAL_SECONDS
-        path = self._tick_file_path(campaign_id)
-        if not path.exists():
-            return 0
-        try:
-            data = json.loads(path.read_text(encoding="utf-8-sig"))
-            created_at = data.get("created_at")
-            if not created_at:
-                return self.get_current_tick(campaign_id)
-            elapsed = (datetime.now() - datetime.fromisoformat(created_at)).total_seconds()
-            return int(elapsed // TICK_REAL_SECONDS)
-        except (json.JSONDecodeError, OSError, ValueError):
-            return self.get_current_tick(campaign_id)
+    # ADR-O-302 / §14: get_world_ticks_elapsed УДАЛЁН.
+    # Метод вычислял тики из datetime.now(), нарушая Закон Единичного Времени.
+    # Тики симуляции — единственный авторитет, реальное время не может их предсказать.
 
     # ── Внутренние методы (перенесены из LifeEngine) ──────────────────────
 
@@ -196,9 +170,9 @@ class TemporalEngine:
 
         data = {
             "sim_tick": tick,
-            "updated_at": datetime.now().isoformat(),
+            "updated_at": datetime.now().isoformat(),  # §15.2: Persistence metadata
             # created_at пишется один раз при создании — не перезаписывается
-            "created_at": _existing.get("created_at") or datetime.now().isoformat(),
+            "created_at": _existing.get("created_at") or datetime.now().isoformat(),  # §15.2: Persistence metadata
         }
         try:
             path.write_text(

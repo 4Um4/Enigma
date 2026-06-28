@@ -37,8 +37,8 @@ WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 
 # Backend URL — Pygame клиент подключается сюда
-_BACKEND_URL = "http://127.0.0.1:8000"
-_BACKEND_STARTUP_TIMEOUT = 30  # секунд ожидания (5 проверок × 2сек + startup)
+_BACKEND_URL = "http://localhost:8000"
+_BACKEND_STARTUP_TIMEOUT = 120  # секунд ожидания (LLM грузится долго)
 
 
 def _ensure_backend_running() -> subprocess.Popen:
@@ -91,6 +91,20 @@ def _init_menu_display():
     menu = GameMenu(screen, clock)
     return screen, clock, menu
 
+def _kill_zombies():
+    """Убивает зомби-процессы python (uvicorn) на порту 8000 перед стартом."""
+    import subprocess
+    try:
+        # Убиваем только зависший бэкенд (uvicorn), LLM не трогаем!
+        for port in [8000]:
+            res = subprocess.run(f"netstat -ano | findstr :{port}", shell=True, capture_output=True, text=True)
+            for line in res.stdout.splitlines():
+                parts = line.split()
+                if len(parts) > 4 and parts[-2] == "LISTENING":
+                    pid = parts[-1]
+                    subprocess.run(f"taskkill /F /PID {pid}", shell=True, capture_output=True)
+    except Exception:
+        pass
 
 def main() -> None:
     """Главная функция — запускает backend, инициализирует pygame, запускает цикл меню"""
@@ -145,7 +159,9 @@ def main() -> None:
                     # Ждём готовности backend (race condition: uvicorn мог ещё не подняться)
                     import time as _time
                     _backend_ok = False
-                    for _attempt in range(15):
+                    print("  ○ Ожидание готовности backend...", end="", flush=True)
+                    # Ждём до _BACKEND_STARTUP_TIMEOUT секунд (бэкенд грузит LLM)
+                    for _attempt in range(_BACKEND_STARTUP_TIMEOUT):
                         try:
                             import urllib.request as _ur
                             with _ur.urlopen(f"{_BACKEND_URL}/api/health", timeout=2) as _hr:
@@ -154,7 +170,9 @@ def main() -> None:
                                     break
                         except Exception:
                             pass
+                        print(".", end="", flush=True)
                         _time.sleep(1)
+                    print()
                     if _backend_ok:
                         try:
                             from api_client import HttpClient
@@ -164,7 +182,7 @@ def main() -> None:
                         except Exception as e:
                             print(f"  ⚠ New game reset failed: {e}")
                     else:
-                        print(f"  ⚠ Backend не отвечает 15с, сброс пропущен")
+                        print(f"  ⚠ Backend не отвечает {_BACKEND_STARTUP_TIMEOUT}с, сброс пропущен")
                     screen = pygame.display.get_surface()
                     char_screen = CharacterSelectScreen(screen, clock, selected_folder)
                     selected_char = char_screen.run()

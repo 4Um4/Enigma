@@ -19,7 +19,7 @@ PATTERNS: Dict[str, str] = {
     # [R3_DIRECT] 5 decisions → DMFrame (focus=2, bg=3)
     "decisions_count":      r"\[R3_DIRECT\] (\d+) decisions",
     # [DECISION_HUB] thief_shadow: intent=Intent.IDLE score=0.0 event=player_interacts
-    "decision_hub":         r"\[DECISION_HUB\] (\w+): intent=Intent\.(\w+) score=([\d.]+) event=([\w.]+)",
+    "decision_hub":         r"\[DECISION_HUB\] (\w+): intent=Intent\.(\w+) score=(-?[\d.]+) event=([\w.]+)",
     # [TRACE][DECISION_SCORE] npc=blacksmith_orm winner=Intent.OFFER_JOB top3=[...]
     "decision_score":       r"\[TRACE\]\[DECISION_SCORE\] npc=(\w+) winner=Intent\.(\w+)",
     # [SCENE] Найден editor JSON: ... для location_id=tavern_silver_wolf

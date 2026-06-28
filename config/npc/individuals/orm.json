@@ -46,6 +46,8 @@
     "is_dead": false
   },
   "location": "market_square",
+  "position": "market_square:forge",
+  "local_position": {"x": 11.0, "y": 3.6},
   "hp": 45,
   "max_hp": 45,
   "origin_events": [

@@ -10,7 +10,7 @@
 ### Истина №1: Источник истины = Snapshot + Chronicle
 В ENIGMA нет классического Event Sourcing для восстановления *состояния*. State — это слепок, но *Идентичность* — это история.
 - **State (Состояние):** `LifeEngine._npc_cache` (RAM, dict references) + SQLite `state_kv` (`INSERT OR REPLACE`). Эфемерно и перезаписываемо.
-- **Identity (Идентичность):** `L1Chronicle` (Append-only история деформаций). Не перезаписывается, только аппендится.
+- **Identity (Идентичность):** `L1Chronicle` (Append-only история деформаций). Не перезаписывается, только аппендится. Персистентна в SQLite (таблица `l1_chronicle_events`, ADR-L1-PERSIST).
 - **Пересчет:** L3 (`EffectiveDrives`) — строго эфемерная проекция, вычисляемая из L0 + L1 каждый тик. Кэширование L3 = смерть причинности (ADR-O-208).
 
 ### Истина №2: Время и Физика — одно целое (Causal Kernel)
@@ -122,7 +122,7 @@ CalibrationEngine -> Предотвращает осцилляцию L0 (ADR-O-2
 
 ### C4: Что выживает между тиками?
 - **State:** SQLite + Cache (Мутируется in-place)
-- **Identity:** L1Chronicle (Append-only)
+- **Identity:** L1Chronicle (Append-only, SQLite persistence)
 - **Memory:** SQLite
 - **Relations:** RelationshipStore
 - **Не выживает:** DeltaBuffer, DRFBus Claims, Events, TickContext, SnapshotKernel, EffectiveDrives (L3)
@@ -183,4 +183,3 @@ LAST_SESSION.md (Контекст для LLM-архитектора)
 - CDS не пишет в DeltaBuffer
 - CDS не прерывает Pipeline при крушении (только логирует [PIPELINE][CRITICAL])
 - Данные отчетов CDS не парсятся рантаймом для принятия решений
-```

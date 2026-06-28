@@ -180,3 +180,10 @@ sequences:
       - from: TransactionEngine
         to: DeltaBuffer
         message: "6. Money deltas"
+
+
+TemporalConstants:
+  type: domain
+  layer: Domain
+  label: "Temporal Constants (System-Wide Time Invariants)"
+  description: "ADR-S96.3: Centralized time constants to prevent multi-timescale drift. NEED_DECAY_PER_TICK = 0.08."

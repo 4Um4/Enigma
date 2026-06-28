@@ -37,7 +37,7 @@ class NeedType(Enum):
 # Дефолтные скорости decay по типу потребности
 # Еда растёт быстро, жильё и общение — медленно
 NEED_DECAY_RATES: Dict[NeedType, float] = {
-    NeedType.FOOD: 0.05,   # 0.4 urgency через 8 часов → ест 3 раза/день
+    NeedType.FOOD: 0.08,   # ADR-S96.3: Унификация с LifeEngine._NEED_DECAY_PER_TICK
     NeedType.SHELTER: 0.005,
     NeedType.INCOME: 0.01,
     NeedType.SOCIAL: 0.005,

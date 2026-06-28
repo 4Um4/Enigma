@@ -140,11 +140,6 @@ class L1Chronicle:
             
         self._events[event.target_id].append(event)
 
-        # S-93: TTL / Eviction. Окно памяти 500 последних событий.
-        MAX_EVENTS_PER_NPC = 500
-        if len(self._events[event.target_id]) > MAX_EVENTS_PER_NPC:
-            self._events[event.target_id] = self._events[event.target_id][-MAX_EVENTS_PER_NPC:]
-
         # Персистентная запись
         if self._store is not None:
             try:

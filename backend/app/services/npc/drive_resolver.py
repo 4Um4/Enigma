@@ -3,12 +3,12 @@
 
 """
 
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional
 from app.models.npc_state import NPCPersonality
-from app.domain.identity_events import TraitDriftEvent
+from app.domain.identity_events import CrystallizedBelief
 
-# Порог восприятия. События с весом ниже этого NPC "не чувствует" в проекции.
-_PERCEPTION_THRESHOLD: float = 1e-4
+# Множитель влияния убеждений (L2.5) на проекцию драйвов (L3)
+_BELIEF_MODIFIER: float = 0.5
 
 class DriveResolver:
     """
@@ -22,26 +22,26 @@ class DriveResolver:
     def resolve_drives(
         self,
         archetype: NPCPersonality,
-        l1_events_weighted: List[Tuple[TraitDriftEvent, float]]
+        beliefs: Optional[List[CrystallizedBelief]] = None
     ) -> Dict[str, float]:
         """
-        Pure function: L0 + L1(Weighted) -> Projection.
+        Pure function: L0 + L2.5(Beliefs) -> L3 Projection.
         Вызывается каждый тик заново. Результат нигде не сохраняется.
+        ADR-O-211: L1 не мутирует скаляры напрямую, только через Belief Layer.
         """
         # 1. Клонируем базовый архетип (L0)
         drives = dict(archetype.drives_base)
         
-        # 2. Накладываем деформации (L1) с учётом весов
-        for event, weight in l1_events_weighted:
-            # Интерпретация: если вес ниже порога, личность не чувствует эту травму сейчас
-            if weight < _PERCEPTION_THRESHOLD:
-                continue
-                
-            # ADR-O-208: TraitDriftEvent больше не содержит поля 'trait' или 'delta'.
-            # L1 Chronicle хранит сырую статистику (effect_value, source_id).
-            # Модуляция drives_base через L1 временно отключена (до интеграции Belief Layer).
-            # L3 Projection = L0 Archetype (safe fallback).
-            pass
+        # 2. Накладываем деформации (L2.5) через убеждения
+        if beliefs:
+            for belief in beliefs:
+                # Убеждение о страхе (fear) увеличивает драйв fear
+                if belief.trait == "fear":
+                    drives["fear"] += belief.weight * _BELIEF_MODIFIER
+                # Убеждение о доверии (trust) уменьшает драйв fear и повышает desire
+                elif belief.trait == "trust":
+                    drives["fear"] -= belief.weight * _BELIEF_MODIFIER * 0.5
+                    drives["desire"] += belief.weight * _BELIEF_MODIFIER * 0.25
         
         # 3. Закон Сохранения Я (Нормализация mass=1.0)
         for trait in drives:

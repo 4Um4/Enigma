@@ -478,9 +478,11 @@ class StateApplicator:
             pe_reward = actual_reward - exp.expected_reward
             
             # Модуляция: разочарование (PE < -0.3) удваивает падение trust
+            # DEBT-DET-02 FIX: Код выполняется строго внутри блока DeltaDomain.SOCIAL,
+            # поэтому прямая мутация trust_delta здесь безопасна (in-domain writer).
             if pe_reward < -0.3 and trust_delta < 0:
                 trust_delta *= 2.0
-                logger.info(f"[PE_DISAPPOINTMENT] NPC={npc_id} PE={pe_reward:.2f} Trust fall doubled.")
+                logger.info(f"[PE_DISAPPOINTMENT] NPC={npc_id} PE={pe_reward:.2f} Trust fall doubled (in-domain).")
                 
             # Обновляем EMA ожидания (Single Writer)
             self._expectation_store.update_expectation(
@@ -908,12 +910,32 @@ class StateApplicator:
             if _phys_npcs:
                 logger.debug(f"[APPLY_BATCH] npc_count={len(by_npc)} physiology_npcs={_phys_npcs}")
 
+        # DEBT-DET-01: Детерминированный порядок применения дельт.
+        # Физика (PHYSICS_COMPOSITE) -> Когнитив (EMOTION, PERCEPTION) -> Социум (SOCIAL).
+        _DOMAIN_APPLICATION_ORDER = {
+            DeltaDomain.PHYSIOLOGY: 0,
+            DeltaDomain.PERCEPTION: 10,
+            DeltaDomain.EMOTION: 20,
+            DeltaDomain.IDENTITY: 30,
+            DeltaDomain.SOCIAL: 40,
+            DeltaDomain.REPUTATION: 50,
+            DeltaDomain.WILL: 60,
+            DeltaDomain.DOPAMINE: 70,
+            DeltaDomain.SPATIAL: 80,
+        }
+        _DEFAULT_ORDER = 100
+
         # Применяем через тонкий мост: dict → NPCState → _apply_deltas → dict
         for npc_dict in all_npcs_raw:
             npc_id = npc_dict.get("id") or npc_dict.get("npc_id")
             if npc_id not in by_npc:
                 continue
-            for delta in by_npc[npc_id]:
+            # Сортируем дельты по домену для предсказуемого результата
+            sorted_deltas = sorted(
+                by_npc[npc_id],
+                key=lambda d: _DOMAIN_APPLICATION_ORDER.get(d.domain, _DEFAULT_ORDER)
+            )
+            for delta in sorted_deltas:
                 self._apply_delta_to_raw(npc_dict, delta, campaign_id)
 
     def _apply_delta_to_raw(

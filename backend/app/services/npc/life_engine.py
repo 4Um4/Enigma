@@ -113,7 +113,7 @@ _NEED_DECAY_PER_TICK: float = 0.08
 # Fallback для неизвестных NPC
 # ADR-0011: Расписание удалено. Движение теперь — следствие социальных потребностей (Social Motility).
 # NPC не телепортируются по расписанию. Макро-перемещение (LOD1) только для редких нужд (кухня, выход).
-_DEFAULT_ACTIVITY_MAP: dict[str, tuple[str, str, str]] = {}
+# DEBT-S85.1.1: _DEFAULT_ACTIVITY_MAP удалён (мёртвый код). ADR-S85.2 запрещает хардкод позиций в архетипах.
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Случайные события
@@ -349,7 +349,7 @@ class LifeEngine:
 
     def _touch(self, campaign_id: str) -> None:
         """Обновляет время последнего доступа (LRU)."""
-        self._last_access[campaign_id] = time.time()
+        self._last_access[campaign_id] = time.time()  # §15.2: Infrastructure (cache TTL)
         self._last_access.move_to_end(campaign_id)
 
     def _evict_stale(self) -> list[str]:
@@ -358,7 +358,7 @@ class LifeEngine:
         Удаляет: (1) просроченные по TTL, (2) лишние по LRU.
         Возвращает список evicted campaign_id.
         """
-        now = time.time()
+        now = time.time()  # §15.2: Infrastructure (cache TTL)
         evicted = []
         
         # Слой 1: TTL eviction
@@ -409,16 +409,18 @@ class LifeEngine:
 
     def reconcile_state(self, campaign_id: str, elapsed_seconds: float) -> None:
         """
-        ADR-047: Аналитическое согласование состояния при загрузке сцены.
-        Без ретро-симуляции (TICK_CATCHUP убит). Применяет экспоненциальный декэй 
-        стресса и рост базовых потребностей пропорционально elapsed_seconds.
+        ADR-047 / ADR-O-302: REAL_TIME_BRIDGE.
+        Аналитическое согласование состояния при загрузке сцены (после простоя).
+        Без ретро-симуляции (TICK_CATCHUP убит). Переводит REAL_TIME (секунды) в TICK_TIME.
         """
         if elapsed_seconds <= 0:
             return
             
         npcs = self._npc_cache.get(campaign_id, [])
-        # Предполагаем 1 тик = 10 секунд (GAME_TICK_INTERVAL_SECONDS)
-        ticks_equivalent = elapsed_seconds / 10.0
+        # ADR-O-302: Явный мост REAL_TIME -> TICK_TIME. 1 тик = 60 секунд (GAME_TICK_INTERVAL_SECONDS).
+        # Магическое число 10.0 убито. Согласование идёт строго по константе ядра.
+        from app.core.constants import GAME_TICK_INTERVAL_SECONDS
+        ticks_equivalent = elapsed_seconds / float(GAME_TICK_INTERVAL_SECONDS)
         
         for npc in npcs:
             psyche = npc.get("psyche", {})
@@ -434,8 +436,10 @@ class LifeEngine:
                 psyche["stress"] = max(0.0, round(decayed_stress, 2))
                 
             # 2. Голод и Усталость: линейный рост (если были в пути)
-            hunger_rate = 0.1  # условных единиц за тик
-            fatigue_rate = 0.1
+            # ADR-S96.3: Унификация скорости роста потребностей. _NEED_DECAY_PER_TICK = 0.08 (шкала 0.0-1.0).
+            # Для body_state (шкала 0-100) умножаем на 100.
+            hunger_rate = _NEED_DECAY_PER_TICK * 100.0  # 8.0 за тик
+            fatigue_rate = _NEED_DECAY_PER_TICK * 100.0
             
             if "hunger" in body_state:
                 body_state["hunger"] = min(100.0, body_state.get("hunger", 0.0) + hunger_rate * ticks_equivalent)
@@ -705,8 +709,23 @@ class LifeEngine:
                     _move_target = result.intent_target if result.intent_target and result.intent_target != npc_id else "player"
                     _npc_pos_entry = scene_state.get("npc_positions", {}).get(npc_id, {})
                     _target_pos_entry = scene_state.get("npc_positions", {}).get(_move_target, {})
-                    _npc_node = _npc_pos_entry.get("position", "")
+                    # FIX: Если игрок отсутствует в npc_positions (фронтенд фильтрует его), 
+                    # читаем его позицию из player_position (SSOT для фронтенда).
+                    if not _target_pos_entry and _move_target == "player":
+                        _pp = scene_state.get("player_position")
+                        if _pp:
+                            _target_pos_entry = {"local_position": _pp, "position": scene_state.get("location_id", "")}
+                            logger.debug(f"[MOTION_ROUTER] Player recovered from player_position: {_pp}")
+                        else:
+                            logger.warning(f"[MOTION_ROUTER] Player not found in npc_positions or player_position!")
+                    
+                    # FIX: Восстанавливаем _npc_node из npc dict, если в scene_state его нет (SSOT fallback).
+                    _npc_node = _npc_pos_entry.get("position", "") or npc.get("position", "")
                     _target_node = _target_pos_entry.get("position", "")
+                    # Нормализуем ID узлов для корректного сравнения
+                    _loc = scene_state.get("location_id", "") or npc.get("location", "")
+                    _npc_node = _npc_node if ":" in _npc_node else f"{_loc}:{_npc_node}" if _npc_node else ""
+                    _target_node = _target_node if ":" in _target_node else f"{_loc}:{_target_node}" if _target_node else ""
 
                     # Координаты для микро-маршрутизации (ETKE-IK)
                     _npc_xy = _npc_pos_entry.get("local_position")
@@ -722,22 +741,22 @@ class LifeEngine:
                         _distance = math.hypot(_dx, _dy)
 
                     if result.intent.value == "APPROACH":
-                        if _same_node and _has_coords:
-                            # ── Микро: подход через DriveVector (ETKE-IK) ──
-                            # MovementIntent на тот же узел = no-op, поэтому
-                            # перенаправляем в непрерывный контур.
-                            _mag = math.hypot(_dx, _dy)
-                            if _mag > 0.01:
-                                # ETKE-IK v2: Добавлен primitive (approach)
-                                npc["drive_vector"] = [_dx / _mag, _dy / _mag, 0.7, "approach"]
-                                logger.info(
-                                    f"[MOTION_ROUTER] APPROACH→DriveVector: "
-                                    f"npc={npc_id} target={_move_target} dist={_distance:.1f}"
-                                )
+                        # INVARIANT: APPROACH требует валидной цели. Если цели нет — действие блокируется.
+                        if not _target_node:
+                            logger.warning(f"[MOTION_ROUTER] APPROACH BLOCKED: npc={npc_id} target={_move_target} has no position")
+                        elif _target_node == _npc_node:
+                            # Микро: подход через DriveVector (ETKE-IK) в пределах одного узла
+                            if _has_coords:
+                                _mag = math.hypot(_dx, _dy)
+                                if _mag > 0.01:
+                                    npc["drive_vector"] = [_dx / _mag, _dy / _mag, 0.7, "approach"]
+                                    logger.info(f"[MOTION_ROUTER] APPROACH→DriveVector: npc={npc_id} target={_move_target} dist={_distance:.1f}")
+                                else:
+                                    logger.debug(f"[MOTION_ROUTER] APPROACH SKIP: npc={npc_id} already at target (dist={_distance:.2f})")
                             else:
-                                logger.debug(f"[MOTION_ROUTER] APPROACH SKIP: npc={npc_id} already at target (dist={_distance:.2f})")
-                        elif _target_node:
-                            # ── Макро: подход через MovementIntent (Traversal FSM) ──
+                                logger.debug(f"[MOTION_ROUTER] APPROACH SKIP: npc={npc_id} same node, no coords for micro")
+                        else:
+                            # Макро: подход через MovementIntent (Traversal FSM)
                             movement_intents.append(MovementIntent(
                                 npc_id=npc_id,
                                 target_node_id=_target_node,
@@ -745,52 +764,25 @@ class LifeEngine:
                                 domain=IntentDomain.SOCIAL,
                                 priority=0.7,
                             ))
-                            logger.warning(
-                                f"[MOTION_ROUTER] APPROACH→MovementIntent: "
-                                f"npc={npc_id} → target={_move_target} node={_target_node}"
-                            )
-                        else:
-                            logger.warning(
-                                f"[MOTION_ROUTER] APPROACH BLOCKED: npc={npc_id} "
-                                f"target={_move_target} has no position "
-                                f"(entry={list(_target_pos_entry.keys()) if _target_pos_entry else 'EMPTY'})"
-                            )
+                            logger.warning(f"[MOTION_ROUTER] APPROACH→MovementIntent: npc={npc_id} → target={_move_target} node={_target_node}")
 
                     elif result.intent.value == "FLEE":
                         if _same_node and _has_coords:
-                            # ── Микро: уклонение через DriveVector (ETKE-IK) ──
-                            # Вектор ОТ угрозы (инвертированный direction).
-                            # Интенсивность 1.0 = максимальное усилие (SURVIVAL домен).
-                            # same_node = DriveVector ВСЕГДА: MovementIntent на тот же узел = no-op.
+                            # Микро: уклонение через DriveVector (ETKE-IK)
                             _mag = math.hypot(_dx, _dy)
                             if _mag > 0.01:
-                                # ETKE-IK v2: Motion Policy Layer (FLEE vs RETREAT)
                                 _load = npc.get("affective_load", 0.0)
                                 _primitive_name = "retreat" if _load < 0.7 else "flee"
                                 _intensity = 0.5 if _primitive_name == "retreat" else 1.0
                                 npc["drive_vector"] = [-_dx / _mag, -_dy / _mag, _intensity, _primitive_name]
-                                logger.info(
-                                    f"[MOTION_ROUTER] {_primitive_name.upper()}→DriveVector: "
-                                    f"npc={npc_id} away={_move_target} dist={_distance:.1f}"
-                                )
+                                logger.info(f"[MOTION_ROUTER] {_primitive_name.upper()}→DriveVector: npc={npc_id} away={_move_target} dist={_distance:.1f}")
                             else:
                                 logger.debug(f"[MOTION_ROUTER] FLEE SKIP: npc={npc_id} already far from threat (dist={_distance:.2f})")
-                        elif _npc_node:
-                            # ── Макро: остаться на текущем узле (FSM, legacy safe-node) ──
-                            # ADR-114: FLEE резолвится через alias_map
-                            movement_intents.append(MovementIntent(
-                                npc_id=npc_id,
-                                target_node_id=_npc_node,
-                                reason=f"decision:flee_stay={_move_target}",
-                                domain=IntentDomain.SURVIVAL,
-                                priority=1.0,
-                            ))
-                            logger.warning(
-                                f"[MOTION_ROUTER] FLEE→MovementIntent: "
-                                f"npc={npc_id} stay={_npc_node}"
-                            )
                         else:
-                            logger.warning(f"[MOTION_ROUTER] FLEE BLOCKED: npc={npc_id} has no position node")
+                            # INVARIANT: FLEE не создаёт MovementIntent в тот же узел (BUG_V_GUARD fix).
+                            # FLEE в тот же узел (или без координат) — это паника, обрабатываемая на уровне аффекта/драйвов, 
+                            # а не макро-перемещением, которое ломает Traversal FSM бесконечным циклом.
+                            logger.debug(f"[MOTION_ROUTER] FLEE SKIP (same node/no coords): npc={npc_id} stay={_npc_node}")
                 else:
                     # S91: SOCIAL_DRIFT — Intent Attribution Layer.
                     # NPC выбирает социально значимый якорь (бар, вход, стол, группа NPC).
@@ -963,13 +955,9 @@ class LifeEngine:
         """Возвращает TemporalContext для подсистем, которым нужно больше чем просто тик."""
         return self._temporal.get_temporal_context(campaign_id)
 
-    def get_idle_seconds(self, campaign_id: str) -> float:
-        """Делегирует в TemporalEngine."""
-        return self._temporal.get_idle_seconds(campaign_id)
-
-    def get_world_ticks_elapsed(self, campaign_id: str) -> int:
-        """Делегирует в TemporalEngine."""
-        return self._temporal.get_world_ticks_elapsed(campaign_id)
+    # ADR-O-302 / DEBT-TIME-3: get_idle_seconds и get_world_ticks_elapsed УДАЛЕНЫ.
+    # Они нарушали §14 (Law of Singular Time) и §15.1 (Law of Wall-Clock Isolation).
+    # TICK_CATCHUP мёртв с ADR-047.
 
     def mark_decay_executed(self, campaign_id: str) -> None:
         """Фиксирует, что memory decay был запущен на текущем тике."""
@@ -1055,7 +1043,7 @@ class LifeEngine:
                 runtime_npcs = self._persistence.load_npc_runtime(campaign_id)
                 if runtime_npcs is not None:
                     self._npc_cache[campaign_id] = runtime_npcs
-                    self._last_access[campaign_id] = time.time()
+                    self._last_access[campaign_id] = time.time()  # §15.2: Infrastructure (cache TTL)
                     self._last_access.move_to_end(campaign_id)
                     logger.info(
                         f"[LIFE_ENGINE] Восстановлен из SQLite: {campaign_id} "
@@ -1780,9 +1768,12 @@ class LifeEngine:
                 logger.debug(f"[LIFE_ENGINE] {npc_id}: Sleep bypassed — threat={_threat:.2f}, stress={_stress}")
                 return [], None
 
-        new_location, new_position, activity_display = self._resolve_position(
-            npc, new_activity
-        )
+        resolved = self._resolve_position(npc, new_activity)
+        if resolved is None:
+            # ADR-S85.1: не удалось резолвить позицию — пропускаем movement intent,
+            # NPC остаётся на месте. Лог уже записан в _resolve_position.
+            return [], None
+        new_location, new_position, activity_display = resolved
 
         prev_location = npc.get("location", new_location)
         changes: list[SceneChange] = [
@@ -1821,6 +1812,15 @@ class LifeEngine:
         #         f"[LIFE_ENGINE] {npc_id}: {prev_location} → {new_location} "
         #         f"(активность: {prev_activity} → {new_activity})"
         #     )
+
+        # SHI-FIX: No-op guard. Если NPC уже на целевом узле — не генерируем MovementIntent.
+        # Нормализуем ID узла, чтобы избежать mismatch (bar_area vs tavern_silver_wolf:bar_area).
+        _loc = new_location or prev_location
+        _norm_new_pos = new_position if ":" in new_position else f"{_loc}:{new_position}"
+        _norm_curr_pos = npc.get("position", "") if ":" in npc.get("position", "") else f"{_loc}:{npc.get('position', '')}"
+        if _norm_new_pos == _norm_curr_pos:
+            logger.debug(f"[LIFE_ENGINE] {npc_id}: no-op movement (уже на {new_position}).")
+            return changes, None
 
         # ── MovementIntent для MovementEngine (Слой 2) ────────────────────
         from app.domain.movement import PRIORITY_SCHEDULE
@@ -1874,19 +1874,27 @@ class LifeEngine:
         self,
         npc: dict,
         activity: str,
-    ) -> tuple[str, str, str]:
-        """
-        Возвращает (location_id, position_in_scene, activity_display).
-        Читает activity_map из профиля NPC (data-driven).
-        Fallback: _DEFAULT_ACTIVITY_MAP для неизвестных активностей.
+    ) -> Optional[tuple[str, str, str]]:
+        """Возвращает (location_id, position_in_scene, activity_display) или None.
+
+        ADR-S85.1: позиция NPC резолвится ТОЛЬКО через:
+          1. npc.activity_map[activity] (data-driven, приоритет)
+          2. SpatialService.resolve_node(role, origin_zone) (семантический биндинг)
+          3. SpatialService.resolve_node(NodeRole.DEFAULT, origin_zone) (последний шанс)
+          4. Текущая позиция NPC (no-op fallback — остаться на месте)
+
+        Хардкод "common_area" удалён (BUG-3: NODE_NOT_FOUND, нарушение §13).
+        Если ни один источник не дал позицию — возвращается None,
+        вызывающий код обрабатывает как no-op movement (без intent).
         """
         npc_map: dict = npc.get("activity_map", {})
 
+        # 1. Точное совпадение в activity_map (data-driven)
         if activity in npc_map:
             entry = npc_map[activity]
             return (entry["location"], entry["position"], entry["display"])
 
-        # S85: Semantic Spatial Binding — резолв через SpatialService
+        # 2. S85: Semantic Spatial Binding — резолв через SpatialService по роли
         if self._spatial_service:
             from app.models.spatial_contracts import NodeRole
             _ACTIVITY_TO_ROLE_MAP = {
@@ -1904,18 +1912,61 @@ class LifeEngine:
                 if ref:
                     return (ref.zone_id, ref.node_id, activity)
 
-        return next(
-            (
-                (entry["location"], entry["position"], entry["display"])
-                for key, entry in npc_map.items()
-                if activity.startswith(key) or key.startswith(activity)
-            ),
-            (
-                _DEFAULT_ACTIVITY_MAP[activity]
-                if activity in _DEFAULT_ACTIVITY_MAP
-                else (npc.get("location", "unknown"), "common_area", activity)
-            ),
+            # 3. Fallback: NodeRole.DEFAULT в текущей локации NPC
+            #    Паттерн уже используется в life_engine (см. _NEED_ROLE_MAP).
+            origin_zone = npc.get("location") or npc.get("location_id")
+            if origin_zone:
+                default_ref = self._spatial_service.resolve_node(
+                    role=NodeRole.DEFAULT, origin_zone=origin_zone,
+                )
+                if default_ref:
+                    logger.debug(
+                        f"[LIFE_ENGINE][DEFAULT_NODE] npc={npc.get('id')} "
+                        f"activity={activity!r} -> default node {default_ref.node_id} "
+                        f"in zone={origin_zone}"
+                    )
+                    return (default_ref.zone_id, default_ref.node_id, activity)
+
+        # 4. Last-resort: NPC остаётся на текущей позиции (no-op movement)
+        #    НЕ выдумываем node_id — это и есть фикс ADR-S85.1 + §13.
+        current_location = npc.get("location") or npc.get("location_id")
+        current_position = npc.get("position")
+        
+        # ADR-GUARD: position recovery must be deterministic
+        # SpatialService is allowed ONLY if mapping table exists or confidence == 1.0
+        if not current_position or not isinstance(current_position, str):
+            _lp = npc.get("local_position", {})
+            if isinstance(_lp, dict) and isinstance(_lp.get("x"), (int, float)) and self._spatial_service:
+                origin_zone = current_location
+                if origin_zone:
+                    _ref = self._spatial_service.get_nearest(zone_id=origin_zone, origin_xy=(_lp["x"], _lp["y"]))
+                    if _ref:
+                        current_position = getattr(_ref, 'node_id', str(_ref))
+                        if current_position.startswith(f"{origin_zone}:"):
+                            current_position = current_position.split(":")[-1]
+                        if getattr(_ref, "confidence", 1.0) < 1.0:
+                            logger.warning(
+                                f"[POSITION_RECOVERY][LOW_CONFIDENCE] npc={npc.get('id')} "
+                                f"node={current_position} confidence={getattr(_ref, 'confidence', None)}"
+                            )
+                        else:
+                            logger.info(f"[LIFE_ENGINE][POSITION_RECOVERY] npc={npc.get('id')} recovered position={current_position} from local_position={_lp}")
+        
+        if current_location and current_position and isinstance(current_position, str):
+            logger.warning(
+                f"[LIFE_ENGINE][NO_RESOLVE] npc={npc.get('id')} activity={activity!r} "
+                f"unresolved by activity_map/SpatialService; staying at "
+                f"location={current_location} position={current_position}"
+            )
+            return (current_location, current_position, activity)
+
+        # 5. Нет ни location, ни position — критическая аномалия данных
+        logger.error(
+            f"[LIFE_ENGINE][NO_POSITION] npc={npc.get('id')} has no location AND no position. "
+            f"Activity={activity!r}. Data integrity bug — investigate npc_state. "
+            f"Returning None; caller must skip movement intent."
         )
+        return None
 
     @staticmethod
     def _mood_for_activity(activity: str) -> str:

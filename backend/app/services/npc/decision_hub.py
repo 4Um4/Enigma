@@ -196,6 +196,8 @@ class EventContext:
     day:                     int   = 0
     # GAP10 FIX: ID цели события. Без этого DecisionHub даёт бонус APPROACH всем NPC в зоне.
     target_id:               Optional[str] = None
+    # ADR-ACTION-BRIDGE: Каноническая семантика из IntentCompressor (closed-world lattice)
+    semantic_action:         Optional[str] = None
     # Видимые маркеры угрозы — что NPC воспринимает, не реальные stats игрока
     visible_threat_markers:  List[str] = field(default_factory=list)
     # Текущая активность цели — для контекстной релевантности
@@ -310,7 +312,7 @@ class DecisionHub:
             topic=_topic,
             intent_type=intent_value,
             emotional_state=emotion_value,
-            exposure_level=ExposureLevel(semantic="normal", physical_radius=5.0),
+            exposure_level=ExposureLevel.from_semantic("normal"),
         )
 
 
@@ -374,12 +376,22 @@ class DecisionHub:
         possible = self._get_possible_intents(state, personality, event, opportunity, effective_drives=effective_drives)
         scores, components_trace = self._score_all(state, personality, event, possible, opportunity, active_traits, decision_ctx=decision_ctx, effective_drives=effective_drives)
 
-        # ADR-036: Физика Власти. Приказ (semantic_action=MOVE) искривляет utility-space.
-        # Прямой boost к APPROACH score — без размывания через drive_weight.
+        # ADR-036 + ADR-ACTION-BRIDGE: Физика Власти. Читаем семантику напрямую из EventContext.
+        # Мост action_to_intent гарантирует нормализацию ActionType.MOVE → Intent.APPROACH.
+        from app.domain.action_intent_bridge import action_to_intent
+        _sa_pop = getattr(event, 'semantic_action', None)
+        _tid_pop = getattr(event, 'target_id', None)
+        _expected_intent = action_to_intent(_sa_pop)
+
+        # ADR-036 + ADR-ACTION-BRIDGE: Физика Власти. Читаем семантику из EventContext.payload.
+        # Мост action_to_intent гарантирует нормализацию ActionType.MOVE → Intent.APPROACH.
+        from app.domain.action_intent_bridge import action_to_intent
         _payload_pop = getattr(event, 'payload', {}) or {}
         _sa_pop = _payload_pop.get("semantic_action") if isinstance(_payload_pop, dict) else None
         _tid_pop = _payload_pop.get("target_id") if isinstance(_payload_pop, dict) else None
-        if _sa_pop == "MOVE" and _tid_pop == state.npc_id and Intent.APPROACH.value in scores:
+        _expected_intent = action_to_intent(_sa_pop)
+
+        if _expected_intent == Intent.APPROACH.value and _tid_pop == state.npc_id and Intent.APPROACH.value in scores:
             _fear_raw = DecisionHub._get_rel_value(state, "player", "fear")
             # L3-P2: Воля определяется текущей проекцией, не архетипом
             _will_pop = effective_drives.get("control", 0.5)
@@ -400,10 +412,11 @@ class DecisionHub:
 
             _obed_pop = _obedience_legitimacy + 0.1 + (_threat_pop * 0.5)
             _boost_pop = _obed_pop * 2.0
-            scores[Intent.APPROACH.value] = round(scores[Intent.APPROACH.value] + _boost_pop, 4)
+            _current_approach = scores.get(Intent.APPROACH.value, 0.0)
+            scores[Intent.APPROACH.value] = round(_current_approach + _boost_pop, 4)
             
             # Epistemic Drift Monitor (Phase 4 diagnostic)
-            logger.debug(f"[PHYSICS_OF_POWER] npc={state.npc_id} mode={_epistemic_mode} boost={_boost_pop:.3f} legit={_obedience_legitimacy:.3f} will={_will_pop:.3f} threat={_threat_pop:.3f} approach={scores[Intent.APPROACH.value]:.3f}")
+            logger.debug(f"[PHYSICS_OF_POWER] npc={state.npc_id} mode={_epistemic_mode} action={_sa_pop} → intent={_expected_intent} boost={_boost_pop:.3f} legit={_obedience_legitimacy:.3f} will={_will_pop:.3f} threat={_threat_pop:.3f} approach={scores[Intent.APPROACH.value]:.3f}")
 
         # Фаза 2.4-ECO: экономические модификаторы (опционально)
         if eco_modifiers:
@@ -952,6 +965,14 @@ class DecisionHub:
             affective_load=decision_ctx.affective_load if decision_ctx else 0.0
         )
         rel_mod      = self._relationship_modifier(intent, trust, fear)
+        
+        # ADR-067: Приказ (MOVE) = single-target pressure. Свидетели не должны лезть в объятия.
+        if intent == Intent.APPROACH.value:
+            _payload = getattr(event, 'payload', {})
+            _is_directive = isinstance(_payload, dict) and _payload.get("semantic_action") == "MOVE"
+            _is_target = getattr(event, 'target_id', None) == state.npc_id
+            if _is_directive and not _is_target:
+                rel_mod -= 0.8  # Жёсткий штраф для свидетелей директивы
         trait_mod    = self._trait_modifier(intent, active_traits or {})
 
         # Risk теперь intent-aware (Disco Elysium style)

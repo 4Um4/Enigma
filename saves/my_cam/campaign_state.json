@@ -1,10 +1,4 @@
 {
-  "campaign_id": "my_cam",
-  "campaign_name": "",
-  "players": [],
-  "world_facts": [],
-  "session_summaries": [],
-  "metadata": {},
   "scene_state": {
     "location_id": "",
     "objects": {

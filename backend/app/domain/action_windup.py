@@ -17,9 +17,10 @@ class WindupStatus(str, Enum):
 
 @dataclass(frozen=True)
 class ActionWindup:
-    """Окно подготовки к значимому действию (ADR-O-310).
+    """Окно подготовки к значимому действию (DEBT-310.1).
     
-    Не хранится в NPCState (эпемерно для боя).
+    Pure Temporal Gate (I-CORE-02/03).
+    Не хранит и не интерпретирует намерение. Хранит только ID отложенного интента.
     Живёт в TickOrchestrator._windup_registry.
     """
     actor_id: str
@@ -30,5 +31,5 @@ class ActionWindup:
     status: WindupStatus = WindupStatus.PENDING
     # Условие прерывания: например, порог шока или уровня HP
     interrupt_shock_threshold: float = 0.7
-    # ADR-O-310: Замороженный EventDTO, который будет опубликован по завершении.
-    pending_event: Optional[Any] = None
+    # DEBT-310.1: ID интента, отложенного в TickOrchestrator._pending_intents.
+    held_intent_id: Optional[str] = None

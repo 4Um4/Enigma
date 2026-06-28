@@ -7,59 +7,61 @@ TODO:
 - Настроить пороги для эмоциональных коллапсов и реакций.
 """
 from __future__ import annotations
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Tuple
 
 if TYPE_CHECKING:
     from app.models.npc_state import PerceptualKernel
 
+# Константы Active Inference (вынесены из TickOrchestrator)
+_MEMORY_DECAY_RATE: float = 0.85
+_TRAUMA_SCAR_RATE: float = 0.2
+_SURPRISE_GAIN: float = 1.2
+
 def integrate_affective_pressure(
     kernel: "PerceptualKernel",
-    current_load: float,
     psyche: dict,
+    current_load: float,
+    current_memory: float,
     dt: float = 1.0
-) -> float:
+) -> Tuple[float, float]:
     """
-    Накапливает аффективное давление из PerceptualKernel.
+    ADR-049 / ADR-O-206: Интегрирует давление во времени (Active Inference + Hysteresis).
     
-    Входящее давление: веса определяются личностью (drives_base через psyche).
-    fear → вес угрозы, control → вес неопределённости, significance → вес аномалии.
-    Декэй: базовая скорость + бонус от воли.
+    Возвращает:
+        Tuple[new_load, new_affective_memory]
     """
-    # S72 / §ENIGMA-S72: Веса интерпретации из drives_base, не из хардкода движка.
-    # Личность определяет, что для неё важно в сигналах мира.
-    # Fallback на 0.25 — консервативная оценка (Neutral NPC).
     _w_threat = psyche.get("fear", 0.25)
     _w_uncertainty = psyche.get("control", 0.25)
     _w_anomaly = psyche.get("significance", 0.25)
 
     willpower = psyche.get("willpower", 0.5)
+    _w_somatic = 1.0 - willpower * 0.5
 
-    # ADR-O-143: Somatic Axis (§ENIGMA-S72 compliance).
-    # Боль/шок проходят через PerceptualKernel.somatic_urgency и модулируются личностью.
-    # willpower → somatic_resistance: высокая воля снижает воспринимаемый дистресс,
-    # но не обнуляет (порог 0.5 — даже стоик чувствует боль).
-    _w_somatic = 1.0 - willpower * 0.5  # willpower ∈ [0,1] → _w_somatic ∈ [0.5, 1.0]
-
-    # S75-R2 FIX: Hysteresis Model (Асимметричная Адаптация).
-    # Убран аттрактор насыщения (incoming > recovery = вечный страх 1.0).
-    # Страх растёт быстро (рефлекс), но спадает медленно (инерция психики).
-    # Воля ускоряет выход из страха, но не может мгновенно его обнулить.
-    target_load = min(1.0,
+    # 1. Мгновенное восприятие (pk_load)
+    pk_load = min(1.0,
         getattr(kernel, 'threat_gradient', 0.0) * _w_threat +
         getattr(kernel, 'uncertainty', 0.0) * _w_uncertainty +
         getattr(kernel, 'anomaly_score', 0.0) * _w_anomaly +
         getattr(kernel, 'somatic_urgency', 0.0) * _w_somatic
     )
 
-    if target_load > current_load:
-        # Путь ВВЕРХ: Быстрая реакция на угрозу (рефлекс выживания)
+    # 2. Active Inference: Ошибка предсказания (Surprise)
+    delta = pk_load - current_memory
+    _abs_error = abs(delta)
+
+    # 3. Обновление базового ожидания (Prior / Котёл)
+    new_memory = min(1.0, current_memory * _MEMORY_DECAY_RATE + pk_load * _TRAUMA_SCAR_RATE)
+
+    # 4. Эмоциональный ответ (Posterior / Affective Load)
+    current_load_adjusted = min(1.0, current_memory + _abs_error * _SURPRISE_GAIN)
+
+    # 5. Hysteresis: Асимптотическое притяжение к цели
+    target_load = pk_load
+    if target_load > current_load_adjusted:
         adaptation_rate = 0.30
     else:
-        # Путь ВНИЗ: Медленное остывание (гистерезис/инерция)
-        # Воля помогает быстрее прийти в себя
         adaptation_rate = 0.05 + (willpower * 0.1)
 
-    # Асимптотическое притяжение к цели
-    new_load = current_load + (target_load - current_load) * adaptation_rate
+    new_load = current_load_adjusted + (target_load - current_load_adjusted) * adaptation_rate
 
-    return max(0.0, min(1.5, new_load))
+    return max(0.0, min(1.0, new_load)), new_memory

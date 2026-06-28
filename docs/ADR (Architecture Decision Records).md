@@ -154,9 +154,37 @@
   Taboo: ❌ Использование `random.*` в kernel layer. ❌ `DecisionHub()` без `rng`.
   Files: kernel_rng.py, tick_orchestrator.py, decision_hub.py, npc_tick_pipeline.py, life_engine.py, movement_engine.py, state_applicator.py
 
+`ADR-S93.1` [FIX] **Dead NPC Execution Lock (ADR-123 Enforcement)** — Мёртвые NPC (`life_status="DEAD"`) полностью исключаются из `ctx.all_npcs_raw` в `_run_core_phases` до Фазы 1. Устраняет "зомби-движение" и призрачные решения.
+  Taboo: ❌ Генерация интентов и дельт для NPC с `life_status="DEAD"`. ❌ Передача мёртвых NPC в `NpcTickPipeline`.
+  Files: tick_orchestrator.py
+
 `ADR-TZ03-1` [ONTO] **Single Causal Authority (Tri-Ontology System Elimination)** — Уничтожена три-онтологическая система (backend kernel truth / frontend inferred truth / fallback truth). Backend — единственный источник истины, frontend — pure renderer. Фронтенд лишён права генерировать время, аватара и журнал. DTO канонизированы (`npc_positions` как `Dict`, `cue_key`). Silent failures (`except: pass`, `suppress(Exception)`) заменены на логирование. Spatial Oracle логирует ошибки. API-поверхность готова к SSE/WorldState (dual-channel: causal + observational).
   Taboo: ❌ `game_time_seconds +=` во фронтенде. ❌ `avatar_state` override во фронтенде. ❌ `dialog_journal.append` во фронтенде. ❌ `contextlib.suppress(Exception)` на системных границах. ❌ `except Exception: pass` в Spatial Oracle. ❌ `snapshot_npc_positions_to_dict` адаптер. ❌ `cue_type` в `PeripheralCueDTO` (использовать `cue_key`).
   Files: frontend/api_client.py, frontend/game_screen.py, frontend/game_loop_bridge.py, frontend/spatial_compilation_orchestrator.py, backend/app/domain/snapshot.py, backend/app/services/integration/world_snapshot_builder.py, backend/app/api/routes.py
+
+`ADR-O-302` [ONTO] **Physics Overlay (Time Semantics Isolation)** — Введены §14 (Закон Единичного Времени) и §15 (Закон Изоляции Реального Времени). Время симуляции (`game_time_seconds`) — единственный авторитет. `INTERPOLATION_TIME` (`ETKE_IK_SUBSTEP_DT`) выведен в константу, магические `0.1` убиты. `REAL_TIME_BRIDGE` (`reconcile_state`) изолирован и переведён на `GAME_TICK_INTERVAL_SECONDS`. Мёртвый код `get_world_ticks_elapsed` удалён. Wall-clock (`time.time()`, `datetime.now()`) запрещён в simulation layer.
+  Taboo: ❌ Использование `datetime.now()` или `time.time()` в `TickOrchestrator`, `LifeEngine`, `DecisionHub`, `TemporalEngine` (кроме metadata). ❌ Магические числа `0.1` или `5.0` для `dt`/`delta_time`. ❌ Вывод тиков из реального времени (`get_world_ticks_elapsed`).
+  Files: backend/app/core/constants.py, backend/app/services/motion/motion_pipeline.py, backend/app/services/npc/life_engine.py, backend/app/services/temporal/temporal_engine.py, backend/app/services/tick_orchestrator.py, backend/app/services/affect.py
+
+`ADR-310.1` [STD] **Windup = Pure Temporal Gate** — `ActionWindup` больше не хранит `ActionCommitment` и не реконструирует `CommunicationIntent`. Введён `held_intent_id` (UUID) и словарь `_pending_intents` на `TickOrchestrator`. Фаза 7 делает pure release оригинального интента. Инварианты I-CORE-02 и I-CORE-03 соблюдены.
+  Files: domain/action_windup.py, services/tick_orchestrator.py
+
+`ADR-310.2` [FIX] **Stale Intent Validation** — В Фазе 7 (Windup Resolution) внедрён minimal guard. Перед release отложенного интента проверяется: жив ли актёр, присутствует ли он в сцене, жива ли цель и присутствует ли она в сцене. Если проверка не пройдена, windup переходит в статус `INTERRUPTED`, а интент уничтожается. Решена проблема "stale causality execution".
+  Files: services/tick_orchestrator.py
+
+`ADR-L1-PERSIST` [FIX] **L1Chronicle SQLite Persistence** — L1Chronicle принимает store для персистентности в SQLite. На рестарте события восстанавливаются. In-memory dict — только кэш на текущую сессию. Привязка к текущей кампании для ленивой загрузки.
+  Files: services/npc/l1_chronicle.py, services/tick_orchestrator.py
+
+`ADR-O-310` [STD] **Action Windup Registry & Execution Gate** — `windup_registry` перенесён на уровень `TickOrchestrator` (`self._windup_registry`). Живёт на уровне Orchestrator, переживает тики. WindupWriteGate перехватывает ATTACK для создания `ActionWindup`. EventDTO не публикуется сразу, он публикуется в Фазе 7 (Windup Execution Gate).
+  Taboo: ❌ Публикация EventDTO атак с windup до Фазы 7. ❌ Создание windup registry вне TickOrchestrator.
+  Files: services/tick_orchestrator.py
+
+`ADR-TZ08-8` [ONTO] **Explicit PerceptionProjector Step** — Вызов `PerceptionProjector` вынесен из ядра симуляции в `game_loop` как явный шаг снапшота (Explicit snapshot step).
+  Files: services/game_loop/__init__.py
+
+`ADR-S96.3` [FIX] **Needs Temporal Unification (Triple Truth Elimination)** — Устранён разрыв между `LifeEngine._tick_needs`, `NeedEngine` и `reconcile_state`. Все три системы теперь используют единую скорость роста потребностей, производную от `TemporalConstants.NEED_DECAY_PER_TICK` (0.08). Для `body_state` (шкала 0-100) применяется множитель `* 100.0`.
+  Taboo: ❌ Локальные хардкоды `hunger_rate` или `decay_rate` для `FOOD`, не синхронизированные с `TemporalConstants`. ❌ Использование `elapsed_seconds` напрямую для роста потребностей в обход `ticks_equivalent`.
+  Files: core/constants.py, npc/life_engine.py, models/economy.py
 
 ---
 
@@ -164,6 +192,9 @@
 
 `ADR-031` [ONTO] **Cumulative Strain Model** — Убита матрица `action × temperament`. `IntentPressureResolver` → `IntentPressureProfile`
   Files: will.py, affect.py
+
+`ADR-032` [STD] **Intent Resolution Pipeline Contract** — Контракт результата шлюза воли (`IntentResolution`). Фаза 1 публикует события игрока на EventBus и обеспечивает строгий типизированный контракт для `PipelineContext`.
+  Files: app/models/locomotion.py, app/models/pipeline_context.py, services/game_loop/phase_1_input.py
 
 `ADR-034` [STD] **Phase 1 Boundary Adapter** — Бизнес-логика воли изгнана из `game_loop`. Фаза 1 — чистая функция
   Files: game_loop.py, phase_1_input.py
@@ -196,7 +227,7 @@
 `ADR-067` [STD] **Player Command Override** — Приказ игрока перекрывает ЛЮБОЕ решение DecisionHub
   Files: tick_orchestrator.py, npc_tick_pipeline.py
 
-`ADR-068` [FIX] **Partial Name Matching** — NPC с составными именами отзываются на часть имени (≥3 символов)
+`ADR-068A` [FIX] **Partial Name Matching** — NPC с составными именами отзываются на часть имени (≥3 символов)
   Files: npc_tick_pipeline.py
 
 `ADR-081` [STD] **Cognitive Overlay (T+0)** — Инжект шок-импульса > 0.5 мгновенно через Когнитивный Оверлей
@@ -249,11 +280,15 @@
 `ADR-S86.4` [STD] **TZ-02 BehaviorMask Hysteresis (S86)** — `BehaviorMask` назначается на основе state перед DecisionHub. Введён как квазистабильный (гистерезисный) социальный слой, предотвращающий мерцание социальных ролей.
   Files: tick_orchestrator.py
 
+`ADR-S93.2` [ONTO] **Secondary Cognitive Contour (PE Active Inference)** — Внедрён `PEModifierResolver` и `ExpectationStore`. Ожидания (T-1) преобразуются в `drive_modifiers` (T0) через `tanh` нормализацию и `MAX_PE_INF` (Clamp = 0.25). PE не может доминировать над DRF. `StateApplicator` является Single Writer для EMA-обновления. 
+  Taboo: ❌ Вычисление EMA вне `StateApplicator`. ❌ Прямое управление интентами на основе PE (только через `drive_modifiers`). ❌ Влияние PE на utility > 0.25.
+  Files: expectation_store.py, pe_modifier_resolver.py, tick_orchestrator.py, state_applicator.py, domain/tick.py
+
 `ADR-TZ08-3` [ONTO] **Rules as Pure Reducer (RulesSubscriber)** — Асинхронный RulesAgent удалён. Введён `RulesSubscriber` (`app/services/events/rules_subscriber.py`) как pure reducer: `function(event, snapshot) → delta`. Не имеет состояния, не мутирует снапшот, использует детерминированный seed для бросков d20. 
   Taboo: ❌ Асинхронные вызовы LLM/Rules внутри `game_loop` до применения состояния. ❌ Наличие state/cache в RulesSubscriber.
   Files: events/rules_subscriber.py
 
-`ADR-TZ08-5` [ONTO] Narrative Projection in game_loop — Вычисление dm_frame и RulesDelta перенесено из TickOrchestrator в game_loop. Ядро возвращает только state_t+1 (TickResultDTO). Taboo: ❌ Вызов LLM или Rules-агентов внутри _run_core_phases. Files: game_loop/init.py, events/rules_subscriber.py`ADR-TZ08-5` [ONTO] Narrative Projection in game_loop — Вычисление dm_frame и RulesDelta перенесено из TickOrchestrator в game_loop. Ядро возвращает только state_t+1 (TickResultDTO). Taboo: ❌ Вызов LLM или Rules-агентов внутри _run_core_phases. Files: game_loop/init.py, events/rules_subscriber.py
+`ADR-TZ08-5` [ONTO] Narrative Projection in game_loop — Вычисление dm_frame и RulesDelta перенесено из TickOrchestrator в game_loop. Ядро возвращает только state_t+1 (TickResultDTO). Taboo: ❌ Вызов LLM или Rules-агентов внутри _run_core_phases. Files: game_loop/init.py, events/rules_subscriber.py
 
 `ADR-TZ08-6` [ONTO] **Ontological Separation (observed_state)** — Разделение контрактов в момент генерации. Ядро генерирует `observed_state` (только name, description, narrative_cache) вместо `real_state` (сырой legacy dict с ментальными объектами). Эпистемический Барьер обеспечен онтологически, а не через runtime-фильтры. `WorldProjectionBuffer` зафиксирован как будущий слой оффскрин-симуляции, не влияющий на DM-контур.
 
@@ -270,9 +305,8 @@
   Taboo: ❌ Чтение `psyche` или `social_stats` в слое вербализации. ❌ Восстановление ментальных полей через инференс из `observed_state`.
   Files: verbalization/verbal_stance.py, verbalization/scene_outcome_builder.py
 
-`ADR-O-309` [ONTO] **WorldProjectionBuffer (Shadow Causality Layer)** — Stateless causal projection engine. Читает committed world state и генерирует `WorldProjectionEvent` (слухи, вторичные эффекты) как производный слой. Вызывается строго внутри `SceneStateManager.commit()` как pure function `project(state_t, state_t-1)`. НЕ является оффскрин-симулятором и НЕ выполняет автономное обновление мира.
-  Taboo: ❌ Изменение состояния мира (scene_state, npc_states). ❌ Запуск симуляции NPC (LifeEngine.tick). ❌ Использование reconcile_state как механизма движения. ❌ Хранение внутреннего состояния (stateless pure function only). ❌ Вызов проекции вне `SceneStateManager.commit()`.
-  Files: services/offscreen/world_projection_buffer.py, domain/world_projection.py, services/scene_state_manager.py
+`ADR-CNSRL` [DEP] **BreakProgressEngine Tech Debt** — Движок расчёта слома воли содержит технический долг, требующий рефакторинга (контракта с DecisionHub).
+  Files: services/npc/break_progress_engine.py
 
 ---
 
@@ -332,6 +366,9 @@
   Taboo: ❌ Чтение позиций из `scene_state`
   Files: spatial_query_service.py, npc_orchestration.py
 
+`ADR-044` [STD] **Single Spatial Authority in Tests** — В тестах и песочницах пространственная истина читается строго из `scene_state` (как SSR), а не из мёртвых кэшей.
+  Files: tests/sandbox/oscilloscope_closed_loop.py
+
 `ADR-051` [ONTO] **LifeEngine De-godification** — LifeEngine лишён права прямой мутации позиции
   Files: life_engine.py, tick_orchestrator.py
 
@@ -365,6 +402,9 @@
 
 `ADR-073` [STD] **Adjacency Inference** — Алгоритм вывода связей из смежности полигонов
   Files: graph_compiler.py
+
+`ADR-090` [FIX] **Node Center Fallback** — Если intent не имеет точных координат (schedule/flee), берётся центр узла из графа.
+  Files: services/spatial/movement_engine.py
 
 `ADR-095` [FIX] **Centroid Graph Compilation** — Вычисляет центр комнаты вместо левого верхнего угла
   Taboo: ❌ Левый верхний угол как позиция узла
@@ -460,6 +500,9 @@
   Taboo: ❌ Хранение состояния внутри `WorldTopologyProvider` (нарушение SRP). ❌ Очистка региона при смене локации (стигмергия должна жить). ❌ Смешивание Hard Overrides и Soft Traces в одном слое. ❌ Использование `Dict[str, float]` вместо `DeformationRecord` для структурных деформаций. ❌ Создание `WorldTopologyProvider` локально внутри методов тика. ❌ Использование рандомного `PATROL` (убивает социальную глубину).
   Files: world_topology_provider.py, motion_core.py, tick_orchestrator.py, motion_pipeline.py, life_engine.py
 
+`ADR-SHI-02` [FIX] **LifeEngine No-Op Guard & Position Recovery** — `LifeEngine._simulate_major` больше не генерирует `MovementIntent`, если целевая позиция совпадает с текущей (предотвращает BUG_V_GUARD). `_resolve_position` восстанавливает `node_id` из `local_position` через `SpatialService.get_nearest()` с пометкой `LOW_CONFIDENCE` при необходимости, предотвращая потерю NPC.
+  Files: services/npc/life_engine.py
+
 ## DOM-05: PHYSIOLOGY & COMBAT
 
 `ADR-015` [ONTO] **Physiology Domain** — Убиты RPG Hit Roll и AC. `body_profile`, `InjuryDTO`, `ImpactEngine`
@@ -496,7 +539,7 @@
   Taboo: ❌ `BehaviorManifestationService` читает эмоции вместо физиологии
   Files: behavior_manifestation_service.py
 
-`ADR-102` [FIX] **shock_impulse Not Applied** — Извлекал, но не применял
+`ADR-102A` [FIX] **shock_impulse Not Applied** — Извлекал, но не применял
   Files: state_applicator.py
 
 `ADR-103` [FIX] **NPC ID Fallback (apply_batch)** — Поиск по `"id"`, хотя dict использует `"npc_id"`
@@ -515,6 +558,12 @@
 `ADR-112` [FIX] **Semantic Inflation Fix (Rule X Enforcement)** — Переведены на `body_state` ONLY
   Taboo: ❌ Чтение `stress_delta`/`psyche_state` для моторных искажений
   Files: behavior_manifestation_service.py, phenomenology_projection_service.py
+
+`ADR-O-142` [ONTO] **State Resolution Binding (Consciousness FSM)** — Двухуровневая модель сознания. `NPCState.consciousness_state` (FSM: SLEEPING/AWAKE/UNCONSCIOUS/DEAD) — новый SoR. `routine["current"]` НЕ является FSM state. Arousal Gate = FSM MUTATOR.
+  Files: models/npc_state.py, services/npc/life_engine.py
+
+`ADR-O-142A` [FIX] **Arousal Gate (Missing Wake Edge)** — Спящий NPC пробуждается при `wake_pressure`. Behavior transition gate, NOT consciousness.
+  Files: services/npc/life_engine.py
 
 `ADR-123` [ONTO] **Vital State Evaluator & Injury-Physiology Bridge** — Смерть = процесс. `evaluate_vital_state()`
   Taboo: ❌ `hp <= 0` как источник смерти
@@ -544,9 +593,16 @@
   Taboo: ❌ `InjuryProcessor` генерирует `blood_loss` без `pain_delta`
   Files: injury_processor.py
 
+`ADR-GUARD` [FIX] **LifeEngine Deterministic Position Recovery** — Восстановление позиции NPC должно быть строго детерминированным.
+  Files: services/npc/life_engine.py
+
 `ADR-HP-UNIFICATION` [STD] **DOUBLE TRUTH HP Elimination (S86)** — Канонический источник HP — `body_state["current_hp"]`. Устаревший `state.hp` оставлен как deprecated-проекция и синхронизируется с `body_state` при уроне.
   Taboo: ❌ Прямая запись в `state.hp` в обход `body_state["current_hp"]`.
   Files: npc_state.py, state_applicator.py
+
+`ADR-S96.4` [ONTO] **Causal Needs Loop Closure** — Восстановлен замкнутый контур каузальности потребностей. Ранее существовал скрытый аттрактор: `Need ↑ → neglected_ticks ↑ → stress ↑ → degradation ↑` без обязательного обратного пути. `NeedEngine.tick()` теперь принимает `current_activity` и вызывает `EconomicProfile.satisfy_need()`, замыкая цикл: `Pressure → Decision → Activity → Satisfaction → Relief`. 
+  Taboo: ❌ Рост `neglected_ticks` без последующего удовлетворения при выполнении активности. ❌ Односторонние клапаны давления (рост без легитимного спада).
+  Files: economy/need_engine.py, npc/domain_phases.py, npc/npc_tick_pipeline.py, game_loop/phase_2_world_tick.py, tests/sandbox/SUPERBOX/npc_sandbox.py
 
 ---
 
@@ -590,10 +646,30 @@
 
 ## DOM-07: FRONTEND, PRESENTATION & INPUT
 
+`ADR-0017` [STD] **Character Creation Vector** — Диалог создания персонажа через Вектор Начальных Условий.
+  Files: frontend/character_select.py
+
+`ADR-030` [ONTO] **Hybrid Consciousness Entity (Avatar Injection)** — Игрок становится полноправным NPC в симуляции. Инъекция Аватара Игрока как Гибридной Сущности.
+  Files: app/models/schemas.py, services/game_loop/__init__.py, frontend/character_select.py
+
+`ADR-075` [STD] **Strict Embodiment Contract** — Строго типизированный транспорт Эмбодимента через каузальную границу API. Если поле пропадёт — краш схемы, а не тихий None. Idle-тики не содержат Волевых конфликтов.
+  Taboo: ❌ Использование `getattr` для полей Embodiment. ❌ Возврат тихого `None` при отсутствии поля.
+  Files: app/domain/tick.py, app/api/routes.py, frontend/api_client.py, frontend/game_loop_bridge.py
+
+`ADR-082` [FIX] **Case-Insensitive Routing** — NLP возвращает 'ATTACK', маппинг ждет 'attack'. Введена нормализация регистра.
+  Files: services/game_loop/phase_1_input.py
+
+`ADR-GENDER` [STD] **Avatar Gender Persistence** — Эндпоинт смены пола аватара. Обязательная персистенция пола аватара. Без этого поле теряется при save/load.
+  Files: app/api/routes.py, services/player_avatar_service.py
+
+`ADR-MANIFEST` [STD] **Observable Physical Manifestations** — Конвертация domain manifestations → API ManifestationDTO. Наблюдаемые физические проявления (НЕ эмоции!). Бэкенд — единственный источник истины.
+  Taboo: ❌ Вычисление manifestations на фронтенде.
+  Files: services/integration/world_snapshot_builder.py, services/perception/phenomenology_projection_service.py, frontend/game_screen.py, frontend/scene_renderer.py
+
 `ADR-011/014` [STD] **Narrative Beats** — Убран плоский чат. Пузыри, спикеры
   Files: game_screen.py, narrative_renderer.py
 
-`ADR-035` [ONTO] **Intent Compression** — Русская морфология (pymorphy3 + LLM)
+`ADR-035B` [ONTO] **Intent Compression** — Русская морфология (pymorphy3 + LLM)
   Files: intent_compressor.py
 
 `ADR-038` [STD] **Embodied Perception DTO** — Скаляры давления и моторные импульсы
@@ -650,13 +726,16 @@
 
 `ADR-TZ08-4` [ONTO] Epistemic Boundary (DM as Observer) — DM-агент переведён в режим строго локальной эпистемики. Нарратив рождается исключительно из player_perception и rules_result. Доступ к внутренним состояниям NPC (stress_delta, trust_delta, real_state, recalled_facts, suppressed_secrets) заблокирован на уровне r3_direct_builder и dm_agent. Taboo: ❌ Чтение ментальных объектов NPC в слое интерпретации. ❌ Возврат dm_frame из ядра симуляции. Files: scene/r3_direct_builder.py, agents/dm_agent.py, tick_orchestrator.py, game_loop/init.py
 
-`ADR-TZ05-1` [ONTO] DM Output Contract Layer — Изоляция логики восстановления текста из ответов LLM в DMResponseNormalizer. DM-агент перестал быть парсером, став чистым оркестратором. Taboo: ❌ Парсинг JSON-схем внутри dm_agent.py. ❌ Возврат дефолтного EmotionalVector (aggression=0.0) для ATTACK. Files: services/verbalization/dm_response_normalizer.py, agents/dm_agent.py
+`ADR-TZ05-2` [ONTO] DM Output Contract Layer — Изоляция логики восстановления текста из ответов LLM в DMResponseNormalizer. DM-агент перестал быть парсером, став чистым оркестратором. Taboo: ❌ Парсинг JSON-схем внутри dm_agent.py. ❌ Возврат дефолтного EmotionalVector (aggression=0.0) для ATTACK. Files: services/verbalization/dm_response_normalizer.py, agents/dm_agent.py
 
 `ADR-TZ05-2` [ONTO] Prompt Governance & Mock Exclusion — Синхронизация промпта LLM с валидатором. Forbidden-список генерируется динамически из контракта. MockProvider недоступен в production. Taboo: ❌ Хардкод max_tokens в dm_agent.py. ❌ Использование MockProvider при settings.environment == "production". Files: prompts/dm_system.txt, services/verbalization/dm_contract_builder.py, services/llm/factory.py, core/config.py
 
 ---
 
 ## DOM-08: OBSERVABILITY (CDS & Sandbox)
+
+`ADR-DEBUG-001` [STD] **Explicit WARNING Level for Causal Loggers** — Явное включение WARNING для каузально-критичных логгеров в `main.py`.
+  Files: backend/app/main.py
 
 `ADR-003` [STD] **Test Determinism** — Синтетические фабрики вместо I/O фикстур
   Files: test_factories.py
@@ -695,6 +774,9 @@
   Taboo: ❌ Игнорирование падения тестов в `invariants/` ради запуска фич.
   Files: backend/tests/sandbox/invariants/test_cross_layer_consistency.py
 
+`ADR-SHI-01` [FIX] **CDS Pipeline Repair (SHI=0% Fix)** — Восстановлена труба логирования. Regex в `pattern_registry.py` обновлён для парсинга отрицательных score (`-?[\d.]+`). Устранён `NameError` (`hub_event`) в `npc_tick_pipeline.py`. Симуляция снова "видима" для CDS.
+  Files: diagnostics/pattern_registry.py, services/npc/npc_tick_pipeline.py
+
 ---
 
 ## DOM-09: SOCIAL & AFFECTIVE ARCHITECTURE (SSOT & Causal Derivation)
@@ -711,6 +793,13 @@
 
 `ADR-O-206` [ONTO] **Emotional Residue Isolation Protocol** — Эмоциональный остаток изолирован от физиологического цикла
   Files: affective_integrator.py, physiology_decay_handler.py
+
+`ADR-DET-02` [FIX] **Domain Boundary Integrity (PE_DISAPPOINTMENT Leak)** — Устранена прямая мутация `trust_delta` (SOCIAL field) из `EMOTION` handler. Модуляция разочарования (PE < -0.3) теперь применяется строго внутри блока `DeltaDomain.SOCIAL`, соблюдая Single Writer Policy (I-CORE-05). Установлена основа для будущего перехода на event-mediated influence (EmotionalSignal).
+  Files: services/npc/state_applicator.py
+
+`ADR-S96.2` [FIX] **Affective Pipeline DOUBLE TRUTH Elimination** — Убито дублирование логики аффективного интегратора в `TickOrchestrator` (idle vs player paths). Мёртвый `pressure_derivation.py` удалён. `integrate_affective_pressure` стал единственным владельцем Active Inference + Hysteresis, возвращая `Tuple[new_load, new_memory]`. 
+  Taboo: ❌ Возврат к инлайн-вычислению `pk_load` и `affective_memory` в `TickOrchestrator`. ❌ Воскрешение `pressure_derivation.py`. ❌ Интегратору запрещено влиять на policy (scoring/decisions) — он вычисляет только state.
+  Files: affective/affective_integrator.py, tick_orchestrator.py, affective/pressure_derivation.py (DELETED)
 
 ---
 
@@ -741,9 +830,9 @@
 `ADR-O-209/210` [ONTO] **Phase-Locked Identity & Bounded Spatial Field Coupling** — Фазовая блокировка идентичности и ограниченная связь с пространственным полем
   Files: decision/profile_math.py, spatial_service.py
 
-`ADR-O-211` [ONTO] **Calibration Engine & Identity Stability Kernel** — 💀 DEPRECATED для скалярных драйвов. Переведён в pass-through режим. Стресс-тест (50k тиков) выявил накопление шума (Test C: интеграл осцилляций). Стабилизация драйвов признана тупиком — кристаллизоваться должны причины (Убеждения), а не эмоции (скаляры)
-  Taboo: ❌ Гистерезис на скалярных драйвах (накопление шума от немотивированных угроз). ❌ Мутация drives_runtime минуя Belief Layer (применение ctx.drives_updates к стейту запрещено).
-  Files: services/npc/calibration_engine.py
+`ADR-O-211` [ONTO] **Calibration Engine & Identity Stability Kernel** — Pure Projection Gate. CalibrationEngine исключён из каузального графа мутаций состояния. Не эмитирует апдейты, только валидирует и пропускает L3_raw. Эмоциональное взросление полностью делегировано в L2.5 (BeliefCrystallizationEngine). Стресс-тест (50k тиков) выявил накопление шума (Test C). Стабилизация драйвов признана тупиком — кристаллизоваться должны причины (Убеждения), а не эмоции (скаляры).
+  Taboo: ❌ Гистерезис на скалярных драйвах. ❌ Эмиссия state mutations из CalibrationEngine. ❌ Мутация drives_runtime минуя Belief Layer.
+  Files: services/npc/calibration_engine.py, services/npc/belief_crystallization_engine.py
 
 `ADR-O-212` [ONTO] **Social Physics Inertia & Approximation** — Социальная физика — функция аппроксимации поведения группы во времени. 4 слоя: Физика, Психика, Общество (VillageMemoryField), Политика (InstitutionLayer). Институциональная инерция запрещает мгновенную эскалацию
   Taboo: ❌ Narrative Gravity как отдельный слой данных (Double Truth). ❌ Мгновенная реакция InstitutionLayer. ❌ resistance_to_change = 0.0. ❌ myth_level от количества убийств
@@ -783,4 +872,24 @@
   Taboo: ❌ Использование `event_type` в математических формулах PatternDetector. ❌ Выход `effect_value` за пределы [-1.0, 1.0]. ❌ Зависимость `NOISE_THRESHOLD` от размера окна (только абсолютный `MIN_EVENTS`)
   Files: pattern_detector.py, domain/identity_events.py
 
-`ADR-O-309` [ONTO] **WorldProjectionBuffer (Shadow Causality Layer)** — Stateless causal projection engine. Читает committed world state и генерирует WorldProjectionEvent (слухи, вторичные эффекты) как производный слой. НЕ является оффскрин-симулятором и НЕ выполняет автономное обновление мира. Taboo: ❌ Изменение состояния мира (scene_state, npc_states). ❌ Запуск симуляции NPC (LifeEngine.tick). ❌ Использование reconcile_state как механизма движения. ❌ Хранение внутреннего состояния (stateless pure function only). Files: services/offscreen/world_projection_buffer.py, domain/world_projection.py
+`ADR-O-309` [ONTO] **WorldProjectionBuffer (Shadow Causality Layer)** — Stateless causal projection engine. Читает committed world state и генерирует WorldProjectionEvent (слухи, вторичные эффекты) как производный слой. НЕ является оффскрин-симулятором и НЕ выполняет автономное обновление мира.
+  Taboo: ❌ Изменение состояния мира (scene_state, npc_states). ❌ Запуск симуляции NPC (LifeEngine.tick). ❌ Использование reconcile_state как механизма движения. ❌ Хранение внутреннего состояния (stateless pure function only). ❌ Вызов проекции вне `SceneStateManager.commit()`.
+  Files: services/offscreen/world_projection_buffer.py, domain/world_projection.py, services/scene_state_manager.py
+
+`ADR-S93.3` [FIX] **L2.5 PatternDetector & Belief Engine Implementation** — Stub-методы `PatternDetector` заменены на чтение `L1Chronicle` через инъекцию зависимости. Порог `MIN_EVENTS_FOR_PERSISTENCE` понижен до 3. `BeliefCrystallizationEngine` применяет асимметричную травму (x6).
+  Taboo: ❌ Использование `PatternDetector` без передачи `L1Chronicle` в конструктор. ❌ Жёсткие пороги (if/else) в формировании убеждений.
+  Files: pattern_detector.py, belief_crystallization_engine.py, tick_orchestrator.py
+
+`ADR-DM-001` [STD] **DM Prompt Minimum Contract** — В промпте DM ВСЕГДА минимум (локация + кто рядом). Никогда не пропускать автоматически. Симптомы — ВСЕГДА. DM описывает что видит игрок, даже в диалоге. NPC онтология — ВСЕГДА в промпте. Без этого DM не знает КТО перед ним.
+  Taboo: ❌ Автоматический пропуск блоков локации/симптомов/NPC онтологии в сборке DM-промпта.
+  Files: agents/dm_agent.py
+
+`ADR-O-148` [STD] **Canonical NPC Name** — Каноническое имя NPC — единый источник истины для DM-агента.
+  Files: agents/dm_agent.py
+
+`ADR-O-311` [STD] **Exposure Default Contract** — Радиус выводится из semantic exposure level по умолчанию.
+  Files: app/domain/communication.py
+
+`ADR-S96.1` [ONTO] **L2.5 → L3 Projection Contract Closure** — `DriveResolver` переключён с сырых L1 событий на `CrystallizedBelief` (L2.5). Закрыт контур легитимной мутации драйвов (ADR-O-211). `resolve_drives` теперь принимает `beliefs: List[CrystallizedBelief]` и применяет их к `drives_base` (L0) для формирования эфемерной проекции (L3). Устранён `pass` (L3=L0).
+  Taboo: ❌ Возврат к чтению L1Chronicle внутри DriveResolver. ❌ Прямая мутация L0 минуя Belief Layer.
+  Files: drive_resolver.py, tick_orchestrator.py

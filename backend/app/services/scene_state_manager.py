@@ -30,6 +30,7 @@ SceneState хранится в:
 from __future__ import annotations
 
 import contextlib
+import time
 
 import json
 import math
@@ -57,13 +58,13 @@ _LOG_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def _scene_log_file() -> Path:
-    return _LOG_DIR / f"scene_changes_{datetime.now().strftime('%Y%m%d')}.jsonl"
+    return _LOG_DIR / f"scene_changes_{datetime.now().strftime('%Y%m%d')}.jsonl"  # §15.2: Logging/telemetry
 
 
 def _log_change(change: SceneChange, campaign_id: str, applied: bool) -> None:
     """Логирует SceneChange в scene_changes_YYYYMMDD.jsonl."""
     entry = {
-        "ts":          datetime.now().isoformat(timespec="seconds"),
+        "ts":          datetime.now().isoformat(timespec="seconds"),  # §15.2: Logging/telemetry
         "campaign_id": campaign_id,
         "applied":     applied,
         **change.to_dict(),
@@ -1301,10 +1302,13 @@ class SceneStateManager:
                         location_id = scene_state.get("location_id", "")
                         target_loc = getattr(change, 'target_location_id', '') or location_id
                         try:
-                            from app.services.spatial.spatial_service import SpatialService
-                            svc = SpatialService.build_for_location(campaign_id=campaign_id, location_id=target_loc, scene_state=scene_state)
+                            from app.services.spatial.spatial_factory import SpatialFactory
+                            svc = SpatialFactory.build_for_campaign(campaign_id=campaign_id, location_id=target_loc, scene_state=scene_state)
                             if node := svc.get_node(change.value) or svc.get_node(f"{target_loc}:{change.value}"):
                                 entry["local_position"] = {"x": node.x, "y": node.y}
+                                # FIX: Обновляем семантическую позицию, чтобы LifeEngine на следующем тике
+                                # видел, что NPC уже на месте, и не генерировал новый MovementIntent.
+                                entry["position"] = change.value
                             if target_loc:
                                 entry["location"] = target_loc
                                 entry["location_id"] = target_loc
@@ -1322,16 +1326,22 @@ class SceneStateManager:
                                 logger.debug(f"[TRAVERSAL_FSM] npc={change.target} status → COMPLETED (SSM ownership)")
                             else:
                                 logger.warning(f"[TRAVERSAL_FSM] npc={change.target} transition to COMPLETED blocked — current status={_at[change.target].get('status')}")
+                            # FIX: Завершение транзита не должно проваливаться в блок создания нового транзита!
+                            return True
                     else:
                         logger.debug(f"[ARCH GUARD] Causal relocation: npc={change.target} → node={change.value}")
                         location_id = scene_state.get("location_id", "")
+                        # FIX: NOOP guard. Если NPC уже на месте, не создаём новый транзит.
+                        if entry.get("position") == change.value:
+                            logger.debug(f"[SSM] NOOP: {change.target} already at {change.value}")
+                            return True
                     # ADR-060: кросс-локационное перемещение — используем целевую локацию из SceneChange
                     target_loc = getattr(change, 'target_location_id', '') or location_id
                     if target_loc and change.value:
                         try:
-                            from app.services.spatial.spatial_service import SpatialService
+                            from app.services.spatial.spatial_factory import SpatialFactory
                             
-                            svc = SpatialService.build_for_location(
+                            svc = SpatialFactory.build_for_campaign(
                                 campaign_id=campaign_id, location_id=target_loc, scene_state=scene_state
                             )
                             # ADR-056: Safe Spatial Fallback. Узел не найден — макро-перемещение отменяется.
@@ -1394,9 +1404,11 @@ class SceneStateManager:
                                     if exact_xy and isinstance(exact_xy, (tuple, list)) and len(exact_xy) == 2:
                                         to_xy = {"x": float(exact_xy[0]), "y": float(exact_xy[1])}
                                     else:
-                                        # ADR-056: LOD1 Macro-jitter. NPC не сливаются в центр узла
-                                        import random
-                                        to_xy = {"x": node.x + random.uniform(-0.4, 0.4), "y": node.y + random.uniform(-0.4, 0.4)}
+                                        # A4-FIX: RNG → KernelRNG (deterministic jitter).
+                                        # Раньше: random.uniform — nondeterministic, ломал replay.
+                                        from app.services.npc.kernel_rng import KernelRNG
+                                        _jitter_rng = KernelRNG(tick=change.tick, npc_id=change.target, salt="apply_change_jitter")
+                                        to_xy = {"x": node.x + _jitter_rng.uniform(-0.4, 0.4), "y": node.y + _jitter_rng.uniform(-0.4, 0.4)}
                                     # Телепортация только если уже на месте (микро-перемещение)
                                     if abs(from_xy.get("x", 0) - to_xy.get("x", 0)) < 0.1 and abs(from_xy.get("y", 0) - to_xy.get("y", 0)) < 0.1:
                                         entry["local_position"] = to_xy
@@ -1446,9 +1458,12 @@ class SceneStateManager:
                                                 _create_traversal = True
                                             # BUG V GUARD: Если from_node совпадает с target_node,
                                             # транзит бессмысленен и вызовет визуальную заморозку NPC.
-                                            # Это происходит при дублировании SceneChange от LifeEngine и DecisionHub.
-                                            if _old_position == change.value:
-                                                logger.warning(f"[BUG_V_GUARD] npc={change.target} from_node==target_node={change.value} — TRAVERSAL SKIPPED")
+                                            # Нормализуем ID узла, чтобы избежать mismatch (bar_area vs tavern_silver_wolf:bar_area).
+                                            _loc = target_loc or location_id
+                                            _norm_old_pos = _old_position if ":" in _old_position else f"{_loc}:{_old_position}" if _old_position else ""
+                                            _norm_new_pos = change.value if ":" in change.value else f"{_loc}:{change.value}" if change.value else ""
+                                            if _norm_old_pos == _norm_new_pos:
+                                                logger.warning(f"[BUG_V_GUARD] npc={change.target} from_node==target_node={_norm_new_pos} — TRAVERSAL SKIPPED")
                                                 _create_traversal = False
                                                 
                                             if _create_traversal:
@@ -1705,9 +1720,7 @@ class SceneStateManager:
         # Отдельно от тика: время — ось, состояние — срез (Устав §3)
         scene_state["_version"] = scene_state.get("_version", 0) + 1
         
-        # ADR-047: Метка реального времени для аналитического согласования при загрузке
-        import time as _time
-        scene_state["last_save_real_time"] = _time.time()
+        scene_state["last_save_real_time"] = time.time()  # §15.2: REAL_TIME_BRIDGE (ADR-047)
 
         # ADR-O-309: WorldProjectionBuffer (Shadow Causality).
         # Запускается внутри atomic commit boundary ДО persistence и обновления state_t-1.
@@ -1870,8 +1883,8 @@ class SceneStateManager:
         # SpatialService — единый источник координат узлов (ADR-0006)
         svc = None
         try:
-            from app.services.spatial.spatial_service import SpatialService
-            svc = SpatialService.build_for_location(
+            from app.services.spatial.spatial_factory import SpatialFactory
+            svc = SpatialFactory.build_for_campaign(
                 campaign_id=campaign_id, location_id=location_id, scene_state=scene_state
             )
         except Exception as e:
@@ -1965,14 +1978,18 @@ class SceneStateManager:
                     _init = initial_nodes.get(npc_id, "")
                     if _init:
                         _fallback_node = svc.get_node(_init) or svc.get_node(f"{location_id}:{_init}")
-                    # 2. Вход в локацию
+                    # B2-FIX: убрать fallback на entrance (телепортация к двери).
+                    # No fallback reality principle — если нет ноды, fail-fast к центру графа.
                     if not _fallback_node:
-                        _fallback_node = svc.get_node("entrance") or svc.get_node(f"{location_id}:entrance")
-                    # 3. Любой узел графа лучше чем (0,0)
-                    if not _fallback_node:
-                        for _nref in svc._graph.values():
-                            _fallback_node = _nref
-                            break
+                        _central = svc.get_central_node() if hasattr(svc, 'get_central_node') else None
+                        if _central:
+                            _fallback_node = _central
+                        else:
+                            logger.error(
+                                f"[SPATIAL_ENRICH] CRITICAL: no fallback node for npc={npc_id}. "
+                                f"Graph is broken. NPC skipped (no local_position assigned)."
+                            )
+                            continue
                 if _fallback_node:
                     entry["local_position"] = {"x": _fallback_node.x, "y": _fallback_node.y}
                     logger.warning(
@@ -1980,10 +1997,8 @@ class SceneStateManager:
                         f"'{_fallback_node.node_id}' ({_fallback_node.x}, {_fallback_node.y})"
                     )
                 else:
-                    entry["local_position"] = {"x": 0.0, "y": 0.0}
                     logger.error(
-                        f"[SPATIAL_ENFORCEMENT] NPC '{npc_id}' — ГРАФ ПУСТ, нет ни одного узла! "
-                        f"(0.0, 0.0) — КРИТИЧЕСКАЯ ОШИБКА ГРАФА"
+                        f"[SPATIAL_ENFORCEMENT] NPC '{npc_id}' — ГРАФ ПУСТ! NPC skipped."
                     )
 
     def update_npc_position(

@@ -10,6 +10,7 @@ from __future__ import annotations
 import math
 from typing import Tuple, TYPE_CHECKING
 from app.domain.motion_core import DriveVector, KinematicProfile, BodySchema, AffordanceVector, MotionPrimitive
+from app.core.constants import ETKE_IK_SUBSTEP_DT
 
 if TYPE_CHECKING:
     from app.services.spatial.world_topology_provider import WorldTopologyProvider
@@ -58,8 +59,8 @@ class CollisionAvoidance:
                 
                 # S91: Предсказываем позицию другого NPC (Velocity Awareness)
                 other_vel = npc_pos_data.get("velocity", (0.0, 0.0))
-                other_future_x = ox + other_vel[0] * 0.1  # dt = 0.1
-                other_future_y = oy + other_vel[1] * 0.1
+                other_future_x = ox + other_vel[0] * ETKE_IK_SUBSTEP_DT
+                other_future_y = oy + other_vel[1] * ETKE_IK_SUBSTEP_DT
                 
                 dist = math.hypot(future_pos[0] - other_future_x, future_pos[1] - other_future_y)
                 if dist < CollisionAvoidance.NPC_RADIUS:
@@ -115,8 +116,8 @@ class CollisionAvoidance:
             
             # S91: Предсказываем позицию другого NPC
             other_vel = npc_pos_data.get("velocity", (0.0, 0.0))
-            other_future_x = ox + other_vel[0] * 0.1
-            other_future_y = oy + other_vel[1] * 0.1
+            other_future_x = ox + other_vel[0] * ETKE_IK_SUBSTEP_DT
+            other_future_y = oy + other_vel[1] * ETKE_IK_SUBSTEP_DT
             
             dist = math.hypot(check_pos[0] - other_future_x, check_pos[1] - other_future_y)
             if dist < CollisionAvoidance.NPC_RADIUS:
@@ -139,7 +140,7 @@ class SteeringResolver:
         body: BodySchema,
         affordance: AffordanceVector,
         current_velocity: Tuple[float, float],
-        dt: float = 0.1
+        dt: float = ETKE_IK_SUBSTEP_DT  # ADR-O-302: Numeric substep
     ) -> Tuple[float, float]:
         """Вычисляет новую скорость (vx, vy).
         
@@ -201,7 +202,7 @@ class MotionIntegrator:
         velocity: Tuple[float, float],
         body: BodySchema,
         affordance: AffordanceVector,
-        dt: float = 0.1
+        dt: float = ETKE_IK_SUBSTEP_DT  # ADR-O-302: Numeric substep
     ) -> Tuple[float, float]:
         """Обновляет позицию.
         
@@ -231,7 +232,7 @@ class MotionIntegrator:
         velocity: Tuple[float, float],
         body: BodySchema,
         current_exertion: float,
-        dt: float = 0.1
+        dt: float = ETKE_IK_SUBSTEP_DT
     ) -> float:
         """Вычисляет уровень усталости (exertion_level).
         

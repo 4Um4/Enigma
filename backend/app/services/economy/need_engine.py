@@ -77,6 +77,15 @@ class NeedDrive:
         return self.strength > 0.85
 
 
+# Маппинг: Активность -> Потребность (для удовлетворения)
+_ACTIVITY_TO_NEED: Dict[str, NeedType] = {
+    "eating": NeedType.FOOD,
+    "resting": NeedType.SHELTER,
+    "socializing": NeedType.SOCIAL,
+    "dwelling": NeedType.SHELTER,
+    "drinking": NeedType.SOCIAL,
+}
+
 @dataclass
 class NeedEngine:
     """
@@ -84,13 +93,23 @@ class NeedEngine:
     Вызывается каждый мирный тик для обновления состояния.
     """
     
-    def tick(self, profile: EconomicProfile) -> List[NeedDrive]:
+    def tick(self, profile: EconomicProfile, current_activity: str = "") -> List[NeedDrive]:
         """
         Обрабатывает один тик для NPC.
         
+        Args:
+            profile: Экономический профиль NPC.
+            current_activity: Текущая активность NPC (из routine).
+            
         Returns: список активных драйвов (urgency > 0.6)
         """
         drives: List[NeedDrive] = []
+        
+        # 0. Удовлетворение потребностей через активность (ADR-S96.4)
+        if current_activity:
+            for activity, need_type in _ACTIVITY_TO_NEED.items():
+                if activity in current_activity:
+                    profile.satisfy_need(need_type)
         
         # 1. Обновляем neglected_ticks для всех потребностей
         profile.tick_needs()

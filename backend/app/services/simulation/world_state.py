@@ -188,7 +188,9 @@ class WorldTokenBudget:
             "player_position":      scene_state.get("player_position"),
             "player_target_npc":    scene_state.get("player_target_npc"),
             "player_target_npc_name": scene_state.get("player_target_npc_name"),
-            "player_distances":     scene_state.get("player_distances", {}),
+            # A3-FIX: убран zombie reader. SpatialQueryService — canonical source,
+            # не дублируется в token-budget копии.
+            # "player_distances" больше не существует в scene_state (ADR-048).
             "active_effects":       scene_state.get("active_effects", []),
         }
 

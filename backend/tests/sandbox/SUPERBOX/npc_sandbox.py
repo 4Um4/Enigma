@@ -1,5 +1,5 @@
 """
-backend/npc_sandbox.py
+backend/tests\sandbox\SUPERBOX/npc_sandbox.py
 Автономная симуляция NPC — N тиков без pygame/LLM.
 
 Запуск: cd backend ; python npc_sandbox.py           # 40 тиков (по умолчанию)
@@ -17,7 +17,6 @@ backend/npc_sandbox.py
 - CSV для Excel
 - Графики (matplotlib, если установлен)
 
-path: /backend/npc_sandbox.py
 Назначение: Симуляция NPC для отладки баланса
 Зависимости: app.models.*, app.services.npc.*, app.services.economy.*, matplotlib (опционально)
 Основные сущности: SandboxConfig, TickSnapshot, NPCSandbox, SandboxReporter
@@ -128,11 +127,14 @@ class NPCSandbox:
         from app.services.economy.need_engine import NeedEngine
         from app.services.economy.economic_modifier import EconomicModifier
         from app.services.npc.state_applicator import StateApplicator
+        from app.services.npc.drive_resolver import DriveResolver
+        from app.domain.identity_events import EffectiveDrives
 
         hub = DecisionHub()
         need_engine = NeedEngine()
         eco_mod = EconomicModifier()
         applicator = StateApplicator(relationship_store=None)
+        drive_resolver = DriveResolver()
 
         from app.services.economy.transaction_engine import TransactionEngine
         from app.services.economy.trade_resolver import TradeResolver
@@ -163,6 +165,7 @@ class NPCSandbox:
 
         # 5. Цикл тиков
         for tick in range(1, self.config.tick_count + 1):
+            print(f"[SANDBOX] === TICK {tick} ===")
             from app.models.npc_state import Intent, NPCState as NPCStateModel
             from app.services.events.event_types import EventType
 
@@ -215,9 +218,14 @@ class NPCSandbox:
 
                 # === DECISION HUB ===
                 try:
+                    # ADR-O-304: DecisionHub требует L3 проекцию (effective_drives).
+                    # В песочнице используем L0 + пустые убеждения (L2.5), так как нет L1Chronicle.
+                    _effective_drives = drive_resolver.resolve_drives(profile_l0, None)
+                    
                     result = hub.compute(
                         state=state_l2,
                         personality=profile_l0,
+                        effective_drives=_effective_drives,
                         event=tick_event,
                         scene_state={},
                         social_modifiers=eco_modifiers if eco_modifiers else None,
@@ -236,6 +244,7 @@ class NPCSandbox:
                         current_tick=tick,
                     )
                 except Exception as e:
+                    print(f"[SANDBOX_ERROR] npc={npc_id} tick={tick} error={e}")
                     intent_str = "ERROR"
                     intent_score = 0.0
                     new_state = state_l2
@@ -446,21 +455,19 @@ class NPCSandbox:
         if not runtime_path.exists():
             # Fallback: data/campaigns (дефолтный _saves_dir в game_loop)
             runtime_path = _project_root / "data" / "campaigns" / self.config.campaign_id / "npc_runtime.json"
-        if not runtime_path.exists():
-            print(f"[SANDBOX] npc_runtime.json не найден по обоим путям")
-            print(f"  Искал: {runtime_path}")
-            return []
 
         try:
-            raw_npcs = load_npcs_merged(runtime_path=runtime_path)
+            # ADR-S96.4: Self-seeding sandbox. Если runtime_path не существует,
+            # load_npcs_merged загрузит чистый static из config/npc/individuals/.
+            if runtime_path.exists():
+                raw_npcs = load_npcs_merged(runtime_path=runtime_path)
+                print(f"[SANDBOX] Загружен runtime: {runtime_path}")
+            else:
+                print(f"[SANDBOX] npc_runtime.json не найден. Self-seeding из static config...")
+                raw_npcs = load_npcs_merged() # Без аргументов = чистый static
         except Exception as e:
             print(f"[SANDBOX] load_npcs_merged ошибка: {e}")
-            # Fallback: читаем напрямую
-            try:
-                raw_npcs = json.loads(runtime_path.read_text(encoding="utf-8-sig"))
-            except Exception:
-                print(f"[SANDBOX] fallback тоже упал")
-                return []
+            return []
         result = []
         for raw in raw_npcs:
             npc_id = raw.get("id") or raw.get("npc_id")

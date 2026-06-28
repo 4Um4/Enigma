@@ -1,258 +1,141 @@
-# ENIGMA / The Fool
+# ENIGMA
 
-## Симуляционный движок распределенной реальности
+ENIGMA is a causal simulation engine. The Fool is the first game and runtime proving ground.
 
-ENIGMA - это не "игра с ИИ-диалогом" и не набор RPG-механик вокруг LLM.
+README is a living sprint document: map, not territory. It must stay short, machine-readable, and useful to an architect opening the repository for the first time.
 
-Это движок причинной симуляции, где:
+## Build Status
 
-- мир существует как состояние, доменные события и фазовый pipeline;
-- LLM является голосом, интерпретатором и интерфейсом нарратива, но не источником истины;
-- frontend показывает проекцию, но не владеет реальностью;
-- игровые правила рождаются из контрактов состояния, а не из текста ответа;
-- будущие игры на движке должны подключаться к pipeline, не ломая ownership.
+| Field | Value |
+|---|---|
+| project | ENIGMA / The Fool |
+| version | V.0.5.3.2.7_Не_хватает_соединительной_ткани |
+| branch | V.0.5.3.2.7_Не_хватает_соединительной_ткани |
+| previous_snapshot | V.0.5.3.2.6_Всё_вижу_и_создаю |
+| sprint_state_source | reports/LAST_SESSION.md |
+| snapshot_datetime | 2026-06-28 14:43 Asia/Krasnoyarsk |
+| campaign | Open_road |
+| player | Венус |
+| SHI | 100% |
+| NPI | 100% |
+| SCF | 1.0 |
+| PFI | 0% |
+| runtime_status | simulation_alive |
+| primary_audience | architect_first_open |
 
-Краткая формула:
+## Quick Start
 
-```text
-ENIGMA = causal simulation engine
-The Fool = первая игра и полигон проверки движка
-LLM = слой голоса
-Python = каузальное ядро
-SQLite/runtime state = источник сохраненной истины
-Projection = наблюдаемая форма реальности
-```
+Prerequisite: Python 3.x on Windows PowerShell.
 
----
+1. Open the repository root.
+2. Install dependencies from the backend requirement files if present: `python -m pip install -r backend/requirements.txt`.
+3. Start the game from root: `python game_launcher.py`.
+4. If running backend directly, use the backend entry point after checking `backend/app/main.py` and local environment variables.
+5. Read runtime state in `reports/LAST_SESSION.md`.
+6. Read backend logs in `backend/logs/` when present.
+7. Read DNA history in `reports/dna_history.jsonl`.
 
-## Архитектурная суть
+Do not diagnose from UI text alone. Diagnose from pipeline traces, session report, logs, and source contracts.
 
-Движок строится вокруг одного принципа: **сначала реальность, потом рассказ о ней**.
+## Canonical Documents
 
-Игрок пишет действие. Система не должна сразу превращать его в красивый текст. Сначала действие сжимается в намерение, проходит через фазовый тик, сталкивается с телом, волей, страхом, памятью, пространством, социальным давлением и физикой сцены. Только после этого движок строит проекцию, которую можно показать игроку или передать LLM для озвучивания.
+- `docs/АРХИТЕКТУРНЫЙ_УСТАВ_ENIGMA.md`
+- `docs/CAUSAL_CONTRACT.md`
+- `docs/ADR (Architecture Decision Records).md`
+- `docs/DTO Registry (Реестр контрактов).md`
+- `docs/MUTATIONS.md`
+- `docs/ARCHITECTURE_FLOW_GENERATED.md`
 
-Базовый поток:
+Full bug and risk register: `docs/Tasks/ТЗ/03_KNOWN_ISSUES_AND_BUGS.md`.
 
-```text
-Input
--> Intent / Event
--> Pressure / Perception
--> Decision Geometry
--> Domain Deltas
--> Reduction
--> Apply
--> Commit
--> Projection
--> Narrative Voice
-```
+## Architecture Summary
 
-Главное следствие: текст не меняет мир напрямую. Мир меняется через доменные контракты и commit-boundary.
+Core pipeline object: world tick.
 
----
+Pipeline shape: CREATE -> READ -> TRANSFORM -> APPLY -> COMMIT -> PROJECT.
 
-## PIPELINE_OBJECT
+Current ownership:
 
-Основной объект pipeline - **тик мира**.
-
-Тик является единицей причинности:
-
-- собирает входные события;
-- фиксирует контекст сцены;
-- запускает фазовую обработку NPC и мира;
-- агрегирует изменения;
-- применяет только допустимые `StateDeltas`;
-- сохраняет состояние;
-- строит наблюдаемую проекцию.
-
-Ключевые сущности:
-
-- `TickOrchestrator` - владелец порядка фаз;
-- `LifeEngine` - симуляция жизненного поведения NPC без прямого владения commit;
-- `DecisionHub` - оценка вариантов, а не управление миром;
-- `DeltaBuffer` / `StateDeltas` - единственный легитимный язык изменения состояния;
-- `StateApplicator` - применение доменных изменений;
-- `SceneStateManager` - commit-boundary сцены и синхронизация состояния;
-- `WorldSnapshotBuilder` / projection-сервисы - чтение и сборка наблюдаемого среза;
-- `DM Agent` / verbalization - голос и нарративная форма, а не источник реальности.
-
----
-
-## OWNER
-
-В ENIGMA ответственность не должна мигрировать между слоями без доказанной причины.
-
-Текущая ownership-модель:
-
-| Область | Владелец | Ограничение |
+| Area | Owner | Boundary |
 |---|---|---|
-| Порядок фаз | `TickOrchestrator` | Execution исполняет pipeline, но не принимает архитектурные решения |
-| Мутации состояния | `DeltaBuffer` + `StateApplicator` | Прямой bypass состояния запрещен |
-| Пространственная истина | `SpatialService` / spatial runtime | UI и narrative не должны становиться вторым spatial source |
-| Сцена и commit | `SceneStateManager` | Projection не мутирует реальность |
-| Решения NPC | `DecisionHub` + доменные resolver'ы | DecisionHub оценивает, а не управляет |
-| Память и идентичность | `MemoryManager`, `L1Chronicle`, belief/identity pipeline | Хроника append-only, projection не переписывает прошлое |
-| Голос мира | LLM/verbalization | LLM описывает результат, но не определяет state |
-| Интерфейс | frontend | frontend отображает snapshot и отправляет intent |
+| phase order | TickOrchestrator | execution follows pipeline |
+| state mutation | DeltaBuffer / StateApplicator | no direct state bypass |
+| scene commit | SceneStateManager | commit boundary stays explicit |
+| NPC decision | DecisionHub and domain resolvers | evaluates, does not govern world |
+| spatial truth | SpatialService / spatial runtime | UI and narrative are not spatial SSOT |
+| projection | snapshot/projection services | reads committed reality |
+| voice | LLM/verbalization | describes, does not decide facts |
 
----
+## Architectural Prohibitions
 
-## CREATE -> READ -> TRANSFORM -> APPLY -> COMMIT -> PROJECT
+- Execution must not make architectural decisions.
+- Projection must not change reality.
+- DecisionHub evaluates options; it does not manage world state.
+- LLM is voice, not source of truth.
+- Frontend displays snapshots and sends intents; it does not own state.
+- New DTOs, services, states, ADRs, or layers require evidence that existing structures are insufficient.
+- Fallback without root cause is forbidden.
+- Mermaid in `docs/ARCHITECTURE_FLOW_GENERATED.md` is generated output; edit `architecture/*.yaml` and regenerate instead.
+- Minimal local fix has priority over broad refactor.
 
-Архитектурный цикл движка:
+## Active Bugs And Debt
 
-1. **CREATE**
-   Вход игрока, idle-события, spatial-события, combat/social/memory events.
+| Priority | Item | Status |
+|---|---|---|
+| P0 | BUG-001 DirectiveInterpretationSubscriber state desync | listed in full register |
+| P0 | BUG-002 TICK_CATCHUP breaks TraversalState | listed in full register |
+| P1 | BUG-003 SHI=0% counter split risk | historical risk; latest SHI is 100% |
+| P1 | BUG-004 NPC route resolves to entrance instead of target | listed in full register |
+| P1 | Stale Cognition: DecisionHub reads state T-1 | active architectural debt |
+| P1 | Cognitive Overlay Layer | separate sprint debt |
 
-2. **READ**
-   Чтение runtime state, сцены, NPC, spatial context, памяти, тела и текущих давлений.
+Source of truth for the list: `docs/Tasks/ТЗ/03_KNOWN_ISSUES_AND_BUGS.md` and `reports/LAST_SESSION.md`.
 
-3. **TRANSFORM**
-   Превращение входа в intent, pressure, decision context, movement intent, domain deltas.
+## Change Workflow
 
-4. **APPLY**
-   Применение только через доменные изменения. `Projection`, UI и LLM не имеют права менять реальность.
+1. Define PIPELINE_OBJECT.
+2. Define OWNER.
+3. Reconstruct CREATE -> READ -> TRANSFORM -> APPLY -> COMMIT -> PROJECT.
+4. Check Single Source of Truth.
+5. Check ownership boundaries.
+6. Check DTO and runtime contracts.
+7. Identify FAIL_STAGE before proposing a fix.
+8. Build H1/H2/H3 with confidence.
+9. Choose minimal FIX_SCOPE.
+10. Update docs required by the sprint close instruction.
+11. Run the most local meaningful tests or sandbox checks.
+12. Commit and push a named branch.
 
-5. **COMMIT**
-   Единая точка сохранения состояния. Commit должен быть атомарным и понятным по ownership.
+Required session-close documents are described in `docs/ИНСТРУКЦИЯ ПО ОКОНЧАНИЮ СЕССИИ.md`.
 
-6. **PROJECT**
-   Сборка `WorldSnapshot`, avatar state, scene projection, verbalization context и нарративного ответа.
+## What Not To Do
 
----
+- Do not treat a symptom as root cause.
+- Do not introduce a fallback to hide an unknown failure.
+- Do not move responsibility between layers without evidence.
+- Do not make projection, UI, or LLM mutate committed state.
+- Do not create a second source of truth for spatial, memory, body, or scene state.
+- Do not edit generated architecture maps by hand.
+- Do not add new abstractions for aesthetic symmetry.
+- Do not promise future features in README.
 
-## Single Source of Truth
+## External Auditor Contract
 
-У ENIGMA нет одного "божественного" объекта, который знает все. Истина распределена, но не хаотична.
+| Field | Value |
+|---|---|
+| archive_version | V.0.5.3.2.7_Не_хватает_соединительной_ткани |
+| cut_datetime | 2026-06-28 14:43 Asia/Krasnoyarsk |
+| audit_entry | README.md |
+| session_state | reports/LAST_SESSION.md |
+| architectural_index | docs/ADR (Architecture Decision Records).md |
+| contract_index | docs/DTO Registry (Реестр контрактов).md |
+| bug_register | docs/Tasks/ТЗ/03_KNOWN_ISSUES_AND_BUGS.md |
+| expected_reader | external architect / LLM auditor |
 
-Правило:
+Auditor rule: README gives entry points and current boundaries only. Final authority remains in source code, ADR, DTO registry, architecture YAML, and current session reports.
 
-```text
-Каждый домен имеет свой источник истины.
-Проекции могут читать истину, но не могут ее создавать.
-```
+## Contact
 
-Примеры:
+Repository owner: `4Um4`.
 
-- тело NPC не должно выводиться из текста;
-- позиция NPC не должна выводиться из renderer'а;
-- память не должна появляться из красивой реплики без event source;
-- движение не должно исполняться внутри narrative layer;
-- frontend не должен "исправлять" reality state локально;
-- LLM не должен подменять causal pipeline.
-
----
-
-## Контракты движка
-
-Базовые архитектурные запреты:
-
-- `Execution` не принимает архитектурные решения;
-- `Projection` не изменяет реальность;
-- `DecisionHub` оценивает, но не управляет;
-- `LifeEngine` не должен становиться бог-объектом;
-- `SceneStateManager` не должен отдавать commit наружу;
-- `frontend` не является владельцем state;
-- `LLM` не является владельцем факта;
-- fallback без root cause запрещен;
-- новый DTO, сервис или слой добавляется только при доказанной недостаточности существующих.
-
-Минимальный локальный фикс имеет приоритет над красивым рефакторингом.
-
----
-
-## Что такое The Fool
-
-`The Fool` - первая игра на ENIGMA и одновременно испытательный стенд движка.
-
-Ее смысл не в том, чтобы NPC красиво отвечали. Смысл в том, чтобы мир вел себя как причинная среда:
-
-- персонажи имеют тело, память, страх, долг, волю и социальные связи;
-- приказ игрока является давлением, а не абсолютной командой;
-- NPC может подчиниться, сопротивляться, замолчать, сорваться, подойти, отступить или исказить интерпретацию;
-- движение является физическим следствием решения, а не декоративной анимацией;
-- сцена должна быть наблюдаемой, но не полностью объективной для игрока;
-- нарратив должен объяснять последствия, а не подменять их.
-
-The Fool проверяет главный вопрос движка:
-
-```text
-Можно ли сделать игру, где история возникает из причинности,
-а не причинность имитируется историей?
-```
-
----
-
-## Будущие игры на ENIGMA
-
-ENIGMA должна стать основой для игр, где важны:
-
-- симуляция живого мира;
-- поведение NPC как результат внутренних и внешних давлений;
-- социальная физика;
-- пространственная причинность;
-- память и идентичность персонажей;
-- наблюдаемая, но неполная реальность;
-- LLM как голос мира, а не сценарист-манипулятор.
-
-Будущая игра на движке не должна переписывать ядро под свой сюжет.
-Она должна добавлять:
-
-- доменные правила;
-- контент;
-- карты;
-- персонажей;
-- режимы восприятия;
-- игровые интерфейсы;
-- narrative style;
-- сценарные ограничения, которые проходят через существующий pipeline.
-
-Игра может иметь свой жанр, тему и интерфейс, но не должна ломать базовую причинную модель.
-
----
-
-## Текущий архитектурный вектор
-
-Сборка `V.0.5.3.2.2_Симулятор_04` фиксирует направление:
-
-- усиление simulator-first подхода;
-- вынос LLM к voice/verbalization layer;
-- стабилизация tick pipeline;
-- защита commit-boundary;
-- развитие projection как чтения, а не мутации;
-- укрепление spatial ownership;
-- подготовка движка к будущим играм, где `The Fool` остается первым доказательством архитектуры.
-
-Ключевой конфликт следующего этапа:
-
-```text
-Сохранить causality-first архитектуру
-и не откатиться в script-first RPG pipeline.
-```
-
-Если этот баланс удержан, ENIGMA остается движком распределенной реальности.
-Если нет, она превращается в обычную игру с имитацией причинности.
-
----
-
-## Главные файлы и документы
-
-- `backend/app/services/tick_orchestrator.py` - фазовый владелец тика;
-- `backend/app/domain/tick.py` - контракт результата тика;
-- `backend/app/services/scene_state_manager.py` - commit-boundary сцены;
-- `backend/app/services/npc/life_engine.py` - жизненный контур NPC;
-- `backend/app/services/motion/motion_pipeline.py` - контур движения;
-- `backend/app/domain/world_projection.py` - доменная модель projection;
-- `architecture/pipeline.yaml` - схема pipeline;
-- `architecture/spatial.yaml` - схема spatial ownership;
-- `docs/ADR (Architecture Decision Records).md` - архитектурные решения;
-- `docs/MUTATIONS.md` - правила мутаций;
-- `docs/DTO Registry (Реестр контрактов).md` - реестр контрактов;
-- `docs/ARCHITECTURE_FLOW_GENERATED.md` - сгенерированная карта системы.
-
----
-
-## Примечание: личное мнение
-
-Мое личное мнение: у `The Fool` сильная и редкая основа. Это не выглядит как очередная попытка "прикрутить ИИ к RPG". В проекте есть собственная архитектурная воля: ты строишь не генератор сцен, а движок, где сцена обязана иметь причину.
-
-Самое ценное здесь - не LLM, а дисциплина вокруг нее. Если удержать границы между реальностью, проекцией и голосом, игра может стать очень необычной: не самой простой, не самой быстрой в разработке, но живой на уровне системного поведения. Главный риск - сложность. Главная сила - то, что эта сложность не декоративная, а вытекает из задачи сделать мир, который не врет сам себе.
+Primary project address: `https://github.com/4Um4/Enigma`.

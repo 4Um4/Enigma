@@ -507,9 +507,9 @@ class GameLoop:
             _spatial_svc = None
             _loc_id = _scene.get("location_id", "")
             if _loc_id:
-                from app.services.spatial.spatial_service import SpatialService
+                from app.services.spatial.spatial_factory import SpatialFactory
                 try:
-                    _spatial_svc = SpatialService.build_for_location(
+                    _spatial_svc = SpatialFactory.build_for_campaign(
                         campaign_id=campaign_id, location_id=_loc_id, scene_state=_scene
                     )
                 except Exception as e:
@@ -605,9 +605,9 @@ class GameLoop:
         # ADR-048: GameLoop собирает SpatialService и инжектит в TickOrchestrator.
         _spatial_svc = None
         if _loc_id:
-            from app.services.spatial.spatial_service import SpatialService
+            from app.services.spatial.spatial_factory import SpatialFactory
             try:
-                _spatial_svc = SpatialService.build_for_location(
+                _spatial_svc = SpatialFactory.build_for_campaign(
                     campaign_id=campaign_id,
                     location_id=_loc_id,
                     scene_state=_scene

@@ -126,10 +126,20 @@ class CombatSubscriber:
         # Максимальная дистанция рукопашной атаки (м) + запас на weapon_reach
         _MAX_MELEE_RANGE = 3.0
 
-        # Извлекаем дистанции до NPC из scene_state для проверки досягаемости
+        # A1-FIX: zombie reader → SpatialQueryService (ADR-048 single authority).
+        # Раньше: scene_state["player_distances"] — поле не пишется с ADR-048,
+        # _distances всегда {} → range gate всегда пропускает атаки сквозь карту.
+        # Теперь: SpatialQueryService.player_distances() — canonical source.
         _distances = {}
-        if ctx.shared_context and hasattr(ctx.shared_context, 'scene_state'):
-            _distances = ctx.shared_context.scene_state.get("player_distances", {})
+        if ctx.shared_context and hasattr(ctx.shared_context, 'spatial_query'):
+            _sq = ctx.shared_context.spatial_query
+            if _sq is not None:
+                _npc_ids = list(npc_by_id.keys())
+                _distances = _sq.player_distances(_npc_ids)
+            else:
+                logger.warning("[COMBAT_SUB] spatial_query is None — range gate DISABLED")
+        else:
+            logger.warning("[COMBAT_SUB] shared_context has no spatial_query — range gate DISABLED")
 
         logger.debug(f"[COMBAT_SUB] npc_by_id keys={list(npc_by_id.keys())[:10]} distances={bool(_distances)}")
 

@@ -46,7 +46,13 @@ def build_r3_dm_frame(
 
     # Собираем SceneContext для salience/visibility
     _scene_state = shared_context.scene_state or {}
-    _distances = _scene_state.get("player_distances", {})
+    # A2-FIX: zombie reader → SpatialQueryService.
+    # Раньше: _distances всегда {} → SceneContext.distances пустой → DM слеп к дистанциям.
+    _distances = {}
+    _spatial_query = getattr(shared_context, 'spatial_query', None)
+    if _spatial_query is not None:
+        _npc_ids = [n.get("npc_id", n.get("id", "")) for n in _scene_state.get("npc_positions", {}).values()]
+        _distances = _spatial_query.player_distances(_npc_ids)
     _visible = {
         npc_id for npc_id, is_visible
         in _scene_state.get("line_of_sight", {}).items()

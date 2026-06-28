@@ -50,12 +50,12 @@ class Settings(BaseSettings):
         BASE_DIR / "Models LLM" / "Qwen2.5-7B-Instruct-abliterated-v2.Q5_K_M.gguf"
     )
 
-    llama_cpp_server_url: str = "http://127.0.0.1:8080"
+    llama_cpp_server_url: str = "http://localhost:8181"
     llama_cpp_max_tokens: int = 1024
     dm_max_tokens: int = 220  # A7-FIX: было хардкожено в 4 местах dm_agent.py
     environment: str = "production"  # B4-FIX: production | development | test
     llama_cpp_timeout_sec: int = 30
-    model_load_timeout_sec: int = 60
+    model_load_timeout_sec: int = 120  # Gemma-3-12B Q4_K_M: ~5GB, холодный старт до 90s
 
     llm_servers: Dict[str, Dict[str, str]] = {}
 
@@ -186,7 +186,7 @@ class Settings(BaseSettings):
         results = {}
         checked_ports = set()
         for agent_name, cfg in self.llm_servers.items():
-            host = cfg.get("host", "127.0.0.1")
+            host = cfg.get("host", "localhost")
             port = cfg.get("port", "8080")
             key = f"{host}:{port}"
             if key in checked_ports:

@@ -243,12 +243,13 @@ def decay_affective_imprints(
     """Phase 0.5: Leaky integrator для аффективной памяти.
     
     Травмы затухают со временем, если не подкрепляются.
-    reinforcement -= decay_rate * delta_time.
+    reinforcement -= decay_rate * AFFECT_DECAY_BASE_RATE * delta_time.
     """
+    from app.core.constants import AFFECT_DECAY_BASE_RATE
     surviving = []
     for imp in imprints:
         # Травмы теряют силу, если не резонируют
-        new_reinforcement = imp.reinforcement - (imp.decay_rate * 0.05 * delta_time)
+        new_reinforcement = imp.reinforcement - (imp.decay_rate * AFFECT_DECAY_BASE_RATE * delta_time)
         if new_reinforcement < 0.05:
             continue # Травма зажила или забыта
             

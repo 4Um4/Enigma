@@ -119,10 +119,11 @@ def tick_world_proactive(
             from app.services.economy.need_engine import NeedEngine
             _wt_eco_profiles = economic_profiles_getter(campaign_id)
             _wt_ne = NeedEngine()
-            for _pid, _, _ in _proactive_npc_data:
+            for _pid, _wt_npc_raw, _ in _proactive_npc_data:
                 _wt_ep = _wt_eco_profiles.get(_pid)
                 if _wt_ep:
-                    _wt_ne.tick(_wt_ep)
+                    _wt_current_activity = _wt_npc_raw.get("routine", {}).get("current", "")
+                    _wt_ne.tick(_wt_ep, current_activity=_wt_current_activity)
             tick_ctx.wt_dirty = True
         except Exception as _wt_ne_err:
             logger.warning(f"[WORLD_TICK] NeedEngine error: {_wt_ne_err}")

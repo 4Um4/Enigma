@@ -20,7 +20,8 @@ from app.domain.identity_events import TraitDriftEvent, EvidenceOfPersistence
 
 # ADR-O-305A: Абсолютный порог минимума событий. 
 # Не зависит от размера окна, только от абсолютного количества наблюдений.
-MIN_EVENTS_FOR_PERSISTENCE: int = 5
+# S-93 FIX: Понижен до 3 для обеспечения быстрой кристаллизации убеждений в боевых условиях.
+MIN_EVENTS_FOR_PERSISTENCE: int = 3
 
 # Запрещённые source_id (защита от скалярного страха без привязки к источнику)
 _INVALID_SOURCES = {"unknown", "", None}
@@ -34,17 +35,21 @@ class PatternDetector:
     ADR-O-305A: event_type является provenance only и физически отсекается на входе.
     """
 
-    def query_evidence(self, npc_id: str, chronicle_or_source: object = None, source_id_filter: str = "") -> List[EvidenceOfPersistence]:
+    def __init__(self, chronicle: Optional[object] = None):
+        self._chronicle = chronicle
+
+    def query_evidence(self, npc_id: str, source_id: str = "") -> List[EvidenceOfPersistence]:
         """S-93: Возвращает evidence для NPC из L1Chronicle.
         Читает L1, передаёт в detect().
         """
-        # Защита от вызова с строковым аргументом (source_id) вместо объекта chronicle
-        if chronicle_or_source and hasattr(chronicle_or_source, 'query_raw'):
-            events = chronicle_or_source.query_raw(npc_id)
-            if source_id_filter:
-                events = [e for e in events if e.source_id == source_id_filter]
-            return self.detect(events)
-        return []
+        if not self._chronicle or not hasattr(self._chronicle, 'query_raw'):
+            return []
+            
+        events = self._chronicle.query_raw(npc_id)
+        if source_id:
+            events = [e for e in events if e.source_id == source_id]
+            
+        return self.detect(events)
 
     def detect(self, events: Iterable[TraitDriftEvent], chronicle: Optional[object] = None) -> List[EvidenceOfPersistence]:
         """

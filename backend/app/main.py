@@ -73,7 +73,7 @@ def _restart_llama_server() -> bool:
             settings.llama_cpp_server_executable,
             "-m", settings.llama_cpp_model_path,
             "--port", "8080",
-            "--host", "127.0.0.1",
+            "--host", "localhost",
             "-ngl", str(settings.gpu_layers),
             "-c", str(settings.ctx_size),
             "-t", str(settings.threads),
@@ -247,8 +247,8 @@ async def lifespan(app: FastAPI):
                 server_cmd = [
                     settings.llama_cpp_server_executable,
                     "-m", settings.llama_cpp_model_path,  # ADR-087: Без флага модели сервер крашит!
-                    "--port", "8080",
-                    "--host", "127.0.0.1",
+                    "--port", "8181",
+                    "--host", "localhost",
                     "-ngl", str(settings.gpu_layers),  # GPU offload — без этого 5.4ГБ грузится на CPU → таймаут
                     "-c", str(settings.ctx_size),       # размер контекста
                     "-t", str(settings.threads),         # потоки

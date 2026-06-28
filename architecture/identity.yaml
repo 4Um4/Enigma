@@ -9,7 +9,8 @@ nodes:
   DriveResolver:
     type: domain
     layer: Domain
-    label: "Drive Resolver (Pure Function L0+L1→L3)"
+    label: "Drive Resolver (Pure Function L0+L2.5→L3)"
+    description: "ADR-S96.1: Computes L3 projection using L0 archetype + L2.5 CrystallizedBeliefs. Does NOT read L1Chronicle directly."
   EffectiveDrives:
     type: dto
     layer: Domain
@@ -91,16 +92,18 @@ edges:
     condition: "WillState breaks or deforms"
     code_ref: "break_progress_engine.py"
     adr_ref: "ADR-O-208.1"
-  - from: L1Chronicle
+  - from: CrystallizedBeliefStore
     to: DriveResolver
-    label: "provides weighted history"
+    label: "provides L2.5 beliefs for projection"
     condition: "Tick start"
     code_ref: "drive_resolver.py:resolve_drives"
+    adr_ref: "ADR-S96.1"
   - from: DriveResolver
     to: EffectiveDrives
     label: "computes ephemeral projection"
-    condition: "Pure function from archetype + chronicle"
+    condition: "Pure function from archetype (L0) + beliefs (L2.5)"
     code_ref: "drive_resolver.py"
+    adr_ref: "ADR-S96.1"
   - from: EffectiveDrives
     to: CalibrationEngine
     label: "pass-through (no scalar mutation)"
@@ -220,3 +223,13 @@ constraints:
     target: CrystallizedBelief
     rule: "REQUIRED: Asymmetric Trauma (x6 multiplier) and Belief Decay Model (ADR-O-307 / ADR-O-305.1)"
     severity: CRITICAL
+  - source: DriveResolver
+    target: L1Chronicle
+    rule: "FORBIDDEN: DriveResolver reading L1Chronicle directly. Must consume CrystallizedBelief (L2.5) from CrystallizedBeliefStore (ADR-S96.1)"
+    severity: CRITICAL
+    adr_ref: "ADR-S96.1"
+  - source: DriveResolver
+    target: EffectiveDrives
+    rule: "FORBIDDEN: L3=L0 fallback (pass statement). L3 MUST be deformed by L2.5 beliefs if they exist (ADR-S96.1)"
+    severity: CRITICAL
+    adr_ref: "ADR-S96.1"

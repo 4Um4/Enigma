@@ -1,5 +1,5 @@
 domain: TEMPORAL
-description: "Время симуляции: тики, сессии, decay-отметки. DeterministicClock через TemporalEngine."
+description: "Время симуляции: тики, сессии, decay-отметки. DeterministicClock через TemporalEngine. ADR-O-302: Physics Overlay."
 
 nodes:
   TemporalEngine:
@@ -8,6 +8,17 @@ nodes:
     label: "Temporal Engine"
     description: "get_temporal_context, advance_tick, mark_decay_executed, get_current_tick, flush_ticks, cleanup."
     code_ref: "temporal/temporal_engine.py"
+  GameTimeConstants:
+    type: constants
+    layer: Domain
+    label: "Game Time Constants (ADR-O-302)"
+    description: "Единый источник истины для времени. GAME_TICK_INTERVAL_SECONDS, ETKE_IK_SUBSTEP_DT, AFFECT_DECAY_BASE_RATE."
+    code_ref: "core/constants.py"
+    contract:
+      authority: "game_time_seconds"
+      tick_delta: "GAME_TICK_INTERVAL_SECONDS (60s) — добавляется к game_time_seconds каждый тик."
+      kinematic_substep: "ETKE_IK_SUBSTEP_DT (0.1) — шаг интегратора Эйлера. Не является источником времени, это длительность (projection/duration)."
+      affective_decay: "AFFECT_DECAY_BASE_RATE (0.05) — коэффициент затухания, применяемый к _dt_game (delta game_time)."
 
 edges:
   - from: TemporalEngine
@@ -20,6 +31,16 @@ edges:
     label: "mark_decay_executed → skip double decay"
     condition: "Prevents decay running twice per tick"
     code_ref: "temporal/temporal_engine.py"
+  - from: GameTimeConstants
+    to: TickOrchestrator
+    label: "GAME_TICK_INTERVAL_SECONDS, ETKE_IK_SUBSTEP_DT"
+    condition: "Time semantics isolation (ADR-O-302). ETKE_IK_DT удалён как мёртвый код."
+    code_ref: "core/constants.py"
+  - from: GameTimeConstants
+    to: LifeEngine
+    label: "GAME_TICK_INTERVAL_SECONDS (REAL_TIME_BRIDGE), AFFECT_DECAY_BASE_RATE"
+    condition: "Reconcile state & affective decay"
+    code_ref: "core/constants.py"
 
 constraints:
   - source: TickOrchestrator
@@ -27,6 +48,24 @@ constraints:
     rule: "FORBIDDEN: TICK_CATCHUP loops (ADR-047)"
     condition: "No retro-simulation. Tick must be forward-only."
     code_ref: "ADR-047"
+    severity: HIGH
+  - source: SimulationLayer
+    target: WallClock
+    rule: "FORBIDDEN: datetime.now() or time.time() in simulation layer (§15.1, ADR-O-302)"
+    condition: "Only allowed in Infrastructure, Logging, Persistence metadata, REAL_TIME_BRIDGE (scene_init)."
+    code_ref: "ADR-O-302"
+    severity: CRITICAL
+  - source: Any
+    target: Time
+    rule: "FORBIDDEN: Deriving ticks from real time (§14.1)"
+    condition: "game_time_seconds is the only authority. REAL_TIME_BRIDGE is an explicit one-way bridge."
+    code_ref: "ADR-O-302"
+    severity: CRITICAL
+  - source: MotionPipeline
+    target: Time
+    rule: "FORBIDDEN: Magic numbers for dt/delta_time"
+    condition: "Must use ETKE_IK_DT or ETKE_IK_SUBSTEP_DT"
+    code_ref: "ADR-O-302"
     severity: HIGH
 
 ownership:
@@ -36,3 +75,8 @@ ownership:
     modifies: "mark_decay_executed, flush_ticks"
     reads: "TickOrchestrator, DecayHandler"
     constraint: "Per-campaign. Cached. Invalidated on advance."
+  GameTimeConstants:
+    owner: "core/constants.py"
+    creates: "GAME_TICK_INTERVAL_SECONDS, ETKE_IK_SUBSTEP_DT, AFFECT_DECAY_BASE_RATE"
+    reads: "TickOrchestrator, LifeEngine, MotionPipeline, Affect"
+    constraint: "Single source of truth for all time semantics. ETKE_IK_DT removed (dead code)."

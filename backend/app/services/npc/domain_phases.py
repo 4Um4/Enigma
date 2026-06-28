@@ -153,6 +153,7 @@ def compute_economy(
     npc_id: str,
     eco_profile: Any,
     state_l2: Any,
+    current_activity: str = "",
 ) -> Dict[str, Any]:
     """Фаза 2.4-ECO: экономические модификаторы от потребностей.
 
@@ -170,7 +171,7 @@ def compute_economy(
         from app.services.economy.stress_calculator import calculate_economic_stress
 
         _ne = NeedEngine()
-        _drives = _ne.tick(eco_profile)
+        _drives = _ne.tick(eco_profile, current_activity=current_activity)
         _em = EconomicModifier()
         _eco_result = _em.calculate(eco_profile, _drives)
         _eco_modifiers = _eco_result.modifiers

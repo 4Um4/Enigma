@@ -86,7 +86,8 @@ def _inject_spatial_service(life_engine: Any, campaign_id: str, scene_state: dic
     loc_id = scene_state.get("location_id", "")
     if not loc_id:
         return
-    svc = SpatialService.build_for_location(
+    from app.services.spatial.spatial_factory import SpatialFactory
+    svc = SpatialFactory.build_for_campaign(
         campaign_id=campaign_id, location_id=loc_id, scene_state=scene_state,
     )
     if svc:

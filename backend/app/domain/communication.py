@@ -7,11 +7,42 @@ from dataclasses import dataclass
 from typing import Literal, Optional
 
 
+# ADR-O-311: Exposure Default Contract — радиус выводится из semantic.
+_EXPOSURE_DEFAULT_RADIUS: dict[str, float] = {
+    "secret":  1.5,   # собеседник рядом
+    "whisper": 3.0,   # группа вплотную
+    "normal":  5.0,   # обычная речь в комнате
+    "shout":  15.0,   # публичное событие, бой
+    "private": 0.0,   # внутренняя речь / солилоквий (не слышим)
+}
+
+
 @dataclass(frozen=True)
 class ExposureLevel:
-    """Семантический + физический уровень доступности речи."""
+    """Семантический + физический уровень доступности речи.
+
+    physical_radius выводится из semantic если не задан явно (None).
+    Прямая передача radius допускается только для override (test/sandbox).
+    """
     semantic: Literal["secret", "whisper", "normal", "shout", "private"]
-    physical_radius: float
+    physical_radius: Optional[float] = None  # None = derive from semantic
+
+    def __post_init__(self) -> None:
+        if self.physical_radius is None:
+            object.__setattr__(
+                self, "physical_radius",
+                _EXPOSURE_DEFAULT_RADIUS.get(self.semantic, 5.0),
+            )
+
+    @classmethod
+    def from_semantic(cls, semantic: str) -> "ExposureLevel":
+        """Единственный легальный способ создать ExposureLevel в прод-коде."""
+        if semantic not in _EXPOSURE_DEFAULT_RADIUS:
+            raise ValueError(
+                f"Unknown exposure semantic: {semantic!r}. "
+                f"Allowed: {list(_EXPOSURE_DEFAULT_RADIUS)}"
+            )
+        return cls(semantic=semantic)
 
 
 @dataclass(frozen=True)

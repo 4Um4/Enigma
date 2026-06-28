@@ -8,10 +8,10 @@
 
 | Показатель | Значение |
 |------------|----------|
-| Сессий | 94 |
+| Сессий | 95 |
 | Доменов | 10 |
-| Консолидированных запретов | 88 |
-| Диапазон | S03—S94 |
+| Консолидированных запретов | [DERIVED: count(ADR.*.Taboo)] |
+| Диапазон | S03—S95 |
 
 ---
 
@@ -73,7 +73,9 @@
 - 🟢 **S85.1** Import Fix: `WillState` импортирован из `app.models.will` (не `vital_state`). `NPCStateAdapter` используется вместо `NPCState.from_legacy`.
 - 🟢 **S86** ТЗ-02 (Часть A): Восстановлена исполняемость пайплайна. Устранены `ImportError` (`apply_drives_mutation`), `NameError` (`effective_drives`, `state` vs `state_for_llm`). Удалён дубликат TIFL-блока.
 - 🔵 **S93** ADR-O-301: Kernel Isolation Repair v0.1. Внедрён `KernelRNG(tick, npc_id, salt)`. Убиты 5 утечек детерминизма (`random.*` в kernel layer) и 3 голых `DecisionHub()`. Создана единая фабрика `rng_factory` в `_TickContext`. Подсистемы (DecisionHub, LifeEngine, MovementEngine, StateApplicator) изолированы через `salt`. SUPERBOX: rate=1.540/tick.
-- 🔵 **S94** ТЗ-03: Frontend ↔ Backend Contract Repair. Устранена tri-ontology system. Установлена Single Causal Authority. A1: GameActionResponse расширен scene_state и metadata. A2: WorldSnapshotDTO.npc_positions канонизирован как Dict[str, NPCPositionDTO], адаптер удалён. A3: PeripheralCueDTO.cue_type → cue_key. B1: Frontend authority removal (5 sub-fixes): фронтенд лишён права генерировать время, аватара, журнал. B2: Spatial Oracle no-silent-failure. B3: Dual-channel architecture (idle_tick остаётся causal clock, get_world_state добавлен как observational layer). C1: contextlib.suppress(Exception) заменён на явный try/except. C2: _MinimalFrontendRegistry.find_chunks добавлен. Создан backend/tests/test_tz3_contract_repair.py (11 тестов).
+- 🟢 **S93** ADR-S93.1: Dead NPC Execution Lock. Мёртвые NPC (`life_status="DEAD"`) полностью исключаются из `ctx.all_npcs_raw` в `_run_core_phases` до Фазы 1. Устраняет "зомби-движение".
+- 🔵 **S94** ТЗ-03: Frontend ↔ Backend Contract Repair. Устранена tri-ontology system. Установлена Single Causal Authority. A1: `GameActionResponse` расширен `scene_state` и `metadata`. A2: `WorldSnapshotDTO.npc_positions` канонизирован как `Dict[str, NPCPositionDTO]`, адаптер удалён. A3: `PeripheralCueDTO.cue_type` → `cue_key`. B1: Frontend authority removal (5 sub-fixes): фронтенд лишён права генерировать время, аватара, журнал. B2: Spatial Oracle no-silent-failure. B3: Dual-channel architecture (`idle_tick` остаётся causal clock, `get_world_state` добавлен как observational layer). C1: `contextlib.suppress(Exception)` заменён на явный `try/except`. C2: `_MinimalFrontendRegistry.find_chunks` добавлен. Создан `backend/tests/test_tz3_contract_repair.py` (11 тестов).
+- 🔵 **S95** ADR-O-302: Physics Overlay. Введены §14 (Закон Единичного Времени) и §15 (Закон Изоляции Реального Времени). `REAL_TIME_BRIDGE` (`reconcile_state`) изолирован, магическое число `10.0` заменено на `GAME_TICK_INTERVAL_SECONDS`. `INTERPOLATION_TIME` (`ETKE_IK_SUBSTEP_DT`) выведен в константу, магические `0.1` убиты в `motion_pipeline.py` и `tick_orchestrator.py`. Мёртвый код `get_world_ticks_elapsed` и `get_idle_seconds` удалён. Аффективный декэй переведён на `GAME_TICK_INTERVAL_SECONDS` и `AFFECT_DECAY_BASE_RATE`. Обнаружен и устранён баг `SHI=0%` (метод `on_individual_decision` находился в `TickHealthReport`, а не в `TickHealthChecker`, вызывая `AttributeError`).
 
 ### DOM-02: WILL, PRESSURE & DECISION
 
@@ -100,6 +102,7 @@
 - 🟢 **S86** ТЗ-02 (Шаг 1): BUG-001 закрыт. Директивные `perception`-поля применяются вне зависимости от `DeltaDomain`. Каузальная труба воли (приказ → pressure → PerceptualKernel) открыта.
 - 🟢 **S86** ТЗ-02 (Шаг 7): `BreakProgressEngine.calculate` подключен к `_phase_5_decision` (до DecisionHub). `WillState.BROKEN` достижим.
 - ⚪ **S86** ТЗ-02 (Шаг 8): `BehaviorMask` назначается на основе state. Введён как гистерезисный (квазистабильный) социальный слой между состоянием NPC и DecisionHub.
+- 🔵 **S93** ADR-S93.2: Secondary Cognitive Contour. Внедрён `PEModifierResolver` и `ExpectationStore`. Ожидания преобразуются в `drive_modifiers` через `tanh` и `Clamp` (0.25). `StateApplicator` — Single Writer для EMA. Затухание ожиданий привязано к `dt_game` в Фазе 0.5.
 
 ### DOM-03: PERCEPTION & PHENOMENOLOGY (CFRM)
 
@@ -249,11 +252,13 @@
   - Лёгкий срез NPC: `LifeEngine.get_npc_light_states()` для оптимизации производительности детекторов.
 - 🟢 **S92** ADR-117 FIX: Исправлен баг сериализации `compress_narrative_cache` в `tick_orchestrator.py`. `NPCState.write_to_legacy` вызывался как метод экземпляра, хотя является `@staticmethod`, что приводило к потере данных NPC между тиками.
 - 🟢 **S92** ADR-O-201 FIX: Исправлен баг shallow copy в `projection_engine.py`. `scene_state.active_traversals[npc] = thick.traversal.fields` присваивал ссылку, нарушая иммутабельность `ThickSceneChange`. Заменено на `copy.deepcopy`.
-- 🟢 **S92** DOM-04 Tests Update: Обновлены песочницы `test_boundary_nodes.py`, `test_adjacency_inference.py`, `test_boundary_transition.py`, `test_projection_engine.py`, `test_causal_closure.py` для соответствия ADR-TRAV-FSM, ADR-O-304 и 5-элементному возврату `compile_graph` (добавлен `rooms_geometry`). eSkipExecutor принимает get_npcs_callback (напр. GameLoop._resolve_npcs_snapshot), чтобы не хардкодить LifeEngine и не нарушать Dependency Inversion.
-  - Продвижение времени (инкремент scene_state["tick"]) выполняется в TimeSkipExecutor, ядро остаётся чистой функцией.
+- 🟢 **S92** DOM-04 Tests Update: Обновлены песочницы `test_boundary_nodes.py`, `test_adjacency_inference.py`, `test_boundary_transition.py`, `test_projection_engine.py`, `test_causal_closure.py` для соответствия ADR-TRAV-FSM, ADR-O-304 и 5-элементному возврату `compile_graph` (добавлен `rooms_geometry`).
 - 🔵 **S88** Epistemic Boundary (Symbolic Interpretation Layer): DM-контур переведён на символьную интерпретацию. `stance_from_decision` и `_project_psychology` переведены на чтение `observed_state` и `intent`. Числовые пороги `stress/fear/trust` удалены из вербализации.
 - 🔵 **S88** WorldProjectionBuffer (Shadow Causality): Реализован как pure function (ADR-O-309). Инкапсулирован внутри `SceneStateManager.commit()`. Внедрён strict temporal sealing (diff state_t vs state_t-1). `TickOrchestrator` очищен от логики истории состояний.
 - 💀 **S88** LLM Context Exile: Функция `build_verbalization_context` полностью удалена из ядра симуляции (`npc_tick_pipeline.py`). Ядро больше не формирует промпты.
+- 🟢 **S93** ADR-S93.3: L2.5 Implementation. Stub-методы `PatternDetector` убраны. Внедрена инъекция `L1Chronicle` в конструктор. `BeliefCrystallizationEngine` применяет x6 множитель для негативных убеждений. Порог кристаллизации понижен до 3 событий.
+- ⚠️ **S93** TECH_DEBT (S-94): L1Chronicle TTL (Task 2.3) — ограничение памяти не реализовано (отменено для сохранения ADR-O-208). Требует отдельной реализации с архивацией, а не обрезки.
+- ⚠️ **S93** TECH_DEBT (S-94): WillpowerGate для аватара (Task 2.2) — базовая психика инициализируется, но полная логика сопротивления (`stress_delta` при конфликте с `drives_base`) требует расширения `_base_humanoid.json` и доработки `WillpowerGate`.
 
 ### DOM-04: SPATIAL & LOCOMOTION (S90 AUDIT)
 
@@ -381,3 +386,15 @@
 81. ❌ Мутация `state.drives_runtime` (L0) минуя Belief Layer (L2.5) через `CalibrationEngine` (ADR-O-208/211)
 82. ❌ Запуск L2.5 кристаллизации (`check_identity_promotion`) в idle-тиках без `phase_2_events` (фантомный дрейф личности)
 83. ❌ Использование `random.*` в kernel layer. ❌ Вызов `DecisionHub()` без `rng`. (ADR-O-301)
+
+### Dead NPC & Secondary Cognitive Contour (S-93)
+84. ❌ Генерация интентов и дельт для NPC с `life_status="DEAD"`. ❌ Передача мёртвых NPC в `NpcTickPipeline` (ADR-S93.1)
+85. ❌ Вычисление EMA ожиданий вне `StateApplicator` — StateApplicator является Single Writer (ADR-S93.2)
+86. ❌ Прямое управление интентами на основе PE — только через `drive_modifiers` (ADR-S93.2)
+87. ❌ Влияние PE на utility > 0.25 (MAX_PE_INF Clamp) — PE не может доминировать над DRF (ADR-S93.2)
+88. ❌ Использование `PatternDetector` без передачи `L1Chronicle` в конструктор (ADR-S93.3)
+89. ❌ Жёсткие пороги (if/else) в формировании убеждений `BeliefCrystallizationEngine` (ADR-S93.3)
+90. ❌ Отсутствие затухания ожиданий в Фазе 0.5 — ожидания обязаны затухать привязанные к `dt_game` (ADR-S93.2)
+
+
+
