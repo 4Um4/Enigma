@@ -307,21 +307,31 @@ class SceneRenderer:
 
             prev_x, prev_y = self._prev_npc_positions.get(entity.entity_id, (entity.x, entity.y))
             
-            # Спринт 30: Непрерывная презентация. Фронтенд "разархивирует" время через скорость TraversalState
+            # ADR-ETKE-RENDER: Два режима интерполяции
+            # 1. Macro (TraversalState): PENDING/MOVING с traversal_speed — старая логика
+            # 2. Micro (ETKE-IK velocity): entity.velocity от _process_continuous_motion —
+            #    предсказание позиции между idle_tick'ами (без этого DriveVector микродвижения
+            #    невооружённым глазом не видны, т.к. SUBSTEP_DT крошечный)
             if entity.traversal_status in ("PENDING", "MOVING") and entity.traversal_speed > 0:
+                # Macro: интерполяция к цели по скорости traversal'а
                 dx, dy = entity.x - prev_x, entity.y - prev_y
                 dist = (dx**2 + dy**2)**0.5
                 step = entity.traversal_speed * dt
-                
                 if dist <= step or dist < 0.01:
-                    # Цель достигнута за этот кадр
                     render_x, render_y = entity.x, entity.y
                 else:
-                    # Двигаемся к целевой точке пропорционально скорости и dt
                     ratio = step / dist
                     render_x, render_y = prev_x + dx * ratio, prev_y + dy * ratio
+            elif entity.velocity is not None and (abs(entity.velocity[0]) > 0.01 or abs(entity.velocity[1]) > 0.01):
+                # Micro: ETKE-IK velocity-based prediction.
+                # Backend пишет new position + velocity каждый idle_tick.
+                # Frontend экстраполирует: pos_render = pos_backend + velocity * time_since_last_tick
+                # Это даёт плавное движение между idle_tick'ами.
+                _vx, _vy = entity.velocity
+                render_x = entity.x + _vx * dt
+                render_y = entity.y + _vy * dt
             else:
-                # Каузальная истина: без транзита позиция мгновенна (snap)
+                # Покой: snap
                 render_x, render_y = entity.x, entity.y
 
             sx, sy = self._w2s(render_x, render_y, cam_x, cam_y)

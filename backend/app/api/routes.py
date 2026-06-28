@@ -1,4 +1,4 @@
-import contextlib
+﻿import contextlib
 from datetime import datetime
 from typing import Literal, List
 
@@ -50,7 +50,6 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 readiness_service = ReadinessService()
-from app.core.config import settings
 character_service = CharacterService(root=str(settings.saves_dir))
 combat_service = CombatService()
 # knowledge_ingest создаётся внутри функции (строка 198)

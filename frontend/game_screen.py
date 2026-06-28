@@ -26,16 +26,9 @@ from presentation_firewall import sanitize_perceptual_input
 
 from scene_renderer import SceneRenderer
 from text_input import TextInput
-from game_types import (
-    PerceptionConfig,
-    PlayerFocus,
-    PlayerMemory,
-    EncounterHistory,
-    PerceivedScene,
-    PerceivedEntity,
-    PerceivedEnvironment,
-)
 # Спринт 31: Локальная физика и парсер интентов удалены. Фронтенд — честный интерполятор.
+
+from game_types import PerceptionConfig, PerceivedScene, PerceivedEntity, PlayerFocus
 
 
 def _build_perceived_scene(scene_state: dict, config: PerceptionConfig) -> PerceivedScene:
@@ -64,6 +57,12 @@ def _build_perceived_scene(scene_state: dict, config: PerceptionConfig) -> Perce
         elif isinstance(traversals, dict):
             trav = traversals.get(npc_id)
 
+        # S90.4: Извлекаем ETKE-IK кинематику для непрерывного рендера
+        _vel = npc_data.get("velocity", (0.0, 0.0))
+        if not isinstance(_vel, (list, tuple)) or len(_vel) != 2:
+            _vel = (0.0, 0.0)
+        _exertion = float(npc_data.get("exertion_level", 0.0))
+
         entities.append(PerceivedEntity(
             entity_id=npc_id,
             entity_type="npc",
@@ -79,6 +78,9 @@ def _build_perceived_scene(scene_state: dict, config: PerceptionConfig) -> Perce
             current_waypoint_idx=trav.get("current_waypoint_idx", 0) if trav else 0,
             traversal_progress=float(trav.get("progress", 0.0)) if trav else 0.0,
             traversal_speed=float(trav.get("speed", 1.5)) if trav else 1.5,
+            # S90.4: ETKE-IK VelocityRenderer fields
+            velocity=_vel,
+            exertion_level=_exertion,
             # Спринт 30: Модель C — когнитивный паралич рвет моторику
             initiative_suppression=float(npc_data.get("initiative_suppression", 0.0)),
             # The Fool v2: Инъекция моторных следов и наблюдений
@@ -439,8 +441,6 @@ class GameScreen:
         logger.debug(f"[PIPELINE][INPUT] entering main loop, walls={len(walls)}, obstacles={len(obstacles)}")
 
         # Состояние восприятия
-        memory = PlayerMemory()
-        encounters = EncounterHistory()
         focus = PlayerFocus()
 
         # Состояние перемещения
@@ -926,6 +926,8 @@ class GameScreen:
 
                     if _action_ws and isinstance(_action_ws, dict) and "npc_positions" in _action_ws:
                         import copy
+                        _lusya_data = _action_ws["npc_positions"].get("maid_lusya", {})
+                        print(f"[DIAG_MERGE] maid_lusya local_pos={_lusya_data.get('local_position')} vel={_lusya_data.get('velocity')}")
                         for npc_id, new_data in _action_ws["npc_positions"].items():
                             # ADR-092: Каузальная труба движения. Если NPC в транзите, 
                             # не перезаписываем local_position — рендерер интерполирует его через TraversalState.
@@ -1415,14 +1417,6 @@ class GameScreen:
             self.clock.tick(60)
 
     # ── UI методы ──────────────────────────────────────────────────────
-
-    def _draw_input_bar(self, text_input: TextInput) -> None:
-        """Рисует строку ввода через TextInput виджет"""
-        # Обновляем rect на случай ресайза
-        sw = self.screen.get_width()
-        sh = self.screen.get_height()
-        text_input.rect = pygame.Rect(4, sh - 36, sw - 8, 32)
-        text_input.draw(self.screen)
 
     def _draw_message_log(self, log: list, system_log: list, renderer: 'NarrativeRenderer', player_name: str, time_scale: int = 1) -> None:
         """Cinematic Layer: Рисует сценические пузыри вместо плоского чата"""

@@ -146,6 +146,11 @@
   Status: VERIFIED (15-tick DriftLaboratory run, rate 1.4/tick)
   Files: domain/tick.py, services/npc/npc_tick_pipeline.py, services/tick_orchestrator.py, services/game_loop/__init__.py
 
+`ADR-TZ10-1` [ONTO] **Pure Reducer Completion & Svc Strangulation** — Завершена миграция `NpcTickPipeline.run()` в чистую математическую функцию `run(state: TickState) -> TickMutation`. Убит `svc: Any` (бог-объект с I/O). Внедрён Strangulation Pattern: оркестратор загружает данные (memory, weights, social_mods, beliefs, traits) ДО вызова `run()` в `TickState.preloaded_*`, а применяет мутации (l1_events, memory_events) ПОСЛЕ вызова через `TickMutation.pending_*`. `StateApplicator.apply_batch` теперь вызывается в `TickOrchestrator`, устраняя DOUBLE TRUTH (дельты больше не теряются). 
+  Taboo: ❌ Возврат параметра `svc` в сигнатуре `run()`. ❌ Вызов `svc.memory_manager` / `svc.social_engine` внутри `run()`. ❌ Прямая мутация состояния внутри `run()` (только сборка `TickMutation`).
+  Status: VERIFIED (DriftLaboratory 3-tick run, 0 NameError, GATE flow stable)
+  Files: domain/tick.py, services/npc/npc_tick_pipeline.py, services/tick_orchestrator.py
+
 `ADR-TZ08-2` [ONTO] **Immutable Core Pipeline (_run_core_phases)** — Ветвление логики ядра убито. Введён единый метод `_run_core_phases`, вызываемый всегда. Фаза 1 разделена на 3 независимых подслоя: NPIC normalize, Intervention routing, WillpowerGate. `execute_player_finalize` стал no-op.
   Taboo: ❌ Возврат `TickPlayerResultDTO` из `execute()`. Ядро возвращает только `TickResultDTO`.
   Files: tick_orchestrator.py, domain/tick.py
@@ -503,6 +508,25 @@
 `ADR-SHI-02` [FIX] **LifeEngine No-Op Guard & Position Recovery** — `LifeEngine._simulate_major` больше не генерирует `MovementIntent`, если целевая позиция совпадает с текущей (предотвращает BUG_V_GUARD). `_resolve_position` восстанавливает `node_id` из `local_position` через `SpatialService.get_nearest()` с пометкой `LOW_CONFIDENCE` при необходимости, предотвращая потерю NPC.
   Files: services/npc/life_engine.py
 
+`ADR-TZ04-1` [FIX] **Zombie Readers Elimination (A1-A3)** — Убраны чтения `scene_state["player_distances"]` в `combat_subscriber.py`, `r3_direct_builder.py` и `world_state.py`. Переведены на `SpatialQueryService`.
+  Taboo: ❌ Чтение `player_distances` из `scene_state`.
+  Files: combat_subscriber.py, r3_direct_builder.py, world_state.py
+
+`ADR-TZ04-2` [FIX] **Physics RNG Isolation (A4)** — `random.uniform` в `SceneStateManager.apply_change` заменён на `KernelRNG(tick, npc_id, salt)`.
+  Taboo: ❌ Использование `random.uniform()` в `apply_change`.
+  Files: scene_state_manager.py
+
+`ADR-TZ04-3` [FIX] **Dead Spatial Modules Removal (A5-A6)** — Удалены `transit_tracker.py` и `location_graph.py`. Мёртвый код в `graph_compiler.py` (122 строки) вырезан.
+  Files: transit_tracker.py, location_graph.py, graph_compiler.py
+
+`ADR-TZ04-4` [STD] **SpatialFactory (B3)** — Введена единая фабрика `SpatialFactory.build_for_campaign()`. Прямые вызовы `SpatialService.build_for_location()` запрещены.
+  Taboo: ❌ Прямая сборка `SpatialService.build_for_location()` в обход `SpatialFactory`.
+  Files: spatial_factory.py, npc_orchestration.py, game_loop/__init__.py, tick_orchestrator.py, scene_state_manager.py, movement_engine.py, spatial_runtime.py
+
+`ADR-TZ04-5` [FIX] **Metadata SceneChange Routing (B4-B5)** — Прямые мутации `activity`, `initiative_suppression` и `line_of_sight` переведены на `SceneChange` (ChangeType.NPC_METADATA, ChangeType.SCENE_METADATA).
+  Taboo: ❌ Прямая мутация `scene_state["line_of_sight"]` и `scene_state["npc_positions"][nid]["activity"]`.
+  Files: npc_orchestration.py, dm_phase.py, scene_change.py, scene_state_manager.py
+
 ## DOM-05: PHYSIOLOGY & COMBAT
 
 `ADR-015` [ONTO] **Physiology Domain** — Убиты RPG Hit Roll и AC. `body_profile`, `InjuryDTO`, `ImpactEngine`
@@ -730,6 +754,10 @@
 
 `ADR-TZ05-2` [ONTO] Prompt Governance & Mock Exclusion — Синхронизация промпта LLM с валидатором. Forbidden-список генерируется динамически из контракта. MockProvider недоступен в production. Taboo: ❌ Хардкод max_tokens в dm_agent.py. ❌ Использование MockProvider при settings.environment == "production". Files: prompts/dm_system.txt, services/verbalization/dm_contract_builder.py, services/llm/factory.py, core/config.py
 
+`ADR-TZ05-2` [ONTO] **Prompt Governance & Mock Exclusion** — Синхронизация промпта LLM с валидатором. Forbidden-список генерируется динамически из контракта. MockProvider недоступен в production. 
+  Taboo: ❌ Хардкод max_tokens в dm_agent.py. ❌ Использование MockProvider при settings.environment == "production".
+  Files: prompts/dm_system.txt, services/verbalization/dm_contract_builder.py, services/llm/factory.py, core/config.py
+
 ---
 
 ## DOM-08: OBSERVABILITY (CDS & Sandbox)
@@ -893,3 +921,5 @@
 `ADR-S96.1` [ONTO] **L2.5 → L3 Projection Contract Closure** — `DriveResolver` переключён с сырых L1 событий на `CrystallizedBelief` (L2.5). Закрыт контур легитимной мутации драйвов (ADR-O-211). `resolve_drives` теперь принимает `beliefs: List[CrystallizedBelief]` и применяет их к `drives_base` (L0) для формирования эфемерной проекции (L3). Устранён `pass` (L3=L0).
   Taboo: ❌ Возврат к чтению L1Chronicle внутри DriveResolver. ❌ Прямая мутация L0 минуя Belief Layer.
   Files: drive_resolver.py, tick_orchestrator.py
+
+

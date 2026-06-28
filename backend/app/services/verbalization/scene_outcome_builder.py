@@ -408,6 +408,11 @@ class SceneOutcomeBuilder:
                 # description snippet — даёт модели контекст вместо галлюцинации
                 if npc.description_snippet:
                     line += f" ({npc.description_snippet})"
+                # C4-FIX: stance — поведенческая форма (тон, срочность) для DM
+                if hasattr(npc, 'stance') and npc.stance:
+                    stance_line = npc.stance.to_prompt_line()
+                    if stance_line:
+                        line += f" [{stance_line}]"
                 # ФАЗА 4: topic — якорь для LLM (Устав 3.2)
                 if npc.topic:
                     line += f" [тема: {npc.topic}]"

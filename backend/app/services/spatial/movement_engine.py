@@ -1,7 +1,6 @@
-# backend/app/services/spatial/movement_engine.py
+﻿# backend/app/services/spatial/movement_engine.py
 # Назначение: Слой 2 Execution. MovementIntent → SceneChange с {x, y}.
 # Получает целевой узел графа, резолвит в координаты, генерирует SceneChange.
-# Зависимости: app.domain.movement, app.services.scene_change, app.services.spatial.location_graph
 
 from __future__ import annotations
 
@@ -10,7 +9,6 @@ from typing import Any, Dict, List, Optional
 
 from app.domain.movement import MacroMovementGoal, LocalSteeringGoal
 from app.services.scene_change import SceneChange, ChangeType
-# A5-FIX: TransitTracker мёртв (ADR-0010), удалён.
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +23,6 @@ class MovementEngine:
     """
 
     def __init__(self) -> None:
-        # ADR-0010: TransitTracker ампутирован. Макро-перемещение — Semantic Relocation.
         # SpatialService v1.2 — инжекция извне (DI)
         self._spatial_service: Optional[Any] = None
 
@@ -34,7 +31,6 @@ class MovementEngine:
         self._spatial_service = svc
 
 
-    # ADR-0010: TransitTracker ампутирован. Методы удалены как мертвый код.
 
 
     # ── Spatial Intent Gate: единый пространственный арбитр ────────────

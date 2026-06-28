@@ -28,12 +28,6 @@ class DMResult:
     scene_context: Optional[SceneContext] = None
     error: Optional[str] = None
     
-    @property
-    def can_proceed(self) -> bool:
-        """Можно ли передавать в DecisionHub?"""
-        return self.is_valid and self.event_context is not None
-
-
 class DMOrchestrator:
     """
     Фасад DM System.

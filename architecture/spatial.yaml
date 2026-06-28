@@ -1,6 +1,11 @@
 domain: SPATIAL
 description: "Пространство и локомоция. SpatialService — единственный авторитет координат. Boundary = интерфейс перехода. Актуализировано: S85.1 (Pipeline Stabilization & Traversal Lock) + ADR-TRAV-FSM (FSM Ownership)."
 nodes:
+  SpatialFactory:
+    type: service
+    layer: Application
+    label: "Spatial Factory (Single Entry Point)"
+    description: "ADR-TZ04-4 (B3): Единственная точка входа для сборки SpatialService. Прямые вызовы SpatialService.build_for_location() запрещены."
   SpatialService:
     type: service
     layer: Domain
@@ -34,7 +39,7 @@ nodes:
     type: dto
     layer: Domain
     label: "SceneChange (Projection)"
-    description: "Проекция свершившегося. Не является командой. ADR-130.2: При cause=traversal_complete выступает фактом завершения движения, а не запросом на новый маршрут."
+    description: "Проекция свершившегося. Не является командой. ADR-130.2: При cause=traversal_complete выступает фактом завершения движения, а не запросом на новый маршрут. ADR-TZ04-5 (B4-B5): ChangeType.NPC_METADATA (activity, initiative_suppression) и SCENE_METADATA (line_of_sight) добавлены для маршрутизации мутаций."
   MacroMovementGoal:
     type: dto
     layer: Domain
@@ -509,10 +514,15 @@ constraints:
     severity: HIGH
   - source: SpatialQueryService
     target: SceneState
-    rule: "FORBIDDEN: Read distances or positions directly from scene_state (ADR-048)"
+    rule: "FORBIDDEN: Read distances or positions directly from scene_state (ADR-048, ADR-TZ04-1)"
     condition: "scene_state['player_distances'] is DEPRECATED. Use SpatialQueryService."
-    adr_ref: "ADR-048"
+    adr_ref: "ADR-048, ADR-TZ04-1"
     severity: HIGH
+  - source: Any
+    target: SpatialService
+    rule: "FORBIDDEN: Direct SpatialService.build_for_location() call. MUST use SpatialFactory.build_for_campaign() (ADR-TZ04-4)"
+    adr_ref: "ADR-TZ04-4"
+    severity: CRITICAL
   # --- S85.1 PIPELINE STABILIZATION & ADR-TRAV-FSM CONSTRAINTS ---
   - source: LifeEngine
     target: MovingNPC

@@ -85,11 +85,21 @@ constraints:
     severity: CRITICAL
   - source: ProjectionEngine
     target: Simulation
-    rule: "REQUIRED: apply_changes = pure projection operator, NOT simulator (ADR-O-201)"
-    condition: "6 mutations identified in scene_state_manager.apply_change(): (1) SpatialService.build_for_location (2) random.uniform (3) is_blocked_by_wall + find_path (4) traversal_dict construction (5) node.x/y → local_position (6) direct dict mutation before apply. All must migrate to EventCompiler. Projection = state[t+1] = state[t] ⊕ ThickSceneChange[]."
+    rule: "REQUIRED: apply_changes = pure projection operator, NOT simulator (ADR-O-201, ADR-TZ04-2)"
+    condition: "6 mutations identified in scene_state_manager.apply_change(): (1) SpatialService.build_for_location (2) random.uniform [FIXED ADR-TZ04-2: replaced with KernelRNG] (3) is_blocked_by_wall + find_path (4) traversal_dict construction (5) node.x/y → local_position (6) direct dict mutation before apply. All must migrate to EventCompiler. Projection = state[t+1] = state[t] ⊕ ThickSceneChange[]."
     code_ref: "scene_state_manager.py:1153-1446"
-    adr_ref: "ADR-O-201"
+    adr_ref: "ADR-O-201, ADR-TZ04-2"
     severity: CRITICAL
+  - source: NpcOrchestration
+    target: SceneState
+    rule: "FORBIDDEN: Direct mutation of scene_state['npc_positions'][nid]['activity']. MUST use SceneChange(NPC_METADATA) (ADR-TZ04-5)"
+    adr_ref: "ADR-TZ04-5"
+    severity: HIGH
+  - source: DMPhase
+    target: SceneState
+    rule: "FORBIDDEN: Direct mutation of scene_state['line_of_sight']. MUST use SceneChange(SCENE_METADATA) (ADR-TZ04-5)"
+    adr_ref: "ADR-TZ04-5"
+    severity: HIGH
   - source: ProjectionEngine
     target: WorldKnowledge
     rule: "FORBIDDEN: apply_changes queries world state beyond target entity (ADR-O-201)"

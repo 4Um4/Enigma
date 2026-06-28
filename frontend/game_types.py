@@ -1,4 +1,4 @@
-"""
+﻿"""
 path: /frontend/game_types.py
 Назначение: Frontend-локальные DTO для рендера восприятия. Копия backend-типов без импорта app.services — удовлетворяет Закон 1.1
 Зависимости: dataclasses, enum, typing (только stdlib)
@@ -67,6 +67,9 @@ class PerceivedEntity:
     current_waypoint_idx: int = 0
     traversal_progress: float = 0.0              # 0.0 - 1.0 прогресс между текущими waypoint
     traversal_speed: float = 1.5                 # Скорость визуальной интерполяции (м/с)
+    # S90.4: ETKE-IK VelocityRenderer fields
+    velocity: tuple = (0.0, 0.0)
+    exertion_level: float = 0.0
 
     # --- Embodied Trace Layer (The Fool v2: Моторные следы) ---
     is_frozen: bool = False
@@ -154,103 +157,6 @@ class MemoryEntry:
 
 
 @dataclass
-class PlayerMemory:
-    """
-    Память игрока — in-memory, без персистенции.
-    Копия backend/app/services/player_cognition/memory_layer.py:PlayerMemory
-    """
-    _entries: Dict[str, MemoryEntry] = field(default_factory=dict)
-    _turn_count: int = 0
-
-    # === Decay параметры ===
-    MEDIUM_DECAY_PER_TURN: float = 0.05
-    LONG_DECAY_PER_TURN: float = 0.15
-    MEDIUM_MAX_TURNS: int = 10
-    MIN_MEMORY: float = 0.1
-
-    def new_turn(self) -> None:
-        """Вызвать в начале каждого хода — применяет decay"""
-        self._turn_count += 1
-        for entry in self._entries.values():
-            if self._turn_count - entry.last_seen_time > self.MEDIUM_MAX_TURNS:
-                entry.last_clarity *= (1.0 - self.LONG_DECAY_PER_TURN)
-            elif self._turn_count - entry.last_seen_time > 1:
-                entry.last_clarity *= (1.0 - self.MEDIUM_DECAY_PER_TURN)
-
-    def update_from_perception(self, entities: List[PerceivedEntity]) -> None:
-        """Обновляет память из текущего PerceivedScene"""
-        now = float(self._turn_count)
-
-        for entity in entities:
-            if not entity.visible:
-                continue
-
-            eid = entity.entity_id
-            if eid in self._entries:
-                entry = self._entries[eid]
-                entry.encounter_count += 1
-                entry.last_seen_time = now
-                entry.last_clarity = max(entry.last_clarity, entity.clarity)
-                entry.display_name = entity.display_name or entry.display_name
-                for obs in entity.observations:
-                    if obs not in entry.key_observations:
-                        entry.key_observations.append(obs)
-                        if len(entry.key_observations) > 5:
-                            entry.key_observations.pop(0)
-            else:
-                self._entries[eid] = MemoryEntry(
-                    entity_id=eid,
-                    entity_type=entity.entity_type,
-                    display_name=entity.display_name,
-                    last_seen_time=now,
-                    encounter_count=1,
-                    last_clarity=entity.clarity,
-                    key_observations=list(entity.observations),
-                )
-
-    def get_memory(self, entity_id: str) -> Optional[MemoryEntry]:
-        """Возвращает запись памяти или None"""
-        entry = self._entries.get(entity_id)
-        if entry and entry.last_clarity < self.MIN_MEMORY:
-            return None
-        return entry
-
-    def get_tier(self, entity_id: str) -> MemoryTier:
-        """Определяет уровень памяти о сущности"""
-        entry = self._entries.get(entity_id)
-        if not entry:
-            return MemoryTier.LONG
-        age = self._turn_count - entry.last_seen_time
-        if age <= 1:
-            return MemoryTier.SHORT
-        elif age <= self.MEDIUM_MAX_TURNS:
-            return MemoryTier.MEDIUM
-        else:
-            return MemoryTier.LONG
-
-
-@dataclass
-class EncounterHistory:
-    """
-    История встреч с NPC — in-memory, без персистенции.
-    Копия backend/app/services/player_cognition/recognition_layer.py:EncounterHistory
-    """
-    _encounters: Dict[str, int] = field(default_factory=dict)
-    _known_ids: Set[str] = field(default_factory=set)
-
-    def record_encounter(self, npc_id: str) -> None:
-        """Записывает встречу с NPC"""
-        self._encounters[npc_id] = self._encounters.get(npc_id, 0) + 1
-        self._known_ids.add(npc_id)
-
-    def encounter_count(self, npc_id: str) -> int:
-        return self._encounters.get(npc_id, 0)
-
-    def is_known(self, npc_id: str) -> bool:
-        return npc_id in self._known_ids
-
-
-@dataclass
 class PlayerFocus:
     """Текущий фокус внимания игрока — управляется гибридно"""
     focus_entity_id: Optional[str] = None
@@ -266,5 +172,3 @@ class PerceptionConfig:
     player_hp: int = 100
     player_max_hp: int = 100
     player_fatigue: float = 0.0
-    encounter_history: Optional[EncounterHistory] = None
-    player_memory: Optional[PlayerMemory] = None

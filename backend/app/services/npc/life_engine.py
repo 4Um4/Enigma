@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """
 LifeEngine — движок симуляции жизни NPC.
 backend/app/services/npc/life_engine.py
@@ -265,7 +265,6 @@ class LifeEngine:
         self._persistence = persistence
         logger.info("[LIFE_ENGINE] PersistencePort инжектирован — SQLite read-back активен")
 
-    # ADR-0010: set_transit_tracker удалён. TransitTracker ампутирован из макро-пайплайна.
 
     def macro_simulate(
         self,

@@ -11,6 +11,9 @@
 - **L0 (PERCEPTION):** Мир → Восприятие. Никакой телепатии. Игрок и NPC получают информацию симметрично через `PerceptualKernel` / `ProjectionPolicy`.
 - **L1 (BODY):** Инерция личности. Любая мутация стана должна подчиняться формуле: `new_value = (old_value * core.rigidity) + (delta * (1 - core.rigidity))`. Моментальные скачки = баг.
 - **L2 (BEHAVIOR):** `DecisionHub` — единственный источник решений. Давление искривляет utility, но не приказывает.
+- **`TickState`** (`domain/tick.py`): Пассивный иммутабельный снимок состояния мира для передачи в редюсер (TZ-10). Содержит ВСЕ данные, включая preloaded блоки (`memory_weights_map`, `narrative_cache_map`, `social_modifiers_map`, `reputation_modifiers_map`, `economic_profiles_map`, `crystallized_beliefs_map`, `identity_traits_map`) и read-only сервисы (`relationship_store`, `spatial_service`, `spatial_query`).
+  🚫 ЗАПРЕТ: Изменяемые дефолты в `TickState` (использовать `frozen()`). Возврат параметра `svc` в редюсер.
+- **`TickMutation`** (`domain/tick.py`): Чистый результат работы `NpcTickPipeline.run()`. Содержит `npc_deltas`, `communication_intents`, `movement_intents`, а также отложенные I/O мутации: `l1_drift_events` и `memory_events` (применяются оркестратором).
 - **`TickResultDTO`** (`domain/tick.py`): Единый результат тика ядра. Возвращает только status, world_snapshot и npc_contexts (Narrative Projection). 
 
   🚫 ЗАПРЕТ: Возврат `TickPlayerResultDTO` из ядра. Возврат `movement_intents` (они исполняются внутри Фазы 8 и не покидают ядро).
@@ -85,7 +88,8 @@
 - **`IntentDomain`** (`domain/movement.py`): Enum онтологических доменов намерений. `SURVIVAL`, `SOCIAL`, `ROUTINE`, `EXPLORATION`. **ADR-O-137:** Viability mask проекция PerceptualKernel → IntentDomain.
 - **`MacroMovementGoal`** (`domain/movement.py`): LOD1. Содержит `target_node_id`, `from_node_id`, `target_local_xy`, **`domain: IntentDomain`** (ADR-O-137), `processed` (bool). Повторная обработка с `processed=True` вызывает `RuntimeError`.
 - **`TraversalState`** (`models/`): Физическое состояние перемещения. `source_node`, `target_node`, `waypoints`, `progress` (0.0-1.0), `speed`, `created_tick`.
-- **`SceneChange`**: Проекция свершившегося. **Boundary Transition Pipeline (ADR-145):** `target_location_id` заполняется ТОЛЬКО в `_process_traversals()` при факте пересечения boundary node. **ADR-130.2 (S85.1):** При `cause="traversal_complete"` `apply_changes` делает snap `local_position`, не создавая новый `TraversalState`.
+- **`SceneChange`**: Проекция свершившегося. **Boundary Transition Pipeline (ADR-145):** `target_location_id` заполняется ТОЛЬКО в `_process_traversals()` при факте пересечения boundary node. **ADR-130.2 (S85.1):** При `cause="traversal_complete"` `apply_changes` делает snap `local_position`, не создавая новый `TraversalState`. **ADR-TZ04-5 (B4-B5):** `ChangeType.NPC_METADATA` (activity, initiative_suppression) и `SCENE_METADATA` (line_of_sight) добавлены для маршрутизации мутаций через единый канал.
+- **`SpatialFactory`** (`services/spatial/spatial_factory.py`): Единственная точка входа для сборки `SpatialService` (ADR-TZ04-4). Прямые вызовы `SpatialService.build_for_location()` запрещены.
 - **`KernelRNG`** (`services/npc/kernel_rng.py`): Единственный источник случайности в kernel layer (ADR-O-301). Привязан к `(tick, npc_id, salt)`. Создаётся через `_TickContext.rng_factory` в `TickOrchestrator` и передаётся в `NpcTickPipeline.run()`.
 - **`DecisionHub`** (`services/npc/decision_hub.py`): Принимает `rng: Optional[KernelRNG]` в конструкторе. В production ВСЕГДА передаётся `rng`. `seed` оставлен только для legacy-тестов. Вызов `DecisionHub()` без аргументов запрещён (ADR-O-301).
 
@@ -288,3 +292,10 @@
 - `test_kernel_rng_determinism` (ADR-O-301)
 - `test_no_global_random_in_kernel` (ADR-O-301)
 - `test_decision_hub_requires_rng` (ADR-O-301)
+- `test_no_zombie_readers` (ADR-TZ04-1)
+- `test_no_random_uniform_in_apply_change` (ADR-TZ04-2)
+- `test_dead_spatial_modules_removed` (ADR-TZ04-3)
+- `test_spatial_factory_used` (ADR-TZ04-4)
+- `test_metadata_scene_change_routing` (ADR-TZ04-5)
+
+

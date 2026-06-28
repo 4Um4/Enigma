@@ -43,6 +43,18 @@ def create_tick_state(
     scene_continuity: Optional[Any] = None,
     spatial_events: Optional[list] = None,
     drf_tick_id: int = -1,
+    # TZ-10: Preloaded Data (Strangulation Pattern)
+    memory_weights_map: Optional[dict] = None,
+    narrative_cache_map: Optional[dict] = None,
+    social_modifiers_map: Optional[dict] = None,
+    reputation_modifiers_map: Optional[dict] = None,
+    economic_profiles_map: Optional[dict] = None,
+    crystallized_beliefs_map: Optional[dict] = None,
+    identity_traits_map: Optional[dict] = None,
+    # Read-only services (не выполняют I/O, безопасны для редюсера)
+    relationship_store: Optional[Any] = None,
+    spatial_service: Optional[Any] = None,
+    spatial_query: Optional[Any] = None,
 ) -> "TickState":
     """Фабрика TickState. Замораживает данные на границе сборки (Orchestrator)."""
     return TickState(
@@ -63,6 +75,16 @@ def create_tick_state(
         scene_continuity=scene_continuity,
         spatial_events=tuple(spatial_events) if spatial_events else (),
         drf_tick_id=drf_tick_id,
+        memory_weights_map=frozen(memory_weights_map) if memory_weights_map else {},
+        narrative_cache_map=frozen(narrative_cache_map) if narrative_cache_map else {},
+        social_modifiers_map=frozen(social_modifiers_map) if social_modifiers_map else {},
+        reputation_modifiers_map=frozen(reputation_modifiers_map) if reputation_modifiers_map else {},
+        economic_profiles_map=frozen(economic_profiles_map) if economic_profiles_map else {},
+        crystallized_beliefs_map=frozen(crystallized_beliefs_map) if crystallized_beliefs_map else {},
+        identity_traits_map=frozen(identity_traits_map) if identity_traits_map else {},
+        relationship_store=relationship_store,
+        spatial_service=spatial_service,
+        spatial_query=spatial_query,
     )
 
 @dataclass(frozen=True)
@@ -71,6 +93,7 @@ class TickState:
     
     Содержит ВСЕ необходимые данные для вычисления мутаций. 
     Никаких внешних контекстов (DMContext) не требуется.
+    TZ-10: svc устранён, все данные preloaded в TickState.
     """
     tick_id: int
     campaign_id: str
@@ -90,13 +113,32 @@ class TickState:
     scene_continuity: Optional[Any] = None
     spatial_events: Tuple[Any, ...] = ()
     drf_tick_id: int = -1
+    
+    # TZ-10: Preloaded Data (загружаются Orchestrator ДО вызова run)
+    memory_weights_map: Any = field(default_factory=dict)          # MappingProxyType: npc_id -> weights
+    narrative_cache_map: Any = field(default_factory=dict)         # MappingProxyType: npc_id -> cache
+    social_modifiers_map: Any = field(default_factory=dict)        # MappingProxyType: npc_id -> social_mods
+    reputation_modifiers_map: Any = field(default_factory=dict)    # MappingProxyType: npc_id -> rep_mod
+    economic_profiles_map: Any = field(default_factory=dict)       # MappingProxyType: npc_id -> eco_profile
+    crystallized_beliefs_map: Any = field(default_factory=dict)    # MappingProxyType: npc_id -> beliefs
+    identity_traits_map: Any = field(default_factory=dict)         # MappingProxyType: npc_id -> traits
+    
+    # Read-only services (не выполняют I/O, безопасны для редюсера)
+    relationship_store: Optional[Any] = None
+    spatial_service: Optional[Any] = None
+    spatial_query: Optional[Any] = None
 
 @dataclass(frozen=True)
 class TickMutation:
-    """Чистый результат работы NpcTickPipeline. Возвращает только дельты и намерения."""
+    """Чистый результат работы NpcTickPipeline. Возвращает только дельты и намерения.
+    
+    TZ-10: Expanded with deferred mutations (l1_events, memory_events).
+    """
     npc_deltas: List[Any]                 # List[StateDelta]
     communication_intents: List[Any]      # List[CommunicationIntent]
     movement_intents: List[Any]           # List[MovementIntent]
+    l1_drift_events: List[Any] = field(default_factory=list)   # List[TraitDriftEvent]
+    memory_events: List[Any] = field(default_factory=list)     # List[EventDTO]
 
 
 @dataclass(frozen=True)

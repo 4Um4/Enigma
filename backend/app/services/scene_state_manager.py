@@ -1515,13 +1515,23 @@ class SceneStateManager:
                         except Exception as exc:
                             logger.error(f"[PIPELINE][SCENE_CHANGE][APPLY_CRASH] npc={change.target} exc={exc}")
 
-                # ADR-0014: Micro-space movement (LOD0). MovementEngine генерирует local_position напрямую.
+                # ADR-0014 + ADR-ETKE-ACT1: ETKE-IK кинематика.
+                # MovementEngine и _process_continuous_motion генерируют local_position, velocity, exertion_level напрямую.
                 elif change.field == "local_position" and isinstance(change.value, dict):
                     pos = scene_state.setdefault("npc_positions", {})
                     entry = pos.setdefault(change.target, {})
                     logger.debug(f"[DIAG_LOC_MUTATE] npc={change.target} reason=direct_local_position value={change.value}")
                     entry["local_position"] = change.value
                     logger.debug(f"[APPLY_LOCAL_POSITION] npc={change.target} value={change.value}")
+                # S90.4: Проброс кинематики для фронтенд-рендерера (MotionRenderRouter)
+                elif change.field == "velocity":
+                    pos = scene_state.setdefault("npc_positions", {})
+                    entry = pos.setdefault(change.target, {})
+                    entry["velocity"] = change.value
+                elif change.field == "exertion_level":
+                    pos = scene_state.setdefault("npc_positions", {})
+                    entry = pos.setdefault(change.target, {})
+                    entry["exertion_level"] = change.value
 
             elif ct == ChangeType.NPC_STATE:
                 pos = scene_state.setdefault("npc_positions", {})
@@ -1534,6 +1544,14 @@ class SceneStateManager:
                         markers.append(marker)
                 else:
                     entry[change.field] = change.value
+
+            elif ct == ChangeType.NPC_METADATA:
+                pos = scene_state.setdefault("npc_positions", {})
+                entry = pos.setdefault(change.target, {})
+                entry[change.field] = change.value
+
+            elif ct == ChangeType.SCENE_METADATA:
+                scene_state[change.field] = change.value
 
             elif ct == ChangeType.ENVIRONMENT:
                 scene_state.setdefault("environment", {})[change.field] = change.value

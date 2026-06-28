@@ -1,4 +1,4 @@
-"""
+﻿"""
 backend/app/services/npc/spatial_runtime.py
 R4 runtime: расстояния XY, LOS, звук, извлечение контекста сцены для NPC.
 
@@ -30,7 +30,6 @@ from typing import Iterable, Optional
 
 from app.core.config import settings
 from app.core.constants import PERCEPTION_FALLBACK_DISTANCE, PERCEPTION_RADIUS
-# ADR-102: load_graph и LocationGraph удалены — заменены на SpatialService
 
 
 def normalize_scene_state(scene_state) -> dict:

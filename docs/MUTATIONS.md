@@ -8,10 +8,10 @@
 
 | Показатель | Значение |
 |------------|----------|
-| Сессий | 95 |
+| Сессий | 96 |
 | Доменов | 10 |
 | Консолидированных запретов | [DERIVED: count(ADR.*.Taboo)] |
-| Диапазон | S03—S95 |
+| Диапазон | S03—S97 |
 
 ---
 
@@ -36,6 +36,14 @@
   - `TickOrchestrator._phase_5_decision` собирает снимок, вызывает редюсер и применяет мутации.
   - `GameLoop.idle_tick` нормализует среду в `InterventionEvent`.
   - Устранены побочные эффекты: `FrozenInstanceError` (через `dataclasses.replace`), `MappingProxyType` pickle error (через `deepcopy`).
+
+- 🔵 **S97** ТЗ-10: Pure Reducer Completion & Svc Strangulation.
+  - Завершена миграция `NpcTickPipeline.run()` в чистую функцию. Параметр `svc: Any` удалён из сигнатуры.
+  - Внедрён Strangulation Pattern: `TickState` расширен блоками `preloaded_*` (memory_weights, narrative_cache, social_mods, reputation, economic_profiles, beliefs, traits) для предзагрузки оркестратором.
+  - `TickMutation` расширен `l1_drift_events` и `memory_events` для отложенного применения I/O-мутаций.
+  - `TickOrchestrator._phase_5_decision` теперь загружает данные ДО вызова `run()` и применяет отложенные мутации ПОСЛЕ.
+  - `apply_perception_memory` и `create_memory_event` переведены в режим возврата `EventDTO` без I/O при `memory_manager=None`.
+  - DriftLaboratory (3 тика): 0 ошибок, comparisons=4, гейты стабильны.
 
 - 🔵 **TZ-08 v0.2** Строгая миграция ядра в Event-Driven модель.
   - Внедрён `InterventionEvent` как единственный внешний входной протокол.
@@ -76,6 +84,7 @@
 - 🟢 **S93** ADR-S93.1: Dead NPC Execution Lock. Мёртвые NPC (`life_status="DEAD"`) полностью исключаются из `ctx.all_npcs_raw` в `_run_core_phases` до Фазы 1. Устраняет "зомби-движение".
 - 🔵 **S94** ТЗ-03: Frontend ↔ Backend Contract Repair. Устранена tri-ontology system. Установлена Single Causal Authority. A1: `GameActionResponse` расширен `scene_state` и `metadata`. A2: `WorldSnapshotDTO.npc_positions` канонизирован как `Dict[str, NPCPositionDTO]`, адаптер удалён. A3: `PeripheralCueDTO.cue_type` → `cue_key`. B1: Frontend authority removal (5 sub-fixes): фронтенд лишён права генерировать время, аватара, журнал. B2: Spatial Oracle no-silent-failure. B3: Dual-channel architecture (`idle_tick` остаётся causal clock, `get_world_state` добавлен как observational layer). C1: `contextlib.suppress(Exception)` заменён на явный `try/except`. C2: `_MinimalFrontendRegistry.find_chunks` добавлен. Создан `backend/tests/test_tz3_contract_repair.py` (11 тестов).
 - 🔵 **S95** ADR-O-302: Physics Overlay. Введены §14 (Закон Единичного Времени) и §15 (Закон Изоляции Реального Времени). `REAL_TIME_BRIDGE` (`reconcile_state`) изолирован, магическое число `10.0` заменено на `GAME_TICK_INTERVAL_SECONDS`. `INTERPOLATION_TIME` (`ETKE_IK_SUBSTEP_DT`) выведен в константу, магические `0.1` убиты в `motion_pipeline.py` и `tick_orchestrator.py`. Мёртвый код `get_world_ticks_elapsed` и `get_idle_seconds` удалён. Аффективный декэй переведён на `GAME_TICK_INTERVAL_SECONDS` и `AFFECT_DECAY_BASE_RATE`. Обнаружен и устранён баг `SHI=0%` (метод `on_individual_decision` находился в `TickHealthReport`, а не в `TickHealthChecker`, вызывая `AttributeError`).
+- 🔵 **S96** ТЗ-04: Spatial Authority & Physics Repair (Patch Set A+B). Устранены зомби-ридеры `player_distances` (A1-A3), `random.uniform` в `apply_change` заменён на `KernelRNG` (A4). Удалены мёртвые модули `transit_tracker.py` и `location_graph.py` (A5). `game_loop_bridge.py` переведён на логирование ошибок вместо `except: pass` (B1). Введена единая фабрика `SpatialFactory` (B3). Прямые мутации `activity`/`initiative_suppression` и `line_of_sight` переведены на маршрутизацию через `SceneChange` (B4-B5). Создан `test_tz4_spatial_authority.py` (12 тестов).
 
 ### DOM-02: WILL, PRESSURE & DECISION
 
@@ -325,6 +334,10 @@
 30. ❌ Boundary node как цель движения или место обитания NPC
 31. ❌ Перезапись активного транзита (`status="MOVING"`) в `apply_changes` (ADR-130 Guard)
 32. ❌ Создание нового `TraversalState` для `cause="traversal_complete"` (нужен только snap `local_position`)
+33. ❌ Использование `scene_state.get("player_distances")` (зомби-ридер) — только `SpatialQueryService.player_distances()`
+34. ❌ Прямая сборка `SpatialService.build_for_location()` в обход `SpatialFactory.build_for_campaign()`
+35. ❌ Использование `random.uniform()` в `apply_change` (нарушение детерминизма)
+36. ❌ Прямая мутация `scene_state["line_of_sight"]` и `scene_state["npc_positions"][nid]["activity"]` в обход `SceneChange` (RCG Pre-Fix)
 
 ### Perception & Phenomenology
 33. ❌ Хранение `EventDTO` в `EventBuffer` (только `FieldDisturbance`)
@@ -395,6 +408,4 @@
 88. ❌ Использование `PatternDetector` без передачи `L1Chronicle` в конструктор (ADR-S93.3)
 89. ❌ Жёсткие пороги (if/else) в формировании убеждений `BeliefCrystallizationEngine` (ADR-S93.3)
 90. ❌ Отсутствие затухания ожиданий в Фазе 0.5 — ожидания обязаны затухать привязанные к `dt_game` (ADR-S93.2)
-
-
 

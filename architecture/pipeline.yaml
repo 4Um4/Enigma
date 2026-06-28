@@ -298,6 +298,22 @@ edges:
     to: DRFBus
     label: "owns self._drf_bus (instance-level)"
   - from: TickOrchestrator
+    to: TickState
+    label: "assembles preloaded data & frozen snapshot"
+    adr_ref: "ADR-TZ10-1"
+  - from: TickState
+    to: NpcTickPipeline
+    label: "passes immutable state"
+    adr_ref: "ADR-TZ10-1"
+  - from: NpcTickPipeline
+    to: TickMutation
+    label: "returns pure result (deltas, intents, pending_io)"
+    adr_ref: "ADR-TZ10-1"
+  - from: TickOrchestrator
+    to: TickMutation
+    label: "commits deferred IO (l1_events, memory_events) & deltas"
+    adr_ref: "ADR-TZ10-1"
+  - from: TickOrchestrator
     to: TickContext
     label: "creates rng_factory (lambda npc_id: KernelRNG(tick, npc_id))"
     adr_ref: "ADR-O-301"

@@ -176,15 +176,30 @@ def run_npc_orchestration(
     ctx.dirty_npcs.update(_npc_buf.dirty_npcs)
     npc_contexts.extend(_npc_buf.npc_contexts)
     ctx.max_npc_stress = max(ctx.max_npc_stress, _npc_buf.max_npc_stress)
-    # Activity overrides → scene_state (единственная мутация scene_state из NPC фазы)
-    for _nid, _activity in _npc_buf.activity_overrides.items():
-        if _nid in scene_state.get("npc_positions", {}):
-            scene_state["npc_positions"][_nid]["activity"] = _activity
-
-    # Спринт 30: Проброс initiative_suppression для визуализации Cognitive Freeze
-    for _nid, _init_sup in _npc_buf.initiative_suppressions.items():
-        if _nid in scene_state.get("npc_positions", {}):
-            scene_state["npc_positions"][_nid]["initiative_suppression"] = _init_sup
+    # B4-FIX: прямые мутации → SceneChange (CAUSAL_CONTRACT §3).
+    from app.services.scene_change import SceneChange, ChangeType
+    _scene_manager = getattr(game_loop, 'scene_manager', None)
+    if _scene_manager:
+        for _nid, _activity in _npc_buf.activity_overrides.items():
+            _change = SceneChange(
+                type=ChangeType.NPC_METADATA,
+                target=_nid,
+                field="activity",
+                value=_activity,
+                cause="npc_orchestration",
+            )
+            _scene_manager.apply_change(campaign_id, _change, scene_state)
+        for _nid, _init_sup in _npc_buf.initiative_suppressions.items():
+            _change = SceneChange(
+                type=ChangeType.NPC_METADATA,
+                target=_nid,
+                field="initiative_suppression",
+                value=_init_sup,
+                cause="npc_orchestration",
+            )
+            _scene_manager.apply_change(campaign_id, _change, scene_state)
+    else:
+        logger.warning("[NPC_ORCH] scene_manager not found in game_loop. Metadata changes skipped.")
 
     # TZ-08 v0.2: movement_intents больше не покидают ядро. Исполняются внутри Фазы 8.
 

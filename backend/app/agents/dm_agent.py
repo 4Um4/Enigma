@@ -828,27 +828,6 @@ class DmAgent:
     
         return None
 
-    def _build_intro_prompt(self, location: str, context: dict) -> str:
-        """Промпт для вводного описания сцены в начале сессии."""
-        scene_block = ""
-        if context:
-            scene_state = context.get("scene_state", {})
-            if scene_state:
-                try:
-                    scene_block = SceneStateManager.get_scene_description(scene_state) + "\n\n"
-                except Exception:
-                    pass
-
-        return f"""{scene_block}Текущая локация: {location}
-        
-Ты — Мастер игры. Начинается новая игровая сессия. Игроки только что вошли в сцену.
-
-Напиши атмосферное вводное описание локации от второго лица ("ты видишь...", "ты чувствуешь...").
-Упомяни только объекты и NPC из блока СОСТОЯНИЕ СЦЕНЫ выше.
-Создай настроение — время суток, освещение, звуки, запахи.
-Максимум 3-4 предложения. Без вопросов в конце.
-"""
-
     def _fallback_narrate(self) -> Dict:
         return {
             "dm_response": MSG_NOTHING_HAPPENED,

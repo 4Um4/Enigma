@@ -43,21 +43,11 @@ from app.models.state_delta import DeltaDomain, StateDeltas
 from app.models.cfrm import EventBuffer, ClusterOccupancy
 
 from app.services.scene_change import SceneChange, ChangeType
+from app.services.drf_bus import DRFBus, DRFExecutionContext, _DRF_PRESSURE_WEIGHTS, _DRF_ALIGNED, _DRF_MISALIGNED
+from app.services.dto import ReductionPolicy, DELTA_POLICY_REGISTRY, SemanticFrame, _TickContext, DMContextDTO, TickPlayerResultDTO
 
-class ReductionPolicy(Enum):
-    """Политика редукции дельт при агрегации"""
-    ADDITIVE = "additive"
-    BOUNDED_ADDITIVE = "bounded_additive"
-    OVERWRITE = "overwrite"
-    PHYSICS_COMPOSITE = "physics_composite"
+# ReductionPolicy, DELTA_POLICY_REGISTRY, _TickContext, DMContextDTO, TickPlayerResultDTO, SemanticFrame вынесены в app.services.dto (Декомпозиция Шаг 2)
 
-DELTA_POLICY_REGISTRY = {
-    DeltaDomain.SOCIAL: ReductionPolicy.ADDITIVE,
-    DeltaDomain.EMOTION: ReductionPolicy.BOUNDED_ADDITIVE,
-    DeltaDomain.REPUTATION: ReductionPolicy.ADDITIVE,
-    DeltaDomain.IDENTITY: ReductionPolicy.OVERWRITE,
-    DeltaDomain.PHYSIOLOGY: ReductionPolicy.PHYSICS_COMPOSITE,
-}
 from app.services.events.event_types import EventType
 from app.services.npc.life_engine import get_life_engine
 from app.services.npc.npc_loader import load_l2_state_from_runtime_dict
@@ -80,8 +70,6 @@ from app.services.spatial.spatial_event_detector import (
     SpatialEventDetector,
     _npc_positions_snapshot,
 )
-# A5-FIX: TransitTracker мёртв (ADR-0010), удалён.
-# SpatialService v1.2 заменяет location_graph. Прямой импорт запрещён контрактом.
 from app.services.integration.world_snapshot_builder import WorldSnapshotBuilder
 # ADR-O-201 ФАЗА 1: Dual Rail Execution
 from app.models.world_snapshot import WorldSnapshot, build_snapshot
@@ -89,208 +77,6 @@ from app.services.event_compiler import EventCompiler
 from app.services.equivalence_validator import EquivalenceValidator
 
 logger = logging.getLogger(__name__)
-
-class DRFBus:
-    """Dynamic Recompression Field Bus: единая шина причинных напряжений тика.
-    Системы пишут сюда претензии (emit), наблюдатель читает и схлопывает (drain).
-    """
-    def __init__(self):
-        self.stream: list[dict] = []
-
-    def emit(self, claim: dict):
-        self.stream.append(claim)
-
-    def drain(self) -> list[dict]:
-        data = self.stream
-        self.stream = []
-        return data
-
-@dataclass
-class DRFExecutionContext:
-    """Scoped causal ledger: привязка претензий к tick+npc frame.
-    Pipeline получает drf_ctx, а не голый drf_bus.
-    Claim автоматически наследует npc_id и tick_id из контекста.
-    """
-    tick_id: int
-    bus: Any  # DRFBus — разделяемая шина тика
-    npc_id: Optional[str] = None  # None = frame-level (pre-loop)
-
-    def for_npc(self, npc_id: str) -> 'DRFExecutionContext':
-        """Создаёт scoped контекст для конкретного NPC (тот же bus, тот же tick)."""
-        return DRFExecutionContext(tick_id=self.tick_id, npc_id=npc_id, bus=self.bus)
-
-    def emit(self, claim: dict):
-        """Испускает претензию с авто-привязкой npc_id и tick_id."""
-        _enriched = {**claim}
-        if self.npc_id and "target_npc" not in _enriched:
-            _enriched["target_npc"] = self.npc_id
-        _enriched["tick_id"] = self.tick_id
-        if self.npc_id:
-            _enriched["npc_id"] = self.npc_id
-        self.bus.emit(_enriched)
-        logger.info(f"[DRF_EMIT_BUS] bus_id={id(self.bus)} stream_size={len(self.bus.stream)} npc={self.npc_id} tick={self.tick_id}")
-
-    def drain(self) -> list[dict]:
-        """Схлопывает шину — делегирует bus. Вызывать только на frame-level."""
-        return self.bus.drain()
-
-# ── DRF Causal Scoring Weights (ДОЛГ 4.2) ──────────────────────────
-# Давление определяет допустимость намерений, не только приоритет.
-# Аддитивный скоринг: final = base + Σ(energy × weight × alignment)
-_DRF_PRESSURE_WEIGHTS = {
-    "SURVIVAL": 0.15,   # Критическое (flee) — радикальный бонус
-    "SOCIAL":   0.10,   # Социальное (approach) — средний бонус
-    "ROUTINE":  0.02,   # Рутина (schedule) — минимальный
-}
-_DRF_ALIGNED   = 1.0   # claim vector совпадает с intent reason — полный вес
-_DRF_MISALIGNED = 0.3  # частичное давление при несовпадении вектора
-
-@dataclass
-class SemanticFrame:
-    """SIL: Изолированный фрейм интерпретации мира (S-слой).
-    Эмоции и восприятие существуют здесь до сброса в M-слой в Phase 10.
-    tick_id предотвращает утечку эмоций (afterimage bug) между тиками."""
-    emotion_tag: Optional[str] = None
-    affective_load: Optional[float] = None
-    stress_delta: Optional[float] = None
-    perception_label: Optional[str] = None
-    tick_id: int = -1
-
-@dataclass
-class _TickContext:
-    """Внутренний контекст тика — живёт только внутри execute()."""
-    campaign_id: str
-    scene_state: dict
-    tick_number: int
-    # ADR-134: Instance-level bus — обязательно передаётся без дефолта (выше полей с default_factory)
-    drf_bus: DRFBus
-    # Слой 4: позиции NPC ДО тика (для детекции переходов)
-    old_npc_positions: dict = field(default_factory=dict)
-    # Фаза 0: изменения от LifeEngine
-    scene_changes: list = field(default_factory=list)
-    # Фаза 2: spatial events для Phase 3 (memory)
-    phase_2_events: list = field(default_factory=list)
-    # Фаза 4: извлечённые темы для каждого NPC (npc_id → topic)
-    npc_topics: dict = field(default_factory=dict)
-    # Фаза 5: CommunicationIntent для каждого NPC (пока пустой — legacy pipeline)
-    communication_intents: list = field(default_factory=list)
-    # TZ-08 v0.2: Narrative Projection (для LLM/UI). Артефакт тика, а не player_result.
-    npc_contexts: list = field(default_factory=list)
-    
-    # KERNEL-ISOLATION: per-tick RNG factory.
-    # Создаёт KernelRNG для каждого NPC по запросу (lazy).
-    # НЕ хранит RNG state напрямую — хранит factory, чтобы каждый NPC
-    # получил независимый deterministic stream.
-    rng_factory: Optional[Callable[[str], "KernelRNG"]] = None
-
-    def rng_for(self, npc_id: str) -> KernelRNG:
-        """Возвращает deterministic KernelRNG для данного NPC на текущем тике.
-
-        Использование:
-            rng = ctx.rng_for("maid_lusya")
-            if rng.random() < 0.4:
-                ...
-        """
-        if self.rng_factory is None:
-            # Fallback для legacy тестов, где factory не задан.
-            # В production этого быть не должно.
-            import logging
-            logging.getLogger(__name__).warning(
-                f"[TICK_CONTEXT] rng_factory is None, creating ad-hoc KernelRNG "
-                f"for npc={npc_id} tick={self.tick_number}. "
-                f"This indicates incomplete initialization."
-            )
-            return KernelRNG(tick=self.tick_number, npc_id=npc_id)
-        return self.rng_factory(npc_id)
-    # Фаза 5: решения DecisionHub
-    decision_events: list = field(default_factory=list)
-    # SIL: S-слой (интерпретация). Визуализация читает отсюда (T+0), DecisionHub из M-слоя (T-1)
-    semantic_buffer: Dict[str, "SemanticFrame"] = field(default_factory=dict)
-    # DSTC: Interpretation Snapshot (замороженный M₀ + Deltas). 
-    # Phase 9 читает ТОЛЬКО его. Мутация запрещена (Pure Read invariant).
-    interpretation_snapshot: Optional[list] = None
-    # Фаза 9: финальный снимок
-    world_snapshot: Optional[Any] = None
-    # TZ-08 v0.2: interventions replace dm_ctx. Kernel не знает "player".
-    interventions: list = field(default_factory=list)
-    # Player turn: сервисы для legacy pipeline (передаёт npc_orchestration)
-    npc_services: Optional[Any] = None
-    # Player turn: результат legacy pipeline
-    player_result: Optional[TickPlayerResultDTO] = None
-    # Player turn: контекст GameLoop для фаз 7-10 (Устав §3 — единая последовательность)
-    shared_context: Any = None
-    actions: list = field(default_factory=list)
-    player_intent: Optional["IntentDTO"] = None # ADR-031: Канонический интент
-    player_pressure: Optional["IntentPressureProfile"] = None # ADR-031 Fix: Вектор давления из Фазы 1
-    rules_result: Dict[str, Any] = field(default_factory=dict)
-    r3_direct_mode: bool = True
-    # Фаза 10: данные для коммита (мостируются из TickBuffer GameLoop)
-    all_npcs_raw: list = field(default_factory=list)
-    dirty_npcs: set = field(default_factory=set)
-    wt_dirty: bool = False
-    prop_dirty: bool = False
-    max_npc_stress: float = 0.0
-    # Фаза 10: данные для атомарного коммита
-    npc_states: list[dict] = field(default_factory=list)
-    # TZ-09: significant_events для аудита/персиста (маппится из TickMutation.npc_deltas)
-    significant_events: list = field(default_factory=list)
-    # STEP B: L3 проекция (EffectiveDrives). Вычисляется один раз за тик, доступна обоим путям.
-    effective_drives_map: Dict[str, "EffectiveDrives"] = field(default_factory=dict)
-    # TSHL: Обновления для StateApplicator (пока в безопасном режиме)
-    drives_updates: Dict[str, Dict[str, float]] = field(default_factory=dict)
-    strain_updates: Dict[str, Dict[str, float]] = field(default_factory=dict)
-    # tick_events: все события тика для аудита (decision_events + spatial + handlers)
-    tick_events: list[dict] | None = None
-    # Фаза 0.5: буфер idle-дельт (social decay, reputation decay)
-    delta_buffer: list = field(default_factory=list)
-    # ── CFRM Layer 1 & P1: Причинная физика мира ──────────────────────
-    event_buffer: EventBuffer = field(default_factory=EventBuffer)
-    cluster_occupancy: ClusterOccupancy = field(default_factory=ClusterOccupancy)
-    # DRF: Unified Causal Bus — единая память причинных напряжений тика.
-    # (Перемещён выше, до полей с дефолтами)
-    # ADR-O-310: windup_registry перенесён на уровень TickOrchestrator (self._windup_registry)
-    # чтобы переживать тики. Здесь больше не определяется.
-
-
-# ── Мостовые DTO для player turn (P1.1b) ──────────────────────────────
-# TODO: удалить после замены HubEventContext на EventDTO
-
-@dataclass(frozen=True)
-class DMContextDTO:
-    """Мост: DM-интерпретация → TickOrchestrator."""
-    hub_event: Any
-    nearby_npcs: list
-    line_of_sight: dict
-    scene_continuity: Any
-    action_type: str
-    player_target_id: str
-    spatial_events: list
-    raw_input: str
-    is_session_start: bool
-    current_tick: int = 0
-    all_npcs_raw: list = field(default_factory=list)
-    # SHI-FIX COMMAND: проброс intent_resolution для DirectiveInterpretationSubscriber.
-    # Без этого _process_player_dm_action не видит semantic_action → compliance_bias не растёт.
-    intent_resolution: Any = None
-
-
-@dataclass
-class TickPlayerResultDTO:
-    """Результат NPC-тика для player turn."""
-    status: str = "ok"
-    error: Optional[str] = None
-    npc_contexts: list = field(default_factory=list)
-    snapshot: Optional[dict] = None
-    events: List[Any] = field(default_factory=list)
-    dirty_npcs: set = field(default_factory=set)
-    activity_overrides: Dict[str, str] = field(default_factory=dict)
-    max_npc_stress: float = 0.0
-    # MovementIntent — реактивное движение NPC (APPROACH и др.)
-    # Оркестратор передаёт в MovementEngine → SceneChange → apply_changes
-    movement_intents: list = field(default_factory=list)
-    # Результат _phase_finalize (R3 frame, npc_reactions, npc_actions) —
-    # доступен только если execute() прошёл фазы 8-10 (Устав §3)
-    finalize_result: Optional[dict] = None
 
 
 class TickOrchestrator:
@@ -309,7 +95,6 @@ class TickOrchestrator:
         # Ленивая инициализация для оставшихся
         self._life_engine = None
         self._snapshot_builder = None
-        # A5-FIX: TransitTracker удалён.
         self._spatial_service = None  # ADR-029: Инъекция для CFRM ClusterGraph
         # ADR-O-310: Action Windup Registry. Живёт на уровне Orchestrator, переживает тики.
         # Ключ: (campaign_id, actor_id). Значение: List[ActionWindup].
@@ -428,7 +213,6 @@ class TickOrchestrator:
             self._snapshot_builder = WorldSnapshotBuilder()
         return self._snapshot_builder
 
-    # A5-FIX: _get_transit_tracker удалён (мёртвый код).
 
     def set_social_engine_factory(self, factory: Any) -> None:
         """Внедряет фабрику SocialEngine (DI)."""
@@ -1017,7 +801,6 @@ class TickOrchestrator:
         """
         ctx.old_npc_positions = _npc_positions_snapshot(ctx.scene_state)
 
-        # ADR-0010: TransitTracker ампутирован из макро-пайплайна.
         # Макро-движение теперь — Semantic Relocation (атомарный переход).
         # Микро-движение (steering) будет реализовано в LocalSteeringLayer.
 
@@ -1034,7 +817,6 @@ class TickOrchestrator:
         _trav_keys = sorted(ctx.scene_state.get("active_traversals", {}).keys())
         _pos_keys = sorted(ctx.scene_state.get("npc_positions", {}).keys())
         print(f"[NPC_SET] tick={ctx.tick_number} traversals={_trav_keys} positions={_pos_keys}")
-        # ADR-0010: TransitTracker больше не передаётся в LifeEngine/MovementEngine
         
         # ADR-048: Авторитетный SpatialService берется из единого резолвера
         _spatial_svc = self._resolve_spatial_service(ctx)
@@ -1988,6 +1770,39 @@ class TickOrchestrator:
                     if _pe_mods:
                         _pe_mods_map[npc_id] = _pe_mods
 
+        # TZ-10: Preload Data для Pure Reducer (вынос I/O из run)
+        _svc = ctx.npc_services
+        _memory_weights_map = {}
+        _narrative_cache_map = {}
+        _social_modifiers_map = {}
+        _reputation_modifiers_map = {}
+        _economic_profiles_map = {}
+        _crystallized_beliefs_map = {}
+        _identity_traits_map = {}
+
+        if _svc:
+            for n in _alive_npcs:
+                _nid = n.get("id") or n.get("npc_id")
+                if not _nid: continue
+                
+                if _svc.memory_manager:
+                    _memory_weights_map[_nid] = _svc.memory_manager.get_weights_for_decision(campaign_id=ctx.campaign_id, npc_id=_nid, target_id="player")
+                    _narrative_cache_map[_nid] = _svc.memory_manager.load_narrative_from_sqlite(ctx.campaign_id, _nid)
+                    _identity_traits_map[_nid] = _svc.memory_manager.get_identity_traits(campaign_id=ctx.campaign_id, npc_id=_nid)
+                
+                if _svc.social_engine:
+                    _social_modifiers_map[_nid] = _svc.social_engine.compute_social_modifiers(npc_id=_nid)
+                
+                if _svc.reputation_engine:
+                    _reputation_modifiers_map[_nid] = _svc.reputation_engine.compute_reputation_modifier(npc_id=_nid)
+                
+                if hasattr(_svc, 'economic_profiles'):
+                    _economic_profiles_map[_nid] = _svc.economic_profiles.get(_nid)
+                
+                _cstore = getattr(_svc, 'crystallized_belief_store', None)
+                if _cstore:
+                    _crystallized_beliefs_map[_nid] = _cstore.get_beliefs(npc_id=_nid)
+
         _tick_state = create_tick_state(
             tick_id=ctx.tick_number,
             campaign_id=ctx.campaign_id,
@@ -2005,16 +1820,41 @@ class TickOrchestrator:
             line_of_sight=_dm_ctx.line_of_sight if _dm_ctx else {n.get("id", n.get("npc_id")): True for n in ctx.all_npcs_raw},
             scene_continuity=_dm_ctx.scene_continuity if _dm_ctx else None,
             spatial_events=_dm_ctx.spatial_events if _dm_ctx else [],
-            drf_tick_id=ctx.tick_number
+            drf_tick_id=ctx.tick_number,
+            memory_weights_map=_memory_weights_map,
+            narrative_cache_map=_narrative_cache_map,
+            social_modifiers_map=_social_modifiers_map,
+            reputation_modifiers_map=_reputation_modifiers_map,
+            economic_profiles_map=_economic_profiles_map,
+            crystallized_beliefs_map=_crystallized_beliefs_map,
+            identity_traits_map=_identity_traits_map,
+            relationship_store=_svc.relationship_store if _svc else None,
+            spatial_service=_svc.spatial_service if _svc else None,
+            spatial_query=_svc.spatial_query if _svc else None,
         )
 
         _drf_ctx = DRFExecutionContext(tick_id=ctx.tick_number, bus=ctx.drf_bus)
         _mutation: TickMutation = NpcTickPipeline.run(
             state=_tick_state,
-            svc=ctx.npc_services,
             drf_ctx=_drf_ctx,
             rng_factory=ctx.rng_factory
         )
+
+        # TZ-10: Committer — применение отложенных мутаций из TickMutation
+        ctx.communication_intents = _mutation.communication_intents or []
+        ctx.movement_intents = _mutation.movement_intents or []
+        ctx.significant_events = _mutation.npc_deltas or []
+        
+        # Применение L1 Drift Events (Append-only Chronicle)
+        if _mutation.l1_drift_events and _svc and _svc.memory_manager:
+            for _event in _mutation.l1_drift_events:
+                _svc.memory_manager.l1_chronicle.append(_event)
+        
+        # Применение Memory Events (STM/L2 update)
+        if _mutation.memory_events and _svc and _svc.memory_manager:
+            for _mem_evt in _mutation.memory_events:
+                # События памяти применяются к контексту, но состояние будет обновлено в Фазе 9
+                ctx.event_bus.publish(_mem_evt) if hasattr(ctx, 'event_bus') else None
 
         # 4. Committer: Применение мутаций к контексту
         ctx.communication_intents = _mutation.communication_intents or []

@@ -146,12 +146,6 @@ class DMContractBuilder:
             self._blocks.append(f"[Важные воспоминания]\n{memory_block}")
         return self
     
-    def add_npc_author_notes(self, notes: str) -> "DMContractBuilder":
-        """ФАЗА 0: Режиссёрская инструкция для NPC."""
-        if notes and notes.strip():
-            self._blocks.append(f"[Режиссёрская инструкция]\n{notes}")
-        return self
-    
     def add_custom_block(self, label: str, content: str) -> "DMContractBuilder":
         """Произвольный блок — для расширения без изменения класса."""
         if content and content.strip():

@@ -454,10 +454,6 @@ class DirectGameGateway:
         except Exception as e:
             return {"reset": False, "campaign_id": campaign_id, "error": str(e)}
     
-    def _advance_time_by_movement(self, campaign_id: str, distance: float) -> None:
-        """Удалено: время продвигается в game_screen.py при каждом шаге через Calendar."""
-        pass
-    
     def create_player_session(
         self, campaign_id: str, player_name: str
     ) -> dict:

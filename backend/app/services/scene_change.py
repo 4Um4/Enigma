@@ -18,6 +18,9 @@ from enum import Enum
 from typing import Any
 
 
+# ADR-RCG-EXT: ChangeType represents routing domain only.
+# It MUST NOT encode field semantics.
+# Field semantics are expressed via SceneChange.field.
 class ChangeType(Enum):
     OBJECT_STATE   = "object_state"    # барная стойка: intact → damaged
     OBJECT_ADD     = "object_add"      # добавить объект (нашли нож на полу)
@@ -29,6 +32,8 @@ class ChangeType(Enum):
     INVENTORY      = "inventory"       # игрок взял/положил предмет
     EFFECT_ADD     = "effect_add"      # добавить активный эффект (горит стол)
     EFFECT_REMOVE  = "effect_remove"   # убрать эффект
+    NPC_METADATA   = "npc_metadata"    # activity, initiative_suppression, semantic tags
+    SCENE_METADATA = "scene_metadata"  # line_of_sight, environment flags
 
 
 @dataclass

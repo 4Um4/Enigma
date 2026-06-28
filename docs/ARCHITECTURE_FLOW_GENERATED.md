@@ -79,6 +79,7 @@ flowchart TD
         EventCompiler("Event Compiler (Physics Generator)"):::application
         EquivalenceValidator("Equivalence Validator"):::application
         SceneStateManager("Scene State Manager (Projection Engine)"):::application
+        SpatialFactory("Spatial Factory (Single Entry Point)"):::application
         MovementEngine("Movement Engine"):::application
         WorldTopologyProvider("World Topology Provider (ETKE-IK Gateway)"):::application
         DynamicAffordanceField("Dynamic Affordance Field (Dual-Layer Stigmergy)"):::application
@@ -380,6 +381,10 @@ flowchart TD
     LifeEngine -->|"load_npc_runtime — SQLite read-back"| SqlitePersistenceAdapter
     StateApplicator -->|"player_dict.body_state → AvatarStateDTO"| AvatarPresentationAssembler
     TickOrchestrator -->|"owns self._drf_bus (instance-level)"| DRFBus
+    TickOrchestrator -->|"assembles preloaded data & frozen snapshot"| TickState
+    TickState -->|"passes immutable state"| NpcTickPipeline
+    NpcTickPipeline -->|"returns pure result (deltas, intents, pending_io)"| TickMutation
+    TickOrchestrator -->|"commits deferred IO (l1_events, memory_events) & deltas"| TickMutation
     TickOrchestrator -->|"creates rng_factory (lambda npc_id: KernelRNG(tick, npc_id))"| TickContext
     TickContext -->|"passes rng_factory"| NpcTickPipeline
     NpcTickPipeline -->|"calls rng_factory(npc_id) to get deterministic RNG"| KernelRNG
@@ -687,7 +692,8 @@ flowchart TD
     MacroMovementGoal -.->|"🚫 REQUIRED: MovementIntent MUST have domain field (ADR-O-137)"| IntentDomain:::forbidden
     LifeEngine -.->|"🚫 REQUIRED: Movement Lock — update_routine MUST check scene_state.active_traversals before mutating routine (ADR-130)"| SceneStateManager:::forbidden
     LifeEngine -.->|"🚫 FORBIDDEN: Fallback to string nodes like 'common_area' (S85.1)"| _resolve_position:::forbidden
-    SpatialQueryService -.->|"🚫 FORBIDDEN: Read distances or positions directly from scene_state (ADR-048)"| SceneState:::forbidden
+    SpatialQueryService -.->|"🚫 FORBIDDEN: Read distances or positions directly from scene_state (ADR-048, ADR-TZ04-1)"| SceneState:::forbidden
+    Any -.->|"🚫 FORBIDDEN: Direct SpatialService.build_for_location() call. MUST use SpatialFactory.build_for_campaign() (ADR-TZ04-4)"| SpatialService:::forbidden
     LifeEngine -.->|"🚫 FORBIDDEN: LifeEngine generating intents for NPC in status MOVING (ADR-154)"| MovingNPC:::forbidden
     SceneStateManager -.->|"🚫 FORBIDDEN: apply_changes overwriting active traversal with status MOVING (ADR-130.1)"| ActiveTraversal:::forbidden
     SceneStateManager -.->|"🚫 FORBIDDEN: Creating new traversal_dict for cause=traversal_complete. MUST snap local_position (ADR-130.2, ADR-TRAV-FSM)"| TraversalComplete:::forbidden
@@ -701,7 +707,9 @@ flowchart TD
     SqlitePersistenceAdapter -.->|"🚫 REQUIRED: json.dumps with default handler for set (ADR-117)"| JSON:::forbidden
     NPCLoader -.->|"🚫 REQUIRED: _apply_runtime_overlay must include affective_load, emotion, emotion_delta, body_state, perceptual_kernel, narrative_cache in whitelist (Invariant 1, ADR-118)"| NPCState:::forbidden
     GameLoop -.->|"🚫 REQUIRED: engine.update_cache() after load_npcs_merged() — prevent re-reading disk every player turn (Invariant 1, ADR-118)"| LifeEngine:::forbidden
-    ProjectionEngine -.->|"🚫 REQUIRED: apply_changes = pure projection operator, NOT simulator (ADR-O-201)"| Simulation:::forbidden
+    ProjectionEngine -.->|"🚫 REQUIRED: apply_changes = pure projection operator, NOT simulator (ADR-O-201, ADR-TZ04-2)"| Simulation:::forbidden
+    NpcOrchestration -.->|"🚫 FORBIDDEN: Direct mutation of scene_state['npc_positions'][nid]['activity']. MUST use SceneChange(NPC_METADATA) (ADR-TZ04-5)"| SceneState:::forbidden
+    DMPhase -.->|"🚫 FORBIDDEN: Direct mutation of scene_state['line_of_sight']. MUST use SceneChange(SCENE_METADATA) (ADR-TZ04-5)"| SceneState:::forbidden
     ProjectionEngine -.->|"🚫 FORBIDDEN: apply_changes queries world state beyond target entity (ADR-O-201)"| WorldKnowledge:::forbidden
     StateApplicator -.->|"🚫 FORBIDDEN: Direct write to state.hp. MUST write to body_state['current_hp'] (ADR-HP-UNIFICATION)"| HP:::forbidden
     TickOrchestrator -.->|"🚫 FORBIDDEN: TICK_CATCHUP loops (ADR-047)"| Time:::forbidden
@@ -1337,6 +1345,10 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | LifeEngine | SqlitePersistenceAdapter | load_npc_runtime — SQLite read-back | - | `-` | - |
 | StateApplicator | AvatarPresentationAssembler | player_dict.body_state → AvatarStateDTO | - | `-` | - |
 | TickOrchestrator | DRFBus | owns self._drf_bus (instance-level) | - | `-` | - |
+| TickOrchestrator | TickState | assembles preloaded data & frozen snapshot | - | `-` | ADR-TZ10-1 |
+| TickState | NpcTickPipeline | passes immutable state | - | `-` | ADR-TZ10-1 |
+| NpcTickPipeline | TickMutation | returns pure result (deltas, intents, pending_io) | - | `-` | ADR-TZ10-1 |
+| TickOrchestrator | TickMutation | commits deferred IO (l1_events, memory_events) & deltas | - | `-` | ADR-TZ10-1 |
 | TickOrchestrator | TickContext | creates rng_factory (lambda npc_id: KernelRNG(tick, npc_id)) | - | `-` | ADR-O-301 |
 | TickContext | NpcTickPipeline | passes rng_factory | - | `-` | ADR-O-301 |
 | NpcTickPipeline | KernelRNG | calls rng_factory(npc_id) to get deterministic RNG | - | `-` | ADR-O-301 |
@@ -1647,7 +1659,8 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | MacroMovementGoal | IntentDomain | REQUIRED: MovementIntent MUST have domain field (ADR-O-137) | `-` |
 | LifeEngine | SceneStateManager | REQUIRED: Movement Lock — update_routine MUST check scene_state.active_traversals before mutating routine (ADR-130) | `-` |
 | LifeEngine | _resolve_position | FORBIDDEN: Fallback to string nodes like 'common_area' (S85.1) | `life_engine.py:1633` |
-| SpatialQueryService | SceneState | FORBIDDEN: Read distances or positions directly from scene_state (ADR-048) | `-` |
+| SpatialQueryService | SceneState | FORBIDDEN: Read distances or positions directly from scene_state (ADR-048, ADR-TZ04-1) | `-` |
+| Any | SpatialService | FORBIDDEN: Direct SpatialService.build_for_location() call. MUST use SpatialFactory.build_for_campaign() (ADR-TZ04-4) | `-` |
 | LifeEngine | MovingNPC | FORBIDDEN: LifeEngine generating intents for NPC in status MOVING (ADR-154) | `-` |
 | SceneStateManager | ActiveTraversal | FORBIDDEN: apply_changes overwriting active traversal with status MOVING (ADR-130.1) | `-` |
 | SceneStateManager | TraversalComplete | FORBIDDEN: Creating new traversal_dict for cause=traversal_complete. MUST snap local_position (ADR-130.2, ADR-TRAV-FSM) | `-` |
@@ -1661,7 +1674,9 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | SqlitePersistenceAdapter | JSON | REQUIRED: json.dumps with default handler for set (ADR-117) | `sqlite_persistence_adapter.py:76` |
 | NPCLoader | NPCState | REQUIRED: _apply_runtime_overlay must include affective_load, emotion, emotion_delta, body_state, perceptual_kernel, narrative_cache in whitelist (Invariant 1, ADR-118) | `npc/npc_loader.py:_RUNTIME_TOP_LEVEL_KEYS` |
 | GameLoop | LifeEngine | REQUIRED: engine.update_cache() after load_npcs_merged() — prevent re-reading disk every player turn (Invariant 1, ADR-118) | `game_loop/__init__.py:_load_npcs_with_runtime` |
-| ProjectionEngine | Simulation | REQUIRED: apply_changes = pure projection operator, NOT simulator (ADR-O-201) | `scene_state_manager.py:1153-1446` |
+| ProjectionEngine | Simulation | REQUIRED: apply_changes = pure projection operator, NOT simulator (ADR-O-201, ADR-TZ04-2) | `scene_state_manager.py:1153-1446` |
+| NpcOrchestration | SceneState | FORBIDDEN: Direct mutation of scene_state['npc_positions'][nid]['activity']. MUST use SceneChange(NPC_METADATA) (ADR-TZ04-5) | `-` |
+| DMPhase | SceneState | FORBIDDEN: Direct mutation of scene_state['line_of_sight']. MUST use SceneChange(SCENE_METADATA) (ADR-TZ04-5) | `-` |
 | ProjectionEngine | WorldKnowledge | FORBIDDEN: apply_changes queries world state beyond target entity (ADR-O-201) | `scene_state_manager.py:apply_change` |
 | StateApplicator | HP | FORBIDDEN: Direct write to state.hp. MUST write to body_state['current_hp'] (ADR-HP-UNIFICATION) | `npc/state_applicator.py, npc_state.py` |
 | TickOrchestrator | Time | FORBIDDEN: TICK_CATCHUP loops (ADR-047) | `ADR-047` |

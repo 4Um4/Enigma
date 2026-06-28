@@ -48,10 +48,10 @@ class NpcTickPipeline:
     @staticmethod
     def run(
         state: TickState,
-        svc: Any = None,  # Временный костыль для миграции
         drf_ctx: Optional[Any] = None,
         rng_factory: Optional[Callable[[str], "KernelRNG"]] = None
     ) -> TickMutation:
+        """TZ-10: Pure Deterministic Reducer. Сервисы исключены (Strangulation Pattern)."""
         from app.services.npc.npc_loader import load_profile_from_legacy_json, load_l2_state_from_runtime_dict
         from app.services.npc.decision_hub import DecisionHub
         from app.services.npc.interpretation_engine import InterpretationEngine
@@ -71,6 +71,8 @@ class NpcTickPipeline:
         communication_intents: list = []
         movement_intents: list = []
         npc_deltas: list = []
+        l1_drift_events: list = []
+        memory_events: list = []
 
         for npc in _npcs_to_process:
             npc_id = npc.get("npc_id") or npc.get("id")
@@ -96,10 +98,10 @@ class NpcTickPipeline:
             profile_l0 = load_profile_from_legacy_json(_npc_dict_for_write)
             state_l2 = load_l2_state_from_runtime_dict(_npc_dict_for_write)
 
-            if svc and svc.memory_manager:
-                _sqlite_cache = svc.memory_manager.load_narrative_from_sqlite(state.campaign_id, npc_id)
-                if _sqlite_cache is not None:
-                    state_l2.narrative_cache = _sqlite_cache
+            # TZ-10: Чтение preloaded narrative_cache из TickState
+            _sqlite_cache = state.narrative_cache_map.get(npc_id)
+            if _sqlite_cache is not None:
+                state_l2.narrative_cache = _sqlite_cache
 
             age_temporary_drives(state_l2, _npc_dict_for_write, npc_id)
 
@@ -107,31 +109,34 @@ class NpcTickPipeline:
                 npc_id=npc_id, npc_profile=_npc_dict_for_write, npc_dict_for_write=_npc_dict_for_write,
                 state_l2=state_l2, action_type=state.action_type, target_id=state.player_target_id,
                 current_tick=state.tick_id, scene_continuity=state.scene_continuity,
-                scene_state=dict(state.scene_state), relationship_store=svc.relationship_store if svc else None,
+                scene_state=dict(state.scene_state), relationship_store=state.relationship_store,
             )
 
             state_l2 = tick_conditions(state_l2, _npc_dict_for_write, state.tick_id, state.scene_continuity)
             reset_session_state(state_l2, npc_id, state.is_session_start)
 
-            if svc and svc.memory_manager:
+            # TZ-10: Чтение preloaded memory weights из TickState
+            _mem_weights = state.memory_weights_map.get(npc_id, {})
+            if _mem_weights:
                 try:
-                    mem_weights = svc.memory_manager.get_weights_for_decision(campaign_id=state.campaign_id, npc_id=npc_id, target_id="player")
-                    state_l2.relationship_cache.setdefault("player", {}).update(mem_weights)
+                    state_l2.relationship_cache.setdefault("player", {}).update(_mem_weights)
                     for _nearby_npc in state.nearby_npcs:
                         _nearby_id = _nearby_npc.get("npc_id") or _nearby_npc.get("id")
                         if _nearby_id and _nearby_id != npc_id:
-                            _npc_weights = svc.memory_manager.get_weights_for_decision(campaign_id=state.campaign_id, npc_id=npc_id, target_id=_nearby_id)
+                            _npc_weights = state.memory_weights_map.get(npc_id, {}).get(_nearby_id, {})
                             state_l2.relationship_cache.setdefault(_nearby_id, {}).update(_npc_weights)
                 except Exception as _mem_e:
                     logger.error(f"[MEMORY] get_weights failed for {npc_id}: {_mem_e}", exc_info=True)
 
-            if svc and svc.memory_manager and state.hub_event:
+            # TZ-10: Сборка memory_events для отложенного применения (без I/O внутри run)
+            if state.hub_event:
                 try:
-                    state_l2 = apply_perception_memory(
-                        svc.memory_manager, state_l2, state.hub_event, npc_id,
+                    _mem_evt = apply_perception_memory(
+                        None, state_l2, state.hub_event, npc_id,
                         state.player_target_id, state.raw_input, state.campaign_id,
-                        spatial_query=svc.spatial_query if svc else None,
+                        spatial_query=state.spatial_query,
                     )
+                    if _mem_evt: memory_events.append(_mem_evt)
                 except Exception as _perc_mem_err:
                     logger.warning(f"[MEMORY] perception apply failed for {npc_id}: {_perc_mem_err}")
 
@@ -154,24 +159,15 @@ class NpcTickPipeline:
             )
             interpretation = InterpretationEngine().compute(state=state_l2, event=_event_for_interp, drives_base=_drives_for_interp)
 
-            _identity_traits = svc.memory_manager.get_identity_traits(campaign_id=state.campaign_id, npc_id=npc_id) if svc and svc.memory_manager else {}
+            # TZ-10: Чтение preloaded identity traits из TickState
+            _identity_traits = state.identity_traits_map.get(npc_id, {})
             _identity = NPCIdentityL1(npc_id=npc_id, active_traits=_identity_traits)
 
-            _social_mods = {}
-            if svc and svc.social_engine:
-                try:
-                    _spatial_query = svc.spatial_query
-                    _player_dists_snap = _spatial_query.player_distances(list(svc.social_engine.all_npc_ids)) if _spatial_query else {}
-                    _extra_evt_types = [sp.event_type for sp in state.spatial_events] if state.spatial_events else None
-                    _social_mods = svc.social_engine.compute_social_modifiers(
-                        npc_id=npc_id, player_distances=_player_dists_snap,
-                        event_type=_event_for_interp.event_type, event_target=state.player_target_id,
-                        extra_event_types=_extra_evt_types,
-                    )
-                except Exception as e:
-                    logger.warning(f"[GAME_LOOP] Ошибка social_engine.compute: {e}")
+            # TZ-10: Чтение preloaded social modifiers из TickState
+            _social_mods = state.social_modifiers_map.get(npc_id, {})
 
-            _eco_profile = svc.economic_profiles.get(npc_id) if svc and hasattr(svc, 'economic_profiles') else None
+            # TZ-10: Чтение preloaded economic profile из TickState
+            _eco_profile = state.economic_profiles_map.get(npc_id)
             _current_activity = npc.get("routine", {}).get("current", "")
             _eco_result = compute_economy(npc_id, _eco_profile, state_l2, _current_activity)
             _all_modifiers = {**interpretation.score_modifiers}
@@ -179,10 +175,8 @@ class NpcTickPipeline:
                 for _intent, _mod in _eco_modifiers.items():
                     _all_modifiers[_intent] = _all_modifiers.get(_intent, 0.0) + _mod
 
-            _rep_modifiers_for_hub = None
-            if svc and svc.reputation_engine:
-                _rep_mod = svc.reputation_engine.compute_reputation_modifier(npc_id)
-                if _rep_mod: _rep_modifiers_for_hub = _rep_mod
+            # TZ-10: Чтение preloaded reputation modifier из TickState
+            _rep_modifiers_for_hub = state.reputation_modifiers_map.get(npc_id)
 
             _drive_modifiers_for_hub = None
             _drives = getattr(state_l2, "temporary_drives", [])
@@ -199,17 +193,17 @@ class NpcTickPipeline:
                 else:
                     _drive_modifiers_for_hub = _belief_mods
 
-            _crystallized_store = getattr(svc, 'crystallized_belief_store', None) if svc else None
-            if _crystallized_store:
+            # TZ-10: Чтение preloaded crystallized beliefs из TickState
+            _crystallized_beliefs = state.crystallized_beliefs_map.get(npc_id, [])
+            if _crystallized_beliefs:
                 from app.services.npc.crystallized_belief_modifier_resolver import CrystallizedBeliefModifierResolver
-                _crystallized_beliefs = _crystallized_store.get_beliefs(npc_id)
                 _crystallized_mods = CrystallizedBeliefModifierResolver().resolve(_crystallized_beliefs)
                 if _crystallized_mods:
                     if _drive_modifiers_for_hub:
                         for _ck, _cv in _crystallized_mods.items():
                             _drive_modifiers_for_hub[_ck] = round(_drive_modifiers_for_hub.get(_ck, 0.0) + _cv, 4)
-                        else:
-                            _drive_modifiers_for_hub = _crystallized_mods
+                    else:
+                        _drive_modifiers_for_hub = _crystallized_mods
 
             from app.services.npc.topic_extractor import extract_topic
             _topic = extract_topic(
@@ -277,8 +271,8 @@ class NpcTickPipeline:
                     npc_id=npc_id, intent=_intent_value,
                     intent_target=decision.intent_target or "player",
                     scene_state=dict(state.scene_state), location_id=state.scene_state.get("location_id", ""),
-                    spatial_service=svc.spatial_service if svc else None, drf_ctx=_npc_drf_ctx,
-                    spatial_query=svc.spatial_query if svc else None,
+                    spatial_service=state.spatial_service, drf_ctx=_npc_drf_ctx,
+                    spatial_query=state.spatial_query,
                 )
                 if _movement: movement_intents.append(_movement)
                     
@@ -293,26 +287,30 @@ class NpcTickPipeline:
                 )
                 communication_intents.append(_attack_intent)
 
-            if svc and svc.relationship_store:
+            # TZ-10: Сборка npc_deltas без I/O. Применение будет в TickOrchestrator.
+            if state.relationship_store:
                 try:
-                    applicator = StateApplicator(relationship_store=svc.relationship_store)
+                    applicator = StateApplicator(relationship_store=state.relationship_store)
                     _new_state = applicator.apply(state=state_l2, result=decision, campaign_id=state.campaign_id)
                     if hasattr(_new_state, 'deltas') and _new_state.deltas:
                         npc_deltas.extend(_new_state.deltas)
                         
-                    if svc.memory_manager:
-                        _ = create_memory_event(
-                            svc.memory_manager, state_l2=_new_state, decision=decision, npc_id=npc_id,
-                            hub_event=_event_for_interp, player_target_id=state.player_target_id, player_text=state.raw_input,
-                            scene_state=dict(state.scene_state), campaign_id=state.campaign_id,
-                        )
+                    # Сборка memory_events для отложенного применения
+                    _mem_evt = create_memory_event(
+                        None, state_l2=_new_state, decision=decision, npc_id=npc_id,
+                        hub_event=_event_for_interp, player_target_id=state.player_target_id, player_text=state.raw_input,
+                        scene_state=dict(state.scene_state), campaign_id=state.campaign_id,
+                    )
+                    if _mem_evt: memory_events.append(_mem_evt)
                 except Exception as e:
                     logger.warning(f"[STATE_APPLICATOR] failed for {npc_id}: {e}")
 
         return TickMutation(
             npc_deltas=npc_deltas,
             communication_intents=communication_intents,
-            movement_intents=movement_intents
+            movement_intents=movement_intents,
+            l1_drift_events=l1_drift_events,
+            memory_events=memory_events
         )
 # ── Константы ──────────────────────────────────────────────────────────────────
 

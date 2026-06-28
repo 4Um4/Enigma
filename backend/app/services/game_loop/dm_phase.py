@@ -154,8 +154,21 @@ def run_dm_phase(
     # HubEvent для NPC фазы — только при валидном DM
     logger.debug(f"[DIAG_HUB_ASSIGN] is_valid={dm_result.is_valid} has_scene_ctx={dm_result.scene_context is not None} prev_hub={ctx.hub_event}")
     if dm_result.is_valid and dm_result.scene_context:
+        # B5-FIX: мутация → SceneChange (CAUSAL_CONTRACT §3.5).
         if dm_result.scene_context.line_of_sight is not None:
-            scene_state["line_of_sight"] = dm_result.scene_context.line_of_sight
+            from app.services.scene_change import SceneChange, ChangeType
+            _scene_manager = getattr(game_loop, 'scene_manager', None)
+            if _scene_manager:
+                _los_change = SceneChange(
+                    type=ChangeType.SCENE_METADATA,
+                    target=location,
+                    field="line_of_sight",
+                    value=dm_result.scene_context.line_of_sight,
+                    cause="dm_phase",
+                )
+                _scene_manager.apply_change(campaign_id, _los_change, scene_state)
+            else:
+                logger.warning("[DM_PHASE] scene_manager not found in game_loop. LoS change skipped.")
         # ADR-ACTION-BRIDGE: Гарантируем, что DecisionHub получит EventContext, а не EventDTO.
         # EventDTO имеет поле 'type', EventContext имеет 'event_type' и прямые поля семантики.
         _raw_event = dm_result.event_context
