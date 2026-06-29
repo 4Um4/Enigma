@@ -1,4 +1,4 @@
-"""
+﻿"""
 path: /frontend/text_input.py
 
 Кастомный виджет ввода текста для pygame.
@@ -419,8 +419,8 @@ class TextInput:
         try:
             pygame.scrap.init()
             pygame.scrap.put(pygame.SCRAP_TEXT, selected.encode("utf-8"))
-        except Exception:
-            pass  # Буфер обмена недоступен — нормально для некоторых ОС
+        except Exception as e:
+            logger.warning(f"[B5-FIX] silent failure suppressed: {e}")  # Буфер обмена недоступен — нормально для некоторых ОС
 
     def _paste_from_clipboard(self) -> None:
         """Вставляет текст из буфера обмена."""
@@ -430,8 +430,8 @@ class TextInput:
             if raw:
                 text = raw.decode("utf-8", errors="ignore").rstrip("\x00")
                 self._insert_text(text)
-        except Exception:
-            pass  # Буфер обмена недоступен — нормально для некоторых ОС
+        except Exception as e:
+            logger.warning(f"[B5-FIX] silent failure suppressed: {e}")  # Буфер обмена недоступен — нормально для некоторых ОС
 
     # ── Обновление (Физика зажатия) ────────────────────────────────────
 

@@ -829,6 +829,10 @@
   Taboo: ❌ Возврат к инлайн-вычислению `pk_load` и `affective_memory` в `TickOrchestrator`. ❌ Воскрешение `pressure_derivation.py`. ❌ Интегратору запрещено влиять на policy (scoring/decisions) — он вычисляет только state.
   Files: affective/affective_integrator.py, tick_orchestrator.py, affective/pressure_derivation.py (DELETED)
 
+`ADR-TZ6-1` [STD] **Engineering Debt Cleanup (Dead Code, Silent Failures, Magic Numbers)** — Удалены мёртвые методы (`_draw_input_bar`, `_advance_time_by_movement`, `_build_intro_prompt`, `can_proceed`, `add_npc_author_notes`) и поля (`PlayerMemory`, `EncounterHistory`). `except Exception: pass` заменены на `logger.warning`. `WillState` унифицирован в `npc_state.py` (из `will.py` удалён дубликат). `print()` заменены на `logger.debug` с feature-флагами. Магические числа вынесены в `constants.py`, UI-строки в `i18n.py`. `RelationshipStore` переведён на LRU/TTL кэш.
+  Taboo: ❌ Использование дублирующего `WillState` из `will.py`. ❌ Возврат к `except Exception: pass`. ❌ Хардкод UI-строк вместо `i18n`.
+  Files: movement_engine.py, tick_orchestrator.py, dm_agent.py, game_loop_bridge.py, api_client.py, main.py, will.py, npc_state.py, constants.py, i18n.py, relationship_store.py, game_screen.py, game_types.py
+
 ---
 
 ## DOM-10: IDENTITY & ONTOLOGY (Identity Layer & Chronicle)

@@ -1,4 +1,4 @@
-# backend\app\services\npc\break_progress_engine.py
+﻿# backend\app\services\npc\break_progress_engine.py
 """
 ADR-TIFL-003: Двигатель Кристаллизации Идентичности (ICDF + ICL).
 Воскрешён из статуса DEPRECATED. Подключён к TickOrchestrator через контур TIFL.
@@ -150,7 +150,7 @@ def compute_mutation(state: 'NPCState', trauma_type: str) -> Dict[str, float]:
     drive_deltas = topology.get("drives", {})
     
     if not drive_deltas:
-        return {}
+        return []
         
     # Безопасное чтение rigidity
     rigidity = 0.5 
@@ -206,7 +206,7 @@ def compute_continuous_drift(effective_drives: "EffectiveDrives", npc_id: str, r
     plasticity = max(0.1, 1.0 - rigidity)
     total_mass = sum(_drives_base.values())
     if total_mass <= 0:
-        return {}
+        return []
 
     # --- 1. ВНЕШНИЙ ДРЕЙФ (ICDF: Ошибка мира) ---
     LEARNING_RATE = 0.005 

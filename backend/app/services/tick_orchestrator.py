@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 TickOrchestrator — единая точка входа для тика мира.
 
@@ -389,7 +389,7 @@ class TickOrchestrator:
         try:
             self._run_core_phases(ctx)
         except Exception as e:
-            print(f"[TICK_CRASH] campaign={campaign_id} tick={tick_number} error={e}")
+            logger.error(f"[TICK_CRASH] campaign={campaign_id} tick={tick_number} error={e}")
             logger.error(f"[TICK_ORCH] Ошибка в тике {campaign_id}: {e}", exc_info=True)
             return TickResultDTO(status="error", error=str(e))
         finally:
@@ -401,7 +401,7 @@ class TickOrchestrator:
         # commit_tick_result обновляет persistence target через deepcopy (без алиасинга).
         # unlock_tick() сохранит обновлённый _tick_scene на диск.
         final_snapshot = input_snapshot  # после мутаций фазами — это уже output, не input
-        print(f"[TICK_OK] campaign={campaign_id} tick={tick_number} preparing commit_tick_result")
+        logger.debug(f"[TICK_OK] campaign={campaign_id} tick={tick_number} preparing commit_tick_result")
         if self._scene_manager is not None:
             self._scene_manager.commit_tick_result(campaign_id, final_snapshot)
 
@@ -501,13 +501,20 @@ class TickOrchestrator:
 
     def _process_player_dm_action(self, ctx: _TickContext, dm_ctx: Any) -> None:
         """Обработка player DM action (directive handling, cognitive overlay)."""
+        logger.warning(f"[PDM_DEBUG] ENTER. dm_ctx={dm_ctx is not None}")
         if hasattr(dm_ctx, 'intent_resolution') and dm_ctx.intent_resolution:
             _intent_res = dm_ctx.intent_resolution
             _params = _intent_res.original_intent.parameters if _intent_res.original_intent else None
             _sem_action = getattr(_params, 'semantic_action', None) if _params else None
             _sem_target = getattr(_params, 'target_reference', None) if _params else None
+            logger.warning(f"[PDM_DEBUG] sem_action={_sem_action} sem_target={_sem_target}")
+            _intent_res = dm_ctx.intent_resolution
+            _params = _intent_res.original_intent.parameters if _intent_res.original_intent else None
+            _sem_action = getattr(_params, 'semantic_action', None) if _params else None
+            _sem_target = getattr(_params, 'target_reference', None) if _params else None
 
-            if _sem_action == "MOVE" and _sem_target:
+            # ADR-082: Регистронезависимое сравнение (IC может вернуть "move" или "MOVE")
+            if _sem_action and _sem_action.upper() == "MOVE" and _sem_target:
                 _target_ref = _sem_target.lower()
                 _is_npc_target = any(
                     _target_ref in n.get("name", "").lower() or _target_ref in n.get("npc_id", "").lower()
@@ -545,6 +552,35 @@ class TickOrchestrator:
                                     _npc_state.setdefault("body_state", {})["consciousness"] = max(0.0, 1.0 - delta.payload.shock_impulse)
                     except Exception as e:
                         logger.error(f"[CAUSALITY_CRASH] DirectiveInterpretationSubscriber failed: {e}", exc_info=True)
+
+            # ADR-TZ09-2: Fast Path для реактивного движения.
+            # Вызывается немедленно после инъекции директивы, чтобы NPC сдвинулся в том же тике.
+            logger.warning(f"[FAST_PATH_DEBUG] sem_action={_sem_action} is_npc={_is_npc_target} target_id={getattr(_params, 'target_id', None)}")
+            if _is_npc_target and _target_id:
+                from app.domain.movement import LocalSteeringGoal
+                from app.services.spatial.movement_engine import MovementEngine
+                _spatial_svc = self._resolve_spatial_service(ctx)
+                logger.warning(f"[FAST_PATH_DEBUG] spatial_svc={_spatial_svc is not None}")
+                if _spatial_svc:
+                    _player_pos = ctx.scene_state.get("player_spatial", {}).get("local_position", {"x": 0.0, "y": 0.0})
+                    logger.warning(f"[FAST_PATH_DEBUG] player_pos={_player_pos}")
+                    _fast_intents = [LocalSteeringGoal(
+                        npc_id=_target_id,
+                        local_target_xy=(_player_pos.get("x", 0.0), _player_pos.get("y", 0.0)),
+                        reason="micro_snap:approach",
+                        priority=0.9
+                    )]
+                    me = MovementEngine()
+                    me.set_spatial_service(_spatial_svc)
+                    _changes = me.process_intents(
+                        _fast_intents, ctx.tick_number,
+                        ctx.scene_state.get("npc_positions", {}),
+                        campaign_id=ctx.campaign_id, scene_state=ctx.scene_state
+                    )
+                    logger.warning(f"[FAST_PATH_DEBUG] changes={len(_changes) if _changes else 0}")
+                    if _changes and self._scene_manager:
+                        self._apply_with_shadow_observation(ctx, _changes, phase_label="FAST_PATH_MOVE")
+                        logger.warning(f"[FAST_PATH] Applied {len(_changes)} reactive movement changes for {_target_id}")
 
     def _process_player_action(self, ctx: _TickContext, interv: Any) -> None:
         """Generic player action intervention (не dm_ctx)."""
@@ -631,7 +667,8 @@ class TickOrchestrator:
             _sem_target = getattr(_params, 'target_reference', None) if _params else None
             
             logger.warning(f"[S28_CHECK] sem_action={_sem_action}, sem_target={_sem_target}")
-            if _sem_action == "MOVE" and _sem_target:
+            # ADR-082: Регистронезависимое сравнение (IC может вернуть "move" или "MOVE")
+            if _sem_action and _sem_action.upper() == "MOVE" and _sem_target:
                 _target_ref = _sem_target.lower()
                 
                 # ADR-O: Проверяем, является ли цель NPC. "Восток" — это не NPC.
@@ -700,36 +737,6 @@ class TickOrchestrator:
                 else:
                     logger.info(f"[CAUSALITY] MOVE target '{_target_ref}' is not an NPC. Treating as player spatial action.")
 
-        # ADR-035: Обработка реактивных перемещений (MovementIntents)
-        # В player turn LifeEngine не вызывается, поэтому MovementEngine нужно вызвать вручную
-        _mi = ctx.player_result.movement_intents if ctx.player_result else None
-        # [MOVEMENT_INTENT_CHECK] removed S89 — probe → telemetry transition
-        if ctx.player_result and ctx.player_result.movement_intents:
-            from app.services.spatial.movement_engine import MovementEngine
-            _spatial_svc = self._resolve_spatial_service(ctx)
-            # [MOVEMENT_DEBUG] removed S89
-            if _spatial_svc:
-                me = MovementEngine()
-                me.set_spatial_service(_spatial_svc)
-                _tick = self.get_current_tick(ctx.campaign_id)
-                # [MOVEMENT_DEBUG] removed S89
-                # ДОЛГ 4.2: Causal Scoring Overlay — аддитивный скоринг давления
-                self._apply_drf_scoring_overlay(ctx.player_result.movement_intents, ctx)
-                changes = me.process_intents(
-                    ctx.player_result.movement_intents, _tick,
-                    ctx.scene_state.get("npc_positions", {}),
-                    campaign_id=ctx.campaign_id, scene_state=ctx.scene_state
-                )
-                # [MOVEMENT_DEBUG] removed S89 — probe → telemetry transition
-                logger.debug(f"[PIPELINE][MOVEMENT] changes={len(changes)} scene_manager={self._scene_manager is not None}")
-                if changes and self._scene_manager:
-                    self._apply_with_shadow_observation(ctx, changes, phase_label="REACTIVE_MOVE")
-                    logger.warning(f"[PLAYER_TURN] Applied {len(changes)} reactive movement changes")
-                    # [TRAV_CHECK_P1] removed S89
-                elif changes and not self._scene_manager:
-                    logger.error("[PIPELINE][MOVEMENT] CRITICAL: scene_manager is None! Changes lost!")
-            else:
-                logger.error("[SPATIAL_AUTHORITY] SpatialService отсутствует, реактивное движение заблокировано.")
 
         # Фаза 0.5: время не останавливается (decay = всегда)
         self._phase_0_5_idle_services(ctx)
@@ -772,7 +779,7 @@ class TickOrchestrator:
         # Ранее _run_affective_pipeline жил внутри _phase_9_player_integration и убивался 
         # guard-условием (shared_context is None). Теперь Котёл работает безусловно.
         import sys
-        print("[SEL_BYPASS] Injecting _run_affective_pipeline directly into action tick", file=sys.stderr, flush=True)
+        logger.debug("[SEL_BYPASS] Injecting _run_affective_pipeline directly into action tick", file=sys.stderr, flush=True)
         self._run_affective_pipeline(ctx)
 
         self._phase_9_player_integration(ctx)
@@ -816,7 +823,7 @@ class TickOrchestrator:
         runtime_path = self._get_npc_runtime_path(ctx.campaign_id)
         _trav_keys = sorted(ctx.scene_state.get("active_traversals", {}).keys())
         _pos_keys = sorted(ctx.scene_state.get("npc_positions", {}).keys())
-        print(f"[NPC_SET] tick={ctx.tick_number} traversals={_trav_keys} positions={_pos_keys}")
+        logger.debug(f"[NPC_SET] tick={ctx.tick_number} traversals={_trav_keys} positions={_pos_keys}")
         
         # ADR-048: Авторитетный SpatialService берется из единого резолвера
         _spatial_svc = self._resolve_spatial_service(ctx)
@@ -825,9 +832,9 @@ class TickOrchestrator:
         
         # DRF: Инъекция единой причинной шины в LifeEngine
         engine.set_claim_bus(ctx.drf_bus)
-        print(f"[DRF_BIND_LIFE] bus_id={id(ctx.drf_bus)}")
+        logger.debug(f"[DRF_BIND_LIFE] bus_id={id(ctx.drf_bus)}")
         changes, life_intents = engine.tick(ctx.campaign_id, ctx.scene_state, runtime_path=runtime_path)
-        print(f"[GATE_A] tick={ctx.tick_number} life_intents={len(life_intents)} cognitive_changes={len(changes or [])}")
+        logger.debug(f"[GATE_A] tick={ctx.tick_number} life_intents={len(life_intents)} cognitive_changes={len(changes or [])}")
         ctx.scene_changes = changes or []
         # Заполняем полные стейты для фаз 3-6, 10 (Устав §3.1)
         ctx.npc_states = engine.get_npc_states(ctx.campaign_id)
@@ -851,7 +858,7 @@ class TickOrchestrator:
                     npc_positions=ctx.scene_state.get("npc_positions", {}),
                     campaign_id=ctx.campaign_id, scene_state=ctx.scene_state
                 )
-                print(f"[GATE_B2] tick={ctx.tick_number} spatial_changes={len(spatial_changes or [])} from_intents={len(life_intents)}")
+                logger.debug(f"[GATE_B2] tick={ctx.tick_number} spatial_changes={len(spatial_changes or [])} from_intents={len(life_intents)}")
                 if spatial_changes and self._scene_manager:
                     self._apply_with_shadow_observation(ctx, spatial_changes, phase_label="IDLE_SPATIAL")
                     logger.info(f"[TICK_ORCH] Фаза 0: {len(spatial_changes)} spatial changes from {len(life_intents)} LifeEngine intents")
@@ -987,14 +994,14 @@ class TickOrchestrator:
             _status = trav.get("status", "UNKNOWN")
             if _status != "MOVING":
                 if ctx.tick_number % 50 == 0:
-                    print(f"[GATE_F_SKIP] npc={npc_id} status={_status}")
+                    logger.debug(f"[GATE_F_SKIP] npc={npc_id} status={_status}")
                 continue
             
             started_tick = trav.get("started_tick", 0)
             duration_ticks = trav.get("duration_ticks", 1)
             expected_arrival_tick = started_tick + duration_ticks
             
-            print(f"[GATE_F] npc={npc_id} current_tick={current_tick} started={started_tick} duration={duration_ticks} expected={expected_arrival_tick} remaining={expected_arrival_tick - current_tick}")
+            logger.debug(f"[GATE_F] npc={npc_id} current_tick={current_tick} started={started_tick} duration={duration_ticks} expected={expected_arrival_tick} remaining={expected_arrival_tick - current_tick}")
             
             if current_tick >= expected_arrival_tick:
                 # STL: Транзит завершён. Генерируем финальный факт перемещения.
@@ -1097,7 +1104,7 @@ class TickOrchestrator:
             and ch.field in ("position", "local_position")
         ]
 
-        print(f"[GATE_C] phase={phase_label} total_changes={len(changes)} spatial_candidates={len(_spatial_changes)} has_svc={self._spatial_service is not None}")
+        logger.debug(f"[GATE_C] phase={phase_label} total_changes={len(changes)} spatial_candidates={len(_spatial_changes)} has_svc={self._spatial_service is not None}")
         _snapshot: Optional[WorldSnapshot] = None
         _shadow_results: Dict[str, Any] = {}
 
@@ -1111,11 +1118,11 @@ class TickOrchestrator:
                     scene_state=ctx.scene_state,
                     rng_seed=ctx.tick_number,
                 )
-                print(f"[GATE_D1] phase={phase_label} snapshot_created={_snapshot is not None}")
+                logger.debug(f"[GATE_D1] phase={phase_label} snapshot_created={_snapshot is not None}")
                 _compiled_count = 0
                 for _ch in _spatial_changes:
                     _thick = self._event_compiler.compile(_snapshot, _ch)
-                    print(f"[GATE_D2] phase={phase_label} compiled_thick={_thick is not None}")
+                    logger.debug(f"[GATE_D2] phase={phase_label} compiled_thick={_thick is not None}")
                     if _thick is not None:
                         _shadow_results[_ch.target] = _thick
                         # CSSE Stage 2: collect ThickSceneChange for projection parity
@@ -1147,7 +1154,7 @@ class TickOrchestrator:
                     phase_label=phase_label,
                 )
 
-        print(f"[GATE_E] phase={phase_label} validated={len(_shadow_results) if _shadow_results else 0} applied={_applied}")
+        logger.debug(f"[GATE_E] phase={phase_label} validated={len(_shadow_results) if _shadow_results else 0} applied={_applied}")
         return _applied
 
     def _validate_shadow_vs_legacy(
@@ -1905,8 +1912,8 @@ class TickOrchestrator:
                         _npc_intent = NpcIntent.ATTACK
                     elif "бег" in _intent_type_str or "flee" in _intent_type_str:
                         _npc_intent = NpcIntent.FLEE
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning(f"[B5-FIX] silent failure suppressed: {e}")
                 _empty_deltas = StateDeltas(
                     npc_id=_speaker, domain=DeltaDomain.IDENTITY,
                     payload=IdentityPayload(), source="communication_intent_adapter",
@@ -2150,7 +2157,7 @@ class TickOrchestrator:
         Единственная точка коммита за тик (Устав §4.2.1).
         """
         # DRF Observer: Схлопываем и логируем поле причинных напряжений ПЕРЕД коммитом
-        print(f"[DRF_DRAIN_BUS] bus_id={id(ctx.drf_bus)} stream_size={len(ctx.drf_bus.stream)}")
+        logger.debug(f"[DRF_DRAIN_BUS] bus_id={id(ctx.drf_bus)} stream_size={len(ctx.drf_bus.stream)}")
         _claims = ctx.drf_bus.drain()
         if _claims:
             from collections import defaultdict
@@ -2181,6 +2188,7 @@ class TickOrchestrator:
                 ctx.delta_buffer.clear()
 
         # SIL: Reconciliation S → M. Сбрасываем semantic_buffer в all_npcs_raw.
+        # SIL: Reconciliation S → M. Сбрасываем semantic_buffer в all_npcs_raw.
         if ctx.semantic_buffer and ctx.all_npcs_raw:
             for npc_dict in ctx.all_npcs_raw:
                 nid = npc_dict.get("npc_id") or npc_dict.get("id")
@@ -2191,6 +2199,11 @@ class TickOrchestrator:
                     if frame.affective_load is not None:
                         npc_dict["affective_load"] = frame.affective_load
             ctx.semantic_buffer.clear()
+
+        # RCG: Flush scene_changes buffer through apply_changes before commit
+        if ctx.scene_changes and self._scene_manager:
+            self._scene_manager.apply_changes(ctx.campaign_id, ctx.scene_changes, ctx.shared_context.scene_state)
+            ctx.scene_changes.clear()
 
         if ctx.dirty_npcs or ctx.wt_dirty or ctx.prop_dirty:
             self._scene_manager.commit(
@@ -3107,7 +3120,7 @@ class TickOrchestrator:
         from dataclasses import replace as dataclass_replace
 
         _snap_len = len(ctx.interpretation_snapshot) if ctx.interpretation_snapshot else 0
-        print(f"[SEL_DIAG] Entering NPC loop. Snapshot count: {_snap_len}")
+        logger.debug(f"[SEL_DIAG] Entering NPC loop. Snapshot count: {_snap_len}")
         # DSTC: Читаем ONLY из interpretation_snapshot (M₀ + deltas)
         # DSTC: Читаем ONLY из interpretation_snapshot (Pure Read)
         for npc_raw in ctx.interpretation_snapshot:
@@ -3157,7 +3170,7 @@ class TickOrchestrator:
 
             # S73-DIAG: Проверка очага аффекта. Видит ли пайплайн боль от удара?
             if entity_id in ("thief_shadow", "guard_borko"):
-                print(f"[AFF_SOURCE] npc={entity_id} pain_raw={_body.get('pain', 0.0)} shock_raw={_body.get('shock_impulse', 0.0)} somatic_urg={_somatic_urg:.3f} prev_aff={npc_raw.get('affective_load', 0.0)} emo={npc_raw.get('emotion', '?')}")
+                logger.debug(f"[AFF_SOURCE] npc={entity_id} pain_raw={_body.get('pain', 0.0)} shock_raw={_body.get('shock_impulse', 0.0)} somatic_urg={_somatic_urg:.3f} prev_aff={npc_raw.get('affective_load', 0.0)} emo={npc_raw.get('emotion', '?')}")
 
             # ADR-049: Единый интегратор аффективного давления
             current_load = float(npc_raw.get("affective_load", 0.0))
@@ -3170,13 +3183,13 @@ class TickOrchestrator:
             )
             
             if entity_id in ("thief_shadow", "guard_borko", "merchant_goran"):
-                print(f"[TIFL_PROBE] npc={entity_id} new_load={new_load:.3f} new_mem={new_memory:.3f}", file=sys.stderr, flush=True)
+                logger.debug(f"[TIFL_PROBE] npc={entity_id} new_load={new_load:.3f} new_mem={new_memory:.3f}", file=sys.stderr, flush=True)
 
             emotion_payload = resolve_emotion_transition(new_load, current_load, psyche)
 
             # S73-DIAG: Вычислен ли new_load и почему он теряется?
             if entity_id in ("thief_shadow", "guard_borko"):
-                print(f"[AFF_RESULT] npc={entity_id} current={current_load:.3f} new={new_load:.3f} has_transition={emotion_payload is not None}")
+                logger.debug(f"[AFF_RESULT] npc={entity_id} current={current_load:.3f} new={new_load:.3f} has_transition={emotion_payload is not None}")
 
             # §ENIGMA-DUAL-CIRCUIT (S74-FIX): Разделение памяти и интерпретации.
             # Интеграл ОБЯЗАН сохраняться при каждом изменении, даже если эмоция
@@ -3249,7 +3262,7 @@ class TickOrchestrator:
         В конце вызывает WorldProjectionBuffer для генерации вторичных эффектов (ADR-O-309).
         """
         # DRF Observer: Схлопываем поле причинных напряжений ПЕРЕД коммитом
-        print(f"[DRF_DRAIN_BUS] bus_id={id(ctx.drf_bus)} stream_size={len(ctx.drf_bus.stream)}")
+        logger.debug(f"[DRF_DRAIN_BUS] bus_id={id(ctx.drf_bus)} stream_size={len(ctx.drf_bus.stream)}")
         _claims = ctx.drf_bus.drain()
         if _claims:
             from collections import defaultdict
@@ -3281,6 +3294,7 @@ class TickOrchestrator:
                 ctx.delta_buffer.clear()
 
         # SIL: Reconciliation S → M. Сбрасываем semantic_buffer в all_npcs_raw.
+        # SIL: Reconciliation S → M. Сбрасываем semantic_buffer в all_npcs_raw.
         if ctx.semantic_buffer and ctx.all_npcs_raw:
             for npc_dict in ctx.all_npcs_raw:
                 nid = npc_dict.get("npc_id") or npc_dict.get("id")
@@ -3299,6 +3313,11 @@ class TickOrchestrator:
 
         # Собираем события тика для аудита
         ctx.tick_events = ctx.decision_events  # TODO: расширить spatial + handler events
+
+        # RCG: Flush scene_changes buffer through apply_changes before commit
+        if ctx.scene_changes and self._scene_manager:
+            self._scene_manager.apply_changes(ctx.campaign_id, ctx.scene_changes, ctx.scene_state)
+            ctx.scene_changes.clear()
 
         saved = self._scene_manager.commit(
             campaign_id=ctx.campaign_id,

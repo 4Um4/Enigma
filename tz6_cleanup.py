@@ -1,88 +1,61 @@
-import ast
 import os
+import re
 
-def remove_code_by_pattern(filepath, patterns):
+def fix_silent_failures(filepath):
     if not os.path.exists(filepath):
         print(f"[SKIP] Файл не найден: {filepath}")
         return
-
+        
     with open(filepath, 'r', encoding='utf-8-sig') as f:
-        source = f.read()
-
-    try:
-        tree = ast.parse(source)
-    except SyntaxError as e:
-        print(f"[ERROR] Синтаксическая ошибка в {filepath}: {e}")
-        return
-
-    lines = source.splitlines(keepends=True)
-    lines_to_delete = set()
-
-    for node in ast.walk(tree):
-        # Удаление классов (ast.ClassDef)
-        if isinstance(node, ast.ClassDef) and node.name in patterns.get("classes", []):
-            start_line = node.lineno
-            if node.decorator_list:
-                start_line = min(d.lineno for d in node.decorator_list)
-            end_line = node.end_lineno
-            for i in range(start_line - 1, end_line):
-                lines_to_delete.add(i)
-            i = end_line
-            while i < len(lines) and lines[i].strip() == '':
-                lines_to_delete.add(i)
-                i += 1
-
-        # Удаление импортов (ast.ImportFrom)
-        if isinstance(node, ast.ImportFrom):
-            for alias in node.names:
-                if alias.name in patterns.get("imports", []):
-                    start_line = node.lineno
-                    end_line = node.end_lineno
-                    for i in range(start_line - 1, end_line):
-                        lines_to_delete.add(i)
-                    break
-
-        # Удаление аннотаций полей в dataclass (ast.AnnAssign)
-        if isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
-            if node.target.id in patterns.get("fields", []):
-                start_line = node.lineno
-                end_line = node.end_lineno
-                for i in range(start_line - 1, end_line):
-                    lines_to_delete.add(i)
-
-    # Удаление конкретных строк инициализации (простое текстовое совпадение)
-    init_patterns = patterns.get("inits", [])
-    for i, line in enumerate(lines):
-        stripped = line.strip()
-        for pat in init_patterns:
-            if pat in stripped:
-                lines_to_delete.add(i)
-                break
-
-    if not lines_to_delete:
-        print(f"[SKIP] Ничего не найдено в {filepath}")
-        return
+        content = f.read()
         
-    new_lines = [line for i, line in enumerate(lines) if i not in lines_to_delete]
+    # Ищем: <отступ>except <Исключение>:\n<отступ>pass <комментарий>
+    pattern = re.compile(r'^(\s*except\s+)([^\n:]+)(:\s*\n\s*)pass(\s*(#.*)?)', re.MULTILINE)
     
-    with open(filepath, 'w', encoding='utf-8-sig') as f:
-        f.writelines(new_lines)
+    def replacer(m):
+        prefix = m.group(1)
+        exc_type = m.group(2).strip()
+        middle = m.group(3)
+        comment = m.group(4)
         
-    print(f"[OK] Удалено {len(lines_to_delete)} строк из {filepath}")
+        if ' as ' not in exc_type:
+            exc_type += " as e"
+            log_str = 'logger.warning(f"[B5-FIX] silent failure suppressed: {e}")'
+        else:
+            var_name = exc_type.split(" as ")[-1]
+            log_str = 'logger.warning(f"[B5-FIX] silent failure suppressed: {' + var_name + '}")'
+            
+        return prefix + exc_type + middle + log_str + comment
+        
+    new_content = pattern.sub(replacer, content)
+    
+    if new_content != content:
+        with open(filepath, 'w', encoding='utf-8-sig') as f:
+            f.write(new_content)
+        print(f"[OK] Fixed silent failures in {filepath}")
 
-targets = [
-    ("frontend/game_screen.py", {
-        "imports": ["PlayerMemory", "EncounterHistory"],
-        "inits": ["memory = PlayerMemory()", "encounters = EncounterHistory()"]
-    }),
-    ("frontend/game_types.py", {
-        "classes": ["PlayerMemory", "EncounterHistory"],
-        "fields": ["player_memory", "encounter_history"]
-    })
+print("=== ТЗ-6 ШАГ 9 (B5): Устранение except: pass ===")
+
+files_to_process = [
+    "backend/app/main.py",
+    "backend/app/agents/dm_agent.py",
+    "backend/app/services/tick_orchestrator.py",
+    "backend/app/services/action/player_target_extractor.py",
+    "backend/app/services/game_loop/agent_runner.py",
+    "backend/app/services/game_loop/__init__.py",
+    "backend/app/services/llm/llama_cpp_provider.py",
+    "backend/app/services/npc/expectation_store.py",
+    "backend/app/services/npc/npc_tick_pipeline.py",
+    "backend/app/services/scene/r3_direct_builder.py",
+    "backend/app/services/temporal/temporal_engine.py",
+    "backend/app/services/verbalization/state_interpreter.py",
+    "frontend/api_client.py",
+    "frontend/game_loop_bridge.py",
+    "frontend/text_input.py",
+    "frontend/map_editor/data_manager.py"
 ]
 
-print("=== ТЗ-6 ШАГ 3: Удаление мёртвых полей PlayerMemory и EncounterHistory ===")
-for filepath, patterns in targets:
-    remove_code_by_pattern(filepath, patterns)
+for f in files_to_process:
+    fix_silent_failures(f)
 
 print("=== Готово ===")

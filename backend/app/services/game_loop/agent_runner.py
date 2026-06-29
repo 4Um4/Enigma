@@ -1,4 +1,4 @@
-# path: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\agent_runner.py
+﻿# path: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\agent_runner.py
 """
 Безопасный запуск агентов с timeout и мониторингом.
 
@@ -68,8 +68,8 @@ async def run_agent_safe(agent_name: str, agent, args: tuple, kwargs: dict) -> d
             if _pool._active_model:
                 _pool._active_model.provider.abort_generation()
                 logger.warning(f"[GAME_LOOP] abort sent to {_pool.active_model_key}")
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"[B5-FIX] silent failure suppressed: {e}")
         jsonl_log({
             "level": "ERROR", "agent": agent_name,
             "error_code": ERROR_CODES["AGENT_TIMEOUT"],

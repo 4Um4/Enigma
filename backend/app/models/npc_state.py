@@ -1,4 +1,4 @@
-# backend/app/models/npc_state.py
+﻿# backend/app/models/npc_state.py
 """
 Единый источник типов NPC. Жёсткие write-контракты:
   L0 NPCPersonality   — write: NEVER (frozen dataclass)
@@ -106,12 +106,27 @@ class Intent(str, Enum):
     CHANGE_ROLE   = "change_role"    # сменить роль (Role Transition)
 
 class WillState(str, Enum):
-    """Состояние воли NPC. Enum защищает от опечаток в строках."""
+    """Единое состояние воли NPC. Объединяет базовые состояния и стадии слома."""
+    # Базовые состояния
     FREE      = "free"
     COERCED   = "coerced"
-    BROKEN    = "broken"
     DECEPTIVE = "deceptive"
     LOYAL     = "loyal"
+    
+    # Стадии слома и сопротивления (из app.models.will)
+    COMPLY = "comply"
+    RELUCTANT = "reluctant"
+    DELAY = "delay"
+    MISINTERPRET = "misinterpret"
+    NEGOTIATE = "negotiate"
+    PARTIAL_COMPLY = "partial_comply"
+    DISTRESSED = "distressed"
+    PANICKED = "panicked"
+    DISSOCIATING = "dissociating"
+    BROKEN = "broken"
+    CONDITIONED = "conditioned"
+    COUNTER_OFFER = "counter_offer" # Аватар предлагает альтернативу выживания
+    REFUSE = "refuse"               # Жесткий отказ, готовность к последствиям
 
 class EmotionTag(str, Enum):
     """Текущая эмоция NPC — передаётся в VerbalizationContext."""

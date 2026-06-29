@@ -1,4 +1,4 @@
-# backend/app/main.py
+﻿# backend/app/main.py
 # ИСПРАВЛЕНИЯ vs оригинал:
 # 1. Все опасные операции в startup обёрнуты в try/except
 # 3. LLM health check не блокирует старт (результат — только warning)
@@ -30,8 +30,8 @@ def _kill_llama_server() -> None:
         except Exception:
             try:
                 _llama_server_proc.kill()
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning(f"[B5-FIX] silent failure suppressed: {e}")
         _llama_server_proc = None
 
 
@@ -43,16 +43,16 @@ def _restart_llama_server() -> bool:
     try:
         urllib.request.urlopen(f"{settings.llama_cpp_server_url}/health", timeout=2)
         return True  # Уже работает
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning(f"[B5-FIX] silent failure suppressed: {e}")
     # Шаг 2: убиваем старый процесс если он мёртв (poll != None) или завис
     if _llama_server_proc is not None:
         if _llama_server_proc.poll() is not None:
             # Процесс мёртв — можно перезапускать
             try:
                 _llama_server_proc.kill()
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning(f"[B5-FIX] silent failure suppressed: {e}")
             _llama_server_proc = None
         else:
             # Процесс жив но не отвечает — убиваем
@@ -63,8 +63,8 @@ def _restart_llama_server() -> bool:
             except Exception:
                 try:
                     _llama_server_proc.kill()
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning(f"[B5-FIX] silent failure suppressed: {e}")
             _llama_server_proc = None
     # Шаг 3: запускаем новый
     logger.info("[LLM_RESTART] Перезапуск llama-server...")
@@ -271,8 +271,8 @@ async def lifespan(app: FastAPI):
                     try:
                         with open(_llama_stderr_path, "r", encoding="utf-8") as f:
                             _err_lines = "".join(f.readlines()[-20:])
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        logger.warning(f"[B5-FIX] silent failure suppressed: {e}")
                     print(f"✗ llama-server упал при старте (exit={_exit_code})")
                     print(f"  stderr: {_err_lines[:500]}")
                     logger.error(f"[STARTUP] llama-server exited immediately (code={_exit_code}): {_err_lines[:500]}")
@@ -305,8 +305,8 @@ async def lifespan(app: FastAPI):
                         except Exception:
                             try:
                                 _llama_server_proc.kill()
-                            except Exception:
-                                pass
+                            except Exception as e:
+                                logger.warning(f"[B5-FIX] silent failure suppressed: {e}")
                         _llama_stderr_file.close()
                         _llama_server_proc = None
             except Exception as e:
@@ -316,8 +316,8 @@ async def lifespan(app: FastAPI):
                 if _llama_server_proc is not None:
                     try:
                         _llama_server_proc.kill()
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        logger.warning(f"[B5-FIX] silent failure suppressed: {e}")
                     _llama_server_proc = None
 
     # 6. LLM server health check (НЕ блокирует старт при недоступности)
@@ -369,8 +369,8 @@ async def lifespan(app: FastAPI):
         vram = get_vram_monitor()
         await vram.end_session()
         print("✓ VRAM session ended")
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning(f"[B5-FIX] silent failure suppressed: {e}")
 
 
 app = FastAPI(title=settings.app_name, lifespan=lifespan)

@@ -1,4 +1,4 @@
-# C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\core\config.py
+﻿# C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\core\config.py
 # RTX 3070 Ti (8 GB VRAM) + Qwen2.5-7B-Instruct-abliterated-v2.Q5_K_M
 #
 # Единственная модель: Qwen2.5-7B Q5_K_M (~5.0 GB VRAM)
@@ -67,6 +67,9 @@ class Settings(BaseSettings):
     # Content policy
     # ─────────────────────────────────────────────────────────────────
     hardcore_mode: bool = True
+    movement_debug: bool = False
+    orchestrator_debug: bool = False
+    dm_debug: bool = False
 
     # ─────────────────────────────────────────────────────────────────
     # GPU: RTX 3070 Ti (8 GB VRAM) + Qwen2.5-7B Q5_K_M

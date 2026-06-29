@@ -1,4 +1,4 @@
-"""
+﻿"""
 map_editor/data_manager.py
 Управление данными локаций: загрузка, сохранение, валидация
 Поддерживает: стены, комнаты, узлы, объекты, порталы
@@ -451,8 +451,8 @@ class DataManager:
                     idx = int(iid[len(prefix):])
                     if idx > max_idx:
                         max_idx = idx
-                except ValueError:
-                    pass  # iid имеет неожиданный формат, пропускаем
+                except ValueError as e:
+                    logger.warning(f"[B5-FIX] silent failure suppressed: {e}")  # iid имеет неожиданный формат, пропускаем
         return f"{prefix}{max_idx + 1}"
     
     def __init__(self):

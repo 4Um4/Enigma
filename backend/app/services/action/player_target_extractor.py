@@ -1,4 +1,4 @@
-# backend/app/services/action/player_target_extractor.py
+﻿# backend/app/services/action/player_target_extractor.py
 
 # Текущая реализация в PlayerTargetExtractor очень упрощённая: она устанавливает 0.5 только для целевого NPC при наличии ключевых слов близости, для всех остальных – 3.0, без учёта реальной сцены.
 # Для более реалистичной модели нужно использовать координаты из scene_state и обновлять их через LifeEngine или другие движки
@@ -259,8 +259,8 @@ class PlayerTargetExtractor:
                 _lemma = _morph.parse(_w)[0].normal_form
                 if _lemma not in _lemma_to_word:
                     _lemma_to_word[_lemma] = _w
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"[B5-FIX] silent failure suppressed: {e}")
 
         for ctx in npc_contexts:
             npc_id = ctx.get("npc_id", "")

@@ -272,3 +272,36 @@ INTERCALARY_NAME_RU: Final[str] = "Межсезонье"
 WORLD_TICK_EVERY_TURNS: Final[int] = 3         # проактивный тик каждые N ходов игрока
 MIN_PROACTIVE_SCORE: Final[float] = 0.3        # минимальный score для проактивного действия
 PROACTIVE_INTENT_PENALTY: Final[float] = 0.2   # штраф за проактивность (NPC не спамят)
+
+# ═══════════════════════════════════════════════════════════════════════
+# ТЗ-6 C1: Scene & UI rendering constants
+# ═══════════════════════════════════════════════════════════════════════
+SCENE_SCALE_PX_PER_M: int = 40
+NPC_RADIUS_FOCUSED: int = 10
+NPC_RADIUS_DEFAULT: int = 7
+NPC_INSTABILITY_AMP: int = 7
+MOVE_INTERVAL_SEC: float = 0.08
+WALK_STEP_METERS: float = 0.3
+PLAYER_COLLISION_RADIUS: float = 0.25
+TELEGRAPH_COOLDOWN_MS: int = 30_000
+NPC_SPEECH_BUBBLE_LIFETIME_MS: int = 6000
+PLAYER_SPEECH_BUBBLE_LIFETIME_MS: int = 4000
+VISIBILITY_RADIUS_M: float = 20.0
+LOS_FACING_PENALTY: float = 0.3
+LOS_THRESHOLD: float = 0.2
+COLLISION_RADIUS: float = 0.8
+FOCUS_NPC_CAP: int = 2
+SALIENCE_PROXIMITY_WEIGHT: float = 0.30
+SALIENCE_EMOTIONAL_WEIGHT: float = 0.30
+SALIENCE_RELEVANCE_WEIGHT: float = 0.25
+SALIENCE_TIER_WEIGHT: float = 0.15
+HIDDEN_DISTANCE: float = 15.0
+TEXT_INPUT_MAX_LENGTH: int = 500
+TEXT_INPUT_MAX_HISTORY: int = 100
+
+# ═══════════════════════════════════════════════════════════════════════
+# ТЗ-6 C3: DM messages
+# ═══════════════════════════════════════════════════════════════════════
+MSG_MAX_REPLIES: int = 3
+MSG_NOTHING_HAPPENED: str = "Ничего не произошло."
+MSG_INVALID_RESPONSE: str = "..."

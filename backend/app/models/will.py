@@ -1,4 +1,4 @@
-# path: backend/app/models/will.py
+﻿# path: backend/app/models/will.py
 # Назначение: Контракты системы Воли и Давления (WillpowerGate, ADR-031)
 # Зависимости: domain.intent, models.delta_payloads
 # Основные сущности: IntentPressureProfile, WillState, WillResponseDTO
@@ -48,21 +48,8 @@ class IntentPressureProfile:
     taboo_intensity: float = 0.0   # 0.0-1.0, нарушение культурных/личных табу
 
 
-class WillState(Enum):
-    """Шкала деградации воли. Заменяет бинарные исходы (ADR-031)."""
-    COMPLY = "comply"               # Нет сопротивления
-    RELUCTANT = "reluctant"         # Неохота, но делает
-    DELAY = "delay"                 # Торможение, попытка выиграть время
-    MISINTERPRET = "misinterpret"   # Сознательное искажение приказа ("я понял иначе")
-    NEGOTIATE = "negotiate"         # Контр-предложение вместо подчинения
-    PARTIAL_COMPLY = "partial_comply" # Выполнение с sabotage: удар слабо, бежать после первого шага
-    DISTRESSED = "distressed"       # Сильный стресс, слезы, дрожь
-    PANICKED = "panicked"           # Паника, иррациональное поведение
-    DISSOCIATING = "dissociating"   # Отчуждение от действия, "это не я"
-    BROKEN = "broken"               # Сломлен, подчиняется безвольно
-    CONDITIONED = "conditioned"     # Адаптировался к насилию, привык
-    COUNTER_OFFER = "counter_offer" # Аватар предлагает альтернативу выживания
-    REFUSE = "refuse"               # Жесткий отказ, готовность к последствиям
+# B9-FIX: WillState унифицирован и перенесён в app.models.npc_state для избежания DOUBLE TRUTH.
+from app.models.npc_state import WillState
 
 
 @dataclass(frozen=True)

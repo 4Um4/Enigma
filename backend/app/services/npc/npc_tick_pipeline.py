@@ -1,4 +1,4 @@
-# path: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\npc_tick_pipeline.py
+﻿# path: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\npc\npc_tick_pipeline.py
 """
 Чистые функции NPC пайплайна (Фазы 3-6).
 
@@ -1233,8 +1233,8 @@ def _resolve_reactive_movement(
                                 else:
                                     # Полностью заблокирован — остаёмся у центроида
                                     _flee_x, _flee_y = _room_ref.x, _room_ref.y
-                        except Exception:
-                            pass  # spatial_walls может отсутствовать — безопасный пропуск
+                        except Exception as e:
+                            logger.warning(f"[B5-FIX] silent failure suppressed: {e}")  # spatial_walls может отсутствовать — безопасный пропуск
                         if (_flee_x, _flee_y) != _cei1_orig:
                             print(f"[CEI-1] npc={npc_id} flee adjusted from ({_cei1_orig[0]:.1f},{_cei1_orig[1]:.1f}) to ({_flee_x:.1f},{_flee_y:.1f})")
                         print(f"[TRACE][INTENT_CREATED] npc={npc_id} intent=micro_flee target_xy=({_flee_x:.1f},{_flee_y:.1f})")

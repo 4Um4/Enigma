@@ -1,4 +1,4 @@
-# backend/app/services/temporal/temporal_engine.py
+﻿# backend/app/services/temporal/temporal_engine.py
 """
 Единая точка времени и decay в системе.
 Знает текущий тик, игровой день, расписание протухания.
@@ -165,8 +165,8 @@ class TemporalEngine:
         if path.exists():
             try:
                 _existing = json.loads(path.read_text(encoding="utf-8-sig"))
-            except (json.JSONDecodeError, OSError):
-                pass
+            except (json.JSONDecodeError, OSError) as e:
+                logger.warning(f"[B5-FIX] silent failure suppressed: {e}")
 
         data = {
             "sim_tick": tick,

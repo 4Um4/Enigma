@@ -1,4 +1,4 @@
-# C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\agents\dm_agent.py
+﻿# C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\agents\dm_agent.py
 # -*- coding: utf-8 -*-
 """
 DM Agent - Dungeon Master Narrative Layer
@@ -40,11 +40,10 @@ _STOP_TOKENS = [
     "<|assistant|>"
 ]
 
-# Константы для хардкода
-MSG_NOTHING_HAPPENED = "Ничего не произошло."
+# C3-FIX: MSG_ константы вынесены в app.core.constants
+from app.core.constants import MSG_MAX_REPLIES, MSG_NOTHING_HAPPENED
 MSG_ALREADY_SAID = "УЖЕ БЫЛО СКАЗАНО"
 MSG_REACTION_RULE = "ПРАВИЛО РЕАКЦИЙ"
-MSG_MAX_REPLIES = "Максимум 3 реплики"
 
 def _strip_stop_tokens(text: str) -> str:
     """Убирает стоп-токены из строки. Обрезает по первому вхождению."""
@@ -90,7 +89,7 @@ class DmAgent:
             )
         except Exception as e:
             import traceback
-            print(f"[DM_AGENT_CRASH] {type(e).__name__}: {e}")
+            logger.error(f"[DM_AGENT_CRASH] {type(e).__name__}: {e}")
             traceback.print_exc()
             jsonl_log({"level": "ERROR", "agent": "dm_agent", "error": str(e)})
             return self._fallback_narrate()
@@ -194,7 +193,7 @@ class DmAgent:
         
         # Блок 2.4: STM — последние реплики диалога (из WorkingMemory через game_loop)
         _recent_speech = (context or {}).get("npc_recent_speech", [])
-        print(f"[STM_INJECT] npc_recent_speech={_recent_speech}")
+        if settings.dm_debug: logger.debug(f"[STM_INJECT] npc_recent_speech={_recent_speech}")
         if _recent_speech:
             builder.add_npc_stm("\n".join(_recent_speech))
         
@@ -558,7 +557,7 @@ class DmAgent:
         )
         # Диагностика: первый раз печатаем полный промпт
         if not getattr(self, '_prompt_printed', False):
-            print(f"[DM_CONTRACT]\nsystem: {contract.system_prompt[:200]}...\nuser: {contract.user_prompt[:1200]}...\n[/DM_CONTRACT]")
+            if settings.dm_debug: logger.debug(f"[DM_CONTRACT]\nsystem: {contract.system_prompt[:200]}...\nuser: {contract.user_prompt[:1200]}...\n[/DM_CONTRACT]")
             self._prompt_printed = True
         return contract.user_prompt
 
@@ -568,8 +567,8 @@ class DmAgent:
             file_prompt = load_system_prompt(settings.system_prompt_file)
             if file_prompt and len(file_prompt) > 20:
                 return file_prompt
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"[B5-FIX] silent failure suppressed: {e}")
         
         # Fallback — только если файл промпта отсутствует
         return "Ты — Мастер Подземелий D&D 5e. Отвечай ТОЛЬКО по-русски. НЕ ПИШИ по-китайски (中文). 2-3 предложения. Не говори за игрока."
@@ -609,8 +608,8 @@ class DmAgent:
         # Диагностика: конец промпта (для 7B последний блок = самый влиятельный)
         _sys_words = len(contract.system_prompt.split())
         _usr_words = len(contract.user_prompt.split())
-        print(f"[DM_CONTRACT] id={contract.contract_id} sys_tokens~{_sys_words} user_tokens~{_usr_words}")
-        print(f"[DM_CONTRACT] user (last 800 chars):\n...{contract.user_prompt[-800:]}\n[/DM_CONTRACT]")
+        if settings.dm_debug: logger.debug(f"[DM_CONTRACT] id={contract.contract_id} sys_tokens~{_sys_words} user_tokens~{_usr_words}")
+        if settings.dm_debug: logger.debug(f"[DM_CONTRACT] user (last 800 chars):\n...{contract.user_prompt[-800:]}\n[/DM_CONTRACT]")
         
         if not contract.user_prompt.strip():
             # Контракт пустой — не отправляем в LLM, сразу fallback
@@ -792,8 +791,8 @@ class DmAgent:
                 if _stream_ctx is not None:
                     try:
                         _router.notify_stream_end(_stream_ctx, _total_chars[0])
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        logger.warning(f"[B5-FIX] silent failure suppressed: {e}")
                 if not loop.is_closed():
                     asyncio.run_coroutine_threadsafe(q.put(None), loop)
 

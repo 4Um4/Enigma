@@ -1,4 +1,4 @@
-"""
+﻿"""
 Назначение: Главное меню игры — полностью изолировано от map_editor, содержит собственные минимальные UI-примитивы
 Зависимости: pygame (только стандартная библиотека + pygame)
 Основные сущности: MenuAction, GameMenu, _MenuButton
@@ -12,6 +12,8 @@ from enum import Enum, auto
 from typing import Optional, Callable
 
 import pygame
+
+from i18n import t
 
 
 class MenuAction(Enum):
@@ -142,19 +144,19 @@ class GameMenu:
         C = _MENU_COLORS
         self._buttons = [
             _MenuButton(x, start_y, btn_w, btn_h,
-                        "Новая игра", C["btn_primary"], C["btn_primary_hover"],
+                        t("ui:menu_new_game"), C["btn_primary"], C["btn_primary_hover"],
                         lambda: self._set_action(MenuAction.NEW_GAME)),
             _MenuButton(x, start_y + btn_h + gap, btn_w, btn_h,
-                        "Продолжить", C["btn_primary"], C["btn_primary_hover"],
+                        t("ui:menu_continue"), C["btn_primary"], C["btn_primary_hover"],
                         lambda: self._set_action(MenuAction.CONTINUE)),
             _MenuButton(x, start_y + 2 * (btn_h + gap), btn_w, btn_h,
-                        "Редактор карт", C["btn_secondary"], C["btn_secondary_hover"],
+                        t("ui:menu_editor"), C["btn_secondary"], C["btn_secondary_hover"],
                         lambda: self._set_action(MenuAction.EDITOR)),
             _MenuButton(x, start_y + 3 * (btn_h + gap), btn_w, btn_h,
-                        "Настройки", C["btn_secondary"], C["btn_secondary_hover"],
+                        t("ui:menu_settings"), C["btn_secondary"], C["btn_secondary_hover"],
                         lambda: self._set_action(MenuAction.SETTINGS)),
             _MenuButton(x, start_y + 4 * (btn_h + gap), btn_w, btn_h,
-                        "Выход", C["btn_danger"], C["btn_danger_hover"],
+                        t("ui:menu_exit"), C["btn_danger"], C["btn_danger_hover"],
                         lambda: self._set_action(MenuAction.EXIT)),
         ]
 

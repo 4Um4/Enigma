@@ -1,4 +1,4 @@
-"""
+﻿"""
 Единственное место, где числа превращаются в слова для LLM.
 
 ИНВАРИАНТЫ:
@@ -183,8 +183,8 @@ def _inflect_to_feminine(word: str) -> str:
         inflected = variant.inflect({"femn", "nomn"})
         if inflected:
             return inflected.word
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning(f"[B5-FIX] silent failure suppressed: {e}")
     
     return word
 
@@ -214,7 +214,7 @@ class StateInterpreter:
     def interpret(self, state: NPCState) -> NPCStateDescription:
         """Основной метод: NPCState → человекочитаемое описание."""
         hp_ratio = state.hp / state.max_hp if state.max_hp > 0 else 1.0
-        gender = getattr(state, "gender", "male")
+        gender = self._get_gender(state)
         # GAP5 FIX: Читаем живую физиологию, а не только RPG-абстракцию HP
         body_state = getattr(state, 'body_state', {}) or {}
 
@@ -280,6 +280,17 @@ class StateInterpreter:
             "prone": "лежит",
         }
         return mapping.get(posture, "стоит")
+
+    def _get_gender(self, npc_state) -> str:
+        """C5-FIX: нормализация gender для pymorphy3."""
+        gender = getattr(npc_state, "gender", "male")
+        if gender in ("неизвестен", "unknown", None, ""):
+            return "male"
+        elif gender in ("мужской", "male", "m"):
+            return "male"
+        elif gender in ("женский", "female", "f"):
+            return "female"
+        return "male"
 
     def _conditions_to_list(self, conditions: Dict[str, Condition], gender: str = "male") -> List[str]:
         """

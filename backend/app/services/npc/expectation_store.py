@@ -1,4 +1,4 @@
-# backend/app/services/npc/expectation_store.py
+﻿# backend/app/services/npc/expectation_store.py
 """
 Назначение: Персистентное хранилище ожиданий NPC (EMA). Обновляется строго через StateApplicator.
 Зависимости: backend/app/domain/identity_events.py
@@ -66,8 +66,8 @@ class ExpectationStore:
                 exp = Expectation(source_id=source_id, expected_reward=row[0], expected_threat=row[1], confidence=row[2])
                 self._cache[key] = exp
                 return exp
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"[B5-FIX] silent failure suppressed: {e}")
         
         # Default
         exp = Expectation(source_id=source_id)

@@ -1,4 +1,4 @@
-# backend/app/services/memory/relationship_store.py
+﻿# backend/app/services/memory/relationship_store.py
 """
 R1.4 — Relationship Memory.
 Хранит отношения между NPC и игроком в JSON на диске.
@@ -8,6 +8,8 @@ Python обновляет после каждого хода. LLM получае
 from __future__ import annotations
 import json
 import logging
+import time
+from collections import OrderedDict
 from pathlib import Path
 from typing import Any, Dict
 
@@ -21,10 +23,15 @@ def _clamp(value: float, lo: float = -100.0, hi: float = 100.0) -> float:
 
 
 class RelationshipStore:
+    MAX_CACHE_SIZE = 1000
+    TTL_SECONDS = 3600
+
     def __init__(self, data_dir: str = "data") -> None:
         self._root = Path(data_dir)
         # Кэш в RAM — исключает повторные чтения диска за один тик.
-        self._cache: Dict[str, Dict[str, Any]] = {}
+        # C6-FIX: OrderedDict + LRU + TTL
+        self._cache: OrderedDict[str, Dict[str, Any]] = OrderedDict()
+        self._timestamps: Dict[str, float] = {}
 
     def _path(self, campaign_id: str) -> Path:
         # ADR-O-146: saves/<campaign_id>/npc_relationships.json (без префикса campaign_)
@@ -34,20 +41,42 @@ class RelationshipStore:
 
     def _load(self, campaign_id: str) -> Dict[str, Any]:
         # Возвращаем кэш если он уже загружен — диск не трогаем.
-        if campaign_id in self._cache:
-            return self._cache[campaign_id]
+        # C6-FIX: TTL check
+        if campaign_id in self._timestamps:
+            if time.time() - self._timestamps[campaign_id] > self.TTL_SECONDS:
+                self._cache.pop(campaign_id, None)
+                self._timestamps.pop(campaign_id, None)
+            elif campaign_id in self._cache:
+                self._cache.move_to_end(campaign_id)
+                return self._cache[campaign_id]
+                
         path = self._path(campaign_id)
         if not path.exists():
             self._cache[campaign_id] = {}
+            self._cache.move_to_end(campaign_id)
+            self._timestamps[campaign_id] = time.time()
+            self._evict_if_needed()
             return self._cache[campaign_id]
         try:
             data = json.loads(path.read_text(encoding="utf-8-sig"))
             self._cache[campaign_id] = data
+            self._cache.move_to_end(campaign_id)
+            self._timestamps[campaign_id] = time.time()
+            self._evict_if_needed()
             return data
         except Exception as e:
             logger.error(f"[RELATIONSHIPS] Ошибка чтения {path}: {e}")
             self._cache[campaign_id] = {}
+            self._cache.move_to_end(campaign_id)
+            self._timestamps[campaign_id] = time.time()
+            self._evict_if_needed()
             return self._cache[campaign_id]
+
+    def _evict_if_needed(self):
+        while len(self._cache) > self.MAX_CACHE_SIZE:
+            oldest = next(iter(self._cache))
+            del self._cache[oldest]
+            del self._timestamps[oldest]
 
     def _save(self, campaign_id: str, data: Dict[str, Any]) -> None:
         # Обновляем кэш синхронно с диском.

@@ -1,4 +1,4 @@
-# path: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\scene\r3_direct_builder.py
+﻿# path: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\scene\r3_direct_builder.py
 """
 R3 Direct Mode: DecisionResult → SceneOutcome → DMFrame.
 
@@ -115,8 +115,8 @@ def build_r3_dm_frame(
                 if _coh is not None:
                     try:
                         _avatar_coherence = float(_coh)
-                    except (TypeError, ValueError):
-                        pass
+                    except (TypeError, ValueError) as e:
+                        logger.warning(f"[B5-FIX] silent failure suppressed: {e}")
                 break  # берём первого игрока
     
     # Строим SceneOutcome → DMFrame (с психологической проекцией + ADR-131 трёхосевая модель)

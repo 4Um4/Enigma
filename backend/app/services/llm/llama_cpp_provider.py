@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """
 Llama.cpp Provider Implementation
 Local LLM inference using llama.cpp server or CLI
@@ -213,8 +213,8 @@ class LlamaCppProvider(StreamingLlmProvider):
                     method="POST",
                     timeout=2,
                 )
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning(f"[B5-FIX] silent failure suppressed: {e}")
         else:
             self._kill_cli_process()
 
@@ -253,8 +253,8 @@ class LlamaCppProvider(StreamingLlmProvider):
                 finally:
                     try:
                         os.unlink(tmp_path)
-                    except OSError:
-                        pass
+                    except OSError as e:
+                        logger.warning(f"[B5-FIX] silent failure suppressed: {e}")
             else:
                 cmd.extend(["-p", prompt])
                 return self._run_cli_process(cmd)
@@ -295,8 +295,8 @@ class LlamaCppProvider(StreamingLlmProvider):
             try:
                 proc.terminate()
                 proc.wait(timeout=2)
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning(f"[B5-FIX] silent failure suppressed: {e}")
         self._cli_process = None
 
     # ──────────────────────────────────────────────────────────────────────────

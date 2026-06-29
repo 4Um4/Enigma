@@ -1,4 +1,4 @@
-# backend/app/services/game_loop/__init__.py
+﻿# backend/app/services/game_loop/__init__.py
 #
 # Шаг 5 рефакторинга: единая точка входа для run_turn и stream_turn.
 #
@@ -1079,8 +1079,8 @@ class GameLoop:
                     _cached = self.life_engine.get_npc_states(campaign_id)
                     if _cached:
                         _death_ws["npc_positions"] = {n.get("npc_id", n.get("id", f"npc_{i}")): n for i, n in enumerate(_cached) if isinstance(n, dict)}
-                except Exception:
-                    pass  # Мир без позиций лучше, чем краш Death Guard
+                except Exception as e:
+                    logger.warning(f"[B5-FIX] silent failure suppressed: {e}")  # Мир без позиций лучше, чем краш Death Guard
                 # P3: DM narrates смерть (LLM-интерпретация замороженной реальности, не хардкод)
                 _death_dm_response = "Тьма поглощает тебя. Твоё тело безжизненно, а сознание растворяется в абсолютной тишине."
                 try:

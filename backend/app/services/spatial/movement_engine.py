@@ -1,10 +1,11 @@
-﻿# backend/app/services/spatial/movement_engine.py
+# backend/app/services/spatial/movement_engine.py
 # Назначение: Слой 2 Execution. MovementIntent → SceneChange с {x, y}.
 # Получает целевой узел графа, резолвит в координаты, генерирует SceneChange.
 
 from __future__ import annotations
 
 import logging
+logger = logging.getLogger(__name__)
 from typing import Any, Dict, List, Optional
 
 from app.domain.movement import MacroMovementGoal, LocalSteeringGoal
@@ -64,7 +65,7 @@ class MovementEngine:
                 target_pos = intent.target_node_id
 
                 if current_pos and current_pos == target_pos:
-                    print(f"[GATE_B1_COLLAPSE] npc={npc_id} current={current_pos} target={target_pos} loc={getattr(intent, 'location_id', '?')}")
+                    logger.debug(f"[GATE_B1_COLLAPSE] npc={npc_id} current={current_pos} target={target_pos} loc={getattr(intent, 'location_id', '?')}")
                     logger.debug(
                         f"[SPATIAL_GATE] COLLAPSE: npc={npc_id} already at {target_pos} "
                         f"reason={getattr(intent, 'reason', '?')}"
@@ -73,7 +74,7 @@ class MovementEngine:
 
             validated.append(intent)
             if isinstance(intent, MacroMovementGoal):
-                print(f"[GATE_B1_ACCEPT] npc={intent.npc_id} current={npc_positions.get(intent.npc_id, {}).get('position', '')} target={intent.target_node_id} loc={getattr(intent, 'location_id', '?')}")
+                logger.debug(f"[GATE_B1_ACCEPT] npc={intent.npc_id} current={npc_positions.get(intent.npc_id, {}).get('position', '')} target={intent.target_node_id} loc={getattr(intent, 'location_id', '?')}")
 
         _skipped = len(intents) - len(validated)
         if _skipped > 0:
@@ -102,7 +103,7 @@ class MovementEngine:
         # ЗАПРЕТ (ADR-138): spatial eligibility logic НЕ существует нигде кроме _spatial_intent_gate.
         _pre_gate_count = len(intents)
         intents = self._spatial_intent_gate(intents, npc_positions)
-        print(f"[GATE_B1] total_intents={_pre_gate_count} accepted={len(intents)} rejected={_pre_gate_count - len(intents)}")
+        logger.debug(f"[GATE_B1] total_intents={_pre_gate_count} accepted={len(intents)} rejected={_pre_gate_count - len(intents)}")
 
         changes: List[SceneChange] = []
 
@@ -243,7 +244,7 @@ class MovementEngine:
             best_y = ty + rng.uniform(-0.5, 0.5)
             
         tx, ty = best_x, best_y
-        print(f"[TRACE][SCENE_CHANGE_CREATED] npc={intent.npc_id} x={tx:.1f} y={ty:.1f}")
+        logger.debug(f"[TRACE][SCENE_CHANGE_CREATED] npc={intent.npc_id} x={tx:.1f} y={ty:.1f}")
         logger.info(f"[PIPELINE][MOVEMENT][MICRO_SNAP] npc={intent.npc_id} → xy=({tx:.1f}, {ty:.1f})")
         return [SceneChange(
             type=ChangeType.NPC_POSITION,
@@ -264,14 +265,14 @@ class MovementEngine:
         """ADR-0010/060: LOD1 макро-перемещение (Semantic Relocation)."""
         # Защита micro-position: если NPC уже в целевом узле — пропускаем
         if intent.from_node_id and intent.from_node_id == intent.target_node_id:
-            print(f"[GATE_B3] npc={intent.npc_id} reason=SAME_NODE node={intent.target_node_id}")
+            logger.debug(f"[GATE_B3] npc={intent.npc_id} reason=SAME_NODE node={intent.target_node_id}")
             logger.debug(f"[MOVEMENT_ENGINE] Skip macro: {intent.npc_id} уже в {intent.target_node_id}")
             return []
         
         # Резолвим целевой узел в координаты центра
         target_ref = svc.get_node(intent.target_node_id) or svc.get_node(f"{location_id}:{intent.target_node_id}")
         if not target_ref:
-            print(f"[GATE_B3] npc={intent.npc_id} reason=NODE_NOT_FOUND target={intent.target_node_id} loc={location_id}")
+            logger.debug(f"[GATE_B3] npc={intent.npc_id} reason=NODE_NOT_FOUND target={intent.target_node_id} loc={location_id}")
             logger.warning(f"[MOVEMENT_ENGINE] Узел '{intent.target_node_id}' не найден для {intent.npc_id} в {location_id}")
             return []
         
@@ -282,7 +283,7 @@ class MovementEngine:
             target_xy = (target_ref.x, target_ref.y)
             
         logger.info(f"[PIPELINE][MOVEMENT][RELOCATE] npc={intent.npc_id} → zone={intent.target_node_id} reason={intent.reason} exact_xy={target_xy}")
-        print(f"[GATE_B3] npc={intent.npc_id} reason=SUCCESS target={intent.target_node_id} loc={location_id}")
+        logger.debug(f"[GATE_B3] npc={intent.npc_id} reason=SUCCESS target={intent.target_node_id} loc={location_id}")
         return [SceneChange(
             type=ChangeType.NPC_POSITION,
             target=intent.npc_id,

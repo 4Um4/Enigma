@@ -50,7 +50,7 @@
 **Актуальные DTO:**
 - **`IntentPressureProfile`** (`models/will.py`): Вектор давления на психику.
 - **`AmplifiedPressureProfile`** (`models/will.py`): Давление, искаженное `ResponseBias`.
-- **`WillResponseDTO`** (`models/will.py`): Результат WillpowerGate. `WillState` (импортируется из `app.models.will`), `resistance`, `identity_damage`, `counter_offer`, `embodied_vector`.
+- **`WillResponseDTO`** (`models/will.py`): Результат WillpowerGate. `WillState` (канонический источник — `app.models.npc_state`, реэкспортируется из `app.models.will`, ADR-TZ6-1), `resistance`, `identity_damage`, `counter_offer`, `embodied_vector`.
 - **`CommunicationIntent`** (`domain/communication.py`): Единый источник истины для ответа NPC. Обязателен непустой `topic`. Добавлены `semantic_action` и `target_id` для проброса в `NPC_SPOKE` EventDTO.
 - **`WillConflictPayload`** (`models/delta_payloads.py`): Контракт данных о конфликте воли (сопротивление игрока приказу NPC). Пробрасывается через API в `WorldSnapshotDTO` для фронтенда (Resistance Medium).
 
@@ -297,5 +297,12 @@
 - `test_dead_spatial_modules_removed` (ADR-TZ04-3)
 - `test_spatial_factory_used` (ADR-TZ04-4)
 - `test_metadata_scene_change_routing` (ADR-TZ04-5)
+- `test_no_print_in_movement_engine` (ADR-TZ6-1)
+- `test_willstate_single_definition` (ADR-TZ6-1)
+- `test_compute_continuous_drift_returns_list` (ADR-TZ6-1)
+- `test_no_silent_failures_in_tick_orchestrator` (ADR-TZ6-1)
+- `test_constants_has_spatial` (ADR-TZ6-1)
+- `test_constants_has_dm_messages` (ADR-TZ6-1)
+- `test_i18n_has_menu_keys` (ADR-TZ6-1)
 
 

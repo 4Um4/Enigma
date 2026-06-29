@@ -24,7 +24,7 @@ nodes:
     type: service
     layer: Domain
     label: "Recognition Layer"
-    description: "Узнавание NPC: EncounterHistory, confidence, display_name. Незнакомец = 'высокая фигура в плаще'."
+    description: "Узнавание NPC: confidence, display_name. Незнакомец = 'высокая фигура в плаще'."
     code_ref: "player_cognition/recognition_layer.py"
   AttentionLayer:
     type: service
@@ -36,7 +36,7 @@ nodes:
     type: service
     layer: Domain
     label: "Memory Layer"
-    description: "PlayerMemory: tier (IMMEDIATE/SHORT/LONG), update_from_perception. Что помнит игрок."
+    description: "Управляет памятью игрока: tier (IMMEDIATE/SHORT/LONG), update_from_perception. Что помнит игрок."
     code_ref: "player_cognition/memory_layer.py"
   UncertaintyLayer:
     type: service
@@ -123,12 +123,6 @@ constraints:
     severity: MEDIUM
 
 ownership:
-  PlayerMemory:
-    owner: "MemoryLayer"
-    creates: "MemoryLayer (per session)"
-    modifies: "update_from_perception, new_turn"
-    reads: "RecognitionLayer (encounter history)"
-    constraint: "Per-player. Not shared with NPCs. Decays over time."
   PerceivedScene:
     owner: "PlayerCognitionPipeline"
     creates: "build_perceived_scene()"

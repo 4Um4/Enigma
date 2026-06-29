@@ -1,4 +1,4 @@
-"""
+﻿"""
 path: /frontend/game_loop_bridge.py
 
 Синхронная обёртка над async GameLoop для вызова из pygame.
@@ -111,8 +111,8 @@ class GameLoopBridge:
         if self._ready and self._loop is not None:
             try:
                 location = self._loop.scene_manager.find_starting_location(campaign_id)
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning(f"[B5-FIX] silent failure suppressed: {e}")
         if campaign_state:
             saved = campaign_state.metadata.get("current_location")
             if saved:
@@ -192,7 +192,12 @@ class GameLoopBridge:
             asyncio.run(_collect())
         except RuntimeError:
             # Если уже есть running loop (pytest, etc.) — используем его
-            loop = asyncio.get_event_loop()
+            # B6-FIX: deprecated asyncio.get_event_loop() → get_running_loop / new_event_loop.
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
             if loop.is_running():
                 # Создаём отдельный поток для async
                 import concurrent.futures
@@ -278,7 +283,7 @@ class GameLoopBridge:
             return self._loop.idle_tick(campaign_id)
         except Exception as e:
             import traceback
-            print(f"[IDLE_TICK_BRIDGE] ERROR: {e}\n{traceback.format_exc()}")
+            logger.error(f"[IDLE_TICK_BRIDGE] ERROR: {e}\n{traceback.format_exc()}")
             return {"status": "error", "error": str(e), "npc_positions": {}}
 
     def initialize_model_pool(self) -> None:

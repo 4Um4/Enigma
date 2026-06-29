@@ -8,7 +8,7 @@
 
 | Показатель | Значение |
 |------------|----------|
-| Сессий | 96 |
+| Сессий | 98 |
 | Доменов | 10 |
 | Консолидированных запретов | [DERIVED: count(ADR.*.Taboo)] |
 | Диапазон | S03—S97 |
@@ -44,6 +44,12 @@
   - `TickOrchestrator._phase_5_decision` теперь загружает данные ДО вызова `run()` и применяет отложенные мутации ПОСЛЕ.
   - `apply_perception_memory` и `create_memory_event` переведены в режим возврата `EventDTO` без I/O при `memory_manager=None`.
   - DriftLaboratory (3 тика): 0 ошибок, comparisons=4, гейты стабильны.
+
+- 🔵 **S98** ТЗ-06: Dead Code Cleanup & Engineering Debt.
+  - **Patch Set A (Dead Code Removal):** Удалены мёртвые методы (`_draw_input_bar`, `_advance_time_by_movement`, `_build_intro_prompt`, `can_proceed`, `add_npc_author_notes`). Удалены мёртвые поля (`PlayerMemory`, `EncounterHistory`). Удалён дублирующий импорт `settings` в `routes.py`. Вычищены мёртвые комментарии и docstrings про `TransitTracker` и `LocationGraph`.
+  - **Patch Set B (Production Hygiene):** `print()` в `movement_engine.py`, `tick_orchestrator.py`, `dm_agent.py`, `game_loop_bridge.py` заменён на `logger.debug` с feature-флагами (`movement_debug`, `orchestrator_debug`, `dm_debug` в `config.py`). `except Exception: pass` заменён на `logger.warning` (16 файлов). `asyncio.get_event_loop()` заменён на `get_running_loop()`. `ActionQueue.poll` ловит только `queue.Empty`. `WillState` унифицирован (реэкспорт из `npc_state.py`). `compute_continuous_drift` возвращает `list`.
+  - **Patch Set C (Constants & i18n):** 23 магических числа вынесены в `constants.py`. `MSG_*` константы вынесены в `constants.py`. Добавлены i18n ключи для меню, заменены хардкоды в `game_menu.py`. Нормализация `gender` в `state_interpreter.py` и `shadow.json`. `RelationshipStore` переведён на `OrderedDict` с LRU и TTL.
+  - **Validation:** Создан `backend/tests/test_tz6_cleanup.py` (10 тестов, все проходят).
 
 - 🔵 **TZ-08 v0.2** Строгая миграция ядра в Event-Driven модель.
   - Внедрён `InterventionEvent` как единственный внешний входной протокол.

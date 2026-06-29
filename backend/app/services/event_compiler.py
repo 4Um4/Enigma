@@ -419,9 +419,18 @@ class EventCompiler:
             )
 
         # E11-E16: Полное движение с pathfinding и traversal
-        return self._compile_full_movement(
+        # ADR-DRIFT-D: _compile_full_movement теперь может вернуть None
+        # (parity with legacy когда path blocked and no valid route)
+        result = self._compile_full_movement(
             snapshot, change, node, svc, spatial, source_xy, target_xy
         )
+        if result is None:
+            # Path blocked, no valid route — parity with legacy
+            logger.debug(
+                f"[SHADOW_COMPILER] npc={change.target} "
+                f"no traversal created (path blocked, no route)"
+            )
+        return result
 
     def _compile_full_movement(
         self,
@@ -432,29 +441,67 @@ class EventCompiler:
         spatial: SpatialResolution,
         source_xy: Tuple[float, float],
         target_xy: Tuple[float, float],
-    ) -> ThickSceneChange:
-        """E11-E16: Pathfinding, distance, duration, traversal creation."""
+    ) -> Optional[ThickSceneChange]:
+        """E11-E16: Pathfinding, distance, duration, traversal creation.
+        
+        ADR-DRIFT-D: Path blocked parity with legacy apply_change.
+        Legacy: _create_traversal = False when blocked, True only when
+        find_path returns intermediate nodes. Shadow previously created
+        traversal unconditionally → Causal Drift D (legacy=False vs shadow=True).
+        Fix: shadow must return None when blocked and no valid path found.
+        """
         # E11: Wall blocking check (из snapshot, не из live scene_state)
         is_path_blocked = self._check_wall_blocking(snapshot, source_xy, target_xy)
 
         # E12-E13: Pathfinding + waypoint assembly
+        # ADR-DRIFT-D: Mirror legacy _create_traversal logic.
+        # Legacy: _create_traversal = False initially when blocked,
+        # True only if find_path returns intermediate nodes.
         waypoints: List[List[float]] = [[source_xy[0], source_xy[1]]]
-        if is_path_blocked and svc:
-            path = self._find_path(svc, source_xy, node)
-            if path and len(path) >= 2:
-                # Пропускаем первый (source) и последний (target) —
-                # они уже в waypoints
-                intermediate = [[pn.x, pn.y] for pn in path[1:-1]]
-                waypoints.extend(intermediate)
-                logger.info(
-                    f"[SHADOW_COMPILER] pathfinding: npc={change.target} "
-                    f"via {len(intermediate)} intermediate nodes"
-                )
+        
+        if is_path_blocked:
+            # Path blocked — need find_path with intermediate nodes
+            if svc:
+                path = self._find_path(svc, source_xy, node)
+                if path and len(path) >= 2:
+                    # Пропускаем первый (source) и последний (target)
+                    intermediate = [[pn.x, pn.y] for pn in path[1:-1]] if len(path) > 2 else []
+                    if intermediate:
+                        waypoints.extend(intermediate)
+                        logger.info(
+                            f"[SHADOW_COMPILER] pathfinding: npc={change.target} "
+                            f"via {len(intermediate)} intermediate nodes"
+                        )
+                        # _create_traversal = True (аналог legacy строки 1446)
+                    else:
+                        # 2-node path but geometric path blocked — no doorway route
+                        # Legacy: _create_traversal остаётся False (строка 1449)
+                        logger.warning(
+                            f"[SHADOW_COMPILER] npc={change.target} "
+                            f"2-node path but geometric path blocked — no traversal "
+                            f"(parity with legacy ADR-DRIFT-D)"
+                        )
+                        return None
+                else:
+                    # find_path returned empty — no route available
+                    # Legacy: _create_traversal остаётся False (строка 1451)
+                    logger.warning(
+                        f"[SHADOW_COMPILER] npc={change.target} "
+                        f"find_path returned empty — no traversal "
+                        f"(parity with legacy ADR-DRIFT-D)"
+                    )
+                    return None
             else:
+                # Blocked but no svc to find path — no traversal
+                # Legacy: _create_traversal остаётся False
                 logger.warning(
-                    f"[SHADOW_COMPILER] path blocked but no path found: "
-                    f"npc={change.target}"
+                    f"[SHADOW_COMPILER] npc={change.target} "
+                    f"path blocked, no svc — no traversal "
+                    f"(parity with legacy ADR-DRIFT-D)"
                 )
+                return None
+        # else: прямая линия свободна — _create_traversal = True (legacy строка 1458)
+        
         waypoints.append([target_xy[0], target_xy[1]])
 
         # E14: Distance calculation (сумма сегментов, как legacy)

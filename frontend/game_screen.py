@@ -28,7 +28,7 @@ from scene_renderer import SceneRenderer
 from text_input import TextInput
 # Спринт 31: Локальная физика и парсер интентов удалены. Фронтенд — честный интерполятор.
 
-from game_types import PerceptionConfig, PerceivedScene, PerceivedEntity, PlayerFocus
+from game_types import PerceptionConfig, PerceivedScene, PerceivedEntity, PlayerFocus, PerceivedEnvironment
 
 
 def _build_perceived_scene(scene_state: dict, config: PerceptionConfig) -> PerceivedScene:
@@ -1156,8 +1156,6 @@ class GameScreen:
                 player_stress=10.0,
                 player_hp=100,
                 player_max_hp=100,
-                encounter_history=encounters,
-                player_memory=memory,
             )
             perceived = _build_perceived_scene(scene_state, config)
 

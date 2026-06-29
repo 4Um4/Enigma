@@ -1,4 +1,4 @@
-"""
+﻿"""
 Слой связи Pygame ↔ Backend.
 
 Архитектура (три уровня):
@@ -179,8 +179,8 @@ class HttpClient:
             body = ""
             try:
                 body = e.read().decode("utf-8", errors="replace")
-            except Exception:
-                pass  # не удалось прочитать тело ошибки HTTP
+            except Exception as e:
+                logger.warning(f"[B5-FIX] silent failure suppressed: {e}")  # не удалось прочитать тело ошибки HTTP
             raise BackendError(
                 f"HTTP {e.code}: {body}",
                 status_code=e.code,
@@ -786,9 +786,14 @@ class ActionQueue:
         Returns:
             CompletedAction если есть, иначе None
         """
+        # B7-FIX: ловит только queue.Empty, не KeyboardInterrupt.
+        import queue
         try:
             return self._output.get_nowait()
-        except Exception:
+        except queue.Empty:
+            return None
+        except Exception as e:
+            logger.error(f"[ACTION_QUEUE] poll failed: {e}")
             return None
     
     def pending_count(self) -> int:
