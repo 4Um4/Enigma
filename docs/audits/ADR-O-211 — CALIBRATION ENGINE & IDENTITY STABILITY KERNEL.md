@@ -1,4 +1,14 @@
 # АРХИТЕКТУРНЫЙ КОНТРАКТ: ADR-O-211 — CALIBRATION ENGINE & IDENTITY STABILITY KERNEL
+# ADR-O-211
+
+<!-- ADR-O-211 -->
+> **СТАТУС:** Phase 0 (pass-through) 🔴
+>
+> **Реальное состояние:** CalibrationEngine существует, но все методы возвращают заглушки. `strain_memory` всегда `{}`. `compute_drives_updates` возвращает `{}`.
+>
+> **План ремонта:** ТЗ-2 §2.8 (после применения — обновить статус на ✅ Implemented).
+>
+> **Аудит:** 2026-06-19 (см. ADR_STATUS_MATRIX.md)
 
 ## 1. ПАРАДИГМА: НАУЧНЫЙ ПРИБОР, А НЕ ТЕСТ
 

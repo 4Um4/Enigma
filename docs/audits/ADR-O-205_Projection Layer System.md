@@ -1,4 +1,14 @@
 ### ADR-PRE-FLIGHT CHECKLIST: ADR-O-205 (Projection Layer System)
+# ADR-O-205
+
+<!-- ADR-O-205 -->
+> **СТАТУС:** Phase 0 (ProjectionEngine in sandbox only) 🔴
+>
+> **Реальное состояние:** Код существует, но не активен.
+>
+> **План ремонта:** ТЗ-4 C1.
+>
+> **Аудит:** 2026-06-19 (см. ADR_STATUS_MATRIX.md)
 
 **1. Тип АДР:** ONTOLOGY (ADR-O). Мы меняем онтологию аффективного вывода: переход от `EmotionTag` как универсального состояния к трём несовместимым проекциям.
 

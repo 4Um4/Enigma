@@ -223,7 +223,7 @@ ROADMAP_ Elastic Tactical Time & Сезонный Календарь.md
 ### Оставить без изменений 📄
 
 1. ✅ `ADR-000_IMPACT_TEMPLATE.md` (вспомогательный)
-2. ✅ `CAUSAL_CONTRACT.md` (v1.0, для истории)
+2. ✅ `docs/ARCHIVE/2026-06-19/CAUSAL_CONTRACT_v1.0.md` (v1.0, для истории)
 3. ✅ `АРХИТЕКТУРНЫЙ_УСТАВ_ENIGMA.md` (общая навигация)
 4. ✅ `ТЗ_CAUSAL_DIAGNOSTIC_SYSTEM.md` (переписано в контексте)
 5. ✅ Прочие файлы (движение, восприятие и т.д., если не дублируют)

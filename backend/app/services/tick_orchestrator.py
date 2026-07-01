@@ -389,10 +389,10 @@ class TickOrchestrator:
             event_bus.detach_cfrm_bridge()
 
         # S83.1: TickOrchestrator = единственный владелец результата тика.
-        # input_snapshot (frozen input) прошёл через фазы → final_snapshot (output тика).
-        # commit_tick_result обновляет persistence target через deepcopy (без алиасинга).
-        # unlock_tick() сохранит обновлённый _tick_scene на диск.
-        final_snapshot = input_snapshot  # после мутаций фазами — это уже output, не input
+        # ctx.scene_state (frozen input) прошёл через фазы → final_snapshot (output тика).
+        # Важно: мы не клонируем повторно, а передаём ссылку.
+        # Мутации происходили in-place внутри ctx.scene_state.
+        final_snapshot = ctx.scene_state  # после мутаций фазами — это уже output, не input
         logger.debug(f"[TICK_OK] campaign={campaign_id} tick={tick_number} preparing commit_tick_result")
         if self._scene_manager is not None:
             self._scene_manager.commit_tick_result(campaign_id, final_snapshot)
@@ -1786,24 +1786,14 @@ class TickOrchestrator:
                 if _cstore:
                     _crystallized_beliefs_map[_nid] = _cstore.get_beliefs(npc_id=_nid)
 
-        _tick_state = create_tick_state(
-            tick_id=ctx.tick_number,
-            campaign_id=ctx.campaign_id,
-            scene_state=ctx.scene_state,
-            all_npcs_raw=_alive_npcs,
+        # [S98] Сборка TickState и запуск Pipeline вынесены в pipeline_runner.py
+        from app.services.pipeline_runner import build_tick_state, run_pipeline, build_npc_contexts_from_intents
+        
+        _tick_state = build_tick_state(
+            ctx=ctx,
+            alive_npcs=_alive_npcs,
             effective_drives_map=ctx.effective_drives_map,
-            pe_modifiers_map=_pe_mods_map,
-            interventions=ctx.interventions,
-            hub_event=_dm_ctx.hub_event if _dm_ctx else None,
-            player_target_id=_dm_ctx.player_target_id if _dm_ctx else None,
-            action_type=_dm_ctx.action_type if _dm_ctx else "idle",
-            raw_input=_dm_ctx.raw_input if _dm_ctx else "",
-            is_session_start=_dm_ctx.is_session_start if _dm_ctx else False,
-            nearby_npcs=_dm_ctx.nearby_npcs if _dm_ctx else ctx.all_npcs_raw,
-            line_of_sight=_dm_ctx.line_of_sight if _dm_ctx else {n.get("id", n.get("npc_id")): True for n in ctx.all_npcs_raw},
-            scene_continuity=_dm_ctx.scene_continuity if _dm_ctx else None,
-            spatial_events=_dm_ctx.spatial_events if _dm_ctx else [],
-            drf_tick_id=ctx.tick_number,
+            pe_mods_map=_pe_mods_map,
             memory_weights_map=_memory_weights_map,
             narrative_cache_map=_narrative_cache_map,
             social_modifiers_map=_social_modifiers_map,
@@ -1811,109 +1801,13 @@ class TickOrchestrator:
             economic_profiles_map=_economic_profiles_map,
             crystallized_beliefs_map=_crystallized_beliefs_map,
             identity_traits_map=_identity_traits_map,
-            relationship_store=_svc.relationship_store if _svc else None,
-            spatial_service=_svc.spatial_service if _svc else None,
-            spatial_query=_svc.spatial_query if _svc else None,
         )
 
         _drf_ctx = DRFExecutionContext(tick_id=ctx.tick_number, bus=ctx.drf_bus)
-        _mutation: TickMutation = NpcTickPipeline.run(
-            state=_tick_state,
-            drf_ctx=_drf_ctx,
-            rng_factory=ctx.rng_factory
-        )
-
-        # TZ-10: Committer — применение отложенных мутаций из TickMutation
-        ctx.communication_intents = _mutation.communication_intents or []
-        ctx.movement_intents = _mutation.movement_intents or []
-        ctx.significant_events = _mutation.npc_deltas or []
-        
-        # Применение L1 Drift Events (Append-only Chronicle)
-        if _mutation.l1_drift_events and _svc and _svc.memory_manager:
-            for _event in _mutation.l1_drift_events:
-                _svc.memory_manager.l1_chronicle.append(_event)
-        
-        # Применение Memory Events (STM/L2 update)
-        if _mutation.memory_events and _svc and _svc.memory_manager:
-            for _mem_evt in _mutation.memory_events:
-                # События памяти применяются к контексту, но состояние будет обновлено в Фазе 9
-                ctx.event_bus.publish(_mem_evt) if hasattr(ctx, 'event_bus') else None
+        _mutation = run_pipeline(_tick_state, _drf_ctx, ctx.rng_factory)
 
         # 4. Committer: Применение мутаций к контексту
-        ctx.communication_intents = _mutation.communication_intents or []
-        ctx.movement_intents = _mutation.movement_intents or []
-        ctx.significant_events = _mutation.npc_deltas or []
-        # TODO: Полная обработка npc_deltas через StateApplicator将在 Phase 4
-
-        # SHI-FIX: Построение ctx.npc_contexts из communication_intents.
-        # Без этого R3_DIRECT получает 0 decisions → DM видит пустой мир → "Ничего не произошло".
-        # TickMutation не содержит npc_contexts (только comm_intents), поэтому маппим здесь.
-        # CommunicationIntent имеет .speaker/.topic, а R3_DIRECT ждёт .npc_id/.intent/.deltas —
-        # создаём _DecisionResultAdapter.
-        if ctx.communication_intents:
-            from app.models.npc_state import personality_from_legacy
-            from app.models.npc_state import Intent as NpcIntent
-            from app.models.state_delta import StateDeltas, DeltaDomain
-            from app.models.delta_payloads import IdentityPayload
-            from dataclasses import dataclass
-
-            @dataclass
-            class _DecisionResultAdapter:
-                """Адаптер CommunicationIntent → интерфейс DecisionResult для R3_DIRECT."""
-                npc_id: str
-                intent: Any
-                intent_target: str = "player"
-                score: float = 0.5
-                deltas: Any = None
-                communication: Any = None
-                decision: Any = None
-                narrative_fact: Optional[str] = None
-                micro_event: Optional[str] = None
-
-            for _intent in ctx.communication_intents:
-                _speaker = getattr(_intent, 'speaker', '') or getattr(_intent, 'npc_id', '')
-                if not _speaker:
-                    continue
-                _npc_dict = next((n for n in ctx.all_npcs_raw if n.get("npc_id") == _speaker or n.get("id") == _speaker), None)
-                if not _npc_dict:
-                    continue
-                _profile_l0 = personality_from_legacy(_npc_dict)
-                _topic = getattr(_intent, 'topic', '') or getattr(_intent, 'intent_type', '')
-                _intent_type_str = getattr(_intent, 'intent_type', 'диалог').lower()
-                _npc_intent = NpcIntent.TALK
-                try:
-                    if "угроз" in _intent_type_str or "threat" in _intent_type_str:
-                        _npc_intent = NpcIntent.THREATEN
-                    elif "atan" in _intent_type_str or "attack" in _intent_type_str:
-                        _npc_intent = NpcIntent.ATTACK
-                    elif "бег" in _intent_type_str or "flee" in _intent_type_str:
-                        _npc_intent = NpcIntent.FLEE
-                except Exception as e:
-                    logger.warning(f"[B5-FIX] silent failure suppressed: {e}")
-                _empty_deltas = StateDeltas(
-                    npc_id=_speaker, domain=DeltaDomain.IDENTITY,
-                    payload=IdentityPayload(), source="communication_intent_adapter",
-                )
-                _adapter = _DecisionResultAdapter(
-                    npc_id=_speaker, intent=_npc_intent,
-                    intent_target=getattr(_intent, 'target_id', 'player') or 'player',
-                    score=0.5, deltas=_empty_deltas, communication=_intent, decision=None,
-                )
-                ctx.npc_contexts.append({
-                    "npc_id": _speaker,
-                    "tier": _profile_l0.tier if _profile_l0 else "minor",
-                    "profile_l0": _profile_l0,
-                    "topic": _topic,
-                    "decision_result": _adapter,
-                    "observed_state": {
-                        "name": _npc_dict.get("name", _speaker),
-                        "description": _npc_dict.get("description", ""),
-                        "narrative_cache": _npc_dict.get("narrative_cache", []),
-                    },
-                    "micro_events": [],
-                    "perceived_events": [],
-                    "communication_intent": _intent,
-                })
+        build_npc_contexts_from_intents(ctx, _mutation)
         
         # Каузальный мост: когнитивные решения → пространственное движение
         if ctx.movement_intents:
@@ -2213,6 +2107,12 @@ class TickOrchestrator:
         """
         # ADR-002: Время не останавливается. Каждый тик продвигает часы на GAME_TICK_INTERVAL_SECONDS
         self._advance_idle_time(ctx)      
+        
+        # S94-T2.3: L1Chronicle TTL — архивация старых событий каждые 500 тиков для предотвращения OOM
+        if ctx.tick_number > 0 and ctx.tick_number % 500 == 0:
+            if hasattr(self, 'l1_chronicle') and self.l1_chronicle is not None:
+                self.l1_chronicle.archive_old_events(ctx.tick_number)
+                
         # S91: Очистка истекших деформаций среды (Temporalization Layer)
         self._dynamic_field.purge_hard_overrides(current_tick=ctx.tick_number)
         self._dynamic_field.step_decay()   

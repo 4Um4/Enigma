@@ -92,6 +92,24 @@ class L1Chronicle:
                 ON l1_chronicle_events(campaign_id, target_id, tick_id)
             """)
 
+            # S94-T2.3: L1Chronicle TTL — Архивация старых событий
+            self._store.execute("""
+                CREATE TABLE IF NOT EXISTS l1_chronicle_archive (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    campaign_id TEXT NOT NULL,
+                    target_id TEXT NOT NULL,
+                    tick_id INTEGER NOT NULL,
+                    source_id TEXT NOT NULL,
+                    effect_value REAL NOT NULL,
+                    observation_weight REAL NOT NULL,
+                    event_type TEXT NOT NULL
+                )
+            """)
+            self._store.execute("""
+                CREATE INDEX IF NOT EXISTS idx_l1_archive_npc
+                ON l1_chronicle_archive(campaign_id, target_id, tick_id)
+            """)
+
             rows = self._store.query(
                 "SELECT target_id, tick_id, source_id, effect_value, observation_weight, event_type "
                 "FROM l1_chronicle_events "
@@ -170,12 +188,77 @@ class L1Chronicle:
             if not _exists:
                 self.append(event)
 
-    def query_raw(self, npc_id: str, t_from: int = 0) -> List[TraitDriftEvent]:
-        """Чтение сырой правды без фильтрации весов (Fix 1)."""
+    def archive_old_events(self, current_tick: int, max_ticks_in_memory: int = 2000) -> None:
+        """S94-T2.3: Перенос старых событий в архив. Очищает RAM кэш и активную таблицу."""
         self._ensure_loaded()
-        if npc_id not in self._events:
-            return []
-        return [e for e in self._events[npc_id] if e.tick_id >= t_from]
+        if self._store is None:
+            return
+        
+        _threshold = current_tick - max_ticks_in_memory
+        if _threshold <= 0:
+            return
+
+        try:
+            # 1. Перенос в архивную таблицу
+            self._store.execute(
+                "INSERT INTO l1_chronicle_archive "
+                "(campaign_id, target_id, tick_id, source_id, effect_value, observation_weight, event_type) "
+                "SELECT campaign_id, target_id, tick_id, source_id, effect_value, observation_weight, event_type "
+                "FROM l1_chronicle_events "
+                "WHERE campaign_id = ? AND tick_id < ?",
+                (self._campaign_id, _threshold)
+            )
+            # 2. Удаление из активной таблицы
+            self._store.execute(
+                "DELETE FROM l1_chronicle_events "
+                "WHERE campaign_id = ? AND tick_id < ?",
+                (self._campaign_id, _threshold)
+            )
+            # 3. Очистка RAM кэша
+            for npc_id in list(self._events.keys()):
+                self._events[npc_id] = [e for e in self._events[npc_id] if e.tick_id >= _threshold]
+                if not self._events[npc_id]:
+                    del self._events[npc_id]
+            
+            _logger.info(f"[L1_CHRONICLE] Archived events older than tick {_threshold} for campaign={self._campaign_id}")
+        except Exception as e:
+            _logger.error(f"[L1_CHRONICLE] Failed to archive old events: {e}", exc_info=True)
+
+    def query_raw(self, npc_id: str, t_from: int = 0) -> List[TraitDriftEvent]:
+        """Чтение сырой правды. Читает из RAM (актуальные) + SQLite (архив) для PatternDetector."""
+        self._ensure_loaded()
+        
+        # 1. Читаем актуальные из RAM (быстро)
+        active_events = self._events.get(npc_id, [])
+        if t_from > 0:
+            active_events = [e for e in active_events if e.tick_id >= t_from]
+            
+        # 2. Если есть хранилище, читаем архив (события, которых уже нет в RAM)
+        # PatternDetector должен видеть всю историю для кристаллизации убеждений.
+        if self._store is not None:
+            try:
+                _rows = self._store.query(
+                    "SELECT target_id, tick_id, source_id, effect_value, observation_weight, event_type "
+                    "FROM l1_chronicle_archive "
+                    "WHERE campaign_id = ? AND target_id = ? AND tick_id >= ? "
+                    "ORDER BY tick_id ASC",
+                    (self._campaign_id, npc_id, t_from)
+                )
+                archive_events = [
+                    TraitDriftEvent(
+                        tick_id=row["tick_id"],
+                        target_id=row["target_id"],
+                        source_id=row["source_id"],
+                        effect_value=row["effect_value"],
+                        observation_weight=row["observation_weight"],
+                        event_type=row["event_type"]
+                    ) for row in _rows
+                ]
+                return archive_events + active_events
+            except Exception as e:
+                _logger.warning(f"[L1_CHRONICLE] Failed to query archive for {npc_id}: {e}")
+        
+        return active_events
 
     def query_weighted(self, npc_id: str, current_tick: int, t_from: int = 0) -> List[Tuple[TraitDriftEvent, float]]:
         """

@@ -309,6 +309,13 @@
 
 ---
 
+### DOM-11: DOCUMENTATION & AUDIT (ТЗ-07)
+
+- 🔵 **S100** ТЗ-07: Documentation Drift & ADR Revision.
+  - **Patch Set A (Archive & Cleanup):** Удалён пустой `12.md`. В архив `docs/ARCHIVE/2026-06-19/` отправлены устаревший `CAUSAL_CONTRACT.md` (v1.0) и 5 файлов `ТЕХЗАДАНИЕ ПРЕЕМНИКУ`. Ссылки в проекте обновлены на актуальный `docs/00_CAUSAL_CONTRACT_v2.0.md`. Файл ТЗ-7 также перенесён в архив.
+  - **Patch Set B (ADR Status Matrix):** Создан `docs/audits/ADR_STATUS_MATRIX.md` с актуальными статусами. В файлы shadow-ADR (O-201, O-204, O-205, O-206, O-211) добавлены блоки со статусом `Phase 0 🔴` и планами ремонта.
+  - **Patch Set C (Documentation Sync):** В `README.md` обновлён блок `Repository Anchors` с правильными путями (актуальные ТЗ перенесены в `docs/Диаграммы игры/`). В `03_KNOWN_ISSUES_AND_BUGS.md` всем 9 багам проставлен статус `ЗАКРЫТ ✅`, так как археология показала, что они устранены в коде.
+
 ## 2. АРХИТЕКТУРНЫЕ ЗАПРЕТЫ (Синхронизировано с ADR Master Index)
 
 ### State & Mutation

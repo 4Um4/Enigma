@@ -1,5 +1,14 @@
 # ADR-O-201: Causal Kernel Architecture
 
+<!-- ADR-O-201 -->
+> **СТАТУС:** Phase 0 (shadow, 65% drift) 🔴
+>
+> **Реальное состояние:** Код существует, но не активен.
+>
+> **План ремонта:** ТЗ-4 C1 (ADR-level).
+>
+> **Аудит:** 2026-06-19 (см. ADR_STATUS_MATRIX.md)
+
 > **Тип:** ONTO (Онтологический сдвиг)
 > **Статус:** PHASE_3_READY
 > **Сессия:** S79 (PROPOSED) → S80 (PHASE_0_COMPLETE) → S81 (PHASE_1_COMPLETE) → S82 (PHASE_2_COMPLETE) → S83 (БАГ M ЗАКРЫТ) → S84 (PHASE_2.5_ACTIVE) → S85 (PHASE_2.5_COMPLETE)

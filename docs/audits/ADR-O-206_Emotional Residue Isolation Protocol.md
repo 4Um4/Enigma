@@ -1,4 +1,14 @@
 ### ADR-PRE-FLIGHT CHECKLIST: ADR-O-206
+# ADR-O-206
+
+<!-- ADR-O-206 -->
+> **СТАТУС:** Not Implemented (PressureDerivation dead) 🔴
+>
+> **Реальное состояние:** Код отсутствует.
+>
+> **План ремонта:** ТЗ-2 §2.13.
+>
+> **Аудит:** 2026-06-19 (см. ADR_STATUS_MATRIX.md)
 
 **1. Тип АДР:** ONTOLOGY (ADR-O). Окончательная ампутация каузальной силы у `EmotionTag`.
 

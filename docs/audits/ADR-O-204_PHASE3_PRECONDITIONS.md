@@ -1,4 +1,13 @@
-# ADR-O-204: Phase 3 Preconditions — Causal Kernel Surgery
+# ADR-O-204
+
+<!-- ADR-O-204 -->
+> **СТАТУС:** Phase 0 🔴
+>
+> **Реальное состояние:** Код существует, но не активен.
+>
+> **План ремонта:** TBD.
+>
+> **Аудит:** 2026-06-19 (см. ADR_STATUS_MATRIX.md): Phase 3 Preconditions — Causal Kernel Surgery
 
 > **Тип:** ONTO (Онтологический сдвиг — предусловия)
 > **Статус:** VERIFIED

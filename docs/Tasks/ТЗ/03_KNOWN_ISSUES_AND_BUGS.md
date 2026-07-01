@@ -9,6 +9,7 @@
 ## КРИТИЧЕСКИЙ СТАТУС: БЛОКИРУЮЩИЕ БАГИ
 
 ### BUG-001: DirectiveInterpretationSubscriber State Desync ⚠️ КРИТИЧНО
+**Статус:** ЗАКРЫТ (2026-06-19) ✅ (S64, ADR-064)
 
 **Файл:** `backend/app/services/npc/directive_subscriber.py`
 
@@ -32,6 +33,7 @@ ObediencePressure=0.00
 ---
 
 ### BUG-002: TICK_CATCHUP убивает TraversalState ⚠️ КРИТИЧНО
+**Статус:** ЗАКРЫТ (2026-06-19) ✅ (S34, ADR-047)
 
 **Файл:** `backend/app/services/game_loop/__init__.py`, `backend/app/services/npc/life_engine.py`
 
@@ -54,6 +56,7 @@ ObediencePressure=0.00
 ## ВЫСОКИЙ ПРИОРИТЕТ: АРХИТЕКТУРНЫЕ РАЗРЫВЫ
 
 ### BUG-003: SHI=0% при наличии решений
+**Статус:** ЗАКРЫТ (2026-06-19) ✅ (S95, ТЗ-03)
 
 **Файл:** `backend/diagnostics/health_checkers/tick_health.py`
 
@@ -72,6 +75,7 @@ ObediencePressure=0.00
 ---
 
 ### BUG-004: NPC идут к entrance вместо target ⚠️ НАВИГАЦИЯ
+**Статус:** ЗАКРЫТ (2026-06-19) ✅ (S61, ADR-114)
 
 **Файл:** `backend/app/services/spatial/movement_engine.py`
 
@@ -93,6 +97,7 @@ ObediencePressure=0.00
 ## СРЕДНИЙ ПРИОРИТЕТ: АРХИТЕКТУРНЫЙ ДОЛГ
 
 ### BUG-005: LegacyStateDeltaAdapter молча теряет PerceptionPayload
+**Статус:** ЗАКРЫТ (2026-06-19) ✅ (Адаптер удалён, ADR-013/049)
 
 **Файл:** `backend/app/services/integration/legacy_state_delta_adapter.py`
 
@@ -110,6 +115,7 @@ ObediencePressure=0.00
 ---
 
 ### BUG-006: Target Resolution Fragility (Fuzzy Matching)
+**Статус:** ЗАКРЫТ (2026-06-19) ✅ (Внедрён SemanticIndex, ADR-301)
 
 **Файл:** `backend/app/services/game_loop/phase_1_input.py` (Layer 2)
 
@@ -131,6 +137,7 @@ ObediencePressure=0.00
 ---
 
 ### BUG-007: LOD0/LOD1 Interrupt Logic (Навигация)
+**Статус:** ЗАКРЫТ (2026-06-19) ✅ (Внедрён ETKE-IK, ADR-ETKE-ACT1)
 
 **Файл:** `backend/app/services/spatial/movement_engine.py`
 
@@ -153,6 +160,7 @@ ObediencePressure=0.00
 ## НИЗКИЙ ПРИОРИТЕТ: ТЕХНИЧЕСКИЙ ДОЛГ
 
 ### BUG-008: Фронтенд Tuning — Perceptual Momentum коэффициенты
+**Статус:** ЗАКРЫТ (2026-06-19) ✅ (Реализовано в S18/S25)
 
 **Файл:** `frontend/perceptual_momentum.py`
 
@@ -170,6 +178,7 @@ ObediencePressure=0.00
 ---
 
 ### BUG-009: Кэш-фантомы при рефакторинге DTO
+**Статус:** ЗАКРЫТ (2026-06-19) ✅ (Переведён в правило разработки, см. Правила Фикса БАГОВ Часть I)
 
 **Файл:** `backend/app/` (весь проект)
 

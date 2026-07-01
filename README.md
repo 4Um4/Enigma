@@ -37,16 +37,25 @@ Prerequisite: Python 3.x on Windows PowerShell.
 
 Do not diagnose from UI text alone. Diagnose from pipeline traces, session report, logs, and source contracts.
 
-## Canonical Documents
+## Repository Anchors (source-of-truth files)
 
-- `docs/АРХИТЕКТУРНЫЙ_УСТАВ_ENIGMA.md`
-- `docs/CAUSAL_CONTRACT.md`
-- `docs/ADR (Architecture Decision Records).md`
-- `docs/DTO Registry (Реестр контрактов).md`
-- `docs/MUTATIONS.md`
-- `docs/ARCHITECTURE_FLOW_GENERATED.md`
+### Архитектура (закон)
+- `docs/00_CAUSAL_CONTRACT_v2.0.md` (v2.0, текущий)
+- `docs/ARCHIVE/2026-06-19/CAUSAL_CONTRACT_v1.0.md` (v1.0, для истории)
+- `docs/АРХИТЕКТУРНЫЙ_УСТАВ_ENIGMA.md` (навигация)
 
-Full bug and risk register: `docs/Tasks/ТЗ/03_KNOWN_ISSUES_AND_BUGS.md`.
+### ADR (Architecture Decision Records)
+- `docs/ADR (Architecture Decision Records).md` (полный список)
+- `docs/audits/ADR_STATUS_MATRIX.md` (статусы реализации — C1-FIX)
+
+### Технические задания (TЗ)
+- `docs/Диаграммы игры/` (актуальные ТЗ и инструкции)
+- `docs/Tasks/ТЗ/03_KNOWN_ISSUES_AND_BUGS.md` (регистр известных багов)
+
+### Прочее
+- `docs/DTO Registry (Реестр контрактов).md` (контракты)
+- `docs/MUTATIONS.md` (история изменений)
+- `docs/ARCHITECTURE_FLOW_GENERATED.md` (топология, генерируется из YAML)
 
 ## Architecture Summary
 
