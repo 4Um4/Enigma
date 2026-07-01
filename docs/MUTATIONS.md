@@ -8,7 +8,7 @@
 
 | Показатель | Значение |
 |------------|----------|
-| Сессий | 98 |
+| Сессий | 100 |
 | Доменов | 10 |
 | Консолидированных запретов | [DERIVED: count(ADR.*.Taboo)] |
 | Диапазон | S03—S97 |
@@ -155,6 +155,8 @@
 - 🔵 **S83+** ADR-303: Coordinate Truth & Physical World Unification (Map Editor).
 - 🟢 **S85.1** ADR-130 Guard: `apply_changes` блокирует перезапись активного транзита (`status="MOVING"`). Устранён баг "бесконечного бега".
 - 🟢 **S85.1** Traversal Complete Fix: `apply_changes` обрабатывает `cause="traversal_complete"` как проекцию `local_position` (snap), а не создание нового `TraversalState`.
+- 🟢 **S97** ADR-O-201.4 Rule 120 Drift Fix: `EventCompiler` (Shadow Compiler) перестал генерировать `TraversalContract(status="COMPLETED")` для `cause="traversal_complete"` и boundary snap. Устранён дрейф `Rule 120`: SSM (владелец lifecycle) удалял терминальный транзит при cleanup, а Shadow оставал его в контракте. Теперь Shadow возвращает `traversal=None`.
+- 🔵 **S97** ТЗ-09 (Декомпозиция Шаг 1-2): Из `tick_orchestrator.py` вынесены `drf_bus.py` (`DRFBus`, `DRFExecutionContext`) и `dto.py` (`ReductionPolicy`, `SemanticFrame`, `TickPlayerResultDTO`, `_TickContext`, `DMContextDTO`). Оживлён буфер `ctx.scene_changes` в Фазе 10. Удалены `settings.xxx_debug` гейты.
 - 🔵 **S87** ADR-TRAV-FSM: Завершена миграция ownership перемещений. `SceneStateManager` стал единственным владельцем lifecycle (через FSM `transition_traversal`). `TickOrchestrator` и `ProjectionEngine` переведены в read-only. `current_waypoint_idx` пробрасывается в `WorldSnapshotBuilder`. Удалён мёртвый код `models/traversal.py`.
 - 🔵 S86 Завершение миграции TZ-08 v0.2 и запуск Epistemic Boundary. DM-агент изолирован от ментальных объектов NPC (stress_delta, recalled_facts и др.). RulesAgent заменён на синхронный RulesSubscriber (pure reducer) в game_loop. build_r3_dm_frame перенесён в game_loop. Ядро больше не генерирует нарратив. Удалён мёртвый метод _phase_finalize из tick_orchestrator.py. Внедрён WorldProjectionBuffer как будущий слой оффскрин-симуляции.
 - 🔵 **S87** ADR-TRAV-NOOP: Внедрена State-Based Idempotency в `EventCompiler`. Идемпотентность изменения позиции (`current == target`) определяется инвариантом состояния, а не семантикой события (`cause`). Устранены ложные `[SHADOW_COMPILER] FAILED` при завершении транзитов.
@@ -257,6 +259,12 @@
 - 🟢 **S85.2** Belief Decay Model: Внедрена энтропия убеждений (`BELIEF_DECAY_TAU`). Убеждения растворяются без подкрепления, предотвращая статическую кристаллизацию личности.
 - 🔴 **S86** ТЗ-02 (Шаг 9): `L1Chronicle` стал персистентным (SQLite). Внедрена схема `l1_chronicle_events`. DI замкнут от `GameLoop` до `L1Chronicle`. Контракт `TraitDriftEvent` (`target_id`, `tick_id`, `effect_value`) полностью канонизирован.
 - 💀 **S86** ТЗ-02 (Шаг 10 ОТМЕНЁН): Применение `ctx.drives_updates` к `state.drives_runtime` ЗАПРЕЩЕНО. `CalibrationEngine` оставлен в pass-through режиме. Мутация скалярных драйвов минуя Belief Layer (L2.5) нарушает ADR-O-208/211. L3 проекция строго эфемерна.
+
+- 🔵 **S99** ТЗ-6: Engineering Debt Cleanup (Final Stage).
+  - **UI Hardcodes & Magic Numbers Eliminated:** Все хардкод-строки в `game_screen.py`, `campaign_select.py`, `character_select.py` заменены на ключи `i18n.py`. Магические числа (RGB-цвета, шрифты, масштаб) вынесены в `frontend/constants.py`. `scene_renderer.py` полностью переведён на константы.
+  - **Sprite Registry Unification:** Убит дублирующий файл `frontend/sprite_resolver.py`. Его функциональность (`ENTITY_SPRITE_MAP`, `get_entity_sprite`) перенесена в `frontend/map_editor/sprite_registry.py`.
+  - **Validation:** Создан `backend/tests/sandbox/test_tz6_ui_hardcodes_removed.py` (6 AST-тестов: компиляция, наличие ключей/констант, отсутствие хардкодов, структура реестра спрайтов).
+  - **Pipeline Stability Verified:** DriftLaboratory (200 тиков) подтверждает отсутствие регрессий: rate=1.600/tick, 0 критических ошибок.
 - 🔵 **S92** ТЗ-08 Addendum: Time Skip Architecture.
   - Внедрён `TimeSkipExecutor` (`backend/app/services/world/time_skip_executor.py`) как единая точка входа для промотки времени.
   - Реализованы `SkipPolicyA` (headless batch), `SkipPolicyB` (stop on significance), `SkipPolicyC` (milestone sampling).
@@ -414,4 +422,3 @@
 88. ❌ Использование `PatternDetector` без передачи `L1Chronicle` в конструктор (ADR-S93.3)
 89. ❌ Жёсткие пороги (if/else) в формировании убеждений `BeliefCrystallizationEngine` (ADR-S93.3)
 90. ❌ Отсутствие затухания ожиданий в Фазе 0.5 — ожидания обязаны затухать привязанные к `dt_game` (ADR-S93.2)
-

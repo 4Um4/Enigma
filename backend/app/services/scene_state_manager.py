@@ -1332,7 +1332,10 @@ class SceneStateManager:
                         logger.debug(f"[ARCH GUARD] Causal relocation: npc={change.target} → node={change.value}")
                         location_id = scene_state.get("location_id", "")
                         # FIX: NOOP guard. Если NPC уже на месте, не создаём новый транзит.
-                        if entry.get("position") == change.value:
+                        # ADR-DRIFT-D-NOOP: Используем _old_position (captured BEFORE mutation),
+                        # НЕ entry.get("position") — которое уже мутировано. Прежний код всегда
+                        # возвращал True, убивая traversal creation → Causal Drift D.
+                        if _old_position == change.value:
                             logger.debug(f"[SSM] NOOP: {change.target} already at {change.value}")
                             return True
                     # ADR-060: кросс-локационное перемещение — используем целевую локацию из SceneChange
@@ -1446,7 +1449,10 @@ class SceneStateManager:
                                                                 _create_traversal = True
                                                                 logger.info(f"[CEI-2] npc={change.target} routed via {len(_intermediate)} intermediate nodes")
                                                             else:
-                                                                logger.warning(f"[CEI-2] npc={change.target} 2-node path but geometric path blocked — no doorway route")
+                                                                # ADR-DOORWAY-TRUST: 2-node path but blocked — graph says connected.
+                                                                # Доверяем графу: создаём traversal с waypoints [start, target].
+                                                                logger.info(f"[CEI-2] npc={change.target} 2-node path, blocked direct line, but graph connected — TRUST GRAPH (door assumed)")
+                                                                _create_traversal = True
                                                         else:
                                                             logger.warning(f"[CEI-2] npc={change.target} find_path returned empty — no route available")
                                                     except Exception as _fp_exc:

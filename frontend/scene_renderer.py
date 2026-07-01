@@ -18,36 +18,19 @@ import pygame
 from presentation_firewall import sanitize_perceptual_input
 from perceptual_momentum import PerceptualMomentum, ManifestationProfile
 
-from sprite_resolver import get_entity_sprite
+from map_editor.sprite_registry import get_entity_sprite
 from game_types import (
     PerceivedEntity,
     PerceivedScene,
 )
-
-# === Пиксели на метр ===
-SCALE = 40
-
-# === Цвета рендера ===
-_COLORS = {
-    "bg_dark": (18, 18, 23),
-    "floor_visible": (35, 35, 42),
-    "floor_dim": (25, 25, 30),
-    "wall": (100, 100, 110),
-    "wall_visible": (140, 140, 150),
-    "obstacle": (55, 55, 65),
-    "obstacle_visible": (75, 75, 85),
-    "object": (80, 100, 80),
-    "object_visible": (100, 140, 100),
-    "npc_body": (180, 140, 100),
-    "npc_focused": (220, 180, 120),
-    "player_body": (70, 170, 255),
-    "player_focused": (100, 200, 255),
-    "text_audio": (200, 180, 120),
-    "text_body": (200, 120, 120),
-    "text_environment": (140, 140, 140),
-    "fog": (12, 12, 16),
-    "attention_glow": (70, 170, 255, 40),
-}
+from constants import (
+    RENDER_COLORS as _COLORS,
+    AGGRESSION_COLORS,
+    COLOR_TEXT_DIM, COLOR_MANIFEST_DEFAULT,
+    FONT_NAME_MAIN, FONT_NAME_UI,
+    FONT_SIZE_SMALL, FONT_SIZE_AUDIO, FONT_SIZE_BODY, FONT_SIZE_TOOLTIP,
+    SCALE_PIXELS_PER_METER as SCALE,
+)
 
 
 class SceneRenderer:
@@ -57,9 +40,9 @@ class SceneRenderer:
         self.screen = screen
         self._prev_npc_positions: Dict[str, Tuple[float, float]] = {} # ADR-037: Для Temporal Assembly Delay
         self._hover_npc_id: Optional[str] = None # The Fool v2: Для тултипов наблюдений
-        self.font_small = pygame.font.SysFont("consolas", 12)
-        self.font_audio = pygame.font.SysFont("consolas", 13, italic=True)
-        self.font_body = pygame.font.SysFont("consolas", 13)
+        self.font_small = pygame.font.SysFont(FONT_NAME_MAIN, FONT_SIZE_SMALL)
+        self.font_audio = pygame.font.SysFont(FONT_NAME_MAIN, FONT_SIZE_AUDIO, italic=True)
+        self.font_body = pygame.font.SysFont(FONT_NAME_MAIN, FONT_SIZE_BODY)
         # Lerp для угла поворота (Приоритет 0)
         self._visual_facing_angle = -1.5708  # -pi/2 (смотрит вверх)
         # Темпоральная инерция восприятия (S-curve, гистерезис, стохастика)
@@ -279,7 +262,7 @@ class SceneRenderer:
             else:
                 if is_passable:
                     # Проходимые объекты — пунктирная рамка
-                    color = (100, 180, 100)
+                    color = AGGRESSION_COLORS["peaceful_interaction"]
                     pygame.draw.rect(self.screen, color, (sx, sy, sw, sh), 1, border_radius=3)
                 else:
                     pygame.draw.rect(self.screen, _COLORS["obstacle_visible"], (sx, sy, sw, sh), border_radius=3)
@@ -360,16 +343,16 @@ class SceneRenderer:
                 scaled = pygame.transform.scale(sprite, (npc_size, npc_size))
                 self.screen.blit(scaled, (sx - npc_size // 2, sy - npc_size // 2))
                 if is_focused:
-                    pygame.draw.circle(self.screen, (255, 255, 255), (sx, sy), npc_size // 2 + 2, 2)
+                    pygame.draw.circle(self.screen, (255, 255, 255), (sx, sy), npc_size // 2 + 2, 2)  # Белый контур фокуса
             else:
                 color = _COLORS["npc_focused"] if is_focused else _COLORS["npc_body"]
                 pygame.draw.circle(self.screen, color, (sx, sy), radius)
                 if is_focused:
-                    pygame.draw.circle(self.screen, (255, 255, 255), (sx, sy), radius, 2)
+                    pygame.draw.circle(self.screen, (255, 255, 255), (sx, sy), radius, 2)  # Белый контур периферии
 
             # Имя по confidence
             if entity.display_name:
-                name_color = (255, 255, 255) if is_focused else (180, 180, 180)
+                name_color = (255, 255, 255) if is_focused else COLOR_TEXT_DIM
                 label = self.font_small.render(entity.display_name, True, name_color)
                 self.screen.blit(label, (sx - label.get_width() // 2, sy - radius - 16))
 
@@ -378,7 +361,7 @@ class SceneRenderer:
             _manif = _manifests.get(entity.entity_id)
             if _manif and _manif.get("text"):
                 _manif_text = _manif.get("text", "")
-                _manif_color = _manif.get("color", (160, 160, 160))
+                _manif_color = _manif.get("color", COLOR_MANIFEST_DEFAULT)
                 _manif_surf = self.font_small.render(_manif_text, True, _manif_color)
                 self.screen.blit(_manif_surf, (sx - _manif_surf.get_width() // 2, sy + radius + 14))
 
@@ -440,7 +423,7 @@ class SceneRenderer:
                     pygame.draw.rect(_bg, (160, 170, 220, _alpha), _bg.get_rect(), 1, border_radius=4)
                     self.screen.blit(_bg, (_bub_x, _bub_y))
                     for _li, _ll in enumerate(_lines):
-                        _ls = self.font_small.render(_ll, True, (255, 255, 255))
+                        _ls = self.font_small.render(_ll, True, (255, 255, 255))  # Белый текст буллетов
                         _la = _ls.copy()
                         _la.set_alpha(_alpha)
                         self.screen.blit(_la, (_bub_x + 7, _bub_y + 5 + _li * _line_h))
@@ -463,7 +446,7 @@ class SceneRenderer:
                     start_y = sy + ndy * (radius - 2)
                     end_x = sx + ndx * (radius + 18)
                     end_y = sy + ndy * (radius + 18)
-                    gaze_color = (255, 255, 80)
+                    gaze_color = (255, 255, 80)  # Жёлтый линии взгляда
                     pygame.draw.line(self.screen, gaze_color, (start_x, start_y), (end_x, end_y), 3)
                     # Стрелка на конце для однозначного чтения направления поверх текстур
                     arrow_len = 6
@@ -487,22 +470,22 @@ class SceneRenderer:
             if self._hover_npc_id == entity.entity_id and entity.perception_cues:
                 for _cue in entity.perception_cues:
                     _txt = _cue.get("hover_text") or _cue.get("cue_key", "...")
-                    _font = pygame.font.SysFont("segoeui", 14)
-                    _surf = _font.render(_txt, True, (255, 255, 230))
+                    _font = pygame.font.SysFont(FONT_NAME_UI, FONT_SIZE_TOOLTIP)
+                    _surf = _font.render(_txt, True, (255, 255, 230))  # Тёплый белый для тултипов
                     self.screen.blit(_surf, (sx - _surf.get_width()//2, sy - 30))
                     break # Показываем только первый (самый важный) cue
 
     def _draw_inference_badges(self, entity: PerceivedEntity, sx: int, sy: int) -> None:
         """Рисует маленькие цветные точки для поведенческих выводов"""
         badge_map = {
-            "combat": (255, 80, 80),
-            "armed": (255, 160, 60),
-            "active_aggression": (255, 50, 50),
-            "potential_aggression": (200, 120, 60),
-            "potentially_hostile": (180, 100, 80),
-            "communication": (100, 200, 100),
-            "peaceful_interaction": (80, 180, 80),
-            "friendly_action": (60, 160, 60),
+            "combat": AGGRESSION_COLORS["combat"],
+            "armed": AGGRESSION_COLORS["armed"],
+            "active_aggression": AGGRESSION_COLORS["active_aggression"],
+            "potential_aggression": AGGRESSION_COLORS["potential_aggression"],
+            "potentially_hostile": AGGRESSION_COLORS["potentially_hostile"],
+            "communication": AGGRESSION_COLORS["communication"],
+            "peaceful_interaction": AGGRESSION_COLORS["peaceful_interaction"],
+            "friendly_action": AGGRESSION_COLORS["friendly_action"],
         }
 
         x_offset = 0
@@ -530,7 +513,7 @@ class SceneRenderer:
         ]
         # Яркий контур 3px для видимости поверх любых текстур
         pygame.draw.polygon(self.screen, _COLORS["player_body"], points)
-        pygame.draw.polygon(self.screen, (200, 230, 255), points, 3)
+        pygame.draw.polygon(self.screen, (200, 230, 255), points, 3)  # Светло-голубой контур зоны
 
         # ADR-SPEECH: Речевое облачко над головой игрока (перенос по словам, обрезка по предложению)
         if player_speech:
@@ -585,7 +568,7 @@ class SceneRenderer:
                 pygame.draw.rect(_bg, (80, 160, 240, _alpha), _bg.get_rect(), 1, border_radius=4)
                 self.screen.blit(_bg, (_bub_x, _bub_y))
                 for _li, _ll in enumerate(_lines):
-                    _ls = self.font_small.render(_ll, True, (200, 230, 255))
+                    _ls = self.font_small.render(_ll, True, (200, 230, 255))  # Светло-голубой текст
                     _la = _ls.copy()
                     _la.set_alpha(_alpha)
                     self.screen.blit(_la, (_bub_x + 7, _bub_y + 5 + _li * _line_h))

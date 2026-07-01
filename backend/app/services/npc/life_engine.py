@@ -490,6 +490,13 @@ class LifeEngine:
             tier   = npc.get("tier", "major")
             npc_id = npc.get("id", "?")
 
+            # ADR-OFFSCREEN-SKIP: NPC не в текущей локации не симулируются.
+            _current_loc = scene_state.get("location_id", "")
+            _npc_loc = npc.get("location") or npc.get("location_id") or ""
+            if _current_loc and _npc_loc and _npc_loc != _current_loc:
+                logger.debug(f"[LIFE_ENGINE][OFFSCREEN] npc={npc_id} loc={_npc_loc} != scene_loc={_current_loc} — skipped")
+                continue
+
             # KERNEL-ISOLATION: Единый deterministic RNG для LifeEngine на этом тике.
             # Изолирован от MovementEngine и DecisionHub через salt="life_events".
             _rng = KernelRNG(tick=current_tick, npc_id=npc_id, salt="life_events")

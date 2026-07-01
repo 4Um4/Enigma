@@ -552,6 +552,10 @@ constraints:
     target: NullCoordinate
     rule: "FORBIDDEN: Using None for SpatialResolution.target_xy. MUST use (0.0, 0.0) fallback (ADR-O-201.3)"
     severity: CRITICAL
+  - source: EventCompiler
+    target: TraversalContract
+    rule: "FORBIDDEN: Creating TraversalContract with status=COMPLETED. EventCompiler MUST return traversal=None for cause=traversal_complete and boundary snap. SSM owns lifecycle (ADR-O-201.4, ADR-TRAV-FSM)."
+    severity: CRITICAL
   - source: EquivalenceValidator
     target: CrossLocationTopology
     rule: "FORBIDDEN: validate_topology for cross-location transitions. Nodes are physically different (ADR-O-201.2)"

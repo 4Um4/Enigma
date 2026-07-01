@@ -311,11 +311,6 @@ class TickOrchestrator:
         if scene_state is None:
             return TickResultDTO(status="no_scene")
 
-        # S83.1: Tick = Pure Function Evaluation. Freeze input snapshot.
-        # Все фазы работают от frozen copy. Оригинал не мутируется внутри тика.
-        import copy
-        input_snapshot = copy.deepcopy(scene_state)
-
         # ADR-048: Приоритет инъекции от GameLoop. Если нет — аварийная сборка.
         if spatial_service:
             self._spatial_service = spatial_service
@@ -323,19 +318,16 @@ class TickOrchestrator:
         # DRF: Сброс шины на начало тика (один bus на весь lifecycle: execute + finalize)
         self._drf_bus.stream.clear()
         logger.info(f"[DRF_BUS_RESET] bus_id={id(self._drf_bus)} tick={tick_number}")
-        # KERNEL-ISOLATION: factory для per-NPC deterministic RNG.
-        # Каждый NPC получает свой RNG, seeded by (tick, npc_id).
-        _tick_for_rng = tick_number
-        _rng_factory = lambda npc_id: KernelRNG(tick=_tick_for_rng, npc_id=npc_id)
 
-        ctx = _TickContext(
+        # [S98] Сборка контекста вынесена в tick_utils.create_tick_context
+        from app.services.tick_utils import create_tick_context
+        ctx = create_tick_context(
             campaign_id=campaign_id,
-            scene_state=input_snapshot,
+            scene_state=scene_state,
             tick_number=tick_number,
             interventions=interventions,
             npc_services=npc_services,
-            drf_bus=self._drf_bus,  # Instance-level bus — не создаём новый!
-            rng_factory=_rng_factory,
+            drf_bus=self._drf_bus,
         )
 
         # CFRM P2: Восстанавливаем пространственный индекс кластеров ДО привязки моста
@@ -508,10 +500,6 @@ class TickOrchestrator:
             _sem_action = getattr(_params, 'semantic_action', None) if _params else None
             _sem_target = getattr(_params, 'target_reference', None) if _params else None
             logger.warning(f"[PDM_DEBUG] sem_action={_sem_action} sem_target={_sem_target}")
-            _intent_res = dm_ctx.intent_resolution
-            _params = _intent_res.original_intent.parameters if _intent_res.original_intent else None
-            _sem_action = getattr(_params, 'semantic_action', None) if _params else None
-            _sem_target = getattr(_params, 'target_reference', None) if _params else None
 
             # ADR-082: Регистронезависимое сравнение (IC может вернуть "move" или "MOVE")
             if _sem_action and _sem_action.upper() == "MOVE" and _sem_target:
@@ -1546,21 +1534,9 @@ class TickOrchestrator:
 
     @staticmethod
     def _resolve_affected_npcs(event) -> list[str]:
-        """Определяет список NPC затронутых событием."""
-        affected: list[str] = []
-        etype = event.type
-
-        if etype == EventType.NPC_MOVED.value:
-            affected.append(event.source)
-        elif etype in (
-            EventType.NPC_PROXIMITY_CLOSE.value,
-            EventType.NPC_PROXIMITY_LEAVE.value,
-        ):
-            affected.extend(
-                (event.payload.get("npc_a", ""), event.payload.get("npc_b", ""))
-            )
-
-        return [n for n in affected if n]
+        """[S98 Proxy] Делегирует в tick_utils.resolve_affected_npcs."""
+        from app.services.tick_utils import resolve_affected_npcs
+        return resolve_affected_npcs(event)
 
     def _phase_4_pre_decision(self, ctx: _TickContext) -> None:
         """TopicExtractor: извлекает тему для каждого NPC (Устав §3.2).
@@ -2355,265 +2331,15 @@ class TickOrchestrator:
 
     @staticmethod
     def _build_npc_snapshots(all_npcs_raw: list) -> list:
-        """Проецирует all_npcs_raw → List[NPCStateSnapshot] для handlers.
-
-        Handlers работают только с контрактом, не с внутренностями scene_state.
-
-        Маппинг данных:
-          social_stats.trust         → relationship_cache["player"]["trust"] (0-100)
-          social_stats.fear_of_player → relationship_cache["player"]["fear"]
-          psyche.loyalty_true        → base_values["player"] (базовое доверие к игроку)
-          status_profile.faction_rank → faction_affiliations (ключи фракций)
-
-        NPC-to-NPC связи обогащаются через _enrich_with_social_relations() при загрузке.
-        После обогащения relationship_cache содержит записи NPC→NPC из village_relations.json.
-        Player entry гарантированно добавляется из social_stats (даже при наличии NPC→NPC записей).
-        """
-        from app.models.idle_tick import NPCStateSnapshot
-
-        snapshots = []
-        for npc in all_npcs_raw:
-            if not isinstance(npc, dict):
-                continue
-
-            npc_id = npc.get("id", "")
-            psyche = npc.get("psyche", {})
-            ss = npc.get("social_stats", {})
-
-            # relationship_cache: вложенный формат {target: {trust, fear, ...}}
-            # SocialDecayHandler ожидает: {target: {trust, fear, base_trust}}
-            existing_rc = npc.get("relationship_cache", {})
-            if isinstance(existing_rc, dict) and any(
-                isinstance(v, dict) for v in existing_rc.values()
-            ):
-                # Уже во вложенном формате — берём как основу (shallow copy)
-                relationship_cache = dict(existing_rc)
-            else:
-                # Маппинг social_stats (player-facing плоский) → вложенный формат
-                relationship_cache = {}
-
-            # Гарантируем player entry из social_stats
-            # (после обогащения NPC→NPC, relationship_cache может существовать
-            # без player entry — social_stats.trust/fear_of_player заполняют его)
-            _player_trust = float(ss.get("trust", 0.0))
-            _player_fear = float(ss.get("fear_of_player", 0.0))
-            _player_debt = float(ss.get("debt", 0.0))
-            if "player" not in relationship_cache and (_player_trust != 0.0 or _player_fear != 0.0 or _player_debt != 0.0):
-                relationship_cache["player"] = {
-                    "trust": _player_trust,
-                    "fear": _player_fear,
-                    "debt": _player_debt,
-                }
-
-            # base_values: базовые значения для drift-расчёта
-            # SocialDecayHandler: base_vals.get(target, rel_data.get("base_trust", current))
-            existing_bv = npc.get("base_values", {})
-            base_values = dict(existing_bv) if existing_bv else {}  # shallow copy
-
-            # Гарантируем player base из loyalty_true
-            # (после обогащения NPC→NPC, base_values может существовать
-            # без player entry — psyche.loyalty_true заполняет его)
-            if "player" not in base_values:
-                _loyalty = float(psyche.get("loyalty_true", 50.0))
-                base_values["player"] = _loyalty
-
-            # faction_affiliations: список фракций для ReputationDecayHandler
-            if existing_fa := npc.get("faction_affiliations", []):
-                faction_affiliations = existing_fa
-            else:
-                # Извлекаем из status_profile.faction_rank
-                _faction_rank = npc.get("status_profile", {}).get("faction_rank", {})
-                faction_affiliations = list(_faction_rank.keys())
-
-            # --- Physiology Domain: Body LOD Macro ---
-            # Мастер Тай: body_profile (статика) + body_state (рантайм) → Snapshot
-            # НЕ вычислять effective values здесь! Хранить базу и модификаторы отдельно.
-            body_profile = npc.get("body_profile", {})
-            body_state = npc.get("body_state", {})
-            
-            _max_hp = float(body_profile.get("max_hp", 100.0))
-            _current_hp = float(body_state.get("current_hp", _max_hp))
-            
-            _base_abilities = body_profile.get("abilities", {})
-            _modifiers = body_state.get("modifiers", {})
-            _statuses = body_state.get("statuses", [])
-            
-            # Мастер Тай: Injuries должны группироваться по zone, а не плоским списком
-            _raw_injuries = body_state.get("injuries", [])
-            injuries_by_zone: Dict[str, list] = {}
-            for inj in _raw_injuries:
-                zone = inj.get("target_zone", "unknown")
-                if zone not in injuries_by_zone:
-                    injuries_by_zone[zone] = []
-                injuries_by_zone[zone].append(inj)
-            
-            # --- Affective Domain: Psyche LOD Macro (S74) ---
-            # Разум получает время. Интеграл и эмоция проецируются в idle-слой.
-            _affective_load = float(npc.get("affective_load", 0.0))
-            _emotion = str(npc.get("emotion", "neutral") or "neutral")
-
-            snapshots.append(NPCStateSnapshot(
-                npc_id=npc_id,
-                stress=float(psyche.get("stress", 0.0)),
-                relationship_cache=relationship_cache,
-                base_values=base_values,
-                faction_affiliations=faction_affiliations,
-                # Physiology
-                hp=_current_hp,
-                max_hp=_max_hp,
-                pain=float(body_state.get("pain", 0.0)),
-                fatigue=float(body_state.get("fatigue", 0.0)),
-                blood_loss=float(body_state.get("blood_loss", 0.0)),
-                consciousness=float(body_state.get("consciousness", 1.0)),
-                shock_impulse=float(body_state.get("shock_impulse", 0.0)),
-                life_status=str(body_state.get("life_status", "ALIVE")),
-                injuries_by_zone=injuries_by_zone,
-                base_abilities=_base_abilities,
-                modifiers=_modifiers,
-                statuses=_statuses,
-                # Affective (S74: Temporal Mind)
-                affective_load=_affective_load,
-                emotion=_emotion,
-            ))
-        return snapshots
+        """[S98 Proxy] Делегирует в tick_utils.build_npc_snapshots."""
+        from app.services.tick_utils import build_npc_snapshots
+        return build_npc_snapshots(all_npcs_raw)
 
     @staticmethod
     def _aggregate_deltas(deltas: list) -> list:
-        """Domain Reduction Semantics Layer (DRSL): редукция по законам физики доменов.
-        
-        Мастер Тай: система не различала коммутативные и некоммутативные эффекты.
-        Бухгалтерия (Social) ≠ Физика (Physiology). 
-        
-        PHYSICS_COMPOSITE (Physiology) обходит merge — это инъекции энергии в тело,
-        они обрабатываются ImpactEngine/StateApplicator как эволюция состояния, а не сумма.
-        """
-        from app.models.delta_payloads import (
-            SocialPayload, EmotionPayload, ReputationPayload, IdentityPayload
-        )
-
-        def _reduce_additive(p1, p2):
-            """Сливает два payload для ADDITIVE/BOUNDED_ADDITIVE доменов."""
-            if p1 is None: return p2
-            if p2 is None: return p1
-            if type(p1) != type(p2): return p2 
-
-            if isinstance(p1, SocialPayload):
-                return SocialPayload(
-                    trust_delta=p1.trust_delta + p2.trust_delta,
-                    fear_delta=p1.fear_delta + p2.fear_delta,
-                    affection_delta=p1.affection_delta + p2.affection_delta,
-                    debt_delta=p1.debt_delta + p2.debt_delta,
-                )
-            if isinstance(p1, EmotionPayload):
-                return EmotionPayload(
-                    stress_delta=p1.stress_delta + p2.stress_delta,
-                    emotion_delta=p1.emotion_delta + p2.emotion_delta,
-                    # Для тегов/травм — последний ненулевой выигрывает
-                    emotion_tag=p2.emotion_tag if p2.emotion_tag is not None else p1.emotion_tag,
-                    new_trauma=p2.new_trauma if p2.new_trauma is not None else p1.new_trauma,
-                    # ADR-117: affective_load — последний ненулевой выигрывает
-                    # Без этого мёрж дропает affective_load → prev=0.000 каждый тик
-                    affective_load=p2.affective_load if p2.affective_load is not None else p1.affective_load,
-                )
-            if isinstance(p1, ReputationPayload):
-                return ReputationPayload(
-                    reputation_delta=p1.reputation_delta + p2.reputation_delta
-                )
-            if isinstance(p1, IdentityPayload):
-                # OVERWRITE: для воли — последний выигрывает, для чисел — сумма
-                return IdentityPayload(
-                    identity_integrity_delta=p1.identity_integrity_delta + p2.identity_integrity_delta,
-                    pressure_resistance_delta=p1.pressure_resistance_delta + p2.pressure_resistance_delta,
-                    will_state_override=p2.will_state_override if p2.will_state_override is not None else p1.will_state_override,
-                )
-            if isinstance(p1, PerceptionPayload):
-                # ADDITIVE: threat/uncertainty/anomaly — суммируются (decay + CFRM)
-                return PerceptionPayload(
-                    threat_gradient_delta=p1.threat_gradient_delta + p2.threat_gradient_delta,
-                    uncertainty_delta=p1.uncertainty_delta + p2.uncertainty_delta,
-                    anomaly_score_delta=p1.anomaly_score_delta + p2.anomaly_score_delta,
-                )
-            return p2
-
-        # Разделение потоков: Физика (PHYSICS_COMPOSITE) обходит merge
-        physics_deltas = []
-        algebraic_deltas = []
-
-        for d in deltas:
-            if not isinstance(d, StateDeltas):
-                continue
-
-            policy = DELTA_POLICY_REGISTRY.get(d.domain, ReductionPolicy.ADDITIVE)
-            
-            if policy == ReductionPolicy.PHYSICS_COMPOSITE:
-                # Тело — инерционная система. Дельты передаются как отдельные 
-                # инъекции энергии, не суммируются здесь.
-                physics_deltas.append(d)
-            else:
-                algebraic_deltas.append(d)
-
-        # Бухгалтерская редукция (ADDITIVE / BOUNDED_ADDITIVE / OVERWRITE)
-        groups: dict[tuple, StateDeltas] = {}
-
-        for d in algebraic_deltas:
-            # Формируем ключ группировки
-            if d.domain is not None:
-                key = (d.npc_id, d.domain, d.target)
-            else:
-                # Легаси v1 фолбэк (пока потребители не мигрированы)
-                key = (d.npc_id, None, d.intent_target or d.social_target or d.faction_id)
-
-            if key in groups:
-                existing = groups[key]
-                policy = DELTA_POLICY_REGISTRY.get(d.domain, ReductionPolicy.ADDITIVE)
-                
-                if policy == ReductionPolicy.OVERWRITE and d.domain == DeltaDomain.IDENTITY:
-                    # OVERWRITE: для Identity воли — последний выигрывает, для чисел — сумма
-                    existing.identity_integrity_delta += d.identity_integrity_delta
-                    existing.pressure_resistance_delta += d.pressure_resistance_delta
-                    if d.will_state_override is not None:
-                        existing.will_state_override = d.will_state_override
-                else:
-                    # ADDITIVE / BOUNDED_ADDITIVE: суммируем v1 поля
-                    existing.stress_delta += d.stress_delta
-                    existing.emotion_delta += d.emotion_delta
-                    existing.trust_delta += d.trust_delta
-                    existing.fear_delta += d.fear_delta
-                    existing.reputation_delta += d.reputation_delta
-                    existing.identity_integrity_delta += d.identity_integrity_delta
-                    existing.pressure_resistance_delta += d.pressure_resistance_delta
-                    
-                    # v1 trait_updates — merge
-                    for k, v in d.trait_updates.items():
-                        existing.trait_updates[k] = existing.trait_updates.get(k, 0.0) + v
-                
-                # v1 маршрутизация — дополняем если в existing пусто
-                if d.intent_target is not None: existing.intent_target = d.intent_target
-                if d.social_target is not None: existing.social_target = d.social_target
-                if d.faction_id is not None: existing.faction_id = d.faction_id
-                
-                # source: берём последний ненулевой
-                if d.source != "unknown":
-                    existing.source = d.source
-                
-                # v1 теги — последний выигрывает
-                if d.emotion_tag is not None:
-                    existing.emotion_tag = d.emotion_tag
-                if d.new_trauma is not None:
-                    existing.new_trauma = d.new_trauma
-                if d.will_state_override is not None:
-                    existing.will_state_override = d.will_state_override
-
-                # v2 payload merge (алгебраическая редукция)
-                existing.payload = _reduce_additive(existing.payload, d.payload)
-            else:
-                groups[key] = d
-
-        # Слияние: алгебраические (свернутые) + физические (как есть, без merge)
-        _result = list(groups.values()) + physics_deltas
-        if physics_deltas:
-            logger.debug(f"[AGGREGATE] algebraic={len(groups.values())} physics={len(physics_deltas)} physics_domains={[d.domain for d in physics_deltas[:3]]}")
-        return _result
+        """[S98 Proxy] Делегирует в tick_utils.aggregate_deltas."""
+        from app.services.tick_utils import aggregate_deltas
+        return aggregate_deltas(deltas)
 
     def _phase_8_drain_secondary(self, ctx: _TickContext) -> None:
         """ФАЗА 8: Layered Reduction (Causal Depth Model).
@@ -3378,6 +3104,6 @@ class TickOrchestrator:
 
     @staticmethod
     def _get_npc_runtime_path(campaign_id: str) -> Path:
-        """Путь к runtime-данным NPC для кампании (saves_dir/campaign_id/npc_runtime.json)."""
-        from app.core.config import settings
-        return Path(settings.saves_dir) / campaign_id / "npc_runtime.json"
+        """[S98 Proxy] Делегирует в tick_utils.get_npc_runtime_path."""
+        from app.services.tick_utils import get_npc_runtime_path
+        return get_npc_runtime_path(campaign_id)

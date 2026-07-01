@@ -22,6 +22,8 @@ flowchart TD
         PresentationFirewall("Presentation Firewall"):::ui
         PerceptualMomentum("Perceptual Momentum (S-curve)"):::ui
         I18n("Localization Module (i18n)"):::ui
+        SceneRenderer("Scene Renderer (Map & HUD)"):::ui
+        SpriteRegistry("Sprite Registry (Tile Provider)"):::ui
     end
 
     subgraph APPLICATION[Application Layer]
@@ -302,6 +304,7 @@ flowchart TD
     GameScreen -->|"sanitize_perceptual_input()"| PresentationFirewall
     PresentationFirewall -->|"SanitizedPerceptualVectors"| PerceptualMomentum
     GameScreen -->|"t(), activity_ru(), manifest_color()"| I18n
+    SceneRenderer -->|"get_entity_sprite(type)"| SpriteRegistry
     APIRoutes -->|"manifestations (List[ManifestationDTO])"| GameScreen
     TraitDriftEvent -->|"appends drift record"| L1Chronicle
     BreakProgressEngine -->|"commits TraitDriftEvent (target_id, effect_value)"| L1Chronicle
@@ -701,6 +704,7 @@ flowchart TD
     WorldSnapshotBuilder -.->|"🚫 REQUIRED: Must propagate current_waypoint_idx from runtime dict to frontend projection (ADR-TRAV-FSM)"| current_waypoint_idx:::forbidden
     EventCompiler -.->|"🚫 REQUIRED: EventCompiler MUST set is_boundary=True when target_loc is present (ADR-O-201.1)"| BoundaryFlag:::forbidden
     EventCompiler -.->|"🚫 FORBIDDEN: Using None for SpatialResolution.target_xy. MUST use (0.0, 0.0) fallback (ADR-O-201.3)"| NullCoordinate:::forbidden
+    EventCompiler -.->|"🚫 FORBIDDEN: Creating TraversalContract with status=COMPLETED. EventCompiler MUST return traversal=None for cause=traversal_complete and boundary snap. SSM owns lifecycle (ADR-O-201.4, ADR-TRAV-FSM)."| TraversalContract:::forbidden
     EquivalenceValidator -.->|"🚫 FORBIDDEN: validate_topology for cross-location transitions. Nodes are physically different (ADR-O-201.2)"| CrossLocationTopology:::forbidden
     JsonPersistenceAdapter -.->|"🚫 FORBIDDEN: JSON as runtime truth (Устав §4.2.2)"| RuntimeTruth:::forbidden
     StateApplicator -.->|"🚫 REQUIRED: atomic_commit for all saves (Устав §4.2.1)"| PersistencePort:::forbidden
@@ -1266,6 +1270,7 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | GameScreen | PresentationFirewall | sanitize_perceptual_input() | On avatar_state update | `game_screen.py:890` | - |
 | PresentationFirewall | PerceptualMomentum | SanitizedPerceptualVectors | S-curve inertia | `game_screen.py:893` | - |
 | GameScreen | I18n | t(), activity_ru(), manifest_color() | All user-facing strings | `game_screen.py, scene_renderer.py` | ADR-i18n |
+| SceneRenderer | SpriteRegistry | get_entity_sprite(type) | Rendering entities & obstacles | `scene_renderer.py` | ADR-TZ6-2 |
 | APIRoutes | GameScreen | manifestations (List[ManifestationDTO]) | WorldSnapshot.player_perception | `world_snapshot_builder.py` | ADR-O-147 |
 | TraitDriftEvent | L1Chronicle | appends drift record | World pressure mutates identity | `l1_chronicle.py:append` | - |
 | BreakProgressEngine | L1Chronicle | commits TraitDriftEvent (target_id, effect_value) | WillState breaks or deforms | `break_progress_engine.py` | ADR-O-208.1 |
@@ -1668,6 +1673,7 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | WorldSnapshotBuilder | current_waypoint_idx | REQUIRED: Must propagate current_waypoint_idx from runtime dict to frontend projection (ADR-TRAV-FSM) | `-` |
 | EventCompiler | BoundaryFlag | REQUIRED: EventCompiler MUST set is_boundary=True when target_loc is present (ADR-O-201.1) | `-` |
 | EventCompiler | NullCoordinate | FORBIDDEN: Using None for SpatialResolution.target_xy. MUST use (0.0, 0.0) fallback (ADR-O-201.3) | `-` |
+| EventCompiler | TraversalContract | FORBIDDEN: Creating TraversalContract with status=COMPLETED. EventCompiler MUST return traversal=None for cause=traversal_complete and boundary snap. SSM owns lifecycle (ADR-O-201.4, ADR-TRAV-FSM). | `-` |
 | EquivalenceValidator | CrossLocationTopology | FORBIDDEN: validate_topology for cross-location transitions. Nodes are physically different (ADR-O-201.2) | `-` |
 | JsonPersistenceAdapter | RuntimeTruth | FORBIDDEN: JSON as runtime truth (Устав §4.2.2) | `Устав §4.2.2` |
 | StateApplicator | PersistencePort | REQUIRED: atomic_commit for all saves (Устав §4.2.1) | `Устав §4.2.1` |

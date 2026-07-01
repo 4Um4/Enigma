@@ -13,6 +13,8 @@ from typing import Optional
 import json
 
 import pygame
+from i18n import t
+
 
 # Путь к кампаниям — исходники из редактора
 _CAMPAIGNS_DIR = Path(__file__).parent / "map_editor" / "campaigns"
@@ -206,7 +208,7 @@ class CampaignSelectScreen:
         w, _ = self.screen.get_size()
 
         # Заголовок
-        title_surf = self.font_title.render("Выбор кампании", True, _COLORS["accent_blue"])
+        title_surf = self.font_title.render(t("ui:campaign_select_title"), True, _COLORS["accent_blue"])
         self.screen.blit(title_surf, (w // 2 - title_surf.get_width() // 2, self._title_y))
 
         # Область списка — фон
@@ -268,7 +270,7 @@ class CampaignSelectScreen:
         else:
             # Нет кампаний
             empty_surf = self.font_desc.render(
-                "Кампании не найдены. Создайте кампанию в редакторе карт.",
+                t("ui:campaign_not_found"),
                 True, _COLORS["text_dim"],
             )
             self.screen.blit(
@@ -283,7 +285,7 @@ class CampaignSelectScreen:
         back_hovered = self._btn_back_rect.collidepoint(pygame.mouse.get_pos())
         back_color = _COLORS["btn_secondary_hover"] if back_hovered else _COLORS["btn_secondary"]
         pygame.draw.rect(self.screen, back_color, self._btn_back_rect, border_radius=6)
-        back_surf = self.font_button.render("Назад", True, _COLORS["text"])
+        back_surf = self.font_button.render(t("ui:btn_back"), True, _COLORS["text"])
         self.screen.blit(back_surf, back_surf.get_rect(center=self._btn_back_rect.center))
 
         # Кнопка «Играть»
@@ -296,5 +298,5 @@ class CampaignSelectScreen:
             play_color = (50, 50, 55)
             play_text_color = _COLORS["text_dim"]
         pygame.draw.rect(self.screen, play_color, self._btn_play_rect, border_radius=6)
-        play_surf = self.font_button.render("Играть", True, play_text_color)
+        play_surf = self.font_button.render(t("ui:btn_play"), True, play_text_color)
         self.screen.blit(play_surf, play_surf.get_rect(center=self._btn_play_rect.center))

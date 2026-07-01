@@ -30,6 +30,14 @@ from text_input import TextInput
 
 from game_types import PerceptionConfig, PerceivedScene, PerceivedEntity, PlayerFocus, PerceivedEnvironment
 
+from constants import (
+    COLOR_TEXT_DEFAULT, COLOR_TEXT_DIM, COLOR_TEXT_MUTED, COLOR_TEXT_DARK,
+    COLOR_TEXT_OBS_TITLE, COLOR_TEXT_OBS_LINE, COLOR_TEXT_SCALE_HIGHLIGHT,
+    COLOR_TEXT_SYS_MSG, COLOR_DEATH_TITLE, COLOR_DEATH_SUB, COLOR_JOURNAL_TITLE,
+    COLOR_NARRATOR, COLOR_NPC_NAME, COLOR_MANIFEST_DEFAULT
+)
+from i18n import t
+
 
 def _build_perceived_scene(scene_state: dict, config: PerceptionConfig) -> PerceivedScene:
     """Локальная сборка PerceivedScene из scene_state (Закон 1.1: Фронтенд не лезет в бэкенд)."""
@@ -633,7 +641,7 @@ class GameScreen:
                         text_input.clear()
                         # Спринт 30: Запрет локальной симуляции. Путь ищет бэкенд.
                         # Фронтенд только фиксирует цель, локальный pathfinding удален.
-                        system_log.append(f"Идёшь к {clicked_npc}")
+                        system_log.append(t("ui:going_to", npc=clicked_npc))
                 elif event.type == pygame.VIDEORESIZE:
                     self.screen = pygame.display.set_mode(
                         (event.w, event.h), pygame.RESIZABLE
@@ -707,9 +715,9 @@ class GameScreen:
                         _set_player_xy(scene_state, pred_lx, pred_ly)
 
                         _DIR_MAP = {
-                            (0, -1): "север", (0, 1): "юг", (-1, 0): "запад", (1, 0): "восток",
-                            (-1, -1): "северо-запад", (1, -1): "северо-восток",
-                            (-1, 1): "юго-запад", (1, 1): "юго-восток",
+                            (0, -1): t("dir:north"), (0, 1): t("dir:south"), (-1, 0): t("dir:west"), (1, 0): t("dir:east"),
+                            (-1, -1): t("dir:northwest"), (1, -1): t("dir:northeast"),
+                            (-1, 1): t("dir:southwest"), (1, 1): t("dir:southeast"),
                         }
                         dir_name = _DIR_MAP.get((int(dx), int(dy)))
                         # WASD — локальная физика игрока. DM не вызывается.
@@ -818,15 +826,15 @@ class GameScreen:
                 _ev_desc = _ev.get("value", "")
                 # Человекочитаемый текст для DM (без технических деталей)
                 _intent_map = {
-                    "observe": "присматривается",
-                    "talk": "хочет поговорить",
-                    "warn": "хочет предупредить",
-                    "report": "хочет что-то сообщить",
-                    "trade": "хочет предложить сделку",
-                    "help": "хочет помочь",
-                    "flee": "пытается уйти",
+                    "observe": t("intent:observe"),
+                    "talk": t("intent:talk"),
+                    "warn": t("intent:warn"),
+                    "report": t("intent:report"),
+                    "trade": t("intent:trade"),
+                    "help": t("intent:help"),
+                    "flee": t("intent:flee"),
                 }
-                _readable = _intent_map.get(_ev_desc, "проявляет инициативу")
+                _readable = _intent_map.get(_ev_desc, t("intent:default"))
                 _telegraph_text = f"{_npc_name} {_readable}"
                 _px, _py = _player_xy(scene_state)
                 action_queue.submit_telegraph(
@@ -1010,7 +1018,7 @@ class GameScreen:
                         if "player_perception" in result.response:
                             scene_state["player_perception"] = result.response["player_perception"]
 
-                    if resp and resp != "Ничего не произошло.":
+                    if resp and resp != t("ui:nothing_happened"):
                         import re
                         from difflib import SequenceMatcher
 
@@ -1055,7 +1063,7 @@ class GameScreen:
 
                             if not is_echo_line:
                                 # Извлечение спикера (Приоритет 0: починка "Системы")
-                                speaker = "Система"
+                                speaker = t("ui:sys_system")
                                 text = line_stripped
                                 recognition = RecognitionLevel.KNOWN_NAME
                                 delivery = DeliveryType.NORMAL
@@ -1069,8 +1077,8 @@ class GameScreen:
                                             break
 
                                 # Определение RecognitionLevel для неизвестных
-                                if speaker in ("Мужчина", "Женщина", "???"):
-                                    recognition = RecognitionLevel.UNKNOWN_FEMALE if speaker == "Женщина" else RecognitionLevel.UNKNOWN_MALE
+                                if speaker in (t("ui:male_unknown"), t("ui:female_unknown"), t("ui:unknown_speaker")):
+                                    recognition = RecognitionLevel.UNKNOWN_FEMALE if speaker == t("ui:female_unknown") else RecognitionLevel.UNKNOWN_MALE
 
                                 # Определение DeliveryType по маркерам текста (Приоритет 1: Experiential Architecture)
                                 text_lower = text.lower()
@@ -1184,7 +1192,7 @@ class GameScreen:
                     if _nid and _nid != "player" and _tags:
                         _texts = [t(f"manifest:{_tag.replace('MANIFEST_', '').lower()}") for _tag in _tags]
                         _first_key = f"manifest:{_tags[0].replace('MANIFEST_', '').lower()}" if _tags else None
-                        _color = manifest_color(_first_key) if _first_key else (160, 160, 160)
+                        _color = manifest_color(_first_key) if _first_key else COLOR_MANIFEST_DEFAULT
                         _manifest_indicators[_nid] = {"tags": _tags, "text": ", ".join(_texts), "color": _color}
 
             self.npc_manifest_indicators = _manifest_indicators
@@ -1259,7 +1267,7 @@ class GameScreen:
                     _font = pygame.font.Font(None, _font_size)
                     _alpha = int(max(0, min(255, _intensity * 255)))
                     
-                    _text_surf = _font.render(_text, True, (220, 220, 220))
+                    _text_surf = _font.render(_text, True, COLOR_TEXT_DEFAULT)
                     _text_surf.set_alpha(_alpha)
                     
                     _text_rect = _text_surf.get_rect(center=(_center_x, _start_y))
@@ -1316,23 +1324,23 @@ class GameScreen:
                     _obs_bg = pygame.Surface((_box_w, _box_h), pygame.SRCALPHA)
                     _obs_bg.fill((0, 0, 0, 200))
                     self.screen.blit(_obs_bg, (10, 10))
-                    _title_s = self.renderer.font_small.render(t("ui:obs_title"), True, (160, 170, 220))
+                    _title_s = self.renderer.font_small.render(t("ui:obs_title"), True, COLOR_TEXT_OBS_TITLE)
                     self.screen.blit(_title_s, (15, 15))
                     _obs_y = 35
                     for _oline in _obs_lines:
-                        _obs_s = self.renderer.font_small.render(f"  {_oline}", True, (200, 200, 200))
+                        _obs_s = self.renderer.font_small.render(f"  {_oline}", True, COLOR_TEXT_OBS_LINE)
                         self.screen.blit(_obs_s, (15, _obs_y))
                         _obs_y += 20
 
             # HUD: FPS + игровое время
             fps_surf = self.renderer.font_small.render(
-                f"FPS: {int(self.clock.get_fps())}", True, (80, 80, 80)
+                f"FPS: {int(self.clock.get_fps())}", True, COLOR_TEXT_DARK
             )
             self.screen.blit(fps_surf, (self.screen.get_width() - 70, 4))
 
             # Выводим полную дату мира (Год, День, Час:Минута)
             time_surf = self.renderer.font_small.render(
-                format_world_date(self.game_time_seconds), True, (140, 140, 140)
+                format_world_date(self.game_time_seconds), True, COLOR_TEXT_MUTED
             )
             self.screen.blit(time_surf, (self.screen.get_width() - 380, 4))
 
@@ -1343,11 +1351,11 @@ class GameScreen:
                 _death_surf.fill((0, 0, 0, 180))
                 self.screen.blit(_death_surf, (0, 0))
                 _dfont = pygame.font.Font(None, 64)
-                _dtxt = _dfont.render("ВЫ МЕРТВЫ", True, (180, 0, 0))
+                _dtxt = _dfont.render(t("ui:death_title"), True, COLOR_DEATH_TITLE)
                 _drect = _dtxt.get_rect(center=(self.screen.get_width() // 2, self.screen.get_height() // 2))
                 self.screen.blit(_dtxt, _drect)
                 _subfont = pygame.font.Font(None, 28)
-                _subtxt = _subfont.render("Смерть необратима. Мир продолжает жить без вас.", True, (140, 140, 140))
+                _subtxt = _subfont.render(t("ui:death_subtitle"), True, COLOR_DEATH_SUB)
                 _subrect = _subtxt.get_rect(center=(self.screen.get_width() // 2, self.screen.get_height() // 2 + 50))
                 self.screen.blit(_subtxt, _subrect)
 
@@ -1358,7 +1366,7 @@ class GameScreen:
                 _journal_surf.fill((20, 20, 30, 220))
                 
                 _font_title = pygame.font.Font(None, 32)
-                _title_surf = _font_title.render("--- Журнал Диалогов (J) ---", True, (218, 165, 32))
+                _title_surf = _font_title.render(t("ui:journal_title"), True, COLOR_JOURNAL_TITLE)
                 _journal_surf.blit(_title_surf, (15, 15))
                 
                 # B1.3-FIX: читаем из backend cache
@@ -1367,7 +1375,7 @@ class GameScreen:
                 
                 if not _journal_data:
                     _font_text = pygame.font.Font(None, 22)
-                    _empty_surf = _font_text.render("(Журнал пуст. Сначала поговорите с NPC)", True, (140, 140, 140))
+                    _empty_surf = _font_text.render(t("ui:journal_empty"), True, COLOR_TEXT_MUTED)
                     _journal_surf.blit(_empty_surf, (15, _y_offset))
                 else:
                     _font_name = pygame.font.Font(None, 26)
@@ -1379,9 +1387,9 @@ class GameScreen:
                         _text = _entry.get("text", "")
                         
                         # Цветовая кодировка
-                        if _speaker == "Рассказчик": _color = (218, 165, 32)   # Золотой
-                        elif _speaker == "NPC": _color = (100, 149, 237)       # Голубой
-                        else: _color = (200, 200, 200)                         # Нейтральный
+                        if _speaker == t("ui:narrator"): _color = COLOR_NARRATOR
+                        elif _speaker == t("ui:npc_label"): _color = COLOR_NPC_NAME
+                        else: _color = COLOR_TEXT_DEFAULT
                         
                         _name_surf = _font_name.render(f"{_speaker}:", True, _color)
                         _journal_surf.blit(_name_surf, (15, _y_offset))
@@ -1401,7 +1409,7 @@ class GameScreen:
                         _lines.append(_current_line)
                         
                         for _line in _lines:
-                            _text_surf = _font_text.render(_line, True, (220, 220, 220))
+                            _text_surf = _font_text.render(_line, True, COLOR_TEXT_DEFAULT)
                             _journal_surf.blit(_text_surf, (15, _y_offset))
                             _y_offset += 20
                         
@@ -1435,7 +1443,7 @@ class GameScreen:
         scale_texts = {1: "▶ 1x", 4: "▶▶ 4x", 10: "▶▶▶ 10x", 50: "⏩ 50x"}
         scale_str = scale_texts.get(time_scale, f"▶ {time_scale}x")
         sys_font = renderer.font_normal
-        scale_surf = sys_font.render(scale_str, True, (255, 220, 100)) # Желтый цвет для внимания
+        scale_surf = sys_font.render(scale_str, True, COLOR_TEXT_SCALE_HIGHLIGHT)
         scale_bg = pygame.Surface((scale_surf.get_width() + 8, scale_surf.get_height() + 4), pygame.SRCALPHA)
         scale_bg.fill((0, 0, 0, 150))
         scale_x = sw - scale_surf.get_width() - 18
@@ -1447,7 +1455,7 @@ class GameScreen:
             visible_sys = system_log[-5:] # Последние 5 системных сообщений
             sys_y = 10 + scale_surf.get_height() + 6 # Отступаем ниже индикатора скорости
             for sys_msg in reversed(visible_sys):
-                sys_surf = sys_font.render(sys_msg, True, (180, 180, 180))
+                sys_surf = sys_font.render(sys_msg, True, COLOR_TEXT_SYS_MSG)
                 # Полупрозрачный фон
                 sys_bg = pygame.Surface((sys_surf.get_width() + 8, sys_surf.get_height() + 4), pygame.SRCALPHA)
                 sys_bg.fill((0, 0, 0, 120))

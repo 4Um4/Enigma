@@ -13,7 +13,7 @@ path: /frontend/map_editor/sprite_registry.py
 """
 import os
 import pygame
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple, Tuple
 
 # Базовая директория с палитрами
 _BASE_DIR = os.path.join(os.path.dirname(__file__), "pixels", "2-Bit Pack")
@@ -105,6 +105,116 @@ class SpriteRegistry:
         """Очищает кэш (например, при смене палитры)."""
         self._sheets.clear()
         self._tiles.clear()
+
+
+# ═══════════════════════════════════════════════════════════════════
+# Маппинг типов сущностей (используется рендерером)
+# ═══════════════════════════════════════════════════════════════════
+ENTITY_SPRITE_MAP: Dict[str, Tuple[str, int, int]] = {
+    # Мебель
+    "table": ("Deadbeat/deadbeat_b", 5, 11),
+    "chair": ("Deadbeat/deadbeat_b", 8, 17),
+    "stool": ("Deadbeat/deadbeat_b", 9, 19),
+    "bar": ("Deadbeat/deadbeat_b", 5, 11),  # TODO: временная заглушка
+    "bed": ("Deadbeat/deadbeat_b", 8, 16),
+    "bookshelf": ("Deadbeat/deadbeat_b", 7, 16),
+    # Двери и проходы
+    "door": ("Deadbeat/deadbeat_b", 3, 9),
+    "window": ("Deadbeat/deadbeat_b", 6, 9),
+    "gap": ("Deadbeat/deadbeat_b", 3, 9),  # TODO: временная заглушка
+    "ladder": ("Deadbeat/deadbeat_b", 0, 9),
+    "hatch": ("Deadbeat/deadbeat_b", 11, 16),
+    "stairs_up": ("Deadbeat/deadbeat_b", 0, 9),
+    "stairs_down": ("Deadbeat/deadbeat_b", 0, 9),
+    "door_transition": ("Deadbeat/deadbeat_b", 3, 9),
+    "portal_magic": ("Deadbeat/deadbeat_b", 6, 2),
+    # Природа
+    "tree": ("Deadbeat/deadbeat_b", 6, 0),
+    "spruce": ("Deadbeat/deadbeat_b", 6, 3),
+    "apple_tree": ("Deadbeat/deadbeat_b", 7, 4),
+    "palm": ("Deadbeat/deadbeat_b", 7, 7),
+    "grass": ("Deadbeat/deadbeat_b", 7, 0),
+    "rocks": ("Deadbeat/deadbeat_b", 6, 18),
+    # Интерьер
+    "tent": ("Deadbeat/deadbeat_b", 8, 15),
+    "toilet": ("Deadbeat/deadbeat_b", 7, 21),
+    "cauldron": ("Deadbeat/deadbeat_b", 11, 17),
+    "campfire": ("Deadbeat/deadbeat_b", 4, 15),
+    # Декорации
+    "sign_flophouse": ("Deadbeat/deadbeat_b", 11, 4),
+    "bones": ("Deadbeat/deadbeat_b", 22, 13),
+    "heart": ("Deadbeat/deadbeat_b", 22, 12),
+    "heart_empty": ("Deadbeat/deadbeat_b", 22, 12),
+    "decoration": ("Deadbeat/deadbeat_b", 3, 9),
+    # NPC
+    "mage": ("Deadbeat/deadbeat_b", 23, 22),
+    "warrior": ("Deadbeat/deadbeat_b", 25, 21),
+    "person": ("Deadbeat/deadbeat_b", 23, 21),
+    "thief": ("Deadbeat/deadbeat_b", 25, 22),
+    "cow": ("Deadbeat/deadbeat_b", 25, 28),
+    "knight": ("Deadbeat/deadbeat_b", 26, 21),
+}
+
+
+def get_entity_sprite(entity_type: str) -> Optional[pygame.Surface]:
+    """Возвращает тайл для типа сущности из кэша или с диска (через глобальный реестр)."""
+    sprite_info = ENTITY_SPRITE_MAP.get(entity_type)
+    if not sprite_info:
+        return None
+    sheet_key, col, row = sprite_info
+    return sprite_registry.get(sheet_key, col, row)
+
+
+# ═══════════════════════════════════════════════════════════════════
+# Маппинг типов сущностей (используется рендерером)
+# ═══════════════════════════════════════════════════════════════════
+ENTITY_SPRITE_MAP: Dict[str, Tuple[str, int, int]] = {
+    "table": ("Deadbeat/deadbeat_b", 5, 11),
+    "chair": ("Deadbeat/deadbeat_b", 8, 17),
+    "stool": ("Deadbeat/deadbeat_b", 9, 19),
+    "bar": ("Deadbeat/deadbeat_b", 5, 11),
+    "bed": ("Deadbeat/deadbeat_b", 8, 16),
+    "bookshelf": ("Deadbeat/deadbeat_b", 7, 16),
+    "door": ("Deadbeat/deadbeat_b", 3, 9),
+    "window": ("Deadbeat/deadbeat_b", 6, 9),
+    "gap": ("Deadbeat/deadbeat_b", 3, 9),
+    "ladder": ("Deadbeat/deadbeat_b", 0, 9),
+    "hatch": ("Deadbeat/deadbeat_b", 11, 16),
+    "stairs_up": ("Deadbeat/deadbeat_b", 0, 9),
+    "stairs_down": ("Deadbeat/deadbeat_b", 0, 9),
+    "door_transition": ("Deadbeat/deadbeat_b", 3, 9),
+    "portal_magic": ("Deadbeat/deadbeat_b", 6, 2),
+    "tree": ("Deadbeat/deadbeat_b", 6, 0),
+    "spruce": ("Deadbeat/deadbeat_b", 6, 3),
+    "apple_tree": ("Deadbeat/deadbeat_b", 7, 4),
+    "palm": ("Deadbeat/deadbeat_b", 7, 7),
+    "grass": ("Deadbeat/deadbeat_b", 7, 0),
+    "rocks": ("Deadbeat/deadbeat_b", 6, 18),
+    "tent": ("Deadbeat/deadbeat_b", 8, 15),
+    "toilet": ("Deadbeat/deadbeat_b", 7, 21),
+    "cauldron": ("Deadbeat/deadbeat_b", 11, 17),
+    "campfire": ("Deadbeat/deadbeat_b", 4, 15),
+    "sign_flophouse": ("Deadbeat/deadbeat_b", 11, 4),
+    "bones": ("Deadbeat/deadbeat_b", 22, 13),
+    "heart": ("Deadbeat/deadbeat_b", 22, 12),
+    "heart_empty": ("Deadbeat/deadbeat_b", 22, 12),
+    "decoration": ("Deadbeat/deadbeat_b", 3, 9),
+    "mage": ("Deadbeat/deadbeat_b", 23, 22),
+    "warrior": ("Deadbeat/deadbeat_b", 25, 21),
+    "person": ("Deadbeat/deadbeat_b", 23, 21),
+    "thief": ("Deadbeat/deadbeat_b", 25, 22),
+    "cow": ("Deadbeat/deadbeat_b", 25, 28),
+    "knight": ("Deadbeat/deadbeat_b", 26, 21),
+}
+
+
+def get_entity_sprite(entity_type: str) -> Optional[pygame.Surface]:
+    """Возвращает тайл для типа сущности из кэша или с диска (через глобальный реестр)."""
+    sprite_info = ENTITY_SPRITE_MAP.get(entity_type)
+    if not sprite_info:
+        return None
+    sheet_key, col, row = sprite_info
+    return sprite_registry.get(sheet_key, col, row)
 
 
 # Глобальный экземпляр реестра

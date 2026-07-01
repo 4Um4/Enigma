@@ -21,6 +21,14 @@ nodes:
     type: service
     layer: UI
     label: "Localization Module (i18n)"
+  SceneRenderer:
+    type: service
+    layer: UI
+    label: "Scene Renderer (Map & HUD)"
+  SpriteRegistry:
+    type: service
+    layer: UI
+    label: "Sprite Registry (Tile Provider)"
   APIRoutes:
     type: api
     layer: Infrastructure
@@ -83,6 +91,12 @@ edges:
     condition: "All user-facing strings"
     code_ref: "game_screen.py, scene_renderer.py"
     adr_ref: "ADR-i18n"
+  - from: SceneRenderer
+    to: SpriteRegistry
+    label: "get_entity_sprite(type)"
+    condition: "Rendering entities & obstacles"
+    code_ref: "scene_renderer.py"
+    adr_ref: "ADR-TZ6-2"
   - from: APIRoutes
     to: GameScreen
     label: "manifestations (List[ManifestationDTO])"

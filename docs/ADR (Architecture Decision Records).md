@@ -128,6 +128,10 @@
 `ADR-O-201.3` [FIX] **Null Coordinate Fix (S85.1)** — `EventCompiler` использует `(0.0, 0.0)` fallback вместо `None` для `SpatialResolution.target_xy`, устраняя `DRIFT[E]` (missing in shadow).
   Files: event_compiler.py
 
+`ADR-O-201.4` [FIX] **Rule 120 Drift Fix (S97)** — `EventCompiler` больше не генерирует `TraversalContract(status="COMPLETED")` для `cause="traversal_complete"` и boundary snap. Устраняет дрейф `Rule 120` (legacy=False vs shadow=True), так как SSM удаляет терминальные транзиты при cleanup, а Shadow Compiler не должен вмешиваться в lifecycle (ADR-TRAV-FSM).
+  Taboo: ❌ Создание `TraversalContract` со статусом `COMPLETED` в `EventCompiler`.
+  Files: event_compiler.py
+
 `ADR-S85.1.1` [FIX] **Import & Adapter Fix (S85.1)** — `WillState` импортирован из `app.models.will` (не `vital_state`). `NPCStateAdapter.from_legacy` используется в `TickOrchestrator` вместо несуществующего `NPCState.from_legacy`.
   Files: tick_orchestrator.py
 
@@ -828,6 +832,10 @@
 `ADR-S96.2` [FIX] **Affective Pipeline DOUBLE TRUTH Elimination** — Убито дублирование логики аффективного интегратора в `TickOrchestrator` (idle vs player paths). Мёртвый `pressure_derivation.py` удалён. `integrate_affective_pressure` стал единственным владельцем Active Inference + Hysteresis, возвращая `Tuple[new_load, new_memory]`. 
   Taboo: ❌ Возврат к инлайн-вычислению `pk_load` и `affective_memory` в `TickOrchestrator`. ❌ Воскрешение `pressure_derivation.py`. ❌ Интегратору запрещено влиять на policy (scoring/decisions) — он вычисляет только state.
   Files: affective/affective_integrator.py, tick_orchestrator.py, affective/pressure_derivation.py (DELETED)
+
+`ADR-TZ6-2` [STD] **Frontend Constants & i18n Final Closure** — Завершена чистка хардкодов. Магические числа (RGB-цвета, размеры шрифтов, масштаб) вынесены в `frontend/constants.py`. Все русские строки переведены на ключи `frontend/i18n.py`. Убит дублирующий модуль `sprite_resolver.py`, его функциональность перенесена в `map_editor/sprite_registry.py`.
+  Taboo: ❌ Хардкод UI-строк в файлах фронтенда. ❌ Инлайн RGB-кортежей и размеров шрифтов в рендерере. ❌ Возврат дублирующего модуля `sprite_resolver.py`.
+  Files: frontend/constants.py, frontend/i18n.py, frontend/game_screen.py, frontend/scene_renderer.py, frontend/campaign_select.py, frontend/character_select.py, frontend/map_editor/sprite_registry.py, frontend/sprite_resolver.py (DELETED)
 
 `ADR-TZ6-1` [STD] **Engineering Debt Cleanup (Dead Code, Silent Failures, Magic Numbers)** — Удалены мёртвые методы (`_draw_input_bar`, `_advance_time_by_movement`, `_build_intro_prompt`, `can_proceed`, `add_npc_author_notes`) и поля (`PlayerMemory`, `EncounterHistory`). `except Exception: pass` заменены на `logger.warning`. `WillState` унифицирован в `npc_state.py` (из `will.py` удалён дубликат). `print()` заменены на `logger.debug` с feature-флагами. Магические числа вынесены в `constants.py`, UI-строки в `i18n.py`. `RelationshipStore` переведён на LRU/TTL кэш.
   Taboo: ❌ Использование дублирующего `WillState` из `will.py`. ❌ Возврат к `except Exception: pass`. ❌ Хардкод UI-строк вместо `i18n`.

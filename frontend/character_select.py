@@ -18,6 +18,8 @@ from typing import Optional
 import json
 
 import pygame
+from i18n import t
+
 
 # Папки кампаний — приоритет saves/ (runtime), fallback campaigns/ (исходники)
 _SAVES_DIR = Path(__file__).parent.parent / "saves"
@@ -279,7 +281,7 @@ class CharacterSelectScreen:
         """Обработка кликов в диалоге создания персонажа"""
         w, h = self.screen.get_size()
         # Поля ввода — вычисляем позиции как в _draw_dialog
-        fields = [("name", "Имя"), ("archetype", "Архетип"), ("temperament", "Темперамент")]
+        fields = [("name", t("ui:field_name")), ("archetype", t("ui:field_archetype")), ("temperament", t("ui:field_temperament"))]
         field_y_start = h // 2 - 60
         for i, (key, label) in enumerate(fields):
             field_rect = pygame.Rect(w // 2 - 150, field_y_start + i * 50, 300, 32)
@@ -372,7 +374,7 @@ class CharacterSelectScreen:
         w, _ = self.screen.get_size()
 
         # Заголовок
-        title_surf = self.font_title.render("Выбор персонажа", True, _COLORS["accent_blue"])
+        title_surf = self.font_title.render(t("ui:char_select_title"), True, _COLORS["accent_blue"])
         self.screen.blit(title_surf, (w // 2 - title_surf.get_width() // 2, self._title_y))
 
         # Область списка — фон
@@ -425,7 +427,7 @@ class CharacterSelectScreen:
                 if entry.class_name:
                     desc_parts.append(entry.class_name)
                 if entry.level:
-                    desc_parts.append(f"Ур.{entry.level}")
+                    desc_parts.append(f"{t('ui:char_level')}{entry.level}")
                 desc_text = " | ".join(desc_parts) if desc_parts else ""
                 desc_surf = self.font_desc.render(desc_text, True, _COLORS["text_dim"])
                 self.screen.blit(desc_surf, (item_rect.x + 10, item_rect.y + 30))
@@ -450,7 +452,7 @@ class CharacterSelectScreen:
         else:
             # Нет персонажей
             empty_surf = self.font_desc.render(
-                "Персонажи не найдены.",
+                t("ui:char_not_found"),
                 True, _COLORS["text_dim"],
             )
             self.screen.blit(
@@ -465,14 +467,14 @@ class CharacterSelectScreen:
         create_hovered = self._btn_create_rect.collidepoint(pygame.mouse.get_pos())
         create_color = _COLORS["btn_primary_hover"] if create_hovered else _COLORS["btn_primary"]
         pygame.draw.rect(self.screen, create_color, self._btn_create_rect, border_radius=6)
-        create_surf = self.font_button.render("Создать персонажа", True, _COLORS["text"])
+        create_surf = self.font_button.render(t("ui:btn_create_char"), True, _COLORS["text"])
         self.screen.blit(create_surf, create_surf.get_rect(center=self._btn_create_rect.center))
 
         # Кнопка «Назад»
         back_hovered = self._btn_back_rect.collidepoint(pygame.mouse.get_pos())
         back_color = _COLORS["btn_secondary_hover"] if back_hovered else _COLORS["btn_secondary"]
         pygame.draw.rect(self.screen, back_color, self._btn_back_rect, border_radius=6)
-        back_surf = self.font_button.render("Назад", True, _COLORS["text"])
+        back_surf = self.font_button.render(t("ui:btn_back"), True, _COLORS["text"])
         self.screen.blit(back_surf, back_surf.get_rect(center=self._btn_back_rect.center))
 
         # Кнопка «Выбрать»
@@ -485,7 +487,7 @@ class CharacterSelectScreen:
             play_color = _COLORS["btn_secondary"]
             play_text_color = _COLORS["text_dim"]
         pygame.draw.rect(self.screen, play_color, self._btn_play_rect, border_radius=6)
-        play_surf = self.font_button.render("Выбрать", True, play_text_color)
+        play_surf = self.font_button.render(t("ui:btn_select"), True, play_text_color)
         self.screen.blit(play_surf, play_surf.get_rect(center=self._btn_play_rect.center))
 
         # Диалог создания персонажа
@@ -507,11 +509,11 @@ class CharacterSelectScreen:
         pygame.draw.rect(self.screen, _COLORS["border"], panel_rect, 1, border_radius=8)
 
         # Заголовок
-        title_surf = self.font_name.render("Новый персонаж", True, _COLORS["text_highlight"])
+        title_surf = self.font_name.render(t("ui:new_char_title"), True, _COLORS["text_highlight"])
         self.screen.blit(title_surf, (panel_rect.x + 20, panel_rect.y + 15))
 
         # Поля ввода
-        fields = [("name", "Имя"), ("archetype", "Архетип"), ("temperament", "Темперамент")]
+        fields = [("name", t("ui:field_name")), ("archetype", t("ui:field_archetype")), ("temperament", t("ui:field_temperament"))]
         field_y_start = panel_rect.y + 55
         for i, (key, label) in enumerate(fields):
             label_surf = self.font_desc.render(label, True, _COLORS["text_dim"])
@@ -549,11 +551,11 @@ class CharacterSelectScreen:
         create_hovered = create_btn.collidepoint(pygame.mouse.get_pos())
         create_color = _COLORS["btn_primary_hover"] if create_hovered else _COLORS["btn_primary"]
         pygame.draw.rect(self.screen, create_color, create_btn, border_radius=6)
-        create_surf = self.font_button.render("Создать", True, _COLORS["text"])
+        create_surf = self.font_button.render(t("ui:btn_create"), True, _COLORS["text"])
         self.screen.blit(create_surf, create_surf.get_rect(center=create_btn.center))
 
         cancel_hovered = cancel_btn.collidepoint(pygame.mouse.get_pos())
         cancel_color = _COLORS["btn_secondary_hover"] if cancel_hovered else _COLORS["btn_secondary"]
         pygame.draw.rect(self.screen, cancel_color, cancel_btn, border_radius=6)
-        cancel_surf = self.font_button.render("Отмена", True, _COLORS["text"])
+        cancel_surf = self.font_button.render(t("ui:btn_cancel"), True, _COLORS["text"])
         self.screen.blit(cancel_surf, cancel_surf.get_rect(center=cancel_btn.center))

@@ -378,8 +378,9 @@ class GameLoop:
         self._session_started_campaigns.discard(campaign_id)
 
     def _get_npc_runtime_path(self, campaign_id: str) -> Path:
-        """Возвращает путь к npc_runtime.json для кампании."""
-        return self._saves_dir / campaign_id / "npc_runtime.json"
+        """[S98 Proxy] Делегирует в tick_utils.get_npc_runtime_path (SSOT)."""
+        from app.services.tick_utils import get_npc_runtime_path
+        return get_npc_runtime_path(campaign_id)
 
 
     def _get_life_engine(self):
@@ -798,16 +799,20 @@ class GameLoop:
         # TASK 1: Force Merge — строим world_snapshot из актуального scene_state (ADR-0014)
         _ws_dict = None
         _npc_pos_dict = None
-        if hasattr(state, 'shared_context') and state.shared_context and state.shared_context.scene_state:
+        # ADR-TZ09-2: Используем _tick_scene (обновлённое ядром), а не устаревший shared_context.scene_state
+        _scene = self.scene_manager._tick_scene if self.scene_manager else None
+        if _scene is None and hasattr(state, 'shared_context') and state.shared_context:
+            _scene = state.shared_context.scene_state
+        if _scene:
             from app.services.integration.world_snapshot_builder import WorldSnapshotBuilder
             from dataclasses import asdict
             _builder = WorldSnapshotBuilder()
             # ADR-092: Проброс perception из TickOrchestrator для action tick
-            _pp = getattr(state.shared_context, 'player_perception', None)
-            _anr = getattr(state.shared_context, 'all_npcs_raw_snapshot', None)
-            print(f"[TRAV_CHECK_P2] before_snapshot: id(scene_state)={id(state.shared_context.scene_state)} active_traversals={list(state.shared_context.scene_state.get('active_traversals', {}).keys())}")
+            _pp = getattr(state.shared_context, 'player_perception', None) if state.shared_context else None
+            _anr = getattr(state.shared_context, 'all_npcs_raw_snapshot', None) if state.shared_context else None
+            print(f"[TRAV_CHECK_P2] before_snapshot: id(scene_state)={id(_scene)} active_traversals={list(_scene.get('active_traversals', {}).keys())}")
             if _ws := _builder.build(
-                state.shared_context.scene_state,
+                _scene,
                 tick=self.get_current_tick(req.campaign_id),
                 player_perception=_pp,
                 all_npcs_raw=_anr,

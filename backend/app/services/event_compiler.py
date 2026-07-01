@@ -171,10 +171,7 @@ class EventCompiler:
                 duration_ticks=0,
                 speed=0.0,
             ),
-            traversal=TraversalContract(
-                status="COMPLETED",  # ← KEY: completed, not NEW
-                fields={},
-            ),
+            traversal=None,  # ADR-TRAV-FSM: SSM owns lifecycle. traversal_complete = snap, no contract.
         )
 
     # ── Passthrough ───────────────────────────────────────────────
@@ -344,11 +341,8 @@ class EventCompiler:
                 neighbor_chunk=neighbor_chunk,
                 entry_node=entry_node,
             ),
-            # Boundary snap — traversal не нужен (materialization)
-            traversal=TraversalContract(
-                status="COMPLETED" if change.cause == "traversal_complete" else "",
-                fields={},
-            ),
+            # ADR-TRAV-FSM: SSM owns lifecycle. Boundary snap = materialization, no traversal contract.
+            traversal=None,
         )
 
     # ── Same-Location Movement ────────────────────────────────────
@@ -474,14 +468,13 @@ class EventCompiler:
                         )
                         # _create_traversal = True (аналог legacy строки 1446)
                     else:
-                        # 2-node path but geometric path blocked — no doorway route
-                        # Legacy: _create_traversal остаётся False (строка 1449)
-                        logger.warning(
+                        # ADR-DOORWAY-TRUST: 2-node path but blocked — graph says connected.
+                        # Доверяем графу: создаём traversal с waypoints [start, target].
+                        logger.info(
                             f"[SHADOW_COMPILER] npc={change.target} "
-                            f"2-node path but geometric path blocked — no traversal "
-                            f"(parity with legacy ADR-DRIFT-D)"
+                            f"2-node path, blocked direct, graph connected — TRUST GRAPH (parity with legacy ADR-DOORWAY-TRUST)"
                         )
-                        return None
+                        # Не return None — продолжаем создавать traversal
                 else:
                     # find_path returned empty — no route available
                     # Legacy: _create_traversal остаётся False (строка 1451)

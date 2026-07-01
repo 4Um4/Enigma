@@ -78,3 +78,130 @@ def format_world_date(total_seconds: int) -> str:
     minute = (seconds_in_day % SECONDS_PER_HOUR) // SECONDS_PER_MINUTE
     
     return f"Год {year}, День {day_of_year}, {hour:02d}:{minute:02d}"
+
+# ═══════════════════════════════════════════════════════════════════
+# UI PALETTE & FONTS (ТЗ-6 C1)
+# ═══════════════════════════════════════════════════════════════════
+
+# Базовые цвета UI
+COLOR_TEXT_DEFAULT: tuple = (220, 220, 220)
+COLOR_TEXT_DIM: tuple = (180, 180, 180)
+COLOR_TEXT_MUTED: tuple = (140, 140, 140)
+COLOR_TEXT_DARK: tuple = (80, 80, 80)
+COLOR_TEXT_OBS_TITLE: tuple = (160, 170, 220)
+COLOR_TEXT_OBS_LINE: tuple = (200, 200, 200)
+COLOR_TEXT_SCALE_HIGHLIGHT: tuple = (255, 220, 100)
+COLOR_TEXT_SYS_MSG: tuple = (180, 180, 180)
+COLOR_DEATH_TITLE: tuple = (180, 0, 0)
+COLOR_DEATH_SUB: tuple = (140, 140, 140)
+COLOR_JOURNAL_TITLE: tuple = (218, 165, 32)
+COLOR_NARRATOR: tuple = (218, 165, 32)
+COLOR_NPC_NAME: tuple = (100, 149, 237)
+COLOR_MANIFEST_DEFAULT: tuple = (160, 160, 160)
+
+# Палитра рендерера (scene_renderer)
+RENDER_COLORS: dict = {
+    "bg_dark": (18, 18, 23),
+    "floor_visible": (35, 35, 42),
+    "floor_dim": (25, 25, 30),
+    "wall": (100, 100, 110),
+    "wall_visible": (140, 140, 150),
+    "obstacle": (55, 55, 65),
+    "obstacle_visible": (75, 75, 85),
+    "object": (80, 100, 80),
+    "object_visible": (100, 140, 100),
+    "npc_body": (180, 140, 100),
+    "npc_focused": (220, 180, 120),
+    "player_body": (70, 170, 255),
+    "player_focused": (100, 200, 255),
+    "text_audio": (200, 180, 120),
+    "text_body": (200, 120, 120),
+    "text_environment": (140, 140, 140),
+    "fog": (12, 12, 16),
+    "attention_glow": (70, 170, 255, 40),
+}
+
+# Цвета маркеров агрессии/коммуникации на карте
+AGGRESSION_COLORS: dict = {
+    "combat": (255, 80, 80),
+    "armed": (255, 160, 60),
+    "active_aggression": (255, 50, 50),
+    "potential_aggression": (200, 120, 60),
+    "potentially_hostile": (180, 100, 80),
+    "communication": (100, 200, 100),
+    "peaceful_interaction": (80, 180, 80),
+    "friendly_action": (60, 160, 60),
+}
+
+# Константы шрифтов
+FONT_NAME_MAIN: str = "consolas"
+FONT_NAME_UI: str = "segoeui"
+FONT_SIZE_SMALL: int = 12
+FONT_SIZE_AUDIO: int = 13
+FONT_SIZE_BODY: int = 13
+FONT_SIZE_TOOLTIP: int = 14
+
+# Графический масштаб
+SCALE_PIXELS_PER_METER: int = 40
+
+
+# ═══════════════════════════════════════════════════════════════════
+# UI PALETTE & FONTS (ТЗ-6 C1)
+# ═══════════════════════════════════════════════════════════════════
+
+# Базовые цвета UI
+COLOR_TEXT_DEFAULT: tuple = (220, 220, 220)
+COLOR_TEXT_DIM: tuple = (180, 180, 180)
+COLOR_TEXT_MUTED: tuple = (140, 140, 140)
+COLOR_TEXT_DARK: tuple = (80, 80, 80)
+COLOR_TEXT_OBS_TITLE: tuple = (160, 170, 220)
+COLOR_TEXT_OBS_LINE: tuple = (200, 200, 200)
+COLOR_TEXT_SCALE_HIGHLIGHT: tuple = (255, 220, 100)
+COLOR_TEXT_SYS_MSG: tuple = (180, 180, 180)
+COLOR_DEATH_TITLE: tuple = (180, 0, 0)
+COLOR_DEATH_SUB: tuple = (140, 140, 140)
+COLOR_JOURNAL_TITLE: tuple = (218, 165, 32)
+COLOR_NARRATOR: tuple = (218, 165, 32)
+COLOR_NPC_NAME: tuple = (100, 149, 237)
+COLOR_MANIFEST_DEFAULT: tuple = (160, 160, 160)
+
+# Палитра рендерера (scene_renderer)
+RENDER_COLORS: dict = {
+    "bg_dark": (18, 18, 23),
+    "floor_visible": (35, 35, 42),
+    "floor_dim": (25, 25, 30),
+    "wall": (100, 100, 110),
+    "wall_visible": (140, 140, 150),
+    "obstacle": (55, 55, 65),
+    "obstacle_visible": (75, 75, 85),
+    "object": (80, 100, 80),
+    "object_visible": (100, 140, 100),
+    "npc_body": (180, 140, 100),
+    "npc_focused": (220, 180, 120),
+    "player_body": (70, 170, 255),
+    "player_focused": (100, 200, 255),
+    "text_audio": (200, 180, 120),
+    "text_body": (200, 120, 120),
+    "text_environment": (140, 140, 140),
+    "fog": (12, 12, 16),
+}
+
+# Цвета маркеров агрессии/коммуникации на карте
+AGGRESSION_COLORS: dict = {
+    "combat": (255, 80, 80),
+    "armed": (255, 160, 60),
+    "active_aggression": (255, 50, 50),
+    "potential_aggression": (200, 120, 60),
+    "potentially_hostile": (180, 100, 80),
+    "communication": (100, 200, 100),
+    "peaceful_interaction": (80, 180, 80),
+    "friendly_action": (60, 160, 60),
+}
+
+# Константы шрифтов
+FONT_NAME_MAIN: str = "consolas"
+FONT_NAME_UI: str = "segoeui"
+FONT_SIZE_SMALL: int = 12
+FONT_SIZE_AUDIO: int = 13
+FONT_SIZE_BODY: int = 13
+FONT_SIZE_TOOLTIP: int = 14

@@ -80,6 +80,59 @@ L = {
     "ui:scale_4x": "▶▶ 4x",
     "ui:scale_10x": "▶▶▶ 10x",
     "ui:scale_50x": " 50x⏩",
+
+    # ── UI: Экраны выбора (ТЗ-6 C2) ──
+    "ui:campaign_select_title": "Выбор кампании",
+    "ui:campaign_not_found": "Кампании не найдены. Создайте кампанию в редакторе карт.",
+    "ui:btn_back": "Назад",
+    "ui:btn_play": "Играть",
+    "ui:char_select_title": "Выбор персонажа",
+    "ui:char_not_found": "Персонажи не найдены.",
+    "ui:btn_create_char": "Создать персонажа",
+    "ui:btn_select": "Выбрать",
+    "ui:new_char_title": "Новый персонаж",
+    "ui:field_name": "Имя",
+    "ui:field_archetype": "Архетип",
+    "ui:field_temperament": "Темперамент",
+    "ui:btn_create": "Создать",
+    "ui:btn_cancel": "Отмена",
+    "ui:char_level": "Ур.",
+
+    # ── UI: Игровой экран (ТЗ-6 C2) ──
+    "ui:sys_binding": "Привязка",
+    "ui:sys_system": "Система",
+    "ui:male_unknown": "Мужчина",
+    "ui:female_unknown": "Женщина",
+    "ui:unknown_speaker": "???",
+    "ui:death_title": "ВЫ МЕРТВЫ",
+    "ui:death_subtitle": "Смерть необратима. Мир продолжает жить без вас.",
+    "ui:journal_title": "--- Журнал Диалогов (J) ---",
+    "ui:journal_empty": "(Журнал пуст. Сначала поговорите с NPC)",
+    "ui:narrator": "Рассказчик",
+    "ui:npc_label": "NPC",
+    "ui:nothing_happened": "Ничего не произошло.",
+    "ui:going_to": "Идёшь к {npc}",
+    "ui:journal_open": "Журнал открыт",
+    
+    # ── UI: Интенты NPC ──
+    "intent:observe": "присматривается",
+    "intent:talk": "хочет поговорить",
+    "intent:warn": "хочет предупредить",
+    "intent:report": "хочет что-то сообщить",
+    "intent:trade": "хочет предложить сделку",
+    "intent:help": "хочет помочь",
+    "intent:flee": "пытается уйти",
+    "intent:default": "проявляет инициативу",
+
+    # ── UI: Стороны света ──
+    "dir:north": "север",
+    "dir:south": "юг",
+    "dir:west": "запад",
+    "dir:east": "восток",
+    "dir:northwest": "северо-запад",
+    "dir:northeast": "северо-восток",
+    "dir:southwest": "юго-запад",
+    "dir:southeast": "юго-восток",
 }
 
 
