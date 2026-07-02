@@ -1,4 +1,4 @@
-# RUNTIME ARCHAEOLOGY MAP (v3.0 — Causal Kernel & Identity Compliant)
+# RUNTIME ARCHAEOLOGY MAP (v3.1 — Causal Kernel & Identity Compliant)
 
 **Статус:** Актуальная топология рантайма. Нарушение потока = архитектурный баг.
 **Объект аудита:** TickOrchestrator + Causal Kernel (EventCompiler/ProjectionEngine) + Identity Layer (L1/L3) + Persistence
@@ -15,7 +15,7 @@
 
 ### Истина №2: Время и Физика — одно целое (Causal Kernel)
 Не существует независимого слоя `resolve(entity, dt)`. Время неразрывно связано с циклом `TickOrchestrator.execute()`.
-При этом физика (pathfinding, RNG, geometry, boundary resolution) вычисляется **ТОЛЬКО** внутри `EventCompiler` на основе иммутабельного `SnapshotKernel`. `ProjectionEngine` — чистая функция проекции без вычислений (ADR-O-201).
+При этом физика (pathfinding, RNG, geometry, boundary resolution) вычисляется **ТОЛЬКО** внутри `EventCompiler` на основе иммутабельного `SnapshotKernel`. Случайность детерминирована через `KernelRNG(tick, npc_id, salt)` (ADR-O-301). `ProjectionEngine` — чистая функция проекции без вычислений (ADR-O-201).
 
 ### Истина №3: Нет Event Sourcing для State (но есть для Identity)
 - `ctx.delta_buffer.clear()` уничтожает дельты состояния после применения.
@@ -30,6 +30,7 @@
 1. Загрузка (Read Path)
    SQLite -> load_npcs_merged() -> LifeEngine._npc_cache (RAM)
    L1 Chronicle -> Загружается в память (append-only list/dict)
+   Внешний вход — строго через `InterventionEvent` (ADR-TZ08-1). Ядро не знает 'player' или 'dm_ctx'.
 
 2. Симуляция и Давление (Phase 0-5)
    LifeEngine.tick() -> Intent/MacroMovementGoal
@@ -42,7 +43,7 @@
 
 4. Генерация Физики (Causal Kernel) [ADR-O-201]
    EventCompiler(SnapshotKernel, Intents) 
-   └── Вычисляет: Pathfinding, RNG, Boundary transitions, Geometry
+   └── Вычисляет: Pathfinding, RNG (через KernelRNG, ADR-O-301), Boundary transitions, Geometry
    └── Порождает: ThickSceneChange (Full Physical Contract)
    └── ЗАПРЕТ: SpatialService запросы или RNG внутри apply_changes
 
@@ -127,7 +128,12 @@ CalibrationEngine -> Предотвращает осцилляцию L0 (ADR-O-2
 - **Relations:** RelationshipStore
 - **Не выживает:** DeltaBuffer, DRFBus Claims, Events, TickContext, SnapshotKernel, EffectiveDrives (L3)
 
-### C5: Минимальная единица симуляции и персистенции
+### C5: Кто предоставляет детерминированную случайность?
+- **KernelRNG** (`services/npc/kernel_rng.py`): Единственный источник случайности в kernel layer (ADR-O-301).
+- **Потребители:** DecisionHub (salt='decision_hub'), MovementEngine, StateApplicator, LifeEngine — каждый со своим salt.
+- **ЗАПРЕТ:** `random.*` в kernel layer.
+
+### C6: Минимальная единица симуляции и персистенции
 - **Симуляция:** NPC (дельты группируются по `npc_id`, L3 вычисляется per-NPC)
 - **Персистенция State:** Campaign/Location (атомарный коммит пакета `runtime:{campaign_id}`)
 - **Персистенция Identity:** L1Chronicle (пакетная запись событий)
@@ -165,6 +171,7 @@ CalibrationEngine -> Предотвращает осцилляцию L0 (ADR-O-2
 - **Слой презентации:** ДА. `dm_scene_builder._filter_by_visibility` отсекает невидимых NPC от LLM.
 - **Слой времени:** ДА (частично). `reconcile_state()` позволяет аналитически догнать время при загрузке.
 - **Слой Валидации:** ДА. `StateApplicator` выполняет L5 Post-Commit проверку онтологии (ADR-O-207).
+- **Слой промотки времени:** ДА. `TimeSkipExecutor` (ADR-TZ08-ADD-1) вызывает `Kernel.execute()` в цикле, не создавая второй симулятор. Детекторы (SignificanceDetector, SemanticMilestoneFilter) читают `TickResultDTO`.
 
 ---
 

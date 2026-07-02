@@ -89,7 +89,8 @@ async def game_action_stream(request: dict, game_loop=Depends(get_game_loop)):
             )
 
     # Получаем локацию из campaign_state
-    location = "tavern_silver_wolf"
+    from app.core.constants import DEFAULT_LOCATION_ID
+    location = DEFAULT_LOCATION_ID
     campaign_state = _campaign_service.get_campaign_state(campaign_id)
     if campaign_state:
         saved = campaign_state.metadata.get("current_location")

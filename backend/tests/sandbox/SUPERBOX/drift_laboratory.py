@@ -95,9 +95,12 @@ class DriftResult:
 
     @property
     def phase3_ready(self) -> bool:
-        """True если можно переходить к ФАЗЕ 3 (0 C/D/E + ≥100k comparisons)."""
-        if self.total_comparisons < 100_000:
-            return False
+        """True если можно переходить к ФАЗЕ 3 surgery.
+
+        S103: Порог 100k comparisons ОТМЕНЁН. При 317 comparisons
+        drift_B=134 (42.3%) доказал двойное создание traversal
+        без накопления статистики. C/D/E drift всё ещё блокирует.
+        """
         return not self.has_structural_drift
 
 

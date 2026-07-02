@@ -159,26 +159,6 @@ pygame==2.6.1
 
 **Критерий готовности:** `pip install -r backend/requirements.txt` на чистой машине → `python game_launcher.py` запускается без `ModuleNotFoundError: pygame`.
 
-### B.3: LLM model path Qwen → Gemma
-
-**Файл:** `backend/app/core/config.py:49-51`
-
-**Было:**
-```python
-llama_cpp_model_path: str = str(
-    BASE_DIR / "Models LLM" / "Qwen2.5-7B-Instruct-abliterated-v2.Q5_K_M.gguf"
-)
-```
-
-**Стало:**
-```python
-llama_cpp_model_path: str = str(
-    BASE_DIR / "Models LLM" / "gemma-3-12b-it-q4_k_m.gguf"
-)
-```
-
-**Обоснование:** `start_llm.bat` уже использует Gemma-3-12B. `config.py` всё ещё указывает на Qwen2.5-7B — рассинхронизация.
-
 **Критерий готовности:** `start_llm.bat` и `config.py` указывают на одну модель.
 
 ---

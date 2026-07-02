@@ -466,6 +466,8 @@ class StateApplicator:
 
         trust_delta = deltas.payload.trust_delta if domain == DeltaDomain.SOCIAL and isinstance(deltas.payload, SocialPayload) else deltas.trust_delta
         fear_delta = deltas.payload.fear_delta if domain == DeltaDomain.SOCIAL and isinstance(deltas.payload, SocialPayload) else deltas.fear_delta
+        # social_battery — внутреннее социальное состояние (предшественник Homeostasis)
+        _sb_delta = deltas.payload.social_battery_delta if domain == DeltaDomain.SOCIAL and isinstance(deltas.payload, SocialPayload) else 0.0
 
         # S-93: Reward Prediction Error (FEP) & EMA Ownership
         if domain == DeltaDomain.SOCIAL and isinstance(deltas.payload, SocialPayload) and hasattr(self, '_expectation_store') and self._expectation_store is not None:
@@ -557,6 +559,14 @@ class StateApplicator:
             
             # SEL: Trace Δ Layer commit. Легальный канал записи инерции и ожидания в M-слой.
             # Строго ограничен источником sel_trace_commit, чтобы избежать несанкционированных S-записей.
+
+        # SOCIAL: social_battery — внутреннее социальное состояние (предшественник Homeostasis)
+        _sb_delta = _sb_delta if '_sb_delta' in dir() else 0.0
+        if domain == DeltaDomain.SOCIAL and isinstance(deltas.payload, SocialPayload):
+            _sb_delta = getattr(deltas.payload, 'social_battery_delta', 0.0)
+        if _sb_delta != 0.0:
+            state.social_battery = max(0.0, min(100.0, state.social_battery + _sb_delta))
+            logger.debug(f"[SOCIAL_BATTERY] npc={state.npc_id} delta={_sb_delta:+.1f} result={state.social_battery:.1f}")
             if deltas.source == "sel_trace_commit" and isinstance(deltas.payload, EmotionPayload):
                 _payload_memory = getattr(deltas.payload, 'affective_memory', None)
                 if _payload_memory is not None:

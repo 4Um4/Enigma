@@ -18,11 +18,12 @@ from typing import Any, Dict, Optional, Tuple
 
 @dataclass(frozen=True)
 class SocialPayload:
-    """Дельты социальных отношений (NPC→Player, NPC→NPC)."""
+    """Дельты социальных отношений (NPC→Player, NPC→NPC) и социальной батареи."""
     trust_delta: float = 0.0
     fear_delta: float = 0.0
     affection_delta: float = 0.0
     debt_delta: float = 0.0
+    social_battery_delta: float = 0.0
 
 
 @dataclass(frozen=True)

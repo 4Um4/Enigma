@@ -191,7 +191,7 @@ python -m pytest backend/tests/sandbox/ -v --tb=short
 Один тик = строгая последовательность. Никаких «свободных вызовов» вне фаз.
 
 ```
-ФАЗА 1: Input
+ФАЗА 1: _phase_1_input_merge
     Источники: PlayerAction, WorldTick, Combat
     Выход: EventDTO
 
@@ -214,7 +214,7 @@ python -m pytest backend/tests/sandbox/ -v --tb=short
 ФАЗА 6: Post-Decision
     IntentEventAdapter: CommunicationIntent → EventDTO
 
-ФАЗА 7: EventBus (вторичная волна)
+ФАЗА 7: EventBus (вторичная волна)  RulesSubscriber
     event_bus.publish(event_from_npc)
 
 ФАЗА 8: Layered Reduction (ADR-016, ADR-027)

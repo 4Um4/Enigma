@@ -133,7 +133,7 @@ class MovementEngine:
                 # S91.1: Cross-location routing intercept (ДОЛГ 6.2)
                 # Если цель в другом чанке, направляем NPC в boundary node текущего чанка.
                 if scene_state and target_loc != "__UNKNOWN__":
-                    current_loc = npc_positions.get(intent.npc_id, {}).get("location", scene_state.get("location_id", ""))
+                    current_loc = npc_positions.get(intent.npc_id, {}).get("location_id", scene_state.get("location_id", ""))
                     if current_loc and target_loc != current_loc:
                         current_svc = self._resolve_spatial_service(current_loc, campaign_id, scene_state)
                         if current_svc:

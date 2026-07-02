@@ -219,7 +219,10 @@ class NpcTickPipeline:
             from app.services.cfrm.pressure_translator import translate_kernel_to_context
             _body = getattr(state_l2, 'body_state', None)
             _kernel = getattr(state_l2, 'perceptual_kernel', None)
-            _decision_ctx = translate_kernel_to_context(_kernel, body_state=_body) if _kernel else None
+            _social_battery = getattr(state_l2, 'social_battery', 50.0)
+            _psyche = getattr(state_l2, 'psyche', {})
+            _greg = _psyche.get("gregariousness", 0.5) if isinstance(_psyche, dict) else 0.5
+            _decision_ctx = translate_kernel_to_context(_kernel, body_state=_body, social_battery=_social_battery, gregariousness=_greg) if _kernel else None
 
             _effective_drives = state.effective_drives_map.get(npc_id)
             if _effective_drives is None: continue
@@ -813,7 +816,10 @@ def build_verbalization_context(
             from app.services.cfrm.pressure_translator import translate_kernel_to_context
             _body = getattr(state_l2, 'body_state', None)
             _kernel = getattr(state_l2, 'perceptual_kernel', None)
-            _decision_ctx = translate_kernel_to_context(_kernel, body_state=_body) if _kernel else None
+            _social_battery = getattr(state_l2, 'social_battery', 50.0)
+            _psyche = getattr(state_l2, 'psyche', {})
+            _greg = _psyche.get("gregariousness", 0.5) if isinstance(_psyche, dict) else 0.5
+            _decision_ctx = translate_kernel_to_context(_kernel, body_state=_body, social_battery=_social_battery, gregariousness=_greg) if _kernel else None
 
             _pl = getattr(hub_event, 'payload', '<NO_PAYLOAD>')
             logger.debug(f"[DIAG_PRE_HUB] npc={npc_id} topic={_topic} event={hub_event.event_type} payload={_pl} reflex={_reflex_constraints} emotion={state_l2.emotion} affective_load={state_l2.affective_load}")
@@ -1154,26 +1160,43 @@ def _resolve_reactive_movement(
 
         if threat_x is not None and threat_y is not None:
             if spatial_service:
-                # ADR-102: Исключаем текущий узел NPC из FLEE-кандидатов (бегство из своей зоны бессмысленно)
-                # BUG U FIX: Не исключаем текущий узел из FLEE-кандидатов.
+                # ADR-102: Не исключаем текущий узел из FLEE-кандидатов.
                 # Если NPC уже в самом дальнем узле от угрозы — get_furthest() вернёт его,
-                # и проверка target_node_id != _norm_current (стр. ~760) отменит бессмысленный flee.
+                # и проверка target_node_id != _norm_current отменит бессмысленный flee.
                 # Исключение текущего узла вызывало осцилляцию: с 2 узлами NPC
                 # всегда бежит в другой, а на следующем тике — обратно.
                 _exclude = set()
                 furthest_ref = spatial_service.get_furthest(zone_id=location_id, origin_xy=(threat_x, threat_y), exclude_node_ids=_exclude)
                 _furthest_id = getattr(furthest_ref, 'node_id', None) if furthest_ref else None
-                _norm_cur_diag = spatial_service.normalize_id(current_node) if current_node else ""
                 logger.debug(f"[FLEE_RESOLVE] npc={npc_id} current={current_node} threat={_target_id} furthest={_furthest_id}")
                 if furthest_ref:
                     # ADR-008: denormalize_id удален. Используем канонический ID напрямую.
                     target_node_id = getattr(furthest_ref, 'node_id', str(furthest_ref))
                 else:
-                    # PIPELINE FIX: SpatialService не нашёл дальний узел (зона без узлов или зона не совпадает)
-                    logger.warning(f"[FLEE_NAV] spatial_service.get_furthest() вернул None для зоны {location_id}")
+                    # S100 FIX: FLEE fallback при пустом графе (location_id mismatch).
+                    # get_furthest() вернул None — граф пуст или zone_id не совпадает с JSON.
+                    # Падаем обратно к micro-FLEE: инвертированный вектор от угрозы.
+                    logger.warning(f"[FLEE_NAV] get_furthest() вернул None для zone={location_id}. Fallback на micro-FLEE.")
+                    npc_entry = _pos(npc_id)
+                    npc_lp = npc_entry.get("local_position", {})
+                    npc_x = npc_lp.get("x", threat_x)
+                    npc_y = npc_lp.get("y", threat_y)
+                    _dx = float(npc_x) - float(threat_x)
+                    _dy = float(npc_y) - float(threat_y)
+                    _dist = (_dx ** 2 + _dy ** 2) ** 0.5
+                    if _dist > 0.01:
+                        # Нормируем и инвертируем (убегаем ОТ угрозы)
+                        _ndx = -_dx / _dist
+                        _ndy = -_dy / _dist
+                        return LocalSteeringGoal(
+                            npc_id=npc_id,
+                            target_local_xy=(_ndx * 3.0 + float(npc_x), _ndy * 3.0 + float(npc_y)),
+                            reason="reactive:flee:micro",
+                            priority=PRIORITY_REACTIVE,
+                        )
             if not target_node_id:
                 # ADR-102: SpatialService — единственный авторитет. Fallback на load_graph убит.
-                # Если узел не найден, NPC останется на месте (или перейдёт к micro_flee ниже).
+                # Если узел не найден и micro-FLEE не сработал — NPC останется на месте.
                 logger.warning(f"[FLEE_NAV] SpatialService не нашёл узел для zone={location_id}. Fallback на load_graph отменён (ADR-102).")
 
             # ADR-102: Нормализация перед сравнением (legacy 'room_1' != canonical 'tavern:room_1')

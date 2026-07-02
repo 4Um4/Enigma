@@ -5,6 +5,7 @@ from app.models.npc_state import PerceptualKernel
 from app.domain.decision_context import (
     DecisionContext, UtilityFieldDeformation, ActionSpaceCompression
 )
+from app.services.npc.behavior_modifiers import compute_behavior_modifiers
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +38,12 @@ def translate_pressure_to_context(pressure: PsychologicalPressure) -> DecisionCo
     )
 
 
-def translate_kernel_to_context(kernel: PerceptualKernel, body_state: Optional[Dict[str, Any]] = None) -> DecisionContext:
+def translate_kernel_to_context(
+    kernel: PerceptualKernel,
+    body_state: Optional[Dict[str, Any]] = None,
+    social_battery: float = 50.0,
+    gregariousness: float = 0.5,
+) -> DecisionContext:
     """
     Проекция консолидированного восприятия (T-1) в топологию решений.
     Вызывается из LifeEngine/WorldTickEngine для передачи каузального контекста в DecisionHub.
@@ -72,6 +78,9 @@ def translate_kernel_to_context(kernel: PerceptualKernel, body_state: Optional[D
             for action in ["FLEE", "ATTACK", "APPROACH", "MANIPULATE"]:
                 constraints[action] = min(constraints.get(action, 1.0), 0.3)
 
+    # Социальные модификаторы из Homeostasis (предшественник)
+    _social_mods = compute_behavior_modifiers(social_battery, gregariousness)
+
     # 2. Топологическая деформация (искривление utility-space)
     return DecisionContext(
         deformation=UtilityFieldDeformation(
@@ -81,5 +90,7 @@ def translate_kernel_to_context(kernel: PerceptualKernel, body_state: Optional[D
             escape_salience=kernel.threat_gradient * 0.5
         ),
         compression=ActionSpaceCompression(constraints=constraints),
-        source="perceptual_kernel"
+        source="perceptual_kernel",
+        social_outgoing=_social_mods.social_outgoing,
+        social_incoming=_social_mods.social_incoming,
     )

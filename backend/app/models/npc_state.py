@@ -532,6 +532,10 @@ class NPCState:
     # SEL Trace State: Ожидание угрозы (Baseline). Пишется только через sel_trace_commit.
     affective_memory: float = 0.0
 
+    # Социальная батарея: уровень социальной стимуляции (0=истощён, 100=перегружен).
+    # Меняется от событий (разговор, изоляция, толпа), не от времени.
+    social_battery: float = 50.0
+
     # R6.1 — накопленная скрытая агрессия к источнику давления.
     # Используется при выборе FAKE_SUBMISSION и BETRAYAL.
     resentment: float = 0.0
@@ -814,6 +818,8 @@ class NPCState:
         npc_dict["affective_load"] = state.affective_load
         # affective_memory — ожидание угрозы (SEL Baseline)
         npc_dict["affective_memory"] = state.affective_memory
+        # social_battery — уровень социальной стимуляции
+        npc_dict["social_battery"] = state.social_battery
 
         # emotion — текущая эмоция (ADR-116)
         # Без этого emotion сбрасывается в NEUTRAL каждый тик → DOUBLE TRUTH → _emotion_modifier() = 0.0
@@ -931,6 +937,8 @@ class NPCStateAdapter:
             affective_load = float(npc_dict.get("affective_load", 0.0)),
             # affective_memory — восстановление ожидания угрозы (SEL Baseline)
             affective_memory = float(npc_dict.get("affective_memory", 0.0)),
+            # social_battery — восстановление уровня социальной стимуляции
+            social_battery = float(npc_dict.get("social_battery", 50.0)),
             # emotion — восстановление текущей эмоции (ADR-116)
             # Без этого emotion = NEUTRAL каждый тик → _emotion_modifier() = 0.0
             emotion = _emotion_from_str(npc_dict.get("emotion", "neutral")),

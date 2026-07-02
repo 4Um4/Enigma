@@ -377,11 +377,6 @@ class GameLoop:
         """
         self._session_started_campaigns.discard(campaign_id)
 
-    def _get_npc_runtime_path(self, campaign_id: str) -> Path:
-        """[S98 Proxy] Делегирует в tick_utils.get_npc_runtime_path (SSOT)."""
-        from app.services.tick_utils import get_npc_runtime_path
-        return get_npc_runtime_path(campaign_id)
-
 
     def _get_life_engine(self):
         """Возвращает LifeEngine из TickOrchestrator."""
@@ -428,7 +423,8 @@ class GameLoop:
         npcs = engine.get_npc_states(campaign_id)
         if not npcs:
             from app.services.npc.npc_loader import load_npcs_merged
-            _runtime_path = self._get_npc_runtime_path(campaign_id)
+            from app.services.tick_utils import get_npc_runtime_path
+            _runtime_path = get_npc_runtime_path(campaign_id)
             npcs = load_npcs_merged(runtime_path=_runtime_path)
             # ADR-117: После загрузки с диска — немедленно обновить кэш.
             # Без этого каждый player turn перечитывает диск и затирает
@@ -565,7 +561,8 @@ class GameLoop:
         from app.services.campaign_state_service import get_campaign_state_service
         _campaign_svc = get_campaign_state_service()
         _cs = _campaign_svc.get_campaign_state(campaign_id) if _campaign_svc else None
-        _loc_id = (_cs.metadata.get("current_location", "") if _cs else "") or "tavern_silver_wolf"
+        from app.core.constants import DEFAULT_LOCATION_ID
+        _loc_id = (_cs.metadata.get("current_location", "") if _cs else "") or DEFAULT_LOCATION_ID
 
         # Шаг 3: LOCK — единственный источник truth для этого тика
         _scene = self.scene_manager.lock_for_tick(campaign_id, _loc_id)

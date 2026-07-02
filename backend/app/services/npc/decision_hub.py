@@ -933,6 +933,39 @@ class DecisionHub:
 
         return round(mod, 4)
 
+    # Инициация контакта — social_outgoing модификатор
+    _OUTGOING_SOCIAL = {
+        Intent.TALK.value, Intent.TRADE.value, Intent.HELP.value,
+        Intent.REQUEST_SERVICE.value, Intent.OFFER_JOB.value,
+        Intent.SPREAD_RUMOR.value, Intent.CALL_FOR_HELP.value,
+        Intent.APPROACH.value,
+    }
+    # Реакция на контакт — social_incoming модификатор
+    _INCOMING_SOCIAL = {
+        Intent.WARN.value, Intent.INTIMIDATE.value, Intent.EXPLAIN.value,
+    }
+
+    def _social_battery_modifier(
+        self,
+        intent: str,
+        decision_ctx: Optional["DecisionContext"] = None,
+    ) -> float:
+        """Читает готовые модификаторы из DecisionContext.
+        
+        DecisionHub не знает про social_battery или gregariousness.
+        Он видит только число. Если decision_ctx не передан или
+        поля отсутствуют (legacy path) — возвращает 0.0.
+        """
+        if decision_ctx is None:
+            return 0.0
+        outgoing = getattr(decision_ctx, 'social_outgoing', 0.0) or 0.0
+        incoming = getattr(decision_ctx, 'social_incoming', 0.0) or 0.0
+        if intent in self._OUTGOING_SOCIAL:
+            return outgoing
+        if intent in self._INCOMING_SOCIAL:
+            return incoming
+        return 0.0
+
     def _score_components(
         self,
         intent:        str,
@@ -1013,6 +1046,9 @@ class DecisionHub:
         # Буст даётся только если интент разблокирован сломленным NPC
         opportunity_mod = opportunity.score if intent in opportunity.unlocked_intents else 0.0
 
+        # Social battery modifier (предшественник Homeostasis)
+        social_mod = self._social_battery_modifier(intent, decision_ctx)
+
         return {
             "drive":        round(drive_score, 4),
             "emotion":      round(emotion_mod, 4),
@@ -1020,6 +1056,7 @@ class DecisionHub:
             "risk_penalty": risk_penalty,
             "trait":        round(trait_mod, 4),
             "opportunity":  round(opportunity_mod, 4),
+            "social":       round(social_mod, 4),
             # ADR-O-205: Проекция причины для Нарратива
             "redirect":     round(self._last_redirect, 4),
             "dominant_drive": self._last_dominant_drive,

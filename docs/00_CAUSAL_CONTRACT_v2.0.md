@@ -190,8 +190,8 @@ Simulation Truth (CFRM, Deltas)
     ✅ только через StateApplicator
 
 21. **Время как свойство сущности:**
-    ❌ npc.birth_time = world_clock.tick (сохраняем абсолютный тик)
-    ✅ только производные (age, time_alive, и т.д. как функции WorldClock)
+    ❌ npc.birth_time = world_clock.tick (семантический разрыв: tick — chronicle index, time — абсолютное game_time_seconds)
+    ✅ `birth_tick` (int, chronicle index) для L1Chronicle lookups; `birth_time` (float, game_time_seconds) для age-вычислений. Производные (age, time_alive) — функции WorldClock, не хранимые поля.
 
 22. **Множественные источники LOD уровня:**
     ❌ NPC сам определяет свой LOD

@@ -135,8 +135,9 @@
 `ADR-S85.1.1` [FIX] **Import & Adapter Fix (S85.1)** — `WillState` импортирован из `app.models.will` (не `vital_state`). `NPCStateAdapter.from_legacy` используется в `TickOrchestrator` вместо несуществующего `NPCState.from_legacy`.
   Files: tick_orchestrator.py
 
-`ADR-O-204` [ONTO] **Phase 3 Preconditions — Causal Kernel Surgery** — Предусловия для миграции Каузального Ядра (Фаза 3)
-  Files: scene_state_manager.py, event_compiler.py
+`ADR-O-204` [ONTO] **Phase 3 Preconditions — Causal Kernel Surgery** — Предусловия для миграции Каузального Ядра (Фаза 3). **ЭМПИРИЧЕСКИЙ ОВЕРРАЙД (S103):** Порог 100k comparisons признан избыточным. При 317 comparisons drift_B=134 (42.3%) — двойное создание traversal (apply_changes:1503 + EventCompiler:508) доказано без накопления. Surgery обязателен НЕЗАВИСИМО от счётчика. Шаг 1.1 плана (добор до 100k) ПРОПУЩЕН.
+  Status: SURGERY_REQUIRED
+  Files: scene_state_manager.py, event_compiler.py, drift_laboratory.py
 
 `ADR-O-205` [ONTO] **Projection Layer System** — Слой проекции физики в наблюдаемую реальность. Изоляция мутаций
   Files: scene_state_manager.py, projection_engine.py
@@ -194,6 +195,14 @@
 `ADR-S96.3` [FIX] **Needs Temporal Unification (Triple Truth Elimination)** — Устранён разрыв между `LifeEngine._tick_needs`, `NeedEngine` и `reconcile_state`. Все три системы теперь используют единую скорость роста потребностей, производную от `TemporalConstants.NEED_DECAY_PER_TICK` (0.08). Для `body_state` (шкала 0-100) применяется множитель `* 100.0`.
   Taboo: ❌ Локальные хардкоды `hunger_rate` или `decay_rate` для `FOOD`, не синхронизированные с `TemporalConstants`. ❌ Использование `elapsed_seconds` напрямую для роста потребностей в обход `ticks_equivalent`.
   Files: core/constants.py, npc/life_engine.py, models/economy.py
+
+`ADR-S101.1` [FIX] **WillpowerGate Avatar Stress Channel** — Добавлено поле `stress_delta` в `WillResponseDTO` и вычисление `stress_delta = resistance * pressure.moral_violation * 10.0` в `compute_willpower()`. Результат пробрасывается через `DeltaBuffer` → `EmotionPayload(emotion_tag="distress")` в `tick_orchestrator._phase_1_input`. Ортогонален `fear_delta` (self_risk ось) и Affective Pipeline (интеграл угрозы). DOUBLE APPLY исключён.
+  Taboo: ❌ Прямая мутация `player_dict["psyche"]["stress"]` в обход DeltaBuffer. ❌ Использование `stress_delta` из WillpowerGate для NPC (только `npc_id="player"`).
+  Files: models/will.py, services/will.py, services/tick_orchestrator.py
+
+`ADR-S102.1` [FIX] **Non-Blocking Backend Startup** — `yield` в FastAPI `lifespan` перемещён перед медленными операциями (llama-server spawn до 120с, LLM health check до 30с). Медленные операции вынесены в `asyncio.create_task` с записью статуса в `app.state.startup_status`. `/health` endpoint расширен полем `startup` для фронтенд-поллинга. `time.sleep` заменён на `asyncio.sleep` внутри фоновой задачи. Shutdown корректно отменяет фоновую задачу и синхронизирует глобальные переменные для `atexit`-хендлера.
+  Taboo: ❌ Блокирующие операции (`time.sleep`, `subprocess.Popen` + polling) до `yield` в lifespan. ❌ Фронтенд-поллинг `/health` без информации о статусе фоновых задач.
+  Files: main.py, api/routes.py
 
 ---
 

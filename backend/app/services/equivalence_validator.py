@@ -259,7 +259,8 @@ class EquivalenceValidator:
         # Оба имеют traversal — сравниваем ключевые поля
         # Статус: MOVING ≈ NEW (оба означают "в пути")
         _legacy_status = legacy_traversal.get("status", "") if legacy_traversal else ""
-        _shadow_status = shadow_traversal.status if shadow_traversal else ""
+        _shadow_status = (shadow_traversal.fields.get("status", "")
+                            if shadow_traversal and shadow_traversal.fields else "")
         _status_equivalent = (
             _legacy_status == _shadow_status
             or (_legacy_status == "MOVING" and _shadow_status == "NEW")

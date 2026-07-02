@@ -52,7 +52,7 @@
 **Актуальные DTO:**
 - **`IntentPressureProfile`** (`models/will.py`): Вектор давления на психику.
 - **`AmplifiedPressureProfile`** (`models/will.py`): Давление, искаженное `ResponseBias`.
-- **`WillResponseDTO`** (`models/will.py`): Результат WillpowerGate. `WillState` (канонический источник — `app.models.npc_state`, реэкспортируется из `app.models.will`, ADR-TZ6-1), `resistance`, `identity_damage`, `counter_offer`, `embodied_vector`.
+- **`WillResponseDTO`** (`models/will.py`): Результат WillpowerGate. `WillState` (канонический источник — `app.models.npc_state`, реэкспортируется из `app.models.will`, ADR-TZ6-1), `resistance`, `stress_delta` (ADR-S101.1: моральный конфликт → стресс аватара, 0-100 scale), `identity_damage`, `counter_offer`, `embodied_vector`.
 - **`CommunicationIntent`** (`domain/communication.py`): Единый источник истины для ответа NPC. Обязателен непустой `topic`. Добавлены `semantic_action` и `target_id` для проброса в `NPC_SPOKE` EventDTO.
 - **`WillConflictPayload`** (`models/delta_payloads.py`): Контракт данных о конфликте воли (сопротивление игрока приказу NPC). Пробрасывается через API в `WorldSnapshotDTO` для фронтенда (Resistance Medium).
 

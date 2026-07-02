@@ -1499,20 +1499,23 @@ class SceneStateManager:
                                                     _wdy = _waypoints[_wi + 1][1] - _waypoints[_wi][1]
                                                     dist += (_wdx * _wdx + _wdy * _wdy) ** 0.5
                                                 duration_ticks = max(1, math.ceil(dist / speed)) if speed > 0 else 1
-                                                # ADR-XXX: Единственный разрешённый способ создания traversal_dict
-                                                from app.domain.traversal_schema import build_traversal_dict
-                                                traversal_dict = build_traversal_dict(
-                                                    npc_id=change.target,
-                                                    from_node=_old_position or change.value,
-                                                    target_node=change.value,
-                                                    path_waypoints=_waypoints,
-                                                    started_tick=current_tick,
-                                                    duration_ticks=duration_ticks,
-                                                    speed=speed,
-                                                )
-                                                scene_state.setdefault("active_traversals", {})[change.target] = traversal_dict
-                                                logger.info(f"[TRAVERSAL] Start: npc={change.target} to_node={change.value} blocked={_blocked} waypoints={len(_waypoints)}")
-                                                print(f"[TRAVERSAL_COMMIT] npc={change.target} id(scene_state)={id(scene_state)} active_traversals_now={list(scene_state.get('active_traversals', {}).keys())}")
+                                                # ADR-O-204 S103: ProjectionEngine уже записал traversal — не дублируем (Rule 120 / drift_B)
+                                                if change.target not in scene_state.get("active_traversals", {}):
+                                                    from app.domain.traversal_schema import build_traversal_dict
+                                                    traversal_dict = build_traversal_dict(
+                                                        npc_id=change.target,
+                                                        from_node=_old_position or change.value,
+                                                        target_node=change.value,
+                                                        path_waypoints=_waypoints,
+                                                        started_tick=current_tick,
+                                                        duration_ticks=duration_ticks,
+                                                        speed=speed,
+                                                    )
+                                                    scene_state.setdefault("active_traversals", {})[change.target] = traversal_dict
+                                                    logger.info(f"[TRAVERSAL] Start: npc={change.target} to_node={change.value} blocked={_blocked} waypoints={len(_waypoints)}")
+                                                    print(f"[TRAVERSAL_COMMIT] npc={change.target} id(scene_state)={id(scene_state)} active_traversals_now={list(scene_state.get('active_traversals', {}).keys())}")
+                                                else:
+                                                    logger.debug(f"[SSM] Traversal exists for {change.target} (ProjectionEngine) — skip dual creation")
                                         except Exception as _trav_exc:
                                             logger.error(f"[TRAVERSAL_CRASH] npc={change.target} exc={_trav_exc}", exc_info=True)
                                             _create_traversal = False

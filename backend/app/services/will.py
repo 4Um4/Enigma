@@ -124,6 +124,7 @@ def compute_willpower(
     shame = psyche.get("shame", 0.5)
     aggression = psyche.get("aggression", 0.5)
     curiosity = psyche.get("curiosity", 0.5)
+    gregariousness = psyche.get("gregariousness", 0.5)
     
     # GAP2 FIX: Амнезия Воли. Травмы закаляют идентичность.
     # Обиженный NPC упрямее. Каждая травма повышает resistance к давлению.
@@ -148,9 +149,12 @@ def compute_willpower(
     # Определение WillState на основе напряжения
     state = _map_resistance_to_state(resistance)
     
-    # Расчет побочных эффектов (Урон идентичности и страх)
+    # Расчет побочных эффектов (Урон идентичности, страх, стресс от морального конфликта)
     identity_damage = resistance * pressure.identity_deviation * 0.2 if resistance > 0.4 else 0.0
     fear_delta = resistance * pressure.self_risk * 0.3
+    # Стресс аватара: моральное нарушение + сопротивление = внутренний конфликт
+    # Масштаб 0-10 за действие (NPCState.stress = 0-100)
+    stress_delta = resistance * pressure.moral_violation * 10.0
     
     # Генерация Counter-Offer (Аватар пытается выжить)
     counter_offer = _generate_counter_offer(pressure, state)
@@ -169,6 +173,7 @@ def compute_willpower(
         state=state,
         resistance=resistance,
         fear_delta=fear_delta,
+        stress_delta=stress_delta,
         identity_damage=identity_damage,
         counter_offer=counter_offer,
         narration_hooks=hooks,

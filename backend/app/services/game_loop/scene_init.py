@@ -236,7 +236,7 @@ def init_scene_state(
 
 
 def _resolve_location_from_save(loop: Any, campaign_id: str) -> str:
-    """Определяет текущую локацию из сохранения, fallback — tavern_silver_wolf."""
+    """Определяет текущую локацию из сохранения, fallback — DEFAULT_LOCATION_ID."""
     try:
         existing = loop.scene_manager._read_campaign_json(campaign_id)
         raw = existing.get("scene_state", existing)
@@ -244,7 +244,8 @@ def _resolve_location_from_save(loop: Any, campaign_id: str) -> str:
             return raw["location_id"]
     except Exception as e:
         logger.warning(f"[GAME_LOOP] Ошибка получения location_id: {e}")
-    return "tavern_silver_wolf"
+    from app.core.constants import DEFAULT_LOCATION_ID
+    return DEFAULT_LOCATION_ID
 
 
 def _enrich_walls_from_editor(scene_state: dict, editor_data: dict) -> list:

@@ -76,6 +76,7 @@ MOTION_ROUTING_THRESHOLD = 5.0  # единиц координат (для loggin
 
 from app.core.constants import (
     CAMPAIGN_TTL_SECONDS,
+    DEFAULT_LOCATION_ID,
     MACRO_SIM_THRESHOLD_SECONDS,
     MAX_CACHED_CAMPAIGNS,
     MINOR_TICK_INTERVAL,
@@ -492,7 +493,7 @@ class LifeEngine:
 
             # ADR-OFFSCREEN-SKIP: NPC не в текущей локации не симулируются.
             _current_loc = scene_state.get("location_id", "")
-            _npc_loc = npc.get("location") or npc.get("location_id") or ""
+            _npc_loc = npc.get("location_id") or ""
             if _current_loc and _npc_loc and _npc_loc != _current_loc:
                 logger.debug(f"[LIFE_ENGINE][OFFSCREEN] npc={npc_id} loc={_npc_loc} != scene_loc={_current_loc} — skipped")
                 continue
@@ -656,7 +657,10 @@ class LifeEngine:
                 # GAP3 FIX: Передаем body_state для соматического вето
                 _body = getattr(state_l2, 'body_state', None)
                 _kernel = getattr(state_l2, 'perceptual_kernel', None)
-                _decision_ctx = translate_kernel_to_context(_kernel, body_state=_body) if _kernel else None
+                _social_battery = getattr(state_l2, 'social_battery', 50.0)
+                _psyche = getattr(state_l2, 'psyche', {})
+                _greg = _psyche.get("gregariousness", 0.5) if isinstance(_psyche, dict) else 0.5
+                _decision_ctx = translate_kernel_to_context(_kernel, body_state=_body, social_battery=_social_battery, gregariousness=_greg) if _kernel else None
 
                 # ADR-O-208: effective_drives — обязательный аргумент DecisionHub.compute()
                 # Вычисляется в TickOrchestrator через DriveResolver + L1Chronicle.
@@ -835,7 +839,7 @@ class LifeEngine:
                             
                             if _anchor_type != "npc_cluster" and self._spatial_service:
                                 _role_map = {"bar": NodeRole.BAR, "entrance": NodeRole.ENTRANCE, "table": NodeRole.TABLE}
-                                _ref = self._spatial_service.resolve_node(role=_role_map[_anchor_type], origin_zone=npc.get("location"))
+                                _ref = self._spatial_service.resolve_node(role=_role_map[_anchor_type], origin_zone=npc.get("location_id"))
                                 if _ref:
                                     _anchor_xy = {"x": float(_ref.x), "y": float(_ref.y)}
                                     _intent_mask = {"bar": "get_drink", "entrance": "check_entrance", "table": "sit_down"}.get(_anchor_type, "observe_area")
@@ -1048,6 +1052,7 @@ class LifeEngine:
             try:
                 runtime_npcs = self._persistence.load_npc_runtime(campaign_id)
                 if runtime_npcs is not None:
+                    runtime_npcs = self._normalize_runtime_npcs(runtime_npcs)
                     self._npc_cache[campaign_id] = runtime_npcs
                     self._last_access[campaign_id] = time.time()  # §15.2: Infrastructure (cache TTL)
                     self._last_access.move_to_end(campaign_id)
@@ -1080,19 +1085,32 @@ class LifeEngine:
 
         return []
 
+    @staticmethod
+    def _normalize_runtime_npcs(npcs: list) -> list:
+        """Migration Boundary: приводит загруженные NPC dicts к runtime-контракту.
+        
+        Все источники (SQLite, JSON, cache) проходят эту нормализацию
+        при холодной загрузке. Горячий путь (cache hit) пропускается —
+        данные уже нормализованы при первом заходе.
+        
+        Инвариант: после этого метода каждый NPC dict гарантированно имеет
+        npc_id, body_state, location_id.
+        """
+        from app.models.npc_state import BODY_STATE_HEALTHY
+        from app.core.constants import DEFAULT_LOCATION_ID
+        for npc in npcs:
+            if "npc_id" not in npc and "id" in npc:
+                npc["npc_id"] = npc["id"]
+            if not npc.get("body_state"):
+                npc["body_state"] = dict(BODY_STATE_HEALTHY)
+            if "location_id" not in npc:
+                npc["location_id"] = npc.get("location", DEFAULT_LOCATION_ID)
+        return npcs
+
     # TODO Rename this here and in `_load_npcs`
     def _extracted_from__load_npcs_14(self, arg0, campaign_id):
         npcs = json.loads(arg0.read_text(encoding="utf-8"))
-        # ENTITY BIRTH CONTRACT: COLD-2 fallback — прямое чтение JSON минуя
-        # load_npcs_merged. Без нормализации NPC приходят без body_state и npc_id
-        # → SOMATIC_VETO блокирует когнитивный pipeline.
-        # Это единственный оставшийся путь, обходящий Entity Birth Contract.
-        from app.models.npc_state import BODY_STATE_HEALTHY
-        for npc in npcs:
-            if not npc.get("body_state"):
-                npc["body_state"] = dict(BODY_STATE_HEALTHY)
-            if "npc_id" not in npc and "id" in npc:
-                npc["npc_id"] = npc["id"]
+        npcs = self._normalize_runtime_npcs(npcs)
         self._npc_cache[campaign_id] = npcs
         return npcs
 
@@ -1147,7 +1165,7 @@ class LifeEngine:
         Возвращает список (event_id, changes, intent_or_none).
         """
         npc_id   = npc.get("id", "unknown")
-        location = npc.get("location", "tavern_silver_wolf")
+        location = npc.get("location_id", DEFAULT_LOCATION_ID)
 
         # Резолвим BAR узел через SpatialService v1.2, fallback на хардкод
         bar_target = "bar_area"  # @deprecated: fallback
@@ -1215,7 +1233,7 @@ class LifeEngine:
             ], None),
         ]
         # Событие wanders_to_bar только в таверне — иначе MovementEngine не найдёт узел
-        if location != "tavern_silver_wolf":
+        if location != DEFAULT_LOCATION_ID:
             events = [e for e in events if e[0] != "wanders_to_bar"]
         return events
 
@@ -1452,14 +1470,14 @@ class LifeEngine:
             }
             _role = _NEED_ROLE_MAP.get(target_activity)
             if _role:
-                _ref = self._spatial_service.resolve_node(role=_role, origin_zone=npc.get("location"))
+                _ref = self._spatial_service.resolve_node(role=_role, origin_zone=npc.get("location_id"))
                 if _ref:
                     target_entry = {"location": _ref.zone_id, "position": _ref.node_id, "display": target_activity}
                 elif target_activity in ("resting", "sleeping"):
                     # Fallback: BED не найден → отдых на любом доступном узле (скамейка, земля)
                     # sleeping требует BED строго, resting — нет
                     if target_activity == "resting":
-                        _ref = self._spatial_service.resolve_node(role=NodeRole.DEFAULT, origin_zone=npc.get("location"))
+                        _ref = self._spatial_service.resolve_node(role=NodeRole.DEFAULT, origin_zone=npc.get("location_id"))
                         if _ref:
                             target_entry = {"location": _ref.zone_id, "position": _ref.node_id, "display": target_activity}
                             logger.debug(f"[NEED_TRACE] npc={npc_id} BED not found, resting fallback to DEFAULT node {_ref.node_id}")
@@ -1914,13 +1932,13 @@ class LifeEngine:
             }
             role = _ACTIVITY_TO_ROLE_MAP.get(activity)
             if role:
-                ref = self._spatial_service.resolve_node(role=role, origin_zone=npc.get("location"))
+                ref = self._spatial_service.resolve_node(role=role, origin_zone=npc.get("location_id"))
                 if ref:
                     return (ref.zone_id, ref.node_id, activity)
 
             # 3. Fallback: NodeRole.DEFAULT в текущей локации NPC
             #    Паттерн уже используется в life_engine (см. _NEED_ROLE_MAP).
-            origin_zone = npc.get("location") or npc.get("location_id")
+            origin_zone = npc.get("location_id")
             if origin_zone:
                 default_ref = self._spatial_service.resolve_node(
                     role=NodeRole.DEFAULT, origin_zone=origin_zone,
@@ -1935,7 +1953,7 @@ class LifeEngine:
 
         # 4. Last-resort: NPC остаётся на текущей позиции (no-op movement)
         #    НЕ выдумываем node_id — это и есть фикс ADR-S85.1 + §13.
-        current_location = npc.get("location") or npc.get("location_id")
+        current_location = npc.get("location_id")
         current_position = npc.get("position")
         
         # ADR-GUARD: position recovery must be deterministic

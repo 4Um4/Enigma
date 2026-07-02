@@ -2,7 +2,7 @@
 from datetime import datetime
 from typing import Literal, List
 
-from fastapi import APIRouter, Body, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Body, File, Form, HTTPException, UploadFile, Request
 
 # A2-FIX: snapshot_npc_positions_to_dict удалён (canonical Dict)
 from app.models.schemas import (
@@ -77,7 +77,7 @@ def get_ports() -> dict:
     return get_runtime_ports()
 
 @router.get("/health")
-async def health() -> dict:
+async def health(request: Request) -> dict:
     from app.services.llm.provider_manager import get_model_pool
     pool = get_model_pool()
     
@@ -87,14 +87,21 @@ async def health() -> dict:
                     for camp_id in active_campaigns)
     pool_status = await pool.get_status()
     
+    # DEBT-STARTUP-1: Статус фоновых задач старта
+    startup_status = getattr(request.app.state, 'startup_status', {})
+    _llm_server = startup_status.get("llm_server", "unknown")
+    _llm_health = startup_status.get("llm_health", "unknown")
+    _llm_overall = "ready" if _llm_server == "ready" and _llm_health == "ready" else _llm_server
+
     return {
         "status": "ok",
         "service": "local-ai-dm",
-        "llm": llm_status.get("status", "unknown"),
+        "llm": _llm_overall,
         "llm_model": llm_status.get("model", None),
         "pool": pool_status,
         "players": total_players,
-        "sessions": len(active_campaigns)
+        "sessions": len(active_campaigns),
+        "startup": startup_status,
     }
 
 
@@ -525,7 +532,7 @@ def get_npcs(campaign_id: str, game_loop=Depends(get_game_loop)) -> dict:
         if current_location:
             npcs = [
                 npc for npc in npcs
-                if npc.get("location") == current_location
+                if npc.get("location_id") == current_location
             ]
 
         return {"npcs": npcs, "count": len(npcs)}

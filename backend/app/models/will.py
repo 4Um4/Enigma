@@ -58,6 +58,7 @@ class WillResponseDTO:
     state: WillState
     resistance: float = 0.0                         # 0.0-1.0, вычисленная сила сопротивления
     fear_delta: float = 0.0                         # Прирост страха
+    stress_delta: float = 0.0                       # Стресс от морального конфликта (0-100 scale)
     identity_damage: float = 0.0                    # Урон идентичности (травма)
     generated_emotions: List[EmotionPayload] = field(default_factory=list) # Эмоции конфликта
     generated_memories: List[Dict[str, Any]] = field(default_factory=list) # Следы в аффективной памяти

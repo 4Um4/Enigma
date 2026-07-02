@@ -30,6 +30,9 @@ class DecisionContext:
     affective_load: float = 0.0
     # (affective_velocity удалён за нарушение Rule X — ADR-101/112)
     affective_acceleration: float = 0.0
+    # Модификаторы из compute_behavior_modifiers (предшественник Homeostasis)
+    social_outgoing: float = 0.0
+    social_incoming: float = 0.0
 
     @classmethod
     def from_kernel(cls, kernel: "PerceptualKernel") -> "DecisionContext":
