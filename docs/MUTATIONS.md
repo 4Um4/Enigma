@@ -100,6 +100,20 @@
   - **Новые баги обнаружены (не в рамках surgery):** `merchant_goran` теряет position при переходе city_gate→tavern (NO_POSITION warning). Не фиксится — вне scope Фазы 1.
   Files: docs/audits/ADR-O-310_IMPACT.md, docs/audits/ADR-O-311_IMPACT.md, docs/RUNTIME ARCHAEOLOGY MAP.md, docs/00_CAUSAL_CONTRACT_v2.0.md, docs/ADR (Architecture Decision Records).md, backend/tests/sandbox/SUPERBOX/drift_laboratory.py, backend/app/services/tick_orchestrator.py, backend/app/services/scene_state_manager.py, backend/app/services/equivalence_validator.py
 
+- 🔵 **S104** Декомпозиция Фаз 0.5 и 9 (Оркестратор).
+  - **Археология FLEE_NAV (Task 1):** Гипотеза S100 о mismatch `location_id` оказалась ложной. `tavern.json` содержит `"location_id": "tavern_silver_wolf"`, что совпадает с `DEFAULT_LOCATION_ID`. Micro-FLEE fallback из S100 сохранён как safety net.
+  - **Декомпозиция Фазы 0.5 (Task 2):** Создан `phases/idle_services.py` (~110 строк). Вынесены L1Chronicle TTL, DynamicAffordanceField purge/decay, PE Decay, Affective Decay, Perceptual Decay, Idle Handlers. Внедрён `Phase0_5Deps`. Оркестратор сокращён на ~105 строк.
+  - **Декомпозиция Фазы 9 (Task 3):** Создан `phases/affective.py` (~160 строк). Вынесен `_run_affective_pipeline`. Внедрён `Phase9Deps`. Инвариант ADR-S96.2 сохранён. Оркестратор сокращён на ~160 строк.
+  - DriftLaboratory: comparisons=4, 0 errors.
+  Files: backend/app/services/tick_orchestrator.py, backend/app/services/phases/idle_services.py, backend/app/services/phases/affective.py
+
+- 🔵 **S105** Декомпозиция остатка Фазы 9 (Integration).
+  - Создан `phases/integration.py` (~150 строк). Вынесен `_phase_9_integration` (CFRM P2, L2.5 Belief Crystallization, WorldSnapshot Assembly).
+  - Внедрён `Phase9IntegrationDeps`.
+  - Ленивая инициализация `_manifest_svc` и `_project_svc` сохранена в обёртке оркестратора.
+  - Smoke-test: `TickOrchestrator` инициализируется без ошибок, `_phase_9_integration` доступен.
+  Files: backend/app/services/tick_orchestrator.py, backend/app/services/phases/integration.py
+
 ### DOM-02: WILL, PRESSURE & DECISION
 
 **Истина:** Решения рождаются из искривленного давления (Utility Deformation). Воля — инерция, а не порог. Подчинение требует легитимности.
@@ -123,6 +137,13 @@
 - 🔵 **S86** ADR-TZ08-6: Онтологическое разделение контрактов. Внедрён `observed_state` (name, description, narrative_cache) в `npc_tick_pipeline.py`. `real_state` и `distortion_bias` полностью удалены из генерации ядра. `r3_direct_builder` переведён на чтение безопасной проекции. Эпистемический Барьер обеспечен на уровне генерации данных.
 - 🔵 **S86** ADR-TZ05-1: Изгнание LLM-логики из ядра. Функция `build_verbalization_context` и класс `VerbalizationContext` удалены из `npc_tick_pipeline.py`. Ядро больше не собирает ментальные объекты для LLM. Передаётся только строка `topic`. `r3_direct_builder` обновлён для чтения `topic` напрямую.
 - 🟢 **S86** ТЗ-02 (Шаг 1): BUG-001 закрыт. Директивные `perception`-поля применяются вне зависимости от `DeltaDomain`. Каузальная труба воли (приказ → pressure → PerceptualKernel) открыта.
+
+- 🔵 **S106** Декомпозиция Фазы 1 (WillpowerGate).
+  - Создан `phases/input.py` (~170 строк). Вынесены `_phase_1_input` (Cumulative Strain Model, Affective Resonance) и `_publish_player_intent`.
+  - Внедрён `Phase1InputDeps`.
+  - Инварианты ADR-031, ADR-036, ADR-039 сохранены.
+  - Smoke-test: `TickOrchestrator` инициализируется без ошибок, методы доступны.
+  Files: backend/app/services/tick_orchestrator.py, backend/app/services/phases/input.py
 - 🟢 **S86** ТЗ-02 (Шаг 7): `BreakProgressEngine.calculate` подключен к `_phase_5_decision` (до DecisionHub). `WillState.BROKEN` достижим.
 - ⚪ **S86** ТЗ-02 (Шаг 8): `BehaviorMask` назначается на основе state. Введён как гистерезисный (квазистабильный) социальный слой между состоянием NPC и DecisionHub.
 - 🔵 **S93** ADR-S93.2: Secondary Cognitive Contour. Внедрён `PEModifierResolver` и `ExpectationStore`. Ожидания преобразуются в `drive_modifiers` через `tanh` и `Clamp` (0.25). `StateApplicator` — Single Writer для EMA. Затухание ожиданий привязано к `dt_game` в Фазе 0.5.
@@ -445,3 +466,4 @@
 88. ❌ Использование `PatternDetector` без передачи `L1Chronicle` в конструктор (ADR-S93.3)
 89. ❌ Жёсткие пороги (if/else) в формировании убеждений `BeliefCrystallizationEngine` (ADR-S93.3)
 90. ❌ Отсутствие затухания ожиданий в Фазе 0.5 — ожидания обязаны затухать привязанные к `dt_game` (ADR-S93.2)
+

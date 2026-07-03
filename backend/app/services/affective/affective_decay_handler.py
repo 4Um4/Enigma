@@ -51,6 +51,8 @@ class AffectiveDecayHandler:
                 continue
 
             # Шаг затухания интеграла
+            # ADR-O-206: Физиологическое восстановление (пульс) стабильно.
+            # Память (шрам) влияет на будущие реакции (через baseline в AffectiveIntegrator), а не на decay.
             new_load = max(0.0, load - self.DEFAULT_RECOVERY_RATE)
 
             # S73: Фазовый коллапс. Нагрузка упала — эмоция должна отвалиться.

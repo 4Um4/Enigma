@@ -272,11 +272,11 @@ class EventMemory:
         """
         if self.stage != MemoryStage.ABSTRACT:
             return None
-        # Негативные эмоции → накопление resentment
-        if self.emotion_tag in ("angry", "fearful", "disgusted"):
+        # ADR-O-206: Черты кристаллизуются из семантики события (tags) и его важности (importance).
+        # EmotionTag изолирован от мутации идентичности.
+        if any(tag in self.tags for tag in ("hostile", "theft", "vandalism", "combat")):
             return ("resentment", round(self.importance * 0.1, 4))
-        # Позитивные → накопление dependency
-        if self.emotion_tag in ("grateful", "happy"):
+        if any(tag in self.tags for tag in ("gift", "trade", "alliance", "help")):
             return ("dependency", round(self.importance * 0.1, 4))
         return None
 
@@ -532,9 +532,11 @@ class NPCState:
     # SEL Trace State: Ожидание угрозы (Baseline). Пишется только через sel_trace_commit.
     affective_memory: float = 0.0
 
-    # Социальная батарея: уровень социальной стимуляции (0=истощён, 100=перегружен).
-    # Меняется от событий (разговор, изоляция, толпа), не от времени.
-    social_battery: float = 50.0
+    # Social Satiation: уровень социального насыщения (0=голод/изоляция, 100=пресыщение/перегруз).
+    # Дрейфует к равновесию (setpoint) под давлением разницы (setpoint - EMA).
+    social_satiation: float = 50.0
+    # Социальное давление (EMA): скользящее среднее социального входа (0.0 - нет входа, 1.0 - перегруз).
+    social_input_ema: float = 0.0
 
     # R6.1 — накопленная скрытая агрессия к источнику давления.
     # Используется при выборе FAKE_SUBMISSION и BETRAYAL.
@@ -818,8 +820,10 @@ class NPCState:
         npc_dict["affective_load"] = state.affective_load
         # affective_memory — ожидание угрозы (SEL Baseline)
         npc_dict["affective_memory"] = state.affective_memory
-        # social_battery — уровень социальной стимуляции
-        npc_dict["social_battery"] = state.social_battery
+        # social_satiation — уровень социального насыщения
+        npc_dict["social_satiation"] = state.social_satiation
+        # social_input_ema — поле континуального социального давления
+        npc_dict["social_input_ema"] = state.social_input_ema
 
         # emotion — текущая эмоция (ADR-116)
         # Без этого emotion сбрасывается в NEUTRAL каждый тик → DOUBLE TRUTH → _emotion_modifier() = 0.0
@@ -937,8 +941,10 @@ class NPCStateAdapter:
             affective_load = float(npc_dict.get("affective_load", 0.0)),
             # affective_memory — восстановление ожидания угрозы (SEL Baseline)
             affective_memory = float(npc_dict.get("affective_memory", 0.0)),
-            # social_battery — восстановление уровня социальной стимуляции
-            social_battery = float(npc_dict.get("social_battery", 50.0)),
+            # social_satiation — восстановление уровня социального насыщения
+            social_satiation = float(npc_dict.get("social_satiation", float(npc_dict.get("social_battery", 50.0)))),
+            # social_input_ema — восстановление поля социального давления
+            social_input_ema = float(npc_dict.get("social_input_ema", 0.0)),
             # emotion — восстановление текущей эмоции (ADR-116)
             # Без этого emotion = NEUTRAL каждый тик → _emotion_modifier() = 0.0
             emotion = _emotion_from_str(npc_dict.get("emotion", "neutral")),

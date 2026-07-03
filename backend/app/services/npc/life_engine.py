@@ -631,10 +631,9 @@ class LifeEngine:
                 # Когнитивные искажения — idle NPC подвержены накопленным bias (Устав §3.1)
                 # L3-P2: InterpretationEngine должен видеть ТЕКУЩИЕ драйвы (L3),
                 # не стартовый профиль (L0).
-                _drives_for_interp = (
-                    getattr(state_l2, 'drives_runtime', None)
-                    or profile_l0.drives_base
-                )
+                # ADR-O-208: L3-P1. В Фазе 0 L3 ещё не вычислен. Используем строго L0 (archetype).
+                # drives_runtime (кэш L3) запрещён к чтению.
+                _drives_for_interp = profile_l0.drives_base
                 interpretation = InterpretationEngine().compute(
                     state=state_l2, event=event, drives_base=_drives_for_interp
                 )

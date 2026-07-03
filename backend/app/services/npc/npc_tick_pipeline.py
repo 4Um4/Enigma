@@ -151,7 +151,9 @@ class NpcTickPipeline:
             except Exception as _belief_err:
                 logger.warning(f"[BELIEF] belief update failed for {npc_id}: {_belief_err}")
 
-            _drives_for_interp = getattr(state_l2, 'drives_runtime', None) or profile_l0.drives_base
+            # ADR-O-208: L3-P2. InterpretationEngine использует эфемерную проекцию (L3).
+            _ed = state.effective_drives_map.get(npc_id)
+            _drives_for_interp = _ed.values if _ed else profile_l0.drives_base
             _event_for_interp = state.hub_event if state.hub_event else EventContext(
                 event_type=EventType.WORLD_TICK, actor_id=npc_id, success=True, intensity=0.2,
                 distance=0.0, witness_count=0, location=state.scene_state.get("location_id", ""),
@@ -494,7 +496,9 @@ def build_verbalization_context(
     # profile_l0.drives_base = seed (Layer 1). state.drives_runtime = current (Layer 2).
     # DecisionHub должен видеть ТЕКУЩИЕ драйвы (с учётом мутаций), не seed.
     # ИСПРАВЛЕНО: аргумент называется state_for_llm, не state. NameError на `state`.
-    _drives_raw = getattr(state_for_llm, 'drives_runtime', None) or profile_l0.drives_base
+    # ADR-O-208: L3-P2. VerbalizationContext использует эфемерную проекцию (L3).
+    _ed = state.effective_drives_map.get(profile_l0.id)
+    _drives_raw = _ed.values if _ed else profile_l0.drives_base
     if isinstance(_drives_raw, dict) and _drives_raw:
         _dominant_drive = max(_drives_raw.items(), key=lambda x: x[1])[0]
     else:

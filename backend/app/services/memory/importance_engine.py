@@ -29,14 +29,14 @@ def score_event(
     event: Dict[str, Any],
     npc_clarity: float = 1.0,
     npc_stress: float = 0.0,
-    emotion_tag: Optional[str] = None,
 ) -> float:
     """
-    R5.3 — Расширенный расчёт importance.
+    ADR-O-206: Расчёт importance на основе каузальной глубины (Surprise).
+    EmotionTag полностью изолирован от логики памяти.
     
     Базовая важность + модификаторы от восприятия NPC.
     clarity снижает важность при плохом восприятии.
-    Высокий стресс усиливает эмоционально значимые события.
+    Высокий стресс усиливает значимость структурных разрывов.
     """
     event_type = (
         event.get("type")

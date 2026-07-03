@@ -306,11 +306,8 @@ def apply_conditioning(
             # Угрозы и оскорбления усиливают унижение
             if "threaten" in _action or "insult" in _action:
                 humiliation += 0.3
-                
-        # Проверка эмоций: если есть стыд или позор — тоже унижение
-        for emo in will_response.generated_emotions:
-            if hasattr(emo, 'emotion_tag') and emo.emotion_tag in ("shame", "humiliation", "mortification"):
-                humiliation += 0.4
+        # ADR-O-206: EmotionTag изолирован от аффективного цикла.
+        # Унижение вычисляется строго из физики (WillState + action).
                 
         new_imp = AffectiveImprint(
             source_entity_id=_target or "unknown",

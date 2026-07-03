@@ -20,10 +20,16 @@ from app.services.events.event_types import EventType
 
 logger = logging.getLogger(__name__)
 
-# --- Коэффициенты (единственное место в системе) ---
-_SOCIAL_BATTERY_CONVERSATION_GAIN = 12.0    # одна реплика NPC_SPOKE
-_SOCIAL_BATTERY_ISOLATION_RATE = 0.15      # потеря за тик без взаимодействия
-_SOCIAL_BATTERY_MIN = 0.0
+import math
+
+# --- Коэффициенты гомеостаза ---
+_SOCIAL_SATIATION_CONVERSATION_GAIN = 12.0  # скачок насыщения за реплику
+_SOCIAL_EMA_CONVERSATION_GAIN = 0.2         # скачок EMA за реплику (факт входа)
+# Полураспад EMA: 50 тиков (5 минут game-time). ln(2) / 50 ≈ 0.0138
+_SOCIAL_EMA_DECAY_RATE = math.log(2) / 50.0 
+# Множитель дрейфа насыщения от давления (setpoint - actual). 
+# Определяет, насколько быстро NPC "скучает" или "перегружается".
+_SOCIAL_DRIFT_SCALE = 2.0                   
 
 
 class HomeostasisProjector:
@@ -76,7 +82,8 @@ class HomeostasisProjector:
                 npc_id=_npc_id,
                 domain=DeltaDomain.SOCIAL,
                 payload=SocialPayload(
-                    social_battery_delta=_SOCIAL_BATTERY_CONVERSATION_GAIN,
+                    social_satiation_delta=_SOCIAL_SATIATION_CONVERSATION_GAIN,
+                    social_input_ema_delta=_SOCIAL_EMA_CONVERSATION_GAIN,
                 ),
                 source="homeostasis_conversation",
             ))
@@ -93,27 +100,44 @@ class HomeostasisProjector:
     def compute_isolation_decay(
         all_npcs_raw: List[dict],
     ) -> List[StateDeltas]:
-        """Time-driven decay: social_battery падает без взаимодействия.
-
-        Вызывается из Phase 0.5. Возвращает дельты для delta_buffer.
-        Clamp выполняется в StateApplicator — проектор не знает про границы.
+        """Field-driven drift: social_satiation дрейфует под давлением гомеостаза.
+        
+        Pressure = Setpoint (gregariousness) - Actual (EMA).
+        Если Pressure > 0 (скучно) → satiation падает.
+        Если Pressure < 0 (перегруз) → satiation растёт.
+        Также EMA затухает к 0 (память о социальном входе растворяется).
+        Вызывается из Phase 0.5. Clamp выполняется в StateApplicator.
         """
         deltas: List[StateDeltas] = []
 
         for npc_dict in all_npcs_raw:
             _npc_id = npc_dict.get("npc_id", "")
-            _sb = npc_dict.get("social_battery")
-            # Пропускаем: нет поля, игрок, уже на нуле
-            if _sb is None or _npc_id == "player" or _sb <= _SOCIAL_BATTERY_MIN:
+            if not _npc_id or _npc_id == "player":
                 continue
 
-            deltas.append(StateDeltas(
-                npc_id=_npc_id,
-                domain=DeltaDomain.SOCIAL,
-                payload=SocialPayload(
-                    social_battery_delta=-_SOCIAL_BATTERY_ISOLATION_RATE,
-                ),
-                source="homeostasis_isolation",
-            ))
+            _psyche = npc_dict.get("psyche", {})
+            # Setpoint: вычисляется на лету из gregariousness. 0.2 (интроверт) ... 0.8 (экстраверт)
+            _setpoint = 0.2 + (0.6 * float(_psyche.get("gregariousness", 0.5)))
+            _actual = float(npc_dict.get("social_input_ema", 0.0))
+
+            # Давление: разница между желаемым и реальным.
+            _pressure = _setpoint - _actual
+            
+            # Дрейф насыщения: изоляция (pressure > 0) опускает, перегруз (pressure < 0) поднимает.
+            _satiation_delta = -_pressure * _SOCIAL_DRIFT_SCALE
+            
+            # Затухание EMA (полураспад)
+            _ema_decay_delta = -_actual * _SOCIAL_EMA_DECAY_RATE
+
+            if abs(_satiation_delta) > 1e-4 or abs(_ema_decay_delta) > 1e-4:
+                deltas.append(StateDeltas(
+                    npc_id=_npc_id,
+                    domain=DeltaDomain.SOCIAL,
+                    payload=SocialPayload(
+                        social_satiation_delta=_satiation_delta,
+                        social_input_ema_delta=_ema_decay_delta,
+                    ),
+                    source="homeostasis_isolation",
+                ))
 
         return deltas

@@ -1297,174 +1297,18 @@ class TickOrchestrator:
             )
 
     def _phase_1_input(self, ctx: _TickContext) -> None:
-        """Фильтрация воли игрока через WillpowerGate (ADR-031).
+        """Фильтрация воли игрока через WillpowerGate (ADR-031)."""
+        from app.services.phases.input import run_phase_1_input, Phase1InputDeps
         
-        Если интент угрожает идентичности аватара — возникает конфликт воли.
-        """
-        # БЕЗУСЛОВНАЯ ДИАГНОСТИКА: Вызывается ли метод вообще?
-        import sys
-        logger.debug(f"[WILL_TRACE] _phase_1_input CALLED. Has intent: {ctx.player_intent is not None}")
-        
-        if not ctx.player_intent:
-            return # Idle-тик или нет ввода от игрока
+        deps = Phase1InputDeps()
+        run_phase_1_input(ctx, deps)
 
-        intent = ctx.player_intent
-        _sem_action = getattr(intent, 'parameters', None) and intent.parameters.semantic_action or getattr(intent, 'action', 'UNKNOWN')
-        _sem_target = getattr(intent, 'target', 'UNKNOWN')  # ADR-125: DTO.target_id deprecated. Truth is in intent.target
-        logger.warning(f"[WILL_TRACE] 1. Intent action: '{_sem_action}', target: '{_sem_target}', NPCs in raw: {len(ctx.all_npcs_raw)}")
-        
-        # Извлекаем снапшот аватара из симуляции
-        player_dict = next((n for n in ctx.all_npcs_raw if n.get("npc_id") == "player"), None)
-        
-        if not player_dict:
-            logger.error(f"[WILL_TRACE] FAIL: Аватар 'player' НЕ НАЙДЕН в all_npcs_raw (len={len(ctx.all_npc_raw)}). Воля отключена!")
-            self._publish_player_intent(ctx, intent)
-            return
-            
-        logger.warning(f"[WILL_TRACE] 2. Avatar found. Psyche: {player_dict.get('psyche', {})}")
-
-        # 1. Вектор давления берется из результата Фазы 1 (Единая точка вычисления)
-        # Повторный вызов resolve_intent_pressure ЗАПРЕЩЕН (каузальная integrity)
-        pressure = ctx.player_pressure or resolve_intent_pressure(intent)
-        psyche = player_dict.get("psyche", {})
-        
-        # 2. Affect Resonance Scan (Искажение интерпретации реальности)
-        # Травма - это не бафф, это искажение. Resonance -> Distortion -> Will.
-        from app.services.affect import scan_affective_resonance, distort_pressure
-        from app.models.affect import AffectiveImprint
-        imprints = tuple(AffectiveImprint(**imp) for imp in player_dict.get("affective_imprints", []))
-        
-        # TODO: Передать PsychologicalPressure и PerceivedPhenomenon от CFRM P2, когда LocalCausalSolver будет генерировать их для хода игрока
-        resonance = scan_affective_resonance(intent, None, None, imprints)
-        distorted_pressure = distort_pressure(pressure, resonance, psyche)
-        
-        # 3. Вычисление реакции аватара (Cumulative Strain Model на искаженном давлении)
-        will_response = compute_willpower(distorted_pressure, psyche)
-
-        # ДИАГНОСТИКА: Почему нет конфликта?
-        logger.warning(f"[WILL_TRACE] 2. Pressure: identity={pressure.identity_deviation:.2f}, humiliation={pressure.humiliation:.2f}")
-        logger.warning(f"[WILL_TRACE] 3. Will state: {will_response.state.value}, Resistance: {will_response.resistance:.2f}")
-
-        # 4. Маршрутизация исходов
-        if resonance.trigger_strength > 0.1:
-            logger.info(f"[AFFECT] Resonance detected: strength={resonance.trigger_strength:.2f}, bias={resonance.dominant_bias.value}, triggered={resonance.triggered_imprints}")
-            
-        if will_response.state in (WillState.COMPLY, WillState.RELUCTANT, WillState.CONDITIONED):
-            # Аватар подчиняется (возможно, с неохотой или привыканием)
-            self._publish_player_intent(ctx, intent)
-            
-            # Фиксация урона идентичности
-            if will_response.identity_damage > 0:
-                from app.models.delta_payloads import IdentityPayload
-                ctx.delta_buffer.append(StateDeltas(
-                    npc_id="player",
-                    domain=DeltaDomain.IDENTITY,
-                    target="player",
-                    payload=IdentityPayload(identity_integrity_delta=-will_response.identity_damage)
-                ))
-
-            # ADR-039 FIX: Если Аватар подчинился неохотно (RELUCTANT+) или получил урон — 
-            # это каузальное событие Воли. Пишем в ОБЕ трубы: DeltaBuffer (для NPC/истории) и shared_context (для API Игрока)
-            if will_response.state != WillState.COMPLY or will_response.identity_damage > 0:
-                from app.models.delta_payloads import WillConflictPayload
-                ctx.delta_buffer.append(StateDeltas(
-                    npc_id="player",
-                    domain=DeltaDomain.WILL,
-                    target="player",
-                    payload=WillConflictPayload(
-                        state=will_response.state.value,
-                        resistance=will_response.resistance,
-                        embodied_vector=will_response.embodied_vector.value if will_response.embodied_vector else None,
-                        identity_damage=will_response.identity_damage
-                    )
-                ))
-                from app.services.will import get_embodied_impulse_text
-                ctx.shared_context.will_conflict_data = {
-                    "original_intent": getattr(intent, 'parameters', None) and intent.parameters.semantic_action or getattr(intent, 'action', "UNKNOWN"),
-                    "state": will_response.state.value,
-                    "resistance": will_response.resistance,
-                    "embodied_vector": will_response.embodied_vector.value if will_response.embodied_vector else None,
-                    "counter_offer_text": get_embodied_impulse_text(will_response.embodied_vector) if will_response.embodied_vector else None
-                }
-                logger.info(f"[WILL] Conflict data written: state={will_response.state.value}, R={will_response.resistance:.2f}")
-        else:
-            # Аватар сопротивляется. Действие блокируется, публикуется WILL_CONFLICT
-            logger.info(f"[WILL] Аватар сопротивляется! State={will_response.state.value}, R={will_response.resistance:.2f}")
-            from app.domain.events import EventDTO
-            from app.models.delta_payloads import WillConflictPayload
-            
-            # Генерируем структурный конфликт Воли через DeltaBuffer
-            ctx.delta_buffer.append(StateDeltas(
-                npc_id="player",
-                domain=DeltaDomain.WILL,
-                target="player",
-                payload=WillConflictPayload(
-                    state=will_response.state.value,
-                    resistance=will_response.resistance,
-                    embodied_vector=will_response.embodied_vector.value if will_response.embodied_vector else None,
-                    identity_damage=will_response.identity_damage
-                )
-            ))
-            
-            # Восстанавливаем запись в shared_context для API ответа
-            from app.services.will import get_embodied_impulse_text
-            ctx.shared_context.will_conflict_data = {
-                "original_intent": getattr(intent, 'parameters', None) and intent.parameters.semantic_action or getattr(intent, 'action', "UNKNOWN"),
-                "state": will_response.state.value,
-                "resistance": will_response.resistance,
-                "embodied_vector": will_response.embodied_vector.value if will_response.embodied_vector else None,
-                "counter_offer_text": get_embodied_impulse_text(will_response.embodied_vector) if will_response.embodied_vector else None
-            }
-            
-            # Публикуем событие блокировки для других систем (DM, NPC реакция)
-            get_event_bus().publish(EventDTO.create(
-                event_type=EventType.WILL_CONFLICT.value,
-                source="player",
-                payload={"state": will_response.state.value, "resistance": will_response.resistance}
-            ))
-            
-            # Эмоциональный отклик аватара на давление
-            if will_response.fear_delta > 0:
-                ctx.delta_buffer.append(StateDeltas(
-                    npc_id="player",
-                    domain=DeltaDomain.EMOTION,
-                    target="player",
-                    payload=EmotionPayload(stress_delta=will_response.fear_delta * 50, emotion_tag="fear")
-                ))
-
-            # WillpowerGate stress: моральное нарушение генерирует стресс аватара
-            if will_response.stress_delta > 0:
-                logger.info(f"[WILL] Moral stress applied: {will_response.stress_delta:.1f} points (resistance={will_response.resistance:.2f})")
-                ctx.delta_buffer.append(StateDeltas(
-                    npc_id="player",
-                    domain=DeltaDomain.EMOTION,
-                    target="player",
-                    payload=EmotionPayload(stress_delta=will_response.stress_delta, emotion_tag="distress")
-                ))
-
-        # ADR-036: Affective Conditioning (Sensitization & New Trauma)
-        # Аватар учится через боль. Травма укрепляется при подавлении воли.
-        if will_response.identity_damage > 0 or resonance.trigger_strength > 0.1:
-            from app.services.affect import apply_conditioning
-            from dataclasses import asdict
-            current_game_time = ctx.scene_state.get("game_time_seconds", 0)
-            updated_imprints = apply_conditioning(imprints, resonance, will_response, intent, current_game_time)
-            player_dict["affective_imprints"] = [asdict(imp) for imp in updated_imprints]
+        # Тело метода удалено. Логика перенесена в phases/input.py
 
     def _publish_player_intent(self, ctx: _TickContext, intent: IntentDTO) -> None:
         """Публикация разрешенного намерения игрока в шину."""
-        _evt_map = {
-            "attack": EventType.PLAYER_ATTACKS,
-            "player_attacks": EventType.PLAYER_ATTACKS,
-        }
-        _act = getattr(intent, 'action', "") or ""
-        _resolved_type = _evt_map.get(_act, EventType.PLAYER_INTERACTS)
-        from app.domain.events import EventDTO
-        get_event_bus().publish(EventDTO.create(
-            event_type=_resolved_type.value,
-            source="player",
-            payload={"action": _act, "target": getattr(intent, 'target', "") or ""}
-        ))
+        from app.services.phases.input import publish_player_intent
+        publish_player_intent(ctx, intent)
 
     def _phase_2_event_bus_primary(self, ctx: _TickContext) -> None:
         """Первая волна EventBus: пространственные события от MovementEngine (Слой 4).
@@ -1876,108 +1720,22 @@ class TickOrchestrator:
         Время идёт непрерывно — эксплойты через движение исключены.
         Дельты собираются в ctx.delta_buffer → apply_batch() в Фазе 10.
         """
-        # ADR-002: Время не останавливается. Каждый тик продвигает часы на GAME_TICK_INTERVAL_SECONDS
-        self._advance_idle_time(ctx)      
+        from app.services.phases.idle_services import run_phase_0_5, Phase0_5Deps
         
-        # S94-T2.3: L1Chronicle TTL — архивация старых событий каждые 500 тиков для предотвращения OOM
-        if ctx.tick_number > 0 and ctx.tick_number % 500 == 0:
-            if hasattr(self, 'l1_chronicle') and self.l1_chronicle is not None:
-                self.l1_chronicle.archive_old_events(ctx.tick_number)
+        # ADR-002: Время не останавливается. Каждый тик продвигает часы на GAME_TICK_INTERVAL_SECONDS
+        self._advance_idle_time(ctx)
+        
+        deps = Phase0_5Deps(
+            l1_chronicle=getattr(self, 'l1_chronicle', None),
+            dynamic_field=self._dynamic_field,
+            homeostasis_sub=self._homeostasis_sub,
+            expectation_store=getattr(self, '_expectation_store', None),
+            idle_handlers=self._idle_handlers,
+            life_engine=self._get_life_engine()
+        )
+        run_phase_0_5(ctx, deps)
                 
-        # S91: Очистка истекших деформаций среды (Temporalization Layer)
-        self._dynamic_field.purge_hard_overrides(current_tick=ctx.tick_number)
-        self._dynamic_field.step_decay()   
-
-        # Homeostasis: social_battery isolation decay (time-driven)
-        _isolation_deltas = self._homeostasis_sub.compute_isolation_decay(ctx.all_npcs_raw)
-        if _isolation_deltas:
-            ctx.delta_buffer.extend(_isolation_deltas)
-
-        # S-93: PE Decay (Per-Tick, Elastic Time).
-        # Инвариант: PE остаётся строго индивидуальным bias-layer.
-        # Ожидания затухают со временем, привязанным к game_time_seconds.
-        if hasattr(self, '_expectation_store') and self._expectation_store is not None:
-            from app.core.constants import GAME_TICK_INTERVAL_SECONDS
-            # Берем dt из разницы времени, или фоллбэк на константу тика (5 сек)
-            _dt_game = ctx.scene_state.get("game_time_seconds", 0)
-            _prev_time = ctx.scene_state.get("prev_game_time_seconds", _dt_game - GAME_TICK_INTERVAL_SECONDS)
-            _delta_dt = max(0.1, _dt_game - _prev_time)
-            self._expectation_store.decay(_delta_dt)
-
-        # ADR-036 / ADR-O-302: Affective Decay (Leaky Integrator для памяти)
-        # Травмы затухают со временем, если не подкрепляются.
-        from app.services.affect import decay_affective_imprints
-        from app.models.affect import AffectiveImprint
-        from app.core.constants import GAME_TICK_INTERVAL_SECONDS
-        from dataclasses import asdict
-        _current_time = ctx.scene_state.get("game_time_seconds", 0)
-        for npc_dict in ctx.all_npcs_raw:
-            imp_dicts = npc_dict.get("affective_imprints", [])
-            if not imp_dicts: continue
-            try:
-                imprints = tuple(AffectiveImprint(**imp) for imp in imp_dicts)
-                # ADR-O-302: delta_time = GAME_TICK_INTERVAL_SECONDS (60 сек). Магическое число 5.0 убито.
-                decayed = decay_affective_imprints(imprints, float(GAME_TICK_INTERVAL_SECONDS), _current_time)
-                npc_dict["affective_imprints"] = [asdict(d) for d in decayed]
-            except Exception as e:
-                # Инвариант 3: Аффективный decay — критический процесс, не debug
-                logger.warning(f"[AFFECT_DECAY] Failed for {npc_dict.get('npc_id')}: {e}")
-
-        if not self._idle_handlers:
-            return
-
-        current_tick = self._get_life_engine().get_current_tick(ctx.campaign_id)
-        from app.services.tick_utils import build_npc_snapshots
-        snapshots = build_npc_snapshots(ctx.all_npcs_raw)
-
-        # S73-DIAG: Проверка призрачного decay (мёртвая ли психика в snapshot?)
-        if snapshots:
-            _sample = snapshots[0]
-            logger.debug(f"[AFF_DEBUG] handlers={[type(h).__name__ for h in self._idle_handlers]} aff_load={_sample.get('affective_load', '<MISSING>')} emo={_sample.get('emotion', '<MISSING>')}")
-
-        for handler in self._idle_handlers:
-            try:
-                deltas = handler.handle(snapshots, ctx.campaign_id, current_tick)
-            except Exception as e:
-                logger.error(
-                    f"[PHASE_0.5] {handler.name} handle() failed: {e}. "
-                    f"Deltas lost this tick."
-                )
-                continue
-
-            if deltas:
-                ctx.delta_buffer.extend(deltas)
-                # SHI-FIX: L1Chronicle emission for decay
-                if hasattr(handler, 'name') and handler.name == "physiology_decay":
-                    if hasattr(self, "l1_chronicle") and self.l1_chronicle is not None:
-                        _decay_events = []
-                        for _d in deltas:
-                            if _d.npc_id and (abs(getattr(_d.payload, 'pain_delta', 0.0)) > 0 or abs(getattr(_d.payload, 'blood_loss_delta', 0.0)) > 0):
-                                 _decay_events.append(TraitDriftEvent(tick_id=ctx.tick_number, target_id=_d.npc_id,
-                                                               source_id="physiology_decay", effect_value=-0.01, observation_weight=1.0, event_type="decay"))
-                        if _decay_events:
-                            self.l1_chronicle.commit_tick_buffer(_decay_events, ctx.tick_number)
-
-        # S75-R1.1 FIX: Perceptual Decay (Rule 38, ADR-122).
-        # threat_gradient, uncertainty, anomaly_score затухают в idle-тиках.
-        # Без этого _run_affective_pipeline (Фаза 9) пересчитывает affective_load
-        # из устаревшего PK, перезаписывая честный декей из AffectiveDecayHandler.
-        # Результат: Вечный Двигатель Страха (maid_lusya: 1.00/fearful навсегда).
-        _PERCEPTUAL_DECAY = {"threat_gradient": 0.05, "uncertainty": 0.03, "anomaly_score": 0.02}
-        for npc_dict in ctx.all_npcs_raw:
-            pk = npc_dict.get("perceptual_kernel")
-            if pk and isinstance(pk, dict):
-                for _key, _rate in _PERCEPTUAL_DECAY.items():
-                    if _key in pk:
-                        pk[_key] = max(0.0, float(pk[_key]) - _rate)
-
-        # S75-R1 FIX: Cache Desync (Техзадание S75).
-        # Синхронизация LifeEngine cache с применёнными idle-дельтами.
-        # Хотя Фаза 10 тоже вызывает update_cache, этот вызов гарантирует,
-        # что кэш обновлён ДО Фазы 9, предотвращая расхождение истин.
-        if ctx.all_npcs_raw:
-            engine = self._get_life_engine()
-            engine.update_cache(ctx.campaign_id, ctx.all_npcs_raw)
+        # Тело метода удалено. Логика перенесена в phases/idle_services.py
 
     def _advance_idle_time(self, ctx: _TickContext) -> None:
         """Продвигает игровое время на GAME_TICK_INTERVAL_SECONDS (ADR-002: время не останавливается).
@@ -2024,283 +1782,30 @@ class TickOrchestrator:
 
     def _phase_9_integration(self, ctx: _TickContext) -> None:
         """CFRM P2: Вычисление локальной реальности + WorldSnapshotBuilder."""
-        
-        # DSTC: Создание канонического среза реальности (Snapshot Barrier).
-        # M₀ (all_npcs_raw) остаётся нетронутым. Дельты применяются к interpretation_snapshot.
-        # Это даёт Phase 9 актуальную физику без разрушения исходного состояния тика.
-        import copy
-        if ctx.interpretation_snapshot is None:
-            ctx.interpretation_snapshot = copy.deepcopy(ctx.all_npcs_raw)
-            if ctx.delta_buffer and self._state_applicator:
-                from app.services.tick_utils import aggregate_deltas
-                _aggregated = aggregate_deltas(ctx.delta_buffer)
-                if _aggregated:
-                    self._state_applicator.apply_batch(
-                        _aggregated, ctx.interpretation_snapshot, ctx.campaign_id
-                    )
-                ctx.delta_buffer.clear()
-        
-        # --- CFRM P2: 3-фазный редюсер и интерпретация давления ---
-        # ADR-116: Диагностика входа в CFRM P2
-        _cfrm_enter = bool(ctx.event_buffer and ctx.cluster_occupancy and ctx.all_npcs_raw)
-        if not _cfrm_enter:
-            logger.warning(f"[CFRM_P2_SKIP] evbuf={bool(ctx.event_buffer)} occ={bool(ctx.cluster_occupancy)} raw={bool(ctx.all_npcs_raw)}")
-        if _cfrm_enter:
-            if not self._spatial_service:
-                logger.warning(f"[CFRM_P2_SKIP] spatial_service is None — affective pipeline disabled")
-            cluster_graph = self._spatial_service.build_cluster_graph() if self._spatial_service else None
-            if cluster_graph is None and self._spatial_service:
-                logger.warning(f"[CFRM_P2_SKIP] build_cluster_graph() returned None")
-            if cluster_graph:
-                # Вычисление феноменологической реальности для каждого NPC
-                phenomena_states = self._causal_solver.solve(
-                    event_buffer=ctx.event_buffer,
-                    cluster_graph=cluster_graph,
-                    occupancy=ctx.cluster_occupancy,
-                    all_npcs_raw=ctx.all_npcs_raw
-                )
-                
-                # ADR-116: Диагностика phenomena_states
-                _ph_count = len(phenomena_states) if phenomena_states else 0
-                _ph_threats = {eid: round(getattr(ps, 'threat_level', 0), 2) for eid, ps in (phenomena_states or {}).items()} if _ph_count else {}
-                logger.warning(f"[CFRM_P2] phenomena_count={_ph_count} threats={_ph_threats}")
-                
-                # Интерпретация: Превращение локальной истины в обновление восприятия (ADR-O)
-                for entity_id, p_state in phenomena_states.items():
-                    # S72 / §ENIGMA-S72: CFRM = сырой сенсор, не интерпретатор.
-                    # Убраны фиксированные множители (×40, ×20, ×10) — движок больше не решает,
-                    # насколько это страшно. Личность решает через drives_base (I2).
-                    # Убран dominant_emotion_hint — движок не назначает эмоцию до личности.
-                    # PhenomenologicalState.threat_level уже 0-1 — передаём как есть.
-                    pressure = PsychologicalPressure(
-                        fear=p_state.threat_level,
-                        uncertainty=p_state.anomaly_score,
-                        aggression_trigger=0.0  # S72: агрессия не выводится из угрозы автоматически
-                    )
-                    
-                    # S72: PerceptionPayload получает сырые сигналы, не интерпретированные движком.
-                    # Нормализация к 0-1 происходит на уровне PhenomenologicalState (источник),
-                    # а не на уровне движка (посредник).
-                    perception_payload = PerceptionPayload(
-                        threat_gradient_delta=pressure.fear,
-                        uncertainty_delta=pressure.uncertainty,
-                        anomaly_score_delta=p_state.anomaly_score * 0.5,
-                        dominant_emotion_hint=None  # S72: эмоция назначается Affective Pipeline, не движком
-                    )
-                    
-                    # Perception delta — только если возмущение значимое
-                    # (слабые дельты не мутируют PK, но всё ещё кормят аффективный pipeline ниже)
-                    if p_state.threat_level >= 0.1 or p_state.visible_blood:
-                        delta = StateDeltas(
-                            npc_id=entity_id,
-                            domain=DeltaDomain.PERCEPTION,
-                            target="player",
-                            payload=perception_payload,
-                            source="cfrm_solver"
-                        )
-                        ctx.delta_buffer.append(delta)
-                    
-                    # ADR-O: Affective Pressure Pipeline (Perception -> Pressure -> Emotion)
-                    # Вычисляем давление на основе проекции ядра (T-1 + delta T)
-                    if npc_raw := next(
-                        (
-                            n
-                            for n in ctx.all_npcs_raw
-                            if n.get("npc_id") == entity_id
-                        ),
-                        None,
-                    ):
-                        from app.services.affective.affective_integrator import integrate_affective_pressure
-                        from app.services.affective.emotion_transition import resolve_emotion_transition, THRESHOLD_ANXIOUS, THRESHOLD_FEARFUL, THRESHOLD_PANIC
-                        from app.models.npc_state import PerceptualKernel
-                        
-                        # ADR-O-208: Смерть npc_raw["drives"]. 
-                        # Котёл читает ТОЛЬКО эфемерную проекцию из DriveResolver (L0 + L1).
-                        # ВНИМАНИЕ: блок перенесён ВЫШЕ compute_continuous_drift —
-                        # TIFL требует _drives_projection и _psyche_raw на вход.
-                        from app.models.npc_state import personality_from_legacy
-                        _profile_l0 = personality_from_legacy(npc_raw)
-                        _beliefs = self.crystallized_belief_store.get_beliefs(entity_id)
-                        _drives_projection = self.drive_resolver.resolve_drives(_profile_l0, _beliefs)
-
-                        _psyche_raw = npc_raw.get("psyche", {})
-                        psyche = {
-                            "fear": _drives_projection.get("fear", 0.25),
-                            "control": _drives_projection.get("control", 0.25),
-                            "significance": _drives_projection.get("significance", 0.25),
-                            "willpower": min(1.0, _psyche_raw.get("willpower", 50) / 100.0),
-                        }
-
-                        # Active Inference: prediction error для TIFL
-                        _drive_fear = _drives_projection.get("fear", 0.25)
-                        _drive_control = _drives_projection.get("control", 0.25)
-                        _drive_significance = _drives_projection.get("significance", 0.25)
-                        
-                        # ADR-O-208 / L3-P2: TIFL получает эфемерную проекцию, а не сырой стейт
-                        from app.services.npc.break_progress_engine import compute_continuous_drift
-                        _rigidity = _psyche_raw.get("identity_rigidity", 0.5) if _psyche_raw else 0.5
-                        
-                        # Легковесная проекция ядра для TIFL (на основе дельт)
-                        _pk_load_for_tifl = min(1.0,
-                            perception_payload.threat_gradient_delta * _drive_fear +
-                            perception_payload.uncertainty_delta * _drive_control +
-                            perception_payload.anomaly_score_delta * _drive_significance
-                        )
-                        _prev_memory = float(npc_raw.get("affective_memory", 0.0))
-                        _delta = _pk_load_for_tifl - _prev_memory
-                        _abs_error = abs(_delta)
-                        _error_vector = {"fear": 0.33, "control": 0.33, "significance": 0.33}
-                        if _abs_error > 0.05:
-                            _w_fear = perception_payload.threat_gradient_delta * _drive_fear
-                            _w_control = perception_payload.uncertainty_delta * _drive_control
-                            _w_signif = perception_payload.anomaly_score_delta * _drive_significance
-                            _total_w = _w_fear + _w_control + _w_signif + 1e-6
-                            _error_vector = {
-                                "fear": _w_fear / _total_w,
-                                "control": _w_control / _total_w,
-                                "significance": _w_signif / _total_w,
-                            }
-
-                        _drift_events = compute_continuous_drift(
-                            effective_drives=_drives_projection,
-                            npc_id=entity_id,
-                            rigidity=_rigidity,
-                            prediction_error=_abs_error,
-                            error_vector=_error_vector,
-                            current_tick=ctx.tick_number
-                        )
-                        if _drift_events:
-                            self.l1_chronicle.commit_tick_buffer(_drift_events, ctx.tick_number)
-
-                        pk_dict = npc_raw.get("perceptual_kernel", {})
-                        _body_idle = npc_raw.get("body_state") or {}
-                        _pain_norm_idle = float(_body_idle.get("pain", 0.0)) / 100.0
-                        _shock_norm_idle = float(_body_idle.get("shock_impulse", 0.0))
-                        _somatic_urg_idle = (_pain_norm_idle + _shock_norm_idle) / 2.0
-
-                        projected_kernel = PerceptualKernel(
-                            threat_gradient=min(1.0, max(0.0, pk_dict.get("threat_gradient", 0.0) + perception_payload.threat_gradient_delta)),
-                            uncertainty=min(1.0, max(0.0, pk_dict.get("uncertainty", 0.0) + perception_payload.uncertainty_delta)),
-                            anomaly_score=min(1.0, max(0.0, pk_dict.get("anomaly_score", 0.0) + perception_payload.anomaly_score_delta)),
-                            compliance_bias=pk_dict.get("compliance_bias", 0.0),
-                            aggression_inhibition=pk_dict.get("aggression_inhibition", 0.0),
-                            initiative_suppression=pk_dict.get("initiative_suppression", 0.0),
-                            somatic_urgency=_somatic_urg_idle,
-                        )
-                        
-                        from app.domain.perception import ProjectionFrame
-                        if "_projection_frames" not in locals():
-                            _projection_frames = []
-                        if projected_kernel.threat_gradient > 0.05 or projected_kernel.initiative_suppression > 0.2:
-                            signal = "avoid_gaze" if projected_kernel.threat_gradient > 0.5 else ("freeze" if projected_kernel.initiative_suppression > 0.7 else "calm")
-                            _projection_frames.append(ProjectionFrame(
-                                entity_id=entity_id,
-                                threat=projected_kernel.threat_gradient,
-                                suppression=projected_kernel.initiative_suppression,
-                                salience=max(projected_kernel.threat_gradient, projected_kernel.initiative_suppression),
-                                embodied_signal=signal,
-                                expires_tick=ctx.tick_number + 3
-                            ))
-
-                        # ADR-049: Единый интегратор аффективного давления
-                        current_load = float(npc_raw.get("affective_load", 0.0))
-                        current_memory = float(npc_raw.get("affective_memory", 0.0))
-                        new_load, new_memory = integrate_affective_pressure(
-                            kernel=projected_kernel,
-                            psyche=psyche,
-                            current_load=current_load,
-                            current_memory=current_memory
-                        )
-                        
-                        emotion_payload = resolve_emotion_transition(new_load, current_load, psyche)
-                        
-                        # §ENIGMA-DUAL-CIRCUIT: Sustaining Loop УБИТ (S73).
-                        # Эмоция не удерживается искусственно при высоком load.
-                        # Если EmotionTransition не дал фазового перехода — эмоция = neutral.
-                        # Это обнажает честную динамику для диагностики S73-R1.
-                        
-                        if emotion_payload:
-                            # SHI-FIX: L1Chronicle emission for fear
-                            if hasattr(self, "l1_chronicle") and self.l1_chronicle is not None:
-                                _emo_tag = getattr(emotion_payload, 'emotion_tag', None)
-                                if _emo_tag and hasattr(_emo_tag, 'value') and 'fear' in _emo_tag.value:
-                                    self.l1_chronicle.commit_tick_buffer([
-                                        TraitDriftEvent(tick_id=ctx.tick_number, target_id=entity_id,
-                                                       source_id="combat", effect_value=0.2, observation_weight=1.0, event_type="fear")
-                                    ], ctx.tick_number)
-                            # Передаем новое значение интеграла в Applicator для сохранения в NPCState
-                            from dataclasses import replace
-                            emotion_payload = replace(emotion_payload, affective_load=new_load)
-                            
-                            # ADR-116: Диагностика эмоционального пайплайна
-                            logger.debug(f"[AFFECTIVE] npc={entity_id} load={new_load:.3f} prev={current_load:.3f} tag={emotion_payload.emotion_tag}")
-                            
-                            emotion_delta = StateDeltas(
-                                npc_id=entity_id,
-                                domain=DeltaDomain.EMOTION,
-                                target="player",
-                                payload=emotion_payload,
-                                source="affective_pipeline"
-                            )
-                            ctx.delta_buffer.append(emotion_delta)
-
-        # L1.5 / L2.5: Pattern Detection & Belief Crystallization (ADR-O-305)
-        # Запускается ПОСЛЕ аффективного цикла, до сборки снапшота.
-        _npc_truth_source = ctx.interpretation_snapshot if ctx.interpretation_snapshot is not None else ctx.all_npcs_raw
-        for npc_dict in _npc_truth_source:
-            _npc_id = npc_dict.get("npc_id")
-            if not _npc_id: continue
-            
-            # L1: Чтение сырой хроники
-            _l1_events = self.l1_chronicle.query_raw(_npc_id)
-            if not _l1_events: continue
-            
-            # L1.5: Детектирование паттернов (чистая статистика)
-            _evidence_list = self.pattern_detector.detect(_l1_events)
-            if not _evidence_list: continue
-            
-            # L0: Извлечение базовых драйвов для модуляции
-            _drives_base = npc_dict.get("drives", npc_dict.get("psyche", {}).get("drives_base", {}))
-            if not _drives_base: 
-                _drives_base = {"control": 0.25, "significance": 0.25, "fear": 0.25, "desire": 0.25}
-            
-            # L2.5: Кристаллизация убеждений (проекция через личность)
-            _existing_beliefs = self.crystallized_belief_store.get_beliefs(_npc_id)
-            _updated_beliefs = self.belief_engine.crystallize(
-                evidence_list=_evidence_list,
-                drives_base=_drives_base,
-                existing_beliefs=_existing_beliefs,
-                current_tick=ctx.tick_number
-            )
-            self.crystallized_belief_store.update_beliefs(_npc_id, _updated_beliefs)
-
-        # WorldSnapshotBuilder: собирает WorldSnapshotDTO из финального state
-        # ADR-035: Трансляция стейта аватара в феноменологическую проекцию
-        from app.services.presentation.avatar_presentation_assembler import assemble_avatar_presentation
-        # DSTC: Читаем NPC из interpretation_snapshot (M₀ + deltas), а не из M₀.
-        _npc_truth_source = ctx.interpretation_snapshot if ctx.interpretation_snapshot is not None else ctx.all_npcs_raw
-        player_dict = next((n for n in _npc_truth_source if n.get("npc_id") == "player"), None)
-        _avatar_projection = assemble_avatar_presentation(player_dict) if player_dict else None
-
-        # TZ-08 v0.2: Perception pipeline — internal causal observability layer (post-mutation).
-        # Формирует модель наблюдаемости мира на основе state_t+1.
         if not hasattr(self, '_manifest_svc'):
             from app.services.perception.behavior_manifestation_service import BehaviorManifestationService
             from app.services.perception.phenomenology_projection_service import PhenomenologyProjectionService
             self._manifest_svc = BehaviorManifestationService()
             self._project_svc = PhenomenologyProjectionService()
-            
-        _traces = self._manifest_svc.produce_traces(ctx.scene_state, all_npcs_raw=_npc_truth_source)
-        _player_perception = self._project_svc.project(_traces, ctx.scene_state, tick=ctx.tick_number)
 
-        builder = self._get_snapshot_builder()
-        ctx.world_snapshot = builder.build(
-            scene_state=ctx.scene_state,
-            tick=ctx.tick_number,
-            avatar_state=_avatar_projection,
-            all_npcs_raw=ctx.all_npcs_raw,
-            player_perception=_player_perception,
+        from app.services.phases.integration import run_phase_9_integration, Phase9IntegrationDeps
+        
+        deps = Phase9IntegrationDeps(
+            state_applicator=self._state_applicator,
+            spatial_service=self._spatial_service,
+            causal_solver=self._causal_solver,
+            crystallized_belief_store=self.crystallized_belief_store,
+            drive_resolver=self.drive_resolver,
+            l1_chronicle=self.l1_chronicle,
+            pattern_detector=self.pattern_detector,
+            belief_engine=self.belief_engine,
+            snapshot_builder=self._get_snapshot_builder(),
+            manifest_svc=self._manifest_svc,
+            project_svc=self._project_svc
         )
+        run_phase_9_integration(ctx, deps)
+
+        # Тело метода удалено. Логика перенесена в phases/integration.py
 
     def _run_affective_pipeline(self, ctx: _TickContext) -> None:
         """ADR-049: Аффективный аккумулятор — накопление давления и фазовый переход эмоций.
@@ -2308,166 +1813,22 @@ class TickOrchestrator:
         Вызывается из ОБЕИХ путей (idle + player turn).
         Без этого affective_load не растёт при player turn → emotion=NEUTRAL → _emotion_modifier()=0.0.
         """
-        import sys
-        logger.debug(f"[SEL_DIAG] _run_affective_pipeline ENTERED. Snapshot is None: {ctx.interpretation_snapshot is None}")
-        # DSTC: Ленивое создание interpretation_snapshot, если Pipeline вызван до Phase 9 (например, в player turn)
-        import copy
-        if ctx.interpretation_snapshot is None:
-            ctx.interpretation_snapshot = copy.deepcopy(ctx.all_npcs_raw)
-            if ctx.delta_buffer and self._state_applicator:
-                from app.services.tick_utils import aggregate_deltas
-                _aggregated = aggregate_deltas(ctx.delta_buffer)
-                if _aggregated:
-                    self._state_applicator.apply_batch(
-                        _aggregated, ctx.interpretation_snapshot, ctx.campaign_id
-                    )
-                ctx.delta_buffer.clear()
+        from app.services.phases.affective import run_affective_pipeline, Phase9Deps
+        
+        deps = Phase9Deps(
+            crystallized_belief_store=self.crystallized_belief_store,
+            drive_resolver=self.drive_resolver,
+            l1_chronicle=self.l1_chronicle,
+            pattern_detector=self.pattern_detector,
+            belief_engine=self.belief_engine,
+            state_applicator=self._state_applicator,
+            snapshot_builder=self._get_snapshot_builder(),
+            manifest_svc=getattr(self, '_manifest_svc', None),
+            project_svc=getattr(self, '_project_svc', None)
+        )
+        run_affective_pipeline(ctx, deps)
 
-        if not ctx.interpretation_snapshot:
-            logger.debug("[AFFECTIVE_PLAYER] SKIP: interpretation_snapshot is empty")
-            return
-
-        from app.services.affective.affective_integrator import integrate_affective_pressure
-        from app.services.affective.emotion_transition import resolve_emotion_transition, THRESHOLD_ANXIOUS, THRESHOLD_FEARFUL, THRESHOLD_PANIC
-        from app.models.npc_state import PerceptualKernel
-        from app.models.delta_payloads import EmotionPayload, PerceptionPayload
-        from app.models.state_delta import StateDeltas, DeltaDomain
-        from dataclasses import replace as dataclass_replace
-
-        _snap_len = len(ctx.interpretation_snapshot) if ctx.interpretation_snapshot else 0
-        logger.debug(f"[SEL_DIAG] Entering NPC loop. Snapshot count: {_snap_len}")
-        # DSTC: Читаем ONLY из interpretation_snapshot (M₀ + deltas)
-        # DSTC: Читаем ONLY из interpretation_snapshot (Pure Read)
-        for npc_raw in ctx.interpretation_snapshot:
-            entity_id = npc_raw.get("npc_id") or npc_raw.get("id")
-            if not entity_id or entity_id == "player":
-                continue  # Игрок не проходит аффективный pipeline
-
-            pk_dict = npc_raw.get("perceptual_kernel", {})
-            _psyche_raw = npc_raw.get("psyche", {})
-
-            # ADR-O-208: Смерть npc_raw["drives"]. 
-            # Котёл читает ТОЛЬКО эфемерную проекцию из DriveResolver (L0 + L1).
-            from app.models.npc_state import personality_from_legacy
-            _profile_l0 = personality_from_legacy(npc_raw)
-            _beliefs = self.crystallized_belief_store.get_beliefs(entity_id)
-            _drives_projection = self.drive_resolver.resolve_drives(_profile_l0, _beliefs)
-
-            # S72: Drives Projection как Линза Реальности.
-            _drive_fear = _drives_projection.get("fear", 0.25)
-            _drive_control = _drives_projection.get("control", 0.25)
-            _drive_significance = _drives_projection.get("significance", 0.25)
-
-            psyche = {
-                "fear": _drive_fear,
-                "control": _drive_control,
-                "significance": _drive_significance,
-                "willpower": min(1.0, _psyche_raw.get("willpower", 50) / 100.0),
-            }
-
-            # ADR-O-143: Somatic urgency из body_state для PerceptualKernel.
-            # Боль/шок проходят через PK.somatic_urgency и модулируются личностью в integrator.
-            _body = npc_raw.get("body_state") or {}
-            _pain_norm = float(_body.get("pain", 0.0)) / 100.0  # ADR-094: 0-100 → 0-1
-            _shock_norm = float(_body.get("shock_impulse", 0.0))  # уже 0-1
-            _somatic_urg = (_pain_norm + _shock_norm) / 2.0
-
-            # Проекция ядра: текущее состояние (без delta — delta уже применена в idle tick)
-            projected_kernel = PerceptualKernel(
-                threat_gradient=pk_dict.get("threat_gradient", 0.0),
-                uncertainty=pk_dict.get("uncertainty", 0.0),
-                anomaly_score=pk_dict.get("anomaly_score", 0.0),
-                compliance_bias=pk_dict.get("compliance_bias", 0.0),
-                aggression_inhibition=pk_dict.get("aggression_inhibition", 0.0),
-                initiative_suppression=pk_dict.get("initiative_suppression", 0.0),
-                somatic_urgency=_somatic_urg,  # ADR-O-143: воспринимаемый телесный дистресс
-            )
-
-            # S73-DIAG: Проверка очага аффекта. Видит ли пайплайн боль от удара?
-            if entity_id in ("thief_shadow", "guard_borko"):
-                logger.debug(f"[AFF_SOURCE] npc={entity_id} pain_raw={_body.get('pain', 0.0)} shock_raw={_body.get('shock_impulse', 0.0)} somatic_urg={_somatic_urg:.3f} prev_aff={npc_raw.get('affective_load', 0.0)} emo={npc_raw.get('emotion', '?')}")
-
-            # ADR-049: Единый интегратор аффективного давления
-            current_load = float(npc_raw.get("affective_load", 0.0))
-            current_memory = float(npc_raw.get("affective_memory", 0.0))
-            new_load, new_memory = integrate_affective_pressure(
-                kernel=projected_kernel,
-                psyche=psyche,
-                current_load=current_load,
-                current_memory=current_memory
-            )
-            
-            if entity_id in ("thief_shadow", "guard_borko", "merchant_goran"):
-                logger.debug(f"[TIFL_PROBE] npc={entity_id} new_load={new_load:.3f} new_mem={new_memory:.3f}", file=sys.stderr, flush=True)
-
-            emotion_payload = resolve_emotion_transition(new_load, current_load, psyche)
-
-            # S73-DIAG: Вычислен ли new_load и почему он теряется?
-            if entity_id in ("thief_shadow", "guard_borko"):
-                logger.debug(f"[AFF_RESULT] npc={entity_id} current={current_load:.3f} new={new_load:.3f} has_transition={emotion_payload is not None}")
-
-            # §ENIGMA-DUAL-CIRCUIT (S74-FIX): Разделение памяти и интерпретации.
-            # Интеграл ОБЯЗАН сохраняться при каждом изменении, даже если эмоция
-            # не пересекла порог (Phase-Gate Bug). Без этого нагрузка навечно зависает в 0.0.
-            if emotion_payload is None and abs(new_load - current_load) > 0.001:
-                _current_tag = npc_raw.get("emotion", "neutral") or "neutral"
-                emotion_payload = EmotionPayload(
-                    stress_delta=0.0,
-                    emotion_delta=0.0,
-                    emotion_tag=_current_tag,
-                    affective_load=new_load,
-                )
-
-            if emotion_payload:
-                emotion_payload = dataclass_replace(emotion_payload, affective_load=new_load)
-                logger.debug(f"[AFFECTIVE_PLAYER] npc={entity_id} load={new_load:.3f} prev={current_load:.3f} tag={emotion_payload.emotion_tag}")
-                # SIL: Изоляция S-слоя. Эмоция не идёт в delta_buffer (M-слой).
-                # Она сохраняется в semantic_buffer для T+0 визуализации и Phase 10 persistence.
-                ctx.semantic_buffer[entity_id] = SemanticFrame(
-                    emotion_tag=emotion_payload.emotion_tag,
-                    affective_load=new_load,
-                    stress_delta=emotion_payload.stress_delta,
-                    tick_id=ctx.tick_number
-                )
-                logger.debug(f"[SIL_REDIRECT] npc={entity_id} EmotionPayload redirected to semantic_buffer")
-
-            # SEL: Коммит Trace State в M-слой. 
-            # Передаём new_load (после интеграции с волей), а не сырой current_load.
-            # Это гарантирует, что DecisionHub получит эмоцию, модулированную личностью.
-            ctx.delta_buffer.append(StateDeltas(
-                npc_id=entity_id,
-                domain=DeltaDomain.EMOTION,
-                target="system",
-                payload=EmotionPayload(
-                    affective_load=new_load,
-                    affective_memory=new_memory
-                ),
-                source="sel_trace_commit"
-            ))
-
-            # S73-L0: Epistemic Trace (Log-only instrumentation).
-            # Фиксируем субъективную проекцию реальности NPC для анализа RSI (Reality Split Index).
-            # Не влияет на симуляцию. Позволяет CDS измерять расхождение интерпретаций.
-            # S73-DIAG: Отслеживание источника эмоции для диагностики конкуренции контуров
-            _e_tag = emotion_payload.emotion_tag if emotion_payload else (npc_raw.get("emotion", "neutral") or "neutral")
-            _e_src = "TRANSITION" if emotion_payload else "NONE"
-            _prev_src = "memory" if current_memory > 0.01 else "pk"
-            _incoming_val = (
-                projected_kernel.threat_gradient * _drive_fear +
-                projected_kernel.uncertainty * _drive_control +
-                projected_kernel.anomaly_score * _drive_significance +
-                projected_kernel.somatic_urgency  # ADR-O-143: somatic через PK
-            )
-            logger.info(
-                f"[EPISTEMIC_TRACE] npc={entity_id} "
-                f"threat={projected_kernel.threat_gradient:.3f} "
-                f"unc={projected_kernel.uncertainty:.3f} "
-                f"anom={projected_kernel.anomaly_score:.3f} "
-                f"somatic={projected_kernel.somatic_urgency:.3f} "
-                f"drives=[f={_drive_fear:.2f},c={_drive_control:.2f},s={_drive_significance:.2f}] "
-                f"prev={current_load:.3f}<{_prev_src}> inc={_incoming_val:.3f} "
-                f"load={new_load:.3f} emotion={_e_tag} src={_e_src}"
-            )
+        # Тело метода удалено. Логика перенесена в phases/affective.py
 
     def _phase_10_persistence(self, ctx: _TickContext) -> None:
         """Atomic commit: SQLite (runtime truth) + YAML (для человека)."""

@@ -138,7 +138,6 @@ class MemoryManager:
                 event={"type": event.type, **payload},
                 npc_clarity=clarity,
                 npc_stress=npc_stress,
-                emotion_tag=emotion_tag,
             )
 
         # ADR-O-206: Causal Purity. Decay rate определяется важностью (функцией ошибки модели),

@@ -50,10 +50,16 @@ def integrate_affective_pressure(
     _abs_error = abs(delta)
 
     # 3. Обновление базового ожидания (Prior / Котёл)
-    new_memory = min(1.0, current_memory * _MEMORY_DECAY_RATE + pk_load * _TRAUMA_SCAR_RATE)
+    # ADR-O-206 Cut 2: Вес памяти модулируется Surprise (ошибкой предсказания).
+    # Нелинейная функция: маленькие surprise почти ничего не делают, большие оставляют шрам.
+    _scar_rate = 0.1 + (0.4 * (_abs_error ** 1.5))
+    new_memory = min(1.0, current_memory * _MEMORY_DECAY_RATE + pk_load * _scar_rate)
 
     # 4. Эмоциональный ответ (Posterior / Affective Load)
-    current_load_adjusted = min(1.0, current_memory + _abs_error * _SURPRISE_GAIN)
+    # ADR-O-206: Память (prior) не является источником энергии.
+    # Она формирует ожидание, которое гасит surprise, когда реальность совпадает с ожиданием.
+    # Эмоциональная нагрузка = функция от ошибки предсказания (surprise), а не от памяти + ошибки.
+    current_load_adjusted = min(1.0, _abs_error * _SURPRISE_GAIN)
 
     # 5. Hysteresis: Асимптотическое притяжение к цели
     target_load = pk_load
