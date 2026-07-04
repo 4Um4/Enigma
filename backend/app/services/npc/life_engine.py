@@ -656,10 +656,10 @@ class LifeEngine:
                 # GAP3 FIX: Передаем body_state для соматического вето
                 _body = getattr(state_l2, 'body_state', None)
                 _kernel = getattr(state_l2, 'perceptual_kernel', None)
-                _social_battery = getattr(state_l2, 'social_battery', 50.0)
+                _social_satiation = getattr(state_l2, 'social_satiation', 50.0)
                 _psyche = getattr(state_l2, 'psyche', {})
                 _greg = _psyche.get("gregariousness", 0.5) if isinstance(_psyche, dict) else 0.5
-                _decision_ctx = translate_kernel_to_context(_kernel, body_state=_body, social_battery=_social_battery, gregariousness=_greg) if _kernel else None
+                _decision_ctx = translate_kernel_to_context(_kernel, body_state=_body, social_satiation=_social_satiation, gregariousness=_greg) if _kernel else None
 
                 # ADR-O-208: effective_drives — обязательный аргумент DecisionHub.compute()
                 # Вычисляется в TickOrchestrator через DriveResolver + L1Chronicle.
@@ -1487,8 +1487,11 @@ class LifeEngine:
         target_node = target_entry.get("position", "")
         target_location = target_entry.get("location", "")
 
-        # Не двигаемся если уже на целевом узле
-        if current_position == target_node:
+        # SHI-FIX: No-op guard. Нормализуем ID узла, чтобы избежать mismatch.
+        _loc = target_location or npc.get("location_id", "")
+        _norm_target = target_node if ":" in target_node else f"{_loc}:{target_node}"
+        _norm_current = current_position if ":" in current_position else f"{_loc}:{current_position}"
+        if _norm_target == _norm_current:
             return None
 
         logger.info(

@@ -163,6 +163,10 @@ def build_r3_dm_frame(
 
     # ФАЗА 3.4: Proactive decisions → SceneContinuity (DM видит проактивные действия)
     _tick_result = shared_context.world_tick_result
+    # S96: Маппинг npc_id -> name для LLM (Каузальный Контракт §2.1)
+    _npc_pos = _scene_state.get("npc_positions", {})
+    _id_to_name = {nid: n_data.get("name", nid) for nid, n_data in _npc_pos.items()}
+
     if _tick_result and _tick_result.decisions:
         for _pd in _tick_result.decisions:
             _intent_labels = {
@@ -174,10 +178,14 @@ def build_r3_dm_frame(
                 "spread_rumor": "распространяет слух",
                 "call_for_help": "зовёт на помощь",
                 "change_role": "меняет роль",
+                "talk": "заговорил(а) с",
+                "approach": "подошёл(ла) к",
             }
             _label = _intent_labels.get(_pd.intent.value, _pd.intent.value)
-            _target_str = f" → {_pd.intent_target}" if _pd.intent_target else ""
-            _cont.add_event(f"{_pd.npc_id}: {_label}{_target_str}")
+            _target_name = _id_to_name.get(_pd.intent_target, _pd.intent_target or "")
+            _target_str = f" → {_target_name}" if _target_name else ""
+            _speaker_name = _id_to_name.get(_pd.npc_id, _pd.npc_id)
+            _cont.add_event(f"{_speaker_name}: {_label}{_target_str}")
             _cont.add_flag(f"proactive_{_pd.intent.value}_{_pd.npc_id}")
         logger.warning(f"[WORLD_TICK→CONTINUITY] {len(_tick_result.decisions)} proactive → DM context")
 

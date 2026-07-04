@@ -1,0 +1,148 @@
+# architecture/observed_fact_types.yaml
+domain: "EPISTEMOLOGY"
+nodes:
+  FactExtractor:
+    type: "service"
+    layer: "Application"
+    label: "FactExtractor"
+    description: "Извлекает атомарные факты из PerceivedSignal."
+
+edges:
+  - from: "PerceivedSignal"
+    to: "FactExtractor"
+    label: "reads"
+  - from: "FactExtractor"
+    to: "ObservedFact"
+    label: "produces"
+
+constraints:
+  - source: "ObservedFact"
+    target: "InferenceEngine"
+    rule: "REQUIRED: Составные выводы (hand_on_weapon) должны вычисляться в InferenceEngine, а не в FactExtractor"
+
+fact_types:
+  body_state:
+    hand_position:
+      description: "Положение рук"
+      requires:
+        all:
+          - channel: hands
+            signal: hand_position_xy
+      visibility_threshold: 0.5
+      confidence_base: 0.90
+      
+    weapon_visible:
+      description: "Видимо оружие в руке"
+      requires:
+        all:
+          - channel: hands
+            signal: held_object_right | held_object_left
+      visibility_threshold: 0.6
+      confidence_base: 0.85
+
+    blood_stain_visible:
+      description: "Видимое пятно крови"
+      requires:
+        all:
+          - channel: body_manifestation
+      visibility_threshold: 0.7
+      confidence_base: 0.75
+
+    injury_visible:
+      description: "Видимая травма"
+      requires:
+        all:
+          - channel: body_manifestation
+      visibility_threshold: 0.7
+      confidence_base: 0.80
+
+  behavior:
+    gaze_target:
+      description: "Направление взгляда"
+      requires:
+        all:
+          - channel: gaze
+            signal: gaze_direction
+          - context: observer_geometry
+      visibility_threshold: 0.5
+      confidence_base: 0.80
+
+    head_target:
+      description: "Направление поворота головы"
+      requires:
+        all:
+          - channel: gaze
+            signal: head_orientation
+          - context: observer_geometry
+      visibility_threshold: 0.5
+      confidence_base: 0.80
+
+    tremor_amplitude:
+      description: "Амплитуда дрожи"
+      requires:
+        all:
+          - channel: body_manifestation
+            signal: tremor
+      visibility_threshold: 0.6
+      confidence_base: 0.75
+
+    muscle_tension_level:
+      description: "Уровень мышечного напряжения"
+      requires:
+        all:
+          - channel: body_manifestation
+            signal: muscle_tension
+      visibility_threshold: 0.5
+      confidence_base: 0.70
+
+  voice:
+    voice_tempo:
+      description: "Темп речи"
+      requires:
+        all:
+          - channel: voice_manifestation
+            signal: tempo
+      audibility_threshold: 0.5
+      confidence_base: 0.80
+
+    voice_tremor_amplitude:
+      description: "Амплитуда дрожи голоса"
+      requires:
+        all:
+          - channel: voice_manifestation
+            signal: tremor
+      audibility_threshold: 0.6
+      confidence_base: 0.65
+
+  movement:
+    distance_to_observer:
+      description: "Дистанция до наблюдателя"
+      requires:
+        all:
+          - context: observer_geometry
+      visibility_threshold: 0.3
+      confidence_base: 0.95
+
+    movement_speed:
+      description: "Скорость перемещения"
+      requires:
+        all:
+          - channel: movement
+            signal: speed
+      visibility_threshold: 0.3
+      confidence_base: 0.90
+
+  avatar_self:
+    player_wounded:
+      description: "Игрок ранен"
+      requires:
+        all:
+          - source: internal_avatar_state
+      confidence_base: 1.0
+
+    player_armed:
+      description: "Игрок вооружён"
+      requires:
+        all:
+          - source: internal_avatar_state
+      confidence_base: 1.0

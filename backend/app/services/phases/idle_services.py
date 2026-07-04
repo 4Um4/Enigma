@@ -22,6 +22,7 @@ class Phase0_5Deps:
     l1_chronicle: Any
     dynamic_field: Any
     homeostasis_sub: Any
+    social_input_proj: Any
     expectation_store: Any
     idle_handlers: List[Any]
     life_engine: Any
@@ -45,7 +46,7 @@ def run_phase_0_5(ctx: _TickContext, deps: Phase0_5Deps) -> None:
     deps.dynamic_field.purge_hard_overrides(current_tick=ctx.tick_number)
     deps.dynamic_field.step_decay()   
 
-    # Homeostasis: social_battery isolation decay (time-driven)
+    # Homeostasis: social_satiation drift (time-driven)
     _isolation_deltas = deps.homeostasis_sub.compute_isolation_decay(ctx.all_npcs_raw)
     if _isolation_deltas:
         ctx.delta_buffer.extend(_isolation_deltas)

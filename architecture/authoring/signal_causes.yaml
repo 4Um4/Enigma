@@ -1,0 +1,54 @@
+# architecture/authoring/signal_causes.yaml
+signal_possible_causes:
+
+  body_manifestation.tremor:
+    possible_causes:
+      - fear
+      - cold
+      - pain
+      - shock
+      - poison
+      - withdrawal
+      - exhaustion
+      - rage
+
+  body_manifestation.muscle_tension:
+    possible_causes:
+      - readiness_to_act
+      - fear
+      - anger
+      - determination
+      - chronic_stress
+
+  gaze.gaze_direction:
+    possible_causes:
+      - attention_to_target
+      - threat_monitoring
+      - social_avoidance
+      - environmental_distraction
+      - disorientation
+
+  voice_manifestation.tremor:
+    possible_causes:
+      - fear
+      - cold
+      - emotion_suppression
+      - neurological_condition
+      - intoxication
+
+  breathing.rate_elevated:
+    possible_causes:
+      - physical_exertion
+      - fear
+      - anger
+      - illness
+      - pain
+      - excitement
+
+  movement.coordination_impaired:
+    possible_causes:
+      - intoxication
+      - fatigue
+      - injury
+      - neurological_condition
+      - fear

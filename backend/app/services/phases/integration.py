@@ -299,7 +299,35 @@ def run_phase_9_integration(ctx: _TickContext, deps: Phase9IntegrationDeps) -> N
 
     # TZ-08 v0.2: Perception pipeline — internal causal observability layer (post-mutation).
     # Формирует модель наблюдаемости мира на основе state_t+1.
-    _traces = deps.manifest_svc.produce_traces(ctx.scene_state, all_npcs_raw=_npc_truth_source)
+    # ADR-O-322: ManifestationPhysicsEngine (Sprint P2)
+    from app.services.perception.manifestation_physics_engine import ManifestationPhysicsEngine
+    from app.domain.embodied_trace import EmbodiedTraceDTO
+    
+    _engine = ManifestationPhysicsEngine()
+    
+    _traces = []
+    _npc_positions = ctx.scene_state.get("npc_positions", {})
+    _body_map = {n.get("id") or n.get("npc_id"): n.get("body_state") for n in _npc_truth_source} if _npc_truth_source else {}
+    
+    for _nid, _ndata in _npc_positions.items():
+        if _nid == "player": continue
+        _bs = _body_map.get(_nid, {})
+        _traversal = ctx.scene_state.get("active_traversals", {}).get(_nid)
+        
+        # Вычисляем физическое проявление
+        _manifest = _engine.manifest(_ndata, _bs, _traversal)
+        
+        # Конвертируем в EmbodiedTraceDTO для обратной совместимости с PhenomenologyProjectionService
+        _trace = EmbodiedTraceDTO(
+            npc_id=_nid,
+            locomotion_instability=_manifest.movement.tremor,
+            posture_rigidity=_manifest.body.muscle_tension,
+            micro_pause_density=_manifest.voice.pauses,
+            action_interruption=0.0 if _manifest.body.standing_balance > 0.5 else 1.0
+        )
+        
+        if _trace.locomotion_instability > 0.05 or _trace.posture_rigidity > 0.05:
+            _traces.append(_trace)
     _player_perception = deps.project_svc.project(_traces, ctx.scene_state, tick=ctx.tick_number)
 
     builder = deps.snapshot_builder

@@ -635,6 +635,12 @@ class NPCState:
 
     # volatile-модификаторы состояния: пишутся StateApplicator, затухают по тикам
     state_modifiers: Dict[str, float] = field(default_factory=dict)
+    
+    # ADR-O-304: Trait Dynamics — энергия активации черт (гистерезис).
+    # Накапливается при получении trait_updates, затухает каждый тик.
+    # Если превышает THETA_UP — черта активируется в state_modifiers.
+    # Если падает ниже THETA_DOWN — черта начинает обычный decay.
+    trait_activation: Dict[str, float] = field(default_factory=dict)
 
     # ── Intent ────────────────────────────────────────────────────────────────
     intent:              Optional[Intent] = None
@@ -714,6 +720,7 @@ class NPCState:
             "emotion":            self.emotion.value,
             "emotion_delta":      self.emotion_delta,
             "state_modifiers":    dict(self.state_modifiers),
+            "trait_activation":   dict(self.trait_activation),
             "trauma_markers":     list(self.trauma_markers),
             "intent":             self.intent.value if self.intent else None,
             "intent_target":      self.intent_target,
@@ -942,7 +949,7 @@ class NPCStateAdapter:
             # affective_memory — восстановление ожидания угрозы (SEL Baseline)
             affective_memory = float(npc_dict.get("affective_memory", 0.0)),
             # social_satiation — восстановление уровня социального насыщения
-            social_satiation = float(npc_dict.get("social_satiation", float(npc_dict.get("social_battery", 50.0)))),
+            social_satiation = float(npc_dict.get("social_satiation", 50.0)),
             # social_input_ema — восстановление поля социального давления
             social_input_ema = float(npc_dict.get("social_input_ema", 0.0)),
             # emotion — восстановление текущей эмоции (ADR-116)

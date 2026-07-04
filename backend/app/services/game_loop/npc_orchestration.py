@@ -129,12 +129,20 @@ def run_npc_orchestration(
         all_npcs_raw=ctx.all_npcs_raw,
         intent_resolution=getattr(shared_context, 'intent_resolution', None),  # SHI-FIX COMMAND
     )
-    _tick_result = tick_orchestrator.tick_player_turn(
+    from app.contracts.interventions import InterventionEvent
+    # TZ-08 v0.2: Event-driven model. Прямой вызов execute() с InterventionEvent
+    _intervention = InterventionEvent(
+        source="player",
+        payload={"dm_ctx": _dm_ctx},
+        tick=_dm_ctx.current_tick,
+    )
+    _tick_result = tick_orchestrator.execute(
         campaign_id=campaign_id,
-        location=location,
         scene_state=shared_context.scene_state,
-        dm_ctx=_dm_ctx,
+        tick_number=_dm_ctx.current_tick,
+        interventions=[_intervention],
         npc_services=_npc_svc,
+        spatial_service=_spatial_svc,
     )
     
     # SHI-FIX CAUSAL: L1 Фиксация на основе semantic_action (Fast Path).

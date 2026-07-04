@@ -1,0 +1,90 @@
+# architecture/perception_architecture.yaml
+domain: "EPISTEMOLOGY"
+nodes:
+  Reality:
+    type: "state"
+    layer: "Domain"
+    label: "Reality (Internal State)"
+    description: "Абсолютная истина симуляции. Скрыта от наблюдателей."
+
+  ManifestationState:
+    type: "state"
+    layer: "Domain"
+    label: "ManifestationState (Immutable)"
+    description: "Единственный мост между Reality и внешним миром. Read-only."
+
+  ObservationRelation:
+    type: "dto"
+    layer: "Domain"
+    label: "ObservationRelation (Observer x Target)"
+    description: "Объект отношения. Содержит ТОЛЬКО параметры среды. Запрещено хранить NPC id, Faction, Mood, Emotion, Memory."
+
+  PerceivedSignal:
+    type: "state"
+    layer: "Domain"
+    label: "PerceivedSignal"
+    description: "Что физически зарегистрировали органы чувств."
+
+  ObservedFact:
+    type: "state"
+    layer: "Domain"
+    label: "ObservedFact (Atomic)"
+    description: "Атомарные факты (hand_position, distance). Составные выводы запрещены."
+
+  Inference:
+    type: "state"
+    layer: "Domain"
+    label: "Inference / Hypothesis"
+    description: "Гипотезы, построенные на фактах. Никогда не изменяет Reality."
+
+  Memory:
+    type: "state"
+    layer: "Domain"
+    label: "Memory / Belief"
+    description: "Помнит и факты, и собственные выводы."
+
+edges:
+  - from: "Reality"
+    to: "ManifestationState"
+    label: "manifests"
+  - from: "ManifestationState"
+    to: "ObservationRelation"
+    label: "observed via"
+  - from: "ObservationRelation"
+    to: "PerceivedSignal"
+    label: "filtered by physics"
+  - from: "PerceivedSignal"
+    to: "ObservedFact"
+    label: "extracted"
+  - from: "ObservedFact"
+    to: "Inference"
+    label: "hypothesized"
+  - from: "ObservedFact"
+    to: "Memory"
+    label: "stored"
+  - from: "Inference"
+    to: "Memory"
+    label: "stored"
+
+constraints:
+  - source: "Reality"
+    target: "PresentationAssembler"
+    rule: "FORBIDDEN: Потребители не могут читать Reality напрямую"
+  - source: "ManifestationState"
+    target: "ObserverPosition"
+    rule: "FORBIDDEN: ManifestationState не зависит от наблюдателя"
+  - source: "ObservationRelation"
+    target: "EntityMetadata"
+    rule: "FORBIDDEN: ObservationRelation не содержит NPC id, Faction, Mood, Memory"
+  - source: "ObservedFact"
+    target: "CompositeConclusions"
+    rule: "FORBIDDEN: ObservedFact должен быть строго атомарным"
+  - source: "Inference"
+    target: "Reality"
+    rule: "FORBIDDEN: Inference не может изменять Reality"
+
+consumers:
+  - "PresentationAssembler (Renderer)"
+  - "DMContractBuilder (LLM Narrative)"
+  - "CausalObserver (CDS Telemetry)"
+  - "Debugger / Replay"

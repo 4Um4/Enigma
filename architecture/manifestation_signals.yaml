@@ -1,0 +1,96 @@
+# architecture/manifestation_signals.yaml
+domain: "PERCEPTION"
+nodes:
+  ManifestationState:
+    type: "state"
+    layer: "Domain"
+    label: "ManifestationState (Immutable)"
+    description: |
+      Физически измеримые сигналы. 
+      Manifestation вообще не знает, есть наблюдатель или нет.
+      Микросигналы (мимика) выделены отдельно, но без requires_resolution.
+      Единственный мост между Reality и внешним миром.
+
+edges:
+  - from: "Reality"
+    to: "ManifestationState"
+    label: "manifests"
+
+constraints:
+  - source: "ManifestationState"
+    target: "ObserverPosition"
+    rule: "FORBIDDEN: ManifestationState не должен зависеть от позиции наблюдателя"
+  - source: "ManifestationState"
+    target: "PerceptualKernel"
+    rule: "FORBIDDEN: ManifestationState не должен зависеть от психики наблюдателя"
+
+channels:
+  body_manifestation:
+    owner: "ManifestationPolicy"
+    upstream: "Reality"
+    signals:
+      standing_balance: { type: float, range: [0.0, 1.0] }
+      muscle_tension: { type: float, range: [0.0, 1.0] }
+      body_orientation: { type: float, unit: degrees }
+      openness: { type: float, range: [-1.0, 1.0] }
+      collapse: { type: float, range: [0.0, 1.0] }
+      weight_shift: { type: float, range: [-1.0, 1.0] }
+
+  gaze:
+    owner: "ManifestationPolicy"
+    upstream: "Reality"
+    signals:
+      gaze_direction: { type: float, unit: degrees }
+      head_orientation: { type: float, unit: degrees }
+      fixation_duration: { type: float, unit: seconds }
+
+  voice_manifestation:
+    owner: "VoiceManifestationPolicy"
+    upstream: "Reality"
+    signals:
+      tempo: { type: float, unit: words_per_minute }
+      pauses: { type: float, range: [0.0, 1.0] }
+      pitch: { type: float, unit: hz }
+      pitch_variability: { type: float, range: [0.0, 1.0] }
+      tremor: { type: float, range: [0.0, 1.0] }
+      articulation: { type: float, range: [0.0, 1.0] }
+      loudness: { type: float, unit: db }
+
+  breathing:
+    owner: "PhysiologyEngine"
+    upstream: "Reality"
+    signals:
+      rate: { type: float, unit: breaths_per_minute }
+      depth: { type: float, range: [0.0, 1.0] }
+      irregularity: { type: float, range: [0.0, 1.0] }
+
+  movement:
+    owner: "MovementEngine + ManifestationPolicy"
+    upstream: "Reality"
+    signals:
+      precision: { type: float, range: [0.0, 1.0] }
+      speed: { type: float, unit: m_per_s }
+      coordination: { type: float, range: [0.0, 1.0] }
+      tremor: { type: float, range: [0.0, 1.0] }
+
+  hands:
+    owner: "ManifestationPolicy + BodyTopology"
+    upstream: "Reality"
+    signals:
+      grip_strength: { type: float, range: [0.0, 1.0] }
+      gesture_active: { type: bool }
+      fidget_intensity: { type: float, range: [0.0, 1.0] }
+      held_object_left: { type: string_nullable }
+      held_object_right: { type: string_nullable }
+
+  micro_expression:
+    description: "Мелкая моторика лица. Видимость определяется ObservationRelation.resolution"
+    owner: "ManifestationPolicy"
+    upstream: "Reality"
+    signals:
+      jaw_clench: { type: float, range: [0.0, 1.0] }
+      smile_intensity: { type: float, range: [-1.0, 1.0] }
+      brow_position: { type: float, range: [-1.0, 1.0] }
+      lip_compression: { type: float, range: [0.0, 1.0] }
+      pupil_dilation: { type: float, range: [0.0, 1.0] }
+      blink_rate: { type: float, unit: blinks_per_minute }

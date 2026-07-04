@@ -221,22 +221,26 @@ class NpcTickPipeline:
             from app.services.cfrm.pressure_translator import translate_kernel_to_context
             _body = getattr(state_l2, 'body_state', None)
             _kernel = getattr(state_l2, 'perceptual_kernel', None)
-            _social_battery = getattr(state_l2, 'social_battery', 50.0)
+            _social_satiation = getattr(state_l2, 'social_satiation', 50.0)
             _psyche = getattr(state_l2, 'psyche', {})
             _greg = _psyche.get("gregariousness", 0.5) if isinstance(_psyche, dict) else 0.5
-            _decision_ctx = translate_kernel_to_context(_kernel, body_state=_body, social_battery=_social_battery, gregariousness=_greg) if _kernel else None
+            # ADR-O-208: L3-P2. DecisionContext использует корректную сигнатуру pressure_translator.
+            _decision_ctx = translate_kernel_to_context(_kernel, body_state=_body, social_satiation=_social_satiation, gregariousness=_greg) if _kernel else None
 
             _effective_drives = state.effective_drives_map.get(npc_id)
             if _effective_drives is None: continue
 
             # KERNEL-ISOLATION: DecisionHub получает deterministic RNG через единую фабрику.
             _rng = KernelRNG(tick=state.tick_id, npc_id=npc_id)
+            _all_npc_ids = [n.get("npc_id") for n in state.all_npcs_raw if n.get("npc_id")]
             decision = DecisionHub(rng=_rng).compute(
                 state=state_l2, personality=profile_l0, effective_drives=_effective_drives,
                 event=_event_for_interp, identity=_identity, eco_modifiers=_all_modifiers or None,
                 social_modifiers=_social_mods or None, reputation_modifiers=_rep_modifiers_for_hub,
                 drive_modifiers=_drive_modifiers_for_hub, reflex_constraints=_reflex_constraints,
                 topic=_topic, decision_ctx=_decision_ctx,
+                spatial_query=state.spatial_query,
+                all_npc_ids=_all_npc_ids,
             )
             # SHI-FIX: логируем решение для CDS в строгом формате (pattern_registry.py:22).
             # Без этого SHI=0% (симуляция работает, но невидима).
@@ -820,10 +824,11 @@ def build_verbalization_context(
             from app.services.cfrm.pressure_translator import translate_kernel_to_context
             _body = getattr(state_l2, 'body_state', None)
             _kernel = getattr(state_l2, 'perceptual_kernel', None)
-            _social_battery = getattr(state_l2, 'social_battery', 50.0)
+            _social_satiation = getattr(state_l2, 'social_satiation', 50.0)
             _psyche = getattr(state_l2, 'psyche', {})
             _greg = _psyche.get("gregariousness", 0.5) if isinstance(_psyche, dict) else 0.5
-            _decision_ctx = translate_kernel_to_context(_kernel, body_state=_body, social_battery=_social_battery, gregariousness=_greg) if _kernel else None
+            # ADR-O-208: L3-P2. DecisionContext использует корректную сигнатуру pressure_translator.
+            _decision_ctx = translate_kernel_to_context(_kernel, body_state=_body, social_satiation=_social_satiation, gregariousness=_greg) if _kernel else None
 
             _pl = getattr(hub_event, 'payload', '<NO_PAYLOAD>')
             logger.debug(f"[DIAG_PRE_HUB] npc={npc_id} topic={_topic} event={hub_event.event_type} payload={_pl} reflex={_reflex_constraints} emotion={state_l2.emotion} affective_load={state_l2.affective_load}")

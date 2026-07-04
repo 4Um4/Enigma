@@ -140,3 +140,42 @@ def evaluate_behavior_and_identity(
         except Exception as e:
             logger.error(f"[BREAK_PROGRESS] failed for {npc_id}: {e}")
             raise
+
+
+def assemble_preloaded_data(ctx: Any, alive_npcs: list) -> tuple:
+    """Сборка preloaded данных для Pure Reducer (вынос I/O из run)."""
+    _svc = ctx.npc_services
+    _memory_weights_map = {}
+    _narrative_cache_map = {}
+    _social_modifiers_map = {}
+    _reputation_modifiers_map = {}
+    _economic_profiles_map = {}
+    _crystallized_beliefs_map = {}
+    _identity_traits_map = {}
+
+    if _svc:
+        for n in alive_npcs:
+            _nid = n.get("id") or n.get("npc_id")
+            if not _nid: continue
+            
+            if _svc.memory_manager:
+                _memory_weights_map[_nid] = _svc.memory_manager.get_weights_for_decision(campaign_id=ctx.campaign_id, npc_id=_nid, target_id="player")
+                _narrative_cache_map[_nid] = _svc.memory_manager.load_narrative_from_sqlite(ctx.campaign_id, _nid)
+                _identity_traits_map[_nid] = _svc.memory_manager.get_identity_traits(campaign_id=ctx.campaign_id, npc_id=_nid)
+            
+            if _svc.social_engine:
+                _social_modifiers_map[_nid] = _svc.social_engine.compute_social_modifiers(npc_id=_nid)
+            
+            if _svc.reputation_engine:
+                _reputation_modifiers_map[_nid] = _svc.reputation_engine.compute_reputation_modifier(npc_id=_nid)
+            
+            if hasattr(_svc, 'economic_profiles'):
+                _economic_profiles_map[_nid] = _svc.economic_profiles.get(_nid)
+            
+            _cstore = getattr(_svc, 'crystallized_belief_store', None)
+            if _cstore:
+                _crystallized_beliefs_map[_nid] = _cstore.get_beliefs(npc_id=_nid)
+
+    return (_memory_weights_map, _narrative_cache_map, _social_modifiers_map, 
+            _reputation_modifiers_map, _economic_profiles_map, _crystallized_beliefs_map, 
+            _identity_traits_map)

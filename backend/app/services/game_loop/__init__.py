@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import time
 import threading
 from typing import Dict
 import time
@@ -1294,7 +1295,7 @@ class GameLoop:
         except Exception as _fin_err:
             logger.error(f"[GAME_LOOP] Finalize error: {_fin_err}", exc_info=True)
             npc_result = {}
-            # Защита: _player_result может быть None если execute_player_finalize вернул None
+            # Защита: _player_result может быть None
             shared_context.npc_contexts = getattr(_player_result, 'npc_contexts', []) or []
 
         # Avatar update — после perception (shared_context.npc_contexts отфильтрован)

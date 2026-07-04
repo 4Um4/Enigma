@@ -26,6 +26,7 @@ def execute_reduction_phase(
     reaction_sub: Phase8Handler,
     social_sub: Phase8Handler,
     homeostasis_sub: Optional[Phase8Handler] = None,
+    social_input_proj: Optional[Phase8Handler] = None,
     dynamic_field=None,
     l1_chronicle=None,
     resolve_spatial_fn: Optional[Callable] = None,
@@ -37,6 +38,8 @@ def execute_reduction_phase(
         combat_sub: CombatSubscriber (Physical Layer).
         reaction_sub: ReactionSubscriber (Cognitive Layer).
         social_sub: SocialSubscriber (Social Layer).
+        homeostasis_sub: HomeostasisProjector (Field Layer, Phase 0.5 only).
+        social_input_proj: SocialInputProjector (Sensor Layer).
         dynamic_field: DynamicAffordanceField для стигмергических следов.
         l1_chronicle: L1Chronicle (опционально, для записи событий дрейфа).
         resolve_spatial_fn: Callable возвращающий SpatialService.
@@ -98,9 +101,10 @@ def execute_reduction_phase(
     if combat_result and combat_result.deltas:
         physical_deltas_tuple = tuple(combat_result.deltas)
 
-    # 3-5. Cognitive → Social → Homeostasis — единый проход
+    # 3-5. Cognitive → Social → Sensor — единый проход
     # Combat остаётся отдельным: генерирует physical_deltas для последующих слоёв
-    for _handler in (reaction_sub, social_sub, homeostasis_sub):
+    # HomeostasisProjector не вызывается здесь (он чистый Field Layer для Фазы 0.5)
+    for _handler in (reaction_sub, social_sub, social_input_proj):
         if _handler is not None:
             _execute_handler(ctx, _handler, physical_deltas_materialized=physical_deltas_tuple)
 

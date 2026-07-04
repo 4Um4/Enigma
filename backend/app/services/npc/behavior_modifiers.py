@@ -23,12 +23,12 @@ class BehaviorModifiers:
 
 
 def compute_behavior_modifiers(
-    social_battery: float,
+    social_satiation: float,
     gregariousness: float,
 ) -> BehaviorModifiers:
     """Чистая функция: battery + character → модификаторы.
     
-    social_battery: 0=истощён, 100=перегружен, 50=середина
+    social_satiation: 0=голод, 100=пресыщение, 50=середина
     gregariousness: 0=шизоид, 1=болтун
     
     Логика:
@@ -42,14 +42,14 @@ def compute_behavior_modifiers(
     tolerance = 15.0  # ширина зоны комфорта
 
     # Outgoing: battery низкий → хочет инициировать
-    _outgoing_dev = comfort - social_battery
+    _outgoing_dev = comfort - social_satiation
     if _outgoing_dev > tolerance:
         outgoing = min(0.5, (_outgoing_dev - tolerance) / 60.0)
     else:
         outgoing = 0.0
 
     # Incoming: battery высокий → готов реагировать
-    _incoming_dev = social_battery - comfort
+    _incoming_dev = social_satiation - comfort
     if _incoming_dev > tolerance:
         incoming = min(0.5, (_incoming_dev - tolerance) / 60.0)
     else:

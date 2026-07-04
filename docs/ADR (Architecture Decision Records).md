@@ -268,7 +268,8 @@
 
 `ADR-O-304` [ONTO] **L3 & DecisionContext Pipeline Unification & Projection-Native Transition** — Устранение Split-Brain. PressureTranslator=SSOT контекста (Somatic Veto), TickOrchestrator=SSOT L3-карты. DecisionHub стал projection-native (L0/drives_base изгнан из скоринга, риск-оценок и инерции)
   Taboo: ❌ Ручная сборка DecisionContext (from_kernel). ❌ Локальный DriveResolver/L1Chronicle в npc_tick_pipeline. ❌ Чтение personality.drives_base в принятии решений (только EffectiveDrives)
-  Files: decision_hub.py, tick_orchestrator.py, npc_tick_pipeline.py, pressure_translator.py, npc_tick_contracts.py, life_engine.py
+  Status: VERIFIED (S104). Внедрён Trait Stabilization Hysteresis (Trait Dynamics) через `trait_activation` в `NPCState`. Устранено мерцание черт.
+  Files: decision_hub.py, tick_orchestrator.py, npc_tick_pipeline.py, pressure_translator.py, npc_tick_contracts.py, life_engine.py, services/npc/state_applicator.py, models/npc_state.py
 
 `ADR-149` [FIX] **Schedule Freeze — Need Override & Two-Layer Dispatch** — Убит Schedule Freeze: need-driven (priority=0.8) перезаписывает schedule (priority=0.6). Schedule не генерируется если need-driven уже выбран. `routine["current"]` синхронизируется при победе need-driven (BUG SC FIX). Rate: 0.070 → 2.0/tick (28.5x)
   Taboo: ❌ Need priority ниже schedule при критической потребности. ❌ `routine["current"]` не обновлять при need-driven победе (DOUBLE TRUTH freeze). ❌ Schedule генерировать когда need-driven уже выбран
@@ -833,7 +834,8 @@
   Files: affective_integrator.py, tick_orchestrator.py, life_engine.py
 
 `ADR-O-206` [ONTO] **Emotional Residue Isolation Protocol** — Эмоциональный остаток изолирован от физиологического цикла
-  Files: affective_integrator.py, physiology_decay_handler.py
+  Status: VERIFIED (S104). EmotionTag полностью изолирован от логики памяти и физиологии. Шрамы памяти модулируются нелинейно от Surprise. Нагрузка вычисляется как функция ошибки предсказания, а не как сумма памяти и энергии.
+  Files: affective_integrator.py, affective/affective_integrator.py, memory/importance_engine.py, memory/memory_manager.py, affective/affective_decay_handler.py
 
 `ADR-DET-02` [FIX] **Domain Boundary Integrity (PE_DISAPPOINTMENT Leak)** — Устранена прямая мутация `trust_delta` (SOCIAL field) из `EMOTION` handler. Модуляция разочарования (PE < -0.3) теперь применяется строго внутри блока `DeltaDomain.SOCIAL`, соблюдая Single Writer Policy (I-CORE-05). Установлена основа для будущего перехода на event-mediated influence (EmotionalSignal).
   Files: services/npc/state_applicator.py
@@ -866,8 +868,9 @@
   Files: domain/exceptions.py, state_applicator.py
 
 `ADR-O-208` [ONTO] **Identity Chronicle & Drives (DRP)** — L1Chronicle (append-only) и DriveResolver (L0+L1→L3)
-  Taboo: ❌ Кэширование EffectiveDrives. ❌ Удаление из L1Chronicle
-  Files: domain/identity_events.py, services/npc/l1_chronicle.py, services/npc/drive_resolver.py
+  Taboo: ❌ Кэширование EffectiveDrives. ❌ Удаление из L1Chronicle. ❌ Фоллбэк на L0 (drives_base) в InterpretationEngine/VerbalizationContext.
+  Status: VERIFIED (S104). L3 стала строго эфемерной. Уничтожены фоллбэки на L0. Прямая мутация drives_runtime заблокирована.
+  Files: domain/identity_events.py, services/npc/l1_chronicle.py, services/npc/drive_resolver.py, services/npc/npc_tick_pipeline.py, services/npc/life_engine.py, services/tick_orchestrator.py
 
 `ADR-O-208.1` [FIX] **TraitDriftEvent Contract Fix (S85.1)** — `BreakProgressEngine` и `L1Chronicle` переведены на новые поля ADR-O-208 (`target_id`, `tick_id`, `effect_value`). Удалены обращения к устаревшим `npc_id`, `tick`, `trait`, `delta`.
   Taboo: ❌ Чтение устаревших полей (`npc_id`, `tick`, `trait`, `delta`) из `TraitDriftEvent`.
@@ -928,6 +931,22 @@
 `ADR-S93.3` [FIX] **L2.5 PatternDetector & Belief Engine Implementation** — Stub-методы `PatternDetector` заменены на чтение `L1Chronicle` через инъекцию зависимости. Порог `MIN_EVENTS_FOR_PERSISTENCE` понижен до 3. `BeliefCrystallizationEngine` применяет асимметричную травму (x6).
   Taboo: ❌ Использование `PatternDetector` без передачи `L1Chronicle` в конструктор. ❌ Жёсткие пороги (if/else) в формировании убеждений.
   Files: pattern_detector.py, belief_crystallization_engine.py, tick_orchestrator.py
+
+`ADR-O-322` [ONTO] **Epistemology Machine Architecture** — Система переведена в ранг "Машины Эпистемологии". 2 ортогональные оси (Мир, Познание) и downstream-потребители. Зафиксированы 5 инвариантов: невозрастание истины, запрет каузального возврата, изоляция потребителей, реляционная сущность, единственный мост Manifestation.
+  Taboo: ❌ Возврат к линейному Pipeline. ❌ Нарушение 5 инвариантов. ❌ Чтение Reality потребителями (DM, UI).
+  Files: architecture/perception_architecture.yaml, docs/audits/ADR-O-322_IMPACT.md
+
+`ADR-O-323` [ONTO] **Atomic Fact Extraction** — `ObservedFact` строго атомарен. Составные выводы запрещены на уровне FactExtractor.
+  Taboo: ❌ Составные факты типа `hand_on_weapon` в слое FactExtraction.
+  Files: architecture/observed_fact_types.yaml, docs/audits/ADR-O-323_IMPACT.md
+
+`ADR-O-324` [ONTO] **ObservationRelation Contract** — `ObservationContext` переименован в `ObservationRelation`. Объект отношения, а не мира. Только параметры среды.
+  Taboo: ❌ Хранение NPC id, Faction, Mood, Memory внутри ObservationRelation.
+  Files: architecture/perception_architecture.yaml, docs/audits/ADR-O-324_IMPACT.md
+
+`ADR-O-325` [ONTO] **Authoring Data Isolation** — `signal_causes.yaml` вынесен в `authoring/`. Статические priors удалены.
+  Taboo: ❌ Чтение `signal_causes.yaml` в runtime-физике. ❌ Статические вероятности в YAML.
+  Files: architecture/authoring/signal_causes.yaml, docs/audits/ADR-O-325_IMPACT.md
 
 `ADR-DM-001` [STD] **DM Prompt Minimum Contract** — В промпте DM ВСЕГДА минимум (локация + кто рядом). Никогда не пропускать автоматически. Симптомы — ВСЕГДА. DM описывает что видит игрок, даже в диалоге. NPC онтология — ВСЕГДА в промпте. Без этого DM не знает КТО перед ним.
   Taboo: ❌ Автоматический пропуск блоков локации/симптомов/NPC онтологии в сборке DM-промпта.

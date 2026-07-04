@@ -83,6 +83,12 @@ INTENT_INERTIA_WEIGHT: Final[float] = 0.20
 INTENT_SATURATION_TICKS: Final[int] = 6       # тиков без прогресса до начала decay
 INTENT_DECAY_RATE: Final[float] = 0.03        # убывание за каждый лишний тик
 TRAIT_DECAY_RATE: Final[float] = 0.02         # decay временных state_modifiers за тик
+
+# ADR-O-304: Trait Stabilization Hysteresis (Trait Dynamics)
+THETA_UP: Final[float] = 0.60                 # Порог активации черты (накопленная энергия)
+THETA_DOWN: Final[float] = 0.20               # Порог деактивации черты
+TRAIT_ACTIVATION_RATE: Final[float] = 0.15    # Скорость накопления энергии активации за одно событие
+TRAIT_ACTIVATION_DECAY: Final[float] = 0.03   # Скорость затухания энергии активации за тик
 INTENT_EXHAUSTION_RATE: Final[float] = 0.08   # штраф за зависание сверх порога
 
 # Пороги выбора

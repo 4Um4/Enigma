@@ -466,8 +466,8 @@ class StateApplicator:
 
         trust_delta = deltas.payload.trust_delta if domain == DeltaDomain.SOCIAL and isinstance(deltas.payload, SocialPayload) else deltas.trust_delta
         fear_delta = deltas.payload.fear_delta if domain == DeltaDomain.SOCIAL and isinstance(deltas.payload, SocialPayload) else deltas.fear_delta
-        # social_battery — внутреннее социальное состояние (предшественник Homeostasis)
-        _sb_delta = deltas.payload.social_battery_delta if domain == DeltaDomain.SOCIAL and isinstance(deltas.payload, SocialPayload) else 0.0
+        # social_satiation — гомеостаз социального насыщения
+        _ss_delta = deltas.payload.social_satiation_delta if domain == DeltaDomain.SOCIAL and isinstance(deltas.payload, SocialPayload) else 0.0
         # social_input_ema — континуальное поле социального входа
         _ema_delta = deltas.payload.social_input_ema_delta if domain == DeltaDomain.SOCIAL and isinstance(deltas.payload, SocialPayload) else 0.0
 
@@ -584,9 +584,13 @@ class StateApplicator:
                     state.affective_load = min(1.0, max(0.0, _payload_load))
                     logger.debug(f"[SEL_COMMIT] npc={state.npc_id} affective_load={_payload_load:.3f}, memory={_payload_memory:.3f} applied to M.")
 
-        # Traits overlay
+        # ADR-O-304: Trait Dynamics — накопление энергии активации (гистерезис).
+        # Черта не активируется мгновенно. Энергия накапливается в trait_activation.
+        # Активация происходит в _apply_trait_dynamics, когда энергия превышает THETA_UP.
+        from app.core.constants import TRAIT_ACTIVATION_RATE
         for trait, value in deltas.trait_updates.items():
-            state.state_modifiers[trait] = max(0.0, min(1.0, value))
+            _current_energy = state.trait_activation.get(trait, 0.0)
+            state.trait_activation[trait] = min(1.0, _current_energy + (value * TRAIT_ACTIVATION_RATE))
 
         # Травма
         if new_trauma:
@@ -620,18 +624,13 @@ class StateApplicator:
                 if _chronicle is not None:
                     _chronicle.commit_tick_buffer(_events, _tick)
                 else:
-                    # Fallback: прямая запись в drives_runtime (но без нормализации!)
-                    # Это компромисс — лучше, чем ImportError, но хуже, чем L1.
+                    # ADR-O-208: L3-P1. Прямая мутация drives_runtime запрещена.
+                    # Если L1Chronicle не подключён, мутация игнорируется.
                     import logging
                     logging.getLogger(__name__).warning(
-                        f"[STATE_APPLICATOR] L1Chronicle not attached to state {state.npc_id}, "
-                        f"applying trauma drives directly to drives_runtime (no normalization)."
+                        f"[STATE_APPLICATOR] L1Chronicle not attached to state {state.npc_id}. "
+                        f"Drive mutation ignored (L3 strictly ephemeral)."
                     )
-                    if not state.drives_runtime:
-                        state.drives_runtime = dict(getattr(state, "drives_base", {}))
-                    for trait, delta in _drive_mutations.items():
-                        if trait in state.drives_runtime:
-                            state.drives_runtime[trait] = max(0.01, state.drives_runtime[trait] + delta)
 
         # --- Физиология (Physiology Domain) ---
         if domain == DeltaDomain.PHYSIOLOGY:
@@ -864,18 +863,45 @@ class StateApplicator:
 
     def _apply_trait_decay(self, state: NPCState) -> None:
         """
-        Decay state_modifiers к нулю каждый тик.
-        Базовая personality не затронута — только overlay.
-        Модификаторы с strength < 0.01 удаляются.
+        ADR-O-304: Trait Dynamics — гистерезисная модель активации/деактивации черт.
+        1. Энергия активации (trait_activation) затухает каждый тик.
+        2. Если энергия > THETA_UP — черта активируется в state_modifiers.
+        3. Если энергия < THETA_DOWN — черта начинает обычный decay.
+        4. Если энергия >= THETA_DOWN — черта удерживается (dwell_time).
         """
-        to_remove = []
-        for trait, strength in state.state_modifiers.items():
-            new_strength = strength - TRAIT_DECAY_RATE
-            if new_strength < 0.01:
-                to_remove.append(trait)
+        from app.core.constants import THETA_UP, THETA_DOWN, TRAIT_ACTIVATION_DECAY
+        
+        # 1. Затухание энергии активации
+        energy_to_remove = []
+        for trait, energy in state.trait_activation.items():
+            new_energy = energy - TRAIT_ACTIVATION_DECAY
+            if new_energy < 0.01:
+                energy_to_remove.append(trait)
             else:
-                state.state_modifiers[trait] = round(new_strength, 4)
-        for trait in to_remove:
+                state.trait_activation[trait] = round(new_energy, 4)
+        for trait in energy_to_remove:
+            del state.trait_activation[trait]
+            
+        # 2. Гистерезисная активация/деактивация
+        mods_to_remove = []
+        for trait, strength in state.state_modifiers.items():
+            energy = state.trait_activation.get(trait, 0.0)
+            
+            # Активация: энергия высокая — обновляем силу черты (поддерживаем)
+            if energy >= THETA_UP:
+                state.state_modifiers[trait] = 1.0  # Полная активация
+            # Dwell time: энергия средняя — удерживаем черту без decay
+            elif energy >= THETA_DOWN:
+                pass  # Черта удерживается, decay не применяется
+            # Деактивация: энергия низкая — применяем обычный decay
+            else:
+                new_strength = strength - TRAIT_DECAY_RATE
+                if new_strength < 0.01:
+                    mods_to_remove.append(trait)
+                else:
+                    state.state_modifiers[trait] = round(new_strength, 4)
+                    
+        for trait in mods_to_remove:
             del state.state_modifiers[trait]
 
     # ── Фракции: ReputationEngine — единственный мутатор ──────────────
@@ -993,13 +1019,12 @@ class StateApplicator:
 
         # L5: Post-Commit Validation Gate (No Repair Principle)
         # L5A: Structural Existence — ADR-139 Single Write Authority.
-        # ЕДИНСТВЕННЫЙ read point для L5A = state.drives_runtime (execution layer).
-        # НЕ читает npc_dict (persistence), НЕ читает personality (seed).
-        drives = getattr(state, 'drives_runtime', None)
+        # ADR-O-208: L3-P1. drives_runtime — эфемерный кэш. Если он пуст, валидируем L0 (drives_base).
+        drives = getattr(state, 'drives_runtime', None) or getattr(state, 'drives_base', None)
         if not drives or not isinstance(drives, dict):
             raise OntologyViolationError(
                 f"NPC '{state.npc_id}': Нарушение структурного контракта (L5A). "
-                f"drives_runtime отсутствует или пуст. Личность не существует."
+                f"drives_base и drives_runtime отсутствуют. Личность не существует."
             )
 
         total_mass = sum(drives.values())

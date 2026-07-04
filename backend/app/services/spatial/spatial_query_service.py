@@ -56,6 +56,19 @@ class SpatialQueryService:
         """Словарь дистанций от игрока до списка NPC."""
         return {nid: self.distance_player(nid) for nid in npc_ids}
 
+    def get_nearest_npc(self, source_id: str, npc_ids: List[str]) -> Optional[str]:
+        """Возвращает ID ближайшего NPC к source_id, исключая его самого."""
+        _min_dist = float('inf')
+        _nearest = None
+        for nid in npc_ids:
+            if nid == source_id:
+                continue
+            _d = self.distance(source_id, nid)
+            if _d < _min_dist:
+                _min_dist = _d
+                _nearest = nid
+        return _nearest
+
     def visibility(self, entity_a: str, entity_b: str) -> bool:
         """Проверка прямой видимости между двумя сущностями."""
         pos_a = self._npc_positions.get(entity_a, {})

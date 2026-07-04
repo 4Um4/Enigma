@@ -334,6 +334,8 @@ class DecisionHub:
         reflex_constraints: Optional[Dict] = None,
         topic: Optional[str] = None,
         decision_ctx:    Optional["DecisionContext"] = None, # S28: Каузальная деформация
+        spatial_query:   Optional[Any] = None,               # S96: Для SocialTargetResolver
+        all_npc_ids:     Optional[List[str]] = None,         # S96: Для SocialTargetResolver
     ) -> AgentAction:
         """
         Основной метод. READ ONLY — state не мутируется.
@@ -663,7 +665,11 @@ class DecisionHub:
             best_intent = Intent.IDLE
             best_score  = 0.0
 
-        intent_target = self._resolve_target(best_intent, event, state)
+        intent_target = self._resolve_target(
+            best_intent, event, state, 
+            spatial_query=spatial_query, 
+            all_npc_ids=all_npc_ids or []
+        )
         deltas        = self._compute_deltas(state, personality, event, best_intent)
         narrative     = None  # факт создаётся через MemoryManager.apply(), не здесь
 
@@ -945,14 +951,14 @@ class DecisionHub:
         Intent.WARN.value, Intent.INTIMIDATE.value, Intent.EXPLAIN.value,
     }
 
-    def _social_battery_modifier(
+    def _social_satiation_modifier(
         self,
         intent: str,
         decision_ctx: Optional["DecisionContext"] = None,
     ) -> float:
         """Читает готовые модификаторы из DecisionContext.
         
-        DecisionHub не знает про social_battery или gregariousness.
+        DecisionHub не знает про social_satiation или gregariousness.
         Он видит только число. Если decision_ctx не передан или
         поля отсутствуют (legacy path) — возвращает 0.0.
         """
@@ -1047,7 +1053,7 @@ class DecisionHub:
         opportunity_mod = opportunity.score if intent in opportunity.unlocked_intents else 0.0
 
         # Social battery modifier (предшественник Homeostasis)
-        social_mod = self._social_battery_modifier(intent, decision_ctx)
+        social_mod = self._social_satiation_modifier(intent, decision_ctx)
 
         return {
             "drive":        round(drive_score, 4),
@@ -1544,20 +1550,30 @@ class DecisionHub:
         intent:  str,
         event:   EventContext,
         state:   NPCState,
+        spatial_query: Optional[Any] = None,
+        all_npc_ids: List[str] = [],
     ) -> Optional[str]:
         """Определяет цель intent."""
         if intent in (Intent.IDLE.value, Intent.OBSERVE.value):
             return None
         if intent == Intent.FLEE.value:
             return event.actor_id  # Источник угрозы — от кого бежим
-        # Фаза 3.4: Проактивные интенты при world_tick не имеют явной цели
-        # (actor_id = сам NPC). DM определит цель из контекста сцены.
+            
         from app.services.events.event_types import EventType
-        if event.event_type == EventType.WORLD_TICK and intent in PROACTIVE_INTENTS:
-            return None
-        # APPROACH — подходит к актору события (игроку или другому NPC)
-        if intent == Intent.APPROACH.value:
-            return event.actor_id
+        from app.services.npc.social_target_resolver import SocialTargetResolver
+        
+        # Если есть явная цель (игрок атаковал/приказал) — используем её
+        if event.target_id and event.event_type != EventType.WORLD_TICK:
+            return event.target_id
+
+        # S96: Проактивные TALK и APPROACH используют SocialTargetResolver
+        if intent in (Intent.TALK.value, Intent.APPROACH.value):
+            _target = SocialTargetResolver.resolve(state, spatial_query, all_npc_ids)
+            if _target:
+                return _target
+            # Fallback на актора, если резолвер ничего не нашёл
+            return event.actor_id if event.actor_id != state.npc_id else None
+            
         # По умолчанию — актор события
         return event.actor_id
 

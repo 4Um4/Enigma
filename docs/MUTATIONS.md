@@ -88,6 +88,15 @@
 - 🟢 **S86** ТЗ-02 (Часть A): Восстановлена исполняемость пайплайна. Устранены `ImportError` (`apply_drives_mutation`), `NameError` (`effective_drives`, `state` vs `state_for_llm`). Удалён дубликат TIFL-блока.
 - 🔵 **S93** ADR-O-301: Kernel Isolation Repair v0.1. Внедрён `KernelRNG(tick, npc_id, salt)`. Убиты 5 утечек детерминизма (`random.*` в kernel layer) и 3 голых `DecisionHub()`. Создана единая фабрика `rng_factory` в `_TickContext`. Подсистемы (DecisionHub, LifeEngine, MovementEngine, StateApplicator) изолированы через `salt`. SUPERBOX: rate=1.540/tick.
 - 🟢 **S93** ADR-S93.1: Dead NPC Execution Lock. Мёртвые NPC (`life_status="DEAD"`) полностью исключаются из `ctx.all_npcs_raw` в `_run_core_phases` до Фазы 1. Устраняет "зомби-движение".
+- 🟢 **S104** ФАЗА 2: Аффективный и идентификационный слои (Шаги 2.2, 2.3, 2.4).
+  - **Шаг 2.2 (ADR-O-206): Emotional Residue Isolation.** Три surgical cuts:
+    1. `ImportanceEngine`: Удалён параметр `emotion_tag`. Важность памяти вычисляется строго от `prediction_error` (Surprise).
+    2. `MemoryManager`: Скорость забывания (`decay_rate`) вычисляется на основе `importance`, а не тега.
+    3. `AffectiveIntegrator`: Формула шрама (`_scar_rate`) сделана нелинейной (`0.1 + 0.4 * (_abs_error ** 1.5)`). Память перестала быть "скрытым источником энергии" (убрано сложение `current_memory` в `current_load_adjusted`), теперь она формирует ожидание (prior), а нагрузка вычисляется как функция от ошибки предсказания.
+  - **Шаг 2.3 (ADR-O-208): DriveResolver Pipeline (L0→L1→L3).** Уничтожены фоллбэки на L0 (`drives_base`) в `npc_tick_pipeline.py` и `life_engine.py`. `InterpretationEngine` и `VerbalizationContext` переведены на чтение эфемерной проекции из `state.effective_drives_map`. `TickOrchestrator` больше не читает `_prev_runtime` (кэш L3), а `StateApplicator` блокирует прямую мутацию `drives_runtime`. L3 стала строго эфемерной (L3-P1).
+  - **Шаг 2.4 (ADR-O-304): Trait Stabilization Hysteresis.** Внедрена гистерезисная модель активации черт (Trait Dynamics) в `StateApplicator`. Добавлено поле `trait_activation` в `NPCState` (с полным round-trip в сериализации). Энергия активации накапливается нелинейно и превышает `THETA_UP` для активации, удерживается до `THETA_DOWN` (dwell_time), что устраняет мерцание черт.
+  - **Шаг 2.1 (ADR-O-205) ОТЛОЖЕН:** Внедрение 3 изолированных проекций (Motor/Narrative/Mnemonic) отложено до реализации масштабного онтологического сдвига "Presentation v2.0" (ObservableSignals Contract, ManifestationPolicy, Three-Channel Presentation).
+  Files: docs/audits/ADR-O-206_IMPACT.md, backend/app/services/memory/importance_engine.py, backend/app/services/memory/memory_manager.py, backend/app/services/affective/affective_integrator.py, backend/app/services/affective/affective_decay_handler.py, backend/app/services/tick_orchestrator.py, backend/app/services/npc/state_applicator.py, backend/app/services/npc/npc_tick_pipeline.py, backend/app/services/npc/life_engine.py, backend/app/models/npc_state.py, backend/app/core/constants.py
 - 🔵 **S94** ТЗ-03: Frontend ↔ Backend Contract Repair. Устранена tri-ontology system. Установлена Single Causal Authority. A1: `GameActionResponse` расширен `scene_state` и `metadata`. A2: `WorldSnapshotDTO.npc_positions` канонизирован как `Dict[str, NPCPositionDTO]`, адаптер удалён. A3: `PeripheralCueDTO.cue_type` → `cue_key`. B1: Frontend authority removal (5 sub-fixes): фронтенд лишён права генерировать время, аватара, журнал. B2: Spatial Oracle no-silent-failure. B3: Dual-channel architecture (`idle_tick` остаётся causal clock, `get_world_state` добавлен как observational layer). C1: `contextlib.suppress(Exception)` заменён на явный `try/except`. C2: `_MinimalFrontendRegistry.find_chunks` добавлен. Создан `backend/tests/test_tz3_contract_repair.py` (11 тестов).
 - 🔵 **S95** ADR-O-302: Physics Overlay. Введены §14 (Закон Единичного Времени) и §15 (Закон Изоляции Реального Времени). `REAL_TIME_BRIDGE` (`reconcile_state`) изолирован, магическое число `10.0` заменено на `GAME_TICK_INTERVAL_SECONDS`. `INTERPOLATION_TIME` (`ETKE_IK_SUBSTEP_DT`) выведен в константу, магические `0.1` убиты в `motion_pipeline.py` и `tick_orchestrator.py`. Мёртвый код `get_world_ticks_elapsed` и `get_idle_seconds` удалён. Аффективный декэй переведён на `GAME_TICK_INTERVAL_SECONDS` и `AFFECT_DECAY_BASE_RATE`. Обнаружен и устранён баг `SHI=0%` (метод `on_individual_decision` находился в `TickHealthReport`, а не в `TickHealthChecker`, вызывая `AttributeError`).
 - 🔵 **S96** ТЗ-04: Spatial Authority & Physics Repair (Patch Set A+B). Устранены зомби-ридеры `player_distances` (A1-A3), `random.uniform` в `apply_change` заменён на `KernelRNG` (A4). Удалены мёртвые модули `transit_tracker.py` и `location_graph.py` (A5). `game_loop_bridge.py` переведён на логирование ошибок вместо `except: pass` (B1). Введена единая фабрика `SpatialFactory` (B3). Прямые мутации `activity`/`initiative_suppression` и `line_of_sight` переведены на маршрутизацию через `SceneChange` (B4-B5). Создан `test_tz4_spatial_authority.py` (12 тестов).
@@ -113,6 +122,18 @@
   - Ленивая инициализация `_manifest_svc` и `_project_svc` сохранена в обёртке оркестратора.
   - Smoke-test: `TickOrchestrator` инициализируется без ошибок, `_phase_9_integration` доступен.
   Files: backend/app/services/tick_orchestrator.py, backend/app/services/phases/integration.py
+
+- 🔵 **S107** Декомпозиция Фазы 5 (Preload Data) и ревизия `phases/`.
+  - В `phases/decision.py` добавлена `assemble_preloaded_data`. Из `_phase_5_decision` убрана ручная сборка мапов памяти, социума и убеждений.
+  - Проведена ревизия всех модулей в `backend/app/services/phases/`. Подтверждено использование lazy imports, циклических зависимостей нет.
+  - Фаза 8 (`_phase_8_drain_secondary`) проверена — уже является тонкой обёрткой.
+  Files: backend/app/services/tick_orchestrator.py, backend/app/services/phases/decision.py
+
+- 🔵 **S108** Декомпозиция Фаз 0, 6, 7 (Simulation & Post-Decision).
+  - Создан `phases/simulation.py` (~65 строк). Вынесен `_phase_0_simulation` (LifeEngine tick, Spatial changes injection).
+  - Создан `phases/post_decision.py` (~120 строк). Вынесены `_phase_6_post_decision` (IntentEventAdapter) и `_phase_7_windup_resolution` (Windup Registry Gate).
+  - Smoke-test: `TickOrchestrator` инициализируется без ошибок, все методы доступны.
+  Files: backend/app/services/tick_orchestrator.py, backend/app/services/phases/simulation.py, backend/app/services/phases/post_decision.py
 
 ### DOM-02: WILL, PRESSURE & DECISION
 
@@ -185,6 +206,11 @@
 - 🟢 **S85.1** ADR-130 Guard: `apply_changes` блокирует перезапись активного транзита (`status="MOVING"`). Устранён баг "бесконечного бега".
 - 🟢 **S85.1** Traversal Complete Fix: `apply_changes` обрабатывает `cause="traversal_complete"` как проекцию `local_position` (snap), а не создание нового `TraversalState`.
 - 🟢 **S97** ADR-O-201.4 Rule 120 Drift Fix: `EventCompiler` (Shadow Compiler) перестал генерировать `TraversalContract(status="COMPLETED")` для `cause="traversal_complete"` и boundary snap. Устранён дрейф `Rule 120`: SSM (владелец lifecycle) удалял терминальный транзит при cleanup, а Shadow оставал его в контракте. Теперь Shadow возвращает `traversal=None`.
+- 🔵 **S109** Декомпозиция ETKE-IK и Shadow Observer.
+  - Создан `phases/motion.py` (~105 строк). Вынесен `_process_continuous_motion` (SteeringResolver, MotionIntegrator, CollisionAvoidance, Stigmergy).
+  - Создан `phases/traversal.py` (~195 строк). Вынесены `_process_traversals` (STL Phase 1, Boundary Resolution) и `_apply_with_shadow_observation` (Dual Rail Execution).
+  - Smoke-test: `TickOrchestrator` инициализируется без ошибок, все методы доступны.
+  Files: backend/app/services/tick_orchestrator.py, backend/app/services/phases/motion.py, backend/app/services/phases/traversal.py
 - 🔵 **S97** ТЗ-09 (Декомпозиция Шаг 1-2): Из `tick_orchestrator.py` вынесены `drf_bus.py` (`DRFBus`, `DRFExecutionContext`) и `dto.py` (`ReductionPolicy`, `SemanticFrame`, `TickPlayerResultDTO`, `_TickContext`, `DMContextDTO`). Оживлён буфер `ctx.scene_changes` в Фазе 10. Удалены `settings.xxx_debug` гейты.
 - 🔵 **S87** ADR-TRAV-FSM: Завершена миграция ownership перемещений. `SceneStateManager` стал единственным владельцем lifecycle (через FSM `transition_traversal`). `TickOrchestrator` и `ProjectionEngine` переведены в read-only. `current_waypoint_idx` пробрасывается в `WorldSnapshotBuilder`. Удалён мёртвый код `models/traversal.py`.
 - 🔵 S86 Завершение миграции TZ-08 v0.2 и запуск Epistemic Boundary. DM-агент изолирован от ментальных объектов NPC (stress_delta, recalled_facts и др.). RulesAgent заменён на синхронный RulesSubscriber (pure reducer) в game_loop. build_r3_dm_frame перенесён в game_loop. Ядро больше не генерирует нарратив. Удалён мёртвый метод _phase_finalize из tick_orchestrator.py. Внедрён WorldProjectionBuffer как будущий слой оффскрин-симуляции.
@@ -242,6 +268,18 @@
 - 🟢 **S74** Sandbox Tests: 7 тестов для ADR-128/130 по §12.3 Устава.
 - 🟢 **S83** ADR-147: LLM Streaming Observability Gate. Убит теневой streaming path, CDS видит execution gate.
 - 🟢 **S85.1** SUPERBOX Stabilization: Устранены краши пайплайна (`AttributeError`, `ImportError`, `NameError`) в `L1Chronicle` и `TickOrchestrator`. Достигнут стабильный rate `comparisons=21/15 ticks`.
+- 🔵 **S110** Чистка оркестратора и вынос валидации.
+  - Создан `phases/validation.py` (~90 строк). Вынесена `_validate_shadow_vs_legacy` (Dual Rail Drift Validation).
+  - Из `execute_player_finalize` удалено ~200 строк мёртвого кода.
+  - Очищены неиспользуемые импорты, обновлена шапка `tick_orchestrator.py`.
+  - Smoke-test: `TickOrchestrator` инициализируется без ошибок.
+  Files: backend/app/services/tick_orchestrator.py, backend/app/services/phases/validation.py
+- 🔵 **S111** Финал декомпозиции `tick_orchestrator.py`.
+  - Проведён финальный аудит: размер файла доведён до 991 строки (с ~2200 изначально).
+  - Все тяжёлые фазы вынесены в `phases/`. В оркестраторе остались только thin-wrappers, маршрутизация и точка входа `execute`.
+  - Подтверждено, что `tick_player_turn` и `execute_player_finalize` нельзя удалять без рефакторинга `game_loop`.
+  - Кампания по декомпозиции оркестратора (S101-S111) завершена.
+  Files: backend/app/services/tick_orchestrator.py
 - 🔵 **S86** ТЗ-02 (Иммунная система): Внедрён Causal Invariant Checker (`backend/tests/sandbox/invariants/`). Тесты `test_hp_double_truth_invariant` и `test_l3_ephemeral_invariant` защищают систему от будущих разрывов между физикой, L0 и L3.
 
 ### DOM-09: SOCIAL & AFFECTIVE ARCHITECTURE (SSOT & Causal Derivation)
@@ -466,4 +504,7 @@
 88. ❌ Использование `PatternDetector` без передачи `L1Chronicle` в конструктор (ADR-S93.3)
 89. ❌ Жёсткие пороги (if/else) в формировании убеждений `BeliefCrystallizationEngine` (ADR-S93.3)
 90. ❌ Отсутствие затухания ожиданий в Фазе 0.5 — ожидания обязаны затухать привязанные к `dt_game` (ADR-S93.2)
+
+
+
 
