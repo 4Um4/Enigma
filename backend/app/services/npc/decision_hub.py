@@ -1551,9 +1551,11 @@ class DecisionHub:
         event:   EventContext,
         state:   NPCState,
         spatial_query: Optional[Any] = None,
-        all_npc_ids: List[str] = [],
+        all_npc_ids: Optional[List[str]] = None,
     ) -> Optional[str]:
         """Определяет цель intent."""
+        if all_npc_ids is None:
+            all_npc_ids = []
         if intent in (Intent.IDLE.value, Intent.OBSERVE.value):
             return None
         if intent == Intent.FLEE.value:

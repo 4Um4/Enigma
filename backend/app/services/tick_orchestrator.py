@@ -709,6 +709,7 @@ class TickOrchestrator:
             topic = ""
             stm_text = ""
 
+            topic = None
             # 1. Проверяем spatial events затронувшие этого NPC
             for event in ctx.phase_2_events:
                 from app.services.tick_utils import resolve_affected_npcs
@@ -1069,6 +1070,7 @@ class TickOrchestrator:
             _drf_bonus = 0.0
             for c in _npc_claims:
                 _ptype = c.get("pressure_type", "ROUTINE")
+                from app.services.drf_bus import _DRF_PRESSURE_WEIGHTS
                 _weight = _DRF_PRESSURE_WEIGHTS.get(_ptype, 0.02)
                 _energy = c.get("energy", 0.5)
                 _vector = str(c.get("vector", ""))

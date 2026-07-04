@@ -1,4 +1,3 @@
-# path: backend/app/domain/tick.py
 """
 Назначение: DTO результата тика — пересекает границу orchestrator → API → frontend
 Зависимости: dataclasses, typing, domain.snapshot

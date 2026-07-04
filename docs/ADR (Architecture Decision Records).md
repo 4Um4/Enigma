@@ -962,4 +962,11 @@
   Taboo: ❌ Возврат к чтению L1Chronicle внутри DriveResolver. ❌ Прямая мутация L0 минуя Belief Layer.
   Files: drive_resolver.py, tick_orchestrator.py
 
+`ADR-O-312` [ONTO] **Homeostatic Channel Primitive (Universal Regulation Law)** — Любая внутренняя потребность NPC (социальная, безопасность, новизна и т.д.) реализуется через единый каузальный контур регуляции: `Сенсор → Поле (EMA) → Гомеостаз (Setpoint - EMA) → Давление → Мотивация (Utility Deformation)`. 
+  - **Setpoint:** Вычисляется на лету из личности (L0/L3), НЕ сохраняется в состоянии (предотвращение Double Truth).
+  - **EMA (Exponential Moving Average):** Наблюдаемый уровень входа. Имеет физический полураспад (`half_life = ln(2) / ticks`). Обновляется сенсорным слоем (Event-driven) и затухает во времени (Field-driven).
+  - **Drift:** Дрейф внутреннего состояния (satiation) пропорционален давлению (`pressure = setpoint - ema`).
+  - **Status:** VERIFIED (Social Homeostasis MVP)
+  Taboo: ❌ Хардкод `if state < threshold then action` (потребности искривляют utility, а не приказывают). ❌ Сохранение вычисляемых `setpoint` в `NPCState`. ❌ Прямая мутация `satiation` от событий без промежуточного `EMA`-слоя.
+  Files: homeostasis_projector.py, social_input_projector.py, behavior_modifiers.py
 

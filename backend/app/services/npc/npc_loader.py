@@ -235,7 +235,7 @@ _RUNTIME_PSYCHE_KEYS = frozenset({
     "identity_integrity", "pressure_resistance", "resentment", "dependency"
 })
 _RUNTIME_TOP_LEVEL_KEYS = frozenset({
-    "social_stats", "location", "hp", "max_hp",
+    "social_stats", "location", "location_id", "hp", "max_hp",
     "current_role", "role_history",
     "conditions", "wounds", "threat_accumulator", "posture",
     "temporary_drives", "causal_ledger",
@@ -246,6 +246,8 @@ _RUNTIME_TOP_LEVEL_KEYS = frozenset({
     "body_state", "perceptual_kernel",
     # L2 память — без этого narrative_cache теряется
     "narrative_cache",
+    # ETKE-IK: Контур непрерывного движения — эфемерен, но переживает merge между тиками
+    "drive_vector",
 })
 _RUNTIME_FLAGS_KEYS = frozenset({
     "has_gold", "knows_secret", "is_enslaved", "planning_revenge", "is_dead"

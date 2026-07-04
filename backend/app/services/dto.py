@@ -84,6 +84,8 @@ class _TickContext:
     communication_intents: list = field(default_factory=list)
     # TZ-08 v0.2: Narrative Projection (для LLM/UI). Артефакт тика, а не player_result.
     npc_contexts: list = field(default_factory=list)
+    # Sprint P3: SpatialQueryService для PerceptionPhysicsEngine
+    spatial_query: Optional[Any] = None
     
     # KERNEL-ISOLATION: per-tick RNG factory.
     # Создаёт KernelRNG для каждого NPC по запросу (lazy).

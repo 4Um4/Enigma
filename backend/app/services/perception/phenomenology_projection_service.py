@@ -3,7 +3,7 @@
 Переводит физические следы в восприятие. Читает только тело, не читает эмоции.
 Зависимости: logging, app.domain.embodied_trace
 
-Путь: backend/app\services\perception\phenomenology_projection_service.py
+Путь: backend/app/services/perception/phenomenology_projection_service.py
 """
 
 import logging

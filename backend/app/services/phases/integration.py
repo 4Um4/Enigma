@@ -300,12 +300,18 @@ def run_phase_9_integration(ctx: _TickContext, deps: Phase9IntegrationDeps) -> N
     # TZ-08 v0.2: Perception pipeline — internal causal observability layer (post-mutation).
     # Формирует модель наблюдаемости мира на основе state_t+1.
     # ADR-O-322: ManifestationPhysicsEngine (Sprint P2)
+    # ADR-O-323: PerceptionPhysicsEngine (Sprint P3)
     from app.services.perception.manifestation_physics_engine import ManifestationPhysicsEngine
+    from app.services.perception.perception_physics_engine import PerceptionPhysicsEngine
+    from app.services.spatial.spatial_query_service import SpatialQueryService
     from app.domain.embodied_trace import EmbodiedTraceDTO
     
-    _engine = ManifestationPhysicsEngine()
+    _manifest_engine = ManifestationPhysicsEngine()
+    _perception_engine = PerceptionPhysicsEngine()
+    _spatial_query = SpatialQueryService(ctx.scene_state)  # Создаём на месте из scene_state
     
     _traces = []
+    _all_signals = []  # Список всех PerceivedSignal для всех NPC
     _npc_positions = ctx.scene_state.get("npc_positions", {})
     _body_map = {n.get("id") or n.get("npc_id"): n.get("body_state") for n in _npc_truth_source} if _npc_truth_source else {}
     
@@ -314,8 +320,49 @@ def run_phase_9_integration(ctx: _TickContext, deps: Phase9IntegrationDeps) -> N
         _bs = _body_map.get(_nid, {})
         _traversal = ctx.scene_state.get("active_traversals", {}).get(_nid)
         
-        # Вычисляем физическое проявление
-        _manifest = _engine.manifest(_ndata, _bs, _traversal)
+        # 1. Вычисляем ManifestationState
+        _manifest = _manifest_engine.manifest(_ndata, _bs, _traversal)
+        
+        # 2. Вычисляем ObservationRelation (игрок наблюдает за NPC)
+        _relation = _perception_engine.compute_relation(
+            observer_id="player",
+            target_id=_nid,
+            spatial_query=_spatial_query,  # Используем локальный экземпляр
+            scene_state=ctx.scene_state
+        )
+        
+        if _relation:
+            # 3. Фильтруем ManifestationState в PerceivedSignal
+            _signals = _perception_engine.filter_manifestation(
+                manifest=_manifest,
+                relation=_relation,
+                target_id=_nid,
+                current_tick=ctx.tick_number
+            )
+            _all_signals.extend(_signals)
+            
+    # ADR-O-324: FactExtractor (Sprint P4)
+    # ADR-O-325: InferenceEngine (Sprint P4)
+    from app.services.perception.fact_extractor import FactExtractor
+    from app.services.perception.inference_engine import InferenceEngine
+    
+    _fact_extractor = FactExtractor()
+    _inference_engine = InferenceEngine()
+    
+    _all_facts = _fact_extractor.extract(_all_signals, ctx.tick_number)
+    _all_inferences = _inference_engine.infer(_all_facts, ctx.tick_number)
+    
+    # ADR-O-326: PresentationAssembler (Sprint P7)
+    from app.services.perception.presentation_assembler import PresentationAssembler
+    _assembler = PresentationAssembler()
+    _facts_bundle = _assembler.assemble_facts_bundle(_all_facts)
+    
+    # ADR-O-327: DM Contract v2 (Sprint P9)
+    # В Sprint P9 мы передадим _facts_bundle в DMContractBuilder
+    # Временно сохраняем в npc_contexts для отладки
+    if _facts_bundle.facts:
+        _facts_debug = [f"{f.target_id}:{f.fact_name}={f.value}({f.confidence:.2f})" for f in _facts_bundle.facts]
+        logger.debug(f"[PHASE_9] FactsBundle: {' | '.join(_facts_debug)}")
         
         # Конвертируем в EmbodiedTraceDTO для обратной совместимости с PhenomenologyProjectionService
         _trace = EmbodiedTraceDTO(
@@ -328,6 +375,9 @@ def run_phase_9_integration(ctx: _TickContext, deps: Phase9IntegrationDeps) -> N
         
         if _trace.locomotion_instability > 0.05 or _trace.posture_rigidity > 0.05:
             _traces.append(_trace)
+    
+    # _all_signals теперь содержит список всех PerceivedSignal
+    # В Sprint P4 мы добавим FactExtractor, который будет извлекать атомарные факты из этих сигналов
     _player_perception = deps.project_svc.project(_traces, ctx.scene_state, tick=ctx.tick_number)
 
     builder = deps.snapshot_builder
