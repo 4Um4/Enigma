@@ -158,3 +158,5 @@ class TickResultDTO:
     # TZ-08 v0.2: Narrative Projection. Данные для LLM-генерации, вычисленные ядром.
     # Формируются в любом тике (idle/player) на основе State+Decision.
     npc_contexts: list = field(default_factory=list)
+    # Sprint P9: Список строк фактов для DMContractBuilder
+    observed_facts: list = field(default_factory=list)

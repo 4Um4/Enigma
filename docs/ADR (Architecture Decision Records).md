@@ -962,11 +962,33 @@
   Taboo: ❌ Возврат к чтению L1Chronicle внутри DriveResolver. ❌ Прямая мутация L0 минуя Belief Layer.
   Files: drive_resolver.py, tick_orchestrator.py
 
-`ADR-O-312` [ONTO] **Homeostatic Channel Primitive (Universal Regulation Law)** — Любая внутренняя потребность NPC (социальная, безопасность, новизна и т.д.) реализуется через единый каузальный контур регуляции: `Сенсор → Поле (EMA) → Гомеостаз (Setpoint - EMA) → Давление → Мотивация (Utility Deformation)`. 
-  - **Setpoint:** Вычисляется на лету из личности (L0/L3), НЕ сохраняется в состоянии (предотвращение Double Truth).
-  - **EMA (Exponential Moving Average):** Наблюдаемый уровень входа. Имеет физический полураспад (`half_life = ln(2) / ticks`). Обновляется сенсорным слоем (Event-driven) и затухает во времени (Field-driven).
-  - **Drift:** Дрейф внутреннего состояния (satiation) пропорционален давлению (`pressure = setpoint - ema`).
-  - **Status:** VERIFIED (Social Homeostasis MVP)
-  Taboo: ❌ Хардкод `if state < threshold then action` (потребности искривляют utility, а не приказывают). ❌ Сохранение вычисляемых `setpoint` в `NPCState`. ❌ Прямая мутация `satiation` от событий без промежуточного `EMA`-слоя.
+`ADR-O-312` [ONTO] **Channel Topology Classification (Fundamental Physics Laws)** — Все внутренние процессы NPC классифицируются по физической природе явления, а не по реализации. Четыре фундаментальных класса:
+  
+  | Класс | Вопрос | Природа | Примеры | Persisted state |
+  |-------|--------|---------|---------|-----------------|
+  | **Field** | Среда действует постоянно? | Непрерывное поле среды | Социальность, свет, шум, температура | EMA (полураспад) |
+  | **Reservoir** | Внутри организма что-то накапливается/расходуется? | Запас с притоком/оттоком | Усталость, голод, алкоголь, раны | Уровень + decay |
+  | **Structural** | Меняется ли структура личности/отношений? | История деформаций | Доверие, репутация, травма, отношения | Накопитель + hysteresis |
+  | **Cognitive** | Меняется ли модель мира NPC? | Знание и выводы | Убеждения, ожидания, подозрения, секреты | Crystallized beliefs |
+  
+  - **Field Channel** реализуется как: `Сенсор → EMA → Error = Setpoint - EMA → Utility Deformation`. Не имеет собственного "запаса". Мотивация = ошибка регуляции.
+  - **Класс канала определяется природой явления, а не реализацией.** EMA — лишь один из способов моделирования Field. Завтра можно заменить на Kalman Filter или Diffusion Field.
+  
+  **Социальность = Field Channel.** `social_satiation` объявляется @deprecated. Мотивация вычисляется на лету: `error = setpoint - EMA`.
+  
+  Taboo: ❌ Определение класса канала по реализации (EMA/integrator), а не по физике явления. ❌ Введение промежуточного state-интегратора для Field Channel. ❌ Удаление deprecated-полей без эмпирического подтверждения.
+  
+  Status: VERIFIED (Social Field Channel MVP)
   Files: homeostasis_projector.py, social_input_projector.py, behavior_modifiers.py
+
+`ADR-O-313` [ONTO] **Universal Task Layer (Producer/Consumer Materialization)** — Тяжёлые процессы (разговор, ремесло, торговля) отделены от симуляции. Архитектура: `Need → Decision (Intent) → Task (Queue) → Materialization (Worker) → Event (Projection)`. 
+  - Симуляция (TickOrchestrator) не вызывает материализацию напрямую. Она создаёт `Task` и кладёт его в очередь `scene_state["pending_tasks"]`.
+  - `TaskScheduler` (живёт в `game_loop`, не в ядре) потребляет задачи, выполняет тяжёлые операции (LLM, экономика) через `TaskExecutor` и возвращает `Artifact`.
+  - `Materializer` превращает `Artifact` в `WorldEvent` (EventDTO) и публикует в `EventBus`.
+  - **Пример с диалогом:** `DecisionHub` создаёт `CommunicationIntent` → `TaskScheduler` превращает его в `QueuedTask(DialogueRequest)` → `DialogueExecutor` (LLM) генерирует текст → `DialogueMaterializer` публикует `NPC_SPOKE`.
+  Taboo: ❌ Вызов LLM или других блокирующих I/O операций внутри `TickOrchestrator`/`DecisionHub`. ❌ Связывание интента напрямую с материализацией.
+  Status: VERIFIED (Dialogue System v2.0 Integrated)
+  Files: domain/execution.py, domain/communication.py, services/execution/dialogue_executor.py, services/execution/dialogue_materializer.py, services/game_loop/task_scheduler.py, services/phases/post_decision.py
+
+
 

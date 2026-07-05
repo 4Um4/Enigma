@@ -492,8 +492,20 @@ class LifeEngine:
             npc_id = npc.get("id", "?")
 
             # ADR-OFFSCREEN-SKIP: NPC не в текущей локации не симулируются.
+            # S112 FIX: Восстановление location_id из legacy location или scene_state, если он потерян.
+            if not npc.get("location_id") and npc.get("location"):
+                npc["location_id"] = npc["location"]
+            
             _current_loc = scene_state.get("location_id", "")
-            _npc_loc = npc.get("location_id") or ""
+            _npc_loc = npc.get("location_id") or npc.get("location", "")
+            
+            # S112 FIX: Если NPC нет в scene_state (npc_positions), значит он оффскрин.
+            # LifeEngine не должен симулировать его, так как у него нет актуальной позиции.
+            _in_scene = npc_id in scene_state.get("npc_positions", {})
+            if not _in_scene and _current_loc:
+                logger.debug(f"[LIFE_ENGINE][OFFSCREEN] npc={npc_id} not in scene_state (loc={_npc_loc}) — skipped")
+                continue
+
             if _current_loc and _npc_loc and _npc_loc != _current_loc:
                 logger.debug(f"[LIFE_ENGINE][OFFSCREEN] npc={npc_id} loc={_npc_loc} != scene_loc={_current_loc} — skipped")
                 continue
@@ -656,10 +668,10 @@ class LifeEngine:
                 # GAP3 FIX: Передаем body_state для соматического вето
                 _body = getattr(state_l2, 'body_state', None)
                 _kernel = getattr(state_l2, 'perceptual_kernel', None)
-                _social_satiation = getattr(state_l2, 'social_satiation', 50.0)
+                _social_input_ema = getattr(state_l2, 'social_input_ema', 0.0)
                 _psyche = getattr(state_l2, 'psyche', {})
                 _greg = _psyche.get("gregariousness", 0.5) if isinstance(_psyche, dict) else 0.5
-                _decision_ctx = translate_kernel_to_context(_kernel, body_state=_body, social_satiation=_social_satiation, gregariousness=_greg) if _kernel else None
+                _decision_ctx = translate_kernel_to_context(_kernel, body_state=_body, social_input_ema=_social_input_ema, gregariousness=_greg) if _kernel else None
 
                 # ADR-O-208: effective_drives — обязательный аргумент DecisionHub.compute()
                 # Вычисляется в TickOrchestrator через DriveResolver + L1Chronicle.
@@ -1252,6 +1264,24 @@ class LifeEngine:
           ДОЛГ 4.3: Viability Pre-Generation Gate — ROUTINE не генерируется при SURVIVAL давлении.
           """
         npc_id = npc.get("id", "unknown")
+
+        # S112 FIX: Синхронизация пространственных данных из scene_state (SSOT) в npc_dict (cache).
+        # LifeEngine ожидает position и location_id в npc_dict, но авторитетный источник — scene_state.
+        # Без этого NPC теряет позицию между тиками и генерирует NO_POSITION / DUPLICATE_POSITION_CHANGE.
+        if scene_state:
+            _pos_data = scene_state.get("npc_positions", {}).get(npc_id, {})
+            if _pos_data:
+                if "position" in _pos_data:
+                    npc["position"] = _pos_data["position"]
+                if "location_id" not in npc or not npc["location_id"]:
+                    npc["location_id"] = _pos_data.get("location_id", scene_state.get("location_id", ""))
+                if "local_position" in _pos_data:
+                    npc["local_position"] = _pos_data["local_position"]
+            else:
+                # S112 DIAG: Если NPC нет в scene_state, значит он offscreen.
+                # LifeEngine не должен генерировать для него интенты, так как он не в этой локации.
+                if npc_id == "guard_borko":
+                    print(f"[DIAG_BORKO] npc_id={npc_id} NOT in scene_state! npc_loc={npc.get('location_id')} scene_loc={scene_state.get('location_id')} npc_pos={npc.get('position')}")
 
         # ADR-O-142A: Arousal Gate — missing wake edge (sleeping → idle)
         # Behavior transition gate: определяет, должен ли спящий NPC пробудиться.

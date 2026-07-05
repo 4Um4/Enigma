@@ -84,6 +84,7 @@ class WorldTickEngine:
         scene_state: Dict[str, Any],
         social_modifiers: Optional[Dict[str, Dict[str, float]]] = None,
         reputation_modifiers: Optional[Dict[str, Dict[str, float]]] = None,
+        effective_drives_map: Optional[Dict[str, Any]] = None,
     ) -> WorldTickResult:
         """
         Вычисляет проактивные решения для всех major NPC в локации.

@@ -110,7 +110,11 @@ def tick_world_proactive(
                 continue
             _wt_state = load_l2_state_from_runtime_dict(_wt_npc_raw)
             # Единая точка мутации — StateApplicator (Устав §2.3)
-            _wt_state = _wt_applicator.apply_deltas_only(_wt_state, _pd.deltas)
+            if isinstance(_pd.deltas, list):
+                for _delta in _pd.deltas:
+                    _wt_state = _wt_applicator.apply_deltas_only(_wt_state, _delta)
+            else:
+                _wt_state = _wt_applicator.apply_deltas_only(_wt_state, _pd.deltas)
             NPCState.write_to_legacy(_wt_state, _wt_npc_raw)
             tick_ctx.wt_dirty = True
 
@@ -122,7 +126,11 @@ def tick_world_proactive(
             for _pid, _wt_npc_raw, _ in _proactive_npc_data:
                 _wt_ep = _wt_eco_profiles.get(_pid)
                 if _wt_ep:
-                    _wt_current_activity = _wt_npc_raw.get("routine", {}).get("current", "")
+                    _wt_current_activity = ""
+                    if isinstance(_wt_npc_raw, dict):
+                        _wt_current_activity = _wt_npc_raw.get("routine", {}).get("current", "")
+                    elif hasattr(_wt_npc_raw, 'routine') and isinstance(_wt_npc_raw.routine, dict):
+                        _wt_current_activity = _wt_npc_raw.routine.get("current", "")
                     _wt_ne.tick(_wt_ep, current_activity=_wt_current_activity)
             tick_ctx.wt_dirty = True
         except Exception as _wt_ne_err:

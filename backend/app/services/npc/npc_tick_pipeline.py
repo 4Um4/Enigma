@@ -221,11 +221,11 @@ class NpcTickPipeline:
             from app.services.cfrm.pressure_translator import translate_kernel_to_context
             _body = getattr(state_l2, 'body_state', None)
             _kernel = getattr(state_l2, 'perceptual_kernel', None)
-            _social_satiation = getattr(state_l2, 'social_satiation', 50.0)
+            _social_input_ema = getattr(state_l2, 'social_input_ema', 0.0)
             _psyche = getattr(state_l2, 'psyche', {})
             _greg = _psyche.get("gregariousness", 0.5) if isinstance(_psyche, dict) else 0.5
             # ADR-O-208: L3-P2. DecisionContext использует корректную сигнатуру pressure_translator.
-            _decision_ctx = translate_kernel_to_context(_kernel, body_state=_body, social_satiation=_social_satiation, gregariousness=_greg) if _kernel else None
+            _decision_ctx = translate_kernel_to_context(_kernel, body_state=_body, social_input_ema=_social_input_ema, gregariousness=_greg) if _kernel else None
 
             _effective_drives = state.effective_drives_map.get(npc_id)
             if _effective_drives is None: continue
@@ -824,11 +824,11 @@ def build_verbalization_context(
             from app.services.cfrm.pressure_translator import translate_kernel_to_context
             _body = getattr(state_l2, 'body_state', None)
             _kernel = getattr(state_l2, 'perceptual_kernel', None)
-            _social_satiation = getattr(state_l2, 'social_satiation', 50.0)
+            _social_input_ema = getattr(state_l2, 'social_input_ema', 0.0)
             _psyche = getattr(state_l2, 'psyche', {})
             _greg = _psyche.get("gregariousness", 0.5) if isinstance(_psyche, dict) else 0.5
             # ADR-O-208: L3-P2. DecisionContext использует корректную сигнатуру pressure_translator.
-            _decision_ctx = translate_kernel_to_context(_kernel, body_state=_body, social_satiation=_social_satiation, gregariousness=_greg) if _kernel else None
+            _decision_ctx = translate_kernel_to_context(_kernel, body_state=_body, social_input_ema=_social_input_ema, gregariousness=_greg) if _kernel else None
 
             _pl = getattr(hub_event, 'payload', '<NO_PAYLOAD>')
             logger.debug(f"[DIAG_PRE_HUB] npc={npc_id} topic={_topic} event={hub_event.event_type} payload={_pl} reflex={_reflex_constraints} emotion={state_l2.emotion} affective_load={state_l2.affective_load}")

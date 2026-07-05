@@ -23,7 +23,6 @@ class SocialPayload:
     fear_delta: float = 0.0
     affection_delta: float = 0.0
     debt_delta: float = 0.0
-    social_satiation_delta: float = 0.0
     social_input_ema_delta: float = 0.0
 
 

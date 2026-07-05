@@ -951,7 +951,7 @@ class DecisionHub:
         Intent.WARN.value, Intent.INTIMIDATE.value, Intent.EXPLAIN.value,
     }
 
-    def _social_satiation_modifier(
+    def _removed_social_satiation_modifier(
         self,
         intent: str,
         decision_ctx: Optional["DecisionContext"] = None,
@@ -1053,7 +1053,7 @@ class DecisionHub:
         opportunity_mod = opportunity.score if intent in opportunity.unlocked_intents else 0.0
 
         # Social battery modifier (предшественник Homeostasis)
-        social_mod = self._social_satiation_modifier(intent, decision_ctx)
+        social_mod = 0.0 # ADR-O-312: social_satiation deprecated, EMA handles this via behavior_modifiers
 
         return {
             "drive":        round(drive_score, 4),
@@ -1568,8 +1568,9 @@ class DecisionHub:
         if event.target_id and event.event_type != EventType.WORLD_TICK:
             return event.target_id
 
-        # S96: Проактивные TALK и APPROACH используют SocialTargetResolver
-        if intent in (Intent.TALK.value, Intent.APPROACH.value):
+        # S96: Все социальные и проактивные интенты используют SocialTargetResolver
+        # Если NPC хочет работать с людьми (TALK, TRADE, HELP, APPROACH, SPREAD_RUMOR и т.д.), он ищет цель.
+        if intent in self._VERBAL_INTENTS or intent == Intent.APPROACH.value:
             _target = SocialTargetResolver.resolve(state, spatial_query, all_npc_ids)
             if _target:
                 return _target

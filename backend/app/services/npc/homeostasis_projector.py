@@ -21,8 +21,10 @@ import math
 # --- Коэффициенты Field Layer (Фаза 0.5) ---
 # Полураспад EMA: 50 тиков (5 минут game-time). ln(2) / 50 ≈ 0.0138
 _SOCIAL_EMA_DECAY_RATE = math.log(2) / 50.0 
-# Множитель дрейфа насыщения от давления (setpoint - actual). 
-_SOCIAL_DRIFT_SCALE = 2.0                   
+# Множитель внешнего давления (setpoint - EMA) на состояние.
+_SOCIAL_PRESSURE_SCALE = 1.5
+# Множитель внутренней релаксации к базовому уровню (50.0).
+_SOCIAL_RELAXATION_RATE = 0.05
 
 
 class HomeostasisProjector:
@@ -51,28 +53,20 @@ class HomeostasisProjector:
                 continue
 
             _psyche = npc_dict.get("psyche", {})
-            # Setpoint: вычисляется на лету из gregariousness. 0.2 (интроверт) ... 0.8 (экстраверт)
-            _setpoint = 0.2 + (0.6 * float(_psyche.get("gregariousness", 0.5)))
             _actual = float(npc_dict.get("social_input_ema", 0.0))
 
-            # Давление: разница между желаемым и реальным.
-            _pressure = _setpoint - _actual
-            
-            # Дрейф насыщения: изоляция (pressure > 0) опускает, перегруз (pressure < 0) поднимает.
-            _satiation_delta = -_pressure * _SOCIAL_DRIFT_SCALE
-            
-            # Затухание EMA (полураспад)
+            # Field Channel: единственная persisted-динамика — затухание EMA (полураспад)
             _ema_decay_delta = -_actual * _SOCIAL_EMA_DECAY_RATE
 
-            if abs(_satiation_delta) > 1e-4 or abs(_ema_decay_delta) > 1e-4:
+            if abs(_ema_decay_delta) > 1e-4:
+                # Setpoint вычисляется на лету в behavior_modifiers. Здесь мы только гасим память поля.
                 deltas.append(StateDeltas(
                     npc_id=_npc_id,
                     domain=DeltaDomain.SOCIAL,
                     payload=SocialPayload(
-                        social_satiation_delta=_satiation_delta,
                         social_input_ema_delta=_ema_decay_delta,
                     ),
-                    source="homeostasis_isolation",
+                    source="homeostasis_ema_decay",
                 ))
 
         return deltas

@@ -46,7 +46,7 @@ def run_phase_0_5(ctx: _TickContext, deps: Phase0_5Deps) -> None:
     deps.dynamic_field.purge_hard_overrides(current_tick=ctx.tick_number)
     deps.dynamic_field.step_decay()   
 
-    # Homeostasis: social_satiation drift (time-driven)
+    # Homeostasis: EMA decay (time-driven)
     _isolation_deltas = deps.homeostasis_sub.compute_isolation_decay(ctx.all_npcs_raw)
     if _isolation_deltas:
         ctx.delta_buffer.extend(_isolation_deltas)

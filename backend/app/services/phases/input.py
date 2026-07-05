@@ -23,8 +23,9 @@ class Phase1InputDeps:
 
 def publish_player_intent(ctx: _TickContext, intent: Any) -> None:
     """Публикация разрешенного намерения игрока в шину."""
-    from app.domain.events import EventDTO, EventType
-    from app.services.event_utils import get_event_bus
+    from app.domain.events import EventDTO
+    from app.services.events.event_types import EventType
+    from app.services.events.event_bus import get_event_bus
 
     _evt_map = {
         "attack": EventType.PLAYER_ATTACKS,
@@ -33,10 +34,21 @@ def publish_player_intent(ctx: _TickContext, intent: Any) -> None:
     _act = getattr(intent, 'action', "") or ""
     _resolved_type = _evt_map.get(_act, EventType.PLAYER_INTERACTS)
     
+    _params = getattr(intent, 'parameters', None)
+    _target_id = getattr(_params, 'target_id', "") if _params else ""
+    _target_ref = getattr(_params, 'target_reference', "") if _params else ""
+    _sem_action = getattr(_params, 'semantic_action', _act) if _params else _act
+
     get_event_bus().publish(EventDTO.create(
         event_type=_resolved_type.value,
         source="player",
-        payload={"action": _act, "target": getattr(intent, 'target', "") or ""}
+        payload={
+            "action": _sem_action,
+            "target": getattr(intent, 'target', "") or "",
+            "target_id": _target_id,
+            "target_reference": _target_ref,
+            "semantic_action": _sem_action,
+        }
     ))
 
 
@@ -52,8 +64,8 @@ def run_phase_1_input(ctx: _TickContext, deps: Phase1InputDeps) -> None:
         return # Idle-тик или нет ввода от игрока
 
     intent = ctx.player_intent
-    _sem_action = getattr(intent, 'parameters', None) and intent.parameters.semantic_action or getattr(intent, 'action', 'UNKNOWN')
-    _sem_target = getattr(intent, 'target', 'UNKNOWN')  # ADR-125: DTO.target_id deprecated. Truth is in intent.target
+    _sem_action = intent.parameters.semantic_action if hasattr(intent, 'parameters') and intent.parameters else intent.action
+    _sem_target = intent.target if hasattr(intent, 'target') else 'UNKNOWN'  # ADR-125: DTO.target_id deprecated. Truth is in intent.target
     logger.warning(f"[WILL_TRACE] 1. Intent action: '{_sem_action}', target: '{_sem_target}', NPCs in raw: {len(ctx.all_npcs_raw)}")
     
     # Извлекаем снапшот аватара из симуляции
@@ -162,7 +174,7 @@ def run_phase_1_input(ctx: _TickContext, deps: Phase1InputDeps) -> None:
         }
         
         # Публикуем событие блокировки для других систем (DM, NPC реакция)
-        from app.services.event_utils import get_event_bus
+        from app.services.events.event_bus import get_event_bus
         get_event_bus().publish(EventDTO.create(
             event_type=EventType.WILL_CONFLICT.value,
             source="player",

@@ -273,6 +273,7 @@ def create_tick_context(
     interventions: list,
     npc_services: Any,
     drf_bus: "DRFBus",
+    all_npcs_raw: list = None,
 ) -> "_TickContext":
     """[S98] Чистая сборка _TickContext для TickOrchestrator.execute().
     
@@ -288,6 +289,28 @@ def create_tick_context(
     # KERNEL-ISOLATION: factory для per-NPC deterministic RNG.
     _rng_factory = lambda npc_id: KernelRNG(tick=tick_number, npc_id=npc_id)
 
+    # Извлекаем player_intent (IntentDTO) из interventions (если есть действие игрока)
+    _player_intent = None
+    if interventions:
+        for _interv in interventions:
+            if getattr(_interv, "source", "") == "player":
+                _payload = getattr(_interv, "payload", {})
+                _action_str = _payload.get("semantic_action", "OBSERVE")
+                # Мапим строковое действие в стандартный формат IntentDTO
+                from app.domain.intent import IntentDTO, IntentParametersDTO
+                _params = IntentParametersDTO(
+                    semantic_action=_action_str,
+                    target_reference=_payload.get("target_id", ""),
+                    target_id=_payload.get("target_id", ""),
+                )
+                _player_intent = IntentDTO(
+                    action=_action_str.lower(), # 'attack', 'move', etc.
+                    target=_payload.get("target_id", ""),
+                    parameters=_params,
+                    text=_payload.get("text", ""),
+                )
+                break
+
     ctx = _TickContext(
         campaign_id=campaign_id,
         scene_state=input_snapshot,
@@ -296,5 +319,7 @@ def create_tick_context(
         npc_services=npc_services,
         drf_bus=drf_bus,
         rng_factory=_rng_factory,
+        player_intent=_player_intent,
+        all_npcs_raw=all_npcs_raw or [],
     )
     return ctx

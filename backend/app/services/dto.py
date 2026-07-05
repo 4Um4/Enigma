@@ -63,6 +63,8 @@ class TickPlayerResultDTO:
     # Результат _phase_finalize (R3 frame, npc_reactions, npc_actions) —
     # доступен только если execute() прошёл фазы 8-10 (Устав §3)
     finalize_result: Optional[dict] = None
+    # Sprint P9: Список строк фактов для DMContractBuilder
+    observed_facts: list = field(default_factory=list)
 
 @dataclass
 class _TickContext:
@@ -84,6 +86,10 @@ class _TickContext:
     communication_intents: list = field(default_factory=list)
     # TZ-08 v0.2: Narrative Projection (для LLM/UI). Артефакт тика, а не player_result.
     npc_contexts: list = field(default_factory=list)
+    # Sprint P9: Список строк фактов для DMContractBuilder
+    observed_facts_for_dm: list = field(default_factory=list)
+    # Fix: Счётчик изменений для TickResultDTO
+    changes_count: int = 0
     # Sprint P3: SpatialQueryService для PerceptionPhysicsEngine
     spatial_query: Optional[Any] = None
     

@@ -280,6 +280,28 @@
   - Подтверждено, что `tick_player_turn` и `execute_player_finalize` нельзя удалять без рефакторинга `game_loop`.
   - Кампания по декомпозиции оркестратора (S101-S111) завершена.
   Files: backend/app/services/tick_orchestrator.py
+
+- 🔵 **S113** ТЗ-Преемник: Universal Task Layer (ADR-O-313) & Social Satiation Cleanup.
+  - **Task 1 (Universal Task Layer):** Внедрён `Execution Framework` (ADR-O-313). Тяжёлые I/O операции (LLM) полностью отделены от ядра симуляции. 
+    - Созданы контракты `Task`, `TaskExecutor`, `Artifact`, `Materializer` в `domain/execution.py`.
+    - `TickOrchestrator` (Фаза 6) перехватывает не-атакующие `CommunicationIntent`, превращает их в `QueuedTask(DialogueRequest)` и кладёт в `scene_state["pending_tasks"]`.
+    - Внедрён `TaskScheduler` в `game_loop.idle_tick`. Он асинхронно забирает задачи, исполняет через `DialogueExecutor` (LLM/Stub) и публикует `NPC_SPOKE` через `DialogueMaterializer`.
+    - Ядро больше не блокируется на генерации текста. LLM стала обычным `Executor`'ом.
+  - **Task 2 (Legacy Cleanup):** Удалён `social_satiation` (deprecated поле).
+    - Удалено поле из `NPCState` и сериализации (`write_to_legacy`/`from_legacy`).
+    - Удалена `social_satiation_delta` из `SocialPayload`.
+    - Удалены мёртвые методы из `DecisionHub` (`_social_satiation_modifier`) и `StateApplicator`.
+    - `social_input_ema` (Field Channel) теперь единственный легитимный источник социального давления.
+  - **Validation:** DriftLaboratory 200 тиков: comparisons=303, rate=1.515/tick, 0 крашей. Тесты `test_dialogue_task_layer.py` (2 passed) и инварианты (9 passed) зелёные.
+  Files: domain/execution.py, domain/communication.py, services/execution/dialogue_executor.py, services/execution/dialogue_materializer.py, services/game_loop/task_scheduler.py, services/phases/post_decision.py, models/delta_payloads.py, models/npc_state.py, services/npc/decision_hub.py, services/npc/state_applicator.py
+  - **Task 1 (Рефакторинг `game_loop`):** `game_loop/npc_orchestration.py` переведён на прямой вызов `execute()` с передачей `InterventionEvent` (ADR-TZ08-1). Legacy-методы `tick_player_turn` и `execute_player_finalize` полностью удалены из `tick_orchestrator.py`.
+  - **Task 2 (Валидация базовой линии):** Массовый прогон 200 тиков в `DriftLaboratory`. Достигнут `rate=1.500/tick`, `drift_B=0`.
+  - **Task 3 (Документирование `phases/`):** Создан `backend/app/services/phases/README.md` с описанием контрактов всех 11 фазовых модулей (входы, выходы, инварианты).
+  - **Fix 1 (Краш пайплайна):** Устранён `ModuleNotFoundError: app.services.event_utils` в `phases/post_decision.py`. Импорт `get_event_bus` исправлен на `app.services.events.event_bus`.
+  - **Fix 2 (Краш DTO):** Устранён `TypeError: unexpected keyword argument 'observed_facts'` в `DriftLaboratory`, вызванный закэшированным `.pyc` файлом `domain/tick.py`. Кэш принудительно очищен.
+  - **Fix 3 (Потеря позиции):** Устранён `[LIFE_ENGINE][NO_POSITION]`. Поля `location_id` и `position` добавлены в `_RUNTIME_TOP_LEVEL_KEYS` в `npc_loader.py` для переживания merge. Внедрена принудительная синхронизация `npc_dict` с `scene_state` (SSOT) в начале `LifeEngine._simulate_major`.
+  - **Fix 4 (Дублирование транзитов):** Устранён спам `[DIAG_V] DUPLICATE_POSITION_CHANGE` и бесконечные транзиты в ту же точку. В `SceneStateManager.apply_change` добавлен no-op guard: если `_old_position == change.value`, создание нового `traversal_dict` блокируется (возврат `True`).
+  Files: backend/app/services/game_loop/npc_orchestration.py, backend/app/services/tick_orchestrator.py, backend/app/services/phases/README.md, backend/app/services/phases/post_decision.py, backend/app/services/npc/npc_loader.py, backend/app/services/npc/life_engine.py, backend/app/services/scene_state_manager.py
 - 🔵 **S86** ТЗ-02 (Иммунная система): Внедрён Causal Invariant Checker (`backend/tests/sandbox/invariants/`). Тесты `test_hp_double_truth_invariant` и `test_l3_ephemeral_invariant` защищают систему от будущих разрывов между физикой, L0 и L3.
 
 ### DOM-09: SOCIAL & AFFECTIVE ARCHITECTURE (SSOT & Causal Derivation)
@@ -504,7 +526,5 @@
 88. ❌ Использование `PatternDetector` без передачи `L1Chronicle` в конструктор (ADR-S93.3)
 89. ❌ Жёсткие пороги (if/else) в формировании убеждений `BeliefCrystallizationEngine` (ADR-S93.3)
 90. ❌ Отсутствие затухания ожиданий в Фазе 0.5 — ожидания обязаны затухать привязанные к `dt_game` (ADR-S93.2)
-
-
 
 

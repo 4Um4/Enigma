@@ -467,7 +467,6 @@ class StateApplicator:
         trust_delta = deltas.payload.trust_delta if domain == DeltaDomain.SOCIAL and isinstance(deltas.payload, SocialPayload) else deltas.trust_delta
         fear_delta = deltas.payload.fear_delta if domain == DeltaDomain.SOCIAL and isinstance(deltas.payload, SocialPayload) else deltas.fear_delta
         # social_satiation — гомеостаз социального насыщения
-        _ss_delta = deltas.payload.social_satiation_delta if domain == DeltaDomain.SOCIAL and isinstance(deltas.payload, SocialPayload) else 0.0
         # social_input_ema — континуальное поле социального входа
         _ema_delta = deltas.payload.social_input_ema_delta if domain == DeltaDomain.SOCIAL and isinstance(deltas.payload, SocialPayload) else 0.0
 
@@ -562,18 +561,14 @@ class StateApplicator:
             # SEL: Trace Δ Layer commit. Легальный канал записи инерции и ожидания в M-слой.
             # Строго ограничен источником sel_trace_commit, чтобы избежать несанкционированных S-записей.
 
-        # SOCIAL: social_satiation & EMA — гомеостаз социального насыщения
-        _ss_delta = _ss_delta if '_ss_delta' in dir() else 0.0
-        _ema_delta = _ema_delta if '_ema_delta' in dir() else 0.0
+        # Field Channel: EMA — единственное динамическое социальное состояние
+        _ema_delta = 0.0
         if domain == DeltaDomain.SOCIAL and isinstance(deltas.payload, SocialPayload):
-            _ss_delta = getattr(deltas.payload, 'social_satiation_delta', 0.0)
             _ema_delta = getattr(deltas.payload, 'social_input_ema_delta', 0.0)
-        if _ss_delta != 0.0:
-            state.social_satiation = max(0.0, min(100.0, state.social_satiation + _ss_delta))
-            logger.debug(f"[SOCIAL_SATIATION] npc={state.npc_id} delta={_ss_delta:+.1f} result={state.social_satiation:.1f}")
+            
         if _ema_delta != 0.0:
             state.social_input_ema = max(0.0, min(1.0, state.social_input_ema + _ema_delta))
-            logger.debug(f"[SOCIAL_EMA] npc={state.npc_id} delta={_ema_delta:+.3f} result={state.social_input_ema:.3f}")
+            logger.warning(f"[SOCIAL_EMA] npc={state.npc_id} delta={_ema_delta:+.3f} result={state.social_input_ema:.3f}")
             if deltas.source == "sel_trace_commit" and isinstance(deltas.payload, EmotionPayload):
                 _payload_memory = getattr(deltas.payload, 'affective_memory', None)
                 if _payload_memory is not None:

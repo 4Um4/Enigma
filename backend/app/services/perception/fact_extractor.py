@@ -32,7 +32,25 @@ class FactExtractor:
                 facts.extend(self._extract_movement_facts(signal, current_tick))
             elif signal.channel == "voice_manifestation":
                 facts.extend(self._extract_voice_facts(signal, current_tick))
+            elif signal.channel == "gaze":
+                facts.extend(self._extract_gaze_facts(signal, current_tick))
+            elif signal.channel == "micro_expression":
+                facts.extend(self._extract_micro_facts(signal, current_tick))
                 
+        return facts
+
+    def _extract_gaze_facts(self, signal: PerceivedSignal, tick: float) -> List[ObservedFact]:
+        facts = []
+        if signal.field in ("gaze_direction", "head_orientation"):
+            facts.append(self._make_fact(signal, "behavior", "gaze_target", signal.perceived_value))
+        return facts
+
+    def _extract_micro_facts(self, signal: PerceivedSignal, tick: float) -> List[ObservedFact]:
+        facts = []
+        if signal.field == "jaw_clench":
+            facts.append(self._make_fact(signal, "behavior", "jaw_clench", signal.perceived_value))
+        elif signal.field == "pupil_dilation":
+            facts.append(self._make_fact(signal, "behavior", "pupil_dilation", signal.perceived_value))
         return facts
 
     def _make_fact(

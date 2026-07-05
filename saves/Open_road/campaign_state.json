@@ -575,7 +575,7 @@
       "candles_main": {
         "name": "свечи",
         "state": "lit",
-        "count": 14,
+        "count": 10,
         "interactable": true,
         "owner": null
       }

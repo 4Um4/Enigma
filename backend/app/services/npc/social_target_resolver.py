@@ -16,12 +16,11 @@ class SocialTargetResolver:
         if not spatial_query:
             return None
         
-        # MVP: Возвращаем ближайшего NPC.
         _candidates = [nid for nid in all_npc_ids if nid != state.npc_id]
         if not _candidates:
             return None
             
         _target = spatial_query.get_nearest_npc(state.npc_id, _candidates)
         if _target:
-            logger.debug(f"[SOCIAL_TARGET] npc={state.npc_id} -> target={_target} (nearest)")
+            logger.warning(f"[SOCIAL_TARGET] npc={state.npc_id} -> target={_target} (nearest)")
         return _target

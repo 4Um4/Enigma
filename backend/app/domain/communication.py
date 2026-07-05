@@ -39,10 +39,21 @@ class ExposureLevel:
         """Единственный легальный способ создать ExposureLevel в прод-коде."""
         if semantic not in _EXPOSURE_DEFAULT_RADIUS:
             raise ValueError(
+
                 f"Unknown exposure semantic: {semantic!r}. "
                 f"Allowed: {list(_EXPOSURE_DEFAULT_RADIUS)}"
             )
         return cls(semantic=semantic)
+
+
+@dataclass(frozen=True)
+class DialogueRequest:
+    """Доменный запрос на генерацию диалога. 
+    Execution Framework не знает про LLM, он знает только что нужно поговорить на эту тему."""
+    topic: str
+    target_id: str
+    exposure: ExposureLevel
+    intent_type: str = "talk"
 
 
 @dataclass(frozen=True)

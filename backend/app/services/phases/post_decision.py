@@ -32,6 +32,57 @@ def run_phase_6_post_decision(ctx: Any, orchestrator: Any) -> None:
     windups_created = 0
 
     for intent in ctx.communication_intents:
+        # ADR-O-313: Перехват разговорных интентов в Universal Task Layer.
+        # Разговор больше не является немедленным событием. Это задача (QueuedTask).
+        # Всё, что не атака (уходит в Windup), считается диалогом/социальным действием.
+        if getattr(intent, 'intent_type', '') != "attack":
+            from app.domain.communication import DialogueRequest
+            from app.domain.execution import QueuedTask, TaskKind, TaskPriority
+            
+            _req = DialogueRequest(
+                topic=intent.topic,
+                target_id=intent.target_id,
+                exposure=intent.exposure_level,
+                intent_type=intent.intent_type
+            )
+            
+            _task = QueuedTask(
+                task_id=f"task-{ctx.tick_number}-{intent.speaker}-dlg",
+                tick=ctx.tick_number,
+                counter=len(ctx.communication_intents),
+                kind=TaskKind.DIALOGUE,
+                priority=TaskPriority.NORMAL,
+                creator_system="DecisionHub",
+                owner_id=intent.speaker,
+                target_ids=[intent.target_id] if intent.target_id else [],
+                payload=_req,
+                created_tick=ctx.tick_number
+            )
+            
+            if "pending_tasks" not in ctx.scene_state:
+                ctx.scene_state["pending_tasks"] = []
+            # Ручная сериализация, чтобы избежать проблем с frozen dataclasses и Enums
+            _task_dict = {
+                "task_id": _task.task_id,
+                "tick": _task.tick,
+                "counter": _task.counter,
+                "kind": _task.kind.value,
+                "priority": _task.priority.value,
+                "state": _task.state.value,
+                "creator_system": _task.creator_system,
+                "owner_id": _task.owner_id,
+                "target_ids": _task.target_ids,
+                "payload": {
+                    "topic": _req.topic,
+                    "target_id": _req.target_id,
+                    "exposure_semantic": _req.exposure.semantic,
+                    "intent_type": _req.intent_type
+                },
+                "created_tick": _task.created_tick
+            }
+            ctx.scene_state["pending_tasks"].append(_task_dict)
+            continue
+            
         event = adapter.to_event(intent)
         
         # ADR-O-310: Windup Write Gate

@@ -76,6 +76,8 @@ class ChatTurnResponse(BaseModel):
     npc_positions: Optional[dict] = None
     # Спринт 26: Артефакты Конфликта Воли (Embodied Perception Interface)
     will_conflict_data: Optional[dict] = None
+    # Sprint P9: Факты, донесённые до игрока (для UI и отладки)
+    observed_facts: list = []
 
 
 # ADR-030: Avatar Creation Vector — Вектор Начальных Условий Гибридной Сущности

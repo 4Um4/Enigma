@@ -41,7 +41,7 @@ def translate_pressure_to_context(pressure: PsychologicalPressure) -> DecisionCo
 def translate_kernel_to_context(
     kernel: PerceptualKernel,
     body_state: Optional[Dict[str, Any]] = None,
-    social_satiation: float = 50.0,
+    social_input_ema: float = 0.0,
     gregariousness: float = 0.5,
 ) -> DecisionContext:
     """
@@ -78,8 +78,8 @@ def translate_kernel_to_context(
             for action in ["FLEE", "ATTACK", "APPROACH", "MANIPULATE"]:
                 constraints[action] = min(constraints.get(action, 1.0), 0.3)
 
-    # Социальные модификаторы из Homeostasis (предшественник)
-    _social_mods = compute_behavior_modifiers(social_satiation, gregariousness)
+    # Социальные модификаторы из Field Channel (ADR-O-312)
+    _social_mods = compute_behavior_modifiers(social_input_ema, gregariousness)
 
     # 2. Топологическая деформация (искривление utility-space)
     return DecisionContext(

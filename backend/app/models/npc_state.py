@@ -532,9 +532,6 @@ class NPCState:
     # SEL Trace State: Ожидание угрозы (Baseline). Пишется только через sel_trace_commit.
     affective_memory: float = 0.0
 
-    # Social Satiation: уровень социального насыщения (0=голод/изоляция, 100=пресыщение/перегруз).
-    # Дрейфует к равновесию (setpoint) под давлением разницы (setpoint - EMA).
-    social_satiation: float = 50.0
     # Социальное давление (EMA): скользящее среднее социального входа (0.0 - нет входа, 1.0 - перегруз).
     social_input_ema: float = 0.0
 
@@ -827,8 +824,6 @@ class NPCState:
         npc_dict["affective_load"] = state.affective_load
         # affective_memory — ожидание угрозы (SEL Baseline)
         npc_dict["affective_memory"] = state.affective_memory
-        # social_satiation — уровень социального насыщения
-        npc_dict["social_satiation"] = state.social_satiation
         # social_input_ema — поле континуального социального давления
         npc_dict["social_input_ema"] = state.social_input_ema
 
@@ -948,8 +943,6 @@ class NPCStateAdapter:
             affective_load = float(npc_dict.get("affective_load", 0.0)),
             # affective_memory — восстановление ожидания угрозы (SEL Baseline)
             affective_memory = float(npc_dict.get("affective_memory", 0.0)),
-            # social_satiation — восстановление уровня социального насыщения
-            social_satiation = float(npc_dict.get("social_satiation", 50.0)),
             # social_input_ema — восстановление поля социального давления
             social_input_ema = float(npc_dict.get("social_input_ema", 0.0)),
             # emotion — восстановление текущей эмоции (ADR-116)

@@ -84,9 +84,9 @@ def run_homeostatic_sandbox():
     game_loop = build_game_loop(data_dir)
     engine = get_life_engine()
 
-    campaign_id = "open_road"
-    world_id = "open_road"
-    location = "open_road"
+    campaign_id = "Open_road"
+    world_id = "Open_road"
+    location = "tavern"
     player_name = "Tester"
 
     # 3. Загрузка кампании и инициализация сцены (загрузка NPC в кэш)

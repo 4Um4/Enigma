@@ -74,6 +74,8 @@ class _PipelineState:
     npc_result:            Dict[str, Any]  = field(default_factory=dict)
     python_engines_result: Dict[str, Any]  = field(default_factory=dict)
     start_ms:              float           = field(default_factory=lambda: time.time() * 1000)
+    # Sprint P9: Факты, донесённые до игрока (для UI и DM)
+    observed_facts:        list            = field(default_factory=list)
 
 
 # ────────────────────────────────────────────────────────────────────────────────
@@ -639,6 +641,15 @@ class GameLoop:
         _trav_after = list(_auth_scene.get("active_traversals", {}).keys()) if _auth_scene else list(_scene.get("active_traversals", {}).keys())
         print(f"[IDLE_TRACE] AFTER tick={_scene.get('tick')} traversals={_trav_after} source={'tick_scene' if _auth_scene else 'stale_ref'}")
 
+        # ADR-O-313: Execution Framework. Материализация отложенных задач (LLM и др.)
+        # Работает с _auth_scene (_tick_scene), чтобы мутации подписчиков EventBus 
+        # (напр. SocialInputProjector) попали в финальный unlock_tick.
+        if _auth_scene and _auth_scene.get("pending_tasks"):
+            from app.services.game_loop.task_scheduler import TaskScheduler
+            if not hasattr(self, '_task_scheduler'):
+                self._task_scheduler = TaskScheduler()
+            self._task_scheduler.process_tasks(_auth_scene)
+
         # Конвертация WorldSnapshotDTO → dict для фронтенда
         from dataclasses import asdict
 
@@ -694,12 +705,22 @@ class GameLoop:
             if _perception:
                 state.shared_context.player_perception = _perception
 
+        # Sprint P9: Проброс observed_facts в shared_context для DM-агента
+        if hasattr(state, 'observed_facts') and state.shared_context:
+            state.shared_context.observed_facts = state.observed_facts
+
+        # Sprint P9: Проброс observed_facts в DM-агент через world_result
+        _dm_world_result = {
+            "world_events": state.world_tick_meta.get("events", []),
+            "observed_facts": getattr(state, 'observed_facts', [])
+        }
+
         dm_result = await run_agent_safe(
             "dm", self.dm_agent,
             (
                 req.location, req.actions,
                 state.rules_result, state.npc_result,
-                {"world_events": state.world_tick_meta.get("events", [])},
+                _dm_world_result,
                 False, state.shared_context,
             ),
             {},
@@ -842,6 +863,8 @@ class GameLoop:
             # B1.3-FIX: Передача campaign_id для получения журнала
             _ws_dict["dialog_journal"] = self.avatar_service.get_journal(req.campaign_id)
 
+        _resp_facts = getattr(state, 'observed_facts', [])
+        print(f"[DEBUG_RUN_TURN] state.observed_facts count={len(_resp_facts)}")
         _final_response = ChatTurnResponse(
             dm_response=dm_result.get("dm_response", ""),
             npc_reactions=dm_result.get("npc_reactions", []),
@@ -850,6 +873,8 @@ class GameLoop:
             npc_positions=_npc_pos_dict,
             # ADR-075: Строгий проброс Эмбодимента.
             will_conflict_data=state.shared_context.will_conflict_data if state.shared_context else None,
+            # Sprint P9: Проброс ObservedFactsBundle для UI и DM
+            observed_facts=_resp_facts,
             journal_entry_id=self.memory_manager.persist_dm_response(
                 req.campaign_id,
                 world_id=req.world_id,
@@ -1205,6 +1230,23 @@ class GameLoop:
 
             # ФАЗА 3-6: NPC оркестрация → TickPlayerResultDTO (Устав §3)
             _player_result: TickPlayerResultDTO = TickPlayerResultDTO()
+            
+            # ADR-O-112: Инжектируем Аватар в _ctx.all_npcs_raw ДО вызова
+            # run_npc_orchestration, т.к. оркестратор делает deepcopy в create_tick_context.
+            # Без этого WillpowerGate и DecisionHub не видят игрока.
+            if _ctx.all_npcs_raw is not None:
+                _ctx.all_npcs_raw = [n for n in _ctx.all_npcs_raw if n.get("npc_id") != "player" and n.get("id") != "player"]
+                _avatar_state = self.avatar_service.load_state(campaign_id, _player_name)
+                from dataclasses import asdict, is_dataclass
+                if is_dataclass(_avatar_state):
+                    _avatar_dict = asdict(_avatar_state)
+                    _avatar_dict["npc_id"] = "player"
+                    _avatar_dict["id"] = "player"
+                    _ctx.all_npcs_raw.append(_avatar_dict)
+                    logger.debug(f"[AVATAR_INJECT] Added player to all_npcs_raw (len={len(_ctx.all_npcs_raw)})")
+                else:
+                    logger.warning(f"[AVATAR_INJECT] avatar_state is not a dataclass for player '{_player_name}'")
+
             logger.debug(f"[ARCHAE-PRE-ORCH] dm_valid={dm_result.is_valid} has_scene_ctx={dm_result.scene_context is not None} hub_event={_ctx.hub_event is not None}")
             if dm_result.is_valid and dm_result.scene_context:
                 _player_result = run_npc_orchestration(
@@ -1220,6 +1262,9 @@ class GameLoop:
             _player_result = TickPlayerResultDTO()
 
         shared_context.python_engines = python_engines_result
+        # Sprint P9: Проброс observed_facts из тика в state
+        _state_observed_facts = getattr(_player_result, 'observed_facts', [])
+        print(f"[DEBUG_GAME_LOOP] _state_observed_facts count={len(_state_observed_facts)}")
 
         # ФАЗА 7: RulesSubscriber (pure reducer) — вычисляет D&D механику (TZ-08 v0.2)
         from app.services.events.rules_subscriber import RulesSubscriber
@@ -1317,6 +1362,7 @@ class GameLoop:
             npc_result=npc_result,
             python_engines_result=python_engines_result,
             start_ms=start_ms,
+            observed_facts=_state_observed_facts,
         )
 
     # ────────────────────────────────────────────────────────────────────────────

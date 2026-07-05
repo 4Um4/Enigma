@@ -88,10 +88,10 @@ def extract_speech_events(
 
     if reactions:
         logger.debug(f"[RCE] {len(reactions)} speech event(s) → STM: {reactions[:3]}")
-    elif target_npc_name and dm_text and len(dm_text) < 500:
+    elif target_npc_name and dm_text and len(dm_text) < 1000:
         # Fallback: DM ответил без кавычек, но есть target NPC —
         # считаем весь текст речью NPC (лучше потеря, чем амнезия)
-        reactions = [f"{target_npc_name}: {dm_text.strip()[:200]}"]
+        reactions = [f"{target_npc_name}: {dm_text.strip()[:500]}"]
         print(f"[RCE_FALLBACK] no quotes, assigning {len(dm_text)} chars to {target_npc_name}")
 
     return reactions

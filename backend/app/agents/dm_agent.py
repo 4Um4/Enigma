@@ -166,6 +166,14 @@ class DmAgent:
         npc_reactions = npc_result.get("npc_reactions", []) if npc_result else []
         npc_actions = npc_result.get("npc_actions", []) if npc_result else []
         
+        # Sprint P9: Добавляем ObservedFactsBundle в промпт
+        _obs_facts = world_result.get("observed_facts", []) if world_result else []
+        if _obs_facts:
+            builder.add_custom_block(
+                "Уже донесено игроку (НЕ повторяй это, добавляй подтекст)",
+                "\n".join(_obs_facts)
+            )
+
         if _dm_frame_block:
             builder.add_dm_frame(_dm_frame_block)
         elif npc_reactions:

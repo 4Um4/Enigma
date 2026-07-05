@@ -1284,10 +1284,10 @@ class SceneStateManager:
                 if change.field == "position":
                     print(f"[TRAV_CREATE_PRE] npc={change.target} current_position={_old_position} new_target={change.value} already_active={change.target in scene_state.get('active_traversals', {})}")
                 
-                # [DIAG_V] Детектирование двойной мутации позиции за тик
+                # S112 FIX: Детектирование двойной мутации позиции за тик
                 if change.field == "position" and _old_position == change.value and getattr(change, 'cause', '') != 'traversal_complete':
-                    print(f"[DIAG_V] DUPLICATE_POSITION_CHANGE npc={change.target} node={change.value} cause={getattr(change, 'cause', '?')}")
-                    logger.warning(f"[DIAG_V] DUPLICATE_POSITION_CHANGE npc={change.target} node={change.value} — from_node == target_node risk!")
+                    logger.debug(f"[SSM] No-op position change (already at target): npc={change.target} node={change.value}")
+                    return True # NPC уже на месте — пропускаем создание нового транзита
 
                 entry[change.field] = change.value
 

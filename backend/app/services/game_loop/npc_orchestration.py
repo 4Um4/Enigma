@@ -69,6 +69,9 @@ def run_npc_orchestration(
     if tick_orchestrator is None:
         raise RuntimeError("tick_orchestrator обязателен — параллельный путь удалён")
 
+    # Загружаем ВСЕХ NPC (включая аватар игрока) ДО вызова execute()
+    ctx.all_npcs_raw = game_loop._load_npcs_with_runtime(campaign_id)
+
     from app.services.spatial.spatial_service import SpatialService
     from app.services.spatial.spatial_query_service import SpatialQueryService
     from app.services.spatial.spatial_factory import SpatialFactory
@@ -115,34 +118,32 @@ def run_npc_orchestration(
     from app.services.tick_orchestrator import DMContextDTO
     _pl = getattr(ctx.hub_event, 'payload', '<NO_PAYLOAD>') if ctx.hub_event else '<NO_HUB_EVENT>'
     logger.debug(f"[ARCHAE-ORCH] hub_event id={id(ctx.hub_event) if ctx.hub_event else 0} payload={_pl} event_type={getattr(ctx.hub_event, 'event_type', 'NO_TYPE')}")
-    _dm_ctx = DMContextDTO(
-        hub_event=ctx.hub_event,
-        nearby_npcs=shared_context.dm_result.scene_context.nearby_npcs,
-        line_of_sight=shared_context.dm_result.scene_context.line_of_sight,
-        scene_continuity=shared_context.scene_continuity,
-        action_type=shared_context.action_type or "",
-        player_target_id=shared_context.player_target_id,
-        spatial_events=shared_context.spatial_events or [],
-        raw_input=raw_input,
-        is_session_start=is_session_start,
-        current_tick=shared_context.current_tick or 0,
-        all_npcs_raw=ctx.all_npcs_raw,
-        intent_resolution=getattr(shared_context, 'intent_resolution', None),  # SHI-FIX COMMAND
-    )
     from app.contracts.interventions import InterventionEvent
-    # TZ-08 v0.2: Event-driven model. Прямой вызов execute() с InterventionEvent
+    # TZ-08 v0.2: Event-driven model. Ядро не знает DMContextDTO.
+    # Формируем чистый payload из уже разрешённых данных в shared_context
+    _sem_action = getattr(shared_context.intent_resolution, 'original_intent', None)
+    _sem_action = getattr(_sem_action, 'parameters', None) if _sem_action else None
+    _sem_action = getattr(_sem_action, 'semantic_action', "") if _sem_action else ""
+    
     _intervention = InterventionEvent(
         source="player",
-        payload={"dm_ctx": _dm_ctx},
-        tick=_dm_ctx.current_tick,
+        payload={
+            "text": raw_input,
+            "player_name": actions[0].player_name if actions else "player",
+            "semantic_action": _sem_action,
+            "target_id": shared_context.player_target_id or "",
+            "tick": shared_context.current_tick or 0,
+        },
+        tick=shared_context.current_tick or 0,
     )
     _tick_result = tick_orchestrator.execute(
         campaign_id=campaign_id,
         scene_state=shared_context.scene_state,
-        tick_number=_dm_ctx.current_tick,
+        tick_number=shared_context.current_tick or 0,
         interventions=[_intervention],
         npc_services=_npc_svc,
         spatial_service=_spatial_svc,
+        all_npcs_raw=ctx.all_npcs_raw,
     )
     
     # SHI-FIX CAUSAL: L1 Фиксация на основе semantic_action (Fast Path).
@@ -197,15 +198,6 @@ def run_npc_orchestration(
                 cause="npc_orchestration",
             )
             _scene_manager.apply_change(campaign_id, _change, scene_state)
-        for _nid, _init_sup in _npc_buf.initiative_suppressions.items():
-            _change = SceneChange(
-                type=ChangeType.NPC_METADATA,
-                target=_nid,
-                field="initiative_suppression",
-                value=_init_sup,
-                cause="npc_orchestration",
-            )
-            _scene_manager.apply_change(campaign_id, _change, scene_state)
     else:
         logger.warning("[NPC_ORCH] scene_manager not found in game_loop. Metadata changes skipped.")
 
@@ -245,9 +237,12 @@ def run_npc_orchestration(
 
     # Возвращаем полный результат для передачи в execute_player_finalize()
     from app.services.tick_orchestrator import TickPlayerResultDTO
+    _orch_facts = getattr(_tick_result, 'observed_facts', [])
+    print(f"[DEBUG_ORCH] _tick_result.observed_facts count={len(_orch_facts)}")
     return TickPlayerResultDTO(
         npc_contexts=npc_contexts,
         dirty_npcs=ctx.dirty_npcs,
         activity_overrides=_npc_buf.activity_overrides,
         max_npc_stress=ctx.max_npc_stress,
+        observed_facts=_orch_facts,
     )

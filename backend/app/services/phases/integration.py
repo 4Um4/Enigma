@@ -301,17 +301,29 @@ def run_phase_9_integration(ctx: _TickContext, deps: Phase9IntegrationDeps) -> N
     # Формирует модель наблюдаемости мира на основе state_t+1.
     # ADR-O-322: ManifestationPhysicsEngine (Sprint P2)
     # ADR-O-323: PerceptionPhysicsEngine (Sprint P3)
+    # ADR-O-324: FactExtractor (Sprint P4)
+    # ADR-O-325: InferenceEngine (Sprint P4)
+    # ADR-O-326: PresentationAssembler (Sprint P7)
     from app.services.perception.manifestation_physics_engine import ManifestationPhysicsEngine
     from app.services.perception.perception_physics_engine import PerceptionPhysicsEngine
+    from app.services.perception.fact_extractor import FactExtractor
+    from app.services.perception.inference_engine import InferenceEngine
+    from app.services.perception.presentation_assembler import PresentationAssembler
     from app.services.spatial.spatial_query_service import SpatialQueryService
     from app.domain.embodied_trace import EmbodiedTraceDTO
     
     _manifest_engine = ManifestationPhysicsEngine()
     _perception_engine = PerceptionPhysicsEngine()
-    _spatial_query = SpatialQueryService(ctx.scene_state)  # Создаём на месте из scene_state
+    _fact_extractor = FactExtractor()
+    _inference_engine = InferenceEngine()
+    _assembler = PresentationAssembler()
+    _spatial_query = SpatialQueryService(
+        npc_positions=ctx.scene_state.get("npc_positions", {}),
+        scene_state=ctx.scene_state
+    )
     
     _traces = []
-    _all_signals = []  # Список всех PerceivedSignal для всех NPC
+    _all_signals = []
     _npc_positions = ctx.scene_state.get("npc_positions", {})
     _body_map = {n.get("id") or n.get("npc_id"): n.get("body_state") for n in _npc_truth_source} if _npc_truth_source else {}
     
@@ -327,7 +339,7 @@ def run_phase_9_integration(ctx: _TickContext, deps: Phase9IntegrationDeps) -> N
         _relation = _perception_engine.compute_relation(
             observer_id="player",
             target_id=_nid,
-            spatial_query=_spatial_query,  # Используем локальный экземпляр
+            spatial_query=_spatial_query,
             scene_state=ctx.scene_state
         )
         
@@ -340,31 +352,8 @@ def run_phase_9_integration(ctx: _TickContext, deps: Phase9IntegrationDeps) -> N
                 current_tick=ctx.tick_number
             )
             _all_signals.extend(_signals)
-            
-    # ADR-O-324: FactExtractor (Sprint P4)
-    # ADR-O-325: InferenceEngine (Sprint P4)
-    from app.services.perception.fact_extractor import FactExtractor
-    from app.services.perception.inference_engine import InferenceEngine
-    
-    _fact_extractor = FactExtractor()
-    _inference_engine = InferenceEngine()
-    
-    _all_facts = _fact_extractor.extract(_all_signals, ctx.tick_number)
-    _all_inferences = _inference_engine.infer(_all_facts, ctx.tick_number)
-    
-    # ADR-O-326: PresentationAssembler (Sprint P7)
-    from app.services.perception.presentation_assembler import PresentationAssembler
-    _assembler = PresentationAssembler()
-    _facts_bundle = _assembler.assemble_facts_bundle(_all_facts)
-    
-    # ADR-O-327: DM Contract v2 (Sprint P9)
-    # В Sprint P9 мы передадим _facts_bundle в DMContractBuilder
-    # Временно сохраняем в npc_contexts для отладки
-    if _facts_bundle.facts:
-        _facts_debug = [f"{f.target_id}:{f.fact_name}={f.value}({f.confidence:.2f})" for f in _facts_bundle.facts]
-        logger.debug(f"[PHASE_9] FactsBundle: {' | '.join(_facts_debug)}")
         
-        # Конвертируем в EmbodiedTraceDTO для обратной совместимости с PhenomenologyProjectionService
+        # Конвертируем в EmbodiedTraceDTO для обратной совместимости
         _trace = EmbodiedTraceDTO(
             npc_id=_nid,
             locomotion_instability=_manifest.movement.tremor,
@@ -376,10 +365,28 @@ def run_phase_9_integration(ctx: _TickContext, deps: Phase9IntegrationDeps) -> N
         if _trace.locomotion_instability > 0.05 or _trace.posture_rigidity > 0.05:
             _traces.append(_trace)
     
-    # _all_signals теперь содержит список всех PerceivedSignal
-    # В Sprint P4 мы добавим FactExtractor, который будет извлекать атомарные факты из этих сигналов
+    # 4. Извлекаем атомарные факты
+    _all_facts = _fact_extractor.extract(_all_signals, ctx.tick_number)
+    
+    # 5. Строим гипотезы
+    _all_inferences = _inference_engine.infer(_all_facts, ctx.tick_number)
+    
+    # 6. Собираем FactsBundle для DM
+    _facts_bundle = _assembler.assemble_facts_bundle(_all_facts)
+    
+    _facts_for_dm = []
+    print(f"[DEBUG_EPISTEMOLOGY] Signals={len(_all_signals)} Facts={len(_all_facts)} Inferences={len(_all_inferences)}")
+    if _facts_bundle.facts:
+        for f in _facts_bundle.facts:
+            _facts_for_dm.append(f"- {f.fact_name} ({f.target_id}, confidence={f.confidence:.2f})")
+        print(f"[DEBUG_EPISTEMOLOGY] FactsBundle: {' | '.join(_facts_for_dm)}")
+        
+    ctx.observed_facts_for_dm = _facts_for_dm
+    
+    # Сборка PlayerPerceptionDTO (вне цикла!)
     _player_perception = deps.project_svc.project(_traces, ctx.scene_state, tick=ctx.tick_number)
 
+    # Сборка WorldSnapshotDTO (вне цикла!)
     builder = deps.snapshot_builder
     ctx.world_snapshot = builder.build(
         scene_state=ctx.scene_state,

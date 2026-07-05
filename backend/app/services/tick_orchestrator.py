@@ -278,6 +278,7 @@ class TickOrchestrator:
         npc_services: Optional[Any] = None,
         spatial_service: Optional[Any] = None, # ADR-048: Инъекция от GameLoop
         dm_ctx: Optional["DMContextDTO"] = None, # Backward compat (мостируется в interventions)
+        all_npcs_raw: Optional[list] = None, # S113: Явная передача NPC (включая аватара)
     ) -> Union[TickResultDTO, TickPlayerResultDTO]:
         """Единая точка входа для тика мира (TZ-08 v0.2).
 
@@ -316,6 +317,7 @@ class TickOrchestrator:
             interventions=interventions,
             npc_services=npc_services,
             drf_bus=self._drf_bus,
+            all_npcs_raw=all_npcs_raw,
         )
 
         # CFRM P2: Восстанавливаем пространственный индекс кластеров ДО привязки моста
@@ -386,12 +388,15 @@ class TickOrchestrator:
             self._scene_manager.commit_tick_result(campaign_id, final_snapshot)
 
         # TZ-08 v0.2: Ядро всегда возвращает единый TickResultDTO. Никаких ветвлений по источнику.
+        _final_facts = getattr(ctx, 'observed_facts_for_dm', [])
+        print(f"[DEBUG_TICK_ORCH] returning TickResultDTO with observed_facts count={len(_final_facts)}")
         return TickResultDTO(
             status="ok",
-            changes_count=len(ctx.scene_changes),
-            significant_events=ctx.decision_events,
+            changes_count=ctx.changes_count,
+            significant_events=ctx.significant_events,
             world_snapshot=ctx.world_snapshot,
             npc_contexts=ctx.npc_contexts,
+            observed_facts=_final_facts,
         )
 
     # ── Player Turn (тонкая обёртка) ────────────────────────────────
@@ -436,8 +441,11 @@ class TickOrchestrator:
         if _life_engine:
             ctx.npc_states = _life_engine.get_npc_states(ctx.campaign_id)
             if ctx.npc_states:
+                # Сохраняем аватара игрока из переданного контекста (от GameLoop)
                 _player_entry = next((n for n in ctx.all_npcs_raw if n.get("npc_id") == "player"), None)
+                # Если список из LifeEngine не пуст, используем его как базу
                 ctx.all_npcs_raw = ctx.npc_states
+                # Возвращаем аватара игрока в конец списка
                 if _player_entry:
                     ctx.all_npcs_raw = [n for n in ctx.all_npcs_raw if n.get("npc_id") != "player"]
                     ctx.all_npcs_raw.append(_player_entry)
@@ -465,6 +473,10 @@ class TickOrchestrator:
             _sem_action = getattr(_params, 'semantic_action', None) if _params else None
             _sem_target = getattr(_params, 'target_reference', None) if _params else None
             logger.warning(f"[PDM_DEBUG] sem_action={_sem_action} sem_target={_sem_target}")
+            
+            # Инициализация по умолчанию для предотвращения UnboundLocalError при UNCERTAIN
+            _is_npc_target = False
+            _target_id = getattr(_params, 'target_id', None) if _params else None
 
             # ADR-082: Регистронезависимое сравнение (IC может вернуть "move" или "MOVE")
             if _sem_action and _sem_action.upper() == "MOVE" and _sem_target:
@@ -538,15 +550,6 @@ class TickOrchestrator:
     def _process_player_action(self, ctx: _TickContext, interv: Any) -> None:
         """Generic player action intervention (не dm_ctx)."""
         pass # TODO: implement for CK successor directives
-
-    # ── Player Turn: decision через legacy pipeline ───────────────────
-        ctx.player_result = TickPlayerResultDTO(
-            npc_contexts=npc_buffer.npc_contexts,
-            dirty_npcs=npc_buffer.dirty_npcs,
-            activity_overrides=npc_buffer.activity_overrides,
-            max_npc_stress=npc_buffer.max_npc_stress,
-            movement_intents=npc_buffer.movement_intents,
-        )
 
     # ── Player Turn: фазы 8-10 (после Rules agent) ──────────────────
 
@@ -709,13 +712,13 @@ class TickOrchestrator:
             topic = ""
             stm_text = ""
 
+            from app.services.npc.topic_extractor import extract_topic
             topic = None
             # 1. Проверяем spatial events затронувшие этого NPC
             for event in ctx.phase_2_events:
                 from app.services.tick_utils import resolve_affected_npcs
                 affected = resolve_affected_npcs(event)
                 if npc_id in affected:
-                    from app.services.npc.topic_extractor import extract_topic
                     topic = extract_topic(
                         event_type=event.type,
                         raw_input=event.payload.get("to_node", ""),
@@ -1075,6 +1078,8 @@ class TickOrchestrator:
                 _energy = c.get("energy", 0.5)
                 _vector = str(c.get("vector", ""))
                 _aligned = _vector in _reason
+                _DRF_ALIGNED = 1.2
+                _DRF_MISALIGNED = 0.8
                 _alignment_mult = _DRF_ALIGNED if _aligned else _DRF_MISALIGNED
                 _drf_bonus += _energy * _weight * _alignment_mult
 

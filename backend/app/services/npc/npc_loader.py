@@ -235,7 +235,7 @@ _RUNTIME_PSYCHE_KEYS = frozenset({
     "identity_integrity", "pressure_resistance", "resentment", "dependency"
 })
 _RUNTIME_TOP_LEVEL_KEYS = frozenset({
-    "social_stats", "location", "location_id", "hp", "max_hp",
+    "social_stats", "location", "location_id", "position", "hp", "max_hp",
     "current_role", "role_history",
     "conditions", "wounds", "threat_accumulator", "posture",
     "temporary_drives", "causal_ledger",

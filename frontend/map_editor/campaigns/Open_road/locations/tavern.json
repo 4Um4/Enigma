@@ -1,5 +1,6 @@
 {
   "filename": "tavern.json",
+  "location_id": "tavern",
   "label": "Таверна Серебряного Волка",
   "size": {
     "w": 20,
