@@ -137,9 +137,9 @@ class CombatSubscriber:
                 _npc_ids = list(npc_by_id.keys())
                 _distances = _sq.player_distances(_npc_ids)
             else:
-                logger.warning("[COMBAT_SUB] spatial_query is None — range gate DISABLED")
+                logger.debug("[COMBAT_SUB] spatial_query is None — range gate DISABLED")
         else:
-            logger.warning("[COMBAT_SUB] shared_context has no spatial_query — range gate DISABLED")
+            logger.debug("[COMBAT_SUB] shared_context has no spatial_query — range gate DISABLED")
 
         logger.debug(f"[COMBAT_SUB] npc_by_id keys={list(npc_by_id.keys())[:10]} distances={bool(_distances)}")
 

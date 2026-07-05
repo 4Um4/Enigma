@@ -52,6 +52,7 @@ class ResponseValidator:
         can_speak: bool = True,
         can_move: bool = True,
         recent_text: Optional[str] = None,
+        allowed_moving_npcs: Optional[set] = None,
     ) -> ValidationResult:
         """Основной метод валидации."""
         text = raw_response.strip() if raw_response else ""
@@ -67,6 +68,10 @@ class ResponseValidator:
         # 3. Повтор недавнего текста
         if recent_text and self._is_repeat(text, recent_text):
             return self._fallback("repeat")
+        
+        # 3.5 4-я стена (Hardcoded Invariant)
+        if self._breaks_fourth_wall(text):
+            return self._fallback("fourth_wall")
         
         # 3. Слишком длинно
         if len(text) > self._max_chars:
@@ -84,6 +89,12 @@ class ResponseValidator:
             if not text:
                 return self._fallback("cannot_move")
         
+        # 5.5 Инвариант 2: Движение без подтверждения (Hallucination Guard)
+        if allowed_moving_npcs is not None:
+            text = self._filter_unauthorized_movement(text, allowed_moving_npcs)
+            if not text:
+                return self._fallback("unauthorized_movement_only")
+        
         # 6. Проверка forbidden actions
         violation = self._check_forbidden(text)
         if violation:
@@ -95,6 +106,12 @@ class ResponseValidator:
         )
     
     _CJK_PATTERN = re.compile(r'[\u4e00-\u9fff\u3400-\u4dbf\uff00-\uffef]')
+    _FOURTH_WALL_WORDS = ["игрок", "игроки", "симуляция", "система", "механика", "интерфейс"]
+    
+    def _breaks_fourth_wall(self, text: str) -> bool:
+        """Жёсткий запрет на упоминание игровой механики (4-я стена)."""
+        lower = text.lower()
+        return any(word in lower for word in self._FOURTH_WALL_WORDS)
     
     def _contains_non_russian(self, text: str) -> bool:
         """A6-FIX: Отклоняет CJK, Mock-утечки и некириллический мусор."""
@@ -151,9 +168,29 @@ class ResponseValidator:
             "подходит", "отходит", "бегает", "убегает", "идёт", "идет",
             "подошёл", "подошел", "отошёл", "отошел", "побежал", "встаёт",
             "встает", "садится", "присел", "наклонился", "поднялся",
+            "направился", "пошел", "пошёл", "двинулся", "шагнул",
         )
         lower = text.lower()
         return any(w in lower for w in movement_words)
+
+    def _filter_unauthorized_movement(self, text: str, allowed_npcs: set) -> str:
+        """Инвариант 2: Вырезает предложения с движением NPC, если их нет в allowed_npcs."""
+        import re
+        sentences = re.split(r'(?<=[.!?])\s+', text)
+        valid_sentences = []
+        
+        for sent in sentences:
+            lower_sent = sent.lower()
+            if self._contains_movement(lower_sent):
+                # Проверяем, есть ли в предложении имя разрешённого NPC
+                is_allowed = any(npc_name.lower() in lower_sent for npc_name in allowed_npcs)
+                if not is_allowed:
+                    # Если NPC не разрешён, вырезаем предложение (переводим в намерение)
+                    # Пока просто вырезаем, чтобы не ломать грамматику
+                    continue
+            valid_sentences.append(sent)
+            
+        return " ".join(valid_sentences).strip()
     
     def _force_static(self, text: str) -> str:
         """B5-FIX: DEPRECATED. Убраны replacements — они ломают Инвариант 2.

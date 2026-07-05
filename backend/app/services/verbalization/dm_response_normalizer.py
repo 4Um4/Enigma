@@ -24,16 +24,12 @@ class DMResponseNormalizer:
     def normalize(raw: Any) -> DMOutput:
         if isinstance(raw, str):
             # ADR-O-322: Очистка от markdown-обёрток (```json ... ```)
+            import re
             _cleaned_raw = raw.strip()
-            if _cleaned_raw.startswith("```"):
-                # Убираем первую строку (```json или ```)
-                lines = _cleaned_raw.split('\n', 1)
-                if len(lines) > 1:
-                    _cleaned_raw = lines[1]
-                # Убираем закрывающий ```
-                if _cleaned_raw.endswith("```"):
-                    _cleaned_raw = _cleaned_raw.rsplit("```", 1)[0]
-                _cleaned_raw = _cleaned_raw.strip()
+            # Надёжно снимаем открывающий тег (``` или ```json)
+            _cleaned_raw = re.sub(r'^```(?:json)?\s*', '', _cleaned_raw, flags=re.IGNORECASE)
+            # Надёжно снимаем закрывающий тег (```), даже если есть пробелы перед ним
+            _cleaned_raw = re.sub(r'\s*```\s*$', '', _cleaned_raw).strip()
             
             try:
                 result = json.loads(_cleaned_raw)

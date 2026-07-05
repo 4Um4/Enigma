@@ -47,6 +47,26 @@ def run_player_turn_test():
     game_loop.load_campaign(campaign_id, world_id)
     ensure_scene_initialized(game_loop, campaign_id)
 
+    # S115 FIX: Инъекция аватара через штатный API, а не хардкод списка.
+    # Это гарантирует, что LifeEngine кэширует аватара, и TickOrchestrator найдёт его.
+    from app.services.player_session_service import player_session_service
+    player_session_service.select_player(campaign_id, player_name)
+    
+    # 1. Создаем CharacterSheet, чтобы _load_npcs_with_runtime нашёл его
+    from app.services.character_service import CharacterService
+    from app.models.schemas import CharacterSheet
+    _char_svc = CharacterService(root=str(game_loop._saves_dir))
+    _sheet = CharacterSheet(name=player_name, archetype="Drifter", temperament="Stoic")
+    _char_svc.upsert_character(campaign_id, _sheet)
+    
+    # 2. Сохраняем начальное состояние аватара (тело/психика), чтобы load_state() его подобрал
+    from app.models.npc_state import NPCState, BODY_STATE_HEALTHY
+    _avatar_state = NPCState(npc_id=player_name)
+    _avatar_state.drives = {"control": 0.25, "significance": 0.25, "fear": 0.25, "desire": 0.25}
+    _avatar_state.psyche = {"willpower": 50, "breakpoint": 70, "loyalty_true": 0}
+    _avatar_state.body_state = dict(BODY_STATE_HEALTHY)
+    game_loop.avatar_service.save_state(campaign_id, _avatar_state)
+
     print("\n=== ВЫПОЛНЕНИЕ ТИКА С INTERVENTION EVENT ===")
     
     # 1. Создаём InterventionEvent от игрока (ATTACK)
@@ -66,25 +86,12 @@ def run_player_turn_test():
     scene_state = game_loop.scene_manager.get_scene_state(campaign_id, location)
     
     # Загружаем всех NPC, включая аватар игрока (ADR-030)
+    # S115 FIX: Сессия инициализирована выше, аватар подгрузится автоматически
     all_npcs_raw = game_loop._load_npcs_with_runtime(campaign_id)
     
-    # Если аватар не был загружен (нет активной сессии), добавляем его вручную для теста
     if not any(n.get("npc_id") == "player" for n in all_npcs_raw):
-        from app.models.npc_state import BODY_STATE_HEALTHY
-        all_npcs_raw.append({
-            "id": "player",
-            "npc_id": "player",
-            "name": "Tester",
-            "type": "player_avatar",
-            "archetype": "Drifter",
-            "temperament": "Stoic",
-            "body_profile": {},
-            "body_state": dict(BODY_STATE_HEALTHY),
-            "psyche": {"stress": 0.0, "fear": 0.0, "willpower": 1.0, "emotion": "NEUTRAL"},
-            "social_stats": {"trust": 50.0, "fear_of_player": 0.0, "debt": 0.0},
-            "status_profile": {"faction_rank": {}}
-        })
-    
+        print("[FAIL] Аватар игрока не загружен через _load_npcs_with_runtime!")
+        return False
     _spatial_svc = SpatialFactory.build_for_campaign(
         campaign_id=campaign_id,
         location_id=location,

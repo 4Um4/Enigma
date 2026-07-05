@@ -75,6 +75,14 @@ class NPCPositionDTO:
 
 
 @dataclass(frozen=True)
+class RecentDialogueDTO:
+    """Реплика NPC для отображения в виде облачка (Speech Bubble)."""
+    speaker_id: str
+    text: str
+    exposure: str = "normal" # normal, whisper, shout
+    timestamp: float = 0.0
+
+@dataclass(frozen=True)
 class VisibleEventDTO:
     """Событие видимое frontend. Отфильтровано по visibility и радиусу."""
     event_id: str
@@ -184,6 +192,7 @@ class WorldSnapshotDTO:
     avatar_state: Optional[AvatarStateDTO] = None # ADR-035: Феноменологическая проекция
     ambient_phenomenology: Optional[Dict[str, float]] = None # ADR-037: Средовое давление (температура, плотность)
     player_perception: Optional[PlayerPerceptionDTO] = None # ТЗ EMBODIED UI: Симметричная онтология восприятия
+    recent_dialogues: List["RecentDialogueDTO"] = field(default_factory=list) # ADR-O-313: Труба диалогов для Speech Bubbles
 
 
 # A2-FIX: snapshot_npc_positions_to_dict УДАЛЕН.

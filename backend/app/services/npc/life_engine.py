@@ -1125,6 +1125,19 @@ class LifeEngine:
         self._npc_cache[campaign_id] = npcs
         return npcs
 
+    def get_npc_observed_state(self, campaign_id: str, npc_id: str) -> dict:
+        """Возвращает безопасный наблюдаемый слепок NPC для LLM (Эпистемический Барьер ADR-TZ08-6).
+        Не содержит ментальных полей (stress, fear, drives). Только name и description.
+        """
+        cached = self._npc_cache.get(campaign_id, [])
+        for n in cached:
+            if n.get("npc_id") == npc_id or n.get("id") == npc_id:
+                return {
+                    "name": n.get("name", npc_id),
+                    "description": n.get("description", "")
+                }
+        return {"name": npc_id, "description": ""}
+
     def get_npc_light_states(self, campaign_id: str) -> list[dict]:
         """Возвращает лёгкий срез NPC states для детекторов Time Skip.
         Извлекает только npc_id, life_status, identity_integrity и drives без deepcopy.

@@ -64,6 +64,26 @@ class CausalValidator:
         settings.saves_dir = str(saves_dst)
         self.game_loop = build_game_loop(data_dir=temp_path / "data")
 
+        # S115 FIX: Инъекция аватара через штатный API, а не хардкод списка.
+        # Это гарантирует, что LifeEngine кэширует аватара, и TickOrchestrator найдёт его.
+        from app.services.player_session_service import player_session_service
+        player_session_service.select_player(campaign_id, "Tester")
+        
+        # 1. Создаем CharacterSheet, чтобы _load_npcs_with_runtime нашёл его
+        from app.services.character_service import CharacterService
+        from app.models.schemas import CharacterSheet
+        _char_svc = CharacterService(root=str(saves_dst))
+        _sheet = CharacterSheet(name="Tester", archetype="Drifter", temperament="Stoic")
+        _char_svc.upsert_character(campaign_id, _sheet)
+        
+        # 2. Сохраняем начальное состояние аватара (тело/психика), чтобы load_state() его подобрал
+        from app.models.npc_state import NPCState, BODY_STATE_HEALTHY
+        _avatar_state = NPCState(npc_id="Tester")
+        _avatar_state.drives = {"control": 0.25, "significance": 0.25, "fear": 0.25, "desire": 0.25}
+        _avatar_state.psyche = {"willpower": 50, "breakpoint": 70, "loyalty_true": 0}
+        _avatar_state.body_state = dict(BODY_STATE_HEALTHY)
+        self.game_loop.avatar_service.save_state(campaign_id, _avatar_state)
+
     def teardown(self):
         if self.temp_dir and os.path.exists(self.temp_dir):
             shutil.rmtree(self.temp_dir, ignore_errors=True)

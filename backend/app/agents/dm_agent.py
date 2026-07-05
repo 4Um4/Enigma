@@ -170,8 +170,8 @@ class DmAgent:
         _obs_facts = world_result.get("observed_facts", []) if world_result else []
         if _obs_facts:
             builder.add_custom_block(
-                "Уже донесено игроку (НЕ повторяй это, добавляй подтекст)",
-                "\n".join(_obs_facts)
+                "Наблюдаемые факты сцены (опирайся на них при ответе)",
+                "Отвечай на вопросы игрока, опираясь на эти факты. Не давай общих отписок.\n" + "\n".join(_obs_facts)
             )
 
         if _dm_frame_block:
@@ -646,7 +646,19 @@ class DmAgent:
         validator = ResponseValidator(contract)
         # A4-FIX: передаём recent_text для проверки повторов.
         _recent = self._get_last_dm_response()
-        validation = validator.validate(dm_text, recent_text=_recent)
+        
+        # Инвариант 2: Передаём имена NPC, реально двигавшихся в симуляции
+        _allowed_npcs = set()
+        _npc_moves = npc_result.get("npc_movement_summary", []) if npc_result else []
+        for move_str in _npc_moves:
+            # Извлекаем имя NPC (берём первое слово до двоеточия или просто слово)
+            parts = move_str.split(":")
+            if len(parts) > 1:
+                _allowed_npcs.add(parts[0].strip())
+            else:
+                _allowed_npcs.add(move_str.split()[0].strip())
+                
+        validation = validator.validate(dm_text, recent_text=_recent, allowed_moving_npcs=_allowed_npcs)
 
         if validation.is_fallback and validation.violation == "non_russian":
             # ADR-O-147: CJK Retry — модель сгенерировала китайский.

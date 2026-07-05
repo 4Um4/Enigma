@@ -250,12 +250,49 @@ class TickOrchestrator:
                 
             ctx.cluster_occupancy.update_entity(npc_id, cluster_id)
             
-        # Верификация: все NPC из all_npcs_raw должны быть в индексе
+        # Синхронизация: если NPC из all_npcs_raw принадлежит текущей локации, 
+        # но отсутствует в npc_positions (рассинхрон SSOT), восстанавливаем его запись.
         if hasattr(ctx, 'all_npcs_raw') and ctx.all_npcs_raw:
-            indexed_ids = set(ctx.cluster_occupancy.entity_to_cluster.keys())
-            raw_ids = {npc.get("npc_id") for npc in ctx.all_npcs_raw if npc.get("npc_id")}
-            if missing_in_index := raw_ids - indexed_ids:
-                logger.warning(f"[CFRM] ClusterOccupancy: NPC в all_npcs_raw, но нет в npc_positions: {missing_in_index}")
+            from app.models.spatial_contracts import NodeRole
+            _spatial_svc = self._resolve_spatial_service(ctx)
+            _current_loc = ctx.scene_state.get("location_id", "")
+            
+            for _npc in ctx.all_npcs_raw:
+                _npc_id = _npc.get("npc_id") or _npc.get("id")
+                if not _npc_id: continue
+                
+                # Фильтр: симулируем только NPC текущей локации (остальные оффскрин)
+                _npc_loc = _npc.get("location_id") or _npc.get("location", "")
+                if _npc_loc != _current_loc:
+                    continue
+                    
+                if _npc_id not in npc_positions:
+                    _pos = _npc.get("position")
+                    _local_pos = _npc.get("local_position")
+                    
+                    # Если позиция утеряна, пытаемся найти узел DEFAULT через SpatialService
+                    if not _pos and _spatial_svc:
+                        _ref = _spatial_svc.resolve_node(role=NodeRole.DEFAULT, origin_zone=_current_loc)
+                        if _ref:
+                            _pos = _ref.node_id
+                            _local_pos = {"x": _ref.x, "y": _ref.y}
+                    
+                    if _pos:
+                        npc_positions[_npc_id] = {
+                            "position": _pos,
+                            "local_position": _local_pos or {"x": 0.0, "y": 0.0},
+                            "name": _npc.get("name", _npc_id)
+                        }
+                        logger.warning(f"[CFRM] ClusterOccupancy: Восстановлен NPC '{_npc_id}' в npc_positions (loc={_current_loc}, pos={_pos}).")
+                        
+                        # Обновляем кластер для восстановленного NPC
+                        if ":" in str(_pos) or not _current_loc:
+                            cluster_id = str(_pos)
+                        else:
+                            cluster_id = f"{_current_loc}:{_pos}"
+                        ctx.cluster_occupancy.update_entity(_npc_id, cluster_id)
+                    else:
+                        logger.error(f"[CFRM] ClusterOccupancy: NPC '{_npc_id}' в локации {_current_loc}, но нет позиции и SpatialService не смог найти узел.")
                 
         elapsed_ms = (time.perf_counter() - start_time) * 1000  # §15.2: Telemetry (profiling)
         logger.info(f"[CFRM] ClusterOccupancy rebuild: {len(npc_positions)} entities in {elapsed_ms:.2f}ms")
@@ -381,11 +418,10 @@ class TickOrchestrator:
         # S83.1: TickOrchestrator = единственный владелец результата тика.
         # ctx.scene_state (frozen input) прошёл через фазы → final_snapshot (output тика).
         # Важно: мы не клонируем повторно, а передаём ссылку.
+        # S83.1 FIX: Ядро — чистая функция. Возвращает TickResultDTO.
+        # Обновление буфера SceneStateManager (_tick_scene) перенесено в GameLoop.idle_tick.
         # Мутации происходили in-place внутри ctx.scene_state.
-        final_snapshot = ctx.scene_state  # после мутаций фазами — это уже output, не input
-        logger.debug(f"[TICK_OK] campaign={campaign_id} tick={tick_number} preparing commit_tick_result")
-        if self._scene_manager is not None:
-            self._scene_manager.commit_tick_result(campaign_id, final_snapshot)
+        final_snapshot = ctx.scene_state
 
         # TZ-08 v0.2: Ядро всегда возвращает единый TickResultDTO. Никаких ветвлений по источнику.
         _final_facts = getattr(ctx, 'observed_facts_for_dm', [])

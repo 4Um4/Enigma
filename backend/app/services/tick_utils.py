@@ -9,6 +9,7 @@ path: backend/app/services/tick_utils.py
 """
 
 import logging
+import types
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -321,5 +322,6 @@ def create_tick_context(
         rng_factory=_rng_factory,
         player_intent=_player_intent,
         all_npcs_raw=all_npcs_raw or [],
+        shared_context=types.SimpleNamespace(), # S115 FIX: Инициализация для совместимости с phases/input.py
     )
     return ctx

@@ -794,6 +794,20 @@ class GameScreen:
                 # ТЗ EMBODIED UI PERCEPTION: Извлечение наблюдений игрока
                 if "player_perception" in _ws:
                     scene_state["player_perception"] = _ws["player_perception"]
+
+                # ADR-O-313: Извлечение реплик NPC для Speech Bubbles (idle_tick)
+                _recent_d = _ws.get("recent_dialogues", [])
+                if _recent_d:
+                    _npc_pos_map = scene_state.get("npc_positions", {})
+                    for _dlg in _recent_d:
+                        _spk_id = _dlg.get("speaker_id", "")
+                        _spk_name = _npc_pos_map.get(_spk_id, {}).get("name", _spk_id)
+                        _dlg_text = _dlg.get("text", "")
+                        if _spk_name and _dlg_text:
+                            self.npc_speech_bubbles[_spk_name] = {
+                                "text": _dlg_text,
+                                "tick": pygame.time.get_ticks()
+                            }
                 # B1.3-FIX: синхронизируем journal из backend (строгая обработка, без спама логов)
                 if "dialog_journal" in _ws:
                     self._dialog_journal_backend = _ws["dialog_journal"]
@@ -934,6 +948,21 @@ class GameScreen:
 
                     if _action_ws and isinstance(_action_ws, dict) and "npc_positions" in _action_ws:
                         import copy
+
+                        # ADR-O-313: Извлечение реплик NPC для Speech Bubbles (action_tick)
+                        _recent_d = _action_ws.get("recent_dialogues", [])
+                        if _recent_d:
+                            _npc_pos_map = _action_ws.get("npc_positions", {})
+                            for _dlg in _recent_d:
+                                _spk_id = _dlg.get("speaker_id", "")
+                                _spk_name = _npc_pos_map.get(_spk_id, {}).get("name", _spk_id)
+                                _dlg_text = _dlg.get("text", "")
+                                if _spk_name and _dlg_text:
+                                    self.npc_speech_bubbles[_spk_name] = {
+                                        "text": _dlg_text,
+                                        "tick": pygame.time.get_ticks()
+                                    }
+
                         _lusya_data = _action_ws["npc_positions"].get("maid_lusya", {})
                         print(f"[DIAG_MERGE] maid_lusya local_pos={_lusya_data.get('local_position')} vel={_lusya_data.get('velocity')}")
                         for npc_id, new_data in _action_ws["npc_positions"].items():

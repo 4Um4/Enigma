@@ -69,7 +69,9 @@ def run_npc_orchestration(
     if tick_orchestrator is None:
         raise RuntimeError("tick_orchestrator обязателен — параллельный путь удалён")
 
-    # Загружаем ВСЕХ NPC (включая аватар игрока) ДО вызова execute()
+    # Контракт _load_npcs_with_runtime (game_loop) уже возвращает полный runtime,
+    # включающий аватара игрока как полноправного Actor'а симуляции.
+    # Ручная инъекция здесь была архитектурной утечкой (симптом устаревшего контракта).
     ctx.all_npcs_raw = game_loop._load_npcs_with_runtime(campaign_id)
 
     from app.services.spatial.spatial_service import SpatialService

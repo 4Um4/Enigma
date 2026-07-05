@@ -309,6 +309,17 @@ class GameLoop:
             # Сброс тик-счётчика MemoryManager
             if hasattr(self.memory_manager, '_tick_counters'):
                 self.memory_manager._tick_counters.pop(campaign_id, None)
+            # P0 FIX: Очистка JSONL-файлов памяти кампании (data/campaign_memory_<id>.jsonl и session_memory_<id>.jsonl).
+            # Без этого LLM получает контекст из прошлых забегов (отравление контекста).
+            if hasattr(self.memory_manager, '_layered') and hasattr(self.memory_manager._layered, 'store'):
+                store = self.memory_manager._layered.store
+                for collection in [f"campaign_memory_{campaign_id}", f"session_memory_{campaign_id}"]:
+                    fpath = store._collection_path(collection)
+                    if fpath.exists():
+                        fpath.unlink()
+                        logger.info(f"[NEW_GAME] Removed JSONL memory: {fpath}")
+                # Очистка кэша JsonMemoryStore
+                store._recent_cache.clear()
         except Exception as e:
             logger.warning(f"[NEW_GAME] MemoryManager reset failed: {e}")
         
@@ -435,9 +446,12 @@ class GameLoop:
             if npcs:
                 engine.update_cache(campaign_id, npcs)
 
-        # ADR-030: Игрок становится полноправным NPC в симуляции
+        # ADR-030: Игрок становится полноправным NPC в симуляции (Actor-Agnostic).
+        # Удаляем протухшего аватара из кэша LifeEngine, если он там есть,
+        # чтобы гарантированно инжектить свежий стейт из AvatarService.
         session = player_session_service.get_session(campaign_id)
-        if session and session.player_name and not any(n.get("id") == "player" or n.get("npc_id") == "player" for n in npcs):
+        npcs = [n for n in npcs if n.get("id") != "player" and n.get("npc_id") != "player"]
+        if session and session.player_name:
             try:
                 _char_svc = CharacterService(root=str(self._saves_dir))
                 characters = _char_svc.list_characters(campaign_id)
@@ -512,6 +526,7 @@ class GameLoop:
                     _spatial_svc = SpatialFactory.build_for_campaign(
                         campaign_id=campaign_id, location_id=_loc_id, scene_state=_scene
                     )
+                    shared_context.spatial_query = _spatial_svc
                 except Exception as e:
                     logger.warning(f"[SPATIAL_AUTHORITY] SpatialService build failed: {e}")
                     
@@ -530,7 +545,14 @@ class GameLoop:
             if result.final_state:
                 from app.services.integration.world_snapshot_builder import WorldSnapshotBuilder
                 _builder = WorldSnapshotBuilder()
-                _ws = _builder.build(result.final_state, result.final_state.get("tick", 0), None, _all_npcs)
+                _recent_d = self._get_task_scheduler().get_recent_dialogues(time.time())
+                _ws = _builder.build(
+                    result.final_state, 
+                    result.final_state.get("tick", 0), 
+                    None, 
+                    _all_npcs,
+                    recent_dialogues=_recent_d
+                )
                 
             return {
                 "status": "ok",
@@ -635,6 +657,11 @@ class GameLoop:
                 )
                 result = dataclasses.replace(result, world_snapshot=_new_ws)
 
+        # S83.1 FIX: Ядро больше не вызывает commit_tick_result. 
+        # Обновляем _tick_scene явно, до materialization и unlock.
+        if self.scene_manager and self.scene_manager._tick_campaign_id == campaign_id:
+            self.scene_manager.commit_tick_result(campaign_id, _scene)
+
         # ДИАГНОСТИКА: Читаем из authoritative source (scene_manager._tick_scene),
         # а не из устаревшей ссылки _scene (execute работает с deepcopy).
         _auth_scene = self.scene_manager._tick_scene if self.scene_manager else None
@@ -645,10 +672,7 @@ class GameLoop:
         # Работает с _auth_scene (_tick_scene), чтобы мутации подписчиков EventBus 
         # (напр. SocialInputProjector) попали в финальный unlock_tick.
         if _auth_scene and _auth_scene.get("pending_tasks"):
-            from app.services.game_loop.task_scheduler import TaskScheduler
-            if not hasattr(self, '_task_scheduler'):
-                self._task_scheduler = TaskScheduler()
-            self._task_scheduler.process_tasks(_auth_scene)
+            self._get_task_scheduler().process_tasks(_auth_scene)
 
         # Конвертация WorldSnapshotDTO → dict для фронтенда
         from dataclasses import asdict
@@ -830,11 +854,13 @@ class GameLoop:
             _pp = getattr(state.shared_context, 'player_perception', None) if state.shared_context else None
             _anr = getattr(state.shared_context, 'all_npcs_raw_snapshot', None) if state.shared_context else None
             print(f"[TRAV_CHECK_P2] before_snapshot: id(scene_state)={id(_scene)} active_traversals={list(_scene.get('active_traversals', {}).keys())}")
+            _recent_d = self._get_task_scheduler().get_recent_dialogues(time.time())
             if _ws := _builder.build(
                 _scene,
                 tick=self.get_current_tick(req.campaign_id),
                 player_perception=_pp,
                 all_npcs_raw=_anr,
+                recent_dialogues=_recent_d,
             ):
                 _ws_dict = asdict(_ws)
                 # A2-FIX: npc_positions уже Dict[str, NPCPositionDTO] (canonical). Адаптер удалён.
@@ -1231,22 +1257,6 @@ class GameLoop:
             # ФАЗА 3-6: NPC оркестрация → TickPlayerResultDTO (Устав §3)
             _player_result: TickPlayerResultDTO = TickPlayerResultDTO()
             
-            # ADR-O-112: Инжектируем Аватар в _ctx.all_npcs_raw ДО вызова
-            # run_npc_orchestration, т.к. оркестратор делает deepcopy в create_tick_context.
-            # Без этого WillpowerGate и DecisionHub не видят игрока.
-            if _ctx.all_npcs_raw is not None:
-                _ctx.all_npcs_raw = [n for n in _ctx.all_npcs_raw if n.get("npc_id") != "player" and n.get("id") != "player"]
-                _avatar_state = self.avatar_service.load_state(campaign_id, _player_name)
-                from dataclasses import asdict, is_dataclass
-                if is_dataclass(_avatar_state):
-                    _avatar_dict = asdict(_avatar_state)
-                    _avatar_dict["npc_id"] = "player"
-                    _avatar_dict["id"] = "player"
-                    _ctx.all_npcs_raw.append(_avatar_dict)
-                    logger.debug(f"[AVATAR_INJECT] Added player to all_npcs_raw (len={len(_ctx.all_npcs_raw)})")
-                else:
-                    logger.warning(f"[AVATAR_INJECT] avatar_state is not a dataclass for player '{_player_name}'")
-
             logger.debug(f"[ARCHAE-PRE-ORCH] dm_valid={dm_result.is_valid} has_scene_ctx={dm_result.scene_context is not None} hub_event={_ctx.hub_event is not None}")
             if dm_result.is_valid and dm_result.scene_context:
                 _player_result = run_npc_orchestration(
@@ -1299,6 +1309,16 @@ class GameLoop:
 
         # ADR-O-112: Actor-Agnostic Physiology. Инжектируем Аватар в all_npcs_raw для трубы урона.
         _avatar_state = self.avatar_service.load_state(campaign_id, _player_name)
+        
+        # БАГ 5 FIX: Применяем money_delta от RulesSubscriber к аватару.
+        # Раньше RulesSubscriber мутировал временный снапшот, который перезатирался load_state.
+        if _rules_delta and _rules_delta.money_delta != 0.0 and _avatar_state:
+            if not _avatar_state.body_state:
+                _avatar_state.body_state = {}
+            _current_money = float(_avatar_state.body_state.get("money", 0.0))
+            _avatar_state.body_state["money"] = max(0.0, _current_money + _rules_delta.money_delta)
+            logger.info(f"[TRADE_FIX] Applied money_delta={_rules_delta.money_delta} to avatar. New total: {_avatar_state.body_state['money']}")
+
         from dataclasses import asdict, is_dataclass
         if is_dataclass(_avatar_state):
             _avatar_dict = asdict(_avatar_state)
@@ -1368,6 +1388,16 @@ class GameLoop:
     # ────────────────────────────────────────────────────────────────────────────
     # ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ
     # ────────────────────────────────────────────────────────────────────────────
+
+    def _get_task_scheduler(self):
+        """Ленивая инициализация TaskScheduler с инъекцией LLM-провайдера."""
+        if not hasattr(self, '_task_scheduler'):
+            from app.services.game_loop.task_scheduler import TaskScheduler
+            # Инъекция LLM провайдера и контекстного колбэка для Эпистемического Барьера
+            _llm = self.dm_agent.router.get_provider("narrative")
+            _ctx = self.life_engine.get_npc_observed_state
+            self._task_scheduler = TaskScheduler(llm_provider=_llm, context_provider=_ctx)
+        return self._task_scheduler
 
     def _get_character_dict(self, campaign_id: str, player_name: str) -> dict:
         try:

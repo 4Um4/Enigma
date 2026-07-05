@@ -1984,14 +1984,14 @@ class SceneStateManager:
                 if not isinstance(lp, dict) or not isinstance(lp.get("x"), (int, float)):
                     entry["local_position"] = dict(editor_coords[npc_id])
             elif svc and current_node:
-                # NPC двигался — берём координаты из SpatialService (проблем с префиксом локации)
-                # LOD0 Guard: Не перезаписываем микро-перемещения из пайплайна (micro_snap, collision_avoidance)
+                # ADR-072 FIX: Жёсткий LOD0 Guard. 
+                # Если local_position уже валиден (из пайплайна или сохранения), НЕ перезаписываем его координатами узла.
+                # Перезапись разрешена ТОЛЬКО если local_position отсутствует или битый.
                 lp = entry.get("local_position", {})
                 if isinstance(lp, dict) and isinstance(lp.get("x"), (int, float)):
-                    continue  # Позиция уже установлена пайплайном — не трогаем
-                node = svc.get_node(current_node) or svc.get_node(f"{location_id}:{current_node}")
-                # КАТЕГОРИЧЕСКИЙ ЗАПРЕТ фоллбэка на entrance! Он вызывает телепортацию к двери.
-                if node:
+                    continue # Координаты уже есть, не трогаем!
+                
+                if node := svc.get_node(current_node):
                     entry["local_position"] = {"x": node.x, "y": node.y}
 
             # АРХИТЕКТУРНОЕ ПРИНУЖДЕНИЕ: NPC не может существовать без координат.

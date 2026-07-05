@@ -59,6 +59,18 @@ def extract_speech_events(
     """
     if not dm_text:
         return []
+        
+    # Фильтр-гард: если текст содержит JSON-теги (сырой нераспарсенный ответ),
+    # НЕ пытаемся извлечь речь. Это симптом бага нормализации.
+    _stripped = dm_text.strip()
+    if _stripped.startswith("{") and (
+        '"dm_response"' in _stripped or 
+        '"npc_reactions"' in _stripped or 
+        '"speech"' in _stripped
+    ):
+        logger.warning(f"[RCE] JSON artifact detected, ignoring STM write.")
+        return []
+
     dm_text = _normalize_quotes(dm_text)
 
     # Строим маппинг имя → npc_id и npc_id → имя

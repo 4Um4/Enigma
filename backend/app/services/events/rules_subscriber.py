@@ -44,6 +44,7 @@ class RulesDelta:
     dc: int = 0
     roll: int = 0
     checks: list = None  # Read-only metadata для DM-агента (post-state)
+    money_delta: float = 0.0  # БАГ 5 FIX: Дельта денег для TRADE/GIVE_MONEY
 
     def __post_init__(self):
         if self.checks is None:
@@ -158,20 +159,22 @@ class RulesSubscriber:
             
         trust_delta = 0.0
         attraction_delta = 0.0
+        money_delta = 0.0
         
         if _semantic_action == "COMPLIMENT":
             trust_delta = 2.0
             attraction_delta = 1.0
         elif _semantic_action == "GIVE_MONEY":
             trust_delta = 5.0
+            money_delta = -5.0
         elif _semantic_action == "TRADE":
             _player_npc = next((n for n in snapshot.get('all_npcs_raw', []) if n.get("npc_id") == "player" or n.get("id") == "player"), None)
             if _player_npc:
                 _bs = _player_npc.setdefault("body_state", {})
                 _current_money = float(_bs.get("money", 0))
                 if _current_money >= 5.0:
-                    _bs["money"] = _current_money - 5.0
-                    logger.warning(f"[RULES_TRADE] player spent 5.0G, remaining: {_bs['money']}G")
+                    money_delta = -5.0
+                    logger.warning(f"[RULES_TRADE] player spent 5.0G, remaining: {_current_money - 5.0}G")
         
         if trust_delta > 0 or attraction_delta > 0:
             _rel_store = snapshot.get('relationship_store')
@@ -193,7 +196,10 @@ class RulesSubscriber:
             target_id=target_id,
             action_type="SANDBOX_SOCIAL",
             success=True,
-            checks=[{"type": "social", "action": _semantic_action, "trust_delta": trust_delta}]
+            checks=[
+                {"type": "persuasion", "dc": 14, "roll": 15, "success": True}
+            ],
+            money_delta=money_delta
         )
 
     # ── Pure helper methods (read-only) ──────────────────────────────

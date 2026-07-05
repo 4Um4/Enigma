@@ -20,13 +20,25 @@ class TaskScheduler:
     Инфраструктурный компонент. Живёт в game_loop.
     Читает scene_state["pending_tasks"], вызывает исполнителей, генерирует события.
     """
-    def __init__(self):
+    def __init__(self, llm_provider=None, context_provider=None):
         self._executors: Dict[TaskKind, TaskExecutor] = {
-            TaskKind.DIALOGUE: DialogueExecutor()
+            TaskKind.DIALOGUE: DialogueExecutor(llm_provider, context_provider)
         }
         self._materializers: Dict[str, Materializer] = {
             "dialogue_line": DialogueMaterializer()
         }
+        # ADR-O-313: Кэш последних реплик для Speech Bubbles (TTL ~ 10 сек)
+        self._recent_dialogues: list = []
+        self._dialogue_ttl = 10.0
+
+    def get_recent_dialogues(self, current_time: float) -> list:
+        """Возвращает активные реплики для WorldSnapshotDTO."""
+        # Чистим протухшие
+        self._recent_dialogues = [
+            d for d in self._recent_dialogues 
+            if current_time - d["timestamp"] < self._dialogue_ttl
+        ]
+        return self._recent_dialogues
 
     def process_tasks(self, scene_state: dict, max_tasks_per_tick: int = 2) -> None:
         pending = scene_state.get("pending_tasks", [])
@@ -56,6 +68,20 @@ class TaskScheduler:
                 continue
                 
             task.state = TaskState.PROCESSING
+            task.campaign_id = scene_state.get("campaign_id", "")
+            
+            # ADR-O-313: SocialTargetResolver — если цель не задана, выбираем случайного NPC в локации
+            if isinstance(task.payload, DialogueRequest) and not task.payload.target_id:
+                import random
+                from dataclasses import replace as dc_replace
+                _available_npcs = [
+                    nid for nid in scene_state.get("npc_positions", {}).keys() 
+                    if nid != task.owner_id
+                ]
+                _resolved_target = random.choice(_available_npcs) if _available_npcs else "soliloquy"
+                task.payload = dc_replace(task.payload, target_id=_resolved_target)
+                logger.debug(f"[SCHEDULER] Resolved missing target_id to '{_resolved_target}' for {task.owner_id}")
+
             artifacts = executor.execute(task)
             
             for artifact in artifacts:
@@ -66,6 +92,16 @@ class TaskScheduler:
                         events = materializer.materialize(artifact)
                         for ev in events:
                             bus.publish(ev)
+                    
+                    # ADR-O-313: Кэшируем реплику для Speech Bubbles
+                    if artifact.result_type == "dialogue_line":
+                        import time
+                        self._recent_dialogues.append({
+                            "speaker_id": artifact.data.get("speaker_id", ""),
+                            "text": artifact.data.get("text", ""),
+                            "exposure": artifact.data.get("exposure", "normal"),
+                            "timestamp": time.time()
+                        })
                     processed_count += 1
                 else:
                     logger.error(f"[SCHEDULER] Task {task.task_id} failed: {artifact.error_message}")

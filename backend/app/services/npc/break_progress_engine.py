@@ -99,8 +99,14 @@ class BreakProgressEngine:
         # Минимальное давление — чтобы не было -0.0
         pressure_factor = max(0.1, pressure / 100)
 
-        # Давление усиливает разрушение (единая формула для всех стадий)
-        integrity_delta = base_delta * (1 + pressure_factor)
+        # BUG 6 FIX: Восстановление identity_integrity.
+        # Если давление спадает (ниже 10%), личность медленно восстанавливается к 1.0.
+        # Формула асимптотическая: чем ближе к 1.0, тем медленнее рост.
+        if pressure < 10.0 and integrity < BreakProgressEngine.STAGE_RESISTANCE:
+            integrity_delta = 0.001 * (1.0 - integrity)
+        else:
+            # Давление усиливает разрушение (единая формула для всех стадий)
+            integrity_delta = base_delta * (1 + pressure_factor)
         
         # Anti-abuse: сопротивление растёт при спаме
         resistance_delta = 0.1 if pressure > 50 else -0.05  # затухает если нет давления

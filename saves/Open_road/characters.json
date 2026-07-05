@@ -1,7 +1,6 @@
 [
   {
     "name": "Венус",
-    "npc_id": "player",
     "archetype": "Drifter",
     "temperament": "Calculating",
     "body_profile": {
@@ -25,7 +24,36 @@
       "wis": 10,
       "cha": 10
     },
+    "skills": {},
+    "inventory": [],
+    "spells": [],
+    "portrait": null,
+    "backstory": null,
     "hp": 100,
-    "max_hp": 100
+    "max_hp": 100,
+    "ac": 10,
+    "effects": [],
+    "importance": null
+  },
+  {
+    "name": "Tester",
+    "archetype": "Drifter",
+    "temperament": "Stoic",
+    "body_profile": {},
+    "psyche": {},
+    "race": "",
+    "class_name": "",
+    "level": 1,
+    "stats": {},
+    "skills": {},
+    "inventory": [],
+    "spells": [],
+    "portrait": null,
+    "backstory": null,
+    "hp": 10,
+    "max_hp": 10,
+    "ac": 10,
+    "effects": [],
+    "importance": null
   }
 ]

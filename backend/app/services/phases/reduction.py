@@ -131,6 +131,19 @@ def _execute_handler(
     if not events:
         return None
 
+    # БАГ 4 FIX: Гарантируем наличие spatial_query для CombatSubscriber (range gate).
+    # В idle-тиках shared_context может быть None или не содержать spatial_query.
+    if not hasattr(ctx, 'shared_context') or ctx.shared_context is None:
+        from types import SimpleNamespace
+        ctx.shared_context = SimpleNamespace()
+    
+    if not hasattr(ctx.shared_context, 'spatial_query') or ctx.shared_context.spatial_query is None:
+        from app.services.spatial.spatial_query_service import SpatialQueryService
+        ctx.shared_context.spatial_query = SpatialQueryService(
+            npc_positions=ctx.scene_state.get("npc_positions", {}),
+            scene_state=ctx.scene_state,
+        )
+
     _npc_contexts = ctx.npc_contexts if ctx.npc_contexts else []
     try:
         phase8_ctx = Phase8Context(

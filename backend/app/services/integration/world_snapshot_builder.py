@@ -29,6 +29,7 @@ class WorldSnapshotBuilder:
         avatar_state: Optional["AvatarStateDTO"] = None, # ADR-035
         all_npcs_raw: Optional[List[Dict]] = None, # ADR-037: Для вычисления среды
         player_perception: Optional["PlayerPerceptionDTO"] = None, # ТЗ EMBODIED UI PERCEPTION
+        recent_dialogues: Optional[List[Dict]] = None, # ADR-O-313: Для Speech Bubbles
     ) -> WorldSnapshotDTO:
         """Собирает снимок из финального состояния тика.
         
@@ -38,7 +39,7 @@ class WorldSnapshotBuilder:
             last_event_id: ID последнего обработанного события (опционально)
         """
         if not scene_state:
-            return self._empty_snapshot(tick)
+            return self._empty_snapshot(tick, recent_dialogues)
 
         npc_positions = self._extract_npc_positions(scene_state)
         visible_events = self._extract_visible_events(scene_state)
@@ -59,6 +60,7 @@ class WorldSnapshotBuilder:
             npc_positions=npc_positions,
             avatar_state=self.avatar_state, # ADR-035: Внедрение феноменологической проекции
             ambient_phenomenology=ambient_phenomenology, # ADR-037: Средовое давление
+            recent_dialogues=recent_dialogues or [], # ADR-O-313: Проброс кэша реплик
             player_perception=self._convert_perception(player_perception, tick=tick), # ТЗ EMBODIED UI: domain → API DTO конвертация
             visible_events=visible_events,
             available_actions=self._extract_available_actions(scene_state),
@@ -281,7 +283,7 @@ class WorldSnapshotBuilder:
         """
         return ["look", "move", "talk"]
 
-    def _empty_snapshot(self, tick: int) -> WorldSnapshotDTO:
+    def _empty_snapshot(self, tick: int, recent_dialogues: Optional[List[Dict]] = None) -> WorldSnapshotDTO:
         """Пустой снимок когда scene_state не загружен."""
         return WorldSnapshotDTO(
             tick=tick,
@@ -296,4 +298,5 @@ class WorldSnapshotBuilder:
             weather="unknown",
             time_of_day="day",
             game_time_seconds=0,
+            recent_dialogues=recent_dialogues or [], # ADR-O-313: Проброс кэша реплик
         )

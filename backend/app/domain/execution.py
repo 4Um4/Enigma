@@ -52,6 +52,7 @@ class QueuedTask:
     creator_system: str = "AI"  # Кто создал (NPC, Scheduler, QuestSystem)
     owner_id: str = ""          # Главный исполнитель (NPC)
     target_ids: List[str] = field(default_factory=list) # Участники
+    campaign_id: str = ""       # Для контекста исполнителей (напр. LLM)
     
     payload: Any = None         # Сама Command (напр. DialogueRequest)
     

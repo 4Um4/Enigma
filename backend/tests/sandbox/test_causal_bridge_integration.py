@@ -17,7 +17,6 @@ from unittest.mock import MagicMock, patch
 from app.services.npc.life_engine import LifeEngine
 from app.services.spatial.movement_engine import MovementEngine
 from app.services.spatial.spatial_service import SpatialService
-from app.services.spatial.location_graph import LocationGraph, LocationNode
 from app.services.scene_state_manager import SceneStateManager
 from app.domain.movement import MovementIntent, PRIORITY_SCHEDULE, PRIORITY_NEEDS
 from app.services.scene_change import SceneChange, ChangeType

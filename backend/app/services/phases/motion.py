@@ -40,6 +40,14 @@ def process_continuous_motion(ctx: Any, orchestrator: Any, _spatial_svc: Optiona
             
         dv_raw = npc_data.get("drive_vector")
         if not dv_raw:
+            # ADR-ETKE-ACT1 FIX: Нет давления — нет движения. 
+            # Обнуляем накопленную скорость, чтобы избежать дрейфа от прошлых кадров.
+            pos_data = npc_positions.get(npc_id, {})
+            if pos_data.get("velocity", (0.0, 0.0)) != (0.0, 0.0):
+                continuous_changes.append(SceneChange(
+                    type=ChangeType.NPC_STATE, target=npc_id, field="velocity",
+                    value=(0.0, 0.0), cause="etke_braking", tick=ctx.tick_number
+                ))
             continue
         
         # ETKE-IK v2: Чтение MotionPrimitive (4-й элемент, fallback на approach)
