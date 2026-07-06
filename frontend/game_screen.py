@@ -801,10 +801,9 @@ class GameScreen:
                     _npc_pos_map = scene_state.get("npc_positions", {})
                     for _dlg in _recent_d:
                         _spk_id = _dlg.get("speaker_id", "")
-                        _spk_name = _npc_pos_map.get(_spk_id, {}).get("name", _spk_id)
                         _dlg_text = _dlg.get("text", "")
-                        if _spk_name and _dlg_text:
-                            self.npc_speech_bubbles[_spk_name] = {
+                        if _spk_id and _dlg_text:
+                            self.npc_speech_bubbles[_spk_id] = {
                                 "text": _dlg_text,
                                 "tick": pygame.time.get_ticks()
                             }
@@ -955,10 +954,9 @@ class GameScreen:
                             _npc_pos_map = _action_ws.get("npc_positions", {})
                             for _dlg in _recent_d:
                                 _spk_id = _dlg.get("speaker_id", "")
-                                _spk_name = _npc_pos_map.get(_spk_id, {}).get("name", _spk_id)
                                 _dlg_text = _dlg.get("text", "")
-                                if _spk_name and _dlg_text:
-                                    self.npc_speech_bubbles[_spk_name] = {
+                                if _spk_id and _dlg_text:
+                                    self.npc_speech_bubbles[_spk_id] = {
                                         "text": _dlg_text,
                                         "tick": pygame.time.get_ticks()
                                     }
@@ -1178,8 +1176,15 @@ class GameScreen:
                         print(f"[ECHO_DEBUG_NPC] Name: '{npc_name}' | Text: '{npc_text}' | LastInput: '{_last_player_input}'")
 
                         if npc_text:
-                            # Речь NPC → облачко над головой (не дублируем в message_log и журнал)
-                            self.npc_speech_bubbles[npc_name] = {"text": npc_text, "tick": pygame.time.get_ticks()}
+                            # Речь NPC → облачко над головой (привязка к npc_id, не к name)
+                            # Ищем ID NPC по имени, чтобы избежать коллизий и NameError
+                            _npc_id = None
+                            for _nid, _ndata in scene_state.get("npc_positions", {}).items():
+                                if _ndata.get("name") == npc_name:
+                                    _npc_id = _nid
+                                    break
+                            if _npc_id:
+                                self.npc_speech_bubbles[_npc_id] = {"text": npc_text, "tick": pygame.time.get_ticks()}
 
                 # Telegraph завершился — запускаем следующий если консоль открыта
                 # Telegraph завершился — НЕ перезапускаем автоматически

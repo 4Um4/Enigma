@@ -314,9 +314,26 @@ class SceneRenderer:
                 render_x = entity.x + _vx * dt
                 render_y = entity.y + _vy * dt
             else:
-                # Покой: snap
-                render_x, render_y = entity.x, entity.y
+                # Режим 3: LERP к целевой позиции (унификация с игроком)
+                _NPC_LERP_SPEED = 8.0  # м/сек
+                _NPC_TELEPORT_THRESHOLD = 3.0  # м
+                dx, dy = entity.x - prev_x, entity.y - prev_y
+                dist = (dx**2 + dy**2)**0.5
+                if dist > 0.01:
+                    if dist > _NPC_TELEPORT_THRESHOLD:
+                        render_x, render_y = entity.x, entity.y
+                    else:
+                        step = _NPC_LERP_SPEED * dt
+                        if step >= dist:
+                            render_x, render_y = entity.x, entity.y
+                        else:
+                            ratio = step / dist
+                            render_x = prev_x + dx * ratio
+                            render_y = prev_y + dy * ratio
+                else:
+                    render_x, render_y = entity.x, entity.y
 
+            self._prev_npc_positions[entity.entity_id] = (render_x, render_y)
             sx, sy = self._w2s(render_x, render_y, cam_x, cam_y)
 
             # The Fool v2: Моторный рендер (тупой, без эмоций)
@@ -367,7 +384,7 @@ class SceneRenderer:
 
             # ADR-SPEECH: Речевое облачко над головой NPC (перенос по словам, обрезка по предложению)
             _bubbles = speech_bubbles or {}
-            _bubble_data = _bubbles.get(entity.display_name) if entity.display_name else None
+            _bubble_data = _bubbles.get(entity.entity_id) if entity.entity_id else None
             if _bubble_data:
                 _age = pygame.time.get_ticks() - _bubble_data["tick"]
                 if _age < 6000:

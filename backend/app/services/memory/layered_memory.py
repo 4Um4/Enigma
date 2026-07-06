@@ -102,19 +102,27 @@ class LayeredMemory:
     def read_world_canon(self, world_id: str, limit: int = 25) -> List[Dict[str, Any]]:
         return self.store.recent(f"world_canon_{world_id}", limit=limit)
 
-    # === Campaign Memory ===
+    # === Campaign Canon ===
     def write_campaign_memory(self, campaign_id: str, payload: Dict[str, Any]) -> str:
-        return self.store.append(f"campaign_memory_{campaign_id}", payload)
+        # P0 FIX: Санитайзер памяти. Отсекаем утечки дампов LLM/DecisionHub.
+        if "python_engines" in payload or "traces" in payload:
+            logger.warning(f"[MEMORY_SANITIZER] Blocked payload containing 'python_engines' or 'traces' for campaign {campaign_id}")
+            return ""
+        return self.store.append(f"campaign_canon_{campaign_id}", payload)
 
     def read_campaign_memory(self, campaign_id: str, limit: int = 25) -> List[Dict[str, Any]]:
-        return self.store.recent(f"campaign_memory_{campaign_id}", limit=limit)
+        return self.store.recent(f"campaign_canon_{campaign_id}", limit=limit)
 
-    # === Session Memory ===
+    # === Playthrough Chronicle ===
     def write_session_memory(self, campaign_id: str, payload: Dict[str, Any]) -> str:
-        return self.store.append(f"session_memory_{campaign_id}", payload)
+        # P0 FIX: Санитайзер памяти. Отсекаем утечки дампов LLM/DecisionHub.
+        if "python_engines" in payload or "traces" in payload:
+            logger.warning(f"[MEMORY_SANITIZER] Blocked payload containing 'python_engines' or 'traces' for campaign {campaign_id}")
+            return ""
+        return self.store.append(f"playthrough_{campaign_id}", payload)
 
     def read_session_memory(self, campaign_id: str, limit: int = 25) -> List[Dict[str, Any]]:
-        return self.store.recent(f"session_memory_{campaign_id}", limit=limit)
+        return self.store.recent(f"playthrough_{campaign_id}", limit=limit)
 
     # === NPC Memory ===
     def write_npc_memory(self, campaign_id: str, payload: Dict[str, Any]) -> str:

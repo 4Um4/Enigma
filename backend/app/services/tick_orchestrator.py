@@ -584,8 +584,56 @@ class TickOrchestrator:
                         logger.warning(f"[FAST_PATH] Applied {len(_changes)} reactive movement changes for {_target_id}")
 
     def _process_player_action(self, ctx: _TickContext, interv: Any) -> None:
-        """Generic player action intervention (не dm_ctx)."""
-        pass # TODO: implement for CK successor directives
+        """Generic player action intervention (не dm_ctx).
+        
+        S115 FIX: Перенос логики директив из _process_player_dm_action.
+        Обрабатывает InterventionEvent от игрока (MOVE, THREATEN, etc.).
+        """
+        _payload = getattr(interv, 'payload', {})
+        _sem_action = _payload.get("semantic_action")
+        _sem_target = _payload.get("target_reference", "")
+        _target_id = _payload.get("target_id")
+        
+        if not _sem_action or not _sem_target:
+            return
+
+        # ADR-082: Регистронезависимое сравнение
+        if _sem_action.upper() in ("MOVE", "THREATEN", "PERSUADE", "GIVE"):
+            # S115 FIX: target_id может быть уже зарезолвлен (maid_lusya), 
+            # а target_reference пустовать. Ищем по любому из них.
+            _search_ref = (_sem_target or _target_id or "").lower()
+            _is_npc_target = any(
+                _search_ref in n.get("name", "").lower() or _search_ref in n.get("npc_id", "").lower()
+                for n in ctx.all_npcs_raw
+            ) if ctx.all_npcs_raw else False
+
+            if _is_npc_target:
+                try:
+                    from app.services.social.directive_interpretation_subscriber import DirectiveInterpretationSubscriber
+                    import types
+                    _directive_payload = {
+                        "semantic_action": _sem_action,
+                        "target_reference": _sem_target or "",
+                        "target_id": _target_id, # S115 FIX: target_id обязателен, если уже зарезолвлен
+                        "social_pressure": _payload.get("social_pressure", 0.8),
+                    }
+                    _mock_event = types.SimpleNamespace(payload=_directive_payload)
+                    _directive_deltas = DirectiveInterpretationSubscriber().handle(_mock_event, ctx.all_npcs_raw)
+                    if _directive_deltas:
+                        ctx.delta_buffer.extend(_directive_deltas)
+                        for delta in _directive_deltas:
+                            _npc_id = delta.npc_id
+                            _npc_state = next((n for n in ctx.all_npcs_raw if n.get("npc_id") == _npc_id), None)
+                            if not _npc_state:
+                                continue
+                            if hasattr(delta.payload, 'recent_directive_data') and delta.payload.recent_directive_data:
+                                _npc_state.setdefault("perceptual_kernel", {})["recent_directive"] = delta.payload.recent_directive_data
+                            if hasattr(delta.payload, 'stress_delta') and delta.payload.stress_delta != 0:
+                                _npc_state.setdefault("emotion", {})["stress"] = _npc_state.get("emotion", {}).get("stress", 0.0) + delta.payload.stress_delta
+                            if hasattr(delta.payload, 'fear_delta') and delta.payload.fear_delta != 0:
+                                _npc_state.setdefault("social_stats", {})["fear_of_player"] = _npc_state.get("social_stats", {}).get("fear_of_player", 0.1) + delta.payload.fear_delta
+                except Exception as e:
+                    logger.error(f"[CAUSALITY_CRASH] DirectiveInterpretationSubscriber failed: {e}", exc_info=True)
 
     # ── Player Turn: фазы 8-10 (после Rules agent) ──────────────────
 

@@ -1,0 +1,106 @@
+
+[1] COMMAND TEST
+
+> Игрок: идти
+  [DM]: Ничего не произошло.
+[PASS] COMMAND
+
+[2] COMBAT TEST
+  [BEFORE] tavern_keeper_tornin: HP=100, Threat=0.00, AffLoad=0.00, Will=free, Integ=0.93
+
+> Игрок: атаковать трактирщика
+  [DM]: Ничего не произошло.
+  [AFTER] tavern_keeper_tornin: HP=91.0, Threat=0.26, AffLoad=0.22, Will=free, Integ=0.90
+[PASS] COMBAT
+
+[3] RECOVERY TEST
+  [BEFORE] tavern_keeper_tornin: HP=91.0, Threat=0.26, AffLoad=0.22, Will=free, Integ=0.90
+  [AFTER] tavern_keeper_tornin: HP=91.0, Threat=0.00, AffLoad=0.18, Will=free, Integ=0.00
+[PASS] RECOVERY
+
+[4] SOCIAL TEST
+
+> Игрок: поговорить
+  [DM]: Ничего не произошло.
+[PASS] SOCIAL
+
+[5] LOVE TEST
+
+> Игрок: сказать
+  [DM]: Ничего не произошло.
+
+> Игрок: сказать
+  [DM]: Ничего не произошло.
+
+> Игрок: сказать
+  [DM]: Ничего не произошло.
+[PASS] LOVE
+
+[6] TRADE TEST
+  [BEFORE] Money: 0
+
+> Игрок: купить
+  [DM]: Ничего не произошло.
+  [AFTER] Money: 0
+[PASS] TRADE
+
+[7] TIME SKIP TEST
+  [AFTER 30 DAYS] tavern_keeper_tornin: HP=91.0, Threat=0.00, AffLoad=0.19, Will=free, Integ=0.00
+[PASS] TIME SKIP
+
+[8] BREAK TEST
+
+> Игрок: угрожать трактирщику ножом (попытка 1)
+  [DM]: Ничего не произошло.
+  [STEP 1] tavern_keeper_tornin: HP=91.0, Threat=0.00, AffLoad=0.17, Will=free, Integ=0.00
+
+> Игрок: угрожать трактирщику ножом (попытка 2)
+  [DM]: Ничего не произошло.
+  [STEP 2] tavern_keeper_tornin: HP=91.0, Threat=0.00, AffLoad=0.15, Will=free, Integ=0.00
+
+> Игрок: угрожать трактирщику ножом (попытка 3)
+  [DM]: Ничего не произошло.
+  [STEP 3] tavern_keeper_tornin: HP=91.0, Threat=0.00, AffLoad=0.15, Will=free, Integ=0.00
+
+> Игрок: угрожать трактирщику ножом (попытка 4)
+  [DM]: Ничего не произошло.
+  [STEP 4] tavern_keeper_tornin: HP=91.0, Threat=0.00, AffLoad=0.17, Will=free, Integ=0.00
+
+> Игрок: угрожать трактирщику ножом (попытка 5)
+  [DM]: Ничего не произошло.
+  [STEP 5] tavern_keeper_tornin: HP=91.0, Threat=0.00, AffLoad=0.19, Will=free, Integ=0.00
+
+> Игрок: угрожать трактирщику ножом (попытка 6)
+  [DM]: Ничего не произошло.
+  [STEP 6] tavern_keeper_tornin: HP=91.0, Threat=0.00, AffLoad=0.17, Will=free, Integ=0.00
+
+> Игрок: угрожать трактирщику ножом (попытка 7)
+  [DM]: Ничего не произошло.
+  [STEP 7] tavern_keeper_tornin: HP=91.0, Threat=0.00, AffLoad=0.19, Will=free, Integ=0.00
+
+> Игрок: угрожать трактирщику ножом (попытка 8)
+  [DM]: Ничего не произошло.
+  [STEP 8] tavern_keeper_tornin: HP=91.0, Threat=0.00, AffLoad=0.17, Will=free, Integ=0.00
+
+> Игрок: угрожать трактирщику ножом (попытка 9)
+  [DM]: Ничего не произошло.
+  [STEP 9] tavern_keeper_tornin: HP=91.0, Threat=0.00, AffLoad=0.17, Will=free, Integ=0.00
+
+> Игрок: угрожать трактирщику ножом (попытка 10)
+  [DM]: Ничего не произошло.
+  [STEP 10] tavern_keeper_tornin: HP=91.0, Threat=0.00, AffLoad=0.16, Will=free, Integ=0.00
+[PASS] BREAK
+
+[9] L1 PERSISTENCE TEST
+  [BEFORE RESTART] Events: 13783
+  [AFTER RESTART] Events: 13783
+[PASS] L1 PERSISTENCE
+
+[10] DOUBLE TRUTH TEST
+  HP: legacy=91.0, canon=91.0
+  Drives sum: 1.0
+[PASS] DOUBLE TRUTH
+
+[CAUSAL INTEGRITY CHECK]
+[PASS] INTEGRITY: tavern_keeper_tornin
+[PASS] INTEGRITY: guard_borko

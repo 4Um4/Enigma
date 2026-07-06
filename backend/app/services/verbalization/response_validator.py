@@ -90,7 +90,8 @@ class ResponseValidator:
                 return self._fallback("cannot_move")
         
         # 5.5 Инвариант 2: Движение без подтверждения (Hallucination Guard)
-        if allowed_moving_npcs is not None:
+        # Применяем только если есть список двигавшихся NPC. Иначе мы не можем верифицировать.
+        if allowed_moving_npcs:
             text = self._filter_unauthorized_movement(text, allowed_moving_npcs)
             if not text:
                 return self._fallback("unauthorized_movement_only")

@@ -4,10 +4,13 @@ map_editor/data_manager.py
 Поддерживает: стены, комнаты, узлы, объекты, порталы
 """
 import json
+import logging
 from pathlib import Path
 from datetime import datetime
 from copy import deepcopy
 from typing import Dict, List, Optional, Tuple, Any
+
+logger = logging.getLogger(__name__)
 
 TEMPLATE_DIR = Path(__file__).parent / "location_templates"
 CACHE_DIR = Path(__file__).parent / "runtime_cache"

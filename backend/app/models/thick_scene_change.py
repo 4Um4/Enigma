@@ -12,7 +12,14 @@ Rule 123: SceneChange без полного SpatialResolution при NPC_POSITIO
 from __future__ import annotations
 
 from dataclasses import dataclass
+from enum import Enum
 from typing import Any, Dict, Optional, Tuple
+
+
+class SpatialTransitionMode(str, Enum):
+    """Политика применения позиции (Authoritative vs Presentation)."""
+    IMMEDIATE = "IMMEDIATE"       # Snap (телепортация, серверная коррекция, завершение маршрута)
+    INTERPOLATED = "INTERPOLATED" # Плавное движение (создание TraversalState)
 
 
 @dataclass(frozen=True)
@@ -95,6 +102,7 @@ class ThickSceneChange:
     motion: Optional[MotionPlan] = None
     boundary: Optional[BoundaryResolution] = None
     traversal: Optional[TraversalContract] = None
+    spatial_mode: SpatialTransitionMode = SpatialTransitionMode.IMMEDIATE
 
     @property
     def is_spatial(self) -> bool:

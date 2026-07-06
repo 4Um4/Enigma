@@ -71,7 +71,6 @@ def run_npc_orchestration(
 
     # Контракт _load_npcs_with_runtime (game_loop) уже возвращает полный runtime,
     # включающий аватара игрока как полноправного Actor'а симуляции.
-    # Ручная инъекция здесь была архитектурной утечкой (симптом устаревшего контракта).
     ctx.all_npcs_raw = game_loop._load_npcs_with_runtime(campaign_id)
 
     from app.services.spatial.spatial_service import SpatialService
@@ -82,7 +81,7 @@ def run_npc_orchestration(
         location_id=location,
         scene_state=shared_context.scene_state or {},
     )
-    # ADR-048: Authoritative Spatial Spine — единственный легитимный источник пространственной истины
+    # ADR-048: Authoritative Spatial Spine
     _scene_state = shared_context.scene_state
     if _scene_state is None:
         logger.error("[SCENE_IDENTITY] npc_orchestration: shared_context.scene_state is None! Traversals will be lost.")
@@ -123,9 +122,13 @@ def run_npc_orchestration(
     from app.contracts.interventions import InterventionEvent
     # TZ-08 v0.2: Event-driven model. Ядро не знает DMContextDTO.
     # Формируем чистый payload из уже разрешённых данных в shared_context
-    _sem_action = getattr(shared_context.intent_resolution, 'original_intent', None)
-    _sem_action = getattr(_sem_action, 'parameters', None) if _sem_action else None
-    _sem_action = getattr(_sem_action, 'semantic_action', "") if _sem_action else ""
+    _intent_res = getattr(shared_context, 'intent_resolution', None)
+    _orig_intent = getattr(_intent_res, 'original_intent', None)
+    _params = getattr(_orig_intent, 'parameters', None) if _orig_intent else None
+    
+    _sem_action = getattr(_params, 'semantic_action', "") if _params else ""
+    _target_ref = getattr(_params, 'target_reference', "") if _params else ""
+    _target_id = getattr(_params, 'target_id', "") if _params else ""
     
     _intervention = InterventionEvent(
         source="player",
@@ -133,7 +136,8 @@ def run_npc_orchestration(
             "text": raw_input,
             "player_name": actions[0].player_name if actions else "player",
             "semantic_action": _sem_action,
-            "target_id": shared_context.player_target_id or "",
+            "target_id": _target_id or shared_context.player_target_id or "",
+            "target_reference": _target_ref or "",
             "tick": shared_context.current_tick or 0,
         },
         tick=shared_context.current_tick or 0,

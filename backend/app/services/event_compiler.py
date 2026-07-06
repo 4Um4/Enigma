@@ -544,6 +544,7 @@ class EventCompiler:
             spatial=spatial,
             motion=motion,
             traversal=traversal,
+            spatial_mode=SpatialTransitionMode.INTERPOLATED,
         )
 
     # ── Вспомогательные вычисления ────────────────────────────────

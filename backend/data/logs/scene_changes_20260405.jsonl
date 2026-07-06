@@ -1,8 +1,0 @@
-{"ts": "2026-04-05T21:19:29", "campaign_id": "demo-campaign", "applied": true, "type": "npc_position", "target": "guard_borko", "field": "activity", "value": "guarding_gate", "cause": "life_engine_schedule", "tick": 6}
-{"ts": "2026-04-05T21:19:29", "campaign_id": "demo-campaign", "applied": true, "type": "npc_position", "target": "guard_borko", "field": "position", "value": "common_area", "cause": "life_engine_schedule", "tick": 6}
-{"ts": "2026-04-05T21:19:29", "campaign_id": "demo-campaign", "applied": true, "type": "npc_position", "target": "guard_borko", "field": "visible", "value": true, "cause": "life_engine_schedule", "tick": 6}
-{"ts": "2026-04-05T21:19:29", "campaign_id": "demo-campaign", "applied": true, "type": "npc_position", "target": "guard_borko", "field": "location", "value": "tavern_silver_wolf", "cause": "life_engine_schedule", "tick": 6}
-{"ts": "2026-04-05T21:19:29", "campaign_id": "demo-campaign", "applied": true, "type": "npc_position", "target": "merchant_goran", "field": "activity", "value": "market_trading", "cause": "life_engine_schedule", "tick": 6}
-{"ts": "2026-04-05T21:19:29", "campaign_id": "demo-campaign", "applied": true, "type": "npc_position", "target": "merchant_goran", "field": "position", "value": "common_area", "cause": "life_engine_schedule", "tick": 6}
-{"ts": "2026-04-05T21:19:29", "campaign_id": "demo-campaign", "applied": true, "type": "npc_position", "target": "merchant_goran", "field": "visible", "value": true, "cause": "life_engine_schedule", "tick": 6}
-{"ts": "2026-04-05T21:19:29", "campaign_id": "demo-campaign", "applied": true, "type": "npc_position", "target": "merchant_goran", "field": "location", "value": "tavern_silver_wolf", "cause": "life_engine_schedule", "tick": 6}

@@ -282,6 +282,15 @@ class MovementEngine:
         if target_xy is None and hasattr(target_ref, 'x') and hasattr(target_ref, 'y'):
             target_xy = (target_ref.x, target_ref.y)
             
+        # FIX Overlap: Добавляем персональный offset, чтобы NPC не стояли друг в друге.
+        # Offset детерминирован (на основе npc_id), чтобы не вызывать дрожание каждый тик.
+        if target_xy:
+            import zlib
+            _hash = zlib.adler32(intent.npc_id.encode('utf-8')) if intent.npc_id else 0
+            _offset_x = ((_hash % 10) / 10.0 - 0.5) * 1.5  # от -0.75 до +0.75 м
+            _offset_y = (((_hash // 10) % 10) / 10.0 - 0.5) * 1.5
+            target_xy = (target_xy[0] + _offset_x, target_xy[1] + _offset_y)
+            
         logger.info(f"[PIPELINE][MOVEMENT][RELOCATE] npc={intent.npc_id} → zone={intent.target_node_id} reason={intent.reason} exact_xy={target_xy}")
         logger.debug(f"[GATE_B3] npc={intent.npc_id} reason=SUCCESS target={intent.target_node_id} loc={location_id}")
         return [SceneChange(

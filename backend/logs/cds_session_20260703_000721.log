@@ -1,0 +1,993 @@
+2026-07-03 00:07:21,268 app.main INFO: [CDS] FileHandler initialized: C:\DDD\Codex\VSC_Enigma\Enigma\backend\logs\cds_session_20260703_000721.log
+2026-07-03 00:07:21,269 app.services.llm.provider_manager INFO: ModelPool: Registered 'qwen_7b' (ctx=8192)
+2026-07-03 00:07:21,269 app.services.llm.provider_manager INFO: ModelPool: Registered 'qwen_7b' (ctx=8192)
+2026-07-03 00:07:21,329 app.services.vram_monitor INFO: [VRAM_MONITOR] Baseline auto-set: 647 MB
+2026-07-03 00:07:21,329 app.services.vram_monitor INFO: [VRAM_SESSION] Started: baseline=647MB
+2026-07-03 00:07:21,383 app.services.events.event_bus INFO: [EVENT_BUS] EventBus инициализирован
+2026-07-03 00:07:21,403 app.services.game_loop.service_factories INFO: [REPUTATION] factions.json not found, engine disabled
+2026-07-03 00:07:21,405 app.services.game_loop.service_factories INFO: [REPUTATION] factions.json not found, engine disabled
+2026-07-03 00:07:21,405 app.services.game_loop.service_factories INFO: [STATE_APPLICATOR] Initialized with ReputationEngine=False
+2026-07-03 00:07:21,409 app.services.game_loop_builder INFO: [BUILDER] GameLoop создан
+2026-07-03 00:07:29,136 httpx INFO: HTTP Request: GET http://localhost:8181/v1/models "HTTP/1.1 503 Service Unavailable"
+2026-07-03 00:07:33,323 app.main INFO: [STARTUP] llama-server запущен (http://localhost:8181)
+2026-07-03 00:07:33,337 app.main INFO: [STARTUP] LLM (сервер): доступен
+2026-07-03 00:07:33,796 app.services.state.sqlite_persistence_adapter INFO: [SQLITE_PERSISTENCE] Campaign deleted: Open_road
+2026-07-03 00:07:33,796 app.services.game_loop INFO: [NEW_GAME] SQLite cleared for 'Open_road'
+2026-07-03 00:07:33,797 app.services.game_loop INFO: [NEW_GAME] Removed: C:\DDD\Codex\VSC_Enigma\Enigma\saves\Open_road\campaign_state.json
+2026-07-03 00:07:33,797 app.services.game_loop INFO: [NEW_GAME] Removed: C:\DDD\Codex\VSC_Enigma\Enigma\saves\Open_road\player_avatar.json
+2026-07-03 00:07:33,798 app.services.game_loop INFO: [NEW_GAME] Removed: C:\DDD\Codex\VSC_Enigma\Enigma\saves\Open_road\campaign_meta.json
+2026-07-03 00:07:33,802 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-03 00:07:33,806 app.services.npc.npc_loader INFO: [NPC_LOADER] No runtime file, loaded 6 NPCs from config only
+2026-07-03 00:07:33,806 app.services.scene_state_manager INFO: [SCENE] Editor JSON: 38 объектов, 6 NPC, spawn_node=entrance
+2026-07-03 00:07:33,808 app.services.scene_state_manager INFO: [SCENE] Инициализирована сцена 'tavern_silver_wolf' (время: 12:00, объектов: 39, NPC: 6)
+2026-07-03 00:07:33,808 app.services.scene_state_manager INFO: [SCENE] Campaign 'Open_road' reinitialized from editor, location=tavern_silver_wolf
+2026-07-03 00:07:33,809 app.services.game_loop INFO: [NEW_GAME] SQLite memories cleared: 11 rows
+2026-07-03 00:07:33,809 app.services.game_loop INFO: [NEW_GAME] Campaign 'Open_road' fully reset. Removed: ['sqlite:scene+runtime', 'campaign_state.json', 'player_avatar.json', 'campaign_meta.json', 'sqlite:memories(11)']
+2026-07-03 00:07:34,506 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-03 00:07:34,508 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_east → city_gate (east), linked to tavern_silver_wolf:kitchen
+2026-07-03 00:07:34,508 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_south → market_square (south), linked to tavern_silver_wolf:entrance
+2026-07-03 00:07:34,509 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern_silver_wolf: compiled 10 nodes, 10 edges, 25 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-03 00:07:34,523 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-03 00:07:34,525 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_east → city_gate (east), linked to tavern_silver_wolf:kitchen
+2026-07-03 00:07:34,525 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_south → market_square (south), linked to tavern_silver_wolf:entrance
+2026-07-03 00:07:34,525 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern_silver_wolf: compiled 10 nodes, 10 edges, 25 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-03 00:07:34,606 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-03 00:07:34,607 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_east → city_gate (east), linked to tavern_silver_wolf:kitchen
+2026-07-03 00:07:34,607 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_south → market_square (south), linked to tavern_silver_wolf:entrance
+2026-07-03 00:07:34,607 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern_silver_wolf: compiled 10 nodes, 10 edges, 25 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-03 00:07:34,609 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-03 00:07:34,610 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_east → city_gate (east), linked to tavern_silver_wolf:kitchen
+2026-07-03 00:07:34,610 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_south → market_square (south), linked to tavern_silver_wolf:entrance
+2026-07-03 00:07:34,610 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern_silver_wolf: compiled 10 nodes, 10 edges, 25 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-03 00:07:34,611 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_east → city_gate (east), linked to tavern_silver_wolf:kitchen
+2026-07-03 00:07:34,611 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_south → market_square (south), linked to tavern_silver_wolf:entrance
+2026-07-03 00:07:34,612 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern_silver_wolf: compiled 10 nodes, 10 edges, 25 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-03 00:07:34,623 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=2916129318832 tick=1
+2026-07-03 00:07:34,624 app.services.tick_orchestrator INFO: [CFRM] ClusterOccupancy rebuild: 6 entities in 0.01ms
+2026-07-03 00:07:34,626 app.services.npc.npc_loader INFO: [NPC_LOADER] No runtime file, loaded 6 NPCs from config only
+2026-07-03 00:07:34,627 app.services.npc.life_engine ERROR: [LIFE_ENGINE][NO_POSITION] npc=merchant_goran has no location AND no position. Activity='market_trading'. Data integrity bug — investigate npc_state. Returning None; caller must skip movement intent.
+2026-07-03 00:07:34,630 app.services.scene_state_manager INFO: [SCENE] Применено 10/10 изменений (in-memory, persist=Phase10)
+2026-07-03 00:07:34,630 app.services.spatial.movement_engine INFO: [SPATIAL_GATE] 5 intents → 4 validated (1 collapsed)
+2026-07-03 00:07:34,630 app.services.spatial.movement_engine INFO: [CROSS_LOC_INTERCEPT] npc=guard_borko target=city_gate rerouted to boundary tavern_silver_wolf:exit_east in tavern_silver_wolf
+2026-07-03 00:07:34,630 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=guard_borko → zone=exit_east reason=schedule:guarding_gate exact_xy=(18.0, 7.25)
+2026-07-03 00:07:34,630 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=maid_lusya → zone=kitchen reason=schedule:sleeping exact_xy=(16.0, 4.0)
+2026-07-03 00:07:34,630 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=blacksmith_orm → zone=tavern_silver_wolf:kitchen reason=schedule:working exact_xy=(16.0, 4.0)
+2026-07-03 00:07:34,631 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=tavern_keeper_tornin → zone=tavern_silver_wolf:kitchen reason=schedule:working exact_xy=(16.0, 4.0)
+2026-07-03 00:07:34,631 app.models.world_snapshot INFO: [SNAPSHOT_CREATED] id=262091dd tick=1 location=tavern_silver_wolf npcs=6 traversals=0 rng_seed=1
+2026-07-03 00:07:34,631 app.services.event_compiler INFO: [SHADOW_COMPILER] pathfinding: npc=guard_borko via 2 intermediate nodes
+2026-07-03 00:07:34,631 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=guard_borko field=position cause=semantic_relocation:schedule:guarding_gate spatial=yes traversal=NEW
+2026-07-03 00:07:34,631 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=maid_lusya field=position cause=semantic_relocation:schedule:sleeping spatial=yes traversal=NEW
+2026-07-03 00:07:34,631 app.services.event_compiler INFO: [SHADOW_COMPILER] pathfinding: npc=blacksmith_orm via 1 intermediate nodes
+2026-07-03 00:07:34,631 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=blacksmith_orm field=position cause=semantic_relocation:schedule:working spatial=yes traversal=NEW
+2026-07-03 00:07:34,631 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=tavern_keeper_tornin field=position cause=semantic_relocation:schedule:working spatial=yes traversal=NEW
+2026-07-03 00:07:34,631 app.services.tick_orchestrator INFO: [DUAL_RAIL][IDLE_SPATIAL] spatial_changes=4 shadow_compiled=4 snapshot_id=262091dd
+2026-07-03 00:07:34,632 app.services.scene_state_manager WARNING: [DIAG_V] DUPLICATE_POSITION_CHANGE npc=guard_borko node=exit_east — from_node == target_node risk!
+2026-07-03 00:07:34,632 app.services.scene_state_manager WARNING: [DIAG_V] DUPLICATE_POSITION_CHANGE npc=maid_lusya node=kitchen — from_node == target_node risk!
+2026-07-03 00:07:34,632 app.services.scene_state_manager WARNING: [DIAG_V] DUPLICATE_POSITION_CHANGE npc=blacksmith_orm node=tavern_silver_wolf:kitchen — from_node == target_node risk!
+2026-07-03 00:07:34,632 app.services.scene_state_manager WARNING: [DIAG_V] DUPLICATE_POSITION_CHANGE npc=tavern_keeper_tornin node=tavern_silver_wolf:kitchen — from_node == target_node risk!
+2026-07-03 00:07:34,632 app.services.scene_state_manager INFO: [SCENE] Применено 4/4 изменений (in-memory, persist=Phase10)
+2026-07-03 00:07:34,632 app.services.tick_orchestrator INFO: [TICK_ORCH] Фаза 0: 4 spatial changes from 5 LifeEngine intents
+2026-07-03 00:07:34,644 app.services.tick_orchestrator INFO: [PHASE_5_UNIFIED] ENTER: tick=1, interventions=0
+2026-07-03 00:07:34,650 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] guard_borko: intent=Intent.block_path score=0.384 event=unknown
+2026-07-03 00:07:34,651 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] merchant_goran: intent=Intent.offer_job score=0.428 event=unknown
+2026-07-03 00:07:34,652 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] maid_lusya: intent=Intent.offer_job score=0.203 event=unknown
+2026-07-03 00:07:34,653 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] blacksmith_orm: intent=Intent.request_service score=0.464 event=unknown
+2026-07-03 00:07:34,653 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] thief_shadow: intent=Intent.block_path score=0.368 event=unknown
+2026-07-03 00:07:34,654 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] tavern_keeper_tornin: intent=Intent.seek_ally score=0.294 event=unknown
+2026-07-03 00:07:34,655 app.services.events.event_bus INFO: [EVENT_BUS] npc_spoke от 'merchant_goran' → 1 обработчиков, 0 результатов
+2026-07-03 00:07:34,655 app.services.events.event_bus INFO: [EVENT_BUS] npc_spoke от 'maid_lusya' → 1 обработчиков, 0 результатов
+2026-07-03 00:07:34,655 app.services.events.event_bus INFO: [EVENT_BUS] npc_spoke от 'blacksmith_orm' → 1 обработчиков, 0 результатов
+2026-07-03 00:07:34,655 app.services.tick_orchestrator INFO: [TICK_ORCH] Фаза 6: 3 intents → EventDTO, 0 windups created
+2026-07-03 00:07:34,658 app.services.tick_orchestrator WARNING: [CFRM_P2] phenomena_count=6 threats={'thief_shadow': 0.0, 'merchant_goran': 0.0, 'tavern_keeper_tornin': 0.0, 'maid_lusya': 0.0, 'blacksmith_orm': 0.0, 'guard_borko': 0.0}
+2026-07-03 00:07:34,665 app.services.perception.phenomenology_projection_service INFO: [PERCEPTION_PROJECTOR] Traces=0 Cues=0
+2026-07-03 00:07:34,665 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT_BUILD] npc_count=6 keys=['maid_lusya', 'guard_borko', 'blacksmith_orm', 'tavern_keeper_tornin', 'thief_shadow'] location=tavern_silver_wolf
+2026-07-03 00:07:34,666 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=guard_borko x=18.0 y=7.25
+2026-07-03 00:07:34,666 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=blacksmith_orm x=16.0 y=4.0
+2026-07-03 00:07:34,666 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=tavern_keeper_tornin x=16.0 y=4.0
+2026-07-03 00:07:34,666 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=merchant_goran x=9.0 y=9.0
+2026-07-03 00:07:34,666 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=guard_borko threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.22,c=0.39,s=0.29] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:07:34,666 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=merchant_goran threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.15,c=0.20,s=0.25] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:07:34,666 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=maid_lusya threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.46,c=0.14,s=0.19] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:07:34,666 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=blacksmith_orm threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.05,c=0.35,s=0.15] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:07:34,666 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=thief_shadow threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.10,c=0.30,s=0.20] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:07:34,666 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=tavern_keeper_tornin threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.15,c=0.50,s=0.25] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:07:34,669 app.services.scene_state_manager INFO: [SCENE] Применено 10/10 изменений (in-memory, persist=Phase10)
+2026-07-03 00:07:34,675 app.services.perception.phenomenology_projection_service INFO: [PERCEPTION_PROJECTOR] Traces=0 Cues=0
+2026-07-03 00:07:36,639 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-03 00:07:36,640 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_east → city_gate (east), linked to tavern_silver_wolf:kitchen
+2026-07-03 00:07:36,640 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_south → market_square (south), linked to tavern_silver_wolf:entrance
+2026-07-03 00:07:36,640 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern_silver_wolf: compiled 10 nodes, 10 edges, 25 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-03 00:07:36,642 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-03 00:07:36,643 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_east → city_gate (east), linked to tavern_silver_wolf:kitchen
+2026-07-03 00:07:36,643 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_south → market_square (south), linked to tavern_silver_wolf:entrance
+2026-07-03 00:07:36,643 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern_silver_wolf: compiled 10 nodes, 10 edges, 25 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-03 00:07:36,645 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_east → city_gate (east), linked to tavern_silver_wolf:kitchen
+2026-07-03 00:07:36,645 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_south → market_square (south), linked to tavern_silver_wolf:entrance
+2026-07-03 00:07:36,645 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern_silver_wolf: compiled 10 nodes, 10 edges, 25 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-03 00:07:36,645 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=2916129318832 tick=2
+2026-07-03 00:07:36,645 app.services.tick_orchestrator INFO: [CFRM] ClusterOccupancy rebuild: 6 entities in 0.01ms
+2026-07-03 00:07:36,645 app.services.npc.life_engine ERROR: [LIFE_ENGINE][NO_POSITION] npc=merchant_goran has no location AND no position. Activity='market_trading'. Data integrity bug — investigate npc_state. Returning None; caller must skip movement intent.
+2026-07-03 00:07:36,647 app.services.tick_orchestrator INFO: [PHASE_5_UNIFIED] ENTER: tick=2, interventions=0
+2026-07-03 00:07:36,649 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] guard_borko: intent=Intent.block_path score=0.403 event=unknown
+2026-07-03 00:07:36,649 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] merchant_goran: intent=Intent.offer_job score=0.454 event=unknown
+2026-07-03 00:07:36,650 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] maid_lusya: intent=Intent.change_role score=0.267 event=unknown
+2026-07-03 00:07:36,651 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] blacksmith_orm: intent=Intent.request_service score=0.430 event=unknown
+2026-07-03 00:07:36,651 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] thief_shadow: intent=Intent.change_role score=0.383 event=unknown
+2026-07-03 00:07:36,652 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] tavern_keeper_tornin: intent=Intent.spread_rumor score=0.303 event=unknown
+2026-07-03 00:07:36,652 app.services.events.event_bus INFO: [EVENT_BUS] npc_spoke от 'merchant_goran' → 1 обработчиков, 0 результатов
+2026-07-03 00:07:36,653 app.services.events.event_bus INFO: [EVENT_BUS] npc_spoke от 'blacksmith_orm' → 1 обработчиков, 0 результатов
+2026-07-03 00:07:36,653 app.services.events.event_bus INFO: [EVENT_BUS] npc_spoke от 'tavern_keeper_tornin' → 1 обработчиков, 0 результатов
+2026-07-03 00:07:36,653 app.services.tick_orchestrator INFO: [TICK_ORCH] Фаза 6: 3 intents → EventDTO, 0 windups created
+2026-07-03 00:07:36,654 app.services.tick_orchestrator WARNING: [CFRM_P2] phenomena_count=0 threats={}
+2026-07-03 00:07:36,656 app.services.perception.phenomenology_projection_service INFO: [PERCEPTION_PROJECTOR] Traces=0 Cues=0
+2026-07-03 00:07:36,656 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT_BUILD] npc_count=6 keys=['maid_lusya', 'guard_borko', 'blacksmith_orm', 'tavern_keeper_tornin', 'thief_shadow'] location=tavern_silver_wolf
+2026-07-03 00:07:36,656 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=maid_lusya x=4.5 y=5.0
+2026-07-03 00:07:36,656 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=guard_borko x=18.0 y=7.25
+2026-07-03 00:07:36,656 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=blacksmith_orm x=16.0 y=4.0
+2026-07-03 00:07:36,656 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=tavern_keeper_tornin x=16.0 y=4.0
+2026-07-03 00:07:36,656 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=thief_shadow x=11.5 y=9.5
+2026-07-03 00:07:36,656 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=merchant_goran x=9.0 y=9.0
+2026-07-03 00:07:36,656 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=guard_borko threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.24,c=0.38,s=0.28] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:07:36,656 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=merchant_goran threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.15,c=0.20,s=0.25] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:07:36,656 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=maid_lusya threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.48,c=0.14,s=0.18] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:07:36,656 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=blacksmith_orm threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.05,c=0.35,s=0.15] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:07:36,656 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=thief_shadow threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.10,c=0.30,s=0.20] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:07:36,656 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=tavern_keeper_tornin threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.15,c=0.50,s=0.25] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:07:36,660 app.services.perception.phenomenology_projection_service INFO: [PERCEPTION_PROJECTOR] Traces=0 Cues=0
+2026-07-03 00:07:40,056 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-03 00:07:40,057 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_east → city_gate (east), linked to tavern_silver_wolf:kitchen
+2026-07-03 00:07:40,057 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_south → market_square (south), linked to tavern_silver_wolf:entrance
+2026-07-03 00:07:40,057 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern_silver_wolf: compiled 10 nodes, 10 edges, 25 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-03 00:07:40,059 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-03 00:07:40,060 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_east → city_gate (east), linked to tavern_silver_wolf:kitchen
+2026-07-03 00:07:40,060 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_south → market_square (south), linked to tavern_silver_wolf:entrance
+2026-07-03 00:07:40,060 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern_silver_wolf: compiled 10 nodes, 10 edges, 25 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-03 00:07:40,062 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_east → city_gate (east), linked to tavern_silver_wolf:kitchen
+2026-07-03 00:07:40,062 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_south → market_square (south), linked to tavern_silver_wolf:entrance
+2026-07-03 00:07:40,062 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern_silver_wolf: compiled 10 nodes, 10 edges, 25 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-03 00:07:40,062 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=2916129318832 tick=3
+2026-07-03 00:07:40,062 app.services.tick_orchestrator INFO: [CFRM] ClusterOccupancy rebuild: 6 entities in 0.00ms
+2026-07-03 00:07:40,062 app.services.npc.life_engine ERROR: [LIFE_ENGINE][NO_POSITION] npc=merchant_goran has no location AND no position. Activity='market_trading'. Data integrity bug — investigate npc_state. Returning None; caller must skip movement intent.
+2026-07-03 00:07:40,063 app.services.tick_orchestrator INFO: [PHASE_5_UNIFIED] ENTER: tick=3, interventions=0
+2026-07-03 00:07:40,066 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] guard_borko: intent=Intent.ambush score=0.424 event=unknown
+2026-07-03 00:07:40,066 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] merchant_goran: intent=Intent.offer_job score=0.413 event=unknown
+2026-07-03 00:07:40,067 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] maid_lusya: intent=Intent.request_service score=0.220 event=unknown
+2026-07-03 00:07:40,068 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] blacksmith_orm: intent=Intent.request_service score=0.467 event=unknown
+2026-07-03 00:07:40,068 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] thief_shadow: intent=Intent.offer_job score=0.455 event=unknown
+2026-07-03 00:07:40,069 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] tavern_keeper_tornin: intent=Intent.call_for_help score=0.288 event=unknown
+2026-07-03 00:07:40,070 app.services.events.event_bus INFO: [EVENT_BUS] npc_spoke от 'merchant_goran' → 1 обработчиков, 0 результатов
+2026-07-03 00:07:40,070 app.services.events.event_bus INFO: [EVENT_BUS] npc_spoke от 'maid_lusya' → 1 обработчиков, 0 результатов
+2026-07-03 00:07:40,070 app.services.events.event_bus INFO: [EVENT_BUS] npc_spoke от 'blacksmith_orm' → 1 обработчиков, 0 результатов
+2026-07-03 00:07:40,070 app.services.events.event_bus INFO: [EVENT_BUS] npc_spoke от 'thief_shadow' → 1 обработчиков, 0 результатов
+2026-07-03 00:07:40,070 app.services.events.event_bus INFO: [EVENT_BUS] npc_spoke от 'tavern_keeper_tornin' → 1 обработчиков, 0 результатов
+2026-07-03 00:07:40,070 app.services.tick_orchestrator INFO: [TICK_ORCH] Фаза 6: 5 intents → EventDTO, 0 windups created
+2026-07-03 00:07:40,071 app.services.tick_orchestrator WARNING: [CFRM_P2] phenomena_count=0 threats={}
+2026-07-03 00:07:40,073 app.services.perception.phenomenology_projection_service INFO: [PERCEPTION_PROJECTOR] Traces=0 Cues=0
+2026-07-03 00:07:40,073 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT_BUILD] npc_count=6 keys=['maid_lusya', 'guard_borko', 'blacksmith_orm', 'tavern_keeper_tornin', 'thief_shadow'] location=tavern_silver_wolf
+2026-07-03 00:07:40,073 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=maid_lusya x=4.5 y=5.0
+2026-07-03 00:07:40,073 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=guard_borko x=18.0 y=7.25
+2026-07-03 00:07:40,073 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=blacksmith_orm x=16.0 y=4.0
+2026-07-03 00:07:40,074 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=tavern_keeper_tornin x=16.0 y=4.0
+2026-07-03 00:07:40,074 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=thief_shadow x=11.5 y=9.5
+2026-07-03 00:07:40,074 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=merchant_goran x=9.0 y=9.0
+2026-07-03 00:07:40,074 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=guard_borko threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.26,c=0.37,s=0.28] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:07:40,074 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=merchant_goran threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.15,c=0.20,s=0.25] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:07:40,074 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=maid_lusya threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.49,c=0.13,s=0.17] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:07:40,074 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=blacksmith_orm threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.05,c=0.35,s=0.15] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:07:40,074 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=thief_shadow threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.10,c=0.30,s=0.20] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:07:40,074 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=tavern_keeper_tornin threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.15,c=0.50,s=0.25] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:07:40,078 app.services.perception.phenomenology_projection_service INFO: [PERCEPTION_PROJECTOR] Traces=0 Cues=0
+2026-07-03 00:07:51,278 app.services.llm.provider_manager INFO: ModelPool[ROUTE] get_model_async('qwen_7b', agent='None')
+2026-07-03 00:07:51,322 app.services.llm.provider_manager INFO: ModelPool: Loaded 'qwen_7b' in 0ms
+2026-07-03 00:07:51,368 app.services.llm.provider_manager INFO: ModelPool[ROUTE] ✓ 'qwen_7b' (VRAM delta=+0MB)
+2026-07-03 00:07:51,374 app.services.spatial.spatial_registry INFO: [SPATIAL_REGISTRY] Loaded and cached for campaign=Open_road (3 chunks, mtime=1781349846.715072)
+2026-07-03 00:07:51,376 app.services.simulation.world_state INFO: [WORLD_STATE] WorldState инициализирован
+2026-07-03 00:07:51,377 app.services.player_avatar_service INFO: [AVATAR] мигрирован из characters.json: Венус
+2026-07-03 00:07:51,391 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-03 00:07:51,392 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_east → city_gate (east), linked to tavern_silver_wolf:kitchen
+2026-07-03 00:07:51,392 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_south → market_square (south), linked to tavern_silver_wolf:entrance
+2026-07-03 00:07:51,393 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern_silver_wolf: compiled 10 nodes, 10 edges, 25 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-03 00:07:51,396 app.services.npc.npc_loader INFO: [NPC_LOADER] No runtime file, loaded 6 NPCs from config only
+2026-07-03 00:07:51,401 pymorphy3.opencorpora_dict.wrapper INFO: Loading dictionaries from C:\DDD\Codex\VSC_Enigma\Enigma\.venv\Lib\site-packages\pymorphy3_dicts_ru\data
+2026-07-03 00:07:51,426 pymorphy3.opencorpora_dict.wrapper INFO: format: 2.4, revision: 417150, updated: 2022-01-08T22:09:24.565962
+2026-07-03 00:07:51,442 pymorphy3.opencorpora_dict.wrapper INFO: Loading dictionaries from C:\DDD\Codex\VSC_Enigma\Enigma\.venv\Lib\site-packages\pymorphy3_dicts_ru\data
+2026-07-03 00:07:51,459 pymorphy3.opencorpora_dict.wrapper INFO: format: 2.4, revision: 417150, updated: 2022-01-08T22:09:24.565962
+2026-07-03 00:07:51,463 app.services.spatial.player_target_pipeline WARNING: [TARGET] Extracted: Люся (maid_lusya)
+2026-07-03 00:07:51,463 app.services.spatial.player_target_pipeline WARNING: [SPATIAL_DATA] result=6/7, has_player=True, player_xy_valid=True, spatial_query=True, distances_sample=[('maid_lusya', 4.23), ('guard_borko', 15.57), ('blacksmith_orm', 14.3)]
+2026-07-03 00:07:51,475 app.services.game_loop.dm_phase WARNING: [EVENT_TYPE] Router classified as: player_interacts
+2026-07-03 00:07:51,475 app.services.scene.scene_event_layer WARNING: [SCENE_EVENTS] 1 events emitted: ['verbal']
+2026-07-03 00:07:51,475 app.services.scene.scene_event_layer WARNING: [SCENE_ACCUM] total=1 events in scene_state
+2026-07-03 00:07:51,476 app.services.game_loop WARNING: [DEBUG DM] is_valid=True, scene_context=SceneContext(location_id='tavern_silver_wolf', nearby_npcs=[{'npc_id': 'maid_lusya', 'location_id': 'tavern_silver_wolf', 'distance_to_player': 4.23, 'facing_towards_player': True}, {'npc_id': 'guard_borko', 'location_id': 'tavern_silver_wolf', 'distance_to_player': 15.57, 'facing_towards_player': True}, {'npc_id': 'blacksmith_orm', 'location_id': 'tavern_silver_wolf', 'distance_to_player': 14.3, 'facing_towards_player': True}, {'npc_id': 'tavern_keeper_tornin', 'location_id': 'tavern_silver_wolf', 'distance_to_player': 14.3, 'facing_towards_player': True}, {'npc_id': 'thief_shadow', 'location_id': 'tavern_silver_wolf', 'distance_to_player': 9.03, 'facing_towards_player': True}, {'npc_id': 'merchant_goran', 'location_id': 'tavern_silver_wolf', 'distance_to_player': 6.51, 'facing_towards_player': True}], visible_objects={'obj_0': {'name': 'Барная стойка #1', 'type': 'bar', 'state': 'intact', 'position': {'x': 4.6, 'y': 3.5742992}, 'size': {'w': 3.0, 'h': 1.0, 'd': 1.2}, 'interactable': True}, 'obj_1': {'name': 'Стол #2', 'type': 'table', 'state': 'intact', 'position': {'x': 8.0, 'y': 4.95}, 'size': {'w': 1.6, 'h': 1.32, 'd': 0.8}, 'interactable': True}, 'obj_2': {'name': 'Стол #3', 'type': 'table', 'state': 'intact', 'position': {'x': 12.025, 'y': 7.85}, 'size': {'w': 1.5, 'h': 1.5, 'd': 0.8}, 'interactable': True}, 'obj_3': {'name': 'Стул #4', 'type': 'chair', 'state': 'intact', 'position': {'x': 7.0, 'y': 5.0}, 'size': {'w': 0.5, 'h': 0.5, 'd': 0.5}, 'interactable': True}, 'obj_4': {'name': 'Стул #5', 'type': 'chair', 'state': 'intact', 'position': {'x': 9.0, 'y': 5.0}, 'size': {'w': 0.5, 'h': 0.5, 'd': 0.5}, 'interactable': True}}, environmental_modifiers={'light': 1.0, 'noise': 0.0, 'density': 0.0, 'danger': 0.0}, line_of_sight={'maid_lusya': True, 'guard_borko': True, 'blacksmith_orm': True, 'tavern_keeper_tornin': True, 'thief_shadow': True, 'merchant_goran': True}), error=None
+2026-07-03 00:07:51,490 pymorphy3.opencorpora_dict.wrapper INFO: Loading dictionaries from C:\DDD\Codex\VSC_Enigma\Enigma\.venv\Lib\site-packages\pymorphy3_dicts_ru\data
+2026-07-03 00:07:51,508 pymorphy3.opencorpora_dict.wrapper INFO: format: 2.4, revision: 417150, updated: 2022-01-08T22:09:24.565962
+2026-07-03 00:07:51,509 app.services.game_loop.phase_1_input WARNING: [LAYER1] Fast path success: action=ActionType.MOVE, target_ref=люся
+2026-07-03 00:07:51,510 app.services.game_loop.phase_1_input WARNING: [TARGET_RESOLVE] ref='люся', map_size=6, keys=['люся', 'стражник борко', 'кузнец орм', 'торнин серебряная луна', 'тень']
+2026-07-03 00:07:51,510 app.services.game_loop WARNING: [PAYLOAD_INJECT] hub_event.payload={'semantic_action': 'MOVE', 'target_id': 'maid_lusya', 'target_reference': 'люся'} id=2916173864544 event_type=player_interacts
+2026-07-03 00:07:51,510 app.services.game_loop.phase_1_input WARNING: [SEMANTIC_BRIDGE] Extracted: action=MOVE, target=люся, id=maid_lusya
+2026-07-03 00:07:51,510 app.services.game_loop.phase_1_input WARNING: [EVENT_BUS] Published: player_moved, target=maid_lusya, action_type=move
+2026-07-03 00:07:51,524 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_east → city_gate (east), linked to tavern_silver_wolf:kitchen
+2026-07-03 00:07:51,524 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_south → market_square (south), linked to tavern_silver_wolf:entrance
+2026-07-03 00:07:51,524 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern_silver_wolf: compiled 10 nodes, 10 edges, 25 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-03 00:07:51,524 app.services.game_loop.service_factories INFO: [SOCIAL] No relations in config, engine disabled
+2026-07-03 00:07:51,524 app.services.game_loop.service_factories INFO: [REPUTATION] factions.json not found, engine disabled
+2026-07-03 00:07:51,533 app.services.game_loop.service_factories INFO: [ECO] Initialized 6 economic profiles for Open_road
+2026-07-03 00:07:51,533 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=2916129318832 tick=4
+2026-07-03 00:07:51,534 app.services.tick_orchestrator INFO: [CFRM] ClusterOccupancy rebuild: 7 entities in 0.00ms
+2026-07-03 00:07:51,534 app.services.npc.life_engine ERROR: [LIFE_ENGINE][NO_POSITION] npc=merchant_goran has no location AND no position. Activity='market_trading'. Data integrity bug — investigate npc_state. Returning None; caller must skip movement intent.
+2026-07-03 00:07:51,536 app.services.tick_orchestrator WARNING: [PDM_DEBUG] ENTER. dm_ctx=True
+2026-07-03 00:07:51,536 app.services.tick_orchestrator WARNING: [PDM_DEBUG] sem_action=MOVE sem_target=люся
+2026-07-03 00:07:51,541 app.services.social.directive_interpretation_subscriber WARNING: [DIRECTIVE_INTERPRET] Target=maid_lusya, Action=MOVE, ObediencePressure=0.56
+2026-07-03 00:07:51,541 app.services.tick_orchestrator WARNING: [FAST_PATH_DEBUG] sem_action=MOVE is_npc=True target_id=maid_lusya
+2026-07-03 00:07:51,541 app.services.tick_orchestrator WARNING: [FAST_PATH_DEBUG] spatial_svc=True
+2026-07-03 00:07:51,541 app.services.tick_orchestrator WARNING: [FAST_PATH_DEBUG] player_pos={'x': 2.5115569384738428, 'y': 9.52513259219562}
+2026-07-03 00:07:51,541 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][MICRO_SNAP] npc=maid_lusya → xy=(2.5, 10.5)
+2026-07-03 00:07:51,541 app.services.tick_orchestrator WARNING: [FAST_PATH_DEBUG] changes=1
+2026-07-03 00:07:51,541 app.models.world_snapshot INFO: [SNAPSHOT_CREATED] id=2e8cc196 tick=4 location=tavern_silver_wolf npcs=7 traversals=0 rng_seed=4
+2026-07-03 00:07:51,541 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=maid_lusya field=local_position cause=micro_snap:micro_snap:approach spatial=yes traversal=none
+2026-07-03 00:07:51,541 app.services.tick_orchestrator INFO: [DUAL_RAIL][FAST_PATH_MOVE] spatial_changes=1 shadow_compiled=1 snapshot_id=2e8cc196
+2026-07-03 00:07:51,542 app.services.scene_state_manager INFO: [SCENE] Применено 1/1 изменений (in-memory, persist=Phase10)
+2026-07-03 00:07:51,542 app.services.tick_orchestrator WARNING: [FAST_PATH] Applied 1 reactive movement changes for maid_lusya
+2026-07-03 00:07:51,543 app.services.tick_orchestrator INFO: [PHASE_5_UNIFIED] ENTER: tick=4, interventions=1
+2026-07-03 00:07:51,545 app.services.npc.domain_phases WARNING: [SESSION_RESET] maid_lusya: emotion=NEUTRAL mask=NONE
+2026-07-03 00:07:51,545 app.services.npc.npc_tick_pipeline WARNING: [MEMORY] perception apply failed for maid_lusya: 'NoneType' object has no attribute 'apply'
+2026-07-03 00:07:51,559 app.services.npc.domain_phases WARNING: [ECO] maid_lusya: +0.020 (бедность +0.020)
+2026-07-03 00:07:51,559 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] maid_lusya: intent=Intent.observe score=0.416 event=player_interacts
+2026-07-03 00:07:51,560 app.services.npc.npc_tick_pipeline WARNING: [APPROACH_NAV] npc=maid_lusya target=player resolved_node=tavern_silver_wolf:bar_area has_xy=True xy=(2.5,8.725132592195623) fallback=bar_area
+2026-07-03 00:07:51,560 app.services.npc.state_applicator INFO: [STATE_APPLIED] maid_lusya: stress=0.0 intent=Intent.APPROACH
+2026-07-03 00:07:51,560 app.services.npc.npc_tick_pipeline WARNING: [STATE_APPLICATOR] failed for maid_lusya: 'NoneType' object has no attribute 'apply'
+2026-07-03 00:07:51,560 app.services.npc.domain_phases WARNING: [SESSION_RESET] guard_borko: emotion=NEUTRAL mask=NONE
+2026-07-03 00:07:51,560 app.services.npc.npc_tick_pipeline WARNING: [MEMORY] perception apply failed for guard_borko: 'NoneType' object has no attribute 'apply'
+2026-07-03 00:07:51,561 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] guard_borko: intent=Intent.warn score=0.281 event=player_interacts
+2026-07-03 00:07:51,561 app.services.npc.state_applicator INFO: [STATE_APPLIED] guard_borko: stress=0.0 intent=Intent.WARN
+2026-07-03 00:07:51,561 app.services.npc.npc_tick_pipeline WARNING: [STATE_APPLICATOR] failed for guard_borko: 'NoneType' object has no attribute 'apply'
+2026-07-03 00:07:51,561 app.services.npc.domain_phases WARNING: [SESSION_RESET] blacksmith_orm: emotion=NEUTRAL mask=NONE
+2026-07-03 00:07:51,561 app.services.npc.npc_tick_pipeline WARNING: [MEMORY] perception apply failed for blacksmith_orm: 'NoneType' object has no attribute 'apply'
+2026-07-03 00:07:51,562 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] blacksmith_orm: intent=Intent.trade score=0.187 event=player_interacts
+2026-07-03 00:07:51,562 app.services.npc.state_applicator INFO: [STATE_APPLIED] blacksmith_orm: stress=0.0 intent=Intent.TRADE
+2026-07-03 00:07:51,562 app.services.npc.npc_tick_pipeline WARNING: [STATE_APPLICATOR] failed for blacksmith_orm: 'NoneType' object has no attribute 'apply'
+2026-07-03 00:07:51,562 app.services.npc.domain_phases WARNING: [SESSION_RESET] tavern_keeper_tornin: emotion=NEUTRAL mask=NONE
+2026-07-03 00:07:51,562 app.services.npc.npc_tick_pipeline WARNING: [MEMORY] perception apply failed for tavern_keeper_tornin: 'NoneType' object has no attribute 'apply'
+2026-07-03 00:07:51,563 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] tavern_keeper_tornin: intent=Intent.report score=0.384 event=player_interacts
+2026-07-03 00:07:51,563 app.services.npc.state_applicator INFO: [STATE_APPLIED] tavern_keeper_tornin: stress=0.0 intent=Intent.REPORT
+2026-07-03 00:07:51,563 app.services.npc.npc_tick_pipeline WARNING: [STATE_APPLICATOR] failed for tavern_keeper_tornin: 'NoneType' object has no attribute 'apply'
+2026-07-03 00:07:51,563 app.services.npc.domain_phases WARNING: [SESSION_RESET] thief_shadow: emotion=NEUTRAL mask=NONE
+2026-07-03 00:07:51,563 app.services.npc.npc_tick_pipeline WARNING: [MEMORY] perception apply failed for thief_shadow: 'NoneType' object has no attribute 'apply'
+2026-07-03 00:07:51,564 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] thief_shadow: intent=Intent.warn score=0.242 event=player_interacts
+2026-07-03 00:07:51,564 app.services.npc.state_applicator INFO: [STATE_APPLIED] thief_shadow: stress=0.0 intent=Intent.WARN
+2026-07-03 00:07:51,564 app.services.npc.npc_tick_pipeline WARNING: [STATE_APPLICATOR] failed for thief_shadow: 'NoneType' object has no attribute 'apply'
+2026-07-03 00:07:51,564 app.services.npc.domain_phases WARNING: [SESSION_RESET] merchant_goran: emotion=NEUTRAL mask=NONE
+2026-07-03 00:07:51,564 app.services.npc.npc_tick_pipeline WARNING: [MEMORY] perception apply failed for merchant_goran: 'NoneType' object has no attribute 'apply'
+2026-07-03 00:07:51,564 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] merchant_goran: intent=Intent.talk score=0.164 event=player_interacts
+2026-07-03 00:07:51,565 app.services.npc.state_applicator INFO: [STATE_APPLIED] merchant_goran: stress=0.0 intent=Intent.TALK
+2026-07-03 00:07:51,565 app.services.npc.npc_tick_pipeline WARNING: [STATE_APPLICATOR] failed for merchant_goran: 'NoneType' object has no attribute 'apply'
+2026-07-03 00:07:51,565 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][MICRO_SNAP] npc=maid_lusya → xy=(2.4, 9.7)
+2026-07-03 00:07:51,565 app.models.world_snapshot INFO: [SNAPSHOT_CREATED] id=74efeba3 tick=4 location=tavern_silver_wolf npcs=7 traversals=0 rng_seed=4
+2026-07-03 00:07:51,565 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=maid_lusya field=local_position cause=micro_snap:micro_snap:approach spatial=yes traversal=none
+2026-07-03 00:07:51,565 app.services.tick_orchestrator INFO: [DUAL_RAIL][CAUSAL_BRIDGE] spatial_changes=1 shadow_compiled=1 snapshot_id=74efeba3
+2026-07-03 00:07:51,566 app.services.scene_state_manager INFO: [SCENE] Применено 1/1 изменений (in-memory, persist=Phase10)
+2026-07-03 00:07:51,566 app.services.events.event_bus INFO: [EVENT_BUS] npc_spoke от 'guard_borko' → 1 обработчиков, 0 результатов
+2026-07-03 00:07:51,566 app.services.events.event_bus INFO: [EVENT_BUS] npc_spoke от 'blacksmith_orm' → 1 обработчиков, 0 результатов
+2026-07-03 00:07:51,566 app.services.events.event_bus INFO: [EVENT_BUS] npc_spoke от 'thief_shadow' → 1 обработчиков, 0 результатов
+2026-07-03 00:07:51,566 app.services.events.event_bus INFO: [EVENT_BUS] npc_spoke от 'merchant_goran' → 1 обработчиков, 0 результатов
+2026-07-03 00:07:51,566 app.services.tick_orchestrator INFO: [TICK_ORCH] Фаза 6: 4 intents → EventDTO, 0 windups created
+2026-07-03 00:07:51,567 app.services.tick_orchestrator WARNING: [CFRM_P2] phenomena_count=0 threats={}
+2026-07-03 00:07:51,569 app.services.perception.phenomenology_projection_service INFO: [PERCEPTION_PROJECTOR] Traces=0 Cues=0
+2026-07-03 00:07:51,570 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT_BUILD] npc_count=7 keys=['maid_lusya', 'guard_borko', 'blacksmith_orm', 'tavern_keeper_tornin', 'thief_shadow'] location=tavern_silver_wolf
+2026-07-03 00:07:51,570 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=maid_lusya x=2.4468122313576015 y=9.660772044381387
+2026-07-03 00:07:51,570 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=guard_borko x=18.0 y=7.25
+2026-07-03 00:07:51,570 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=blacksmith_orm x=16.0 y=4.0
+2026-07-03 00:07:51,570 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=tavern_keeper_tornin x=16.0 y=4.0
+2026-07-03 00:07:51,570 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=thief_shadow x=11.5 y=9.5
+2026-07-03 00:07:51,570 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=merchant_goran x=9.0 y=9.0
+2026-07-03 00:07:51,570 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=guard_borko threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.28,c=0.36,s=0.27] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:07:51,570 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=merchant_goran threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.15,c=0.20,s=0.25] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:07:51,570 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=maid_lusya threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.50,c=0.12,s=0.17] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:07:51,570 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=blacksmith_orm threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.05,c=0.35,s=0.15] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:07:51,570 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=thief_shadow threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.10,c=0.30,s=0.20] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:07:51,570 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=tavern_keeper_tornin threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.15,c=0.50,s=0.25] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:07:51,573 app.services.game_loop.npc_orchestration WARNING: [L1_FIXATION] sem_action=MOVE → L1: target=maid_lusya tick=4
+2026-07-03 00:07:51,573 app.services.game_loop.service_factories INFO: [REPUTATION] factions.json not found, engine disabled
+2026-07-03 00:07:51,573 app.services.game_loop.service_factories INFO: [REPUTATION] factions.json not found, engine disabled
+2026-07-03 00:07:51,579 app.services.game_loop WARNING: [RULES] action_type=player_interacts → SANDBOX_MILD (synchronous reducer)
+2026-07-03 00:07:51,603 app.services.scene.r3_direct_builder WARNING: [PROJECTION] merchant_goran: neutral (int=0.1, stab=1.0)
+2026-07-03 00:07:51,603 app.services.scene.r3_direct_builder WARNING: [PROJECTION] thief_shadow: neutral (int=0.1, stab=1.0)
+2026-07-03 00:07:51,603 app.services.scene.r3_direct_builder WARNING: [PROJECTION] blacksmith_orm: neutral (int=0.1, stab=1.0)
+2026-07-03 00:07:51,603 app.services.scene.r3_direct_builder WARNING: [PROJECTION] guard_borko: neutral (int=0.1, stab=1.0)
+2026-07-03 00:07:51,603 app.services.scene.r3_direct_builder WARNING: [R3_DIRECT] 4 decisions → DMFrame (focus=2, bg=2)
+2026-07-03 00:07:51,605 app.services.perception.phenomenology_projection_service INFO: [PERCEPTION_PROJECTOR] Traces=0 Cues=0
+2026-07-03 00:07:51,671 pymorphy3.opencorpora_dict.wrapper INFO: Loading dictionaries from C:\DDD\Codex\VSC_Enigma\Enigma\.venv\Lib\site-packages\pymorphy3_dicts_ru\data
+2026-07-03 00:07:51,727 pymorphy3.opencorpora_dict.wrapper INFO: format: 2.4, revision: 417150, updated: 2022-01-08T22:09:24.565962
+2026-07-03 00:07:51,730 root INFO: [R4A_WORKER] direct sync call, capability=Capability.NARRATIVE
+2026-07-03 00:07:51,730 root INFO: [R4A_POOL] active_model=qwen_7b
+2026-07-03 00:07:51,731 root INFO: [R4A_POOL] calling complete() on qwen_7b...
+2026-07-03 00:07:53,509 root INFO: [R4A_POOL] complete() returned 183 chars in 1779ms
+2026-07-03 00:07:53,509 root INFO: [R4A_WORKER] returned 183 chars
+2026-07-03 00:07:53,537 app.services.events.event_bus INFO: [EVENT_BUS] EventType.NPC_SPOKE от 'Люся' → 1 обработчиков, 0 результатов
+2026-07-03 00:07:53,544 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT_BUILD] npc_count=7 keys=['maid_lusya', 'guard_borko', 'blacksmith_orm', 'tavern_keeper_tornin', 'thief_shadow'] location=tavern_silver_wolf
+2026-07-03 00:07:53,544 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=maid_lusya x=2.4468122313576015 y=9.660772044381387
+2026-07-03 00:07:53,544 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=guard_borko x=18.0 y=7.25
+2026-07-03 00:07:53,544 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=blacksmith_orm x=16.0 y=4.0
+2026-07-03 00:07:53,544 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=tavern_keeper_tornin x=16.0 y=4.0
+2026-07-03 00:07:53,544 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=thief_shadow x=11.5 y=9.5
+2026-07-03 00:07:53,544 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=merchant_goran x=9.0 y=9.0
+2026-07-03 00:08:12,495 app.services.llm.provider_manager INFO: ModelPool[ROUTE] get_model_async('qwen_7b', agent='None')
+2026-07-03 00:08:12,599 app.services.llm.provider_manager INFO: ModelPool[ROUTE] ✓ 'qwen_7b' (VRAM delta=+0MB)
+2026-07-03 00:08:12,603 app.services.game_loop WARNING: [RECENT_MEM] 1 entries, dm_fields=[True]
+2026-07-03 00:08:12,605 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-03 00:08:12,606 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_east → city_gate (east), linked to tavern_silver_wolf:kitchen
+2026-07-03 00:08:12,606 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_south → market_square (south), linked to tavern_silver_wolf:entrance
+2026-07-03 00:08:12,606 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern_silver_wolf: compiled 10 nodes, 10 edges, 25 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-03 00:08:12,610 app.services.spatial.player_target_pipeline WARNING: [TARGET] Extracted: Люся (maid_lusya)
+2026-07-03 00:08:12,610 app.services.spatial.player_target_pipeline WARNING: [SPATIAL_DATA] result=6/7, has_player=True, player_xy_valid=True, spatial_query=True, distances_sample=[('maid_lusya', 0.94), ('guard_borko', 15.57), ('blacksmith_orm', 14.3)]
+2026-07-03 00:08:12,611 app.services.game_loop.dm_phase WARNING: [EVENT_TYPE] Router classified as: player_interacts
+2026-07-03 00:08:12,611 app.services.scene.scene_event_layer WARNING: [SCENE_EVENTS] 1 events emitted: ['verbal']
+2026-07-03 00:08:12,611 app.services.scene.scene_event_layer WARNING: [SCENE_ACCUM] total=2 events in scene_state
+2026-07-03 00:08:12,611 app.services.game_loop WARNING: [DEBUG DM] is_valid=True, scene_context=SceneContext(location_id='tavern_silver_wolf', nearby_npcs=[{'npc_id': 'maid_lusya', 'location_id': 'tavern_silver_wolf', 'distance_to_player': 0.94, 'facing_towards_player': True}, {'npc_id': 'guard_borko', 'location_id': 'tavern_silver_wolf', 'distance_to_player': 15.57, 'facing_towards_player': True}, {'npc_id': 'blacksmith_orm', 'location_id': 'tavern_silver_wolf', 'distance_to_player': 14.3, 'facing_towards_player': True}, {'npc_id': 'tavern_keeper_tornin', 'location_id': 'tavern_silver_wolf', 'distance_to_player': 14.3, 'facing_towards_player': True}, {'npc_id': 'thief_shadow', 'location_id': 'tavern_silver_wolf', 'distance_to_player': 9.03, 'facing_towards_player': True}, {'npc_id': 'merchant_goran', 'location_id': 'tavern_silver_wolf', 'distance_to_player': 6.51, 'facing_towards_player': True}], visible_objects={'obj_0': {'name': 'Барная стойка #1', 'type': 'bar', 'state': 'intact', 'position': {'x': 4.6, 'y': 3.5742992}, 'size': {'w': 3.0, 'h': 1.0, 'd': 1.2}, 'interactable': True}, 'obj_1': {'name': 'Стол #2', 'type': 'table', 'state': 'intact', 'position': {'x': 8.0, 'y': 4.95}, 'size': {'w': 1.6, 'h': 1.32, 'd': 0.8}, 'interactable': True}, 'obj_2': {'name': 'Стол #3', 'type': 'table', 'state': 'intact', 'position': {'x': 12.025, 'y': 7.85}, 'size': {'w': 1.5, 'h': 1.5, 'd': 0.8}, 'interactable': True}, 'obj_3': {'name': 'Стул #4', 'type': 'chair', 'state': 'intact', 'position': {'x': 7.0, 'y': 5.0}, 'size': {'w': 0.5, 'h': 0.5, 'd': 0.5}, 'interactable': True}, 'obj_4': {'name': 'Стул #5', 'type': 'chair', 'state': 'intact', 'position': {'x': 9.0, 'y': 5.0}, 'size': {'w': 0.5, 'h': 0.5, 'd': 0.5}, 'interactable': True}}, environmental_modifiers={'light': 1.0, 'noise': 0.0, 'density': 0.0, 'danger': 0.0}, line_of_sight={'maid_lusya': True, 'guard_borko': True, 'blacksmith_orm': True, 'tavern_keeper_tornin': True, 'thief_shadow': True, 'merchant_goran': True}), error=None
+2026-07-03 00:08:12,611 app.services.game_loop WARNING: [PAYLOAD_INJECT] hub_event.payload={'semantic_action': 'UNCERTAIN'} id=2916165796128 event_type=player_interacts
+2026-07-03 00:08:12,612 app.services.game_loop.phase_1_input WARNING: [SEMANTIC_BRIDGE] Extracted: action=UNCERTAIN, target=None, id=
+2026-07-03 00:08:12,612 app.services.events.event_bus INFO: [EVENT_BUS] PLAYER_SPOKE от 'player' → 1 обработчиков, 0 результатов
+2026-07-03 00:08:12,612 app.services.game_loop.phase_1_input WARNING: [EVENT_BUS] Published: PLAYER_SPOKE, target=maid_lusya, action_type=player_interacts
+2026-07-03 00:08:12,614 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_east → city_gate (east), linked to tavern_silver_wolf:kitchen
+2026-07-03 00:08:12,614 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_south → market_square (south), linked to tavern_silver_wolf:entrance
+2026-07-03 00:08:12,614 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern_silver_wolf: compiled 10 nodes, 10 edges, 25 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-03 00:08:12,615 app.services.game_loop.service_factories INFO: [SOCIAL] No relations in config, engine disabled
+2026-07-03 00:08:12,615 app.services.game_loop.service_factories INFO: [REPUTATION] factions.json not found, engine disabled
+2026-07-03 00:08:12,615 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=2916129318832 tick=5
+2026-07-03 00:08:12,615 app.services.tick_orchestrator INFO: [CFRM] ClusterOccupancy rebuild: 7 entities in 0.00ms
+2026-07-03 00:08:12,615 app.services.npc.life_engine ERROR: [LIFE_ENGINE][NO_POSITION] npc=merchant_goran has no location AND no position. Activity='market_trading'. Data integrity bug — investigate npc_state. Returning None; caller must skip movement intent.
+2026-07-03 00:08:12,617 app.services.tick_orchestrator WARNING: [PDM_DEBUG] ENTER. dm_ctx=True
+2026-07-03 00:08:12,617 app.services.tick_orchestrator WARNING: [PDM_DEBUG] sem_action=UNCERTAIN sem_target=None
+2026-07-03 00:08:12,617 app.services.tick_orchestrator ERROR: [TICK_CRASH] campaign=Open_road tick=5 error=cannot access local variable '_is_npc_target' where it is not associated with a value
+2026-07-03 00:08:12,617 app.services.tick_orchestrator ERROR: [TICK_ORCH] Ошибка в тике Open_road: cannot access local variable '_is_npc_target' where it is not associated with a value
+Traceback (most recent call last):
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 384, in execute
+    self._run_core_phases(ctx)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 444, in _run_core_phases
+    self._phase_1_input_merge(ctx)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 486, in _phase_1_input_merge
+    self._process_player_dm_action(ctx, _dm_ctx)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 548, in _process_player_dm_action
+    logger.warning(f"[FAST_PATH_DEBUG] sem_action={_sem_action} is_npc={_is_npc_target} target_id={getattr(_params, 'target_id', None)}")
+                                                                        ^^^^^^^^^^^^^^
+UnboundLocalError: cannot access local variable '_is_npc_target' where it is not associated with a value
+2026-07-03 00:08:12,619 app.services.game_loop.service_factories INFO: [REPUTATION] factions.json not found, engine disabled
+2026-07-03 00:08:12,619 app.services.game_loop.service_factories INFO: [REPUTATION] factions.json not found, engine disabled
+2026-07-03 00:08:12,619 app.services.game_loop WARNING: [RULES] action_type=player_interacts → SANDBOX_MILD (synchronous reducer)
+2026-07-03 00:08:12,620 app.services.scene.r3_direct_builder WARNING: [R3_DIRECT] 0 decisions → DMFrame (focus=0, bg=0)
+2026-07-03 00:08:12,621 app.services.perception.phenomenology_projection_service INFO: [PERCEPTION_PROJECTOR] Traces=0 Cues=0
+2026-07-03 00:08:12,681 root INFO: [R4A_WORKER] direct sync call, capability=Capability.NARRATIVE
+2026-07-03 00:08:12,681 root INFO: [R4A_POOL] active_model=qwen_7b
+2026-07-03 00:08:12,705 root INFO: [R4A_POOL] calling complete() on qwen_7b...
+2026-07-03 00:08:14,013 root INFO: [R4A_POOL] complete() returned 203 chars in 1332ms
+2026-07-03 00:08:14,013 root INFO: [R4A_WORKER] returned 203 chars
+2026-07-03 00:08:14,017 app.services.events.event_bus INFO: [EVENT_BUS] EventType.NPC_SPOKE от 'Люся' → 1 обработчиков, 0 результатов
+2026-07-03 00:08:14,017 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT_BUILD] npc_count=7 keys=['maid_lusya', 'guard_borko', 'blacksmith_orm', 'tavern_keeper_tornin', 'thief_shadow'] location=tavern_silver_wolf
+2026-07-03 00:08:14,017 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=maid_lusya x=2.4468122313576015 y=9.660772044381387
+2026-07-03 00:08:14,017 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=guard_borko x=18.0 y=7.25
+2026-07-03 00:08:14,017 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=blacksmith_orm x=16.0 y=4.0
+2026-07-03 00:08:14,017 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=tavern_keeper_tornin x=16.0 y=4.0
+2026-07-03 00:08:14,017 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=thief_shadow x=11.5 y=9.5
+2026-07-03 00:08:14,017 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=merchant_goran x=9.0 y=9.0
+2026-07-03 00:08:21,054 app.services.llm.provider_manager INFO: ModelPool[ROUTE] get_model_async('qwen_7b', agent='None')
+2026-07-03 00:08:21,148 app.services.llm.provider_manager INFO: ModelPool[ROUTE] ✓ 'qwen_7b' (VRAM delta=+0MB)
+2026-07-03 00:08:21,153 app.services.game_loop WARNING: [RECENT_MEM] 2 entries, dm_fields=[True, True]
+2026-07-03 00:08:21,155 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-03 00:08:21,157 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_east → city_gate (east), linked to tavern_silver_wolf:kitchen
+2026-07-03 00:08:21,157 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_south → market_square (south), linked to tavern_silver_wolf:entrance
+2026-07-03 00:08:21,157 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern_silver_wolf: compiled 10 nodes, 10 edges, 25 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-03 00:08:21,160 app.services.spatial.player_target_pipeline WARNING: [TARGET] Extracted: Люся (maid_lusya)
+2026-07-03 00:08:21,160 app.services.spatial.player_target_pipeline WARNING: [SPATIAL_DATA] result=6/7, has_player=True, player_xy_valid=True, spatial_query=True, distances_sample=[('maid_lusya', 0.94), ('guard_borko', 15.57), ('blacksmith_orm', 14.3)]
+2026-07-03 00:08:21,160 app.services.game_loop.dm_phase WARNING: [EVENT_TYPE] Router classified as: player_interacts
+2026-07-03 00:08:21,160 app.services.scene.scene_event_layer WARNING: [SCENE_EVENTS] 1 events emitted: ['verbal']
+2026-07-03 00:08:21,160 app.services.scene.scene_event_layer WARNING: [SCENE_ACCUM] total=3 events in scene_state
+2026-07-03 00:08:21,161 app.services.game_loop WARNING: [DEBUG DM] is_valid=True, scene_context=SceneContext(location_id='tavern_silver_wolf', nearby_npcs=[{'npc_id': 'maid_lusya', 'location_id': 'tavern_silver_wolf', 'distance_to_player': 0.94, 'facing_towards_player': True}, {'npc_id': 'guard_borko', 'location_id': 'tavern_silver_wolf', 'distance_to_player': 15.57, 'facing_towards_player': True}, {'npc_id': 'blacksmith_orm', 'location_id': 'tavern_silver_wolf', 'distance_to_player': 14.3, 'facing_towards_player': True}, {'npc_id': 'tavern_keeper_tornin', 'location_id': 'tavern_silver_wolf', 'distance_to_player': 14.3, 'facing_towards_player': True}, {'npc_id': 'thief_shadow', 'location_id': 'tavern_silver_wolf', 'distance_to_player': 9.03, 'facing_towards_player': True}, {'npc_id': 'merchant_goran', 'location_id': 'tavern_silver_wolf', 'distance_to_player': 6.51, 'facing_towards_player': True}], visible_objects={'obj_0': {'name': 'Барная стойка #1', 'type': 'bar', 'state': 'intact', 'position': {'x': 4.6, 'y': 3.5742992}, 'size': {'w': 3.0, 'h': 1.0, 'd': 1.2}, 'interactable': True}, 'obj_1': {'name': 'Стол #2', 'type': 'table', 'state': 'intact', 'position': {'x': 8.0, 'y': 4.95}, 'size': {'w': 1.6, 'h': 1.32, 'd': 0.8}, 'interactable': True}, 'obj_2': {'name': 'Стол #3', 'type': 'table', 'state': 'intact', 'position': {'x': 12.025, 'y': 7.85}, 'size': {'w': 1.5, 'h': 1.5, 'd': 0.8}, 'interactable': True}, 'obj_3': {'name': 'Стул #4', 'type': 'chair', 'state': 'intact', 'position': {'x': 7.0, 'y': 5.0}, 'size': {'w': 0.5, 'h': 0.5, 'd': 0.5}, 'interactable': True}, 'obj_4': {'name': 'Стул #5', 'type': 'chair', 'state': 'intact', 'position': {'x': 9.0, 'y': 5.0}, 'size': {'w': 0.5, 'h': 0.5, 'd': 0.5}, 'interactable': True}}, environmental_modifiers={'light': 1.0, 'noise': 0.0, 'density': 0.0, 'danger': 0.0}, line_of_sight={'maid_lusya': True, 'guard_borko': True, 'blacksmith_orm': True, 'tavern_keeper_tornin': True, 'thief_shadow': True, 'merchant_goran': True}), error=None
+2026-07-03 00:08:21,161 app.services.game_loop WARNING: [PAYLOAD_INJECT] hub_event.payload={'semantic_action': 'UNCERTAIN'} id=2916131607712 event_type=player_interacts
+2026-07-03 00:08:21,161 app.services.game_loop.phase_1_input WARNING: [SEMANTIC_BRIDGE] Extracted: action=UNCERTAIN, target=None, id=
+2026-07-03 00:08:21,161 app.services.events.event_bus INFO: [EVENT_BUS] PLAYER_SPOKE от 'player' → 1 обработчиков, 0 результатов
+2026-07-03 00:08:21,161 app.services.game_loop.phase_1_input WARNING: [EVENT_BUS] Published: PLAYER_SPOKE, target=maid_lusya, action_type=player_interacts
+2026-07-03 00:08:21,164 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_east → city_gate (east), linked to tavern_silver_wolf:kitchen
+2026-07-03 00:08:21,164 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_south → market_square (south), linked to tavern_silver_wolf:entrance
+2026-07-03 00:08:21,164 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern_silver_wolf: compiled 10 nodes, 10 edges, 25 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-03 00:08:21,164 app.services.game_loop.service_factories INFO: [SOCIAL] No relations in config, engine disabled
+2026-07-03 00:08:21,164 app.services.game_loop.service_factories INFO: [REPUTATION] factions.json not found, engine disabled
+2026-07-03 00:08:21,164 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=2916129318832 tick=6
+2026-07-03 00:08:21,165 app.services.tick_orchestrator INFO: [CFRM] ClusterOccupancy rebuild: 7 entities in 0.00ms
+2026-07-03 00:08:21,165 app.services.npc.life_engine ERROR: [LIFE_ENGINE][NO_POSITION] npc=merchant_goran has no location AND no position. Activity='market_trading'. Data integrity bug — investigate npc_state. Returning None; caller must skip movement intent.
+2026-07-03 00:08:21,168 app.services.tick_orchestrator WARNING: [PDM_DEBUG] ENTER. dm_ctx=True
+2026-07-03 00:08:21,168 app.services.tick_orchestrator WARNING: [PDM_DEBUG] sem_action=UNCERTAIN sem_target=None
+2026-07-03 00:08:21,168 app.services.tick_orchestrator ERROR: [TICK_CRASH] campaign=Open_road tick=6 error=cannot access local variable '_is_npc_target' where it is not associated with a value
+2026-07-03 00:08:21,168 app.services.tick_orchestrator ERROR: [TICK_ORCH] Ошибка в тике Open_road: cannot access local variable '_is_npc_target' where it is not associated with a value
+Traceback (most recent call last):
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 384, in execute
+    self._run_core_phases(ctx)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 444, in _run_core_phases
+    self._phase_1_input_merge(ctx)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 486, in _phase_1_input_merge
+    self._process_player_dm_action(ctx, _dm_ctx)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 548, in _process_player_dm_action
+    logger.warning(f"[FAST_PATH_DEBUG] sem_action={_sem_action} is_npc={_is_npc_target} target_id={getattr(_params, 'target_id', None)}")
+                                                                        ^^^^^^^^^^^^^^
+UnboundLocalError: cannot access local variable '_is_npc_target' where it is not associated with a value
+2026-07-03 00:08:21,169 app.services.game_loop.service_factories INFO: [REPUTATION] factions.json not found, engine disabled
+2026-07-03 00:08:21,169 app.services.game_loop.service_factories INFO: [REPUTATION] factions.json not found, engine disabled
+2026-07-03 00:08:21,169 app.services.game_loop.phase_2_world_tick WARNING: [WORLD_TICK] Error: WorldTickEngine.compute_proactive_decisions() got an unexpected keyword argument 'effective_drives_map'
+2026-07-03 00:08:21,170 app.services.game_loop WARNING: [RULES] action_type=player_interacts → SANDBOX_MILD (synchronous reducer)
+2026-07-03 00:08:21,170 app.services.scene.r3_direct_builder WARNING: [R3_DIRECT] 0 decisions → DMFrame (focus=0, bg=0)
+2026-07-03 00:08:21,171 app.services.perception.phenomenology_projection_service INFO: [PERCEPTION_PROJECTOR] Traces=0 Cues=0
+2026-07-03 00:08:21,212 root INFO: [R4A_WORKER] direct sync call, capability=Capability.NARRATIVE
+2026-07-03 00:08:21,212 root INFO: [R4A_POOL] active_model=qwen_7b
+2026-07-03 00:08:21,213 root INFO: [R4A_POOL] calling complete() on qwen_7b...
+2026-07-03 00:08:22,608 root INFO: [R4A_POOL] complete() returned 206 chars in 1396ms
+2026-07-03 00:08:22,608 root INFO: [R4A_WORKER] returned 206 chars
+2026-07-03 00:08:22,611 app.services.events.event_bus INFO: [EVENT_BUS] EventType.NPC_SPOKE от 'Люся' → 1 обработчиков, 0 результатов
+2026-07-03 00:08:22,611 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT_BUILD] npc_count=7 keys=['maid_lusya', 'guard_borko', 'blacksmith_orm', 'tavern_keeper_tornin', 'thief_shadow'] location=tavern_silver_wolf
+2026-07-03 00:08:22,611 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=maid_lusya x=2.4468122313576015 y=9.660772044381387
+2026-07-03 00:08:22,611 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=guard_borko x=18.0 y=7.25
+2026-07-03 00:08:22,611 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=blacksmith_orm x=16.0 y=4.0
+2026-07-03 00:08:22,611 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=tavern_keeper_tornin x=16.0 y=4.0
+2026-07-03 00:08:22,611 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=thief_shadow x=11.5 y=9.5
+2026-07-03 00:08:22,611 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=merchant_goran x=9.0 y=9.0
+2026-07-03 00:08:29,492 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-03 00:08:29,493 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_east → city_gate (east), linked to tavern_silver_wolf:kitchen
+2026-07-03 00:08:29,493 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_south → market_square (south), linked to tavern_silver_wolf:entrance
+2026-07-03 00:08:29,493 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern_silver_wolf: compiled 10 nodes, 10 edges, 25 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-03 00:08:29,496 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-03 00:08:29,498 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_east → city_gate (east), linked to tavern_silver_wolf:kitchen
+2026-07-03 00:08:29,498 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_south → market_square (south), linked to tavern_silver_wolf:entrance
+2026-07-03 00:08:29,498 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern_silver_wolf: compiled 10 nodes, 10 edges, 25 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-03 00:08:29,499 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_east → city_gate (east), linked to tavern_silver_wolf:kitchen
+2026-07-03 00:08:29,499 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_south → market_square (south), linked to tavern_silver_wolf:entrance
+2026-07-03 00:08:29,499 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern_silver_wolf: compiled 10 nodes, 10 edges, 25 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-03 00:08:29,499 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=2916129318832 tick=7
+2026-07-03 00:08:29,500 app.services.tick_orchestrator INFO: [CFRM] ClusterOccupancy rebuild: 6 entities in 0.00ms
+2026-07-03 00:08:29,502 app.services.scene_state_manager INFO: [SCENE] Применено 6/6 изменений (in-memory, persist=Phase10)
+2026-07-03 00:08:29,502 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=guard_borko → zone=tavern_silver_wolf:corner_table reason=need_driven:hunger=0.56 exact_xy=(12.0, 10.0)
+2026-07-03 00:08:29,502 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=merchant_goran → zone=tavern_silver_wolf:corner_table reason=need_driven:hunger=0.56 exact_xy=(12.0, 10.0)
+2026-07-03 00:08:29,502 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=maid_lusya → zone=main_hall reason=need_driven:hunger=0.56 exact_xy=(8.0, 7.0)
+2026-07-03 00:08:29,502 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=blacksmith_orm → zone=tavern_silver_wolf:corner_table reason=need_driven:hunger=0.56 exact_xy=(12.0, 10.0)
+2026-07-03 00:08:29,502 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=thief_shadow → zone=main_hall reason=need_driven:hunger=0.56 exact_xy=(8.0, 7.0)
+2026-07-03 00:08:29,502 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=tavern_keeper_tornin → zone=tavern_silver_wolf:corner_table reason=need_driven:hunger=0.56 exact_xy=(12.0, 10.0)
+2026-07-03 00:08:29,502 app.models.world_snapshot INFO: [SNAPSHOT_CREATED] id=e50d203d tick=7 location=tavern_silver_wolf npcs=6 traversals=0 rng_seed=7
+2026-07-03 00:08:29,503 app.services.event_compiler INFO: [SHADOW_COMPILER] pathfinding: npc=guard_borko via 2 intermediate nodes
+2026-07-03 00:08:29,503 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=guard_borko field=position cause=semantic_relocation:need_driven:hunger=0.56 spatial=yes traversal=NEW
+2026-07-03 00:08:29,503 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=merchant_goran field=position cause=semantic_relocation:need_driven:hunger=0.56 spatial=yes traversal=NEW
+2026-07-03 00:08:29,503 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=maid_lusya field=position cause=semantic_relocation:need_driven:hunger=0.56 spatial=yes traversal=NEW
+2026-07-03 00:08:29,503 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=blacksmith_orm field=position cause=semantic_relocation:need_driven:hunger=0.56 spatial=yes traversal=NEW
+2026-07-03 00:08:29,503 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=thief_shadow field=position cause=semantic_relocation:need_driven:hunger=0.56 spatial=yes traversal=NEW
+2026-07-03 00:08:29,503 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=tavern_keeper_tornin field=position cause=semantic_relocation:need_driven:hunger=0.56 spatial=yes traversal=NEW
+2026-07-03 00:08:29,503 app.services.tick_orchestrator INFO: [DUAL_RAIL][IDLE_SPATIAL] spatial_changes=6 shadow_compiled=6 snapshot_id=e50d203d
+2026-07-03 00:08:29,503 app.services.scene_state_manager WARNING: [DIAG_V] DUPLICATE_POSITION_CHANGE npc=guard_borko node=tavern_silver_wolf:corner_table — from_node == target_node risk!
+2026-07-03 00:08:29,503 app.services.scene_state_manager WARNING: [DIAG_V] DUPLICATE_POSITION_CHANGE npc=merchant_goran node=tavern_silver_wolf:corner_table — from_node == target_node risk!
+2026-07-03 00:08:29,503 app.services.scene_state_manager WARNING: [DIAG_V] DUPLICATE_POSITION_CHANGE npc=maid_lusya node=main_hall — from_node == target_node risk!
+2026-07-03 00:08:29,503 app.services.scene_state_manager WARNING: [DIAG_V] DUPLICATE_POSITION_CHANGE npc=blacksmith_orm node=tavern_silver_wolf:corner_table — from_node == target_node risk!
+2026-07-03 00:08:29,503 app.services.scene_state_manager WARNING: [DIAG_V] DUPLICATE_POSITION_CHANGE npc=thief_shadow node=main_hall — from_node == target_node risk!
+2026-07-03 00:08:29,503 app.services.scene_state_manager WARNING: [DIAG_V] DUPLICATE_POSITION_CHANGE npc=tavern_keeper_tornin node=tavern_silver_wolf:corner_table — from_node == target_node risk!
+2026-07-03 00:08:29,503 app.services.scene_state_manager INFO: [SCENE] Применено 6/6 изменений (in-memory, persist=Phase10)
+2026-07-03 00:08:29,503 app.services.tick_orchestrator INFO: [TICK_ORCH] Фаза 0: 6 spatial changes from 6 LifeEngine intents
+2026-07-03 00:08:29,512 app.services.tick_orchestrator INFO: [PHASE_5_UNIFIED] ENTER: tick=7, interventions=0
+2026-07-03 00:08:29,514 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] guard_borko: intent=Intent.ambush score=0.369 event=unknown
+2026-07-03 00:08:29,515 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] merchant_goran: intent=Intent.change_role score=0.443 event=unknown
+2026-07-03 00:08:29,516 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] maid_lusya: intent=Intent.request_service score=0.253 event=unknown
+2026-07-03 00:08:29,517 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] blacksmith_orm: intent=Intent.request_service score=0.451 event=unknown
+2026-07-03 00:08:29,517 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] thief_shadow: intent=Intent.change_role score=0.344 event=unknown
+2026-07-03 00:08:29,518 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] tavern_keeper_tornin: intent=Intent.seek_ally score=0.300 event=unknown
+2026-07-03 00:08:29,519 app.services.events.event_bus INFO: [EVENT_BUS] npc_spoke от 'maid_lusya' → 1 обработчиков, 0 результатов
+2026-07-03 00:08:29,519 app.services.events.event_bus INFO: [EVENT_BUS] npc_spoke от 'blacksmith_orm' → 1 обработчиков, 0 результатов
+2026-07-03 00:08:29,519 app.services.tick_orchestrator INFO: [TICK_ORCH] Фаза 6: 2 intents → EventDTO, 0 windups created
+2026-07-03 00:08:29,526 app.services.game_loop.service_factories INFO: [SOCIAL] No relations in config, engine disabled
+2026-07-03 00:08:29,528 app.services.tick_orchestrator WARNING: [CFRM_P2] phenomena_count=0 threats={}
+2026-07-03 00:08:29,531 app.services.perception.phenomenology_projection_service INFO: [PERCEPTION_PROJECTOR] Traces=0 Cues=0
+2026-07-03 00:08:29,531 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT_BUILD] npc_count=6 keys=['maid_lusya', 'guard_borko', 'blacksmith_orm', 'tavern_keeper_tornin', 'thief_shadow'] location=tavern_silver_wolf
+2026-07-03 00:08:29,531 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=maid_lusya x=8.0 y=7.0
+2026-07-03 00:08:29,531 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=guard_borko x=12.0 y=10.0
+2026-07-03 00:08:29,531 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=blacksmith_orm x=12.0 y=10.0
+2026-07-03 00:08:29,531 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=tavern_keeper_tornin x=12.0 y=10.0
+2026-07-03 00:08:29,531 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=thief_shadow x=8.0 y=7.0
+2026-07-03 00:08:29,531 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=merchant_goran x=12.0 y=10.0
+2026-07-03 00:08:29,531 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=guard_borko threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.29,c=0.35,s=0.27] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:08:29,531 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=merchant_goran threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.15,c=0.20,s=0.25] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:08:29,531 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=maid_lusya threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.51,c=0.12,s=0.16] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:08:29,531 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=blacksmith_orm threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.05,c=0.35,s=0.15] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:08:29,531 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=thief_shadow threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.10,c=0.30,s=0.20] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:08:29,531 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=tavern_keeper_tornin threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.15,c=0.50,s=0.25] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:08:29,533 app.services.scene_state_manager INFO: [SCENE] Применено 6/6 изменений (in-memory, persist=Phase10)
+2026-07-03 00:08:29,537 app.services.perception.phenomenology_projection_service INFO: [PERCEPTION_PROJECTOR] Traces=0 Cues=0
+2026-07-03 00:08:31,514 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-03 00:08:31,515 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_east → city_gate (east), linked to tavern_silver_wolf:kitchen
+2026-07-03 00:08:31,515 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_south → market_square (south), linked to tavern_silver_wolf:entrance
+2026-07-03 00:08:31,515 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern_silver_wolf: compiled 10 nodes, 10 edges, 25 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-03 00:08:31,518 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-03 00:08:31,519 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_east → city_gate (east), linked to tavern_silver_wolf:kitchen
+2026-07-03 00:08:31,519 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_south → market_square (south), linked to tavern_silver_wolf:entrance
+2026-07-03 00:08:31,519 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern_silver_wolf: compiled 10 nodes, 10 edges, 25 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-03 00:08:31,520 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_east → city_gate (east), linked to tavern_silver_wolf:kitchen
+2026-07-03 00:08:31,520 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_south → market_square (south), linked to tavern_silver_wolf:entrance
+2026-07-03 00:08:31,520 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern_silver_wolf: compiled 10 nodes, 10 edges, 25 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-03 00:08:31,520 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=2916129318832 tick=8
+2026-07-03 00:08:31,521 app.services.tick_orchestrator INFO: [CFRM] ClusterOccupancy rebuild: 6 entities in 0.00ms
+2026-07-03 00:08:31,523 app.services.scene_state_manager INFO: [SCENE] Применено 6/6 изменений (in-memory, persist=Phase10)
+2026-07-03 00:08:31,523 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=guard_borko → zone=tavern_silver_wolf:fireplace reason=need_driven:shelter_urge=0.64 exact_xy=(11.0, 4.0)
+2026-07-03 00:08:31,523 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=merchant_goran → zone=tavern_silver_wolf:fireplace reason=need_driven:shelter_urge=0.64 exact_xy=(11.0, 4.0)
+2026-07-03 00:08:31,523 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=maid_lusya → zone=fireplace reason=need_driven:shelter_urge=0.64 exact_xy=(11.0, 4.0)
+2026-07-03 00:08:31,523 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=blacksmith_orm → zone=tavern_silver_wolf:fireplace reason=need_driven:shelter_urge=0.64 exact_xy=(11.0, 4.0)
+2026-07-03 00:08:31,524 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=thief_shadow → zone=fireplace reason=need_driven:shelter_urge=0.64 exact_xy=(11.0, 4.0)
+2026-07-03 00:08:31,524 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=tavern_keeper_tornin → zone=tavern_silver_wolf:fireplace reason=need_driven:shelter_urge=0.64 exact_xy=(11.0, 4.0)
+2026-07-03 00:08:31,524 app.models.world_snapshot INFO: [SNAPSHOT_CREATED] id=d0dde7d8 tick=8 location=tavern_silver_wolf npcs=6 traversals=0 rng_seed=8
+2026-07-03 00:08:31,524 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=guard_borko field=position cause=semantic_relocation:need_driven:shelter_urge=0.64 spatial=yes traversal=NEW
+2026-07-03 00:08:31,524 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=merchant_goran field=position cause=semantic_relocation:need_driven:shelter_urge=0.64 spatial=yes traversal=NEW
+2026-07-03 00:08:31,524 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=maid_lusya field=position cause=semantic_relocation:need_driven:shelter_urge=0.64 spatial=yes traversal=NEW
+2026-07-03 00:08:31,524 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=blacksmith_orm field=position cause=semantic_relocation:need_driven:shelter_urge=0.64 spatial=yes traversal=NEW
+2026-07-03 00:08:31,524 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=thief_shadow field=position cause=semantic_relocation:need_driven:shelter_urge=0.64 spatial=yes traversal=NEW
+2026-07-03 00:08:31,524 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=tavern_keeper_tornin field=position cause=semantic_relocation:need_driven:shelter_urge=0.64 spatial=yes traversal=NEW
+2026-07-03 00:08:31,524 app.services.tick_orchestrator INFO: [DUAL_RAIL][IDLE_SPATIAL] spatial_changes=6 shadow_compiled=6 snapshot_id=d0dde7d8
+2026-07-03 00:08:31,524 app.services.scene_state_manager WARNING: [DIAG_V] DUPLICATE_POSITION_CHANGE npc=guard_borko node=tavern_silver_wolf:fireplace — from_node == target_node risk!
+2026-07-03 00:08:31,524 app.services.scene_state_manager WARNING: [DIAG_V] DUPLICATE_POSITION_CHANGE npc=merchant_goran node=tavern_silver_wolf:fireplace — from_node == target_node risk!
+2026-07-03 00:08:31,524 app.services.scene_state_manager WARNING: [DIAG_V] DUPLICATE_POSITION_CHANGE npc=maid_lusya node=fireplace — from_node == target_node risk!
+2026-07-03 00:08:31,524 app.services.scene_state_manager WARNING: [DIAG_V] DUPLICATE_POSITION_CHANGE npc=blacksmith_orm node=tavern_silver_wolf:fireplace — from_node == target_node risk!
+2026-07-03 00:08:31,524 app.services.scene_state_manager WARNING: [DIAG_V] DUPLICATE_POSITION_CHANGE npc=thief_shadow node=fireplace — from_node == target_node risk!
+2026-07-03 00:08:31,524 app.services.scene_state_manager WARNING: [DIAG_V] DUPLICATE_POSITION_CHANGE npc=tavern_keeper_tornin node=tavern_silver_wolf:fireplace — from_node == target_node risk!
+2026-07-03 00:08:31,524 app.services.scene_state_manager INFO: [SCENE] Применено 6/6 изменений (in-memory, persist=Phase10)
+2026-07-03 00:08:31,524 app.services.tick_orchestrator INFO: [TICK_ORCH] Фаза 0: 6 spatial changes from 6 LifeEngine intents
+2026-07-03 00:08:31,533 app.services.tick_orchestrator INFO: [PHASE_5_UNIFIED] ENTER: tick=8, interventions=0
+2026-07-03 00:08:31,535 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] guard_borko: intent=Intent.block_path score=0.350 event=unknown
+2026-07-03 00:08:31,536 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] merchant_goran: intent=Intent.offer_job score=0.351 event=unknown
+2026-07-03 00:08:31,537 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] maid_lusya: intent=Intent.change_role score=0.287 event=unknown
+2026-07-03 00:08:31,537 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] blacksmith_orm: intent=Intent.offer_job score=0.410 event=unknown
+2026-07-03 00:08:31,538 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] thief_shadow: intent=Intent.change_role score=0.425 event=unknown
+2026-07-03 00:08:31,539 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] tavern_keeper_tornin: intent=Intent.seek_ally score=0.285 event=unknown
+2026-07-03 00:08:31,540 app.services.events.event_bus INFO: [EVENT_BUS] npc_spoke от 'merchant_goran' → 1 обработчиков, 0 результатов
+2026-07-03 00:08:31,540 app.services.events.event_bus INFO: [EVENT_BUS] npc_spoke от 'blacksmith_orm' → 1 обработчиков, 0 результатов
+2026-07-03 00:08:31,540 app.services.tick_orchestrator INFO: [TICK_ORCH] Фаза 6: 2 intents → EventDTO, 0 windups created
+2026-07-03 00:08:31,541 app.services.tick_orchestrator WARNING: [CFRM_P2] phenomena_count=0 threats={}
+2026-07-03 00:08:31,543 app.services.perception.phenomenology_projection_service INFO: [PERCEPTION_PROJECTOR] Traces=0 Cues=0
+2026-07-03 00:08:31,543 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT_BUILD] npc_count=6 keys=['maid_lusya', 'guard_borko', 'blacksmith_orm', 'tavern_keeper_tornin', 'thief_shadow'] location=tavern_silver_wolf
+2026-07-03 00:08:31,543 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=maid_lusya x=11.0 y=4.0
+2026-07-03 00:08:31,543 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=guard_borko x=11.0 y=4.0
+2026-07-03 00:08:31,543 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=blacksmith_orm x=11.0 y=4.0
+2026-07-03 00:08:31,543 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=tavern_keeper_tornin x=11.0 y=4.0
+2026-07-03 00:08:31,543 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=thief_shadow x=11.0 y=4.0
+2026-07-03 00:08:31,543 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=merchant_goran x=11.0 y=4.0
+2026-07-03 00:08:31,544 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=guard_borko threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.31,c=0.35,s=0.26] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:08:31,544 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=merchant_goran threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.15,c=0.20,s=0.25] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:08:31,544 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=maid_lusya threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.52,c=0.12,s=0.15] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:08:31,544 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=blacksmith_orm threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.05,c=0.35,s=0.15] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:08:31,544 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=thief_shadow threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.10,c=0.30,s=0.20] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:08:31,544 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=tavern_keeper_tornin threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.15,c=0.50,s=0.25] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:08:31,545 app.services.scene_state_manager INFO: [SCENE] Применено 6/6 изменений (in-memory, persist=Phase10)
+2026-07-03 00:08:31,549 app.services.perception.phenomenology_projection_service INFO: [PERCEPTION_PROJECTOR] Traces=0 Cues=0
+2026-07-03 00:08:34,364 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-03 00:08:34,365 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_east → city_gate (east), linked to tavern_silver_wolf:kitchen
+2026-07-03 00:08:34,365 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_south → market_square (south), linked to tavern_silver_wolf:entrance
+2026-07-03 00:08:34,365 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern_silver_wolf: compiled 10 nodes, 10 edges, 25 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-03 00:08:34,367 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-03 00:08:34,368 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_east → city_gate (east), linked to tavern_silver_wolf:kitchen
+2026-07-03 00:08:34,368 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_south → market_square (south), linked to tavern_silver_wolf:entrance
+2026-07-03 00:08:34,368 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern_silver_wolf: compiled 10 nodes, 10 edges, 25 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-03 00:08:34,369 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_east → city_gate (east), linked to tavern_silver_wolf:kitchen
+2026-07-03 00:08:34,369 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_south → market_square (south), linked to tavern_silver_wolf:entrance
+2026-07-03 00:08:34,369 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern_silver_wolf: compiled 10 nodes, 10 edges, 25 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-03 00:08:34,369 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=2916129318832 tick=9
+2026-07-03 00:08:34,370 app.services.tick_orchestrator INFO: [CFRM] ClusterOccupancy rebuild: 6 entities in 0.00ms
+2026-07-03 00:08:34,372 app.services.scene_state_manager INFO: [SCENE] Применено 6/6 изменений (in-memory, persist=Phase10)
+2026-07-03 00:08:34,372 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=guard_borko → zone=tavern_silver_wolf:bar_area reason=need_driven:social_urge=0.72 exact_xy=(4.0, 4.0)
+2026-07-03 00:08:34,372 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=merchant_goran → zone=tavern_silver_wolf:bar_area reason=need_driven:social_urge=0.72 exact_xy=(4.0, 4.0)
+2026-07-03 00:08:34,372 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=maid_lusya → zone=tavern_silver_wolf:bar_area reason=need_driven:social_urge=0.72 exact_xy=(4.0, 4.0)
+2026-07-03 00:08:34,372 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=blacksmith_orm → zone=tavern_silver_wolf:bar_area reason=need_driven:social_urge=0.72 exact_xy=(4.0, 4.0)
+2026-07-03 00:08:34,373 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=thief_shadow → zone=tavern_silver_wolf:bar_area reason=need_driven:social_urge=0.72 exact_xy=(4.0, 4.0)
+2026-07-03 00:08:34,373 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=tavern_keeper_tornin → zone=tavern_silver_wolf:bar_area reason=need_driven:social_urge=0.72 exact_xy=(4.0, 4.0)
+2026-07-03 00:08:34,373 app.models.world_snapshot INFO: [SNAPSHOT_CREATED] id=396dc979 tick=9 location=tavern_silver_wolf npcs=6 traversals=0 rng_seed=9
+2026-07-03 00:08:34,373 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=guard_borko field=position cause=semantic_relocation:need_driven:social_urge=0.72 spatial=yes traversal=NEW
+2026-07-03 00:08:34,373 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=merchant_goran field=position cause=semantic_relocation:need_driven:social_urge=0.72 spatial=yes traversal=NEW
+2026-07-03 00:08:34,373 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=maid_lusya field=position cause=semantic_relocation:need_driven:social_urge=0.72 spatial=yes traversal=NEW
+2026-07-03 00:08:34,373 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=blacksmith_orm field=position cause=semantic_relocation:need_driven:social_urge=0.72 spatial=yes traversal=NEW
+2026-07-03 00:08:34,373 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=thief_shadow field=position cause=semantic_relocation:need_driven:social_urge=0.72 spatial=yes traversal=NEW
+2026-07-03 00:08:34,373 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=tavern_keeper_tornin field=position cause=semantic_relocation:need_driven:social_urge=0.72 spatial=yes traversal=NEW
+2026-07-03 00:08:34,373 app.services.tick_orchestrator INFO: [DUAL_RAIL][IDLE_SPATIAL] spatial_changes=6 shadow_compiled=6 snapshot_id=396dc979
+2026-07-03 00:08:34,373 app.services.scene_state_manager WARNING: [DIAG_V] DUPLICATE_POSITION_CHANGE npc=guard_borko node=tavern_silver_wolf:bar_area — from_node == target_node risk!
+2026-07-03 00:08:34,373 app.services.scene_state_manager WARNING: [DIAG_V] DUPLICATE_POSITION_CHANGE npc=merchant_goran node=tavern_silver_wolf:bar_area — from_node == target_node risk!
+2026-07-03 00:08:34,373 app.services.scene_state_manager WARNING: [DIAG_V] DUPLICATE_POSITION_CHANGE npc=maid_lusya node=tavern_silver_wolf:bar_area — from_node == target_node risk!
+2026-07-03 00:08:34,373 app.services.scene_state_manager WARNING: [DIAG_V] DUPLICATE_POSITION_CHANGE npc=blacksmith_orm node=tavern_silver_wolf:bar_area — from_node == target_node risk!
+2026-07-03 00:08:34,373 app.services.scene_state_manager WARNING: [DIAG_V] DUPLICATE_POSITION_CHANGE npc=thief_shadow node=tavern_silver_wolf:bar_area — from_node == target_node risk!
+2026-07-03 00:08:34,373 app.services.scene_state_manager WARNING: [DIAG_V] DUPLICATE_POSITION_CHANGE npc=tavern_keeper_tornin node=tavern_silver_wolf:bar_area — from_node == target_node risk!
+2026-07-03 00:08:34,373 app.services.scene_state_manager INFO: [SCENE] Применено 6/6 изменений (in-memory, persist=Phase10)
+2026-07-03 00:08:34,373 app.services.tick_orchestrator INFO: [TICK_ORCH] Фаза 0: 6 spatial changes from 6 LifeEngine intents
+2026-07-03 00:08:34,373 app.services.tick_orchestrator INFO: [PHASE_5_UNIFIED] ENTER: tick=9, interventions=0
+2026-07-03 00:08:34,377 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] guard_borko: intent=Intent.ambush score=0.350 event=unknown
+2026-07-03 00:08:34,377 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] merchant_goran: intent=Intent.offer_job score=0.327 event=unknown
+2026-07-03 00:08:34,378 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] maid_lusya: intent=Intent.request_service score=0.283 event=unknown
+2026-07-03 00:08:34,379 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] blacksmith_orm: intent=Intent.request_service score=0.470 event=unknown
+2026-07-03 00:08:34,380 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] thief_shadow: intent=Intent.change_role score=0.360 event=unknown
+2026-07-03 00:08:34,380 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] tavern_keeper_tornin: intent=Intent.spread_rumor score=0.266 event=unknown
+2026-07-03 00:08:34,381 app.services.events.event_bus INFO: [EVENT_BUS] npc_spoke от 'merchant_goran' → 1 обработчиков, 0 результатов
+2026-07-03 00:08:34,381 app.services.events.event_bus INFO: [EVENT_BUS] npc_spoke от 'maid_lusya' → 1 обработчиков, 0 результатов
+2026-07-03 00:08:34,381 app.services.events.event_bus INFO: [EVENT_BUS] npc_spoke от 'blacksmith_orm' → 1 обработчиков, 0 результатов
+2026-07-03 00:08:34,381 app.services.events.event_bus INFO: [EVENT_BUS] npc_spoke от 'tavern_keeper_tornin' → 1 обработчиков, 0 результатов
+2026-07-03 00:08:34,381 app.services.tick_orchestrator INFO: [TICK_ORCH] Фаза 6: 4 intents → EventDTO, 0 windups created
+2026-07-03 00:08:34,383 app.services.tick_orchestrator WARNING: [CFRM_P2] phenomena_count=0 threats={}
+2026-07-03 00:08:34,385 app.services.perception.phenomenology_projection_service INFO: [PERCEPTION_PROJECTOR] Traces=0 Cues=0
+2026-07-03 00:08:34,385 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT_BUILD] npc_count=6 keys=['maid_lusya', 'guard_borko', 'blacksmith_orm', 'tavern_keeper_tornin', 'thief_shadow'] location=tavern_silver_wolf
+2026-07-03 00:08:34,385 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=maid_lusya x=4.0 y=4.0
+2026-07-03 00:08:34,385 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=guard_borko x=4.0 y=4.0
+2026-07-03 00:08:34,385 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=blacksmith_orm x=4.0 y=4.0
+2026-07-03 00:08:34,385 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=tavern_keeper_tornin x=4.0 y=4.0
+2026-07-03 00:08:34,385 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=thief_shadow x=4.0 y=4.0
+2026-07-03 00:08:34,385 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=merchant_goran x=4.0 y=4.0
+2026-07-03 00:08:34,385 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=guard_borko threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.32,c=0.34,s=0.25] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:08:34,385 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=merchant_goran threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.15,c=0.20,s=0.25] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:08:34,386 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=maid_lusya threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.53,c=0.11,s=0.15] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:08:34,386 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=blacksmith_orm threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.05,c=0.35,s=0.15] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:08:34,386 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=thief_shadow threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.10,c=0.30,s=0.20] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:08:34,386 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=tavern_keeper_tornin threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.15,c=0.50,s=0.25] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:08:34,387 app.services.scene_state_manager INFO: [SCENE] Применено 6/6 изменений (in-memory, persist=Phase10)
+2026-07-03 00:08:34,393 app.services.perception.phenomenology_projection_service INFO: [PERCEPTION_PROJECTOR] Traces=0 Cues=0
+2026-07-03 00:08:36,367 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-03 00:08:36,368 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_east → city_gate (east), linked to tavern_silver_wolf:kitchen
+2026-07-03 00:08:36,368 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_south → market_square (south), linked to tavern_silver_wolf:entrance
+2026-07-03 00:08:36,368 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern_silver_wolf: compiled 10 nodes, 10 edges, 25 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-03 00:08:36,371 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-03 00:08:36,372 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_east → city_gate (east), linked to tavern_silver_wolf:kitchen
+2026-07-03 00:08:36,372 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_south → market_square (south), linked to tavern_silver_wolf:entrance
+2026-07-03 00:08:36,372 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern_silver_wolf: compiled 10 nodes, 10 edges, 25 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-03 00:08:36,373 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_east → city_gate (east), linked to tavern_silver_wolf:kitchen
+2026-07-03 00:08:36,373 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_south → market_square (south), linked to tavern_silver_wolf:entrance
+2026-07-03 00:08:36,373 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern_silver_wolf: compiled 10 nodes, 10 edges, 25 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-03 00:08:36,373 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=2916129318832 tick=10
+2026-07-03 00:08:36,374 app.services.tick_orchestrator INFO: [CFRM] ClusterOccupancy rebuild: 6 entities in 0.00ms
+2026-07-03 00:08:36,374 app.services.npc.life_engine ERROR: [LIFE_ENGINE][NO_POSITION] npc=merchant_goran has no location AND no position. Activity='market_trading'. Data integrity bug — investigate npc_state. Returning None; caller must skip movement intent.
+2026-07-03 00:08:36,377 app.services.scene_state_manager INFO: [SCENE] Применено 8/8 изменений (in-memory, persist=Phase10)
+2026-07-03 00:08:36,377 app.services.spatial.movement_engine INFO: [CROSS_LOC_INTERCEPT] npc=guard_borko target=city_gate rerouted to boundary tavern_silver_wolf:exit_east in tavern_silver_wolf
+2026-07-03 00:08:36,377 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=guard_borko → zone=exit_east reason=schedule:guarding_gate exact_xy=(18.0, 7.25)
+2026-07-03 00:08:36,377 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=blacksmith_orm → zone=tavern_silver_wolf:kitchen reason=schedule:working exact_xy=(16.0, 4.0)
+2026-07-03 00:08:36,378 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=thief_shadow → zone=corner_table reason=schedule:sleeping exact_xy=(12.0, 10.0)
+2026-07-03 00:08:36,378 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=tavern_keeper_tornin → zone=tavern_silver_wolf:kitchen reason=schedule:working exact_xy=(16.0, 4.0)
+2026-07-03 00:08:36,378 app.models.world_snapshot INFO: [SNAPSHOT_CREATED] id=b41ca22a tick=10 location=tavern_silver_wolf npcs=6 traversals=0 rng_seed=10
+2026-07-03 00:08:36,378 app.services.event_compiler INFO: [SHADOW_COMPILER] pathfinding: npc=guard_borko via 2 intermediate nodes
+2026-07-03 00:08:36,378 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=guard_borko field=position cause=semantic_relocation:schedule:guarding_gate spatial=yes traversal=NEW
+2026-07-03 00:08:36,378 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=blacksmith_orm field=position cause=semantic_relocation:schedule:working spatial=yes traversal=NEW
+2026-07-03 00:08:36,378 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=thief_shadow field=position cause=semantic_relocation:schedule:sleeping spatial=yes traversal=NEW
+2026-07-03 00:08:36,378 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=tavern_keeper_tornin field=position cause=semantic_relocation:schedule:working spatial=yes traversal=NEW
+2026-07-03 00:08:36,378 app.services.tick_orchestrator INFO: [DUAL_RAIL][IDLE_SPATIAL] spatial_changes=4 shadow_compiled=4 snapshot_id=b41ca22a
+2026-07-03 00:08:36,378 app.services.scene_state_manager WARNING: [DIAG_V] DUPLICATE_POSITION_CHANGE npc=guard_borko node=exit_east — from_node == target_node risk!
+2026-07-03 00:08:36,378 app.services.scene_state_manager WARNING: [DIAG_V] DUPLICATE_POSITION_CHANGE npc=blacksmith_orm node=tavern_silver_wolf:kitchen — from_node == target_node risk!
+2026-07-03 00:08:36,378 app.services.scene_state_manager WARNING: [DIAG_V] DUPLICATE_POSITION_CHANGE npc=thief_shadow node=corner_table — from_node == target_node risk!
+2026-07-03 00:08:36,378 app.services.scene_state_manager WARNING: [DIAG_V] DUPLICATE_POSITION_CHANGE npc=tavern_keeper_tornin node=tavern_silver_wolf:kitchen — from_node == target_node risk!
+2026-07-03 00:08:36,378 app.services.scene_state_manager INFO: [SCENE] Применено 4/4 изменений (in-memory, persist=Phase10)
+2026-07-03 00:08:36,378 app.services.tick_orchestrator INFO: [TICK_ORCH] Фаза 0: 4 spatial changes from 4 LifeEngine intents
+2026-07-03 00:08:36,395 app.services.tick_orchestrator INFO: [PHASE_5_UNIFIED] ENTER: tick=10, interventions=0
+2026-07-03 00:08:36,397 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] guard_borko: intent=Intent.ambush score=0.325 event=unknown
+2026-07-03 00:08:36,397 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] merchant_goran: intent=Intent.request_service score=0.413 event=unknown
+2026-07-03 00:08:36,398 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] maid_lusya: intent=Intent.offer_job score=0.251 event=unknown
+2026-07-03 00:08:36,398 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] blacksmith_orm: intent=Intent.offer_job score=0.496 event=unknown
+2026-07-03 00:08:36,399 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] thief_shadow: intent=Intent.request_service score=0.378 event=unknown
+2026-07-03 00:08:36,400 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] tavern_keeper_tornin: intent=Intent.seek_ally score=0.281 event=unknown
+2026-07-03 00:08:36,400 app.services.events.event_bus INFO: [EVENT_BUS] npc_spoke от 'merchant_goran' → 1 обработчиков, 0 результатов
+2026-07-03 00:08:36,400 app.services.events.event_bus INFO: [EVENT_BUS] npc_spoke от 'maid_lusya' → 1 обработчиков, 0 результатов
+2026-07-03 00:08:36,400 app.services.events.event_bus INFO: [EVENT_BUS] npc_spoke от 'blacksmith_orm' → 1 обработчиков, 0 результатов
+2026-07-03 00:08:36,401 app.services.events.event_bus INFO: [EVENT_BUS] npc_spoke от 'thief_shadow' → 1 обработчиков, 0 результатов
+2026-07-03 00:08:36,401 app.services.tick_orchestrator INFO: [TICK_ORCH] Фаза 6: 4 intents → EventDTO, 0 windups created
+2026-07-03 00:08:36,402 app.services.tick_orchestrator WARNING: [CFRM_P2] phenomena_count=0 threats={}
+2026-07-03 00:08:36,404 app.services.perception.phenomenology_projection_service INFO: [PERCEPTION_PROJECTOR] Traces=0 Cues=0
+2026-07-03 00:08:36,404 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT_BUILD] npc_count=6 keys=['maid_lusya', 'guard_borko', 'blacksmith_orm', 'tavern_keeper_tornin', 'thief_shadow'] location=tavern_silver_wolf
+2026-07-03 00:08:36,404 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=maid_lusya x=4.0 y=4.0
+2026-07-03 00:08:36,404 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=guard_borko x=18.0 y=7.25
+2026-07-03 00:08:36,404 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=blacksmith_orm x=16.0 y=4.0
+2026-07-03 00:08:36,404 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=tavern_keeper_tornin x=16.0 y=4.0
+2026-07-03 00:08:36,404 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=merchant_goran x=4.0 y=4.0
+2026-07-03 00:08:36,404 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=guard_borko threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.33,c=0.33,s=0.25] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:08:36,404 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=merchant_goran threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.15,c=0.20,s=0.25] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:08:36,404 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=maid_lusya threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.53,c=0.11,s=0.14] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:08:36,404 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=blacksmith_orm threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.05,c=0.35,s=0.15] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:08:36,404 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=thief_shadow threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.10,c=0.30,s=0.20] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:08:36,404 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=tavern_keeper_tornin threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.15,c=0.50,s=0.25] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:08:36,406 app.services.scene_state_manager INFO: [SCENE] Применено 8/8 изменений (in-memory, persist=Phase10)
+2026-07-03 00:08:36,409 app.services.perception.phenomenology_projection_service INFO: [PERCEPTION_PROJECTOR] Traces=0 Cues=0
+2026-07-03 00:08:38,362 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-03 00:08:38,363 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_east → city_gate (east), linked to tavern_silver_wolf:kitchen
+2026-07-03 00:08:38,363 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_south → market_square (south), linked to tavern_silver_wolf:entrance
+2026-07-03 00:08:38,363 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern_silver_wolf: compiled 10 nodes, 10 edges, 25 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-03 00:08:38,366 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-03 00:08:38,367 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_east → city_gate (east), linked to tavern_silver_wolf:kitchen
+2026-07-03 00:08:38,367 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_south → market_square (south), linked to tavern_silver_wolf:entrance
+2026-07-03 00:08:38,367 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern_silver_wolf: compiled 10 nodes, 10 edges, 25 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-03 00:08:38,368 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_east → city_gate (east), linked to tavern_silver_wolf:kitchen
+2026-07-03 00:08:38,368 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_south → market_square (south), linked to tavern_silver_wolf:entrance
+2026-07-03 00:08:38,368 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern_silver_wolf: compiled 10 nodes, 10 edges, 25 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-03 00:08:38,368 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=2916129318832 tick=11
+2026-07-03 00:08:38,369 app.services.tick_orchestrator INFO: [CFRM] ClusterOccupancy rebuild: 6 entities in 0.00ms
+2026-07-03 00:08:38,369 app.services.npc.life_engine ERROR: [LIFE_ENGINE][NO_POSITION] npc=merchant_goran has no location AND no position. Activity='market_trading'. Data integrity bug — investigate npc_state. Returning None; caller must skip movement intent.
+2026-07-03 00:08:38,370 app.services.tick_orchestrator INFO: [PHASE_5_UNIFIED] ENTER: tick=11, interventions=0
+2026-07-03 00:08:38,372 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] guard_borko: intent=Intent.block_path score=0.357 event=unknown
+2026-07-03 00:08:38,373 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] merchant_goran: intent=Intent.offer_job score=0.436 event=unknown
+2026-07-03 00:08:38,373 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] maid_lusya: intent=Intent.change_role score=0.288 event=unknown
+2026-07-03 00:08:38,374 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] blacksmith_orm: intent=Intent.request_service score=0.465 event=unknown
+2026-07-03 00:08:38,374 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] thief_shadow: intent=Intent.ambush score=0.318 event=unknown
+2026-07-03 00:08:38,375 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] tavern_keeper_tornin: intent=Intent.seek_ally score=0.295 event=unknown
+2026-07-03 00:08:38,376 app.services.events.event_bus INFO: [EVENT_BUS] npc_spoke от 'merchant_goran' → 1 обработчиков, 0 результатов
+2026-07-03 00:08:38,376 app.services.events.event_bus INFO: [EVENT_BUS] npc_spoke от 'blacksmith_orm' → 1 обработчиков, 0 результатов
+2026-07-03 00:08:38,376 app.services.tick_orchestrator INFO: [TICK_ORCH] Фаза 6: 2 intents → EventDTO, 0 windups created
+2026-07-03 00:08:38,377 app.services.tick_orchestrator WARNING: [CFRM_P2] phenomena_count=0 threats={}
+2026-07-03 00:08:38,379 app.services.perception.phenomenology_projection_service INFO: [PERCEPTION_PROJECTOR] Traces=0 Cues=0
+2026-07-03 00:08:38,379 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT_BUILD] npc_count=6 keys=['maid_lusya', 'guard_borko', 'blacksmith_orm', 'tavern_keeper_tornin', 'thief_shadow'] location=tavern_silver_wolf
+2026-07-03 00:08:38,379 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=maid_lusya x=4.0 y=4.0
+2026-07-03 00:08:38,379 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=guard_borko x=18.0 y=7.25
+2026-07-03 00:08:38,379 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=blacksmith_orm x=16.0 y=4.0
+2026-07-03 00:08:38,379 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=tavern_keeper_tornin x=16.0 y=4.0
+2026-07-03 00:08:38,379 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=thief_shadow x=4.0 y=4.0
+2026-07-03 00:08:38,379 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=merchant_goran x=4.0 y=4.0
+2026-07-03 00:08:38,379 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=guard_borko threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.35,c=0.33,s=0.24] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:08:38,380 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=merchant_goran threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.15,c=0.20,s=0.25] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:08:38,380 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=maid_lusya threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.52,c=0.11,s=0.14] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:08:38,380 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=blacksmith_orm threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.05,c=0.35,s=0.15] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:08:38,380 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=thief_shadow threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.10,c=0.30,s=0.20] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:08:38,380 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=tavern_keeper_tornin threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.15,c=0.50,s=0.25] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:08:38,383 app.services.perception.phenomenology_projection_service INFO: [PERCEPTION_PROJECTOR] Traces=0 Cues=0
+2026-07-03 00:08:40,376 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-03 00:08:40,377 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_east → city_gate (east), linked to tavern_silver_wolf:kitchen
+2026-07-03 00:08:40,377 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_south → market_square (south), linked to tavern_silver_wolf:entrance
+2026-07-03 00:08:40,378 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern_silver_wolf: compiled 10 nodes, 10 edges, 25 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-03 00:08:40,381 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-03 00:08:40,381 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_east → city_gate (east), linked to tavern_silver_wolf:kitchen
+2026-07-03 00:08:40,382 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_south → market_square (south), linked to tavern_silver_wolf:entrance
+2026-07-03 00:08:40,382 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern_silver_wolf: compiled 10 nodes, 10 edges, 25 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-03 00:08:40,383 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_east → city_gate (east), linked to tavern_silver_wolf:kitchen
+2026-07-03 00:08:40,383 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_south → market_square (south), linked to tavern_silver_wolf:entrance
+2026-07-03 00:08:40,383 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern_silver_wolf: compiled 10 nodes, 10 edges, 25 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-03 00:08:40,384 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=2916129318832 tick=12
+2026-07-03 00:08:40,384 app.services.tick_orchestrator INFO: [CFRM] ClusterOccupancy rebuild: 6 entities in 0.00ms
+2026-07-03 00:08:40,384 app.services.npc.life_engine ERROR: [LIFE_ENGINE][NO_POSITION] npc=merchant_goran has no location AND no position. Activity='market_trading'. Data integrity bug — investigate npc_state. Returning None; caller must skip movement intent.
+2026-07-03 00:08:40,386 app.services.scene_state_manager INFO: [SCENE] Применено 1/1 изменений (in-memory, persist=Phase10)
+2026-07-03 00:08:40,386 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=merchant_goran → zone=bar_area reason=random:wanders_to_bar exact_xy=(4.0, 4.0)
+2026-07-03 00:08:40,386 app.models.world_snapshot INFO: [SNAPSHOT_CREATED] id=910bd50a tick=12 location=tavern_silver_wolf npcs=6 traversals=0 rng_seed=12
+2026-07-03 00:08:40,386 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=merchant_goran field=position cause=semantic_relocation:random:wanders_to_bar spatial=yes traversal=none
+2026-07-03 00:08:40,386 app.services.tick_orchestrator INFO: [DUAL_RAIL][IDLE_SPATIAL] spatial_changes=1 shadow_compiled=1 snapshot_id=910bd50a
+2026-07-03 00:08:40,387 app.services.scene_state_manager WARNING: [DIAG_V] DUPLICATE_POSITION_CHANGE npc=merchant_goran node=bar_area — from_node == target_node risk!
+2026-07-03 00:08:40,387 app.services.scene_state_manager INFO: [SCENE] Применено 1/1 изменений (in-memory, persist=Phase10)
+2026-07-03 00:08:40,387 app.services.tick_orchestrator INFO: [TICK_ORCH] Фаза 0: 1 spatial changes from 1 LifeEngine intents
+2026-07-03 00:08:40,387 app.services.tick_orchestrator INFO: [PHASE_5_UNIFIED] ENTER: tick=12, interventions=0
+2026-07-03 00:08:40,389 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] guard_borko: intent=Intent.ambush score=0.354 event=unknown
+2026-07-03 00:08:40,390 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] merchant_goran: intent=Intent.offer_job score=0.440 event=unknown
+2026-07-03 00:08:40,391 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] maid_lusya: intent=Intent.request_service score=0.278 event=unknown
+2026-07-03 00:08:40,391 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] blacksmith_orm: intent=Intent.offer_job score=0.491 event=unknown
+2026-07-03 00:08:40,392 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] thief_shadow: intent=Intent.offer_job score=0.379 event=unknown
+2026-07-03 00:08:40,393 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] tavern_keeper_tornin: intent=Intent.seek_ally score=0.295 event=unknown
+2026-07-03 00:08:40,394 app.services.events.event_bus INFO: [EVENT_BUS] npc_spoke от 'merchant_goran' → 1 обработчиков, 0 результатов
+2026-07-03 00:08:40,394 app.services.events.event_bus INFO: [EVENT_BUS] npc_spoke от 'maid_lusya' → 1 обработчиков, 0 результатов
+2026-07-03 00:08:40,394 app.services.events.event_bus INFO: [EVENT_BUS] npc_spoke от 'blacksmith_orm' → 1 обработчиков, 0 результатов
+2026-07-03 00:08:40,394 app.services.events.event_bus INFO: [EVENT_BUS] npc_spoke от 'thief_shadow' → 1 обработчиков, 0 результатов
+2026-07-03 00:08:40,394 app.services.tick_orchestrator INFO: [TICK_ORCH] Фаза 6: 4 intents → EventDTO, 0 windups created
+2026-07-03 00:08:40,395 app.services.tick_orchestrator WARNING: [CFRM_P2] phenomena_count=0 threats={}
+2026-07-03 00:08:40,397 app.services.perception.phenomenology_projection_service INFO: [PERCEPTION_PROJECTOR] Traces=0 Cues=0
+2026-07-03 00:08:40,397 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT_BUILD] npc_count=6 keys=['maid_lusya', 'guard_borko', 'blacksmith_orm', 'tavern_keeper_tornin', 'thief_shadow'] location=tavern_silver_wolf
+2026-07-03 00:08:40,397 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=maid_lusya x=4.0 y=4.0
+2026-07-03 00:08:40,398 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=guard_borko x=18.0 y=7.25
+2026-07-03 00:08:40,398 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=blacksmith_orm x=16.0 y=4.0
+2026-07-03 00:08:40,398 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=tavern_keeper_tornin x=16.0 y=4.0
+2026-07-03 00:08:40,398 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=thief_shadow x=4.0 y=4.0
+2026-07-03 00:08:40,398 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=merchant_goran x=4.0 y=4.0
+2026-07-03 00:08:40,398 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=guard_borko threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.36,c=0.32,s=0.24] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:08:40,398 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=merchant_goran threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.15,c=0.20,s=0.25] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:08:40,398 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=maid_lusya threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.51,c=0.11,s=0.15] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:08:40,398 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=blacksmith_orm threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.05,c=0.35,s=0.15] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:08:40,398 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=thief_shadow threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.10,c=0.30,s=0.20] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:08:40,398 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=tavern_keeper_tornin threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.15,c=0.50,s=0.25] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:08:40,399 app.services.scene_state_manager INFO: [SCENE] Применено 1/1 изменений (in-memory, persist=Phase10)
+2026-07-03 00:08:40,402 app.services.perception.phenomenology_projection_service INFO: [PERCEPTION_PROJECTOR] Traces=0 Cues=0
+2026-07-03 00:08:48,387 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-03 00:08:48,388 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_east → city_gate (east), linked to tavern_silver_wolf:kitchen
+2026-07-03 00:08:48,388 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_south → market_square (south), linked to tavern_silver_wolf:entrance
+2026-07-03 00:08:48,388 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern_silver_wolf: compiled 10 nodes, 10 edges, 25 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-03 00:08:48,391 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-03 00:08:48,392 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_east → city_gate (east), linked to tavern_silver_wolf:kitchen
+2026-07-03 00:08:48,392 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_south → market_square (south), linked to tavern_silver_wolf:entrance
+2026-07-03 00:08:48,392 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern_silver_wolf: compiled 10 nodes, 10 edges, 25 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-03 00:08:48,394 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_east → city_gate (east), linked to tavern_silver_wolf:kitchen
+2026-07-03 00:08:48,394 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_south → market_square (south), linked to tavern_silver_wolf:entrance
+2026-07-03 00:08:48,394 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern_silver_wolf: compiled 10 nodes, 10 edges, 25 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-03 00:08:48,394 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=2916129318832 tick=13
+2026-07-03 00:08:48,394 app.services.tick_orchestrator INFO: [CFRM] ClusterOccupancy rebuild: 6 entities in 0.00ms
+2026-07-03 00:08:48,395 app.services.npc.life_engine ERROR: [LIFE_ENGINE][NO_POSITION] npc=merchant_goran has no location AND no position. Activity='market_trading'. Data integrity bug — investigate npc_state. Returning None; caller must skip movement intent.
+2026-07-03 00:08:48,396 app.services.tick_orchestrator INFO: [PHASE_5_UNIFIED] ENTER: tick=13, interventions=0
+2026-07-03 00:08:48,397 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] guard_borko: intent=Intent.ambush score=0.310 event=unknown
+2026-07-03 00:08:48,398 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] merchant_goran: intent=Intent.offer_job score=0.395 event=unknown
+2026-07-03 00:08:48,399 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] maid_lusya: intent=Intent.offer_job score=0.236 event=unknown
+2026-07-03 00:08:48,399 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] blacksmith_orm: intent=Intent.request_service score=0.500 event=unknown
+2026-07-03 00:08:48,400 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] thief_shadow: intent=Intent.request_service score=0.392 event=unknown
+2026-07-03 00:08:48,401 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] tavern_keeper_tornin: intent=Intent.spread_rumor score=0.245 event=unknown
+2026-07-03 00:08:48,402 app.services.events.event_bus INFO: [EVENT_BUS] npc_spoke от 'merchant_goran' → 1 обработчиков, 0 результатов
+2026-07-03 00:08:48,402 app.services.events.event_bus INFO: [EVENT_BUS] npc_spoke от 'maid_lusya' → 1 обработчиков, 0 результатов
+2026-07-03 00:08:48,402 app.services.events.event_bus INFO: [EVENT_BUS] npc_spoke от 'blacksmith_orm' → 1 обработчиков, 0 результатов
+2026-07-03 00:08:48,402 app.services.events.event_bus INFO: [EVENT_BUS] npc_spoke от 'thief_shadow' → 1 обработчиков, 0 результатов
+2026-07-03 00:08:48,402 app.services.events.event_bus INFO: [EVENT_BUS] npc_spoke от 'tavern_keeper_tornin' → 1 обработчиков, 0 результатов
+2026-07-03 00:08:48,402 app.services.tick_orchestrator INFO: [TICK_ORCH] Фаза 6: 5 intents → EventDTO, 0 windups created
+2026-07-03 00:08:48,403 app.services.tick_orchestrator WARNING: [CFRM_P2] phenomena_count=0 threats={}
+2026-07-03 00:08:48,406 app.services.perception.phenomenology_projection_service INFO: [PERCEPTION_PROJECTOR] Traces=0 Cues=0
+2026-07-03 00:08:48,406 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT_BUILD] npc_count=6 keys=['maid_lusya', 'guard_borko', 'blacksmith_orm', 'tavern_keeper_tornin', 'thief_shadow'] location=tavern_silver_wolf
+2026-07-03 00:08:48,406 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=maid_lusya x=4.0 y=4.0
+2026-07-03 00:08:48,406 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=guard_borko x=18.0 y=7.25
+2026-07-03 00:08:48,406 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=blacksmith_orm x=16.0 y=4.0
+2026-07-03 00:08:48,407 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=tavern_keeper_tornin x=16.0 y=4.0
+2026-07-03 00:08:48,407 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=thief_shadow x=4.0 y=4.0
+2026-07-03 00:08:48,407 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=merchant_goran x=4.0 y=4.0
+2026-07-03 00:08:48,407 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=guard_borko threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.37,c=0.31,s=0.24] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:08:48,407 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=merchant_goran threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.15,c=0.20,s=0.25] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:08:48,407 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=maid_lusya threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.51,c=0.11,s=0.15] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:08:48,407 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=blacksmith_orm threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.05,c=0.35,s=0.15] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:08:48,407 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=thief_shadow threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.10,c=0.30,s=0.20] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:08:48,407 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=tavern_keeper_tornin threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.15,c=0.50,s=0.25] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:08:48,411 app.services.perception.phenomenology_projection_service INFO: [PERCEPTION_PROJECTOR] Traces=0 Cues=0
+2026-07-03 00:08:50,522 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-03 00:08:50,524 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_east → city_gate (east), linked to tavern_silver_wolf:kitchen
+2026-07-03 00:08:50,524 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_south → market_square (south), linked to tavern_silver_wolf:entrance
+2026-07-03 00:08:50,524 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern_silver_wolf: compiled 10 nodes, 10 edges, 25 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-03 00:08:50,527 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-03 00:08:50,528 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_east → city_gate (east), linked to tavern_silver_wolf:kitchen
+2026-07-03 00:08:50,528 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_south → market_square (south), linked to tavern_silver_wolf:entrance
+2026-07-03 00:08:50,528 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern_silver_wolf: compiled 10 nodes, 10 edges, 25 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-03 00:08:50,529 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_east → city_gate (east), linked to tavern_silver_wolf:kitchen
+2026-07-03 00:08:50,529 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_south → market_square (south), linked to tavern_silver_wolf:entrance
+2026-07-03 00:08:50,529 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern_silver_wolf: compiled 10 nodes, 10 edges, 25 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-03 00:08:50,529 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=2916129318832 tick=14
+2026-07-03 00:08:50,530 app.services.tick_orchestrator INFO: [CFRM] ClusterOccupancy rebuild: 6 entities in 0.00ms
+2026-07-03 00:08:50,530 app.services.npc.life_engine ERROR: [LIFE_ENGINE][NO_POSITION] npc=merchant_goran has no location AND no position. Activity='market_trading'. Data integrity bug — investigate npc_state. Returning None; caller must skip movement intent.
+2026-07-03 00:08:50,531 app.services.scene_state_manager INFO: [SCENE] Применено 1/1 изменений (in-memory, persist=Phase10)
+2026-07-03 00:08:50,532 app.services.tick_orchestrator INFO: [PHASE_5_UNIFIED] ENTER: tick=14, interventions=0
+2026-07-03 00:08:50,534 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] guard_borko: intent=Intent.ambush score=0.302 event=unknown
+2026-07-03 00:08:50,534 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] merchant_goran: intent=Intent.change_role score=0.402 event=unknown
+2026-07-03 00:08:50,535 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] maid_lusya: intent=Intent.change_role score=0.311 event=unknown
+2026-07-03 00:08:50,536 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] blacksmith_orm: intent=Intent.request_service score=0.474 event=unknown
+2026-07-03 00:08:50,536 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] thief_shadow: intent=Intent.offer_job score=0.458 event=unknown
+2026-07-03 00:08:50,537 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] tavern_keeper_tornin: intent=Intent.spread_rumor score=0.257 event=unknown
+2026-07-03 00:08:50,539 app.services.events.event_bus INFO: [EVENT_BUS] npc_spoke от 'blacksmith_orm' → 1 обработчиков, 0 результатов
+2026-07-03 00:08:50,539 app.services.events.event_bus INFO: [EVENT_BUS] npc_spoke от 'thief_shadow' → 1 обработчиков, 0 результатов
+2026-07-03 00:08:50,539 app.services.events.event_bus INFO: [EVENT_BUS] npc_spoke от 'tavern_keeper_tornin' → 1 обработчиков, 0 результатов
+2026-07-03 00:08:50,539 app.services.tick_orchestrator INFO: [TICK_ORCH] Фаза 6: 3 intents → EventDTO, 0 windups created
+2026-07-03 00:08:50,540 app.services.tick_orchestrator WARNING: [CFRM_P2] phenomena_count=0 threats={}
+2026-07-03 00:08:50,543 app.services.perception.phenomenology_projection_service INFO: [PERCEPTION_PROJECTOR] Traces=0 Cues=0
+2026-07-03 00:08:50,543 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT_BUILD] npc_count=6 keys=['maid_lusya', 'guard_borko', 'blacksmith_orm', 'tavern_keeper_tornin', 'thief_shadow'] location=tavern_silver_wolf
+2026-07-03 00:08:50,543 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=maid_lusya x=4.0 y=4.0
+2026-07-03 00:08:50,543 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=guard_borko x=18.0 y=7.25
+2026-07-03 00:08:50,543 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=blacksmith_orm x=16.0 y=4.0
+2026-07-03 00:08:50,543 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=tavern_keeper_tornin x=16.0 y=4.0
+2026-07-03 00:08:50,543 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=thief_shadow x=4.0 y=4.0
+2026-07-03 00:08:50,543 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=merchant_goran x=4.0 y=4.0
+2026-07-03 00:08:50,543 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=guard_borko threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.38,c=0.31,s=0.23] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:08:50,543 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=merchant_goran threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.15,c=0.20,s=0.25] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:08:50,544 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=maid_lusya threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.51,c=0.11,s=0.15] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:08:50,544 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=blacksmith_orm threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.05,c=0.35,s=0.15] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:08:50,544 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=thief_shadow threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.10,c=0.30,s=0.20] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:08:50,544 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=tavern_keeper_tornin threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.15,c=0.50,s=0.25] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:08:50,544 app.services.scene_state_manager INFO: [SCENE] Применено 1/1 изменений (in-memory, persist=Phase10)
+2026-07-03 00:08:50,548 app.services.perception.phenomenology_projection_service INFO: [PERCEPTION_PROJECTOR] Traces=0 Cues=0
+2026-07-03 00:08:52,534 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-03 00:08:52,536 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_east → city_gate (east), linked to tavern_silver_wolf:kitchen
+2026-07-03 00:08:52,536 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_south → market_square (south), linked to tavern_silver_wolf:entrance
+2026-07-03 00:08:52,536 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern_silver_wolf: compiled 10 nodes, 10 edges, 25 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-03 00:08:52,538 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-03 00:08:52,539 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_east → city_gate (east), linked to tavern_silver_wolf:kitchen
+2026-07-03 00:08:52,539 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_south → market_square (south), linked to tavern_silver_wolf:entrance
+2026-07-03 00:08:52,539 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern_silver_wolf: compiled 10 nodes, 10 edges, 25 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-03 00:08:52,540 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_east → city_gate (east), linked to tavern_silver_wolf:kitchen
+2026-07-03 00:08:52,541 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_south → market_square (south), linked to tavern_silver_wolf:entrance
+2026-07-03 00:08:52,541 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern_silver_wolf: compiled 10 nodes, 10 edges, 25 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-03 00:08:52,541 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=2916129318832 tick=15
+2026-07-03 00:08:52,541 app.services.tick_orchestrator INFO: [CFRM] ClusterOccupancy rebuild: 6 entities in 0.00ms
+2026-07-03 00:08:52,544 app.services.scene_state_manager INFO: [SCENE] Применено 7/7 изменений (in-memory, persist=Phase10)
+2026-07-03 00:08:52,544 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=guard_borko → zone=tavern_silver_wolf:corner_table reason=need_driven:hunger=0.56 exact_xy=(12.0, 10.0)
+2026-07-03 00:08:52,544 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=merchant_goran → zone=tavern_silver_wolf:corner_table reason=need_driven:hunger=0.56 exact_xy=(12.0, 10.0)
+2026-07-03 00:08:52,544 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=maid_lusya → zone=main_hall reason=need_driven:hunger=0.56 exact_xy=(8.0, 7.0)
+2026-07-03 00:08:52,544 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=blacksmith_orm → zone=tavern_silver_wolf:corner_table reason=need_driven:hunger=0.56 exact_xy=(12.0, 10.0)
+2026-07-03 00:08:52,544 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=thief_shadow → zone=main_hall reason=need_driven:hunger=0.56 exact_xy=(8.0, 7.0)
+2026-07-03 00:08:52,544 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=tavern_keeper_tornin → zone=tavern_silver_wolf:corner_table reason=need_driven:hunger=0.56 exact_xy=(12.0, 10.0)
+2026-07-03 00:08:52,544 app.models.world_snapshot INFO: [SNAPSHOT_CREATED] id=029d9e94 tick=15 location=tavern_silver_wolf npcs=6 traversals=0 rng_seed=15
+2026-07-03 00:08:52,544 app.services.event_compiler INFO: [SHADOW_COMPILER] pathfinding: npc=guard_borko via 2 intermediate nodes
+2026-07-03 00:08:52,544 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=guard_borko field=position cause=semantic_relocation:need_driven:hunger=0.56 spatial=yes traversal=NEW
+2026-07-03 00:08:52,544 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=merchant_goran field=position cause=semantic_relocation:need_driven:hunger=0.56 spatial=yes traversal=NEW
+2026-07-03 00:08:52,544 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=maid_lusya field=position cause=semantic_relocation:need_driven:hunger=0.56 spatial=yes traversal=NEW
+2026-07-03 00:08:52,544 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=blacksmith_orm field=position cause=semantic_relocation:need_driven:hunger=0.56 spatial=yes traversal=NEW
+2026-07-03 00:08:52,544 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=thief_shadow field=position cause=semantic_relocation:need_driven:hunger=0.56 spatial=yes traversal=NEW
+2026-07-03 00:08:52,544 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=tavern_keeper_tornin field=position cause=semantic_relocation:need_driven:hunger=0.56 spatial=yes traversal=NEW
+2026-07-03 00:08:52,544 app.services.tick_orchestrator INFO: [DUAL_RAIL][IDLE_SPATIAL] spatial_changes=6 shadow_compiled=6 snapshot_id=029d9e94
+2026-07-03 00:08:52,545 app.services.scene_state_manager WARNING: [DIAG_V] DUPLICATE_POSITION_CHANGE npc=guard_borko node=tavern_silver_wolf:corner_table — from_node == target_node risk!
+2026-07-03 00:08:52,545 app.services.scene_state_manager WARNING: [DIAG_V] DUPLICATE_POSITION_CHANGE npc=merchant_goran node=tavern_silver_wolf:corner_table — from_node == target_node risk!
+2026-07-03 00:08:52,545 app.services.scene_state_manager WARNING: [DIAG_V] DUPLICATE_POSITION_CHANGE npc=maid_lusya node=main_hall — from_node == target_node risk!
+2026-07-03 00:08:52,545 app.services.scene_state_manager WARNING: [DIAG_V] DUPLICATE_POSITION_CHANGE npc=blacksmith_orm node=tavern_silver_wolf:corner_table — from_node == target_node risk!
+2026-07-03 00:08:52,545 app.services.scene_state_manager WARNING: [DIAG_V] DUPLICATE_POSITION_CHANGE npc=thief_shadow node=main_hall — from_node == target_node risk!
+2026-07-03 00:08:52,545 app.services.scene_state_manager WARNING: [DIAG_V] DUPLICATE_POSITION_CHANGE npc=tavern_keeper_tornin node=tavern_silver_wolf:corner_table — from_node == target_node risk!
+2026-07-03 00:08:52,545 app.services.scene_state_manager INFO: [SCENE] Применено 6/6 изменений (in-memory, persist=Phase10)
+2026-07-03 00:08:52,545 app.services.tick_orchestrator INFO: [TICK_ORCH] Фаза 0: 6 spatial changes from 6 LifeEngine intents
+2026-07-03 00:08:52,553 app.services.tick_orchestrator INFO: [PHASE_5_UNIFIED] ENTER: tick=15, interventions=0
+2026-07-03 00:08:52,555 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] guard_borko: intent=Intent.block_path score=0.343 event=unknown
+2026-07-03 00:08:52,556 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] merchant_goran: intent=Intent.request_service score=0.443 event=unknown
+2026-07-03 00:08:52,556 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] maid_lusya: intent=Intent.offer_job score=0.298 event=unknown
+2026-07-03 00:08:52,557 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] blacksmith_orm: intent=Intent.offer_job score=0.452 event=unknown
+2026-07-03 00:08:52,558 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] thief_shadow: intent=Intent.offer_job score=0.362 event=unknown
+2026-07-03 00:08:52,558 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] tavern_keeper_tornin: intent=Intent.seek_ally score=0.298 event=unknown
+2026-07-03 00:08:52,559 app.services.events.event_bus INFO: [EVENT_BUS] npc_spoke от 'merchant_goran' → 1 обработчиков, 0 результатов
+2026-07-03 00:08:52,559 app.services.events.event_bus INFO: [EVENT_BUS] npc_spoke от 'maid_lusya' → 1 обработчиков, 0 результатов
+2026-07-03 00:08:52,559 app.services.events.event_bus INFO: [EVENT_BUS] npc_spoke от 'blacksmith_orm' → 1 обработчиков, 0 результатов
+2026-07-03 00:08:52,559 app.services.events.event_bus INFO: [EVENT_BUS] npc_spoke от 'thief_shadow' → 1 обработчиков, 0 результатов
+2026-07-03 00:08:52,559 app.services.tick_orchestrator INFO: [TICK_ORCH] Фаза 6: 4 intents → EventDTO, 0 windups created
+2026-07-03 00:08:52,560 app.services.tick_orchestrator WARNING: [CFRM_P2] phenomena_count=0 threats={}
+2026-07-03 00:08:52,563 app.services.perception.phenomenology_projection_service INFO: [PERCEPTION_PROJECTOR] Traces=0 Cues=0
+2026-07-03 00:08:52,563 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT_BUILD] npc_count=6 keys=['maid_lusya', 'guard_borko', 'blacksmith_orm', 'tavern_keeper_tornin', 'thief_shadow'] location=tavern_silver_wolf
+2026-07-03 00:08:52,563 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=maid_lusya x=8.0 y=7.0
+2026-07-03 00:08:52,563 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=guard_borko x=12.0 y=10.0
+2026-07-03 00:08:52,563 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=blacksmith_orm x=12.0 y=10.0
+2026-07-03 00:08:52,563 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=tavern_keeper_tornin x=12.0 y=10.0
+2026-07-03 00:08:52,563 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=merchant_goran x=12.0 y=10.0
+2026-07-03 00:08:52,563 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=guard_borko threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.40,c=0.30,s=0.23] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:08:52,563 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=merchant_goran threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.15,c=0.20,s=0.25] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:08:52,563 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=maid_lusya threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.51,c=0.11,s=0.15] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:08:52,563 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=blacksmith_orm threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.05,c=0.35,s=0.15] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:08:52,563 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=thief_shadow threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.10,c=0.30,s=0.20] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:08:52,563 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=tavern_keeper_tornin threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.15,c=0.50,s=0.25] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:08:52,565 app.services.scene_state_manager INFO: [SCENE] Применено 7/7 изменений (in-memory, persist=Phase10)
+2026-07-03 00:08:52,568 app.services.perception.phenomenology_projection_service INFO: [PERCEPTION_PROJECTOR] Traces=0 Cues=0
+2026-07-03 00:08:54,545 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-03 00:08:54,546 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_east → city_gate (east), linked to tavern_silver_wolf:kitchen
+2026-07-03 00:08:54,546 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_south → market_square (south), linked to tavern_silver_wolf:entrance
+2026-07-03 00:08:54,546 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern_silver_wolf: compiled 10 nodes, 10 edges, 25 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-03 00:08:54,549 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-03 00:08:54,550 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_east → city_gate (east), linked to tavern_silver_wolf:kitchen
+2026-07-03 00:08:54,550 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_south → market_square (south), linked to tavern_silver_wolf:entrance
+2026-07-03 00:08:54,550 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern_silver_wolf: compiled 10 nodes, 10 edges, 25 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-03 00:08:54,551 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_east → city_gate (east), linked to tavern_silver_wolf:kitchen
+2026-07-03 00:08:54,551 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_south → market_square (south), linked to tavern_silver_wolf:entrance
+2026-07-03 00:08:54,551 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern_silver_wolf: compiled 10 nodes, 10 edges, 25 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-03 00:08:54,551 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=2916129318832 tick=16
+2026-07-03 00:08:54,551 app.services.tick_orchestrator INFO: [CFRM] ClusterOccupancy rebuild: 6 entities in 0.00ms
+2026-07-03 00:08:54,554 app.services.scene_state_manager INFO: [SCENE] Применено 6/6 изменений (in-memory, persist=Phase10)
+2026-07-03 00:08:54,554 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=guard_borko → zone=tavern_silver_wolf:fireplace reason=need_driven:shelter_urge=0.56 exact_xy=(11.0, 4.0)
+2026-07-03 00:08:54,554 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=merchant_goran → zone=tavern_silver_wolf:fireplace reason=need_driven:shelter_urge=0.56 exact_xy=(11.0, 4.0)
+2026-07-03 00:08:54,554 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=maid_lusya → zone=fireplace reason=need_driven:shelter_urge=0.56 exact_xy=(11.0, 4.0)
+2026-07-03 00:08:54,554 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=blacksmith_orm → zone=tavern_silver_wolf:fireplace reason=need_driven:shelter_urge=0.56 exact_xy=(11.0, 4.0)
+2026-07-03 00:08:54,554 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=thief_shadow → zone=fireplace reason=need_driven:shelter_urge=0.56 exact_xy=(11.0, 4.0)
+2026-07-03 00:08:54,554 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=tavern_keeper_tornin → zone=tavern_silver_wolf:fireplace reason=need_driven:shelter_urge=0.56 exact_xy=(11.0, 4.0)
+2026-07-03 00:08:54,554 app.models.world_snapshot INFO: [SNAPSHOT_CREATED] id=36ec8dea tick=16 location=tavern_silver_wolf npcs=6 traversals=0 rng_seed=16
+2026-07-03 00:08:54,554 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=guard_borko field=position cause=semantic_relocation:need_driven:shelter_urge=0.56 spatial=yes traversal=NEW
+2026-07-03 00:08:54,554 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=merchant_goran field=position cause=semantic_relocation:need_driven:shelter_urge=0.56 spatial=yes traversal=NEW
+2026-07-03 00:08:54,554 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=maid_lusya field=position cause=semantic_relocation:need_driven:shelter_urge=0.56 spatial=yes traversal=NEW
+2026-07-03 00:08:54,554 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=blacksmith_orm field=position cause=semantic_relocation:need_driven:shelter_urge=0.56 spatial=yes traversal=NEW
+2026-07-03 00:08:54,554 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=thief_shadow field=position cause=semantic_relocation:need_driven:shelter_urge=0.56 spatial=yes traversal=NEW
+2026-07-03 00:08:54,554 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=tavern_keeper_tornin field=position cause=semantic_relocation:need_driven:shelter_urge=0.56 spatial=yes traversal=NEW
+2026-07-03 00:08:54,554 app.services.tick_orchestrator INFO: [DUAL_RAIL][IDLE_SPATIAL] spatial_changes=6 shadow_compiled=6 snapshot_id=36ec8dea
+2026-07-03 00:08:54,554 app.services.scene_state_manager WARNING: [DIAG_V] DUPLICATE_POSITION_CHANGE npc=guard_borko node=tavern_silver_wolf:fireplace — from_node == target_node risk!
+2026-07-03 00:08:54,555 app.services.scene_state_manager WARNING: [DIAG_V] DUPLICATE_POSITION_CHANGE npc=merchant_goran node=tavern_silver_wolf:fireplace — from_node == target_node risk!
+2026-07-03 00:08:54,555 app.services.scene_state_manager WARNING: [DIAG_V] DUPLICATE_POSITION_CHANGE npc=maid_lusya node=fireplace — from_node == target_node risk!
+2026-07-03 00:08:54,555 app.services.scene_state_manager WARNING: [DIAG_V] DUPLICATE_POSITION_CHANGE npc=blacksmith_orm node=tavern_silver_wolf:fireplace — from_node == target_node risk!
+2026-07-03 00:08:54,555 app.services.scene_state_manager WARNING: [DIAG_V] DUPLICATE_POSITION_CHANGE npc=thief_shadow node=fireplace — from_node == target_node risk!
+2026-07-03 00:08:54,555 app.services.scene_state_manager WARNING: [DIAG_V] DUPLICATE_POSITION_CHANGE npc=tavern_keeper_tornin node=tavern_silver_wolf:fireplace — from_node == target_node risk!
+2026-07-03 00:08:54,555 app.services.scene_state_manager INFO: [SCENE] Применено 6/6 изменений (in-memory, persist=Phase10)
+2026-07-03 00:08:54,555 app.services.tick_orchestrator INFO: [TICK_ORCH] Фаза 0: 6 spatial changes from 6 LifeEngine intents
+2026-07-03 00:08:54,565 app.services.tick_orchestrator INFO: [PHASE_5_UNIFIED] ENTER: tick=16, interventions=0
+2026-07-03 00:08:54,566 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] guard_borko: intent=Intent.ambush score=0.306 event=unknown
+2026-07-03 00:08:54,567 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] merchant_goran: intent=Intent.change_role score=0.366 event=unknown
+2026-07-03 00:08:54,568 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] maid_lusya: intent=Intent.offer_job score=0.284 event=unknown
+2026-07-03 00:08:54,568 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] blacksmith_orm: intent=Intent.change_role score=0.416 event=unknown
+2026-07-03 00:08:54,569 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] thief_shadow: intent=Intent.change_role score=0.381 event=unknown
+2026-07-03 00:08:54,570 app.services.npc.npc_tick_pipeline WARNING: [DECISION_HUB] tavern_keeper_tornin: intent=Intent.seek_ally score=0.323 event=unknown
+2026-07-03 00:08:54,570 app.services.events.event_bus INFO: [EVENT_BUS] npc_spoke от 'maid_lusya' → 1 обработчиков, 0 результатов
+2026-07-03 00:08:54,570 app.services.tick_orchestrator INFO: [TICK_ORCH] Фаза 6: 1 intents → EventDTO, 0 windups created
+2026-07-03 00:08:54,571 app.services.tick_orchestrator WARNING: [CFRM_P2] phenomena_count=0 threats={}
+2026-07-03 00:08:54,574 app.services.perception.phenomenology_projection_service INFO: [PERCEPTION_PROJECTOR] Traces=0 Cues=0
+2026-07-03 00:08:54,574 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT_BUILD] npc_count=6 keys=['maid_lusya', 'guard_borko', 'blacksmith_orm', 'tavern_keeper_tornin', 'thief_shadow'] location=tavern_silver_wolf
+2026-07-03 00:08:54,574 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=maid_lusya x=11.0 y=4.0
+2026-07-03 00:08:54,574 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=guard_borko x=11.0 y=4.0
+2026-07-03 00:08:54,574 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=blacksmith_orm x=11.0 y=4.0
+2026-07-03 00:08:54,574 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=tavern_keeper_tornin x=11.0 y=4.0
+2026-07-03 00:08:54,574 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=thief_shadow x=11.0 y=4.0
+2026-07-03 00:08:54,574 app.services.integration.world_snapshot_builder INFO: [TRACE][SNAPSHOT] npc=merchant_goran x=11.0 y=4.0
+2026-07-03 00:08:54,574 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=guard_borko threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.41,c=0.30,s=0.22] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:08:54,574 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=merchant_goran threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.15,c=0.20,s=0.25] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:08:54,574 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=maid_lusya threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.51,c=0.11,s=0.15] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:08:54,574 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=blacksmith_orm threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.05,c=0.35,s=0.15] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:08:54,574 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=thief_shadow threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.10,c=0.30,s=0.20] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:08:54,574 app.services.tick_orchestrator INFO: [EPISTEMIC_TRACE] npc=tavern_keeper_tornin threat=0.000 unc=0.000 anom=0.000 somatic=0.000 drives=[f=0.15,c=0.50,s=0.25] prev=0.000<pk> inc=0.000 load=0.000 emotion=neutral src=NONE
+2026-07-03 00:08:54,576 app.services.scene_state_manager INFO: [SCENE] Применено 6/6 изменений (in-memory, persist=Phase10)
+2026-07-03 00:08:54,579 app.services.perception.phenomenology_projection_service INFO: [PERCEPTION_PROJECTOR] Traces=0 Cues=0

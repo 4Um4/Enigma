@@ -19,6 +19,9 @@ from app.core.config import settings
 from app.services.logging_tools import jsonl_log
 from app.services.verbalization.prompt_loader import load_system_prompt
 from app.services.scene_state_manager import SceneStateManager
+import logging
+
+logger = logging.getLogger(__name__)
 
 # ───────────────────────────────────────────────────────────────────────────────
 # Стоп-токены ChatML (Qwen2.5)

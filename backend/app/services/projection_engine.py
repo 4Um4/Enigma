@@ -23,7 +23,7 @@ import copy
 import logging
 from typing import List
 
-from app.models.thick_scene_change import ThickSceneChange
+from app.models.thick_scene_change import ThickSceneChange, SpatialTransitionMode
 
 logger = logging.getLogger(__name__)
 
@@ -108,11 +108,15 @@ class ProjectionEngine:
         entry["position"] = thick.value
 
         # 2. Геометрическая позиция (из SpatialResolution, НЕ вычисляется здесь)
+        # SpatialTransitionMode: разделяет Authoritative State и Presentation State.
         if thick.spatial and thick.spatial.target_xy:
-            entry["local_position"] = {
-                "x": thick.spatial.target_xy[0],
-                "y": thick.spatial.target_xy[1],
-            }
+            if thick.spatial_mode == SpatialTransitionMode.IMMEDIATE:
+                entry["local_position"] = {
+                    "x": thick.spatial.target_xy[0],
+                    "y": thick.spatial.target_xy[1],
+                }
+            # Если INTERPOLATED — не трогаем local_position. 
+            # Фронтенд будет плавно интерполировать через active_traversals.
 
         # 3. Boundary resolution (кросс-локационное перемещение)
         if thick.boundary and thick.boundary.is_boundary:

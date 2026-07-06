@@ -1,0 +1,16 @@
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"timestamp": "2026-07-03T00:07:51.321879", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6415}
+{"timestamp": "2026-07-03T00:07:51.369085", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6415, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6415, "vram_after_mb": 6415}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 1919, "status": "complete"}
+{"timestamp": "2026-07-03T00:08:12.552571", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6423}
+{"timestamp": "2026-07-03T00:08:12.599691", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6423, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6423, "vram_after_mb": 6423}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 1393, "status": "complete"}
+{"timestamp": "2026-07-03T00:08:21.100436", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6407}
+{"timestamp": "2026-07-03T00:08:21.148972", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6407, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6407, "vram_after_mb": 6407}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 1438, "status": "complete"}

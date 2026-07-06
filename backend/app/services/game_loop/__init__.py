@@ -313,11 +313,12 @@ class GameLoop:
             # Без этого LLM получает контекст из прошлых забегов (отравление контекста).
             if hasattr(self.memory_manager, '_layered') and hasattr(self.memory_manager._layered, 'store'):
                 store = self.memory_manager._layered.store
-                for collection in [f"campaign_memory_{campaign_id}", f"session_memory_{campaign_id}"]:
+                # P1 FIX: Удаляем только хронику забега (playthrough). Канон (campaign_canon) переживает new_game.
+                for collection in [f"playthrough_{campaign_id}"]:
                     fpath = store._collection_path(collection)
                     if fpath.exists():
                         fpath.unlink()
-                        logger.info(f"[NEW_GAME] Removed JSONL memory: {fpath}")
+                        logger.info(f"[NEW_GAME] Removed JSONL playthrough: {fpath}")
                 # Очистка кэша JsonMemoryStore
                 store._recent_cache.clear()
         except Exception as e:
@@ -1395,8 +1396,9 @@ class GameLoop:
             from app.services.game_loop.task_scheduler import TaskScheduler
             # Инъекция LLM провайдера и контекстного колбэка для Эпистемического Барьера
             _llm = self.dm_agent.router.get_provider("narrative")
-            _ctx = self.life_engine.get_npc_observed_state
-            self._task_scheduler = TaskScheduler(llm_provider=_llm, context_provider=_ctx)
+            _ctx = self._get_life_engine().get_npc_observed_state
+            _scheduler = TaskScheduler(llm_provider=_llm, context_provider=_ctx)
+            self._task_scheduler = _scheduler
         return self._task_scheduler
 
     def _get_character_dict(self, campaign_id: str, player_name: str) -> dict:

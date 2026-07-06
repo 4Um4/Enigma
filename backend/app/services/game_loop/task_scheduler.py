@@ -7,6 +7,7 @@ path: /backend/app/services/game_loop/task_scheduler.py
 
 from __future__ import annotations
 import logging
+from concurrent.futures import ThreadPoolExecutor
 from typing import Dict, Type
 from app.domain.execution import QueuedTask, TaskState, TaskKind, TaskPriority, TaskExecutor, Materializer, Artifact
 from app.services.execution.dialogue_executor import DialogueExecutor
@@ -30,6 +31,13 @@ class TaskScheduler:
         # ADR-O-313: Кэш последних реплик для Speech Bubbles (TTL ~ 10 сек)
         self._recent_dialogues: list = []
         self._dialogue_ttl = 10.0
+        # P1 FIX: Асинхронный пул для неблокирующего выполнения LLM
+        self._executor_pool = ThreadPoolExecutor(max_workers=2)
+        self._spatial_query_service = None
+
+    def set_spatial_query_service(self, sqs):
+        """Инъекция SpatialQueryService для Social Target Resolver."""
+        self._spatial_query_service = sqs
 
     def get_recent_dialogues(self, current_time: float) -> list:
         """Возвращает активные реплики для WorldSnapshotDTO."""
@@ -40,21 +48,29 @@ class TaskScheduler:
         ]
         return self._recent_dialogues
 
-    def process_tasks(self, scene_state: dict, max_tasks_per_tick: int = 2) -> None:
+    def process_tasks(self, scene_state: dict, max_tasks_per_tick: int = 2) -> bool:
         pending = scene_state.get("pending_tasks", [])
         if not pending:
-            return
+            return True
             
-        logger.debug(f"[SCHEDULER] Found {len(pending)} pending tasks.")
-        processed_count = 0
-        remaining_tasks = []
-        bus = get_event_bus()
+        logger.debug(f"[SCHEDULER] Found {len(pending)} pending tasks. Submitting to background pool.")
+        
+        # Копируем задачи и очищаем список в scene_state, чтобы не запустить повторно
+        tasks_to_process = pending[:max_tasks_per_tick]
+        remaining_tasks = pending[max_tasks_per_tick:]
+        scene_state["pending_tasks"] = remaining_tasks
+        
+        # Запускаем фоновую обработку
+        self._executor_pool.submit(self._process_tasks_async, scene_state, tasks_to_process)
+        
+        return True
 
-        for task_dict in pending:
-            if processed_count >= max_tasks_per_tick:
-                remaining_tasks.append(task_dict)
-                continue
-                
+    def _process_tasks_async(self, scene_state: dict, tasks: list):
+        """Фоновая обработка задач LLM."""
+        bus = get_event_bus()
+        campaign_id = scene_state.get("campaign_id", "")
+
+        for task_dict in tasks:
             try:
                 task = self._reconstruct_task(task_dict)
             except Exception as e:
@@ -64,21 +80,34 @@ class TaskScheduler:
             executor = self._executors.get(task.kind)
             if not executor:
                 logger.warning(f"[SCHEDULER] No executor for kind {task.kind}")
-                remaining_tasks.append(task_dict)
                 continue
                 
             task.state = TaskState.PROCESSING
-            task.campaign_id = scene_state.get("campaign_id", "")
+            task.campaign_id = campaign_id
             
-            # ADR-O-313: SocialTargetResolver — если цель не задана, выбираем случайного NPC в локации
+            # ADR-O-313: SocialTargetResolver — если цель не задана, выбираем ближнего NPC
             if isinstance(task.payload, DialogueRequest) and not task.payload.target_id:
                 import random
                 from dataclasses import replace as dc_replace
-                _available_npcs = [
-                    nid for nid in scene_state.get("npc_positions", {}).keys() 
-                    if nid != task.owner_id
-                ]
-                _resolved_target = random.choice(_available_npcs) if _available_npcs else "soliloquy"
+                _resolved_target = "soliloquy"
+                
+                # P2 FIX: Использование SpatialQueryService для фильтрации по радиусу
+                from app.services.spatial.spatial_query_service import SpatialQueryService
+                _sqs = SpatialQueryService(
+                    npc_positions=scene_state.get("npc_positions", {}),
+                    scene_state=scene_state
+                )
+                
+                _candidates = []
+                _all_npcs = [nid for nid in scene_state.get("npc_positions", {}).keys() if nid != "player" and nid != task.owner_id]
+                for nid in _all_npcs:
+                    _dist = _sqs.distance(task.owner_id, nid)
+                    if _dist <= 5.0:
+                        _candidates.append(nid)
+                
+                if _candidates:
+                    _resolved_target = random.choice(_candidates)
+                        
                 task.payload = dc_replace(task.payload, target_id=_resolved_target)
                 logger.debug(f"[SCHEDULER] Resolved missing target_id to '{_resolved_target}' for {task.owner_id}")
 
@@ -102,12 +131,9 @@ class TaskScheduler:
                             "exposure": artifact.data.get("exposure", "normal"),
                             "timestamp": time.time()
                         })
-                    processed_count += 1
                 else:
                     logger.error(f"[SCHEDULER] Task {task.task_id} failed: {artifact.error_message}")
                     task.state = TaskState.FINISHED # Пока без сложного ретрая
-                    
-        scene_state["pending_tasks"] = remaining_tasks
 
     def _reconstruct_task(self, task_dict: dict) -> QueuedTask:
         """Собирает QueuedTask из словаря (после JSON сериализации)."""
