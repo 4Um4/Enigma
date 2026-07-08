@@ -210,6 +210,9 @@
 - **`EffectiveDrives`** (`domain/identity_events.py`): Эфемерная, неизменяемая проекция драйвов (L3) (ADR-O-208). Содержит `values: MappingProxyType`. Попытка мутации вызывает `TypeError`. Запрещено кэшировать (L3-P1).
 - **`EventMemory`** (`models/npc_state.py`): Запись в `narrative_cache` (L2). Хранит структурированный след события для долгосрочной памяти NPC.
 - **`OntologyViolationError`** (`domain/exceptions.py`): Критическое нарушение инвариантов (L5 Post-Commit Validation Gate) (ADR-O-207). Выбрасывается при нарушении Закона Сохранения Я (sum!=1.0), выходе за границы [0,1] или NaN. Убивает тик.
+- **`SimulationIntegrityError`** (`app/errors.py`): Кастомное исключение, поднимаемое при нарушении инварианта симуляции в runtime (ADR-INV-DEF). Формат сообщения машино-читаемый для CausalObserver (`[SIM_INTEGRITY] id=INV-XXX severity=CRITICAL file=X line=Y`).
+  🚫 ЗАПРЕТ: Перехват этого исключения через `try/except` в пайплайне. Игра должна упасть громко.
+- **`InvariantViolation`** (`diagnostics/health_checkers/invariant_health.py`): DTO для фиксации нарушения инварианта в post-mortem анализаторе CausalObserver. Поля: `invariant_id`, `severity`, `source` (RUNTIME/POST-MORTEM), `message`, `suspect_files`, `powershell_check`.
 - **`L1Chronicle`** (`services/npc/l1_chronicle.py`): Append-only хранилище событий деформации идентичности (L1) (ADR-O-208). **S86:** Персистентно в SQLite (таблица `l1_chronicle_events`). In-memory dict — кэш. Методы: `append(event)`, `query_raw(npc_id)`, `query_weighted(npc_id, current_tick)`. Удаление запрещено. Использует `tick_id` для времени.
 - **`PatternDetector`** (`services/npc/pattern_detector.py`): Чистая функция L1.5. Группирует L1Chronicle по `source_id` и генерирует `EvidenceOfPersistence`. Не имеет права читать эмоции/драйвы (ADR-O-305).
 - **`BeliefCrystallizationEngine`** (`services/npc/belief_crystallization_engine.py`): Мост L2.5. Проецирует `EvidenceOfPersistence` в `CrystallizedBelief`, модулированный `drives_base` (L0). Реализует асимметричную травму (ADR-O-307) и энтропию (Decay).
@@ -307,5 +310,4 @@
 - `test_constants_has_spatial` (ADR-TZ6-1)
 - `test_constants_has_dm_messages` (ADR-TZ6-1)
 - `test_i18n_has_menu_keys` (ADR-TZ6-1)
-
 

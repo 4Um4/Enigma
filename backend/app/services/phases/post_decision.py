@@ -21,6 +21,22 @@ def run_phase_6_post_decision(ctx: Any, orchestrator: Any) -> None:
     ADR-O-310: WindupWriteGate — перехват ATTACK для создания ActionWindup.
     """
     if not ctx.communication_intents:
+        from app.services.npc.decision_hub import DecisionHub
+        _verbal = sum(1 for d in ctx.decisions 
+                      if getattr(d, 'intent', '') in DecisionHub._VERBAL_INTENTS)
+        if _verbal > 0:
+            from app.errors import SimulationIntegrityError
+            raise SimulationIntegrityError(
+                invariant_id="INV-DIALOGUE-PIPELINE",
+                message=(f"Phase 6: ctx.communication_intents пуст, но Phase 5 вернула "
+                         f"{_verbal} вербальных решений."),
+                suspect_files=[
+                    "backend/app/services/npc/decision_hub.py:_build_communication (строка 286)",
+                    "backend/app/services/npc/life_engine.py:719 (communication_intents.append)",
+                    "backend/app/services/pipeline_runner.py:87 (ctx.communication_intents = mutation...)",
+                ],
+                file=__file__, line=23,
+            )
         return
 
     from app.services.events.event_bus import get_event_bus

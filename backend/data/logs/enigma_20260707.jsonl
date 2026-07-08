@@ -638,3 +638,9 @@
 {"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6525, "vram_after_mb": 6525}
 {"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
 {"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 2044, "status": "complete"}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"timestamp": "2026-07-07T21:39:15.105930", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6221}
+{"timestamp": "2026-07-07T21:39:15.153273", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6221, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6221, "vram_after_mb": 6221}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 1878, "status": "complete"}

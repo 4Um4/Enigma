@@ -210,6 +210,20 @@ class ReactionSubscriber:
             if rule is None:
                 continue
 
+            # S115 FIX: Цель прямой угрозы/атаки получает threat_gradient_delta.
+            # Без этого affective_load остаётся 0, и BreakProgressEngine не фиксирует давление.
+            _event_target_id = event.payload.get("target_id")
+            if _event_target_id and rule_key in ("player_threatens", "player_attacks", "player_attack"):
+                _threat_delta_target = 0.4 if rule_key == "player_threatens" else 0.6
+                deltas.append(StateDeltas(
+                    npc_id=_event_target_id,
+                    domain=DeltaDomain.PERCEPTION,
+                    payload=PerceptionPayload(
+                        threat_gradient_delta=round(_threat_delta_target, 3),
+                    ),
+                    source="reaction_perception_target",
+                ))
+
             stress_base, fear_base, trust_actor_base = rule
             intensity = _get_event_intensity(event)
             source = event.source

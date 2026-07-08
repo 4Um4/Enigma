@@ -660,8 +660,11 @@ class GameLoop:
 
         # S83.1 FIX: Ядро больше не вызывает commit_tick_result. 
         # Обновляем _tick_scene явно, до materialization и unlock.
+        # ВАЖНО: Ядро работает с deepcopy (create_tick_context), поэтому 
+        # мы должны коммитить result.final_scene_state, а не устаревший _scene.
+        _scene_to_commit = result.final_scene_state or _scene
         if self.scene_manager and self.scene_manager._tick_campaign_id == campaign_id:
-            self.scene_manager.commit_tick_result(campaign_id, _scene)
+            self.scene_manager.commit_tick_result(campaign_id, _scene_to_commit)
 
         # ДИАГНОСТИКА: Читаем из authoritative source (scene_manager._tick_scene),
         # а не из устаревшей ссылки _scene (execute работает с deepcopy).
@@ -1311,6 +1314,10 @@ class GameLoop:
         # ADR-O-112: Actor-Agnostic Physiology. Инжектируем Аватар в all_npcs_raw для трубы урона.
         _avatar_state = self.avatar_service.load_state(campaign_id, _player_name)
         
+        # S115 FIX: Сохраняем копию состояния ДО мутаций, чтобы корректно сравнить в конце.
+        import copy
+        _avatar_state_before = copy.deepcopy(_avatar_state) if _avatar_state else None
+        
         # БАГ 5 FIX: Применяем money_delta от RulesSubscriber к аватару.
         # Раньше RulesSubscriber мутировал временный снапшот, который перезатирался load_state.
         if _rules_delta and _rules_delta.money_delta != 0.0 and _avatar_state:
@@ -1343,20 +1350,25 @@ class GameLoop:
             # SCENE_IDENTITY: проверяем, что scene_state не потерял traversals после finalize
             print(f"[TRAV_CHECK_P1_5] after_finalize_return: id={id(shared_context.scene_state)} traversals={list(shared_context.scene_state.get('active_traversals', {}).keys())}")
             
-            # ADR-O-112: Извлекаем физиологию Аватара (pain, shock, blood_loss) из пайплайна
+            # S115 FIX: Синхронизация мутаций из ядра обратно в _avatar_state.
+            # Ядро работает со словарем в _ctx.all_npcs_raw, нам нужно перенести изменения в объект.
             _updated_avatar_dict = next((n for n in getattr(_ctx, 'all_npcs_raw', []) if n.get("npc_id") == "player"), None)
             if _updated_avatar_dict and _avatar_state:
-                _phys_changed = False
-                if "body_state" in _updated_avatar_dict and _updated_avatar_dict["body_state"] != _avatar_state.body_state:
+                if "body_state" in _updated_avatar_dict:
                     _avatar_state.body_state = _updated_avatar_dict["body_state"]
-                    _phys_changed = True
-                if "hp" in _updated_avatar_dict and _updated_avatar_dict["hp"] != _avatar_state.hp:
+                if "hp" in _updated_avatar_dict:
                     _avatar_state.hp = _updated_avatar_dict["hp"]
-                    _phys_changed = True
                     
-                if _phys_changed:
-                    self.avatar_service.save_state(campaign_id, _avatar_state)
-                    logger.warning(f"[AVATAR] PHYSIOLOGY APPLIED: pain={_avatar_state.body_state.get('pain', 0.0):.1f} shock={_avatar_state.body_state.get('shock_impulse', 0.0):.2f}")
+            # S115 FIX: Сравниваем полное состояние до и после. Если есть разница — сохраняем.
+            if _avatar_state and _avatar_state_before and _avatar_state != _avatar_state_before:
+                self.avatar_service.save_state(campaign_id, _avatar_state)
+                logger.warning(f"[AVATAR] STATE APPLIED: pain={_avatar_state.body_state.get('pain', 0.0):.1f} shock={_avatar_state.body_state.get('shock_impulse', 0.0):.2f} money={_avatar_state.body_state.get('money', 0.0):.1f} hp={_avatar_state.hp}")
+                
+            # S115 FIX: Обновляем кэш LifeEngine с мутированным all_npcs_raw.
+            # Без этого _resolve_npcs_snapshot возвращает старые данные (без денег/урона).
+            _engine = self._get_life_engine()
+            if _engine and hasattr(_ctx, 'all_npcs_raw') and _ctx.all_npcs_raw is not None:
+                _engine.update_cache(campaign_id, _ctx.all_npcs_raw)
                     
         except Exception as _fin_err:
             logger.error(f"[GAME_LOOP] Finalize error: {_fin_err}", exc_info=True)

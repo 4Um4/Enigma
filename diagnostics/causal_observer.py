@@ -19,6 +19,7 @@ from typing import Optional
 from diagnostics.pattern_registry import COMPILED
 from diagnostics.health_checkers.tick_health import TickHealthChecker, TickHealthReport
 from diagnostics.health_checkers.movement_health import MovementHealthChecker, MovementHealthReport
+from diagnostics.health_checkers.invariant_health import InvariantHealthChecker
 from diagnostics.dna_metrics import DNAComputer
 
 logger = logging.getLogger(__name__)
@@ -34,6 +35,7 @@ class CausalObserver:
         self._log_path = Path(log_path) if log_path else None
         self._tick_checker = TickHealthChecker()
         self._movement_checker = MovementHealthChecker()
+        self._invariant_checker = InvariantHealthChecker()
         self._started_at = datetime.now()
         self._dna_computer: Optional[DNAComputer] = None
 
@@ -60,21 +62,26 @@ class CausalObserver:
             from diagnostics.report_renderer import ReportRenderer
             tick_report = self._tick_checker.build()
             movement_report = self._movement_checker.build()
+            invariant_violations = self._invariant_checker.build()
 
             self._dna_computer = DNAComputer(
                 tick_report=tick_report,
                 movement_report=movement_report,
                 started_at=self._started_at,
+                invariant_violations=invariant_violations,
             )
-
+            
             renderer = ReportRenderer(
                 tick_report=tick_report,
                 movement_report=movement_report,
                 dna_computer=self._dna_computer,
+                invariant_violations=invariant_violations,
                 started_at=self._started_at,
             )
             renderer.write(output_path)
+            print(f"[CDS] Отчёт LAST_SESSION.md сохранён: {output_path}")
         except Exception as exc:
+            print(f"[CDS] Export failed: {exc}")
             logger.error(f"[CDS] Export failed: {exc}", exc_info=True)
 
     # ------------------------------------------------------------------
@@ -262,6 +269,32 @@ class CausalObserver:
                     self._movement_checker.on_perception_filter(npc_list)
                 except Exception:
                     pass
+                return
+
+            # --- Invariant Defense System ---
+            m_sim = COMPILED["sim_integrity"].search(line)
+            if m_sim:
+                self._invariant_checker.on_sim_integrity(
+                    invariant_id=m_sim.group(1),
+                    file=m_sim.group(3),
+                    line=int(m_sim.group(4)),
+                )
+                return
+            
+            m_tick = COMPILED["tick_complete"].search(line)
+            if m_tick:
+                self._invariant_checker.on_tick_complete(
+                    tick=int(m_tick.group(1)),
+                    game_time_seconds=float(m_tick.group(2)),
+                    decisions_count=int(m_tick.group(3)),
+                    verbal_intents_count=int(m_tick.group(4)),
+                    npc_moved_count=int(m_tick.group(5)),
+                )
+                return
+            
+            m_scene = COMPILED["scene_events_verbal"].search(line)
+            if m_scene:
+                self._invariant_checker.on_dialogue_emitted(int(m_scene.group(1)))
                 return
 
         except Exception:

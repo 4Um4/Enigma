@@ -27,6 +27,7 @@ from app.models.thick_scene_change import (
     BoundaryResolution,
     MotionPlan,
     SpatialResolution,
+    SpatialTransitionMode,
     ThickSceneChange,
     TraversalContract,
 )

@@ -425,6 +425,13 @@ class TickOrchestrator:
 
         # TZ-08 v0.2: Ядро всегда возвращает единый TickResultDTO. Никаких ветвлений по источнику.
         _final_facts = getattr(ctx, 'observed_facts_for_dm', [])
+        # INV-DEF: Эмиттер сводки тика для CausalObserver (InvariantHealthChecker)
+        _moved_count = sum(1 for v in ctx.scene_state.get("active_traversals", {}).values() if getattr(v, "status", None) == "MOVING")
+        _decisions_count = len(ctx.communication_intents) + sum(1 for i in getattr(ctx, "movement_intents", []) if i)
+        _verbal_count = len(ctx.communication_intents)
+        _game_time = ctx.scene_state.get("game_time_seconds", 0.0)
+        print(f"[TICK_ORCH] tick={ctx.tick_number} game_time={_game_time} decisions={_decisions_count} verbal={_verbal_count} moved={_moved_count}")
+        
         print(f"[DEBUG_TICK_ORCH] returning TickResultDTO with observed_facts count={len(_final_facts)}")
         return TickResultDTO(
             status="ok",
@@ -433,6 +440,7 @@ class TickOrchestrator:
             world_snapshot=ctx.world_snapshot,
             npc_contexts=ctx.npc_contexts,
             observed_facts=_final_facts,
+            final_scene_state=ctx.scene_state,
         )
 
     # ── Player Turn (тонкая обёртка) ────────────────────────────────
@@ -619,6 +627,7 @@ class TickOrchestrator:
                     }
                     _mock_event = types.SimpleNamespace(payload=_directive_payload)
                     _directive_deltas = DirectiveInterpretationSubscriber().handle(_mock_event, ctx.all_npcs_raw)
+                    print(f"[DEBUG_S115_DIRECTIVE] deltas={len(_directive_deltas)} target={_target_id} action={_sem_action}")
                     if _directive_deltas:
                         ctx.delta_buffer.extend(_directive_deltas)
                         for delta in _directive_deltas:
@@ -1014,6 +1023,10 @@ class TickOrchestrator:
         # ADR-002: Время не останавливается. Каждый тик продвигает часы на GAME_TICK_INTERVAL_SECONDS
         self._advance_idle_time(ctx)
         
+        # ADR-O-315: TraversalExecutionSystem проецирует TraversalState в local_position.
+        from app.services.spatial.traversal_execution_system import TraversalExecutionSystem
+        TraversalExecutionSystem.advance(ctx.scene_state, ctx.tick_number)
+        
         deps = Phase0_5Deps(
             l1_chronicle=getattr(self, 'l1_chronicle', None),
             dynamic_field=self._dynamic_field,
@@ -1048,6 +1061,22 @@ class TickOrchestrator:
         # Обновляем оба источника данных
         if ctx.shared_context is not None and hasattr(ctx.shared_context, 'game_time_seconds'):
             ctx.shared_context.game_time_seconds = new_seconds
+
+        # INV-DEF: Проверка инварианта времени (INV-TIME-FREEZE)
+        _prev_game_time = ctx.scene_state.get("_prev_game_time_seconds", 0.0)
+        if ctx.tick_number > 1 and new_seconds <= _prev_game_time:
+            from app.errors import SimulationIntegrityError
+            raise SimulationIntegrityError(
+                invariant_id="INV-TIME-FREEZE",
+                message=(f"game_time_seconds не растёт: prev={_prev_game_time}, "
+                         f"curr={new_seconds} на тике {ctx.tick_number}"),
+                suspect_files=[
+                    "backend/app/core/calendar.py:advance()",
+                    "backend/app/services/tick_orchestrator.py (_advance_idle_time)",
+                ],
+                file=__file__, line=1053,
+            )
+        ctx.scene_state["_prev_game_time_seconds"] = new_seconds
 
         # Сохраняем абсолютное время в scene_state для персистенции и фронтенда
         ctx.scene_state["game_time_seconds"] = new_seconds

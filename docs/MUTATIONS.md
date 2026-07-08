@@ -8,7 +8,7 @@
 
 | Показатель | Значение |
 |------------|----------|
-| Сессий | 100 |
+| Сессий | 116 |
 | Доменов | 10 |
 | Консолидированных запретов | [DERIVED: count(ADR.*.Taboo)] |
 | Диапазон | S03—S97 |
@@ -303,6 +303,16 @@
   - **Fix 4 (Дублирование транзитов):** Устранён спам `[DIAG_V] DUPLICATE_POSITION_CHANGE` и бесконечные транзиты в ту же точку. В `SceneStateManager.apply_change` добавлен no-op guard: если `_old_position == change.value`, создание нового `traversal_dict` блокируется (возврат `True`).
   Files: backend/app/services/game_loop/npc_orchestration.py, backend/app/services/tick_orchestrator.py, backend/app/services/phases/README.md, backend/app/services/phases/post_decision.py, backend/app/services/npc/npc_loader.py, backend/app/services/npc/life_engine.py, backend/app/services/scene_state_manager.py
 - 🔵 **S86** ТЗ-02 (Иммунная система): Внедрён Causal Invariant Checker (`backend/tests/sandbox/invariants/`). Тесты `test_hp_double_truth_invariant` и `test_l3_ephemeral_invariant` защищают систему от будущих разрывов между физикой, L0 и L3.
+
+- 🔵 **S114** ТЗ: INVARIANT DEFENSE SYSTEM.
+  - Внедрена двухслойная защита от регрессий: Invariant Probe Tests (IPT) и InvariantHealthChecker.
+  - Созданы `backend/app/errors.py` (`SimulationIntegrityError`), `backend/tests/IPT.py` (6 инвариантов), `diagnostics/health_checkers/invariant_health.py`.
+  - Расширен `CausalObserver` (3 новых паттерна) и `ReportRenderer` (секция "🔴 КРАСНЫЕ ИНВАРИАНТЫ").
+  - Внедрены 4 runtime assertion в пайплайн (`post_decision.py`, `tick_orchestrator.py`, `world_snapshot_builder.py`).
+  - Добавлен эмиттер `[TICK_ORCH]` для питания CDS сводкой тика.
+  - Обновлен `РЕЖИМ РАБОТЫ.md` (§3.7 заменен на IPT, добавлен §3.8, расширен §4).
+  - Baseline IPT: 2 красных инварианта (INV-TIME-GROW, INV-NPC-MOVE).
+  Files: backend/tests/IPT.py, backend/app/errors.py, diagnostics/health_checkers/invariant_health.py, diagnostics/causal_observer.py, diagnostics/report_renderer.py, diagnostics/dna_metrics.py, diagnostics/pattern_registry.py, backend/app/services/phases/post_decision.py, backend/app/services/tick_orchestrator.py, backend/app/services/integration/world_snapshot_builder.py, docs/РЕЖИМ РАБОТЫ.md
 
 ### DOM-09: SOCIAL & AFFECTIVE ARCHITECTURE (SSOT & Causal Derivation)
 

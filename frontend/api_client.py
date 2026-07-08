@@ -252,6 +252,10 @@ class BackendContract:
     def idle_tick(self, campaign_id: str) -> dict:
         return self._t.post(f"/api/game/idle_tick/{campaign_id}", {})
 
+    def skip_time(self, campaign_id: str, ticks: int) -> dict:
+        """Промотка времени (Time Skip)."""
+        return self._t.post(f"/api/game/skip_time/{campaign_id}?ticks={ticks}", {})
+
     def save_scene_state(self, campaign_id: str, scene_state: dict) -> None:
         """B1.4-FIX: push scene_state to backend via HTTP."""
         try:
@@ -337,6 +341,10 @@ class HttpGameGateway:
     
     def idle_tick(self, campaign_id: str) -> dict:
         return self._contract.idle_tick(campaign_id)
+
+    def skip_time(self, campaign_id: str, ticks: int) -> dict:
+        """Промотка времени через HTTP."""
+        return self._contract.skip_time(campaign_id, ticks)
 
     def send_action_stream(
         self,

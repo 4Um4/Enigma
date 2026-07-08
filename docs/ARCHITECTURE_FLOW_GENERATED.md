@@ -37,8 +37,11 @@ flowchart TD
         DNAComputer("DNA Metrics Computer"):::application
         Router("DM Router (Execution Gate)"):::application
         DriftLaboratory("Drift Laboratory (SUPERBOX)"):::application
+        InvariantHealthChecker("Invariant Health Checker"):::application
+        IPT("Invariant Probe Tests (IPT)"):::application
         EconomyTracker("Economy Tracker"):::application
         TradeResolver("Trade Resolver"):::application
+        FactExtractor("FactExtractor"):::application
         DecisionHub("Decision Hub (Projection-Native Scoring)"):::application
         IntentCompressor("Intent Compressor"):::application
         LayeredMemory("Layered Memory (STM/L2/Campaign)"):::application
@@ -114,6 +117,8 @@ flowchart TD
         TickHealthReport["Tick Health Report"]:::domain
         DNASnapshot["DNA Snapshot"]:::domain
         DNADelta["DNA Delta"]:::domain
+        SimulationIntegrityError("Simulation Integrity Error"):::domain
+        InvariantViolation["Invariant Violation"]:::domain
         NeedEngine("Need Engine"):::domain
         PsychoEconomy("Psycho Economy"):::domain
         TransactionEngine("Transaction Engine"):::domain
@@ -123,6 +128,13 @@ flowchart TD
         StressCalculator("Stress Calculator"):::domain
         TravellerGenerator("Traveller Generator"):::domain
         ProfileFactory("Profile Factory"):::domain
+        ManifestationState("ManifestationState (Immutable)"):::domain
+        Reality("Reality (Internal State)"):::domain
+        ObservationRelation["ObservationRelation (Observer x Target)"]:::domain
+        PerceivedSignal("PerceivedSignal"):::domain
+        ObservedFact("ObservedFact (Atomic)"):::domain
+        Inference("Inference / Hypothesis"):::domain
+        Memory("Memory / Belief"):::domain
         TraitDriftEvent["Trait Drift Event (L1 Record)"]:::domain
         RelationshipStore("Relationship Store"):::domain
         DialogueSession["Dialogue Session (STM)"]:::domain
@@ -283,6 +295,14 @@ flowchart TD
     DNAComputer -->|"computes delta between sessions"| DNADelta
     DriftLaboratory -->|"records drift snapshots"| CausalTrace
     BeliefCrystallizationEngine -->|"logs crystallization & decay events"| CausalObserver
+    TickOrchestrator -->|"emits [TICK_ORCH] summary"| GameStdout
+    PostDecision -->|"raises on INV-DIALOGUE-PIPELINE"| SimulationIntegrityError
+    TickOrchestrator -->|"raises on INV-TIME-FREEZE"| SimulationIntegrityError
+    WorldSnapshotBuilder -->|"raises on INV-TRAV-DICT or INV-NPC-NAME"| SimulationIntegrityError
+    CausalObserver -->|"feeds [TICK_ORCH] and [SIM_INTEGRITY] lines"| InvariantHealthChecker
+    InvariantHealthChecker -->|"produces violations"| InvariantViolation
+    InvariantHealthChecker -->|"provides invariant_violations"| DNAComputer
+    IPT -->|"runs idle_tick in isolated world"| GameLoop
     NeedEngine -->|"need stress → economic_stress"| StressCalculator
     StressCalculator -->|"economic_stress → utility modifier"| DecisionHub
     TradeResolver -->|"resolve_tick → execute_sale/employment"| TransactionEngine
@@ -323,6 +343,7 @@ flowchart TD
     GameScreen -->|"raw text input"| IntentCompressor
     IntentCompressor -->|"Slow Path: complex intent → LLM"| LLMCompressorClient
     IntentCompressor -->|"IntentSemanticField → pressure source"| DecisionHub
+    Reality -->|"manifests"| ManifestationState
     MemoryManager -->|"apply(event, npc_state)"| LayeredMemory
     LayeredMemory -->|"STM write/read"| DialogueSession
     DialogueSession -->|"promote on dialogue end"| PromotionEngine
@@ -337,6 +358,15 @@ flowchart TD
     RelationshipStore -->|"relationship_cache updates"| StateApplicator
     TickOrchestrator -->|"_phase_3_memory: compress_narrative_cache"| MemoryManager
     TickOrchestrator -->|"_phase_3_memory: check_identity_promotion"| MemoryManager
+    PerceivedSignal -->|"reads"| FactExtractor
+    FactExtractor -->|"produces"| ObservedFact
+    Reality -->|"manifests"| ManifestationState
+    ManifestationState -->|"observed via"| ObservationRelation
+    ObservationRelation -->|"filtered by physics"| PerceivedSignal
+    PerceivedSignal -->|"extracted"| ObservedFact
+    ObservedFact -->|"hypothesized"| Inference
+    ObservedFact -->|"stored"| Memory
+    Inference -->|"stored"| Memory
     CombatSubscriber -->|"resolves contact"| ImpactEngine
     ImpactEngine ==>|"computes"| PhysiologyPayload
     PhysiologyPayload -->|"flushed to"| DeltaBuffer
@@ -535,6 +565,9 @@ flowchart TD
     DriftLaboratory -.->|"🚫 REQUIRED: Read spatial positions from scene_state[npc_positions] (SSOT), not LifeEngine cache (ADR-S85.3)"| SceneState:::forbidden
     Any -.->|"🚫 REQUIRED: Print probes MUST NOT be deleted without replacement (ADR-151)"| PrintProbe:::forbidden
     Any -.->|"🚫 FORBIDDEN: Empty code block after probe removal — causes IndentationError (ADR-151)"| EmptyBlock:::forbidden
+    Any -.->|"🚫 FORBIDDEN: Catching SimulationIntegrityError in try/except. Let the pipeline crash."| SimulationIntegrityError:::forbidden
+    LLM_Architect -.->|"🚫 REQUIRED: Run `python backend/tests/IPT.py` before closing a step."| IPT:::forbidden
+    LLM_Architect -.->|"🚫 REQUIRED: Read 🔴 RED INVARIANTS section before starting new work."| LAST_SESSION:::forbidden
     TransactionEngine -.->|"🚫 FORBIDDEN: Direct mutation of NPC money"| NPCState:::forbidden
     NeedEngine -.->|"🚫 REQUIRED: Critical needs MUST influence decision"| DecisionHub:::forbidden
     Frontend -.->|"🚫 FORBIDDEN: Import backend.app (Устав §1.1)"| BackendInternals:::forbidden
@@ -570,12 +603,20 @@ flowchart TD
     DriveResolver -.->|"🚫 FORBIDDEN: DriveResolver reading L1Chronicle directly. Must consume CrystallizedBelief (L2.5) from CrystallizedBeliefStore (ADR-S96.1)"| L1Chronicle:::forbidden
     DriveResolver -.->|"🚫 FORBIDDEN: L3=L0 fallback (pass statement). L3 MUST be deformed by L2.5 beliefs if they exist (ADR-S96.1)"| EffectiveDrives:::forbidden
     IntentCompressor -.->|"🚫 FORBIDDEN: Return default 0.0 vector for ATTACK (ADR-088)"| EmotionalVector:::forbidden
+    ManifestationState -.->|"🚫 FORBIDDEN: ManifestationState не должен зависеть от позиции наблюдателя"| ObserverPosition:::forbidden
+    ManifestationState -.->|"🚫 FORBIDDEN: ManifestationState не должен зависеть от психики наблюдателя"| PerceptualKernel:::forbidden
     Any -.->|"🚫 FORBIDDEN: Write to memory bypassing MemoryManager (Устав §4.1.2)"| MemoryManager:::forbidden
     DialogueSession -.->|"🚫 REQUIRED: WorkingMemory is per-NPC (Устав §4.1.1)"| WorkingMemory:::forbidden
     PromotionEngine -.->|"🚫 FORBIDDEN: Promotion as method of LayeredMemory (Устав §4.1.3)"| LayeredMemory:::forbidden
     YAMLMemoryExport -.->|"🚫 FORBIDDEN: YAML as runtime truth (Устав §4.2.2)"| RuntimeTruth:::forbidden
     DecisionHub -.->|"🚫 REQUIRED: Topic must not be empty (Устав §3.2)"| TopicExtractor:::forbidden
     MemoryManager -.->|"🚫 FORBIDDEN: check_identity_promotion in idle ticks without phase_2_events. Prevents phantom identity drift (ADR-S86.7)"| IdentityPromotion:::forbidden
+    ObservedFact -.->|"🚫 REQUIRED: Составные выводы (hand_on_weapon) должны вычисляться в InferenceEngine, а не в FactExtractor"| InferenceEngine:::forbidden
+    Reality -.->|"🚫 FORBIDDEN: Потребители не могут читать Reality напрямую"| PresentationAssembler:::forbidden
+    ManifestationState -.->|"🚫 FORBIDDEN: ManifestationState не зависит от наблюдателя"| ObserverPosition:::forbidden
+    ObservationRelation -.->|"🚫 FORBIDDEN: ObservationRelation не содержит NPC id, Faction, Mood, Memory"| EntityMetadata:::forbidden
+    ObservedFact -.->|"🚫 FORBIDDEN: ObservedFact должен быть строго атомарным"| CompositeConclusions:::forbidden
+    Inference -.->|"🚫 FORBIDDEN: Inference не может изменять Reality"| Reality:::forbidden
     CombatSubscriber -.->|"🚫 FORBIDDEN: Domain Leakage (ADR-021)"| Emotion:::forbidden
     StateInterpreter -.->|"🚫 FORBIDDEN: Ignore pain/shock"| HP_Ratio:::forbidden
     StateInterpreter -.->|"🚫 FORBIDDEN: Read pain without /100.0 normalization"| Pain_Scale:::forbidden
@@ -1249,6 +1290,14 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | DNAComputer | DNADelta | computes delta between sessions | - | `-` | - |
 | DriftLaboratory | CausalTrace | records drift snapshots | S85.3: Idle stability test logs activity changes and traversals. | `drift_laboratory.py` | ADR-S85.3 |
 | BeliefCrystallizationEngine | CausalObserver | logs crystallization & decay events | S85.2: CDS observes belief formation to detect stagnation or hyper-instability. | `belief_crystallization_engine.py` | ADR-O-305 |
+| TickOrchestrator | GameStdout | emits [TICK_ORCH] summary | Every tick end: tick, game_time, decisions, verbal, moved. Feeds InvariantHealthChecker. | `tick_orchestrator.py` | ADR-INV-DEF |
+| PostDecision | SimulationIntegrityError | raises on INV-DIALOGUE-PIPELINE | If communication_intents empty but verbal decisions > 0. | `phases/post_decision.py` | ADR-INV-DEF |
+| TickOrchestrator | SimulationIntegrityError | raises on INV-TIME-FREEZE | If game_time_seconds does not grow. | `tick_orchestrator.py` | ADR-INV-DEF |
+| WorldSnapshotBuilder | SimulationIntegrityError | raises on INV-TRAV-DICT or INV-NPC-NAME | If active_traversals is not dict or NPC has no name. | `integration/world_snapshot_builder.py` | ADR-INV-DEF |
+| CausalObserver | InvariantHealthChecker | feeds [TICK_ORCH] and [SIM_INTEGRITY] lines | Parsed via new patterns in PatternRegistry. | `causal_observer.py:_dispatch` | ADR-INV-DEF |
+| InvariantHealthChecker | InvariantViolation | produces violations | Post-mortem check after 10 ticks or on runtime crash. | `health_checkers/invariant_health.py` | ADR-INV-DEF |
+| InvariantHealthChecker | DNAComputer | provides invariant_violations | For DNA metrics aggregation. | `dna_metrics.py` | ADR-INV-DEF |
+| IPT | GameLoop | runs idle_tick in isolated world | Layer BEFORE. Executed by LLM before commit. | `backend/tests/IPT.py` | ADR-INV-DEF |
 | NeedEngine | StressCalculator | need stress → economic_stress | get_wealth_stress + get_obligation_stress → calculate_economic_stress | `economy/stress_calculator.py` | - |
 | StressCalculator | DecisionHub | economic_stress → utility modifier | Phase 5: economic stress deforms utility (buy vs talk vs work). S85.2: Competes with L2.5 Belief Modifiers. | `npc/decision_hub.py` | - |
 | TradeResolver | TransactionEngine | resolve_tick → execute_sale/employment | Determine good → find seller → calculate price → execute | `economy/trade_resolver.py` | - |
@@ -1289,6 +1338,7 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | GameScreen | IntentCompressor | raw text input | Phase 1: player typed command | `input/intent_compressor.py` | - |
 | IntentCompressor | LLMCompressorClient | Slow Path: complex intent → LLM | Fast Path failed or ambiguous. 3 retries. | `input/intent_compressor.py:_slow_path_parse` | - |
 | IntentCompressor | DecisionHub | IntentSemanticField → pressure source | ATTACK → aggression. THREATEN → aggression. 'сюда'/'мне' → target_ref='player' | `input/intent_compressor.py` | ADR-088 |
+| Reality | ManifestationState | manifests | - | `-` | - |
 | MemoryManager | LayeredMemory | apply(event, npc_state) | Every event after EventBus (Phase 3) | `memory/memory_manager.py` | Устав §3.1 |
 | LayeredMemory | DialogueSession | STM write/read | Per-NPC, 5 реплик | `memory/dialogue_session.py` | - |
 | DialogueSession | PromotionEngine | promote on dialogue end | importance > threshold | `memory/promotion_engine.py` | - |
@@ -1303,6 +1353,15 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | RelationshipStore | StateApplicator | relationship_cache updates | Via DeltaBuffer (Устав §4.1.2) | `memory/relationship_store.py` | - |
 | TickOrchestrator | MemoryManager | _phase_3_memory: compress_narrative_cache | Every 10 ticks (idle allowed - structural optimization) | `tick_orchestrator.py` | ADR-S86.7 |
 | TickOrchestrator | MemoryManager | _phase_3_memory: check_identity_promotion | Every 50 ticks (REQUIRES phase_2_events - prevents phantom drift) | `tick_orchestrator.py` | ADR-S86.7 |
+| PerceivedSignal | FactExtractor | reads | - | `-` | - |
+| FactExtractor | ObservedFact | produces | - | `-` | - |
+| Reality | ManifestationState | manifests | - | `-` | - |
+| ManifestationState | ObservationRelation | observed via | - | `-` | - |
+| ObservationRelation | PerceivedSignal | filtered by physics | - | `-` | - |
+| PerceivedSignal | ObservedFact | extracted | - | `-` | - |
+| ObservedFact | Inference | hypothesized | - | `-` | - |
+| ObservedFact | Memory | stored | - | `-` | - |
+| Inference | Memory | stored | - | `-` | - |
 | CombatSubscriber | ImpactEngine | resolves contact | Fuzzy target resolve | `combat_subscriber.py` | ADR-021 |
 | ImpactEngine | PhysiologyPayload | computes | Physics composite (DRSL) | `impact_engine.py` | ADR-015 |
 | PhysiologyPayload | DeltaBuffer | flushed to | Only PhysiologyPayload | `physiology.py` | ADR-020 |
@@ -1504,6 +1563,9 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | DriftLaboratory | SceneState | REQUIRED: Read spatial positions from scene_state[npc_positions] (SSOT), not LifeEngine cache (ADR-S85.3) | `drift_laboratory.py` |
 | Any | PrintProbe | REQUIRED: Print probes MUST NOT be deleted without replacement (ADR-151) | `tick_orchestrator.py, life_engine.py, movement_engine.py, belief_crystallization_engine.py` |
 | Any | EmptyBlock | FORBIDDEN: Empty code block after probe removal — causes IndentationError (ADR-151) | `tick_orchestrator.py` |
+| Any | SimulationIntegrityError | FORBIDDEN: Catching SimulationIntegrityError in try/except. Let the pipeline crash. | `app/errors.py` |
+| LLM_Architect | IPT | REQUIRED: Run `python backend/tests/IPT.py` before closing a step. | `backend/tests/IPT.py` |
+| LLM_Architect | LAST_SESSION | REQUIRED: Read 🔴 RED INVARIANTS section before starting new work. | `reports/LAST_SESSION.md` |
 | TransactionEngine | NPCState | FORBIDDEN: Direct mutation of NPC money | `-` |
 | NeedEngine | DecisionHub | REQUIRED: Critical needs MUST influence decision | `-` |
 | Frontend | BackendInternals | FORBIDDEN: Import backend.app (Устав §1.1) | `Устав §1.1` |
@@ -1539,12 +1601,20 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | DriveResolver | L1Chronicle | FORBIDDEN: DriveResolver reading L1Chronicle directly. Must consume CrystallizedBelief (L2.5) from CrystallizedBeliefStore (ADR-S96.1) | `-` |
 | DriveResolver | EffectiveDrives | FORBIDDEN: L3=L0 fallback (pass statement). L3 MUST be deformed by L2.5 beliefs if they exist (ADR-S96.1) | `-` |
 | IntentCompressor | EmotionalVector | FORBIDDEN: Return default 0.0 vector for ATTACK (ADR-088) | `ADR-088` |
+| ManifestationState | ObserverPosition | FORBIDDEN: ManifestationState не должен зависеть от позиции наблюдателя | `-` |
+| ManifestationState | PerceptualKernel | FORBIDDEN: ManifestationState не должен зависеть от психики наблюдателя | `-` |
 | Any | MemoryManager | FORBIDDEN: Write to memory bypassing MemoryManager (Устав §4.1.2) | `Устав §4.1.2` |
 | DialogueSession | WorkingMemory | REQUIRED: WorkingMemory is per-NPC (Устав §4.1.1) | `Устав §4.1.1` |
 | PromotionEngine | LayeredMemory | FORBIDDEN: Promotion as method of LayeredMemory (Устав §4.1.3) | `Устав §4.1.3` |
 | YAMLMemoryExport | RuntimeTruth | FORBIDDEN: YAML as runtime truth (Устав §4.2.2) | `Устав §4.2.2` |
 | DecisionHub | TopicExtractor | REQUIRED: Topic must not be empty (Устав §3.2) | `npc/topic_extractor.py` |
 | MemoryManager | IdentityPromotion | FORBIDDEN: check_identity_promotion in idle ticks without phase_2_events. Prevents phantom identity drift (ADR-S86.7) | `tick_orchestrator.py` |
+| ObservedFact | InferenceEngine | REQUIRED: Составные выводы (hand_on_weapon) должны вычисляться в InferenceEngine, а не в FactExtractor | `-` |
+| Reality | PresentationAssembler | FORBIDDEN: Потребители не могут читать Reality напрямую | `-` |
+| ManifestationState | ObserverPosition | FORBIDDEN: ManifestationState не зависит от наблюдателя | `-` |
+| ObservationRelation | EntityMetadata | FORBIDDEN: ObservationRelation не содержит NPC id, Faction, Mood, Memory | `-` |
+| ObservedFact | CompositeConclusions | FORBIDDEN: ObservedFact должен быть строго атомарным | `-` |
+| Inference | Reality | FORBIDDEN: Inference не может изменять Reality | `-` |
 | CombatSubscriber | Emotion | FORBIDDEN: Domain Leakage (ADR-021) | `ADR-021` |
 | StateInterpreter | HP_Ratio | FORBIDDEN: Ignore pain/shock | `state_interpreter.py:273` |
 | StateInterpreter | Pain_Scale | FORBIDDEN: Read pain without /100.0 normalization | `state_interpreter.py:273, state_applicator.py:491` |

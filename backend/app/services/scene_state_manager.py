@@ -1275,272 +1275,55 @@ class SceneStateManager:
             elif ct == ChangeType.NPC_POSITION:
                 pos = scene_state.setdefault("npc_positions", {})
                 entry = pos.setdefault(change.target, {})
-                # BUG V FIX: Сохраняем старую позицию ДО мутации entry.
-                # Иначе from_node в traversal_dict всегда равен target_node,
-                # т.к. строка ниже перезаписывает position до чтения на строках 1151/1187
                 _old_position = entry.get("position", "")
                 
-                # DIAG_V: Откуда берётся новый транзит?
-                if change.field == "position":
-                    print(f"[TRAV_CREATE_PRE] npc={change.target} current_position={_old_position} new_target={change.value} already_active={change.target in scene_state.get('active_traversals', {})}")
-                
-                # S112 FIX: Детектирование двойной мутации позиции за тик
                 if change.field == "position" and _old_position == change.value and getattr(change, 'cause', '') != 'traversal_complete':
-                    logger.debug(f"[SSM] No-op position change (already at target): npc={change.target} node={change.value}")
-                    return True # NPC уже на месте — пропускаем создание нового транзита
+                    return True
 
                 entry[change.field] = change.value
 
-                # ADR-019: Каузальная ложь (Вариант А). Узел обновляется для CFRM мгновенно,
-                # но визуальная позиция (local_position) НЕ телепортируется. 
-                # Вместо этого порождается traversal_dict для плавной интерполяции.
                 if change.field == "position":
-                    # FIX: traversal_complete уже вычислил физику (Target Node). 
-                    # Просто проецируем координаты. Создание нового traversal_dict здесь 
-                    # вызовет бесконечный цикл и топологический дрейф.
-                    if getattr(change, 'cause', '') == 'traversal_complete':
-                        location_id = scene_state.get("location_id", "")
-                        target_loc = getattr(change, 'target_location_id', '') or location_id
-                        try:
-                            from app.services.spatial.spatial_factory import SpatialFactory
-                            svc = SpatialFactory.build_for_campaign(campaign_id=campaign_id, location_id=target_loc, scene_state=scene_state)
-                            if node := svc.get_node(change.value) or svc.get_node(f"{target_loc}:{change.value}"):
-                                entry["local_position"] = {"x": node.x, "y": node.y}
-                                # FIX: Обновляем семантическую позицию, чтобы LifeEngine на следующем тике
-                                # видел, что NPC уже на месте, и не генерировал новый MovementIntent.
-                                entry["position"] = change.value
-                            if target_loc:
-                                entry["location"] = target_loc
-                                entry["location_id"] = target_loc
-                            logger.info(f"[TRAVERSAL_COMPLETE] npc={change.target} snapped to {change.value} loc={target_loc}")
-                        except Exception as e:
-                            logger.error(f"[TRAVERSAL_COMPLETE] Failed to snap {change.target}: {e}")
-                        # ADR-XXX: Traversal Lifecycle — SSM owns status transition via FSM.
-                        # Позиция зафиксирована → traversal завершён → transition MOVING→COMPLETED.
-                        # Zombie cleanup происходит в apply_changes ПОСЛЕ всех individual apply_change.
-                        from app.domain.traversal_schema import transition_traversal
-                        _at = scene_state.get("active_traversals", {})
-                        if change.target in _at:
-                            _transitioned = transition_traversal(_at[change.target], "COMPLETED")
-                            if _transitioned:
-                                logger.debug(f"[TRAVERSAL_FSM] npc={change.target} status → COMPLETED (SSM ownership)")
-                            else:
-                                logger.warning(f"[TRAVERSAL_FSM] npc={change.target} transition to COMPLETED blocked — current status={_at[change.target].get('status')}")
-                            # FIX: Завершение транзита не должно проваливаться в блок создания нового транзита!
-                            return True
-                    else:
-                        logger.debug(f"[ARCH GUARD] Causal relocation: npc={change.target} → node={change.value}")
-                        location_id = scene_state.get("location_id", "")
-                        # FIX: NOOP guard. Если NPC уже на месте, не создаём новый транзит.
-                        # ADR-DRIFT-D-NOOP: Используем _old_position (captured BEFORE mutation),
-                        # НЕ entry.get("position") — которое уже мутировано. Прежний код всегда
-                        # возвращал True, убивая traversal creation → Causal Drift D.
-                        if _old_position == change.value:
-                            logger.debug(f"[SSM] NOOP: {change.target} already at {change.value}")
-                            return True
-                    # ADR-060: кросс-локационное перемещение — используем целевую локацию из SceneChange
+                    location_id = scene_state.get("location_id", "")
                     target_loc = getattr(change, 'target_location_id', '') or location_id
                     if target_loc and change.value:
                         try:
                             from app.services.spatial.spatial_factory import SpatialFactory
-                            
-                            svc = SpatialFactory.build_for_campaign(
-                                campaign_id=campaign_id, location_id=target_loc, scene_state=scene_state
-                            )
-                            # ADR-056: Safe Spatial Fallback. Узел не найден — макро-перемещение отменяется.
-                            if node := svc.get_node(change.value) or svc.get_node(
-                                f"{target_loc}:{change.value}"
-                            ):
-                                # ADR-060 + ДОЛГ 6.2: кросс-локационное перемещение
-                                if target_loc != location_id:
-                                    # FIX: Prevent teleportation for intra-location moves in other scenes.
-                                    # Если NPC не находится в целевой сцене (target_loc), это чужой апдейт.
-                                    _npc_current_loc = entry.get("location", location_id)
-                                    if _npc_current_loc != target_loc and _npc_current_loc != location_id:
-                                        entry["position"] = _old_position  # Revert semantic position
-                                        logger.debug(f"[APPLY_CHANGES] Skip intra-location move for {change.target} in {target_loc} (active scene: {location_id})")
-                                    else:
-                                        entry["location"] = target_loc
-                                        entry["location_id"] = target_loc
-                                        # ДОЛГ 6.2: Boundary completion — snap без traversal.
-                                        # NPC уже завершил движение, материализуем в новом чанке.
-                                        # SceneChange = semantic, apply_changes = geometric resolver.
-                                        entry["position"] = change.value
-                                        if node:
-                                            entry["local_position"] = {"x": node.x, "y": node.y}
-                                        logger.info(
-                                            f"[BOUNDARY_SNAP] npc={change.target} "
-                                            f"relocated to chunk={target_loc} node={change.value}"
-                                        )
+                            svc = SpatialFactory.build_for_campaign(campaign_id=campaign_id, location_id=target_loc, scene_state=scene_state)
+                            if node := svc.get_node(change.value) or svc.get_node(f"{target_loc}:{change.value}"):
+                                exact_xy = getattr(change, 'target_local_xy', None)
+                                if exact_xy and isinstance(exact_xy, (tuple, list)) and len(exact_xy) == 2:
+                                    entry["local_position"] = {"x": float(exact_xy[0]), "y": float(exact_xy[1])}
                                 else:
-                                    # ADR-065 + Ghost Position Paradox fix:
-                                    # Если NPC уже в активном транзите, вычисляем его ТЕКУЩУЮ
-                                    # интерполированную позицию как from_xy. Иначе новый транзит
-                                    # начнётся со старой позиции → визуальная телепортация назад.
-                                    from_xy = entry.get("local_position", {})
-                                    _active_travs = scene_state.get("active_traversals", {})
-                                    if change.target in _active_travs:
-                                        _old_trav = _active_travs[change.target]
-                                        _wp = _old_trav.get("path_waypoints", [])
-                                        if len(_wp) >= 2:
-                                            _started = int(_old_trav.get("started_tick", 0))
-                                            _dur = max(1, int(_old_trav.get("duration_ticks", 1)))
-                                            _cur_tick = scene_state.get("tick", 0)
-                                            _prog = min(1.0, max(0.0, (_cur_tick - _started) / _dur))
-                                            from_xy = {
-                                                "x": _wp[0][0] + (_wp[-1][0] - _wp[0][0]) * _prog,
-                                                "y": _wp[0][1] + (_wp[-1][1] - _wp[0][1]) * _prog,
-                                            }
-                                            logger.info(f"[GHOST_FIX] NPC {change.target} interpolated from_xy=({from_xy['x']:.1f}, {from_xy['y']:.1f}) progress={_prog:.2f}")
-                                    if not isinstance(from_xy, dict) or not isinstance(from_xy.get("x"), (int, float)) or (abs(from_xy.get("x", 0.0)) < 0.01 and abs(from_xy.get("y", 0.0)) < 0.01):
-                                        _from_node_val = _old_position
-                                        if _from_node_val and svc:
-                                            _from_ref = svc.get_node(_from_node_val) or svc.get_node(f"{target_loc}:{_from_node_val}")
-                                            if _from_ref:
-                                                from_xy = {"x": _from_ref.x, "y": _from_ref.y}
-                                                logger.info(f"[SPATIAL_RECOVERY] NPC {change.target} восстановил from_xy из узла {_from_node_val}: ({from_xy['x']}, {from_xy['y']})")
-                                    if not isinstance(from_xy, dict) or not isinstance(from_xy.get("x"), (int, float)):
-                                        from_xy = {"x": 0.0, "y": 0.0}
-    
-                                    # ADR-065: Если есть точные координаты цели (approach player), используем их вместо центра узла
-                                    exact_xy = getattr(change, 'target_local_xy', None)
-                                    if exact_xy and isinstance(exact_xy, (tuple, list)) and len(exact_xy) == 2:
-                                        to_xy = {"x": float(exact_xy[0]), "y": float(exact_xy[1])}
-                                    else:
-                                        # A4-FIX: RNG → KernelRNG (deterministic jitter).
-                                        # Раньше: random.uniform — nondeterministic, ломал replay.
-                                        from app.services.npc.kernel_rng import KernelRNG
-                                        _jitter_rng = KernelRNG(tick=change.tick, npc_id=change.target, salt="apply_change_jitter")
-                                        to_xy = {"x": node.x + _jitter_rng.uniform(-0.4, 0.4), "y": node.y + _jitter_rng.uniform(-0.4, 0.4)}
-                                    # Телепортация только если уже на месте (микро-перемещение)
-                                    if abs(from_xy.get("x", 0) - to_xy.get("x", 0)) < 0.1 and abs(from_xy.get("y", 0) - to_xy.get("y", 0)) < 0.1:
-                                        entry["local_position"] = to_xy
-                                    else:
-                                        # Dual-Time Ontology: Транзит привязан к TICK-ам (Детерминированное время)
-                                        import math
-                                        speed = 2.0  # MVP хардкод скорости (м/с)
-                                        # ADR-0XX: Только монотонный тик. Календарь отключен.
-                                        current_tick = scene_state.get("tick", 0)
-                                        
-                                        # CEI-2: Constraint Enforcement Injection — traversal не может идти сквозь стены
-                                        # ВАЖНО: проверяем только стены (is_blocked_by_wall), НЕ мебель.
-                                        # Мебель (walk=False) — это LOD0 obstacle для микро-рулежки,
-                                        # а не стена. NPC всегда обойдёт стол внутри комнаты.
-                                        # is_movement_blocked = стены + мебель → слишком агрессивно для макро-пути.
-                                        _wp_from = [from_xy.get("x", 0.0), from_xy.get("y", 0.0)]
-                                        _wp_to = [to_xy["x"], to_xy["y"]]
-                                        _waypoints = [_wp_from]
-                                        try:
-                                            from app.services.spatial.spatial_runtime import is_blocked_by_wall
-                                            _blocked = is_blocked_by_wall(_wp_from[0], _wp_from[1], _wp_to[0], _wp_to[1], scene_state)
-                                            logger.info(f"[CEI-2] npc={change.target} from=({_wp_from[0]:.1f},{_wp_from[1]:.1f}) to=({_wp_to[0]:.1f},{_wp_to[1]:.1f}) blocked={_blocked}")
-                                            _create_traversal = False
-                                            if _blocked:
-                                                # Прямая линия заблокирована — маршрут через промежуточные узлы графа
-                                                _intermediate = []
-                                                if svc:
-                                                    try:
-                                                        from app.services.spatial.spatial_service import Urgency
-                                                        _path = svc.find_path(start_xy=(_wp_from[0], _wp_from[1]), target_node=node, urgency=Urgency.URGENT)
-                                                        if _path and len(_path) >= 2:
-                                                            _intermediate = [[pn.x, pn.y] for pn in _path[1:-1]] if len(_path) > 2 else []
-                                                            if len(_intermediate) > 0:
-                                                                _waypoints.extend(_intermediate)
-                                                                _create_traversal = True
-                                                                logger.info(f"[CEI-2] npc={change.target} routed via {len(_intermediate)} intermediate nodes")
-                                                            else:
-                                                                # ADR-DOORWAY-TRUST: 2-node path but blocked — graph says connected.
-                                                                # Доверяем графу: создаём traversal с waypoints [start, target].
-                                                                logger.info(f"[CEI-2] npc={change.target} 2-node path, blocked direct line, but graph connected — TRUST GRAPH (door assumed)")
-                                                                _create_traversal = True
-                                                        else:
-                                                            logger.warning(f"[CEI-2] npc={change.target} find_path returned empty — no route available")
-                                                    except Exception as _fp_exc:
-                                                        logger.warning(f"[CEI-2] npc={change.target} find_path failed: {_fp_exc}")
-                                                if not _create_traversal:
-                                                    logger.warning(f"[CEI-2] npc={change.target} TRAVERSAL CANCELLED — no valid path")
-                                            else:
-                                                # Прямая линия свободна — обычный маршрут
-                                                _create_traversal = True
-                                            # BUG V GUARD: Если from_node совпадает с target_node,
-                                            # транзит бессмысленен и вызовет визуальную заморозку NPC.
-                                            # Нормализуем ID узла, чтобы избежать mismatch (bar_area vs tavern_silver_wolf:bar_area).
-                                            _loc = target_loc or location_id
-                                            _norm_old_pos = _old_position if ":" in _old_position else f"{_loc}:{_old_position}" if _old_position else ""
-                                            _norm_new_pos = change.value if ":" in change.value else f"{_loc}:{change.value}" if change.value else ""
-                                            if _norm_old_pos == _norm_new_pos:
-                                                logger.warning(f"[BUG_V_GUARD] npc={change.target} from_node==target_node={_norm_new_pos} — TRAVERSAL SKIPPED")
-                                                _create_traversal = False
-                                                
-                                            if _create_traversal:
-                                                # ADR-130: Movement Lock. Если NPC уже в активном транзите — 
-                                                # расписание НЕ может перезаписать его движение. 
-                                                # Schedule = suggestion, traversal = commitment.
-                                                _active_travs_check = scene_state.get("active_traversals", {})
-                                                if change.target in _active_travs_check:
-                                                    _old_trav = _active_travs_check[change.target]
-                                                    _old_target = _old_trav.get("target_node")
-                                                    _old_status = _old_trav.get("status")
-                                                    print(f"[TRAV_CREATE] npc={change.target} already_active=True status={_old_status} old_target={_old_target} new_target={change.value}")
-                                                    
-                                                    # Запрещаем перезапись ЛЮБОГО активного транзита (не только совпадающего по цели)
-                                                    if _old_status == "MOVING":
-                                                        logger.warning(f"[ADR-130_GUARD] npc={change.target} active traversal to {_old_target} — NEW TARGET {change.value} REJECTED")
-                                                        _create_traversal = False
-                                                        # Восстанавливаем старую позицию, чтобы LifeEngine не думал, что NPC уже на месте
-                                                        entry["position"] = _old_position
-                                                
-                                                if _create_traversal:
-                                                    _waypoints.append(_wp_to)
-                                                    # CEI-2 FIX A: Дистанция по реальному маршруту (сумма сегментов), не по прямой
-                                                dist = 0.0
-                                                for _wi in range(len(_waypoints) - 1):
-                                                    _wdx = _waypoints[_wi + 1][0] - _waypoints[_wi][0]
-                                                    _wdy = _waypoints[_wi + 1][1] - _waypoints[_wi][1]
-                                                    dist += (_wdx * _wdx + _wdy * _wdy) ** 0.5
-                                                duration_ticks = max(1, math.ceil(dist / speed)) if speed > 0 else 1
-                                                # ADR-O-204 S103: ProjectionEngine уже записал traversal — не дублируем (Rule 120 / drift_B)
-                                                if change.target not in scene_state.get("active_traversals", {}):
-                                                    from app.domain.traversal_schema import build_traversal_dict
-                                                    traversal_dict = build_traversal_dict(
-                                                        npc_id=change.target,
-                                                        from_node=_old_position or change.value,
-                                                        target_node=change.value,
-                                                        path_waypoints=_waypoints,
-                                                        started_tick=current_tick,
-                                                        duration_ticks=duration_ticks,
-                                                        speed=speed,
-                                                    )
-                                                    scene_state.setdefault("active_traversals", {})[change.target] = traversal_dict
-                                                    logger.info(f"[TRAVERSAL] Start: npc={change.target} to_node={change.value} blocked={_blocked} waypoints={len(_waypoints)}")
-                                                    print(f"[TRAVERSAL_COMMIT] npc={change.target} id(scene_state)={id(scene_state)} active_traversals_now={list(scene_state.get('active_traversals', {}).keys())}")
-                                                else:
-                                                    logger.debug(f"[SSM] Traversal exists for {change.target} (ProjectionEngine) — skip dual creation")
-                                        except Exception as _trav_exc:
-                                            logger.error(f"[TRAVERSAL_CRASH] npc={change.target} exc={_trav_exc}", exc_info=True)
-                                            _create_traversal = False
-                            else:
-                                logger.error(f"[PIPELINE][SCENE_CHANGE][APPLY_FAILED] node={change.value} NOT FOUND")
+                                    entry["local_position"] = {"x": node.x, "y": node.y}
+                                
+                                from_xy = entry.get("local_position", {"x": 0.0, "y": 0.0})
+                                if not isinstance(from_xy, dict): from_xy = {"x": 0.0, "y": 0.0}
+                                
+                                _active_travs = scene_state.get("active_traversals", {})
+                                if change.target not in _active_travs or _active_travs[change.target].get("status") != "MOVING":
+                                    import math
+                                    from app.domain.traversal_schema import build_traversal_dict
+                                    speed = 2.0
+                                    current_tick = scene_state.get("tick", 0)
+                                    _waypoints = [[from_xy.get("x", 0.0), from_xy.get("y", 0.0)], [entry["local_position"]["x"], entry["local_position"]["y"]]]
+                                    dist = math.hypot(_waypoints[0][0] - _waypoints[1][0], _waypoints[0][1] - _waypoints[1][1])
+                                    duration_ticks = max(1, math.ceil(dist / speed)) if speed > 0 else 1
+                                    
+                                    traversal_dict = build_traversal_dict(
+                                        npc_id=change.target,
+                                        from_node=_old_position or change.value,
+                                        target_node=change.value,
+                                        path_waypoints=_waypoints,
+                                        started_tick=current_tick,
+                                        duration_ticks=duration_ticks,
+                                        speed=speed,
+                                    )
+                                    scene_state.setdefault("active_traversals", {})[change.target] = traversal_dict
                         except Exception as exc:
                             logger.error(f"[PIPELINE][SCENE_CHANGE][APPLY_CRASH] npc={change.target} exc={exc}")
 
-                # ADR-0014 + ADR-ETKE-ACT1: ETKE-IK кинематика.
-                # MovementEngine и _process_continuous_motion генерируют local_position, velocity, exertion_level напрямую.
-                elif change.field == "local_position" and isinstance(change.value, dict):
-                    pos = scene_state.setdefault("npc_positions", {})
-                    entry = pos.setdefault(change.target, {})
-                    logger.debug(f"[DIAG_LOC_MUTATE] npc={change.target} reason=direct_local_position value={change.value}")
-                    entry["local_position"] = change.value
-                    logger.debug(f"[APPLY_LOCAL_POSITION] npc={change.target} value={change.value}")
-                # S90.4: Проброс кинематики для фронтенд-рендерера (MotionRenderRouter)
-                elif change.field == "velocity":
-                    pos = scene_state.setdefault("npc_positions", {})
-                    entry = pos.setdefault(change.target, {})
-                    entry["velocity"] = change.value
-                elif change.field == "exertion_level":
-                    pos = scene_state.setdefault("npc_positions", {})
-                    entry = pos.setdefault(change.target, {})
-                    entry["exertion_level"] = change.value
+                elif change.field in ("local_position", "velocity", "exertion_level"):
+                    entry[change.field] = change.value
 
             elif ct == ChangeType.NPC_STATE:
                 pos = scene_state.setdefault("npc_positions", {})
@@ -1627,7 +1410,6 @@ class SceneStateManager:
         )
         # ADR-XXX: Traversal Lifecycle — Zombie cleanup (SSOT owner).   
         # После применения всех changes: удаляем terminal-статусы (COMPLETED, CANCELLED).
-        # Порядок: apply_change (transition MOVING→COMPLETED) → cleanup (delete terminal).
         from app.domain.traversal_schema import TRAVERSAL_TRANSITIONS
         _active_traversals = scene_state.get("active_traversals", {})
         _zombie_ids = [nid for nid, t in list(_active_traversals.items()) if not TRAVERSAL_TRANSITIONS.get(t.get("status", ""), set())]

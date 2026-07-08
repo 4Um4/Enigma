@@ -107,16 +107,14 @@ class ProjectionEngine:
         # 1. Каузальная позиция (semantic truth)
         entry["position"] = thick.value
 
-        # 2. Геометрическая позиция (из SpatialResolution, НЕ вычисляется здесь)
-        # SpatialTransitionMode: разделяет Authoritative State и Presentation State.
+        # 2. Геометрическая позиция (Authoritative State)
+        # Бэкенд мгновенно обновляет позицию на цель (target_xy).
+        # Фронтенд сам отвечает за плавную интерполяцию (LERP) к этой точке.
         if thick.spatial and thick.spatial.target_xy:
-            if thick.spatial_mode == SpatialTransitionMode.IMMEDIATE:
-                entry["local_position"] = {
-                    "x": thick.spatial.target_xy[0],
-                    "y": thick.spatial.target_xy[1],
-                }
-            # Если INTERPOLATED — не трогаем local_position. 
-            # Фронтенд будет плавно интерполировать через active_traversals.
+            entry["local_position"] = {
+                "x": thick.spatial.target_xy[0],
+                "y": thick.spatial.target_xy[1],
+            }
 
         # 3. Boundary resolution (кросс-локационное перемещение)
         if thick.boundary and thick.boundary.is_boundary:

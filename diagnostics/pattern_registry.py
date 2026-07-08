@@ -79,6 +79,11 @@ PATTERNS: Dict[str, str] = {
     "llm_stream_call":      r"\[R4A_STREAM\] calling stream_tokens\(\)",
     "llm_stream_response":  r"\[R4A_STREAM\] stream complete, (\d+) chars",
     # dm_resp='Ничего не произошло.'
+
+    # --- Invariant Defense System ---
+    "sim_integrity":       r"\[SIM_INTEGRITY\] id=(\S+) severity=(\S+) file=(\S+) line=(\d+)",
+    "tick_complete":       r"\[TICK_ORCH\] tick=(\d+) game_time=([\d.]+) decisions=(\d+) verbal=(\d+) moved=(\d+)",
+    "scene_events_verbal": r"\[SCENE_EVENTS\] (\d+) events emitted.*'verbal'",
     "llm_nothing":          r"dm_resp='Ничего не произошло\.'",
     # 3+ подряд идущих CJK-символа = галлюцинация на китайском
     "llm_cjk":              r"[\u4e00-\u9fff]{3,}",

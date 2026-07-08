@@ -29,12 +29,14 @@ class ReportRenderer:
         tick_report: TickHealthReport,
         movement_report: MovementHealthReport,
         dna_computer: Optional[DNAComputer] = None,
+        invariant_violations: Optional[list] = None,
         started_at: Optional[datetime] = None,
         project_root: Optional[str] = None,
     ) -> None:
         self._tick = tick_report
         self._movement = movement_report
         self._dna = dna_computer
+        self._invariant_violations = invariant_violations or []
         self._started_at = started_at or datetime.now()
         self._git: GitInfo = GitReader(project_root).read()
 
@@ -58,12 +60,49 @@ class ReportRenderer:
     # Рендер
     # ------------------------------------------------------------------
 
+    def _section_red_invariants(self) -> str:
+        if not self._invariant_violations:
+            return ("## 🟢 КРАСНЫЕ ИНВАРИАНТЫ — ТИХИЕ ДЕГРАДАЦИИ\n\n"
+                    "_Не обнаружено — игра жива._\n\n"
+                    "**Источники проверки:**\n"
+                    "- Runtime: `SimulationIntegrityError` в pipeline (не сработал)\n"
+                    "- Post-mortem: `InvariantHealthChecker` в CausalObserver (не нашёл)\n"
+                    "- Слой ДО: `python backend/tests/IPT.py` (запускается LLM до коммита)")
+
+        critical = [v for v in self._invariant_violations if v.severity == "CRITICAL"]
+        warnings = [v for v in self._invariant_violations if v.severity == "WARNING"]
+
+        blocks = []
+        if critical:
+            blocks.append("### 🔴 CRITICAL — чинить ПЕРВЫМ, до любой новой фичи")
+            for v in critical:
+                blocks.append(self._render_violation(v))
+        if warnings:
+            blocks.append("### 🟡 WARNING — можно работать, но записать в долг")
+            for v in warnings:
+                blocks.append(self._render_violation(v))
+
+        return "## 🔴 КРАСНЫЕ ИНВАРИАНТЫ — ТИХИЕ ДЕГРАДАЦИИ\n\n" + "\n\n".join(blocks)
+
+    def _render_violation(self, v) -> str:
+        source_icon = "⚡" if v.source == "RUNTIME" else "📈"
+        files_block = "\n".join(f"  - `{f}`" for f in v.suspect_files)
+        ps_block = ""
+        if v.powershell_check:
+            ps_block = f"\n\n**PowerShell для проверки:**\n```powershell\n{v.powershell_check}\n```"
+
+        return (f"#### {source_icon} {v.invariant_id} [{v.source}]\n\n"
+                f"**Симптом:** {v.message}\n\n"
+                f"**Подозреваемые файлы (проверить в порядке очерёдности):**\n"
+                f"{files_block}{ps_block}")
+
     def _render(self) -> str:
         ts = self._started_at.strftime("%Y-%m-%d %H:%M")
         sections = [
             self._header(ts),
             self._section_identification(),
             self._section_dna(),
+            self._section_red_invariants(),
             self._section_architect1(),
             self._section_architect2(),
             self._section_architect3(),

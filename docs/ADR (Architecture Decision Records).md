@@ -819,6 +819,10 @@
 `ADR-SHI-01` [FIX] **CDS Pipeline Repair (SHI=0% Fix)** — Восстановлена труба логирования. Regex в `pattern_registry.py` обновлён для парсинга отрицательных score (`-?[\d.]+`). Устранён `NameError` (`hub_event`) в `npc_tick_pipeline.py`. Симуляция снова "видима" для CDS.
   Files: diagnostics/pattern_registry.py, services/npc/npc_tick_pipeline.py
 
+`ADR-INV-DEF` [STD] **Invariant Defense System (IPT & Red Invariants)** — Двухслойная защита от регрессий. Invariant Probe Tests (IPT) запускаются до коммита. InvariantHealthChecker + SimulationIntegrityError ловят тихие деградации post-mortem. Эмиттер `[TICK_ORCH]` в ядре кормит CDS сводкой тика.
+  Taboo: ❌ Закрывать шаг без запуска `python backend/tests/IPT.py`. ❌ Перехват `SimulationIntegrityError` через try/except в пайплайне. ❌ Игнорирование секции "🔴 КРАСНЫЕ ИНВАРИАНТЫ" в `LAST_SESSION.md`.
+  Files: backend/tests/IPT.py, backend/app/errors.py, diagnostics/health_checkers/invariant_health.py, diagnostics/causal_observer.py, diagnostics/report_renderer.py, diagnostics/dna_metrics.py, backend/app/services/phases/post_decision.py, backend/app/services/tick_orchestrator.py, backend/app/services/integration/world_snapshot_builder.py
+
 ---
 
 ## DOM-09: SOCIAL & AFFECTIVE ARCHITECTURE (SSOT & Causal Derivation)
@@ -989,6 +993,3 @@
   Taboo: ❌ Вызов LLM или других блокирующих I/O операций внутри `TickOrchestrator`/`DecisionHub`. ❌ Связывание интента напрямую с материализацией.
   Status: VERIFIED (Dialogue System v2.0 Integrated)
   Files: domain/execution.py, domain/communication.py, services/execution/dialogue_executor.py, services/execution/dialogue_materializer.py, services/game_loop/task_scheduler.py, services/phases/post_decision.py
-
-
-

@@ -160,3 +160,5 @@ class TickResultDTO:
     npc_contexts: list = field(default_factory=list)
     # Sprint P9: Список строк фактов для DMContractBuilder
     observed_facts: list = field(default_factory=list)
+    # S83.1 FIX: Возвращаем мутированный снимок состояния из ядра (deepcopy из create_tick_context)
+    final_scene_state: Optional[dict] = None

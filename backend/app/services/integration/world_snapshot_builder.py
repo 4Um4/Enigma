@@ -42,6 +42,20 @@ class WorldSnapshotBuilder:
             return self._empty_snapshot(tick, recent_dialogues)
 
         npc_positions = self._extract_npc_positions(scene_state)
+        
+        # INV-DEF: Проверка инвариантов WorldSnapshot
+        from app.errors import SimulationIntegrityError
+        for npc_id, npc_data in npc_positions.items():
+            if not (getattr(npc_data, "name", None) or getattr(npc_data, "display_name", None)):
+                raise SimulationIntegrityError(
+                    invariant_id="INV-NPC-NAME",
+                    message=f"NPC {npc_id} не имеет поля name. Fuzzy matching ослепнет.",
+                    suspect_files=[
+                        "backend/app/services/scene_state_manager.py",
+                        "backend/app/services/npc/npc_loader.py",
+                    ],
+                    file=__file__, line=44,
+                )
         visible_events = self._extract_visible_events(scene_state)
         player_pos = self._extract_player_position(scene_state)
         self.avatar_state = avatar_state # Проброс проекции в DTO
@@ -70,6 +84,23 @@ class WorldSnapshotBuilder:
             game_time_seconds=scene_state.get("game_time_seconds", 0),
             active_traversals=self._extract_active_traversals(scene_state),
         )
+
+        # INV-DEF: Проверка инвариантов WorldSnapshot
+        _at = result.active_traversals
+        if not isinstance(_at, dict):
+            from app.errors import SimulationIntegrityError
+            raise SimulationIntegrityError(
+                invariant_id="INV-TRAV-DICT",
+                message=(f"active_traversals имеет тип {type(_at).__name__}, ожидался dict. "
+                         f"Frontend упадёт на isinstance(traversals, list) в game_screen.py."),
+                suspect_files=[
+                    "backend/app/services/integration/world_snapshot_builder.py:_extract_active_traversals",
+                    "backend/app/domain/snapshot.py:WorldSnapshotDTO.active_traversals",
+                ],
+                file=__file__, line=89,
+            )
+
+        return result
 
     # Маппинг cue_key → hover_text (наблюдение, не диагноз — Правило X: телепатия запрещена)
     _CUE_TEXT_MAP = {

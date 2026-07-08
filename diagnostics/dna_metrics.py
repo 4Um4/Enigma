@@ -57,6 +57,8 @@ class DNASnapshot:
     # Инвариант 3: пред-шинные отказы
     prebus_failures: int = 0  # pipeline_critical + causality_crash + phase8_crash + tick_orch_error
     affect_decay_fails: int = 0  # affect_decay_fail count
+    invariant_violations: int = 0  # Количество CRITICAL нарушений инвариантов
+    invariant_warning_count: int = 0  # Количество WARNING нарушений инвариантов
 
 
 @dataclass
@@ -69,6 +71,8 @@ class DNADelta:
     ADR: Optional[float] = None
     CVS: Optional[float] = None
     PFI: Optional[float] = None  # Инвариант 3: Pre-Bus Failure Index
+    INV_V: Optional[int] = None  # Invariant Violations (CRITICAL)
+    INV_W: Optional[int] = None  # Invariant Warnings
 
     def format_field(self, name: str) -> str:
         """Форматирует одно поле дельты для LLM-отчёта."""
@@ -100,11 +104,13 @@ class DNAComputer:
         tick_report: TickHealthReport,
         movement_report: MovementHealthReport,
         started_at: datetime,
+        invariant_violations: Optional[list] = None,
         project_root: Optional[str] = None,
     ) -> None:
         self._tick = tick_report
         self._movement = movement_report
         self._started_at = started_at
+        self._invariant_violations = invariant_violations or []
         self._root = Path(project_root) if project_root else Path(__file__).parent.parent
         self._history_path = self._root / "reports" / "dna_history.jsonl"
 
@@ -144,6 +150,10 @@ class DNAComputer:
         _prebus = (self._tick.pipeline_critical_count + self._tick.causality_crash_count +
                    self._tick.phase8_crash_count + self._tick.tick_orch_error_count)
 
+        # INV-DEF: Подсчёт нарушений инвариантов
+        _inv_violations = sum(1 for v in self._invariant_violations if v.severity == "CRITICAL")
+        _inv_warnings = sum(1 for v in self._invariant_violations if v.severity == "WARNING")
+
         return DNASnapshot(
             timestamp=datetime.now().isoformat(timespec="seconds"),
             session_minutes=round(session_minutes, 1),
@@ -165,6 +175,9 @@ class DNAComputer:
             # Инвариант 3: Наблюдаемость отказа
             prebus_failures=_prebus,
             affect_decay_fails=self._tick.affect_decay_fail_count,
+            # INV-DEF: Invariant Defense System метрики
+            invariant_violations=_inv_violations,
+            invariant_warning_count=_inv_warnings,
         )
 
     def _compute_shi(self) -> float:

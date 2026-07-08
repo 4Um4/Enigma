@@ -745,6 +745,23 @@ class GameScreen:
             _ws = None
             if _idle_tick_result:
                 _tick_data = _idle_tick_result.pop()
+                
+                # Обработка результата skip_time (Time Skip)
+                if _tick_data.get("stop_reason") or _tick_data.get("ticks_skipped"):
+                    _ws_skip = _tick_data.get("world_snapshot")
+                    if _ws_skip:
+                        _ws_gts = _ws_skip.get("game_time_seconds")
+                        if _ws_gts and _ws_gts > 0:
+                            self.game_time_seconds = _ws_gts
+                            scene_state["game_time_seconds"] = _ws_gts
+                            logger.info(f"[SKIP_TIME] time updated to {format_world_date(_ws_gts)}")
+                        _skip_positions = _ws_skip.get("npc_positions", {})
+                        if _skip_positions:
+                            import copy
+                            for npc_id, new_data in _skip_positions.items():
+                                scene_state.setdefault("npc_positions", {})[npc_id] = copy.deepcopy(new_data)
+                    continue # Пропускаем стандартную обработку idle_tick
+                
                 # Канонический источник: world_snapshot.npc_positions (Устав §3, фаза 9)
                 _ws = _tick_data.get("world_snapshot")
                 if _ws and "npc_positions" in _ws:

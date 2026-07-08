@@ -315,21 +315,19 @@ class SceneRenderer:
                 render_y = entity.y + _vy * dt
             else:
                 # Режим 3: LERP к целевой позиции (унификация с игроком)
-                _NPC_LERP_SPEED = 8.0  # м/сек
-                _NPC_TELEPORT_THRESHOLD = 3.0  # м
+                _NPC_LERP_SPEED = 1.2  # м/сек (скорость ходьбы)
+                # Отключаем порог телепортации: бэкенд может менять позицию скачком,
+                # но фронтенд всегда должен плавно интерполировать к ней.
                 dx, dy = entity.x - prev_x, entity.y - prev_y
                 dist = (dx**2 + dy**2)**0.5
                 if dist > 0.01:
-                    if dist > _NPC_TELEPORT_THRESHOLD:
+                    step = _NPC_LERP_SPEED * dt
+                    if step >= dist:
                         render_x, render_y = entity.x, entity.y
                     else:
-                        step = _NPC_LERP_SPEED * dt
-                        if step >= dist:
-                            render_x, render_y = entity.x, entity.y
-                        else:
-                            ratio = step / dist
-                            render_x = prev_x + dx * ratio
-                            render_y = prev_y + dy * ratio
+                        ratio = step / dist
+                        render_x = prev_x + dx * ratio
+                        render_y = prev_y + dy * ratio
                 else:
                     render_x, render_y = entity.x, entity.y
 

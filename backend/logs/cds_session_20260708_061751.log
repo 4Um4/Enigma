@@ -1,0 +1,26 @@
+2026-07-08 06:17:51,925 app.main INFO: [CDS] FileHandler initialized: C:\DDD\Codex\VSC_Enigma\Enigma\backend\logs\cds_session_20260708_061751.log
+2026-07-08 06:17:51,925 app.services.llm.provider_manager INFO: ModelPool: Registered 'qwen_7b' (ctx=8192)
+2026-07-08 06:17:51,925 app.services.llm.provider_manager INFO: ModelPool: Registered 'qwen_7b' (ctx=8192)
+2026-07-08 06:17:51,978 app.services.vram_monitor INFO: [VRAM_MONITOR] Baseline auto-set: 823 MB
+2026-07-08 06:17:51,978 app.services.vram_monitor INFO: [VRAM_SESSION] Started: baseline=823MB
+2026-07-08 06:17:52,013 app.services.events.event_bus INFO: [EVENT_BUS] EventBus инициализирован
+2026-07-08 06:17:52,026 app.services.game_loop.service_factories INFO: [REPUTATION] factions.json not found, engine disabled
+2026-07-08 06:17:52,028 app.services.game_loop.service_factories INFO: [REPUTATION] factions.json not found, engine disabled
+2026-07-08 06:17:52,028 app.services.game_loop.service_factories INFO: [STATE_APPLICATOR] Initialized with ReputationEngine=False
+2026-07-08 06:17:52,032 app.services.game_loop_builder INFO: [BUILDER] GameLoop создан
+2026-07-08 06:17:59,127 app.main INFO: [STARTUP] llama-server запущен (http://localhost:8181)
+2026-07-08 06:17:59,143 app.main INFO: [STARTUP] LLM (сервер): доступен
+2026-07-08 06:17:59,656 httpx INFO: HTTP Request: GET http://localhost:8181/v1/models "HTTP/1.1 200 OK"
+2026-07-08 06:18:01,848 app.services.state.sqlite_persistence_adapter INFO: [SQLITE_PERSISTENCE] Campaign deleted: Open_road
+2026-07-08 06:18:01,848 app.services.game_loop INFO: [NEW_GAME] SQLite cleared for 'Open_road'
+2026-07-08 06:18:01,848 app.services.game_loop INFO: [NEW_GAME] Removed: C:\DDD\Codex\VSC_Enigma\Enigma\saves\Open_road\campaign_state.json
+2026-07-08 06:18:01,849 app.services.game_loop INFO: [NEW_GAME] Removed: C:\DDD\Codex\VSC_Enigma\Enigma\saves\Open_road\player_avatar.json
+2026-07-08 06:18:01,849 app.services.game_loop INFO: [NEW_GAME] Removed: C:\DDD\Codex\VSC_Enigma\Enigma\saves\Open_road\campaign_meta.json
+2026-07-08 06:18:01,854 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-08 06:18:01,857 app.services.npc.npc_loader INFO: [NPC_LOADER] No runtime file, loaded 6 NPCs from config only
+2026-07-08 06:18:01,857 app.services.scene_state_manager INFO: [SCENE] Editor JSON: 38 объектов, 6 NPC, spawn_node=entrance
+2026-07-08 06:18:01,859 app.services.scene_state_manager INFO: [SCENE] Инициализирована сцена 'tavern_silver_wolf' (время: 12:00, объектов: 39, NPC: 6)
+2026-07-08 06:18:01,859 app.services.scene_state_manager INFO: [SCENE] Campaign 'Open_road' reinitialized from editor, location=tavern_silver_wolf
+2026-07-08 06:18:01,859 app.services.game_loop WARNING: [NEW_GAME] MemoryManager reset failed: 'SqliteMemoryStore' object has no attribute '_collection_path'
+2026-07-08 06:18:01,867 app.services.game_loop INFO: [NEW_GAME] SQLite memories cleared: 10 rows
+2026-07-08 06:18:01,867 app.services.game_loop INFO: [NEW_GAME] Campaign 'Open_road' fully reset. Removed: ['sqlite:scene+runtime', 'campaign_state.json', 'player_avatar.json', 'campaign_meta.json', 'sqlite:memories(10)']
