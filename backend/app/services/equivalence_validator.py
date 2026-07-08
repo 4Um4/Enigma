@@ -220,6 +220,7 @@ class EquivalenceValidator:
         npc_id: str,
         legacy_traversal: Optional[Dict],
         shadow_traversal: Optional["TraversalContract"],
+        cause: str = ""
     ) -> List[DriftReport]:
         """Сравнивает traversal contract между legacy и shadow (L2, ФАЗА 2).
 
@@ -238,7 +239,9 @@ class EquivalenceValidator:
         )
 
         # L2 Causal: один создал traversal, другой — нет
-        if _legacy_active != _shadow_active:
+        # ИСКЛЮЧЕНИЕ: При cause="traversal_complete" Shadow возвращает None (ADR-O-201.4),
+        # а Legacy оставляет COMPLETED. Это норма, дрейфом не является.
+        if _legacy_active != _shadow_active and cause != "traversal_complete":
             drifts.append(DriftReport(
                 snapshot_id=snapshot_id, tick=tick, npc_id=npc_id,
                 drift_class=DriftClass.CAUSAL,
@@ -266,7 +269,7 @@ class EquivalenceValidator:
             or (_legacy_status == "MOVING" and _shadow_status == "NEW")
             or (_legacy_status == "COMPLETED" and _shadow_status == "COMPLETED")
         )
-        if not _status_equivalent:
+        if not _status_equivalent and cause != "traversal_complete":
             drifts.append(DriftReport(
                 snapshot_id=snapshot_id, tick=tick, npc_id=npc_id,
                 drift_class=DriftClass.CAUSAL,

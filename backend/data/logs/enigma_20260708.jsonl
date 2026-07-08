@@ -1267,3 +1267,52 @@
 {"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
 {"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
 {"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 113, "status": "complete"}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"timestamp": "2026-07-08T21:29:30.383015", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6385}
+{"timestamp": "2026-07-08T21:29:30.429671", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6385, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6385, "vram_after_mb": 6385}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 2015, "status": "complete"}
+{"timestamp": "2026-07-08T21:29:56.991475", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6397}
+{"timestamp": "2026-07-08T21:29:57.039164", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6397, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6397, "vram_after_mb": 6397}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 1833, "status": "complete"}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"timestamp": "2026-07-08T21:31:06.290218", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6433}
+{"timestamp": "2026-07-08T21:31:06.338529", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6433, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6433, "vram_after_mb": 6433}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 1916, "status": "complete"}
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"timestamp": "2026-07-08T21:51:51.233918", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6592}
+{"timestamp": "2026-07-08T21:51:51.312630", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6620, "vram_delta_mb": 28}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6620, "vram_after_mb": 6620}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 2798, "status": "complete"}
+{"timestamp": "2026-07-08T21:52:14.426192", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6594}
+{"timestamp": "2026-07-08T21:52:14.522593", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6594, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6621, "vram_after_mb": 6621}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 2384, "status": "complete"}
+{"timestamp": "2026-07-08T21:52:43.395237", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6619}
+{"timestamp": "2026-07-08T21:52:43.458435", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6619, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6592, "vram_after_mb": 6592}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 2466, "status": "complete"}
+{"timestamp": "2026-07-08T21:52:58.850391", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6592}
+{"timestamp": "2026-07-08T21:52:58.930730", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6592, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6619, "vram_after_mb": 6619}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 2136, "status": "complete"}
+{"timestamp": "2026-07-08T21:53:24.854198", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6621}
+{"timestamp": "2026-07-08T21:53:24.918702", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6621, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6594, "vram_after_mb": 6594}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 2634, "status": "complete"}
+{"timestamp": "2026-07-08T21:54:01.202421", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6608}
+{"timestamp": "2026-07-08T21:54:01.266941", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6621, "vram_delta_mb": 13}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6594, "vram_after_mb": 6594}
+{"level": "ERROR", "agent": "dm_agent", "error": "Scene build error: cannot access local variable 'SceneStateManager' where it is not associated with a value"}
+{"level": "WARN", "agent": "dm_agent", "event": "cjk_retry_1", "original_preview": "Люся вежливо улыбается и тихо говорит: 'Я... Спасибо, Венус. Но я не могу跟着她的话，黑衣人轻声笑了笑，目光在两人之间停留了一会"}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 4433, "status": "complete"}

@@ -16,7 +16,7 @@
 - **`DRFBus` & `DRFExecutionContext`** (`services/drf_bus.py`): Вынесены из `tick_orchestrator.py` (S97). Шина каузального арбитража (ADR-134) и scoped ledger (ADR-136).
 - **`TickContext` & DTOs** (`services/dto.py`): Вынесены из `tick_orchestrator.py` (S97). Содержит `ReductionPolicy`, `SemanticFrame`, `TickPlayerResultDTO`, `_TickContext`, `DMContextDTO` (DEPRECATED).
 - **`TickMutation`** (`domain/tick.py`): Чистый результат работы `NpcTickPipeline.run()`. Содержит `npc_deltas`, `communication_intents`, `movement_intents`, а также отложенные I/O мутации: `l1_drift_events` и `memory_events` (применяются оркестратором).
-- **`TickResultDTO`** (`domain/tick.py`): Единый результат тика ядра. Возвращает только status, world_snapshot и npc_contexts (Narrative Projection). 
+- **`TickResultDTO`** (`domain/tick.py`): Единый результат тика ядра. Возвращает status, world_snapshot, npc_contexts (Narrative Projection) и `final_scene_state` (мутированный deepcopy снимок `scene_state`, ADR-311). 
 
   🚫 ЗАПРЕТ: Возврат `TickPlayerResultDTO` из ядра. Возврат `movement_intents` (они исполняются внутри Фазы 8 и не покидают ядро).
 ---

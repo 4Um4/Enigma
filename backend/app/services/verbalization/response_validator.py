@@ -100,6 +100,10 @@ class ResponseValidator:
         violation = self._check_forbidden(text)
         if violation:
             return self._fallback(violation)
+
+        # 7. Очистка системных маркеров (whisper, [internal], *thought*)
+        # Frontend определяет DeliveryType по ним, но сами маркеры не должны попадать в текст реплики.
+        text = self._strip_delivery_markers(text)
         
         return ValidationResult(
             text=text,
@@ -108,6 +112,11 @@ class ResponseValidator:
     
     _CJK_PATTERN = re.compile(r'[\u4e00-\u9fff\u3400-\u4dbf\uff00-\uffef]')
     _FOURTH_WALL_WORDS = ["игрок", "игроки", "симуляция", "система", "механика", "интерфейс"]
+    _DELIVERY_MARKERS_RE = re.compile(r'^\s*[\(\[\*]\s*(whisper|internal|thought|шёпот|мысль|шепчет)\s*[\)\]\*]\s*[:\-]?\s*', re.IGNORECASE)
+
+    def _strip_delivery_markers(self, text: str) -> str:
+        """Удаляет маркеры доставки (whisper, [internal], *thought*) из начала текста."""
+        return self._DELIVERY_MARKERS_RE.sub('', text).strip()
     
     def _breaks_fourth_wall(self, text: str) -> bool:
         """Жёсткий запрет на упоминание игровой механики (4-я стена)."""

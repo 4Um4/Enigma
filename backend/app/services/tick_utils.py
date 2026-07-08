@@ -226,6 +226,15 @@ def aggregate_deltas(deltas: list) -> list:
                 existing.pressure_resistance_delta += d.pressure_resistance_delta
                 if d.will_state_override is not None:
                     existing.will_state_override = d.will_state_override
+                # S115 FIX: Мерж IdentityPayload (compliance_bias, recent_directive, etc.)
+                # Без этого payload от DirectiveInterpretationSubscriber теряется при агрегации.
+                from app.models.delta_payloads import IdentityPayload
+                if isinstance(d.payload, IdentityPayload) and isinstance(existing.payload, IdentityPayload):
+                    existing.payload.compliance_bias_delta += d.payload.compliance_bias_delta
+                    existing.payload.aggression_inhibition_delta += d.payload.aggression_inhibition_delta
+                    existing.payload.initiative_suppression_delta += d.payload.initiative_suppression_delta
+                    if d.payload.recent_directive_data:
+                        existing.payload.recent_directive_data = d.payload.recent_directive_data
             else:
                 existing.stress_delta += d.stress_delta
                 existing.emotion_delta += d.emotion_delta

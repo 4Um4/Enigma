@@ -69,7 +69,11 @@ class TestWorld:
         pos = self.npc_positions.get(nid)
         if pos and "local_position" in pos:
             lp = pos["local_position"]
-            return (lp[0], lp[1]) if isinstance(lp, list) else (0, 0)
+            if isinstance(lp, dict):
+                return (lp.get("x", 0.0), lp.get("y", 0.0))
+            elif isinstance(lp, (list, tuple)):
+                return (lp[0], lp[1])
+            return (0, 0)
         return None
 
     @property

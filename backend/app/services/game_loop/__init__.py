@@ -542,6 +542,12 @@ class GameLoop:
             
             # Формируем world_snapshot для фронтенда
             _all_npcs = self._resolve_npcs_snapshot(campaign_id)
+            
+            # FIX: Очистка npc_dict от сложных объектов, которые не сериализуются в JSON.
+            for _npc in _all_npcs:
+                _npc.pop("beliefs", None)
+                _npc.pop("belief_state", None)
+
             _ws = None
             if result.final_state:
                 from app.services.integration.world_snapshot_builder import WorldSnapshotBuilder
