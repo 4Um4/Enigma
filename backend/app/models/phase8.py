@@ -22,7 +22,7 @@ TODO: после миграции на delta_buffer удалить prop_dirty и
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, List, Optional, Protocol, Set, Tuple, runtime_checkable
+from typing import Any, Dict, List, Optional, Protocol, Set, Tuple, runtime_checkable
 
 from app.domain.events import EventDTO
 from app.models.state_delta import StateDeltas
@@ -35,8 +35,8 @@ class Phase8Context:
     frozen=True — гарантия неизменяемости.
     Оркестратор создаёт один экземпляр, все обработчики читают.
     """
-    all_npcs_raw: List[dict]
-    all_npc_contexts: List[dict]       # для perception
+    all_npcs_raw: List[Dict[str, Any]]
+    all_npc_contexts: List[Dict[str, Any]]       # для perception
     shared_context: Any                # TODO: типизировать после миграции SharedContext
     campaign_id: str
     tick_ctx: Any                      # TODO: типизировать после миграции _TickContext

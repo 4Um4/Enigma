@@ -256,6 +256,7 @@ def compute_continuous_drift(effective_drives: "EffectiveDrives", npc_id: str, r
                 tick_id=current_tick,
                 target_id=npc_id,
                 source_id="tifl_pressure_model",
-                effect_value=float(delta)
+                effect_value=float(delta),
+                event_type="pressure"
             ))
     return events

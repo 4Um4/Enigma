@@ -104,7 +104,7 @@ def extract_speech_events(
         # Fallback: DM ответил без кавычек, но есть target NPC —
         # считаем весь текст речью NPC (лучше потеря, чем амнезия)
         reactions = [f"{target_npc_name}: {dm_text.strip()[:500]}"]
-        print(f"[RCE_FALLBACK] no quotes, assigning {len(dm_text)} chars to {target_npc_name}")
+        logger.debug(f"[RCE_FALLBACK] no quotes, assigning {len(dm_text)} chars to {target_npc_name}")
 
     return reactions
 

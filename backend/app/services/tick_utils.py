@@ -284,6 +284,7 @@ def create_tick_context(
     npc_services: Any,
     drf_bus: "DRFBus",
     all_npcs_raw: list = None,
+    shared_context: Any = None,
 ) -> "_TickContext":
     """[S98] Чистая сборка _TickContext для TickOrchestrator.execute().
     
@@ -321,6 +322,7 @@ def create_tick_context(
                 )
                 break
 
+    _is_player = any(getattr(i, 'source', '') == 'player' for i in interventions)
     ctx = _TickContext(
         campaign_id=campaign_id,
         scene_state=input_snapshot,
@@ -331,6 +333,7 @@ def create_tick_context(
         rng_factory=_rng_factory,
         player_intent=_player_intent,
         all_npcs_raw=all_npcs_raw or [],
-        shared_context=types.SimpleNamespace(), # S115 FIX: Инициализация для совместимости с phases/input.py
+        shared_context=shared_context if shared_context is not None else types.SimpleNamespace(), # S116 FIX: Проброс shared_context из game_loop
+        is_player_turn=_is_player, # S116 FIX: Передаём флаг в контекст
     )
     return ctx

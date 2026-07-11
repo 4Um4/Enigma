@@ -407,7 +407,7 @@ def materialize_inventory(raw_npc: Dict[str, Any]) -> Dict[str, int]:
         if is_physical_object(obj_id):
             result[obj_id] = 1
         else:
-            print(f"[NPC_LOADER] Пропущен non-physical маркер '{obj_id}' у NPC {raw_npc.get('id')}")
+            logger.debug(f"[NPC_LOADER] Пропущен non-physical маркер '{obj_id}' у NPC {raw_npc.get('id')}")
     return result
 
 

@@ -211,6 +211,7 @@ class WorldSnapshotBuilder:
                 local_position={"x": local.get("x") or 0.0, "y": local.get("y") or 0.0},
                 location_id=data.get("location_id", ""),
                 facing=data.get("facing", "south"),
+                body_heading=data.get("body_heading", 1.5708),
                 activity=data.get("activity", "idle"),
                 name=data.get("name", npc_id),
                 initiative_suppression=data.get("initiative_suppression", 0.0),

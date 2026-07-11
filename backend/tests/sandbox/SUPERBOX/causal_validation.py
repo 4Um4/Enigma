@@ -117,8 +117,8 @@ class CausalValidator:
             world_id="manual", campaign_id="Open_road", location="tavern_silver_wolf",
             model=ModelSelection(provider=ModelProvider.llama_cpp, model_name="fallback", endpoint=settings.llama_cpp_server_url),
             actions=[PlayerAction(player_name="Tester", action=action_text)],
-            # S115 FIX: Игрок стоит рядом с барной стойкой, чтобы атаки достигали NPC.
-            player_position=(4.0, 4.0),
+            # S116 FIX: Игрок стоит вплотную к tavern_keeper_tornin (его позиция 4.5, 2.5), чтобы атаки достигали цели.
+            player_position=(4.0, 2.5),
         )
         try:
             result = await self.game_loop.run_turn(req)

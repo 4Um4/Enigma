@@ -249,7 +249,7 @@ def filter_perceiving_npcs(
             perceiving.append(npc_id)
         else:
             _dist = _npc_distance(npc_id, spatial_query)
-            print(f"[PERCEPTION_SKIP] {npc_id}: dist={_dist:.1f}m (not visible)")
+            logger.debug(f"[PERCEPTION_SKIP] {npc_id}: dist={_dist:.1f}m (not visible)")
 
     logger.debug(
         f"[PERCEPTION_FILTER] {event_type}: "

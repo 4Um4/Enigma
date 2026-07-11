@@ -287,9 +287,9 @@ class ModelRouter:
             pool = self._get_model_pool()
             if pool._active_model:
                 pool._active_model.provider.abort_generation()
-                print(f"[R4A_ABORT] sent /abort to {pool.active_model_key}")
+                logger.debug(f"[R4A_ABORT] sent /abort to {pool.active_model_key}")
         except Exception as e:
-            print(f"[R4A_ABORT] failed: {e}")
+            logger.debug(f"[R4A_ABORT] failed: {e}")
     
     def _request_via_pool(
         self,
@@ -342,8 +342,8 @@ class ModelRouter:
                         latency_ms = (time.time() - start_time) * 1000
                         if hasattr(pool, 'record_request'):
                             pool.record_request(model_key, latency_ms, 0, success=False)
-                        print(f"ModelRouter: Model {model_key} failed: {e}")
-                        print(f"[ROUTER_TRACEBACK]\n{traceback.format_exc()}")
+                        logger.debug(f"ModelRouter: Model {model_key} failed: {e}")
+                        logger.debug(f"[ROUTER_TRACEBACK]\n{traceback.format_exc()}")
                         continue
         
         # Fallback: try any available model from pool
@@ -406,7 +406,7 @@ class ModelRouter:
                 model_path=model_config.path,
             )
         except Exception as e:
-            print(f"Failed to create provider for {model_key}: {e}")
+            logger.debug(f"Failed to create provider for {model_key}: {e}")
             return None
     
     def select_model(self, capability: Capability) -> str:
@@ -624,5 +624,5 @@ def initialize_router() -> None:
     # Get router
     router = get_router()
     
-    print(f"Router initialized. ModelPool: {pool_results}")
-    print("Lazy loading enabled: only one model in VRAM at a time")
+    logger.debug(f"Router initialized. ModelPool: {pool_results}")
+    logger.debug("Lazy loading enabled: only one model in VRAM at a time")

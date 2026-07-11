@@ -12,7 +12,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, FrozenSet, List, Optional, Protocol, Set, Tuple
+from typing import Any, Dict, FrozenSet, List, Optional, Protocol, Set, Tuple, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.models.npc_state import PerceptualKernel
 
 from app.domain.events import EventDTO
 

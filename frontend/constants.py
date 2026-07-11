@@ -197,11 +197,3 @@ AGGRESSION_COLORS: dict = {
     "peaceful_interaction": (80, 180, 80),
     "friendly_action": (60, 160, 60),
 }
-
-# Константы шрифтов
-FONT_NAME_MAIN: str = "consolas"
-FONT_NAME_UI: str = "segoeui"
-FONT_SIZE_SMALL: int = 12
-FONT_SIZE_AUDIO: int = 13
-FONT_SIZE_BODY: int = 13
-FONT_SIZE_TOOLTIP: int = 14

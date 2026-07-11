@@ -1,3 +1,4 @@
+from __future__ import annotations
 """
 path: backend/app/models/psychological.py
 Назначение: Централизованные типы психологического слоя ENIGMA.
@@ -10,7 +11,7 @@ path: backend/app/models/psychological.py
 - StateApplicator → пишет CausalEntry (Шаг 3)
 """
 
-from __future__ import annotations
+from typing import Any, Dict
 
 from dataclasses import dataclass
 
@@ -33,7 +34,7 @@ class DistortionProfile:
         return cls()
 
     @classmethod
-    def from_dict(cls, d: dict) -> "DistortionProfile":
+    def from_dict(cls, d: Dict[str, Any]) -> "DistortionProfile":
         """Создаёт из ad-hoc dict для обратной совместимости."""
         return cls(
             threat_bias=float(d.get("threat_bias", 0.0)),
@@ -41,7 +42,7 @@ class DistortionProfile:
             salience_bias=float(d.get("salience_bias", 0.0)),
         )
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> Dict[str, Any]:
         return {
             "threat_bias":   self.threat_bias,
             "trust_bias":    self.trust_bias,
@@ -66,7 +67,7 @@ class CausalEntry:
     persistence_time: int = 0  # тиков до затухания (0 = постоянное)
     emotional_impact: float = 0.0  # сила эмоционального удара [0..1], для генерации drives
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> Dict[str, Any]:
         """Сериализация для JSON persistence и API."""
         return {
             "npc_id": self.npc_id,
@@ -79,7 +80,7 @@ class CausalEntry:
         }
 
     @classmethod
-    def from_dict(cls, d: dict) -> "CausalEntry":
+    def from_dict(cls, d: Dict[str, Any]) -> "CausalEntry":
         """Десериализация из JSON persistence."""
         return cls(
             npc_id=d.get("npc_id", ""),

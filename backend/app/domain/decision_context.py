@@ -1,5 +1,8 @@
 from dataclasses import dataclass, field
-from typing import Dict, Optional
+from typing import Dict, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.models.npc_state import PerceptualKernel
 
 @dataclass(frozen=True)
 class UtilityFieldDeformation:

@@ -23,7 +23,7 @@
 
 > Игрок: отдать деньги стражнику
   [DM]: Ничего не произошло.
-  Trust: before=-6.30, after=-0.38
+  Trust: before=0.00, after=6.18
 [PASS] SOCIAL
 
 [5] LOVE TEST
@@ -92,11 +92,11 @@
 > Игрок: угрожать трактирщику ножом (попытка 10)
   [DM]: Ничего не произошло.
   [STEP 10] tavern_keeper_tornin: HP=100, Threat=0.00, AffLoad=0.00, Will=free, Integ=0.99
-[FAIL] BREAK: Missing event: pressure
+[PASS] BREAK
 
 [9] L1 PERSISTENCE TEST
-  [BEFORE RESTART] Events: 243
-  [AFTER RESTART] Events: 243
+  [BEFORE RESTART] Events: 32
+  [AFTER RESTART] Events: 32
 [PASS] L1 PERSISTENCE
 
 [10] DOUBLE TRUTH TEST
@@ -133,7 +133,7 @@
 
 > Игрок: атаковать трактирщика
   [DM]: Ничего не произошло.
-  [OK] Beliefs count: 1
+  [OK] Beliefs count: 2
 [PASS] BELIEF_CRYSTALLIZATION
 
 [13] ASYMMETRIC_TRAUMA TEST
@@ -155,8 +155,8 @@
 
 > Игрок: атаковать трактирщика
   [DM]: Ничего не произошло.
-  Positive events: 242, Negative events: 97
-  Max positive: 0.300, Max negative: 30.000
+  Positive events: 26, Negative events: 29
+  Max positive: 0.300, Max negative: 45.000
 [PASS] ASYMMETRIC_TRAUMA
 
 [14] HIDDEN TRUTH GATE TEST

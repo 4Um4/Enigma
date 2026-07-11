@@ -7,6 +7,8 @@ path: backend/app/services/affective/affective_decay_handler.py
 TODO:
 
 """
+import logging
+logger = logging.getLogger(__name__)
 
 from typing import List, Any
 from app.models.state_delta import StateDeltas, DeltaDomain
@@ -37,7 +39,7 @@ class AffectiveDecayHandler:
         # S73-DIAG: Видит ли handler живую психику?
         if npcs:
             _loads = [f"{n.get('npc_id')}:{n.get('affective_load', 0.0):.2f}/{n.get('emotion', '?')}" for n in npcs if n.get('npc_id') != 'player']
-            print(f"[AFF_DECAY] tick={current_tick} states={_loads}")
+            logger.debug(f"[AFF_DECAY] tick={current_tick} states={_loads}")
 
         for npc in npcs:
             npc_id = npc.get("npc_id", "")

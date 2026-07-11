@@ -279,7 +279,7 @@ class PlayerTargetExtractor:
                         _is_indirect = any(_prefix.endswith(f" {p} ") for p in _PREPOSITIONS)
                         if _is_indirect:
                             continue  # не делаем целем из косвенного упоминания
-                        print(f"[S.0 MATCH] name_form '{form}' at pos {pos} → {npc_id}")
+                        logger.debug(f"[S.0 MATCH] name_form '{form}' at pos {pos} → {npc_id}")
                         _candidates.append((pos, npc_id, npc_name))
                         break
 
@@ -295,7 +295,7 @@ class PlayerTargetExtractor:
                 ):
                     matched = [kw for kw in self._ROLE_KEYWORDS.get(role, []) if kw in lower]
                     pos = lower.find(matched[0]) if matched else 999
-                    print(f"[S.0 MATCH] role_kw {matched!r} at pos {pos} via role={role!r} → {npc_id}")
+                    logger.debug(f"[S.0 MATCH] role_kw {matched!r} at pos {pos} via role={role!r} → {npc_id}")
                     _candidates.append((pos, npc_id, npc_name))
 
             # Дескриптор по полу/возрасту (если name_forms и role не сработали)
@@ -309,7 +309,7 @@ class PlayerTargetExtractor:
                         if desc_lemma in _lemma_to_word:
                             orig_word = _lemma_to_word[desc_lemma]
                             pos = lower.find(orig_word)
-                            print(f"[S.0 MATCH] descriptor '{orig_word}' (lemma={desc_lemma}) gender={npc_gender} → {npc_id}")
+                            logger.debug(f"[S.0 MATCH] descriptor '{orig_word}' (lemma={desc_lemma}) gender={npc_gender} → {npc_id}")
                             _candidates.append((pos, npc_id, npc_name))
                             break
 
@@ -318,7 +318,7 @@ class PlayerTargetExtractor:
             _candidates.sort(key=lambda x: x[0])  # сортировка по позиции
             target_npc_id = _candidates[0][1]
             target_npc_name = _candidates[0][2]
-            print(f"[TARGET] Selected {target_npc_name} ({target_npc_id}) from {len(_candidates)} candidates at pos {_candidates[0][0]}")
+            logger.debug(f"[TARGET] Selected {target_npc_name} ({target_npc_id}) from {len(_candidates)} candidates at pos {_candidates[0][0]}")
 
         # 2. Поиск объекта в SceneState через ObjectResolver (с морфологией)
         try:
@@ -400,7 +400,7 @@ class PlayerTargetExtractor:
                 if _prev_dist is not None and _prev_dist <= _voice_radius:
                     target_npc_id = prev_target_id
                     target_npc_name = prev_target_name
-                    print(f"[TARGET] Sticky dialog: {target_npc_name} ({target_npc_id}) dist={_prev_dist:.1f}")
+                    logger.debug(f"[TARGET] Sticky dialog: {target_npc_name} ({target_npc_id}) dist={_prev_dist:.1f}")
 
             # Fallback 2: нет предыдущего или он вне зоны — берём ближайшего СЛЫШАЩЕГО NPC
             if target_npc_id is None:
@@ -415,7 +415,7 @@ class PlayerTargetExtractor:
                         if ctx.get("npc_id") == _nearest_id:
                             target_npc_id = _nearest_id
                             target_npc_name = ctx.get("npc_name", _nearest_id)
-                            print(f"[TARGET] Fallback nearest audible: {target_npc_name} ({target_npc_id}) dist={_nearest_dist:.1f} voice_range={_voice_radius:.1f}")
+                            logger.debug(f"[TARGET] Fallback nearest audible: {target_npc_name} ({target_npc_id}) dist={_nearest_dist:.1f} voice_range={_voice_radius:.1f}")
                             break
 
         return target_npc_id, target_npc_name, target_object, player_position, player_distances

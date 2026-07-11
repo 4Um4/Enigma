@@ -7,7 +7,7 @@
 
 from __future__ import annotations
 from dataclasses import dataclass, field
-from typing import Dict, List, Any
+from typing import Any, Dict, List, Tuple
 
 @dataclass(frozen=True)
 class ObservedFactEntry:
@@ -16,7 +16,7 @@ class ObservedFactEntry:
     fact_name: str
     value: Any
     confidence: float
-    via: tuple
+    via: Tuple[str, ...]
 
 @dataclass(frozen=True)
 class ObservedFactsBundle:

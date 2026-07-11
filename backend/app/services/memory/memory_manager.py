@@ -276,7 +276,7 @@ class MemoryManager:
             for turn in session.buffer:
                 speaker = "Игрок" if turn.speaker == "player" else turn.speaker
                 lines.append(f"{speaker}: {turn.text}")
-        print(f"[STM_READ] campaign={campaign_id} sessions={_session_count} total_turns={len(lines)} keys={list(self._dialogue_sessions.keys())}")
+        logger.debug(f"[STM_READ] campaign={campaign_id} sessions={_session_count} total_turns={len(lines)} keys={list(self._dialogue_sessions.keys())}")
         return lines[-limit:]
 
     def get_dialogue_pressure(self, campaign_id: str, npc_id: str) -> int:

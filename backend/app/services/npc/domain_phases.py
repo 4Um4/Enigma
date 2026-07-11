@@ -54,7 +54,7 @@ def resolve_physical_attack(
     Возвращает (state_l2, reflex_constraints) — constraints для DecisionHub.
     Если действие не физическое или NPC не цель — возвращает (state_l2, None).
     """
-    if action_type not in PHYSICAL_EVENTS or npc_id != target_id or state_l2.max_hp <= 0:
+    if action_type not in PHYSICAL_EVENTS or npc_id != target_id or state_l2.effective_max_hp <= 0:
         return state_l2, None
 
     # ADR-0015, ADR-0021: Вся физика и урон перенесены в CombatSubscriber → ImpactEngine
@@ -109,7 +109,7 @@ def tick_conditions(
         for _sc in _cond_changes:
             if _sc.field == "hp":
                 state_l2 = state_l2.__class__(
-                    **{**state_l2.__dict__, "hp": max(0, state_l2.hp + _sc.delta)}
+                    **{**state_l2.__dict__, "hp": max(0, state_l2.effective_hp + _sc.delta)}
                 )
                 from app.models.npc_state import NPCState
                 NPCState.write_to_legacy(state_l2, npc_dict_for_write)

@@ -125,12 +125,14 @@ class TaskScheduler:
                     # ADR-O-313: Кэшируем реплику для Speech Bubbles
                     if artifact.result_type == "dialogue_line":
                         import time
-                        self._recent_dialogues.append({
-                            "speaker_id": artifact.data.get("speaker_id", ""),
-                            "text": artifact.data.get("text", ""),
-                            "exposure": artifact.data.get("exposure", "normal"),
-                            "timestamp": time.time()
-                        })
+                        _dlg_entry = {
+                            "speaker": ev.source,
+                            "text": ev.payload.get("text", ""),
+                            "timestamp": scene_state.get("game_time_seconds", 0.0)
+                        }
+                        self._recent_dialogues.append(_dlg_entry)
+                        # ADR-O-313 FIX: Зеркалим в scene_state, иначе CDS видит 0 реплик (INV-DIALOGUE-PIPELINE)
+                        scene_state.setdefault("recent_dialogues", []).append(_dlg_entry)
                 else:
                     logger.error(f"[SCHEDULER] Task {task.task_id} failed: {artifact.error_message}")
                     task.state = TaskState.FINISHED # Пока без сложного ретрая

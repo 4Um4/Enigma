@@ -67,9 +67,9 @@ class PlayerSessionService:
             }
             with open(filepath, 'w', encoding='utf-8') as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
-            print(f"[SESSION_SAVED] Campaign: {campaign_id}, File: {filepath}")
+            logger.debug(f"[SESSION_SAVED] Campaign: {campaign_id}, File: {filepath}")
         except Exception as e:
-            print(f"[SESSION_SAVE_ERROR] Campaign: {campaign_id}, Error: {e}")
+            logger.debug(f"[SESSION_SAVE_ERROR] Campaign: {campaign_id}, Error: {e}")
     
     def _load_sessions_from_disk(self) -> None:
         """Загрузить сессии с диска при старте."""
@@ -99,9 +99,9 @@ class PlayerSessionService:
                     self._sessions[campaign_id] = session
                     logger.info(f"[SESSION_LOADED] Campaign: {campaign_id}, Player: {session.player_name}")
                 except Exception as e:
-                    print(f"[SESSION_LOAD_ERROR] File: {filename}, Error: {e}")
+                    logger.debug(f"[SESSION_LOAD_ERROR] File: {filename}, Error: {e}")
         except Exception as e:
-            print(f"[SESSION_DIR_ERROR] Error: {e}")
+            logger.debug(f"[SESSION_DIR_ERROR] Error: {e}")
     
     def _delete_session_from_disk(self, campaign_id: str) -> None:
         """Удалить сессию с диска."""
@@ -109,9 +109,9 @@ class PlayerSessionService:
             filepath = self._get_session_file_path(campaign_id)
             if os.path.exists(filepath):
                 os.remove(filepath)
-                print(f"[SESSION_DELETED] Campaign: {campaign_id}")
+                logger.debug(f"[SESSION_DELETED] Campaign: {campaign_id}")
         except Exception as e:
-            print(f"[SESSION_DELETE_ERROR] Campaign: {campaign_id}, Error: {e}")
+            logger.debug(f"[SESSION_DELETE_ERROR] Campaign: {campaign_id}, Error: {e}")
     
     def select_player(self, campaign_id: str, player_name: str) -> PlayerSession:
         """
@@ -121,7 +121,7 @@ class PlayerSessionService:
         # Удаляем старую сессию (если была)
         if campaign_id in self._sessions:
             old_session = self._sessions[campaign_id]
-            print(f"[PLAYER_SESSION_REPLACED] Campaign: {campaign_id}, Old player: {old_session.player_name}")
+            logger.debug(f"[PLAYER_SESSION_REPLACED] Campaign: {campaign_id}, Old player: {old_session.player_name}")
             # Сброс session_flag делается через game_loop.reset_session_flag() в routes.py
         
         # Создаем новую сессию
@@ -134,8 +134,8 @@ class PlayerSessionService:
         )
         self._sessions[campaign_id] = session
         
-        print(f"[PLAYER_SELECT] Campaign: {campaign_id}, Player: {player_name}")
-        print(f"[PLAYER_SESSION_CREATED] Session ID: {session.session_id}")
+        logger.debug(f"[PLAYER_SELECT] Campaign: {campaign_id}, Player: {player_name}")
+        logger.debug(f"[PLAYER_SESSION_CREATED] Session ID: {session.session_id}")
         
         # Форсируем обновление timestamp сразу после создания сессии
         # Это предотвращает 412 при первом action до первого heartbeat
@@ -160,13 +160,13 @@ class PlayerSessionService:
             existing = self._sessions[campaign_id]
             if existing.player_name != player_name:
                 # Игрок пытается обновить чужую сессию
-                print(f"[PLAYER_HEARTBEAT] игнорирован - неверный игрок: {player_name}, ожидается: {existing.player_name}")
+                logger.debug(f"[PLAYER_HEARTBEAT] игнорирован - неверный игрок: {player_name}, ожидается: {existing.player_name}")
                 return existing
             
             # Обновляем существующую сессию
             existing.last_heartbeat = datetime.now()
             existing.active = True
-            print(f"[PLAYER_HEARTBEIT] Campaign: {campaign_id}, Player: {player_name}")
+            logger.debug(f"[PLAYER_HEARTBEIT] Campaign: {campaign_id}, Player: {player_name}")
             return existing
         else:
             # Сессия не существует, создаем новую (для обратной совместимости)
@@ -178,7 +178,7 @@ class PlayerSessionService:
                 session_id=str(uuid.uuid4())
             )
             self._sessions[campaign_id] = session
-            print(f"[PLAYER_SESSION_CREATED] Campaign: {campaign_id}, Player: {player_name} (from heartbeat)")
+            logger.debug(f"[PLAYER_SESSION_CREATED] Campaign: {campaign_id}, Player: {player_name} (from heartbeat)")
             return session
     
     def is_player_active(self, campaign_id: str, player_name: str = None) -> bool:
@@ -212,7 +212,7 @@ class PlayerSessionService:
         if campaign_id in self._sessions:
             self._sessions[campaign_id].active = False
             player_name = self._sessions[campaign_id].player_name
-            print(f"[PLAYER_DEACTIVATED] Campaign: {campaign_id}, Player: {player_name}")
+            logger.debug(f"[PLAYER_DEACTIVATED] Campaign: {campaign_id}, Player: {player_name}")
             return True
         return False
     
@@ -226,7 +226,7 @@ class PlayerSessionService:
         for campaign_id, session in self._sessions.items():
             if not session.is_active(self.ttl_seconds):
                 expired_keys.append(campaign_id)
-                print(f"[PLAYER_SESSION_EXPIRED] Campaign: {campaign_id}, Player: {session.player_name}")
+                logger.debug(f"[PLAYER_SESSION_EXPIRED] Campaign: {campaign_id}, Player: {session.player_name}")
         
         for campaign_id in expired_keys:
             del self._sessions[campaign_id]

@@ -125,13 +125,14 @@ def run_phase_6_post_decision(ctx: Any, orchestrator: Any) -> None:
                     _intent_id = uuid.uuid4().hex
                     orchestrator._pending_intents[_intent_id] = intent
                     
-                    # Создаём окно подготовки (пока статичная длительность = 2 тика для тестов)
+                    from app.core.constants import ATTACK_WINDUP_DURATION_TICKS
+                    # Создаём окно подготовки (BUG-P3-07: длительность вынесена в константу)
                     windup = ActionWindup(
                         actor_id=_actor_id,
                         target_id=_target_id,
                         action_type="attack",
                         started_tick=ctx.tick_number,
-                        duration_ticks=2,
+                        duration_ticks=ATTACK_WINDUP_DURATION_TICKS,
                         status=WindupStatus.PENDING,
                         held_intent_id=_intent_id # DEBT-310.1: Pure temporal gate
                     )

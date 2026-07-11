@@ -7,7 +7,7 @@
 
 from __future__ import annotations
 from dataclasses import dataclass, field
-from typing import Optional, List, Dict, Any
+from typing import Dict, Any, Tuple
 
 @dataclass(frozen=True)
 class ObservationRelation:
@@ -31,13 +31,13 @@ class PerceivedSignal:
     signal_id: str                 # UUID
     target_id: str                 # Кого касается
     channel: str                   # body_manifestation | gaze | voice | ...
-    field: str                     # tremor | muscle_tension | ...
+    field_name: str                # tremor | muscle_tension | ...
     
     perceived_value: Any           # float, bool, str или None
     confidence: float              # 0.0-1.0 (вычисляется из resolution и signal_salience)
     
     perceived_at: float            # game_time_seconds
-    perceived_via: tuple           # ("visual",) | ("auditory",) | ("visual", "auditory")
+    perceived_via: Tuple[str, ...]           # ("visual",) | ("auditory",) | ("visual", "auditory")
     
     # Дистанция и свет (для UI: размытие/шум при low confidence)
     distance: float

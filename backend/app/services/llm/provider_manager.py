@@ -377,7 +377,7 @@ class ModelPool:
             with open(self._log_file, "a", encoding="utf-8") as f:
                 f.write(json.dumps(event, ensure_ascii=False) + "\n")
         except Exception as e:
-            print(f"[PROVIDER_MGR] Ошибка записи лога: {e}")
+            logger.debug(f"[PROVIDER_MGR] Ошибка записи лога: {e}")
 
 
 # ── Global singletons ─────────────────────────────────────────────────────────

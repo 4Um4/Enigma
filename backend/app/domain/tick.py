@@ -27,29 +27,29 @@ def create_tick_state(
     *,
     tick_id: int,
     campaign_id: str,
-    scene_state: dict,
-    all_npcs_raw: list,
-    effective_drives_map: dict,
-    interventions: list,
-    pe_modifiers_map: Optional[dict] = None,
+    scene_state: Dict[str, Any],
+    all_npcs_raw: List[Any],
+    effective_drives_map: Dict[str, Any],
+    interventions: List[Any],
+    pe_modifiers_map: Optional[Dict[str, Any]] = None,
     hub_event: Optional[Any] = None,
     player_target_id: Optional[str] = None,
     action_type: str = "idle",
     raw_input: str = "",
     is_session_start: bool = False,
-    nearby_npcs: Optional[list] = None,
-    line_of_sight: Optional[dict] = None,
+    nearby_npcs: Optional[List[Any]] = None,
+    line_of_sight: Optional[Dict[str, Any]] = None,
     scene_continuity: Optional[Any] = None,
-    spatial_events: Optional[list] = None,
+    spatial_events: Optional[List[Any]] = None,
     drf_tick_id: int = -1,
     # TZ-10: Preloaded Data (Strangulation Pattern)
-    memory_weights_map: Optional[dict] = None,
-    narrative_cache_map: Optional[dict] = None,
-    social_modifiers_map: Optional[dict] = None,
-    reputation_modifiers_map: Optional[dict] = None,
-    economic_profiles_map: Optional[dict] = None,
-    crystallized_beliefs_map: Optional[dict] = None,
-    identity_traits_map: Optional[dict] = None,
+    memory_weights_map: Optional[Dict[str, Any]] = None,
+    narrative_cache_map: Optional[Dict[str, Any]] = None,
+    social_modifiers_map: Optional[Dict[str, Any]] = None,
+    reputation_modifiers_map: Optional[Dict[str, Any]] = None,
+    economic_profiles_map: Optional[Dict[str, Any]] = None,
+    crystallized_beliefs_map: Optional[Dict[str, Any]] = None,
+    identity_traits_map: Optional[Dict[str, Any]] = None,
     # Read-only services (не выполняют I/O, безопасны для редюсера)
     relationship_store: Optional[Any] = None,
     spatial_service: Optional[Any] = None,
@@ -149,16 +149,16 @@ class TickResultDTO:
     """
     status: str                           # "ok" | "no_scene" | "error"
     changes_count: int = 0
-    significant_events: List[dict] = field(default_factory=list)
+    significant_events: List[Dict[str, Any]] = field(default_factory=list)
     world_snapshot: Optional[WorldSnapshotDTO] = None
     error: Optional[str] = None
     # ADR-075: Строго типизированный транспорт Эмбодимента через каузальную границу API.
     # None по умолчанию (нет конфликта = нет моторного сопротивления).
-    will_conflict_data: Optional[dict] = None
+    will_conflict_data: Optional[Dict[str, Any]] = None
     # TZ-08 v0.2: Narrative Projection. Данные для LLM-генерации, вычисленные ядром.
     # Формируются в любом тике (idle/player) на основе State+Decision.
-    npc_contexts: list = field(default_factory=list)
+    npc_contexts: List[Dict[str, Any]] = field(default_factory=list)
     # Sprint P9: Список строк фактов для DMContractBuilder
-    observed_facts: list = field(default_factory=list)
+    observed_facts: List[str] = field(default_factory=list)
     # S83.1 FIX: Возвращаем мутированный снимок состояния из ядра (deepcopy из create_tick_context)
-    final_scene_state: Optional[dict] = None
+    final_scene_state: Optional[Dict[str, Any]] = None

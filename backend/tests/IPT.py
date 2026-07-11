@@ -156,7 +156,7 @@ def inv_npc_moves(world: TestWorld) -> InvariantResult:
     positions_after = {nid: world.npc_position(nid) for nid in world.npc_ids}
     
     moved = [nid for nid in positions_before 
-             if positions_before[nid] != positions_after[nid]]
+            if positions_before[nid] != positions_after.get(nid)]
     if moved:
         return InvariantResult(
             "INV-NPC-MOVE", "CRITICAL", True,

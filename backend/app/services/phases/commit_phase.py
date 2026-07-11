@@ -51,10 +51,7 @@ def execute_persistence(
     if ctx.delta_buffer:
         from app.services.tick_utils import aggregate_deltas
         _aggregated = aggregate_deltas(ctx.delta_buffer)
-        print(f"[DEBUG_PERSIST] is_player={is_player_turn} deltas_in={len(ctx.delta_buffer)} deltas_agg={len(_aggregated)} has_applicator={orchestrator._state_applicator is not None}")
         if _aggregated and orchestrator._state_applicator:
-            for d in _aggregated[:5]:
-                print(f"  [DEBUG_PERSIST_AGG] npc={d.npc_id} dom={d.domain} payload={type(d.payload).__name__}")
             orchestrator._state_applicator.apply_batch(
                 _aggregated, ctx.all_npcs_raw, ctx.campaign_id
             )

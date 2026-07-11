@@ -17,6 +17,7 @@ path: /frontend/game_loop_bridge.py
 from __future__ import annotations
 
 import asyncio
+import threading
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
@@ -49,8 +50,6 @@ class TurnResult:
     metadata: Optional[dict] = None
     # S82: Backend подтверждает spatial truth. Frontend reconciles при расхождении.
     confirmed_location_id: Optional[str] = None
-    # S82: Backend подтверждает spatial truth. Frontend reconciles при расхождении.
-    confirmed_location_id: Optional[str] = None
 
 
 class GameLoopBridge:
@@ -65,10 +64,21 @@ class GameLoopBridge:
         self._data_dir = Path(data_dir)
         self._loop = None  # type: ignore[assignment]  # backend GameLoop, создаётся в initialize()
         self._ready = False
+        # E.1: Persistent event loop для устранения asyncio.run() на каждый ход
+        self._async_loop: Optional[asyncio.AbstractEventLoop] = None
+        self._async_thread: Optional[threading.Thread] = None
 
     @property
     def ready(self) -> bool:
         return self._ready
+
+    def _start_async_loop(self) -> None:
+        """E.1: Создаёт persistent event loop в отдельном daemon-потоке."""
+        if self._async_loop and self._async_loop.is_running():
+            return
+        self._async_loop = asyncio.new_event_loop()
+        self._async_thread = threading.Thread(target=self._async_loop.run_forever, daemon=True)
+        self._async_thread.start()
 
     def initialize(self) -> None:
         """
@@ -80,6 +90,7 @@ class GameLoopBridge:
 
         from app.services.game_loop_builder import build_game_loop
         self._loop = build_game_loop(self._data_dir)
+        self._start_async_loop()  # E.1: Запускаем persistent loop
         self._ready = True
 
     def turn(
@@ -110,7 +121,7 @@ class GameLoopBridge:
         location = "tavern_silver_wolf" # Оставлено как last-resort fallback, если scene_manager недоступен
         if self._ready and self._loop is not None:
             try:
-                location = self._loop.scene_manager.find_starting_location(campaign_id)
+                location = self._loop.find_starting_location(campaign_id)
             except Exception as e:
                 logger.warning(f"[B5-FIX] silent failure suppressed: {e}")
         if campaign_state:
@@ -187,25 +198,14 @@ class GameLoopBridge:
                 elif etype == "error":
                     result.error = event.get("text", "неизвестная ошибка")
 
-        # Запускаем async код в новом event loop (безопасно для pygame)
-        try:
+        # E.1: Запускаем async код в persistent event loop (без asyncio.run)
+        if self._async_loop and self._async_loop.is_running():
+            future = asyncio.run_coroutine_threadsafe(_collect(), self._async_loop)
+            future.result()  # Блокируем до завершения
+        else:
+            # Fallback (на случай если bridge не инициализирован правильно)
+            logger.warning("[BRIDGE] Async loop not running, falling back to asyncio.run()")
             asyncio.run(_collect())
-        except RuntimeError:
-            # Если уже есть running loop (pytest, etc.) — используем его
-            # B6-FIX: deprecated asyncio.get_event_loop() → get_running_loop / new_event_loop.
-            try:
-                loop = asyncio.get_running_loop()
-            except RuntimeError:
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-            if loop.is_running():
-                # Создаём отдельный поток для async
-                import concurrent.futures
-                with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
-                    future = pool.submit(asyncio.run, _collect())
-                    future.result()
-            else:
-                loop.run_until_complete(_collect())
 
         result.dm_text = "".join(dm_parts)
 
@@ -246,26 +246,26 @@ class GameLoopBridge:
         """Сохраняет scene_state на бэкенд. Делегирует scene_manager."""
         if not self._ready or self._loop is None:
             return
-        self._loop.scene_manager.save_scene_state(campaign_id, scene_state)
+        self._loop.save_scene_state(campaign_id, scene_state)
 
     def get_scene_state(self, campaign_id: str, location_id: str = "") -> dict | None:
         """Возвращает текущее состояние сцены. Делегирует scene_manager."""
         if not self._ready or self._loop is None:
             return None
-        return self._loop.scene_manager.get_scene_state(campaign_id, location_id)
+        return self._loop.get_scene_state(campaign_id, location_id)
 
     def apply_changes(self, campaign_id: str, changes: list, scene_state: dict) -> None:
         """Применяет изменения к сцене. Делегирует scene_manager."""
         if not self._ready or self._loop is None:
             return
-        self._loop.scene_manager.apply_changes(campaign_id, changes, scene_state)
+        self._loop.apply_changes(campaign_id, changes, scene_state)
 
     def get_characters(self, campaign_id: str) -> list[dict]:
         """ADR-O-146: Персонажи через backend API, не через файлы (Law 1.1)."""
         if not self._ready or self._loop is None:
             return []
         try:
-            characters = self._loop.character_service.list_characters(campaign_id)
+            characters = self._loop.list_characters(campaign_id)
             return [c.model_dump() for c in characters]
         except Exception:
             return []

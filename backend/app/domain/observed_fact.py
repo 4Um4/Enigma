@@ -7,7 +7,7 @@
 
 from __future__ import annotations
 from dataclasses import dataclass, field
-from typing import Any, Optional, Dict
+from typing import Any, Dict, Optional, Tuple
 
 @dataclass(frozen=True)
 class ObservedFact:
@@ -24,7 +24,7 @@ class ObservedFact:
     confidence: float            # 0.0-1.0 (унаследованный или вычисленный)
     
     observed_at: float           # game_time_seconds
-    observed_via: tuple          # ("visual",) | ("auditory",)
+    observed_via: Tuple[str, ...]          # ("visual",) | ("auditory",)
     
     # Возможные неточности (для будущего слоя Inference)
-    possible_inaccuracy: tuple = field(default_factory=tuple)
+    possible_inaccuracy: Tuple[str, ...] = field(default_factory=tuple)

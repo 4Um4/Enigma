@@ -9,6 +9,8 @@ path: /frontend/scene_renderer.py
 Зависимости: pygame, player_cognition.types
 Основные сущности: SceneRenderer
 """
+import logging
+logger = logging.getLogger(__name__)
 from typing import List, Optional, Tuple
 
 import math
@@ -43,6 +45,7 @@ class SceneRenderer:
         self.font_small = pygame.font.SysFont(FONT_NAME_MAIN, FONT_SIZE_SMALL)
         self.font_audio = pygame.font.SysFont(FONT_NAME_MAIN, FONT_SIZE_AUDIO, italic=True)
         self.font_body = pygame.font.SysFont(FONT_NAME_MAIN, FONT_SIZE_BODY)
+        self.font_tooltip = pygame.font.SysFont(FONT_NAME_UI, FONT_SIZE_TOOLTIP)
         # Lerp для угла поворота (Приоритет 0)
         self._visual_facing_angle = -1.5708  # -pi/2 (смотрит вверх)
         # Темпоральная инерция восприятия (S-curve, гистерезис, стохастика)
@@ -85,7 +88,7 @@ class SceneRenderer:
             profile = self.momentum.current
             # ADR-084: Визуальный след убран из консоли (60 фпс спам). Диагностика через CDS.
             # if profile.blood_visibility > 0.01 or profile.attention_tunneling > 0.01:
-            #     print(f"[RENDER_TRACE] blood={profile.blood_visibility:.2f}, tunnel={profile.attention_tunneling:.2f}, noise={profile.visual_instability:.2f}")
+            #     logger.debug(f"[RENDER_TRACE] blood={profile.blood_visibility:.2f}, tunnel={profile.attention_tunneling:.2f}, noise={profile.visual_instability:.2f}")
 
         # Камера центрирована на игроке + Motion Bias (мир "давит" на игрока)
         cam_x = player_xy[0] * SCALE - self.screen.get_width() // 2
@@ -315,7 +318,7 @@ class SceneRenderer:
                 render_y = entity.y + _vy * dt
             else:
                 # Режим 3: LERP к целевой позиции (унификация с игроком)
-                _NPC_LERP_SPEED = 1.2  # м/сек (скорость ходьбы)
+                _NPC_LERP_SPEED = 1.2  # Скорость ходьбы (м/сек)
                 # Отключаем порог телепортации: бэкенд может менять позицию скачком,
                 # но фронтенд всегда должен плавно интерполировать к ней.
                 dx, dy = entity.x - prev_x, entity.y - prev_y
@@ -446,31 +449,21 @@ class SceneRenderer:
             # Inference badges — маленькие индикаторы
             self._draw_inference_badges(entity, sx, sy + radius + 4)
 
-            # Визуальный индикатор внимания NPC — утолщённая линия + стрелка поверх PNG
-            is_looking_at_player = is_focused or any(inf.type == "communication" for inf in entity.inferences)
-            if is_looking_at_player:
-                player_sx, player_sy = self._w2s(player_xy[0], player_xy[1], cam_x, cam_y)
-                gaze_dx = player_sx - sx
-                gaze_dy = player_sy - sy
-                gaze_dist = math.hypot(gaze_dx, gaze_dy)
-                if gaze_dist > 0:
-                    ndx = gaze_dx / gaze_dist
-                    ndy = gaze_dy / gaze_dist
-                    # Линия начинается чуть внутри спрайта и выходит далеко за край
-                    start_x = sx + ndx * (radius - 2)
-                    start_y = sy + ndy * (radius - 2)
-                    end_x = sx + ndx * (radius + 18)
-                    end_y = sy + ndy * (radius + 18)
-                    gaze_color = (255, 255, 80)  # Жёлтый линии взгляда
-                    pygame.draw.line(self.screen, gaze_color, (start_x, start_y), (end_x, end_y), 3)
-                    # Стрелка на конце для однозначного чтения направления поверх текстур
-                    arrow_len = 6
-                    perp_x, perp_y = -ndy, ndx
-                    arrow_p1 = (end_x - ndx * arrow_len + perp_x * arrow_len * 0.5,
-                                end_y - ndy * arrow_len + perp_y * arrow_len * 0.5)
-                    arrow_p2 = (end_x - ndx * arrow_len - perp_x * arrow_len * 0.5,
-                                end_y - ndy * arrow_len - perp_y * arrow_len * 0.5)
-                    pygame.draw.polygon(self.screen, gaze_color, [(end_x, end_y), arrow_p1, arrow_p2])
+            # BUG-P1-01: Рисуем конус взгляда (сектор) по body_heading
+            if hasattr(entity, 'body_heading'):
+                _heading = entity.body_heading
+                gaze_color = (255, 255, 80, 60)  # Полупрозрачный жёлтый
+                gaze_surface = pygame.Surface((100, 100), pygame.SRCALPHA)
+                _cone_radius = 40
+                _cone_width = math.pi / 4  # 45 градусов
+                _points = [(50, 50)]  # центр
+                _start_a = _heading - _cone_width / 2
+                _step = _cone_width / 10
+                for i in range(11):
+                    _a = _start_a + i * _step
+                    _points.append((50 + math.cos(_a) * _cone_radius, 50 + math.sin(_a) * _cone_radius))
+                pygame.draw.polygon(gaze_surface, gaze_color, _points)
+                self.screen.blit(gaze_surface, (sx - 50, sy - 50))
 
             # Спринт 30: Сохраняем визуальную позицию (после интерполяции), а не сырую позицию тика,
             # чтобы на следующем кадре непрерывное движение продолжилось, а не началось с начала
@@ -485,7 +478,7 @@ class SceneRenderer:
             if self._hover_npc_id == entity.entity_id and entity.perception_cues:
                 for _cue in entity.perception_cues:
                     _txt = _cue.get("hover_text") or _cue.get("cue_key", "...")
-                    _font = pygame.font.SysFont(FONT_NAME_UI, FONT_SIZE_TOOLTIP)
+                    _font = self.font_tooltip
                     _surf = _font.render(_txt, True, (255, 255, 230))  # Тёплый белый для тултипов
                     self.screen.blit(_surf, (sx - _surf.get_width()//2, sy - 30))
                     break # Показываем только первый (самый важный) cue

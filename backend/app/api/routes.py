@@ -574,8 +574,8 @@ def get_interface_players(campaign_id: str) -> List[dict]:
         "race": c.race or "Человек",
         "class": c.class_name or "Воин",
         "level": c.level,
-        "hp": c.hp,
-        "maxHp": c.max_hp,
+        "hp": c.effective_hp,
+        "maxHp": c.effective_max_hp,
         "ac": c.ac,
         "effects": c.effects
     } for c in characters]

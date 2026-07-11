@@ -22,7 +22,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional
+import logging
+from typing import Any, Dict, List, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.models.front import FrontState
+
+logger = logging.getLogger(__name__)
 
 
 class ErosionStage(str, Enum):
@@ -232,7 +238,7 @@ class CharacterProfile:
         }
         return _descriptions.get(new_stage, "")
     
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> Dict[str, Any]:
         """Сериализация для persistence."""
         result: Dict[str, Any] = {
             "character_id": self.character_id,
@@ -258,7 +264,7 @@ class CharacterProfile:
         return result
     
     @classmethod
-    def from_dict(cls, data: Dict) -> "CharacterProfile":
+    def from_dict(cls, data: Dict[str, Any]) -> "CharacterProfile":
         """Десериализация из persistence."""
         values_data = data.get("values", {})
         profile = cls(

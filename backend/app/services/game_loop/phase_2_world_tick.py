@@ -43,7 +43,7 @@ def tick_world_proactive(
             if _n.get("tier", "minor") != "major":
                 continue
             _p_l2 = load_l2_state_from_runtime_dict(_n)
-            if _p_l2.hp <= 0:
+            if _p_l2.effective_hp <= 0:
                 continue
             _p_l0 = load_profile_from_legacy_json(_n)
             _proactive_npc_data.append((_pid, _p_l2, _p_l0))

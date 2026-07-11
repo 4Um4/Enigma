@@ -62,13 +62,13 @@ class Task:
     
     producer_id: str = ""               # NPC, инициировавший задачу
     participants: List[str] = field(default_factory=list) # Другие участники (напр. target_id)
-    payload: TaskPayload = field(default_factory=DialoguePayload) # Типизированный груз
+    payload: TaskPayload = field(default_factory=lambda: DialoguePayload(topic="", intent_type="talk", target_id="player")) # Типизированный груз
     
     created_tick: int = 0
     started_tick: Optional[int] = None
     completed_tick: Optional[int] = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if not self.producer_id:
             raise ValueError("Task requires a producer_id (NPC or Player)")
         if not isinstance(self.payload, TaskPayload):

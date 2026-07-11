@@ -72,12 +72,12 @@ class ChatTurnResponse(BaseModel):
     journal_entry_id: str
     traces: List[AgentTrace]
     # TASK 1: Force Merge — передаём world_snapshot на фронтенд (ADR-0014)
-    world_snapshot: Optional[dict] = None
-    npc_positions: Optional[dict] = None
+    world_snapshot: Optional[Dict[str, Any]] = None
+    npc_positions: Optional[Dict[str, Any]] = None
     # Спринт 26: Артефакты Конфликта Воли (Embodied Perception Interface)
-    will_conflict_data: Optional[dict] = None
+    will_conflict_data: Optional[Dict[str, Any]] = None
     # Sprint P9: Факты, донесённые до игрока (для UI и отладки)
-    observed_facts: list = []
+    observed_facts: List[Any] = []
 
 
 # ADR-030: Avatar Creation Vector — Вектор Начальных Условий Гибридной Сущности
@@ -292,7 +292,7 @@ class HeartbeatRequest(BaseModel):
     
     model_config = {"populate_by_name": True}
     
-    def __init__(self, **data):
+    def __init__(self, **data: Any) -> None:
         # Если пришли старые поля - преобразуем
         if "player" in data and data["player"]:
             data["player_name"] = data.pop("player")

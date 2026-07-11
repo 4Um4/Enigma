@@ -162,12 +162,8 @@ class EditorCore:
         if info:
             print(f"Спрайтшит загружен: {info['cols']}x{info['rows']} тайлов")
         
-        # Автооткрытие кампании Open_road
-        ok, err = self.cm.open_campaign("Open_road")
-        if ok:
-            self._show_toast("Кампания: Open_road")
-        else:
-            self._show_toast("Добро пожаловать! Создайте кампанию через меню File")
+        # BUG-P1-18: Хардкод "Open_road" удален. Редактор стартует пустым.
+        self._show_toast("Добро пожаловать! Откройте или создайте кампанию через меню File")
     
     def _init_ui(self):
         """Инициализирует элементы интерфейса"""
@@ -182,7 +178,7 @@ class EditorCore:
         self.menu_buttons.append(self.btn_file)
         
         # View
-        self.btn_view = Button(75, 2, 60, 26, "View", on_click=self._show_view_menu)
+        self.btn_view = Button(75, 2, 60, 26, "View", on_click=self._toggle_grid)
         self.menu_buttons.append(self.btn_view)
         
         # === Тулбар ===
@@ -630,8 +626,8 @@ class EditorCore:
                 self._show_toast(f"Ошибка: {err}")
         self.dialog = ModalDialog(self.screen, "Импорт из ZIP", fields, on_confirm)
     
-    def _show_view_menu(self):
-        """Переключает видимость элементов"""
+    def _toggle_grid(self):
+        """Переключает видимость сетки"""
         self.show_grid = not self.show_grid
         self._show_toast(f"Сетка: {'вкл' if self.show_grid else 'выкл'}")
     
@@ -955,6 +951,12 @@ class EditorCore:
                     
             elif event.key == pygame.K_TAB:
                 self._toggle_mode()
+            elif event.key == pygame.K_PAGEUP:
+                self.current_z += 1
+                self._show_toast(f"Этаж: {self.current_z}")
+            elif event.key == pygame.K_PAGEDOWN:
+                self.current_z = max(0, self.current_z - 1)
+                self._show_toast(f"Этаж: {self.current_z}")
             
             elif event.key == pygame.K_s and pygame.key.get_mods() & pygame.KMOD_CTRL:
                 if self.current_file:
@@ -1668,69 +1670,6 @@ class EditorCore:
         
         return False
     
-    def _select_at(self, mx: int, my: int):
-        """Выбирает объект под курсором"""
-        if not self.current_file:
-            return
-        
-        loc = self.dm.locations[self.current_file]
-        
-        # Проверяем объекты (приоритет — крупнее, чаще используются)
-        if self.show_objects:
-            for obj in loc.get("objects", []):
-                sx, sy = self.world_to_screen(obj["position"]["x"], obj["position"]["y"])
-                w = obj["size"]["w"] * SCALE * self.zoom
-                h = obj["size"]["h"] * SCALE * self.zoom
-                hit_rect = pygame.Rect(sx - w/2, sy - h/2, w, h)
-                if hit_rect.collidepoint(mx, my):
-                    self.selected_object = ("object", obj.get("id", ""))
-                    return
-        
-        # Проверяем NPC
-        for npc in loc.get("npcs", []):
-            sx, sy = self.world_to_screen(npc["position"]["x"], npc["position"]["y"])
-            hit_r = int(SCALE * self.zoom * 0.4)
-            if pygame.Rect(sx - hit_r, sy - hit_r, hit_r * 2, hit_r * 2).collidepoint(mx, my):
-                self.selected_object = ("npc", npc["ref_id"])
-                return
-        
-        # Проверяем точку спавна
-        spawn = loc.get("player_spawn")
-        if spawn:
-            sx, sy = self.world_to_screen(spawn["x"], spawn["y"])
-            hit_r = int(SCALE * self.zoom * 0.5)
-            if pygame.Rect(sx - hit_r, sy - hit_r, hit_r * 2, hit_r * 2).collidepoint(mx, my):
-                self.selected_object = ("spawn", "player_spawn")
-                return
-        
-        # Проверяем стены
-        if self.show_walls:
-            for wall in loc.get("walls", []):
-                sx1, sy1 = self.world_to_screen(wall["x1"], wall["y1"])
-                sx2, sy2 = self.world_to_screen(wall["x2"], wall["y2"])
-                if self._point_near_line(mx, my, sx1, sy1, sx2, sy2, 10):
-                    self.selected_object = ("wall", wall["id"])
-                    return
-        
-        # Проверяем комнаты
-        if self.show_rooms:
-            wx, wy = self.screen_to_world(mx, my)
-            for room in loc.get("rooms", []):
-                poly = room.get("polygon")
-                if poly and len(poly) >= 3:
-                    if DataManager._point_in_polygon(wx, wy, [(p[0], p[1]) for p in poly]):
-                        self.selected_object = ("room", room["id"])
-                        return
-                else:
-                    rx, ry = self.world_to_screen(room["x"], room["y"])
-                    rw = room["width"] * SCALE * self.zoom
-                    rh = room["height"] * SCALE * self.zoom
-                    if pygame.Rect(rx, ry, rw, rh).collidepoint(mx, my):
-                        self.selected_object = ("room", room["id"])
-                        return
-        
-        self.selected_object = None
-    
     def _delete_at(self, mx: int, my: int):
         """Удаляет объект под курсором"""
         if not self.current_file:
@@ -2209,6 +2148,7 @@ class EditorCore:
         
         # Проходы (внутренние двери в стенах)
         self._draw_passages()
+        self._draw_nodes()  # BUG-P1-12: Включаем отрисовку навигационных узлов
         
         # Надписи (поверх всего, чтобы не перекрывались)
         self._draw_labels()

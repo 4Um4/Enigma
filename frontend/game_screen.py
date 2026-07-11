@@ -28,7 +28,7 @@ from scene_renderer import SceneRenderer
 from text_input import TextInput
 # Спринт 31: Локальная физика и парсер интентов удалены. Фронтенд — честный интерполятор.
 
-from game_types import PerceptionConfig, PerceivedScene, PerceivedEntity, PlayerFocus, PerceivedEnvironment
+from game_types import PerceptionConfig, PerceivedScene, PerceivedEntity, PlayerFocus, PerceivedEnvironment, Inference, InferenceTier
 
 from constants import (
     COLOR_TEXT_DEFAULT, COLOR_TEXT_DIM, COLOR_TEXT_MUTED, COLOR_TEXT_DARK,
@@ -37,6 +37,25 @@ from constants import (
     COLOR_NARRATOR, COLOR_NPC_NAME, COLOR_MANIFEST_DEFAULT
 )
 from i18n import t
+
+
+
+
+def _clean_dm_response(text: str) -> str:
+    """Удаляет системные маркеры LLM (whisper, internal, *thought*, и т.д.)."""
+    import re
+    # Удалить markdown-теги в скобках: (whisper), [internal], etc.
+    text = re.sub(
+        r'\s*[\(\[]\s*(whisper|shout|internal|narrator|thought|action|ooc|system|idle|approach|flee|combat|description|narration)\s*[\)\]]\s*',
+        ' ', text, flags=re.IGNORECASE
+    )
+    # Удалить markdown-звёздочки: *текст*
+    text = re.sub(r'\*([^*]+)\*', r'\1', text)
+    # Удалить двойные кавычки-обёртки
+    text = re.sub(r'^["\「](.+?)["\」]$', r'\1', text.strip())
+    # Удалить дублирующиеся пустые строки
+    text = re.sub(r'\n{3,}', '\n\n', text)
+    return text.strip()
 
 
 def _build_perceived_scene(scene_state: dict, config: PerceptionConfig) -> PerceivedScene:
@@ -71,6 +90,19 @@ def _build_perceived_scene(scene_state: dict, config: PerceptionConfig) -> Perce
             _vel = (0.0, 0.0)
         _exertion = float(npc_data.get("exertion_level", 0.0))
 
+        # ADR-O-315: Читаем непрерывный угол ориентации тела с бэкенда
+        _body_heading = float(npc_data.get("body_heading", 1.5708))
+
+        _inferences = []
+        _player_pos = scene_state.get("player_spatial", {}).get("local_position", {"x": 0.0, "y": 0.0})
+        _px, _py = _player_pos.get("x", 0.0), _player_pos.get("y", 0.0)
+        if config.player_focus.focus_entity_id == npc_id:
+            _inferences.append(Inference(inference_type="communication", tier=InferenceTier.BEHAVIORAL, confidence=0.9, source_observations=["взгляд на игроке"]))
+        else:
+            _dist = math.hypot(x - _px, y - _py)
+            if _dist < 5.0:
+                _inferences.append(Inference(inference_type="communication", tier=InferenceTier.BEHAVIORAL, confidence=0.6, source_observations=["внимание на игрока"]))
+
         entities.append(PerceivedEntity(
             entity_id=npc_id,
             entity_type="npc",
@@ -79,7 +111,9 @@ def _build_perceived_scene(scene_state: dict, config: PerceptionConfig) -> Perce
             visible=True,
             los=True,
             display_name=npc_data.get("display_name") or npc_data.get("name") or npc_id.split("_")[-1].capitalize(),
+            body_heading=_body_heading,
             in_attention=(config.player_focus.focus_entity_id == npc_id),
+            inferences=_inferences,
             # Спринт 30: Каузальная презентация. Передаем кинематику в рендерер для непрерывного lerp
             traversal_status=trav.get("status", "IDLE") if trav else "IDLE",
             path_waypoints=trav.get("path_waypoints", []) if trav else [],
@@ -488,7 +522,6 @@ class GameScreen:
         _idle_tick_result: list = []   # потокобезопасный буфер результата
         _idle_tick_running = [False]   # флаг активного запроса
         _skip_time_active = [False]    # Флаг активной промотки времени (блокирует idle_tick)
-        _time_scale_indicator = 0      # 0=выкл, 1=1x, 2=100x, 3=500x, 4=2000x
         _last_telegraph_ms = 0         # cooldown между телеграфами
         # S82: Мировые координаты для Spatial Oracle. Обновляются каждый кадр.
         # Backend использует как PRIMARY spatial input — вычисляет actual_chunk НЕЗАВИСИМО.
@@ -516,7 +549,7 @@ class GameScreen:
                 _idle_tick_result.append(result)
             except Exception as e:
                 import traceback
-                print(f"[IDLE_TICK] ERROR: {e}\n{traceback.format_exc()}")
+                logger.debug(f"[IDLE_TICK] ERROR: {e}\n{traceback.format_exc()}")
             _idle_tick_running[0] = False
 
         def _do_skip_time(ticks: int):
@@ -528,7 +561,7 @@ class GameScreen:
                 _idle_tick_result.append(result)
             except Exception as e:
                 import traceback
-                print(f"[SKIP_TIME] ERROR: {e}\n{traceback.format_exc()}")
+                logger.debug(f"[SKIP_TIME] ERROR: {e}\n{traceback.format_exc()}")
             _idle_tick_running[0] = False
             _skip_time_active[0] = False
             _time_scale_indicator = 0
@@ -548,14 +581,14 @@ class GameScreen:
                         running = False
                         return
                     # ADR-JOURNAL: Переключение журнала (J / Русская О), только если консоль НЕ в фокусе
-                    elif not text_input.focused and (event.key == pygame.K_j or event.unicode == 'о'):
+                    elif not text_input.focused and event.key == pygame.K_j:
                         self.show_journal = not self.show_journal
                     elif event.key == pygame.K_TAB:
                         # Переключение фокуса: игра <-> консоль общения
                         text_input.focused = not text_input.focused
                         if text_input.focused:
                             # Открыли консоль — ждём ввода игрока
-                            print("[CONSOLE] opened — waiting for player input")
+                            logger.debug("[CONSOLE] opened — waiting for player input")
                         else:
                             # Закрыли консоль — убираем пузыри с экрана, чтобы не загораживали игру
                             message_log.clear()
@@ -578,7 +611,7 @@ class GameScreen:
                         action_queue.cancel_telegraph()
                         # ADR-039: Сброс Resistance Medium после успешного ввода
                         text_input.exorcise()
-                        print("[TELEGRAPH] cancelled — player acted first")
+                        logger.debug("[TELEGRAPH] cancelled — player acted first")
 
                         # Создаем сценическое событие для пузыря игрока (ТЗ 3 + Мастер тай)
                         from narrative_beat import NarrativeBeat, DeliveryType, RecognitionLevel, BeatLifetime
@@ -626,16 +659,11 @@ class GameScreen:
                 elif event.type == pygame.TEXTINPUT:
                     # WASD при зажатии генерирует TEXTINPUT с буквой — фильтруем
                     # Фильтрация WASD в обеих раскладках (BUG-P1-11)
-                    _WASD_KEY_TEXT = {
-                        pygame.K_w: 'w', pygame.K_a: 'a', pygame.K_s: 's', pygame.K_d: 'd',
-                        pygame.K_w: 'ц', pygame.K_a: 'ф', pygame.K_s: 'ы', pygame.K_d: 'в'
-                    }
+                    _WASD_CHARS = {'w', 'a', 's', 'd', 'ц', 'ф', 'ы', 'в'}
                     _skip = False
                     if held_keys and len(event.text) == 1:
-                        for k in held_keys:
-                            if _WASD_KEY_TEXT.get(k) == event.text.lower():
-                                _skip = True
-                                break
+                        if event.text.lower() in _WASD_CHARS:
+                            _skip = True
                     if not _skip:
                         text_input.handle_event(event)
                 elif event.type == pygame.TEXTEDITING:
@@ -650,7 +678,7 @@ class GameScreen:
                         text_input.clear()
                         # Спринт 30: Запрет локальной симуляции. Путь ищет бэкенд.
                         # Фронтенд только фиксирует цель, локальный pathfinding удален.
-                        system_log.append(t("ui:going_to", npc=clicked_npc))
+                        system_log.append(t("ui:going_to").format(npc=clicked_npc))
                 elif event.type == pygame.VIDEORESIZE:
                     self.screen = pygame.display.set_mode(
                         (event.w, event.h), pygame.RESIZABLE
@@ -789,7 +817,7 @@ class GameScreen:
                     _old_lp = scene_state.get("npc_positions", {}).get(npc_id, {}).get("local_position", {})
                     _new_lp = new_data.get("local_position", {})
                     if _old_lp != _new_lp:
-                        print(f"[FRAME_RENDER] npc={npc_id} new_xy=({_new_lp.get('x')}, {_new_lp.get('y')})")
+                        logger.debug(f"[FRAME_RENDER] npc={npc_id} new_xy=({_new_lp.get('x')}, {_new_lp.get('y')})")
 
             if _new_positions:
                 logger.info(f"[IDLE_TICK] merged: {list(_new_positions.keys())}")
@@ -810,7 +838,7 @@ class GameScreen:
                 # ADR-019 FIX: Синхронизация tick для traversal интерполяции.
                 # Без этого _resolve_visual_xy всегда видит progress=0 → NPC стоят.
                 _ws_tick = _ws.get("tick")
-                print(f"[TICK_SYNC] idle_ws.tick={_ws_tick} scene_tick_before={scene_state.get('tick')}")
+                logger.debug(f"[TICK_SYNC] idle_ws.tick={_ws_tick} scene_tick_before={scene_state.get('tick')}")
                 if _ws_tick is not None:
                     scene_state["tick"] = _ws_tick
 
@@ -884,7 +912,7 @@ class GameScreen:
                     world_y=_last_world_pos[1],
                     action_text=_telegraph_text,
                 )
-                print(f"[TELEGRAPH] event-driven: {_telegraph_text}")
+                logger.debug(f"[TELEGRAPH] event-driven: {_telegraph_text}")
 
             # Фаза 2.1 — distance-based интервал: в чате = частый, при ходьбе = редкий
             _now = pygame.time.get_ticks()
@@ -940,9 +968,9 @@ class GameScreen:
 
                     # Диагностика: что реально пришло в ответе?
                     if isinstance(result.response, dict):
-                        print(f"[TRACE][ACTION_RESP] has_ws={bool(_action_ws)} ws_type={type(_action_ws).__name__} top_keys={list(result.response.keys())[:5]}")
+                        logger.debug(f"[TRACE][ACTION_RESP] has_ws={bool(_action_ws)} ws_type={type(_action_ws).__name__} top_keys={list(result.response.keys())[:5]}")
                     else:
-                        print(f"[TRACE][ACTION_RESP] resp_type={type(result.response).__name__} has_ws={bool(_action_ws)}")
+                        logger.debug(f"[TRACE][ACTION_RESP] resp_type={type(result.response).__name__} has_ws={bool(_action_ws)}")
 
                     # S82: Spatial Oracle reconciliation.
                     # Backend подтверждает actual_chunk. Если отличается — обновляем location_id.
@@ -958,6 +986,10 @@ class GameScreen:
                         location_id = _confirmed_loc
                         scene_state["location_id"] = _confirmed_loc
                         logger.info(f"[WORLD_CTX] RECONCILE location_id={location_id} walls={len(walls)} obstacles={len(obstacles)} scene=({scene_w},{scene_h})")
+                        # BUG-P2-09/P2-10: Очистка устаревших позиций и облачков при смене локации
+                        self.npc_speech_bubbles.clear()
+                        if hasattr(self.renderer, '_prev_npc_positions'):
+                            self.renderer._prev_npc_positions.clear()
                         # S82.1: Пересчитываем local_position с новым origin.
                         # Без этого local_position остаётся вычисленным от старого origin,
                         # и на следующем кадре local_to_world даст неверный world_position.
@@ -989,7 +1021,7 @@ class GameScreen:
                                     }
 
                         _lusya_data = _action_ws["npc_positions"].get("maid_lusya", {})
-                        print(f"[DIAG_MERGE] maid_lusya local_pos={_lusya_data.get('local_position')} vel={_lusya_data.get('velocity')}")
+                        logger.debug(f"[DIAG_MERGE] maid_lusya local_pos={_lusya_data.get('local_position')} vel={_lusya_data.get('velocity')}")
                         for npc_id, new_data in _action_ws["npc_positions"].items():
                             # ADR-092: Каузальная труба движения. Если NPC в транзите, 
                             # не перезаписываем local_position — рендерер интерполирует его через TraversalState.
@@ -1011,7 +1043,7 @@ class GameScreen:
                             scene_state.setdefault("npc_positions", {})[npc_id] = _merged
                             _new_lp = _merged.get("local_position", {})
                             if _old_lp != _new_lp:
-                                print(f"[FRAME_RENDER][ACTION] npc={npc_id} new_xy=({_new_lp.get('x')}, {_new_lp.get('y')})")
+                                logger.debug(f"[FRAME_RENDER][ACTION] npc={npc_id} new_xy=({_new_lp.get('x')}, {_new_lp.get('y')})")
                         # ADR-019: Сохраняем активные транзиты для визуальной интерполяции (Lerp)
                         if "active_traversals" in _action_ws:
                             scene_state["active_traversals"] = _action_ws["active_traversals"]
@@ -1019,25 +1051,25 @@ class GameScreen:
                             _trav_data = _action_ws['active_traversals']
                             if isinstance(_trav_data, dict):
                                 _trav_keys = list(_trav_data.keys())
-                                print(f"[PIPELINE][MOVEMENT] traversals_received: keys={_trav_keys} count={len(_trav_keys)}")
+                                logger.debug(f"[PIPELINE][MOVEMENT] traversals_received: keys={_trav_keys} count={len(_trav_keys)}")
                                 for _tid, _tdata in _trav_data.items():
-                                    print(f"[PIPELINE][TRAVERSAL] npc={_tid} status={_tdata.get('status')} from={_tdata.get('from_node')} to={_tdata.get('target_node')} wp_count={len(_tdata.get('path_waypoints', []))}")
+                                    logger.debug(f"[PIPELINE][TRAVERSAL] npc={_tid} status={_tdata.get('status')} from={_tdata.get('from_node')} to={_tdata.get('target_node')} wp_count={len(_tdata.get('path_waypoints', []))}")
                             elif isinstance(_trav_data, list):
                                 # Legacy fallback: list → конвертируем в dict
                                 _trav_dict = {t.get("npc_id"): t for t in _trav_data if t.get("npc_id")}
                                 scene_state["active_traversals"] = _trav_dict
-                                print(f"[PIPELINE][MOVEMENT] traversals_received (list→dict): keys={list(_trav_dict.keys())} count={len(_trav_dict)}")
+                                logger.debug(f"[PIPELINE][MOVEMENT] traversals_received (list→dict): keys={list(_trav_dict.keys())} count={len(_trav_dict)}")
                             else:
-                                print(f"[PIPELINE][MOVEMENT] active_traversals unexpected type: {type(_trav_data).__name__}")
+                                logger.debug(f"[PIPELINE][MOVEMENT] active_traversals unexpected type: {type(_trav_data).__name__}")
                         else:
-                            print(f"[PIPELINE][MOVEMENT] NO active_traversals in action_ws! keys={list(_action_ws.keys())[:10]}")
+                            logger.debug(f"[PIPELINE][MOVEMENT] NO active_traversals in action_ws! keys={list(_action_ws.keys())[:10]}")
                         # ADR-035: Обновление феноменологической проекции аватара при действии
                         if "avatar_state" in _action_ws:
                             scene_state["avatar_state"] = _action_ws["avatar_state"]
                         # ADR-019 FIX: Синхронизация tick для traversal интерполяции.
                         # Без этого _resolve_visual_xy всегда видит progress=0 → NPC стоят.
                         _ws_tick = _action_ws.get("tick")
-                        print(f"[TICK_SYNC] action_ws.tick={_ws_tick} scene_tick_before={scene_state.get('tick')}")
+                        logger.debug(f"[TICK_SYNC] action_ws.tick={_ws_tick} scene_tick_before={scene_state.get('tick')}")
                         if _ws_tick is not None:
                             scene_state["tick"] = _ws_tick
                         # ТЗ EMBODIED UI PERCEPTION: Извлечение наблюдений игрока
@@ -1073,19 +1105,22 @@ class GameScreen:
                             scene_state["player_perception"] = result.response["player_perception"]
 
                     if resp and resp != t("ui:nothing_happened"):
+                        resp = _clean_dm_response(resp)
                         import re
                         from difflib import SequenceMatcher
 
                         # Отладка DM ответа
-                        print(f"[ECHO_DEBUG_DM] DMResp: '{resp.strip()[:80]}...'")
+                        logger.debug(f"[ECHO_DEBUG_DM] DMResp: '{resp.strip()[:80]}...'")
 
                         # Разбиваем ответ на строки и фильтруем каждую от эха
                         raw_lines = resp.strip().split('\n')
 
                         # Извлекаем имена NPC из scene_state для парсинга спикера
+                        from npc_name_resolver import npc_id_to_display
                         known_names = {}
                         for npc_id, npc_data in scene_state.get("npc_positions", {}).items():
-                            name = npc_data.get("name") or npc_data.get("display_name")
+                            # BUG-P1-07: Fallback на npc_id_to_display если name/display_name отсутствуют
+                            name = npc_data.get("name") or npc_data.get("display_name") or npc_id_to_display(npc_id)
                             if name:
                                 known_names[name.lower()] = name
 
@@ -1110,7 +1145,7 @@ class GameScreen:
                                 # Если строка похожа на ввод — это эхо
                                 # Защита от ложных срабатываний: не используем in-проверку для коротких фраз (имена NPC)
                                 is_short_input = len(p_clean) < 10
-                                if similarity > 0.60:
+                                if similarity > 0.80:  # BUG-P1-09: Порог 0.80 вместо 0.60
                                     is_echo_line = True
                                 elif not is_short_input and (p_clean in l_clean or l_clean in p_clean):
                                     is_echo_line = True
@@ -1212,7 +1247,7 @@ class GameScreen:
                             npc_name = "NPC"
                             npc_text = str(npc_r) if npc_r else ""
 
-                        print(f"[ECHO_DEBUG_NPC] Name: '{npc_name}' | Text: '{npc_text}' | LastInput: '{_last_player_input}'")
+                        logger.debug(f"[ECHO_DEBUG_NPC] Name: '{npc_name}' | Text: '{npc_text}' | LastInput: '{_last_player_input}'")
 
                         if npc_text:
                             # Речь NPC → облачко над головой (привязка к npc_id, не к name)
@@ -1229,7 +1264,7 @@ class GameScreen:
                 # Telegraph завершился — НЕ перезапускаем автоматически
                 # Следующий Telegraph запустится при следующем Tab
                 if action_queue.is_telegraph_result(result):
-                    print("[TELEGRAPH] completed")
+                    logger.debug("[TELEGRAPH] completed")
 
             # === Pipeline ===
             config = PerceptionConfig(

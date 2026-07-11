@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 
 class SpatialTransitionMode(str, Enum):
@@ -69,7 +69,7 @@ class TraversalContract:
     и _process_traversals (Мутация E20).
     """
     status: str                 # "NEW" | "COMPLETED" | "" (пусто = не нужен)
-    fields: Dict                # все поля для scene_state["active_traversals"][npc_id]
+    fields: Dict[str, Any]                # все поля для scene_state["active_traversals"][npc_id]
     # Логически immutable после создания (architectural invariant).
     # frozen=True на ThickSceneChange защищает от переназначения traversal,
     # но не от мутации вложенного dict. Нарушение = Rule 120/122.

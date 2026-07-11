@@ -106,7 +106,7 @@ def _build_body_state(distortion_inputs: PlayerDistortionInputs) -> List[str]:
     states: List[str] = []
 
     stress = distortion_inputs.stress
-    hp_ratio = distortion_inputs.hp / max(1, distortion_inputs.max_hp)
+    hp_ratio = distortion_inputs.effective_hp / max(1, distortion_inputs.effective_max_hp)
     fatigue = distortion_inputs.fatigue
 
     # HP → телесные ощущения

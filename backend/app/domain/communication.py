@@ -35,11 +35,10 @@ class ExposureLevel:
             )
 
     @classmethod
-    def from_semantic(cls, semantic: str) -> "ExposureLevel":
+    def from_semantic(cls, semantic: Literal["secret", "whisper", "normal", "shout", "private"]) -> "ExposureLevel":
         """Единственный легальный способ создать ExposureLevel в прод-коде."""
         if semantic not in _EXPOSURE_DEFAULT_RADIUS:
             raise ValueError(
-
                 f"Unknown exposure semantic: {semantic!r}. "
                 f"Allowed: {list(_EXPOSURE_DEFAULT_RADIUS)}"
             )

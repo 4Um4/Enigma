@@ -264,7 +264,7 @@ class DecisionHub:
         Intent.REQUEST_SERVICE.value, Intent.OFFER_JOB.value,
         Intent.SPREAD_RUMOR.value, Intent.CALL_FOR_HELP.value,
         Intent.INTIMIDATE.value, Intent.EXPLAIN.value,
-        Intent.APPROACH.value,
+        Intent.APPROACH.value, Intent.CHANGE_ROLE.value,
     }
 
     @staticmethod

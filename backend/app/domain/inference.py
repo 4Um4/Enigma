@@ -7,7 +7,7 @@
 
 from __future__ import annotations
 from dataclasses import dataclass, field
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Tuple
 
 @dataclass(frozen=True)
 class Inference:
@@ -17,7 +17,7 @@ class Inference:
     """
     inference_id: str            # UUID
     target_id: str               # Кого касается гипотеза
-    source_fact_ids: tuple       # ID фактов, на которых основана гипотеза
+    source_fact_ids: Tuple[str, ...]       # ID фактов, на которых основана гипотеза
     
     hypothesis: str              # "hand_on_weapon", "avoiding_eye_contact" и т.д.
     confidence: float            # 0.0-1.0
@@ -25,4 +25,4 @@ class Inference:
     observed_at: float           # game_time_seconds
     
     # Возможные причины (из signal_causes.yaml) - без указания истинной
-    possible_causes: tuple = field(default_factory=tuple)
+    possible_causes: Tuple[str, ...] = field(default_factory=tuple)

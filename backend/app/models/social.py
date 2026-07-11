@@ -17,7 +17,7 @@ path: /backend/app/models/social.py
 """
 
 from dataclasses import dataclass
-from typing import Dict
+from typing import Any, Dict, List, Optional
 
 
 @dataclass
@@ -55,7 +55,7 @@ class Relationship:
         new_effective = max(-1.0, min(1.0, self.effective_affection + delta))
         self.runtime_affection_delta = new_effective - self.base_affection
 
-    def to_runtime_dict(self) -> Dict:
+    def to_runtime_dict(self) -> Dict[str, Any]:
         """Сериализация только runtime-части для saves/ (отдельно от статичного конфига)."""
         return {
             "runtime_trust_delta": self.runtime_trust_delta,
@@ -65,7 +65,7 @@ class Relationship:
             "shared_secrets": self.shared_secrets,
         }
 
-    def apply_runtime_dict(self, data: Dict) -> None:
+    def apply_runtime_dict(self, data: Dict[str, Any]) -> None:
         """Восстановление runtime из saves/ (не трогает base_*)."""
         self.runtime_trust_delta = float(data.get("runtime_trust_delta", 0.0))
         self.runtime_affection_delta = float(data.get("runtime_affection_delta", 0.0))

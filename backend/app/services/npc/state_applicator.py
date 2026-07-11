@@ -91,7 +91,7 @@ class StateApplicator:
         
         # Debug: проверяем что deepcopy не сломал объект
         if not hasattr(new_state, 'intent_duration'):
-            print(f"[STATE_APPLICATOR] deepcopy сломал объект {state.npc_id}! type={type(new_state)}, attrs={list(vars(new_state).keys()) if hasattr(new_state, '__dict__') else 'no __dict__'}")
+            logger.debug(f"[STATE_APPLICATOR] deepcopy сломал объект {state.npc_id}! type={type(new_state)}, attrs={list(vars(new_state).keys()) if hasattr(new_state, '__dict__') else 'no __dict__'}")
             return state
 
         try:
@@ -213,7 +213,9 @@ class StateApplicator:
                 new_state.body_state = {"current_hp": _max_hp, "max_hp": _max_hp}
             new_state.body_state["current_hp"] = min(_max_hp, _new_hp)
             # Sync deprecated поле для обратной совместимости
-            new_state.hp = int(_new_hp)
+            # ADR-HP-UNIFICATION: Пишем напрямую в body_state (SSOT)
+            if new_state.body_state:
+                new_state.body_state["current_hp"] = int(_new_hp)
             state_changes.append(StateChange(
                 target_id=new_state.npc_id,
                 field="hp",
@@ -270,7 +272,7 @@ class StateApplicator:
             
             # 5. Posture change при тяжёлом ударе
             if outcome.damage >= 15 or (
-                new_state.max_hp > 0 and new_state.hp < new_state.max_hp * 0.2
+                new_state.effective_max_hp > 0 and new_state.effective_hp < new_state.effective_max_hp * 0.2
             ):
                 new_state.posture = "prone"
             
@@ -285,8 +287,8 @@ class StateApplicator:
             if len(new_state.causal_ledger) > 20:
                 new_state.causal_ledger = new_state.causal_ledger[-20:]
             
-            print(
-                f"[PHYSICAL] {new_state.npc_id}: hp {old_hp}→{new_state.hp} "
+            logger.debug(
+                f"[PHYSICAL] {new_state.npc_id}: hp {old_hp}→{new_state.effective_hp} "
                 f"({outcome.damage_type.value}), threats={len(new_state.threat_accumulator.sources)}, "
                 f"wounds={len(new_state.wounds)}, conditions={list(new_state.conditions.keys())}"
             )
@@ -500,7 +502,7 @@ class StateApplicator:
         will_state_override = deltas.payload.will_state_override if domain == DeltaDomain.IDENTITY and isinstance(deltas.payload, IdentityPayload) else deltas.will_state_override
 
         # Physiology Domain: Damage & Stress Propagation System
-        hp_delta = deltas.payload.hp_delta if domain == DeltaDomain.PHYSIOLOGY and isinstance(deltas.payload, PhysiologyPayload) else 0.0
+        hp_delta = deltas.payload.effective_hp_delta if domain == DeltaDomain.PHYSIOLOGY and isinstance(deltas.payload, PhysiologyPayload) else 0.0
         pain_delta = deltas.payload.pain_delta if domain == DeltaDomain.PHYSIOLOGY and isinstance(deltas.payload, PhysiologyPayload) else 0.0
         fatigue_delta = deltas.payload.fatigue_delta if domain == DeltaDomain.PHYSIOLOGY and isinstance(deltas.payload, PhysiologyPayload) else 0.0
         blood_loss_delta = deltas.payload.blood_loss_delta if domain == DeltaDomain.PHYSIOLOGY and isinstance(deltas.payload, PhysiologyPayload) else 0.0

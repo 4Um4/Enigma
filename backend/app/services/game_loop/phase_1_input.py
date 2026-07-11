@@ -253,7 +253,7 @@ def publish_classified_player_event(
         }
         _ic_override = _IC_PRIORITY_MAP.get(_semantic_action)
         if _ic_override and _ic_override != _raw_type:
-            print(f"[ADR-091] IntentCompressor override: DM_Router='{_raw_type}' → IC='{_ic_override}'")
+            logger.debug(f"[ADR-091] IntentCompressor override: DM_Router='{_raw_type}' → IC='{_ic_override}'")
             _raw_type = _ic_override
             _resolved_type = _evt_map.get(_raw_type.lower(), EventType.PLAYER_SPOKE)
             _evt_radius = 15.0 if _resolved_type == EventType.PLAYER_ATTACKED else 999.0

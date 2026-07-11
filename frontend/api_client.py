@@ -102,7 +102,7 @@ class GameGateway(Protocol):
     
     def new_game(self, campaign_id: str) -> dict:
         """ADR-O-146: Сброс runtime мира к чистому static."""
-        return self._t.post(f"/api/game/new/{campaign_id}", {})
+        ...
 
     def create_player_session(
         self, campaign_id: str, player_name: str
@@ -122,7 +122,7 @@ class GameGateway(Protocol):
         """
         Промотка времени (Time Skip).
         """
-        return self._t.post(f"/api/game/skip_time/{campaign_id}?ticks={ticks}", {})
+        ...
 
     def idle_tick(self, campaign_id: str) -> dict:
         """
@@ -272,7 +272,7 @@ class BackendContract:
     
     def new_game(self, campaign_id: str) -> dict:
         """ADR-O-146: Сброс runtime мира к чистому static."""
-        return self._t.post(f"/api/game/new/{campaign_id}", {})
+        ...
     
     @staticmethod
     def _map_action_response(raw: dict) -> GameActionResponse:
@@ -446,7 +446,7 @@ class DirectGameGateway:
         if hasattr(result, "will_conflict_data"):
             logger.debug(f"[PIPELINE][EMBODIMENT] gateway received={result.will_conflict_data is not None}")
         else:
-            print("[EMBODIMENT_PIPELINE] field missing on result")
+            logger.debug("[EMBODIMENT_PIPELINE] field missing on result")
     
     def health(self) -> dict:
         return {"status": "ok", "mode": "direct"}
@@ -491,13 +491,13 @@ class DirectGameGateway:
             from game_loop_bridge import get_game_loop_bridge
             _bridge = get_game_loop_bridge()
             if not _bridge.ready:
-                print("[IDLE_TICK_CLIENT] bridge not ready, skipping")
+                logger.debug("[IDLE_TICK_CLIENT] bridge not ready, skipping")
                 return {"status": "not_ready"}
 
             return _bridge.idle_tick(campaign_id)
         except Exception as e:
             import traceback
-            print(f"[IDLE_TICK_CLIENT] ERROR: {e}\n{traceback.format_exc()}")
+            logger.debug(f"[IDLE_TICK_CLIENT] ERROR: {e}\n{traceback.format_exc()}")
             return {"status": "error", "error": str(e), "npc_positions": {}}
 
     def send_action_stream(self, *args, **kwargs):

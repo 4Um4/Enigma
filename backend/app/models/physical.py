@@ -19,7 +19,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 
 class DamageType(Enum):
@@ -210,7 +210,7 @@ class Condition:
         
         return True
     
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> Dict[str, Any]:
         return {
             "type": self.type,
             "severity": round(self.severity, 4),
@@ -220,7 +220,7 @@ class Condition:
         }
     
     @classmethod
-    def from_dict(cls, data: Dict) -> Condition:
+    def from_dict(cls, data: Dict[str, Any]) -> Condition:
         return cls(
             type=data.get("type", ""),
             severity=data.get("severity", 0.0),
@@ -262,7 +262,7 @@ class Wound:
         }
         return base.get(self.severity, 0.0)
     
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> Dict[str, Any]:
         return {
             "body_part": self.body_part,
             "severity": self.severity.value,
@@ -273,7 +273,7 @@ class Wound:
         }
     
     @classmethod
-    def from_dict(cls, data: Dict) -> Wound:
+    def from_dict(cls, data: Dict[str, Any]) -> Wound:
         severity = WoundSeverity(data.get("severity", "minor"))
         return cls(
             body_part=data.get("body_part", ""),
@@ -337,14 +337,14 @@ class ThreatAccumulator:
     def get_threat(self, source_id: str) -> float:
         return self.sources.get(source_id, 0.0)
     
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> Dict[str, Any]:
         return {
             "sources": {k: round(v, 4) for k, v in self.sources.items()},
             "decay_rate": self.decay_rate,
         }
     
     @classmethod
-    def from_dict(cls, data: Dict) -> ThreatAccumulator:
+    def from_dict(cls, data: Dict[str, Any]) -> ThreatAccumulator:
         return cls(
             sources=data.get("sources", {}),
             decay_rate=data.get("decay_rate", 0.02),

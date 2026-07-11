@@ -72,6 +72,7 @@ class CombatSubscriber:
 
     def _on_event(self, event) -> Optional[dict]:
         """EventHandler: накапливает событие для обработки на Фазе 8."""
+        print(f"[DIAG_COMBAT_ON_EVENT] type={getattr(event, 'type', '?')}, source={getattr(event, 'source', '?')}")
         self._pending_events.append(event)
         return None
 

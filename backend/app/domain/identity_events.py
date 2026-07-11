@@ -17,23 +17,14 @@ class EffectiveDrives:
     Эфемерный, неизменяемый снимок драйвов на момент запроса.
     Любая попытка мутации (projection["fear"] = x) вызовет TypeError.
     """
-    values: MappingProxyType
+    values: MappingProxyType[str, float]
 
     @staticmethod
     def from_dict(d: Dict[str, float]) -> 'EffectiveDrives':
         return EffectiveDrives(values=MappingProxyType(d))
 
     def get(self, key: str, default: float = 0.0) -> float:
-        return self.values.get(key, default)
-
-    def items(self):
-        return self.values.items()
-
-    def keys(self):
-        return self.values.keys()
-
-    def values(self):
-        return self.values.values()
+        return float(self.values.get(key, default))
 
 @dataclass(frozen=True)
 class TraitDriftEvent:

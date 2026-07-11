@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 from uuid import UUID
 
 
@@ -66,9 +66,10 @@ class NPCPositionDTO:
     npc_id: str
     local_position: Dict[str, float]  # Вложенный словарь {"x": float, "y": float}
     location_id: str
-    facing: str          # 'north', 'south', 'east', 'west'
-    activity: str        # 'idle', 'walking', 'talking', 'working' (переименовано с action)
-    name: str            # имя для UI (переименовано с display_name)
+    facing: str = "south"  # 'north', 'south', 'east', 'west' (DEPRECATED: legacy 4-dir)
+    body_heading: float = 1.5708  # ADR-O-315: Непрерывный угол ориентации тела (рад). Pi/2 = Юг.
+    activity: str = "idle"        # 'idle', 'walking', 'talking', 'working' (переименовано с action)
+    name: str = ""                # имя для UI (переименовано с display_name)
     initiative_suppression: float = 0.0  # Спринт 30: Cognitive Freeze (0.0-1.0), паралич воли
     velocity: Tuple[float, float] = (0.0, 0.0) # ETKE-IK: Вектор скорости для непрерывного рендера
     exertion_level: float = 0.0       # ETKE-IK: Уровень усталости (0.0-1.0)
@@ -161,7 +162,7 @@ class PlayerPerceptionDTO:
     reconstruction_events: List[ReconstructionEventDTO] = field(default_factory=list)
     
     # The Fool: Моторные следы для физического рендера (дрожь, замер)
-    embodied_traces: List[dict] = field(default_factory=list) 
+    embodied_traces: List[Dict[str, Any]] = field(default_factory=list) 
 
 
 @dataclass(frozen=True)
@@ -188,7 +189,7 @@ class WorldSnapshotDTO:
     # ADR-JOURNAL: Очередь последних 100 реплик. SSOT формируется на бэкенде.
     dialog_journal: List[Dict[str, str]] = field(default_factory=list)
     game_time_seconds: int = 0
-    active_traversals: Dict[str, Dict] = field(default_factory=dict) # ADR-019, CEI-2: Dict[npc_id, data] — синхронно с scene_state
+    active_traversals: Dict[str, Dict[str, Any]] = field(default_factory=dict) # ADR-019, CEI-2: Dict[npc_id, data] — синхронно с scene_state
     avatar_state: Optional[AvatarStateDTO] = None # ADR-035: Феноменологическая проекция
     ambient_phenomenology: Optional[Dict[str, float]] = None # ADR-037: Средовое давление (температура, плотность)
     player_perception: Optional[PlayerPerceptionDTO] = None # ТЗ EMBODIED UI: Симметричная онтология восприятия

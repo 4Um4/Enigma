@@ -55,7 +55,7 @@ class LocalSteeringGoal:
     Обрабатывается: MovementEngine (Слой 2).
     Содержит абсолютные координаты внутри тайла.
     """
-    npc_id: str
+    actor_id: str
     local_target_xy: tuple[float, float]  # Целевые координаты
     reason: str = ""        # "reactive_snap", "collision_avoidance"
     priority: float = 0.7   # Микро-рулежка приоритетнее макро-маршрутов по умолчанию

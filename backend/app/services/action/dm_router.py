@@ -210,13 +210,13 @@ class DMRouter:
 
         # 3. Быстрая проверка междометий ("твою" и т.п.)
         if re.search(r"(?i)\bтвою\b", text):
-            print(f"[DM_ROUTER] Exclamation insult detected: player_insults")
+            logger.debug(f"[DM_ROUTER] Exclamation insult detected: player_insults")
             return "player_insults"
 
         # 4. Сложная проверка оскорблений (лемматизация + контекст)
         if _INSULT_ROOTS and _MORPH:
             if self._is_directed_insult(text):
-                print(f"[DM_ROUTER] Insult detected: player_insults")
+                logger.debug(f"[DM_ROUTER] Insult detected: player_insults")
                 return "player_insults"
 
         return "player_interacts"

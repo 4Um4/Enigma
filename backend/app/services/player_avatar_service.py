@@ -120,7 +120,7 @@ class PlayerAvatarService:
             try:
                 return CharacterSheet.model_validate(avatar["sheet"])
             except Exception as e:
-                print(f"[AVATAR] Ошибка валидации листа персонажа: {e}")
+                logger.debug(f"[AVATAR] Ошибка валидации листа персонажа: {e}")
         return CharacterSheet(name=player_name)
 
     def load_profile(self, campaign_id: str, player_name: str) -> CharacterProfile:
@@ -130,7 +130,7 @@ class PlayerAvatarService:
             try:
                 return CharacterProfile.from_dict(avatar["profile"])
             except Exception as e:
-                print(f"[AVATAR] Ошибка валидации листа персонажа: {e}")
+                logger.debug(f"[AVATAR] Ошибка валидации листа персонажа: {e}")
         return CharacterProfile(character_id=player_name)
 
     # ── Сохранение ────────────────────────────────────────────────────
@@ -190,8 +190,8 @@ class PlayerAvatarService:
         profile = CharacterProfile(character_id=sheet.name)
         state = NPCState(
             npc_id=sheet.name,
-            hp=sheet.hp,
-            max_hp=sheet.max_hp,
+            hp=sheet.effective_hp,
+            max_hp=sheet.effective_max_hp,
         )
         self.save_avatar(campaign_id, sheet, profile, state)
         logger.info(f"[AVATAR] мигрирован из characters.json: {sheet.name}")
@@ -246,8 +246,8 @@ class PlayerAvatarService:
             "trauma_markers": list(state.trauma_markers),
             "current_role": state.current_role,
             # Физика
-            "hp": state.hp,
-            "max_hp": state.max_hp,
+            "hp": state.effective_hp,
+            "max_hp": state.effective_max_hp,
             "conditions": conditions,
             "wounds": wounds,
             "posture": state.posture,

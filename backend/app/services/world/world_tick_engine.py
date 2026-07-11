@@ -111,7 +111,7 @@ class WorldTickEngine:
 
         for npc_id, state_l2, profile_l0 in npc_data:
             # Пропускаем: мёртвых, сломанных
-            if state_l2.hp <= 0:
+            if state_l2.effective_hp <= 0:
                 continue
             if state_l2.will_state == WillState.BROKEN:
                 continue
@@ -164,7 +164,7 @@ class WorldTickEngine:
                     social_modifiers=combined if combined else None,
                     decision_ctx=_decision_ctx,
                 )
-                print(f"[DECISION_HUB] npc={npc_id} tick={tick_num} intent={result.intent.value} score={result.score:.3f} [world_tick]", flush=True)
+                logger.debug(f"[DECISION_HUB] npc={npc_id} tick={tick_num} intent={result.intent.value} score={result.score:.3f} [world_tick]", flush=True)
 
                 # Только проактивные интенты проходят
                 if result.intent not in proactive_intents:

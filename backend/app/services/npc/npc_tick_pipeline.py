@@ -528,7 +528,7 @@ def build_verbalization_context(
     # Инвариант 2: Намерение → Физика. LLM знает о движении только через этот флаг.
     _movement_intents = {"APPROACH", "FLEE", "RETREAT", "FOLLOW", "PATROL"}
     _is_moving = decision.intent.value in _movement_intents and _interpreter.derive_can_move(
-        state_for_llm.posture, state_for_llm.conditions, state_for_llm.hp
+        state_for_llm.posture, state_for_llm.conditions, state_for_llm.effective_hp
     )
 
     return VerbalizationContext(
@@ -548,7 +548,7 @@ def build_verbalization_context(
         backstory=profile_l0.backstory,
         author_notes=profile_l0.author_notes,
         can_speak=_interpreter.derive_can_speak(state_for_llm.posture, state_for_llm.conditions),
-        can_move=_interpreter.derive_can_move(state_for_llm.posture, state_for_llm.conditions, state_for_llm.hp),
+        can_move=_interpreter.derive_can_move(state_for_llm.posture, state_for_llm.conditions, state_for_llm.effective_hp),
         # Инвариант 2: LLM не может галлюцинировать движение без TraversalState
         is_moving=_is_moving,
         movement_intent=decision.intent.value if _is_moving else "",
@@ -566,7 +566,7 @@ def build_verbalization_context(
 # TZ-09: Legacy run_npc_pipeline удалён. Используйте NpcTickPipeline.run(state).
     # DIAG: Проверяем, доходит ли шина до пайплайна
     _drf_tick = drf_ctx.tick_id if drf_ctx else -1
-    print(f"[DRF_PIPE_ENTRY] tick={_drf_tick} frame_npc={drf_ctx.npc_id if drf_ctx else '?'} drf_ctx={drf_ctx is not None} bus_type={type(drf_ctx.bus).__name__ if drf_ctx else 'N/A'}")
+    logger.debug(f"[DRF_PIPE_ENTRY] tick={_drf_tick} frame_npc={drf_ctx.npc_id if drf_ctx else '?'} drf_ctx={drf_ctx is not None} bus_type={type(drf_ctx.bus).__name__ if drf_ctx else 'N/A'}")
     """Основной цикл NPC: профиль → модификаторы → DecisionHub → StateApplicator → память.
 
     Читает из inp, мутирует buf, использует svc.
@@ -744,7 +744,7 @@ def build_verbalization_context(
                     )
             except Exception as e:
                 import traceback
-                print(f"[SHI_DEBUG_CRASH] Ошибка compute_social_modifiers: {e}", flush=True)
+                logger.debug(f"[SHI_DEBUG_CRASH] Ошибка compute_social_modifiers: {e}", flush=True)
                 traceback.print_exc()
                 logger.warning(f"[GAME_LOOP] Ошибка compute_social_modifiers: {e}")
 
@@ -1198,7 +1198,7 @@ def _resolve_reactive_movement(
                         _ndx = -_dx / _dist
                         _ndy = -_dy / _dist
                         return LocalSteeringGoal(
-                            npc_id=npc_id,
+                            actor_id=npc_id,
                             target_local_xy=(_ndx * 3.0 + float(npc_x), _ndy * 3.0 + float(npc_y)),
                             reason="reactive:flee:micro",
                             priority=PRIORITY_REACTIVE,
@@ -1211,7 +1211,7 @@ def _resolve_reactive_movement(
             # ADR-102: Нормализация перед сравнением (legacy 'room_1' != canonical 'tavern:room_1')
             _norm_current = spatial_service.normalize_id(current_node) if spatial_service and current_node else current_node
             if target_node_id and target_node_id != _norm_current:
-                print(f"[TRACE][INTENT_CREATED] npc={npc_id} intent=reactive:flee target_node={target_node_id}")
+                logger.debug(f"[TRACE][INTENT_CREATED] npc={npc_id} intent=reactive:flee target_node={target_node_id}")
                 return MacroMovementGoal(npc_id=npc_id, target_node_id=target_node_id, from_node_id=current_node, location_id=location_id, reason="reactive:flee", priority=PRIORITY_REACTIVE)
             elif target_node_id and target_node_id == _norm_current:
                 # LOD0 Micro-FLEE: NPC уже в безопасной комнате — отходит от угрозы внутри комнаты
@@ -1268,9 +1268,9 @@ def _resolve_reactive_movement(
                         except Exception as e:
                             logger.warning(f"[B5-FIX] silent failure suppressed: {e}")  # spatial_walls может отсутствовать — безопасный пропуск
                         if (_flee_x, _flee_y) != _cei1_orig:
-                            print(f"[CEI-1] npc={npc_id} flee adjusted from ({_cei1_orig[0]:.1f},{_cei1_orig[1]:.1f}) to ({_flee_x:.1f},{_flee_y:.1f})")
-                        print(f"[TRACE][INTENT_CREATED] npc={npc_id} intent=micro_flee target_xy=({_flee_x:.1f},{_flee_y:.1f})")
-                        return LocalSteeringGoal(npc_id=npc_id, local_target_xy=(_flee_x, _flee_y), reason="reactive:micro_flee", priority=PRIORITY_REACTIVE)
+                            logger.debug(f"[CEI-1] npc={npc_id} flee adjusted from ({_cei1_orig[0]:.1f},{_cei1_orig[1]:.1f}) to ({_flee_x:.1f},{_flee_y:.1f})")
+                        logger.debug(f"[TRACE][INTENT_CREATED] npc={npc_id} intent=micro_flee target_xy=({_flee_x:.1f},{_flee_y:.1f})")
+                        return LocalSteeringGoal(actor_id=npc_id, local_target_xy=(_flee_x, _flee_y), reason="reactive:micro_flee", priority=PRIORITY_REACTIVE)
         return None
 
     # ADR-045: Проверка на нахождение в одной макро-зоне (нормализация префиксов)
@@ -1286,9 +1286,9 @@ def _resolve_reactive_movement(
         target_y = lp.get("y")
         
         if intent == "approach" and target_x is not None and target_y is not None:
-            print(f"[TRACE][INTENT_CREATED] npc={npc_id} intent=micro_snap:{intent} target_node={current_node} target_xy=({target_x},{target_y})")
+            logger.debug(f"[TRACE][INTENT_CREATED] npc={npc_id} intent=micro_snap:{intent} target_node={current_node} target_xy=({target_x},{target_y})")
             # Возвращаем канонический current_node для трассировки, сравнение было по базе
-            return LocalSteeringGoal(npc_id=npc_id, local_target_xy=(target_x, target_y), reason=f"micro_snap:{intent}", priority=PRIORITY_REACTIVE)
+            return LocalSteeringGoal(actor_id=npc_id, local_target_xy=(target_x, target_y), reason=f"micro_snap:{intent}", priority=PRIORITY_REACTIVE)
         
         if intent == "flee":
             # Для побега из той же зоны ищем другой узел
@@ -1302,7 +1302,7 @@ def _resolve_reactive_movement(
         return None
     
     logger.warning(f"[PIPELINE][REACTIVE_MOVEMENT][CREATE] npc={npc_id} target_node={target_node_id} from_node={current_node}")
-    print(f"[TRACE][INTENT_CREATED] npc={npc_id} intent=reactive:{intent} target_node={target_node_id}")
+    logger.debug(f"[TRACE][INTENT_CREATED] npc={npc_id} intent=reactive:{intent} target_node={target_node_id}")
     
     # DRF: Испускаем претензию через scoped контекст (авто-привязка npc_id, tick_id)
     _claim = {
@@ -1315,7 +1315,7 @@ def _resolve_reactive_movement(
     }
     if drf_ctx is not None:
         drf_ctx.emit(_claim)
-    print(f"[DRF_EMIT] source=reactive npc={npc_id} tick={drf_ctx.tick_id if drf_ctx else '?'} vector={intent} ctx_bound={drf_ctx is not None}")
+    logger.debug(f"[DRF_EMIT] source=reactive npc={npc_id} tick={drf_ctx.tick_id if drf_ctx else '?'} vector={intent} ctx_bound={drf_ctx is not None}")
     # Передаём претензию вверх через интент (временный хак до внедрения ctx)
     _goal = MacroMovementGoal(
         npc_id=npc_id, target_node_id=target_node_id, from_node_id=current_node, 

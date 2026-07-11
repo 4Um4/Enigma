@@ -113,6 +113,8 @@ class ResponseValidator:
     _CJK_PATTERN = re.compile(r'[\u4e00-\u9fff\u3400-\u4dbf\uff00-\uffef]')
     _FOURTH_WALL_WORDS = ["игрок", "игроки", "симуляция", "система", "механика", "интерфейс"]
     _DELIVERY_MARKERS_RE = re.compile(r'^\s*[\(\[\*]\s*(whisper|internal|thought|шёпот|мысль|шепчет)\s*[\)\]\*]\s*[:\-]?\s*', re.IGNORECASE)
+    # BUG-P1-10: Word boundaries, чтобы не резать "игроков" или "системой"
+    _FOURTH_WALL_RE = re.compile(r'\b(?:' + '|'.join(_FOURTH_WALL_WORDS) + r')\b', re.IGNORECASE)
 
     def _strip_delivery_markers(self, text: str) -> str:
         """Удаляет маркеры доставки (whisper, [internal], *thought*) из начала текста."""
@@ -120,8 +122,7 @@ class ResponseValidator:
     
     def _breaks_fourth_wall(self, text: str) -> bool:
         """Жёсткий запрет на упоминание игровой механики (4-я стена)."""
-        lower = text.lower()
-        return any(word in lower for word in self._FOURTH_WALL_WORDS)
+        return bool(self._FOURTH_WALL_RE.search(text))
     
     def _contains_non_russian(self, text: str) -> bool:
         """A6-FIX: Отклоняет CJK, Mock-утечки и некириллический мусор."""

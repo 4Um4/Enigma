@@ -214,7 +214,7 @@ class ReactionSubscriber:
             # Без этого affective_load остаётся 0, и BreakProgressEngine не фиксирует давление.
             _event_target_id = event.payload.get("target_id")
             if _event_target_id and rule_key in ("player_threatens", "player_attacks", "player_attack"):
-                _threat_delta_target = 0.4 if rule_key == "player_threatens" else 0.6
+                _threat_delta_target = 0.8 if rule_key == "player_threatens" else 0.6
                 deltas.append(StateDeltas(
                     npc_id=_event_target_id,
                     domain=DeltaDomain.PERCEPTION,

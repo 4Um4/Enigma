@@ -12,6 +12,8 @@ SceneOutcomeBuilder — компрессор реальности для DM.
 Принцип: DecisionResult = причина, SceneOutcome = результат.
 DM получает результат — он станет рассказчиком, не аналитиком.
 """
+import logging
+logger = logging.getLogger(__name__)
 
 from dataclasses import dataclass, field
 from enum import Enum
@@ -469,7 +471,7 @@ class SceneOutcomeBuilder:
             return "NPC не предпринимают активных действий."
         
         result = "\n\n".join(blocks)
-        print(f"[DM_PROMPT_BLOCK]\n{result}\n[/DM_PROMPT_BLOCK]")
+        logger.debug(f"[DM_PROMPT_BLOCK]\n{result}\n[/DM_PROMPT_BLOCK]")
         return result
 
     # ─── Внутренние методы ───

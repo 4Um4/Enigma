@@ -45,6 +45,7 @@ class PerceivedEntity:
     distance: float = 999.0
     los: bool = False
     los_blocked_by: Optional[str] = None
+    body_heading: float = 1.5708  # ADR-O-315: Угол ориентации тела (рад). Pi/2 = Юг.
 
     # --- Perception Layer ---
     visible: bool = False

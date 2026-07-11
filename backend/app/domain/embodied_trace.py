@@ -8,7 +8,7 @@ TODO:
 """
 
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Any, Optional
 
 @dataclass(frozen=True)
 class EmbodiedTraceDTO:
@@ -33,8 +33,8 @@ class EmbodiedTraceDTO:
 class PlayerPerceptionDTO:
     """Доменный формат для BehaviorManifestation → WorldSnapshotBuilder._convert_perception.
     НЕ каноничный API-формат. Конвертер переводит его в snapshot.PlayerPerceptionDTO."""
-    active_perceptions: list = field(default_factory=list)  # Список dicts {"npc_id", "cue_key"}
+    active_perceptions: list[dict[str, Any]] = field(default_factory=list)  # Список dicts {"npc_id", "cue_key"}
     atmosphere_key: Optional[str] = None
     atmosphere_intensity: float = 0.0
-    embodied_traces: list = field(default_factory=list)    # Список dicts моторных следов
-    manifestations: dict = field(default_factory=dict)     # {npc_id: [manifest_key, ...]} — наблюдаемые проявления
+    embodied_traces: list[dict[str, Any]] = field(default_factory=list)    # Список dicts моторных следов
+    manifestations: dict[str, list[str]] = field(default_factory=dict)     # {npc_id: [manifest_key, ...]} — наблюдаемые проявления

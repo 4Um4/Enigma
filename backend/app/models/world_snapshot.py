@@ -17,7 +17,7 @@ import copy
 import logging
 import time
 from dataclasses import dataclass
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 from uuid import UUID, uuid4
 
 logger = logging.getLogger(__name__)
@@ -49,11 +49,11 @@ class WorldSnapshot:
 
     # ── NPC позиции ───────────────────────────────────────────────
     # Frozen copy: {"npc_id": {"local_position": {"x":..., "y":...}, ...}}
-    npc_positions: Dict[str, Dict]
+    npc_positions: Dict[str, Dict[str, Any]]
 
     # ── Активные транзиты ─────────────────────────────────────────
     # Frozen copy: {"npc_id": {"status": "MOVING", "path_waypoints": [...], ...}}
-    active_traversals: Dict[str, Dict]
+    active_traversals: Dict[str, Dict[str, Any]]
 
     # ── Геометрия мира ────────────────────────────────────────────
     # Стены для is_blocked_by_wall (EventCompiler читает вместо live scene_state)
@@ -71,7 +71,7 @@ def build_snapshot(
     campaign_id: str,
     location_id: str,
     spatial_service: Any,
-    scene_state: Dict,
+    scene_state: Dict[str, Any],
     rng_seed: int = 0,
 ) -> WorldSnapshot:
     """Строит замороженный снимок из живого состояния.

@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import logging
+logger = logging.getLogger(__name__)
 """
 path: /frontend/npc_name_resolver.py
 
@@ -41,7 +43,7 @@ def _load_npc_names_cache() -> None:
             if nid and name:
                 _NPC_NAME_CACHE[nid] = name
     except Exception as e:
-        print(f"[NPC_NAME_RESOLVER] Ошибка загрузки кэша: {e}")
+        logger.debug(f"[NPC_NAME_RESOLVER] Ошибка загрузки кэша: {e}")
     _NPC_NAME_CACHE_LOADED = True
 
 

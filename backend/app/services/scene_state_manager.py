@@ -227,7 +227,7 @@ class SceneStateManager:
         if self._tick_locked and self._tick_campaign_id == campaign_id:
             # Диагностика: что мы СОХРАНЯЕМ?
             _trav_before = list(self._tick_scene.get("active_traversals", {}).keys()) if self._tick_scene else []
-            print(f"[UNLOCK_TRACE] BEFORE SAVE: traversals={_trav_before} locked={self._tick_locked}")
+            logger.debug(f"[UNLOCK_TRACE] BEFORE SAVE: traversals={_trav_before} locked={self._tick_locked}")
             # СНИМАЕМ LOCK ДО save — иначе guard в save_scene_state() сделает return!
             self._tick_locked = False
             # Финальный персист кэшированного состояния
@@ -237,7 +237,7 @@ class SceneStateManager:
             if self._persistence:
                 _verify = self._persistence.load_scene(campaign_id)
                 _trav_after = list(_verify.get("active_traversals", {}).keys()) if _verify else "LOAD_FAILED"
-                print(f"[UNLOCK_TRACE] AFTER LOAD: traversals={_trav_after}")
+                logger.debug(f"[UNLOCK_TRACE] AFTER LOAD: traversals={_trav_after}")
             # НЕ очищаем _tick_scene! Bridge может читать его в SSE-потоке.
             # Кэш будет заменён при следующем lock_for_tick().
 
@@ -253,10 +253,10 @@ class SceneStateManager:
         """
         import copy
         _trav_keys = list(result_snapshot.get("active_traversals", {}).keys()) if isinstance(result_snapshot, dict) else []
-        print(f"[COMMIT_TRACE] campaign={campaign_id} tick={result_snapshot.get('tick')} trav_keys={_trav_keys} id={id(result_snapshot)}")
+        logger.debug(f"[COMMIT_TRACE] campaign={campaign_id} tick={result_snapshot.get('tick')} trav_keys={_trav_keys} id={id(result_snapshot)}")
         if self._tick_campaign_id == campaign_id:
             self._tick_scene = copy.deepcopy(result_snapshot)
-            print(f"[COMMIT_TRACE] _tick_scene updated, trav_keys_after={list(self._tick_scene.get('active_traversals', {}).keys())}")
+            logger.debug(f"[COMMIT_TRACE] _tick_scene updated, trav_keys_after={list(self._tick_scene.get('active_traversals', {}).keys())}")
             logger.debug(f"[S83.1] commit_tick_result: persistence target updated for {campaign_id}")
         else:
             logger.warning(f"[S83.1] commit_tick_result: campaign mismatch {campaign_id} vs {self._tick_campaign_id}")
@@ -350,7 +350,7 @@ class SceneStateManager:
                 import inspect
                 _caller = inspect.currentframe().f_back
                 _caller_info = f"{_caller.f_code.co_filename}:{_caller.f_lineno}" if _caller else "unknown"
-                print(f"[SCENE_REHYDRATE] NEW dict id={id(scene)} from persistence caller={_caller_info} trav_keys={list(scene.get('active_traversals', {}).keys())[:5]}")
+                logger.debug(f"[SCENE_REHYDRATE] NEW dict id={id(scene)} from persistence caller={_caller_info} trav_keys={list(scene.get('active_traversals', {}).keys())[:5]}")
         else:
             data = self._read_campaign_json(campaign_id)
             scene = data.get("scene_state")
@@ -408,7 +408,7 @@ class SceneStateManager:
             return
         # ДИАГНОСТИКА: Реальный персист — проверяем что traversals доходят
         _trav_keys = list(scene_state.get("active_traversals", {}).keys()) if isinstance(scene_state, dict) else []
-        print(f"[SAVE_TRACE] campaign={campaign_id} locked={self._tick_locked} traversals={_trav_keys}")
+        logger.debug(f"[SAVE_TRACE] campaign={campaign_id} locked={self._tick_locked} traversals={_trav_keys}")
         if self._persistence:
             self._persistence.save_scene(campaign_id, scene_state)
         else:
@@ -1322,8 +1322,9 @@ class SceneStateManager:
                         except Exception as exc:
                             logger.error(f"[PIPELINE][SCENE_CHANGE][APPLY_CRASH] npc={change.target} exc={exc}")
 
-                elif change.field in ("local_position", "velocity", "exertion_level"):
+                elif change.field in ("local_position", "velocity", "exertion_level", "body_heading"):
                     entry[change.field] = change.value
+                    # ADR-O-315: Убрано дублирование player_spatial. Игрок читается из npc_positions["player"].
 
             elif ct == ChangeType.NPC_STATE:
                 pos = scene_state.setdefault("npc_positions", {})
@@ -1416,7 +1417,7 @@ class SceneStateManager:
         for _zid in _zombie_ids:
             del _active_traversals[_zid]
         if _zombie_ids:
-            print(f"[GATE_ZOMBIE] SSM cleaned={len(_zombie_ids)} zombies remaining={len(_active_traversals)}")
+            logger.debug(f"[GATE_ZOMBIE] SSM cleaned={len(_zombie_ids)} zombies remaining={len(_active_traversals)}")
         if applied_count:
             logger.info(f"[SCENE] Применено {applied_count}/{len(changes)} изменений (in-memory, persist=Phase10)")
         return applied_count
@@ -2068,7 +2069,7 @@ def _load_npc_names_cache() -> None:
             if nid and name:
                 _NPC_NAME_CACHE[nid] = name
     except Exception as e:
-        print(f"[SCENE_MGR] Ошибка загрузки кэша NPC: {e}")
+        logger.debug(f"[SCENE_MGR] Ошибка загрузки кэша NPC: {e}")
     _NPC_NAME_CACHE_LOADED = True
 
 

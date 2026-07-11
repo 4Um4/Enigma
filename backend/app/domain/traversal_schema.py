@@ -8,6 +8,8 @@
 ADR-XXX: Traversal Schema Canonization.
 """
 
+from typing import Any, Dict, List
+
 # Ключи, которые ОБЯЗАНЫ присутствовать в каждом traversal_dict
 TRAVERSAL_REQUIRED_KEYS: tuple[str, ...] = (
     "npc_id",
@@ -46,7 +48,7 @@ TRAVERSAL_TRANSITIONS: dict[str, set[str]] = {
 }
 
 
-def transition_traversal(traversal_dict: dict, new_status: str) -> bool:
+def transition_traversal(traversal_dict: Dict[str, Any], new_status: str) -> bool:
     """Выполняет переход статуса traversal через state machine.
     
     Возвращает True если переход разрешён и выполнен.
@@ -71,7 +73,7 @@ def transition_traversal(traversal_dict: dict, new_status: str) -> bool:
     return True
 
 
-def validate_traversal_dict(data: dict) -> list[str]:
+def validate_traversal_dict(data: Dict[str, Any]) -> List[str]:
     """Валидирует traversal_dict против схемы. Возвращает список ошибок."""
     errors = []
     for key in TRAVERSAL_REQUIRED_KEYS:
@@ -88,13 +90,13 @@ def build_traversal_dict(
     npc_id: str,
     from_node: str,
     target_node: str,
-    path_waypoints: list,
+    path_waypoints: List[Any],
     started_tick: int,
     duration_ticks: int,
     speed: float = 2.0,
     locomotion: str = "WALK",
     current_waypoint_idx: int = 0,
-) -> dict:
+) -> Dict[str, Any]:
     """Единственный разрешённый способ создания traversal_dict.
 
     Запрещено собирать dict вручную. Все писатели обязаны использовать

@@ -90,7 +90,7 @@ class SocialInputProjector:
                 if _tgt: deltas.append(self._mk_delta(_tgt, _INPUT_INTERACT))
 
         if deltas:
-            print(f"[SOCIAL_INPUT] Generated {len(deltas)} input deltas from {len(events)} events.")
+            logger.debug(f"[SOCIAL_INPUT] Generated {len(deltas)} input deltas from {len(events)} events.")
 
         return Phase8Result(deltas=deltas, events_processed=len(events))
 

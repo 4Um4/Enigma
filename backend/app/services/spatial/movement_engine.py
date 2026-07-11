@@ -222,7 +222,7 @@ class MovementEngine:
         независимого потока случайностей, изолированного от DecisionHub и событий.
         """
         from app.services.npc.kernel_rng import KernelRNG
-        rng = KernelRNG(tick=tick, npc_id=intent.npc_id, salt="movement_jitter")
+        rng = KernelRNG(tick=tick, npc_id=intent.actor_id, salt="movement_jitter")
         tx, ty = intent.local_target_xy
         collision_radius = 0.8
         best_x, best_y = tx, ty
@@ -234,7 +234,7 @@ class MovementEngine:
                 is_colliding = any(
                     ((cx - other_data.get("local_position", {}).get("x", 0.0))**2 +
                      (cy - other_data.get("local_position", {}).get("y", 0.0))**2)**0.5 < collision_radius
-                    for other_id, other_data in npc_positions.items() if other_id != intent.npc_id
+                    for other_id, other_data in npc_positions.items() if other_id != intent.actor_id
                 )
                 if not is_colliding:
                     best_x, best_y = cx, cy
@@ -244,16 +244,33 @@ class MovementEngine:
             best_y = ty + rng.uniform(-0.5, 0.5)
             
         tx, ty = best_x, best_y
-        logger.debug(f"[TRACE][SCENE_CHANGE_CREATED] npc={intent.npc_id} x={tx:.1f} y={ty:.1f}")
-        logger.info(f"[PIPELINE][MOVEMENT][MICRO_SNAP] npc={intent.npc_id} → xy=({tx:.1f}, {ty:.1f})")
-        return [SceneChange(
-            type=ChangeType.NPC_POSITION,
-            target=intent.npc_id,
-            field="local_position",
-            value={"x": tx, "y": ty},
-            cause=f"micro_snap:{intent.reason}",
-            tick=tick,
-        )]
+        logger.debug(f"[TRACE][SCENE_CHANGE_CREATED] actor={intent.actor_id} x={tx:.1f} y={ty:.1f}")
+        logger.info(f"[PIPELINE][MOVEMENT][MICRO_SNAP] actor={intent.actor_id} → xy=({tx:.1f}, {ty:.1f})")
+        
+        # ADR-O-315: Вычисление body_heading на основе вектора движения (intent -> target)
+        import math
+        _curr_pos = npc_positions.get(intent.npc_id, {}).get("local_position", {"x": tx, "y": ty}) if npc_positions else {"x": tx, "y": ty}
+        _cx, _cy = _curr_pos.get("x", tx), _curr_pos.get("y", ty)
+        _heading = math.atan2(ty - _cy, tx - _cx) if (tx != _cx or ty != _cy) else 1.5708
+        
+        return [
+            SceneChange(
+                type=ChangeType.NPC_POSITION,
+                target=intent.npc_id,
+                field="local_position",
+                value={"x": tx, "y": ty},
+                cause=f"micro_snap:{intent.reason}",
+                tick=tick,
+            ),
+            SceneChange(
+                type=ChangeType.NPC_POSITION,
+                target=intent.npc_id,
+                field="body_heading",
+                value=_heading,
+                cause=f"heading_snap:{intent.reason}",
+                tick=tick,
+            )
+        ]
 
     def _resolve_macro_relocation(
         self,

@@ -83,7 +83,7 @@ def avatar_to_prompt(state) -> dict:
             f"{k}({v.severity:.0%})" for k, v in state.conditions.items()
         )
     return {
-        "hp": f"{state.hp}/{state.max_hp}" if state.max_hp > 0 else "не задано",
+        "hp": f"{state.effective_hp}/{state.effective_max_hp}" if state.effective_max_hp > 0 else "не задано",
         "stress": round(state.stress, 1),
         "emotion": state.emotion.value if hasattr(state.emotion, "value") else str(state.emotion),
         "will_state": state.will_state.value if hasattr(state.will_state, "value") else str(state.will_state),

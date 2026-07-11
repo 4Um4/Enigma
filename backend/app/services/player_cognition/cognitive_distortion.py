@@ -60,8 +60,8 @@ def _compute_bias(inputs: PlayerDistortionInputs) -> tuple[float, float, float]:
         salience_bias += (inputs.stress - 50.0) * _STRESS_TUNNEL
 
     # 3. Low HP → threat (инстинкт самосохранения)
-    if inputs.max_hp > 0:
-        hp_ratio = inputs.hp / inputs.max_hp
+    if inputs.effective_max_hp > 0:
+        hp_ratio = inputs.effective_hp / inputs.effective_max_hp
     else:
         hp_ratio = 1.0
 

@@ -316,6 +316,7 @@ class TickOrchestrator:
         spatial_service: Optional[Any] = None, # ADR-048: Инъекция от GameLoop
         dm_ctx: Optional["DMContextDTO"] = None, # Backward compat (мостируется в interventions)
         all_npcs_raw: Optional[list] = None, # S113: Явная передача NPC (включая аватара)
+        shared_context: Optional[Any] = None, # S116 FIX: Проброс shared_context для CombatSubscriber
     ) -> Union[TickResultDTO, TickPlayerResultDTO]:
         """Единая точка входа для тика мира (TZ-08 v0.2).
 
@@ -355,6 +356,7 @@ class TickOrchestrator:
             npc_services=npc_services,
             drf_bus=self._drf_bus,
             all_npcs_raw=all_npcs_raw,
+            shared_context=shared_context,
         )
 
         # CFRM P2: Восстанавливаем пространственный индекс кластеров ДО привязки моста
@@ -430,9 +432,9 @@ class TickOrchestrator:
         _decisions_count = len(ctx.communication_intents) + sum(1 for i in getattr(ctx, "movement_intents", []) if i)
         _verbal_count = len(ctx.communication_intents)
         _game_time = ctx.scene_state.get("game_time_seconds", 0.0)
-        print(f"[TICK_ORCH] tick={ctx.tick_number} game_time={_game_time} decisions={_decisions_count} verbal={_verbal_count} moved={_moved_count}")
+        logger.debug(f"[TICK_ORCH] tick={ctx.tick_number} game_time={_game_time} decisions={_decisions_count} verbal={_verbal_count} moved={_moved_count}")
         
-        print(f"[DEBUG_TICK_ORCH] returning TickResultDTO with observed_facts count={len(_final_facts)}")
+        logger.debug(f"[DEBUG_TICK_ORCH] returning TickResultDTO with observed_facts count={len(_final_facts)}")
         return TickResultDTO(
             status="ok",
             changes_count=ctx.changes_count,
@@ -525,16 +527,43 @@ class TickOrchestrator:
             # ADR-082: Регистронезависимое сравнение (IC может вернуть "move" или "MOVE")
             if _sem_action and _sem_action.upper() == "MOVE" and _sem_target:
                 _target_ref = _sem_target.lower()
+                # BUG-P0-03 FIX: Используем npc_positions из scene_state, так как all_npcs_raw может быть None
+                _npc_positions = ctx.scene_state.get("npc_positions", {})
                 _is_npc_target = any(
-                    _target_ref in n.get("name", "").lower() or _target_ref in n.get("npc_id", "").lower()
-                    for n in ctx.all_npcs_raw
-                ) if ctx.all_npcs_raw else False
+                    _target_ref in _pos.get("name", "").lower() or _target_ref in _nid.lower()
+                    for _nid, _pos in _npc_positions.items()
+                ) if _npc_positions else False
+                
+                # BUG-P0-03 FIX: Распознавание цели "player" для команд "подойди ко мне", "иди сюда"
+                _is_player_target = _target_ref in ("player", "мне", "сюда", "ко мне", "")
+                if _is_player_target:
+                    _player_pos = ctx.scene_state.get("npc_positions", {}).get("player", {}).get("local_position", {"x": 0.0, "y": 0.0})
+                    _px, _py = _player_pos.get("x", 0.0), _player_pos.get("y", 0.0)
+                    _closest_npc = None
+                    _min_dist = float('inf')
+                    for _nid, _pos_data in _npc_positions.items():
+                        if _nid == "player":
+                            continue
+                        _lp = _pos_data.get("local_position")
+                        if not isinstance(_lp, dict):
+                            continue
+                        _nx, _ny = _lp.get("x", 0.0), _lp.get("y", 0.0)
+                        _dist = ((_px - _nx) ** 2 + (_py - _ny) ** 2) ** 0.5
+                        if _dist < _min_dist:
+                            _min_dist = _dist
+                            _closest_npc = _nid
+                    
+                    if _closest_npc:
+                        _target_id = _closest_npc
+                        _is_npc_target = True
+                        logger.info(f"[FAST_PATH_APPROACH_PLAYER] closest_npc={_closest_npc} dist={_min_dist:.1f}m")
 
                 if _is_npc_target:
                     try:
                         from app.services.social.directive_interpretation_subscriber import DirectiveInterpretationSubscriber
                         import types
-                        _target_id = getattr(_params, 'target_id', None)
+                        # BUG-P0-03 FIX: Убрана перезапись _target_id из _params, 
+                        # которая затирала найденный ближайшего NPC (_closest_npc).
                         _directive_payload = {
                             "semantic_action": _sem_action,
                             "target_reference": _sem_target,
@@ -563,19 +592,29 @@ class TickOrchestrator:
                         logger.error(f"[CAUSALITY_CRASH] DirectiveInterpretationSubscriber failed: {e}", exc_info=True)
 
             # ADR-TZ09-2: Fast Path для реактивного движения.
-            # Вызывается немедленно после инъекции директивы, чтобы NPC сдвинулся в том же тике.
-            logger.warning(f"[FAST_PATH_DEBUG] sem_action={_sem_action} is_npc={_is_npc_target} target_id={getattr(_params, 'target_id', None)}")
-            if _is_npc_target and _target_id:
+            logger.warning(f"[FAST_PATH_DEBUG] sem_action={_sem_action} is_npc={_is_npc_target} is_player={_is_player_target} target_id={_target_id}")
+            _fast_actor = None
+            _fast_target_xy = None
+            
+            if _is_player_target and _target_id:
+                # NPC подходит к игроку
+                _fast_actor = _target_id
+                _player_pos = ctx.scene_state.get("npc_positions", {}).get("player", {}).get("local_position", {"x": 0.0, "y": 0.0})
+                _fast_target_xy = (_player_pos.get("x", 0.0), _player_pos.get("y", 0.0))
+            elif _is_npc_target and _target_id:
+                # Игрок подходит к NPC
+                _fast_actor = "player"
+                _npc_pos = ctx.scene_state.get("npc_positions", {}).get(_target_id, {}).get("local_position", {"x": 0.0, "y": 0.0})
+                _fast_target_xy = (_npc_pos.get("x", 0.0), _npc_pos.get("y", 0.0))
+            
+            if _fast_actor and _fast_target_xy:
                 from app.domain.movement import LocalSteeringGoal
                 from app.services.spatial.movement_engine import MovementEngine
                 _spatial_svc = self._resolve_spatial_service(ctx)
-                logger.warning(f"[FAST_PATH_DEBUG] spatial_svc={_spatial_svc is not None}")
                 if _spatial_svc:
-                    _player_pos = ctx.scene_state.get("player_spatial", {}).get("local_position", {"x": 0.0, "y": 0.0})
-                    logger.warning(f"[FAST_PATH_DEBUG] player_pos={_player_pos}")
                     _fast_intents = [LocalSteeringGoal(
-                        npc_id=_target_id,
-                        local_target_xy=(_player_pos.get("x", 0.0), _player_pos.get("y", 0.0)),
+                        actor_id=_fast_actor,
+                        local_target_xy=_fast_target_xy,
                         reason="micro_snap:approach",
                         priority=0.9
                     )]
@@ -586,10 +625,9 @@ class TickOrchestrator:
                         ctx.scene_state.get("npc_positions", {}),
                         campaign_id=ctx.campaign_id, scene_state=ctx.scene_state
                     )
-                    logger.warning(f"[FAST_PATH_DEBUG] changes={len(_changes) if _changes else 0}")
                     if _changes and self._scene_manager:
                         self._apply_with_shadow_observation(ctx, _changes, phase_label="FAST_PATH_MOVE")
-                        logger.warning(f"[FAST_PATH] Applied {len(_changes)} reactive movement changes for {_target_id}")
+                        logger.warning(f"[FAST_PATH] Applied {len(_changes)} movement changes for actor={_fast_actor}")
 
     def _process_player_action(self, ctx: _TickContext, interv: Any) -> None:
         """Generic player action intervention (не dm_ctx).
@@ -629,11 +667,15 @@ class TickOrchestrator:
                     _directive_deltas = DirectiveInterpretationSubscriber().handle(_mock_event, ctx.all_npcs_raw)
                     if _directive_deltas:
                         ctx.delta_buffer.extend(_directive_deltas)
+                        # S116 FIX: Применяем дельты напрямую к npc_dict, чтобы они не потерялись при агрегации.
                         for delta in _directive_deltas:
                             _npc_id = delta.npc_id
                             _npc_state = next((n for n in ctx.all_npcs_raw if n.get("npc_id") == _npc_id), None)
                             if not _npc_state:
                                 continue
+                            if hasattr(delta.payload, 'compliance_bias_delta') and delta.payload.compliance_bias_delta != 0:
+                                _pk = _npc_state.setdefault("perceptual_kernel", {})
+                                _pk["compliance_bias"] = max(-1.0, min(1.0, _pk.get("compliance_bias", 0.0) + delta.payload.compliance_bias_delta))
                             if hasattr(delta.payload, 'recent_directive_data') and delta.payload.recent_directive_data:
                                 _npc_state.setdefault("perceptual_kernel", {})["recent_directive"] = delta.payload.recent_directive_data
                             if hasattr(delta.payload, 'stress_delta') and delta.payload.stress_delta != 0:
@@ -1046,14 +1088,11 @@ class TickOrchestrator:
         from app.core.constants import GAME_TICK_INTERVAL_SECONDS
         from app.core.calendar import Calendar
 
-        current_seconds = 0
-        # Приоритетный источник: shared_context (аккумулирует дни/годы)
-        if ctx.shared_context is not None and hasattr(ctx.shared_context, 'game_time_seconds') and ctx.shared_context.game_time_seconds:
+        # BUG-P0-01 FIX: Единственный источник абсолютного времени — scene_state["game_time_seconds"].
+        # Чтение legacy time_of_day убивает дни/годы и залипает на "07:00" между тиками.
+        current_seconds = ctx.scene_state.get("game_time_seconds", 0)
+        if current_seconds == 0 and ctx.shared_context is not None and hasattr(ctx.shared_context, 'game_time_seconds') and ctx.shared_context.game_time_seconds:
             current_seconds = ctx.shared_context.game_time_seconds
-        else:
-            # Fallback: legacy time_of_day в scene_state (теряет день/год, но часы идут)
-            _env_time = ctx.scene_state.get("environment", {}).get("time_of_day", "07:00")
-            current_seconds = Calendar.parse_hhmm(_env_time)
 
         new_seconds = Calendar.advance(current_seconds, GAME_TICK_INTERVAL_SECONDS)
 
@@ -1152,7 +1191,7 @@ class TickOrchestrator:
     def _phase_10_persistence(self, ctx: _TickContext) -> None:
         """Atomic commit: SQLite (runtime truth) + YAML (для человека)."""
         from app.services.phases.commit_phase import execute_persistence
-        execute_persistence(ctx, self, is_player_turn=False)
+        execute_persistence(ctx, self, is_player_turn=ctx.is_player_turn)
 
     # ── ДОЛГ 4.2: Causal Scoring Overlay ─────────────────────────────
     # Аддитивный скоринг: DRF давление влияет на приоритет интентов как поле сил.

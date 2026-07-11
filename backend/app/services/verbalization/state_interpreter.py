@@ -213,7 +213,7 @@ class StateInterpreter:
 
     def interpret(self, state: NPCState) -> NPCStateDescription:
         """Основной метод: NPCState → человекочитаемое описание."""
-        hp_ratio = state.hp / state.max_hp if state.max_hp > 0 else 1.0
+        hp_ratio = state.effective_hp / state.effective_max_hp if state.effective_max_hp > 0 else 1.0
         gender = self._get_gender(state)
         # GAP5 FIX: Читаем живую физиологию, а не только RPG-абстракцию HP
         body_state = getattr(state, 'body_state', {}) or {}
@@ -225,7 +225,7 @@ class StateInterpreter:
             posture=self._posture_to_word(state.posture),
             conditions=self._conditions_to_list(state.conditions, gender),
             can_speak=self.derive_can_speak(state.posture, state.conditions),
-            can_move=self.derive_can_move(state.posture, state.conditions, state.hp),
+            can_move=self.derive_can_move(state.posture, state.conditions, state.effective_hp),
             gender=gender,
         )
 

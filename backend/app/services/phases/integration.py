@@ -226,6 +226,22 @@ def run_phase_9_integration(ctx: _TickContext, deps: Phase9IntegrationDeps) -> N
                         current_memory=current_memory
                     )
                     
+                    # BUG FIX: Сохраняем обновлённые affective_load и memory обратно в npc_raw.
+                    # Без этого BreakProgressEngine видит 0.0 и не генерирует событие "pressure".
+                    npc_raw["affective_load"] = new_load
+                    npc_raw["affective_memory"] = new_memory
+                    
+                    # BUG FIX: Обновляем только изменённые поля PerceptualKernel в npc_raw.
+                    # Перезапись всего словаря убивала compliance_bias и recent_directive,
+                    # применённые StateApplicator в Фазе 8.
+                    if "perceptual_kernel" not in npc_raw or not isinstance(npc_raw["perceptual_kernel"], dict):
+                        npc_raw["perceptual_kernel"] = {}
+                    _pk_raw = npc_raw["perceptual_kernel"]
+                    _pk_raw["threat_gradient"] = projected_kernel.threat_gradient
+                    _pk_raw["uncertainty"] = projected_kernel.uncertainty
+                    _pk_raw["anomaly_score"] = projected_kernel.anomaly_score
+                    _pk_raw["somatic_urgency"] = projected_kernel.somatic_urgency
+                    
                     emotion_payload = resolve_emotion_transition(new_load, current_load, psyche)
                     
                     # §ENIGMA-DUAL-CIRCUIT: Sustaining Loop УБИТ (S73).
@@ -375,11 +391,11 @@ def run_phase_9_integration(ctx: _TickContext, deps: Phase9IntegrationDeps) -> N
     _facts_bundle = _assembler.assemble_facts_bundle(_all_facts)
     
     _facts_for_dm = []
-    print(f"[DEBUG_EPISTEMOLOGY] Signals={len(_all_signals)} Facts={len(_all_facts)} Inferences={len(_all_inferences)}")
+    logger.debug(f"[DEBUG_EPISTEMOLOGY] Signals={len(_all_signals)} Facts={len(_all_facts)} Inferences={len(_all_inferences)}")
     if _facts_bundle.facts:
         for f in _facts_bundle.facts:
             _facts_for_dm.append(f"- {f.fact_name} ({f.target_id}, confidence={f.confidence:.2f})")
-        print(f"[DEBUG_EPISTEMOLOGY] FactsBundle: {' | '.join(_facts_for_dm)}")
+        logger.debug(f"[DEBUG_EPISTEMOLOGY] FactsBundle: {' | '.join(_facts_for_dm)}")
         
     ctx.observed_facts_for_dm = _facts_for_dm
     

@@ -30,9 +30,12 @@ import math
 _math = math
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, List, Optional, Set, Tuple, TYPE_CHECKING, Union
 
 from app.models.behavior_mask import BehaviorMaskState
+
+if TYPE_CHECKING:
+    from app.models.physical import Condition, Wound
 from app.models.psychological import CausalEntry
 from app.models.physical import ThreatAccumulator
 from app.models.npc.beliefs import BeliefState, BeliefFragment
@@ -47,7 +50,7 @@ logger = logging.getLogger(__name__)
 # ADR-O-146: IMMUTABLE sentinel — dict() копия обязательна при присвоении.
 # Прямое присвоение _npc["body_state"] = BODY_STATE_DISABLED ЗАПРЕЩЕНО —
 # shared reference мутируется StateApplicator, заражая ВСЕХ NPC.
-BODY_STATE_DISABLED: dict = dict  # type: ignore[assignment] —陷阱 guard, используйте dict(BODY_STATE_DISABLED_DATA)
+BODY_STATE_DISABLED: Any = dict  # 陷阱 guard, используйте dict(BODY_STATE_DISABLED_DATA)
 BODY_STATE_DISABLED_DATA = {
     "disabled": True,
     "shock_impulse": 1.0,
@@ -686,7 +689,7 @@ class NPCState:
 
     # Удалено: _cached_distance_to (ADR-0015)
 
-    def get_top_narrative_facts(self, n: int = 2) -> tuple:
+    def get_top_narrative_facts(self, n: int = 2) -> Tuple[Any, ...]:
         """Top-N фактов по importance."""
         return tuple(sorted(
             self.narrative_cache, key=lambda f: f.importance, reverse=True
@@ -716,8 +719,8 @@ class NPCState:
             
             "emotion":            self.emotion.value,
             "emotion_delta":      self.emotion_delta,
-            "state_modifiers":    dict(self.state_modifiers),
-            "trait_activation":   dict(self.trait_activation),
+            "state_modifiers":    Dict[str, Any](self.state_modifiers),
+            "trait_activation":   Dict[str, Any](self.trait_activation),
             "trauma_markers":     list(self.trauma_markers),
             "intent":             self.intent.value if self.intent else None,
             "intent_target":      self.intent_target,
@@ -731,7 +734,7 @@ class NPCState:
 
 
     @staticmethod
-    def write_to_legacy(state: "NPCState", npc_dict: dict) -> None:
+    def write_to_legacy(state: "NPCState", npc_dict: Dict[str, Any]) -> None:
         """
         Записывает NPCState обратно в runtime dict (npc_runtime.json).
         Вызывается ПОСЛЕ StateApplicator.apply() — единственная точка записи.
@@ -837,7 +840,7 @@ class NPCState:
 # NPCStateAdapter — миграция без большого взрыва
 # ─────────────────────────────────────────────────────────────────────────────
 
-def _pk_from_dict(pk_dict: dict) -> PerceptualKernel:
+def _pk_from_dict(pk_dict: Dict[str, Any]) -> PerceptualKernel:
     """Создаёт PerceptualKernel из сериализованного dict.
     
     Без этого from_legacy() создаёт ядро с нулями → DOUBLE TRUTH.
@@ -888,7 +891,7 @@ class NPCStateAdapter:
     """
 
     @staticmethod
-    def from_legacy(npc_dict: dict) -> NPCState:
+    def from_legacy(npc_dict: Dict[str, Any]) -> NPCState:
         """Создаёт NPCState из legacy npc dict."""
         psyche = npc_dict.get("psyche", {})
         ss     = npc_dict.get("social_stats", {})
@@ -950,18 +953,13 @@ class NPCStateAdapter:
             emotion = _emotion_from_str(npc_dict.get("emotion", "neutral")),
             emotion_delta = float(npc_dict.get("emotion_delta", 0.0)),
         )
-        # ADR-128: Диагностика рассинхронизации injuries/blood_loss (понижена до DEBUG)
-        _bl = float(state.body_state.get("blood_loss", 0.0))
-        _inj_count = len(state.body_state.get("injuries", []))
-        if _inj_count == 0 and _bl > 0.01:
-            logger.debug(f"[LEGACY_READ_LOST] npc={state.npc_id} injuries=0 BUT blood_loss={_bl:.3f}")
         return state
 
 # ─────────────────────────────────────────────────────────────────────────────
 # NPCPersonality builder — из legacy dict
 # ─────────────────────────────────────────────────────────────────────────────
 
-def personality_from_legacy(npc_dict: dict) -> NPCPersonality:
+def personality_from_legacy(npc_dict: Dict[str, Any]) -> NPCPersonality:
     """Создаёт frozen NPCPersonality из legacy npc dict."""
     psyche = npc_dict.get("psyche", {})
     tier_str = npc_dict.get("tier", "major")

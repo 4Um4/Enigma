@@ -620,7 +620,7 @@ class LifeEngine:
                 profile_l0 = load_profile_from_legacy_json(npc)
 
                 # Пропускаем мёртвых/сломанных
-                if state_l2.hp <= 0:
+                if state_l2.effective_hp <= 0:
                     continue
                 if state_l2.will_state == WillState.BROKEN:
                     continue
@@ -1294,7 +1294,7 @@ class LifeEngine:
                 # S112 DIAG: Если NPC нет в scene_state, значит он offscreen.
                 # LifeEngine не должен генерировать для него интенты, так как он не в этой локации.
                 if npc_id == "guard_borko":
-                    print(f"[DIAG_BORKO] npc_id={npc_id} NOT in scene_state! npc_loc={npc.get('location_id')} scene_loc={scene_state.get('location_id')} npc_pos={npc.get('position')}")
+                    logger.debug(f"[DIAG_BORKO] npc_id={npc_id} NOT in scene_state! npc_loc={npc.get('location_id')} scene_loc={scene_state.get('location_id')} npc_pos={npc.get('position')}")
 
         # ADR-O-142A: Arousal Gate — missing wake edge (sleeping → idle)
         # Behavior transition gate: определяет, должен ли спящий NPC пробудиться.

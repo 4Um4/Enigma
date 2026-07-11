@@ -177,6 +177,9 @@ DECAY_EVERY: Final[int] = 10             # memory decay запускается �
 TICK_REAL_SECONDS: Final[int] = 300
 TICKS_PER_DAY: Final[int] = 24  # 1 тик = 1 час игрового, 24 тика = 1 день
 
+# BUG-P3-07: Вынос хардкода окна подготовки атаки
+ATTACK_WINDUP_DURATION_TICKS = 2
+
 # Фаза 4 — Время продвигается от действий, не от реального времени
 # Все дельты в секундах игрового времени
 

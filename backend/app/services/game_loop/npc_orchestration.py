@@ -92,7 +92,7 @@ def run_npc_orchestration(
     # player_spatial НЕ обновляется (запись запрещена ADR-048 Phase 3) — читать из него ЗАПРЕЩЕНО.
     # Fallback на player_spatial только если фронтенд не прислал позицию (npc_positions.player пуст).
     _player_entry = _scene_state.setdefault("npc_positions", {}).setdefault("player", {})
-    _plp = _player_entry.get("local_position") or _scene_state.get("player_spatial", {}).get("local_position", {})
+    _plp = _player_entry.get("local_position") or _scene_state.get("npc_positions", {}).get("player", {}).get("local_position", {})
     if isinstance(_plp, dict) and isinstance(_plp.get("x"), (int, float)):
         if _spatial_svc:
             _p_node_ref = _spatial_svc.get_nearest(zone_id=location, origin_xy=(_plp.get("x", 0.0), _plp.get("y", 0.0)))
@@ -150,7 +150,18 @@ def run_npc_orchestration(
         npc_services=_npc_svc,
         spatial_service=_spatial_svc,
         all_npcs_raw=ctx.all_npcs_raw,
+        shared_context=shared_context,
     )
+    
+    # ADR-311 FIX: Коммит final_scene_state в SceneStateManager.
+    # Без этого все мутации ядра (время, traversals, эмоции) теряются в пути игрока.
+    _scene_manager = getattr(game_loop, 'scene_manager', None)
+    if _tick_result.final_scene_state is not None and _scene_manager:
+        if _scene_manager._tick_campaign_id == campaign_id:
+            _scene_manager.commit_tick_result(campaign_id, _tick_result.final_scene_state)
+            shared_context.scene_state = _tick_result.final_scene_state
+        else:
+            logger.warning(f"[NPC_ORCH] campaign mismatch in commit: {_scene_manager._tick_campaign_id} vs {campaign_id}")
     
     # SHI-FIX CAUSAL: L1 Фиксация на основе semantic_action (Fast Path).
     _sem_action = ""
@@ -244,7 +255,7 @@ def run_npc_orchestration(
     # Возвращаем полный результат для передачи в execute_player_finalize()
     from app.services.tick_orchestrator import TickPlayerResultDTO
     _orch_facts = getattr(_tick_result, 'observed_facts', [])
-    print(f"[DEBUG_ORCH] _tick_result.observed_facts count={len(_orch_facts)}")
+    logger.debug(f"[DEBUG_ORCH] _tick_result.observed_facts count={len(_orch_facts)}")
     return TickPlayerResultDTO(
         npc_contexts=npc_contexts,
         dirty_npcs=ctx.dirty_npcs,

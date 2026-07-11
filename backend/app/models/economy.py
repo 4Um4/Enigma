@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from app.core.constants import GOODS_PRICES as GOODS_BASE_PRICES
 
@@ -165,7 +165,7 @@ class Contract:
         """Увеличивает счётчик тиков."""
         self.ticks_elapsed += 1
     
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> Dict[str, Any]:
         return {
             "contract_type": self.contract_type,
             "party_a": self.party_a,
@@ -180,7 +180,7 @@ class Contract:
         }
     
     @classmethod
-    def from_dict(cls, data: Dict) -> "Contract":
+    def from_dict(cls, data: Dict[str, Any]) -> "Contract":
         return cls(
             contract_type=data.get("contract_type", "unknown"),
             party_a=data.get("party_a", ""),
@@ -265,7 +265,7 @@ class Transaction:
     tick: int = 0                    # Тик мира когда произошла
     causal_note: str = ""            # Для CausalLedger
     
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> Dict[str, Any]:
         return {
             "tx_type": self.tx_type.value,
             "status": self.status.value,
@@ -562,7 +562,7 @@ class EconomicProfile:
                     payment_due.append(contract)
         return payment_due
     
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> Dict[str, Any]:
         return {
             "npc_id": self.npc_id,
             "gold": self.gold,
@@ -587,7 +587,7 @@ class EconomicProfile:
         }
     
     @classmethod
-    def from_dict(cls, data: Dict) -> "EconomicProfile":
+    def from_dict(cls, data: Dict[str, Any]) -> "EconomicProfile":
         needs_raw = data.get("base_needs", [])
         needs = [
             Need(

@@ -496,9 +496,11 @@ class GameLoop:
         # ADR-O-146: Страховка body_state для ВСЕХ NPC (не только аватара).
         # Если load_npcs_merged вернул static NPC без body_state — инжектим HEALTHY.
         # Без этого Normalization Gate впрыснет DISABLED (pain=100, shock=1.0) → смерть/кома.
+        # BUG-P2-14: Проверяем наличие ключей, чтобы не перетирать пустой словарь раненого NPC.
         from app.models.npc_state import BODY_STATE_HEALTHY
         for _npc in npcs:
-            if not _npc.get("body_state"):
+            _bs = _npc.get("body_state")
+            if not _bs or not _bs.get("current_hp") or "life_status" not in _bs:
                 _npc["body_state"] = dict(BODY_STATE_HEALTHY)
 
         return npcs
@@ -570,6 +572,27 @@ class GameLoop:
             }
         finally:
             lock.release()
+
+    # E.2: Публичные методы для инкапсуляции внутренних сервисов
+    def apply_changes(self, campaign_id: str, changes: list, scene_state: dict) -> None:
+        """E.2: Инкапсуляция scene_manager.apply_changes"""
+        self.scene_manager.apply_changes(campaign_id, changes, scene_state)
+
+    def get_scene_state(self, campaign_id: str, location_id: str) -> dict:
+        """E.2: Инкапсуляция scene_manager.get_scene_state"""
+        return self.scene_manager.get_scene_state(campaign_id, location_id)
+
+    def save_scene_state(self, campaign_id: str, scene_state: dict) -> None:
+        """E.2: Инкапсуляция scene_manager.save_scene_state"""
+        self.scene_manager.save_scene_state(campaign_id, scene_state)
+
+    def find_starting_location(self, campaign_id: str) -> str:
+        """E.2: Инкапсуляция scene_manager.find_starting_location"""
+        return self.scene_manager.find_starting_location(campaign_id)
+
+    def list_characters(self, campaign_id: str) -> list:
+        """E.2: Инкапсуляция character_service.list_characters"""
+        return self.character_service.list_characters(campaign_id)
 
     def idle_tick(self, campaign_id: str) -> dict:
         """Idle tick — делегирует TickOrchestrator (10 фаз, Устав §3).
@@ -650,6 +673,7 @@ class GameLoop:
             scene_state=_scene,
             tick_number=_scene["tick"], # Авторитетный источник тика
             spatial_service=_spatial_svc, # ИНЪЕКЦИЯ
+            shared_context=getattr(self, '_idle_shared_context', None), # S116 FIX: Проброс shared_context для idle tick
         )
 
         # ADR-TZ08-8: Explicit snapshot step для PerceptionProjector
@@ -676,7 +700,7 @@ class GameLoop:
         # а не из устаревшей ссылки _scene (execute работает с deepcopy).
         _auth_scene = self.scene_manager._tick_scene if self.scene_manager else None
         _trav_after = list(_auth_scene.get("active_traversals", {}).keys()) if _auth_scene else list(_scene.get("active_traversals", {}).keys())
-        print(f"[IDLE_TRACE] AFTER tick={_scene.get('tick')} traversals={_trav_after} source={'tick_scene' if _auth_scene else 'stale_ref'}")
+        logger.debug(f"[IDLE_TRACE] AFTER tick={_scene.get('tick')} traversals={_trav_after} source={'tick_scene' if _auth_scene else 'stale_ref'}")
 
         # ADR-O-313: Execution Framework. Материализация отложенных задач (LLM и др.)
         # Работает с _auth_scene (_tick_scene), чтобы мутации подписчиков EventBus 
@@ -863,7 +887,7 @@ class GameLoop:
             # ADR-092: Проброс perception из TickOrchestrator для action tick
             _pp = getattr(state.shared_context, 'player_perception', None) if state.shared_context else None
             _anr = getattr(state.shared_context, 'all_npcs_raw_snapshot', None) if state.shared_context else None
-            print(f"[TRAV_CHECK_P2] before_snapshot: id(scene_state)={id(_scene)} active_traversals={list(_scene.get('active_traversals', {}).keys())}")
+            logger.debug(f"[TRAV_CHECK_P2] before_snapshot: id(scene_state)={id(_scene)} active_traversals={list(_scene.get('active_traversals', {}).keys())}")
             _recent_d = self._get_task_scheduler().get_recent_dialogues(time.time())
             if _ws := _builder.build(
                 _scene,
@@ -900,7 +924,7 @@ class GameLoop:
             _ws_dict["dialog_journal"] = self.avatar_service.get_journal(req.campaign_id)
 
         _resp_facts = getattr(state, 'observed_facts', [])
-        print(f"[DEBUG_RUN_TURN] state.observed_facts count={len(_resp_facts)}")
+        logger.debug(f"[DEBUG_RUN_TURN] state.observed_facts count={len(_resp_facts)}")
         _final_response = ChatTurnResponse(
             dm_response=dm_result.get("dm_response", ""),
             npc_reactions=dm_result.get("npc_reactions", []),
@@ -1284,7 +1308,7 @@ class GameLoop:
         shared_context.python_engines = python_engines_result
         # Sprint P9: Проброс observed_facts из тика в state
         _state_observed_facts = getattr(_player_result, 'observed_facts', [])
-        print(f"[DEBUG_GAME_LOOP] _state_observed_facts count={len(_state_observed_facts)}")
+        logger.debug(f"[DEBUG_GAME_LOOP] _state_observed_facts count={len(_state_observed_facts)}")
 
         # ФАЗА 7: RulesSubscriber (pure reducer) — вычисляет D&D механику (TZ-08 v0.2)
         from app.services.events.rules_subscriber import RulesSubscriber
@@ -1354,7 +1378,7 @@ class GameLoop:
             ) if R3_DIRECT_MODE else {}
             
             # SCENE_IDENTITY: проверяем, что scene_state не потерял traversals после finalize
-            print(f"[TRAV_CHECK_P1_5] after_finalize_return: id={id(shared_context.scene_state)} traversals={list(shared_context.scene_state.get('active_traversals', {}).keys())}")
+            logger.debug(f"[TRAV_CHECK_P1_5] after_finalize_return: id={id(shared_context.scene_state)} traversals={list(shared_context.scene_state.get('active_traversals', {}).keys())}")
             
             # S115 FIX: Синхронизация мутаций из ядра обратно в _avatar_state.
             # Ядро работает со словарем в _ctx.all_npcs_raw, нам нужно перенести изменения в объект.
@@ -1363,12 +1387,16 @@ class GameLoop:
                 if "body_state" in _updated_avatar_dict:
                     _avatar_state.body_state = _updated_avatar_dict["body_state"]
                 if "hp" in _updated_avatar_dict:
-                    _avatar_state.hp = _updated_avatar_dict["hp"]
+                    # ADR-HP-UNIFICATION: Пишем напрямую в body_state (SSOT)
+                    if _avatar_state.body_state:
+                        _avatar_state.body_state["current_hp"] = _updated_avatar_dict.get("hp", _updated_avatar_dict.get("current_hp", 0))
+                    else:
+                        _avatar_state.hp = _updated_avatar_dict["hp"]
                     
             # S115 FIX: Сравниваем полное состояние до и после. Если есть разница — сохраняем.
             if _avatar_state and _avatar_state_before and _avatar_state != _avatar_state_before:
                 self.avatar_service.save_state(campaign_id, _avatar_state)
-                logger.warning(f"[AVATAR] STATE APPLIED: pain={_avatar_state.body_state.get('pain', 0.0):.1f} shock={_avatar_state.body_state.get('shock_impulse', 0.0):.2f} money={_avatar_state.body_state.get('money', 0.0):.1f} hp={_avatar_state.hp}")
+                logger.warning(f"[AVATAR] STATE APPLIED: pain={_avatar_state.body_state.get('pain', 0.0):.1f} shock={_avatar_state.body_state.get('shock_impulse', 0.0):.2f} money={_avatar_state.body_state.get('money', 0.0):.1f} hp={_avatar_state.effective_hp}")
                 
             # S115 FIX: Обновляем кэш LifeEngine с мутированным all_npcs_raw.
             # Без этого _resolve_npcs_snapshot возвращает старые данные (без денег/урона).

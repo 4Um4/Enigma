@@ -12,6 +12,8 @@ path: /frontend/character_select.py
 Зависимости: pygame, pathlib, json (только стандартная библиотека)
 Основные сущности: CharacterEntry, CharacterSelectScreen
 """
+import logging
+logger = logging.getLogger(__name__)
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
@@ -85,7 +87,7 @@ def _load_characters(campaign_id: str) -> list[CharacterEntry]:
                 ac=item.get("ac", 10),
             ))
     except Exception as e:
-        print(f"[CHAR_SELECT] Ошибка парсинга персонажей: {e}")
+        logger.debug(f"[CHAR_SELECT] Ошибка парсинга персонажей: {e}")
     return entries
 
 

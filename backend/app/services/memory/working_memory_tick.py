@@ -87,7 +87,7 @@ def write_npc_reactions_to_memory(
         # Используем имя NPC как speaker — DM должен видеть "Купец Горан", не "merchant_goran"
         if matched_id:
             _speaker_name = id_to_name.get(matched_id, matched_id)
-            print(f"[STM_WRITE] npc={matched_id} speaker={_speaker_name} text={npc_text[:60]}")
+            logger.debug(f"[STM_WRITE] npc={matched_id} speaker={_speaker_name} text={npc_text[:60]}")
             memory_manager.add_dialogue_turn(
                 campaign_id=campaign_id,
                 npc_id=matched_id,

@@ -354,7 +354,7 @@ class EquivalenceValidator:
                 # Class C — WARNING + DEPRECATION
                 _depr_key = f"C:{d.field}"
                 _depr = self._DRIFT_DEPRECATIONS.get(_depr_key, "Unknown mutation")
-                print(f"{_tag} {_base} | DEPRECATION: {_depr}")
+                logger.debug(f"{_tag} {_base} | DEPRECATION: {_depr}")
                 logger.warning(
                     f"{_tag} {_base} | DEPRECATION: {_depr}"
                 )
