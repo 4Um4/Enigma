@@ -476,7 +476,7 @@ constraints:
   - source: Any
     target: HP_Death
     rule: "FORBIDDEN: hp <= 0 as source of death (ADR-123)"
-    condition: "Death must come from VitalStateEvaluator evaluating body_state. combat_math.apply_damage is dead code."
+    condition: "Death must come from VitalStateEvaluator evaluating body_state. combat_math.attack_roll is integrated into ImpactEngine (ADR-164), but hp <= 0 is still forbidden as death source."
     code_ref: "domain/vital_state.py"
     adr_ref: "ADR-123"
     severity: CRITICAL

@@ -43,6 +43,7 @@ flowchart TD
         TradeResolver("Trade Resolver"):::application
         FactExtractor("FactExtractor"):::application
         DecisionHub("Decision Hub (Projection-Native Scoring)"):::application
+        LifeProjectResolver("Life Project Resolver"):::application
         IntentCompressor("Intent Compressor"):::application
         LayeredMemory("Layered Memory (STM/L2/Campaign)"):::application
         TopicExtractor("Topic Extractor"):::application
@@ -136,6 +137,8 @@ flowchart TD
         Inference("Inference / Hypothesis"):::domain
         Memory("Memory / Belief"):::domain
         TraitDriftEvent["Trait Drift Event (L1 Record)"]:::domain
+        CoreOrientation("Core Orientation (L0 Immutable)"):::domain
+        LifeProject["Life Project (L2.7 Dynamic)"]:::domain
         RelationshipStore("Relationship Store"):::domain
         DialogueSession["Dialogue Session (STM)"]:::domain
         PromotionEngine("Memory Promotion Engine"):::domain
@@ -331,7 +334,11 @@ flowchart TD
     TraitDriftEvent -->|"appends drift record"| L1Chronicle
     BreakProgressEngine -->|"commits TraitDriftEvent (target_id, effect_value)"| L1Chronicle
     CrystallizedBeliefStore -->|"provides L2.5 beliefs for projection"| DriveResolver
-    DriveResolver -->|"computes ephemeral projection"| EffectiveDrives
+    DriveResolver -->|""| EffectiveDrives
+    CoreOrientation -->|"initializes at spawn"| LifeProject
+    BreakProgressEngine -->|"triggers with identity_crisis=True"| LifeProjectResolver
+    LifeProjectResolver -->|"computes new direction"| LifeProject
+    LifeProject -->|"provides boosts for proactive intents"| DecisionHub
     EffectiveDrives -->|"pass-through (no scalar mutation)"| CalibrationEngine
     CalibrationEngine -->|"delivers L3_stable"| DecisionHub
     L1Chronicle -->|"query_raw() → List[TraitDriftEvent]"| PatternDetector
@@ -342,7 +349,7 @@ flowchart TD
     CrystallizedBeliefModifierResolver -->|"resolve() → drive_modifiers (Dict[str, float])"| DecisionHub
     ArchetypeConfig -->|"provides L0 archetype"| DriveResolver
     IndividualConfig -->|"merges individual overrides"| DriveResolver
-    GameScreen -->|"raw text input"| IntentCompressor
+    GameLoop -->|"raw text input (async LLM compression)"| IntentCompressor
     IntentCompressor -->|"Slow Path: complex intent → LLM"| LLMCompressorClient
     IntentCompressor -->|"IntentSemanticField → pressure source"| DecisionHub
     Reality -->|"manifests"| ManifestationState
@@ -608,6 +615,9 @@ flowchart TD
     BeliefCrystallizationEngine -.->|"🚫 REQUIRED: Asymmetric Trauma (x6 multiplier) and Belief Decay Model (ADR-O-307 / ADR-O-305.1)"| CrystallizedBelief:::forbidden
     DriveResolver -.->|"🚫 FORBIDDEN: DriveResolver reading L1Chronicle directly. Must consume CrystallizedBelief (L2.5) from CrystallizedBeliefStore (ADR-S96.1)"| L1Chronicle:::forbidden
     DriveResolver -.->|"🚫 FORBIDDEN: L3=L0 fallback (pass statement). L3 MUST be deformed by L2.5 beliefs if they exist (ADR-S96.1)"| EffectiveDrives:::forbidden
+    Any -.->|"🚫 FORBIDDEN: Mutation of CoreOrientation (L0) in runtime (§16.1)"| CoreOrientation:::forbidden
+    DecisionHub -.->|"🚫 FORBIDDEN: Reading personality.core_orientation for boosts. MUST use state.life_direction (L2.7)"| CoreOrientation:::forbidden
+    BreakProgressEngine -.->|"🚫 FORBIDDEN: Direct mutation of life_direction inside BreakProgressEngine. MUST use LifeProjectResolver"| LifeProject:::forbidden
     IntentCompressor -.->|"🚫 FORBIDDEN: Return default 0.0 vector for ATTACK (ADR-088)"| EmotionalVector:::forbidden
     ManifestationState -.->|"🚫 FORBIDDEN: ManifestationState не должен зависеть от позиции наблюдателя"| ObserverPosition:::forbidden
     ManifestationState -.->|"🚫 FORBIDDEN: ManifestationState не должен зависеть от психики наблюдателя"| PerceptualKernel:::forbidden
@@ -1330,7 +1340,11 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | TraitDriftEvent | L1Chronicle | appends drift record | World pressure mutates identity | `l1_chronicle.py:append` | - |
 | BreakProgressEngine | L1Chronicle | commits TraitDriftEvent (target_id, effect_value) | WillState breaks or deforms | `break_progress_engine.py` | ADR-O-208.1 |
 | CrystallizedBeliefStore | DriveResolver | provides L2.5 beliefs for projection | Tick start | `drive_resolver.py:resolve_drives` | ADR-S96.1 |
-| DriveResolver | EffectiveDrives | computes ephemeral projection | Pure function from archetype (L0) + beliefs (L2.5) | `drive_resolver.py` | ADR-S96.1 |
+| DriveResolver | EffectiveDrives | - | - | `-` | ADR-S96.1 |
+| CoreOrientation | LifeProject | initializes at spawn | NPC loaded from JSON | `npc_loader.py` | ADR-O-315 |
+| BreakProgressEngine | LifeProjectResolver | triggers with identity_crisis=True | stage == deformation | `break_progress_engine.py` | ADR-O-316 |
+| LifeProjectResolver | LifeProject | computes new direction | identity_crisis received | `life_project_resolver.py` | ADR-O-316 |
+| LifeProject | DecisionHub | provides boosts for proactive intents | WORLD_TICK scoring | `decision_hub.py` | ADR-O-315 |
 | EffectiveDrives | CalibrationEngine | pass-through (no scalar mutation) | ADR-O-211 DEPRECATION: Test C noise accumulation | `calibration_engine.py` | - |
 | CalibrationEngine | DecisionHub | delivers L3_stable | Projection-native scoring (ADR-O-304) | `tick_orchestrator.py` | - |
 | L1Chronicle | PatternDetector | query_raw() → List[TraitDriftEvent] | ADR-O-305A: Группировка по source_id | `pattern_detector.py` | - |
@@ -1341,7 +1355,7 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | CrystallizedBeliefModifierResolver | DecisionHub | resolve() → drive_modifiers (Dict[str, float]) | S85.2: L2.5 beliefs deform utility alongside L3 drives | `npc_tick_pipeline.py` | - |
 | ArchetypeConfig | DriveResolver | provides L0 archetype | Base personality traits and schedule | `npc_loader.py` | - |
 | IndividualConfig | DriveResolver | merges individual overrides | Specific schedule/activity_map overrides | `npc_loader.py` | - |
-| GameScreen | IntentCompressor | raw text input | Phase 1: player typed command | `input/intent_compressor.py` | - |
+| GameLoop | IntentCompressor | raw text input (async LLM compression) | Phase 1: GameLoop calls await compress() before resolve_player_intent (ADR-159) | `game_loop/__init__.py` | ADR-159 |
 | IntentCompressor | LLMCompressorClient | Slow Path: complex intent → LLM | Fast Path failed or ambiguous. 3 retries. | `input/intent_compressor.py:_slow_path_parse` | - |
 | IntentCompressor | DecisionHub | IntentSemanticField → pressure source | ATTACK → aggression. THREATEN → aggression. 'сюда'/'мне' → target_ref='player' | `input/intent_compressor.py` | ADR-088 |
 | Reality | ManifestationState | manifests | - | `-` | - |
@@ -1610,6 +1624,9 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | BeliefCrystallizationEngine | CrystallizedBelief | REQUIRED: Asymmetric Trauma (x6 multiplier) and Belief Decay Model (ADR-O-307 / ADR-O-305.1) | `-` |
 | DriveResolver | L1Chronicle | FORBIDDEN: DriveResolver reading L1Chronicle directly. Must consume CrystallizedBelief (L2.5) from CrystallizedBeliefStore (ADR-S96.1) | `-` |
 | DriveResolver | EffectiveDrives | FORBIDDEN: L3=L0 fallback (pass statement). L3 MUST be deformed by L2.5 beliefs if they exist (ADR-S96.1) | `-` |
+| Any | CoreOrientation | FORBIDDEN: Mutation of CoreOrientation (L0) in runtime (§16.1) | `-` |
+| DecisionHub | CoreOrientation | FORBIDDEN: Reading personality.core_orientation for boosts. MUST use state.life_direction (L2.7) | `-` |
+| BreakProgressEngine | LifeProject | FORBIDDEN: Direct mutation of life_direction inside BreakProgressEngine. MUST use LifeProjectResolver | `-` |
 | IntentCompressor | EmotionalVector | FORBIDDEN: Return default 0.0 vector for ATTACK (ADR-088) | `ADR-088` |
 | ManifestationState | ObserverPosition | FORBIDDEN: ManifestationState не должен зависеть от позиции наблюдателя | `-` |
 | ManifestationState | PerceptualKernel | FORBIDDEN: ManifestationState не должен зависеть от психики наблюдателя | `-` |

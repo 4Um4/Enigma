@@ -136,15 +136,30 @@ class EventCompiler:
         target_loc = getattr(change, "target_location_id", "") or snapshot.location_id
         target_node_id = change.value
 
+        # ADR-O-201.4: Cross-location traversal completion (boundary transition)
+        # Если цель в другой локации, текущий svc (текущей локации) её не найдёт.
+        # Делегируем в _compile_boundary_snap, который умеет делать snap без поиска в графе.
+        if target_loc != snapshot.location_id:
+            return self._compile_boundary_snap(snapshot, change, None, target_loc, svc)
+
         # Lookup target node (same logic as _compile_position_change)
         node = svc.get_node(target_node_id) or svc.get_node(
             f"{target_loc}:{target_node_id}"
         )
         if node is None:
+            # ADR-O-314: Если целевой узел не найден (невалидный boundary target),
+            # фолбэчим на entrance локации, чтобы NPC не завис и не ломал snapshot.
+            fallback_node_id = f"{target_loc}:entrance"
+            node = svc.get_node(fallback_node_id)
+            if node is None:
+                logger.warning(
+                    f"[SHADOW_COMPILER] traversal_complete: node not found: {target_node_id} (fallback {fallback_node_id} also missing)"
+                )
+                return None
             logger.warning(
-                f"[SHADOW_COMPILER] traversal_complete: node not found: {target_node_id}"
+                f"[SHADOW_COMPILER] traversal_complete: node {target_node_id} not found, fallback to {fallback_node_id}"
             )
-            return None
+            target_node_id = fallback_node_id
 
         target_xy = (node.x, node.y)
         # Source = same as target — movement completed, NPC is AT target

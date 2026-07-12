@@ -104,11 +104,15 @@ def write_npc_memory(
     action_text: str,
     turn_tick: int = 0,
     npc_dicts: list | None = None,
+    loop: Any = None,
 ) -> None:
     """Записывает ход в memory_trace каждого NPC который ответил."""
     if not npc_reactions:
         return
     try:
+        if loop is None:
+            logger.warning("[NPC_MEM] write_npc_memory: loop is None, cannot load npcs.")
+            return
         all_npcs = npc_dicts if npc_dicts is not None else loop._load_npcs()
         changed = False
         for reaction in npc_reactions:

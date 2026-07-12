@@ -303,10 +303,14 @@ def apply_conditioning(
     Если травма резонировала и вола была подавлена — травма укрепляется (PTSD/Conditioning).
     Если травма новая — создаётся импринт.
     """
-    from dataclasses import replace as dc_replace
+    from dataclasses import replace
 
     updated_imprints = list(imprints)
     triggered_ids = set(resonance.triggered_imprints)
+
+    # C5 FIX: Извлечение action и target из IntentDTO для инференса унижения
+    _action = intent.action.lower() if intent.action else ""
+    _target = intent.target if intent.target else ""
 
     # 1. Sensitization: Укрепление существующих травм при резонансе
     if will_response.identity_damage > 0:
@@ -319,7 +323,7 @@ def apply_conditioning(
                 new_decay_rate = max(
                     0.01, imp.decay_rate - 0.05
                 )  # Травма забывается медленнее
-                updated_imprints[i] = dc_replace(
+                updated_imprints[i] = replace(
                     imp,
                     reinforcement=new_reinforcement,
                     decay_rate=new_decay_rate,

@@ -8,7 +8,7 @@
 
 | Показатель | Значение |
 |------------|----------|
-| Сессий | 117|
+| Сессий | 118|
 | Доменов | 10 |
 | Консолидированных запретов | [DERIVED: count(ADR.*.Taboo)] |
 | Диапазон | S03—S97 |
@@ -433,6 +433,13 @@
 - ⚠️ **S93** TECH_DEBT (S-94): L1Chronicle TTL (Task 2.3) — ограничение памяти не реализовано (отменено для сохранения ADR-O-208). Требует отдельной реализации с архивацией, а не обрезки.
 - ⚠️ **S93** TECH_DEBT (S-94): WillpowerGate для аватара (Task 2.2) — базовая психика инициализируется, но полная логика сопротивления (`stress_delta` при конфликте с `drives_base`) требует расширения `_base_humanoid.json` и доработки `WillpowerGate`.
 
+- 🔵 **S118** ТЗ: Внутренняя телеология NPC (LifeProject & Identity Crisis).
+  - **Оживление CoreOrientation (L0):** Через скрипт `scripts/fix_core_orientation.py` добавлено поле `core_orientation` в JSON 6 NPC кампании `Open_road` (`family_builder`, `wealth_creator` и др.). Бусты в `DecisionHub` заработали (скоринг Горана вырос с 0.4 до 0.7+).
+  - **Введение L2.7 (LifeDirection):** Добавлено динамическое поле `life_direction` в `NPCState`. Настроена сериализация (`psyche["life_direction"]`, round-trip тест зелёный). Инициализируется из L0 при спавне.
+  - **Кризис Идентичности:** В `BreakProgressEngine` добавлен флаг `identity_crisis` (срабатывает при `stage="deformation"`). Создан модуль `life_project_resolver.py`, который при кризисе вычисляет новый жизненный вектор (например, `family_builder` -> `isolation`).
+  - **Интеграция в DecisionHub:** `DecisionHub` переведён на чтение `state.life_direction` вместо статичного L0. Добавлены кризисные направления (`isolation`, `revenge`, `hermit`). Интеграционный тест `test_life_direction_crisis.py` подтверждает, что кризис меняет решения NPC (от `call_for_help` к `block_path`).
+  Files: backend/app/models/npc_state.py, backend/app/services/npc/decision_hub.py, backend/app/services/npc/break_progress_engine.py, backend/app/services/npc/life_project_resolver.py, backend/app/services/npc/npc_loader.py, backend/tests/sandbox/system/test_life_direction_crisis.py, scripts/fix_core_orientation.py, config/npc/individuals/*.json
+
 
 
 ### DOM-11: DOCUMENTATION & AUDIT (ТЗ-07)
@@ -461,6 +468,24 @@
   - **Intent Compressor:** Промпт LLM переведён на русский. Добавлен fallback в `_slow_path_parse` (если LLM недоступна, используется Fast-Path). Fast-Path улучшен для понимания прямых обращений ("Торнин, отойди к двери").
   - **Ruff Integration:** Внедрён линтер Ruff (`ruff.toml`). Ошибки (`E402`, `F821`, `E741`, `F841`) исправлены во всём проекте. `ruff check .` проходит без ошибок.
   Files: frontend/game_screen.py, backend/app/services/input/llm_compressor_client.py, backend/app/services/llm/health.py, backend/app/services/llm/llama_cpp_provider.py, backend/app/services/input/intent_compressor.py, backend/app/services/game_loop/phase_1_input.py
+
+- 🟢 **S118** P0: LLM Slow-Path активирован. `IntentCompressor` внедрён в `GameLoop`. LLM-парсинг вынесен из ядра (`phase_1_input.py`) в оркестратор. `resolve_player_intent` теперь принимает готовый `semantic_field`.
+  Files: backend/app/services/game_loop/__init__.py, backend/app/services/game_loop/phase_1_input.py, backend/app/services/input/intent_compressor.py
+
+- 🟢 **S118** P1: Промпты DM переведены на русский. Найдена и устранена утечка английского через `StanceType` и `ToneType` в `verbal_stance.py`.
+  Files: backend/app/services/verbalization/verbal_stance.py
+
+- 🟢 **S118** Этап 0: Критические баги (C1-C14). Починены `NameError`/`ImportError` в 14 файлах (C1-C14). Внедрён единый порт `settings.llama_cpp_port` (8181) в `main.py`, `routes.py`, `game_launcher.py`. Устранены утечки файловых дескрипторов (`try...finally`).
+  Files: backend/app/api/routes.py, backend/app/core/config.py, backend/app/main.py, game_launcher.py, backend/app/services/affect.py, backend/app/services/npc/state_applicator.py, backend/app/services/game_loop/npc_state_helpers.py, backend/app/services/world/time_skip_executor.py, backend/app/services/game_loop/task_scheduler.py, backend/app/services/npc/expectation_store.py, backend/app/services/action/dm_router.py, backend/app/services/verbalization/state_interpreter.py
+
+- 🔵 **S118** ТЗ Этап 1.1: Таверна ожила. `Intent.TALK` добавлен в `PROACTIVE_INTENTS` в `DecisionHub`. NPC теперь сами инициируют диалоги в `idle_tick`. `SocialTargetResolver` возвращает `None` вместо `actor_id` при отсутствии цели, чтобы избежать самостоятельного разговора.
+  Files: backend/app/services/npc/decision_hub.py, backend/app/services/phases/post_decision.py
+
+- 🔵 **S118** ТЗ Этап 1.3: Интеграция `combat_math.py` и превентивная агрессия. В `ImpactEngine._resolve_contact` внедрён вызов `attack_roll` из `combat_math.py`. Результаты D&D 5e (Hit/Miss/Crit) маппятся на `ContactLevel`. В `DecisionHub` добавлен триггер: если `perceptual_kernel.threat_gradient > 0.5`, NPC атакует первым (fight > flight), даже в `WORLD_TICK`.
+  Files: backend/app/services/combat/impact_engine.py, backend/app/services/npc/decision_hub.py
+
+- 🔵 **S118** Vulture Audit & Ruff. Настроен `ruff.toml` (игнор `E501`/`E402` для тестов). Удалены мёртвые фабрики в `scene_change.py` и заглушки в `tick_orchestrator.py`. `combat_math.py` спасён от удаления и подключён к `ImpactEngine`.
+  Files: backend/app/services/scene_change.py, backend/app/services/tick_orchestrator.py, ruff.toml
 
 ## 2. АРХИТЕКТУРНЫЕ ЗАПРЕТЫ (Синхронизировано с ADR Master Index)
 

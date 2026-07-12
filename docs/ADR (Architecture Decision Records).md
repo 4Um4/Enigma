@@ -212,6 +212,26 @@
   Taboo: ❌ Блокирующие операции (`time.sleep`, `subprocess.Popen` + polling) до `yield` в lifespan. ❌ Фронтенд-поллинг `/health` без информации о статусе фоновых задач.
   Files: main.py, api/routes.py
 
+`ADR-158` [STD] **Ruff Static Analysis Integration** — Внедрён линтер и форматтер Ruff (`ruff.toml`). Включены правила: `E` (pycodestyle), `W` (warnings), `F` (pyflakes), `I` (isort). `line-length = 120`. Запуск `ruff check .` обязателен перед IPT (Устав §8).
+  Taboo: ❌ Коммит кода с ошибками Ruff. ❌ Использование других форматтеров (black, autopep8) без явной интеграции с Ruff.
+  Status: VERIFIED
+  Files: ruff.toml, backend/app/services/input/llm_compressor_client.py, frontend/game_screen.py, frontend/scene_renderer.py
+
+`ADR-159` [FIX] **LLM Slow-Path Causal Isolation (P0 BUG-S117.1)** — LLM-парсинг (Slow-Path) вынесен из каузального солвера (`phase_1_input.py`) в оркестратор (`game_loop/__init__.py`). В `GameLoop` внедрён `IntentCompressor` с рабочим `LlamaCppCompressorClient`. Вызов `await self._intent_compressor.compress()` происходит ДО `resolve_player_intent`, а готовое `IntentSemanticField` передаётся параметром. Ядро симуляции полностью очищено от I/O операций.
+  Taboo: ❌ Вызов LLM внутри `phase_1_input.py` или `TickOrchestrator`. ❌ Создание `IntentCompressor(llm_client=None)`.
+  Status: VERIFIED
+  Files: backend/app/services/game_loop/__init__.py, backend/app/services/game_loop/phase_1_input.py, backend/app/services/input/intent_compressor.py
+
+`ADR-161` [FIX] **C1-C14 Runtime Crash Elimination** — Устранены 14 критических багов (NameError, ImportError), гарантированно крашивших runtime. В `routes.py` добавлен `Depends(get_game_loop)` в эндпоинты `import_knowledge`, `set_avatar_gender`, `game_turn`. В `affect.py` исправлен импорт `replace` и инициализация `_action`/`_target`. В `state_applicator.py` исправлен `NameError` на `npc_id` и `_l1_events`. В `npc_state_helpers.py` добавлен параметр `loop`. В `time_skip_executor.py` добавлена переменная `start_tick`. В `game_loop/__init__.py` удалён несуществующий класс `GameActionResponse` (возврат словаря). В `task_scheduler.py` `DialogueRequest` вынесен в топ-импорты. Добавлены пропущенные импорты `logger` и `math` в 3 файлах.
+  Taboo: ❌ Использование `game_loop` в `routes.py` без `Depends(get_game_loop)`.
+  Status: VERIFIED
+  Files: backend/app/api/routes.py, backend/app/services/affect.py, backend/app/services/npc/state_applicator.py, backend/app/services/game_loop/npc_state_helpers.py, backend/app/services/world/time_skip_executor.py, backend/app/services/game_loop/__init__.py, backend/app/services/game_loop/task_scheduler.py, backend/app/services/npc/expectation_store.py, backend/app/services/action/dm_router.py, backend/app/services/verbalization/state_interpreter.py
+
+`ADR-162` [FIX] **Unified LLM Port Authority** — Внедрён единый источник истины для порта LLM-сервера: `settings.llama_cpp_port` (8181) в `config.py`. Все захардкоженные порты (8080, 8181) в `main.py`, `routes.py` и `game_launcher.py` заменены на `settings.llama_cpp_port`. Устранены утечки файловых дескрипторов (`_llama_stderr_file`) в `main.py` через `try...finally`.
+  Taboo: ❌ Хардкод порта (напр. `"8181"`) в `main.py` или `routes.py`. ❌ Использование `8080` для LLM-сервера.
+  Status: VERIFIED
+  Files: backend/app/core/config.py, backend/app/main.py, backend/app/api/routes.py, game_launcher.py
+
 ---
 
 ## DOM-02: WILL, PRESSURE & DECISION
@@ -336,6 +356,16 @@
 
 `ADR-CNSRL` [DEP] **BreakProgressEngine Tech Debt** — Движок расчёта слома воли содержит технический долг, требующий рефакторинга (контракта с DecisionHub).
   Files: services/npc/break_progress_engine.py
+
+`ADR-163` [ONTO] **Proactive Social Engagement (Emergent Tavern Cycle)** — `Intent.TALK` добавлен в `PROACTIVE_INTENTS` в `DecisionHub`. NPC теперь могут сами инициировать диалоги в `idle_tick` (WORLD_TICK). `SocialTargetResolver` возвращает `None` (вместо `event.actor_id`) при отсутствии цели, чтобы избежать самостоятельного разговора. `phases/post_decision.py` исправлен: используется `intent.audience` вместо несуществующего `intent.target_id`.
+  Taboo: ❌ Генерация `CommunicationIntent` с `target_id=None` (должен быть `audience` или конкретный ID). ❌ Возврат `event.actor_id` в `WORLD_TICK`, если актор — сам NPC.
+  Status: VERIFIED
+  Files: backend/app/services/npc/decision_hub.py, backend/app/services/phases/post_decision.py
+
+`ADR-165` [ONTO] **Preemptive Aggression Trigger (Fight > Flight)** — В `DecisionHub._score_components` для `ATTACK` добавлен триггер превентивной агрессии. Если NPC субъективно чувствует высокую угрозу (`perceptual_kernel.threat_gradient > 0.5`), он может атаковать первым, даже в `WORLD_TICK` и без явной провокации. Реализует принцип "загнанный в угол" (fight > flight).
+  Taboo: ❌ Игнорирование `threat_gradient` в `WORLD_TICK` при оценке `ATTACK`.
+  Status: VERIFIED
+  Files: backend/app/services/npc/decision_hub.py
 
 ---
 
@@ -648,9 +678,14 @@
   Taboo: ❌ Прямая запись в `state.hp` в обход `body_state["current_hp"]`.
   Files: npc_state.py, state_applicator.py
 
-`ADR-S96.4` [ONTO] **Causal Needs Loop Closure** — Восстановлен замкнутый контур каузальности потребностей. Ранее существовал скрытый аттрактор: `Need ↑ → neglected_ticks ↑ → stress ↑ → degradation ↑` без обязательного обратного пути. `NeedEngine.tick()` теперь принимает `current_activity` и вызывает `EconomicProfile.satisfy_need()`, замыкая цикл: `Pressure → Decision → Activity → Satisfaction → Relief`. 
+`ADR-S96.4` [ONTO] **Causal Needs Loop Closure** — Восстановлен замкнутый контур каузальности потребностей. Ранее существовал скрытый аттрактор: `Need ↑ → neglected_ticks ↑ → stress ↑ → degradation ↑` без обязательного обратного пути. `NeedEngine.tick()` теперьпринимает `current_activity` и вызывает `EconomicProfile.satisfy_need()`, замыкая цикл: `Pressure → Decision → Activity → Satisfaction → Relief`. 
   Taboo: ❌ Рост `neglected_ticks` без последующего удовлетворения при выполнении активности. ❌ Односторонние клапаны давления (рост без легитимного спада).
   Files: economy/need_engine.py, npc/domain_phases.py, npc/npc_tick_pipeline.py, game_loop/phase_2_world_tick.py, tests/sandbox/SUPERBOX/npc_sandbox.py
+
+`ADR-164` [STD] **D&D 5e Combat Math Integration** — `ImpactEngine._resolve_contact` переведён с `rng.random()` на вызов `attack_roll` из `combat_math.py`. Результаты D&D 5e (Hit/Miss/Crit) маппятся на `ContactLevel` (MISS, GLANCING, PARTIAL, SOLID, PERFECT). Плотность контакта определяется перевыполнением AC (margin).
+  Taboo: ❌ Использование `rng.random()` для определения попадания в `ImpactEngine`.
+  Status: VERIFIED
+  Files: backend/app/services/combat/impact_engine.py, backend/app/services/game/combat_math.py
 
 ---
 
@@ -784,6 +819,11 @@
   Taboo: ❌ Хардкод max_tokens в dm_agent.py. ❌ Использование MockProvider при settings.environment == "production".
   Files: prompts/dm_system.txt, services/verbalization/dm_contract_builder.py, services/llm/factory.py, core/config.py
 
+`ADR-160` [FIX] **DM Prompt Russian Localization Closure (P1 BUG-S117.2)** — Устранена последняя утечка английского языка в промпты DM. `StanceType` и `ToneType` в `verbal_stance.py` переведены на русский язык (`confront` → `угрожает`, `cold` → `холодный` и т.д.). Маппинг в `stance_from_decision` обновлён. Теперь `to_prompt_line()` возвращает русские описания.
+  Taboo: ❌ Возврат английских строк в `StanceType` / `ToneType`.
+  Status: VERIFIED
+  Files: backend/app/services/verbalization/verbal_stance.py
+
 ---
 
 ## DOM-08: OBSERVABILITY (CDS & Sandbox)
@@ -868,9 +908,18 @@
   Taboo: ❌ Использование дублирующего `WillState` из `will.py`. ❌ Возврат к `except Exception: pass`. ❌ Хардкод UI-строк вместо `i18n`.
   Files: movement_engine.py, tick_orchestrator.py, dm_agent.py, game_loop_bridge.py, api_client.py, main.py, will.py, npc_state.py, constants.py, i18n.py, relationship_store.py, game_screen.py, game_types.py
 
+
 ---
 
 ## DOM-10: IDENTITY & ONTOLOGY (Identity Layer & Chronicle)
+
+`ADR-O-315` [ONTO] **Internal Teleology (LifeProject & L2.7 Layer)** — Введён слой L2.7 (`life_direction` в `NPCState`). Динамический жизненный проект, инициализируемый из `CoreOrientation` (L0) при спавне. `DecisionHub` читает `state.life_direction` для бустов проактивных интентов. L0 (`CoreOrientation`) остаётся строго неизменным (§16.1). Меняется только L2.7.
+  Taboo: ❌ Мутация `CoreOrientation` (L0) в рантайме. ❌ Чтение `personality.core_orientation` в `DecisionHub` для бустов (использовать `state.life_direction`).
+  Files: models/npc_state.py, models/npc_profile.py, services/npc/decision_hub.py, services/npc/npc_loader.py, config/npc/individuals/*.json
+
+`ADR-O-316` [ONTO] **Identity Crisis & LifeProjectResolver** — `BreakProgressEngine` изолирован от логики смены судьбы. Он возвращает только флаг `identity_crisis=True` при `stage="deformation"`. Решение о смене жизненного вектора принимает отдельный модуль `LifeProjectResolver`, который вычисляет кризисный проект (напр. `isolation`, `revenge`). Интегрировано в `phases/decision.py`.
+  Taboo: ❌ Вычисление нового `life_direction` внутри `BreakProgressEngine` (нарушение SRP).
+  Files: services/npc/break_progress_engine.py, services/npc/life_project_resolver.py, services/phases/decision.py
 
 `ADR-O-112` [ONTO] **Actor-Agnostic Combat Pipeline (Universal Violence)** — Боевой конвейер: `Any Actor → Any Actor`
   Status: PROPOSED

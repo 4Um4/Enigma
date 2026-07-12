@@ -10,12 +10,14 @@ path: backend/app/services/action/dm_router.py
 ПРИНЦИП: Router не знает мир. Router не знает NPC. Router не знает успех.
 """
 
-
 import json
+import logging
+import re
+
+logger = logging.getLogger(__name__)
 
 # --- Инициализация данных на уровне модуля (Data-Driven) ---
 import logging
-import re
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path

@@ -267,7 +267,8 @@ def main() -> None:
 
     # Убиваем backend + llama-server при любом выходе
     if sys.platform == "win32":
-        for _port in [8000, 8080]:
+        from app.core.config import settings as _enigma_settings
+        for _port in [8000, _enigma_settings.llama_cpp_port]:
             try:
                 _find = subprocess.run(
                     ["netstat", "-ano"],

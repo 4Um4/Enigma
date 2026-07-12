@@ -51,6 +51,7 @@ class Settings(BaseSettings):
     )
 
     llama_cpp_server_url: str = "http://localhost:8181"
+    llama_cpp_port: int = 8181  # C2 FIX: Единый источник истины для порта LLM
     llama_cpp_max_tokens: int = 1024
     dm_max_tokens: int = 220  # A7-FIX: было хардкожено в 4 местах dm_agent.py
     environment: str = "production"  # B4-FIX: production | development | test

@@ -599,7 +599,7 @@ class NPCState:
     # WRITE: только BeliefTransitionEngine.
     # READ: DecisionHub.compute() через beliefs.as_modifiers().
     beliefs: "BeliefState" = field(default_factory=BeliefState)
-    
+
     # L2.7: LifeDirection (Жизненный проект).
     # Динамическая проекция CoreOrientation (L0), модулированная убеждениями (L2.5).
     # Инициализируется из L0 при спавне. Меняется при кризисе идентичности.
@@ -761,8 +761,9 @@ class NPCState:
             "behavior_mask_applied_at_day": self.behavior_mask.applied_at_day,
             "emotion": self.emotion.value,
             "emotion_delta": self.emotion_delta,
-            "state_modifiers": Dict[str, Any](self.state_modifiers),
-            "trait_activation": Dict[str, Any](self.trait_activation),
+            "state_modifiers": dict(self.state_modifiers),
+            "trait_activation": dict(self.trait_activation),
+            "life_direction": self.life_direction,
             "trauma_markers": list(self.trauma_markers),
             "intent": self.intent.value if self.intent else None,
             "intent_target": self.intent_target,
@@ -976,7 +977,7 @@ class NPCStateAdapter:
 
         # L2.7: LifeDirection — динамическая проекция L0.
         # Если в сейве нет life_direction (старый сейв), берём core_orientation.
-        _life_direction = npc_dict.get("life_direction", npc_dict.get("core_orientation", "survival"))
+        _life_direction = psyche.get("life_direction", npc_dict.get("core_orientation", "survival"))
 
         return NPCState(
             npc_id=npc_dict.get("npc_id", npc_dict.get("id", "unknown")),

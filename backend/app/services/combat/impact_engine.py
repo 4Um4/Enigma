@@ -44,37 +44,25 @@ _ZONE_WEIGHTS = {
 
 
 def _resolve_contact(
-    intent: ImpactIntentDTO, defender: NPCStateSnapshot, rng: random.Random
+    attacker: NPCStateSnapshot, intent: ImpactIntentDTO, defender: NPCStateSnapshot, rng: random.Random
 ) -> ContactLevel:
-    """Контактная модель: учитывает усталость, боль и готовность защищаться."""
-    # Базовый шанс увернуться/блокировать (из способностей)
-    _abilities = defender.get("base_abilities", {})
-    _modifiers = defender.get("modifiers", {})
-    dodge_chance = (
-        _abilities.get("dexterity", 10.0) + _modifiers.get("dexterity", 0.0)
-    ) / 100.0
+    """Контактная модель: D&D 5e attack_roll → ContactLevel mapping (TZ §4.3)."""
+    from app.services.game.combat_math import attack_roll
 
-    # Шок и боль снижают способность уклоняться (Functional Capacity)
-    pain_penalty = defender.get("pain", 0.0) / 200.0
-    fatigue_penalty = defender.get("fatigue", 0.0) / 200.0
-    shock_penalty = defender.get("blood_loss", 0.0) / 2.0  # Кровопотеря = дезориентация
+    # S118: Используем D&D 5e бросок атаки. combat_math берёт статы из словарей.
+    result = attack_roll(attacker, defender)
 
-    effective_dodge = max(
-        0.0, dodge_chance - pain_penalty - fatigue_penalty - shock_penalty
-    )
-
-    roll = rng.random()
-
-    if roll < effective_dodge:
+    if not result.hit:
         return ContactLevel.MISS
 
-    # Степень контакта (чем хуже уклонение, тем плотнее попадание)
-    contact_roll = rng.random() - (effective_dodge * 0.5)
-    if contact_roll > 0.8:
+    if result.critical:
         return ContactLevel.PERFECT
-    elif contact_roll > 0.5:
+
+    # Определяем плотность контакта по перевыполению AC
+    margin = result.total_attack - result.target_ac
+    if margin >= 5:
         return ContactLevel.SOLID
-    elif contact_roll > 0.2:
+    elif margin >= 2:
         return ContactLevel.PARTIAL
     else:
         return ContactLevel.GLANCING
@@ -120,7 +108,7 @@ def resolve_physical_impact(
     deltas = []
 
     # 1. Contact Resolution
-    contact = _resolve_contact(intent, defender, rng)
+    contact = _resolve_contact(attacker, intent, defender, rng)
     if contact == ContactLevel.MISS:
         # Промах — атакующий тратит энергию, защитник нет
         deltas.append(

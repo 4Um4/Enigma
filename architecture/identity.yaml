@@ -79,7 +79,22 @@ nodes:
     type: service
     layer: Application
     label: "Break Progress Engine"
-    description: "S86: Fully wired into _phase_5_decision. Generates canonical TraitDriftEvent (target_id, effect_value)."
+    description: "S86: Fully wired into _phase_5_decision. Generates canonical TraitDriftEvent (target_id, effect_value). S118: Returns identity_crisis flag at deformation stage."
+  CoreOrientation:
+    type: domain
+    layer: Domain
+    label: "Core Orientation (L0 Immutable)"
+    description: "S118: Innate life axis (family_builder, wealth_creator, etc.). Loaded from JSON. NEVER mutates in runtime (§16.1)."
+  LifeProject:
+    type: dto
+    layer: Domain
+    label: "Life Project (L2.7 Dynamic)"
+    description: "S118: Dynamic field `life_direction` in NPCState. Initialized from CoreOrientation. Modulated by crises. Read by DecisionHub for intent boosts."
+  LifeProjectResolver:
+    type: service
+    layer: Application
+    label: "Life Project Resolver"
+    description: "S118: Decides on changing LifeProject when identity_crisis=True. Computes new direction (e.g., isolation, revenge)."
 edges:
   - from: TraitDriftEvent
     to: L1Chronicle
@@ -100,10 +115,34 @@ edges:
     adr_ref: "ADR-S96.1"
   - from: DriveResolver
     to: EffectiveDrives
-    label: "computes ephemeral projection"
-    condition: "Pure function from archetype (L0) + beliefs (L2.5)"
-    code_ref: "drive_resolver.py"
+    rule: "FORBIDDEN: L3=L0 fallback (pass statement). L3 MUST be deformed by L2.5 beliefs if they exist (ADR-S96.1)"
+    severity: CRITICAL
     adr_ref: "ADR-S96.1"
+  # --- S118 TELEOLOGY EDGES ---
+  - from: CoreOrientation
+    to: LifeProject
+    label: "initializes at spawn"
+    condition: "NPC loaded from JSON"
+    code_ref: "npc_loader.py"
+    adr_ref: "ADR-O-315"
+  - from: BreakProgressEngine
+    to: LifeProjectResolver
+    label: "triggers with identity_crisis=True"
+    condition: "stage == deformation"
+    code_ref: "break_progress_engine.py"
+    adr_ref: "ADR-O-316"
+  - from: LifeProjectResolver
+    to: LifeProject
+    label: "computes new direction"
+    condition: "identity_crisis received"
+    code_ref: "life_project_resolver.py"
+    adr_ref: "ADR-O-316"
+  - from: LifeProject
+    to: DecisionHub
+    label: "provides boosts for proactive intents"
+    condition: "WORLD_TICK scoring"
+    code_ref: "decision_hub.py"
+    adr_ref: "ADR-O-315"
   - from: EffectiveDrives
     to: CalibrationEngine
     label: "pass-through (no scalar mutation)"
@@ -233,3 +272,19 @@ constraints:
     rule: "FORBIDDEN: L3=L0 fallback (pass statement). L3 MUST be deformed by L2.5 beliefs if they exist (ADR-S96.1)"
     severity: CRITICAL
     adr_ref: "ADR-S96.1"
+  # --- S118 TELEOLOGY CONSTRAINTS ---
+  - source: Any
+    target: CoreOrientation
+    rule: "FORBIDDEN: Mutation of CoreOrientation (L0) in runtime (§16.1)"
+    severity: CRITICAL
+    adr_ref: "ADR-O-315"
+  - source: DecisionHub
+    target: CoreOrientation
+    rule: "FORBIDDEN: Reading personality.core_orientation for boosts. MUST use state.life_direction (L2.7)"
+    severity: HIGH
+    adr_ref: "ADR-O-315"
+  - source: BreakProgressEngine
+    target: LifeProject
+    rule: "FORBIDDEN: Direct mutation of life_direction inside BreakProgressEngine. MUST use LifeProjectResolver"
+    severity: HIGH
+    adr_ref: "ADR-O-316"

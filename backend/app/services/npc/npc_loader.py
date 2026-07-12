@@ -596,12 +596,17 @@ def load_l2_state_from_runtime_dict(raw_data: Dict[str, Any]) -> NPCState:
     except ValueError:
         will_enum = WillState.FREE
 
+    # L2.7: LifeDirection — динамическая проекция L0.
+    # Если в сейве нет life_direction (старый сейв), берём core_orientation.
+    _life_direction = psyche.get("life_direction", raw_data.get("core_orientation", "survival"))
+
     state = NPCState(
         npc_id=raw_data.get("id", "unknown"),
         hp=int(raw_data.get("hp", 0)),
         max_hp=int(raw_data.get("max_hp", 0)),
         stress=float(psyche.get("stress", 0.0)),
         will_state=will_enum,
+        life_direction=_life_direction,
         # Система слома
         identity_integrity=float(psyche.get("identity_integrity", 1.0)),
         pressure_resistance=float(psyche.get("pressure_resistance", 0.0)),

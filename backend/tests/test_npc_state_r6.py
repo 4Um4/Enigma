@@ -120,8 +120,9 @@ def test_r6_life_direction_round_trip():
     Критично для:
     сохранения динамической идентичности между тиками.
     """
-    from app.models.npc_state import NPCStateAdapter
     import dataclasses
+
+    from app.models.npc_state import NPCStateAdapter
 
     # 1. Старый сейв: нет life_direction, но есть core_orientation в корне
     legacy_data = {"id": "test_npc", "core_orientation": "wealth_creator", "psyche": {}}
@@ -132,7 +133,7 @@ def test_r6_life_direction_round_trip():
     npc = dataclasses.replace(npc, life_direction="isolation")
 
     # 3. Сериализация обратно в legacy dict
-    NPCStateAdapter.write_to_legacy(npc, legacy_data)
+    NPCState.write_to_legacy(npc, legacy_data)
 
     # 4. Десериализация снова
     npc_restored = NPCStateAdapter.from_legacy(legacy_data)

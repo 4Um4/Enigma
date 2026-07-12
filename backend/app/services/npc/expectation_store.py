@@ -6,11 +6,12 @@
 """
 
 import logging
+import math
 import sqlite3
 from dataclasses import dataclass
 from typing import Dict, Tuple
 
-_logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 @dataclass

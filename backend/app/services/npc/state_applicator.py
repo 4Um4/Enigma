@@ -127,6 +127,7 @@ class StateApplicator:
 
             # --- ИСПРАВЛЕНО: работаем с new_state и result.deltas ---
             d = _legacy_deltas
+            _l1_events: list = []  # C7 FIX: Инициализация списка для L1 событий
 
             # Применяем психологические изменения (R6.1)
             new_state.identity_integrity = max(
@@ -541,6 +542,7 @@ class StateApplicator:
         """Применяет числовые дельты к state и RelationshipStore."""
         # --- v2 payload extraction (с фолбэком на v1 поля) ---
         domain = deltas.domain
+        npc_id = state.npc_id
 
         stress_delta = (
             deltas.payload.stress_delta

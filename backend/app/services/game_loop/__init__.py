@@ -893,23 +893,23 @@ class GameLoop:
                         # Рестарт помог — продолжаем нормальный путь
                         pass
                     else:
-                        return GameActionResponse(
-                            dm_response=f"[СИСТЕМА: LLM сервер недоступен — {_err_msg}]",
-                            world_snapshot=state.shared_context.world_snapshot or {},
-                            will_conflict_data=None,
-                        )
+                        return {
+                            "dm_response": f"[СИСТЕМА: LLM сервер недоступен — {_err_msg}]",
+                            "world_snapshot": state.shared_context.world_snapshot or {},
+                            "will_conflict_data": None,
+                        }
                 else:
-                    return GameActionResponse(
-                        dm_response=f"[СИСТЕМА: LLM сервер недоступен — {_err_msg}]",
-                        world_snapshot=state.shared_context.world_snapshot or {},
-                        will_conflict_data=None,
-                    )
+                    return {
+                        "dm_response": f"[СИСТЕМА: LLM сервер недоступен — {_err_msg}]",
+                        "world_snapshot": state.shared_context.world_snapshot or {},
+                        "will_conflict_data": None,
+                    }
             except ImportError:
-                return GameActionResponse(
-                    dm_response=f"[СИСТЕМА: LLM сервер недоступен — {_err_msg}]",
-                    world_snapshot=state.shared_context.world_snapshot or {},
-                    will_conflict_data=None,
-                )
+                return {
+                    "dm_response": f"[СИСТЕМА: LLM сервер недоступен — {_err_msg}]",
+                    "world_snapshot": state.shared_context.world_snapshot or {},
+                    "will_conflict_data": None,
+                }
         logger.debug(f"[DM_RESULT] type={type(dm_result).__name__}")
 
         # RCE: Reality Commit Extractor — извлекаем npc_reactions из DM-нарратива

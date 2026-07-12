@@ -16,9 +16,9 @@ from dataclasses import dataclass
 from typing import Literal, Optional
 
 StanceType = Literal[
-    "confront", "threaten", "probe", "dismiss", "submit", "observe", "dissociated"
+    "угрожает", "давит", "изучает", "отмахивается", "подчиняется", "наблюдает", "отрешён"
 ]
-ToneType = Literal["aggressive", "cold", "neutral", "sarcastic", "fearful", "tense"]
+ToneType = Literal["агрессивный", "холодный", "нейтральный", "саркастичный", "испуганный", "напряжённый"]
 UrgencyLabel = Literal["фоновая", "умеренная", "высокая", "критическая"]
 
 
@@ -62,43 +62,43 @@ def stance_from_decision(
     действий (intent + emotion). Числовые ментальные поля (stress, fear, trust)
     остаются скрытой причинностью в simulation layer и не экспонируются.
     """
-    stance: StanceType = "observe"
-    tone: ToneType = "neutral"
+    stance: StanceType = "наблюдает"
+    tone: ToneType = "нейтральный"
     urgency = 0.3  # Базовая срочность
 
     if intent in ("attack", "intimidate", "warn"):
-        stance = "confront" if emotion_tag == "angry" else "threaten"
-        tone = "aggressive" if emotion_tag == "angry" else "cold"
+        stance = "угрожает" if emotion_tag == "angry" else "давит"
+        tone = "агрессивный" if emotion_tag == "angry" else "холодный"
         urgency = 0.8
     elif intent == "talk":
-        stance = "probe"
-        tone = "tense" if emotion_tag == "fearful" else "neutral"
+        stance = "изучает"
+        tone = "напряжённый" if emotion_tag == "fearful" else "нейтральный"
         urgency = 0.5
     elif intent == "flee":
-        stance = "submit"
-        tone = "fearful"
+        stance = "подчиняется"
+        tone = "испуганный"
         urgency = 0.9
     elif intent == "report":
-        stance = "dismiss"
-        tone = "cold"
+        stance = "отмахивается"
+        tone = "холодный"
         urgency = 0.4
     elif intent == "help":
-        stance = "probe"
-        tone = "neutral"
+        stance = "изучает"
+        tone = "нейтральный"
         urgency = 0.6
     elif intent == "trade":
-        stance = "probe"
-        tone = "neutral"
+        stance = "изучает"
+        tone = "нейтральный"
         urgency = 0.3
     elif intent in ("observe", "idle"):
-        stance = "observe"
-        tone = "tense" if emotion_tag == "fearful" else "neutral"
+        stance = "наблюдает"
+        tone = "напряжённый" if emotion_tag == "fearful" else "нейтральный"
         urgency = 0.2
 
     # Override при панике (сигнал от ядра о коллапсе воли)
     if emotion_tag == "panic":
-        stance = "dissociated"
-        tone = "fearful"
+        stance = "отрешён"
+        tone = "испуганный"
         urgency = 0.1
 
     return VerbalStance(stance=stance, tone=tone, urgency=round(urgency, 2))

@@ -10,6 +10,7 @@ import logging
 from concurrent.futures import ThreadPoolExecutor
 from typing import Dict
 
+from app.domain.communication import DialogueRequest
 from app.domain.execution import (
     Materializer,
     QueuedTask,
@@ -110,6 +111,7 @@ class TaskScheduler:
                 from dataclasses import replace as dc_replace
 
                 _resolved_target = "soliloquy"
+                # C11 FIX: DialogueRequest уже импортирован на уровне модуля
 
                 # P2 FIX: Использование SpatialQueryService для фильтрации по радиусу
                 from app.services.spatial.spatial_query_service import (

@@ -33,6 +33,7 @@ class BreakDeltas:
     identity_integrity_delta: float = 0.0  # -0.01 до -0.3 за тик
     pressure_resistance_delta: float = 0.0  # +0.1 до +0.5 (anti-abuse)
     will_state_override: Optional[WillState] = None  # только при deformation
+    identity_crisis: bool = False  # L2.7: Флаг кризиса (deformation)
     stage: str = (
         "resistance"  # resistance/cracks/rationalization/adaptation/deformation
     )
@@ -124,17 +125,17 @@ class BreakProgressEngine:
 
         # Переход в BROKEN только при deformation и высоком pressure
         will_override = None
-        if (
-            stage == "deformation"
-            and pressure > 80
-            and state.will_state != WillState.BROKEN
-        ):
-            will_override = WillState.BROKEN
+        identity_crisis = False
+        if stage == "deformation":
+            identity_crisis = True
+            if pressure > 80 and state.will_state != WillState.BROKEN:
+                will_override = WillState.BROKEN
 
         return BreakDeltas(
             identity_integrity_delta=round(integrity_delta, 4),
             pressure_resistance_delta=round(resistance_delta, 4),
             will_state_override=will_override,
+            identity_crisis=identity_crisis,
             stage=stage,
         )
 

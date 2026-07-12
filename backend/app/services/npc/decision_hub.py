@@ -77,6 +77,7 @@ PROACTIVE_INTENTS: frozenset[str] = frozenset(
         Intent.SPREAD_RUMOR,
         Intent.CALL_FOR_HELP,
         Intent.CHANGE_ROLE,
+        Intent.TALK,  # S118 FIX: Диалоги теперь проактивны (TZ §4.1)
     }
 )
 
@@ -1191,15 +1192,23 @@ class DecisionHub:
             }
             # Просто количество уникальных угроз × 0.1
             threat_level = len(set(event.visible_threat_markers)) * 0.1
+
+            # S118 FIX: Превентивная агрессия. Если NPC субъективно чувствует высокую угрозу
+            # (threat_gradient > 0.5), он может атаковать первым (fight > flight), даже в idle_tick.
+            _kernel_atk = getattr(state, "perceptual_kernel", None)
+            _perceived_threat_atk = _kernel_atk.threat_gradient if _kernel_atk else 0.0
+            _is_high_threat = _perceived_threat_atk > 0.5
+
             _et = event.event_type
             _et_val = _et.value if hasattr(_et, "value") else str(_et)
             is_provoked = (
                 _et in _PROVOCATION_TYPES
                 or _et_val in _PROVOCATION_TYPES
                 or threat_level >= PROVOCATION_THREAT_THRESHOLD
+                or _is_high_threat  # S118: Триггер из PerceptualKernel
             )
             logger.debug(
-                f"[DIAG_RISK_ATK] npc={state.npc_id} et={_et} et_type={type(_et).__name__} et_val={_et_val} provoked={is_provoked} fear={fear:.3f} risk={risk:.3f} markers={event.visible_threat_markers}"
+                f"[DIAG_RISK_ATK] npc={state.npc_id} et={_et} et_type={type(_et).__name__} et_val={_et_val} provoked={is_provoked} fear={fear:.3f} risk={risk:.3f} markers={event.visible_threat_markers} perceived_threat={_perceived_threat_atk:.2f}"
             )
             if is_provoked:
                 # ADR-O-112: Провокация конвертирует страх в ярость (fight > flight)
@@ -1418,16 +1427,21 @@ class DecisionHub:
         if event.event_type == EventType.WORLD_TICK:
             if intent in PROACTIVE_INTENTS:
                 base += 0.4  # бонус за проактивность
-                # P1-3 v3.0: Буст от Core Orientation (оси идентичности)
-                _orientation = getattr(personality, "core_orientation", "survival")
-                _orientation_intents = {
+                # L2.7: Буст от LifeDirection (динамический жизненный проект).
+                # Читаем из state, а не из personality (L0). Кризис может сменить направление.
+                _direction = getattr(state, "life_direction", "survival")
+                _direction_intents = {
                     "family_builder": ["seek_ally", "help", "call_for_help"],
                     "wealth_creator": ["offer_job", "request_service", "trade"],
                     "warrior": ["ambush", "block_path", "call_for_help"],
                     "knowledge_seeker": ["request_service", "seek_ally"],
                     "ruler": ["spread_rumor", "call_for_help", "change_role"],
+                    # Кризисные направления (L2.7)
+                    "isolation": ["flee", "block_path"],
+                    "revenge": ["ambush", "attack"],
+                    "hermit": ["flee", "observe"],
                 }
-                _expected_intents = _orientation_intents.get(_orientation, [])
+                _expected_intents = _direction_intents.get(_direction, [])
                 if intent in _expected_intents:
                     base += _desire * 1.5 + _significance * 0.5
             else:

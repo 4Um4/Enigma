@@ -91,14 +91,17 @@ def _restart_llama_server() -> bool:
             BASE_DIR / "backend" / "logs" / "llama_server_stderr.log"
         )
         _llama_stderr_file = open(_llama_stderr_path, "a", encoding="utf-8")
-        _llama_server_proc = subprocess.Popen(
-            server_cmd,
-            stdout=subprocess.DEVNULL,
-            stderr=_llama_stderr_file,
-            creationflags=subprocess.CREATE_NO_WINDOW
-            if hasattr(subprocess, "CREATE_NO_WINDOW")
-            else 0,
-        )
+        try:
+            _llama_server_proc = subprocess.Popen(
+                server_cmd,
+                stdout=subprocess.DEVNULL,
+                stderr=_llama_stderr_file,
+                creationflags=subprocess.CREATE_NO_WINDOW
+                if hasattr(subprocess, "CREATE_NO_WINDOW")
+                else 0,
+            )
+        finally:
+            _llama_stderr_file.close()
         _llama_started_by_us = True
         # Ждём HTTP readiness
         for _attempt in range(int(settings.model_load_timeout_sec / 2)):
@@ -287,7 +290,7 @@ async def lifespan(app: FastAPI):
                         "-m",
                         settings.llama_cpp_model_path,  # ADR-087: Без флага модели сервер крашит!
                         "--port",
-                        "8181",
+                        str(settings.llama_cpp_port),  # C2 FIX: Порт из settings
                         "--host",
                         "localhost",
                         "-ngl",
@@ -303,14 +306,17 @@ async def lifespan(app: FastAPI):
                         BASE_DIR / "backend" / "logs" / "llama_server_stderr.log"
                     )
                     _llama_stderr_file = open(_llama_stderr_path, "a", encoding="utf-8")
-                    _proc = subprocess.Popen(
-                        server_cmd,
-                        stdout=subprocess.DEVNULL,
-                        stderr=_llama_stderr_file,
-                        creationflags=subprocess.CREATE_NO_WINDOW
-                        if hasattr(subprocess, "CREATE_NO_WINDOW")
-                        else 0,
-                    )
+                    try:
+                        _proc = subprocess.Popen(
+                            server_cmd,
+                            stdout=subprocess.DEVNULL,
+                            stderr=_llama_stderr_file,
+                            creationflags=subprocess.CREATE_NO_WINDOW
+                            if hasattr(subprocess, "CREATE_NO_WINDOW")
+                            else 0,
+                        )
+                    finally:
+                        _llama_stderr_file.close()
                     # Проверка: процесс жив после spawn?
                     await asyncio.sleep(1)
                     if _proc.poll() is not None:

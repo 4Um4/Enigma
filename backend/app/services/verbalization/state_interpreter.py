@@ -12,12 +12,15 @@
 Основные сущности: PhysicalState, NPCStateDescription, StateInterpreter
 """
 
+import logging
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
 from app.models.npc_state import Intent, NPCState
 from app.models.physical import Condition
+
+logger = logging.getLogger(__name__)
 
 
 # ── Уровни для описания ──────────────────────────────────────────────

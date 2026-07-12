@@ -129,7 +129,7 @@ def system_status(game_loop=Depends(get_game_loop)) -> dict:
         "disk_sessions": disk_sessions,
         "uptime": uptime,
         "ports": {
-            "llm": 8080,
+            "llm": settings.llama_cpp_port,
             "backend": 8000,
         },
     }
@@ -294,6 +294,7 @@ async def import_knowledge(
     campaign_id: str = Form(...),
     kind: Literal["world", "rules", "characters", "npc", "campaign"] = Form(...),
     file: UploadFile = File(...),
+    game_loop=Depends(get_game_loop),
 ) -> KnowledgeIngestResponse:
     raw = await file.read()
     try:
@@ -319,7 +320,7 @@ async def import_knowledge(
 
 
 @router.post("/avatar/gender")
-async def set_avatar_gender(payload: dict):
+async def set_avatar_gender(payload: dict, game_loop=Depends(get_game_loop)):
     """ADR-GENDER: Эндпоинт смены пола аватара."""
     gender = payload.get("gender", "male")
     game_loop.avatar_service.set_gender(gender)
@@ -327,7 +328,9 @@ async def set_avatar_gender(payload: dict):
 
 
 @router.post("/game/turn", response_model=ChatTurnResponse)
-async def game_turn(request: ChatTurnRequest) -> ChatTurnResponse:
+async def game_turn(
+    request: ChatTurnRequest, game_loop=Depends(get_game_loop)
+) -> ChatTurnResponse:
     if request.actions:
         player_name = request.actions[0].player_name
         if not player_session_service.is_player_active(

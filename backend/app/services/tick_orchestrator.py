@@ -974,11 +974,7 @@ class TickOrchestrator:
 
         # Тело метода удалено. Логика перенесена в phases/input.py
 
-    def _publish_player_intent(self, ctx: _TickContext, intent: IntentDTO) -> None:
-        """Публикация разрешенного намерения игрока в шину."""
-        from app.services.phases.input import publish_player_intent
-
-        publish_player_intent(ctx, intent)
+# S118 FIX: Удалена мёртвая заглушка _publish_player_intent (Vulture).
 
     def _phase_2_event_bus_primary(self, ctx: _TickContext) -> None:
         """Первая волна EventBus: пространственные события от MovementEngine (Слой 4).
@@ -1214,53 +1210,7 @@ class TickOrchestrator:
     # _phase_8_player_handlers удалён (S100) — был мёртвым прокси на _phase_8_drain_secondary.
     # Вызов на строке 764 заменён на прямой вызов _phase_8_drain_secondary.
 
-    def _phase_9_player_integration(self, ctx: _TickContext) -> None:
-        """Player turn: R3 frame + NPC state + memory + decay (Устав §9 — Integration).
-
-        Делегирует в _phase_finalize, сохраняет результат в player_result.
-        Также запускает аффективный pipeline (ADR-049) для player turn.
-        """
-        logger.debug(
-            f"[P9_DIAG] _phase_9 ENTERED. shared_context is None: {ctx.shared_context is None}"
-        )
-        if ctx.shared_context is None:
-            logger.debug("[P9_DIAG] ABORT: shared_context is None!")
-            return
-
-        # TZ-08 v0.2: dm_frame вынесен в game_loop. Здесь только работа с памятью NPC.
-        from app.services.memory.working_memory_tick import (
-            run_decay_and_resonance,
-            write_npc_reactions_to_memory,
-        )
-
-        if ctx.shared_context and ctx.shared_context.npc_contexts:
-            write_npc_reactions_to_memory(
-                self._get_memory_manager(),
-                ctx.shared_context.npc_contexts,
-                ctx.all_npcs_raw,
-                ctx.campaign_id,
-            )
-
-        # Decay через TemporalContext — единое расписание (Устав §8)
-        _temporal = self._get_life_engine().get_temporal_context(ctx.campaign_id)
-        run_decay_and_resonance(
-            self._get_memory_manager(),
-            ctx.campaign_id,
-            _temporal,
-            ctx.shared_context.active_npc_ids if ctx.shared_context else [],
-        )
-        # Фиксируем выполнение decay, чтобы счётчик сбросился
-        if _temporal.should_run_memory_decay:
-            self._get_life_engine().mark_decay_executed(ctx.campaign_id)
-
-        # ADR-049: Аффективный pipeline перенесён в tick_player_turn (SEL CRITICAL FIX).
-        # Больше не зависит от guard-условия shared_context в этом методе.
-
-    def _phase_10_player_persistence(self, ctx: _TickContext) -> None:
-        """Player turn: atomic commit (Устав §10 — Persistence)."""
-        from app.services.phases.commit_phase import execute_persistence
-
-        execute_persistence(ctx, self, is_player_turn=True)
+# S118 FIX: Удалены мёртвые заглушки _phase_9_player_integration и _phase_10_player_persistence (Vulture).
 
     # ── Фаза 0.5: Time-driven idle-сервисы (ВСЕГДА, время не останавливается) ──
 

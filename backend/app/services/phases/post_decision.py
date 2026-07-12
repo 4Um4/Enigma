@@ -63,9 +63,13 @@ def run_phase_6_post_decision(ctx: Any, orchestrator: Any) -> None:
             from app.domain.communication import DialogueRequest
             from app.domain.execution import QueuedTask, TaskKind, TaskPriority
 
+            # S118 FIX: Используем audience, так как в CommunicationIntent нет поля target_id.
+            # Если audience="all", передаём None, чтобы TaskScheduler выбрал цель через SpatialQueryService.
+            _target_id = intent.audience if intent.audience != "all" else None
+
             _req = DialogueRequest(
                 topic=intent.topic,
-                target_id=intent.target_id,
+                target_id=_target_id,
                 exposure=intent.exposure_level,
                 intent_type=intent.intent_type,
             )

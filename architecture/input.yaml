@@ -22,11 +22,12 @@ nodes:
     code_ref: "input/llm_compressor_client.py"
 
 edges:
-  - from: GameScreen
+  - from: GameLoop
     to: IntentCompressor
-    label: "raw text input"
-    condition: "Phase 1: player typed command"
-    code_ref: "input/intent_compressor.py"
+    label: "raw text input (async LLM compression)"
+    condition: "Phase 1: GameLoop calls await compress() before resolve_player_intent (ADR-159)"
+    code_ref: "game_loop/__init__.py"
+    adr_ref: "ADR-159"
   - from: IntentCompressor
     to: LLMCompressorClient
     label: "Slow Path: complex intent → LLM"
