@@ -521,53 +521,28 @@ class TickOrchestrator:
             logger.warning(f"[PDM_DEBUG] sem_action={_sem_action} sem_target={_sem_target}")
             
             # Инициализация по умолчанию для предотвращения UnboundLocalError при UNCERTAIN
-            _is_npc_target = False
+            # ADR-O-315: TickOrchestrator больше не гадает, кто идёт. 
+            # Слой Интерпретации (Фаза 1) отдаёт готовый контракт MovementRequest.
+            _movement_req = getattr(_intent_res, 'movement_request', None)
+            _fast_actor = None
+            _fast_target_xy = None
             _target_id = getattr(_params, 'target_id', None) if _params else None
-
-            # ADR-082: Регистронезависимое сравнение (IC может вернуть "move" или "MOVE")
-            if _sem_action and _sem_action.upper() == "MOVE" and _sem_target:
-                _target_ref = _sem_target.lower()
-                # BUG-P0-03 FIX: Используем npc_positions из scene_state, так как all_npcs_raw может быть None
-                _npc_positions = ctx.scene_state.get("npc_positions", {})
-                _is_npc_target = any(
-                    _target_ref in _pos.get("name", "").lower() or _target_ref in _nid.lower()
-                    for _nid, _pos in _npc_positions.items()
-                ) if _npc_positions else False
+            
+            if _movement_req:
+                _fast_actor = _movement_req.actor_id
+                _target_id = _movement_req.target_actor_id
+                _target_pos_dict = ctx.scene_state.get("npc_positions", {}).get(_target_id, {}).get("local_position", {"x": 0.0, "y": 0.0})
+                _fast_target_xy = (_target_pos_dict.get("x", 0.0), _target_pos_dict.get("y", 0.0))
                 
-                # BUG-P0-03 FIX: Распознавание цели "player" для команд "подойди ко мне", "иди сюда"
-                _is_player_target = _target_ref in ("player", "мне", "сюда", "ко мне", "")
-                if _is_player_target:
-                    _player_pos = ctx.scene_state.get("npc_positions", {}).get("player", {}).get("local_position", {"x": 0.0, "y": 0.0})
-                    _px, _py = _player_pos.get("x", 0.0), _player_pos.get("y", 0.0)
-                    _closest_npc = None
-                    _min_dist = float('inf')
-                    for _nid, _pos_data in _npc_positions.items():
-                        if _nid == "player":
-                            continue
-                        _lp = _pos_data.get("local_position")
-                        if not isinstance(_lp, dict):
-                            continue
-                        _nx, _ny = _lp.get("x", 0.0), _lp.get("y", 0.0)
-                        _dist = ((_px - _nx) ** 2 + (_py - _ny) ** 2) ** 0.5
-                        if _dist < _min_dist:
-                            _min_dist = _dist
-                            _closest_npc = _nid
-                    
-                    if _closest_npc:
-                        _target_id = _closest_npc
-                        _is_npc_target = True
-                        logger.info(f"[FAST_PATH_APPROACH_PLAYER] closest_npc={_closest_npc} dist={_min_dist:.1f}m")
-
-                if _is_npc_target:
+                # Применяем социальное давление только если Игрок приказывает NPC подойти
+                if _fast_actor != "player" and _target_id == "player":
                     try:
                         from app.services.social.directive_interpretation_subscriber import DirectiveInterpretationSubscriber
                         import types
-                        # BUG-P0-03 FIX: Убрана перезапись _target_id из _params, 
-                        # которая затирала найденный ближайшего NPC (_closest_npc).
                         _directive_payload = {
                             "semantic_action": _sem_action,
                             "target_reference": _sem_target,
-                            "target_id": _target_id,
+                            "target_id": _fast_actor,
                             "social_pressure": 0.8,
                         }
                         _mock_event = types.SimpleNamespace(payload=_directive_payload)
@@ -590,22 +565,8 @@ class TickOrchestrator:
                                     _npc_state.setdefault("body_state", {})["consciousness"] = max(0.0, 1.0 - delta.payload.shock_impulse)
                     except Exception as e:
                         logger.error(f"[CAUSALITY_CRASH] DirectiveInterpretationSubscriber failed: {e}", exc_info=True)
-
-            # ADR-TZ09-2: Fast Path для реактивного движения.
-            logger.warning(f"[FAST_PATH_DEBUG] sem_action={_sem_action} is_npc={_is_npc_target} is_player={_is_player_target} target_id={_target_id}")
-            _fast_actor = None
-            _fast_target_xy = None
-            
-            if _is_player_target and _target_id:
-                # NPC подходит к игроку
-                _fast_actor = _target_id
-                _player_pos = ctx.scene_state.get("npc_positions", {}).get("player", {}).get("local_position", {"x": 0.0, "y": 0.0})
-                _fast_target_xy = (_player_pos.get("x", 0.0), _player_pos.get("y", 0.0))
-            elif _is_npc_target and _target_id:
-                # Игрок подходит к NPC
-                _fast_actor = "player"
-                _npc_pos = ctx.scene_state.get("npc_positions", {}).get(_target_id, {}).get("local_position", {"x": 0.0, "y": 0.0})
-                _fast_target_xy = (_npc_pos.get("x", 0.0), _npc_pos.get("y", 0.0))
+                        
+                logger.warning(f"[FAST_PATH_DEBUG] actor={_fast_actor} target={_target_id}")
             
             if _fast_actor and _fast_target_xy:
                 from app.domain.movement import LocalSteeringGoal

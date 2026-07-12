@@ -133,7 +133,7 @@ class PerceptionPhysicsEngine:
             signal_id=str(uuid.uuid4()),
             target_id=target_id,
             channel=channel,
-            field_name=field,
+            field=field,
             perceived_value=value,
             confidence=confidence,
             perceived_at=tick,

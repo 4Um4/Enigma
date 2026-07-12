@@ -129,12 +129,16 @@ class MovementEngine:
                 # LOD0: Микро-перемещение обрабатывается напрямую, без SpatialService
                 changes.extend(self._resolve_micro_movement(intent, tick, npc_positions))
             elif isinstance(intent, MacroMovementGoal):
-                target_loc = intent.location_id or "__UNKNOWN__"
                 # S91.1: Cross-location routing intercept (ДОЛГ 6.2)
                 # Если цель в другом чанке, направляем NPC в boundary node текущего чанка.
-                if scene_state and target_loc != "__UNKNOWN__":
-                    current_loc = npc_positions.get(intent.npc_id, {}).get("location_id", scene_state.get("location_id", ""))
-                    if current_loc and target_loc != current_loc:
+                current_loc = npc_positions.get(intent.npc_id, {}).get("location_id", scene_state.get("location_id", "")) if scene_state else ""
+                # ADR-FIX: Надёжно определяем целевую локацию из префикса target_node_id (напр. "city_gate:exit_west")
+                if ":" in intent.target_node_id:
+                    target_loc = intent.target_node_id.split(":")[0]
+                else:
+                    target_loc = intent.location_id or current_loc
+                
+                if scene_state and current_loc and target_loc != current_loc:
                         current_svc = self._resolve_spatial_service(current_loc, campaign_id, scene_state)
                         if current_svc:
                             boundary_node = current_svc.get_boundary_to_neighbor(target_loc)

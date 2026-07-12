@@ -18,7 +18,7 @@ def test_lod1_has_priority_over_lod0_in_arbitration():
     """Если NPC имеет и Macro (LOD1) и Micro (LOD0) интенты, Macro идет первым."""
     # Симулируем ввод: Micro пришел первым (например, реактивное уклонение)
     macro = MacroMovementGoal(npc_id="test_npc", target_node_id="bar_area")
-    micro = LocalSteeringGoal(npc_id="test_npc", local_target_xy=(5.0, 5.0))
+    micro = LocalSteeringGoal(actor_id="test_npc", local_target_xy=(5.0, 5.0))
     
     movement_intents = [micro, macro] # Неправильный порядок на входе
     
@@ -26,7 +26,7 @@ def test_lod1_has_priority_over_lod0_in_arbitration():
     _merged_intents = []
     _per_npc = {}
     for i in movement_intents:
-        _nid = getattr(i, 'npc_id', None)
+        _nid = getattr(i, 'npc_id', None) or getattr(i, 'actor_id', None)
         if _nid: _per_npc.setdefault(_nid, []).append(i)
         else: _merged_intents.append(i)
         
@@ -49,7 +49,7 @@ def test_single_intent_passes_unaffected():
     _merged_intents = []
     _per_npc = {}
     for i in movement_intents:
-        _nid = getattr(i, 'npc_id', None)
+        _nid = getattr(i, 'npc_id', None) or getattr(i, 'actor_id', None)
         if _nid: _per_npc.setdefault(_nid, []).append(i)
         else: _merged_intents.append(i)
         

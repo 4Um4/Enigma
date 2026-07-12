@@ -78,3 +78,4 @@ class IntentResolution:
     """
     original_intent: IntentDTO
     pressure_profile: IntentPressureProfile = field(default_factory=IntentPressureProfile)
+    movement_request: Optional["MovementRequest"] = None # ADR-O-315: Готовый контракт движения от Слоя 1

@@ -25,8 +25,9 @@
 **Поток:** Сырой текст → Семантическое поле → Строгие параметры намерения.
 
 **Актуальные DTO:**
-- **`IntentSemanticField`** (`domain/intent_profile.py`): Вероятностное поле. `ActionType`, `TargetZone`, `SemanticAmbiguity`, `EmotionalVector`, `ConfidenceVector`. **ADR-088:** `EmotionalVector` больше не возвращается нулевым. Для `ATTACK` инжектится `aggression=0.8`.
-- **`IntentParametersDTO`** (`domain/intent.py`): Строгий контракт. `semantic_action`, `target_reference`, `target_id`, `physical_force`, `emotional_charge`, `social_pressure`. **ADR-083:** `semantic_action` — приоритетный источник. **ADR-125:** `target_id` — DEPRECATED. 
+- **`IntentSemanticField`** (`domain/intent_profile.py`): Вероятностное поле. `actor_reference`, `ActionType`, `TargetZone`, `SemanticAmbiguity`, `EmotionalVector`, `ConfidenceVector`. **ADR-088:** `EmotionalVector` больше не возвращается нулевым. Для `ATTACK` инжектится `aggression=0.8`. **ADR-O-314:** Добавлено `actor_reference` (кто действует).
+- **`IntentParametersDTO`** (`domain/intent.py`): Строгий контракт. `semantic_action`, `actor_id`, `target_reference`, `target_id`, `physical_force`, `emotional_charge`, `social_pressure`. **ADR-083:** `semantic_action` — приоритетный источник. **ADR-125:** `target_id` — DEPRECATED. **ADR-O-314:** Добавлено `actor_id` (ID актора).
+- **`MovementRequest`** (`domain/movement.py`): Контракт перемещения от Слоя Интерпретации к Симуляции. Поля: `actor_id` (кто идёт), `target_actor_id` (к кому идёт). **ADR-O-314:** Заменяет гадалку в `TickOrchestrator`.
 - **`InterventionEvent`** (`contracts/interventions.py`): Внешнее вмешательство в мир (TZ-08 v0.2). Ядро не знает 'player', 'world_scheduler' или 'CK successor'. 
   Поля: `source` (str), `payload` (Dict[str, Any]), `tick` (int). 
   Factory: `from_player_action()`. 

@@ -47,6 +47,17 @@ class MacroMovementGoal:
     processor: Optional[str] = field(default=None, init=False)
 
 
+@dataclass(frozen=True)
+class MovementRequest:
+    """Контракт перемещения от Слоя Интерпретации к Симуляции.
+    
+    Содержит готовые ID акторов, извлечённые LLM/IntentCompressor,
+    чтобы Симуляция (TickOrchestrator) не занималась парсингом текста.
+    """
+    actor_id: str           # Кто идёт ("player", "tornin")
+    target_actor_id: str    # К кому идёт ("player", "tornin")
+
+
 @dataclass
 class LocalSteeringGoal:
     """LOD0: Микро-рулежка внутри зоны (уклонение, расхождение, подход).

@@ -20,21 +20,30 @@ from app.services.spatial.spatial_service import SpatialService
 from app.services.scene_state_manager import SceneStateManager
 from app.domain.movement import MovementIntent, PRIORITY_SCHEDULE, PRIORITY_NEEDS
 from app.services.scene_change import SceneChange, ChangeType
+from app.models.spatial_contracts import NodeRef, NodeRole
 
 
 # ── Фикстуры ──────────────────────────────────────────────────────────────
 
+class _DummyGraph:
+    """Заглушка для LocationGraph, возвращающая NodeRef."""
+    def __init__(self, location_id: str, nodes: dict):
+        self.location_id = location_id
+        self._nodes = nodes
+
+    def all_nodes(self) -> dict:
+        return self._nodes
+
 @pytest.fixture
 def tavern_graph():
     """Минимальный граф таверны: 3 узла, 2 ребра."""
+    _loc_id = "tavern_silver_wolf"
     nodes = {
-        "main_hall": LocationNode(node_id="main_hall", x=10.0, y=10.0, connections=("bar_area", "bed")),
-        "bar_area": LocationNode(node_id="bar_area", x=5.0, y=5.0, connections=("main_hall",)),
-        "bed": LocationNode(node_id="bed", x=15.0, y=15.0, connections=("main_hall",)),
+        "main_hall": NodeRef(node_id="main_hall", role=NodeRole.DEFAULT, tags=[], x=10.0, y=10.0, zone_id=_loc_id),
+        "bar_area": NodeRef(node_id="bar_area", role=NodeRole.BAR, tags=[], x=5.0, y=5.0, zone_id=_loc_id),
+        "bed": NodeRef(node_id="bed", role=NodeRole.BED, tags=[], x=15.0, y=15.0, zone_id=_loc_id),
     }
-    graph = LocationGraph(location_id="tavern_silver_wolf", nodes=nodes)
-    # Публичный доступ для тестов
-    graph.nodes = graph.all_nodes()
+    graph = _DummyGraph(location_id=_loc_id, nodes=nodes)
     return graph
 
 

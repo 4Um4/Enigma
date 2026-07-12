@@ -953,7 +953,6 @@ class NPCStateAdapter:
             emotion = _emotion_from_str(npc_dict.get("emotion", "neutral")),
             emotion_delta = float(npc_dict.get("emotion_delta", 0.0)),
         )
-        return state
 
 # ─────────────────────────────────────────────────────────────────────────────
 # NPCPersonality builder — из legacy dict

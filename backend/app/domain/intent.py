@@ -17,6 +17,7 @@ class IntentParametersDTO:
     Убивает Dict[str, Any] и энтропию транспорта.
     """
     semantic_action: Optional[str] = None
+    actor_id: Optional[str] = None      # ADR-O-315: Кто совершает действие ("player", "tornin")
     target_reference: Optional[str] = None
     target_id: Optional[str] = None  # DEPRECATED ADR-125: Factually dead. Truth goes via PlayerTargetExtractor + intent.target. Kept as archaeological divergence indicator during migration.
     physical_force: float = 0.1

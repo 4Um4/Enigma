@@ -44,7 +44,7 @@ class LlamaCppCompressorClient:
         return f"""You are a Semantic Parser. Translate player input into a strict JSON schema.
 Allowed action_types: [MOVE, OBSERVE, INTERACT, ATTACK, THREATEN, PERSUADE, FLIRT, STEAL, GIVE, UNCERTAIN].
 Target zones: [HEAD, TORSO, ARMS, LEGS, GROIN, UNDEFINED].
-Extract: action_type, target_reference (string, not ID), target_zone, physical_force, emotional_charge, social_pressure, commitment_level (all 0.0-1.0), tool_reference (string), and emotional vector (aggression, fear, shame, confidence, desperation).
+Extract: action_type, actor_reference (who is doing the action, e.g., "player", "tornin", "I"), target_reference (string, not ID), target_zone, physical_force, emotional_charge, social_pressure, commitment_level (all 0.0-1.0), tool_reference (string), and emotional vector (aggression, fear, shame, confidence, desperation).
 If unsure, set action_type to UNCERTAIN.
 Input: "{raw_text}"
 Context: {json.dumps(scene_context)}"""

@@ -79,6 +79,10 @@
   Taboo: ❌ `visibility()` с неправильным порядком аргументов. ❌ Отсутствие `normalize_scene_state()`
   Files: spatial_runtime.py, scene_state_manager.py
 
+`ADR-O-314` [ONTO] **Actor-Agnostic Spatial Contract & Interpretation Layer Authority** — `TickOrchestrator` лишён права гадать об акторе движения по тексту. Введён доменный контракт `MovementRequest`, заполняемый Слоем Интерпретации. `LocalSteeringGoal` переведён на `actor_id`. Убито легаси `player_spatial`.
+  Taboo: ❌ Парсинг текста игрока и вычисление дистанций для определения актора в `TickOrchestrator`. ❌ Использование `npc_id` в `LocalSteeringGoal`. ❌ Дублирование позиций игрока в `player_spatial`.
+  Files: domain/movement.py, domain/intent.py, domain/intent_profile.py, services/input/intent_compressor.py, services/input/llm_compressor_client.py, services/game_loop/phase_1_input.py, services/tick_orchestrator.py, services/spatial/movement_engine.py, services/scene_state_manager.py
+
 `ADR-134` [FIX] **DRF Split-Brain (Instance-Level Bus)** — DRFBus перенесён на уровень экземпляра оркестратора
   Taboo: ❌ `DRFBus` через `default_factory=DRFBus` в `_TickContext`
   Files: tick_orchestrator.py

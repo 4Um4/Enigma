@@ -68,6 +68,7 @@ class CrowdThreatLevel(float, Enum):
 class IntentSemanticField(BaseModel):
     """Слой 1: Вероятностная реконструкция намерения. Не команда, а поле."""
     action_type: ActionType
+    actor_reference: Optional[str] = Field(default=None, description="Сырая ссылка на актора: 'я', 'торнин', 'он'")
     target_reference: Optional[str] = Field(default=None, description="Сырая ссылка: 'борко', 'тот мужик'")
     target_zone: TargetZone = Field(default=TargetZone.UNDEFINED)
     physical_force: float = Field(default=0.1, ge=0.0, le=1.0)

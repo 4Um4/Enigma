@@ -17,6 +17,7 @@ from difflib import get_close_matches
 from app.domain.events import EventDTO
 from app.domain.intent import IntentDTO, IntentParametersDTO
 from app.domain.intent_profile import IntentSemanticField, ActionType
+from app.domain.movement import MovementRequest
 from app.models.will import IntentResolution
 from app.services.events.event_bus import get_event_bus
 from app.services.events.event_types import EventType
@@ -60,6 +61,38 @@ def _resolve_target_reference(field: IntentSemanticField, scene_context: Any) ->
     matches = get_close_matches(ref, npc_name_map.keys(), n=1, cutoff=0.6)
     return npc_name_map[matches[0]] if matches else ""
 
+def _resolve_actor_reference(field: IntentSemanticField, scene_context: Any) -> str:
+    """ADR-O-315: Разрешение актора (Кто идёт?). 
+    Возвращает ID актора ("player", "tornin") или пустую строку.
+    """
+    if not field.actor_reference:
+        return "player"  # По умолчанию действие совершает игрок
+    
+    ref = field.actor_reference.lower()
+    
+    # Проверяем алиасы игрока
+    _player_aliases = {"я", "меня", "мне", "мы", "нас", "нам", "player"}
+    if ref in _player_aliases:
+        return "player"
+        
+    # Если это не игрок, используем fuzzy matching по NPC (как в _resolve_target_reference)
+    npc_name_map = {}
+    if isinstance(scene_context, dict):
+        for npc in scene_context.get("all_npcs_raw", []):
+            if isinstance(npc, dict) and npc.get("name") and npc.get("npc_id"):
+                npc_name_map[npc["name"].lower()] = npc["npc_id"]
+        if not npc_name_map:
+            for npc_id, pos_data in scene_context.get("npc_positions", {}).items():
+                if isinstance(pos_data, dict):
+                    if _name := pos_data.get("display_name") or pos_data.get("name"):
+                        npc_name_map[_name.lower()] = npc_id
+
+    if not npc_name_map:
+        return ""
+        
+    matches = get_close_matches(ref, npc_name_map.keys(), n=1, cutoff=0.6)
+    return npc_name_map[matches[0]] if matches else ""
+
 def resolve_player_intent(
     raw_action: str,
     action_type: str,
@@ -93,6 +126,8 @@ def resolve_player_intent(
     
     # 2. Слой 2: Разрешение цели (Строка -> ID)
     resolved_target_id = _resolve_target_reference(semantic_field, scene_context)
+    # ADR-O-315: Разрешение актора (Кто действует?)
+    resolved_actor_id = _resolve_actor_reference(semantic_field, scene_context)
     
     # Формируем канонический IntentDTO
     final_action = semantic_field.action_type.value
@@ -104,6 +139,7 @@ def resolve_player_intent(
     # Система должна знать, что действие неопределено, а не считать, что его нет.
     _intent_params = IntentParametersDTO(
         semantic_action=semantic_field.action_type.value,
+        actor_id=resolved_actor_id, # ADR-O-315: Инъекция ID актора
         target_reference=semantic_field.target_reference,
         target_id=resolved_target_id, # Инъекция ID из Слоя 2
         physical_force=semantic_field.physical_force,
@@ -132,7 +168,19 @@ def resolve_player_intent(
     # а не IntentDTO, чтобы использовать physical_force и emotional_charge.
     pressure = resolve_intent_pressure(intent)
     
-    return IntentResolution(original_intent=intent, pressure_profile=pressure)
+    # ADR-O-315: Сборка готового контракта движения для Симуляции
+    _movement_req = None
+    if semantic_field.action_type == ActionType.MOVE and resolved_actor_id and resolved_target_id:
+        _movement_req = MovementRequest(
+            actor_id=resolved_actor_id,
+            target_actor_id=resolved_target_id
+        )
+    
+    return IntentResolution(
+        original_intent=intent, 
+        pressure_profile=pressure,
+        movement_request=_movement_req
+    )
 
 
 # --- LEGACY PUBLISHERS (оставлены для совместимости) ---

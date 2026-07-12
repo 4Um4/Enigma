@@ -116,8 +116,16 @@ class IntentCompressor:
         elif matched_action == ActionType.MOVE:
             _semantic = EmotionalVector(confidence=0.6)
         
+        # ADR-O-315: Fast path по умолчанию считает актора игроком ("я"), 
+        # если в тексте нет явного указания на 3-е лицо ("пусть торнин уйдёт").
+        _actor_ref = "player"
+        _third_person_indicators = {"он", "она", "оно", "они"}
+        if not lemmas.isdisjoint(_third_person_indicators):
+            _actor_ref = target_ref if target_ref else None
+
         return IntentSemanticField(
             action_type=matched_action,
+            actor_reference=_actor_ref,
             target_reference=target_ref,
             raw_text=raw_text,
             physical_force=physical,
@@ -141,6 +149,7 @@ class IntentCompressor:
         try:
             return IntentSemanticField(
                 action_type=llm_response.get("action_type", ActionType.UNCERTAIN),
+                actor_reference=llm_response.get("actor_reference"),
                 target_reference=llm_response.get("target_reference"),
                 target_zone=llm_response.get("target_zone", TargetZone.UNDEFINED),
                 physical_force=float(llm_response.get("physical_force", 0.5)),

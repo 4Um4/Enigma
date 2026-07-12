@@ -6,7 +6,8 @@
 """
 
 from __future__ import annotations
-from dataclasses import dataclass, field
+import dataclasses
+from dataclasses import dataclass
 from typing import Dict, Any, Tuple
 
 @dataclass(frozen=True)
@@ -31,7 +32,7 @@ class PerceivedSignal:
     signal_id: str                 # UUID
     target_id: str                 # Кого касается
     channel: str                   # body_manifestation | gaze | voice | ...
-    field_name: str                # tremor | muscle_tension | ...
+    field: str                     # tremor | muscle_tension | ...
     
     perceived_value: Any           # float, bool, str или None
     confidence: float              # 0.0-1.0 (вычисляется из resolution и signal_salience)
@@ -44,4 +45,4 @@ class PerceivedSignal:
     lighting: float
     
     # Искажения (что повлияло на точность)
-    distortions: Dict[str, float] = field(default_factory=dict)
+    distortions: Dict[str, float] = dataclasses.field(default_factory=dict)

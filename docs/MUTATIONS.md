@@ -29,6 +29,16 @@
 
 ## 1. ДОМЕНЫ И ЭВОЛЮЦИЯ
 
+- 🔵 **S96** Actor-Agnostic Spatial Contract (ADR-O-314).
+  - **Проблема:** `TickOrchestrator` парсил текст игрока ("подойди ко мне") и вычислял дистанции, чтобы угадать, кто идёт (актор), нарушая слоевую архитектуру и принцип Epistemic Grounding (§13.2). Существовало легаси-дублирование `player_spatial` рядом с `npc_positions["player"]`.
+  - **Решение:** 
+    - Введён доменный контракт `MovementRequest(actor_id, target_actor_id)`.
+    - `LocalSteeringGoal` переведён с `npc_id` на `actor_id`.
+    - `IntentSemanticField` и `IntentParametersDTO` расширены полем `actor_reference` / `actor_id`.
+    - Слой Интерпретации (`intent_compressor.py`, `phase_1_input.py`) обновлён для извлечения актора через LLM/Fast-Path и сборки `MovementRequest`.
+    - `TickOrchestrator._process_player_dm_action` очищен от 80 строк спагетти-кода (угадывание цели, вычисление дистанции). Теперь он просто читает готовый `MovementRequest`.
+    - Хак синхронизации `player_spatial` в `SceneStateManager` удалён. Единственный источник истины позиций — `npc_positions["player"]`.
+
 - 🔵 **S89** ТЗ-09: Execution Pipeline Collapse.
   - Уничтожено ветвление `_phase_5_player_decision` / `_phase_5_decision`. 
   - Введены `TickState` (deep immutable snapshot) и `TickMutation` (pure result).
