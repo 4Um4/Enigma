@@ -14,8 +14,8 @@ path: backend/app/services/game_loop/time_advance.py
 Назначение: Вынос расчёта продвижения игрового времени из init.py
 """
 
-import re
 import logging
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -30,14 +30,14 @@ def advance_game_time(
     Фаза 4 — время продвигается от действий, не от тиков.
     Обновляет total_seconds в shared_context и time_of_day в scene_state.
     """
-    from app.core.constants import (
-        TIME_DIALOG_BASE,
-        TIME_DIALOG_PER_CHAR,
-        TIME_DIALOG_MAX,
-        TIME_DELTA_WALK_INDOOR,
-        TIME_DELTA_TELEGRAPH,
-    )
     from app.core.calendar import Calendar
+    from app.core.constants import (
+        TIME_DELTA_TELEGRAPH,
+        TIME_DELTA_WALK_INDOOR,
+        TIME_DIALOG_BASE,
+        TIME_DIALOG_MAX,
+        TIME_DIALOG_PER_CHAR,
+    )
 
     # Время диалога: базовое + длина ввода игрока (скорость речи NPC ~10 симв/с)
     if action_type in ("dialogue", "player_interacts"):

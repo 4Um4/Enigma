@@ -5,7 +5,14 @@
   "_mixins": [],
   "id": "merchant_goran",
   "name": "Купец Горан",
-  "name_forms": ["горан", "горана", "горану", "гораном", "горане", "купец горан"],
+  "name_forms": [
+    "горан",
+    "горана",
+    "горану",
+    "гораном",
+    "горане",
+    "купец горан"
+  ],
   "tier": "major",
   "gender": "мужской",
   "description": "Полный купец средних лет в богатых одеждах, пальцы унизаны перстнями. Улыбка не сходит с лица, но глаза всегда считают выгоду.",
@@ -21,7 +28,10 @@
       "купеческая_гильдия": 3
     }
   },
-  "hidden_truth": ["smuggles_contraband", "owes_money_to_criminals"],
+  "hidden_truth": [
+    "smuggles_contraband",
+    "owes_money_to_criminals"
+  ],
   "drives": {
     "control": 0.2,
     "significance": 0.25,
@@ -47,31 +57,57 @@
     {
       "summary": "Месяц назад партия контрабандного шёлка перехвачена стражей. Ты потерял 300 золотых. Криминалы требуют вернуть втрое.",
       "importance": 0.9,
-      "tags": ["contraband", "debt", "criminals", "fear"],
+      "tags": [
+        "contraband",
+        "debt",
+        "criminals",
+        "fear"
+      ],
       "is_secret": true,
-      "known_by": ["merchant_goran"],
-      "hidden_from": ["player", "guard_borko", "tavern_keeper_tornin"],
+      "known_by": [
+        "merchant_goran"
+      ],
+      "hidden_from": [
+        "player",
+        "guard_borko",
+        "tavern_keeper_tornin"
+      ],
       "accessibility": 1.0,
       "decay_rate": 0.001
     },
     {
       "summary": "Ты подкупал стражника на заставе два года. Знаешь его слабости.",
       "importance": 0.7,
-      "tags": ["corruption", "guard", "bribe"],
+      "tags": [
+        "corruption",
+        "guard",
+        "bribe"
+      ],
       "is_secret": true,
-      "known_by": ["merchant_goran", "guard_borko"],
-      "hidden_from": ["player", "tavern_keeper_tornin"],
+      "known_by": [
+        "merchant_goran",
+        "guard_borko"
+      ],
+      "hidden_from": [
+        "player",
+        "tavern_keeper_tornin"
+      ],
       "accessibility": 0.85,
       "decay_rate": 0.002
     },
     {
       "summary": "Гильдия купцов подозревает тебя в махинациях. Следующий аудит — через месяц.",
       "importance": 0.8,
-      "tags": ["guild", "suspicion", "deadline"],
+      "tags": [
+        "guild",
+        "suspicion",
+        "deadline"
+      ],
       "is_secret": false,
       "emotion_tag": "fearful",
       "accessibility": 1.0,
       "decay_rate": 0.001
     }
-  ]
+  ],
+  "core_orientation": "wealth_creator"
 }

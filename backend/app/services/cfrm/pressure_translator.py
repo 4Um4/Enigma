@@ -1,12 +1,13 @@
 import logging
-from typing import Optional, Dict, Any
-from app.models.cfrm import PsychologicalPressure
-from app.models.npc_state import PerceptualKernel
+from typing import Any, Dict, Optional
+
 from app.domain.decision_context import (
+    ActionSpaceCompression,
     DecisionContext,
     UtilityFieldDeformation,
-    ActionSpaceCompression,
 )
+from app.models.cfrm import PsychologicalPressure
+from app.models.npc_state import PerceptualKernel
 from app.services.npc.behavior_modifiers import compute_behavior_modifiers
 
 logger = logging.getLogger(__name__)

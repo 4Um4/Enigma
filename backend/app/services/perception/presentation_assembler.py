@@ -6,7 +6,8 @@
 """
 
 import logging
-from typing import Dict, Any, List
+from typing import List
+
 from app.domain.observed_fact import ObservedFact
 from app.domain.observed_facts import ObservedFactEntry, ObservedFactsBundle
 

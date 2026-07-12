@@ -6,12 +6,13 @@
 """
 
 import logging
-import uuid
 import os
+import uuid
+from typing import Dict, List
+
 import yaml
-from typing import Any, List, Dict
-from app.domain.observed_fact import ObservedFact
 from app.domain.inference import Inference
+from app.domain.observed_fact import ObservedFact
 
 logger = logging.getLogger(__name__)
 

@@ -12,11 +12,11 @@ path: backend/app/services/npc/pattern_detector.py
 Основные сущности: PatternDetector, EvidenceOfPersistence
 """
 
-import statistics
 import math
-from typing import Dict, Any, List, Optional, Iterable
+import statistics
+from typing import Iterable, List, Optional
 
-from app.domain.identity_events import TraitDriftEvent, EvidenceOfPersistence
+from app.domain.identity_events import EvidenceOfPersistence, TraitDriftEvent
 
 # ADR-O-305A: Абсолютный порог минимума событий.
 # Не зависит от размера окна, только от абсолютного количества наблюдений.

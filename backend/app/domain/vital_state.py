@@ -47,10 +47,9 @@ NPC может быть:
 """
 from __future__ import annotations
 
-
 import logging
 from enum import Enum
-from typing import Dict, Any
+from typing import Any, Dict
 
 logger = logging.getLogger(__name__)
 

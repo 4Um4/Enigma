@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # backend/app/services/economy/transaction_engine.py
 """
 TransactionEngine — движок сделок.
@@ -18,7 +19,7 @@ TransactionEngine — движок сделок.
 
 import logging
 from dataclasses import dataclass
-from typing import Any, Dict, List
+from typing import Dict, List
 
 from app.models.economy import (
     EconomicProfile,

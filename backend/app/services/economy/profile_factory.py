@@ -11,8 +11,7 @@ path: /backend/app/services/economy/profile_factory.py
 """
 from __future__ import annotations
 
-
-from typing import List, Any, Dict, Optional
+from typing import Any, Dict, Optional
 
 from app.models.economy import EconomicProfile, Need, NeedType
 from app.services.economy.psycho_economy import PsychoEconomy

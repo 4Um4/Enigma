@@ -1,10 +1,9 @@
 from __future__ import annotations
+
 # path: backend/app/domain/perception.py
 # Назначение: Контракты феноменологического восприятия (ТЗ EMBODIED UI PERCEPTION).
 # Промежуточные DTO между каузальной симуляцией и линзой игрока.
 # Зависимости: dataclasses, typing
-
-
 from dataclasses import dataclass
 from typing import Literal
 

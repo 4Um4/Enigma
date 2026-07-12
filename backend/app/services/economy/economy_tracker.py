@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # backend/app/services/economy/economy_tracker.py
 """
 EconomyTracker — внешние трекеры для экономической симуляции.
@@ -14,7 +15,7 @@ path: /backend/app/services/economy/economy_tracker.py
 
 
 import logging
-from typing import Any, Dict, Tuple
+from typing import Dict, Tuple
 
 from app.core.constants import DAILY_EXPENSES_MIN, TICKS_PER_DAY
 from app.models.economy import EconomicProfile, NeedType

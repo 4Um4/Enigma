@@ -1,4 +1,3 @@
-from typing import Any, Dict, List, Optional
 """
 path: backend/app/services/npc/behavior_modifiers.py
 Назначение: Вычисление модификаторов поведения из внутренних состояний NPC.

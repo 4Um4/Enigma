@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Any, Dict, List, Optional
+
 # backend/app/services/events/event_types.py
 #
 # Phase 3B.1 — Event Foundation
@@ -14,7 +14,6 @@ from typing import Any, Dict, List, Optional
 #     sandbox_handler создаёт list[SceneChange] (как раньше)
 #     action/processor.py оборачивает их в EventDTO и публикует в EventBus
 #   Старый код продолжает работать без изменений.
-
 from enum import Enum
 
 
@@ -66,9 +65,9 @@ class EventType(str, Enum):
     PLAYER_ASKS_WHY = "player_asks_why"
     PLAYER_INTERACTS = "player_interacts"
     PLAYER_ATTACKS = "player_attacks"
-    ACTOR_ATTACKS = (
-        "actor_attacks"  # ADR-O-112: Универсальная атака (NPC→Player, NPC→NPC)
-    )
+    ACTOR_ATTACKS = "actor_attacks"  # ADR-O-112: Универсальная атака (NPC→Player, NPC→NPC)
+    # ── Траектория (Внешний анализ для DM/Мира) ─────────────────────────
+    FATE_EVENT = "fate_event"  # Классификация жизненного пути NPC (Rising/Stable/Declining/Collapsed)
     WILL_CONFLICT = "will_conflict"
     PLAYER_ATTACK = "player_attack"
     PLAYER_INSULTS = "player_insults"

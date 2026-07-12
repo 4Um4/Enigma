@@ -3,8 +3,8 @@ import logging
 from pathlib import Path
 from typing import Optional
 
-from app.models.schemas import CharacterSheet
 from app.models.character import CharacterProfile
+from app.models.schemas import CharacterSheet
 
 logger = logging.getLogger(__name__)
 

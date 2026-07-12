@@ -15,7 +15,6 @@ from typing import List
 
 from app.services.player_cognition.types import PerceivedEntity
 
-
 # === Веса компонентов ===
 _CLARITY_WEIGHT = 0.30
 _RECOGNITION_WEIGHT = 0.20

@@ -13,8 +13,9 @@ path: /frontend/map_editor/sprite_registry.py
 """
 
 import os
-import pygame
 from typing import Dict, Optional, Tuple
+
+import pygame
 
 # Базовая директория с палитрами
 _BASE_DIR = os.path.join(os.path.dirname(__file__), "pixels", "2-Bit Pack")

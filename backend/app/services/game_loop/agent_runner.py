@@ -13,9 +13,9 @@ import asyncio
 import logging
 import time
 
-from app.services.vram_monitor import get_vram_monitor
 from app.services.error_interpreter import get_error_interpreter
 from app.services.logging_tools import jsonl_log
+from app.services.vram_monitor import get_vram_monitor
 
 logger = logging.getLogger(__name__)
 
@@ -127,8 +127,9 @@ async def yield_model_info(state):
 
     logger = logging.getLogger(__name__)
     try:
-        from app.services.llm.router import get_router as get_llm_router, Capability
         from app.services.llm.provider_manager import get_model_pool
+        from app.services.llm.router import Capability
+        from app.services.llm.router import get_router as get_llm_router
 
         _pe = state.shared_context.python_engines
         npc_contexts = _pe.get("npc_contexts", []) if isinstance(_pe, dict) else []

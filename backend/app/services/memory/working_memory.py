@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # backend/app/services/memory/working_memory.py
 """
 R1.2 / R5.1 — Working Memory: скользящее окно событий в RAM.
@@ -9,6 +10,7 @@ R5.1: поддержка EventMemory с decay lifecycle.
 
 from collections import deque
 from typing import Any, Dict, List, Tuple, Union
+
 from app.models.npc_state import EventMemory, MemoryStage
 
 # Константа из Now.md — не магическое число

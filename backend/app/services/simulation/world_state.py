@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # backend/app/services/simulation/world_state.py
 #
 # Phase 3B.2 — WorldState + World Token Budget
@@ -16,8 +17,6 @@ from __future__ import annotations
 #
 # Лимит: 2048 токенов на весь контекст мира.
 # Оценка: ~4 символа/токен (быстро, без tiktoken).
-
-
 import dataclasses
 import json
 import logging

@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # backend\app\services\llm\router.py
 """
 Model Router - Capability-based LLM Routing with Lazy Loading
@@ -18,22 +19,21 @@ Features:
 
 
 import asyncio
+import logging
 import threading
-from enum import Enum
-from app.services.logging_tools import jsonl_log
-
 import time
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Optional
 
-import logging
+from app.services.logging_tools import jsonl_log
 
 logger = logging.getLogger(__name__)
 # Корневой логгер для критической телеметрии, чтобы обойти фильтрацию уровней дочерних логгеров
 _root_logger = logging.getLogger()
 
 from app.core.config import settings
-from app.services.llm.provider import LlmProvider, GenerationParams, ProviderType
+from app.services.llm.provider import GenerationParams, LlmProvider, ProviderType
 
 
 class Capability(str, Enum):

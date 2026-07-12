@@ -39,7 +39,7 @@ TICK ARCHITECTURE (Блок 1):
 """
 from __future__ import annotations
 
-
+import copy
 import json
 import logging
 import math
@@ -48,17 +48,14 @@ from collections import OrderedDict
 from pathlib import Path
 from typing import List, Optional
 
-from app.services.npc.kernel_rng import KernelRNG
-
 from app.core.config import settings
+from app.domain.movement import PRIORITY_RANDOM, IntentDomain, MacroMovementGoal
+from app.services.npc.kernel_rng import KernelRNG
 from app.services.scene_change import (
-    SceneChange,
     ChangeType,
+    SceneChange,
 )
-from app.domain.movement import MacroMovementGoal, PRIORITY_RANDOM, IntentDomain
 from app.services.spatial.movement_engine import MovementEngine
-
-import copy
 
 logger = logging.getLogger(__name__)
 
@@ -608,20 +605,20 @@ class LifeEngine:
             IDLE_PRESSURE_ACCUM_RATE,
             IDLE_PRESSURE_DECAY_RATE,
         )
-        from app.services.npc.decision_hub import DecisionHub, EventContext
-        from app.services.npc.npc_loader import (
-            load_profile_from_legacy_json,
-            load_l2_state_from_runtime_dict,
-        )
-        from app.services.events.event_types import EventType
+        from app.domain.communication import CommunicationIntent
         from app.models.npc_state import (
             NPCIdentityL1,
             WillState,
             compute_drive_modifiers,
         )
         from app.services.cfrm.pressure_translator import translate_kernel_to_context
+        from app.services.events.event_types import EventType
+        from app.services.npc.decision_hub import DecisionHub, EventContext
         from app.services.npc.interpretation_engine import InterpretationEngine
-        from app.domain.communication import CommunicationIntent
+        from app.services.npc.npc_loader import (
+            load_l2_state_from_runtime_dict,
+            load_profile_from_legacy_json,
+        )
 
         # Читаем из кэша — после Phase 0 там уже мутации (Устав §3.1)
         npcs = self._npc_cache.get(campaign_id)
@@ -1291,8 +1288,8 @@ class LifeEngine:
         Инвариант: после этого метода каждый NPC dict гарантированно имеет
         npc_id, body_state, location_id.
         """
-        from app.models.npc_state import BODY_STATE_HEALTHY
         from app.core.constants import DEFAULT_LOCATION_ID
+        from app.models.npc_state import BODY_STATE_HEALTHY
 
         for npc in npcs:
             if "npc_id" not in npc and "id" in npc:

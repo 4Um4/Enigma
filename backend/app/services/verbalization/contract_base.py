@@ -15,7 +15,7 @@ contract_base.py — абстракция для叙事 контрактов.
 Основные сущности: NarrativeContractProtocol
 """
 
-from typing import List, Dict, Any, Protocol, runtime_checkable
+from typing import Protocol, runtime_checkable
 
 
 @runtime_checkable

@@ -5,9 +5,9 @@ Physics Validator — проверяет физическую и магичес�
 Python считает — LLM только рассказывает последствия.
 """
 
-import re
 import logging
-from typing import NamedTuple, Dict, Any, Callable, Optional
+import re
+from typing import Any, Callable, Dict, NamedTuple, Optional
 
 logger = logging.getLogger(__name__)
 

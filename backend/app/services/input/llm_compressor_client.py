@@ -9,8 +9,7 @@ TODO: В будущем может потребоваться расширить
 """
 
 import json
-import httpx
-from typing import Protocol, Dict, Any, Optional
+from typing import Any, Dict, Optional, Protocol
 
 
 class LLMCompressorClient(Protocol):
@@ -22,7 +21,7 @@ class LLMCompressorClient(Protocol):
 
 
 class LlamaCppCompressorClient:
-    """Реализация для локального llama.cpp сервера. Поддерживает JSON Mode."""
+    """Реализация для локального llama.cpp сервера. Использует OpenAI-совместимый API."""
 
     def __init__(self, base_url: str = "http://127.0.0.1:8080"):
         self.base_url = base_url
@@ -30,29 +29,71 @@ class LlamaCppCompressorClient:
     async def compress_intent(
         self, raw_text: str, scene_context: Dict[str, Any]
     ) -> Optional[Dict[str, Any]]:
-        prompt = self._build_prompt(raw_text, scene_context)
+        import asyncio
+        return await asyncio.to_thread(self._sync_compress, raw_text, scene_context)
+
+    def _sync_compress(self, raw_text: str, scene_context: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Синхронная реализация через urllib (обходит баги прокси и httpx)."""
+        import re
+        import urllib.request
+
+        system_prompt, user_prompt = self._build_prompts(raw_text, scene_context)
         payload = {
-            "prompt": prompt,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
             "temperature": 0.1,
-            "response_format": {"type": "json_object"},  # Строгий JSON
         }
+
         try:
-            async with httpx.AsyncClient(timeout=2.0) as client:
-                response = await client.post(
-                    f"{self.base_url}/completion", json=payload
-                )
-                response.raise_for_status()
-                data = response.json()
-                content = data.get("content", "")
+            data = json.dumps(payload).encode("utf-8")
+            req = urllib.request.Request(
+                f"{self.base_url}/v1/chat/completions",
+                data=data,
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+
+            # S97 FIX: Обход прокси (Throne), который рвёт соединения к localhost
+            proxy_handler = urllib.request.ProxyHandler({})
+            opener = urllib.request.build_opener(proxy_handler)
+
+            with opener.open(req, timeout=15) as response:
+                resp_data = json.loads(response.read().decode("utf-8"))
+                content = resp_data["choices"][0]["message"]["content"]
+
+                # Очистка от markdown разметки (Qwen любит оборачивать в ```json ... ```)
+                json_match = re.search(r'\{.*\}', content, re.DOTALL)
+                if json_match:
+                    content = json_match.group(0)
+
                 return json.loads(content)
-        except (httpx.RequestError, json.JSONDecodeError, KeyError):
+        except (urllib.error.URLError, json.JSONDecodeError, KeyError, IndexError):
             return None
 
-    def _build_prompt(self, raw_text: str, scene_context: Dict[str, Any]) -> str:
-        return f"""You are a Semantic Parser. Translate player input into a strict JSON schema.
-Allowed action_types: [MOVE, OBSERVE, INTERACT, ATTACK, THREATEN, PERSUADE, FLIRT, STEAL, GIVE, UNCERTAIN].
-Target zones: [HEAD, TORSO, ARMS, LEGS, GROIN, UNDEFINED].
-Extract: action_type, actor_reference (who is doing the action, e.g., "player", "tornin", "I"), target_reference (string, not ID), target_zone, physical_force, emotional_charge, social_pressure, commitment_level (all 0.0-1.0), tool_reference (string), and emotional vector (aggression, fear, shame, confidence, desperation).
-If unsure, set action_type to UNCERTAIN.
-Input: "{raw_text}"
-Context: {json.dumps(scene_context)}"""
+    def _build_prompts(self, raw_text: str, scene_context: Dict[str, Any]) -> tuple[str, str]:
+        # Извлекаем имена NPC для подсказки модели
+        npc_names = []
+        if isinstance(scene_context, dict):
+            for pos_data in scene_context.get("npc_positions", {}).values():
+                if isinstance(pos_data, dict) and pos_data.get("name"):
+                    npc_names.append(pos_data["name"])
+
+        names_hint = ", ".join(npc_names) if npc_names else "нет"
+
+        system_prompt = f"""Ты — семантический парсер. Переведи ввод игрока в строгий JSON.
+Допустимые action_types: ["MOVE", "OBSERVE", "INTERACT", "ATTACK", "THREATEN", "PERSUADE", "FLIRT", "STEAL", "GIVE", "UNCERTAIN"].
+Извлеки:
+- action_type: тип действия.
+- actor_reference: КТО совершает действие. Если игрок говорит о себе ("я подойду") — "player". Если приказывает NPC ("Торнин, отойди" или "пусть Торнин уйдёт") — имя NPC (например, "Торнин"). Доступные имена NPC: {names_hint}.
+- target_reference: к кому или к чему направлено действие (строка).
+- target_zone: ["HEAD", "TORSO", "ARMS", "LEGS", "GROIN", "UNDEFINED"].
+- physical_force, emotional_charge, social_pressure, commitment_level: числа от 0.0 до 1.0.
+- semantic: объект с ключами aggression, fear, shame, confidence, desperation (0.0-1.0).
+Если не уверен, установи action_type = "UNCERTAIN".
+Верни ТОЛЬКО валидный JSON без markdown разметки."""
+
+        user_prompt = f"Ввод: \"{raw_text}\"\nКонтекст: {json.dumps(scene_context, ensure_ascii=False)}"
+
+        return system_prompt, user_prompt

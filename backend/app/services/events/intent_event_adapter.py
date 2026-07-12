@@ -1,4 +1,3 @@
-from typing import Any, Dict, List, Optional
 # backend/app/services/events/intent_event_adapter.py
 # Назначение: Единственная точка превращения решения NPC в событие (Устав §3.3).
 # Зависимости: domain.communication.CommunicationIntent, domain.events.EventDTO

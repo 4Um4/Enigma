@@ -9,14 +9,13 @@ path: backend/app/services/spatial/spatial_query_service.py
 """
 from __future__ import annotations
 
-
 from typing import Any, Dict, List, Optional
 
+from app.models.cfrm import ClusterOccupancy
 from app.services.spatial.spatial_runtime import (
     euclidean_distance,
     is_line_of_sight_clear,
 )
-from app.models.cfrm import ClusterOccupancy
 
 
 class SpatialQueryService:

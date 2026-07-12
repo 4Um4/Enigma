@@ -7,8 +7,7 @@ backend/app/services/npc/perception_engine.py
 """
 from __future__ import annotations
 
-from typing import Any, Dict, List
-
+from typing import Dict, List
 
 # Маркеры → статус (сумма = воспринимаемый статус)
 MARKER_STATUS: Dict[str, int] = {

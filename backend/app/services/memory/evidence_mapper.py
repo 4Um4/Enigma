@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # backend/app/services/memory/evidence_mapper.py
 """
 EvidenceMapper: EventMemory → Evidence.
@@ -16,13 +17,12 @@ EvidenceMapper: EventMemory → Evidence.
 
 
 from dataclasses import dataclass
-from typing import Dict, Any, TYPE_CHECKING, List, Protocol
+from typing import TYPE_CHECKING, List, Protocol
 
 if TYPE_CHECKING:
     from app.models.npc_state import EventMemory
 
 from app.models.npc.beliefs import BeliefType
-
 
 # ============================================================================
 # Evidence — единица доказательства

@@ -8,6 +8,7 @@ path: diagnostics/health_checkers/invariant_health.py
 """
 
 from __future__ import annotations
+
 from dataclasses import dataclass, field
 from typing import List
 

@@ -6,10 +6,10 @@ map_editor/data_manager.py
 
 import json
 import logging
-from pathlib import Path
-from datetime import datetime
 from copy import deepcopy
-from typing import Dict, List, Optional, Tuple, Any
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 

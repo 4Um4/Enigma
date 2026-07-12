@@ -10,17 +10,16 @@ Local LLM inference using llama.cpp server or CLI
 """
 from __future__ import annotations
 
-
+import json
+import logging
 import os
 import random
 import re
-import json
 import subprocess
 import threading
 import time
-import logging
-import urllib.request
 import urllib.error
+import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Generator
@@ -185,7 +184,9 @@ class LlamaCppProvider(StreamingLlmProvider):
 
         for attempt in range(max_retries):
             try:
-                with urllib.request.urlopen(
+                # S97 FIX: Обход прокси (Throne), который рвёт соединения к localhost
+                _opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+                with _opener.open(
                     req, timeout=settings.llama_cpp_timeout_sec
                 ) as resp:
                     body = json.loads(resp.read().decode("utf-8"))
@@ -370,7 +371,9 @@ class LlamaCppProvider(StreamingLlmProvider):
 
         for attempt in range(max_retries):
             try:
-                with urllib.request.urlopen(
+                # S97 FIX: Обход прокси (Throne)
+                _opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+                with _opener.open(
                     req, timeout=settings.llama_cpp_timeout_sec
                 ) as resp:
                     while True:
@@ -471,7 +474,9 @@ class LlamaCppProvider(StreamingLlmProvider):
         )
 
         try:
-            with urllib.request.urlopen(
+            # S97 FIX: Обход прокси (Throne)
+            _opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+            with _opener.open(
                 req, timeout=settings.llama_cpp_timeout_sec
             ) as resp:
                 while True:
@@ -531,7 +536,9 @@ class LlamaCppProvider(StreamingLlmProvider):
         for endpoint in ["/health", ""]:
             try:
                 url = self.server_url.rstrip("/") + endpoint
-                with urllib.request.urlopen(url, timeout=2) as resp:
+                # S97 FIX: Обход прокси (Throne)
+                _opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+                with _opener.open(url, timeout=2) as resp:
                     if resp.status == 200:
                         return True
             except Exception:

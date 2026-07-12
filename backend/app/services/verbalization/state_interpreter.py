@@ -13,10 +13,10 @@
 """
 
 from dataclasses import dataclass
-from typing import Any, List, Optional, Dict
 from enum import Enum
+from typing import Any, Dict, List, Optional
 
-from app.models.npc_state import NPCState, Intent
+from app.models.npc_state import Intent, NPCState
 from app.models.physical import Condition
 
 

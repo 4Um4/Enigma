@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # backend/app/services/scene/narrative_extractor.py
 # -*- coding: utf-8 -*-
 """
@@ -17,8 +18,7 @@ NarrativeExtractor R2.2.8 — production-hardened.
 import re
 import uuid
 from dataclasses import dataclass, field
-from typing import List, Dict, Any, Optional
-
+from typing import Any, Dict, Optional
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Онтология объектов

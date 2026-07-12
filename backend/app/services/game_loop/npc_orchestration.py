@@ -74,8 +74,8 @@ def run_npc_orchestration(
     # включающий аватара игрока как полноправного Actor'а симуляции.
     ctx.all_npcs_raw = game_loop._load_npcs_with_runtime(campaign_id)
 
-    from app.services.spatial.spatial_query_service import SpatialQueryService
     from app.services.spatial.spatial_factory import SpatialFactory
+    from app.services.spatial.spatial_query_service import SpatialQueryService
 
     _spatial_svc = SpatialFactory.build_for_campaign(
         campaign_id=campaign_id,
@@ -255,7 +255,7 @@ def run_npc_orchestration(
     npc_contexts.extend(_npc_buf.npc_contexts)
     ctx.max_npc_stress = max(ctx.max_npc_stress, _npc_buf.max_npc_stress)
     # B4-FIX: прямые мутации → SceneChange (CAUSAL_CONTRACT §3).
-    from app.services.scene_change import SceneChange, ChangeType
+    from app.services.scene_change import ChangeType, SceneChange
 
     _scene_manager = getattr(game_loop, "scene_manager", None)
     if _scene_manager:

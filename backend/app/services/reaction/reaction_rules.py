@@ -13,11 +13,10 @@ path: /backend/app/services/reaction/reaction_rules.py
 """
 
 import random
-from typing import Dict, Any, List
+from typing import Any, Dict, List
 
 from app.services.npc.decision_hub import DecisionResult, EventContext
 from app.services.reaction.micro_event import MicroEvent, MicroEventType
-
 
 # ── Пороги для триггеров ──────────────────────────────────────────────────────
 _COMPOSURE_DROP_THRESHOLD = 0.4  # ниже — возможно уронить

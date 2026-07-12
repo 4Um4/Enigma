@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # backend/app/services/npc/npc_loader.py
 """
 NPC Profile Loader (Config -> L0 Profile).
@@ -497,6 +498,8 @@ def load_profile_from_legacy_json(raw_data: Dict[str, Any]) -> NPCProfileL0:
             voice_profile=raw_data.get("voice_profile", ""),
             backstory=raw_data.get("backstory", raw_data.get("description", "")),
             author_notes=raw_data.get("author_notes", ""),
+            goal=raw_data.get("goal", ""),
+            core_orientation=raw_data.get("core_orientation", "survival"),
         )
 
         return profile

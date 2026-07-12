@@ -11,6 +11,7 @@ import asyncio
 from unittest.mock import AsyncMock
 
 import pytest
+
 from backend.app.domain.intent_profile import ActionType, SemanticAmbiguity
 from backend.app.services.input.intent_compressor import IntentCompressor
 

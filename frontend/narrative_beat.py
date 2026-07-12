@@ -10,8 +10,8 @@ TODO:
 - Управление временем жизни и анимацией пузырей (lifetime, certainty).
 """
 
-from enum import Enum, auto
 from dataclasses import dataclass
+from enum import Enum, auto
 
 
 class DeliveryType(Enum):

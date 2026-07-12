@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # backend/app/services/memory/resonance_engine.py
 """
 R5.4 — ResonanceEngine: детекция паттернов поверх EventMemory.
@@ -16,10 +17,9 @@ R5.5 — Personality Modulation: один паттерн → разный trait 
 
 
 from dataclasses import dataclass
-from typing import Dict, Any, List, Optional, Sequence
+from typing import List, Optional, Sequence
 
 from app.models.npc_state import EventMemory, MemoryStage, NPCPersonality
-
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Константы паттернов

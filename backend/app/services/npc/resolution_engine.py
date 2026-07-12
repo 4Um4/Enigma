@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # backend/app/services/npc/resolution_engine.py
 """
 ResolutionLayer — стохастическое разрешение намерений NPC.
@@ -21,7 +22,7 @@ ResolutionLayer — стохастическое разрешение намер
 
 import random
 from dataclasses import dataclass, field
-from typing import List, Any, Dict, Optional, Tuple
+from typing import Dict, Optional, Tuple
 
 from app.core.constants import (
     BIAS_WEIGHT,
@@ -33,7 +34,6 @@ from app.core.constants import (
     SURPRISE_THRESHOLD,
 )
 from app.models.npc_state import NPCPersonality, NPCState
-
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Таблица исходов (градиент, не бинарно)

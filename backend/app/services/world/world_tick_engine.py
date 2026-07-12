@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # backend/app/services/world/world_tick_engine.py
 """
 Фаза 3.4 — WorldTickEngine: проактивный цикл NPC между ходами игрока.
@@ -22,10 +23,10 @@ from app.core.constants import (
     PROACTIVE_INTENT_PENALTY,
     WORLD_TICK_EVERY_TURNS,
 )
+from app.domain.events import EventDTO
+from app.models.npc_profile import NPCProfileL0
 from app.models.npc_state import Intent, NPCState, WillState
 from app.models.state_delta import StateDeltas
-from app.models.npc_profile import NPCProfileL0
-from app.domain.events import EventDTO
 from app.services.cfrm.pressure_translator import translate_kernel_to_context
 from app.services.events.event_types import EventType
 
@@ -96,6 +97,8 @@ class WorldTickEngine:
         """
         from app.services.npc.decision_hub import (
             DecisionHub,
+        )
+        from app.services.npc.decision_hub import (
             EventContext as HubEventContext,
         )
 

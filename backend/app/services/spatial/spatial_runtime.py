@@ -24,9 +24,8 @@ TODO: расширение формул — например, добавлени
 """
 from __future__ import annotations
 
-
 import math
-from typing import List, Dict, Any, Iterable, Optional
+from typing import Any, Dict, Iterable, Optional
 
 from app.core.constants import PERCEPTION_FALLBACK_DISTANCE
 

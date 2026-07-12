@@ -6,9 +6,9 @@ path: /project/backend/app/services/phases/input.py
 """
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from typing import Any
-import logging
 
 from app.services.dto import _TickContext
 
@@ -25,8 +25,8 @@ class Phase1InputDeps:
 def publish_player_intent(ctx: _TickContext, intent: Any) -> None:
     """Публикация разрешенного намерения игрока в шину."""
     from app.domain.events import EventDTO
-    from app.services.events.event_types import EventType
     from app.services.events.event_bus import get_event_bus
+    from app.services.events.event_types import EventType
 
     _evt_map = {
         "attack": EventType.PLAYER_ATTACKS,
@@ -98,15 +98,15 @@ def run_phase_1_input(ctx: _TickContext, deps: Phase1InputDeps) -> None:
 
     # 1. Вектор давления берется из результата Фазы 1 (Единая точка вычисления)
     # Повторный вызов resolve_intent_pressure ЗАПРЕЩЕН (каузальная integrity)
-    from app.services.will import resolve_intent_pressure, compute_willpower
+    from app.services.will import compute_willpower, resolve_intent_pressure
 
     pressure = ctx.player_pressure or resolve_intent_pressure(intent)
     psyche = player_dict.get("psyche", {})
 
     # 2. Affect Resonance Scan (Искажение интерпретации реальности)
     # Травма - это не бафф, это искажение. Resonance -> Distortion -> Will.
-    from app.services.affect import scan_affective_resonance, distort_pressure
     from app.models.affect import AffectiveImprint
+    from app.services.affect import distort_pressure, scan_affective_resonance
 
     imprints = tuple(
         AffectiveImprint(**imp) for imp in player_dict.get("affective_imprints", [])
@@ -128,13 +128,13 @@ def run_phase_1_input(ctx: _TickContext, deps: Phase1InputDeps) -> None:
     )
 
     # 4. Маршрутизация исходов
-    from app.models.will import WillState
-    from app.models.state_delta import StateDeltas, DeltaDomain
     from app.models.delta_payloads import (
+        EmotionPayload,
         IdentityPayload,
         WillConflictPayload,
-        EmotionPayload,
     )
+    from app.models.state_delta import DeltaDomain, StateDeltas
+    from app.models.will import WillState
 
     if resonance.trigger_strength > 0.1:
         logger.info(
@@ -289,8 +289,9 @@ def run_phase_1_input(ctx: _TickContext, deps: Phase1InputDeps) -> None:
     # ADR-036: Affective Conditioning (Sensitization & New Trauma)
     # Аватар учится через боль. Травма укрепляется при подавлении воли.
     if will_response.identity_damage > 0 or resonance.trigger_strength > 0.1:
-        from app.services.affect import apply_conditioning
         from dataclasses import asdict
+
+        from app.services.affect import apply_conditioning
 
         current_game_time = ctx.scene_state.get("game_time_seconds", 0)
         updated_imprints = apply_conditioning(

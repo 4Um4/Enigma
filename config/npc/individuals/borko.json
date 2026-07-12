@@ -5,7 +5,14 @@
   "_mixins": [],
   "id": "guard_borko",
   "name": "Стражник Борко",
-  "name_forms": ["борко", "борка", "борку", "борком", "борке", "стражник борко"],
+  "name_forms": [
+    "борко",
+    "борка",
+    "борку",
+    "борком",
+    "борке",
+    "стражник борко"
+  ],
   "tier": "major",
   "gender": "мужской",
   "description": "Дородный стражник в городской броне, копьё прислонено к стене. Скучающий взгляд, но глаза цепкие — замечает всё что плохо лежит.",
@@ -21,7 +28,10 @@
       "стража_города": 2
     }
   },
-  "hidden_truth": ["takes_bribes", "lazy"],
+  "hidden_truth": [
+    "takes_bribes",
+    "lazy"
+  ],
   "drives": {
     "control": 0.4,
     "significance": 0.3,
@@ -47,11 +57,31 @@
     }
   },
   "activity_map": {
-    "drinking": { "location": "tavern_silver_wolf", "position": "corner_table", "display": "drinking" },
-    "sleeping": { "location": "tavern_silver_wolf", "position": "corner_table", "display": "sleeping" },
-    "working": { "location": "city_gate", "position": "entrance", "display": "on_duty" },
-    "guarding_gate": { "location": "city_gate", "position": "entrance", "display": "guarding_gate" },
-    "on_duty": { "location": "city_gate", "position": "entrance", "display": "guarding_gate" }
+    "drinking": {
+      "location": "tavern_silver_wolf",
+      "position": "corner_table",
+      "display": "drinking"
+    },
+    "sleeping": {
+      "location": "tavern_silver_wolf",
+      "position": "corner_table",
+      "display": "sleeping"
+    },
+    "working": {
+      "location": "city_gate",
+      "position": "entrance",
+      "display": "on_duty"
+    },
+    "guarding_gate": {
+      "location": "city_gate",
+      "position": "entrance",
+      "display": "guarding_gate"
+    },
+    "on_duty": {
+      "location": "city_gate",
+      "position": "entrance",
+      "display": "guarding_gate"
+    }
   },
   "location": "tavern_silver_wolf",
   "hp": 30,
@@ -60,41 +90,79 @@
     {
       "summary": "Год назад пропустил через ворота караван без досмотра. Утром обнаружили труп в переулке. Ты так и не узнал, было ли это связано.",
       "importance": 0.85,
-      "tags": ["negligence", "death", "guilt", "unsolved"],
+      "tags": [
+        "negligence",
+        "death",
+        "guilt",
+        "unsolved"
+      ],
       "is_secret": true,
-      "known_by": ["guard_borko"],
-      "hidden_from": ["player", "merchant_goran", "tavern_keeper_tornin"],
+      "known_by": [
+        "guard_borko"
+      ],
+      "hidden_from": [
+        "player",
+        "merchant_goran",
+        "tavern_keeper_tornin"
+      ],
       "accessibility": 0.9,
       "decay_rate": 0.002
     },
     {
       "summary": "Тебе нравится быть вуайеристом-обсервером - наблюдать за сексом кузнеца и Люси.",
       "importance": 0.95,
-      "tags": ["bribe", "merchant_goran", "corruption"],
+      "tags": [
+        "bribe",
+        "merchant_goran",
+        "corruption"
+      ],
       "is_secret": true,
-      "known_by": ["guard_borko", "merchant_goran"],
-      "hidden_from": ["player", "tavern_keeper_tornin", "maid_lusya"],
+      "known_by": [
+        "guard_borko",
+        "merchant_goran"
+      ],
+      "hidden_from": [
+        "player",
+        "tavern_keeper_tornin",
+        "maid_lusya"
+      ],
       "accessibility": 0.85,
       "decay_rate": 0.002
     },
     {
       "summary": "Купец Горан платит тебе по 5 золотых в месяц за 'глаз да глаз' на заставе.",
       "importance": 0.7,
-      "tags": ["bribe", "merchant_goran", "corruption"],
+      "tags": [
+        "bribe",
+        "merchant_goran",
+        "corruption"
+      ],
       "is_secret": true,
-      "known_by": ["guard_borko", "merchant_goran"],
-      "hidden_from": ["player", "tavern_keeper_tornin", "maid_lusya"],
+      "known_by": [
+        "guard_borko",
+        "merchant_goran"
+      ],
+      "hidden_from": [
+        "player",
+        "tavern_keeper_tornin",
+        "maid_lusya"
+      ],
       "accessibility": 0.85,
       "decay_rate": 0.002
     },
     {
       "summary": "Командир обещал повышение, если 'сделаешь одно дело'. Ты отказался. После этого — ни одного повышения.",
       "importance": 0.6,
-      "tags": ["career", "regret", "commander"],
+      "tags": [
+        "career",
+        "regret",
+        "commander"
+      ],
       "is_secret": false,
       "emotion_tag": "angry",
       "accessibility": 1.0,
       "decay_rate": 0.003
     }
-  ]
+  ],
+  "core_orientation": "wealth_creator"
 }

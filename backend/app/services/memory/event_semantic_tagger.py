@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # backend/app/services/memory/event_semantic_tagger.py
 """
 Интерпретационный слой: EventContext → semantic tags.
@@ -15,8 +16,7 @@ from __future__ import annotations
   Логика агрегации не меняется.
 """
 
-from typing import List, Dict, Any, Tuple
-
+from typing import Tuple
 
 # ============================================================================
 # Маппинг: event_type → frozenset semantic tags

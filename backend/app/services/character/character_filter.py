@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # backend\app\services\character\character_filter.py
 """
 CharacterFilter — психологический фильтр действий персонажа игрока.

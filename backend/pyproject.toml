@@ -13,8 +13,14 @@ dependencies = [
   "uvicorn[standard]==0.30.6",
   "pydantic==2.9.2",
   "pydantic-settings==2.5.2",
+  "python-multipart==0.0.9",
   "psutil==6.0.0",
+  "pypdf==5.1.0",
+  "httpx==0.28.1",
+  "aiohttp==3.10.11",
   "pytest==8.3.3",
+  "pymorphy3",
+  "pygame==2.6.1",
 ]
 
 [project.optional-dependencies]

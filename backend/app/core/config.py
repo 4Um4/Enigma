@@ -6,10 +6,11 @@
 # Параметры из Before.md: Temp 0.9 + Min-P 0.1 + Repeat-Penalty 1.12
 # Запуск сервера: llama-server.exe -m ... --flash-attn -ngl 99 -c 8192
 
-from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import Field, model_validator
 from pathlib import Path
 from typing import Dict, Optional
+
+from pydantic import Field, model_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BASE_DIR = Path(__file__).resolve().parents[3]
 

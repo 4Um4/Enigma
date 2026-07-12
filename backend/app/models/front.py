@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # backend/app/models/front.py
 """
 Фаза 5.1 — Fronts: маска персонажа под давлением мира.

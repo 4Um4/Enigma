@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # backend/app/services/memory/relationship_store.py
 """
 R1.4 — Relationship Memory.
@@ -11,7 +12,7 @@ import logging
 import time
 from collections import OrderedDict
 from pathlib import Path
-from typing import List, Any, Dict
+from typing import Any, Dict
 
 logger = logging.getLogger(__name__)
 

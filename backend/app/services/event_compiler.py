@@ -18,7 +18,6 @@ EventCompiler — единственная симуляция мира (ADR-O-20
 """
 from __future__ import annotations
 
-
 import hashlib
 import logging
 import math

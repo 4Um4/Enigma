@@ -11,7 +11,6 @@ Rule 123: SceneChange без полного SpatialResolution при NPC_POSITIO
 """
 from __future__ import annotations
 
-
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Dict, Optional, Tuple

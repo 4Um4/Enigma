@@ -6,12 +6,12 @@ path: /project/backend/app/services/phases/idle_services.py
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import List, Any
 import logging
+from dataclasses import dataclass
+from typing import Any, List
 
-from app.services.dto import _TickContext
 from app.domain.identity_events import TraitDriftEvent
+from app.services.dto import _TickContext
 
 logger = logging.getLogger(__name__)
 
@@ -67,10 +67,11 @@ def run_phase_0_5(ctx: _TickContext, deps: Phase0_5Deps) -> None:
 
     # ADR-036 / ADR-O-302: Affective Decay (Leaky Integrator для памяти)
     # Травмы затухают со временем, если не подкрепляются.
-    from app.services.affect import decay_affective_imprints
-    from app.models.affect import AffectiveImprint
-    from app.core.constants import GAME_TICK_INTERVAL_SECONDS
     from dataclasses import asdict
+
+    from app.core.constants import GAME_TICK_INTERVAL_SECONDS
+    from app.models.affect import AffectiveImprint
+    from app.services.affect import decay_affective_imprints
 
     _current_time = ctx.scene_state.get("game_time_seconds", 0)
     for npc_dict in ctx.all_npcs_raw:

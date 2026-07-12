@@ -5,9 +5,9 @@ path: backend/app/services/scene/salience_engine.py
 Основные сущности: SalienceEngine
 """
 
-from typing import Dict, Any, List, Tuple
-from app.models.scene_mode import SceneMode, determine_scene_mode
+from typing import Any, Dict, List, Tuple
 
+from app.models.scene_mode import SceneMode, determine_scene_mode
 
 # Лимиты количества объектов для каждого режима
 _MODE_LIMITS: Dict[SceneMode, int] = {

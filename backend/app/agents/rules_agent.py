@@ -15,8 +15,9 @@
 
 import random
 from dataclasses import dataclass
-from app.models.schemas import PlayerAction
 from enum import Enum
+
+from app.models.schemas import PlayerAction
 
 
 class ActionType(str, Enum):

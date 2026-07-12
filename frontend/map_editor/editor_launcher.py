@@ -5,8 +5,8 @@ map_editor/editor_launcher.py
 Точка входа для редактора карт R4 Spatial
 """
 
-import sys
 import os
+import sys
 
 # Добавляем текущую директорию в путь
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))

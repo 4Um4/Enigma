@@ -13,6 +13,7 @@ import logging
 from unittest.mock import MagicMock
 
 from app.services.llm.router import ModelRouter
+
 from diagnostics.health_checkers.tick_health import TickHealthChecker
 from diagnostics.pattern_registry import COMPILED
 

@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # backend/app/domain/inference.py
 """
 Файл: backend/app/domain/inference.py

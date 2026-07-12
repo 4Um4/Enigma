@@ -12,7 +12,7 @@ R2-P1: Профиль реакции отношений — как личнос�
 """
 
 from dataclasses import dataclass
-from typing import List, Any, Dict
+from typing import Dict
 
 from app.services.npc.decision.profile_math import drive_multiplier as _drive_multiplier
 

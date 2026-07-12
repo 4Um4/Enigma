@@ -6,9 +6,9 @@ path: /backend/app/domain/execution.py
 """
 from __future__ import annotations
 
-from typing import Protocol, Iterable, Any, Dict, List, Optional
 from dataclasses import dataclass, field
 from enum import Enum
+from typing import Any, Dict, Iterable, List, Optional, Protocol
 
 # ==========================================
 # 1. COMMAND LAYER (Доменные запросы)

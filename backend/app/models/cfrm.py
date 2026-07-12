@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # backend/app/models/cfrm.py
 # Назначение: Доменные структуры Causal Field Reduction Model (CFRM).
 # Мир = система локальных причинных пузырей (кластеров).
@@ -13,6 +14,7 @@ TODO: В будущем можно расширить CFRM, добавив ди�
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import (
+    TYPE_CHECKING,
     Any,
     Dict,
     FrozenSet,
@@ -21,7 +23,6 @@ from typing import (
     Protocol,
     Set,
     Tuple,
-    TYPE_CHECKING,
 )
 
 if TYPE_CHECKING:

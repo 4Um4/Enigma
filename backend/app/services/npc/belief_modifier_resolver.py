@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # backend/app/services/npc/belief_modifier_resolver.py
 """
 Read-path эпистемического слоя.
@@ -15,7 +16,7 @@ Read-path эпистемического слоя.
 """
 
 
-from typing import List, Any, TYPE_CHECKING, Dict
+from typing import TYPE_CHECKING, Dict
 
 if TYPE_CHECKING:
     from app.models.npc.beliefs import BeliefState

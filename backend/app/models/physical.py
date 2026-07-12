@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # backend/app/models/physical.py
 """
 Physical models — структуры для боевой физики.

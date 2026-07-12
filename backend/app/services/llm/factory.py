@@ -12,17 +12,16 @@ LLM Provider Factory
 """
 from __future__ import annotations
 
-
 from app.core.config import settings
 from app.core.settings_dm import dm_settings
 from app.core.settings_npc import npc_settings
-from app.core.settings_world import world_settings
 from app.core.settings_rules import rules_settings
-from app.services.llm.provider import LlmProvider, ProviderType
+from app.core.settings_world import world_settings
 from app.services.llm.llama_cpp_provider import create_llama_cpp_provider
 
 # C5-FIX: Удалены импорты мёртвых провайдеров
 from app.services.llm.mock_provider import create_mock_provider
+from app.services.llm.provider import LlmProvider, ProviderType
 
 
 class ProviderFactory:

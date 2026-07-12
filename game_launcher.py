@@ -12,10 +12,10 @@ backend/game_launcher.py
 Управляет жизненным циклом pygame единообразно для всех подсистем.
 """
 
-import sys
+import logging
 import os
 import subprocess
-import logging
+import sys
 from datetime import datetime
 from pathlib import Path
 
@@ -30,9 +30,9 @@ sys.path.insert(0, os.path.join(_FRONTEND_DIR, "map_editor"))
 sys.path.insert(0, _ROOT)  # нужен для импорта пакета diagnostics/ из корня
 
 import pygame  # noqa: E402
-from game_menu import GameMenu, MenuAction  # noqa: E402
 from campaign_select import CampaignSelectScreen  # noqa: E402
 from character_select import CharacterSelectScreen  # noqa: E402
+from game_menu import GameMenu, MenuAction  # noqa: E402
 from game_screen import GameScreen  # noqa: E402
 
 WINDOW_WIDTH = 1400

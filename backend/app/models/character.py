@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # backend/app/models/character.py
 """
 CharacterProfile — психологический профиль персонажа игрока.
@@ -20,10 +21,10 @@ CharacterProfile — психологический профиль персон�
 """
 
 
+import logging
 from dataclasses import dataclass, field
 from enum import Enum
-import logging
-from typing import Any, Dict, List, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 if TYPE_CHECKING:
     from app.models.front import FrontState

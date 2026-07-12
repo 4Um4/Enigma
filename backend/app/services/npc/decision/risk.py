@@ -12,11 +12,10 @@ R2-P2: Объективный риск + субъективное восприя
   Они встречаются только в perceive_risk().
 """
 
-from typing import List, Any, Dict
+from typing import Any, Dict
 
 from app.models.npc_state import NPCState
 from app.services.npc.decision.risk_profile import RiskPerceptionProfile
-
 
 # ── Видимая сила актора: броня, оружие, габариты ──
 _THREAT_MARKER_VALUES: Dict[str, float] = {

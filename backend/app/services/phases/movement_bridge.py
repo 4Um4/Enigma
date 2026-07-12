@@ -24,8 +24,8 @@ def process_movement_intents(
     if not movement_intents:
         return
 
-    from app.services.spatial.movement_engine import MovementEngine
     from app.domain.movement import LocalSteeringGoal
+    from app.services.spatial.movement_engine import MovementEngine
 
     _merged_intents = []
     _per_npc = {}

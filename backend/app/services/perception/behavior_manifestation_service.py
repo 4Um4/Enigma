@@ -1,4 +1,5 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
+
 """
 Назначение: Сервис для трансформации латентных ограничений NPC в наблюдаемые моторные паттерны, которые могут быть восприняты Игроком. (Переводит казуальные ограничения в физические следы. Не читает эмоции. Только тело.)
 Зависимости: logging, backend.app.domain.embodied_trace
@@ -9,6 +10,7 @@ TODO:
 """
 
 import logging
+
 from app.domain.embodied_trace import EmbodiedTraceDTO
 
 logger = logging.getLogger(__name__)

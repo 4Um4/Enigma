@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # backend/app/services/state/persistence_port.py
 """
 PersistencePort — абстракция сохранения состояния мира.
@@ -7,8 +8,8 @@ PersistencePort — абстракция сохранения состояния
 SceneStateManager использует порт для commit, но не знает КАК сохраняется.
 """
 
-from typing import Any, Dict, List, Optional
 from abc import ABC, abstractmethod
+from typing import Any, Dict, List, Optional
 
 
 class PersistencePort(ABC):

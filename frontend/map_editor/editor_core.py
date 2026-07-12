@@ -3,53 +3,52 @@ map_editor/editor_core.py
 Главный редактор карт - ядро приложения
 """
 
-import pygame
 import json
-from sprite_registry import sprite_registry
 import math
-from typing import Optional, Tuple, Dict, List, Any
-from dataclasses import dataclass
-
 from copy import deepcopy
+from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Tuple
 
+import pygame
+from campaign_manager import CampaignManager
 from data_manager import (
-    DataManager,
-    OBJECT_PRESETS,
     NPC_SPRITE_MAP,
+    OBJECT_PRESETS,
+    DataManager,
     load_npc_individuals,
 )
-from undo_manager import (
-    UndoManager,
-    AddWallCommand,
-    RemoveWallCommand,
-    AddRoomCommand,
-    RemoveRoomCommand,
-    RemoveNodeCommand,
-    AddObjectCommand,
-    RemoveObjectCommand,
-    AddPassageCommand,
-    TogglePassabilityCommand,
-    RotateObjectCommand,
-    MirrorObjectCommand,
-    ResizeObjectCommand,
-    MoveEntityCommand,
-    PasteCommand,
-    CompoundCommand,
-    RenameCommand,
-    AddLabelCommand,
-    RemoveLabelCommand,
-    AddNpcCommand,
-    RemoveNpcCommand,
-)
-from campaign_manager import CampaignManager
+from sprite_registry import sprite_registry
 from ui_components import (
     COLORS,
     Button,
-    ToggleButton,
     Dropdown,
+    DropDownMenu,
     ModalDialog,
     PropertyPanel,
-    DropDownMenu,
+    ToggleButton,
+)
+from undo_manager import (
+    AddLabelCommand,
+    AddNpcCommand,
+    AddObjectCommand,
+    AddPassageCommand,
+    AddRoomCommand,
+    AddWallCommand,
+    CompoundCommand,
+    MirrorObjectCommand,
+    MoveEntityCommand,
+    PasteCommand,
+    RemoveLabelCommand,
+    RemoveNodeCommand,
+    RemoveNpcCommand,
+    RemoveObjectCommand,
+    RemoveRoomCommand,
+    RemoveWallCommand,
+    RenameCommand,
+    ResizeObjectCommand,
+    RotateObjectCommand,
+    TogglePassabilityCommand,
+    UndoManager,
 )
 
 # === Константы редактора ===
@@ -522,8 +521,8 @@ class EditorCore:
     def _dialog_open_folder(self):
         """Открывает системный проводник для выбора папки с campaign.json"""
         import tkinter as tk
-        from tkinter import filedialog
         from pathlib import Path
+        from tkinter import filedialog
 
         # Скрываем мини-окно tkinter
         root = tk.Tk()
@@ -548,8 +547,8 @@ class EditorCore:
     def _dialog_open_file(self):
         """Открывает проводник для выбора JSON-файла локации"""
         import tkinter as tk
-        from tkinter import filedialog
         from pathlib import Path
+        from tkinter import filedialog
 
         root = tk.Tk()
         root.withdraw()
@@ -690,8 +689,8 @@ class EditorCore:
             self._show_toast("Нет открытого файла")
             return
         import tkinter as tk
-        from tkinter import filedialog
         from pathlib import Path
+        from tkinter import filedialog
 
         root = tk.Tk()
         root.withdraw()

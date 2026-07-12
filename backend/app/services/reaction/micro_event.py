@@ -1,7 +1,7 @@
 # Reaction Layer — атомарные физические события без LLM
 from dataclasses import dataclass
 from enum import Enum
-from typing import List, Any, Dict
+from typing import Dict
 
 
 class MicroEventType(Enum):

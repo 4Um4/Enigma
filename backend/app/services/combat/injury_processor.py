@@ -69,13 +69,12 @@ DecayHandler:     -blood_loss * 0.01 каждый тик (свёртывание
 """
 from __future__ import annotations
 
-
 import logging
 from typing import Dict, List
 
 from app.models.delta_payloads import PhysiologyPayload
 from app.models.idle_tick import NPCStateSnapshot
-from app.models.state_delta import StateDeltas, DeltaDomain
+from app.models.state_delta import DeltaDomain, StateDeltas
 
 logger = logging.getLogger(__name__)
 

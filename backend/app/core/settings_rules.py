@@ -1,5 +1,6 @@
-from .config import Settings
 from pathlib import Path
+
+from .config import Settings
 
 ROOT_DIR = Path(__file__).resolve().parents[3]
 BACKEND_DIR = ROOT_DIR / "backend"

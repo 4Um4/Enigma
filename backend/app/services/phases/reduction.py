@@ -8,13 +8,13 @@ Physical слой материализуется перед Cognitive для с�
 """
 
 import logging
-from typing import Optional, Tuple, Callable
+from typing import Callable, Optional, Tuple
 
-from app.models.phase8 import Phase8Context, Phase8Handler, Phase8Result
-from app.models.state_delta import DeltaDomain
-from app.models.delta_payloads import PhysiologyPayload
 from app.domain.identity_events import TraitDriftEvent
 from app.domain.motion_core import TracePayload
+from app.models.delta_payloads import PhysiologyPayload
+from app.models.phase8 import Phase8Context, Phase8Handler, Phase8Result
+from app.models.state_delta import DeltaDomain
 from app.services.dto import _TickContext
 
 logger = logging.getLogger(__name__)

@@ -1,5 +1,6 @@
 import pathlib
 
+
 def fix_file(filepath: str, replacements: dict) -> None:
     path = pathlib.Path(filepath)
     if not path.exists():

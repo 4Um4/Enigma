@@ -1,13 +1,17 @@
+import logging
+import os
+import time
 from datetime import datetime
-from typing import Literal, List
+from typing import List, Literal
 
-from fastapi import APIRouter, Body, File, Form, HTTPException, UploadFile, Request
+from app.core.config import settings
 
 # A2-FIX: snapshot_npc_positions_to_dict удалён (canonical Dict)
 from app.models.schemas import (
     CampaignLoadRequest,
     CampaignLoadResponse,
     CharacterListResponse,
+    CharacterSheet,
     CharacterUpsertRequest,
     ChatTurnRequest,
     ChatTurnResponse,
@@ -17,6 +21,8 @@ from app.models.schemas import (
     HeartbeatRequest,
     HeartbeatResponse,
     KnowledgeIngestResponse,
+    ModelProvider,
+    ModelSelection,
     PlayerAction,
     PlayerSelectRequest,
     PlayerSelectResponse,
@@ -24,26 +30,17 @@ from app.models.schemas import (
     ReadinessReport,
     SessionInterfaceState,
     WorldTickResponse,
-    CharacterSheet,
-    ModelSelection,
-    ModelProvider,
 )
+from app.services.campaign_state_service import get_campaign_state_service
 from app.services.character_service import CharacterService
 from app.services.combat_service import CombatService
-from app.services.llm.health import check_llm_health
-from fastapi import Depends
 from app.services.game_loop_accessor import get_game_loop
-from app.services.readiness import ReadinessService
-from app.services.campaign_state_service import get_campaign_state_service
-from app.services.player_session_service import player_session_service
+from app.services.llm.health import check_llm_health
 from app.services.llm.provider_manager import get_model_pool
 from app.services.llm.router import get_router
-from app.core.config import settings
-
-import time
-import os
-
-import logging
+from app.services.player_session_service import player_session_service
+from app.services.readiness import ReadinessService
+from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, Request, UploadFile
 
 logger = logging.getLogger(__name__)
 

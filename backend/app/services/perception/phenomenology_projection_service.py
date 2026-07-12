@@ -7,7 +7,8 @@
 """
 
 import logging
-from typing import Dict, Any, List
+from typing import Any, Dict, List
+
 from app.domain.embodied_trace import EmbodiedTraceDTO, PlayerPerceptionDTO
 
 logger = logging.getLogger(__name__)

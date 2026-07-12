@@ -7,18 +7,18 @@ Uses capability-based routing to automatically select the best model.
 Includes Phase 1 error handling + VRAM logging.
 """
 
-import json
 import asyncio
+import json
+import logging
 import threading
-from typing import Optional, List, Dict
+from typing import Dict, List, Optional
 
+from app.core.config import settings
 from app.models.schemas import PlayerAction
 from app.services.llm import ModelRouter, get_router
 from app.services.llm.provider import GenerationParams
-from app.core.config import settings
 from app.services.logging_tools import jsonl_log
 from app.services.verbalization.prompt_loader import load_system_prompt
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -129,8 +129,8 @@ class DmAgent:
         context: Optional[Dict] = None,
     ) -> "DMContract":
         """Строит DMContract через DMContractBuilder."""
-        from app.services.verbalization.dm_contract_builder import DMContractBuilder
         from app.core.config import settings
+        from app.services.verbalization.dm_contract_builder import DMContractBuilder
 
         builder = DMContractBuilder(
             hardcore_mode=getattr(settings, "hardcore_mode", False),
@@ -1019,8 +1019,8 @@ class DmAgent:
             yield item
 
     async def _get_provider_async(self, capability: str):
-        from app.services.llm.router import Capability, CAPABILITY_MODEL_PREFERENCES
         from app.services.llm.provider_manager import get_model_pool
+        from app.services.llm.router import CAPABILITY_MODEL_PREFERENCES, Capability
 
         capability_obj = (
             Capability(capability) if isinstance(capability, str) else capability

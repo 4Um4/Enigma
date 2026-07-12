@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # backend/app/domain/perception_physics.py
 """
 Файл: backend/app/domain/perception_physics.py
@@ -8,7 +9,7 @@ from __future__ import annotations
 
 import dataclasses
 from dataclasses import dataclass
-from typing import Dict, Any, Tuple
+from typing import Any, Dict, Tuple
 
 
 @dataclass(frozen=True)

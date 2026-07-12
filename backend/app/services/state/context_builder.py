@@ -9,9 +9,10 @@ DM и NPC получают одинаковый срез реальности �
 Вызывается из orchestrator после всех Python-движков, до агентов.
 """
 
-from typing import List, Dict, Any, Optional
-from app.services.simulation.world_state import get_world_state
+from typing import Any, Dict, List, Optional
+
 from app.models.pipeline_context import PipelineContext
+from app.services.simulation.world_state import get_world_state
 
 
 def build_context(

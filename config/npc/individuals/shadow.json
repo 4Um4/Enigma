@@ -1,11 +1,18 @@
-﻿{
+{
   "_version": "1.0",
   "_type": "individual",
   "_archetype": "thief",
   "_mixins": [],
   "id": "thief_shadow",
   "name": "Тень",
-  "name_forms": ["тень", "тени", "тени", "тенью", "тенью", "тот в капюшоне"],
+  "name_forms": [
+    "тень",
+    "тени",
+    "тени",
+    "тенью",
+    "тенью",
+    "тот в капюшоне"
+  ],
   "tier": "major",
   "gender": "unknown",
   "description": "Фигура в тёмном плаще и низко надвинутом капюшоне. Лица не видно. Сидит в самом тёмном углу таверны, почти неподвижно — но явно за всем наблюдает.",
@@ -21,7 +28,10 @@
       "гильдия_воров": 4
     }
   },
-  "hidden_truth": ["guild_lieutenant", "looking_for_something"],
+  "hidden_truth": [
+    "guild_lieutenant",
+    "looking_for_something"
+  ],
   "drives": {
     "control": 0.3,
     "significance": 0.2,
@@ -47,10 +57,26 @@
     }
   },
   "activity_map": {
-    "observing": { "location": "tavern_silver_wolf", "position": "corner_table", "display": "observing" },
-    "sleeping": { "location": "tavern_silver_wolf", "position": "corner_table", "display": "sleeping" },
-    "eating": { "location": "tavern_silver_wolf", "position": "main_hall", "display": "eating" },
-    "resting": { "location": "tavern_silver_wolf", "position": "fireplace", "display": "resting" }
+    "observing": {
+      "location": "tavern_silver_wolf",
+      "position": "corner_table",
+      "display": "observing"
+    },
+    "sleeping": {
+      "location": "tavern_silver_wolf",
+      "position": "corner_table",
+      "display": "sleeping"
+    },
+    "eating": {
+      "location": "tavern_silver_wolf",
+      "position": "main_hall",
+      "display": "eating"
+    },
+    "resting": {
+      "location": "tavern_silver_wolf",
+      "position": "fireplace",
+      "display": "resting"
+    }
   },
   "location": "tavern_silver_wolf",
   "hp": 35,
@@ -59,33 +85,64 @@
     {
       "summary": "Кто-то сдал контрабанду Горана страже. Гильдия потеряла 300 золотых и лицо. Гильдмастер приказал найти предателя — тихо.",
       "importance": 0.95,
-      "tags": ["investigation", "traitor", "guild_priority"],
+      "tags": [
+        "investigation",
+        "traitor",
+        "guild_priority"
+      ],
       "is_secret": true,
-      "known_by": ["thief_shadow"],
-      "hidden_from": ["player", "merchant_goran", "guard_borko", "tavern_keeper_tornin", "maid_lusya"],
+      "known_by": [
+        "thief_shadow"
+      ],
+      "hidden_from": [
+        "player",
+        "merchant_goran",
+        "guard_borko",
+        "tavern_keeper_tornin",
+        "maid_lusya"
+      ],
       "accessibility": 1.0,
       "decay_rate": 0.001
     },
     {
       "summary": "Ты заметил, что Люся нервничает чаще обычного. Она что-то знает или что-то планирует. Наблюдаешь.",
       "importance": 0.7,
-      "tags": ["observation", "maid_lusya", "suspicion"],
+      "tags": [
+        "observation",
+        "maid_lusya",
+        "suspicion"
+      ],
       "is_secret": true,
-      "known_by": ["thief_shadow"],
-      "hidden_from": ["player", "maid_lusya", "tavern_keeper_tornin"],
+      "known_by": [
+        "thief_shadow"
+      ],
+      "hidden_from": [
+        "player",
+        "maid_lusya",
+        "tavern_keeper_tornin"
+      ],
       "accessibility": 0.9,
       "decay_rate": 0.002
     },
     {
       "summary": "Три года назад ты убил человека по приказу гильдии. Первый раз. Помнишь каждую секунду. Это не сломало тебя, а только закалило.",
       "importance": 0.8,
-      "tags": ["murder", "first_kill", "discipline"],
+      "tags": [
+        "murder",
+        "first_kill",
+        "discipline"
+      ],
       "is_secret": true,
-      "known_by": ["thief_shadow"],
-      "hidden_from": ["player"],
+      "known_by": [
+        "thief_shadow"
+      ],
+      "hidden_from": [
+        "player"
+      ],
       "emotion_tag": "calm",
       "accessibility": 0.95,
       "decay_rate": 0.001
     }
-  ]
+  ],
+  "core_orientation": "warrior"
 }

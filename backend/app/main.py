@@ -6,19 +6,20 @@
 # 5. Migrated from @app.on_event to lifespan (FastAPI best practice)
 
 from contextlib import asynccontextmanager
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
-from pathlib import Path
+from fastapi.staticfiles import StaticFiles
 
 # Глобальная ссылка на процесс llama-server — для atexit
 _llama_server_proc = None
 _llama_started_by_us = False
 
 import atexit
-import time
 import subprocess
+import time
 
 
 def _kill_llama_server() -> None:
@@ -123,8 +124,8 @@ def _restart_llama_server() -> bool:
 
 
 atexit.register(_kill_llama_server)
-import logging
 import asyncio
+import logging
 from datetime import datetime
 
 # CDS: Подключаем Uvicorn-подпроцесс к записи в общий лог-файл
@@ -153,20 +154,19 @@ _CRITICAL_LOGGERS = [
 for _logger_name in _CRITICAL_LOGGERS:
     logging.getLogger(_logger_name).setLevel(logging.WARNING)
 
-from app.api.routes import router
 from app.api import routes_debug
+from app.api.routes import router
 from app.api.routes_stream import router as stream_router
 from app.api.world_routes import world_router
 from app.core.config import settings
 from app.core.runtime_config import get_api_url
-
-from app.services.llm import initialize_router
 from app.services.error_interpreter import get_error_interpreter
-from app.services.vram_monitor import get_vram_monitor
+from app.services.game_loop_builder import build_game_loop
+from app.services.llm import initialize_router
+from app.services.llm.llama_cpp_provider import LlamaCppProvider
 from app.services.llm.provider_manager import get_model_pool
 from app.services.logging_tools import jsonl_log
-from app.services.llm.llama_cpp_provider import LlamaCppProvider
-from app.services.game_loop_builder import build_game_loop
+from app.services.vram_monitor import get_vram_monitor
 
 logger = logging.getLogger(__name__)
 

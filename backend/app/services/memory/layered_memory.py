@@ -1,12 +1,12 @@
 # backend/app/services/memory/layered_memory.py
 import dataclasses
 import json
+import logging
 from collections import deque
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, List, Dict
+from typing import Any, Dict, List
 from uuid import uuid4
-import logging
 
 logger = logging.getLogger(__name__)
 

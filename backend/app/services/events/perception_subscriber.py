@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # backend/app/services/events/perception_subscriber.py
 #
 # Устав §5.1: EventBus.publish() — единственная точка входа событий.
@@ -21,7 +22,7 @@ TODO:
 
 
 import logging
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 from app.domain.events import EventDTO
 from app.models.phase8 import Phase8Context, Phase8Result

@@ -4,9 +4,8 @@ Accessor для GameLoop через FastAPI app.state.
 Устраняет глобальный синглтон — GameLoop живёт в runtime-контейнере.
 """
 
-from fastapi import Request
-
 from app.services.game_loop import GameLoop
+from fastapi import Request
 
 
 def get_game_loop(request: Request) -> GameLoop:

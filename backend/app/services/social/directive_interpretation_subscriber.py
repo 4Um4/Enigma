@@ -11,11 +11,12 @@ TODO
 """
 
 import logging
-from typing import Dict, Any, List
+from typing import List
+
 from app.domain.events import EventDTO
 from app.models.cfrm import PsychologicalPressure
-from app.models.delta_payloads import EmotionPayload, SocialPayload, IdentityPayload
-from app.models.state_delta import StateDeltas, DeltaDomain
+from app.models.delta_payloads import EmotionPayload, IdentityPayload, SocialPayload
+from app.models.state_delta import DeltaDomain, StateDeltas
 
 logger = logging.getLogger(__name__)
 

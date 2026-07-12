@@ -1,16 +1,15 @@
 from __future__ import annotations
+
 # backend/app/services/spatial/movement_engine.py
 # Назначение: Слой 2 Execution. MovementIntent → SceneChange с {x, y}.
 # Получает целевой узел графа, резолвит в координаты, генерирует SceneChange.
-
-
 import logging
 
 logger = logging.getLogger(__name__)
 from typing import Any, Dict, List, Optional
 
-from app.domain.movement import MacroMovementGoal, LocalSteeringGoal
-from app.services.scene_change import SceneChange, ChangeType
+from app.domain.movement import LocalSteeringGoal, MacroMovementGoal
+from app.services.scene_change import ChangeType, SceneChange
 
 logger = logging.getLogger(__name__)
 
@@ -170,10 +169,15 @@ class MovementEngine:
                             logger.warning(
                                 f"[CROSS_LOC_INTERCEPT] No boundary node in {current_loc} to {target_loc} for {intent.actor_id}"
                             )
+                            # ADR-O-314: Нет boundary node — кросс-локационный роутинг невозможен.
+                            # Дропаем интент, чтобы предотвратить невалидный SceneChange (SHADOW_COMPILER FAILED).
+                            continue
                     else:
                         logger.warning(
                             f"[CROSS_LOC_INTERCEPT] No SpatialService for current_loc={current_loc}"
                         )
+                        # Нет SpatialService — нет валидации маршрута. Дропаем интент.
+                        continue
 
                 by_location.setdefault(target_loc, []).append(intent)
 

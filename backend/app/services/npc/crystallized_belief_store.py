@@ -5,7 +5,8 @@ path: backend/app/services/npc/crystallized_belief_store.py
 Основные сущности: CrystallizedBeliefStore
 """
 
-from typing import Any, Dict, List
+from typing import Dict, List
+
 from app.domain.identity_events import CrystallizedBelief
 
 

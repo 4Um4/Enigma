@@ -1,5 +1,5 @@
 import pathlib
-import re
+
 
 def fix_file(filepath: str, replacements: dict) -> None:
     path = pathlib.Path(filepath)

@@ -16,8 +16,7 @@ path: /backend/app/services/npc/topic_extractor.py
 Основные сущности: extract_topic
 """
 
-from typing import Dict, Any, List, Optional
-
+from typing import List, Optional
 
 # Базовый маппинг event_type → topic
 _EVENT_TOPIC_MAP: dict[str, str] = {

@@ -6,9 +6,9 @@
 """
 
 import logging
-from typing import List, Any, Dict, Tuple
-from dataclasses import dataclass
 import sqlite3
+from dataclasses import dataclass
+from typing import Dict, Tuple
 
 _logger = logging.getLogger(__name__)
 

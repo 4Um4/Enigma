@@ -22,7 +22,6 @@ TODO: в будущем можно добавить разные lambda для �
 """
 from __future__ import annotations
 
-
 import logging
 import math
 from typing import List

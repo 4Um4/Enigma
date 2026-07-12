@@ -6,7 +6,6 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 
-
 # Базовые веса по типу события (R1.3)
 BASE_IMPORTANCE: Dict[str, float] = {
     "combat": 0.85,

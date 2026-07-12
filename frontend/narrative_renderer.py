@@ -17,10 +17,11 @@ TODO:
 - Рендеринг имени с учетом уровня распознавания позволяет усилить атмосферу неопределенности и постепенного узнавания персонажей, что является важной частью нарративного опыта. Это также добавляет глубину взаимодействия с NPC, так как игрок будет видеть, как его персонаж воспринимает других, что может влиять на его решения и эмоции в игре. Визуальное оформление в стиле Устава §10 с контрастными цветами и эффектами поможет создать уникальную атмосферу и подчеркнуть важность каждого сказанного слова, делая диалоговые сцены более запоминающимися и эмоционально насыщенными.
 """
 
-import pygame
 import random
 from typing import List
-from narrative_beat import NarrativeBeat, DeliveryType, RecognitionLevel, BeatLifetime
+
+import pygame
+from narrative_beat import BeatLifetime, DeliveryType, NarrativeBeat, RecognitionLevel
 
 
 class NarrativeRenderer:

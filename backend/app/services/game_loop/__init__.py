@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # backend/app/services/game_loop/__init__.py
 #
 # Шаг 5 рефакторинга: единая точка входа для run_turn и stream_turn.
@@ -10,17 +11,15 @@ from __future__ import annotations
 #
 # GameLoop не знает про FastAPI, HTTP, SSE-формат.
 # Он только вызывает processor + engines + agents + memory.
-
-
 import asyncio
 import logging
-import time
 import threading
-from typing import Dict
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, AsyncIterator, List, Optional
+from typing import Any, AsyncIterator, Dict, List, Optional
 
+from app.domain.tick import TickResultDTO
 from app.models.schemas import (
     AgentTrace,
     ChatTurnRequest,
@@ -29,19 +28,18 @@ from app.models.schemas import (
 )
 from app.services.action.dm_orchestrator import DMOrchestrator
 from app.services.events.event_bus import get_event_bus
-from app.services.tick_orchestrator import (
-    TickOrchestrator,
-    DMContextDTO,
-    TickPlayerResultDTO,
-)
-from app.domain.tick import TickResultDTO
 
 # character_filter — используется только в npc_orchestration.py
 from app.services.game_loop.agent_runner import (
-    run_agent_safe,
     AGENT_TIMEOUT_SEC,
     ERROR_CODES,
+    run_agent_safe,
     yield_model_info,
+)
+from app.services.tick_orchestrator import (
+    DMContextDTO,
+    TickOrchestrator,
+    TickPlayerResultDTO,
 )
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -50,23 +48,23 @@ from app.services.game_loop.agent_runner import (
 # False = legacy путь (удалён: npc_agent)
 # ─────────────────────────────────────────────────────────────────────────────
 R3_DIRECT_MODE: bool = True
-from app.services.state.context_builder import build_context
+from app.core.config import settings
 from app.models.pipeline_context import PipelineContext
+from app.models.schemas import CampaignLoadResponse
+from app.services.character_service import CharacterService
+from app.services.error_interpreter import get_error_interpreter
+from app.services.logging_tools import jsonl_log
 from app.services.scene_state_manager import SceneStateManager
+from app.services.state.context_builder import build_context
+
+# AdventureLoader удалён (ADR-O-146) — vestigial слой, нет файлов для загрузки
+from app.services.system_requirements import SystemRequirements
+from app.services.verbalization.scene_continuity import SceneContinuity
+from app.services.vram_monitor import get_vram_monitor
 
 # LayeredMemory удалён из GameLoop — все записи через MemoryManager (Закон 4.1.2)
 # Старый model_router удалён — агенты сами управляют маршрутизацией через llm/router
 from app.services.world_scheduler import WorldScheduler
-from app.services.character_service import CharacterService
-from app.services.verbalization.scene_continuity import SceneContinuity
-from app.services.vram_monitor import get_vram_monitor
-from app.services.error_interpreter import get_error_interpreter
-from app.services.logging_tools import jsonl_log
-from app.core.config import settings
-
-# AdventureLoader удалён (ADR-O-146) — vestigial слой, нет файлов для загрузки
-from app.services.system_requirements import SystemRequirements
-from app.models.schemas import CampaignLoadResponse
 
 logger = logging.getLogger(__name__)
 
@@ -94,21 +92,22 @@ class _PipelineState:
 # ────────────────────────────────────────────────────────────────────────────────
 # Re-exports из подмодулей
 # ────────────────────────────────────────────────────────────────────────────────
+from app.services.game_loop.dm_phase import run_dm_phase
+from app.services.game_loop.npc_orchestration import run_npc_orchestration
+
+# commit_tick инлайн в TickOrchestrator.finalize_and_commit — phase_8_commit.py удалён
+from app.services.game_loop.phase_1_input import (
+    publish_classified_player_event,
+    resolve_player_intent,
+)
+from app.services.game_loop.scene_init import init_scene_state
 from app.services.game_loop.tick_context import (
-    TickInput,
     TickBuffer,
+    TickInput,
     TickOutput,
     _TickContext,  # backward compat alias
 )
 
-# commit_tick инлайн в TickOrchestrator.finalize_and_commit — phase_8_commit.py удалён
-from app.services.game_loop.phase_1_input import (
-    resolve_player_intent,
-    publish_classified_player_event,
-)
-from app.services.game_loop.scene_init import init_scene_state
-from app.services.game_loop.dm_phase import run_dm_phase
-from app.services.game_loop.npc_orchestration import run_npc_orchestration
 # run_finalize_phase удалён (мёртвый код) — логика в TickOrchestrator._phase_finalize
 
 
@@ -166,6 +165,12 @@ class GameLoop:
         # _social_tick перенесён в SocialSubscriber (§5.1 EventBus подписки)
         # ФАЗА 3.1: Spatial Events — предыдущие расстояния для детекции переходов
         self._prev_player_distances: Dict[str, Dict[str, float]] = {}
+        # S118 FIX: Внедрение LLM Slow-Path компрессора (P0: BUG-S117.1)
+        from app.services.input.intent_compressor import IntentCompressor
+        from app.services.input.llm_compressor_client import LlamaCppCompressorClient
+        self._intent_compressor = IntentCompressor(
+            llm_client=LlamaCppCompressorClient()
+        )
         # ФАЗА 3.4: WorldTickEngine — проактивные действия NPC
         from app.services.world.world_tick_engine import WorldTickEngine
 
@@ -468,9 +473,10 @@ class GameLoop:
         Используется в игровом цикле, не для инициализации движков.
         ADR-030: Инъекция Аватара Игрока (Hybrid Consciousness Entity)
         """
-        from app.services.player_session_service import player_session_service
-        from app.services.character_service import CharacterService
         import logging
+
+        from app.services.character_service import CharacterService
+        from app.services.player_session_service import player_session_service
 
         # ADR-117: Приоритет LifeEngine кэша над файлом.
         # Без этого affective_load, emotion, body_state теряются между тиками —
@@ -980,10 +986,11 @@ class GameLoop:
         if _scene is None and hasattr(state, "shared_context") and state.shared_context:
             _scene = state.shared_context.scene_state
         if _scene:
+            from dataclasses import asdict
+
             from app.services.integration.world_snapshot_builder import (
                 WorldSnapshotBuilder,
             )
-            from dataclasses import asdict
 
             _builder = WorldSnapshotBuilder()
             # ADR-092: Проброс perception из TickOrchestrator для action tick
@@ -1405,8 +1412,8 @@ class GameLoop:
         else:
             # Обновляем player position + sync time на закэшированном объекте
             from app.services.game_loop.scene_init import (
-                _update_player_position,
                 _sync_game_time,
+                _update_player_position,
             )
 
             _update_player_position(scene_state, player_position)
@@ -1450,12 +1457,20 @@ class GameLoop:
             # ФАЗА 1: Semantic Translation (ADR-031 Fix).
             # game_loop не вычисляет волю и не публикует события. Только Intent → Pressure.
             _player_data_dict = _match.dict() if _match else None
+
+            # S118 FIX: LLM Slow-Path вызывается ЗДЕСЬ (в оркестраторе), а не в ядре (§7.20, ADR-O-313)
+            _raw_action = actions[0].action if actions else ""
+            _semantic_field = await self._intent_compressor.compress(
+                raw_text=_raw_action, scene_context=scene_state
+            )
+
             _resolution = resolve_player_intent(
-                raw_action=actions[0].action if actions else "",
+                raw_action=_raw_action,
                 action_type=shared_context.action_type or "player_interacts",
                 target=shared_context.player_target_id or "",
                 player_dict=_player_data_dict,
                 scene_context=scene_state,  # Слой 2 ищет имена в scene_state["npc_positions"]
+                semantic_field=_semantic_field,  # Передача готового поля из оркестратора
             )
 
             # Передаем давление в контекст для TickOrchestrator (Causal Resolution)
@@ -1536,8 +1551,8 @@ class GameLoop:
         )
 
         # ФАЗА 7: RulesSubscriber (pure reducer) — вычисляет D&D механику (TZ-08 v0.2)
-        from app.services.events.rules_subscriber import RulesSubscriber
         from app.services.events.event_types import EventType
+        from app.services.events.rules_subscriber import RulesSubscriber
 
         _action_type = shared_context.action_type or "player_interacts"
         _rules_action_type = self.dm_orchestrator._router.get_rules_action_type(
@@ -1687,10 +1702,10 @@ class GameLoop:
 
         # Avatar update — после perception (shared_context.npc_contexts отфильтрован)
         try:
+            from app.models.npc_state import EmotionTag
             from app.services.game_loop.phase_6_avatar import (
                 update_avatar_from_npc_intents,
             )
-            from app.models.npc_state import EmotionTag
 
             update_avatar_from_npc_intents(
                 self.avatar_service,

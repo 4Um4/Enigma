@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # backend/app/services/events/social_subscriber.py
 #
 # Устав §5.1: EventBus.publish() — единственная точка входа событий.
@@ -24,7 +25,7 @@ TODO:
 
 
 import logging
-from typing import Dict, Any, Callable, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from app.domain.events import EventDTO
 from app.models.phase8 import Phase8Context, Phase8Result

@@ -11,9 +11,8 @@ path: backend/app/services/npc/npc_tick_contracts.py
 """
 from __future__ import annotations
 
-
 from dataclasses import dataclass, field
-from typing import List, TYPE_CHECKING, Any, Dict, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 if TYPE_CHECKING:
     from app.services.npc.decision_hub import EventContext

@@ -11,12 +11,12 @@
 """
 
 import logging
-from typing import Any, Dict, Optional
 from difflib import get_close_matches
+from typing import Any, Dict, Optional
 
 from app.domain.events import EventDTO
 from app.domain.intent import IntentDTO, IntentParametersDTO
-from app.domain.intent_profile import IntentSemanticField, ActionType
+from app.domain.intent_profile import ActionType, IntentSemanticField
 from app.domain.movement import MovementRequest
 from app.models.will import IntentResolution
 from app.services.events.event_bus import get_event_bus
@@ -101,38 +101,25 @@ def resolve_player_intent(
     target: str,
     player_dict: Optional[Dict[str, Any]] = None,
     scene_context: Optional[Any] = None,
+    semantic_field: Optional[IntentSemanticField] = None,
 ) -> IntentResolution:
     """Phase 1 Boundary Adapter (ADR-031 Fix).
 
-    Содержит Слой 1 (Fast-path Compression) и Слой 2 (Target Resolution).
+    Содержит Слой 2 (Target Resolution).
     LLM-парсинг (slow_path/await) КАТЕГОРИЧЕСКИ ЗАПРЕЩЕН в каузальном солвере.
+    Семантическое поле передаётся из оркестратора (GameLoop).
     """
-    # 1. Слой 1: Сжатие языка в Семантическое Поле (Только Fast-Path)
-    semantic_field = None
-    try:
-        from app.services.input.intent_compressor import IntentCompressor
-
-        _compressor = IntentCompressor(llm_client=None)
-        logger.debug(f"[PIPELINE][INPUT] raw_action={raw_action!r}")
-        semantic_field = _compressor._fast_path_parse(raw_action)
-        logger.debug(
-            f"[ARCHAE-FASTPATH] raw={raw_action!r} result={semantic_field.action_type if semantic_field else 'None'} target_ref={semantic_field.target_reference if semantic_field else 'N/A'}"
-        )
-        logger.debug(f"[PIPELINE][INPUT] result={semantic_field}")
-        if semantic_field:
-            logger.warning(
-                f"[LAYER1] Fast path success: action={semantic_field.action_type}, target_ref={semantic_field.target_reference}"
-            )
-    except Exception as e:
-        logger.error(f"[LAYER1] Compressor crashed: {e}")
-
+    # S118 FIX: LLM Slow-Path вынесен в GameLoop. Ядро только потребляет готовое поле.
     if semantic_field is None:
-        # Fallback: если словарь не распознал действие, используем базовый UNCERTAIN профиль
         logger.debug(
-            f"[ARCHAE-FASTPATH-FALLBACK] raw={raw_action!r} → UNCERTAIN (fast_path returned None)"
+            "[ARCHAE-FASTPATH-FALLBACK] semantic_field is None → UNCERTAIN"
         )
         semantic_field = IntentSemanticField(
             raw_text=raw_action, action_type=ActionType.UNCERTAIN
+        )
+    else:
+        logger.debug(
+            f"[ARCHAE-FASTPATH] raw={raw_action!r} result={semantic_field.action_type} target_ref={semantic_field.target_reference}"
         )
 
     # 2. Слой 2: Разрешение цели (Строка -> ID)

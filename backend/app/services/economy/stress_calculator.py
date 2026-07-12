@@ -9,8 +9,7 @@ path: /backend/app/services/economy/stress_calculator.py
 """
 from __future__ import annotations
 
-
-from typing import List, Dict, Any, Tuple
+from typing import Tuple
 
 from app.models.economy import EconomicProfile
 from app.services.economy.need_engine import NeedEngine

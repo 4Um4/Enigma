@@ -17,9 +17,8 @@ TODO:
 """
 from __future__ import annotations
 
-
 import logging
-from typing import Dict, Any, TYPE_CHECKING, List
+from typing import TYPE_CHECKING, List
 
 from app.models.idle_tick import NPCStateSnapshot
 from app.models.state_delta import StateDeltas

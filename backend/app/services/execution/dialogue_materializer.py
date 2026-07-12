@@ -6,7 +6,8 @@ path: /backend/app/services/execution/dialogue_materializer.py
 """
 from __future__ import annotations
 
-from typing import List, Dict, Iterable, Any
+from typing import Any, Iterable
+
 from app.domain.execution import Artifact
 from app.services.events.event_types import EventType
 

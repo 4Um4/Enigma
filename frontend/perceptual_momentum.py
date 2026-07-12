@@ -10,6 +10,7 @@ TODO:
 import random
 from dataclasses import dataclass
 from typing import Tuple
+
 from presentation_firewall import SanitizedPerceptualVectors
 
 

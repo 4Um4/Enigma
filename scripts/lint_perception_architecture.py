@@ -7,11 +7,12 @@ path: scripts/lint_perception_architecture.py
 Запуск: python scripts/lint_perception_architecture.py
 """
 
-import yaml
 import os
-import sys
 import re
-from typing import List, Dict, Any
+import sys
+from typing import Any, Dict, List
+
+import yaml
 
 
 class PerceptionArchitectureLinter:

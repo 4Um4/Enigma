@@ -11,7 +11,7 @@ R3 Direct Mode: DecisionResult → SceneOutcome → DMFrame.
 """
 
 import logging
-from typing import List, Dict, Any
+from typing import Any, Dict, List
 
 logger = logging.getLogger(__name__)
 
@@ -26,11 +26,11 @@ def build_r3_dm_frame(
     Мутирует shared_context (scene_continuity).
     Возвращает npc_result dict для дальнейшей обработки в game_loop.
     """
-    from app.services.verbalization.scene_outcome_builder import (
-        SceneOutcomeBuilder,
-        SceneContext,
-    )
     from app.services.verbalization.scene_continuity import SceneContinuity
+    from app.services.verbalization.scene_outcome_builder import (
+        SceneContext,
+        SceneOutcomeBuilder,
+    )
 
     _builder = SceneOutcomeBuilder()
     _filtered_ctxs = shared_context.npc_contexts or []

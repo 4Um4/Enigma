@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # backend/app/services/action/object_resolver.py
 """
 ObjectResolver — поиск объекта сцены по тексту действия игрока.
@@ -13,9 +14,10 @@ ObjectResolver — поиск объекта сцены по тексту дей
 """
 
 import logging
-from typing import Optional
-import pymorphy3 as pymorphy2
 import re
+from typing import Optional
+
+import pymorphy3 as pymorphy2
 
 logger = logging.getLogger(__name__)
 

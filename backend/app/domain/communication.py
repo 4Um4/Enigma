@@ -6,7 +6,6 @@
 from dataclasses import dataclass
 from typing import Literal, Optional
 
-
 # ADR-O-311: Exposure Default Contract — радиус выводится из semantic.
 _EXPOSURE_DEFAULT_RADIUS: dict[str, float] = {
     "secret": 1.5,  # собеседник рядом

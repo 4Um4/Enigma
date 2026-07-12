@@ -12,10 +12,9 @@ path: /backend/app/services/player_cognition/perception_layer.py
 from typing import List, Tuple
 
 from app.core.constants import PERCEPTION_RADIUS
-from app.services.player_cognition.types import AudioEvent, PerceivedEntity
 from app.services.npc.perception_filter import calculate_clarity
+from app.services.player_cognition.types import AudioEvent, PerceivedEntity
 from app.services.spatial.spatial_runtime import sound_reach
-
 
 # Игрок — всегда "major" tier, полный радиус восприятия
 _PLAYER_PERCEPTION_RADIUS = PERCEPTION_RADIUS["major"]  # 15.0м

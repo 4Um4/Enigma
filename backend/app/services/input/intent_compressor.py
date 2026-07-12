@@ -9,14 +9,15 @@ TODO: В будущем IntentCompressor может быть расширен д
 """
 
 import re
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
+
 from app.domain.intent_profile import (
-    IntentSemanticField,
     ActionType,
-    TargetZone,
-    SemanticAmbiguity,
-    EmotionalVector,
     ConfidenceVector,
+    EmotionalVector,
+    IntentSemanticField,
+    SemanticAmbiguity,
+    TargetZone,
 )
 from app.services.input.llm_compressor_client import LLMCompressorClient
 
@@ -278,9 +279,22 @@ class IntentCompressor:
         # ADR-O-315: Fast path по умолчанию считает актора игроком ("я"),
         # если в тексте нет явного указания на 3-е лицо ("пусть торнин уйдёт").
         _actor_ref = "player"
-        _third_person_indicators = {"он", "она", "оно", "они"}
+        _third_person_indicators = {"он", "она", "оно", "они", "пусть"}
+
+        # S97 FIX: Обработка прямых обращений ("Торнин, отойди к двери")
+        # Если текст содержит запятую и первое слово — существительное, это обращение к NPC.
+        if "," in raw_text:
+            tokens_raw = re.findall(r"[а-яА-ЯёЁa-zA-Z0-9]+", raw_text)
+            if tokens_raw:
+                first_token = tokens_raw[0]
+                if PYMORPHY_AVAILABLE:
+                    parsed = MORPH.parse(first_token.lower())
+                    if parsed and parsed[0].tag.POS in ("NOUN", "Name"):
+                        # Первое слово — имя/существительное, значит актор — этот NPC
+                        _actor_ref = first_token.lower()
+
         if not lemmas.isdisjoint(_third_person_indicators):
-            _actor_ref = target_ref if target_ref else None
+            _actor_ref = target_ref if target_ref else _actor_ref
 
         return IntentSemanticField(
             action_type=matched_action,
@@ -302,6 +316,11 @@ class IntentCompressor:
         llm_response = await self._llm_client.compress_intent(raw_text, scene_context)
 
         if llm_response is None:
+            # S97 FIX: Fallback если LLM недоступна (502 Bad Gateway) — пытаемся извлечь актора локально
+            _fast_result = self._fast_path_parse(raw_text)
+            if _fast_result:
+                return _fast_result
+
             return IntentSemanticField(
                 action_type=ActionType.UNCERTAIN,
                 raw_text=raw_text,

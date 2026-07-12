@@ -15,7 +15,6 @@ from typing import List, Optional
 
 from app.services.player_cognition.types import PerceivedEntity
 
-
 # === Пороги детерминизма ===
 # > HARD — всегда замечено (95%)
 # < SOFT — никогда не замечено (95%)

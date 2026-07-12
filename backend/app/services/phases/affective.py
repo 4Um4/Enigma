@@ -6,13 +6,13 @@ path: /project/backend/app/services/phases/affective.py
 """
 from __future__ import annotations
 
+import copy
+import logging
+import sys
 from dataclasses import dataclass
 from typing import Any
-import logging
-import copy
-import sys
 
-from app.services.dto import _TickContext, SemanticFrame
+from app.services.dto import SemanticFrame, _TickContext
 
 logger = logging.getLogger(__name__)
 
@@ -73,12 +73,13 @@ def run_affective_pipeline(ctx: _TickContext, deps: Phase9Deps) -> None:
         logger.debug("[AFFECTIVE_PLAYER] SKIP: interpretation_snapshot is empty")
         return
 
+    from dataclasses import replace as dataclass_replace
+
+    from app.models.delta_payloads import EmotionPayload
+    from app.models.npc_state import PerceptualKernel
+    from app.models.state_delta import DeltaDomain, StateDeltas
     from app.services.affective.affective_integrator import integrate_affective_pressure
     from app.services.affective.emotion_transition import resolve_emotion_transition
-    from app.models.npc_state import PerceptualKernel
-    from app.models.delta_payloads import EmotionPayload
-    from app.models.state_delta import StateDeltas, DeltaDomain
-    from dataclasses import replace as dataclass_replace
 
     _snap_len = len(ctx.interpretation_snapshot) if ctx.interpretation_snapshot else 0
     logger.debug(f"[SEL_DIAG] Entering NPC loop. Snapshot count: {_snap_len}")

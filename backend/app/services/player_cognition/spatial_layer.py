@@ -14,9 +14,9 @@ from typing import List, Tuple
 
 from app.services.player_cognition.types import PerceivedEntity
 from app.services.spatial.spatial_runtime import (
-    is_line_of_sight_clear,
-    is_blocked_by_wall,
     is_blocked_by_obstacle,
+    is_blocked_by_wall,
+    is_line_of_sight_clear,
 )
 
 

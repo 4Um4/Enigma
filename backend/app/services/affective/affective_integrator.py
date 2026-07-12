@@ -8,7 +8,7 @@ TODO:
 """
 from __future__ import annotations
 
-from typing import List, Dict, Any, TYPE_CHECKING, Tuple
+from typing import TYPE_CHECKING, Any, Dict, Tuple
 
 if TYPE_CHECKING:
     from app.models.npc_state import PerceptualKernel

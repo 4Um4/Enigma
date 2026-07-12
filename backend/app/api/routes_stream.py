@@ -22,17 +22,14 @@ routes_stream.py делает ровно три вещи:
 """
 from __future__ import annotations
 
-
 import json
 from datetime import datetime
 
-from fastapi import APIRouter, HTTPException
-from fastapi.responses import StreamingResponse
-
-from fastapi import Depends
+from app.services.campaign_state_service import get_campaign_state_service
 from app.services.game_loop_accessor import get_game_loop
 from app.services.player_session_service import player_session_service
-from app.services.campaign_state_service import get_campaign_state_service
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse
 
 router = APIRouter()
 

@@ -9,7 +9,7 @@ path: /backend/app/services/memory/dialogue_session.py
 """
 
 from dataclasses import dataclass, field
-from typing import List, Dict, Any, Optional
+from typing import Optional
 
 
 @dataclass

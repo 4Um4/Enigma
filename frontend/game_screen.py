@@ -9,47 +9,46 @@ path: /frontend/game_screen.py
 Основные сущности: GameScreen, _MoveState
 """
 
+import logging
 import math
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
 import pygame
-import logging
 
 logger = logging.getLogger(__name__)
 
 
-from scene_renderer import SceneRenderer  # noqa: E402
-from text_input import TextInput  # noqa: E402
-# Спринт 31: Локальная физика и парсер интентов удалены. Фронтенд — честный интерполятор.
-
-from game_types import (  # noqa: E402
-    PerceptionConfig,
-    PerceivedScene,
-    PerceivedEntity,
-    PlayerFocus,
-    PerceivedEnvironment,
-    Inference,
-    InferenceTier,
-)
-
 from constants import (  # noqa: E402
-    COLOR_TEXT_DEFAULT,
-    COLOR_TEXT_MUTED,
-    COLOR_TEXT_DARK,
-    COLOR_TEXT_OBS_TITLE,
-    COLOR_TEXT_OBS_LINE,
-    COLOR_TEXT_SCALE_HIGHLIGHT,
-    COLOR_TEXT_SYS_MSG,
-    COLOR_DEATH_TITLE,
     COLOR_DEATH_SUB,
+    COLOR_DEATH_TITLE,
     COLOR_JOURNAL_TITLE,
+    COLOR_MANIFEST_DEFAULT,
     COLOR_NARRATOR,
     COLOR_NPC_NAME,
-    COLOR_MANIFEST_DEFAULT,
+    COLOR_TEXT_DARK,
+    COLOR_TEXT_DEFAULT,
+    COLOR_TEXT_MUTED,
+    COLOR_TEXT_OBS_LINE,
+    COLOR_TEXT_OBS_TITLE,
+    COLOR_TEXT_SCALE_HIGHLIGHT,
+    COLOR_TEXT_SYS_MSG,
+)
+
+# Спринт 31: Локальная физика и парсер интентов удалены. Фронтенд — честный интерполятор.
+from game_types import (  # noqa: E402
+    Inference,
+    InferenceTier,
+    PerceivedEntity,
+    PerceivedEnvironment,
+    PerceivedScene,
+    PerceptionConfig,
+    PlayerFocus,
 )
 from i18n import t  # noqa: E402
+from scene_renderer import SceneRenderer  # noqa: E402
+from text_input import TextInput  # noqa: E402
 
 
 def _clean_dm_response(text: str) -> str:
@@ -218,18 +217,17 @@ def _build_perceived_scene(
 
 # A2: npc_movement удалён — NPC двигает TransitTracker (backend, 1 шаг/тик)
 # Плавная интерполяция между DTO-снимками — отдельная задача
-from api_client import create_game_gateway, ActionQueue  # noqa: E402
-from i18n import activity_ru, manifest_color  # noqa: E402
+from api_client import ActionQueue, create_game_gateway  # noqa: E402
 
 # Тайминги опроса backend из constants.py (frontend-side)
 from constants import (  # noqa: E402
-    IDLE_TICK_NEAR_MS,
-    IDLE_TICK_MID_MS,
     IDLE_TICK_FAR_MS,
-    IDLE_TICK_NEAR_RADIUS,
+    IDLE_TICK_MID_MS,
     IDLE_TICK_MID_RADIUS,
+    IDLE_TICK_NEAR_MS,
+    IDLE_TICK_NEAR_RADIUS,
 )
-
+from i18n import activity_ru, manifest_color  # noqa: E402
 
 _SAVES_DIR = Path(__file__).resolve().parents[1] / "saves"
 _CAMPAIGNS_DIR = Path(__file__).parent / "map_editor" / "campaigns"
@@ -540,7 +538,7 @@ class GameScreen:
             return
 
         # Игровое время — total_seconds от начала эпохи
-        from constants import parse_hhmm, format_world_date
+        from constants import format_world_date, parse_hhmm
 
         _gts = scene_state.get("game_time_seconds")
         if _gts is not None and _gts > 0:
@@ -563,7 +561,7 @@ class GameScreen:
         _last_world_pos: list[float | None] = [None, None]
         try:
             from spatial_compilation_gateway import SpatialCompilationGateway
-            from world_context import SpatialDataLoader, ContextResolver
+            from world_context import ContextResolver, SpatialDataLoader
 
             _registry = SpatialCompilationGateway.get_registry(campaign_folder)
             if _registry is not None:
@@ -756,10 +754,10 @@ class GameScreen:
 
                         # Создаем сценическое событие для пузыря игрока (ТЗ 3 + Мастер тай)
                         from narrative_beat import (
-                            NarrativeBeat,
-                            DeliveryType,
-                            RecognitionLevel,
                             BeatLifetime,
+                            DeliveryType,
+                            NarrativeBeat,
+                            RecognitionLevel,
                         )
 
                         # Сохраняем текст для фильтрации эха от LLM
@@ -1170,10 +1168,10 @@ class GameScreen:
                     # Пауза idle tick: NPC не двигаются пока игрок читает ответ
                     _last_idle_tick = pygame.time.get_ticks() + 1000
                     from narrative_beat import (
-                        NarrativeBeat,
-                        DeliveryType,
-                        RecognitionLevel,
                         BeatLifetime,
+                        DeliveryType,
+                        NarrativeBeat,
+                        RecognitionLevel,
                     )
 
                     resp = result.response.dm_response

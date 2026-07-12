@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
+
 # C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\scene_change.py
 """
 SceneChange — типы и структура изменений состояния сцены.

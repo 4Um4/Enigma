@@ -21,11 +21,10 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
+from app.models.npc_profile import NPCProfileL0
 from app.services.npc.decision_hub import DecisionResult
 from app.services.npc.legacy_delta_adapter import LegacyStateDeltaAdapter
-from app.models.npc_profile import NPCProfileL0
 from app.services.verbalization.verbal_stance import stance_from_decision
-
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Выходные структуры (SceneOutcome)
@@ -406,8 +405,8 @@ class SceneOutcomeBuilder:
         # 1. Фокусные NPC — только человекочитаемые описания (ФАЗА 3.1-3.2)
         # intent → описание действия, emotion → русское слово с гендерными окончаниями (pymorphy3)
         from app.services.verbalization.state_interpreter import (
-            INTENT_DESCRIPTIONS,
             EMOTION_DESCRIPTIONS,
+            INTENT_DESCRIPTIONS,
             _apply_gender,
         )
 

@@ -20,11 +20,10 @@ path: /backend/app/services/economy/market_state.py
 """
 from __future__ import annotations
 
-
 import random
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import List, Dict, Any, Optional
+from typing import Optional
 
 
 class MarketPhase(Enum):

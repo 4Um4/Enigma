@@ -19,13 +19,13 @@ path: diagnostics/dna_metrics.py
 
 import json
 import subprocess
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-from diagnostics.health_checkers.tick_health import TickHealthReport
 from diagnostics.health_checkers.movement_health import MovementHealthReport
+from diagnostics.health_checkers.tick_health import TickHealthReport
 
 
 @dataclass

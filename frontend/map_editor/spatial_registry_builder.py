@@ -9,13 +9,13 @@ frontend/map_editor/spatial_registry_builder.py
 Не принимает решений. Предоставляет факты.
 """
 
-import json
 import hashlib
+import json
 import logging
-from pathlib import Path
+from dataclasses import asdict, dataclass
 from datetime import datetime
+from pathlib import Path
 from typing import List
-from dataclasses import dataclass, asdict
 
 logger = logging.getLogger(__name__)
 

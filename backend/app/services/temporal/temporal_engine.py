@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # backend/app/services/temporal/temporal_engine.py
 """
 Единая точка времени и decay в системе.
@@ -34,7 +35,7 @@ import json
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import List, Any, Dict, Optional
+from typing import Dict, Optional
 
 from app.core.constants import DECAY_EVERY, TICK_SAVE_INTERVAL, TICKS_PER_DAY
 from app.models.temporal import TemporalContext

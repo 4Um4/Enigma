@@ -13,7 +13,7 @@ path: backend/app/services/verbalization/verbal_stance.py
 """
 
 from dataclasses import dataclass
-from typing import List, Dict, Any, Literal, Optional
+from typing import Literal, Optional
 
 StanceType = Literal[
     "confront", "threaten", "probe", "dismiss", "submit", "observe", "dissociated"

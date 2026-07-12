@@ -17,18 +17,17 @@ TODO: В detect_and_publish_spatial_transitions() можно добавить ф
 """
 from __future__ import annotations
 
-
 import logging
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional
 
 from app.services.action.player_target_extractor import PlayerTargetExtractor
 
 if TYPE_CHECKING:
     from app.services.spatial.spatial_query_service import SpatialQueryService
+from app.domain.events import EventDTO
 from app.services.events.event_bus import get_event_bus
 from app.services.events.event_types import EventType
-from app.domain.events import EventDTO
 
 logger = logging.getLogger(__name__)
 

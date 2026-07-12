@@ -3,9 +3,10 @@
 
 """
 
-from typing import Any, Dict, List, Optional
-from app.models.npc_state import NPCPersonality
+from typing import Dict, List, Optional
+
 from app.domain.identity_events import CrystallizedBelief
+from app.models.npc_state import NPCPersonality
 
 # Множитель влияния убеждений (L2.5) на проекцию драйвов (L3)
 _BELIEF_MODIFIER: float = 0.5

@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # backend/app/services/economy/economic_modifier.py
 """
 EconomicModifier — модификатор score для DecisionHub.
@@ -20,10 +21,10 @@ EconomicModifier — модификатор score для DecisionHub.
 
 import logging
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
 from app.models.economy import EconomicProfile
-from app.services.economy.need_engine import NeedDrive, DriveType
+from app.services.economy.need_engine import DriveType, NeedDrive
 
 logger = logging.getLogger(__name__)
 

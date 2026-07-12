@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # backend/app/services/character/front_engine.py
 """
 Фаза 5.1 — FrontEngine: вычисление давления мира и управление масками персонажа.
@@ -15,7 +16,7 @@ import logging
 from dataclasses import dataclass
 
 from app.models.character import CharacterProfile
-from app.models.front import FrontType, WorldPressure, PRESSURE_FRONT_MAP
+from app.models.front import PRESSURE_FRONT_MAP, FrontType, WorldPressure
 
 logger = logging.getLogger(__name__)
 

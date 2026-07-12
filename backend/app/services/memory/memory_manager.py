@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # backend\app\services\memory\memory_manager.py
 """
 R1.1 + R5.3 — MemoryManager.
@@ -9,28 +10,25 @@ TODO:
 """
 
 import logging
-from typing import Any, Dict, List, Tuple, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from app.services.spatial.spatial_query_service import SpatialQueryService
 
-from app.services.memory import LayeredMemory
-from app.services.memory.working_memory import WorkingMemory
-from app.services.memory.importance_engine import score_event
-from app.core.constants import DECAY_EVERY
-from app.services.memory.relationship_store import RelationshipStore
-from app.services.memory.contradiction_resolver import resolve_all
-
+from app.core.constants import DECAY_EVERY, NARRATIVE_CACHE_MAX
+from app.domain.events import CONTRACT_TAGS, EventDTO
 from app.models.npc_state import DiscoveryCrack, EventMemory, MemoryStage, NPCState
-from app.domain.events import EventDTO, CONTRACT_TAGS
-from app.services.npc.perception_filter import calculate_clarity
-
-from app.services.memory.resonance_engine import ResonanceEngine
+from app.services.memory import LayeredMemory
+from app.services.memory.contradiction_resolver import resolve_all
 from app.services.memory.dialogue_session import DialogueSession
+from app.services.memory.importance_engine import score_event
 from app.services.memory.promotion_engine import MemoryPromotionEngine
-from app.core.constants import NARRATIVE_CACHE_MAX
+from app.services.memory.relationship_store import RelationshipStore
+from app.services.memory.resonance_engine import ResonanceEngine
+from app.services.memory.working_memory import WorkingMemory
+from app.services.npc.perception_filter import calculate_clarity
 
 
 class MemoryManager:
@@ -685,9 +683,9 @@ class MemoryManager:
         R8: Оценить убеждения NPC из накопленных воспоминаний.
         Вызывается независимо от decay — разная частота.
         """
-        from app.services.memory.evidence_mapper import SemanticTagEvidenceMapper
-        from app.services.memory.belief_aggregator import CoherenceBeliefAggregator
         from app.models.npc_state import EventMemory
+        from app.services.memory.belief_aggregator import CoherenceBeliefAggregator
+        from app.services.memory.evidence_mapper import SemanticTagEvidenceMapper
 
         key = f"{campaign_id}:{npc_id}"
         memories = self._working.get(key) or []

@@ -23,8 +23,9 @@ TODO: интегрировать с LifeEngine для получения реа�
 TODO: добавить логирование для отладки и анализа ошибок в извлечении целей.
 """
 
-from typing import Optional, Dict, List, Tuple
 import logging
+from typing import Dict, List, Optional, Tuple
+
 from app.services.spatial.spatial_runtime import euclidean_distance
 
 logger = logging.getLogger(__name__)

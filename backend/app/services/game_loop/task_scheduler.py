@@ -9,17 +9,18 @@ from __future__ import annotations
 import logging
 from concurrent.futures import ThreadPoolExecutor
 from typing import Dict
+
 from app.domain.execution import (
+    Materializer,
     QueuedTask,
-    TaskState,
+    TaskExecutor,
     TaskKind,
     TaskPriority,
-    TaskExecutor,
-    Materializer,
+    TaskState,
 )
+from app.services.events.event_bus import get_event_bus
 from app.services.execution.dialogue_executor import DialogueExecutor
 from app.services.execution.dialogue_materializer import DialogueMaterializer
-from app.services.events.event_bus import get_event_bus
 
 logger = logging.getLogger(__name__)
 

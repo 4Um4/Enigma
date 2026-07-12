@@ -6,7 +6,7 @@ TraversalExecutionSystem — вычисляет текущую позицию NP
 
 import logging
 import math
-from typing import List, Dict, Any, Tuple
+from typing import Any, Dict, List, Tuple
 
 logger = logging.getLogger(__name__)
 

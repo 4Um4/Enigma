@@ -21,31 +21,7 @@ Providers (replaceable modules):
 - MockProvider: заглушка для прототипирования
 """
 
-from app.services.llm.provider import (
-    LlmProvider,
-    GenerationParams,
-    ProviderInfo,
-    ProviderType,
-    StreamingLlmProvider,
-)
-from app.services.llm.router import (
-    ModelRouter,
-    Capability,
-    get_router,
-    initialize_router,
-)
-from app.services.llm.factory import get_provider, ProviderFactory
-from app.services.llm.provider_manager import (
-    ProviderManager,
-    get_provider_manager,
-    initialize_providers,
-    ModelPool,
-    get_model_pool,
-    initialize_model_pool,
-    ModelMetrics,
-    ModelConfig,
-    ProviderStatus,
-)
+from app.services.llm.factory import ProviderFactory, get_provider
 
 # Конкретные провайдеры — доступны для явного импорта при необходимости
 from app.services.llm.llama_cpp_provider import (
@@ -55,9 +31,33 @@ from app.services.llm.llama_cpp_provider import (
 
 # C5-FIX: Удалены импорты мёртвых провайдеров
 from app.services.llm.mock_provider import (
-    MockProvider,
     MockConfig,
+    MockProvider,
     create_mock_provider,
+)
+from app.services.llm.provider import (
+    GenerationParams,
+    LlmProvider,
+    ProviderInfo,
+    ProviderType,
+    StreamingLlmProvider,
+)
+from app.services.llm.provider_manager import (
+    ModelConfig,
+    ModelMetrics,
+    ModelPool,
+    ProviderManager,
+    ProviderStatus,
+    get_model_pool,
+    get_provider_manager,
+    initialize_model_pool,
+    initialize_providers,
+)
+from app.services.llm.router import (
+    Capability,
+    ModelRouter,
+    get_router,
+    initialize_router,
 )
 
 __all__ = [

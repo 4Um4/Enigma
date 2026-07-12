@@ -1,25 +1,25 @@
 from __future__ import annotations
+
 # backend/app/services/integration/world_snapshot_builder.py
 # Назначение: Собирает WorldSnapshotDTO из финального состояния тика.
 # Чистый маппер: Dict[str, Any] → DTO. Не лезет в NPCState, DecisionHub, MemoryManager.
 # Читает только scene_state dict и мета-данные тика.
 # Зависимости: app.domain.snapshot, typing
-
-
 import logging
 
 logger = logging.getLogger(__name__)
 
 from typing import Any, Dict, List, Optional, Tuple
+
 from app.domain.snapshot import (
-    WorldSnapshotDTO,
-    NPCPositionDTO,
-    VisibleEventDTO,
-    PlayerPerceptionDTO,
-    AvatarStateDTO,
-    PeripheralCueDTO,
     ActivePerception,
+    AvatarStateDTO,
     ManifestationDTO,
+    NPCPositionDTO,
+    PeripheralCueDTO,
+    PlayerPerceptionDTO,
+    VisibleEventDTO,
+    WorldSnapshotDTO,
 )
 
 
@@ -82,7 +82,7 @@ class WorldSnapshotBuilder:
         # ADR-037: Вычисление средового давления на основе психики NPC в сцене
         ambient_phenomenology = self._compute_ambient_phenomenology(all_npcs_raw)
 
-        return WorldSnapshotDTO(
+        result = WorldSnapshotDTO(
             tick=tick,
             version=version,
             last_event_id=last_event_id,
@@ -353,7 +353,7 @@ class WorldSnapshotBuilder:
         self, tick: int, recent_dialogues: Optional[List[Dict]] = None
     ) -> WorldSnapshotDTO:
         """Пустой снимок когда scene_state не загружен."""
-        return WorldSnapshotDTO(
+        result = WorldSnapshotDTO(
             tick=tick,
             version=0,
             last_event_id=None,

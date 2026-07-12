@@ -6,9 +6,10 @@ path: backend/app/services/npc/l1_chronicle.py
 ADR-L1-PERSIST: L1Chronicle персистируется в SQLite. На рестарте события восстанавливаются. In-memory dict — только кэш на текущую сессию.
 """
 
-import math
 import logging
-from typing import Any, List, Dict, Tuple
+import math
+from typing import Dict, List, Tuple
+
 from app.domain.identity_events import TraitDriftEvent
 
 _TAU_DECAY: float = 50.0

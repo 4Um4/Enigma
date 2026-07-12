@@ -3,17 +3,17 @@
 """
 
 import json
+import logging
 import os
 import uuid
-import logging
 
 logger = logging.getLogger(__name__)
 
 from datetime import datetime
 from typing import Dict, Optional
 
-from app.models.schemas import PlayerSession
 from app.core.config import settings
+from app.models.schemas import PlayerSession
 
 
 class PlayerSessionService:

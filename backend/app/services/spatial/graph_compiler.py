@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # backend/app/services/spatial/graph_compiler.py
 # Назначение: Компилирует editor JSON → runtime graph + alias_map
 # Читает nodes из editor JSON напрямую. Сохраняет абсолютные x, y.

@@ -34,8 +34,8 @@ def tick_world_proactive(
         return
     try:
         from app.services.npc.npc_loader import (
-            load_profile_from_legacy_json,
             load_l2_state_from_runtime_dict,
+            load_profile_from_legacy_json,
         )
 
         _proactive_npc_data = []
@@ -96,8 +96,8 @@ def tick_world_proactive(
             )
 
         # Применяем deltas к NPC стейту
-        from app.services.npc.state_applicator import StateApplicator
         from app.models.npc_state import NPCState
+        from app.services.npc.state_applicator import StateApplicator
 
         _wt_applicator = StateApplicator(relationship_store=memory_relationship_store)
 

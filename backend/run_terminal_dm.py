@@ -1,5 +1,6 @@
 # C:\DDD\Codex\VSC_Enigma\Enigma\backend\run_terminal_dm.py
 from __future__ import annotations
+
 import sys
 from pathlib import Path
 
@@ -14,12 +15,13 @@ from pathlib import Path
 
 from app.core.config import settings
 from app.models.schemas import ModelProvider, ModelSelection
+from app.services.campaign_state_service import get_campaign_state_service
 from app.services.knowledge_ingest import KnowledgeIngestService
 
 # GameOrchestrator удалён — заменён на game_loop.py
 # from app.services.orchestrator import GameOrchestrator
 from app.services.pdf_drop_importer import PdfDropImporter
-from app.services.campaign_state_service import get_campaign_state_service
+
 # from app.services.context_builder import build_dynamic_context  # legacy
 
 # Папка data — в корне проекта (родитель backend)

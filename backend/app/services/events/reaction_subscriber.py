@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # backend/app/services/events/reaction_subscriber.py
 """
 Phase 8: ReactionSubscriber — эмоциональные реакции наблюдателей на события.
@@ -31,18 +32,18 @@ TODO:
 
 
 import logging
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 from app.domain.constants import ACTION_INTENSITY
 from app.domain.events import EventDTO
-from app.models.phase8 import Phase8Context, Phase8Result
-from app.models.state_delta import DeltaDomain, StateDeltas
 from app.models.delta_payloads import (
     EmotionPayload,
     PerceptionPayload,
     PhysiologyPayload,
     SocialPayload,
 )
+from app.models.phase8 import Phase8Context, Phase8Result
+from app.models.state_delta import DeltaDomain, StateDeltas
 from app.services.events.event_bus import EventBus
 from app.services.events.event_types import EventType
 

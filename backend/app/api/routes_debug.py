@@ -4,11 +4,11 @@ Agent Health Dashboard + VRAM/logs
 """
 
 import time
-from fastapi import APIRouter, Request
 
-from app.services.llm.provider_manager import get_model_pool
 from app.services.error_interpreter import get_error_interpreter
+from app.services.llm.provider_manager import get_model_pool
 from app.services.vram_monitor import get_vram_monitor
+from fastapi import APIRouter, Request
 
 router = APIRouter(prefix="/debug", tags=["debug"])
 

@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # backend/app/services/npc/math_utils.py
 """
 R3.1 — Математические утилиты для NPC-систем.
@@ -25,8 +26,7 @@ TODO:
 
 
 import math
-from typing import List, Dict, Any, Literal
-
+from typing import Literal
 
 CurveType = Literal["soft", "sigmoid"]
 

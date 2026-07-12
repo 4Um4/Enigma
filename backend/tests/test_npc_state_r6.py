@@ -104,3 +104,38 @@ def test_r6_legacy_adapter_defaults():
     assert npc.resentment == 0.0
     assert npc.dependency == 0.0
     assert npc.identity_integrity == 1.0
+
+
+# =========================================================
+# TEST 5 — LifeDirection round-trip (L2.7)
+# =========================================================
+
+
+def test_r6_life_direction_round_trip():
+    """
+    Проверяет:
+    life_direction корректно сериализуется и десериализуется.
+    Если life_direction отсутствует, используется core_orientation (fallback).
+
+    Критично для:
+    сохранения динамической идентичности между тиками.
+    """
+    from app.models.npc_state import NPCStateAdapter
+    import dataclasses
+
+    # 1. Старый сейв: нет life_direction, но есть core_orientation в корне
+    legacy_data = {"id": "test_npc", "core_orientation": "wealth_creator", "psyche": {}}
+    npc = NPCStateAdapter.from_legacy(legacy_data)
+    assert npc.life_direction == "wealth_creator", "Fallback на core_orientation не сработал"
+
+    # 2. Мутация состояния (смена направления)
+    npc = dataclasses.replace(npc, life_direction="isolation")
+
+    # 3. Сериализация обратно в legacy dict
+    NPCStateAdapter.write_to_legacy(npc, legacy_data)
+
+    # 4. Десериализация снова
+    npc_restored = NPCStateAdapter.from_legacy(legacy_data)
+
+    assert npc_restored.life_direction == "isolation", "life_direction потерян при round-trip"
+    assert legacy_data["psyche"].get("life_direction") == "isolation", "life_direction не записан в psyche dict"

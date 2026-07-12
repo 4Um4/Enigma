@@ -12,9 +12,8 @@ path: backend/app/services/memory/working_memory_tick.py
 """
 from __future__ import annotations
 
-
 import logging
-from typing import Any, TYPE_CHECKING, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from app.domain.events import EventDTO
 from app.models.temporal import TemporalContext

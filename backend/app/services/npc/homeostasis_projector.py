@@ -9,7 +9,7 @@ path: backend/app/services/npc/homeostasis_projector.py
 
 import logging
 import math
-from typing import Dict, Any, List
+from typing import List
 
 from app.models.delta_payloads import SocialPayload
 from app.models.state_delta import DeltaDomain, StateDeltas

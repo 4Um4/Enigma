@@ -10,9 +10,9 @@ RCE — Reality Commit Extractor.
          (совместим с write_npc_reactions_to_memory)
 """
 
-import re
 import logging
-from typing import Any, List, Dict, Optional
+import re
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 

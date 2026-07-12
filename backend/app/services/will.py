@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # path: backend\app\services\will.py
 # Назначение: Вычисление Воли и Давления (ADR-031). Pure Functions.
 # Зависимости: app.domain.intent, app.models.will
@@ -12,14 +13,13 @@ import logging
 from typing import Any, Dict, Optional
 
 from app.domain.intent import IntentDTO
+from app.domain.intent_profile import CrowdThreatLevel, SocialSignal
 from app.models.will import (
+    EmbodiedVector,
     IntentPressureProfile,
     WillResponseDTO,
     WillState,
-    EmbodiedVector,
 )
-
-from app.domain.intent_profile import SocialSignal, CrowdThreatLevel
 
 logger = logging.getLogger(__name__)
 

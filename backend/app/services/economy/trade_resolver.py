@@ -10,13 +10,12 @@ NPC хочет TRADE → TradeResolver определяет что/у кого �
 """
 from __future__ import annotations
 
-
 import logging
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
-from app.models.economy import EconomicProfile, NeedType
 from app.core.constants import GOODS_PRICES
+from app.models.economy import EconomicProfile, NeedType
 from app.services.economy.transaction_engine import TransactionEngine
 
 logger = logging.getLogger(__name__)

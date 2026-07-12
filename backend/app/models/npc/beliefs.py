@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # backend/app/models/npc/beliefs.py
 """
 Эпистемический слой NPC — убеждения о мире.

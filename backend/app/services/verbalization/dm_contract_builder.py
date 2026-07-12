@@ -15,9 +15,8 @@ dm_contract_builder.py — контракт для DM промпта.
 """
 
 from dataclasses import dataclass, field
-from typing import List, Dict, Any, Optional
+from typing import Optional
 from uuid import uuid4
-
 
 # ── Системный промпт (фиксированный) ──────────────────────────────────────
 

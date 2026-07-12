@@ -18,9 +18,9 @@ path: /frontend/text_input.py
 Основные сущности: TextInput
 """
 
+import random
 from typing import Optional
 
-import random
 import pygame
 
 

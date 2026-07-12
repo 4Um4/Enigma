@@ -26,7 +26,6 @@ path: backend/app/services/tick_orchestrator.py
 """
 from __future__ import annotations
 
-
 import logging
 
 logger = logging.getLogger(__name__)
@@ -36,26 +35,25 @@ from app.contracts.interventions import InterventionEvent
 from app.domain.tick import TickResultDTO
 from app.models.cfrm import ClusterOccupancy
 
-from app.services.drf_bus import DRFBus, DRFExecutionContext
-from app.services.dto import _TickContext, DMContextDTO, TickPlayerResultDTO
-from app.services.npc.life_engine import get_life_engine
-from app.services.events.event_bus import get_event_bus
+# ADR-O-201 ФАЗА 1: Dual Rail Execution
+from app.models.world_snapshot import WorldSnapshot
 from app.services.cfrm.local_causal_solver import LocalCausalSolver
-from app.services.events.reaction_subscriber import ReactionSubscriber
-from app.services.events.social_subscriber import SocialSubscriber
 from app.services.combat.combat_subscriber import CombatSubscriber
-from app.services.spatial.spatial_service import SpatialService
+from app.services.drf_bus import DRFBus, DRFExecutionContext
+from app.services.dto import DMContextDTO, TickPlayerResultDTO, _TickContext
+from app.services.equivalence_validator import EquivalenceValidator
+from app.services.event_compiler import EventCompiler
+from app.services.events.event_bus import get_event_bus
+from app.services.events.reaction_subscriber import ReactionSubscriber
+from app.services.events.social_input_projector import SocialInputProjector
+from app.services.events.social_subscriber import SocialSubscriber
+from app.services.integration.world_snapshot_builder import WorldSnapshotBuilder
+from app.services.npc.life_engine import get_life_engine
 from app.services.spatial.spatial_event_detector import (
     SpatialEventDetector,
     _npc_positions_snapshot,
 )
-from app.services.integration.world_snapshot_builder import WorldSnapshotBuilder
-
-# ADR-O-201 ФАЗА 1: Dual Rail Execution
-from app.models.world_snapshot import WorldSnapshot
-from app.services.event_compiler import EventCompiler
-from app.services.equivalence_validator import EquivalenceValidator
-from app.services.events.social_input_projector import SocialInputProjector
+from app.services.spatial.spatial_service import SpatialService
 
 
 class TickOrchestrator:
@@ -87,8 +85,8 @@ class TickOrchestrator:
         self._pending_intents: Dict[str, Any] = {}
         # S91: Персистентные стигмергические слои (DynamicAffordanceField + Provider)
         from app.services.spatial.world_topology_provider import (
-            WorldTopologyProvider,
             DynamicAffordanceField,
+            WorldTopologyProvider,
         )
 
         self._dynamic_field = DynamicAffordanceField()
@@ -124,13 +122,13 @@ class TickOrchestrator:
         # ADR-O-208: Органы времени и проекции идентичности.
         # L1Chronicle (хроника деформаций) и DriveResolver (эфемерная проекция)
         # ADR-L1-PERSIST: L1Chronicle принимает store для персистентности в SQLite.
-        from app.services.npc.l1_chronicle import L1Chronicle
-        from app.services.npc.drive_resolver import DriveResolver
-        from app.services.npc.pattern_detector import PatternDetector
         from app.services.npc.belief_crystallization_engine import (
             BeliefCrystallizationEngine,
         )
         from app.services.npc.crystallized_belief_store import CrystallizedBeliefStore
+        from app.services.npc.drive_resolver import DriveResolver
+        from app.services.npc.l1_chronicle import L1Chronicle
+        from app.services.npc.pattern_detector import PatternDetector
 
         self.l1_chronicle = L1Chronicle(store=store)
         # S-93: PatternDetector получает ссылку на L1Chronicle для запроса сырых событий
@@ -411,11 +409,12 @@ class TickOrchestrator:
         def _deobjectify_event(event: "EventDTO") -> None:
             """Трансформирует EventDTO в FieldDisturbance на основе контекста тика."""
             import logging
+
             from app.models.cfrm import (
-                classify_event,
-                FieldDisturbance,
                 CausalAxis,
                 DisturbanceVector,
+                FieldDisturbance,
+                classify_event,
             )
 
             result = classify_event(event.type)
@@ -625,10 +624,11 @@ class TickOrchestrator:
                 # Применяем социальное давление только если Игрок приказывает NPC подойти
                 if _fast_actor != "player" and _target_id == "player":
                     try:
+                        import types
+
                         from app.services.social.directive_interpretation_subscriber import (
                             DirectiveInterpretationSubscriber,
                         )
-                        import types
 
                         _directive_payload = {
                             "semantic_action": _sem_action,
@@ -772,10 +772,11 @@ class TickOrchestrator:
 
             if _is_npc_target:
                 try:
+                    import types
+
                     from app.services.social.directive_interpretation_subscriber import (
                         DirectiveInterpretationSubscriber,
                     )
-                    import types
 
                     _directive_payload = {
                         "semantic_action": _sem_action,
@@ -966,7 +967,7 @@ class TickOrchestrator:
 
     def _phase_1_input(self, ctx: _TickContext) -> None:
         """Фильтрация воли игрока через WillpowerGate (ADR-031)."""
-        from app.services.phases.input import run_phase_1_input, Phase1InputDeps
+        from app.services.phases.input import Phase1InputDeps, run_phase_1_input
 
         deps = Phase1InputDeps()
         run_phase_1_input(ctx, deps)
@@ -1150,12 +1151,12 @@ class TickOrchestrator:
                         _pe_mods_map[npc_id] = _pe_mods
 
         # [S98] Сборка TickState и запуск Pipeline вынесены в pipeline_runner.py
+        from app.services.phases.decision import assemble_preloaded_data
         from app.services.pipeline_runner import (
+            build_npc_contexts_from_intents,
             build_tick_state,
             run_pipeline,
-            build_npc_contexts_from_intents,
         )
-        from app.services.phases.decision import assemble_preloaded_data
 
         (
             _memory_weights_map,
@@ -1228,8 +1229,8 @@ class TickOrchestrator:
 
         # TZ-08 v0.2: dm_frame вынесен в game_loop. Здесь только работа с памятью NPC.
         from app.services.memory.working_memory_tick import (
-            write_npc_reactions_to_memory,
             run_decay_and_resonance,
+            write_npc_reactions_to_memory,
         )
 
         if ctx.shared_context and ctx.shared_context.npc_contexts:
@@ -1269,7 +1270,7 @@ class TickOrchestrator:
         Время идёт непрерывно — эксплойты через движение исключены.
         Дельты собираются в ctx.delta_buffer → apply_batch() в Фазе 10.
         """
-        from app.services.phases.idle_services import run_phase_0_5, Phase0_5Deps
+        from app.services.phases.idle_services import Phase0_5Deps, run_phase_0_5
 
         # ADR-002: Время не останавливается. Каждый тик продвигает часы на GAME_TICK_INTERVAL_SECONDS
         self._advance_idle_time(ctx)
@@ -1298,8 +1299,8 @@ class TickOrchestrator:
         """Продвигает игровое время на GAME_TICK_INTERVAL_SECONDS (ADR-002: время не останавливается).
         Работает даже если shared_context=None (idle-путь), читая время из scene_state.
         """
-        from app.core.constants import GAME_TICK_INTERVAL_SECONDS
         from app.core.calendar import Calendar
+        from app.core.constants import GAME_TICK_INTERVAL_SECONDS
 
         # BUG-P0-01 FIX: Единственный источник абсолютного времени — scene_state["game_time_seconds"].
         # Чтение legacy time_of_day убивает дни/годы и залипает на "07:00" между тиками.
@@ -1376,8 +1377,8 @@ class TickOrchestrator:
             self._project_svc = PhenomenologyProjectionService()
 
         from app.services.phases.integration import (
-            run_phase_9_integration,
             Phase9IntegrationDeps,
+            run_phase_9_integration,
         )
 
         deps = Phase9IntegrationDeps(
@@ -1403,7 +1404,7 @@ class TickOrchestrator:
         Вызывается из ОБЕИХ путей (idle + player turn).
         Без этого affective_load не растёт при player turn → emotion=NEUTRAL → _emotion_modifier()=0.0.
         """
-        from app.services.phases.affective import run_affective_pipeline, Phase9Deps
+        from app.services.phases.affective import Phase9Deps, run_affective_pipeline
 
         deps = Phase9Deps(
             crystallized_belief_store=self.crystallized_belief_store,

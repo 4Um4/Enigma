@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # backend/app/services/memory/promotion_engine.py
 """
 Этап 9 — MemoryPromotionEngine: сжатие памяти.
@@ -15,12 +16,10 @@ path: backend/app/services/memory/promotion_engine.py
 
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Sequence, Tuple
+from typing import Dict, List, Sequence, Tuple
 
 # Выше объявление _IDENTITY_RULES использует List и Tuple — они уже импортированы
-
 from app.models.npc_state import EventMemory, MemoryStage
-
 
 # Минимальное количество событий для сжатия
 _COMPRESS_MIN_EVENTS: int = 3

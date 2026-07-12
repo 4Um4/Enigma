@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # backend/app/services/economy/need_engine.py
 """
 NeedEngine — движок потребностей NPC.
@@ -22,7 +23,7 @@ NeedEngine — движок потребностей NPC.
 import logging
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, List
+from typing import Dict, List
 
 from app.models.economy import EconomicProfile, NeedType
 

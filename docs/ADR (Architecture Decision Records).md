@@ -1005,3 +1005,18 @@
   Taboo: ❌ Вызов LLM или других блокирующих I/O операций внутри `TickOrchestrator`/`DecisionHub`. ❌ Связывание интента напрямую с материализацией.
   Status: VERIFIED (Dialogue System v2.0 Integrated)
   Files: domain/execution.py, domain/communication.py, services/execution/dialogue_executor.py, services/execution/dialogue_materializer.py, services/game_loop/task_scheduler.py, services/phases/post_decision.py
+
+`ADR-156` [STD] **Frontend Spatial SSOT (`player_spatial` removal)** — Легаси-поле `player_spatial` полностью удалено из фронтенда и тестов. Единственным источником истины для позиции игрока объявляется `npc_positions["player"]`. Устраняет Double Truth между `player_spatial` и `npc_positions`.
+  Taboo: ❌ Восстановление `player_spatial` в `scene_state` или моках. ❌ Чтение позиции игрока из любых других источников во фронтенде.
+  Status: VERIFIED
+  Files: frontend/game_screen.py, backend/tests/test_player_cognition_pipeline.py, backend/tests/test_player_target_extractor_r4.py, backend/tests/test_spatial_runtime_r4.py, backend/tests/test_tick_orchestrator_full_loop.py
+
+`ADR-157` [STD] **Local Proxy Bypass for LLM** — Системные прокси-клиенты (напр. `Throne`) рвут HTTP-соединения к `localhost` (502 Bad Gateway / ReadError). Все HTTP-клиенты (`httpx`, `urllib.request`) внутри бэкенда обязаны явно отключать использование системных прокси (`trust_env=False` для `httpx`, `ProxyHandler({})` для `urllib`) при обращении к локальным сервисам (`llama-server`, и т.д.).
+  Taboo: ❌ Использование `httpx.Client()` без `trust_env=False` для локальных запросов. ❌ Использование `urllib.request.urlopen()` без `build_opener(ProxyHandler({}))` для локальных запросов.
+  Status: VERIFIED
+  Files: backend/app/services/input/llm_compressor_client.py, backend/app/services/llm/health.py, backend/app/services/llm/llama_cpp_provider.py
+
+`ADR-158` [STD] **Ruff Static Analysis Integration** — Внедрён линтер и форматтер Ruff (`ruff.toml`). Включены правила: `E` (pycodestyle), `W` (warnings), `F` (pyflakes), `I` (isort). `line-length = 120`. Запуск `ruff check .` обязателен перед IPT (Устав §8).
+  Taboo: ❌ Коммит кода с ошибками Ruff. ❌ Использование других форматтеров (black, autopep8) без явной интеграции с Ruff.
+  Status: VERIFIED
+  Files: ruff.toml, backend/app/services/input/llm_compressor_client.py, frontend/game_screen.py, frontend/scene_renderer.py

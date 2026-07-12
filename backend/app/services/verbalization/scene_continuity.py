@@ -13,7 +13,7 @@ path: backend/app/services/verbalization/scene_continuity.py
 """
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Set
+from typing import Dict, List, Set
 
 
 @dataclass

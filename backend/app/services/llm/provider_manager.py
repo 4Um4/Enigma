@@ -18,17 +18,16 @@ Provider Manager — Multi-Provider + Lazy Loading (RTX 3070 Ti, 8 GB VRAM)
 """
 from __future__ import annotations
 
-
 import asyncio
 import json
 import logging
 import threading
 import time
-from datetime import datetime
 from dataclasses import dataclass, field
+from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Optional, Dict
+from typing import Dict, Optional
 
 from app.core.config import settings
 from app.services.error_interpreter import get_error_interpreter
@@ -36,7 +35,7 @@ from app.services.vram_monitor import get_vram_monitor
 
 logger = logging.getLogger(__name__)
 
-from app.services.llm.provider import LlmProvider, ProviderType, ProviderInfo
+from app.services.llm.provider import LlmProvider, ProviderInfo, ProviderType
 from app.services.llm.router import CAPABILITY_MODEL_PREFERENCES, Capability
 
 

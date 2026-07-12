@@ -6,7 +6,6 @@ path: backend/app/domain/snapshot.py
 """
 from __future__ import annotations
 
-
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple

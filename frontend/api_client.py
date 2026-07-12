@@ -30,13 +30,12 @@ import threading
 
 logger = logging.getLogger(__name__)
 import time  # noqa: E402
-import uuid  # noqa: E402
-import urllib.request  # noqa: E402
 import urllib.error  # noqa: E402
+import urllib.request  # noqa: E402
+import uuid  # noqa: E402
 from dataclasses import dataclass  # noqa: E402
-from typing import Protocol  # noqa: E402
 from queue import Queue  # noqa: E402
-
+from typing import Protocol  # noqa: E402
 
 # ═══════════════════════════════════════════════════════════════════════
 # УРОВЕНЬ 1: Доменные типы (знает Pygame)

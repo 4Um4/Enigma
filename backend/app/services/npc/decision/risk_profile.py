@@ -20,7 +20,7 @@ R2-P2: Профиль восприятия риска — как личност�
 """
 
 from dataclasses import dataclass
-from typing import List, Any, Dict
+from typing import Dict
 
 from app.services.npc.decision.profile_math import drive_multiplier
 

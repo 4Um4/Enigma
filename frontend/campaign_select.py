@@ -8,14 +8,13 @@ path: /frontend/campaign_select.py
 Основные сущности: CampaignEntry, CampaignSelectScreen
 """
 
+import json
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
-import json
 
 import pygame
 from i18n import t
-
 
 # Путь к кампаниям — исходники из редактора
 _CAMPAIGNS_DIR = Path(__file__).parent / "map_editor" / "campaigns"

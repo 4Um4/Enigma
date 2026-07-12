@@ -12,9 +12,9 @@ Supported errors:
 - model_fail (provider error)
 """
 
-import traceback
 import json
 import logging
+import traceback
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Optional, Tuple

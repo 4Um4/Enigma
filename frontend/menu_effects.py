@@ -5,10 +5,11 @@ path: frontend/menu_effects.py
 Основные сущности: SmokeParticle, SmokeEmitter
 """
 
-import pygame
-import random
 import math
+import random
 from typing import List
+
+import pygame
 
 
 class SmokeParticle:

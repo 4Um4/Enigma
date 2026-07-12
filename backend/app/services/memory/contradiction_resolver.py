@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # backend/app/services/memory/contradiction_resolver.py
 """
 R1.5 — Contradiction Resolver.
@@ -6,7 +7,7 @@ R1.5 — Contradiction Resolver.
 Чистая Python-логика, без LLM.
 """
 
-from typing import List, Any, Dict
+from typing import Any, Dict
 
 # Какие типы событий подрывают какие beliefs
 CONTRADICTIONS: Dict[str, Dict[str, float]] = {

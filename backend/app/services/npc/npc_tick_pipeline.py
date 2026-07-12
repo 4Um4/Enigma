@@ -11,24 +11,23 @@
 Основные сущности: BASE_IMPORTANCE, apply_perception_memory, create_memory_event, build_verbalization_context, run_npc_pipeline
 """
 
-import logging
 import copy
-from typing import List, Dict, Any, Callable, Optional, TYPE_CHECKING
+import logging
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional
 
-from app.domain.tick import TickState, TickMutation
+from app.domain.tick import TickMutation, TickState
 
 if TYPE_CHECKING:
     from app.services.npc.kernel_rng import KernelRNG
-from app.services.npc.kernel_rng import KernelRNG
-from app.services.npc.legacy_delta_adapter import LegacyStateDeltaAdapter
 from app.services.npc.domain_phases import (
-    resolve_physical_attack,
-    reset_session_state,
-    tick_conditions,
     age_temporary_drives,
     compute_economy,
-    resolve_reactions,
+    reset_session_state,
+    resolve_physical_attack,
+    tick_conditions,
 )
+from app.services.npc.kernel_rng import KernelRNG
+from app.services.npc.legacy_delta_adapter import LegacyStateDeltaAdapter
 
 logger = logging.getLogger(__name__)
 
@@ -50,16 +49,15 @@ class NpcTickPipeline:
         rng_factory: Optional[Callable[[str], "KernelRNG"]] = None,
     ) -> TickMutation:
         """TZ-10: Pure Deterministic Reducer. Сервисы исключены (Strangulation Pattern)."""
-        from app.services.npc.npc_loader import (
-            load_profile_from_legacy_json,
-            load_l2_state_from_runtime_dict,
-        )
-        from app.services.npc.decision_hub import DecisionHub
-        from app.services.npc.interpretation_engine import InterpretationEngine
         from app.models.npc_state import NPCIdentityL1, compute_drive_modifiers
-        from app.services.npc.state_applicator import StateApplicator
         from app.services.events.event_types import EventType
-        from app.services.npc.decision_hub import EventContext
+        from app.services.npc.decision_hub import DecisionHub, EventContext
+        from app.services.npc.interpretation_engine import InterpretationEngine
+        from app.services.npc.npc_loader import (
+            load_l2_state_from_runtime_dict,
+            load_profile_from_legacy_json,
+        )
+        from app.services.npc.state_applicator import StateApplicator
 
         _attack_target = (
             state.player_target_id
@@ -381,8 +379,9 @@ class NpcTickPipeline:
                         _is_move_command = True
 
             if _is_move_command and decision.intent.value != "approach":
-                from app.models.npc_state import Intent
                 import dataclasses
+
+                from app.models.npc_state import Intent
 
                 new_result = dataclasses.replace(
                     decision.decision, intent=Intent.APPROACH, intent_target="player"
@@ -663,7 +662,6 @@ def build_verbalization_context(
 ) -> Any:
     """Упаковка данных NPC в VerbalizationContext для LLM-промпта."""
     from app.services.verbalization.state_interpreter import StateInterpreter
-    from app.services.npc.topic_extractor import extract_topic
     from app.services.verbalization.verbalization_context import (
         VerbalizationContext,
         generate_emotional_nuance,
@@ -775,9 +773,9 @@ def _resolve_reactive_movement(
     ADR-048: Если передан spatial_query, чтение позиций идёт ТОЛЬКО через него.
     """
     from app.domain.movement import (
+        PRIORITY_REACTIVE,
         LocalSteeringGoal,
         MacroMovementGoal,
-        PRIORITY_REACTIVE,
     )
 
     # ADR-048: Spatial Authority. Единственный источник пространственной истины.

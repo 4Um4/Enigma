@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # backend/app/services/memory/belief_aggregator.py
 """
 BeliefAggregator: Evidence[] → BeliefFragment[].
@@ -13,7 +14,7 @@ CoherenceBeliefAggregator: первая реализация (заменяема
 
 
 from collections import defaultdict
-from typing import Any, TYPE_CHECKING, Dict, List, Protocol, Tuple
+from typing import TYPE_CHECKING, Dict, List, Protocol, Tuple
 
 from app.models.npc.beliefs import BeliefFragment, BeliefType
 

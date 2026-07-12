@@ -6,8 +6,8 @@ path: /project/backend/app/services/phases/traversal.py
 """
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
 import logging
+from typing import Any, Dict, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +18,7 @@ def process_traversals(ctx: Any, orchestrator: Any) -> None:
     При завершении он генерирует SceneChange (факт перемещения) и маркирует статус.
     Единый Spatial Commit (apply_changes) схлопнет реальность позже.
     """
-    from app.services.scene_change import SceneChange, ChangeType
+    from app.services.scene_change import ChangeType, SceneChange
 
     traversals = ctx.scene_state.get("active_traversals", {})
     if not traversals:
@@ -139,8 +139,8 @@ def apply_with_shadow_observation(
     3. Legacy применяет (авторитетный)
     4. Сравниваем результаты через EquivalenceValidator
     """
-    from app.services.scene_change import SceneChange, ChangeType
-    from app.models.world_snapshot import build_snapshot, WorldSnapshot
+    from app.models.world_snapshot import WorldSnapshot, build_snapshot
+    from app.services.scene_change import ChangeType, SceneChange
 
     if not changes or not orchestrator._scene_manager:
         return 0

@@ -10,11 +10,10 @@ SkipPolicy принимают решения на основе Detector'ов и 
 """
 from __future__ import annotations
 
-
-import logging
 import copy
+import logging
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Callable
+from typing import Any, Callable, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 

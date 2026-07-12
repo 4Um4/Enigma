@@ -12,10 +12,10 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-from diagnostics.health_checkers.tick_health import TickHealthReport
-from diagnostics.health_checkers.movement_health import MovementHealthReport
-from diagnostics.git_reader import GitReader, GitInfo
 from diagnostics.dna_metrics import DNAComputer
+from diagnostics.git_reader import GitInfo, GitReader
+from diagnostics.health_checkers.movement_health import MovementHealthReport
+from diagnostics.health_checkers.tick_health import TickHealthReport
 
 
 class ReportRenderer:

@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # backend/app/services/cfrm/local_causal_solver.py
 #
 # P2: 3-фазный оператор редюсера CFRM.
@@ -26,7 +27,7 @@ TODO:
 """
 
 import logging
-from typing import Dict, List, Optional, Any
+from typing import Any, Dict, List, Optional
 
 from app.models.cfrm import (
     CausalAxis,

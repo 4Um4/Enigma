@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # backend/app/services/player_avatar_service.py
 """
 PlayerAvatarService — живой аватар персонажа игрока.
@@ -23,14 +24,14 @@ import logging
 from pathlib import Path
 from typing import Optional
 
-from app.models.schemas import CharacterSheet
+from app.models.behavior_mask import BehaviorMaskState
 from app.models.character import CharacterProfile
 from app.models.npc_state import (
     NPCState,
     _pk_from_dict,
 )
 from app.models.physical import Condition, Wound
-from app.models.behavior_mask import BehaviorMaskState
+from app.models.schemas import CharacterSheet
 
 logger = logging.getLogger(__name__)
 

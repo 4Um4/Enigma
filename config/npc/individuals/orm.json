@@ -5,7 +5,14 @@
   "_mixins": [],
   "id": "blacksmith_orm",
   "name": "Кузнец Орм",
-  "name_forms": ["орм", "орма", "орму", "ормом", "орме", "кузнец"],
+  "name_forms": [
+    "орм",
+    "орма",
+    "орму",
+    "ормом",
+    "орме",
+    "кузнец"
+  ],
   "tier": "major",
   "gender": "мужской",
   "description": "Громадный кузнец с обожжёнными руками. Молчит по-гномьему.",
@@ -47,24 +54,39 @@
   },
   "location": "market_square",
   "position": "market_square:forge",
-  "local_position": {"x": 11.0, "y": 3.6},
+  "local_position": {
+    "x": 11.0,
+    "y": 3.6
+  },
   "hp": 45,
   "max_hp": 45,
   "origin_events": [
     {
       "summary": "Учился у мастера Грунта в горах пятнадцать лет. Он умер, не передав последний секрет закалки. Ты до сих пор пытаешься его воспроизвести.",
       "importance": 0.85,
-      "tags": ["craft_secret", "mentor", "obsession"],
+      "tags": [
+        "craft_secret",
+        "mentor",
+        "obsession"
+      ],
       "is_secret": true,
-      "known_by": ["blacksmith_orm"],
-      "hidden_from": ["player"],
+      "known_by": [
+        "blacksmith_orm"
+      ],
+      "hidden_from": [
+        "player"
+      ],
       "accessibility": 1.0,
       "decay_rate": 0.001
     },
     {
       "summary": "Жена Эльра умерла от лихорадки. Ты не был рядом — ты изменял ей со служанкой Люсей в это время. Вина не уходит.",
       "importance": 0.9,
-      "tags": ["loss", "guilt", "wife"],
+      "tags": [
+        "loss",
+        "guilt",
+        "wife"
+      ],
       "is_secret": false,
       "emotion_tag": "sad",
       "accessibility": 1.0,
@@ -73,12 +95,23 @@
     {
       "summary": "Год назад Торнин попросил выковать 'что-то особенное' без вопросов. Ты согласился — платил хорошо. Догадываешься, что это было.",
       "importance": 0.7,
-      "tags": ["suspicious_order", "tavern_keeper", "secrecy"],
+      "tags": [
+        "suspicious_order",
+        "tavern_keeper",
+        "secrecy"
+      ],
       "is_secret": true,
-      "known_by": ["blacksmith_orm", "tavern_keeper_tornin"],
-      "hidden_from": ["player", "guard_borko"],
+      "known_by": [
+        "blacksmith_orm",
+        "tavern_keeper_tornin"
+      ],
+      "hidden_from": [
+        "player",
+        "guard_borko"
+      ],
       "accessibility": 0.8,
       "decay_rate": 0.002
     }
-  ]
+  ],
+  "core_orientation": "knowledge_seeker"
 }

@@ -21,10 +21,10 @@ VRAM Monitor (F1-T02) — оптимизирован под RTX 3070 Ti (8 GB)
 
 import logging
 import os
+import shutil
 import subprocess
 import time
-import shutil
-from typing import Optional, Tuple, Dict
+from typing import Dict, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 

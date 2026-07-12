@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # path: backend/app/services/npc/opportunity_engine.py
 """
 R6.3 — OpportunityEngine: определяет момент скрытого действия сломленного NPC.
@@ -25,11 +26,10 @@ READ ONLY. Никаких мутаций.
 
 
 from dataclasses import dataclass, field
-from typing import List, Any, Dict, FrozenSet
+from typing import Any, Dict, FrozenSet
 
 from app.models.behavior_mask import BehaviorMask
 from app.models.npc_state import Intent
-
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Веса компонентов формулы (Слом.md)

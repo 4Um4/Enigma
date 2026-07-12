@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # backend/app/services/npc/role_transition.py
 """
 RoleTransition — валидация и выполнение смены профессии NPC.
@@ -26,7 +27,7 @@ import logging
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import List, Dict, Any, Optional
+from typing import Any, Optional
 
 from app.models.npc_state import NPCState, RoleChangeEntry
 

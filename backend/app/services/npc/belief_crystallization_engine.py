@@ -5,10 +5,10 @@ path: backend/app/services/npc/belief_crystallization_engine.py
 Основные сущности: BeliefCrystallizationEngine, CrystallizedBelief
 """
 
-from typing import Any, List, Dict
-from app.domain.identity_events import EvidenceOfPersistence, CrystallizedBelief
-
 import math
+from typing import Dict, List
+
+from app.domain.identity_events import CrystallizedBelief, EvidenceOfPersistence
 
 # ADR-O-307: Множитель асимметричной травмы. Опровержение в 6 раз сильнее подтверждения.
 TRAUMA_MULTIPLIER: float = 6.0

@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any, Optional
 from uuid import uuid4
 
-from app.models.schemas import CampaignState, PlayerInfo, WorldFact, SessionSummary
+from app.models.schemas import CampaignState, PlayerInfo, SessionSummary, WorldFact
 
 
 class CampaignStateService:

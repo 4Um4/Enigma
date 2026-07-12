@@ -20,7 +20,6 @@ from app.services.player_cognition.types import (
     PerceivedEntity,
 )
 
-
 # === Tier 1: Physical inference ===
 # activity → наблюдение + физический вывод
 _TIER1_RULES: List[dict] = [

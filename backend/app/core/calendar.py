@@ -17,7 +17,6 @@
 """
 from __future__ import annotations
 
-
 from dataclasses import dataclass
 from typing import Optional
 
@@ -26,10 +25,10 @@ from app.core.constants import (
     DAYS_PER_YEAR,
     DEFAULT_START_SECOND_ABS,
     INTERCALARY_NAME_RU,
-    SECONDS_PER_DAY,
-    SECONDS_PER_HOUR,
     MONTH_NAMES_RU,
     REGULAR_DAYS_PER_YEAR,
+    SECONDS_PER_DAY,
+    SECONDS_PER_HOUR,
     GameMonth,
 )
 

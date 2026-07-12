@@ -59,6 +59,22 @@ class TestNPCLoaderMigration:
 
         # КРИТИЧЕСКО: У NPCProfileL0 НЕТ поля stress.
         # Если парсер попытается его записать, тест упадёт (frozen=True не даст).
+
+
+# P1 FIX: Тест на парсинг долгосрочной цели (goal)
+RAW_NPC_WITH_GOAL = {
+    **RAW_TORNIN_LEGACY,
+    "goal": "Найти убийцу брата",
+}
+
+class TestNPCLoaderGoalParsing:
+    def test_goal_parsed_correctly(self):
+        profile = load_profile_from_legacy_json(RAW_NPC_WITH_GOAL)
+        assert profile.goal == "Найти убийцу брата"
+
+    def test_goal_defaults_to_empty(self):
+        profile = load_profile_from_legacy_json(RAW_TORNIN_LEGACY)
+        assert profile.goal == ""
         # Это гарантирует, что динамика отсечена.
 
     def test_missing_id_raises_value_error(self):

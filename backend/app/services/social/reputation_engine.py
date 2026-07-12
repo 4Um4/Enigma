@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # backend/app/services/social/reputation_engine.py
 """
 Фаза 3.5 — ReputationEngine: репутация NPC в фракциях.
@@ -16,7 +17,6 @@ import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, FrozenSet, List, Optional
-
 
 logger = logging.getLogger(__name__)
 

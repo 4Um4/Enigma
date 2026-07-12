@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # backend/app/domain/observed_fact.py
 """
 Файл: backend/app/domain/observed_fact.py

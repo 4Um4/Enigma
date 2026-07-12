@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # backend/app/services/npc/decision_hub.py
 """
 R2.2 — DecisionHub: чистая функция принятия решений NPC.
@@ -15,7 +16,7 @@ R2.2 — DecisionHub: чистая функция принятия решени�
 import logging
 import random
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Set, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set
 
 if TYPE_CHECKING:
     from app.services.npc.kernel_rng import KernelRNG
@@ -23,53 +24,50 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 # Целевая архитектура данных (L0/L2)
-from app.models.npc_profile import NPCProfileL0
-from app.models.npc_state import NPCState
+from app.core.constants import (
+    COMMITMENT_BASE_THRESHOLD,
+    COMMITMENT_BONUS_K,
+    COMMITMENT_K,
+    INTENT_DECAY_RATE,
+    INTENT_EXHAUSTION_RATE,
+    INTENT_INERTIA_MAX_TICKS,
+    INTENT_INERTIA_WEIGHT,
+    INTENT_SATURATION_TICKS,
+    MIN_INTENT_SCORE,
+    PROVOCATION_THREAT_THRESHOLD,
+    REACTIVE_URGENCY_THRESHOLD,
+    SCORE_NOISE_RANGE,
+    SWITCHING_COST_AGE_K,
+    SWITCHING_COST_BASE,
+    SWITCHING_COST_EMOTION_K,
+    SWITCHING_COST_IDENTITY_K,
+)
 from app.domain.communication import CommunicationIntent, ExposureLevel
-from app.domain.vital_state import evaluate_vital_state, is_conscious, LifeStatus
+from app.domain.vital_state import LifeStatus, evaluate_vital_state, is_conscious
+from app.models.behavior_mask import BehaviorMask
+from app.models.npc_profile import NPCProfileL0
 
 # Легаси-типы, всё ещё используемые в логике (Enum'ы и контракты результатов)
 from app.models.npc_state import (
     EmotionTag,
     Intent,
+    NPCState,
     WillState,
 )
 
 # StateDeltas — канонический контракт мутаций (Устав §2.3)
 from app.models.state_delta import StateDeltas
-
-from app.services.events.event_types import EventType
-from app.models.behavior_mask import BehaviorMask
-
-from app.core.constants import (
-    SCORE_NOISE_RANGE,
-    INTENT_INERTIA_MAX_TICKS,
-    INTENT_INERTIA_WEIGHT,
-    INTENT_SATURATION_TICKS,
-    INTENT_DECAY_RATE,
-    INTENT_EXHAUSTION_RATE,
-    MIN_INTENT_SCORE,
-    COMMITMENT_BASE_THRESHOLD,
-    COMMITMENT_K,
-    COMMITMENT_BONUS_K,
-    SWITCHING_COST_BASE,
-    SWITCHING_COST_AGE_K,
-    SWITCHING_COST_EMOTION_K,
-    SWITCHING_COST_IDENTITY_K,
-    REACTIVE_URGENCY_THRESHOLD,
-    PROVOCATION_THREAT_THRESHOLD,
-)
 from app.services.economy.opportunity_engine import (
     OpportunityContext,
     OpportunityEngine,
     OpportunityResult,
 )
-from app.services.npc.decision.social_deltas import SocialDeltaEngine
+from app.services.events.event_types import EventType
 from app.services.npc.decision.risk import perceive_risk
-
+from app.services.npc.decision.social_deltas import SocialDeltaEngine
 
 # ── Проактивные интенты: доступны только при WORLD_TICK ──────────────────────
-PROACTIVE_INTENTS: frozenset = frozenset(
+PROACTIVE_INTENTS: frozenset[str] = frozenset(
     {
         Intent.BLOCK_PATH,
         Intent.AMBUSH,
@@ -84,7 +82,7 @@ PROACTIVE_INTENTS: frozenset = frozenset(
 
 # Роли, которым доступны перехватывающие/засадные интенты
 # Остальные (торговцы, трактирщики, ремесленники) — заблокированы
-COMBAT_CAPABLE_ROLES: frozenset = frozenset(
+COMBAT_CAPABLE_ROLES: frozenset[str] = frozenset(
     {
         "стражник",
         "охранник",
@@ -266,6 +264,8 @@ class DecisionHub:
         KERNEL-ISOLATION: в production ВСЕГДА передаётся rng (не seed).
         seed=None + rng=None → недетерминированно (ТОЛЬКО ДЛЯ DEBUG).
         """
+        # Тип _rng: KernelRNG (prod) или random.Random (legacy/debug)
+        self._rng: Union["KernelRNG", random.Random]
         if rng is not None:
             self._rng = rng
         else:
@@ -316,6 +316,7 @@ class DecisionHub:
         intent_target: Optional[str],
         topic: Optional[str],
         emotion_value: str,
+        scores: Optional[Dict[str, float]] = None,
     ) -> Optional[CommunicationIntent]:
         """Создаёт CommunicationIntent для вербального intent (Устав 2.2).
 
@@ -327,8 +328,8 @@ class DecisionHub:
         _topic = topic or intent_value
         # Трассировка скоринга: показываем топ-3 интента и их финальный вес
         _top_intents = (
-            sorted(_scores.items(), key=lambda x: x[1], reverse=True)[:3]
-            if "_scores" in locals()
+            sorted(scores.items(), key=lambda x: x[1], reverse=True)[:3]
+            if scores is not None
             else []
         )
         logger.info(
@@ -798,6 +799,7 @@ class DecisionHub:
             emotion_value=state.emotion.value
             if hasattr(state.emotion, "value")
             else str(state.emotion),
+            scores=scores,
         )
         return AgentAction(decision=_decision, communication=_communication)
 
@@ -1416,6 +1418,18 @@ class DecisionHub:
         if event.event_type == EventType.WORLD_TICK:
             if intent in PROACTIVE_INTENTS:
                 base += 0.4  # бонус за проактивность
+                # P1-3 v3.0: Буст от Core Orientation (оси идентичности)
+                _orientation = getattr(personality, "core_orientation", "survival")
+                _orientation_intents = {
+                    "family_builder": ["seek_ally", "help", "call_for_help"],
+                    "wealth_creator": ["offer_job", "request_service", "trade"],
+                    "warrior": ["ambush", "block_path", "call_for_help"],
+                    "knowledge_seeker": ["request_service", "seek_ally"],
+                    "ruler": ["spread_rumor", "call_for_help", "change_role"],
+                }
+                _expected_intents = _orientation_intents.get(_orientation, [])
+                if intent in _expected_intents:
+                    base += _desire * 1.5 + _significance * 0.5
             else:
                 base -= 0.3  # штраф за реакцию без стимула
 
@@ -1882,5 +1896,6 @@ class DecisionHub:
             emotion_value=state.emotion.value
             if hasattr(state.emotion, "value")
             else str(state.emotion),
+            scores=None,
         )
         return AgentAction(decision=_decision, communication=_communication)

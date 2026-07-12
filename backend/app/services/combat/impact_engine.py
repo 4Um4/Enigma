@@ -25,11 +25,10 @@ TODO:
 import random
 from typing import List
 
-from app.models.impact import ContactLevel, ImpactIntentDTO
+from app.models.delta_payloads import InjuryDTO, PhysiologyPayload
 from app.models.idle_tick import NPCStateSnapshot
-from app.models.state_delta import StateDeltas, DeltaDomain
-from app.models.delta_payloads import PhysiologyPayload, InjuryDTO
-
+from app.models.impact import ContactLevel, ImpactIntentDTO
+from app.models.state_delta import DeltaDomain, StateDeltas
 
 # Вероятности попадания по зонам (если не указана конкретная)
 _ZONE_WEIGHTS = {

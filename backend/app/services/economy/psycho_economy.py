@@ -26,12 +26,10 @@ backend/app/services/economy/psycho_economy.py
 """
 from __future__ import annotations
 
-
 from dataclasses import dataclass
-from typing import List, Any, Dict, Optional
+from typing import Dict, Optional
 
 from app.models.economy import Need, NeedType
-
 
 # ── Весовые матрицы: как каждый drive влияет на каждую потребность ──
 # Положительный вес → drive ускоряет рост потребности

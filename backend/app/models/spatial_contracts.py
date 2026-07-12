@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # backend/app/models/spatial_contracts.py
 # Назначение: Контракты SpatialService v1.2 — типы, Enum, dataclass
 # Трёхслойная модель: Геометрия (x,y) → Топология (zone_id/level) → Семантика (role/tags)
@@ -17,7 +18,6 @@ TODO:
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Dict, List, Optional, Set, Tuple
-
 
 # ── Семантика: роли узлов ────────────────────────────────────────────
 

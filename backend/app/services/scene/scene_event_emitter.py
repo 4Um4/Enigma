@@ -5,7 +5,8 @@ path: /backend/app/services/scene/scene_event_emitter.py
 Основные сущности: SceneEventEmitter
 """
 
-from typing import Dict, Any, List
+from typing import List
+
 from app.models.scene_event import SceneEvent, SceneEventType
 
 

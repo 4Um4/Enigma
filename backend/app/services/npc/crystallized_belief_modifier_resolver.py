@@ -5,7 +5,8 @@ path: backend/app/services/npc/crystallized_belief_modifier_resolver.py
 Основные сущности: CrystallizedBeliefModifierResolver
 """
 
-from typing import Any, List, Dict
+from typing import Dict, List
+
 from app.domain.identity_events import CrystallizedBelief
 
 

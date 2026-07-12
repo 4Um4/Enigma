@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # backend/app/models/npc_state.py
 """
 Единый источник типов NPC. Жёсткие write-контракты:
@@ -24,24 +25,24 @@ NPCState — центральный узел всей психики.
 """
 
 
-from app.models.affect import AffectiveImprint
-
 import math
+
+from app.models.affect import AffectiveImprint
 
 _math = math
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple
 
 from app.models.behavior_mask import BehaviorMaskState
 
 if TYPE_CHECKING:
     from app.models.physical import Condition, Wound
-from app.models.psychological import CausalEntry
-from app.models.physical import ThreatAccumulator
-from app.models.npc.beliefs import BeliefState
-
 import logging
+
+from app.models.npc.beliefs import BeliefState
+from app.models.physical import ThreatAccumulator
+from app.models.psychological import CausalEntry
 
 logger = logging.getLogger(__name__)
 
@@ -598,6 +599,11 @@ class NPCState:
     # WRITE: только BeliefTransitionEngine.
     # READ: DecisionHub.compute() через beliefs.as_modifiers().
     beliefs: "BeliefState" = field(default_factory=BeliefState)
+    
+    # L2.7: LifeDirection (Жизненный проект).
+    # Динамическая проекция CoreOrientation (L0), модулированная убеждениями (L2.5).
+    # Инициализируется из L0 при спавне. Меняется при кризисе идентичности.
+    life_direction: str = "survival"
 
     # ── Физиология (Physiology Domain / Body LOD Macro) ────────────────────
     # Мастер Тай: body_state — рантайм контейнер ВСЕЙ физиологии (HP, pain, fatigue, injuries, modifiers).
@@ -800,6 +806,8 @@ class NPCState:
         psyche["state"] = state.will_state.value
         psyche["identity_integrity"] = state.identity_integrity
         psyche["pressure_resistance"] = state.pressure_resistance
+        # L2.7: LifeDirection — персистенция динамического жизненного проекта
+        psyche["life_direction"] = state.life_direction
         psyche["trauma_flags"] = (
             list(state.trauma_markers)
             if isinstance(state.trauma_markers, (set, list, tuple))
@@ -966,10 +974,15 @@ class NPCStateAdapter:
                 elif not (0.0 <= _dv <= 1.0):
                     _drives_raw[_dk] = max(0.01, min(1.0, _dv))
 
+        # L2.7: LifeDirection — динамическая проекция L0.
+        # Если в сейве нет life_direction (старый сейв), берём core_orientation.
+        _life_direction = npc_dict.get("life_direction", npc_dict.get("core_orientation", "survival"))
+
         return NPCState(
             npc_id=npc_dict.get("npc_id", npc_dict.get("id", "unknown")),
             stress=float(psyche.get("stress", 0)),
             drives_runtime=_drives_raw,
+            life_direction=_life_direction,
             # R6.1/R6.4 — новые параметры личности (если отсутствуют — дефолты)
             resentment=float(psyche.get("resentment", 0.0)),
             dependency=float(psyche.get("dependency", 0.0)),

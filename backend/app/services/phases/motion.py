@@ -6,8 +6,8 @@ path: /project/backend/app/services/phases/motion.py
 """
 from __future__ import annotations
 
-from typing import Any, Optional
 import logging
+from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -20,19 +20,19 @@ def process_continuous_motion(
     Если у NPC есть DriveVector и нет активного MovementIntent,
     его позиция вычисляется через непрерывное поле возможностей.
     """
-    from app.services.motion.motion_pipeline import (
-        SteeringResolver,
-        MotionIntegrator,
-        CollisionAvoidance,
-    )
+    from app.core.constants import ETKE_IK_SUBSTEP_DT
     from app.domain.motion_core import (
         BodySchema,
         DriveVector,
         MotionPrimitive,
         TracePayload,
     )
-    from app.core.constants import ETKE_IK_SUBSTEP_DT
-    from app.services.scene_change import SceneChange, ChangeType
+    from app.services.motion.motion_pipeline import (
+        CollisionAvoidance,
+        MotionIntegrator,
+        SteeringResolver,
+    )
+    from app.services.scene_change import ChangeType, SceneChange
 
     npc_positions = ctx.scene_state.get("npc_positions", {})
     active_traversals = ctx.scene_state.get("active_traversals", {})

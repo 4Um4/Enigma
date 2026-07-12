@@ -1,5 +1,7 @@
 from __future__ import annotations
-from typing import Any, Dict, List, Optional
+
+from typing import Any, Dict
+
 # backend/app/services/spatial/spatial_overlay.py
 # Назначение: Динамическое состояние сцены (SpatialOverlay)
 # Инициализируется из scene_state каждый тик. Не мутирует граф.

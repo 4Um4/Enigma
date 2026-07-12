@@ -19,11 +19,10 @@ path: /backend/app/services/economy/traveller.py
 """
 from __future__ import annotations
 
-
 import random
 from dataclasses import dataclass
 from enum import Enum
-from typing import List, Any, Dict, Optional
+from typing import Dict, Optional
 
 from app.core.constants import GOODS_PRICES
 from app.services.economy.market_state import MarketState

@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # backend/app/models/economy.py
 """
 Экономические структуры NPC.

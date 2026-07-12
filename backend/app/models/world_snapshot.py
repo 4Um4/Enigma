@@ -13,7 +13,6 @@ Rule 125: Snapshot mutation после создания ЗАПРЕЩЕНА.
 """
 from __future__ import annotations
 
-
 import copy
 import logging
 import time

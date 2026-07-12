@@ -1,4 +1,3 @@
-from typing import Any, Dict, List, Optional
 # backend/app/services/npc/decision/profile_math.py
 """
 R2: Общая математика профилей личности.
@@ -69,21 +68,6 @@ def drive_multiplier(drive: float, min_mult: float = MIN_MULTIPLIER) -> float:
     d_shaped = _shape_drive(drive)
     # Нормализованная развёртка: d_shaped=0 → min_mult, d_shaped=_NEUTRAL_SHAPED → 1.0
     return min_mult + (d_shaped / _NEUTRAL_SHAPED) * (1.0 - min_mult)
-
-
-def clamped_drive_ratio(
-    numerator_drive: float,
-    denominator_drive: float,
-    min_bound: float = RATIO_FLOOR,
-    max_bound: float = RATIO_CEIL,
-) -> float:
-    """Отношение двух drive-множителей с clamp.
-
-    Защищает от взрыва (fear=0.6/control=0.1 → ≈4.0 → clamp → 3.0).
-    """
-    num = drive_multiplier(numerator_drive)
-    den = drive_multiplier(denominator_drive)
-    return max(min_bound, min(max_bound, num / max(den, 0.2)))
 
 
 def clamped_drive_ratio(

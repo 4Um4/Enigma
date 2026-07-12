@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # backend/app/services/npc/condition_engine.py
 """
 ConditionEngine — тикер временных состояний NPC.
@@ -25,7 +26,7 @@ ConditionEngine — тикер временных состояний NPC.
 
 
 import logging
-from typing import Dict, Any, List, Tuple
+from typing import List, Tuple
 
 from app.models.npc_state import NPCState
 from app.services.reaction.micro_event import MicroEvent, MicroEventType

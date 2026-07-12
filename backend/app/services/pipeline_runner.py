@@ -11,9 +11,9 @@ path: backend/app/services/pipeline_runner.py
 import logging
 from typing import Any, Dict, List, Optional
 
-from app.domain.tick import create_tick_state, TickMutation
-from app.services.npc.npc_tick_pipeline import NpcTickPipeline
+from app.domain.tick import TickMutation, create_tick_state
 from app.services.drf_bus import DRFExecutionContext
+from app.services.npc.npc_tick_pipeline import NpcTickPipeline
 
 logger = logging.getLogger(__name__)
 
@@ -104,11 +104,12 @@ def build_npc_contexts_from_intents(ctx: Any, mutation: TickMutation) -> None:
     if not ctx.communication_intents:
         return
 
-    from app.models.npc_state import personality_from_legacy
-    from app.models.npc_state import Intent as NpcIntent
-    from app.models.state_delta import StateDeltas, DeltaDomain
-    from app.models.delta_payloads import IdentityPayload
     from dataclasses import dataclass
+
+    from app.models.delta_payloads import IdentityPayload
+    from app.models.npc_state import Intent as NpcIntent
+    from app.models.npc_state import personality_from_legacy
+    from app.models.state_delta import DeltaDomain, StateDeltas
 
     @dataclass
     class _DecisionResultAdapter:

@@ -12,9 +12,10 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from typing import Dict, List, Any
-from app.models.state_delta import StateDeltas, DeltaDomain
+from typing import Any, List
+
 from app.models.delta_payloads import EmotionPayload
+from app.models.state_delta import DeltaDomain, StateDeltas
 from app.services.affective.emotion_transition import THRESHOLD_ANXIOUS
 
 

@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # backend/app/domain/action_intent_bridge.py
 """
 Мост между ActionType (из IntentCompressor) и Intent (из DecisionHub).

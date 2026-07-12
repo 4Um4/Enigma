@@ -14,7 +14,7 @@ TODO: мигрировать в отдельный модуль, чтобы не
 """
 
 import logging
-from typing import Dict, Any, List, Tuple
+from typing import Any, List, Tuple
 
 from app.models.state_delta import (
     DeltaDomain,

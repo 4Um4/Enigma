@@ -1,6 +1,7 @@
 import json
 from datetime import datetime
 from pathlib import Path
+
 from app.core.config import settings
 
 LOG_DIR = Path(settings.data_dir) / "logs"

@@ -8,17 +8,16 @@ path: backend/app/services/dto.py
 """
 from __future__ import annotations
 
-
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional
 
+from app.domain.intent import IntentDTO
+from app.models.cfrm import ClusterOccupancy, EventBuffer
+from app.models.state_delta import DeltaDomain
+from app.models.will import IntentPressureProfile
 from app.services.drf_bus import DRFBus
 from app.services.npc.kernel_rng import KernelRNG
-from app.domain.intent import IntentDTO
-from app.models.will import IntentPressureProfile
-from app.models.state_delta import DeltaDomain
-from app.models.cfrm import EventBuffer, ClusterOccupancy
 
 
 class ReductionPolicy(Enum):

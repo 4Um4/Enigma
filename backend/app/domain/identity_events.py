@@ -7,8 +7,8 @@ path: backend/app/domain/identity_events.py
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List, Protocol, Optional, Dict
 from types import MappingProxyType
+from typing import Dict, List, Optional, Protocol
 
 
 @dataclass(frozen=True)

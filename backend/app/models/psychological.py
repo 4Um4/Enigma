@@ -12,9 +12,8 @@ path: backend/app/models/psychological.py
 - StateApplicator → пишет CausalEntry (Шаг 3)
 """
 
-from typing import Any, Dict
-
 from dataclasses import dataclass
+from typing import Any, Dict
 
 
 @dataclass(frozen=True)

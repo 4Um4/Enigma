@@ -14,9 +14,8 @@ TODO:
 """
 from __future__ import annotations
 
-
 from dataclasses import dataclass, field
-from typing import Dict, List, Literal, Any
+from typing import Any, Dict, List, Literal
 
 
 @dataclass(frozen=True)

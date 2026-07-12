@@ -10,10 +10,9 @@ path: /frontend/game_menu.py
 """
 
 from enum import Enum, auto
-from typing import Optional, Callable
+from typing import Callable, Optional
 
 import pygame
-
 from i18n import t
 
 

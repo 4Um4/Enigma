@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # path: backend/app/services/presentation/avatar_presentation_assembler.py
 # Назначение: Перевод Simulation Truth (body_state, psyche) в Frontend Phenomenological Projection (AvatarStateDTO).
 # Зависимости: app.domain.snapshot, typing

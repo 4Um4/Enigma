@@ -1,5 +1,6 @@
 import pathlib
 
+
 def fix_file_utf8(filepath: str, replacements: dict) -> None:
     path = pathlib.Path(filepath)
     if not path.exists():

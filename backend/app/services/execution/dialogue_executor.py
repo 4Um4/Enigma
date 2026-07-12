@@ -6,11 +6,12 @@ path: /backend/app/services/execution/dialogue_executor.py
 """
 from __future__ import annotations
 
-from typing import List, Dict, Any, Iterable, Callable, Optional
 import concurrent.futures
-from app.domain.execution import Artifact, QueuedTask
-from app.domain.communication import DialogueRequest
 import logging
+from typing import Callable, Iterable, Optional
+
+from app.domain.communication import DialogueRequest
+from app.domain.execution import Artifact, QueuedTask
 
 logger = logging.getLogger(__name__)
 

@@ -15,14 +15,14 @@ from typing import Any, Dict
 
 from app.core.config import settings
 from app.models.delta_payloads import (
-    SocialPayload,
     EmotionPayload,
-    ReputationPayload,
     IdentityPayload,
     PerceptionPayload,
+    ReputationPayload,
+    SocialPayload,
 )
 from app.models.idle_tick import NPCStateSnapshot
-from app.models.state_delta import DeltaDomain, StateDeltas, ReductionPolicy
+from app.models.state_delta import DeltaDomain, ReductionPolicy, StateDeltas
 from app.services.dto import DELTA_POLICY_REGISTRY
 from app.services.events.event_types import EventType
 
@@ -326,6 +326,7 @@ def create_tick_context(
     Изолирует deepcopy, rng_factory и инициализацию DTO от сайд-эффектов оркестратора.
     """
     import copy
+
     from app.services.dto import _TickContext
     from app.services.npc.kernel_rng import KernelRNG
 

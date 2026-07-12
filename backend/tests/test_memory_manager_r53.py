@@ -7,8 +7,8 @@ Decay-тесты используют прямой push в _working (setup бе�
 
 from unittest.mock import MagicMock
 
-from app.models.npc_state import EventMemory, MemoryStage
 from app.core.constants import DECAY_EVERY
+from app.models.npc_state import EventMemory, MemoryStage
 from app.services.memory.memory_manager import MemoryManager
 
 

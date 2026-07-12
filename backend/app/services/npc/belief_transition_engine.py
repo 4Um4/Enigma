@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # backend/app/services/npc/belief_transition_engine.py
 """
 Write-path эпистемического слоя.
@@ -15,7 +16,7 @@ Write-path эпистемического слоя.
 
 
 import logging
-from typing import List, Dict, Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, List
 
 if TYPE_CHECKING:
     from app.models.npc_state import NPCState

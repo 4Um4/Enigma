@@ -15,8 +15,8 @@ from pathlib import Path
 from typing import Optional
 
 from map_editor.spatial_registry_builder import (
-    SpatialRegistryBuilder,
     SpatialRegistryArtifact,
+    SpatialRegistryBuilder,
 )
 
 logger = logging.getLogger(__name__)

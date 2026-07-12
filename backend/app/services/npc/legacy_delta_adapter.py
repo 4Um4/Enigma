@@ -14,15 +14,15 @@ TODO: по мере миграции legacy-кода на v2 постепенн�
 """
 
 import logging
-from typing import Dict, Any, List, Set, Union
+from typing import List, Set, Union
 
+from app.models.delta_payloads import PerceptionPayload
 from app.models.state_delta import (
-    StateDeltas,
     DeltaDomain,
     EmotionPayload,
     SocialPayload,
+    StateDeltas,
 )
-from app.models.delta_payloads import PerceptionPayload
 
 logger = logging.getLogger(__name__)
 

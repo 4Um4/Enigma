@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # path: backend/app/models/will.py
 # Назначение: Контракты системы Воли и Давления (WillpowerGate, ADR-031)
 # Зависимости: domain.intent, models.delta_payloads

@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # backend/app/services/game_loop_builder.py
 """
 Чистая функция сборки GameLoop.
@@ -8,23 +9,23 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
-from app.core.config import settings
-from app.services.game_loop import GameLoop
-
-# AdventureLoader удалён (ADR-O-146)
-from app.services.system_requirements import SystemRequirements
-from app.services.memory import LayeredMemory
-from app.services.memory.sqlite_store import SqliteMemoryStore
-from app.services.memory.memory_manager import MemoryManager
-from app.services.world_scheduler import WorldScheduler
-from app.services.character_service import CharacterService
-from app.services.player_avatar_service import PlayerAvatarService
-from app.services.scene_state_manager import SceneStateManager
-from app.services.state.sqlite_persistence_adapter import SqlitePersistenceAdapter
-from app.services.action.dm_orchestrator import DMOrchestrator
 from app.agents.dm_agent import DmAgent
 from app.agents.rules_agent import RulesAgent
 from app.agents.world_sim_agent import WorldSimulationAgent
+from app.core.config import settings
+from app.services.action.dm_orchestrator import DMOrchestrator
+from app.services.character_service import CharacterService
+from app.services.game_loop import GameLoop
+from app.services.memory import LayeredMemory
+from app.services.memory.memory_manager import MemoryManager
+from app.services.memory.sqlite_store import SqliteMemoryStore
+from app.services.player_avatar_service import PlayerAvatarService
+from app.services.scene_state_manager import SceneStateManager
+from app.services.state.sqlite_persistence_adapter import SqlitePersistenceAdapter
+
+# AdventureLoader удалён (ADR-O-146)
+from app.services.system_requirements import SystemRequirements
+from app.services.world_scheduler import WorldScheduler
 
 logger = logging.getLogger(__name__)
 

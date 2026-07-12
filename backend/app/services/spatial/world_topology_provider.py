@@ -7,8 +7,8 @@ path: backend/app/services/spatial/world_topology_provider.py
 """
 from __future__ import annotations
 
+from typing import Any, Dict, Optional, Tuple
 
-from typing import List, Tuple, Dict, Any, Optional
 from app.domain.motion_core import AffordanceVector, DeformationRecord, TracePayload
 from app.services.spatial.spatial_service import SpatialService
 

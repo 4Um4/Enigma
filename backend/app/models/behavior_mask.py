@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # path: backend/app/models/behavior_mask.py
 
 """

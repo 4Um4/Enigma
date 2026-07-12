@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # backend/app/services/llm/health.py
 """
 Инфраструктурный слой: Проверка доступности LLM бэкенда.
@@ -10,7 +11,6 @@ import time
 from typing import Dict
 
 import httpx
-
 from app.core.config import settings
 
 # Простой in-memory кэш для избежания спама запросами при рефреше UI
@@ -32,7 +32,8 @@ def check_llm_health(use_cache: bool = True) -> Dict:
     url = settings.llama_cpp_server_url
 
     try:
-        with httpx.Client(timeout=settings.llama_cpp_timeout_sec) as client:
+        # S97 FIX: trust_env=False отключает чтение прокси из ОС (Throne рвёт localhost)
+        with httpx.Client(timeout=settings.llama_cpp_timeout_sec, trust_env=False) as client:
             response = client.get(f"{url}/v1/models")
 
             if response.status_code == 200:

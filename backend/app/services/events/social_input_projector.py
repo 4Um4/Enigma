@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # backend/app/services/events/social_input_projector.py
 #
 # Сенсорный слой: преобразует ФАКТЫ взаимодействия в social_input (EMA).
@@ -12,12 +13,12 @@ path: backend/app/services/events/social_input_projector.py
 
 
 import logging
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 from app.domain.events import EventDTO
-from app.models.phase8 import Phase8Context, Phase8Result
-from app.models.state_delta import StateDeltas, DeltaDomain
 from app.models.delta_payloads import SocialPayload
+from app.models.phase8 import Phase8Context, Phase8Result
+from app.models.state_delta import DeltaDomain, StateDeltas
 from app.services.events.event_bus import EventBus
 from app.services.events.event_types import EventType
 

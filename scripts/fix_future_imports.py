@@ -1,5 +1,5 @@
 import os
-import re
+
 
 def fix_future_import(filepath: str) -> bool:
     with open(filepath, 'r', encoding='utf-8') as f:

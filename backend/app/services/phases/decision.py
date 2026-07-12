@@ -11,11 +11,11 @@ path: backend/app/services/phases/decision.py
 import logging
 from typing import Any, Dict, List, Optional
 
-from app.services.npc.break_progress_engine import BreakProgressEngine
-from app.models.npc_state import NPCStateAdapter, NPCState
-from app.models.behavior_mask import BehaviorMask, BehaviorMaskState
-from app.models.will import WillState
 from app.domain.identity_events import TraitDriftEvent
+from app.models.behavior_mask import BehaviorMask, BehaviorMaskState
+from app.models.npc_state import NPCState, NPCStateAdapter
+from app.models.will import WillState
+from app.services.npc.break_progress_engine import BreakProgressEngine
 
 logger = logging.getLogger(__name__)
 

@@ -6,7 +6,8 @@ S113: Введён кэш _cache для предотвращения перес�
 """
 
 import logging
-from typing import List, Any, Optional, Dict, Tuple
+from typing import Any, Dict, Optional, Tuple
+
 from app.services.spatial.spatial_service import SpatialService
 
 logger = logging.getLogger(__name__)

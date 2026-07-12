@@ -16,10 +16,9 @@ path: backend/app/services/spatial/spatial_event_detector.py
 """
 from __future__ import annotations
 
-
 import logging
 import math
-from typing import List, Any, Dict, Tuple
+from typing import Any, Dict, Tuple
 
 from app.domain.events import EventDTO
 from app.services.events.event_types import EventType

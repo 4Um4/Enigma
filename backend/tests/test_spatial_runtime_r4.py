@@ -1,9 +1,17 @@
 from pathlib import Path
+
 import pytest
-from app.services.npc.perception_filter import _can_hear, _can_see, extract_scene_awareness
-from app.services.spatial.spatial_runtime import line_of_sight, resolve_distance_between_entities, sound_reach, extract_scene_for_npc, sound_bleeds_to_adjacent
 from app.core.constants import PERCEPTION_RADIUS
+from app.services.npc.perception_filter import _can_hear, _can_see, extract_scene_awareness
 from app.services.scene_state_manager import _derive_environment_modifiers
+from app.services.spatial.spatial_runtime import (
+    extract_scene_for_npc,
+    line_of_sight,
+    resolve_distance_between_entities,
+    sound_bleeds_to_adjacent,
+    sound_reach,
+)
+
 
 def test_stealth_npc_not_visible_from_distance() -> None:
     """Невидимый NPC дальше 1.5м не обнаруживается."""
@@ -155,78 +163,6 @@ def test_extract_scene_awareness_returns_nearby_and_actions() -> None:
     assert "nearby" in out and isinstance(out["nearby"], list)
     assert "available_actions" in out
     assert "move" in out["available_actions"]
-
-
-def test_stealth_npc_not_visible_from_distance() -> None:
-    """Невидимый NPC дальше 1.5м не обнаруживается."""
-    scene = _scene()
-    scene["npc_positions"]["thief"] = {
-        "location_id": "tavern_silver_wolf",
-        "position": "corner_table",
-        "local_position": {"x": 5.0, "y": 5.0},
-        "activity": "observing",
-        "visible": False,
-    }
-    out = extract_scene_for_npc(scene, "npc_b", ["thief"])
-    assert not any(x["npc_id"] == "thief" for x in out["nearby"])
-
-
-def test_stealth_npc_detected_at_close_range() -> None:
-    """Невидимый NPC вплотную (≤1.5м) обнаруживается с флагом detected."""
-    scene = _scene()
-    # main_hall (0,0) и npc_b тоже в main_hall — дистанция ~0
-    scene["npc_positions"]["hidden_close"] = {
-        "location_id": "tavern_silver_wolf",
-        "position": "main_hall",
-        "local_position": {"x": 0.1, "y": 0.0},
-        "activity": "hiding",
-        "visible": False,
-    }
-    scene["environment"]["light_level"] = "bright"
-    out = extract_scene_for_npc(scene, "npc_b", ["hidden_close"])
-    detected = [x for x in out["nearby"] if x["npc_id"] == "hidden_close"]
-    assert detected, "Вплотную невидимый NPC должен быть обнаружен"
-    assert detected[0].get("detected") is True
-
-
-def test_player_included_in_scene_snapshot() -> None:
-    """Снимок сцены содержит данные об игроке если он в радиусе."""
-    scene = _scene()
-    out = extract_scene_for_npc(scene, "npc_b", [])
-    assert "player" in out
-    assert out["player"] is not None
-    assert "distance" in out["player"]
-    assert "in_los" in out["player"]
-
-
-def test_minor_npc_cannot_perceive_far_target() -> None:
-    """Minor NPC (радиус 3м) не воспринимает цель на 8м."""
-    scene = _scene()
-    out = extract_scene_for_npc(
-        scene, "npc_a", ["npc_far"],
-        perception_radius=PERCEPTION_RADIUS["minor"],
-    )
-    assert not any(x["npc_id"] == "npc_far" for x in out["nearby"])
-
-
-def test_major_npc_perceives_far_target() -> None:
-    """Major NPC (радиус 15м) воспринимает цель на 8м."""
-    scene = _scene()
-    out = extract_scene_for_npc(
-        scene, "npc_a", ["npc_far"],
-        perception_radius=PERCEPTION_RADIUS["major"],
-    )
-    assert any(x["npc_id"] == "npc_far" for x in out["nearby"])
-
-
-def test_derive_environment_modifiers_dungeon() -> None:
-    """Подземелье: высокая опасность, темнота → низкий light, высокий danger."""
-    tv = {"light_level": "dark", "noise_level": "silent"}
-    mods = _derive_environment_modifiers(tv, "dungeon")
-    assert mods["light"] == 0.0
-    assert mods["noise"] == 0.0
-    assert mods["danger"] == 0.6
-    assert mods["density"] == 0.6
 
 
 def test_derive_environment_modifiers_tavern_day() -> None:

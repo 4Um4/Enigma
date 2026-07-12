@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # backend/app/models/npc_profile.py
 """
 Целевая архитектура данных NPC (To-Be).
@@ -70,6 +71,11 @@ class NPCProfileL0:
     # v2.2 Spatial Ontology: Архетип профессии. Инъектируется из _archetype при загрузке.
     # L1 Bridge: В будущем заменит _archetype на core.compliance_bias
     archetype: str = "commoner"  # "maid", "guard", "thief", "tavern_keeper" и т.д.
+    # P1 FIX: Жизненный проект (конкретная цель). Меняется при достижении/провале.
+    goal: str = ""
+    # P1-3 v3.0: Ось идентичности (Core Orientation). Не меняемая базовая жизненная направленность.
+    # Меняется только через кризис идентичности (падение confidence ниже 0.2 и перестройка убеждений).
+    core_orientation: str = "survival"  # family_builder, wealth_creator, warrior, etc.
 
 
 # --- СЛОЙ L1: ИДЕНТИЧНОСТЬ (MEDIAN DYNAMICS) ---

@@ -17,7 +17,7 @@ response_validator.py — валидация ответа LLM + fallback.
 
 import re
 from dataclasses import dataclass
-from typing import List, Dict, Any, Optional
+from typing import Optional
 
 from app.services.verbalization.contract_base import NarrativeContractProtocol
 

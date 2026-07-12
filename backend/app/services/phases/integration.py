@@ -6,10 +6,10 @@ path: /project/backend/app/services/phases/integration.py
 """
 from __future__ import annotations
 
+import copy
+import logging
 from dataclasses import dataclass
 from typing import Any
-import logging
-import copy
 
 from app.services.dto import _TickContext
 
@@ -100,7 +100,7 @@ def run_phase_9_integration(ctx: _TickContext, deps: Phase9IntegrationDeps) -> N
                 # PhenomenologicalState.threat_level уже 0-1 — передаём как есть.
                 from app.models.cfrm import PsychologicalPressure
                 from app.models.delta_payloads import PerceptionPayload
-                from app.models.state_delta import StateDeltas, DeltaDomain
+                from app.models.state_delta import DeltaDomain, StateDeltas
 
                 pressure = PsychologicalPressure(
                     fear=p_state.threat_level,
@@ -136,19 +136,17 @@ def run_phase_9_integration(ctx: _TickContext, deps: Phase9IntegrationDeps) -> N
                     (n for n in ctx.all_npcs_raw if n.get("npc_id") == entity_id),
                     None,
                 ):
+                    # ADR-O-208: Смерть npc_raw["drives"].
+                    # Котёл читает ТОЛЬКО эфемерную проекцию из DriveResolver (L0 + L1).
+                    # ВНИМАНИЕ: блок перенесён ВЫШЕ compute_continuous_drift —
+                    # TIFL требует _drives_projection и _psyche_raw на вход.
+                    from app.models.npc_state import PerceptualKernel, personality_from_legacy
                     from app.services.affective.affective_integrator import (
                         integrate_affective_pressure,
                     )
                     from app.services.affective.emotion_transition import (
                         resolve_emotion_transition,
                     )
-                    from app.models.npc_state import PerceptualKernel
-
-                    # ADR-O-208: Смерть npc_raw["drives"].
-                    # Котёл читает ТОЛЬКО эфемерную проекцию из DriveResolver (L0 + L1).
-                    # ВНИМАНИЕ: блок перенесён ВЫШЕ compute_continuous_drift —
-                    # TIFL требует _drives_projection и _psyche_raw на вход.
-                    from app.models.npc_state import personality_from_legacy
 
                     _profile_l0 = personality_from_legacy(npc_raw)
                     _beliefs = deps.crystallized_belief_store.get_beliefs(entity_id)
@@ -170,10 +168,10 @@ def run_phase_9_integration(ctx: _TickContext, deps: Phase9IntegrationDeps) -> N
                     _drive_significance = _drives_projection.get("significance", 0.25)
 
                     # ADR-O-208 / L3-P2: TIFL получает эфемерную проекцию, а не сырой стейт
+                    from app.domain.identity_events import TraitDriftEvent
                     from app.services.npc.break_progress_engine import (
                         compute_continuous_drift,
                     )
-                    from app.domain.identity_events import TraitDriftEvent
 
                     _rigidity = (
                         _psyche_raw.get("identity_rigidity", 0.5)
@@ -368,7 +366,7 @@ def run_phase_9_integration(ctx: _TickContext, deps: Phase9IntegrationDeps) -> N
                             f"[AFFECTIVE] npc={entity_id} load={new_load:.3f} prev={current_load:.3f} tag={emotion_payload.emotion_tag}"
                         )
 
-                        from app.models.state_delta import StateDeltas, DeltaDomain
+                        from app.models.state_delta import DeltaDomain, StateDeltas
 
                         emotion_delta = StateDeltas(
                             npc_id=entity_id,
@@ -449,17 +447,17 @@ def run_phase_9_integration(ctx: _TickContext, deps: Phase9IntegrationDeps) -> N
     # ADR-O-324: FactExtractor (Sprint P4)
     # ADR-O-325: InferenceEngine (Sprint P4)
     # ADR-O-326: PresentationAssembler (Sprint P7)
+    from app.domain.embodied_trace import EmbodiedTraceDTO
+    from app.services.perception.fact_extractor import FactExtractor
+    from app.services.perception.inference_engine import InferenceEngine
     from app.services.perception.manifestation_physics_engine import (
         ManifestationPhysicsEngine,
     )
     from app.services.perception.perception_physics_engine import (
         PerceptionPhysicsEngine,
     )
-    from app.services.perception.fact_extractor import FactExtractor
-    from app.services.perception.inference_engine import InferenceEngine
     from app.services.perception.presentation_assembler import PresentationAssembler
     from app.services.spatial.spatial_query_service import SpatialQueryService
-    from app.domain.embodied_trace import EmbodiedTraceDTO
 
     _manifest_engine = ManifestationPhysicsEngine()
     _perception_engine = PerceptionPhysicsEngine()

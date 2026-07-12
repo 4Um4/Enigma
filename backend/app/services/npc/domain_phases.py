@@ -14,7 +14,7 @@
 """
 
 import logging
-from typing import Any, Dict, List, Tuple, Optional
+from typing import Any, Dict, List
 
 logger = logging.getLogger(__name__)
 
@@ -87,8 +87,8 @@ def reset_session_state(state_l2: Any, npc_id: str, is_session_start: bool) -> N
     """
     if not is_session_start:
         return
-    from app.models.npc_state import Intent, EmotionTag
     from app.models.behavior_mask import BehaviorMaskState
+    from app.models.npc_state import EmotionTag, Intent
 
     state_l2.intent_duration = 0
     state_l2.intent_formed_at = 0
@@ -190,8 +190,8 @@ def compute_economy(
         return _result
 
     try:
-        from app.services.economy.need_engine import NeedEngine
         from app.services.economy.economic_modifier import EconomicModifier
+        from app.services.economy.need_engine import NeedEngine
         from app.services.economy.stress_calculator import calculate_economic_stress
 
         _ne = NeedEngine()

@@ -7,9 +7,10 @@
 
 import logging
 import uuid
-from typing import Dict, List, Any
-from app.domain.perception_physics import PerceivedSignal
+from typing import Any, List
+
 from app.domain.observed_fact import ObservedFact
+from app.domain.perception_physics import PerceivedSignal
 
 logger = logging.getLogger(__name__)
 

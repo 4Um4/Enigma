@@ -8,7 +8,7 @@
 
 | Показатель | Значение |
 |------------|----------|
-| Сессий | 116 |
+| Сессий | 117|
 | Доменов | 10 |
 | Консолидированных запретов | [DERIVED: count(ADR.*.Taboo)] |
 | Диапазон | S03—S97 |
@@ -233,6 +233,10 @@
 - 🔵 **S90** ADR-S90.3: CollisionAvoidance. Внедрён реактивный слой в `motion_pipeline.py` (до `SteeringResolver`). Проверяет `Affordance` впереди движения и смещает вектор перпендикулярно при `can_pass < 0.5`.
 - 🔵 **S90** ADR-S90.4: MotionRenderRouter. Фронтенд реализует гибридный рендер: `velocity` (ETKE-IK) → инерция; `active_traversals` (FSM) → `path_waypoints`. `NPCPositionDTO` расширен.
 
+- 🔵 **S117** ADR-O-314: `MacroMovementGoal` migrated to `actor_id`. Удалено легаси-поле `npc_id` для полной консистентности с `LocalSteeringGoal`. Обновлены все создатели и читатели (`npc_tick_pipeline.py`, `movement_engine.py`). IPT 5/5 passed.
+  Files: backend/app/domain/movement.py, backend/app/services/npc/npc_tick_pipeline.py, backend/app/services/spatial/movement_engine.py
+
+
 - 🔵 **S91** ЭТАП 1: DynamicAffordanceField (Dual-Layer). Введён state-object для стигмергии. Слой 1: Hard Overrides (`DeformationRecord`, Absolute Override, TTL). Слой 2: Soft Traces (`TracePayload`, накопление, decay). `WorldTopologyProvider` стал чистым фасадом. `TickOrchestrator` владеет персистентным инстансом. Очистка в Фазе 0.5 (`purge_hard_overrides`, `step_decay`).
 - 🔵 **S91** ЭТАП 2: SocialTraceField. Внедрена эмиссия поведенческих следов: `movement_density` (в `_process_continuous_motion`) и `safety_confidence` (в `_apply_phase8_result`). Следы накапливаются и влияют на `AffordanceVector` (например, толпа увеличивает `drag_coefficient`).
 - 🔵 **S91** ЭТАП 3: Motion Router & Social Drift. 
@@ -442,6 +446,22 @@
   - **Patch Set B (ADR Status Matrix):** Создан `docs/audits/ADR_STATUS_MATRIX.md` с актуальными статусами. В файлы shadow-ADR (O-201, O-204, O-205, O-206, O-211) добавлены блоки со статусом `Phase 0 🔴` и планами ремонта.
   - **Patch Set C (Documentation Sync):** В `README.md` обновлён блок `Repository Anchors` с правильными путями (актуальные ТЗ перенесены в `docs/Диаграммы игры/`). В `03_KNOWN_ISSUES_AND_BUGS.md` всем 9 багам проставлен статус `ЗАКРЫТ ✅`, так как археология показала, что они устранены в коде.
 
+- 🔵 **S116** ТЗ-INFRA-1: Инфраструктура, P0-P3 баги, mypy strict & Рефакторинг.
+  - **Инфраструктура:** Настроены GitHub Actions (`test.yml`, `superbox.yml`). `pytest` конфиг перенесён в `pyproject.toml` (`--strict-markers`). `mypy` внедрён в CI.
+  - **Багфиксы (P0-P1):** Починены математика выделения стен в редакторе (`_point_near_line`), RGB-цвета, выход из редактора (`self._running`). UI: направление взгляда NPC (добавлено поле `facing_angle` в `PerceivedEntity`), фильтрация WASD в русской раскладке, парсер составных имён, позиция HUD (`sh` вместо `sw`).
+  - **Багфиксы (P2-P3):** Автоматически очищены 33 файла от `print()` спама (заменено на `logger.debug`). Вынесены хардкоды (`duration_ticks`). Удалён мёртвый код в `api_client.py` и `editor_core.py`.
+  - **Архитектура (Долг D):** Убито легаси-поле `state.hp`. Канонический источник теперь `body_state["current_hp"]` (ADR-HP-UNIFICATION). 
+  - **Архитектура (Долг E):** `GameLoopBridge` переведён на persistent event loop (устранены `asyncio.run` на каждый ход). Внедрена инкапсуляция внутренних сервисов `GameLoop`.
+  - **Типизация (C.3):** Слои `domain/`, `models/` и `state/` полностью прошли `mypy --strict` (0 ошибок). Слой `services/` переведён на "мягкий" режим `mypy` (137 файлов автотипизированы).
+  Files: .github/workflows/test.yml, backend/pyproject.toml, frontend/game_screen.py, frontend/scene_renderer.py, frontend/map_editor/editor_core.py, backend/app/services/npc/state_applicator.py, backend/app/services/game_loop/__init__.py, frontend/game_loop_bridge.py, backend/app/domain/movement.py
+
+- 🔵 **S117** Чистка фронтенда, LLM-инфраструктуры и статический анализ.
+  - **`player_spatial` cleanup:** Легаси-поле `player_spatial` удалено из `frontend/game_screen.py` и 4 тестов. Позиция игрока теперь читается исключительно из `npc_positions["player"]` (SSOT).
+  - **LLM Proxy Fix:** Обнаружен баг — прокси-клиент `Throne` рвал соединения к `localhost`. Внедрён обход (`urllib.request.ProxyHandler({})` и `httpx` `trust_env=False`) в `llm_compressor_client.py`, `health.py`, `llama_cpp_provider.py`. LLM-сервер теперь корректно отвечает на запросы.
+  - **Intent Compressor:** Промпт LLM переведён на русский. Добавлен fallback в `_slow_path_parse` (если LLM недоступна, используется Fast-Path). Fast-Path улучшен для понимания прямых обращений ("Торнин, отойди к двери").
+  - **Ruff Integration:** Внедрён линтер Ruff (`ruff.toml`). Ошибки (`E402`, `F821`, `E741`, `F841`) исправлены во всём проекте. `ruff check .` проходит без ошибок.
+  Files: frontend/game_screen.py, backend/app/services/input/llm_compressor_client.py, backend/app/services/llm/health.py, backend/app/services/llm/llama_cpp_provider.py, backend/app/services/input/intent_compressor.py, backend/app/services/game_loop/phase_1_input.py
+
 ## 2. АРХИТЕКТУРНЫЕ ЗАПРЕТЫ (Синхронизировано с ADR Master Index)
 
 ### State & Mutation
@@ -555,3 +575,5 @@
 92. ❌ Использование `PatternDetector` без передачи `L1Chronicle` в конструктор (ADR-S93.3)
 93. ❌ Жёсткие пороги (if/else) в формировании убеждений `BeliefCrystallizationEngine` (ADR-S93.3)
 94. ❌ Отсутствие затухания ожиданий в Фазе 0.5 — ожидания обязаны затухать привязанные к `dt_game` (ADR-S93.2)
+
+

@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # backend/app/services/npc/interpretation_engine.py
 """
 Единый движок интерпретации: что событие значит для NPC.
@@ -22,7 +23,7 @@ TODO:
 """
 
 
-from typing import List, Any, Dict, Optional
+from typing import Dict, Optional
 
 from app.core.constants import (
     DISTRUST_STRESS_THRESHOLD,
@@ -32,7 +33,6 @@ from app.models.interpretation import InterpretationResult
 from app.models.npc_state import NPCState
 from app.models.psychological import DistortionProfile
 from app.services.npc.decision_hub import EventContext
-
 
 # ── Константы угроз (перенесены из DEPRECATED threat_assessor) ────────────────
 

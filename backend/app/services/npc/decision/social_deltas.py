@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # backend/app/services/npc/decision/social_deltas.py
 """
 R2-P1: Социальные дельты — как события меняют отношения между агентами.
@@ -20,10 +21,9 @@ R2-P1: Социальные дельты — как события меняют 
 from typing import Any, Dict, List, Optional, Tuple
 
 from app.models.npc_state import NPCState
-from app.models.state_delta import StateDeltas, DeltaDomain, SocialPayload
-from app.services.npc.math_utils import apply_saturation
+from app.models.state_delta import DeltaDomain, SocialPayload, StateDeltas
 from app.services.npc.decision.relationship_profile import RelationshipResponseProfile
-
+from app.services.npc.math_utils import apply_saturation
 
 # ── Базовые дельты: объективная сила события (ДО модуляции личностью) ──
 # Формат: (trust_base, fear_base, fear_category)

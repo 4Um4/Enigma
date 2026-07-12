@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # backend/app/models/phase8.py
 """
 Контракты Фазы 8 — детерминированный drain-этап.

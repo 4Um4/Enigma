@@ -9,9 +9,9 @@ from __future__ import annotations
 
 import logging
 import uuid
-from typing import List, Dict, Any
+from typing import Any, Dict, List
 
-from app.domain.world_projection import WorldProjectionEvent, ProjectionType
+from app.domain.world_projection import ProjectionType, WorldProjectionEvent
 
 logger = logging.getLogger(__name__)
 

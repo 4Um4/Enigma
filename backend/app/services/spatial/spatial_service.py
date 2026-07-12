@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # backend/app/services/spatial/spatial_service.py
 # Назначение: Единый API SpatialService v1.2 — ядро
 # Чистый механизм. Не принимает решений. Не мутирует состояние.

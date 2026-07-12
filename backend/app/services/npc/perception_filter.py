@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # backend/app/services/npc/perception_filter.py
 #
 # Phase 3B.3 — Perception Filter
@@ -37,7 +38,7 @@ TODO: расширение формулы clarity — добавить эффе�
 """
 
 import logging
-from typing import Dict, Any, List, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 if TYPE_CHECKING:
     from app.services.spatial.spatial_query_service import SpatialQueryService

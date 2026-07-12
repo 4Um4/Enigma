@@ -6,9 +6,9 @@ path: /project/backend/app/services/phases/post_decision.py
 """
 from __future__ import annotations
 
-from typing import Any
-import logging
 import dataclasses
+import logging
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -172,8 +172,8 @@ def run_phase_7_windup_resolution(ctx: Any, orchestrator: Any) -> None:
     реконструирует CommunicationIntent из ActionCommitment и передаёт в IntentEventAdapter.
     """
     from app.domain.action_windup import WindupStatus
-    from app.services.events.intent_event_adapter import IntentEventAdapter
     from app.services.events.event_bus import get_event_bus
+    from app.services.events.intent_event_adapter import IntentEventAdapter
 
     bus = get_event_bus()
     adapter = IntentEventAdapter()

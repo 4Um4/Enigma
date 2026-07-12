@@ -6,13 +6,11 @@ path: backend/app/api/world_routes.py
 """
 from __future__ import annotations
 
-
 from typing import Optional
-
-from fastapi import APIRouter, Query, HTTPException, Request
 
 from app.domain.snapshot import WorldSnapshotDTO
 from app.services.scene_state_manager import get_scene_state_manager
+from fastapi import APIRouter, HTTPException, Query, Request
 
 world_router = APIRouter(tags=["world"])
 

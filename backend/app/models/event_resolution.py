@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # backend/app/models/event_resolution.py
 """
 EventResolutionResult — unified envelope для выхода из resolver.
@@ -24,7 +25,6 @@ EventResolutionResult — unified envelope для выхода из resolver.
 
 from dataclasses import dataclass, field
 from typing import Dict, List, Literal, Optional
-
 
 # ═════════════════════════════════════════════════════════
 # КАНАЛ 1: STATE CHANGES (физика — только данные)

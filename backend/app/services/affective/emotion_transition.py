@@ -7,9 +7,9 @@ TODO:
 """
 from __future__ import annotations
 
+from typing import Any, Dict, Optional
 
 from app.models.delta_payloads import EmotionPayload
-from typing import List, Dict, Any, Optional
 
 # Пороги аффективного коллапса
 THRESHOLD_ANXIOUS = 0.3

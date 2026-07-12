@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\scene_state_manager.py
 # -*- coding: utf-8 -*-
 """
@@ -29,22 +30,21 @@ SceneState хранится в:
 """
 
 
-import time
-
 import json
+import logging
 import math
 import random
-import logging
+import time
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
 from app.core.config import settings
-from app.services.scene_change import SceneChange, ChangeType
-from app.services.state.persistence_port import PersistencePort
+from app.services.scene_change import ChangeType, SceneChange
 
 # ADR-102: load_graph удалён — заменён на SpatialService
 from app.services.spatial.spatial_runtime import euclidean_distance
+from app.services.state.persistence_port import PersistencePort
 
 logger = logging.getLogger(__name__)
 
@@ -1478,6 +1478,7 @@ class SceneStateManager:
                                     != "MOVING"
                                 ):
                                     import math
+
                                     from app.domain.traversal_schema import (
                                         build_traversal_dict,
                                     )
@@ -2142,8 +2143,8 @@ class SceneStateManager:
         lines = ["Текущее состояние сцены (ТОЛЬКО ЭТИ объекты существуют в локации):"]
 
         # ── Объекты (Salience Engine: фильтрация по важности) ─────────────
-        from app.services.scene.salience_engine import SalienceEngine
         from app.models.scene_mode import determine_scene_mode
+        from app.services.scene.salience_engine import SalienceEngine
 
         _raw_objects = scene_state.get("objects", {})
         _sal_event = scene_state.get("_salience_event_type", "player_interacts")

@@ -16,7 +16,7 @@ path: /backend/app/services/spatial/spatial_events.py
 """
 
 from dataclasses import dataclass
-from typing import Any, Dict, List
+from typing import Dict, List
 
 
 @dataclass(frozen=True)

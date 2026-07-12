@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # path: backend/app/services/scene/scene_event_layer.py
 """
 Слой сценовых событий — единые события для восприятия всеми NPC.
@@ -14,7 +15,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import asdict
-from typing import Dict, Any, List
+from typing import Any, Dict, List
 
 from app.services.scene.scene_event_emitter import SceneEventEmitter
 

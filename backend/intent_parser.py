@@ -5,14 +5,11 @@ backend/intent_parser.py
 "подойду к Люсе", "подошёл к стражнику", "пойти на север" — всё работает.
 """
 
+import unicodedata
+from dataclasses import dataclass
 from typing import List, Optional, Tuple
 
-from dataclasses import dataclass
-
-import unicodedata
-
 import pymorphy3
-
 from npc_name_resolver import npc_id_to_display
 
 _morph = pymorphy3.MorphAnalyzer()

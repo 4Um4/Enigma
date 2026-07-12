@@ -10,9 +10,9 @@ AddNodeCommand, RemoveNodeCommand, AddObjectCommand, RemoveObjectCommand,
 TogglePassabilityCommand, UndoManager.
 """
 
+from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
-from copy import deepcopy
 
 
 class Command:

@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # path: backend/app/services/affect.py
 # Назначение: Аффективная Резонансная Система (ADR-031 Extension).
 # Зависимости: app.domain.intent, app.models.will, app.models.affect, app.models.cfrm

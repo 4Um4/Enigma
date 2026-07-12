@@ -18,8 +18,10 @@ ADR-TIFL-003: Двигатель Кристаллизации Идентично
 """
 
 from dataclasses import dataclass
-from typing import Any, Dict, Optional, List
+from typing import Dict, List, Optional
+
 from app.models.npc_state import NPCState, WillState
+
 # EventContext не нужен — BreakProgressEngine работает на накопленном состоянии,
 # не на конкретном событии. Вызов возможен в любой момент тика.
 

@@ -1,0 +1,18 @@
+target-version = "py311"
+line-length = 120
+fix = true
+
+[lint]
+select = ["E", "W", "F", "I"]
+
+[lint.per-file-ignores]
+"backend/app/models/*" = ["E501", "E402", "F401", "F841"]
+"backend/app/services/*" = ["E501", "E731", "E402", "F821", "F841", "F401", "E721"]
+"backend/app/*" = ["E501", "E402", "F401", "F821"]
+"backend/tests/*" = ["E501", "E402", "E741", "E712", "E721", "W293", "W292", "F401", "F841", "F821"]
+"backend/tests/sandbox/*" = ["E501", "E402", "F841", "F821", "F401", "F402", "F811"]
+"backend/*" = ["E501", "E402", "F401", "F841", "F821"]
+"scripts/*" = ["E501", "E402", "E701", "W293", "W292", "F841", "F401"]
+"diagnostics/*" = ["E501", "E402", "E741", "F841", "F401"]
+"frontend/*" = ["E501", "E402", "W293", "F401", "F841", "F821"]
+"build_graph.py" = ["E501"]

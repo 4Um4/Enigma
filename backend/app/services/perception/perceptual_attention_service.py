@@ -1,11 +1,10 @@
 from __future__ import annotations
+
 # path: backend/app/services/perception/perceptual_attention_service.py
 # Назначение: Фильтрация PerceptionEvent по бюджету и сборка PlayerPerceptionDTO.
 # ТЗ EMBODIED UI: Строгий attention_budget = 1.0.
 # Зависимости: app.domain.perception, app.domain.snapshot
-
-
-from typing import Dict, Any, List
+from typing import List
 
 from app.domain.perception import PerceptionEvent
 from app.domain.snapshot import (
@@ -15,7 +14,6 @@ from app.domain.snapshot import (
     PeripheralCueDTO,
     PlayerPerceptionDTO,
 )
-
 
 # Словарь наблюдений (семантические семена -> человекочитаемый текст)
 # ЗАПРЕТ: Здесь не может быть слов "Боится", "Злится". Только наблюдения.

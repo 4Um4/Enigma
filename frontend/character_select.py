@@ -16,14 +16,13 @@ path: /frontend/character_select.py
 import logging
 
 logger = logging.getLogger(__name__)
+import json  # noqa: E402
 from dataclasses import dataclass  # noqa: E402
 from pathlib import Path  # noqa: E402
 from typing import Optional  # noqa: E402
-import json  # noqa: E402
 
 import pygame  # noqa: E402
 from i18n import t  # noqa: E402
-
 
 # Папки кампаний — приоритет saves/ (runtime), fallback campaigns/ (исходники)
 _SAVES_DIR = Path(__file__).parent.parent / "saves"

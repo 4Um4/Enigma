@@ -3,8 +3,9 @@ map_editor/ui_components.py
 UI компоненты: кнопки, модальные окна, панели, выпадающие списки
 """
 
+from typing import Any, Callable, Dict, List, Optional, Tuple
+
 import pygame
-from typing import Callable, List, Dict, Any, Optional, Tuple
 
 # === Цветовая схема ===
 COLORS = {

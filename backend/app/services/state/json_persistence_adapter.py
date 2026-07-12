@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # backend/app/services/state/json_persistence_adapter.py
 """
 JsonPersistenceAdapter — JSON реализация PersistencePort.
@@ -11,7 +12,7 @@ JsonPersistenceAdapter — JSON реализация PersistencePort.
 import json
 import logging
 from pathlib import Path
-from typing import List, Dict, Any, Optional
+from typing import Any, Dict, List, Optional
 
 from app.services.state.persistence_port import PersistencePort
 

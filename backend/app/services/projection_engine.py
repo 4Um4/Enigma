@@ -19,7 +19,6 @@ path: backend/app/services/projection_engine.py
 """
 from __future__ import annotations
 
-
 import copy
 import logging
 from typing import List

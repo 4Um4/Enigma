@@ -15,13 +15,13 @@ import logging
 from typing import Any, Dict, Optional
 
 from app.services.game_loop.time_advance import advance_game_time
-from app.services.spatial.player_target_pipeline import (
-    extract_player_target,
-    detect_and_publish_spatial_transitions,
-    build_spatial_data_for_dm,
-)
-from app.services.scene.scene_event_layer import emit_and_accumulate_scene_events
 from app.services.npc.decision_hub import EventContext as HubEventContext
+from app.services.scene.scene_event_layer import emit_and_accumulate_scene_events
+from app.services.spatial.player_target_pipeline import (
+    build_spatial_data_for_dm,
+    detect_and_publish_spatial_transitions,
+    extract_player_target,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -178,7 +178,7 @@ def run_dm_phase(
     if dm_result.is_valid and dm_result.scene_context:
         # B5-FIX: мутация → SceneChange (CAUSAL_CONTRACT §3.5).
         if dm_result.scene_context.line_of_sight is not None:
-            from app.services.scene_change import SceneChange, ChangeType
+            from app.services.scene_change import ChangeType, SceneChange
 
             _scene_manager = getattr(game_loop, "scene_manager", None)
             if _scene_manager:

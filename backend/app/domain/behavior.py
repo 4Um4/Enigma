@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # path: backend/app/domain/behavior.py
 # Назначение: Контракты наблюдаемого поведения NPC (The Fool Epistemic Boundary).
 # Запрет: Содержит только внешние проявления, доступные сенсорам игрока.

@@ -14,7 +14,6 @@ Rule 126: Drift Index с Class D (Causal) или E (Ontological) в production �
 """
 from __future__ import annotations
 
-
 import logging
 from dataclasses import dataclass
 from enum import Enum

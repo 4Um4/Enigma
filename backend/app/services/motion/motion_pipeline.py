@@ -7,11 +7,11 @@ path: backend/app/services/motion/motion_pipeline.py
 """
 from __future__ import annotations
 
-
 import math
-from typing import Tuple, TYPE_CHECKING
-from app.domain.motion_core import DriveVector, BodySchema, AffordanceVector
+from typing import TYPE_CHECKING, Tuple
+
 from app.core.constants import ETKE_IK_SUBSTEP_DT
+from app.domain.motion_core import AffordanceVector, BodySchema, DriveVector
 
 if TYPE_CHECKING:
     from app.services.spatial.world_topology_provider import WorldTopologyProvider

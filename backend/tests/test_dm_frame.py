@@ -266,19 +266,6 @@ class TestPromptBlockFormatting:
         result = builder.to_dm_prompt_block(frame)
 
         assert "Торнин" in result
-
-    def test_focus_npcs_in_output(self):
-        """NPC в фокусе и его intent видны в блоке."""
-        builder = SceneOutcomeBuilder()
-
-        d = make_decision("Торнин", intent=Intent.INTIMIDATE, stress=0.4, distance=2.0)
-        context = make_context(distances={"Торнин": 2.0}, visible_npcs={"Торнин"})
-
-        scene = builder.build([d], context)
-        frame = builder.build_dm_frame(scene)
-        result = builder.to_dm_prompt_block(frame)
-
-        assert "Торнин" in result
         assert "подался вперёд" in result.lower()
 
     def test_emotion_in_output(self):

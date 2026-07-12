@@ -8,11 +8,11 @@ backend/app/services/game/combat_math.py
 LLM получает build_combat_context() и только нарративит.
 """
 
-import random
 import json
+import random
 from datetime import datetime
-from typing import Dict, List, Tuple, Any
 from pathlib import Path
+from typing import Any, Dict, List, Tuple
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Логирование

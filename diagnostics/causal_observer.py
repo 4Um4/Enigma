@@ -16,11 +16,11 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-from diagnostics.pattern_registry import COMPILED
-from diagnostics.health_checkers.tick_health import TickHealthChecker
-from diagnostics.health_checkers.movement_health import MovementHealthChecker
-from diagnostics.health_checkers.invariant_health import InvariantHealthChecker
 from diagnostics.dna_metrics import DNAComputer
+from diagnostics.health_checkers.invariant_health import InvariantHealthChecker
+from diagnostics.health_checkers.movement_health import MovementHealthChecker
+from diagnostics.health_checkers.tick_health import TickHealthChecker
+from diagnostics.pattern_registry import COMPILED
 
 logger = logging.getLogger(__name__)
 

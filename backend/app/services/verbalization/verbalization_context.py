@@ -7,7 +7,7 @@ generate_emotional_nuance — Python-генерация описания эмо�
 """
 
 from dataclasses import dataclass, field
-from typing import List, Dict, Any, Optional, Tuple
+from typing import Optional, Tuple
 
 from app.models.npc_state import (
     EmotionTag,

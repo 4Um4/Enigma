@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # backend/app/services/state/sqlite_persistence_adapter.py
 """
 SqlitePersistenceAdapter — SQLite реализация PersistencePort.
@@ -21,7 +22,7 @@ import logging
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Union, List, Dict, Any, Optional
+from typing import Any, Dict, List, Optional, Union
 
 from app.services.state.persistence_port import PersistencePort
 

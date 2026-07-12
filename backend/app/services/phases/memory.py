@@ -13,9 +13,9 @@ import logging
 from dataclasses import replace
 
 from app.models.npc_state import NPCState
+from app.services.dto import _TickContext
 from app.services.npc.npc_loader import load_l2_state_from_runtime_dict
 from app.services.tick_utils import resolve_affected_npcs
-from app.services.dto import _TickContext
 
 logger = logging.getLogger(__name__)
 

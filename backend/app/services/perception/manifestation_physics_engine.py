@@ -1,4 +1,5 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
+
 # backend/app/services/perception/manifestation_physics_engine.py
 """
 Файл: backend/app/services/perception/manifestation_physics_engine.py
@@ -7,15 +8,16 @@ from typing import Any, Dict, List, Optional
 """
 
 import logging
+
 from app.domain.manifestation import (
-    ManifestationState,
     BodyManifestation,
-    GazeManifestation,
-    VoiceManifestation,
     BreathingManifestation,
-    MovementManifestation,
+    GazeManifestation,
     HandsManifestation,
+    ManifestationState,
     MicroExpressionManifestation,
+    MovementManifestation,
+    VoiceManifestation,
 )
 
 logger = logging.getLogger(__name__)

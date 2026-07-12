@@ -11,14 +11,18 @@
 - **L0 (PERCEPTION):** Мир → Восприятие. Никакой телепатии. Игрок и NPC получают информацию симметрично через `PerceptualKernel` / `ProjectionPolicy`.
 - **L1 (BODY):** Инерция личности. Любая мутация стана должна подчиняться формуле: `new_value = (old_value * core.rigidity) + (delta * (1 - core.rigidity))`. Моментальные скачки = баг.
 - **L2 (BEHAVIOR):** `DecisionHub` — единственный источник решений. Давление искривляет utility, но не приказывает.
+
+**Актуальные DTO:**
 - **`TickState`** (`domain/tick.py`): Пассивный иммутабельный снимок состояния мира для передачи в редюсер (TZ-10). Содержит ВСЕ данные, включая preloaded блоки (`memory_weights_map`, `narrative_cache_map`, `social_modifiers_map`, `reputation_modifiers_map`, `economic_profiles_map`, `crystallized_beliefs_map`, `identity_traits_map`) и read-only сервисы (`relationship_store`, `spatial_service`, `spatial_query`).
-  🚫 ЗАПРЕТ: Изменяемые дефолты в `TickState` (использовать `frozen()`). Возврат параметра `svc` в редюсер.
 - **`DRFBus` & `DRFExecutionContext`** (`services/drf_bus.py`): Вынесены из `tick_orchestrator.py` (S97). Шина каузального арбитража (ADR-134) и scoped ledger (ADR-136).
 - **`TickContext` & DTOs** (`services/dto.py`): Вынесены из `tick_orchestrator.py` (S97). Содержит `ReductionPolicy`, `SemanticFrame`, `TickPlayerResultDTO`, `_TickContext`, `DMContextDTO` (DEPRECATED).
 - **`TickMutation`** (`domain/tick.py`): Чистый результат работы `NpcTickPipeline.run()`. Содержит `npc_deltas`, `communication_intents`, `movement_intents`, а также отложенные I/O мутации: `l1_drift_events` и `memory_events` (применяются оркестратором).
-- **`TickResultDTO`** (`domain/tick.py`): Единый результат тика ядра. Возвращает status, world_snapshot, npc_contexts (Narrative Projection) и `final_scene_state` (мутированный deepcopy снимок `scene_state`, ADR-311). 
+- **`TickResultDTO`** (`domain/tick.py`): Единый результат тика ядра. Возвращает status, world_snapshot, npc_contexts (Narrative Projection) и `final_scene_state` (мутированный deepcopy снимок `scene_state`, ADR-311).
 
-  🚫 ЗАПРЕТ: Возврат `TickPlayerResultDTO` из ядра. Возврат `movement_intents` (они исполняются внутри Фазы 8 и не покидают ядро).
+🚫 **КАУЗАЛЬНЫЕ ЗАПРЕТЫ:**
+- ❌ **Изменяемые дефолты в `TickState`:** Использовать `frozen()`. Возврат параметра `svc` в редюсер запрещён.
+- ❌ **Возврат `TickPlayerResultDTO` из ядра:** Ядро возвращает только `TickResultDTO`.
+- ❌ **Возврат `movement_intents`:** Они исполняются внутри Фазы 8 и не покидают ядро.
 ---
 
 ## 1. ВВОД И СЖАТИЕ (Input & Intent Compression)
@@ -89,7 +93,7 @@
 **Актуальные DTO:**
 - **`DecisionContext`** (`domain/decision_context.py`): `UtilityFieldDeformation`, `ActionSpaceCompression`. **GAP3 FIX:** `body_state` инжектируется для Соматического Вето.
 - **`IntentDomain`** (`domain/movement.py`): Enum онтологических доменов намерений. `SURVIVAL`, `SOCIAL`, `ROUTINE`, `EXPLORATION`. **ADR-O-137:** Viability mask проекция PerceptualKernel → IntentDomain.
-- **`MacroMovementGoal`** (`domain/movement.py`): LOD1. Содержит `target_node_id`, `from_node_id`, `target_local_xy`, **`domain: IntentDomain`** (ADR-O-137), `processed` (bool). Повторная обработка с `processed=True` вызывает `RuntimeError`.
+- **`MacroMovementGoal`** (`domain/movement.py`): LOD1. Содержит `actor_id` (кто идёт — ADR-O-314), `target_node_id`, `from_node_id`, `target_local_xy`, **`domain: IntentDomain`** (ADR-O-137), `processed` (bool). Повторная обработка с `processed=True` вызывает `RuntimeError`.
 - **`TraversalState`** (`models/`): Физическое состояние перемещения. `source_node`, `target_node`, `waypoints`, `progress` (0.0-1.0), `speed`, `created_tick`.
 - **`SceneChange`**: Проекция свершившегося. **Boundary Transition Pipeline (ADR-145):** `target_location_id` заполняется ТОЛЬКО в `_process_traversals()` при факте пересечения boundary node. **ADR-130.2 (S85.1):** При `cause="traversal_complete"` `apply_changes` делает snap `local_position`, не создавая новый `TraversalState`. **ADR-TZ04-5 (B4-B5):** `ChangeType.NPC_METADATA` (activity, initiative_suppression) и `SCENE_METADATA` (line_of_sight) добавлены для маршрутизации мутаций через единый канал.
 - **`ThickSceneChange` & `TraversalContract`**: **ADR-O-201.4 (S97):** `EventCompiler` возвращает `traversal=None` для `cause="traversal_complete"` и boundary snap. `TraversalContract` создаётся ТОЛЬКО для новых перемещений (`status="NEW"`). Управление lifecycle (COMPLETED/CANCELLED) — исключительная прерогатива `SceneStateManager` (ADR-TRAV-FSM).
@@ -198,12 +202,6 @@
 ## 8. ИДЕНТИЧНОСТЬ И ОНТОЛОГИЯ (Identity Layer & Chronicle)
 **Поток:** L0 (Perception) + L1 (Chronicle) → L1.5 (PatternDetector) → L2.5 (Belief Engine) → L3 (EffectiveDrives) → Модуляция Давления/Риска.
 
-### S-93 Secondary Cognitive Contour (PE Active Inference)
-- **`ExpectationStore`** (`services/npc/expectation_store.py`): EMA-хранилище ожиданий NPC (T-1). Содержит словари ожидаемых значений драйвов. Обновляется исключительно в `StateApplicator` (Single Writer). Затухает в Фазе 0.5.
-- **`DopaminePayload`** (`models/delta_payloads.py`): Сигнал Reward Prediction Error (RPE). Вычисляется в `StateApplicator` как разница между актуальным состоянием и `ExpectationStore`.
-- **`PEModifierResolver`** (`services/npc/pe_modifier_resolver.py`): Pure function. Преобразует `DopaminePayload` (PE) в `drive_modifiers` (T0) через `tanh` нормализацию и `MAX_PE_INF` (Clamp = 0.25). PE не может доминировать над DRF.
-  🚫 ЗАПРЕТ: Вычисление EMA вне `StateApplicator`. ❌ Прямое управление интентами на основе PE (только через `drive_modifiers`). ❌ Влияние PE на utility > 0.25.
-
 **Актуальные DTO:**
 - **`TraitDriftEvent`** (`domain/identity_events.py`): Единица записи давления мира в L1 Chronicle (ADR-O-208 / ADR-O-305A). **Символическая смерть старого контракта (S85.1)**. Поля: `tick_id` (int), `target_id` (str), `source_id` (str), `effect_value` (float), `observation_weight` (float), `event_type` (str). Immutable.
 - **`EvidenceOfPersistence`** (`domain/identity_events.py`): Агрегированная статистика PatternDetector (L1.5). Чистая математика, без психологии (ADR-O-305A). Поля: `source_id`, `cumulative_effect`, `behavior_variance`.
@@ -221,6 +219,16 @@
 - **`RulesSubscriber`** (`services/events/rules_subscriber.py`): Pure Reducer (TZ-08 v0.2). Вычисляет механику D&D 5e (DC, броски, урон) на основе event + snapshot. Возвращает `RulesDelta` (damage, success, checks metadata).
 - **`WorldProjectionEvent`** (`domain/world_projection.py`): Наблюдаемый вторичный эффект, порождённый буфером проекций (ADR-O-309). Frozen dataclass. Поля: `event_id` (str), `tick` (int), `projection_type` (ProjectionType: RUMOR/REPUTATION/AMBIENT), `source_id` (str), `location_id` (str), `description` (str), `salience` (float, 0..1), `target_id` (Optional[str]).
 - **`DMContextDTO`** (`services/tick_orchestrator.py`): DEPRECATED (TZ-08). Ранее использовался для передачи контекста DM в ядро. Возвращать из ядра запрещено.
+
+### S-93 Secondary Cognitive Contour (PE Active Inference)
+- **`ExpectationStore`** (`services/npc/expectation_store.py`): EMA-хранилище ожиданий NPC (T-1). Содержит словари ожидаемых значений драйвов. Обновляется исключительно в `StateApplicator` (Single Writer). Затухает в Фазе 0.5.
+- **`DopaminePayload`** (`models/delta_payloads.py`): Сигнал Reward Prediction Error (RPE). Вычисляется в `StateApplicator` как разница между актуальным состоянием и `ExpectationStore`.
+- **`PEModifierResolver`** (`services/npc/pe_modifier_resolver.py`): Pure function. Преобразует `DopaminePayload` (PE) в `drive_modifiers` (T0) через `tanh` нормализацию и `MAX_PE_INF` (Clamp = 0.25). PE не может доминировать над DRF.
+
+🚫 **ЗАПРЕТЫ S-93:**
+- ❌ Вычисление EMA вне `StateApplicator`.
+- ❌ Прямое управление интентами на основе PE (только через `drive_modifiers`).
+- ❌ Влияние PE на utility > 0.25.
 
 🚫 **КАУЗАЛЬНЫЕ ЗАПРЕТЫ (ADR-O-207, ADR-O-208, ADR-O-211, ADR-O-305, S85.1/S85.2/S86):**
 - ❌ **Кэширование EffectiveDrives (L3-P1):** Эфемерная проекция, пересчитывается каждый тик. Кэш = рассинхрон идентичности.
@@ -311,4 +319,3 @@
 - `test_constants_has_spatial` (ADR-TZ6-1)
 - `test_constants_has_dm_messages` (ADR-TZ6-1)
 - `test_i18n_has_menu_keys` (ADR-TZ6-1)
-

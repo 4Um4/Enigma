@@ -6,10 +6,10 @@ path: /frontend/map_editor/campaign_manager.py
 Основные сущности: CampaignManager
 """
 
-import json
 import copy
-from pathlib import Path
+import json
 from datetime import datetime
+from pathlib import Path
 from typing import List, Optional, Tuple
 
 CAMPAIGNS_DIR = Path(__file__).parent / "campaigns"

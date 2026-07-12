@@ -8,7 +8,7 @@ path: /backend/app/services/verbalization/dm_response_normalizer.py
 import json
 import logging
 from dataclasses import dataclass
-from typing import List, Dict, Any, Literal
+from typing import Any, Literal
 
 logger = logging.getLogger(__name__)
 

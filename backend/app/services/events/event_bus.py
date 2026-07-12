@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # backend/app/services/events/event_bus.py
 #
 # Phase 3B.1 — EventBus: синхронный pub/sub
@@ -15,10 +16,8 @@ from __future__ import annotations
 #   - NPC AI (perception filter)
 #   - LifeEngine
 #   - FactionSystem (Phase 3E)
-
 import logging
-from typing import Any, Callable, Dict, List, Optional
-
+from typing import Callable, Dict, List, Optional
 
 from app.domain.events import EventDTO
 from app.services.events.event_types import EventType

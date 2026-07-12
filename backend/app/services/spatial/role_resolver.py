@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # backend/app/services/spatial/role_resolver.py
 # Назначение: Семантический маппинг — выводит NodeRole из label/type/manifest
 # Приоритет: manifest_override > editor_type > keyword matching > DEFAULT
@@ -11,10 +12,9 @@ TODO:
 """
 
 
-from typing import Any, Dict, List, Optional, Set
+from typing import Dict, List, Optional, Set
 
 from app.models.spatial_contracts import NodeRole
-
 
 # ── Ключевые слова для вывода роли из label ──────────────────────────
 # Порядок важен: более специфичные роли идут первыми

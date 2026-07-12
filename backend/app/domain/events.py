@@ -1,15 +1,13 @@
 from __future__ import annotations
+
 # backend/app/domain/events.py
 # Назначение: Единый язык событий. Все события в системе — экземпляры EventDTO.
 # Зависимости: uuid.UUID, dataclasses, typing, time
 # Основные сущности: EventDTO, MemoryPayload, PlayerActionPayload
-
-
 import time
 from dataclasses import dataclass
 from typing import Any, Dict, Literal, Optional, TypedDict
 from uuid import UUID, uuid4
-
 
 # ── Payload-типы (TypedDict — аннотации, не классы, не нарушают иерархию) ──
 

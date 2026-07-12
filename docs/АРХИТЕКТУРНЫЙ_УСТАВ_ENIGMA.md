@@ -112,13 +112,13 @@ backend/app/
     │   ├── events/       ← Шина. Все события = EventDTO.
     │   ├── memory/       ← Только MemoryManager пишет в память.
     │   ├── npc/          ← DecisionHub читает state, создаёт CommunicationIntent.
+    │   │   └── identity/ ← L1 Chronicle (append-only), DriveResolver (pure projection).
     │   ├── verbalization/← Читает CommunicationIntent, строит промпт.
     │   ├── llm/          ← Получает промпт, возвращает текст.
     │   └── ...
     └── api/              ← Знает services/. Принимает DTO, выдаёт DTO.
 diagnostics/              ← НЕ ЗНАЕТ о рантайме симуляции. Читает stdout, git, файлы. Пишет в reports/.
     └── reports/          ← LLM-oriented Markdown (LAST_SESSION.md). Не импортируется в игру.
-    │   └── identity/          ← L1 Chronicle (append-only), DriveResolver (pure projection)
 ```
 
 **Закон 1.1:** `frontend/` не импортирует `backend/app/` ни под каким предлогом. Даже `constants`. Даже `typing`. Нет.
@@ -182,62 +182,97 @@ class CommunicationIntent:
 
 **Закон 2.3.1:** На границе слоёв только DTO. Никаких внутренних моделей (`NPCState`, `EventMemory`) не пересекает границу.
 
-
-python -m pytest backend/tests/sandbox/ -v --tb=short
 ---
 
 ## 3. ФАЗОВАЯ МОДЕЛЬ (Tick Orchestrator)
 
 Один тик = строгая последовательность. Никаких «свободных вызовов» вне фаз.
+Единый pipeline для idle и player path (ADR-TZ08-2). Ветвление `if dm_ctx` запрещено.
 
 ```
-ФАЗА 1: _phase_1_input_merge
-    Источники: PlayerAction, WorldTick, Combat
-    Выход: EventDTO
+ФАЗА 0: Simulation (LifeEngine)
+    LifeEngine.tick() → SceneChange (cognitive) + MovementIntent (schedule/need/random)
+    → apply_with_shadow_observation() (Dual Rail, ADR-O-201)
+    → _process_traversals() (STL Phase 1, boundary resolution)
+    → _process_continuous_motion() (ETKE-IK, DriveVector → velocity)
 
-ФАЗА 2: EventBus (первичная волна)
-    event_bus.publish(event)
+ФАЗА 0.5: Time-Driven Decay (ВСЕГДА, время не останавливается)
+    idle_handlers → DynamicAffordanceField (purge + decay)
+    → PE Decay (ExpectationStore), Affective Decay, Perceptual Decay
+    → TraversalExecutionSystem.advance() (projection TraversalState → local_position)
+    → _advance_idle_time() (game_time_seconds += GAME_TICK_INTERVAL_SECONDS)
+
+ФАЗА 1: Input Merge (NPIC Normalize → Intervention Routing → WillpowerGate)
+    InterventionEvent → _process_player_dm_action() / _process_player_action()
+    → DirectiveInterpretationSubscriber (с инъекцией all_npcs_raw)
+    → WillpowerGate (ОДИН раз за цикл, ADR-036)
+    → delta_buffer (IdentityPayload, EmotionPayload)
+    Ядро не знает 'player' или 'dm_ctx'. Только InterventionEvent (ADR-TZ08-1).
+
+ФАЗА 2: EventBus (первичная волна — spatial events)
+    SpatialEventDetector (old vs new positions) → NPC_MOVED, NPC_PROXIMITY_CLOSE/LEAVE
+    → EventBus. Early exit если нет изменений позиций.
 
 ФАЗА 3: Memory Phase
-    MemoryProcessor.apply(event, npc_state)
-    → обновляет NPCState ДО принятия решения
+    MemoryManager.apply() для затронутых NPC.
+    Early exit если нет phase_2_events.
 
 ФАЗА 4: Pre-Decision
-    TopicExtractor читает STM + L2
-    → формирует topic
+    TopicExtractor читает STM + phase_2_events → формирует topic для каждого NPC.
+    Fallback "наблюдение" (никогда не пустой, §3 Устава).
 
-ФАЗА 5: Decision (Каузальная дискретизация T+1)
-    DecisionHub.compute(topic=topic, state=fresh_state, decision_ctx=ctx_T-1)
-    → создаёт CommunicationIntent
-    ЗАПРЕТ: Передавать сырые дельты давления из текущего тика. Хаб работает только на консолидированном восприятии прошлого тика (PerceptualKernel → DecisionContext). Это не задержка, а разделение reactive и deliberative слоев.
+ФАЗА 5: Decision (Unified Execution Kernel, ADR-TZ09-1)
+    TickState (immutable snapshot, preloaded data) → NpcTickPipeline.run() (pure reducer)
+    → TickMutation (npc_deltas, communication_intents, movement_intents, l1_drift_events, memory_events)
+    → apply (orchestrator): build_npc_contexts, process_movement_intents
+    Pure function: svc параметр убит (ADR-TZ10-1). I/O мутации отложены.
+    ЗАПРЕТ: Передавать сырые дельты давления из текущего тика. Хаб работает на консолидированном восприятии прошлого тика.
 
-ФАЗА 6: Post-Decision
-    IntentEventAdapter: CommunicationIntent → EventDTO
+ФАЗА 6: Post-Decision (IntentEventAdapter + Windup Write Gate)
+    CommunicationIntent → IntentEventAdapter → EventDTO → EventBus
+    ATTACK → ActionWindup (held_intent_id, 2 тика подготовки, ADR-O-310)
+    DIALOGUE → QueuedTask → scene_state["pending_tasks"] (ADR-O-313)
 
-ФАЗА 7: EventBus (вторичная волна)  RulesSubscriber
-    event_bus.publish(event_from_npc)
+ФАЗА 7: Windup Resolution (Execution Gate)
+    windup_registry → completed windups → release held intent
+    → Stale Intent Validation (actor alive? target alive? in scene?)
+    → EventDTO publish или INTERRUPTED
 
 ФАЗА 8: Layered Reduction (ADR-016, ADR-027)
-    Многоступенчатая редукция реальности: Physical (Combat) → Materialization → Cognitive (Reaction) → Social.
-    Порядок строго детерминирован. Прямая мутация состояния ЗАПРЕЩЕНА (только через Phase8Result → delta_buffer).
+    drain_events → handle (детерминированный порядок):
+    perception → reaction → social → combat → homeostasis
+    → Phase8Result → delta_buffer
+    → StateApplicator.apply_batch() (единый мутатор)
+    → L5 Post-Commit Validation (sum(drives)==1.0, bounds, NaN, ADR-O-207)
+    Прямая мутация состояния ЗАПРЕЩЕНА.
 
-ФАЗА 9: CFRM Integration & Perception (ADR-040, ADR-050, ADR-052)
+ФАЗА 9: Integration (CFRM + WorldSnapshot)
     LocalCausalSolver: FieldDisturbance → ProjectionPolicy → PhenomenologicalState → PsychologicalPressure.
-    Обновление PerceptualKernel (PerceptionPayload). Проекция ядра в DecisionContext через translate_kernel_to_context() для Фазы 5 следующего тика.
-    Сборка WorldSnapshotDTO + AvatarStateDTO.
+    Обновление PerceptualKernel (PerceptionPayload).
+    BeliefCrystallizationEngine (L2.5, только при phase_2_events).
+    WorldSnapshotBuilder → WorldSnapshotDTO + AvatarStateDTO.
 
-ФАЗА 10: Persistence
-    SQLite — atomic commit (runtime truth)
-    YAML — snapshot/export (для человека)
+ФАЗА 9.1: Affective Pipeline
+    integrate_affective_pressure() (единый владелец Active Inference + Hysteresis)
+    → Tuple[new_load, new_memory]
+    → EmotionTransition (if load > threshold)
+
+ФАЗА 10: Persistence (Atomic Commit)
+    SceneStateManager.commit_tick_result() → SQLitePersistenceAdapter.atomic_commit()
+    → INSERT OR REPLACE (State перезаписан)
+    L1Chronicle → SQLite (append-only)
+    DRFBus → drain()
 ```
 
-**Закон 3.1:** `DecisionHub` работает на фазе 5, НЕ на фазе 3. Он читает СВЕЖИЙ state после `MemoryProcessor`. Лаг в 1 тик = баг.
+**Закон 3.1:** `DecisionHub` работает на фазе 5, НЕ на фазе 3. Он читает СВЕЖИЙ state после `MemoryPhase`. Лаг в 1 тик = баг (Stale Cognition, ADR-059 — известный долг).
 
 **Закон 3.2:** `TopicExtractor` работает на фазе 4, НЕ в verbalization. `CommunicationIntent.topic` не может быть пустым.
 
 **Закон 3.3:** `IntentEventAdapter` — единственная точка превращения решения в событие. Никаких `List[dict]` больше нигде.
 
 **Закон 3.4:** `WorldSnapshotBuilder` читает только финальное состояние. Не лезет в random сервисы.
+
+**Закон 3.5:** Player Perception (PerceptionProjector) — отдельный шаг ПОСЛЕ Фазы 10, в `game_loop`, не в ядре (ADR-TZ08-8).
 
 ---
 
@@ -311,7 +346,15 @@ event_bus.subscribe(EventType.NPC_SPOKE, social_engine.handle)
 | 7.9 | `ResonanceEngine` / `ContradictionResolver` без lifecycle hooks | Мёртвый код, никто не вызывает |
 | 7.10 | YAML как runtime truth | Race conditions, нет транзакций, повреждение данных |
 | 7.11 | CausalObserver мутирует state | Нарушение принципа пассивного наблюдателя, недетерминированность симуляции |
-| 7.12 | Удаление событий из L1Chronicle | Нарушение append-only истории (ADR-O-208) || 7.13 | Кэширование EffectiveDrives (L3-P1) | Эфемерная проекция, рассинхрон с L1 (ADR-O-208) || 7.14 | Коммит состояния с NaN, sum!=1.0, или bounds violation | Краш тика через OntologyViolationError (ADR-O-207) || 7.15 | Desire в RiskPerceptionProfile | Риск ≠ готовность рисковать (ADR-O-146) || 7.16 | Viability veto через пост-генерационную фильтрацию | ROUTINE уже мутирует state до фильтрации (ADR-O-137) |
+| 7.12 | Удаление событий из L1Chronicle | Нарушение append-only истории (ADR-O-208) |
+| 7.13 | Кэширование EffectiveDrives (L3-P1) | Эфемерная проекция, рассинхрон с L1 (ADR-O-208) |
+| 7.14 | Коммит состояния с NaN, sum!=1.0, или bounds violation | Краш тика через OntologyViolationError (ADR-O-207) |
+| 7.15 | Desire в RiskPerceptionProfile | Риск ≠ готовность рисковать (ADR-O-146) |
+| 7.16 | Viability veto через пост-генерационную фильтрацию | ROUTINE уже мутирует state до фильтрации (ADR-O-137) |
+| 7.17 | Wall-clock (`time.time()`, `datetime.now()`) в simulation layer | Недетерминизм, BUG-002 (ADR-O-302, §15) |
+| 7.18 | Прямая запись в `state.hp` в обход `body_state["current_hp"]` | HP Double Truth (ADR-HP-UNIFICATION) |
+| 7.19 | `DecisionHub()` без `rng` | Нарушение детерминизма (ADR-O-301) |
+| 7.20 | LLM в `TickOrchestrator` / `DecisionHub` | Блокировка pipeline (ADR-O-313) |
 
 ---
 
@@ -350,12 +393,6 @@ Micro AO: 5–10% (след кисти, не свет)
 LUT = Центр управления. Глобальный фильтр (Color Grading) определяет психологию локации. Минимум 3 профиля: Таверна (тепло), Улица (нейтрально), Подземелье (холод/зелень).
 Dithering: Bayer 8x8 после LUT, до UI. Квантование градиента, а не шум.
 Порядок рендера: База -> Персонажи -> LUT -> Локальный свет -> Dithering.
-
----
-
-*Версия: 1.5*  
-*Дата: 2026-05-05*  
-*Следующая проверка: каждые 5 шагов разработки*
 
 ---
 
@@ -440,9 +477,13 @@ obj = dataclasses.replace(obj, npc_id="test_override")
 
 | Адаптер | Файл | Round-trip тест | Последняя проверка |
 |---------|------|-----------------|-------------------|
-| NPCState | `npc_state.py` | `test_npc_state_roundtrip` | S63 |
-| NPCPersonality | `npc_state.py` | `test_personality_roundtrip` | S63 |
-| PerceptualKernel | `npc_state.py` | `_pk_from_dict` | S62 (ADR-115) |
+| NPCState | `npc_state.py` | `test_npc_state_r6` | S86 (ADR-HP-UNIFICATION) |
+| NPCPersonality | `npc_state.py` | `test_personality_roundtrip` | S86 |
+| PerceptualKernel | `npc_state.py` | `_pk_from_dict` | S86 (ADR-115) |
+| BodyState | `npc_state.py` | `test_npc_state_r6` | S86 (ADR-100/127) |
+| AffectiveLoad | `npc_state.py` | `test_npc_state_r6` | S86 (ADR-121) |
+| ExpectationStore | `expectation_store.py` | `test_kernel_rng` (косвенно) | S93 (ADR-S93.2) |
+| L1Chronicle | `l1_chronicle.py` | `test_event_memory` | S86 (ADR-L1-PERSIST) |
 
 Добавление нового адаптера без записи в реестр = нарушение.
 
@@ -657,8 +698,7 @@ Hypothesis → Fix
 2. **Persistence metadata:** `updated_at`, `created_at` (не влияют на state).
 3. **Infrastructure:** cache TTL (LRU eviction), LLM latency, VRAM monitor, heartbeat.
 4. **Sandbox/test:** `drift_laboratory`, benchmarks (намеренно тестируют wall-clock drift).
-5. Sandbox/test: `drift_laboratory`, benchmarks (намеренно тестируют wall-clock drift).
-6. REAL_TIME_BRIDGE: `scene_init.py` (одноразовый мост при загрузке, ADR-047).
+5. REAL_TIME_BRIDGE: `scene_init.py` (одноразовый мост при загрузке, ADR-047).
 
 ### §15.3 Debug-пути — не исключение
 Любое "debug" использование wall-clock в симуляции — НЕ исключение. Debug-путь, читающий wall-clock, становится прод-путём при первой ошибке конфигурации. Debug-инструменты живут в `backend/tests/sandbox/` или `diagnostics/`, не в `app/services/`.
@@ -704,6 +744,4 @@ Hypothesis → Fix
 `FactExtractor` обязан извлекать только атомарные сущности (`hand_position`, `weapon_visible`, `distance`). 
 Составные выводы (например, `hand_on_weapon`) запрещены на уровне извлечения фактов и должны вычисляться в слое `Inference`.
 
-> *Версия: 2.1*  
-> *Дата: 2026-07-04*  
-> *Следующая проверка: каждые 5 шагов разработки*
+---

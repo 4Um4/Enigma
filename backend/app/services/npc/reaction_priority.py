@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # backend/app/services/npc/reaction_priority.py
 """
 ReactionPriority — кто из NPC реагирует на событие и в каком порядке (Phase S.4.2)
@@ -11,7 +12,7 @@ LLM только озвучивает. Никакого хардкода имё�
 
 import logging
 from dataclasses import dataclass, field
-from typing import List, Dict, Any, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from app.core.constants import MAX_SPEAKERS_PER_TURN
 
@@ -70,7 +71,7 @@ _DUTY_TABLE: dict[str, dict[str, int]] = {
 # 3. Graceful import SceneChange (чтобы не падало при рефакторинге)
 # ─────────────────────────────────────────────────────────────────────────────
 try:
-    from app.services.scene_change import SceneChange, ChangeType
+    from app.services.scene_change import ChangeType, SceneChange
 
     _SCENE_CHANGE_AVAILABLE = True
 except ImportError:

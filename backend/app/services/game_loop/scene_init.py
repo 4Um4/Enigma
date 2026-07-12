@@ -43,7 +43,7 @@ def _extract_preserved_time(shared_context: Any) -> float | None:
 
 def _materialize_npc_inventory(loop: Any, scene_state: dict) -> None:
     """Материализует инвентарь NPC из вероятностных правил L0 (только для новой сцены)."""
-    from app.services.npc.npc_loader import materialize_inventory, get_item_display_name
+    from app.services.npc.npc_loader import get_item_display_name, materialize_inventory
 
     npc_scene_ids = set(scene_state.get("npc_positions", {}).keys())
     for raw_npc in loop._load_npcs():

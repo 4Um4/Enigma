@@ -9,7 +9,8 @@ path: backend/app/services/npc/calibration_engine.py
 Архитектурная роль: НЕ трансформер. НЕ интерпретатор. ONLY phase lock gate.
 """
 
-from typing import List, Any, Dict, Tuple
+from typing import Dict, Tuple
+
 from app.domain.identity_events import EffectiveDrives
 
 

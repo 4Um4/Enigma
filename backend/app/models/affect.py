@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # path: backend/app/models/affect.py
 # Назначение: Контракты Аффективной Памяти (Affective Imprints). Этап 3 Roadmap.
 # Зависимости: dataclasses

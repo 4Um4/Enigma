@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # backend/app/services/action/dm_router.py
 """
 path: backend/app/services/action/dm_router.py
@@ -11,16 +12,14 @@ path: backend/app/services/action/dm_router.py
 
 
 import json
+
+# --- Инициализация данных на уровне модуля (Data-Driven) ---
+import logging
 import re
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 from typing import List, Optional
-
-
-# --- Инициализация данных на уровне модуля (Data-Driven) ---
-
-import logging
 
 _module_logger = logging.getLogger(__name__)
 

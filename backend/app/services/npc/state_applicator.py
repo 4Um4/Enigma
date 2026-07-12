@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # backend/app/services/npc/state_applicator.py
 """
 R2.3 — StateApplicator: единственный модуль с правом записи в NPCState.
@@ -24,28 +25,8 @@ import logging
 from dataclasses import asdict
 from typing import Any, Dict, List, Optional
 
-# Целевая архитектура данных (L2)
-from app.models.npc_state import NPCState
 from app.core.constants import TRAIT_DECAY_RATE
-from app.domain.vital_state import evaluate_vital_state, LifeStatus
-from app.services.npc.legacy_delta_adapter import LegacyStateDeltaAdapter
-
-# Легаси-типы, используемые в логике (Enum'ы и контракты)
-from app.models.npc_state import (
-    TemporaryDrive,
-    WillState,
-    MAX_ACTIVE_DRIVES,
-)
-from app.models.psychological import CausalEntry
-from app.models.physical import (
-    Condition,
-    DamageType,
-    PhysicalOutcome,
-    Wound,
-    WoundSeverity,
-)
-from app.models.event_resolution import StateChange
-from app.models.state_delta import DeltaDomain, StateDeltas
+from app.domain.vital_state import LifeStatus, evaluate_vital_state
 from app.models.delta_payloads import (
     EmotionPayload,
     IdentityPayload,
@@ -53,9 +34,29 @@ from app.models.delta_payloads import (
     PhysiologyPayload,
     SocialPayload,
 )
-from app.services.npc.decision_hub import DecisionResult
-from app.services.npc.math_utils import apply_saturation
+from app.models.event_resolution import StateChange
+
+# Целевая архитектура данных (L2)
+# Легаси-типы, используемые в логике (Enum'ы и контракты)
+from app.models.npc_state import (
+    MAX_ACTIVE_DRIVES,
+    NPCState,
+    TemporaryDrive,
+    WillState,
+)
+from app.models.physical import (
+    Condition,
+    DamageType,
+    PhysicalOutcome,
+    Wound,
+    WoundSeverity,
+)
+from app.models.psychological import CausalEntry
+from app.models.state_delta import DeltaDomain, StateDeltas
 from app.services.memory.relationship_store import RelationshipStore
+from app.services.npc.decision_hub import DecisionResult
+from app.services.npc.legacy_delta_adapter import LegacyStateDeltaAdapter
+from app.services.npc.math_utils import apply_saturation
 
 logger = logging.getLogger(__name__)
 
@@ -820,8 +821,8 @@ class StateApplicator:
             # дельты, которые мы применяем через TraitDriftEvent → L1Chronicle →
             # DriveResolver на следующем тике. Это сохраняет Закон Сохранения Я
             # (нормализация в DriveResolver, не в мутаторе).
-            from app.services.npc.break_progress_engine import compute_mutation
             from app.domain.identity_events import TraitDriftEvent
+            from app.services.npc.break_progress_engine import compute_mutation
 
             _drive_mutations = compute_mutation(state, new_trauma)
             if _drive_mutations:
@@ -1155,7 +1156,7 @@ class StateApplicator:
         3. Если энергия < THETA_DOWN — черта начинает обычный decay.
         4. Если энергия >= THETA_DOWN — черта удерживается (dwell_time).
         """
-        from app.core.constants import THETA_UP, THETA_DOWN, TRAIT_ACTIVATION_DECAY
+        from app.core.constants import THETA_DOWN, THETA_UP, TRAIT_ACTIVATION_DECAY
 
         # 1. Затухание энергии активации
         energy_to_remove = []
@@ -1308,6 +1309,7 @@ class StateApplicator:
         Ошибка мутации = смерть тика (causal consistency).
         """
         import math
+
         from app.domain.exceptions import OntologyViolationError
 
         # L3: Pure fold (мутация state)

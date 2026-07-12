@@ -19,7 +19,7 @@ path: /backend/app/services/reaction/reaction_resolver.py
     Теперь Python создаёт.
 """
 
-from typing import Dict, Any, List
+from typing import List
 
 from app.services.npc.decision_hub import DecisionResult, EventContext
 from app.services.reaction.micro_event import MicroEvent

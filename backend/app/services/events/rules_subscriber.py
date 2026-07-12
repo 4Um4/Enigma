@@ -10,10 +10,10 @@ Rules = pure function (event, snapshot) → delta.
 """
 from __future__ import annotations
 
-import logging
 import hashlib
-from typing import List, Any, Dict, Optional
+import logging
 from dataclasses import dataclass
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 

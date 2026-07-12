@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 # backend/app/services/memory/sqlite_store.py
 """
 Этап 11 — SqliteMemoryStore: SQLite backend для памяти.

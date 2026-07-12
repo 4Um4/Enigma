@@ -11,9 +11,10 @@ TODO:
 - [x] Поддержка кастомных стилей узлов
 """
 
-import yaml
-import os
 import glob
+import os
+
+import yaml
 
 
 class ArchitectureGraphBuilder:

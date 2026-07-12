@@ -1,6 +1,7 @@
 import os
 import re
 
+
 def fix_content(content: str) -> str:
     # Добавляем импорты, если их нет
     if "from typing import" not in content:
