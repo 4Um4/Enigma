@@ -45,8 +45,8 @@ NPC может быть:
 ❌ Новые поля body_state без причинного источника
 ❌ Прогнозы («неизбежно умрёт») — система не умеет прогнозировать
 """
-
 from __future__ import annotations
+
 
 import logging
 from enum import Enum
@@ -57,15 +57,17 @@ logger = logging.getLogger(__name__)
 
 # ── Ось 1: Жизнь ────────────────────────────────────────────────────────
 
+
 class LifeStatus(str, Enum):
     """Жизнь или смерть. Переходный вариант — только две точки.
-    
+
     После Injury система расширится:
     появятся процессы (кровотечение, удушье, отравление),
     и LifeStatus будет учитывать их.
-    
+
     Сейчас единственный процесс, способный убить — кровопотеря.
     """
+
     ALIVE = "ALIVE"
     DEAD = "DEAD"
 
@@ -92,20 +94,20 @@ _STRUCTURAL_COLLAPSE: float = 1.5
 
 def evaluate_vital_state(body_state: Dict[str, Any]) -> LifeStatus:
     """Pure function: BodyState → LifeStatus.
-    
+
     ЕДИНСТВЕННЫЙ владелец решения о жизни/смерти.
     Никто другой не имеет права объявлять смерть.
-    
+
     Два пути смерти (ADR-124):
     1. Hemorrhagic: кровопотеря ≥ 90% → необратимый коллапс circulation
     2. Structural: кумулятивное разрушение тканей ≥ 1.5 → organ failure
-    
+
     Запрещено (Rule 39): shock_impulse как прямой источник смерти.
     Шок — сигнал, не процесс. Но структурное разрушение — процесс.
     """
     if not body_state:
         return LifeStatus.ALIVE
-    
+
     # ADR-124 DEATH LOCK: Временный инвариант против баговой реинкарнации.
     # Любой переход DEAD → ALIVE запрещён обычной физиологией (decay, healing, evaluation).
     # Такой переход может выполняться ТОЛЬКО через RevivalSystem (пока не реализован).
@@ -127,14 +129,20 @@ def evaluate_vital_state(body_state: Dict[str, Any]) -> LifeStatus:
     # Реалистично: тело с >60% тяжёлых повреждений не может функционировать.
     _injuries = body_state.get("injuries", [])
     if _injuries:
-        _total_structural = sum(float(inj.get("structural_damage", 0.0)) for inj in _injuries)
-        logger.warning(f"[VITAL_EVAL] injuries={len(_injuries)} total_structural={_total_structural:.3f} threshold={_STRUCTURAL_COLLAPSE} blood_loss={blood_loss:.3f}")
+        _total_structural = sum(
+            float(inj.get("structural_damage", 0.0)) for inj in _injuries
+        )
+        logger.warning(
+            f"[VITAL_EVAL] injuries={len(_injuries)} total_structural={_total_structural:.3f} threshold={_STRUCTURAL_COLLAPSE} blood_loss={blood_loss:.3f}"
+        )
         if _total_structural >= _STRUCTURAL_COLLAPSE:
-            logger.warning(f"[STRUCTURAL_DEATH] total={_total_structural:.3f} >= {_STRUCTURAL_COLLAPSE} injuries={len(_injuries)}")
+            logger.warning(
+                f"[STRUCTURAL_DEATH] total={_total_structural:.3f} >= {_STRUCTURAL_COLLAPSE} injuries={len(_injuries)}"
+            )
             # ADR-124 TODO: death_cause = "STRUCTURAL", reversibility = 0.05
             # Подготовка слота для DeathState (каузальная классификация смерти)
             return LifeStatus.DEAD
-    
+
     return LifeStatus.ALIVE
 
 
@@ -147,13 +155,13 @@ _CONSCIOUSNESS_THRESHOLD: float = 0.1
 
 def is_conscious(body_state: Dict[str, Any]) -> bool:
     """Pure function: BodyState → сознание есть/нет.
-    
+
     Если сознания нет — DecisionHub блокируется.
     Тело продолжает жить (кровопотеря может продолжаться).
     """
     if not body_state:
         return True
-    
+
     consciousness = float(body_state.get("consciousness", 1.0))
     return consciousness > _CONSCIOUSNESS_THRESHOLD
 
@@ -168,14 +176,14 @@ _SHOCK_INCAPACITATED: float = 0.7
 
 def is_capable(body_state: Dict[str, Any]) -> bool:
     """Pure function: BodyState → может действовать/нет.
-    
+
     В сознании, но боль или шок блокируют моторику.
     DecisionHub может работать с ограничениями (Somatic Veto).
     """
     if not body_state:
         return True
-    
+
     pain = float(body_state.get("pain", 0.0))
     shock_impulse = float(body_state.get("shock_impulse", 0.0))
-    
+
     return pain < _PAIN_INCAPACITATED and shock_impulse < _SHOCK_INCAPACITATED

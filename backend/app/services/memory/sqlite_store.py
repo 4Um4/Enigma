@@ -1,3 +1,4 @@
+from __future__ import annotations
 # backend/app/services/memory/sqlite_store.py
 """
 Этап 11 — SqliteMemoryStore: SQLite backend для памяти.
@@ -13,14 +14,13 @@ path: backend/app/services/memory/sqlite_store.py
 Основные сущности: SqliteMemoryStore
 """
 
-from __future__ import annotations
 
 import json
 import logging
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List
 from uuid import uuid4
 
 logger = logging.getLogger(__name__)
@@ -28,8 +28,10 @@ logger = logging.getLogger(__name__)
 
 class _SafeEncoder(json.JSONEncoder):
     """Совместимость с JsonMemoryStore — сериализация dataclass/pydantic."""
+
     def default(self, o: Any) -> Any:
         import dataclasses
+
         if dataclasses.is_dataclass(o) and not isinstance(o, type):
             return dataclasses.asdict(o)
         if hasattr(o, "model_dump"):
@@ -162,7 +164,6 @@ class SqliteMemoryStore:
     ) -> None:
         """Сохраняет EventMemory в структурированную таблицу."""
         import dataclasses
-        from app.models.npc_state import EventMemory
 
         # Если передали dataclass — сериализуем
         if dataclasses.is_dataclass(mem_data) and not isinstance(mem_data, type):
@@ -268,16 +269,27 @@ class SqliteMemoryStore:
                         is_compressed, compressed_from_json, created_at
                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                     (
-                        mem_id, npc_id, campaign_id,
-                        d.get("event_type", ""), d.get("target_id", ""),
-                        d.get("emotion_tag", ""), d.get("summary", ""),
-                        d.get("day", 0), d.get("importance", 0.0),
-                        d.get("accessibility", 1.0), d.get("clarity", 1.0),
-                        d.get("confidence", 1.0), d.get("decay_rate", 0.05),
-                        d.get("stage", "FRESH"), d.get("sequence_id", 0),
-                        json.dumps(list(tags)), int(d.get("is_secret", False)),
-                        json.dumps(list(known_by)), json.dumps(list(hidden_from)),
-                        int(d.get("fulfilled", False)), d.get("contract_ref", ""),
+                        mem_id,
+                        npc_id,
+                        campaign_id,
+                        d.get("event_type", ""),
+                        d.get("target_id", ""),
+                        d.get("emotion_tag", ""),
+                        d.get("summary", ""),
+                        d.get("day", 0),
+                        d.get("importance", 0.0),
+                        d.get("accessibility", 1.0),
+                        d.get("clarity", 1.0),
+                        d.get("confidence", 1.0),
+                        d.get("decay_rate", 0.05),
+                        d.get("stage", "FRESH"),
+                        d.get("sequence_id", 0),
+                        json.dumps(list(tags)),
+                        int(d.get("is_secret", False)),
+                        json.dumps(list(known_by)),
+                        json.dumps(list(hidden_from)),
+                        int(d.get("fulfilled", False)),
+                        d.get("contract_ref", ""),
                         int(d.get("is_compressed", False)),
                         json.dumps(list(compressed_from)),
                         datetime.now(timezone.utc).isoformat(),
@@ -294,14 +306,16 @@ class SqliteMemoryStore:
         cur = self._conn.cursor()
         cur.execute("DELETE FROM event_memories WHERE campaign_id = ?", (campaign_id,))
         deleted_events = cur.rowcount
-        cur.execute("DELETE FROM entries WHERE collection LIKE ?", (f"%{campaign_id}%",))
+        cur.execute(
+            "DELETE FROM entries WHERE collection LIKE ?", (f"%{campaign_id}%",)
+        )
         deleted_entries = cur.rowcount
         self._conn.commit()
         return deleted_events + deleted_entries
 
-    def execute(self, sql: str, params: tuple = ()) -> int:
+    def execute(self, sql: str, params: Tuple[Any, ...] = ()) -> int:
         """
-        PUBLIC API: Выполняет произвольный SQL-запрос (INSERT/UPDATE/DELETE) 
+        PUBLIC API: Выполняет произвольный SQL-запрос (INSERT/UPDATE/DELETE)
         и коммитит. Возвращает lastrowid или количество затронутых строк.
         Используется сервисами, владеющими своей схемой (например, L1Chronicle).
         """
@@ -310,7 +324,7 @@ class SqliteMemoryStore:
         self._conn.commit()
         return cur.lastrowid or cur.rowcount
 
-    def query(self, sql: str, params: tuple = ()) -> List[Dict[str, Any]]:
+    def query(self, sql: str, params: Tuple[Any, ...] = ()) -> List[Dict[str, Any]]:
         """
         PUBLIC API: Выполняет SELECT запрос и возвращает список словарей.
         row_factory уже настроен на sqlite3.Row в _connect().

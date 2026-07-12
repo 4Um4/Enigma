@@ -5,12 +5,10 @@ path: backend/app/services/npc/belief_crystallization_engine.py
 Основные сущности: BeliefCrystallizationEngine, CrystallizedBelief
 """
 
-from typing import List, Dict, Optional
+from typing import Any, List, Dict
 from app.domain.identity_events import EvidenceOfPersistence, CrystallizedBelief
 
 import math
-from typing import List, Dict, Optional
-from app.domain.identity_events import EvidenceOfPersistence, CrystallizedBelief
 
 # ADR-O-307: Множитель асимметричной травмы. Опровержение в 6 раз сильнее подтверждения.
 TRAUMA_MULTIPLIER: float = 6.0
@@ -21,11 +19,12 @@ BELIEF_DECAY_TAU: float = 100.0
 # Порог забывания: если вес упал ниже этого значения, убеждение стирается.
 BELIEF_FORGET_THRESHOLD: float = 0.05
 
+
 class BeliefCrystallizationEngine:
     """
-    L2.5: Проецирует агрегированную статистику (EvidenceOfPersistence) 
+    L2.5: Проецирует агрегированную статистику (EvidenceOfPersistence)
     в психологическое убеждение (CrystallizedBelief), модулированное drives_base (L0).
-    
+
     ADR-O-305: Не читает L1Chronicle. Работает только с готовой статистикой.
     ADR-O-307: Реализует асимметричную травму.
     """
@@ -35,37 +34,37 @@ class BeliefCrystallizationEngine:
         evidence_list: List[EvidenceOfPersistence],
         drives_base: Dict[str, float],
         existing_beliefs: List[CrystallizedBelief],
-        current_tick: int
+        current_tick: int,
     ) -> List[CrystallizedBelief]:
         """
         Формирует или обновляет убеждения на основе свежей статистики.
-        
+
         Args:
             evidence_list: Статистика от PatternDetector (L1.5).
             drives_base: Базовые драйвы личности NPC (L0).
             existing_beliefs: Текущие убеждения NPC (для асимметричной травмы).
             current_tick: Текущий тик симуляции.
-            
+
         Returns:
             Обновлённый список CrystallizedBelief.
         """
         updated_beliefs: Dict[str, CrystallizedBelief] = {}
-        
+
         # 1. Фаза Энтропии: Затухание старых убеждений
         for belief in existing_beliefs:
             time_delta = max(0, current_tick - belief.last_updated_tick)
             decay_factor = math.exp(-time_delta / BELIEF_DECAY_TAU)
             decayed_weight = belief.weight * decay_factor
-            
+
             # Если вес выше порога забывания — сохраняем убеждение
             if decayed_weight > BELIEF_FORGET_THRESHOLD:
                 updated_beliefs[belief.source_id] = CrystallizedBelief(
                     source_id=belief.source_id,
                     trait=belief.trait,
                     weight=decayed_weight,
-                    last_updated_tick=belief.last_updated_tick # Сохраняем оригинальный тик
+                    last_updated_tick=belief.last_updated_tick,  # Сохраняем оригинальный тик
                 )
-        
+
         for evidence in evidence_list:
             # Определение направления эффекта (угроза или помощь)
             # Отрицательный эффект = угроза -> fear
@@ -79,18 +78,20 @@ class BeliefCrystallizationEngine:
             else:
                 target_trait = "trust"
                 # Модуляция личностью: высокий significance или desire делает NPC ценящим помощь
-                sensitivity = drives_base.get("significance", 0.25) + drives_base.get("desire", 0.25)
+                sensitivity = drives_base.get("significance", 0.25) + drives_base.get(
+                    "desire", 0.25
+                )
                 # Позитивный эффект не имеет множителя
                 effect_magnitude = evidence.cumulative_effect
-                
+
             # Базовый вес формируемого убеждения (нормализованный к 1.0)
             # Учитываем magnitude эффекта и чувствительность личности
             # Делим на 10.0 как масштабный коэффициент (предполагаем, что cumulative_effect в диапазоне ~-10..10)
             base_weight = min(abs(evidence.cumulative_effect) / 10.0, 1.0) * sensitivity
-            
+
             # Поиск существующего убеждения к этому источнику
             existing = updated_beliefs.get(evidence.source_id)
-            
+
             if existing:
                 # ADR-O-307: Асимметричная травма
                 if existing.trait == target_trait:
@@ -100,31 +101,33 @@ class BeliefCrystallizationEngine:
                     # Опровержение: вес старого убеждения падает в 6 раз быстрее
                     # И если он падает до нуля, может сформироваться новое убеждение
                     decayed_weight = existing.weight - (base_weight * TRAUMA_MULTIPLIER)
-                    
+
                     if decayed_weight <= 0.0:
                         # Старое убеждение разрушено, формируем новое
                         # Остаточный вес переносится (опровергнуто, но не полностью)
                         new_weight = min(abs(decayed_weight), MAX_WEIGHT)
-                        target_trait = target_trait # Трейт меняется на новый
+                        target_trait = target_trait  # Трейт меняется на новый
                     else:
                         # Убеждение ещё держится, но ослабло
                         new_weight = decayed_weight
-                        target_trait = existing.trait # Трейт остаётся старым, пока вес > 0
-                        
+                        target_trait = (
+                            existing.trait
+                        )  # Трейт остаётся старым, пока вес > 0
+
                 updated_beliefs[evidence.source_id] = CrystallizedBelief(
                     source_id=evidence.source_id,
                     trait=target_trait,
                     weight=new_weight,
-                    last_updated_tick=current_tick
+                    last_updated_tick=current_tick,
                 )
             else:
                 # Формирование нового убеждения
-                if base_weight > 0.05: # Порог кристаллизации
+                if base_weight > 0.05:  # Порог кристаллизации
                     updated_beliefs[evidence.source_id] = CrystallizedBelief(
                         source_id=evidence.source_id,
                         trait=target_trait,
                         weight=base_weight,
-                        last_updated_tick=current_tick
+                        last_updated_tick=current_tick,
                     )
-                    
+
         return list(updated_beliefs.values())

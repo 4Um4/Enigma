@@ -7,7 +7,9 @@ from app.services.memory import LayeredMemory
 class WorldScheduler:
     """Generates hidden world events periodically even between explicit turns."""
 
-    def __init__(self, memory: LayeredMemory, world_agent: WorldSimulationAgent) -> None:
+    def __init__(
+        self, memory: LayeredMemory, world_agent: WorldSimulationAgent
+    ) -> None:
         self.memory = memory
         self.world_agent = world_agent
 
@@ -40,4 +42,8 @@ class WorldScheduler:
             "events": result.get("world_events", []),
         }
         self.memory.store.append(f"world_hidden_events_{world_id}", event_payload)
-        return {"triggered": True, "reason": "ok", "events": result.get("world_events", [])}
+        return {
+            "triggered": True,
+            "reason": "ok",
+            "events": result.get("world_events", []),
+        }

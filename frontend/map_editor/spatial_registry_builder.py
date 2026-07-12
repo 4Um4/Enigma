@@ -8,12 +8,13 @@ frontend/map_editor/spatial_registry_builder.py
 Не рендерит. Не двигает NPC. Не загружает локации.
 Не принимает решений. Предоставляет факты.
 """
+
 import json
 import hashlib
 import logging
 from pathlib import Path
 from datetime import datetime
-from typing import List, Optional
+from typing import List
 from dataclasses import dataclass, asdict
 
 logger = logging.getLogger(__name__)
@@ -29,6 +30,7 @@ ARTIFACT_VERSION = 1
 @dataclass(frozen=True)
 class ChunkDescriptor:
     """Описание одного чанка мира."""
+
     location_id: str
     filename: str
     origin_x: float
@@ -44,18 +46,20 @@ class ChunkDescriptor:
 class AdjacencyEntry:
     """Факт геометрической смежности двух чанков.
     Direction — производная, вычисляется функцией, не хранится."""
+
     location_a: str
     location_b: str
-    contact_axis: str       # "x" | "y"
-    contact_coord: float    # координата линии контакта
-    overlap_start: float    # начало перекрытия по перпендикулярной оси
-    overlap_end: float      # конец перекрытия
-    connection_type: str    # "contiguous" | "doorway" | "stairs" | "portal" | "road" | "river_crossing"
+    contact_axis: str  # "x" | "y"
+    contact_coord: float  # координата линии контакта
+    overlap_start: float  # начало перекрытия по перпендикулярной оси
+    overlap_end: float  # конец перекрытия
+    connection_type: str  # "contiguous" | "doorway" | "stairs" | "portal" | "road" | "river_crossing"
 
 
 @dataclass(frozen=True)
 class WorldBounds:
     """Границы мира. Сдвигаются при расширении карты."""
+
     min_x: float
     min_y: float
     max_x: float
@@ -65,6 +69,7 @@ class WorldBounds:
 @dataclass
 class SpatialRegistryArtifact:
     """Скомпилированный пространственный реестр мира."""
+
     version: int
     campaign_id: str
     compiled_at: str
@@ -133,8 +138,7 @@ class SpatialRegistryBuilder:
 
         # Собираем текущие хэши
         existing_hashes = {
-            c["location_id"]: c["content_hash"]
-            for c in existing.get("chunks", [])
+            c["location_id"]: c["content_hash"] for c in existing.get("chunks", [])
         }
 
         locations_dir = campaign_path / "locations"
@@ -191,7 +195,9 @@ class SpatialRegistryBuilder:
         locations_dir = campaign_path / "locations"
 
         if not locations_dir.exists():
-            logger.warning(f"[SPATIAL_REGISTRY] Нет директории локаций: {locations_dir}")
+            logger.warning(
+                f"[SPATIAL_REGISTRY] Нет директории локаций: {locations_dir}"
+            )
             return chunks
 
         for loc_file in sorted(locations_dir.glob("*.json")):
@@ -244,7 +250,9 @@ class SpatialRegistryBuilder:
 
         return adjacency
 
-    def _check_adjacent(self, a: ChunkDescriptor, b: ChunkDescriptor) -> List[AdjacencyEntry]:
+    def _check_adjacent(
+        self, a: ChunkDescriptor, b: ChunkDescriptor
+    ) -> List[AdjacencyEntry]:
         """Проверяет смежность двух чанков по осям X и Y."""
         entries = []
 
@@ -266,15 +274,17 @@ class SpatialRegistryBuilder:
             overlap_start = max(ay1, by1)
             overlap_end = min(ay2, by2)
             if overlap_end - overlap_start >= MIN_OVERLAP:
-                entries.append(AdjacencyEntry(
-                    location_a=a.location_id,
-                    location_b=b.location_id,
-                    contact_axis="x",
-                    contact_coord=round(x_contact_coord, 2),
-                    overlap_start=round(overlap_start, 2),
-                    overlap_end=round(overlap_end, 2),
-                    connection_type="contiguous",
-                ))
+                entries.append(
+                    AdjacencyEntry(
+                        location_a=a.location_id,
+                        location_b=b.location_id,
+                        contact_axis="x",
+                        contact_coord=round(x_contact_coord, 2),
+                        overlap_start=round(overlap_start, 2),
+                        overlap_end=round(overlap_end, 2),
+                        connection_type="contiguous",
+                    )
+                )
 
         # Y-контакт: горизонтальная линия соприкосновения (север-юг)
         y_contact_coord = None
@@ -288,15 +298,17 @@ class SpatialRegistryBuilder:
             overlap_start = max(ax1, bx1)
             overlap_end = min(ax2, bx2)
             if overlap_end - overlap_start >= MIN_OVERLAP:
-                entries.append(AdjacencyEntry(
-                    location_a=a.location_id,
-                    location_b=b.location_id,
-                    contact_axis="y",
-                    contact_coord=round(y_contact_coord, 2),
-                    overlap_start=round(overlap_start, 2),
-                    overlap_end=round(overlap_end, 2),
-                    connection_type="contiguous",
-                ))
+                entries.append(
+                    AdjacencyEntry(
+                        location_a=a.location_id,
+                        location_b=b.location_id,
+                        contact_axis="y",
+                        contact_coord=round(y_contact_coord, 2),
+                        overlap_start=round(overlap_start, 2),
+                        overlap_end=round(overlap_end, 2),
+                        connection_type="contiguous",
+                    )
+                )
 
         return entries
 

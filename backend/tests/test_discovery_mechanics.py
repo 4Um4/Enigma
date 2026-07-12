@@ -12,6 +12,7 @@ path: /backend/tests/test_discovery_mechanics.py
 Зависимости: app.services.memory.memory_manager, app.models.npc_state
 Основные сущности: test_discovery_check_basic, test_discovery_by_pressure_type, test_assess_secrets
 """
+
 from app.models.npc_state import DiscoveryCrack, EventMemory, MemoryStage
 
 
@@ -38,8 +39,10 @@ def _make_secret(importance: float = 0.7, accessibility: float = 0.9) -> EventMe
 
 
 def _make_manager():
-    from app.services.memory.memory_manager import MemoryManager
     from unittest.mock import MagicMock
+
+    from app.services.memory.memory_manager import MemoryManager
+
     mock_layered = MagicMock()
     return MemoryManager(layered_memory=mock_layered, data_dir="data")
 
@@ -107,10 +110,18 @@ def test_low_trust_adds_resistance() -> None:
     secret = _make_secret(importance=0.5)
 
     result_neutral = mm.discovery_check(
-        secret, pressure_type="threat", pressure_count=1, npc_stress=0.5, npc_trust=0.0,
+        secret,
+        pressure_type="threat",
+        pressure_count=1,
+        npc_stress=0.5,
+        npc_trust=0.0,
     )
     result_distrust = mm.discovery_check(
-        secret, pressure_type="threat", pressure_count=1, npc_stress=0.5, npc_trust=-0.8,
+        secret,
+        pressure_type="threat",
+        pressure_count=1,
+        npc_stress=0.5,
+        npc_trust=-0.8,
     )
     _order = [DiscoveryCrack.BROKEN, DiscoveryCrack.PARTIAL, DiscoveryCrack.CRACK, DiscoveryCrack.NONE]
     assert _order.index(result_distrust) >= _order.index(result_neutral)
@@ -123,7 +134,11 @@ def test_high_stress_helps_but_not_auto() -> None:
 
     # Стресс 0.95 + угроза — трескает даже глубокий секрет
     result = mm.discovery_check(
-        secret, pressure_type="threat", pressure_count=1, npc_stress=0.95, npc_trust=0.0,
+        secret,
+        pressure_type="threat",
+        pressure_count=1,
+        npc_stress=0.95,
+        npc_trust=0.0,
     )
     # resistance = 0.72, threat = 0.35, stress_help = 0.0225 → total = 0.347 → CRACK
     assert result == DiscoveryCrack.CRACK
@@ -174,12 +189,20 @@ def test_assess_skips_non_secrets() -> None:
     """assess игнорирует несекретные воспоминания."""
     mm = _make_manager()
     normal = EventMemory(
-        event_type="player_talks", target_id="player", emotion_tag="neutral",
-        day=1, importance=0.5, npc_id="maid_lusya", summary="Обычный разговор",
+        event_type="player_talks",
+        target_id="player",
+        emotion_tag="neutral",
+        day=1,
+        importance=0.5,
+        npc_id="maid_lusya",
+        summary="Обычный разговор",
     )
     cache = (normal,)
     result = mm.assess_secrets_under_pressure(
-        cache, hidden_from_id="player", pressure_type="physical", pressure_count=5,
+        cache,
+        hidden_from_id="player",
+        pressure_type="physical",
+        pressure_count=5,
     )
     assert result == []
 
@@ -188,13 +211,23 @@ def test_assess_skips_wrong_hidden_from() -> None:
     """assess игнорирует секреты скрытые от другого NPC."""
     mm = _make_manager()
     secret_from_guard = EventMemory(
-        event_type="theft", target_id="guard", emotion_tag="fearful",
-        day=1, importance=0.5, npc_id="maid_lusya", summary="Видела кражу",
-        is_secret=True, hidden_from=("guard",), accessibility=0.9,
+        event_type="theft",
+        target_id="guard",
+        emotion_tag="fearful",
+        day=1,
+        importance=0.5,
+        npc_id="maid_lusya",
+        summary="Видела кражу",
+        is_secret=True,
+        hidden_from=("guard",),
+        accessibility=0.9,
     )
     cache = (secret_from_guard,)
     result = mm.assess_secrets_under_pressure(
-        cache, hidden_from_id="player", pressure_type="physical", pressure_count=5,
+        cache,
+        hidden_from_id="player",
+        pressure_type="physical",
+        pressure_count=5,
     )
     assert result == []
 

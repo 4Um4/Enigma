@@ -1,3 +1,4 @@
+from __future__ import annotations
 # backend/app/services/memory/promotion_engine.py
 """
 Этап 9 — MemoryPromotionEngine: сжатие памяти.
@@ -12,10 +13,9 @@ path: backend/app/services/memory/promotion_engine.py
 Основные сущности: MemoryPromotionEngine, CompressionResult
 """
 
-from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Sequence, Tuple
 
 # Выше объявление _IDENTITY_RULES использует List и Tuple — они уже импортированы
 
@@ -32,7 +32,9 @@ _COMPRESS_MAX_IMPORTANCE: float = 0.6
 # ── Шаблоны сжатия: набор тегов → текст абстракции ──
 
 _COMPRESSION_TEMPLATES: Dict[frozenset, str] = {
-    frozenset({"positive", "dialogue"}): "Игрок был дружелюбен в разговорах (несколько раз)",
+    frozenset(
+        {"positive", "dialogue"}
+    ): "Игрок был дружелюбен в разговорах (несколько раз)",
     frozenset({"positive"}): "Игрок вёл себя хорошо (несколько раз)",
     frozenset({"negative", "dialogue"}): "Игрок был груб в разговорах (несколько раз)",
     frozenset({"negative"}): "Игрок вёл себя плохо (несколько раз)",
@@ -53,8 +55,9 @@ def _resolve_template(tags: Tuple[str, ...]) -> str:
 @dataclass(frozen=True)
 class CompressionResult:
     """Результат одной операции сжатия."""
-    compressed: EventMemory          # новая абстракция
-    removed_ids: Tuple[str, ...]     # ID исходных событий
+
+    compressed: EventMemory  # новая абстракция
+    removed_ids: Tuple[str, ...]  # ID исходных событий
 
 
 # ── Мета-паттерны: комбинация черт → новая черта (Этап 10) ──
@@ -93,7 +96,8 @@ class MemoryPromotionEngine:
         """
         # Фильтруем кандидатов
         candidates = [
-            e for e in events
+            e
+            for e in events
             if not e.is_compressed
             and not e.is_secret
             and not e.is_forgotten
@@ -119,12 +123,8 @@ class MemoryPromotionEngine:
             batch = group
 
             # Средние значения для абстракции
-            avg_importance = round(
-                sum(e.importance for e in batch) / len(batch), 4
-            )
-            avg_decay = round(
-                sum(e.decay_rate for e in batch) / len(batch), 4
-            )
+            avg_importance = round(sum(e.importance for e in batch) / len(batch), 4)
+            avg_decay = round(sum(e.decay_rate for e in batch) / len(batch), 4)
             # Самый поздний день из группы
             max_day = max(e.day for e in batch)
             # Самый частый target_id
@@ -155,12 +155,14 @@ class MemoryPromotionEngine:
                 ),
             )
 
-            results.append(CompressionResult(
-                compressed=compressed,
-                removed_ids=tuple(
-                    getattr(e, "id", f"seq_{e.sequence_id}") for e in batch
-                ),
-            ))
+            results.append(
+                CompressionResult(
+                    compressed=compressed,
+                    removed_ids=tuple(
+                        getattr(e, "id", f"seq_{e.sequence_id}") for e in batch
+                    ),
+                )
+            )
 
         return results
 
@@ -182,8 +184,7 @@ class MemoryPromotionEngine:
         for conditions, (trait_name, delta) in _IDENTITY_RULES:
             # Проверяем что все условия выполнены
             if all(
-                identity_traits.get(t, 0.0) >= min_w
-                for t, min_w in conditions.items()
+                identity_traits.get(t, 0.0) >= min_w for t, min_w in conditions.items()
             ):
                 # Не создаём дубликат — только если черты ещё нет
                 if trait_name not in identity_traits:

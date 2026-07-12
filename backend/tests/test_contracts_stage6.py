@@ -10,20 +10,23 @@ python -m pytest backend/tests/test_contracts_stage6.py -v --tb=short 2>&1 | Sel
 Основные сущности: get_unfulfilled_contracts, apply() с contract_tag, contract_modifiers
 """
 
-from app.services.memory.memory_manager import MemoryManager
-from app.models.npc_state import EventMemory, MemoryStage, NPCState
 from app.domain.events import (
-    EventDTO, CONTRACT_TAG_PROMISE_GIVEN, CONTRACT_TAG_PROMISE_RECEIVED,
-    CONTRACT_TAG_DEBT, CONTRACT_TAGS, CONTRACT_EVENT_FULFILLED,
+    CONTRACT_TAG_DEBT,
+    CONTRACT_TAG_PROMISE_GIVEN,
+    CONTRACT_TAG_PROMISE_RECEIVED,
+    CONTRACT_TAGS,
+    EventDTO,
 )
-from app.services.npc.decision_hub import DecisionHub
-from app.services.npc.decision_hub import EventContext
 from app.models.npc_profile import NPCProfileL0, PsycheBase
+from app.models.npc_state import EventMemory, MemoryStage, NPCState
+from app.services.memory.memory_manager import MemoryManager
+from app.services.npc.decision_hub import DecisionHub, EventContext
 
 
 def _make_manager() -> MemoryManager:
     """MemoryManager с замоканым LayeredMemory — без файловой системы."""
     from unittest.mock import MagicMock
+
     mm = MemoryManager.__new__(MemoryManager)
     mm._working = MagicMock()
     mm._layered = MagicMock()
@@ -59,6 +62,7 @@ def _make_contract_mem(
 
 # ── 6.1: Константы ──
 
+
 def test_contract_tags_are_frozenset() -> None:
     """CONTRACT_TAGS — неизменяемый набор."""
     assert isinstance(CONTRACT_TAGS, frozenset)
@@ -68,6 +72,7 @@ def test_contract_tags_are_frozenset() -> None:
 
 
 # ── 6.3: apply() — тег + decay ──
+
 
 def test_apply_adds_contract_tag() -> None:
     """apply() добавляет contract_tag в теги EventMemory."""
@@ -129,6 +134,7 @@ def test_apply_ignores_unknown_contract_tag() -> None:
 
 # ── 6.4: get_unfulfilled_contracts ──
 
+
 def test_get_unfulfilled_returns_only_active() -> None:
     """fulfilled=True исключается из результата."""
     mm = _make_manager()
@@ -157,7 +163,8 @@ def test_get_unfulfilled_filter_by_tag() -> None:
     debt = _make_contract_mem(tag=CONTRACT_TAG_DEBT)
     cache = (promise, debt)
     result = mm.get_unfulfilled_contracts(
-        cache, tag_filter=(CONTRACT_TAG_DEBT,),
+        cache,
+        tag_filter=(CONTRACT_TAG_DEBT,),
     )
     assert len(result) == 1
     assert CONTRACT_TAG_DEBT in result[0].tags
@@ -182,12 +189,15 @@ def test_get_unfulfilled_empty_cache() -> None:
 
 # ── 6.5: DecisionHub — contract_modifiers ──
 
+
 def test_contract_modifiers_boost_intent() -> None:
     """contract_modifiers повышает score целевого intent."""
     hub = DecisionHub(seed=42)
     state = NPCState(npc_id="npc_01")
     personality = NPCProfileL0(
-        id="npc_01", name="Тест", tier="mass",
+        id="npc_01",
+        name="Тест",
+        tier="mass",
         drives_base={"control": 0.5, "significance": 0.5, "fear": 0.5, "desire": 0.5},
         psyche_base=PsycheBase(willpower=50, breakpoint=80),
         voice_profile="neutral",
@@ -198,7 +208,9 @@ def test_contract_modifiers_boost_intent() -> None:
     base_score = getattr(result_base, "scores", {}).get("remind", 0.0)
 
     result_boosted = hub.compute(
-        state=state, personality=personality, event=event,
+        state=state,
+        personality=personality,
+        event=event,
         contract_modifiers={"remind": 0.5},
     )
     boosted_score = getattr(result_boosted, "scores", {}).get("remind", 0.0)
@@ -211,7 +223,9 @@ def test_contract_modifiers_none_no_effect() -> None:
     hub = DecisionHub(seed=42)
     state = NPCState(npc_id="npc_01")
     personality = NPCProfileL0(
-        id="npc_01", name="Тест", tier="mass",
+        id="npc_01",
+        name="Тест",
+        tier="mass",
         drives_base={"control": 0.5, "significance": 0.5, "fear": 0.5, "desire": 0.5},
         psyche_base=PsycheBase(willpower=50, breakpoint=80),
         voice_profile="neutral",

@@ -11,17 +11,18 @@ path: backend/tests/test_npc_npc_stage7.py
 Основные сущности: recall(target_npc_id), npc_memory_modifiers, detect_npc_patterns, npc_npc_context
 """
 
+from app.models.npc_profile import NPCProfileL0, PsycheBase
+from app.models.npc_state import EventMemory, MemoryStage
 from app.services.memory.memory_manager import MemoryManager
 from app.services.memory.resonance_engine import ResonanceEngine
-from app.models.npc_state import EventMemory, MemoryStage
 from app.services.npc.decision_hub import DecisionHub, EventContext
-from app.models.npc_profile import NPCProfileL0, PsycheBase
 from app.services.verbalization.verbalization_context import VerbalizationContext
 
 
 def _make_manager() -> MemoryManager:
     """MemoryManager с замоканым LayeredMemory."""
     from unittest.mock import MagicMock
+
     mm = MemoryManager.__new__(MemoryManager)
     mm._working = MagicMock()
     mm._layered = MagicMock()
@@ -57,7 +58,9 @@ def _make_mem(
 
 def _make_personality() -> NPCProfileL0:
     return NPCProfileL0(
-        id="npc_01", name="Тест", tier="mass",
+        id="npc_01",
+        name="Тест",
+        tier="mass",
         drives_base={"control": 0.5, "significance": 0.5, "fear": 0.5, "desire": 0.5},
         psyche_base=PsycheBase(willpower=50, breakpoint=80),
         voice_profile="neutral",
@@ -65,6 +68,7 @@ def _make_personality() -> NPCProfileL0:
 
 
 # ── 7.1: recall(target_npc_id=...) ──
+
 
 def test_recall_by_target_npc_id() -> None:
     """recall с target_npc_id возвращает только события о конкретном NPC."""
@@ -105,30 +109,42 @@ def test_recall_target_npc_priority_over_random() -> None:
 
 # ── 7.2: TopicExtractor — NPC-NPC event types ──
 
+
 def test_topic_extractor_npc_npc() -> None:
     """NPC-NPC event types маппятся в тему 'встреча'."""
     from app.services.npc.topic_extractor import extract_topic
+
     assert extract_topic("npc_interacts_npc") == "встреча"
     assert extract_topic("npc_proximity_close") == "встреча"
 
 
 # ── 7.3: VerbalizationContext — npc_npc_context ──
 
+
 def test_verbalization_context_has_npc_npc_field() -> None:
     """npc_npc_context существует и по умолчанию пустой."""
     ctx = VerbalizationContext(
-        npc_id="npc_01", npc_name="Тест", tier="mass",
-        emotion="neutral", will_state="loyal", intent="greet",
+        npc_id="npc_01",
+        npc_name="Тест",
+        tier="mass",
+        emotion="neutral",
+        will_state="loyal",
+        intent="greet",
         intent_target="tavernkeeper",
     )
     assert ctx.npc_npc_context == ()
+
 
 def test_verbalization_context_accepts_npc_npc() -> None:
     """npc_npc_context принимает кортеж EventMemory."""
     mem = _make_mem(target_id="tavernkeeper")
     ctx = VerbalizationContext(
-        npc_id="npc_01", npc_name="Тест", tier="mass",
-        emotion="neutral", will_state="loyal", intent="greet",
+        npc_id="npc_01",
+        npc_name="Тест",
+        tier="mass",
+        emotion="neutral",
+        will_state="loyal",
+        intent="greet",
         intent_target="tavernkeeper",
         npc_npc_context=(mem,),
     )
@@ -137,6 +153,7 @@ def test_verbalization_context_accepts_npc_npc() -> None:
 
 
 # ── 7.4: DecisionHub — npc_memory_modifiers ──
+
 
 def test_npc_memory_modifiers_boost_intent() -> None:
     """npc_memory_modifiers повышает score целевого intent."""
@@ -147,7 +164,9 @@ def test_npc_memory_modifiers_boost_intent() -> None:
 
     result_base = hub.compute(state=state, personality=personality, event=event)
     result_boosted = hub.compute(
-        state=state, personality=personality, event=event,
+        state=state,
+        personality=personality,
+        event=event,
         npc_memory_modifiers={"avoid": 0.4},
     )
 
@@ -167,6 +186,7 @@ def test_npc_memory_modifiers_none_no_effect() -> None:
 
 
 # ── 7.5: ResonanceEngine — detect_npc_patterns ──
+
 
 def test_detect_npc_patterns_hostile() -> None:
     """3+ негативных события о target_npc → hostile_pattern."""
@@ -188,7 +208,9 @@ def test_detect_npc_patterns_too_few() -> None:
     engine = ResonanceEngine()
     mems = [
         _make_mem(event_type="intimidation", target_id="tavernkeeper", npc_id="tavernkeeper"),
-        _make_mem(event_type="dialogue", target_id="tavernkeeper", npc_id="tavernkeeper", tags=("dialogue",), importance=0.3),
+        _make_mem(
+            event_type="dialogue", target_id="tavernkeeper", npc_id="tavernkeeper", tags=("dialogue",), importance=0.3
+        ),
     ]
     patterns = engine.detect_npc_patterns(mems, target_npc_id="tavernkeeper")
     assert patterns == []
@@ -198,7 +220,9 @@ def test_detect_npc_patterns_ignores_forgotten() -> None:
     """Forgotten события не учитываются в паттерне."""
     engine = ResonanceEngine()
     mems = [
-        _make_mem(event_type="intimidation", target_id="tavernkeeper", npc_id="tavernkeeper", stage=MemoryStage.FORGOTTEN),
+        _make_mem(
+            event_type="intimidation", target_id="tavernkeeper", npc_id="tavernkeeper", stage=MemoryStage.FORGOTTEN
+        ),
         _make_mem(event_type="intimidation", target_id="tavernkeeper", npc_id="tavernkeeper"),
         _make_mem(event_type="intimidation", target_id="tavernkeeper", npc_id="tavernkeeper"),
     ]

@@ -1,3 +1,4 @@
+from __future__ import annotations
 # backend/app/services/state/sqlite_persistence_adapter.py
 """
 SqlitePersistenceAdapter — SQLite реализация PersistencePort.
@@ -14,14 +15,13 @@ path: /backend/app/services/state/sqlite_persistence_adapter.py
 Основные сущности: SqlitePersistenceAdapter
 """
 
-from __future__ import annotations
 
 import json
 import logging
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
+from typing import Union, List, Dict, Any, Optional
 
 from app.services.state.persistence_port import PersistencePort
 
@@ -68,27 +68,41 @@ class SqlitePersistenceAdapter(PersistencePort):
         conn.commit()
         logger.debug(f"[SQLITE_PERSISTENCE] Инициализирован: {self._db_path}")
 
-    def _upsert(self, key: str, value: dict) -> None:
+    def _upsert(
+        self, key: str, value: Union[Dict[str, Any], List[Dict[str, Any]]]
+    ) -> None:
         """INSERT OR REPLACE одной записью."""
         conn = self._get_conn()
         conn.execute(
             "INSERT OR REPLACE INTO state_kv (key, value, updated_at) VALUES (?, ?, ?)",
-            (key, json.dumps(value, ensure_ascii=False, default=lambda o: list(o) if isinstance(o, set) else str(o)), datetime.now(timezone.utc).isoformat()),
+            (
+                key,
+                json.dumps(
+                    value,
+                    ensure_ascii=False,
+                    default=lambda o: List[Any](o) if isinstance(o, set) else str(o),
+                ),
+                datetime.now(timezone.utc).isoformat(),
+            ),
         )
 
-    def _select(self, key: str) -> Optional[dict]:
-        """SELECT одной записи. None если не найдена."""
+    def _select(self, key: str) -> Any:
+        """SELECT одной записи. None если не найдена. Может вернуть dict или list."""
         conn = self._get_conn()
-        row = conn.execute("SELECT value FROM state_kv WHERE key = ?", (key,)).fetchone()
+        row = conn.execute(
+            "SELECT value FROM state_kv WHERE key = ?", (key,)
+        ).fetchone()
         if row is None:
             return None
         try:
             return json.loads(row[0])
         except json.JSONDecodeError as e:
-            logger.error(f"[SQLITE_PERSISTENCE] Ошибка парсинга JSON для ключа {key}: {e}")
+            logger.error(
+                f"[SQLITE_PERSISTENCE] Ошибка парсинга JSON для ключа {key}: {e}"
+            )
             return None
 
-    def save_scene(self, campaign_id: str, scene_state: dict) -> None:
+    def save_scene(self, campaign_id: str, scene_state: Dict[str, Any]) -> None:
         """Сохраняет состояние сцены."""
         try:
             self._upsert(f"scene:{campaign_id}", scene_state)
@@ -98,7 +112,7 @@ class SqlitePersistenceAdapter(PersistencePort):
             logger.error(f"[SQLITE_PERSISTENCE] Error saving scene: {e}")
             self._get_conn().rollback()
 
-    def save_npcs(self, npc_dicts: list[dict]) -> None:
+    def save_npcs(self, npc_dicts: List[Dict[str, Any]]) -> None:
         """Сохраняет NPC статические данные (legacy)."""
         try:
             self._upsert("npcs:major", npc_dicts)
@@ -108,15 +122,21 @@ class SqlitePersistenceAdapter(PersistencePort):
             logger.error(f"[SQLITE_PERSISTENCE] Error saving NPCs: {e}")
             self._get_conn().rollback()
 
-    def save_npc_runtime(self, session_id: str, npc_dicts: list[dict]) -> None:
+    def save_npc_runtime(
+        self, session_id: str, npc_dicts: List[Dict[str, Any]]
+    ) -> None:
         """Сохраняет runtime-состояние NPC в сессию."""
         if not session_id:
-            logger.warning("[SQLITE_PERSISTENCE] save_npc_runtime без session_id — пропуск")
+            logger.warning(
+                "[SQLITE_PERSISTENCE] save_npc_runtime без session_id — пропуск"
+            )
             return
         try:
             self._upsert(f"runtime:{session_id}", npc_dicts)
             self._get_conn().commit()
-            logger.debug(f"[SQLITE_PERSISTENCE] NPC runtime saved: {session_id} ({len(npc_dicts)} records)")
+            logger.debug(
+                f"[SQLITE_PERSISTENCE] NPC runtime saved: {session_id} ({len(npc_dicts)} records)"
+            )
         except sqlite3.Error as e:
             logger.error(f"[SQLITE_PERSISTENCE] Error saving NPC runtime: {e}")
 
@@ -127,20 +147,22 @@ class SqlitePersistenceAdapter(PersistencePort):
             conn = self._get_conn()
             conn.execute(
                 "DELETE FROM state_kv WHERE key = ? OR key = ?",
-                (f"scene:{campaign_id}", f"runtime:{campaign_id}")
+                (f"scene:{campaign_id}", f"runtime:{campaign_id}"),
             )
             conn.commit()
             logger.info(f"[SQLITE_PERSISTENCE] Campaign deleted: {campaign_id}")
         except sqlite3.Error as e:
-            logger.error(f"[SQLITE_PERSISTENCE] Error deleting campaign {campaign_id}: {e}")
+            logger.error(
+                f"[SQLITE_PERSISTENCE] Error deleting campaign {campaign_id}: {e}"
+            )
             self._get_conn().rollback()
             self._get_conn().rollback()
 
-    def load_scene(self, campaign_id: str) -> dict | None:
+    def load_scene(self, campaign_id: str) -> Dict[str, Any] | None:
         """Загружает состояние сцены из SQLite."""
         return self._select(f"scene:{campaign_id}")
 
-    def load_npc_runtime(self, session_id: str) -> list[dict] | None:
+    def load_npc_runtime(self, session_id: str) -> Optional[List[Dict[str, Any]]]:
         """Загружает runtime-состояние NPC из сессии."""
         if not session_id:
             return None
@@ -149,15 +171,17 @@ class SqlitePersistenceAdapter(PersistencePort):
             return None
         if isinstance(data, list):
             return data
-        logger.warning(f"[SQLITE_PERSISTENCE] runtime:{session_id} не список, а {type(data)}")
+        logger.warning(
+            f"[SQLITE_PERSISTENCE] runtime:{session_id} не список, а {type(data)}"
+        )
         return None
 
     def atomic_commit(
         self,
         campaign_id: str,
-        scene_state: dict,
-        npc_states: list[dict] | None = None,
-        events: list[dict] | None = None,
+        scene_state: Dict[str, Any],
+        npc_states: Optional[List[Dict[str, Any]]] = None,
+        events: Optional[List[Dict[str, Any]]] = None,
     ) -> bool:
         """Атомарный коммит: сцена + NPC runtime + events в одной транзакции.
 
@@ -175,7 +199,9 @@ class SqlitePersistenceAdapter(PersistencePort):
             logger.debug(f"[SQLITE_PERSISTENCE] Atomic commit OK: {campaign_id}")
             return True
         except sqlite3.Error as e:
-            logger.error(f"[SQLITE_PERSISTENCE] Atomic commit FAILED ({campaign_id}): {e} — откат")
+            logger.error(
+                f"[SQLITE_PERSISTENCE] Atomic commit FAILED ({campaign_id}): {e} — откат"
+            )
             conn.rollback()
             return False
 

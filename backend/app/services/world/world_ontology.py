@@ -12,31 +12,69 @@
 Правило: объект физичен если он может быть передан, брошен, украден или уничтожен.
 """
 
-from typing import FrozenSet
+from typing import List, Dict, Any, FrozenSet
 
 # Реестр физических типов предметов.
 # Расширяется по мере роста контента — никогда не удаляется.
 # Ключи — это obj_id или их префиксы из JSON.
-PHYSICAL_OBJECT_TYPES: FrozenSet[str] = frozenset({
-    # Оружие
-    "spear", "sword", "knife", "dagger", "axe", "bow", "crossbow",
-    "club", "staff", "mace",
-    # Броня и одежда
-    "city_guard_armor", "armor", "shield", "helmet", "apron",
-    "cloak", "boots", "gloves",
-    # Ключи и инструменты
-    "keys", "key", "tool", "lockpick", "torch", "lantern",
-    # Деньги
-    "gold", "silver", "copper", "coin_pouch", "purse",
-    # Еда и напитки
-    "bread", "ale", "wine", "potion", "food",
-    # Символы и печати
-    "city_emblem", "signet", "seal", "badge",
-    # Контейнеры
-    "bag", "chest", "pouch", "sack",
-    # Сырьё и прочее
-    "stone", "rope", "wood", "cloth",
-})
+PHYSICAL_OBJECT_TYPES: FrozenSet[str] = frozenset(
+    {
+        # Оружие
+        "spear",
+        "sword",
+        "knife",
+        "dagger",
+        "axe",
+        "bow",
+        "crossbow",
+        "club",
+        "staff",
+        "mace",
+        # Броня и одежда
+        "city_guard_armor",
+        "armor",
+        "shield",
+        "helmet",
+        "apron",
+        "cloak",
+        "boots",
+        "gloves",
+        # Ключи и инструменты
+        "keys",
+        "key",
+        "tool",
+        "lockpick",
+        "torch",
+        "lantern",
+        # Деньги
+        "gold",
+        "silver",
+        "copper",
+        "coin_pouch",
+        "purse",
+        # Еда и напитки
+        "bread",
+        "ale",
+        "wine",
+        "potion",
+        "food",
+        # Символы и печати
+        "city_emblem",
+        "signet",
+        "seal",
+        "badge",
+        # Контейнеры
+        "bag",
+        "chest",
+        "pouch",
+        "sack",
+        # Сырьё и прочее
+        "stone",
+        "rope",
+        "wood",
+        "cloth",
+    }
+)
 
 
 def is_physical_object(obj_id: str) -> bool:

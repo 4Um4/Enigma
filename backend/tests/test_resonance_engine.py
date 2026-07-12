@@ -4,12 +4,11 @@ path: backend/tests/test_resonance_engine.py
 Запуск: python -m pytest tests/test_resonance_engine.py -v --tb=short
 """
 
-from app.services.memory.resonance_engine import ResonanceEngine
 from app.models.npc_state import EventMemory, MemoryStage
+from app.services.memory.resonance_engine import ResonanceEngine
 
 
-def _mem(event_type: str, emotion: str = "angry",
-         importance: float = 0.7, day: int = 1) -> EventMemory:
+def _mem(event_type: str, emotion: str = "angry", importance: float = 0.7, day: int = 1) -> EventMemory:
     return EventMemory(
         event_type=event_type,
         target_id="player",
@@ -24,6 +23,7 @@ def _mem(event_type: str, emotion: str = "angry",
 
 
 # ── Betrayal Chain ────────────────────────────────────────────────────────────
+
 
 def test_betrayal_chain_detected() -> None:
     """3 кражи → distrust_player trait."""
@@ -62,6 +62,7 @@ def test_two_events_not_enough() -> None:
 
 # ── Chronic Help ──────────────────────────────────────────────────────────────
 
+
 def test_chronic_help_detected() -> None:
     """3 помощи → trust_bias trait."""
     engine = ResonanceEngine()
@@ -81,14 +82,15 @@ def test_chronic_help_trait_name() -> None:
 
 # ── Gaslighting ───────────────────────────────────────────────────────────────
 
+
 def test_gaslighting_detected() -> None:
     """Чередование агрессии и помощи → suspicious."""
     engine = ResonanceEngine()
     events = [
-        _mem("combat",  "fearful",  0.8, day=1),
-        _mem("help",    "grateful", 0.7, day=2),
+        _mem("combat", "fearful", 0.8, day=1),
+        _mem("help", "grateful", 0.7, day=2),
         _mem("intimidation", "fearful", 0.8, day=3),
-        _mem("help",    "grateful", 0.7, day=4),
+        _mem("help", "grateful", 0.7, day=4),
     ]
     patterns = engine.detect(events, actor_id="player")
     names = [p.pattern_name for p in patterns]
@@ -106,23 +108,25 @@ def test_gaslighting_requires_alternation() -> None:
 
 # ── Temporal Density ──────────────────────────────────────────────────────────
 
+
 def test_dense_events_stronger_than_sparse() -> None:
     """Плотные кражи (1 день) формируют более сильный паттерн чем редкие (30 дней)."""
     engine = ResonanceEngine()
 
-    dense = [_mem("theft", day=i) for i in range(3)]          # дни 0,1,2
-    sparse = [_mem("theft", day=i * 10) for i in range(3)]    # дни 0,10,20
+    dense = [_mem("theft", day=i) for i in range(3)]  # дни 0,1,2
+    sparse = [_mem("theft", day=i * 10) for i in range(3)]  # дни 0,10,20
 
-    p_dense  = engine.detect(dense,  actor_id="player")
+    p_dense = engine.detect(dense, actor_id="player")
     p_sparse = engine.detect(sparse, actor_id="player")
 
-    dense_strength  = next(p.strength for p in p_dense  if p.pattern_name == "betrayal_chain")
+    dense_strength = next(p.strength for p in p_dense if p.pattern_name == "betrayal_chain")
     sparse_strength = next(p.strength for p in p_sparse if p.pattern_name == "betrayal_chain")
 
     assert dense_strength > sparse_strength
 
 
 # ── Фильтрация ────────────────────────────────────────────────────────────────
+
 
 def test_forgotten_events_ignored() -> None:
     """FORGOTTEN события не участвуют в детекции."""

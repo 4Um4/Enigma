@@ -6,8 +6,8 @@ path: backend/app/services/dto.py
 Основные сущности: ReductionPolicy, DELTA_POLICY_REGISTRY, SemanticFrame, TickPlayerResultDTO, _TickContext, DMContextDTO
 
 """
-
 from __future__ import annotations
+
 
 from dataclasses import dataclass, field
 from enum import Enum
@@ -20,12 +20,15 @@ from app.models.will import IntentPressureProfile
 from app.models.state_delta import DeltaDomain
 from app.models.cfrm import EventBuffer, ClusterOccupancy
 
+
 class ReductionPolicy(Enum):
     """Политика редукции дельт при агрегации"""
+
     ADDITIVE = "additive"
     BOUNDED_ADDITIVE = "bounded_additive"
     OVERWRITE = "overwrite"
     PHYSICS_COMPOSITE = "physics_composite"
+
 
 DELTA_POLICY_REGISTRY = {
     DeltaDomain.SOCIAL: ReductionPolicy.ADDITIVE,
@@ -35,20 +38,24 @@ DELTA_POLICY_REGISTRY = {
     DeltaDomain.PHYSIOLOGY: ReductionPolicy.PHYSICS_COMPOSITE,
 }
 
+
 @dataclass
 class SemanticFrame:
     """SIL: Изолированный фрейм интерпретации мира (S-слой).
     Эмоции и восприятие существуют здесь до сброса в M-слой в Phase 10.
     tick_id предотвращает утечку эмоций (afterimage bug) между тиками."""
+
     emotion_tag: Optional[str] = None
     affective_load: Optional[float] = None
     stress_delta: Optional[float] = None
     perception_label: Optional[str] = None
     tick_id: int = -1
 
+
 @dataclass
 class TickPlayerResultDTO:
     """Результат NPC-тика для player turn."""
+
     status: str = "ok"
     error: Optional[str] = None
     npc_contexts: list = field(default_factory=list)
@@ -66,9 +73,11 @@ class TickPlayerResultDTO:
     # Sprint P9: Список строк фактов для DMContractBuilder
     observed_facts: list = field(default_factory=list)
 
+
 @dataclass
 class _TickContext:
     """Внутренний контекст тика — живёт только внутри execute()."""
+
     campaign_id: str
     scene_state: dict
     tick_number: int
@@ -92,7 +101,7 @@ class _TickContext:
     changes_count: int = 0
     # Sprint P3: SpatialQueryService для PerceptionPhysicsEngine
     spatial_query: Optional[Any] = None
-    
+
     # KERNEL-ISOLATION: per-tick RNG factory.
     # Создаёт KernelRNG для каждого NPC по запросу (lazy).
     # НЕ хранит RNG state напрямую — хранит factory, чтобы каждый NPC
@@ -111,6 +120,7 @@ class _TickContext:
             # Fallback для legacy тестов, где factory не задан.
             # В production этого быть не должно.
             import logging
+
             logging.getLogger(__name__).warning(
                 f"[TICK_CONTEXT] rng_factory is None, creating ad-hoc KernelRNG "
                 f"for npc={npc_id} tick={self.tick_number}. "
@@ -118,11 +128,12 @@ class _TickContext:
             )
             return KernelRNG(tick=self.tick_number, npc_id=npc_id)
         return self.rng_factory(npc_id)
+
     # Фаза 5: решения DecisionHub
     decision_events: list = field(default_factory=list)
     # SIL: S-слой (интерпретация). Визуализация читает отсюда (T+0), DecisionHub из M-слоя (T-1)
     semantic_buffer: Dict[str, "SemanticFrame"] = field(default_factory=dict)
-    # DSTC: Interpretation Snapshot (замороженный M₀ + Deltas). 
+    # DSTC: Interpretation Snapshot (замороженный M₀ + Deltas).
     # Phase 9 читает ТОЛЬКО его. Мутация запрещена (Pure Read invariant).
     interpretation_snapshot: Optional[list] = None
     # Фаза 9: финальный снимок
@@ -136,9 +147,11 @@ class _TickContext:
     # Player turn: контекст GameLoop для фаз 7-10 (Устав §3 — единая последовательность)
     shared_context: Any = None
     actions: list = field(default_factory=list)
-    player_intent: Optional["IntentDTO"] = None # ADR-031: Канонический интент
-    is_player_turn: bool = False # S116 FIX: Флаг хода игрока для execute_persistence
-    player_pressure: Optional["IntentPressureProfile"] = None # ADR-031 Fix: Вектор давления из Фазы 1
+    player_intent: Optional["IntentDTO"] = None  # ADR-031: Канонический интент
+    is_player_turn: bool = False  # S116 FIX: Флаг хода игрока для execute_persistence
+    player_pressure: Optional["IntentPressureProfile"] = (
+        None  # ADR-031 Fix: Вектор давления из Фазы 1
+    )
     rules_result: Dict[str, Any] = field(default_factory=dict)
     r3_direct_mode: bool = True
     # Фаза 10: данные для коммита (мостируются из TickBuffer GameLoop)
@@ -172,9 +185,11 @@ class _TickContext:
 # ── Мостовые DTO для player turn (P1.1b) ──────────────────────────────
 # TODO: удалить после замены HubEventContext на EventDTO
 
+
 @dataclass(frozen=True)
 class DMContextDTO:
     """Мост: DM-интерпретация → TickOrchestrator."""
+
     hub_event: Any
     nearby_npcs: list
     line_of_sight: dict

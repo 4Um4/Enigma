@@ -16,8 +16,8 @@ Provider Manager — Multi-Provider + Lazy Loading (RTX 3070 Ti, 8 GB VRAM)
 
 # 4. context_size по умолчанию: 8192 (с flash-attn влезает в 8 GB VRAM).
 """
-
 from __future__ import annotations
+
 
 import asyncio
 import json
@@ -42,11 +42,11 @@ from app.services.llm.router import CAPABILITY_MODEL_PREFERENCES, Capability
 
 class ProviderStatus(str, Enum):
     UNINITIALIZED = "uninitialized"
-    INITIALIZING  = "initializing"
-    LOADING       = "loading"
-    READY         = "ready"
-    ERROR         = "error"
-    DISABLED      = "disabled"
+    INITIALIZING = "initializing"
+    LOADING = "loading"
+    READY = "ready"
+    ERROR = "error"
+    DISABLED = "disabled"
 
 
 @dataclass
@@ -122,27 +122,28 @@ class ModelPool:
         if getattr(self, "_initialized", False):
             return
 
-        self._max_loaded     = max_loaded
-        self._active_model:  Optional[ModelProvider] = None
-        self._active_key:    Optional[str] = None
+        self._max_loaded = max_loaded
+        self._active_model: Optional[ModelProvider] = None
+        self._active_key: Optional[str] = None
         self._model_configs: Dict[str, ModelConfig] = {}
-        self._metrics:       Dict[str, ModelMetrics] = {}
+        self._metrics: Dict[str, ModelMetrics] = {}
 
         self._availability_cache: Dict[str, bool] = {}
-        self._failure_cache:      Dict[str, float] = {}
-        self._cache_ttl_seconds:  float = 30.0
-        self._last_cache_update:  float = 0.0
+        self._failure_cache: Dict[str, float] = {}
+        self._cache_ttl_seconds: float = 30.0
+        self._last_cache_update: float = 0.0
 
-        self._pool_lock        = asyncio.Lock()
+        self._pool_lock = asyncio.Lock()
         self._switch_semaphore = asyncio.Semaphore(1)
-        self._logger           = logging.getLogger(__name__)
-        self._warm_model_key:  Optional[str] = None
-        self.debug             = False
+        self._logger = logging.getLogger(__name__)
+        self._warm_model_key: Optional[str] = None
+        self.debug = False
 
         self.error_interpreter = get_error_interpreter()
-        self.vram_monitor      = get_vram_monitor()
+        self.vram_monitor = get_vram_monitor()
 
         from app.services.error_interpreter import LOG_FILE
+
         self._log_file = LOG_FILE
 
         self._initialized = True
@@ -183,14 +184,21 @@ class ModelPool:
             timeout_sec = settings.model_load_timeout_sec
 
         session_log = f"[{session_id}]" if session_id else ""
-        self._logger.info(f"ModelPool{session_log} get_model_async('{key}', agent='{agent}')")
+        self._logger.info(
+            f"ModelPool{session_log} get_model_async('{key}', agent='{agent}')"
+        )
 
         vram_before = await self.vram_monitor.get_vram_mb()
-        self._jsonl_log({
-            "timestamp": datetime.now().isoformat(), "level": "INFO",
-            "agent": agent or "unknown", "model": key,
-            "status": "load_start", "vram_before_mb": vram_before,
-        })
+        self._jsonl_log(
+            {
+                "timestamp": datetime.now().isoformat(),
+                "level": "INFO",
+                "agent": agent or "unknown",
+                "model": key,
+                "status": "load_start",
+                "vram_before_mb": vram_before,
+            }
+        )
 
         try:
             model = await asyncio.wait_for(
@@ -198,47 +206,66 @@ class ModelPool:
                 timeout=timeout_sec,
             )
             vram_after = await self.vram_monitor.get_vram_mb()
-            delta_mb   = vram_after - vram_before
+            delta_mb = vram_after - vram_before
 
             if model:
                 self._logger.info(
                     f"ModelPool{session_log} ✓ '{key}' (VRAM delta={delta_mb:+}MB)"
                 )
-                self._jsonl_log({
-                    "timestamp": datetime.now().isoformat(), "level": "INFO",
-                    "agent": agent or "unknown", "model": key,
-                    "status": "load_success",
-                    "vram_after_mb": vram_after, "vram_delta_mb": delta_mb,
-                })
+                self._jsonl_log(
+                    {
+                        "timestamp": datetime.now().isoformat(),
+                        "level": "INFO",
+                        "agent": agent or "unknown",
+                        "model": key,
+                        "status": "load_success",
+                        "vram_after_mb": vram_after,
+                        "vram_delta_mb": delta_mb,
+                    }
+                )
                 return model
             else:
-                self._jsonl_log({
-                    "timestamp": datetime.now().isoformat(), "level": "WARNING",
-                    "agent": agent or "unknown", "model": key,
-                    "status": "load_failed_no_model",
-                })
+                self._jsonl_log(
+                    {
+                        "timestamp": datetime.now().isoformat(),
+                        "level": "WARNING",
+                        "agent": agent or "unknown",
+                        "model": key,
+                        "status": "load_failed_no_model",
+                    }
+                )
                 return None
 
         except asyncio.TimeoutError as exc:
             human_msg, fix = self.error_interpreter.handle(
-                exc, {"agent": agent, "model": key, "timeout_sec": timeout_sec},
-                agent or "pool", key,
+                exc,
+                {"agent": agent, "model": key, "timeout_sec": timeout_sec},
+                agent or "pool",
+                key,
             )
             self._logger.error(f"ModelPool{session_log} TIMEOUT '{key}': {human_msg}")
             return None
 
         except Exception as exc:
             human_msg, fix = self.error_interpreter.handle(
-                exc, {"vram_before": vram_before, "agent": agent, "model": key},
-                agent or "pool", key,
+                exc,
+                {"vram_before": vram_before, "agent": agent, "model": key},
+                agent or "pool",
+                key,
             )
             self._logger.error(f"ModelPool{session_log} ERROR '{key}': {human_msg}")
-            self._jsonl_log({
-                "timestamp": datetime.now().isoformat(), "level": "ERROR",
-                "agent": agent or "unknown", "model": key,
-                "status": "load_error", "error_type": type(exc).__name__,
-                "human_msg": human_msg, "fix": fix,
-            })
+            self._jsonl_log(
+                {
+                    "timestamp": datetime.now().isoformat(),
+                    "level": "ERROR",
+                    "agent": agent or "unknown",
+                    "model": key,
+                    "status": "load_error",
+                    "error_type": type(exc).__name__,
+                    "human_msg": human_msg,
+                    "fix": fix,
+                }
+            )
             return None
 
     async def _get_model_locked(
@@ -273,16 +300,21 @@ class ModelPool:
                 model_path=config.path,
             )
             model_provider = ModelProvider(
-                key=key, name=config.name, provider=provider,
-                provider_type=config.provider_type, path=config.path,
-                context_size=config.context_size, vram_mb=config.vram_mb,
-                temperature=config.temperature, status=ProviderStatus.READY,
+                key=key,
+                name=config.name,
+                provider=provider,
+                provider_type=config.provider_type,
+                path=config.path,
+                context_size=config.context_size,
+                vram_mb=config.vram_mb,
+                temperature=config.temperature,
+                status=ProviderStatus.READY,
             )
             if key in self._metrics:
                 self._metrics[key].last_used = time.time()
 
             self._active_model = model_provider
-            self._active_key   = key
+            self._active_key = key
 
             load_ms = (time.time() - load_start) * 1000
             self._logger.info(f"ModelPool: Loaded '{key}' in {load_ms:.0f}ms")
@@ -297,7 +329,7 @@ class ModelPool:
             key = self._active_key
             self._logger.info(f"ModelPool: Unloading '{key}'")
             self._active_model = None
-            self._active_key   = None
+            self._active_key = None
 
     async def unload_model(self, key: str) -> None:
         async with self._switch_semaphore:
@@ -355,15 +387,15 @@ class ModelPool:
         return False
 
     async def get_status(self) -> dict:
-        current_vram  = await self.vram_monitor.get_vram_mb()
+        current_vram = await self.vram_monitor.get_vram_mb()
         recent_errors = self.error_interpreter.analyze_recent_errors()
         status = {
-            "active_model":      self._active_key,
-            "max_loaded":        self._max_loaded,
+            "active_model": self._active_key,
+            "max_loaded": self._max_loaded,
             "registered_models": list(self._model_configs.keys()),
-            "current_vram_mb":   current_vram,
-            "recent_errors":     recent_errors,
-            "vram_dashboard":    await self.vram_monitor.get_dashboard(),
+            "current_vram_mb": current_vram,
+            "recent_errors": recent_errors,
+            "vram_dashboard": await self.vram_monitor.get_dashboard(),
         }
         if self._active_model:
             try:
@@ -381,7 +413,7 @@ class ModelPool:
 
 
 # ── Global singletons ─────────────────────────────────────────────────────────
-_model_pool:       Optional[ModelPool]       = None
+_model_pool: Optional[ModelPool] = None
 _provider_manager: Optional[ProviderManager] = None
 
 
@@ -410,21 +442,27 @@ class ProviderManager:
     def __init__(self) -> None:
         if getattr(self, "_initialized", False):
             return
-        self._providers:       Dict[str, ModelProvider] = {}
-        self._providers_lock   = threading.RLock()
+        self._providers: Dict[str, ModelProvider] = {}
+        self._providers_lock = threading.RLock()
         self._startup_complete = True
-        self._initialized      = True
+        self._initialized = True
 
     @property
     def is_ready(self) -> bool:
         return self._startup_complete
 
-    def register_provider(self, key, name, provider, provider_type, path,
-                          endpoint=None, **kwargs) -> ModelProvider:
+    def register_provider(
+        self, key, name, provider, provider_type, path, endpoint=None, **kwargs
+    ) -> ModelProvider:
         with self._providers_lock:
             mp = ModelProvider(
-                key=key, name=name, provider=provider,
-                provider_type=provider_type, path=path, endpoint=endpoint, **kwargs,
+                key=key,
+                name=name,
+                provider=provider,
+                provider_type=provider_type,
+                path=path,
+                endpoint=endpoint,
+                **kwargs,
             )
             self._providers[key] = mp
             return mp
@@ -439,14 +477,17 @@ class ProviderManager:
                     return p
         return None
 
-    def get_provider_for_capability(self, capability: str,
-                                    preferred_keys=None) -> Optional[ModelProvider]:
+    def get_provider_for_capability(
+        self, capability: str, preferred_keys=None
+    ) -> Optional[ModelProvider]:
         cap_enum = (
             Capability(capability)
             if capability in [c.value for c in Capability]
             else Capability.GENERAL
         )
-        prefs = list(preferred_keys or CAPABILITY_MODEL_PREFERENCES.get(cap_enum, ["qwen_7b"]))
+        prefs = list(
+            preferred_keys or CAPABILITY_MODEL_PREFERENCES.get(cap_enum, ["qwen_7b"])
+        )
         with self._providers_lock:
             for key in prefs:
                 p = self._providers.get(key)
@@ -468,12 +509,19 @@ class ProviderManager:
 
     def _create_and_register_provider(self, key, model_config) -> ModelProvider:
         from app.services.llm.factory import ProviderFactory
+
         pt = ProviderType(getattr(model_config, "provider_type", "llama_cpp"))
-        provider = ProviderFactory.create(provider_type=pt, model_path=model_config.path)
+        provider = ProviderFactory.create(
+            provider_type=pt, model_path=model_config.path
+        )
         return self.register_provider(
-            key=key, name=model_config.display_name,
-            provider=provider, provider_type=pt, path=model_config.path,
-            context_size=model_config.context_size, vram_mb=model_config.vram_mb,
+            key=key,
+            name=model_config.display_name,
+            provider=provider,
+            provider_type=pt,
+            path=model_config.path,
+            context_size=model_config.context_size,
+            vram_mb=model_config.vram_mb,
             temperature=model_config.temperature,
         )
 
@@ -503,10 +551,14 @@ def initialize_model_pool(warm_model_key: Optional[str] = None) -> Dict[str, boo
         try:
             ctx = model_config.context_size
             config = ModelConfig(
-                key=key, name=model_config.display_name,
-                provider_type=ProviderType(getattr(model_config, "provider_type", "llama_cpp")),
+                key=key,
+                name=model_config.display_name,
+                provider_type=ProviderType(
+                    getattr(model_config, "provider_type", "llama_cpp")
+                ),
                 path=model_config.path,
-                context_size=ctx, temperature=model_config.temperature,
+                context_size=ctx,
+                temperature=model_config.temperature,
                 vram_mb=model_config.vram_mb,
             )
             pool.register_model_config(config)
@@ -527,6 +579,7 @@ def get_pool_manager() -> tuple[ModelPool, ProviderManager]:
 class ErrorInterpreter:
     def handle(self, exc, context=None, agent_name=None, model_key=None):
         import traceback
+
         human_msg = "".join(traceback.format_exception_only(type(exc), exc)).strip()
         return human_msg, "Check logs / restart / validate model pool"
 

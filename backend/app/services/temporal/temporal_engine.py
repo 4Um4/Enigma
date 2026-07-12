@@ -1,4 +1,5 @@
-﻿# backend/app/services/temporal/temporal_engine.py
+from __future__ import annotations
+# backend/app/services/temporal/temporal_engine.py
 """
 Единая точка времени и decay в системе.
 Знает текущий тик, игровой день, расписание протухания.
@@ -27,13 +28,13 @@
   - Рассмотреть возможность добавления "season" для влияния на доступные ресурсы и поведение NPC (например, зима → меньше еды, более агрессивные животные).
   - Логирование TemporalContext в начале каждого world_tick() для анализа и отладки поведения NPC в зависимости от времени.
 """
-from __future__ import annotations
+
 
 import json
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Optional
+from typing import List, Any, Dict, Optional
 
 from app.core.constants import DECAY_EVERY, TICK_SAVE_INTERVAL, TICKS_PER_DAY
 from app.models.temporal import TemporalContext
@@ -46,6 +47,7 @@ class TemporalEngine:
     Управляет ходом времени: инкремент тика, гибридное сохранение,
     расчёт игровых дней и расписания decay.
     """
+
     def __init__(self, sessions_dir: Path) -> None:
         self._sessions_dir = sessions_dir
         self._tick_cache: Dict[str, int] = {}
@@ -172,12 +174,12 @@ class TemporalEngine:
             "sim_tick": tick,
             "updated_at": datetime.now().isoformat(),  # §15.2: Persistence metadata
             # created_at пишется один раз при создании — не перезаписывается
-            "created_at": _existing.get("created_at") or datetime.now().isoformat(),  # §15.2: Persistence metadata
+            "created_at": _existing.get("created_at")
+            or datetime.now().isoformat(),  # §15.2: Persistence metadata
         }
         try:
             path.write_text(
-                json.dumps(data, ensure_ascii=False, indent=2),
-                encoding="utf-8"
+                json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8"
             )
         except OSError as e:
             logger.error(f"[TEMPORAL_ENGINE] Ошибка сохранения tick: {e}")

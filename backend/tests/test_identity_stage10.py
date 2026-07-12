@@ -9,12 +9,13 @@ path: backend/tests/test_identity_stage10.py
 Основные сущности: check_identity(), check_identity_promotion()
 """
 
-from app.services.memory.promotion_engine import MemoryPromotionEngine
 from app.services.memory.memory_manager import MemoryManager
+from app.services.memory.promotion_engine import MemoryPromotionEngine
 
 
 def _make_manager() -> MemoryManager:
     from unittest.mock import MagicMock
+
     mm = MemoryManager.__new__(MemoryManager)
     mm._working = MagicMock()
     mm._layered = MagicMock()
@@ -26,6 +27,7 @@ def _make_manager() -> MemoryManager:
 
 
 # ── MemoryPromotionEngine.check_identity ──
+
 
 def test_resentment_plus_fear_distrusts_strangers() -> None:
     """resentment >= 0.3 + fear >= 0.2 → distrusts_strangers."""
@@ -101,14 +103,19 @@ def test_multiple_rules_fire() -> None:
 
 # ── MemoryManager.check_identity_promotion ──
 
+
 def test_promotion_applies_to_cache() -> None:
     """check_identity_promotion записывает новые черты в identity_cache."""
     mm = _make_manager()
     # Предзаполняем кэш через apply_identity_weights
-    mm.apply_identity_weights("camp_1", "npc_01", [
-        ("resentment", 0.35),
-        ("fear", 0.25),
-    ])
+    mm.apply_identity_weights(
+        "camp_1",
+        "npc_01",
+        [
+            ("resentment", 0.35),
+            ("fear", 0.25),
+        ],
+    )
     # Проверяем что черты записаны
     assert mm.get_identity_traits("camp_1", "npc_01")["resentment"] == 0.35
 

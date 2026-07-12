@@ -19,6 +19,7 @@ path: /backend/app/services/player_cognition/pipeline.py
 Зависимости: все слои, types
 Основные сущности: PerceptionConfig, build_perceived_scene()
 """
+
 from dataclasses import dataclass, field
 from typing import List, Optional
 
@@ -29,7 +30,10 @@ from app.services.player_cognition.types import (
 from app.services.player_cognition.spatial_layer import extract_spatial_data
 from app.services.player_cognition.perception_layer import apply_perception
 from app.services.player_cognition.attention_layer import PlayerFocus, apply_attention
-from app.services.player_cognition.recognition_layer import EncounterHistory, apply_recognition
+from app.services.player_cognition.recognition_layer import (
+    EncounterHistory,
+    apply_recognition,
+)
 from app.services.player_cognition.interpretation_layer import apply_interpretation
 from app.services.player_cognition.cognitive_distortion import (
     PlayerDistortionInputs,
@@ -42,6 +46,7 @@ from app.services.player_cognition.uncertainty_layer import apply_uncertainty
 @dataclass
 class PerceptionConfig:
     """Конфигурация одного вызова pipeline — абстрагирует источники данных"""
+
     player_focus: PlayerFocus = field(default_factory=PlayerFocus)
     player_stress: float = 0.0
     player_hp: int = 100
@@ -51,7 +56,9 @@ class PerceptionConfig:
     player_memory: Optional[PlayerMemory] = None
 
 
-def _build_perceived_environment(scene_state: dict, distortion_inputs: PlayerDistortionInputs) -> PerceivedEnvironment:
+def _build_perceived_environment(
+    scene_state: dict, distortion_inputs: PlayerDistortionInputs
+) -> PerceivedEnvironment:
     """
     Заполняет воспринимаемое окружение на основе objective environment + искажения.
     Стресс делает мир темнее и шумнее.
@@ -106,7 +113,9 @@ def _build_body_state(distortion_inputs: PlayerDistortionInputs) -> List[str]:
     states: List[str] = []
 
     stress = distortion_inputs.stress
-    hp_ratio = distortion_inputs.effective_hp / max(1, distortion_inputs.effective_max_hp)
+    hp_ratio = distortion_inputs.effective_hp / max(
+        1, distortion_inputs.effective_max_hp
+    )
     fatigue = distortion_inputs.fatigue
 
     # HP → телесные ощущения

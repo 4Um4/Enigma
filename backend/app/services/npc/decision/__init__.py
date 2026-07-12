@@ -1,3 +1,4 @@
+from typing import Any, Dict, List, Optional
 # Пакет декомпозиции DecisionHub (R2: Персонализация)
 # Каждый модуль — одна ответственность, один причинный слой
 

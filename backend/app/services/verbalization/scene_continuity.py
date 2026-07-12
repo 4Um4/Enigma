@@ -13,35 +13,38 @@ path: backend/app/services/verbalization/scene_continuity.py
 """
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Set
+from typing import Any, Dict, List, Set
 
 
 @dataclass
 class SceneContinuity:
     """
     Эпизодическая фиксация сцены.
-    
+
     НЕ персистируется между сессиями — только в рамках одной сцены.
     """
+
     # Флаги событий которые УЖЕ произошли
     active_flags: Set[str] = field(default_factory=set)
-    
+
     # Последние события (cap=5) — для контекста
     recent_events: List[str] = field(default_factory=list)
-    
+
     # Факты сцены — что DM должен считать истинным
     scene_facts: List[str] = field(default_factory=list)
-    
+
     # Текущее напряжение (инерция)
     tension: float = 0.0
-    
+
     # Эмоциональный вектор (B.4: Micro-History)
-    emotional_vector: Dict[str, float] = field(default_factory=lambda: {
-        "trust": 0.0,
-        "tension": 0.0,
-        "confusion": 0.0,
-    })
-    
+    emotional_vector: Dict[str, float] = field(
+        default_factory=lambda: {
+            "trust": 0.0,
+            "tension": 0.0,
+            "confusion": 0.0,
+        }
+    )
+
     # TODO: миграция в core/constants.py после калибровки
     # Капы
     MAX_RECENT: int = 5
@@ -53,7 +56,7 @@ class SceneContinuity:
         # Кап
         if len(self.active_flags) > self.MAX_FLAGS:
             # Удаляем самые старые (произвольно из set)
-            self.active_flags = set(list(self.active_flags)[-self.MAX_FLAGS:])
+            self.active_flags = set(list(self.active_flags)[-self.MAX_FLAGS :])
 
     def has_flag(self, flag: str) -> bool:
         """Проверить было ли событие."""
@@ -65,7 +68,7 @@ class SceneContinuity:
             return
         self.recent_events.append(event)
         if len(self.recent_events) > self.MAX_RECENT:
-            self.recent_events = self.recent_events[-self.MAX_RECENT:]
+            self.recent_events = self.recent_events[-self.MAX_RECENT :]
 
     def add_fact(self, fact: str) -> None:
         """Добавить факт сцены."""
@@ -82,14 +85,12 @@ class SceneContinuity:
             if key in self.emotional_vector:
                 current = self.emotional_vector[key]
                 # Инерция: 70% текущее + 30% новое
-                self.emotional_vector[key] = round(
-                    current * 0.7 + delta * 0.3, 2
-                )
+                self.emotional_vector[key] = round(current * 0.7 + delta * 0.3, 2)
 
     def to_prompt_block(self) -> str:
         """Сгенерировать блок для DM prompt. Без чисел (инвариант)."""
         lines = []
-        
+
         # Tension — интерпретация в слово
         if self.tension > 0.7:
             lines.append("напряжение: критическое")
@@ -97,25 +98,25 @@ class SceneContinuity:
             lines.append("напряжение: высокое")
         elif self.tension > 0.1:
             lines.append("напряжение: заметное")
-        
+
         # Flags — техническая информация, LLM не обязан интерпретировать
         if self.active_flags:
             flags_str = ", ".join(sorted(self.active_flags))
             lines.append(f"flags: {flags_str}")
-        
+
         # Recent events — что только что произошло
         if self.recent_events:
             for evt in self.recent_events[-9:]:  # последние 9
                 lines.append(f"event: {evt}")
-        
+
         # Facts
         if self.scene_facts:
             for fact in self.scene_facts:
                 lines.append(f"fact: {fact}")
-        
+
         if not lines:
             return ""
-        
+
         return "СОСТОЯНИЕ СЦЕНЫ:\n" + "\n".join(lines)
 
     def to_emotional_line(self) -> str:

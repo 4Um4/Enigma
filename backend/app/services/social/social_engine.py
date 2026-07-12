@@ -45,19 +45,19 @@ class SocialEngine:
 
     # === Константы искажения и затухания ===
     MAX_HOPS: int = 3
-    HOP_DECAY: float = 0.8                # intensity *= 0.8 при каждом хопе
-    PROPAGATION_THRESHOLD: float = 0.15    # ниже — слух не регистрируется
-    FREQ_CAP_TICKS: int = 5               # мин. тиков между одинаковыми слухами
+    HOP_DECAY: float = 0.8  # intensity *= 0.8 при каждом хопе
+    PROPAGATION_THRESHOLD: float = 0.15  # ниже — слух не регистрируется
+    FREQ_CAP_TICKS: int = 5  # мин. тиков между одинаковыми слухами
 
     # Искажение на основе доверия (только для негативных событий)
-    LOW_TRUST_AMPLIFY: float = 1.3        # доверие < 0.2 → усиливает негатив
-    HIGH_TRUST_DAMPEN: float = 0.7        # доверие > 0.6 → смягчает негатив
+    LOW_TRUST_AMPLIFY: float = 1.3  # доверие < 0.2 → усиливает негатив
+    HIGH_TRUST_DAMPEN: float = 0.7  # доверие > 0.6 → смягчает негатив
     TRUST_LOW_THRESHOLD: float = 0.2
     TRUST_HIGH_THRESHOLD: float = 0.6
 
     # Влияние на получателя (капы — один слух не может сломать отношения)
-    TRUST_DELTA_SCALE: float = 0.05       # max |trust_delta| от одного слуха
-    STRESS_DELTA_SCALE: float = 0.25      # max stress_delta от негативного слуха
+    TRUST_DELTA_SCALE: float = 0.05  # max |trust_delta| от одного слуха
+    STRESS_DELTA_SCALE: float = 0.25  # max stress_delta от негативного слуха
 
     # Обратные связи по умолчанию (если reverse edge не в конфиге)
     DEFAULT_REVERSE_TRUST: float = 0.1
@@ -65,15 +65,24 @@ class SocialEngine:
     DEFAULT_REVERSE_NATURE: str = "acquaintance"
 
     # Какие event_type считаются негативными
-    NEGATIVE_EVENTS: Set[str] = frozenset({
-        "player_attacks", "player_insults", "player_threatens",
-        "player_steals", "npc_killed", "npc_breaks",
-    })
+    NEGATIVE_EVENTS: Set[str] = frozenset(
+        {
+            "player_attacks",
+            "player_insults",
+            "player_threatens",
+            "player_steals",
+            "npc_killed",
+            "npc_breaks",
+        }
+    )
 
     # Дополнительные propagatable события (не негативные, но достойные слухов)
-    EXTRA_PROPAGATABLE: Set[str] = frozenset({
-        "player_helpers", "npc_role_changed",
-    })
+    EXTRA_PROPAGATABLE: Set[str] = frozenset(
+        {
+            "player_helpers",
+            "npc_role_changed",
+        }
+    )
 
     # Минимальная интенсивность исходного события для распространения
     MIN_ORIGIN_INTENSITY: float = 0.3
@@ -176,7 +185,7 @@ class SocialEngine:
                     continue
 
                 # Затухание по хопам
-                decayed = intensity * (self.HOP_DECAY ** hop)
+                decayed = intensity * (self.HOP_DECAY**hop)
 
                 # Искажение на основе доверия к источнику (carrier)
                 perceived = self._distort_intensity(
@@ -212,28 +221,30 @@ class SocialEngine:
                     neighbor_id, rumor, carrier
                 )
 
-                results.append(PropagationResult(
-                    npc_id=neighbor_id,
-                    trust_delta=round(trust_delta, 4),
-                    stress_delta=stress_delta,
-                    rumor=rumor,
-                    continuity_note=continuity_note,
-                ))
+                results.append(
+                    PropagationResult(
+                        npc_id=neighbor_id,
+                        trust_delta=round(trust_delta, 4),
+                        stress_delta=stress_delta,
+                        rumor=rumor,
+                        continuity_note=continuity_note,
+                    )
+                )
 
                 # Продолжаем BFS: связи получателя → его соседи (hop+1)
                 for next_neighbor in self.get_connections(neighbor_id):
                     if next_neighbor not in visited:
                         visited.add(next_neighbor)
-                        next_frontier.append(
-                            (next_neighbor, hop + 1, neighbor_id)
-                        )
+                        next_frontier.append((next_neighbor, hop + 1, neighbor_id))
 
             frontier = next_frontier
 
         if results:
             logger.debug(
                 "[SOCIAL] Propagated %s (int=%.2f) → %d recipients",
-                event_type, intensity, len(results),
+                event_type,
+                intensity,
+                len(results),
             )
 
         return results
@@ -328,9 +339,9 @@ class SocialEngine:
 
         # Доверие к carrier модифицирует восприимчивость к слуху
         if relationship_trust > self.TRUST_HIGH_THRESHOLD:
-            trust_discount = 0.5   # доверяет источнику → скидка 50%
+            trust_discount = 0.5  # доверяет источнику → скидка 50%
         elif relationship_trust < self.TRUST_LOW_THRESHOLD:
-            trust_discount = 1.2   # не доверяет → наоборот, больше верит
+            trust_discount = 1.2  # не доверяет → наоборот, больше верит
         else:
             trust_discount = 1.0
 
@@ -344,18 +355,14 @@ class SocialEngine:
         last_tick = npc_freq.get(event_key, -999)
         return (current_tick - last_tick) >= self.FREQ_CAP_TICKS
 
-    def _register_freq(
-        self, npc_id: str, event_key: str, current_tick: int
-    ) -> None:
+    def _register_freq(self, npc_id: str, event_key: str, current_tick: int) -> None:
         if npc_id not in self._freq_tracker:
             self._freq_tracker[npc_id] = {}
         self._freq_tracker[npc_id][event_key] = current_tick
 
     # ─── Приватные: нарратив ───
 
-    def _build_continuity_note(
-        self, npc_id: str, rumor: Rumor, carrier: str
-    ) -> str:
+    def _build_continuity_note(self, npc_id: str, rumor: Rumor, carrier: str) -> str:
         """
         Фактическая строка для SceneContinuity.
         Минимальна, без эмоций — DM решит как подать.
@@ -417,25 +424,34 @@ class SocialEngine:
         if not connections:
             return modifiers
 
-        target_dist = player_distances.get(event_target, 999.0) if event_target else 999.0
+        target_dist = (
+            player_distances.get(event_target, 999.0) if event_target else 999.0
+        )
 
         for other_id, rel in connections.items():
             other_dist = player_distances.get(other_id, 999.0)
-            is_target = (other_id == event_target)
+            is_target = other_id == event_target
 
             # РЕВНОСТЬ: игрок рядом с significant other — по ВСЕМ связям, не только target
             # Фаза 3.4: исправление ПРОБЛЕМЫ 2 — NPC видит proximity к любому connected NPC
-            _JEALOUSY_EVENTS = {"player_interacts", "player_threatens", "proximity_close"}
-            if (rel.effective_affection > 0.3
-                    and other_dist < 3.0
-                    and bool(_all_event_types & _JEALOUSY_EVENTS)):
+            _JEALOUSY_EVENTS = {
+                "player_interacts",
+                "player_threatens",
+                "proximity_close",
+            }
+            if (
+                rel.effective_affection > 0.3
+                and other_dist < 3.0
+                and bool(_all_event_types & _JEALOUSY_EVENTS)
+            ):
                 bonus = round(0.4 * rel.effective_affection, 4)
                 modifiers["INTIMIDATE"] = max(modifiers.get("INTIMIDATE", 0.0), bonus)
 
             # ЗАЩИТА СОЮЗНИКА: только если атакуют конкретного друга
             _PROTECT_EVENTS = {"player_attacks", "player_threatens", "player_insults"}
-            if is_target and (rel.effective_trust > 0.4
-                    and bool(_all_event_types & _PROTECT_EVENTS)):
+            if is_target and (
+                rel.effective_trust > 0.4 and bool(_all_event_types & _PROTECT_EVENTS)
+            ):
                 bonus = round(0.3 * rel.effective_trust, 4)
                 modifiers["THREATEN"] = max(modifiers.get("THREATEN", 0.0), bonus)
 
@@ -492,7 +508,9 @@ class SocialEngine:
 
         logger.info(
             "[SOCIAL] Loaded %d edges (%d defined, %d reverse defaults)",
-            len(graph), len(defined_pairs), len(graph) - len(defined_pairs),
+            len(graph),
+            len(defined_pairs),
+            len(graph) - len(defined_pairs),
         )
 
         return cls(graph=graph, name_map=name_map)

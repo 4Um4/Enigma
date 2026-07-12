@@ -9,20 +9,19 @@ path: backend/app/services/spatial/spatial_query_service.py
 """
 from __future__ import annotations
 
-from typing import Dict, List, Optional, Tuple
+
+from typing import Any, Dict, List, Optional
 
 from app.services.spatial.spatial_runtime import (
     euclidean_distance,
-    resolve_distance_between_entities,
     is_line_of_sight_clear,
-    extract_scene_for_npc,
 )
 from app.models.cfrm import ClusterOccupancy
 
 
 class SpatialQueryService:
     """Единственный авторитет для пространственных запросов.
-    
+
     ADR-048: Ни один decision-capable подсистема не имеет права читать
     spatial truth из scene_state напрямую. Только через этот сервис.
     """
@@ -31,14 +30,14 @@ class SpatialQueryService:
         self,
         npc_positions: Dict[str, dict],
         cluster_occupancy: Optional[ClusterOccupancy] = None,
-        scene_state: Optional[dict] = None,
+        scene_state: Optional[Dict[str, Any]] = None,
     ) -> None:
         # Внутреннее хранилище. Не экспортируется наружу.
         self._npc_positions = npc_positions or {}
         self._cluster_occupancy = cluster_occupancy
         self._scene_state = scene_state or {}
 
-    def get_entity_position(self, entity_id: str) -> Optional[dict]:
+    def get_entity_position(self, entity_id: str) -> Optional[Dict[str, Any]]:
         """Возвращает словарь с 'local_position', 'position', 'node_id' или None."""
         return self._npc_positions.get(entity_id)
 
@@ -58,7 +57,7 @@ class SpatialQueryService:
 
     def get_nearest_npc(self, source_id: str, npc_ids: List[str]) -> Optional[str]:
         """Возвращает ID ближайшего NPC к source_id, исключая его самого."""
-        _min_dist = float('inf')
+        _min_dist = float("inf")
         _nearest = None
         for nid in npc_ids:
             if nid == source_id:
@@ -93,4 +92,8 @@ class SpatialQueryService:
         # Соседство проверяем через граф кластеров
         neighbors = self._cluster_occupancy.cluster_to_entities.get(cl_a, set())
         # Упрощённая эвристика: если есть хотя бы одна общая сущность в соседних кластерах
-        return "adjacent" if cl_b in self._cluster_occupancy.cluster_to_entities else "distant"
+        return (
+            "adjacent"
+            if cl_b in self._cluster_occupancy.cluster_to_entities
+            else "distant"
+        )

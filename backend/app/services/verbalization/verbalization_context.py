@@ -7,12 +7,10 @@ generate_emotional_nuance — Python-генерация описания эмо�
 """
 
 from dataclasses import dataclass, field
-from typing import List, Optional, Tuple
+from typing import List, Dict, Any, Optional, Tuple
 
 from app.models.npc_state import (
     EmotionTag,
-    Intent,
-    NPCPersonality,
     NPCState,
     WillState,
 )
@@ -21,14 +19,19 @@ from app.models.npc_state import (
 @dataclass(frozen=True)
 class ContentProfile:
     """Профиль разрешённого контента для вербализации NPC."""
+
     profanity_level: int = 0
     violence_level: int = 0
 
     def __post_init__(self) -> None:
         if not (0 <= self.profanity_level <= 2):
-            raise ValueError(f"profanity_level должен быть 0-2, получено: {self.profanity_level}")
+            raise ValueError(
+                f"profanity_level должен быть 0-2, получено: {self.profanity_level}"
+            )
         if not (0 <= self.violence_level <= 2):
-            raise ValueError(f"violence_level должен быть 0-2, получено: {self.violence_level}")
+            raise ValueError(
+                f"violence_level должен быть 0-2, получено: {self.violence_level}"
+            )
 
 
 @dataclass(frozen=True)
@@ -37,6 +40,7 @@ class VerbalizationContext:
     То что LLM получает для генерации речи NPC.
     Вся фактура сгенерирована Python из чисел.
     """
+
     npc_id: str
     npc_name: str
     tier: str
@@ -74,8 +78,8 @@ class VerbalizationContext:
 
     # Narrative: полная память + отфильтрованный recall (Этап 3)
     narrative_hints: Tuple["EventMemory", ...] = field(default_factory=tuple)
-    recalled_facts:      Tuple["EventMemory", ...] = field(default_factory=tuple)
-    suppressed_secrets:   Tuple["EventMemory", ...] = field(default_factory=tuple)
+    recalled_facts: Tuple["EventMemory", ...] = field(default_factory=tuple)
+    suppressed_secrets: Tuple["EventMemory", ...] = field(default_factory=tuple)
     # STM: последние реплики текущего диалога (Этап 1)
     stm_buffer: Tuple[str, ...] = field(default_factory=tuple)
     # Этап 7: NPC-NPC — что NPC_A помнит о NPC_B
@@ -101,11 +105,11 @@ def generate_emotional_nuance(state: NPCState) -> str:
     stress = state.stress
     traits = state.state_modifiers
 
-    # ADR-O-205: Narrative Projection. 
+    # ADR-O-205: Narrative Projection.
     # Нарратив строится на основе победившего драйва (dominant_drive), а не EmotionTag.
     # Разум рассказывает себе историю о причине действия.
-    _dominant_drive = getattr(state, 'dominant_drive', 'neutral')
-    _redirect = getattr(state, 'redirect_magnitude', 0.0)
+    _dominant_drive = getattr(state, "dominant_drive", "neutral")
+    _redirect = getattr(state, "redirect_magnitude", 0.0)
 
     if _dominant_drive == "control" and _redirect > 0:
         if stress > 70:
@@ -117,7 +121,7 @@ def generate_emotional_nuance(state: NPCState) -> str:
             parts.append("напуган до дрожи, оглядывается")
         else:
             parts.append("настороженный, готов к бегству")
-    elif state.emotion == EmotionTag.ANGRY: # Оставляем чистый гнев как есть
+    elif state.emotion == EmotionTag.ANGRY:  # Оставляем чистый гнев как есть
         if stress > 70:
             parts.append("зол, едва сдерживается — голос на грани срыва")
         elif stress < 30:

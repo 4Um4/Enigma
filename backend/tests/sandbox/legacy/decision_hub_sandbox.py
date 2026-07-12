@@ -4,7 +4,7 @@ decision_hub_sandbox.py — калибровка DecisionHub без LLM/pygame.
 
 Запуск: cd backend ; python decision_hub_sandbox.py
 
-Генерирует N случайных NPCState + EventContext, прогоняет через 
+Генерирует N случайных NPCState + EventContext, прогоняет через
 DecisionHub.compute() и строит распределение score/intent.
 
 Выявляет:
@@ -19,25 +19,26 @@ path: /backend/decision_hub_sandbox.py
 """
 
 import csv
+import os
 import random
 import sys
-import os
 from dataclasses import dataclass, field
-from typing import Any, Dict, List
 from pathlib import Path
+from typing import Any, Dict, List
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from app.models.npc_state import NPCState, WillState, Intent
-from app.models.npc_profile import NPCProfileL0, PsycheBase
 from app.models.behavior_mask import BehaviorMask, BehaviorMaskState
-from app.services.npc.decision_hub import DecisionHub, EventContext
+from app.models.npc_profile import NPCProfileL0, PsycheBase
+from app.models.npc_state import NPCState, WillState
 from app.services.events.event_types import EventType
+from app.services.npc.decision_hub import DecisionHub, EventContext
 
 
 @dataclass
 class SandboxConfig:
     """Настройки симуляции."""
+
     iterations: int = 2000
     seed: int = 42
     score_anomaly_low: float = -1.0
@@ -49,6 +50,7 @@ class SandboxConfig:
 @dataclass
 class HubSnapshot:
     """Результат одного прогона."""
+
     iteration: int
     npc_id: str
     event_type: str
@@ -165,11 +167,13 @@ class DecisionHubSandbox:
                 self.snapshots.append(snap)
 
             except Exception as e:
-                self.errors.append({
-                    "iteration": i,
-                    "npc_id": npc_id,
-                    "error": str(e),
-                })
+                self.errors.append(
+                    {
+                        "iteration": i,
+                        "npc_id": npc_id,
+                        "error": str(e),
+                    }
+                )
 
         print(f"[SANDBOX] Успешно: {len(self.snapshots)}, Ошибок: {len(self.errors)}")
         if self.errors:
@@ -217,6 +221,7 @@ class HubReporter:
             return
 
         from collections import Counter
+
         intent_counts = Counter(s.intent for s in self.snaps)
         total = len(self.snaps)
 
@@ -255,13 +260,17 @@ class HubReporter:
         if anomalies_low:
             print(f"── АНОМАЛИИ (score < {self.config.score_anomaly_low}): {len(anomalies_low)} ──")
             for a in anomalies_low[:10]:
-                print(f"  {a.npc_id}: score={a.score:.2f}, intent={a.intent}, stress={a.stress:.1f}, integrity={a.integrity:.2f}, mask={a.mask_active}")
+                print(
+                    f"  {a.npc_id}: score={a.score:.2f}, intent={a.intent}, stress={a.stress:.1f}, integrity={a.integrity:.2f}, mask={a.mask_active}"
+                )
             print()
 
         if anomalies_high:
             print(f"── АНОМАЛИИ (score > {self.config.score_anomaly_high}): {len(anomalies_high)} ──")
             for a in anomalies_high[:10]:
-                print(f"  {a.npc_id}: score={a.score:.2f}, intent={a.intent}, stress={a.stress:.1f}, integrity={a.integrity:.2f}, mask={a.mask_active}")
+                print(
+                    f"  {a.npc_id}: score={a.score:.2f}, intent={a.intent}, stress={a.stress:.1f}, integrity={a.integrity:.2f}, mask={a.mask_active}"
+                )
             print()
 
         if not anomalies_low and not anomalies_high:
@@ -283,7 +292,9 @@ class HubReporter:
 
         print("── ТОП-5 МАКСИМАЛЬНЫХ SCORE ──")
         for s in sorted_snaps[-5:]:
-            trace_str = ", ".join(f"{k}:{v:.2f}" for k, v in sorted(s.scores_trace.items(), key=lambda x: x[1], reverse=True)[:5])
+            trace_str = ", ".join(
+                f"{k}:{v:.2f}" for k, v in sorted(s.scores_trace.items(), key=lambda x: x[1], reverse=True)[:5]
+            )
             print(f"{s.npc_id}: {s.score:.2f} | {trace_str}")
         print()
 
@@ -293,9 +304,17 @@ class HubReporter:
             return
 
         fieldnames = [
-            "iteration", "npc_id", "event_type", "intent", "score",
-            "winning_margin", "stress", "integrity", "will_state",
-            "mask_active", "scores_trace",
+            "iteration",
+            "npc_id",
+            "event_type",
+            "intent",
+            "score",
+            "winning_margin",
+            "stress",
+            "integrity",
+            "will_state",
+            "mask_active",
+            "scores_trace",
         ]
         with open(self.config.output_csv, "w", newline="", encoding="utf-8-sig") as f:
             writer = csv.DictWriter(f, fieldnames=fieldnames)
@@ -311,6 +330,7 @@ class HubReporter:
         """Рисует графики через matplotlib."""
         try:
             import matplotlib
+
             matplotlib.use("Agg")
             import matplotlib.pyplot as plt
         except ImportError:
@@ -324,8 +344,18 @@ class HubReporter:
         fig, ax = plt.subplots(figsize=(10, 5))
         scores = [s.score for s in self.snaps]
         ax.hist(scores, bins=50, color="skyblue", edgecolor="black")
-        ax.axvline(self.config.score_anomaly_low, color="red", linestyle="--", label=f"Аномалия ({self.config.score_anomaly_low})")
-        ax.axvline(self.config.score_anomaly_high, color="red", linestyle="--", label=f"Аномалия ({self.config.score_anomaly_high})")
+        ax.axvline(
+            self.config.score_anomaly_low,
+            color="red",
+            linestyle="--",
+            label=f"Аномалия ({self.config.score_anomaly_low})",
+        )
+        ax.axvline(
+            self.config.score_anomaly_high,
+            color="red",
+            linestyle="--",
+            label=f"Аномалия ({self.config.score_anomaly_high})",
+        )
         ax.set_xlabel("Score")
         ax.set_ylabel("Количество")
         ax.set_title("Распределение Score в DecisionHub")
@@ -337,6 +367,7 @@ class HubReporter:
 
         # 2. Круговая диаграмма intents
         from collections import Counter
+
         intent_counts = Counter(s.intent for s in self.snaps)
         labels = [self._fmt_intent(k) for k in intent_counts.keys()]
         sizes = list(intent_counts.values())

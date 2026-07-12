@@ -4,30 +4,41 @@ path: /backend/app/services/game_loop/task_scheduler.py
 Зависимости: app.domain.execution, app.services.execution.dialogue_executor, app.services.execution.dialogue_materializer
 Основные сущности: TaskScheduler
 """
-
 from __future__ import annotations
+
 import logging
 from concurrent.futures import ThreadPoolExecutor
-from typing import Dict, Type
-from app.domain.execution import QueuedTask, TaskState, TaskKind, TaskPriority, TaskExecutor, Materializer, Artifact
+from typing import Dict
+from app.domain.execution import (
+    QueuedTask,
+    TaskState,
+    TaskKind,
+    TaskPriority,
+    TaskExecutor,
+    Materializer,
+)
 from app.services.execution.dialogue_executor import DialogueExecutor
 from app.services.execution.dialogue_materializer import DialogueMaterializer
 from app.services.events.event_bus import get_event_bus
 
 logger = logging.getLogger(__name__)
 
+
 class TaskScheduler:
     """
     Инфраструктурный компонент. Живёт в game_loop.
     Читает scene_state["pending_tasks"], вызывает исполнителей, генерирует события.
     """
-    def __init__(self, llm_provider=None, context_provider=None):
+
+    def __init__(self, llm_provider=None, context_provider=None, economy_tracker=None):
         self._executors: Dict[TaskKind, TaskExecutor] = {
             TaskKind.DIALOGUE: DialogueExecutor(llm_provider, context_provider)
         }
         self._materializers: Dict[str, Materializer] = {
             "dialogue_line": DialogueMaterializer()
         }
+        # BUG-N8 FIX: Инъекция EconomyTracker для трекинга разговоров
+        self._economy_tracker = economy_tracker
         # ADR-O-313: Кэш последних реплик для Speech Bubbles (TTL ~ 10 сек)
         self._recent_dialogues: list = []
         self._dialogue_ttl = 10.0
@@ -43,7 +54,8 @@ class TaskScheduler:
         """Возвращает активные реплики для WorldSnapshotDTO."""
         # Чистим протухшие
         self._recent_dialogues = [
-            d for d in self._recent_dialogues 
+            d
+            for d in self._recent_dialogues
             if current_time - d["timestamp"] < self._dialogue_ttl
         ]
         return self._recent_dialogues
@@ -52,17 +64,21 @@ class TaskScheduler:
         pending = scene_state.get("pending_tasks", [])
         if not pending:
             return True
-            
-        logger.debug(f"[SCHEDULER] Found {len(pending)} pending tasks. Submitting to background pool.")
-        
+
+        logger.debug(
+            f"[SCHEDULER] Found {len(pending)} pending tasks. Submitting to background pool."
+        )
+
         # Копируем задачи и очищаем список в scene_state, чтобы не запустить повторно
         tasks_to_process = pending[:max_tasks_per_tick]
         remaining_tasks = pending[max_tasks_per_tick:]
         scene_state["pending_tasks"] = remaining_tasks
-        
+
         # Запускаем фоновую обработку
-        self._executor_pool.submit(self._process_tasks_async, scene_state, tasks_to_process)
-        
+        self._executor_pool.submit(
+            self._process_tasks_async, scene_state, tasks_to_process
+        )
+
         return True
 
     def _process_tasks_async(self, scene_state: dict, tasks: list):
@@ -74,45 +90,57 @@ class TaskScheduler:
             try:
                 task = self._reconstruct_task(task_dict)
             except Exception as e:
-                logger.error(f"[SCHEDULER] Failed to reconstruct task {task_dict.get('task_id')}: {e}")
+                logger.error(
+                    f"[SCHEDULER] Failed to reconstruct task {task_dict.get('task_id')}: {e}"
+                )
                 continue
 
             executor = self._executors.get(task.kind)
             if not executor:
                 logger.warning(f"[SCHEDULER] No executor for kind {task.kind}")
                 continue
-                
+
             task.state = TaskState.PROCESSING
             task.campaign_id = campaign_id
-            
+
             # ADR-O-313: SocialTargetResolver — если цель не задана, выбираем ближнего NPC
             if isinstance(task.payload, DialogueRequest) and not task.payload.target_id:
                 import random
                 from dataclasses import replace as dc_replace
+
                 _resolved_target = "soliloquy"
-                
+
                 # P2 FIX: Использование SpatialQueryService для фильтрации по радиусу
-                from app.services.spatial.spatial_query_service import SpatialQueryService
+                from app.services.spatial.spatial_query_service import (
+                    SpatialQueryService,
+                )
+
                 _sqs = SpatialQueryService(
                     npc_positions=scene_state.get("npc_positions", {}),
-                    scene_state=scene_state
+                    scene_state=scene_state,
                 )
-                
+
                 _candidates = []
-                _all_npcs = [nid for nid in scene_state.get("npc_positions", {}).keys() if nid != "player" and nid != task.owner_id]
+                _all_npcs = [
+                    nid
+                    for nid in scene_state.get("npc_positions", {}).keys()
+                    if nid != "player" and nid != task.owner_id
+                ]
                 for nid in _all_npcs:
                     _dist = _sqs.distance(task.owner_id, nid)
                     if _dist <= 5.0:
                         _candidates.append(nid)
-                
+
                 if _candidates:
                     _resolved_target = random.choice(_candidates)
-                        
+
                 task.payload = dc_replace(task.payload, target_id=_resolved_target)
-                logger.debug(f"[SCHEDULER] Resolved missing target_id to '{_resolved_target}' for {task.owner_id}")
+                logger.debug(
+                    f"[SCHEDULER] Resolved missing target_id to '{_resolved_target}' for {task.owner_id}"
+                )
 
             artifacts = executor.execute(task)
-            
+
             for artifact in artifacts:
                 if artifact.success:
                     task.state = TaskState.FINISHED
@@ -121,43 +149,51 @@ class TaskScheduler:
                         events = materializer.materialize(artifact)
                         for ev in events:
                             bus.publish(ev)
-                    
+
                     # ADR-O-313: Кэшируем реплику для Speech Bubbles
-                    if artifact.result_type == "dialogue_line":
-                        import time
+                    if artifact.result_type == "dialogue_line" and events:
+                        # BUG-N8 FIX: Регистрируем разговор в EconomyTracker
+                        if self._economy_tracker:
+                            self._economy_tracker.record_talk(ev.source, scene_state.get("tick", 0))
                         _dlg_entry = {
                             "speaker": ev.source,
                             "text": ev.payload.get("text", ""),
-                            "timestamp": scene_state.get("game_time_seconds", 0.0)
+                            "timestamp": scene_state.get("game_time_seconds", 0.0),
                         }
                         self._recent_dialogues.append(_dlg_entry)
                         # ADR-O-313 FIX: Зеркалим в scene_state, иначе CDS видит 0 реплик (INV-DIALOGUE-PIPELINE)
-                        scene_state.setdefault("recent_dialogues", []).append(_dlg_entry)
+                        scene_state.setdefault("recent_dialogues", []).append(
+                            _dlg_entry
+                        )
                 else:
-                    logger.error(f"[SCHEDULER] Task {task.task_id} failed: {artifact.error_message}")
-                    task.state = TaskState.FINISHED # Пока без сложного ретрая
+                    logger.error(
+                        f"[SCHEDULER] Task {task.task_id} failed: {artifact.error_message}"
+                    )
+                    task.state = TaskState.FINISHED  # Пока без сложного ретрая
 
     def _reconstruct_task(self, task_dict: dict) -> QueuedTask:
         """Собирает QueuedTask из словаря (после JSON сериализации)."""
         from app.domain.communication import DialogueRequest, ExposureLevel
-        
+
         payload_dict = task_dict.get("payload", {})
         req = payload_dict  # По умолчанию оставляем как dict
-        
+
         kind_str = task_dict.get("kind")
         if kind_str == "dialogue":
             try:
                 semantic = payload_dict.get("exposure_semantic", "normal")
                 exposure = ExposureLevel.from_semantic(semantic)
-                
+
                 req = DialogueRequest(
                     topic=payload_dict["topic"],
                     target_id=payload_dict["target_id"],
                     exposure=exposure,
-                    intent_type=payload_dict.get("intent_type", "talk")
+                    intent_type=payload_dict.get("intent_type", "talk"),
                 )
             except Exception as e:
-                logger.error(f"[SCHEDULER] Failed to reconstruct DialogueRequest: {e}. Payload: {payload_dict}")
+                logger.error(
+                    f"[SCHEDULER] Failed to reconstruct DialogueRequest: {e}. Payload: {payload_dict}"
+                )
                 req = payload_dict
 
         # Безопасное восстановление Enum'ов
@@ -165,7 +201,7 @@ class TaskScheduler:
             kind = TaskKind(kind_str)
         except ValueError:
             kind = TaskKind.DIALOGUE
-            
+
         try:
             priority_val = task_dict.get("priority", 1)
             if isinstance(priority_val, int):
@@ -186,5 +222,5 @@ class TaskScheduler:
             owner_id=task_dict["owner_id"],
             target_ids=task_dict.get("target_ids", []),
             payload=req,
-            created_tick=task_dict.get("created_tick", 0)
+            created_tick=task_dict.get("created_tick", 0),
         )

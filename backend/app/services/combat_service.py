@@ -52,13 +52,20 @@ class CombatService:
         payload = json.loads(path.read_text(encoding="utf-8-sig"))
         return CombatState(**payload)
 
-    def start(self, campaign_id: str, combat_id: str, participants: list[dict[str, Any]]) -> CombatState:
-        ordered = sorted(participants, key=lambda p: p.get("initiative", 0), reverse=True)
+    def start(
+        self, campaign_id: str, combat_id: str, participants: list[dict[str, Any]]
+    ) -> CombatState:
+        ordered = sorted(
+            participants, key=lambda p: p.get("initiative", 0), reverse=True
+        )
         state = CombatState(
             campaign_id=campaign_id,
             combat_id=combat_id,
             round=1,
-            order=[{"name": p["name"], "initiative": p.get("initiative", 0)} for p in ordered],
+            order=[
+                {"name": p["name"], "initiative": p.get("initiative", 0)}
+                for p in ordered
+            ],
             turn_index=0,
             participants=ordered,
             log=["Бой начался. Определён порядок инициативы."],

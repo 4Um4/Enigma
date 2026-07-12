@@ -18,6 +18,7 @@ EventCompiler — единственная симуляция мира (ADR-O-20
 """
 from __future__ import annotations
 
+
 import hashlib
 import logging
 import math
@@ -78,7 +79,7 @@ class EventCompiler:
             # ADR-TRAV-NOOP: cause="traversal_complete" — это факт ЗАВЕРШЕНИЯ движения, не начало нового.
             # Legacy apply_changes (scene_state_manager.py:1300-1324) уже сделал: snap local_position + transition MOVING→COMPLETED.
             # Shadow compiler НЕ должен создавать новый traversal — он должен только зафиксировать spatial resolution.
-            if getattr(change, 'cause', '') == 'traversal_complete':
+            if getattr(change, "cause", "") == "traversal_complete":
                 result = self._compile_traversal_completion(snapshot, change)
             else:
                 # State-based Idempotency: если NPC уже на целевом узле — это NOOP.
@@ -116,15 +117,15 @@ class EventCompiler:
         self, snapshot: WorldSnapshot, change: SceneChange
     ) -> Optional[ThickSceneChange]:
         """ADR-TRAV-NOOP: Compilation of traversal_complete SceneChange.
-        
+
         Legacy apply_changes (scene_state_manager.py:1300-1324) уже сделал:
           1. entry["position"] = change.value (semantic position snap)
           2. entry["local_position"] = node.x, node.y (geometric snap)
           3. transition MOVING → COMPLETED (FSM)
-        
+
         Shadow compiler НЕ создаёт новый traversal. Возвращает ThickSceneChange
         с traversal.status="COMPLETED" — это факт завершения, не начало движения.
-        
+
         Без этого guard'а shadow будет компилировать "position change" как новое
         перемещение → phantom traversal → бесконечный цикл (BUG-PHANTOM-TRAV).
         """
@@ -132,22 +133,24 @@ class EventCompiler:
         if svc is None:
             logger.warning("[SHADOW_COMPILER] traversal_complete: no spatial service")
             return None
-        
-        target_loc = getattr(change, 'target_location_id', '') or snapshot.location_id
+
+        target_loc = getattr(change, "target_location_id", "") or snapshot.location_id
         target_node_id = change.value
-        
+
         # Lookup target node (same logic as _compile_position_change)
-        node = svc.get_node(target_node_id) or svc.get_node(f"{target_loc}:{target_node_id}")
+        node = svc.get_node(target_node_id) or svc.get_node(
+            f"{target_loc}:{target_node_id}"
+        )
         if node is None:
             logger.warning(
                 f"[SHADOW_COMPILER] traversal_complete: node not found: {target_node_id}"
             )
             return None
-        
+
         target_xy = (node.x, node.y)
         # Source = same as target — movement completed, NPC is AT target
         source_xy = target_xy
-        
+
         return ThickSceneChange(
             change_type=change.type.value,
             target=change.target,
@@ -155,7 +158,7 @@ class EventCompiler:
             value=change.value,
             cause=change.cause,  # "traversal_complete"
             tick=change.tick,
-            target_local_xy=getattr(change, 'target_local_xy', None),
+            target_local_xy=getattr(change, "target_local_xy", None),
             spatial=SpatialResolution(
                 source_location=target_loc,
                 target_location=target_loc,
@@ -188,8 +191,8 @@ class EventCompiler:
             value=change.value,
             cause=change.cause,
             tick=change.tick,
-            target_local_xy=getattr(change, 'target_local_xy', None),
-            target_location_id=getattr(change, 'target_location_id', ''),
+            target_local_xy=getattr(change, "target_local_xy", None),
+            target_location_id=getattr(change, "target_location_id", ""),
         )
 
     def _compile_local_position_change(
@@ -237,7 +240,7 @@ class EventCompiler:
         Соответствует 20 вычислениям legacy apply_change + _process_traversals.
         """
         # E1: target_loc resolution
-        target_loc = getattr(change, 'target_location_id', '') or snapshot.location_id
+        target_loc = getattr(change, "target_location_id", "") or snapshot.location_id
 
         # E2: Spatial service из snapshot (НЕ build_for_location!)
         svc = snapshot.spatial_service
@@ -257,16 +260,13 @@ class EventCompiler:
         )
         if node is None:
             logger.warning(
-                f"[SHADOW_COMPILER] Node not found: {change.value} "
-                f"loc={target_loc}"
+                f"[SHADOW_COMPILER] Node not found: {change.value} loc={target_loc}"
             )
             return None
 
         # E5-E16: Same-location movement
 
-        return self._compile_same_location_movement(
-            snapshot, change, node, svc
-        )
+        return self._compile_same_location_movement(snapshot, change, node, svc)
 
     # ── Boundary Snap (Cross-location, ДОЛГ 6.2) ─────────────────
 
@@ -290,7 +290,8 @@ class EventCompiler:
 
         # Проверяем по NodeRole если доступен
         from app.models.spatial_contracts import NodeRole
-        if hasattr(node, 'role') and node.role == NodeRole.BOUNDARY:
+
+        if hasattr(node, "role") and node.role == NodeRole.BOUNDARY:
             is_boundary = True
             boundary_info = svc.get_boundary_info(node.node_id)
             if boundary_info:
@@ -310,7 +311,7 @@ class EventCompiler:
             if not neighbor_chunk:
                 neighbor_chunk = target_loc
             if not entry_node:
-                entry_node = f"{target_loc}:entry_west" # ADR-O-201.1: Fallback to default entry node
+                entry_node = f"{target_loc}:entry_west"  # ADR-O-201.1: Fallback to default entry node
             is_boundary = True
 
         # Cross-location: node is None — use SceneChange data
@@ -318,7 +319,11 @@ class EventCompiler:
         _target_node = node.node_id if node else change.value
         # FIX: getattr возвращает None, если атрибут существует, но равен None.
         # Используем 'or' для fallback на (0.0, 0.0), чтобы избежать None в SpatialResolution.
-        _target_xy = (node.x, node.y) if node else (getattr(change, 'target_local_xy', None) or (0.0, 0.0))
+        _target_xy = (
+            (node.x, node.y)
+            if node
+            else (getattr(change, "target_local_xy", None) or (0.0, 0.0))
+        )
 
         return ThickSceneChange(
             change_type=change.type.value,
@@ -327,7 +332,7 @@ class EventCompiler:
             value=change.value,
             cause=change.cause,
             tick=change.tick,
-            target_local_xy=getattr(change, 'target_local_xy', None),
+            target_local_xy=getattr(change, "target_local_xy", None),
             target_location_id=target_loc,
             spatial=SpatialResolution(
                 source_location=snapshot.location_id,
@@ -401,7 +406,7 @@ class EventCompiler:
                 value=change.value,
                 cause=change.cause,
                 tick=change.tick,
-                target_local_xy=getattr(change, 'target_local_xy', None),
+                target_local_xy=getattr(change, "target_local_xy", None),
                 spatial=spatial,
                 motion=MotionPlan(
                     is_teleport=True,
@@ -438,7 +443,7 @@ class EventCompiler:
         target_xy: Tuple[float, float],
     ) -> Optional[ThickSceneChange]:
         """E11-E16: Pathfinding, distance, duration, traversal creation.
-        
+
         ADR-DRIFT-D: Path blocked parity with legacy apply_change.
         Legacy: _create_traversal = False when blocked, True only when
         find_path returns intermediate nodes. Shadow previously created
@@ -453,14 +458,16 @@ class EventCompiler:
         # Legacy: _create_traversal = False initially when blocked,
         # True only if find_path returns intermediate nodes.
         waypoints: List[List[float]] = [[source_xy[0], source_xy[1]]]
-        
+
         if is_path_blocked:
             # Path blocked — need find_path with intermediate nodes
             if svc:
                 path = self._find_path(svc, source_xy, node)
                 if path and len(path) >= 2:
                     # Пропускаем первый (source) и последний (target)
-                    intermediate = [[pn.x, pn.y] for pn in path[1:-1]] if len(path) > 2 else []
+                    intermediate = (
+                        [[pn.x, pn.y] for pn in path[1:-1]] if len(path) > 2 else []
+                    )
                     if intermediate:
                         waypoints.extend(intermediate)
                         logger.info(
@@ -495,20 +502,23 @@ class EventCompiler:
                 )
                 return None
         # else: прямая линия свободна — _create_traversal = True (legacy строка 1458)
-        
+
         waypoints.append([target_xy[0], target_xy[1]])
 
         # E14: Distance calculation (сумма сегментов, как legacy)
         distance = self._path_distance(waypoints)
 
         # E15: Duration calculation
-        duration_ticks = max(
-            1, math.ceil(distance / self._DEFAULT_SPEED)
-        ) if self._DEFAULT_SPEED > 0 else 1
+        duration_ticks = (
+            max(1, math.ceil(distance / self._DEFAULT_SPEED))
+            if self._DEFAULT_SPEED > 0
+            else 1
+        )
 
         # E16: Traversal contract (все поля для scene_state)
         # ADR-XXX: Единственный разрешённый способ создания traversal_dict — через build_traversal_dict()
         from app.domain.traversal_schema import build_traversal_dict
+
         current_tick = snapshot.tick
         traversal_fields = build_traversal_dict(
             npc_id=change.target,
@@ -541,7 +551,7 @@ class EventCompiler:
             value=change.value,
             cause=change.cause,
             tick=change.tick,
-            target_local_xy=getattr(change, 'target_local_xy', None),
+            target_local_xy=getattr(change, "target_local_xy", None),
             spatial=spatial,
             motion=motion,
             traversal=traversal,
@@ -619,7 +629,7 @@ class EventCompiler:
         2. Node center + deterministic jitter
         """
         # E8: target_local_xy из change
-        exact_xy = getattr(change, 'target_local_xy', None)
+        exact_xy = getattr(change, "target_local_xy", None)
         if exact_xy and isinstance(exact_xy, (tuple, list)) and len(exact_xy) == 2:
             return (float(exact_xy[0]), float(exact_xy[1]))
 
@@ -638,9 +648,7 @@ class EventCompiler:
         Распределение аналогичное, но полностью воспроизводимое.
         Ожидаемый Class A (Cosmetic) drift с legacy.
         """
-        h = hashlib.sha256(
-            f"{rng_seed}:{npc_id}:{node_id}".encode()
-        ).hexdigest()
+        h = hashlib.sha256(f"{rng_seed}:{npc_id}:{node_id}".encode()).hexdigest()
         v1 = int(h[:8], 16) / 0xFFFFFFFF
         v2 = int(h[8:16], 16) / 0xFFFFFFFF
         return (
@@ -660,14 +668,17 @@ class EventCompiler:
         """
         try:
             from app.services.spatial.spatial_runtime import is_blocked_by_wall
+
             # Конструируем минимальный контекст из frozen данных
             _spatial_ctx: Dict[str, Any] = {
                 "spatial_walls": snapshot.spatial_walls or [],
                 "spatial_obstacles": snapshot.spatial_obstacles or [],
             }
             return is_blocked_by_wall(
-                source_xy[0], source_xy[1],
-                target_xy[0], target_xy[1],
+                source_xy[0],
+                source_xy[1],
+                target_xy[0],
+                target_xy[1],
                 _spatial_ctx,
             )
         except Exception as exc:
@@ -680,6 +691,7 @@ class EventCompiler:
         """E12: Pathfinding через snapshot's SpatialService."""
         try:
             from app.services.spatial.spatial_service import Urgency
+
             return svc.find_path(
                 start_xy=start_xy,
                 target_node=target_node,
@@ -689,17 +701,13 @@ class EventCompiler:
             logger.warning(f"[SHADOW_COMPILER] find_path failed: {exc}")
             return None
 
-    def _get_source_node(
-        self, snapshot: WorldSnapshot, change: SceneChange
-    ) -> str:
+    def _get_source_node(self, snapshot: WorldSnapshot, change: SceneChange) -> str:
         """Извлекает source_node из позиции NPC."""
         npc_pos = snapshot.npc_positions.get(change.target, {})
         return npc_pos.get("position", "")
 
     @staticmethod
-    def _euclidean_distance(
-        a: Tuple[float, float], b: Tuple[float, float]
-    ) -> float:
+    def _euclidean_distance(a: Tuple[float, float], b: Tuple[float, float]) -> float:
         """Евклидово расстояние между двумя точками."""
         return ((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2) ** 0.5
 

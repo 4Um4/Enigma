@@ -11,28 +11,36 @@ TODO: В будущем может потребоваться расширить
 import json
 import httpx
 from typing import Protocol, Dict, Any, Optional
-from app.domain.intent_profile import IntentSemanticField
+
 
 class LLMCompressorClient(Protocol):
     """Интерфейс компрессора. LLM = Voice, но здесь она Semantic Parser."""
-    async def compress_intent(self, raw_text: str, scene_context: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        ...
+
+    async def compress_intent(
+        self, raw_text: str, scene_context: Dict[str, Any]
+    ) -> Optional[Dict[str, Any]]: ...
+
 
 class LlamaCppCompressorClient:
     """Реализация для локального llama.cpp сервера. Поддерживает JSON Mode."""
+
     def __init__(self, base_url: str = "http://127.0.0.1:8080"):
         self.base_url = base_url
 
-    async def compress_intent(self, raw_text: str, scene_context: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    async def compress_intent(
+        self, raw_text: str, scene_context: Dict[str, Any]
+    ) -> Optional[Dict[str, Any]]:
         prompt = self._build_prompt(raw_text, scene_context)
         payload = {
             "prompt": prompt,
             "temperature": 0.1,
-            "response_format": {"type": "json_object"} # Строгий JSON
+            "response_format": {"type": "json_object"},  # Строгий JSON
         }
         try:
             async with httpx.AsyncClient(timeout=2.0) as client:
-                response = await client.post(f"{self.base_url}/completion", json=payload)
+                response = await client.post(
+                    f"{self.base_url}/completion", json=payload
+                )
                 response.raise_for_status()
                 data = response.json()
                 content = data.get("content", "")

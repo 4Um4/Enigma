@@ -1,3 +1,4 @@
+from __future__ import annotations
 # backend/app/services/character/front_engine.py
 """
 Фаза 5.1 — FrontEngine: вычисление давления мира и управление масками персонажа.
@@ -9,7 +10,6 @@
   - LLM получает описание Front, не числа.
 """
 
-from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
@@ -41,10 +41,11 @@ MIN_FRONT_AGE_BEFORE_DROP: int = 5
 @dataclass
 class FrontDecision:
     """Результат работы FrontEngine за один тик."""
+
     action: str  # "none", "adopt", "intensify", "drop", "break"
     front_type: FrontType = FrontType.NONE
     front_description: str = ""  # человекочитаемое описание для LLM
-    integrity_cost: float = 0.0   # сколько self_integrity стоит это решение
+    integrity_cost: float = 0.0  # сколько self_integrity стоит это решение
 
 
 # ── Описания масок для LLM ────────────────────────────────────────────────────
@@ -81,10 +82,10 @@ class FrontEngine:
         self,
         profile: CharacterProfile,
         player_reputation: float = 0.0,  # из ReputationEngine
-        nearby_npc_fear: float = 0.0,    # из NPC threat assessment
-        player_debt: float = 0.0,        # из EconomicProfile obligations
-        rumor_intensity: float = 0.0,    # из SocialEngine propagation
-        value_conflict: float = 0.0,     # из CharacterFilter conflict_score
+        nearby_npc_fear: float = 0.0,  # из NPC threat assessment
+        player_debt: float = 0.0,  # из EconomicProfile obligations
+        rumor_intensity: float = 0.0,  # из SocialEngine propagation
+        value_conflict: float = 0.0,  # из CharacterFilter conflict_score
     ) -> WorldPressure:
         """
         Вычисляет WorldPressure из доступных сигналов.
@@ -121,7 +122,9 @@ class FrontEngine:
         if current_front is None or not current_front.is_active:
             if total >= PRESSURE_ADOPT_THRESHOLD:
                 # Выбираем маску по доминирующему источнику давления
-                suggested = PRESSURE_FRONT_MAP.get(pressure.dominant_source, FrontType.GUARDED)
+                suggested = PRESSURE_FRONT_MAP.get(
+                    pressure.dominant_source, FrontType.GUARDED
+                )
                 return FrontDecision(
                     action="adopt",
                     front_type=suggested,
@@ -136,7 +139,9 @@ class FrontEngine:
 
         # Перегрузка — срыв лучше чем продолжать играть роль
         if total >= PRESSURE_BREAK_THRESHOLD:
-            break_desc = FRONT_BREAK_DESCRIPTIONS.get(current_front.front_type, "маска сорвалась")
+            break_desc = FRONT_BREAK_DESCRIPTIONS.get(
+                current_front.front_type, "маска сорвалась"
+            )
             return FrontDecision(
                 action="break",
                 front_type=FrontType.NONE,
@@ -155,8 +160,10 @@ class FrontEngine:
             )
 
         # Проверка: давление упало — маска больше не нужна?
-        if (total < PRESSURE_DROP_THRESHOLD
-                and current_front.tick_age >= MIN_FRONT_AGE_BEFORE_DROP):
+        if (
+            total < PRESSURE_DROP_THRESHOLD
+            and current_front.tick_age >= MIN_FRONT_AGE_BEFORE_DROP
+        ):
             desc = f"давление спало — персонаж перестаёт {FRONT_DESCRIPTIONS.get(current_front.front_type, 'маскироваться').replace('персонаж ', '')}"
             return FrontDecision(
                 action="drop",

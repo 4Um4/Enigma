@@ -1,4 +1,4 @@
-"""
+r"""
 backend/tests\sandbox\SUPERBOX/npc_sandbox.py
 Автономная симуляция NPC — N тиков без pygame/LLM.
 
@@ -21,31 +21,32 @@ backend/tests\sandbox\SUPERBOX/npc_sandbox.py
 Зависимости: app.models.*, app.services.npc.*, app.services.economy.*, matplotlib (опционально)
 Основные сущности: SandboxConfig, TickSnapshot, NPCSandbox, SandboxReporter
 """
+
 from __future__ import annotations
 
 import csv
-import json
 import sys
-import os
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List
+
 # ── Добавляем backend в path ──
 # SUPERBOX — добавляем backend/ в path (на 2 уровня выше)
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
-from app.services.npc.npc_loader import load_profile_from_legacy_json, load_l2_state_from_runtime_dict
 from app.core.constants import GOODS_PRICES
+from app.services.npc.npc_loader import load_l2_state_from_runtime_dict, load_profile_from_legacy_json
 
 
 @dataclass
 class SandboxConfig:
     """Настройки симуляции."""
+
     campaign_id: str = "Open_road"
     location: str = "tavern_silver_wolf"
-    tick_count: int = 168           # 1 неделя (24 часа × 7 дней)
-    snapshot_interval: int = 24     # слепок каждый "день"
-    actions_per_day: int = 24       # 1 тик = 1 час
+    tick_count: int = 168  # 1 неделя (24 часа × 7 дней)
+    snapshot_interval: int = 24  # слепок каждый "день"
+    actions_per_day: int = 24  # 1 тик = 1 час
 
     # Переопределения для конкретных NPC
     # {npc_id: {field: value}}
@@ -64,6 +65,7 @@ class SandboxConfig:
 @dataclass
 class TickSnapshot:
     """Состояние NPC в один момент времени."""
+
     tick: int
     npc_id: str
     hp: int
@@ -97,8 +99,8 @@ class NPCSandbox:
         self.snapshots: List[TickSnapshot] = []
         self._prev_states: Dict[str, Dict[str, float]] = {}
         # Трекеры для экономической симуляции (внешние, не в модели)
-        self._daily_income: Dict[str, float] = {}       # NPC → накопленный доход за день
-        self._last_talk_tick: Dict[str, int] = {}       # NPC → тик последнего разговора
+        self._daily_income: Dict[str, float] = {}  # NPC → накопленный доход за день
+        self._last_talk_tick: Dict[str, int] = {}  # NPC → тик последнего разговора
 
     def run(self) -> List[TickSnapshot]:
         """Запускает симуляцию, возвращает список слепков."""
@@ -123,12 +125,12 @@ class NPCSandbox:
         eco_profiles = self._create_eco_profiles(npc_data)
 
         # 4. Инициализируем движки
-        from app.services.npc.decision_hub import DecisionHub, EventContext as HubEventContext
-        from app.services.economy.need_engine import NeedEngine
         from app.services.economy.economic_modifier import EconomicModifier
-        from app.services.npc.state_applicator import StateApplicator
+        from app.services.economy.need_engine import NeedEngine
+        from app.services.npc.decision_hub import DecisionHub
+        from app.services.npc.decision_hub import EventContext as HubEventContext
         from app.services.npc.drive_resolver import DriveResolver
-        from app.domain.identity_events import EffectiveDrives
+        from app.services.npc.state_applicator import StateApplicator
 
         hub = DecisionHub()
         need_engine = NeedEngine()
@@ -136,10 +138,11 @@ class NPCSandbox:
         applicator = StateApplicator(relationship_store=None)
         drive_resolver = DriveResolver()
 
-        from app.services.economy.transaction_engine import TransactionEngine
-        from app.services.economy.trade_resolver import TradeResolver
         from app.services.economy.market_state import RandomMarketState
+        from app.services.economy.trade_resolver import TradeResolver
+        from app.services.economy.transaction_engine import TransactionEngine
         from app.services.economy.traveller import TravellerGenerator
+
         tx_engine = TransactionEngine()
         trade_resolver = TradeResolver(tx_engine)
         market_state = RandomMarketState()
@@ -166,11 +169,10 @@ class NPCSandbox:
         # 5. Цикл тиков
         for tick in range(1, self.config.tick_count + 1):
             print(f"[SANDBOX] === TICK {tick} ===")
-            from app.models.npc_state import Intent, NPCState as NPCStateModel
-            from app.services.events.event_types import EventType
-
             # Обработка контрактных платежей (деньги двигаются)
             from app.models.economy import NeedType
+            from app.services.events.event_types import EventType
+
             contract_txs = tx_engine.process_contract_payments(eco_profiles, tick=tick)
             # Накапливаем доход для дневной проверки INCOME
             for tx in contract_txs:
@@ -221,7 +223,7 @@ class NPCSandbox:
                     # ADR-O-304: DecisionHub требует L3 проекцию (effective_drives).
                     # В песочнице используем L0 + пустые убеждения (L2.5), так как нет L1Chronicle.
                     _effective_drives = drive_resolver.resolve_drives(profile_l0, None)
-                    
+
                     result = hub.compute(
                         state=state_l2,
                         personality=profile_l0,
@@ -253,6 +255,7 @@ class NPCSandbox:
                 # Единая функция — используется и в game_loop
                 if ep:
                     from app.services.economy.stress_calculator import calculate_economic_stress
+
                     econ_stress, _reason = calculate_economic_stress(ep, need_engine)
                     if econ_stress > 0:
                         new_state.stress = min(100.0, new_state.stress + econ_stress)
@@ -261,7 +264,7 @@ class NPCSandbox:
                 # В реальной игре LifeEngine вызывает recovery после оценки угроз.
                 # В мирном тике без стрессоров — восстановление не нужно каждый ход.
                 # Вызываем только раз в "день" (каждые actions_per_day тиков).
-                is_rest_tick = (tick % self.config.actions_per_day == 0)
+                is_rest_tick = tick % self.config.actions_per_day == 0
                 if is_rest_tick:
                     # Ночь = полный сон (15 ед.), не лёгкая передышка (5 ед.)
                     new_state = applicator.apply_tick_recovery(new_state, is_sleeping=True)
@@ -276,7 +279,7 @@ class NPCSandbox:
 
                 # Собираем TRADE интенты для TradeResolver
                 if intent_str == "trade":
-                    if not hasattr(self, '_trade_intents'):
+                    if not hasattr(self, "_trade_intents"):
                         self._trade_intents = {}
                     self._trade_intents[npc_id] = intent_score
 
@@ -310,7 +313,7 @@ class NPCSandbox:
                     self.snapshots.append(snap)
 
             # === TRADE RESOLUTION ===
-            trade_intents = getattr(self, '_trade_intents', {})
+            trade_intents = getattr(self, "_trade_intents", {})
             # Всегда вызываем — второй проход покупает по потребностям даже без intent=trade
             trade_results = trade_resolver.resolve_tick(
                 profiles=eco_profiles,
@@ -350,15 +353,15 @@ class NPCSandbox:
 
             # === PRODUCTION (восполнение stock_for_sale каждый "день") ===
             # Тавернщик варит похлёбку, кузнец кует — простая имитация
-            is_day_start = (tick % self.config.actions_per_day == 1)
+            is_day_start = tick % self.config.actions_per_day == 1
             if is_day_start:
                 # Производство: кто что делает за день
                 # Производство: один котёл похлёбки = 15-20 порций (историческая реальность)
                 # Тавернщик варит на всех присутствующих, не по порциям
                 PRODUCTION_RATES = {
                     "tavern_keeper_tornin": {"food": 20, "ale": 10},  # котёл похлёбки + бочка эля
-                    "blacksmith_orm": {"tools": 1},                    # кует инструменты
-                    "merchant_goran": {},                              # торговец не производит, перепродаёт
+                    "blacksmith_orm": {"tools": 1},  # кует инструменты
+                    "merchant_goran": {},  # торговец не производит, перепродаёт
                 }
                 for producer_id, products in PRODUCTION_RATES.items():
                     ep = eco_profiles.get(producer_id)
@@ -368,41 +371,41 @@ class NPCSandbox:
                         ep.stock_for_sale[good_id] = ep.stock_for_sale.get(good_id, 0.0) + amount
 
             # === DAILY CHECK: INCOME и SOCIAL (раз в 24 тика) ===
-            is_day_end = (tick % self.config.actions_per_day == 0)
+            is_day_end = tick % self.config.actions_per_day == 0
             if is_day_end:
                 DAILY_EXPENSES_MIN = 0.09  # минимум на еду (3 порции × 0.03G)
-                
+
                 for npc_id, ep in eco_profiles.items():
                     if not ep:
                         continue
-                    psycho = getattr(ep, '_psycho', None)
-                    
+                    psycho = getattr(ep, "_psycho", None)
+
                     # --- INCOME: runway × savings_tendency + flow × (1 - tendency) ---
-                    runway = ep.gold / DAILY_EXPENSES_MIN if DAILY_EXPENSES_MIN > 0 else float('inf')
+                    runway = ep.gold / DAILY_EXPENSES_MIN if DAILY_EXPENSES_MIN > 0 else float("inf")
                     runway_factor = min(1.0, runway / 30.0)  # 1.0 если runway > 30 дней
                     flow_factor = 1.0 if self._daily_income.get(npc_id, 0.0) > 0 else 0.0
-                    
+
                     if psycho:
                         savings = psycho.get_savings_tendency()
                         income_satisfaction = runway_factor * savings + flow_factor * (1.0 - savings)
                     else:
                         # Fallback: равный вес buffer и flow
                         income_satisfaction = (runway_factor + flow_factor) / 2.0
-                    
+
                     if income_satisfaction > 0.5:
                         ep.satisfy_need(NeedType.INCOME)
-                    
+
                     # --- SOCIAL: talk кулдаун 24 тика, пассивный в таверне 48 тиков ---
                     last_talk = self._last_talk_tick.get(npc_id, -999)
                     ticks_since_talk = tick - last_talk
-                    
+
                     if ticks_since_talk < 24:
                         # Недавно говорил — satisfied
                         ep.satisfy_need(NeedType.SOCIAL)
                     elif self.config.locked and ticks_since_talk >= 48:
                         # В запертой локации (таверна) — пассивная социализация раз в 2 дня
                         ep.satisfy_need(NeedType.SOCIAL)
-                    
+
                 # Сброс дневных аккумуляторов
                 self._daily_income.clear()
 
@@ -411,7 +414,7 @@ class NPCSandbox:
             for npc_id, ep in eco_profiles.items():
                 if not ep:
                     continue
-                
+
                 # Ищем еду в личных запасах ИЛИ в stock_for_sale (тавернщик ест своё)
                 food = ep.goods.get("food", 0.0)
                 food_source = "goods"
@@ -420,7 +423,7 @@ class NPCSandbox:
                     food_source = "stock"
                 if food < 1.0:
                     continue  # нечего есть
-                
+
                 # Найти потребность FOOD
                 food_need = None
                 for need in ep.base_needs:
@@ -429,7 +432,7 @@ class NPCSandbox:
                         break
                 if not food_need:
                     continue
-                
+
                 # Есть если голоден (urgency >= 0.4 — базовый порог голода)
                 if food_need.effective_urgency >= 0.4:
                     if food_source == "stock":
@@ -438,7 +441,9 @@ class NPCSandbox:
                         ep.remove_good("food", amount=1.0)
                     ep.satisfy_need(food_need.need_type)
                     remaining = ep.goods.get("food", 0.0) + ep.stock_for_sale.get("food", 0.0)
-                    print(f"[EAT] {npc_id}: поел из {food_source} (urgency={food_need.effective_urgency:.2f} food_left={remaining:.0f})")
+                    print(
+                        f"[EAT] {npc_id}: поел из {food_source} (urgency={food_need.effective_urgency:.2f} food_left={remaining:.0f})"
+                    )
 
             self._prev_states.clear()
 
@@ -446,7 +451,9 @@ class NPCSandbox:
 
     def _load_npcs(self) -> list:
         """Загружает NPC через load_npcs_merged: static из config/npc/ + runtime overlay."""
-        from app.services.npc.npc_loader import load_npcs_merged, load_profile_from_legacy_json, load_l2_state_from_runtime_dict
+        from app.services.npc.npc_loader import (
+            load_npcs_merged,
+        )
 
         # Скрипт в backend/, файлы в корне проекта
         _project_root = Path(__file__).parent.parent
@@ -463,8 +470,8 @@ class NPCSandbox:
                 raw_npcs = load_npcs_merged(runtime_path=runtime_path)
                 print(f"[SANDBOX] Загружен runtime: {runtime_path}")
             else:
-                print(f"[SANDBOX] npc_runtime.json не найден. Self-seeding из static config...")
-                raw_npcs = load_npcs_merged() # Без аргументов = чистый static
+                print("[SANDBOX] npc_runtime.json не найден. Self-seeding из static config...")
+                raw_npcs = load_npcs_merged()  # Без аргументов = чистый static
         except Exception as e:
             print(f"[SANDBOX] load_npcs_merged ошибка: {e}")
             return []
@@ -482,11 +489,11 @@ class NPCSandbox:
 
         return result
 
-    def _create_eco_profiles(self, npc_data: list) -> Dict[str, 'EconomicProfile']:
+    def _create_eco_profiles(self, npc_data: list) -> Dict[str, "EconomicProfile"]:
         """Создаёт экономические профили через единую фабрику."""
+        from app.models.economy import NeedType
         from app.services.economy.profile_factory import create_profile_from_npc
         from app.services.economy.psycho_economy import PsychoEconomy, PsychoProfile
-        from app.models.economy import NeedType
 
         # Личные запасы — то, что NPC ест/использует сам
         ROLE_GOODS = {
@@ -509,28 +516,30 @@ class NPCSandbox:
         # Расходы пересчитаны под реальные цены (food=0.03G, 3×/день = 0.09G)
         ROLE_EXPENSES = {
             "Хозяин таверны": {"supplies": 0.15, "maintenance": 0.1},  # закупка зерна, ремонт
-            "Служанка таверны": {"food": 0.1},                         # еда (кров+еда от хозяина)
-            "Торговец тканями": {"food": 0.1, "rent_stall": 0.3},     # еда + аренда лотка
-            "Кузнец": {"coal": 0.2, "food": 0.1},                     # уголь + еда
+            "Служанка таверны": {"food": 0.1},  # еда (кров+еда от хозяина)
+            "Торговец тканями": {"food": 0.1, "rent_stall": 0.3},  # еда + аренда лотка
+            "Кузнец": {"coal": 0.2, "food": 0.1},  # уголь + еда
             "Стражник городских ворот": {"food": 0.1, "equipment": 0.05},  # еда + ремонт снаряжения
-            "Вор": {"food": 0.1},                                      # еда
+            "Вор": {"food": 0.1},  # еда
         }
 
         profiles = {}
         print("[PSYCHO] Индивидуальные параметры:")
-        
+
         for npc_raw in npc_data:
             npc_id = npc_raw.get("id", "unknown")
             title = npc_raw.get("status_profile", {}).get("title", "")
 
             # Психологический профиль из JSON drives
             drives_raw = npc_raw.get("drives", {})
-            psycho = PsychoEconomy(PsychoProfile(
-                control=float(drives_raw.get("control", 0.25)),
-                significance=float(drives_raw.get("significance", 0.25)),
-                fear=float(drives_raw.get("fear", 0.25)),
-                desire=float(drives_raw.get("desire", 0.25)),
-            ))
+            psycho = PsychoEconomy(
+                PsychoProfile(
+                    control=float(drives_raw.get("control", 0.25)),
+                    significance=float(drives_raw.get("significance", 0.25)),
+                    fear=float(drives_raw.get("fear", 0.25)),
+                    desire=float(drives_raw.get("desire", 0.25)),
+                )
+            )
 
             # Фабрика создаёт профиль с едиными потребностями
             goods = dict(ROLE_GOODS.get(title, ROLE_GOODS["Вор"]))
@@ -542,27 +551,29 @@ class NPCSandbox:
             ep.expense_categories = dict(ROLE_EXPENSES.get(title, ROLE_EXPENSES["Вор"]))
             # Товар на продажу — только для торговцев/ремесленников
             ep.stock_for_sale = dict(ROLE_STOCK.get(title, ROLE_STOCK["Вор"]))
-            
+
             # Сохраняем PsychoEconomy для использования в trade/consumption
             ep._psycho = psycho
             profiles[npc_id] = ep
 
         # Выводим после создания
         for pid, p in profiles.items():
-            psy = getattr(p, '_psycho', None)
+            psy = getattr(p, "_psycho", None)
             if psy:
                 mods = psy._calculate_all_modifiers()
-                print(f"  {pid}: еда×{mods.get(NeedType.FOOD, 1):.2f} "
-                      f"доход×{mods.get(NeedType.INCOME, 1):.2f} "
-                      f"ест каждые {psy.get_consumption_frequency()} тиков "
-                      f"копит={psy.get_savings_tendency():.0%} "
-                      f"риск={psy.get_risk_tolerance():.0%}")
+                print(
+                    f"  {pid}: еда×{mods.get(NeedType.FOOD, 1):.2f} "
+                    f"доход×{mods.get(NeedType.INCOME, 1):.2f} "
+                    f"ест каждые {psy.get_consumption_frequency()} тиков "
+                    f"копит={psy.get_savings_tendency():.0%} "
+                    f"риск={psy.get_risk_tolerance():.0%}"
+                )
         return profiles
 
     def _setup_initial_contracts(
         self,
-        profiles: Dict[str, 'EconomicProfile'],
-        tx_engine: 'TransactionEngine',
+        profiles: Dict[str, "EconomicProfile"],
+        tx_engine: "TransactionEngine",
     ) -> None:
         """Создаёт начальные трудовые контракты для симуляции."""
         # Интервал — как часто платят (не каждый день!)
@@ -648,10 +659,11 @@ class SandboxReporter:
         if not drives:
             return "-"
         import re
+
         result = []
         for d in drives[:2]:
             # Формат: "hunger(0.60)" → извлекаем ключ и значение
-            match = re.match(r'^(\w+)\(([\d.]+)\)$', d)
+            match = re.match(r"^(\w+)\(([\d.]+)\)$", d)
             if match:
                 key, val = match.groups()
                 label = self.DRIVE_LABELS.get(key, key)
@@ -666,7 +678,9 @@ class SandboxReporter:
             print("[REPORTER] Нет данных")
             return
 
-        print(f"{'ТИК':>5} | {'NPC':<25} | {'СТРЕСС':>7} | {'НАМЕРЕНИЕ':<22} | {'ОЦЕНКА':>6} | {'ЗОЛОТО':>8} | {'ПОБУЖДЕНИЯ':<30}")
+        print(
+            f"{'ТИК':>5} | {'NPC':<25} | {'СТРЕСС':>7} | {'НАМЕРЕНИЕ':<22} | {'ОЦЕНКА':>6} | {'ЗОЛОТО':>8} | {'ПОБУЖДЕНИЯ':<30}"
+        )
         print("-" * 120)
 
         for tick in self.ticks:
@@ -681,7 +695,9 @@ class SandboxReporter:
     def print_summary(self) -> None:
         """Итоговая таблица: кто выиграл/проиграл за всю симуляцию."""
         print("\n=== ИТОГИ СИМУЛЯЦИИ ===")
-        print(f"{'NPC':<25} | {'Δ СТРЕСС':>9} | {'Δ ЗОЛОТО':>8} | {'Δ ОЗ':>6} | {'ИТОГ. СТРЕСС':>12} | {'ИТОГ. ЗОЛОТО':>11} | {'ВЕРДИКТ':<15}")
+        print(
+            f"{'NPC':<25} | {'Δ СТРЕСС':>9} | {'Δ ЗОЛОТО':>8} | {'Δ ОЗ':>6} | {'ИТОГ. СТРЕСС':>12} | {'ИТОГ. ЗОЛОТО':>11} | {'ВЕРДИКТ':<15}"
+        )
         print("-" * 105)
 
         for npc_id in self.npc_ids:
@@ -717,10 +733,22 @@ class SandboxReporter:
         if not self.snaps:
             return
         fieldnames = [
-            "tick", "npc_id", "hp", "max_hp", "stress", "resentment",
-            "identity_integrity", "intent", "intent_score", "emotion",
-            "gold", "delta_stress", "delta_gold", "delta_hp",
-            "max_urgency", "active_drives",
+            "tick",
+            "npc_id",
+            "hp",
+            "max_hp",
+            "stress",
+            "resentment",
+            "identity_integrity",
+            "intent",
+            "intent_score",
+            "emotion",
+            "gold",
+            "delta_stress",
+            "delta_gold",
+            "delta_hp",
+            "max_urgency",
+            "active_drives",
         ]
         with open(path, "w", newline="", encoding="utf-8-sig") as f:
             writer = csv.DictWriter(f, fieldnames=fieldnames)
@@ -735,6 +763,7 @@ class SandboxReporter:
         """Рисует графики через matplotlib (опционально)."""
         try:
             import matplotlib
+
             matplotlib.use("Agg")  # без GUI
             import matplotlib.pyplot as plt
         except ImportError:
@@ -803,11 +832,11 @@ def main() -> None:
     # QUICK_DEBUG = 40 тиков (2 дня) — для отладки баланса
     # FULL_TEST = 1800 тиков (3 месяца) — для полноценного теста
     TICK_PRESETS = {
-        "quick_debug": 168,   # 1 неделя (24 часа × 7 дней)
-        "full_test": 1800,    # 75 дней (~2.5 месяца)
+        "quick_debug": 168,  # 1 неделя (24 часа × 7 дней)
+        "full_test": 1800,  # 75 дней (~2.5 месяца)
     }
     preset = sys.argv[1] if len(sys.argv) > 1 else "quick_debug"
-    
+
     config = SandboxConfig(
         campaign_id="Open_road",
         location="tavern_silver_wolf",

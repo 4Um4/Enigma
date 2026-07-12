@@ -14,6 +14,7 @@ path: /backend/app/services/player_cognition/memory_layer.py
 
 TODO: после реализации PlayerMemory persistence — заменить in-memory на persisted.
 """
+
 from dataclasses import dataclass, field
 from enum import Enum, auto
 from typing import Dict, List, Optional
@@ -22,20 +23,21 @@ from app.services.player_cognition.types import PerceivedEntity
 
 
 class MemoryTier(Enum):
-    SHORT = auto()    # текущий ход — нет decay
-    MEDIUM = auto()   # последние 5-10 ходов — медленный decay
-    LONG = auto()      # прошлые сессии — быстрый decay
+    SHORT = auto()  # текущий ход — нет decay
+    MEDIUM = auto()  # последние 5-10 ходов — медленный decay
+    LONG = auto()  # прошлые сессии — быстрый decay
 
 
 @dataclass
 class MemoryEntry:
     """Одна запись в памяти о сущности"""
+
     entity_id: str
     entity_type: str
     display_name: str
-    last_seen_time: float          # _turn_count (ticks, not wall-clock)
+    last_seen_time: float  # _turn_count (ticks, not wall-clock)
     encounter_count: int = 0
-    last_clarity: float = 0.0      # чёткость при последней встрече
+    last_clarity: float = 0.0  # чёткость при последней встрече
     key_observations: List[str] = field(default_factory=list)
 
 
@@ -45,14 +47,15 @@ class PlayerMemory:
     Память игрока — in-memory, без персистенции.
     Вызывающий код может сохранять/загружать через pickle/json при необходимости.
     """
+
     _entries: Dict[str, MemoryEntry] = field(default_factory=dict)
     _turn_count: int = 0
 
     # === Decay параметры ===
-    MEDIUM_DECAY_PER_TURN = 0.05    # 5% за ход
-    LONG_DECAY_PER_TURN = 0.15      # 15% за ход
-    MEDIUM_MAX_TURNS = 10           # после — переходит в LONG
-    MIN_MEMORY = 0.1                # ниже — "забыто"
+    MEDIUM_DECAY_PER_TURN = 0.05  # 5% за ход
+    LONG_DECAY_PER_TURN = 0.15  # 15% за ход
+    MEDIUM_MAX_TURNS = 10  # после — переходит в LONG
+    MIN_MEMORY = 0.1  # ниже — "забыто"
 
     def new_turn(self) -> None:
         """Вызвать в начале каждого хода — применяет decay"""
@@ -60,10 +63,10 @@ class PlayerMemory:
         for entry in self._entries.values():
             if self._turn_count - entry.last_seen_time > self.MEDIUM_MAX_TURNS:
                 # Средняя → дальняя (быстрый decay)
-                entry.last_clarity *= (1.0 - self.LONG_DECAY_PER_TURN)
+                entry.last_clarity *= 1.0 - self.LONG_DECAY_PER_TURN
             elif self._turn_count - entry.last_seen_time > 1:
                 # Не текущий ход → средний decay
-                entry.last_clarity *= (1.0 - self.MEDIUM_DECAY_PER_TURN)
+                entry.last_clarity *= 1.0 - self.MEDIUM_DECAY_PER_TURN
 
     def update_from_perception(self, entities: List[PerceivedEntity]) -> None:
         """Обновляет память из текущего PerceivedScene"""

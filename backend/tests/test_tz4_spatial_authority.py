@@ -7,7 +7,7 @@ path: backend/tests/test_tz4_spatial_authority.py
 
 Запуск: cd backend; python -m pytest tests/test_tz4_spatial_authority.py -v; cd ..
 """
-import pytest
+
 from pathlib import Path
 
 BACKEND_ROOT = Path(__file__).resolve().parents[1] / "app"
@@ -20,20 +20,17 @@ class TestPatchA_ZombieReaders:
     def test_no_player_distances_in_combat_subscriber(self):
         path = BACKEND_ROOT / "services" / "combat" / "combat_subscriber.py"
         source = path.read_text(encoding="utf-8")
-        assert 'scene_state.get("player_distances"' not in source, \
-            "zombie reader in combat_subscriber (A1 not applied)"
+        assert 'scene_state.get("player_distances"' not in source, "zombie reader in combat_subscriber (A1 not applied)"
 
     def test_no_player_distances_in_r3_direct_builder(self):
         path = BACKEND_ROOT / "services" / "scene" / "r3_direct_builder.py"
         source = path.read_text(encoding="utf-8")
-        assert 'scene_state.get("player_distances"' not in source, \
-            "zombie reader in r3_direct_builder (A2 not applied)"
+        assert 'scene_state.get("player_distances"' not in source, "zombie reader in r3_direct_builder (A2 not applied)"
 
     def test_no_player_distances_in_world_state(self):
         path = BACKEND_ROOT / "services" / "simulation" / "world_state.py"
         source = path.read_text(encoding="utf-8")
-        assert '"player_distances":' not in source, \
-            "zombie reader in world_state (A3 not applied)"
+        assert '"player_distances":' not in source, "zombie reader in world_state (A3 not applied)"
 
 
 class TestPatchA_RNGIsolation:
@@ -46,8 +43,7 @@ class TestPatchA_RNGIsolation:
         start = source.find("def apply_change(")
         end = source.find("def apply_changes(", start)
         apply_change_src = source[start:end]
-        assert "random.uniform(" not in apply_change_src, \
-            "random.uniform() call found in apply_change (A4 not applied)"
+        assert "random.uniform(" not in apply_change_src, "random.uniform() call found in apply_change (A4 not applied)"
 
 
 class TestPatchA_Removals:
@@ -68,8 +64,7 @@ class TestPatchB_NoSilentFailure:
     def test_no_silent_pass_in_bridge(self):
         path = FRONTEND_ROOT / "game_loop_bridge.py"
         source = path.read_text(encoding="utf-8")
-        assert "except Exception:\n pass" not in source, \
-            "Silent pass in game_loop_bridge (B1 not applied)"
+        assert "except Exception:\n pass" not in source, "Silent pass in game_loop_bridge (B1 not applied)"
 
 
 class TestPatchB_SpatialFactory:
@@ -82,14 +77,12 @@ class TestPatchB_SpatialFactory:
     def test_no_direct_build_in_orchestration(self):
         path = BACKEND_ROOT / "services" / "game_loop" / "npc_orchestration.py"
         source = path.read_text(encoding="utf-8")
-        assert "SpatialService.build_for_location" not in source, \
-            "Direct build in npc_orchestration (B3 not applied)"
+        assert "SpatialService.build_for_location" not in source, "Direct build in npc_orchestration (B3 not applied)"
 
     def test_no_direct_build_in_tick_orchestrator(self):
         path = BACKEND_ROOT / "services" / "tick_orchestrator.py"
         source = path.read_text(encoding="utf-8")
-        assert "SpatialService.build_for_location" not in source, \
-            "Direct build in tick_orchestrator (B3 not applied)"
+        assert "SpatialService.build_for_location" not in source, "Direct build in tick_orchestrator (B3 not applied)"
 
 
 class TestPatchB_SceneChangeRouting:
@@ -98,11 +91,11 @@ class TestPatchB_SceneChangeRouting:
     def test_no_direct_activity_mutation_in_orchestration(self):
         path = BACKEND_ROOT / "services" / "game_loop" / "npc_orchestration.py"
         source = path.read_text(encoding="utf-8")
-        assert 'scene_state["npc_positions"][_nid]["activity"]' not in source, \
+        assert 'scene_state["npc_positions"][_nid]["activity"]' not in source, (
             "Direct activity mutation in npc_orchestration (B4 not applied)"
+        )
 
     def test_no_direct_los_mutation_in_dm_phase(self):
         path = BACKEND_ROOT / "services" / "game_loop" / "dm_phase.py"
         source = path.read_text(encoding="utf-8")
-        assert 'scene_state["line_of_sight"]' not in source, \
-            "Direct LoS mutation in dm_phase (B5 not applied)"
+        assert 'scene_state["line_of_sight"]' not in source, "Direct LoS mutation in dm_phase (B5 not applied)"

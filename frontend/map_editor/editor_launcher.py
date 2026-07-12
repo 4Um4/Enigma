@@ -56,17 +56,17 @@ def main():
     if "--help" in sys.argv or "-h" in sys.argv:
         print_help()
         return
-    
+
     print("""
 ╔══════════════════════════════════════════════════════════════════╗
 ║           R4 Spatial Map Editor v2.0                             ║
 ╚══════════════════════════════════════════════════════════════════╝
     """)
-    
+
     # Создаём необходимые директории
     os.makedirs("location_templates", exist_ok=True)
     os.makedirs("runtime_cache", exist_ok=True)
-    
+
     # Запускаем редактор
     try:
         app = EditorCore(width=1400, height=900)
@@ -76,6 +76,7 @@ def main():
     except Exception as e:
         print(f"\n❌ Ошибка: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
 

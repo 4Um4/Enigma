@@ -13,6 +13,7 @@ path: /backend/app/services/player_cognition/recognition_layer.py
 Зависимости: types, scene_state_manager (_npc_id_to_display для имён)
 Основные сущности: EncounterHistory, apply_recognition()
 """
+
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Set
 
@@ -26,6 +27,7 @@ class EncounterHistory:
     История встреч с NPC — in-memory, без персистенции.
     TODO: после реализации PlayerMemory — заменить на persisted версию.
     """
+
     _encounters: Dict[str, int] = field(default_factory=dict)
     _known_ids: Set[str] = field(default_factory=set)
 
@@ -104,6 +106,7 @@ def _compute_recognition_confidence(
     # Бонус от количества встреч (logarithmic — насыщается)
     if encounter_count > 0:
         import math
+
         encounter_bonus = min(math.log2(encounter_count + 1) * 0.2, 0.3)
         confidence += encounter_bonus
 

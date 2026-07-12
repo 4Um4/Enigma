@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 """
 path: backend/app/models/psychological.py
 Назначение: Централизованные типы психологического слоя ENIGMA.
@@ -15,6 +16,7 @@ from typing import Any, Dict
 
 from dataclasses import dataclass
 
+
 @dataclass(frozen=True)
 class DistortionProfile:
     """
@@ -24,9 +26,10 @@ class DistortionProfile:
     Передаётся от CognitiveDistortionEngine в ProjectionLayer.
     LLM эти числа НЕ получает — только производный режим (PsychologicalSignature).
     """
-    threat_bias:   float = 0.0   # [-1, +1]: усиление воспринимаемой угрозы
-    trust_bias:    float = 0.0   # [-1,  0]: снижение доверия к источнику
-    salience_bias: float = 0.0   # [ 0, +1]: фокусировка на угрозах
+
+    threat_bias: float = 0.0  # [-1, +1]: усиление воспринимаемой угрозы
+    trust_bias: float = 0.0  # [-1,  0]: снижение доверия к источнику
+    salience_bias: float = 0.0  # [ 0, +1]: фокусировка на угрозах
 
     @classmethod
     def neutral(cls) -> "DistortionProfile":
@@ -44,8 +47,8 @@ class DistortionProfile:
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            "threat_bias":   self.threat_bias,
-            "trust_bias":    self.trust_bias,
+            "threat_bias": self.threat_bias,
+            "trust_bias": self.trust_bias,
             "salience_bias": self.salience_bias,
         }
 
@@ -59,13 +62,16 @@ class CausalEntry:
     Позволяет отследить: откуда пришло изменение, как долго действует.
     emotional_impact > 0.7 — триггер для генерации TemporaryDrive (ФАЗА 4-ROLE.2).
     """
-    npc_id:           str
-    field:            str    # "stress", "trust", "fear" и т.д.
-    delta:            float  # величина изменения
-    source:           str    # "player_insults", "life_engine", "break_system" и т.д.
-    tick:             int    # игровой тик
+
+    npc_id: str
+    field: str  # "stress", "trust", "fear" и т.д.
+    delta: float  # величина изменения
+    source: str  # "player_insults", "life_engine", "break_system" и т.д.
+    tick: int  # игровой тик
     persistence_time: int = 0  # тиков до затухания (0 = постоянное)
-    emotional_impact: float = 0.0  # сила эмоционального удара [0..1], для генерации drives
+    emotional_impact: float = (
+        0.0  # сила эмоционального удара [0..1], для генерации drives
+    )
 
     def to_dict(self) -> Dict[str, Any]:
         """Сериализация для JSON persistence и API."""

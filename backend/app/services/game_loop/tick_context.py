@@ -17,7 +17,7 @@ TODO: при экстракции фаз из монолитного _run_pipeli
 """
 
 from dataclasses import dataclass, field
-from typing import Any 
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -26,6 +26,7 @@ class TickInput:
 
     Формируется один раз в начале _run_pipeline, не меняется.
     """
+
     campaign_id: str
     world_id: str
     location: str
@@ -41,6 +42,7 @@ class TickBuffer:
     Каждая фаза читает из TickInput + TickBuffer,
     пишет результаты в TickBuffer.
     """
+
     # ── NPC state ──
     all_npcs_raw: list[dict] = field(default_factory=list)
     dirty_npcs: set[int] = field(default_factory=set)
@@ -69,6 +71,7 @@ class TickOutput:
     Формируется в phase_7_outcome, передаётся в DM-промпт.
     Пока пустой — будет наполнен при экстракции фаз.
     """
+
     pass
 
 

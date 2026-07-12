@@ -1,4 +1,4 @@
-﻿# test_spatial_service.py — критерии приёмки SpatialService v1.2
+# test_spatial_service.py — критерии приёмки SpatialService v1.2
 import sys
 from pathlib import Path
 
@@ -6,14 +6,14 @@ from pathlib import Path
 _project_root = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(_project_root / "backend"))
 
-from app.models.spatial_contracts import NodeRole, Urgency, NodeRef, SpatialOverlay, NPCPathState
-from app.services.spatial.role_resolver import resolve_role
+from app.models.spatial_contracts import NodeRole, SpatialOverlay, Urgency
 from app.services.spatial.graph_compiler import compile_graph, load_editor_json
-from app.services.spatial.spatial_overlay import build_overlay_from_scene, try_reserve_node
+from app.services.spatial.role_resolver import resolve_role
 from app.services.spatial.spatial_service import SpatialService
 
 passed = 0
 failed = 0
+
 
 def check(name, condition):
     global passed, failed
@@ -23,6 +23,7 @@ def check(name, condition):
     else:
         print(f"  FAIL: {name}")
         failed += 1
+
 
 # Указываем правильные директории для поиска editor JSON от корня проекта
 _search_dirs = [
@@ -54,7 +55,10 @@ print("\n=== test_reservation_exclusion ===")
 overlay1 = SpatialOverlay(reserved_nodes={"tavern_silver_wolf:bar_area": "npc_other"})
 svc1 = SpatialService(graph, conns, alias_map, overlay1)
 bar_reserved = svc1.resolve_node(NodeRole.BAR, origin_zone="tavern_silver_wolf", requesting_npc_id="npc_me")
-check("Reserved node excluded for other NPC", bar_reserved is not None and bar_reserved.node_id != "tavern_silver_wolf:bar_area")
+check(
+    "Reserved node excluded for other NPC",
+    bar_reserved is not None and bar_reserved.node_id != "tavern_silver_wolf:bar_area",
+)
 overlay2 = SpatialOverlay(reserved_nodes={"tavern_silver_wolf:bar_area": "npc_me"})
 svc2 = SpatialService(graph, conns, alias_map, overlay2)
 bar_own = svc2.resolve_node(NodeRole.BAR, origin_zone="tavern_silver_wolf", requesting_npc_id="npc_me")
@@ -63,7 +67,9 @@ check("Own reservation allowed", bar_own is not None and bar_own.node_id == "tav
 print("\n=== test_urgency_weight_modification ===")
 overlay3 = SpatialOverlay(reserved_nodes={"tavern_silver_wolf:bar_area": "npc_other"})
 svc3 = SpatialService(graph, conns, alias_map, overlay3)
-bar_urgent = svc3.resolve_node(NodeRole.BAR, origin_zone="tavern_silver_wolf", requesting_npc_id="npc_me", urgency=Urgency.URGENT)
+bar_urgent = svc3.resolve_node(
+    NodeRole.BAR, origin_zone="tavern_silver_wolf", requesting_npc_id="npc_me", urgency=Urgency.URGENT
+)
 check("URGENT allows reserved node", bar_urgent is not None)
 
 print("\n=== test_path_computation_once ===")

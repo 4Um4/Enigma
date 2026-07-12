@@ -22,12 +22,10 @@ TODO:
 
 from __future__ import annotations
 
-import pytest
-
 from app.services.tick_orchestrator import TickOrchestrator
 
-
 # ── Хелперы ───────────────────────────────────────────────────────────────
+
 
 def _make_npc(
     npc_id: str = "npc_1",
@@ -58,6 +56,7 @@ def _make_npc(
 
 
 # ── Базовый маппинг ──────────────────────────────────────────────────────
+
 
 class TestSocialStatsMapping:
     """social_stats → relationship_cache["player"]."""
@@ -91,6 +90,7 @@ class TestSocialStatsMapping:
 
 # ── Base values ──────────────────────────────────────────────────────────
 
+
 class TestBaseValuesMapping:
     """loyalty_true → base_values["player"]."""
 
@@ -114,6 +114,7 @@ class TestBaseValuesMapping:
 
 
 # ── Faction affiliations ─────────────────────────────────────────────────
+
 
 class TestFactionAffiliations:
     """faction_rank → faction_affiliations."""
@@ -139,6 +140,7 @@ class TestFactionAffiliations:
 
 # ── Stress mapping ───────────────────────────────────────────────────────
 
+
 class TestStressMapping:
     """psyche.stress → NPCStateSnapshot.stress."""
 
@@ -154,6 +156,7 @@ class TestStressMapping:
 
 
 # ── Вложенный relationship_cache ─────────────────────────────────────────
+
 
 class TestExistingNestedCache:
     """Если relationship_cache уже во вложенном формате — используется как есть."""
@@ -183,6 +186,7 @@ class TestExistingNestedCache:
 
 # ── Интеграция с SocialDecayHandler ──────────────────────────────────────
 
+
 class TestSocialDecayIntegration:
     """Snapshots с правильным маппингом → SocialDecayHandler производит дрейф."""
 
@@ -197,10 +201,7 @@ class TestSocialDecayIntegration:
 
         # trust=30, base=50 → дрейф к 50 должен быть
         trust_deltas = [d for d in deltas if d.trust_delta != 0.0]
-        assert len(trust_deltas) > 0, (
-            f"Ожидался дрейф trust (current=30, base=50), но дельт нет. "
-            f"snapshots={snapshots}"
-        )
+        assert len(trust_deltas) > 0, f"Ожидался дрейф trust (current=30, base=50), но дельт нет. snapshots={snapshots}"
 
     def test_no_decay_when_trust_equals_base(self):
         from app.services.social.social_decay_handler import SocialDecayHandler

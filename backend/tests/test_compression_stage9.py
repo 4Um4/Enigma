@@ -12,12 +12,12 @@ path: backend/tests/test_compression_stage9.py
 - compress() сжимает 3+ событий с одинаковыми тегами в одно абстрактное событие с пометкой "X раз".
 - compress_narrative_cache() заменяет группы событий в кэше на сжатые   абстракции, если они подходят под критерии сжатия.
 - Секретные события и события с высокой важностью (importance >= 0.6) не сжимаются.
-- Сжатые события получают clarity=0.5 и stage=ABSTRACT. 
+- Сжатые события получают clarity=0.5 и stage=ABSTRACT.
 """
 
-from app.services.memory.promotion_engine import MemoryPromotionEngine
-from app.services.memory.memory_manager import MemoryManager
 from app.models.npc_state import EventMemory, MemoryStage
+from app.services.memory.memory_manager import MemoryManager
+from app.services.memory.promotion_engine import MemoryPromotionEngine
 
 
 def _make_mem(
@@ -45,6 +45,7 @@ def _make_mem(
 
 def _make_manager() -> MemoryManager:
     from unittest.mock import MagicMock
+
     mm = MemoryManager.__new__(MemoryManager)
     mm._working = MagicMock()
     mm._layered = MagicMock()
@@ -55,6 +56,7 @@ def _make_manager() -> MemoryManager:
 
 
 # ── MemoryPromotionEngine ──
+
 
 def test_compress_finds_group_of_3() -> None:
     """3+ событий с одинаковыми тегами → сжатие."""
@@ -128,6 +130,7 @@ def test_compress_clarity_lower() -> None:
 
 
 # ── compress_narrative_cache ──
+
 
 def test_compress_narrative_replaces_group() -> None:
     """compress_narrative_cache заменяет группу на абстракцию."""

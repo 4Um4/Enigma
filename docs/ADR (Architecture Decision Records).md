@@ -315,7 +315,9 @@
   Taboo: ❌ Асинхронные вызовы LLM/Rules внутри `game_loop` до применения состояния. ❌ Наличие state/cache в RulesSubscriber.
   Files: events/rules_subscriber.py
 
-`ADR-TZ08-5` [ONTO] Narrative Projection in game_loop — Вычисление dm_frame и RulesDelta перенесено из TickOrchestrator в game_loop. Ядро возвращает только state_t+1 (TickResultDTO). Taboo: ❌ Вызов LLM или Rules-агентов внутри _run_core_phases. Files: game_loop/init.py, events/rules_subscriber.py
+`ADR-TZ08-5` [ONTO] **Narrative Projection in game_loop** — Вычисление dm_frame и RulesDelta перенесено из TickOrchestrator в game_loop. Ядро возвращает только state_t+1 (TickResultDTO).
+  Taboo: ❌ Вызов LLM или Rules-агентов внутри _run_core_phases.
+  Files: game_loop/init.py, events/rules_subscriber.py
 
 `ADR-TZ08-6` [ONTO] **Ontological Separation (observed_state)** — Разделение контрактов в момент генерации. Ядро генерирует `observed_state` (только name, description, narrative_cache) вместо `real_state` (сырой legacy dict с ментальными объектами). Эпистемический Барьер обеспечен онтологически, а не через runtime-фильтры. `WorldProjectionBuffer` зафиксирован как будущий слой оффскрин-симуляции, не влияющий на DM-контур.
 
@@ -472,7 +474,9 @@
   Taboo: ❌ Привязка логики фильтрации идемпотентности к полям `cause` (Semantic Coupling).
   Files: event_compiler.py
 
-`ADR-ETKE-L0` [ONTO] **ETKE-IK v1: Motion Core Data Structures** — Закладка онтологии непрерывного движения и её интеграция в TickOrchestrator. Введены L0 DTO (AffordanceVector, BodySchema, DriveVector, KinematicProfile) и L2 сервисы (SteeringResolver, MotionIntegrator, WorldTopologyProvider). Пайплайн развёрнут как параллельная ветка (_process_continuous_motion), которая активируется при наличии DriveVector и отсутствии активного макро-транзита. Движение переведено из функции графа в результат преобразования вектора давления через физически-ориентированное поле возможностей. Taboo: ❌ Использование MovementIntent для микро-перемещений (LOD0) после полного внедрения ETKE-IK. ❌ Прямой запрос полигонов из SpatialService в обход WorldTopologyProvider для нужд непрерывного движения. Files: domain/motion_core.py, services/motion/motion_pipeline.py, services/spatial/world_topology_provider.py, services/tick_orchestrator.py
+`ADR-ETKE-L0` [ONTO] **ETKE-IK v1: Motion Core Data Structures** — Закладка онтологии непрерывного движения и её интеграция в TickOrchestrator. Введены L0 DTO (AffordanceVector, BodySchema, DriveVector, KinematicProfile) и L2 сервисы (SteeringResolver, MotionIntegrator, WorldTopologyProvider). Пайплайн развёрнут как параллельная ветка (_process_continuous_motion), которая активируется при наличии DriveVector и отсутствии активного макро-транзита. Движение переведено из функции графа в результат преобразования вектора давления через физически-ориентированное поле возможностей.
+  Taboo: ❌ Использование MovementIntent для микро-перемещений (LOD0) после полного внедрения ETKE-IK. ❌ Прямой запрос полигонов из SpatialService в обход WorldTopologyProvider для нужд непрерывного движения.
+  Files: domain/motion_core.py, services/motion/motion_pipeline.py, services/spatial/world_topology_provider.py, services/tick_orchestrator.py
 
 `ADR-ETKE-L2` [ONTO] **ETKE-IK v1: Motion Pipeline & Topology Provider** — Внедрены вычислительные компоненты непрерывного движения. `SteeringResolver` вычисляет `velocity` из `DriveVector` с учётом `AffordanceVector` (grip, drag) и `BodySchema`. `MotionIntegrator` выполняет интеграцию Эйлера (`position += v*dt`) и расчёт усталости. `WorldTopologyProvider` стал единым шлюзом, транслирующим дискретную геометрию `SpatialService` в непрерывное поле возможностей. Пайплайн развёрнут как параллельная подсистема.
   Taboo: ❌ Прямой запрос полигонов из `SpatialService` в обход `WorldTopologyProvider` для нужд непрерывного движения.
@@ -504,8 +508,6 @@
 `ADR-S91.1` [FIX] **Cross-Location Boundary Routing & Graph Topology Strictness** — Убиты изолированные компоненты и кросс-локационная телепортация. 1) GraphCompiler: orphan rooms (без навигационного узла) исключаются из графа при активной nav-топологии (nodes). 2) MovementEngine: кросс-локационные MacroMovementGoal перехватываются и перенаправляются на boundary node (exit_east/west/etc.) текущей локации через SpatialService.get_boundary_to_neighbor(). 3) _TickContext: поле drf_bus перемещено выше полей с default_factory для совместимости с Python dataclass. Rate: 2.55 -> 2.695/tick.
   Taboo: ❌ Добавлять orphan rooms в навигационный граф при наличии nodes. ❌ Генерировать кросс-локационный SceneChange напрямую, минуя boundary node. ❌ Использовать drf_bus после полей с default в dataclass.
   Files: graph_compiler.py, spatial_service.py, movement_engine.py, tick_orchestrator.py
-
----
 
 `ADR-S90.1` [ONTO] **WorldTopologyProvider v1: Hybrid Geometry** — `SpatialService` расширен хранением `rooms_geometry` (полигоны). Введён метод `is_point_in_bounds(x, y)`. `WorldTopologyProvider` использует его для формирования non-uniform `AffordanceVector` (`can_stand=0.0` вне полигонов). Граф и физика объединены без нарушения обратной совместимости.
   Taboo: ❌ Возврат к uniform `AffordanceVector` (константные значения без проверки `is_point_in_bounds`).
@@ -770,11 +772,13 @@
   Taboo: ❌ Inline-словари activity_ru в game_screen
   Files: i18n.py, game_screen.py
 
-`ADR-TZ08-4` [ONTO] Epistemic Boundary (DM as Observer) — DM-агент переведён в режим строго локальной эпистемики. Нарратив рождается исключительно из player_perception и rules_result. Доступ к внутренним состояниям NPC (stress_delta, trust_delta, real_state, recalled_facts, suppressed_secrets) заблокирован на уровне r3_direct_builder и dm_agent. Taboo: ❌ Чтение ментальных объектов NPC в слое интерпретации. ❌ Возврат dm_frame из ядра симуляции. Files: scene/r3_direct_builder.py, agents/dm_agent.py, tick_orchestrator.py, game_loop/init.py
+`ADR-TZ08-4` [ONTO] **Epistemic Boundary (DM as Observer)** — DM-агент переведён в режим строго локальной эпистемики. Нарратив рождается исключительно из player_perception и rules_result. Доступ к внутренним состояниям NPC (stress_delta, trust_delta, real_state, recalled_facts, suppressed_secrets) заблокирован на уровне r3_direct_builder и dm_agent.
+  Taboo: ❌ Чтение ментальных объектов NPC в слое интерпретации. ❌ Возврат dm_frame из ядра симуляции.
+  Files: scene/r3_direct_builder.py, agents/dm_agent.py, tick_orchestrator.py, game_loop/init.py
 
-`ADR-TZ05-2` [ONTO] DM Output Contract Layer — Изоляция логики восстановления текста из ответов LLM в DMResponseNormalizer. DM-агент перестал быть парсером, став чистым оркестратором. Taboo: ❌ Парсинг JSON-схем внутри dm_agent.py. ❌ Возврат дефолтного EmotionalVector (aggression=0.0) для ATTACK. Files: services/verbalization/dm_response_normalizer.py, agents/dm_agent.py
-
-`ADR-TZ05-2` [ONTO] Prompt Governance & Mock Exclusion — Синхронизация промпта LLM с валидатором. Forbidden-список генерируется динамически из контракта. MockProvider недоступен в production. Taboo: ❌ Хардкод max_tokens в dm_agent.py. ❌ Использование MockProvider при settings.environment == "production". Files: prompts/dm_system.txt, services/verbalization/dm_contract_builder.py, services/llm/factory.py, core/config.py
+`ADR-TZ05-2` [ONTO] **DM Output Contract Layer** — Изоляция логики восстановления текста из ответов LLM в DMResponseNormalizer. DM-агент перестал быть парсером, став чистым оркестратором.
+  Taboo: ❌ Парсинг JSON-схем внутри dm_agent.py. ❌ Возврат дефолтного EmotionalVector (aggression=0.0) для ATTACK.
+  Files: services/verbalization/dm_response_normalizer.py, agents/dm_agent.py
 
 `ADR-TZ05-2` [ONTO] **Prompt Governance & Mock Exclusion** — Синхронизация промпта LLM с валидатором. Forbidden-список генерируется динамически из контракта. MockProvider недоступен в production. 
   Taboo: ❌ Хардкод max_tokens в dm_agent.py. ❌ Использование MockProvider при settings.environment == "production".

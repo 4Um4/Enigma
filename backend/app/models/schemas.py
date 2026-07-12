@@ -34,8 +34,9 @@ class ModelProvider(str, Enum):
 
 class ModelSelection(BaseModel):
     """Model selection configuration."""
+
     model_config = {"protected_namespaces": ()}
-    
+
     provider: ModelProvider
     model_name: str
     endpoint: Optional[str] = None
@@ -102,7 +103,9 @@ class CharacterSheet(BaseModel):
     max_hp: int = 10
     ac: int = 10
     effects: List[str] = Field(default_factory=list)
-    importance: Optional[str] = Field(default=None, description="major or mass for NPC importance")
+    importance: Optional[str] = Field(
+        default=None, description="major or mass for NPC importance"
+    )
 
 
 class NPCState(BaseModel):
@@ -217,8 +220,10 @@ class CombatStateResponse(BaseModel):
 
 # === Campaign State Models (RAG-ready) ===
 
+
 class PlayerInfo(BaseModel):
     """Информация об игроке/персонаже."""
+
     name: str
     race: str = ""
     class_name: str = ""
@@ -230,6 +235,7 @@ class PlayerInfo(BaseModel):
 
 class WorldFact(BaseModel):
     """Факт о мире с метаданными для RAG."""
+
     id: str
     text: str
     category: str = "lore"  # location, npc, quest, lore
@@ -240,6 +246,7 @@ class WorldFact(BaseModel):
 
 class SessionSummary(BaseModel):
     """Краткое описание сессии."""
+
     id: str
     date: str
     summary: str
@@ -250,6 +257,7 @@ class SessionSummary(BaseModel):
 
 class CampaignState(BaseModel):
     """Состояние кампании - "тёплый" слой между каноном и сессией."""
+
     campaign_id: str
     campaign_name: str = ""
     players: List[PlayerInfo] = Field(default_factory=list)
@@ -260,12 +268,13 @@ class CampaignState(BaseModel):
 
 class PlayerSession(BaseModel):
     """Сессия игрока для отслеживания активности."""
+
     campaign_id: str
     player_name: str
     active: bool = True
     last_heartbeat: datetime = Field(default_factory=datetime.now)
     session_id: str = ""
-    
+
     def is_active(self, timeout_seconds: int = 120) -> bool:
         """
         Проверить, активна ли сессия (timestamp < timeout).
@@ -283,15 +292,16 @@ class PlayerSession(BaseModel):
 
 class HeartbeatRequest(BaseModel):
     """Запрос на обновление heartbeat."""
+
     campaign_id: str
     player_name: str
-    
+
     # Поддержка старых клиентов с другими названиями полей
     player: Optional[str] = Field(None, alias="player")
     campaign: Optional[str] = Field(None, alias="campaign")
-    
+
     model_config = {"populate_by_name": True}
-    
+
     def __init__(self, **data: Any) -> None:
         # Если пришли старые поля - преобразуем
         if "player" in data and data["player"]:
@@ -303,6 +313,7 @@ class HeartbeatRequest(BaseModel):
 
 class HeartbeatResponse(BaseModel):
     """Ответ на heartbeat."""
+
     active: bool
     player_name: str
     message: str
@@ -310,17 +321,20 @@ class HeartbeatResponse(BaseModel):
 
 class PlayerSelectRequest(BaseModel):
     """Запрос на выбор персонажа."""
+
     campaign_id: str
     player: str
 
 
 class PlayerSelectResponse(BaseModel):
     """Ответ на выбор персонажа."""
+
     status: str
     player: str
 
 
 class PlayerSessionResponse(BaseModel):
     """Ответ на получение сессии."""
+
     player: Optional[str] = None
     active: bool = False

@@ -1,3 +1,4 @@
+from __future__ import annotations
 # backend/app/services/social/reputation_engine.py
 """
 Фаза 3.5 — ReputationEngine: репутация NPC в фракциях.
@@ -9,7 +10,6 @@
   - Фракции загружаются из config/world/factions.json.
 """
 
-from __future__ import annotations
 
 import json
 import logging
@@ -24,21 +24,23 @@ logger = logging.getLogger(__name__)
 @dataclass(frozen=True)
 class Faction:
     """Статическое описание фракции из конфига."""
+
     id: str
     name: str
-    nature: str                     # criminal, law_enforcement, merchant, neutral
-    base_reputation: float          # начальная репутация (-100..100)
-    npc_members: FrozenSet[str]     # NPC-члены фракции
-    npc_debtors: FrozenSet[str]     # NPC-должники фракции
-    rivals: FrozenSet[str]          # враждебные фракции
-    allies: FrozenSet[str]          # союзные фракции
+    nature: str  # criminal, law_enforcement, merchant, neutral
+    base_reputation: float  # начальная репутация (-100..100)
+    npc_members: FrozenSet[str]  # NPC-члены фракции
+    npc_debtors: FrozenSet[str]  # NPC-должники фракции
+    rivals: FrozenSet[str]  # враждебные фракции
+    allies: FrozenSet[str]  # союзные фракции
 
 
 @dataclass
 class FactionState:
     """Динамическое состояние репутации фракции в runtime."""
+
     faction_id: str
-    reputation: float               # текущая репутация (-100..100)
+    reputation: float  # текущая репутация (-100..100)
     recent_actions: List[dict] = field(default_factory=list)
 
 
@@ -179,23 +181,31 @@ class ReputationEngine:
         if actor_faction:
             actor_delta = impact_rules.get(actor_nature, 0.0) * 0.5
             if abs(actor_delta) > 0.1:
-                deltas.append({
-                    "faction_id": actor_faction.id,
-                    "delta": round(actor_delta, 2),
-                    "reason": f"{event_type} by member {actor_npc_id}",
-                })
+                deltas.append(
+                    {
+                        "faction_id": actor_faction.id,
+                        "delta": round(actor_delta, 2),
+                        "reason": f"{event_type} by member {actor_npc_id}",
+                    }
+                )
 
         # Влияние на союзников актёра (ослабленное)
         if actor_faction:
             for ally_id in actor_faction.allies:
-                ally_nature = self._factions[ally_id].nature if ally_id in self._factions else "neutral"
+                ally_nature = (
+                    self._factions[ally_id].nature
+                    if ally_id in self._factions
+                    else "neutral"
+                )
                 ally_delta = impact_rules.get(ally_nature, 0.0) * 0.3
                 if abs(ally_delta) > 0.1:
-                    deltas.append({
-                        "faction_id": ally_id,
-                        "delta": round(ally_delta, 2),
-                        "reason": f"ally of {actor_faction.id} affected by {event_type}",
-                    })
+                    deltas.append(
+                        {
+                            "faction_id": ally_id,
+                            "delta": round(ally_delta, 2),
+                            "reason": f"ally of {actor_faction.id} affected by {event_type}",
+                        }
+                    )
 
         return deltas
 
@@ -221,19 +231,24 @@ class ReputationEngine:
                 continue
 
             # Closing drift: закрываем разрыв вместо forced epsilon
-            if abs(faction.base_reputation - state.reputation) < REPUTATION_DECAY_EPSILON:
+            if (
+                abs(faction.base_reputation - state.reputation)
+                < REPUTATION_DECAY_EPSILON
+            ):
                 drift = faction.base_reputation - state.reputation
 
-            results.append(StateDeltas(
-                # v1 backward compat (удаляется после миграции StateApplicator)
-                faction_id=fid,
-                reputation_delta=round(drift, 6),
-                # v2 domain-tagged payload
-                domain=DeltaDomain.REPUTATION,
-                target=fid,
-                payload=ReputationPayload(reputation_delta=round(drift, 6)),
-                source="reputation_decay",
-            ))
+            results.append(
+                StateDeltas(
+                    # v1 backward compat (удаляется после миграции StateApplicator)
+                    faction_id=fid,
+                    reputation_delta=round(drift, 6),
+                    # v2 domain-tagged payload
+                    domain=DeltaDomain.REPUTATION,
+                    target=fid,
+                    payload=ReputationPayload(reputation_delta=round(drift, 6)),
+                    source="reputation_decay",
+                )
+            )
 
         return results
 
@@ -243,7 +258,7 @@ class ReputationEngine:
 
         Принимает List[StateDeltas] с faction_id + reputation_delta.
         """
-        from app.models.state_delta import DeltaDomain, ReputationPayload, StateDeltas
+        from app.models.state_delta import StateDeltas
 
         for d in deltas:
             if not isinstance(d, StateDeltas):
@@ -271,14 +286,18 @@ class ReputationEngine:
                 continue
             new_rep = max(-100.0, min(100.0, state.reputation + d.reputation_delta))
             state.reputation = round(new_rep, 2)
-            state.recent_actions.append({
-                "faction_id": d.faction_id,
-                "delta": d.reputation_delta,
-                "reason": d.source,
-            })
+            state.recent_actions.append(
+                {
+                    "faction_id": d.faction_id,
+                    "delta": d.reputation_delta,
+                    "reason": d.source,
+                }
+            )
             if len(state.recent_actions) > 50:
                 state.recent_actions = state.recent_actions[-50:]
-            logger.debug(f"[REPUTATION] {d.faction_id}: {state.reputation:+.1f} ({d.source})")
+            logger.debug(
+                f"[REPUTATION] {d.faction_id}: {state.reputation:+.1f} ({d.source})"
+            )
 
     def compute_reputation_modifier(self, npc_id: str) -> Dict[str, float]:
         """
@@ -322,7 +341,7 @@ class ReputationEngine:
                 "name": self._factions[fid].name,
                 "nature": self._factions[fid].nature,
                 "reputation": state.reputation,
-                "members": list(self._factions[fid].npc_members),
+                "members": List[Any](self._factions[fid].npc_members),
             }
             for fid, state in self._states.items()
             if fid in self._factions

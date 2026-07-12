@@ -4,7 +4,7 @@ E2E валидация каузальной цепи: Текст -> LLM -> Inten
 и LLM корректно извлекает MOVE intent из текстовой команды.
 """
 
-r'''
+r"""
 ИНСТРУКЦИЯ ЗАПУСКА (PowerShell):
 # 0. Убиваем зомби-процессы от прошлых запусков (освобождаем VRAM)
 Get-Process -Name "llama-server" -ErrorAction SilentlyContinue | Stop-Process -Force
@@ -47,21 +47,22 @@ Write-Host "🧹 Останавливаю LLM сервер (освобождаю
 Stop-Process -Id $llmProc.Id -Force -ErrorAction SilentlyContinue
 
 Read-Host "Готово. Нажми Enter"
-'''
+"""
 
 # TODO: Расширить тесты для OBSERVE, ATTACK и других директив.
 # Можно добавить проверку логов/событий EventBus при подчинении/неподчинении.
 # E2E тест с реальным LLM даёт больше уверенности в интеграции компонентов.
 
-import pytest
 import json
-import urllib.request
-import urllib.error
 import types
-# Примечание: PowerShell-скрипт запускается отдельно (run_directive_test.ps1)
+import urllib.error
+import urllib.request
 
-from app.services.social.directive_interpretation_subscriber import DirectiveInterpretationSubscriber
+import pytest
 from app.models.state_delta import DeltaDomain
+
+# Примечание: PowerShell-скрипт запускается отдельно (run_directive_test.ps1)
+from app.services.social.directive_interpretation_subscriber import DirectiveInterpretationSubscriber
 
 LLM_URL = "http://127.0.0.1:8080"
 
@@ -79,19 +80,22 @@ def check_llm_alive():
 
 def test_llm_extracts_move_intent():
     """Шаг 1: LLM должен извлечь MOVE intent из текста 'Борко, иди сюда!'"""
-    payload = json.dumps({
-        "messages": [
-            {"role": "system", "content": "Извлеки action (MOVE/OBSERVE/ATTACK) и target из текста. Формат: ACTION: <action>, TARGET: <target>"},
-            {"role": "user", "content": "Борко, иди сюда!"}
-        ],
-        "temperature": 0.1,
-        "max_tokens": 50
-    }).encode("utf-8")
+    payload = json.dumps(
+        {
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "Извлеки action (MOVE/OBSERVE/ATTACK) и target из текста. Формат: ACTION: <action>, TARGET: <target>",
+                },
+                {"role": "user", "content": "Борко, иди сюда!"},
+            ],
+            "temperature": 0.1,
+            "max_tokens": 50,
+        }
+    ).encode("utf-8")
 
     req = urllib.request.Request(
-        f"{LLM_URL}/v1/chat/completions",
-        data=payload,
-        headers={"Content-Type": "application/json"}
+        f"{LLM_URL}/v1/chat/completions", data=payload, headers={"Content-Type": "application/json"}
     )
 
     r = urllib.request.urlopen(req, timeout=30)
@@ -107,11 +111,8 @@ def test_legitimacy_gate_allows_high_fear():
     npc_borko = {
         "id": "guard_borko",
         "name": "Борко",
-        "social_stats": {
-            "fear_of_player": 0.8,
-            "trust": 10.0
-        },
-        "body_state": {"disabled": False, "shock_impulse": 0.0}
+        "social_stats": {"fear_of_player": 0.8, "trust": 10.0},
+        "body_state": {"disabled": False, "shock_impulse": 0.0},
     }
 
     event = types.SimpleNamespace(
@@ -120,8 +121,8 @@ def test_legitimacy_gate_allows_high_fear():
             "semantic_action": "MOVE",
             "target_reference": "борко",
             "target_id": "guard_borko",
-            "social_pressure": 0.8
-        }
+            "social_pressure": 0.8,
+        },
     )
 
     sub = DirectiveInterpretationSubscriber()
@@ -141,11 +142,8 @@ def test_legitimacy_gate_blocks_low_fear_thief():
     npc_shadow = {
         "id": "thief_shadow",
         "name": "Тень",
-        "social_stats": {
-            "fear_of_player": 0.1,
-            "trust": 0.1
-        },
-        "body_state": {"disabled": False, "shock_impulse": 0.0}
+        "social_stats": {"fear_of_player": 0.1, "trust": 0.1},
+        "body_state": {"disabled": False, "shock_impulse": 0.0},
     }
 
     event = types.SimpleNamespace(
@@ -154,8 +152,8 @@ def test_legitimacy_gate_blocks_low_fear_thief():
             "semantic_action": "MOVE",
             "target_reference": "тень",
             "target_id": "thief_shadow",
-            "social_pressure": 0.8
-        }
+            "social_pressure": 0.8,
+        },
     )
 
     sub = DirectiveInterpretationSubscriber()

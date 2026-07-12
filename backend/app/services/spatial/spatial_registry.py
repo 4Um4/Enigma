@@ -9,10 +9,11 @@ SSOT пространственной истины мира для всех back
 Не принимает решений. Предоставляет факты.
 Не вычисляет adjacency в рантайме. Не знает про direction.
 """
+
 import json
 import logging
 from pathlib import Path
-from typing import List, Optional
+from typing import Dict, Any, List, Optional
 from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
@@ -21,6 +22,7 @@ logger = logging.getLogger(__name__)
 @dataclass(frozen=True)
 class ChunkDescriptor:
     """Описание одного чанка мира. Зеркало артефакта."""
+
     location_id: str
     filename: str
     origin_x: float
@@ -35,6 +37,7 @@ class ChunkDescriptor:
 @dataclass(frozen=True)
 class AdjacencyEntry:
     """Факт геометрической смежности двух чанков."""
+
     location_a: str
     location_b: str
     contact_axis: str
@@ -47,6 +50,7 @@ class AdjacencyEntry:
 @dataclass(frozen=True)
 class WorldBounds:
     """Границы мира."""
+
     min_x: float
     min_y: float
     max_x: float
@@ -88,7 +92,7 @@ class SpatialRegistry:
             self._adjacency_by_location.setdefault(entry.location_b, []).append(entry)
 
     @classmethod
-    def load(cls, registry_path: Path) -> 'SpatialRegistry':
+    def load(cls, registry_path: Path) -> "SpatialRegistry":
         """Загружает реестр из файла артефакта.
         Не знает про кампанию — только про артефакт."""
         with open(registry_path, "r", encoding="utf-8") as f:
@@ -96,14 +100,10 @@ class SpatialRegistry:
         return cls.from_artifact(data)
 
     @classmethod
-    def from_artifact(cls, data: dict) -> 'SpatialRegistry':
+    def from_artifact(cls, data: Dict[str, Any]) -> "SpatialRegistry":
         """Создаёт реестр из словаря артефакта."""
-        chunks = [
-            ChunkDescriptor(**c) for c in data.get("chunks", [])
-        ]
-        adjacency = [
-            AdjacencyEntry(**a) for a in data.get("adjacency", [])
-        ]
+        chunks = [ChunkDescriptor(**c) for c in data.get("chunks", [])]
+        adjacency = [AdjacencyEntry(**a) for a in data.get("adjacency", [])]
         wb = data.get("world_bounds", {})
         world_bounds = WorldBounds(
             min_x=float(wb.get("min_x", 0.0)),
@@ -128,8 +128,13 @@ class SpatialRegistry:
             project_root = Path(".")
 
         candidate = (
-            project_root / "frontend" / "map_editor" / "campaigns"
-            / campaign_id / "compiled" / "spatial_registry.json"
+            project_root
+            / "frontend"
+            / "map_editor"
+            / "campaigns"
+            / campaign_id
+            / "compiled"
+            / "spatial_registry.json"
         )
         if candidate.exists():
             return candidate
@@ -137,25 +142,27 @@ class SpatialRegistry:
     @classmethod
     def get_or_load(cls, campaign_id: str) -> Optional["SpatialRegistry"]:
         """Загрузить реестр с кешированием. Инвалидация по mtime файла артефакта.
-        
+
         S82: Spatial Oracle требует O(1) доступ к реестру без IO на каждый запрос.
         Кеш инвалидируется при пересборке карты (editor обновляет артефакт).
         """
         artifact_path = cls.find_artifact(campaign_id)
         if artifact_path is None:
             return None
-        
+
         # Версия кеша = mtime файла. Если файл обновился — кеш устарел.
         mtime = str(artifact_path.stat().st_mtime)
-        
+
         cached = _registry_cache.get(campaign_id)
         if cached is not None and cached[1] == mtime:
             return cached[0]
-        
+
         # Загрузка нового реестра
         registry = cls.load(artifact_path)
         _registry_cache[campaign_id] = (registry, mtime)
-        logger.info(f"[SPATIAL_REGISTRY] Loaded and cached for campaign={campaign_id} ({len(registry)} chunks, mtime={mtime})")
+        logger.info(
+            f"[SPATIAL_REGISTRY] Loaded and cached for campaign={campaign_id} ({len(registry)} chunks, mtime={mtime})"
+        )
         return registry
 
     @classmethod
@@ -175,12 +182,16 @@ class SpatialRegistry:
         Точка может принадлежать нескольким слоям (дом внутри города)."""
         result = []
         for chunk in self._chunks:
-            if (chunk.origin_x <= world_x <= chunk.origin_x + chunk.width and
-                    chunk.origin_y <= world_y <= chunk.origin_y + chunk.height):
+            if (
+                chunk.origin_x <= world_x <= chunk.origin_x + chunk.width
+                and chunk.origin_y <= world_y <= chunk.origin_y + chunk.height
+            ):
                 result.append(chunk)
         return result
 
-    def find_nearby(self, world_x: float, world_y: float, radius: float) -> List[ChunkDescriptor]:
+    def find_nearby(
+        self, world_x: float, world_y: float, radius: float
+    ) -> List[ChunkDescriptor]:
         """Чанки в радиусе от точки (метры)."""
         result = []
         for chunk in self._chunks:
@@ -211,8 +222,12 @@ class SpatialRegistry:
         chunk = self._chunks_by_id.get(location_id)
         if chunk is None:
             return None
-        return (chunk.origin_x, chunk.origin_y,
-                chunk.origin_x + chunk.width, chunk.origin_y + chunk.height)
+        return (
+            chunk.origin_x,
+            chunk.origin_y,
+            chunk.origin_x + chunk.width,
+            chunk.origin_y + chunk.height,
+        )
 
     # === Adjacency ===
 
@@ -227,14 +242,16 @@ class SpatialRegistry:
         """Границы всего мира. Сдвигаются при расширении карты."""
         return self._world_bounds
 
-    def is_world_edge(self, world_x: float, world_y: float, margin: float = 2.0) -> bool:
+    def is_world_edge(
+        self, world_x: float, world_y: float, margin: float = 2.0
+    ) -> bool:
         """Находится ли точка у края мира (для Civilizational Horizon)."""
         wb = self._world_bounds
         return (
-            world_x <= wb.min_x + margin or
-            world_x >= wb.max_x - margin or
-            world_y <= wb.min_y + margin or
-            world_y >= wb.max_y - margin
+            world_x <= wb.min_x + margin
+            or world_x >= wb.max_x - margin
+            or world_y <= wb.min_y + margin
+            or world_y >= wb.max_y - margin
         )
 
     @property

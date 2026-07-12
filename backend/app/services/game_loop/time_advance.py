@@ -42,7 +42,9 @@ def advance_game_time(
     # Время диалога: базовое + длина ввода игрока (скорость речи NPC ~10 симв/с)
     if action_type in ("dialogue", "player_interacts"):
         _input_len = len(raw_input) if raw_input else 0
-        _delta_seconds = min(TIME_DIALOG_BASE + int(_input_len * TIME_DIALOG_PER_CHAR), TIME_DIALOG_MAX)
+        _delta_seconds = min(
+            TIME_DIALOG_BASE + int(_input_len * TIME_DIALOG_PER_CHAR), TIME_DIALOG_MAX
+        )
     elif action_type in ("move", "stealth", "player_moves"):
         _location = scene_state.get("location_id", "")
         if "tavern" in _location.lower() or "inn" in _location.lower():
@@ -93,4 +95,6 @@ def advance_game_time(
     scene_state.setdefault("environment", {})["time_of_day"] = _new_hhmm
 
     if _delta_seconds >= 60:
-        logger.warning(f"[TIME_ADVANCE] {_old_hhmm} → {_new_hhmm} (+{_delta_seconds // 60} мин)")
+        logger.warning(
+            f"[TIME_ADVANCE] {_old_hhmm} → {_new_hhmm} (+{_delta_seconds // 60} мин)"
+        )

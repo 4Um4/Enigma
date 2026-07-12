@@ -25,9 +25,9 @@ _COMBAT_LOG = _LOG_DIR / "combat_log.jsonl"
 
 def _log_roll(description: str, rolls: Any, total: int, context: Dict = None) -> None:
     entry = {
-        "ts":    datetime.now().isoformat(timespec="seconds"),
+        "ts": datetime.now().isoformat(timespec="seconds"),
         "event": "roll",
-        "desc":  description,
+        "desc": description,
         "rolls": rolls if isinstance(rolls, list) else [rolls],
         "total": total,
         **(context or {}),
@@ -45,6 +45,7 @@ def _log_event(event: str, data: Dict) -> None:
 # ──────────────────────────────────────────────────────────────────────────────
 # 1. Броски кубиков
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 def roll(n: int, sides: int) -> Tuple[List[int], int]:
     """Бросить NdM. Возвращает (список бросков, сумма)."""
@@ -80,7 +81,7 @@ def parse_dice(dice_str: str) -> Tuple[int, int, int]:
         bonus = int(parts[1])
     elif "-" in s and "d" in s:
         idx = s.rindex("-")
-        bonus = -int(s[idx+1:])
+        bonus = -int(s[idx + 1 :])
         s = s[:idx]
     if "d" in s:
         n, sides = map(int, s.split("d"))
@@ -92,6 +93,7 @@ def parse_dice(dice_str: str) -> Tuple[int, int, int]:
 # ──────────────────────────────────────────────────────────────────────────────
 # 2. Модификаторы характеристик
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 def ability_modifier(score: int) -> int:
     return (score - 10) // 2
@@ -107,19 +109,19 @@ def proficiency_bonus(level: int) -> int:
 
 ENVIRONMENT_MODIFIERS: Dict[str, int] = {
     # Освещение
-    "темнота":           -5,   # disadvantage на атаки
-    "тусклый_свет":      -2,
-    "яркий_свет":         0,
+    "темнота": -5,  # disadvantage на атаки
+    "тусклый_свет": -2,
+    "яркий_свет": 0,
     # Местность
-    "возвышение":        +2,   # атакующий выше цели
-    "скользкий_пол":     -2,
+    "возвышение": +2,  # атакующий выше цели
+    "скользкий_пол": -2,
     "тесное_пространство": -3,
     # Стихии
-    "огонь_рядом":       -1,
-    "ливень":            -2,
-    "сильный_ветер":     -3,   # дальнобойное
+    "огонь_рядом": -1,
+    "ливень": -2,
+    "сильный_ветер": -3,  # дальнобойное
     # Тактика
-    "фланг":             +2,   # союзник с другой стороны
+    "фланг": +2,  # союзник с другой стороны
     "укрытие_половинное": -2,
     "укрытие_трёхчетвертное": -5,
 }
@@ -137,46 +139,59 @@ def get_environment_bonus(conditions: List[str]) -> int:
 # 4. Результат атаки
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 class AttackResult:
-    def __init__(self, d20: int, attack_total: int, hit: bool,
-                 critical: bool, fumble: bool, damage: int,
-                 breakdown: str, target_ac: int):
-        self.d20          = d20
+    def __init__(
+        self,
+        d20: int,
+        attack_total: int,
+        hit: bool,
+        critical: bool,
+        fumble: bool,
+        damage: int,
+        breakdown: str,
+        target_ac: int,
+    ):
+        self.d20 = d20
         self.attack_total = attack_total
-        self.hit          = hit
-        self.critical     = critical
-        self.fumble       = fumble   # d20=1
-        self.damage       = damage
-        self.breakdown    = breakdown
-        self.target_ac    = target_ac
+        self.hit = hit
+        self.critical = critical
+        self.fumble = fumble  # d20=1
+        self.damage = damage
+        self.breakdown = breakdown
+        self.target_ac = target_ac
 
     def to_dict(self) -> Dict:
         return {
-            "d20":          self.d20,
+            "d20": self.d20,
             "attack_total": self.attack_total,
-            "hit":          self.hit,
-            "critical":     self.critical,
-            "fumble":       self.fumble,
-            "damage":       self.damage,
-            "breakdown":    self.breakdown,
-            "target_ac":    self.target_ac,
+            "hit": self.hit,
+            "critical": self.critical,
+            "fumble": self.fumble,
+            "damage": self.damage,
+            "breakdown": self.breakdown,
+            "target_ac": self.target_ac,
         }
 
 
-def attack_roll(attacker: Dict, target: Dict,
-                advantage: bool = False, disadvantage: bool = False,
-                env_conditions: List[str] = None) -> AttackResult:
+def attack_roll(
+    attacker: Dict,
+    target: Dict,
+    advantage: bool = False,
+    disadvantage: bool = False,
+    env_conditions: List[str] = None,
+) -> AttackResult:
     """
     Полный бросок атаки D&D 5e/2024.
 
     attacker и target — словари из characters.json / major_npcs.json.
     """
-    weapon  = attacker.get("equipped_weapon", {})
+    weapon = attacker.get("equipped_weapon", {})
     ability = weapon.get("ability", "strength")
     abilities = attacker.get("abilities", {})
-    mod     = ability_modifier(abilities.get(ability, 10))
-    level   = attacker.get("level", 1)
-    prof    = proficiency_bonus(level) if weapon.get("proficient", True) else 0
+    mod = ability_modifier(abilities.get(ability, 10))
+    level = attacker.get("level", 1)
+    prof = proficiency_bonus(level) if weapon.get("proficient", True) else 0
     env_bonus = get_environment_bonus(env_conditions or [])
 
     # Бросок d20
@@ -194,17 +209,17 @@ def attack_roll(attacker: Dict, target: Dict,
     total_attack = d20 + mod + prof + env_bonus
     ac = target.get("ac", 10)
 
-    fumble   = (d20 == 1)
-    critical = (d20 == 20)
-    hit      = (not fumble) and (critical or total_attack >= ac)
+    fumble = d20 == 1
+    critical = d20 == 20
+    hit = (not fumble) and (critical or total_attack >= ac)
 
     # Урон
     damage = 0
     dmg_breakdown = "промах"
     if hit:
-        dmg_dice  = weapon.get("damage", "1d6")
-        dmg_data  = damage_roll(dmg_dice, mod, critical=critical)
-        damage    = max(0, dmg_data["total"])
+        dmg_dice = weapon.get("damage", "1d6")
+        dmg_data = damage_roll(dmg_dice, mod, critical=critical)
+        damage = max(0, dmg_data["total"])
         dmg_breakdown = dmg_data["breakdown"]
 
     breakdown = (
@@ -213,7 +228,9 @@ def attack_roll(attacker: Dict, target: Dict,
         f"урон: {dmg_breakdown}"
     )
 
-    result = AttackResult(d20, total_attack, hit, critical, fumble, damage, breakdown, ac)
+    result = AttackResult(
+        d20, total_attack, hit, critical, fumble, damage, breakdown, ac
+    )
     _log_event("attack", result.to_dict())
     return result
 
@@ -221,6 +238,7 @@ def attack_roll(attacker: Dict, target: Dict,
 # ──────────────────────────────────────────────────────────────────────────────
 # 5. Урон
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 def damage_roll(weapon_dice: str, ability_mod: int, critical: bool = False) -> Dict:
     """
@@ -236,12 +254,18 @@ def damage_roll(weapon_dice: str, ability_mod: int, critical: bool = False) -> D
         f"{'КРИТ! ' if critical else ''}"
         f"{dice_count}d{sides}={results} + mod({ability_mod:+}) + bonus({bonus:+}) = {total}"
     )
-    return {"total": total, "breakdown": breakdown, "critical": critical, "rolls": results}
+    return {
+        "total": total,
+        "breakdown": breakdown,
+        "critical": critical,
+        "rolls": results,
+    }
 
 
 # ──────────────────────────────────────────────────────────────────────────────
 # 6. Инициатива
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 def roll_initiative(character: Dict) -> int:
     dex_mod = ability_modifier(character.get("abilities", {}).get("dexterity", 10))
@@ -256,37 +280,57 @@ def sort_initiative(combatants: List[Dict]) -> List[Dict]:
     for c in combatants:
         if "initiative" not in c:
             c["initiative"] = roll_initiative(c)
-    return sorted(combatants, key=lambda c: (-c["initiative"], 0 if c.get("type") == "player" else 1))
+    return sorted(
+        combatants,
+        key=lambda c: (-c["initiative"], 0 if c.get("type") == "player" else 1),
+    )
 
 
 # ──────────────────────────────────────────────────────────────────────────────
 # 7. HP и состояния
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 def apply_damage(target: Dict, damage: int) -> Dict:
     """Применяет урон. Возвращает изменения."""
     before = target.get("hp", 0)
     target["hp"] = max(0, before - damage)
     if target["hp"] <= 0:
-        target["status"] = "dead" if target.get("tier") in ("minor", "mass") else "incapacitated"
-    _log_event("damage_applied", {
-        "target": target.get("name", "?"),
-        "damage": damage, "hp_before": before, "hp_after": target["hp"],
+        target["status"] = (
+            "dead" if target.get("tier") in ("minor", "mass") else "incapacitated"
+        )
+    _log_event(
+        "damage_applied",
+        {
+            "target": target.get("name", "?"),
+            "damage": damage,
+            "hp_before": before,
+            "hp_after": target["hp"],
+            "status": target.get("status", "alive"),
+        },
+    )
+    return {
+        "hp_before": before,
+        "hp_after": target["hp"],
         "status": target.get("status", "alive"),
-    })
-    return {"hp_before": before, "hp_after": target["hp"], "status": target.get("status", "alive")}
+    }
 
 
 def apply_healing(target: Dict, amount: int) -> Dict:
-    max_hp  = target.get("max_hp", target.get("hp", 0))
-    before  = target.get("hp", 0)
+    max_hp = target.get("max_hp", target.get("hp", 0))
+    before = target.get("hp", 0)
     target["hp"] = min(max_hp, before + amount)
     if target["hp"] > 0:
         target["status"] = "alive"
-    _log_event("healing_applied", {
-        "target": target.get("name", "?"),
-        "healed": amount, "hp_before": before, "hp_after": target["hp"],
-    })
+    _log_event(
+        "healing_applied",
+        {
+            "target": target.get("name", "?"),
+            "healed": amount,
+            "hp_before": before,
+            "hp_after": target["hp"],
+        },
+    )
     return {"hp_before": before, "hp_after": target["hp"]}
 
 
@@ -320,7 +364,9 @@ def skill_check(character: Dict, skill: str, dc: int) -> Dict:
     """Проверка навыка. Возвращает результат."""
     ability = SKILL_TO_ABILITY.get(skill.lower(), "strength")
     mod = ability_modifier(character.get("abilities", {}).get(ability, 10))
-    has_proficiency = skill.lower() in [s.lower() for s in character.get("proficiencies", [])]
+    has_proficiency = skill.lower() in [
+        s.lower() for s in character.get("proficiencies", [])
+    ]
     prof = proficiency_bonus(character.get("level", 1)) if has_proficiency else 0
 
     d20 = random.randint(1, 20)
@@ -329,13 +375,13 @@ def skill_check(character: Dict, skill: str, dc: int) -> Dict:
     _log_roll(f"skill_check {skill} DC{dc}", [d20], total)
 
     return {
-        "skill":   skill,
+        "skill": skill,
         "ability": ability,
-        "d20":     d20,
-        "mod":     mod,
-        "prof":    prof,
-        "total":   total,
-        "dc":      dc,
+        "d20": d20,
+        "mod": mod,
+        "prof": prof,
+        "total": total,
+        "dc": dc,
         "success": success,
         "breakdown": f"d20({d20}) + {ability}({mod:+}) + prof({prof:+}) = {total} vs DC{dc}",
     }
@@ -353,8 +399,11 @@ def saving_throw(character: Dict, ability: str, dc: int) -> Dict:
     _log_roll(f"saving_throw {ability} DC{dc}", [d20], total)
 
     return {
-        "ability": ability, "d20": d20, "total": total,
-        "dc": dc, "success": success,
+        "ability": ability,
+        "d20": d20,
+        "total": total,
+        "dc": dc,
+        "success": success,
         "breakdown": f"d20({d20}) + {ability}({mod:+}) + prof({prof:+}) = {total} vs DC{dc}",
     }
 
@@ -362,6 +411,7 @@ def saving_throw(character: Dict, ability: str, dc: int) -> Dict:
 # ──────────────────────────────────────────────────────────────────────────────
 # 9. Смерть и спасброски от смерти
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 def death_saving_throw(character: Dict) -> Dict:
     """
@@ -385,11 +435,13 @@ def death_saving_throw(character: Dict) -> Dict:
 # 10. Боевая сетка (позиции)
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 class CombatGrid:
     """
     Простая 2D сетка для боя.
     Позволяет DM говорить 'гоблин зашёл тебе за спину'.
     """
+
     def __init__(self):
         self.positions: Dict[str, Tuple[int, int]] = {}
 
@@ -412,15 +464,18 @@ class CombatGrid:
         ax, ay = self.positions[attacker]
         lx, ly = self.positions[ally]
         # Оппозиционный: сумма векторов ≈ 0
-        return (ax + lx - 2*tx)**2 + (ay + ly - 2*ty)**2 < 4
+        return (ax + lx - 2 * tx) ** 2 + (ay + ly - 2 * ty) ** 2 < 4
 
     def is_adjacent(self, a: str, b: str) -> bool:
         return self.distance(a, b) <= 1
 
     def get_neighbors(self, target: str, radius: int = 1) -> List[str]:
         """Все существа в радиусе клеток."""
-        return [name for name in self.positions if name != target
-                and self.distance(target, name) <= radius]
+        return [
+            name
+            for name in self.positions
+            if name != target and self.distance(target, name) <= radius
+        ]
 
     def to_dict(self) -> Dict:
         return {name: {"x": x, "y": y} for name, (x, y) in self.positions.items()}
@@ -430,24 +485,28 @@ class CombatGrid:
 # 11. Контекст для DM агента
 # ──────────────────────────────────────────────────────────────────────────────
 
-def build_combat_context(attack: AttackResult, target: Dict,
-                          grid: CombatGrid = None,
-                          conditions: List[str] = None) -> Dict:
+
+def build_combat_context(
+    attack: AttackResult,
+    target: Dict,
+    grid: CombatGrid = None,
+    conditions: List[str] = None,
+) -> Dict:
     """
     Готовый контекст — DM агент получает это и только нарративит.
     Никаких вычислений в LLM.
     """
     return {
-        "attack_roll":      attack.attack_total,
-        "d20":              attack.d20,
-        "hit":              attack.hit,
-        "critical":         attack.critical,
-        "fumble":           attack.fumble,
-        "damage":           attack.damage,
+        "attack_roll": attack.attack_total,
+        "d20": attack.d20,
+        "hit": attack.hit,
+        "critical": attack.critical,
+        "fumble": attack.fumble,
+        "damage": attack.damage,
         "target_hp_before": target.get("hp", 0) + attack.damage,
-        "target_hp_after":  target.get("hp", 0),
-        "target_status":    target.get("status", "alive"),
-        "breakdown":        attack.breakdown,
-        "env_conditions":   conditions or [],
-        "grid":             grid.to_dict() if grid else {},
+        "target_hp_after": target.get("hp", 0),
+        "target_status": target.get("status", "alive"),
+        "breakdown": attack.breakdown,
+        "env_conditions": conditions or [],
+        "grid": grid.to_dict() if grid else {},
     }

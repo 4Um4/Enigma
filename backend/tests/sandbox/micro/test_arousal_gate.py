@@ -8,6 +8,7 @@
 
 Запуск: pytest backend/tests/sandbox/micro/test_arousal_gate.py -v
 """
+
 import pytest
 from app.services.npc.life_engine import LifeEngine
 from app.services.scene_change import ChangeType
@@ -43,6 +44,7 @@ def _sleeping_npc(**overrides) -> dict:
 
 
 # ── Основные сценарии Arousal Gate ──────────────────────────────────────────
+
 
 class TestArousalGateWakeScenarios:
     """Проверка: спящий NPC пробуждается при достаточном wake_pressure."""

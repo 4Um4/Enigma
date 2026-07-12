@@ -1,3 +1,4 @@
+from typing import Any, Dict, List, Optional
 # backend/app/services/events/__init__.py
 #
 # Устав §5.1: EventBus + подписчики — единая точка входа событий.

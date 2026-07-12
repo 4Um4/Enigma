@@ -6,7 +6,9 @@ path: backend/tests/sandbox/persistence/test_perceptual_kernel_roundtrip.py
 
 Запуск: cd backend; python -m pytest tests/sandbox/persistence/test_perceptual_kernel_roundtrip.py -v --tb=short; cd ..
 """
+
 import dataclasses
+
 from app.models.npc_state import NPCState, NPCStateAdapter
 
 
@@ -29,26 +31,27 @@ def test_perceptual_kernel_survives_legacy_roundtrip():
             "initiative_suppression": 0.3,
             "compliance_bias": 0.1,
             "somatic_urgency": 0.65,  # ADR-O-143: воспринимаемый телесный дистресс
-            "recent_directive": "MOVE"
-        }
+            "recent_directive": "MOVE",
+        },
     }
-    
+
     # Создаём объект через фабрику (§12.3: Тест через from_legacy)
     original_state = NPCStateAdapter.from_legacy(initial_dict)
-    
+
     # Сериализуем в legacy dict (write_to_legacy принадлежит NPCState)
     legacy_out = {}
     NPCState.write_to_legacy(original_state, legacy_out)
-    
+
     # Десериализуем обратно (Round-trip)
     restored_state = NPCStateAdapter.from_legacy(legacy_out)
-    
+
     # Проверяем, что все поля PerceptualKernel совпадают (§12.2: Write-All-Read-All)
     assert original_state.perceptual_kernel is not None, "PerceptualKernel потерян при roundtrip"
     assert restored_state.perceptual_kernel is not None, "PerceptualKernel потерян при восстановлении"
-    
+
     for field in dataclasses.fields(original_state.perceptual_kernel):
         original_val = getattr(original_state.perceptual_kernel, field.name)
         restored_val = getattr(restored_state.perceptual_kernel, field.name)
-        assert original_val == restored_val, \
+        assert original_val == restored_val, (
             f"Rule 31 Нарушено: PK поле '{field.name}' потеряно при roundtrip: {original_val} != {restored_val}"
+        )

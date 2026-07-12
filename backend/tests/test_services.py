@@ -13,22 +13,19 @@ if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
 from app.agents.dm_agent import DmAgent
-from app.agents.rules_agent import RulesAgent
 from app.agents.world_sim_agent import WorldSimulationAgent
-from app.models.schemas import PlayerAction
+from app.core.config import settings
+from app.services.combat_service import CombatService
 from app.services.memory import JsonMemoryStore, LayeredMemory
 from app.services.system_requirements import RequirementReport, SystemRequirements
 from app.services.world_scheduler import WorldScheduler
-from app.services.knowledge_ingest import KnowledgeIngestService
-from app.services.combat_service import CombatService
-from app.core.config import settings
+
 # Старый llama_cpp удалён, класс переименован в LlamaCppProvider
 try:
     from app.services.llm.llama_cpp_provider import LlamaCppProvider as LlamaCppAdapter
 except ImportError:
     LlamaCppAdapter = None
 
-from app.services.pdf_drop_importer import PdfDropImporter
 
 try:
     from app.services.readiness import ReadinessService
@@ -42,7 +39,6 @@ except ModuleNotFoundError:
     CharacterSheet = None
     CharacterService = None
 
-import pytest
 from app.services.llm.provider_manager import get_model_pool
 
 
@@ -72,11 +68,6 @@ class MemoryTests(unittest.TestCase):
             self.assertEqual(len(second), 2)
 
 
-
-
-
-
-
 class OrchestratorSessionStateTests(unittest.TestCase):
     def test_resolves_world_from_campaign_memory_history(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -94,6 +85,7 @@ class OrchestratorSessionStateTests(unittest.TestCase):
                     world_id = item["world_id"]
                     break
             self.assertEqual(world_id, "w-history")
+
 
 class DmAgentTests(unittest.TestCase):
     @unittest.skip("DM narrate depends on LLM - test manually")
@@ -116,9 +108,7 @@ class LlamaCppIntegrationTests(unittest.TestCase):
     def test_llama_cpp_run_with_local_binary_and_model(self) -> None:
         adapter = LlamaCppAdapter()
         model_path_str = (
-            os.environ.get("LLAMA_TEST_MODEL")
-            or os.environ.get("LLAMA_CPP_MODEL")
-            or settings.llama_cpp_model_path
+            os.environ.get("LLAMA_TEST_MODEL") or os.environ.get("LLAMA_CPP_MODEL") or settings.llama_cpp_model_path
         )
         model_path = Path(model_path_str or "").expanduser() if model_path_str else None
 
@@ -133,8 +123,9 @@ class LlamaCppIntegrationTests(unittest.TestCase):
         # Исправленный код: создаем менеджер модели и тестируем его
         # Skip heavy model load for unit test, check API exists
         pool = get_model_pool()
-        self.assertTrue(hasattr(pool, 'get_model_async'))
+        self.assertTrue(hasattr(pool, "get_model_async"))
         self.skipTest("Model loading skipped - heavy dependency")
+
 
 class RequirementsTests(unittest.TestCase):
     def test_check_returns_report(self) -> None:
@@ -176,8 +167,6 @@ class CombatServiceTests(unittest.TestCase):
             self.assertEqual(turned.turn_index, 1)
 
 
-
-
 @unittest.skipIf(ReadinessService is None, "pydantic dependency is unavailable in environment")
 class ReadinessTests(unittest.TestCase):
     def test_readiness_report_structure(self) -> None:
@@ -187,7 +176,9 @@ class ReadinessTests(unittest.TestCase):
         self.assertTrue(any(item.status in {"missing", "partial", "done"} for item in report.checks))
 
 
-@unittest.skipIf(CharacterService is None or CharacterSheet is None, "pydantic dependency is unavailable in environment")
+@unittest.skipIf(
+    CharacterService is None or CharacterSheet is None, "pydantic dependency is unavailable in environment"
+)
 class CharacterServiceTests(unittest.TestCase):
     def test_upsert_and_list(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

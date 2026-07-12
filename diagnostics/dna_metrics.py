@@ -19,7 +19,7 @@ path: diagnostics/dna_metrics.py
 
 import json
 import subprocess
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, asdict
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
@@ -31,18 +31,19 @@ from diagnostics.health_checkers.movement_health import MovementHealthReport
 @dataclass
 class DNASnapshot:
     """Снимок DNA-метрик одной сессии — пишется в dna_history.jsonl."""
-    timestamp: str               # ISO-формат
-    session_minutes: float       # длительность сессии
+
+    timestamp: str  # ISO-формат
+    session_minutes: float  # длительность сессии
 
     # --- Simulation ---
-    SHI: float    # Simulation Health Index 0–100
-    NPI: float    # NPC Pipeline Integrity 0–100
-    OBI: float    # Obedience Breakthrough Index 0–100
+    SHI: float  # Simulation Health Index 0–100
+    NPI: float  # NPC Pipeline Integrity 0–100
+    OBI: float  # Obedience Breakthrough Index 0–100
 
     # --- Architecture ---
-    SCF: float    # Spatial Coherence Factor 0.0 / 0.5 / 1.0
-    ADR: float    # Architecture Debt Ratio (TODO/ADR_count)
-    CVS: float    # Causal Velocity Score (llm_calls/min)
+    SCF: float  # Spatial Coherence Factor 0.0 / 0.5 / 1.0
+    ADR: float  # Architecture Debt Ratio (TODO/ADR_count)
+    CVS: float  # Causal Velocity Score (llm_calls/min)
 
     # --- Raw counts для воспроизводимости ---
     total_ticks: int
@@ -55,7 +56,9 @@ class DNASnapshot:
     adr_count: int
     llm_calls: int
     # Инвариант 3: пред-шинные отказы
-    prebus_failures: int = 0  # pipeline_critical + causality_crash + phase8_crash + tick_orch_error
+    prebus_failures: int = (
+        0  # pipeline_critical + causality_crash + phase8_crash + tick_orch_error
+    )
     affect_decay_fails: int = 0  # affect_decay_fail count
     invariant_violations: int = 0  # Количество CRITICAL нарушений инвариантов
     invariant_warning_count: int = 0  # Количество WARNING нарушений инвариантов
@@ -64,6 +67,7 @@ class DNASnapshot:
 @dataclass
 class DNADelta:
     """Дельта между текущей и предыдущей сессией."""
+
     SHI: Optional[float] = None
     NPI: Optional[float] = None
     OBI: Optional[float] = None
@@ -90,7 +94,7 @@ class DNADelta:
         if abs(v) < 0.5:
             return "→"
         positive = v > 0
-        return ("↑" if positive == higher_is_better else "↓")
+        return "↑" if positive == higher_is_better else "↓"
 
 
 class DNAComputer:
@@ -111,7 +115,9 @@ class DNAComputer:
         self._movement = movement_report
         self._started_at = started_at
         self._invariant_violations = invariant_violations or []
-        self._root = Path(project_root) if project_root else Path(__file__).parent.parent
+        self._root = (
+            Path(project_root) if project_root else Path(__file__).parent.parent
+        )
         self._history_path = self._root / "reports" / "dna_history.jsonl"
 
         # Накопленные данные директив (заполняются через on_* методы)
@@ -147,12 +153,20 @@ class DNAComputer:
         cvs = self._compute_cvs(session_minutes)
 
         # Инвариант 3: Подсчёт пред-шинных отказов
-        _prebus = (self._tick.pipeline_critical_count + self._tick.causality_crash_count +
-                   self._tick.phase8_crash_count + self._tick.tick_orch_error_count)
+        _prebus = (
+            self._tick.pipeline_critical_count
+            + self._tick.causality_crash_count
+            + self._tick.phase8_crash_count
+            + self._tick.tick_orch_error_count
+        )
 
         # INV-DEF: Подсчёт нарушений инвариантов
-        _inv_violations = sum(1 for v in self._invariant_violations if v.severity == "CRITICAL")
-        _inv_warnings = sum(1 for v in self._invariant_violations if v.severity == "WARNING")
+        _inv_violations = sum(
+            1 for v in self._invariant_violations if v.severity == "CRITICAL"
+        )
+        _inv_warnings = sum(
+            1 for v in self._invariant_violations if v.severity == "WARNING"
+        )
 
         return DNASnapshot(
             timestamp=datetime.now().isoformat(timespec="seconds"),
@@ -188,7 +202,9 @@ class DNAComputer:
             return 0.0
         if self._tick.total_decisions == 0:
             return 0.0
-        return round(min(self._tick.total_decisions / self._tick.total_ticks * 100, 100.0), 1)
+        return round(
+            min(self._tick.total_decisions / self._tick.total_ticks * 100, 100.0), 1
+        )
 
     def _compute_npi(self) -> tuple[float, int, int]:
         """
@@ -200,7 +216,8 @@ class DNAComputer:
             return 0.0, 0, 0
         total = len(npcs)
         real = sum(
-            1 for s in npcs.values()
+            1
+            for s in npcs.values()
             if s.coord_x is not None and (s.coord_x != 0.0 or s.coord_y != 0.0)
         )
         return round(real / total * 100, 1), total, real
@@ -252,13 +269,19 @@ class DNAComputer:
         """Считает TODO/FIXME/HACK через PowerShell."""
         try:
             result = subprocess.run(
-                ["powershell", "-Command",
-                 "Get-ChildItem -Path 'backend/app/','frontend/' -Filter '*.py' -Recurse "
-                 "| Select-String -Pattern 'TODO|FIXME|HACK' "
-                 "| Measure-Object | Select-Object -ExpandProperty Count"],
+                [
+                    "powershell",
+                    "-Command",
+                    "Get-ChildItem -Path 'backend/app/','frontend/' -Filter '*.py' -Recurse "
+                    "| Select-String -Pattern 'TODO|FIXME|HACK' "
+                    "| Measure-Object | Select-Object -ExpandProperty Count",
+                ],
                 cwd=str(self._root),
-                capture_output=True, text=True, timeout=15,
-                encoding="utf-8", errors="replace",
+                capture_output=True,
+                text=True,
+                timeout=15,
+                encoding="utf-8",
+                errors="replace",
             )
             if result.returncode == 0:
                 return int(result.stdout.strip())
@@ -269,7 +292,9 @@ class DNAComputer:
     def _count_adrs(self) -> int:
         """Считает ADR-записи через grep по файлу."""
         try:
-            adr_file = self._root / "docs" / "Tasks" / "ADR (Architecture Decision Records).md"
+            adr_file = (
+                self._root / "docs" / "Tasks" / "ADR (Architecture Decision Records).md"
+            )
             if not adr_file.exists():
                 return 0
             text = adr_file.read_text(encoding="utf-8", errors="replace")
@@ -295,9 +320,13 @@ class DNAComputer:
         try:
             if not self._history_path.exists():
                 return None
-            lines = [l.strip() for l in self._history_path.read_text(
-                encoding="utf-8", errors="replace"
-            ).splitlines() if l.strip()]
+            lines = [
+                l.strip()
+                for l in self._history_path.read_text(
+                    encoding="utf-8", errors="replace"
+                ).splitlines()
+                if l.strip()
+            ]
             # Берём предпоследнюю — последняя только что записана
             if len(lines) < 2:
                 return None
@@ -306,7 +335,9 @@ class DNAComputer:
         except Exception:
             return None
 
-    def compute_delta(self, current: DNASnapshot, previous: Optional[DNASnapshot]) -> DNADelta:
+    def compute_delta(
+        self, current: DNASnapshot, previous: Optional[DNASnapshot]
+    ) -> DNADelta:
         """Вычисляет разницу метрик между текущей и предыдущей сессией."""
         if previous is None:
             return DNADelta()
@@ -354,7 +385,9 @@ class DNAComputer:
 
         # NPI
         npi_icon = delta.trend_icon("NPI", higher_is_better=True)
-        npi_interpret = self._interpret_npi(snapshot.NPI, snapshot.npc_with_real_coords, snapshot.npc_total)
+        npi_interpret = self._interpret_npi(
+            snapshot.NPI, snapshot.npc_with_real_coords, snapshot.npc_total
+        )
         lines.append(
             f"| **NPI** (NPC Pipeline) | {snapshot.NPI:.0f}% | "
             f"{npi_icon} {delta.format_field('NPI')}% | {npi_interpret} |"
@@ -378,7 +411,9 @@ class DNAComputer:
 
         # ADR
         adr_icon = delta.trend_icon("ADR", higher_is_better=False)
-        adr_interpret = self._interpret_adr(snapshot.ADR, snapshot.todo_count, snapshot.adr_count)
+        adr_interpret = self._interpret_adr(
+            snapshot.ADR, snapshot.todo_count, snapshot.adr_count
+        )
         lines.append(
             f"| **ADR** (Debt Ratio) | {snapshot.ADR:.2f} | "
             f"{adr_icon} {delta.format_field('ADR')} | {adr_interpret} |"
@@ -395,7 +430,9 @@ class DNAComputer:
         # Инвариант 3: PFI — Pre-Bus Failure Index
         _pfi_val = snapshot.prebus_failures / max(snapshot.total_ticks, 1) * 100
         pfi_icon = delta.trend_icon("PFI", higher_is_better=False)
-        pfi_interpret = self._interpret_pfi(_pfi_val, snapshot.prebus_failures, snapshot.affect_decay_fails)
+        pfi_interpret = self._interpret_pfi(
+            _pfi_val, snapshot.prebus_failures, snapshot.affect_decay_fails
+        )
         lines.append(
             f"| **PFI** (Pre-Bus Failure) | {_pfi_val:.0f}% | "
             f"{pfi_icon} {delta.format_field('PFI')}% | {pfi_interpret} |"
@@ -435,7 +472,9 @@ class DNAComputer:
         if v == 0:
             return f"⛔ 0/{total} NPC имеют координаты: traversal полностью сломан"
         if v < 50:
-            return f"⚠️ {real}/{total} NPC с координатами: spatial pipeline частично сломан"
+            return (
+                f"⚠️ {real}/{total} NPC с координатами: spatial pipeline частично сломан"
+            )
         if v < 100:
             return f"⚠️ {real}/{total} NPC с координатами: есть потери в traversal"
         return f"✅ {real}/{total} NPC с реальными координатами"
@@ -444,7 +483,9 @@ class DNAComputer:
         if events == 0:
             return "нет директив в сессии — OBI не применим"
         if v == 0:
-            return "⛔ 0% обработки: ObediencePressure всегда 0 → Legitimacy Gate мертва"
+            return (
+                "⛔ 0% обработки: ObediencePressure всегда 0 → Legitimacy Gate мертва"
+            )
         if v < 30:
             return f"⚠️ {v:.0f}% директив прошли: слабый отклик NPC на приказы"
         return f"✅ {v:.0f}% директив с ненулевым давлением"
@@ -470,7 +511,9 @@ class DNAComputer:
         if adr == 0:
             return "нет ADR-записей — невозможно оценить"
         if v > 3.0:
-            return f"⛔ {todo} TODO / {adr} ADR = долг накапливается быстрее документации"
+            return (
+                f"⛔ {todo} TODO / {adr} ADR = долг накапливается быстрее документации"
+            )
         if v > 2.0:
             return f"⚠️ {todo} TODO / {adr} ADR = умеренный архитектурный долг"
         return f"✅ {todo} TODO / {adr} ADR = долг под контролем"
@@ -525,8 +568,12 @@ class DNAComputer:
         try:
             if not self._history_path.exists():
                 return 0
-            return sum(1 for l in self._history_path.read_text(
-                encoding="utf-8", errors="replace"
-            ).splitlines() if l.strip())
+            return sum(
+                1
+                for l in self._history_path.read_text(
+                    encoding="utf-8", errors="replace"
+                ).splitlines()
+                if l.strip()
+            )
         except Exception:
             return 0

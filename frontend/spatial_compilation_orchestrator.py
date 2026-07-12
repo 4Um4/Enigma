@@ -8,6 +8,7 @@ frontend/spatial_compilation_orchestrator.py
 Не является god-object — принимает только решения о компиляции,
 не владеет миром, не управляет рендерингом, не двигает NPC.
 """
+
 import json
 import logging
 from pathlib import Path
@@ -16,7 +17,6 @@ from typing import Optional
 from map_editor.spatial_registry_builder import (
     SpatialRegistryBuilder,
     SpatialRegistryArtifact,
-    ARTIFACT_VERSION,
 )
 
 logger = logging.getLogger(__name__)
@@ -81,6 +81,7 @@ class SpatialCompilationOrchestrator:
         try:
             # Сначала пробуем backend (полный SpatialRegistry с find_chunks)
             import sys
+
             project_root = Path(__file__).resolve().parents[1]
             backend_path = project_root / "backend"
             if str(backend_path) not in sys.path:
@@ -132,15 +133,24 @@ class SpatialCompilationOrchestrator:
             project_root = Path(".")
 
         candidate = (
-            project_root / "frontend" / "map_editor" / "campaigns"
-            / campaign_id / "compiled" / "spatial_registry.json"
+            project_root
+            / "frontend"
+            / "map_editor"
+            / "campaigns"
+            / campaign_id
+            / "compiled"
+            / "spatial_registry.json"
         )
         if candidate.exists():
             return candidate
 
         candidate2 = (
-            project_root / "map_editor" / "campaigns"
-            / campaign_id / "compiled" / "spatial_registry.json"
+            project_root
+            / "map_editor"
+            / "campaigns"
+            / campaign_id
+            / "compiled"
+            / "spatial_registry.json"
         )
         if candidate2.exists():
             return candidate2
@@ -151,12 +161,13 @@ class SpatialCompilationOrchestrator:
 class _MinimalFrontendRegistry:
     """Fallback-реестр для pure-frontend контекста (без backend).
     Только данные, без find_chunks/find_nearby."""
+
     def __init__(self, data: dict):
         self.data = data
         self.campaign_id = data.get("campaign_id", "")
 
     @classmethod
-    def load(cls, path: Path) -> '_MinimalFrontendRegistry':
+    def load(cls, path: Path) -> "_MinimalFrontendRegistry":
         with open(path, "r", encoding="utf-8") as f:
             return cls(json.load(f))
 
@@ -172,7 +183,9 @@ class _MinimalFrontendRegistry:
             origin_y = float(chunk.get("origin_y", 0))
             width = float(chunk.get("width", 0))
             height = float(chunk.get("height", 0))
-            if (origin_x <= world_x <= origin_x + width and
-                origin_y <= world_y <= origin_y + height):
+            if (
+                origin_x <= world_x <= origin_x + width
+                and origin_y <= world_y <= origin_y + height
+            ):
                 result.append(chunk)
         return result

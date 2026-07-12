@@ -9,22 +9,22 @@ DM и NPC получают одинаковый срез реальности �
 Вызывается из orchestrator после всех Python-движков, до агентов.
 """
 
-from typing import Optional
+from typing import List, Dict, Any, Optional
 from app.services.simulation.world_state import get_world_state
 from app.models.pipeline_context import PipelineContext
 
 
 def build_context(
-    campaign_id:          str,
-    world_id:             str,
-    location:             str,
-    player:               str,
-    scene_state:          dict,
-    python_engines:       dict,
-    recent_memory:        list | None  = None,
-    reaction_order:       list | None  = None,
+    campaign_id: str,
+    world_id: str,
+    location: str,
+    player: str,
+    scene_state: Dict[str, Any],
+    python_engines: Dict[str, Any],
+    recent_memory: Optional[List[Any]] = None,
+    reaction_order: Optional[List[Any]] = None,
     forced_first_speaker: Optional[str] = None,
-) -> dict:
+) -> "PipelineContext":
     """
     Собирает единый context dict для DM и NPC агентов.
 
@@ -50,35 +50,22 @@ def build_context(
         world_id=world_id,
         location=location,
         player_state={player: {}},
-
         # ── Состояние мира (единственный источник правды) ────────────
         scene_state=scene_state,
         world_context_slice=get_world_state().build_context_slice(scene_state),
-
         # ── Результаты Python-движков ─────────────────────────────────
         python_engines=python_engines,
         npc_contexts=npc_contexts,
-
         # ── Память и сессия ───────────────────────────────────────────
         recent_memory=recent_memory,
         recent_session=recent_session,
-
         # ── Реакции NPC (S.4.2) ───────────────────────────────────────
         reaction_order=reaction_order,
         forced_first_speaker=forced_first_speaker,
     )
 
 
-# Удалено: patch_scene_state (ADR-0015 нарушение причинности)
-    """
-    Обновляет scene_state внутри уже собранного контекста.
-    Вызывается после apply_changes() если SceneState мутировал.
-    In-place — ссылка та же, агенты увидят изменение автоматически.
-    """
-    context.scene_state = scene_state
-
-
-def get_npc_context(context: dict, npc_id: str) -> Optional[dict]:
+def get_npc_context(context: Dict[str, Any], npc_id: str) -> Optional[Dict[str, Any]]:
     """
     Возвращает контекст конкретного NPC по его id.
     Используется npc_agent вместо поиска по списку вручную.

@@ -14,7 +14,6 @@ R4.2 — Калибровочные тесты формулы score().
 """
 
 import pytest
-
 from app.models.npc_state import (
     EmotionTag,
     Intent,
@@ -26,10 +25,10 @@ from app.models.npc_state import (
 )
 from app.services.npc.decision_hub import DecisionHub, EventContext
 
-
 # ─────────────────────────────────────────────────────────────────────────────
 # Fixtures
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 @pytest.fixture
 def hub() -> DecisionHub:
@@ -41,13 +40,12 @@ def hub() -> DecisionHub:
 def control_personality() -> NPCPersonality:
     """NPC с доминирующим drive: control (трактирщик, стражник)."""
     return NPCPersonality(
-        npc_id       = "control_npc",
-        tier         = NPCTier.MAJOR,
-        drives_base  = {"control": 0.55, "significance": 0.25,
-                        "fear": 0.10, "desire": 0.10},
-        willpower    = 70.0,
-        breakpoint   = 85.0,
-        loyalty_base = 50.0,
+        npc_id="control_npc",
+        tier=NPCTier.MAJOR,
+        drives_base={"control": 0.55, "significance": 0.25, "fear": 0.10, "desire": 0.10},
+        willpower=70.0,
+        breakpoint=85.0,
+        loyalty_base=50.0,
     )
 
 
@@ -55,13 +53,12 @@ def control_personality() -> NPCPersonality:
 def fear_personality() -> NPCPersonality:
     """NPC с доминирующим drive: fear (крестьянин, слуга)."""
     return NPCPersonality(
-        npc_id       = "fear_npc",
-        tier         = NPCTier.MINOR,
-        drives_base  = {"control": 0.10, "significance": 0.10,
-                        "fear": 0.65, "desire": 0.15},
-        willpower    = 25.0,
-        breakpoint   = 55.0,
-        loyalty_base = 30.0,
+        npc_id="fear_npc",
+        tier=NPCTier.MINOR,
+        drives_base={"control": 0.10, "significance": 0.10, "fear": 0.65, "desire": 0.15},
+        willpower=25.0,
+        breakpoint=55.0,
+        loyalty_base=30.0,
     )
 
 
@@ -69,13 +66,12 @@ def fear_personality() -> NPCPersonality:
 def desire_personality() -> NPCPersonality:
     """NPC с доминирующим drive: desire (торговец)."""
     return NPCPersonality(
-        npc_id       = "desire_npc",
-        tier         = NPCTier.MINOR,
-        drives_base  = {"control": 0.15, "significance": 0.15,
-                        "fear": 0.10, "desire": 0.60},
-        willpower    = 40.0,
-        breakpoint   = 75.0,
-        loyalty_base = 40.0,
+        npc_id="desire_npc",
+        tier=NPCTier.MINOR,
+        drives_base={"control": 0.15, "significance": 0.15, "fear": 0.10, "desire": 0.60},
+        willpower=40.0,
+        breakpoint=75.0,
+        loyalty_base=40.0,
     )
 
 
@@ -83,13 +79,13 @@ def desire_personality() -> NPCPersonality:
 def close_combat_event() -> EventContext:
     """Близкое боевое событие — максимальное давление."""
     return EventContext(
-        event_type             = "combat",
-        actor_id               = "player",
-        success                = True,
-        intensity              = 1.0,
-        distance               = 1.5,
-        witness_count          = 4,
-        visible_threat_markers = ["weapon_melee", "heavy_armor"],
+        event_type="combat",
+        actor_id="player",
+        success=True,
+        intensity=1.0,
+        distance=1.5,
+        witness_count=4,
+        visible_threat_markers=["weapon_melee", "heavy_armor"],
     )
 
 
@@ -97,12 +93,12 @@ def close_combat_event() -> EventContext:
 def theft_failed_event() -> EventContext:
     """Провальная попытка кражи — NPC заметил."""
     return EventContext(
-        event_type    = "theft",
-        actor_id      = "player",
-        success       = False,
-        intensity     = 0.8,
-        distance      = 2.0,
-        witness_count = 2,
+        event_type="theft",
+        actor_id="player",
+        success=False,
+        intensity=0.8,
+        distance=2.0,
+        witness_count=2,
     )
 
 
@@ -110,8 +106,8 @@ def theft_failed_event() -> EventContext:
 # Боевое давление
 # ─────────────────────────────────────────────────────────────────────────────
 
-class TestCombatCalibration:
 
+class TestCombatCalibration:
     def test_high_stress_combat_no_talk_or_trade(
         self,
         hub: DecisionHub,
@@ -123,14 +119,15 @@ class TestCombatCalibration:
         Только примитивные реакции: FLEE, WARN, OBSERVE.
         """
         state = NPCState(
-            npc_id     = "control_npc",
-            stress     = 82.0,
-            will_state = WillState.FREE,
-            emotion    = EmotionTag.FEARFUL,
+            npc_id="control_npc",
+            stress=82.0,
+            will_state=WillState.FREE,
+            emotion=EmotionTag.FEARFUL,
         )
         result = hub.compute(state, control_personality, close_combat_event)
-        assert result.intent not in (Intent.TALK, Intent.TRADE, Intent.HELP), \
+        assert result.intent not in (Intent.TALK, Intent.TRADE, Intent.HELP), (
             f"При стрессе >80 NPC не должен разговаривать/торговать: {result.intent}"
+        )
 
     def test_fear_drive_flees_from_combat(
         self,
@@ -144,11 +141,10 @@ class TestCombatCalibration:
         """
         state = NPCState(npc_id="fear_npc", emotion=EmotionTag.FEARFUL)
         result = hub.compute(state, fear_personality, close_combat_event)
-        assert result.intent != Intent.ATTACK, \
-            "Трусливый NPC не атакует при близком бою"
-        assert result.intent in (Intent.FLEE, Intent.OBSERVE, Intent.WARN,
-                                  Intent.IDLE, Intent.TALK), \
+        assert result.intent != Intent.ATTACK, "Трусливый NPC не атакует при близком бою"
+        assert result.intent in (Intent.FLEE, Intent.OBSERVE, Intent.WARN, Intent.IDLE, Intent.TALK), (
             f"Трусливый NPC должен избегать, не атаковать: {result.intent}"
+        )
 
     def test_control_npc_warns_with_witnesses(
         self,
@@ -159,20 +155,20 @@ class TestCombatCalibration:
         NPC с control drive при краже с свидетелями → WARN или REPORT.
         Социальное давление (witness_count) активирует control-реакции.
         """
-        state  = NPCState(npc_id="control_npc")
-        event  = EventContext(
-            event_type    = "theft",
-            actor_id      = "player",
-            success       = False,
-            intensity     = 0.9,
-            distance      = 2.0,
-            witness_count = 5,
+        state = NPCState(npc_id="control_npc")
+        event = EventContext(
+            event_type="theft",
+            actor_id="player",
+            success=False,
+            intensity=0.9,
+            distance=2.0,
+            witness_count=5,
         )
         result = hub.compute(state, control_personality, event)
         # WARN, REPORT — ожидаемые реакции control-drive при публичном нарушении
-        assert result.intent in (
-            Intent.WARN, Intent.REPORT, Intent.INTIMIDATE, Intent.OBSERVE
-        ), f"Control NPC при краже с свидетелями: ожидали WARN/REPORT, получили {result.intent}"
+        assert result.intent in (Intent.WARN, Intent.REPORT, Intent.INTIMIDATE, Intent.OBSERVE), (
+            f"Control NPC при краже с свидетелями: ожидали WARN/REPORT, получили {result.intent}"
+        )
 
     def test_scores_trace_attack_negative_for_fear_npc(
         self,
@@ -183,11 +179,10 @@ class TestCombatCalibration:
         """
         Для трусливого NPC score ATTACK должен быть ≤ 0 (early exit в формуле).
         """
-        state  = NPCState(npc_id="fear_npc")
+        state = NPCState(npc_id="fear_npc")
         result = hub.compute(state, fear_personality, close_combat_event)
         attack_score = result.scores_trace.get(Intent.ATTACK.value, -1.0)
-        assert attack_score <= 0.0, \
-            f"Трусливый NPC: score ATTACK должен быть ≤ 0, получили {attack_score}"
+        assert attack_score <= 0.0, f"Трусливый NPC: score ATTACK должен быть ≤ 0, получили {attack_score}"
 
     def test_scores_within_reasonable_bounds(
         self,
@@ -200,24 +195,23 @@ class TestCombatCalibration:
         Защита от overflow в формуле при граничных условиях.
         """
         extreme_state = NPCState(
-            npc_id             = "fear_npc",
-            stress             = 99.0,
-            emotion            = EmotionTag.FEARFUL,
-            relationship_cache = {"trust": 0.0, "fear": 100.0, "debt": 0.0},
+            npc_id="fear_npc",
+            stress=99.0,
+            emotion=EmotionTag.FEARFUL,
+            relationship_cache={"trust": 0.0, "fear": 100.0, "debt": 0.0},
         )
         result = hub.compute(extreme_state, fear_personality, close_combat_event)
 
         for intent_name, score in result.scores_trace.items():
-            assert -2.0 <= score <= 3.0, \
-                f"Score '{intent_name}' вышел за пределы [-2, 3]: {score}"
+            assert -2.0 <= score <= 3.0, f"Score '{intent_name}' вышел за пределы [-2, 3]: {score}"
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Влияние отношений (relationship_modifier)
 # ─────────────────────────────────────────────────────────────────────────────
 
-class TestRelationshipCalibration:
 
+class TestRelationshipCalibration:
     def test_high_trust_boosts_help_score(
         self,
         hub: DecisionHub,
@@ -228,26 +222,27 @@ class TestRelationshipCalibration:
         relationship_modifier работает корректно.
         """
         event = EventContext(
-            event_type = "help",
-            actor_id   = "player",
-            intensity  = 0.8,
+            event_type="help",
+            actor_id="player",
+            intensity=0.8,
         )
         state_trusted = NPCState(
-            npc_id             = "control_npc",
-            relationship_cache = {"trust": 80.0, "fear": 0.0, "debt": 0.0},
+            npc_id="control_npc",
+            relationship_cache={"trust": 80.0, "fear": 0.0, "debt": 0.0},
         )
         state_neutral = NPCState(
-            npc_id             = "control_npc",
-            relationship_cache = {"trust": 0.0,  "fear": 0.0, "debt": 0.0},
+            npc_id="control_npc",
+            relationship_cache={"trust": 0.0, "fear": 0.0, "debt": 0.0},
         )
-        result_trusted  = hub.compute(state_trusted,  control_personality, event)
-        result_neutral  = hub.compute(state_neutral,  control_personality, event)
+        result_trusted = hub.compute(state_trusted, control_personality, event)
+        result_neutral = hub.compute(state_neutral, control_personality, event)
 
         trusted_help = result_trusted.scores_trace.get(Intent.HELP.value, 0.0)
         neutral_help = result_neutral.scores_trace.get(Intent.HELP.value, 0.0)
 
-        assert trusted_help > neutral_help, \
+        assert trusted_help > neutral_help, (
             f"Высокий trust должен повышать score HELP: {trusted_help} vs {neutral_help}"
+        )
 
     def test_fear_in_relationship_boosts_flee(
         self,
@@ -259,29 +254,28 @@ class TestRelationshipCalibration:
         Высокий fear в relationship → score FLEE ещё выше.
         """
         state_scared = NPCState(
-            npc_id             = "fear_npc",
-            relationship_cache = {"trust": 0.0, "fear": 70.0, "debt": 0.0},
+            npc_id="fear_npc",
+            relationship_cache={"trust": 0.0, "fear": 70.0, "debt": 0.0},
         )
         state_neutral = NPCState(
-            npc_id             = "fear_npc",
-            relationship_cache = {"trust": 0.0, "fear": 0.0,  "debt": 0.0},
+            npc_id="fear_npc",
+            relationship_cache={"trust": 0.0, "fear": 0.0, "debt": 0.0},
         )
-        r_scared  = hub.compute(state_scared,  fear_personality, close_combat_event)
+        r_scared = hub.compute(state_scared, fear_personality, close_combat_event)
         r_neutral = hub.compute(state_neutral, fear_personality, close_combat_event)
 
-        flee_scared  = r_scared.scores_trace.get(Intent.FLEE.value, 0.0)
+        flee_scared = r_scared.scores_trace.get(Intent.FLEE.value, 0.0)
         flee_neutral = r_neutral.scores_trace.get(Intent.FLEE.value, 0.0)
 
-        assert flee_scared >= flee_neutral, \
-            f"Высокий fear должен повышать score FLEE: {flee_scared} vs {flee_neutral}"
+        assert flee_scared >= flee_neutral, f"Высокий fear должен повышать score FLEE: {flee_scared} vs {flee_neutral}"
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Влияние трейтов (trait_modifier)
 # ─────────────────────────────────────────────────────────────────────────────
 
-class TestTraitCalibration:
 
+class TestTraitCalibration:
     def test_suspicious_trait_boosts_observe(
         self,
         hub: DecisionHub,
@@ -291,22 +285,21 @@ class TestTraitCalibration:
         Трейт suspicious > 0.6 → score OBSERVE выше, чем без трейта.
         """
         event = EventContext(
-            event_type = "dialogue",
-            actor_id   = "player",
-            intensity  = 0.5,
+            event_type="dialogue",
+            actor_id="player",
+            intensity=0.5,
         )
         identity_suspicious = NPCIdentityL1(npc_id="desire_npc", active_traits={"suspicious": 0.8})
         state_suspicious = NPCState(npc_id="desire_npc")
         state_clean = NPCState(npc_id="desire_npc")
 
         r_suspicious = hub.compute(state_suspicious, desire_personality, event, identity=identity_suspicious)
-        r_clean      = hub.compute(state_clean,      desire_personality, event)
+        r_clean = hub.compute(state_clean, desire_personality, event)
 
         obs_suspicious = r_suspicious.scores_trace.get(Intent.OBSERVE.value, 0.0)
-        obs_clean      = r_clean.scores_trace.get(Intent.OBSERVE.value, 0.0)
+        obs_clean = r_clean.scores_trace.get(Intent.OBSERVE.value, 0.0)
 
-        assert obs_suspicious > obs_clean, \
-            f"Suspicious trait должен повышать OBSERVE: {obs_suspicious} vs {obs_clean}"
+        assert obs_suspicious > obs_clean, f"Suspicious trait должен повышать OBSERVE: {obs_suspicious} vs {obs_clean}"
 
     def test_grateful_trait_reduces_attack(
         self,
@@ -322,13 +315,12 @@ class TestTraitCalibration:
         state_neutral = NPCState(npc_id="control_npc")
 
         r_grateful = hub.compute(state_grateful, control_personality, close_combat_event, identity=identity_grateful)
-        r_neutral  = hub.compute(state_neutral,  control_personality, close_combat_event)
+        r_neutral = hub.compute(state_neutral, control_personality, close_combat_event)
 
         atk_grateful = r_grateful.scores_trace.get(Intent.ATTACK.value, -1.0)
-        atk_neutral  = r_neutral.scores_trace.get(Intent.ATTACK.value, -1.0)
+        atk_neutral = r_neutral.scores_trace.get(Intent.ATTACK.value, -1.0)
 
-        assert atk_grateful <= atk_neutral, \
-            f"Grateful trait должен снижать ATTACK: {atk_grateful} vs {atk_neutral}"
+        assert atk_grateful <= atk_neutral, f"Grateful trait должен снижать ATTACK: {atk_grateful} vs {atk_neutral}"
 
     def test_intent_inertia_favors_current_intent(
         self,
@@ -340,29 +332,30 @@ class TestTraitCalibration:
         Без прогресса exhaustion штрафует intent — это отдельный тест.
         """
         event = EventContext(
-            event_type    = "theft",
-            actor_id      = "player",
-            intensity     = 0.7,
-            witness_count = 2,
+            event_type="theft",
+            actor_id="player",
+            intensity=0.7,
+            witness_count=2,
         )
         state_inertia = NPCState(
-            npc_id          = "control_npc",
-            intent          = Intent.WARN,
-            intent_target   = "player",
-            intent_duration = 8,
-            intent_progress_ticks = 8,  # Есть прогресс → нет exhaustion
+            npc_id="control_npc",
+            intent=Intent.WARN,
+            intent_target="player",
+            intent_duration=8,
+            intent_progress_ticks=8,  # Есть прогресс → нет exhaustion
         )
         state_fresh = NPCState(
-            npc_id          = "control_npc",
-            intent          = None,
-            intent_duration = 0,
+            npc_id="control_npc",
+            intent=None,
+            intent_duration=0,
         )
 
         r_inertia = hub.compute(state_inertia, control_personality, event)
-        r_fresh   = hub.compute(state_fresh,   control_personality, event)
+        r_fresh = hub.compute(state_fresh, control_personality, event)
 
         warn_inertia = r_inertia.scores_trace.get(Intent.WARN.value, 0.0)
-        warn_fresh   = r_fresh.scores_trace.get(Intent.WARN.value, 0.0)
+        warn_fresh = r_fresh.scores_trace.get(Intent.WARN.value, 0.0)
 
-        assert warn_inertia > warn_fresh, \
+        assert warn_inertia > warn_fresh, (
             f"Инерция должна повышать score текущего intent: {warn_inertia} vs {warn_fresh}"
+        )

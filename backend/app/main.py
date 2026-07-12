@@ -1,4 +1,4 @@
-﻿# backend/app/main.py
+# backend/app/main.py
 # ИСПРАВЛЕНИЯ vs оригинал:
 # 1. Все опасные операции в startup обёрнуты в try/except
 # 3. LLM health check не блокирует старт (результат — только warning)
@@ -20,6 +20,7 @@ import atexit
 import time
 import subprocess
 
+
 def _kill_llama_server() -> None:
     """Гарантированное убийство llama-server при любом выходе — только если МЫ его запустили."""
     global _llama_server_proc, _llama_started_by_us
@@ -39,6 +40,7 @@ def _restart_llama_server() -> bool:
     """Restart llama-server если он упал во время игры. Возвращает True если сервер жив."""
     global _llama_server_proc, _llama_started_by_us
     import urllib.request
+
     # Шаг 1: проверяем — может сервер уже жив (внешний или предыдущий инстанс)
     try:
         urllib.request.urlopen(f"{settings.llama_cpp_server_url}/health", timeout=2)
@@ -71,33 +73,47 @@ def _restart_llama_server() -> bool:
     try:
         server_cmd = [
             settings.llama_cpp_server_executable,
-            "-m", settings.llama_cpp_model_path,
-            "--port", "8080",
-            "--host", "localhost",
-            "-ngl", str(settings.gpu_layers),
-            "-c", str(settings.ctx_size),
-            "-t", str(settings.threads),
+            "-m",
+            settings.llama_cpp_model_path,
+            "--port",
+            "8080",
+            "--host",
+            "localhost",
+            "-ngl",
+            str(settings.gpu_layers),
+            "-c",
+            str(settings.ctx_size),
+            "-t",
+            str(settings.threads),
         ]
-        _llama_stderr_path = str(BASE_DIR / "backend" / "logs" / "llama_server_stderr.log")
+        _llama_stderr_path = str(
+            BASE_DIR / "backend" / "logs" / "llama_server_stderr.log"
+        )
         _llama_stderr_file = open(_llama_stderr_path, "a", encoding="utf-8")
         _llama_server_proc = subprocess.Popen(
             server_cmd,
             stdout=subprocess.DEVNULL,
             stderr=_llama_stderr_file,
-            creationflags=subprocess.CREATE_NO_WINDOW if hasattr(subprocess, 'CREATE_NO_WINDOW') else 0,
+            creationflags=subprocess.CREATE_NO_WINDOW
+            if hasattr(subprocess, "CREATE_NO_WINDOW")
+            else 0,
         )
         _llama_started_by_us = True
         # Ждём HTTP readiness
         for _attempt in range(int(settings.model_load_timeout_sec / 2)):
             try:
-                urllib.request.urlopen(f"{settings.llama_cpp_server_url}/health", timeout=2)
+                urllib.request.urlopen(
+                    f"{settings.llama_cpp_server_url}/health", timeout=2
+                )
                 logger.info("[LLM_RESTART] llama-server перезапущен успешно")
                 print("✓ llama-server перезапущен")
                 return True
             except Exception:
                 time.sleep(2)
-        logger.error(f"[LLM_RESTART] Перезапуск не удался за {settings.model_load_timeout_sec}с")
-        print(f"⚠️ Перезапуск llama-server не удался")
+        logger.error(
+            f"[LLM_RESTART] Перезапуск не удался за {settings.model_load_timeout_sec}с"
+        )
+        print("⚠️ Перезапуск llama-server не удался")
         return False
     except Exception as e:
         logger.error(f"[LLM_RESTART] Exception: {e}")
@@ -105,32 +121,34 @@ def _restart_llama_server() -> bool:
         _llama_server_proc = None
         return False
 
+
 atexit.register(_kill_llama_server)
 import logging
 import asyncio
-import subprocess
-import time
 from datetime import datetime
-from pathlib import Path
 
 # CDS: Подключаем Uvicorn-подпроцесс к записи в общий лог-файл
-_CDS_LOG_PATH = Path(__file__).resolve().parents[2] / "backend" / "logs" / "cds_backend.log"
+_CDS_LOG_PATH = (
+    Path(__file__).resolve().parents[2] / "backend" / "logs" / "cds_backend.log"
+)
 if _CDS_LOG_PATH.exists():
-    _cds_handler = logging.FileHandler(str(_CDS_LOG_PATH), encoding='utf-8')
+    _cds_handler = logging.FileHandler(str(_CDS_LOG_PATH), encoding="utf-8")
     _cds_handler.setLevel(logging.DEBUG)
-    _cds_handler.setFormatter(logging.Formatter('%(asctime)s %(name)s %(levelname)s: %(message)s'))
+    _cds_handler.setFormatter(
+        logging.Formatter("%(asctime)s %(name)s %(levelname)s: %(message)s")
+    )
     logging.getLogger().addHandler(_cds_handler)
     logging.getLogger().setLevel(logging.INFO)
 
 # ADR-DEBUG-001: Явное включение WARNING для каузально-критичных логгеров.
 _CRITICAL_LOGGERS = [
-    "app.services.scene.r3_direct_builder",   # R3_DIRECT warnings
-    "app.services.world.world_tick_engine",   # DecisionHub.compute errors
-    "app.services.npc.l1_chronicle",          # L1 persistence failures
-    "app.services.npc.decision_hub",          # compute() signature errors
-    "app.services.npc.life_engine",           # PIPELINE_FAULT L3_MISSING
-    "app.services.verbalization",             # DM contract building
-    "app.services.combat.injury_processor",   # injury creation failures
+    "app.services.scene.r3_direct_builder",  # R3_DIRECT warnings
+    "app.services.world.world_tick_engine",  # DecisionHub.compute errors
+    "app.services.npc.l1_chronicle",  # L1 persistence failures
+    "app.services.npc.decision_hub",  # compute() signature errors
+    "app.services.npc.life_engine",  # PIPELINE_FAULT L3_MISSING
+    "app.services.verbalization",  # DM contract building
+    "app.services.combat.injury_processor",  # injury creation failures
 ]
 for _logger_name in _CRITICAL_LOGGERS:
     logging.getLogger(_logger_name).setLevel(logging.WARNING)
@@ -152,8 +170,8 @@ from app.services.game_loop_builder import build_game_loop
 
 logger = logging.getLogger(__name__)
 
-BASE_DIR     = Path(__file__).resolve().parents[2]   # Enigma root
-DATA_DIR     = BASE_DIR / "backend" / "data"
+BASE_DIR = Path(__file__).resolve().parents[2]  # Enigma root
+DATA_DIR = BASE_DIR / "backend" / "data"
 
 
 @asynccontextmanager
@@ -163,10 +181,14 @@ async def lifespan(app: FastAPI):
     # Не трогает stdout, не ломает SSE. Уровень DEBUG ловит [DECISION_HUB] и [STATE_APPLIED].
     _logs_dir = Path(__file__).resolve().parents[2] / "backend" / "logs"
     _logs_dir.mkdir(exist_ok=True)
-    _cds_log_path = _logs_dir / f"cds_session_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
-    _cds_handler = logging.FileHandler(str(_cds_log_path), encoding='utf-8')
+    _cds_log_path = (
+        _logs_dir / f"cds_session_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
+    )
+    _cds_handler = logging.FileHandler(str(_cds_log_path), encoding="utf-8")
     _cds_handler.setLevel(logging.DEBUG)
-    _cds_handler.setFormatter(logging.Formatter('%(asctime)s %(name)s %(levelname)s: %(message)s'))
+    _cds_handler.setFormatter(
+        logging.Formatter("%(asctime)s %(name)s %(levelname)s: %(message)s")
+    )
     logging.getLogger().addHandler(_cds_handler)
     logger.info(f"[CDS] FileHandler initialized: {_cds_log_path}")
 
@@ -183,6 +205,7 @@ async def lifespan(app: FastAPI):
     # 1.5 ModelPool — регистрирует модели из settings.available_models
     try:
         from app.services.llm.provider_manager import initialize_model_pool
+
         results = initialize_model_pool()
         loaded = sum(1 for v in results.values() if v)
         print(f"✓ ModelPool initialized ({loaded}/{len(results)} models)")
@@ -203,11 +226,14 @@ async def lifespan(app: FastAPI):
 
     # 3. JSONL startup log
     try:
-        jsonl_log({
-            "level": "INFO", "agent": "system",
-            "event": "startup_complete",
-            "log_dir": str(settings.log_dir),
-        })
+        jsonl_log(
+            {
+                "level": "INFO",
+                "agent": "system",
+                "event": "startup_complete",
+                "log_dir": str(settings.log_dir),
+            }
+        )
         print("✓ JSONL startup log written")
     except Exception as e:
         logger.warning(f"[STARTUP] JSONL log failed: {e}")
@@ -247,7 +273,10 @@ async def lifespan(app: FastAPI):
             app.state.startup_status["llm_server"] = "starting"
             try:
                 import urllib.request
-                urllib.request.urlopen(f"{settings.llama_cpp_server_url}/health", timeout=2)
+
+                urllib.request.urlopen(
+                    f"{settings.llama_cpp_server_url}/health", timeout=2
+                )
                 print(f"✓ llama-server уже запущен ({settings.llama_cpp_server_url})")
                 app.state.startup_status["llm_server"] = "ready"
             except Exception:
@@ -255,20 +284,32 @@ async def lifespan(app: FastAPI):
                 try:
                     server_cmd = [
                         settings.llama_cpp_server_executable,
-                        "-m", settings.llama_cpp_model_path,  # ADR-087: Без флага модели сервер крашит!
-                        "--port", "8181",
-                        "--host", "localhost",
-                        "-ngl", str(settings.gpu_layers),  # GPU offload — без этого 5.4ГБ грузится на CPU → таймаут
-                        "-c", str(settings.ctx_size),       # размер контекста
-                        "-t", str(settings.threads),         # потоки
+                        "-m",
+                        settings.llama_cpp_model_path,  # ADR-087: Без флага модели сервер крашит!
+                        "--port",
+                        "8181",
+                        "--host",
+                        "localhost",
+                        "-ngl",
+                        str(
+                            settings.gpu_layers
+                        ),  # GPU offload — без этого 5.4ГБ грузится на CPU → таймаут
+                        "-c",
+                        str(settings.ctx_size),  # размер контекста
+                        "-t",
+                        str(settings.threads),  # потоки
                     ]
-                    _llama_stderr_path = str(BASE_DIR / "backend" / "logs" / "llama_server_stderr.log")
+                    _llama_stderr_path = str(
+                        BASE_DIR / "backend" / "logs" / "llama_server_stderr.log"
+                    )
                     _llama_stderr_file = open(_llama_stderr_path, "a", encoding="utf-8")
                     _proc = subprocess.Popen(
                         server_cmd,
                         stdout=subprocess.DEVNULL,
                         stderr=_llama_stderr_file,
-                        creationflags=subprocess.CREATE_NO_WINDOW if hasattr(subprocess, 'CREATE_NO_WINDOW') else 0,
+                        creationflags=subprocess.CREATE_NO_WINDOW
+                        if hasattr(subprocess, "CREATE_NO_WINDOW")
+                        else 0,
                     )
                     # Проверка: процесс жив после spawn?
                     await asyncio.sleep(1)
@@ -283,11 +324,14 @@ async def lifespan(app: FastAPI):
                             logger.warning(f"[B5-FIX] silent failure suppressed: {e}")
                         print(f"✗ llama-server упал при старте (exit={_exit_code})")
                         print(f"  stderr: {_err_lines[:500]}")
-                        logger.error(f"[STARTUP] llama-server exited immediately (code={_exit_code}): {_err_lines[:500]}")
+                        logger.error(
+                            f"[STARTUP] llama-server exited immediately (code={_exit_code}): {_err_lines[:500]}"
+                        )
                         app.state.startup_status["llm_server"] = "failed"
                     else:
                         # Процесс жив — ждём HTTP readiness (неблокирующе)
                         import urllib.request
+
                         _server_ready = False
                         for _attempt in range(int(settings.model_load_timeout_sec / 2)):
                             try:
@@ -300,16 +344,24 @@ async def lifespan(app: FastAPI):
                             except Exception:
                                 await asyncio.sleep(2)
                         if _server_ready:
-                            print(f"✓ llama-server запущен ({settings.llama_cpp_server_url}, GPU={settings.gpu_layers}, ctx={settings.ctx_size})")
-                            logger.info(f"[STARTUP] llama-server запущен ({settings.llama_cpp_server_url})")
+                            print(
+                                f"✓ llama-server запущен ({settings.llama_cpp_server_url}, GPU={settings.gpu_layers}, ctx={settings.ctx_size})"
+                            )
+                            logger.info(
+                                f"[STARTUP] llama-server запущен ({settings.llama_cpp_server_url})"
+                            )
                             _llama_state["proc"] = _proc
                             _llama_state["started_by_us"] = True
                             _llama_server_proc = _proc
                             _llama_started_by_us = True
                             app.state.startup_status["llm_server"] = "ready"
                         else:
-                            print(f"⚠️ llama-server не ответил за {settings.model_load_timeout_sec}с — убиваем сироту")
-                            logger.warning(f"[STARTUP] llama-server timeout — killing orphan process")
+                            print(
+                                f"⚠️ llama-server не ответил за {settings.model_load_timeout_sec}с — убиваем сироту"
+                            )
+                            logger.warning(
+                                "[STARTUP] llama-server timeout — killing orphan process"
+                            )
                             try:
                                 _proc.terminate()
                                 _proc.wait(timeout=5)
@@ -317,7 +369,9 @@ async def lifespan(app: FastAPI):
                                 try:
                                     _proc.kill()
                                 except Exception as e:
-                                    logger.warning(f"[B5-FIX] silent failure suppressed: {e}")
+                                    logger.warning(
+                                        f"[B5-FIX] silent failure suppressed: {e}"
+                                    )
                             _llama_stderr_file.close()
                             app.state.startup_status["llm_server"] = "failed"
                 except Exception as e:
@@ -347,9 +401,15 @@ async def lifespan(app: FastAPI):
             )
             mode = "сервер" if provider.use_server else "CLI"
             icon = "✅" if is_available else "⚠️"
-            print(f"  {icon} LLM ({mode}): {'доступен' if is_available else 'недоступен'}")
-            logger.info(f"[STARTUP] LLM ({mode}): {'доступен' if is_available else 'недоступен'}")
-            app.state.startup_status["llm_health"] = "ready" if is_available else "unavailable"
+            print(
+                f"  {icon} LLM ({mode}): {'доступен' if is_available else 'недоступен'}"
+            )
+            logger.info(
+                f"[STARTUP] LLM ({mode}): {'доступен' if is_available else 'недоступен'}"
+            )
+            app.state.startup_status["llm_health"] = (
+                "ready" if is_available else "unavailable"
+            )
             if not is_available:
                 print("  Игра запущена в offline-режиме. LLM ответы будут недоступны.")
         except asyncio.TimeoutError:
@@ -365,10 +425,10 @@ async def lifespan(app: FastAPI):
     _bg_task = asyncio.create_task(_background_llm_startup())
 
     _api = get_api_url()
-    print(f"\n=== Fast startup complete ===")
+    print("\n=== Fast startup complete ===")
     print(f"  Backend:   {_api}")
     print(f"  API Docs:  {_api}/docs")
-    print(f"  LLM:       загружается в фоне (проверяйте /health)...\n")
+    print("  LLM:       загружается в фоне (проверяйте /health)...\n")
 
     yield  # ← Сервер ПРИНЯМАЕТ СОЕДИНЕНИЯ немедленно
 
@@ -422,9 +482,11 @@ if DATA_DIR.exists():
 @app.get("/")
 def root():
     """Статус backend — UI теперь в pygame."""
-    return JSONResponse({
-        "status": "running",
-        "mode": "pygame",
-        "docs": "/docs",
-        "health": "/api/health",
-    })
+    return JSONResponse(
+        {
+            "status": "running",
+            "mode": "pygame",
+            "docs": "/docs",
+            "health": "/api/health",
+        }
+    )

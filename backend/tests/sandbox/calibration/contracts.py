@@ -1,9 +1,9 @@
-"""
+""" """
 
-"""
+from dataclasses import dataclass
 
 import numpy as np
-from dataclasses import dataclass
+
 
 @dataclass(frozen=True)
 class CausalPressureVector:
@@ -12,6 +12,7 @@ class CausalPressureVector:
     significance: float = 0.0
     desire: float = 0.0
     volatility: float = 0.0
+
 
 @dataclass(frozen=True)
 class CausalStateVector:

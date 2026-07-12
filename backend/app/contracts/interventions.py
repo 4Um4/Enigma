@@ -4,10 +4,11 @@
 Зависимости: стандартная библиотека Python.
 Основные сущности: InterventionEven
 """
-
 from __future__ import annotations
+
 from dataclasses import dataclass
 from typing import Any, Dict
+
 
 @dataclass(frozen=True)
 class InterventionEvent:
@@ -17,17 +18,14 @@ class InterventionEvent:
     Ядро обрабатывает interventions как недифференцированный data stream.
     Любая семантическая классификация переносится в downstream-слои.
     """
+
     source: str
     payload: Dict[str, Any]
     tick: int
 
     @classmethod
     def from_player_action(
-        cls,
-        action_text: str,
-        player_name: str,
-        tick: int,
-        **kwargs
+        cls, action_text: str, player_name: str, tick: int, **kwargs
     ) -> "InterventionEvent":
         """Factory для player actions (backward compat для GameLoop)."""
         return cls(

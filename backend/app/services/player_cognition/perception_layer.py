@@ -8,6 +8,7 @@ path: /backend/app/services/player_cognition/perception_layer.py
 Зависимости: spatial_runtime, perception_filter (calculate_clarity, sound_reach), types
 Основные сущности: apply_perception()
 """
+
 from typing import List, Tuple
 
 from app.core.constants import PERCEPTION_RADIUS
@@ -116,12 +117,14 @@ def apply_perception(
         if entity.audio_only:
             description = _audio_description(entity, raw)
             direction = _audio_direction(entity)
-            audio_events.append(AudioEvent(
-                description=description,
-                direction=direction,
-                approximate_distance=entity.distance,
-                confidence=0.5,  # базовая неопределённость для невидимого источника
-            ))
+            audio_events.append(
+                AudioEvent(
+                    description=description,
+                    direction=direction,
+                    approximate_distance=entity.distance,
+                    confidence=0.5,  # базовая неопределённость для невидимого источника
+                )
+            )
 
     return audio_events
 

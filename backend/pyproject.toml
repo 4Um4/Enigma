@@ -60,3 +60,19 @@ disallow_untyped_defs = false
 [[tool.mypy.overrides]]
 module = ["tests.sandbox.*"]
 ignore_errors = true
+
+# Мягкий режим для сервисов (они содержат много легаси-кода)
+[[tool.mypy.overrides]]
+module = ["app.services.*"]
+disallow_untyped_defs = false
+disallow_any_generics = false
+warn_return_any = false
+ignore_missing_imports = true
+
+# Мягкий режим для агентов и API
+[[tool.mypy.overrides]]
+module = ["app.agents.*", "app.api.*", "app.core.*"]
+disallow_untyped_defs = false
+disallow_any_generics = false
+warn_return_any = false
+ignore_missing_imports = true

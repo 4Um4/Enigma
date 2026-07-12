@@ -41,34 +41,35 @@ TRAVERSAL_STATUSES: tuple[str, ...] = (
 
 # Валидные переходы (from_status → set(to_status))
 TRAVERSAL_TRANSITIONS: dict[str, set[str]] = {
-    "PENDING":   {"MOVING"},
-    "MOVING":    {"COMPLETED", "CANCELLED"},
-    "COMPLETED": set(),   # terminal — zombie cleanup only
-    "CANCELLED": set(),   # terminal — zombie cleanup only
+    "PENDING": {"MOVING"},
+    "MOVING": {"COMPLETED", "CANCELLED"},
+    "COMPLETED": set(),  # terminal — zombie cleanup only
+    "CANCELLED": set(),  # terminal — zombie cleanup only
 }
 
 
 def transition_traversal(traversal_dict: Dict[str, Any], new_status: str) -> bool:
     """Выполняет переход статуса traversal через state machine.
-    
+
     Возвращает True если переход разрешён и выполнен.
     Возвращает False если переход запрещён (и логирует предупреждение).
-    
+
     Единственный разрешённый способ изменения статуса traversal.
     Прямое присвоение traversal_dict["status"] = ... ЗАПРЕЩЕНО.
     """
     current_status = traversal_dict.get("status", "UNKNOWN")
     allowed = TRAVERSAL_TRANSITIONS.get(current_status, set())
-    
+
     if new_status not in allowed:
         import logging
+
         logging.warning(
             f"[TRAVERSAL_FSM] Invalid transition: {current_status} → {new_status} "
             f"for npc={traversal_dict.get('npc_id', '?')}. "
             f"Allowed: {allowed}"
         )
         return False
-    
+
     traversal_dict["status"] = new_status
     return True
 

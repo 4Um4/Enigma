@@ -7,6 +7,7 @@ LOG_DIR = Path(settings.data_dir) / "logs"
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 LOG_FILE = LOG_DIR / f"enigma_{datetime.now().strftime('%Y%m%d')}.jsonl"
 
+
 def jsonl_log(entry: dict):
     """Простейший логгер в JSONL"""
     with open(LOG_FILE, "a", encoding="utf-8") as f:

@@ -1,4 +1,4 @@
-﻿"""
+"""
 path: /frontend/game_types.py
 Назначение: Frontend-локальные DTO для рендера восприятия. Копия backend-типов без импорта app.services — удовлетворяет Закон 1.1
 Зависимости: dataclasses, enum, typing (только stdlib)
@@ -7,20 +7,23 @@ path: /frontend/game_types.py
 TODO: В будущем можно расширить PerceivedEntity для поддержки разных типов (NPC, объекты, события) и добавить сырые данные для отладки. Сейчас упрощённая версия для базового рендера.
 TODO: Внедрить в рендеринг HUD и мира, заменить сырые данные из SceneState на эти структуры для изоляции слоя.
 """
+
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import Any, Dict, List, Literal, Optional, Set
+from typing import Any, Dict, List, Literal, Optional
 
 
 class InferenceTier(Enum):
     """Уровень интерпретации — чем выше, тем сложнее вывод"""
-    PHYSICAL = auto()    # Tier 1: "рука движется быстро" → "возможен удар"
+
+    PHYSICAL = auto()  # Tier 1: "рука движется быстро" → "возможен удар"
     BEHAVIORAL = auto()  # Tier 2: "intent=attack + distance<1.5" → "агрессия"
 
 
 @dataclass
 class Inference:
     """Один вывод интерпретационного слоя"""
+
     inference_type: str
     tier: InferenceTier
     confidence: float
@@ -34,6 +37,7 @@ class PerceivedEntity:
     Структура идентична backend/app/services/player_cognition/types.py:PerceivedEntity
     для совместимости через duck typing при рендере.
     """
+
     entity_id: str
 
     # --- что это ---
@@ -63,11 +67,11 @@ class PerceivedEntity:
 
     # --- Traversal Layer (Спринт 30: Dual-Time Ontology) ---
     # Бэкенд компрессирует время, фронтенд разархивирует его непрерывным движением
-    traversal_status: str = "IDLE"               # PENDING, MOVING, ARRIVED, CANCELLED
-    path_waypoints: list = field(default_factory=list) # Визуальные x,y точки
+    traversal_status: str = "IDLE"  # PENDING, MOVING, ARRIVED, CANCELLED
+    path_waypoints: list = field(default_factory=list)  # Визуальные x,y точки
     current_waypoint_idx: int = 0
-    traversal_progress: float = 0.0              # 0.0 - 1.0 прогресс между текущими waypoint
-    traversal_speed: float = 1.5                 # Скорость визуальной интерполяции (м/с)
+    traversal_progress: float = 0.0  # 0.0 - 1.0 прогресс между текущими waypoint
+    traversal_speed: float = 1.5  # Скорость визуальной интерполяции (м/с)
     # S90.4: ETKE-IK VelocityRenderer fields
     velocity: tuple = (0.0, 0.0)
     exertion_level: float = 0.0
@@ -76,10 +80,10 @@ class PerceivedEntity:
     is_frozen: bool = False
     is_shaking: bool = False
     instability: float = 0.0
-    perception_cues: list = field(default_factory=list) # Словари {cue_key: str}
+    perception_cues: list = field(default_factory=list)  # Словари {cue_key: str}
 
     # --- Cognitive Layer (Спринт 30: Визуализация Cognitive Freeze) ---
-    initiative_suppression: float = 0.0          # 0.0-1.0, паралич воли
+    initiative_suppression: float = 0.0  # 0.0-1.0, паралич воли
 
     # --- Interpretation Layer ---
     observations: List[str] = field(default_factory=list)
@@ -104,6 +108,7 @@ class PerceivedEntity:
 @dataclass
 class AudioEvent:
     """Звуковое событие без визуального источника"""
+
     description: str
     direction: Optional[str] = None
     approximate_distance: float = 999.0
@@ -113,6 +118,7 @@ class AudioEvent:
 @dataclass
 class PerceivedEnvironment:
     """Воспринимаемое окружение — то, что чувствует персонаж"""
+
     light_perceived: str = "normal"
     noise_perceived: str = "normal"
     temperature_perceived: str = ""
@@ -126,6 +132,7 @@ class PerceivedScene:
     Финальный результат pipeline — то, что получает UI.
     Фронтенд-копия backend-типа для изоляции слоя (Закон 1.1).
     """
+
     location_id: str
     entities: List[PerceivedEntity] = field(default_factory=list)
     audio_events: List[AudioEvent] = field(default_factory=list)
@@ -138,16 +145,19 @@ class PerceivedScene:
 # State-типы для pipeline — фронтенд создаёт, бэкенд обрабатывает через duck typing
 # ============================================================================
 
+
 class MemoryTier(Enum):
     """Уровень памяти о сущности"""
-    SHORT = auto()    # текущий ход — нет decay
-    MEDIUM = auto()   # последние 5-10 ходов — медленный decay
-    LONG = auto()     # прошлые сессии — быстрый decay
+
+    SHORT = auto()  # текущий ход — нет decay
+    MEDIUM = auto()  # последние 5-10 ходов — медленный decay
+    LONG = auto()  # прошлые сессии — быстрый decay
 
 
 @dataclass
 class MemoryEntry:
     """Одна запись в памяти о сущности"""
+
     entity_id: str
     entity_type: str
     display_name: str
@@ -160,6 +170,7 @@ class MemoryEntry:
 @dataclass
 class PlayerFocus:
     """Текущий фокус внимания игрока — управляется гибридно"""
+
     focus_entity_id: Optional[str] = None
     focus_direction: tuple = (0.0, -1.0)
     focus_zone_radius: float = 1.5
@@ -168,6 +179,7 @@ class PlayerFocus:
 @dataclass
 class PerceptionConfig:
     """Конфигурация одного вызова pipeline — абстрагирует источники данных"""
+
     player_focus: PlayerFocus = field(default_factory=PlayerFocus)
     player_stress: float = 0.0
     player_hp: int = 100

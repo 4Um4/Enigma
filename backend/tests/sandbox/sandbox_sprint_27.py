@@ -12,19 +12,21 @@ TODO:
 - Добавить больше сценариев для проверки границ (например, экстремальные профили давления, разные состояния воли и т.д.)
 - В будущем можно расширить тесты для проверки взаимодействия между слоями (например, как изменения в физиологии влияют на волю и поведение, и наоборот)
 """
-import sys
-from dataclasses import dataclass, field
-from typing import Optional, Dict, List, Any, Tuple
+
+from dataclasses import dataclass
 from enum import Enum
+from typing import Dict, List, Optional
 
 # ═══════════════════════════════════════════════════════
 # 1. МОКИРОВАНИЕ ДОМЕННЫХ МОДЕЛЕЙ (Спринт 27)
 # ═══════════════════════════════════════════════════════
 
+
 class OriginLayer(Enum):
     WILL_CONFLICT = "will_conflict"
     AFFECTIVE_RESONANCE = "affective_resonance"
     PHYSIOLOGICAL_OVERRIDE = "physiological_override"
+
 
 class EmbodiedVector(Enum):
     AVOIDANCE = "avoidance"
@@ -32,6 +34,7 @@ class EmbodiedVector(Enum):
     COLLAPSE = "collapse"
     SUBMIT = "submit"
     FREEZE = "freeze"
+
 
 class WillState(Enum):
     COMPLY = "comply"
@@ -42,6 +45,7 @@ class WillState(Enum):
     BROKEN = "broken"
     CONDITIONED = "conditioned"
 
+
 @dataclass(frozen=True)
 class AvatarStateDTO:
     perceptual_stability: float = 1.0
@@ -51,6 +55,7 @@ class AvatarStateDTO:
     blood_visibility: float = 0.0
     breathing_profile: str = "calm"
 
+
 @dataclass(frozen=True)
 class IntentPressureProfile:
     violence: float = 0.0
@@ -58,6 +63,7 @@ class IntentPressureProfile:
     self_risk: float = 0.0
     social_exposure: float = 0.0
     identity_deviation: float = 0.0
+
 
 # ═══════════════════════════════════════════════════════
 # 2. ЛОГИКА ИЗ БЭКЕНДА (Спринт 27)
@@ -71,10 +77,12 @@ _EMBODIED_TEXT_MAP = {
     EmbodiedVector.FREEZE: "Замереть...",
 }
 
+
 def get_embodied_impulse_text(vector: Optional[EmbodiedVector]) -> str:
     if vector is None:
         return "Сопротивляться..."
     return _EMBODIED_TEXT_MAP.get(vector, "Сопротивляться...")
+
 
 def _resolve_embodied_vector(pressure: IntentPressureProfile, state: WillState) -> Optional[EmbodiedVector]:
     if state in (WillState.COMPLY, WillState.RELUCTANT):
@@ -91,6 +99,7 @@ def _resolve_embodied_vector(pressure: IntentPressureProfile, state: WillState) 
         return EmbodiedVector.COLLAPSE
     return EmbodiedVector.AVOIDANCE
 
+
 def _compute_ambient_phenomenology(all_npcs_raw: Optional[List[Dict]]) -> Optional[Dict[str, float]]:
     if not all_npcs_raw:
         return None
@@ -105,16 +114,18 @@ def _compute_ambient_phenomenology(all_npcs_raw: Optional[List[Dict]]) -> Option
     if count == 0:
         return None
     avg_neg_emotion = (total_stress + total_fear) / (2 * count)
-    emotional_temperature = (avg_neg_emotion * 2) - 1.0 
+    emotional_temperature = (avg_neg_emotion * 2) - 1.0
     proximity_compression = min(1.0, count / 5.0)
     return {
         "emotional_temperature": max(-1.0, min(1.0, emotional_temperature)),
         "proximity_compression": proximity_compression,
     }
 
+
 # ═══════════════════════════════════════════════════════
 # 3. ТЕСТИРОВАНИЕ
 # ═══════════════════════════════════════════════════════
+
 
 def test_dto_cleanup():
     """Приоритет 0: Проверка удаления зомби-полей"""
@@ -128,7 +139,7 @@ def test_dto_cleanup():
             return False
         except AttributeError:
             pass
-        
+
         try:
             _ = dto.movement_instability
             print("[FAIL] Поле movement_instability НЕ удалено!")
@@ -152,11 +163,12 @@ def test_dto_cleanup():
         print(f"[FAIL] Ошибка создания DTO: {e}")
         return False
 
+
 def test_embodied_impulse():
     """Приоритет 1: Вычисление моторного вектора и текста"""
     print("\n--- ТЕСТ 2: Embodied Impulse ---")
     passed = True
-    
+
     # Сценарий А: Паника от риска
     p1 = IntentPressureProfile(self_risk=0.8)
     v1 = _resolve_embodied_vector(p1, WillState.PANICKED)
@@ -193,11 +205,12 @@ def test_embodied_impulse():
         print("[PASS] Все сценарии Embodied Impulse работают корректно.")
     return passed
 
+
 def test_ambient_phenomenology():
     """Приоритет 2: Вычисление средового давления"""
     print("\n--- ТЕСТ 3: Ambient Phenomenology ---")
     passed = True
-    
+
     # Сценарий А: Пустая комната
     amb_a = _compute_ambient_phenomenology([])
     if amb_a is not None:
@@ -235,11 +248,12 @@ def test_ambient_phenomenology():
         print("[PASS] Средовое давление вычисляется корректно.")
     return passed
 
+
 def test_temporal_assembly_delay():
     """Приоритет 3: Интерполяция позиции NPC (Temporal Delay)"""
     print("\n--- ТЕСТ 4: Temporal Assembly Delay ---")
     passed = True
-    
+
     prev_x, prev_y = 10.0, 10.0
     curr_x, curr_y = 20.0, 20.0
 
@@ -271,17 +285,18 @@ def test_temporal_assembly_delay():
         print("[PASS] Темпоральная интерполяция работает корректно.")
     return passed
 
+
 if __name__ == "__main__":
     print("═══════════════════════════════════════════════════")
     print(" ЗАПУСК ПЕСОЧНИЦЫ СПРИНТА 27: ФЕНОМЕНОЛОГИЯ ")
     print("═══════════════════════════════════════════════════")
-    
+
     results = []
     results.append(test_dto_cleanup())
     results.append(test_embodied_impulse())
     results.append(test_ambient_phenomenology())
     results.append(test_temporal_assembly_delay())
-    
+
     print("\n═══════════════════════════════════════════════════")
     if all(results):
         print(" ВСЕ ТЕСТЫ ПРОЙДЕНЫ УСПЕШНО. СПРИНТ 27 ВЕРЕН. ")

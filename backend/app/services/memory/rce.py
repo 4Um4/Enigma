@@ -12,29 +12,30 @@ RCE — Reality Commit Extractor.
 
 import re
 import logging
-from typing import List, Dict, Optional
+from typing import Any, List, Dict, Optional
 
 logger = logging.getLogger(__name__)
+
 
 # Паттерны речи: «текст», "текст", „текст“
 def _normalize_quotes(text: str) -> str:
     """Нормализует все варианты кавычек к ASCII " для упрощения парсинга.
-    
+
     LLM может генерировать любой тип кавычек:
     - ASCII " (U+0022)
-    - Unicode left/right "" (U+201C/U+201D)  
+    - Unicode left/right "" (U+201C/U+201D)
     - German low " (U+201E)
     - Русские «» оставляем — у них свой паттерн
     """
-    text = text.replace('\u201c', '"').replace('\u201d', '"')  # "" → "
-    text = text.replace('\u201e', '"')                          # „ → "
+    text = text.replace("\u201c", '"').replace("\u201d", '"')  # "" → "
+    text = text.replace("\u201e", '"')  # „ → "
     # «» не трогаем — у них отдельный паттерн
     return text
 
 
 _SPEECH_PATTERNS = [
-    re.compile(r'«([^»]{1,300})»'),               # Русские кавычки «...» (не нормализуются)
-    re.compile(r'"([^"]{1,300})"'),                # Любые двойные кавычки (после нормализации)
+    re.compile(r"«([^»]{1,300})»"),  # Русские кавычки «...» (не нормализуются)
+    re.compile(r'"([^"]{1,300})"'),  # Любые двойные кавычки (после нормализации)
 ]
 
 # Минимальная длина осмысленной речи (отсекает междометия-артефакты)
@@ -44,7 +45,7 @@ _MIN_SPEECH_LEN = 3
 def extract_speech_events(
     dm_text: str,
     target_npc_id: Optional[str] = None,
-    all_npcs_raw: Optional[list] = None,
+    all_npcs_raw: Optional[List[Any]] = None,
     player_name: Optional[str] = None,
 ) -> List[str]:
     """Извлекает события речи из DM-нарратива.
@@ -59,16 +60,16 @@ def extract_speech_events(
     """
     if not dm_text:
         return []
-        
+
     # Фильтр-гард: если текст содержит JSON-теги (сырой нераспарсенный ответ),
     # НЕ пытаемся извлечь речь. Это симптом бага нормализации.
     _stripped = dm_text.strip()
     if _stripped.startswith("{") and (
-        '"dm_response"' in _stripped or 
-        '"npc_reactions"' in _stripped or 
-        '"speech"' in _stripped
+        '"dm_response"' in _stripped
+        or '"npc_reactions"' in _stripped
+        or '"speech"' in _stripped
     ):
-        logger.warning(f"[RCE] JSON artifact detected, ignoring STM write.")
+        logger.warning("[RCE] JSON artifact detected, ignoring STM write.")
         return []
 
     dm_text = _normalize_quotes(dm_text)
@@ -104,20 +105,26 @@ def extract_speech_events(
         # Fallback: DM ответил без кавычек, но есть target NPC —
         # считаем весь текст речью NPC (лучше потеря, чем амнезия)
         reactions = [f"{target_npc_name}: {dm_text.strip()[:500]}"]
-        logger.debug(f"[RCE_FALLBACK] no quotes, assigning {len(dm_text)} chars to {target_npc_name}")
+        logger.debug(
+            f"[RCE_FALLBACK] no quotes, assigning {len(dm_text)} chars to {target_npc_name}"
+        )
 
     return reactions
 
 
 def _build_name_maps(
-    all_npcs_raw: Optional[list],
+    all_npcs_raw: Optional[List[Any]],
 ) -> tuple[Dict[str, str], Dict[str, str]]:
     """Строит маппинги имя→id и id→имя из all_npcs_raw. Поддерживает list и dict форматы."""
     name_to_id: Dict[str, str] = {}
     id_to_name: Dict[str, str] = {}
     if all_npcs_raw:
         # Поддерживаем list[dict] (all_npcs_raw) и dict.values() (npc_positions)
-        _npc_list = all_npcs_raw if isinstance(all_npcs_raw, list) else list(all_npcs_raw.values())
+        _npc_list = (
+            all_npcs_raw
+            if isinstance(all_npcs_raw, list)
+            else list(all_npcs_raw.values())
+        )
         for npc in _npc_list:
             if not isinstance(npc, dict):
                 continue
@@ -155,11 +162,13 @@ def _extract_all_speeches(dm_text: str) -> List[dict]:
             ctx_start = max(0, start_pos - 120)
             context_before = dm_text[ctx_start:start_pos]
 
-            speeches.append({
-                "text": speech_text,
-                "context_before": context_before,
-                "position": start_pos,
-            })
+            speeches.append(
+                {
+                    "text": speech_text,
+                    "context_before": context_before,
+                    "position": start_pos,
+                }
+            )
             seen_positions.add(start_pos)
 
     # Сортируем по позиции в тексте
@@ -180,13 +189,17 @@ def _resolve_speaker(
     # Берём текст после последней точки/восклицания/вопроса
     last_sentence = _last_sentence(context_before)
     if last_sentence:
-        found_name = _find_npc_in_text(last_sentence, name_to_id, id_to_name, player_name)
+        found_name = _find_npc_in_text(
+            last_sentence, name_to_id, id_to_name, player_name
+        )
         if found_name:
             return found_name
 
     # Стратегия 1.5: Поиск во всём контексте перед речью
     if context_before:
-        found_name = _find_npc_in_text(context_before, name_to_id, id_to_name, player_name)
+        found_name = _find_npc_in_text(
+            context_before, name_to_id, id_to_name, player_name
+        )
         if found_name:
             return found_name
 
@@ -202,10 +215,10 @@ def _resolve_speaker(
 def _last_sentence(text: str) -> str:
     """Извлекает последнее предложение из текста."""
     # Разделители предложений
-    for sep in ['. ', '! ', '? ', '.\n', '!\n', '?\n']:
+    for sep in [". ", "! ", "? ", ".\n", "!\n", "?\n"]:
         idx = text.rfind(sep)
         if idx >= 0:
-            return text[idx + len(sep):].strip()
+            return text[idx + len(sep) :].strip()
     return text.strip()
 
 

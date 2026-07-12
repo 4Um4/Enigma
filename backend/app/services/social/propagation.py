@@ -14,9 +14,14 @@ TODO: мигрировать в отдельный модуль, чтобы не
 """
 
 import logging
-from typing import Any, List, Tuple
+from typing import Dict, Any, List, Tuple
 
-from app.models.state_delta import DeltaDomain, EmotionPayload, SocialPayload, StateDeltas
+from app.models.state_delta import (
+    DeltaDomain,
+    EmotionPayload,
+    SocialPayload,
+    StateDeltas,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +30,7 @@ def propagate_social_rumors(
     social_engine: Any,
     social_tick: int,
     shared_context: Any,
-    events: list | None = None,
+    events: List[Any] | None = None,
 ) -> Tuple[int, List[StateDeltas]]:
     """Пропагация слухов от свидетелей к непрямым наблюдателям.
 
@@ -33,7 +38,9 @@ def propagate_social_rumors(
     Возвращает (updated_social_tick, List[StateDeltas]).
     Оркестратор применяет дельты в _apply_phase8_result().
     """
-    _target_id = getattr(shared_context, 'player_target_id', '') if shared_context else ''
+    _target_id = (
+        getattr(shared_context, "player_target_id", "") if shared_context else ""
+    )
 
     # Канонический путь: intensity из EventDTO.payload (Устав §2.1)
     # Агрегация через max() — инфляция слухов недопустима (Стратегическое правило 5)
@@ -50,22 +57,28 @@ def propagate_social_rumors(
 
     # Fallback: legacy путь через dm_result.event_context
     if _intensity == 0.0:
-        _dm_res = shared_context.python_engines_result.get("dm_result") if hasattr(shared_context, "python_engines_result") else None
+        _dm_res = (
+            shared_context.python_engines_result.get("dm_result")
+            if hasattr(shared_context, "python_engines_result")
+            else None
+        )
         if _dm_res and _dm_res.event_context:
             _intensity = _dm_res.event_context.intensity
             _event_type = _dm_res.event_context.event_type
             _actor_id = _dm_res.event_context.actor_id
 
-    if not social_engine or not _target_id or _intensity < social_engine.MIN_ORIGIN_INTENSITY:
+    if (
+        not social_engine
+        or not _target_id
+        or _intensity < social_engine.MIN_ORIGIN_INTENSITY
+    ):
         return social_tick, []
 
     social_tick += 1
 
     # Свидетели = NPC, получившие прямую вербализацию
     _witness_ids = {
-        c.get("npc_id")
-        for c in (shared_context.npc_contexts or [])
-        if c.get("npc_id")
+        c.get("npc_id") for c in (shared_context.npc_contexts or []) if c.get("npc_id")
     }
 
     _social_results = social_engine.propagate(
@@ -88,28 +101,32 @@ def propagate_social_rumors(
             # v2: Разделяем на EMOTION (stress) и SOCIAL (trust)
             # SocialEngine дельты в диапазоне ~0-1, NPCState — 0-100
             if pr.stress_delta != 0.0:
-                deltas.append(StateDeltas(
-                    npc_id=pr.npc_id,
-                    # v1 backward compat
-                    stress_delta=pr.stress_delta * 100,
-                    # v2 domain-tagged payload
-                    domain=DeltaDomain.EMOTION,
-                    payload=EmotionPayload(stress_delta=pr.stress_delta * 100),
-                    source="social_propagation",
-                ))
+                deltas.append(
+                    StateDeltas(
+                        npc_id=pr.npc_id,
+                        # v1 backward compat
+                        stress_delta=pr.stress_delta * 100,
+                        # v2 domain-tagged payload
+                        domain=DeltaDomain.EMOTION,
+                        payload=EmotionPayload(stress_delta=pr.stress_delta * 100),
+                        source="social_propagation",
+                    )
+                )
 
             if pr.trust_delta != 0.0:
-                deltas.append(StateDeltas(
-                    npc_id=pr.npc_id,
-                    # v1 backward compat
-                    social_target=_actor_id,
-                    trust_delta=pr.trust_delta * 100,
-                    # v2 domain-tagged payload
-                    domain=DeltaDomain.SOCIAL,
-                    target=_actor_id,
-                    payload=SocialPayload(trust_delta=pr.trust_delta * 100),
-                    source="social_propagation",
-                ))
+                deltas.append(
+                    StateDeltas(
+                        npc_id=pr.npc_id,
+                        # v1 backward compat
+                        social_target=_actor_id,
+                        trust_delta=pr.trust_delta * 100,
+                        # v2 domain-tagged payload
+                        domain=DeltaDomain.SOCIAL,
+                        target=_actor_id,
+                        payload=SocialPayload(trust_delta=pr.trust_delta * 100),
+                        source="social_propagation",
+                    )
+                )
             logger.debug(
                 f"[SOCIAL] {pr.npc_id}: "
                 f"trust{pr.trust_delta:+.3f} "

@@ -7,21 +7,25 @@ path: backend/app/services/affective/affective_decay_handler.py
 TODO:
 
 """
+
 import logging
+
 logger = logging.getLogger(__name__)
 
-from typing import List, Any
+from typing import Dict, List, Any
 from app.models.state_delta import StateDeltas, DeltaDomain
 from app.models.delta_payloads import EmotionPayload
 from app.services.affective.emotion_transition import THRESHOLD_ANXIOUS
 
+
 class AffectiveDecayHandler:
     """Phase 0.5: Непрерывное время психики (S74).
-    
+
     Интеграл аффекта затухает каждый тик, даже если игрок бездействует.
     Если affective_load падает ниже порога тревоги, эмоция коллапсирует в neutral.
     Устраняет "замороженную психику" Франкенштейна.
     """
+
     name: str = "affective_decay"
 
     # Базовая скорость восстановления (совпадает с willpower=0.0 в affective_integrator)
@@ -38,7 +42,11 @@ class AffectiveDecayHandler:
 
         # S73-DIAG: Видит ли handler живую психику?
         if npcs:
-            _loads = [f"{n.get('npc_id')}:{n.get('affective_load', 0.0):.2f}/{n.get('emotion', '?')}" for n in npcs if n.get('npc_id') != 'player']
+            _loads = [
+                f"{n.get('npc_id')}:{n.get('affective_load', 0.0):.2f}/{n.get('emotion', '?')}"
+                for n in npcs
+                if n.get("npc_id") != "player"
+            ]
             logger.debug(f"[AFF_DECAY] tick={current_tick} states={_loads}")
 
         for npc in npcs:
@@ -64,17 +72,19 @@ class AffectiveDecayHandler:
 
             # Генерируем дельту, только если состояние изменилось
             if new_load != load or new_emotion != emotion:
-                results.append(StateDeltas(
-                    npc_id=npc_id,
-                    domain=DeltaDomain.EMOTION,
-                    target="system",
-                    payload=EmotionPayload(
-                        stress_delta=0.0,
-                        emotion_delta=0.0,
-                        emotion_tag=new_emotion,
-                        affective_load=new_load
-                    ),
-                    source="affective_decay"
-                ))
+                results.append(
+                    StateDeltas(
+                        npc_id=npc_id,
+                        domain=DeltaDomain.EMOTION,
+                        target="system",
+                        payload=EmotionPayload(
+                            stress_delta=0.0,
+                            emotion_delta=0.0,
+                            emotion_tag=new_emotion,
+                            affective_load=new_load,
+                        ),
+                        source="affective_decay",
+                    )
+                )
 
         return results

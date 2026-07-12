@@ -33,7 +33,10 @@ def tick_world_proactive(
     if not world_tick_engine.should_tick(campaign_id):
         return
     try:
-        from app.services.npc.npc_loader import load_profile_from_legacy_json, load_l2_state_from_runtime_dict
+        from app.services.npc.npc_loader import (
+            load_profile_from_legacy_json,
+            load_l2_state_from_runtime_dict,
+        )
 
         _proactive_npc_data = []
         for _n in tick_ctx.all_npcs_raw:
@@ -61,14 +64,20 @@ def tick_world_proactive(
 
         # ADR-O-208: Вычисляем effective_drives_map (L3 projection) для всех major NPC.
         _effective_drives_map = {}
-        if tick_orchestrator is not None and hasattr(tick_orchestrator, '_compute_effective_drives'):
+        if tick_orchestrator is not None and hasattr(
+            tick_orchestrator, "_compute_effective_drives"
+        ):
             try:
                 _tick_num = tick_orchestrator.get_current_tick(campaign_id)
-                _effective_drives_map, _, _ = tick_orchestrator._compute_effective_drives(
-                    tick_ctx.all_npcs_raw, _tick_num
+                _effective_drives_map, _, _ = (
+                    tick_orchestrator._compute_effective_drives(
+                        tick_ctx.all_npcs_raw, _tick_num
+                    )
                 )
             except Exception as _ed_err:
-                logger.warning(f"[PHASE_2] effective_drives computation failed: {_ed_err}")
+                logger.warning(
+                    f"[PHASE_2] effective_drives computation failed: {_ed_err}"
+                )
 
         _tick_result = world_tick_engine.compute_proactive_decisions(
             campaign_id=campaign_id,
@@ -76,21 +85,30 @@ def tick_world_proactive(
             npc_data=_proactive_npc_data,
             scene_state=shared_context.scene_state or {},
             reputation_modifiers=_rep_mods if _rep_mods else None,
-            effective_drives_map=_effective_drives_map if _effective_drives_map else None,
+            effective_drives_map=_effective_drives_map
+            if _effective_drives_map
+            else None,
         )
         shared_context.world_tick_result = _tick_result
         if _tick_result.decisions:
-            logger.warning(f"[WORLD_TICK] {len(_tick_result.decisions)} proactive decisions")
+            logger.warning(
+                f"[WORLD_TICK] {len(_tick_result.decisions)} proactive decisions"
+            )
 
         # Применяем deltas к NPC стейту
         from app.services.npc.state_applicator import StateApplicator
         from app.models.npc_state import NPCState
+
         _wt_applicator = StateApplicator(relationship_store=memory_relationship_store)
 
         # 1. Recovery для ВСЕХ major NPC
         for _pid, _, _ in _proactive_npc_data:
             _wt_npc_raw = next(
-                (_n for _n in tick_ctx.all_npcs_raw if (_n.get("id") or _n.get("npc_id")) == _pid),
+                (
+                    _n
+                    for _n in tick_ctx.all_npcs_raw
+                    if (_n.get("id") or _n.get("npc_id")) == _pid
+                ),
                 None,
             )
             if not _wt_npc_raw:
@@ -103,7 +121,11 @@ def tick_world_proactive(
         # 2. Deltas от конкретных proactive решений
         for _pd in _tick_result.decisions:
             _wt_npc_raw = next(
-                (_n for _n in tick_ctx.all_npcs_raw if (_n.get("id") or _n.get("npc_id")) == _pd.npc_id),
+                (
+                    _n
+                    for _n in tick_ctx.all_npcs_raw
+                    if (_n.get("id") or _n.get("npc_id")) == _pd.npc_id
+                ),
                 None,
             )
             if not _wt_npc_raw:
@@ -121,6 +143,7 @@ def tick_world_proactive(
         # NeedEngine.tick() — потребности растут даже без игрока
         try:
             from app.services.economy.need_engine import NeedEngine
+
             _wt_eco_profiles = economic_profiles_getter(campaign_id)
             _wt_ne = NeedEngine()
             for _pid, _wt_npc_raw, _ in _proactive_npc_data:
@@ -128,8 +151,12 @@ def tick_world_proactive(
                 if _wt_ep:
                     _wt_current_activity = ""
                     if isinstance(_wt_npc_raw, dict):
-                        _wt_current_activity = _wt_npc_raw.get("routine", {}).get("current", "")
-                    elif hasattr(_wt_npc_raw, 'routine') and isinstance(_wt_npc_raw.routine, dict):
+                        _wt_current_activity = _wt_npc_raw.get("routine", {}).get(
+                            "current", ""
+                        )
+                    elif hasattr(_wt_npc_raw, "routine") and isinstance(
+                        _wt_npc_raw.routine, dict
+                    ):
                         _wt_current_activity = _wt_npc_raw.routine.get("current", "")
                     _wt_ne.tick(_wt_ep, current_activity=_wt_current_activity)
             tick_ctx.wt_dirty = True

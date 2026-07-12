@@ -26,7 +26,7 @@ class IngestResult:
 
 class KnowledgeIngestService:
     """Imports local source text into memory for DM/rules/NPC context.
-    
+
     Зависит от MemoryManager, не от LayeredMemory (Закон 4.1.2).
     """
 

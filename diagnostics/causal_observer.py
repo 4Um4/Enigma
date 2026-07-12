@@ -17,8 +17,8 @@ from pathlib import Path
 from typing import Optional
 
 from diagnostics.pattern_registry import COMPILED
-from diagnostics.health_checkers.tick_health import TickHealthChecker, TickHealthReport
-from diagnostics.health_checkers.movement_health import MovementHealthChecker, MovementHealthReport
+from diagnostics.health_checkers.tick_health import TickHealthChecker
+from diagnostics.health_checkers.movement_health import MovementHealthChecker
 from diagnostics.health_checkers.invariant_health import InvariantHealthChecker
 from diagnostics.dna_metrics import DNAComputer
 
@@ -58,8 +58,9 @@ class CausalObserver:
         """
         try:
             self._parse_log_file()
-            
+
             from diagnostics.report_renderer import ReportRenderer
+
             tick_report = self._tick_checker.build()
             movement_report = self._movement_checker.build()
             invariant_violations = self._invariant_checker.build()
@@ -70,7 +71,7 @@ class CausalObserver:
                 started_at=self._started_at,
                 invariant_violations=invariant_violations,
             )
-            
+
             renderer = ReportRenderer(
                 tick_report=tick_report,
                 movement_report=movement_report,
@@ -139,7 +140,12 @@ class CausalObserver:
 
             m = COMPILED["decision_hub"].search(line)
             if m:
-                npc, intent, score, event = m.group(1), m.group(2), float(m.group(3)), m.group(4)
+                npc, intent, score, event = (
+                    m.group(1),
+                    m.group(2),
+                    float(m.group(3)),
+                    m.group(4),
+                )
                 self._movement_checker.on_decision_hub(npc, intent, score, event)
                 self._tick_checker.on_individual_decision()
                 return
@@ -153,7 +159,9 @@ class CausalObserver:
 
             m = COMPILED["state_applied"].search(line)
             if m:
-                self._movement_checker.on_state_applied(m.group(1), float(m.group(2)), m.group(3))
+                self._movement_checker.on_state_applied(
+                    m.group(1), float(m.group(2)), m.group(3)
+                )
                 return
 
             # --- Pipeline pre-bus failures (Инвариант 3: Наблюдаемость отказа) ---
@@ -222,7 +230,9 @@ class CausalObserver:
 
             m = COMPILED["node_not_found"].search(line)
             if m:
-                self._movement_checker.on_node_not_found(m.group(1), m.group(2), m.group(3))
+                self._movement_checker.on_node_not_found(
+                    m.group(1), m.group(2), m.group(3)
+                )
                 return
 
             if COMPILED["spatial_fallback"].search(line):
@@ -242,7 +252,9 @@ class CausalObserver:
             # --- Координаты NPC из TRACE SNAPSHOT ---
             m = COMPILED["trace_snapshot"].search(line)
             if m:
-                self._movement_checker.on_trace_snapshot(m.group(1), float(m.group(2)), float(m.group(3)))
+                self._movement_checker.on_trace_snapshot(
+                    m.group(1), float(m.group(2)), float(m.group(3))
+                )
                 return
 
             m = COMPILED["engine_received"].search(line)
@@ -280,7 +292,7 @@ class CausalObserver:
                     line=int(m_sim.group(4)),
                 )
                 return
-            
+
             m_tick = COMPILED["tick_complete"].search(line)
             if m_tick:
                 self._invariant_checker.on_tick_complete(
@@ -291,7 +303,7 @@ class CausalObserver:
                     npc_moved_count=int(m_tick.group(5)),
                 )
                 return
-            
+
             m_scene = COMPILED["scene_events_verbal"].search(line)
             if m_scene:
                 self._invariant_checker.on_dialogue_emitted(int(m_scene.group(1)))

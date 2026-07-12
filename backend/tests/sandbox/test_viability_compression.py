@@ -12,13 +12,14 @@ TODO:
 
 """
 
-import pytest
 from unittest.mock import MagicMock, patch
-from app.services.npc.life_engine import LifeEngine, MINOR_TICK_INTERVAL
-from app.domain.movement import MovementIntent, IntentDomain
 
+import pytest
+from app.domain.movement import IntentDomain, MovementIntent
+from app.services.npc.life_engine import MINOR_TICK_INTERVAL, LifeEngine
 
 # ── Фикстуры ──────────────────────────────────────────────────────────────
+
 
 @pytest.fixture
 def engine():
@@ -80,6 +81,7 @@ def npc_paralyzed():
 
 # ── Тесты Viability Mask ─────────────────────────────────────────────────
 
+
 class TestComputeViabilityMask:
     """ДОЛГ 4.3: _compute_viability_mask — проекция PerceptualKernel в пространство допустимых действий."""
 
@@ -124,12 +126,13 @@ class TestComputeViabilityMask:
 
 # ── Тесты Pre-Generation Gate ────────────────────────────────────────────
 
+
 class TestViabilityPreGenerationGate:
     """ДОЛГ 4.3: Viability Gate ДО генерации — ROUTINE не рождается при SURVIVAL давлении."""
 
     def test_calm_npc_generates_routine_intent(self, engine, npc_calm):
         """Без угрозы — расписание генерирует ROUTINE intent."""
-        with patch.object(engine, '_resolve_position', return_value=("tavern_silver_wolf", "gate", "patrolling")):
+        with patch.object(engine, "_resolve_position", return_value=("tavern_silver_wolf", "gate", "patrolling")):
             changes, intents = engine._simulate_minor(npc_calm, current_time="08:00", tick=MINOR_TICK_INTERVAL + 1)
 
         assert len(intents) > 0, "БАГ: Спокойный NPC не сгенерировал ROUTINE intent"
@@ -137,34 +140,36 @@ class TestViabilityPreGenerationGate:
 
     def test_threatened_npc_no_routine_intent(self, engine, npc_threatened):
         """Угроза > 0.3 — ROUTINE intent НЕ генерируется (pre-generation gate)."""
-        with patch.object(engine, '_resolve_position', return_value=("tavern_silver_wolf", "gate", "patrolling")):
-            changes, intents = engine._simulate_minor(npc_threatened, current_time="08:00", tick=MINOR_TICK_INTERVAL + 1)
+        with patch.object(engine, "_resolve_position", return_value=("tavern_silver_wolf", "gate", "patrolling")):
+            changes, intents = engine._simulate_minor(
+                npc_threatened, current_time="08:00", tick=MINOR_TICK_INTERVAL + 1
+            )
 
-        _routine_intents = [i for i in intents if getattr(i, 'domain', None) == IntentDomain.ROUTINE]
+        _routine_intents = [i for i in intents if getattr(i, "domain", None) == IntentDomain.ROUTINE]
         assert len(_routine_intents) == 0, (
             f"БАГ ДОЛГ 4.3: ROUTINE intent сгенерирован при threat=0.6! "
-            f"Viability gate не работает. Intents: {[(i.reason, getattr(i,'domain',None)) for i in intents]}"
+            f"Viability gate не работает. Intents: {[(i.reason, getattr(i, 'domain', None)) for i in intents]}"
         )
 
     def test_paralyzed_npc_no_intents_at_all(self, engine, npc_paralyzed):
         """Паралич воли — ни ROUTINE, ни EXPLORATION не генерируются."""
-        with patch.object(engine, '_resolve_position', return_value=("tavern_silver_wolf", "gate", "patrolling")):
+        with patch.object(engine, "_resolve_position", return_value=("tavern_silver_wolf", "gate", "patrolling")):
             changes, intents = engine._simulate_minor(npc_paralyzed, current_time="08:00", tick=MINOR_TICK_INTERVAL + 1)
 
         assert len(intents) == 0, (
-            f"БАГ: Парализованный NPC сгенерировал intents: "
-            f"{[(i.reason, getattr(i,'domain',None)) for i in intents]}"
+            f"БАГ: Парализованный NPC сгенерировал intents: {[(i.reason, getattr(i, 'domain', None)) for i in intents]}"
         )
 
 
 # ── Тесты Domain типизации ──────────────────────────────────────────────
+
 
 class TestIntentDomainTyping:
     """ДОЛГ 4.3: Каждый MovementIntent имеет типизированный domain."""
 
     def test_schedule_intent_is_routine(self, engine, npc_calm):
         """Schedule intent должен иметь domain=ROUTINE."""
-        with patch.object(engine, '_resolve_position', return_value=("tavern_silver_wolf", "gate", "patrolling")):
+        with patch.object(engine, "_resolve_position", return_value=("tavern_silver_wolf", "gate", "patrolling")):
             changes, intents = engine._simulate_minor(npc_calm, current_time="08:00", tick=MINOR_TICK_INTERVAL + 1)
 
         _sched = [i for i in intents if "schedule" in i.reason]
@@ -178,5 +183,7 @@ class TestIntentDomainTyping:
 
     def test_flee_is_survival(self):
         """FLEE intent должен иметь domain=SURVIVAL."""
-        flee = MovementIntent(npc_id="test", target_node_id="exit", reason="decision:flee_stay=player", domain=IntentDomain.SURVIVAL)
+        flee = MovementIntent(
+            npc_id="test", target_node_id="exit", reason="decision:flee_stay=player", domain=IntentDomain.SURVIVAL
+        )
         assert flee.domain == IntentDomain.SURVIVAL

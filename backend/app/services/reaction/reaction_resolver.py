@@ -8,17 +8,18 @@ path: /backend/app/services/reaction/reaction_resolver.py
 
 Позиция в pipeline (ROAD_MAP ШАГ 0.5):
     DecisionResult → ReactionResolver → MicroEvents[] → SceneContinuity
-    
+
 КРИТИЧЕСКИЙ РАЗРЫВ который закрывает:
     Без этого слоя DecisionHub говорит "NPC испуган", но:
     - ничего не падает
     - ничего не прерывается
     - ничего физически не меняется
-    
+
     LLM запрещено создавать реальность, но Python не создавал её.
     Теперь Python создаёт.
 """
-from typing import List
+
+from typing import Dict, Any, List
 
 from app.services.npc.decision_hub import DecisionResult, EventContext
 from app.services.reaction.micro_event import MicroEvent
@@ -28,10 +29,10 @@ class ReactionResolver:
     """
     Фасад Reaction Layer.
     Преобразует DecisionResult + EventContext в MicroEvents[].
-    
+
     Чистый Python — не использует LLM.
     """
-    
+
     def resolve(
         self,
         decision: DecisionResult,
@@ -42,7 +43,7 @@ class ReactionResolver:
     ) -> List[MicroEvent]:
         """
         Генерирует микро-события на основе решения NPC.
-        
+
         Args:
             decision: Результат DecisionHub.compute()
             event: Контекст события из dm_scene_builder
@@ -50,12 +51,12 @@ class ReactionResolver:
                        Выводится из NPC state: 1.0 - stress/100
             hands_occupied: Заняты ли руки NPC (из LifeEngine activity)
             current_activity: Текущая активность (из LifeEngine)
-            
+
         Returns:
             Список MicroEvent (может быть пустым — нет физической реакции)
         """
         from app.services.reaction.reaction_rules import compute_reaction_events
-        
+
         return compute_reaction_events(
             decision=decision,
             event=event,

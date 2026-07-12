@@ -1,4 +1,4 @@
-﻿"""
+"""
 path: /frontend/text_input.py
 
 Кастомный виджет ввода текста для pygame.
@@ -17,6 +17,7 @@ path: /frontend/text_input.py
 Зависимости: pygame, typing
 Основные сущности: TextInput
 """
+
 from typing import Optional
 
 import random
@@ -62,8 +63,10 @@ class TextInput:
 
         # Resistance Medium: Заражение ввода (Embodied Will Friction)
         self._is_possessed: bool = False  # Аватар навязывает свою волю
-        self._intrusive_text: str = ""    # Текст навязанного импульса
-        self._rejection_flash_end: int = 0 # Таймер красной пульсации (Input Rejection Flash)
+        self._intrusive_text: str = ""  # Текст навязанного импульса
+        self._rejection_flash_end: int = (
+            0  # Таймер красной пульсации (Input Rejection Flash)
+        )
 
         # История команд
         self._history: list[str] = []
@@ -85,8 +88,8 @@ class TextInput:
         self._next_repeat_time: float = 0.0
         self._current_repeat_interval: float = 0.12
         self._REPEAT_INITIAL_DELAY: float = 0.35  # секунд до начала повтора
-        self._REPEAT_MIN_INTERVAL: float = 0.04   # максимальная скорость (интервал)
-        self._REPEAT_ACCELERATION: float = 0.85   # множитель ускорения каждый повтор
+        self._REPEAT_MIN_INTERVAL: float = 0.04  # максимальная скорость (интервал)
+        self._REPEAT_ACCELERATION: float = 0.85  # множитель ускорения каждый повтор
 
     # ── Публичный API ──────────────────────────────────────────────────
 
@@ -107,7 +110,7 @@ class TextInput:
 
     @text.setter
     def text(self, value: str) -> None:
-        self._text = value[:self.MAX_LENGTH]
+        self._text = value[: self.MAX_LENGTH]
         self._cursor_pos = len(self._text)
         self._selection_start = None
 
@@ -152,12 +155,12 @@ class TextInput:
         """
         self._is_possessed = True
         self._intrusive_text = impulse_text
-        self._infection_origin = origin_layer # ADR-037: Сохраняем источник для рендера
+        self._infection_origin = origin_layer  # ADR-037: Сохраняем источник для рендера
         self._text = impulse_text
         self._cursor_pos = len(impulse_text)
         self._selection_start = None
         self._update_scroll()
-        self._focused = True # Заставляем игрока обратить внимание на конфликт
+        self._focused = True  # Заставляем игрока обратить внимание на конфликт
 
     def exorcise(self) -> None:
         """Снимает заражение, когда игрок преодолевает волю аватара."""
@@ -197,7 +200,7 @@ class TextInput:
             # Resistance Medium: Борьба с волей. Ввод символа разрушает навязанный импульс.
             if self._is_possessed:
                 self.exorcise()
-                self._text = "" # Стираем слова аватара
+                self._text = ""  # Стираем слова аватара
                 self._cursor_pos = 0
             self._insert_text(event.text)
             return True
@@ -295,7 +298,7 @@ class TextInput:
         # Shift+Enter = перенос строки, Обычный Enter = отправка
         if event.key == pygame.K_RETURN or event.key == pygame.K_KP_ENTER:
             if mods & pygame.KMOD_SHIFT:
-                self._insert_text('\n')
+                self._insert_text("\n")
                 return True
             return False
 
@@ -314,8 +317,10 @@ class TextInput:
         if self._selection_start is not None:
             self._delete_selection()
         if len(self._text) + len(text) > self.MAX_LENGTH:
-            text = text[:self.MAX_LENGTH - len(self._text)]
-        self._text = self._text[:self._cursor_pos] + text + self._text[self._cursor_pos:]
+            text = text[: self.MAX_LENGTH - len(self._text)]
+        self._text = (
+            self._text[: self._cursor_pos] + text + self._text[self._cursor_pos :]
+        )
         self._cursor_pos += len(text)
         self._selection_start = None
         self._update_scroll()
@@ -420,7 +425,7 @@ class TextInput:
             pygame.scrap.init()
             pygame.scrap.put(pygame.SCRAP_TEXT, selected.encode("utf-8"))
         except Exception as e:
-            logger.warning(f"[B5-FIX] silent failure suppressed: {e}")  # Буфер обмена недоступен — нормально для некоторых ОС
+            print(f"[B5-FIX] silent failure suppressed: {e}")  # Буфер обмена недоступен — нормально для некоторых ОС
 
     def _paste_from_clipboard(self) -> None:
         """Вставляет текст из буфера обмена."""
@@ -431,7 +436,7 @@ class TextInput:
                 text = raw.decode("utf-8", errors="ignore").rstrip("\x00")
                 self._insert_text(text)
         except Exception as e:
-            logger.warning(f"[B5-FIX] silent failure suppressed: {e}")  # Буфер обмена недоступен — нормально для некоторых ОС
+            print(f"[B5-FIX] silent failure suppressed: {e}")  # Буфер обмена недоступен — нормально для некоторых ОС
 
     # ── Обновление (Физика зажатия) ────────────────────────────────────
 
@@ -447,7 +452,7 @@ class TextInput:
             # Постепенно набираем скорость (уменьшаем интервал)
             self._current_repeat_interval = max(
                 self._REPEAT_MIN_INTERVAL,
-                self._current_repeat_interval * self._REPEAT_ACCELERATION
+                self._current_repeat_interval * self._REPEAT_ACCELERATION,
             )
 
     def _start_hold(self, key: int) -> None:
@@ -464,12 +469,18 @@ class TextInput:
 
     def _execute_key_action(self, key: int) -> None:
         """Исполняет действие для инерционного повтора."""
-        if key == pygame.K_LEFT: self._move_left()
-        elif key == pygame.K_RIGHT: self._move_right()
-        elif key == pygame.K_UP: self._history_prev()
-        elif key == pygame.K_DOWN: self._history_next()
-        elif key == pygame.K_BACKSPACE: self._do_backspace()
-        elif key == pygame.K_DELETE: self._do_delete()
+        if key == pygame.K_LEFT:
+            self._move_left()
+        elif key == pygame.K_RIGHT:
+            self._move_right()
+        elif key == pygame.K_UP:
+            self._history_prev()
+        elif key == pygame.K_DOWN:
+            self._history_next()
+        elif key == pygame.K_BACKSPACE:
+            self._do_backspace()
+        elif key == pygame.K_DELETE:
+            self._do_delete()
 
     def _move_left(self) -> None:
         mods = pygame.key.get_mods()
@@ -494,14 +505,18 @@ class TextInput:
             self._delete_selection()
         elif self._cursor_pos > 0:
             self._cursor_pos -= 1
-            self._text = self._text[:self._cursor_pos] + self._text[self._cursor_pos + 1:]
+            self._text = (
+                self._text[: self._cursor_pos] + self._text[self._cursor_pos + 1 :]
+            )
         self._update_scroll()
 
     def _do_delete(self) -> None:
         if self._selection_start is not None:
             self._delete_selection()
         elif self._cursor_pos < len(self._text):
-            self._text = self._text[:self._cursor_pos] + self._text[self._cursor_pos + 1:]
+            self._text = (
+                self._text[: self._cursor_pos] + self._text[self._cursor_pos + 1 :]
+            )
         self._update_scroll()
 
     # ── Отрисовка ──────────────────────────────────────────────────────
@@ -512,13 +527,17 @@ class TextInput:
         pygame.draw.rect(surface, self.colors["bg"], self.rect, border_radius=6)
 
         # Рамка
-        border_color = self.colors["border_active"] if self._focused else self.colors["border"]
+        border_color = (
+            self.colors["border_active"] if self._focused else self.colors["border"]
+        )
         pygame.draw.rect(surface, border_color, self.rect, 1, border_radius=6)
 
         # Область текста с отступом
         text_area = pygame.Rect(
-            self.rect.x + 6, self.rect.y + 4,
-            self.rect.width - 12, self.rect.height - 8,
+            self.rect.x + 6,
+            self.rect.y + 4,
+            self.rect.width - 12,
+            self.rect.height - 8,
         )
 
         # Вычисляем видимый фрагмент текста
@@ -551,7 +570,9 @@ class TextInput:
         # Рисуем IME текст (если есть)
         if self._ime_text:
             ime_surf = self.font.render(self._ime_text, True, (180, 180, 180))
-            surface.blit(ime_surf, (text_area.x + len(visible_text) * char_w, text_area.y))
+            surface.blit(
+                ime_surf, (text_area.x + len(visible_text) * char_w, text_area.y)
+            )
 
         # Рисуем курсор (мигает только при фокусе)
         if self._focused:
@@ -559,6 +580,10 @@ class TextInput:
             # Resistance Medium: Тремор курсора при конфликте воли
             jitter_x = random.randint(-2, 2) if self._is_possessed else 0
             jitter_y = random.randint(-1, 1) if self._is_possessed else 0
-            cursor_color = (255, 50, 50) if self._is_possessed else self.colors["cursor"]
-            cursor_rect = pygame.Rect(cursor_x + jitter_x, text_area.y + 2 + jitter_y, 2, text_area.height - 4)
+            cursor_color = (
+                (255, 50, 50) if self._is_possessed else self.colors["cursor"]
+            )
+            cursor_rect = pygame.Rect(
+                cursor_x + jitter_x, text_area.y + 2 + jitter_y, 2, text_area.height - 4
+            )
             pygame.draw.rect(surface, cursor_color, cursor_rect)

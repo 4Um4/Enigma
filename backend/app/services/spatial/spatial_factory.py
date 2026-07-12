@@ -4,11 +4,13 @@ path: backend/app/services/spatial/spatial_factory.py
 B3-FIX: убрано 3 точки входа (npc_orchestration, idle_tick, _resolve_spatial_service).
 S113: Введён кэш _cache для предотвращения пересборки графа каждый тик.
 """
+
 import logging
-from typing import Optional, Dict, Tuple
+from typing import List, Any, Optional, Dict, Tuple
 from app.services.spatial.spatial_service import SpatialService
 
 logger = logging.getLogger(__name__)
+
 
 class SpatialFactory:
     """Единственная точка входа для сборки SpatialService."""
@@ -19,13 +21,13 @@ class SpatialFactory:
     def build_for_campaign(
         campaign_id: str,
         location_id: str,
-        scene_state: dict,
+        scene_state: Dict[str, Any],
     ) -> Optional[SpatialService]:
         """Build SpatialService for campaign/location. Single authority.
         Возвращает кэшированный инстанс, если кампания и локация совпадают.
         """
         _cache_key = (campaign_id, location_id)
-        
+
         # Возвращаем кэш, если он есть
         if _cache_key in SpatialFactory._cache:
             return SpatialFactory._cache[_cache_key]
@@ -42,7 +44,7 @@ class SpatialFactory:
         except Exception as e:
             logger.error(
                 f"[SPATIAL_FACTORY] build failed for {campaign_id}/{location_id}: {e}",
-                exc_info=True
+                exc_info=True,
             )
             return None
 

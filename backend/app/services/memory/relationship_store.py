@@ -1,17 +1,17 @@
-﻿# backend/app/services/memory/relationship_store.py
+from __future__ import annotations
+# backend/app/services/memory/relationship_store.py
 """
 R1.4 — Relationship Memory.
 Хранит отношения между NPC и игроком в JSON на диске.
 Python обновляет после каждого хода. LLM получает готовые числа.
 """
 
-from __future__ import annotations
 import json
 import logging
 import time
 from collections import OrderedDict
 from pathlib import Path
-from typing import Any, Dict
+from typing import List, Any, Dict
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +49,7 @@ class RelationshipStore:
             elif campaign_id in self._cache:
                 self._cache.move_to_end(campaign_id)
                 return self._cache[campaign_id]
-                
+
         path = self._path(campaign_id)
         if not path.exists():
             self._cache[campaign_id] = {}
@@ -119,10 +119,7 @@ class RelationshipStore:
     def get(self, campaign_id: str, source: str) -> Dict[str, Any]:
         """Возвращает все отношения от source."""
         data = self._load(campaign_id)
-        return {
-            k: v for k, v in data.items()
-            if k.startswith(f"{source}→")
-        }
+        return {k: v for k, v in data.items() if k.startswith(f"{source}→")}
 
     def get_all(self, campaign_id: str) -> Dict[str, Any]:
         """Возвращает весь граф отношений кампании."""
@@ -143,8 +140,7 @@ class RelationshipStore:
         prefix = f"{source}→"
         return {
             key.split("→")[1]: {
-                attr: float(data[key].get(attr, 0.0))
-                for attr in RELATIONSHIP_KEYS
+                attr: float(data[key].get(attr, 0.0)) for attr in RELATIONSHIP_KEYS
             }
             for key in data
             if key.startswith(prefix)
@@ -162,7 +158,9 @@ class RelationshipStore:
         # Сохраняем пустой словарь
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text("{}" if not data else "{}", encoding="utf-8")
-        logger.warning(f"[RELATIONSHIPS] Сброшено {count} записей для {campaign_id} (миграция бага #7)")
+        logger.warning(
+            f"[RELATIONSHIPS] Сброшено {count} записей для {campaign_id} (миграция бага #7)"
+        )
         return count
 
     def get_pair(
@@ -174,16 +172,16 @@ class RelationshipStore:
         if not source or not target:
             return {}
         data = self._load(campaign_id)
-        key  = f"{source}→{target}"
-        raw  = data.get(key)
-        
+        key = f"{source}→{target}"
+        raw = data.get(key)
+
         # ОНТОЛОГИЧЕСКОЕ ИСПРАВЛЕНИЕ: Нет записи = Нет знания (Vacuum).
         # Мы больше не материализуем 0.0 из пустоты.
         if raw is None:
             return {}
-            
+
         return {
             attr: round(float(val), 4)
-            for attr, val in raw.items() if attr in RELATIONSHIP_KEYS
+            for attr, val in raw.items()
+            if attr in RELATIONSHIP_KEYS
         }
-

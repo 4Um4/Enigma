@@ -30,6 +30,7 @@ def apply_front_engine(
     """
     try:
         from app.services.character.front_engine import FrontEngine
+
         _front_eng = FrontEngine()
         _player_profile = character_service.get_or_create_profile(
             campaign_id, player_name
@@ -39,7 +40,9 @@ def apply_front_engine(
         if reputation_engine:
             _rep_states = reputation_engine.get_all_faction_states()
             if _rep_states:
-                _player_rep = sum(s["reputation"] for s in _rep_states.values()) / len(_rep_states)
+                _player_rep = sum(s["reputation"] for s in _rep_states.values()) / len(
+                    _rep_states
+                )
         _world_pressure = _front_eng.compute_pressure(
             profile=_player_profile,
             player_reputation=_player_rep,
@@ -53,6 +56,7 @@ def apply_front_engine(
         if _front_decision.action == "adopt":
             if _player_profile.front is None:
                 from app.models.front import FrontState
+
                 _player_profile.front = FrontState()
             _player_profile.front.adopt(
                 _front_decision.front_type,
@@ -60,7 +64,9 @@ def apply_front_engine(
                 intensity=_world_pressure.total_pressure,
             )
         elif _front_decision.action == "intensify" and _player_profile.front:
-            _player_profile.front.intensity = min(1.0, _player_profile.front.intensity + 0.1)
+            _player_profile.front.intensity = min(
+                1.0, _player_profile.front.intensity + 0.1
+            )
         elif _front_decision.action in ("drop", "break") and _player_profile.front:
             if _front_decision.action == "break":
                 _player_profile.front.breaks.append(
@@ -80,8 +86,10 @@ def apply_front_engine(
             shared_context.front_type = _front_decision.front_type.value
         if _world_pressure.total_pressure > 0.1:
             shared_context.world_pressure = round(_world_pressure.total_pressure, 3)
-        logger.debug(f"[FRONT] action={_front_decision.action}, "
-              f"pressure={_world_pressure.total_pressure:.2f}, "
-              f"cost={_front_decision.integrity_cost:.4f}")
+        logger.debug(
+            f"[FRONT] action={_front_decision.action}, "
+            f"pressure={_world_pressure.total_pressure:.2f}, "
+            f"cost={_front_decision.integrity_cost:.4f}"
+        )
     except Exception as _fe_err:
         logger.warning(f"[FRONT] Error: {_fe_err}")

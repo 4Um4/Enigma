@@ -10,13 +10,13 @@ path: /backend/tests/test_social_engine.py
 """
 
 import pytest
-from app.models.social import Relationship, Rumor, PropagationResult
+from app.models.social import PropagationResult, Relationship, Rumor
 from app.services.social.social_engine import SocialEngine
-
 
 # ═══════════════════════════════════════════════════════════════
 # FIXTURES
 # ═══════════════════════════════════════════════════════════════
+
 
 @pytest.fixture
 def simple_config() -> dict:
@@ -82,6 +82,7 @@ def village_engine(village_config, name_map) -> SocialEngine:
 # RELATIONSHIP MODEL
 # ═══════════════════════════════════════════════════════════════
 
+
 class TestRelationship:
     """Базовая связь: base/runtime разделение, капы."""
 
@@ -146,6 +147,7 @@ class TestRelationship:
 # SOCIAL ENGINE — GRAPH LOADING
 # ═══════════════════════════════════════════════════════════════
 
+
 class TestSocialEngineGraph:
     """Загрузка графа из конфига, обратные связи."""
 
@@ -191,6 +193,7 @@ class TestSocialEngineGraph:
 # ═══════════════════════════════════════════════════════════════
 # PROPAGATION — BASIC
 # ═══════════════════════════════════════════════════════════════
+
 
 class TestPropagationBasic:
     """Базовое распространение: цепочка, свидетели."""
@@ -282,6 +285,7 @@ class TestPropagationBasic:
 # ═══════════════════════════════════════════════════════════════
 # PROPAGATION — DECAY & DISTORTION
 # ═══════════════════════════════════════════════════════════════
+
 
 class TestPropagationDistortion:
     """Затухание по хопам и искажение на основе доверия."""
@@ -402,20 +406,27 @@ class TestPropagationDistortion:
 # PROPAGATION — FREQ CAP
 # ═══════════════════════════════════════════════════════════════
 
+
 class TestPropagationFreqCap:
     """Частотный кап: одно событие не спамится."""
 
     def test_same_event_blocked_within_cap(self, simple_engine):
         """Повторный слух о том же событии блокируется."""
         r1 = simple_engine.propagate(
-            event_type="player_attacks", intensity=1.0,
-            actor="player", target="npc_a", witnesses=["npc_a"],
+            event_type="player_attacks",
+            intensity=1.0,
+            actor="player",
+            target="npc_a",
+            witnesses=["npc_a"],
             current_tick=1,
         )
         # Тот же тик — полностью блокируется
         r2 = simple_engine.propagate(
-            event_type="player_attacks", intensity=1.0,
-            actor="player", target="npc_a", witnesses=["npc_a"],
+            event_type="player_attacks",
+            intensity=1.0,
+            actor="player",
+            target="npc_a",
+            witnesses=["npc_a"],
             current_tick=1,
         )
         assert len(r1) > 0
@@ -424,13 +435,19 @@ class TestPropagationFreqCap:
     def test_same_event_allowed_after_cap(self, simple_engine):
         """После FREQ_CAP_TICKS слух проходит снова."""
         r1 = simple_engine.propagate(
-            event_type="player_attacks", intensity=1.0,
-            actor="player", target="npc_a", witnesses=["npc_a"],
+            event_type="player_attacks",
+            intensity=1.0,
+            actor="player",
+            target="npc_a",
+            witnesses=["npc_a"],
             current_tick=1,
         )
         r2 = simple_engine.propagate(
-            event_type="player_attacks", intensity=1.0,
-            actor="player", target="npc_a", witnesses=["npc_a"],
+            event_type="player_attacks",
+            intensity=1.0,
+            actor="player",
+            target="npc_a",
+            witnesses=["npc_a"],
             current_tick=SocialEngine.FREQ_CAP_TICKS + 1,
         )
         assert len(r1) > 0
@@ -439,13 +456,19 @@ class TestPropagationFreqCap:
     def test_different_event_not_blocked(self, simple_engine):
         """Разные события не блокируют друг друга."""
         r1 = simple_engine.propagate(
-            event_type="player_attacks", intensity=1.0,
-            actor="player", target="npc_a", witnesses=["npc_a"],
+            event_type="player_attacks",
+            intensity=1.0,
+            actor="player",
+            target="npc_a",
+            witnesses=["npc_a"],
             current_tick=1,
         )
         r2 = simple_engine.propagate(
-            event_type="player_insults", intensity=1.0,
-            actor="player", target="npc_a", witnesses=["npc_a"],
+            event_type="player_insults",
+            intensity=1.0,
+            actor="player",
+            target="npc_a",
+            witnesses=["npc_a"],
             current_tick=1,
         )
         assert len(r1) > 0
@@ -456,13 +479,17 @@ class TestPropagationFreqCap:
 # PROPAGATION — CONTINUITY NOTE
 # ═══════════════════════════════════════════════════════════════
 
+
 class TestPropagationContinuity:
     """continuity_note — factual строка для SceneContinuity."""
 
     def test_note_contains_npc_ids(self, village_engine):
         results = village_engine.propagate(
-            event_type="player_attacks", intensity=1.0,
-            actor="player", target="maid_lusya", witnesses=["maid_lusya"],
+            event_type="player_attacks",
+            intensity=1.0,
+            actor="player",
+            target="maid_lusya",
+            witnesses=["maid_lusya"],
             current_tick=1,
         )
         for r in results:
@@ -471,8 +498,11 @@ class TestPropagationContinuity:
 
     def test_note_contains_names_when_map_provided(self, village_engine):
         results = village_engine.propagate(
-            event_type="player_attacks", intensity=1.0,
-            actor="player", target="maid_lusya", witnesses=["maid_lusya"],
+            event_type="player_attacks",
+            intensity=1.0,
+            actor="player",
+            target="maid_lusya",
+            witnesses=["maid_lusya"],
             current_tick=1,
         )
         shadow_r = [r for r in results if r.npc_id == "thief_shadow"]
@@ -484,8 +514,11 @@ class TestPropagationContinuity:
     def test_note_without_name_map(self, simple_engine):
         """Без name_map — npc_id вместо имён."""
         results = simple_engine.propagate(
-            event_type="player_attacks", intensity=1.0,
-            actor="player", target="npc_a", witnesses=["npc_a"],
+            event_type="player_attacks",
+            intensity=1.0,
+            actor="player",
+            target="npc_a",
+            witnesses=["npc_a"],
             current_tick=1,
         )
         for r in results:
@@ -495,6 +528,7 @@ class TestPropagationContinuity:
 # ═══════════════════════════════════════════════════════════════
 # PERSISTENCE
 # ═══════════════════════════════════════════════════════════════
+
 
 class TestPersistence:
     """Runtime-состояние графа: сохранение/восстановление."""
@@ -524,11 +558,13 @@ class TestPersistence:
         rt = simple_engine.get_runtime_state()
 
         # Новый engine с тем же конфигом
-        engine2 = SocialEngine.from_config({
-            "relations": {
-                "npc_a": {"npc_b": {"nature": "friend", "base_trust": 0.7, "base_affection": 0.5}},
+        engine2 = SocialEngine.from_config(
+            {
+                "relations": {
+                    "npc_a": {"npc_b": {"nature": "friend", "base_trust": 0.7, "base_affection": 0.5}},
+                }
             }
-        })
+        )
         # До восстановления — базовые значения
         assert engine2.get_relationship("npc_a", "npc_b").effective_trust == 0.7
 
@@ -539,10 +575,12 @@ class TestPersistence:
 
     def test_apply_runtime_ignores_invalid_keys(self, simple_engine):
         """Невалидные ключи не ломают восстановление."""
-        simple_engine.apply_runtime_state({
-            "invalid_key_no_arrow": {"fear": 0.5},
-            "a→b→c": {"fear": 0.3},  # слишком много стрелок
-        })
+        simple_engine.apply_runtime_state(
+            {
+                "invalid_key_no_arrow": {"fear": 0.5},
+                "a→b→c": {"fear": 0.3},  # слишком много стрелок
+            }
+        )
         # Не должно упасть — проверяем что граф не сломан
         assert simple_engine.get_relationship("npc_a", "npc_b") is not None
 
@@ -550,6 +588,7 @@ class TestPersistence:
 # ═══════════════════════════════════════════════════════════════
 # RUMOR & PROPAGATION RESULT — IMMUTABILITY
 # ═══════════════════════════════════════════════════════════════
+
 
 class TestFrozenModels:
     """Rumor и PropagationResult — frozen dataclass."""

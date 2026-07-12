@@ -1,3 +1,4 @@
+from __future__ import annotations
 # path: backend/app/services/npc/opportunity_engine.py
 """
 R6.3 — OpportunityEngine: определяет момент скрытого действия сломленного NPC.
@@ -22,10 +23,9 @@ READ ONLY. Никаких мутаций.
   OpportunityEngine   — статический метод calculate()
 """
 
-from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, FrozenSet
+from typing import List, Any, Dict, FrozenSet
 
 from app.models.behavior_mask import BehaviorMask
 from app.models.npc_state import Intent
@@ -39,18 +39,18 @@ from app.models.npc_state import Intent
 W_ATTENTION: float = 0.35
 
 # Дистанция и оружие равнозначны — оба условия критичны для успеха
-W_DISTANCE:  float = 0.30
-W_WEAPON:    float = 0.20
+W_DISTANCE: float = 0.30
+W_WEAPON: float = 0.20
 
 # Союзники усиливают уверенность, но не решают исход
-W_ALLIES:    float = 0.15
+W_ALLIES: float = 0.15
 
 # Порог: выше — скрытое действие разрешено
 OPPORTUNITY_THRESHOLD: float = 0.65
 
 # Пределы нормализации входных данных
 MAX_DISTANCE_METERS: float = 30.0  # дальше — максимум по дистанции
-MAX_ALLY_COUNT:      int   = 4     # больше 4 союзников — предел нормализации
+MAX_ALLY_COUNT: int = 4  # больше 4 союзников — предел нормализации
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -59,23 +59,28 @@ MAX_ALLY_COUNT:      int   = 4     # больше 4 союзников — пр�
 # ─────────────────────────────────────────────────────────────────────────────
 
 _MASK_UNLOCKS: Dict[str, FrozenSet[str]] = {
-    BehaviorMask.FAKE_SUBMISSION.value: frozenset({
-        Intent.ATTACK.value,      # удар в спину когда игрок отвернулся
-        Intent.REPORT.value,      # донести пока игрок не видит
-        Intent.INTIMIDATE.value,  # попытка вернуть контроль
-    }),
-    BehaviorMask.BETRAYAL.value: frozenset({
-        Intent.REPORT.value,      # оповестить врага игрока
-        Intent.ATTACK.value,      # прямое предательство
-    }),
+    BehaviorMask.FAKE_SUBMISSION.value: frozenset(
+        {
+            Intent.ATTACK.value,  # удар в спину когда игрок отвернулся
+            Intent.REPORT.value,  # донести пока игрок не видит
+            Intent.INTIMIDATE.value,  # попытка вернуть контроль
+        }
+    ),
+    BehaviorMask.BETRAYAL.value: frozenset(
+        {
+            Intent.REPORT.value,  # оповестить врага игрока
+            Intent.ATTACK.value,  # прямое предательство
+        }
+    ),
     BehaviorMask.COLLAPSE.value: frozenset(),  # паралич — никаких действий
-    BehaviorMask.NONE.value:     frozenset(),
+    BehaviorMask.NONE.value: frozenset(),
 }
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # OpportunityContext — входные данные сцены
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 @dataclass(frozen=True)
 class OpportunityContext:
@@ -88,24 +93,25 @@ class OpportunityContext:
     weapon_access: NPC держит оружие или оно в радиусе вытянутой руки.
     allies: число союзных NPC в радиусе действия.
     """
-    player_attention: float = 1.0   # по умолчанию — игрок смотрит
-    distance:         float = 0.0   # по умолчанию — вплотную
-    weapon_access:    bool  = False
-    allies:           int   = 0
+
+    player_attention: float = 1.0  # по умолчанию — игрок смотрит
+    distance: float = 0.0  # по умолчанию — вплотную
+    weapon_access: bool = False
+    allies: int = 0
 
     def __post_init__(self) -> None:
         # Защита от невалидных значений из SceneState
-        object.__setattr__(self, "player_attention",
-                           max(0.0, min(1.0, self.player_attention)))
-        object.__setattr__(self, "distance",
-                           max(0.0, self.distance))
-        object.__setattr__(self, "allies",
-                           max(0, self.allies))
+        object.__setattr__(
+            self, "player_attention", max(0.0, min(1.0, self.player_attention))
+        )
+        object.__setattr__(self, "distance", max(0.0, self.distance))
+        object.__setattr__(self, "allies", max(0, self.allies))
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # OpportunityResult — результат оценки
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 @dataclass(frozen=True)
 class OpportunityResult:
@@ -118,15 +124,17 @@ class OpportunityResult:
     unlocked_intents:      набор интентов доступных сломленному NPC.
     score_trace:           компоненты для калибровки R4.2.
     """
-    score:                 float
+
+    score: float
     hidden_action_allowed: bool
-    unlocked_intents:      FrozenSet[str]        = field(default_factory=frozenset)
-    score_trace:           Dict[str, Any]        = field(default_factory=dict)
+    unlocked_intents: FrozenSet[str] = field(default_factory=frozenset)
+    score_trace: Dict[str, Any] = field(default_factory=dict)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # OpportunityEngine
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 class OpportunityEngine:
     """
@@ -173,7 +181,7 @@ class OpportunityEngine:
             + allies_component
         )
 
-        final_score   = round(min(raw_score, 1.0), 4)
+        final_score = round(min(raw_score, 1.0), 4)
         hidden_allowed = final_score >= OPPORTUNITY_THRESHOLD
 
         return OpportunityResult(
@@ -181,14 +189,15 @@ class OpportunityEngine:
             hidden_action_allowed=hidden_allowed,
             unlocked_intents=(
                 frozenset({"betray", "steal", "escape", "sabotage"})
-                if hidden_allowed else frozenset()
+                if hidden_allowed
+                else frozenset()
             ),
             score_trace={
                 "attention_component": round(attention_component, 4),
-                "distance_component":  round(distance_component, 4),
-                "weapon_component":    round(weapon_component, 4),
-                "allies_component":    round(allies_component, 4),
-                "raw_score":           round(raw_score, 4),
-                "threshold":           OPPORTUNITY_THRESHOLD,
+                "distance_component": round(distance_component, 4),
+                "weapon_component": round(weapon_component, 4),
+                "allies_component": round(allies_component, 4),
+                "raw_score": round(raw_score, 4),
+                "threshold": OPPORTUNITY_THRESHOLD,
             },
         )

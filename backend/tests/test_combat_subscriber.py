@@ -18,17 +18,13 @@
 7. Fallback на player snapshot при атаке игрока
 8. drain_events() очищает буфер
 """
-import pytest
-from unittest.mock import MagicMock
-from uuid import uuid4
 
-from app.services.combat.combat_subscriber import CombatSubscriber
-from app.services.events.event_bus import EventBus
-from app.services.events.event_types import EventType
+from app.domain.events import EventDTO
+from app.models.delta_payloads import PhysiologyPayload
 from app.models.phase8 import Phase8Context, Phase8Result
 from app.models.state_delta import DeltaDomain
-from app.models.delta_payloads import PhysiologyPayload
-from app.domain.events import EventDTO
+from app.services.combat.combat_subscriber import CombatSubscriber
+from app.services.events.event_bus import EventBus
 
 
 def _make_event(
@@ -40,7 +36,8 @@ def _make_event(
     return EventDTO.create(
         event_type=event_type,
         source=source,
-        payload=payload or {
+        payload=payload
+        or {
             "target_id": "npc_1",
             "actor_id": "player",
             "intensity": 0.8,
@@ -56,8 +53,14 @@ def _make_npc(npc_id: str = "npc_1", dexterity: float = 10.0) -> dict:
         "psyche": {"stress": 10.0, "loyalty_true": 50.0},
         "social_stats": {"trust": 40.0, "fear_of_player": 20.0, "debt": 0.0},
         "body_profile": {"max_hp": 100.0, "abilities": {"dexterity": dexterity}},
-        "body_state": {"current_hp": 100.0, "pain": 0.0, "fatigue": 0.0,
-                       "blood_loss": 0.0, "consciousness": 1.0, "modifiers": {}},
+        "body_state": {
+            "current_hp": 100.0,
+            "pain": 0.0,
+            "fatigue": 0.0,
+            "blood_loss": 0.0,
+            "consciousness": 1.0,
+            "modifiers": {},
+        },
         "relationship_cache": {"player": {"trust": 40.0, "fear": 20.0}},
         "base_values": {"player": 50.0},
         "status_profile": {"faction_rank": {}},
@@ -116,11 +119,14 @@ class TestCombatSubscriberHandle:
         npc = _make_npc("npc_1")
         ctx = _make_ctx([npc])
 
-        event = _make_event("player_attacks", payload={
-            "target_id": "npc_1",
-            "actor_id": "player",
-            "intensity": 0.8,
-        })
+        event = _make_event(
+            "player_attacks",
+            payload={
+                "target_id": "npc_1",
+                "actor_id": "player",
+                "intensity": 0.8,
+            },
+        )
         result = sub.handle([event], ctx)
 
         assert isinstance(result, Phase8Result)
@@ -137,11 +143,14 @@ class TestCombatSubscriberHandle:
         npc = _make_npc("npc_1", dexterity=0.0)
         ctx = _make_ctx([npc])
 
-        event = _make_event("player_attacks", payload={
-            "target_id": "npc_1",
-            "actor_id": "player",
-            "intensity": 0.8,
-        })
+        event = _make_event(
+            "player_attacks",
+            payload={
+                "target_id": "npc_1",
+                "actor_id": "player",
+                "intensity": 0.8,
+            },
+        )
         result = sub.handle([event], ctx)
 
         npc_ids = {d.npc_id for d in result.deltas}
@@ -154,10 +163,13 @@ class TestCombatSubscriberHandle:
         sub = CombatSubscriber(bus)
         ctx = _make_ctx()
 
-        event = _make_event("player_attacks", payload={
-            "actor_id": "player",
-            # no target_id
-        })
+        event = _make_event(
+            "player_attacks",
+            payload={
+                "actor_id": "player",
+                # no target_id
+            },
+        )
         result = sub.handle([event], ctx)
 
         assert len(result.deltas) == 0
@@ -186,12 +198,15 @@ class TestCombatSubscriberPlayerFallback:
         ctx = _make_ctx([npc])
 
         # actor_id = "player" — нет в npc_by_id
-        event = _make_event("player_attacks", payload={
-            "target_id": "npc_1",
-            "actor_id": "player",
-            "intensity": 1.0,
-            "force": 50.0,
-        })
+        event = _make_event(
+            "player_attacks",
+            payload={
+                "target_id": "npc_1",
+                "actor_id": "player",
+                "intensity": 1.0,
+                "force": 50.0,
+            },
+        )
         result = sub.handle([event], ctx)
 
         # Должны быть дельты — fallback-снапшот не блокирует
@@ -232,12 +247,15 @@ class TestCombatSubscriberIntentExtraction:
         npc = _make_npc("npc_1")
         ctx = _make_ctx([npc])
 
-        event = _make_event("player_attacks", payload={
-            "target_id": "npc_1",
-            "actor_id": "player",
-            "intensity": 0.5,
-            "damage_type": "slash",
-        })
+        event = _make_event(
+            "player_attacks",
+            payload={
+                "target_id": "npc_1",
+                "actor_id": "player",
+                "intensity": 0.5,
+                "damage_type": "slash",
+            },
+        )
         result = sub.handle([event], ctx)
 
         # Должны быть дельты со slash-типом (кровопотеря выше)
@@ -256,11 +274,14 @@ class TestCombatSubscriberIntentExtraction:
         npc = _make_npc("npc_1")
         ctx = _make_ctx([npc])
 
-        event = _make_event("player_attacks", payload={
-            "target_id": "npc_1",
-            "actor_id": "player",
-            "force": 30.0,
-        })
+        event = _make_event(
+            "player_attacks",
+            payload={
+                "target_id": "npc_1",
+                "actor_id": "player",
+                "force": 30.0,
+            },
+        )
         result = sub.handle([event], ctx)
 
         assert len(result.deltas) > 0  # Blunt тоже генерирует дельты

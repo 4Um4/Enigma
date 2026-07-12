@@ -36,7 +36,7 @@ nodes:
     type: dto
     layer: Application
     label: "Tick Context"
-    description: "ADR-O-301: Contains rng_factory for deterministic KernelRNG creation per NPC."
+    description: "ADR-O-301: Contains rng_factory for deterministic KernelRNG creation per NPC. ADR-314 (S116): Explicitly receives shared_context from GameLoop to provide SpatialQueryService to CombatSubscriber (range gate)."
   KernelRNG:
     type: service
     layer: Application

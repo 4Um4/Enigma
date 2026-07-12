@@ -31,7 +31,10 @@ def apply_character_filter(
     """
     _filter_result = None
     try:
-        from app.services.character.character_filter import CharacterFilter as CharFilter
+        from app.services.character.character_filter import (
+            CharacterFilter as CharFilter,
+        )
+
         _profile = character_service.get_or_create_profile(campaign_id, player_name)
         # Если профиль пустой (аватар без ценностей) — пропускаем фильтр
         if _profile.values.weights:
@@ -39,7 +42,7 @@ def apply_character_filter(
             _filter_result = _cf.compute_resistance(
                 profile=_profile,
                 event_type=hub_event.event_type,
-                intensity=getattr(hub_event, 'intensity', 0.5) or 0.5,
+                intensity=getattr(hub_event, "intensity", 0.5) or 0.5,
             )
             # Применяем эрозию если была
             if _filter_result.erosion_applied > 0:
@@ -49,8 +52,10 @@ def apply_character_filter(
                 )
                 character_service.upsert_profile(campaign_id, _profile)
 
-            logger.debug(f"[CHAR_FILTER] {player_name}: {_filter_result.outcome.value} "
-                  f"(res={_filter_result.resistance:.2f}, mod={_filter_result.action_modifier:.2f})")
+            logger.debug(
+                f"[CHAR_FILTER] {player_name}: {_filter_result.outcome.value} "
+                f"(res={_filter_result.resistance:.2f}, mod={_filter_result.action_modifier:.2f})"
+            )
 
             # RESIST/REFUSE — передаём контекст DM, пропускаем NPC решения
             if _filter_result.outcome.value in ("resist", "refuse"):

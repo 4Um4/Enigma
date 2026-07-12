@@ -9,7 +9,6 @@ TODO:
 """
 
 import pytest
-
 from app.services.spatial.graph_compiler import _get_builtin_fallback
 
 

@@ -45,7 +45,6 @@ def _make_scene_state() -> dict:
         "location_id": "test_room",
         "environment": {"light_level": "bright", "noise_level": "quiet"},
         "environment_modifiers": {},
-        "player_spatial": {"location_id": "test_room", "position": "", "local_position": {"x": 5.0, "y": 5.0}},
         "objects": {},
         "spatial_walls": [],
         "spatial_obstacles": [],
@@ -63,16 +62,16 @@ def _make_scene_state() -> dict:
 
 def test_tick_orchestrator_full_loop_player_attacks():
     """Сквозной тест: player_attacks -> EventBus -> PerceptionSubscriber -> StateDeltas -> StateApplicator.
-    
+
     Проверяет полный idle-цикл (Фазы 0-10) оркестратора.
     Моки только на LLM (нет) и I/O (SqlitePersist/YAML через scene_manager).
     """
     # 1. Подготовка реальных сервисов и моков
     event_bus = EventBus()
-    
+
     # MemoryManager реальный, но с моком LayeredMemory (нет I/O)
     memory_manager = MemoryManager(layered_memory=MagicMock(), data_dir="test_data")
-    
+
     # Мок SceneManager (чтобы не гонять I/O в Фазе 10)
     scene_manager = MagicMock()
     scene_manager.commit.return_value = 1
@@ -84,12 +83,12 @@ def test_tick_orchestrator_full_loop_player_attacks():
         memory_manager=memory_manager,
         event_bus=event_bus,
     )
-    
+
     # Инжекция реального StateApplicator (единый мутатор по ADR-002)
     rel_store = RelationshipStore(data_dir="test_data")
     state_applicator = StateApplicator(relationship_store=rel_store)
     orchestrator._state_applicator = state_applicator
-    
+
     # Мок LifeEngine: возвращает нашего NPC через get_npc_states()
     npc_raw = _make_npc(stress=30.0)
     life_engine_mock = MagicMock()
@@ -97,10 +96,10 @@ def test_tick_orchestrator_full_loop_player_attacks():
     life_engine_mock.get_npc_states.return_value = [npc_raw]
     life_engine_mock.tick_decisions.return_value = ([], [], [])  # Фаза 5: нет решений (decisions, comms, movements)
     orchestrator._life_engine = life_engine_mock
-    
+
     # Устраняем зависимость от app.core.config.settings.RUNTIME_PATH
     orchestrator._get_npc_runtime_path = MagicMock(return_value="test_runtime")
-    
+
     # Мок SnapshotBuilder (Фаза 9)
     snapshot_builder_mock = MagicMock()
     snapshot_builder_mock.build.return_value = {}
@@ -114,22 +113,21 @@ def test_tick_orchestrator_full_loop_player_attacks():
         payload={"intensity": 1.0, "actor_id": "player", "target_id": "npc_1"},
     )
     event_bus.publish(event)
-    
+
     # 3. Выполнение полного idle-тика (Фазы 0-10)
     result = orchestrator.execute(
         campaign_id="test_campaign",
         scene_state=_make_scene_state(),
         tick_number=1,
     )
-    
+
     # 4. Ассерты
     assert result.status == "ok", f"Тик завершился с ошибкой: {getattr(result, 'error', None)}"
-    
+
     # Проверяем, что стресс NPC увеличился (ReactionSubscriber генерирует stress_delta)
     # Если ctx.all_npcs_raw не был синхронизирован с ctx.npc_states, мутация не применится!
     # Этот тест ДОЛЖЕН упасть, обнаружив баг с пустым all_npcs_raw в idle-тикете.
     final_npc = life_engine_mock.get_npc_states("test_campaign")[0]
     assert final_npc["psyche"]["stress"] > 30.0, (
-        "Стресс NPC не увеличился — дельта из Phase 8 не применена в Phase 10! "
-        "Вероятно, ctx.all_npcs_raw не заполнен."
+        "Стресс NPC не увеличился — дельта из Phase 8 не применена в Phase 10! Вероятно, ctx.all_npcs_raw не заполнен."
     )

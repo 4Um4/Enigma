@@ -10,6 +10,7 @@ path: /backend/app/services/player_cognition/cognitive_distortion.py
 Зависимости: types (PerceivedEntity), math
 Основные сущности: PlayerDistortionInputs, apply_cognitive_distortion()
 """
+
 from dataclasses import dataclass
 from typing import List
 
@@ -22,19 +23,20 @@ class PlayerDistortionInputs:
     Входные параметры искажения — абстрактный контракт.
     Не привязан к NPCState напрямую — вызывающий код извлекает числа.
     """
-    stress: float = 0.0       # 0-100
+
+    stress: float = 0.0  # 0-100
     hp: int = 100
     max_hp: int = 100
-    fatigue: float = 0.0      # 0-100, TODO: будет добавлено в NPCState позже
+    fatigue: float = 0.0  # 0-100, TODO: будет добавлено в NPCState позже
 
 
 # === Множители искажения ===
-_THREAT_AMPLIFICATION = 0.008    # стресс → усиление угрозы
-_STRESS_TUNNEL = 0.006           # стресс → фиксация на угрозах
-_LOW_HP_THREAT = 0.15            # низкое HP → базовый бонус угрозы
-_LOW_HP_THRESHOLD = 0.4          # ниже 40% HP — искажение включается
-_FATIGUE_BLUR = 0.003            # усталость → общее снижение чёткости
-_MAX_DISTORTION = 0.6            # governor: суммарное искажение не превышает
+_THREAT_AMPLIFICATION = 0.008  # стресс → усиление угрозы
+_STRESS_TUNNEL = 0.006  # стресс → фиксация на угрозах
+_LOW_HP_THREAT = 0.15  # низкое HP → базовый бонус угрозы
+_LOW_HP_THRESHOLD = 0.4  # ниже 40% HP — искажение включается
+_FATIGUE_BLUR = 0.003  # усталость → общее снижение чёткости
+_MAX_DISTORTION = 0.6  # governor: суммарное искажение не превышает
 
 
 def _compute_bias(inputs: PlayerDistortionInputs) -> tuple[float, float, float]:
@@ -114,11 +116,19 @@ def apply_cognitive_distortion(
         # Усиление угрозы: inference типа "armed" усиливается при high threat_bias
         if threat_bias > 0.1:
             for inf in entity.inferences:
-                if inf.inference_type in ("armed", "possible_threat", "potential_aggression"):
+                if inf.inference_type in (
+                    "armed",
+                    "possible_threat",
+                    "potential_aggression",
+                ):
                     inf.confidence = min(1.0, inf.confidence + threat_bias * 0.2)
 
         # Снижение доверия: "friendly_action" и "communication" ослабляются
         if trust_bias < -0.1:
             for inf in entity.inferences:
-                if inf.inference_type in ("friendly_action", "communication", "peaceful_interaction"):
+                if inf.inference_type in (
+                    "friendly_action",
+                    "communication",
+                    "peaceful_interaction",
+                ):
                     inf.confidence = max(0.0, inf.confidence + trust_bias * 0.3)

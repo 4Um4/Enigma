@@ -16,18 +16,19 @@ path: backend/tests/sandbox/SUPERBOX/drift_laboratory.py
 Зависимости: app.services.tick_orchestrator, app.services.scene_state_manager, matplotlib (опционально)
 Основные сущности: DriftConfig, DriftResult, DriftLaboratory, DriftReporter
 """
+
 from __future__ import annotations
 
 import csv
 import json
-import sys
 import os
-import time
 import shutil
+import sys
 import tempfile
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
 # SUPERBOX — добавляем backend/ в path (на 2 уровня выше)
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
@@ -35,17 +36,19 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
 # ─── Конфигурация ───────────────────────────────────────────────────────
 
+
 @dataclass
 class DriftConfig:
     """Настройки drift-эксперимента."""
+
     campaign_id: str = "Open_road"
     location_id: str = "tavern_silver_wolf"
 
     # Режимы
-    mass_traversal_ticks: int = 10_000       # ~30 NPC × 10000 = 300k comparisons
-    save_load_storm_ticks: int = 5_000       # save/load каждые 50 тиков
-    chunk_migration_ticks: int = 10_000       # boundary transitions
-    long_horizon_ticks: int = 100_000         # idle drift
+    mass_traversal_ticks: int = 10_000  # ~30 NPC × 10000 = 300k comparisons
+    save_load_storm_ticks: int = 5_000  # save/load каждые 50 тиков
+    chunk_migration_ticks: int = 10_000  # boundary transitions
+    long_horizon_ticks: int = 100_000  # idle drift
 
     # Интервал сбора статистики
     snapshot_interval: int = 1_000
@@ -54,31 +57,33 @@ class DriftConfig:
     save_load_interval: int = 50
 
     # replay determinism
-    replay_determinism_ticks: int = 10_000     # 2 × 10k тиков с одинаковым seed
+    replay_determinism_ticks: int = 10_000  # 2 × 10k тиков с одинаковым seed
 
     # projection parity (CSSE Stage 2)
-    projection_parity_ticks: int = 10_000      # 10k тиков dual-reality sync
+    projection_parity_ticks: int = 10_000  # 10k тиков dual-reality sync
 
     # idle simulation stability
-    idle_stability_ticks: int = 1000           # 1000 тиков для проверки циклов расписания
+    idle_stability_ticks: int = 1000  # 1000 тиков для проверки циклов расписания
 
 
 @dataclass
 class DriftSnapshot:
     """Срез drift-статистики в момент времени."""
+
     tick: int
     total_comparisons: int
-    drift_A: int = 0   # Cosmetic
-    drift_B: int = 0   # Projection
-    drift_C: int = 0   # Topological
-    drift_D: int = 0   # Causal
-    drift_E: int = 0   # Ontological
+    drift_A: int = 0  # Cosmetic
+    drift_B: int = 0  # Projection
+    drift_C: int = 0  # Topological
+    drift_D: int = 0  # Causal
+    drift_E: int = 0  # Ontological
     elapsed_seconds: float = 0.0
 
 
 @dataclass
 class DriftResult:
     """Полный результат эксперимента."""
+
     mode: str
     config: DriftConfig
     snapshots: List[DriftSnapshot] = field(default_factory=list)
@@ -108,12 +113,14 @@ class DriftResult:
 
 # ─── Константы Replay Determinism ────────────────────────────────────
 _REPLAY_SEED = 54321
-_EXCLUDE_FROM_SCENE_HASH = frozenset({
-    "last_save_real_time",   # time.time() — temporal entropy
-    "_version",              # монотонный счётчик
-    "campaign_id",           # добавляется при чтении, не часть мира
-    "snapshot_tick",         # удаляется при чтении, но на всякий случай
-})
+_EXCLUDE_FROM_SCENE_HASH = frozenset(
+    {
+        "last_save_real_time",  # time.time() — temporal entropy
+        "_version",  # монотонный счётчик
+        "campaign_id",  # добавляется при чтении, не часть мира
+        "snapshot_tick",  # удаляется при чтении, но на всякий случай
+    }
+)
 
 # ─── RCOC: RNG Consumption Order Contract ────────────────────────────
 # Архитектурный принцип, не код. Формализован через Replay Determinism.
@@ -151,9 +158,9 @@ class DriftLaboratory:
 
     def run(self, mode: str) -> DriftResult:
         """Запускает эксперимент в заданном режиме."""
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print(f"DRIFT LABORATORY — Mode: {mode}")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
 
         result = DriftResult(mode=mode, config=self.config)
 
@@ -196,12 +203,12 @@ class DriftLaboratory:
         if self._active_override:
             raise RuntimeError("[DRIFT_LAB] _setup() вызван без _teardown() — утечка конфигурации")
 
-        from app.services.game_loop_builder import build_game_loop
         from app.core.config import settings
+        from app.services.game_loop_builder import build_game_loop
 
         # Сохраняем оригинальные настройки (restore при любом исходе)
         self._original_saves_dir = settings.saves_dir
-        self._original_data_dir = getattr(settings, 'data_dir', None)
+        self._original_data_dir = getattr(settings, "data_dir", None)
 
         # Создаём временную директорию для persistence (не мусорим в saves/)
         self._temp_dir = tempfile.mkdtemp(prefix="drift_lab_")
@@ -247,16 +254,19 @@ class DriftLaboratory:
             # Доступ к внутреннему TickOrchestrator для чтения drift_stats
             self._orchestrator = self._game_loop._tick_orch
 
-            print(f"[DRIFT_LAB] GameLoop built via build_game_loop()")
+            print("[DRIFT_LAB] GameLoop built via build_game_loop()")
             print(f"[DRIFT_LAB] Temp dir: {self._temp_dir}")
             print(f"[DRIFT_LAB] Saves dir: {settings.saves_dir}")
 
             # Инициализируем доступ к scene_manager/scene_state (нужны для save_load_storm)
             self._scene_manager = self._game_loop.scene_manager
-            self._scene_state = self._scene_manager.get_scene_state(
-                self.config.campaign_id,
-                self.config.location_id,
-            ) or {}
+            self._scene_state = (
+                self._scene_manager.get_scene_state(
+                    self.config.campaign_id,
+                    self.config.location_id,
+                )
+                or {}
+            )
         except Exception:
             # При любой ошибке — восстанавливаем настройки
             self._restore_settings()
@@ -275,7 +285,7 @@ class DriftLaboratory:
         self._close_sqlite_connections()
 
         # 3. Удаляем временную директорию
-        if hasattr(self, '_temp_dir') and os.path.exists(self._temp_dir):
+        if hasattr(self, "_temp_dir") and os.path.exists(self._temp_dir):
             try:
                 shutil.rmtree(self._temp_dir)
                 print(f"[DRIFT_LAB] Temp dir cleaned: {self._temp_dir}")
@@ -296,9 +306,9 @@ class DriftLaboratory:
 
         from app.core.config import settings
 
-        if hasattr(self, '_original_saves_dir'):
+        if hasattr(self, "_original_saves_dir"):
             settings.saves_dir = self._original_saves_dir
-        if hasattr(self, '_original_data_dir') and self._original_data_dir:
+        if hasattr(self, "_original_data_dir") and self._original_data_dir:
             settings.data_dir = self._original_data_dir
 
         self._active_override = False  # Unlock
@@ -306,12 +316,12 @@ class DriftLaboratory:
 
     def _close_sqlite_connections(self) -> None:
         """Закрывает все ресурсы через GameLoop.dispose() + LifeEngine singleton reset.
-        
+
         Порядок критичен:
         1. Flush LifeEngine (persistence ещё открыт) → данные не теряются
         2. GameLoop.dispose() (закрывает ОБА SQLite: enigma_runtime.db + enigma_memory.db)
         3. reset_life_engine() (обнуляет singleton, cache уже пуст → flush no-op)
-        
+
         До фикса: self._game_loop._persistence не существует (GameLoop хранит
         persistence внутри scene_manager), enigma_memory.db никогда не закрывался
         → WinError 32 на Windows.
@@ -319,24 +329,26 @@ class DriftLaboratory:
         # 1. Flush LifeEngine cache пока persistence ещё открыт
         try:
             from app.services.npc.life_engine import get_life_engine
+
             engine = get_life_engine()
             engine.cleanup_all_campaigns()
         except Exception as e:
             print(f"[DRIFT_LAB] Warning: LifeEngine flush error: {e}")
-        
+
         # 2. GameLoop.dispose() — закрывает ОБА SQLite connections
-        if hasattr(self, '_game_loop') and self._game_loop is not None:
+        if hasattr(self, "_game_loop") and self._game_loop is not None:
             try:
                 self._game_loop.dispose()
             except Exception as e:
                 print(f"[DRIFT_LAB] Warning: GameLoop.dispose() error: {e}")
-        
+
         # 3. Сбрасываем глобальный синглтон LifeEngine
         # Cache уже пуст от cleanup_all_campaigns(), повторный flush в shutdown — no-op
         try:
             from app.services.npc.life_engine import reset_life_engine
+
             reset_life_engine()
-            print(f"[DRIFT_LAB] LifeEngine singleton reset")
+            print("[DRIFT_LAB] LifeEngine singleton reset")
         except Exception as e:
             print(f"[DRIFT_LAB] Warning: LifeEngine reset error: {e}")
 
@@ -358,7 +370,7 @@ class DriftLaboratory:
 
     def _run_idle_ticks(self, count: int, result: DriftResult) -> None:
         """Запускает idle тики через реальный GameLoop.idle_tick().
-        
+
         Не использует get_game_loop() — он требует FastAPI Request,
         которого нет в контексте DriftLab. Прямой вызов через
         self._game_loop — тот же production путь.
@@ -395,7 +407,7 @@ class DriftLaboratory:
         """
         try:
             result = self._game_loop.idle_tick(self.config.campaign_id)
-            # result — dict с world_snapshot, npc_positions, etc.   
+            # result — dict с world_snapshot, npc_positions, etc.
         except Exception as e:
             # Логируем но не крашим — лаборатория должна работать дальше
             print(f"  [DRIFT_LAB] idle_tick error: {type(e).__name__}: {e}")
@@ -416,13 +428,15 @@ class DriftLaboratory:
         Mode B: Save/Load Storm
         Каждые N тиков: save → load → verify.
         Проверяет: rehydration, persistence, graph consistency.
-        
+
         S84→S85: Полный pipeline round-trip — scene_state + NPC dicts.
         До фикса тестировался только scene_state, NPC dicts (body_state,
         affective_load, emotion) никогда не попадали в round-trip.
         Это означало: SOMATIC_VETO body_state missing — необнаруживаем.
         """
-        print(f"\n--- MODE B: Save/Load Storm ({self.config.save_load_storm_ticks} ticks, interval={self.config.save_load_interval}) ---")
+        print(
+            f"\n--- MODE B: Save/Load Storm ({self.config.save_load_storm_ticks} ticks, interval={self.config.save_load_interval}) ---"
+        )
 
         start = time.time()
         last_snapshot = 0
@@ -436,13 +450,17 @@ class DriftLaboratory:
                 try:
                     # Актуализируем scene_state перед сохранением
                     if not self._scene_state:
-                        self._scene_state = self._scene_manager.get_scene_state(
-                            self.config.campaign_id,
-                            self.config.location_id,
-                        ) or {}
+                        self._scene_state = (
+                            self._scene_manager.get_scene_state(
+                                self.config.campaign_id,
+                                self.config.location_id,
+                            )
+                            or {}
+                        )
 
                     # SNAPSHOT: NPC dicts до сохранения (глубокая копия для верификации)
                     import copy
+
                     _engine = self._game_loop._get_life_engine()
                     _npc_before = []
                     if _engine:
@@ -463,7 +481,7 @@ class DriftLaboratory:
                         self.config.campaign_id,
                         self.config.location_id,
                     )
-                    _persistence = getattr(self._scene_manager, '_persistence', None)
+                    _persistence = getattr(self._scene_manager, "_persistence", None)
                     _loaded_npcs = None
                     if _persistence:
                         _loaded_npcs = _persistence.load_npc_runtime(self.config.campaign_id)
@@ -479,9 +497,7 @@ class DriftLaboratory:
 
                     # VERIFY: сравниваем NPC dicts до и после round-trip
                     if _npc_before and _loaded_npcs is not None:
-                        _drifts, _lost, _bs_drifts = self._verify_npc_roundtrip(
-                            _npc_before, _loaded_npcs, tick
-                        )
+                        _drifts, _lost, _bs_drifts = self._verify_npc_roundtrip(_npc_before, _loaded_npcs, tick)
                         _sl_stats["npc_drifts"] += _drifts
                         _sl_stats["npc_lost"] += _lost
                         _sl_stats["body_state_drifts"] += _bs_drifts
@@ -503,7 +519,7 @@ class DriftLaboratory:
         result.snapshots.append(snap)
         result.final_stats = dict(self._orchestrator._drift_stats)
         result.final_stats["save_load"] = _sl_stats
-        print(f"\n--- SAVE/LOAD SUMMARY ---")
+        print("\n--- SAVE/LOAD SUMMARY ---")
         print(f"  saves={_sl_stats['saves']} loads={_sl_stats['loads']}")
         print(f"  npc_drifts={_sl_stats['npc_drifts']} npc_lost={_sl_stats['npc_lost']}")
         print(f"  body_state_drifts={_sl_stats['body_state_drifts']}")
@@ -611,30 +627,23 @@ class DriftLaboratory:
         Исключает temporal и diagnostic поля, не влияющие на физику мира.
         sort_keys=True гарантирует порядок независимо от dict insertion order.
         """
-        import hashlib
         import copy as _copy
+        import hashlib
 
         cleaned = _copy.deepcopy(scene_state)
         for key in _EXCLUDE_FROM_SCENE_HASH:
             cleaned.pop(key, None)
 
         # NPC dicts — сортируем по npc_id для детерминированного порядка
-        sorted_npcs = sorted(
-            npc_dicts,
-            key=lambda n: n.get("npc_id", n.get("id", ""))
-        )
+        sorted_npcs = sorted(npc_dicts, key=lambda n: n.get("npc_id", n.get("id", "")))
 
         combined = {"scene": cleaned, "npcs": sorted_npcs}
-        canonical_json = json.dumps(
-            combined, sort_keys=True, ensure_ascii=False, default=str
-        )
+        canonical_json = json.dumps(combined, sort_keys=True, ensure_ascii=False, default=str)
         return hashlib.sha256(canonical_json.encode("utf-8")).hexdigest()
 
-    def _diagnose_mismatch(
-        self, scene_a: dict, npcs_a: list, scene_b: dict, npcs_b: list
-    ) -> None:
+    def _diagnose_mismatch(self, scene_a: dict, npcs_a: list, scene_b: dict, npcs_b: list) -> None:
         """Локализует первое расхождение между двумя прогонами."""
-        print(f"\n  [REPLAY] Диагностика расхождения:")
+        print("\n  [REPLAY] Диагностика расхождения:")
 
         # Сравниваем NPC dicts
         npcs_a_map = {n.get("npc_id", n.get("id", "")): n for n in npcs_a}
@@ -687,6 +696,7 @@ class DriftLaboratory:
         3. MATCH или MISMATCH с диагностикой
         """
         import random
+
         ticks = self.config.replay_determinism_ticks
 
         print(f"\n--- MODE E: Replay Determinism Audit (2 × {ticks} ticks) ---")
@@ -694,7 +704,7 @@ class DriftLaboratory:
         print(f"  [REPLAY] Исключены из хеша: {sorted(_EXCLUDE_FROM_SCENE_HASH)}")
 
         # ── RUN A ──────────────────────────────────────────────────
-        print(f"\n  [REPLAY] === RUN A ===")
+        print("\n  [REPLAY] === RUN A ===")
         random.seed(_REPLAY_SEED)
 
         for tick in range(1, ticks + 1):
@@ -703,25 +713,25 @@ class DriftLaboratory:
                 print(f"  [REPLAY] Run A: tick {tick}/{ticks}")
 
         # Захватываем canonical snapshot A
-        scene_a = self._scene_manager.get_scene_state(
-            self.config.campaign_id, self.config.location_id
-        ) or {}
+        scene_a = self._scene_manager.get_scene_state(self.config.campaign_id, self.config.location_id) or {}
         _engine_a = self._game_loop._get_life_engine()
         npcs_a = _engine_a.get_npc_states(self.config.campaign_id) if _engine_a else []
         hash_a = self._canonical_hash(scene_a, npcs_a)
         drift_a = dict(self._orchestrator._drift_stats)
         print(f"  [REPLAY] Run A complete: hash={hash_a[:16]}... npcs={len(npcs_a)}")
-        print(f"  [REPLAY] Run A drift: C={drift_a.get('drift_C',0)} D={drift_a.get('drift_D',0)} E={drift_a.get('drift_E',0)}")
+        print(
+            f"  [REPLAY] Run A drift: C={drift_a.get('drift_C', 0)} D={drift_a.get('drift_D', 0)} E={drift_a.get('drift_E', 0)}"
+        )
 
         # ── TEARDOWN + RE-SETUP ────────────────────────────────────
-        print(f"\n  [REPLAY] Teardown Run A...")
+        print("\n  [REPLAY] Teardown Run A...")
         self._teardown()
 
-        print(f"  [REPLAY] Setup Run B...")
+        print("  [REPLAY] Setup Run B...")
         self._setup()
 
         # ── RUN B ──────────────────────────────────────────────────
-        print(f"\n  [REPLAY] === RUN B ===")
+        print("\n  [REPLAY] === RUN B ===")
         random.seed(_REPLAY_SEED)
 
         for tick in range(1, ticks + 1):
@@ -730,15 +740,15 @@ class DriftLaboratory:
                 print(f"  [REPLAY] Run B: tick {tick}/{ticks}")
 
         # Захватываем canonical snapshot B
-        scene_b = self._scene_manager.get_scene_state(
-            self.config.campaign_id, self.config.location_id
-        ) or {}
+        scene_b = self._scene_manager.get_scene_state(self.config.campaign_id, self.config.location_id) or {}
         _engine_b = self._game_loop._get_life_engine()
         npcs_b = _engine_b.get_npc_states(self.config.campaign_id) if _engine_b else []
         hash_b = self._canonical_hash(scene_b, npcs_b)
         drift_b = dict(self._orchestrator._drift_stats)
         print(f"  [REPLAY] Run B complete: hash={hash_b[:16]}... npcs={len(npcs_b)}")
-        print(f"  [REPLAY] Run B drift: C={drift_b.get('drift_C',0)} D={drift_b.get('drift_D',0)} E={drift_b.get('drift_E',0)}")
+        print(
+            f"  [REPLAY] Run B drift: C={drift_b.get('drift_C', 0)} D={drift_b.get('drift_D', 0)} E={drift_b.get('drift_E', 0)}"
+        )
 
         # ── VERDICT ────────────────────────────────────────────────
         result.final_stats = {
@@ -750,21 +760,19 @@ class DriftLaboratory:
         }
 
         if hash_a == hash_b:
-            print(f"\n  ✅ REPLAY DETERMINISM: MATCH")
+            print("\n  ✅ REPLAY DETERMINISM: MATCH")
             print(f"     hash={hash_a}")
             print(f"     World is deterministic under controlled entropy (seed={_REPLAY_SEED})")
         else:
-            print(f"\n  🔴 REPLAY DETERMINISM: MISMATCH")
+            print("\n  🔴 REPLAY DETERMINISM: MISMATCH")
             print(f"     Hash A: {hash_a}")
             print(f"     Hash B: {hash_b}")
-            print(f"     Hidden entropy source detected — investigation required")
+            print("     Hidden entropy source detected — investigation required")
             self._diagnose_mismatch(scene_a, npcs_a, scene_b, npcs_b)
 
     # ─── Mode G: Projection Parity (CSSE Stage 2) ────────────────
 
-    def _compare_spatial_fields(
-        self, legacy: dict, projected: dict, thick_changes: list = None
-    ) -> list:
+    def _compare_spatial_fields(self, legacy: dict, projected: dict, thick_changes: list = None) -> list:
         """Сравнивает ТОЛЬКО пространственные поля двух состояний.
 
         ProjectionEngine обрабатывает только spatial changes.
@@ -782,7 +790,7 @@ class DriftLaboratory:
         affected_npcs = set()
         if thick_changes:
             for tc in thick_changes:
-                if hasattr(tc, 'target') and tc.is_spatial:
+                if hasattr(tc, "target") and tc.is_spatial:
                     affected_npcs.add(tc.target)
 
         # 1. npc_positions — только affected NPC, только spatial fields
@@ -835,16 +843,17 @@ class DriftLaboratory:
         НЕ влияет на real state. ProjectionEngine пишет только в shadow buffer.
         """
         import copy
+
         from app.services.projection_engine import ProjectionEngine
 
         ticks = self.config.projection_parity_ticks
         projection = ProjectionEngine()
 
         print(f"\n--- MODE G: Projection Parity Audit ({ticks} ticks) ---")
-        print(f"  [PARITY] Principle: shadow state = first class entity")
-        print(f"  [PARITY] Comparing: legacy pipeline vs ProjectionEngine")
-        print(f"  [PARITY] Fields: position, local_position, location, active_traversals")
-        print(f"  [PARITY] Non-spatial fields EXCLUDED (not ProjectionEngine jurisdiction)")
+        print("  [PARITY] Principle: shadow state = first class entity")
+        print("  [PARITY] Comparing: legacy pipeline vs ProjectionEngine")
+        print("  [PARITY] Fields: position, local_position, location, active_traversals")
+        print("  [PARITY] Non-spatial fields EXCLUDED (not ProjectionEngine jurisdiction)")
 
         parity_stats = {
             "ticks": 0,
@@ -866,10 +875,13 @@ class DriftLaboratory:
             self._run_idle_tick_direct()
 
             # 4. Актуализируем scene_state (game_loop может создать новый dict)
-            self._scene_state = self._scene_manager.get_scene_state(
-                self.config.campaign_id,
-                self.config.location_id,
-            ) or {}
+            self._scene_state = (
+                self._scene_manager.get_scene_state(
+                    self.config.campaign_id,
+                    self.config.location_id,
+                )
+                or {}
+            )
 
             # 5. Собираем ThickSceneChanges от EventCompiler
             thick_changes = self._orchestrator.collect_thick_changes()
@@ -888,12 +900,14 @@ class DriftLaboratory:
                 parity_stats["spatial_mismatch"] += 1
                 parity_stats["total_field_diffs"] += len(diffs)
                 if len(parity_stats["mismatches"]) < max_mismatches_stored:
-                    parity_stats["mismatches"].append({
-                        "tick": tick,
-                        "thick_count": len(thick_changes),
-                        "diff_count": len(diffs),
-                        "diffs": diffs[:10],
-                    })
+                    parity_stats["mismatches"].append(
+                        {
+                            "tick": tick,
+                            "thick_count": len(thick_changes),
+                            "diff_count": len(diffs),
+                            "diffs": diffs[:10],
+                        }
+                    )
 
             if tick % 2_000 == 0:
                 match_rate = parity_stats["spatial_match"] / parity_stats["ticks"] * 100
@@ -920,22 +934,22 @@ class DriftLaboratory:
             "parity_verdict": "MATCH" if mismatch == 0 else "MISMATCH",
         }
 
-        print(f"\n  [PARITY] Final Results:")
+        print("\n  [PARITY] Final Results:")
         print(f"     Ticks:           {total}")
         print(f"     Match:           {match} ({rate:.1f}%)")
         print(f"     Mismatch:        {mismatch}")
         print(f"     Total field diffs: {parity_stats['total_field_diffs']}")
 
         if mismatch == 0:
-            print(f"\n  ✅ PROJECTION PARITY: MATCH")
-            print(f"     ProjectionEngine produces identical spatial state to legacy")
-            print(f"     CSSE Stage 2 verified — shadow reality = legacy reality")
-            print(f"     ProjectionEngine can replace legacy as single writer")
+            print("\n  ✅ PROJECTION PARITY: MATCH")
+            print("     ProjectionEngine produces identical spatial state to legacy")
+            print("     CSSE Stage 2 verified — shadow reality = legacy reality")
+            print("     ProjectionEngine can replace legacy as single writer")
         else:
-            print(f"\n  🔴 PROJECTION PARITY: MISMATCH")
+            print("\n  🔴 PROJECTION PARITY: MISMATCH")
             print(f"     {mismatch} ticks with spatial field divergence")
             print(f"     {parity_stats['total_field_diffs']} total field differences")
-            print(f"     First mismatches:")
+            print("     First mismatches:")
             for m in parity_stats["mismatches"][:5]:
                 print(f"       tick={m['tick']} thick_changes={m['thick_count']} diffs={m['diff_count']}")
                 for d in m["diffs"][:3]:
@@ -955,7 +969,7 @@ class DriftLaboratory:
         Метрики: ACTIVITY_CHANGES, TRAVERSALS_CREATED, TRAVERSALS_FINISHED, UNIQUE_NODES_VISITED, ACTIVE_TRAVERSAL_LEAK, SCHEDULE_CYCLE_OK.
         """
         print(f"\n--- MODE H: Idle Simulation Stability ({self.config.idle_stability_ticks} ticks) ---")
-        
+
         stats = {
             "ticks": 0,
             "activity_changes": 0,
@@ -966,63 +980,63 @@ class DriftLaboratory:
             "schedule_cycle_ok": False,
             "active_traversal_leak": False,
         }
-        
+
         # История активностей для проверки цикличности
-        npc_activity_history = {} # npc_id -> set of activities
-        
+        npc_activity_history = {}  # npc_id -> set of activities
+
         _engine = self._game_loop._get_life_engine()
-        
+
         start = time.time()
-        
+
         for tick in range(1, self.config.idle_stability_ticks + 1):
             # Снимок ДО тика
             _npcs_before = _engine.get_npc_states(self.config.campaign_id) if _engine else []
             _travs_before = set(self._scene_state.get("active_traversals", {}).keys())
-            
+
             # Тик
             self._run_idle_tick_direct()
-            
+
             # Актуализируем scene_state
-            self._scene_state = self._scene_manager.get_scene_state(
-                self.config.campaign_id, self.config.location_id
-            ) or {}
+            self._scene_state = (
+                self._scene_manager.get_scene_state(self.config.campaign_id, self.config.location_id) or {}
+            )
             _npcs_after = _engine.get_npc_states(self.config.campaign_id) if _engine else []
             _travs_after = set(self._scene_state.get("active_traversals", {}).keys())
-            
+
             # Метрики
             stats["ticks"] += 1
-            
+
             # 1. Traversals
             created = _travs_after - _travs_before
             finished = _travs_before - _travs_after
             stats["traversals_created"] += len(created)
             stats["traversals_finished"] += len(finished)
-            
+
             current_trav_count = len(_travs_after)
             if current_trav_count > stats["max_active_traversals"]:
                 stats["max_active_traversals"] = current_trav_count
-                
+
             # Утечка: если активных транзитов больше, чем NPC, и они не заканчиваются
-            if current_trav_count > len(_npcs_after) + 5: # допустимая погрешность
+            if current_trav_count > len(_npcs_after) + 5:  # допустимая погрешность
                 stats["active_traversal_leak"] = True
-            
+
             # 2. Activities & Positions
             _npcs_after_map = {n.get("id"): n for n in _npcs_after}
             _pos_map_after = self._scene_state.get("npc_positions", {})
             for npc_id, npc in _npcs_after_map.items():
                 activity = npc.get("routine", {}).get("current", "")
                 pos = _pos_map_after.get(npc_id, {}).get("position", "")
-                
+
                 if pos:
                     stats["unique_nodes_visited"].add((npc_id, pos))
-                    
+
                 if npc_id in npc_activity_history:
                     if activity and activity in npc_activity_history[npc_id]:
                         stats["schedule_cycle_ok"] = True
                     npc_activity_history[npc_id].add(activity)
                 else:
                     npc_activity_history[npc_id] = {activity}
-                    
+
             # 3. Activity Changes (грубый подсчет по разнице)
             _npcs_before_map = {n.get("id"): n for n in _npcs_before}
             for npc_id, npc in _npcs_after_map.items():
@@ -1030,7 +1044,7 @@ class DriftLaboratory:
                 act_after = npc.get("routine", {}).get("current", "")
                 if act_before != act_after and act_after != "":
                     stats["activity_changes"] += 1
-            
+
             # Периодический save/load для проверки персистенции
             if tick % 100 == 0:
                 try:
@@ -1039,16 +1053,18 @@ class DriftLaboratory:
                         scene_state=self._scene_state,
                         npc_dicts=_npcs_after,
                     )
-                    _persistence = getattr(self._scene_manager, '_persistence', None)
+                    _persistence = getattr(self._scene_manager, "_persistence", None)
                     _loaded = _persistence.load_npc_runtime(self.config.campaign_id) if _persistence else None
                     if _loaded and _engine:
                         _engine.update_cache(self.config.campaign_id, _loaded)
                 except Exception as e:
                     print(f"  [STABILITY] Save/Load error at tick {tick}: {e}")
-                    
+
             if tick % 200 == 0:
-                print(f"  [STABILITY] tick {tick}/{self.config.idle_stability_ticks}: travs={len(_travs_after)} changes={stats['activity_changes']} visited={len(stats['unique_nodes_visited'])}")
-                
+                print(
+                    f"  [STABILITY] tick {tick}/{self.config.idle_stability_ticks}: travs={len(_travs_after)} changes={stats['activity_changes']} visited={len(stats['unique_nodes_visited'])}"
+                )
+
         result.final_stats = {
             "ACTIVITY_CHANGES": stats["activity_changes"],
             "TRAVERSALS_CREATED": stats["traversals_created"],
@@ -1058,13 +1074,13 @@ class DriftLaboratory:
             "ACTIVE_TRAVERSAL_LEAK": "YES" if stats["active_traversal_leak"] else "NO",
             "SCHEDULE_CYCLE_OK": "YES" if stats["schedule_cycle_ok"] else "NO",
         }
-        
-        print(f"\n--- IDLE SIMULATION STABILITY SUMMARY ---")
+
+        print("\n--- IDLE SIMULATION STABILITY SUMMARY ---")
         for k, v in result.final_stats.items():
             print(f"  {k}: {v}")
-            
+
         if stats["activity_changes"] == 0:
-            print(f"\n  ⚠️ WARNING: Activity changes = 0. Внутриигровое время (game_time) не продвигается в idle_tick.")
+            print("\n  ⚠️ WARNING: Activity changes = 0. Внутриигровое время (game_time) не продвигается в idle_tick.")
 
     # ─── Mode F: RNG Consumption Order Contract Audit ──────────────
 
@@ -1086,14 +1102,14 @@ class DriftLaboratory:
         """
         ticks = self.config.replay_determinism_ticks
 
-        print(f"\n--- MODE F: RNG Consumption Order Contract Audit ---")
+        print("\n--- MODE F: RNG Consumption Order Contract Audit ---")
         print(f"  [RCOC] Seed: {_REPLAY_SEED}")
         print(f"  [RCOC] Ticks per run: {ticks}")
-        print(f"  [RCOC] Verification: random.getstate() + call counting")
-        print(f"  [RCOC] Axiom: world = seed + ordered_random_consumption_trace")
+        print("  [RCOC] Verification: random.getstate() + call counting")
+        print("  [RCOC] Axiom: world = seed + ordered_random_consumption_trace")
 
         # ── RUN A ────────────────────────────────────────────────────
-        print(f"\n  [RCOC] === RUN A ===")
+        print("\n  [RCOC] === RUN A ===")
         _orig_inst_a = random._inst
         _counter_a = _RNGCounter(_REPLAY_SEED)
         random._inst = _counter_a
@@ -1109,20 +1125,20 @@ class DriftLaboratory:
         bits_calls_a = _counter_a.getrandbits_calls
         random._inst = _orig_inst_a
 
-        print(f"  [RCOC] Run A complete:")
+        print("  [RCOC] Run A complete:")
         print(f"     random() calls:       {random_calls_a}")
         print(f"     getrandbits() calls:  {bits_calls_a}")
         print(f"     Total:                {calls_a}")
         print(f"     Per tick:             {calls_a / ticks:.1f}")
 
         # ── TEARDOWN + RE-SETUP ──────────────────────────────────────
-        print(f"\n  [RCOC] Teardown Run A...")
+        print("\n  [RCOC] Teardown Run A...")
         self._teardown()
-        print(f"  [RCOC] Setup Run B...")
+        print("  [RCOC] Setup Run B...")
         self._setup()
 
         # ── RUN B ────────────────────────────────────────────────────
-        print(f"\n  [RCOC] === RUN B ===")
+        print("\n  [RCOC] === RUN B ===")
         _orig_inst_b = random._inst
         _counter_b = _RNGCounter(_REPLAY_SEED)
         random._inst = _counter_b
@@ -1138,7 +1154,7 @@ class DriftLaboratory:
         bits_calls_b = _counter_b.getrandbits_calls
         random._inst = _orig_inst_b
 
-        print(f"  [RCOC] Run B complete:")
+        print("  [RCOC] Run B complete:")
         print(f"     random() calls:       {random_calls_b}")
         print(f"     getrandbits() calls:  {bits_calls_b}")
         print(f"     Total:                {calls_b}")
@@ -1153,6 +1169,7 @@ class DriftLaboratory:
         verdict = "MATCH" if (state_match and calls_match) else "MISMATCH"
 
         import hashlib
+
         def _state_hash(state):
             return hashlib.sha256(str(state).encode()).hexdigest()
 
@@ -1174,24 +1191,24 @@ class DriftLaboratory:
         }
 
         if verdict == "MATCH":
-            print(f"\n  ✅ RCOC INVARIANT: MATCH")
+            print("\n  ✅ RCOC INVARIANT: MATCH")
             print(f"     RNG state hash:  {hash_a[:32]}...")
             print(f"     Total consumption: {calls_a} calls ({calls_a / ticks:.1f}/tick)")
-            print(f"     Entropy consumption order is deterministic and reproducible")
-            print(f"     RCOC = verified physical law of the system")
-            print(f"")
-            print(f"     IMPLICATION: any change to RNG call order between")
-            print(f"     LifeEngine / MovementEngine / SceneManager / etc.")
-            print(f"     will break this invariant and must be detected.")
+            print("     Entropy consumption order is deterministic and reproducible")
+            print("     RCOC = verified physical law of the system")
+            print("")
+            print("     IMPLICATION: any change to RNG call order between")
+            print("     LifeEngine / MovementEngine / SceneManager / etc.")
+            print("     will break this invariant and must be detected.")
         else:
-            print(f"\n  🔴 RCOC INVARIANT: MISMATCH")
+            print("\n  🔴 RCOC INVARIANT: MISMATCH")
             if not calls_match:
                 print(f"     Call count: A={calls_a} B={calls_b} (diff={calls_b - calls_a})")
             if not state_match:
                 print(f"     State hash A: {hash_a[:32]}...")
                 print(f"     State hash B: {hash_b[:32]}...")
-                print(f"     Hidden entropy source or order violation detected")
-            print(f"     Investigation required before ФАЗА 3")
+                print("     Hidden entropy source or order violation detected")
+            print("     Investigation required before ФАЗА 3")
 
     # ─── Прогресс ───────────────────────────────────────────────────
 
@@ -1217,9 +1234,10 @@ class DriftLaboratory:
 
 # ─── Репортер ──────────────────────────────────────────────────────────
 
+
 class DriftReporter:
     """Генерирует CSV, графики и Markdown-отчёт из DriftResult.
-    
+
     Весь вывод — на русском языке для интерпретации создателем системы.
     Файлы сохраняются в SUPERBOX/reports/.
     """
@@ -1233,11 +1251,11 @@ class DriftReporter:
         "E": "Онтологический (E)",
     }
     _CLASS_COLORS = {
-        "A": "#2ecc71",   # зелёный — ожидаем, не критично
-        "B": "#f39c12",   # оранжевый — внимание
-        "C": "#e74c3c",   # красный — ошибка
-        "D": "#8e44ad",   # фиолетовый — критично
-        "E": "#2c3e50",   # чёрный — фатально
+        "A": "#2ecc71",  # зелёный — ожидаем, не критично
+        "B": "#f39c12",  # оранжевый — внимание
+        "C": "#e74c3c",  # красный — ошибка
+        "D": "#8e44ad",  # фиолетовый — критично
+        "E": "#2c3e50",  # чёрный — фатально
     }
     _CLASS_VERDICTS = {
         "A": "Ожидаемо (детерминированный jitter)",
@@ -1255,13 +1273,13 @@ class DriftReporter:
     def print_summary(self) -> None:
         """Выводит итоговый отчёт в консоль — полностью на русском."""
         r = self.result
-        print(f"\n{'='*70}")
+        print(f"\n{'=' * 70}")
         print(f"  ЛАБОРАТОРИЯ ДРЕЙФА — Результаты: {r.mode}")
-        print(f"{'='*70}")
+        print(f"{'=' * 70}")
 
         # Основные показатели
         print(f"\n  Всего сравнений (comparisons): {r.total_comparisons:,}")
-        print(f"  Целевой порог ФАЗЫ 3:          100 000")
+        print("  Целевой порог ФАЗЫ 3:          100 000")
         print(f"  Порог пройден:                  {'ДА ✅' if r.total_comparisons >= 100_000 else 'НЕТ ❌'}")
 
         # Структурный drift
@@ -1275,30 +1293,30 @@ class DriftReporter:
         last = r.snapshots[-1]
 
         # Абсолютные числа
-        print(f"\n  ┌─────────────────────────────────────────────────────┐")
-        print(f"  │  Распределение дрейфа (абсолютные числа)            │")
-        print(f"  ├─────────────────────────────────────────────────────┤")
+        print("\n  ┌─────────────────────────────────────────────────────┐")
+        print("  │  Распределение дрейфа (абсолютные числа)            │")
+        print("  ├─────────────────────────────────────────────────────┤")
         print(f"  │  A — Косметический:     {last.drift_A:>10,}                    │")
         print(f"  │  B — Проекционный:      {last.drift_B:>10,}                    │")
         print(f"  │  C — Топологический:    {last.drift_C:>10,}                    │")
         print(f"  │  D — Каузальный:        {last.drift_D:>10,}                    │")
         print(f"  │  E — Онтологический:    {last.drift_E:>10,}                    │")
-        print(f"  └─────────────────────────────────────────────────────┘")
+        print("  └─────────────────────────────────────────────────────┘")
 
         # Проценты (drift rate)
         if last.total_comparisons > 0:
-            print(f"\n  ┌─────────────────────────────────────────────────────┐")
-            print(f"  │  Частота дрейфа (drift rate)                       │")
-            print(f"  ├─────────────────────────────────────────────────────┤")
+            print("\n  ┌─────────────────────────────────────────────────────┐")
+            print("  │  Частота дрейфа (drift rate)                       │")
+            print("  ├─────────────────────────────────────────────────────┤")
             for cls in ["A", "B", "C", "D", "E"]:
                 count = getattr(last, f"drift_{cls}")
                 rate = count / last.total_comparisons * 100
                 name = self._CLASS_NAMES[cls].split("(")[0].strip()
                 print(f"  │  {cls} — {name:<14}: {rate:>10.4f}%                   │")
-            print(f"  └─────────────────────────────────────────────────────┘")
+            print("  └─────────────────────────────────────────────────────┘")
 
         # Вердикт по каждому классу
-        print(f"\n  Интерпретация:")
+        print("\n  Интерпретация:")
         for cls in ["A", "B", "C", "D", "E"]:
             count = getattr(last, f"drift_{cls}")
             icon = "✅" if count == 0 else ("⚠️" if cls in ("A", "B") else "🔴")
@@ -1312,9 +1330,9 @@ class DriftReporter:
         if elapsed < 60:
             time_str = f"{elapsed:.1f} сек"
         elif elapsed < 3600:
-            time_str = f"{elapsed/60:.1f} мин"
+            time_str = f"{elapsed / 60:.1f} мин"
         else:
-            time_str = f"{elapsed/3600:.2f} час"
+            time_str = f"{elapsed / 3600:.2f} час"
         print(f"\n  Время эксперимента: {time_str}")
 
         # Скорость
@@ -1329,27 +1347,31 @@ class DriftReporter:
         """Сохраняет snapshots в CSV с русскими заголовками."""
         with open(path, "w", newline="", encoding="utf-8-sig") as f:
             writer = csv.writer(f)
-            writer.writerow([
-                "Тик",
-                "Всего_сравнений",
-                "Дрейф_A_Косметический",
-                "Дрейф_B_Проекционный",
-                "Дрейф_C_Топологический",
-                "Дрейф_D_Каузальный",
-                "Дрейф_E_Онтологический",
-                "Секунд_прошло",
-            ])
+            writer.writerow(
+                [
+                    "Тик",
+                    "Всего_сравнений",
+                    "Дрейф_A_Косметический",
+                    "Дрейф_B_Проекционный",
+                    "Дрейф_C_Топологический",
+                    "Дрейф_D_Каузальный",
+                    "Дрейф_E_Онтологический",
+                    "Секунд_прошло",
+                ]
+            )
             for s in self.result.snapshots:
-                writer.writerow([
-                    s.tick,
-                    s.total_comparisons,
-                    s.drift_A,
-                    s.drift_B,
-                    s.drift_C,
-                    s.drift_D,
-                    s.drift_E,
-                    f"{s.elapsed_seconds:.2f}",
-                ])
+                writer.writerow(
+                    [
+                        s.tick,
+                        s.total_comparisons,
+                        s.drift_A,
+                        s.drift_B,
+                        s.drift_C,
+                        s.drift_D,
+                        s.drift_E,
+                        f"{s.elapsed_seconds:.2f}",
+                    ]
+                )
         print(f"  📊 CSV сохранён: {path}")
 
     # ─── Markdown-отчёт ────────────────────────────────────────────
@@ -1362,18 +1384,18 @@ class DriftReporter:
             return
 
         lines = []
-        lines.append(f"# Лаборатория Дрейфа — Отчёт")
-        lines.append(f"")
+        lines.append("# Лаборатория Дрейфа — Отчёт")
+        lines.append("")
         lines.append(f"**Режим:** {r.mode}")
         lines.append(f"**Дата:** {time.strftime('%Y-%m-%d %H:%M:%S')}")
         lines.append(f"**Конфигурация:** campaign_id={r.config.campaign_id}, location_id={r.config.location_id}")
-        lines.append(f"")
+        lines.append("")
 
         # Сводка
-        lines.append(f"## Сводка")
-        lines.append(f"")
-        lines.append(f"| Показатель | Значение |")
-        lines.append(f"|---|---|")
+        lines.append("## Сводка")
+        lines.append("")
+        lines.append("| Показатель | Значение |")
+        lines.append("|---|---|")
         lines.append(f"| Всего сравнений | {r.total_comparisons:,} |")
         lines.append(f"| Порог ФАЗЫ 3 (100k) | {'ПРОЙДЕН ✅' if r.total_comparisons >= 100_000 else 'НЕ ПРОЙДЕН ❌'} |")
         lines.append(f"| Структурный дрейф (C/D/E) | {'ОБНАРУЖЕН ⚠️' if r.has_structural_drift else 'НЕТ ✅'} |")
@@ -1382,75 +1404,77 @@ class DriftReporter:
         if elapsed < 60:
             time_str = f"{elapsed:.1f} сек"
         elif elapsed < 3600:
-            time_str = f"{elapsed/60:.1f} мин"
+            time_str = f"{elapsed / 60:.1f} мин"
         else:
-            time_str = f"{elapsed/3600:.2f} час"
+            time_str = f"{elapsed / 3600:.2f} час"
         lines.append(f"| Время эксперимента | {time_str} |")
-        lines.append(f"")
+        lines.append("")
 
         # Распределение дрейфа
-        lines.append(f"## Распределение дрейфа")
-        lines.append(f"")
-        lines.append(f"| Класс | Название | Кол-во | Частота | Вердикт |")
-        lines.append(f"|---|---|---|---|---|")
+        lines.append("## Распределение дрейфа")
+        lines.append("")
+        lines.append("| Класс | Название | Кол-во | Частота | Вердикт |")
+        lines.append("|---|---|---|---|---|")
         for cls in ["A", "B", "C", "D", "E"]:
             count = getattr(last, f"drift_{cls}")
-            rate = f"{count/last.total_comparisons*100:.4f}%" if last.total_comparisons > 0 else "N/A"
+            rate = f"{count / last.total_comparisons * 100:.4f}%" if last.total_comparisons > 0 else "N/A"
             name = self._CLASS_NAMES[cls]
             verdict = self._CLASS_VERDICTS[cls]
             lines.append(f"| {cls} | {name} | {count:,} | {rate} | {verdict} |")
-        lines.append(f"")
+        lines.append("")
 
         # Динамика по срезам
         if len(r.snapshots) > 1:
-            lines.append(f"## Динамика по срезам")
-            lines.append(f"")
-            lines.append(f"| Тик | Сравнений | A | B | C | D | E | Время (сек) |")
-            lines.append(f"|---|---|---|---|---|---|---|---|")
+            lines.append("## Динамика по срезам")
+            lines.append("")
+            lines.append("| Тик | Сравнений | A | B | C | D | E | Время (сек) |")
+            lines.append("|---|---|---|---|---|---|---|---|")
             for s in r.snapshots:
                 lines.append(
                     f"| {s.tick:,} | {s.total_comparisons:,} | {s.drift_A} | {s.drift_B} "
                     f"| {s.drift_C} | {s.drift_D} | {s.drift_E} | {s.elapsed_seconds:.1f} |"
                 )
-            lines.append(f"")
+            lines.append("")
 
         # Интерпретация
-        lines.append(f"## Интерпретация")
-        lines.append(f"")
-        lines.append(f"**Что измеряется:** Расхождение между двумя pipeline вычисления позиции NPC.")
-        lines.append(f"- **Legacy pipeline** (apply_changes) — текущий авторитетный путь, содержит 6 мутаций")
-        lines.append(f"- **Shadow pipeline** (EventCompiler) — целевой ФАЗЫ 3, чистая функция")
-        lines.append(f"")
-        lines.append(f"**Классы дрейфа:**")
-        lines.append(f"- **A (Косметический):** Разница < 0.5 единиц координат. Ожидаема из-за детерминированного jitter")
-        lines.append(f"- **B (Проекционный):** Тот же узел графа, но разные координаты. Допустимая погрешность")
-        lines.append(f"- **C (Топологический):** Разные узлы графа. ОШИБКА — pipeline расходятся в навигации")
-        lines.append(f"- **D (Каузальный):** Разные причинные цепочки (boundary, transition). КРИТИЧНО")
-        lines.append(f"- **E (Онтологический):** NPC существует только в одном pipeline. ФАТАЛЬНО")
-        lines.append(f"")
+        lines.append("## Интерпретация")
+        lines.append("")
+        lines.append("**Что измеряется:** Расхождение между двумя pipeline вычисления позиции NPC.")
+        lines.append("- **Legacy pipeline** (apply_changes) — текущий авторитетный путь, содержит 6 мутаций")
+        lines.append("- **Shadow pipeline** (EventCompiler) — целевой ФАЗЫ 3, чистая функция")
+        lines.append("")
+        lines.append("**Классы дрейфа:**")
+        lines.append(
+            "- **A (Косметический):** Разница < 0.5 единиц координат. Ожидаема из-за детерминированного jitter"
+        )
+        lines.append("- **B (Проекционный):** Тот же узел графа, но разные координаты. Допустимая погрешность")
+        lines.append("- **C (Топологический):** Разные узлы графа. ОШИБКА — pipeline расходятся в навигации")
+        lines.append("- **D (Каузальный):** Разные причинные цепочки (boundary, transition). КРИТИЧНО")
+        lines.append("- **E (Онтологический):** NPC существует только в одном pipeline. ФАТАЛЬНО")
+        lines.append("")
 
         if r.phase3_ready:
-            lines.append(f"## ✅ ВЕРДИКТ: ФАЗА 3 ГОТОВА")
-            lines.append(f"")
+            lines.append("## ✅ ВЕРДИКТ: ФАЗА 3 ГОТОВА")
+            lines.append("")
             lines.append(f"Накоплено {r.total_comparisons:,} сравнений без структурного дрейфа.")
-            lines.append(f"Можно переключать apply_changes на потребление ThickSceneChange.")
+            lines.append("Можно переключать apply_changes на потребление ThickSceneChange.")
         elif r.has_structural_drift:
-            lines.append(f"## 🔴 ВЕРДИКТ: СТРУКТУРНЫЙ ДРЕЙФ ОБНАРУЖЕН")
-            lines.append(f"")
-            lines.append(f"Требуется расследование Class C/D/E drift перед переходом к ФАЗЕ 3.")
+            lines.append("## 🔴 ВЕРДИКТ: СТРУКТУРНЫЙ ДРЕЙФ ОБНАРУЖЕН")
+            lines.append("")
+            lines.append("Требуется расследование Class C/D/E drift перед переходом к ФАЗЕ 3.")
             for cls in ["C", "D", "E"]:
                 count = getattr(last, f"drift_{cls}")
                 if count > 0:
                     lines.append(f"- **Класс {cls}:** {count:,} случаев — {self._CLASS_VERDICTS[cls]}")
         else:
-            lines.append(f"## ⏳ ВЕРДИКТ: НЕДОСТАТОЧНО ДАННЫХ")
-            lines.append(f"")
+            lines.append("## ⏳ ВЕРДИКТ: НЕДОСТАТОЧНО ДАННЫХ")
+            lines.append("")
             lines.append(f"Сравнений: {r.total_comparisons:,} / 100 000 необходимых.")
-            lines.append(f"Структурный дрейф не обнаружен, но выборка мала для статистической значимости.")
+            lines.append("Структурный дрейф не обнаружен, но выборка мала для статистической значимости.")
 
-        lines.append(f"")
-        lines.append(f"---")
-        lines.append(f"*Авто-сгенерировано Лабораторией Дрейфа ENIGMA*")
+        lines.append("")
+        lines.append("---")
+        lines.append("*Авто-сгенерировано Лабораторией Дрейфа ENIGMA*")
 
         with open(path, "w", encoding="utf-8") as f:
             f.write("\n".join(lines))
@@ -1462,6 +1486,7 @@ class DriftReporter:
         """Рисует 3 графика на русском через matplotlib."""
         try:
             import matplotlib
+
             matplotlib.use("Agg")  # без GUI
             import matplotlib.pyplot as plt
         except ImportError:
@@ -1479,8 +1504,7 @@ class DriftReporter:
         # ── График 1: Покрытие сравнений ──────────────────────────
         fig, ax = plt.subplots(figsize=(14, 6))
         ax.plot(ticks, comparisons, label="Всего сравнений", color="#3498db", linewidth=2.5)
-        ax.axhline(y=100_000, color="#27ae60", linestyle="--", linewidth=1.5,
-                    label="Порог ФАЗЫ 3 (100 000)")
+        ax.axhline(y=100_000, color="#27ae60", linestyle="--", linewidth=1.5, label="Порог ФАЗЫ 3 (100 000)")
         ax.fill_between(ticks, 0, comparisons, alpha=0.1, color="#3498db")
         ax.set_xlabel("Тик", fontsize=12)
         ax.set_ylabel("Количество сравнений", fontsize=12)
@@ -1556,9 +1580,9 @@ _MODE_NAMES = {
 
 def main(mode: str = "long_horizon") -> None:
     mode_name = _MODE_NAMES.get(mode, mode)
-    print(f"\n🧪 ЛАБОРАТОРИЯ ДРЕЙФА ENIGMA")
+    print("\n🧪 ЛАБОРАТОРИЯ ДРЕЙФА ENIGMA")
     print(f"   Режим: {mode_name}")
-    print(f"   ADR-O-201 ФАЗА 2.5 — наблюдение за дрейфом в runtime")
+    print("   ADR-O-201 ФАЗА 2.5 — наблюдение за дрейфом в runtime")
     print()
 
     config = DriftConfig()
@@ -1588,7 +1612,7 @@ def main(mode: str = "long_horizon") -> None:
         # Replay / RCOC / Parity — вердикт уже напечатан в режиме
         sys.exit(0 if _verd == "MATCH" else 1)
     if result.has_structural_drift:
-        print(f"\n  🔴 СТРУКТУРНЫЙ ДРЕЙФ ОБНАРУЖЕН — требуется расследование")
+        print("\n  🔴 СТРУКТУРНЫЙ ДРЕЙФ ОБНАРУЖЕН — требуется расследование")
         print(f"     Подробности в: {output_dir / f'дрейф_{mode}.md'}")
         sys.exit(1)
     elif result.phase3_ready:

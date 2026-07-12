@@ -10,11 +10,17 @@ from typing import ClassVar
 class WorldSettings(Settings):
     """World Simulation (Qwen2.5-7B)."""
 
-    model_qwen_7b_path: str = str(MODEL_DIR / "Qwen2.5-7B-Instruct-abliterated-v2.Q5_K_M.gguf")
+    model_qwen_7b_path: str = str(
+        MODEL_DIR / "Qwen2.5-7B-Instruct-abliterated-v2.Q5_K_M.gguf"
+    )
 
     WORLD_PORT: ClassVar[int] = 8080
     llm_servers: dict = {
-        "world": {"host": "127.0.0.1", "port": str(WORLD_PORT), "description": "World simulation"},
+        "world": {
+            "host": "127.0.0.1",
+            "port": str(WORLD_PORT),
+            "description": "World simulation",
+        },
     }
 
     llama_cpp_server_url: str = f"http://127.0.0.1:{WORLD_PORT}"

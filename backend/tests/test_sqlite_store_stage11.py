@@ -14,13 +14,10 @@ path: backend/tests/test_sqlite_store_stage11.py
 
 from __future__ import annotations
 
-import json
-import tempfile
 from pathlib import Path
 from typing import Any, Dict
 
 import pytest
-
 from app.services.memory.sqlite_store import SqliteMemoryStore
 
 
@@ -330,20 +327,52 @@ class TestYamlExport:
 
     def test_export_campaign_multiple_npcs(self, store: SqliteMemoryStore, tmp_path: Path) -> None:
         store.save_event_memory(
-            "a1", "camp_multi",
-            {"npc_id": "npc_a", "event_type": "t", "summary": "A", "importance": 0.5,
-             "accessibility": 1.0, "clarity": 0.8, "confidence": 0.9, "decay_rate": 0.05,
-             "stage": "FRESH", "sequence_id": 0, "tags": (), "is_secret": False,
-             "known_by": (), "hidden_from": (), "fulfilled": False, "contract_ref": "",
-             "is_compressed": False, "compressed_from": ()},
+            "a1",
+            "camp_multi",
+            {
+                "npc_id": "npc_a",
+                "event_type": "t",
+                "summary": "A",
+                "importance": 0.5,
+                "accessibility": 1.0,
+                "clarity": 0.8,
+                "confidence": 0.9,
+                "decay_rate": 0.05,
+                "stage": "FRESH",
+                "sequence_id": 0,
+                "tags": (),
+                "is_secret": False,
+                "known_by": (),
+                "hidden_from": (),
+                "fulfilled": False,
+                "contract_ref": "",
+                "is_compressed": False,
+                "compressed_from": (),
+            },
         )
         store.save_event_memory(
-            "b1", "camp_multi",
-            {"npc_id": "npc_b", "event_type": "t", "summary": "B", "importance": 0.7,
-             "accessibility": 1.0, "clarity": 0.8, "confidence": 0.9, "decay_rate": 0.05,
-             "stage": "FRESH", "sequence_id": 0, "tags": (), "is_secret": False,
-             "known_by": (), "hidden_from": (), "fulfilled": False, "contract_ref": "",
-             "is_compressed": False, "compressed_from": ()},
+            "b1",
+            "camp_multi",
+            {
+                "npc_id": "npc_b",
+                "event_type": "t",
+                "summary": "B",
+                "importance": 0.7,
+                "accessibility": 1.0,
+                "clarity": 0.8,
+                "confidence": 0.9,
+                "decay_rate": 0.05,
+                "stage": "FRESH",
+                "sequence_id": 0,
+                "tags": (),
+                "is_secret": False,
+                "known_by": (),
+                "hidden_from": (),
+                "fulfilled": False,
+                "contract_ref": "",
+                "is_compressed": False,
+                "compressed_from": (),
+            },
         )
         from app.services.memory.yaml_export import export_campaign_to_yaml
 
@@ -360,12 +389,28 @@ class TestYamlExport:
 
     def test_export_secret_shows_hidden_flag(self, store: SqliteMemoryStore) -> None:
         store.save_event_memory(
-            "sec1", "camp_s",
-            {"npc_id": "npc_s", "event_type": "t", "summary": "Тайна",
-             "importance": 0.8, "accessibility": 1.0, "clarity": 0.8, "confidence": 0.9,
-             "decay_rate": 0.05, "stage": "FRESH", "sequence_id": 0,
-             "tags": (), "is_secret": True, "known_by": (), "hidden_from": ("player",),
-             "fulfilled": False, "contract_ref": "", "is_compressed": False, "compressed_from": ()},
+            "sec1",
+            "camp_s",
+            {
+                "npc_id": "npc_s",
+                "event_type": "t",
+                "summary": "Тайна",
+                "importance": 0.8,
+                "accessibility": 1.0,
+                "clarity": 0.8,
+                "confidence": 0.9,
+                "decay_rate": 0.05,
+                "stage": "FRESH",
+                "sequence_id": 0,
+                "tags": (),
+                "is_secret": True,
+                "known_by": (),
+                "hidden_from": ("player",),
+                "fulfilled": False,
+                "contract_ref": "",
+                "is_compressed": False,
+                "compressed_from": (),
+            },
         )
         from app.services.memory.yaml_export import export_npc_memories_to_yaml
 

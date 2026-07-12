@@ -14,12 +14,9 @@ TODO:
 """
 
 import pytest
-from uuid import uuid4
-
 from app.domain.events import EventDTO
 from app.models.cfrm import (
     CausalAxis,
-    ClassificationResult,
     ClassificationSource,
     ClusterDef,
     ClusterGraph,
@@ -30,22 +27,21 @@ from app.models.cfrm import (
     classify_event,
 )
 
-
 # ── Фикстуры ─────────────────────────────────────────────────────────
+
 
 @pytest.fixture
 def make_event():
     """Фабрика синтетических EventDTO для тестов."""
+
     def _factory(event_type: str, source: str = "test") -> EventDTO:
-        return EventDTO.create(
-            event_type=event_type,
-            source=source,
-            payload={"test": True}
-        )
+        return EventDTO.create(event_type=event_type, source=source, payload={"test": True})
+
     return _factory
 
 
 # ── Тесты ClusterGraph ───────────────────────────────────────────────
+
 
 class TestClusterGraph:
     def test_build_and_neighbors(self):
@@ -53,7 +49,7 @@ class TestClusterGraph:
         c1 = ClusterDef(cluster_id="loc:hall", boundary_cells=frozenset({"loc:bar"}))
         c2 = ClusterDef(cluster_id="loc:bar", boundary_cells=frozenset({"loc:hall"}))
         graph = ClusterGraph(clusters={"loc:hall": c1, "loc:bar": c2})
-        
+
         assert graph.get_neighbors("loc:hall") == {"loc:bar"}
         assert graph.get_neighbors("loc:bar") == {"loc:hall"}
 
@@ -61,10 +57,10 @@ class TestClusterGraph:
         """Инкремент версии при дрейфе кластера."""
         c1 = ClusterDef(cluster_id="loc:hall", version=0)
         graph = ClusterGraph(clusters={"loc:hall": c1})
-        
+
         graph.update_version("loc:hall")
         assert graph.get_cluster("loc:hall").version == 1
-        
+
         # Не падает на неизвестном кластере
         graph.update_version("loc:unknown")
         assert graph.get_cluster("loc:unknown") is None
@@ -72,13 +68,14 @@ class TestClusterGraph:
 
 # ── Тесты EventBuffer и классификации ────────────────────────────────
 
+
 class TestEventBufferAndClassification:
     def test_classify_physical(self):
         result = classify_event("combat")
         assert result.axis == CausalAxis.PHYSICAL
         assert result.confidence == 1.0
         assert result.source == ClassificationSource.HARD_RULE
-        
+
         assert classify_event("player_attacks").axis == CausalAxis.PHYSICAL
         assert classify_event("object_destroyed").axis == CausalAxis.PHYSICAL
 
@@ -127,16 +124,17 @@ class TestEventBufferAndClassification:
         buf = EventBuffer()
         for _ in range(3):
             buf.add(make_event("combat"), CausalAxis.PHYSICAL)
-        
+
         p, _, _ = buf.drain()
         assert len(p) == 3
-        
+
         # Повторный drain ничего не даёт
         p2, _, _ = buf.drain()
         assert len(p2) == 0
 
 
 # ── Тесты ClusterOccupancy (Spatial Index) ───────────────────────────
+
 
 class TestClusterOccupancy:
     def test_add_and_query(self):
@@ -189,43 +187,84 @@ class TestClusterOccupancy:
 
 # ── Задача 2: Детерминизм классификации ──────────────────────────────────
 
+
 class TestClassifyEventDeterministic:
     def test_100_events_determinism_and_buffer_integrity(self):
         """Система детерминированно классифицирует 100 событий (70 известных, 30 unknown/опечатки) без потерь."""
         import random
+
         random.seed(42)
-        
+
         # Генерируем 70 известных событий (повторяем сэмплы)
         known_events = [
-            "combat", "player_attacks", "object_destroyed", "player_moved",
-            "dialogue", "PLAYER_INSULTS", "npc_spoke", "PLAYER_THREATENS",
-            "theft", "saved_life", "betrayal", "player_helpers",
-            "npc_moved", "player_cast_spell", "object_moved", "sound_emitted",
-            "player_talks", "npc_interacts_npc", "faction_event", "idle"
+            "combat",
+            "player_attacks",
+            "object_destroyed",
+            "player_moved",
+            "dialogue",
+            "PLAYER_INSULTS",
+            "npc_spoke",
+            "PLAYER_THREATENS",
+            "theft",
+            "saved_life",
+            "betrayal",
+            "player_helpers",
+            "npc_moved",
+            "player_cast_spell",
+            "object_moved",
+            "sound_emitted",
+            "player_talks",
+            "npc_interacts_npc",
+            "faction_event",
+            "idle",
         ]
         # 30 unknown/опечатки
         unknown_events = [
-            "strange_noise", "player_attacs", "dilogoue", "figth", "run_away",
-            "weather_rain", "npc_dance", "spell_cast", "jump", "swim",
-            "trade_item", "craft_weapon", "read_book", "sleep", "eat_food",
-            "drink_potion", "open_door", "close_window", "sit_chair", "look_mirror",
-            "unknown_gesture", "weird_sound", "glitch", "hack", "mod",
-            "teleport", "fly", "dig", "build", "destroy"
+            "strange_noise",
+            "player_attacs",
+            "dilogoue",
+            "figth",
+            "run_away",
+            "weather_rain",
+            "npc_dance",
+            "spell_cast",
+            "jump",
+            "swim",
+            "trade_item",
+            "craft_weapon",
+            "read_book",
+            "sleep",
+            "eat_food",
+            "drink_potion",
+            "open_door",
+            "close_window",
+            "sit_chair",
+            "look_mirror",
+            "unknown_gesture",
+            "weird_sound",
+            "glitch",
+            "hack",
+            "mod",
+            "teleport",
+            "fly",
+            "dig",
+            "build",
+            "destroy",
         ]
-        
+
         all_events = (known_events * 4)[:70] + unknown_events  # 70 + 30 = 100
         random.shuffle(all_events)
-        
+
         # Запускаем классификацию дважды
         results_run_1 = [classify_event(e) for e in all_events]
         results_run_2 = [classify_event(e) for e in all_events]
-        
+
         # Assert 1: Результаты идентичны (ось + уверенность + источник)
         assert len(results_run_1) == 100
         assert len(results_run_2) == 100
         for i in range(100):
             assert results_run_1[i] == results_run_2[i], f"Неседерминированность на событии '{all_events[i]}'"
-            
+
         # Assert 2: Ни одно событие не потеряно при помещении в EventBuffer
         buf = EventBuffer()
         for event_type, res in zip(all_events, results_run_1):
@@ -234,10 +273,10 @@ class TestClassifyEventDeterministic:
                 disturbance_type=res.axis,
                 magnitude=1.0,
                 vectors=(DisturbanceVector.BEHAVIORAL,),
-                source_entity="test_runner"
+                source_entity="test_runner",
             )
             buf.add(disturbance, res.axis)
-            
+
         physical, cognitive, social = buf.drain()
         total = len(physical) + len(cognitive) + len(social)
         assert total == 100, f"Потеряно событий в буфере! Было 100, стало {total}"

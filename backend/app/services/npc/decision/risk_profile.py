@@ -20,7 +20,7 @@ R2-P2: Профиль восприятия риска — как личност�
 """
 
 from dataclasses import dataclass
-from typing import Dict
+from typing import List, Any, Dict
 
 from app.services.npc.decision.profile_math import drive_multiplier
 
@@ -66,5 +66,7 @@ class RiskPerceptionProfile:
         sense_of_control < 1.0 → повышает воспринимаемый риск (беспомощность)
         Минимум sense_of_control = 0.2 (защита от деления на ноль).
         """
-        perceived = base_risk * self.threat_sensitivity / max(self.sense_of_control, 0.2)
+        perceived = (
+            base_risk * self.threat_sensitivity / max(self.sense_of_control, 0.2)
+        )
         return min(perceived, 1.0)

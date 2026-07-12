@@ -12,7 +12,7 @@ R2-P1: Профиль реакции отношений — как личнос�
 """
 
 from dataclasses import dataclass
-from typing import Dict
+from typing import List, Any, Dict
 
 from app.services.npc.decision.profile_math import drive_multiplier as _drive_multiplier
 
@@ -30,6 +30,7 @@ class RelationshipResponseProfile:
       фанатик (significance=0.6): trust_from_betrayal=2.12 → предательство в 2x больнее
       циник (significance=0.05): trust_from_betrayal=0.36 → предательство переносится легче
     """
+
     # Страх от физического насилия → fear_drive
     fear_from_aggression: float
 

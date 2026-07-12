@@ -18,26 +18,23 @@
 
 Запуск: python -m pytest backend/tests/sandbox/micro/test_event_compiler.py -v --tb=short
 """
-import copy
-import pytest
 
 from app.models.spatial_contracts import NodeRef, NodeRole
-from app.models.world_snapshot import WorldSnapshot, build_snapshot
-from app.models.thick_scene_change import (
-    ThickSceneChange, SpatialResolution, MotionPlan,
-    BoundaryResolution, TraversalContract,
-)
-from app.services.scene_change import SceneChange, ChangeType
+from app.models.world_snapshot import build_snapshot
 from app.services.event_compiler import EventCompiler
-
+from app.services.scene_change import ChangeType, SceneChange
 
 # ── Фикстуры ──────────────────────────────────────────────────────
 
-def _make_node(node_id: str, role: NodeRole, x: float, y: float,
-               zone_id: str = "tavern", tags: list = None) -> NodeRef:
+
+def _make_node(node_id: str, role: NodeRole, x: float, y: float, zone_id: str = "tavern", tags: list = None) -> NodeRef:
     return NodeRef(
-        node_id=node_id, role=role, x=x, y=y,
-        zone_id=zone_id, tags=tags or [],
+        node_id=node_id,
+        role=role,
+        x=x,
+        y=y,
+        zone_id=zone_id,
+        tags=tags or [],
     )
 
 
@@ -49,11 +46,17 @@ def _make_test_spatial_service():
         "tavern:main_hall": _make_node("tavern:main_hall", NodeRole.DEFAULT, 10.0, 5.0),
         "tavern:kitchen": _make_node("tavern:kitchen", NodeRole.DEFAULT, 30.0, 15.0),
         "tavern:exit_east": _make_node(
-            "tavern:exit_east", NodeRole.BOUNDARY, 50.0, 10.0,
+            "tavern:exit_east",
+            NodeRole.BOUNDARY,
+            50.0,
+            10.0,
             tags=["boundary:exit", "direction:east", "neighbor_chunk:city_gate"],
         ),
         "city_gate:entry_west": _make_node(
-            "city_gate:entry_west", NodeRole.ENTRANCE, 2.0, 8.0,
+            "city_gate:entry_west",
+            NodeRole.ENTRANCE,
+            2.0,
+            8.0,
             zone_id="city_gate",
         ),
     }
@@ -77,6 +80,7 @@ def _make_test_spatial_service():
         },
     }
     from app.models.spatial_contracts import SpatialOverlay
+
     overlay = SpatialOverlay()
     return SpatialService(graph, connections, alias_map, overlay, location_id="tavern", boundary_map=boundary_map)
 
@@ -117,6 +121,7 @@ def _make_snapshot(scene_state=None, spatial_service=None, rng_seed=42):
 # ══════════════════════════════════════════════════════════════════
 # EventCompiler Tests
 # ══════════════════════════════════════════════════════════════════
+
 
 class TestEventCompilerPassthrough:
     """Не-пространственные изменения проходят без компиляции."""
@@ -216,10 +221,15 @@ class TestEventCompilerPositionChange:
         # Строим snapshot напрямую без spatial_service (не через _make_snapshot,
         # который подставляет дефолтный сервис)
         from app.models.world_snapshot import build_snapshot
+
         ss = _make_scene_state()
         snap = build_snapshot(
-            tick=100, campaign_id="test", location_id="tavern",
-            spatial_service=None, scene_state=ss, rng_seed=42,
+            tick=100,
+            campaign_id="test",
+            location_id="tavern",
+            spatial_service=None,
+            scene_state=ss,
+            rng_seed=42,
         )
         change = SceneChange(
             type=ChangeType.NPC_POSITION,

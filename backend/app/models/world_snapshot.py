@@ -13,11 +13,12 @@ Rule 125: Snapshot mutation после создания ЗАПРЕЩЕНА.
 """
 from __future__ import annotations
 
+
 import copy
 import logging
 import time
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 from uuid import UUID, uuid4
 
 logger = logging.getLogger(__name__)

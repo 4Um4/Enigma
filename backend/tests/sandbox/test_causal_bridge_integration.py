@@ -12,27 +12,29 @@ TODO:
 
 """
 
-import pytest
 from unittest.mock import MagicMock, patch
+
+import pytest
+from app.domain.movement import PRIORITY_NEEDS, PRIORITY_SCHEDULE, MovementIntent
+from app.models.spatial_contracts import NodeRef, NodeRole
 from app.services.npc.life_engine import LifeEngine
+from app.services.scene_state_manager import SceneStateManager
 from app.services.spatial.movement_engine import MovementEngine
 from app.services.spatial.spatial_service import SpatialService
-from app.services.scene_state_manager import SceneStateManager
-from app.domain.movement import MovementIntent, PRIORITY_SCHEDULE, PRIORITY_NEEDS
-from app.services.scene_change import SceneChange, ChangeType
-from app.models.spatial_contracts import NodeRef, NodeRole
-
 
 # ── Фикстуры ──────────────────────────────────────────────────────────────
 
+
 class _DummyGraph:
     """Заглушка для LocationGraph, возвращающая NodeRef."""
+
     def __init__(self, location_id: str, nodes: dict):
         self.location_id = location_id
         self._nodes = nodes
 
     def all_nodes(self) -> dict:
         return self._nodes
+
 
 @pytest.fixture
 def tavern_graph():
@@ -93,13 +95,18 @@ def scene_state(tavern_graph):
 def spatial_svc(tavern_graph):
     """SpatialService с моком графа."""
     from app.models.spatial_contracts import NodeRef, NodeRole
+
     svc = MagicMock(spec=SpatialService)
     nodes = tavern_graph.all_nodes()
+
     def _get_node(node_id):
         n = nodes.get(node_id)
         if n:
-            return NodeRef(node_id=n.node_id, role=NodeRole.DEFAULT, tags=[], x=n.x, y=n.y, zone_id="tavern_silver_wolf")
+            return NodeRef(
+                node_id=n.node_id, role=NodeRole.DEFAULT, tags=[], x=n.x, y=n.y, zone_id="tavern_silver_wolf"
+            )
         return None
+
     svc.get_node.side_effect = _get_node
     svc.normalize_id.side_effect = lambda x: x  # Прямой ID
     svc.get_nearest.return_value = _get_node("main_hall")
@@ -116,14 +123,16 @@ def manager():
 
 # ── Хелпер: патчим SpatialService.build_for_location ─────────────────────
 
+
 @pytest.fixture
 def patched_spatial_build(spatial_svc):
     """Патчит SpatialService.build_for_location чтобы вернуть мок."""
-    with patch.object(SpatialService, 'build_for_location', return_value=spatial_svc):
+    with patch.object(SpatialService, "build_for_location", return_value=spatial_svc):
         yield spatial_svc
 
 
 # ── ТЕСТ 1: Расписание → MovementIntent → SceneChange → Координаты ─────
+
 
 def test_schedule_locomotion_updates_coordinates(tavern_graph, scene_state, patched_spatial_build, manager):
     """Торнин идёт из bar_area → main_hall по расписанию. Координаты обновляются."""
@@ -143,9 +152,11 @@ def test_schedule_locomotion_updates_coordinates(tavern_graph, scene_state, patc
     me = MovementEngine()
     me.set_spatial_service(spatial_svc)
     changes = me.process_intents(
-        [intent], tick=1,
+        [intent],
+        tick=1,
         npc_positions=scene_state["npc_positions"],
-        campaign_id="test", scene_state=scene_state,
+        campaign_id="test",
+        scene_state=scene_state,
     )
 
     # Должен быть SceneChange для position
@@ -164,6 +175,7 @@ def test_schedule_locomotion_updates_coordinates(tavern_graph, scene_state, patc
 
 # ── ТЕСТ 2: Приказ APPROACH → Тень подходит к игроку ────────────────────
 
+
 def test_approach_command_creates_movement(scene_state, patched_spatial_build, manager):
     """Тень получает приказ APPROACH → MovementIntent → SceneChange."""
     spatial_svc = patched_spatial_build
@@ -181,9 +193,11 @@ def test_approach_command_creates_movement(scene_state, patched_spatial_build, m
     )
 
     changes = me.process_intents(
-        [intent], tick=2,
+        [intent],
+        tick=2,
         npc_positions=scene_state["npc_positions"],
-        campaign_id="test", scene_state=scene_state,
+        campaign_id="test",
+        scene_state=scene_state,
     )
 
     assert len(changes) > 0, "APPROACH не создал SceneChange"
@@ -197,6 +211,7 @@ def test_approach_command_creates_movement(scene_state, patched_spatial_build, m
 
 
 # ── ТЕСТ 3: 3 тика — полный цикл жизни NPC ──────────────────────────────
+
 
 def test_three_tick_lifecycle(tavern_graph, scene_state, patched_spatial_build, manager):
     """Тик 1: Люся в main_hall. Тик 2: Люся идёт к bar_area. Тик 3: Проверяем координаты."""
@@ -219,9 +234,11 @@ def test_three_tick_lifecycle(tavern_graph, scene_state, patched_spatial_build, 
         priority=PRIORITY_SCHEDULE,
     )
     changes = me.process_intents(
-        [intent], tick=2,
+        [intent],
+        tick=2,
         npc_positions=scene_state["npc_positions"],
-        campaign_id="test", scene_state=scene_state,
+        campaign_id="test",
+        scene_state=scene_state,
     )
     manager.apply_changes("test", changes, scene_state)
 
@@ -239,6 +256,7 @@ def test_three_tick_lifecycle(tavern_graph, scene_state, patched_spatial_build, 
 
 # ── ТЕСТ 4: build_spatial_data_for_dm возвращает NPC с дистанциями ───────
 
+
 def test_spatial_data_for_dm_includes_nearby_npcs(scene_state):
     """Без SpatialQueryService — fallback на euclidean из npc_positions."""
     from app.services.spatial.player_target_pipeline import build_spatial_data_for_dm
@@ -251,7 +269,9 @@ def test_spatial_data_for_dm_includes_nearby_npcs(scene_state):
     # Торнин в bar_area (5,5), игрок в main_hall (10,10) → dist ≈ 7.07
     tornin_entry = next((n for n in result["npcs"] if n["npc_id"] == "tavern_keeper_tornin"), None)
     assert tornin_entry is not None, "Торнин не найден в nearby_npcs"
-    assert tornin_entry["distance_to_player"] < 20.0, f"Дистанция до Торнина = {tornin_entry['distance_to_player']} (должна быть < 20)"
+    assert tornin_entry["distance_to_player"] < 20.0, (
+        f"Дистанция до Торнина = {tornin_entry['distance_to_player']} (должна быть < 20)"
+    )
 
     # Тень в bed (15,15), игрок в main_hall (10,10) → dist ≈ 7.07
     shadow_entry = next((n for n in result["npcs"] if n["npc_id"] == "thief_shadow"), None)
@@ -264,6 +284,7 @@ def test_spatial_data_for_dm_includes_nearby_npcs(scene_state):
 
 
 # ── ТЕСТ 5: tick_decisions возвращает movement_intents ───────────────────
+
 
 def test_tick_decisions_returns_movement_intents():
     """tick_decisions возвращает 3-й элемент: movement_intents."""

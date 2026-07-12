@@ -9,10 +9,10 @@
 from app.models.behavior_mask import BehaviorMask, BehaviorMaskState
 from app.models.npc_state import NPCState
 
-
 # =========================================================
 # TEST 1 — дефолтное состояние маски
 # =========================================================
+
 
 def test_r62_default_mask():
     """
@@ -34,6 +34,7 @@ def test_r62_default_mask():
 # TEST 2 — is_active корректно определяет наличие маски
 # =========================================================
 
+
 def test_r62_is_active():
     """
     Проверяет:
@@ -52,6 +53,7 @@ def test_r62_is_active():
 # =========================================================
 # TEST 3 — is_concealment_mask: маски скрытия vs открытые
 # =========================================================
+
 
 def test_r62_concealment_masks():
     """
@@ -73,6 +75,7 @@ def test_r62_concealment_masks():
 # TEST 4 — snapshot содержит поля behavior_mask
 # =========================================================
 
+
 def test_r62_snapshot_contains_mask_fields():
     """
     Проверяет:
@@ -87,7 +90,7 @@ def test_r62_snapshot_contains_mask_fields():
             mask=BehaviorMask.BETRAYAL,
             intensity=0.7,
             applied_at_day=3,
-        )
+        ),
     )
 
     snap = npc.snapshot()
@@ -101,6 +104,7 @@ def test_r62_snapshot_contains_mask_fields():
 # TEST 5 — все значения enum доступны
 # =========================================================
 
+
 def test_r62_all_enum_values():
     """
     Проверяет:
@@ -110,10 +114,10 @@ def test_r62_all_enum_values():
     BreakProgressEngine — он перебирает маски при переходах.
     """
     values = list(BehaviorMask)
-    names  = [m.name for m in values]
+    names = [m.name for m in values]
 
-    assert "NONE"             in names
-    assert "FAKE_SUBMISSION"  in names
-    assert "BETRAYAL"         in names
-    assert "COLLAPSE"         in names
-    assert len(set(values)) == 4   # уникальность
+    assert "NONE" in names
+    assert "FAKE_SUBMISSION" in names
+    assert "BETRAYAL" in names
+    assert "COLLAPSE" in names
+    assert len(set(values)) == 4  # уникальность

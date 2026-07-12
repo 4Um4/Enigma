@@ -11,50 +11,62 @@
 Назначение: Доменные фазы NPC тика (physical, conditions, economy, reactions)
 Зависимости: logging, app.services.resolution, app.services.reaction, app.services.npc, app.services.economy, app.models
 Основные сущности: resolve_physical_attack, tick_conditions, age_temporary_drives, compute_economy, resolve_reactions
-
-TODO: по мере роста доменных фаз может потребоваться реорганизация в отдельные модули (physical.py, conditions.py, etc).
-TODO: унификация возвращаемых данных — сейчас разные фазы возвращают разные структуры, стоит стандартизировать для удобства оркестратора.
-TODO: добавить типизацию возвращаемых данных для каждой функции, чтобы облегчить интеграцию и отладку.
-TODO: расширить логирование для каждой фазы — сейчас логируются только ключевые события, стоит добавить больше деталей для отладки (например, входные данные, промежуточные результаты).
 """
 
 import logging
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List, Tuple, Optional
 
 logger = logging.getLogger(__name__)
 
 # ── Константы ──────────────────────────────────────────────────────────────────
 
-PHYSICAL_EVENTS = frozenset({
-    "player_attacks", "player_steals", "player_grapples",
-    "player_casts", "player_shoots",
-})
+PHYSICAL_EVENTS = frozenset(
+    {
+        "player_attacks",
+        "player_steals",
+        "player_grapples",
+        "player_casts",
+        "player_shoots",
+    }
+)
 
-HANDS_OCCUPIED_ACTIVITIES = frozenset({
-    "serving", "working", "crafting", "cooking", "serving_tables", "cleaning_tables",
-})
+HANDS_OCCUPIED_ACTIVITIES = frozenset(
+    {
+        "serving",
+        "working",
+        "crafting",
+        "cooking",
+        "serving_tables",
+        "cleaning_tables",
+    }
+)
 
 
 # ── Physical resolution ──────────────────────────────────────────────────────
 
+
 def resolve_physical_attack(
     npc_id: str,
-    npc_profile: dict,
-    npc_dict_for_write: dict,
+    npc_profile: Dict[str, Any],
+    npc_dict_for_write: Dict[str, Any],
     state_l2: Any,
     action_type: str,
     target_id: str,
     current_tick: int,
     scene_continuity: Any,
-    scene_state: dict,
+    scene_state: Dict[str, Any],
     relationship_store: Any,
-) -> tuple:
+) -> tuple[Any, ...]:
     """Physical Resolution: игрок атакует NPC — урон, рефлексы, факты сцены.
 
     Возвращает (state_l2, reflex_constraints) — constraints для DecisionHub.
     Если действие не физическое или NPC не цель — возвращает (state_l2, None).
     """
-    if action_type not in PHYSICAL_EVENTS or npc_id != target_id or state_l2.effective_max_hp <= 0:
+    if (
+        action_type not in PHYSICAL_EVENTS
+        or npc_id != target_id
+        or state_l2.effective_max_hp <= 0
+    ):
         return state_l2, None
 
     # ADR-0015, ADR-0021: Вся физика и урон перенесены в CombatSubscriber → ImpactEngine
@@ -64,6 +76,7 @@ def resolve_physical_attack(
 
 
 # ── Session reset ─────────────────────────────────────────────────────────────
+
 
 def reset_session_state(state_l2: Any, npc_id: str, is_session_start: bool) -> None:
     """Сброс динамического состояния при старте новой сессии.
@@ -88,9 +101,10 @@ def reset_session_state(state_l2: Any, npc_id: str, is_session_start: bool) -> N
 
 # ── ConditionEngine ───────────────────────────────────────────────────────────
 
+
 def tick_conditions(
     state_l2: Any,
-    npc_dict_for_write: dict,
+    npc_dict_for_write: Dict[str, Any],
     current_tick: int,
     scene_continuity: Any,
 ) -> Any:
@@ -102,6 +116,7 @@ def tick_conditions(
         return state_l2
     try:
         from app.services.npc.condition_engine import ConditionEngine
+
         _cond_changes, _cond_events = ConditionEngine().tick(
             state=state_l2,
             current_tick=current_tick,
@@ -109,9 +124,13 @@ def tick_conditions(
         for _sc in _cond_changes:
             if _sc.field == "hp":
                 state_l2 = state_l2.__class__(
-                    **{**state_l2.__dict__, "hp": max(0, state_l2.effective_hp + _sc.delta)}
+                    **{
+                        **state_l2.__dict__,
+                        "hp": max(0, state_l2.effective_hp + _sc.delta),
+                    }
                 )
                 from app.models.npc_state import NPCState
+
                 NPCState.write_to_legacy(state_l2, npc_dict_for_write)
         if _cond_events and scene_continuity:
             for _me in _cond_events:
@@ -123,12 +142,14 @@ def tick_conditions(
 
 # ── Temporary drives aging ───────────────────────────────────────────────────
 
-def age_temporary_drives(state_l2: Any, npc_dict_for_write: dict, npc_id: str) -> None:
+
+def age_temporary_drives(state_l2: Any, npc_dict_for_write: Dict[str, Any], npc_id: str) -> None:
     """Фаза 4-ROLE.2: aging temporary drives — истекшие удаляются."""
     _drives = getattr(state_l2, "temporary_drives", [])
     if not _drives:
         return
     from app.models.npc_state import age_drives
+
     _aged = age_drives(_drives)
     if hasattr(state_l2, "__dict__"):
         state_l2.temporary_drives = _aged
@@ -144,10 +165,13 @@ def age_temporary_drives(state_l2: Any, npc_dict_for_write: dict, npc_id: str) -
             for d in _aged
         ]
     if len(_aged) != len(_drives):
-        logger.warning(f"[DRIVE] {npc_id}: {len(_drives)}→{len(_aged)} drives (expired)")
+        logger.warning(
+            f"[DRIVE] {npc_id}: {len(_drives)}→{len(_aged)} drives (expired)"
+        )
 
 
 # ── Economy ───────────────────────────────────────────────────────────────────
+
 
 def compute_economy(
     npc_id: str,
@@ -176,7 +200,9 @@ def compute_economy(
         _eco_result = _em.calculate(eco_profile, _drives)
         _eco_modifiers = _eco_result.modifiers
         if _eco_modifiers:
-            logger.warning(f"[ECO] {npc_id}: {len(_eco_modifiers)} mods, drives={_eco_result.active_drives}")
+            logger.warning(
+                f"[ECO] {npc_id}: {len(_eco_modifiers)} mods, drives={_eco_result.active_drives}"
+            )
         _result["modifiers"] = _eco_modifiers or {}
 
         # Стресс от экономики/потребностей (единый расчёт)
@@ -194,19 +220,21 @@ def compute_economy(
 
 # ── Reaction resolver ────────────────────────────────────────────────────────
 
+
 def resolve_reactions(
     decision: Any,
     hub_event: Any,
     state_for_llm: Any,
-    npc_dict_for_write: dict,
+    npc_dict_for_write: Dict[str, Any],
     npc_id: str,
-) -> list:
+) -> List[Any]:
     """Reaction Layer: DecisionResult → MicroEvents.
 
     Без этого DecisionHub говорит "испуган", но ничего не визуализируется.
     """
     try:
         from app.services.reaction.reaction_resolver import ReactionResolver
+
         _resolver = ReactionResolver()
         _composure = 1.0 - state_for_llm.stress / 100.0
         _current_activity = npc_dict_for_write.get("routine", {}).get("current", "")

@@ -1,3 +1,4 @@
+from __future__ import annotations
 # path: backend/app/models/behavior_mask.py
 
 """
@@ -13,7 +14,6 @@ WillState = что происходит внутри (broken, coerced...)
 BehaviorMask = как NPC это показывает снаружи (или скрывает)
 """
 
-from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
@@ -40,10 +40,10 @@ class BehaviorMask(str, Enum):
                       нормально, реакции непредсказуемы или заморожены
     """
 
-    NONE            = "none"
+    NONE = "none"
     FAKE_SUBMISSION = "fake_submission"
-    BETRAYAL        = "betrayal"
-    COLLAPSE        = "collapse"
+    BETRAYAL = "betrayal"
+    COLLAPSE = "collapse"
 
 
 @dataclass

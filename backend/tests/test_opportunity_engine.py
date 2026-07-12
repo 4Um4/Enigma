@@ -4,18 +4,19 @@
 # Основные сущности: OpportunityContext, OpportunityResult, OpportunityEngine
 #  $env:PYTHONPATH="backend"; pytest backend/tests/test_opportunity_engine.py -v
 
-import pytest
 from dataclasses import asdict
+
+import pytest
 from app.services.economy.opportunity_engine import (
     OpportunityContext,
-    OpportunityResult,
     OpportunityEngine,
+    OpportunityResult,
 )
-
 
 # ===================================================================
 # FIXTURES
 # ===================================================================
+
 
 @pytest.fixture
 def broken_npc_state():
@@ -39,6 +40,7 @@ def coerced_npc_state():
 # ТЕСТЫ: БАЗОВАЯ ЛОГИКА OpportunityEngine.calculate()
 # ===================================================================
 
+
 @pytest.mark.parametrize(
     "ctx, will_state, expected_allow, min_score",
     [
@@ -52,7 +54,7 @@ def coerced_npc_state():
             ),
             "broken",
             True,
-            0.90,          # актуальное значение по текущей формуле ≈0.925
+            0.90,  # актуальное значение по текущей формуле ≈0.925
         ),
         # Минимальный шанс (игрок в упор, полное внимание)
         (
@@ -75,7 +77,7 @@ def coerced_npc_state():
                 allies=1,
             ),
             "broken",
-            False,         # по текущей формуле ≈0.5675 < 0.65
+            False,  # по текущей формуле ≈0.5675 < 0.65
             0.50,
         ),
         # Нулевые/отрицательные значения (защита от некорректных данных)
@@ -134,6 +136,7 @@ def test_broken_state_with_low_score_still_denied():
 # ТЕСТЫ: АНТИ-ЭКСПЛОЙТ И DIMINISHING RETURNS
 # ===================================================================
 
+
 @pytest.mark.parametrize("repeat_count", [1, 3, 7])
 def test_repeated_opportunity_has_diminishing_returns(repeat_count):
     """Повторные вызовы на одном NPC снижают score (защита от абьюза)."""
@@ -163,9 +166,7 @@ def test_repeated_opportunity_has_diminishing_returns(repeat_count):
 
 def test_opportunity_result_structure():
     """Проверка dataclass-структуры результата (для совместимости с StateApplicator)."""
-    ctx = OpportunityContext(
-        player_attention=0.2, distance=15.0, weapon_access=True, allies=1
-    )
+    ctx = OpportunityContext(player_attention=0.2, distance=15.0, weapon_access=True, allies=1)
     result = OpportunityEngine.calculate(ctx, "broken")
 
     assert isinstance(result, OpportunityResult)
@@ -184,11 +185,10 @@ def test_opportunity_result_structure():
 # ИНТЕГРАЦИОННЫЙ ТЕСТ С NPCState (минимальный)
 # ===================================================================
 
+
 def test_integration_with_npcstate_will_state(broken_npc_state):
     """OpportunityEngine корректно читает will_state напрямую из NPCState."""
-    ctx = OpportunityContext(
-        player_attention=0.05, distance=20.0, weapon_access=True, allies=2
-    )
+    ctx = OpportunityContext(player_attention=0.05, distance=20.0, weapon_access=True, allies=2)
 
     result = OpportunityEngine.calculate(ctx, broken_npc_state.will_state)
     assert result.hidden_action_allowed is True

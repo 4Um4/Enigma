@@ -1,3 +1,4 @@
+from __future__ import annotations
 # backend/app/services/events/event_bus.py
 #
 # Phase 3B.1 — EventBus: синхронный pub/sub
@@ -15,11 +16,9 @@
 #   - LifeEngine
 #   - FactionSystem (Phase 3E)
 
-from __future__ import annotations
 import logging
-from typing import Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
-import dataclasses
 
 from app.domain.events import EventDTO
 from app.services.events.event_types import EventType
@@ -48,7 +47,7 @@ class EventBus:
     def __init__(self) -> None:
         self._handlers: Dict[str, List[EventHandler]] = {}
         self._tick_queue: List[EventDTO] = []
-        self._event_log: List[EventDTO] = []   # последние 100 событий для debug
+        self._event_log: List[EventDTO] = []  # последние 100 событий для debug
         # P2 CFRM: Мост для деобъективации событий в возмущения поля
         self._cfrm_bridge: Optional[Callable[[EventDTO], None]] = None
 
@@ -56,7 +55,7 @@ class EventBus:
 
     def attach_cfrm_bridge(self, bridge: Callable[[EventDTO], None]) -> None:
         """Привязывает функцию-мост для деобъективации на время тика.
-        
+
         Все события, проходящие через publish(), будут пропущены через мост,
         превращаясь из объективных EventDTO в возмущения поля (FieldDisturbance).
         """
@@ -73,7 +72,7 @@ class EventBus:
         Регистрирует обработчик для типа события.
         Обработчик вызывается синхронно при publish().
 
-        handler(event: EventDTO) -> Optional[dict]
+        handler(event: EventDTO) -> Optional[Dict[str, Any]]
           Возвращает dict с результатом (добавляется в results publish)
           или None (игнорируется).
         """
@@ -93,7 +92,7 @@ class EventBus:
 
     def publish(self, event: EventDTO) -> List[EventDTO]:
         """Публикует событие — вызывает всех подписчиков синхронно.
-        
+
         Закон 2.1.1: publish() принимает только EventDTO. Всё остальное — TypeError.
         Закон 2.1.2: Возвращает List[EventDTO] — результаты обработчиков.
         """
@@ -117,8 +116,7 @@ class EventBus:
                     results.append(result)
             except Exception as e:
                 logger.error(
-                    f"[EVENT_BUS] Обработчик упал: "
-                    f"{handler.__qualname__} → {e}"
+                    f"[EVENT_BUS] Обработчик упал: {handler.__qualname__} → {e}"
                 )
 
         # логируем для debug (последние 100)
@@ -160,12 +158,18 @@ class EventBus:
 
     # ── Утилиты ───────────────────────────────────────────────────────────
 
-    def get_recent_events(self, limit: int = 20, campaign_id: str = "") -> List[EventDTO]:
+    def get_recent_events(
+        self, limit: int = 20, campaign_id: str = ""
+    ) -> List[EventDTO]:
         """Последние N событий для debug и context_builder.
         Если campaign_id указан — фильтрует только события этой кампании.
         """
         if campaign_id:
-            filtered = [e for e in self._event_log if e.payload.get("campaign_id") == campaign_id]
+            filtered = [
+                e
+                for e in self._event_log
+                if e.payload.get("campaign_id") == campaign_id
+            ]
             return filtered[-limit:]
         return self._event_log[-limit:]
 

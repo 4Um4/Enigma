@@ -1,3 +1,4 @@
+from __future__ import annotations
 # backend/app/services/world/world_tick_engine.py
 """
 Фаза 3.4 — WorldTickEngine: проактивный цикл NPC между ходами игрока.
@@ -11,7 +12,6 @@
     распространить слух, позвать на помощь, сменить роль.
 """
 
-from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
@@ -26,7 +26,6 @@ from app.models.npc_state import Intent, NPCState, WillState
 from app.models.state_delta import StateDeltas
 from app.models.npc_profile import NPCProfileL0
 from app.domain.events import EventDTO
-from app.domain.decision_context import DecisionContext
 from app.services.cfrm.pressure_translator import translate_kernel_to_context
 from app.services.events.event_types import EventType
 
@@ -36,21 +35,23 @@ logger = logging.getLogger(__name__)
 @dataclass
 class ProactiveDecision:
     """Результат проактивного решения NPC."""
+
     npc_id: str
     intent: Intent
     intent_target: Optional[str]
     score: float
-    reason: str                     # для debug/tracing
-    deltas: StateDeltas              # канонический контракт мутаций (Устав §2.3)
+    reason: str  # для debug/tracing
+    deltas: StateDeltas  # канонический контракт мутаций (Устав §2.3)
 
 
 @dataclass
 class WorldTickResult:
     """Результат полного тика мира."""
+
     triggered: bool
     tick_number: int
     decisions: List[ProactiveDecision]
-    events: List[EventDTO]          # типизированные события для EventBus (Устав §2.1, §7.8)
+    events: List[EventDTO]  # типизированные события для EventBus (Устав §2.1, §7.8)
 
 
 class WorldTickEngine:
@@ -93,7 +94,10 @@ class WorldTickEngine:
         social_modifiers: {npc_id: {intent: modifier}} от SocialEngine.
         reputation_modifiers: {npc_id: {intent: modifier}} от ReputationEngine.
         """
-        from app.services.npc.decision_hub import DecisionHub, EventContext as HubEventContext
+        from app.services.npc.decision_hub import (
+            DecisionHub,
+            EventContext as HubEventContext,
+        )
 
         tick_num = self.get_tick_number(campaign_id)
         decisions: List[ProactiveDecision] = []
@@ -104,9 +108,14 @@ class WorldTickEngine:
 
         # Множество проактивных интентов — только они учитываются из world_tick
         proactive_intents: set = {
-            Intent.BLOCK_PATH, Intent.AMBUSH, Intent.SEEK_ALLY,
-            Intent.OFFER_JOB, Intent.REQUEST_SERVICE, Intent.SPREAD_RUMOR,
-            Intent.CALL_FOR_HELP, Intent.CHANGE_ROLE,
+            Intent.BLOCK_PATH,
+            Intent.AMBUSH,
+            Intent.SEEK_ALLY,
+            Intent.OFFER_JOB,
+            Intent.REQUEST_SERVICE,
+            Intent.SPREAD_RUMOR,
+            Intent.CALL_FOR_HELP,
+            Intent.CHANGE_ROLE,
         }
 
         for npc_id, state_l2, profile_l0 in npc_data:
@@ -145,12 +154,17 @@ class WorldTickEngine:
 
             # Каузальное замыкание: консолидированное восприятие T-1 деформирует проактивные решения
             # GAP3 FIX: Передаем body_state для соматического вето
-            _body = getattr(state_l2, 'body_state', None)
-            _kernel = getattr(state_l2, 'perceptual_kernel', None)
-            _decision_ctx = translate_kernel_to_context(_kernel, body_state=_body) if _kernel else None
+            _body = getattr(state_l2, "body_state", None)
+            _kernel = getattr(state_l2, "perceptual_kernel", None)
+            _decision_ctx = (
+                translate_kernel_to_context(_kernel, body_state=_body)
+                if _kernel
+                else None
+            )
 
             # KERNEL-ISOLATION: per-NPC deterministic RNG.
             from app.services.npc.kernel_rng import KernelRNG
+
             _rng = KernelRNG(tick=tick_num, npc_id=npc_id)
             hub = DecisionHub(rng=_rng)
 
@@ -164,7 +178,10 @@ class WorldTickEngine:
                     social_modifiers=combined if combined else None,
                     decision_ctx=_decision_ctx,
                 )
-                logger.debug(f"[DECISION_HUB] npc={npc_id} tick={tick_num} intent={result.intent.value} score={result.score:.3f} [world_tick]", flush=True)
+                logger.debug(
+                    f"[DECISION_HUB] npc={npc_id} tick={tick_num} intent={result.intent.value} score={result.score:.3f} [world_tick]",
+                    flush=True,
+                )
 
                 # Только проактивные интенты проходят
                 if result.intent not in proactive_intents:
@@ -183,17 +200,19 @@ class WorldTickEngine:
                     )
                     decisions.append(decision)
 
-                    events.append(EventDTO.create(
-                        event_type=EventType.WORLD_TICK.value,
-                        source=npc_id,
-                        payload={
-                            "npc_id": npc_id,
-                            "intent": result.intent.value,
-                            "target": result.intent_target,
-                            "score": effective_score,
-                            "proactive": True,
-                        },
-                    ))
+                    events.append(
+                        EventDTO.create(
+                            event_type=EventType.WORLD_TICK.value,
+                            source=npc_id,
+                            payload={
+                                "npc_id": npc_id,
+                                "intent": result.intent.value,
+                                "target": result.intent_target,
+                                "score": effective_score,
+                                "proactive": True,
+                            },
+                        )
+                    )
 
                     logger.info(
                         f"[WORLD_TICK] {npc_id}: {result.intent.value} "

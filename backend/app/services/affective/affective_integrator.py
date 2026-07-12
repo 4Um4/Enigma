@@ -7,7 +7,8 @@ TODO:
 - Настроить пороги для эмоциональных коллапсов и реакций.
 """
 from __future__ import annotations
-from typing import TYPE_CHECKING, Tuple
+
+from typing import List, Dict, Any, TYPE_CHECKING, Tuple
 
 if TYPE_CHECKING:
     from app.models.npc_state import PerceptualKernel
@@ -17,16 +18,17 @@ _MEMORY_DECAY_RATE: float = 0.85
 _TRAUMA_SCAR_RATE: float = 0.2
 _SURPRISE_GAIN: float = 1.2
 
+
 def integrate_affective_pressure(
     kernel: "PerceptualKernel",
-    psyche: dict,
+    psyche: Dict[str, Any],
     current_load: float,
     current_memory: float,
-    dt: float = 1.0
+    dt: float = 1.0,
 ) -> Tuple[float, float]:
     """
     ADR-049 / ADR-O-206: Интегрирует давление во времени (Active Inference + Hysteresis).
-    
+
     Возвращает:
         Tuple[new_load, new_affective_memory]
     """
@@ -38,11 +40,12 @@ def integrate_affective_pressure(
     _w_somatic = 1.0 - willpower * 0.5
 
     # 1. Мгновенное восприятие (pk_load)
-    pk_load = min(1.0,
-        getattr(kernel, 'threat_gradient', 0.0) * _w_threat +
-        getattr(kernel, 'uncertainty', 0.0) * _w_uncertainty +
-        getattr(kernel, 'anomaly_score', 0.0) * _w_anomaly +
-        getattr(kernel, 'somatic_urgency', 0.0) * _w_somatic
+    pk_load = min(
+        1.0,
+        getattr(kernel, "threat_gradient", 0.0) * _w_threat
+        + getattr(kernel, "uncertainty", 0.0) * _w_uncertainty
+        + getattr(kernel, "anomaly_score", 0.0) * _w_anomaly
+        + getattr(kernel, "somatic_urgency", 0.0) * _w_somatic,
     )
 
     # 2. Active Inference: Ошибка предсказания (Surprise)
@@ -52,7 +55,7 @@ def integrate_affective_pressure(
     # 3. Обновление базового ожидания (Prior / Котёл)
     # ADR-O-206 Cut 2: Вес памяти модулируется Surprise (ошибкой предсказания).
     # Нелинейная функция: маленькие surprise почти ничего не делают, большие оставляют шрам.
-    _scar_rate = 0.1 + (0.4 * (_abs_error ** 1.5))
+    _scar_rate = 0.1 + (0.4 * (_abs_error**1.5))
     new_memory = min(1.0, current_memory * _MEMORY_DECAY_RATE + pk_load * _scar_rate)
 
     # 4. Эмоциональный ответ (Posterior / Affective Load)
@@ -68,6 +71,8 @@ def integrate_affective_pressure(
     else:
         adaptation_rate = 0.05 + (willpower * 0.1)
 
-    new_load = current_load_adjusted + (target_load - current_load_adjusted) * adaptation_rate
+    new_load = (
+        current_load_adjusted + (target_load - current_load_adjusted) * adaptation_rate
+    )
 
     return max(0.0, min(1.0, new_load)), new_memory

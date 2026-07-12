@@ -3,8 +3,9 @@
 
 Назначение: Дамп EventMemory из SQLite в человекочитаемый YAML (Закон 4.2.2). Не пишет в MemoryProcessor — только читает из SQLite.
 Зависимости: yaml (pyyaml), app.services.memory.sqlite_store.SqliteMemoryStore, app.models.npc_state.EventMemory
-Основные сущности: export_npc_memories_to_yaml(), export_campaign_to_yaml() 
+Основные сущности: export_npc_memories_to_yaml(), export_campaign_to_yaml()
 """
+
 import logging
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -14,7 +15,7 @@ import yaml
 logger = logging.getLogger(__name__)
 
 # Человеческие метки для полей — не технические значения
-_STAGE_LABELS: dict = {
+_STAGE_LABELS: Dict[str, Any] = {
     "FRESH": "свежее",
     "CONSOLIDATED": "закрепилось",
     "ABSTRACT": "абстракция",
@@ -28,7 +29,9 @@ def _format_single_memory(d: Dict[str, Any]) -> Dict[str, Any]:
     if isinstance(stage, str):
         stage_label = _STAGE_LABELS.get(stage, stage)
     else:
-        stage_label = _STAGE_LABELS.get(stage.value if hasattr(stage, "value") else str(stage), str(stage))
+        stage_label = _STAGE_LABELS.get(
+            stage.value if hasattr(stage, "value") else str(stage), str(stage)
+        )
 
     tags = d.get("tags", ())
     if isinstance(tags, (list, tuple)):
@@ -60,7 +63,9 @@ def _format_single_memory(d: Dict[str, Any]) -> Dict[str, Any]:
         result["секрет"] = True
         hidden = d.get("hidden_from", ())
         if hidden:
-            result["скрыто_от"] = list(hidden) if isinstance(hidden, (list, tuple)) else [hidden]
+            result["скрыто_от"] = (
+                list(hidden) if isinstance(hidden, (list, tuple)) else [hidden]
+            )
 
     if d.get("contract_tag") or d.get("contract_ref"):
         result["обязательство"] = {
@@ -73,7 +78,11 @@ def _format_single_memory(d: Dict[str, Any]) -> Dict[str, Any]:
         result["сжатие"] = True
         compressed_from = d.get("compressed_from", ())
         if compressed_from:
-            result["из_чего_сжато"] = list(compressed_from) if isinstance(compressed_from, (list, tuple)) else [compressed_from]
+            result["из_чего_сжато"] = (
+                list(compressed_from)
+                if isinstance(compressed_from, (list, tuple))
+                else [compressed_from]
+            )
 
     return result
 
@@ -106,7 +115,9 @@ def export_npc_memories_to_yaml(
         "память": formatted,
     }
 
-    yaml_str = yaml.dump(doc, allow_unicode=True, default_flow_style=False, sort_keys=False)
+    yaml_str = yaml.dump(
+        doc, allow_unicode=True, default_flow_style=False, sort_keys=False
+    )
 
     if output_path:
         output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -149,5 +160,7 @@ def export_campaign_to_yaml(
         if yaml_str:
             exported += 1
 
-    logger.info(f"[YAML_EXPORT] Кампания {campaign_id}: {exported}/{len(npc_ids)} NPC экспортировано")
+    logger.info(
+        f"[YAML_EXPORT] Кампания {campaign_id}: {exported}/{len(npc_ids)} NPC экспортировано"
+    )
     return exported

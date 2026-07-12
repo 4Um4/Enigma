@@ -2,6 +2,7 @@
 from __future__ import annotations
 import sys
 from pathlib import Path
+
 _PROJECT_ROOT = Path(__file__).resolve().parent  # backend/
 APP_DIR = _PROJECT_ROOT / "app"
 if str(APP_DIR) not in sys.path:
@@ -14,6 +15,7 @@ from pathlib import Path
 from app.core.config import settings
 from app.models.schemas import ModelProvider, ModelSelection
 from app.services.knowledge_ingest import KnowledgeIngestService
+
 # GameOrchestrator удалён — заменён на game_loop.py
 # from app.services.orchestrator import GameOrchestrator
 from app.services.pdf_drop_importer import PdfDropImporter
@@ -63,18 +65,20 @@ def _normalize_subcommand(text: str) -> str | None:
 def _cleanup_model_response(text: str) -> str:
     """Очищает ответ модели от тегов промпта и лишних символов."""
     cleaned = text
-    
+
     # 1. Удаляем все теги system, user, assistant
     for tag in ["system", "user", "assistant", "system_prompt", "end_of_prompt"]:
-        cleaned = re.sub(f"<{tag}>.*?</{tag}>", "", cleaned, flags=re.IGNORECASE | re.DOTALL)
+        cleaned = re.sub(
+            f"<{tag}>.*?</{tag}>", "", cleaned, flags=re.IGNORECASE | re.DOTALL
+        )
         cleaned = re.sub(f"</?{tag}>", "", cleaned, flags=re.IGNORECASE)
-    
+
     # 2. Удаляем markdown код блоки
     cleaned = re.sub(r"```\w*\n", "\n", cleaned)
     cleaned = re.sub(r"```", "", cleaned)
-    
+
     # 3. Удаляем повторяющиеся паттерны
-    lines = cleaned.split('\n')
+    lines = cleaned.split("\n")
     unique_lines = []
     seen = set()
     for line in lines:
@@ -82,19 +86,24 @@ def _cleanup_model_response(text: str) -> str:
         if line_stripped and line_stripped not in seen:
             unique_lines.append(line)
             seen.add(line_stripped)
-    cleaned = '\n'.join(unique_lines)
-    
+    cleaned = "\n".join(unique_lines)
+
     # 4. Удаляем "Что будете делать?" и подобные фразы
-    for pattern in ["**Что вы делаете?**", "**Что будете делать?**", "(или предложите действие)", "(или позвольте игрокам действовать)"]:
+    for pattern in [
+        "**Что вы делаете?**",
+        "**Что будете делать?**",
+        "(или предложите действие)",
+        "(или позвольте игрокам действовать)",
+    ]:
         cleaned = cleaned.replace(pattern, "")
-    
+
     # 5. Чистка
     cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
     cleaned = cleaned.strip()
-    
+
     if not cleaned:
         cleaned = "(Мастер ожидает вашего действия...)"
-    
+
     return cleaned
 
 
@@ -171,7 +180,7 @@ def main() -> None:
         if text == "/exit":
             print("Выход.")
             return
-        
+
         # /model <1-4> - переключить модель
         if text.startswith("/model "):
             parts = text.split()
@@ -187,7 +196,9 @@ def main() -> None:
                     new_model = model_map[model_num]
                     ROOT_ENIGMA = _PROJECT_ROOT.parent  # Enigma/
                     model_path = ROOT_ENIGMA / "Models LLM" / new_model
-                    model = ModelSelection(provider=ModelProvider.llama_cpp, model_name=new_model)
+                    model = ModelSelection(
+                        provider=ModelProvider.llama_cpp, model_name=new_model
+                    )
                     orchestrator.llm_manager.switch_model(model)
                     os.environ["LLAMA_CPP_MODEL"] = model_path
                     print(f"[Смена модели] Загружается: {new_model}")
@@ -201,7 +212,7 @@ def main() -> None:
                     print("  4 - YandexGPT-8B (NPC)")
                     continue
             continue
-        
+
         if text == "/model":
             print("Доступные модели:")
             print("  1 - Qwen2.5-7B (DM)")
@@ -215,19 +226,33 @@ def main() -> None:
             if not folder_path.exists():
                 print(f"[Ошибка] Папка не найдена: {folder_path.resolve()}")
                 continue
-            imported = drop_importer.import_from_folder(PDF_DROP_FOLDER, world_id=world_id, campaign_id=campaign_id)
+            imported = drop_importer.import_from_folder(
+                PDF_DROP_FOLDER, world_id=world_id, campaign_id=campaign_id
+            )
             if not imported:
-                files_in_dir = list(folder_path.iterdir()) if folder_path.exists() else []
-                pdf_count = sum(1 for f in files_in_dir if f.suffix.lower() in {".pdf", ".txt", ".md"})
+                files_in_dir = (
+                    list(folder_path.iterdir()) if folder_path.exists() else []
+                )
+                pdf_count = sum(
+                    1
+                    for f in files_in_dir
+                    if f.suffix.lower() in {".pdf", ".txt", ".md"}
+                )
                 print(f"Папка: {folder_path.resolve()}")
-                print(f"Файлов PDF/TXT/MD: {pdf_count}. Папка пуста или форматы не подходят.")
+                print(
+                    f"Файлов PDF/TXT/MD: {pdf_count}. Папка пуста или форматы не подходят."
+                )
                 continue
             print(f"Импортировано файлов: {len(imported)}")
             for item in imported:
-                print(f"- {item.filename} [{item.kind}] {item.status}: {item.message} (chars={item.chars})")
+                print(
+                    f"- {item.filename} [{item.kind}] {item.status}: {item.message} (chars={item.chars})"
+                )
             continue
         if text == "/state":
-            ctx = orchestrator.layered_memory.build_dynamic_context(world_id=world_id, campaign_id=campaign_id)
+            ctx = orchestrator.layered_memory.build_dynamic_context(
+                world_id=world_id, campaign_id=campaign_id
+            )
             print(
                 "Слои памяти => "
                 f"WORLD_CANON={len(ctx['world_canon'])}, "
@@ -236,7 +261,7 @@ def main() -> None:
                 f"NPC_MEMORY={len(ctx['npc_memory'])}"
             )
             continue
-        
+
         # === Новые команды Campaign State ===
         # /campaign или /кампания - состояние кампании
         if text == "/campaign" or text == "/кампания":
@@ -247,10 +272,10 @@ def main() -> None:
             print(f"Игроков: {summary['players_count']}")
             print(f"Фактов мира: {summary['facts_count']}")
             print(f"Сессий: {summary['sessions_count']}")
-            if summary['categories']:
+            if summary["categories"]:
                 print(f"Категории фактов: {', '.join(summary['categories'])}")
             continue
-        
+
         # /player или /игрок - игроки
         if text.startswith("/player") or text.startswith("/игрок"):
             # Нормализуем команду
@@ -267,22 +292,31 @@ def main() -> None:
                         if p.notes:
                             print(f"  Заметки: {p.notes}")
                 continue
-            
+
             if _normalize_subcommand(parts[1]) == "add" and len(parts) >= 3:
                 add_parts = parts[2].split()
                 if len(add_parts) < 4:
                     print("Использование: /player add <имя> <раса> <класс> <уровень>")
                     print("Пример: /player add Элар Полуэльф Заклинатель 3")
                     continue
-                name, race, class_name, level_str = add_parts[0], add_parts[1], add_parts[2], add_parts[3]
+                name, race, class_name, level_str = (
+                    add_parts[0],
+                    add_parts[1],
+                    add_parts[2],
+                    add_parts[3],
+                )
                 try:
                     level = int(level_str)
                 except ValueError:
                     level = 1
-                player = campaign_service.add_player(campaign_id, name, race, class_name, level)
-                print(f"Добавлен/обновлён игрок: {player.name} ({player.race} {player.class_name} lvl{player.level})")
+                player = campaign_service.add_player(
+                    campaign_id, name, race, class_name, level
+                )
+                print(
+                    f"Добавлен/обновлён игрок: {player.name} ({player.race} {player.class_name} lvl{player.level})"
+                )
                 continue
-            
+
             player_name = parts[1]
             player = campaign_service.get_player(campaign_id, player_name)
             if player:
@@ -291,11 +325,15 @@ def main() -> None:
                 print(f"Класс: {player.class_name or 'не указан'}")
                 print(f"Уровень: {player.level}")
                 print(f"Заметки: {player.notes or 'нет'}")
-                print(f"Создан: {player.created_at[:10] if player.created_at else 'неизвестно'}")
+                print(
+                    f"Создан: {player.created_at[:10] if player.created_at else 'неизвестно'}"
+                )
             else:
-                print(f"Игрок '{player_name}' не найден. Используйте /player add для добавления.")
+                print(
+                    f"Игрок '{player_name}' не найден. Используйте /player add для добавления."
+                )
             continue
-        
+
         # /fact или /факт - факты мира
         if text.startswith("/fact") or text.startswith("/факт"):
             cmd = text.replace("/факт", "/fact", 1)
@@ -307,20 +345,28 @@ def main() -> None:
                 else:
                     print("=== Факты мира ===")
                     for f in facts:
-                        print(f"[{f.category}] {f.text[:100]}{'...' if len(f.text) > 100 else ''}")
+                        print(
+                            f"[{f.category}] {f.text[:100]}{'...' if len(f.text) > 100 else ''}"
+                        )
                         if f.tags:
                             print(f"  Теги: {', '.join(f.tags)}")
                 continue
-            
+
             if _normalize_subcommand(parts[1]) == "add" and len(parts) >= 3:
                 text_to_add = parts[2]
                 category = campaign_service.auto_detect_category(text_to_add)
-                fact = campaign_service.add_world_fact(campaign_id, text_to_add, category=category)
-                print(f"Добавлен факт [{category}]: {fact.text[:80]}{'...' if len(fact.text) > 80 else ''}")
+                fact = campaign_service.add_world_fact(
+                    campaign_id, text_to_add, category=category
+                )
+                print(
+                    f"Добавлен факт [{category}]: {fact.text[:80]}{'...' if len(fact.text) > 80 else ''}"
+                )
                 continue
-            
+
             category_filter = parts[1]
-            facts = campaign_service.get_world_facts(campaign_id, category=category_filter)
+            facts = campaign_service.get_world_facts(
+                campaign_id, category=category_filter
+            )
             if not facts:
                 print(f"Нет фактов в категории '{category_filter}'")
             else:
@@ -328,7 +374,7 @@ def main() -> None:
                 for f in facts:
                     print(f"- {f.text[:100]}{'...' if len(f.text) > 100 else ''}")
             continue
-        
+
         # /session или /сессия - сессии
         if text.startswith("/session") or text.startswith("/сессия"):
             cmd = text.replace("/сессия", "/session", 1)
@@ -340,32 +386,40 @@ def main() -> None:
                 else:
                     print("=== Сессии ===")
                     for s in sessions:
-                        print(f"[{s.date}] {s.summary[:100]}{'...' if len(s.summary) > 100 else ''}")
+                        print(
+                            f"[{s.date}] {s.summary[:100]}{'...' if len(s.summary) > 100 else ''}"
+                        )
                         if s.location:
                             print(f"  Локация: {s.location}")
                 continue
-            
+
             if _normalize_subcommand(parts[1]) == "add" and len(parts) >= 3:
                 summary_text = parts[2]
-                session = campaign_service.add_session_summary(campaign_id, summary_text)
-                print(f"Добавлено описание сессии: {session.summary[:80]}{'...' if len(session.summary) > 80 else ''}")
+                session = campaign_service.add_session_summary(
+                    campaign_id, summary_text
+                )
+                print(
+                    f"Добавлено описание сессии: {session.summary[:80]}{'...' if len(session.summary) > 80 else ''}"
+                )
                 continue
-            
+
             print("Использование: /session - показать все | /session add <описание>")
             continue
 
         # === Используем умный контекст-билдер с поиском релевантных фактов ===
         # Получаем контекст с релевантными фактами из CampaignState
-        ctx = orchestrator.layered_memory.build_dynamic_context(world_id=world_id, campaign_id=campaign_id)
-        
+        ctx = orchestrator.layered_memory.build_dynamic_context(
+            world_id=world_id, campaign_id=campaign_id
+        )
+
         # Используем build_dynamic_context для умного поиска фактов
         prompt = build_dynamic_context(
             session_history=session_history,
             campaign_id=campaign_id,
             user_query=text,
             world_canon=ctx.get("world_canon", None),
-            max_facts=5,       # Увеличили для глубины
-            max_recent_messages=15  # Больше контекста диалога
+            max_facts=5,  # Увеличили для глубины
+            max_recent_messages=15,  # Больше контекста диалога
         )
 
         try:
@@ -373,21 +427,23 @@ def main() -> None:
         except Exception as exc:
             print(f"[Ошибка llama.cpp] {exc}")
             if not os.getenv("LLAMA_CPP_SERVER_URL"):
-                print("Подсказка: для быстрых ответов используйте start_dm_terminal_with_server.bat")
+                print(
+                    "Подсказка: для быстрых ответов используйте start_dm_terminal_with_server.bat"
+                )
             continue
 
         # Очищаем ответ от тегов промпта
         cleaned_answer = _cleanup_model_response(answer)
-        
+
         # Показываем сырой ответ в режиме отладки
         if _DEBUG_MODE:
             print(f"[DEBUG RAW]: {repr(answer)}\n")
-        
+
         print(f"DM: {cleaned_answer}\n")
-        
+
         # Добавляем в историю сессии для контекст-билдера
         session_history.append({"player_text": text, "dm_response": answer})
-        
+
         # Также сохраняем в память кампании (как и раньше)
         orchestrator.layered_memory.write_campaign_memory(
             campaign_id,
@@ -412,4 +468,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

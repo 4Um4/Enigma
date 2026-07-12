@@ -4,13 +4,14 @@ path: /backend/app/services/scene/scene_event_emitter.py
 Зависимости: SceneEvent, SceneEventType
 Основные сущности: SceneEventEmitter
 """
-from typing import List
+
+from typing import Dict, Any, List
 from app.models.scene_event import SceneEvent, SceneEventType
 
 
 class SceneEventEmitter:
     """Создаёт SceneEvent из различных источников."""
-    
+
     # Базовые параметры по типу действия
     _TYPE_PROFILES = {
         "player_attacks": {
@@ -38,7 +39,7 @@ class SceneEventEmitter:
             "sound_level": 0.5,
         },
     }
-    
+
     def emit_from_physical(
         self,
         action_type: str,
@@ -52,47 +53,53 @@ class SceneEventEmitter:
         is_critical: bool = False,
     ) -> List[SceneEvent]:
         """Создаёт SceneEvent из результата физического действия."""
-        profile = self._TYPE_PROFILES.get(action_type, self._TYPE_PROFILES["player_interacts"])
-        
+        profile = self._TYPE_PROFILES.get(
+            action_type, self._TYPE_PROFILES["player_interacts"]
+        )
+
         events = []
-        
+
         # Основное событие — само действие
         intensity = profile["intensity"]
         if is_critical:
             intensity = min(1.0, intensity + 0.15)
-        
-        events.append(SceneEvent(
-            event_type=profile["event_type"],
-            actor_id=actor_id,
-            target_id=target_id,
-            location_id=location_id,
-            tick=tick,
-            intensity=intensity,
-            visibility_radius=profile["visibility_radius"],
-            summary=action_text[:100],
-            damage=damage,
-            damage_type=damage_type,
-            sound_level=profile["sound_level"],
-        ))
-        
-        # Если есть урон — дополнительное событие для свидетелей
-        if damage > 0 and target_id:
-            events.append(SceneEvent(
-                event_type=SceneEventType.NPC_INJURED,
+
+        events.append(
+            SceneEvent(
+                event_type=profile["event_type"],
                 actor_id=actor_id,
                 target_id=target_id,
                 location_id=location_id,
                 tick=tick,
-                intensity=min(1.0, 0.5 + damage * 0.05),
-                visibility_radius=8.0,
-                summary=f"{target_id} получил {damage} урона ({damage_type})",
+                intensity=intensity,
+                visibility_radius=profile["visibility_radius"],
+                summary=action_text[:100],
                 damage=damage,
                 damage_type=damage_type,
-                sound_level=0.7 if damage > 5 else 0.4,
-            ))
-            
+                sound_level=profile["sound_level"],
+            )
+        )
+
+        # Если есть урон — дополнительное событие для свидетелей
+        if damage > 0 and target_id:
+            events.append(
+                SceneEvent(
+                    event_type=SceneEventType.NPC_INJURED,
+                    actor_id=actor_id,
+                    target_id=target_id,
+                    location_id=location_id,
+                    tick=tick,
+                    intensity=min(1.0, 0.5 + damage * 0.05),
+                    visibility_radius=8.0,
+                    summary=f"{target_id} получил {damage} урона ({damage_type})",
+                    damage=damage,
+                    damage_type=damage_type,
+                    sound_level=0.7 if damage > 5 else 0.4,
+                )
+            )
+
         return events
-    
+
     def emit_from_verbal(
         self,
         actor_id: str,
@@ -108,15 +115,17 @@ class SceneEventEmitter:
             sound_level = 0.7
         if action_text.isupper():
             sound_level = 0.9
-            
-        return [SceneEvent(
-            event_type=SceneEventType.VERBAL,
-            actor_id=actor_id,
-            target_id=target_id,
-            location_id=location_id,
-            tick=tick,
-            intensity=0.3,
-            visibility_radius=6.0 + sound_level * 2.0,  # крик слышен дальше
-            summary=action_text[:100],
-            sound_level=sound_level,
-        )]
+
+        return [
+            SceneEvent(
+                event_type=SceneEventType.VERBAL,
+                actor_id=actor_id,
+                target_id=target_id,
+                location_id=location_id,
+                tick=tick,
+                intensity=0.3,
+                visibility_radius=6.0 + sound_level * 2.0,  # крик слышен дальше
+                summary=action_text[:100],
+                sound_level=sound_level,
+            )
+        ]

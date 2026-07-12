@@ -4,15 +4,12 @@
 # Основные сущности: NPCState NPCStateAdapter
 # $env:PYTHONPATH="." pytest tests/test_npc_state_r6.py -v
 
-from app.models.npc_state import (
-    NPCState,
-    NPCStateAdapter
-)
-
+from app.models.npc_state import NPCState, NPCStateAdapter
 
 # =========================================================
 # TEST 1 — значения по умолчанию
 # =========================================================
+
 
 def test_r6_default_values():
     """
@@ -35,6 +32,7 @@ def test_r6_default_values():
 # TEST 2 — clamp диапазонов
 # =========================================================
 
+
 def test_r6_value_clamping():
     """
     Проверяет:
@@ -48,7 +46,7 @@ def test_r6_value_clamping():
         npc_id="test_npc",
         resentment=999,
         dependency=-50,
-        identity_integrity=250 # Pydantic или геттер сожмут это до 1.0
+        identity_integrity=250,  # Pydantic или геттер сожмут это до 1.0
     )
 
     # Обида и зависимость могут оставаться на шкале до 100,
@@ -62,6 +60,7 @@ def test_r6_value_clamping():
 # TEST 3 — snapshot содержит новые поля
 # =========================================================
 
+
 def test_r6_snapshot_contains_fields():
     """
     Проверяет:
@@ -71,12 +70,7 @@ def test_r6_snapshot_contains_fields():
     логирования динамики слома.
     """
 
-    npc = NPCState(
-        npc_id="test_npc",
-        resentment=999,
-        dependency=-50,
-        identity_integrity=250
-    )
+    npc = NPCState(npc_id="test_npc", resentment=999, dependency=-50, identity_integrity=250)
 
     snap = npc.snapshot()
 
@@ -93,6 +87,7 @@ def test_r6_snapshot_contains_fields():
 # TEST 4 — legacy adapter совместимость
 # =========================================================
 
+
 def test_r6_legacy_adapter_defaults():
     """
     Проверяет:
@@ -102,9 +97,7 @@ def test_r6_legacy_adapter_defaults():
     совместимости старых сохранений.
     """
 
-    legacy_data = {
-        "psyche": {}
-    }
+    legacy_data = {"psyche": {}}
 
     npc = NPCStateAdapter.from_legacy(legacy_data)
 

@@ -10,11 +10,11 @@ path: backend/app/services/memory/working_memory_tick.py
 Зависимости: event_bus, EventDTO, EventType, memory_manager (через параметр)
 Основные сущности: write_npc_reactions_to_memory(), run_decay_and_resonance()
 """
-
 from __future__ import annotations
 
+
 import logging
-from typing import TYPE_CHECKING, Dict, List, Optional
+from typing import Any, TYPE_CHECKING, Dict, List, Optional
 
 from app.domain.events import EventDTO
 from app.models.temporal import TemporalContext
@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 def write_npc_reactions_to_memory(
     memory_manager: MemoryManager,
     npc_reactions: List[str],
-    all_npcs_raw: dict | list,
+    all_npcs_raw: Dict[str, Any] | list,
     campaign_id: str,
 ) -> None:
     """P0.2: ответы NPC → Working Memory + STM.
@@ -70,16 +70,18 @@ def write_npc_reactions_to_memory(
 
         # EventBus: NPC_SPOKE — Working Memory (Закон 5.1)
         try:
-            get_event_bus().publish(EventDTO.create(
-                event_type=EventType.NPC_SPOKE,
-                source=npc_name_raw,
-                payload={
-                    "npc_id": matched_id or "",
-                    "content": npc_text,
-                    "action_type": "dialogue_key",
-                },
-                persistence_level="working",
-            ))
+            get_event_bus().publish(
+                EventDTO.create(
+                    event_type=EventType.NPC_SPOKE,
+                    source=npc_name_raw,
+                    payload={
+                        "npc_id": matched_id or "",
+                        "content": npc_text,
+                        "action_type": "dialogue_key",
+                    },
+                    persistence_level="working",
+                )
+            )
         except Exception as bus_err:
             logger.debug(f"[EVENT_BUS] npc_speech publish skipped: {bus_err}")
 
@@ -87,7 +89,9 @@ def write_npc_reactions_to_memory(
         # Используем имя NPC как speaker — DM должен видеть "Купец Горан", не "merchant_goran"
         if matched_id:
             _speaker_name = id_to_name.get(matched_id, matched_id)
-            logger.debug(f"[STM_WRITE] npc={matched_id} speaker={_speaker_name} text={npc_text[:60]}")
+            logger.debug(
+                f"[STM_WRITE] npc={matched_id} speaker={_speaker_name} text={npc_text[:60]}"
+            )
             memory_manager.add_dialogue_turn(
                 campaign_id=campaign_id,
                 npc_id=matched_id,
@@ -112,7 +116,8 @@ def run_decay_and_resonance(
         return
 
     identity_weights = memory_manager.run_decay_if_needed(
-        campaign_id, temporal.current_tick,
+        campaign_id,
+        temporal.current_tick,
     )
     if identity_weights:
         resonance = memory_manager.detect_resonance(campaign_id, actor_id="player")

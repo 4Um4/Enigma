@@ -15,11 +15,11 @@ path: backend/app/services/social/reputation_decay_handler.py
 TODO:
 - В будущем можно расширить логику, учитывая дополнительные факторы (например, события в кампании), но сейчас фокус на базовом дрейфе репутации.
 """
-
 from __future__ import annotations
 
+
 import logging
-from typing import TYPE_CHECKING, List
+from typing import Dict, Any, TYPE_CHECKING, List
 
 from app.models.idle_tick import NPCStateSnapshot
 from app.models.state_delta import StateDeltas
@@ -32,10 +32,11 @@ logger = logging.getLogger(__name__)
 
 class ReputationDecayHandler:
     """Дрейф репутации фракций → base_reputation.
-    
+
     Делегирует расчёт в ReputationEngine.compute_decay().
     Применение — через StateApplicator (единый мутатор).
     """
+
     name: str = "reputation_decay"
 
     def __init__(self, reputation_engine: ReputationEngine) -> None:

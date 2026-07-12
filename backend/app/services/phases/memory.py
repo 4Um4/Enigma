@@ -40,13 +40,17 @@ def execute_memory_phase(ctx: _TickContext, memory_manager) -> int:
                 continue
             try:
                 npc_state = load_l2_state_from_runtime_dict(npc_dict)
-                _compressed = memory_manager.compress_narrative_cache(npc_state.narrative_cache)
+                _compressed = memory_manager.compress_narrative_cache(
+                    npc_state.narrative_cache
+                )
                 if _compressed != npc_state.narrative_cache:
                     npc_state.narrative_cache = _compressed
                     # ADR-117: write_to_legacy — staticmethod, вызов через класс
                     NPCState.write_to_legacy(npc_state, npc_dict)
             except Exception as e:
-                logger.warning(f"[PHASE_3_MEMORY] compress_narrative_cache failed for {npc_id}: {e}")
+                logger.warning(
+                    f"[PHASE_3_MEMORY] compress_narrative_cache failed for {npc_id}: {e}"
+                )
 
     # ── GREEN GATE: Memory cannot generate identity without causal input ──
     # Запрет кристаллизации L2.5 в idle-тиках (ADR-S86.7, предотвращение фантомного дрейфа)
@@ -64,9 +68,13 @@ def execute_memory_phase(ctx: _TickContext, memory_manager) -> int:
                     campaign_id=ctx.campaign_id, npc_id=npc_id
                 )
                 if _new_traits:
-                    logger.info(f"[PHASE_3_MEMORY] new identity traits for {npc_id}: {_new_traits}")
+                    logger.info(
+                        f"[PHASE_3_MEMORY] new identity traits for {npc_id}: {_new_traits}"
+                    )
             except Exception as e:
-                logger.warning(f"[PHASE_3_MEMORY] check_identity_promotion failed for {npc_id}: {e}")
+                logger.warning(
+                    f"[PHASE_3_MEMORY] check_identity_promotion failed for {npc_id}: {e}"
+                )
 
     # ── Блок 3: Применение событий памяти к затронутым NPC ──
     for event in ctx.phase_2_events:
@@ -83,8 +91,14 @@ def execute_memory_phase(ctx: _TickContext, memory_manager) -> int:
             new_payload = {**event.payload, "npc_id": npc_id}
             new_event = replace(event, payload=new_payload)
 
-            _sq = getattr(ctx.npc_services, 'spatial_query', None) if ctx.npc_services else None
-            memory_manager.apply(new_event, npc_state, campaign_id=ctx.campaign_id, spatial_query=_sq)
+            _sq = (
+                getattr(ctx.npc_services, "spatial_query", None)
+                if ctx.npc_services
+                else None
+            )
+            memory_manager.apply(
+                new_event, npc_state, campaign_id=ctx.campaign_id, spatial_query=_sq
+            )
             # Мост обратно: apply() обновил narrative_cache на NPCState,
             # но Фаза 5 пересоздаёт NPCState из npc_dict (Устав §3.1)
             NPCState.write_to_legacy(npc_state, npc_dict)

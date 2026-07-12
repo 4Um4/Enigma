@@ -11,12 +11,11 @@
 """
 
 import pytest
-
-from app.services.npc.break_progress_engine import BreakProgressEngine, BreakDeltas
 from app.models.npc_state import WillState
-
+from app.services.npc.break_progress_engine import BreakDeltas, BreakProgressEngine
 
 # ====================== Fixtures ======================
+
 
 class MinimalNPCState:
     def __init__(self, npc_id: str = "test_npc", **kwargs):
@@ -39,12 +38,14 @@ def npc_state():
 
 # ====================== Core ======================
 
+
 def test_calculate_returns_break_deltas(npc_state):
     deltas = BreakProgressEngine.calculate(npc_state)
     assert isinstance(deltas, BreakDeltas)
 
 
 # ====================== Stage logic ======================
+
 
 @pytest.mark.parametrize(
     "integrity, expected_stage",
@@ -54,7 +55,7 @@ def test_calculate_returns_break_deltas(npc_state):
         (0.5, "rationalization"),
         (0.3, "adaptation"),
         (0.1, "deformation"),
-    ]
+    ],
 )
 def test_stages_by_integrity(npc_state, integrity, expected_stage):
     npc_state.identity_integrity = integrity
@@ -82,6 +83,7 @@ def test_stage_monotonicity(npc_state):
 
 
 # ====================== Pressure effects ======================
+
 
 def test_pressure_increases_damage(npc_state):
     npc_state.identity_integrity = 0.5
@@ -118,6 +120,7 @@ def test_recent_failures_increase_pressure(npc_state):
 
 # ====================== Extreme states ======================
 
+
 def test_high_pressure_can_break(npc_state):
     npc_state.identity_integrity = 0.1
     npc_state.fear = 1.0
@@ -150,6 +153,7 @@ def test_integrity_near_zero(npc_state):
 
 # ====================== Resistance ======================
 
+
 def test_pressure_resistance_behavior(npc_state):
     npc_state.fear = 0.1
     npc_state.stress = 10
@@ -164,6 +168,7 @@ def test_pressure_resistance_behavior(npc_state):
 
 # ====================== Defaults ======================
 
+
 def test_default_values_when_state_empty():
     state = MinimalNPCState()
 
@@ -176,12 +181,10 @@ def test_default_values_when_state_empty():
 
 # ====================== Immutability ======================
 
+
 def test_break_deltas_immutability():
     deltas = BreakDeltas(
-        identity_integrity_delta=-0.05,
-        pressure_resistance_delta=0.01,
-        stage="cracks",
-        will_state_override=None
+        identity_integrity_delta=-0.05, pressure_resistance_delta=0.01, stage="cracks", will_state_override=None
     )
 
     with pytest.raises(AttributeError):

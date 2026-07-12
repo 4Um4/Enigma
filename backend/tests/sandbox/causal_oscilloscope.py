@@ -10,55 +10,62 @@
 
 запуск:
 """
+
 import json
-from typing import Dict, List, Any, Optional
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
+from typing import Any, Dict, List
+
 
 @dataclass
 class CausalFrame:
     """Единица наблюдения. Снимок одного фазового перехода."""
+
     tick: int
-    domain: str          # SEMANTIC, PRESSURE, UTILITY, DECISION, TRAVERSAL
+    domain: str  # SEMANTIC, PRESSURE, UTILITY, DECISION, TRAVERSAL
     entity_id: str
     event: str
     data: Dict[str, Any]
 
+
 class CausalProbe:
     """Базовый наблюдатель. Не меняет мир, только фиксирует."""
+
     def __init__(self, name: str, domain: str):
         self.name = name
         self.domain = domain
         self.trace: List[CausalFrame] = []
 
     def observe(self, tick: int, entity_id: str, event: str, data: Dict[str, Any]):
-        self.trace.append(CausalFrame(
-            tick=tick,
-            domain=self.domain,
-            entity_id=entity_id,
-            event=event,
-            data=data
-        ))
+        self.trace.append(CausalFrame(tick=tick, domain=self.domain, entity_id=entity_id, event=event, data=data))
+
 
 class PressureProbe(CausalProbe):
     """Наблюдает за возникновением психологического давления (Физика Власти)."""
+
     def __init__(self):
         super().__init__("PressureProbe", "PRESSURE")
 
+
 class UtilityProbe(CausalProbe):
     """Наблюдает за искажением пространства решений NPC."""
+
     def __init__(self):
         super().__init__("UtilityProbe", "UTILITY")
 
+
 class TraversalProbe(CausalProbe):
     """Наблюдает за материализацией решения в физическое движение."""
+
     def __init__(self):
         super().__init__("TraversalProbe", "TRAVERSAL")
+
 
 class CausalOscilloscope:
     """
     Главный модуль Песочницы.
     Собирает данные с пробников и визуализирует каузальную цепь.
     """
+
     def __init__(self):
         self.pressure = PressureProbe()
         self.utility = UtilityProbe()

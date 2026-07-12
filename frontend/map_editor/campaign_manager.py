@@ -5,6 +5,7 @@ path: /frontend/map_editor/campaign_manager.py
 Зависимости: data_manager, json, zipfile (для шага 13), pathlib, datetime, copy
 Основные сущности: CampaignManager
 """
+
 import json
 import copy
 from pathlib import Path
@@ -49,26 +50,36 @@ class CampaignManager:
                     data = json.load(f)
                 loc_dir = d / "locations"
                 loc_count = len(list(loc_dir.glob("*.json"))) if loc_dir.exists() else 0
-                result.append({
-                    "name": data.get("name", d.name),
-                    "folder": d.name,
-                    "description": data.get("description", ""),
-                    "location_count": loc_count,
-                    "created_at": data.get("created_at", ""),
-                    "modified_at": data.get("modified_at", ""),
-                })
+                result.append(
+                    {
+                        "name": data.get("name", d.name),
+                        "folder": d.name,
+                        "description": data.get("description", ""),
+                        "location_count": loc_count,
+                        "created_at": data.get("created_at", ""),
+                        "modified_at": data.get("modified_at", ""),
+                    }
+                )
             except Exception:
-                result.append({
-                    "name": d.name, "folder": d.name,
-                    "description": "(ошибка чтения)", "location_count": 0,
-                    "created_at": "", "modified_at": "",
-                })
+                result.append(
+                    {
+                        "name": d.name,
+                        "folder": d.name,
+                        "description": "(ошибка чтения)",
+                        "location_count": 0,
+                        "created_at": "",
+                        "modified_at": "",
+                    }
+                )
         return sorted(result, key=lambda x: x["name"])
 
-    def create_campaign(self, folder_name: str, name: str,
-                        description: str = "") -> Tuple[bool, str]:
+    def create_campaign(
+        self, folder_name: str, name: str, description: str = ""
+    ) -> Tuple[bool, str]:
         """Создаёт новую кампанию с папкой и campaign.json"""
-        safe = "".join(c if c.isalnum() or c in "_- " else "_" for c in folder_name).strip()
+        safe = "".join(
+            c if c.isalnum() or c in "_- " else "_" for c in folder_name
+        ).strip()
         if not safe:
             return False, "Пустое имя папки"
         campaign_dir = CAMPAIGNS_DIR / safe
@@ -135,8 +146,9 @@ class CampaignManager:
         self._update_modified()
         return count
 
-    def save_location_as(self, source_filename: str,
-                         new_filename: str) -> Tuple[bool, str]:
+    def save_location_as(
+        self, source_filename: str, new_filename: str
+    ) -> Tuple[bool, str]:
         """Копирует локацию под новым именем в текущую кампанию"""
         if source_filename not in self.dm.locations:
             return False, "Исходный файл не найден"
@@ -165,6 +177,7 @@ class CampaignManager:
     def export_to_zip(self, target_path: str) -> Tuple[bool, str]:
         """Упаковывает кампанию в zip-архив"""
         import zipfile
+
         if not self.campaign_path or not self.campaign_path.exists():
             return False, "Нет открытой кампании"
         try:
@@ -180,7 +193,10 @@ class CampaignManager:
     def import_from_zip(self, zip_path: str, folder_name: str) -> Tuple[bool, str]:
         """Распаковывает zip-архив как новую кампанию"""
         import zipfile
-        safe = "".join(c if c.isalnum() or c in "_- " else "_" for c in folder_name).strip()
+
+        safe = "".join(
+            c if c.isalnum() or c in "_- " else "_" for c in folder_name
+        ).strip()
         if not safe:
             return False, "Пустое имя папки"
         target_dir = CAMPAIGNS_DIR / safe
@@ -197,5 +213,6 @@ class CampaignManager:
             # убираем мусор если распаковка частичная
             if target_dir.exists():
                 import shutil
+
                 shutil.rmtree(target_dir, ignore_errors=True)
             return False, f"Ошибка: {e}"

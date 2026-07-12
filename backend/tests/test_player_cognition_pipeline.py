@@ -8,15 +8,12 @@ path: /backend/tests/test_player_cognition_pipeline.py
 Зависимости: app.services.player_cognition, json
 Основные сущности: test_pipeline_low_stress, test_pipeline_high_stress, test_pipeline_injured
 """
-import json
-from pathlib import Path
 
 import pytest
-
 from app.services.player_cognition import (
-    build_perceived_scene,
     PerceptionConfig,
     PlayerFocus,
+    build_perceived_scene,
 )
 
 
@@ -26,7 +23,6 @@ def _make_rich_scene() -> dict:
         "location_id": "tavern_test",
         "environment": {"light_level": "bright", "noise_level": "quiet"},
         "environment_modifiers": {"light": 1.0, "noise": 0.0, "density": 0.2, "danger": 0.0},
-        "player_spatial": {"location_id": "tavern_test", "position": "", "local_position": {"x": 0.0, "y": 0.0}},
         "spatial_walls": [],
         "spatial_obstacles": [],
         "npc_positions": {
@@ -78,13 +74,13 @@ def _print_result(result, label: str) -> None:
         if e.visible or e.audio_only:
             print(
                 f"  {e.entity_id} | vis={e.visible} attn={e.in_attention} "
-                f"name=\"{e.display_name}\" conf={e.final_confidence:.2f} "
+                f'name="{e.display_name}" conf={e.final_confidence:.2f} '
                 f"dist={e.distance:.1f}m los={e.los}"
             )
             for inf in e.inferences:
                 print(f"    -> {inf.inference_type} ({inf.tier.name}) conf={inf.confidence:.2f}")
     for a in result.audio_events:
-        print(f"  [AUDIO] \"{a.description}\" dir={a.direction} dist={a.approximate_distance:.1f}m")
+        print(f'  [AUDIO] "{a.description}" dir={a.direction} dist={a.approximate_distance:.1f}m')
 
 
 class TestPipelineLowStress:
@@ -152,6 +148,7 @@ class TestPipelineHighStress:
 
         # Строгий seed для воспроизводимости stochastic edge
         import random
+
         random.seed(42)
         result_low = build_perceived_scene(real_scene_state, config_low)
 
@@ -164,14 +161,14 @@ class TestPipelineHighStress:
         _print_result(result_low, "Low stress")
         _print_result(result_high, "High stress")
 
-        assert attended_high <= attended_low, \
+        assert attended_high <= attended_low, (
             f"Высокий стресс должен сужать внимание: {attended_high} <= {attended_low}"
+        )
 
     def test_environment_darkens(self, real_scene_state):
         config = PerceptionConfig(player_stress=70.0)
         result = build_perceived_scene(real_scene_state, config)
-        assert result.environment.light_perceived in ("приглушённо", "темно"), \
-            "Высокий стресс делает мир темнее"
+        assert result.environment.light_perceived in ("приглушённо", "темно"), "Высокий стресс делает мир темнее"
 
     def test_body_state_appears(self, real_scene_state):
         config = PerceptionConfig(player_stress=60.0)
@@ -199,8 +196,7 @@ class TestPipelineInjured:
     def test_body_state_injured(self, real_scene_state):
         config = PerceptionConfig(player_hp=20, player_max_hp=100)
         result = build_perceived_scene(real_scene_state, config)
-        assert any("боль" in s for s in result.player_body_state), \
-            "Раненый игрок должен чувствовать боль"
+        assert any("боль" in s for s in result.player_body_state), "Раненый игрок должен чувствовать боль"
 
 
 def _make_scene_with_visible_npc(npc_id: str = "test_npc", distance: float = 3.0) -> dict:
@@ -239,6 +235,7 @@ class TestPipelineSynthetic:
             player_focus=PlayerFocus(focus_entity_id="guard_1"),
         )
         import random
+
         random.seed(42)
         result = build_perceived_scene(scene, config)
         _print_result(result, "Synthetic: visible NPC at 3m")
@@ -257,6 +254,7 @@ class TestPipelineSynthetic:
             player_focus=PlayerFocus(focus_entity_id="guard_1"),
         )
         import random
+
         random.seed(42)
         result = build_perceived_scene(scene, config)
         _print_result(result, "Synthetic: fighting NPC")
@@ -288,6 +286,7 @@ class TestPipelineSynthetic:
             player_focus=PlayerFocus(focus_entity_id="guard_1"),
         )
         import random
+
         random.seed(42)
         result = build_perceived_scene(scene, config)
         _print_result(result, "Synthetic: armed NPC")
@@ -295,4 +294,4 @@ class TestPipelineSynthetic:
         guard = next((e for e in result.entities if e.entity_id == "guard_1"), None)
         inference_types = [inf.inference_type for inf in guard.inferences]
         assert "armed" in inference_types, "NPC с мечом должен иметь armed inference"
-        assert "armored" in inference_types, "NPC в доспехе должен иметь armored inference"            
+        assert "armored" in inference_types, "NPC в доспехе должен иметь armored inference"

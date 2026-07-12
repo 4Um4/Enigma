@@ -1,14 +1,14 @@
-﻿"""
+"""
 path: /backend/app/domain/intent.py
 Назначение: Намерение игрока. Пересекает границу frontend → backend.
 Зависимости: dataclasses, typing
 Основные сущности: IntentDTO
 """
-
 from __future__ import annotations
 
+
 from dataclasses import dataclass, field
-from typing import Any, Dict, Optional
+from typing import Optional
 
 
 @dataclass(frozen=True)
@@ -16,10 +16,15 @@ class IntentParametersDTO:
     """Строгий контракт семантических параметров (ADR-035).
     Убивает Dict[str, Any] и энтропию транспорта.
     """
+
     semantic_action: Optional[str] = None
-    actor_id: Optional[str] = None      # ADR-O-315: Кто совершает действие ("player", "tornin")
+    actor_id: Optional[str] = (
+        None  # ADR-O-315: Кто совершает действие ("player", "tornin")
+    )
     target_reference: Optional[str] = None
-    target_id: Optional[str] = None  # DEPRECATED ADR-125: Factually dead. Truth goes via PlayerTargetExtractor + intent.target. Kept as archaeological divergence indicator during migration.
+    target_id: Optional[str] = (
+        None  # DEPRECATED ADR-125: Factually dead. Truth goes via PlayerTargetExtractor + intent.target. Kept as archaeological divergence indicator during migration.
+    )
     physical_force: float = 0.1
     emotional_charge: float = 0.1
     social_pressure: float = 0.0
@@ -29,12 +34,15 @@ class IntentParametersDTO:
 @dataclass(frozen=True)
 class IntentDTO:
     """Намерение игрока.
-    
+
     Парсер (intent_parser) выдаёт это. Backend получает и обрабатывает.
     Не содержит ссылок на внутренние объекты — только строки и примитивы.
     """
-    action: str              # 'go', 'talk', 'attack', 'look', 'idle'
-    target: str              # 'npc_lucy', 'door_north', 'sword', ''
-    parameters: IntentParametersDTO = field(default_factory=IntentParametersDTO)  # Строгая типизация
-    text: str = ""           # оригинальный текст игрока
-    campaign_id: str = ""    # какой кампании принадлежит
+
+    action: str  # 'go', 'talk', 'attack', 'look', 'idle'
+    target: str  # 'npc_lucy', 'door_north', 'sword', ''
+    parameters: IntentParametersDTO = field(
+        default_factory=IntentParametersDTO
+    )  # Строгая типизация
+    text: str = ""  # оригинальный текст игрока
+    campaign_id: str = ""  # какой кампании принадлежит

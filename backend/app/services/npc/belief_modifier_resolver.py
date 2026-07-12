@@ -1,3 +1,4 @@
+from __future__ import annotations
 # backend/app/services/npc/belief_modifier_resolver.py
 """
 Read-path эпистемического слоя.
@@ -13,9 +14,8 @@ Read-path эпистемического слоя.
 Не создаёт новый пайплайн — встраивается в существующий drive_modifiers.
 """
 
-from __future__ import annotations
 
-from typing import TYPE_CHECKING, Dict
+from typing import List, Any, TYPE_CHECKING, Dict
 
 if TYPE_CHECKING:
     from app.models.npc.beliefs import BeliefState
@@ -61,9 +61,9 @@ class BeliefModifierResolver:
             return
 
         weight = round(danger.value * danger.confidence, 4)
-        mods["flee"]    = round(mods.get("flee",    0.0) + weight * 0.25, 4)
+        mods["flee"] = round(mods.get("flee", 0.0) + weight * 0.25, 4)
         mods["observe"] = round(mods.get("observe", 0.0) + weight * 0.10, 4)
-        mods["approach"]= round(mods.get("approach",0.0) - weight * 0.15, 4)
+        mods["approach"] = round(mods.get("approach", 0.0) - weight * 0.15, 4)
 
     def _apply_player_hostile(
         self,
@@ -79,7 +79,7 @@ class BeliefModifierResolver:
             return
 
         weight = round(hostile.value * hostile.confidence, 4)
-        mods["flee"]    = round(mods.get("flee",    0.0) + weight * 0.20, 4)
-        mods["warn"]    = round(mods.get("warn",    0.0) + weight * 0.15, 4)
-        mods["trade"]   = round(mods.get("trade",   0.0) - weight * 0.20, 4)
-        mods["approach"]= round(mods.get("approach",0.0) - weight * 0.10, 4)
+        mods["flee"] = round(mods.get("flee", 0.0) + weight * 0.20, 4)
+        mods["warn"] = round(mods.get("warn", 0.0) + weight * 0.15, 4)
+        mods["trade"] = round(mods.get("trade", 0.0) - weight * 0.20, 4)
+        mods["approach"] = round(mods.get("approach", 0.0) - weight * 0.10, 4)

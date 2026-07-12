@@ -1,3 +1,4 @@
+from __future__ import annotations
 # path: backend/app/services/scene/scene_event_layer.py
 """
 Слой сценовых событий — единые события для восприятия всеми NPC.
@@ -10,11 +11,10 @@
 Основные сущности: emit_and_accumulate_scene_events()
 """
 
-from __future__ import annotations
 
 import logging
 from dataclasses import asdict
-from typing import Any, List
+from typing import Dict, Any, List
 
 from app.services.scene.scene_event_emitter import SceneEventEmitter
 
@@ -24,11 +24,13 @@ logger = logging.getLogger(__name__)
 _MAX_ACCUMULATED_EVENTS = 30
 
 # Физические типы действий — обрабатываются через emit_from_physical
-_PHYSICAL_ACTION_TYPES = frozenset({
-    "player_attacks",
-    "player_steals",
-    "player_grapples",
-})
+_PHYSICAL_ACTION_TYPES = frozenset(
+    {
+        "player_attacks",
+        "player_steals",
+        "player_grapples",
+    }
+)
 
 
 def emit_and_accumulate_scene_events(
@@ -37,7 +39,7 @@ def emit_and_accumulate_scene_events(
     location_id: str,
     tick: int,
     action_text: str,
-    scene_state: dict,
+    scene_state: Dict[str, Any],
 ) -> List[Any]:
     """Эмитит сценовые события и накапливает их в scene_state.
 
@@ -77,7 +79,9 @@ def emit_and_accumulate_scene_events(
             _se_accum.extend(asdict(e) for e in scene_events)
             if len(_se_accum) > _MAX_ACCUMULATED_EVENTS:
                 scene_state["raw_scene_events"] = _se_accum[-_MAX_ACCUMULATED_EVENTS:]
-            logger.warning(f"[SCENE_ACCUM] total={len(_se_accum)} events in scene_state")
+            logger.warning(
+                f"[SCENE_ACCUM] total={len(_se_accum)} events in scene_state"
+            )
 
     except Exception as err:
         logger.warning(f"[SCENE_EVENTS] error: {err}")

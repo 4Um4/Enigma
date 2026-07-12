@@ -1,9 +1,9 @@
+from __future__ import annotations
 # backend/app/domain/events.py
 # Назначение: Единый язык событий. Все события в системе — экземпляры EventDTO.
 # Зависимости: uuid.UUID, dataclasses, typing, time
 # Основные сущности: EventDTO, MemoryPayload, PlayerActionPayload
 
-from __future__ import annotations
 
 import time
 from dataclasses import dataclass
@@ -13,12 +13,14 @@ from uuid import UUID, uuid4
 
 # ── Payload-типы (TypedDict — аннотации, не классы, не нарушают иерархию) ──
 
+
 class MemoryPayload(TypedDict, total=False):
     """Что MemoryManager.apply() читает из payload.
-    
+
     Все поля опциональные — apply() подставляет дефолты из NPCState.
     Caller не обязан заполнять всё.
     """
+
     npc_id: str
     target_id: str
     emotion_tag: str
@@ -27,11 +29,12 @@ class MemoryPayload(TypedDict, total=False):
     npc_stress: float
     day: int
     scene_state: Dict[str, Any]
-    contract_tag: str   # из domain.events: promise_given | promise_received | debt
+    contract_tag: str  # из domain.events: promise_given | promise_received | debt
 
 
 class PlayerActionPayload(TypedDict, total=False):
     """Что game_loop кладёт в payload при действии игрока."""
+
     action_type: str
     content: str
     location: str
@@ -40,6 +43,7 @@ class PlayerActionPayload(TypedDict, total=False):
 
 # ── EventDTO ──
 
+
 @dataclass(frozen=True)
 class EventDTO:
     """Паспорт события. Неизменяем после создания.
@@ -47,9 +51,10 @@ class EventDTO:
     Проходит через EventBus → MemoryProcessor → Persistence.
     Никаких List[dict] больше нигде.
     """
+
     id: UUID
     type: str
-    source: str            # player_name или npc_id
+    source: str  # player_name или npc_id
     timestamp: float
     payload: Dict[str, Any]
     visibility: Literal["public", "private", "whisper"]
@@ -90,8 +95,10 @@ CONTRACT_TAG_PROMISE_RECEIVED: str = "promise_received"
 CONTRACT_TAG_DEBT: str = "debt"
 CONTRACT_EVENT_FULFILLED: str = "promise_fulfilled"
 
-CONTRACT_TAGS: frozenset[str] = frozenset({
-    CONTRACT_TAG_PROMISE_GIVEN,
-    CONTRACT_TAG_PROMISE_RECEIVED,
-    CONTRACT_TAG_DEBT,
-})
+CONTRACT_TAGS: frozenset[str] = frozenset(
+    {
+        CONTRACT_TAG_PROMISE_GIVEN,
+        CONTRACT_TAG_PROMISE_RECEIVED,
+        CONTRACT_TAG_DEBT,
+    }
+)

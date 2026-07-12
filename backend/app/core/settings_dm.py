@@ -1,8 +1,10 @@
 from pydantic_settings import BaseSettings
 from pathlib import Path
 
+
 class Settings(BaseSettings):
     """Базовый класс настроек проекта Enigma."""
+
     project_root: Path = Path(__file__).resolve().parents[3]
     data_path: Path = project_root / "backend" / "data"
     models_path: Path = project_root / "Models LLM"
@@ -11,7 +13,9 @@ class Settings(BaseSettings):
 class DmSettings(Settings):
     """DM Agent — нарративная генерация (Qwen2.5-7B)."""
 
-    llama_cpp_model_path: Path = Settings().models_path / "Qwen2.5-7B-Instruct-abliterated-v2.Q5_K_M.gguf"
+    llama_cpp_model_path: Path = (
+        Settings().models_path / "Qwen2.5-7B-Instruct-abliterated-v2.Q5_K_M.gguf"
+    )
 
     llm_servers: dict = {
         "dm": {

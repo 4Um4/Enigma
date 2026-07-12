@@ -14,7 +14,6 @@
 import logging
 from typing import Any, Dict, Optional
 
-from app.services.game_loop.phase_1_input import publish_classified_player_event
 from app.services.game_loop.time_advance import advance_game_time
 from app.services.spatial.player_target_pipeline import (
     extract_player_target,
@@ -47,7 +46,9 @@ def run_dm_phase(
     # Извлечение цели игрока
     try:
         _target = extract_player_target(
-            game_loop._load_npcs, shared_context.scene_state or {}, raw_input,
+            game_loop._load_npcs,
+            shared_context.scene_state or {},
+            raw_input,
         )
         if _target.target_id:
             shared_context.player_target_id = _target.target_id
@@ -58,7 +59,10 @@ def run_dm_phase(
             _prev_dists = game_loop._prev_player_distances.get(campaign_id, {})
             _curr_dists = _target.player_dists or {}
             _spatial_events = detect_and_publish_spatial_transitions(
-                _prev_dists, _curr_dists, location, campaign_id,
+                _prev_dists,
+                _curr_dists,
+                location,
+                campaign_id,
             )
             if _spatial_events:
                 shared_context.spatial_events = _spatial_events
@@ -72,12 +76,20 @@ def run_dm_phase(
     _scene_for_dm = shared_context.scene_state or {}
     _npc_pos_count = len(_scene_for_dm.get("npc_positions", {}))
     if _npc_pos_count == 0:
-        logger.warning(f"[DM_PHASE] scene_state has NO npc_positions! scene_state keys={list(_scene_for_dm.keys())[:10]}")
-    _spatial_data = build_spatial_data_for_dm(location, _scene_for_dm, spatial_query=getattr(shared_context, 'spatial_query', None))
+        logger.warning(
+            f"[DM_PHASE] scene_state has NO npc_positions! scene_state keys={list(_scene_for_dm.keys())[:10]}"
+        )
+    _spatial_data = build_spatial_data_for_dm(
+        location,
+        _scene_for_dm,
+        spatial_query=getattr(shared_context, "spatial_query", None),
+    )
 
     # R1: DM видит прошлую речь NPC — из DialogueSession
     try:
-        _recent_speech = game_loop.memory_manager.get_recent_speech_all_npcs(campaign_id)
+        _recent_speech = game_loop.memory_manager.get_recent_speech_all_npcs(
+            campaign_id
+        )
         shared_context.npc_recent_speech = _recent_speech
     except Exception as _rs_err:
         logger.debug(f"[RECENT_SPEECH] error: {_rs_err}")
@@ -97,10 +109,14 @@ def run_dm_phase(
     shared_context.dm_result = dm_result
 
     # Сохраняем классификацию из Router
-    logger.debug(f"[DIAG_DM_RESULT] is_valid={dm_result.is_valid} has_event_ctx={dm_result.event_context is not None} error={getattr(dm_result, 'error', None)}")
+    logger.debug(
+        f"[DIAG_DM_RESULT] is_valid={dm_result.is_valid} has_event_ctx={dm_result.event_context is not None} error={getattr(dm_result, 'error', None)}"
+    )
     if dm_result.event_context:
         shared_context.action_type = dm_result.event_context.event_type
-        logger.warning(f"[EVENT_TYPE] Router classified as: {dm_result.event_context.event_type}")
+        logger.warning(
+            f"[EVENT_TYPE] Router classified as: {dm_result.event_context.event_type}"
+        )
 
     # Rule 47: Инициализация ДО условных веток — Python Scoping Trap
     _sem_payload = {}
@@ -123,17 +139,21 @@ def run_dm_phase(
             # SHI-FIX LOVE: L1Chronicle emission for dialogue events.
             # Без этого test_love не находит "dialogue" в L1 trace.
             from app.domain.identity_events import TraitDriftEvent
+
             _tick = shared_context.current_tick or 0
-            game_loop._tick_orch.l1_chronicle.commit_tick_buffer([
-                TraitDriftEvent(
-                    tick_id=_tick,
-                    target_id=_stm_target_id,
-                    source_id="player",
-                    effect_value=0.1,
-                    observation_weight=1.0,
-                    event_type="dialogue"
-                )
-            ], _tick)
+            game_loop._tick_orch.l1_chronicle.commit_tick_buffer(
+                [
+                    TraitDriftEvent(
+                        tick_id=_tick,
+                        target_id=_stm_target_id,
+                        source_id="player",
+                        effect_value=0.1,
+                        observation_weight=1.0,
+                        event_type="dialogue",
+                    )
+                ],
+                _tick,
+            )
         # STM: игрок ушёл — диалоговые сессии обнуляются
         if _raw_type in ("move", "stealth"):
             game_loop.memory_manager.clear_all_dialogue_sessions(campaign_id)
@@ -152,12 +172,15 @@ def run_dm_phase(
     shared_context.scene_events = _scene_events
 
     # HubEvent для NPC фазы — только при валидном DM
-    logger.debug(f"[DIAG_HUB_ASSIGN] is_valid={dm_result.is_valid} has_scene_ctx={dm_result.scene_context is not None} prev_hub={ctx.hub_event}")
+    logger.debug(
+        f"[DIAG_HUB_ASSIGN] is_valid={dm_result.is_valid} has_scene_ctx={dm_result.scene_context is not None} prev_hub={ctx.hub_event}"
+    )
     if dm_result.is_valid and dm_result.scene_context:
         # B5-FIX: мутация → SceneChange (CAUSAL_CONTRACT §3.5).
         if dm_result.scene_context.line_of_sight is not None:
             from app.services.scene_change import SceneChange, ChangeType
-            _scene_manager = getattr(game_loop, 'scene_manager', None)
+
+            _scene_manager = getattr(game_loop, "scene_manager", None)
             if _scene_manager:
                 _los_change = SceneChange(
                     type=ChangeType.SCENE_METADATA,
@@ -168,7 +191,9 @@ def run_dm_phase(
                 )
                 _scene_manager.apply_change(campaign_id, _los_change, scene_state)
             else:
-                logger.warning("[DM_PHASE] scene_manager not found in game_loop. LoS change skipped.")
+                logger.warning(
+                    "[DM_PHASE] scene_manager not found in game_loop. LoS change skipped."
+                )
         # ADR-ACTION-BRIDGE: Гарантируем, что DecisionHub получит EventContext, а не EventDTO.
         # EventDTO имеет поле 'type', EventContext имеет 'event_type' и прямые поля семантики.
         _raw_event = dm_result.event_context
@@ -176,16 +201,24 @@ def run_dm_phase(
             _base_event = _raw_event
         else:
             _base_event = HubEventContext(
-                event_type=getattr(_raw_event, 'type', "player_interacts"),
-                actor_id=getattr(_raw_event, 'source', "player"),
+                event_type=getattr(_raw_event, "type", "player_interacts"),
+                actor_id=getattr(_raw_event, "source", "player"),
             )
         # _sem_payload уже инициализирован наверху функции (Rule 47 fix)
-        if shared_context and hasattr(shared_context, 'intent_resolution') and shared_context.intent_resolution:
-            _params = shared_context.intent_resolution.original_intent.parameters if shared_context.intent_resolution.original_intent else None
+        if (
+            shared_context
+            and hasattr(shared_context, "intent_resolution")
+            and shared_context.intent_resolution
+        ):
+            _params = (
+                shared_context.intent_resolution.original_intent.parameters
+                if shared_context.intent_resolution.original_intent
+                else None
+            )
             if _params:
-                _sa = getattr(_params, 'semantic_action', None)
-                _tid = getattr(_params, 'target_id', None)
-                _tref = getattr(_params, 'target_reference', None)
+                _sa = getattr(_params, "semantic_action", None)
+                _tid = getattr(_params, "target_id", None)
+                _tref = getattr(_params, "target_reference", None)
                 # ADR-ACTION-BRIDGE: Инъекция семантики в EventContext
                 if _sa:
                     _base_event.semantic_action = _sa
@@ -195,30 +228,32 @@ def run_dm_phase(
                     _sem_payload["target_id"] = _tid
                 if _tref:
                     _sem_payload["target_reference"] = _tref.lower()
-        # P1 ARCH: Referential Closure Principle. 
-        # EventContext отражает ТОЛЬКО Intent. 
+        # P1 ARCH: Referential Closure Principle.
+        # EventContext отражает ТОЛЬКО Intent.
         # Запрет fallback на shared_context (Ghost Causality).
 
         _intent_target_id = _sem_payload.get("target_id")
-        
+
         # P1 ARCH: Referential Closure (§ENIGMA-005) + Incompleteness Semantics (§ENIGMA-006).
-        # Запрет fallback на shared_context. 
+        # Запрет fallback на shared_context.
         # Если Intent не дал ID, сохраняем Unresolved Reference.
         import dataclasses
-        
+
         if _intent_target_id:
             # Intent полностью замкнут — цель известна
-            if getattr(_base_event, 'target_id', None) is None:
-                _base_event = dataclasses.replace(_base_event, target_id=_intent_target_id)
+            if getattr(_base_event, "target_id", None) is None:
+                _base_event = dataclasses.replace(
+                    _base_event, target_id=_intent_target_id
+                )
             ctx.hub_event = dataclasses.replace(_base_event, payload=_sem_payload)
         else:
-            # Intent недоспецифицирован. 
+            # Intent недоспецифицирован.
             # target_id = None, но payload сохраняет target_reference (например, "люся").
             # Это не "нет цели", это "Неразрешённая ссылка".
             ctx.hub_event = dataclasses.replace(
                 _base_event,
                 target_id=None,
-                payload=_sem_payload  # _sem_payload содержит semantic_action и target_reference
+                payload=_sem_payload,  # _sem_payload содержит semantic_action и target_reference
             )
 
     return dm_result

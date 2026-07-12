@@ -13,24 +13,25 @@ from typing import List
 @dataclass
 class TickHealthReport:
     """Итоговый срез здоровья тик-пайплайна за сессию."""
-    total_ticks: int = 0            # сколько раз сработал R3_DIRECT
+
+    total_ticks: int = 0  # сколько раз сработал R3_DIRECT
     decisions_zero_ticks: int = 0  # тики с 0 decisions (симуляция заморожена)
     decisions_nonzero_ticks: int = 0
     total_decisions: int = 0
     llm_calls: int = 0
     llm_responses: int = 0
-    llm_nothing_count: int = 0     # "Ничего не произошло." — LLM молчит
-    llm_cjk_lines: int = 0         # строки с китайскими галлюцинациями
-    startup_ok: bool = True   # uvicorn в subprocess — не перехватывается, считаем True если игра запустилась
+    llm_nothing_count: int = 0  # "Ничего не произошло." — LLM молчит
+    llm_cjk_lines: int = 0  # строки с китайскими галлюцинациями
+    startup_ok: bool = True  # uvicorn в subprocess — не перехватывается, считаем True если игра запустилась
     llm_server_ok: bool = False
     player_campaign: str = ""
     player_name: str = ""
     # Инвариант 3: Наблюдаемость пред-шинных отказов
-    pipeline_critical_count: int = 0     # [PIPELINE][CRITICAL] — каузальный разрыв
-    causality_crash_count: int = 0       # [CAUSALITY_CRASH] — краш подписчика
-    phase8_crash_count: int = 0          # [PHASE8_CRASH] — краш обработчика Phase 8
-    tick_orch_error_count: int = 0       # [TICK_ORCH] — фатальный краш тика
-    affect_decay_fail_count: int = 0     # [AFFECT_DECAY] — потеря аффективных следов
+    pipeline_critical_count: int = 0  # [PIPELINE][CRITICAL] — каузальный разрыв
+    causality_crash_count: int = 0  # [CAUSALITY_CRASH] — краш подписчика
+    phase8_crash_count: int = 0  # [PHASE8_CRASH] — краш обработчика Phase 8
+    tick_orch_error_count: int = 0  # [TICK_ORCH] — фатальный краш тика
+    affect_decay_fail_count: int = 0  # [AFFECT_DECAY] — потеря аффективных следов
     warnings: List[str] = field(default_factory=list)
 
     def is_simulation_dead(self) -> bool:
@@ -131,7 +132,9 @@ class TickHealthChecker:
         # Предупреждения — формируем при сборке, не накопительно
         self._report.warnings.clear()
         if self._report.is_simulation_dead():
-            self._report.warnings.append("КРИТИЧНО: все тики вернули 0 decisions — симуляция заморожена")
+            self._report.warnings.append(
+                "КРИТИЧНО: все тики вернули 0 decisions — симуляция заморожена"
+            )
         if self._report.llm_cjk_lines > 0:
             self._report.warnings.append(
                 f"LLM галлюцинирует на китайском: {self._report.llm_cjk_lines} строк"
@@ -141,10 +144,16 @@ class TickHealthChecker:
                 f"LLM возвращает 'Ничего не произошло' {self._report.llm_nothing_count} раз подряд"
             )
         if self._report.llm_calls > 0 and self._report.llm_responses == 0:
-            self._report.warnings.append("LLM вызывалась но ни разу не ответила — проверь llm_server")
+            self._report.warnings.append(
+                "LLM вызывалась но ни разу не ответила — проверь llm_server"
+            )
         # Инвариант 3: Пред-шинные отказы — система должна быть шумной при смерти
-        _prebus_total = (self._report.pipeline_critical_count + self._report.causality_crash_count +
-                         self._report.phase8_crash_count + self._report.tick_orch_error_count)
+        _prebus_total = (
+            self._report.pipeline_critical_count
+            + self._report.causality_crash_count
+            + self._report.phase8_crash_count
+            + self._report.tick_orch_error_count
+        )
         if _prebus_total > 0:
             self._report.warnings.append(
                 f"КРИТИЧНО: {_prebus_total} пред-шинных отказов "

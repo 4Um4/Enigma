@@ -1,3 +1,4 @@
+from __future__ import annotations
 # backend/app/services/spatial/spatial_service.py
 # Назначение: Единый API SpatialService v1.2 — ядро
 # Чистый механизм. Не принимает решений. Не мутирует состояние.
@@ -13,12 +14,11 @@ TODO:
 - [ ] Расширение скоринга: учитывать не только расстояние, но и риск, освещённость, плотность толпы и резервации
 """
 
-from __future__ import annotations
 
 import heapq
 import logging
 import math
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from app.models.cfrm import ClusterDef, ClusterGraph
 from app.models.spatial_contracts import (
@@ -33,12 +33,12 @@ logger = logging.getLogger(__name__)
 
 class SpatialService:
     """Единый пространственный сервис. Чистый механизм.
-    
+
     Отвечает на вопросы:
     - Где узел с ролью X в моей зоне?
     - Как дойти с учётом толпы/риска/резерваций?
     - Сколько это стоит?
-    
+
     НЕ решает куда идти. НЕ хранит пути NPC. НЕ мутирует мир.
     """
 
@@ -46,7 +46,7 @@ class SpatialService:
     def build_for_location(
         campaign_id: str,
         location_id: str,
-        scene_state: dict,
+        scene_state: Dict[str, Any],
     ) -> Optional["SpatialService"]:
         """Фабрика: компилирует граф и оверлей для текущей локации и сцены."""
         from app.services.spatial.graph_compiler import compile_graph, load_editor_json
@@ -54,7 +54,9 @@ class SpatialService:
 
         editor_data = load_editor_json(campaign_id, location_id)
         if not editor_data:
-            logger.warning(f"[SPATIAL] editor JSON не найден для {campaign_id}/{location_id}")
+            logger.warning(
+                f"[SPATIAL] editor JSON не найден для {campaign_id}/{location_id}"
+            )
             return None
 
         result = compile_graph(editor_data, location_id)
@@ -72,13 +74,13 @@ class SpatialService:
         overlay = build_overlay_from_scene(scene_state)
 
         return SpatialService(
-            graph, 
-            connections, 
-            alias_map, 
-            overlay, 
-            location_id=location_id, 
+            graph,
+            connections,
+            alias_map,
+            overlay,
+            location_id=location_id,
             boundary_map=boundary_map,
-            rooms_geometry=rooms_geometry
+            rooms_geometry=rooms_geometry,
         )
 
     def __init__(
@@ -88,16 +90,22 @@ class SpatialService:
         alias_map: Dict[str, str],
         overlay: SpatialOverlay,
         location_id: str = "",  # Сохраняем принадлежность к локации для динамического резолва
-        boundary_map: Optional[Dict[str, dict]] = None,  # ДОЛГ 6.2: boundary node → neighbor info
-        rooms_geometry: Optional[Dict[str, List[Tuple[float, float]]]] = None, # ETKE-IK v1
+        boundary_map: Optional[
+            Dict[str, dict]
+        ] = None,  # ДОЛГ 6.2: boundary node → neighbor info
+        rooms_geometry: Optional[
+            Dict[str, List[Tuple[float, float]]]
+        ] = None,  # ETKE-IK v1
     ) -> None:
-        self._graph = graph            # canonical_id → NodeRef
-        self._connections = connections # canonical_id → set[canonical_id]
-        self._alias_map = alias_map    # legacy_id → canonical_id
+        self._graph = graph  # canonical_id → NodeRef
+        self._connections = connections  # canonical_id → set[canonical_id]
+        self._alias_map = alias_map  # legacy_id → canonical_id
         self._overlay = overlay
-        self._location_id = location_id  # ADR-052: Сохраняем для мультисценового резолва
+        self._location_id = (
+            location_id  # ADR-052: Сохраняем для мультисценового резолва
+        )
         self._boundary_map = boundary_map or {}  # ДОЛГ 6.2
-        self._rooms_geometry = rooms_geometry or {} # ETKE-IK v1
+        self._rooms_geometry = rooms_geometry or {}  # ETKE-IK v1
         self._path_cache: Dict[Tuple[str, str, str, Urgency], List[NodeRef]] = {}
 
     # ── Overlay обновление ────────────────────────────────────────────
@@ -122,7 +130,7 @@ class SpatialService:
         canonical = self.normalize_id(node_id)
         return canonical in self._boundary_map
 
-    def get_boundary_info(self, node_id: str) -> Optional[dict]:
+    def get_boundary_info(self, node_id: str) -> Optional[Dict[str, Any]]:
         """Возвращает информацию о переходе для boundary node."""
         canonical = self.normalize_id(node_id)
         return self._boundary_map.get(canonical)
@@ -141,7 +149,7 @@ class SpatialService:
         """
         if not self._rooms_geometry:
             return None  # Fallback: если геометрии нет, зоны не определены
-            
+
         for zone_id, polygon in self._rooms_geometry.items():
             # Алгоритм Ray Casting (even-odd rule)
             n = len(polygon)
@@ -173,7 +181,7 @@ class SpatialService:
 
     def normalize_id(self, raw_id: str) -> str:
         """Транслирует legacy-ID в канонический.
-        
+
         "bar_area" → "tavern_silver_wolf:bar_area"
         "tavern_silver_wolf:bar_area" → "tavern_silver_wolf:bar_area"
         """
@@ -230,7 +238,7 @@ class SpatialService:
         requesting_npc_id: Optional[str] = None,
     ) -> Optional[NodeRef]:
         """Ищет лучший узел по роли с учётом топологии, семантики и overlay.
-        
+
         Порядок:
         1. Фильтр по топологии (zone_id, level)
         2. Фильтр по семантике (role)
@@ -240,10 +248,7 @@ class SpatialService:
         6. Возврат лучшего
         """
         # 1+2. Топология + Семантика
-        candidates = [
-            n for n in self._graph.values()
-            if n.role == role
-        ]
+        candidates = [n for n in self._graph.values() if n.role == role]
         if origin_zone:
             candidates = [n for n in candidates if n.zone_id == origin_zone]
         if origin_level:
@@ -253,7 +258,8 @@ class SpatialService:
             # Fallback: TRANSITION узлы для выхода из зоны
             if origin_zone:
                 transitions = [
-                    n for n in self._graph.values()
+                    n
+                    for n in self._graph.values()
                     if n.role == NodeRole.TRANSITION and n.zone_id == origin_zone
                 ]
                 if transitions:
@@ -267,10 +273,7 @@ class SpatialService:
 
         # 3. Фильтр по тегам
         if filters:
-            candidates = [
-                n for n in candidates
-                if all(t in n.tags for t in filters)
-            ]
+            candidates = [n for n in candidates if all(t in n.tags for t in filters)]
             if not candidates:
                 return None
 
@@ -291,7 +294,9 @@ class SpatialService:
         # 5. Скоринг
         scored = []
         for node in candidates:
-            score = self._compute_score(node, origin_xy, filters, urgency, requesting_npc_id)
+            score = self._compute_score(
+                node, origin_xy, filters, urgency, requesting_npc_id
+            )
             scored.append((score, node.node_id, node))
 
         # Детерминированная сортировка: score ↓, node_id ↑
@@ -358,7 +363,7 @@ class SpatialService:
         urgency: Urgency = Urgency.NORMAL,
     ) -> List[NodeRef]:
         """A* с динамической стоимостью рёбер. Учитывает overlay и urgency.
-        
+
         Возвращает список NodeRef от ближайшего к start_xy узла до target_node.
         Пустой список если путь не найден.
         """
@@ -374,7 +379,12 @@ class SpatialService:
             return [start_node]
 
         # Кэш
-        cache_key = (start_node.node_id, target_id, self._overlay.compute_hash(), urgency)
+        cache_key = (
+            start_node.node_id,
+            target_id,
+            self._overlay.compute_hash(),
+            urgency,
+        )
         cached = self._path_cache.get(cache_key)
         if cached is not None:
             return cached
@@ -424,7 +434,9 @@ class SpatialService:
         )
         return []
 
-    def _edge_cost(self, from_node: NodeRef, to_node: NodeRef, urgency: Urgency) -> float:
+    def _edge_cost(
+        self, from_node: NodeRef, to_node: NodeRef, urgency: Urgency
+    ) -> float:
         """Динамическая стоимость ребра. Дистанция + overlay-модификаторы."""
         base_dist = self.world_distance(from_node.xy, to_node.xy)
 
@@ -442,7 +454,9 @@ class SpatialService:
 
         return cost
 
-    def _reconstruct_path(self, came_from: Dict[str, str], current_id: str) -> List[NodeRef]:
+    def _reconstruct_path(
+        self, came_from: Dict[str, str], current_id: str
+    ) -> List[NodeRef]:
         """Восстанавливает путь из came_from маппинга."""
         path_ids = [current_id]
         while current_id in came_from:
@@ -462,7 +476,7 @@ class SpatialService:
         cx = sum(n.x for n in self._graph.nodes.values()) / len(self._graph.nodes)
         cy = sum(n.y for n in self._graph.nodes.values()) / len(self._graph.nodes)
         for node in self._graph.nodes.values():
-            d = (node.x - cx)**2 + (node.y - cy)**2
+            d = (node.x - cx) ** 2 + (node.y - cy) ** 2
             if d < min_dist:
                 min_dist = d
                 best_node = node
@@ -531,7 +545,7 @@ class SpatialService:
 
     def build_cluster_graph(self) -> ClusterGraph:
         """Строит ClusterGraph (CFRM Layer 1) из текущего макро-графа.
-        
+
         1 макро-узел = 1 причинный кластер.
         Границы кластера (boundary_cells) = его связи с другими макро-узлами.
         Вызывается при загрузке локации и при изменении топологии.

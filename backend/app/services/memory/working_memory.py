@@ -1,3 +1,4 @@
+from __future__ import annotations
 # backend/app/services/memory/working_memory.py
 """
 R1.2 / R5.1 — Working Memory: скользящее окно событий в RAM.
@@ -5,7 +6,6 @@ R5.1: поддержка EventMemory с decay lifecycle.
 Не пишет на диск. Сбрасывается при перезапуске.
 """
 
-from __future__ import annotations
 
 from collections import deque
 from typing import Any, Dict, List, Tuple, Union
@@ -23,12 +23,12 @@ class WorkingMemory:
 
     def __init__(self, maxlen: int = _DEFAULT_MAXLEN) -> None:
         self._buffers: Dict[str, deque] = {}
-        self._maxlen  = maxlen
+        self._maxlen = maxlen
 
     def push(
         self,
         campaign_id: str,
-        event:       Union[EventMemory, Dict[str, Any]],
+        event: Union[EventMemory, Dict[str, Any]],
     ) -> None:
         """Добавляет событие в буфер кампании."""
         if campaign_id not in self._buffers:
@@ -62,7 +62,10 @@ class WorkingMemory:
                 updated = event.decayed(game_days)
 
                 # R5.3: переход в ABSTRACT → событие уходит в L3 Identity
-                if prev_stage != MemoryStage.ABSTRACT and updated.stage == MemoryStage.ABSTRACT:
+                if (
+                    prev_stage != MemoryStage.ABSTRACT
+                    and updated.stage == MemoryStage.ABSTRACT
+                ):
                     weight = updated.to_identity_weight()
                     if weight is not None:
                         identity_weights.append(weight)
@@ -88,7 +91,7 @@ class WorkingMemory:
     def replace_all(
         self,
         campaign_id: str,
-        events:      List[Union[EventMemory, Dict[str, Any]]],
+        events: List[Union[EventMemory, Dict[str, Any]]],
     ) -> None:
         """
         Атомарная замена буфера.

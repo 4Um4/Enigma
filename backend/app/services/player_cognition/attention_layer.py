@@ -9,6 +9,7 @@ path: /backend/app/services/player_cognition/attention_layer.py
 Зависимости: types, math, random
 Основные сущности: PlayerFocus, apply_attention()
 """
+
 from dataclasses import dataclass
 from typing import List, Optional
 
@@ -23,11 +24,11 @@ _HARD_ATTENTION_THRESHOLD = 0.70
 _SOFT_ATTENTION_THRESHOLD = 0.30
 
 # === Множители внимания ===
-_MOTION_BONUS = 0.20          # движение привлекает внимание
-_SALIENT_TYPE_BONUS = 0.15    # оружие, опасные объекты
-_THREAT_STRESS_PENALTY = 0.01 # стресс сужает периферию (за каждую единицу)
-_STRESS_TUNNEL_MAX = 0.30     # максимальное сужение от стресса
-_SIZE_BONUS_PER_M2 = 0.005    # крупные объекты заметнее
+_MOTION_BONUS = 0.20  # движение привлекает внимание
+_SALIENT_TYPE_BONUS = 0.15  # оружие, опасные объекты
+_THREAT_STRESS_PENALTY = 0.01  # стресс сужает периферию (за каждую единицу)
+_STRESS_TUNNEL_MAX = 0.30  # максимальное сужение от стресса
+_SIZE_BONUS_PER_M2 = 0.005  # крупные объекты заметнее
 
 # Типы с повышенной заметностью (оружие, опасность)
 _SALIENT_TYPES = {"weapon", "door", "passage"}
@@ -36,9 +37,13 @@ _SALIENT_TYPES = {"weapon", "door", "passage"}
 @dataclass
 class PlayerFocus:
     """Текущий фокус внимания игрока — управляется гибридно"""
-    focus_entity_id: Optional[str] = None      # на что смотрит (игрок задаёт)
-    focus_direction: tuple[float, float] = (0.0, -1.0)  # куда смотрит (нормализованный вектор)
-    focus_zone_radius: float = 1.5             # радиус зоны фокуса в метрах
+
+    focus_entity_id: Optional[str] = None  # на что смотрит (игрок задаёт)
+    focus_direction: tuple[float, float] = (
+        0.0,
+        -1.0,
+    )  # куда смотрит (нормализованный вектор)
+    focus_zone_radius: float = 1.5  # радиус зоны фокуса в метрах
 
 
 def _base_attention_score(
@@ -107,9 +112,12 @@ def _stochastic_roll(score: float) -> bool:
     else:
         # Линейная интерполяция в зоне неопределённости
         # 0.3 → 5%, 0.7 → 95%
-        probability = 0.05 + (score - _SOFT_ATTENTION_THRESHOLD) / (
-            _HARD_ATTENTION_THRESHOLD - _SOFT_ATTENTION_THRESHOLD
-        ) * 0.90
+        probability = (
+            0.05
+            + (score - _SOFT_ATTENTION_THRESHOLD)
+            / (_HARD_ATTENTION_THRESHOLD - _SOFT_ATTENTION_THRESHOLD)
+            * 0.90
+        )
         return random.random() < probability
 
 

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import logging
+
 logger = logging.getLogger(__name__)
 """
 path: /frontend/npc_name_resolver.py
@@ -16,9 +17,9 @@ path: /frontend/npc_name_resolver.py
 Основные сущности: npc_id_to_display, _NPC_NAME_CACHE
 """
 
-import json
-from pathlib import Path
-from typing import Dict
+import json  # noqa: E402
+from pathlib import Path  # noqa: E402
+from typing import Dict  # noqa: E402
 
 # кэш: npc_id → display_name
 _NPC_NAME_CACHE: Dict[str, str] = {}

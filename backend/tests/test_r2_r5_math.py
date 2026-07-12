@@ -4,15 +4,15 @@
 Проверка: Подаем ввод -> получаем expected_success, outcome, gap.
 Запуск: python -m pytest backend/tests/test_r2_r5_math.py -v -s
 """
-from app.services.npc.decision_hub import DecisionHub, EventContext, DecisionResult
+
+from app.models.npc_state import EmotionTag, NPCPersonality, NPCState, NPCTier, WillState
+from app.services.npc.decision_hub import DecisionHub, DecisionResult, EventContext
 from app.services.npc.resolution_engine import ResolutionEngine, ResolutionOutcome
-from app.models.npc_state import (
-    NPCState, NPCPersonality, WillState, NPCTier, EmotionTag
-)
+
 
 def test_r2_r5_core_math():
     """Сценарий: Игрок с мечом нападает на стражника Торнина."""
-    
+
     # 1. Подготовка статической личности (Immutable)
     personality = NPCPersonality(
         npc_id="tornin",
@@ -22,35 +22,31 @@ def test_r2_r5_core_math():
         breakpoint=80.0,
         loyalty_base=50.0,
         voice_profile="Грубый бас",
-        backstory="Бывший стражник"
+        backstory="Бывший стражник",
     )
 
     # 2. Подготовка динамического состояния (Mutable)
     state = NPCState(
         npc_id="tornin",
-        stress=30.0,          # Небольшой стресс
+        stress=30.0,  # Небольшой стресс
         will_state=WillState.FREE,
-        emotion=EmotionTag.NEUTRAL
+        emotion=EmotionTag.NEUTRAL,
     )
 
     # 3. Событие от игрока (Формируется будущим DM-Router)
     event = EventContext(
-        event_type="player_attack", # Тип действия
+        event_type="player_attack",  # Тип действия
         actor_id="player",
         intensity=1.0,
         distance=3.0,
-        witness_count=1
+        witness_count=1,
     )
 
     # ==========================================
     # R2: DECISION CORE (Что решает NPC?)
     # ==========================================
-    hub = DecisionHub(seed=42) # Фиксированный seed для повторяемости
-    decision: DecisionResult = hub.compute(
-        state=state,
-        personality=personality,
-        event=event
-    )
+    hub = DecisionHub(seed=42)  # Фиксированный seed для повторяемости
+    decision: DecisionResult = hub.compute(state=state, personality=personality, event=event)
 
     print("\n--- R2: DECISION HUB ---")
     print(f"Выбранное намерение (Intent): {decision.intent.value}")
@@ -64,12 +60,12 @@ def test_r2_r5_core_math():
     # ==========================================
     # R5: RESOLUTION ENGINE (Бросок кубиков)
     # ==========================================
-    engine = ResolutionEngine(seed=42) # Фиксированный seed
+    engine = ResolutionEngine(seed=42)  # Фиксированный seed
     outcome: ResolutionOutcome = engine.resolve(
         state=state,
         personality=personality,
-        expected_success=decision.score, # R2 передает шанс в R5
-        context_modifier=0.0
+        expected_success=decision.score,  # R2 передает шанс в R5
+        context_modifier=0.0,
     )
 
     print("\n--- R5: RESOLUTION ENGINE ---")

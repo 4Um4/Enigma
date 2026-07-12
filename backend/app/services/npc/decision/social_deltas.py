@@ -1,3 +1,4 @@
+from __future__ import annotations
 # backend/app/services/npc/decision/social_deltas.py
 """
 R2-P1: Социальные дельты — как события меняют отношения между агентами.
@@ -15,7 +16,6 @@ R2-P1: Социальные дельты — как события меняют 
 (оригинал: первый блок (-5 trust, +4 fear) терялся, второй перезаписывал).
 """
 
-from __future__ import annotations
 
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -35,17 +35,17 @@ from app.services.npc.decision.relationship_profile import RelationshipResponseP
 
 _BASE_DELTAS: Dict[str, Tuple[float, float, str]] = {
     # Оскорбление: доверие падает, страх снижается (просто разговор, не атака)
-    "player_insults":   (-8.0,  -5.0,  "relief"),
+    "player_insults": (-8.0, -5.0, "relief"),
     # Угроза: объединены два перезаписанных блока (было -5/+4 + -6/+2.5 = -11/+6.5)
-    "player_threatens": (-11.0, +6.5,  "threat"),
+    "player_threatens": (-11.0, +6.5, "threat"),
     # Физическое насилие: сильнейший удар по доверию и страху
-    "player_attacks":   (-10.0, +8.0,  "aggression"),
+    "player_attacks": (-10.0, +8.0, "aggression"),
     # Бой/насилие в мире: то же что атака, но от третьих лиц
-    "combat":           (-10.0, +8.0,  "aggression"),
+    "combat": (-10.0, +8.0, "aggression"),
     # Запугивание: ближе к угрозе, чем к насилию
-    "intimidation":     (-10.0, +8.0,  "threat"),
+    "intimidation": (-10.0, +8.0, "threat"),
     # Помощь: доверие растёт, страх снижается
-    "help":             (+12.0, -5.0,  "relief"),
+    "help": (+12.0, -5.0, "relief"),
 }
 
 
@@ -74,7 +74,9 @@ def _modulate_trust(base_trust: float, profile: RelationshipResponseProfile) -> 
     return 0.0
 
 
-def _modulate_fear(base_fear: float, fear_category: str, profile: RelationshipResponseProfile) -> float:
+def _modulate_fear(
+    base_fear: float, fear_category: str, profile: RelationshipResponseProfile
+) -> float:
     """Модулирует дельту страха через профиль личности.
     fear > 0 + "aggression" → × fear_from_aggression (трусы пугаются сильнее)
     fear > 0 + "threat"     → × fear_from_threat (угрозы страшнее для параноиков)
@@ -116,7 +118,7 @@ class SocialDeltaEngine:
         """Главная точка входа. Заменяет DecisionHub._compute_deltas."""
         # 1. Определить тип события
         _et = event.event_type
-        _et_val = _et.value if hasattr(_et, 'value') else str(_et)
+        _et_val = _et.value if hasattr(_et, "value") else str(_et)
 
         # 2. Найти базовые дельты
         base = _BASE_DELTAS.get(_et_val)
@@ -126,7 +128,7 @@ class SocialDeltaEngine:
         base_trust, base_fear, fear_category = base
 
         # 3. Построить профиль личности из drives_base
-        drives = personality.drives_base if hasattr(personality, 'drives_base') else {}
+        drives = personality.drives_base if hasattr(personality, "drives_base") else {}
         profile = RelationshipResponseProfile.from_drives(drives)
 
         # 4. Модулировать дельты через профиль
@@ -134,7 +136,7 @@ class SocialDeltaEngine:
         personalized_fear = _modulate_fear(base_fear, fear_category, profile)
 
         # 5. Применить интенсивность события
-        intensity = getattr(event, 'intensity', 1.0)
+        intensity = getattr(event, "intensity", 1.0)
         _trust_raw = personalized_trust * intensity
         _fear_raw = personalized_fear * intensity
 

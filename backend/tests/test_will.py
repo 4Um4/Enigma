@@ -7,10 +7,9 @@ TODO: расширить тесты, покрыть больше сценари�
 Пока что эти тесты проверяют базовую логику трансформации намерений вдавление и реакции воли, но не охватывают все нюансы психики и типов давления.
 """
 
-import pytest
-from app.services.will import resolve_intent_pressure, compute_willpower
-from app.models.will import IntentPressureProfile, WillState
 from app.domain.intent import IntentDTO
+from app.models.will import IntentPressureProfile, WillState
+from app.services.will import compute_willpower, resolve_intent_pressure
 
 
 class TestIntentPressureResolver:
@@ -74,7 +73,7 @@ class TestWillpowerGate:
     def test_counter_offer_on_resistance(self):
         """При сильном сопротивлении авар предлагает альтернативу."""
         pressure = IntentPressureProfile(violence=0.9)
-        psyche = {"fear": 0.9, "aggression": 0.1} # Трус перед насилием
+        psyche = {"fear": 0.9, "aggression": 0.1}  # Трус перед насилием
         response = compute_willpower(pressure, psyche)
         if response.state not in (WillState.COMPLY, WillState.RELUCTANT):
             assert response.counter_offer is not None

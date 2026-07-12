@@ -16,17 +16,20 @@
 
 Запуск: python -m pytest backend/tests/sandbox/micro/test_projection_engine.py -v --tb=short
 """
-import copy
-import pytest
 
+import copy
+
+import pytest
 from app.models.thick_scene_change import (
-    ThickSceneChange, SpatialResolution,
-    BoundaryResolution, TraversalContract,
+    BoundaryResolution,
+    SpatialResolution,
+    ThickSceneChange,
+    TraversalContract,
 )
 from app.services.projection_engine import ProjectionEngine
 
-
 # ── Фикстуры ──────────────────────────────────────────────────────
+
 
 def _make_scene_state():
     """Минимальный scene_state для тестов."""
@@ -60,7 +63,8 @@ def _make_position_thick(
     if traversal_status:
         traversal = TraversalContract(
             status=traversal_status,
-            fields=traversal_fields or {
+            fields=traversal_fields
+            or {
                 "npc_id": target,
                 "from_node": "main_hall",
                 "target_node": value,
@@ -125,6 +129,7 @@ def _make_local_position_thick(
 
 
 # ── Тесты ─────────────────────────────────────────────────────────
+
 
 class TestProjectionPosition:
     """Position write — каузальная и геометрическая позиция."""
@@ -229,8 +234,8 @@ class TestProjectionTraversal:
 
         engine.apply(state, thick)
 
-        # ADR-TRAV-FSM: ProjectionEngine не мутирует статус напрямую. 
-        # Завершённые транзиты удаляются SSM.apply_changes. 
+        # ADR-TRAV-FSM: ProjectionEngine не мутирует статус напрямую.
+        # Завершённые транзиты удаляются SSM.apply_changes.
         # Здесь проверяем, что статус не стал COMPLETED внутри apply (read-only).
         assert state["active_traversals"].get("npc_1", {}).get("status") != "COMPLETED"
 

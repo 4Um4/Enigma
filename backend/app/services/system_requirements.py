@@ -25,7 +25,9 @@ class SystemRequirements:
     def _cpu_model(self) -> str:
         cpuinfo = Path("/proc/cpuinfo")
         if cpuinfo.exists():
-            for line in cpuinfo.read_text(encoding="utf-8", errors="ignore").splitlines():
+            for line in cpuinfo.read_text(
+                encoding="utf-8", errors="ignore"
+            ).splitlines():
                 if line.lower().startswith("model name"):
                     return line.split(":", 1)[1].strip()
         return "unknown"

@@ -11,33 +11,51 @@
 """
 
 import pytest
-import random
-
-from app.models.impact import ImpactIntentDTO
+from app.models.delta_payloads import PhysiologyPayload
 from app.models.idle_tick import NPCStateSnapshot
-from app.models.state_delta import StateDeltas, DeltaDomain
-from app.models.delta_payloads import PhysiologyPayload, EmotionPayload
+from app.models.impact import ImpactIntentDTO
+from app.models.state_delta import DeltaDomain
 
 
 @pytest.fixture
 def attacker_snapshot():
     return NPCStateSnapshot(
         npc_id="player",
-        hp=100.0, max_hp=100.0, pain=0.0, fatigue=0.0, blood_loss=0.0, consciousness=1.0,
-        injuries_by_zone={}, base_abilities={"strength": 15.0, "dexterity": 12.0},
-        modifiers={}, statuses=[], stress=0.0,
-        relationship_cache={}, base_values={}, faction_affiliations=[]
+        hp=100.0,
+        max_hp=100.0,
+        pain=0.0,
+        fatigue=0.0,
+        blood_loss=0.0,
+        consciousness=1.0,
+        injuries_by_zone={},
+        base_abilities={"strength": 15.0, "dexterity": 12.0},
+        modifiers={},
+        statuses=[],
+        stress=0.0,
+        relationship_cache={},
+        base_values={},
+        faction_affiliations=[],
     )
+
 
 @pytest.fixture
 def defender_snapshot():
     return NPCStateSnapshot(
         npc_id="maid_lusya",
-        hp=80.0, max_hp=80.0, pain=0.0, fatigue=0.0, blood_loss=0.0, consciousness=1.0,
-        injuries_by_zone={}, base_abilities={"strength": 10.0, "dexterity": 10.0, "constitution": 10.0},
-        modifiers={}, statuses=[], stress=0.0,
+        hp=80.0,
+        max_hp=80.0,
+        pain=0.0,
+        fatigue=0.0,
+        blood_loss=0.0,
+        consciousness=1.0,
+        injuries_by_zone={},
+        base_abilities={"strength": 10.0, "dexterity": 10.0, "constitution": 10.0},
+        modifiers={},
+        statuses=[],
+        stress=0.0,
         relationship_cache={"player": {"trust": 50.0, "fear": 20.0}},
-        base_values={"player": 50.0}, faction_affiliations=[]
+        base_values={"player": 50.0},
+        faction_affiliations=[],
     )
 
 
@@ -47,24 +65,17 @@ class TestCombatEmotionCascade:
     def test_violence_generates_fear(self, attacker_snapshot, defender_snapshot):
         """Удар должен порождать PhysiologyPayload(shock_impulse > 0),
         который конвертируется в EmotionPayload(fear_delta > 0)."""
-        
+
         # 1. Формирование интента удара
         intent = ImpactIntentDTO(
-            actor_id="player",
-            target_id="maid_lusya",
-            damage_type="slash",
-            target_zone="head_ear_l",
-            force=80.0
+            actor_id="player", target_id="maid_lusya", damage_type="slash", target_zone="head_ear_l", force=80.0
         )
 
         # 2. PHYSICAL LAYER: Вызов ImpactEngine
         from app.services.combat.impact_engine import resolve_physical_impact
-        
+
         phys_deltas = resolve_physical_impact(
-            attacker=attacker_snapshot,
-            defender=defender_snapshot,
-            intent=intent,
-            rng_seed=42
+            attacker=attacker_snapshot, defender=defender_snapshot, intent=intent, rng_seed=42
         )
 
         assert phys_deltas, "ImpactEngine вернул пустой список — боевка мертва"
@@ -72,7 +83,7 @@ class TestCombatEmotionCascade:
         # 3. Проверка PhysiologyPayload
         total_shock = 0.0
         total_hp_loss = 0.0
-        
+
         for d in phys_deltas:
             assert d.domain == DeltaDomain.PHYSIOLOGY, f"Нарушение ADR-015: домен {d.domain} вместо PHYSIOLOGY"
             payload = d.payload
@@ -97,26 +108,23 @@ class TestCombatEmotionCascade:
 
     def test_weak_attack_no_panic(self, attacker_snapshot, defender_snapshot):
         """Слабый удар не должен вызывать панику (shock < 0.5)."""
-        
+
         intent = ImpactIntentDTO(
             actor_id="player",
             target_id="maid_lusya",
             damage_type="blunt",
             target_zone="arm_r",
-            force=10.0  # Слабый удар
+            force=10.0,  # Слабый удар
         )
 
         from app.services.combat.impact_engine import resolve_physical_impact
-        
+
         phys_deltas = resolve_physical_impact(
-            attacker=attacker_snapshot,
-            defender=defender_snapshot,
-            intent=intent,
-            rng_seed=42
+            attacker=attacker_snapshot, defender=defender_snapshot, intent=intent, rng_seed=42
         )
 
         total_shock = sum(d.payload.shock_impulse for d in phys_deltas if isinstance(d.payload, PhysiologyPayload))
-        
+
         # Слабый удар не должен вызывать панику (шок < 0.5)
         if total_shock > 0:
             emotion_tag = "panic" if total_shock > 0.5 else "fear"

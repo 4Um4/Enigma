@@ -1,3 +1,4 @@
+from __future__ import annotations
 # backend/app/services/events/perception_subscriber.py
 #
 # Устав §5.1: EventBus.publish() — единственная точка входа событий.
@@ -17,10 +18,10 @@ TODO:
 - [ ] Логирование и метрики: сколько NPC воспринимает каждое событие, какие типы событий чаще всего влияют на восприятие
 - [ ] Тесты: юнит-тесты для PerceptionSubscriber, интеграционные тесты с EventBus и perception_filter
 """
-from __future__ import annotations
+
 
 import logging
-from typing import Any, List, Optional
+from typing import Dict, Any, List, Optional
 
 from app.domain.events import EventDTO
 from app.models.phase8 import Phase8Context, Phase8Result
@@ -53,7 +54,7 @@ class PerceptionSubscriber:
       1. Шина → _on_event() накапливает EventDTO (Фазы 2/7)
       2. Оркестратор → drain_events() снимок + очистка (Фаза 8)
       3. Оркестратор → handle(events, ctx) → Phase8Result (Фаза 8)
-    
+
     Не мутирует контекст. Все выходы — через Phase8Result.
     """
 
@@ -67,7 +68,7 @@ class PerceptionSubscriber:
         for et in _PERCEPTION_EVENT_TYPES:
             self._event_bus.subscribe(et, self._on_event)
 
-    def _on_event(self, event: EventDTO) -> Optional[dict]:
+    def _on_event(self, event: EventDTO) -> Optional[Dict[str, Any]]:
         """EventHandler: накапливает событие для обработки на Фазе 8."""
         self._pending_events.append(event)
         return None
@@ -103,16 +104,20 @@ class PerceptionSubscriber:
             # хотя бы одно событие (Устав §5.1: шина для фактов, Фаза 8 для обработки)
             _perceiving_ids: set[str] = set()
             for _event in events:
-                _perceiving_ids.update(filter_perceiving_npcs(
-                    npc_ids=_all_npc_ids,
-                    event=_event,
-                    scene_state=ctx.shared_context.scene_state or {},
-                    spatial_query=getattr(ctx.shared_context, 'spatial_query', None),
-                ))
+                _perceiving_ids.update(
+                    filter_perceiving_npcs(
+                        npc_ids=_all_npc_ids,
+                        event=_event,
+                        scene_state=ctx.shared_context.scene_state or {},
+                        spatial_query=getattr(
+                            ctx.shared_context, "spatial_query", None
+                        ),
+                    )
+                )
 
             # Адресат всегда воспринимает + свидетели по perception
             # P1 ARCH: Чтение цели ТОЛЬКО из EventContext (Referential Closure)
-            _explicit_target = getattr(ctx.event, 'target_id', '') if ctx.event else ''
+            _explicit_target = getattr(ctx.event, "target_id", "") if ctx.event else ""
             if _explicit_target:
                 _perceiving_ids.add(_explicit_target)
 
@@ -125,7 +130,6 @@ class PerceptionSubscriber:
             return Phase8Result(perceiving_npc_ids=_perceiving_ids)
 
         logger.warning(
-            f"[PERCEPTION_SUB] skip: events={len(events)}, "
-            f"npcs={len(_all_npc_ids)}"
+            f"[PERCEPTION_SUB] skip: events={len(events)}, npcs={len(_all_npc_ids)}"
         )
         return Phase8Result()

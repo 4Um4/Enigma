@@ -5,12 +5,6 @@ def test_extract_distances_from_spatial_context() -> None:
     extractor = PlayerTargetExtractor()
     scene_state = {
         "location_id": "tavern_silver_wolf",
-        # ADR-048: Игрок внедрен как npc_id="player" в npc_positions
-        "player_spatial": {
-            "location_id": "tavern_silver_wolf",
-            "position": "main_hall",
-            "local_position": {"x": 0.0, "y": 0.0},
-        },
         "npc_positions": {
             "player": {
                 "location_id": "tavern_silver_wolf",
@@ -34,9 +28,7 @@ def test_extract_distances_from_spatial_context() -> None:
         {"npc_id": "maid_lusya", "npc_name": "Луся", "name_forms": ["луся"]},
     ]
 
-    _, _, _, _, distances = extractor.extract(
-        "говорю Торнину", npc_contexts=npc_contexts, scene_state=scene_state
-    )
+    _, _, _, _, distances = extractor.extract("говорю Торнину", npc_contexts=npc_contexts, scene_state=scene_state)
 
     assert distances["maid_lusya"] < distances["tavern_keeper_tornin"]
     assert distances["tavern_keeper_tornin"] > 1.0

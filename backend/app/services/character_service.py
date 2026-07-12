@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 class CharacterService:
     """
     Persist player characters per campaign as local JSON.
-    
+
     Два типа данных:
     - CharacterSheet (characters.json) — D&D механика: HP, AC, спеллы
     - CharacterProfile (character_profiles.json) — психология: ценности, integrity
@@ -39,7 +39,9 @@ class CharacterService:
         payload = json.loads(path.read_text(encoding="utf-8-sig"))
         return [CharacterSheet.model_validate(item) for item in payload]
 
-    def upsert_character(self, campaign_id: str, sheet: CharacterSheet) -> CharacterSheet:
+    def upsert_character(
+        self, campaign_id: str, sheet: CharacterSheet
+    ) -> CharacterSheet:
         items = self.list_characters(campaign_id)
         updated: list[CharacterSheet] = []
         replaced = False
@@ -54,7 +56,9 @@ class CharacterService:
 
         path = self._characters_path(campaign_id)
         path.write_text(
-            json.dumps([item.model_dump() for item in updated], ensure_ascii=False, indent=2),
+            json.dumps(
+                [item.model_dump() for item in updated], ensure_ascii=False, indent=2
+            ),
             encoding="utf-8",
         )
         return sheet
@@ -85,7 +89,9 @@ class CharacterService:
                 return p
         return None
 
-    def upsert_profile(self, campaign_id: str, profile: CharacterProfile) -> CharacterProfile:
+    def upsert_profile(
+        self, campaign_id: str, profile: CharacterProfile
+    ) -> CharacterProfile:
         """Создаёт или обновляет психологический профиль."""
         items = self.list_profiles(campaign_id)
         updated: list[CharacterProfile] = []
@@ -101,7 +107,9 @@ class CharacterService:
 
         path = self._profiles_path(campaign_id)
         path.write_text(
-            json.dumps([item.to_dict() for item in updated], ensure_ascii=False, indent=2),
+            json.dumps(
+                [item.to_dict() for item in updated], ensure_ascii=False, indent=2
+            ),
             encoding="utf-8",
         )
         return profile
@@ -116,7 +124,7 @@ class CharacterService:
         existing = self.get_profile(campaign_id, character_name)
         if existing:
             return existing
-        
+
         # Дефолтный профиль — аватар без ценностей
         default = CharacterProfile(character_id=character_name)
         return self.upsert_profile(campaign_id, default)

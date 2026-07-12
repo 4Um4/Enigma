@@ -22,13 +22,11 @@ TODO:
 
 from __future__ import annotations
 
-import pytest
-
 from app.services.npc.npc_loader import _enrich_with_social_relations
 from app.services.tick_orchestrator import TickOrchestrator
 
-
 # ── Хелперы ───────────────────────────────────────────────────────────────
+
 
 def _make_npc(
     npc_id: str = "npc_1",
@@ -56,6 +54,7 @@ def _make_npc(
 
 # ── Юнит-тесты _enrich_with_social_relations ─────────────────────────────
 
+
 class TestEnrichWithSocialRelations:
     """Обогащение NPC dict связями из village_relations.json."""
 
@@ -76,7 +75,7 @@ class TestEnrichWithSocialRelations:
 
         rc = npcs[0]["relationship_cache"]
         assert "maid_lusya" in rc
-        assert rc["maid_lusya"]["trust"] == 30.0     # 0.3 * 100
+        assert rc["maid_lusya"]["trust"] == 30.0  # 0.3 * 100
         assert rc["maid_lusya"]["fear"] == 0.0
         assert rc["maid_lusya"]["base_trust"] == 30.0
         assert rc["maid_lusya"]["nature"] == "employer_employee"
@@ -108,13 +107,15 @@ class TestEnrichWithSocialRelations:
 
     def test_no_overwrite_existing_relationship_cache(self):
         """Существующие записи в relationship_cache НЕ перезаписываются."""
-        npcs = [{
-            "id": "npc_a",
-            "relationship_cache": {
-                "npc_b": {"trust": 99.0, "fear": 5.0, "base_trust": 50.0},
-            },
-            "base_values": {"npc_b": 50.0},
-        }]
+        npcs = [
+            {
+                "id": "npc_a",
+                "relationship_cache": {
+                    "npc_b": {"trust": 99.0, "fear": 5.0, "base_trust": 50.0},
+                },
+                "base_values": {"npc_b": 50.0},
+            }
+        ]
         relations = {"npc_a": {"npc_b": {"nature": "friend", "base_trust": 0.3}}}
 
         _enrich_with_social_relations(npcs, relations)
@@ -206,6 +207,7 @@ class TestEnrichWithSocialRelations:
 
 # ── Интеграция _build_npc_snapshots + обогащение ─────────────────────────
 
+
 class TestEnrichedSnapshotIntegration:
     """Обогащённый NPC → _build_npc_snapshots → корректный snapshot."""
 
@@ -215,8 +217,10 @@ class TestEnrichedSnapshotIntegration:
         # Симуляция обогащения
         npc["relationship_cache"] = {
             "maid_lusya": {
-                "trust": 30.0, "fear": 0.0,
-                "base_trust": 30.0, "nature": "employer_employee",
+                "trust": 30.0,
+                "fear": 0.0,
+                "base_trust": 30.0,
+                "nature": "employer_employee",
             },
         }
         npc["base_values"] = {"maid_lusya": 30.0}
@@ -281,6 +285,7 @@ class TestEnrichedSnapshotIntegration:
 
 # ── Интеграция с SocialDecayHandler ──────────────────────────────────────
 
+
 class TestNpcToNpcDecayIntegration:
     """Обогащённый NPC → SocialDecayHandler производит NPC→NPC дрейф."""
 
@@ -292,8 +297,10 @@ class TestNpcToNpcDecayIntegration:
         # Текущий trust к lusya = 20, base = 30 → дрейф к 30
         npc["relationship_cache"] = {
             "maid_lusya": {
-                "trust": 20.0, "fear": 0.0,
-                "base_trust": 30.0, "nature": "employer_employee",
+                "trust": 20.0,
+                "fear": 0.0,
+                "base_trust": 30.0,
+                "nature": "employer_employee",
             },
         }
         npc["base_values"] = {"maid_lusya": 30.0}
@@ -316,8 +323,10 @@ class TestNpcToNpcDecayIntegration:
         # NPC→NPC: trust=30, base=30 → нет дрейфа
         npc["relationship_cache"] = {
             "maid_lusya": {
-                "trust": 30.0, "fear": 0.0,
-                "base_trust": 30.0, "nature": "employer_employee",
+                "trust": 30.0,
+                "fear": 0.0,
+                "base_trust": 30.0,
+                "nature": "employer_employee",
             },
         }
         npc["base_values"] = {"maid_lusya": 30.0}

@@ -1,3 +1,4 @@
+from __future__ import annotations
 # backend/app/services/memory/contradiction_resolver.py
 """
 R1.5 — Contradiction Resolver.
@@ -5,55 +6,54 @@ R1.5 — Contradiction Resolver.
 Чистая Python-логика, без LLM.
 """
 
-from __future__ import annotations
-from typing import Any, Dict
+from typing import List, Any, Dict
 
 # Какие типы событий подрывают какие beliefs
 CONTRADICTIONS: Dict[str, Dict[str, float]] = {
     "hero": {
-        "combat_ally":    -0.25,
-        "theft":          -0.20,
-        "vandalism":      -0.15,
-        "intimidation":   -0.10,
+        "combat_ally": -0.25,
+        "theft": -0.20,
+        "vandalism": -0.15,
+        "intimidation": -0.10,
     },
     "threat": {
-        "help":           -0.20,
-        "dialogue_key":   -0.10,
-        "quest":          -0.15,
+        "help": -0.20,
+        "dialogue_key": -0.10,
+        "quest": -0.15,
     },
     "friendly": {
-        "combat":         -0.30,
-        "intimidation":   -0.20,
-        "theft":          -0.25,
+        "combat": -0.30,
+        "intimidation": -0.20,
+        "theft": -0.25,
     },
     "trustworthy": {
-        "theft":          -0.35,
-        "deception":      -0.30,
-        "vandalism":      -0.15,
+        "theft": -0.35,
+        "deception": -0.30,
+        "vandalism": -0.15,
     },
 }
 
 # Какие события усиливают belief
 CONFIRMATIONS: Dict[str, Dict[str, float]] = {
     "hero": {
-        "quest":          +0.15,
-        "help":           +0.20,
-        "dialogue_key":   +0.05,
+        "quest": +0.15,
+        "help": +0.20,
+        "dialogue_key": +0.05,
     },
     "threat": {
-        "combat":         +0.20,
-        "intimidation":   +0.25,
-        "vandalism":      +0.15,
+        "combat": +0.20,
+        "intimidation": +0.25,
+        "vandalism": +0.15,
     },
     "friendly": {
-        "help":           +0.20,
+        "help": +0.20,
         "dialogue_casual": +0.10,
-        "quest":          +0.10,
+        "quest": +0.10,
     },
     "trustworthy": {
-        "quest":          +0.15,
-        "help":           +0.20,
-        "dialogue_key":   +0.10,
+        "quest": +0.15,
+        "help": +0.20,
+        "dialogue_key": +0.10,
     },
 }
 
@@ -81,10 +81,8 @@ def resolve(
     →      ({"tag": "hero", "confidence": 0.575, ...}, {"changed": True, ...})
     """
     # Защита от пустых данных — тихий баг без этого
-    tag        = (belief.get("tag") or "").lower()
-    event_type = (
-        new_event.get("type") or new_event.get("action_type") or ""
-    ).lower()
+    tag = (belief.get("tag") or "").lower()
+    event_type = (new_event.get("type") or new_event.get("action_type") or "").lower()
 
     if not tag or not event_type:
         return dict(belief), {"changed": False, "reason": "empty_input", "delta": 0.0}
@@ -94,9 +92,9 @@ def resolve(
     if current_tick - last_tick < COOLDOWN_TICKS and last_tick > 0:
         return dict(belief), {"changed": False, "reason": "cooldown", "delta": 0.0}
 
-    updated    = dict(belief)
+    updated = dict(belief)
     confidence = float(belief.get("confidence", 0.5))
-    intensity  = float(new_event.get("intensity", 1.0))
+    intensity = float(new_event.get("intensity", 1.0))
 
     # Точное совпадение приоритетнее подстроки.
     # Противоречие и подтверждение взаимоисключают друг друга за один тик.
@@ -134,11 +132,11 @@ def resolve(
     updated["confidence"] = round(confidence, 4)
 
     trace = {
-        "changed":    raw_delta is not None,
-        "reason":     reason,
-        "delta":      scaled_delta,
+        "changed": raw_delta is not None,
+        "reason": reason,
+        "delta": scaled_delta,
         "event_type": event_type,
-        "tag":        tag,
+        "tag": tag,
     }
     return updated, trace
 
@@ -154,5 +152,5 @@ def resolve_all(
     """
     results = [resolve(b, new_event, current_tick) for b in beliefs]
     updated = [r[0] for r in results]
-    traces  = [r[1] for r in results]
+    traces = [r[1] for r in results]
     return updated, traces

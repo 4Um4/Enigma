@@ -1,3 +1,4 @@
+from __future__ import annotations
 # backend\app\services\memory\memory_manager.py
 """
 R1.1 + R5.3 — MemoryManager.
@@ -7,7 +8,6 @@ TODO:
 
 """
 
-from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Tuple, Optional, TYPE_CHECKING
 
@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 
 from app.services.memory import LayeredMemory
 from app.services.memory.working_memory import WorkingMemory
-from app.services.memory.importance_engine import score_event, apply_decay
+from app.services.memory.importance_engine import score_event
 from app.core.constants import DECAY_EVERY
 from app.services.memory.relationship_store import RelationshipStore
 from app.services.memory.contradiction_resolver import resolve_all
@@ -64,7 +64,9 @@ class MemoryManager:
             self._dialogue_sessions[key] = DialogueSession(npc_id=npc_id)
         return self._dialogue_sessions[key]
 
-    def add_dialogue_turn(self, campaign_id: str, npc_id: str, speaker: str, text: str) -> None:
+    def add_dialogue_turn(
+        self, campaign_id: str, npc_id: str, speaker: str, text: str
+    ) -> None:
         """Добавляет реплику в STM конкретного NPC."""
         session = self.get_dialogue_session(campaign_id, npc_id)
         session.add(speaker, text)
@@ -78,7 +80,9 @@ class MemoryManager:
 
     def clear_all_dialogue_sessions(self, campaign_id: str) -> None:
         """Очищает все STM-сессии кампании — игрок ушёл из локации."""
-        keys_to_remove = [k for k in self._dialogue_sessions if k.startswith(f"{campaign_id}:")]
+        keys_to_remove = [
+            k for k in self._dialogue_sessions if k.startswith(f"{campaign_id}:")
+        ]
         for key in keys_to_remove:
             self._dialogue_sessions.pop(key)
 
@@ -110,7 +114,7 @@ class MemoryManager:
         spatial_query: Optional["SpatialQueryService"] = None,
     ) -> NPCState:
         """Принимает EventDTO, создаёт EventMemory, обновляет narrative_cache.
-        
+
         Заменяет прямые вызовы create_event_memory + ручную запись
         в narrative_cache из game_loop.py (нарушение 4.1.2).
         """
@@ -120,6 +124,7 @@ class MemoryManager:
         # 1. Clarity восприятия (расстояние, свет, стресс NPC)
         scene_state = payload.get("scene_state", {})
         from app.services.npc.perception_filter import _npc_distance
+
         distance = _npc_distance(npc_id, spatial_query)
         light_level = scene_state.get("environment", {}).get("light_level", "dim")
         npc_stress = payload.get("npc_stress", getattr(npc_state, "stress", 0.0))
@@ -145,9 +150,9 @@ class MemoryManager:
         if importance >= 0.90:
             decay_rate = 0.005  # Структурный шок
         elif importance > 0.6:
-            decay_rate = 0.03   # Значимая коррекция модели
+            decay_rate = 0.03  # Значимая коррекция модели
         else:
-            decay_rate = 0.05   # Предсказуемое событие
+            decay_rate = 0.05  # Предсказуемое событие
 
         # Этап 6: обязательства забываются медленнее (×0.4 от базового)
         _contract_tag_pending = payload.get("contract_tag", "")
@@ -157,10 +162,11 @@ class MemoryManager:
         # ADR-O-206: Causal Purity. Удаляем наивную классификацию на основе EmotionTag.
         # Семантическую окраску (угроза/социум/аномалия) определяет EventSemanticTagger ниже.
         # Оставляем только базовый механический тег.
-        _tags: list[str] = [event.type]  
+        _tags: list[str] = [event.type]
 
         # R8: EventSemanticTagger — социальный смысл события (изолирован от downstream)
         from app.services.memory.event_semantic_tagger import EventSemanticTagger
+
         _semantic_tags = EventSemanticTagger().tag(
             event_type=event.type,
             actor_id=event.source or "",
@@ -185,7 +191,9 @@ class MemoryManager:
             decay_rate=decay_rate,
             stage=MemoryStage.FRESH,
             # Сохраняем сырую реальность (raw_text), смысл кристаллизуется в LLM
-            summary=payload.get("summary") or payload.get("raw_input") or payload.get("content", ""),
+            summary=payload.get("summary")
+            or payload.get("raw_input")
+            or payload.get("content", ""),
             npc_id=npc_id,
             tags=tuple(_tags),
             is_secret=payload.get("is_secret", False),
@@ -256,7 +264,9 @@ class MemoryManager:
                 if not _mem.is_forgotten:
                     _result.append(_mem)
             except Exception as e:
-                logger.warning(f"[MEMORY] Failed to restore EventMemory for {npc_id}: {e}")
+                logger.warning(
+                    f"[MEMORY] Failed to restore EventMemory for {npc_id}: {e}"
+                )
 
         # Сортировка по importance и лимит — как в apply()
         _result.sort(key=lambda f: f.importance, reverse=True)
@@ -276,7 +286,9 @@ class MemoryManager:
             for turn in session.buffer:
                 speaker = "Игрок" if turn.speaker == "player" else turn.speaker
                 lines.append(f"{speaker}: {turn.text}")
-        logger.debug(f"[STM_READ] campaign={campaign_id} sessions={_session_count} total_turns={len(lines)} keys={list(self._dialogue_sessions.keys())}")
+        logger.debug(
+            f"[STM_READ] campaign={campaign_id} sessions={_session_count} total_turns={len(lines)} keys={list(self._dialogue_sessions.keys())}"
+        )
         return lines[-limit:]
 
     def get_dialogue_pressure(self, campaign_id: str, npc_id: str) -> int:
@@ -294,20 +306,19 @@ class MemoryManager:
     ) -> List[EventMemory]:
         """Секреты которые NPC помнит но не раскрыл caller."""
         return [
-            m for m in narrative_cache
-            if m.is_secret
-            and hidden_from_id in m.hidden_from
-            and not m.is_forgotten
+            m
+            for m in narrative_cache
+            if m.is_secret and hidden_from_id in m.hidden_from and not m.is_forgotten
         ]
 
     # ──────────────────────────────────────────────────────────────────────
     # Discovery — раскрытие секретов под давлением (Этап 5.2)
     # ──────────────────────────────────────────────────────────────────────
     _PRESSURE_STRENGTH: dict[str, float] = {
-        "physical": 0.45,     # пытки, избиение — самый сильный эффект
-        "threat": 0.35,       # прямая угроза
-        "intimidation": 0.20, # психологическое давление
-        "question": 0.02,     # нудные вопросы — почти ничего
+        "physical": 0.45,  # пытки, избиение — самый сильный эффект
+        "threat": 0.35,  # прямая угроза
+        "intimidation": 0.20,  # психологическое давление
+        "question": 0.02,  # нудные вопросы — почти ничего
     }
 
     def discovery_check(
@@ -334,7 +345,9 @@ class MemoryManager:
 
         resistance = memory.importance * 0.8
         trust_modifier = max(0.0, -npc_trust) * 0.15 if npc_trust < 0 else 0.0
-        stress_modifier = max(0.0, (npc_stress - 0.8)) * 0.15 if npc_stress > 0.8 else 0.0
+        stress_modifier = (
+            max(0.0, (npc_stress - 0.8)) * 0.15 if npc_stress > 0.8 else 0.0
+        )
 
         total = resistance + trust_modifier - strength - stress_modifier
 
@@ -402,7 +415,11 @@ class MemoryManager:
 
         alive = [m for m in narrative_cache if not m.is_forgotten]
         if hidden_from_id:
-            alive = [m for m in alive if not (m.is_secret and hidden_from_id in m.hidden_from)]
+            alive = [
+                m
+                for m in alive
+                if not (m.is_secret and hidden_from_id in m.hidden_from)
+            ]
         if not alive:
             return []
 
@@ -454,10 +471,9 @@ class MemoryManager:
 
         _filter = set(tag_filter) if tag_filter else CONTRACT_TAGS
         result = [
-            m for m in narrative_cache
-            if not m.is_forgotten
-            and not m.fulfilled
-            and _filter.intersection(m.tags)
+            m
+            for m in narrative_cache
+            if not m.is_forgotten and not m.fulfilled and _filter.intersection(m.tags)
         ]
         result.sort(key=lambda m: m.importance, reverse=True)
         return result
@@ -482,7 +498,7 @@ class MemoryManager:
 
         # Собираем ключи событий, которые были сжаты
         _removed_keys: set = set()
-        compressed_mems: list = []
+        compressed_mems: List[Any] = []
         for r in results:
             _removed_keys.update(r.removed_ids)
             compressed_mems.append(r.compressed)
@@ -490,8 +506,7 @@ class MemoryManager:
         # Строим новый кэш: не сжатые + сжатые абстракции
         # Ключ = sequence_id (EventMemory не имеет UUID)
         kept = [
-            m for m in narrative_cache
-            if f"seq_{m.sequence_id}" not in _removed_keys
+            m for m in narrative_cache if f"seq_{m.sequence_id}" not in _removed_keys
         ]
         new_cache = kept + compressed_mems
         new_cache.sort(key=lambda m: m.importance, reverse=True)
@@ -575,15 +590,15 @@ class MemoryManager:
             {
                 "world_id": world_id,
                 "location": location,
-                "actions":  actions,
-                "dm":       dm_text,
+                "actions": actions,
+                "dm": dm_text,
             },
         )
 
     # ──────────────────────────────────────────────────────────────────────
     # Основные методы записи (используются game_loop.py) — ЛЕГАСИ, мигрируют на apply()
     # ──────────────────────────────────────────────────────────────────────
-    
+
     def update_relationship(
         self,
         campaign_id: str,
@@ -649,7 +664,9 @@ class MemoryManager:
 
         # Старый формат: один буфер на кампанию
         if self._working.get(campaign_id):
-            all_weights.extend(self._working.apply_decay(campaign_id, game_days=game_days))
+            all_weights.extend(
+                self._working.apply_decay(campaign_id, game_days=game_days)
+            )
 
         # Новый формат: per-NPC буферы (campaign_id:npc_id)
         for key in self._working.get_keys_with_prefix(f"{campaign_id}:"):
@@ -658,11 +675,10 @@ class MemoryManager:
         self._tick_counters[campaign_id] = current_tick
         return all_weights
 
-
     def assess_beliefs(
         self,
-        campaign_id:  str,
-        npc_id:       str,
+        campaign_id: str,
+        npc_id: str,
         current_tick: int,
     ) -> List[Tuple["BeliefType", "BeliefFragment"]]:
         """
@@ -688,7 +704,6 @@ class MemoryManager:
         aggregator = CoherenceBeliefAggregator()
         return aggregator.assess(all_evidence, current_tick)
 
-
     def detect_resonance(
         self,
         campaign_id: str,
@@ -704,17 +719,17 @@ class MemoryManager:
             return []
 
         from app.models.npc_state import EventMemory as _EM
+
         em_events = [e for e in events if isinstance(e, _EM)]
 
         patterns = self._resonance.detect(em_events, actor_id=actor_id)
         return [(p.trait_name, p.trait_delta) for p in patterns]
 
-
     def apply_identity_weights(
         self,
         campaign_id: str,
-        npc_id:      str,
-        weights:     List[Tuple[str, float]],
+        npc_id: str,
+        weights: List[Tuple[str, float]],
     ) -> None:
         """
         Применяет trait-дельты из ResonanceEngine в identity_cache.
@@ -725,12 +740,11 @@ class MemoryManager:
         for trait, delta in weights:
             current = cache.get(trait, 0.0)
             cache[trait] = round(max(0.0, min(1.0, current + delta)), 4)
-                
 
     def get_identity_traits(
         self,
         campaign_id: str,
-        npc_id:      str,
+        npc_id: str,
     ) -> Dict[str, float]:
         """
         Возвращает накопленные черты NPC из identity_cache.
@@ -755,4 +769,4 @@ class MemoryManager:
         new_traits = engine.check_identity(current)
         if new_traits:
             self.apply_identity_weights(campaign_id, npc_id, new_traits)
-        return new_traits      
+        return new_traits

@@ -1,3 +1,4 @@
+from typing import Any, Dict, List, Optional
 """
 АРХИТЕКТУРНЫЙ ПРИНЦИП (Metaphysical Core ADR):
 Tick = causal spine (non-negotiable).
@@ -18,6 +19,7 @@ if rng.random() < 0.4: # deterministic for (42, "maid_lusya")
 Зависимости: stdlib (random, hashlib)
 Основные сущности: KernelRNG
 """
+
 import random
 import hashlib
 

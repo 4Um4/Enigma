@@ -9,6 +9,7 @@ path: /frontend/map_editor/undo_manager.py
 AddNodeCommand, RemoveNodeCommand, AddObjectCommand, RemoveObjectCommand,
 TogglePassabilityCommand, UndoManager.
 """
+
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
 from copy import deepcopy
@@ -16,6 +17,7 @@ from copy import deepcopy
 
 class Command:
     """Базовая команда для undo/redo — НЕ dataclass, чтобы не съедать первый позиционный аргумент наследников"""
+
     label: str = ""
 
     def do(self) -> Any:
@@ -28,6 +30,7 @@ class Command:
 @dataclass
 class AddWallCommand(Command):
     """Добавление стены"""
+
     dm: Any = None
     filename: str = ""
     x1: float = 0.0
@@ -43,8 +46,13 @@ class AddWallCommand(Command):
 
     def do(self) -> str:
         self.wall_id = self.dm.add_wall(
-            self.filename, self.x1, self.y1, self.x2, self.y2,
-            self.wall_type, self.thickness
+            self.filename,
+            self.x1,
+            self.y1,
+            self.x2,
+            self.y2,
+            self.wall_type,
+            self.thickness,
         )
         return self.wall_id
 
@@ -56,6 +64,7 @@ class AddWallCommand(Command):
 @dataclass
 class RemoveWallCommand(Command):
     """Удаление стены с сохранением данных для восстановления"""
+
     dm: Any = None
     filename: str = ""
     wall_data: Dict = field(default_factory=dict)
@@ -76,6 +85,7 @@ class RemoveWallCommand(Command):
 @dataclass
 class AddPassageCommand(Command):
     """Создание прохода в стене"""
+
     dm: Any = None
     filename: str = ""
     wall_id: str = ""
@@ -88,7 +98,8 @@ class AddPassageCommand(Command):
 
     def do(self) -> str:
         self.passage_id = self.dm.add_passage(
-            self.filename, self.wall_id, self.passage_type, self.position)
+            self.filename, self.wall_id, self.passage_type, self.position
+        )
         return self.passage_id
 
     def undo(self):
@@ -99,6 +110,7 @@ class AddPassageCommand(Command):
 @dataclass
 class RemovePassageCommand(Command):
     """Удаление прохода с сохранением данных для восстановления"""
+
     dm: Any = None
     filename: str = ""
     passage_data: Dict = field(default_factory=dict)
@@ -119,6 +131,7 @@ class RemovePassageCommand(Command):
 @dataclass
 class AddRoomCommand(Command):
     """Добавление комнаты"""
+
     dm: Any = None
     filename: str = ""
     name: str = ""
@@ -135,8 +148,14 @@ class AddRoomCommand(Command):
 
     def do(self) -> str:
         self.room_id = self.dm.add_room(
-            self.filename, self.name, self.x, self.y, self.width, self.height,
-            polygon=self.polygon, area_sqm=self.area_sqm
+            self.filename,
+            self.name,
+            self.x,
+            self.y,
+            self.width,
+            self.height,
+            polygon=self.polygon,
+            area_sqm=self.area_sqm,
         )
         return self.room_id
 
@@ -148,6 +167,7 @@ class AddRoomCommand(Command):
 @dataclass
 class RemoveRoomCommand(Command):
     """Удаление комнаты с сохранением данных для восстановления"""
+
     dm: Any = None
     filename: str = ""
     room_data: Dict = field(default_factory=dict)
@@ -168,6 +188,7 @@ class RemoveRoomCommand(Command):
 @dataclass
 class RenameCommand(Command):
     """Универсальное переименование сущности"""
+
     dm: Any = None
     filename: str = ""
     entity_type: str = ""  # "room", "object", "portal"
@@ -179,15 +200,20 @@ class RenameCommand(Command):
         self.label = "Переименовать"
 
     def do(self):
-        self.dm.rename_entity(self.filename, self.entity_type, self.entity_id, self.new_name)
+        self.dm.rename_entity(
+            self.filename, self.entity_type, self.entity_id, self.new_name
+        )
 
     def undo(self):
-        self.dm.rename_entity(self.filename, self.entity_type, self.entity_id, self.old_name)
+        self.dm.rename_entity(
+            self.filename, self.entity_type, self.entity_id, self.old_name
+        )
 
 
 @dataclass
 class AddLabelCommand(Command):
     """Создание надписи"""
+
     dm: Any = None
     filename: str = ""
     x: float = 0.0
@@ -210,6 +236,7 @@ class AddLabelCommand(Command):
 @dataclass
 class RemoveLabelCommand(Command):
     """Удаление надписи с сохранением для восстановления"""
+
     dm: Any = None
     filename: str = ""
     label_data: Dict = field(default_factory=dict)
@@ -230,6 +257,7 @@ class RemoveLabelCommand(Command):
 @dataclass
 class AddNpcCommand(Command):
     """Размещение NPC на локации"""
+
     dm: Any = None
     filename: str = ""
     ref_id: str = ""
@@ -242,7 +270,9 @@ class AddNpcCommand(Command):
         self.label = "Разместить NPC"
 
     def do(self) -> str:
-        self.npc_ref = self.dm.add_npc(self.filename, self.ref_id, self.x, self.y, self.room_id)
+        self.npc_ref = self.dm.add_npc(
+            self.filename, self.ref_id, self.x, self.y, self.room_id
+        )
         return self.npc_ref
 
     def undo(self):
@@ -253,6 +283,7 @@ class AddNpcCommand(Command):
 @dataclass
 class RemoveNpcCommand(Command):
     """Удаление NPC с сохранением для восстановления"""
+
     dm: Any = None
     filename: str = ""
     npc_data: Dict = field(default_factory=dict)
@@ -273,6 +304,7 @@ class RemoveNpcCommand(Command):
 @dataclass
 class AddNodeCommand(Command):
     """Добавление навигационного узла"""
+
     dm: Any = None
     filename: str = ""
     node_id: str = ""
@@ -295,6 +327,7 @@ class AddNodeCommand(Command):
 @dataclass
 class RemoveNodeCommand(Command):
     """Удаление узла с сохранением данных для восстановления"""
+
     dm: Any = None
     filename: str = ""
     node_id: str = ""
@@ -316,6 +349,7 @@ class RemoveNodeCommand(Command):
 @dataclass
 class AddObjectCommand(Command):
     """Добавление объекта (мебель, декор)"""
+
     dm: Any = None
     filename: str = ""
     obj_type: str = ""
@@ -332,8 +366,14 @@ class AddObjectCommand(Command):
 
     def do(self) -> str:
         self.obj_id = self.dm.add_object(
-            self.filename, self.obj_type, self.x, self.y,
-            self.width, self.height, self.rotation, self.wall_id
+            self.filename,
+            self.obj_type,
+            self.x,
+            self.y,
+            self.width,
+            self.height,
+            self.rotation,
+            self.wall_id,
         )
         return self.obj_id
 
@@ -345,6 +385,7 @@ class AddObjectCommand(Command):
 @dataclass
 class RemoveObjectCommand(Command):
     """Удаление объекта с сохранением данных для восстановления"""
+
     dm: Any = None
     filename: str = ""
     obj_id: str = ""
@@ -366,6 +407,7 @@ class RemoveObjectCommand(Command):
 @dataclass
 class RotateObjectCommand(Command):
     """Поворот объекта на заданный угол"""
+
     dm: Any = None
     filename: str = ""
     obj_id: str = ""
@@ -401,6 +443,7 @@ class RotateObjectCommand(Command):
 @dataclass
 class MirrorObjectCommand(Command):
     """Зеркальное отражение объекта (для дверей/окон в стенах)"""
+
     dm: Any = None
     filename: str = ""
     obj_id: str = ""
@@ -429,6 +472,7 @@ class MirrorObjectCommand(Command):
 @dataclass
 class MoveEntityCommand(Command):
     """Перемещение любой сущности (объект, стена, комната, узел, надпись)"""
+
     dm: Any = None
     filename: str = ""
     entity_type: str = ""
@@ -444,37 +488,55 @@ class MoveEntityCommand(Command):
     def _apply(self, dx: float, dy: float) -> None:
         loc = self.dm.locations[self.filename]
         if self.entity_type == "object":
-            obj = next((o for o in loc["objects"] if o.get("id") == self.entity_id), None)
+            obj = next(
+                (o for o in loc["objects"] if o.get("id") == self.entity_id), None
+            )
             if obj:
                 obj["position"]["x"] += dx
                 obj["position"]["y"] += dy
                 if self.drag_wall and obj.get("wall_id"):
-                    wall = next((w for w in loc["walls"] if w["id"] == obj["wall_id"]), None)
+                    wall = next(
+                        (w for w in loc["walls"] if w["id"] == obj["wall_id"]), None
+                    )
                     if wall:
-                        wall["x1"] += dx; wall["y1"] += dy
-                        wall["x2"] += dx; wall["y2"] += dy
+                        wall["x1"] += dx
+                        wall["y1"] += dy
+                        wall["x2"] += dx
+                        wall["y2"] += dy
         elif self.entity_type == "wall":
             wall = next((w for w in loc["walls"] if w["id"] == self.entity_id), None)
             if wall:
-                wall["x1"] += dx; wall["y1"] += dy
-                wall["x2"] += dx; wall["y2"] += dy
+                wall["x1"] += dx
+                wall["y1"] += dy
+                wall["x2"] += dx
+                wall["y2"] += dy
         elif self.entity_type == "room":
             room = next((r for r in loc["rooms"] if r["id"] == self.entity_id), None)
             if room:
-                room["x"] += dx; room["y"] += dy
+                room["x"] += dx
+                room["y"] += dy
                 if "polygon" in room:
                     for p in room["polygon"]:
-                        p[0] += dx; p[1] += dy
+                        p[0] += dx
+                        p[1] += dy
         elif self.entity_type == "node":
             node = loc["nodes"].get(self.entity_id)
             if node:
-                node["x"] += dx; node["y"] += dy
+                node["x"] += dx
+                node["y"] += dy
         elif self.entity_type == "label":
-            lbl = next((l for l in loc.get("labels", []) if l.get("id") == self.entity_id), None)
+            lbl = next(
+                (l for l in loc.get("labels", []) if l.get("id") == self.entity_id),  # noqa: E741
+                None,
+            )
             if lbl:
-                lbl["x"] += dx; lbl["y"] += dy
+                lbl["x"] += dx
+                lbl["y"] += dy
         elif self.entity_type == "npc":
-            npc = next((n for n in loc.get("npcs", []) if n.get("ref_id") == self.entity_id), None)
+            npc = next(
+                (n for n in loc.get("npcs", []) if n.get("ref_id") == self.entity_id),
+                None,
+            )
             if npc:
                 npc["position"]["x"] += dx
                 npc["position"]["y"] += dy
@@ -495,6 +557,7 @@ class MoveEntityCommand(Command):
 @dataclass
 class ResizeObjectCommand(Command):
     """Изменение размера объекта"""
+
     dm: Any = None
     filename: str = ""
     obj_id: str = ""
@@ -528,6 +591,7 @@ class ResizeObjectCommand(Command):
 @dataclass
 class PasteCommand(Command):
     """Вставка объектов и стен из буфера обмена"""
+
     dm: Any = None
     filename: str = ""
     walls: List[Dict] = field(default_factory=list)
@@ -543,16 +607,25 @@ class PasteCommand(Command):
         for wall in self.walls:
             wid = self.dm.add_wall(
                 self.filename,
-                wall["x1"], wall["y1"], wall["x2"], wall["y2"],
-                wall.get("type", "wall"), wall.get("thickness", 0.2))
+                wall["x1"],
+                wall["y1"],
+                wall["x2"],
+                wall["y2"],
+                wall.get("type", "wall"),
+                wall.get("thickness", 0.2),
+            )
             self.wall_ids.append(wid)
         self.obj_ids.clear()
         for obj in self.objects:
             oid = self.dm.add_object(
-                self.filename, obj["type"],
-                obj["position"]["x"], obj["position"]["y"],
-                obj["size"]["w"], obj["size"]["h"],
-                obj.get("rotation", 0))
+                self.filename,
+                obj["type"],
+                obj["position"]["x"],
+                obj["position"]["y"],
+                obj["size"]["w"],
+                obj["size"]["h"],
+                obj.get("rotation", 0),
+            )
             self.obj_ids.append(oid)
 
     def undo(self):
@@ -565,6 +638,7 @@ class PasteCommand(Command):
 @dataclass
 class TogglePassabilityCommand(Command):
     """Переключение флага проходимости объекта"""
+
     dm: Any = None
     filename: str = ""
     obj_id: str = ""

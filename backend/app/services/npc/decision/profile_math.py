@@ -1,3 +1,4 @@
+from typing import Any, Dict, List, Optional
 # backend/app/services/npc/decision/profile_math.py
 """
 R2: Общая математика профилей личности.
@@ -14,11 +15,11 @@ NPC должны иметь характерные диапазоны повед
 """
 
 # ── Фундаментальные константы системы ──
-NEUTRAL_DRIVE = 0.25       # Точка равновесия: при этом значении multiplier = 1.0
-MIN_MULTIPLIER = 0.2       # Пол: даже drive=0.0 даёт 20% от полной реакции
-GAME_NORMAL = 0.35         # Игровая нормаль: аттрактор, к которому тянутся drives
+NEUTRAL_DRIVE = 0.25  # Точка равновесия: при этом значении multiplier = 1.0
+MIN_MULTIPLIER = 0.2  # Пол: даже drive=0.0 даёт 20% от полной реакции
+GAME_NORMAL = 0.35  # Игровая нормаль: аттрактор, к которому тянутся drives
 ATTRACTOR_STRENGTH = 0.25  # Сила притяжения к игровой нормали (0=нет, 1=полный)
-POWER_ALPHA = 1.35         # Нелинейность: >1 = усилена разница с центром
+POWER_ALPHA = 1.35  # Нелинейность: >1 = усилена разница с центром
 
 # Clamp для отношений drive-множителей
 RATIO_FLOOR = 0.3
@@ -40,7 +41,7 @@ def _shape_drive(drive: float) -> float:
         return NEUTRAL_DRIVE + (1.0 - NEUTRAL_DRIVE) * (excess ** (1.0 / POWER_ALPHA))
     elif d < NEUTRAL_DRIVE:
         deficit = (NEUTRAL_DRIVE - d) / NEUTRAL_DRIVE
-        return NEUTRAL_DRIVE * (1.0 - deficit ** POWER_ALPHA)
+        return NEUTRAL_DRIVE * (1.0 - deficit**POWER_ALPHA)
     else:
         return NEUTRAL_DRIVE
 

@@ -17,7 +17,7 @@ path: /backend/app/models/social.py
 """
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 
 @dataclass
@@ -29,14 +29,15 @@ class Relationship:
     runtime_*_delta — мутируют в процессе игры через adjust_*()
     effective_* — вычисляемое свойство (base + delta, с капом [-1..1])
     """
-    nature: str                    # "employer_employee", "business_partner", "handler_agent"
-    base_trust: float              # из config, [-1..1]
-    base_affection: float          # из config, [-1..1]
+
+    nature: str  # "employer_employee", "business_partner", "handler_agent"
+    base_trust: float  # из config, [-1..1]
+    base_affection: float  # из config, [-1..1]
     runtime_trust_delta: float = 0.0
     runtime_affection_delta: float = 0.0
-    fear: float = 0.0              # страх target перед source
-    debt: float = 0.0              # долг target перед source
-    shared_secrets: int = 0        # количество общих секретов
+    fear: float = 0.0  # страх target перед source
+    debt: float = 0.0  # долг target перед source
+    shared_secrets: int = 0  # количество общих секретов
 
     @property
     def effective_trust(self) -> float:
@@ -83,14 +84,15 @@ class Rumor:
     LLM НЕ видит этот объект.
     DM видит только continuity_note из PropagationResult.
     """
-    origin_event_type: str         # "player_attacks", "player_insults"
-    origin_target: str             # npc_id цели события
-    origin_actor: str              # обычно "player"
-    base_intensity: float          # оригинальная интенсивность события
-    perceived_intensity: float     # после искажения (decay + trust bias)
-    hop: int                       # хопов от первоисточника (1 = от свидетеля)
-    carrier: str                   # npc_id того, кто передал слух
-    distortion_applied: float      # разница decayed vs perceived (для debug)
+
+    origin_event_type: str  # "player_attacks", "player_insults"
+    origin_target: str  # npc_id цели события
+    origin_actor: str  # обычно "player"
+    base_intensity: float  # оригинальная интенсивность события
+    perceived_intensity: float  # после искажения (decay + trust bias)
+    hop: int  # хопов от первоисточника (1 = от свидетеля)
+    carrier: str  # npc_id того, кто передал слух
+    distortion_applied: float  # разница decayed vs perceived (для debug)
 
 
 @dataclass(frozen=True)
@@ -102,8 +104,9 @@ class PropagationResult:
     НЕ применяется внутри SocialEngine — возвращается вызывающему коду (game_loop).
     Вызывающий решает: применить trust_delta через StateApplicator или игнорировать.
     """
+
     npc_id: str
-    trust_delta: float             # изменение доверия NPC→actor (~0.02-0.08)
-    stress_delta: float            # стресс от услышанного (только негативные)
-    rumor: Rumor                   # полный слух для debug/logging
-    continuity_note: str           # factual строка для SceneContinuity (без эмоций)
+    trust_delta: float  # изменение доверия NPC→actor (~0.02-0.08)
+    stress_delta: float  # стресс от услышанного (только негативные)
+    rumor: Rumor  # полный слух для debug/logging
+    continuity_note: str  # factual строка для SceneContinuity (без эмоций)

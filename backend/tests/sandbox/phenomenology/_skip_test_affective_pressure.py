@@ -14,10 +14,10 @@ TODO:
 
 import pytest
 from app.models.affect import AffectivePressureDTO
-from app.models.npc_state import PerceptualKernel
 from app.models.delta_payloads import EmotionPayload
-from app.services.affective.pressure_derivation import derive_affective_pressure
+from app.models.npc_state import PerceptualKernel
 from app.services.affective.emotion_resolution import resolve_emotion_from_pressure
+from app.services.affective.pressure_derivation import derive_affective_pressure
 
 
 class TestPressureDerivation:
@@ -73,10 +73,7 @@ class TestAffectivePipelineIntegration:
 
     def test_broken_will_leads_to_panic(self):
         kernel = PerceptualKernel(
-            threat_gradient=0.9,
-            anomaly_score=0.3,
-            compliance_bias=0.8,
-            aggression_inhibition=0.9
+            threat_gradient=0.9, anomaly_score=0.3, compliance_bias=0.8, aggression_inhibition=0.9
         )
         body = {"pain": 80.0, "fatigue": 70.0}
         psyche = {"fear": 0.9, "willpower": 0.1}

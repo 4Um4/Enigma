@@ -1,3 +1,4 @@
+from __future__ import annotations
 # backend/app/services/npc/role_transition.py
 """
 RoleTransition — валидация и выполнение смены профессии NPC.
@@ -20,13 +21,12 @@ path: /project/backend/app/services/npc/role_transition.py
 - SocialGraph обновляется ВЫЗЫВАЮЩИМ кодом (game_loop), не здесь
 """
 
-from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Any, Optional
+from typing import List, Dict, Any, Optional
 
 from app.models.npc_state import NPCState, RoleChangeEntry
 
@@ -38,6 +38,7 @@ _CONFIG_NPC_ROOT = Path("config/npc")
 
 class TransitionDenied(Enum):
     """Причины отказа в смене роли."""
+
     ARCHETYPE_NOT_FOUND = "archetype_not_found"
     SAME_ROLE = "same_role"
     STRESS_TOO_HIGH = "stress_too_high"
@@ -49,6 +50,7 @@ class TransitionDenied(Enum):
 @dataclass
 class TransitionResult:
     """Результат попытки смены роли."""
+
     success: bool
     from_role: str
     to_role: str
@@ -59,7 +61,7 @@ class TransitionResult:
 class RoleTransition:
     """
     Валидация и выполнение смены профессии NPC.
-    
+
     Правила (базовые, будут расширены):
     1. Целевой archetype должен существовать в config/npc/archetypes/
     2. Нельзя сменить на ту же роль
@@ -82,12 +84,12 @@ class RoleTransition:
     ) -> TransitionResult:
         """
         Проверяет возможность смены роли. НЕ меняет состояние.
-        
+
         Args:
             state: Текущее состояние NPC
             target_role: Имя целевого archetype (например "mercenary")
             reason: Причина смены (для CausalLedger)
-            
+
         Returns:
             TransitionResult с success=True если переход возможен
         """
@@ -171,14 +173,14 @@ class RoleTransition:
     ) -> TransitionResult:
         """
         Выполняет смену роли. Возвращает новый NPCState (иммутабельный контракт).
-        
+
         Args:
             state: Текущее состояние NPC (не модифицируется)
             target_role: Имя целевого archetype
             reason: Причина для CausalLedger
             tick: Текущий тик мира
             economic_profile: Опционально — для проверки и списания стоимости
-            
+
         Returns:
             TransitionResult — при успехе вызывающий код должен заменить state
         """
@@ -188,7 +190,9 @@ class RoleTransition:
             return check
 
         # Списание стоимости (Фаза 4-ROLE.3)
-        if economic_profile is not None and economic_profile.can_afford(self.TRANSITION_COST):
+        if economic_profile is not None and economic_profile.can_afford(
+            self.TRANSITION_COST
+        ):
             economic_profile.spend(self.TRANSITION_COST)
             logger.info(
                 f"[ROLE] {state.npc_id}: списано {self.TRANSITION_COST}G за смену роли"
@@ -201,7 +205,7 @@ class RoleTransition:
             tick=tick,
             reason=reason,
         )
-        
+
         # Создаём обновлённый state (иммутабельный контракт)
         # role_history — новый список с добавленной записью
         new_history = list(state.role_history)
@@ -212,6 +216,7 @@ class RoleTransition:
 
         # Обновляем состояние через dataclass replace
         from dataclasses import replace
+
         new_state = replace(
             state,
             current_role=target_role,

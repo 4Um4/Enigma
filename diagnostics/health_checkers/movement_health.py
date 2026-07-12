@@ -14,18 +14,21 @@ from typing import Dict, List, Optional
 @dataclass
 class NPCMovementState:
     """Состояние движения одного NPC за сессию."""
+
     npc_id: str
-    last_intent: str = "?"           # последний Intent из DECISION_HUB
+    last_intent: str = "?"  # последний Intent из DECISION_HUB
     last_score: float = 0.0
-    last_event: str = "?"            # событие, породившее решение
-    stress: float = 0.0              # последний stress из STATE_APPLIED
-    has_traversal: bool = False      # видели [TRAVERSAL] Start для этого NPC
-    traversal_node: str = ""         # целевой узел
-    node_not_found: bool = False     # был [MOVEMENT_ENGINE] Узел не найден
-    missing_node: str = ""           # имя пропавшего узла
-    coord_x: Optional[float] = None  # из последнего DEBUG SPATIAL (если будет отдельный снапшот)
+    last_event: str = "?"  # событие, породившее решение
+    stress: float = 0.0  # последний stress из STATE_APPLIED
+    has_traversal: bool = False  # видели [TRAVERSAL] Start для этого NPC
+    traversal_node: str = ""  # целевой узел
+    node_not_found: bool = False  # был [MOVEMENT_ENGINE] Узел не найден
+    missing_node: str = ""  # имя пропавшего узла
+    coord_x: Optional[float] = (
+        None  # из последнего DEBUG SPATIAL (если будет отдельный снапшот)
+    )
     coord_y: Optional[float] = None
-    perception_visible: bool = False # попал в PERCEPTION_FILTER (близко к игроку)
+    perception_visible: bool = False  # попал в PERCEPTION_FILTER (близко к игроку)
 
     def status_icon(self) -> str:
         """Быстрая читаемая оценка для таблицы."""
@@ -46,17 +49,26 @@ class NPCMovementState:
 @dataclass
 class MovementHealthReport:
     """Итоговый срез движения всех NPC."""
+
     npcs: Dict[str, NPCMovementState] = field(default_factory=dict)
-    spatial_fallback_triggered: bool = False   # location_templates.json недоступен
-    editor_json_locations: List[str] = field(default_factory=list)  # editor JSON найден — реальный граф
-    graph_fallback_locations: List[str] = field(default_factory=list)  # fallback-граф использовался
+    spatial_fallback_triggered: bool = False  # location_templates.json недоступен
+    editor_json_locations: List[str] = field(
+        default_factory=list
+    )  # editor JSON найден — реальный граф
+    graph_fallback_locations: List[str] = field(
+        default_factory=list
+    )  # fallback-граф использовался
     total_node_not_found: int = 0
 
     def get_broken_npcs(self) -> List[str]:
         """NPC у которых есть intent но нет traversal и нет координат."""
         broken = []
         for npc_id, s in self.npcs.items():
-            if s.last_intent not in ("IDLE", "?") and not s.has_traversal and s.coord_x is None:
+            if (
+                s.last_intent not in ("IDLE", "?")
+                and not s.has_traversal
+                and s.coord_x is None
+            ):
                 broken.append(npc_id)
         return broken
 
@@ -64,10 +76,16 @@ class MovementHealthReport:
         """Рендерит markdown-таблицу для LAST_SESSION.md."""
         if not self.npcs:
             return "_Нет данных по NPC_"
-        rows = ["| NPC | Intent | Score | Traversal | Координаты | Виден игроку |",
-                "|-----|--------|-------|-----------|------------|--------------|"]
+        rows = [
+            "| NPC | Intent | Score | Traversal | Координаты | Виден игроку |",
+            "|-----|--------|-------|-----------|------------|--------------|",
+        ]
         for npc_id, s in sorted(self.npcs.items()):
-            traversal = "✅" if s.has_traversal else ("❌ узел не найден" if s.node_not_found else "❌")
+            traversal = (
+                "✅"
+                if s.has_traversal
+                else ("❌ узел не найден" if s.node_not_found else "❌")
+            )
             visible = "✅" if s.perception_visible else "❌"
             rows.append(
                 f"| {npc_id} | {s.last_intent} | {s.last_score:.3f} | "
@@ -89,7 +107,9 @@ class MovementHealthChecker:
             self._report.npcs[npc_id] = NPCMovementState(npc_id=npc_id)
         return self._report.npcs[npc_id]
 
-    def on_decision_hub(self, npc_id: str, intent: str, score: float, event: str) -> None:
+    def on_decision_hub(
+        self, npc_id: str, intent: str, score: float, event: str
+    ) -> None:
         npc = self._get_npc(npc_id)
         npc.last_intent = intent
         npc.last_score = score

@@ -6,12 +6,9 @@ test_game_loop_pipeline.py — базовая фиксация работосп�
 и возвращает _PipelineState с корректным shared_context.
 """
 
-import asyncio
-from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-
 from app.services.game_loop import GameLoop, _PipelineState
 
 
@@ -45,18 +42,18 @@ def game_loop(mock_deps):
     """Создает GameLoop с замоканными зависимостями."""
     (mock_deps["data_dir"]).mkdir(parents=True, exist_ok=True)
     (mock_deps["saves_dir"]).mkdir(parents=True, exist_ok=True)
-    
+
     return GameLoop(**mock_deps)
 
 
 @pytest.mark.anyio
 async def test_run_pipeline_returns_pipeline_state(game_loop):
     """Базовый тест: _run_pipeline должен завершиться и вернуть _PipelineState."""
-    
+
     # Патчим settings, чтобы не падать на конфиге world_tick_minutes
     with patch("app.services.game_loop.settings") as mock_settings:
         mock_settings.world_tick_minutes = 10
-        
+
         _mock_action = MagicMock(player_name="TestPlayer", raw_text="осмотреться")
         result = await game_loop._run_pipeline(
             actions=[_mock_action],
@@ -66,14 +63,15 @@ async def test_run_pipeline_returns_pipeline_state(game_loop):
             campaign_state={},
             is_session_start=False,
         )
-    
+
     # Проверки
     assert isinstance(result, _PipelineState), "Должен возвращать _PipelineState"
-    
+
     # ФИКСАЦИЯ: shared_context теперь строго типизированный dataclass
     from app.models.pipeline_context import PipelineContext
+
     assert isinstance(result.shared_context, PipelineContext), "Должен быть PipelineContext"
-    
+
     # Доступ через атрибуты, а не через ключи
     assert result.shared_context.campaign_id == "test_campaign"
     assert result.shared_context.scene_state is not None

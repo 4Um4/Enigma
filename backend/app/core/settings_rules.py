@@ -19,7 +19,9 @@ class RulesSettings(Settings):
     ctx_size: int = 8192
     repeat_penalty: float = 1.12
 
-    rules_model_path: Path = MODELS_DIR / "Qwen2.5-7B-Instruct-abliterated-v2.Q5_K_M.gguf"
+    rules_model_path: Path = (
+        MODELS_DIR / "Qwen2.5-7B-Instruct-abliterated-v2.Q5_K_M.gguf"
+    )
 
 
 llama_cpp_server_url: str = "http://127.0.0.1:8080"

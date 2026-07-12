@@ -5,12 +5,13 @@ OUTSIDE kernel. Kernel does NOT know perception.
 Зависимости: app.services.perception.behavior_manifestation_service,
 app.services.perception.phenomenology_projection_service
 """
-
 from __future__ import annotations
+
 import logging
-from typing import Any, Optional
+from typing import List, Dict, Any
 
 logger = logging.getLogger(__name__)
+
 
 class PerceptionProjector:
     """Reads state_t+1, builds perception. OUTSIDE kernel.
@@ -20,15 +21,20 @@ class PerceptionProjector:
     """
 
     def __init__(self):
-        from app.services.perception.behavior_manifestation_service import BehaviorManifestationService
-        from app.services.perception.phenomenology_projection_service import PhenomenologyProjectionService
+        from app.services.perception.behavior_manifestation_service import (
+            BehaviorManifestationService,
+        )
+        from app.services.perception.phenomenology_projection_service import (
+            PhenomenologyProjectionService,
+        )
+
         self._manifest_svc = BehaviorManifestationService()
         self._project_svc = PhenomenologyProjectionService()
 
     def project(
         self,
-        scene_state: dict,
-        all_npcs_raw: list,
+        scene_state: Dict[str, Any],
+        all_npcs_raw: List[Any],
         tick: int,
     ) -> Any:
         """Build perception from state_t+1.
@@ -38,11 +44,15 @@ class PerceptionProjector:
         try:
             if not scene_state or not all_npcs_raw:
                 return None
-                
+
             # Rule X: Моторные следы строятся строго из физиологии и PerceptualKernel
-            _traces = self._manifest_svc.produce_traces(scene_state, all_npcs_raw=all_npcs_raw)
-            _player_perception = self._project_svc.project(_traces, scene_state, tick=tick)
-            
+            _traces = self._manifest_svc.produce_traces(
+                scene_state, all_npcs_raw=all_npcs_raw
+            )
+            _player_perception = self._project_svc.project(
+                _traces, scene_state, tick=tick
+            )
+
             return _player_perception
         except Exception as e:
             logger.warning(f"[PERCEPTION_PROJECTOR] failed: {e}")

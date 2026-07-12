@@ -62,12 +62,14 @@ class ReportRenderer:
 
     def _section_red_invariants(self) -> str:
         if not self._invariant_violations:
-            return ("## 🟢 КРАСНЫЕ ИНВАРИАНТЫ — ТИХИЕ ДЕГРАДАЦИИ\n\n"
-                    "_Не обнаружено — игра жива._\n\n"
-                    "**Источники проверки:**\n"
-                    "- Runtime: `SimulationIntegrityError` в pipeline (не сработал)\n"
-                    "- Post-mortem: `InvariantHealthChecker` в CausalObserver (не нашёл)\n"
-                    "- Слой ДО: `python backend/tests/IPT.py` (запускается LLM до коммита)")
+            return (
+                "## 🟢 КРАСНЫЕ ИНВАРИАНТЫ — ТИХИЕ ДЕГРАДАЦИИ\n\n"
+                "_Не обнаружено — игра жива._\n\n"
+                "**Источники проверки:**\n"
+                "- Runtime: `SimulationIntegrityError` в pipeline (не сработал)\n"
+                "- Post-mortem: `InvariantHealthChecker` в CausalObserver (не нашёл)\n"
+                "- Слой ДО: `python backend/tests/IPT.py` (запускается LLM до коммита)"
+            )
 
         critical = [v for v in self._invariant_violations if v.severity == "CRITICAL"]
         warnings = [v for v in self._invariant_violations if v.severity == "WARNING"]
@@ -91,10 +93,12 @@ class ReportRenderer:
         if v.powershell_check:
             ps_block = f"\n\n**PowerShell для проверки:**\n```powershell\n{v.powershell_check}\n```"
 
-        return (f"#### {source_icon} {v.invariant_id} [{v.source}]\n\n"
-                f"**Симптом:** {v.message}\n\n"
-                f"**Подозреваемые файлы (проверить в порядке очерёдности):**\n"
-                f"{files_block}{ps_block}")
+        return (
+            f"#### {source_icon} {v.invariant_id} [{v.source}]\n\n"
+            f"**Симптом:** {v.message}\n\n"
+            f"**Подозреваемые файлы (проверить в порядке очерёдности):**\n"
+            f"{files_block}{ps_block}"
+        )
 
     def _render(self) -> str:
         ts = self._started_at.strftime("%Y-%m-%d %H:%M")
@@ -116,7 +120,7 @@ class ReportRenderer:
         try:
             snap = self._dna.compute()
             prev = self._dna.load_previous()
-            self._dna.save(snap)   # пишем ПОСЛЕ load_previous
+            self._dna.save(snap)  # пишем ПОСЛЕ load_previous
             delta = self._dna.compute_delta(snap, prev)
             return self._dna.render_section(snap, delta)
         except Exception as exc:
@@ -142,15 +146,23 @@ class ReportRenderer:
 ---"""
 
     def _section_architect1(self) -> str:
-        commits = "\n".join(f"  - {c}" for c in self._git.recent_commits) or "  - (нет данных)"
-        mutations = "\n".join(f"  - {m}" for m in self._git.mutations_last) or "  - (нет данных)"
-        todos = "\n".join(f"  - {f}" for f in self._git.todo_files) or "  - (не найдено)"
+        commits = (
+            "\n".join(f"  - {c}" for c in self._git.recent_commits)
+            or "  - (нет данных)"
+        )
+        mutations = (
+            "\n".join(f"  - {m}" for m in self._git.mutations_last)
+            or "  - (нет данных)"
+        )
+        todos = (
+            "\n".join(f"  - {f}" for f in self._git.todo_files) or "  - (не найдено)"
+        )
 
         spatial_warn = ""
         if self._movement.spatial_fallback_triggered:
             spatial_warn = (
                 "\n- **[КРИТИЧНО]** `location_templates.json` недоступен — используется builtin fallback\n"
-                "  Проверка: `python -c \"from app.services.scene.scene_state_manager import *; "
+                '  Проверка: `python -c "from app.services.scene.scene_state_manager import *; '
                 "print('ok')\"`"
             )
 
@@ -160,8 +172,8 @@ class ReportRenderer:
                 node_warn += (
                     f"\n- **[КРИТИЧНО]** NPC `{npc_id}`: узел `{s.missing_node}` не найден в графе\n"
                     f"  PowerShell: "
-                    f"`Select-String -Path \"backend/app/services/spatial/*.py\" "
-                    f"-Pattern \"{s.missing_node}\"`"
+                    f'`Select-String -Path "backend/app/services/spatial/*.py" '
+                    f'-Pattern "{s.missing_node}"`'
                 )
 
         return f"""\
@@ -186,20 +198,32 @@ class ReportRenderer:
 
     def _section_architect2(self) -> str:
         # Данные рендеринга — координаты NPC из movement_report
-        npc_with_coords = [(npc_id, s) for npc_id, s in self._movement.npcs.items()
-                           if s.coord_x is not None]
-        npc_no_coords = [(npc_id, s) for npc_id, s in self._movement.npcs.items()
-                         if s.coord_x is None]
+        npc_with_coords = [
+            (npc_id, s)
+            for npc_id, s in self._movement.npcs.items()
+            if s.coord_x is not None
+        ]
+        npc_no_coords = [
+            (npc_id, s)
+            for npc_id, s in self._movement.npcs.items()
+            if s.coord_x is None
+        ]
 
-        coords_lines = "\n".join(
-            f"  - `{npc_id}`: x={s.coord_x:.1f} y={s.coord_y:.1f}"
-            for npc_id, s in npc_with_coords
-        ) or "  - _(нет данных о координатах — SNAPSHOT-паттерн не сработал)_"
+        coords_lines = (
+            "\n".join(
+                f"  - `{npc_id}`: x={s.coord_x:.1f} y={s.coord_y:.1f}"
+                for npc_id, s in npc_with_coords
+            )
+            or "  - _(нет данных о координатах — SNAPSHOT-паттерн не сработал)_"
+        )
 
-        no_coords_lines = "\n".join(
-            f"  - `{npc_id}` (intent={s.last_intent})"
-            for npc_id, s in npc_no_coords
-        ) or "  - _(нет)_"
+        no_coords_lines = (
+            "\n".join(
+                f"  - `{npc_id}` (intent={s.last_intent})"
+                for npc_id, s in npc_no_coords
+            )
+            or "  - _(нет)_"
+        )
 
         graph_fallbacks = ", ".join(self._movement.graph_fallback_locations) or "нет"
 
@@ -233,11 +257,14 @@ _(см. секции #1 и #3 — файлы backend/app/services/)_
 
         # Broken NPC (intent есть, traversal нет)
         broken = self._movement.get_broken_npcs()
-        broken_lines = "\n".join(
-            f"  - `{npc_id}`: intent={self._movement.npcs[npc_id].last_intent}, "
-            f"traversal=❌, coords=None"
-            for npc_id in broken
-        ) or "  - _(нет разрывов в movement pipeline)_"
+        broken_lines = (
+            "\n".join(
+                f"  - `{npc_id}`: intent={self._movement.npcs[npc_id].last_intent}, "
+                f"traversal=❌, coords=None"
+                for npc_id in broken
+            )
+            or "  - _(нет разрывов в movement pipeline)_"
+        )
 
         # Warnings из tick-чекера
         warnings = "\n".join(f"  - ⚠️ {w}" for w in tick.warnings) or "  - _(нет)_"
@@ -249,8 +276,8 @@ _(см. секции #1 и #3 — файлы backend/app/services/)_
                 "#### [BREAK-1] Симуляция заморожена\n"
                 "**Симптом:** все тики вернули 0 decisions\n"
                 "**Файл для проверки:** `backend/app/services/npc/decision_hub.py`\n"
-                "**PowerShell:** `Select-String -Path \"backend/app/services/npc/decision_hub.py\" "
-                "-Pattern \"def compute\"`"
+                '**PowerShell:** `Select-String -Path "backend/app/services/npc/decision_hub.py" '
+                '-Pattern "def compute"`'
             )
         if self._movement.spatial_fallback_triggered:
             causal_breaks.append(
@@ -259,7 +286,7 @@ _(см. секции #1 и #3 — файлы backend/app/services/)_
                 "**Цепь отказа:**\n"
                 "  load_editor_json → fallback → builtin граф → узлы могут не совпадать с данными NPC\n"
                 "**PowerShell:** "
-                "`Select-String -Path \"backend/app/services/spatial/*.py\" -Pattern \"fallback\"`"
+                '`Select-String -Path "backend/app/services/spatial/*.py" -Pattern "fallback"`'
             )
         for npc_id, s in self._movement.npcs.items():
             if s.node_not_found:
@@ -270,11 +297,15 @@ _(см. секции #1 и #3 — файлы backend/app/services/)_
                     f"  DECISION_HUB → SceneChange создан → MovementEngine.get_node('{s.missing_node}') → None\n"
                     f"  → traversal не создан → координаты None → lerp не работает\n"
                     f"**PowerShell:** "
-                    f"`Select-String -Path \"backend/app/services/spatial/graph_compiler.py\" "
-                    f"-Pattern \"{s.missing_node}\"`"
+                    f'`Select-String -Path "backend/app/services/spatial/graph_compiler.py" '
+                    f'-Pattern "{s.missing_node}"`'
                 )
 
-        breaks_text = "\n\n".join(causal_breaks) if causal_breaks else "_Каузальных разрывов не обнаружено_"
+        breaks_text = (
+            "\n\n".join(causal_breaks)
+            if causal_breaks
+            else "_Каузальных разрывов не обнаружено_"
+        )
 
         return f"""\
 ## #3 — АРХИТЕКТОР СИМУЛЯЦИИ (NPC, тики, давление, решения)

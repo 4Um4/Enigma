@@ -1,3 +1,4 @@
+from __future__ import annotations
 # backend/app/services/npc/belief_transition_engine.py
 """
 Write-path эпистемического слоя.
@@ -12,10 +13,9 @@ Write-path эпистемического слоя.
     DecisionHub.compute(...)         ← решение
 """
 
-from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
+from typing import List, Dict, Any, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from app.models.npc_state import NPCState
@@ -36,16 +36,26 @@ _BELIEF_INERTIA: float = 0.70
 _HOSTILITY_INERTIA: float = 0.75
 
 # Типы событий → рост угрозы
-_THREAT_TYPES: frozenset = frozenset({
-    "player_attacks", "player_threatens", "player_cast_spell",
-    "weapon_drawn", "combat_started",
-})
+_THREAT_TYPES: frozenset = frozenset(
+    {
+        "player_attacks",
+        "player_threatens",
+        "player_cast_spell",
+        "weapon_drawn",
+        "combat_started",
+    }
+)
 
 # Типы событий → снижение угрозы (медленнее роста)
-_SAFE_TYPES: frozenset = frozenset({
-    "player_interacts", "player_helps", "player_trades",
-    "idle", "npc_greets",
-})
+_SAFE_TYPES: frozenset = frozenset(
+    {
+        "player_interacts",
+        "player_helps",
+        "player_trades",
+        "idle",
+        "npc_greets",
+    }
+)
 
 
 # WRITE PATH 1/2: BeliefTransitionEngine → BeliefState
@@ -85,13 +95,19 @@ class BeliefTransitionEngine:
         distance_factor = max(0.1, 1.0 - event.distance * _DISTANCE_DECAY_K)
         base_signal = round(event.intensity * distance_factor, 4)
 
-        self._update_danger(state, event_type_str, base_signal,
-                            event.visible_threat_markers, current_tick)
+        self._update_danger(
+            state,
+            event_type_str,
+            base_signal,
+            event.visible_threat_markers,
+            current_tick,
+        )
 
         # PLAYER_HOSTILE — только если источник события игрок
         if event.actor_id == "player":
-            self._update_player_hostile(state, event_type_str,
-                                        base_signal, current_tick)
+            self._update_player_hostile(
+                state, event_type_str, base_signal, current_tick
+            )
 
     # ──────────────────────────────────────────────────────────────────────
     # Внутренние методы
@@ -102,7 +118,7 @@ class BeliefTransitionEngine:
         state: "NPCState",
         event_type_str: str,
         base_signal: float,
-        visible_markers: list,
+        visible_markers: List[Any],
         tick: int,
     ) -> None:
         """Обновить убеждение DANGER."""
@@ -126,9 +142,10 @@ class BeliefTransitionEngine:
         old_value = old.value if old else 0.0
         old_confidence = old.confidence if old else 0.5
 
-        new_value = max(0.0, min(1.0,
-            old_value * _BELIEF_INERTIA + signal * (1.0 - _BELIEF_INERTIA)
-        ))
+        new_value = max(
+            0.0,
+            min(1.0, old_value * _BELIEF_INERTIA + signal * (1.0 - _BELIEF_INERTIA)),
+        )
         new_confidence = max(0.1, min(1.0, old_confidence + confidence_delta))
 
         state.beliefs.update(
@@ -160,9 +177,13 @@ class BeliefTransitionEngine:
         old = state.beliefs.get(BeliefType.PLAYER_HOSTILE)
         old_value = old.value if old else 0.0
 
-        new_value = max(0.0, min(1.0,
-            old_value * _HOSTILITY_INERTIA + signal * (1.0 - _HOSTILITY_INERTIA)
-        ))
+        new_value = max(
+            0.0,
+            min(
+                1.0,
+                old_value * _HOSTILITY_INERTIA + signal * (1.0 - _HOSTILITY_INERTIA),
+            ),
+        )
 
         state.beliefs.update(
             BeliefType.PLAYER_HOSTILE,

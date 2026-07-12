@@ -8,6 +8,7 @@ Enigma Startup Health Checks (Windows-ready unittest suite).
 import sys
 import unittest
 from pathlib import Path
+
 import psutil
 
 # PYTHONPATH для backend
@@ -17,16 +18,17 @@ if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
 try:
-    from app.services.system_requirements import SystemRequirements
     from app.services.error_interpreter import get_error_interpreter
     from app.services.model_router import ModelRouter
+    from app.services.system_requirements import SystemRequirements
 except ImportError as e:
     print(f"Import error (non-fatal for env check): {e}")
+
 
 class StartupHealthTests(unittest.TestCase):
     def setUp(self):
         """Инициализация ModelRouter перед тестами."""
-        if 'ModelRouter' in globals():
+        if "ModelRouter" in globals():
             self.router = ModelRouter()
 
             # если есть initialize
@@ -56,7 +58,7 @@ class StartupHealthTests(unittest.TestCase):
         print(f"CPU: {psutil.cpu_count(logical=False)} cores, {cpu_percent:.1f}% load")
         print(f"RAM: {ram.total // (1024**3)} GB total, {ram.percent:.1f}% used")
 
-    @unittest.skipIf('ModelRouter' not in globals(), "ModelRouter not available")
+    @unittest.skipIf("ModelRouter" not in globals(), "ModelRouter not available")
     def test_model_router_registration(self):
         """Проверка зарегистрированных моделей через ModelRouter."""
         router = ModelRouter()
@@ -75,7 +77,7 @@ class StartupHealthTests(unittest.TestCase):
     def test_error_interpreter_traceback_logging(self):
         """Симуляция ошибки + проверка JSONL логирования."""
         interpreter = get_error_interpreter()
-    
+
         # Симуляция ошибки через встроенный метод
         with self.assertRaises(Exception) as context:
             interpreter.simulate_startup_error()  # вызывает "Simulated startup error"
@@ -86,6 +88,7 @@ class StartupHealthTests(unittest.TestCase):
 
         recent_logs = interpreter.get_recent_logs()
         print(f"Logged errors: {len(recent_logs)}")
+
 
 if __name__ == "__main__":
     unittest.main()

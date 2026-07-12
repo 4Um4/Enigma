@@ -8,6 +8,7 @@ Gateway не содержит логики. Только перенаправл�
 UI / Backend / CI / Future NPC — все проходят через эту точку.
 Не является god-object — не владеет миром, не принимает решений.
 """
+
 import logging
 from pathlib import Path
 from typing import Optional
@@ -23,6 +24,7 @@ def _get_orchestrator():
     global _orchestrator
     if _orchestrator is None:
         from spatial_compilation_orchestrator import SpatialCompilationOrchestrator
+
         _orchestrator = SpatialCompilationOrchestrator()
     return _orchestrator
 

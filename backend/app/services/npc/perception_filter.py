@@ -1,3 +1,4 @@
+from __future__ import annotations
 # backend/app/services/npc/perception_filter.py
 #
 # Phase 3B.3 — Perception Filter
@@ -34,16 +35,15 @@ TODO: расширение формулы clarity — добавить эффе�
 TODO: расширение формулы clarity — добавить эффект "насыщения" (например, если свет слишком яркий, clarity может начать снижаться из-за ослепления).
 TODO: расширение формулы clarity — добавить эффект "стрессового искажения" (например, при очень высоком стрессе NPC может начать воспринимать события искажённо, снижая clarity для определённых типов событий).
 """
-from __future__ import annotations
+
 import logging
-from typing import List, Optional, TYPE_CHECKING
+from typing import Dict, Any, List, Optional, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from app.services.spatial.spatial_query_service import SpatialQueryService
 
 from app.domain.events import EventDTO
 from app.services.spatial.spatial_runtime import (
-    euclidean_distance,
     extract_scene_for_npc,
     line_of_sight,
     sound_reach,
@@ -55,17 +55,18 @@ logger = logging.getLogger(__name__)
 _MIN_LIGHT_FOR_SIGHT = "dim"  # dark → не видит, dim/bright/natural → видит
 
 _LIGHT_LEVELS = {
-    "dark":     0,
-    "dim":      1,
+    "dark": 0,
+    "dim": 1,
     "torchlit": 2,
-    "natural":  3,
-    "bright":   4,
+    "natural": 3,
+    "bright": 4,
 }
 
 
 import math
 
-def _get_position(entity_data: dict) -> Optional[tuple[float, float]]:
+
+def _get_position(entity_data: Dict[str, Any]) -> Optional[tuple[float, float]]:
     """
     Извлекает (x, y) из словаря позиции.
     Возвращает None если координаты отсутствуют — для обратной совместимости.
@@ -128,7 +129,7 @@ def _npc_distance(npc_id: str, spatial_query: "SpatialQueryService") -> float:
     return distances.get(npc_id, 999.0)
 
 
-def _npc_is_conscious(npc_id: str, scene_state: dict) -> bool:
+def _npc_is_conscious(npc_id: str, scene_state: Dict[str, Any]) -> bool:
     """NPC не спит и не без сознания."""
     pos = scene_state.get("npc_positions", {}).get(npc_id, {})
     state = pos.get("state", "").lower()
@@ -137,7 +138,12 @@ def _npc_is_conscious(npc_id: str, scene_state: dict) -> bool:
     return state not in incap and activity not in {"sleeping", "спит"}
 
 
-def _can_see(npc_id: str, spatial_query: "SpatialQueryService", event_location: str, scene_state: dict) -> bool:
+def _can_see(
+    npc_id: str,
+    spatial_query: "SpatialQueryService",
+    event_location: str,
+    scene_state: Dict[str, Any],
+) -> bool:
     """
     NPC видит событие если:
       - ADR-048: пространственная дистанция запрашивается у SpatialQueryService
@@ -148,14 +154,14 @@ def _can_see(npc_id: str, spatial_query: "SpatialQueryService", event_location: 
 
     # ADR-048: Дистанция только через SpatialQueryService, никаких фоллбэков
     distance = _npc_distance(npc_id, spatial_query)
-    
+
     if distance >= 999.0:
         return False
-        
+
     # R4: Жёсткий cap 15m — NPC не воспринимает за пределами радиуса
     if distance >= 15.0:
         return False
-        
+
     if not line_of_sight(distance, scene_state):
         return False
 
@@ -163,7 +169,9 @@ def _can_see(npc_id: str, spatial_query: "SpatialQueryService", event_location: 
     return _LIGHT_LEVELS.get(light, 1) >= _LIGHT_LEVELS[_MIN_LIGHT_FOR_SIGHT]
 
 
-def _can_hear(npc_id: str, spatial_query: "SpatialQueryService", radius: float, scene_state: dict) -> bool:
+def _can_hear(
+    npc_id: str, spatial_query: "SpatialQueryService", radius: float, scene_state: Dict[str, Any]
+) -> bool:
     """
     NPC может слышать событие если:
       - не спит (громкий звук будит — проверяем отдельно)
@@ -178,10 +186,10 @@ def _can_hear(npc_id: str, spatial_query: "SpatialQueryService", radius: float, 
 
 
 def filter_perceiving_npcs(
-    npc_ids:        List[str],
-    event,                      # GameEvent или dict
-    scene_state:    dict,
-    spatial_query:  "SpatialQueryService",
+    npc_ids: List[str],
+    event,  # GameEvent или dict
+    scene_state: Dict[str, Any],
+    spatial_query: "SpatialQueryService",
 ) -> List[str]:
     """
     Возвращает список npc_id которые воспринимают данный GameEvent.
@@ -201,28 +209,28 @@ def filter_perceiving_npcs(
     # Извлекаем поля события
     if isinstance(event, EventDTO):
         # EventDTO: нет явных списков visible_to/audible_to — фильтруем через radius/sight/sound
-        visible_to  = []
-        audible_to  = []
-        radius      = event.radius
-        location    = event.payload.get("location", "")
-        event_type  = event.type
+        visible_to = []
+        audible_to = []
+        radius = event.radius
+        location = event.payload.get("location", "")
+        event_type = event.type
     elif hasattr(event, "visible_to"):
         # TODO: временная заглушка — будет удалена после полного удаления GameEvent
-        visible_to  = event.visible_to  or []
-        audible_to  = event.audible_to  or []
-        radius      = float(getattr(event, "radius", 999.0))
-        location    = getattr(event, "location", "")
-        event_type  = str(
+        visible_to = event.visible_to or []
+        audible_to = event.audible_to or []
+        radius = float(getattr(event, "radius", 999.0))
+        location = getattr(event, "location", "")
+        event_type = str(
             event.event_type.name
             if hasattr(event.event_type, "name")
             else event.event_type
         )
     elif isinstance(event, dict):
-        visible_to  = event.get("visible_to", [])
-        audible_to  = event.get("audible_to", [])
-        radius      = float(event.get("radius", 999.0))
-        location    = event.get("location", "")
-        event_type  = str(event.get("event_type", ""))
+        visible_to = event.get("visible_to", [])
+        audible_to = event.get("audible_to", [])
+        radius = float(event.get("radius", 999.0))
+        location = event.get("location", "")
+        event_type = str(event.get("event_type", ""))
     else:
         return npc_ids  # неизвестный формат — все воспринимают
 
@@ -238,7 +246,12 @@ def filter_perceiving_npcs(
             continue
 
         # Звуковые события — проверяем слух (речь слышна дальше чем видна)
-        sound_events = {"SOUND_EMITTED", "OBJECT_DESTROYED", "PLAYER_ATTACKED", "PLAYER_SPOKE"}
+        sound_events = {
+            "SOUND_EMITTED",
+            "OBJECT_DESTROYED",
+            "PLAYER_ATTACKED",
+            "PLAYER_SPOKE",
+        }
         if event_type in sound_events:
             if _can_hear(npc_id, spatial_query, radius, scene_state):
                 perceiving.append(npc_id)
@@ -259,10 +272,10 @@ def filter_perceiving_npcs(
 
 
 def build_perception_context(
-    npc_id:      str,
-    npc_name:    str,
+    npc_id: str,
+    npc_name: str,
     event,
-    scene_state: dict,
+    scene_state: Dict[str, Any],
     spatial_query: Optional["SpatialQueryService"] = None,
 ) -> str:
     """
@@ -275,8 +288,8 @@ def build_perception_context(
     """
     if isinstance(event, EventDTO):
         event_type = event.type
-        params     = event.payload
-        actor      = event.source or "кто-то"
+        params = event.payload
+        actor = event.source or "кто-то"
     elif hasattr(event, "event_type"):
         # TODO: временная заглушка — будет удалена после полного удаления GameEvent
         event_type = str(
@@ -285,11 +298,11 @@ def build_perception_context(
             else event.event_type
         )
         params = getattr(event, "parameters", {})
-        actor  = getattr(event, "actor_id", "кто-то")
+        actor = getattr(event, "actor_id", "кто-то")
     elif isinstance(event, dict):
         event_type = str(event.get("event_type", ""))
-        params     = event.get("parameters", {})
-        actor      = event.get("actor_id", "кто-то")
+        params = event.get("parameters", {})
+        actor = event.get("actor_id", "кто-то")
     else:
         return ""
 
@@ -312,8 +325,8 @@ def build_perception_context(
 def extract_scene_awareness(
     npc_id: str,
     npc_ids: List[str],
-    scene_state: dict,
-) -> dict:
+    scene_state: Dict[str, Any],
+) -> Dict[str, Any]:
     """
     R4.5 Scene Extraction:
       - кто рядом

@@ -195,6 +195,8 @@ flowchart TD
         TraversalDict("Traversal Dict (LOD1)"):::domain
         SceneChange["SceneChange (Projection)"]:::domain
         MacroMovementGoal["Macro Movement Goal (LOD1)"]:::domain
+        LocalSteeringGoal["Local Steering Goal (LOD0)"]:::domain
+        MovementRequest["Movement Request (Actor-Agnostic Contract)"]:::domain
         AffordanceVector("Affordance Vector (Field Capabilities)"):::domain
         BodySchema("Body Schema (Kinematic Profile)"):::domain
         DriveVector["Drive Vector (Continuous Movement Intent)"]:::domain
@@ -462,6 +464,10 @@ flowchart TD
     DynamicAffordanceField -.->|"injected via constructor"| WorldTopologyProvider
     TickOrchestrator -->|"purge_hard_overrides(current_tick)"| DynamicAffordanceField
     TickOrchestrator -->|"step_decay()"| DynamicAffordanceField
+    Phase1Input -->|"resolve_actor_reference() -> builds MovementRequest"| MovementRequest
+    MovementRequest -->|"consumes movement_request from IntentResolution"| TickOrchestrator
+    TickOrchestrator -->|"creates LocalSteeringGoal(actor_id)"| LocalSteeringGoal
+    LocalSteeringGoal -->|"process_intents([LocalSteeringGoal])"| MovementEngine
     DynamicAffordanceField -->|"stores & queries (Hard Layer)"| DeformationRecord
     DynamicAffordanceField -->|"accumulates (Soft Layer)"| TracePayload
     TickOrchestrator -->|"apply_trace(TracePayload)"| DynamicAffordanceField
@@ -1456,7 +1462,11 @@ LlamaServer->>NPCResponseValidator: 7. Validate + truncate + force_action
 | TickOrchestrator | DynamicAffordanceField | owns instance (S91) | Персистентный стигмергический слой. Переживает тики. | `-` | - |
 | DynamicAffordanceField | WorldTopologyProvider | injected via constructor | S91: Провайдер мержит деформации и следы с базовой геометрией. | `-` | - |
 | TickOrchestrator | DynamicAffordanceField | purge_hard_overrides(current_tick) | S91: Очистка истекших структурных деформаций в Фазе 0.5. | `-` | - |
-| TickOrchestrator | DynamicAffordanceField | step_decay() | S91: Экспоненциальный decay поведенческих следов в Фазе 0.5. | `-` | - |
+| TickOrchestrator | DynamicAffordanceField | step_decay() | - | `-` | - |
+| Phase1Input | MovementRequest | resolve_actor_reference() -> builds MovementRequest | ADR-O-314: Слой Интерпретации извлекает актора из текста и собирает контракт. | `-` | - |
+| MovementRequest | TickOrchestrator | consumes movement_request from IntentResolution | ADR-O-314: TickOrchestrator читает готовый контракт вместо парсинга текста. | `-` | - |
+| TickOrchestrator | LocalSteeringGoal | creates LocalSteeringGoal(actor_id) | ADR-O-314: Fast Path для микро-перемещений на основе готового контракта. | `-` | - |
+| LocalSteeringGoal | MovementEngine | process_intents([LocalSteeringGoal]) | ADR-O-314: MovementEngine обрабатывает цель по actor_id. | `-` | - |
 | DynamicAffordanceField | DeformationRecord | stores & queries (Hard Layer) | S91: Хранит DeformationRecord по ключу (region, zone_id, deformation_type). | `-` | - |
 | DynamicAffordanceField | TracePayload | accumulates (Soft Layer) | S91: Накапливает TracePayload.magnitude по ключу (region, zone_id, trace_type). | `-` | - |
 | TickOrchestrator | DynamicAffordanceField | apply_trace(TracePayload) | S91: Эмит стигмергических следов (movement_density, safety_confidence). | `-` | - |

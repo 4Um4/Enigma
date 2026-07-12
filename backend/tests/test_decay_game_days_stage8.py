@@ -13,22 +13,28 @@ python -m pytest backend/tests/test_decay_game_days_stage8.py -v --tb=short 2>&1
 """
 
 import math
-import pytest
 
-from app.models.npc_state import EventMemory, MemoryStage
-from app.services.memory.working_memory import WorkingMemory
+import pytest
+from app.models.npc_state import EventMemory
 from app.services.memory.memory_manager import MemoryManager
+from app.services.memory.working_memory import WorkingMemory
 
 
 def _make_mem(importance: float = 0.9, decay_rate: float = 0.05) -> EventMemory:
     return EventMemory(
-        event_type="theft", target_id="player",
-        emotion_tag="angry", day=1, importance=importance,
-        decay_rate=decay_rate, clarity=0.9, confidence=0.9,
+        event_type="theft",
+        target_id="player",
+        emotion_tag="angry",
+        day=1,
+        importance=importance,
+        decay_rate=decay_rate,
+        clarity=0.9,
+        confidence=0.9,
     )
 
 
 # ── 8.1-8.2: decayed(game_days) ──
+
 
 def test_decayed_uses_game_days_not_ticks() -> None:
     """Формула: importance × exp(-decay_rate × game_days)."""
@@ -64,8 +70,10 @@ def test_decayed_100_days_heavy_decay() -> None:
 
 # ── 8.3: run_decay_if_needed(game_days) ──
 
+
 def _make_manager() -> MemoryManager:
     from unittest.mock import MagicMock
+
     mm = MemoryManager.__new__(MemoryManager)
     mm._working = WorkingMemory(maxlen=20)
     mm._layered = MagicMock()
@@ -84,6 +92,7 @@ def test_run_decay_passes_game_days() -> None:
 
     # DECAY_EVERY = 10, передаём tick=10 чтобы триггер сработал
     from app.services.memory.importance_engine import DECAY_EVERY
+
     mm.run_decay_if_needed("camp_1", current_tick=DECAY_EVERY, game_days=2.5)
 
     updated = mm._working.get("camp_1:npc_01")
@@ -99,6 +108,7 @@ def test_run_decay_default_game_days_one() -> None:
     mm._working.push("camp_1:npc_01", mem)
 
     from app.services.memory.importance_engine import DECAY_EVERY
+
     mm.run_decay_if_needed("camp_1", current_tick=DECAY_EVERY)
 
     updated = mm._working.get("camp_1:npc_01")
@@ -119,6 +129,7 @@ def test_run_decay_skips_before_interval() -> None:
 
 
 # ── 8.4: контракты decay медленнее ──
+
 
 def test_contract_decays_slower_than_normal() -> None:
     """Контрактное событие (decay_rate ×0.4) затухает медленнее обычного."""

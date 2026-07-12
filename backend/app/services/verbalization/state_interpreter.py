@@ -1,4 +1,4 @@
-﻿"""
+"""
 Единственное место, где числа превращаются в слова для LLM.
 
 ИНВАРИАНТЫ:
@@ -13,7 +13,7 @@
 """
 
 from dataclasses import dataclass
-from typing import List, Optional, Dict
+from typing import Any, List, Optional, Dict
 from enum import Enum
 
 from app.models.npc_state import NPCState, Intent
@@ -23,6 +23,7 @@ from app.models.physical import Condition
 # ── Уровни для описания ──────────────────────────────────────────────
 class PhysicalState(str, Enum):
     """Физическое состояние — вывод из hp_ratio. Базовые формы (мужской род)."""
+
     UNHARMED = "не ранен"
     SCRATCHED = "лёгкая рана"
     WOUNDED = "ранен"
@@ -104,20 +105,21 @@ _morph = pymorphy3.MorphAnalyzer()
 # Кэш для избежания повторного парсинга одинаковых слов
 _gender_cache: dict[tuple[str, str], str] = {}
 
+
 def _apply_gender(word: str, gender: str) -> str:
     """
     Адаптирует слово к роду через pymorphy3. Базовая форма — мужской.
     gender: "male"/"мужской", "female"/"женский", прочее = мужской по умолчанию
-    
+
     Для составных фраз ("тяжело ранен") обрабатывает последнее слово.
     """
     if gender not in ("female", "женский"):
         return word
-    
+
     cache_key = (word, gender)
     if cache_key in _gender_cache:
         return _gender_cache[cache_key]
-    
+
     # Составные фразы — берем последнее значимое слово
     parts = word.split()
     if len(parts) > 1:
@@ -131,7 +133,7 @@ def _apply_gender(word: str, gender: str) -> str:
             final = word
     else:
         final = _inflect_to_feminine(word)
-    
+
     _gender_cache[cache_key] = final
     return final
 
@@ -161,6 +163,7 @@ _SHORT_FORM_FEMALE: dict[str, str] = {
     "обеспокоен": "обеспокоена",
 }
 
+
 def _inflect_to_feminine(word: str) -> str:
     """
     Склоняет одно слово к женскому роду.
@@ -169,23 +172,23 @@ def _inflect_to_feminine(word: str) -> str:
     # Словарь кратких форм — приоритет
     if word in _SHORT_FORM_FEMALE:
         return _SHORT_FORM_FEMALE[word]
-    
+
     # Для остальных — pymorphy3
     parsed = _morph.parse(word)
     if not parsed:
         return word
-    
+
     variant = parsed[0]
     if variant.tag.gender == "femn":
         return word
-    
+
     try:
         inflected = variant.inflect({"femn", "nomn"})
         if inflected:
             return inflected.word
     except Exception as e:
         logger.warning(f"[B5-FIX] silent failure suppressed: {e}")
-    
+
     return word
 
 
@@ -195,14 +198,15 @@ class NPCStateDescription:
     Человекочитаемое состояние NPC. Ни одной цифры.
     Это единственное, что видит LLM о состоянии NPC.
     """
+
     name: str
-    intent: str              # "пытается убежать"
-    physical_state: str      # "лёгкая рана"
-    posture: str             # "стоит" / "шатается" / "лежит"
-    conditions: List[str]    # ["кровоточит", "оглушена"]
+    intent: str  # "пытается убежать"
+    physical_state: str  # "лёгкая рана"
+    posture: str  # "стоит" / "шатается" / "лежит"
+    conditions: List[str]  # ["кровоточит", "оглушена"]
     can_speak: bool
     can_move: bool
-    gender: str = "male"     # для внешнего использования
+    gender: str = "male"  # для внешнего использования
 
 
 class StateInterpreter:
@@ -213,19 +217,27 @@ class StateInterpreter:
 
     def interpret(self, state: NPCState) -> NPCStateDescription:
         """Основной метод: NPCState → человекочитаемое описание."""
-        hp_ratio = state.effective_hp / state.effective_max_hp if state.effective_max_hp > 0 else 1.0
+        hp_ratio = (
+            state.effective_hp / state.effective_max_hp
+            if state.effective_max_hp > 0
+            else 1.0
+        )
         gender = self._get_gender(state)
         # GAP5 FIX: Читаем живую физиологию, а не только RPG-абстракцию HP
-        body_state = getattr(state, 'body_state', {}) or {}
+        body_state = getattr(state, "body_state", {}) or {}
 
         return NPCStateDescription(
             name=state.npc_id,
             intent=self._intent_to_word(state.intent),
-            physical_state=_apply_gender(self._physical_state_to_word(hp_ratio, body_state), gender),
+            physical_state=_apply_gender(
+                self._physical_state_to_word(hp_ratio, body_state), gender
+            ),
             posture=self._posture_to_word(state.posture),
             conditions=self._conditions_to_list(state.conditions, gender),
             can_speak=self.derive_can_speak(state.posture, state.conditions),
-            can_move=self.derive_can_move(state.posture, state.conditions, state.effective_hp),
+            can_move=self.derive_can_move(
+                state.posture, state.conditions, state.effective_hp
+            ),
             gender=gender,
         )
 
@@ -241,13 +253,19 @@ class StateInterpreter:
             return PhysicalState.SCRATCHED.value
         return PhysicalState.UNHARMED.value
 
-    def _physical_state_to_word(self, hp_ratio: float, body_state: dict) -> str:
+    def _physical_state_to_word(self, hp_ratio: float, body_state: Dict[str, Any]) -> str:
         """GAP5 FIX: Физиология говорит правду. Боль и шок перекрывают RPG-абстракцию HP.
         NPC с 80% HP, но с агонизирующей болью (pain: 0.9) больше не "слегка ранен".
         """
-        pain = body_state.get("pain", 0.0) / 100.0     # Нормализация 0-100 → 0-1 (как pressure_derivation.py:24)
-        shock = body_state.get("shock_impulse", 0.0)    # Уже 0-1 (tick_orchestrator.py:650)
-        blood_loss = body_state.get("blood_loss", 0.0)  # Уже 0-1 (state_applicator.py:499)
+        pain = (
+            body_state.get("pain", 0.0) / 100.0
+        )  # Нормализация 0-100 → 0-1 (как pressure_derivation.py:24)
+        shock = body_state.get(
+            "shock_impulse", 0.0
+        )  # Уже 0-1 (tick_orchestrator.py:650)
+        blood_loss = body_state.get(
+            "blood_loss", 0.0
+        )  # Уже 0-1 (state_applicator.py:499)
 
         # Шок доминирует: NPC в нокауте или на грани
         if shock > 0.8:
@@ -292,7 +310,9 @@ class StateInterpreter:
             return "female"
         return "male"
 
-    def _conditions_to_list(self, conditions: Dict[str, Condition], gender: str = "male") -> List[str]:
+    def _conditions_to_list(
+        self, conditions: Dict[str, Condition], gender: str = "male"
+    ) -> List[str]:
         """
         Словарь Condition → список русских описаний.
         Только значимые (severity > 0.3). С гендерными окончаниями.
@@ -317,7 +337,9 @@ class StateInterpreter:
                 return False
         return True
 
-    def derive_can_move(self, posture: str, conditions: Dict[str, Condition], hp: int) -> bool:
+    def derive_can_move(
+        self, posture: str, conditions: Dict[str, Condition], hp: int
+    ) -> bool:
         """Выводит возможность двигаться из posture + conditions + hp."""
         if hp <= 0:
             return False

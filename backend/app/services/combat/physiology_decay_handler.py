@@ -20,8 +20,8 @@ Closing drift (как в SocialDecayHandler): если остаток < EPSILON 
 TODO: в будущем можно добавить разные lambda для разных типов повреждений
 (например, кровопотеря может затухать медленнее из-за свертывания крови).
 """
-
 from __future__ import annotations
+
 
 import logging
 import math
@@ -36,18 +36,20 @@ logger = logging.getLogger(__name__)
 # --- Константы затухания (leaky integrator) ---
 # Мастер Тай: разные физические процессы имеют разные постоянные времени
 
-PAIN_DECAY_LAMBDA: float = 0.05       # Боль затухает ~5% за тик
-FATIGUE_DECAY_LAMBDA: float = 0.03    # Усталость медленнее (восстановление)
-BLOOD_LOSS_DECAY_LAMBDA: float = 0.01 # Кровопотеря ещё медленнее (свертывание)
+PAIN_DECAY_LAMBDA: float = 0.05  # Боль затухает ~5% за тик
+FATIGUE_DECAY_LAMBDA: float = 0.03  # Усталость медленнее (восстановление)
+BLOOD_LOSS_DECAY_LAMBDA: float = 0.01  # Кровопотеря ещё медленнее (свертывание)
 CONSCIOUSNESS_RECOVERY: float = 0.02  # Восстановление сознания
-SHOCK_DECAY_LAMBDA: float = 0.08     # Шок затухает быстрее боли (~8% за тик)
+SHOCK_DECAY_LAMBDA: float = 0.08  # Шок затухает быстрее боли (~8% за тик)
 
-PHYSIOLOGY_DECAY_EPSILON: float = 0.001  # Порог closing drift (кровопотеря даёт дельты ~0.005 при blood_loss=0.5)
+PHYSIOLOGY_DECAY_EPSILON: float = (
+    0.001  # Порог closing drift (кровопотеря даёт дельты ~0.005 при blood_loss=0.5)
+)
 
 # Пороги фазовых переходов (emergent states)
 # Мастер Тай: не if pain > X, а устойчивость траектории
-STAGGER_PAIN_THRESHOLD: float = 50.0   # Боль выше этого → нестабильность движения
-COLLAPSE_CONSCIOUSNESS: float = 0.1    # Сознание ниже → коллапс системы
+STAGGER_PAIN_THRESHOLD: float = 50.0  # Боль выше этого → нестабильность движения
+COLLAPSE_CONSCIOUSNESS: float = 0.1  # Сознание ниже → коллапс системы
 
 
 class PhysiologyDecayHandler:
@@ -91,20 +93,24 @@ class PhysiologyDecayHandler:
             _body = npc.get("body_state", {})
             if not isinstance(_body, dict):
                 _body = {}
-            
+
             # Текущие значения из снапшота
             current_pain = _body.get("pain", 0.0)
             current_fatigue = _body.get("fatigue", 0.0)
             current_blood_loss = _body.get("blood_loss", 0.0)
             current_consciousness = _body.get("consciousness", 1.0)
             current_shock = _body.get("shock_impulse", 0.0)
-            
+
             # Диагностика: почему injuries теряются между тиками?
             _inj = _body.get("injuries_by_zone", {})
             if _inj:
-                logger.debug(f"[DECAY_INJURY] npc={npc.get('npc_id','?')} has_injuries=True zones={list(_inj.keys())} blood_loss={current_blood_loss:.3f}")
+                logger.debug(
+                    f"[DECAY_INJURY] npc={npc.get('npc_id', '?')} has_injuries=True zones={list(_inj.keys())} blood_loss={current_blood_loss:.3f}"
+                )
             elif current_blood_loss > 0.01:
-                logger.debug(f"[DECAY_INJURY_LOST] npc={npc.get('npc_id','?')} has_injuries=False BUT blood_loss={current_blood_loss:.3f} — INJURIES LOST!")
+                logger.debug(
+                    f"[DECAY_INJURY_LOST] npc={npc.get('npc_id', '?')} has_injuries=False BUT blood_loss={current_blood_loss:.3f} — INJURIES LOST!"
+                )
 
             # Perceptual Kernel — чтение текущих активных причин
             pk = npc.get("perceptual_kernel", {})
@@ -113,14 +119,16 @@ class PhysiologyDecayHandler:
             current_anomaly = float(pk.get("anomaly_score", 0.0))
 
             # Пропускаем NPC без физиологических и перцептивных изменений
-            if (current_pain <= PHYSIOLOGY_DECAY_EPSILON
-                    and current_fatigue <= PHYSIOLOGY_DECAY_EPSILON
-                    and current_blood_loss <= PHYSIOLOGY_DECAY_EPSILON
-                    and current_consciousness >= 1.0 - PHYSIOLOGY_DECAY_EPSILON
-                    and current_shock <= PHYSIOLOGY_DECAY_EPSILON
-                    and current_threat <= PHYSIOLOGY_DECAY_EPSILON
-                    and current_uncertainty <= PHYSIOLOGY_DECAY_EPSILON
-                    and current_anomaly <= PHYSIOLOGY_DECAY_EPSILON):
+            if (
+                current_pain <= PHYSIOLOGY_DECAY_EPSILON
+                and current_fatigue <= PHYSIOLOGY_DECAY_EPSILON
+                and current_blood_loss <= PHYSIOLOGY_DECAY_EPSILON
+                and current_consciousness >= 1.0 - PHYSIOLOGY_DECAY_EPSILON
+                and current_shock <= PHYSIOLOGY_DECAY_EPSILON
+                and current_threat <= PHYSIOLOGY_DECAY_EPSILON
+                and current_uncertainty <= PHYSIOLOGY_DECAY_EPSILON
+                and current_anomaly <= PHYSIOLOGY_DECAY_EPSILON
+            ):
                 continue
 
             # --- Leaky Integrator: экспоненциальное затухание ---
@@ -136,7 +144,9 @@ class PhysiologyDecayHandler:
 
             # Кровопотеря медленно снижается (свертывание крови)
             blood_after_decay = current_blood_loss * math.exp(-BLOOD_LOSS_DECAY_LAMBDA)
-            blood_loss_delta = _closing_drift(blood_after_decay, 0.0) - current_blood_loss
+            blood_loss_delta = (
+                _closing_drift(blood_after_decay, 0.0) - current_blood_loss
+            )
 
             # Шок затухает быстрее боли — это острый сигнал, не хроническое состояние
             shock_after_decay = current_shock * math.exp(-SHOCK_DECAY_LAMBDA)
@@ -148,32 +158,41 @@ class PhysiologyDecayHandler:
                 recovery_rate = CONSCIOUSNESS_RECOVERY * (1.0 - current_pain / 100.0)
                 consciousness_delta = min(
                     recovery_rate,
-                    1.0 - current_consciousness  # Не больше максимума
+                    1.0 - current_consciousness,  # Не больше максимума
                 )
                 # Closing drift
-                if 1.0 - (current_consciousness + consciousness_delta) < PHYSIOLOGY_DECAY_EPSILON:
+                if (
+                    1.0 - (current_consciousness + consciousness_delta)
+                    < PHYSIOLOGY_DECAY_EPSILON
+                ):
                     consciousness_delta = 1.0 - current_consciousness
             else:
                 consciousness_delta = 0.0
 
             # P3 ARCH: Decay Perceptual Causes (активные причины затухают)
             threat_after_decay = current_threat * math.exp(-PERCEPTUAL_DECAY_LAMBDA)
-            uncertainty_after_decay = current_uncertainty * math.exp(-PERCEPTUAL_DECAY_LAMBDA)
+            uncertainty_after_decay = current_uncertainty * math.exp(
+                -PERCEPTUAL_DECAY_LAMBDA
+            )
             anomaly_after_decay = current_anomaly * math.exp(-PERCEPTUAL_DECAY_LAMBDA)
 
             threat_delta = _closing_drift(threat_after_decay, 0.0) - current_threat
-            uncertainty_delta = _closing_drift(uncertainty_after_decay, 0.0) - current_uncertainty
+            uncertainty_delta = (
+                _closing_drift(uncertainty_after_decay, 0.0) - current_uncertainty
+            )
             anomaly_delta = _closing_drift(anomaly_after_decay, 0.0) - current_anomaly
 
             # Пропускаем если всё затухло
-            if (abs(pain_delta) < PHYSIOLOGY_DECAY_EPSILON
-                    and abs(fatigue_delta) < PHYSIOLOGY_DECAY_EPSILON
-                    and abs(blood_loss_delta) < PHYSIOLOGY_DECAY_EPSILON
-                    and abs(consciousness_delta) < PHYSIOLOGY_DECAY_EPSILON
-                    and abs(shock_delta) < PHYSIOLOGY_DECAY_EPSILON
-                    and abs(threat_delta) < PHYSIOLOGY_DECAY_EPSILON
-                    and abs(uncertainty_delta) < PHYSIOLOGY_DECAY_EPSILON
-                    and abs(anomaly_delta) < PHYSIOLOGY_DECAY_EPSILON):
+            if (
+                abs(pain_delta) < PHYSIOLOGY_DECAY_EPSILON
+                and abs(fatigue_delta) < PHYSIOLOGY_DECAY_EPSILON
+                and abs(blood_loss_delta) < PHYSIOLOGY_DECAY_EPSILON
+                and abs(consciousness_delta) < PHYSIOLOGY_DECAY_EPSILON
+                and abs(shock_delta) < PHYSIOLOGY_DECAY_EPSILON
+                and abs(threat_delta) < PHYSIOLOGY_DECAY_EPSILON
+                and abs(uncertainty_delta) < PHYSIOLOGY_DECAY_EPSILON
+                and abs(anomaly_delta) < PHYSIOLOGY_DECAY_EPSILON
+            ):
                 continue
 
             # --- Фазовые переходы (emergent states) ---
@@ -200,49 +219,56 @@ class PhysiologyDecayHandler:
                     remove_statuses = remove_statuses + ("unconscious",)
 
             # Физиология (боль, шок и тд)
-            if (abs(pain_delta) >= PHYSIOLOGY_DECAY_EPSILON
-                    or abs(fatigue_delta) >= PHYSIOLOGY_DECAY_EPSILON
-                    or abs(blood_loss_delta) >= PHYSIOLOGY_DECAY_EPSILON
-                    or abs(consciousness_delta) >= PHYSIOLOGY_DECAY_EPSILON
-                    or abs(shock_delta) >= PHYSIOLOGY_DECAY_EPSILON):
-                results.append(StateDeltas(
-                    npc_id=npc_id,
-                    domain=DeltaDomain.PHYSIOLOGY,
-                    payload=PhysiologyPayload(
-                        pain_delta=round(pain_delta, 4),
-                        fatigue_delta=round(fatigue_delta, 4),
-                        blood_loss_delta=round(blood_loss_delta, 4),
-                        shock_impulse=round(shock_delta, 4),
-                        add_statuses=add_statuses,
-                        remove_statuses=remove_statuses,
-                    ),
-                    source="physiology_decay",
-                ))
+            if (
+                abs(pain_delta) >= PHYSIOLOGY_DECAY_EPSILON
+                or abs(fatigue_delta) >= PHYSIOLOGY_DECAY_EPSILON
+                or abs(blood_loss_delta) >= PHYSIOLOGY_DECAY_EPSILON
+                or abs(consciousness_delta) >= PHYSIOLOGY_DECAY_EPSILON
+                or abs(shock_delta) >= PHYSIOLOGY_DECAY_EPSILON
+            ):
+                results.append(
+                    StateDeltas(
+                        npc_id=npc_id,
+                        domain=DeltaDomain.PHYSIOLOGY,
+                        payload=PhysiologyPayload(
+                            pain_delta=round(pain_delta, 4),
+                            fatigue_delta=round(fatigue_delta, 4),
+                            blood_loss_delta=round(blood_loss_delta, 4),
+                            shock_impulse=round(shock_delta, 4),
+                            add_statuses=add_statuses,
+                            remove_statuses=remove_statuses,
+                        ),
+                        source="physiology_decay",
+                    )
+                )
 
             # Восприятие (угроза, неопределённость, аномалия) — причины затухают
             # АРХИТЕКТУРНЫЙ ДОЛГ: Это emergency bandage. Правильная архитектура —
             # recompute PerceptualKernel из observable world state на каждом тике.
             # Пока perceive_world() не реализован, decay — единственный способ
             # избежать "вечного страха" после одной атаки.
-            if (abs(threat_delta) >= PHYSIOLOGY_DECAY_EPSILON
-                    or abs(uncertainty_delta) >= PHYSIOLOGY_DECAY_EPSILON
-                    or abs(anomaly_delta) >= PHYSIOLOGY_DECAY_EPSILON):
+            if (
+                abs(threat_delta) >= PHYSIOLOGY_DECAY_EPSILON
+                or abs(uncertainty_delta) >= PHYSIOLOGY_DECAY_EPSILON
+                or abs(anomaly_delta) >= PHYSIOLOGY_DECAY_EPSILON
+            ):
                 from app.models.delta_payloads import PerceptionPayload
-                results.append(StateDeltas(
-                    npc_id=npc_id,
-                    domain=DeltaDomain.PERCEPTION,
-                    payload=PerceptionPayload(
-                        threat_gradient_delta=round(threat_delta, 4),
-                        uncertainty_delta=round(uncertainty_delta, 4),
-                        anomaly_score_delta=round(anomaly_delta, 4),
-                    ),
-                    source="perception_decay",
-                ))
+
+                results.append(
+                    StateDeltas(
+                        npc_id=npc_id,
+                        domain=DeltaDomain.PERCEPTION,
+                        payload=PerceptionPayload(
+                            threat_gradient_delta=round(threat_delta, 4),
+                            uncertainty_delta=round(uncertainty_delta, 4),
+                            anomaly_score_delta=round(anomaly_delta, 4),
+                        ),
+                        source="perception_decay",
+                    )
+                )
 
         if results:
-            logger.debug(
-                f"[PHYSIOLOGY_DECAY] {len(results)} NPCs with decay"
-            )
+            logger.debug(f"[PHYSIOLOGY_DECAY] {len(results)} NPCs with decay")
 
         return results
 

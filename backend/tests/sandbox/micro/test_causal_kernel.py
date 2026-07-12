@@ -13,21 +13,26 @@
 
 Запуск: python -m pytest backend/tests/sandbox/ -v --tb=short
 """
-import copy
-import pytest
+
 from uuid import UUID
 
-from app.models.world_snapshot import WorldSnapshot, build_snapshot
+import pytest
 from app.models.thick_scene_change import (
-    ThickSceneChange, SpatialResolution, MotionPlan,
-    BoundaryResolution, TraversalContract,
+    BoundaryResolution,
+    MotionPlan,
+    SpatialResolution,
+    ThickSceneChange,
+    TraversalContract,
 )
+from app.models.world_snapshot import build_snapshot
 from app.services.equivalence_validator import (
-    EquivalenceValidator, DriftClass, DriftLevel, DriftReport,
+    DriftClass,
+    DriftLevel,
+    EquivalenceValidator,
 )
-
 
 # ── Фикстуры ──────────────────────────────────────────────────────
+
 
 def _make_scene_state():
     """Минимальный scene_state для тестов (реалистичная структура)."""
@@ -67,6 +72,7 @@ def _make_scene_state():
 # WorldSnapshot
 # ══════════════════════════════════════════════════════════════════
 
+
 class TestWorldSnapshot:
     """Верификация: snapshot создаётся из scene_state и immutable."""
 
@@ -74,8 +80,12 @@ class TestWorldSnapshot:
         """Snapshot содержит все данные из scene_state."""
         ss = _make_scene_state()
         snap = build_snapshot(
-            tick=100, campaign_id="test", location_id="tavern",
-            spatial_service=None, scene_state=ss, rng_seed=42,
+            tick=100,
+            campaign_id="test",
+            location_id="tavern",
+            spatial_service=None,
+            scene_state=ss,
+            rng_seed=42,
         )
         assert isinstance(snap.snapshot_id, UUID)
         assert snap.tick == 100
@@ -89,8 +99,12 @@ class TestWorldSnapshot:
         """Мутация исходного scene_state НЕ влияет на snapshot (Rule 125)."""
         ss = _make_scene_state()
         snap = build_snapshot(
-            tick=100, campaign_id="test", location_id="tavern",
-            spatial_service=None, scene_state=ss, rng_seed=0,
+            tick=100,
+            campaign_id="test",
+            location_id="tavern",
+            spatial_service=None,
+            scene_state=ss,
+            rng_seed=0,
         )
         # Мутируем оригинал
         ss["npc_positions"]["npc_1"]["local_position"]["x"] = 999.0
@@ -101,8 +115,12 @@ class TestWorldSnapshot:
         """Мутация исходных traversals НЕ влияет на snapshot."""
         ss = _make_scene_state()
         snap = build_snapshot(
-            tick=100, campaign_id="test", location_id="tavern",
-            spatial_service=None, scene_state=ss, rng_seed=0,
+            tick=100,
+            campaign_id="test",
+            location_id="tavern",
+            spatial_service=None,
+            scene_state=ss,
+            rng_seed=0,
         )
         # Мутируем оригинал
         ss["active_traversals"]["npc_3"]["status"] = "COMPLETED"
@@ -113,8 +131,12 @@ class TestWorldSnapshot:
         """frozen=True: переназначение полей запрещено (Rule 125)."""
         ss = _make_scene_state()
         snap = build_snapshot(
-            tick=100, campaign_id="test", location_id="tavern",
-            spatial_service=None, scene_state=ss, rng_seed=0,
+            tick=100,
+            campaign_id="test",
+            location_id="tavern",
+            spatial_service=None,
+            scene_state=ss,
+            rng_seed=0,
         )
         with pytest.raises(AttributeError):
             snap.tick = 200  # type: ignore[misc]
@@ -122,8 +144,12 @@ class TestWorldSnapshot:
     def test_snapshot_handles_empty_scene_state(self):
         """Пустой scene_state не крашит build_snapshot."""
         snap = build_snapshot(
-            tick=0, campaign_id="empty", location_id="void",
-            spatial_service=None, scene_state={}, rng_seed=0,
+            tick=0,
+            campaign_id="empty",
+            location_id="void",
+            spatial_service=None,
+            scene_state={},
+            rng_seed=0,
         )
         assert snap.npc_positions == {}
         assert snap.active_traversals == {}
@@ -131,13 +157,20 @@ class TestWorldSnapshot:
 
     def test_snapshot_preserves_spatial_service_reference(self):
         """SpatialService передаётся по ссылке (не rebuild)."""
+
         class FakeSpatialService:
             """Заглушка для проверки reference integrity."""
+
             marker = "not_rebuilt"
+
         fake_svc = FakeSpatialService()
         snap = build_snapshot(
-            tick=100, campaign_id="test", location_id="tavern",
-            spatial_service=fake_svc, scene_state={}, rng_seed=0,
+            tick=100,
+            campaign_id="test",
+            location_id="tavern",
+            spatial_service=fake_svc,
+            scene_state={},
+            rng_seed=0,
         )
         # Тот же объект — не копия, не rebuild
         assert snap.spatial_service is fake_svc
@@ -147,6 +180,7 @@ class TestWorldSnapshot:
 # ══════════════════════════════════════════════════════════════════
 # ThickSceneChange
 # ══════════════════════════════════════════════════════════════════
+
 
 class TestThickSceneChange:
     """Верификация: структура контракта и типизация."""
@@ -277,6 +311,7 @@ class TestThickSceneChange:
 # EquivalenceValidator
 # ══════════════════════════════════════════════════════════════════
 
+
 class TestEquivalenceValidator:
     """Верификация: классификация drift (5 классов, 4 уровня)."""
 
@@ -289,7 +324,9 @@ class TestEquivalenceValidator:
     def test_cosmetic_drift_small_position_diff(self):
         """A: Cosmetic — позиция отличается < 0.5 единиц."""
         drifts = self.validator.validate_position(
-            snapshot_id=self.snap_id, tick=100, npc_id="npc_1",
+            snapshot_id=self.snap_id,
+            tick=100,
+            npc_id="npc_1",
             legacy_position={"x": 10.0, "y": 5.0},
             shadow_position=(10.1, 5.05),
         )
@@ -302,7 +339,9 @@ class TestEquivalenceValidator:
     def test_projection_drift_large_position_diff(self):
         """B: Projection — позиция отличается > 0.5 единиц."""
         drifts = self.validator.validate_position(
-            snapshot_id=self.snap_id, tick=100, npc_id="npc_1",
+            snapshot_id=self.snap_id,
+            tick=100,
+            npc_id="npc_1",
             legacy_position={"x": 10.0, "y": 5.0},
             shadow_position=(12.0, 7.0),
         )
@@ -313,8 +352,11 @@ class TestEquivalenceValidator:
     def test_topological_drift_different_nodes(self):
         """C: Topological — разные узлы графа."""
         drifts = self.validator.validate_topology(
-            snapshot_id=self.snap_id, tick=100, npc_id="npc_1",
-            legacy_node="kitchen", shadow_node="main_hall",
+            snapshot_id=self.snap_id,
+            tick=100,
+            npc_id="npc_1",
+            legacy_node="kitchen",
+            shadow_node="main_hall",
         )
         assert len(drifts) == 1
         assert drifts[0].drift_class == DriftClass.TOPOLOGICAL
@@ -323,8 +365,11 @@ class TestEquivalenceValidator:
     def test_topological_drift_canonical_prefix_normalization(self):
         """C: Topological — canonical ID с префиксом локации (нормализация)."""
         drifts = self.validator.validate_topology(
-            snapshot_id=self.snap_id, tick=100, npc_id="npc_1",
-            legacy_node="tavern:kitchen", shadow_node="kitchen",
+            snapshot_id=self.snap_id,
+            tick=100,
+            npc_id="npc_1",
+            legacy_node="tavern:kitchen",
+            shadow_node="kitchen",
         )
         # После нормализации (убрать префикс) — одинаковые узлы
         assert len(drifts) == 0
@@ -334,9 +379,13 @@ class TestEquivalenceValidator:
     def test_causal_drift_boundary_mismatch(self):
         """D: Causal — legacy boundary, shadow non-boundary."""
         drifts = self.validator.validate_boundary(
-            snapshot_id=self.snap_id, tick=100, npc_id="npc_1",
-            legacy_is_boundary=True, shadow_is_boundary=False,
-            legacy_target_location="city_gate", shadow_target_location="",
+            snapshot_id=self.snap_id,
+            tick=100,
+            npc_id="npc_1",
+            legacy_is_boundary=True,
+            shadow_is_boundary=False,
+            legacy_target_location="city_gate",
+            shadow_target_location="",
         )
         assert len(drifts) == 1
         assert drifts[0].drift_class == DriftClass.CAUSAL
@@ -348,7 +397,9 @@ class TestEquivalenceValidator:
     def test_ontological_drift_npc_missing_in_legacy(self):
         """E: Ontological — NPC отсутствует в legacy, но есть в shadow."""
         drifts = self.validator.validate_position(
-            snapshot_id=self.snap_id, tick=100, npc_id="npc_1",
+            snapshot_id=self.snap_id,
+            tick=100,
+            npc_id="npc_1",
             legacy_position=None,
             shadow_position=(10.0, 5.0),
         )
@@ -360,7 +411,9 @@ class TestEquivalenceValidator:
     def test_ontological_drift_npc_missing_in_shadow(self):
         """E: Ontological — NPC есть в legacy, но отсутствует в shadow."""
         drifts = self.validator.validate_position(
-            snapshot_id=self.snap_id, tick=100, npc_id="npc_1",
+            snapshot_id=self.snap_id,
+            tick=100,
+            npc_id="npc_1",
             legacy_position={"x": 10.0, "y": 5.0},
             shadow_position=None,
         )
@@ -372,7 +425,9 @@ class TestEquivalenceValidator:
     def test_no_drift_identical_positions(self):
         """Нет drift при идентичных позициях."""
         drifts = self.validator.validate_position(
-            snapshot_id=self.snap_id, tick=100, npc_id="npc_1",
+            snapshot_id=self.snap_id,
+            tick=100,
+            npc_id="npc_1",
             legacy_position={"x": 10.0, "y": 5.0},
             shadow_position=(10.0, 5.0),
         )
@@ -381,7 +436,9 @@ class TestEquivalenceValidator:
     def test_no_drift_both_missing(self):
         """Нет drift когда NPC отсутствует в обоих."""
         drifts = self.validator.validate_position(
-            snapshot_id=self.snap_id, tick=100, npc_id="npc_1",
+            snapshot_id=self.snap_id,
+            tick=100,
+            npc_id="npc_1",
             legacy_position=None,
             shadow_position=None,
         )
@@ -390,8 +447,11 @@ class TestEquivalenceValidator:
     def test_no_drift_same_boundary(self):
         """Нет drift при одинаковых boundary resolutions."""
         drifts = self.validator.validate_boundary(
-            snapshot_id=self.snap_id, tick=100, npc_id="npc_1",
-            legacy_is_boundary=True, shadow_is_boundary=True,
+            snapshot_id=self.snap_id,
+            tick=100,
+            npc_id="npc_1",
+            legacy_is_boundary=True,
+            shadow_is_boundary=True,
             legacy_target_location="city_gate",
             shadow_target_location="city_gate",
         )

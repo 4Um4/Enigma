@@ -13,17 +13,13 @@ path: backend/app/services/verbalization/verbal_stance.py
 """
 
 from dataclasses import dataclass
-from typing import Literal, Optional
+from typing import List, Dict, Any, Literal, Optional
 
 StanceType = Literal[
     "confront", "threaten", "probe", "dismiss", "submit", "observe", "dissociated"
 ]
-ToneType = Literal[
-    "aggressive", "cold", "neutral", "sarcastic", "fearful", "tense"
-]
-UrgencyLabel = Literal[
-    "фоновая", "умеренная", "высокая", "критическая"
-]
+ToneType = Literal["aggressive", "cold", "neutral", "sarcastic", "fearful", "tense"]
+UrgencyLabel = Literal["фоновая", "умеренная", "высокая", "критическая"]
 
 
 def _urgency_to_label(value: float) -> UrgencyLabel:
@@ -41,6 +37,7 @@ def _urgency_to_label(value: float) -> UrgencyLabel:
 @dataclass(frozen=True)
 class VerbalStance:
     """Поведенческая форма — что LLM должен выразить через текст."""
+
     stance: StanceType
     tone: ToneType
     urgency: float  # 0..1, внутреннее значение
@@ -60,9 +57,9 @@ def stance_from_decision(
 ) -> VerbalStance:
     """
     Маппинг Decision → Stance (Symbolic Interpretation Layer).
-    
-    Epistemic Boundary: Форма поведения выводится исключительно из наблюдаемых 
-    действий (intent + emotion). Числовые ментальные поля (stress, fear, trust) 
+
+    Epistemic Boundary: Форма поведения выводится исключительно из наблюдаемых
+    действий (intent + emotion). Числовые ментальные поля (stress, fear, trust)
     остаются скрытой причинностью в simulation layer и не экспонируются.
     """
     stance: StanceType = "observe"

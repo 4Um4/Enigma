@@ -9,27 +9,34 @@
 TODO:
 - В будущем можно расширить функционал, добавив возможность "заморозки" времени, ускорения/замедления, или даже обратного отсчета.
 """
+
 import uuid
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
+
 @dataclass(frozen=True)
 class CausalFrame:
     """Единица наблюдения. Снимок одного фазового перехода."""
+
     frame_id: str = field(default_factory=lambda: str(uuid.uuid4())[:8])
     tick: int = 0
-    phase: str = "" # SEMANTIC, PRESSURE, UTILITY, DECISION
+    phase: str = ""  # SEMANTIC, PRESSURE, UTILITY, DECISION
     entity_id: str = ""
     event: str = ""
     data: Dict[str, Any] = field(default_factory=dict)
-    causal_parent_id: Optional[str] = None # ID кадра, который породил этот
+    causal_parent_id: Optional[str] = None  # ID кадра, который породил этот
+
 
 class CausalTrace:
     """Регистратор причинности. Наблюдает, не мутирует."""
+
     def __init__(self):
         self.frames: List[CausalFrame] = []
 
-    def observe(self, tick: int, phase: str, entity_id: str, event: str, data: Dict[str, Any], parent_id: Optional[str] = None) -> str:
+    def observe(
+        self, tick: int, phase: str, entity_id: str, event: str, data: Dict[str, Any], parent_id: Optional[str] = None
+    ) -> str:
         frame = CausalFrame(
             tick=tick, phase=phase, entity_id=entity_id, event=event, data=data, causal_parent_id=parent_id
         )

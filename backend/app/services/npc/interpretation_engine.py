@@ -1,3 +1,4 @@
+from __future__ import annotations
 # backend/app/services/npc/interpretation_engine.py
 """
 Единый движок интерпретации: что событие значит для NPC.
@@ -20,13 +21,11 @@ TODO:
 - Важно: InterpretationEngine — это чистая функция от (NPCState, EventContext) → InterpretationResult. Это облегчает тестирование и отладку, так как можно изолированно проверять логику интерпретации без побочных эффектов.
 """
 
-from __future__ import annotations
 
-from typing import Dict, List, Optional
+from typing import List, Any, Dict, Optional
 
 from app.core.constants import (
     DISTRUST_STRESS_THRESHOLD,
-    MAX_DISTORTION_STRESS,
     THREAT_AMPLIFICATION_FACTOR,
 )
 from app.models.interpretation import InterpretationResult
@@ -39,35 +38,35 @@ from app.services.npc.decision_hub import EventContext
 
 # Маркеры → угроза (видимое снаряжение/поведение)
 MARKER_THREAT: Dict[str, int] = {
-    "heavy_armor":      +20,
-    "weapon_melee":     +20,
-    "weapon_ranged":    +15,
-    "drawn_weapon":     +25,
-    "combat_stance":    +10,
+    "heavy_armor": +20,
+    "weapon_melee": +20,
+    "weapon_ranged": +15,
+    "drawn_weapon": +25,
+    "combat_stance": +10,
     "blood_on_clothes": +15,
     "threatening_gesture": +20,
     "friendly_posture": -20,
-    "hands_raised":     -15,
-    "unarmed":          -10,
-    "robes":            -5,
-    "guild_badge":      +5,
-    "slave_collar":     -15,
-    "chains":           -10,
+    "hands_raised": -15,
+    "unarmed": -10,
+    "robes": -5,
+    "guild_badge": +5,
+    "slave_collar": -15,
+    "chains": -10,
 }
 
 # Тип действия → угроза
 ACTION_THREAT: Dict[str, int] = {
-    "COMBAT":           +30,
-    "INTIMIDATE":       +25,
-    "CAPTURE":          +35,
-    "BRIBERY":          -5,
-    "PERSUASION":       -10,
-    "DIPLOMACY":        -15,
-    "ROMANCE":          -10,
-    "SOCIAL":           -5,
-    "EXPLORE":          0,
-    "FLEE":             0,
-    "UNKNOWN":          0,
+    "COMBAT": +30,
+    "INTIMIDATE": +25,
+    "CAPTURE": +35,
+    "BRIBERY": -5,
+    "PERSUASION": -10,
+    "DIPLOMACY": -15,
+    "ROMANCE": -10,
+    "SOCIAL": -5,
+    "EXPLORE": 0,
+    "FLEE": 0,
+    "UNKNOWN": 0,
 }
 
 
@@ -88,7 +87,7 @@ class InterpretationEngine:
         Вычисляет как NPC воспринимает событие: искажения, угроза, драйвы.
         Оригинальный state НЕ мутируется.
         """
-        actor_is_player = (event.actor_id == "player")
+        actor_is_player = event.actor_id == "player"
 
         # ── 1. Когнитивные искажения (из cognitive_distortion.py) ──────────
         bias = self._compute_bias(state, actor_is_player)
@@ -96,7 +95,8 @@ class InterpretationEngine:
 
         # ── 2. Оценка угрозы (из threat_assessor.py) ───────────────────────
         threat_level, threat_category = self._compute_threat(
-            event, player_reputation,
+            event,
+            player_reputation,
         )
 
         # ── 3. Драйвы (из npc_cognition.py) ───────────────────────────────
@@ -115,7 +115,9 @@ class InterpretationEngine:
     # ── Приватные методы (логика из DEPRECATED модулей) ────────────────────
 
     def _compute_bias(
-        self, state: NPCState, actor_is_player: bool,
+        self,
+        state: NPCState,
+        actor_is_player: bool,
     ) -> DistortionProfile:
         """
         Детерминированные когнитивные искажения — фильтр восприятия NPC.
@@ -166,7 +168,8 @@ class InterpretationEngine:
         )
 
     def _compute_score_modifiers(
-        self, bias: DistortionProfile,
+        self,
+        bias: DistortionProfile,
     ) -> Dict[str, float]:
         """
         Искажение восприятия → модификаторы score для DecisionHub.
@@ -184,7 +187,9 @@ class InterpretationEngine:
             modifiers["help"] = round(bias.trust_bias * 0.2, 4)
 
         if bias.salience_bias > 0.05:
-            modifiers["observe"] = modifiers.get("observe", 0.0) + round(bias.salience_bias * 0.1, 4)
+            modifiers["observe"] = modifiers.get("observe", 0.0) + round(
+                bias.salience_bias * 0.1, 4
+            )
 
         return modifiers
 
@@ -204,7 +209,11 @@ class InterpretationEngine:
             score += MARKER_THREAT.get(marker, 0)
 
         # Тип действия
-        action_type = event.event_type.value if hasattr(event.event_type, "value") else str(event.event_type)
+        action_type = (
+            event.event_type.value
+            if hasattr(event.event_type, "value")
+            else str(event.event_type)
+        )
         score += ACTION_THREAT.get(action_type, 0)
 
         # Репутация игрока

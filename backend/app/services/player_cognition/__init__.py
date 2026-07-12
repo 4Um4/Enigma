@@ -19,6 +19,7 @@ Pipeline:
     Uncertainty Layer: уверенность/сомнение
     PerceivedScene: UI
 """
+
 from app.services.player_cognition.types import (
     Inference,
     PerceivedEntity,
@@ -29,12 +30,21 @@ from app.services.player_cognition.types import (
 from app.services.player_cognition.spatial_layer import extract_spatial_data
 from app.services.player_cognition.perception_layer import apply_perception
 from app.services.player_cognition.attention_layer import PlayerFocus, apply_attention
-from app.services.player_cognition.recognition_layer import EncounterHistory, apply_recognition
+from app.services.player_cognition.recognition_layer import (
+    EncounterHistory,
+    apply_recognition,
+)
 from app.services.player_cognition.interpretation_layer import apply_interpretation
-from app.services.player_cognition.cognitive_distortion import PlayerDistortionInputs, apply_cognitive_distortion
+from app.services.player_cognition.cognitive_distortion import (
+    PlayerDistortionInputs,
+    apply_cognitive_distortion,
+)
 from app.services.player_cognition.memory_layer import PlayerMemory, apply_memory
 from app.services.player_cognition.uncertainty_layer import apply_uncertainty
-from app.services.player_cognition.pipeline import PerceptionConfig, build_perceived_scene
+from app.services.player_cognition.pipeline import (
+    PerceptionConfig,
+    build_perceived_scene,
+)
 
 __all__ = [
     "Inference",

@@ -12,7 +12,7 @@ from app.services.llm import ModelRouter, get_router
 class WorldSimulationAgent:
     """
     World simulation agent with automatic model selection.
-    
+
     Uses ModelRouter to request 'world_simulation' capability.
     """
 
@@ -34,13 +34,13 @@ class WorldSimulationAgent:
     ) -> dict:
         """
         Simulate world events based on player actions.
-        
+
         The agent requests 'world_simulation' capability.
         Router автоматически выбирает модель для симуляции.
         """
         prompt = self._build_prompt(location, actions, current_events)
         system_prompt = self._get_system_prompt()
-        
+
         try:
             # request_for_agent — синхронная версия для агентов вне async-контекста
             response = self.router.request_for_agent(
@@ -48,7 +48,7 @@ class WorldSimulationAgent:
                 prompt=prompt,
                 system_prompt=system_prompt,
             )
-            
+
             return {
                 "world_events": [response],
                 "simulation_log": f"Simulated in {location}",
@@ -69,11 +69,11 @@ class WorldSimulationAgent:
 Сгенерируй одно событие которое происходит в этой локации.
 Событие должно быть логичным для мира D&D 5e.
 Будь краток (1-2 предложения)."""
-        
+
         system_prompt = """Ты - симулятор мира D&D 5e.
 Генерируй события которые логично развивают мир.
 Учитывай текущую ситуацию и предыдущие события."""
-        
+
         try:
             return self.router.request_for_agent(
                 agent_name="world",
@@ -91,9 +91,15 @@ class WorldSimulationAgent:
         current_events: list[str],
     ) -> str:
         """Build simulation prompt."""
-        action_str = "\n".join(f"- {a}" for a in actions) if actions else "- Нет действий"
-        event_str = "\n".join(f"- {e}" for e in current_events) if current_events else "- Нет текущих событий"
-        
+        action_str = (
+            "\n".join(f"- {a}" for a in actions) if actions else "- Нет действий"
+        )
+        event_str = (
+            "\n".join(f"- {e}" for e in current_events)
+            if current_events
+            else "- Нет текущих событий"
+        )
+
         return f"""Локация: {location}
 Текущие события:
 {event_str}
@@ -129,7 +135,7 @@ class WorldSimulationAgent:
     def tick(self, world_id: str) -> dict:
         """
         Alias for backward compatibility.
-        
+
         WorldScheduler and Orchestrator call this method,
         but the agent internally uses simulate() with location/actions.
         Since tick() doesn't have context, we simulate a generic world event.
@@ -141,4 +147,3 @@ class WorldSimulationAgent:
             actions=[],
             current_events=[],
         )
-

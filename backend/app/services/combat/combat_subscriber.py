@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 path: backend/app/services/combat/combat_subscriber.py
-Назначение: Phase8Handler — мост между боевыми событиями (EventDTO) и 
+Назначение: Phase8Handler — мост между боевыми событиями (EventDTO) и
     физическим интегратором (ImpactEngine).
 Зависимости: EventBus, Phase8Context, Phase8Result, ImpactEngine, ImpactIntentDTO
 Основные сущности: CombatSubscriber
@@ -18,11 +18,11 @@ TODO:
 - ContactResult может быть расширен для включения более детальной информации о результатах воздействия,например, какие конкретные травмы были нанесены, или какие статусы были применены к цели. Это позволит нам более точно моделировать последствия физических воздействий и их влияние на NPC state.
 - Важно, что эти контракты должны быть достаточно абстрактными, чтобы позволить гибкую реализацию механики насилия в будущем, включая возможность добавления новых типов воздействий, новых зон попадания, и более сложных взаимодействий между атакующими и защищающимися NPC. Это обеспечит нам широкие возможности для развития механики насилия в рамках нашей игры, не требуя постоянного изменения контрактов при добавлении новых фич.
 """
-
 from __future__ import annotations
 
+
 import logging
-from typing import List, Optional, Set
+from typing import List, Optional
 
 from app.domain.constants import ACTION_INTENSITY
 from app.models.impact import ImpactIntentDTO
@@ -72,7 +72,9 @@ class CombatSubscriber:
 
     def _on_event(self, event) -> Optional[dict]:
         """EventHandler: накапливает событие для обработки на Фазе 8."""
-        print(f"[DIAG_COMBAT_ON_EVENT] type={getattr(event, 'type', '?')}, source={getattr(event, 'source', '?')}")
+        print(
+            f"[DIAG_COMBAT_ON_EVENT] type={getattr(event, 'type', '?')}, source={getattr(event, 'source', '?')}"
+        )
         self._pending_events.append(event)
         return None
 
@@ -99,15 +101,17 @@ class CombatSubscriber:
         через delta_buffer → apply_batch.
 
         PHYSICS_COMPOSITE: дельты обходят _aggregate_deltas merge,
-        
+
         S91: Эмит стигмергического следа (safety_confidence) при акте насилия.
         """
         # S91: Эмит стигмергического следа (safety_confidence)
         # В будущем будет вызывать DynamicAffordanceField.apply_trace()
         if not events:
             return Phase8Result()
-        
-        logger.debug(f"[COMBAT_HANDLE] events={len(events)} types={[getattr(e, 'type', '?') for e in events[:3]]}")
+
+        logger.debug(
+            f"[COMBAT_HANDLE] events={len(events)} types={[getattr(e, 'type', '?') for e in events[:3]]}"
+        )
 
         # Строим dict npc_id → npc_dict для быстрого доступа
         npc_by_id: dict[str, dict] = {}
@@ -132,7 +136,7 @@ class CombatSubscriber:
         # _distances всегда {} → range gate всегда пропускает атаки сквозь карту.
         # Теперь: SpatialQueryService.player_distances() — canonical source.
         _distances = {}
-        if ctx.shared_context and hasattr(ctx.shared_context, 'spatial_query'):
+        if ctx.shared_context and hasattr(ctx.shared_context, "spatial_query"):
             _sq = ctx.shared_context.spatial_query
             if _sq is not None:
                 _npc_ids = list(npc_by_id.keys())
@@ -140,17 +144,25 @@ class CombatSubscriber:
             else:
                 logger.debug("[COMBAT_SUB] spatial_query is None — range gate DISABLED")
         else:
-            logger.debug("[COMBAT_SUB] shared_context has no spatial_query — range gate DISABLED")
+            logger.debug(
+                "[COMBAT_SUB] shared_context has no spatial_query — range gate DISABLED"
+            )
 
-        logger.debug(f"[COMBAT_SUB] npc_by_id keys={list(npc_by_id.keys())[:10]} distances={bool(_distances)}")
+        logger.debug(
+            f"[COMBAT_SUB] npc_by_id keys={list(npc_by_id.keys())[:10]} distances={bool(_distances)}"
+        )
 
         for event in events:
             intent = self._extract_impact_intent(event, npc_by_id)
             if intent is None:
-                logger.debug(f"[COMBAT_SUB] intent=None for event type={getattr(event, 'type', '?')}")
+                logger.debug(
+                    f"[COMBAT_SUB] intent=None for event type={getattr(event, 'type', '?')}"
+                )
                 continue
 
-            logger.debug(f"[COMBAT_SUB] intent OK: actor={intent.actor_id} target={intent.target_id} force={intent.force:.1f}")
+            logger.debug(
+                f"[COMBAT_SUB] intent OK: actor={intent.actor_id} target={intent.target_id} force={intent.force:.1f}"
+            )
 
             # Range gate: атака не достигает цели если та слишком далеко
             # Проверяем только для атак игрока (actor_id == "player")
@@ -162,7 +174,13 @@ class CombatSubscriber:
                         f"[COMBAT_SUB] {intent.target_id} is {_dist_to_target:.1f}m away — "
                         f"out of melee range ({_effective_range:.1f}m). Attack misses."
                     )
-                    missed_targets.append({"npc_id": intent.target_id, "distance": round(_dist_to_target, 1), "max_range": round(_effective_range, 1)})
+                    missed_targets.append(
+                        {
+                            "npc_id": intent.target_id,
+                            "distance": round(_dist_to_target, 1),
+                            "max_range": round(_effective_range, 1),
+                        }
+                    )
                     events_processed += 1
                     continue
 
@@ -174,7 +192,9 @@ class CombatSubscriber:
                 # ADR-O-112: Игрок может быть целью. Строим снапшот защиты.
                 # P1 FIX: Передаём player_dict с живым body_state (Rule 60)
                 if intent.target_id == "player":
-                    defender_snapshot = self._make_player_snapshot(_player_dict_for_snapshot)
+                    defender_snapshot = self._make_player_snapshot(
+                        _player_dict_for_snapshot
+                    )
                 else:
                     # Нет цели — нет воздействия (но атакующий устаёт)
                     logger.debug(
@@ -185,21 +205,32 @@ class CombatSubscriber:
             # Если атакующий не найден (игрок), строим снапшот из живого body_state
             # P1 FIX: Передаём player_dict с живым body_state (Rule 60)
             if attacker_snapshot is None:
-                attacker_snapshot = self._make_player_snapshot(_player_dict_for_snapshot)
+                attacker_snapshot = self._make_player_snapshot(
+                    _player_dict_for_snapshot
+                )
 
             # Вызов физического интегратора (Pure Function)
             impact_deltas = resolve_physical_impact(
                 attacker=attacker_snapshot,
                 defender=defender_snapshot,
                 intent=intent,
-                rng_seed=hash((event.id if hasattr(event, 'id') else 0, intent.actor_id, intent.target_id)) & 0xFFFFFFFF,
+                rng_seed=hash(
+                    (
+                        event.id if hasattr(event, "id") else 0,
+                        intent.actor_id,
+                        intent.target_id,
+                    )
+                )
+                & 0xFFFFFFFF,
             )
 
             logger.debug(f"[COMBAT_SUB] impact_deltas count={len(impact_deltas)}")
             deltas.extend(impact_deltas)
             events_processed += 1
 
-        logger.debug(f"[COMBAT_SUB_RESULT] events_in={len(events)} processed={events_processed} deltas={len(deltas)} missed={len(missed_targets)}")
+        logger.debug(
+            f"[COMBAT_SUB_RESULT] events_in={len(events)} processed={events_processed} deltas={len(deltas)} missed={len(missed_targets)}"
+        )
         result = Phase8Result(
             deltas=deltas,
             events_processed=events_processed,
@@ -221,16 +252,18 @@ class CombatSubscriber:
             payload.target_zone → target_zone (None = случайная)
             payload.weapon_reach → weapon_reach (fallback 1.0)
         """
-        payload = event.payload if hasattr(event, 'payload') else {}
+        payload = event.payload if hasattr(event, "payload") else {}
         if not isinstance(payload, dict):
             payload = {}
 
-        logger.debug(f"[COMBAT_EXTRACT] type={getattr(event, 'type', '?')} payload_keys={list(payload.keys())[:10]} target_id={payload.get('target_id')} actor={getattr(event, 'source', '?')}")
+        logger.debug(
+            f"[COMBAT_EXTRACT] type={getattr(event, 'type', '?')} payload_keys={list(payload.keys())[:10]} target_id={payload.get('target_id')} actor={getattr(event, 'source', '?')}"
+        )
 
         # Определяем участников
-        actor_id = payload.get("actor_id") or getattr(event, 'source', 'player')
+        actor_id = payload.get("actor_id") or getattr(event, "source", "player")
         target_id = payload.get("target_id")
-        
+
         # ADR-035 FIX: Если Слой 2 не дал ID, пробуем найти по target_reference (имени)
         if not target_id:
             target_ref = payload.get("target_reference")
@@ -239,7 +272,9 @@ class CombatSubscriber:
                     npc_name = npc_dict.get("name", "").lower()
                     if target_ref in npc_name or npc_name.startswith(target_ref):
                         target_id = npc_id
-                        logger.debug(f"[COMBAT_SUB] Resolved target_reference '{target_ref}' to npc_id '{target_id}'")
+                        logger.debug(
+                            f"[COMBAT_SUB] Resolved target_reference '{target_ref}' to npc_id '{target_id}'"
+                        )
                         break
 
         if not target_id:
@@ -255,7 +290,7 @@ class CombatSubscriber:
 
         # Если intensity не указана, берём из ACTION_INTENSITY
         if "force" not in payload and "intensity" not in payload:
-            event_type_str = getattr(event, 'type', '').lower()
+            event_type_str = getattr(event, "type", "").lower()
             intensity = ACTION_INTENSITY.get(event_type_str, 0.2)
             force = intensity * _DEFAULT_FORCE_SCALE
 
@@ -325,7 +360,7 @@ class CombatSubscriber:
     @staticmethod
     def _make_player_snapshot(player_dict: Optional[dict] = None) -> dict:
         """Снапшот игрока для Combat Resolution (ADR-O-112, ADR-128).
-        
+
         P1 FIX: Если player_dict доступен из all_npcs_raw — читаем живой body_state.
         Без этого тяжело раненый игрок трактуется как полностью боеспособный (Rule 60).
         Fallback на дефолты — только если player_dict отсутствует (крайний случай).
@@ -335,13 +370,15 @@ class CombatSubscriber:
         # Извлекаем body_state из player_dict, если он есть в all_npcs_raw
         _body = player_dict.get("body_state", {}) if player_dict else {}
         _body_profile = player_dict.get("body_profile", {}) if player_dict else {}
-        
+
         _max_hp = float(_body_profile.get("max_hp", 100.0))
         _current_hp = float(_body.get("current_hp", _max_hp))
-        _base_abilities = _body_profile.get("abilities", {"strength": 15.0, "dexterity": 12.0})
+        _base_abilities = _body_profile.get(
+            "abilities", {"strength": 15.0, "dexterity": 12.0}
+        )
         _modifiers = _body.get("modifiers", {})
         _statuses = _body.get("statuses", [])
-        
+
         # Injuries grouped by zone (как в _build_snapshot для NPC)
         _raw_injuries = _body.get("injuries", [])
         injuries_by_zone: dict[str, list] = {}

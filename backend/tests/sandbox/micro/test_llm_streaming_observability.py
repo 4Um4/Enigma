@@ -9,15 +9,12 @@ ADR-147: LLM Streaming Observability Gate
 Запуск: pytest backend/tests/sandbox/micro/test_llm_streaming_observability.py
 """
 
-import re
 import logging
 from unittest.mock import MagicMock
 
-import pytest
-
 from app.services.llm.router import ModelRouter
-from diagnostics.pattern_registry import COMPILED
 from diagnostics.health_checkers.tick_health import TickHealthChecker
+from diagnostics.pattern_registry import COMPILED
 
 
 class TestRouterStreamingObservability:
@@ -40,6 +37,7 @@ class TestRouterStreamingObservability:
 
     def test_notify_stream_end_measures_elapsed(self, caplog):
         import time
+
         r = ModelRouter()
         ctx = r.notify_stream_start("dm_narrative", "narrative")
         time.sleep(0.01)  # 10ms минимум
@@ -77,6 +75,7 @@ class TestCausalObserverStreaming:
     def _make_observer(self):
         """Создаёт CausalObserver без файла (только _dispatch)."""
         from diagnostics.causal_observer import CausalObserver
+
         obs = CausalObserver(log_path=None)
         obs._tick_checker = MagicMock(spec=TickHealthChecker)
         return obs

@@ -1,3 +1,4 @@
+from __future__ import annotations
 # backend/app/services/npc/reaction_priority.py
 """
 ReactionPriority — кто из NPC реагирует на событие и в каком порядке (Phase S.4.2)
@@ -8,10 +9,9 @@ LLM только озвучивает. Никакого хардкода имё�
 Вызывается из PythonEngines ПОСЛЕ apply_changes (SceneState уже обновлён).
 """
 
-from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
-from typing import Any, Optional, TYPE_CHECKING
+from typing import List, Dict, Any, Optional, TYPE_CHECKING
 
 from app.core.constants import MAX_SPEAKERS_PER_TURN
 
@@ -29,20 +29,41 @@ logger = logging.getLogger(__name__)
 #    Ключ — префикс id NPC
 # ─────────────────────────────────────────────────────────────────────────────
 _DUTY_TABLE: dict[str, dict[str, int]] = {
-    "tavern_keeper": {"stop_theft": 70, "stop_violence": 65, "protect_worker": 75,
-                      "stop_disrespect": 50, "stop_disorder": 55, "stop_danger": 60},
-    "innkeeper":     {"stop_theft": 70, "stop_violence": 65, "protect_worker": 75,
-                      "stop_disrespect": 50, "stop_disorder": 55, "stop_danger": 60},
-    "guard":         {"stop_theft": 85, "stop_violence": 85, "stop_disorder": 70,
-                      "stop_disrespect": 45, "stop_danger": 75},
-    "merchant":      {"stop_theft": 80, "protect_goods": 80, "stop_disorder": 30},
-    "priest":        {"stop_violence": 55, "heal_wounded": 65, "stop_danger": 50,
-                      "stop_disrespect": 35},
-    "maid":          {"stop_violence": 20, "protect_worker": 40},
-    "barmaid":       {"stop_violence": 20, "protect_worker": 40},
-    "soldier":       {"stop_violence": 75, "stop_disorder": 60, "stop_danger": 70},
-    "bandit":        {"join_violence": 40, "stop_theft": -20},
-    "thief":         {"stop_theft": -30, "join_violence": 20},
+    "tavern_keeper": {
+        "stop_theft": 70,
+        "stop_violence": 65,
+        "protect_worker": 75,
+        "stop_disrespect": 50,
+        "stop_disorder": 55,
+        "stop_danger": 60,
+    },
+    "innkeeper": {
+        "stop_theft": 70,
+        "stop_violence": 65,
+        "protect_worker": 75,
+        "stop_disrespect": 50,
+        "stop_disorder": 55,
+        "stop_danger": 60,
+    },
+    "guard": {
+        "stop_theft": 85,
+        "stop_violence": 85,
+        "stop_disorder": 70,
+        "stop_disrespect": 45,
+        "stop_danger": 75,
+    },
+    "merchant": {"stop_theft": 80, "protect_goods": 80, "stop_disorder": 30},
+    "priest": {
+        "stop_violence": 55,
+        "heal_wounded": 65,
+        "stop_danger": 50,
+        "stop_disrespect": 35,
+    },
+    "maid": {"stop_violence": 20, "protect_worker": 40},
+    "barmaid": {"stop_violence": 20, "protect_worker": 40},
+    "soldier": {"stop_violence": 75, "stop_disorder": 60, "stop_danger": 70},
+    "bandit": {"join_violence": 40, "stop_theft": -20},
+    "thief": {"stop_theft": -30, "join_violence": 20},
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -50,6 +71,7 @@ _DUTY_TABLE: dict[str, dict[str, int]] = {
 # ─────────────────────────────────────────────────────────────────────────────
 try:
     from app.services.scene_change import SceneChange, ChangeType
+
     _SCENE_CHANGE_AVAILABLE = True
 except ImportError:
     SceneChange = None
@@ -64,7 +86,7 @@ class ReactionScore:
     score: int = 0
     reasons: list[str] = field(default_factory=list)
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> Dict[str, Any]:
         return {
             "npc_id": self.npc_id,
             "npc_name": self.npc_name,
@@ -76,7 +98,9 @@ class ReactionScore:
 # ─────────────────────────────────────────────────────────────────────────────
 # Вспомогательные функции
 # ─────────────────────────────────────────────────────────────────────────────
-def _get_npc_distance(npc: dict, spatial_query: Optional["SpatialQueryService"]) -> float:
+def _get_npc_distance(
+    npc: Dict[str, Any], spatial_query: Optional["SpatialQueryService"]
+) -> float:
     """Расстояние от NPC до игрока. ADR-048: Единственный источник истины — SpatialQueryService."""
     if not spatial_query:
         return 999.0
@@ -85,12 +109,21 @@ def _get_npc_distance(npc: dict, spatial_query: Optional["SpatialQueryService"])
     return distances.get(npc_id, 999.0)
 
 
-def _is_incapacitated(npc: dict) -> bool:
+def _is_incapacitated(npc: Dict[str, Any]) -> bool:
     """NPC не может реагировать."""
     state = str(npc.get("state", "")).lower()
     status = str(npc.get("status", "")).lower()
     conditions = [str(c).lower() for c in npc.get("conditions", [])]
-    incap = {"sleeping", "unconscious", "captured", "dead", "спит", "без сознания", "захвачен", "мёртв"}
+    incap = {
+        "sleeping",
+        "unconscious",
+        "captured",
+        "dead",
+        "спит",
+        "без сознания",
+        "захвачен",
+        "мёртв",
+    }
     return any(w in state or w in status or w in conditions for w in incap)
 
 
@@ -114,7 +147,7 @@ def _classify_change(change: Any) -> set[str]:
     return tags
 
 
-def _get_role(npc: dict) -> str:
+def _get_role(npc: Dict[str, Any]) -> str:
     """Роль по префиксу id."""
     npc_id = npc.get("id", "")
     for role in _DUTY_TABLE:
@@ -127,9 +160,9 @@ def _get_role(npc: dict) -> str:
 # Основная логика
 # ─────────────────────────────────────────────────────────────────────────────
 def _score_npc(
-    npc: dict,
-    scene_state: dict,
-    scene_changes: list,
+    npc: Dict[str, Any],
+    scene_state: Dict[str, Any],
+    scene_changes: List[Any],
     actor_id: str = "player",
     spatial_query: Optional["SpatialQueryService"] = None,
 ) -> ReactionScore:
@@ -174,8 +207,8 @@ def _score_npc(
 
 def get_reaction_order(
     npcs: list[dict],
-    scene_state: dict,
-    scene_changes: list,
+    scene_state: Dict[str, Any],
+    scene_changes: List[Any],
     actor_id: str = "player",
     min_score: int = 10,
     spatial_query: Optional["SpatialQueryService"] = None,
@@ -190,7 +223,9 @@ def get_reaction_order(
     scores = []
     for npc in npcs:
         try:
-            rs = _score_npc(npc, scene_state, scene_changes, actor_id, spatial_query=spatial_query)
+            rs = _score_npc(
+                npc, scene_state, scene_changes, actor_id, spatial_query=spatial_query
+            )
             if rs.score >= min_score:
                 scores.append(rs)
         except Exception as e:

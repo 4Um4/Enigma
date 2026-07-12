@@ -9,8 +9,8 @@ path: backend/app/services/game_loop/service_factories.py
 Зависимости: app.services.social.social_engine, app.services.social.reputation_engine, app.services.economy.economy_tracker, app.services.npc.npc_loader
 Основные сущности: ServiceFactory
 """
-
 from __future__ import annotations
+
 
 import logging
 from pathlib import Path
@@ -39,6 +39,7 @@ class ServiceFactory:
 
         # EconomyTracker — лёгкий, создаём сразу
         from app.services.economy.economy_tracker import EconomyTracker
+
         self.economy_tracker: EconomyTracker = EconomyTracker()
 
     # ── Social Engine ────────────────────────────────────────────────────────
@@ -59,8 +60,7 @@ class ServiceFactory:
             # name_map для continuity_note (npc_id → имя)
             _all_npcs = self._load_npcs()
             _name_map = {
-                n.get("id", ""): n.get("name", "")
-                for n in _all_npcs if n.get("id")
+                n.get("id", ""): n.get("name", "") for n in _all_npcs if n.get("id")
             }
             self._social_engine = SocialEngine.from_config(_config, name_map=_name_map)
             logger.info(
@@ -132,7 +132,9 @@ class ServiceFactory:
             )
 
         self._economic_profiles[campaign_id] = _profiles
-        logger.info(f"[ECO] Initialized {len(_profiles)} economic profiles for {campaign_id}")
+        logger.info(
+            f"[ECO] Initialized {len(_profiles)} economic profiles for {campaign_id}"
+        )
         return _profiles
 
     # ── Base Drives ──────────────────────────────────────────────────────────
@@ -152,7 +154,12 @@ class ServiceFactory:
                 _l0 = load_profile_from_legacy_json(_npc)
                 _drives[_nid] = _l0.drives_base
             except Exception:
-                _drives[_nid] = {"control": 0.25, "desire": 0.25, "fear": 0.25, "significance": 0.25}
+                _drives[_nid] = {
+                    "control": 0.25,
+                    "desire": 0.25,
+                    "fear": 0.25,
+                    "significance": 0.25,
+                }
 
         return _drives
 
@@ -178,5 +185,8 @@ class ServiceFactory:
             relationship_store=relationship_store,
             reputation_engine=_rep_engine,
         )
-        logger.info("[STATE_APPLICATOR] Initialized with ReputationEngine=%s", _rep_engine is not None)
+        logger.info(
+            "[STATE_APPLICATOR] Initialized with ReputationEngine=%s",
+            _rep_engine is not None,
+        )
         return self._state_applicator

@@ -16,21 +16,22 @@ path: /backend/app/services/spatial/spatial_events.py
 """
 
 from dataclasses import dataclass
-from typing import Dict, List
+from typing import Any, Dict, List
 
 
 @dataclass(frozen=True)
 class SpatialEvent:
     """Переход расстояния между ходами."""
+
     npc_id: str
-    event_type: str          # "proximity_close" | "proximity_leave"
+    event_type: str  # "proximity_close" | "proximity_leave"
     prev_distance: float
     new_distance: float
 
 
 # Пороги (метры) — согласованы с ROAD_MAP
-PROXIMITY_CLOSE_THRESHOLD: float = 2.0    # ближе → событие приближения
-PROXIMITY_LEAVE_THRESHOLD: float = 5.0    # дальше → событие отдаления
+PROXIMITY_CLOSE_THRESHOLD: float = 2.0  # ближе → событие приближения
+PROXIMITY_LEAVE_THRESHOLD: float = 5.0  # дальше → событие отдаления
 
 
 def detect_transitions(
@@ -57,19 +58,23 @@ def detect_transitions(
 
         # Приближение: пересёк порог сверху вниз
         if prev_dist >= close_threshold and curr_dist < close_threshold:
-            events.append(SpatialEvent(
-                npc_id=npc_id,
-                event_type="proximity_close",
-                prev_distance=prev_dist,
-                new_distance=curr_dist,
-            ))
+            events.append(
+                SpatialEvent(
+                    npc_id=npc_id,
+                    event_type="proximity_close",
+                    prev_distance=prev_dist,
+                    new_distance=curr_dist,
+                )
+            )
         # Отдаление: пересёк порог снизу вверх
         elif prev_dist < leave_threshold and curr_dist >= leave_threshold:
-            events.append(SpatialEvent(
-                npc_id=npc_id,
-                event_type="proximity_leave",
-                prev_distance=prev_dist,
-                new_distance=curr_dist,
-            ))
+            events.append(
+                SpatialEvent(
+                    npc_id=npc_id,
+                    event_type="proximity_leave",
+                    prev_distance=prev_dist,
+                    new_distance=curr_dist,
+                )
+            )
 
     return events

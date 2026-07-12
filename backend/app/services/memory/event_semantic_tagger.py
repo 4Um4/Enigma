@@ -1,3 +1,4 @@
+from __future__ import annotations
 # backend/app/services/memory/event_semantic_tagger.py
 """
 Интерпретационный слой: EventContext → semantic tags.
@@ -14,8 +15,7 @@
   Логика агрегации не меняется.
 """
 
-from __future__ import annotations
-from typing import Tuple
+from typing import List, Dict, Any, Tuple
 
 
 # ============================================================================
@@ -25,34 +25,31 @@ from typing import Tuple
 
 _EVENT_SEMANTIC_MAP: dict[str, frozenset[str]] = {
     # Агрессия
-    "player_attacks":   frozenset({"social:aggression", "social:physical_harm"}),
+    "player_attacks": frozenset({"social:aggression", "social:physical_harm"}),
     "player_threatens": frozenset({"social:aggression", "social:intimidation"}),
-    "player_insults":   frozenset({"social:aggression", "social:social_harm"}),
-    "player_steals":    frozenset({"social:aggression", "social:property_harm"}),
+    "player_insults": frozenset({"social:aggression", "social:social_harm"}),
+    "player_steals": frozenset({"social:aggression", "social:property_harm"}),
     "player_cast_spell": frozenset({"social:aggression", "social:unknown_threat"}),
-
     # Нейтральное
     "player_interacts": frozenset({"social:interaction"}),
     "player_used_item": frozenset({"social:interaction"}),
-    "idle":             frozenset({"social:neutral"}),
-
+    "idle": frozenset({"social:neutral"}),
     # Благожелательное
-    "player_helps":     frozenset({"social:benevolence"}),
-    "player_trades":    frozenset({"social:transaction"}),
-
+    "player_helps": frozenset({"social:benevolence"}),
+    "player_trades": frozenset({"social:transaction"}),
     # NPC-события
-    "npc_killed":       frozenset({"social:extreme_harm", "social:irreversible"}),
-    "npc_breaks":       frozenset({"social:submission"}),
+    "npc_killed": frozenset({"social:extreme_harm", "social:irreversible"}),
+    "npc_breaks": frozenset({"social:submission"}),
     "npc_role_changed": frozenset({"social:role_shift"}),
-    "npc_greets":       frozenset({"social:interaction"}),
+    "npc_greets": frozenset({"social:interaction"}),
 }
 
 # Тег актора — добавляется если актор известен
 _ACTOR_TAG_PLAYER = "social:player_actor"
-_ACTOR_TAG_NPC    = "social:npc_actor"
+_ACTOR_TAG_NPC = "social:npc_actor"
 
 # Интенсивность
-_INTENSITY_HIGH_TAG    = "social:high_intensity"
+_INTENSITY_HIGH_TAG = "social:high_intensity"
 _INTENSITY_HIGH_THRESH = 0.7
 
 
@@ -65,9 +62,9 @@ class EventSemanticTagger:
 
     def tag(
         self,
-        event_type:  str,
-        actor_id:    str,
-        intensity:   float = 1.0,
+        event_type: str,
+        actor_id: str,
+        intensity: float = 1.0,
     ) -> Tuple[str, ...]:
         """
         Вернуть semantic tags для данного события.
@@ -78,7 +75,7 @@ class EventSemanticTagger:
             intensity:  интенсивность события (EventContext.intensity)
 
         Returns:
-            tuple semantic tags — не содержат event_type напрямую
+            Tuple[Any, ...] semantic tags — не содержат event_type напрямую
         """
         result: list[str] = []
 

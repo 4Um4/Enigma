@@ -1,3 +1,4 @@
+from __future__ import annotations
 # backend/app/services/events/social_subscriber.py
 #
 # Устав §5.1: EventBus.publish() — единственная точка входа событий.
@@ -20,10 +21,10 @@ TODO:
 - [ ] Логирование и метрики: сколько NPC затрагивает социальная пропагация, какие типы событий чаще всего влияют на социальные отношения
 - [ ] Тесты: юнит-тесты для SocialSubscriber, интеграционные тесты с EventBus и SocialEngine
 """
-from __future__ import annotations
+
 
 import logging
-from typing import Any, Callable, List, Optional
+from typing import Dict, Any, Callable, List, Optional
 
 from app.domain.events import EventDTO
 from app.models.phase8 import Phase8Context, Phase8Result
@@ -74,7 +75,7 @@ class SocialSubscriber:
         for et in _SOCIAL_EVENT_TYPES:
             self._event_bus.subscribe(et, self._on_event)
 
-    def _on_event(self, event: EventDTO) -> Optional[dict]:
+    def _on_event(self, event: EventDTO) -> Optional[Dict[str, Any]]:
         """EventHandler: накапливает событие для обработки на Фазе 8."""
         self._pending_events.append(event)
         return None

@@ -1,3 +1,4 @@
+from __future__ import annotations
 # backend/app/models/front.py
 """
 Фаза 5.1 — Fronts: маска персонажа под давлением мира.
@@ -18,7 +19,6 @@
   - NPC с активным Front могут иметь определённые ограничения или бонусы в поведении (например, "tough" может быть менее склонен к бегству, но более агрессивен в бою).
 """
 
-from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
@@ -27,21 +27,22 @@ from typing import Dict, List
 
 class FrontType(str, Enum):
     """Типы защитных масок персонажа."""
-    NONE = "none"                     # нет маски — персонаж искренен
-    HUMBLE = "humble"                 # смирение — низкая репутация → показная покорность
-    TOUGH = "tough"                   # жёсткость — страх → агрессивная защита
-    COMPLIANT = "compliant"           # угодливость — долг/зависимость → согласие
-    GUARDED = "guarded"               # закрытость — слухи/паранойя → минимальный контакт
-    DECEPTIVE = "deceptive"           # обман — репутация ↔ истинные ценности
+
+    NONE = "none"  # нет маски — персонаж искренен
+    HUMBLE = "humble"  # смирение — низкая репутация → показная покорность
+    TOUGH = "tough"  # жёсткость — страх → агрессивная защита
+    COMPLIANT = "compliant"  # угодливость — долг/зависимость → согласие
+    GUARDED = "guarded"  # закрытость — слухи/паранойя → минимальный контакт
+    DECEPTIVE = "deceptive"  # обман — репутация ↔ истинные ценности
 
 
 # Источники давления → какой Front они провоцируют
 PRESSURE_FRONT_MAP: Dict[str, FrontType] = {
-    "reputation_low":       FrontType.HUMBLE,
-    "fear_high":           FrontType.TOUGH,
-    "debt_high":           FrontType.COMPLIANT,
-    "rumors_negative":     FrontType.GUARDED,
-    "value_conflict":      FrontType.DECEPTIVE,
+    "reputation_low": FrontType.HUMBLE,
+    "fear_high": FrontType.TOUGH,
+    "debt_high": FrontType.COMPLIANT,
+    "rumors_negative": FrontType.GUARDED,
+    "value_conflict": FrontType.DECEPTIVE,
 }
 
 
@@ -52,11 +53,12 @@ class WorldPressure:
     Вычисляется из ReputationEngine + SocialEngine + фракционных связей.
     НЕ хранится в персонаже — вычисляется каждый тик.
     """
+
     # Индивидуальные источники ∈ [0..1]
-    reputation_pressure: float = 0.0      # низкая репутация в фракциях
-    fear_pressure: float = 0.0            # угрозы от NPC/фракций
-    debt_pressure: float = 0.0            # финансовые обязательства
-    rumor_pressure: float = 0.0           # негативные слухи о персонаже
+    reputation_pressure: float = 0.0  # низкая репутация в фракциях
+    fear_pressure: float = 0.0  # угрозы от NPC/фракций
+    debt_pressure: float = 0.0  # финансовые обязательства
+    rumor_pressure: float = 0.0  # негативные слухи о персонаже
     value_conflict_pressure: float = 0.0  # конфликт ценностей с окружением
 
     # Итоговое давление ∈ [0..1]
@@ -98,24 +100,27 @@ class FrontState:
     Текущее состояние Front персонажа.
     Хранится в CharacterProfile как часть runtime state.
     """
+
     front_type: FrontType = FrontType.NONE
-    intensity: float = 0.0            # сила маски ∈ [0..1]
-    tick_adopted: int = 0              # тик когда Front был принят
-    tick_age: int = 0                  # тиков с принятия
+    intensity: float = 0.0  # сила маски ∈ [0..1]
+    tick_adopted: int = 0  # тик когда Front был принят
+    tick_age: int = 0  # тиков с принятия
     integrity_cost_per_tick: float = 0.0  # стоимость поддержания в self_integrity/тик
 
     # История срывов (для анализа паттернов)
     breaks: List[str] = field(default_factory=list)
 
     # Маппинг типа → стоимость поддержания за тик
-    FRONT_MAINTENANCE_COST: Dict[FrontType, float] = field(default_factory=lambda: {
-        FrontType.NONE: 0.0,
-        FrontType.HUMBLE: 0.005,
-        FrontType.TOUGH: 0.008,
-        FrontType.COMPLIANT: 0.006,
-        FrontType.GUARDED: 0.004,
-        FrontType.DECEPTIVE: 0.010,  # самый дорогой — двойная жизнь
-    })
+    FRONT_MAINTENANCE_COST: Dict[FrontType, float] = field(
+        default_factory=lambda: {
+            FrontType.NONE: 0.0,
+            FrontType.HUMBLE: 0.005,
+            FrontType.TOUGH: 0.008,
+            FrontType.COMPLIANT: 0.006,
+            FrontType.GUARDED: 0.004,
+            FrontType.DECEPTIVE: 0.010,  # самый дорогой — двойная жизнь
+        }
+    )
 
     @property
     def is_active(self) -> bool:

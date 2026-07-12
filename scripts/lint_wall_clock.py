@@ -37,36 +37,39 @@ SIMULATION_LAYER_FILES = {
     "services/npc/belief_crystallization_engine.py",
     "services/npc/pattern_detector.py",
     "services/motion/motion_pipeline.py",
-    "services/scene_state_manager.py" # Включён для аудита REAL_TIME_BRIDGE
+    "services/scene_state_manager.py",  # Включён для аудита REAL_TIME_BRIDGE
 }
 
 # Уровень 1 & 2: Запрещённые функции
 FORBIDDEN_FUNCS = {
-    "time", "monotonic", "monotonic_ns", "perf_counter", "perf_counter_ns", "time_ns",
-    "now", "utcnow"
+    "time",
+    "monotonic",
+    "monotonic_ns",
+    "perf_counter",
+    "perf_counter_ns",
+    "time_ns",
+    "now",
+    "utcnow",
 }
 
 # Уровень 3: Семантические утечки (атрибуты)
-FORBIDDEN_ATTRS = {
-    "st_mtime", "st_ctime", "st_atime"
-}
+FORBIDDEN_ATTRS = {"st_mtime", "st_ctime", "st_atime"}
 
 # Уровень 3: Семантические утечки (строки)
-FORBIDDEN_STRINGS = {
-    "CURRENT_TIMESTAMP", "CURRENT_DATE", "CURRENT_TIME"
-}
+FORBIDDEN_STRINGS = {"CURRENT_TIMESTAMP", "CURRENT_DATE", "CURRENT_TIME"}
 
 EXCEPTION_MARKER = "§15.2"
+
 
 class WallClockVisitor(ast.NodeVisitor):
     def __init__(self, filepath: Path, source: str):
         self.filepath = filepath
         self.source_lines = source.splitlines()
         self.violations = []
-        
-        self.time_aliases = set()       # Имена, связанные с модулем time
-        self.datetime_aliases = set()   # Имена, связанные с модулем datetime
-        self.direct_funcs = set()       # Прямые импорты (from time import time)
+
+        self.time_aliases = set()  # Имена, связанные с модулем time
+        self.datetime_aliases = set()  # Имена, связанные с модулем datetime
+        self.direct_funcs = set()  # Прямые импорты (from time import time)
 
     def visit_Import(self, node):
         for n in node.names:
@@ -92,7 +95,7 @@ class WallClockVisitor(ast.NodeVisitor):
 
     def visit_Call(self, node: ast.Call):
         call_chain = self._get_chain(node.func)
-        
+
         # Уровень 1 & 2: Прямые вызовы или алиасы
         if call_chain:
             if len(call_chain) == 1 and call_chain[0] in self.direct_funcs:
@@ -143,6 +146,7 @@ class WallClockVisitor(ast.NodeVisitor):
             f"[§15 VIOLATION] {self.filepath}:{line_no} -> {call_name}"
         )
 
+
 def lint_file(filepath: Path, violations: list):
     try:
         with open(filepath, "r", encoding="utf-8-sig") as f:
@@ -161,8 +165,9 @@ def lint_file(filepath: Path, violations: list):
     visitor.visit(tree)
     violations.extend(visitor.violations)
 
+
 def main():
-    print(f"[LINT] Запуск проверки §15 (Wall-Clock Isolation)...")
+    print("[LINT] Запуск проверки §15 (Wall-Clock Isolation)...")
     violations = []
 
     for rel_path in SIMULATION_LAYER_FILES:
@@ -180,6 +185,7 @@ def main():
     else:
         print("[PASS] Нарушений не найдено. Симуляционный слой изолирован.")
         sys.exit(0)
+
 
 if __name__ == "__main__":
     main()

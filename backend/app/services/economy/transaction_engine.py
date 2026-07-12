@@ -1,3 +1,4 @@
+from __future__ import annotations
 # backend/app/services/economy/transaction_engine.py
 """
 TransactionEngine — движок сделок.
@@ -14,11 +15,10 @@ TransactionEngine — движок сделок.
 - Запись в CausalLedger: через causal_note в Transaction
 """
 
-from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Dict, List
+from typing import Any, Dict, List
 
 from app.models.economy import (
     EconomicProfile,
@@ -32,6 +32,7 @@ logger = logging.getLogger(__name__)
 
 class TransactionError(Exception):
     """Ошибка транзакции с описанием причины."""
+
     pass
 
 
@@ -40,7 +41,7 @@ class TransactionEngine:
     """
     Движок транзакций. Без состояния — все данные в профилях.
     """
-    
+
     def execute_sale(
         self,
         buyer: EconomicProfile,
@@ -52,7 +53,7 @@ class TransactionEngine:
     ) -> Transaction:
         """
         Продажа: продавец → покупатель (товар), покупатель → продавец (деньги).
-        
+
         Args:
             buyer: Профиль покупателя
             seller: Профиль продавца
@@ -60,7 +61,7 @@ class TransactionEngine:
             price: Цена в золоте
             reason: Описание для логов
             tick: Тик мира
-            
+
         Returns:
             Transaction с статусом COMPLETED или FAILED
         """
@@ -73,7 +74,7 @@ class TransactionEngine:
             reason=reason,
             tick=tick,
         )
-        
+
         # Валидация: товар должен быть в stock_for_sale (не в личных запасах)
         for good_id, amount in goods.items():
             if not seller.has_stock(good_id, amount):
@@ -87,7 +88,7 @@ class TransactionEngine:
                 )
                 self._record_both(buyer, seller, tx)
                 return tx
-        
+
         if not buyer.can_afford(price):
             tx = Transaction(
                 tx_type=TransactionType.SALE,
@@ -99,7 +100,7 @@ class TransactionEngine:
             )
             self._record_both(buyer, seller, tx)
             return tx
-        
+
         # Выполнение (атомарно)
         try:
             # Покупатель платит
@@ -110,7 +111,7 @@ class TransactionEngine:
             for good_id, amount in goods.items():
                 seller.remove_stock(good_id, amount)
                 buyer.add_good(good_id, amount)
-            
+
             tx = Transaction(
                 tx_type=TransactionType.SALE,
                 status=TransactionStatus.COMPLETED,
@@ -131,10 +132,10 @@ class TransactionEngine:
                 reason=f"execution error: {e}",
                 tick=tick,
             )
-        
+
         self._record_both(buyer, seller, tx)
         return tx
-    
+
     def execute_employment(
         self,
         employer: EconomicProfile,
@@ -148,15 +149,15 @@ class TransactionEngine:
         """
         Трудовой контракт: работодатель → работник (зарплата каждый интервал).
         Создаёт Contract в профиле работника.
-        
+
         Returns:
             Transaction с результатом
         """
         from app.models.economy import Contract
-        
+
         # Проверяем: работодатель может платить?
         daily_cost = wage * 24 / max(1, duration_ticks) if duration_ticks > 0 else wage
-        
+
         contract = Contract(
             contract_type="employment",
             party_a=employer.npc_id,
@@ -167,14 +168,14 @@ class TransactionEngine:
             duration_ticks=duration_ticks,
             job_type=job_type,
         )
-        
+
         employee.add_contract(contract)
         employee.current_employer = employer.npc_id
         employee.employment_remaining = duration_ticks
-        
+
         # Добавляем доход работнику
         employee.income_sources[job_type or "employment"] = wage / 24  # за тик
-        
+
         tx = Transaction(
             tx_type=TransactionType.EMPLOYMENT,
             status=TransactionStatus.COMPLETED,
@@ -186,10 +187,10 @@ class TransactionEngine:
             causal_note=f"{employer.npc_id} hired {employee.npc_id} for {wage}G/tick",
             tick=tick,
         )
-        
+
         self._record_both(employer, employee, tx)
         return tx
-    
+
     def process_contract_payments(
         self,
         profiles: Dict[str, EconomicProfile],
@@ -198,15 +199,15 @@ class TransactionEngine:
         """
         Обрабатывает платежи по контрактам для всех NPC.
         Вызывается каждый тик.
-        
+
         Returns:
             Список выполненных/неудачных транзакций
         """
         transactions: List[Transaction] = []
-        
+
         for npc_id, profile in profiles.items():
             due_contracts = profile.tick_contracts()
-            
+
             for contract in due_contracts:
                 if contract.payment_direction == "a_to_b":
                     payer_id = contract.party_a
@@ -214,17 +215,17 @@ class TransactionEngine:
                 else:
                     payer_id = contract.party_b
                     receiver_id = contract.party_a
-                
+
                 payer = profiles.get(payer_id)
                 receiver = profiles.get(receiver_id)
-                
+
                 if not payer or not receiver:
                     continue
-                
+
                 if payer.can_afford(contract.payment_amount):
                     payer.spend(contract.payment_amount)
                     receiver.receive(contract.payment_amount)
-                    
+
                     tx = Transaction(
                         tx_type=TransactionType.SALE,
                         status=TransactionStatus.COMPLETED,
@@ -245,12 +246,12 @@ class TransactionEngine:
                         reason=f"cannot afford contract payment (has {payer.gold}G)",
                         tick=tick,
                     )
-                
+
                 self._record_both(payer, receiver, tx)
                 transactions.append(tx)
-        
+
         return transactions
-    
+
     def _record_both(
         self,
         profile_a: EconomicProfile,

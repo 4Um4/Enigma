@@ -1,3 +1,4 @@
+from __future__ import annotations
 # backend/app/models/npc_profile.py
 """
 Целевая архитектура данных NPC (To-Be).
@@ -13,7 +14,6 @@ L2 (State) — Быстрая динамика. Текущий тик (DecisionH
 R4 (Spatial) — Эфемерный срез. Существует только внутри одного тика.
 """
 
-from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import Dict, Optional, Tuple
@@ -23,18 +23,25 @@ from typing import Dict, Optional, Tuple
 
 # --- СЛОЙ L0: ШАБЛОН (IMMUTABLE) ---
 
+
 @dataclass(frozen=True)
 class InventoryProfile:
     """Правила генерации инвентаря, не конкретный список."""
-    possible_items: Dict[str, float] = field(default_factory=dict)  # item_id -> spawn_chance
+
+    possible_items: Dict[str, float] = field(
+        default_factory=dict
+    )  # item_id -> spawn_chance
     min_gold: int = 0
     max_gold: int = 0
-    conditional_items: Dict[str, str] = field(default_factory=dict)  # condition -> item_id
+    conditional_items: Dict[str, str] = field(
+        default_factory=dict
+    )  # condition -> item_id
 
 
 @dataclass(frozen=True)
 class PsycheBase:
     """Базовые характеристики психики (из JSON)."""
+
     willpower: int
     breakpoint: int
     loyalty_base: int = 50  # Переименовано из loyalty_true для ясности
@@ -46,6 +53,7 @@ class NPCProfileL0:
     L0 Core Profile. Загружается из config/npc/ один раз.
     NEVER CHANGES во время кампании.
     """
+
     id: str
     name: str
     tier: str  # "mass", "minor", "major"
@@ -56,7 +64,9 @@ class NPCProfileL0:
     # Режиссёрская подсказка — instructions для LLM
     author_notes: str = ""
     inventory_rules: Optional[InventoryProfile] = None
-    gender: str = "male"  # "male", "female", "other" — для гендерных окончаний в narrative
+    gender: str = (
+        "male"  # "male", "female", "other" — для гендерных окончаний в narrative
+    )
     # v2.2 Spatial Ontology: Архетип профессии. Инъектируется из _archetype при загрузке.
     # L1 Bridge: В будущем заменит _archetype на core.compliance_bias
     archetype: str = "commoner"  # "maid", "guard", "thief", "tavern_keeper" и т.д.
@@ -71,7 +81,10 @@ class SpatialSnapshotR4:
     R4 Spatial Snapshot. Существует только в рамках одного тика (SceneState).
     Уничтожается после обработки события.
     """
+
     location_id: str = "unknown"
     local_position: Tuple[float, float, float] = (0.0, 0.0, 0.0)  # X, Y, Z
     standing_on_object: Optional[str] = None  # "barrel_01"
-    environment_mods: Dict[str, float] = field(default_factory=dict)  # stability_mod, visibility_mod
+    environment_mods: Dict[str, float] = field(
+        default_factory=dict
+    )  # stability_mod, visibility_mod

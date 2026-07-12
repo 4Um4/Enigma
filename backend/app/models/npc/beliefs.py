@@ -1,3 +1,4 @@
+from __future__ import annotations
 # backend/app/models/npc/beliefs.py
 """
 Эпистемический слой NPC — убеждения о мире.
@@ -13,7 +14,6 @@
 BeliefState — тупой контейнер. Логика решений живёт снаружи.
 """
 
-from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
@@ -23,10 +23,11 @@ from typing import Dict, Optional
 @dataclass
 class BeliefFragment:
     """Одно убеждение NPC о мире."""
-    value: float        # 0.0–1.0, сила убеждения
-    confidence: float   # 0.0–1.0, уверенность в нём
-    source: str         # "perception" | "memory" | "rumor"
-    timestamp: int      # тик, когда получено
+
+    value: float  # 0.0–1.0, сила убеждения
+    confidence: float  # 0.0–1.0, уверенность в нём
+    source: str  # "perception" | "memory" | "rumor"
+    timestamp: int  # тик, когда получено
 
 
 class BeliefType(str, Enum):
@@ -34,9 +35,10 @@ class BeliefType(str, Enum):
     Закрытый реестр типов убеждений.
     Расширять здесь — не строками в коде.
     """
-    DANGER          = "danger"
-    PLAYER_HOSTILE  = "player_hostile"
-    ALLY_NEARBY     = "ally_nearby"
+
+    DANGER = "danger"
+    PLAYER_HOSTILE = "player_hostile"
+    ALLY_NEARBY = "ally_nearby"
     # R8+: FOOD_SCARCE, GUARD_CORRUPT, RUMOR_BANDITS — добавлять сюда
 
 

@@ -1,3 +1,4 @@
+from __future__ import annotations
 # path: backend/app/services/presentation/avatar_presentation_assembler.py
 # Назначение: Перевод Simulation Truth (body_state, psyche) в Frontend Phenomenological Projection (AvatarStateDTO).
 # Зависимости: app.domain.snapshot, typing
@@ -7,7 +8,6 @@ TODO: В будущем этот слой может быть расширен �
 
 """
 
-from __future__ import annotations
 
 from typing import Any, Dict
 
@@ -20,7 +20,7 @@ from app.domain.snapshot import (
 
 def assemble_avatar_presentation(player_dict: Dict[str, Any]) -> AvatarStateDTO:
     """Переводит сырой стейт аватара в феноменологическую проекцию для фронтенда.
-    
+
     НЕ использует хардкор чисел. Только пороговые переходы в визуальные состояния.
     Если аватара нет — возвращает дефолтный (здоровый) стейт.
     """
@@ -57,7 +57,7 @@ def assemble_avatar_presentation(player_dict: Dict[str, Any]) -> AvatarStateDTO:
     # --- 2. Ментальная проекция ---
     mental_state = MentalPresentationState.CALM
     mental_strain = stress + fear
-    
+
     if willpower < 0.2:
         mental_state = MentalPresentationState.BROKEN
     elif mental_strain > 1.5:
@@ -69,24 +69,41 @@ def assemble_avatar_presentation(player_dict: Dict[str, Any]) -> AvatarStateDTO:
 
     # --- 3. Феноменологические скаляры (Непрерывные векторы для оптического рендера) ---
     # Бэкенд вычисляет структурное давление, Фронтенд генерирует кино.
-    
+
     # Стабильность восприятия: чистота сенсорного потока (1.0 = идеальное зрение/слух)
-    perceptual_stability = max(0.0, min(1.0, consciousness - (pain * 0.2) - (blood_loss * 0.3)))
-    
+    perceptual_stability = max(
+        0.0, min(1.0, consciousness - (pain * 0.2) - (blood_loss * 0.3))
+    )
+
     # Когнитивная когерентность: хватка за реальность (1.0 = полное понимание происходящего)
-    cognitive_coherence = max(0.0, min(1.0, willpower - (fear * 0.3) - (stress * 0.3) - ((1.0 - consciousness) * 0.5)))
-    
+    cognitive_coherence = max(
+        0.0,
+        min(
+            1.0,
+            willpower - (fear * 0.3) - (stress * 0.3) - ((1.0 - consciousness) * 0.5),
+        ),
+    )
+
     # Сенсорный шум: галлюцинаторный/болевой фон
-    sensory_noise = max(0.0, min(1.0, (pain * 0.4) + (blood_loss * 0.5) + ((1.0 - consciousness) * 0.6)))
-    
+    sensory_noise = max(
+        0.0, min(1.0, (pain * 0.4) + (blood_loss * 0.5) + ((1.0 - consciousness) * 0.6))
+    )
+
     # Моторное расстройство: тремор, замедление
-    motor_disruption = max(0.0, min(1.0, (pain * 0.5) + (fatigue * 0.4) + ((1.0 - consciousness) * 0.8)))
-    
+    motor_disruption = max(
+        0.0, min(1.0, (pain * 0.5) + (fatigue * 0.4) + ((1.0 - consciousness) * 0.8))
+    )
+
     # Перцептивная задержка: время сборки реальности (шок, диссоциация)
-    perceptual_latency = max(0.0, min(1.0, ((1.0 - cognitive_coherence) * 0.7) + ((1.0 - consciousness) * 0.5)))
-    
+    perceptual_latency = max(
+        0.0,
+        min(1.0, ((1.0 - cognitive_coherence) * 0.7) + ((1.0 - consciousness) * 0.5)),
+    )
+
     # Скорость возврата в норму (инерция восстановления сознания)
-    reality_reconciliation_rate = max(0.05, min(1.0, willpower * 0.7 + (1.0 - fatigue) * 0.3))
+    reality_reconciliation_rate = max(
+        0.05, min(1.0, willpower * 0.7 + (1.0 - fatigue) * 0.3)
+    )
 
     # Визуальные маркеры
     blood_visibility = min(1.0, blood_loss * 1.5)

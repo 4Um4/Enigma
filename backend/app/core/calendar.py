@@ -15,8 +15,8 @@
 - Часы: 0–23 (вариант А, стандарт цифровых часов)
 - Месяц: GameMonth (1–12) или None для межсезонья
 """
-
 from __future__ import annotations
+
 
 from dataclasses import dataclass
 from typing import Optional
@@ -25,7 +25,6 @@ from app.core.constants import (
     DAYS_PER_MONTH,
     DAYS_PER_YEAR,
     DEFAULT_START_SECOND_ABS,
-    INTERCALARY_DAYS,
     INTERCALARY_NAME_RU,
     SECONDS_PER_DAY,
     SECONDS_PER_HOUR,
@@ -38,13 +37,14 @@ from app.core.constants import (
 @dataclass(frozen=True, slots=True)
 class GameTimePoint:
     """Неизменяемый результат декомпозиции total_seconds."""
+
     total_seconds: int
     year: int
-    day_of_year: int          # 1–365
+    day_of_year: int  # 1–365
     month: Optional[GameMonth]  # None = межсезонье
-    day_of_month: int         # 1–30 для месяцев, 1–5 для межсезонья
-    hour: int                 # 0–23
-    minute: int               # 0–59
+    day_of_month: int  # 1–30 для месяцев, 1–5 для межсезонья
+    hour: int  # 0–23
+    minute: int  # 0–59
     is_intercalary: bool
 
 
@@ -66,8 +66,8 @@ class Calendar:
 
         # Год и день в году
         total_days = total_seconds // SECONDS_PER_DAY
-        year = total_days // DAYS_PER_YEAR + 1          # годы с 1
-        day_of_year = total_days % DAYS_PER_YEAR + 1    # дни с 1
+        year = total_days // DAYS_PER_YEAR + 1  # годы с 1
+        day_of_year = total_days % DAYS_PER_YEAR + 1  # дни с 1
 
         # Месяц и день месяца
         is_intercalary = day_of_year > REGULAR_DAYS_PER_YEAR
@@ -82,7 +82,7 @@ class Calendar:
 
         # Час и минута
         seconds_in_day = total_seconds % SECONDS_PER_DAY
-        hour = seconds_in_day // SECONDS_PER_HOUR        # 0–23
+        hour = seconds_in_day // SECONDS_PER_HOUR  # 0–23
         minute = (seconds_in_day % SECONDS_PER_HOUR) // 60  # 0–59
 
         return GameTimePoint(
@@ -114,7 +114,7 @@ class Calendar:
         if pt.is_intercalary:
             return f"{INTERCALARY_NAME_RU} {pt.day_of_month}"
         month_name = MONTH_NAMES_RU.get(pt.month, "???")  # type: ignore[arg-type]
-        return f"{pt.day_of_month}\u00A0{month_name}"
+        return f"{pt.day_of_month}\u00a0{month_name}"
 
     @staticmethod
     def format_full(total_seconds: int) -> str:

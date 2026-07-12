@@ -20,11 +20,12 @@ nodes:
     type: service
     layer: Application
     label: "Movement Engine"
+    description: "ADR-O-314: Обрабатывает LocalSteeringGoal через actor_id (унификация игрока и NPC)."
   SceneStateManager:
     type: service
     layer: Application
     label: "Scene State Manager (Projection Engine)"
-    description: "ADR-130.1: Блокирует перезапись активных транзитов (status=MOVING). ADR-130.2: Обрабатывает cause=traversal_complete как проекцию local_position (snap), не создавая новый маршрут. ADR-TRAV-FSM: Единственный владелец lifecycle перемещений (transition_traversal)."
+    description: "ADR-130.1: Блокирует перезапись активных транзитов (status=MOVING). ADR-130.2: Обрабатывает cause=traversal_complete как проекцию local_position (snap), не создавая новый маршрут. ADR-TRAV-FSM: Единственный владелец lifecycle перемещений (transition_traversal). ADR-O-314: Убрано дублирование player_spatial. Единый источник истины позиций — npc_positions."
   LifeEngine:
     type: service
     layer: Application
@@ -45,6 +46,16 @@ nodes:
     layer: Domain
     label: "Macro Movement Goal (LOD1)"
     description: "ADR-060: Объединяет LOD0 и LOD1. ADR-O-137: Включает поле IntentDomain (SURVIVAL/SOCIAL/ROUTINE/EXPLORATION)."
+  LocalSteeringGoal:
+    type: dto
+    layer: Domain
+    label: "Local Steering Goal (LOD0)"
+    description: "ADR-O-314: Микро-рулежка. Переведена на actor_id для унификации движения Игрока и NPC."
+  MovementRequest:
+    type: dto
+    layer: Domain
+    label: "Movement Request (Actor-Agnostic Contract)"
+    description: "ADR-O-314: Готовый контракт от Слоя Интерпретации к Симуляции. Содержит actor_id и target_actor_id. Убивает гадалку в TickOrchestrator."
     # --- ETKE-IK v1: MOTION CORE (L0) ---
   AffordanceVector:
     type: domain
@@ -208,7 +219,22 @@ edges:
   - from: TickOrchestrator
     to: DynamicAffordanceField
     label: "step_decay()"
-    condition: "S91: Экспоненциальный decay поведенческих следов в Фазе 0.5."
+  - from: Phase1Input
+    to: MovementRequest
+    label: "resolve_actor_reference() -> builds MovementRequest"
+    condition: "ADR-O-314: Слой Интерпретации извлекает актора из текста и собирает контракт."
+  - from: MovementRequest
+    to: TickOrchestrator
+    label: "consumes movement_request from IntentResolution"
+    condition: "ADR-O-314: TickOrchestrator читает готовый контракт вместо парсинга текста."
+  - from: TickOrchestrator
+    to: LocalSteeringGoal
+    label: "creates LocalSteeringGoal(actor_id)"
+    condition: "ADR-O-314: Fast Path для микро-перемещений на основе готового контракта."
+  - from: LocalSteeringGoal
+    to: MovementEngine
+    label: "process_intents([LocalSteeringGoal])"
+    condition: "ADR-O-314: MovementEngine обрабатывает цель по actor_id."
   - from: DynamicAffordanceField
     to: DeformationRecord
     label: "stores & queries (Hard Layer)"

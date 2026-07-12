@@ -1,4 +1,4 @@
-﻿# path: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\agent_runner.py
+# path: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\agent_runner.py
 """
 Безопасный запуск агентов с timeout и мониторингом.
 
@@ -22,28 +22,33 @@ logger = logging.getLogger(__name__)
 AGENT_TIMEOUT_SEC = 35
 
 ERROR_CODES = {
-    "AGENT_SUCCESS":              "SUCCESS",
-    "AGENT_TIMEOUT":              "TIMEOUT",
-    "AGENT_MODEL_FAIL":           "MODEL_FAIL",
+    "AGENT_SUCCESS": "SUCCESS",
+    "AGENT_TIMEOUT": "TIMEOUT",
+    "AGENT_MODEL_FAIL": "MODEL_FAIL",
     "ORCHESTRATOR_PIPELINE_FAIL": "PIPELINE_FAIL",
 }
 
 
 async def run_agent_safe(agent_name: str, agent, args: tuple, kwargs: dict) -> dict:
     """Запуск агента с timeout, VRAM-мониторингом и структурированным логированием."""
-    vram_monitor      = get_vram_monitor()
+    vram_monitor = get_vram_monitor()
     error_interpreter = get_error_interpreter()
-    start             = time.perf_counter()
+    start = time.perf_counter()
 
     # Модель загружается лениво внутри agent.run() через новый llm/router.
     # Замер VRAM показывает потребление до и во время работы агента.
     vram_before = await vram_monitor.get_vram_mb()
-    vram_after  = vram_before  # Будет обновлено после agent.run()
+    vram_after = vram_before  # Будет обновлено после agent.run()
 
-    jsonl_log({
-        "level": "INFO", "agent": agent_name, "status": "model_switch",
-        "vram_before_mb": vram_before, "vram_after_mb": vram_after,
-    })
+    jsonl_log(
+        {
+            "level": "INFO",
+            "agent": agent_name,
+            "status": "model_switch",
+            "vram_before_mb": vram_before,
+            "vram_after_mb": vram_after,
+        }
+    )
 
     try:
         result = await asyncio.wait_for(
@@ -51,11 +56,15 @@ async def run_agent_safe(agent_name: str, agent, args: tuple, kwargs: dict) -> d
             timeout=AGENT_TIMEOUT_SEC,
         )
         duration = round((time.perf_counter() - start) * 1000)
-        jsonl_log({
-            "level": "INFO", "agent": agent_name,
-            "error_code": ERROR_CODES["AGENT_SUCCESS"],
-            "duration_ms": duration, "status": "complete",
-        })
+        jsonl_log(
+            {
+                "level": "INFO",
+                "agent": agent_name,
+                "error_code": ERROR_CODES["AGENT_SUCCESS"],
+                "duration_ms": duration,
+                "status": "complete",
+            }
+        )
         return result or {}
 
     except asyncio.TimeoutError:
@@ -64,39 +73,58 @@ async def run_agent_safe(agent_name: str, agent, args: tuple, kwargs: dict) -> d
         # Прерываем зависшую генерацию на llama-server
         try:
             from app.services.llm.provider_manager import get_model_pool
+
             _pool = get_model_pool()
             if _pool._active_model:
                 _pool._active_model.provider.abort_generation()
                 logger.warning(f"[GAME_LOOP] abort sent to {_pool.active_model_key}")
         except Exception as e:
             logger.warning(f"[B5-FIX] silent failure suppressed: {e}")
-        jsonl_log({
-            "level": "ERROR", "agent": agent_name,
-            "error_code": ERROR_CODES["AGENT_TIMEOUT"],
-            "duration_ms": duration, "status": "timeout",
-            "human_msg": msg,
-        })
+        jsonl_log(
+            {
+                "level": "ERROR",
+                "agent": agent_name,
+                "error_code": ERROR_CODES["AGENT_TIMEOUT"],
+                "duration_ms": duration,
+                "status": "timeout",
+                "human_msg": msg,
+            }
+        )
         logger.error(f"[GAME_LOOP] {msg}")
-        return {"error": True, "error_code": ERROR_CODES["AGENT_TIMEOUT"], "human_msg": msg}
+        return {
+            "error": True,
+            "error_code": ERROR_CODES["AGENT_TIMEOUT"],
+            "human_msg": msg,
+        }
 
     except Exception as e:
         duration = round((time.perf_counter() - start) * 1000)
         human_msg, fix = error_interpreter.handle(
             e, {"agent": agent_name}, agent_name, agent_name
         )
-        jsonl_log({
-            "level": "ERROR", "agent": agent_name,
-            "error_code": ERROR_CODES["AGENT_MODEL_FAIL"],
-            "duration_ms": duration, "status": "failed",
-            "human_msg": human_msg, "fix": fix,
-        })
+        jsonl_log(
+            {
+                "level": "ERROR",
+                "agent": agent_name,
+                "error_code": ERROR_CODES["AGENT_MODEL_FAIL"],
+                "duration_ms": duration,
+                "status": "failed",
+                "human_msg": human_msg,
+                "fix": fix,
+            }
+        )
         logger.error(f"[GAME_LOOP] {agent_name} failed: {human_msg}")
-        return {"error": True, "error_code": ERROR_CODES["AGENT_MODEL_FAIL"], "human_msg": human_msg}
+        return {
+            "error": True,
+            "error_code": ERROR_CODES["AGENT_MODEL_FAIL"],
+            "human_msg": human_msg,
+        }
 
 
 async def yield_model_info(state):
     """Генерирует SSE-событие с метаинфо о выбранных моделях."""
     import logging
+
     logger = logging.getLogger(__name__)
     try:
         from app.services.llm.router import get_router as get_llm_router, Capability
@@ -104,25 +132,25 @@ async def yield_model_info(state):
 
         _pe = state.shared_context.python_engines
         npc_contexts = _pe.get("npc_contexts", []) if isinstance(_pe, dict) else []
-        has_major    = any(c.get("tier") == "major" for c in npc_contexts)
-        router_llm   = get_llm_router()
-        pool         = get_model_pool()
-        dm_key       = router_llm.select_model(Capability.NARRATIVE)
-        npc_cap      = Capability.DIALOGUE_GENERATION if has_major else Capability.DIALOGUE
-        npc_key      = router_llm.select_model(npc_cap)
-        dm_cfg       = pool.get_model_config(dm_key) if pool else None
-        npc_cfg      = pool.get_model_config(npc_key) if pool else None
+        has_major = any(c.get("tier") == "major" for c in npc_contexts)
+        router_llm = get_llm_router()
+        pool = get_model_pool()
+        dm_key = router_llm.select_model(Capability.NARRATIVE)
+        npc_cap = Capability.DIALOGUE_GENERATION if has_major else Capability.DIALOGUE
+        npc_key = router_llm.select_model(npc_cap)
+        dm_cfg = pool.get_model_config(dm_key) if pool else None
+        npc_cfg = pool.get_model_config(npc_key) if pool else None
         yield {
             "type": "model",
             "data": {
-                "dm":  {
-                    "key":      dm_key,
-                    "name":     dm_cfg.name if dm_cfg else dm_key,
+                "dm": {
+                    "key": dm_key,
+                    "name": dm_cfg.name if dm_cfg else dm_key,
                     "provider": dm_cfg.provider_type.value if dm_cfg else "unknown",
                 },
                 "npc": {
-                    "key":      npc_key,
-                    "name":     npc_cfg.name if npc_cfg else npc_key,
+                    "key": npc_key,
+                    "name": npc_cfg.name if npc_cfg else npc_key,
                     "provider": npc_cfg.provider_type.value if npc_cfg else "unknown",
                 },
             },

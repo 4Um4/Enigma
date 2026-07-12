@@ -19,22 +19,19 @@
 8. COLLAPSE: низкое сознание → статус unconscious
 9. Восстановление: боль упала → снятие stagger
 """
-import math
-import pytest
 
-from app.services.combat.physiology_decay_handler import (
-    PhysiologyDecayHandler,
-    PAIN_DECAY_LAMBDA,
-    FATIGUE_DECAY_LAMBDA,
-    BLOOD_LOSS_DECAY_LAMBDA,
-    CONSCIOUSNESS_RECOVERY,
-    PHYSIOLOGY_DECAY_EPSILON,
-    STAGGER_PAIN_THRESHOLD,
-    COLLAPSE_CONSCIOUSNESS,
-)
+import math
+
 from app.models.idle_tick import NPCStateSnapshot
 from app.models.state_delta import DeltaDomain
-from app.models.delta_payloads import PhysiologyPayload
+from app.services.combat.physiology_decay_handler import (
+    BLOOD_LOSS_DECAY_LAMBDA,
+    FATIGUE_DECAY_LAMBDA,
+    PAIN_DECAY_LAMBDA,
+    PHYSIOLOGY_DECAY_EPSILON,
+    STAGGER_PAIN_THRESHOLD,
+    PhysiologyDecayHandler,
+)
 
 
 def _make_snapshot(
@@ -72,10 +69,10 @@ class TestPainDecay:
         """Pain_t = Pain_{t-1} * exp(-lambda)."""
         handler = PhysiologyDecayHandler()
         npc = _make_snapshot(pain=50.0)
-        
+
         results = handler.handle([npc], "test", 0)
         assert len(results) == 1
-        
+
         delta = results[0]
         assert delta.domain == DeltaDomain.PHYSIOLOGY
         expected = 50.0 * math.exp(-PAIN_DECAY_LAMBDA) - 50.0
@@ -85,7 +82,7 @@ class TestPainDecay:
         """Нет боли → нет дельты."""
         handler = PhysiologyDecayHandler()
         npc = _make_snapshot(pain=0.0)
-        
+
         results = handler.handle([npc], "test", 0)
         # Нет боли, нет усталости — нет дельт
         assert len(results) == 0
@@ -98,10 +95,10 @@ class TestFatigueDecay:
         """Fatigue_t = Fatigue_{t-1} * exp(-lambda)."""
         handler = PhysiologyDecayHandler()
         npc = _make_snapshot(fatigue=40.0)
-        
+
         results = handler.handle([npc], "test", 0)
         assert len(results) == 1
-        
+
         delta = results[0]
         expected = 40.0 * math.exp(-FATIGUE_DECAY_LAMBDA) - 40.0
         assert abs(delta.payload.fatigue_delta - round(expected, 4)) < 0.01
@@ -114,10 +111,10 @@ class TestBloodLossDecay:
         """Blood_t = Blood_{t-1} * exp(-lambda_blood)."""
         handler = PhysiologyDecayHandler()
         npc = _make_snapshot(blood_loss=0.5)
-        
+
         results = handler.handle([npc], "test", 0)
         assert len(results) == 1
-        
+
         delta = results[0]
         expected = 0.5 * math.exp(-BLOOD_LOSS_DECAY_LAMBDA) - 0.5
         assert abs(delta.payload.blood_loss_delta - round(expected, 4)) < 0.01
@@ -130,10 +127,10 @@ class TestConsciousnessRecovery:
         """Низкая боль → сознание восстанавливается."""
         handler = PhysiologyDecayHandler()
         npc = _make_snapshot(consciousness=0.5, pain=0.0)
-        
+
         results = handler.handle([npc], "test", 0)
         assert len(results) == 1
-        
+
         delta = results[0]
         assert delta.payload.fatigue_delta == 0.0  # Не усталость
         # Сознание растёт (отрицательный pain_delta не влияет)
@@ -147,7 +144,7 @@ class TestClosingDrift:
         handler = PhysiologyDecayHandler()
         # Очень малая боль, после decay будет < EPSILON
         npc = _make_snapshot(pain=PHYSIOLOGY_DECAY_EPSILON * 0.5)
-        
+
         results = handler.handle([npc], "test", 0)
         if len(results) > 0:
             # Дельта должна быть ~-pain (обнуление)
@@ -161,7 +158,7 @@ class TestNoInjuryNoDelta:
         """HP=100, pain=0, fatigue=0, blood=0, consciousness=1 → нет дельт."""
         handler = PhysiologyDecayHandler()
         npc = _make_snapshot()
-        
+
         results = handler.handle([npc], "test", 0)
         assert len(results) == 0
 
@@ -174,7 +171,7 @@ class TestEmergentStates:
         handler = PhysiologyDecayHandler()
         # Высокая боль (после decay всё ещё > порога)
         npc = _make_snapshot(pain=STAGGER_PAIN_THRESHOLD + 10.0)
-        
+
         results = handler.handle([npc], "test", 0)
         assert len(results) == 1
         assert "stagger" in results[0].payload.add_statuses
@@ -184,7 +181,7 @@ class TestEmergentStates:
         handler = PhysiologyDecayHandler()
         # Малая боль + есть статус stagger
         npc = _make_snapshot(pain=10.0, statuses=["stagger"])
-        
+
         results = handler.handle([npc], "test", 0)
         assert len(results) == 1
         assert "stagger" in results[0].payload.remove_statuses
@@ -194,7 +191,7 @@ class TestEmergentStates:
         handler = PhysiologyDecayHandler()
         # Очень низкое сознание (после recovery всё ещё < порога)
         npc = _make_snapshot(consciousness=0.01)
-        
+
         results = handler.handle([npc], "test", 0)
         assert len(results) == 1
         assert "unconscious" in results[0].payload.add_statuses
@@ -204,7 +201,7 @@ class TestEmergentStates:
         handler = PhysiologyDecayHandler()
         # Высокое сознание + статус unconscious
         npc = _make_snapshot(consciousness=0.5, statuses=["unconscious"])
-        
+
         results = handler.handle([npc], "test", 0)
         assert len(results) == 1
         assert "unconscious" in results[0].payload.remove_statuses
@@ -218,9 +215,9 @@ class TestMultipleNPCs:
         handler = PhysiologyDecayHandler()
         npc1 = _make_snapshot("npc_1", pain=30.0)
         npc2 = _make_snapshot("npc_2", pain=60.0)
-        
+
         results = handler.handle([npc1, npc2], "test", 0)
         assert len(results) == 2
-        
+
         npc_ids = {r.npc_id for r in results}
         assert npc_ids == {"npc_1", "npc_2"}

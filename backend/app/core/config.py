@@ -1,4 +1,4 @@
-﻿# C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\core\config.py
+# C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\core\config.py
 # RTX 3070 Ti (8 GB VRAM) + Qwen2.5-7B-Instruct-abliterated-v2.Q5_K_M
 #
 # Единственная модель: Qwen2.5-7B Q5_K_M (~5.0 GB VRAM)
@@ -16,6 +16,7 @@ BASE_DIR = Path(__file__).resolve().parents[3]
 
 class ModelConfig(BaseSettings):
     """Конфигурация модели LLM."""
+
     name: str
     path: str
     display_name: str
@@ -43,9 +44,7 @@ class Settings(BaseSettings):
     llama_cpp_server_executable: str = str(
         BASE_DIR / "Models LLM" / "llama" / "llama-server.exe"
     )
-    llama_cpp_executable: str = str(
-        BASE_DIR / "Models LLM" / "llama" / "llama-cli.exe"
-    )
+    llama_cpp_executable: str = str(BASE_DIR / "Models LLM" / "llama" / "llama-cli.exe")
     llama_cpp_model_path: str = str(
         BASE_DIR / "Models LLM" / "Qwen2.5-7B-Instruct-abliterated-v2.Q5_K_M.gguf"
     )
@@ -79,7 +78,7 @@ class Settings(BaseSettings):
     # ОС + CUDA:         ~500 MB
     # Буфер:             ~1092 MB
     # ИТОГО:             ~7192 MB (88% VRAM)
-    gpu_layers: int = 99    # 99 > 28 → все слои на GPU
+    gpu_layers: int = 99  # 99 > 28 → все слои на GPU
     threads: int = 8
     ctx_size: int = 8192
 
@@ -103,11 +102,11 @@ class Settings(BaseSettings):
 
     # Agent → Model mapping (все агенты → одна модель)
     agent_model_map: Dict[str, str] = {
-        "dm":       "qwen_7b",
-        "npc":      "qwen_7b",
-        "rules":    "qwen_7b",
-        "memory":   "qwen_7b",
-        "world":    "qwen_7b",
+        "dm": "qwen_7b",
+        "npc": "qwen_7b",
+        "rules": "qwen_7b",
+        "memory": "qwen_7b",
+        "world": "qwen_7b",
     }
 
     available_models: Dict[str, ModelConfig] = {}
@@ -156,9 +155,11 @@ class Settings(BaseSettings):
 
         # Валидация: логируем отсутствующий файл модели
         import logging as _log
+
         _logger = _log.getLogger(__name__)
         for key, mcfg in self.available_models.items():
             from pathlib import Path as _Path
+
             if not _Path(mcfg.path).exists():
                 _logger.error(
                     f"[CONFIG] Модель '{key}' ({mcfg.display_name}) "
@@ -168,24 +169,27 @@ class Settings(BaseSettings):
     def get_context_for_agent(self, agent_name: str) -> int:
         """Бюджет контекста для агента (не больше ctx_size модели)."""
         ctx_map = {
-            "dm":     3072,  # DM: SceneState + python_engines + история
-            "npc":    1536,  # NPC: один персонаж, диалог
-            "rules":  1024,  # Rules: точность важнее длины
+            "dm": 3072,  # DM: SceneState + python_engines + история
+            "npc": 1536,  # NPC: один персонаж, диалог
+            "rules": 1024,  # Rules: точность важнее длины
             "memory": 1024,  # Memory: суммаризация
-            "world":  1024,  # World: краткие события
+            "world": 1024,  # World: краткие события
         }
         return ctx_map.get(agent_name.lower(), 1024)
 
     def get_llm_server_url(self, agent_name: Optional[str] = None) -> str:
         from .runtime_config import get_llm_url
+
         return get_llm_url()
 
     def get_llm_server_config(self, agent_name: str) -> Dict[str, str]:
         from .runtime_config import get_llm_server_config
+
         return get_llm_server_config(agent_name)
 
     def check_llm_servers_health(self) -> Dict[str, bool]:
         import urllib.request
+
         results = {}
         checked_ports = set()
         for agent_name, cfg in self.llm_servers.items():
@@ -228,5 +232,5 @@ class ErrorInterpreter:
 settings = Settings()
 
 # Константы для обратной совместимости
-DATA_DIR   = Path(settings.data_dir)
+DATA_DIR = Path(settings.data_dir)
 MODEL_PATH = Path(settings.model_qwen_7b_path)

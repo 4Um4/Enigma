@@ -4,8 +4,8 @@
 Запуск: python -m pytest tests/test_working_memory.py -v --tb=short
 """
 
-from app.services.memory.working_memory import WorkingMemory
 from app.models.npc_state import EventMemory, MemoryStage
+from app.services.memory.working_memory import WorkingMemory
 
 
 def _make_fresh(emotion_tag: str = "angry", importance: float = 0.9) -> EventMemory:
@@ -18,7 +18,7 @@ def _make_fresh(emotion_tag: str = "angry", importance: float = 0.9) -> EventMem
         importance=importance,
         clarity=0.8,
         confidence=0.9,
-        decay_rate=0.0,   # decay_rate=0 → importance не меняется → стадия не меняется
+        decay_rate=0.0,  # decay_rate=0 → importance не меняется → стадия не меняется
         stage=MemoryStage.FRESH,
     )
 
@@ -51,13 +51,13 @@ def test_apply_decay_abstract_transition_yields_resentment() -> None:
         importance=0.22,
         clarity=1.0,
         confidence=1.0,
-        decay_rate=0.50,           # быстрый decay: 0.22 * e^(-0.5) ≈ 0.13 → ABSTRACT
+        decay_rate=0.50,  # быстрый decay: 0.22 * e^(-0.5) ≈ 0.13 → ABSTRACT
         stage=MemoryStage.COMPRESSED,
     )
     wm.push("camp_1", mem)
     weights = wm.apply_decay("camp_1", game_days=1)
 
-    if weights:   # если переход состоялся
+    if weights:  # если переход состоялся
         trait_names = [w[0] for w in weights]
         assert "resentment" in trait_names
         for name, delta in weights:
@@ -94,7 +94,7 @@ def test_apply_decay_removes_forgotten() -> None:
         target_id="player",
         emotion_tag="neutral",
         day=1,
-        importance=0.04,   # уже ниже порога FORGOTTEN
+        importance=0.04,  # уже ниже порога FORGOTTEN
         clarity=0.5,
         confidence=0.5,
         decay_rate=0.5,

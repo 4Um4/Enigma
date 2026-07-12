@@ -1,3 +1,4 @@
+from __future__ import annotations
 # backend/app/services/player_avatar_service.py
 """
 PlayerAvatarService — живой аватар персонажа игрока.
@@ -16,7 +17,6 @@ PlayerAvatarService — живой аватар персонажа игрока.
 Никакой надстройки над базой — один JSON, три слоя.
 """
 
-from __future__ import annotations
 
 import json
 import logging
@@ -96,18 +96,25 @@ class PlayerAvatarService:
         if avatar and avatar.get("state"):
             _state = self._state_from_dict(avatar["state"])
             # SHI-FIX TRADE: гарантируем наличие денег
-            if not _state.body_state: _state.body_state = {}
-            if "money" not in _state.body_state: _state.body_state["money"] = 48
+            if not _state.body_state:
+                _state.body_state = {}
+            if "money" not in _state.body_state:
+                _state.body_state["money"] = 48
             return _state
-        
+
         _default = NPCState(npc_id=player_name)
         if not _default.body_state:
             _default.body_state = {}
         _default.body_state["money"] = _default.body_state.get("money", 48)
         # SHI-FIX AVATAR: базовая психика для WillpowerGate.
-        _default.drives = {"control": 0.25, "significance": 0.25, "fear": 0.25, "desire": 0.25}
+        _default.drives = {
+            "control": 0.25,
+            "significance": 0.25,
+            "fear": 0.25,
+            "desire": 0.25,
+        }
         _default.psyche = {"willpower": 50, "breakpoint": 70, "loyalty_true": 0}
-        
+
         # S-93 AVATAR_RESISTANCE: аватар должен сопротивляться действиям, противоречащим его природе
         # (например, "оскорбить бога" для паладина). WillpowerGate вернёт RESIST и сгенерирует stress.
         # Пока заглушка, возвращающая корректный стейт. Полная логика будет в DecisionHub.
@@ -217,13 +224,19 @@ class PlayerAvatarService:
         # Wounds: list[Wound] → list[dict]
         wounds = []
         for w in state.wounds:
-            wounds.append({
-                "body_part": w.body_part,
-                "severity": w.severity.value if hasattr(w.severity, "value") else str(w.severity),
-                "damage_type": w.damage_type.value if hasattr(w.damage_type, "value") else str(w.damage_type),
-                "tick": w.tick,
-                "healing_ticks": w.healing_ticks,
-            })
+            wounds.append(
+                {
+                    "body_part": w.body_part,
+                    "severity": w.severity.value
+                    if hasattr(w.severity, "value")
+                    else str(w.severity),
+                    "damage_type": w.damage_type.value
+                    if hasattr(w.damage_type, "value")
+                    else str(w.damage_type),
+                    "tick": w.tick,
+                    "healing_ticks": w.healing_ticks,
+                }
+            )
 
         # BehaviorMaskState
         mask = state.behavior_mask
@@ -241,7 +254,9 @@ class PlayerAvatarService:
             "dependency": state.dependency,
             "identity_integrity": state.identity_integrity,
             "pressure_resistance": state.pressure_resistance,
-            "will_state": state.will_state.value if hasattr(state.will_state, "value") else str(state.will_state),
+            "will_state": state.will_state.value
+            if hasattr(state.will_state, "value")
+            else str(state.will_state),
             "behavior_mask": mask_dict,
             "trauma_markers": list(state.trauma_markers),
             "current_role": state.current_role,
@@ -256,7 +271,9 @@ class PlayerAvatarService:
             # wounds/conditions (legacy), но не body_state (runtime truth).
             "body_state": state.body_state if state.body_state else {},
             # Эмоции
-            "emotion": state.emotion.value if hasattr(state.emotion, "value") else str(state.emotion),
+            "emotion": state.emotion.value
+            if hasattr(state.emotion, "value")
+            else str(state.emotion),
             "emotion_delta": state.emotion_delta,
             "state_modifiers": state.state_modifiers,
             # ADR-128: Runtime-поля, теряющиеся без сериализации.
@@ -265,7 +282,9 @@ class PlayerAvatarService:
             "affective_load": state.affective_load,
             "perceptual_kernel": {
                 k: v for k, v in state.perceptual_kernel.__dict__.items()
-            } if state.perceptual_kernel else {},
+            }
+            if state.perceptual_kernel
+            else {},
             # ADR-GENDER: Персистенция пола аватара. Без этого поле теряется при save/load.
             "gender": state.gender,
             # B1.3-FIX: Журнал обрабатывается в save_avatar/save_state, здесь ему не место.
@@ -288,13 +307,15 @@ class PlayerAvatarService:
         wounds = []
         for w in data.get("wounds", []):
             try:
-                wounds.append(Wound(
-                    body_part=w["body_part"],
-                    severity=w["severity"],
-                    damage_type=w["damage_type"],
-                    tick=w.get("tick", 0),
-                    healing_ticks=w.get("healing_ticks", 0),
-                ))
+                wounds.append(
+                    Wound(
+                        body_part=w["body_part"],
+                        severity=w["severity"],
+                        damage_type=w["damage_type"],
+                        tick=w.get("tick", 0),
+                        healing_ticks=w.get("healing_ticks", 0),
+                    )
+                )
             except Exception:
                 logger.warning(f"[AVATAR] пропуск wound: {w}")
 
@@ -351,7 +372,9 @@ class PlayerAvatarService:
         self._dialog_journals[campaign_id].append({"speaker": speaker, "text": text})
         # Ограничение 100 последних высказываний
         if len(self._dialog_journals[campaign_id]) > 100:
-            self._dialog_journals[campaign_id] = self._dialog_journals[campaign_id][-100:]
+            self._dialog_journals[campaign_id] = self._dialog_journals[campaign_id][
+                -100:
+            ]
 
     def get_journal(self, campaign_id: str) -> list:
         """Возвращает буфер журнала для проекции во WorldSnapshotDTO (копия, чтобы предотвратить мутацию)."""

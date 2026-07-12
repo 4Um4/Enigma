@@ -4,8 +4,8 @@ path: /project/backend/app/services/phases/validation.py
 Зависимости: app.services.equivalence_validator
 Основные сущности: validate_shadow_vs_legacy
 """
-
 from __future__ import annotations
+
 from typing import Any
 import logging
 

@@ -1,7 +1,8 @@
 from pathlib import Path
 import pytest
 from app.services.npc.perception_filter import _can_hear, _can_see, extract_scene_awareness
-from app.services.spatial.spatial_runtime import line_of_sight, resolve_distance_between_entities, sound_reach, extract_scene_for_npc, PERCEPTION_RADIUS, sound_bleeds_to_adjacent
+from app.services.spatial.spatial_runtime import line_of_sight, resolve_distance_between_entities, sound_reach, extract_scene_for_npc, sound_bleeds_to_adjacent
+from app.core.constants import PERCEPTION_RADIUS
 from app.services.scene_state_manager import _derive_environment_modifiers
 
 def test_stealth_npc_not_visible_from_distance() -> None:
@@ -105,11 +106,6 @@ def _scene() -> dict:
                 "activity": "working",
             },
         },
-        "player_spatial": {
-            "location_id": "tavern_silver_wolf",
-            "position": "main_hall",
-            "local_position": {"x": 0.0, "y": 0.0},
-        },
         "player_position": {"x": 0.0, "y": 0.0},
         "environment": {"light_level": "dim"},
         "environment_modifiers": {"noise": 0.5, "density": 0.2, "danger": 0.0},
@@ -121,7 +117,7 @@ def test_spatial_distance_uses_graph_and_local_offsets() -> None:
     d = resolve_distance_between_entities(
         scene,
         scene["npc_positions"]["npc_a"],
-        scene["player_spatial"],
+        scene["npc_positions"]["player"],
     )
     assert d > 0.0
 

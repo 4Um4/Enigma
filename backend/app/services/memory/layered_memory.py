@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 
 class _SafeMemoryEncoder(json.JSONEncoder):
     """Гарантирует сериализацию любых объектов (dataclass, pydantic, etc) без краша игры."""
+
     def default(self, o: Any) -> Any:
         # Dataclasses (включая DMResult и подобные)
         if dataclasses.is_dataclass(o) and not isinstance(o, type):
@@ -50,12 +51,14 @@ class JsonMemoryStore:
         line = {
             "id": entry_id,
             "timestamp": datetime.now(timezone.utc).isoformat(),
-            **payload
+            **payload,
         }
         path = self._collection_path(collection)
         try:
             with path.open("a", encoding="utf-8") as f:
-                f.write(json.dumps(line, ensure_ascii=False, cls=_SafeMemoryEncoder) + "\n")
+                f.write(
+                    json.dumps(line, ensure_ascii=False, cls=_SafeMemoryEncoder) + "\n"
+                )
         except Exception as e:
             logger.error(f"Failed to append memory to {collection}: {e}")
 
@@ -106,46 +109,64 @@ class LayeredMemory:
     def write_campaign_memory(self, campaign_id: str, payload: Dict[str, Any]) -> str:
         # P0 FIX: Санитайзер памяти. Отсекаем утечки дампов LLM/DecisionHub.
         if "python_engines" in payload or "traces" in payload:
-            logger.warning(f"[MEMORY_SANITIZER] Blocked payload containing 'python_engines' or 'traces' for campaign {campaign_id}")
+            logger.warning(
+                f"[MEMORY_SANITIZER] Blocked payload containing 'python_engines' or 'traces' for campaign {campaign_id}"
+            )
             return ""
         return self.store.append(f"campaign_canon_{campaign_id}", payload)
 
-    def read_campaign_memory(self, campaign_id: str, limit: int = 25) -> List[Dict[str, Any]]:
+    def read_campaign_memory(
+        self, campaign_id: str, limit: int = 25
+    ) -> List[Dict[str, Any]]:
         return self.store.recent(f"campaign_canon_{campaign_id}", limit=limit)
 
     # === Playthrough Chronicle ===
     def write_session_memory(self, campaign_id: str, payload: Dict[str, Any]) -> str:
         # P0 FIX: Санитайзер памяти. Отсекаем утечки дампов LLM/DecisionHub.
         if "python_engines" in payload or "traces" in payload:
-            logger.warning(f"[MEMORY_SANITIZER] Blocked payload containing 'python_engines' or 'traces' for campaign {campaign_id}")
+            logger.warning(
+                f"[MEMORY_SANITIZER] Blocked payload containing 'python_engines' or 'traces' for campaign {campaign_id}"
+            )
             return ""
         return self.store.append(f"playthrough_{campaign_id}", payload)
 
-    def read_session_memory(self, campaign_id: str, limit: int = 25) -> List[Dict[str, Any]]:
+    def read_session_memory(
+        self, campaign_id: str, limit: int = 25
+    ) -> List[Dict[str, Any]]:
         return self.store.recent(f"playthrough_{campaign_id}", limit=limit)
 
     # === NPC Memory ===
     def write_npc_memory(self, campaign_id: str, payload: Dict[str, Any]) -> str:
         return self.store.append(f"npc_memory_{campaign_id}", payload)
 
-    def read_npc_memory(self, campaign_id: str, limit: int = 20) -> List[Dict[str, Any]]:
+    def read_npc_memory(
+        self, campaign_id: str, limit: int = 20
+    ) -> List[Dict[str, Any]]:
         return self.store.recent(f"npc_memory_{campaign_id}", limit=limit)
 
     # === Context Builders ===
-    def build_context(self, world_id: str, campaign_id: str, session_limit: int = 15) -> Dict[str, Any]:
+    def build_context(
+        self, world_id: str, campaign_id: str, session_limit: int = 15
+    ) -> Dict[str, Any]:
         return {
             "world_canon": self.read_world_canon(world_id, limit=10),
             "campaign_memory": self.read_campaign_memory(campaign_id, limit=20),
-            "session_memory": self.read_session_memory(campaign_id, limit=session_limit),
+            "session_memory": self.read_session_memory(
+                campaign_id, limit=session_limit
+            ),
             "npc_memory": self.read_npc_memory(campaign_id, limit=20),
         }
 
-    def build_dynamic_context(self, world_id: str, campaign_id: str, session_limit: int = 15) -> Dict[str, Any]:
+    def build_dynamic_context(
+        self, world_id: str, campaign_id: str, session_limit: int = 15
+    ) -> Dict[str, Any]:
         """Alias for Orchestrator: explicit context assembly before each turn."""
         return self.build_context(world_id, campaign_id, session_limit=session_limit)
 
     # === Memory Service Methods ===
-    def retrieve_recent(self, campaign_id: str, limit: int = 20) -> List[Dict[str, Any]]:
+    def retrieve_recent(
+        self, campaign_id: str, limit: int = 20
+    ) -> List[Dict[str, Any]]:
         """Retrieve recent memory events for orchestration."""
         return self.read_campaign_memory(campaign_id, limit=limit)
 

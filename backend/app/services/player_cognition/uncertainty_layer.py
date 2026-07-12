@@ -10,6 +10,7 @@ path: /backend/app/services/player_cognition/uncertainty_layer.py
 Зависимости: types (PerceivedEntity)
 Основные сущности: apply_uncertainty()
 """
+
 from typing import List
 
 from app.services.player_cognition.types import PerceivedEntity
@@ -18,7 +19,7 @@ from app.services.player_cognition.types import PerceivedEntity
 # === Веса компонентов ===
 _CLARITY_WEIGHT = 0.30
 _RECOGNITION_WEIGHT = 0.20
-_DISTORTION_PENALTY_WEIGHT = 0.25   # искажение УМЕНЬШАЕТ уверенность
+_DISTORTION_PENALTY_WEIGHT = 0.25  # искажение УМЕНЬШАЕТ уверенность
 _MEMORY_WEIGHT = 0.25
 
 

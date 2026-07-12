@@ -8,6 +8,7 @@ path: /backend/app/services/player_cognition/spatial_layer.py
 Зависимости: app.services.spatial.spatial_runtime, types из этого пакета
 Основные сущности: extract_spatial_data()
 """
+
 import math
 from typing import List, Tuple
 
@@ -65,7 +66,9 @@ def compute_distance_and_los(
         # Определяем ЧТО именно блокирует — для UI ("за стеной" vs "за объектом")
         if is_blocked_by_wall(player_x, player_y, entity_x, entity_y, scene_state):
             blocked_by = "wall"
-        elif is_blocked_by_obstacle(player_x, player_y, entity_x, entity_y, scene_state):
+        elif is_blocked_by_obstacle(
+            player_x, player_y, entity_x, entity_y, scene_state
+        ):
             blocked_by = "obstacle"
 
     return distance, los_clear, blocked_by
@@ -84,22 +87,28 @@ def extract_spatial_data(
     entities: List[PerceivedEntity] = []
 
     # NPC из npc_positions — могут быть внутри scene_state или на верхнем уровне campaign_state
-    npc_positions = scene_state.get("npc_positions") or scene_state.get("_top_level_npc_positions") or {}
+    npc_positions = (
+        scene_state.get("npc_positions")
+        or scene_state.get("_top_level_npc_positions")
+        or {}
+    )
     for npc_id, npc_data in npc_positions.items():
         ex, ey = _entity_xy(npc_data)
         distance, los, blocked_by = compute_distance_and_los(
             player_x, player_y, ex, ey, scene_state
         )
-        entities.append(PerceivedEntity(
-            entity_id=npc_id,
-            entity_type="npc",
-            x=ex,
-            y=ey,
-            distance=distance,
-            los=los,
-            los_blocked_by=blocked_by,
-            _raw_data=npc_data,
-        ))
+        entities.append(
+            PerceivedEntity(
+                entity_id=npc_id,
+                entity_type="npc",
+                x=ex,
+                y=ey,
+                distance=distance,
+                los=los,
+                los_blocked_by=blocked_by,
+                _raw_data=npc_data,
+            )
+        )
 
     # Объекты из objects
     for obj_id, obj_data in scene_state.get("objects", {}).items():
@@ -107,15 +116,17 @@ def extract_spatial_data(
         distance, los, blocked_by = compute_distance_and_los(
             player_x, player_y, ex, ey, scene_state
         )
-        entities.append(PerceivedEntity(
-            entity_id=obj_id,
-            entity_type="object",
-            x=ex,
-            y=ey,
-            distance=distance,
-            los=los,
-            los_blocked_by=blocked_by,
-            _raw_data=obj_data,
-        ))
+        entities.append(
+            PerceivedEntity(
+                entity_id=obj_id,
+                entity_type="object",
+                x=ex,
+                y=ey,
+                distance=distance,
+                los=los,
+                los_blocked_by=blocked_by,
+                _raw_data=obj_data,
+            )
+        )
 
     return entities

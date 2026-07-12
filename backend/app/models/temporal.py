@@ -20,6 +20,7 @@
 """
 from __future__ import annotations
 
+
 from dataclasses import dataclass
 
 
@@ -30,9 +31,10 @@ class TemporalContext:
     Единая точка правды для всех подсистем: сколько тиков прошло,
     какой игровой день, нужно ли запускать decay.
     """
+
     current_tick: int
-    game_day: int          # current_tick // TICKS_PER_DAY
-    game_hour: int         # current_tick % TICKS_PER_DAY
-    is_new_day: bool       # game_hour == 0 (начало нового игрового дня)
-    ticks_since_last_decay: int   # тиков с последнего memory decay
+    game_day: int  # current_tick // TICKS_PER_DAY
+    game_hour: int  # current_tick % TICKS_PER_DAY
+    is_new_day: bool  # game_hour == 0 (начало нового игрового дня)
+    ticks_since_last_decay: int  # тиков с последнего memory decay
     should_run_memory_decay: bool  # ticks_since_last_decay >= DECAY_EVERY

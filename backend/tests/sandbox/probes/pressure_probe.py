@@ -8,7 +8,9 @@
 TODO:
 - В будущем можно расширить функционал, добавив разные типы давления (социальное, физическое, экзистенциальное) и их взаимодействия.
 """
+
 from tests.sandbox.runtime.causal_trace import CausalTrace
+
 
 class PressureProbe:
     def __init__(self, trace: CausalTrace):
@@ -21,5 +23,5 @@ class PressureProbe:
             entity_id=entity_id,
             event=pressure_type,
             data={"magnitude": magnitude},
-            parent_id=parent_id
+            parent_id=parent_id,
         )

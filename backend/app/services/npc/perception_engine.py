@@ -6,24 +6,25 @@ backend/app/services/npc/perception_engine.py
 Работает < 15ms. Не использует LLM.
 """
 from __future__ import annotations
-from typing import Dict, List
+
+from typing import Any, Dict, List
 
 
 # Маркеры → статус (сумма = воспринимаемый статус)
 MARKER_STATUS: Dict[str, int] = {
-    "royal_crown":      +50,
-    "noble_clothes":    +30,
-    "fine_armor":       +20,
-    "guild_badge":      +20,
-    "heavy_armor":      +10,
-    "military_emblem":  +15,
+    "royal_crown": +50,
+    "noble_clothes": +30,
+    "fine_armor": +20,
+    "guild_badge": +20,
+    "heavy_armor": +10,
+    "military_emblem": +15,
     "merchant_clothes": +10,
-    "tunic":            0,
-    "rags":             -30,
-    "slave_collar":     -60,
-    "chains":           -50,
+    "tunic": 0,
+    "rags": -30,
+    "slave_collar": -60,
+    "chains": -50,
     "blood_on_clothes": -10,
-    "begging_bowl":     -40,
+    "begging_bowl": -40,
 }
 
 
@@ -37,10 +38,14 @@ def assess_status(visible_markers: List[str]) -> int:
 
 def get_status_label(score: int) -> str:
     """Текстовый ярлык статуса."""
-    if score >= 85: return "правитель"
-    if score >= 65: return "благородный"
-    if score >= 45: return "уважаемый"
-    if score >= 25: return "простолюдин"
+    if score >= 85:
+        return "правитель"
+    if score >= 65:
+        return "благородный"
+    if score >= 45:
+        return "уважаемый"
+    if score >= 25:
+        return "простолюдин"
     return "нищий / изгой"
 
 
@@ -53,7 +58,7 @@ def get_social_permissions(
     Зависит от статуса игрока и свободы NPC.
     """
     player_status = assess_status(player_markers)
-    npc_freedom   = npc.get("status_profile", {}).get("freedom", 50)
+    npc_freedom = npc.get("status_profile", {}).get("freedom", 50)
 
     permissions = []
 

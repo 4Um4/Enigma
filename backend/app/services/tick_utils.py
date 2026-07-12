@@ -11,11 +11,15 @@ path: backend/app/services/tick_utils.py
 import logging
 import types
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 from app.core.config import settings
 from app.models.delta_payloads import (
-    SocialPayload, EmotionPayload, ReputationPayload, IdentityPayload, PerceptionPayload
+    SocialPayload,
+    EmotionPayload,
+    ReputationPayload,
+    IdentityPayload,
+    PerceptionPayload,
 )
 from app.models.idle_tick import NPCStateSnapshot
 from app.models.state_delta import DeltaDomain, StateDeltas, ReductionPolicy
@@ -79,7 +83,9 @@ def build_npc_snapshots(all_npcs_raw: list) -> list:
         _player_trust = float(ss.get("trust", 0.0))
         _player_fear = float(ss.get("fear_of_player", 0.0))
         _player_debt = float(ss.get("debt", 0.0))
-        if "player" not in relationship_cache and (_player_trust != 0.0 or _player_fear != 0.0 or _player_debt != 0.0):
+        if "player" not in relationship_cache and (
+            _player_trust != 0.0 or _player_fear != 0.0 or _player_debt != 0.0
+        ):
             relationship_cache["player"] = {
                 "trust": _player_trust,
                 "fear": _player_fear,
@@ -101,14 +107,14 @@ def build_npc_snapshots(all_npcs_raw: list) -> list:
 
         body_profile = npc.get("body_profile", {})
         body_state = npc.get("body_state", {})
-        
+
         _max_hp = float(body_profile.get("max_hp", 100.0))
         _current_hp = float(body_state.get("current_hp", _max_hp))
-        
+
         _base_abilities = body_profile.get("abilities", {})
         _modifiers = body_state.get("modifiers", {})
         _statuses = body_state.get("statuses", [])
-        
+
         _raw_injuries = body_state.get("injuries", [])
         injuries_by_zone: Dict[str, list] = {}
         for inj in _raw_injuries:
@@ -116,39 +122,44 @@ def build_npc_snapshots(all_npcs_raw: list) -> list:
             if zone not in injuries_by_zone:
                 injuries_by_zone[zone] = []
             injuries_by_zone[zone].append(inj)
-        
+
         _affective_load = float(npc.get("affective_load", 0.0))
         _emotion = str(npc.get("emotion", "neutral") or "neutral")
 
-        snapshots.append(NPCStateSnapshot(
-            npc_id=npc_id,
-            stress=float(psyche.get("stress", 0.0)),
-            relationship_cache=relationship_cache,
-            base_values=base_values,
-            faction_affiliations=faction_affiliations,
-            hp=_current_hp,
-            max_hp=_max_hp,
-            pain=float(body_state.get("pain", 0.0)),
-            fatigue=float(body_state.get("fatigue", 0.0)),
-            blood_loss=float(body_state.get("blood_loss", 0.0)),
-            consciousness=float(body_state.get("consciousness", 1.0)),
-            shock_impulse=float(body_state.get("shock_impulse", 0.0)),
-            life_status=str(body_state.get("life_status", "ALIVE")),
-            injuries_by_zone=injuries_by_zone,
-            base_abilities=_base_abilities,
-            modifiers=_modifiers,
-            statuses=_statuses,
-            affective_load=_affective_load,
-            emotion=_emotion,
-        ))
+        snapshots.append(
+            NPCStateSnapshot(
+                npc_id=npc_id,
+                stress=float(psyche.get("stress", 0.0)),
+                relationship_cache=relationship_cache,
+                base_values=base_values,
+                faction_affiliations=faction_affiliations,
+                hp=_current_hp,
+                max_hp=_max_hp,
+                pain=float(body_state.get("pain", 0.0)),
+                fatigue=float(body_state.get("fatigue", 0.0)),
+                blood_loss=float(body_state.get("blood_loss", 0.0)),
+                consciousness=float(body_state.get("consciousness", 1.0)),
+                shock_impulse=float(body_state.get("shock_impulse", 0.0)),
+                life_status=str(body_state.get("life_status", "ALIVE")),
+                injuries_by_zone=injuries_by_zone,
+                base_abilities=_base_abilities,
+                modifiers=_modifiers,
+                statuses=_statuses,
+                affective_load=_affective_load,
+                emotion=_emotion,
+            )
+        )
     return snapshots
 
 
 def _reduce_additive(p1, p2):
     """Сливает два payload для ADDITIVE/BOUNDED_ADDITIVE доменов."""
-    if p1 is None: return p2
-    if p2 is None: return p1
-    if type(p1) != type(p2): return p2 
+    if p1 is None:
+        return p2
+    if p2 is None:
+        return p1
+    if type(p1) != type(p2):
+        return p2
 
     if isinstance(p1, SocialPayload):
         return SocialPayload(
@@ -161,9 +172,13 @@ def _reduce_additive(p1, p2):
         return EmotionPayload(
             stress_delta=p1.stress_delta + p2.stress_delta,
             emotion_delta=p1.emotion_delta + p2.emotion_delta,
-            emotion_tag=p2.emotion_tag if p2.emotion_tag is not None else p1.emotion_tag,
+            emotion_tag=p2.emotion_tag
+            if p2.emotion_tag is not None
+            else p1.emotion_tag,
             new_trauma=p2.new_trauma if p2.new_trauma is not None else p1.new_trauma,
-            affective_load=p2.affective_load if p2.affective_load is not None else p1.affective_load,
+            affective_load=p2.affective_load
+            if p2.affective_load is not None
+            else p1.affective_load,
         )
     if isinstance(p1, ReputationPayload):
         return ReputationPayload(
@@ -171,9 +186,13 @@ def _reduce_additive(p1, p2):
         )
     if isinstance(p1, IdentityPayload):
         return IdentityPayload(
-            identity_integrity_delta=p1.identity_integrity_delta + p2.identity_integrity_delta,
-            pressure_resistance_delta=p1.pressure_resistance_delta + p2.pressure_resistance_delta,
-            will_state_override=p2.will_state_override if p2.will_state_override is not None else p1.will_state_override,
+            identity_integrity_delta=p1.identity_integrity_delta
+            + p2.identity_integrity_delta,
+            pressure_resistance_delta=p1.pressure_resistance_delta
+            + p2.pressure_resistance_delta,
+            will_state_override=p2.will_state_override
+            if p2.will_state_override is not None
+            else p1.will_state_override,
         )
     if isinstance(p1, PerceptionPayload):
         return PerceptionPayload(
@@ -186,10 +205,10 @@ def _reduce_additive(p1, p2):
 
 def aggregate_deltas(deltas: list) -> list:
     """Domain Reduction Semantics Layer (DRSL): редукция по законам физики доменов.
-    
+
     Мастер Тай: система не различала коммутативные и некоммутативные эффекты.
-    Бухгалтерия (Social) ≠ Физика (Physiology). 
-    
+    Бухгалтерия (Social) ≠ Физика (Physiology).
+
     PHYSICS_COMPOSITE (Physiology) обходит merge — это инъекции энергии в тело,
     они обрабатываются ImpactEngine/StateApplicator как эволюция состояния, а не сумма.
     """
@@ -202,7 +221,7 @@ def aggregate_deltas(deltas: list) -> list:
             continue
 
         policy = DELTA_POLICY_REGISTRY.get(d.domain, ReductionPolicy.ADDITIVE)
-        
+
         if policy == ReductionPolicy.PHYSICS_COMPOSITE:
             physics_deltas.append(d)
         else:
@@ -220,7 +239,7 @@ def aggregate_deltas(deltas: list) -> list:
         if key in groups:
             existing = groups[key]
             policy = DELTA_POLICY_REGISTRY.get(d.domain, ReductionPolicy.ADDITIVE)
-            
+
             if policy == ReductionPolicy.OVERWRITE and d.domain == DeltaDomain.IDENTITY:
                 existing.identity_integrity_delta += d.identity_integrity_delta
                 existing.pressure_resistance_delta += d.pressure_resistance_delta
@@ -229,12 +248,23 @@ def aggregate_deltas(deltas: list) -> list:
                 # S115 FIX: Мерж IdentityPayload (compliance_bias, recent_directive, etc.)
                 # Без этого payload от DirectiveInterpretationSubscriber теряется при агрегации.
                 from app.models.delta_payloads import IdentityPayload
-                if isinstance(d.payload, IdentityPayload) and isinstance(existing.payload, IdentityPayload):
-                    existing.payload.compliance_bias_delta += d.payload.compliance_bias_delta
-                    existing.payload.aggression_inhibition_delta += d.payload.aggression_inhibition_delta
-                    existing.payload.initiative_suppression_delta += d.payload.initiative_suppression_delta
+
+                if isinstance(d.payload, IdentityPayload) and isinstance(
+                    existing.payload, IdentityPayload
+                ):
+                    existing.payload.compliance_bias_delta += (
+                        d.payload.compliance_bias_delta
+                    )
+                    existing.payload.aggression_inhibition_delta += (
+                        d.payload.aggression_inhibition_delta
+                    )
+                    existing.payload.initiative_suppression_delta += (
+                        d.payload.initiative_suppression_delta
+                    )
                     if d.payload.recent_directive_data:
-                        existing.payload.recent_directive_data = d.payload.recent_directive_data
+                        existing.payload.recent_directive_data = (
+                            d.payload.recent_directive_data
+                        )
             else:
                 existing.stress_delta += d.stress_delta
                 existing.emotion_delta += d.emotion_delta
@@ -243,17 +273,20 @@ def aggregate_deltas(deltas: list) -> list:
                 existing.reputation_delta += d.reputation_delta
                 existing.identity_integrity_delta += d.identity_integrity_delta
                 existing.pressure_resistance_delta += d.pressure_resistance_delta
-                
+
                 for k, v in d.trait_updates.items():
                     existing.trait_updates[k] = existing.trait_updates.get(k, 0.0) + v
-            
-            if d.intent_target is not None: existing.intent_target = d.intent_target
-            if d.social_target is not None: existing.social_target = d.social_target
-            if d.faction_id is not None: existing.faction_id = d.faction_id
-            
+
+            if d.intent_target is not None:
+                existing.intent_target = d.intent_target
+            if d.social_target is not None:
+                existing.social_target = d.social_target
+            if d.faction_id is not None:
+                existing.faction_id = d.faction_id
+
             if d.source != "unknown":
                 existing.source = d.source
-            
+
             if d.emotion_tag is not None:
                 existing.emotion_tag = d.emotion_tag
             if d.new_trauma is not None:
@@ -267,7 +300,9 @@ def aggregate_deltas(deltas: list) -> list:
 
     _result = list(groups.values()) + physics_deltas
     if physics_deltas:
-        logger.debug(f"[AGGREGATE] algebraic={len(groups.values())} physics={len(physics_deltas)} physics_domains={[d.domain for d in physics_deltas[:3]]}")
+        logger.debug(
+            f"[AGGREGATE] algebraic={len(groups.values())} physics={len(physics_deltas)} physics_domains={[d.domain for d in physics_deltas[:3]]}"
+        )
     return _result
 
 
@@ -287,7 +322,7 @@ def create_tick_context(
     shared_context: Any = None,
 ) -> "_TickContext":
     """[S98] Чистая сборка _TickContext для TickOrchestrator.execute().
-    
+
     Изолирует deepcopy, rng_factory и инициализацию DTO от сайд-эффектов оркестратора.
     """
     import copy
@@ -309,20 +344,21 @@ def create_tick_context(
                 _action_str = _payload.get("semantic_action", "OBSERVE")
                 # Мапим строковое действие в стандартный формат IntentDTO
                 from app.domain.intent import IntentDTO, IntentParametersDTO
+
                 _params = IntentParametersDTO(
                     semantic_action=_action_str,
                     target_reference=_payload.get("target_id", ""),
                     target_id=_payload.get("target_id", ""),
                 )
                 _player_intent = IntentDTO(
-                    action=_action_str.lower(), # 'attack', 'move', etc.
+                    action=_action_str.lower(),  # 'attack', 'move', etc.
                     target=_payload.get("target_id", ""),
                     parameters=_params,
                     text=_payload.get("text", ""),
                 )
                 break
 
-    _is_player = any(getattr(i, 'source', '') == 'player' for i in interventions)
+    _is_player = any(getattr(i, "source", "") == "player" for i in interventions)
     ctx = _TickContext(
         campaign_id=campaign_id,
         scene_state=input_snapshot,
@@ -333,7 +369,9 @@ def create_tick_context(
         rng_factory=_rng_factory,
         player_intent=_player_intent,
         all_npcs_raw=all_npcs_raw or [],
-        shared_context=shared_context if shared_context is not None else types.SimpleNamespace(), # S116 FIX: Проброс shared_context из game_loop
-        is_player_turn=_is_player, # S116 FIX: Передаём флаг в контекст
+        shared_context=shared_context
+        if shared_context is not None
+        else types.SimpleNamespace(),  # S116 FIX: Проброс shared_context из game_loop
+        is_player_turn=_is_player,  # S116 FIX: Передаём флаг в контекст
     )
     return ctx

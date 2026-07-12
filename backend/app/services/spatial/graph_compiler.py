@@ -1,3 +1,4 @@
+from __future__ import annotations
 # backend/app/services/spatial/graph_compiler.py
 # Назначение: Компилирует editor JSON → runtime graph + alias_map
 # Читает nodes из editor JSON напрямую. Сохраняет абсолютные x, y.
@@ -12,13 +13,12 @@ TODO:
 - В будущем можно добавить поддержку дополнительных типов узлов из editor JSON (например, "obstacle", "spawn_point") с соответствующими ролями
 """
 
-from __future__ import annotations
 
 import json
 import logging
 from collections import deque
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from app.models.spatial_contracts import NodeRef, NodeRole
 from app.services.spatial.role_resolver import resolve_role
@@ -42,24 +42,26 @@ _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent.parent
 
 
 def compile_graph(
-    editor_data: dict,
+    editor_data: Dict[str, Any],
     location_id: str,
     level: Optional[str] = None,
 ) -> Tuple[Dict[str, NodeRef], Dict[str, str]]:
     """Компилирует editor JSON в runtime graph + alias_map.
-    
+
     Аргументы:
         editor_data: словарь из editor JSON (с ключами "nodes", "passages")
         location_id: идентификатор локации (напр. "tavern_silver_wolf")
         level: вертикальный уровень (ground, basement, floor_2)
-    
+
     Возвращает:
         (graph, alias_map)
         graph: dict[canonical_id, NodeRef]
         alias_map: dict[legacy_id, canonical_id]
     """
     if not editor_data:
-        logger.error(f"[GRAPH_COMPILER] editor_data is None для {location_id}. Возвращаем пустой граф.")
+        logger.error(
+            f"[GRAPH_COMPILER] editor_data is None для {location_id}. Возвращаем пустой граф."
+        )
         return {}, {}, {}, {}
 
     graph: Dict[str, NodeRef] = {}
@@ -148,15 +150,21 @@ def compile_graph(
                     x2_min, y2_min = r2.get("x", 0.0), r2.get("y", 0.0)
                     x2_max = x2_min + r2.get("width", 0.0)
                     y2_max = y2_min + r2.get("height", 0.0)
-                    if (x1_min <= x2_min + 0.5 and y1_min <= y2_min + 0.5
-                            and x1_max >= x2_max - 0.5 and y1_max >= y2_max - 0.5):
+                    if (
+                        x1_min <= x2_min + 0.5
+                        and y1_min <= y2_min + 0.5
+                        and x1_max >= x2_max - 0.5
+                        and y1_max >= y2_max - 0.5
+                    ):
                         container_ids.add(room_ids[i])
                         logger.warning(
                             f"[GRAPH_COMPILER] Комната '{room_ids[i]}' содержит "
                             f"'{room_ids[j]}'. Это внешняя граница — исключена."
                         )
             if container_ids:
-                rooms = {rid: data for rid, data in rooms.items() if rid not in container_ids}
+                rooms = {
+                    rid: data for rid, data in rooms.items() if rid not in container_ids
+                }
 
     if not _has_nav and not rooms:
         logger.warning(f"[GRAPH_COMPILER] Нет узлов (rooms/nodes) в {location_id}")
@@ -179,7 +187,7 @@ def compile_graph(
                     (rx, ry),
                     (rx + rw, ry),
                     (rx + rw, ry + rh),
-                    (rx, ry + rh)
+                    (rx, ry + rh),
                 ]
 
     # ── Room → graph (orphan rooms + name enrichment) ──────────────
@@ -235,7 +243,9 @@ def compile_graph(
             # Если есть nodes, orphan rooms (без навигационного узла) — это физические контейнеры (LOS/коллизии),
             # а не точки пути. Добавление их в graph создаёт изолированные компоненты.
             if _has_nav:
-                logger.debug(f"[GRAPH_COMPILER] Orphan room '{room_id}' пропущена (nav layer active).")
+                logger.debug(
+                    f"[GRAPH_COMPILER] Orphan room '{room_id}' пропущена (nav layer active)."
+                )
                 continue
 
             # Orphan room — нет навигационного представления (fallback mode: graph = rooms)
@@ -262,7 +272,11 @@ def compile_graph(
             graph[canonical_id] = node_ref
             alias_map[room_id] = canonical_id
 
-            if room_name and room_name != room_id and room_name.lower() not in alias_map:
+            if (
+                room_name
+                and room_name != room_id
+                and room_name.lower() not in alias_map
+            ):
                 alias_map[room_name.lower()] = canonical_id
 
             for alias in room_data.get("aliases", []):
@@ -339,27 +353,30 @@ def compile_graph(
     # ETKE-IK v1: возвращаем rooms_geometry 5-м элементом
     return graph, connections, alias_map, boundary_map, rooms_geometry
 
-def _infer_connections_from_adjacency(rooms: Dict[str, dict], tolerance: float = 0.5) -> List[dict]:
+
+def _infer_connections_from_adjacency(
+    rooms: Dict[str, dict], tolerance: float = 0.5
+) -> List[dict]:
     """Выводит связи между комнатами на основе смежности их bounding box.
-    Если две комнаты имеют общую стену (пересечение по оси > tolerance), 
+    Если две комнаты имеют общую стену (пересечение по оси > tolerance),
     между ними создаётся passage. Это масштабируемая основа: двери потом модифицируют этот путь."""
     connections = []
     room_ids = list(rooms.keys())
-    
+
     for i in range(len(room_ids)):
         for j in range(i + 1, len(room_ids)):
             r1 = rooms[room_ids[i]]
             r2 = rooms[room_ids[j]]
-            
+
             # Bounding Box: x, y, width, height
             x1_min, y1_min = r1.get("x", 0.0), r1.get("y", 0.0)
             x1_max = x1_min + r1.get("width", 0.0)
             y1_max = y1_min + r1.get("height", 0.0)
-            
+
             x2_min, y2_min = r2.get("x", 0.0), r2.get("y", 0.0)
             x2_max = x2_min + r2.get("width", 0.0)
             y2_max = y2_min + r2.get("height", 0.0)
-            
+
             # Вертикальная общая стена (r1 справа или слева от r2)
             if abs(x1_max - x2_min) < tolerance or abs(x2_max - x1_min) < tolerance:
                 # Проверяем перекрытие по Y
@@ -367,7 +384,7 @@ def _infer_connections_from_adjacency(rooms: Dict[str, dict], tolerance: float =
                 if y_overlap > tolerance:
                     connections.append({"from": room_ids[i], "to": room_ids[j]})
                     continue
-                    
+
             # Горизонтальная общая стена (r1 над или под r2)
             if abs(y1_max - y2_min) < tolerance or abs(y2_max - y1_min) < tolerance:
                 # Проверяем перекрытие по X
@@ -375,8 +392,9 @@ def _infer_connections_from_adjacency(rooms: Dict[str, dict], tolerance: float =
                 if x_overlap > tolerance:
                     connections.append({"from": room_ids[i], "to": room_ids[j]})
                     continue
-                    
+
     return connections
+
 
 # ── Boundary Nodes (ДОЛГ 6.2) ────────────────────────────────────────
 
@@ -395,7 +413,7 @@ def _create_boundary_nodes(
     alias_map: Dict[str, str],
     boundary_map: Dict[str, dict],
     location_id: str,
-    adjacency: dict,
+    adjacency: Dict[str, Any],
 ) -> None:
     """Создаёт виртуальные граничные узлы по декларации adjacency.
 
@@ -412,8 +430,7 @@ def _create_boundary_nodes(
 
     # Вычисляем bounding box существующих узлов (исключая уже созданные boundary)
     internal_nodes = {
-        nid: nref for nid, nref in graph.items()
-        if nref.role != NodeRole.BOUNDARY
+        nid: nref for nid, nref in graph.items() if nref.role != NodeRole.BOUNDARY
     }
     if not internal_nodes:
         return
@@ -442,7 +459,9 @@ def _create_boundary_nodes(
         elif direction == "north":
             bx, by = center_x, min_y - margin
         else:
-            logger.warning(f"[GRAPH_COMPILER] Неизвестное направление adjacency: {direction}")
+            logger.warning(
+                f"[GRAPH_COMPILER] Неизвестное направление adjacency: {direction}"
+            )
             continue
 
         boundary_id = f"{location_id}:exit_{direction}"
@@ -452,7 +471,12 @@ def _create_boundary_nodes(
         node_ref = NodeRef(
             node_id=boundary_id,
             role=NodeRole.BOUNDARY,
-            tags=["boundary:exit", f"direction:{direction}", f"neighbor:{neighbor_chunk}", f"entry_direction:{entry_direction}"],
+            tags=[
+                "boundary:exit",
+                f"direction:{direction}",
+                f"neighbor:{neighbor_chunk}",
+                f"entry_direction:{entry_direction}",
+            ],
             x=bx,
             y=by,
             zone_id=location_id,
@@ -543,22 +567,27 @@ def load_editor_json(
     campaign_id: str,
     location_id: str,
     search_dirs: Optional[List[Path]] = None,
-) -> Optional[dict]:
+) -> Optional[Dict[str, Any]]:
     """Ищет и загружает editor JSON для локации.
-    
+
     Аргументы:
         campaign_id: идентификатор кампании
         location_id: идентификатор локации
         search_dirs: дополнительные директории для поиска
-    
+
     Возвращает:
-        dict из editor JSON или None
+        Dict[str, Any] из editor JSON или None
     """
     if search_dirs is None:
         # ADR-O-146: Единственный источник карт — map_editor/campaigns.
         # backend/data/campaigns — мёртвый путь, удалён.
         search_dirs = [
-            _PROJECT_ROOT / "frontend" / "map_editor" / "campaigns" / campaign_id / "locations",
+            _PROJECT_ROOT
+            / "frontend"
+            / "map_editor"
+            / "campaigns"
+            / campaign_id
+            / "locations",
         ]
 
     for loc_dir in search_dirs:
@@ -591,57 +620,67 @@ def load_editor_json(
                 logger.error(f"[GRAPH_COMPILER] Ошибка чтения {json_file.name}: {e}")
                 continue
 
-    logger.warning(f"[GRAPH_COMPILER] editor JSON не найден для {campaign_id}/{location_id}")
+    logger.warning(
+        f"[GRAPH_COMPILER] editor JSON не найден для {campaign_id}/{location_id}"
+    )
     return None
 
-def _infer_adjacency_from_bounds(rooms: dict, tolerance: float = 0.5) -> list:
+
+def _infer_adjacency_from_bounds(rooms: Dict[str, Any], tolerance: float = 0.5) -> List[Any]:
     """Инференс смежности: если bounding box-ы комнат имеют общую стену,
     между ними создаётся passage. Это масштабируемая основа: двери потом модифицируют этот путь.
     ADR-091: Комната, полностью содержащая другую — это внешняя граница (container), не навигационная зона."""
-    
+
     # ADR-091: Фильтрация container-комнат (внешних границ от Map Editor)
     room_ids = list(rooms.keys())
     container_ids = set()
-    
+
     for i in range(len(room_ids)):
         for j in range(len(room_ids)):
-            if i == j: continue
+            if i == j:
+                continue
             r1 = rooms[room_ids[i]]
             r2 = rooms[room_ids[j]]
-            
+
             x1_min, y1_min = r1.get("x", 0.0), r1.get("y", 0.0)
             x1_max = x1_min + r1.get("width", 0.0)
             y1_max = y1_min + r1.get("height", 0.0)
-            
+
             x2_min, y2_min = r2.get("x", 0.0), r2.get("y", 0.0)
             x2_max = x2_min + r2.get("width", 0.0)
             y2_max = y2_min + r2.get("height", 0.0)
-            
+
             # Если r1 полностью содержит r2
-            if x1_min <= x2_min + tolerance and y1_min <= y2_min + tolerance and \
-               x1_max >= x2_max - tolerance and y1_max >= y2_max - tolerance:
+            if (
+                x1_min <= x2_min + tolerance
+                and y1_min <= y2_min + tolerance
+                and x1_max >= x2_max - tolerance
+                and y1_max >= y2_max - tolerance
+            ):
                 container_ids.add(room_ids[i])
-                logger.warning(f"[GRAPH_COMPILER] Комната '{room_ids[i]}' содержит '{room_ids[j]}'. Это внешняя граница — исключена из графа.")
+                logger.warning(
+                    f"[GRAPH_COMPILER] Комната '{room_ids[i]}' содержит '{room_ids[j]}'. Это внешняя граница — исключена из графа."
+                )
 
     filtered_rooms = {rid: rooms[rid] for rid in rooms if rid not in container_ids}
-    
+
     connections = []
     filtered_ids = list(filtered_rooms.keys())
-    
+
     for i in range(len(filtered_ids)):
         for j in range(i + 1, len(filtered_ids)):
             r1 = filtered_rooms[filtered_ids[i]]
             r2 = filtered_rooms[filtered_ids[j]]
-            
+
             # Bounding Box: x, y, width, height
             x1_min, y1_min = r1.get("x", 0.0), r1.get("y", 0.0)
             x1_max = x1_min + r1.get("width", 0.0)
             y1_max = y1_min + r1.get("height", 0.0)
-            
+
             x2_min, y2_min = r2.get("x", 0.0), r2.get("y", 0.0)
             x2_max = x2_min + r2.get("width", 0.0)
             y2_max = y2_min + r2.get("height", 0.0)
-            
+
             # Вертикальная общая стена (r1 справа или слева от r2)
             if abs(x1_max - x2_min) < tolerance or abs(x2_max - x1_min) < tolerance:
                 # Проверяем перекрытие по Y
@@ -649,7 +688,7 @@ def _infer_adjacency_from_bounds(rooms: dict, tolerance: float = 0.5) -> list:
                 if y_overlap > tolerance:
                     connections.append({"from": filtered_ids[i], "to": filtered_ids[j]})
                     continue
-                    
+
             # Горизонтальная общая стена (r1 над или под r2)
             if abs(y1_max - y2_min) < tolerance or abs(y2_max - y1_min) < tolerance:
                 # Проверяем перекрытие по X
@@ -657,5 +696,5 @@ def _infer_adjacency_from_bounds(rooms: dict, tolerance: float = 0.5) -> list:
                 if x_overlap > tolerance:
                     connections.append({"from": filtered_ids[i], "to": filtered_ids[j]})
                     continue
-                    
+
     return connections

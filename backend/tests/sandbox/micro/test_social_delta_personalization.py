@@ -16,24 +16,23 @@ R2-P1: Персонализация социальных дельт — Relation
 Запуск: python -m pytest backend/tests/sandbox/micro/test_social_delta_personalization.py -v --tb=short
 """
 
-import pytest
 from types import SimpleNamespace
-from dataclasses import dataclass
 
+import pytest
+from app.models.npc_state import NPCPersonality, NPCTier
 from app.services.npc.decision.relationship_profile import (
     RelationshipResponseProfile,
     _drive_multiplier,
 )
 from app.services.npc.decision.social_deltas import (
-    SocialDeltaEngine,
-    _modulate_trust,
-    _modulate_fear,
     _BASE_DELTAS,
+    SocialDeltaEngine,
+    _modulate_fear,
+    _modulate_trust,
 )
-from app.models.npc_state import NPCPersonality, NPCTier
-
 
 # ── Фикстуры ──
+
 
 def _make_personality(fear=0.25, control=0.25, significance=0.25, desire=0.25):
     """Создаёт NPCPersonality с заданными drives. Сумма должна быть 1.0."""
@@ -58,7 +57,9 @@ def _make_state(npc_id="test_npc", rel_cache=None):
 def _make_event(event_type="player_attacks", intensity=1.0):
     """Минимальный event."""
     ns = SimpleNamespace()
-    ns.event_type = SimpleNamespace(value=event_type) if not isinstance(event_type, str) else SimpleNamespace(value=event_type)
+    ns.event_type = (
+        SimpleNamespace(value=event_type) if not isinstance(event_type, str) else SimpleNamespace(value=event_type)
+    )
     ns.intensity = intensity
     return ns
 
@@ -67,6 +68,7 @@ engine = SocialDeltaEngine()
 
 
 # ── Тесты RelationshipResponseProfile ──
+
 
 class TestDriveMultiplier:
     """Базовая формула: drive=0.25 → 1.0 (инвариант обратной совместимости)."""
@@ -77,13 +79,13 @@ class TestDriveMultiplier:
 
     def test_zero_drive_returns_above_min(self):
         """drive=0.0 → выше min_mult (аттрактор подтягивает вверх)."""
-        assert _drive_multiplier(0.0) > 0.2   # аттрактор не даёт упасть до пола
-        assert _drive_multiplier(0.0) < 1.0   # но всё ещё ниже нейтрали
+        assert _drive_multiplier(0.0) > 0.2  # аттрактор не даёт упасть до пола
+        assert _drive_multiplier(0.0) < 1.0  # но всё ещё ниже нейтрали
 
     def test_high_drive_amplifies(self):
         """drive=0.6 → множитель > 1.0 (усилен, но мягче чем линейный)."""
         assert _drive_multiplier(0.6) > 1.5
-        assert _drive_multiplier(0.6) < 2.5   # нелинейность сдерживает рост
+        assert _drive_multiplier(0.6) < 2.5  # нелинейность сдерживает рост
 
 
 class TestProfileFromDrives:
@@ -115,7 +117,7 @@ class TestProfileFromDrives:
             {"fear": 0.05, "control": 0.4, "significance": 0.25, "desire": 0.3}
         )
         assert profile.fear_from_aggression < 1.0  # ниже нейтрали
-        assert profile.fear_from_aggression > 0.3   # аттрактор не даёт упасть до нуля
+        assert profile.fear_from_aggression > 0.3  # аттрактор не даёт упасть до нуля
 
     def test_zealot_amplified_betrayal(self):
         """Фанатик: significance=0.6 → trust_from_betrayal > 1.5."""
@@ -126,6 +128,7 @@ class TestProfileFromDrives:
 
 
 # ── Тесты SocialDeltaEngine ──
+
 
 class TestSocialDeltaNeutrality:
     """Нейтральные drives → результат идентичен старому хардкоду."""
@@ -140,8 +143,8 @@ class TestSocialDeltaNeutrality:
         assert len(deltas) == 1
         payload = deltas[0].payload
         # При neutral drives множители = 1.0, saturation может чуть изменить
-        assert payload.trust_delta < 0   # доверие падает
-        assert payload.fear_delta > 0     # страх растёт
+        assert payload.trust_delta < 0  # доверие падает
+        assert payload.fear_delta > 0  # страх растёт
 
     def test_player_insults_neutral(self):
         """player_insults: trust=-8, fear=-5."""
@@ -164,8 +167,8 @@ class TestSocialDeltaNeutrality:
         deltas = engine.process(state, personality, event, "HELP")
         assert len(deltas) == 1
         payload = deltas[0].payload
-        assert payload.trust_delta > 0   # доверие растёт
-        assert payload.fear_delta < 0     # страх снижается
+        assert payload.trust_delta > 0  # доверие растёт
+        assert payload.fear_delta < 0  # страх снижается
 
     def test_unknown_event_no_deltas(self):
         """Неизвестный тип события → нет дельт."""
@@ -274,7 +277,7 @@ class TestThreatensBugFix:
         """Проверка базовых значений player_threatens в _BASE_DELTAS."""
         trust_base, fear_base, category = _BASE_DELTAS["player_threatens"]
         assert trust_base == pytest.approx(-11.0)  # -5 + -6 = объединённый
-        assert fear_base == pytest.approx(6.5)     # +4 + +2.5 = объединённый
+        assert fear_base == pytest.approx(6.5)  # +4 + +2.5 = объединённый
         assert category == "threat"
 
 
@@ -282,15 +285,21 @@ class TestModulationFunctions:
     """Чистые функции модуляции — граничные случаи."""
 
     def test_modulate_trust_zero(self):
-        profile = RelationshipResponseProfile.from_drives({"fear": 0.25, "control": 0.25, "significance": 0.25, "desire": 0.25})
+        profile = RelationshipResponseProfile.from_drives(
+            {"fear": 0.25, "control": 0.25, "significance": 0.25, "desire": 0.25}
+        )
         assert _modulate_trust(0.0, profile) == 0.0
 
     def test_modulate_fear_zero(self):
-        profile = RelationshipResponseProfile.from_drives({"fear": 0.25, "control": 0.25, "significance": 0.25, "desire": 0.25})
+        profile = RelationshipResponseProfile.from_drives(
+            {"fear": 0.25, "control": 0.25, "significance": 0.25, "desire": 0.25}
+        )
         assert _modulate_fear(0.0, "aggression", profile) == 0.0
 
     def test_modulate_fear_unknown_category(self):
         """Неизвестная категория — без модуляции (множитель 1.0)."""
-        profile = RelationshipResponseProfile.from_drives({"fear": 0.6, "control": 0.1, "significance": 0.15, "desire": 0.15})
+        profile = RelationshipResponseProfile.from_drives(
+            {"fear": 0.6, "control": 0.1, "significance": 0.15, "desire": 0.15}
+        )
         result = _modulate_fear(5.0, "unknown_category", profile)
         assert result == pytest.approx(5.0)  # Без модуляции

@@ -1,3 +1,4 @@
+from __future__ import annotations
 # backend/app/services/events/social_input_projector.py
 #
 # Сенсорный слой: преобразует ФАКТЫ взаимодействия в social_input (EMA).
@@ -8,10 +9,10 @@ path: backend/app/services/events/social_input_projector.py
 Зависимости: domain.events.EventDTO, models.phase8.Phase8Context/Phase8Result, services.events.event_bus.EventBus
 Основные сущности: SocialInputProjector (Phase8Handler)
 """
-from __future__ import annotations
+
 
 import logging
-from typing import List, Optional
+from typing import Dict, Any, List, Optional
 
 from app.domain.events import EventDTO
 from app.models.phase8 import Phase8Context, Phase8Result
@@ -23,10 +24,10 @@ from app.services.events.event_types import EventType
 logger = logging.getLogger(__name__)
 
 # --- Коэффициенты входа (Intensity) ---
-_INPUT_SPEAK = 0.10       # активный выход
-_INPUT_LISTEN = 0.15      # пассивный вход (внимание к собеседнику)
-_INPUT_PRESENCE = 0.05    # фоновое присутствие
-_INPUT_INTERACT = 0.20    # целевое взаимодействие
+_INPUT_SPEAK = 0.10  # активный выход
+_INPUT_LISTEN = 0.15  # пассивный вход (внимание к собеседнику)
+_INPUT_PRESENCE = 0.05  # фоновое присутствие
+_INPUT_INTERACT = 0.20  # целевое взаимодействие
 
 
 class SocialInputProjector:
@@ -50,7 +51,7 @@ class SocialInputProjector:
         ]:
             self._event_bus.subscribe(et, self._on_event)
 
-    def _on_event(self, event: EventDTO) -> Optional[dict]:
+    def _on_event(self, event: EventDTO) -> Optional[Dict[str, Any]]:
         self._pending_events.append(event)
         return None
 
@@ -68,7 +69,11 @@ class SocialInputProjector:
 
         for event in events:
             payload = event.payload or {}
-            _src = payload.get("source_id") or payload.get("speaker_id") or payload.get("npc_id")
+            _src = (
+                payload.get("source_id")
+                or payload.get("speaker_id")
+                or payload.get("npc_id")
+            )
             _tgt = payload.get("target_id")
 
             if event.type == EventType.NPC_SPOKE:
@@ -82,15 +87,21 @@ class SocialInputProjector:
                     deltas.append(self._mk_delta(listener, _INPUT_LISTEN))
 
             elif event.type == EventType.NPC_PROXIMITY_CLOSE:
-                if _src: deltas.append(self._mk_delta(_src, _INPUT_PRESENCE))
-                if _tgt: deltas.append(self._mk_delta(_tgt, _INPUT_PRESENCE))
+                if _src:
+                    deltas.append(self._mk_delta(_src, _INPUT_PRESENCE))
+                if _tgt:
+                    deltas.append(self._mk_delta(_tgt, _INPUT_PRESENCE))
 
             elif event.type == EventType.NPC_INTERACTS_NPC:
-                if _src: deltas.append(self._mk_delta(_src, _INPUT_INTERACT))
-                if _tgt: deltas.append(self._mk_delta(_tgt, _INPUT_INTERACT))
+                if _src:
+                    deltas.append(self._mk_delta(_src, _INPUT_INTERACT))
+                if _tgt:
+                    deltas.append(self._mk_delta(_tgt, _INPUT_INTERACT))
 
         if deltas:
-            logger.debug(f"[SOCIAL_INPUT] Generated {len(deltas)} input deltas from {len(events)} events.")
+            logger.debug(
+                f"[SOCIAL_INPUT] Generated {len(deltas)} input deltas from {len(events)} events."
+            )
 
         return Phase8Result(deltas=deltas, events_processed=len(events))
 

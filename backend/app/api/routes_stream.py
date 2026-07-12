@@ -20,8 +20,8 @@ routes_stream.py делает ровно три вещи:
   data: {"type":"token",       "text":"Вы ", "n":1}
   data: {"type":"done",        "tokens":512, "ms":8200, "tps":65}
 """
-
 from __future__ import annotations
+
 
 import json
 from datetime import datetime
@@ -59,37 +59,33 @@ async def game_action_stream(request: dict, game_loop=Depends(get_game_loop)):
     Возвращает Server-Sent Events поток.
     Вся логика в orchestrator.stream_turn() — здесь только транспорт.
     """
-    player      = request.get("player")
+    player = request.get("player")
     campaign_id = request.get("campaign")
     action_text = request.get("action")
-    _pos_raw    = request.get("player_position")  # [x, y] от фронтенда
+    _pos_raw = request.get("player_position")  # [x, y] от фронтенда
     _player_pos = tuple(_pos_raw) if _pos_raw and len(_pos_raw) == 2 else None
 
     if not player or not campaign_id or not action_text:
         raise HTTPException(
-            status_code=400,
-            detail="Поля 'player', 'campaign', 'action' обязательны"
+            status_code=400, detail="Поля 'player', 'campaign', 'action' обязательны"
         )
 
     # Проверка сессии
     session = player_session_service.get_session(campaign_id)
     if session is None:
         raise HTTPException(
-            status_code=412,
-            detail=f"Сессия не найдена для кампании '{campaign_id}'"
+            status_code=412, detail=f"Сессия не найдена для кампании '{campaign_id}'"
         )
 
     if not player_session_service.is_player_active(campaign_id, player):
         session.active = True
         session.last_heartbeat = datetime.now()
         if not player_session_service.is_player_active(campaign_id, player):
-            raise HTTPException(
-                status_code=412,
-                detail=f"Игрок '{player}' не активен"
-            )
+            raise HTTPException(status_code=412, detail=f"Игрок '{player}' не активен")
 
     # Получаем локацию из campaign_state
     from app.core.constants import DEFAULT_LOCATION_ID
+
     location = DEFAULT_LOCATION_ID
     campaign_state = _campaign_service.get_campaign_state(campaign_id)
     if campaign_state:
@@ -116,8 +112,8 @@ async def game_action_stream(request: dict, game_loop=Depends(get_game_loop)):
         event_generator(),
         media_type="text/event-stream",
         headers={
-            "Cache-Control":     "no-cache",
+            "Cache-Control": "no-cache",
             "X-Accel-Buffering": "no",
-            "Connection":        "keep-alive",
+            "Connection": "keep-alive",
         },
     )

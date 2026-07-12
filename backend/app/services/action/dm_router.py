@@ -1,3 +1,4 @@
+from __future__ import annotations
 # backend/app/services/action/dm_router.py
 """
 path: backend/app/services/action/dm_router.py
@@ -8,7 +9,6 @@ path: backend/app/services/action/dm_router.py
 ПРИНЦИП: Router не знает мир. Router не знает NPC. Router не знает успех.
 """
 
-from __future__ import annotations
 
 import json
 import re
@@ -21,6 +21,7 @@ from typing import List, Optional
 # --- Инициализация данных на уровне модуля (Data-Driven) ---
 
 import logging
+
 _module_logger = logging.getLogger(__name__)
 
 _INSULTS_PATH = Path(__file__).parent.parent.parent.parent / "data" / "insults_ru.json"
@@ -35,12 +36,15 @@ except Exception as _insult_err:
     )
     _INSULT_ROOTS: set[str] = set()
 
-_DIRECTED_AT_PATTERN = re.compile(r"(?i)\b(ты|тебя|тебе|вас|вам|твой|твоя|твоё|твои|вы)\b")
+_DIRECTED_AT_PATTERN = re.compile(
+    r"(?i)\b(ты|тебя|тебе|вас|вам|твой|твоя|твоё|твои|вы)\b"
+)
 
 # Инициализация морфологии один раз (Optional Dependency: Degraded Mode if missing)
 _MORPH = None
 try:
     import pymorphy3 as pymorphy
+
     _MORPH = pymorphy.MorphAnalyzer()
 except ImportError:
     _module_logger.warning(
@@ -50,32 +54,71 @@ except ImportError:
 
 # Леммы действий — pymorphy3 сведёт все формы к этим
 _ACTION_LEMMAS: dict[str, frozenset[str]] = {
-    "player_attacks": frozenset({
-        "атаковать", "ударить", "бить", "избить", "избивать",
-        "резать", "стрелять", "кастовать", "колдовать",
-        "убить", "убивать", "пнуть", "рассечь",
-        "удушить", "задушить", "застрелить", "выстрелить",
-    }),
-    "player_steals": frozenset({
-        "украсть", "свистнуть", "красть", "карманить",
-        "забирать", "забрать", "выносить", "вынести",
-    }),
-    "player_flees": frozenset({
-        "убежать", "сбежать", "бежать", "драпать",
-        "отступать", "отступить", "прятаться", "спрятаться",
-    }),
-    "player_threatens": frozenset({
-        "угрожать", "запугивать", "пугать", "приказывать",
-        "требовать", "уставиться",
-    }),
+    "player_attacks": frozenset(
+        {
+            "атаковать",
+            "ударить",
+            "бить",
+            "избить",
+            "избивать",
+            "резать",
+            "стрелять",
+            "кастовать",
+            "колдовать",
+            "убить",
+            "убивать",
+            "пнуть",
+            "рассечь",
+            "удушить",
+            "задушить",
+            "застрелить",
+            "выстрелить",
+        }
+    ),
+    "player_steals": frozenset(
+        {
+            "украсть",
+            "свистнуть",
+            "красть",
+            "карманить",
+            "забирать",
+            "забрать",
+            "выносить",
+            "вынести",
+        }
+    ),
+    "player_flees": frozenset(
+        {
+            "убежать",
+            "сбежать",
+            "бежать",
+            "драпать",
+            "отступать",
+            "отступить",
+            "прятаться",
+            "спрятаться",
+        }
+    ),
+    "player_threatens": frozenset(
+        {
+            "угрожать",
+            "запугивать",
+            "пугать",
+            "приказывать",
+            "требовать",
+            "уставиться",
+        }
+    ),
 }
 
 
 # --- Сущности ---
 
+
 class RouterError(Enum):
     EMPTY_INPUT = "EMPTY_INPUT"
     UNKNOWN = "UNKNOWN"
+
 
 @dataclass(frozen=True)
 class RawEvent:
@@ -87,6 +130,7 @@ class RawEvent:
     # R5: Разделение вербальных и физических действий
     action_mode: str = "VERBAL"  # VERBAL или PHYSICAL
 
+
 @dataclass(frozen=True)
 class RouterResult:
     is_valid: bool
@@ -96,6 +140,7 @@ class RouterResult:
 
 
 # --- Router ---
+
 
 class DMRouter:
     """
@@ -108,9 +153,7 @@ class DMRouter:
     # - составные условия (threatens_indirect)
     # Оскорбления обрабатываются через _INSULT_ROOTS + pymorphy3.
     _PATTERNS: dict[str, re.Pattern] = {
-        "player_threatens": re.compile(
-            r"(?i)на\s*колени|замолчи|молчи|сдохнешь"
-        ),
+        "player_threatens": re.compile(r"(?i)на\s*колени|замолчи|молчи|сдохнешь"),
         "player_threatens_indirect": re.compile(
             r"(?i)(жена|дочь|сын|мать|отец|семья|ребёнок|дети).*"
             r"(видел|был[аи]?|спит|с[^а-яё]|незнаком|чужой|уходил[аи]?)"
@@ -125,15 +168,17 @@ class DMRouter:
     }
 
     # R5: Физические действия требуют броска кубиков через rules_agent
-    _PHYSICAL_ACTIONS: frozenset[str] = frozenset({
-        "player_attacks",
-        "player_steals",
-        # ИСПРАВЛЕНО: 'player_fleses' → 'player_flees'. Опечатка: 'e' и 's'
-        # перепутаны местами. _classify_action возвращал "player_flees" (правильно),
-        # но сравнение шло со сломанной строкой → побег классифицировался как VERBAL.
-        "player_flees",
-        "player_insults",
-    })
+    _PHYSICAL_ACTIONS: frozenset[str] = frozenset(
+        {
+            "player_attacks",
+            "player_steals",
+            # ИСПРАВЛЕНО: 'player_fleses' → 'player_flees'. Опечатка: 'e' и 's'
+            # перепутаны местами. _classify_action возвращал "player_flees" (правильно),
+            # но сравнение шло со сломанной строкой → побег классифицировался как VERBAL.
+            "player_flees",
+            "player_insults",
+        }
+    )
 
     # Интенсивность вынесена в domain/constants.py (ACTION_INTENSITY)
 
@@ -151,11 +196,12 @@ class DMRouter:
             return RouterResult(
                 is_valid=False,
                 error=RouterError.EMPTY_INPUT,
-                error_details="Пустой ввод от игрока"
+                error_details="Пустой ввод от игрока",
             )
 
         event_type = self._classify_action(raw_input)
         from app.domain.constants import ACTION_INTENSITY
+
         base_intensity = ACTION_INTENSITY.get(event_type, 0.2)
 
         action_mode = "PHYSICAL" if event_type in self._PHYSICAL_ACTIONS else "VERBAL"
@@ -188,14 +234,14 @@ class DMRouter:
 
     def _classify_action(self, text: str) -> str:
         """Определяет тип события. Лемматизация для действий, regex для сложных случаев."""
-        
+
         # 0. Знак вопроса = всегда player_interacts (вопросы не наносят урон!)
         if "?" in text:
             return "player_interacts"
-        
+
         # 1. Лемматизация — один проход по всем словам, проверка всех категорий
         if _MORPH and _ACTION_LEMMAS:
-            words = re.findall(r'[а-яёa-z]+', text.lower())
+            words = re.findall(r"[а-яёa-z]+", text.lower())
             for word in words:
                 for parsed in _MORPH.parse(word):
                     lemma = parsed.normal_form
@@ -210,36 +256,36 @@ class DMRouter:
 
         # 3. Быстрая проверка междометий ("твою" и т.п.)
         if re.search(r"(?i)\bтвою\b", text):
-            logger.debug(f"[DM_ROUTER] Exclamation insult detected: player_insults")
+            logger.debug("[DM_ROUTER] Exclamation insult detected: player_insults")
             return "player_insults"
 
         # 4. Сложная проверка оскорблений (лемматизация + контекст)
         if _INSULT_ROOTS and _MORPH:
             if self._is_directed_insult(text):
-                logger.debug(f"[DM_ROUTER] Insult detected: player_insults")
+                logger.debug("[DM_ROUTER] Insult detected: player_insults")
                 return "player_insults"
 
         return "player_interacts"
 
     def _is_directed_insult(self, text: str) -> bool:
         """Проверяет наличие направленного оскорбления с защитой от ложных срабатываний."""
-        
+
         # Предварительно чистим текст от лишних символов для сплита
-        words = re.findall(r'[а-яёa-z]+', text.lower())
-        
+        words = re.findall(r"[а-яёa-z]+", text.lower())
+
         # Словарь отрицаний
         negations = {"не", "ни"}
 
         profanity_present = False  # мат найден (включая междометия)
-        insult_confirmed = False   # немеждометное оскорбление подтверждено
+        insult_confirmed = False  # немеждометное оскорбление подтверждено
 
         for i, word in enumerate(words):
             # 1. ЗАЩИТА ОТ ЗАЛИПАНИЯ КЛАВИШ: "идиооот" -> "идиот"
-            clean_word = re.sub(r'(.)\1{2,}', r'\1', word)
-            
+            clean_word = re.sub(r"(.)\1{2,}", r"\1", word)
+
             if not clean_word:
                 continue
-                
+
             parsed = _MORPH.parse(clean_word)[0]
             lemma = parsed.normal_form
 
@@ -250,10 +296,12 @@ class DMRouter:
                 if any(prev_word in negations for prev_word in words[window_start:i]):
                     continue
 
-                profanity_present = True  # запоминаем наличие мата (только если не отрицание)
-                
+                profanity_present = (
+                    True  # запоминаем наличие мата (только если не отрицание)
+                )
+
                 # 2. ЗАЩИТА ОТ МЕЖДОМЕТИЙ: "Блядь, я забыл" (игнорируем как основное оскорбление)
-                if 'INTJ' in parsed.tag:
+                if "INTJ" in parsed.tag:
                     continue
 
                 # Если мы здесь, значит оскорбление реальное (не междометие, не отрицание)
@@ -270,7 +318,7 @@ class DMRouter:
             # 5. ЭВРИСТИКА КОРОТКИХ ФРАЗ
             # "Тупой ублюдок!" (2 слова) — явно сказано в лицо текущему NPC.
             # "Этот тупой ублюдок украл меч" (5 слов) — рассказ о третьем лице (НЕ оскорбляем NPC).
-            if len(words) <= 4: 
+            if len(words) <= 4:
                 return True
 
         # 6. ЭВРИСТИКА МАТА-МЕЖДОМЕТИЯ

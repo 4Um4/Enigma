@@ -44,11 +44,14 @@ def update_avatar_from_npc_intents(
 
             if _intent_val.value == "attack":
                 _avatar_state.stress = min(100.0, _avatar_state.stress + 5.0)
-                if _avatar_state.emotion in (emotion_tag_cls.NEUTRAL, emotion_tag_cls.HAPPY):
+                if _avatar_state.emotion in (
+                    emotion_tag_cls.NEUTRAL,
+                    emotion_tag_cls.HAPPY,
+                ):
                     _avatar_state.emotion = emotion_tag_cls.FEARFUL
                 _avatar_changed = True
 
-                # ADR-0015, ADR-0021: Урон аватару от NPC теперь рассчитывается 
+                # ADR-0015, ADR-0021: Урон аватару от NPC теперь рассчитывается
                 # через CombatSubscriber → ImpactEngine в Фазе 8 (Layered Reduction).
                 # Прямая мутация HP аватара здесь запрещена.
             elif _intent_val.value == "intimidate":
@@ -58,13 +61,18 @@ def update_avatar_from_npc_intents(
                 _avatar_changed = True
             elif _intent_val.value == "help":
                 _avatar_state.stress = max(0.0, _avatar_state.stress - 3.0)
-                if _avatar_state.emotion in (emotion_tag_cls.FEARFUL, emotion_tag_cls.SAD):
+                if _avatar_state.emotion in (
+                    emotion_tag_cls.FEARFUL,
+                    emotion_tag_cls.SAD,
+                ):
                     _avatar_state.emotion = emotion_tag_cls.NEUTRAL
                 _avatar_changed = True
 
         if _avatar_changed:
             avatar_service.save_state(campaign_id, _avatar_state)
-            logger.warning(f"[AVATAR] stress={_avatar_state.stress:.1f} emotion={_avatar_state.emotion.value if hasattr(_avatar_state.emotion, 'value') else _avatar_state.emotion}")
+            logger.warning(
+                f"[AVATAR] stress={_avatar_state.stress:.1f} emotion={_avatar_state.emotion.value if hasattr(_avatar_state.emotion, 'value') else _avatar_state.emotion}"
+            )
     except Exception as _av_err:
         logger.warning(f"[AVATAR] update error: {_av_err}")
 
@@ -83,13 +91,21 @@ def avatar_to_prompt(state) -> dict:
             f"{k}({v.severity:.0%})" for k, v in state.conditions.items()
         )
     return {
-        "hp": f"{state.effective_hp}/{state.effective_max_hp}" if state.effective_max_hp > 0 else "не задано",
+        "hp": f"{state.effective_hp}/{state.effective_max_hp}"
+        if state.effective_max_hp > 0
+        else "не задано",
         "stress": round(state.stress, 1),
-        "emotion": state.emotion.value if hasattr(state.emotion, "value") else str(state.emotion),
-        "will_state": state.will_state.value if hasattr(state.will_state, "value") else str(state.will_state),
+        "emotion": state.emotion.value
+        if hasattr(state.emotion, "value")
+        else str(state.emotion),
+        "will_state": state.will_state.value
+        if hasattr(state.will_state, "value")
+        else str(state.will_state),
         "posture": state.posture,
         "wounds": wounds_str,
         "conditions": conds_str,
         "identity_integrity": round(state.identity_integrity, 2),
-        "life_status": (state.body_state or {}).get("life_status", "ALIVE") if hasattr(state, 'body_state') else "ALIVE",
+        "life_status": (state.body_state or {}).get("life_status", "ALIVE")
+        if hasattr(state, "body_state")
+        else "ALIVE",
     }

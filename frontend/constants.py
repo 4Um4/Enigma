@@ -40,14 +40,14 @@ def parse_hhmm(time_str: str) -> int:
 # --- Календарные константы (Дублирование из backend/app/core/constants.py ради Устава §1.1) ---
 HOURS_PER_DAY: int = 24
 SECONDS_PER_MINUTE: int = 60
-SECONDS_PER_HOUR: int = 60 * SECONDS_PER_MINUTE    # 3600
+SECONDS_PER_HOUR: int = 60 * SECONDS_PER_MINUTE  # 3600
 SECONDS_PER_DAY: int = HOURS_PER_DAY * SECONDS_PER_HOUR  # 86400
 
 DAYS_PER_MONTH: int = 30
 MONTHS_PER_YEAR: int = 12
 REGULAR_DAYS_PER_YEAR: int = DAYS_PER_MONTH * MONTHS_PER_YEAR  # 360
-INTERCALARY_DAYS: int = 5                                          # После 12-го месяца
-DAYS_PER_YEAR: int = REGULAR_DAYS_PER_YEAR + INTERCALARY_DAYS     # 365
+INTERCALARY_DAYS: int = 5  # После 12-го месяца
+DAYS_PER_YEAR: int = REGULAR_DAYS_PER_YEAR + INTERCALARY_DAYS  # 365
 SECONDS_PER_YEAR: int = DAYS_PER_YEAR * SECONDS_PER_DAY
 
 DEFAULT_START_YEAR: int = 1
@@ -67,17 +67,18 @@ def format_world_date(total_seconds: int) -> str:
     """Переводит абсолютные секунды симуляции в дату мира: 'Год X, День Y, HH:MM'."""
     if total_seconds < 0:
         total_seconds = 0
-    
+
     year = total_seconds // SECONDS_PER_YEAR + DEFAULT_START_YEAR
     remaining_seconds = total_seconds % SECONDS_PER_YEAR
-    
+
     day_of_year = remaining_seconds // SECONDS_PER_DAY + DEFAULT_START_DAY
     seconds_in_day = remaining_seconds % SECONDS_PER_DAY
-    
+
     hour = seconds_in_day // SECONDS_PER_HOUR
     minute = (seconds_in_day % SECONDS_PER_HOUR) // SECONDS_PER_MINUTE
-    
+
     return f"Год {year}, День {day_of_year}, {hour:02d}:{minute:02d}"
+
 
 # ═══════════════════════════════════════════════════════════════════
 # UI PALETTE & FONTS (ТЗ-6 C1)

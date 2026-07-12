@@ -8,6 +8,7 @@ path: /backend/movement_system.py
 Зависимости: math, typing
 Основные сущности: MovementResult, try_move, move_towards
 """
+
 import math
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
@@ -16,6 +17,7 @@ from typing import Dict, List, Optional, Tuple
 @dataclass
 class MovementResult:
     """Результат попытки перемещения"""
+
     success: bool
     new_x: float
     new_y: float
@@ -24,11 +26,19 @@ class MovementResult:
 
 # === Коллизии ===
 
+
 def _segments_intersect(
-    ax: float, ay: float, bx: float, by: float,
-    cx: float, cy: float, dx: float, dy: float,
+    ax: float,
+    ay: float,
+    bx: float,
+    by: float,
+    cx: float,
+    cy: float,
+    dx: float,
+    dy: float,
 ) -> bool:
     """Пересечение отрезков AB и CD"""
+
     def cross(ox, oy, px, py, qx, qy):
         return (px - ox) * (qy - oy) - (py - oy) * (qx - ox)
 
@@ -37,8 +47,9 @@ def _segments_intersect(
     d3 = cross(ax, ay, bx, by, cx, cy)
     d4 = cross(ax, ay, bx, by, dx, dy)
 
-    if ((d1 > 0 and d2 < 0) or (d1 < 0 and d2 > 0)) and \
-       ((d3 > 0 and d4 < 0) or (d3 < 0 and d4 > 0)):
+    if ((d1 > 0 and d2 < 0) or (d1 < 0 and d2 > 0)) and (
+        (d3 > 0 and d4 < 0) or (d3 < 0 and d4 > 0)
+    ):
         return True
 
     return False
@@ -54,22 +65,31 @@ def _point_in_rect(px: float, py: float, rect: dict) -> bool:
 
 
 def _check_wall_collision(
-    old_x: float, old_y: float,
-    new_x: float, new_y: float,
+    old_x: float,
+    old_y: float,
+    new_x: float,
+    new_y: float,
     walls: List[dict],
 ) -> bool:
     """Проверяет пересечение линии движения со стенами"""
     for wall in walls:
         if _segments_intersect(
-            old_x, old_y, new_x, new_y,
-            wall["x1"], wall["y1"], wall["x2"], wall["y2"],
+            old_x,
+            old_y,
+            new_x,
+            new_y,
+            wall["x1"],
+            wall["y1"],
+            wall["x2"],
+            wall["y2"],
         ):
             return True
     return False
 
 
 def _check_obstacle_collision(
-    x: float, y: float,
+    x: float,
+    y: float,
     obstacles: List[dict],
 ) -> bool:
     """Проверяет попадание точки в непреодолимое препятствие."""
@@ -84,7 +104,8 @@ def _check_obstacle_collision(
 
 
 def _check_npc_collision(
-    x: float, y: float,
+    x: float,
+    y: float,
     npc_positions: Dict[str, dict],
     min_distance: float = 0.5,
 ) -> bool:
@@ -100,9 +121,12 @@ def _check_npc_collision(
 
 # === Перемещение ===
 
+
 def try_move(
-    old_x: float, old_y: float,
-    dx: float, dy: float,
+    old_x: float,
+    old_y: float,
+    dx: float,
+    dy: float,
     walls: List[dict],
     obstacles: List[dict],
     npc_positions: Dict[str, dict],
@@ -132,16 +156,20 @@ def try_move(
     if _check_wall_collision(old_x, old_y, new_x, new_y, walls):
         # Пробуем скольжение по X
         slide_x = old_x + dx
-        if not _check_wall_collision(old_x, old_y, slide_x, old_y, walls) \
-           and not _check_obstacle_collision(slide_x, old_y, obstacles) \
-           and not _check_npc_collision(slide_x, old_y, npc_positions):
+        if (
+            not _check_wall_collision(old_x, old_y, slide_x, old_y, walls)
+            and not _check_obstacle_collision(slide_x, old_y, obstacles)
+            and not _check_npc_collision(slide_x, old_y, npc_positions)
+        ):
             return MovementResult(True, slide_x, old_y)
 
         # Пробуем скольжение по Y
         slide_y = old_y + dy
-        if not _check_wall_collision(old_x, old_y, old_x, slide_y, walls) \
-           and not _check_obstacle_collision(old_x, slide_y, obstacles) \
-           and not _check_npc_collision(old_x, slide_y, npc_positions):
+        if (
+            not _check_wall_collision(old_x, old_y, old_x, slide_y, walls)
+            and not _check_obstacle_collision(old_x, slide_y, obstacles)
+            and not _check_npc_collision(old_x, slide_y, npc_positions)
+        ):
             return MovementResult(True, old_x, slide_y)
 
         return MovementResult(False, old_x, old_y, blocked_by="wall")
@@ -156,8 +184,10 @@ def try_move(
 
 
 def move_towards(
-    from_x: float, from_y: float,
-    to_x: float, to_y: float,
+    from_x: float,
+    from_y: float,
+    to_x: float,
+    to_y: float,
     walls: List[dict],
     obstacles: List[dict],
     npc_positions: Dict[str, dict],
@@ -175,5 +205,7 @@ def move_towards(
     if dist < arrival_threshold:
         return MovementResult(True, from_x, from_y), True
 
-    result = try_move(from_x, from_y, dx, dy, walls, obstacles, npc_positions, step_size)
+    result = try_move(
+        from_x, from_y, dx, dy, walls, obstacles, npc_positions, step_size
+    )
     return result, False

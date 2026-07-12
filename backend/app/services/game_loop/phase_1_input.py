@@ -11,7 +11,7 @@
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 from difflib import get_close_matches
 
 from app.domain.events import EventDTO
@@ -21,7 +21,7 @@ from app.domain.movement import MovementRequest
 from app.models.will import IntentResolution
 from app.services.events.event_bus import get_event_bus
 from app.services.events.event_types import EventType
-from app.services.will import compute_willpower, resolve_intent_pressure
+from app.services.will import resolve_intent_pressure
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +32,7 @@ def _resolve_target_reference(field: IntentSemanticField, scene_context: Any) ->
         return ""
 
     ref = field.target_reference.lower()
-    
+
     # Извлекаем словарь {npc_name.lower(): npc_id} из контекста сцены
     # Ожидаем, что scene_context содержит all_npcs_raw или npc_positions с именами
     npc_name_map = {}
@@ -46,13 +46,13 @@ def _resolve_target_reference(field: IntentSemanticField, scene_context: Any) ->
             for npc_id, pos_data in scene_context.get("npc_positions", {}).items():
                 if isinstance(pos_data, dict):
                     # Поддержка обоих ключей: display_name (DTO) и name (scene_state)
-                    if _name := pos_data.get("display_name") or pos_data.get(
-                        "name"
-                    ):
+                    if _name := pos_data.get("display_name") or pos_data.get("name"):
                         npc_name_map[_name.lower()] = npc_id
 
     # ADR-046: Диагностика Fuzzy Matching (Слой 2)
-    logger.warning(f"[TARGET_RESOLVE] ref='{ref}', map_size={len(npc_name_map)}, keys={list(npc_name_map.keys())[:5]}")
+    logger.warning(
+        f"[TARGET_RESOLVE] ref='{ref}', map_size={len(npc_name_map)}, keys={list(npc_name_map.keys())[:5]}"
+    )
 
     if not npc_name_map:
         return ""
@@ -61,20 +61,21 @@ def _resolve_target_reference(field: IntentSemanticField, scene_context: Any) ->
     matches = get_close_matches(ref, npc_name_map.keys(), n=1, cutoff=0.6)
     return npc_name_map[matches[0]] if matches else ""
 
+
 def _resolve_actor_reference(field: IntentSemanticField, scene_context: Any) -> str:
-    """ADR-O-315: Разрешение актора (Кто идёт?). 
+    """ADR-O-315: Разрешение актора (Кто идёт?).
     Возвращает ID актора ("player", "tornin") или пустую строку.
     """
     if not field.actor_reference:
         return "player"  # По умолчанию действие совершает игрок
-    
+
     ref = field.actor_reference.lower()
-    
+
     # Проверяем алиасы игрока
     _player_aliases = {"я", "меня", "мне", "мы", "нас", "нам", "player"}
     if ref in _player_aliases:
         return "player"
-        
+
     # Если это не игрок, используем fuzzy matching по NPC (как в _resolve_target_reference)
     npc_name_map = {}
     if isinstance(scene_context, dict):
@@ -89,9 +90,10 @@ def _resolve_actor_reference(field: IntentSemanticField, scene_context: Any) -> 
 
     if not npc_name_map:
         return ""
-        
+
     matches = get_close_matches(ref, npc_name_map.keys(), n=1, cutoff=0.6)
     return npc_name_map[matches[0]] if matches else ""
+
 
 def resolve_player_intent(
     raw_action: str,
@@ -101,7 +103,7 @@ def resolve_player_intent(
     scene_context: Optional[Any] = None,
 ) -> IntentResolution:
     """Phase 1 Boundary Adapter (ADR-031 Fix).
-    
+
     Содержит Слой 1 (Fast-path Compression) и Слой 2 (Target Resolution).
     LLM-парсинг (slow_path/await) КАТЕГОРИЧЕСКИ ЗАПРЕЩЕН в каузальном солвере.
     """
@@ -109,26 +111,35 @@ def resolve_player_intent(
     semantic_field = None
     try:
         from app.services.input.intent_compressor import IntentCompressor
+
         _compressor = IntentCompressor(llm_client=None)
         logger.debug(f"[PIPELINE][INPUT] raw_action={raw_action!r}")
         semantic_field = _compressor._fast_path_parse(raw_action)
-        logger.debug(f"[ARCHAE-FASTPATH] raw={raw_action!r} result={semantic_field.action_type if semantic_field else 'None'} target_ref={semantic_field.target_reference if semantic_field else 'N/A'}")
+        logger.debug(
+            f"[ARCHAE-FASTPATH] raw={raw_action!r} result={semantic_field.action_type if semantic_field else 'None'} target_ref={semantic_field.target_reference if semantic_field else 'N/A'}"
+        )
         logger.debug(f"[PIPELINE][INPUT] result={semantic_field}")
         if semantic_field:
-            logger.warning(f"[LAYER1] Fast path success: action={semantic_field.action_type}, target_ref={semantic_field.target_reference}")
+            logger.warning(
+                f"[LAYER1] Fast path success: action={semantic_field.action_type}, target_ref={semantic_field.target_reference}"
+            )
     except Exception as e:
         logger.error(f"[LAYER1] Compressor crashed: {e}")
 
     if semantic_field is None:
         # Fallback: если словарь не распознал действие, используем базовый UNCERTAIN профиль
-        logger.debug(f"[ARCHAE-FASTPATH-FALLBACK] raw={raw_action!r} → UNCERTAIN (fast_path returned None)")
-        semantic_field = IntentSemanticField(raw_text=raw_action, action_type=ActionType.UNCERTAIN)
-    
+        logger.debug(
+            f"[ARCHAE-FASTPATH-FALLBACK] raw={raw_action!r} → UNCERTAIN (fast_path returned None)"
+        )
+        semantic_field = IntentSemanticField(
+            raw_text=raw_action, action_type=ActionType.UNCERTAIN
+        )
+
     # 2. Слой 2: Разрешение цели (Строка -> ID)
     resolved_target_id = _resolve_target_reference(semantic_field, scene_context)
     # ADR-O-315: Разрешение актора (Кто действует?)
     resolved_actor_id = _resolve_actor_reference(semantic_field, scene_context)
-    
+
     # Формируем канонический IntentDTO
     final_action = semantic_field.action_type.value
     if final_action == "UNCERTAIN" and action_type:
@@ -139,22 +150,22 @@ def resolve_player_intent(
     # Система должна знать, что действие неопределено, а не считать, что его нет.
     _intent_params = IntentParametersDTO(
         semantic_action=semantic_field.action_type.value,
-        actor_id=resolved_actor_id, # ADR-O-315: Инъекция ID актора
+        actor_id=resolved_actor_id,  # ADR-O-315: Инъекция ID актора
         target_reference=semantic_field.target_reference,
-        target_id=resolved_target_id, # Инъекция ID из Слоя 2
+        target_id=resolved_target_id,  # Инъекция ID из Слоя 2
         physical_force=semantic_field.physical_force,
         emotional_charge=semantic_field.emotional_charge,
         social_pressure=semantic_field.social_pressure,
-        commitment_level=semantic_field.commitment_level
+        commitment_level=semantic_field.commitment_level,
     )
-        
+
     intent = IntentDTO(
         action=final_action,
         target=resolved_target_id or target,
         parameters=_intent_params,
         text=raw_action,
     )
-    
+
     # ADR-O: УБИТ SEMANTIC MOVE BRIDGE. Игрок говорит → NPC решает.
     # Фаза ввода не имеет права генерировать imperative movement.
     # Приказ пробрасывается через Pressure Pipeline → DecisionHub.
@@ -167,23 +178,27 @@ def resolve_player_intent(
     # TODO: В будущем resolve_intent_pressure должен принимать IntentSemanticField,
     # а не IntentDTO, чтобы использовать physical_force и emotional_charge.
     pressure = resolve_intent_pressure(intent)
-    
+
     # ADR-O-315: Сборка готового контракта движения для Симуляции
     _movement_req = None
-    if semantic_field.action_type == ActionType.MOVE and resolved_actor_id and resolved_target_id:
+    if (
+        semantic_field.action_type == ActionType.MOVE
+        and resolved_actor_id
+        and resolved_target_id
+    ):
         _movement_req = MovementRequest(
-            actor_id=resolved_actor_id,
-            target_actor_id=resolved_target_id
+            actor_id=resolved_actor_id, target_actor_id=resolved_target_id
         )
-    
+
     return IntentResolution(
-        original_intent=intent, 
+        original_intent=intent,
         pressure_profile=pressure,
-        movement_request=_movement_req
+        movement_request=_movement_req,
     )
 
 
 # --- LEGACY PUBLISHERS (оставлены для совместимости) ---
+
 
 def _publish_raw_action(
     player_name: str,
@@ -195,16 +210,18 @@ def _publish_raw_action(
     if player_text.startswith("[TELEGRAPH"):
         return
     try:
-        get_event_bus().publish(EventDTO.create(
-            event_type=EventType.PLAYER_INTERACTS,
-            source=player_name,
-            payload={
-                "content": player_text,
-                "action_type": action_type,
-                "location": location,
-            },
-            persistence_level="working",
-        ))
+        get_event_bus().publish(
+            EventDTO.create(
+                event_type=EventType.PLAYER_INTERACTS,
+                source=player_name,
+                payload={
+                    "content": player_text,
+                    "action_type": action_type,
+                    "location": location,
+                },
+                persistence_level="working",
+            )
+        )
     except Exception as _bus_err:
         logger.debug(f"[EVENT_BUS] player_action publish skipped: {_bus_err}")
 
@@ -228,14 +245,18 @@ def publish_player_speech(
         if semantic_action:
             _payload["semantic_action"] = semantic_action
         if target_reference:
-            _payload["target_reference"] = target_reference.lower() # Нормализация для маппинга
+            _payload["target_reference"] = (
+                target_reference.lower()
+            )  # Нормализация для маппинга
 
-        get_event_bus().publish(EventDTO.create(
-            event_type=EventType.PLAYER_SPOKE,
-            source=player_name or "Игрок",
-            payload=_payload,
-            persistence_level="working",
-        ))
+        get_event_bus().publish(
+            EventDTO.create(
+                event_type=EventType.PLAYER_SPOKE,
+                source=player_name or "Игрок",
+                payload=_payload,
+                persistence_level="working",
+            )
+        )
     except Exception as _bus_err:
         logger.debug(f"[EVENT_BUS] player_speech publish skipped: {_bus_err}")
 
@@ -271,22 +292,29 @@ def publish_classified_player_event(
     _target_id = None
     _physical_force = 0.1
     _social_pressure = 0.0
-    if hasattr(shared_context, 'intent_resolution') and shared_context.intent_resolution:
+    if (
+        hasattr(shared_context, "intent_resolution")
+        and shared_context.intent_resolution
+    ):
         _params = shared_context.intent_resolution.original_intent.parameters
         if isinstance(_params, IntentParametersDTO):
             _semantic_action = _params.semantic_action
             _target_reference = _params.target_reference
-            _target_id = _params.target_id # Извлекаем ID Слоя 2
+            _target_id = _params.target_id  # Извлекаем ID Слоя 2
             _physical_force = _params.physical_force
             _social_pressure = _params.social_pressure
         else:
-            logger.error(f"[SEMANTIC_BRIDGE] Legacy dict parameters detected: {_params}")
+            logger.error(
+                f"[SEMANTIC_BRIDGE] Legacy dict parameters detected: {_params}"
+            )
 
         if not _semantic_action:
             logger.debug("[SEMANTIC_BRIDGE] No semantic_action in DTO")
         else:
-            logger.warning(f"[SEMANTIC_BRIDGE] Extracted: action={_semantic_action}, target={_target_reference}, id={_target_id}")
-    
+            logger.warning(
+                f"[SEMANTIC_BRIDGE] Extracted: action={_semantic_action}, target={_target_reference}, id={_target_id}"
+            )
+
     # ADR-091: IntentCompressor Priority Override
     # IntentCompressor (50+ ATTACK глаголов) — авторитет классификации.
     # DM Router (16 глаголов) перезаписывает "укусить/толкнуть/душить" → player_interacts.
@@ -301,7 +329,9 @@ def publish_classified_player_event(
         }
         _ic_override = _IC_PRIORITY_MAP.get(_semantic_action)
         if _ic_override and _ic_override != _raw_type:
-            logger.debug(f"[ADR-091] IntentCompressor override: DM_Router='{_raw_type}' → IC='{_ic_override}'")
+            logger.debug(
+                f"[ADR-091] IntentCompressor override: DM_Router='{_raw_type}' → IC='{_ic_override}'"
+            )
             _raw_type = _ic_override
             _resolved_type = _evt_map.get(_raw_type.lower(), EventType.PLAYER_SPOKE)
             _evt_radius = 15.0 if _resolved_type == EventType.PLAYER_ATTACKED else 999.0
@@ -332,5 +362,7 @@ def publish_classified_player_event(
         radius=_evt_radius,
     )
     get_event_bus().publish(_game_evt)
-    logger.warning(f"[EVENT_BUS] Published: {_game_evt.type}, target={_game_evt.payload.get('target_id')}, action_type={_raw_type}")
+    logger.warning(
+        f"[EVENT_BUS] Published: {_game_evt.type}, target={_game_evt.payload.get('target_id')}, action_type={_raw_type}"
+    )
     # L1 Фиксация перенесена в npc_orchestration.py (единая точка каузальной эмиссии).

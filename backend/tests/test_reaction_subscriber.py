@@ -20,26 +20,21 @@ path: backend/tests/test_reaction_subscriber.py
 from __future__ import annotations
 
 import uuid
-from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Set
+from typing import Any
 from unittest.mock import MagicMock
-
-import pytest
 
 from app.domain.events import EventDTO
 from app.models.phase8 import Phase8Context, Phase8Result
-from app.models.state_delta import StateDeltas
 from app.services.events.event_bus import EventBus
-from app.services.events.event_types import EventType
 from app.services.events.reaction_subscriber import (
-    ReactionSubscriber,
     _REACTION_EVENT_TYPES,
     _REACTION_RULES,
+    ReactionSubscriber,
     _compute_reaction_modifier,
 )
 
-
 # ── Фикстуры ───────────────────────────────────────────────────────────────
+
 
 def _make_event(
     event_type: str = "player_attacks",
@@ -86,6 +81,7 @@ def _make_npc(
 
 class _FakeSharedContext:
     """Минимальный shared_context для тестов."""
+
     def __init__(
         self,
         perceiving_npcs: list[str] | None = None,
@@ -118,6 +114,7 @@ def _create_subscriber() -> ReactionSubscriber:
 
 # ── Protocol compliance ───────────────────────────────────────────────────
 
+
 class TestReactionSubscriberProtocol:
     """Проверяет соответствие Phase8Handler Protocol."""
 
@@ -148,6 +145,7 @@ class TestReactionSubscriberProtocol:
 
 # ── Пустые события ───────────────────────────────────────────────────────
 
+
 class TestReactionEmptyEvents:
     """Пустые events → пустой результат."""
 
@@ -171,6 +169,7 @@ class TestReactionEmptyEvents:
 
 
 # ── Модификатор реакции ──────────────────────────────────────────────────
+
 
 class TestReactionModifier:
     """Проверяет _compute_reaction_modifier на основе личности NPC."""
@@ -204,6 +203,7 @@ class TestReactionModifier:
 
 
 # ── Правила реакций ──────────────────────────────────────────────────────
+
 
 class TestReactionRules:
     """Проверяет, что правила генерируют корректные дельты."""
@@ -276,6 +276,7 @@ class TestReactionRules:
 
 # ── Маршрутизация trust ──────────────────────────────────────────────────
 
+
 class TestReactionTrustRouting:
     """Проверяет маршрутизацию trust_delta по источнику события."""
 
@@ -301,9 +302,7 @@ class TestReactionTrustRouting:
             all_npcs_raw=[source_npc, observer_npc],
             shared_context=_FakeSharedContext(perceiving_npcs=["npc_observer"]),
         )
-        result = sub.handle(
-            [_make_event("combat", source="npc_attacker")], ctx
-        )
+        result = sub.handle([_make_event("combat", source="npc_attacker")], ctx)
         # npc_attacker — источник, исключён. npc_observer — наблюдатель
         # v3: 3 дельты (PERCEPTION + EMOTION + SOCIAL)
         assert len(result.deltas) == 3
@@ -314,6 +313,7 @@ class TestReactionTrustRouting:
 
 
 # ── Исключение источника ─────────────────────────────────────────────────
+
 
 class TestReactionSourceExclusion:
     """Источник события не реагирует на собственное действие."""
@@ -326,9 +326,7 @@ class TestReactionSourceExclusion:
             all_npcs_raw=[npc],
             shared_context=_FakeSharedContext(perceiving_npcs=["npc_1"]),
         )
-        result = sub.handle(
-            [_make_event("combat", source="npc_1")], ctx
-        )
+        result = sub.handle([_make_event("combat", source="npc_1")], ctx)
         assert result.deltas == []
 
     def test_player_source_excluded_as_npc(self):
@@ -339,15 +337,14 @@ class TestReactionSourceExclusion:
             all_npcs_raw=[npc],
             shared_context=_FakeSharedContext(perceiving_npcs=["npc_1"]),
         )
-        result = sub.handle(
-            [_make_event("player_attacks", source="player")], ctx
-        )
+        result = sub.handle([_make_event("player_attacks", source="player")], ctx)
         # v2: 2 дельты (EMOTION + SOCIAL) для npc_1, player не в all_npcs_raw
         assert all(d.npc_id != "player" for d in result.deltas)
         assert len(result.deltas) == 2
 
 
 # ── Множественные наблюдатели ────────────────────────────────────────────
+
 
 class TestReactionMultipleObservers:
     """Несколько наблюдателей → дельты для каждого."""
@@ -385,6 +382,7 @@ class TestReactionMultipleObservers:
 
 # ── Perceiving NPCs fallback ─────────────────────────────────────────────
 
+
 class TestReactionPerceivingFallback:
     """Fallback на всех NPC, если perceiving_npcs не установлен."""
 
@@ -414,6 +412,7 @@ class TestReactionPerceivingFallback:
 
 
 # ── Интенсивность ────────────────────────────────────────────────────────
+
 
 class TestReactionIntensity:
     """Интенсивность масштабирует дельты."""
@@ -450,13 +449,21 @@ class TestReactionIntensity:
 
 # ── Реакционные типы событий ─────────────────────────────────────────────
 
+
 class TestReactionEventTypes:
     """Проверяет, что подписка покрывает ключевые типы."""
 
     def test_reaction_types_covers_threats(self):
         """Все угрозы покрыты."""
-        threat_types = {"player_attacks", "player_attack", "player_attacked",
-                        "player_threatens", "combat", "intimidation", "betrayal"}
+        threat_types = {
+            "player_attacks",
+            "player_attack",
+            "player_attacked",
+            "player_threatens",
+            "combat",
+            "intimidation",
+            "betrayal",
+        }
         covered = {et.value.lower() for et in _REACTION_EVENT_TYPES}
         assert threat_types.issubset(covered)
 
@@ -469,6 +476,4 @@ class TestReactionEventTypes:
     def test_reaction_rules_match_event_types(self):
         """Для каждого _REACTION_EVENT_TYPES есть правило."""
         for et in _REACTION_EVENT_TYPES:
-            assert et.value.lower() in _REACTION_RULES, (
-                f"Нет правила для {et.value}"
-            )
+            assert et.value.lower() in _REACTION_RULES, f"Нет правила для {et.value}"

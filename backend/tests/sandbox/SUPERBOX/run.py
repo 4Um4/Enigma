@@ -17,6 +17,7 @@ ENIGMA Sandbox Suite — единый ангар исследовательск�
 Правило: все долгоживущие исследовательские инструменты живут в SUPERBOX/.
 Unit/integration тесты — в tests/sandbox/micro/, tests/sandbox/system/.
 """
+
 from __future__ import annotations
 
 import sys
@@ -34,16 +35,19 @@ def main() -> None:
 
     if tool == "npc":
         from tests.sandbox.SUPERBOX.npc_sandbox import main as npc_main
+
         # Передаём оставшиеся аргументы
         sys.argv = [sys.argv[0]] + args[1:]
         npc_main()
 
     elif tool == "drift":
         from tests.sandbox.SUPERBOX.drift_laboratory import main as drift_main
+
         drift_main(mode)
 
     elif tool == "behavior":
         from tests.sandbox.SUPERBOX.behavior_laboratory import run_trait_economy_probe
+
         if mode == "trait_economy":
             run_trait_economy_probe()
         else:
@@ -51,13 +55,17 @@ def main() -> None:
 
     elif tool == "player_stress":
         import asyncio
+
         from tests.sandbox.SUPERBOX.player_stress_test import run_player_stress_test
+
         success = asyncio.run(run_player_stress_test())
         sys.exit(0 if success else 1)
 
     elif tool == "causal":
         import asyncio
+
         from tests.sandbox.SUPERBOX.causal_validation import CausalValidator
+
         validator = CausalValidator()
         success = asyncio.run(validator.run_all())
         sys.exit(0 if success else 1)
@@ -65,15 +73,18 @@ def main() -> None:
     elif tool == "all":
         print("=== NPC Sandbox ===")
         from tests.sandbox.SUPERBOX.npc_sandbox import main as npc_main
+
         sys.argv = [sys.argv[0], "quick_debug"]
         npc_main()
 
         print("\n=== Drift Laboratory ===")
         from tests.sandbox.SUPERBOX.drift_laboratory import main as drift_main
+
         drift_main("long_horizon")
 
         print("\n=== Behavior Laboratory ===")
         from tests.sandbox.SUPERBOX.behavior_laboratory import run_trait_economy_probe
+
         run_trait_economy_probe()
 
     else:

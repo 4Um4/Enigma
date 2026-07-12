@@ -1,3 +1,4 @@
+from __future__ import annotations
 # backend/app/services/scene/narrative_extractor.py
 # -*- coding: utf-8 -*-
 """
@@ -13,11 +14,10 @@ NarrativeExtractor R2.2.8 — production-hardened.
 7. Защита от cascade merge — минимум событий и возраст
 """
 
-from __future__ import annotations
 import re
 import uuid
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import List, Dict, Any, Optional
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -25,144 +25,241 @@ from typing import Optional
 # ──────────────────────────────────────────────────────────────────────────────
 
 OBJECT_KEYWORDS: dict[str, list[str]] = {
-    "prop":      ["поднос", "кружка", "стакан", "тарелка", "свеча", "книга",
-                  "тряпка", "кубок", "миска", "чашка", "бутылка", "лютня",
-                  "ложка", "вилка", "скатерть", "пергамент", "свиток",
-                  "ключ", "верёвка", "факел", "фонарь"],
-    "furniture": ["стол", "стул", "скамья", "стойка", "бочка", "ящик",
-                  "дверь", "окно", "полка", "прилавок", "камин", "очаг"],
-    "weapon":    ["нож", "меч", "кинжал", "дубина", "арбалет", "копьё",
-                  "топор", "посох", "алебарда", "булава"],
+    "prop": [
+        "поднос",
+        "кружка",
+        "стакан",
+        "тарелка",
+        "свеча",
+        "книга",
+        "тряпка",
+        "кубок",
+        "миска",
+        "чашка",
+        "бутылка",
+        "лютня",
+        "ложка",
+        "вилка",
+        "скатерть",
+        "пергамент",
+        "свиток",
+        "ключ",
+        "верёвка",
+        "факел",
+        "фонарь",
+    ],
+    "furniture": [
+        "стол",
+        "стул",
+        "скамья",
+        "стойка",
+        "бочка",
+        "ящик",
+        "дверь",
+        "окно",
+        "полка",
+        "прилавок",
+        "камин",
+        "очаг",
+    ],
+    "weapon": [
+        "нож",
+        "меч",
+        "кинжал",
+        "дубина",
+        "арбалет",
+        "копьё",
+        "топор",
+        "посох",
+        "алебарда",
+        "булава",
+    ],
     "container": ["мешок", "сундук", "кошелёк", "корзина", "сумка"],
-    "food":      ["хлеб", "мясо", "суп", "эль", "вино", "каша", "сыр", "рыба"],
-    "wearable":  ["плащ", "шляпа", "перчатка", "сапог", "пояс", "кольцо"],
-    "magic":     ["кристалл", "амулет", "талисман", "фолиант", "руна",
-                  "зелье", "эликсир", "артефакт"],
+    "food": ["хлеб", "мясо", "суп", "эль", "вино", "каша", "сыр", "рыба"],
+    "wearable": ["плащ", "шляпа", "перчатка", "сапог", "пояс", "кольцо"],
+    "magic": [
+        "кристалл",
+        "амулет",
+        "талисман",
+        "фолиант",
+        "руна",
+        "зелье",
+        "эликсир",
+        "артефакт",
+    ],
 }
 
 _KEYWORD_TO_TYPE: dict[str, str] = {
-    kw: obj_type
-    for obj_type, keywords in OBJECT_KEYWORDS.items()
-    for kw in keywords
+    kw: obj_type for obj_type, keywords in OBJECT_KEYWORDS.items() for kw in keywords
 }
 
 _MAGIC_WORDS: set[str] = {
-    "магическ", "древн", "артефакт", "рунн", "легендарн",
-    "проклят", "волшебн", "эфирн", "золот", "серебрян", "дракон",
+    "магическ",
+    "древн",
+    "артефакт",
+    "рунн",
+    "легендарн",
+    "проклят",
+    "волшебн",
+    "эфирн",
+    "золот",
+    "серебрян",
+    "дракон",
 }
 
 # Фразы, которые содержат триггерные слова, но не описывают взаимодействие с предметом
-_TRIGGER_IDIOMS: frozenset[str] = frozenset({
-    "поднимает взгляд", "поднял взгляд", "поднимает голову", "поднял голову",
-    "поднимает руку", "поднял руку", "поднимает бровь", "поднял бровь",
-    "берёт себя", "берёт в руки себя",
-})
+_TRIGGER_IDIOMS: frozenset[str] = frozenset(
+    {
+        "поднимает взгляд",
+        "поднял взгляд",
+        "поднимает голову",
+        "поднял голову",
+        "поднимает руку",
+        "поднял руку",
+        "поднимает бровь",
+        "поднял бровь",
+        "берёт себя",
+        "берёт в руки себя",
+    }
+)
 
 EVENT_TRIGGERS: dict[str, list[str]] = {
     # drop/break удалены — физические реакции контролируются Reaction Layer,
     # не извлекаются из текста LLM (избегаем feedback loop "роняет→роняет")
-    "take":       ["берёт", "поднимает", "хватает", "взял", "подбирает", "схватил"],
-    "use":        ["протирает", "чистит", "режет", "наливает", "несёт", "открывает"],
-    "light":      ["зажигает", "поджигает", "разгорается", "вспыхивает"],
+    "take": ["берёт", "поднимает", "хватает", "взял", "подбирает", "схватил"],
+    "use": ["протирает", "чистит", "режет", "наливает", "несёт", "открывает"],
+    "light": ["зажигает", "поджигает", "разгорается", "вспыхивает"],
     "extinguish": ["тушит", "гасит", "потухла", "погасла"],
 }
 
 # События, которые генерируются ТОЛЬКО Reaction Layer (composure + fragility),
 # не из текста LLM. Реестр для защитного пояса в scene_state_manager.
-REACTION_ONLY_EVENTS: frozenset[str] = frozenset({
-    "drop", "break",
-    # Добавлять сюда любые новые reaction-only типы
-})
+REACTION_ONLY_EVENTS: frozenset[str] = frozenset(
+    {
+        "drop",
+        "break",
+        # Добавлять сюда любые новые reaction-only типы
+    }
+)
 
 _TRIGGER_TO_EVENT: dict[str, str] = {
-    word: event_type
-    for event_type, words in EVENT_TRIGGERS.items()
-    for word in words
+    word: event_type for event_type, words in EVENT_TRIGGERS.items() for word in words
 }
 
 # State machine с приоритетами (фикс #3)
 # Больше = "более конечное", меньше = "можно перезаписать"
 STATE_PRIORITY: dict[str, int] = {
-    "present":      0,
-    "held":         1,
-    "dropped":      1,
-    "in_use":       2,
-    "lit":          2,
+    "present": 0,
+    "held": 1,
+    "dropped": 1,
+    "in_use": 2,
+    "lit": 2,
     "extinguished": 2,
-    "broken":       3,  # финальное состояние
+    "broken": 3,  # финальное состояние
 }
 
 _EVENT_TO_STATE: dict[str, str] = {
     # drop/break удалены — состояние объектов меняется через Reaction Layer
-    "take":       "held",
-    "use":        "in_use",
-    "light":      "lit",
+    "take": "held",
+    "use": "in_use",
+    "light": "lit",
     "extinguish": "extinguished",
 }
 
 _NPC_FRAGMENTS: dict[str, str] = {
     "торнин": "tavern_keeper_tornin",
-    "люся":   "maid_lusya",
-    "тень":   "thief_shadow",
-    "борко":  "guard_borko",
-    "горан":  "merchant_goran",
+    "люся": "maid_lusya",
+    "тень": "thief_shadow",
+    "борко": "guard_borko",
+    "горан": "merchant_goran",
 }
 
 _JUNK_WORDS: set[str] = {
-    "и", "в", "на", "с", "под", "за", "по", "из", "от", "до", "к", "у",
-    "он", "она", "оно", "они", "мы", "вы", "я", "ты",
-    "быстро", "медленно", "осторожно", "резко", "внезапно", "тихо", "громко",
-    "затем", "потом", "вдруг", "снова", "уже", "ещё",
+    "и",
+    "в",
+    "на",
+    "с",
+    "под",
+    "за",
+    "по",
+    "из",
+    "от",
+    "до",
+    "к",
+    "у",
+    "он",
+    "она",
+    "оно",
+    "они",
+    "мы",
+    "вы",
+    "я",
+    "ты",
+    "быстро",
+    "медленно",
+    "осторожно",
+    "резко",
+    "внезапно",
+    "тихо",
+    "громко",
+    "затем",
+    "потом",
+    "вдруг",
+    "снова",
+    "уже",
+    "ещё",
 }
 
 MAX_EVENTS_IN_EXTRACTOR: int = 200
-MIN_EVENTS_FOR_MERGE:    int = 5   # фикс #7
-MIN_AGE_FOR_MERGE:       int = 10  # фикс #7
+MIN_EVENTS_FOR_MERGE: int = 5  # фикс #7
+MIN_AGE_FOR_MERGE: int = 10  # фикс #7
 
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Структуры данных
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 @dataclass
 class ExtractedObject:
-    object_id:      str
-    name:           str
-    raw_name:       str
+    object_id: str
+    name: str
+    raw_name: str
     canonical_name: str
-    obj_type:       str
-    state:          str
-    importance:     int          # 1=уникальный, 2=обычный transient
-    holder:         Optional[str]
-    created_tick:   int
+    obj_type: str
+    state: str
+    importance: int  # 1=уникальный, 2=обычный transient
+    holder: Optional[str]
+    created_tick: int
 
 
 @dataclass
 class ExtractedEvent:
-    event_id:    str
-    event_type:  str
-    actor:       Optional[str]
+    event_id: str
+    event_type: str
+    actor: Optional[str]
     object_name: str
-    object_id:   Optional[str]
-    canonical:   str             # для дедупликации
-    tick:        int
+    object_id: Optional[str]
+    canonical: str  # для дедупликации
+    tick: int
 
 
 @dataclass
 class NpcAction:
     """Структурированное действие NPC — фикс #4, подготовка к R3 intent."""
-    action:           str
+
+    action: str
     object_canonical: str
-    object_raw:       str
-    tick:             int
+    object_raw: str
+    tick: int
 
 
 @dataclass
 class ExtractionResult:
-    new_objects:    list[ExtractedObject]          = field(default_factory=list)
-    new_events:     list[ExtractedEvent]           = field(default_factory=list)
-    npc_actions:    dict[str, NpcAction]           = field(default_factory=dict)
-    updated_states: list[tuple[str, str]]          = field(default_factory=list)
+    new_objects: list[ExtractedObject] = field(default_factory=list)
+    new_events: list[ExtractedEvent] = field(default_factory=list)
+    npc_actions: dict[str, NpcAction] = field(default_factory=dict)
+    updated_states: list[tuple[str, str]] = field(default_factory=list)
     # updated_states: [(object_id, new_state), ...]
 
 
@@ -170,8 +267,8 @@ class ExtractionResult:
 # NarrativeExtractor R2.2.8
 # ──────────────────────────────────────────────────────────────────────────────
 
-class NarrativeExtractor:
 
+class NarrativeExtractor:
     def __init__(self) -> None:
         self._keyword_pattern = self._build_keyword_pattern()
 
@@ -179,7 +276,8 @@ class NarrativeExtractor:
         """Фикс #5: границы слов \\b — "ножны" не матчится как "нож"."""
         all_keywords = sorted(
             [kw for kws in OBJECT_KEYWORDS.values() for kw in kws],
-            key=len, reverse=True,
+            key=len,
+            reverse=True,
         )
         pattern = r"\b(" + "|".join(re.escape(kw) for kw in all_keywords) + r")\b"
         return re.compile(pattern, re.IGNORECASE)
@@ -225,7 +323,7 @@ class NarrativeExtractor:
     def extract(
         self,
         dm_text: str,
-        scene_state: dict,
+        scene_state: Dict[str, Any],
         tick: int,
     ) -> ExtractionResult:
         result = ExtractionResult()
@@ -234,7 +332,7 @@ class NarrativeExtractor:
 
         existing_objects = scene_state.get("objects", {})
 
-        all_events  = scene_state.get("scene_events", [])
+        all_events = scene_state.get("scene_events", [])
         recent_evts = all_events[-MAX_EVENTS_IN_EXTRACTOR:]
 
         # Фикс #1: дедупликация по canonical, не raw_name
@@ -247,7 +345,7 @@ class NarrativeExtractor:
             for e in recent_evts
         }
 
-        sentences = re.split(r'[.!?;]+', dm_text)
+        sentences = re.split(r"[.!?;]+", dm_text)
 
         for sentence in sentences:
             sent_lower = sentence.lower().strip()
@@ -275,8 +373,8 @@ class NarrativeExtractor:
 
             matches = list(self._keyword_pattern.finditer(sentence))
             for match in matches:
-                keyword   = match.group().lower()
-                raw_name  = self._extract_simple_np(sentence, keyword)
+                keyword = match.group().lower()
+                raw_name = self._extract_simple_np(sentence, keyword)
                 canonical = self._make_canonical(keyword)
 
                 # Фикс #1: canonical в ключе
@@ -310,47 +408,51 @@ class NarrativeExtractor:
                 new_state = _EVENT_TO_STATE.get(found_event_type, "present")
 
                 if existing_id:
-                    obj_data  = existing_objects[existing_id]
+                    obj_data = existing_objects[existing_id]
                     old_state = obj_data.get("state", "present")
                     # Фикс #3: FSM
                     if self._can_update_state(old_state, new_state):
                         result.updated_states.append((existing_id, new_state))
                     obj_id = existing_id
                 else:
-                    importance   = self._detect_importance(raw_name, keyword)
-                    obj_type     = _KEYWORD_TO_TYPE.get(keyword, "prop")
-                    holder_part  = actor.split("_")[-1] if actor else "scene"
-                    obj_id       = f"{canonical}_{holder_part}_t{tick}_{uuid.uuid4().hex[:4]}"
+                    importance = self._detect_importance(raw_name, keyword)
+                    obj_type = _KEYWORD_TO_TYPE.get(keyword, "prop")
+                    holder_part = actor.split("_")[-1] if actor else "scene"
+                    obj_id = f"{canonical}_{holder_part}_t{tick}_{uuid.uuid4().hex[:4]}"
 
-                    result.new_objects.append(ExtractedObject(
-                        object_id      = obj_id,
-                        name           = keyword,
-                        raw_name       = raw_name,
-                        canonical_name = canonical,
-                        obj_type       = obj_type,
-                        state          = new_state,
-                        importance     = importance,
-                        holder         = actor,
-                        created_tick   = tick,
-                    ))
+                    result.new_objects.append(
+                        ExtractedObject(
+                            object_id=obj_id,
+                            name=keyword,
+                            raw_name=raw_name,
+                            canonical_name=canonical,
+                            obj_type=obj_type,
+                            state=new_state,
+                            importance=importance,
+                            holder=actor,
+                            created_tick=tick,
+                        )
+                    )
 
-                result.new_events.append(ExtractedEvent(
-                    event_id    = f"evt_{uuid.uuid4().hex[:6]}",
-                    event_type  = found_event_type,
-                    actor       = actor,
-                    object_name = raw_name,
-                    object_id   = obj_id,
-                    canonical   = canonical,
-                    tick        = tick,
-                ))
+                result.new_events.append(
+                    ExtractedEvent(
+                        event_id=f"evt_{uuid.uuid4().hex[:6]}",
+                        event_type=found_event_type,
+                        actor=actor,
+                        object_name=raw_name,
+                        object_id=obj_id,
+                        canonical=canonical,
+                        tick=tick,
+                    )
+                )
 
                 # Фикс #4: структура вместо строки
                 if actor:
                     result.npc_actions[actor] = NpcAction(
-                        action           = found_event_type,
-                        object_canonical = canonical,
-                        object_raw       = raw_name,
-                        tick             = tick,
+                        action=found_event_type,
+                        object_canonical=canonical,
+                        object_raw=raw_name,
+                        tick=tick,
                     )
 
                 break  # один объект на предложение
@@ -360,6 +462,7 @@ class NarrativeExtractor:
 
 # Синглтон
 _extractor_instance: Optional[NarrativeExtractor] = None
+
 
 def get_extractor() -> NarrativeExtractor:
     global _extractor_instance

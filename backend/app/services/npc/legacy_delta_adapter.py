@@ -14,9 +14,14 @@ TODO: по мере миграции legacy-кода на v2 постепенн�
 """
 
 import logging
-from typing import List, Set, Union
+from typing import Dict, Any, List, Set, Union
 
-from app.models.state_delta import StateDeltas, DeltaDomain, EmotionPayload, SocialPayload
+from app.models.state_delta import (
+    StateDeltas,
+    DeltaDomain,
+    EmotionPayload,
+    SocialPayload,
+)
 from app.models.delta_payloads import PerceptionPayload
 
 logger = logging.getLogger(__name__)
@@ -34,19 +39,21 @@ class LegacyStateDeltaAdapter:
         # Защита от старых тестов/легаси, которые ещё передают единичный объект
         if isinstance(deltas, StateDeltas):
             return deltas
-            
+
         if not deltas:
             return StateDeltas()
 
         # Берём source и target из первой дельты для контекста
         source = deltas[0].source if deltas else "legacy_collapse"
         target = deltas[0].target if deltas else None
-        
+
         collapsed = StateDeltas(source=source, intent_target=target)
         dropped_domains: Set[str] = set()
 
         for d in deltas:
-            if d.domain == DeltaDomain.EMOTION and isinstance(d.payload, EmotionPayload):
+            if d.domain == DeltaDomain.EMOTION and isinstance(
+                d.payload, EmotionPayload
+            ):
                 collapsed.stress_delta += d.payload.stress_delta
                 collapsed.emotion_delta += d.payload.emotion_delta
                 # В v1 эмоция перезаписывается (last-write-wins)
@@ -54,10 +61,14 @@ class LegacyStateDeltaAdapter:
                     collapsed.emotion_tag = d.payload.emotion_tag
                 if d.payload.new_trauma:
                     collapsed.new_trauma = d.payload.new_trauma
-            elif d.domain == DeltaDomain.SOCIAL and isinstance(d.payload, SocialPayload):
+            elif d.domain == DeltaDomain.SOCIAL and isinstance(
+                d.payload, SocialPayload
+            ):
                 collapsed.trust_delta += d.payload.trust_delta
                 collapsed.fear_delta += d.payload.fear_delta
-            elif d.domain == DeltaDomain.PERCEPTION and isinstance(d.payload, PerceptionPayload):
+            elif d.domain == DeltaDomain.PERCEPTION and isinstance(
+                d.payload, PerceptionPayload
+            ):
                 # S72 / §ENIGMA-004: УБИТ глобальный коллапс Vacuum → stress.
                 # Неопределённость теперь обрабатывается персонально через Affective Pipeline:
                 #   PerceptionPayload.uncertainty_delta → PK.uncertainty → affective_load (× drives weight)

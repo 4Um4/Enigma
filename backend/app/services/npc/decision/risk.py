@@ -12,7 +12,7 @@ R2-P2: Объективный риск + субъективное восприя
   Они встречаются только в perceive_risk().
 """
 
-from typing import Any, Dict, Optional, Set
+from typing import List, Any, Dict
 
 from app.models.npc_state import NPCState
 from app.services.npc.decision.risk_profile import RiskPerceptionProfile
@@ -20,13 +20,13 @@ from app.services.npc.decision.risk_profile import RiskPerceptionProfile
 
 # ── Видимая сила актора: броня, оружие, габариты ──
 _THREAT_MARKER_VALUES: Dict[str, float] = {
-    "heavy_armor":    0.20,
-    "medium_armor":   0.10,
-    "weapon_melee":   0.15,
-    "weapon_ranged":  0.18,
-    "weapon_magic":   0.25,
-    "large_build":    0.08,
-    "battle_wounds":  0.05,
+    "heavy_armor": 0.20,
+    "medium_armor": 0.10,
+    "weapon_melee": 0.15,
+    "weapon_ranged": 0.18,
+    "weapon_magic": 0.25,
+    "large_build": 0.08,
+    "battle_wounds": 0.05,
 }
 
 
@@ -45,9 +45,16 @@ def compute_objective_risk(event: Any, state: NPCState) -> float:
       - fear_drive, control_drive, desire (это профиль восприятия)
     """
     _et = event.event_type
-    _et_val = _et.value if hasattr(_et, 'value') else str(_et)
+    _et_val = _et.value if hasattr(_et, "value") else str(_et)
 
-    _social_events = {"player_interacts", "player_spoke", "npc_spoke", "help", "move", "player_moved"}
+    _social_events = {
+        "player_interacts",
+        "player_spoke",
+        "npc_spoke",
+        "help",
+        "move",
+        "player_moved",
+    }
     base_risk = 0.1 if _et_val in _social_events else 0.3
 
     # Свидетели и дистанция — только для агрессивных событий
@@ -61,8 +68,7 @@ def compute_objective_risk(event: Any, state: NPCState) -> float:
 
     # Видимая сила — NPC реагирует на броню и оружие, не на скрытые stats
     power_risk = sum(
-        _THREAT_MARKER_VALUES.get(m, 0.0)
-        for m in event.visible_threat_markers
+        _THREAT_MARKER_VALUES.get(m, 0.0) for m in event.visible_threat_markers
     )
     base_risk += min(power_risk, 0.5)
 
@@ -82,7 +88,11 @@ def compute_objective_risk(event: Any, state: NPCState) -> float:
             if not hasattr(_m, "importance") or _m.importance < 0.1:
                 continue
             _type = getattr(_m, "event_type", "")
-            _weight = 0.15 if _type in ("player_attacks", "combat", "intimidation", "theft") else 0.05
+            _weight = (
+                0.15
+                if _type in ("player_attacks", "combat", "intimidation", "theft")
+                else 0.05
+            )
             _memory_penalty += _m.importance * _weight
         if _memory_penalty > 0.01:
             base_risk += min(_memory_penalty, 0.3)

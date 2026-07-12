@@ -18,12 +18,13 @@ RUNTIME_PORTS_FILE = BASE_DIR / "runtime_ports.json"
 DEFAULT_PORTS: Dict[str, int] = {
     "llm_port": 8080,
     "api_port": 8000,
-    "frontend_port": 3001
+    "frontend_port": 3001,
 }
 
 # ========================================
 # Основные функции
 # ========================================
+
 
 def save_ports(ports: Dict[str, int]) -> None:
     """
@@ -31,10 +32,11 @@ def save_ports(ports: Dict[str, int]) -> None:
     Creates folder if missing.
     """
     BASE_DIR.mkdir(parents=True, exist_ok=True)
-    with open(RUNTIME_PORTS_FILE, 'w', encoding='utf-8') as f:
+    with open(RUNTIME_PORTS_FILE, "w", encoding="utf-8") as f:
         json.dump(ports, f, indent=2)
     # Для диагностики можно вернуть путь
     # print(f"[INFO] Runtime ports saved: {RUNTIME_PORTS_FILE}")
+
 
 def load_ports() -> Dict[str, int]:
     """
@@ -43,7 +45,7 @@ def load_ports() -> Dict[str, int]:
     """
     if RUNTIME_PORTS_FILE.exists():
         try:
-            with open(RUNTIME_PORTS_FILE, 'r', encoding='utf-8') as f:
+            with open(RUNTIME_PORTS_FILE, "r", encoding="utf-8") as f:
                 ports = json.load(f)
             # Валидация: убедиться, что все ключи присутствуют
             for key, default_value in DEFAULT_PORTS.items():
@@ -54,6 +56,7 @@ def load_ports() -> Dict[str, int]:
             print(f"[PORTS] Ошибка чтения ports.json: {e}")
     # fallback на дефолтные
     return DEFAULT_PORTS.copy()
+
 
 def get_runtime_ports() -> Dict[str, int]:
     """

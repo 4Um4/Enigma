@@ -19,11 +19,12 @@ path: backend/app/services/projection_engine.py
 """
 from __future__ import annotations
 
+
 import copy
 import logging
 from typing import List
 
-from app.models.thick_scene_change import ThickSceneChange, SpatialTransitionMode
+from app.models.thick_scene_change import ThickSceneChange
 
 logger = logging.getLogger(__name__)
 
@@ -90,9 +91,7 @@ class ProjectionEngine:
 
     # ── Приватные методы ──────────────────────────────────────────
 
-    def _apply_position(
-        self, scene_state: dict, thick: ThickSceneChange
-    ) -> bool:
+    def _apply_position(self, scene_state: dict, thick: ThickSceneChange) -> bool:
         """Проецирует NPC_POSITION field='position'.
 
         Записывает:
@@ -131,7 +130,7 @@ class ProjectionEngine:
                 # так как это первичная запись (transition None→MOVING).
                 # ADR-O-201: Immutability of ThickSceneChange — deep copy fields to prevent state mutation.
                 import copy
-                from app.domain.traversal_schema import build_traversal_dict
+
                 _fields = copy.deepcopy(thick.traversal.fields)
                 scene_state.setdefault("active_traversals", {})[thick.target] = _fields
                 logger.debug(
@@ -159,9 +158,7 @@ class ProjectionEngine:
 
         return True
 
-    def _apply_local_position(
-        self, scene_state: dict, thick: ThickSceneChange
-    ) -> bool:
+    def _apply_local_position(self, scene_state: dict, thick: ThickSceneChange) -> bool:
         """Проецирует NPC_POSITION field='local_position'.
 
         Записывает:

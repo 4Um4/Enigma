@@ -1,3 +1,5 @@
+from __future__ import annotations
+from typing import Any, Dict, List, Optional
 # backend/app/services/spatial/spatial_overlay.py
 # Назначение: Динамическое состояние сцены (SpatialOverlay)
 # Инициализируется из scene_state каждый тик. Не мутирует граф.
@@ -11,19 +13,17 @@ TODO:
 - В try_reserve_node можно добавить логику для обработки конфликтов при URGENT, например, уведомление текущего держателя узла или попытку найти альтернативный путь
 """
 
-from __future__ import annotations
 
 import logging
-from typing import Optional
 
 from app.models.spatial_contracts import SpatialOverlay
 
 logger = logging.getLogger(__name__)
 
 
-def build_overlay_from_scene(scene_state: dict) -> SpatialOverlay:
+def build_overlay_from_scene(scene_state: Dict[str, Any]) -> SpatialOverlay:
     """Строит SpatialOverlay из текущего scene_state.
-    
+
     Читает: npc_positions (reserved), active_effects (risk, light),
     spatial_overlay (прямые данные если есть).
     """
@@ -75,12 +75,12 @@ def try_reserve_node(
     urgency: str = "normal",
 ) -> bool:
     """Пытается зарезервировать узел для NPC.
-    
+
     Возвращает True если:
     - Узел свободен
     - Узел уже зарезервирован этим же NPC
     - urgency == "urgent" (снижает штраф, но не ломает логику)
-    
+
     Возвращает False если узел занят другим NPC.
     """
     current_holder = overlay.reserved_nodes.get(node_id)

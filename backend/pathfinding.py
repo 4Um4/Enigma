@@ -6,6 +6,7 @@ A* pathfinding с человеческим поведением:
   - Catmull-Rom сплайн — плавные дуги на поворотах
   - Микро-шум — живость траектории
 """
+
 import heapq
 import math
 import random
@@ -16,8 +17,12 @@ WALL_COST_RADIUS = 1.5  # метров — зона повышенной сто�
 
 
 def _point_near_segment(
-    px: float, py: float,
-    x1: float, y1: float, x2: float, y2: float,
+    px: float,
+    py: float,
+    x1: float,
+    y1: float,
+    x2: float,
+    y2: float,
     threshold: float,
 ) -> bool:
     """Расстояние от точки до отрезка меньше threshold"""
@@ -32,8 +37,12 @@ def _point_near_segment(
 
 
 def _point_to_segment_dist(
-    px: float, py: float,
-    x1: float, y1: float, x2: float, y2: float,
+    px: float,
+    py: float,
+    x1: float,
+    y1: float,
+    x2: float,
+    y2: float,
 ) -> float:
     """Точное расстояние от точки до отрезка"""
     dx, dy = x2 - x1, y2 - y1
@@ -47,7 +56,8 @@ def _point_to_segment_dist(
 
 
 def _build_grid_and_costs(
-    scene_w: float, scene_h: float,
+    scene_w: float,
+    scene_h: float,
     walls: List[dict],
     obstacles: List[dict],
 ) -> Tuple[Dict[Tuple[int, int], bool], Dict[Tuple[int, int], float]]:
@@ -95,7 +105,9 @@ def _build_grid_and_costs(
 
         # Data-driven: проверяем возможность преодоления (перепрыгнуть/проползти)
         passthrough = obs.get("passability", {})
-        can_bypass = passthrough.get("jump_over", False) or passthrough.get("crawl_under", False)
+        can_bypass = passthrough.get("jump_over", False) or passthrough.get(
+            "crawl_under", False
+        )
         # Штраф за преодоление — A* выберет обход, если он дешевле
         bypass_cost = 3.0
         if passthrough.get("jump_over", False):
@@ -117,8 +129,10 @@ def _build_grid_and_costs(
                 ccy = (r + 0.5) * CELL_SIZE
                 half_w = ow / 2 + 0.1
                 half_h = oh / 2 + 0.1
-                if (ox - half_w <= ccx <= ox + half_w and
-                        oy - half_h <= ccy <= oy + half_h):
+                if (
+                    ox - half_w <= ccx <= ox + half_w
+                    and oy - half_h <= ccy <= oy + half_h
+                ):
                     if can_bypass:
                         # Разрешаем прохождение со штрафом к стоимости пути
                         grid[(c, r)] = True
@@ -135,8 +149,12 @@ def _build_grid_and_costs(
 
 
 def _rect_distance(
-    px: float, py: float,
-    rx: float, ry: float, rw: float, rh: float,
+    px: float,
+    py: float,
+    rx: float,
+    ry: float,
+    rw: float,
+    rh: float,
 ) -> float:
     """Расстояние от точки до прямоугольника"""
     cx = max(rx - rw / 2, min(px, rx + rw / 2))
@@ -158,7 +176,9 @@ def _heuristic(a: Tuple[int, int], b: Tuple[int, int]) -> float:
     return max(dx, dy) + (math.sqrt(2) - 1) * min(dx, dy)
 
 
-def _neighbors(node: Tuple[int, int], grid: Dict[Tuple[int, int], bool]) -> List[Tuple[int, int]]:
+def _neighbors(
+    node: Tuple[int, int], grid: Dict[Tuple[int, int], bool]
+) -> List[Tuple[int, int]]:
     c, r = node
     result = []
     for dc in (-1, 0, 1):
@@ -188,9 +208,12 @@ def _find_nearest_free(
 
 
 def find_path(
-    start_x: float, start_y: float,
-    goal_x: float, goal_y: float,
-    scene_w: float, scene_h: float,
+    start_x: float,
+    start_y: float,
+    goal_x: float,
+    goal_y: float,
+    scene_w: float,
+    scene_h: float,
     walls: List[dict],
     obstacles: List[dict],
     max_iterations: int = 3000,
@@ -273,6 +296,7 @@ def _reconstruct_grid_path(
 
 # === LOS-сглаживание ===
 
+
 def _has_los(
     a: Tuple[float, float],
     b: Tuple[float, float],
@@ -287,14 +311,18 @@ def _has_los(
         y = a[1] + (b[1] - a[1]) * t
 
         for wall in walls:
-            if _point_near_segment(x, y, wall["x1"], wall["y1"], wall["x2"], wall["y2"], 0.2):
+            if _point_near_segment(
+                x, y, wall["x1"], wall["y1"], wall["x2"], wall["y2"], 0.2
+            ):
                 return False
 
         for obs in obstacles:
             half_w = obs["w"] / 2
             half_h = obs["h"] / 2
-            if (obs["x"] - half_w - 0.1 <= x <= obs["x"] + half_w + 0.1 and
-                    obs["y"] - half_h - 0.1 <= y <= obs["y"] + half_h + 0.1):
+            if (
+                obs["x"] - half_w - 0.1 <= x <= obs["x"] + half_w + 0.1
+                and obs["y"] - half_h - 0.1 <= y <= obs["y"] + half_h + 0.1
+            ):
                 return False
     return True
 
@@ -324,6 +352,7 @@ def _los_smooth(
 
 # === Catmull-Rom сплайн ===
 
+
 def _catmull_rom(
     path: List[Tuple[float, float]],
     samples_per_segment: int = 4,
@@ -348,16 +377,16 @@ def _catmull_rom(
             t3 = t2 * t
 
             x = 0.5 * (
-                (2 * p1[0]) +
-                (-p0[0] + p2[0]) * t +
-                (2 * p0[0] - 5 * p1[0] + 4 * p2[0] - p3[0]) * t2 +
-                (-p0[0] + 3 * p1[0] - 3 * p2[0] + p3[0]) * t3
+                (2 * p1[0])
+                + (-p0[0] + p2[0]) * t
+                + (2 * p0[0] - 5 * p1[0] + 4 * p2[0] - p3[0]) * t2
+                + (-p0[0] + 3 * p1[0] - 3 * p2[0] + p3[0]) * t3
             )
             y = 0.5 * (
-                (2 * p1[1]) +
-                (-p0[1] + p2[1]) * t +
-                (2 * p0[1] - 5 * p1[1] + 4 * p2[1] - p3[1]) * t2 +
-                (-p0[1] + 3 * p1[1] - 3 * p2[1] + p3[1]) * t3
+                (2 * p1[1])
+                + (-p0[1] + p2[1]) * t
+                + (2 * p0[1] - 5 * p1[1] + 4 * p2[1] - p3[1]) * t2
+                + (-p0[1] + 3 * p1[1] - 3 * p2[1] + p3[1]) * t3
             )
             result.append((x, y))
 
@@ -365,6 +394,7 @@ def _catmull_rom(
 
 
 # === Живость ===
+
 
 def _humanize_path(
     path: List[Tuple[float, float]],

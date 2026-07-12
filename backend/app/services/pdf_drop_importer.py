@@ -35,7 +35,9 @@ class PdfDropImporter:
                 return kind
         return "world"
 
-    def import_from_folder(self, folder: str, *, world_id: str, campaign_id: str) -> list[DropImportItem]:
+    def import_from_folder(
+        self, folder: str, *, world_id: str, campaign_id: str
+    ) -> list[DropImportItem]:
         root = Path(folder)
         if not root.exists():
             root.mkdir(parents=True, exist_ok=True)

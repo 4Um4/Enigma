@@ -25,6 +25,7 @@ from typing import Optional
 @dataclass
 class LintIssue:
     """Одна найденная проблема."""
+
     file: str
     line: int
     severity: str  # ERROR, WARNING, INFO
@@ -35,6 +36,7 @@ class LintIssue:
 @dataclass
 class LintResult:
     """Результат проверки одного файла."""
+
     file: str
     issues: list[LintIssue] = field(default_factory=list)
 
@@ -75,22 +77,21 @@ def _check_orphan_methods(tree: ast.AST, file: str) -> list[LintIssue]:
                 continue
 
             if isinstance(child, ast.FunctionDef):
-                has_self = (
-                    child.args.args
-                    and child.args.args[0].arg == "self"
-                )
+                has_self = child.args.args and child.args.args[0].arg == "self"
                 if has_self and parent_path and child.name not in passed_names:
                     # self-функция внутри другой функции = orphan
-                    issues.append(LintIssue(
-                        file=file,
-                        line=child.lineno,
-                        severity="ERROR",
-                        category="ORPHAN_METHOD",
-                        message=(
-                            f"def {child.name}() с self вложена в "
-                            f"{parent_path} — метод потерян из класса"
-                        ),
-                    ))
+                    issues.append(
+                        LintIssue(
+                            file=file,
+                            line=child.lineno,
+                            severity="ERROR",
+                            category="ORPHAN_METHOD",
+                            message=(
+                                f"def {child.name}() с self вложена в "
+                                f"{parent_path} — метод потерян из класса"
+                            ),
+                        )
+                    )
                 _walk(child, child_path)
 
             if isinstance(child, ast.If):
@@ -115,21 +116,20 @@ def _check_module_level_orphans(tree: ast.AST, file: str) -> list[LintIssue]:
         if isinstance(node, ast.FunctionDef):
             if node.name in known_module_functions:
                 continue
-            has_self = (
-                node.args.args
-                and node.args.args[0].arg == "self"
-            )
+            has_self = node.args.args and node.args.args[0].arg == "self"
             if has_self:
-                issues.append(LintIssue(
-                    file=file,
-                    line=node.lineno,
-                    severity="ERROR",
-                    category="ORPHAN_METHOD",
-                    message=(
-                        f"def {node.name}() с self на уровне модуля — "
-                        f"должна быть внутри класса"
-                    ),
-                ))
+                issues.append(
+                    LintIssue(
+                        file=file,
+                        line=node.lineno,
+                        severity="ERROR",
+                        category="ORPHAN_METHOD",
+                        message=(
+                            f"def {node.name}() с self на уровне модуля — "
+                            f"должна быть внутри класса"
+                        ),
+                    )
+                )
     return issues
 
 
@@ -142,16 +142,18 @@ def _check_dead_returns(tree: ast.AST, file: str) -> list[LintIssue]:
         for i, stmt in enumerate(statements):
             if isinstance(stmt, ast.Return) and i < len(statements) - 1:
                 dead = statements[i + 1]
-                issues.append(LintIssue(
-                    file=file,
-                    line=dead.lineno,
-                    severity="WARNING",
-                    category="DEAD_CODE",
-                    message=(
-                        f"Код после return в {func_name}() — "
-                        f"строка {dead.lineno} никогда не выполнится"
-                    ),
-                ))
+                issues.append(
+                    LintIssue(
+                        file=file,
+                        line=dead.lineno,
+                        severity="WARNING",
+                        category="DEAD_CODE",
+                        message=(
+                            f"Код после return в {func_name}() — "
+                            f"строка {dead.lineno} никогда не выполнится"
+                        ),
+                    )
+                )
                 return  # Один раз на блок достаточно
 
     def _walk_body(node: ast.AST, func_name: str):
@@ -184,8 +186,14 @@ def _check_class_method_calls(tree: ast.AST, file: str) -> list[LintIssue]:
         members = set()
         # Пропускаем классы тестов — self.assert* унаследованы от unittest.TestCase
         base_names = {b.id for b in class_node.bases if isinstance(b, ast.Name)}
-        if "TestCase" in base_names or class_node.name.endswith("Tests") or class_node.name.endswith("Test"):
-            return {"*"}  # Магическое значение: пропустить все проверки для этого класса
+        if (
+            "TestCase" in base_names
+            or class_node.name.endswith("Tests")
+            or class_node.name.endswith("Test")
+        ):
+            return {
+                "*"
+            }  # Магическое значение: пропустить все проверки для этого класса
 
         for child in class_node.body:
             if isinstance(child, ast.FunctionDef):
@@ -195,11 +203,15 @@ def _check_class_method_calls(tree: ast.AST, file: str) -> list[LintIssue]:
                     for init_child in ast.walk(child):
                         if isinstance(init_child, ast.Assign):
                             for target in init_child.targets:
-                                if (isinstance(target, ast.Attribute) and 
-                                    isinstance(target.value, ast.Name) and 
-                                    target.value.id == "self"):
+                                if (
+                                    isinstance(target, ast.Attribute)
+                                    and isinstance(target.value, ast.Name)
+                                    and target.value.id == "self"
+                                ):
                                     members.add(target.attr)
-            elif isinstance(child, ast.AnnAssign) and isinstance(child.target, ast.Name):
+            elif isinstance(child, ast.AnnAssign) and isinstance(
+                child.target, ast.Name
+            ):
                 # self.x: int = ... (dataclass / Pydantic)
                 members.add(child.target.id)
             elif isinstance(child, ast.Assign):
@@ -229,16 +241,18 @@ def _check_class_method_calls(tree: ast.AST, file: str) -> list[LintIssue]:
                     # Пропускаем: __init__, приватные, dunder
                     if child.attr.startswith("__") and child.attr.endswith("__"):
                         continue
-                    issues.append(LintIssue(
-                        file=file,
-                        line=child.lineno,
-                        severity="WARNING",
-                        category="MISSING_METHOD",
-                        message=(
-                            f"self.{child.attr}() вызывается, но не найден "
-                            f"в классе {node.name}"
-                        ),
-                    ))
+                    issues.append(
+                        LintIssue(
+                            file=file,
+                            line=child.lineno,
+                            severity="WARNING",
+                            category="MISSING_METHOD",
+                            message=(
+                                f"self.{child.attr}() вызывается, но не найден "
+                                f"в классе {node.name}"
+                            ),
+                        )
+                    )
 
     return issues
 
@@ -257,16 +271,18 @@ def _check_mutable_defaults(tree: ast.AST, file: str) -> list[LintIssue]:
             if default is None:
                 continue
             if isinstance(default, mutable_types):
-                issues.append(LintIssue(
-                    file=file,
-                    line=default.lineno,
-                    severity="ERROR",
-                    category="MUTABLE_DEFAULT",
-                    message=(
-                        f"Мутабельный дефолт в {node.name}() — "
-                        f"будет расшарен между вызовами. Используй None и инициализацию внутри."
-                    ),
-                ))
+                issues.append(
+                    LintIssue(
+                        file=file,
+                        line=default.lineno,
+                        severity="ERROR",
+                        category="MUTABLE_DEFAULT",
+                        message=(
+                            f"Мутабельный дефолт в {node.name}() — "
+                            f"будет расшарен между вызовами. Используй None и инициализацию внутри."
+                        ),
+                    )
+                )
             elif isinstance(default, ast.Call):
                 # Отлавливаем явные вызовы dict(), list(), set()
                 func_name = ""
@@ -274,25 +290,27 @@ def _check_mutable_defaults(tree: ast.AST, file: str) -> list[LintIssue]:
                     func_name = default.func.id
                 elif isinstance(default.func, ast.Attribute):
                     func_name = default.func.attr
-                
+
                 if func_name in ("dict", "list", "set"):
-                    issues.append(LintIssue(
-                        file=file,
-                        line=default.lineno,
-                        severity="ERROR",
-                        category="MUTABLE_DEFAULT",
-                        message=(
-                            f"Вызов {func_name}() в дефолте {node.name}() — "
-                            f"создаётся один раз на модуль. Убери в тело функции."
-                        ),
-                    ))
+                    issues.append(
+                        LintIssue(
+                            file=file,
+                            line=default.lineno,
+                            severity="ERROR",
+                            category="MUTABLE_DEFAULT",
+                            message=(
+                                f"Вызов {func_name}() в дефолте {node.name}() — "
+                                f"создаётся один раз на модуль. Убери в тело функции."
+                            ),
+                        )
+                    )
     return issues
 
 
 def _check_unused_imports(tree: ast.AST, file: str, filename: str) -> list[LintIssue]:
     """Ищет импорты, которые нигде не используются в файле."""
     issues = []
-    
+
     # Пропускаем __init__.py — там импорты используются для реэкспорта, а не внутри файла
     if filename.endswith("__init__.py"):
         return issues
@@ -303,7 +321,11 @@ def _check_unused_imports(tree: ast.AST, file: str, filename: str) -> list[LintI
     # Пропускаем блоки if TYPE_CHECKING: — типы импортируются специально для анализаторов
     type_checking_nodes: set[ast.AST] = set()
     for node in ast.iter_child_nodes(tree):
-        if isinstance(node, ast.If) and isinstance(node.test, ast.Name) and node.test.id == "TYPE_CHECKING":
+        if (
+            isinstance(node, ast.If)
+            and isinstance(node.test, ast.Name)
+            and node.test.id == "TYPE_CHECKING"
+        ):
             for tc_child in ast.walk(node):
                 type_checking_nodes.add(tc_child)
 
@@ -315,15 +337,15 @@ def _check_unused_imports(tree: ast.AST, file: str, filename: str) -> list[LintI
         # Пропускаем импорты внутри if TYPE_CHECKING:
         if node in type_checking_nodes:
             continue
-            
+
         if isinstance(node, ast.Import):
             for alias in node.names:
                 # import os.path -> запоминаем 'os'
-                name = alias.asname if alias.asname else alias.name.split('.')[0]
+                name = alias.asname if alias.asname else alias.name.split(".")[0]
                 imports[name] = node.lineno
         elif isinstance(node, ast.ImportFrom):
             # Пропускаем from x import *
-            if any(alias.name == '*' for alias in node.names):
+            if any(alias.name == "*" for alias in node.names):
                 continue
             for alias in node.names:
                 name = alias.asname if alias.asname else alias.name
@@ -346,7 +368,9 @@ def _check_unused_imports(tree: ast.AST, file: str, filename: str) -> list[LintI
     # Строковые аннотации (forward references): "Condition" в типах
     # Проверяем только позиции аннотаций, чтобы не ловить докстринги
     def _extract_forward_ref(annotation_node: ast.AST | None) -> str | None:
-        if isinstance(annotation_node, ast.Constant) and isinstance(annotation_node.value, str):
+        if isinstance(annotation_node, ast.Constant) and isinstance(
+            annotation_node.value, str
+        ):
             return annotation_node.value
         return None
 
@@ -368,13 +392,15 @@ def _check_unused_imports(tree: ast.AST, file: str, filename: str) -> list[LintI
     for name, line in imports.items():
         if name not in usages:
             # Исключаем стандартные псевдонимы (например, если used as typing alias)
-            issues.append(LintIssue(
-                file=file,
-                line=line,
-                severity="WARNING",
-                category="UNUSED_IMPORT",
-                message=f"Импорт '{name}' не используется в файле",
-            ))
+            issues.append(
+                LintIssue(
+                    file=file,
+                    line=line,
+                    severity="WARNING",
+                    category="UNUSED_IMPORT",
+                    message=f"Импорт '{name}' не используется в файле",
+                )
+            )
 
     return issues
 
@@ -388,17 +414,21 @@ def _check_exception_handling(tree: ast.AST, file: str) -> list[LintIssue]:
 
         # Голый except: без типа — ловит KeyboardInterrupt и SystemExit
         if node.type is None:
-            issues.append(LintIssue(
-                file=file,
-                line=node.lineno,
-                severity="ERROR",
-                category="BARE_EXCEPT",
-                message="Голый except: — ловит SystemExit/KeyboardInterrupt. Укажи конкретный тип ошибки.",
-            ))
+            issues.append(
+                LintIssue(
+                    file=file,
+                    line=node.lineno,
+                    severity="ERROR",
+                    category="BARE_EXCEPT",
+                    message="Голый except: — ловит SystemExit/KeyboardInterrupt. Укажи конкретный тип ошибки.",
+                )
+            )
             continue
 
         # Проверяем тело на наличие только pass / ... / строк-документаций
-        has_logic = len(node.body) > 0  # Если хоть что-то есть, считаем что обработка присутствует
+        has_logic = (
+            len(node.body) > 0
+        )  # Если хоть что-то есть, считаем что обработка присутствует
 
         if not has_logic:
             # Извлекаем человекочитаемое имя типа исключения
@@ -415,13 +445,15 @@ def _check_exception_handling(tree: ast.AST, file: str) -> list[LintIssue]:
                     else:
                         parts.append("...")
                 err_name = ", ".join(parts)
-            issues.append(LintIssue(
-                file=file,
-                line=node.lineno,
-                severity="WARNING",
-                category="SILENT_EXCEPT",
-                message=f"except {err_name} проглатывает ошибку без логики. Добавь логирование.",
-            ))
+            issues.append(
+                LintIssue(
+                    file=file,
+                    line=node.lineno,
+                    severity="WARNING",
+                    category="SILENT_EXCEPT",
+                    message=f"except {err_name} проглатывает ошибку без логики. Добавь логирование.",
+                )
+            )
 
     return issues
 
@@ -445,16 +477,18 @@ def _check_duplicate_dict_keys(tree: ast.AST, file: str) -> list[LintIssue]:
 
             if key_val is not None:
                 if key_val in seen_keys:
-                    issues.append(LintIssue(
-                        file=file,
-                        line=key.lineno,
-                        severity="ERROR",
-                        category="DUPLICATE_DICT_KEY",
-                        message=(
-                            f"Дублирующийся ключ '{key_val}' — "
-                            f"тихо перезапишет значение со строки {seen_keys[key_val]}"
-                        ),
-                    ))
+                    issues.append(
+                        LintIssue(
+                            file=file,
+                            line=key.lineno,
+                            severity="ERROR",
+                            category="DUPLICATE_DICT_KEY",
+                            message=(
+                                f"Дублирующийся ключ '{key_val}' — "
+                                f"тихо перезапишет значение со строки {seen_keys[key_val]}"
+                            ),
+                        )
+                    )
                 else:
                     seen_keys[key_val] = key.lineno
 
@@ -464,8 +498,9 @@ def _check_duplicate_dict_keys(tree: ast.AST, file: str) -> list[LintIssue]:
 def _check_import_order(tree: ast.AST, file: str) -> list[LintIssue]:
     """Проверяет PEP 8 порядок: stdlib → third-party → local."""
     import sys
+
     issues = []
-    
+
     # Получаем множество имён stdlib-модулей
     stdlib_names: set[str] = set()
     if hasattr(sys, "stdlib_module_names"):
@@ -473,17 +508,50 @@ def _check_import_order(tree: ast.AST, file: str) -> list[LintIssue]:
     else:
         # Fallback для Python < 3.10
         stdlib_names = {
-            "abc", "argparse", "asyncio", "collections", "dataclasses",
-            "datetime", "enum", "functools", "json", "logging", "math",
-            "os", "pathlib", "queue", "re", "sys", "threading", "time",
-            "traceback", "types", "typing", "unittest", "urllib", "uuid",
-            "copy", "decimal", "fractions", "hashlib", "io", "itertools",
-            "operator", "pickle", "shutil", "tempfile", "textwrap",
+            "abc",
+            "argparse",
+            "asyncio",
+            "collections",
+            "dataclasses",
+            "datetime",
+            "enum",
+            "functools",
+            "json",
+            "logging",
+            "math",
+            "os",
+            "pathlib",
+            "queue",
+            "re",
+            "sys",
+            "threading",
+            "time",
+            "traceback",
+            "types",
+            "typing",
+            "unittest",
+            "urllib",
+            "uuid",
+            "copy",
+            "decimal",
+            "fractions",
+            "hashlib",
+            "io",
+            "itertools",
+            "operator",
+            "pickle",
+            "shutil",
+            "tempfile",
+            "textwrap",
         }
-    
+
     def _classify(node: ast.AST) -> int:
         """0=stdlib, 1=third-party, 2=local"""
-        if isinstance(node, ast.ImportFrom) and node.module and node.module.startswith("."):
+        if (
+            isinstance(node, ast.ImportFrom)
+            and node.module
+            and node.module.startswith(".")
+        ):
             return 2
         if isinstance(node, ast.ImportFrom) and node.module:
             first_part = node.module.split(".")[0]
@@ -501,24 +569,26 @@ def _check_import_order(tree: ast.AST, file: str) -> list[LintIssue]:
                     return 0
             return 1
         return -1
-    
+
     import_nodes: list[tuple[int, int]] = []
     for node in ast.iter_child_nodes(tree):
         if isinstance(node, (ast.Import, ast.ImportFrom)):
             import_nodes.append((_classify(node), node.lineno))
-    
+
     prev_group = -1
     for group, lineno in import_nodes:
         if group < prev_group:
             group_names = {0: "stdlib", 1: "third-party", 2: "local"}
-            issues.append(LintIssue(
-                file=file,
-                line=lineno,
-                severity="WARNING",
-                category="IMPORT_ORDER",
-                message=f"Импорт {group_names[group]} стоит после {group_names[prev_group]} — нарушен порядок PEP 8",
-            ))
-    
+            issues.append(
+                LintIssue(
+                    file=file,
+                    line=lineno,
+                    severity="WARNING",
+                    category="IMPORT_ORDER",
+                    message=f"Импорт {group_names[group]} стоит после {group_names[prev_group]} — нарушен порядок PEP 8",
+                )
+            )
+
     return issues
 
 
@@ -528,15 +598,19 @@ def _check_wildcard_imports(tree: ast.AST, file: str, filename: str) -> list[Lin
         return []
     issues = []
     for node in ast.iter_child_nodes(tree):
-        if isinstance(node, ast.ImportFrom) and any(alias.name == "*" for alias in node.names):
+        if isinstance(node, ast.ImportFrom) and any(
+            alias.name == "*" for alias in node.names
+        ):
             module = node.module or "(unknown)"
-            issues.append(LintIssue(
-                file=file,
-                line=node.lineno,
-                severity="WARNING",
-                category="WILDCARD_IMPORT",
-                message=f"from {module} import * — импортируйте только нужные имена",
-            ))
+            issues.append(
+                LintIssue(
+                    file=file,
+                    line=node.lineno,
+                    severity="WARNING",
+                    category="WILDCARD_IMPORT",
+                    message=f"from {module} import * — импортируйте только нужные имена",
+                )
+            )
     return issues
 
 
@@ -545,13 +619,15 @@ def _check_bare_except(tree: ast.AST, file: str) -> list[LintIssue]:
     issues = []
     for node in ast.walk(tree):
         if isinstance(node, ast.ExceptHandler) and node.type is None:
-            issues.append(LintIssue(
-                file=file,
-                line=node.lineno,
-                severity="WARNING",
-                category="BARE_EXCEPT",
-                message="except: без типа — маскирует все ошибки, включая KeyboardInterrupt и SystemExit",
-            ))
+            issues.append(
+                LintIssue(
+                    file=file,
+                    line=node.lineno,
+                    severity="WARNING",
+                    category="BARE_EXCEPT",
+                    message="except: без типа — маскирует все ошибки, включая KeyboardInterrupt и SystemExit",
+                )
+            )
     return issues
 
 
@@ -579,7 +655,11 @@ def _check_circular_imports(root: Path, exclude_dirs: list[str]) -> list[LintIss
 
         deps = set()
         for node in ast.iter_child_nodes(tree):
-            if isinstance(node, ast.If) and isinstance(node.test, ast.Name) and node.test.id == "TYPE_CHECKING":
+            if (
+                isinstance(node, ast.If)
+                and isinstance(node.test, ast.Name)
+                and node.test.id == "TYPE_CHECKING"
+            ):
                 continue
             if isinstance(node, ast.Import):
                 for alias in node.names:
@@ -621,13 +701,15 @@ def _check_circular_imports(root: Path, exclude_dirs: list[str]) -> list[LintIss
                 cycle_key = " → ".join(cycle)
                 if cycle_key not in seen_cycles:
                     seen_cycles.add(cycle_key)
-                    issues.append(LintIssue(
-                        file=cycle[0],
-                        line=0,
-                        severity="ERROR",
-                        category="CIRCULAR_IMPORT",
-                        message=f"Циклический импорт: {cycle_key}",
-                    ))
+                    issues.append(
+                        LintIssue(
+                            file=cycle[0],
+                            line=0,
+                            severity="ERROR",
+                            category="CIRCULAR_IMPORT",
+                            message=f"Циклический импорт: {cycle_key}",
+                        )
+                    )
             elif color[neighbor] == WHITE:
                 dfs(neighbor)
         path.pop()
@@ -648,13 +730,15 @@ def lint_file(filepath: Path) -> LintResult:
         src = filepath.read_text(encoding="utf-8-sig")
         tree = ast.parse(src, filename=str(filepath))
     except SyntaxError as e:
-        result.issues.append(LintIssue(
-            file=str(filepath),
-            line=e.lineno or 0,
-            severity="ERROR",
-            category="SYNTAX_ERROR",
-            message=f"Синтаксическая ошибка: {e.msg}",
-        ))
+        result.issues.append(
+            LintIssue(
+                file=str(filepath),
+                line=e.lineno or 0,
+                severity="ERROR",
+                category="SYNTAX_ERROR",
+                message=f"Синтаксическая ошибка: {e.msg}",
+            )
+        )
         return result
 
     result.issues.extend(_check_orphan_methods(tree, str(filepath)))
@@ -673,7 +757,9 @@ def lint_file(filepath: Path) -> LintResult:
     return result
 
 
-def lint_project(root: Path, exclude_dirs: Optional[list[str]] = None) -> list[LintResult]:
+def lint_project(
+    root: Path, exclude_dirs: Optional[list[str]] = None
+) -> list[LintResult]:
     """Проверяет все .py файлы в проекте."""
     if exclude_dirs is None:
         exclude_dirs = [".venv", "__pycache__", "node_modules", ".git"]
@@ -706,7 +792,11 @@ def print_results(results: list[LintResult]) -> None:
 
         for issue in result.issues:
             # Короткий путь к файлу
-            short_path = issue.file.split("Enigma\\")[-1] if "Enigma\\" in issue.file else issue.file
+            short_path = (
+                issue.file.split("Enigma\\")[-1]
+                if "Enigma\\" in issue.file
+                else issue.file
+            )
 
             if issue.severity == "ERROR":
                 errors += 1
@@ -717,7 +807,7 @@ def print_results(results: list[LintResult]) -> None:
                 print(f"⚠️  {short_path}:{issue.line} [{issue.category}]")
                 print(f"   {issue.message}")
 
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"Итого: {errors} ошибок, {warnings} предупреждений")
 
     if errors > 0:

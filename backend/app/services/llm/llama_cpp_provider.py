@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 Llama.cpp Provider Implementation
 Local LLM inference using llama.cpp server or CLI
@@ -8,8 +8,8 @@ Local LLM inference using llama.cpp server or CLI
   Модель видит "думать уже закончил" и сразу даёт ответ на русском.
   Это официальный способ отключения thinking в Qwen3 через llama.cpp.
 """
-
 from __future__ import annotations
+
 
 import os
 import random
@@ -36,21 +36,26 @@ from app.services.llm.provider import (
 logger = logging.getLogger(__name__)
 
 # Regex для вырезания thinking блоков (страховка)
-_THINK_RE = re.compile(r'<think>.*?</think>', re.DOTALL)
+_THINK_RE = re.compile(r"<think>.*?</think>", re.DOTALL)
 # Regex для незакрытых thinking блоков (<think> без </think>)
-_THINK_OPEN_RE = re.compile(r'<think>.*$', re.DOTALL)
+_THINK_OPEN_RE = re.compile(r"<think>.*$", re.DOTALL)
+
 
 def _strip_thinking(text: str) -> str:
     """Убирает <think>...</think> и незакрытые <think>... из ответа."""
-    text = _THINK_RE.sub('', text)
-    text = _THINK_OPEN_RE.sub('', text)
+    text = _THINK_RE.sub("", text)
+    text = _THINK_OPEN_RE.sub("", text)
     return text.strip()
 
 
 # Только ASCII стоп-токены
 DEFAULT_STOP_TOKENS = [
-    "</s>", "</user>", "<user>", "<assistant>",
-    "<|im_end|>", "<|end_of_text|>",
+    "</s>",
+    "</user>",
+    "<user>",
+    "<assistant>",
+    "<|im_end|>",
+    "<|end_of_text|>",
 ]
 
 
@@ -68,7 +73,6 @@ class LlamaCppModelConfig:
 
 
 class LlamaCppProvider(StreamingLlmProvider):
-
     def __init__(
         self,
         model_config: LlamaCppModelConfig | None = None,
@@ -115,9 +119,7 @@ class LlamaCppProvider(StreamingLlmProvider):
     # Построение ChatML промпта
     # ──────────────────────────────────────────────────────────────────────────
 
-    def _build_chatml_prompt(
-        self, user_prompt: str, system_prompt: str | None
-    ) -> str:
+    def _build_chatml_prompt(self, user_prompt: str, system_prompt: str | None) -> str:
         """
         Строит ChatML промпт для /completion.
 
@@ -139,10 +141,7 @@ class LlamaCppProvider(StreamingLlmProvider):
                 f"<|im_start|>user\n{user_prompt}\n<|im_end|>\n"
                 f"<|im_start|>assistant\n"
             )
-        return (
-            f"<|im_start|>user\n{user_prompt}\n<|im_end|>\n"
-            f"<|im_start|>assistant\n"
-        )
+        return f"<|im_start|>user\n{user_prompt}\n<|im_end|>\n<|im_start|>assistant\n"
 
     # ──────────────────────────────────────────────────────────────────────────
     # Server mode — /completion
@@ -158,17 +157,17 @@ class LlamaCppProvider(StreamingLlmProvider):
         # seed=-1 + случайное значение ломает KV-кеш llama-server при похожих промптах
         _seed = random.randint(0, 2**31 - 1)
         payload = {
-            "prompt":         prompt,
-            "n_predict":      params.max_tokens,
-            "stream":         False,
-            "stop":           stop_tokens,
-            "temperature":    params.temperature,
-            "top_p":          params.top_p,
+            "prompt": prompt,
+            "n_predict": params.max_tokens,
+            "stream": False,
+            "stop": stop_tokens,
+            "temperature": params.temperature,
+            "top_p": params.top_p,
             "repeat_penalty": params.repeat_penalty,
-            "min_p":          params.min_p,
-            "top_k":          params.top_k,
-            "n_keep":         params.n_keep,
-            "seed":           _seed,
+            "min_p": params.min_p,
+            "top_k": params.top_k,
+            "n_keep": params.n_keep,
+            "seed": _seed,
         }
 
         data = json.dumps(payload).encode("utf-8")
@@ -183,21 +182,32 @@ class LlamaCppProvider(StreamingLlmProvider):
         max_retries = 3
         backoff_delays = [1.0, 2.0, 2.0]
         last_error = None
-        
+
         for attempt in range(max_retries):
             try:
-                with urllib.request.urlopen(req, timeout=settings.llama_cpp_timeout_sec) as resp:
+                with urllib.request.urlopen(
+                    req, timeout=settings.llama_cpp_timeout_sec
+                ) as resp:
                     body = json.loads(resp.read().decode("utf-8"))
                     return body.get("content", "")
-            except (urllib.error.URLError, ConnectionResetError, OSError, TimeoutError) as e:
+            except (
+                urllib.error.URLError,
+                ConnectionResetError,
+                OSError,
+                TimeoutError,
+            ) as e:
                 last_error = e
                 if attempt < max_retries - 1:
                     delay = backoff_delays[attempt]
-                    logger.warning(f"[LLM_RETRY] attempt {attempt+1}/{max_retries} failed: {type(e).__name__}: {e}. Retrying in {delay}s...")
+                    logger.warning(
+                        f"[LLM_RETRY] attempt {attempt + 1}/{max_retries} failed: {type(e).__name__}: {e}. Retrying in {delay}s..."
+                    )
                     time.sleep(delay)
                 else:
-                    logger.error(f"[LLM_RETRY] all {max_retries} attempts failed. Last error: {type(e).__name__}: {e}")
-        
+                    logger.error(
+                        f"[LLM_RETRY] all {max_retries} attempts failed. Last error: {type(e).__name__}: {e}"
+                    )
+
         raise RuntimeError(
             f"Не удалось подключиться к llama-server ({self.server_url}) после {max_retries} попыток. "
             f"Последняя ошибка: {type(last_error).__name__}: {last_error}"
@@ -233,15 +243,21 @@ class LlamaCppProvider(StreamingLlmProvider):
 
             cmd = [
                 executable,
-                "-m", self.model_config.path,
-                "-n", str(params.max_tokens),
-                "-ngl", str(settings.gpu_layers),   # все слои на GPU
-                "-c", str(settings.ctx_size),        # размер контекста
-                "-t", str(settings.threads),         # потоки CPU для оставшихся операций
+                "-m",
+                self.model_config.path,
+                "-n",
+                str(params.max_tokens),
+                "-ngl",
+                str(settings.gpu_layers),  # все слои на GPU
+                "-c",
+                str(settings.ctx_size),  # размер контекста
+                "-t",
+                str(settings.threads),  # потоки CPU для оставшихся операций
             ]
 
             if len(prompt) > 8000:
                 import tempfile
+
                 with tempfile.NamedTemporaryFile(
                     mode="w", suffix=".txt", delete=False, encoding="utf-8"
                 ) as f:
@@ -325,16 +341,16 @@ class LlamaCppProvider(StreamingLlmProvider):
             stop_tokens.extend([t for t in gen_params.stop if t.isascii()])
 
         payload = {
-            "prompt":         full_prompt,
-            "n_predict":      gen_params.max_tokens,
-            "stream":         True,
-            "stop":           stop_tokens,
-            "temperature":    gen_params.temperature,
-            "top_p":          gen_params.top_p,
+            "prompt": full_prompt,
+            "n_predict": gen_params.max_tokens,
+            "stream": True,
+            "stop": stop_tokens,
+            "temperature": gen_params.temperature,
+            "top_p": gen_params.top_p,
             "repeat_penalty": gen_params.repeat_penalty,
-            "min_p":          gen_params.min_p,
-            "top_k":          gen_params.top_k,
-            "n_keep":         gen_params.n_keep,
+            "min_p": gen_params.min_p,
+            "top_k": gen_params.top_k,
+            "n_keep": gen_params.n_keep,
         }
 
         data = json.dumps(payload).encode("utf-8")
@@ -354,7 +370,9 @@ class LlamaCppProvider(StreamingLlmProvider):
 
         for attempt in range(max_retries):
             try:
-                with urllib.request.urlopen(req, timeout=settings.llama_cpp_timeout_sec) as resp:
+                with urllib.request.urlopen(
+                    req, timeout=settings.llama_cpp_timeout_sec
+                ) as resp:
                     while True:
                         line = resp.readline()
                         if not line:
@@ -379,18 +397,29 @@ class LlamaCppProvider(StreamingLlmProvider):
                                 continue
                 # Успешное завершение стрима
                 break
-            except (urllib.error.URLError, ConnectionResetError, OSError, TimeoutError) as e:
+            except (
+                urllib.error.URLError,
+                ConnectionResetError,
+                OSError,
+                TimeoutError,
+            ) as e:
                 last_error = e
                 # Partial recovery: если уже получили >20 символов — используем
                 if len(full_content) > 20:
-                    logger.warning(f"[LLM_RETRY] Stream broke after {len(full_content)} chars on attempt {attempt+1}. Using partial content.")
+                    logger.warning(
+                        f"[LLM_RETRY] Stream broke after {len(full_content)} chars on attempt {attempt + 1}. Using partial content."
+                    )
                     break
                 if attempt < max_retries - 1:
                     delay = backoff_delays[attempt]
-                    logger.warning(f"[LLM_RETRY] attempt {attempt+1}/{max_retries} failed: {type(e).__name__}: {e}. Retrying in {delay}s...")
+                    logger.warning(
+                        f"[LLM_RETRY] attempt {attempt + 1}/{max_retries} failed: {type(e).__name__}: {e}. Retrying in {delay}s..."
+                    )
                     time.sleep(delay)
                 else:
-                    logger.error(f"[LLM_RETRY] all {max_retries} attempts failed. Last error: {type(e).__name__}: {e}")
+                    logger.error(
+                        f"[LLM_RETRY] all {max_retries} attempts failed. Last error: {type(e).__name__}: {e}"
+                    )
                     raise RuntimeError(
                         f"Не удалось подключиться к llama-server ({self.server_url}) после {max_retries} попыток. "
                         f"Последняя ошибка: {type(last_error).__name__}: {last_error}"
@@ -421,16 +450,16 @@ class LlamaCppProvider(StreamingLlmProvider):
             stop_tokens.extend([t for t in gen_params.stop if t.isascii()])
 
         payload = {
-            "prompt":         full_prompt,
-            "n_predict":      gen_params.max_tokens,
-            "stream":         True,
-            "stop":           stop_tokens,
-            "temperature":    gen_params.temperature,
-            "top_p":          gen_params.top_p,
+            "prompt": full_prompt,
+            "n_predict": gen_params.max_tokens,
+            "stream": True,
+            "stop": stop_tokens,
+            "temperature": gen_params.temperature,
+            "top_p": gen_params.top_p,
             "repeat_penalty": gen_params.repeat_penalty,
-            "min_p":          gen_params.min_p,
-            "top_k":          gen_params.top_k,
-            "n_keep":         gen_params.n_keep,
+            "min_p": gen_params.min_p,
+            "top_k": gen_params.top_k,
+            "n_keep": gen_params.n_keep,
         }
 
         data = json.dumps(payload).encode("utf-8")
@@ -442,7 +471,9 @@ class LlamaCppProvider(StreamingLlmProvider):
         )
 
         try:
-            with urllib.request.urlopen(req, timeout=settings.llama_cpp_timeout_sec) as resp:
+            with urllib.request.urlopen(
+                req, timeout=settings.llama_cpp_timeout_sec
+            ) as resp:
                 while True:
                     line = resp.readline()
                     if not line:
@@ -472,7 +503,15 @@ class LlamaCppProvider(StreamingLlmProvider):
 
     def _find_executable(self) -> str | None:
         import shutil
-        candidates = ["llama", "llama.exe", "llama-cli", "llama-cli.exe", "main", "main.exe"]
+
+        candidates = [
+            "llama",
+            "llama.exe",
+            "llama-cli",
+            "llama-cli.exe",
+            "main",
+            "main.exe",
+        ]
         if self.executable and Path(self.executable).exists():
             return self.executable
         for c in candidates:
@@ -503,14 +542,20 @@ class LlamaCppProvider(StreamingLlmProvider):
         self, max_retries: int = 5, interval_sec: int = 2
     ) -> tuple[bool, str]:
         import time
+
         for attempt in range(1, max_retries + 1):
             if self._check_server():
                 return True, f"LLM server доступен: {self.server_url}"
             if attempt < max_retries:
                 time.sleep(interval_sec)
-        return False, f"LLM server недоступен после {max_retries} попыток: {self.server_url}"
+        return (
+            False,
+            f"LLM server недоступен после {max_retries} попыток: {self.server_url}",
+        )
 
-    def is_available_with_retry(self, max_retries: int = 5, interval_sec: int = 2) -> bool:
+    def is_available_with_retry(
+        self, max_retries: int = 5, interval_sec: int = 2
+    ) -> bool:
         # CLI-режим: проверяем наличие файлов (без retry — нет сети)
         if not self._use_server:
             return self.is_available()

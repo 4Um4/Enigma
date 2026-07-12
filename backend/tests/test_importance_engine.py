@@ -17,14 +17,14 @@ def test_known_event_type_uses_base_importance() -> None:
 def test_low_clarity_reduces_importance() -> None:
     """Плохое восприятие снижает итоговую важность."""
     high = score_event({"type": "theft"}, npc_clarity=1.0)
-    low  = score_event({"type": "theft"}, npc_clarity=0.3)
+    low = score_event({"type": "theft"}, npc_clarity=0.3)
     assert low < high
 
 
 def test_high_stress_with_angry_amplifies_importance() -> None:
     """Стресс + гнев усиливают важность угрозы."""
-    base   = score_event({"type": "combat"}, npc_stress=0.0,  emotion_tag="neutral")
-    amped  = score_event({"type": "combat"}, npc_stress=80.0, emotion_tag="angry")
+    base = score_event({"type": "combat"}, npc_stress=0.0, emotion_tag="neutral")
+    amped = score_event({"type": "combat"}, npc_stress=80.0, emotion_tag="angry")
     assert amped > base
 
 
@@ -37,8 +37,8 @@ def test_unknown_type_uses_default_base() -> None:
 def test_score_always_clamped_to_valid_range() -> None:
     """Результат всегда в диапазоне [0.05, 1.0]."""
     extremes = [
-        score_event({"type": "combat"},    npc_clarity=0.0, npc_stress=100.0, emotion_tag="angry"),
-        score_event({"type": "movement"},  npc_clarity=1.0, npc_stress=0.0,  emotion_tag="neutral"),
+        score_event({"type": "combat"}, npc_clarity=0.0, npc_stress=100.0, emotion_tag="angry"),
+        score_event({"type": "movement"}, npc_clarity=1.0, npc_stress=0.0, emotion_tag="neutral"),
     ]
     for s in extremes:
         assert 0.05 <= s <= 1.0

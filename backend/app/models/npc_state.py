@@ -1,4 +1,5 @@
-﻿# backend/app/models/npc_state.py
+from __future__ import annotations
+# backend/app/models/npc_state.py
 """
 Единый источник типов NPC. Жёсткие write-контракты:
   L0 NPCPersonality   — write: NEVER (frozen dataclass)
@@ -19,18 +20,18 @@ NPCState — центральный узел всей психики.
   - NPCState (mutable) — dynamic, меняется через StateApplicator
   - DecisionHub читает оба объекта, но пишет только через StateApplicator
   - LLM получает только VerbalizationContext — не сам NPCState
-  
+
 """
 
-from __future__ import annotations
 
 from app.models.affect import AffectiveImprint
 
 import math
+
 _math = math
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple, TYPE_CHECKING, Union
+from typing import Any, Dict, List, Optional, Set, Tuple, TYPE_CHECKING
 
 from app.models.behavior_mask import BehaviorMaskState
 
@@ -38,9 +39,10 @@ if TYPE_CHECKING:
     from app.models.physical import Condition, Wound
 from app.models.psychological import CausalEntry
 from app.models.physical import ThreatAccumulator
-from app.models.npc.beliefs import BeliefState, BeliefFragment
+from app.models.npc.beliefs import BeliefState
 
 import logging
+
 logger = logging.getLogger(__name__)
 
 
@@ -50,7 +52,9 @@ logger = logging.getLogger(__name__)
 # ADR-O-146: IMMUTABLE sentinel — dict() копия обязательна при присвоении.
 # Прямое присвоение _npc["body_state"] = BODY_STATE_DISABLED ЗАПРЕЩЕНО —
 # shared reference мутируется StateApplicator, заражая ВСЕХ NPC.
-BODY_STATE_DISABLED: Any = dict  # 陷阱 guard, используйте dict(BODY_STATE_DISABLED_DATA)
+BODY_STATE_DISABLED: Any = (
+    dict  # 陷阱 guard, используйте dict(BODY_STATE_DISABLED_DATA)
+)
 BODY_STATE_DISABLED_DATA = {
     "disabled": True,
     "shock_impulse": 1.0,
@@ -58,7 +62,7 @@ BODY_STATE_DISABLED_DATA = {
     "blood_loss": 1.0,
     "consciousness": 0.0,
     "current_hp": 0,
-    "fatigue": 100.0
+    "fatigue": 100.0,
 }
 
 # Здоровое тело — инжектируется при New Game для NPC из static config.
@@ -83,39 +87,43 @@ BODY_STATE_HEALTHY = {
 # Enums
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 class Intent(str, Enum):
     """Возможные намерения NPC. DecisionHub выбирает одно из них."""
-    IDLE          = "idle"           # нет активного намерения
-    TALK          = "talk"           # вступить в диалог
-    WARN          = "warn"           # предупредить
-    INTIMIDATE    = "intimidate"     # запугать
-    FLEE          = "flee"           # уйти / сбежать
-    ATTACK        = "attack"         # атаковать
-    HELP          = "help"           # помочь
-    REPORT        = "report"         # донести властям
-    TRADE         = "trade"          # предложить сделку
-    OBSERVE       = "observe"        # наблюдать, не действовать
-    EXPLAIN       = "explain"        # ответить "почему" — для диалога
-    APPROACH      = "approach"       # подойти к целевой сущности (игрок/NPC/объект)
+
+    IDLE = "idle"  # нет активного намерения
+    TALK = "talk"  # вступить в диалог
+    WARN = "warn"  # предупредить
+    INTIMIDATE = "intimidate"  # запугать
+    FLEE = "flee"  # уйти / сбежать
+    ATTACK = "attack"  # атаковать
+    HELP = "help"  # помочь
+    REPORT = "report"  # донести властям
+    TRADE = "trade"  # предложить сделку
+    OBSERVE = "observe"  # наблюдать, не действовать
+    EXPLAIN = "explain"  # ответить "почему" — для диалога
+    APPROACH = "approach"  # подойти к целевой сущности (игрок/NPC/объект)
 
     # ── Проактивные интенты (Фаза 3.4: Agenda Loop) ─────────────────────
-    BLOCK_PATH    = "block_path"     # преградить дорогу (шаг 9 из Мечты)
-    AMBUSH        = "ambush"         # устроить засаду
-    SEEK_ALLY     = "seek_ally"      # пойти за союзником
-    OFFER_JOB     = "offer_job"      # предложить работу (Economic Engine)
+    BLOCK_PATH = "block_path"  # преградить дорогу (шаг 9 из Мечты)
+    AMBUSH = "ambush"  # устроить засаду
+    SEEK_ALLY = "seek_ally"  # пойти за союзником
+    OFFER_JOB = "offer_job"  # предложить работу (Economic Engine)
     REQUEST_SERVICE = "request_service"  # попросить об услуге
-    SPREAD_RUMOR  = "spread_rumor"   # распространить слух (Social Graph)
+    SPREAD_RUMOR = "spread_rumor"  # распространить слух (Social Graph)
     CALL_FOR_HELP = "call_for_help"  # позвать на помощь
-    CHANGE_ROLE   = "change_role"    # сменить роль (Role Transition)
+    CHANGE_ROLE = "change_role"  # сменить роль (Role Transition)
+
 
 class WillState(str, Enum):
     """Единое состояние воли NPC. Объединяет базовые состояния и стадии слома."""
+
     # Базовые состояния
-    FREE      = "free"
-    COERCED   = "coerced"
+    FREE = "free"
+    COERCED = "coerced"
     DECEPTIVE = "deceptive"
-    LOYAL     = "loyal"
-    
+    LOYAL = "loyal"
+
     # Стадии слома и сопротивления (из app.models.will)
     COMPLY = "comply"
     RELUCTANT = "reluctant"
@@ -128,19 +136,21 @@ class WillState(str, Enum):
     DISSOCIATING = "dissociating"
     BROKEN = "broken"
     CONDITIONED = "conditioned"
-    COUNTER_OFFER = "counter_offer" # Аватар предлагает альтернативу выживания
-    REFUSE = "refuse"               # Жесткий отказ, готовность к последствиям
+    COUNTER_OFFER = "counter_offer"  # Аватар предлагает альтернативу выживания
+    REFUSE = "refuse"  # Жесткий отказ, готовность к последствиям
+
 
 class EmotionTag(str, Enum):
     """Текущая эмоция NPC — передаётся в VerbalizationContext."""
-    NEUTRAL   = "neutral"
-    ANGRY     = "angry"
-    FEARFUL   = "fearful"
-    HAPPY     = "happy"
+
+    NEUTRAL = "neutral"
+    ANGRY = "angry"
+    FEARFUL = "fearful"
+    HAPPY = "happy"
     SUSPICIOUS = "suspicious"
-    GRATEFUL  = "grateful"
+    GRATEFUL = "grateful"
     DISGUSTED = "disgusted"
-    SAD       = "sad"
+    SAD = "sad"
 
 
 class NPCTier(str, Enum):
@@ -151,7 +161,8 @@ class NPCTier(str, Enum):
     MINOR → расписание + редкие события
     MAJOR → полная симуляция DecisionHub
     """
-    MASS  = "mass"
+
+    MASS = "mass"
     MINOR = "minor"
     MAJOR = "major"
 
@@ -162,23 +173,26 @@ class NPCTier(str, Enum):
 # Не участвует в формуле score() — только для вербализации и EXPLAIN.
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 class MemoryStage(str, Enum):
     """Стадия жизненного цикла события в памяти."""
-    FRESH      = "fresh"       # только что произошло — детальная
-    DETAILED   = "detailed"    # несколько тиков — ещё точная
+
+    FRESH = "fresh"  # только что произошло — детальная
+    DETAILED = "detailed"  # несколько тиков — ещё точная
     COMPRESSED = "compressed"  # сжатая — детали теряются
-    ABSTRACT   = "abstract"    # только смысл — уходит в L3 traits
-    FORGOTTEN  = "forgotten"   # importance < threshold — удаляется
+    ABSTRACT = "abstract"  # только смысл — уходит в L3 traits
+    FORGOTTEN = "forgotten"  # importance < threshold — удаляется
 
 
 class DiscoveryCrack(str, Enum):
     """Уровень трещины в секрете под давлением (Этап 5).
     NONE — NPC держится. CRACK — запинается. PARTIAL — часть правды. BROKEN — сломлен.
     """
-    NONE    = "none"
-    CRACK   = "crack"
+
+    NONE = "none"
+    CRACK = "crack"
     PARTIAL = "partial"
-    BROKEN  = "broken"
+    BROKEN = "broken"
 
 
 @dataclass(frozen=True)
@@ -188,44 +202,47 @@ class EventMemory:
     Хранит clarity (чёткость восприятия) и confidence (уверенность в деталях).
     Decay переводит из Fresh → Forgotten через промежуточные стадии.
     """
-    event_type:         str
-    target_id:          str
-    emotion_tag:        str
-    day:                int
-    importance:         float       # 0.0–1.0, затухает со временем
-    clarity:            float = 1.0 # насколько чётко NPC воспринял событие
-    confidence:         float = 1.0 # уверенность в деталях (снижается при drift)
-    decay_rate:         float = 0.05  # потеря importance за тик
-    stage:              MemoryStage = MemoryStage.FRESH
-    sequence_id:        int = 0
-    summary:            str = ""    # R1: текст "игрок избил Люсю кулаками"
-    npc_id:             str = ""    # R1: какой NPC это запоминает
+
+    event_type: str
+    target_id: str
+    emotion_tag: str
+    day: int
+    importance: float  # 0.0–1.0, затухает со временем
+    clarity: float = 1.0  # насколько чётко NPC воспринял событие
+    confidence: float = 1.0  # уверенность в деталях (снижается при drift)
+    decay_rate: float = 0.05  # потеря importance за тик
+    stage: MemoryStage = MemoryStage.FRESH
+    sequence_id: int = 0
+    summary: str = ""  # R1: текст "игрок избил Люсю кулаками"
+    npc_id: str = ""  # R1: какой NPC это запоминает
 
     # Фаза 0: Theatre — поля для origin_events и секретов
-    tags:                Tuple[str, ...] = ()   # для триггерного поиска (immutable для frozen)
-    is_secret:           bool = False
-    known_by:            Tuple[str, ...] = ()   # кто знает (immutable для frozen)
-    hidden_from:         Tuple[str, ...] = ()   # от кого скрыто (immutable для frozen)
-    accessibility:       float = 1.0            # 0..1, падает со временем отдельно от importance
+    tags: Tuple[str, ...] = ()  # для триггерного поиска (immutable для frozen)
+    is_secret: bool = False
+    known_by: Tuple[str, ...] = ()  # кто знает (immutable для frozen)
+    hidden_from: Tuple[str, ...] = ()  # от кого скрыто (immutable для frozen)
+    accessibility: float = 1.0  # 0..1, падает со временем отдельно от importance
 
     # Этап 6: контракты и обязательства
-    fulfilled:           bool = False           # обещание выполнено / долг погашен
-    contract_ref:        str = ""               # ID связанного события (promise_given ↔ fulfilled)
+    fulfilled: bool = False  # обещание выполнено / долг погашен
+    contract_ref: str = ""  # ID связанного события (promise_given ↔ fulfilled)
 
     # Этап 9: сжатие
-    is_compressed:       bool = False           # это сжатая абстракция
-    compressed_from:     Tuple[str, ...] = ()   # ID исходных событий (immutable для frozen)
+    is_compressed: bool = False  # это сжатая абстракция
+    compressed_from: Tuple[str, ...] = ()  # ID исходных событий (immutable для frozen)
 
     # R8: субъект действия — онтологическая полнота наблюдения (кто совершил)
-    actor_id:            str  = ""              # event.source при создании; "" если неизвестен
+    actor_id: str = ""  # event.source при создании; "" если неизвестен
 
     def __post_init__(self) -> None:
         # Защита от невалидных значений при загрузке из JSON
-        object.__setattr__(self, "importance",  max(0.0, min(1.0, self.importance)))
-        object.__setattr__(self, "clarity",     max(0.0, min(1.0, self.clarity)))
-        object.__setattr__(self, "confidence",  max(0.0, min(1.0, self.confidence)))
-        object.__setattr__(self, "decay_rate",    max(0.0, min(1.0, self.decay_rate)))
-        object.__setattr__(self, "accessibility", max(0.0, min(1.0, self.accessibility)))
+        object.__setattr__(self, "importance", max(0.0, min(1.0, self.importance)))
+        object.__setattr__(self, "clarity", max(0.0, min(1.0, self.clarity)))
+        object.__setattr__(self, "confidence", max(0.0, min(1.0, self.confidence)))
+        object.__setattr__(self, "decay_rate", max(0.0, min(1.0, self.decay_rate)))
+        object.__setattr__(
+            self, "accessibility", max(0.0, min(1.0, self.accessibility))
+        )
 
     def decayed(self, game_days: float = 1.0) -> "EventMemory":
         """
@@ -236,36 +253,39 @@ class EventMemory:
         # Экспоненциальное затухание важности
         new_importance = self.importance * (_math.exp(-self.decay_rate * game_days))
         # Уверенность снижается медленнее — детали теряются постепенно
-        new_confidence = self.confidence * (_math.exp(-self.decay_rate * 0.5 * game_days))
+        new_confidence = self.confidence * (
+            _math.exp(-self.decay_rate * 0.5 * game_days)
+        )
         # Accessibility падает медленнее importance — вспомнить легче чем оценить значимость
-        new_accessibility = self.accessibility * (_math.exp(-self.decay_rate * 0.3 * game_days))
-        new_stage      = _resolve_stage(new_importance)
+        new_accessibility = self.accessibility * (
+            _math.exp(-self.decay_rate * 0.3 * game_days)
+        )
+        new_stage = _resolve_stage(new_importance)
 
         return EventMemory(
-            event_type     = self.event_type,
-            target_id      = self.target_id,
-            emotion_tag    = self.emotion_tag,
-            day            = self.day,
-            importance     = round(new_importance, 4),
-            clarity        = self.clarity,       # clarity фиксируется в момент восприятия
-            confidence     = round(new_confidence, 4),
-            decay_rate     = self.decay_rate,
-            stage          = new_stage,
-            sequence_id    = self.sequence_id,
-            summary        = self.summary,
-            npc_id         = self.npc_id,
-            tags           = self.tags,
-            is_secret      = self.is_secret,
-            known_by       = self.known_by,
-            hidden_from    = self.hidden_from,
-            accessibility  = round(new_accessibility, 4),
-            fulfilled      = self.fulfilled,
-            contract_ref   = self.contract_ref,
-            is_compressed  = self.is_compressed,
-            compressed_from = self.compressed_from,
-            actor_id        = self.actor_id,
+            event_type=self.event_type,
+            target_id=self.target_id,
+            emotion_tag=self.emotion_tag,
+            day=self.day,
+            importance=round(new_importance, 4),
+            clarity=self.clarity,  # clarity фиксируется в момент восприятия
+            confidence=round(new_confidence, 4),
+            decay_rate=self.decay_rate,
+            stage=new_stage,
+            sequence_id=self.sequence_id,
+            summary=self.summary,
+            npc_id=self.npc_id,
+            tags=self.tags,
+            is_secret=self.is_secret,
+            known_by=self.known_by,
+            hidden_from=self.hidden_from,
+            accessibility=round(new_accessibility, 4),
+            fulfilled=self.fulfilled,
+            contract_ref=self.contract_ref,
+            is_compressed=self.is_compressed,
+            compressed_from=self.compressed_from,
+            actor_id=self.actor_id,
         )
-
 
     def to_identity_weight(self) -> Optional[tuple[str, float]]:
         """
@@ -282,7 +302,6 @@ class EventMemory:
         if any(tag in self.tags for tag in ("gift", "trade", "alliance", "help")):
             return ("dependency", round(self.importance * 0.1, 4))
         return None
-
 
     @property
     def is_forgotten(self) -> bool:
@@ -310,6 +329,7 @@ def _resolve_stage(importance: float) -> MemoryStage:
 # NPCPersonality — static, из JSON, не меняется в сессии
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 @dataclass(frozen=True)
 class NPCPersonality:
     """
@@ -317,13 +337,14 @@ class NPCPersonality:
     DecisionHub использует как контекст, но не мутирует.
     drives_base — веса для формулы score().
     """
-    npc_id:        str
-    tier:          NPCTier
-    drives_base:   Dict[str, float]   # control, significance, fear, desire
-    willpower:     float              # 0–100, сопротивление принуждению
-    breakpoint:    float              # порог стресса для слома воли
-    loyalty_base:  float              # базовая лояльность (не текущая)
-    can_awaken:    bool = False       # может ли Minor стать Major через snapshot
+
+    npc_id: str
+    tier: NPCTier
+    drives_base: Dict[str, float]  # control, significance, fear, desire
+    willpower: float  # 0–100, сопротивление принуждению
+    breakpoint: float  # порог стресса для слома воли
+    loyalty_base: float  # базовая лояльность (не текущая)
+    can_awaken: bool = False  # может ли Minor стать Major через snapshot
 
     # Голос персонажа — static из JSON. Не меняется в сессии.
     # Пример: "Говоришь грубо, коротко. Называешь всех 'парень'. Материшься."
@@ -332,11 +353,11 @@ class NPCPersonality:
     # Биография / backstory — короткие ключевые факты из жизни NPC.
     # Пример: "Жена умерла в войну. Учился у старого кузнеца. Боится собак."
     # Не длинная история, а факты. LLM получает как есть.
-    backstory:     str = ""           # ≤ 200 символов
+    backstory: str = ""  # ≤ 200 символов
 
     # Режиссёрская подсказка — instructions для LLM, не показывается NPC.
     # Пример: "Ты не осознаёшь себя жертвой. Думаешь, что контролируешь ситуацию."
-    author_notes:  str = ""
+    author_notes: str = ""
 
     def __post_init__(self) -> None:
         total = sum(self.drives_base.values())
@@ -348,11 +369,10 @@ class NPCPersonality:
             )
 
 
-
-
 # ═════════════════════════════════════════════════════════
 # L1 — IDENTITY (semi-stable, пишет ТОЛЬКО ResonanceEngine)
 # ═════════════════════════════════════════════════════════
+
 
 @dataclass
 class NPCIdentityL1:
@@ -361,6 +381,7 @@ class NPCIdentityL1:
     Накапливается через ResonanceEngine — не изменяется напрямую.
     Overlay поверх NPCPersonality.drives_base — не замена.
     """
+
     npc_id: str
     # Накопленные черты: ключ = trait_name, значение = накопленный вес
     # Пример: {"resentment": 0.34, "dependency": 0.12}
@@ -388,9 +409,11 @@ class NPCIdentityL1:
 # RoleChangeEntry — запись о смене профессии (ФАЗА 4-ROLE)
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 @dataclass(frozen=True)
 class RoleChangeEntry:
     """Запись о смене роли NPC. Используется в role_history NPCState."""
+
     from_role: str
     to_role: str
     tick: int
@@ -401,6 +424,7 @@ class RoleChangeEntry:
 # TemporaryDrive — временная цель из эмоционального удара (ФАЗА 4-ROLE.2)
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 @dataclass
 class TemporaryDrive:
     """
@@ -409,12 +433,13 @@ class TemporaryDrive:
     Cap: 3 активных drives (старый удаляется по FIFO).
     Затухает по tick_age > MAX_DRIVE_AGE.
     """
-    drive_type: str           # "vengeance", "greed", "desperation", "loyalty_surge"
-    urgency: float            # сила мотивации [0..1], затухает со временем
-    reason: str               # человекочитаемая причина ("Торнин избил Люсю")
-    source_npc_id: str        # кто вызвал (игрок или NPC)
-    tick_born: int            # тик создания
-    tick_age: int = 0         # тиков с создания (инкрементируется в LifeEngine/WorldTick)
+
+    drive_type: str  # "vengeance", "greed", "desperation", "loyalty_surge"
+    urgency: float  # сила мотивации [0..1], затухает со временем
+    reason: str  # человекочитаемая причина ("Торнин избил Люсю")
+    source_npc_id: str  # кто вызвал (игрок или NPC)
+    tick_born: int  # тик создания
+    tick_age: int = 0  # тиков с создания (инкрементируется в LifeEngine/WorldTick)
 
     # Маппинг drive_type → модификаторы intent (для DecisionHub)
     # vengeance → ATTACK+0.3, OBSERVE+0.1
@@ -422,8 +447,9 @@ class TemporaryDrive:
     # desperation → TRADE+0.2, FLEE+0.1
     # loyalty_surge → HELP+0.3, CALL_FOR_HELP+0.2
 
+
 MAX_ACTIVE_DRIVES: int = 3
-MAX_DRIVE_AGE: int = 50      # тиков до автоматического удаления
+MAX_DRIVE_AGE: int = 50  # тиков до автоматического удаления
 
 # Маппинг drive_type → {intent: modifier} (множится на urgency)
 DRIVE_INTENT_MODIFIERS: Dict[str, Dict[str, float]] = {
@@ -494,9 +520,11 @@ def age_drives(drives: List[TemporaryDrive]) -> List[TemporaryDrive]:
 # NPCState — dynamic, единственный изменяемый объект
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 @dataclass
 class PerceptualKernel:
     """Субъективная модель восприятия NPC. Геометрия пространства решений."""
+
     threat_gradient: float = 0.0
     trust_gradient: float = 0.0
     uncertainty: float = 0.0
@@ -504,17 +532,20 @@ class PerceptualKernel:
     last_hostile_direction: Optional[str] = None
     dominant_emotion: Optional[str] = None
     # S28: Топология деформации utility-space (накопленное давление)
-    aggression_inhibition: float = 0.0     # Сдерживание агрессивных векторов
-    initiative_suppression: float = 0.0    # Подавление активных действий (паралич)
-    compliance_bias: float = 0.0           # Смещение в сторону подчинения/approach
+    aggression_inhibition: float = 0.0  # Сдерживание агрессивных векторов
+    initiative_suppression: float = 0.0  # Подавление активных действий (паралич)
+    compliance_bias: float = 0.0  # Смещение в сторону подчинения/approach
     # ADR-O-143: Somatic Axis — воспринимаемый телесный дистресс (§ENIGMA-S72).
     # НЕ raw pain/shock, а их проекция через PerceptualKernel.
     # Модулируется личностью (willpower → somatic_resistance) в affective_integrator.
     # Пересчитывается каждый тик из body_state (производное поле, не аккумулируемое).
-    somatic_urgency: float = 0.0           # (pain_norm + shock_norm) / 2.0
+    somatic_urgency: float = 0.0  # (pain_norm + shock_norm) / 2.0
     # ADR-055: Attention Capture — прерывание когнитивной инерции бытовухи.
     # Не mind-control, а фокус внимания. DecisionHub решает, как реагировать.
-    recent_directive: Optional[Dict[str, Any]] = None # {"source": str, "salience": float, "interrupts_routine": bool}
+    recent_directive: Optional[Dict[str, Any]] = (
+        None  # {"source": str, "salience": float, "interrupts_routine": bool}
+    )
+
 
 @dataclass
 class NPCState:
@@ -522,6 +553,7 @@ class NPCState:
     Динамическое состояние NPC. Источник правды для DecisionHub.
     Изменяется только через StateApplicator — не напрямую.
     """
+
     npc_id: str
     gender: str = "male"  # "male", "female", "other" — копируется из NPCProfileL0
 
@@ -608,11 +640,13 @@ class NPCState:
     # ADR-HP-UNIFICATION: hp/max_hp — deprecated. Canonical source = body_state["current_hp"]
     # и body_state["max_hp"]. Поля оставлены для обратной совместимости со старым
     # combat code, но НЕ должны писаться напрямую. Используйте body_state.
-    hp: int = 0 # deprecated, читается из body_state через effective_hp
-    max_hp: int = 0 # deprecated
+    hp: int = 0  # deprecated, читается из body_state через effective_hp
+    max_hp: int = 0  # deprecated
     conditions: Dict[str, "Condition"] = field(default_factory=dict)
     wounds: List["Wound"] = field(default_factory=list)
-    threat_accumulator: "ThreatAccumulator" = field(default_factory=lambda: ThreatAccumulator())
+    threat_accumulator: "ThreatAccumulator" = field(
+        default_factory=lambda: ThreatAccumulator()
+    )
     posture: str = "standing"  # standing, staggered, prone
 
     @property
@@ -620,22 +654,22 @@ class NPCState:
         """Canonical HP: читает из body_state. ADR-HP-UNIFICATION."""
         if self.body_state and "current_hp" in self.body_state:
             return float(self.body_state["current_hp"])
-        return float(self.hp) # fallback на deprecated поле
+        return float(self.hp)  # fallback на deprecated поле
 
     @property
     def effective_max_hp(self) -> float:
         """Canonical max HP: читает из body_state."""
         if self.body_state and "max_hp" in self.body_state:
             return float(self.body_state["max_hp"])
-        return float(self.max_hp) # fallback
+        return float(self.max_hp)  # fallback
 
     # ── Эмоция (накопительная) ────────────────────────────────────────────────
-    emotion:        EmotionTag = EmotionTag.NEUTRAL
-    emotion_delta:  float      = 0.0
+    emotion: EmotionTag = EmotionTag.NEUTRAL
+    emotion_delta: float = 0.0
 
     # volatile-модификаторы состояния: пишутся StateApplicator, затухают по тикам
     state_modifiers: Dict[str, float] = field(default_factory=dict)
-    
+
     # ADR-O-304: Trait Dynamics — энергия активации черт (гистерезис).
     # Накапливается при получении trait_updates, затухает каждый тик.
     # Если превышает THETA_UP — черта активируется в state_modifiers.
@@ -643,19 +677,21 @@ class NPCState:
     trait_activation: Dict[str, float] = field(default_factory=dict)
 
     # ── Intent ────────────────────────────────────────────────────────────────
-    intent:              Optional[Intent] = None
-    intent_target:       Optional[str]    = None
-    intent_formed_at:    int              = 0
-    intent_duration:     int              = 0   # тиков держится текущий intent
-    intent_progress_ticks: int            = 0   # тиков с реальным прогрессом (значимые дельты)
-    last_intent_change:  int              = 0   # тик последней смены intent
-    pressure_accumulator: Dict[Tuple[str, str], float] = field(default_factory=dict)  # (from, to) → накопленное давление
+    intent: Optional[Intent] = None
+    intent_target: Optional[str] = None
+    intent_formed_at: int = 0
+    intent_duration: int = 0  # тиков держится текущий intent
+    intent_progress_ticks: int = 0  # тиков с реальным прогрессом (значимые дельты)
+    last_intent_change: int = 0  # тик последней смены intent
+    pressure_accumulator: Dict[Tuple[str, str], float] = field(
+        default_factory=dict
+    )  # (from, to) → накопленное давление
 
     # ── Кэш отношений ────────────────────────────────────────────────────────
     relationship_cache: Dict[str, Dict[str, float]] = field(default_factory=dict)
-    cache_timestamp:    int              = 0
+    cache_timestamp: int = 0
 
-# ── Narrative facts (max 2 для LLM) ──────────────────────────────────────
+    # ── Narrative facts (max 2 для LLM) ──────────────────────────────────────
     # Только EventMemory — NarrativeFact удалён в Этапе 2.4.
     # verbalization_context использует getattr для доступа к clarity/confidence.
     narrative_cache: Tuple["EventMemory", ...] = field(default_factory=tuple)
@@ -681,8 +717,12 @@ class NPCState:
 
         self.emotion_delta = max(-100.0, min(100.0, self.emotion_delta))
         if self.intent is not None and self.intent_target is None:
-            if self.intent not in (Intent.IDLE, Intent.OBSERVE, Intent.FLEE,
-                                   Intent.EXPLAIN):
+            if self.intent not in (
+                Intent.IDLE,
+                Intent.OBSERVE,
+                Intent.FLEE,
+                Intent.EXPLAIN,
+            ):
                 raise ValueError(
                     f"NPCState '{self.npc_id}': intent={self.intent} требует intent_target"
                 )
@@ -691,9 +731,9 @@ class NPCState:
 
     def get_top_narrative_facts(self, n: int = 2) -> Tuple[Any, ...]:
         """Top-N фактов по importance."""
-        return tuple(sorted(
-            self.narrative_cache, key=lambda f: f.importance, reverse=True
-        )[:n])
+        return tuple(
+            sorted(self.narrative_cache, key=lambda f: f.importance, reverse=True)[:n]
+        )
 
     def snapshot(self) -> Dict[str, Any]:
         """
@@ -701,37 +741,31 @@ class NPCState:
         Только данные, без методов.
         """
         return {
-            "npc_id":             self.npc_id,
-            "stress":             self.stress,
-
+            "npc_id": self.npc_id,
+            "stress": self.stress,
             # R6.1 — состояние накопленного давления личности
-            "resentment":         self.resentment,
-            "dependency":         self.dependency,
+            "resentment": self.resentment,
+            "dependency": self.dependency,
             "identity_integrity": self.identity_integrity,
             "pressure_resistance": self.pressure_resistance,
-
-            "will_state":         self.will_state.value,
-
+            "will_state": self.will_state.value,
             # R6.2 — поведенческая маска
-            "behavior_mask":      self.behavior_mask.mask.value,
+            "behavior_mask": self.behavior_mask.mask.value,
             "behavior_mask_intensity": self.behavior_mask.intensity,
             "behavior_mask_applied_at_day": self.behavior_mask.applied_at_day,
-            
-            "emotion":            self.emotion.value,
-            "emotion_delta":      self.emotion_delta,
-            "state_modifiers":    Dict[str, Any](self.state_modifiers),
-            "trait_activation":   Dict[str, Any](self.trait_activation),
-            "trauma_markers":     list(self.trauma_markers),
-            "intent":             self.intent.value if self.intent else None,
-            "intent_target":      self.intent_target,
-            "intent_duration":      self.intent_duration,
+            "emotion": self.emotion.value,
+            "emotion_delta": self.emotion_delta,
+            "state_modifiers": Dict[str, Any](self.state_modifiers),
+            "trait_activation": Dict[str, Any](self.trait_activation),
+            "trauma_markers": list(self.trauma_markers),
+            "intent": self.intent.value if self.intent else None,
+            "intent_target": self.intent_target,
+            "intent_duration": self.intent_duration,
             "intent_progress_ticks": self.intent_progress_ticks,
-            "last_intent_change":   self.last_intent_change,
+            "last_intent_change": self.last_intent_change,
             # P1 ARCH: relationship_cache — эфемерный read-cache. НЕ сериализуется.
             # SSOT = RelationshipStore. Персистенция кэша = DOUBLE TRUTH.
         }
-
-
 
     @staticmethod
     def write_to_legacy(state: "NPCState", npc_dict: Dict[str, Any]) -> None:
@@ -741,11 +775,11 @@ class NPCState:
         Мутирует npc_dict (вызывающий должен сохранить через _save_npcs).
         """
         psyche = npc_dict.setdefault("psyche", {})
-        ss     = npc_dict.setdefault("social_stats", {})
+        ss = npc_dict.setdefault("social_stats", {})
 
         # Идентичность — без этого from_legacy в следующем тике получит "unknown"
         npc_dict["npc_id"] = state.npc_id
-        npc_dict["id"]     = state.npc_id
+        npc_dict["id"] = state.npc_id
 
         # ADR-139: drives_runtime → npc_dict["drives"] (serialization mirror).
         # Write authority = state.drives_runtime. npc_dict = projection only.
@@ -758,22 +792,26 @@ class NPCState:
 
         # Физическое состояние (сохраняется между тиками)
         # ADR-HP-UNIFICATION: Пишем канонический HP из body_state.
-        npc_dict["hp"]     = state.effective_hp
+        npc_dict["hp"] = state.effective_hp
         npc_dict["max_hp"] = state.effective_max_hp
 
         # Психика
-        psyche["stress"]       = state.stress
-        psyche["state"]        = state.will_state.value
+        psyche["stress"] = state.stress
+        psyche["state"] = state.will_state.value
         psyche["identity_integrity"] = state.identity_integrity
         psyche["pressure_resistance"] = state.pressure_resistance
-        psyche["trauma_flags"] = list(state.trauma_markers) if isinstance(state.trauma_markers, (set, list, tuple)) else []
+        psyche["trauma_flags"] = (
+            list(state.trauma_markers)
+            if isinstance(state.trauma_markers, (set, list, tuple))
+            else []
+        )
 
         # Социальные статы (из relationship_cache → player entry)
         rc = state.relationship_cache
         _player_rc = rc.get("player", {})
-        ss["trust"]          = _player_rc.get("trust", 0.0)
+        ss["trust"] = _player_rc.get("trust", 0.0)
         ss["fear_of_player"] = _player_rc.get("fear", 0.0)
-        ss["debt"]           = _player_rc.get("debt", 0.0)
+        ss["debt"] = _player_rc.get("debt", 0.0)
 
         # P1 ARCH FIX: НЕ пишем relationship_cache в write_to_legacy.
         # SSOT = RelationshipStore. Персистенция кэша = DOUBLE TRUTH.
@@ -796,7 +834,9 @@ class NPCState:
 
         # causal_ledger — сериализация для God Mode и persistence
         if state.causal_ledger:
-            npc_dict["causal_ledger"] = [entry.to_dict() for entry in state.causal_ledger]
+            npc_dict["causal_ledger"] = [
+                entry.to_dict() for entry in state.causal_ledger
+            ]
 
         # body_state — ВСЯ физиология (pain, blood_loss, shock_impulse, injuries, statuses)
         # ADR-124 / Rule 44: Пишем ВСЕГДА когда body_state не None.
@@ -840,9 +880,10 @@ class NPCState:
 # NPCStateAdapter — миграция без большого взрыва
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def _pk_from_dict(pk_dict: Dict[str, Any]) -> PerceptualKernel:
     """Создаёт PerceptualKernel из сериализованного dict.
-    
+
     Без этого from_legacy() создаёт ядро с нулями → DOUBLE TRUTH.
     """
     if not pk_dict:
@@ -864,17 +905,17 @@ def _pk_from_dict(pk_dict: Dict[str, Any]) -> PerceptualKernel:
 
 def _emotion_from_str(tag_str: str) -> EmotionTag:
     """Безопасная конвертация строки в EmotionTag.
-    
+
     Маппит теги из affective pipeline ("fear", "panic", "rage", "anxious", "confusion")
     в canonical EmotionTag values ("fearful", "angry", "suspicious").
     Без этого строковые теги ломают _emotion_modifier() — str не имеет .value.
     """
     _PIPELINE_TO_CANONICAL = {
-        "fear":      "fearful",
-        "panic":     "fearful",
-        "anxious":   "suspicious",
+        "fear": "fearful",
+        "panic": "fearful",
+        "anxious": "suspicious",
         "confusion": "suspicious",
-        "rage":      "angry",
+        "rage": "angry",
     }
     canonical = _PIPELINE_TO_CANONICAL.get(tag_str, tag_str)
     try:
@@ -894,17 +935,25 @@ class NPCStateAdapter:
     def from_legacy(npc_dict: Dict[str, Any]) -> NPCState:
         """Создаёт NPCState из legacy npc dict."""
         psyche = npc_dict.get("psyche", {})
-        ss     = npc_dict.get("social_stats", {})
+        ss = npc_dict.get("social_stats", {})
 
         # ADR-139: drives_runtime — Restore Gate (Single Write Authority).
         # Вычисляем ДО return — нельзя присваивать внутри аргументов вызова.
         # Spawn: npc_dict["drives"] → state.drives_runtime.
         # Если drives отсутствуют — fallback на defaults (как personality_from_legacy).
         import math as _math
-        _drives_raw = dict(npc_dict.get("drives", {
-            "control": 0.25, "significance": 0.25,
-            "fear": 0.25,    "desire": 0.25,
-        }))
+
+        _drives_raw = dict(
+            npc_dict.get(
+                "drives",
+                {
+                    "control": 0.25,
+                    "significance": 0.25,
+                    "fear": 0.25,
+                    "desire": 0.25,
+                },
+            )
+        )
         # Restore Gate: нормализация при загрузке из persistence
         if _drives_raw:
             _total = sum(_drives_raw.values())
@@ -918,45 +967,46 @@ class NPCStateAdapter:
                     _drives_raw[_dk] = max(0.01, min(1.0, _dv))
 
         return NPCState(
-            npc_id            = npc_dict.get("npc_id", npc_dict.get("id", "unknown")),
-            stress            = float(psyche.get("stress", 0)),
-            drives_runtime    = _drives_raw,
+            npc_id=npc_dict.get("npc_id", npc_dict.get("id", "unknown")),
+            stress=float(psyche.get("stress", 0)),
+            drives_runtime=_drives_raw,
             # R6.1/R6.4 — новые параметры личности (если отсутствуют — дефолты)
-            resentment        = float(psyche.get("resentment", 0.0)),
-            dependency        = float(psyche.get("dependency", 0.0)),
-            identity_integrity = float(psyche.get("identity_integrity", 1.0)),
-            pressure_resistance = float(psyche.get("pressure_resistance", 0.0)),
-
-            will_state        = WillState(psyche.get("state", "free")),
-            trauma_markers    = set(psyche.get("trauma_flags", [])),
+            resentment=float(psyche.get("resentment", 0.0)),
+            dependency=float(psyche.get("dependency", 0.0)),
+            identity_integrity=float(psyche.get("identity_integrity", 1.0)),
+            pressure_resistance=float(psyche.get("pressure_resistance", 0.0)),
+            will_state=WillState(psyche.get("state", "free")),
+            trauma_markers=set(psyche.get("trauma_flags", [])),
             # P1 ARCH FIX: relationship_cache — эфемерный read-cache.
             # НЕ восстанавливаем из персистенса. SSOT = RelationshipStore.
             # Заполняется на этапе обогащения в tick_orchestrator / npc_tick_pipeline.
-            relationship_cache = {},
-            causal_ledger = [
+            relationship_cache={},
+            causal_ledger=[
                 CausalEntry.from_dict(e) for e in npc_dict.get("causal_ledger", [])
             ],
             # body_state — физиология (pain, blood_loss, shock_impulse, injuries, statuses)
             # Без этого state.body_state всегда пустой → StateApplicator пересоздаёт его каждый раз
-            body_state = dict(npc_dict.get("body_state", {})),
+            body_state=dict(npc_dict.get("body_state", {})),
             # perceptual_kernel — восстановление из dict (ADR-O)
             # Без этого threat_gradient/initiative_suppression = 0.0 каждый тик
-            perceptual_kernel = _pk_from_dict(npc_dict.get("perceptual_kernel", {})),
+            perceptual_kernel=_pk_from_dict(npc_dict.get("perceptual_kernel", {})),
             # affective_load — восстановление интеграла давления (ADR-049)
-            affective_load = float(npc_dict.get("affective_load", 0.0)),
+            affective_load=float(npc_dict.get("affective_load", 0.0)),
             # affective_memory — восстановление ожидания угрозы (SEL Baseline)
-            affective_memory = float(npc_dict.get("affective_memory", 0.0)),
+            affective_memory=float(npc_dict.get("affective_memory", 0.0)),
             # social_input_ema — восстановление поля социального давления
-            social_input_ema = float(npc_dict.get("social_input_ema", 0.0)),
+            social_input_ema=float(npc_dict.get("social_input_ema", 0.0)),
             # emotion — восстановление текущей эмоции (ADR-116)
             # Без этого emotion = NEUTRAL каждый тик → _emotion_modifier() = 0.0
-            emotion = _emotion_from_str(npc_dict.get("emotion", "neutral")),
-            emotion_delta = float(npc_dict.get("emotion_delta", 0.0)),
+            emotion=_emotion_from_str(npc_dict.get("emotion", "neutral")),
+            emotion_delta=float(npc_dict.get("emotion_delta", 0.0)),
         )
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # NPCPersonality builder — из legacy dict
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def personality_from_legacy(npc_dict: Dict[str, Any]) -> NPCPersonality:
     """Создаёт frozen NPCPersonality из legacy npc dict."""
@@ -968,19 +1018,26 @@ def personality_from_legacy(npc_dict: Dict[str, Any]) -> NPCPersonality:
         tier = NPCTier.MAJOR
 
     return NPCPersonality(
-        npc_id        = npc_dict.get("npc_id", npc_dict.get("id", "unknown")),
-        tier          = tier,
-        drives_base   = dict(npc_dict.get("drives", {
-            "control": 0.25, "significance": 0.25,
-            "fear": 0.25,    "desire": 0.25,
-        })),
-        willpower     = float(psyche.get("willpower", 50)),
-        breakpoint    = float(psyche.get("breakpoint", 80)),
-        loyalty_base  = float(psyche.get("loyalty_true", 50)),
-        can_awaken    = bool(npc_dict.get("can_awaken", False)),
-        voice_profile = npc_dict.get("voice_profile", ""),
-        backstory     = npc_dict.get("backstory", ""),
-        author_notes  = npc_dict.get("author_notes", ""),
+        npc_id=npc_dict.get("npc_id", npc_dict.get("id", "unknown")),
+        tier=tier,
+        drives_base=dict(
+            npc_dict.get(
+                "drives",
+                {
+                    "control": 0.25,
+                    "significance": 0.25,
+                    "fear": 0.25,
+                    "desire": 0.25,
+                },
+            )
+        ),
+        willpower=float(psyche.get("willpower", 50)),
+        breakpoint=float(psyche.get("breakpoint", 80)),
+        loyalty_base=float(psyche.get("loyalty_true", 50)),
+        can_awaken=bool(npc_dict.get("can_awaken", False)),
+        voice_profile=npc_dict.get("voice_profile", ""),
+        backstory=npc_dict.get("backstory", ""),
+        author_notes=npc_dict.get("author_notes", ""),
     )
 
 
@@ -989,6 +1046,7 @@ def personality_from_legacy(npc_dict: Dict[str, Any]) -> NPCPersonality:
 # Только этот объект передаётся в compute() — не сырые L0/L1/L2
 # ═════════════════════════════════════════════════════════
 
+
 @dataclass(frozen=True)
 class DecisionView:
     """
@@ -996,9 +1054,10 @@ class DecisionView:
     Изолирует ядро решений от прямого доступа к L0/L1/L2.
     Создаётся в game_loop / dm_orchestrator перед вызовом compute().
     """
-    profile:  NPCPersonality   # L0 — неизменяемая личность
-    identity: NPCIdentityL1    # L1 — накопленные черты
-    state:    NPCState         # L2 — текущее состояние
+
+    profile: NPCPersonality  # L0 — неизменяемая личность
+    identity: NPCIdentityL1  # L1 — накопленные черты
+    state: NPCState  # L2 — текущее состояние
 
 
 # ═════════════════════════════════════════════════════════

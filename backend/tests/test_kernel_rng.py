@@ -7,6 +7,7 @@ path: backend/tests/test_kernel_rng.py
 
 Запуск: cd backend; python -m pytest tests/test_kernel_rng.py -v; cd ..
 """
+
 import pytest
 from app.services.npc.kernel_rng import KernelRNG
 

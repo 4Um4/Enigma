@@ -11,9 +11,14 @@ path: /backend/app/services/player_cognition/interpretation_layer.py
 Зависимости: types (Inference, InferenceTier, PerceivedEntity)
 Основные сущности: apply_interpretation()
 """
+
 from typing import List
 
-from app.services.player_cognition.types import Inference, InferenceTier, PerceivedEntity
+from app.services.player_cognition.types import (
+    Inference,
+    InferenceTier,
+    PerceivedEntity,
+)
 
 
 # === Tier 1: Physical inference ===
@@ -139,7 +144,12 @@ _TIER2_RULES: List[dict] = [
     },
     {
         "required_types": {"armed"},
-        "missing_types": {"communication", "friendly_action", "working", "routine_activity"},
+        "missing_types": {
+            "communication",
+            "friendly_action",
+            "working",
+            "routine_activity",
+        },
         "inference_type": "potentially_hostile",
         "confidence": 0.35,
     },
@@ -157,12 +167,14 @@ def _apply_tier1(entity: PerceivedEntity) -> List[Inference]:
     for rule in _TIER1_RULES:
         if activity == rule["activity"]:
             observations.append(rule["observation"])
-            inferences.append(Inference(
-                inference_type=rule["inference_type"],
-                tier=InferenceTier.PHYSICAL,
-                confidence=rule["confidence"],
-                source_observations=[rule["observation"]],
-            ))
+            inferences.append(
+                Inference(
+                    inference_type=rule["inference_type"],
+                    tier=InferenceTier.PHYSICAL,
+                    confidence=rule["confidence"],
+                    source_observations=[rule["observation"]],
+                )
+            )
             break  # одно activity — одно правило
 
     # По visible_markers
@@ -171,12 +183,14 @@ def _apply_tier1(entity: PerceivedEntity) -> List[Inference]:
         for rule in _MARKER_TIER1:
             if marker == rule["marker"]:
                 observations.append(rule["observation"])
-                inferences.append(Inference(
-                    inference_type=rule["inference_type"],
-                    tier=InferenceTier.PHYSICAL,
-                    confidence=rule["confidence"],
-                    source_observations=[rule["observation"]],
-                ))
+                inferences.append(
+                    Inference(
+                        inference_type=rule["inference_type"],
+                        tier=InferenceTier.PHYSICAL,
+                        confidence=rule["confidence"],
+                        source_observations=[rule["observation"]],
+                    )
+                )
 
     entity.observations = observations
     return inferences
@@ -224,14 +238,20 @@ def _apply_tier2(
         confidence = max(0.0, min(1.0, confidence))
 
         # Собираем source_observations из Tier 1
-        source = [inf.source_observations[0] for inf in entity.inferences if inf.tier == InferenceTier.PHYSICAL]
+        source = [
+            inf.source_observations[0]
+            for inf in entity.inferences
+            if inf.tier == InferenceTier.PHYSICAL
+        ]
 
-        inferences.append(Inference(
-            inference_type=rule["inference_type"],
-            tier=InferenceTier.BEHAVIORAL,
-            confidence=confidence,
-            source_observations=source,
-        ))
+        inferences.append(
+            Inference(
+                inference_type=rule["inference_type"],
+                tier=InferenceTier.BEHAVIORAL,
+                confidence=confidence,
+                source_observations=source,
+            )
+        )
 
     return inferences
 

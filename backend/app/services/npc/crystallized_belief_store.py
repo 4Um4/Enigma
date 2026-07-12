@@ -5,15 +5,17 @@ path: backend/app/services/npc/crystallized_belief_store.py
 Основные сущности: CrystallizedBeliefStore
 """
 
-from typing import Dict, List
+from typing import Any, Dict, List
 from app.domain.identity_events import CrystallizedBelief
+
 
 class CrystallizedBeliefStore:
     """
     Хранилище убеждений, кристаллизованных BeliefCrystallizationEngine.
-    
+
     ADR-O-305: Разделено от BeliefState (R7/R8), чтобы избежать DOUBLE TRUTH.
     """
+
     def __init__(self):
         self._beliefs: Dict[str, List[CrystallizedBelief]] = {}
 

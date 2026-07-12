@@ -29,10 +29,10 @@ from typing import Optional, Tuple, Dict
 logger = logging.getLogger(__name__)
 
 # RTX 3070 Ti — 8192 MB
-TOTAL_VRAM_MB     = 8192
+TOTAL_VRAM_MB = 8192
 # Буфер безопасности: не занимаем последние 800 MB
-SAFETY_BUFFER_MB  = 800
-USABLE_VRAM_MB    = TOTAL_VRAM_MB - SAFETY_BUFFER_MB  # 7392 MB
+SAFETY_BUFFER_MB = 800
+USABLE_VRAM_MB = TOTAL_VRAM_MB - SAFETY_BUFFER_MB  # 7392 MB
 # Порог утечки
 LEAK_THRESHOLD_MB = 150  # не 100 — llama.cpp иногда даёт +80 MB за страницу
 
@@ -80,14 +80,16 @@ class VRAMMonitor:
             if not self._baseline_set:
                 self._session_start_vram = vram_mb
                 self._baseline_set = True
-                logger.info(
-                    f"[VRAM_MONITOR] Baseline auto-set: {vram_mb} MB"
-                )
+                logger.info(f"[VRAM_MONITOR] Baseline auto-set: {vram_mb} MB")
 
             return vram_mb
 
-        except (subprocess.CalledProcessError, ValueError,
-                FileNotFoundError, subprocess.TimeoutExpired) as e:
+        except (
+            subprocess.CalledProcessError,
+            ValueError,
+            FileNotFoundError,
+            subprocess.TimeoutExpired,
+        ) as e:
             logger.debug(f"nvidia-smi unavailable → VRAM=0 (CPU mode): {e}")
             return 0
 
@@ -101,8 +103,8 @@ class VRAMMonitor:
         Returns: (vram_after_mb, delta_mb, leak_detected)
         """
         vram_after = await self.get_vram_mb()
-        baseline   = self._session_start_vram or 0
-        delta_mb   = vram_after - baseline
+        baseline = self._session_start_vram or 0
+        delta_mb = vram_after - baseline
 
         leak_detected = delta_mb > TOTAL_VRAM_MB * 0.75  # > 75% — реальная утечка
         if leak_detected:
@@ -122,9 +124,7 @@ class VRAMMonitor:
         """Устанавливает baseline для сессии."""
         self._session_start_vram = initial_vram or await self.get_vram_mb()
         self._baseline_set = True
-        logger.info(
-            f"[VRAM_SESSION] Started: baseline={self._session_start_vram}MB"
-        )
+        logger.info(f"[VRAM_SESSION] Started: baseline={self._session_start_vram}MB")
 
     def get_vram_budget(self) -> dict:
         """
@@ -132,10 +132,10 @@ class VRAMMonitor:
         Используется для принятия решений о загрузке модели.
         """
         return {
-            "total_mb":       TOTAL_VRAM_MB,
-            "usable_mb":      USABLE_VRAM_MB,
-            "safety_buffer":  SAFETY_BUFFER_MB,
-            "baseline_mb":    self._session_start_vram or 0,
+            "total_mb": TOTAL_VRAM_MB,
+            "usable_mb": USABLE_VRAM_MB,
+            "safety_buffer": SAFETY_BUFFER_MB,
+            "baseline_mb": self._session_start_vram or 0,
         }
 
     def is_safe_to_load(self, model_vram_mb: int, current_used_mb: int = 0) -> bool:
@@ -154,28 +154,26 @@ class VRAMMonitor:
             )
         return safe
 
-    async def check_session_leak(
-        self, baseline: int
-    ) -> Tuple[int, bool]:
+    async def check_session_leak(self, baseline: int) -> Tuple[int, bool]:
         current = await self.get_vram_mb()
         leak = current - baseline
         return leak, leak > LEAK_THRESHOLD_MB
 
     async def get_dashboard(self) -> Dict:
         """Данные для /debug/vram endpoint."""
-        current  = await self.get_vram_mb()
+        current = await self.get_vram_mb()
         baseline = self._session_start_vram or 0
         session_leak, leaked = await self.check_session_leak(baseline)
-        free_mb  = max(0, TOTAL_VRAM_MB - current)
+        free_mb = max(0, TOTAL_VRAM_MB - current)
         return {
-            "current_vram_mb":    current,
-            "free_vram_mb":       free_mb,
+            "current_vram_mb": current,
+            "free_vram_mb": free_mb,
             "session_baseline_mb": baseline,
-            "session_leak_mb":    session_leak,
-            "leak_alert":         leaked,
-            "usable_vram_mb":     USABLE_VRAM_MB,
-            "vram_percent":       round(current / TOTAL_VRAM_MB * 100, 1),
-            "timestamp":          time.time(),
+            "session_leak_mb": session_leak,
+            "leak_alert": leaked,
+            "usable_vram_mb": USABLE_VRAM_MB,
+            "vram_percent": round(current / TOTAL_VRAM_MB * 100, 1),
+            "timestamp": time.time(),
         }
 
 

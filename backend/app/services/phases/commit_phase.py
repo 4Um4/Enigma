@@ -15,22 +15,22 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 
-def execute_persistence(
-    ctx: Any,
-    orchestrator: Any,
-    is_player_turn: bool
-) -> None:
+def execute_persistence(ctx: Any, orchestrator: Any, is_player_turn: bool) -> None:
     """Выполняет атомарный коммит состояния (idle и player path).
-    
+
     Объединяет логику _phase_10_persistence и _phase_10_player_persistence.
     """
     # DRF Observer: Схлопываем поле причинных напряжений ПЕРЕД коммитом
-    logger.debug(f"[DRF_DRAIN_BUS] bus_id={id(ctx.drf_bus)} stream_size={len(ctx.drf_bus.stream)}")
+    logger.debug(
+        f"[DRF_DRAIN_BUS] bus_id={id(ctx.drf_bus)} stream_size={len(ctx.drf_bus.stream)}"
+    )
     _claims = ctx.drf_bus.drain()
     if _claims:
         _npc_claims = defaultdict(list)
         for c in _claims:
-            _npc_claims[c.get("target_npc", c.get("npc_id", "unknown"))].append(f"{c.get('pressure_type', '?')}:{c.get('vector', '?')}({c.get('energy', 0.0):.1f})")
+            _npc_claims[c.get("target_npc", c.get("npc_id", "unknown"))].append(
+                f"{c.get('pressure_type', '?')}:{c.get('vector', '?')}({c.get('energy', 0.0):.1f})"
+            )
         for npc, claims_str in _npc_claims.items():
             logger.debug(f"[DRF_FIELD] npc={npc} pressures={claims_str}")
 
@@ -50,6 +50,7 @@ def execute_persistence(
     # Flush: применяем остатки дельт
     if ctx.delta_buffer:
         from app.services.tick_utils import aggregate_deltas
+
         _aggregated = aggregate_deltas(ctx.delta_buffer)
         if _aggregated and orchestrator._state_applicator:
             orchestrator._state_applicator.apply_batch(
@@ -72,7 +73,9 @@ def execute_persistence(
     if is_player_turn:
         # RCG: Flush scene_changes buffer through apply_changes before commit
         if ctx.scene_changes and orchestrator._scene_manager:
-            orchestrator._scene_manager.apply_changes(ctx.campaign_id, ctx.scene_changes, ctx.shared_context.scene_state)
+            orchestrator._scene_manager.apply_changes(
+                ctx.campaign_id, ctx.scene_changes, ctx.shared_context.scene_state
+            )
             ctx.scene_changes.clear()
 
         if ctx.dirty_npcs or ctx.wt_dirty or ctx.prop_dirty:
@@ -89,7 +92,7 @@ def execute_persistence(
             if ctx.prop_dirty:
                 _sources.append("social")
             logger.warning(f"[COMMIT] single commit: {', '.join(_sources)}")
-            
+
         # ADR-117: Синхронизация LifeEngine кэша с мутированными данными.
         if ctx.all_npcs_raw:
             engine = orchestrator._get_life_engine()
@@ -105,7 +108,9 @@ def execute_persistence(
 
         # RCG: Flush scene_changes buffer through apply_changes before commit
         if ctx.scene_changes and orchestrator._scene_manager:
-            orchestrator._scene_manager.apply_changes(ctx.campaign_id, ctx.scene_changes, ctx.scene_state)
+            orchestrator._scene_manager.apply_changes(
+                ctx.campaign_id, ctx.scene_changes, ctx.scene_state
+            )
             ctx.scene_changes.clear()
 
         saved = orchestrator._scene_manager.commit(

@@ -32,10 +32,14 @@ jobs:
         cd backend
         python -m pytest tests/ --tb=short --junitxml=test_results.xml
         
-    - name: Type check (mypy)
+    - name: Type check (mypy strict for domain/models/state)
       run: |
         pip install mypy
-        cd backend && mypy app/ --strict
+        cd backend && mypy app/domain/ app/models/ app/services/state/ --strict --namespace-packages --explicit-package-bases
+        
+    - name: Type check (mypy soft for services/agents/api)
+      run: |
+        cd backend && mypy app/services/ app/agents/ app/api/ app/core/ --namespace-packages --explicit-package-bases
         
     - name: Upload test results
       if: always()

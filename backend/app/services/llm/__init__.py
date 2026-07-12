@@ -21,12 +21,23 @@ Providers (replaceable modules):
 - MockProvider: заглушка для прототипирования
 """
 
-from app.services.llm.provider import LlmProvider, GenerationParams, ProviderInfo, ProviderType, StreamingLlmProvider
-from app.services.llm.router import ModelRouter, Capability, get_router, initialize_router
+from app.services.llm.provider import (
+    LlmProvider,
+    GenerationParams,
+    ProviderInfo,
+    ProviderType,
+    StreamingLlmProvider,
+)
+from app.services.llm.router import (
+    ModelRouter,
+    Capability,
+    get_router,
+    initialize_router,
+)
 from app.services.llm.factory import get_provider, ProviderFactory
 from app.services.llm.provider_manager import (
-    ProviderManager, 
-    get_provider_manager, 
+    ProviderManager,
+    get_provider_manager,
     initialize_providers,
     ModelPool,
     get_model_pool,
@@ -37,24 +48,30 @@ from app.services.llm.provider_manager import (
 )
 
 # Конкретные провайдеры — доступны для явного импорта при необходимости
-from app.services.llm.llama_cpp_provider import LlamaCppProvider, create_llama_cpp_provider
+from app.services.llm.llama_cpp_provider import (
+    LlamaCppProvider,
+    create_llama_cpp_provider,
+)
+
 # C5-FIX: Удалены импорты мёртвых провайдеров
-from app.services.llm.mock_provider import MockProvider, MockConfig, create_mock_provider
+from app.services.llm.mock_provider import (
+    MockProvider,
+    MockConfig,
+    create_mock_provider,
+)
 
 __all__ = [
     # Core interfaces
     "LlmProvider",
     "StreamingLlmProvider",
-    "GenerationParams", 
+    "GenerationParams",
     "ProviderInfo",
     "ProviderType",
-    
     # Router
     "ModelRouter",
     "Capability",
     "get_router",
     "initialize_router",
-    
     # Model Pool (Lazy Loading)
     "ModelPool",
     "get_model_pool",
@@ -62,16 +79,13 @@ __all__ = [
     "ModelMetrics",
     "ModelConfig",
     "ProviderStatus",
-    
     # Provider management (legacy)
     "ProviderManager",
-    "get_provider_manager", 
+    "get_provider_manager",
     "initialize_providers",
-    
     # Factory
     "get_provider",
     "ProviderFactory",
-    
     # Concrete providers (replaceable)
     "LlamaCppProvider",
     "create_llama_cpp_provider",
@@ -80,4 +94,3 @@ __all__ = [
     "MockConfig",
     "create_mock_provider",
 ]
-

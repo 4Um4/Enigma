@@ -15,12 +15,11 @@ TODO:
 - в будущем можно добавить отдельные контракты для разных типов idle-обработчиков (например, для репутационного дрейфа, для социальных связей и т.д.), чтобы обеспечить более строгую типизацию и ясность в коде. Но на начальном этапе достаточно общего протокола IdleTickHandler, который может обрабатывать любые аспекты NPC state, не мутируя исходные данные и возвращая дельты для применения. Это позволит нам гибко добавлять новые механики в фазу 0.5 без необходимости менять контракт каждого обработчика.
 - важно, что эти обработчики не мутируют all_npcs_raw, а возвращают List[StateDeltas], который оркестратор применяет через StateApplicator.apply_batch(). Это обеспечивает чистоту данных и предсказуемость изменений в NPC state, а также позволяет легко отслеживать и логировать изменения, вызванные каждым обработчиком.
 """
-
 from __future__ import annotations
 
+
 import logging
-import math
-from typing import Any, Dict, List
+from typing import Dict, Any, List
 
 from app.models.idle_tick import NPCStateSnapshot
 from app.models.state_delta import DeltaDomain, SocialPayload, StateDeltas
@@ -28,17 +27,18 @@ from app.models.state_delta import DeltaDomain, SocialPayload, StateDeltas
 logger = logging.getLogger(__name__)
 
 # --- Константы дрейфа ---
-SOCIAL_DECAY_RATE: float = 0.01      # 1% дрейфа за тик к базовому значению
+SOCIAL_DECAY_RATE: float = 0.01  # 1% дрейфа за тик к базовому значению
 SOCIAL_DECAY_EPSILON: float = 0.001  # порог closing drift
 
 
 class SocialDecayHandler:
     """Дрейф trust/affection → base значения.
-    
+
     Для каждого NPC: перебирает relationship_cache,
     вычисляет (base - current) * RATE,
     возвращает StateDeltas с social_target.
     """
+
     name: str = "social_decay"
 
     def handle(
@@ -87,21 +87,23 @@ class SocialDecayHandler:
                 if abs(trust_drift) < 1e-9 and abs(fear_drift) < 1e-9:
                     continue
 
-                results.append(StateDeltas(
-                    npc_id=npc_id,
-                    # v1 backward compat
-                    social_target=target,
-                    trust_delta=round(trust_drift, 6),
-                    fear_delta=round(fear_drift, 6),
-                    # v2 domain-tagged payload
-                    domain=DeltaDomain.SOCIAL,
-                    target=target,
-                    payload=SocialPayload(
+                results.append(
+                    StateDeltas(
+                        npc_id=npc_id,
+                        # v1 backward compat
+                        social_target=target,
                         trust_delta=round(trust_drift, 6),
                         fear_delta=round(fear_drift, 6),
-                    ),
-                    source="social_decay",
-                ))
+                        # v2 domain-tagged payload
+                        domain=DeltaDomain.SOCIAL,
+                        target=target,
+                        payload=SocialPayload(
+                            trust_delta=round(trust_drift, 6),
+                            fear_delta=round(fear_drift, 6),
+                        ),
+                        source="social_decay",
+                    )
+                )
 
         if results:
             logger.debug(

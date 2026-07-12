@@ -1,3 +1,4 @@
+from __future__ import annotations
 # backend/app/services/events/reaction_subscriber.py
 """
 Phase 8: ReactionSubscriber — эмоциональные реакции наблюдателей на события.
@@ -28,16 +29,20 @@ TODO:
 - протестировать на реальных событиях из игры и отладить формулы, чтобы реакции были заметными, но не чрезмерными.
 """
 
-from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Optional, Set
+from typing import Dict, Any, List, Optional
 
 from app.domain.constants import ACTION_INTENSITY
 from app.domain.events import EventDTO
 from app.models.phase8 import Phase8Context, Phase8Result
 from app.models.state_delta import DeltaDomain, StateDeltas
-from app.models.delta_payloads import EmotionPayload, PerceptionPayload, PhysiologyPayload, SocialPayload
+from app.models.delta_payloads import (
+    EmotionPayload,
+    PerceptionPayload,
+    PhysiologyPayload,
+    SocialPayload,
+)
 from app.services.events.event_bus import EventBus
 from app.services.events.event_types import EventType
 
@@ -64,19 +69,19 @@ _REACTION_EVENT_TYPES: list[EventType] = [
 # fear_base: изменение страха для среднего наблюдателя
 # trust_actor_base: изменение доверия к источнику события (отрицательное = потеря)
 _REACTION_RULES: dict[str, tuple[float, float, float]] = {
-    "player_attacks":            (15.0, 10.0,  -8.0),
-    "player_attack":             (15.0, 10.0,  -8.0),
-    "player_attacked":           (20.0, 15.0, -12.0),
-    "player_threatens":          (10.0,  8.0,  -4.0),
-    "player_threatens_indirect": ( 7.0,  5.0,  -2.0),
-    "player_insults":            ( 5.0,  2.0,  -3.0),
-    "combat":                    (18.0, 12.0,  -6.0),
-    "theft":                     ( 8.0,  3.0,  -7.0),
-    "intimidation":             (12.0, 10.0,  -3.0),
-    "betrayal":                 (15.0,  8.0, -12.0),
-    "help":                     ( -3.0,  0.0,   5.0),
-    "saved_life":               ( -5.0, -3.0,  10.0),
-    "object_destroyed":         (  5.0,  3.0,   0.0),
+    "player_attacks": (15.0, 10.0, -8.0),
+    "player_attack": (15.0, 10.0, -8.0),
+    "player_attacked": (20.0, 15.0, -12.0),
+    "player_threatens": (10.0, 8.0, -4.0),
+    "player_threatens_indirect": (7.0, 5.0, -2.0),
+    "player_insults": (5.0, 2.0, -3.0),
+    "combat": (18.0, 12.0, -6.0),
+    "theft": (8.0, 3.0, -7.0),
+    "intimidation": (12.0, 10.0, -3.0),
+    "betrayal": (15.0, 8.0, -12.0),
+    "help": (-3.0, 0.0, 5.0),
+    "saved_life": (-5.0, -3.0, 10.0),
+    "object_destroyed": (5.0, 3.0, 0.0),
 }
 
 
@@ -88,7 +93,7 @@ def _get_event_intensity(event: EventDTO) -> float:
     return ACTION_INTENSITY.get(event.type.lower(), 0.2)
 
 
-def _compute_reaction_modifier(npc_dict: dict) -> float:
+def _compute_reaction_modifier(npc_dict: Dict[str, Any]) -> float:
     """Модификатор реакции на основе личности NPC.
 
     Average NPC (stress=50, fear=0.25, willpower=50) → modifier ≈ 0.5
@@ -114,7 +119,7 @@ def _compute_reaction_modifier(npc_dict: dict) -> float:
     return composure_factor * fear_factor * willpower_factor
 
 
-def _is_npc_source(source: str, all_npcs_raw: list) -> bool:
+def _is_npc_source(source: str, all_npcs_raw: List[Any]) -> bool:
     """Определяет, является ли источник события NPC (а не игроком)."""
     for npc in all_npcs_raw:
         npc_id = npc.get("id") or npc.get("npc_id")
@@ -144,7 +149,7 @@ class ReactionSubscriber:
         for et in _REACTION_EVENT_TYPES:
             self._event_bus.subscribe(et, self._on_event)
 
-    def _on_event(self, event: EventDTO) -> Optional[dict]:
+    def _on_event(self, event: EventDTO) -> Optional[Dict[str, Any]]:
         """EventHandler: накапливает событие для обработки на Фазе 8."""
         self._pending_events.append(event)
         return None
@@ -175,25 +180,39 @@ class ReactionSubscriber:
         PerceptionSubscriber) или fallback на всех NPC.
         """
         if not events:
-            logger.warning(f"[REACTION_SUB] handle() called with 0 events — no emotional reactions this tick")
+            logger.warning(
+                "[REACTION_SUB] handle() called with 0 events — no emotional reactions this tick"
+            )
             return Phase8Result()
-        
-        logger.warning(f"[REACTION_SUB] handle() called with {len(events)} events types={[getattr(e, 'type', '?') for e in events[:3]]}")
+
+        logger.warning(
+            f"[REACTION_SUB] handle() called with {len(events)} events types={[getattr(e, 'type', '?') for e in events[:3]]}"
+        )
 
         # Извлекаем физический шок из материализованного Physical Layer (t)
         shock_by_npc: dict[str, float] = {}
         for delta in ctx.physical_deltas_materialized:
-            if delta.npc_id and delta.domain == DeltaDomain.PHYSIOLOGY and isinstance(delta.payload, PhysiologyPayload):
+            if (
+                delta.npc_id
+                and delta.domain == DeltaDomain.PHYSIOLOGY
+                and isinstance(delta.payload, PhysiologyPayload)
+            ):
                 imp = delta.payload.shock_impulse
                 if imp > 0:
-                    shock_by_npc[delta.npc_id] = max(shock_by_npc.get(delta.npc_id, 0.0), imp)
+                    shock_by_npc[delta.npc_id] = max(
+                        shock_by_npc.get(delta.npc_id, 0.0), imp
+                    )
 
         # Определяем реагирующих NPC
         perceiving_ids = self._get_perceiving_ids(ctx)
         if not perceiving_ids:
-            logger.warning(f"[REACTION_SUB] perceiving_ids EMPTY — no NPC to react. all_npcs_raw={len(ctx.all_npcs_raw) if ctx.all_npcs_raw else 0}")
+            logger.warning(
+                f"[REACTION_SUB] perceiving_ids EMPTY — no NPC to react. all_npcs_raw={len(ctx.all_npcs_raw) if ctx.all_npcs_raw else 0}"
+            )
             return Phase8Result()
-        logger.warning(f"[REACTION_SUB] perceiving_ids count={len(perceiving_ids)} ids={list(perceiving_ids)[:5]}")
+        logger.warning(
+            f"[REACTION_SUB] perceiving_ids count={len(perceiving_ids)} ids={list(perceiving_ids)[:5]}"
+        )
 
         # Строим dict npc_id → npc_dict для быстрого доступа
         npc_by_id: dict[str, dict] = {}
@@ -213,16 +232,22 @@ class ReactionSubscriber:
             # S115 FIX: Цель прямой угрозы/атаки получает threat_gradient_delta.
             # Без этого affective_load остаётся 0, и BreakProgressEngine не фиксирует давление.
             _event_target_id = event.payload.get("target_id")
-            if _event_target_id and rule_key in ("player_threatens", "player_attacks", "player_attack"):
+            if _event_target_id and rule_key in (
+                "player_threatens",
+                "player_attacks",
+                "player_attack",
+            ):
                 _threat_delta_target = 0.8 if rule_key == "player_threatens" else 0.6
-                deltas.append(StateDeltas(
-                    npc_id=_event_target_id,
-                    domain=DeltaDomain.PERCEPTION,
-                    payload=PerceptionPayload(
-                        threat_gradient_delta=round(_threat_delta_target, 3),
-                    ),
-                    source="reaction_perception_target",
-                ))
+                deltas.append(
+                    StateDeltas(
+                        npc_id=_event_target_id,
+                        domain=DeltaDomain.PERCEPTION,
+                        payload=PerceptionPayload(
+                            threat_gradient_delta=round(_threat_delta_target, 3),
+                        ),
+                        source="reaction_perception_target",
+                    )
+                )
 
             stress_base, fear_base, trust_actor_base = rule
             intensity = _get_event_intensity(event)
@@ -276,31 +301,39 @@ class ReactionSubscriber:
                     _threat_delta = min(0.5, shock * 2.0)  # Шок от удара → угроза
                 elif rule_key in ("player_attacked", "player_attack", "combat"):
                     _threat_delta = 0.3 * intensity  # Свидетельство насилия → угроза
-                
+
                 if _threat_delta > 0.0:
-                    deltas.append(StateDeltas(
-                        npc_id=npc_id,
-                        domain=DeltaDomain.PERCEPTION,
-                        payload=PerceptionPayload(
-                            threat_gradient_delta=round(_threat_delta, 3),
-                        ),
-                        source="reaction_perception",
-                    ))
+                    deltas.append(
+                        StateDeltas(
+                            npc_id=npc_id,
+                            domain=DeltaDomain.PERCEPTION,
+                            payload=PerceptionPayload(
+                                threat_gradient_delta=round(_threat_delta, 3),
+                            ),
+                            source="reaction_perception",
+                        )
+                    )
 
                 # v2: Разделяем на EMOTION (stress) и SOCIAL (trust, fear)
                 try:
                     # 1. Эмоциональная реакция (стресс + шок)
                     if stress_delta != 0.0:
-                        deltas.append(StateDeltas(
-                            npc_id=npc_id,
-                            # v1 backward compat
-                            stress_delta=stress_delta,
-                            # v2 domain-tagged payload
-                            domain=DeltaDomain.EMOTION,
-                            # CIR: Рефлекс передаёт только стресс (M-hint). Эмоция и интеграл вычисляются в Phase 9.
-                            payload=EmotionPayload(stress_delta=stress_delta, emotion_tag=None, affective_load=None),
-                            source="reaction",
-                        ))
+                        deltas.append(
+                            StateDeltas(
+                                npc_id=npc_id,
+                                # v1 backward compat
+                                stress_delta=stress_delta,
+                                # v2 domain-tagged payload
+                                domain=DeltaDomain.EMOTION,
+                                # CIR: Рефлекс передаёт только стресс (M-hint). Эмоция и интеграл вычисляются в Phase 9.
+                                payload=EmotionPayload(
+                                    stress_delta=stress_delta,
+                                    emotion_tag=None,
+                                    affective_load=None,
+                                ),
+                                source="reaction",
+                            )
+                        )
 
                     # 2. Социальная реакция (страх, доверие)
                     if fear_delta != 0.0 or trust_delta != 0.0:
@@ -311,12 +344,16 @@ class ReactionSubscriber:
                             "trust_delta": trust_delta,
                             # v2 domain-tagged payload
                             "domain": DeltaDomain.SOCIAL,
-                            "payload": SocialPayload(fear_delta=fear_delta, trust_delta=trust_delta),
+                            "payload": SocialPayload(
+                                fear_delta=fear_delta, trust_delta=trust_delta
+                            ),
                             "source": "reaction",
                         }
                         if trust_delta != 0.0:
-                            social_kwargs[trust_target_key] = trust_target_val # v1 compat
-                            social_kwargs["target"] = trust_target_val           # v2 compat
+                            social_kwargs[trust_target_key] = (
+                                trust_target_val  # v1 compat
+                            )
+                            social_kwargs["target"] = trust_target_val  # v2 compat
 
                         deltas.append(StateDeltas(**social_kwargs))
 
@@ -329,14 +366,16 @@ class ReactionSubscriber:
         if deltas:
             # ADR-116: Диагностика — какие дельты и emotion_tag генерируются
             _emo_deltas = [d for d in deltas if d.domain == DeltaDomain.EMOTION]
-            _emo_tags = [getattr(d.payload, 'emotion_tag', None) for d in _emo_deltas]
+            _emo_tags = [getattr(d.payload, "emotion_tag", None) for d in _emo_deltas]
             logger.warning(
                 f"[REACTION_SUB] {len(events)} events, "
                 f"{len(perceiving_ids)} perceivers, "
                 f"{len(deltas)} deltas, emotion_deltas={len(_emo_deltas)}, tags={_emo_tags}"
             )
         else:
-            logger.warning(f"[REACTION_SUB] 0 deltas from {len(events)} events, {len(perceiving_ids)} perceivers, rule_key={events[0].type.lower() if events else 'NONE'}")
+            logger.warning(
+                f"[REACTION_SUB] 0 deltas from {len(events)} events, {len(perceiving_ids)} perceivers, rule_key={events[0].type.lower() if events else 'NONE'}"
+            )
 
         return Phase8Result(
             deltas=deltas,
@@ -351,12 +390,10 @@ class ReactionSubscriber:
         PerceptionSubscriber в этом же тике) или fallback на всех NPC.
         """
         if ctx.shared_context is not None:
-            perceiving_list = getattr(
-                ctx.shared_context, "perceiving_npcs", None
-            )
+            perceiving_list = getattr(ctx.shared_context, "perceiving_npcs", None)
             # §ENIGMA-003: [] ≠ None. [] = валидная проекция "никто не увидел". None = сбой сбора.
             if perceiving_list is not None:
-                return set(perceiving_list) # Пустой список вернёт пустой set()
+                return set(perceiving_list)  # Пустой список вернёт пустой set()
 
         # Fallback: все NPC из all_npcs_raw
         return {

@@ -19,19 +19,16 @@ TODO:
 - В будущем можно расширить тесты, добавив проверку социальных реакций (например, доверие, страх) и влияния на поведение NPC (например, FLEE, SEEK, ATTACK) в зависимости от эмоционального состояния.
 """
 
-import pytest
-from uuid import uuid4
-
 from app.domain.events import EventDTO
+from app.models.delta_payloads import EmotionPayload, PhysiologyPayload
 from app.models.phase8 import Phase8Context
-from app.models.state_delta import DeltaDomain, StateDeltas
-from app.models.delta_payloads import EmotionPayload, PhysiologyPayload, SocialPayload
+from app.models.state_delta import DeltaDomain
 from app.services.combat.combat_subscriber import CombatSubscriber
 from app.services.events.event_bus import EventBus
 from app.services.events.reaction_subscriber import ReactionSubscriber
 
-
 # ── Фикстуры ───────────────────────────────────────────────────────────────
+
 
 def _make_attack_event(target_id: str = "npc_1", force: float = 80.0) -> EventDTO:
     """Создаёт событие атаки игрока с заданной силой."""
@@ -56,8 +53,14 @@ def _make_npc(npc_id: str = "npc_1", dexterity: float = 10.0, willpower: float =
         "social_stats": {"trust": 40.0, "fear_of_player": 20.0, "debt": 0.0},
         "drives": {"control": 0.25, "significance": 0.25, "fear": 0.25},
         "body_profile": {"max_hp": 100.0, "abilities": {"dexterity": dexterity, "strength": 10.0}},
-        "body_state": {"current_hp": 100.0, "pain": 0.0, "fatigue": 0.0,
-                       "blood_loss": 0.0, "consciousness": 1.0, "modifiers": {}},
+        "body_state": {
+            "current_hp": 100.0,
+            "pain": 0.0,
+            "fatigue": 0.0,
+            "blood_loss": 0.0,
+            "consciousness": 1.0,
+            "modifiers": {},
+        },
         "relationship_cache": {"player": {"trust": 40.0, "fear": 20.0}},
         "base_values": {"player": 50.0},
         "status_profile": {"faction_rank": {}},
@@ -81,12 +84,13 @@ def _make_ctx(
 
 # ── Тесты ───────────────────────────────────────────────────────────────────
 
+
 class TestCombatPipelineE2E:
     """Сквозной тест: CombatSubscriber → Materialization → ReactionSubscriber."""
 
     def test_physical_to_cognitive_cascade(self):
         """Каскад Force → Pain → Shock → Emotion.
-        
+
         1. CombatSubscriber генерирует PhysiologyPayload с shock_impulse.
         2. Дельты материализуются в иммутабельный кортеж.
         3. ReactionSubscriber читает shock_impulse и генерирует панику.
@@ -136,23 +140,19 @@ class TestCombatPipelineE2E:
         reaction_result = reaction_sub.handle(reaction_events, reaction_ctx)
 
         # 4. Проверка каскада: И цель, и свидетель должны получить эмоциональный шок
-        
+
         # 4.1 Цель (npc_1) получает каскад от СОБСТВЕННОЙ боли
         target_emotion_deltas = [
-            d for d in reaction_result.deltas
-            if d.npc_id == "npc_1" and d.domain == DeltaDomain.EMOTION
+            d for d in reaction_result.deltas if d.npc_id == "npc_1" and d.domain == DeltaDomain.EMOTION
         ]
         assert len(target_emotion_deltas) > 0, "Цель должна получить эмоциональную дельту"
         target_emotion = target_emotion_deltas[0].payload
         assert isinstance(target_emotion, EmotionPayload)
-        assert target_emotion.stress_delta > 10.0, (
-            "Стресс цели должен быть усилен каскадом от собственной боли"
-        )
+        assert target_emotion.stress_delta > 10.0, "Стресс цели должен быть усилен каскадом от собственной боли"
 
         # 4.2 Свидетель (npc_witness) получает эмпатический каскад от боли цели
         witness_emotion_deltas = [
-            d for d in reaction_result.deltas
-            if d.npc_id == "npc_witness" and d.domain == DeltaDomain.EMOTION
+            d for d in reaction_result.deltas if d.npc_id == "npc_witness" and d.domain == DeltaDomain.EMOTION
         ]
         assert len(witness_emotion_deltas) > 0, "Свидетель должен получить эмоциональную дельту"
 
@@ -170,7 +170,7 @@ class TestCombatPipelineE2E:
 
     def test_no_cascade_without_materialized_shock(self):
         """Без материализованного Physical Layer эмоции генерируются только от событий.
-        
+
         Это гарантирует, что каскад зависит от Dual Buffer Causal Model,
         а не от хардкод-значений.
         """
@@ -188,8 +188,7 @@ class TestCombatPipelineE2E:
         reaction_result = reaction_sub.handle(reaction_events, reaction_ctx)
 
         witness_emotion_deltas = [
-            d for d in reaction_result.deltas
-            if d.npc_id == "npc_witness" and d.domain == DeltaDomain.EMOTION
+            d for d in reaction_result.deltas if d.npc_id == "npc_witness" and d.domain == DeltaDomain.EMOTION
         ]
         assert len(witness_emotion_deltas) > 0, "Базовая реакция на атаку должна быть"
 
@@ -199,6 +198,4 @@ class TestCombatPipelineE2E:
         assert emotion_payload.stress_delta < 10.0, (
             "Без физического каскада стресс свидетеля должен быть только от базовой реакции"
         )
-        assert emotion_payload.emotion_tag is None, (
-            "Без shock_impulse > 0.5 не должно быть паники"
-        )
+        assert emotion_payload.emotion_tag is None, "Без shock_impulse > 0.5 не должно быть паники"

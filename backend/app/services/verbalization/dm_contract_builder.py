@@ -15,10 +15,8 @@ dm_contract_builder.py — контракт для DM промпта.
 """
 
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import List, Dict, Any, Optional
 from uuid import uuid4
-
-from app.services.verbalization.contract_base import NarrativeContractProtocol
 
 
 # ── Системный промпт (фиксированный) ──────────────────────────────────────
@@ -37,8 +35,7 @@ DM_SYSTEM_PROMPT = (
 
 # Усиленный системный промпт для hardcore режима
 DM_SYSTEM_PROMPT_HARDCORE = (
-    DM_SYSTEM_PROMPT
-    + "\n\nТОН/РЕЖИМ: HARDCORE.\n"
+    DM_SYSTEM_PROMPT + "\n\nТОН/РЕЖИМ: HARDCORE.\n"
     "Разрешены: мрачные сцены, жестокость, кровь, смерть, грубость, мат.\n"
     "Не морализируй, не сглаживай и не 'перевоспитывай' игрока."
 )
@@ -48,10 +45,11 @@ DM_SYSTEM_PROMPT_HARDCORE = (
 class DMContract:
     """
     Конкретный контракт для DM.
-    
+
     Immutable — после создания не меняется.
     Все блоки уже отфильтрованы (пустые не включены).
     """
+
     system_prompt: str
     user_prompt: str
     max_sentences: int = 3
@@ -63,21 +61,21 @@ class DMContract:
         "повторять сказанное",
         "задавать вопросы игроку",
     )
-    
+
     @property
     def forbidden_actions(self) -> list[str]:
-        """Protocol compatibility: tuple field → list property."""
+        """Protocol compatibility: Tuple[Any, ...] field → list property."""
         return list(self._forbidden_tuple)
 
 
 class DMContractBuilder:
     """
     Строит DMContract из компонентов.
-    
+
     Каждый блок добавляется отдельно — можно переиспользовать builder
     для разных сценариев (combat, social, exploration).
     """
-    
+
     def __init__(
         self,
         hardcore_mode: bool = False,
@@ -86,87 +84,87 @@ class DMContractBuilder:
         self._hardcore = hardcore_mode
         self._max_sentences = max_sentences
         self._blocks: list[str] = []
-    
+
     def add_player_action(self, actions_str: str) -> "DMContractBuilder":
         """Блок 1: Действия игроков — всегда первый."""
         self._blocks.append(f"Действия игроков:\n{actions_str}")
         return self
-    
+
     def add_dm_frame(self, frame_block: str) -> "DMContractBuilder":
         """Блок 2: NPC контент из DMFrame."""
         if frame_block and frame_block.strip():
             self._blocks.append(frame_block)
         return self
-    
+
     def add_scene(self, scene_block: str, location: str) -> "DMContractBuilder":
         """Блок 3: Описание сцены + локация."""
         if scene_block and scene_block.strip():
             self._blocks.append(f"{scene_block}Текущая локация: {location}")
         return self
-    
+
     def add_player_state(self, state_block: str) -> "DMContractBuilder":
         """Блок 4: Состояние игрока."""
         if state_block and state_block.strip():
             self._blocks.append(state_block)
         return self
-    
+
     def add_rules(self, rules_str: str) -> "DMContractBuilder":
         """Блок 5: Результаты проверок."""
         if rules_str and rules_str.strip():
             self._blocks.append(f"Результаты проверок:\n{rules_str}")
         return self
-    
+
     def add_world_changes(self, world_str: str) -> "DMContractBuilder":
         """Блок 6: Изменения мира."""
         if world_str and world_str.strip() and world_str != "Нет изменений мира":
             self._blocks.append(f"Изменения в мире:\n{world_str}")
         return self
-    
+
     def add_continuity(self, continuity_block: str) -> "DMContractBuilder":
         """Блок 7: Фиксация состояния сцены."""
         if continuity_block and continuity_block.strip():
             self._blocks.append(continuity_block)
         return self
-    
+
     def add_guardrail(self, guardrail: str) -> "DMContractBuilder":
         """Блок 8: Предотвращение повторов."""
         if guardrail and guardrail.strip():
             self._blocks.append(guardrail)
         return self
-    
+
     def add_npc_stm(self, stm_block: str) -> "DMContractBuilder":
         """ФАЗА 0: Блок кратковременной памяти (текущий разговор)."""
         if stm_block and stm_block.strip():
             self._blocks.append(f"[Краткая память — текущий разговор]\n{stm_block}")
         return self
-    
+
     def add_npc_l2_memory(self, memory_block: str) -> "DMContractBuilder":
         """ФАЗА 0: Блок важных воспоминаний (top-3 EventMemory)."""
         if memory_block and memory_block.strip():
             self._blocks.append(f"[Важные воспоминания]\n{memory_block}")
         return self
-    
+
     def add_custom_block(self, label: str, content: str) -> "DMContractBuilder":
         """Произвольный блок — для расширения без изменения класса."""
         if content and content.strip():
             self._blocks.append(f"{label}:\n{content}")
         return self
-    
+
     def build(self, system_prompt: Optional[str] = None) -> DMContract:
         """
         Собирает финальный контракт.
-        
+
         Args:
             system_prompt: внешний системный промпт (из файла).
                           Если None — используется дефолтный.
-        
+
         Пустые блоки уже отфильтрованы на этапе add_*.
         """
         if system_prompt:
             system = system_prompt
         else:
             system = DM_SYSTEM_PROMPT_HARDCORE if self._hardcore else DM_SYSTEM_PROMPT
-            
+
         # B3-FIX: forbidden-блок из контракта (single source of truth, pure render).
         blocks = list(self._blocks)
         forbidden = list(DMContract._forbidden_tuple)
@@ -177,15 +175,15 @@ class DMContractBuilder:
             forbidden_parts.append("")
             forbidden_parts.append("Нарушение → ответ отклоняется.")
             blocks.append("\n".join(forbidden_parts))
-            
+
         user = "\n\n".join(blocks)
-        
+
         return DMContract(
             system_prompt=system,
             user_prompt=user,
             max_sentences=self._max_sentences,
         )
-    
+
     def reset(self) -> "DMContractBuilder":
         """Сбрасывает builder для переиспользования."""
         self._blocks = []

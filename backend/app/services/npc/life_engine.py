@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 LifeEngine — движок симуляции жизни NPC.
 backend/app/services/npc/life_engine.py
@@ -37,13 +37,12 @@ TICK ARCHITECTURE (Блок 1):
   - LRU: HOT очищается по TTL (1ч) и лимиту (100 кампаний)
   - Hybrid persistence: JSON пишется раз в N тиков, не каждый
 """
-
 from __future__ import annotations
+
 
 import json
 import logging
 import math
-import random
 import time
 from collections import OrderedDict
 from pathlib import Path
@@ -56,7 +55,7 @@ from app.services.scene_change import (
     SceneChange,
     ChangeType,
 )
-from app.domain.movement import MovementIntent, PRIORITY_RANDOM, IntentDomain
+from app.domain.movement import MacroMovementGoal, PRIORITY_RANDOM, IntentDomain
 from app.services.spatial.movement_engine import MovementEngine
 
 import copy
@@ -127,6 +126,7 @@ _NEED_DECAY_PER_TICK: float = 0.08
 # Вспомогательные функции времени
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 def _time_to_minutes(time_str: str) -> int:
     """
     Конвертирует строку времени "HH:MM" в минуты от полуночи.
@@ -147,7 +147,7 @@ def _in_time_range(time_range: str, current_minutes: int) -> bool:
     try:
         start_str, end_str = time_range.split("-")
         start = _time_to_minutes(start_str)
-        end   = _time_to_minutes(end_str)
+        end = _time_to_minutes(end_str)
         # Ночной диапазон: start > end означает переход через полночь
         if start > end:
             return current_minutes >= start or current_minutes < end
@@ -156,7 +156,7 @@ def _in_time_range(time_range: str, current_minutes: int) -> bool:
         return False
 
 
-def _parse_game_time(scene_state: Optional[dict]) -> str:
+def _parse_game_time(scene_state: Optional[Dict[str, Any]]) -> str:
     """
     Извлекает текущее игровое время из SceneState.
     Возвращает строку "HH:MM". Fallback: "12:00".
@@ -167,13 +167,13 @@ def _parse_game_time(scene_state: Optional[dict]) -> str:
     tod = env.get("time_of_day", "12:00")
     # Нормализуем: "вечер" → "20:00", "ночь" → "02:00" и т.д.
     _verbal_map = {
-        "утро":      "08:00",
-        "день":      "14:00",
-        "вечер":     "20:00",
-        "ночь":      "02:00",
-        "рассвет":   "06:00",
-        "полдень":   "12:00",
-        "полночь":   "00:00",
+        "утро": "08:00",
+        "день": "14:00",
+        "вечер": "20:00",
+        "ночь": "02:00",
+        "рассвет": "06:00",
+        "полдень": "12:00",
+        "полночь": "00:00",
         "рано утром": "07:00",
     }
     if tod in _verbal_map:
@@ -186,20 +186,21 @@ def _parse_game_time(scene_state: Optional[dict]) -> str:
 # LifeEngine
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 class LifeEngine:
     """
     Движок жизни NPC — симулирует расписание и случайные события без LLM.
 
     Использование:
         engine = LifeEngine(data_dir=settings.data_dir)
-        
+
         # При входе игрока — решить как симулировать
         changes = engine.macro_simulate(campaign_id, scene_state)
         # (внутри решает: обычный tick или макро-аппроксимация)
-        
+
         # Или явный одиночный тик
         changes = engine.tick(campaign_id, scene_state)
-        
+
         scene_manager.apply_changes(campaign_id, changes, scene_state)
         engine.save_npcs(campaign_id)
 
@@ -211,30 +212,31 @@ class LifeEngine:
     """
 
     def __init__(self, data_dir: Optional[str] = None):
-        self.data_dir  = Path(data_dir or settings.data_dir)
-        self.npcs_dir  = self.data_dir / "npcs"
+        self.data_dir = Path(data_dir or settings.data_dir)
+        self.npcs_dir = self.data_dir / "npcs"
         self.sessions_dir = self.data_dir / "sessions"
-        
+
         # ── HOT кэш (RAM) ──────────────────────────────────────────────────
         # Кэш NPC для быстрого доступа между тиками
         # ключ: campaign_id → list[dict]
         self._npc_cache: dict[str, list] = {}
-                
+
         # LRU tracking для HOT кэша
         # ключ: campaign_id → timestamp последнего доступа
         self._last_access: OrderedDict[str, float] = OrderedDict()
-        
+
         # Фаза 2.2 — in-memory давление NPC (не персистентно, сбрасывается при рестарте)
         # ключ: (campaign_id, npc_id) → float
         self._idle_pressure: dict[tuple[str, str], float] = {}
-        
+
         # TemporalEngine — единая точка времени/decay (перенесено из LifeEngine)
         from app.services.temporal.temporal_engine import TemporalEngine
+
         self._temporal = TemporalEngine(sessions_dir=self.sessions_dir)
-        
+
         # Слой 2: MovementEngine — конвертирует MovementIntent → SceneChange с {x, y}
         self._movement_engine = MovementEngine()
-        
+
         # Слой 3: SpatialService v1.2 — семантическая навигация (инжекция извне)
         self._spatial_service: Optional[Any] = None
 
@@ -243,9 +245,9 @@ class LifeEngine:
         # после TTL/LRU eviction — SQLite пишется, но никогда не читается.
         self._persistence: Optional[Any] = None
 
-        self._claim_bus = None # DRF Causal Bus
-        
-    def set_claim_bus(self, bus: 'DRFBus'):
+        self._claim_bus = None  # DRF Causal Bus
+
+    def set_claim_bus(self, bus: "DRFBus"):
         """DRF: Инъекция единой причинной шины из TickOrchestrator."""
         self._claim_bus = bus
 
@@ -253,32 +255,33 @@ class LifeEngine:
         """Инжекция SpatialService для резолва NodeRole вместо хардкода."""
         self._spatial_service = svc
         # Пробрасываем в MovementEngine для A* с учётом оверлея
-        if hasattr(self, '_movement_engine') and self._movement_engine:
+        if hasattr(self, "_movement_engine") and self._movement_engine:
             self._movement_engine.set_spatial_service(svc)
 
     def set_persistence(self, persistence: Any) -> None:
         """ADR-128: Инъекция PersistencePort для read-back при cache miss.
-        
+
         Без этого SQLite runtime пишется (atomic_commit), но никогда не
         читается обратно. После TTL/LRU eviction injuries, blood_loss,
         affective_load и прочие runtime-поля теряются навсегда.
         """
         self._persistence = persistence
-        logger.info("[LIFE_ENGINE] PersistencePort инжектирован — SQLite read-back активен")
-
+        logger.info(
+            "[LIFE_ENGINE] PersistencePort инжектирован — SQLite read-back активен"
+        )
 
     def macro_simulate(
         self,
         campaign_id: str,
-        scene_state: Optional[dict] = None,
+        scene_state: Optional[Dict[str, Any]] = None,
         runtime_path: Optional[Path] = None,
     ) -> tuple[list[SceneChange], "MovementIntent | None"]:
         """
         Аппроксимация долгого отсутствия игрока.
-        
+
         Вместо: for _ in range(500): tick()
         Делает: state(t+Δ) = f(state(t), Δ)
-        
+
         Что аппроксимирует:
         - Расписание: прыгает к текущему слоту
         - Стресс: нормализуется к baseline
@@ -296,6 +299,7 @@ class LifeEngine:
         )
 
         from app.services.npc.npc_loader import load_npcs_merged
+
         npcs = load_npcs_merged(runtime_path=runtime_path)
         all_changes: list[SceneChange] = []
         current_time = _parse_game_time(scene_state)
@@ -318,8 +322,10 @@ class LifeEngine:
                     # Долгое отсутствие → стресс снижается к baseline
                     # Формула: stress = baseline + (current - baseline) * decay
                     baseline = 10  # нормальный фоновый стресс
-                    decay = 0.3    # за долгое отсутствие сбросить на 70%
-                    psyche["stress"] = round(baseline + (current_stress - baseline) * decay)
+                    decay = 0.3  # за долгое отсутствие сбросить на 70%
+                    psyche["stress"] = round(
+                        baseline + (current_stress - baseline) * decay
+                    )
 
                 # 3. Агрегированные события — вероятность * время
                 # 5% за тик, но мы не считаем тики — используем эвристику
@@ -338,10 +344,12 @@ class LifeEngine:
         self._increment_tick(campaign_id)  # Один тик за всю макро-симуляцию
 
         logger.info(
-            f"[LIFE_ENGINE] macro_simulate завершена: "
-            f"{len(all_changes)} changes"
+            f"[LIFE_ENGINE] macro_simulate завершена: {len(all_changes)} changes"
         )
-        return all_changes, [] # ADR-049: macro_simulate не генерирует intents (только tick)
+        return (
+            all_changes,
+            [],
+        )  # ADR-049: macro_simulate не генерирует intents (только tick)
 
     # ─────────────────────────────────────────────────────────────────────────
     # LRU защита для HOT кэша
@@ -349,7 +357,9 @@ class LifeEngine:
 
     def _touch(self, campaign_id: str) -> None:
         """Обновляет время последнего доступа (LRU)."""
-        self._last_access[campaign_id] = time.time()  # §15.2: Infrastructure (cache TTL)
+        self._last_access[campaign_id] = (
+            time.time()
+        )  # §15.2: Infrastructure (cache TTL)
         self._last_access.move_to_end(campaign_id)
 
     def _evict_stale(self) -> list[str]:
@@ -360,22 +370,23 @@ class LifeEngine:
         """
         now = time.time()  # §15.2: Infrastructure (cache TTL)
         evicted = []
-        
+
         # Слой 1: TTL eviction
         stale = [
-            cid for cid, ts in self._last_access.items()
+            cid
+            for cid, ts in self._last_access.items()
             if now - ts > CAMPAIGN_TTL_SECONDS
         ]
         for cid in stale:
             self.cleanup_campaign(cid)
             evicted.append(f"{cid}(TTL)")
-        
+
         # Слой 2: LRU eviction (если всё ещё слишком много)
         while len(self._last_access) > MAX_CACHED_CAMPAIGNS:
             oldest_cid, _ = self._last_access.popitem(last=False)
             self.cleanup_campaign(oldest_cid)
             evicted.append(f"{oldest_cid}(LRU)")
-        
+
         if evicted:
             logger.debug(f"[LIFE_ENGINE] evicted: {evicted}")
         return evicted
@@ -415,43 +426,54 @@ class LifeEngine:
         """
         if elapsed_seconds <= 0:
             return
-            
+
         npcs = self._npc_cache.get(campaign_id, [])
         # ADR-O-302: Явный мост REAL_TIME -> TICK_TIME. 1 тик = 60 секунд (GAME_TICK_INTERVAL_SECONDS).
         # Магическое число 10.0 убито. Согласование идёт строго по константе ядра.
         from app.core.constants import GAME_TICK_INTERVAL_SECONDS
+
         ticks_equivalent = elapsed_seconds / float(GAME_TICK_INTERVAL_SECONDS)
-        
+
         for npc in npcs:
             psyche = npc.get("psyche", {})
             body_state = npc.get("body_state", {})
-            
+
             # 1. Стресс: экспоненциальный декэй к базовой линии
             current_stress = psyche.get("stress", 0)
             if current_stress > 0:
                 baseline = 0.0
                 decay_rate = 0.05  # Примерно 5% восстановления за тик
                 # Формула: S_t = baseline + (S_0 - baseline) * (1 - decay_rate)^T
-                decayed_stress = baseline + (current_stress - baseline) * ((1 - decay_rate) ** ticks_equivalent)
+                decayed_stress = baseline + (current_stress - baseline) * (
+                    (1 - decay_rate) ** ticks_equivalent
+                )
                 psyche["stress"] = max(0.0, round(decayed_stress, 2))
-                
+
             # 2. Голод и Усталость: линейный рост (если были в пути)
             # ADR-S96.3: Унификация скорости роста потребностей. _NEED_DECAY_PER_TICK = 0.08 (шкала 0.0-1.0).
             # Для body_state (шкала 0-100) умножаем на 100.
             hunger_rate = _NEED_DECAY_PER_TICK * 100.0  # 8.0 за тик
             fatigue_rate = _NEED_DECAY_PER_TICK * 100.0
-            
-            if "hunger" in body_state:
-                body_state["hunger"] = min(100.0, body_state.get("hunger", 0.0) + hunger_rate * ticks_equivalent)
-            if "fatigue" in body_state:
-                body_state["fatigue"] = min(100.0, body_state.get("fatigue", 0.0) + fatigue_rate * ticks_equivalent)
 
-        logger.info(f"[LIFE_ENGINE] Аналитическое согласование для '{campaign_id}': {elapsed_seconds:.1f}s ({ticks_equivalent:.1f} тиков)")
+            if "hunger" in body_state:
+                body_state["hunger"] = min(
+                    100.0,
+                    body_state.get("hunger", 0.0) + hunger_rate * ticks_equivalent,
+                )
+            if "fatigue" in body_state:
+                body_state["fatigue"] = min(
+                    100.0,
+                    body_state.get("fatigue", 0.0) + fatigue_rate * ticks_equivalent,
+                )
+
+        logger.info(
+            f"[LIFE_ENGINE] Аналитическое согласование для '{campaign_id}': {elapsed_seconds:.1f}s ({ticks_equivalent:.1f} тиков)"
+        )
 
     def tick(
         self,
         campaign_id: str,
-        scene_state: Optional[dict] = None,
+        scene_state: Optional[Dict[str, Any]] = None,
         runtime_path: Optional[Path] = None,
     ) -> tuple[list[SceneChange], "MovementIntent | None"]:
         """
@@ -481,33 +503,41 @@ class LifeEngine:
         )
 
         # Используем кэшированных NPC если есть, иначе загружаем с диска
-        npcs = self._npc_cache.get(campaign_id) or load_npcs_merged(runtime_path=runtime_path)
-        logger.debug(f"[LIFE_SET] tick={current_tick} npcs={sorted([n.get('id', '?') for n in npcs]) if npcs else []}")
+        npcs = self._npc_cache.get(campaign_id) or load_npcs_merged(
+            runtime_path=runtime_path
+        )
+        logger.debug(
+            f"[LIFE_SET] tick={current_tick} npcs={sorted([n.get('id', '?') for n in npcs]) if npcs else []}"
+        )
         all_changes: list[SceneChange] = []
-        all_intents: list[MovementIntent] = [] # ADR-049: Сборка намерений
+        all_intents: list[MovementIntent] = []  # ADR-049: Сборка намерений
         npcs_updated = False
 
         for npc in npcs:
-            tier   = npc.get("tier", "major")
+            tier = npc.get("tier", "major")
             npc_id = npc.get("id", "?")
 
             # ADR-OFFSCREEN-SKIP: NPC не в текущей локации не симулируются.
             # S112 FIX: Восстановление location_id из legacy location или scene_state, если он потерян.
             if not npc.get("location_id") and npc.get("location"):
                 npc["location_id"] = npc["location"]
-            
+
             _current_loc = scene_state.get("location_id", "")
             _npc_loc = npc.get("location_id") or npc.get("location", "")
-            
+
             # S112 FIX: Если NPC нет в scene_state (npc_positions), значит он оффскрин.
             # LifeEngine не должен симулировать его, так как у него нет актуальной позиции.
             _in_scene = npc_id in scene_state.get("npc_positions", {})
             if not _in_scene and _current_loc:
-                logger.debug(f"[LIFE_ENGINE][OFFSCREEN] npc={npc_id} not in scene_state (loc={_npc_loc}) — skipped")
+                logger.debug(
+                    f"[LIFE_ENGINE][OFFSCREEN] npc={npc_id} not in scene_state (loc={_npc_loc}) — skipped"
+                )
                 continue
 
             if _current_loc and _npc_loc and _npc_loc != _current_loc:
-                logger.debug(f"[LIFE_ENGINE][OFFSCREEN] npc={npc_id} loc={_npc_loc} != scene_loc={_current_loc} — skipped")
+                logger.debug(
+                    f"[LIFE_ENGINE][OFFSCREEN] npc={npc_id} loc={_npc_loc} != scene_loc={_current_loc} — skipped"
+                )
                 continue
 
             # KERNEL-ISOLATION: Единый deterministic RNG для LifeEngine на этом тике.
@@ -522,7 +552,9 @@ class LifeEngine:
             try:
                 # ── MAJOR: полная симуляция каждый тик ──────────────────────
                 if tier == "major":
-                    changes, intents = self._simulate_major(npc, current_time, current_tick, scene_state, rng=_rng)
+                    changes, intents = self._simulate_major(
+                        npc, current_time, current_tick, scene_state, rng=_rng
+                    )
                     all_changes.extend(changes)
                     all_intents.extend(intents)
                     npcs_updated = True
@@ -530,7 +562,9 @@ class LifeEngine:
                 elif tier == "minor":
                     last_minor = npc.get("routine", {}).get("_last_life_tick", 0)
                     if (current_tick - last_minor) >= MINOR_TICK_INTERVAL:
-                        changes, intents = self._simulate_minor(npc, current_time, current_tick, scene_state, rng=_rng)
+                        changes, intents = self._simulate_minor(
+                            npc, current_time, current_tick, scene_state, rng=_rng
+                        )
                         all_changes.extend(changes)
                         all_intents.extend(intents)
                         npc.setdefault("routine", {})["_last_life_tick"] = current_tick
@@ -547,12 +581,12 @@ class LifeEngine:
             f"[LIFE_ENGINE] Тик #{current_tick} завершён: "
             f"{len(all_changes)} SceneChange, {len(all_intents)} MovementIntent"
         )
-        return all_changes, all_intents # ADR-049: Возвращаем намерения в оркестратор
+        return all_changes, all_intents  # ADR-049: Возвращаем намерения в оркестратор
 
     def tick_decisions(
-        self,   
+        self,
         campaign_id: str,
-        scene_state: dict,
+        scene_state: Dict[str, Any],
         topics: Optional[dict[str, str]] = None,
         identities: Optional[dict[str, dict[str, float]]] = None,
         effective_drives_map: Optional[dict[str, Any]] = None,
@@ -560,9 +594,9 @@ class LifeEngine:
         """
         Фаза 5 — DecisionHub для NPC в idle tick.
         Чистая математика, без LLM.
-        
+
         Читает NPC из кэша (после Phase 0), НЕ с диска (Устав §3.1).
-        
+
         Returns:
             (decision_dicts, communication_intents):
             - decision_dicts: список dicts для триггера телеграфа на клиенте.
@@ -580,8 +614,11 @@ class LifeEngine:
             load_l2_state_from_runtime_dict,
         )
         from app.services.events.event_types import EventType
-        from app.models.npc_state import NPCIdentityL1, WillState, compute_drive_modifiers
-        from app.domain.decision_context import DecisionContext
+        from app.models.npc_state import (
+            NPCIdentityL1,
+            WillState,
+            compute_drive_modifiers,
+        )
         from app.services.cfrm.pressure_translator import translate_kernel_to_context
         from app.services.npc.interpretation_engine import InterpretationEngine
         from app.domain.communication import CommunicationIntent
@@ -593,15 +630,25 @@ class LifeEngine:
                 f"[LIFE_ENGINE] tick_decisions: кэш пуст для '{campaign_id}'. "
                 "Phase 0 (tick) не была вызвана перед Phase 5?"
             )
-            return [], [], [] # ADR-049: Всегда возвращаем кортеж (decisions, comms, movements)        # Читаем из кэша — после Phase 0 там уже мутации (Устав §3.1)
+            return (
+                [],
+                [],
+                [],
+            )  # ADR-049: Всегда возвращаем кортеж (decisions, comms, movements)        # Читаем из кэша — после Phase 0 там уже мутации (Устав §3.1)
         npcs = self._npc_cache.get(campaign_id)
         if not npcs:
             logger.error(
                 f"[LIFE_ENGINE] tick_decisions: кэш пуст для '{campaign_id}'. "
                 "Phase 0 (tick) не была вызвана перед Phase 5?"
             )
-            return [], [], [] # ADR-049: Всегда возвращаем кортеж (decisions, comms, movements)
-        logger.warning(f"[TICK_DECISIONS] cache_hit: {len(npcs)} NPCs for '{campaign_id}'")
+            return (
+                [],
+                [],
+                [],
+            )  # ADR-049: Всегда возвращаем кортеж (decisions, comms, movements)
+        logger.warning(
+            f"[TICK_DECISIONS] cache_hit: {len(npcs)} NPCs for '{campaign_id}'"
+        )
         # DecisionHub будет создаваться per-NPC с deterministic RNG
         decisions: list[dict] = []
         communication_intents: list[CommunicationIntent] = []
@@ -666,12 +713,25 @@ class LifeEngine:
                 # Каузальное замыкание: консолидированное восприятие T-1 деформирует пространство решений.
                 # Логика проекции вынесена в pressure_translator (устранение дублирования Устав §10).
                 # GAP3 FIX: Передаем body_state для соматического вето
-                _body = getattr(state_l2, 'body_state', None)
-                _kernel = getattr(state_l2, 'perceptual_kernel', None)
-                _social_input_ema = getattr(state_l2, 'social_input_ema', 0.0)
-                _psyche = getattr(state_l2, 'psyche', {})
-                _greg = _psyche.get("gregariousness", 0.5) if isinstance(_psyche, dict) else 0.5
-                _decision_ctx = translate_kernel_to_context(_kernel, body_state=_body, social_input_ema=_social_input_ema, gregariousness=_greg) if _kernel else None
+                _body = getattr(state_l2, "body_state", None)
+                _kernel = getattr(state_l2, "perceptual_kernel", None)
+                _social_input_ema = getattr(state_l2, "social_input_ema", 0.0)
+                _psyche = getattr(state_l2, "psyche", {})
+                _greg = (
+                    _psyche.get("gregariousness", 0.5)
+                    if isinstance(_psyche, dict)
+                    else 0.5
+                )
+                _decision_ctx = (
+                    translate_kernel_to_context(
+                        _kernel,
+                        body_state=_body,
+                        social_input_ema=_social_input_ema,
+                        gregariousness=_greg,
+                    )
+                    if _kernel
+                    else None
+                )
 
                 # ADR-O-208: effective_drives — обязательный аргумент DecisionHub.compute()
                 # Вычисляется в TickOrchestrator через DriveResolver + L1Chronicle.
@@ -679,7 +739,9 @@ class LifeEngine:
                 # Фоллбек на L0 (drives_base) уничтожен. Нулевая проекция != отсутствие проекции.
                 _effective_drives = (effective_drives_map or {}).get(npc_id)
                 if _effective_drives is None:
-                    logger.error(f"[PIPELINE_FAULT][L3_MISSING] npc={npc_id} lacks EffectiveDrives (L3) in LifeEngine. Idle tick skipped.")
+                    logger.error(
+                        f"[PIPELINE_FAULT][L3_MISSING] npc={npc_id} lacks EffectiveDrives (L3) in LifeEngine. Idle tick skipped."
+                    )
                     continue
 
                 result = hub.compute(
@@ -701,7 +763,7 @@ class LifeEngine:
                 # Фаза 2.2 — накопление давления (in-memory)
                 _key = (campaign_id, npc_id)
                 _current_pressure = self._idle_pressure.get(_key, 0.0)
-                
+
                 _pressure_delta = 0.0
                 _intent_val = result.intent.value if result.intent else "none"
                 if result.intent and _intent_val != "idle":
@@ -710,10 +772,10 @@ class LifeEngine:
                 else:
                     # Decay — давление спадает если нет стимула
                     _pressure_delta = -_current_pressure * IDLE_PRESSURE_DECAY_RATE
-                
+
                 _new_pressure = max(0.0, min(1.0, _current_pressure + _pressure_delta))
                 self._idle_pressure[_key] = _new_pressure
-                
+
                 # Извлекаем CommunicationIntent для Фазы 6 (Устав §3.3)
                 if result.communication is not None:
                     communication_intents.append(result.communication)
@@ -727,35 +789,66 @@ class LifeEngine:
                 if result.intent and result.intent.value in ("APPROACH", "FLEE"):
                     # В idle-пути (WORLD_TICK) intent_target == npc_id — нет смысла подходить к себе.
                     # Fallback: approach/flee к игроку как основному социальному объекту.
-                    _move_target = result.intent_target if result.intent_target and result.intent_target != npc_id else "player"
-                    _npc_pos_entry = scene_state.get("npc_positions", {}).get(npc_id, {})
-                    _target_pos_entry = scene_state.get("npc_positions", {}).get(_move_target, {})
-                    # FIX: Если игрок отсутствует в npc_positions (фронтенд фильтрует его), 
+                    _move_target = (
+                        result.intent_target
+                        if result.intent_target and result.intent_target != npc_id
+                        else "player"
+                    )
+                    _npc_pos_entry = scene_state.get("npc_positions", {}).get(
+                        npc_id, {}
+                    )
+                    _target_pos_entry = scene_state.get("npc_positions", {}).get(
+                        _move_target, {}
+                    )
+                    # FIX: Если игрок отсутствует в npc_positions (фронтенд фильтрует его),
                     # читаем его позицию из player_position (SSOT для фронтенда).
                     if not _target_pos_entry and _move_target == "player":
                         _pp = scene_state.get("player_position")
                         if _pp:
-                            _target_pos_entry = {"local_position": _pp, "position": scene_state.get("location_id", "")}
-                            logger.debug(f"[MOTION_ROUTER] Player recovered from player_position: {_pp}")
+                            _target_pos_entry = {
+                                "local_position": _pp,
+                                "position": scene_state.get("location_id", ""),
+                            }
+                            logger.debug(
+                                f"[MOTION_ROUTER] Player recovered from player_position: {_pp}"
+                            )
                         else:
-                            logger.warning(f"[MOTION_ROUTER] Player not found in npc_positions or player_position!")
-                    
+                            logger.warning(
+                                "[MOTION_ROUTER] Player not found in npc_positions or player_position!"
+                            )
+
                     # FIX: Восстанавливаем _npc_node из npc dict, если в scene_state его нет (SSOT fallback).
-                    _npc_node = _npc_pos_entry.get("position", "") or npc.get("position", "")
+                    _npc_node = _npc_pos_entry.get("position", "") or npc.get(
+                        "position", ""
+                    )
                     _target_node = _target_pos_entry.get("position", "")
                     # Нормализуем ID узлов для корректного сравнения
                     _loc = scene_state.get("location_id", "") or npc.get("location", "")
-                    _npc_node = _npc_node if ":" in _npc_node else f"{_loc}:{_npc_node}" if _npc_node else ""
-                    _target_node = _target_node if ":" in _target_node else f"{_loc}:{_target_node}" if _target_node else ""
+                    _npc_node = (
+                        _npc_node
+                        if ":" in _npc_node
+                        else f"{_loc}:{_npc_node}"
+                        if _npc_node
+                        else ""
+                    )
+                    _target_node = (
+                        _target_node
+                        if ":" in _target_node
+                        else f"{_loc}:{_target_node}"
+                        if _target_node
+                        else ""
+                    )
 
                     # Координаты для микро-маршрутизации (ETKE-IK)
                     _npc_xy = _npc_pos_entry.get("local_position")
                     _target_xy = _target_pos_entry.get("local_position")
-                    _same_node = bool(_npc_node and _target_node and _npc_node == _target_node)
+                    _same_node = bool(
+                        _npc_node and _target_node and _npc_node == _target_node
+                    )
                     _has_coords = bool(_npc_xy and _target_xy)
 
                     # Вектор направления и расстояние (для маршрутизации и логирования)
-                    _dx, _dy, _distance = 0.0, 0.0, float('inf')
+                    _dx, _dy, _distance = 0.0, 0.0, float("inf")
                     if _same_node and _has_coords:
                         _dx = _target_xy.get("x", 0.0) - _npc_xy.get("x", 0.0)
                         _dy = _target_xy.get("y", 0.0) - _npc_xy.get("y", 0.0)
@@ -764,28 +857,45 @@ class LifeEngine:
                     if result.intent.value == "APPROACH":
                         # INVARIANT: APPROACH требует валидной цели. Если цели нет — действие блокируется.
                         if not _target_node:
-                            logger.warning(f"[MOTION_ROUTER] APPROACH BLOCKED: npc={npc_id} target={_move_target} has no position")
+                            logger.warning(
+                                f"[MOTION_ROUTER] APPROACH BLOCKED: npc={npc_id} target={_move_target} has no position"
+                            )
                         elif _target_node == _npc_node:
                             # Микро: подход через DriveVector (ETKE-IK) в пределах одного узла
                             if _has_coords:
                                 _mag = math.hypot(_dx, _dy)
                                 if _mag > 0.01:
-                                    npc["drive_vector"] = [_dx / _mag, _dy / _mag, 0.7, "approach"]
-                                    logger.info(f"[MOTION_ROUTER] APPROACH→DriveVector: npc={npc_id} target={_move_target} dist={_distance:.1f}")
+                                    npc["drive_vector"] = [
+                                        _dx / _mag,
+                                        _dy / _mag,
+                                        0.7,
+                                        "approach",
+                                    ]
+                                    logger.info(
+                                        f"[MOTION_ROUTER] APPROACH→DriveVector: npc={npc_id} target={_move_target} dist={_distance:.1f}"
+                                    )
                                 else:
-                                    logger.debug(f"[MOTION_ROUTER] APPROACH SKIP: npc={npc_id} already at target (dist={_distance:.2f})")
+                                    logger.debug(
+                                        f"[MOTION_ROUTER] APPROACH SKIP: npc={npc_id} already at target (dist={_distance:.2f})"
+                                    )
                             else:
-                                logger.debug(f"[MOTION_ROUTER] APPROACH SKIP: npc={npc_id} same node, no coords for micro")
+                                logger.debug(
+                                    f"[MOTION_ROUTER] APPROACH SKIP: npc={npc_id} same node, no coords for micro"
+                                )
                         else:
                             # Макро: подход через MovementIntent (Traversal FSM)
-                            movement_intents.append(MovementIntent(
-                                npc_id=npc_id,
-                                target_node_id=_target_node,
-                                reason=f"decision:approach_target={_move_target}",
-                                domain=IntentDomain.SOCIAL,
-                                priority=0.7,
-                            ))
-                            logger.warning(f"[MOTION_ROUTER] APPROACH→MovementIntent: npc={npc_id} → target={_move_target} node={_target_node}")
+                            movement_intents.append(
+                                MacroMovementGoal(
+                                    actor_id=npc_id,
+                                    target_node_id=_target_node,
+                                    reason=f"decision:approach_target={_move_target}",
+                                    domain=IntentDomain.SOCIAL,
+                                    priority=0.7,
+                                )
+                            )
+                            logger.warning(
+                                f"[MOTION_ROUTER] APPROACH→MovementIntent: npc={npc_id} → target={_move_target} node={_target_node}"
+                            )
 
                     elif result.intent.value == "FLEE":
                         if _same_node and _has_coords:
@@ -794,78 +904,136 @@ class LifeEngine:
                             if _mag > 0.01:
                                 _load = npc.get("affective_load", 0.0)
                                 _primitive_name = "retreat" if _load < 0.7 else "flee"
-                                _intensity = 0.5 if _primitive_name == "retreat" else 1.0
-                                npc["drive_vector"] = [-_dx / _mag, -_dy / _mag, _intensity, _primitive_name]
-                                logger.info(f"[MOTION_ROUTER] {_primitive_name.upper()}→DriveVector: npc={npc_id} away={_move_target} dist={_distance:.1f}")
+                                _intensity = (
+                                    0.5 if _primitive_name == "retreat" else 1.0
+                                )
+                                npc["drive_vector"] = [
+                                    -_dx / _mag,
+                                    -_dy / _mag,
+                                    _intensity,
+                                    _primitive_name,
+                                ]
+                                logger.info(
+                                    f"[MOTION_ROUTER] {_primitive_name.upper()}→DriveVector: npc={npc_id} away={_move_target} dist={_distance:.1f}"
+                                )
                             else:
-                                logger.debug(f"[MOTION_ROUTER] FLEE SKIP: npc={npc_id} already far from threat (dist={_distance:.2f})")
+                                logger.debug(
+                                    f"[MOTION_ROUTER] FLEE SKIP: npc={npc_id} already far from threat (dist={_distance:.2f})"
+                                )
                         else:
                             # INVARIANT: FLEE не создаёт MovementIntent в тот же узел (BUG_V_GUARD fix).
-                            # FLEE в тот же узел (или без координат) — это паника, обрабатываемая на уровне аффекта/драйвов, 
+                            # FLEE в тот же узел (или без координат) — это паника, обрабатываемая на уровне аффекта/драйвов,
                             # а не макро-перемещением, которое ломает Traversal FSM бесконечным циклом.
-                            logger.debug(f"[MOTION_ROUTER] FLEE SKIP (same node/no coords): npc={npc_id} stay={_npc_node}")
+                            logger.debug(
+                                f"[MOTION_ROUTER] FLEE SKIP (same node/no coords): npc={npc_id} stay={_npc_node}"
+                            )
                 else:
                     # S91: SOCIAL_DRIFT — Intent Attribution Layer.
                     # NPC выбирает социально значимый якорь (бар, вход, стол, группа NPC).
-                    _npc_pos_entry = scene_state.get("npc_positions", {}).get(npc_id, {})
+                    _npc_pos_entry = scene_state.get("npc_positions", {}).get(
+                        npc_id, {}
+                    )
                     _npc_xy = _npc_pos_entry.get("local_position")
                     if _npc_xy:
                         _target_xy = npc.get("social_drift_target")
-                        _dist_to_target = math.hypot(_target_xy.get("x", 0.0) - _npc_xy.get("x", 0.0), _target_xy.get("y", 0.0) - _npc_xy.get("y", 0.0)) if _target_xy else float('inf')
-                        
+                        _dist_to_target = (
+                            math.hypot(
+                                _target_xy.get("x", 0.0) - _npc_xy.get("x", 0.0),
+                                _target_xy.get("y", 0.0) - _npc_xy.get("y", 0.0),
+                            )
+                            if _target_xy
+                            else float("inf")
+                        )
+
                         # S91: Memory Bias — укрепляем привычку при достижении якоря
                         if _target_xy and _dist_to_target < 0.5:
-                            _visited_anchor = npc.get("current_anchor_type", "observe_area")
+                            _visited_anchor = npc.get(
+                                "current_anchor_type", "observe_area"
+                            )
                             npc.setdefault("anchor_affinity", {})
-                            npc["anchor_affinity"][_visited_anchor] = npc["anchor_affinity"].get(_visited_anchor, 0.0) + 1.0
-                        
+                            npc["anchor_affinity"][_visited_anchor] = (
+                                npc["anchor_affinity"].get(_visited_anchor, 0.0) + 1.0
+                            )
+
                         # Выбираем новую цель, если её нет или мы её достигли
                         if not _target_xy or _dist_to_target < 0.5:
-                            import random
                             from app.models.spatial_contracts import NodeRole
-                            
+
                             # S91: Preference Drift — затухание привычек со временем
                             _affinity = npc.get("anchor_affinity", {})
                             for k in list(_affinity.keys()):
                                 _affinity[k] = max(0.0, _affinity[k] - 0.05)
                             npc["anchor_affinity"] = _affinity
-                            
+
                             # S91: Intent Scoring Layer (Utility Competition + Memory Bias)
                             _body = npc.get("body_state", {})
                             _hunger = _body.get("hunger", 0.0) / 100.0
                             _fatigue = _body.get("fatigue", 0.0) / 100.0
                             _kernel = npc.get("perceptual_kernel")
-                            _threat = _kernel.get("threat_gradient", 0.0) if isinstance(_kernel, dict) else 0.0
-                            
+                            _threat = (
+                                _kernel.get("threat_gradient", 0.0)
+                                if isinstance(_kernel, dict)
+                                else 0.0
+                            )
+
                             _scores = {
-                                "bar": (_hunger * 10.0 + 1.0) * (1.0 + _affinity.get("bar", 0.0)),
-                                "table": (_fatigue * 10.0 + 1.0) * (1.0 + _affinity.get("table", 0.0)),
-                                "entrance": (_threat * 15.0 + 0.5) * (1.0 + _affinity.get("entrance", 0.0)),
-                                "npc_cluster": ((1.0 - _threat) * 8.0 + 2.0) * (1.0 + _affinity.get("npc_cluster", 0.0))
+                                "bar": (_hunger * 10.0 + 1.0)
+                                * (1.0 + _affinity.get("bar", 0.0)),
+                                "table": (_fatigue * 10.0 + 1.0)
+                                * (1.0 + _affinity.get("table", 0.0)),
+                                "entrance": (_threat * 15.0 + 0.5)
+                                * (1.0 + _affinity.get("entrance", 0.0)),
+                                "npc_cluster": ((1.0 - _threat) * 8.0 + 2.0)
+                                * (1.0 + _affinity.get("npc_cluster", 0.0)),
                             }
                             _anchor_type = max(_scores, key=_scores.get)
-                            npc["current_anchor_type"] = _anchor_type # Запоминаем для Memory Bias
+                            npc["current_anchor_type"] = (
+                                _anchor_type  # Запоминаем для Memory Bias
+                            )
                             _anchor_xy = None
                             _intent_mask = "observe_area"
-                            
+
                             if _anchor_type != "npc_cluster" and self._spatial_service:
-                                _role_map = {"bar": NodeRole.BAR, "entrance": NodeRole.ENTRANCE, "table": NodeRole.TABLE}
-                                _ref = self._spatial_service.resolve_node(role=_role_map[_anchor_type], origin_zone=npc.get("location_id"))
+                                _role_map = {
+                                    "bar": NodeRole.BAR,
+                                    "entrance": NodeRole.ENTRANCE,
+                                    "table": NodeRole.TABLE,
+                                }
+                                _ref = self._spatial_service.resolve_node(
+                                    role=_role_map[_anchor_type],
+                                    origin_zone=npc.get("location_id"),
+                                )
                                 if _ref:
-                                    _anchor_xy = {"x": float(_ref.x), "y": float(_ref.y)}
-                                    _intent_mask = {"bar": "get_drink", "entrance": "check_entrance", "table": "sit_down"}.get(_anchor_type, "observe_area")
+                                    _anchor_xy = {
+                                        "x": float(_ref.x),
+                                        "y": float(_ref.y),
+                                    }
+                                    _intent_mask = {
+                                        "bar": "get_drink",
+                                        "entrance": "check_entrance",
+                                        "table": "sit_down",
+                                    }.get(_anchor_type, "observe_area")
                             else:
                                 _all_npcs = scene_state.get("npc_positions", {})
-                                _other_npcs = [v for k, v in _all_npcs.items() if k != npc_id and v.get("local_position")]
+                                _other_npcs = [
+                                    v
+                                    for k, v in _all_npcs.items()
+                                    if k != npc_id and v.get("local_position")
+                                ]
                                 if _other_npcs:
                                     _target_npc = _rng.choice(_other_npcs)
                                     _anchor_xy = _target_npc.get("local_position")
                                     _intent_mask = "eavesdrop"
                                 else:
                                     _angle = _rng.uniform(0, 2 * math.pi)
-                                    _anchor_xy = {"x": _npc_xy.get("x", 0.0) + math.cos(_angle) * 2.0, "y": _npc_xy.get("y", 0.0) + math.sin(_angle) * 2.0}
+                                    _anchor_xy = {
+                                        "x": _npc_xy.get("x", 0.0)
+                                        + math.cos(_angle) * 2.0,
+                                        "y": _npc_xy.get("y", 0.0)
+                                        + math.sin(_angle) * 2.0,
+                                    }
                                     _intent_mask = "seek_quiet_corner"
-                                    
+
                             if _anchor_xy:
                                 _target_xy = _anchor_xy
                                 npc["social_drift_target"] = _target_xy
@@ -874,33 +1042,47 @@ class LifeEngine:
                         _dx = _target_xy.get("x", 0.0) - _npc_xy.get("x", 0.0)
                         _dy = _target_xy.get("y", 0.0) - _npc_xy.get("y", 0.0)
                         _mag = math.hypot(_dx, _dy)
-                        
+
                         if _mag > 0.01:
-                            npc["drive_vector"] = [_dx / _mag, _dy / _mag, 0.2, "social_drift"]
+                            npc["drive_vector"] = [
+                                _dx / _mag,
+                                _dy / _mag,
+                                0.2,
+                                "social_drift",
+                            ]
 
                 # Триггер когда давление накопилось
                 if _new_pressure >= IDLE_DECISION_SCORE_THRESHOLD:
-                    decisions.append({
-                        "npc_id": npc_id,
-                        "cause": "idle_pressure",
-                        "type": "proactive",
-                        "target": npc_id,
-                        "field": "intent",
-                        "value": f"{result.intent.value if result.intent else 'observe'}",
-                        "intent_target": result.intent_target,
-                        "topic": topics.get(npc_id, "наблюдение") if topics else "наблюдение",
-                    })
+                    decisions.append(
+                        {
+                            "npc_id": npc_id,
+                            "cause": "idle_pressure",
+                            "type": "proactive",
+                            "target": npc_id,
+                            "field": "intent",
+                            "value": f"{result.intent.value if result.intent else 'observe'}",
+                            "intent_target": result.intent_target,
+                            "topic": topics.get(npc_id, "наблюдение")
+                            if topics
+                            else "наблюдение",
+                        }
+                    )
                     # Сброс давления после триггера
                     self._idle_pressure[_key] = 0.0
 
             except Exception as e:
                 import traceback
-                logger.warning(f"[LIFE_ENGINE] Idle decision error for {npc_id}: {e}\n{traceback.format_exc()}")
+
+                logger.warning(
+                    f"[LIFE_ENGINE] Idle decision error for {npc_id}: {e}\n{traceback.format_exc()}"
+                )
                 logger.error(f"[TICK_DECISIONS] error: {npc_id} → {e}")
                 logger.error(f"[LIFE_ENGINE] Error processing NPC {npc_id}: {e}")
                 continue
 
-        logger.info(f"[TICK_DECISIONS] end: {len(decisions)} decisions, {len(communication_intents)} comms, {len(movement_intents)} movements")
+        logger.info(
+            f"[TICK_DECISIONS] end: {len(decisions)} decisions, {len(communication_intents)} comms, {len(movement_intents)} movements"
+        )
         return decisions, communication_intents, movement_intents
 
     def save_npcs(self, campaign_id: str) -> None:
@@ -915,14 +1097,13 @@ class LifeEngine:
         path.parent.mkdir(parents=True, exist_ok=True)
         try:
             path.write_text(
-                json.dumps(npcs, ensure_ascii=False, indent=2),
-                encoding="utf-8"
+                json.dumps(npcs, ensure_ascii=False, indent=2), encoding="utf-8"
             )
             logger.debug(f"[LIFE_ENGINE] NPC сохранены: {path}")
         except OSError as e:
             logger.error(f"[LIFE_ENGINE] Ошибка сохранения NPC: {e}")
 
-    def get_activity_description(self, npc: dict) -> str:
+    def get_activity_description(self, npc: Dict[str, Any]) -> str:
         """
         Возвращает читаемое описание текущей активности NPC.
         Используется DM для описания сцены и LifeEngine для логов.
@@ -934,20 +1115,20 @@ class LifeEngine:
         location = npc.get("location", "")
 
         _activity_phrases = {
-            "sleeping":         "спит",
-            "cleaning_tables":  "протирает столы",
-            "serving_tables":   "разносит еду и напитки",
-            "guarding_gate":    "несёт стражу у ворот",
-            "haggling":         "торгуется с покупателями",
-            "observing":        "наблюдает за посетителями",
-            "resting":          "отдыхает",
-            "eating":           "ест",
-            "drinking":         "пьёт",
-            "working":          "работает",
-            "on_duty":          "на дежурстве",
-            "off_duty":         "отдыхает после смены",
-            "talking_at_bar":   "разговаривает у стойки",
-            "hiding":           "прячется в тени",
+            "sleeping": "спит",
+            "cleaning_tables": "протирает столы",
+            "serving_tables": "разносит еду и напитки",
+            "guarding_gate": "несёт стражу у ворот",
+            "haggling": "торгуется с покупателями",
+            "observing": "наблюдает за посетителями",
+            "resting": "отдыхает",
+            "eating": "ест",
+            "drinking": "пьёт",
+            "working": "работает",
+            "on_duty": "на дежурстве",
+            "off_duty": "отдыхает после смены",
+            "talking_at_bar": "разговаривает у стойки",
+            "hiding": "прячется в тени",
         }
         phrase = _activity_phrases.get(activity, activity or "находится здесь")
         return f"{name} {phrase}"
@@ -1001,6 +1182,7 @@ class LifeEngine:
         4. Сохраняет в persistence для следующих загрузок
         5. Обновляет кэш"""
         from app.models.npc_state import BODY_STATE_HEALTHY
+
         # Очистка кэша
         self._npc_cache.pop(campaign_id, None)
         self._last_access.pop(campaign_id, None)
@@ -1031,7 +1213,7 @@ class LifeEngine:
 
     def update_cache(self, campaign_id: str, npc_dicts: list[dict]) -> None:
         """Обновляет HOT кэш NPC мутированными данными после apply_batch.
-        
+
         Без этого affective_load, emotion, body_state и другие runtime-поля
         теряются между тиками — каждый player turn загружает свежий статический конфиг.
         """
@@ -1046,7 +1228,7 @@ class LifeEngine:
         """Путь к файлу NPC (для совместимости с legacy кодом)."""
         return self.npcs_dir / "major_npcs.json"
 
-    def _load_npcs(self, campaign_id: str) -> list:
+    def _load_npcs(self, campaign_id: str) -> List[Any]:
         """
         Загружает NPC из кэша или файла.
         Для campaign-specific файлов путь: sessions/{campaign_id}/major_npcs.json
@@ -1065,7 +1247,9 @@ class LifeEngine:
                 if runtime_npcs is not None:
                     runtime_npcs = self._normalize_runtime_npcs(runtime_npcs)
                     self._npc_cache[campaign_id] = runtime_npcs
-                    self._last_access[campaign_id] = time.time()  # §15.2: Infrastructure (cache TTL)
+                    self._last_access[campaign_id] = (
+                        time.time()
+                    )  # §15.2: Infrastructure (cache TTL)
                     self._last_access.move_to_end(campaign_id)
                     logger.info(
                         f"[LIFE_ENGINE] Восстановлен из SQLite: {campaign_id} "
@@ -1097,18 +1281,19 @@ class LifeEngine:
         return []
 
     @staticmethod
-    def _normalize_runtime_npcs(npcs: list) -> list:
+    def _normalize_runtime_npcs(npcs: List[Any]) -> List[Any]:
         """Migration Boundary: приводит загруженные NPC dicts к runtime-контракту.
-        
+
         Все источники (SQLite, JSON, cache) проходят эту нормализацию
         при холодной загрузке. Горячий путь (cache hit) пропускается —
         данные уже нормализованы при первом заходе.
-        
+
         Инвариант: после этого метода каждый NPC dict гарантированно имеет
         npc_id, body_state, location_id.
         """
         from app.models.npc_state import BODY_STATE_HEALTHY
         from app.core.constants import DEFAULT_LOCATION_ID
+
         for npc in npcs:
             if "npc_id" not in npc and "id" in npc:
                 npc["npc_id"] = npc["id"]
@@ -1125,7 +1310,7 @@ class LifeEngine:
         self._npc_cache[campaign_id] = npcs
         return npcs
 
-    def get_npc_observed_state(self, campaign_id: str, npc_id: str) -> dict:
+    def get_npc_observed_state(self, campaign_id: str, npc_id: str) -> Dict[str, Any]:
         """Возвращает безопасный наблюдаемый слепок NPC для LLM (Эпистемический Барьер ADR-TZ08-6).
         Не содержит ментальных полей (stress, fear, drives). Только name и description.
         """
@@ -1134,7 +1319,7 @@ class LifeEngine:
             if n.get("npc_id") == npc_id or n.get("id") == npc_id:
                 return {
                     "name": n.get("name", npc_id),
-                    "description": n.get("description", "")
+                    "description": n.get("description", ""),
                 }
         return {"name": npc_id, "description": ""}
 
@@ -1145,17 +1330,27 @@ class LifeEngine:
         cached = self._npc_cache.get(campaign_id, [])
         light_snap = []
         for n in cached:
-            light_snap.append({
-                "npc_id": n.get("npc_id"),
-                "body_state": {"life_status": n.get("body_state", {}).get("life_status", "ALIVE")},
-                "psyche": {"identity_integrity": n.get("psyche", {}).get("identity_integrity", 1.0)},
-                "drives": n.get("drives", {}).copy()
-            })
+            light_snap.append(
+                {
+                    "npc_id": n.get("npc_id"),
+                    "body_state": {
+                        "life_status": n.get("body_state", {}).get(
+                            "life_status", "ALIVE"
+                        )
+                    },
+                    "psyche": {
+                        "identity_integrity": n.get("psyche", {}).get(
+                            "identity_integrity", 1.0
+                        )
+                    },
+                    "drives": n.get("drives", {}).copy(),
+                }
+            )
         return light_snap
 
     def get_npc_states(self, campaign_id: str) -> list[dict]:
         """Возвращает кэшированные NPC states после мутации в tick().
-        
+
         ADR-128: При cache miss пытается восстановить из SQLite (COLD-1),
         затем из static config (COLD-2). Без этого body_state (injuries,
         blood_loss, shock_impulse) теряется после TTL/LRU eviction.
@@ -1176,25 +1371,26 @@ class LifeEngine:
             f"[LIFE_ENGINE] get_npc_states: кэш пуст для '{campaign_id}'. "
             "Ни cache, ни SQLite, ни static config не содержат данных."
         )
-        return []  
+        return []
 
     # ─────────────────────────────────────────────────────────────────────────
     # Симуляция по тирам
     # ─────────────────────────────────────────────────────────────────────────
 
-    def _make_random_events(self, npc: dict, tick: int) -> list:
+    def _make_random_events(self, npc: Dict[str, Any], tick: int) -> List[Any]:
         """Таблица случайных событий для Major NPC.
-        
+
         5% шанс одного события за тик.
         Возвращает список (event_id, changes, intent_or_none).
         """
-        npc_id   = npc.get("id", "unknown")
+        npc_id = npc.get("id", "unknown")
         location = npc.get("location_id", DEFAULT_LOCATION_ID)
 
         # Резолвим BAR узел через SpatialService v1.2, fallback на хардкод
         bar_target = "bar_area"  # @deprecated: fallback
         if self._spatial_service:
             from app.models.spatial_contracts import NodeRole
+
             if bar_ref := self._spatial_service.resolve_node(
                 role=NodeRole.BAR,
                 origin_zone=location,
@@ -1204,57 +1400,73 @@ class LifeEngine:
 
         events = [
             # NPC переходит к стойке поговорить с кем-то
-            ("wanders_to_bar", [
-                SceneChange(
-                    type=ChangeType.NPC_POSITION,
-                    target=npc_id,
-                    field="activity",
-                    value="talking_at_bar",
-                    cause="life_engine_random",
-                    tick=tick,
+            (
+                "wanders_to_bar",
+                [
+                    SceneChange(
+                        type=ChangeType.NPC_POSITION,
+                        target=npc_id,
+                        field="activity",
+                        value="talking_at_bar",
+                        cause="life_engine_random",
+                        tick=tick,
+                    ),
+                ],
+                MacroMovementGoal(
+                    actor_id=npc_id,
+                    target_node_id=bar_target,
+                    from_node_id=npc.get("position", ""),
+                    location_id=location,
+                    reason="random:wanders_to_bar",
+                    domain=IntentDomain.EXPLORATION,
+                    priority=PRIORITY_RANDOM,
                 ),
-            ], MovementIntent(
-                npc_id=npc_id,
-                target_node_id=bar_target,
-                from_node_id=npc.get("position", ""),
-                location_id=location,
-                reason="random:wanders_to_bar",
-                domain=IntentDomain.EXPLORATION,
-                priority=PRIORITY_RANDOM,
-            )),
+            ),
             # NPC становится более бдительным (заметил что-то)
-            ("notices_something", [
-                SceneChange(
-                    type=ChangeType.NPC_STATE,
-                    target=npc_id,
-                    field="psyche_state",
-                    value="alert",
-                    cause="life_engine_random",
-                    tick=tick,
-                ),
-            ], None),
+            (
+                "notices_something",
+                [
+                    SceneChange(
+                        type=ChangeType.NPC_STATE,
+                        target=npc_id,
+                        field="psyche_state",
+                        value="alert",
+                        cause="life_engine_random",
+                        tick=tick,
+                    ),
+                ],
+                None,
+            ),
             # Небольшой стресс — ссора с кем-то
-            ("minor_argument", [
-                SceneChange(
-                    type=ChangeType.NPC_STATE,
-                    target=npc_id,
-                    field="stress_delta",
-                    value=10,
-                    cause="life_engine_argument",
-                    tick=tick,
-                ),
-            ], None),
+            (
+                "minor_argument",
+                [
+                    SceneChange(
+                        type=ChangeType.NPC_STATE,
+                        target=npc_id,
+                        field="stress_delta",
+                        value=10,
+                        cause="life_engine_argument",
+                        tick=tick,
+                    ),
+                ],
+                None,
+            ),
             # NPC на мгновение выходит (в туалет, за товаром, на улицу)
-            ("brief_exit", [
-                SceneChange(
-                    type=ChangeType.NPC_POSITION,
-                    target=npc_id,
-                    field="visible",
-                    value=False,
-                    cause="life_engine_random",
-                    tick=tick,
-                ),
-            ], None),
+            (
+                "brief_exit",
+                [
+                    SceneChange(
+                        type=ChangeType.NPC_POSITION,
+                        target=npc_id,
+                        field="visible",
+                        value=False,
+                        cause="life_engine_random",
+                        tick=tick,
+                    ),
+                ],
+                None,
+            ),
         ]
         # Событие wanders_to_bar только в таверне — иначе MovementEngine не найдёт узел
         if location != DEFAULT_LOCATION_ID:
@@ -1262,20 +1474,20 @@ class LifeEngine:
         return events
 
     def _simulate_major(
-          self,
-          npc: dict,
-          current_time: str,
-          tick: int,
-          scene_state: Optional[dict] = None,
-          rng: Optional[KernelRNG] = None
-      ) -> tuple[list[SceneChange], list["MovementIntent"]]:
+        self,
+        npc: Dict[str, Any],
+        current_time: str,
+        tick: int,
+        scene_state: Optional[Dict[str, Any]] = None,
+        rng: Optional[KernelRNG] = None,
+    ) -> tuple[list[SceneChange], list["MovementIntent"]]:
         """
-          Полная симуляция Major NPC за один тик.
-          Порядок: need-driven → расписание → стресс → случайные события.
-          Need-driven имеет приоритет: если потребность критична — schedule пропускается.
-          ADR-049: Возвращает list[MovementIntent] вместо прямого исполнения.
-          ДОЛГ 4.3: Viability Pre-Generation Gate — ROUTINE не генерируется при SURVIVAL давлении.
-          """
+        Полная симуляция Major NPC за один тик.
+        Порядок: need-driven → расписание → стресс → случайные события.
+        Need-driven имеет приоритет: если потребность критична — schedule пропускается.
+        ADR-049: Возвращает list[MovementIntent] вместо прямого исполнения.
+        ДОЛГ 4.3: Viability Pre-Generation Gate — ROUTINE не генерируется при SURVIVAL давлении.
+        """
         npc_id = npc.get("id", "unknown")
 
         # S112 FIX: Синхронизация пространственных данных из scene_state (SSOT) в npc_dict (cache).
@@ -1287,14 +1499,18 @@ class LifeEngine:
                 if "position" in _pos_data:
                     npc["position"] = _pos_data["position"]
                 if "location_id" not in npc or not npc["location_id"]:
-                    npc["location_id"] = _pos_data.get("location_id", scene_state.get("location_id", ""))
+                    npc["location_id"] = _pos_data.get(
+                        "location_id", scene_state.get("location_id", "")
+                    )
                 if "local_position" in _pos_data:
                     npc["local_position"] = _pos_data["local_position"]
             else:
                 # S112 DIAG: Если NPC нет в scene_state, значит он offscreen.
                 # LifeEngine не должен генерировать для него интенты, так как он не в этой локации.
                 if npc_id == "guard_borko":
-                    logger.debug(f"[DIAG_BORKO] npc_id={npc_id} NOT in scene_state! npc_loc={npc.get('location_id')} scene_loc={scene_state.get('location_id')} npc_pos={npc.get('position')}")
+                    logger.debug(
+                        f"[DIAG_BORKO] npc_id={npc_id} NOT in scene_state! npc_loc={npc.get('location_id')} scene_loc={scene_state.get('location_id')} npc_pos={npc.get('position')}"
+                    )
 
         # ADR-O-142A: Arousal Gate — missing wake edge (sleeping → idle)
         # Behavior transition gate: определяет, должен ли спящий NPC пробудиться.
@@ -1313,20 +1529,36 @@ class LifeEngine:
 
         # ADR-052: Cognitive Override Guard. Паралич воли блокирует любую активность.
         _kernel = npc.get("perceptual_kernel")
-        _init_sup = _kernel.get("initiative_suppression", 0.0) if isinstance(_kernel, dict) else getattr(_kernel, "initiative_suppression", 0.0) if _kernel else 0.0
-        _recent_dir = _kernel.get("recent_directive") if isinstance(_kernel, dict) else getattr(_kernel, "recent_directive", None) if _kernel else None
+        _init_sup = (
+            _kernel.get("initiative_suppression", 0.0)
+            if isinstance(_kernel, dict)
+            else getattr(_kernel, "initiative_suppression", 0.0)
+            if _kernel
+            else 0.0
+        )
+        _recent_dir = (
+            _kernel.get("recent_directive")
+            if isinstance(_kernel, dict)
+            else getattr(_kernel, "recent_directive", None)
+            if _kernel
+            else None
+        )
         if _init_sup > 0.7:
-            logger.debug(f"[LIFE_ENGINE] {npc_id}: Major cycle bypassed due to initiative_suppression={_init_sup:.2f}")
+            logger.debug(
+                f"[LIFE_ENGINE] {npc_id}: Major cycle bypassed due to initiative_suppression={_init_sup:.2f}"
+            )
             return [], []
 
-        # ADR-130: Movement Lock. Если NPC уже в активном транзите — 
+        # ADR-130: Movement Lock. Если NPC уже в активном транзите —
         # LifeEngine не генерирует новые интенты (ни schedule, ни need-driven).
         # Это предотвращает "бесконечный бег" и топологические дрейфы.
         if scene_state:
             _active_travs = scene_state.get("active_traversals", {})
             _my_trav = _active_travs.get(npc_id)
             if _my_trav and _my_trav.get("status") == "MOVING":
-                logger.debug(f"[LIFE_ENGINE] {npc_id}: Major cycle bypassed — active traversal (target={_my_trav.get('target_node', '?')})")
+                logger.debug(
+                    f"[LIFE_ENGINE] {npc_id}: Major cycle bypassed — active traversal (target={_my_trav.get('target_node', '?')})"
+                )
                 return [], []
 
         changes: list[SceneChange] = []
@@ -1349,9 +1581,13 @@ class LifeEngine:
         # 2. Расписание: только если ROUTINE жизнеспособен И нет критической потребности
         # S89: Need override — если need_intent уже в кандидатах, schedule не генерируется
         # Модель: голодный кузнец не идёт на работу, он идёт есть
-        _has_critical_need = any(c.reason.startswith("need_driven:") for c in candidates)
+        _has_critical_need = any(
+            c.reason.startswith("need_driven:") for c in candidates
+        )
         if IntentDomain.ROUTINE in _viable and not _has_critical_need:
-            routine_changes, routine_intent = self.update_routine(npc, current_time, tick, scene_state=scene_state)
+            routine_changes, routine_intent = self.update_routine(
+                npc, current_time, tick, scene_state=scene_state
+            )
             changes.extend(routine_changes)
             if routine_intent:
                 routine_intent.domain = IntentDomain.ROUTINE
@@ -1370,7 +1606,9 @@ class LifeEngine:
 
         # ── Viability логирование ──
         if IntentDomain.ROUTINE not in _viable:
-            logger.info(f"[VIABILITY] npc={npc_id}: ROUTINE pruned (threat) — viable={[d.value for d in _viable]}")
+            logger.info(
+                f"[VIABILITY] npc={npc_id}: ROUTINE pruned (threat) — viable={[d.value for d in _viable]}"
+            )
 
         # ── D6: выбираем лучший intent по priority ──
         if candidates:
@@ -1378,11 +1616,13 @@ class LifeEngine:
             winner = candidates[0]
             # ADR-049: LifeEngine больше не диктатор. Он не исполняет намерения сам.
             # Намерение передается в TickOrchestrator для прохождения каузального конвейера.
-            logger.info(f"[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc={winner.npc_id} target={winner.target_node_id} reason={winner.reason}")
-            
+            logger.info(
+                f"[PIPELINE][MOVEMENT][INTENT_SCHEDULE] npc={winner.npc_id} target={winner.target_node_id} reason={winner.reason}"
+            )
+
             # DRF Side-Channel Bus: Пишем давление напрямую в шину, минуя Intent DTO
             # ДОЛГ 4.3: pressure_type из домена победителя, не хардкод
-            _winner_domain = getattr(winner, 'domain', IntentDomain.ROUTINE)
+            _winner_domain = getattr(winner, "domain", IntentDomain.ROUTINE)
             _claim = {
                 "source": "life_engine_intent",
                 "target_npc": winner.npc_id,
@@ -1390,27 +1630,33 @@ class LifeEngine:
                 "vector": winner.reason,
                 "energy": 0.5,
                 "target_node": winner.target_node_id,
-                "half_life": 5.0
+                "half_life": 5.0,
             }
             if self._claim_bus is not None:
                 self._claim_bus.emit(_claim)
-                logger.debug(f"[DRF_EMIT] source=life_engine npc={winner.npc_id} vector={winner.reason} bus_id={id(self._claim_bus)} stream_size={len(self._claim_bus.stream)}")
-            
+                logger.debug(
+                    f"[DRF_EMIT] source=life_engine npc={winner.npc_id} vector={winner.reason} bus_id={id(self._claim_bus)} stream_size={len(self._claim_bus.stream)}"
+                )
+
             intents.append(winner)
             # Обновляем activity в scene_state
             if winner.reason.startswith("need_driven:"):
                 if target_activity := _NEED_TO_ACTIVITY.get(
                     winner.reason.split(":")[1].split("=")[0], ""
                 ):
-                    activity_entry = npc.get("activity_map", {}).get(target_activity, {})
-                    changes.append(SceneChange(
-                        type=ChangeType.NPC_POSITION,
-                        target=winner.npc_id,
-                        field="activity",
-                        value=activity_entry.get("display", target_activity),
-                        cause=f"life_engine_need_driven:{winner.reason}",
-                        tick=tick,
-                    ))
+                    activity_entry = npc.get("activity_map", {}).get(
+                        target_activity, {}
+                    )
+                    changes.append(
+                        SceneChange(
+                            type=ChangeType.NPC_POSITION,
+                            target=winner.npc_id,
+                            field="activity",
+                            value=activity_entry.get("display", target_activity),
+                            cause=f"life_engine_need_driven:{winner.reason}",
+                            tick=tick,
+                        )
+                    )
                     # BUG SC FIX: Обновление routine.current при победе need-driven
                     # Без этого routine.current остаётся на schedule activity, пока NPC
                     # физически на need-driven позиции → DOUBLE TRUTH → Schedule Freeze
@@ -1430,7 +1676,7 @@ class LifeEngine:
     # Need-driven movement — перемещение по потребностям
     # ─────────────────────────────────────────────────────────────────────
 
-    def _ensure_needs_state(self, npc: dict) -> dict:
+    def _ensure_needs_state(self, npc: Dict[str, Any]) -> Dict[str, Any]:
         """Инициализирует словарь потребностей в NPC dict.
         Дополняет недостающие ключи если dict уже существует.
         """
@@ -1443,7 +1689,7 @@ class LifeEngine:
                 needs[need_name] = 0.0
         return needs
 
-    def _tick_needs(self, npc: dict) -> None:
+    def _tick_needs(self, npc: Dict[str, Any]) -> None:
         """
         Увеличивает потребности за тик.
         Если текущая активность удовлетворяет потребность — сбрасываем.
@@ -1461,7 +1707,7 @@ class LifeEngine:
 
     def _check_need_driven_movement(
         self,
-        npc: dict,
+        npc: Dict[str, Any],
     ) -> Optional[MovementIntent]:
         """
         Если потребность выше порога — возвращает MovementIntent.
@@ -1478,8 +1724,7 @@ class LifeEngine:
 
         # Находим самую критичную потребность
         urgent_needs = [
-            (name, val) for name, val in needs.items()
-            if val >= _NEED_THRESHOLD
+            (name, val) for name, val in needs.items() if val >= _NEED_THRESHOLD
         ]
 
         if not urgent_needs:
@@ -1495,7 +1740,9 @@ class LifeEngine:
 
         # S89: Диагностика need-driven
         _has_am = target_activity in activity_map
-        logger.debug(f"[NEED_TRACE] npc={npc_id} need={need_name}:{need_value:.2f} activity={target_activity} has_am={_has_am}")
+        logger.debug(
+            f"[NEED_TRACE] npc={npc_id} need={need_name}:{need_value:.2f} activity={target_activity} has_am={_has_am}"
+        )
 
         target_entry = activity_map.get(target_activity)
 
@@ -1504,25 +1751,44 @@ class LifeEngine:
         # резолвим через SpatialService по роли — как в _resolve_position
         if not target_entry and self._spatial_service:
             from app.models.spatial_contracts import NodeRole
+
             _NEED_ROLE_MAP = {
-                "eating": NodeRole.TABLE, "sleeping": NodeRole.BED,
-                "resting": NodeRole.BED, "working": NodeRole.WORKBENCH,
-                "socializing": NodeRole.BAR, "drinking": NodeRole.BAR,
-                "haggling": NodeRole.MARKET, "guarding_gate": NodeRole.ENTRANCE,
+                "eating": NodeRole.TABLE,
+                "sleeping": NodeRole.BED,
+                "resting": NodeRole.BED,
+                "working": NodeRole.WORKBENCH,
+                "socializing": NodeRole.BAR,
+                "drinking": NodeRole.BAR,
+                "haggling": NodeRole.MARKET,
+                "guarding_gate": NodeRole.ENTRANCE,
             }
             _role = _NEED_ROLE_MAP.get(target_activity)
             if _role:
-                _ref = self._spatial_service.resolve_node(role=_role, origin_zone=npc.get("location_id"))
+                _ref = self._spatial_service.resolve_node(
+                    role=_role, origin_zone=npc.get("location_id")
+                )
                 if _ref:
-                    target_entry = {"location": _ref.zone_id, "position": _ref.node_id, "display": target_activity}
+                    target_entry = {
+                        "location": _ref.zone_id,
+                        "position": _ref.node_id,
+                        "display": target_activity,
+                    }
                 elif target_activity in ("resting", "sleeping"):
                     # Fallback: BED не найден → отдых на любом доступном узле (скамейка, земля)
                     # sleeping требует BED строго, resting — нет
                     if target_activity == "resting":
-                        _ref = self._spatial_service.resolve_node(role=NodeRole.DEFAULT, origin_zone=npc.get("location_id"))
+                        _ref = self._spatial_service.resolve_node(
+                            role=NodeRole.DEFAULT, origin_zone=npc.get("location_id")
+                        )
                         if _ref:
-                            target_entry = {"location": _ref.zone_id, "position": _ref.node_id, "display": target_activity}
-                            logger.debug(f"[NEED_TRACE] npc={npc_id} BED not found, resting fallback to DEFAULT node {_ref.node_id}")
+                            target_entry = {
+                                "location": _ref.zone_id,
+                                "position": _ref.node_id,
+                                "display": target_activity,
+                            }
+                            logger.debug(
+                                f"[NEED_TRACE] npc={npc_id} BED not found, resting fallback to DEFAULT node {_ref.node_id}"
+                            )
 
         if not target_entry:
             return None
@@ -1533,7 +1799,11 @@ class LifeEngine:
         # SHI-FIX: No-op guard. Нормализуем ID узла, чтобы избежать mismatch.
         _loc = target_location or npc.get("location_id", "")
         _norm_target = target_node if ":" in target_node else f"{_loc}:{target_node}"
-        _norm_current = current_position if ":" in current_position else f"{_loc}:{current_position}"
+        _norm_current = (
+            current_position
+            if ":" in current_position
+            else f"{_loc}:{current_position}"
+        )
         if _norm_target == _norm_current:
             return None
 
@@ -1550,9 +1820,10 @@ class LifeEngine:
         npc.get("routine", {})["current"] = target_activity
 
         from app.domain.movement import PRIORITY_NEEDS
+
         # ADR-0010: movement_mode удалён. Макро-перемещение — Semantic Relocation.
-        return MovementIntent(
-            npc_id=npc_id,
+        return MacroMovementGoal(
+            actor_id=npc_id,
             target_node_id=target_node,
             from_node_id=npc.get("position", ""),
             location_id=target_location,
@@ -1561,7 +1832,7 @@ class LifeEngine:
             priority=PRIORITY_NEEDS,
         )
 
-    def _arousal_gate(self, npc: dict, tick: int) -> list[SceneChange]:
+    def _arousal_gate(self, npc: Dict[str, Any], tick: int) -> list[SceneChange]:
         """ADR-O-142A: Behavior transition gate — missing wake edge.
 
         Arousal Gate определяет, должен ли спящий NPC пробудиться.
@@ -1595,13 +1866,25 @@ class LifeEngine:
         # Когнитивный паралич (initiative_suppression > 0.7) замораживает ВСЁ,
         # включая пробуждение. NPC не может действовать — не может и проснуться.
         _kernel = npc.get("perceptual_kernel")
-        _init_sup = _kernel.get("initiative_suppression", 0.0) if isinstance(_kernel, dict) else getattr(_kernel, "initiative_suppression", 0.0) if _kernel else 0.0
+        _init_sup = (
+            _kernel.get("initiative_suppression", 0.0)
+            if isinstance(_kernel, dict)
+            else getattr(_kernel, "initiative_suppression", 0.0)
+            if _kernel
+            else 0.0
+        )
         if _init_sup > 0.7:
             return []
 
         # Attention Capture (recent_directive.interrupts_routine=True) замораживает
         # поведенческие переходы. Arousal Gate не должен перекрывать когнитивный захват.
-        _rd = _kernel.get("recent_directive") if isinstance(_kernel, dict) else getattr(_kernel, "recent_directive", None) if _kernel else None
+        _rd = (
+            _kernel.get("recent_directive")
+            if isinstance(_kernel, dict)
+            else getattr(_kernel, "recent_directive", None)
+            if _kernel
+            else None
+        )
         if _rd and isinstance(_rd, dict) and _rd.get("interrupts_routine"):
             return []
 
@@ -1629,7 +1912,9 @@ class LifeEngine:
         # TODO: acoustic из scene_state environment.noise (пока недоступен в LifeEngine)
         _acoustic = 0.0
 
-        wake_pressure = _threat * 0.35 + _pain * 0.25 + _directive_salience * 0.3 + _acoustic * 0.1
+        wake_pressure = (
+            _threat * 0.35 + _pain * 0.25 + _directive_salience * 0.3 + _acoustic * 0.1
+        )
 
         # ── Sleep resistance ───────────────────────────────────────────
         # TODO: depth — требует записи _sleep_start_tick в update_routine
@@ -1672,16 +1957,16 @@ class LifeEngine:
         return []
 
     @staticmethod
-    def _compute_viability_mask(npc: dict) -> set[IntentDomain]:
+    def _compute_viability_mask(npc: Dict[str, Any]) -> set[IntentDomain]:
         """ДОЛГ 4.3: Viability Projection — какие домены действий допустимы для NPC.
-        
+
         Viability — не предпочтение, а физика возможностей.
         SURVIVAL давление (threat_gradient > 0.3) исключает ROUTINE из пространства генерации.
         NPC не может «выбрать» работу при угрозе — это не вопрос priority, а вопрос существования.
-        
+
         Источник: PerceptualKernel (персистентен между тиками, доступен в Phase 0).
         НЕ использует DRF claims — viability локальна, claims для кросс-NPC давления.
-        
+
         Returns:
             Множество ДОПУСТИМЫХ доменов. Отсутствие домена = действие невозможно.
         """
@@ -1694,66 +1979,79 @@ class LifeEngine:
         elif _kernel:
             _threat = getattr(_kernel, "threat_gradient", 0.0)
             _init_sup = getattr(_kernel, "initiative_suppression", 0.0)
-        
-        _viable: set[IntentDomain] = {IntentDomain.SURVIVAL, IntentDomain.SOCIAL, IntentDomain.ROUTINE, IntentDomain.EXPLORATION}
-        
+
+        _viable: set[IntentDomain] = {
+            IntentDomain.SURVIVAL,
+            IntentDomain.SOCIAL,
+            IntentDomain.ROUTINE,
+            IntentDomain.EXPLORATION,
+        }
+
         # ADR-O-209: Trait-driven viability modulation.
         # Traumatized NPC входит в SURVIVAL режим при более низкой угрозе.
         _identity = npc.get("identity") or {}
-        _active_traits = _identity.active_traits if hasattr(_identity, 'active_traits') else _identity.get("active_traits", {})
-        _trauma_mod = _active_traits.get("traumatized", 0.0) * 0.25  # Макс эффект: снижение порога с 0.3 до 0.05
+        _active_traits = (
+            _identity.active_traits
+            if hasattr(_identity, "active_traits")
+            else _identity.get("active_traits", {})
+        )
+        _trauma_mod = (
+            _active_traits.get("traumatized", 0.0) * 0.25
+        )  # Макс эффект: снижение порога с 0.3 до 0.05
         _survival_threshold = 0.3 - _trauma_mod
-        
+
         # SURVIVAL ⟂ ROUTINE: угроза сжимает пространство — рутина невозможна
         if _threat > _survival_threshold:
             _viable.discard(IntentDomain.ROUTINE)
-        
+
         # Паралич воли: подавление инициативы сжимает всё до SURVIVAL
         if _init_sup > 0.7:
             _viable.discard(IntentDomain.ROUTINE)
             _viable.discard(IntentDomain.EXPLORATION)
             _viable.discard(IntentDomain.SOCIAL)
-        
+
         return _viable
 
     def _simulate_minor(
-          self,
-          npc: dict,
-          current_time: str,
-          tick: int,
-          scene_state: Optional[dict] = None,
-          rng: Optional[KernelRNG] = None
-      ) -> tuple[list[SceneChange], list["MovementIntent"]]:
-          """
-          Симуляция Minor NPC раз в MINOR_TICK_INTERVAL тиков.
-          Только расписание + случайные события (без полного стресс-расчёта).
-          ADR-049: Возвращает list[MovementIntent] вместо прямого исполнения.
-          ДОЛГ 4.3: Viability Pre-Generation Gate — ROUTINE не генерируется при SURVIVAL давлении.
-          """
-          # ADR-O-142A: Arousal Gate — missing wake edge (sleeping → idle)
-          _wake_changes = self._arousal_gate(npc, tick)
-          if _wake_changes:
-              return _wake_changes, []  # NPC только что проснулся
+        self,
+        npc: Dict[str, Any],
+        current_time: str,
+        tick: int,
+        scene_state: Optional[Dict[str, Any]] = None,
+        rng: Optional[KernelRNG] = None,
+    ) -> tuple[list[SceneChange], list["MovementIntent"]]:
+        """
+        Симуляция Minor NPC раз в MINOR_TICK_INTERVAL тиков.
+        Только расписание + случайные события (без полного стресс-расчёта).
+        ADR-049: Возвращает list[MovementIntent] вместо прямого исполнения.
+        ДОЛГ 4.3: Viability Pre-Generation Gate — ROUTINE не генерируется при SURVIVAL давлении.
+        """
+        # ADR-O-142A: Arousal Gate — missing wake edge (sleeping → idle)
+        _wake_changes = self._arousal_gate(npc, tick)
+        if _wake_changes:
+            return _wake_changes, []  # NPC только что проснулся
 
-          _viable = self._compute_viability_mask(npc)
-          changes: list[SceneChange] = []
-          intents: list[MovementIntent] = []
-          
-          if IntentDomain.ROUTINE in _viable:
-              routine_changes, routine_intent = self.update_routine(npc, current_time, tick, scene_state=scene_state)
-              changes.extend(routine_changes)
-              if routine_intent:
-                  routine_intent.domain = IntentDomain.ROUTINE
-                  intents.append(routine_intent)
-          
-          if IntentDomain.EXPLORATION in _viable:
-              event_changes, event_intent = self.check_random_events(npc, tick, rng=rng)
-              changes.extend(event_changes)
-              if event_intent:
-                  event_intent.domain = IntentDomain.EXPLORATION
-                  intents.append(event_intent)
-              
-          return changes, intents
+        _viable = self._compute_viability_mask(npc)
+        changes: list[SceneChange] = []
+        intents: list[MovementIntent] = []
+
+        if IntentDomain.ROUTINE in _viable:
+            routine_changes, routine_intent = self.update_routine(
+                npc, current_time, tick, scene_state=scene_state
+            )
+            changes.extend(routine_changes)
+            if routine_intent:
+                routine_intent.domain = IntentDomain.ROUTINE
+                intents.append(routine_intent)
+
+        if IntentDomain.EXPLORATION in _viable:
+            event_changes, event_intent = self.check_random_events(npc, tick, rng=rng)
+            changes.extend(event_changes)
+            if event_intent:
+                event_intent.domain = IntentDomain.EXPLORATION
+                intents.append(event_intent)
+
+        return changes, intents
 
     # ─────────────────────────────────────────────────────────────────────────
     # update_routine — обновление по расписанию
@@ -1761,10 +2059,10 @@ class LifeEngine:
 
     def update_routine(
         self,
-        npc: dict,
+        npc: Dict[str, Any],
         current_time: str,
         tick: int = 0,
-        scene_state: Optional[dict] = None,
+        scene_state: Optional[Dict[str, Any]] = None,
     ) -> tuple[list[SceneChange], "MovementIntent | None"]:
         """
         Обновляет позицию NPC согласно расписанию и текущему времени.
@@ -1781,7 +2079,7 @@ class LifeEngine:
 
         Возвращает пустой список если активность не изменилась.
         """
-        npc_id   = npc.get("id", "unknown")
+        npc_id = npc.get("id", "unknown")
         schedule = npc.get("routine", {}).get("schedule", {})
 
         if not schedule:
@@ -1790,18 +2088,34 @@ class LifeEngine:
         # ADR-052: Cognitive Override Guard. Расписание игнорируется при параличе воли.
         # NPC не идет спать или на работу, если инициатива подавлена давлением (initiative_suppression > 0.7).
         _kernel = npc.get("perceptual_kernel")
-        _recent_dir = _kernel.get("recent_directive") if isinstance(_kernel, dict) else getattr(_kernel, "recent_directive", None) if _kernel else None
+        _recent_dir = (
+            _kernel.get("recent_directive")
+            if isinstance(_kernel, dict)
+            else getattr(_kernel, "recent_directive", None)
+            if _kernel
+            else None
+        )
         if _recent_dir and _recent_dir.get("interrupts_routine"):
-            logger.debug(f"[LIFE_ENGINE] {npc_id}: Schedule bypassed due to Attention Capture from {_recent_dir.get('source')}")
+            logger.debug(
+                f"[LIFE_ENGINE] {npc_id}: Schedule bypassed due to Attention Capture from {_recent_dir.get('source')}"
+            )
             # GAP9 FIX: Не сжигаем директиву мгновенно! Иначе на следующем тике LifeEngine снова уложит NPC спать,
             # перезаписав реактивный транзит (reactive:approach). Сон прерывается до снижения угрозы.
             return [], None
 
         # ADR-081: Physical Urgency Wake. Угроза пробуждает NPC из сна.
         # Скалярная оценка: если угроза рядом и велика — расписание ломается.
-        _threat = _kernel.get("threat_gradient", 0.0) if isinstance(_kernel, dict) else getattr(_kernel, "threat_gradient", 0.0) if _kernel else 0.0
+        _threat = (
+            _kernel.get("threat_gradient", 0.0)
+            if isinstance(_kernel, dict)
+            else getattr(_kernel, "threat_gradient", 0.0)
+            if _kernel
+            else 0.0
+        )
         if _threat > 0.7:
-            logger.debug(f"[LIFE_ENGINE] {npc_id}: Schedule bypassed due to proximate physical threat ({_threat:.2f})")
+            logger.debug(
+                f"[LIFE_ENGINE] {npc_id}: Schedule bypassed due to proximate physical threat ({_threat:.2f})"
+            )
             return [], None
 
         # ADR-130: Movement Lock. Если NPC уже в активном транзите — расписание
@@ -1812,7 +2126,9 @@ class LifeEngine:
             _active_travs = scene_state.get("active_traversals", {})
             _my_trav = _active_travs.get(npc_id)
             if _my_trav and _my_trav.get("status") == "MOVING":
-                logger.debug(f"[LIFE_ENGINE] {npc_id}: Schedule bypassed — active traversal (target={_my_trav.get('target_node', '?')})")
+                logger.debug(
+                    f"[LIFE_ENGINE] {npc_id}: Schedule bypassed — active traversal (target={_my_trav.get('target_node', '?')})"
+                )
                 return [], None
 
         new_activity = self._get_current_activity(schedule, current_time)
@@ -1823,7 +2139,9 @@ class LifeEngine:
 
         # S89: Диагностика Schedule Freeze — отслеживание переходов активности
         if new_activity != prev_activity:
-            logger.debug(f"[SCHED_TRACE] npc={npc_id} prev={prev_activity!r} new={new_activity!r} CHANGE")
+            logger.debug(
+                f"[SCHED_TRACE] npc={npc_id} prev={prev_activity!r} new={new_activity!r} CHANGE"
+            )
 
         if new_activity == prev_activity:
             return [], None
@@ -1831,10 +2149,18 @@ class LifeEngine:
         # GAP9 FIX: Реалистичное Пробуждение. Если NPC напуган или в стрессе, он не может уснуть.
         # Угроза (threat_gradient) и стресс — непрерывные скаляры, в отличие от сгорающей директивы.
         if "sleeping" in new_activity or "resting" in new_activity:
-            _threat = _kernel.get("threat_gradient", 0.0) if isinstance(_kernel, dict) else getattr(_kernel, 'threat_gradient', 0.0) if _kernel else 0.0
+            _threat = (
+                _kernel.get("threat_gradient", 0.0)
+                if isinstance(_kernel, dict)
+                else getattr(_kernel, "threat_gradient", 0.0)
+                if _kernel
+                else 0.0
+            )
             _stress = npc.get("stress", 0.0)
             if _threat > 0.3 or _stress > 50:
-                logger.debug(f"[LIFE_ENGINE] {npc_id}: Sleep bypassed — threat={_threat:.2f}, stress={_stress}")
+                logger.debug(
+                    f"[LIFE_ENGINE] {npc_id}: Sleep bypassed — threat={_threat:.2f}, stress={_stress}"
+                )
                 return [], None
 
         resolved = self._resolve_position(npc, new_activity)
@@ -1857,14 +2183,16 @@ class LifeEngine:
         ]
 
         going_to_sleep = "sleeping" in new_activity or "resting" in new_activity
-        changes.append(SceneChange(
-            type=ChangeType.NPC_POSITION,
-            target=npc_id,
-            field="visible",
-            value=not going_to_sleep,
-            cause="life_engine_schedule",
-            tick=tick,
-        ))
+        changes.append(
+            SceneChange(
+                type=ChangeType.NPC_POSITION,
+                target=npc_id,
+                field="visible",
+                value=not going_to_sleep,
+                cause="life_engine_schedule",
+                tick=tick,
+            )
+        )
 
         # ADR-049: Запрещена генерация SceneChange для смены location.
         # Смена локации — физический процесс, реализуемый через MovementIntent → TraversalState.
@@ -1885,17 +2213,26 @@ class LifeEngine:
         # SHI-FIX: No-op guard. Если NPC уже на целевом узле — не генерируем MovementIntent.
         # Нормализуем ID узла, чтобы избежать mismatch (bar_area vs tavern_silver_wolf:bar_area).
         _loc = new_location or prev_location
-        _norm_new_pos = new_position if ":" in new_position else f"{_loc}:{new_position}"
-        _norm_curr_pos = npc.get("position", "") if ":" in npc.get("position", "") else f"{_loc}:{npc.get('position', '')}"
+        _norm_new_pos = (
+            new_position if ":" in new_position else f"{_loc}:{new_position}"
+        )
+        _norm_curr_pos = (
+            npc.get("position", "")
+            if ":" in npc.get("position", "")
+            else f"{_loc}:{npc.get('position', '')}"
+        )
         if _norm_new_pos == _norm_curr_pos:
-            logger.debug(f"[LIFE_ENGINE] {npc_id}: no-op movement (уже на {new_position}).")
+            logger.debug(
+                f"[LIFE_ENGINE] {npc_id}: no-op movement (уже на {new_position})."
+            )
             return changes, None
 
         # ── MovementIntent для MovementEngine (Слой 2) ────────────────────
         from app.domain.movement import PRIORITY_SCHEDULE
+
         # ADR-0010: movement_mode удалён. Макро-перемещение — Semantic Relocation.
-        intent = MovementIntent(
-            npc_id=npc_id,
+        intent = MacroMovementGoal(
+            actor_id=npc_id,
             target_node_id=new_position,
             from_node_id=npc.get("position", ""),
             location_id=new_location,
@@ -1906,12 +2243,12 @@ class LifeEngine:
 
         # ── Обновляем NPC dict в памяти ────────────────────────────────────
         routine = npc.setdefault("routine", {})
-        routine["current"]   = new_activity
-        routine["mood"]      = self._mood_for_activity(new_activity)
+        routine["current"] = new_activity
+        routine["mood"] = self._mood_for_activity(new_activity)
         if "interrupted" not in routine:
             routine["interrupted"] = False
         # ADR-049: Запрещена прямая мутация пространства из расписания.
-        # NPC принял решение сменить активность (когнитивный слой), 
+        # NPC принял решение сменить активность (когнитивный слой),
         # но физическое перемещение к новой локации — задача MovementEngine.
         # npc["location"] = new_location
         # npc["position"] = new_position
@@ -1922,7 +2259,7 @@ class LifeEngine:
         )
         return changes, intent
 
-    def _get_current_activity(self, schedule: dict, current_time: str) -> str:
+    def _get_current_activity(self, schedule: Dict[str, Any], current_time: str) -> str:
         """
         Определяет текущую активность NPC по расписанию и времени.
         Возвращает строку активности или '' если ничего не совпало.
@@ -1941,7 +2278,7 @@ class LifeEngine:
 
     def _resolve_position(
         self,
-        npc: dict,
+        npc: Dict[str, Any],
         activity: str,
     ) -> Optional[tuple[str, str, str]]:
         """Возвращает (location_id, position_in_scene, activity_display) или None.
@@ -1956,7 +2293,7 @@ class LifeEngine:
         Если ни один источник не дал позицию — возвращается None,
         вызывающий код обрабатывает как no-op movement (без intent).
         """
-        npc_map: dict = npc.get("activity_map", {})
+        npc_map: Dict[str, Any] = npc.get("activity_map", {})
 
         # 1. Точное совпадение в activity_map (data-driven)
         if activity in npc_map:
@@ -1966,18 +2303,28 @@ class LifeEngine:
         # 2. S85: Semantic Spatial Binding — резолв через SpatialService по роли
         if self._spatial_service:
             from app.models.spatial_contracts import NodeRole
+
             _ACTIVITY_TO_ROLE_MAP = {
-                "drinking": NodeRole.BAR, "serving_tables": NodeRole.BAR,
-                "cleaning_tables": NodeRole.TABLE, "sleeping": NodeRole.BED,
-                "resting": NodeRole.BED, "working": NodeRole.WORKBENCH,
-                "eating": NodeRole.TABLE, "idle": NodeRole.DEFAULT,
-                "observing": NodeRole.TABLE, "active": NodeRole.TABLE,
-                "planning": NodeRole.TABLE, "guarding_gate": NodeRole.ENTRANCE,
-                "socializing": NodeRole.BAR, "haggling": NodeRole.MARKET,
+                "drinking": NodeRole.BAR,
+                "serving_tables": NodeRole.BAR,
+                "cleaning_tables": NodeRole.TABLE,
+                "sleeping": NodeRole.BED,
+                "resting": NodeRole.BED,
+                "working": NodeRole.WORKBENCH,
+                "eating": NodeRole.TABLE,
+                "idle": NodeRole.DEFAULT,
+                "observing": NodeRole.TABLE,
+                "active": NodeRole.TABLE,
+                "planning": NodeRole.TABLE,
+                "guarding_gate": NodeRole.ENTRANCE,
+                "socializing": NodeRole.BAR,
+                "haggling": NodeRole.MARKET,
             }
             role = _ACTIVITY_TO_ROLE_MAP.get(activity)
             if role:
-                ref = self._spatial_service.resolve_node(role=role, origin_zone=npc.get("location_id"))
+                ref = self._spatial_service.resolve_node(
+                    role=role, origin_zone=npc.get("location_id")
+                )
                 if ref:
                     return (ref.zone_id, ref.node_id, activity)
 
@@ -1986,7 +2333,8 @@ class LifeEngine:
             origin_zone = npc.get("location_id")
             if origin_zone:
                 default_ref = self._spatial_service.resolve_node(
-                    role=NodeRole.DEFAULT, origin_zone=origin_zone,
+                    role=NodeRole.DEFAULT,
+                    origin_zone=origin_zone,
                 )
                 if default_ref:
                     logger.debug(
@@ -2000,17 +2348,23 @@ class LifeEngine:
         #    НЕ выдумываем node_id — это и есть фикс ADR-S85.1 + §13.
         current_location = npc.get("location_id")
         current_position = npc.get("position")
-        
+
         # ADR-GUARD: position recovery must be deterministic
         # SpatialService is allowed ONLY if mapping table exists or confidence == 1.0
         if not current_position or not isinstance(current_position, str):
             _lp = npc.get("local_position", {})
-            if isinstance(_lp, dict) and isinstance(_lp.get("x"), (int, float)) and self._spatial_service:
+            if (
+                isinstance(_lp, dict)
+                and isinstance(_lp.get("x"), (int, float))
+                and self._spatial_service
+            ):
                 origin_zone = current_location
                 if origin_zone:
-                    _ref = self._spatial_service.get_nearest(zone_id=origin_zone, origin_xy=(_lp["x"], _lp["y"]))
+                    _ref = self._spatial_service.get_nearest(
+                        zone_id=origin_zone, origin_xy=(_lp["x"], _lp["y"])
+                    )
                     if _ref:
-                        current_position = getattr(_ref, 'node_id', str(_ref))
+                        current_position = getattr(_ref, "node_id", str(_ref))
                         if current_position.startswith(f"{origin_zone}:"):
                             current_position = current_position.split(":")[-1]
                         if getattr(_ref, "confidence", 1.0) < 1.0:
@@ -2019,8 +2373,10 @@ class LifeEngine:
                                 f"node={current_position} confidence={getattr(_ref, 'confidence', None)}"
                             )
                         else:
-                            logger.info(f"[LIFE_ENGINE][POSITION_RECOVERY] npc={npc.get('id')} recovered position={current_position} from local_position={_lp}")
-        
+                            logger.info(
+                                f"[LIFE_ENGINE][POSITION_RECOVERY] npc={npc.get('id')} recovered position={current_position} from local_position={_lp}"
+                            )
+
         if current_location and current_position and isinstance(current_position, str):
             logger.warning(
                 f"[LIFE_ENGINE][NO_RESOLVE] npc={npc.get('id')} activity={activity!r} "
@@ -2042,13 +2398,13 @@ class LifeEngine:
         """Определяет настроение NPC по активности."""
         _mood_map = {
             "sleeping": "neutral",
-            "resting":  "neutral",
-            "working":  "focused",
-            "on_duty":  "alert",
-            "eating":   "content",
+            "resting": "neutral",
+            "working": "focused",
+            "on_duty": "alert",
+            "eating": "content",
             "drinking": "relaxed",
             "haggling": "focused",
-            "hiding":   "tense",
+            "hiding": "tense",
         }
         return _mood_map.get(activity, "neutral")
 
@@ -2058,7 +2414,7 @@ class LifeEngine:
 
     def check_random_events(
         self,
-        npc: dict,
+        npc: Dict[str, Any],
         tick: int = 0,
         rng: Optional[KernelRNG] = None,
     ) -> tuple[list[SceneChange], "MovementIntent | None"]:
@@ -2070,7 +2426,7 @@ class LifeEngine:
 
         KERNEL-ISOLATION: rng must be provided for replay determinism.
         """
-        npc_id   = npc.get("id", "unknown")
+        npc_id = npc.get("id", "unknown")
         if rng is None:
             # KERNEL-ISOLATION: Фоллбэк с salt="life_events" для изоляции потока.
             rng = KernelRNG(tick=tick, npc_id=npc_id, salt="life_events")
@@ -2081,8 +2437,20 @@ class LifeEngine:
 
         # ADR-052: Парализованный страхом NPC не инициирует случайные события
         _kernel = npc.get("perceptual_kernel")
-        _init_sup = _kernel.get("initiative_suppression", 0.0) if isinstance(_kernel, dict) else getattr(_kernel, "initiative_suppression", 0.0) if _kernel else 0.0
-        _recent_dir = _kernel.get("recent_directive") if isinstance(_kernel, dict) else getattr(_kernel, "recent_directive", None) if _kernel else None
+        _init_sup = (
+            _kernel.get("initiative_suppression", 0.0)
+            if isinstance(_kernel, dict)
+            else getattr(_kernel, "initiative_suppression", 0.0)
+            if _kernel
+            else 0.0
+        )
+        _recent_dir = (
+            _kernel.get("recent_directive")
+            if isinstance(_kernel, dict)
+            else getattr(_kernel, "recent_directive", None)
+            if _kernel
+            else None
+        )
         if _init_sup > 0.7:
             return [], None
 
@@ -2108,7 +2476,7 @@ class LifeEngine:
     # Stress recovery (без SceneChange — только данные NPC)
     # ─────────────────────────────────────────────────────────────────────────
 
-    def recover_stress_tick(self, npc: dict) -> None:
+    def recover_stress_tick(self, npc: Dict[str, Any]) -> None:
         """
         Восстанавливает стресс NPC за один тик.
         Спящие восстанавливаются быстрее.

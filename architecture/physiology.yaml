@@ -9,7 +9,7 @@ nodes:
     type: service
     layer: Application
     label: "Combat Subscriber"
-    description: "Resolves physical contact. Reads live body_state from all_npcs_raw for player targets/attackers (ADR-132). Hardcoded synthetic snapshot removed."
+    description: "Resolves physical contact. Reads live body_state from all_npcs_raw for player targets/attackers (ADR-132). Hardcoded synthetic snapshot removed. ADR-314 (S116): Uses ctx.shared_context.spatial_query for range gate (player_distances)."
   PhysiologyPayload:
     type: dto
     layer: Domain

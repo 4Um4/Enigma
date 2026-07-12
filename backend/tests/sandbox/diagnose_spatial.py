@@ -28,14 +28,15 @@ print("=== ДИАГНОСТИКА V2: ГРАФ И ИМЕНА ===")
 # 1. Тест загрузки графа локации
 print("\n[1] Тест compile_graph для tavern_silver_wolf:")
 try:
-    from app.services.spatial.graph_compiler import load_editor_json, compile_graph
+    from app.services.spatial.graph_compiler import compile_graph, load_editor_json
+
     editor_data = load_editor_json("Open_road", "tavern_silver_wolf")
     if editor_data:
         print(f"    editor_data загружен, ключи: {list(editor_data.keys())[:5]}")
         graph, connections, alias_map = compile_graph(editor_data, "tavern_silver_wolf")
         print(f"    Граф собран. Узлов: {len(graph)}. Связей: {len(connections)}")
         if "serving_table_3" in graph:
-            print(f"    ✅ Узел 'serving_table_3' НАЙДЕН в графе!")
+            print("    ✅ Узел 'serving_table_3' НАЙДЕН в графе!")
         else:
             print(f"    ❌ Узел 'serving_table_3' НЕ НАЙДЕН в графе. Доступные узлы: {list(graph.keys())[:10]}")
     else:
@@ -47,11 +48,11 @@ except Exception as e:
 print("\n[2] Тест потока имен NPC:")
 try:
     from app.services.scene_state_manager import SceneStateManager, _npc_id_to_display
-    
+
     # 2.1 Проверяем резолвер
     name = _npc_id_to_display("maid_lusya")
     print(f"    _npc_id_to_display('maid_lusya') = '{name}'")
-    
+
     # 2.2 Проверяем, добавляет ли SceneStateManager поле name
     mgr = SceneStateManager()
     scene = mgr.get_scene_state("Open_road", "tavern_silver_wolf")
@@ -64,6 +65,7 @@ try:
 
     # 2.3 Проверяем, как WorldSnapshotBuilder собирает DTO
     from app.services.integration.world_snapshot_builder import WorldSnapshotBuilder
+
     builder = WorldSnapshotBuilder()
     positions_dto = builder._extract_npc_positions(scene)
     lusya_dto = next((p for p in positions_dto if p.npc_id == "maid_lusya"), None)

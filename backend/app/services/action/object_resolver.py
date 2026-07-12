@@ -1,3 +1,4 @@
+from __future__ import annotations
 # backend/app/services/action/object_resolver.py
 """
 ObjectResolver — поиск объекта сцены по тексту действия игрока.
@@ -11,7 +12,6 @@ ObjectResolver — поиск объекта сцены по тексту дей
 Работает для любой локации и любого набора объектов.
 """
 
-from __future__ import annotations
 import logging
 from typing import Optional
 import pymorphy3 as pymorphy2
@@ -123,6 +123,7 @@ def resolve_object(
 
     return None
 
+
 def resolve_object_group(
     action_text: str,
     scene_state: Optional[dict],
@@ -145,12 +146,13 @@ def resolve_object_group(
 
     # Все инстансы группы
     group = [
-        obj_id for obj_id, obj_data in objects.items()
+        obj_id
+        for obj_id, obj_data in objects.items()
         if obj_data.get("instance_of", obj_id) == base_group
     ]
 
     # Ищем явный номер в тексте: "№5", "#5", "номер 5", "пятый"
-    number_match = re.search(r'[№#]\s*(\d+)|номер\s+(\d+)', action_text.lower())
+    number_match = re.search(r"[№#]\s*(\d+)|номер\s+(\d+)", action_text.lower())
     if number_match:
         n = int(number_match.group(1) or number_match.group(2))
         specific = f"{base_group}_{n}"

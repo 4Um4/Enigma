@@ -7,10 +7,10 @@ path: /backend/app/services/economy/stress_calculator.py
 Зависимости: app.models.economy (EconomicProfile), app.services.economy.need_engine (NeedEngine)
 Основные сущности: calculate_economic_stress()
 """
-
 from __future__ import annotations
 
-from typing import Tuple
+
+from typing import List, Dict, Any, Tuple
 
 from app.models.economy import EconomicProfile
 from app.services.economy.need_engine import NeedEngine
@@ -22,10 +22,10 @@ def calculate_economic_stress(
 ) -> Tuple[float, str]:
     """
     Вычисляет прирост стресса от экономических факторов.
-    
+
     Возвращает:
         (stress_delta, reason) — reason для логирования
-        
+
     Факторы:
     1. Бедность (wealth < threshold) — микростресс каждый тик
     2. Долги (overdue obligations) — микростресс каждый тик

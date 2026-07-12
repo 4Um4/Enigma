@@ -2,6 +2,7 @@
 Debug API Routes (F1-T03)
 Agent Health Dashboard + VRAM/logs
 """
+
 import time
 from fastapi import APIRouter, Request
 
@@ -18,7 +19,7 @@ async def agent_health_dashboard():
     pool = get_model_pool()
     status = await pool.get_status()
     errors = get_error_interpreter().analyze_recent_errors()
-    
+
     # Agent-specific (mock for now, extend from orchestrator/agents)
     active_model = status.get("active_model", "none")
     has_model = status.get("has_active_model", False)
@@ -29,7 +30,7 @@ async def agent_health_dashboard():
         "world": {"model": active_model, "ready": has_model},
         "memory": {"model": active_model, "ready": has_model},
     }
-    
+
     return {
         "timestamp": time.time(),
         "vram": status.get("current_vram_mb", 0),
@@ -96,9 +97,9 @@ async def get_npc_causal_ledger(npc_id: str, campaign_id: str, request: Request)
 async def reset_campaign_relationships(campaign_id: str):
     """Миграция: сброс relationships после бага #7 (дублирование дельт)."""
     from app.core.game_loop import get_game_loop
+
     loop = get_game_loop()
     if not loop or not loop.memory_manager:
         return {"status": "error", "message": "GameLoop not initialized"}
     count = loop.memory_manager._relationships.reset_campaign(campaign_id)
     return {"status": "ok", "campaign_id": campaign_id, "reset_count": count}
-

@@ -9,28 +9,35 @@ path: /frontend/scene_renderer.py
 Зависимости: pygame, player_cognition.types
 Основные сущности: SceneRenderer
 """
+
 import logging
+
 logger = logging.getLogger(__name__)
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple  # noqa: E402
 
-import math
-import random
-import pygame
+import math  # noqa: E402
+import random  # noqa: E402
+import pygame  # noqa: E402
 
-from presentation_firewall import sanitize_perceptual_input
-from perceptual_momentum import PerceptualMomentum, ManifestationProfile
+from presentation_firewall import sanitize_perceptual_input  # noqa: E402
+from perceptual_momentum import PerceptualMomentum, ManifestationProfile  # noqa: E402
 
-from map_editor.sprite_registry import get_entity_sprite
-from game_types import (
+from map_editor.sprite_registry import get_entity_sprite  # noqa: E402
+from game_types import (  # noqa: E402
     PerceivedEntity,
     PerceivedScene,
 )
-from constants import (
+from constants import (  # noqa: E402
     RENDER_COLORS as _COLORS,
     AGGRESSION_COLORS,
-    COLOR_TEXT_DIM, COLOR_MANIFEST_DEFAULT,
-    FONT_NAME_MAIN, FONT_NAME_UI,
-    FONT_SIZE_SMALL, FONT_SIZE_AUDIO, FONT_SIZE_BODY, FONT_SIZE_TOOLTIP,
+    COLOR_TEXT_DIM,
+    COLOR_MANIFEST_DEFAULT,
+    FONT_NAME_MAIN,
+    FONT_NAME_UI,
+    FONT_SIZE_SMALL,
+    FONT_SIZE_AUDIO,
+    FONT_SIZE_BODY,
+    FONT_SIZE_TOOLTIP,
     SCALE_PIXELS_PER_METER as SCALE,
 )
 
@@ -40,10 +47,14 @@ class SceneRenderer:
 
     def __init__(self, screen: pygame.Surface):
         self.screen = screen
-        self._prev_npc_positions: Dict[str, Tuple[float, float]] = {} # ADR-037: Для Temporal Assembly Delay
-        self._hover_npc_id: Optional[str] = None # The Fool v2: Для тултипов наблюдений
+        self._prev_npc_positions: Dict[
+            str, Tuple[float, float]
+        ] = {}  # ADR-037: Для Temporal Assembly Delay
+        self._hover_npc_id: Optional[str] = None  # The Fool v2: Для тултипов наблюдений
         self.font_small = pygame.font.SysFont(FONT_NAME_MAIN, FONT_SIZE_SMALL)
-        self.font_audio = pygame.font.SysFont(FONT_NAME_MAIN, FONT_SIZE_AUDIO, italic=True)
+        self.font_audio = pygame.font.SysFont(
+            FONT_NAME_MAIN, FONT_SIZE_AUDIO, italic=True
+        )
         self.font_body = pygame.font.SysFont(FONT_NAME_MAIN, FONT_SIZE_BODY)
         self.font_tooltip = pygame.font.SysFont(FONT_NAME_UI, FONT_SIZE_TOOLTIP)
         # Lerp для угла поворота (Приоритет 0)
@@ -61,12 +72,16 @@ class SceneRenderer:
         player_xy: Tuple[float, float],
         player_facing: float = -1.5708,  # -pi/2 по умолчанию (смотрит вверх)
         dt: float = 0.016,  # Дельта времени для Lerp (Приоритет 0)
-        avatar_state: Optional[dict] = None, # ADR-035: Феноменологическая проекция
-        ambient_state: Optional[dict] = None, # ADR-037: Средовое давление
-        speech_bubbles: Optional[dict] = None,   # ADR-SPEECH: Облачка над NPC
-        player_speech: Optional[dict] = None,     # ADR-SPEECH: Облачко над игроком
-        mood_indicators: Optional[dict] = None,    # ADR-MANIFEST: Наблюдаемые физические проявления
-        floor_rects: Optional[List[tuple]] = None,  # S80.3b: Multi-chunk floors [(ox,oy,w,h), ...]
+        avatar_state: Optional[dict] = None,  # ADR-035: Феноменологическая проекция
+        ambient_state: Optional[dict] = None,  # ADR-037: Средовое давление
+        speech_bubbles: Optional[dict] = None,  # ADR-SPEECH: Облачка над NPC
+        player_speech: Optional[dict] = None,  # ADR-SPEECH: Облачко над игроком
+        mood_indicators: Optional[
+            dict
+        ] = None,  # ADR-MANIFEST: Наблюдаемые физические проявления
+        floor_rects: Optional[
+            List[tuple]
+        ] = None,  # S80.3b: Multi-chunk floors [(ox,oy,w,h), ...]
     ) -> None:
         """
         Отрисовывает полный кадр.
@@ -93,7 +108,7 @@ class SceneRenderer:
         # Камера центрирована на игроке + Motion Bias (мир "давит" на игрока)
         cam_x = player_xy[0] * SCALE - self.screen.get_width() // 2
         cam_y = player_xy[1] * SCALE - self.screen.get_height() // 2
-        
+
         # ADR-037: Motion Bias — снос камеры давлением среды
         cam_x -= int(profile.motion_bias[0] * SCALE * 2)
         cam_y -= int(profile.motion_bias[1] * SCALE * 2)
@@ -112,18 +127,35 @@ class SceneRenderer:
         self._draw_obstacles(obstacles, cam_x, cam_y)
 
         # 4. NPC — только воспринимаемые (с Temporal Delay)
-        self._draw_npcs(scene.entities, cam_x, cam_y, scene.attention_focus_id, player_xy, profile, dt=dt, speech_bubbles=speech_bubbles or {}, manifest_indicators=mood_indicators or {})
+        self._draw_npcs(
+            scene.entities,
+            cam_x,
+            cam_y,
+            scene.attention_focus_id,
+            player_xy,
+            profile,
+            dt=dt,
+            speech_bubbles=speech_bubbles or {},
+            manifest_indicators=mood_indicators or {},
+        )
 
         # 5. Игрок — всегда виден
         # Lerp сглаживание поворота (Приоритет 0)
-        import math
+        import math  # noqa: E402
+
         diff = player_facing - self._visual_facing_angle
         # Кратчайший путь: нормализация разницы углов в диапазон [-pi, pi]
         diff = (diff + math.pi) % (2 * math.pi) - math.pi
         # Экспоненциальное сглаживание (~10 рад/сек)
         self._visual_facing_angle += diff * min(1.0, 10.0 * dt)
-        
-        self._draw_player(player_xy, cam_x, cam_y, self._visual_facing_angle, player_speech=player_speech)
+
+        self._draw_player(
+            player_xy,
+            cam_x,
+            cam_y,
+            self._visual_facing_angle,
+            player_speech=player_speech,
+        )
 
         # 6. HUD поверх карты — audio events, body state, environment
         self._draw_hud(scene)
@@ -133,7 +165,7 @@ class SceneRenderer:
             # Профиль уже вычислен в начале рендера, применяем оверлеи
             self._apply_avatar_perception_overlay(profile)
 
-    def _apply_avatar_perception_overlay(self, profile: 'ManifestationProfile') -> None:
+    def _apply_avatar_perception_overlay(self, profile: "ManifestationProfile") -> None:
         """Накладывает визуальные искажения на основе Темпоральной Феноменологии.
         Работает ТОЛЬКО с ManifestationProfile (инерция, S-кривая, стохастика уже применены).
         """
@@ -145,20 +177,44 @@ class SceneRenderer:
         if blood_vis > 0.01:
             alpha = int(min(150, blood_vis * 200))
             border_thickness = int(w * 0.15 * blood_vis)
-            pygame.draw.rect(overlay, (180, 0, 0, alpha), (0, 0, w, border_thickness)) # Верх
-            pygame.draw.rect(overlay, (180, 0, 0, alpha), (0, h - border_thickness, w, border_thickness)) # Низ
-            pygame.draw.rect(overlay, (180, 0, 0, alpha), (0, 0, border_thickness, h)) # Лево
-            pygame.draw.rect(overlay, (180, 0, 0, alpha), (w - border_thickness, 0, border_thickness, h)) # Право
+            pygame.draw.rect(
+                overlay, (180, 0, 0, alpha), (0, 0, w, border_thickness)
+            )  # Верх
+            pygame.draw.rect(
+                overlay,
+                (180, 0, 0, alpha),
+                (0, h - border_thickness, w, border_thickness),
+            )  # Низ
+            pygame.draw.rect(
+                overlay, (180, 0, 0, alpha), (0, 0, border_thickness, h)
+            )  # Лево
+            pygame.draw.rect(
+                overlay,
+                (180, 0, 0, alpha),
+                (w - border_thickness, 0, border_thickness, h),
+            )  # Право
 
         # 2. Туннельное зрение / Помутнение (с инерцией из ManifestationProfile)
         tunnel_factor = profile.attention_tunneling
-        if tunnel_factor > 0.01: # Порог проявления (гистерезис)
+        if tunnel_factor > 0.01:  # Порог проявления (гистерезис)
             alpha = int(min(200, tunnel_factor * 220))
             vignette_thickness = int(w * 0.25 * tunnel_factor)
-            pygame.draw.rect(overlay, (0, 0, 0, alpha), (0, 0, w, vignette_thickness)) # Верх
-            pygame.draw.rect(overlay, (0, 0, 0, alpha), (0, h - vignette_thickness, w, vignette_thickness)) # Низ
-            pygame.draw.rect(overlay, (0, 0, 0, alpha), (0, 0, vignette_thickness, h)) # Лево
-            pygame.draw.rect(overlay, (0, 0, 0, alpha), (w - vignette_thickness, 0, vignette_thickness, h)) # Право
+            pygame.draw.rect(
+                overlay, (0, 0, 0, alpha), (0, 0, w, vignette_thickness)
+            )  # Верх
+            pygame.draw.rect(
+                overlay,
+                (0, 0, 0, alpha),
+                (0, h - vignette_thickness, w, vignette_thickness),
+            )  # Низ
+            pygame.draw.rect(
+                overlay, (0, 0, 0, alpha), (0, 0, vignette_thickness, h)
+            )  # Лево
+            pygame.draw.rect(
+                overlay,
+                (0, 0, 0, alpha),
+                (w - vignette_thickness, 0, vignette_thickness, h),
+            )  # Право
 
         # 3. Визуальная нестабильность (тремор экрана) — новый слой оптики
         if profile.visual_instability > 0.05:
@@ -169,7 +225,9 @@ class SceneRenderer:
         # ADR-037: Contrast Instability — пульсация контраста (мир "дышит")
         if profile.contrast_instability > 0.05:
             alpha = int(random.gauss(0, profile.contrast_instability * 50))
-            alpha = max(0, min(120, alpha)) # Ограничиваем, чтобы не засветить/затемнить полностью
+            alpha = max(
+                0, min(120, alpha)
+            )  # Ограничиваем, чтобы не засветить/затемнить полностью
             contrast_overlay = pygame.Surface((w, h), pygame.SRCALPHA)
             # Легкая сине-серая пульсация (холодок диссоциации/энтропии)
             contrast_overlay.fill((100, 100, 140, alpha))
@@ -205,7 +263,7 @@ class SceneRenderer:
         scene: PerceivedScene,
     ) -> None:
         # Собираем ID препятствий которые игрок видит — стены рядом с ними ярче
-        visible_obstacle_ids = {
+        _visible_obstacle_ids = {
             e.entity_id
             for e in scene.entities
             if e.visible and e.entity_type == "object"
@@ -252,7 +310,10 @@ class SceneRenderer:
 
             obj_type = obj.get("type", "")
             # Data-driven: passability.walk приоритетнее type-хардкода
-            is_passable = obj.get("passability", {}).get("walk", False) or obj_type in self._PASSABLE_TYPES
+            is_passable = (
+                obj.get("passability", {}).get("walk", False)
+                or obj_type in self._PASSABLE_TYPES
+            )
 
             sprite = get_entity_sprite(obj_type)
 
@@ -266,9 +327,16 @@ class SceneRenderer:
                 if is_passable:
                     # Проходимые объекты — пунктирная рамка
                     color = AGGRESSION_COLORS["peaceful_interaction"]
-                    pygame.draw.rect(self.screen, color, (sx, sy, sw, sh), 1, border_radius=3)
+                    pygame.draw.rect(
+                        self.screen, color, (sx, sy, sw, sh), 1, border_radius=3
+                    )
                 else:
-                    pygame.draw.rect(self.screen, _COLORS["obstacle_visible"], (sx, sy, sw, sh), border_radius=3)
+                    pygame.draw.rect(
+                        self.screen,
+                        _COLORS["obstacle_visible"],
+                        (sx, sy, sw, sh),
+                        border_radius=3,
+                    )
 
     def _draw_npcs(
         self,
@@ -277,38 +345,45 @@ class SceneRenderer:
         cam_y: float,
         focus_id: Optional[str],
         player_xy: Tuple[float, float],
-        profile: ManifestationProfile = ManifestationProfile(), # ADR-037
-        dt: float = 0.016, # Спринт 30: дельта времени для непрерывной кинематики
-        speech_bubbles: dict = None, # ADR-SPEECH
-        manifest_indicators: dict = None, # ADR-MANIFEST
+        profile: ManifestationProfile = ManifestationProfile(),  # ADR-037
+        dt: float = 0.016,  # Спринт 30: дельта времени для непрерывной кинематики
+        speech_bubbles: dict = None,  # ADR-SPEECH
+        manifest_indicators: dict = None,  # ADR-MANIFEST
     ) -> None:
         # ADR-037: Temporal Assembly Delay — инерция сборки реальности
-        delay_factor = profile.temporal_assembly_delay
-        
+        _delay_factor = profile.temporal_assembly_delay
+
         for entity in entities:
             if entity.entity_type != "npc":
                 continue
             if not entity.visible:
                 continue
 
-            prev_x, prev_y = self._prev_npc_positions.get(entity.entity_id, (entity.x, entity.y))
-            
+            prev_x, prev_y = self._prev_npc_positions.get(
+                entity.entity_id, (entity.x, entity.y)
+            )
+
             # ADR-ETKE-RENDER: Два режима интерполяции
             # 1. Macro (TraversalState): PENDING/MOVING с traversal_speed — старая логика
             # 2. Micro (ETKE-IK velocity): entity.velocity от _process_continuous_motion —
             #    предсказание позиции между idle_tick'ами (без этого DriveVector микродвижения
             #    невооружённым глазом не видны, т.к. SUBSTEP_DT крошечный)
-            if entity.traversal_status in ("PENDING", "MOVING") and entity.traversal_speed > 0:
+            if (
+                entity.traversal_status in ("PENDING", "MOVING")
+                and entity.traversal_speed > 0
+            ):
                 # Macro: интерполяция к цели по скорости traversal'а
                 dx, dy = entity.x - prev_x, entity.y - prev_y
-                dist = (dx**2 + dy**2)**0.5
+                dist = (dx**2 + dy**2) ** 0.5
                 step = entity.traversal_speed * dt
                 if dist <= step or dist < 0.01:
                     render_x, render_y = entity.x, entity.y
                 else:
                     ratio = step / dist
                     render_x, render_y = prev_x + dx * ratio, prev_y + dy * ratio
-            elif entity.velocity is not None and (abs(entity.velocity[0]) > 0.01 or abs(entity.velocity[1]) > 0.01):
+            elif entity.velocity is not None and (
+                abs(entity.velocity[0]) > 0.01 or abs(entity.velocity[1]) > 0.01
+            ):
                 # Micro: ETKE-IK velocity-based prediction.
                 # Backend пишет new position + velocity каждый idle_tick.
                 # Frontend экстраполирует: pos_render = pos_backend + velocity * time_since_last_tick
@@ -322,7 +397,7 @@ class SceneRenderer:
                 # Отключаем порог телепортации: бэкенд может менять позицию скачком,
                 # но фронтенд всегда должен плавно интерполировать к ней.
                 dx, dy = entity.x - prev_x, entity.y - prev_y
-                dist = (dx**2 + dy**2)**0.5
+                dist = (dx**2 + dy**2) ** 0.5
                 if dist > 0.01:
                     step = _NPC_LERP_SPEED * dt
                     if step >= dist:
@@ -342,10 +417,12 @@ class SceneRenderer:
                 # ADR-141: Окаменелость — лёгкий визуальный замедлитель (пока без tint)
                 pass
             if entity.is_shaking:
-                _amp = int(entity.instability * 7)  # ADR-141: Радикальное усиление дрожи (было 6)
+                _amp = int(
+                    entity.instability * 7
+                )  # ADR-141: Радикальное усиление дрожи (было 6)
                 sx += random.randint(-_amp, _amp)
                 sy += random.randint(-_amp, _amp)
-            
+
             # ADR-141: Stagger — пошатывание при боли/шоке (вертикальная просадка позы)
             if entity.instability > 0.5:
                 sy += int(entity.instability * 4)  # Проседание корпуса вниз
@@ -361,12 +438,16 @@ class SceneRenderer:
                 scaled = pygame.transform.scale(sprite, (npc_size, npc_size))
                 self.screen.blit(scaled, (sx - npc_size // 2, sy - npc_size // 2))
                 if is_focused:
-                    pygame.draw.circle(self.screen, (255, 255, 255), (sx, sy), npc_size // 2 + 2, 2)  # Белый контур фокуса
+                    pygame.draw.circle(
+                        self.screen, (255, 255, 255), (sx, sy), npc_size // 2 + 2, 2
+                    )  # Белый контур фокуса
             else:
                 color = _COLORS["npc_focused"] if is_focused else _COLORS["npc_body"]
                 pygame.draw.circle(self.screen, color, (sx, sy), radius)
                 if is_focused:
-                    pygame.draw.circle(self.screen, (255, 255, 255), (sx, sy), radius, 2)  # Белый контур периферии
+                    pygame.draw.circle(
+                        self.screen, (255, 255, 255), (sx, sy), radius, 2
+                    )  # Белый контур периферии
 
             # Имя по confidence
             if entity.display_name:
@@ -381,7 +462,9 @@ class SceneRenderer:
                 _manif_text = _manif.get("text", "")
                 _manif_color = _manif.get("color", COLOR_MANIFEST_DEFAULT)
                 _manif_surf = self.font_small.render(_manif_text, True, _manif_color)
-                self.screen.blit(_manif_surf, (sx - _manif_surf.get_width() // 2, sy + radius + 14))
+                self.screen.blit(
+                    _manif_surf, (sx - _manif_surf.get_width() // 2, sy + radius + 14)
+                )
 
             # ADR-SPEECH: Речевое облачко над головой NPC (перенос по словам, обрезка по предложению)
             _bubbles = speech_bubbles or {}
@@ -389,13 +472,17 @@ class SceneRenderer:
             if _bubble_data:
                 _age = pygame.time.get_ticks() - _bubble_data["tick"]
                 if _age < 6000:
-                    _alpha = 255 if _age < 4500 else int(255 * (1.0 - (_age - 4500) / 1500.0))
+                    _alpha = (
+                        255
+                        if _age < 4500
+                        else int(255 * (1.0 - (_age - 4500) / 1500.0))
+                    )
                     _btxt = _bubble_data["text"]
                     _max_w = 180  # максимальная ширина облачка в пикселях
                     _max_lines = 3
                     _line_h = self.font_small.get_height() + 2
                     # Перенос по словам
-                    _words = _btxt.split(' ')
+                    _words = _btxt.split(" ")
                     _lines = []
                     _cur = ""
                     for _w in _words:
@@ -410,12 +497,17 @@ class SceneRenderer:
                         _lines.append(_cur)
                     # Обрезка по предложению если >3 строк
                     if len(_lines) > _max_lines:
-                        _combined = ' '.join(_lines[:_max_lines])
-                        _last_sent = max(_combined.rfind('.'), _combined.rfind('!'), _combined.rfind('?'), _combined.rfind('—'))
+                        _combined = " ".join(_lines[:_max_lines])
+                        _last_sent = max(
+                            _combined.rfind("."),
+                            _combined.rfind("!"),
+                            _combined.rfind("?"),
+                            _combined.rfind("—"),
+                        )
                         if _last_sent > len(_combined) // 2:
-                            _lines = _combined[:_last_sent + 1].split('\n')
+                            _lines = _combined[: _last_sent + 1].split("\n")
                             # Пересобираем с переносом
-                            _words2 = _combined[:_last_sent + 1].split(' ')
+                            _words2 = _combined[: _last_sent + 1].split(" ")
                             _lines = []
                             _cur2 = ""
                             for _w2 in _words2:
@@ -430,18 +522,26 @@ class SceneRenderer:
                                 _lines.append(_cur2)
                         else:
                             _lines = _lines[:_max_lines]
-                            _lines[-1] = _lines[-1].rstrip(' ,—') + "…"
+                            _lines[-1] = _lines[-1].rstrip(" ,—") + "…"
                     _bub_h = len(_lines) * _line_h + 10
                     # Находим самую широкую строку для ширины облачка
-                    _bub_w = max(self.font_small.size(l)[0] for l in _lines) + 14 if _lines else 40
+                    _bub_w = (
+                        max(self.font_small.size(line)[0] for line in _lines) + 14
+                        if _lines
+                        else 40
+                    )
                     _bub_x = sx - _bub_w // 2
                     _bub_y = sy - radius - 22 - _bub_h
                     _bg = pygame.Surface((_bub_w, _bub_h), pygame.SRCALPHA)
                     _bg.fill((25, 25, 45, min(_alpha, 210)))
-                    pygame.draw.rect(_bg, (160, 170, 220, _alpha), _bg.get_rect(), 1, border_radius=4)
+                    pygame.draw.rect(
+                        _bg, (160, 170, 220, _alpha), _bg.get_rect(), 1, border_radius=4
+                    )
                     self.screen.blit(_bg, (_bub_x, _bub_y))
                     for _li, _ll in enumerate(_lines):
-                        _ls = self.font_small.render(_ll, True, (255, 255, 255))  # Белый текст буллетов
+                        _ls = self.font_small.render(
+                            _ll, True, (255, 255, 255)
+                        )  # Белый текст буллетов
                         _la = _ls.copy()
                         _la.set_alpha(_alpha)
                         self.screen.blit(_la, (_bub_x + 7, _bub_y + 5 + _li * _line_h))
@@ -450,7 +550,7 @@ class SceneRenderer:
             self._draw_inference_badges(entity, sx, sy + radius + 4)
 
             # BUG-P1-01: Рисуем конус взгляда (сектор) по body_heading
-            if hasattr(entity, 'body_heading'):
+            if hasattr(entity, "body_heading"):
                 _heading = entity.body_heading
                 gaze_color = (255, 255, 80, 60)  # Полупрозрачный жёлтый
                 gaze_surface = pygame.Surface((100, 100), pygame.SRCALPHA)
@@ -461,27 +561,34 @@ class SceneRenderer:
                 _step = _cone_width / 10
                 for i in range(11):
                     _a = _start_a + i * _step
-                    _points.append((50 + math.cos(_a) * _cone_radius, 50 + math.sin(_a) * _cone_radius))
+                    _points.append(
+                        (
+                            50 + math.cos(_a) * _cone_radius,
+                            50 + math.sin(_a) * _cone_radius,
+                        )
+                    )
                 pygame.draw.polygon(gaze_surface, gaze_color, _points)
                 self.screen.blit(gaze_surface, (sx - 50, sy - 50))
 
             # Спринт 30: Сохраняем визуальную позицию (после интерполяции), а не сырую позицию тика,
             # чтобы на следующем кадре непрерывное движение продолжилось, а не началось с начала
             self._prev_npc_positions[entity.entity_id] = (render_x, render_y)
-            
+
             # Отслеживание наведения мыши (для тултипов) — используем экранные координаты
             _mouse_x, _mouse_y = pygame.mouse.get_pos()
             if abs(_mouse_x - sx) < 25 and abs(_mouse_y - sy) < 25:
                 self._hover_npc_id = entity.entity_id
-            
+
             # Рисуем тултип наблюдения при наведении (hover_text уже на русском из API)
             if self._hover_npc_id == entity.entity_id and entity.perception_cues:
                 for _cue in entity.perception_cues:
                     _txt = _cue.get("hover_text") or _cue.get("cue_key", "...")
                     _font = self.font_tooltip
-                    _surf = _font.render(_txt, True, (255, 255, 230))  # Тёплый белый для тултипов
-                    self.screen.blit(_surf, (sx - _surf.get_width()//2, sy - 30))
-                    break # Показываем только первый (самый важный) cue
+                    _surf = _font.render(
+                        _txt, True, (255, 255, 230)
+                    )  # Тёплый белый для тултипов
+                    self.screen.blit(_surf, (sx - _surf.get_width() // 2, sy - 30))
+                    break  # Показываем только первый (самый важный) cue
 
     def _draw_inference_badges(self, entity: PerceivedEntity, sx: int, sy: int) -> None:
         """Рисует маленькие цветные точки для поведенческих выводов"""
@@ -503,14 +610,22 @@ class SceneRenderer:
                 pygame.draw.circle(self.screen, color, (sx + x_offset, sy), 3)
                 x_offset += 8
 
-    def _draw_player(self, xy: Tuple[float, float], cam_x: float, cam_y: float, facing: float, player_speech: Optional[dict] = None) -> None:
-        import math
+    def _draw_player(
+        self,
+        xy: Tuple[float, float],
+        cam_x: float,
+        cam_y: float,
+        facing: float,
+        player_speech: Optional[dict] = None,
+    ) -> None:
+        import math  # noqa: E402
+
         sx, sy = self._w2s(xy[0], xy[1], cam_x, cam_y)
         # Форма стрелки: увеличена для читаемости взгляда поверх PNG текстур
         base_points = [
-            (16, 0),   # Наконечник
+            (16, 0),  # Наконечник
             (-8, -11),  # Левое крыло
-            (-8, 11),   # Правое крыло
+            (-8, 11),  # Правое крыло
         ]
         cos_a = math.cos(facing)
         sin_a = math.sin(facing)
@@ -521,19 +636,23 @@ class SceneRenderer:
         ]
         # Яркий контур 3px для видимости поверх любых текстур
         pygame.draw.polygon(self.screen, _COLORS["player_body"], points)
-        pygame.draw.polygon(self.screen, (200, 230, 255), points, 3)  # Светло-голубой контур зоны
+        pygame.draw.polygon(
+            self.screen, (200, 230, 255), points, 3
+        )  # Светло-голубой контур зоны
 
         # ADR-SPEECH: Речевое облачко над головой игрока (перенос по словам, обрезка по предложению)
         if player_speech:
             _age = pygame.time.get_ticks() - player_speech["tick"]
             if _age < 4000:
-                _alpha = 255 if _age < 2500 else int(255 * (1.0 - (_age - 2500) / 1500.0))
+                _alpha = (
+                    255 if _age < 2500 else int(255 * (1.0 - (_age - 2500) / 1500.0))
+                )
                 _btxt = player_speech["text"]
                 _max_w = 180
                 _max_lines = 2  # игрок обычно говорит короче
                 _line_h = self.font_small.get_height() + 2
                 # Перенос по словам
-                _words = _btxt.split(' ')
+                _words = _btxt.split(" ")
                 _lines = []
                 _cur = ""
                 for _w in _words:
@@ -548,10 +667,15 @@ class SceneRenderer:
                     _lines.append(_cur)
                 # Обрезка по предложению если >2 строк
                 if len(_lines) > _max_lines:
-                    _combined = ' '.join(_lines[:_max_lines])
-                    _last_sent = max(_combined.rfind('.'), _combined.rfind('!'), _combined.rfind('?'), _combined.rfind('—'))
+                    _combined = " ".join(_lines[:_max_lines])
+                    _last_sent = max(
+                        _combined.rfind("."),
+                        _combined.rfind("!"),
+                        _combined.rfind("?"),
+                        _combined.rfind("—"),
+                    )
                     if _last_sent > len(_combined) // 2:
-                        _words2 = _combined[:_last_sent + 1].split(' ')
+                        _words2 = _combined[: _last_sent + 1].split(" ")
                         _lines = []
                         _cur2 = ""
                         for _w2 in _words2:
@@ -566,17 +690,25 @@ class SceneRenderer:
                             _lines.append(_cur2)
                     else:
                         _lines = _lines[:_max_lines]
-                        _lines[-1] = _lines[-1].rstrip(' ,—') + "…"
+                        _lines[-1] = _lines[-1].rstrip(" ,—") + "…"
                 _bub_h = len(_lines) * _line_h + 10
-                _bub_w = max(self.font_small.size(l)[0] for l in _lines) + 14 if _lines else 40
+                _bub_w = (
+                    max(self.font_small.size(line)[0] for line in _lines) + 14
+                    if _lines
+                    else 40
+                )
                 _bub_x = sx - _bub_w // 2
                 _bub_y = sy - 28 - _bub_h
                 _bg = pygame.Surface((_bub_w, _bub_h), pygame.SRCALPHA)
                 _bg.fill((15, 30, 50, min(_alpha, 210)))
-                pygame.draw.rect(_bg, (80, 160, 240, _alpha), _bg.get_rect(), 1, border_radius=4)
+                pygame.draw.rect(
+                    _bg, (80, 160, 240, _alpha), _bg.get_rect(), 1, border_radius=4
+                )
                 self.screen.blit(_bg, (_bub_x, _bub_y))
                 for _li, _ll in enumerate(_lines):
-                    _ls = self.font_small.render(_ll, True, (200, 230, 255))  # Светло-голубой текст
+                    _ls = self.font_small.render(
+                        _ll, True, (200, 230, 255)
+                    )  # Светло-голубой текст
                     _la = _ls.copy()
                     _la.set_alpha(_alpha)
                     self.screen.blit(_la, (_bub_x + 7, _bub_y + 5 + _li * _line_h))

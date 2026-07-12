@@ -1,5 +1,7 @@
 """Детерминированные часы симуляции. Тикают только по команде."""
+
 from dataclasses import dataclass
+
 
 @dataclass
 class DeterministicClock:

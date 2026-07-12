@@ -48,13 +48,15 @@ def apply_npc_state_updates(
         return
     try:
         if not npc_dicts:
-            logger.warning("[NPC_STATE] apply_npc_state_updates: npc_dicts пуст, пропускаем")
+            logger.warning(
+                "[NPC_STATE] apply_npc_state_updates: npc_dicts пуст, пропускаем"
+            )
             return
         all_npcs = npc_dicts
-        changed  = False
+        changed = False
         for upd in updates:
-            npc_id       = upd.get("npc_id")
-            trust_delta  = upd.get("trust_delta", 0.0)
+            npc_id = upd.get("npc_id")
+            trust_delta = upd.get("trust_delta", 0.0)
             stress_delta = upd.get("stress_delta", 0)
             for npc in all_npcs:
                 if npc["id"] != npc_id:
@@ -78,16 +80,18 @@ def apply_npc_state_updates(
                 if trust_delta != 0.0 and campaign_id:
                     try:
                         memory_manager.update_relationship(
-                            campaign_id = campaign_id,
-                            source      = "player",
-                            target      = npc_id,
-                            delta       = {"trust": trust_delta},
+                            campaign_id=campaign_id,
+                            source="player",
+                            target=npc_id,
+                            delta={"trust": trust_delta},
                         )
                     except Exception as e:
                         logger.warning(f"[GAME_LOOP] Ошибка обновления отношений: {e}")
                 break
         if changed:
-            logger.warning(f"[NPC_STATE] {sum(1 for u in updates if u.get('npc_id'))} trust/stress deltas applied to buffer")
+            logger.warning(
+                f"[NPC_STATE] {sum(1 for u in updates if u.get('npc_id'))} trust/stress deltas applied to buffer"
+            )
 
     except Exception as e:
         logger.error(f"[NPC_STATE] apply_npc_state_updates failed: {e}")
@@ -106,7 +110,7 @@ def write_npc_memory(
         return
     try:
         all_npcs = npc_dicts if npc_dicts is not None else loop._load_npcs()
-        changed  = False
+        changed = False
         for reaction in npc_reactions:
             # reaction формат: "Люся: Я не знаю..."
             if ":" not in reaction:
@@ -116,17 +120,21 @@ def write_npc_memory(
                 if npc.get("name", "") != npc_name_part:
                     continue
                 trace = npc.setdefault("memory_trace", [])
-                trace.append({
-                    "tick_added": turn_tick,
-                    "event": f"{player}: {action_text[:80]}",
-                    "my_response": reaction.split(":", 1)[1].strip()[:120],
-                })
+                trace.append(
+                    {
+                        "tick_added": turn_tick,
+                        "event": f"{player}: {action_text[:80]}",
+                        "my_response": reaction.split(":", 1)[1].strip()[:120],
+                    }
+                )
                 # Храним последние 10 воспоминаний
                 if len(trace) > 10:
                     npc["memory_trace"] = trace[-10:]
                 changed = True
                 break
         if changed:
-            logger.warning(f"[NPC_MEM] memory_trace updated for {len(npc_reactions)} reactions in buffer")
+            logger.warning(
+                f"[NPC_MEM] memory_trace updated for {len(npc_reactions)} reactions in buffer"
+            )
     except Exception as e:
         logger.warning(f"[NPC_MEM] write_npc_memory failed: {e}")

@@ -1,3 +1,4 @@
+from __future__ import annotations
 # backend/app/services/memory/resonance_engine.py
 """
 R5.4 — ResonanceEngine: детекция паттернов поверх EventMemory.
@@ -13,10 +14,9 @@ R5.5 — Personality Modulation: один паттерн → разный trait 
   - Без LLM, без IO
 """
 
-from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List, Optional, Sequence
+from typing import Dict, Any, List, Optional, Sequence
 
 from app.models.npc_state import EventMemory, MemoryStage, NPCPersonality
 
@@ -36,20 +36,38 @@ _MAX_PATTERN_DELTA: float = 0.30
 
 
 # Группировка типов событий по теме (§6 Память.md — "та же тема")
-_THEME_BETRAYAL: frozenset = frozenset({
-    "theft", "vandalism", "intimidation", "deception", "betrayal",
-})
-_THEME_HELP: frozenset = frozenset({
-    "help", "quest", "rescue", "gift", "dialogue_key",
-})
-_THEME_AGGRESSION: frozenset = frozenset({
-    "combat", "intimidation", "threat", "capture",
-})
+_THEME_BETRAYAL: frozenset = frozenset(
+    {
+        "theft",
+        "vandalism",
+        "intimidation",
+        "deception",
+        "betrayal",
+    }
+)
+_THEME_HELP: frozenset = frozenset(
+    {
+        "help",
+        "quest",
+        "rescue",
+        "gift",
+        "dialogue_key",
+    }
+)
+_THEME_AGGRESSION: frozenset = frozenset(
+    {
+        "combat",
+        "intimidation",
+        "threat",
+        "capture",
+    }
+)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # ResonancePattern — результат детекции
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 @dataclass(frozen=True)
 class ResonancePattern:
@@ -57,15 +75,17 @@ class ResonancePattern:
     Детектированный паттерн поведения игрока относительно NPC.
     frozen=True: не мутируется после создания — только читается.
     """
-    pattern_name: str    # "betrayal_chain" | "chronic_help" | "gaslighting"
-    strength:     float  # 0.0–1.0, сила паттерна (сумма importance совпавших событий)
-    trait_name:   str    # имя L3 trait который усиливается
-    trait_delta:  float  # вес для добавления в active_traits
+
+    pattern_name: str  # "betrayal_chain" | "chronic_help" | "gaslighting"
+    strength: float  # 0.0–1.0, сила паттерна (сумма importance совпавших событий)
+    trait_name: str  # имя L3 trait который усиливается
+    trait_delta: float  # вес для добавления в active_traits
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # ResonanceEngine
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 class ResonanceEngine:
     """
@@ -90,7 +110,8 @@ class ResonanceEngine:
         """
         # Фильтруем: только релевантные события от нужного actor
         relevant = [
-            e for e in events
+            e
+            for e in events
             if isinstance(e, EventMemory)
             and e.stage != MemoryStage.FORGOTTEN
             and e.target_id == actor_id
@@ -130,8 +151,7 @@ class ResonanceEngine:
         Trait модулируется по drives_base если передана personality.
         """
         betrayal_events = [
-            e for e in events
-            if any(theme in e.event_type for theme in _THEME_BETRAYAL)
+            e for e in events if any(theme in e.event_type for theme in _THEME_BETRAYAL)
         ]
 
         if len(betrayal_events) < _MIN_EVENTS_FOR_PATTERN:
@@ -163,8 +183,7 @@ class ResonanceEngine:
         Trait модулируется по drives_base если передана personality.
         """
         help_events = [
-            e for e in events
-            if any(theme in e.event_type for theme in _THEME_HELP)
+            e for e in events if any(theme in e.event_type for theme in _THEME_HELP)
         ]
 
         if len(help_events) < _MIN_EVENTS_FOR_PATTERN:
@@ -211,7 +230,8 @@ class ResonanceEngine:
 
         # Ищем чередование A-H или H-A (минимум 2 перехода)
         transitions = sum(
-            1 for i in range(1, len(classified))
+            1
+            for i in range(1, len(classified))
             if classified[i] != classified[i - 1]
             and classified[i] in ("A", "H")
             and classified[i - 1] in ("A", "H")
@@ -250,30 +270,30 @@ class ResonanceEngine:
             # Стандартные traits — поведение идентично R5.4
             return {
                 "betrayal_chain": "distrust_player",
-                "chronic_help":   "trust_bias",
-                "gaslighting":    "suspicious",
+                "chronic_help": "trust_bias",
+                "gaslighting": "suspicious",
             }.get(pattern_name, pattern_name)
 
         drives = personality.drives_base
 
         if pattern_name == "betrayal_chain":
             if drives.get("fear", 0.0) > 0.4:
-                return "paranoid"       # боязливый NPC → страх повторения
+                return "paranoid"  # боязливый NPC → страх повторения
             if drives.get("control", 0.0) > 0.4:
-                return "vindictive"     # контролирующий NPC → желание отомстить
-            return "distrust_player"    # стандарт
+                return "vindictive"  # контролирующий NPC → желание отомстить
+            return "distrust_player"  # стандарт
 
         if pattern_name == "chronic_help":
             if drives.get("desire", 0.0) > 0.4:
-                return "dependent"      # NPC с высоким desire → зависимость
+                return "dependent"  # NPC с высоким desire → зависимость
             if drives.get("significance", 0.0) > 0.4:
-                return "obligated"      # NPC важна значимость → чувство долга
-            return "trust_bias"         # стандарт
+                return "obligated"  # NPC важна значимость → чувство долга
+            return "trust_bias"  # стандарт
 
         if pattern_name == "gaslighting":
             if drives.get("fear", 0.0) > 0.4:
                 return "hypervigilant"  # боязливый NPC → постоянная настороженность
-            return "suspicious"         # стандарт
+            return "suspicious"  # стандарт
 
         return pattern_name
 
@@ -292,7 +312,8 @@ class ResonanceEngine:
         3+ негативных → hostile_pattern.
         """
         relevant = [
-            e for e in events
+            e
+            for e in events
             if isinstance(e, EventMemory)
             and e.stage != MemoryStage.FORGOTTEN
             and (e.target_id == target_npc_id or e.npc_id == target_npc_id)
@@ -300,7 +321,8 @@ class ResonanceEngine:
 
         # Считаем по тегам: negative события из темы агрессии
         negative = [
-            e for e in relevant
+            e
+            for e in relevant
             if "negative" in e.tags
             or any(theme in e.event_type for theme in _THEME_AGGRESSION)
         ]
@@ -316,12 +338,14 @@ class ResonanceEngine:
         strength = raw * density
 
         delta = min(_MAX_PATTERN_DELTA, round(strength * 0.15, 4))
-        return [ResonancePattern(
-            pattern_name="hostile_pattern",
-            strength=round(min(strength, 1.0), 4),
-            trait_name="hostile_to_npc",
-            trait_delta=delta,
-        )]
+        return [
+            ResonancePattern(
+                pattern_name="hostile_pattern",
+                strength=round(min(strength, 1.0), 4),
+                trait_name="hostile_to_npc",
+                trait_delta=delta,
+            )
+        ]
 
     def _temporal_density(self, events: List[EventMemory]) -> float:
         """

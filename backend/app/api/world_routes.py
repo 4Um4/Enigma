@@ -6,6 +6,7 @@ path: backend/app/api/world_routes.py
 """
 from __future__ import annotations
 
+
 from typing import Optional
 
 from fastapi import APIRouter, Query, HTTPException, Request
@@ -20,21 +21,29 @@ world_router = APIRouter(tags=["world"])
 def get_world_state(
     request: Request,
     campaign_id: str = Query(..., description="ID кампании"),
-    after_tick: Optional[int] = Query(None, description="Вернуть только если tick > after_tick"),
+    after_tick: Optional[int] = Query(
+        None, description="Вернуть только если tick > after_tick"
+    ),
 ) -> WorldSnapshotDTO:
     """Возвращает текущий снимок мира.
-    
+
     Frontend вызывает после каждого idle_tick.
     Параметр after_tick позволяет не рендерить заново если ничего не изменилось.
     """
     from app.services.integration.world_snapshot_builder import WorldSnapshotBuilder
 
     # Берём тот же scene_manager что и game_loop — единый источник истины
-    mgr = request.app.state.game_loop.scene_manager if request.app.state.game_loop else get_scene_state_manager()
+    mgr = (
+        request.app.state.game_loop.scene_manager
+        if request.app.state.game_loop
+        else get_scene_state_manager()
+    )
     scene_state = mgr.get_scene_state(campaign_id, location_id="")
 
     if not scene_state:
-        raise HTTPException(status_code=404, detail=f"Campaign '{campaign_id}' not found")
+        raise HTTPException(
+            status_code=404, detail=f"Campaign '{campaign_id}' not found"
+        )
 
     # Единый источник тика — TemporalEngine, не scene_state (Устав §3)
     _game_loop = request.app.state.game_loop
@@ -42,6 +51,7 @@ def get_world_state(
         current_tick = _game_loop.get_current_tick(campaign_id)
     else:
         from app.services.npc.life_engine import get_life_engine
+
         current_tick = get_life_engine().get_current_tick(campaign_id)
 
     # 304 Not Modified: frontend уже на этом тике

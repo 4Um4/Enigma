@@ -3,11 +3,14 @@ from typing import Optional, Dict, Any
 from app.models.cfrm import PsychologicalPressure
 from app.models.npc_state import PerceptualKernel
 from app.domain.decision_context import (
-    DecisionContext, UtilityFieldDeformation, ActionSpaceCompression
+    DecisionContext,
+    UtilityFieldDeformation,
+    ActionSpaceCompression,
 )
 from app.services.npc.behavior_modifiers import compute_behavior_modifiers
 
 logger = logging.getLogger(__name__)
+
 
 def translate_pressure_to_context(pressure: PsychologicalPressure) -> DecisionContext:
     """
@@ -18,7 +21,9 @@ def translate_pressure_to_context(pressure: PsychologicalPressure) -> DecisionCo
     aggression_sup = min(1.0, (pressure.fear * 0.7) + pressure.dominance_shift)
     compliance_bias = pressure.directive_obedience + (pressure.dominance_shift * 0.5)
     escape_sal = pressure.fear * 0.6 + pressure.uncertainty * 0.2
-    initiative_sup = pressure.dominance_shift * 0.6 # Доминирование подавляет инициативу
+    initiative_sup = (
+        pressure.dominance_shift * 0.6
+    )  # Доминирование подавляет инициативу
 
     # 2. Экстремальное сжатие (10% случаев - паралич воли)
     constraints = {}
@@ -31,10 +36,10 @@ def translate_pressure_to_context(pressure: PsychologicalPressure) -> DecisionCo
             aggression_suppression=aggression_sup,
             compliance_bias=compliance_bias,
             escape_salience=escape_sal,
-            initiative_suppression=initiative_sup
+            initiative_suppression=initiative_sup,
         ),
         compression=ActionSpaceCompression(constraints=constraints),
-        source="cfrm_pressure"
+        source="cfrm_pressure",
     )
 
 
@@ -87,7 +92,7 @@ def translate_kernel_to_context(
             aggression_suppression=kernel.aggression_inhibition,
             initiative_suppression=kernel.initiative_suppression,
             compliance_bias=kernel.compliance_bias,
-            escape_salience=kernel.threat_gradient * 0.5
+            escape_salience=kernel.threat_gradient * 0.5,
         ),
         compression=ActionSpaceCompression(constraints=constraints),
         source="perceptual_kernel",

@@ -1,4 +1,4 @@
-﻿# path: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\scene\r3_direct_builder.py
+# path: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\scene\r3_direct_builder.py
 """
 R3 Direct Mode: DecisionResult → SceneOutcome → DMFrame.
 
@@ -11,17 +11,16 @@ R3 Direct Mode: DecisionResult → SceneOutcome → DMFrame.
 """
 
 import logging
-from typing import Any
-from app.services.npc.legacy_delta_adapter import LegacyStateDeltaAdapter
+from typing import List, Dict, Any
 
 logger = logging.getLogger(__name__)
 
 
 def build_r3_dm_frame(
     shared_context: Any,
-    actions: list,
+    actions: List[Any],
     rules_result: Any | None,
-) -> dict:
+) -> Dict[str, Any]:
     """Строит DMFrame из DecisionResult[] + обновляет SceneContinuity.
 
     Мутирует shared_context (scene_continuity).
@@ -49,16 +48,19 @@ def build_r3_dm_frame(
     # A2-FIX: zombie reader → SpatialQueryService.
     # Раньше: _distances всегда {} → SceneContext.distances пустой → DM слеп к дистанциям.
     _distances = {}
-    _spatial_query = getattr(shared_context, 'spatial_query', None)
+    _spatial_query = getattr(shared_context, "spatial_query", None)
     if _spatial_query is not None:
-        _npc_ids = [n.get("npc_id", n.get("id", "")) for n in _scene_state.get("npc_positions", {}).values()]
+        _npc_ids = [
+            n.get("npc_id", n.get("id", ""))
+            for n in _scene_state.get("npc_positions", {}).values()
+        ]
         _distances = _spatial_query.player_distances(_npc_ids)
     _visible = {
-        npc_id for npc_id, is_visible
-        in _scene_state.get("line_of_sight", {}).items()
+        npc_id
+        for npc_id, is_visible in _scene_state.get("line_of_sight", {}).items()
         if is_visible
     }
-    # Epistemic Boundary: DM не читает внутренние уровни NPC (tier) из контекстов, 
+    # Epistemic Boundary: DM не читает внутренние уровни NPC (tier) из контекстов,
     # только локальную физическую видимость.
     _tiers = {}
 
@@ -67,11 +69,19 @@ def build_r3_dm_frame(
     if rules_result and isinstance(rules_result, dict):
         _checks = rules_result.get("checks", [])
         if _checks:
-            _first_check = _checks[0] if isinstance(_checks[0], dict) else _checks[0].to_dict() if hasattr(_checks[0], 'to_dict') else {}
+            _first_check = (
+                _checks[0]
+                if isinstance(_checks[0], dict)
+                else _checks[0].to_dict()
+                if hasattr(_checks[0], "to_dict")
+                else {}
+            )
             if _first_check.get("needs_roll", False):
                 _result_str = _first_check.get("result", "").lower()
                 _player_success = "успех" in _result_str or "крит" in _result_str
-                logger.warning(f"[R5] Physical action: success={_player_success} result={_result_str}")
+                logger.warning(
+                    f"[R5] Physical action: success={_player_success} result={_result_str}"
+                )
 
     _scene_ctx = SceneContext(
         distances=_distances,
@@ -89,7 +99,7 @@ def build_r3_dm_frame(
         for ctx in _filtered_ctxs
         if ctx.get("observed_state")
     }
-    
+
     # ФАЗА 0: профили NPC для voice_profile, backstory, author_notes
     _npc_profiles = {
         ctx["npc_id"]: ctx["profile_l0"]
@@ -98,13 +108,11 @@ def build_r3_dm_frame(
     }
     # ФАЗА 4: темы NPC из TopicExtractor (Устав 3.2)
     _npc_topics = {
-        ctx["npc_id"]: ctx["topic"]
-        for ctx in _filtered_ctxs
-        if ctx.get("topic")
+        ctx["npc_id"]: ctx["topic"] for ctx in _filtered_ctxs if ctx.get("topic")
     }
 
     # Epistemic Boundary: affective_load скрыт от DM-агента.
-    
+
     # ADR-131: Извлекаем coherence из avatar state (если доступен)
     _avatar_coherence = 1.0  # дефолт — ясный ум
     _player_state = shared_context.player_state or {}
@@ -118,10 +126,11 @@ def build_r3_dm_frame(
                     except (TypeError, ValueError) as e:
                         logger.warning(f"[B5-FIX] silent failure suppressed: {e}")
                 break  # берём первого игрока
-    
+
     # Строим SceneOutcome → DMFrame (с психологической проекцией + ADR-131 трёхосевая модель)
     _scene = _builder.build(
-        _decisions, _scene_ctx,
+        _decisions,
+        _scene_ctx,
         state_snapshots=_state_snapshots,
         distortion_biases={},
         npc_profiles=_npc_profiles,
@@ -134,21 +143,25 @@ def build_r3_dm_frame(
     for actor in _scene.actors:
         if actor.psychological:
             p = actor.psychological
-            logger.warning(f"[PROJECTION] {actor.npc_id}: {p.regime.value} (int={p.intensity}, stab={p.stability})")
+            logger.warning(
+                f"[PROJECTION] {actor.npc_id}: {p.regime.value} (int={p.intensity}, stab={p.stability})"
+            )
     # Дельты от DecisionHub
-    # Epistemic Boundary: Внутренние дельты (stress/trust) скрыты от DM. 
+    # Epistemic Boundary: Внутренние дельты (stress/trust) скрыты от DM.
     # DM судит по проявлениям (manifestations), а не по скрытым математическим сдвигам.
 
     # B.3/B.4: Обновляем SceneContinuity из дельт
     _cont = shared_context.scene_continuity or SceneContinuity()
-    # Epistemic Boundary: Внутренние дельты (stress/trust) скрыты от DM. 
+    # Epistemic Boundary: Внутренние дельты (stress/trust) скрыты от DM.
     # DM судит по проявлениям (manifestations), а не по скрытым математическим сдвигам.
     _cont.update_tension(0.0)
-    _cont.update_emotional_vector({
-        "trust": 0.0,
-        "tension": 0.0,
-        "confusion": 0.3 if len(_decisions) > 2 else 0.0,  # много NPC = хаос
-    })
+    _cont.update_emotional_vector(
+        {
+            "trust": 0.0,
+            "tension": 0.0,
+            "confusion": 0.3 if len(_decisions) > 2 else 0.0,  # много NPC = хаос
+        }
+    )
     # Флаги ключевых событий
     _event_type = shared_context.action_type or ""
     if "insult" in _event_type:
@@ -187,7 +200,9 @@ def build_r3_dm_frame(
             _speaker_name = _id_to_name.get(_pd.npc_id, _pd.npc_id)
             _cont.add_event(f"{_speaker_name}: {_label}{_target_str}")
             _cont.add_flag(f"proactive_{_pd.intent.value}_{_pd.npc_id}")
-        logger.warning(f"[WORLD_TICK→CONTINUITY] {len(_tick_result.decisions)} proactive → DM context")
+        logger.warning(
+            f"[WORLD_TICK→CONTINUITY] {len(_tick_result.decisions)} proactive → DM context"
+        )
 
     # ШАГ 0.5: MicroEvents → SceneContinuity флаги/события
     for ctx in _filtered_ctxs:
@@ -221,17 +236,19 @@ def build_r3_dm_frame(
 
     # Конвертируем DMFrame в формат совместимый с dm_agent
     npc_result = {
-        "npc_reactions": [],       # Пусто — DM генерирует сам
-        "npc_actions": [],         # Пусто — DM генерирует сам
-        "dm_frame": _dm_frame,     # КЛЮЧ: DM использует этот путь
+        "npc_reactions": [],  # Пусто — DM генерирует сам
+        "npc_actions": [],  # Пусто — DM генерирует сам
+        "dm_frame": _dm_frame,  # КЛЮЧ: DM использует этот путь
     }
 
     # B.3/B.4: Передаём SceneContinuity в контекст для DM prompt
     shared_context.scene_continuity = _cont
 
-    # Epistemic Boundary: Ментальные объекты NPC скрыты от DM-агента. 
+    # Epistemic Boundary: Ментальные объекты NPC скрыты от DM-агента.
     # DM описывает только то, что физически проявлено в player_perception.
 
-    logger.warning(f"[R3_DIRECT] {len(_decisions)} decisions → DMFrame (focus={len(_dm_frame.focus_npcs)}, bg={len(_dm_frame.background_npcs)})")
+    logger.warning(
+        f"[R3_DIRECT] {len(_decisions)} decisions → DMFrame (focus={len(_dm_frame.focus_npcs)}, bg={len(_dm_frame.background_npcs)})"
+    )
 
     return npc_result

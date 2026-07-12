@@ -1,3 +1,4 @@
+from __future__ import annotations
 # backend/app/services/spatial/role_resolver.py
 # Назначение: Семантический маппинг — выводит NodeRole из label/type/manifest
 # Приоритет: manifest_override > editor_type > keyword matching > DEFAULT
@@ -9,9 +10,8 @@ TODO:
 - В будущем: поддержка многоязычных лейблов (сейчас только русский и английский) — может потребоваться более сложная NLP-логика
 """
 
-from __future__ import annotations
 
-from typing import Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set
 
 from app.models.spatial_contracts import NodeRole
 
@@ -21,32 +21,71 @@ from app.models.spatial_contracts import NodeRole
 
 _ROLE_KEYWORDS: Dict[NodeRole, Set[str]] = {
     NodeRole.ENTRANCE: {
-        "вход", "дверь", "entrance", "люк", "ворота", "калитка",
-        "главный вход", "парадный",
+        "вход",
+        "дверь",
+        "entrance",
+        "люк",
+        "ворота",
+        "калитка",
+        "главный вход",
+        "парадный",
     },
     NodeRole.TRANSITION: {
-        "лестниц", "портал", "transition", "ladder", "trapdoor",
-        "лестница", "ступень", "погреб", "подвал", "чердак",
-        "переход", "проход",
+        "лестниц",
+        "портал",
+        "transition",
+        "ladder",
+        "trapdoor",
+        "лестница",
+        "ступень",
+        "погреб",
+        "подвал",
+        "чердак",
+        "переход",
+        "проход",
     },
     NodeRole.BAR: {
-        "стойк", "бар", "bar", "трактир", "кабак",
-        "за стойкой", "у стойки",
+        "стойк",
+        "бар",
+        "bar",
+        "трактир",
+        "кабак",
+        "за стойкой",
+        "у стойки",
     },
     NodeRole.BED: {
-        "кровать", "спальн", "bed", "койка", "лежанк",
-        "караульн", "постел", "опочивальн", "палатк",
+        "кровать",
+        "спальн",
+        "bed",
+        "койка",
+        "лежанк",
+        "караульн",
+        "постел",
+        "опочивальн",
+        "палатк",
     },
     NodeRole.TABLE: {
-        "стол", "table", "столик",
+        "стол",
+        "table",
+        "столик",
     },
     NodeRole.WORKBENCH: {
-        "верстак", "кузн", "workbench", "наковальн",
-        "станк", "токарн", "плавильн",
+        "верстак",
+        "кузн",
+        "workbench",
+        "наковальн",
+        "станк",
+        "токарн",
+        "плавильн",
     },
     NodeRole.MARKET: {
-        "рынок", "market", "прилавок", "торг",
-        "лавк", "магазин", "лавоч",
+        "рынок",
+        "market",
+        "прилавок",
+        "торг",
+        "лавк",
+        "магазин",
+        "лавоч",
     },
 }
 
@@ -69,7 +108,7 @@ def resolve_role(
     node_id: Optional[str] = None,
 ) -> NodeRole:
     """Выводит NodeRole по приоритетной цепочке.
-    
+
     Приоритет:
     1. manifest_override — явное указание (будущий editor UI)
     2. editor_type — однозначное соответствие (door → TRANSITION)

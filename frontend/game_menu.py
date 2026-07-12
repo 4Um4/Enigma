@@ -1,4 +1,4 @@
-﻿"""
+"""
 Назначение: Главное меню игры — полностью изолировано от map_editor, содержит собственные минимальные UI-примитивы
 Зависимости: pygame (только стандартная библиотека + pygame)
 Основные сущности: MenuAction, GameMenu, _MenuButton
@@ -8,6 +8,7 @@ path: /frontend/game_menu.py
 Главное меню игры — полностью самодостаточно, не зависит от map_editor.
 Содержит собственные минимальные UI-примитивы (цвета, кнопка).
 """
+
 from enum import Enum, auto
 from typing import Optional, Callable
 
@@ -18,6 +19,7 @@ from i18n import t
 
 class MenuAction(Enum):
     """Действия, которые может выбрать игрок в меню"""
+
     NEW_GAME = auto()
     CONTINUE = auto()
     EDITOR = auto()
@@ -47,7 +49,10 @@ class _MenuButton:
 
     def __init__(
         self,
-        x: int, y: int, width: int, height: int,
+        x: int,
+        y: int,
+        width: int,
+        height: int,
         text: str,
         color: tuple,
         color_hover: tuple,
@@ -100,31 +105,35 @@ class GameMenu:
 
         self._buttons: list[_MenuButton] = []
         self._build_buttons()
-    
+
     def _load_background(self) -> Optional[pygame.Surface]:
         """Загружает и масштабирует фоновое изображение меню."""
         try:
             from pathlib import Path
+
             # Приоритет: JPG (оптимизированный) > PNG (оригинал)
             bg_path = Path(__file__).parent / "menu_bg.jpg"
             if not bg_path.exists():
-                bg_path = Path(__file__).parent / "map_editor" / "pixels" / "game_menu.png"
+                bg_path = (
+                    Path(__file__).parent / "map_editor" / "pixels" / "game_menu.png"
+                )
             if not bg_path.exists():
                 return None
             img = pygame.image.load(str(bg_path))
             return img.convert()  # Оптимизация: без alpha для скорости
         except Exception:
             return None
-    
+
     def _init_smoke(self) -> None:
         """Инициализирует эммитеры дыма (трубы на фоне)."""
         try:
             from menu_effects import SmokeEmitter
+
             # Координаты труб в нормализованном виде (0-1)
             # Точные позиции подберём по реальному изображению
             self._smoke_emitters = [
-                SmokeEmitter(0.22, 0.18, rate=6.0),   # Труба таверны
-                SmokeEmitter(0.78, 0.25, rate=4.0),   # Дальняя труба
+                SmokeEmitter(0.22, 0.18, rate=6.0),  # Труба таверны
+                SmokeEmitter(0.78, 0.25, rate=4.0),  # Дальняя труба
             ]
         except Exception:
             self._smoke_emitters = []
@@ -143,21 +152,56 @@ class GameMenu:
 
         C = _MENU_COLORS
         self._buttons = [
-            _MenuButton(x, start_y, btn_w, btn_h,
-                        t("ui:menu_new_game"), C["btn_primary"], C["btn_primary_hover"],
-                        lambda: self._set_action(MenuAction.NEW_GAME)),
-            _MenuButton(x, start_y + btn_h + gap, btn_w, btn_h,
-                        t("ui:menu_continue"), C["btn_primary"], C["btn_primary_hover"],
-                        lambda: self._set_action(MenuAction.CONTINUE)),
-            _MenuButton(x, start_y + 2 * (btn_h + gap), btn_w, btn_h,
-                        t("ui:menu_editor"), C["btn_secondary"], C["btn_secondary_hover"],
-                        lambda: self._set_action(MenuAction.EDITOR)),
-            _MenuButton(x, start_y + 3 * (btn_h + gap), btn_w, btn_h,
-                        t("ui:menu_settings"), C["btn_secondary"], C["btn_secondary_hover"],
-                        lambda: self._set_action(MenuAction.SETTINGS)),
-            _MenuButton(x, start_y + 4 * (btn_h + gap), btn_w, btn_h,
-                        t("ui:menu_exit"), C["btn_danger"], C["btn_danger_hover"],
-                        lambda: self._set_action(MenuAction.EXIT)),
+            _MenuButton(
+                x,
+                start_y,
+                btn_w,
+                btn_h,
+                t("ui:menu_new_game"),
+                C["btn_primary"],
+                C["btn_primary_hover"],
+                lambda: self._set_action(MenuAction.NEW_GAME),
+            ),
+            _MenuButton(
+                x,
+                start_y + btn_h + gap,
+                btn_w,
+                btn_h,
+                t("ui:menu_continue"),
+                C["btn_primary"],
+                C["btn_primary_hover"],
+                lambda: self._set_action(MenuAction.CONTINUE),
+            ),
+            _MenuButton(
+                x,
+                start_y + 2 * (btn_h + gap),
+                btn_w,
+                btn_h,
+                t("ui:menu_editor"),
+                C["btn_secondary"],
+                C["btn_secondary_hover"],
+                lambda: self._set_action(MenuAction.EDITOR),
+            ),
+            _MenuButton(
+                x,
+                start_y + 3 * (btn_h + gap),
+                btn_w,
+                btn_h,
+                t("ui:menu_settings"),
+                C["btn_secondary"],
+                C["btn_secondary_hover"],
+                lambda: self._set_action(MenuAction.SETTINGS),
+            ),
+            _MenuButton(
+                x,
+                start_y + 4 * (btn_h + gap),
+                btn_w,
+                btn_h,
+                t("ui:menu_exit"),
+                C["btn_danger"],
+                C["btn_danger_hover"],
+                lambda: self._set_action(MenuAction.EXIT),
+            ),
         ]
 
     def _set_action(self, action: MenuAction) -> None:
@@ -179,9 +223,13 @@ class GameMenu:
                     self._build_buttons()
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_UP:
-                        self._selected_idx = (self._selected_idx - 1) % len(self._buttons)
+                        self._selected_idx = (self._selected_idx - 1) % len(
+                            self._buttons
+                        )
                     elif event.key == pygame.K_DOWN:
-                        self._selected_idx = (self._selected_idx + 1) % len(self._buttons)
+                        self._selected_idx = (self._selected_idx + 1) % len(
+                            self._buttons
+                        )
                     elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
                         self._buttons[self._selected_idx].on_click()
                     elif event.key == pygame.K_ESCAPE:
@@ -199,14 +247,16 @@ class GameMenu:
 
     def _draw(self) -> None:
         w, h = self.screen.get_size()
-        
+
         # Фоновое изображение — масштабирование с сохранением пропорций (cover)
         if self._bg_image is not None:
             bg_w, bg_h = self._bg_image.get_size()
             scale = max(w / bg_w, h / bg_h)
             scaled_w = int(bg_w * scale)
             scaled_h = int(bg_h * scale)
-            scaled_bg = pygame.transform.smoothscale(self._bg_image, (scaled_w, scaled_h))
+            scaled_bg = pygame.transform.smoothscale(
+                self._bg_image, (scaled_w, scaled_h)
+            )
             # Центрируем обрезку
             offset_x = (w - scaled_w) // 2
             offset_y = (h - scaled_h) // 2
@@ -217,7 +267,7 @@ class GameMenu:
             self.screen.blit(overlay, (0, 0))
         else:
             self.screen.fill(_MENU_COLORS["bg_dark"])
-        
+
         # Анимация дыма
         dt = self.clock.get_time() / 1000.0
         for emitter in self._smoke_emitters:
@@ -230,17 +280,22 @@ class GameMenu:
         self.screen.blit(title_surf, title_rect)
 
         # Подзаголовок
-        sub_surf = self.font_subtitle.render("RPG Engine", True, _MENU_COLORS["text_dim"])
+        sub_surf = self.font_subtitle.render(
+            "RPG Engine", True, _MENU_COLORS["text_dim"]
+        )
         sub_rect = sub_surf.get_rect(centerx=w // 2, y=title_rect.bottom + 8)
         self.screen.blit(sub_surf, sub_rect)
 
         # Кнопки — подсвечиваем выбранную клавиатурой
         for i, btn in enumerate(self._buttons):
-            btn.hovered = btn.hovered or (i == getattr(self, '_selected_idx', -1))
+            btn.hovered = btn.hovered or (i == getattr(self, "_selected_idx", -1))
             btn.draw(self.screen, self.font_button)
 
         # Версия
         # ИСПРАВЛЕНО: версия берётся из constants.py, а не хардкодится.
         from constants import PROJECT_VERSION
-        ver_surf = self.font_small.render(PROJECT_VERSION, True, _MENU_COLORS["text_dim"])
+
+        ver_surf = self.font_small.render(
+            PROJECT_VERSION, True, _MENU_COLORS["text_dim"]
+        )
         self.screen.blit(ver_surf, (w - ver_surf.get_width() - 12, h - 24))

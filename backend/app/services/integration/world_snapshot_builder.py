@@ -1,22 +1,31 @@
+from __future__ import annotations
 # backend/app/services/integration/world_snapshot_builder.py
 # Назначение: Собирает WorldSnapshotDTO из финального состояния тика.
-# Чистый маппер: dict → DTO. Не лезет в NPCState, DecisionHub, MemoryManager.
+# Чистый маппер: Dict[str, Any] → DTO. Не лезет в NPCState, DecisionHub, MemoryManager.
 # Читает только scene_state dict и мета-данные тика.
 # Зависимости: app.domain.snapshot, typing
 
-from __future__ import annotations
 
 import logging
 
 logger = logging.getLogger(__name__)
 
-from typing import Dict, List, Optional, Tuple
-from app.domain.snapshot import WorldSnapshotDTO, NPCPositionDTO, VisibleEventDTO, PlayerPerceptionDTO, AvatarStateDTO, PeripheralCueDTO, ActivePerception, ManifestationDTO
+from typing import Any, Dict, List, Optional, Tuple
+from app.domain.snapshot import (
+    WorldSnapshotDTO,
+    NPCPositionDTO,
+    VisibleEventDTO,
+    PlayerPerceptionDTO,
+    AvatarStateDTO,
+    PeripheralCueDTO,
+    ActivePerception,
+    ManifestationDTO,
+)
 
 
 class WorldSnapshotBuilder:
     """Маппер: scene_state dict → WorldSnapshotDTO.
-    
+
     Не имеет побочных эффектов. Не вызывает логику.
     Только агрегирует то, что уже вычислено другими фазами.
     """
@@ -26,15 +35,17 @@ class WorldSnapshotBuilder:
         scene_state: Dict,
         tick: int,
         last_event_id: Optional[str] = None,
-        avatar_state: Optional["AvatarStateDTO"] = None, # ADR-035
-        all_npcs_raw: Optional[List[Dict]] = None, # ADR-037: Для вычисления среды
-        player_perception: Optional["PlayerPerceptionDTO"] = None, # ТЗ EMBODIED UI PERCEPTION
-        recent_dialogues: Optional[List[Dict]] = None, # ADR-O-313: Для Speech Bubbles
+        avatar_state: Optional["AvatarStateDTO"] = None,  # ADR-035
+        all_npcs_raw: Optional[List[Dict]] = None,  # ADR-037: Для вычисления среды
+        player_perception: Optional[
+            "PlayerPerceptionDTO"
+        ] = None,  # ТЗ EMBODIED UI PERCEPTION
+        recent_dialogues: Optional[List[Dict]] = None,  # ADR-O-313: Для Speech Bubbles
     ) -> WorldSnapshotDTO:
         """Собирает снимок из финального состояния тика.
-        
+
         Args:
-            scene_state: dict из SceneStateManager.get_scene_state()
+            scene_state: Dict[str, Any] из SceneStateManager.get_scene_state()
             tick: номер текущего тика
             last_event_id: ID последнего обработанного события (опционально)
         """
@@ -42,11 +53,15 @@ class WorldSnapshotBuilder:
             return self._empty_snapshot(tick, recent_dialogues)
 
         npc_positions = self._extract_npc_positions(scene_state)
-        
+
         # INV-DEF: Проверка инвариантов WorldSnapshot
         from app.errors import SimulationIntegrityError
+
         for npc_id, npc_data in npc_positions.items():
-            if not (getattr(npc_data, "name", None) or getattr(npc_data, "display_name", None)):
+            if not (
+                getattr(npc_data, "name", None)
+                or getattr(npc_data, "display_name", None)
+            ):
                 raise SimulationIntegrityError(
                     invariant_id="INV-NPC-NAME",
                     message=f"NPC {npc_id} не имеет поля name. Fuzzy matching ослепнет.",
@@ -54,11 +69,12 @@ class WorldSnapshotBuilder:
                         "backend/app/services/scene_state_manager.py",
                         "backend/app/services/npc/npc_loader.py",
                     ],
-                    file=__file__, line=44,
+                    file=__file__,
+                    line=44,
                 )
         visible_events = self._extract_visible_events(scene_state)
         player_pos = self._extract_player_position(scene_state)
-        self.avatar_state = avatar_state # Проброс проекции в DTO
+        self.avatar_state = avatar_state  # Проброс проекции в DTO
         location_id = scene_state.get("location_id", "")
         environment = scene_state.get("environment", {})
         version = tick
@@ -72,10 +88,12 @@ class WorldSnapshotBuilder:
             last_event_id=last_event_id,
             player_position=player_pos,
             npc_positions=npc_positions,
-            avatar_state=self.avatar_state, # ADR-035: Внедрение феноменологической проекции
-            ambient_phenomenology=ambient_phenomenology, # ADR-037: Средовое давление
-            recent_dialogues=recent_dialogues or [], # ADR-O-313: Проброс кэша реплик
-            player_perception=self._convert_perception(player_perception, tick=tick), # ТЗ EMBODIED UI: domain → API DTO конвертация
+            avatar_state=self.avatar_state,  # ADR-035: Внедрение феноменологической проекции
+            ambient_phenomenology=ambient_phenomenology,  # ADR-037: Средовое давление
+            recent_dialogues=recent_dialogues or [],  # ADR-O-313: Проброс кэша реплик
+            player_perception=self._convert_perception(
+                player_perception, tick=tick
+            ),  # ТЗ EMBODIED UI: domain → API DTO конвертация
             visible_events=visible_events,
             available_actions=self._extract_available_actions(scene_state),
             location_id=location_id,
@@ -89,15 +107,19 @@ class WorldSnapshotBuilder:
         _at = result.active_traversals
         if not isinstance(_at, dict):
             from app.errors import SimulationIntegrityError
+
             raise SimulationIntegrityError(
                 invariant_id="INV-TRAV-DICT",
-                message=(f"active_traversals имеет тип {type(_at).__name__}, ожидался dict. "
-                         f"Frontend упадёт на isinstance(traversals, list) в game_screen.py."),
+                message=(
+                    f"active_traversals имеет тип {type(_at).__name__}, ожидался dict. "
+                    f"Frontend упадёт на isinstance(traversals, list) в game_screen.py."
+                ),
                 suspect_files=[
                     "backend/app/services/integration/world_snapshot_builder.py:_extract_active_traversals",
                     "backend/app/domain/snapshot.py:WorldSnapshotDTO.active_traversals",
                 ],
-                file=__file__, line=89,
+                file=__file__,
+                line=89,
             )
 
         return result
@@ -119,7 +141,9 @@ class WorldSnapshotBuilder:
         "ATMOSPHERE_UNEASY": "Обстановка тревожная",
     }
 
-    def _convert_perception(self, domain_perception, tick: int = 0) -> Optional[PlayerPerceptionDTO]:
+    def _convert_perception(
+        self, domain_perception, tick: int = 0
+    ) -> Optional[PlayerPerceptionDTO]:
         """Конвертация domain PlayerPerceptionDTO → API PlayerPerceptionDTO.
 
         Domain DTO (embodied_trace) кладёт cue-дикты в active_perceptions.
@@ -133,57 +157,63 @@ class WorldSnapshotBuilder:
 
         # Если уже API DTO — пропускаем (isinstance не сработает при одинаковых именах,
         # проверяем по наличию поля peripheral_cues)
-        if hasattr(domain_perception, 'peripheral_cues'):
+        if hasattr(domain_perception, "peripheral_cues"):
             return domain_perception
 
         peripheral_cues = []
         active_perceptions = []
 
         # Cue-дикты с npc_id → PeripheralCueDTO (Слой 1: периферия)
-        for cue in getattr(domain_perception, 'active_perceptions', []):
+        for cue in getattr(domain_perception, "active_perceptions", []):
             if isinstance(cue, dict) and "npc_id" in cue:
                 cue_key = cue.get("cue_key", "UNKNOWN")
-                peripheral_cues.append(PeripheralCueDTO(
-                    npc_id=cue["npc_id"],
-                    cue_key=cue_key, # A3-FIX: renamed from cue_type
-                    hover_text=self._CUE_TEXT_MAP.get(cue_key, cue_key),
-                ))
+                peripheral_cues.append(
+                    PeripheralCueDTO(
+                        npc_id=cue["npc_id"],
+                        cue_key=cue_key,  # A3-FIX: renamed from cue_type
+                        hover_text=self._CUE_TEXT_MAP.get(cue_key, cue_key),
+                    )
+                )
 
         # Атмосфера → ActivePerception (Слой 2: фоновая температура)
-        atm_key = getattr(domain_perception, 'atmosphere_key', None)
-        atm_intensity = getattr(domain_perception, 'atmosphere_intensity', 0.0)
+        atm_key = getattr(domain_perception, "atmosphere_key", None)
+        atm_intensity = getattr(domain_perception, "atmosphere_intensity", 0.0)
         if atm_key:
-            active_perceptions.append(ActivePerception(
-                text=self._ATM_TEXT_MAP.get(atm_key, atm_key),
-                intensity=atm_intensity,
-                decay_rate=-0.05,
-                created_tick=tick,
-            ))
+            active_perceptions.append(
+                ActivePerception(
+                    text=self._ATM_TEXT_MAP.get(atm_key, atm_key),
+                    intensity=atm_intensity,
+                    decay_rate=-0.05,
+                    created_tick=tick,
+                )
+            )
 
         # ADR-MANIFEST: Конвертируем domain manifestations → API ManifestationDTO
         _api_manifestations = []
-        _domain_manifests = getattr(domain_perception, 'manifestations', {})
+        _domain_manifests = getattr(domain_perception, "manifestations", {})
         if _domain_manifests:
             for _nid, _tags in _domain_manifests.items():
-                _api_manifestations.append(ManifestationDTO(npc_id=_nid, tags=list(_tags)))
+                _api_manifestations.append(
+                    ManifestationDTO(npc_id=_nid, tags=list(_tags))
+                )
 
         return PlayerPerceptionDTO(
             active_perceptions=active_perceptions,
             peripheral_cues=peripheral_cues,
             manifestations=_api_manifestations,
-            embodied_traces=getattr(domain_perception, 'embodied_traces', []),
+            embodied_traces=getattr(domain_perception, "embodied_traces", []),
         )
 
-    def _extract_npc_positions(
-        self, scene_state: Dict
-    ) -> Dict[str, NPCPositionDTO]:
+    def _extract_npc_positions(self, scene_state: Dict) -> Dict[str, NPCPositionDTO]:
         """Вытаскивает позиции NPC из scene_state['npc_positions'].
         БАГ I FIX: Фильтрует NPC по текущей локации — NPC в других локациях не отрисовываются.
         A2-FIX: Возвращает Dict[str, NPCPositionDTO] напрямую, не List."""
         result: Dict[str, NPCPositionDTO] = {}
         npc_positions = scene_state.get("npc_positions", {})
         current_location = scene_state.get("location_id", "")
-        logger.info(f"[TRACE][SNAPSHOT_BUILD] npc_count={len(npc_positions)} keys={list(npc_positions.keys())[:5]} location={current_location}")
+        logger.info(
+            f"[TRACE][SNAPSHOT_BUILD] npc_count={len(npc_positions)} keys={list(npc_positions.keys())[:5]} location={current_location}"
+        )
 
         for npc_id, data in npc_positions.items():
             # ADR-048: player читается через _extract_player_position,
@@ -221,36 +251,35 @@ class WorldSnapshotBuilder:
 
         return result
 
-    def _extract_visible_events(
-        self, scene_state: Dict
-    ) -> List[VisibleEventDTO]:
+    def _extract_visible_events(self, scene_state: Dict) -> List[VisibleEventDTO]:
         """Вытаскивает видимые события.
-        
+
         TODO: когда EventDTO будет интегрирован в scene_state,
         фильтровать по visibility и радиусу от игрока.
         """
         # Пока событий в scene_state нет — пустой список
         return []
 
-    def _extract_player_position(
-        self, scene_state: Dict
-    ) -> Tuple[float, float]:
+    def _extract_player_position(self, scene_state: Dict) -> Tuple[float, float]:
         """Вытаскивает координаты игрока."""
         # ADR-048: Игрок читается из единого словаря npc_positions
         spatial = scene_state.get("npc_positions", {}).get("player", {})
         local = spatial.get("local_position", {})
         return (local.get("x", 0.0), local.get("y", 0.0))
 
-    def _extract_active_traversals(self, scene_state: Dict) -> dict:
+    def _extract_active_traversals(self, scene_state: Dict) -> Dict[str, Any]:
         """Проецирует active_traversals из scene_state для фронтенда (ADR-019, CEI-2).
         SnapshotBuilder НЕ мутирует scene_state. Только чистая проекция.
         Возвращает Dict[npc_id, traversal_data] — синхронно с scene_state форматом.
         CEI-2 FIX: сохраняет ПОЛНЫЙ path_waypoints (без 2-point collapse)."""
         traversals = scene_state.get("active_traversals", {})
         result = {}
-        
+
         for npc_id, trav in traversals.items():
-            if trav.get("status") == "MOVING" and len(trav.get("path_waypoints", [])) >= 2:
+            if (
+                trav.get("status") == "MOVING"
+                and len(trav.get("path_waypoints", [])) >= 2
+            ):
                 # CEI-2: Сохраняем ПОЛНЫЙ маршрут (intermediate nodes не теряются)
                 wp = trav.get("path_waypoints", [])
                 # Нормализация: гарантируем [[x,y], [x,y], ...]
@@ -259,8 +288,10 @@ class WorldSnapshotBuilder:
                     if isinstance(pt, (list, tuple)) and len(pt) >= 2:
                         normalized_wp.append([float(pt[0]), float(pt[1])])
                     elif isinstance(pt, dict):
-                        normalized_wp.append([float(pt.get("x", 0)), float(pt.get("y", 0))])
-                
+                        normalized_wp.append(
+                            [float(pt.get("x", 0)), float(pt.get("y", 0))]
+                        )
+
                 if len(normalized_wp) >= 2:
                     result[npc_id] = {
                         "npc_id": npc_id,
@@ -272,15 +303,17 @@ class WorldSnapshotBuilder:
                         "started_tick": trav.get("started_tick", 0),
                         "duration_ticks": trav.get("duration_ticks", 1),
                         "speed": trav.get("speed", 2.0),
-                        "locomotion": trav.get("locomotion", "WALK")
+                        "locomotion": trav.get("locomotion", "WALK"),
                     }
         return result
 
-    def _compute_ambient_phenomenology(self, all_npcs_raw: Optional[List[Dict]]) -> Optional[Dict[str, float]]:
+    def _compute_ambient_phenomenology(
+        self, all_npcs_raw: Optional[List[Dict]]
+    ) -> Optional[Dict[str, float]]:
         """Вычисляет феноменологическое давление среды на основе стресса и страха NPC (ADR-037)."""
         if not all_npcs_raw:
             return None
-            
+
         total_stress, total_fear, count = 0.0, 0.0, 0
         for npc in all_npcs_raw:
             if npc.get("npc_id") == "player":
@@ -289,33 +322,36 @@ class WorldSnapshotBuilder:
             total_stress += float(psyche.get("stress", 0.0))
             total_fear += float(psyche.get("fear", 0.0))
             count += 1
-            
+
         if count == 0:
             return None
-            
+
         # Эмоциональная температура: от -1 (ледяное спокойствие) до 1 (паника/агрессия)
         avg_neg_emotion = (total_stress + total_fear) / (2 * count)
-        emotional_temperature = (avg_neg_emotion * 2) - 1.0 
-        
+        emotional_temperature = (avg_neg_emotion * 2) - 1.0
+
         # Давление скопления: количество NPC нормализованное
-        proximity_compression = min(1.0, count / 5.0) # 5 NPC = максимальное давление
-        
+        proximity_compression = min(1.0, count / 5.0)  # 5 NPC = максимальное давление
+
         return {
             "emotional_temperature": max(-1.0, min(1.0, emotional_temperature)),
             "proximity_compression": proximity_compression,
-            "directional_pressure_bias": [0.0, 0.0] # Заглушка: вычисление вектора требует координат
+            "directional_pressure_bias": [
+                0.0,
+                0.0,
+            ],  # Заглушка: вычисление вектора требует координат
         }
 
-    def _extract_available_actions(
-        self, scene_state: Dict
-    ) -> List[str]:
+    def _extract_available_actions(self, scene_state: Dict) -> List[str]:
         """Доступные действия на основе контекста.
-        
+
         TODO: вычислять из ближайших объектов, NPC, инвентаря.
         """
         return ["look", "move", "talk"]
 
-    def _empty_snapshot(self, tick: int, recent_dialogues: Optional[List[Dict]] = None) -> WorldSnapshotDTO:
+    def _empty_snapshot(
+        self, tick: int, recent_dialogues: Optional[List[Dict]] = None
+    ) -> WorldSnapshotDTO:
         """Пустой снимок когда scene_state не загружен."""
         return WorldSnapshotDTO(
             tick=tick,
@@ -330,5 +366,5 @@ class WorldSnapshotBuilder:
             weather="unknown",
             time_of_day="day",
             game_time_seconds=0,
-            recent_dialogues=recent_dialogues or [], # ADR-O-313: Проброс кэша реплик
+            recent_dialogues=recent_dialogues or [],  # ADR-O-313: Проброс кэша реплик
         )

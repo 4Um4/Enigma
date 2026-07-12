@@ -1,3 +1,4 @@
+from __future__ import annotations
 # backend/app/services/action/dm_orchestrator.py
 """
 path: backend/app/services/action/dm_orchestrator.py
@@ -6,7 +7,6 @@ path: backend/app/services/action/dm_orchestrator.py
 Основные сущности: DMOrchestrator, DMResult
 """
 
-from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Dict, List, Optional
@@ -23,27 +23,29 @@ class DMResult:
     """
     Полный результат работы DM (этапы 1-2-3).
     """
+
     is_valid: bool
     event_context: Optional[EventContext] = None
     scene_context: Optional[SceneContext] = None
     error: Optional[str] = None
-    
+
+
 class DMOrchestrator:
     """
     Фасад DM System.
-    
+
     Объединяет:
       - Router (этап 1): классификация действия
       - Scene Builder (этап 2): контекст сцены
       - Validator (этап 3): проверка возможности
-    
+
     DM = координатор, не принимает решений за NPC.
     """
-    
+
     def __init__(self) -> None:
         self._router = DMRouter()
         self._scene_builder = DMSceneBuilder()
-    
+
     def classify_action(self, raw_input: str) -> str:
         """Быстрая классификация действия (0 мс, чистый Python). Для SSE pre-response."""
         if not raw_input or not raw_input.strip():
@@ -61,7 +63,7 @@ class DMOrchestrator:
     ) -> DMResult:
         """
         Полный pipeline DM: Router → Scene Builder → Validator.
-        
+
         Возвращает DMResult с EventContext, готовым для DecisionHub.
         """
         # --- Этап 1: Router (классификация + базовая валидация) ---
@@ -74,13 +76,13 @@ class DMOrchestrator:
             location=spatial_data.get("location_id", "unknown"),
             current_tick=current_tick,
         )
-        
+
         if not router_result.is_valid:
             return DMResult(
                 is_valid=False,
-                error=f"Router: {router_result.error.value} — {router_result.error_details}"
+                error=f"Router: {router_result.error.value} — {router_result.error_details}",
             )
-        
+
         # --- Этап 2: Scene Builder (RawEvent + Spatial → EventContext) ---
         # SceneBuilder теперь получает ЧИСТЫЕ факты текста и добавляет реальность мира
         scene_ctx = self._scene_builder.build_scene_context(
@@ -88,23 +90,29 @@ class DMOrchestrator:
             spatial_data=spatial_data,
             raw_event=router_result.raw_event,
         )
-        
+
         # SceneBuilder формирует полноценный EventContext (с witness_count, distance и т.д.)
         enriched_event = self._scene_builder.enrich_raw_event(
             raw_event=router_result.raw_event,
             scene_context=scene_ctx,
         )
-        
+
         # --- Этап 3: Дополнительная валидация (Scene-based) ---
         # Проверка: цель NPC реально видит игрока?
         # ADR-O-112: Физический контакт отменяет LOS — если игрока бьют, он "видит" атакующего
-        _is_physical_contact = router_result.raw_event and getattr(router_result.raw_event, 'event_type', '') in ("player_attacks", "combat")
-        if target_npc_id and target_npc_id not in scene_ctx.line_of_sight and not _is_physical_contact:
+        _is_physical_contact = router_result.raw_event and getattr(
+            router_result.raw_event, "event_type", ""
+        ) in ("player_attacks", "combat")
+        if (
+            target_npc_id
+            and target_npc_id not in scene_ctx.line_of_sight
+            and not _is_physical_contact
+        ):
             return DMResult(
                 is_valid=False,
-                error=f"Validator: NPC '{target_npc_id}' не видит игрока — действие невозможно"
+                error=f"Validator: NPC '{target_npc_id}' не видит игрока — действие невозможно",
             )
-        
+
         return DMResult(
             is_valid=True,
             event_context=enriched_event,

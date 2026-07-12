@@ -1,3 +1,4 @@
+from __future__ import annotations
 # backend/app/services/npc/math_utils.py
 """
 R3.1 — Математические утилиты для NPC-систем.
@@ -22,22 +23,21 @@ TODO:
 Основные сущности: apply_saturation, normalize_to_unit
 """
 
-from __future__ import annotations
 
 import math
-from typing import Literal
+from typing import List, Dict, Any, Literal
 
 
 CurveType = Literal["soft", "sigmoid"]
 
 
 def apply_saturation(
-    current:   float,
-    delta:     float,
-    min_val:   float = 0.0,
-    max_val:   float = 100.0,
-    floor:     float = 0.1,
-    curve:     CurveType = "soft",
+    current: float,
+    delta: float,
+    min_val: float = 0.0,
+    max_val: float = 100.0,
+    floor: float = 0.1,
+    curve: CurveType = "soft",
     intensity: float = 1.0,
 ) -> tuple[float, float]:
     """

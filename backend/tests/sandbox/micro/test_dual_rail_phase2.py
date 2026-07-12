@@ -10,31 +10,34 @@
 
 Запуск: python -m pytest backend/tests/sandbox/micro/test_dual_rail_phase2.py -v --tb=short
 """
-import copy
-import pytest
-import logging
 
-from app.models.spatial_contracts import NodeRef, NodeRole, SpatialOverlay
-from app.models.world_snapshot import build_snapshot, WorldSnapshot
-from app.models.thick_scene_change import (
-    ThickSceneChange, SpatialResolution, BoundaryResolution, TraversalContract,
-)
-from app.services.scene_change import SceneChange, ChangeType
-from app.services.event_compiler import EventCompiler
-from app.services.equivalence_validator import (
-    EquivalenceValidator, DriftClass, DriftLevel, DriftReport,
-)
-from app.services.spatial.spatial_service import SpatialService
+import logging
 from uuid import uuid4
 
+from app.models.spatial_contracts import NodeRef, NodeRole, SpatialOverlay
+from app.models.thick_scene_change import (
+    TraversalContract,
+)
+from app.models.world_snapshot import build_snapshot
+from app.services.equivalence_validator import (
+    DriftClass,
+    DriftLevel,
+    DriftReport,
+    EquivalenceValidator,
+)
+from app.services.spatial.spatial_service import SpatialService
 
 # ── Фикстуры ──────────────────────────────────────────────────────
 
-def _make_node(node_id: str, role: NodeRole, x: float, y: float,
-               zone_id: str = "tavern", tags: list = None) -> NodeRef:
+
+def _make_node(node_id: str, role: NodeRole, x: float, y: float, zone_id: str = "tavern", tags: list = None) -> NodeRef:
     return NodeRef(
-        node_id=node_id, role=role, x=x, y=y,
-        zone_id=zone_id, tags=tags or [],
+        node_id=node_id,
+        role=role,
+        x=x,
+        y=y,
+        zone_id=zone_id,
+        tags=tags or [],
     )
 
 
@@ -55,7 +58,10 @@ def _make_test_spatial_service(with_boundary: bool = False):
     boundary_map = {}
     if with_boundary:
         graph["tavern:exit_east"] = _make_node(
-            "tavern:exit_east", NodeRole.BOUNDARY, 40.0, 10.0,
+            "tavern:exit_east",
+            NodeRole.BOUNDARY,
+            40.0,
+            10.0,
             tags=["boundary:exit", "direction:east", "neighbor:city_gate", "entry_direction:west"],
         )
         connections["tavern:main_hall"].append("tavern:exit_east")
@@ -66,12 +72,10 @@ def _make_test_spatial_service(with_boundary: bool = False):
             "entry_direction": "west",
         }
     overlay = SpatialOverlay()
-    return SpatialService(graph, connections, alias_map, overlay,
-                          location_id="tavern", boundary_map=boundary_map)
+    return SpatialService(graph, connections, alias_map, overlay, location_id="tavern", boundary_map=boundary_map)
 
 
-def _make_scene_state(with_traversal: bool = False,
-                      location_id: str = "tavern") -> dict:
+def _make_scene_state(with_traversal: bool = False, location_id: str = "tavern") -> dict:
     """Минимальный scene_state для тестов ФАЗЫ 2."""
     _traversals = {}
     if with_traversal:
@@ -123,6 +127,7 @@ def _make_snapshot(svc=None, scene_state=None):
 # ФАЗА 2: Boundary Drift Detection
 # ══════════════════════════════════════════════════════════════════
 
+
 class TestBoundaryDriftDetection:
     """Верифицирует: boundary drift = Class D (Causal)."""
 
@@ -133,8 +138,11 @@ class TestBoundaryDriftDetection:
     def test_boundary_agreement_both_boundary(self):
         """Оба pipeline согласны: boundary → нет drift."""
         drifts = self.validator.validate_boundary(
-            snapshot_id=self.snapshot_id, tick=100, npc_id="npc_1",
-            legacy_is_boundary=True, shadow_is_boundary=True,
+            snapshot_id=self.snapshot_id,
+            tick=100,
+            npc_id="npc_1",
+            legacy_is_boundary=True,
+            shadow_is_boundary=True,
             legacy_target_location="city_gate",
             shadow_target_location="city_gate",
         )
@@ -143,8 +151,11 @@ class TestBoundaryDriftDetection:
     def test_boundary_agreement_both_non_boundary(self):
         """Оба pipeline согласны: не boundary → нет drift."""
         drifts = self.validator.validate_boundary(
-            snapshot_id=self.snapshot_id, tick=100, npc_id="npc_1",
-            legacy_is_boundary=False, shadow_is_boundary=False,
+            snapshot_id=self.snapshot_id,
+            tick=100,
+            npc_id="npc_1",
+            legacy_is_boundary=False,
+            shadow_is_boundary=False,
             legacy_target_location="tavern",
             shadow_target_location="tavern",
         )
@@ -153,8 +164,11 @@ class TestBoundaryDriftDetection:
     def test_causal_drift_legacy_boundary_shadow_not(self):
         """Legacy пересёк boundary, shadow — нет → Class D Causal drift."""
         drifts = self.validator.validate_boundary(
-            snapshot_id=self.snapshot_id, tick=100, npc_id="npc_1",
-            legacy_is_boundary=True, shadow_is_boundary=False,
+            snapshot_id=self.snapshot_id,
+            tick=100,
+            npc_id="npc_1",
+            legacy_is_boundary=True,
+            shadow_is_boundary=False,
             legacy_target_location="city_gate",
             shadow_target_location="",
         )
@@ -165,8 +179,11 @@ class TestBoundaryDriftDetection:
     def test_causal_drift_shadow_boundary_legacy_not(self):
         """Shadow пересёк boundary, legacy — нет → Class D Causal drift."""
         drifts = self.validator.validate_boundary(
-            snapshot_id=self.snapshot_id, tick=100, npc_id="npc_1",
-            legacy_is_boundary=False, shadow_is_boundary=True,
+            snapshot_id=self.snapshot_id,
+            tick=100,
+            npc_id="npc_1",
+            legacy_is_boundary=False,
+            shadow_is_boundary=True,
             legacy_target_location="",
             shadow_target_location="city_gate",
         )
@@ -176,8 +193,11 @@ class TestBoundaryDriftDetection:
     def test_topological_drift_different_target_location(self):
         """Оба boundary, но разные target locations → Class C Topological drift."""
         drifts = self.validator.validate_boundary(
-            snapshot_id=self.snapshot_id, tick=100, npc_id="npc_1",
-            legacy_is_boundary=True, shadow_is_boundary=True,
+            snapshot_id=self.snapshot_id,
+            tick=100,
+            npc_id="npc_1",
+            legacy_is_boundary=True,
+            shadow_is_boundary=True,
             legacy_target_location="city_gate",
             shadow_target_location="market_square",
         )
@@ -190,6 +210,7 @@ class TestBoundaryDriftDetection:
 # ФАЗА 2: Traversal Drift Detection
 # ══════════════════════════════════════════════════════════════════
 
+
 class TestTraversalDriftDetection:
     """Верифицирует: traversal drift обнаруживается на 3 уровнях."""
 
@@ -200,8 +221,11 @@ class TestTraversalDriftDetection:
     def test_no_drift_both_no_traversal(self):
         """Оба без traversal → нет drift."""
         drifts = self.validator.validate_traversal(
-            snapshot_id=self.snapshot_id, tick=100, npc_id="npc_1",
-            legacy_traversal=None, shadow_traversal=None,
+            snapshot_id=self.snapshot_id,
+            tick=100,
+            npc_id="npc_1",
+            legacy_traversal=None,
+            shadow_traversal=None,
         )
         assert len(drifts) == 0
 
@@ -210,8 +234,11 @@ class TestTraversalDriftDetection:
         _legacy = {"status": "MOVING", "target_node": "tavern:kitchen", "duration_ticks": 12}
         _shadow = TraversalContract(status="NEW", fields={"target_node": "tavern:kitchen", "duration_ticks": 12})
         drifts = self.validator.validate_traversal(
-            snapshot_id=self.snapshot_id, tick=100, npc_id="npc_1",
-            legacy_traversal=_legacy, shadow_traversal=_shadow,
+            snapshot_id=self.snapshot_id,
+            tick=100,
+            npc_id="npc_1",
+            legacy_traversal=_legacy,
+            shadow_traversal=_shadow,
         )
         # Не должно быть CAUSAL drift (MOVING ≈ NEW)
         _causal = [d for d in drifts if d.drift_class == DriftClass.CAUSAL and d.field == "traversal_status"]
@@ -221,8 +248,11 @@ class TestTraversalDriftDetection:
         """Legacy создал traversal, shadow — нет → Class D."""
         _legacy = {"status": "MOVING", "target_node": "tavern:kitchen"}
         drifts = self.validator.validate_traversal(
-            snapshot_id=self.snapshot_id, tick=100, npc_id="npc_1",
-            legacy_traversal=_legacy, shadow_traversal=None,
+            snapshot_id=self.snapshot_id,
+            tick=100,
+            npc_id="npc_1",
+            legacy_traversal=_legacy,
+            shadow_traversal=None,
         )
         assert len(drifts) >= 1
         _causal = [d for d in drifts if d.drift_class == DriftClass.CAUSAL and d.field == "traversal_exists"]
@@ -232,8 +262,11 @@ class TestTraversalDriftDetection:
         """Shadow создал traversal, legacy — нет → Class D."""
         _shadow = TraversalContract(status="NEW", fields={"target_node": "tavern:kitchen"})
         drifts = self.validator.validate_traversal(
-            snapshot_id=self.snapshot_id, tick=100, npc_id="npc_1",
-            legacy_traversal=None, shadow_traversal=_shadow,
+            snapshot_id=self.snapshot_id,
+            tick=100,
+            npc_id="npc_1",
+            legacy_traversal=None,
+            shadow_traversal=_shadow,
         )
         assert len(drifts) >= 1
         _causal = [d for d in drifts if d.drift_class == DriftClass.CAUSAL and d.field == "traversal_exists"]
@@ -244,8 +277,11 @@ class TestTraversalDriftDetection:
         _legacy = {"status": "MOVING", "target_node": "tavern:kitchen", "duration_ticks": 12}
         _shadow = TraversalContract(status="NEW", fields={"target_node": "tavern:cellar", "duration_ticks": 12})
         drifts = self.validator.validate_traversal(
-            snapshot_id=self.snapshot_id, tick=100, npc_id="npc_1",
-            legacy_traversal=_legacy, shadow_traversal=_shadow,
+            snapshot_id=self.snapshot_id,
+            tick=100,
+            npc_id="npc_1",
+            legacy_traversal=_legacy,
+            shadow_traversal=_shadow,
         )
         _topo = [d for d in drifts if d.drift_class == DriftClass.TOPOLOGICAL]
         assert len(_topo) >= 1
@@ -256,8 +292,11 @@ class TestTraversalDriftDetection:
         _legacy = {"status": "MOVING", "target_node": "tavern:kitchen", "duration_ticks": 12}
         _shadow = TraversalContract(status="NEW", fields={"target_node": "tavern:kitchen", "duration_ticks": 8})
         drifts = self.validator.validate_traversal(
-            snapshot_id=self.snapshot_id, tick=100, npc_id="npc_1",
-            legacy_traversal=_legacy, shadow_traversal=_shadow,
+            snapshot_id=self.snapshot_id,
+            tick=100,
+            npc_id="npc_1",
+            legacy_traversal=_legacy,
+            shadow_traversal=_shadow,
         )
         _proj = [d for d in drifts if d.drift_class == DriftClass.PROJECTION]
         assert len(_proj) >= 1
@@ -268,8 +307,11 @@ class TestTraversalDriftDetection:
         _legacy = {"status": "COMPLETED", "target_node": "tavern:kitchen"}
         _shadow = TraversalContract(status="COMPLETED", fields={"target_node": "tavern:kitchen"})
         drifts = self.validator.validate_traversal(
-            snapshot_id=self.snapshot_id, tick=100, npc_id="npc_1",
-            legacy_traversal=_legacy, shadow_traversal=_shadow,
+            snapshot_id=self.snapshot_id,
+            tick=100,
+            npc_id="npc_1",
+            legacy_traversal=_legacy,
+            shadow_traversal=_shadow,
         )
         _causal_status = [d for d in drifts if d.drift_class == DriftClass.CAUSAL and d.field == "traversal_status"]
         assert len(_causal_status) == 0
@@ -278,6 +320,7 @@ class TestTraversalDriftDetection:
 # ══════════════════════════════════════════════════════════════════
 # ФАЗА 2: DEPRECATION Layer
 # ══════════════════════════════════════════════════════════════════
+
 
 class TestDeprecationLayer:
     """Верифицирует: DEPRECATION warnings привязаны к drift классам."""
@@ -290,7 +333,9 @@ class TestDeprecationLayer:
         """Class C drift логируется с DEPRECATION маркером."""
         drifts = [
             DriftReport(
-                snapshot_id=self.snapshot_id, tick=100, npc_id="npc_1",
+                snapshot_id=self.snapshot_id,
+                tick=100,
+                npc_id="npc_1",
                 drift_class=DriftClass.TOPOLOGICAL,
                 drift_level=DriftLevel.TOPOLOGY,
                 field="position",
@@ -309,7 +354,9 @@ class TestDeprecationLayer:
         """Class D drift логируется с DEPRECATION маркером."""
         drifts = [
             DriftReport(
-                snapshot_id=self.snapshot_id, tick=100, npc_id="npc_1",
+                snapshot_id=self.snapshot_id,
+                tick=100,
+                npc_id="npc_1",
                 drift_class=DriftClass.CAUSAL,
                 drift_level=DriftLevel.CAUSALITY,
                 field="traversal_exists",
@@ -328,7 +375,9 @@ class TestDeprecationLayer:
         """Class A drift логируется БЕЗ DEPRECATION (ожидаемый)."""
         drifts = [
             DriftReport(
-                snapshot_id=self.snapshot_id, tick=100, npc_id="npc_1",
+                snapshot_id=self.snapshot_id,
+                tick=100,
+                npc_id="npc_1",
                 drift_class=DriftClass.COSMETIC,
                 drift_level=DriftLevel.PRESENTATION,
                 field="local_position",
@@ -347,6 +396,7 @@ class TestDeprecationLayer:
 # ФАЗА 2: Phase 3 Readiness Indicator
 # ══════════════════════════════════════════════════════════════════
 
+
 class TestPhase3Readiness:
     """Верифицирует: критерий переключения ФАЗА 2→3."""
 
@@ -358,9 +408,9 @@ class TestPhase3Readiness:
             "total_comparisons": 100000,
             "drift_A": 500,  # cosmetic — ожидаемый
             "drift_B": 200,  # projection — ожидаемый
-            "drift_C": 0,    # topological — 0
-            "drift_D": 0,    # causal — 0
-            "drift_E": 0,    # ontological — 0
+            "drift_C": 0,  # topological — 0
+            "drift_D": 0,  # causal — 0
+            "drift_E": 0,  # ontological — 0
         }
         _structural = _stats["drift_C"] + _stats["drift_D"] + _stats["drift_E"]
         _total = _stats["total_comparisons"]
@@ -374,7 +424,7 @@ class TestPhase3Readiness:
             "drift_A": 500,
             "drift_B": 200,
             "drift_C": 0,
-            "drift_D": 1,   # есть causal drift!
+            "drift_D": 1,  # есть causal drift!
             "drift_E": 0,
         }
         _structural = _stats["drift_C"] + _stats["drift_D"] + _stats["drift_E"]

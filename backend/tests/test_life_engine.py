@@ -6,22 +6,23 @@ backend/tests/test_life_engine.py
 Запуск: pytest backend/tests/test_life_engine.py -v
 """
 
-import pytest
 import json
+
+import pytest
 
 # ── Импорт тестируемого модуля ───────────────────────────────────────────────
 from app.services.npc.life_engine import (
     LifeEngine,
-    _time_to_minutes,
     _in_time_range,
     _parse_game_time,
+    _time_to_minutes,
 )
 from app.services.scene_change import ChangeType
-
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Фикстуры
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 @pytest.fixture
 def tmp_data_dir(tmp_path):
@@ -114,6 +115,7 @@ def scene_state_night():
 # Тесты утилит времени
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 class TestTimeUtils:
     def test_time_to_minutes_normal(self):
         assert _time_to_minutes("12:00") == 720
@@ -156,6 +158,7 @@ class TestTimeUtils:
 # Тесты update_routine
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 class TestUpdateRoutine:
     def test_no_changes_if_activity_same(self, engine):
         """Если активность не изменилась — SceneChange не генерируем."""
@@ -191,65 +194,65 @@ class TestUpdateRoutine:
         assert ChangeType.NPC_POSITION in types, "Должна быть NPC_POSITION"
 
     def test_tornin_sleeps_at_night(self, engine):
-          """Торнин уходит спать в 22:00 — проверяем смену активности."""
-          npc = {
-              "id": "tavern_keeper_tornin",
-              "location": "tavern_silver_wolf",
-              "routine": {
-                  "current": "working",
-                  "schedule": {"06:00-22:00": "working", "22:00-06:00": "sleeping"},
-              },
-              "psyche": {"stress": 0},
-              # ADR-049: Явная инициализация когнитивного слоя для детерминизма
-              "perceptual_kernel": {"threat_gradient": 0.0, "uncertainty": 0.0, "anomaly_score": 0.0},
-              "activity_map": {
-                  "sleeping": {"location": "inn_rooms", "position": "bed", "display": "sleeping"},
-              },
-          }
-          changes, _intent = engine.update_routine(npc, "23:00", tick=10)
-  
-          # Найдём изменение видимости
-          visible_changes = [c for c in changes if c.field == "visible"]
-          assert visible_changes, "Должно быть изменение visible"
-          # Ночью Торнин скрыт из основной сцены
-          assert visible_changes[0].value is False, "Спящий NPC должен быть visible=False"
-  
-          # ADR-049: Смена локации теперь транзит (MovementIntent), а не прямой SceneChange.
-          # LifeEngine генерирует Intent, а MovementEngine резолвит его в пространстве.
-          assert _intent is not None, "Должен быть сгенерирован MovementIntent для сна"
-          assert _intent.location_id == "inn_rooms", "Торнин должен идти в inn_rooms"
-          assert _intent.target_node_id == "bed", "Торнин должен идти к кровати"
-  
-          # Данные NPC обновились (только активность, не пространственная мутация)
-          assert npc["routine"]["current"] == "sleeping"
-          # Удалено: assert npc["location"] == "inn_rooms" (Прямая мутация запрещена ADR-049)
+        """Торнин уходит спать в 22:00 — проверяем смену активности."""
+        npc = {
+            "id": "tavern_keeper_tornin",
+            "location": "tavern_silver_wolf",
+            "routine": {
+                "current": "working",
+                "schedule": {"06:00-22:00": "working", "22:00-06:00": "sleeping"},
+            },
+            "psyche": {"stress": 0},
+            # ADR-049: Явная инициализация когнитивного слоя для детерминизма
+            "perceptual_kernel": {"threat_gradient": 0.0, "uncertainty": 0.0, "anomaly_score": 0.0},
+            "activity_map": {
+                "sleeping": {"location": "inn_rooms", "position": "bed", "display": "sleeping"},
+            },
+        }
+        changes, _intent = engine.update_routine(npc, "23:00", tick=10)
+
+        # Найдём изменение видимости
+        visible_changes = [c for c in changes if c.field == "visible"]
+        assert visible_changes, "Должно быть изменение visible"
+        # Ночью Торнин скрыт из основной сцены
+        assert visible_changes[0].value is False, "Спящий NPC должен быть visible=False"
+
+        # ADR-049: Смена локации теперь транзит (MovementIntent), а не прямой SceneChange.
+        # LifeEngine генерирует Intent, а MovementEngine резолвит его в пространстве.
+        assert _intent is not None, "Должен быть сгенерирован MovementIntent для сна"
+        assert _intent.location_id == "inn_rooms", "Торнин должен идти в inn_rooms"
+        assert _intent.target_node_id == "bed", "Торнин должен идти к кровати"
+
+        # Данные NPC обновились (только активность, не пространственная мутация)
+        assert npc["routine"]["current"] == "sleeping"
+        # Удалено: assert npc["location"] == "inn_rooms" (Прямая мутация запрещена ADR-049)
 
     def test_tornin_wakes_up_morning(self, engine):
-          """Торнин выходит работать с утра."""
-          npc = {
-              "id": "tavern_keeper_tornin",
-              "location": "inn_rooms",
-              "routine": {
-                  "current": "sleeping",
-                  "schedule": {"06:00-22:00": "working", "22:00-06:00": "sleeping"},
-              },
-              "psyche": {"stress": 0},
-              # ADR-049: Явная инициализация когнитивного слоя для детерминизма
-              "perceptual_kernel": {"threat_gradient": 0.0, "uncertainty": 0.0, "anomaly_score": 0.0},
-              "activity_map": {
-                  "working": {"location": "tavern_silver_wolf", "position": "behind_bar", "display": "working"},
-              },
-          }
-          changes, _intent = engine.update_routine(npc, "08:00", tick=20)
-          assert len(changes) > 0, "Должны быть SceneChange при пробуждении"
-  
-          # Должен стать visible
-          visible_changes = [c for c in changes if c.field == "visible"]
-          assert any(c.value is True for c in visible_changes), "Должен быть visible=True"
-  
-          # ADR-049: Смена локации теперь транзит (MovementIntent), а не прямая мутация.
-          assert _intent is not None, "Должен быть сгенерирован MovementIntent для работы"
-          assert _intent.location_id == "tavern_silver_wolf", "Торнин должен идти в tavern_silver_wolf"
+        """Торнин выходит работать с утра."""
+        npc = {
+            "id": "tavern_keeper_tornin",
+            "location": "inn_rooms",
+            "routine": {
+                "current": "sleeping",
+                "schedule": {"06:00-22:00": "working", "22:00-06:00": "sleeping"},
+            },
+            "psyche": {"stress": 0},
+            # ADR-049: Явная инициализация когнитивного слоя для детерминизма
+            "perceptual_kernel": {"threat_gradient": 0.0, "uncertainty": 0.0, "anomaly_score": 0.0},
+            "activity_map": {
+                "working": {"location": "tavern_silver_wolf", "position": "behind_bar", "display": "working"},
+            },
+        }
+        changes, _intent = engine.update_routine(npc, "08:00", tick=20)
+        assert len(changes) > 0, "Должны быть SceneChange при пробуждении"
+
+        # Должен стать visible
+        visible_changes = [c for c in changes if c.field == "visible"]
+        assert any(c.value is True for c in visible_changes), "Должен быть visible=True"
+
+        # ADR-049: Смена локации теперь транзит (MovementIntent), а не прямая мутация.
+        assert _intent is not None, "Должен быть сгенерирован MovementIntent для работы"
+        assert _intent.location_id == "tavern_silver_wolf", "Торнин должен идти в tavern_silver_wolf"
 
     def test_no_schedule_npc(self, engine):
         """NPC без расписания — ничего не делаем."""
@@ -266,6 +269,7 @@ class TestUpdateRoutine:
 # ──────────────────────────────────────────────────────────────────────────────
 # Тесты recover_stress_tick
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 class TestRecoverStress:
     def test_stress_reduces_while_awake(self, engine):
@@ -309,19 +313,20 @@ class TestRecoverStress:
 # Тесты tick()
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 class TestTick:
     def test_tick_returns_list(self, engine, scene_state_day):
-          """tick() возвращает кортеж (изменения, интенты)."""
-          result = engine.tick("demo-campaign", scene_state_day)
-          # ADR-049: tick() теперь возвращает tuple(list[SceneChange], list[MovementIntent])
-          assert isinstance(result, tuple), "tick() должен возвращать кортеж"
-          changes, intents = result
-          
-          # Если изменения сгруппированы по NPC (список списков), выравниваем
-          if changes and isinstance(changes[0], list):
-              changes = [c for sublist in changes for c in sublist]
-              
-          assert isinstance(changes, list), "Изменения должны быть списком SceneChange"
+        """tick() возвращает кортеж (изменения, интенты)."""
+        result = engine.tick("demo-campaign", scene_state_day)
+        # ADR-049: tick() теперь возвращает tuple(list[SceneChange], list[MovementIntent])
+        assert isinstance(result, tuple), "tick() должен возвращать кортеж"
+        changes, intents = result
+
+        # Если изменения сгруппированы по NPC (список списков), выравниваем
+        if changes and isinstance(changes[0], list):
+            changes = [c for sublist in changes for c in sublist]
+
+        assert isinstance(changes, list), "Изменения должны быть списком SceneChange"
 
     def test_tick_increments_counter(self, engine, scene_state_day):
         """Каждый вызов tick() инкрементирует счётчик."""
@@ -343,7 +348,7 @@ class TestTick:
 
         # Тик в 23:00
         result = engine.tick("demo-campaign", scene_state_night)
-        # ADR-049: tick() возвращает (list[list[SceneChange]], list[MovementIntent]). 
+        # ADR-049: tick() возвращает (list[list[SceneChange]], list[MovementIntent]).
         # Требуется распаковка и выравнивание.
         raw_changes = result[0] if isinstance(result, tuple) else result
         changes = []
@@ -353,7 +358,7 @@ class TestTick:
             else:
                 changes.append(item)
         # Фильтруем только SceneChange (отсекаем MovementIntent)
-        changes = [c for c in changes if hasattr(c, 'target')]
+        changes = [c for c in changes if hasattr(c, "target")]
 
         # Должны быть SceneChange для Торнина
         tornin_changes = [c for c in changes if c.target == "tavern_keeper_tornin"]
@@ -361,8 +366,7 @@ class TestTick:
 
         # Проверяем что есть смена активности на sleeping
         activity_changes = [c for c in tornin_changes if c.field == "activity"]
-        assert any("sleeping" in str(c.value) for c in activity_changes), \
-            "Торнин должен перейти к sleeping"
+        assert any("sleeping" in str(c.value) for c in activity_changes), "Торнин должен перейти к sleeping"
 
     def test_tick_cause_is_life_engine(self, engine, scene_state_night):
         """Все SceneChange от LifeEngine имеют cause='life_engine_schedule'."""
@@ -379,8 +383,8 @@ class TestTick:
                 changes.extend(item)
             else:
                 changes.append(item)
-        changes = [c for c in changes if hasattr(c, 'cause')]
-        
+        changes = [c for c in changes if hasattr(c, "cause")]
+
         schedule_changes = [c for c in changes if c.cause == "life_engine_schedule"]
         # Если были изменения по расписанию — все от life_engine
         if schedule_changes:
@@ -391,9 +395,7 @@ class TestTick:
         engine.tick("demo-campaign", scene_state_night)
         engine.save_npcs("demo-campaign")
 
-        saved = json.loads(
-            (tmp_data_dir / "npcs" / "major_npcs.json").read_text(encoding="utf-8")
-        )
+        saved = json.loads((tmp_data_dir / "npcs" / "major_npcs.json").read_text(encoding="utf-8"))
         assert isinstance(saved, list)
         assert len(saved) > 0
 
@@ -401,6 +403,7 @@ class TestTick:
 # ──────────────────────────────────────────────────────────────────────────────
 # Тесты get_activity_description
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 class TestActivityDescription:
     def test_known_activity(self, engine):
@@ -425,6 +428,7 @@ class TestActivityDescription:
 # Интеграционный тест: сценарий "Торнин ушёл спать"
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 class TestIntegration:
     def test_tornin_absent_after_22(self, engine):
         """
@@ -441,9 +445,7 @@ class TestIntegration:
 
         scene_night = {
             "environment": {"time_of_day": "23:00"},
-            "npc_positions": {
-                "tavern_keeper_tornin": {"position": "behind_bar", "visible": True}
-            },
+            "npc_positions": {"tavern_keeper_tornin": {"position": "behind_bar", "visible": True}},
         }
 
         result = engine.tick("demo-campaign", scene_night)
@@ -454,12 +456,10 @@ class TestIntegration:
                 changes.extend(item)
             else:
                 changes.append(item)
-        changes = [c for c in changes if hasattr(c, 'target')]
-        tornin_visible = [
-            c for c in changes
-            if c.target == "tavern_keeper_tornin" and c.field == "visible"
-        ]
+        changes = [c for c in changes if hasattr(c, "target")]
+        tornin_visible = [c for c in changes if c.target == "tavern_keeper_tornin" and c.field == "visible"]
 
         # Торнин должен стать invisible (ушёл спать)
-        assert any(c.value is False for c in tornin_visible), \
+        assert any(c.value is False for c in tornin_visible), (
             "После 22:00 Торнин должен быть visible=False в основной локации"
+        )

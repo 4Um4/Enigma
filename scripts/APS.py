@@ -22,14 +22,23 @@ print(f"[SCAN ROOT] {ROOT.resolve()}")
 # -----------------------------
 
 NOISE_ROOTS = {
-    "time", "pathlib", "logging", "subprocess",
-    "contextlib", "atexit", "urllib", "asyncio",
-    "os", "json", "ast"
+    "time",
+    "pathlib",
+    "logging",
+    "subprocess",
+    "contextlib",
+    "atexit",
+    "urllib",
+    "asyncio",
+    "os",
+    "json",
+    "ast",
 }
 
 FRAMEWORK_MAP = {
     "fastapi": "FASTAPI_CORE",
 }
+
 
 def normalize_import(name: str):
     root = name.split(".")[0]
@@ -53,6 +62,7 @@ def normalize_import(name: str):
 # -----------------------------
 # 2. ПАРСИНГ
 # -----------------------------
+
 
 def safe_parse(file_path):
     try:
@@ -83,7 +93,7 @@ for file_path in ROOT.rglob("*.py"):
     module = str(file_path.with_suffix("")).replace("\\", ".").replace("/", ".")
     # Убираем префикс "backend." — normalize_import использует "app.*"
     if module.startswith("backend."):
-        module = module[len("backend."):]
+        module = module[len("backend.") :]
 
     raw_imports = set()
 
@@ -115,7 +125,7 @@ for node, data in graph.items():
         "imported_by": sorted(list(data["imported_by"])),
         "fan_out": len(data["imports"]),
         "fan_in": len(data["imported_by"]),
-        "bottleneck_score": len(data["imports"]) * len(data["imported_by"])
+        "bottleneck_score": len(data["imports"]) * len(data["imported_by"]),
     }
 
 # -----------------------------
@@ -127,10 +137,8 @@ stats = {
     "skipped_files": skipped,
     "nodes": len(compressed_graph),
     "top_bottlenecks": sorted(
-        compressed_graph.items(),
-        key=lambda x: x[1]["bottleneck_score"],
-        reverse=True
-    )[:10]
+        compressed_graph.items(), key=lambda x: x[1]["bottleneck_score"], reverse=True
+    )[:10],
 }
 
 # -----------------------------

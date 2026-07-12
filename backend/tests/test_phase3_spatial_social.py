@@ -11,15 +11,15 @@ path: /backend/tests/test_phase3_spatial_social.py
 """
 
 import pytest
-from app.services.spatial.spatial_events import SpatialEvent, detect_transitions
-from app.services.social.social_engine import SocialEngine
+from app.models.npc_state import EmotionTag, NPCPersonality, NPCState, NPCTier, WillState
 from app.services.npc.decision_hub import DecisionHub, EventContext
-from app.models.npc_state import NPCState, NPCPersonality, WillState, NPCTier, EmotionTag
-
+from app.services.social.social_engine import SocialEngine
+from app.services.spatial.spatial_events import SpatialEvent, detect_transitions
 
 # ═══════════════════════════════════════════════════════════════
 # FIXTURES
 # ═══════════════════════════════════════════════════════════════
+
 
 @pytest.fixture
 def jealousy_config() -> dict:
@@ -82,6 +82,7 @@ def base_personality() -> NPCPersonality:
 # ═══════════════════════════════════════════════════════════════
 # 3.1 SPATIAL EVENTS — detect_transitions
 # ═══════════════════════════════════════════════════════════════
+
 
 class TestDetectTransitions:
     """Детекция переходов расстояний между ходами."""
@@ -169,6 +170,7 @@ class TestDetectTransitions:
 # ═══════════════════════════════════════════════════════════════
 # 3.2 SOCIAL MODIFIERS — compute_social_modifiers
 # ═══════════════════════════════════════════════════════════════
+
 
 class TestSocialModifiers:
     """Социальные триггеры → модификаторы score для DecisionHub."""
@@ -358,6 +360,7 @@ class TestSocialModifiers:
 # INTEGRATION: social_modifiers → DecisionHub.compute()
 # ═══════════════════════════════════════════════════════════════
 
+
 class TestSocialModifiersIntegration:
     """Проверка что social_modifiers проходят через DecisionHub без ошибок."""
 
@@ -389,10 +392,14 @@ class TestSocialModifiersIntegration:
         """social_modifiers={} — без эффекта."""
         event = EventContext(event_type="player_interacts", actor_id="player")
         result_base = DecisionHub(seed=42).compute(
-            state=base_state, personality=base_personality, event=event,
+            state=base_state,
+            personality=base_personality,
+            event=event,
         )
         result_empty = DecisionHub(seed=42).compute(
-            state=base_state, personality=base_personality, event=event,
+            state=base_state,
+            personality=base_personality,
+            event=event,
             social_modifiers={},
         )
         # Одинаковые intent (может отличаться noise, поэтому не сравниваем score)

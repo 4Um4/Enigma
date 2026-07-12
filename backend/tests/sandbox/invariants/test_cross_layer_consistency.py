@@ -7,10 +7,9 @@ path: backend/tests/sandbox/invariants/test_cross_layer_consistency.py
 """
 
 import pytest
-import dataclasses
-from app.models.npc_state import NPCState
-from app.services.npc.npc_loader import load_l2_state_from_runtime_dict
 from app.domain.identity_events import EffectiveDrives
+from app.services.npc.npc_loader import load_l2_state_from_runtime_dict
+
 
 def test_hp_double_truth_invariant():
     """
@@ -32,13 +31,13 @@ def test_hp_double_truth_invariant():
             "fatigue": 0,
             "blood_loss": 0.0,
             "shock_impulse": 0.0,
-            "injuries": []
-        }
+            "injuries": [],
+        },
     }
 
     # 2. Создаём объект через фабрику (Устав §12.3)
     state = load_l2_state_from_runtime_dict(npc_dict)
-    
+
     # 3. Проверяем начальную консистентность
     assert state.effective_hp == 100.0
     assert state.hp == 100
@@ -46,15 +45,18 @@ def test_hp_double_truth_invariant():
     # 4. Симулируем урон (мутацию)
     # StateApplicator пишет в body_state и синхронизирует hp
     state.body_state["current_hp"] = 75.0
-    state.hp = 75 
+    state.hp = 75
 
     # 5. ИММУННЫЙ КОНТРОЛЬ: Проверка инварианта
     assert state.effective_hp == state.body_state["current_hp"]
-    assert state.effective_hp == float(state.hp), "DOUBLE TRUTH DETECTED: state.hp diverged from body_state['current_hp']"
-    
+    assert state.effective_hp == float(state.hp), (
+        "DOUBLE TRUTH DETECTED: state.hp diverged from body_state['current_hp']"
+    )
+
     # 6. Тест отключения body_state (fallback)
     state.body_state = None
     assert state.effective_hp == 75.0, "Fallback на deprecated hp сломан"
+
 
 def test_l3_ephemeral_invariant():
     """
@@ -65,18 +67,16 @@ def test_l3_ephemeral_invariant():
         "id": "test_npc",
         "npc_id": "test_npc",
         "name": "Test",
-        "drives": {"fear": 0.2, "control": 0.5, "significance": 0.2, "desire": 0.1}
+        "drives": {"fear": 0.2, "control": 0.5, "significance": 0.2, "desire": 0.1},
     }
 
     state = load_l2_state_from_runtime_dict(npc_dict)
-    
+
     # Сохраняем оригинальные L0 драйвы
     original_drives = dict(state.drives_runtime)
 
     # Симулируем вычисление L3 проекции (как это делает DriveResolver)
-    l3_projection = EffectiveDrives.from_dict({
-        "fear": 0.8, "control": 0.1, "significance": 0.05, "desire": 0.05
-    })
+    l3_projection = EffectiveDrives.from_dict({"fear": 0.8, "control": 0.1, "significance": 0.05, "desire": 0.05})
 
     # Симулируем попытку кэширования (нарушение ADR-O-208)
     with pytest.raises(TypeError):

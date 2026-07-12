@@ -4,17 +4,17 @@ R4.3 — тесты PerceptionFilter с реальными координата�
 Проверяет: переход с player_distances на (x, y).
 """
 
-import pytest
-from app.services.npc.perception_filter import (
-    _npc_distance,
-    _can_see,
-    filter_perceiving_npcs,
-    _can_hear,
-    calculate_clarity
-)
-
 import math
 from unittest.mock import MagicMock
+
+import pytest
+from app.services.npc.perception_filter import (
+    _can_hear,
+    _can_see,
+    _npc_distance,
+    calculate_clarity,
+    filter_perceiving_npcs,
+)
 
 
 def _make_spatial_mock(scene: dict) -> MagicMock:
@@ -44,8 +44,8 @@ def _make_spatial_mock(scene: dict) -> MagicMock:
     mock.player_distances.side_effect = _player_distances
     return mock
 
-def _scene(npc_positions: dict, player_pos: dict,
-           light: str = "bright") -> dict:
+
+def _scene(npc_positions: dict, player_pos: dict, light: str = "bright") -> dict:
     return {
         "npc_positions": npc_positions,
         "player_position": player_pos,
@@ -54,7 +54,6 @@ def _scene(npc_positions: dict, player_pos: dict,
 
 
 class TestNpcDistance:
-
     def test_uses_coordinates_when_available(self) -> None:
         """R4.3: дистанция через SpatialQueryService (3-4-5 треугольник)."""
         scene = _scene(
@@ -83,7 +82,6 @@ class TestNpcDistance:
 
 
 class TestCanSee:
-
     def test_npc_within_15m_can_see(self) -> None:
         """NPC в 10м видит событие."""
         scene = _scene(
@@ -133,7 +131,6 @@ class TestCanSee:
 
 
 class TestCanHear:
-
     def test_loud_sound_wakes_sleeping_npc(self) -> None:
         """Звук radius=20 будит спящего NPC в 5м."""
         scene = _scene(
@@ -160,7 +157,7 @@ class TestCanHear:
         )
         sq = _make_spatial_mock(scene)
         assert _can_hear("npc1", sq, radius=10.0, scene_state=scene) is True
-        assert _can_hear("npc1", sq, radius=5.0,  scene_state=scene) is False
+        assert _can_hear("npc1", sq, radius=5.0, scene_state=scene) is False
 
 
 class TestFilterIntegration:
@@ -173,32 +170,27 @@ class TestFilterIntegration:
         """
         scene = {
             "npc_positions": {
-                "guard_close": {"x": 5.0,  "y": 0.0, "activity": "working",
-                                "location": "tavern"},
-                "guard_far":   {"x": 20.0, "y": 0.0, "activity": "working",
-                                "location": "tavern"},
+                "guard_close": {"x": 5.0, "y": 0.0, "activity": "working", "location": "tavern"},
+                "guard_far": {"x": 20.0, "y": 0.0, "activity": "working", "location": "tavern"},
             },
             "player_position": {"x": 0.0, "y": 0.0},
             "environment": {"light_level": "bright"},
         }
         event = {
             "event_type": "PLAYER_ATTACKED",
-            "actor_id":   "player",
-            "location":   "tavern",
-            "radius":     10.0,
+            "actor_id": "player",
+            "location": "tavern",
+            "radius": 10.0,
             "visible_to": [],
             "audible_to": [],
         }
         sq = _make_spatial_mock(scene)
-        result = filter_perceiving_npcs(
-            ["guard_close", "guard_far"], event, scene, sq
-        )
+        result = filter_perceiving_npcs(["guard_close", "guard_far"], event, scene, sq)
         assert "guard_close" in result, "Близкий NPC должен воспринять событие"
-        assert "guard_far"   not in result, "Дальний NPC не должен воспринять событие"      
+        assert "guard_far" not in result, "Дальний NPC не должен воспринять событие"
 
 
 class TestCalculateClarity:
-
     def test_close_bright_low_stress(self) -> None:
         """Рядом, светло, без стресса → высокая clarity."""
         assert calculate_clarity(3.0, "bright", 10.0) >= 0.9
@@ -210,4 +202,4 @@ class TestCalculateClarity:
     def test_dark_caps_at_zero(self) -> None:
         """Экстремальные условия не дают отрицательного результата."""
         result = calculate_clarity(20.0, "dark", 95.0)
-        assert result >= 0.0          
+        assert result >= 0.0

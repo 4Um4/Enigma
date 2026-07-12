@@ -14,7 +14,7 @@ class ReadinessService:
             ReadinessCheck(
                 area="D&D 5e rules",
                 status="partial",
-                details="Добавлен базовый цикл боя (инициатива/ход/атака), но нет полного rules engine: saving throws, эффекты заклинаний и состояния."
+                details="Добавлен базовый цикл боя (инициатива/ход/атака), но нет полного rules engine: saving throws, эффекты заклинаний и состояния.",
             ),
             ReadinessCheck(
                 area="LLM providers",
@@ -39,7 +39,9 @@ class ReadinessService:
         ]
 
         status_points = {"done": 1.0, "partial": 0.5, "missing": 0.0}
-        score = round(sum(status_points.get(c.status, 0.0) for c in checks) / len(checks) * 100, 2)
+        score = round(
+            sum(status_points.get(c.status, 0.0) for c in checks) / len(checks) * 100, 2
+        )
         return ReadinessReport(
             score_percent=score,
             summary="Сейчас это расширенный backend MVP, но ещё не полный локальный AI DM продукт.",
