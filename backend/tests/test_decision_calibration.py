@@ -14,6 +14,10 @@ R4.2 — Калибровочные тесты формулы score().
 """
 
 import pytest
+from app.domain.identity_events import EffectiveDrives
+
+_MOCK_DRIVES = EffectiveDrives.from_dict({"control": 0.5, "significance": 0.5, "fear": 0.5, "desire": 0.5})
+
 from app.models.npc_state import (
     EmotionTag,
     Intent,
@@ -124,7 +128,7 @@ class TestCombatCalibration:
             will_state=WillState.FREE,
             emotion=EmotionTag.FEARFUL,
         )
-        result = hub.compute(state, control_personality, close_combat_event)
+        result = hub.compute(state, control_personality, close_combat_event, effective_drives=_MOCK_DRIVES)
         assert result.intent not in (Intent.TALK, Intent.TRADE, Intent.HELP), (
             f"При стрессе >80 NPC не должен разговаривать/торговать: {result.intent}"
         )
@@ -140,7 +144,7 @@ class TestCombatCalibration:
         Никогда не ATTACK.
         """
         state = NPCState(npc_id="fear_npc", emotion=EmotionTag.FEARFUL)
-        result = hub.compute(state, fear_personality, close_combat_event)
+        result = hub.compute(state, fear_personality, close_combat_event, effective_drives=_MOCK_DRIVES)
         assert result.intent != Intent.ATTACK, "Трусливый NPC не атакует при близком бою"
         assert result.intent in (Intent.FLEE, Intent.OBSERVE, Intent.WARN, Intent.IDLE, Intent.TALK), (
             f"Трусливый NPC должен избегать, не атаковать: {result.intent}"
@@ -164,7 +168,7 @@ class TestCombatCalibration:
             distance=2.0,
             witness_count=5,
         )
-        result = hub.compute(state, control_personality, event)
+        result = hub.compute(state, control_personality, event, effective_drives=_MOCK_DRIVES)
         # WARN, REPORT — ожидаемые реакции control-drive при публичном нарушении
         assert result.intent in (Intent.WARN, Intent.REPORT, Intent.INTIMIDATE, Intent.OBSERVE), (
             f"Control NPC при краже с свидетелями: ожидали WARN/REPORT, получили {result.intent}"
@@ -180,7 +184,8 @@ class TestCombatCalibration:
         Для трусливого NPC score ATTACK должен быть ≤ 0 (early exit в формуле).
         """
         state = NPCState(npc_id="fear_npc")
-        result = hub.compute(state, fear_personality, close_combat_event)
+        _fear_drives = EffectiveDrives.from_dict(fear_personality.drives_base)
+        result = hub.compute(state, fear_personality, close_combat_event, effective_drives=_fear_drives)
         attack_score = result.scores_trace.get(Intent.ATTACK.value, -1.0)
         assert attack_score <= 0.0, f"Трусливый NPC: score ATTACK должен быть ≤ 0, получили {attack_score}"
 
@@ -200,7 +205,7 @@ class TestCombatCalibration:
             emotion=EmotionTag.FEARFUL,
             relationship_cache={"trust": 0.0, "fear": 100.0, "debt": 0.0},
         )
-        result = hub.compute(extreme_state, fear_personality, close_combat_event)
+        result = hub.compute(extreme_state, fear_personality, close_combat_event, effective_drives=_MOCK_DRIVES)
 
         for intent_name, score in result.scores_trace.items():
             assert -2.0 <= score <= 3.0, f"Score '{intent_name}' вышел за пределы [-2, 3]: {score}"
@@ -234,8 +239,8 @@ class TestRelationshipCalibration:
             npc_id="control_npc",
             relationship_cache={"trust": 0.0, "fear": 0.0, "debt": 0.0},
         )
-        result_trusted = hub.compute(state_trusted, control_personality, event)
-        result_neutral = hub.compute(state_neutral, control_personality, event)
+        result_trusted = hub.compute(state_trusted, control_personality, event, effective_drives=_MOCK_DRIVES)
+        result_neutral = hub.compute(state_neutral, control_personality, event, effective_drives=_MOCK_DRIVES)
 
         trusted_help = result_trusted.scores_trace.get(Intent.HELP.value, 0.0)
         neutral_help = result_neutral.scores_trace.get(Intent.HELP.value, 0.0)
@@ -261,8 +266,8 @@ class TestRelationshipCalibration:
             npc_id="fear_npc",
             relationship_cache={"trust": 0.0, "fear": 0.0, "debt": 0.0},
         )
-        r_scared = hub.compute(state_scared, fear_personality, close_combat_event)
-        r_neutral = hub.compute(state_neutral, fear_personality, close_combat_event)
+        r_scared = hub.compute(state_scared, fear_personality, close_combat_event, effective_drives=_MOCK_DRIVES)
+        r_neutral = hub.compute(state_neutral, fear_personality, close_combat_event, effective_drives=_MOCK_DRIVES)
 
         flee_scared = r_scared.scores_trace.get(Intent.FLEE.value, 0.0)
         flee_neutral = r_neutral.scores_trace.get(Intent.FLEE.value, 0.0)
@@ -293,8 +298,8 @@ class TestTraitCalibration:
         state_suspicious = NPCState(npc_id="desire_npc")
         state_clean = NPCState(npc_id="desire_npc")
 
-        r_suspicious = hub.compute(state_suspicious, desire_personality, event, identity=identity_suspicious)
-        r_clean = hub.compute(state_clean, desire_personality, event)
+        r_suspicious = hub.compute(state_suspicious, desire_personality, event, identity=identity_suspicious, effective_drives=_MOCK_DRIVES)
+        r_clean = hub.compute(state_clean, desire_personality, event, effective_drives=_MOCK_DRIVES)
 
         obs_suspicious = r_suspicious.scores_trace.get(Intent.OBSERVE.value, 0.0)
         obs_clean = r_clean.scores_trace.get(Intent.OBSERVE.value, 0.0)
@@ -314,8 +319,8 @@ class TestTraitCalibration:
         state_grateful = NPCState(npc_id="control_npc")
         state_neutral = NPCState(npc_id="control_npc")
 
-        r_grateful = hub.compute(state_grateful, control_personality, close_combat_event, identity=identity_grateful)
-        r_neutral = hub.compute(state_neutral, control_personality, close_combat_event)
+        r_grateful = hub.compute(state_grateful, control_personality, close_combat_event, identity=identity_grateful, effective_drives=_MOCK_DRIVES)
+        r_neutral = hub.compute(state_neutral, control_personality, close_combat_event, effective_drives=_MOCK_DRIVES)
 
         atk_grateful = r_grateful.scores_trace.get(Intent.ATTACK.value, -1.0)
         atk_neutral = r_neutral.scores_trace.get(Intent.ATTACK.value, -1.0)
@@ -350,8 +355,8 @@ class TestTraitCalibration:
             intent_duration=0,
         )
 
-        r_inertia = hub.compute(state_inertia, control_personality, event)
-        r_fresh = hub.compute(state_fresh, control_personality, event)
+        r_inertia = hub.compute(state_inertia, control_personality, event, effective_drives=_MOCK_DRIVES)
+        r_fresh = hub.compute(state_fresh, control_personality, event, effective_drives=_MOCK_DRIVES)
 
         warn_inertia = r_inertia.scores_trace.get(Intent.WARN.value, 0.0)
         warn_fresh = r_fresh.scores_trace.get(Intent.WARN.value, 0.0)

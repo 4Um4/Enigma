@@ -15,6 +15,10 @@ python -m pytest backend/tests/test_decay_game_days_stage8.py -v --tb=short 2>&1
 import math
 
 import pytest
+from app.domain.identity_events import EffectiveDrives
+
+_MOCK_DRIVES = EffectiveDrives.from_dict({"control": 0.5, "significance": 0.5, "fear": 0.5, "desire": 0.5})
+
 from app.models.npc_state import EventMemory
 from app.services.memory.memory_manager import MemoryManager
 from app.services.memory.working_memory import WorkingMemory
@@ -91,7 +95,7 @@ def test_run_decay_passes_game_days() -> None:
     mm._working.push("camp_1:npc_01", mem)
 
     # DECAY_EVERY = 10, передаём tick=10 чтобы триггер сработал
-    from app.services.memory.importance_engine import DECAY_EVERY
+    from app.services.memory.memory_manager import DECAY_EVERY
 
     mm.run_decay_if_needed("camp_1", current_tick=DECAY_EVERY, game_days=2.5)
 
@@ -107,7 +111,7 @@ def test_run_decay_default_game_days_one() -> None:
     mem = _make_mem(importance=0.9, decay_rate=0.05)
     mm._working.push("camp_1:npc_01", mem)
 
-    from app.services.memory.importance_engine import DECAY_EVERY
+    from app.services.memory.memory_manager import DECAY_EVERY
 
     mm.run_decay_if_needed("camp_1", current_tick=DECAY_EVERY)
 

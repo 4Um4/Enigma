@@ -19,6 +19,10 @@ path: backend/tests/test_scene_outcome_builder.py
 from typing import Dict, Optional
 
 import pytest
+from app.domain.identity_events import EffectiveDrives
+
+_MOCK_DRIVES = EffectiveDrives.from_dict({"control": 0.5, "significance": 0.5, "fear": 0.5, "desire": 0.5})
+
 from app.models.npc_state import EmotionTag, Intent, WillState
 from app.services.npc.decision_hub import DecisionResult, StateDeltas
 from app.services.verbalization.scene_outcome_builder import (

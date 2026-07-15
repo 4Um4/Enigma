@@ -4,6 +4,10 @@ path: backend/tests/test_resonance_engine.py
 Запуск: python -m pytest tests/test_resonance_engine.py -v --tb=short
 """
 
+from app.domain.identity_events import EffectiveDrives
+
+_MOCK_DRIVES = EffectiveDrives.from_dict({"control": 0.5, "significance": 0.5, "fear": 0.5, "desire": 0.5})
+
 from app.models.npc_state import EventMemory, MemoryStage
 from app.services.memory.resonance_engine import ResonanceEngine
 

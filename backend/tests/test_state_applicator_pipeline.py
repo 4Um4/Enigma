@@ -7,6 +7,10 @@ DecisionHub → StateApplicator → NPCState.write_to_legacy → dict обнов
 
 from unittest.mock import MagicMock
 
+from app.domain.identity_events import EffectiveDrives
+
+_MOCK_DRIVES = EffectiveDrives.from_dict({"control": 0.5, "significance": 0.5, "fear": 0.5, "desire": 0.5})
+
 from app.models.npc_state import EmotionTag, Intent, NPCState, WillState
 from app.models.state_delta import DeltaDomain, EmotionPayload
 from app.services.npc.decision_hub import DecisionResult, StateDeltas

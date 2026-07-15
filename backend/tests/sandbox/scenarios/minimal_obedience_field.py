@@ -6,6 +6,10 @@ Minimal Obedience Field Test (Полный срез: Семантика -> Да�
 import math
 
 # Импортируем реальные компоненты ENIGMA (без LLM)
+from app.domain.identity_events import EffectiveDrives
+
+_MOCK_DRIVES = EffectiveDrives.from_dict({"control": 0.5, "significance": 0.5, "fear": 0.5, "desire": 0.5})
+
 from app.services.social.directive_interpretation_subscriber import DirectiveInterpretationSubscriber
 from tests.sandbox.fixtures.tavern_world import build_tavern_fixture
 from tests.sandbox.probes.pressure_probe import PressureProbe

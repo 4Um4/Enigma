@@ -214,28 +214,54 @@ class GameLoop:
         # SocialDecayHandler — дрейф trust → base
         from app.services.social.social_decay_handler import SocialDecayHandler
 
+        # Регистрация NpcDialogueSubscriber для замыкания цикла NPC-NPC диалогов
+        self._register_npc_dialogue_subscriber(memory_manager, _rel_store)
+
+        from app.services.social.social_decay_handler import SocialDecayHandler
         self._tick_orch.add_idle_handler(SocialDecayHandler())
 
         # InjuryProcessor — мост Injury → Physiology (кровотечение из ран)
         from app.services.combat.injury_processor import InjuryProcessor
-
         self._tick_orch.add_idle_handler(InjuryProcessor())
 
         # PhysiologyDecayHandler — leaky integrator (экспоненциальное затухание боли/усталости)
         from app.services.combat.physiology_decay_handler import PhysiologyDecayHandler
-
         self._tick_orch.add_idle_handler(PhysiologyDecayHandler())
 
         # S74: Непрерывное время психики. Аффективный интеграл затухает в idle.
         from app.services.affective.affective_decay_handler import AffectiveDecayHandler
-
         self._tick_orch.add_idle_handler(AffectiveDecayHandler())
 
         # TZ-08 Addendum: Time Skip Executor (Observation Layer)
         from app.services.world.time_skip_executor import TimeSkipExecutor
-
         self._time_skip = TimeSkipExecutor(self._tick_orch)
         self._skip_locks: Dict[str, threading.Lock] = {}  # Real locks per campaign
+
+    def _register_npc_dialogue_subscriber(self, memory_manager: Any, rel_store: Any) -> None:
+        """Регистрирует NpcDialogueSubscriber на события NPC_SPOKE."""
+        try:
+            from app.services.events.event_bus import get_event_bus
+            from app.services.events.npc_dialogue_subscriber import NpcDialogueSubscriber
+
+            if not memory_manager or not rel_store:
+                logger.warning("[GAME_LOOP] Cannot register NpcDialogueSubscriber — missing memory or relationships")
+                return
+
+            _subscriber = NpcDialogueSubscriber(
+                memory_manager=memory_manager,
+                relationship_store=rel_store,
+                affective_integrator=None,
+                npc_states_provider=None,
+                campaign_id_provider=lambda: getattr(self, "_current_campaign_id", "Open_road"),
+            )
+
+            from app.services.events.event_types import EventType
+            _bus = get_event_bus()
+            _bus.subscribe(EventType.NPC_SPOKE, _subscriber.on_npc_spoke)
+            self._npc_dialogue_subscriber = _subscriber
+            logger.info("[GAME_LOOP] NpcDialogueSubscriber registered for npc_spoke")
+        except Exception as e:
+            logger.exception(f"[GAME_LOOP] Failed to register NpcDialogueSubscriber: {e}")
 
     def _get_skip_lock(self, campaign_id: str) -> threading.Lock:
         """Возвращает lock для конкретной кампании, защищающий от параллельных skip/idle."""
@@ -623,6 +649,7 @@ class GameLoop:
 
                 _builder = WorldSnapshotBuilder()
                 _recent_d = self._get_task_scheduler().get_recent_dialogues(result.final_state.get("game_time_seconds", 0.0))
+                logger.info(f"[IDLE_TICK_WS] recent_dialogues_count={len(_recent_d) if _recent_d else 0}")
                 _ws = _builder.build(
                     result.final_state,
                     result.final_state.get("tick", 0),
@@ -768,6 +795,14 @@ class GameLoop:
                 )
                 result = dataclasses.replace(result, world_snapshot=_new_ws)
 
+        # Phase 8.5: Исполняем NPC-NPC диалоги через DialogueQueue
+        try:
+            _scheduler = self._get_task_scheduler()
+            if _scheduler and hasattr(_scheduler, "execute_pending"):
+                _scheduler.execute_pending(_scene, campaign_id)
+        except Exception as e:
+            logger.warning(f"[IDLE_TICK] execute_pending failed: {e}")
+
         # S83.1 FIX: Ядро больше не вызывает commit_tick_result.
         # Обновляем _tick_scene явно, до materialization и unlock.
         # ВАЖНО: Ядро работает с deepcopy (create_tick_context), поэтому
@@ -792,7 +827,7 @@ class GameLoop:
         # Работает с _auth_scene (_tick_scene), чтобы мутации подписчиков EventBus
         # (напр. SocialInputProjector) попали в финальный unlock_tick.
         if _auth_scene and _auth_scene.get("pending_tasks"):
-            self._get_task_scheduler().process_tasks(_auth_scene)
+            self._get_task_scheduler().execute_pending(_auth_scene, campaign_id)
 
         # Конвертация WorldSnapshotDTO → dict для фронтенда
         from dataclasses import asdict
@@ -806,6 +841,14 @@ class GameLoop:
             # UUID → строка для JSON-совместимости
             if _ws.get("last_event_id") is not None:
                 _ws["last_event_id"] = str(_ws["last_event_id"])
+            
+            # ADR-O-313: Внедряем кэш реплик для Speech Bubbles (UI)
+            try:
+                _recent_d = self._get_task_scheduler().get_recent_dialogues(_scene.get("game_time_seconds", 0.0))
+                logger.info(f"[IDLE_TICK_WS] recent_dialogues_count={len(_recent_d) if _recent_d else 0}")
+                _ws["recent_dialogues"] = _recent_d
+            except Exception as e:
+                logger.warning(f"[IDLE_TICK_WS] Failed to get recent dialogues: {e}")
 
         # S83.1: UNLOCK — единственная точка persist для idle_tick.
         # commit_tick_result() уже обновил _tick_scene результатом тика.

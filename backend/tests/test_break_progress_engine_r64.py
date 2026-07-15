@@ -11,6 +11,12 @@
 """
 
 import pytest
+from types import SimpleNamespace
+
+from app.domain.identity_events import EffectiveDrives
+
+_MOCK_DRIVES = EffectiveDrives.from_dict({"control": 0.5, "significance": 0.5, "fear": 0.5, "desire": 0.5})
+
 from app.models.npc_state import WillState
 from app.services.npc.break_progress_engine import BreakDeltas, BreakProgressEngine
 
@@ -29,6 +35,10 @@ class MinimalNPCState:
         self.state_modifiers = kwargs.get("state_modifiers", {})
         self.resentment = kwargs.get("resentment", 0.0)
         self.dependency = kwargs.get("dependency", 0.0)
+        self.affective_load = kwargs.get("affective_load", 0.0)
+        # FIX: Добавлен perceptual_kernel, требуемый BreakProgressEngine (атрибут + dict-семантика)
+        _default_pk = SimpleNamespace(threat_gradient=0.0, initiative_suppression=0.0, anomaly_score=0.0)
+        self.perceptual_kernel = kwargs.get("perceptual_kernel", _default_pk)
 
 
 @pytest.fixture

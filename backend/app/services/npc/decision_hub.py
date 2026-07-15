@@ -1436,7 +1436,8 @@ class DecisionHub:
                 # L2.7: Буст от LifeDirection (динамический жизненный проект).
                 # P1/P2: Читаем life_project только если NPC в активной фазе FSM.
                 # В состоянии LOST/SEARCHING бусты проактивности отключены (экзистенциальная пустота).
-                if getattr(state, "life_project_state", "ACTIVE") in ("ACTIVE", "COMMITTED"):
+                # В COMPLETED бусты активны, чтобы NPC мог искать новое занятие (vitality recovery).
+                if getattr(state, "life_project_state", "ACTIVE") in ("ACTIVE", "COMMITTED", "COMPLETED"):
                     _project = getattr(state, "life_project", "survival")
                 else:
                     _project = "survival" # Нейтральный проект при кризисе

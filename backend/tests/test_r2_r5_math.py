@@ -5,6 +5,10 @@
 Запуск: python -m pytest backend/tests/test_r2_r5_math.py -v -s
 """
 
+from app.domain.identity_events import EffectiveDrives
+
+_MOCK_DRIVES = EffectiveDrives.from_dict({"control": 0.5, "significance": 0.5, "fear": 0.5, "desire": 0.5})
+
 from app.models.npc_state import EmotionTag, NPCPersonality, NPCState, NPCTier, WillState
 from app.services.npc.decision_hub import DecisionHub, DecisionResult, EventContext
 from app.services.npc.resolution_engine import ResolutionEngine, ResolutionOutcome
@@ -46,7 +50,7 @@ def test_r2_r5_core_math():
     # R2: DECISION CORE (Что решает NPC?)
     # ==========================================
     hub = DecisionHub(seed=42)  # Фиксированный seed для повторяемости
-    decision: DecisionResult = hub.compute(state=state, personality=personality, event=event)
+    decision: DecisionResult = hub.compute(state=state, personality=personality, event=event, effective_drives=_MOCK_DRIVES)
 
     print("\n--- R2: DECISION HUB ---")
     print(f"Выбранное намерение (Intent): {decision.intent.value}")

@@ -7,6 +7,10 @@ Decay-тесты используют прямой push в _working (setup бе�
 
 from unittest.mock import MagicMock
 
+from app.domain.identity_events import EffectiveDrives
+
+_MOCK_DRIVES = EffectiveDrives.from_dict({"control": 0.5, "significance": 0.5, "fear": 0.5, "desire": 0.5})
+
 from app.core.constants import DECAY_EVERY
 from app.models.npc_state import EventMemory, MemoryStage
 from app.services.memory.memory_manager import MemoryManager

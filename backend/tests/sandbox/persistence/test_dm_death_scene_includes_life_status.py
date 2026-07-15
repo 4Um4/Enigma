@@ -10,6 +10,10 @@ Rule 62: DM narration без проверки player life_status = каузал�
 Запуск: cd backend; python -m pytest tests/sandbox/persistence/test_dm_death_scene_includes_life_status.py -v --tb=short; cd ..
 """
 
+from app.domain.identity_events import EffectiveDrives
+
+_MOCK_DRIVES = EffectiveDrives.from_dict({"control": 0.5, "significance": 0.5, "fear": 0.5, "desire": 0.5})
+
 from app.agents.dm_agent import DmAgent
 from app.services.game_loop.phase_6_avatar import avatar_to_prompt
 

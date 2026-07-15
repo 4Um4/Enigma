@@ -11,6 +11,10 @@ TODO:
 - Возможно, стоит добавить тесты на производительность, чтобы убедиться, что арбитраж не добавляет заметной задержки при большом количестве интентов и NPC. Сейчас фокус на логической корректности порядка исполнения.
 """
 
+from app.domain.identity_events import EffectiveDrives
+
+_MOCK_DRIVES = EffectiveDrives.from_dict({"control": 0.5, "significance": 0.5, "fear": 0.5, "desire": 0.5})
+
 from app.domain.movement import LocalSteeringGoal, MacroMovementGoal
 
 

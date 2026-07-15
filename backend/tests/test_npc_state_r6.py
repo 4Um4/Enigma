@@ -5,6 +5,10 @@
 # $env:PYTHONPATH="." pytest tests/test_npc_state_r6.py -v
 
 import dataclasses
+from app.domain.identity_events import EffectiveDrives
+
+_MOCK_DRIVES = EffectiveDrives.from_dict({"control": 0.5, "significance": 0.5, "fear": 0.5, "desire": 0.5})
+
 from app.models.npc_state import NPCState, NPCStateAdapter
 
 # =========================================================

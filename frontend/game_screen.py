@@ -989,6 +989,21 @@ class GameScreen:
                 else:
                     # Fallback на deprecated поле для совместимости
                     _new_positions = _tick_data.get("npc_positions", {})
+
+                # ADR-O-313: Извлечение реплик NPC для Speech Bubbles (idle_tick)
+                if _ws and isinstance(_ws, dict):
+                    _recent_d = _ws.get("recent_dialogues", [])
+                    logger.debug(f"[TRACE][IDLE_WS] recent_dialogues_count={len(_recent_d) if _recent_d else 0} ws_keys={list(_ws.keys())[:5]}")
+                    if _recent_d:
+                        for _dlg in _recent_d:
+                            _spk_id = _dlg.get("speaker_id", "")
+                            _dlg_text = _dlg.get("text", "")
+                            if _spk_id and _dlg_text:
+                                self.npc_speech_bubbles[_spk_id] = {
+                                    "text": _dlg_text,
+                                    "tick": pygame.time.get_ticks(),
+                                }
+                                logger.info(f"[BUBBLE_INJECT] speaker={_spk_id} text={_dlg_text[:30]}...")
             if _new_positions:
                 import copy
 
@@ -1643,10 +1658,17 @@ class GameScreen:
             px, py = _player_xy(scene_state)
             # ADR-SPEECH: Истечение речевых облачек
             _now_sp = pygame.time.get_ticks()
+            # Оставляем только 2 самых свежих облачка, чтобы они вытесняли друг друга
+            _sorted_bubbles = sorted(
+                self.npc_speech_bubbles.items(),
+                key=lambda item: item[1]["tick"],
+                reverse=True
+            )[:2]  # Топ-2 последних
+            
             self.npc_speech_bubbles = {
                 k: v
-                for k, v in self.npc_speech_bubbles.items()
-                if _now_sp - v["tick"] < 6000
+                for k, v in _sorted_bubbles
+                if _now_sp - v["tick"] < 4000  # Время жизни 4 секунды
             }
             if (
                 self.player_speech_bubble

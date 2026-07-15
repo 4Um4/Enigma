@@ -354,6 +354,7 @@ class SceneRenderer:
     ) -> None:
         # ADR-037: Temporal Assembly Delay — инерция сборки реальности
         _delay_factor = profile.temporal_assembly_delay
+        _pending_bubbles = []  # Сбор облачков для отталкивания
 
         for entity in entities:
             if entity.entity_type != "npc":

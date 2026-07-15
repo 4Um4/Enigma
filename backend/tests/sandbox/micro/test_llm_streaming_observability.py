@@ -12,6 +12,10 @@ ADR-147: LLM Streaming Observability Gate
 import logging
 from unittest.mock import MagicMock
 
+from app.domain.identity_events import EffectiveDrives
+
+_MOCK_DRIVES = EffectiveDrives.from_dict({"control": 0.5, "significance": 0.5, "fear": 0.5, "desire": 0.5})
+
 from app.services.llm.router import ModelRouter
 
 from diagnostics.health_checkers.tick_health import TickHealthChecker

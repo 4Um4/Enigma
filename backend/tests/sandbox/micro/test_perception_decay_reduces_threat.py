@@ -7,6 +7,10 @@ path: backend/tests/sandbox/micro/test_perception_decay_reduces_threat.py
 Запуск: cd backend; python -m pytest tests/sandbox/micro/test_perception_decay_reduces_threat.py -v --tb=short; cd ..
 """
 
+from app.domain.identity_events import EffectiveDrives
+
+_MOCK_DRIVES = EffectiveDrives.from_dict({"control": 0.5, "significance": 0.5, "fear": 0.5, "desire": 0.5})
+
 from app.models.delta_payloads import PerceptionPayload
 from app.models.state_delta import DeltaDomain
 from app.services.combat.physiology_decay_handler import PhysiologyDecayHandler

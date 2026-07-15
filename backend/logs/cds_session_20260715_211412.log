@@ -1,0 +1,25 @@
+2026-07-15 21:14:12,521 app.main INFO: [CDS] FileHandler initialized: C:\DDD\Codex\VSC_Enigma\Enigma\backend\logs\cds_session_20260715_211412.log
+2026-07-15 21:14:12,521 app.services.llm.provider_manager INFO: ModelPool: Registered 'qwen_7b' (ctx=8192)
+2026-07-15 21:14:12,521 app.services.llm.provider_manager INFO: ModelPool: Registered 'qwen_7b' (ctx=8192)
+2026-07-15 21:14:12,603 app.services.vram_monitor INFO: [VRAM_MONITOR] Baseline auto-set: 622 MB
+2026-07-15 21:14:12,603 app.services.vram_monitor INFO: [VRAM_SESSION] Started: baseline=622MB
+2026-07-15 21:14:12,661 pymorphy3.opencorpora_dict.wrapper INFO: Loading dictionaries from C:\DDD\Codex\VSC_Enigma\Enigma\.venv\Lib\site-packages\pymorphy3_dicts_ru\data
+2026-07-15 21:14:12,680 pymorphy3.opencorpora_dict.wrapper INFO: format: 2.4, revision: 417150, updated: 2022-01-08T22:09:24.565962
+2026-07-15 21:14:12,696 app.services.events.event_bus INFO: [EVENT_BUS] EventBus инициализирован
+2026-07-15 21:14:12,713 app.services.game_loop.service_factories INFO: [REPUTATION] factions.json not found, engine disabled
+2026-07-15 21:14:12,715 app.services.game_loop.service_factories INFO: [REPUTATION] factions.json not found, engine disabled
+2026-07-15 21:14:12,715 app.services.game_loop.service_factories INFO: [STATE_APPLICATOR] Initialized with ReputationEngine=False
+2026-07-15 21:14:12,723 app.services.game_loop ERROR: [GAME_LOOP] Failed to register NpcDialogueSubscriber: 'str' object has no attribute 'value'
+Traceback (most recent call last):
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\__init__.py", line 248, in _register_npc_dialogue_subscriber
+    _bus.subscribe("npc_spoke", _subscriber.on_npc_spoke)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\events\event_bus.py", line 78, in subscribe
+    self._handlers.setdefault(event_type.value, []).append(handler)
+                              ^^^^^^^^^^^^^^^^
+AttributeError: 'str' object has no attribute 'value'
+2026-07-15 21:14:12,725 app.main ERROR: [STARTUP] GameLoop failed: name 'SocialDecayHandler' is not defined
+2026-07-15 21:14:20,427 httpx INFO: HTTP Request: GET http://localhost:8181/v1/models "HTTP/1.1 503 Service Unavailable"
+2026-07-15 21:14:23,882 app.main INFO: [STARTUP] llama-server запущен (http://localhost:8181)
+2026-07-15 21:14:23,908 app.main INFO: [STARTUP] LLM (сервер): доступен
+2026-07-15 21:14:52,606 httpx INFO: HTTP Request: GET http://localhost:8181/v1/models "HTTP/1.1 200 OK"

@@ -47,6 +47,9 @@ class TaskScheduler:
         # P1 FIX: Асинхронный пул для неблокирующего выполнения LLM
         self._executor_pool = ThreadPoolExecutor(max_workers=2)
         self._spatial_query_service = None
+        from app.services.execution.dialogue_queue import DialogueQueue
+        self._dialogue_queue = DialogueQueue()
+        logger.info("[TASK_SCHED] DialogueQueue initialized")
 
     def set_spatial_query_service(self, sqs):
         """Инъекция SpatialQueryService для Social Target Resolver."""
@@ -54,11 +57,13 @@ class TaskScheduler:
 
     def get_recent_dialogues(self, current_time: float) -> list:
         """Возвращает активные реплики для WorldSnapshotDTO."""
-        # Чистим протухшие
+        # Чистим протухшие. Используем wall-clock time, так как кэш UI-only.
+        import time
+        _now = time.time()
         self._recent_dialogues = [
             d
             for d in self._recent_dialogues
-            if current_time - d["timestamp"] < self._dialogue_ttl
+            if _now - d.get("timestamp", 0.0) < self._dialogue_ttl
         ]
         return self._recent_dialogues
 
@@ -83,10 +88,56 @@ class TaskScheduler:
 
         return True
 
-    def _process_tasks_async(self, scene_state: dict, tasks: list):
+    def execute_pending(self, scene_state: dict, campaign_id: str) -> None:
+        """Берёт задачи из очереди с учётом rate limit и запускает в фоне."""
+        pending = scene_state.get("pending_tasks", [])
+        if not pending:
+            return
+
+        for task_dict in pending:
+            if task_dict.get("kind") == "dialogue":
+                speaker_id = task_dict.get("owner_id", "")
+                _payload = task_dict.get("payload", {})
+                tone = _payload.get("tone", "NEUTRAL")
+                if tone == "ANGRY":
+                    priority = 15
+                elif _payload.get("secret_relevant"):
+                    priority = 10
+                else:
+                    priority = 5
+
+                self._dialogue_queue.enqueue(
+                    task_type="canonical" if tone != "NEUTRAL" else "ambient",
+                    payload={
+                        "speaker_id": speaker_id,
+                        "task_dict": task_dict,
+                    },
+                    priority=priority,
+                )
+
+        _eligible = self._dialogue_queue.dequeue_next()
+        if not _eligible:
+            return
+
+        task_dict = _eligible.payload.get("task_dict", {})
+        _task_id = task_dict.get("task_id", "")
+        
+        # Убираем из pending, чтобы не запустить повторно
+        scene_state["pending_tasks"] = [
+            t for t in pending if t.get("task_id") != _task_id
+        ]
+
+        # Запускаем в асинхронном пуле, чтобы не блокировать idle_tick
+        self._executor_pool.submit(
+            self._process_tasks_async, scene_state, [task_dict], campaign_id
+        )
+
+    def _process_tasks_async(self, scene_state: dict, tasks: list, campaign_id: str = ""):
         """Фоновая обработка задач LLM."""
+        import time
         bus = get_event_bus()
-        campaign_id = scene_state.get("campaign_id", "")
+        if not campaign_id:
+            campaign_id = scene_state.get("campaign_id", "")
 
         for task_dict in tasks:
             try:
@@ -147,6 +198,15 @@ class TaskScheduler:
             for artifact in artifacts:
                 if artifact.success:
                     task.state = TaskState.FINISHED
+                    
+                    # Кэшируем для Speech Bubbles (UI)
+                    self._recent_dialogues.append({
+                        "speaker_id": artifact.data.get("speaker_id"),
+                        "text": artifact.data.get("text"),
+                        "timestamp": time.time()
+                    })
+                    logger.info(f"[TASK_SCHED] dialogue executed: speaker={task.owner_id} target={task.payload.target_id if hasattr(task.payload, 'target_id') else 'unknown'}")
+
                     materializer = self._materializers.get(artifact.result_type)
                     if materializer:
                         events = materializer.materialize(artifact)

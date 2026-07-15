@@ -10,6 +10,10 @@
 """
 
 import pytest
+from app.domain.identity_events import EffectiveDrives
+
+_MOCK_DRIVES = EffectiveDrives.from_dict({"control": 0.5, "significance": 0.5, "fear": 0.5, "desire": 0.5})
+
 from app.services.npc.life_engine import LifeEngine
 from app.services.scene_change import ChangeType
 

@@ -1,0 +1,27 @@
+2026-07-15 23:39:29,004 app.main INFO: [CDS] FileHandler initialized: C:\DDD\Codex\VSC_Enigma\Enigma\backend\logs\cds_session_20260715_233929.log
+2026-07-15 23:39:29,005 app.services.llm.provider_manager INFO: ModelPool: Registered 'qwen_7b' (ctx=8192)
+2026-07-15 23:39:29,005 app.services.llm.provider_manager INFO: ModelPool: Registered 'qwen_7b' (ctx=8192)
+2026-07-15 23:39:29,092 app.services.vram_monitor INFO: [VRAM_MONITOR] Baseline auto-set: 807 MB
+2026-07-15 23:39:29,092 app.services.vram_monitor INFO: [VRAM_SESSION] Started: baseline=807MB
+2026-07-15 23:39:29,153 pymorphy3.opencorpora_dict.wrapper INFO: Loading dictionaries from C:\DDD\Codex\VSC_Enigma\Enigma\.venv\Lib\site-packages\pymorphy3_dicts_ru\data
+2026-07-15 23:39:29,171 pymorphy3.opencorpora_dict.wrapper INFO: format: 2.4, revision: 417150, updated: 2022-01-08T22:09:24.565962
+2026-07-15 23:39:29,177 app.services.events.event_bus INFO: [EVENT_BUS] EventBus инициализирован
+2026-07-15 23:39:29,188 app.services.game_loop.service_factories INFO: [REPUTATION] factions.json not found, engine disabled
+2026-07-15 23:39:29,191 app.services.game_loop.service_factories INFO: [REPUTATION] factions.json not found, engine disabled
+2026-07-15 23:39:29,191 app.services.game_loop.service_factories INFO: [STATE_APPLICATOR] Initialized with ReputationEngine=False
+2026-07-15 23:39:29,192 app.services.game_loop INFO: [GAME_LOOP] NpcDialogueSubscriber registered for npc_spoke
+2026-07-15 23:39:29,196 app.services.game_loop_builder INFO: [BUILDER] GameLoop создан
+2026-07-15 23:39:33,819 httpx INFO: HTTP Request: GET http://localhost:8181/v1/models "HTTP/1.1 503 Service Unavailable"
+2026-07-15 23:39:36,039 app.services.state.sqlite_persistence_adapter INFO: [SQLITE_PERSISTENCE] Campaign deleted: Open_road
+2026-07-15 23:39:36,039 app.services.game_loop INFO: [NEW_GAME] SQLite cleared for 'Open_road'
+2026-07-15 23:39:36,039 app.services.game_loop INFO: [NEW_GAME] Removed: C:\DDD\Codex\VSC_Enigma\Enigma\saves\Open_road\campaign_state.json
+2026-07-15 23:39:36,040 app.services.game_loop INFO: [NEW_GAME] Removed: C:\DDD\Codex\VSC_Enigma\Enigma\saves\Open_road\npc_relationships.json
+2026-07-15 23:39:36,040 app.services.game_loop INFO: [NEW_GAME] Removed: C:\DDD\Codex\VSC_Enigma\Enigma\saves\Open_road\campaign_meta.json
+2026-07-15 23:39:36,063 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-15 23:39:36,078 app.services.npc.npc_loader INFO: [NPC_LOADER] No runtime file, loaded 6 NPCs from config only
+2026-07-15 23:39:36,078 app.services.scene_state_manager INFO: [SCENE] Editor JSON: 38 объектов, 6 NPC, spawn_node=entrance
+2026-07-15 23:39:36,081 app.services.scene_state_manager INFO: [SCENE] Инициализирована сцена 'tavern_silver_wolf' (время: 12:00, объектов: 39, NPC: 6)
+2026-07-15 23:39:36,081 app.services.scene_state_manager INFO: [SCENE] Campaign 'Open_road' reinitialized from editor, location=tavern_silver_wolf
+2026-07-15 23:39:36,081 app.services.game_loop WARNING: [NEW_GAME] MemoryManager reset failed: 'SqliteMemoryStore' object has no attribute '_collection_path'
+2026-07-15 23:39:36,082 app.services.game_loop INFO: [NEW_GAME] SQLite memories cleared: 4 rows
+2026-07-15 23:39:36,082 app.services.game_loop INFO: [NEW_GAME] Campaign 'Open_road' fully reset. Removed: ['sqlite:scene+runtime', 'campaign_state.json', 'npc_relationships.json', 'campaign_meta.json', 'sqlite:memories(4)']

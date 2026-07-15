@@ -15,6 +15,10 @@ TODO:
 from unittest.mock import MagicMock, patch
 
 import pytest
+from app.domain.identity_events import EffectiveDrives
+
+_MOCK_DRIVES = EffectiveDrives.from_dict({"control": 0.5, "significance": 0.5, "fear": 0.5, "desire": 0.5})
+
 from app.domain.movement import PRIORITY_NEEDS, PRIORITY_SCHEDULE, MacroMovementGoal
 from app.models.spatial_contracts import NodeRef, NodeRole
 from app.services.npc.life_engine import LifeEngine
@@ -225,8 +229,8 @@ def test_three_tick_lifecycle(tavern_graph, scene_state, patched_spatial_build, 
     assert lusya["local_position"]["x"] == 10.0
 
     # Тик 2: Люся получает intent идти к bar_area
-    intent = MovementIntent(
-        npc_id="maid_lusya",
+    intent = MacroMovementGoal(
+        actor_id="maid_lusya",
         target_node_id="bar_area",
         from_node_id="main_hall",
         location_id="tavern_silver_wolf",

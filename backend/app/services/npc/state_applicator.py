@@ -210,11 +210,11 @@ class StateApplicator:
 
                     _l1_events.append(
                         TraitDriftEvent(
-                            npc_id=new_state.npc_id,
-                            trait="control",
-                            delta=-0.15,
-                            source="will_break_system",
-                            tick=0,  # Tick будет проставлен Orchestratorом при коммите в L1EventStream
+                            target_id=new_state.npc_id,
+                            source_id="will_break_system",
+                            effect_value=-0.15,
+                            tick_id=0,  # Tick будет проставлен Orchestratorом при коммите в L1EventStream
+                            event_type="will_break",
                         )
                     )
 
@@ -764,18 +764,20 @@ class StateApplicator:
         if domain == DeltaDomain.EMOTION and isinstance(deltas.payload, EmotionPayload):
             _payload_load = getattr(deltas.payload, "affective_load", None)
             if _payload_load is not None:
-                if deltas.source == "affective_decay":
+                if deltas.source in ("affective_decay", "sel_trace_commit"):
                     state.affective_load = min(1.0, max(0.0, _payload_load))
+                    # DEEP-006 FIX: sel_trace_commit также легитимно пишет affective_memory (Фаза 9.1)
+                    if deltas.source == "sel_trace_commit":
+                        _payload_memory = getattr(deltas.payload, "affective_memory", None)
+                        if _payload_memory is not None:
+                            state.affective_memory = _payload_memory
                     logger.debug(
-                        f"[SCC_PASS] npc={state.npc_id} decay affective_load={_payload_load:.3f} applied to M."
+                        f"[SCC_PASS] npc={state.npc_id} src={deltas.source} affective_load={_payload_load:.3f} applied to M."
                     )
                 else:
                     logger.debug(
                         f"[SCC_BLOCK] npc={state.npc_id} affective_load={_payload_load:.3f} blocked. S-writes to M forbidden."
                     )
-
-            # SEL: Trace Δ Layer commit. Легальный канал записи инерции и ожидания в M-слой.
-            # Строго ограничен источником sel_trace_commit, чтобы избежать несанкционированных S-записей.
 
         # Field Channel: EMA — единственное динамическое социальное состояние
         _ema_delta = 0.0

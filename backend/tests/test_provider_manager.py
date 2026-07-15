@@ -7,6 +7,10 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 from unittest.mock import Mock
 
+from app.domain.identity_events import EffectiveDrives
+
+_MOCK_DRIVES = EffectiveDrives.from_dict({"control": 0.5, "significance": 0.5, "fear": 0.5, "desire": 0.5})
+
 from app.services.llm.provider import LlmProvider
 from app.services.llm.provider_manager import ProviderManager, ProviderType, get_provider_manager
 

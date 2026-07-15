@@ -1456,6 +1456,13 @@ class SceneStateManager:
                             if node := svc.get_node(change.value) or svc.get_node(
                                 f"{target_loc}:{change.value}"
                             ):
+                                # P2: Сохраняем старую позицию ДО перезаписи
+                                from_xy = entry.get(
+                                    "local_position", {"x": 0.0, "y": 0.0}
+                                )
+                                if not isinstance(from_xy, dict):
+                                    from_xy = {"x": 0.0, "y": 0.0}
+
                                 exact_xy = getattr(change, "target_local_xy", None)
                                 if (
                                     exact_xy
@@ -1469,16 +1476,11 @@ class SceneStateManager:
                                 else:
                                     entry["local_position"] = {"x": node.x, "y": node.y}
 
-                                from_xy = entry.get(
-                                    "local_position", {"x": 0.0, "y": 0.0}
-                                )
-                                if not isinstance(from_xy, dict):
-                                    from_xy = {"x": 0.0, "y": 0.0}
-
                                 _active_travs = scene_state.get("active_traversals", {})
                                 # ADR-O-201.4 / ADR-130.2: При cause="traversal_complete" 
                                 # это факт завершения перемещения (snap), а не начало нового.
                                 # Создание нового TraversalState здесь запрещено.
+                                # Invariant I (Causal Provenance): Traversal не может существовать без существующего пути.
                                 if (
                                     getattr(change, "cause", "") != "traversal_complete"
                                     and (

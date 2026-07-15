@@ -59,6 +59,10 @@ import urllib.error
 import urllib.request
 
 import pytest
+from app.domain.identity_events import EffectiveDrives
+
+_MOCK_DRIVES = EffectiveDrives.from_dict({"control": 0.5, "significance": 0.5, "fear": 0.5, "desire": 0.5})
+
 from app.models.state_delta import DeltaDomain
 
 # Примечание: PowerShell-скрипт запускается отдельно (run_directive_test.ps1)

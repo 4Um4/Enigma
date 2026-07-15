@@ -9,6 +9,10 @@ path: backend/tests/sandbox/invariants/test_temporal_invariants.py
 from unittest.mock import MagicMock, patch
 
 import pytest
+from app.domain.identity_events import EffectiveDrives
+
+_MOCK_DRIVES = EffectiveDrives.from_dict({"control": 0.5, "significance": 0.5, "fear": 0.5, "desire": 0.5})
+
 from app.core.constants import GAME_TICK_INTERVAL_SECONDS
 from app.domain.tick import TickResultDTO
 from app.services.world.time_skip_executor import TimeSkipExecutor

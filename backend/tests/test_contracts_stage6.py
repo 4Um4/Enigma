@@ -17,10 +17,14 @@ from app.domain.events import (
     CONTRACT_TAGS,
     EventDTO,
 )
+from app.domain.identity_events import EffectiveDrives
 from app.models.npc_profile import NPCProfileL0, PsycheBase
 from app.models.npc_state import EventMemory, MemoryStage, NPCState
 from app.services.memory.memory_manager import MemoryManager
 from app.services.npc.decision_hub import DecisionHub, EventContext
+
+# Фикстура для EffectiveDrives (L3), требуемая DecisionHub.compute
+_MOCK_DRIVES = EffectiveDrives.from_dict({"control": 0.5, "significance": 0.5, "fear": 0.5, "desire": 0.5})
 
 
 def _make_manager() -> MemoryManager:
@@ -204,13 +208,14 @@ def test_contract_modifiers_boost_intent() -> None:
     )
     event = EventContext(event_type="player_interacts", actor_id="player")
 
-    result_base = hub.compute(state=state, personality=personality, event=event)
+    result_base = hub.compute(state=state, personality=personality, event=event, effective_drives=_MOCK_DRIVES)
     base_score = getattr(result_base, "scores", {}).get("remind", 0.0)
 
     result_boosted = hub.compute(
         state=state,
         personality=personality,
         event=event,
+        effective_drives=_MOCK_DRIVES,
         contract_modifiers={"remind": 0.5},
     )
     boosted_score = getattr(result_boosted, "scores", {}).get("remind", 0.0)
@@ -231,5 +236,5 @@ def test_contract_modifiers_none_no_effect() -> None:
         voice_profile="neutral",
     )
     event = EventContext(event_type="player_interacts", actor_id="player")
-    result = hub.compute(state=state, personality=personality, event=event)
+    result = hub.compute(state=state, personality=personality, event=event, effective_drives=_MOCK_DRIVES)
     assert result.intent is not None

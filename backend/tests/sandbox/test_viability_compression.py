@@ -15,7 +15,11 @@ TODO:
 from unittest.mock import MagicMock, patch
 
 import pytest
-from app.domain.movement import IntentDomain, MovementIntent
+from app.domain.identity_events import EffectiveDrives
+
+_MOCK_DRIVES = EffectiveDrives.from_dict({"control": 0.5, "significance": 0.5, "fear": 0.5, "desire": 0.5})
+
+from app.domain.movement import IntentDomain, MacroMovementGoal
 from app.services.npc.life_engine import MINOR_TICK_INTERVAL, LifeEngine
 
 # ── Фикстуры ──────────────────────────────────────────────────────────────
@@ -178,12 +182,12 @@ class TestIntentDomainTyping:
 
     def test_default_domain_is_routine(self):
         """MacroMovementGoal по умолчанию имеет domain=ROUTINE."""
-        intent = MovementIntent(npc_id="test", target_node_id="bar")
+        intent = MacroMovementGoal(actor_id="test", target_node_id="bar")
         assert intent.domain == IntentDomain.ROUTINE
 
     def test_flee_is_survival(self):
         """FLEE intent должен иметь domain=SURVIVAL."""
-        flee = MovementIntent(
-            npc_id="test", target_node_id="exit", reason="decision:flee_stay=player", domain=IntentDomain.SURVIVAL
+        flee = MacroMovementGoal(
+            actor_id="test", target_node_id="exit", reason="decision:flee_stay=player", domain=IntentDomain.SURVIVAL
         )
         assert flee.domain == IntentDomain.SURVIVAL

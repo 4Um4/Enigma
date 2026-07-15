@@ -9,6 +9,10 @@ import sys
 logging.basicConfig(level=logging.DEBUG, format="[%(name)s] %(message)s", stream=sys.stdout)
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
+from app.domain.identity_events import EffectiveDrives
+
+_MOCK_DRIVES = EffectiveDrives.from_dict({"control": 0.5, "significance": 0.5, "fear": 0.5, "desire": 0.5})
+
 from app.services.combat.injury_processor import InjuryProcessor
 from app.services.combat.physiology_decay_handler import PhysiologyDecayHandler
 

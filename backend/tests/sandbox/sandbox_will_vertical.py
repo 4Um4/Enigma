@@ -32,6 +32,10 @@ import logging
 from typing import Dict
 
 import pytest
+from app.domain.identity_events import EffectiveDrives
+
+_MOCK_DRIVES = EffectiveDrives.from_dict({"control": 0.5, "significance": 0.5, "fear": 0.5, "desire": 0.5})
+
 from app.domain.intent import IntentDTO
 from app.models.will import (
     WillResponseDTO,

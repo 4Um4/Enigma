@@ -27,6 +27,7 @@ def evaluate_behavior_and_identity(
     game_day: int,
     memory_manager: Any,
     l1_chronicle: Optional[Any],
+    economic_profiles_map: Optional[Dict[str, Any]] = None,
 ) -> None:
     """Выполняет расчёт слома воли (BreakProgress) и поведенческой маски (BehaviorMask).
 
@@ -86,7 +87,12 @@ def evaluate_behavior_and_identity(
             # L2.7: LifeProjectResolver — продвигаем FSM жизненного проекта каждый тик
             from app.services.npc.life_project_resolver import LifeProjectResolver
             _old_state = getattr(_npc_state, "life_project_state", "ACTIVE")
-            LifeProjectResolver.resolve(_npc_state, _break_deltas.identity_crisis)
+            
+            # P1: Извлекаем wealth NPC для проверки завершения проекта ("Кризис от Успеха")
+            _wealth = float(npc_dict.get("gold", 0.0) or 0.0)
+            _project_completed = _wealth >= 1000.0
+            
+            LifeProjectResolver.resolve(_npc_state, _break_deltas.identity_crisis, project_completed=_project_completed)
             if _old_state != _npc_state.life_project_state:
                 logger.info(f"[LIFE_PROJECT] NPC {npc_id} FSM переход: {_old_state} -> {_npc_state.life_project_state} (Проект: {_npc_state.life_project})")
 

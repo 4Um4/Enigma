@@ -498,17 +498,15 @@ class EventCompiler:
                         )
                         # Не return None — продолжаем создавать traversal
                 else:
-                    # find_path returned empty — no route available
-                    # Legacy: _create_traversal остаётся False (строка 1451)
-                    logger.warning(
+                    # ADR-DOORWAY-TRUST: find_path ничего не вернул, но целевой узел валиден.
+                    # Доверяем графу: создаём traversal с waypoints [start, target] (как делает Legacy).
+                    logger.info(
                         f"[SHADOW_COMPILER] npc={change.target} "
-                        f"find_path returned empty — no traversal "
-                        f"(parity with legacy ADR-DRIFT-D)"
+                        f"find_path empty, graph connected — TRUST GRAPH (parity with legacy)"
                     )
-                    return None
             else:
-                # Blocked but no svc to find path — no traversal
-                # Legacy: _create_traversal остаётся False
+                # ADR-DOORWAY-TRUST: Path blocked, but no svc to find intermediate nodes.
+                # Доверяем графу: создаём traversal с waypoints [start, target] (как делает Legacy).
                 logger.warning(
                     f"[SHADOW_COMPILER] npc={change.target} "
                     f"path blocked, no svc — no traversal "

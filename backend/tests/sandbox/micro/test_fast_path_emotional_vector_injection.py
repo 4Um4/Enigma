@@ -9,6 +9,10 @@ path: backend/tests/sandbox/micro/test_fast_path_emotional_vector_injection.py
 
 from unittest.mock import MagicMock
 
+from app.domain.identity_events import EffectiveDrives
+
+_MOCK_DRIVES = EffectiveDrives.from_dict({"control": 0.5, "significance": 0.5, "fear": 0.5, "desire": 0.5})
+
 from app.domain.intent_profile import ActionType
 from app.services.input.intent_compressor import IntentCompressor
 

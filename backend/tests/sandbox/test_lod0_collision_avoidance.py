@@ -12,6 +12,10 @@ TODO:
 """
 
 import pytest
+from app.domain.identity_events import EffectiveDrives
+
+_MOCK_DRIVES = EffectiveDrives.from_dict({"control": 0.5, "significance": 0.5, "fear": 0.5, "desire": 0.5})
+
 from app.domain.movement import LocalSteeringGoal
 from app.services.spatial.movement_engine import MovementEngine
 
@@ -41,7 +45,7 @@ def test_lod0_collision_avoidance(engine):
 
     # NPC 2 подходит туда же (ADR-060: Чистый LOD0 интент)
     intent = LocalSteeringGoal(
-        npc_id="npc_2",
+        actor_id="npc_2",
         local_target_xy=(5.0, 5.0),  # Цель - позиция игрока/NPC_1
         reason="approach",
         priority=10,
@@ -49,7 +53,9 @@ def test_lod0_collision_avoidance(engine):
 
     changes = engine.process_intents([intent], tick=1, npc_positions=npc_positions)
 
-    assert len(changes) == 1, "MovementIntent не сгенерировал SceneChange"
+    # MovementEngine генерирует SceneChange для local_position и body_heading
+    pos_changes = [c for c in changes if c.field == "local_position"]
+    assert len(pos_changes) == 1, "MovementIntent не сгенерировал SceneChange для local_position"
     change = changes[0]
     assert change.field == "local_position"
 

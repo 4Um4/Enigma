@@ -207,9 +207,7 @@ TIME_SECONDS_PER_MINUTE: int = 60
 # Тик мира — привязан к игровому времени, не к реальному
 # 1 тик = 15 минут игрового. За вечер (3 часа) = 12 тиков.
 # Достаточно для LifeEngine, DecisionHub, NeedEngine.
-GAME_TICK_INTERVAL_SECONDS: int = (
-    60  # ADR-057: 1 минута. Основа для Elastic Time (15 минут убивали физику)
-)
+GAME_TICK_INTERVAL_SECONDS: int = 10
 
 # ADR-O-302: Numeric substep для интегратора Эйлера (разрешение солвера).
 ETKE_IK_SUBSTEP_DT: float = 0.1

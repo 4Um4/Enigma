@@ -20,6 +20,10 @@ if str(backend) not in sys.path:
 from unittest.mock import Mock, patch
 
 import pytest
+from app.domain.identity_events import EffectiveDrives
+
+_MOCK_DRIVES = EffectiveDrives.from_dict({"control": 0.5, "significance": 0.5, "fear": 0.5, "desire": 0.5})
+
 from app.services.llm.provider import LlmProvider, ProviderInfo, ProviderType
 from app.services.llm.provider_manager import ModelConfig, get_model_pool, get_provider_manager
 from app.services.llm.router import ModelRouter, get_router

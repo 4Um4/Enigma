@@ -11,6 +11,10 @@ path: backend/tests/test_npc_npc_stage7.py
 Основные сущности: recall(target_npc_id), npc_memory_modifiers, detect_npc_patterns, npc_npc_context
 """
 
+from app.domain.identity_events import EffectiveDrives
+
+_MOCK_DRIVES = EffectiveDrives.from_dict({"control": 0.5, "significance": 0.5, "fear": 0.5, "desire": 0.5})
+
 from app.models.npc_profile import NPCProfileL0, PsycheBase
 from app.models.npc_state import EventMemory, MemoryStage
 from app.services.memory.memory_manager import MemoryManager
@@ -162,7 +166,7 @@ def test_npc_memory_modifiers_boost_intent() -> None:
     personality = _make_personality()
     event = EventContext(event_type="npc_interacts_npc", actor_id="tavernkeeper")
 
-    result_base = hub.compute(state=state, personality=personality, event=event)
+    result_base = hub.compute(state=state, personality=personality, event=event, effective_drives=_MOCK_DRIVES)
     result_boosted = hub.compute(
         state=state,
         personality=personality,
@@ -181,7 +185,7 @@ def test_npc_memory_modifiers_none_no_effect() -> None:
     state = __import__("app.models.npc_state", fromlist=["NPCState"]).NPCState(npc_id="npc_01")
     personality = _make_personality()
     event = EventContext(event_type="npc_interacts_npc", actor_id="tavernkeeper")
-    result = hub.compute(state=state, personality=personality, event=event)
+    result = hub.compute(state=state, personality=personality, event=event, effective_drives=_MOCK_DRIVES)
     assert result.intent is not None
 
 

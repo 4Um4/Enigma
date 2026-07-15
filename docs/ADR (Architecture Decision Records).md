@@ -1074,5 +1074,10 @@
   Taboo: ❌ Мгновенная смена `life_project` при `identity_crisis`. ❌ Применение бустов `life_project` в стадии `LOST`/`SEARCHING`. ❌ Отсутствие роста `stress` в стадии `LOST`.
   Files: models/npc_state.py, services/npc/life_project_resolver.py, services/phases/decision.py, services/npc/decision_hub.py, services/npc/npc_loader.py
 
+`ADR-O-320` [ONTO] **Reality-Constrained Agency Model** — Внедрён фундаментальный документ `ENTITY_CONTINUITY_CONTRACT v1.0`. Агенты моделируются не как исполнители целей, а как самоподдерживающиеся системы, ограниченные реальностью. Введено 5 слоёв непрерывности (Reality, Physical, Cognitive, Intent, Agency). Агентность возникает из ограничения реальностью, а адаптация является следствием давления (Identity Pressure Vector), а не скриптовым переходом. Зафиксирован Anti-Script Constraint: ни один высокоуровневый сценарий не имеет права напрямую задавать конечное решение агента, если существует внутренняя причинная цепь.
+  Taboo: ❌ Прямая мутация состояния мира в обход причинной цепи (Layer 0). ❌ Прямое создание TraversalState в Shadow/Legacy в обход единого Planner Authority (Layer 1). ❌ Использование скалярного `identity_integrity` вместо эфемерного Identity Pressure Vector (Layer 2). ❌ Предписывание реакций агента из сценариев/DM.
+  Status: ACCEPTED
+  Files: docs/ENTITY_CONTINUITY_CONTRACT.md
+
 
 

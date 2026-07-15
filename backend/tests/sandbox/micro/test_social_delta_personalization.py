@@ -19,6 +19,10 @@ R2-P1: Персонализация социальных дельт — Relation
 from types import SimpleNamespace
 
 import pytest
+from app.domain.identity_events import EffectiveDrives
+
+_MOCK_DRIVES = EffectiveDrives.from_dict({"control": 0.5, "significance": 0.5, "fear": 0.5, "desire": 0.5})
+
 from app.models.npc_state import NPCPersonality, NPCTier
 from app.services.npc.decision.relationship_profile import (
     RelationshipResponseProfile,

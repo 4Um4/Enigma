@@ -18,6 +18,7 @@ from app.models.schemas import PlayerAction
 from app.services.llm import ModelRouter, get_router
 from app.services.llm.provider import GenerationParams
 from app.services.logging_tools import jsonl_log
+from app.services.scene_state_manager import SceneStateManager
 from app.services.verbalization.prompt_loader import load_system_prompt
 
 logger = logging.getLogger(__name__)
@@ -143,11 +144,6 @@ class DmAgent:
             _scene_block = ""
             _scene_state = context.get("scene_state", {}) if context else {}
             if _scene_state:
-                # ИСПРАВЛЕНО: путь импорта. Реальный модуль — app.services.scene_state_manager
-                # (без '.scene.' в середине). Убран try/except: pass — он маскировал
-                # ModuleNotFoundError, и вводная сцена всегда была пустой.
-                from app.services.scene_state_manager import SceneStateManager
-
                 _scene_block = (
                     SceneStateManager.get_scene_description(_scene_state) + "\n\n"
                 )

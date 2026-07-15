@@ -6,6 +6,10 @@ R5.1 — тесты EventMemory: clarity, confidence, decay lifecycle.
 import math
 
 import pytest
+from app.domain.identity_events import EffectiveDrives
+
+_MOCK_DRIVES = EffectiveDrives.from_dict({"control": 0.5, "significance": 0.5, "fear": 0.5, "desire": 0.5})
+
 from app.models.npc_state import EventMemory, MemoryStage, NPCPersonality, _resolve_stage
 from app.services.memory.working_memory import WorkingMemory
 
@@ -191,6 +195,7 @@ class TestToIdentityWeight:
             importance=0.15,  # уже ABSTRACT
             decay_rate=0.0,  # не затухает дальше
             stage=MemoryStage.ABSTRACT,
+            tags=("hostile", "betrayal"),  # ADR-O-206: tags are the source for identity mutation
         )
         result = mem.to_identity_weight()
         assert result is not None
@@ -207,6 +212,7 @@ class TestToIdentityWeight:
             day=3,
             importance=0.15,
             stage=MemoryStage.ABSTRACT,
+            tags=("help", "alliance"),  # ADR-O-206: tags are the source for identity mutation
         )
         result = mem.to_identity_weight()
         assert result is not None

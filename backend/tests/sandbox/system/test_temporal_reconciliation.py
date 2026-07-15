@@ -11,6 +11,10 @@ TODO:
 """
 
 import pytest
+from app.domain.identity_events import EffectiveDrives
+
+_MOCK_DRIVES = EffectiveDrives.from_dict({"control": 0.5, "significance": 0.5, "fear": 0.5, "desire": 0.5})
+
 from app.services.npc.life_engine import LifeEngine
 
 
@@ -33,24 +37,23 @@ class TestTemporalReconciliation:
         npc = {"npc_id": "test", "psyche": {"stress": 80.0}, "body_state": {}}
         self.engine._npc_cache["camp"] = [npc]
 
-        # 100 секунд = 1.666 тиков (GAME_TICK_INTERVAL_SECONDS = 60). decay_rate = 0.05
-        # S_t = 0 + (80 - 0) * (1 - 0.05)^1.666 = 80 * 0.9185 = 73.48
+        # 100 секунд = 10 тиков (GAME_TICK_INTERVAL_SECONDS = 10). decay_rate = 0.05
+        # S_t = 0 + (80 - 0) * (1 - 0.05)^10 = 80 * 0.95^10 = 80 * 0.5987 = 47.9
         self.engine.reconcile_state("camp", 100.0)
 
         assert npc["psyche"]["stress"] < 80.0
-        assert npc["psyche"]["stress"] == pytest.approx(73.48, abs=0.5)
+        assert npc["psyche"]["stress"] == pytest.approx(47.9, abs=0.5)
 
     def test_hunger_fatigue_linear_growth(self):
         npc = {"npc_id": "test", "psyche": {}, "body_state": {"hunger": 0.0, "fatigue": 0.0}}
         self.engine._npc_cache["camp"] = [npc]
 
-        # 100 секунд = 1.666 тиков (GAME_TICK_INTERVAL_SECONDS = 60).
-        # hunger_rate = 8.0 за тик (ADR-S96.3: _NEED_DECAY_PER_TICK = 0.08 * 100).
-        # hunger = 0.0 + 8.0 * 1.666 = 13.33
+        # 100 секунд = 10 тиков. hunger_rate = 8.0 за тик (ADR-S96.3)
+        # hunger = 0.0 + 8.0 * 10 = 80.0
         self.engine.reconcile_state("camp", 100.0)
 
-        assert npc["body_state"]["hunger"] == pytest.approx(13.33, abs=0.5)
-        assert npc["body_state"]["fatigue"] == pytest.approx(13.33, abs=0.5)
+        assert npc["body_state"]["hunger"] == pytest.approx(80.0, abs=1.0)
+        assert npc["body_state"]["fatigue"] == pytest.approx(80.0, abs=1.0)
 
     def test_hunger_capped_at_100(self):
         npc = {"npc_id": "test", "psyche": {}, "body_state": {"hunger": 99.9, "fatigue": 0.0}}

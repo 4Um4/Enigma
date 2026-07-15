@@ -59,7 +59,7 @@ def _resolve_contact(
         return ContactLevel.PERFECT
 
     # Определяем плотность контакта по перевыполению AC
-    margin = result.total_attack - result.target_ac
+    margin = result.attack_total - result.target_ac
     if margin >= 5:
         return ContactLevel.SOLID
     elif margin >= 2:

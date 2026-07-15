@@ -7,6 +7,10 @@ path: backend/tests/sandbox/SUPERBOX/behavior_laboratory.py
 Запуск: cd backend; python -m tests.sandbox.SUPERBOX.behavior_laboratory; cd ..
 """
 
+from app.domain.identity_events import EffectiveDrives
+
+_MOCK_DRIVES = EffectiveDrives.from_dict({"control": 0.5, "significance": 0.5, "fear": 0.5, "desire": 0.5})
+
 from app.models.npc_state import (
     NPCIdentityL1,
 )

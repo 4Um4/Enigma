@@ -13,6 +13,10 @@ TODO:
 - Интегрировать CausalOscilloscope для автоматической верификации и визуализации.
 """
 
+from app.domain.identity_events import EffectiveDrives
+
+_MOCK_DRIVES = EffectiveDrives.from_dict({"control": 0.5, "significance": 0.5, "fear": 0.5, "desire": 0.5})
+
 from app.models.cfrm import PsychologicalPressure
 from app.models.traversal import TraversalRegistry, TraversalState
 

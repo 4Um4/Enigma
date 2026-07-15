@@ -6,6 +6,10 @@ from pathlib import Path
 _project_root = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(_project_root / "backend"))
 
+from app.domain.identity_events import EffectiveDrives
+
+_MOCK_DRIVES = EffectiveDrives.from_dict({"control": 0.5, "significance": 0.5, "fear": 0.5, "desire": 0.5})
+
 from app.models.spatial_contracts import NodeRole, SpatialOverlay, Urgency
 from app.services.spatial.graph_compiler import compile_graph, load_editor_json
 from app.services.spatial.role_resolver import resolve_role

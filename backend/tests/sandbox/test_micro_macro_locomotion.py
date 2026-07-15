@@ -4,6 +4,10 @@
 # Основные сущности: MovementIntent (local_target_xy), _resolve_reactive_movement
 
 import pytest
+from app.domain.identity_events import EffectiveDrives
+
+_MOCK_DRIVES = EffectiveDrives.from_dict({"control": 0.5, "significance": 0.5, "fear": 0.5, "desire": 0.5})
+
 from app.services.npc.npc_tick_pipeline import _resolve_reactive_movement
 
 

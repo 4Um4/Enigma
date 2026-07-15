@@ -28,7 +28,7 @@ class LifeProjectResolver:
     }
 
     @staticmethod
-    def resolve(state: NPCState, identity_crisis: bool) -> None:
+    def resolve(state: NPCState, identity_crisis: bool, project_completed: bool = False) -> None:
         """
         Продвигает FSM жизненного проекта.
         Вызывается каждый тик в phases/decision.py.
@@ -36,8 +36,17 @@ class LifeProjectResolver:
         current_state = getattr(state, "life_project_state", "ACTIVE")
 
         if current_state == "ACTIVE":
-            if identity_crisis:
+            # P1: Кризис от Успеха. Завершение проекта ведёт в COMPLETED, а не в LOST.
+            if project_completed:
+                state.life_project_state = "COMPLETED"
+            elif identity_crisis:
                 state.life_project_state = "COLLAPSING"
+
+        elif current_state == "COMPLETED":
+            # P1: Vitality decay. Stress grows as the agent lacks a successor project.
+            state.stress = min(100.0, state.stress + 5.0)
+            if state.stress >= 90.0:
+                state.life_project_state = "LOST"
 
         elif current_state == "COLLAPSING":
             # Переход в экзистенциальную пустоту

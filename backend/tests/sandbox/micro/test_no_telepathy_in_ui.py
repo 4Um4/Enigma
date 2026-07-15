@@ -7,6 +7,10 @@ path: backend/tests/sandbox/micro/test_no_telepathy_in_ui.py
 Запуск: cd backend; python -m pytest tests/sandbox/micro/test_no_telepathy_in_ui.py -v --tb=short; cd ..
 """
 
+from app.domain.identity_events import EffectiveDrives
+
+_MOCK_DRIVES = EffectiveDrives.from_dict({"control": 0.5, "significance": 0.5, "fear": 0.5, "desire": 0.5})
+
 from app.domain.snapshot import NPCPositionDTO, WorldSnapshotDTO
 
 

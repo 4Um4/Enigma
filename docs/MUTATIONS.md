@@ -448,6 +448,12 @@
   - **Validation:** IPT 5/5 passed. DriftLaboratory (1000 тиков): 0 крашей, 438 успешных транзитов, утечек нет.
   Files: backend/app/services/pipeline_runner.py, backend/app/services/tick_orchestrator.py, backend/app/services/npc/npc_tick_pipeline.py
 
+- 🔵 **S121** ONTOLOGICAL SHIFT: Reality-Constrained Agency Model (ADR-O-320).
+  - **Контракт:** Внедрён `docs/ENTITY_CONTINUITY_CONTRACT.md`. Система переведена на 5 слоёв непрерывности (Reality, Physical, Cognitive, Intent, Agency). Зафиксирован Anti-Script Constraint.
+  - **P1 (Кризис от Успеха):** Reclassified. Текущий FSM с `COMPLETED` сохранён как временное решение. Архитектурное разрешение: `LifeProject` становится проекцией стабилизации Идентичности, а `SEARCHING` — результатом динамики давления.
+  - **P2 (Rule 120 Drift):** Accepted Architectural Debt. Причина: множественные Traversal Authorities (Legacy создаёт Traversal безусловно, Shadow проверяет путь). Разрешение: внедрение `MovementPlanner` (Layer 1) как единственного автора физического перемещения.
+  - **IPT:** 5/5 passed.
+
 
 ### DOM-11: DOCUMENTATION & AUDIT (ТЗ-07)
 

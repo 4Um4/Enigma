@@ -514,22 +514,22 @@ class TickOrchestrator:
 
     def _run_core_phases(self, ctx: _TickContext) -> None:
         """A2-FIX v0.2: Immutable core pipeline. NO mode, NO player branching."""
-        self._snapshot_positions_before(ctx)
-        self._phase_0_simulation(ctx)
-        self._phase_0_5_idle_services(ctx)
-        self._phase_1_npic_normalize(ctx)
-        self._phase_1_input_merge(ctx)
-        self._apply_willpower_gate(ctx)
-        self._phase_2_event_bus_primary(ctx)
-        self._phase_3_memory(ctx)
-        self._phase_4_pre_decision(ctx)
-        self._phase_5_decision(ctx)
-        self._phase_6_post_decision(ctx)
-        self._phase_7_windup_resolution(ctx)  # ADR-O-310: Execution Gate
-        self._phase_8_drain_secondary(ctx)
-        self._phase_9_integration(ctx)
-        self._run_affective_pipeline(ctx)
-        self._phase_10_persistence(ctx)
+        self._snapshot_positions_before(ctx) #1
+        self._phase_0_simulation(ctx) #2
+        self._phase_0_5_idle_services(ctx) #3
+        self._phase_1_npic_normalize(ctx) #4
+        self._phase_1_input_merge(ctx) #5
+        self._apply_willpower_gate(ctx) #6
+        self._phase_2_event_bus_primary(ctx) #7
+        self._phase_3_memory(ctx) #8
+        self._phase_4_pre_decision(ctx) #9
+        self._phase_5_decision(ctx) #10
+        self._phase_6_post_decision(ctx) #11
+        self._phase_7_windup_resolution(ctx)  #12 ADR-O-310: Execution Gate
+        self._phase_8_drain_secondary(ctx) #13
+        self._phase_9_integration(ctx) #15
+        self._run_affective_pipeline(ctx) #16
+        self._phase_10_persistence(ctx) #17
 
     def _phase_1_npic_normalize(self, ctx: _TickContext) -> None:
         """Подслой 1.1: NPIC NORMALIZATION."""
@@ -1098,20 +1098,8 @@ class TickOrchestrator:
         Собирает TickState (causal snapshot), вызывает NpcTickPipeline.run() (pure reducer),
         применяет TickMutation к контексту. Никаких ветвлений на player/idle.
         """
-        from app.services.phases.decision import evaluate_behavior_and_identity
-
         logger.info(
             f"[PHASE_5_UNIFIED] ENTER: tick={ctx.tick_number}, interventions={len(ctx.interventions)}"
-        )
-
-        # [S99] Block 4 (Behavior Evaluation) вынесен в phases/decision.py
-        evaluate_behavior_and_identity(
-            npc_states=ctx.npc_states,
-            campaign_id=ctx.campaign_id,
-            tick_number=ctx.tick_number,
-            game_day=getattr(ctx, "game_day", 0),
-            memory_manager=self._get_memory_manager(),
-            l1_chronicle=getattr(self, "l1_chronicle", None),
         )
 
         ctx.effective_drives_map, ctx.drives_updates, ctx.strain_updates = (
@@ -1163,6 +1151,19 @@ class TickOrchestrator:
             _crystallized_beliefs_map,
             _identity_traits_map,
         ) = assemble_preloaded_data(ctx, _alive_npcs)
+
+        # [S99] Block 4 (Behavior Evaluation) вынесен в phases/decision.py
+        # DEEP-FIX: Перенесено после assemble_preloaded_data, чтобы передать economic_profiles_map
+        from app.services.phases.decision import evaluate_behavior_and_identity
+        evaluate_behavior_and_identity(
+            npc_states=ctx.npc_states,
+            campaign_id=ctx.campaign_id,
+            tick_number=ctx.tick_number,
+            game_day=getattr(ctx, "game_day", 0),
+            memory_manager=self._get_memory_manager(),
+            l1_chronicle=getattr(self, "l1_chronicle", None),
+            economic_profiles_map=_economic_profiles_map,
+        )
 
         # P5 FIX: Передаём разрешённый spatial_service напрямую, чтобы избежать потери в npc_services
         _spatial_svc_for_pipeline = self._resolve_spatial_service(ctx)

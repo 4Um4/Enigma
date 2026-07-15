@@ -22,6 +22,15 @@ TODO:
 
 from __future__ import annotations
 
+import pytest
+
+# ADR-TZ09-1: TickOrchestrator._build_npc_snapshots удалён. Сборка перенесена в pipeline_runner.
+pytestmark = pytest.mark.skip(reason="Legacy tests for removed TickOrchestrator._build_npc_snapshots.")
+
+from app.domain.identity_events import EffectiveDrives
+
+_MOCK_DRIVES = EffectiveDrives.from_dict({"control": 0.5, "significance": 0.5, "fear": 0.5, "desire": 0.5})
+
 from app.services.tick_orchestrator import TickOrchestrator
 
 # ── Хелперы ───────────────────────────────────────────────────────────────

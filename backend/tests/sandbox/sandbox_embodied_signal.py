@@ -12,6 +12,10 @@ logging.basicConfig(level=logging.DEBUG, format="[%(name)s] %(message)s", stream
 # Добавляем корень бэкенда в путь
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
+from app.domain.identity_events import EffectiveDrives
+
+_MOCK_DRIVES = EffectiveDrives.from_dict({"control": 0.5, "significance": 0.5, "fear": 0.5, "desire": 0.5})
+
 from app.services.perception.behavior_manifestation_service import BehaviorManifestationService
 from app.services.perception.phenomenology_projection_service import PhenomenologyProjectionService
 

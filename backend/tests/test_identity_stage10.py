@@ -9,6 +9,10 @@ path: backend/tests/test_identity_stage10.py
 Основные сущности: check_identity(), check_identity_promotion()
 """
 
+from app.domain.identity_events import EffectiveDrives
+
+_MOCK_DRIVES = EffectiveDrives.from_dict({"control": 0.5, "significance": 0.5, "fear": 0.5, "desire": 0.5})
+
 from app.services.memory.memory_manager import MemoryManager
 from app.services.memory.promotion_engine import MemoryPromotionEngine
 

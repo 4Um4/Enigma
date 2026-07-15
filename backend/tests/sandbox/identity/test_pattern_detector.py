@@ -15,6 +15,10 @@ from unittest.mock import MagicMock
 import pytest
 
 # Импортируем DTO (даже если они еще не реализованы, тесты ожидает их контракта)
+from app.domain.identity_events import EffectiveDrives
+
+_MOCK_DRIVES = EffectiveDrives.from_dict({"control": 0.5, "significance": 0.5, "fear": 0.5, "desire": 0.5})
+
 from app.domain.identity_events import EvidenceOfPersistence, TraitDriftEvent
 from app.services.npc.pattern_detector import MIN_EVENTS_FOR_PERSISTENCE, PatternDetector
 

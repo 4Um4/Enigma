@@ -1,0 +1,1028 @@
+2026-07-15 22:00:32,442 app.main INFO: [CDS] FileHandler initialized: C:\DDD\Codex\VSC_Enigma\Enigma\backend\logs\cds_session_20260715_220032.log
+2026-07-15 22:00:32,443 app.services.llm.provider_manager INFO: ModelPool: Registered 'qwen_7b' (ctx=8192)
+2026-07-15 22:00:32,443 app.services.llm.provider_manager INFO: ModelPool: Registered 'qwen_7b' (ctx=8192)
+2026-07-15 22:00:32,494 app.services.vram_monitor INFO: [VRAM_MONITOR] Baseline auto-set: 761 MB
+2026-07-15 22:00:32,494 app.services.vram_monitor INFO: [VRAM_SESSION] Started: baseline=761MB
+2026-07-15 22:00:32,505 pymorphy3.opencorpora_dict.wrapper INFO: Loading dictionaries from C:\DDD\Codex\VSC_Enigma\Enigma\.venv\Lib\site-packages\pymorphy3_dicts_ru\data
+2026-07-15 22:00:32,523 pymorphy3.opencorpora_dict.wrapper INFO: format: 2.4, revision: 417150, updated: 2022-01-08T22:09:24.565962
+2026-07-15 22:00:32,528 app.services.events.event_bus INFO: [EVENT_BUS] EventBus инициализирован
+2026-07-15 22:00:32,540 app.services.game_loop.service_factories INFO: [REPUTATION] factions.json not found, engine disabled
+2026-07-15 22:00:32,542 app.services.game_loop.service_factories INFO: [REPUTATION] factions.json not found, engine disabled
+2026-07-15 22:00:32,542 app.services.game_loop.service_factories INFO: [STATE_APPLICATOR] Initialized with ReputationEngine=False
+2026-07-15 22:00:32,543 app.services.game_loop INFO: [GAME_LOOP] NpcDialogueSubscriber registered for npc_spoke
+2026-07-15 22:00:32,546 app.services.game_loop_builder INFO: [BUILDER] GameLoop создан
+2026-07-15 22:00:40,086 httpx INFO: HTTP Request: GET http://localhost:8181/v1/models "HTTP/1.1 503 Service Unavailable"
+2026-07-15 22:00:41,670 app.main INFO: [STARTUP] llama-server запущен (http://localhost:8181)
+2026-07-15 22:00:41,701 app.main INFO: [STARTUP] LLM (сервер): доступен
+2026-07-15 22:00:42,274 app.services.state.sqlite_persistence_adapter INFO: [SQLITE_PERSISTENCE] Campaign deleted: Open_road
+2026-07-15 22:00:42,274 app.services.game_loop INFO: [NEW_GAME] SQLite cleared for 'Open_road'
+2026-07-15 22:00:42,275 app.services.game_loop INFO: [NEW_GAME] Removed: C:\DDD\Codex\VSC_Enigma\Enigma\saves\Open_road\campaign_state.json
+2026-07-15 22:00:42,275 app.services.game_loop INFO: [NEW_GAME] Removed: C:\DDD\Codex\VSC_Enigma\Enigma\saves\Open_road\player_avatar.json
+2026-07-15 22:00:42,275 app.services.game_loop INFO: [NEW_GAME] Removed: C:\DDD\Codex\VSC_Enigma\Enigma\saves\Open_road\campaign_meta.json
+2026-07-15 22:00:42,288 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-15 22:00:42,294 app.services.npc.npc_loader INFO: [NPC_LOADER] No runtime file, loaded 6 NPCs from config only
+2026-07-15 22:00:42,294 app.services.scene_state_manager INFO: [SCENE] Editor JSON: 38 объектов, 6 NPC, spawn_node=entrance
+2026-07-15 22:00:42,296 app.services.scene_state_manager INFO: [SCENE] Инициализирована сцена 'tavern_silver_wolf' (время: 12:00, объектов: 39, NPC: 6)
+2026-07-15 22:00:42,296 app.services.scene_state_manager INFO: [SCENE] Campaign 'Open_road' reinitialized from editor, location=tavern_silver_wolf
+2026-07-15 22:00:42,296 app.services.game_loop WARNING: [NEW_GAME] MemoryManager reset failed: 'SqliteMemoryStore' object has no attribute '_collection_path'
+2026-07-15 22:00:42,298 app.services.game_loop INFO: [NEW_GAME] SQLite memories cleared: 38 rows
+2026-07-15 22:00:42,298 app.services.game_loop INFO: [NEW_GAME] Campaign 'Open_road' fully reset. Removed: ['sqlite:scene+runtime', 'campaign_state.json', 'player_avatar.json', 'campaign_meta.json', 'sqlite:memories(38)']
+2026-07-15 22:00:43,444 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-15 22:00:43,448 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_east → city_gate (east), linked to tavern_silver_wolf:kitchen
+2026-07-15 22:00:43,448 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] Boundary node: tavern_silver_wolf:exit_south → market_square (south), linked to tavern_silver_wolf:entrance
+2026-07-15 22:00:43,448 app.services.spatial.graph_compiler INFO: [GRAPH_COMPILER] tavern_silver_wolf: compiled 10 nodes, 10 edges, 25 aliases, 2 boundaries (nav=True, rooms=True)
+2026-07-15 22:00:43,462 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-15 22:00:43,573 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-15 22:00:43,575 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-15 22:00:43,623 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=1985549787760 tick=1
+2026-07-15 22:00:43,624 app.services.tick_orchestrator INFO: [CFRM] ClusterOccupancy rebuild: 6 entities in 0.01ms
+2026-07-15 22:00:43,628 app.services.npc.npc_loader INFO: [NPC_LOADER] No runtime file, loaded 6 NPCs from config only
+2026-07-15 22:00:43,631 app.services.scene_state_manager INFO: [SCENE] Применено 10/10 изменений (in-memory, persist=Phase10)
+2026-07-15 22:00:43,632 app.services.spatial.movement_engine INFO: [CROSS_LOC_INTERCEPT] npc=guard_borko target=city_gate rerouted to boundary tavern_silver_wolf:exit_east in tavern_silver_wolf
+2026-07-15 22:00:43,632 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=guard_borko → zone=exit_east reason=schedule:guarding_gate exact_xy=(18.45, 7.7)
+2026-07-15 22:00:43,632 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=merchant_goran → zone=tavern_silver_wolf:fireplace reason=schedule:market_trading exact_xy=(10.4, 3.55)
+2026-07-15 22:00:43,632 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=maid_lusya → zone=kitchen reason=schedule:sleeping exact_xy=(16.0, 4.15)
+2026-07-15 22:00:43,632 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=tavern_keeper_tornin → zone=tavern_silver_wolf:kitchen reason=schedule:working exact_xy=(16.6, 3.55)
+2026-07-15 22:00:43,632 app.models.world_snapshot INFO: [SNAPSHOT_CREATED] id=96fc5bd5 tick=1 location=tavern_silver_wolf npcs=6 traversals=0 rng_seed=1
+2026-07-15 22:00:43,632 app.services.event_compiler INFO: [SHADOW_COMPILER] pathfinding: npc=guard_borko via 2 intermediate nodes
+2026-07-15 22:00:43,632 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=guard_borko field=position cause=semantic_relocation:schedule:guarding_gate spatial=yes traversal=NEW
+2026-07-15 22:00:43,632 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=merchant_goran field=position cause=semantic_relocation:schedule:market_trading spatial=yes traversal=NEW
+2026-07-15 22:00:43,632 app.services.event_compiler INFO: [SHADOW_COMPILER] pathfinding: npc=maid_lusya via 1 intermediate nodes
+2026-07-15 22:00:43,632 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=maid_lusya field=position cause=semantic_relocation:schedule:sleeping spatial=yes traversal=NEW
+2026-07-15 22:00:43,632 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=tavern_keeper_tornin field=position cause=semantic_relocation:schedule:working spatial=yes traversal=NEW
+2026-07-15 22:00:43,632 app.services.phases.traversal INFO: [DUAL_RAIL][IDLE_SPATIAL] spatial_changes=4 shadow_compiled=4 snapshot_id=96fc5bd5
+2026-07-15 22:00:43,633 app.services.scene_state_manager INFO: [SCENE] Применено 4/4 изменений (in-memory, persist=Phase10)
+2026-07-15 22:00:43,633 app.services.phases.simulation INFO: [TICK_ORCH] Фаза 0: 4 spatial changes from 4 LifeEngine intents
+2026-07-15 22:00:43,642 app.services.tick_orchestrator INFO: [PHASE_5_UNIFIED] ENTER: tick=1, interventions=0
+2026-07-15 22:00:43,643 app.services.phases.decision ERROR: [BREAK_PROGRESS] failed for guard_borko: name '_economic_profiles_map' is not defined
+2026-07-15 22:00:43,643 app.services.tick_orchestrator ERROR: [TICK_CRASH] campaign=Open_road tick=1 error=name '_economic_profiles_map' is not defined
+2026-07-15 22:00:43,643 app.services.tick_orchestrator ERROR: [TICK_ORCH] Ошибка в тике Open_road: name '_economic_profiles_map' is not defined
+Traceback (most recent call last):
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 462, in execute
+    self._run_core_phases(ctx)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 526, in _run_core_phases
+    self._phase_5_decision(ctx) #10
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 1109, in _phase_5_decision
+    evaluate_behavior_and_identity(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        npc_states=ctx.npc_states,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+        l1_chronicle=getattr(self, "l1_chronicle", None),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\decision.py", line 91, in evaluate_behavior_and_identity
+    _economic_profile = _economic_profiles_map.get(npc_id, {}) if _economic_profiles_map else {}
+                                                                  ^^^^^^^^^^^^^^^^^^^^^^
+NameError: name '_economic_profiles_map' is not defined
+2026-07-15 22:00:44,077 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-15 22:00:44,079 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-15 22:00:44,080 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=1985549787760 tick=1
+2026-07-15 22:00:44,080 app.services.tick_orchestrator INFO: [CFRM] ClusterOccupancy rebuild: 6 entities in 0.01ms
+2026-07-15 22:00:44,082 app.services.scene_state_manager INFO: [SCENE] Применено 2/2 изменений (in-memory, persist=Phase10)
+2026-07-15 22:00:44,082 app.services.tick_orchestrator INFO: [PHASE_5_UNIFIED] ENTER: tick=1, interventions=0
+2026-07-15 22:00:44,082 app.services.phases.decision ERROR: [BREAK_PROGRESS] failed for guard_borko: name '_economic_profiles_map' is not defined
+2026-07-15 22:00:44,082 app.services.tick_orchestrator ERROR: [TICK_CRASH] campaign=Open_road tick=1 error=name '_economic_profiles_map' is not defined
+2026-07-15 22:00:44,082 app.services.tick_orchestrator ERROR: [TICK_ORCH] Ошибка в тике Open_road: name '_economic_profiles_map' is not defined
+Traceback (most recent call last):
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 462, in execute
+    self._run_core_phases(ctx)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 526, in _run_core_phases
+    self._phase_5_decision(ctx) #10
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 1109, in _phase_5_decision
+    evaluate_behavior_and_identity(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        npc_states=ctx.npc_states,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+        l1_chronicle=getattr(self, "l1_chronicle", None),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\decision.py", line 91, in evaluate_behavior_and_identity
+    _economic_profile = _economic_profiles_map.get(npc_id, {}) if _economic_profiles_map else {}
+                                                                  ^^^^^^^^^^^^^^^^^^^^^^
+NameError: name '_economic_profiles_map' is not defined
+2026-07-15 22:00:44,597 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-15 22:00:44,600 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-15 22:00:44,600 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=1985549787760 tick=1
+2026-07-15 22:00:44,601 app.services.tick_orchestrator INFO: [CFRM] ClusterOccupancy rebuild: 6 entities in 0.01ms
+2026-07-15 22:00:44,602 app.services.scene_state_manager INFO: [SCENE] Применено 2/2 изменений (in-memory, persist=Phase10)
+2026-07-15 22:00:44,602 app.services.tick_orchestrator INFO: [PHASE_5_UNIFIED] ENTER: tick=1, interventions=0
+2026-07-15 22:00:44,602 app.services.phases.decision ERROR: [BREAK_PROGRESS] failed for guard_borko: name '_economic_profiles_map' is not defined
+2026-07-15 22:00:44,602 app.services.tick_orchestrator ERROR: [TICK_CRASH] campaign=Open_road tick=1 error=name '_economic_profiles_map' is not defined
+2026-07-15 22:00:44,602 app.services.tick_orchestrator ERROR: [TICK_ORCH] Ошибка в тике Open_road: name '_economic_profiles_map' is not defined
+Traceback (most recent call last):
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 462, in execute
+    self._run_core_phases(ctx)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 526, in _run_core_phases
+    self._phase_5_decision(ctx) #10
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 1109, in _phase_5_decision
+    evaluate_behavior_and_identity(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        npc_states=ctx.npc_states,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+        l1_chronicle=getattr(self, "l1_chronicle", None),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\decision.py", line 91, in evaluate_behavior_and_identity
+    _economic_profile = _economic_profiles_map.get(npc_id, {}) if _economic_profiles_map else {}
+                                                                  ^^^^^^^^^^^^^^^^^^^^^^
+NameError: name '_economic_profiles_map' is not defined
+2026-07-15 22:00:45,110 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-15 22:00:45,112 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-15 22:00:45,113 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=1985549787760 tick=1
+2026-07-15 22:00:45,113 app.services.tick_orchestrator INFO: [CFRM] ClusterOccupancy rebuild: 6 entities in 0.01ms
+2026-07-15 22:00:45,114 app.services.scene_state_manager INFO: [SCENE] Применено 2/2 изменений (in-memory, persist=Phase10)
+2026-07-15 22:00:45,114 app.services.tick_orchestrator INFO: [PHASE_5_UNIFIED] ENTER: tick=1, interventions=0
+2026-07-15 22:00:45,115 app.services.phases.decision ERROR: [BREAK_PROGRESS] failed for guard_borko: name '_economic_profiles_map' is not defined
+2026-07-15 22:00:45,115 app.services.tick_orchestrator ERROR: [TICK_CRASH] campaign=Open_road tick=1 error=name '_economic_profiles_map' is not defined
+2026-07-15 22:00:45,115 app.services.tick_orchestrator ERROR: [TICK_ORCH] Ошибка в тике Open_road: name '_economic_profiles_map' is not defined
+Traceback (most recent call last):
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 462, in execute
+    self._run_core_phases(ctx)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 526, in _run_core_phases
+    self._phase_5_decision(ctx) #10
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 1109, in _phase_5_decision
+    evaluate_behavior_and_identity(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        npc_states=ctx.npc_states,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+        l1_chronicle=getattr(self, "l1_chronicle", None),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\decision.py", line 91, in evaluate_behavior_and_identity
+    _economic_profile = _economic_profiles_map.get(npc_id, {}) if _economic_profiles_map else {}
+                                                                  ^^^^^^^^^^^^^^^^^^^^^^
+NameError: name '_economic_profiles_map' is not defined
+2026-07-15 22:00:45,616 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-15 22:00:45,619 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-15 22:00:45,620 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=1985549787760 tick=1
+2026-07-15 22:00:45,620 app.services.tick_orchestrator INFO: [CFRM] ClusterOccupancy rebuild: 6 entities in 0.01ms
+2026-07-15 22:00:45,621 app.services.scene_state_manager INFO: [SCENE] Применено 2/2 изменений (in-memory, persist=Phase10)
+2026-07-15 22:00:45,622 app.services.tick_orchestrator INFO: [PHASE_5_UNIFIED] ENTER: tick=1, interventions=0
+2026-07-15 22:00:45,622 app.services.phases.decision ERROR: [BREAK_PROGRESS] failed for guard_borko: name '_economic_profiles_map' is not defined
+2026-07-15 22:00:45,622 app.services.tick_orchestrator ERROR: [TICK_CRASH] campaign=Open_road tick=1 error=name '_economic_profiles_map' is not defined
+2026-07-15 22:00:45,622 app.services.tick_orchestrator ERROR: [TICK_ORCH] Ошибка в тике Open_road: name '_economic_profiles_map' is not defined
+Traceback (most recent call last):
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 462, in execute
+    self._run_core_phases(ctx)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 526, in _run_core_phases
+    self._phase_5_decision(ctx) #10
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 1109, in _phase_5_decision
+    evaluate_behavior_and_identity(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        npc_states=ctx.npc_states,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+        l1_chronicle=getattr(self, "l1_chronicle", None),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\decision.py", line 91, in evaluate_behavior_and_identity
+    _economic_profile = _economic_profiles_map.get(npc_id, {}) if _economic_profiles_map else {}
+                                                                  ^^^^^^^^^^^^^^^^^^^^^^
+NameError: name '_economic_profiles_map' is not defined
+2026-07-15 22:00:46,126 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-15 22:00:46,129 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-15 22:00:46,129 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=1985549787760 tick=1
+2026-07-15 22:00:46,129 app.services.tick_orchestrator INFO: [CFRM] ClusterOccupancy rebuild: 6 entities in 0.01ms
+2026-07-15 22:00:46,131 app.services.scene_state_manager INFO: [SCENE] Применено 2/2 изменений (in-memory, persist=Phase10)
+2026-07-15 22:00:46,131 app.services.tick_orchestrator INFO: [PHASE_5_UNIFIED] ENTER: tick=1, interventions=0
+2026-07-15 22:00:46,131 app.services.phases.decision ERROR: [BREAK_PROGRESS] failed for guard_borko: name '_economic_profiles_map' is not defined
+2026-07-15 22:00:46,131 app.services.tick_orchestrator ERROR: [TICK_CRASH] campaign=Open_road tick=1 error=name '_economic_profiles_map' is not defined
+2026-07-15 22:00:46,131 app.services.tick_orchestrator ERROR: [TICK_ORCH] Ошибка в тике Open_road: name '_economic_profiles_map' is not defined
+Traceback (most recent call last):
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 462, in execute
+    self._run_core_phases(ctx)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 526, in _run_core_phases
+    self._phase_5_decision(ctx) #10
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 1109, in _phase_5_decision
+    evaluate_behavior_and_identity(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        npc_states=ctx.npc_states,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+        l1_chronicle=getattr(self, "l1_chronicle", None),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\decision.py", line 91, in evaluate_behavior_and_identity
+    _economic_profile = _economic_profiles_map.get(npc_id, {}) if _economic_profiles_map else {}
+                                                                  ^^^^^^^^^^^^^^^^^^^^^^
+NameError: name '_economic_profiles_map' is not defined
+2026-07-15 22:00:46,641 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-15 22:00:46,644 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-15 22:00:46,644 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=1985549787760 tick=1
+2026-07-15 22:00:46,644 app.services.tick_orchestrator INFO: [CFRM] ClusterOccupancy rebuild: 6 entities in 0.01ms
+2026-07-15 22:00:46,646 app.services.scene_state_manager INFO: [SCENE] Применено 4/4 изменений (in-memory, persist=Phase10)
+2026-07-15 22:00:46,646 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=merchant_goran → zone=tavern_silver_wolf:corner_table reason=need_driven:hunger=0.56 exact_xy=(11.4, 9.55)
+2026-07-15 22:00:46,646 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=maid_lusya → zone=main_hall reason=need_driven:hunger=0.56 exact_xy=(8.0, 7.15)
+2026-07-15 22:00:46,646 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=thief_shadow → zone=main_hall reason=need_driven:hunger=0.56 exact_xy=(7.55, 6.85)
+2026-07-15 22:00:46,646 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=tavern_keeper_tornin → zone=tavern_silver_wolf:corner_table reason=need_driven:hunger=0.56 exact_xy=(12.6, 9.55)
+2026-07-15 22:00:46,646 app.models.world_snapshot INFO: [SNAPSHOT_CREATED] id=e0e3892e tick=1 location=tavern_silver_wolf npcs=6 traversals=0 rng_seed=1
+2026-07-15 22:00:46,647 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=merchant_goran field=position cause=semantic_relocation:need_driven:hunger=0.56 spatial=yes traversal=NEW
+2026-07-15 22:00:46,647 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=maid_lusya field=position cause=semantic_relocation:need_driven:hunger=0.56 spatial=yes traversal=NEW
+2026-07-15 22:00:46,647 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=thief_shadow field=position cause=semantic_relocation:need_driven:hunger=0.56 spatial=yes traversal=NEW
+2026-07-15 22:00:46,647 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=tavern_keeper_tornin field=position cause=semantic_relocation:need_driven:hunger=0.56 spatial=yes traversal=NEW
+2026-07-15 22:00:46,647 app.services.phases.traversal INFO: [DUAL_RAIL][IDLE_SPATIAL] spatial_changes=4 shadow_compiled=4 snapshot_id=e0e3892e
+2026-07-15 22:00:46,647 app.services.scene_state_manager INFO: [SCENE] Применено 4/4 изменений (in-memory, persist=Phase10)
+2026-07-15 22:00:46,647 app.services.phases.simulation INFO: [TICK_ORCH] Фаза 0: 4 spatial changes from 4 LifeEngine intents
+2026-07-15 22:00:46,649 app.services.tick_orchestrator INFO: [PHASE_5_UNIFIED] ENTER: tick=1, interventions=0
+2026-07-15 22:00:46,649 app.services.phases.decision ERROR: [BREAK_PROGRESS] failed for guard_borko: name '_economic_profiles_map' is not defined
+2026-07-15 22:00:46,649 app.services.tick_orchestrator ERROR: [TICK_CRASH] campaign=Open_road tick=1 error=name '_economic_profiles_map' is not defined
+2026-07-15 22:00:46,649 app.services.tick_orchestrator ERROR: [TICK_ORCH] Ошибка в тике Open_road: name '_economic_profiles_map' is not defined
+Traceback (most recent call last):
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 462, in execute
+    self._run_core_phases(ctx)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 526, in _run_core_phases
+    self._phase_5_decision(ctx) #10
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 1109, in _phase_5_decision
+    evaluate_behavior_and_identity(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        npc_states=ctx.npc_states,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+        l1_chronicle=getattr(self, "l1_chronicle", None),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\decision.py", line 91, in evaluate_behavior_and_identity
+    _economic_profile = _economic_profiles_map.get(npc_id, {}) if _economic_profiles_map else {}
+                                                                  ^^^^^^^^^^^^^^^^^^^^^^
+NameError: name '_economic_profiles_map' is not defined
+2026-07-15 22:00:47,152 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-15 22:00:47,154 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-15 22:00:47,155 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=1985549787760 tick=1
+2026-07-15 22:00:47,155 app.services.tick_orchestrator INFO: [CFRM] ClusterOccupancy rebuild: 6 entities in 0.01ms
+2026-07-15 22:00:47,157 app.services.scene_state_manager INFO: [SCENE] Применено 4/4 изменений (in-memory, persist=Phase10)
+2026-07-15 22:00:47,157 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=merchant_goran → zone=tavern_silver_wolf:fireplace reason=need_driven:shelter_urge=0.64 exact_xy=(10.4, 3.55)
+2026-07-15 22:00:47,157 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=maid_lusya → zone=fireplace reason=need_driven:shelter_urge=0.64 exact_xy=(11.0, 4.15)
+2026-07-15 22:00:47,157 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=thief_shadow → zone=fireplace reason=need_driven:shelter_urge=0.64 exact_xy=(10.55, 3.85)
+2026-07-15 22:00:47,157 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=tavern_keeper_tornin → zone=tavern_silver_wolf:fireplace reason=need_driven:shelter_urge=0.64 exact_xy=(11.6, 3.55)
+2026-07-15 22:00:47,157 app.models.world_snapshot INFO: [SNAPSHOT_CREATED] id=08f83f7b tick=1 location=tavern_silver_wolf npcs=6 traversals=0 rng_seed=1
+2026-07-15 22:00:47,157 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=merchant_goran field=position cause=semantic_relocation:need_driven:shelter_urge=0.64 spatial=yes traversal=NEW
+2026-07-15 22:00:47,157 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=maid_lusya field=position cause=semantic_relocation:need_driven:shelter_urge=0.64 spatial=yes traversal=NEW
+2026-07-15 22:00:47,157 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=thief_shadow field=position cause=semantic_relocation:need_driven:shelter_urge=0.64 spatial=yes traversal=NEW
+2026-07-15 22:00:47,157 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=tavern_keeper_tornin field=position cause=semantic_relocation:need_driven:shelter_urge=0.64 spatial=yes traversal=NEW
+2026-07-15 22:00:47,157 app.services.phases.traversal INFO: [DUAL_RAIL][IDLE_SPATIAL] spatial_changes=4 shadow_compiled=4 snapshot_id=08f83f7b
+2026-07-15 22:00:47,157 app.services.scene_state_manager INFO: [SCENE] Применено 4/4 изменений (in-memory, persist=Phase10)
+2026-07-15 22:00:47,158 app.services.phases.simulation INFO: [TICK_ORCH] Фаза 0: 4 spatial changes from 4 LifeEngine intents
+2026-07-15 22:00:47,160 app.services.tick_orchestrator INFO: [PHASE_5_UNIFIED] ENTER: tick=1, interventions=0
+2026-07-15 22:00:47,160 app.services.phases.decision ERROR: [BREAK_PROGRESS] failed for guard_borko: name '_economic_profiles_map' is not defined
+2026-07-15 22:00:47,160 app.services.tick_orchestrator ERROR: [TICK_CRASH] campaign=Open_road tick=1 error=name '_economic_profiles_map' is not defined
+2026-07-15 22:00:47,160 app.services.tick_orchestrator ERROR: [TICK_ORCH] Ошибка в тике Open_road: name '_economic_profiles_map' is not defined
+Traceback (most recent call last):
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 462, in execute
+    self._run_core_phases(ctx)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 526, in _run_core_phases
+    self._phase_5_decision(ctx) #10
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 1109, in _phase_5_decision
+    evaluate_behavior_and_identity(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        npc_states=ctx.npc_states,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+        l1_chronicle=getattr(self, "l1_chronicle", None),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\decision.py", line 91, in evaluate_behavior_and_identity
+    _economic_profile = _economic_profiles_map.get(npc_id, {}) if _economic_profiles_map else {}
+                                                                  ^^^^^^^^^^^^^^^^^^^^^^
+NameError: name '_economic_profiles_map' is not defined
+2026-07-15 22:00:47,663 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-15 22:00:47,665 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-15 22:00:47,666 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=1985549787760 tick=1
+2026-07-15 22:00:47,666 app.services.tick_orchestrator INFO: [CFRM] ClusterOccupancy rebuild: 6 entities in 0.01ms
+2026-07-15 22:00:47,668 app.services.scene_state_manager INFO: [SCENE] Применено 5/5 изменений (in-memory, persist=Phase10)
+2026-07-15 22:00:47,668 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=merchant_goran → zone=tavern_silver_wolf:bar_area reason=need_driven:social_urge=0.72 exact_xy=(3.4, 3.55)
+2026-07-15 22:00:47,668 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=maid_lusya → zone=kitchen reason=schedule:sleeping exact_xy=(16.0, 4.15)
+2026-07-15 22:00:47,668 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=thief_shadow → zone=tavern_silver_wolf:bar_area reason=need_driven:social_urge=0.72 exact_xy=(3.55, 3.85)
+2026-07-15 22:00:47,668 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=tavern_keeper_tornin → zone=tavern_silver_wolf:bar_area reason=need_driven:social_urge=0.72 exact_xy=(4.6, 3.55)
+2026-07-15 22:00:47,669 app.models.world_snapshot INFO: [SNAPSHOT_CREATED] id=f1a8703d tick=1 location=tavern_silver_wolf npcs=6 traversals=0 rng_seed=1
+2026-07-15 22:00:47,669 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=merchant_goran field=position cause=semantic_relocation:need_driven:social_urge=0.72 spatial=yes traversal=NEW
+2026-07-15 22:00:47,669 app.services.event_compiler INFO: [SHADOW_COMPILER] pathfinding: npc=maid_lusya via 1 intermediate nodes
+2026-07-15 22:00:47,669 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=maid_lusya field=position cause=semantic_relocation:schedule:sleeping spatial=yes traversal=NEW
+2026-07-15 22:00:47,669 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=thief_shadow field=position cause=semantic_relocation:need_driven:social_urge=0.72 spatial=yes traversal=NEW
+2026-07-15 22:00:47,669 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=tavern_keeper_tornin field=position cause=semantic_relocation:need_driven:social_urge=0.72 spatial=yes traversal=NEW
+2026-07-15 22:00:47,669 app.services.phases.traversal INFO: [DUAL_RAIL][IDLE_SPATIAL] spatial_changes=4 shadow_compiled=4 snapshot_id=f1a8703d
+2026-07-15 22:00:47,669 app.services.scene_state_manager INFO: [SCENE] Применено 4/4 изменений (in-memory, persist=Phase10)
+2026-07-15 22:00:47,669 app.services.phases.simulation INFO: [TICK_ORCH] Фаза 0: 4 spatial changes from 4 LifeEngine intents
+2026-07-15 22:00:47,671 app.services.tick_orchestrator INFO: [PHASE_5_UNIFIED] ENTER: tick=1, interventions=0
+2026-07-15 22:00:47,671 app.services.phases.decision ERROR: [BREAK_PROGRESS] failed for guard_borko: name '_economic_profiles_map' is not defined
+2026-07-15 22:00:47,671 app.services.tick_orchestrator ERROR: [TICK_CRASH] campaign=Open_road tick=1 error=name '_economic_profiles_map' is not defined
+2026-07-15 22:00:47,671 app.services.tick_orchestrator ERROR: [TICK_ORCH] Ошибка в тике Open_road: name '_economic_profiles_map' is not defined
+Traceback (most recent call last):
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 462, in execute
+    self._run_core_phases(ctx)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 526, in _run_core_phases
+    self._phase_5_decision(ctx) #10
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 1109, in _phase_5_decision
+    evaluate_behavior_and_identity(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        npc_states=ctx.npc_states,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+        l1_chronicle=getattr(self, "l1_chronicle", None),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\decision.py", line 91, in evaluate_behavior_and_identity
+    _economic_profile = _economic_profiles_map.get(npc_id, {}) if _economic_profiles_map else {}
+                                                                  ^^^^^^^^^^^^^^^^^^^^^^
+NameError: name '_economic_profiles_map' is not defined
+2026-07-15 22:00:48,166 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-15 22:00:48,169 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-15 22:00:48,169 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=1985549787760 tick=1
+2026-07-15 22:00:48,170 app.services.tick_orchestrator INFO: [CFRM] ClusterOccupancy rebuild: 6 entities in 0.01ms
+2026-07-15 22:00:48,179 app.services.scene_state_manager INFO: [SCENE] Применено 6/6 изменений (in-memory, persist=Phase10)
+2026-07-15 22:00:48,179 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=merchant_goran → zone=tavern_silver_wolf:fireplace reason=schedule:market_trading exact_xy=(10.4, 3.55)
+2026-07-15 22:00:48,179 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=tavern_keeper_tornin → zone=tavern_silver_wolf:kitchen reason=schedule:working exact_xy=(16.6, 3.55)
+2026-07-15 22:00:48,180 app.models.world_snapshot INFO: [SNAPSHOT_CREATED] id=784b9df3 tick=1 location=tavern_silver_wolf npcs=6 traversals=0 rng_seed=1
+2026-07-15 22:00:48,180 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=merchant_goran field=position cause=semantic_relocation:schedule:market_trading spatial=yes traversal=NEW
+2026-07-15 22:00:48,180 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=tavern_keeper_tornin field=position cause=semantic_relocation:schedule:working spatial=yes traversal=NEW
+2026-07-15 22:00:48,180 app.services.phases.traversal INFO: [DUAL_RAIL][IDLE_SPATIAL] spatial_changes=2 shadow_compiled=2 snapshot_id=784b9df3
+2026-07-15 22:00:48,180 app.services.scene_state_manager INFO: [SCENE] Применено 2/2 изменений (in-memory, persist=Phase10)
+2026-07-15 22:00:48,180 app.services.phases.simulation INFO: [TICK_ORCH] Фаза 0: 2 spatial changes from 2 LifeEngine intents
+2026-07-15 22:00:48,182 app.services.tick_orchestrator INFO: [PHASE_5_UNIFIED] ENTER: tick=1, interventions=0
+2026-07-15 22:00:48,182 app.services.phases.decision ERROR: [BREAK_PROGRESS] failed for guard_borko: name '_economic_profiles_map' is not defined
+2026-07-15 22:00:48,182 app.services.tick_orchestrator ERROR: [TICK_CRASH] campaign=Open_road tick=1 error=name '_economic_profiles_map' is not defined
+2026-07-15 22:00:48,182 app.services.tick_orchestrator ERROR: [TICK_ORCH] Ошибка в тике Open_road: name '_economic_profiles_map' is not defined
+Traceback (most recent call last):
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 462, in execute
+    self._run_core_phases(ctx)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 526, in _run_core_phases
+    self._phase_5_decision(ctx) #10
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 1109, in _phase_5_decision
+    evaluate_behavior_and_identity(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        npc_states=ctx.npc_states,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+        l1_chronicle=getattr(self, "l1_chronicle", None),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\decision.py", line 91, in evaluate_behavior_and_identity
+    _economic_profile = _economic_profiles_map.get(npc_id, {}) if _economic_profiles_map else {}
+                                                                  ^^^^^^^^^^^^^^^^^^^^^^
+NameError: name '_economic_profiles_map' is not defined
+2026-07-15 22:00:48,681 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-15 22:00:48,683 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-15 22:00:48,684 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=1985549787760 tick=1
+2026-07-15 22:00:48,684 app.services.tick_orchestrator INFO: [CFRM] ClusterOccupancy rebuild: 6 entities in 0.01ms
+2026-07-15 22:00:48,686 app.services.scene_state_manager INFO: [SCENE] Применено 2/2 изменений (in-memory, persist=Phase10)
+2026-07-15 22:00:48,686 app.services.tick_orchestrator INFO: [PHASE_5_UNIFIED] ENTER: tick=1, interventions=0
+2026-07-15 22:00:48,686 app.services.phases.decision ERROR: [BREAK_PROGRESS] failed for guard_borko: name '_economic_profiles_map' is not defined
+2026-07-15 22:00:48,686 app.services.tick_orchestrator ERROR: [TICK_CRASH] campaign=Open_road tick=1 error=name '_economic_profiles_map' is not defined
+2026-07-15 22:00:48,686 app.services.tick_orchestrator ERROR: [TICK_ORCH] Ошибка в тике Open_road: name '_economic_profiles_map' is not defined
+Traceback (most recent call last):
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 462, in execute
+    self._run_core_phases(ctx)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 526, in _run_core_phases
+    self._phase_5_decision(ctx) #10
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 1109, in _phase_5_decision
+    evaluate_behavior_and_identity(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        npc_states=ctx.npc_states,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+        l1_chronicle=getattr(self, "l1_chronicle", None),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\decision.py", line 91, in evaluate_behavior_and_identity
+    _economic_profile = _economic_profiles_map.get(npc_id, {}) if _economic_profiles_map else {}
+                                                                  ^^^^^^^^^^^^^^^^^^^^^^
+NameError: name '_economic_profiles_map' is not defined
+2026-07-15 22:00:49,189 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-15 22:00:49,192 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-15 22:00:49,192 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=1985549787760 tick=1
+2026-07-15 22:00:49,193 app.services.tick_orchestrator INFO: [CFRM] ClusterOccupancy rebuild: 6 entities in 0.01ms
+2026-07-15 22:00:49,195 app.services.scene_state_manager INFO: [SCENE] Применено 3/3 изменений (in-memory, persist=Phase10)
+2026-07-15 22:00:49,195 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=merchant_goran → zone=bar_area reason=random:wanders_to_bar exact_xy=(3.4, 3.55)
+2026-07-15 22:00:49,195 app.models.world_snapshot INFO: [SNAPSHOT_CREATED] id=19775f3a tick=1 location=tavern_silver_wolf npcs=6 traversals=0 rng_seed=1
+2026-07-15 22:00:49,195 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=merchant_goran field=position cause=semantic_relocation:random:wanders_to_bar spatial=yes traversal=NEW
+2026-07-15 22:00:49,195 app.services.phases.traversal INFO: [DUAL_RAIL][IDLE_SPATIAL] spatial_changes=1 shadow_compiled=1 snapshot_id=19775f3a
+2026-07-15 22:00:49,195 app.services.scene_state_manager INFO: [SCENE] Применено 1/1 изменений (in-memory, persist=Phase10)
+2026-07-15 22:00:49,195 app.services.phases.simulation INFO: [TICK_ORCH] Фаза 0: 1 spatial changes from 1 LifeEngine intents
+2026-07-15 22:00:49,196 app.services.tick_orchestrator INFO: [PHASE_5_UNIFIED] ENTER: tick=1, interventions=0
+2026-07-15 22:00:49,196 app.services.phases.decision ERROR: [BREAK_PROGRESS] failed for guard_borko: name '_economic_profiles_map' is not defined
+2026-07-15 22:00:49,196 app.services.tick_orchestrator ERROR: [TICK_CRASH] campaign=Open_road tick=1 error=name '_economic_profiles_map' is not defined
+2026-07-15 22:00:49,196 app.services.tick_orchestrator ERROR: [TICK_ORCH] Ошибка в тике Open_road: name '_economic_profiles_map' is not defined
+Traceback (most recent call last):
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 462, in execute
+    self._run_core_phases(ctx)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 526, in _run_core_phases
+    self._phase_5_decision(ctx) #10
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 1109, in _phase_5_decision
+    evaluate_behavior_and_identity(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        npc_states=ctx.npc_states,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+        l1_chronicle=getattr(self, "l1_chronicle", None),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\decision.py", line 91, in evaluate_behavior_and_identity
+    _economic_profile = _economic_profiles_map.get(npc_id, {}) if _economic_profiles_map else {}
+                                                                  ^^^^^^^^^^^^^^^^^^^^^^
+NameError: name '_economic_profiles_map' is not defined
+2026-07-15 22:00:49,712 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-15 22:00:49,714 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-15 22:00:49,715 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=1985549787760 tick=1
+2026-07-15 22:00:49,715 app.services.tick_orchestrator INFO: [CFRM] ClusterOccupancy rebuild: 6 entities in 0.01ms
+2026-07-15 22:00:49,717 app.services.scene_state_manager INFO: [SCENE] Применено 2/2 изменений (in-memory, persist=Phase10)
+2026-07-15 22:00:49,717 app.services.tick_orchestrator INFO: [PHASE_5_UNIFIED] ENTER: tick=1, interventions=0
+2026-07-15 22:00:49,717 app.services.phases.decision ERROR: [BREAK_PROGRESS] failed for guard_borko: name '_economic_profiles_map' is not defined
+2026-07-15 22:00:49,717 app.services.tick_orchestrator ERROR: [TICK_CRASH] campaign=Open_road tick=1 error=name '_economic_profiles_map' is not defined
+2026-07-15 22:00:49,717 app.services.tick_orchestrator ERROR: [TICK_ORCH] Ошибка в тике Open_road: name '_economic_profiles_map' is not defined
+Traceback (most recent call last):
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 462, in execute
+    self._run_core_phases(ctx)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 526, in _run_core_phases
+    self._phase_5_decision(ctx) #10
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 1109, in _phase_5_decision
+    evaluate_behavior_and_identity(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        npc_states=ctx.npc_states,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+        l1_chronicle=getattr(self, "l1_chronicle", None),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\decision.py", line 91, in evaluate_behavior_and_identity
+    _economic_profile = _economic_profiles_map.get(npc_id, {}) if _economic_profiles_map else {}
+                                                                  ^^^^^^^^^^^^^^^^^^^^^^
+NameError: name '_economic_profiles_map' is not defined
+2026-07-15 22:00:50,224 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-15 22:00:50,226 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-15 22:00:50,227 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=1985549787760 tick=1
+2026-07-15 22:00:50,227 app.services.tick_orchestrator INFO: [CFRM] ClusterOccupancy rebuild: 6 entities in 0.01ms
+2026-07-15 22:00:50,229 app.services.scene_state_manager INFO: [SCENE] Применено 3/3 изменений (in-memory, persist=Phase10)
+2026-07-15 22:00:50,229 app.services.tick_orchestrator INFO: [PHASE_5_UNIFIED] ENTER: tick=1, interventions=0
+2026-07-15 22:00:50,229 app.services.phases.decision ERROR: [BREAK_PROGRESS] failed for guard_borko: name '_economic_profiles_map' is not defined
+2026-07-15 22:00:50,229 app.services.tick_orchestrator ERROR: [TICK_CRASH] campaign=Open_road tick=1 error=name '_economic_profiles_map' is not defined
+2026-07-15 22:00:50,229 app.services.tick_orchestrator ERROR: [TICK_ORCH] Ошибка в тике Open_road: name '_economic_profiles_map' is not defined
+Traceback (most recent call last):
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 462, in execute
+    self._run_core_phases(ctx)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 526, in _run_core_phases
+    self._phase_5_decision(ctx) #10
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 1109, in _phase_5_decision
+    evaluate_behavior_and_identity(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        npc_states=ctx.npc_states,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+        l1_chronicle=getattr(self, "l1_chronicle", None),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\decision.py", line 91, in evaluate_behavior_and_identity
+    _economic_profile = _economic_profiles_map.get(npc_id, {}) if _economic_profiles_map else {}
+                                                                  ^^^^^^^^^^^^^^^^^^^^^^
+NameError: name '_economic_profiles_map' is not defined
+2026-07-15 22:00:50,735 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-15 22:00:50,738 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-15 22:00:50,738 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=1985549787760 tick=1
+2026-07-15 22:00:50,738 app.services.tick_orchestrator INFO: [CFRM] ClusterOccupancy rebuild: 6 entities in 0.01ms
+2026-07-15 22:00:50,740 app.services.scene_state_manager INFO: [SCENE] Применено 4/4 изменений (in-memory, persist=Phase10)
+2026-07-15 22:00:50,740 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=merchant_goran → zone=tavern_silver_wolf:corner_table reason=need_driven:hunger=0.56 exact_xy=(11.4, 9.55)
+2026-07-15 22:00:50,740 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=thief_shadow → zone=main_hall reason=need_driven:hunger=0.56 exact_xy=(7.55, 6.85)
+2026-07-15 22:00:50,740 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=tavern_keeper_tornin → zone=tavern_silver_wolf:corner_table reason=need_driven:hunger=0.56 exact_xy=(12.6, 9.55)
+2026-07-15 22:00:50,741 app.models.world_snapshot INFO: [SNAPSHOT_CREATED] id=2d30dd01 tick=1 location=tavern_silver_wolf npcs=6 traversals=0 rng_seed=1
+2026-07-15 22:00:50,741 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=merchant_goran field=position cause=semantic_relocation:need_driven:hunger=0.56 spatial=yes traversal=NEW
+2026-07-15 22:00:50,741 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=thief_shadow field=position cause=semantic_relocation:need_driven:hunger=0.56 spatial=yes traversal=NEW
+2026-07-15 22:00:50,741 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=tavern_keeper_tornin field=position cause=semantic_relocation:need_driven:hunger=0.56 spatial=yes traversal=NEW
+2026-07-15 22:00:50,741 app.services.phases.traversal INFO: [DUAL_RAIL][IDLE_SPATIAL] spatial_changes=3 shadow_compiled=3 snapshot_id=2d30dd01
+2026-07-15 22:00:50,741 app.services.scene_state_manager INFO: [SCENE] Применено 3/3 изменений (in-memory, persist=Phase10)
+2026-07-15 22:00:50,741 app.services.phases.simulation INFO: [TICK_ORCH] Фаза 0: 3 spatial changes from 3 LifeEngine intents
+2026-07-15 22:00:50,743 app.services.tick_orchestrator INFO: [PHASE_5_UNIFIED] ENTER: tick=1, interventions=0
+2026-07-15 22:00:50,743 app.services.phases.decision ERROR: [BREAK_PROGRESS] failed for guard_borko: name '_economic_profiles_map' is not defined
+2026-07-15 22:00:50,743 app.services.tick_orchestrator ERROR: [TICK_CRASH] campaign=Open_road tick=1 error=name '_economic_profiles_map' is not defined
+2026-07-15 22:00:50,743 app.services.tick_orchestrator ERROR: [TICK_ORCH] Ошибка в тике Open_road: name '_economic_profiles_map' is not defined
+Traceback (most recent call last):
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 462, in execute
+    self._run_core_phases(ctx)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 526, in _run_core_phases
+    self._phase_5_decision(ctx) #10
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 1109, in _phase_5_decision
+    evaluate_behavior_and_identity(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        npc_states=ctx.npc_states,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+        l1_chronicle=getattr(self, "l1_chronicle", None),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\decision.py", line 91, in evaluate_behavior_and_identity
+    _economic_profile = _economic_profiles_map.get(npc_id, {}) if _economic_profiles_map else {}
+                                                                  ^^^^^^^^^^^^^^^^^^^^^^
+NameError: name '_economic_profiles_map' is not defined
+2026-07-15 22:00:51,248 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-15 22:00:51,250 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-15 22:00:51,250 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=1985549787760 tick=1
+2026-07-15 22:00:51,251 app.services.tick_orchestrator INFO: [CFRM] ClusterOccupancy rebuild: 6 entities in 0.01ms
+2026-07-15 22:00:51,253 app.services.scene_state_manager INFO: [SCENE] Применено 3/3 изменений (in-memory, persist=Phase10)
+2026-07-15 22:00:51,253 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=merchant_goran → zone=tavern_silver_wolf:fireplace reason=need_driven:shelter_urge=0.56 exact_xy=(10.4, 3.55)
+2026-07-15 22:00:51,253 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=thief_shadow → zone=fireplace reason=need_driven:shelter_urge=0.56 exact_xy=(10.55, 3.85)
+2026-07-15 22:00:51,253 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=tavern_keeper_tornin → zone=tavern_silver_wolf:fireplace reason=need_driven:shelter_urge=0.56 exact_xy=(11.6, 3.55)
+2026-07-15 22:00:51,253 app.models.world_snapshot INFO: [SNAPSHOT_CREATED] id=96a2bc0c tick=1 location=tavern_silver_wolf npcs=6 traversals=0 rng_seed=1
+2026-07-15 22:00:51,253 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=merchant_goran field=position cause=semantic_relocation:need_driven:shelter_urge=0.56 spatial=yes traversal=NEW
+2026-07-15 22:00:51,253 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=thief_shadow field=position cause=semantic_relocation:need_driven:shelter_urge=0.56 spatial=yes traversal=NEW
+2026-07-15 22:00:51,253 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=tavern_keeper_tornin field=position cause=semantic_relocation:need_driven:shelter_urge=0.56 spatial=yes traversal=NEW
+2026-07-15 22:00:51,253 app.services.phases.traversal INFO: [DUAL_RAIL][IDLE_SPATIAL] spatial_changes=3 shadow_compiled=3 snapshot_id=96a2bc0c
+2026-07-15 22:00:51,253 app.services.scene_state_manager INFO: [SCENE] Применено 3/3 изменений (in-memory, persist=Phase10)
+2026-07-15 22:00:51,253 app.services.phases.simulation INFO: [TICK_ORCH] Фаза 0: 3 spatial changes from 3 LifeEngine intents
+2026-07-15 22:00:51,255 app.services.tick_orchestrator INFO: [PHASE_5_UNIFIED] ENTER: tick=1, interventions=0
+2026-07-15 22:00:51,255 app.services.phases.decision ERROR: [BREAK_PROGRESS] failed for guard_borko: name '_economic_profiles_map' is not defined
+2026-07-15 22:00:51,255 app.services.tick_orchestrator ERROR: [TICK_CRASH] campaign=Open_road tick=1 error=name '_economic_profiles_map' is not defined
+2026-07-15 22:00:51,255 app.services.tick_orchestrator ERROR: [TICK_ORCH] Ошибка в тике Open_road: name '_economic_profiles_map' is not defined
+Traceback (most recent call last):
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 462, in execute
+    self._run_core_phases(ctx)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 526, in _run_core_phases
+    self._phase_5_decision(ctx) #10
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 1109, in _phase_5_decision
+    evaluate_behavior_and_identity(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        npc_states=ctx.npc_states,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+        l1_chronicle=getattr(self, "l1_chronicle", None),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\decision.py", line 91, in evaluate_behavior_and_identity
+    _economic_profile = _economic_profiles_map.get(npc_id, {}) if _economic_profiles_map else {}
+                                                                  ^^^^^^^^^^^^^^^^^^^^^^
+NameError: name '_economic_profiles_map' is not defined
+2026-07-15 22:00:51,751 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-15 22:00:51,754 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-15 22:00:51,755 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=1985549787760 tick=1
+2026-07-15 22:00:51,755 app.services.tick_orchestrator INFO: [CFRM] ClusterOccupancy rebuild: 6 entities in 0.01ms
+2026-07-15 22:00:51,758 app.services.scene_state_manager INFO: [SCENE] Применено 4/4 изменений (in-memory, persist=Phase10)
+2026-07-15 22:00:51,758 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=merchant_goran → zone=tavern_silver_wolf:bar_area reason=need_driven:social_urge=0.56 exact_xy=(3.4, 3.55)
+2026-07-15 22:00:51,758 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=tavern_keeper_tornin → zone=tavern_silver_wolf:bar_area reason=need_driven:social_urge=0.56 exact_xy=(4.6, 3.55)
+2026-07-15 22:00:51,758 app.models.world_snapshot INFO: [SNAPSHOT_CREATED] id=0f397642 tick=1 location=tavern_silver_wolf npcs=6 traversals=0 rng_seed=1
+2026-07-15 22:00:51,758 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=merchant_goran field=position cause=semantic_relocation:need_driven:social_urge=0.56 spatial=yes traversal=NEW
+2026-07-15 22:00:51,758 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=tavern_keeper_tornin field=position cause=semantic_relocation:need_driven:social_urge=0.56 spatial=yes traversal=NEW
+2026-07-15 22:00:51,758 app.services.phases.traversal INFO: [DUAL_RAIL][IDLE_SPATIAL] spatial_changes=2 shadow_compiled=2 snapshot_id=0f397642
+2026-07-15 22:00:51,758 app.services.scene_state_manager INFO: [SCENE] Применено 2/2 изменений (in-memory, persist=Phase10)
+2026-07-15 22:00:51,758 app.services.phases.simulation INFO: [TICK_ORCH] Фаза 0: 2 spatial changes from 2 LifeEngine intents
+2026-07-15 22:00:51,760 app.services.tick_orchestrator INFO: [PHASE_5_UNIFIED] ENTER: tick=1, interventions=0
+2026-07-15 22:00:51,760 app.services.phases.decision ERROR: [BREAK_PROGRESS] failed for guard_borko: name '_economic_profiles_map' is not defined
+2026-07-15 22:00:51,760 app.services.tick_orchestrator ERROR: [TICK_CRASH] campaign=Open_road tick=1 error=name '_economic_profiles_map' is not defined
+2026-07-15 22:00:51,760 app.services.tick_orchestrator ERROR: [TICK_ORCH] Ошибка в тике Open_road: name '_economic_profiles_map' is not defined
+Traceback (most recent call last):
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 462, in execute
+    self._run_core_phases(ctx)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 526, in _run_core_phases
+    self._phase_5_decision(ctx) #10
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 1109, in _phase_5_decision
+    evaluate_behavior_and_identity(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        npc_states=ctx.npc_states,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+        l1_chronicle=getattr(self, "l1_chronicle", None),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\decision.py", line 91, in evaluate_behavior_and_identity
+    _economic_profile = _economic_profiles_map.get(npc_id, {}) if _economic_profiles_map else {}
+                                                                  ^^^^^^^^^^^^^^^^^^^^^^
+NameError: name '_economic_profiles_map' is not defined
+2026-07-15 22:00:52,274 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-15 22:00:52,276 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-15 22:00:52,277 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=1985549787760 tick=1
+2026-07-15 22:00:52,277 app.services.tick_orchestrator INFO: [CFRM] ClusterOccupancy rebuild: 6 entities in 0.01ms
+2026-07-15 22:00:52,280 app.services.scene_state_manager INFO: [SCENE] Применено 6/6 изменений (in-memory, persist=Phase10)
+2026-07-15 22:00:52,280 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=merchant_goran → zone=tavern_silver_wolf:fireplace reason=schedule:market_trading exact_xy=(10.4, 3.55)
+2026-07-15 22:00:52,280 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=tavern_keeper_tornin → zone=tavern_silver_wolf:kitchen reason=schedule:working exact_xy=(16.6, 3.55)
+2026-07-15 22:00:52,280 app.models.world_snapshot INFO: [SNAPSHOT_CREATED] id=8fdf60f2 tick=1 location=tavern_silver_wolf npcs=6 traversals=0 rng_seed=1
+2026-07-15 22:00:52,280 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=merchant_goran field=position cause=semantic_relocation:schedule:market_trading spatial=yes traversal=NEW
+2026-07-15 22:00:52,280 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=tavern_keeper_tornin field=position cause=semantic_relocation:schedule:working spatial=yes traversal=NEW
+2026-07-15 22:00:52,280 app.services.phases.traversal INFO: [DUAL_RAIL][IDLE_SPATIAL] spatial_changes=2 shadow_compiled=2 snapshot_id=8fdf60f2
+2026-07-15 22:00:52,280 app.services.scene_state_manager INFO: [SCENE] Применено 2/2 изменений (in-memory, persist=Phase10)
+2026-07-15 22:00:52,280 app.services.phases.simulation INFO: [TICK_ORCH] Фаза 0: 2 spatial changes from 2 LifeEngine intents
+2026-07-15 22:00:52,282 app.services.tick_orchestrator INFO: [PHASE_5_UNIFIED] ENTER: tick=1, interventions=0
+2026-07-15 22:00:52,282 app.services.phases.decision ERROR: [BREAK_PROGRESS] failed for guard_borko: name '_economic_profiles_map' is not defined
+2026-07-15 22:00:52,282 app.services.tick_orchestrator ERROR: [TICK_CRASH] campaign=Open_road tick=1 error=name '_economic_profiles_map' is not defined
+2026-07-15 22:00:52,282 app.services.tick_orchestrator ERROR: [TICK_ORCH] Ошибка в тике Open_road: name '_economic_profiles_map' is not defined
+Traceback (most recent call last):
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 462, in execute
+    self._run_core_phases(ctx)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 526, in _run_core_phases
+    self._phase_5_decision(ctx) #10
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 1109, in _phase_5_decision
+    evaluate_behavior_and_identity(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        npc_states=ctx.npc_states,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+        l1_chronicle=getattr(self, "l1_chronicle", None),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\decision.py", line 91, in evaluate_behavior_and_identity
+    _economic_profile = _economic_profiles_map.get(npc_id, {}) if _economic_profiles_map else {}
+                                                                  ^^^^^^^^^^^^^^^^^^^^^^
+NameError: name '_economic_profiles_map' is not defined
+2026-07-15 22:00:52,783 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-15 22:00:52,785 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-15 22:00:52,786 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=1985549787760 tick=1
+2026-07-15 22:00:52,786 app.services.tick_orchestrator INFO: [CFRM] ClusterOccupancy rebuild: 6 entities in 0.01ms
+2026-07-15 22:00:52,787 app.services.scene_state_manager INFO: [SCENE] Применено 2/2 изменений (in-memory, persist=Phase10)
+2026-07-15 22:00:52,788 app.services.tick_orchestrator INFO: [PHASE_5_UNIFIED] ENTER: tick=1, interventions=0
+2026-07-15 22:00:52,788 app.services.phases.decision ERROR: [BREAK_PROGRESS] failed for guard_borko: name '_economic_profiles_map' is not defined
+2026-07-15 22:00:52,788 app.services.tick_orchestrator ERROR: [TICK_CRASH] campaign=Open_road tick=1 error=name '_economic_profiles_map' is not defined
+2026-07-15 22:00:52,788 app.services.tick_orchestrator ERROR: [TICK_ORCH] Ошибка в тике Open_road: name '_economic_profiles_map' is not defined
+Traceback (most recent call last):
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 462, in execute
+    self._run_core_phases(ctx)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 526, in _run_core_phases
+    self._phase_5_decision(ctx) #10
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 1109, in _phase_5_decision
+    evaluate_behavior_and_identity(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        npc_states=ctx.npc_states,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+        l1_chronicle=getattr(self, "l1_chronicle", None),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\decision.py", line 91, in evaluate_behavior_and_identity
+    _economic_profile = _economic_profiles_map.get(npc_id, {}) if _economic_profiles_map else {}
+                                                                  ^^^^^^^^^^^^^^^^^^^^^^
+NameError: name '_economic_profiles_map' is not defined
+2026-07-15 22:00:53,290 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-15 22:00:53,293 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-15 22:00:53,293 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=1985549787760 tick=1
+2026-07-15 22:00:53,293 app.services.tick_orchestrator INFO: [CFRM] ClusterOccupancy rebuild: 6 entities in 0.01ms
+2026-07-15 22:00:53,302 app.services.scene_state_manager INFO: [SCENE] Применено 2/2 изменений (in-memory, persist=Phase10)
+2026-07-15 22:00:53,303 app.services.tick_orchestrator INFO: [PHASE_5_UNIFIED] ENTER: tick=1, interventions=0
+2026-07-15 22:00:53,303 app.services.phases.decision ERROR: [BREAK_PROGRESS] failed for guard_borko: name '_economic_profiles_map' is not defined
+2026-07-15 22:00:53,303 app.services.tick_orchestrator ERROR: [TICK_CRASH] campaign=Open_road tick=1 error=name '_economic_profiles_map' is not defined
+2026-07-15 22:00:53,303 app.services.tick_orchestrator ERROR: [TICK_ORCH] Ошибка в тике Open_road: name '_economic_profiles_map' is not defined
+Traceback (most recent call last):
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 462, in execute
+    self._run_core_phases(ctx)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 526, in _run_core_phases
+    self._phase_5_decision(ctx) #10
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 1109, in _phase_5_decision
+    evaluate_behavior_and_identity(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        npc_states=ctx.npc_states,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+        l1_chronicle=getattr(self, "l1_chronicle", None),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\decision.py", line 91, in evaluate_behavior_and_identity
+    _economic_profile = _economic_profiles_map.get(npc_id, {}) if _economic_profiles_map else {}
+                                                                  ^^^^^^^^^^^^^^^^^^^^^^
+NameError: name '_economic_profiles_map' is not defined
+2026-07-15 22:00:53,799 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-15 22:00:53,801 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-15 22:00:53,802 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=1985549787760 tick=1
+2026-07-15 22:00:53,802 app.services.tick_orchestrator INFO: [CFRM] ClusterOccupancy rebuild: 6 entities in 0.01ms
+2026-07-15 22:00:53,804 app.services.scene_state_manager INFO: [SCENE] Применено 3/3 изменений (in-memory, persist=Phase10)
+2026-07-15 22:00:53,804 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=maid_lusya → zone=main_hall reason=need_driven:hunger=1.00 exact_xy=(8.0, 7.15)
+2026-07-15 22:00:53,804 app.models.world_snapshot INFO: [SNAPSHOT_CREATED] id=fc95fa29 tick=1 location=tavern_silver_wolf npcs=6 traversals=0 rng_seed=1
+2026-07-15 22:00:53,804 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=maid_lusya field=position cause=semantic_relocation:need_driven:hunger=1.00 spatial=yes traversal=NEW
+2026-07-15 22:00:53,804 app.services.phases.traversal INFO: [DUAL_RAIL][IDLE_SPATIAL] spatial_changes=1 shadow_compiled=1 snapshot_id=fc95fa29
+2026-07-15 22:00:53,804 app.services.scene_state_manager INFO: [SCENE] Применено 1/1 изменений (in-memory, persist=Phase10)
+2026-07-15 22:00:53,804 app.services.phases.simulation INFO: [TICK_ORCH] Фаза 0: 1 spatial changes from 1 LifeEngine intents
+2026-07-15 22:00:53,805 app.services.tick_orchestrator INFO: [PHASE_5_UNIFIED] ENTER: tick=1, interventions=0
+2026-07-15 22:00:53,805 app.services.phases.decision ERROR: [BREAK_PROGRESS] failed for guard_borko: name '_economic_profiles_map' is not defined
+2026-07-15 22:00:53,805 app.services.tick_orchestrator ERROR: [TICK_CRASH] campaign=Open_road tick=1 error=name '_economic_profiles_map' is not defined
+2026-07-15 22:00:53,805 app.services.tick_orchestrator ERROR: [TICK_ORCH] Ошибка в тике Open_road: name '_economic_profiles_map' is not defined
+Traceback (most recent call last):
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 462, in execute
+    self._run_core_phases(ctx)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 526, in _run_core_phases
+    self._phase_5_decision(ctx) #10
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 1109, in _phase_5_decision
+    evaluate_behavior_and_identity(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        npc_states=ctx.npc_states,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+        l1_chronicle=getattr(self, "l1_chronicle", None),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\decision.py", line 91, in evaluate_behavior_and_identity
+    _economic_profile = _economic_profiles_map.get(npc_id, {}) if _economic_profiles_map else {}
+                                                                  ^^^^^^^^^^^^^^^^^^^^^^
+NameError: name '_economic_profiles_map' is not defined
+2026-07-15 22:00:54,295 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-15 22:00:54,298 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-15 22:00:54,298 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=1985549787760 tick=1
+2026-07-15 22:00:54,299 app.services.tick_orchestrator INFO: [CFRM] ClusterOccupancy rebuild: 6 entities in 0.01ms
+2026-07-15 22:00:54,300 app.services.scene_state_manager INFO: [SCENE] Применено 2/2 изменений (in-memory, persist=Phase10)
+2026-07-15 22:00:54,300 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=maid_lusya → zone=fireplace reason=need_driven:shelter_urge=1.00 exact_xy=(11.0, 4.15)
+2026-07-15 22:00:54,300 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=thief_shadow → zone=tavern_silver_wolf:bar_area reason=need_driven:social_urge=0.56 exact_xy=(3.55, 3.85)
+2026-07-15 22:00:54,301 app.models.world_snapshot INFO: [SNAPSHOT_CREATED] id=ff316adf tick=1 location=tavern_silver_wolf npcs=6 traversals=0 rng_seed=1
+2026-07-15 22:00:54,301 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=maid_lusya field=position cause=semantic_relocation:need_driven:shelter_urge=1.00 spatial=yes traversal=NEW
+2026-07-15 22:00:54,301 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=thief_shadow field=position cause=semantic_relocation:need_driven:social_urge=0.56 spatial=yes traversal=NEW
+2026-07-15 22:00:54,301 app.services.phases.traversal INFO: [DUAL_RAIL][IDLE_SPATIAL] spatial_changes=2 shadow_compiled=2 snapshot_id=ff316adf
+2026-07-15 22:00:54,301 app.services.scene_state_manager INFO: [SCENE] Применено 2/2 изменений (in-memory, persist=Phase10)
+2026-07-15 22:00:54,301 app.services.phases.simulation INFO: [TICK_ORCH] Фаза 0: 2 spatial changes from 2 LifeEngine intents
+2026-07-15 22:00:54,302 app.services.tick_orchestrator INFO: [PHASE_5_UNIFIED] ENTER: tick=1, interventions=0
+2026-07-15 22:00:54,302 app.services.phases.decision ERROR: [BREAK_PROGRESS] failed for guard_borko: name '_economic_profiles_map' is not defined
+2026-07-15 22:00:54,302 app.services.tick_orchestrator ERROR: [TICK_CRASH] campaign=Open_road tick=1 error=name '_economic_profiles_map' is not defined
+2026-07-15 22:00:54,302 app.services.tick_orchestrator ERROR: [TICK_ORCH] Ошибка в тике Open_road: name '_economic_profiles_map' is not defined
+Traceback (most recent call last):
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 462, in execute
+    self._run_core_phases(ctx)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 526, in _run_core_phases
+    self._phase_5_decision(ctx) #10
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 1109, in _phase_5_decision
+    evaluate_behavior_and_identity(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        npc_states=ctx.npc_states,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+        l1_chronicle=getattr(self, "l1_chronicle", None),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\decision.py", line 91, in evaluate_behavior_and_identity
+    _economic_profile = _economic_profiles_map.get(npc_id, {}) if _economic_profiles_map else {}
+                                                                  ^^^^^^^^^^^^^^^^^^^^^^
+NameError: name '_economic_profiles_map' is not defined
+2026-07-15 22:00:54,795 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-15 22:00:54,797 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-15 22:00:54,798 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=1985549787760 tick=1
+2026-07-15 22:00:54,798 app.services.tick_orchestrator INFO: [CFRM] ClusterOccupancy rebuild: 6 entities in 0.01ms
+2026-07-15 22:00:54,800 app.services.scene_state_manager INFO: [SCENE] Применено 5/5 изменений (in-memory, persist=Phase10)
+2026-07-15 22:00:54,800 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=merchant_goran → zone=tavern_silver_wolf:corner_table reason=need_driven:hunger=0.56 exact_xy=(11.4, 9.55)
+2026-07-15 22:00:54,800 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=maid_lusya → zone=kitchen reason=schedule:sleeping exact_xy=(16.0, 4.15)
+2026-07-15 22:00:54,800 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=thief_shadow → zone=main_hall reason=need_driven:hunger=0.56 exact_xy=(7.55, 6.85)
+2026-07-15 22:00:54,800 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=tavern_keeper_tornin → zone=tavern_silver_wolf:corner_table reason=need_driven:hunger=0.56 exact_xy=(12.6, 9.55)
+2026-07-15 22:00:54,800 app.models.world_snapshot INFO: [SNAPSHOT_CREATED] id=143c56eb tick=1 location=tavern_silver_wolf npcs=6 traversals=0 rng_seed=1
+2026-07-15 22:00:54,801 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=merchant_goran field=position cause=semantic_relocation:need_driven:hunger=0.56 spatial=yes traversal=NEW
+2026-07-15 22:00:54,801 app.services.event_compiler INFO: [SHADOW_COMPILER] pathfinding: npc=maid_lusya via 1 intermediate nodes
+2026-07-15 22:00:54,801 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=maid_lusya field=position cause=semantic_relocation:schedule:sleeping spatial=yes traversal=NEW
+2026-07-15 22:00:54,801 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=thief_shadow field=position cause=semantic_relocation:need_driven:hunger=0.56 spatial=yes traversal=NEW
+2026-07-15 22:00:54,801 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=tavern_keeper_tornin field=position cause=semantic_relocation:need_driven:hunger=0.56 spatial=yes traversal=NEW
+2026-07-15 22:00:54,801 app.services.phases.traversal INFO: [DUAL_RAIL][IDLE_SPATIAL] spatial_changes=4 shadow_compiled=4 snapshot_id=143c56eb
+2026-07-15 22:00:54,801 app.services.scene_state_manager INFO: [SCENE] Применено 4/4 изменений (in-memory, persist=Phase10)
+2026-07-15 22:00:54,801 app.services.phases.simulation INFO: [TICK_ORCH] Фаза 0: 4 spatial changes from 4 LifeEngine intents
+2026-07-15 22:00:54,803 app.services.tick_orchestrator INFO: [PHASE_5_UNIFIED] ENTER: tick=1, interventions=0
+2026-07-15 22:00:54,803 app.services.phases.decision ERROR: [BREAK_PROGRESS] failed for guard_borko: name '_economic_profiles_map' is not defined
+2026-07-15 22:00:54,803 app.services.tick_orchestrator ERROR: [TICK_CRASH] campaign=Open_road tick=1 error=name '_economic_profiles_map' is not defined
+2026-07-15 22:00:54,803 app.services.tick_orchestrator ERROR: [TICK_ORCH] Ошибка в тике Open_road: name '_economic_profiles_map' is not defined
+Traceback (most recent call last):
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 462, in execute
+    self._run_core_phases(ctx)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 526, in _run_core_phases
+    self._phase_5_decision(ctx) #10
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 1109, in _phase_5_decision
+    evaluate_behavior_and_identity(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        npc_states=ctx.npc_states,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+        l1_chronicle=getattr(self, "l1_chronicle", None),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\decision.py", line 91, in evaluate_behavior_and_identity
+    _economic_profile = _economic_profiles_map.get(npc_id, {}) if _economic_profiles_map else {}
+                                                                  ^^^^^^^^^^^^^^^^^^^^^^
+NameError: name '_economic_profiles_map' is not defined
+2026-07-15 22:00:55,322 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-15 22:00:55,325 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-15 22:00:55,325 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=1985549787760 tick=1
+2026-07-15 22:00:55,326 app.services.tick_orchestrator INFO: [CFRM] ClusterOccupancy rebuild: 6 entities in 0.01ms
+2026-07-15 22:00:55,328 app.services.scene_state_manager INFO: [SCENE] Применено 4/4 изменений (in-memory, persist=Phase10)
+2026-07-15 22:00:55,328 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=merchant_goran → zone=tavern_silver_wolf:fireplace reason=need_driven:shelter_urge=0.56 exact_xy=(10.4, 3.55)
+2026-07-15 22:00:55,328 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=tavern_keeper_tornin → zone=tavern_silver_wolf:fireplace reason=need_driven:shelter_urge=0.56 exact_xy=(11.6, 3.55)
+2026-07-15 22:00:55,328 app.models.world_snapshot INFO: [SNAPSHOT_CREATED] id=ee55e82e tick=1 location=tavern_silver_wolf npcs=6 traversals=0 rng_seed=1
+2026-07-15 22:00:55,328 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=merchant_goran field=position cause=semantic_relocation:need_driven:shelter_urge=0.56 spatial=yes traversal=NEW
+2026-07-15 22:00:55,328 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=tavern_keeper_tornin field=position cause=semantic_relocation:need_driven:shelter_urge=0.56 spatial=yes traversal=NEW
+2026-07-15 22:00:55,328 app.services.phases.traversal INFO: [DUAL_RAIL][IDLE_SPATIAL] spatial_changes=2 shadow_compiled=2 snapshot_id=ee55e82e
+2026-07-15 22:00:55,328 app.services.scene_state_manager INFO: [SCENE] Применено 2/2 изменений (in-memory, persist=Phase10)
+2026-07-15 22:00:55,328 app.services.phases.simulation INFO: [TICK_ORCH] Фаза 0: 2 spatial changes from 2 LifeEngine intents
+2026-07-15 22:00:55,329 app.services.tick_orchestrator INFO: [PHASE_5_UNIFIED] ENTER: tick=1, interventions=0
+2026-07-15 22:00:55,329 app.services.phases.decision ERROR: [BREAK_PROGRESS] failed for guard_borko: name '_economic_profiles_map' is not defined
+2026-07-15 22:00:55,329 app.services.tick_orchestrator ERROR: [TICK_CRASH] campaign=Open_road tick=1 error=name '_economic_profiles_map' is not defined
+2026-07-15 22:00:55,330 app.services.tick_orchestrator ERROR: [TICK_ORCH] Ошибка в тике Open_road: name '_economic_profiles_map' is not defined
+Traceback (most recent call last):
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 462, in execute
+    self._run_core_phases(ctx)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 526, in _run_core_phases
+    self._phase_5_decision(ctx) #10
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 1109, in _phase_5_decision
+    evaluate_behavior_and_identity(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        npc_states=ctx.npc_states,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+        l1_chronicle=getattr(self, "l1_chronicle", None),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\decision.py", line 91, in evaluate_behavior_and_identity
+    _economic_profile = _economic_profiles_map.get(npc_id, {}) if _economic_profiles_map else {}
+                                                                  ^^^^^^^^^^^^^^^^^^^^^^
+NameError: name '_economic_profiles_map' is not defined
+2026-07-15 22:00:55,829 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-15 22:00:55,832 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-15 22:00:55,832 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=1985549787760 tick=1
+2026-07-15 22:00:55,832 app.services.tick_orchestrator INFO: [CFRM] ClusterOccupancy rebuild: 6 entities in 0.01ms
+2026-07-15 22:00:55,834 app.services.scene_state_manager INFO: [SCENE] Применено 4/4 изменений (in-memory, persist=Phase10)
+2026-07-15 22:00:55,834 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=merchant_goran → zone=tavern_silver_wolf:bar_area reason=need_driven:social_urge=0.56 exact_xy=(3.4, 3.55)
+2026-07-15 22:00:55,834 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=tavern_keeper_tornin → zone=tavern_silver_wolf:bar_area reason=need_driven:social_urge=0.56 exact_xy=(4.6, 3.55)
+2026-07-15 22:00:55,834 app.models.world_snapshot INFO: [SNAPSHOT_CREATED] id=63213172 tick=1 location=tavern_silver_wolf npcs=6 traversals=0 rng_seed=1
+2026-07-15 22:00:55,835 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=merchant_goran field=position cause=semantic_relocation:need_driven:social_urge=0.56 spatial=yes traversal=NEW
+2026-07-15 22:00:55,835 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=tavern_keeper_tornin field=position cause=semantic_relocation:need_driven:social_urge=0.56 spatial=yes traversal=NEW
+2026-07-15 22:00:55,835 app.services.phases.traversal INFO: [DUAL_RAIL][IDLE_SPATIAL] spatial_changes=2 shadow_compiled=2 snapshot_id=63213172
+2026-07-15 22:00:55,835 app.services.scene_state_manager INFO: [SCENE] Применено 2/2 изменений (in-memory, persist=Phase10)
+2026-07-15 22:00:55,835 app.services.phases.simulation INFO: [TICK_ORCH] Фаза 0: 2 spatial changes from 2 LifeEngine intents
+2026-07-15 22:00:55,836 app.services.tick_orchestrator INFO: [PHASE_5_UNIFIED] ENTER: tick=1, interventions=0
+2026-07-15 22:00:55,836 app.services.phases.decision ERROR: [BREAK_PROGRESS] failed for guard_borko: name '_economic_profiles_map' is not defined
+2026-07-15 22:00:55,836 app.services.tick_orchestrator ERROR: [TICK_CRASH] campaign=Open_road tick=1 error=name '_economic_profiles_map' is not defined
+2026-07-15 22:00:55,836 app.services.tick_orchestrator ERROR: [TICK_ORCH] Ошибка в тике Open_road: name '_economic_profiles_map' is not defined
+Traceback (most recent call last):
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 462, in execute
+    self._run_core_phases(ctx)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 526, in _run_core_phases
+    self._phase_5_decision(ctx) #10
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 1109, in _phase_5_decision
+    evaluate_behavior_and_identity(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        npc_states=ctx.npc_states,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+        l1_chronicle=getattr(self, "l1_chronicle", None),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\decision.py", line 91, in evaluate_behavior_and_identity
+    _economic_profile = _economic_profiles_map.get(npc_id, {}) if _economic_profiles_map else {}
+                                                                  ^^^^^^^^^^^^^^^^^^^^^^
+NameError: name '_economic_profiles_map' is not defined
+2026-07-15 22:00:56,321 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-15 22:00:56,324 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-15 22:00:56,324 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=1985549787760 tick=1
+2026-07-15 22:00:56,325 app.services.tick_orchestrator INFO: [CFRM] ClusterOccupancy rebuild: 6 entities in 0.01ms
+2026-07-15 22:00:56,327 app.services.scene_state_manager INFO: [SCENE] Применено 7/7 изменений (in-memory, persist=Phase10)
+2026-07-15 22:00:56,327 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=merchant_goran → zone=tavern_silver_wolf:fireplace reason=schedule:market_trading exact_xy=(10.4, 3.55)
+2026-07-15 22:00:56,327 app.services.spatial.movement_engine INFO: [PIPELINE][MOVEMENT][RELOCATE] npc=tavern_keeper_tornin → zone=tavern_silver_wolf:kitchen reason=schedule:working exact_xy=(16.6, 3.55)
+2026-07-15 22:00:56,327 app.models.world_snapshot INFO: [SNAPSHOT_CREATED] id=72a5b13a tick=1 location=tavern_silver_wolf npcs=6 traversals=0 rng_seed=1
+2026-07-15 22:00:56,327 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=merchant_goran field=position cause=semantic_relocation:schedule:market_trading spatial=yes traversal=NEW
+2026-07-15 22:00:56,327 app.services.event_compiler INFO: [SHADOW_COMPILER] compiled: target=tavern_keeper_tornin field=position cause=semantic_relocation:schedule:working spatial=yes traversal=NEW
+2026-07-15 22:00:56,327 app.services.phases.traversal INFO: [DUAL_RAIL][IDLE_SPATIAL] spatial_changes=2 shadow_compiled=2 snapshot_id=72a5b13a
+2026-07-15 22:00:56,328 app.services.scene_state_manager INFO: [SCENE] Применено 2/2 изменений (in-memory, persist=Phase10)
+2026-07-15 22:00:56,328 app.services.phases.simulation INFO: [TICK_ORCH] Фаза 0: 2 spatial changes from 2 LifeEngine intents
+2026-07-15 22:00:56,329 app.services.tick_orchestrator INFO: [PHASE_5_UNIFIED] ENTER: tick=1, interventions=0
+2026-07-15 22:00:56,329 app.services.phases.decision ERROR: [BREAK_PROGRESS] failed for guard_borko: name '_economic_profiles_map' is not defined
+2026-07-15 22:00:56,329 app.services.tick_orchestrator ERROR: [TICK_CRASH] campaign=Open_road tick=1 error=name '_economic_profiles_map' is not defined
+2026-07-15 22:00:56,329 app.services.tick_orchestrator ERROR: [TICK_ORCH] Ошибка в тике Open_road: name '_economic_profiles_map' is not defined
+Traceback (most recent call last):
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 462, in execute
+    self._run_core_phases(ctx)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 526, in _run_core_phases
+    self._phase_5_decision(ctx) #10
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 1109, in _phase_5_decision
+    evaluate_behavior_and_identity(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        npc_states=ctx.npc_states,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+        l1_chronicle=getattr(self, "l1_chronicle", None),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\decision.py", line 91, in evaluate_behavior_and_identity
+    _economic_profile = _economic_profiles_map.get(npc_id, {}) if _economic_profiles_map else {}
+                                                                  ^^^^^^^^^^^^^^^^^^^^^^
+NameError: name '_economic_profiles_map' is not defined
+2026-07-15 22:00:56,837 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-15 22:00:56,840 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-15 22:00:56,840 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=1985549787760 tick=1
+2026-07-15 22:00:56,841 app.services.tick_orchestrator INFO: [CFRM] ClusterOccupancy rebuild: 6 entities in 0.01ms
+2026-07-15 22:00:56,842 app.services.scene_state_manager INFO: [SCENE] Применено 2/2 изменений (in-memory, persist=Phase10)
+2026-07-15 22:00:56,843 app.services.tick_orchestrator INFO: [PHASE_5_UNIFIED] ENTER: tick=1, interventions=0
+2026-07-15 22:00:56,843 app.services.phases.decision ERROR: [BREAK_PROGRESS] failed for guard_borko: name '_economic_profiles_map' is not defined
+2026-07-15 22:00:56,843 app.services.tick_orchestrator ERROR: [TICK_CRASH] campaign=Open_road tick=1 error=name '_economic_profiles_map' is not defined
+2026-07-15 22:00:56,843 app.services.tick_orchestrator ERROR: [TICK_ORCH] Ошибка в тике Open_road: name '_economic_profiles_map' is not defined
+Traceback (most recent call last):
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 462, in execute
+    self._run_core_phases(ctx)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 526, in _run_core_phases
+    self._phase_5_decision(ctx) #10
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 1109, in _phase_5_decision
+    evaluate_behavior_and_identity(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        npc_states=ctx.npc_states,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+        l1_chronicle=getattr(self, "l1_chronicle", None),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\decision.py", line 91, in evaluate_behavior_and_identity
+    _economic_profile = _economic_profiles_map.get(npc_id, {}) if _economic_profiles_map else {}
+                                                                  ^^^^^^^^^^^^^^^^^^^^^^
+NameError: name '_economic_profiles_map' is not defined
+2026-07-15 22:00:57,337 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-15 22:00:57,340 app.services.scene_state_manager INFO: [SCENE] Найден editor JSON: C:\DDD\Codex\VSC_Enigma\Enigma\frontend\map_editor\campaigns\Open_road\locations\tavern.json для location_id=tavern_silver_wolf
+2026-07-15 22:00:57,340 app.services.tick_orchestrator INFO: [DRF_BUS_RESET] bus_id=1985549787760 tick=1
+2026-07-15 22:00:57,341 app.services.tick_orchestrator INFO: [CFRM] ClusterOccupancy rebuild: 6 entities in 0.01ms
+2026-07-15 22:00:57,343 app.services.scene_state_manager INFO: [SCENE] Применено 2/2 изменений (in-memory, persist=Phase10)
+2026-07-15 22:00:57,343 app.services.tick_orchestrator INFO: [PHASE_5_UNIFIED] ENTER: tick=1, interventions=0
+2026-07-15 22:00:57,343 app.services.phases.decision ERROR: [BREAK_PROGRESS] failed for guard_borko: name '_economic_profiles_map' is not defined
+2026-07-15 22:00:57,343 app.services.tick_orchestrator ERROR: [TICK_CRASH] campaign=Open_road tick=1 error=name '_economic_profiles_map' is not defined
+2026-07-15 22:00:57,343 app.services.tick_orchestrator ERROR: [TICK_ORCH] Ошибка в тике Open_road: name '_economic_profiles_map' is not defined
+Traceback (most recent call last):
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 462, in execute
+    self._run_core_phases(ctx)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 526, in _run_core_phases
+    self._phase_5_decision(ctx) #10
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\tick_orchestrator.py", line 1109, in _phase_5_decision
+    evaluate_behavior_and_identity(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        npc_states=ctx.npc_states,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+        l1_chronicle=getattr(self, "l1_chronicle", None),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\phases\decision.py", line 91, in evaluate_behavior_and_identity
+    _economic_profile = _economic_profiles_map.get(npc_id, {}) if _economic_profiles_map else {}
+                                                                  ^^^^^^^^^^^^^^^^^^^^^^
+NameError: name '_economic_profiles_map' is not defined

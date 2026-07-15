@@ -1,6 +1,10 @@
 from pathlib import Path
 
 import pytest
+from app.domain.identity_events import EffectiveDrives
+
+_MOCK_DRIVES = EffectiveDrives.from_dict({"control": 0.5, "significance": 0.5, "fear": 0.5, "desire": 0.5})
+
 from app.core.constants import PERCEPTION_RADIUS
 from app.services.npc.perception_filter import _can_hear, _can_see, extract_scene_awareness
 from app.services.scene_state_manager import _derive_environment_modifiers
