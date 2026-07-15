@@ -4,6 +4,7 @@
 # Основные сущности: NPCState NPCStateAdapter
 # $env:PYTHONPATH="." pytest tests/test_npc_state_r6.py -v
 
+import dataclasses
 from app.models.npc_state import NPCState, NPCStateAdapter
 
 # =========================================================
@@ -111,32 +112,31 @@ def test_r6_legacy_adapter_defaults():
 # =========================================================
 
 
-def test_r6_life_direction_round_trip():
+def test_r6_life_project_round_trip():
     """
     Проверяет:
-    life_direction корректно сериализуется и десериализуется.
-    Если life_direction отсутствует, используется core_orientation (fallback).
+    life_project и life_project_state корректно сериализуются и десериализуются.
+    Если life_project отсутствует (старый сейв), используется core_orientation (fallback).
 
     Критично для:
-    сохранения динамической идентичности между тиками.
+    сохранения динамической идентичности между тиками (ADR-O-317).
     """
-    import dataclasses
-
     from app.models.npc_state import NPCStateAdapter
 
-    # 1. Старый сейв: нет life_direction, но есть core_orientation в корне
+    # 1. Старый сейв: нет life_project, но есть core_orientation в корне
     legacy_data = {"id": "test_npc", "core_orientation": "wealth_creator", "psyche": {}}
     npc = NPCStateAdapter.from_legacy(legacy_data)
-    assert npc.life_direction == "wealth_creator", "Fallback на core_orientation не сработал"
+    assert npc.life_project == "wealth_creator", "Fallback на core_orientation не сработал"
+    assert npc.life_project_state == "ACTIVE", "Стейт FSM по умолчанию должен быть ACTIVE"
 
-    # 2. Мутация состояния (смена направления)
-    npc = dataclasses.replace(npc, life_direction="isolation")
+    # 2. Мутация состояния (смена направления и стейта)
+    npc = dataclasses.replace(npc, life_project="isolation", life_project_state="COMMITTED")
 
     # 3. Сериализация обратно в legacy dict
     NPCState.write_to_legacy(npc, legacy_data)
-
     # 4. Десериализация снова
     npc_restored = NPCStateAdapter.from_legacy(legacy_data)
 
-    assert npc_restored.life_direction == "isolation", "life_direction потерян при round-trip"
-    assert legacy_data["psyche"].get("life_direction") == "isolation", "life_direction не записан в psyche dict"
+    assert npc_restored.life_project == "isolation", "life_project потерян при round-trip"
+    assert npc_restored.life_project_state == "COMMITTED", "life_project_state потерян при round-trip"
+    assert legacy_data["psyche"].get("life_project") == "isolation", "life_project не записан в psyche dict"

@@ -1164,6 +1164,16 @@ class TickOrchestrator:
             _identity_traits_map,
         ) = assemble_preloaded_data(ctx, _alive_npcs)
 
+        # P5 FIX: Передаём разрешённый spatial_service напрямую, чтобы избежать потери в npc_services
+        _spatial_svc_for_pipeline = self._resolve_spatial_service(ctx)
+        _spatial_query_for_pipeline = getattr(ctx.shared_context, "spatial_query", None) if ctx.shared_context else None
+        # P5 FIX: Fallback для IPT/DriftLab, где shared_context может быть пустым. SpatialQueryService — чистый ридер scene_state.
+        if not _spatial_query_for_pipeline and ctx.scene_state:
+            from app.services.spatial.spatial_query_service import SpatialQueryService
+            _spatial_query_for_pipeline = SpatialQueryService(
+                npc_positions=ctx.scene_state.get("npc_positions", {}),
+                scene_state=ctx.scene_state,
+            )
         _tick_state = build_tick_state(
             ctx=ctx,
             alive_npcs=_alive_npcs,
@@ -1176,6 +1186,8 @@ class TickOrchestrator:
             economic_profiles_map=_economic_profiles_map,
             crystallized_beliefs_map=_crystallized_beliefs_map,
             identity_traits_map=_identity_traits_map,
+            spatial_service=_spatial_svc_for_pipeline,
+            spatial_query=_spatial_query_for_pipeline,
         )
 
         _drf_ctx = DRFExecutionContext(tick_id=ctx.tick_number, bus=ctx.drf_bus)

@@ -81,7 +81,7 @@ class SqlitePersistenceAdapter(PersistencePort):
                 json.dumps(
                     value,
                     ensure_ascii=False,
-                    default=lambda o: List[Any](o) if isinstance(o, set) else str(o),
+                    default=lambda o: list(o) if isinstance(o, set) else str(o),
                 ),
                 datetime.now(timezone.utc).isoformat(),
             ),

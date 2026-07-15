@@ -16,9 +16,9 @@ path: /frontend/constants.py
 PROJECT_VERSION: str = "v0.1.0"
 
 # Тайминги опроса backend в зависимости от расстояния до ближайшего NPC
-IDLE_TICK_NEAR_MS: int = 2_000
-IDLE_TICK_MID_MS: int = 8_000
-IDLE_TICK_FAR_MS: int = 30_000
+IDLE_TICK_NEAR_MS: int = 500
+IDLE_TICK_MID_MS: int = 1_500
+IDLE_TICK_FAR_MS: int = 3_000
 IDLE_TICK_NEAR_RADIUS: float = 5.0
 IDLE_TICK_MID_RADIUS: float = 15.0
 

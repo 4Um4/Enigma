@@ -53,10 +53,10 @@ def test_crisis_changes_life_direction_and_intent(family_profile, world_tick_eve
     _effective_drives = EffectiveDrives(values={"fear": 0.2, "control": 0.3, "significance": 0.3, "desire": 0.2})
     hub = DecisionHub(seed=42)
 
-    # --- ТИК 0: PRE-CRISIS (NPC здоров, direction=family_builder) ---
+    # --- ТИК 0: PRE-CRISIS (NPC здоров, project=family_builder) ---
     state_healthy = NPCState(
         npc_id=family_profile.id,
-        life_direction="family_builder",
+        life_project="family_builder",
         identity_integrity=1.0,
         stress=0.0,
         affective_load=0.0,
@@ -70,13 +70,13 @@ def test_crisis_changes_life_direction_and_intent(family_profile, world_tick_eve
         event=world_tick_event,
         effective_drives=_effective_drives,
     )
-    print(f"\n[PRE-CRISIS] life_direction={state_healthy.life_direction}, intent={pre_crisis_result.intent.value}, score={pre_crisis_result.score:.2f}")
+    print(f"\n[PRE-CRISIS] life_project={state_healthy.life_project}, intent={pre_crisis_result.intent.value}, score={pre_crisis_result.score:.2f}")
     assert pre_crisis_result.intent.value != Intent.FLEE.value, "Family builder без кризиса не должен бежать"
 
     # --- СИМУЛЯЦИЯ КРИЗИСА (BreakProgressEngine -> LifeProjectResolver) ---
     state_broken = NPCState(
         npc_id=family_profile.id,
-        life_direction="family_builder",
+        life_project="family_builder",
         identity_integrity=0.1,
         stress=95.0,
         affective_load=0.95,
@@ -91,19 +91,37 @@ def test_crisis_changes_life_direction_and_intent(family_profile, world_tick_eve
     )
     assert deltas.identity_crisis, "NPC в стадии deformation должен иметь identity_crisis=True"
 
-    new_direction = LifeProjectResolver.resolve(state_broken)
-    assert new_direction == "isolation", "Family builder в кризисе должен уйти в изоляцию"
-    state_broken.life_direction = new_direction
-    print(f"\n[CRISIS RESOLVED] life_direction changed to: {state_broken.life_direction}")
+    # Симулируем продвижение FSM (5 тиков)
+    # Тик 1: ACTIVE -> COLLAPSING
+    LifeProjectResolver.resolve(state_broken, deltas.identity_crisis)
+    assert state_broken.life_project_state == "COLLAPSING"
 
-    # --- ТИК 1: POST-CRISIS (NPC сломлен, direction=isolation) ---
+    # Тик 2: COLLAPSING -> LOST
+    LifeProjectResolver.resolve(state_broken, False)
+    assert state_broken.life_project_state == "LOST"
+
+    # Тик 3: LOST -> SEARCHING (stress уже 95.0, > 90.0)
+    LifeProjectResolver.resolve(state_broken, False)
+    assert state_broken.life_project_state == "SEARCHING"
+
+    # Тик 4: SEARCHING -> COMMITTED
+    LifeProjectResolver.resolve(state_broken, False)
+    assert state_broken.life_project_state == "COMMITTED"
+    assert state_broken.life_project == "isolation", "Family builder в кризисе должен уйти в изоляцию"
+
+    # Тик 5: COMMITTED -> ACTIVE
+    LifeProjectResolver.resolve(state_broken, False)
+    assert state_broken.life_project_state == "ACTIVE"
+    print(f"\n[CRISIS RESOLVED] life_project changed to: {state_broken.life_project}, state={state_broken.life_project_state}")
+
+    # --- ТИК 1: POST-CRISIS (NPC сломлен, project=isolation, state=ACTIVE) ---
     post_crisis_result = hub.compute(
         state=state_broken,
         personality=family_profile,
         event=world_tick_event,
         effective_drives=_effective_drives,
     )
-    print(f"\n[POST-CRISIS] life_direction={state_broken.life_direction}, intent={post_crisis_result.intent.value}, score={post_crisis_result.score:.2f}")
+    print(f"\n[POST-CRISIS] life_project={state_broken.life_project}, intent={post_crisis_result.intent.value}, score={post_crisis_result.score:.2f}")
 
     isolation_intents = [Intent.FLEE.value, Intent.BLOCK_PATH.value]
     assert post_crisis_result.intent.value in isolation_intents, \

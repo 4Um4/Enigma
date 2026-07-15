@@ -360,6 +360,7 @@ def create_tick_context(
                 break
 
     _is_player = any(getattr(i, "source", "") == "player" for i in interventions)
+    _spatial_query = getattr(shared_context, "spatial_query", None) if shared_context else None
     ctx = _TickContext(
         campaign_id=campaign_id,
         scene_state=input_snapshot,
@@ -374,5 +375,6 @@ def create_tick_context(
         if shared_context is not None
         else types.SimpleNamespace(),  # S116 FIX: Проброс shared_context из game_loop
         is_player_turn=_is_player,  # S116 FIX: Передаём флаг в контекст
+        spatial_query=_spatial_query,
     )
     return ctx

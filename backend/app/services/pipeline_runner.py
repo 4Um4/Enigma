@@ -30,6 +30,8 @@ def build_tick_state(
     economic_profiles_map: Dict[str, Any],
     crystallized_beliefs_map: Dict[str, Any],
     identity_traits_map: Dict[str, Any],
+    spatial_service: Optional[Any] = None,  # P5 FIX: Явная инъекция от оркестратора
+    spatial_query: Optional[Any] = None,    # P5 FIX: Явная инъекция от оркестратора
 ) -> Any:
     """Сборка immutable TickState (causal snapshot) для NpcTickPipeline.run()."""
     _dm_ctx = None
@@ -67,8 +69,8 @@ def build_tick_state(
         crystallized_beliefs_map=crystallized_beliefs_map,
         identity_traits_map=identity_traits_map,
         relationship_store=_svc.relationship_store if _svc else None,
-        spatial_service=_svc.spatial_service if _svc else None,
-        spatial_query=_svc.spatial_query if _svc else None,
+        spatial_service=spatial_service or (_svc.spatial_service if _svc and hasattr(_svc, "spatial_service") else None),
+        spatial_query=spatial_query or (_svc.spatial_query if _svc and hasattr(_svc, "spatial_query") else None),
     )
     return _tick_state
 

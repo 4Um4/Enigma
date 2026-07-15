@@ -15,7 +15,7 @@ TODO:
 from unittest.mock import MagicMock, patch
 
 import pytest
-from app.domain.movement import PRIORITY_NEEDS, PRIORITY_SCHEDULE, MovementIntent
+from app.domain.movement import PRIORITY_NEEDS, PRIORITY_SCHEDULE, MacroMovementGoal
 from app.models.spatial_contracts import NodeRef, NodeRole
 from app.services.npc.life_engine import LifeEngine
 from app.services.scene_state_manager import SceneStateManager
@@ -139,8 +139,8 @@ def test_schedule_locomotion_updates_coordinates(tavern_graph, scene_state, patc
     spatial_svc = patched_spatial_build
 
     # Торнин меняет активность: working → talking_at_bar (target=main_hall)
-    intent = MovementIntent(
-        npc_id="tavern_keeper_tornin",
+    intent = MacroMovementGoal(
+        actor_id="tavern_keeper_tornin",
         target_node_id="main_hall",
         from_node_id="bar_area",
         location_id="tavern_silver_wolf",
@@ -183,8 +183,8 @@ def test_approach_command_creates_movement(scene_state, patched_spatial_build, m
     me.set_spatial_service(spatial_svc)
 
     # Тень подходит к игроку (игрок в main_hall)
-    intent = MovementIntent(
-        npc_id="thief_shadow",
+    intent = MacroMovementGoal(
+        actor_id="thief_shadow",
         target_node_id="main_hall",  # игрок в main_hall
         from_node_id="bed",
         location_id="tavern_silver_wolf",

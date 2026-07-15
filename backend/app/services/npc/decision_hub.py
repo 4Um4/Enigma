@@ -790,18 +790,24 @@ class DecisionHub:
             deltas=deltas,
             narrative_fact=narrative,
         )
-        _communication = self._build_communication(
-            npc_id=state.npc_id,
-            intent_value=best_intent
-            if isinstance(best_intent, str)
-            else best_intent.value,
-            intent_target=intent_target,
-            topic=topic,
-            emotion_value=state.emotion.value
-            if hasattr(state.emotion, "value")
-            else str(state.emotion),
-            scores=scores,
-        )
+        try:
+            _communication = self._build_communication(
+                npc_id=state.npc_id,
+                intent_value=best_intent
+                if isinstance(best_intent, str)
+                else best_intent.value,
+                intent_target=str(intent_target) if intent_target else "all",
+                topic=topic,
+                emotion_value=state.emotion.value
+                if hasattr(state.emotion, "value")
+                else str(state.emotion),
+                scores=scores if scores is not None else {},
+            )
+        except Exception as _comm_err:
+            logger.exception(f"[BUILD_COMM_FAILED] npc={state.npc_id} intent={best_intent}: {_comm_err}")
+            _communication = None
+
+        logger.info(f"[DECISION_HUB_RETURN] npc={state.npc_id} intent={best_intent} comm_built={_communication is not None}")
         return AgentAction(decision=_decision, communication=_communication)
 
     # ─────────────────────────────────────────────────────────────────────────
@@ -1428,8 +1434,12 @@ class DecisionHub:
             if intent in PROACTIVE_INTENTS:
                 base += 0.4  # бонус за проактивность
                 # L2.7: Буст от LifeDirection (динамический жизненный проект).
-                # Читаем из state, а не из personality (L0). Кризис может сменить направление.
-                _direction = getattr(state, "life_direction", "survival")
+                # P1/P2: Читаем life_project только если NPC в активной фазе FSM.
+                # В состоянии LOST/SEARCHING бусты проактивности отключены (экзистенциальная пустота).
+                if getattr(state, "life_project_state", "ACTIVE") in ("ACTIVE", "COMMITTED"):
+                    _project = getattr(state, "life_project", "survival")
+                else:
+                    _project = "survival" # Нейтральный проект при кризисе
                 _direction_intents = {
                     "family_builder": ["seek_ally", "help", "call_for_help"],
                     "wealth_creator": ["offer_job", "request_service", "trade"],
@@ -1441,7 +1451,7 @@ class DecisionHub:
                     "revenge": ["ambush", "attack"],
                     "hermit": ["flee", "observe"],
                 }
-                _expected_intents = _direction_intents.get(_direction, [])
+                _expected_intents = _direction_intents.get(_project, [])
                 if intent in _expected_intents:
                     base += _desire * 1.5 + _significance * 0.5
             else:

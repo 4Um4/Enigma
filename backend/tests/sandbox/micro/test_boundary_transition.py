@@ -133,7 +133,7 @@ def test_movement_engine_does_not_switch_chunk():
 
     # Intent на boundary node
     intent = MacroMovementGoal(
-        npc_id="npc_lusya",
+        actor_id="npc_lusya",
         target_node_id="tavern:exit_east",
         reason="flee",
         priority=0.8,
@@ -188,7 +188,7 @@ def test_runtime_applies_boundary_snap():
 
     # Mock SpatialService — патчим на месте импорта (локальный import внутри метода)
     # Используем spec=NodeRef, чтобы mock поддерживал атрибуты x и y как реальные числа.
-    mock_node = NodeRef(id="city_gate:entry_west", x=20.0, y=15.0, role=NodeRole.ENTRANCE, zone_id="city_gate")
+    mock_node = NodeRef(node_id="city_gate:entry_west", x=20.0, y=15.0, role=NodeRole.ENTRANCE, zone_id="city_gate", tags=["entrance"])
     mock_svc_instance = MagicMock()
     mock_svc_instance.get_node = MagicMock(return_value=mock_node)
     mock_svc_instance.build_for_location = MagicMock(return_value=mock_svc_instance)

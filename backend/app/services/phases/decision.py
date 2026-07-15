@@ -83,13 +83,12 @@ def evaluate_behavior_and_identity(
             if _break_deltas.will_state_override is not None:
                 _npc_state.will_state = _break_deltas.will_state_override
 
-            # L2.7: LifeProjectResolver — смена жизненного направления при кризисе
-            if _break_deltas.identity_crisis:
-                from app.services.npc.life_project_resolver import LifeProjectResolver
-                _new_direction = LifeProjectResolver.resolve(_npc_state)
-                if _new_direction is not None:
-                    _npc_state.life_direction = _new_direction
-                    logger.info(f"[LIFE_PROJECT] NPC {npc_id} сменил направление на {_new_direction} из-за кризиса.")
+            # L2.7: LifeProjectResolver — продвигаем FSM жизненного проекта каждый тик
+            from app.services.npc.life_project_resolver import LifeProjectResolver
+            _old_state = getattr(_npc_state, "life_project_state", "ACTIVE")
+            LifeProjectResolver.resolve(_npc_state, _break_deltas.identity_crisis)
+            if _old_state != _npc_state.life_project_state:
+                logger.info(f"[LIFE_PROJECT] NPC {npc_id} FSM переход: {_old_state} -> {_npc_state.life_project_state} (Проект: {_npc_state.life_project})")
 
             # ADR-O-208: Сохраняем вычисленные дельты обратно в npc_dict
             NPCState.write_to_legacy(_npc_state, npc_dict)

@@ -21,6 +21,8 @@ class _MockAvatarAlive:
 
     hp = 95
     max_hp = 100
+    effective_hp = 95
+    effective_max_hp = 100
     stress = 30.0
     emotion = type("E", (), {"value": "neutral"})()
     will_state = type("W", (), {"value": "free"})()
@@ -36,6 +38,8 @@ class _MockAvatarDead:
 
     hp = 0
     max_hp = 100
+    effective_hp = 0
+    effective_max_hp = 100
     stress = 100.0
     emotion = type("E", (), {"value": "panic"})()
     will_state = type("W", (), {"value": "broken"})()

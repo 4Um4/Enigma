@@ -12,12 +12,12 @@ from app.models.npc_state import NPCState
 
 class LifeProjectResolver:
     """
-    L2.7: Принимает решение о смене LifeDirection (жизненной стратегии).
-    Запускается ТОЛЬКО при identity_crisis = True (stage = deformation).
+    L2.7: Управляет FSM жизненного проекта (LifeProjectState).
+    ADR-O-317: Смена проекта — это процесс, а не мгновенный акт.
+    Стадия LOST означает экзистенциальную пустоту (рост stress).
     """
 
     # Временная карта переходов.
-    # В будущем будет вычисляться из убеждений (L2.5), травм и CoreOrientation (L0).
     _CRISIS_TRANSITIONS = {
         "family_builder": "isolation",
         "wealth_creator": "survival",
@@ -27,20 +27,35 @@ class LifeProjectResolver:
         "survival": "isolation",
     }
 
-    # Стабильные кризисные состояния (дальше не меняются без нового проекта)
-    _CRISIS_STATES = {"isolation", "revenge", "hermit"}
-
     @staticmethod
-    def resolve(state: NPCState) -> Optional[str]:
+    def resolve(state: NPCState, identity_crisis: bool) -> None:
         """
-        Если NPC в кризисе, определяет новое направление.
-        Возвращает новое направление или None (если менять не нужно).
+        Продвигает FSM жизненного проекта.
+        Вызывается каждый тик в phases/decision.py.
         """
-        current_dir = getattr(state, "life_direction", "survival")
+        current_state = getattr(state, "life_project_state", "ACTIVE")
 
-        # Если NPC уже в кризисном состоянии, не меняем его бесконечно
-        if current_dir in LifeProjectResolver._CRISIS_STATES:
-            return None
+        if current_state == "ACTIVE":
+            if identity_crisis:
+                state.life_project_state = "COLLAPSING"
 
-        # Иначе вычисляем кризисный вектор на основе текущего направления
-        return LifeProjectResolver._CRISIS_TRANSITIONS.get(current_dir, "isolation")
+        elif current_state == "COLLAPSING":
+            # Переход в экзистенциальную пустоту
+            state.life_project_state = "LOST"
+
+        elif current_state == "LOST":
+            # Рост стресса от отсутствия смысла
+            state.stress = min(100.0, state.stress + 10.0)
+            # Боль заставляет искать новый смысл
+            if state.stress >= 90.0:
+                state.life_project_state = "SEARCHING"
+
+        elif current_state == "SEARCHING":
+            # Вычисление нового вектора
+            current_proj = getattr(state, "life_project", "survival")
+            state.life_project = LifeProjectResolver._CRISIS_TRANSITIONS.get(current_proj, "isolation")
+            state.life_project_state = "COMMITTED"
+
+        elif current_state == "COMMITTED":
+            # Обретя новый смысл, NPC возвращается к активной жизни
+            state.life_project_state = "ACTIVE"

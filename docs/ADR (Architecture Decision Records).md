@@ -1069,3 +1069,10 @@
   Taboo: ❌ Коммит кода с ошибками Ruff. ❌ Использование других форматтеров (black, autopep8) без явной интеграции с Ruff.
   Status: VERIFIED
   Files: ruff.toml, backend/app/services/input/llm_compressor_client.py, frontend/game_screen.py, frontend/scene_renderer.py
+
+`ADR-O-317` [ONTO] **LifeProject State Machine (Crisis & Search)** — Смена `life_project` (бывш. `life_direction`) переведена на FSM: `ACTIVE` -> `COLLAPSING` -> `LOST` -> `SEARCHING` -> `COMMITTED`. Стадия `LOST` означает экзистенциальную пустоту: `stress` NPC растёт на 10 ед/тик, пока не достигнет 90.0, после чего NPC переходит в `SEARCHING` и вычисляет новый кризисный проект (`isolation`, `revenge` и др.). В стадиях `LOST` и `SEARCHING` `DecisionHub` блокирует бусты проактивных интентов от `life_project` (NPC пассивен). Переименование `life_direction` -> `life_project` обеспечивает обратную совместимость со старыми сейвами через fallback в `from_legacy`.
+  Taboo: ❌ Мгновенная смена `life_project` при `identity_crisis`. ❌ Применение бустов `life_project` в стадии `LOST`/`SEARCHING`. ❌ Отсутствие роста `stress` в стадии `LOST`.
+  Files: models/npc_state.py, services/npc/life_project_resolver.py, services/phases/decision.py, services/npc/decision_hub.py, services/npc/npc_loader.py
+
+
+

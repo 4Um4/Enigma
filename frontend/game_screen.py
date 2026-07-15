@@ -1137,7 +1137,6 @@ class GameScreen:
             if (
                 _now - _last_idle_tick >= _tick_interval
                 and not _idle_tick_running[0]
-                and action_queue.pending_count() == 0
             ):
                 # B1.4-FIX: убран contextlib.suppress(Exception), который маскировал
                 # AttributeError в HttpGameGateway (нет _bridge атрибута).
@@ -1166,7 +1165,7 @@ class GameScreen:
                     if isinstance(_gts, (int, float)) and _gts > 0:
                         self.game_time_seconds = _gts
                     # Пауза idle tick: NPC не двигаются пока игрок читает ответ
-                    _last_idle_tick = pygame.time.get_ticks() + 1000
+                    _last_idle_tick = pygame.time.get_ticks() + 200
                     from narrative_beat import (
                         BeatLifetime,
                         DeliveryType,

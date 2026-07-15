@@ -440,6 +440,13 @@
   - **Интеграция в DecisionHub:** `DecisionHub` переведён на чтение `state.life_direction` вместо статичного L0. Добавлены кризисные направления (`isolation`, `revenge`, `hermit`). Интеграционный тест `test_life_direction_crisis.py` подтверждает, что кризис меняет решения NPC (от `call_for_help` к `block_path`).
   Files: backend/app/models/npc_state.py, backend/app/services/npc/decision_hub.py, backend/app/services/npc/break_progress_engine.py, backend/app/services/npc/life_project_resolver.py, backend/app/services/npc/npc_loader.py, backend/tests/sandbox/system/test_life_direction_crisis.py, scripts/fix_core_orientation.py, config/npc/individuals/*.json
 
+- 🟢 **S120** P5 FIX: NPC Traversal Pipe Repair.
+  - **Археология:** `NpcTickPipeline` вызывал `_resolve_reactive_movement` и `_resolve_proactive_target`, но `SpatialService` и `SpatialQuery` не доходили до него из `TickOrchestrator` (failure stage: PASS). Кроме того, `_resolve_proactive_target` пытался вызывать несуществующие методы `find_nearest_node` у `SpatialQueryService`.
+  - **Фикс 1 (Инъекция):** `pipeline_runner.py` и `tick_orchestrator.py` обновлены для явной передачи `spatial_service` и `spatial_query` в `build_tick_state`. Внедрён безопасный fallback для `SpatialQueryService` в тестах.
+  - **Фикс 2 (Методы графа):** `_resolve_proactive_target` переведён на использование `spatial_service.get_nearest()` и `spatial_service.resolve_node()`.
+  - **Фикс 3 (Семантика логов):** Устранён ложный warning `target_node_id is None` для не-реактивных интентов (seek_ally, offer_job и др.).
+  - **Validation:** IPT 5/5 passed. DriftLaboratory (1000 тиков): 0 крашей, 438 успешных транзитов, утечек нет.
+  Files: backend/app/services/pipeline_runner.py, backend/app/services/tick_orchestrator.py, backend/app/services/npc/npc_tick_pipeline.py
 
 
 ### DOM-11: DOCUMENTATION & AUDIT (ТЗ-07)
@@ -600,5 +607,8 @@
 92. ❌ Использование `PatternDetector` без передачи `L1Chronicle` в конструктор (ADR-S93.3)
 93. ❌ Жёсткие пороги (if/else) в формировании убеждений `BeliefCrystallizationEngine` (ADR-S93.3)
 94. ❌ Отсутствие затухания ожиданий в Фазе 0.5 — ожидания обязаны затухать привязанные к `dt_game` (ADR-S93.2)
+
+
+
 
 

@@ -31,6 +31,72 @@ from app.services.npc.legacy_delta_adapter import LegacyStateDeltaAdapter
 
 logger = logging.getLogger(__name__)
 
+def _resolve_proactive_target(
+    intent_value: str,
+    npc_id: str,
+    intent_target: str | None,
+    scene_state: dict,
+    spatial_service: Any,
+    location_id: str,
+) -> str | None:
+    """Возвращает target_node для proactive movement intent."""
+    if not spatial_service:
+        return None
+
+    # 1. Явный target_id — резолвим его позицию через граф
+    if intent_target and intent_target != "player":
+        target_pos = scene_state.get("npc_positions", {}).get(intent_target, {})
+        lp = target_pos.get("local_position")
+        if lp:
+            _node_ref = spatial_service.get_nearest(
+                zone_id=location_id,
+                origin_xy=(lp.get("x", 0), lp.get("y", 0)),
+            )
+            if _node_ref:
+                return getattr(_node_ref, "node_id", str(_node_ref))
+
+    # 2. Резолвим по intent type через NodeRole
+    from app.models.spatial_contracts import NodeRole
+    _INTENT_TO_ROLE = {
+        "request_service": NodeRole.BAR,
+        "offer_job": NodeRole.BAR,
+        "block_path": NodeRole.ENTRANCE,
+        "ambush": NodeRole.DEFAULT,
+        "change_role": NodeRole.WORKBENCH,
+    }
+    if intent_value in _INTENT_TO_ROLE:
+        _node_ref = spatial_service.resolve_node(_INTENT_TO_ROLE[intent_value])
+        if _node_ref:
+            return getattr(_node_ref, "node_id", str(_node_ref))
+
+    # 3. Социальные intents — к ближайшему NPC
+    if intent_value in ("seek_ally", "call_for_help", "spread_rumor", "talk"):
+        npc_positions = scene_state.get("npc_positions", {})
+        my_pos = npc_positions.get(npc_id, {}).get("local_position", {"x": 0, "y": 0})
+        nearest_npc_id = None
+        nearest_dist = float("inf")
+        for other_id, other_data in npc_positions.items():
+            if other_id == npc_id or other_id == "player":
+                continue
+            other_pos = other_data.get("local_position", {})
+            if not other_pos:
+                continue
+            dx = other_pos.get("x", 0) - my_pos.get("x", 0)
+            dy = other_pos.get("y", 0) - my_pos.get("y", 0)
+            dist = (dx * dx + dy * dy) ** 0.5
+            if dist < nearest_dist:
+                nearest_dist = dist
+                nearest_npc_id = other_id
+        if nearest_npc_id:
+            other_pos = npc_positions[nearest_npc_id].get("local_position", {})
+            _node_ref = spatial_service.get_nearest(
+                zone_id=location_id,
+                origin_xy=(other_pos.get("x", 0), other_pos.get("y", 0)),
+            )
+            if _node_ref:
+                return getattr(_node_ref, "node_id", str(_node_ref))
+    return None
+
 
 class NpcTickPipeline:
     """
@@ -393,12 +459,12 @@ class NpcTickPipeline:
 
             _intent_value = decision.intent.value if decision.intent else ""
 
-            if _intent_value not in {"approach", "flee"}:
+            if _intent_value not in {"approach", "flee", "seek_ally", "offer_job", "request_service", "call_for_help", "spread_rumor", "block_path", "ambush", "talk", "change_role"}:
                 if _is_move_command:
                     _intent_value = "approach"
                     decision.intent_target = "player"
 
-            _MOVE_INTENTS = {"approach", "flee"}
+            _MOVE_INTENTS = {"approach", "flee", "seek_ally", "offer_job", "request_service", "call_for_help", "spread_rumor", "block_path", "ambush", "talk", "change_role"}
             if _intent_value in _MOVE_INTENTS:
                 _movement = _resolve_reactive_movement(
                     npc_id=npc_id,
@@ -407,9 +473,32 @@ class NpcTickPipeline:
                     scene_state=dict(state.scene_state),
                     location_id=state.scene_state.get("location_id", ""),
                     spatial_service=state.spatial_service,
-                    drf_ctx=_npc_drf_ctx,
                     spatial_query=state.spatial_query,
+                    drf_ctx=_npc_drf_ctx,
                 )
+                if not _movement:
+                    if state.spatial_service:
+                        try:
+                            _target_node = _resolve_proactive_target(
+                                intent_value=_intent_value,
+                                npc_id=npc_id,
+                                intent_target=decision.intent_target,
+                                scene_state=dict(state.scene_state),
+                                spatial_service=state.spatial_service,
+                                location_id=state.scene_state.get("location_id", ""),
+                            )
+                            logger.debug(f"[PROACTIVE_MOVE] npc={npc_id} intent={_intent_value} target_node={_target_node}")
+                            if _target_node:
+                                from app.domain.movement import MacroMovementGoal
+                                _movement = MacroMovementGoal(
+                                    actor_id=npc_id,
+                                    target_node_id=_target_node,
+                                    reason=f"proactive_{_intent_value}",
+                                )
+                        except Exception as _e:
+                            logger.exception(f"[PROACTIVE_MOVE_ERROR] npc={npc_id} intent={_intent_value}: {_e}")
+                    else:
+                        logger.warning(f"[PROACTIVE_MOVE_SKIP] npc={npc_id} intent={_intent_value} reason=spatial_query is None")
                 if _movement:
                     movement_intents.append(_movement)
 
@@ -1058,12 +1147,11 @@ def _resolve_reactive_movement(
             return None
 
     if not target_node_id:
-        logger.warning(
-            f"[PIPELINE][REACTIVE_MOVEMENT][SKIP] npc={npc_id} target_node_id is None"
-        )
+        # Тихий возврат для не-реактивных интентов (seek_ally, offer_job и др.), 
+        # чтобы они прошли через _resolve_proactive_target без ложного спама.
         return None
 
-    logger.warning(
+    logger.debug(
         f"[PIPELINE][REACTIVE_MOVEMENT][CREATE] npc={npc_id} target_node={target_node_id} from_node={current_node}"
     )
     logger.debug(

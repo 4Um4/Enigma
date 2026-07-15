@@ -1439,6 +1439,10 @@ class SceneStateManager:
                         getattr(change, "target_location_id", "") or location_id
                     )
                     if target_loc and change.value:
+                        # Обновляем локацию NPC при кросс-локационном переходе
+                        if target_loc != location_id:
+                            entry["location_id"] = target_loc
+                            entry["location"] = target_loc
                         try:
                             from app.services.spatial.spatial_factory import (
                                 SpatialFactory,
@@ -1472,10 +1476,16 @@ class SceneStateManager:
                                     from_xy = {"x": 0.0, "y": 0.0}
 
                                 _active_travs = scene_state.get("active_traversals", {})
+                                # ADR-O-201.4 / ADR-130.2: При cause="traversal_complete" 
+                                # это факт завершения перемещения (snap), а не начало нового.
+                                # Создание нового TraversalState здесь запрещено.
                                 if (
-                                    change.target not in _active_travs
-                                    or _active_travs[change.target].get("status")
-                                    != "MOVING"
+                                    getattr(change, "cause", "") != "traversal_complete"
+                                    and (
+                                        change.target not in _active_travs
+                                        or _active_travs[change.target].get("status")
+                                        != "MOVING"
+                                    )
                                 ):
                                     import math
 

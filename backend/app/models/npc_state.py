@@ -603,7 +603,8 @@ class NPCState:
     # L2.7: LifeDirection (Жизненный проект).
     # Динамическая проекция CoreOrientation (L0), модулированная убеждениями (L2.5).
     # Инициализируется из L0 при спавне. Меняется при кризисе идентичности.
-    life_direction: str = "survival"
+    life_project: str = "survival"
+    life_project_state: str = "ACTIVE"  # ADR-O-317: FSM (ACTIVE, COLLAPSING, LOST, SEARCHING, COMMITTED)
 
     # ── Физиология (Physiology Domain / Body LOD Macro) ────────────────────
     # Мастер Тай: body_state — рантайм контейнер ВСЕЙ физиологии (HP, pain, fatigue, injuries, modifiers).
@@ -763,7 +764,8 @@ class NPCState:
             "emotion_delta": self.emotion_delta,
             "state_modifiers": dict(self.state_modifiers),
             "trait_activation": dict(self.trait_activation),
-            "life_direction": self.life_direction,
+            "life_project": self.life_project,
+            "life_project_state": self.life_project_state,
             "trauma_markers": list(self.trauma_markers),
             "intent": self.intent.value if self.intent else None,
             "intent_target": self.intent_target,
@@ -808,7 +810,8 @@ class NPCState:
         psyche["identity_integrity"] = state.identity_integrity
         psyche["pressure_resistance"] = state.pressure_resistance
         # L2.7: LifeDirection — персистенция динамического жизненного проекта
-        psyche["life_direction"] = state.life_direction
+        psyche["life_project"] = state.life_project
+        psyche["life_project_state"] = state.life_project_state
         psyche["trauma_flags"] = (
             list(state.trauma_markers)
             if isinstance(state.trauma_markers, (set, list, tuple))
@@ -976,14 +979,16 @@ class NPCStateAdapter:
                     _drives_raw[_dk] = max(0.01, min(1.0, _dv))
 
         # L2.7: LifeDirection — динамическая проекция L0.
-        # Если в сейве нет life_direction (старый сейв), берём core_orientation.
-        _life_direction = psyche.get("life_direction", npc_dict.get("core_orientation", "survival"))
+        # P2: Обратная совместимость. Если нет life_project, берём старое life_direction или L0.
+        _life_project = psyche.get("life_project", psyche.get("life_direction", npc_dict.get("core_orientation", "survival")))
+        _life_project_state = psyche.get("life_project_state", "ACTIVE")
 
         return NPCState(
             npc_id=npc_dict.get("npc_id", npc_dict.get("id", "unknown")),
             stress=float(psyche.get("stress", 0)),
             drives_runtime=_drives_raw,
-            life_direction=_life_direction,
+            life_project=_life_project,
+            life_project_state=_life_project_state,
             # R6.1/R6.4 — новые параметры личности (если отсутствуют — дефолты)
             resentment=float(psyche.get("resentment", 0.0)),
             dependency=float(psyche.get("dependency", 0.0)),

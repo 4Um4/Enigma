@@ -33,23 +33,24 @@ class TestTemporalReconciliation:
         npc = {"npc_id": "test", "psyche": {"stress": 80.0}, "body_state": {}}
         self.engine._npc_cache["camp"] = [npc]
 
-        # 100 секунд = 10 тиков. decay_rate = 0.05
-        # S_t = 0 + (80 - 0) * (1 - 0.05)^10 = 80 * 0.95^10 = 80 * 0.5987 = 47.9
+        # 100 секунд = 1.666 тиков (GAME_TICK_INTERVAL_SECONDS = 60). decay_rate = 0.05
+        # S_t = 0 + (80 - 0) * (1 - 0.05)^1.666 = 80 * 0.9185 = 73.48
         self.engine.reconcile_state("camp", 100.0)
 
         assert npc["psyche"]["stress"] < 80.0
-        assert npc["psyche"]["stress"] == pytest.approx(47.9, abs=0.5)
+        assert npc["psyche"]["stress"] == pytest.approx(73.48, abs=0.5)
 
     def test_hunger_fatigue_linear_growth(self):
         npc = {"npc_id": "test", "psyche": {}, "body_state": {"hunger": 0.0, "fatigue": 0.0}}
         self.engine._npc_cache["camp"] = [npc]
 
-        # 100 секунд = 10 тиков. rate = 0.1/тик
-        # hunger = 0.0 + 0.1 * 10 = 1.0
+        # 100 секунд = 1.666 тиков (GAME_TICK_INTERVAL_SECONDS = 60).
+        # hunger_rate = 8.0 за тик (ADR-S96.3: _NEED_DECAY_PER_TICK = 0.08 * 100).
+        # hunger = 0.0 + 8.0 * 1.666 = 13.33
         self.engine.reconcile_state("camp", 100.0)
 
-        assert npc["body_state"]["hunger"] == pytest.approx(1.0, abs=0.1)
-        assert npc["body_state"]["fatigue"] == pytest.approx(1.0, abs=0.1)
+        assert npc["body_state"]["hunger"] == pytest.approx(13.33, abs=0.5)
+        assert npc["body_state"]["fatigue"] == pytest.approx(13.33, abs=0.5)
 
     def test_hunger_capped_at_100(self):
         npc = {"npc_id": "test", "psyche": {}, "body_state": {"hunger": 99.9, "fatigue": 0.0}}
