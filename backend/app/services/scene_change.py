@@ -16,7 +16,9 @@ sandbox_handler уже его использует для генерации и�
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any
+from typing import Any, Optional
+
+from app.domain.traversal_schema import TraversalProposal
 
 
 # ADR-RCG-EXT: ChangeType represents routing domain only.
@@ -61,6 +63,7 @@ class SceneChange:
     )
     tick: int = 0
     target_location_id: str = ""  # ADR-060: для кросс-локационных перемещений
+    traversal_proposal: Optional[TraversalProposal] = None  # ADR-O-323: Causal artifact from MovementPlanner
 
     def to_dict(self) -> dict:
         """Сериализация для JSONL логирования и передачи в orchestrator."""

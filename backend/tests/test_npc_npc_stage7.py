@@ -170,6 +170,7 @@ def test_npc_memory_modifiers_boost_intent() -> None:
     result_boosted = hub.compute(
         state=state,
         personality=personality,
+        effective_drives=_MOCK_DRIVES,
         event=event,
         npc_memory_modifiers={"avoid": 0.4},
     )

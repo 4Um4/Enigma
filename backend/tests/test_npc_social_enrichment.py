@@ -28,6 +28,7 @@ _MOCK_DRIVES = EffectiveDrives.from_dict({"control": 0.5, "significance": 0.5, "
 
 from app.services.npc.npc_loader import _enrich_with_social_relations
 from app.services.tick_orchestrator import TickOrchestrator
+from app.services.tick_utils import build_npc_snapshots
 
 # ── Хелперы ───────────────────────────────────────────────────────────────
 
@@ -229,7 +230,7 @@ class TestEnrichedSnapshotIntegration:
         }
         npc["base_values"] = {"maid_lusya": 30.0}
 
-        snapshots = TickOrchestrator._build_npc_snapshots([npc])
+        snapshots = build_npc_snapshots([npc])
         rc = snapshots[0]["relationship_cache"]
         bv = snapshots[0]["base_values"]
 
@@ -259,7 +260,7 @@ class TestEnrichedSnapshotIntegration:
         }
         npc["base_values"] = {"player": 55.0, "npc_b": 25.0}
 
-        snapshots = TickOrchestrator._build_npc_snapshots([npc])
+        snapshots = build_npc_snapshots([npc])
         rc = snapshots[0]["relationship_cache"]
         bv = snapshots[0]["base_values"]
 
@@ -277,7 +278,7 @@ class TestEnrichedSnapshotIntegration:
         }
         npc["base_values"] = {"npc_b": 25.0}
 
-        snapshots = TickOrchestrator._build_npc_snapshots([npc])
+        snapshots = build_npc_snapshots([npc])
         bv = snapshots[0]["base_values"]
 
         # Player base добавлена из loyalty_true
@@ -309,7 +310,7 @@ class TestNpcToNpcDecayIntegration:
         }
         npc["base_values"] = {"maid_lusya": 30.0}
 
-        snapshots = TickOrchestrator._build_npc_snapshots([npc])
+        snapshots = build_npc_snapshots([npc])
         handler = SocialDecayHandler()
         deltas = handler.handle(snapshots, "test", 1)
 
@@ -335,7 +336,7 @@ class TestNpcToNpcDecayIntegration:
         }
         npc["base_values"] = {"maid_lusya": 30.0}
 
-        snapshots = TickOrchestrator._build_npc_snapshots([npc])
+        snapshots = build_npc_snapshots([npc])
         handler = SocialDecayHandler()
         deltas = handler.handle(snapshots, "test", 1)
 
@@ -354,7 +355,7 @@ class TestNpcToNpcDecayIntegration:
         }
         npc["base_values"] = {"npc_b": 40.0}
 
-        snapshots = TickOrchestrator._build_npc_snapshots([npc])
+        snapshots = build_npc_snapshots([npc])
         handler = SocialDecayHandler()
         deltas = handler.handle(snapshots, "test", 1)
 
@@ -379,7 +380,7 @@ class TestNpcToNpcDecayIntegration:
         _enrich_with_social_relations(npcs, relations)
 
         # Шаг 3: Строим snapshot
-        snapshots = TickOrchestrator._build_npc_snapshots(npcs)
+        snapshots = build_npc_snapshots(npcs)
 
         # Шаг 4: SocialDecayHandler
         handler = SocialDecayHandler()

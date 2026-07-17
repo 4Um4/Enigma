@@ -1079,5 +1079,10 @@
   Status: ACCEPTED
   Files: docs/ENTITY_CONTINUITY_CONTRACT.md
 
+`ADR-159` [STD] **Combat RNG Isolation (ADR-O-301 Restoration)** — Восстановлено нарушение ADR-O-301 (KernelRNG Isolation) в слое боя. Функции `combat_math.py` (`roll`, `roll_advantage`, `roll_disadvantage`, `attack_roll`) принимают `Optional[random.Random]`, который пробрасывается из `impact_engine.py` (`_resolve_contact`). Адаптер в `_resolve_contact` вычисляет AC (Armor Class) из `dexterity` snapshot-а, так как `combat_math` ожидает legacy-формат dict-ов. Устранены flaky-тесты в `test_impact_engine.py` и `test_physiology_flow.py`.
+  Taboo: ❌ Использование глобального `random.*` в `combat_math.py` и `impact_engine.py`. ❌ Вызов `attack_roll` без передачи `rng`. ❌ Передача `NPCStateSnapshot` напрямую в `combat_math` без адаптации полей (`base_abilities` -> `abilities`).
+  Status: VERIFIED
+  Files: backend/app/services/game/combat_math.py, backend/app/services/combat/impact_engine.py, backend/tests/test_impact_engine.py, backend/tests/test_physiology_flow.py
+
 
 

@@ -63,7 +63,7 @@ def _make_npc(npc_id: str = "npc_1", dexterity: float = 10.0) -> dict:
             "fatigue": 0.0,
             "blood_loss": 0.0,
             "consciousness": 1.0,
-            "modifiers": {},
+            "modifiers": {"ac": -100},  # Гарантируем попадание для тестов физики
         },
         "relationship_cache": {"player": {"trust": 40.0, "fear": 20.0}},
         "base_values": {"player": 50.0},

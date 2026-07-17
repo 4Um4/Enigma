@@ -1489,43 +1489,39 @@ class SceneStateManager:
                                         != "MOVING"
                                     )
                                 ):
-                                    import math
-
-                                    from app.domain.traversal_schema import (
-                                        build_traversal_dict,
-                                    )
-
-                                    speed = 2.0
-                                    current_tick = scene_state.get("tick", 0)
-                                    _waypoints = [
-                                        [from_xy.get("x", 0.0), from_xy.get("y", 0.0)],
-                                        [
-                                            entry["local_position"]["x"],
-                                            entry["local_position"]["y"],
-                                        ],
-                                    ]
-                                    dist = math.hypot(
-                                        _waypoints[0][0] - _waypoints[1][0],
-                                        _waypoints[0][1] - _waypoints[1][1],
-                                    )
-                                    duration_ticks = (
-                                        max(1, math.ceil(dist / speed))
-                                        if speed > 0
-                                        else 1
-                                    )
-
-                                    traversal_dict = build_traversal_dict(
-                                        npc_id=change.target,
-                                        from_node=_old_position or change.value,
-                                        target_node=change.value,
-                                        path_waypoints=_waypoints,
-                                        started_tick=current_tick,
-                                        duration_ticks=duration_ticks,
-                                        speed=speed,
-                                    )
-                                    scene_state.setdefault("active_traversals", {})[
-                                        change.target
-                                    ] = traversal_dict
+                                    # ADR-O-323: Layer 1 Continuity. TraversalState создаётся
+                                    # исключительно MovementPlanner'ом для макро-перемещений (field="position").
+                                    # SceneStateManager только применяет готовый паспорт.
+                                    _proposal = getattr(change, "traversal_proposal", None)
+                                    if _proposal:
+                                        # Проверка актуальности proposal (stale tick detection)
+                                        if _proposal.planned_tick != change.tick:
+                                            logger.error(
+                                                f"[PIPELINE][SCENE_CHANGE][STALE_PROPOSAL_TICK] "
+                                                f"npc={change.target} prop_tick={_proposal.planned_tick} change_tick={change.tick}"
+                                            )
+                                        else:
+                                            from app.domain.traversal_schema import build_traversal_dict
+                                            _traversal_dict = build_traversal_dict(
+                                                npc_id=_proposal.npc_id,
+                                                from_node=_proposal.source_node,
+                                                target_node=_proposal.target_node,
+                                                path_waypoints=[list(wp) for wp in _proposal.path_waypoints],
+                                                started_tick=_proposal.planned_tick,
+                                                duration_ticks=_proposal.duration_ticks,
+                                                speed=_proposal.speed,
+                                            )
+                                            scene_state.setdefault("active_traversals", {})[
+                                                change.target
+                                            ] = _traversal_dict
+                                    elif change.field == "position":
+                                        # Контракт: macro relocation (field="position") обязан иметь proposal.
+                                        # Микро-перемещения (field="local_position") его не требуют.
+                                        logger.error(
+                                            f"[PIPELINE][SCENE_CHANGE][MISSING_TRAVERSAL_PROPOSAL] "
+                                            f"npc={change.target} cause={change.cause} field={change.field} "
+                                            f"Macro movement without proposal (ADR-O-323 violation)"
+                                        )
                         except Exception as exc:
                             logger.error(
                                 f"[PIPELINE][SCENE_CHANGE][APPLY_CRASH] npc={change.target} exc={exc}"

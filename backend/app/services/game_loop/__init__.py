@@ -492,7 +492,10 @@ class GameLoop:
 
         _projector = PerceptionProjector()
         _tick = self.get_current_tick(campaign_id)
-        return _projector.project(scene_state, all_npcs_raw, _tick)
+        print(f"[ARCHAE_PROJECTOR] scene_state={bool(scene_state)} all_npcs_raw={len(all_npcs_raw) if all_npcs_raw else 0}")
+        _res = _projector.project(scene_state, all_npcs_raw, _tick)
+        print(f"[ARCHAE_PROJECTOR] result={_res}")
+        return _res
 
     def _load_npcs_with_runtime(self, campaign_id: str) -> list:
         """Загружает NPC с наложением runtime (стресс, HP и т.д.).
@@ -690,6 +693,7 @@ class GameLoop:
         return self.character_service.list_characters(campaign_id)
 
     def idle_tick(self, campaign_id: str) -> dict:
+        print(f"[ARCHAE_IDLE_ENTRY] campaign_id={campaign_id}")
         """Idle tick — делегирует TickOrchestrator (10 фаз, Устав §3).
 
         Вызывается когда игрок бездействует (таймер pygame).
@@ -785,6 +789,7 @@ class GameLoop:
 
         # ADR-TZ08-8: Explicit snapshot step для PerceptionProjector
         _all_npcs_raw = self._resolve_npcs_snapshot(campaign_id)
+        print(f"[ARCHAE_IDLE] result_ws={bool(result.world_snapshot)} all_npcs_raw={len(_all_npcs_raw) if _all_npcs_raw else 0}")
         if result.world_snapshot:
             _perception = self._project_perception(campaign_id, _scene, _all_npcs_raw)
             if _perception:
@@ -866,6 +871,7 @@ class GameLoop:
         }
 
     async def run_turn(self, req: ChatTurnRequest) -> ChatTurnResponse:
+        print(f"[ARCHAE_PLAYER_ENTRY] req={req}")
         """Блокирующий путь (REST). DM-нарратив собирается целиком."""
         self.assert_requirements()
         _is_session_start_rest = req.campaign_id not in self._session_started_campaigns
@@ -888,6 +894,7 @@ class GameLoop:
 
         # ADR-TZ08-8: Explicit snapshot step для PerceptionProjector
         state.shared_context.all_npcs_raw = self._resolve_npcs_snapshot(req.campaign_id)
+        print(f"[ARCHAE_PLAYER] shared_ctx={bool(state.shared_context)} scene_state={bool(state.shared_context.scene_state if state.shared_context else False)} all_npcs_raw={len(state.shared_context.all_npcs_raw) if state.shared_context and state.shared_context.all_npcs_raw else 0}")
         if state.shared_context and state.shared_context.scene_state:
             _perception = self._project_perception(
                 req.campaign_id,

@@ -638,13 +638,9 @@ def apply_perception_memory(
         },
         persistence_level="working",
     )
-    state_l2 = memory_manager.apply(
-        event=_evt_dto,
-        npc_state=state_l2,
-        campaign_id=campaign_id,
-        spatial_query=spatial_query,
-    )
-    return state_l2
+    # ADR-TZ09-1: NpcTickPipeline.run() — pure reducer. I/O запрещено.
+    # Возвращаем EventDTO для отложенного применения в pipeline_runner.py (Фаза 3).
+    return _evt_dto
 
 
 def create_memory_event(

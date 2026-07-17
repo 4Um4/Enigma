@@ -79,7 +79,7 @@ class TestCombatEmotionCascade:
         from app.services.combat.impact_engine import resolve_physical_impact
 
         phys_deltas = resolve_physical_impact(
-            attacker=attacker_snapshot, defender=defender_snapshot, intent=intent, rng_seed=42
+            attacker=attacker_snapshot, defender=defender_snapshot, intent=intent, rng_seed=10
         )
 
         assert phys_deltas, "ImpactEngine вернул пустой список — боевка мертва"
@@ -124,7 +124,7 @@ class TestCombatEmotionCascade:
         from app.services.combat.impact_engine import resolve_physical_impact
 
         phys_deltas = resolve_physical_impact(
-            attacker=attacker_snapshot, defender=defender_snapshot, intent=intent, rng_seed=42
+            attacker=attacker_snapshot, defender=defender_snapshot, intent=intent, rng_seed=10
         )
 
         total_shock = sum(d.payload.shock_impulse for d in phys_deltas if isinstance(d.payload, PhysiologyPayload))

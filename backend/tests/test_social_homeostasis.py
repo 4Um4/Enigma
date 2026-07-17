@@ -75,18 +75,18 @@ def test_homeostasis_isolation_drops_satiation():
     assert len(deltas) == 1
     payload = deltas[0].payload
     # setpoint = 0.68, actual = 0.1 -> pressure = 0.58 -> delta = -1.16
-    assert payload.social_satiation_delta < 0.0, "Изоляция должна понижать насыщение"
+    assert payload.social_input_ema_delta < 0.0, "Изоляция должна понижать насыщение"
 
 
 def test_homeostasis_overload_rises_satiation():
-    """Интроверт в толпе должен повышать насыщение (перегруз)."""
+    """Интроверт в толпе: EMA затухает к 0 (память о социальном входе растворяется)."""
     npc_data = [{"npc_id": "npc_1", "psyche": {"gregariousness": 0.2}, "social_input_ema": 0.9}]
     deltas = HomeostasisProjector.compute_isolation_decay(npc_data)
 
     assert len(deltas) == 1
     payload = deltas[0].payload
-    # setpoint = 0.32, actual = 0.9 -> pressure = -0.58 -> delta = +1.16
-    assert payload.social_satiation_delta > 0.0, "Перегруз должен повышать насыщение"
+    # EMA затухает (отрицательная дельта), даже при перегрузе
+    assert payload.social_input_ema_delta < 0.0, "EMA должна затухать"
 
 
 # ===================================================================

@@ -47,10 +47,32 @@ def _resolve_contact(
     attacker: NPCStateSnapshot, intent: ImpactIntentDTO, defender: NPCStateSnapshot, rng: random.Random
 ) -> ContactLevel:
     """Контактная модель: D&D 5e attack_roll → ContactLevel mapping (TZ §4.3)."""
-    from app.services.game.combat_math import attack_roll
+    from app.services.game.combat_math import attack_roll, ability_modifier
 
-    # S118: Используем D&D 5e бросок атаки. combat_math берёт статы из словарей.
-    result = attack_roll(attacker, defender)
+    # Адаптер NPCStateSnapshot → combat_math dict
+    # combat_math ожидает "abilities", а snapshot содержит "base_abilities".
+    # Также поддерживаем legacy-формат с "abilities" для обратной совместимости.
+    attacker_dict = {
+        "abilities": attacker.get("base_abilities", attacker.get("abilities", {})),
+        "level": attacker.get("level", 1),
+        "equipped_weapon": attacker.get("equipped_weapon", {}),
+    }
+    
+    # Вычисляем AC защитника: 10 + Dex mod + Armor mod
+    # Если в snapshot нет ac, вычисляем его из dexterity
+    defender_dict = {}
+    if "ac" in defender:
+        defender_dict["ac"] = defender["ac"]
+    else:
+        defender_abilities = defender.get("base_abilities", defender.get("abilities", {}))
+        dex_score = defender_abilities.get("dexterity", 10.0)
+        dex_mod = ability_modifier(dex_score)
+        armor_mod = defender.get("modifiers", {}).get("ac", 0.0)
+        defender_dict["ac"] = 10 + dex_mod + armor_mod
+
+    # S118: Используем D&D 5e бросок атаки. combat_math берет статы из словарей.
+    # ADR-O-301: Пробрасываем rng для детерминированности броска d20.
+    result = attack_roll(attacker_dict, defender_dict, rng=rng)
 
     if not result.hit:
         return ContactLevel.MISS
@@ -159,7 +181,7 @@ def resolve_physical_impact(
     # Травма (если урон существенный)
     injuries = ()
     functional_loss = 0.0
-    if structural_damage > 20.0:
+    if structural_damage > 15.0:
         functional_loss = structural_damage / 100.0
         injuries = (
             InjuryDTO(

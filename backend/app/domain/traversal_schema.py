@@ -87,6 +87,58 @@ def validate_traversal_dict(data: Dict[str, Any]) -> List[str]:
     return errors
 
 
+from dataclasses import dataclass
+from enum import Enum
+from typing import Any, Dict, List, Optional
+
+
+@dataclass(frozen=True)
+class TraversalProposal:
+    """Causal artifact: immutable proposal for physical movement.
+    
+    ADR-O-323: Created exclusively by MovementPlanner. Contains all
+    validated data needed for materialization. Includes topology_version
+    to detect stale proposals if spatial authority changed.
+    """
+    npc_id: str
+    source_node: str
+    target_node: str
+    path_waypoints: tuple[tuple[float, float], ...]
+    distance: float
+    speed: float
+    duration_ticks: int
+    source_intent_id: str
+    planned_tick: int
+    topology_version: int  # ADR-O-323: Stale detection. Mandatory contract.
+
+
+class MovementPlanStatus(Enum):
+    ACCEPTED = "ACCEPTED"
+    REJECTED = "REJECTED"
+
+
+@dataclass(frozen=True)
+class MovementPlanResult:
+    """Result of MovementPlanner planning attempt.
+    
+    If ACCEPTED, contains valid TraversalProposal.
+    If REJECTED, contains reason. REJECTED proposals must NOT
+    reach materialization layer.
+    """
+    status: MovementPlanStatus
+    proposal: Optional[TraversalProposal] = None
+    reason: str = ""
+
+    def __post_init__(self):
+        """ADR-O-323: Инварианты результата планирования."""
+        if self.status is MovementPlanStatus.ACCEPTED:
+            if self.proposal is None:
+                raise ValueError("ACCEPTED result requires proposal")
+        if self.status is MovementPlanStatus.REJECTED:
+            if self.proposal is not None:
+                raise ValueError("REJECTED result cannot contain proposal")
+
+
 def build_traversal_dict(
     npc_id: str,
     from_node: str,

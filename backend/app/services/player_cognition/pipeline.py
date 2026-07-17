@@ -186,8 +186,8 @@ def build_perceived_scene(
     # === 6. Cognitive Distortion ===
     distortion_inputs = PlayerDistortionInputs(
         stress=config.player_stress,
-        hp=config.player_hp,
-        max_hp=config.player_max_hp,
+        effective_hp=config.player_hp,
+        effective_max_hp=config.player_max_hp,
         fatigue=config.player_fatigue,
     )
     apply_cognitive_distortion(entities, distortion_inputs)

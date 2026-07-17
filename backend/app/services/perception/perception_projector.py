@@ -55,5 +55,5 @@ class PerceptionProjector:
 
             return _player_perception
         except Exception as e:
-            logger.warning(f"[PERCEPTION_PROJECTOR] failed: {e}")
+            logger.exception(f"[PERCEPTION_PROJECTOR] CRASHED: {e}")
             return None

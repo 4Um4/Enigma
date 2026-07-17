@@ -99,9 +99,35 @@ def build_npc_contexts_from_intents(ctx: Any, mutation: TickMutation) -> None:
 
     # Применение Memory Events (STM/L2 update)
     if mutation.memory_events and _svc and _svc.memory_manager:
+        from app.services.npc.npc_loader import load_l2_state_from_runtime_dict
+        from app.models.npc_state import NPCState
+        
+        _spatial_query = getattr(ctx.shared_context, "spatial_query", None) if ctx.shared_context else None
+        if not _spatial_query and ctx.scene_state:
+            from app.services.spatial.spatial_query_service import SpatialQueryService
+            _spatial_query = SpatialQueryService(
+                npc_positions=ctx.scene_state.get("npc_positions", {}),
+                scene_state=ctx.scene_state,
+            )
+            
         for _mem_evt in mutation.memory_events:
-            if hasattr(ctx, "event_bus"):
-                ctx.event_bus.publish(_mem_evt)
+            _npc_id = _mem_evt.payload.get("npc_id")
+            if not _npc_id:
+                continue
+            _npc_dict = next((n for n in ctx.all_npcs_raw if n.get("npc_id") == _npc_id or n.get("id") == _npc_id), None)
+            if not _npc_dict:
+                continue
+            try:
+                _npc_state = load_l2_state_from_runtime_dict(_npc_dict)
+                _npc_state = _svc.memory_manager.apply(
+                    event=_mem_evt,
+                    npc_state=_npc_state,
+                    campaign_id=ctx.campaign_id,
+                    spatial_query=_spatial_query,
+                )
+                NPCState.write_to_legacy(_npc_state, _npc_dict)
+            except Exception as e:
+                logger.warning(f"[PIPELINE_RUNNER] Memory apply failed for {_npc_id}: {e}")
 
     if not ctx.communication_intents:
         return

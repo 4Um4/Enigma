@@ -106,7 +106,10 @@ class EventBus:
             self._cfrm_bridge(event)
 
         results: List[EventDTO] = []
-        handlers = self._handlers.get(event.type, [])
+        # S122 FIX: Нормализация ключа. subscribe использует .value (строку),
+        # поэтому publish также обязан искать по строке, иначе обработчики не найдутся.
+        _evt_type = event.type.value if hasattr(event.type, "value") else str(event.type)
+        handlers = self._handlers.get(_evt_type, [])
 
         for handler in handlers:
             try:

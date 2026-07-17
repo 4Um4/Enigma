@@ -527,29 +527,59 @@ class EventCompiler:
             else 1
         )
 
-        # E16: Traversal contract (все поля для scene_state)
-        # ADR-XXX: Единственный разрешённый способ создания traversal_dict — через build_traversal_dict()
-        from app.domain.traversal_schema import build_traversal_dict
+        # ADR-O-323: Shadow Compiler больше не создаёт traversal_dict (Single Author).
+        # Он читает готовый TraversalProposal от MovementPlanner и независимо валидирует его.
+        proposal = getattr(change, "traversal_proposal", None)
+        
+        if not proposal:
+            # Если это макро-перемещение, но нет proposal — это Causal Violation.
+            if change.field == "position":
+                # Явный сигнал EquivalenceViolation (Class D - Causal)
+                logger.error(
+                    f"[EQUIVALENCE_VIOLATION][MISSING_PROPOSAL] npc={change.target} "
+                    f"field={change.field} cause={change.cause} "
+                    f"Macro movement requires TraversalProposal (ADR-O-323 violation)"
+                )
+                return None
+            # Для микро-перемещений proposal не требуется
+            logger.debug(
+                f"[SHADOW_COMPILER] npc={change.target} no proposal (non-macro movement)"
+            )
+            return None
 
-        current_tick = snapshot.tick
-        traversal_fields = build_traversal_dict(
-            npc_id=change.target,
-            from_node=spatial.source_node or change.value,
-            target_node=change.value,
-            path_waypoints=waypoints,
-            started_tick=current_tick,
-            duration_ticks=duration_ticks,
-            speed=self._DEFAULT_SPEED,
-        )
+        # Независимая валидация инвариантов TraversalProposal
+        is_valid, reason = self._validate_traversal_proposal(proposal, change, spatial, source_xy, target_xy)
+        if not is_valid:
+            # Явный сигнал EquivalenceViolation (Class D - Causal)
+            logger.error(
+                f"[EQUIVALENCE_VIOLATION][PROPOSAL_INVALID] npc={change.target} "
+                f"reason={reason}"
+            )
+            return None
 
+        # Валидация пройдена — формируем projection на основе проверенного proposal
         motion = MotionPlan(
             is_teleport=False,
             is_path_blocked=is_path_blocked,
-            waypoints=tuple(tuple(wp) for wp in waypoints),
-            distance=distance,
-            duration_ticks=duration_ticks,
-            speed=self._DEFAULT_SPEED,
+            waypoints=tuple(tuple(wp) for wp in proposal.path_waypoints),
+            distance=proposal.distance,
+            duration_ticks=proposal.duration_ticks,
+            speed=proposal.speed,
         )
+
+        # Формируем traversal_fields для ThickSceneChange на основе proposal
+        traversal_fields = {
+            "npc_id": proposal.npc_id,
+            "from_node": proposal.source_node,
+            "target_node": proposal.target_node,
+            "path_waypoints": [list(wp) for wp in proposal.path_waypoints],
+            "speed": proposal.speed,
+            "started_tick": proposal.planned_tick,
+            "duration_ticks": proposal.duration_ticks,
+            "locomotion": "WALK",
+            "status": "MOVING",
+            "current_waypoint_idx": 0,
+        }
 
         traversal = TraversalContract(
             status="NEW",
@@ -569,6 +599,56 @@ class EventCompiler:
             traversal=traversal,
             spatial_mode=SpatialTransitionMode.INTERPOLATED,
         )
+
+    def _validate_traversal_proposal(
+        self,
+        proposal: Any,
+        change: SceneChange,
+        spatial: Any,
+        source_xy: Tuple[float, float],
+        target_xy: Tuple[float, float],
+    ) -> Tuple[bool, str]:
+        """ADR-O-323: Независимая валидация инвариантов TraversalProposal.
+        
+        Проверяет:
+        1. Совпадение source/target с запрошенными
+        2. Геометрическую валидность waypoints (начало/конец)
+        3. Консистентность distance и duration_ticks
+        4. Stale detection (topology_version)
+        """
+        # 1. Source / Target совпадают
+        if proposal.source_node != spatial.source_node:
+            return False, f"SOURCE_MISMATCH prop={proposal.source_node} actual={spatial.source_node}"
+        if proposal.target_node != change.value:
+            return False, f"TARGET_MISMATCH prop={proposal.target_node} requested={change.value}"
+            
+        # 2. Геометрическая валидность (без дублирования pathfinding)
+        prop_wps = [list(wp) for wp in proposal.path_waypoints]
+        if len(prop_wps) < 2:
+            return False, "WAYPOINTS_TOO_SHORT"
+        if abs(prop_wps[0][0] - source_xy[0]) > 0.5 or abs(prop_wps[0][1] - source_xy[1]) > 0.5:
+            return False, f"START_WAYPOINT_MISMATCH prop={prop_wps[0]} actual={list(source_xy)}"
+        if abs(prop_wps[-1][0] - target_xy[0]) > 0.5 or abs(prop_wps[-1][1] - target_xy[1]) > 0.5:
+            return False, f"END_WAYPOINT_MISMATCH prop={prop_wps[-1]} actual={list(target_xy)}"
+            
+        # 3. Distance и Duration консистентны (геометрическая проверка)
+        calc_distance = 0.0
+        for i in range(len(prop_wps) - 1):
+            dx = prop_wps[i][0] - prop_wps[i+1][0]
+            dy = prop_wps[i][1] - prop_wps[i+1][1]
+            calc_distance += math.hypot(dx, dy)
+        if abs(proposal.distance - calc_distance) > 1.0:
+            return False, f"DISTANCE_MISMATCH prop={proposal.distance:.2f} calc={calc_distance:.2f}"
+        expected_duration = max(1, math.ceil(proposal.distance / proposal.speed)) if proposal.speed > 0 else 1
+        if proposal.duration_ticks != expected_duration:
+            return False, f"DURATION_MISMATCH prop={proposal.duration_ticks} expected={expected_duration}"
+            
+        # 4. Topology Version
+        current_topology_version = getattr(spatial, "_topology_version", 0)
+        if proposal.topology_version != current_topology_version:
+            return False, f"STALE_TOPOLOGY prop={proposal.topology_version} current={current_topology_version}"
+            
+        return True, "OK"
 
     # ── Вспомогательные вычисления ────────────────────────────────
 

@@ -143,6 +143,7 @@
       "x": 8.0,
       "y": 12.0,
       "label": "Вход",
+      "role": "entrance",
       "connections": [
         "main_hall"
       ]
@@ -151,6 +152,7 @@
       "x": 8.0,
       "y": 7.0,
       "label": "Центр зала",
+      "role": "default",
       "connections": [
         "entrance",
         "bar_area",
@@ -162,6 +164,7 @@
       "x": 4.0,
       "y": 4.0,
       "label": "У стойки",
+      "role": "bar",
       "connections": [
         "main_hall",
         "behind_bar"
@@ -171,6 +174,7 @@
       "x": 4.0,
       "y": 2.5,
       "label": "За стойкой",
+      "role": "bar",
       "connections": [
         "bar_area"
       ]
@@ -179,6 +183,7 @@
       "x": 11.0,
       "y": 4.0,
       "label": "У камина",
+      "role": "default",
       "connections": [
         "main_hall"
       ]
@@ -187,6 +192,7 @@
       "x": 12.0,
       "y": 10.0,
       "label": "В тёмном углу",
+      "role": "table",
       "connections": [
         "main_hall"
       ]
@@ -195,6 +201,7 @@
       "x": 12.0,
       "y": 7.0,
       "label": "За правым столом",
+      "role": "table",
       "connections": [
         "main_hall",
         "fireplace"
@@ -204,6 +211,7 @@
       "x": 16.0,
       "y": 4.0,
       "label": "Кухня",
+      "role": "default",
       "connections": [
         "main_hall"
       ]

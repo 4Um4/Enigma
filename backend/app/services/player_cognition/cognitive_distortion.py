@@ -25,8 +25,8 @@ class PlayerDistortionInputs:
     """
 
     stress: float = 0.0  # 0-100
-    hp: int = 100
-    max_hp: int = 100
+    effective_hp: int = 100
+    effective_max_hp: int = 100
     fatigue: float = 0.0  # 0-100, TODO: будет добавлено в NPCState позже
 
 

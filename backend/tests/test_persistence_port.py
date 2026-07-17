@@ -52,7 +52,7 @@ class TestJsonPersistenceAdapter:
         scene = {"location_id": "tavern", "objects": {}}
         adapter.save_scene("test-campaign", scene)
 
-        result_file = tmp_path / "campaigns" / "test-campaign" / "campaign_state.json"
+        result_file = tmp_path / "saves" / "test-campaign" / "campaign_state.json"
         assert result_file.exists()
 
         import json

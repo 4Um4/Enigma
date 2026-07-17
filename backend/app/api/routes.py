@@ -189,6 +189,7 @@ def idle_tick(campaign_id: str, game_loop=Depends(get_game_loop)) -> dict:
     Делегирует GameLoop.idle_tick() → TickOrchestrator (10 фаз, Устав §3).
     """
     try:
+        print(f"[ARCHAE_ROUTE_IDLE] campaign_id={campaign_id}")
         _result = game_loop.idle_tick(campaign_id)
 
         # npc_positions из world_snapshot через конвертер (обратная совместимость)

@@ -534,12 +534,12 @@ class TickOrchestrator:
     def _phase_1_npic_normalize(self, ctx: _TickContext) -> None:
         """Подслой 1.1: NPIC NORMALIZATION."""
         if ctx.all_npcs_raw:
-            from app.models.npc_state import BODY_STATE_DISABLED
+            from app.models.npc_state import BODY_STATE_DISABLED_DATA
 
             for _npc in ctx.all_npcs_raw:
                 _bs = _npc.get("body_state")
                 if not _bs:
-                    _npc["body_state"] = dict(BODY_STATE_DISABLED)
+                    _npc["body_state"] = dict(BODY_STATE_DISABLED_DATA)
                     logger.warning(
                         f"[NPIC_NORMALIZE] NPC '{_npc.get('npc_id', '?')}' missing body_state. Injected DISABLED sentinel."
                     )
@@ -754,6 +754,31 @@ class TickOrchestrator:
 
         if not _sem_action or not _sem_target:
             return
+
+        # S122 FIX: Боевая труба. Если игрок атакует — публикуем событие в EventBus,
+        # чтобы CombatSubscriber (Фаза 8) вызвал ImpactEngine и нанёс физический урон.
+        # Без этого NPC не получает боль/шок, и BehaviorManifestationService не генерирует моторные следы.
+        if _sem_action.upper() == "ATTACK":
+            import uuid
+            from app.services.events.event_types import EventType
+            from app.domain.events import EventDTO
+
+            _attack_event = EventDTO(
+                id=str(uuid.uuid4()),
+                type=EventType.PLAYER_ATTACKED.value,
+                source="player",
+                timestamp=ctx.scene_state.get("game_time_seconds", 0.0),
+                payload={
+                    "target_id": _target_id,
+                    "target_reference": _sem_target,
+                    "intensity": _payload.get("social_pressure", 0.8),
+                    "actor_id": "player",
+                },
+                visibility="public",
+                radius=15.0,
+                persistence_level="working",
+            )
+            self._event_bus.publish(_attack_event)
 
         # ADR-082: Регистронезависимое сравнение
         if _sem_action.upper() in ("MOVE", "THREATEN", "PERSUADE", "GIVE"):

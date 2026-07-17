@@ -374,6 +374,7 @@ class TestSocialModifiersIntegration:
         result = DecisionHub().compute(
             state=base_state,
             personality=base_personality,
+            effective_drives=_MOCK_DRIVES,
             event=event,
             social_modifiers={"INTIMIDATE": 0.32, "THREATEN": 0.2},
         )
@@ -387,6 +388,7 @@ class TestSocialModifiersIntegration:
         result = DecisionHub().compute(
             state=base_state,
             personality=base_personality,
+            effective_drives=_MOCK_DRIVES,
             event=event,
             social_modifiers=None,
         )
@@ -398,11 +400,13 @@ class TestSocialModifiersIntegration:
         result_base = DecisionHub(seed=42).compute(
             state=base_state,
             personality=base_personality,
+            effective_drives=_MOCK_DRIVES,
             event=event,
         )
         result_empty = DecisionHub(seed=42).compute(
             state=base_state,
             personality=base_personality,
+            effective_drives=_MOCK_DRIVES,
             event=event,
             social_modifiers={},
         )
@@ -415,6 +419,7 @@ class TestSocialModifiersIntegration:
         result = DecisionHub().compute(
             state=base_state,
             personality=base_personality,
+            effective_drives=_MOCK_DRIVES,
             event=event,
             social_modifiers={"NONEXISTENT_INTENT": 999.0},
         )

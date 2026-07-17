@@ -8,10 +8,152 @@ import logging
 logger = logging.getLogger(__name__)
 from typing import Any, Dict, List, Optional
 
+import math
 from app.domain.movement import LocalSteeringGoal, MacroMovementGoal
+from app.domain.traversal_schema import (
+    MovementPlanResult,
+    MovementPlanStatus,
+    TraversalProposal,
+)
 from app.services.scene_change import ChangeType, SceneChange
 
 logger = logging.getLogger(__name__)
+
+
+class MovementPlanner:
+    """ADR-O-323: Единственный автор TraversalProposal.
+    
+    Инкапсулирует логику валидации пути, вычисления waypoints, distance
+    и duration_ticks. Возвращает MovementPlanResult (ACCEPTED/REJECTED).
+    REJECTED proposals не доходят до SceneChange.
+    """
+    _DEFAULT_SPEED = 2.0
+
+    def plan(
+        self,
+        intent: MacroMovementGoal,
+        svc: Any,
+        current_pos: str,
+        tick: int,
+        current_xy: Dict[str, float],
+    ) -> MovementPlanResult:
+        """Планирует макро-перемещение. Возвращает TraversalProposal или REJECT."""
+        target_node = intent.target_node_id
+        source_node_obj = svc.get_node(current_pos)
+        target_node_obj = svc.get_node(target_node) or svc.get_node(f"{intent.location_id}:{target_node}")
+        
+        if not source_node_obj or not target_node_obj:
+            return MovementPlanResult(
+                status=MovementPlanStatus.REJECTED,
+                reason=f"NODE_NOT_FOUND source={current_pos} target={target_node}"
+            )
+
+        # ADR-O-323: Используем реальную local_position NPC для начальной точки,
+        # чтобы избежать расхождения с EventCompiler (который читает local_position из снапшота).
+        _cx = current_xy.get("x", source_node_obj.x) if isinstance(current_xy, dict) else source_node_obj.x
+        _cy = current_xy.get("y", source_node_obj.y) if isinstance(current_xy, dict) else source_node_obj.y
+        source_xy = (_cx, _cy)
+        target_xy = (target_node_obj.x, target_node_obj.y)
+        
+        # FIX Overlap: Добавляем персональный offset ДО создания proposal,
+        # чтобы TraversalProposal содержал финальные координаты.
+        import zlib
+        _hash = zlib.adler32(intent.actor_id.encode("utf-8")) if intent.actor_id else 0
+        _offset_x = ((_hash % 10) / 10.0 - 0.5) * 1.5
+        _offset_y = (((_hash // 10) % 10) / 10.0 - 0.5) * 1.5
+        target_xy = (target_xy[0] + _offset_x, target_xy[1] + _offset_y)
+        
+        # Проверка блокировки пути
+        is_path_blocked = self._check_wall_blocking(svc, source_xy, target_xy)
+        waypoints: List[List[float]] = [[source_xy[0], source_xy[1]]]
+        
+        if is_path_blocked:
+            path = self._find_path(svc, source_xy, target_node_obj)
+            if path and len(path) >= 2:
+                intermediate = [[pn.x, pn.y] for pn in path[1:-1]] if len(path) > 2 else []
+                if intermediate:
+                    waypoints.extend(intermediate)
+                # ADR-DOORWAY-TRUST: 2-node path but blocked — граф говорит, что связь есть
+            else:
+                # ADR-DOORWAY-TRUST: find_path пуст, но целевой узел валиден — доверяем графу
+                pass
+        
+        waypoints.append([target_xy[0], target_xy[1]])
+        
+        # Вычисление дистанции (сумма сегментов)
+        distance = 0.0
+        for i in range(len(waypoints) - 1):
+            dx = waypoints[i][0] - waypoints[i+1][0]
+            dy = waypoints[i][1] - waypoints[i+1][1]
+            distance += math.hypot(dx, dy)
+            
+        duration_ticks = max(1, math.ceil(distance / self._DEFAULT_SPEED)) if self._DEFAULT_SPEED > 0 else 1
+        
+        # Получаем version из SpatialService (если доступно)
+        topology_version = getattr(svc, "_topology_version", 0)
+        
+        proposal = TraversalProposal(
+            npc_id=intent.actor_id,
+            source_node=current_pos,
+            target_node=target_node,
+            path_waypoints=tuple(tuple(wp) for wp in waypoints),
+            distance=distance,
+            speed=self._DEFAULT_SPEED,
+            duration_ticks=duration_ticks,
+            source_intent_id=getattr(intent, "intent_id", f"{intent.actor_id}:{intent.reason}"),
+            planned_tick=tick,
+            topology_version=topology_version,
+        )
+        
+        return MovementPlanResult(
+            status=MovementPlanStatus.ACCEPTED,
+            proposal=proposal,
+        )
+        
+        waypoints.append([target_xy[0], target_xy[1]])
+        
+        # Вычисление дистанции (сумма сегментов)
+        distance = 0.0
+        for i in range(len(waypoints) - 1):
+            dx = waypoints[i][0] - waypoints[i+1][0]
+            dy = waypoints[i][1] - waypoints[i+1][1]
+            distance += math.hypot(dx, dy)
+            
+        duration_ticks = max(1, math.ceil(distance / self._DEFAULT_SPEED)) if self._DEFAULT_SPEED > 0 else 1
+        
+        # Получаем version из SpatialService (если доступно)
+        topology_version = getattr(svc, "_topology_version", 0)
+        
+        proposal = TraversalProposal(
+            npc_id=intent.actor_id,
+            source_node=current_pos,
+            target_node=target_node,
+            path_waypoints=tuple(tuple(wp) for wp in waypoints),
+            distance=distance,
+            speed=self._DEFAULT_SPEED,
+            duration_ticks=duration_ticks,
+            source_intent_id=getattr(intent, "intent_id", f"{intent.actor_id}:{intent.reason}"),
+            planned_tick=tick,
+            topology_version=topology_version,
+        )
+        
+        return MovementPlanResult(
+            status=MovementPlanStatus.ACCEPTED,
+            proposal=proposal,
+        )
+
+    def _check_wall_blocking(self, svc: Any, source_xy: tuple, target_xy: tuple) -> bool:
+        """Проверяет прямую видимость между точками."""
+        # Делегируем в SpatialService если метод есть
+        if hasattr(svc, "is_path_blocked"):
+            return svc.is_path_blocked(source_xy, target_xy)
+        return False
+
+    def _find_path(self, svc: Any, source_xy: tuple, target_node: Any) -> Optional[list]:
+        """A* pathfinding через SpatialService."""
+        if hasattr(svc, "find_path"):
+            return svc.find_path(source_xy, target_node)
+        return None
 
 
 class MovementEngine:
@@ -24,11 +166,13 @@ class MovementEngine:
     """
 
     def __init__(self) -> None:
-        # SpatialService v1.2 — инжекция извне (DI)
+        # SpatialService v1.2 — инъекция извне (DI)
         self._spatial_service: Optional[Any] = None
+        # ADR-O-323: Планировщик — единственный автор TraversalProposal
+        self._planner = MovementPlanner()
 
     def set_spatial_service(self, svc: Any) -> None:
-        """Инжекция SpatialService для A* с учётом оверлея."""
+        """Инъекция SpatialService для A* с учётом оверлея."""
         self._spatial_service = svc
 
     # ── Spatial Intent Gate: единый пространственный арбитр ────────────
@@ -136,6 +280,9 @@ class MovementEngine:
                     self._resolve_micro_movement(intent, tick, npc_positions)
                 )
             elif isinstance(intent, MacroMovementGoal):
+                # ADR-O-323: MovementPlanner — единый автор TraversalState.
+                # Вычисляет waypoints и distance ДО создания SceneChange.
+                # SceneStateManager и EventCompiler становятся чистыми потребителями.
                 # S91.1: Cross-location routing intercept (ДОЛГ 6.2)
                 # Если цель в другом чанке, направляем NPC в boundary node текущего чанка.
                 current_loc = (
@@ -192,8 +339,12 @@ class MovementEngine:
                 continue
 
             for intent in loc_intents:
+                _npc_id = intent.actor_id
+                _npc_data = npc_positions.get(_npc_id, {}) if npc_positions else {}
+                _current_pos = _npc_data.get("position", intent.from_node_id)
+                _current_xy = _npc_data.get("local_position", {})
                 changes.extend(
-                    self._resolve_macro_relocation(intent, svc, location_id, tick)
+                    self._resolve_macro_relocation(intent, svc, location_id, tick, _current_pos, _current_xy)
                 )
 
         return changes
@@ -338,10 +489,13 @@ class MovementEngine:
         svc: Any,
         location_id: str,
         tick: int,
+        current_pos: str,
+        current_xy: Dict[str, float],
     ) -> List[SceneChange]:
-        """ADR-0010/060: LOD1 макро-перемещение (Semantic Relocation)."""
+        """ADR-0010/060/060: LOD1 макро-перемещение (Semantic Relocation).
+        ADR-O-323: Делегирует планирование MovementPlanner'у."""
         # Защита micro-position: если NPC уже в целевом узле — пропускаем
-        if intent.from_node_id and intent.from_node_id == intent.target_node_id:
+        if current_pos and current_pos == intent.target_node_id:
             logger.debug(
                 f"[GATE_B3] npc={intent.actor_id} reason=SAME_NODE node={intent.target_node_id}"
             )
@@ -350,39 +504,28 @@ class MovementEngine:
             )
             return []
 
-        # Резолвим целевой узел в координаты центра
-        target_ref = svc.get_node(intent.target_node_id) or svc.get_node(
-            f"{location_id}:{intent.target_node_id}"
-        )
-        if not target_ref:
-            logger.debug(
-                f"[GATE_B3] npc={intent.actor_id} reason=NODE_NOT_FOUND target={intent.target_node_id} loc={location_id}"
-            )
+        # ADR-O-323: MovementPlanner — единственный автор TraversalProposal.
+        # Передаём авторитетную позицию из scene_state (current_pos + current_xy).
+        plan_result = self._planner.plan(intent, svc, current_pos, tick, current_xy)
+
+        if plan_result.status == MovementPlanStatus.REJECTED:
             logger.warning(
-                f"[MOVEMENT_ENGINE] Узел '{intent.target_node_id}' не найден для {intent.actor_id} в {location_id}"
+                f"[GATE_B3] npc={intent.actor_id} reason=PLAN_REJECTED reason={plan_result.reason}"
             )
             return []
 
-        # ADR-090: Если intent не имеет точных координат (schedule/flee), берём центр узла из графа.
-        # Без этого scene_state_manager не создаёт TraversalState, и NPC телепортируется.
-        target_xy = intent.target_local_xy
-        if target_xy is None and hasattr(target_ref, "x") and hasattr(target_ref, "y"):
-            target_xy = (target_ref.x, target_ref.y)
-
-        # FIX Overlap: Добавляем персональный offset, чтобы NPC не стояли друг в друге.
-        # Offset детерминирован (на основе npc_id), чтобы не вызывать дрожание каждый тик.
-        if target_xy:
-            import zlib
-
-            _hash = (
-                zlib.adler32(intent.actor_id.encode("utf-8")) if intent.actor_id else 0
+        if plan_result.proposal is None:
+            logger.error(
+                f"[GATE_B3] npc={intent.actor_id} reason=ACCEPTED_NULL_PROPOSAL (Kernel Violation)"
             )
-            _offset_x = ((_hash % 10) / 10.0 - 0.5) * 1.5  # от -0.75 до +0.75 м
-            _offset_y = (((_hash // 10) % 10) / 10.0 - 0.5) * 1.5
-            target_xy = (target_xy[0] + _offset_x, target_xy[1] + _offset_y)
+            return []
+
+        # ADR-O-323: MovementEngine не модифицирует proposal. 
+        # Извлекаем целевые координаты из proposal для логирования и SceneChange.target_local_xy.
+        target_xy = plan_result.proposal.path_waypoints[-1]
 
         logger.info(
-            f"[PIPELINE][MOVEMENT][RELOCATE] npc={intent.actor_id} → zone={intent.target_node_id} reason={intent.reason} exact_xy={target_xy}"
+            f"[PIPELINE][MOVEMENT][RELOCATE] npc={intent.actor_id} → zone={intent.target_node_id} reason={intent.reason} exact_xy={target_xy} dist={plan_result.proposal.distance:.2f} ticks={plan_result.proposal.duration_ticks}"
         )
         logger.debug(
             f"[GATE_B3] npc={intent.actor_id} reason=SUCCESS target={intent.target_node_id} loc={location_id}"
@@ -397,6 +540,7 @@ class MovementEngine:
                 tick=tick,
                 target_location_id=location_id,
                 target_local_xy=target_xy,  # ADR-065: Точные координаты цели
+                traversal_proposal=plan_result.proposal,  # ADR-O-323: Авторизованный паспорт
             )
         ]
 

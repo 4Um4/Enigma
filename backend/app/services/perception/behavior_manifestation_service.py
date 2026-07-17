@@ -47,15 +47,21 @@ class BehaviorManifestationService:
 
         # Читаем из npc_positions (там лежат дельты и наблюдаемые состояния)
         npc_positions = scene_state.get("npc_positions", {})
+        logger.info(f"[ARCHAE_PRODUCE] npc_pos_count={len(npc_positions)} all_npcs_raw_count={len(all_npcs_raw) if all_npcs_raw else 0}")
 
         # Правило X: строим маппинг npc_id → body_state из all_npcs_raw
         # StateApplicator пишет body_state в all_npcs_raw, НЕ в npc_positions
         body_state_map: dict[str, dict] = {}
+        # S122: Также собираем psyche для чтения стресса и аффекта (§ENIGMA-S72)
+        psyche_map: dict[str, dict] = {}
         if all_npcs_raw:
             for npc in all_npcs_raw:
                 nid = npc.get("id") or npc.get("npc_id")
-                if nid and npc.get("body_state"):
-                    body_state_map[nid] = npc["body_state"]
+                if nid:
+                    if npc.get("body_state"):
+                        body_state_map[nid] = npc["body_state"]
+                    if npc.get("psyche"):
+                        psyche_map[nid] = npc["psyche"]
             logger.debug(
                 f"[MANIFEST] all_npcs_raw count={len(all_npcs_raw)} body_state_ids={list(body_state_map.keys())}"
             )
@@ -64,7 +70,9 @@ class BehaviorManifestationService:
             if npc_id == "player":
                 continue
             body_state = body_state_map.get(npc_id)
-            trace = self._manifest_npc(npc_id, npc_data, body_state)
+            psyche = psyche_map.get(npc_id, {})
+            trace = self._manifest_npc(npc_id, npc_data, body_state, psyche)
+            logger.info(f"[ARCHAE_TRACE_GEN] npc={npc_id} rigid={trace.posture_rigidity:.2f} instab={trace.locomotion_instability:.2f} mpd={trace.micro_pause_density:.2f}")
             if (
                 trace.locomotion_instability > 0.05
                 or trace.posture_rigidity > 0.05
@@ -74,7 +82,7 @@ class BehaviorManifestationService:
         return traces
 
     def _manifest_npc(
-        self, npc_id: str, data: Dict[str, Any], body_state: Dict[str, Any] = None
+        self, npc_id: str, data: Dict[str, Any], body_state: Dict[str, Any] = None, psyche: Dict[str, Any] = None
     ) -> EmbodiedTraceDTO:
         # Rule X (ADR-101/112): Моторика определяется строго физиологией и PerceptualKernel
         # НЕ телепатия: мы не читаем "NPC боится", мы наблюдаем дрожь рук и напряжённую позу
@@ -90,6 +98,11 @@ class BehaviorManifestationService:
             blood_loss = float(body_state.get("blood_loss", 0.0))
             fatigue = float(body_state.get("fatigue", 0.0))
             shock_impulse = float(body_state.get("shock_impulse", 0.0))
+
+        # S122: Читаем стресс и аффективную нагрузку (§ENIGMA-S72: Эмоция = энергия разрядки)
+        stress = float(psyche.get("stress", 0.0)) if psyche else 0.0
+        affective_load = float(psyche.get("affective_load", 0.0)) if psyche else 0.0
+        logger.info(f"[ARCHAE_BM] npc={npc_id} has_bs={bool(body_state)} fatigue={fatigue} stress={stress} affect={affective_load} pain={pain} shock={shock_impulse}")
 
         # Эмоциональные моторные проявления (наблюдаемые, не телепатия)
         # Страх → дрожь, напряжённая поза, застывание
@@ -112,25 +125,34 @@ class BehaviorManifestationService:
             _emo_rigidity = min(0.8, _threat * 0.9)  # Замер от осознанной угрозы
             # Тремор (instability) формируется строго от боли и шока ниже (Rule X)
 
-        # Вычисляем моторные искажения (строго физиология + PerceptualKernel, Rule X)
-        # 1. Замер/Напряжение: защитный рефлекс от боли + мышечный замок от шока + угроза
+        # S122: Эмоциональная энергия (stress, affective_load) переходит в моторику
+        # Стресс вызывает мышечное напряжение (ригидность)
+        if stress > 20.0:
+            _emo_rigidity = max(_emo_rigidity, min(0.6, stress / 100.0))
+        # Аффективная нагрузка вызывает дрожь и суету
+        if affective_load > 0.3:
+            _emo_instability = min(0.5, (affective_load - 0.3) * 0.7)
+            _emo_micro_pause = min(0.5, (affective_load - 0.3) * 0.5)
+
+        # Вычисляем моторные искажения (строго физиология + PerceptualKernel + Аффект, Rule X)
+        # 1. Замер/Напряжение: защитный рефлекс от боли + мышечный замок от шока + угроза + стресс
         posture_rigidity = _emo_rigidity
         if pain > 20.0:
             posture_rigidity = min(1.0, pain / 80.0)
         if shock_impulse > 0.5:
             posture_rigidity = max(posture_rigidity, min(1.0, shock_impulse * 0.8))
 
-        # 2. Дрожь/Пошатывание: от боли и шока
-        instability = 0.0
+        # 2. Дрожь/Пошатывание: от боли, шока и аффективной перегрузки
+        instability = _emo_instability
         if pain > 10.0:
-            instability = min(1.0, pain / 50.0)
+            instability = max(instability, min(1.0, pain / 50.0))
         if shock_impulse > 0.3:
             instability = max(instability, min(1.0, shock_impulse))
 
-        # 3. Микро-остановки: кровопотеря и усталость (Правило X)
-        micro_pause = 0.0
+        # 3. Микро-остановки: кровопотеря, усталость и когнитивная перегрузка (аффект)
+        micro_pause = _emo_micro_pause
         if blood_loss > 0.05:
-            micro_pause = min(1.0, blood_loss * 5.0)
+            micro_pause = max(micro_pause, min(1.0, blood_loss * 5.0))
         if fatigue > 30.0:
             micro_pause = max(micro_pause, min(1.0, fatigue / 80.0))
 

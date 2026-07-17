@@ -63,6 +63,16 @@ def _make_snapshot(
         base_abilities={},
         modifiers={},
         statuses=statuses or [],
+        life_status="ALIVE",
+        body_state={
+            "pain": pain,
+            "fatigue": fatigue,
+            "blood_loss": blood_loss,
+            "consciousness": consciousness,
+            "shock_impulse": 0.0,
+            "injuries_by_zone": {},
+        },
+        perceptual_kernel={},
     )
 
 

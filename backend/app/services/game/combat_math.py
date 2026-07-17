@@ -12,7 +12,7 @@ import json
 import random
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Логирование
@@ -47,25 +47,28 @@ def _log_event(event: str, data: Dict) -> None:
 # ──────────────────────────────────────────────────────────────────────────────
 
 
-def roll(n: int, sides: int) -> Tuple[List[int], int]:
+def roll(n: int, sides: int, rng: Optional[random.Random] = None) -> Tuple[List[int], int]:
     """Бросить NdM. Возвращает (список бросков, сумма)."""
-    results = [random.randint(1, sides) for _ in range(n)]
+    _rng = rng or random
+    results = [_rng.randint(1, sides) for _ in range(n)]
     total = sum(results)
     _log_roll(f"{n}d{sides}", results, total)
     return results, total
 
 
-def roll_advantage(sides: int = 20) -> Tuple[int, int, int]:
+def roll_advantage(sides: int = 20, rng: Optional[random.Random] = None) -> Tuple[int, int, int]:
     """Бросок с преимуществом. Возвращает (r1, r2, max)."""
-    r1, r2 = random.randint(1, sides), random.randint(1, sides)
+    _rng = rng or random
+    r1, r2 = _rng.randint(1, sides), _rng.randint(1, sides)
     result = max(r1, r2)
     _log_roll(f"advantage d{sides}", [r1, r2], result)
     return r1, r2, result
 
 
-def roll_disadvantage(sides: int = 20) -> Tuple[int, int, int]:
+def roll_disadvantage(sides: int = 20, rng: Optional[random.Random] = None) -> Tuple[int, int, int]:
     """Бросок с помехой. Возвращает (r1, r2, min)."""
-    r1, r2 = random.randint(1, sides), random.randint(1, sides)
+    _rng = rng or random
+    r1, r2 = _rng.randint(1, sides), _rng.randint(1, sides)
     result = min(r1, r2)
     _log_roll(f"disadvantage d{sides}", [r1, r2], result)
     return r1, r2, result
@@ -180,12 +183,14 @@ def attack_roll(
     advantage: bool = False,
     disadvantage: bool = False,
     env_conditions: List[str] = None,
+    rng: Optional[random.Random] = None,
 ) -> AttackResult:
     """
     Полный бросок атаки D&D 5e/2024.
 
     attacker и target — словари из characters.json / major_npcs.json.
     """
+    _rng = rng or random
     weapon = attacker.get("equipped_weapon", {})
     ability = weapon.get("ability", "strength")
     abilities = attacker.get("abilities", {})
@@ -196,13 +201,13 @@ def attack_roll(
 
     # Бросок d20
     if advantage and not disadvantage:
-        r1, r2, d20 = roll_advantage()
+        r1, r2, d20 = roll_advantage(rng=_rng)
         roll_desc = f"adv({r1},{r2})→{d20}"
     elif disadvantage and not advantage:
-        r1, r2, d20 = roll_disadvantage()
+        r1, r2, d20 = roll_disadvantage(rng=_rng)
         roll_desc = f"dis({r1},{r2})→{d20}"
     else:
-        d20 = random.randint(1, 20)
+        d20 = _rng.randint(1, 20)
         roll_desc = str(d20)
         _log_roll("attack d20", [d20], d20)
 

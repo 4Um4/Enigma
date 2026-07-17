@@ -535,22 +535,18 @@ class SceneRenderer:
                     )
                     _bub_x = sx - _bub_w // 2
                     _bub_y = sy - radius - 22 - _bub_h
-                    _bg = pygame.Surface((_bub_w, _bub_h), pygame.SRCALPHA)
-                    _bg.fill((25, 25, 45, min(_alpha, 210)))
-                    pygame.draw.rect(
-                        _bg, (160, 170, 220, _alpha), _bg.get_rect(), 1, border_radius=4
-                    )
-                    self.screen.blit(_bg, (_bub_x, _bub_y))
-                    for _li, _ll in enumerate(_lines):
-                        _ls = self.font_small.render(
-                            _ll, True, (255, 255, 255)
-                        )  # Белый текст буллетов
-                        _la = _ls.copy()
-                        _la.set_alpha(_alpha)
-                        self.screen.blit(_la, (_bub_x + 7, _bub_y + 5 + _li * _line_h))
+                    _pending_bubbles.append({
+                        "x": _bub_x, "y": _bub_y, "w": _bub_w, "h": _bub_h,
+                        "lines": _lines, "alpha": _alpha
+                    })
 
             # Inference badges — маленькие индикаторы
             self._draw_inference_badges(entity, sx, sy + radius + 4)
+
+            # BUG-S120.3: Mood-иконки (наблюдаемые физические проявления)
+            _manif_data = _manifests.get(entity.entity_id) if _manifests else None
+            if _manif_data and _manif_data.get("tags"):
+                self._draw_mood_icons(_manif_data["tags"], sx, sy + radius + 4)
 
             # BUG-P1-01: Рисуем конус взгляда (сектор) по body_heading
             if hasattr(entity, "body_heading"):
@@ -592,6 +588,118 @@ class SceneRenderer:
                     )  # Тёплый белый для тултипов
                     self.screen.blit(_surf, (sx - _surf.get_width() // 2, sy - 30))
                     break  # Показываем только первый (самый важный) cue
+
+        # ADR-SPEECH: Разрешение коллизий и отрисовка облачков после цикла
+        self._resolve_and_draw_bubbles(_pending_bubbles)
+
+    def _resolve_and_draw_bubbles(self, bubbles: list) -> None:
+        """Алгоритм Relaxation для расталкивания речевых облачков (AABB collision)."""
+        if not bubbles:
+            return
+
+        # 5 итераций расталкивания
+        for _ in range(5):
+            for i in range(len(bubbles)):
+                for j in range(i + 1, len(bubbles)):
+                    b1 = bubbles[i]
+                    b2 = bubbles[j]
+                    # Проверка пересечения по осям X и Y
+                    overlap_x = min(b1["x"] + b1["w"], b2["x"] + b2["w"]) - max(b1["x"], b2["x"])
+                    overlap_y = min(b1["y"] + b1["h"], b2["y"] + b2["h"]) - max(b1["y"], b2["y"])
+
+                    if overlap_x > 0 and overlap_y > 0:
+                        # Растолкнуть по оси наименьшего пересечения
+                        if overlap_x < overlap_y:
+                            push = overlap_x / 2 + 1
+                            if b1["x"] < b2["x"]:
+                                b1["x"] -= push
+                                b2["x"] += push
+                            else:
+                                b1["x"] += push
+                                b2["x"] -= push
+                        else:
+                            push = overlap_y / 2 + 1
+                            if b1["y"] < b2["y"]:
+                                b1["y"] -= push
+                                b2["y"] += push
+                            else:
+                                b1["y"] += push
+                                b2["y"] -= push
+
+        # Отрисовка после разрешения коллизий
+        _line_h = self.font_small.get_height() + 2
+        for bub in bubbles:
+            _bub_x = int(bub["x"])
+            _bub_y = int(bub["y"])
+            _bub_w = int(bub["w"])
+            _bub_h = int(bub["h"])
+            _alpha = int(bub["alpha"])
+            
+            _bg = pygame.Surface((_bub_w, _bub_h), pygame.SRCALPHA)
+            _bg.fill((25, 25, 45, min(_alpha, 210)))
+            pygame.draw.rect(
+                _bg, (160, 170, 220, _alpha), _bg.get_rect(), 1, border_radius=4
+            )
+            self.screen.blit(_bg, (_bub_x, _bub_y))
+            for _li, _ll in enumerate(bub["lines"]):
+                _ls = self.font_small.render(
+                    _ll, True, (255, 255, 255)
+                )
+                _la = _ls.copy()
+                _la.set_alpha(_alpha)
+                self.screen.blit(_la, (_bub_x + 7, _bub_y + 5 + _li * _line_h))
+
+    def _draw_mood_icons(self, tags: list, sx: int, sy: int) -> None:
+        """Рисует иконки наблюдаемых физических проявлений (ADR-MANIFEST).
+        tags: список строк вида 'manifest:tense', 'manifest:rigid' и т.д.
+        """
+        # Смещение по X, чтобы иконки не накладывались на inference_badges
+        # inference_badges рисуются от sx с шагом 8. 
+        # Допустим, максимум 5 бейджей. Тогда стартовая X для иконок = sx + 40.
+        _x_offset = 40 
+        
+        _icon_map = {
+            "manifest:tense": self._draw_tense_icon,
+            "manifest:rigid": self._draw_rigid_icon,
+            "manifest:unstable": self._draw_unstable_icon,
+            "manifest:restless": self._draw_restless_icon,
+            "manifest:suffering": self._draw_suffering_icon,
+            "manifest:alert": self._draw_alert_icon,
+        }
+        
+        for tag in tags:
+            draw_fn = _icon_map.get(tag)
+            if draw_fn:
+                draw_fn(sx + _x_offset, sy)
+                _x_offset += 12  # Шаг между иконками
+
+    def _draw_tense_icon(self, x: int, y: int) -> None:
+        """Напряжение: маленький квадрат."""
+        pygame.draw.rect(self.screen, (180, 180, 130), (x, y, 6, 6))
+
+    def _draw_rigid_icon(self, x: int, y: int) -> None:
+        """Окаменелость: прямоугольник."""
+        pygame.draw.rect(self.screen, (140, 155, 185), (x, y, 4, 8))
+
+    def _draw_unstable_icon(self, x: int, y: int) -> None:
+        """Дрожь: зигзаг."""
+        points = [(x, y+4), (x+2, y), (x+4, y+8), (x+6, y+2)]
+        pygame.draw.lines(self.screen, (160, 150, 140), False, points, 1)
+
+    def _draw_restless_icon(self, x: int, y: int) -> None:
+        """Суета: два кружка."""
+        pygame.draw.circle(self.screen, (185, 160, 120), (x, y), 2)
+        pygame.draw.circle(self.screen, (185, 160, 120), (x+4, y+4), 2)
+
+    def _draw_suffering_icon(self, x: int, y: int) -> None:
+        """Страдание: крестик."""
+        pygame.draw.line(self.screen, (130, 110, 100), (x, y), (x+6, y+6), 1)
+        pygame.draw.line(self.screen, (130, 110, 100), (x+6, y), (x, y+6), 1)
+
+    def _draw_alert_icon(self, x: int, y: int) -> None:
+        """Внимание: треугольник."""
+        points = [(x+3, y), (x, y+6), (x+6, y+6)]
+        pygame.draw.polygon(self.screen, (200, 200, 160), points)
 
     def _draw_inference_badges(self, entity: PerceivedEntity, sx: int, sy: int) -> None:
         """Рисует маленькие цветные точки для поведенческих выводов"""
