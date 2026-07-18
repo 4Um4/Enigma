@@ -136,7 +136,8 @@ class TickOrchestrator:
         self.drive_resolver = DriveResolver()
         # L1.5 / L2.5: Статистика и Кристаллизация убеждений (ADR-O-305)
         self.belief_engine = BeliefCrystallizationEngine()
-        self.crystallized_belief_store = CrystallizedBeliefStore()
+        # DEEP-013: Передаём store для SQLite-персистентности убеждений
+        self.crystallized_belief_store = CrystallizedBeliefStore(store=store)
         # ReputationEngine для reputation decay
         self._reputation_engine: Any = None
         # DRF: Instance-level causal bus — переживает execute() / execute_player_finalize()
@@ -375,6 +376,8 @@ class TickOrchestrator:
             ]
         # ADR-L1-PERSIST: Привязка L1Chronicle к текущей кампании для ленивой загрузки
         self.l1_chronicle.bind_campaign(campaign_id)
+        # DEEP-013: Привязка CrystallizedBeliefStore к текущей кампании для ленивой загрузки
+        self.crystallized_belief_store._campaign_id = campaign_id
         if scene_state is None:
             return TickResultDTO(status="no_scene")
 
@@ -506,6 +509,7 @@ class TickOrchestrator:
             npc_contexts=ctx.npc_contexts,
             observed_facts=_final_facts,
             final_scene_state=ctx.scene_state,
+            all_npcs_raw=ctx.all_npcs_raw,
         )
 
     # ── Player Turn (тонкая обёртка) ────────────────────────────────
@@ -1146,18 +1150,10 @@ class TickOrchestrator:
             if n.get("body_state", {}).get("life_status") != "DEAD"
         ]
 
-        # S-93: Active Inference. Сборка PE-модификаторов из ExpectationStore.
+        # DEEP-015 FIX: Мёртвый код ExpectationStore (Active Inference) удалён.
+        # Хранилище никогда не инициализировалось, блоки всегда были no-op.
+        # Оставляем пустой словарь, чтобы не ломать контракт build_tick_state.
         _pe_mods_map: dict[str, dict[str, float]] = {}
-        if hasattr(self, "_expectation_store") and self._expectation_store is not None:
-            from app.services.npc.pe_modifier_resolver import PEModifierResolver
-
-            _pe_resolver = PEModifierResolver()
-            for npc_dict in _alive_npcs:
-                if npc_id := npc_dict.get("id"):
-                    _exp = self._expectation_store.get_expectation(npc_id, "player")
-                    _pe_mods = _pe_resolver.resolve(_exp)
-                    if _pe_mods:
-                        _pe_mods_map[npc_id] = _pe_mods
 
         # [S98] Сборка TickState и запуск Pipeline вынесены в pipeline_runner.py
         from app.services.phases.decision import assemble_preloaded_data
@@ -1275,7 +1271,6 @@ class TickOrchestrator:
             dynamic_field=self._dynamic_field,
             homeostasis_sub=self._homeostasis_sub,
             social_input_proj=self._social_input_proj,
-            expectation_store=getattr(self, "_expectation_store", None),
             idle_handlers=self._idle_handlers,
             life_engine=self._get_life_engine(),
         )

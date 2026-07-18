@@ -482,7 +482,7 @@ class SceneRenderer:
                     )
                     _btxt = _bubble_data["text"]
                     _max_w = 180  # максимальная ширина облачка в пикселях
-                    _max_lines = 3
+                    _max_lines = 10
                     _line_h = self.font_small.get_height() + 2
                     # Перенос по словам
                     _words = _btxt.split(" ")
@@ -543,11 +543,7 @@ class SceneRenderer:
             # Inference badges — маленькие индикаторы
             self._draw_inference_badges(entity, sx, sy + radius + 4)
 
-            # BUG-S120.3: Mood-иконки (наблюдаемые физические проявления)
-            _manif_data = _manifests.get(entity.entity_id) if _manifests else None
-            if _manif_data and _manif_data.get("tags"):
-                self._draw_mood_icons(_manif_data["tags"], sx, sy + radius + 4)
-
+            # BUG-S120.3: Текст проявлений рисуется выше (ADR-MANIFEST), квадраты убраны
             # BUG-P1-01: Рисуем конус взгляда (сектор) по body_heading
             if hasattr(entity, "body_heading"):
                 _heading = entity.body_heading
@@ -668,7 +664,9 @@ class SceneRenderer:
         }
         
         for tag in tags:
-            draw_fn = _icon_map.get(tag)
+            # Нормализуем тег: 'MANIFEST_TENSE' -> 'manifest:tense'
+            _norm_tag = f"manifest:{tag.replace('MANIFEST_', '').lower()}" if tag.startswith("MANIFEST_") else tag
+            draw_fn = _icon_map.get(_norm_tag)
             if draw_fn:
                 draw_fn(sx + _x_offset, sy)
                 _x_offset += 12  # Шаг между иконками

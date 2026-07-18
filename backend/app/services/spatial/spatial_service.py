@@ -28,6 +28,7 @@ from app.models.spatial_contracts import (
     SpatialOverlay,
     Urgency,
 )
+from app.services.spatial.spatial_runtime import _segments_intersect, _line_rect_intersect
 
 logger = logging.getLogger(__name__)
 
@@ -63,15 +64,18 @@ class SpatialService:
         result = compile_graph(editor_data, location_id)
         # ДОЛГ 6.2: compile_graph возвращает 4 элемента (добавлен boundary_map)
         # ETKE-IK v1: compile_graph возвращает 5 элементов (добавлен rooms_geometry)
-        if len(result) == 5:
+        # ADR-O-324: compile_graph возвращает 7 элементов (добавлены spatial_walls, spatial_obstacles)
+        if len(result) == 7:
+            graph, connections, alias_map, boundary_map, rooms_geometry, spatial_walls, spatial_obstacles = result
+        elif len(result) == 5:
             graph, connections, alias_map, boundary_map, rooms_geometry = result
+            spatial_walls, spatial_obstacles = [], []
         elif len(result) == 4:
             graph, connections, alias_map, boundary_map = result
-            rooms_geometry = {}
+            rooms_geometry, spatial_walls, spatial_obstacles = {}, [], []
         else:
             graph, connections, alias_map = result
-            boundary_map = {}
-            rooms_geometry = {}
+            boundary_map, rooms_geometry, spatial_walls, spatial_obstacles = {}, {}, [], []
         overlay = build_overlay_from_scene(scene_state)
 
         return SpatialService(
@@ -82,6 +86,8 @@ class SpatialService:
             location_id=location_id,
             boundary_map=boundary_map,
             rooms_geometry=rooms_geometry,
+            spatial_walls=spatial_walls,
+            spatial_obstacles=spatial_obstacles,
         )
 
     def __init__(
@@ -97,6 +103,8 @@ class SpatialService:
         rooms_geometry: Optional[
             Dict[str, List[Tuple[float, float]]]
         ] = None,  # ETKE-IK v1
+        spatial_walls: Optional[List[Dict[str, Any]]] = None,  # ADR-O-324
+        spatial_obstacles: Optional[List[Dict[str, Any]]] = None,  # ADR-O-324
     ) -> None:
         self._graph = graph  # canonical_id → NodeRef
         self._connections = connections  # canonical_id → set[canonical_id]
@@ -107,7 +115,31 @@ class SpatialService:
         )
         self._boundary_map = boundary_map or {}  # ДОЛГ 6.2
         self._rooms_geometry = rooms_geometry or {}  # ETKE-IK v1
+        self._spatial_walls = spatial_walls or []  # ADR-O-324
+        self._spatial_obstacles = spatial_obstacles or []  # ADR-O-324
         self._path_cache: Dict[Tuple[str, str, str, Urgency], List[NodeRef]] = {}
+
+    # ── ADR-O-324: Geometric Validation ─────────────────────────────────
+    def is_segment_blocked(self, ax: float, ay: float, bx: float, by: float) -> bool:
+        """Проверяет, пересекает ли отрезок AB любую стену или непроходимое препятствие.
+        
+        ADR-O-324: Единственный метод для геометрической валидации сегментов пути.
+        Используется MovementPlanner для проверки каждого отрезка маршрута.
+        """
+        # Проверка стен
+        for wall in self._spatial_walls:
+            if _segments_intersect(ax, ay, bx, by, wall["x1"], wall["y1"], wall["x2"], wall["y2"]):
+                return True
+        
+        # Проверка непроходимых препятствий
+        for obs in self._spatial_obstacles:
+            _pass = obs.get("passability", {})
+            _blocks_walk = not _pass.get("walk", True)
+            if _blocks_walk or obs.get("blocks_los", False):
+                if _line_rect_intersect(ax, ay, bx, by, obs["x"], obs["y"], obs["w"], obs["h"]):
+                    return True
+        
+        return False
 
     # ── Overlay обновление ────────────────────────────────────────────
 

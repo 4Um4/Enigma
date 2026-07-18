@@ -63,20 +63,42 @@ class MovementPlanner:
         _offset_y = (((_hash // 10) % 10) / 10.0 - 0.5) * 1.5
         target_xy = (target_xy[0] + _offset_x, target_xy[1] + _offset_y)
         
-        # Проверка блокировки пути
+        # ADR-O-324: Geometric Segment Validation. Проверяем КАЖДЫЙ отрезок пути.
+        # Сначала проверяем прямую видимость (source → target).
         is_path_blocked = self._check_wall_blocking(svc, source_xy, target_xy)
         waypoints: List[List[float]] = [[source_xy[0], source_xy[1]]]
         
         if is_path_blocked:
+            # Прямой путь заблокирован. Ищем обход через A* (топология графа).
             path = self._find_path(svc, source_xy, target_node_obj)
             if path and len(path) >= 2:
                 intermediate = [[pn.x, pn.y] for pn in path[1:-1]] if len(path) > 2 else []
                 if intermediate:
-                    waypoints.extend(intermediate)
-                # ADR-DOORWAY-TRUST: 2-node path but blocked — граф говорит, что связь есть
+                    # ADR-O-324: Валидируем КАЖДЫЙ промежуточный отрезок.
+                    # Если хотя бы один отрезок заблокирован стеной — весь маршрут невалиден.
+                    _prev_xy = source_xy
+                    _all_segments_valid = True
+                    for wp in intermediate:
+                        if svc.is_segment_blocked(_prev_xy[0], _prev_xy[1], wp[0], wp[1]):
+                            _all_segments_valid = False
+                            break
+                        _prev_xy = (wp[0], wp[1])
+                    
+                    if _all_segments_valid and not svc.is_segment_blocked(_prev_xy[0], _prev_xy[1], target_xy[0], target_xy[1]):
+                        waypoints.extend(intermediate)
+                    else:
+                        # ADR-O-324: Геометрический obstacle. Маршрут физически невозможен.
+                        return MovementPlanResult(
+                            status=MovementPlanStatus.REJECTED,
+                            reason=f"GEOMETRIC_OBSTACLE source={current_pos} target={target_node}"
+                        )
             else:
-                # ADR-DOORWAY-TRUST: find_path пуст, но целевой узел валиден — доверяем графу
-                pass
+                # ADR-O-324: Прямая линия заблокирована, и A* не нашёл обхода.
+                # Граф может утверждать, что связь есть (DOORWAY-TRUST), но физически пути нет.
+                return MovementPlanResult(
+                    status=MovementPlanStatus.REJECTED,
+                    reason=f"GEOMETRIC_OBSTACLE_NO_DETOUR source={current_pos} target={target_node}"
+                )
         
         waypoints.append([target_xy[0], target_xy[1]])
         
@@ -94,40 +116,8 @@ class MovementPlanner:
         
         proposal = TraversalProposal(
             npc_id=intent.actor_id,
-            source_node=current_pos,
-            target_node=target_node,
-            path_waypoints=tuple(tuple(wp) for wp in waypoints),
-            distance=distance,
-            speed=self._DEFAULT_SPEED,
-            duration_ticks=duration_ticks,
-            source_intent_id=getattr(intent, "intent_id", f"{intent.actor_id}:{intent.reason}"),
-            planned_tick=tick,
-            topology_version=topology_version,
-        )
-        
-        return MovementPlanResult(
-            status=MovementPlanStatus.ACCEPTED,
-            proposal=proposal,
-        )
-        
-        waypoints.append([target_xy[0], target_xy[1]])
-        
-        # Вычисление дистанции (сумма сегментов)
-        distance = 0.0
-        for i in range(len(waypoints) - 1):
-            dx = waypoints[i][0] - waypoints[i+1][0]
-            dy = waypoints[i][1] - waypoints[i+1][1]
-            distance += math.hypot(dx, dy)
-            
-        duration_ticks = max(1, math.ceil(distance / self._DEFAULT_SPEED)) if self._DEFAULT_SPEED > 0 else 1
-        
-        # Получаем version из SpatialService (если доступно)
-        topology_version = getattr(svc, "_topology_version", 0)
-        
-        proposal = TraversalProposal(
-            npc_id=intent.actor_id,
-            source_node=current_pos,
-            target_node=target_node,
+            source_node=source_node_obj.node_id,
+            target_node=target_node_obj.node_id,
             path_waypoints=tuple(tuple(wp) for wp in waypoints),
             distance=distance,
             speed=self._DEFAULT_SPEED,
@@ -143,10 +133,11 @@ class MovementPlanner:
         )
 
     def _check_wall_blocking(self, svc: Any, source_xy: tuple, target_xy: tuple) -> bool:
-        """Проверяет прямую видимость между точками."""
-        # Делегируем в SpatialService если метод есть
-        if hasattr(svc, "is_path_blocked"):
-            return svc.is_path_blocked(source_xy, target_xy)
+        """Проверяет прямую видимость между точками (source → target)."""
+        # ADR-O-324: Делегируем в SpatialService.is_segment_blocked
+        if hasattr(svc, "is_segment_blocked"):
+            blocked = svc.is_segment_blocked(source_xy[0], source_xy[1], target_xy[0], target_xy[1])
+            return blocked if isinstance(blocked, bool) else False
         return False
 
     def _find_path(self, svc: Any, source_xy: tuple, target_node: Any) -> Optional[list]:
@@ -493,7 +484,7 @@ class MovementEngine:
         current_xy: Dict[str, float],
     ) -> List[SceneChange]:
         """ADR-0010/060/060: LOD1 макро-перемещение (Semantic Relocation).
-        ADR-O-323: Делегирует планирование MovementPlanner'у."""
+        ADR-O-323: Делегирует планирование MovementPlanner'u."""
         # Защита micro-position: если NPC уже в целевом узле — пропускаем
         if current_pos and current_pos == intent.target_node_id:
             logger.debug(

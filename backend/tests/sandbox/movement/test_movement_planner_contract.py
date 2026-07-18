@@ -99,15 +99,7 @@ def test_scene_manager_materializes_exact_proposal():
     proposal = _make_test_proposal()
     
     # Симулируем материализацию (без вызова всего SSM)
-    _traversal_dict = build_traversal_dict(
-        npc_id=proposal.npc_id,
-        from_node=proposal.source_node,
-        target_node=proposal.target_node,
-        path_waypoints=[list(wp) for wp in proposal.path_waypoints],
-        started_tick=proposal.planned_tick,
-        duration_ticks=proposal.duration_ticks,
-        speed=proposal.speed,
-    )
+    _traversal_dict = build_traversal_dict(proposal)
     
     assert _traversal_dict["npc_id"] == proposal.npc_id
     assert _traversal_dict["from_node"] == proposal.source_node

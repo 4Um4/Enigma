@@ -32,9 +32,9 @@ class TaskScheduler:
     Читает scene_state["pending_tasks"], вызывает исполнителей, генерирует события.
     """
 
-    def __init__(self, llm_provider=None, context_provider=None, economy_tracker=None):
+    def __init__(self, router=None, context_provider=None, economy_tracker=None):
         self._executors: Dict[TaskKind, TaskExecutor] = {
-            TaskKind.DIALOGUE: DialogueExecutor(llm_provider, context_provider)
+            TaskKind.DIALOGUE: DialogueExecutor(router, context_provider)
         }
         self._materializers: Dict[str, Materializer] = {
             "dialogue_line": DialogueMaterializer()
@@ -98,8 +98,10 @@ class TaskScheduler:
             if task_dict.get("kind") == "dialogue":
                 speaker_id = task_dict.get("owner_id", "")
                 _payload = task_dict.get("payload", {})
-                tone = _payload.get("tone", "NEUTRAL")
-                if tone == "ANGRY":
+                from app.services.verbalization.tone_mapper import ToneMapper
+
+                _tone = ToneMapper.map(_payload.get("emotional_state"))
+                if _tone == "ANGRY":
                     priority = 15
                 elif _payload.get("secret_relevant"):
                     priority = 10
@@ -107,7 +109,7 @@ class TaskScheduler:
                     priority = 5
 
                 self._dialogue_queue.enqueue(
-                    task_type="canonical" if tone != "NEUTRAL" else "ambient",
+                    task_type="canonical" if _tone != "NEUTRAL" else "ambient",
                     payload={
                         "speaker_id": speaker_id,
                         "task_dict": task_dict,
@@ -198,30 +200,31 @@ class TaskScheduler:
             for artifact in artifacts:
                 if artifact.success:
                     task.state = TaskState.FINISHED
-                    
-                    # Кэшируем для Speech Bubbles (UI)
-                    self._recent_dialogues.append({
-                        "speaker_id": artifact.data.get("speaker_id"),
-                        "text": artifact.data.get("text"),
-                        "timestamp": time.time()
-                    })
                     logger.info(f"[TASK_SCHED] dialogue executed: speaker={task.owner_id} target={task.payload.target_id if hasattr(task.payload, 'target_id') else 'unknown'}")
-
+                    
                     materializer = self._materializers.get(artifact.result_type)
                     if materializer:
-                        events = materializer.materialize(artifact)
-                        for ev in events:
-                            bus.publish(ev)
+                        try:
+                            events = materializer.materialize(artifact)
+                            for ev in events:
+                                bus.publish(ev)
+                        except Exception as mat_exc:
+                            logger.error(f"[SCHEDULER] Materializer failed for task {task.task_id}: {mat_exc}", exc_info=True)
+                            events = []
+                    else:
+                        logger.warning(f"[SCHEDULER] No materializer for result_type={artifact.result_type}")
+                        events = []
 
                     # ADR-O-313: Кэшируем реплику для Speech Bubbles
                     if artifact.result_type == "dialogue_line" and events:
                         # BUG-N8 FIX: Регистрируем разговор в EconomyTracker
                         if self._economy_tracker:
                             self._economy_tracker.record_talk(ev.source, scene_state.get("tick", 0))
+                        import time
                         _dlg_entry = {
-                            "speaker": ev.source,
+                            "speaker_id": ev.source,
                             "text": ev.payload.get("text", ""),
-                            "timestamp": scene_state.get("game_time_seconds", 0.0),
+                            "timestamp": time.time(),  # §15.2: UI Cache TTL uses wall-clock
                         }
                         self._recent_dialogues.append(_dlg_entry)
                         # ADR-O-313 FIX: Зеркалим в scene_state, иначе CDS видит 0 реплик (INV-DIALOGUE-PIPELINE)
@@ -247,11 +250,14 @@ class TaskScheduler:
                 semantic = payload_dict.get("exposure_semantic", "normal")
                 exposure = ExposureLevel.from_semantic(semantic)
 
+                _emotional_state = payload_dict.get("emotional_state", "нейтрально")
+
                 req = DialogueRequest(
-                    topic=payload_dict["topic"],
-                    target_id=payload_dict["target_id"],
-                    exposure=exposure,
+                    topic=payload_dict.get("topic", ""),
+                    target_id=payload_dict.get("target_id", ""),
+                    exposure=ExposureLevel(semantic=payload_dict.get("exposure_semantic", "normal")),
                     intent_type=payload_dict.get("intent_type", "talk"),
+                    emotional_state=_emotional_state,
                 )
             except Exception as e:
                 logger.error(

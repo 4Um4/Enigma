@@ -68,7 +68,10 @@ def _resolve_contact(
         dex_score = defender_abilities.get("dexterity", 10.0)
         dex_mod = ability_modifier(dex_score)
         armor_mod = defender.get("modifiers", {}).get("ac", 0.0)
-        defender_dict["ac"] = 10 + dex_mod + armor_mod
+        # S123: High pain reduces dodge (AC). -1 AC for every 10 pain.
+        pain = defender.get("pain", 0.0)
+        pain_penalty = int(pain // 10.0)
+        defender_dict["ac"] = 10 + dex_mod + armor_mod - pain_penalty
 
     # S118: Используем D&D 5e бросок атаки. combat_math берет статы из словарей.
     # ADR-O-301: Пробрасываем rng для детерминированности броска d20.

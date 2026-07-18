@@ -1084,5 +1084,18 @@
   Status: VERIFIED
   Files: backend/app/services/game/combat_math.py, backend/app/services/combat/impact_engine.py, backend/tests/test_impact_engine.py, backend/tests/test_physiology_flow.py
 
+`ADR-O-321` [ONTO] **Identity Pressure Vector (Layer 2 Activation)** — Завершена реализация эфемерного `Identity Pressure Vector` (контракт `ENTITY_CONTINUITY_CONTRACT v1.0`, Layer 2). Скалярный флаг `identity_crisis` и хардкод `gold >= 1000` (BUG-P1-HC) полностью удалены. `LifeProjectResolver` FSM теперь управляется динамическим давлением: `pressure > 80.0` → `COLLAPSING` (Кризис от Угрозы), `pressure < 10.0` + `identity_integrity > 0.9` → `COMPLETED` (Кризис от Успеха). Давление вычисляется в `BreakProgressEngine` из `affective_load`, `threat_gradient`, `stress` и динамического счётчика `recent_failures` (который теперь персистится в `NPCState` и обновляется на основе `affective_load`). Это разблокировало эмерджентную адаптацию: NPC теперь органически впадают в экзистенциальный кризис при перегрузках и ищут новый смысл, вместо robotic following скриптов.
 
+- `ADR-160` [STD] **Memory Pipeline Purity (R1 Audit Fix)** — Устранён критический баг R1 из аудита Z.ai: NpcTickPipeline.run() (pure reducer) вызывал `apply_perception_memory(None, ...)` , что приводило к AttributeError: 'NoneType' object has no attribute 'apply' и полной остановке записи в память. Функция `apply_perception_memory` преобразована в pure function: она формирует и возвращает EventDTO без I/O. Отложенное применение перенесено в pipeline_runner.py (`build_npc_contexts_from_intents`), где EventDTO передаётся напрямую в MemoryManager.apply().
+  Taboo: ❌ Вызов MemoryManager.apply() или любого I/O внутри NpcTickPipeline.run(). ❌ Передача None в качестве memory_manager в функции памяти.
+  Status: VERIFIED
+  Files: backend/app/services/npc/npc_tick_pipeline.py, backend/app/services/pipeline_runner.py
 
+- `ADR-161` [STD] **Crystallized Belief Persistence (DEEP-013)** — Устранён скрытый баг DEEP-013: CrystallizedBeliefStore хранил убеждения (L2.5) только в in-memory словаре, что приводило к их полной потере при рестарте сервера. Добавлена SQLite-персистентность по аналогии с L1Chronicle. Создаётся таблица crystallized_beliefs с уникальным индексом. Реализованы lazy load при первом обращении и атомарная запись (DELETE + INSERT) при update_beliefs.
+  Taboo: ❌ Использование CrystallizedBeliefStore без передачи store (in-memory only режим запрещён в production). ❌ Прямая мутация self._beliefs в обход update_beliefs.
+  Status: VERIFIED
+  Files: backend/app/services/npc/crystallized_belief_store.py, backend/app/services/tick_orchestrator.py
+
+- `ADR-O-324` [ONTO] **Geometric Obstacle Resolution Contract (Hybrid Pathfinding)** — Пространство проходимо тогда и только тогда, когда каждый отрезок пути свободен от непроходимых препятствий. Топология графа (Macro Graph) даёт лишь последовательность узлов (reachability). Физическая валидация (Geometric Validation) происходит для каждого сегмента `(Node[i] → Node[i+1])`. 
+  Контракт потока: `Macro Graph` → `Route Nodes` → `Geometric Segment Validation` (против `spatial_walls` и `spatial_obstacles`) → `Local Waypoint Generation` (если нужен обход) → `TraversalProposal`.
+  Taboo: ❌ Доверять графу без геометрической проверки сегментов. ❌ Использовать прямую линию (`is_path_blocked(A, B)`) в обход валидации промежуточных узлов.

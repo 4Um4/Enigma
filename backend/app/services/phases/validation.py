@@ -87,16 +87,20 @@ def validate_shadow_vs_legacy(
     )
 
     # ── ФАЗА 2: Traversal drift (L2) ───────────────────────────
-    _legacy_traversal = scene_state.get("active_traversals", {}).get(npc_id)
-    _shadow_traversal = thick.traversal if thick.traversal else None
-    _drifts += orchestrator._equivalence_validator.validate_traversal(
-        snapshot_id=snapshot.snapshot_id,
-        tick=tick,
-        npc_id=npc_id,
-        cause=thick.cause,
-        legacy_traversal=_legacy_traversal,
-        shadow_traversal=_shadow_traversal,
-    )
+    # ADR-O-323: Проверяем traversal drift только для макро-перемещений (field="position").
+    # Микро-перемещения (field="local_position") не создают и не завершают транзит,
+    # поэтому сравнение legacy active_traversals с shadow thick.traversal некорректно.
+    if thick.field == "position":
+        _legacy_traversal = scene_state.get("active_traversals", {}).get(npc_id)
+        _shadow_traversal = thick.traversal if thick.traversal else None
+        _drifts += orchestrator._equivalence_validator.validate_traversal(
+            snapshot_id=snapshot.snapshot_id,
+            tick=tick,
+            npc_id=npc_id,
+            cause=thick.cause,
+            legacy_traversal=_legacy_traversal,
+            shadow_traversal=_shadow_traversal,
+        )
 
     # Логируем и собираем статистику
     orchestrator._drift_stats["total_comparisons"] += 1

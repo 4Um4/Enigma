@@ -33,7 +33,9 @@ class BreakDeltas:
     identity_integrity_delta: float = 0.0  # -0.01 до -0.3 за тик
     pressure_resistance_delta: float = 0.0  # +0.1 до +0.5 (anti-abuse)
     will_state_override: Optional[WillState] = None  # только при deformation
-    identity_crisis: bool = False  # L2.7: Флаг кризиса (deformation)
+    identity_crisis: bool = False  # L2.7: Флаг кризиса (deformation) — DEPRECATED
+    identity_pressure: float = 0.0  # L2.7: Эфемерное напряжение идентичности (0-100)
+    recent_failures_delta: int = 0  # L2.7: Прирост/затухание счётчика неудач
     stage: str = (
         "resistance"  # resistance/cracks/rationalization/adaptation/deformation
     )
@@ -123,6 +125,15 @@ class BreakProgressEngine:
         # Anti-abuse: сопротивление растёт при спаме
         resistance_delta = 0.1 if pressure > 50 else -0.05  # затухает если нет давления
 
+        # L2.7: Динамика recent_failures. Если аффективная нагрузка высока, неудачи накапливаются.
+        # Если NPC спокоен (pressure < 10), счётчик затухает.
+        if _affect > 50.0:
+            failures_delta = 1
+        elif pressure < 10.0:
+            failures_delta = -1
+        else:
+            failures_delta = 0
+
         # Переход в BROKEN только при deformation и высоком pressure
         will_override = None
         identity_crisis = False
@@ -136,6 +147,8 @@ class BreakProgressEngine:
             pressure_resistance_delta=round(resistance_delta, 4),
             will_state_override=will_override,
             identity_crisis=identity_crisis,
+            identity_pressure=round(pressure, 2),
+            recent_failures_delta=failures_delta,
             stage=stage,
         )
 

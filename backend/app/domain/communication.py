@@ -57,6 +57,7 @@ class DialogueRequest:
     target_id: str
     exposure: ExposureLevel
     intent_type: str = "talk"
+    emotional_state: str = "нейтрально"
 
 
 @dataclass(frozen=True)

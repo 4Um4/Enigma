@@ -24,7 +24,6 @@ class Phase0_5Deps:
     dynamic_field: Any
     homeostasis_sub: Any
     social_input_proj: Any
-    expectation_store: Any
     idle_handlers: List[Any]
     life_engine: Any
 
@@ -52,18 +51,7 @@ def run_phase_0_5(ctx: _TickContext, deps: Phase0_5Deps) -> None:
     if _isolation_deltas:
         ctx.delta_buffer.extend(_isolation_deltas)
 
-    # S-93: PE Decay (Per-Tick, Elastic Time).
-    # Инвариант: PE остаётся строго индивидуальным bias-layer.
-    # Ожидания затухают со временем, привязанным к game_time_seconds.
-    if deps.expectation_store is not None:
-        from app.core.constants import GAME_TICK_INTERVAL_SECONDS
-
-        _dt_game = ctx.scene_state.get("game_time_seconds", 0)
-        _prev_time = ctx.scene_state.get(
-            "prev_game_time_seconds", _dt_game - GAME_TICK_INTERVAL_SECONDS
-        )
-        _delta_dt = max(0.1, _dt_game - _prev_time)
-        deps.expectation_store.decay(_delta_dt)
+    # DEEP-015 FIX: Мёртвый код ExpectationStore (PE Decay) удалён.
 
     # ADR-036 / ADR-O-302: Affective Decay (Leaky Integrator для памяти)
     # Травмы затухают со временем, если не подкрепляются.

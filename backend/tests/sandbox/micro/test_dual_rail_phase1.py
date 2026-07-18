@@ -14,12 +14,38 @@ from app.domain.identity_events import EffectiveDrives
 
 _MOCK_DRIVES = EffectiveDrives.from_dict({"control": 0.5, "significance": 0.5, "fear": 0.5, "desire": 0.5})
 
+import math
+
+from app.domain.traversal_schema import TraversalProposal
 from app.models.spatial_contracts import NodeRef, NodeRole, SpatialOverlay
 from app.models.world_snapshot import build_snapshot
 from app.services.equivalence_validator import DriftClass, EquivalenceValidator
 from app.services.event_compiler import EventCompiler
 from app.services.scene_change import ChangeType, SceneChange
 from app.services.spatial.spatial_service import SpatialService
+
+
+def _make_proposal(
+    npc_id: str = "npc_1",
+    source_node: str = "tavern:main_hall",
+    target_node: str = "tavern:kitchen",
+    source_xy: tuple[float, float] = (10.0, 5.0),
+    target_xy: tuple[float, float] = (30.0, 15.0),
+) -> TraversalProposal:
+    """Фабрика для создания валидного TraversalProposal в тестах."""
+    _dist = math.hypot(target_xy[0] - source_xy[0], target_xy[1] - source_xy[1])
+    return TraversalProposal(
+        npc_id=npc_id,
+        source_node=source_node,
+        target_node=target_node,
+        path_waypoints=(source_xy, target_xy),
+        distance=_dist,
+        speed=2.0,
+        duration_ticks=max(1, math.ceil(_dist / 2.0)),
+        source_intent_id="intent_1",
+        planned_tick=100,
+        topology_version=0,
+    )
 
 # ── Фикстуры ──────────────────────────────────────────────────────
 
@@ -105,6 +131,7 @@ class TestDualRailPipeline:
             value="tavern:kitchen",
             cause="schedule",
             tick=100,
+            traversal_proposal=_make_proposal(),
         )
         thick = self.compiler.compile(snapshot, change)
         assert thick is not None, "Shadow compilation should succeed"
@@ -171,7 +198,7 @@ class TestDualRailPipeline:
         assert drifts[0].drift_class == DriftClass.ONTOLOGICAL
 
     def test_cosmetic_drift_from_jitter(self):
-        """Deterministic jitter вызывает Class A (cosmetic) drift."""
+        """Cosmetic drift: target_xy отличается из-за jitter, но узел тот же."""
         ss = _make_scene_state()
         snapshot = build_snapshot(
             tick=100,
@@ -188,6 +215,7 @@ class TestDualRailPipeline:
             value="tavern:kitchen",
             cause="schedule",
             tick=100,
+            traversal_proposal=_make_proposal(),
         )
         thick = self.compiler.compile(snapshot, change)
         assert thick is not None

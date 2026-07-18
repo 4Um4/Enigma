@@ -23,10 +23,36 @@ from app.domain.identity_events import EffectiveDrives
 
 _MOCK_DRIVES = EffectiveDrives.from_dict({"control": 0.5, "significance": 0.5, "fear": 0.5, "desire": 0.5})
 
+import math
+
+from app.domain.traversal_schema import TraversalProposal
 from app.models.spatial_contracts import NodeRef, NodeRole
 from app.models.world_snapshot import build_snapshot
 from app.services.event_compiler import EventCompiler
 from app.services.scene_change import ChangeType, SceneChange
+
+
+def _make_proposal(
+    npc_id: str = "npc_1",
+    source_node: str = "tavern:main_hall",
+    target_node: str = "kitchen",
+    source_xy: tuple[float, float] = (10.0, 5.0),
+    target_xy: tuple[float, float] = (30.0, 15.0),
+) -> TraversalProposal:
+    """Фабрика для создания валидного TraversalProposal в тестах."""
+    _dist = math.hypot(target_xy[0] - source_xy[0], target_xy[1] - source_xy[1])
+    return TraversalProposal(
+        npc_id=npc_id,
+        source_node=source_node,
+        target_node=target_node,
+        path_waypoints=(source_xy, target_xy),
+        distance=_dist,
+        speed=2.0,
+        duration_ticks=max(1, math.ceil(_dist / 2.0)),
+        source_intent_id="intent_1",
+        planned_tick=100,
+        topology_version=0,
+    )
 
 # ── Фикстуры ──────────────────────────────────────────────────────
 
@@ -193,6 +219,7 @@ class TestEventCompilerPositionChange:
             value="kitchen",
             cause="schedule",
             tick=100,
+            traversal_proposal=_make_proposal(),
         )
         result = compiler.compile(snap, change)
         assert result is not None
@@ -258,6 +285,7 @@ class TestEventCompilerPositionChange:
             cause="reactive:approach",
             tick=100,
             target_local_xy=(25.0, 12.0),
+            traversal_proposal=_make_proposal(target_node="kitchen", target_xy=(25.0, 12.0)),
         )
         result = compiler.compile(snap, change)
         assert result is not None
@@ -276,6 +304,7 @@ class TestEventCompilerPositionChange:
             value="kitchen",
             cause="schedule",
             tick=100,
+            traversal_proposal=_make_proposal(),
         )
         result1 = compiler.compile(snap1, change)
         result2 = compiler.compile(snap2, change)
@@ -295,6 +324,7 @@ class TestEventCompilerPositionChange:
             value="kitchen",
             cause="schedule",
             tick=100,
+            traversal_proposal=_make_proposal(),
         )
         result_a = compiler.compile(snap_a, change)
         result_b = compiler.compile(snap_b, change)
@@ -382,20 +412,19 @@ class TestEventCompilerGhostInterpolation:
     """Ghost Position Interpolation — source_xy из активного транзита."""
 
     def test_active_traversal_interpolated_source(self):
-        """NPC с активным транзитом → source_xy интерполирована."""
+        """Ghost Position Interpolation: source_xy интерполируется из активного транзита."""
         compiler = EventCompiler()
-        ss = _make_scene_state()
-        # NPC в движении 50% прогресса
-        ss["active_traversals"]["npc_1"] = {
+        snap = _make_snapshot()
+        # Имитируем активный транзит (NPC сейчас на полпути между main_hall и exit_east)
+        snap.active_traversals["npc_1"] = {
             "status": "MOVING",
+            "source_node": "tavern:main_hall",
+            "target_node": "tavern:exit_east",
             "path_waypoints": [[10.0, 5.0], [30.0, 15.0]],
             "started_tick": 90,
             "duration_ticks": 20,
-            "speed": 2.0,
-            "target_node": "kitchen",
+            "current_waypoint_idx": 0,
         }
-        ss["tick"] = 100  # 50% прогресс
-        snap = _make_snapshot(scene_state=ss)
         change = SceneChange(
             type=ChangeType.NPC_POSITION,
             target="npc_1",
@@ -403,6 +432,11 @@ class TestEventCompilerGhostInterpolation:
             value="exit_east",
             cause="reactive:flee",
             tick=100,
+            traversal_proposal=_make_proposal(
+                source_xy=(20.0, 10.0),
+                target_node="exit_east",
+                target_xy=(50.0, 10.0),
+            ),
         )
         result = compiler.compile(snap, change)
         assert result is not None
@@ -426,6 +460,7 @@ class TestEventCompilerTraversalContract:
             value="kitchen",
             cause="schedule",
             tick=100,
+            traversal_proposal=_make_proposal(),
         )
         result = compiler.compile(snap, change)
         assert result is not None
@@ -456,6 +491,7 @@ class TestEventCompilerTraversalContract:
             value="kitchen",
             cause="schedule",
             tick=100,
+            traversal_proposal=_make_proposal(),
         )
         result = compiler.compile(snap, change)
         assert result is not None

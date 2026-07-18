@@ -80,6 +80,7 @@ def evaluate_behavior_and_identity(
                     + _break_deltas.pressure_resistance_delta,
                 ),
             )
+            _npc_state.recent_failures = max(0, _npc_state.recent_failures + _break_deltas.recent_failures_delta)
 
             if _break_deltas.will_state_override is not None:
                 _npc_state.will_state = _break_deltas.will_state_override
@@ -88,11 +89,7 @@ def evaluate_behavior_and_identity(
             from app.services.npc.life_project_resolver import LifeProjectResolver
             _old_state = getattr(_npc_state, "life_project_state", "ACTIVE")
             
-            # P1: Извлекаем wealth NPC для проверки завершения проекта ("Кризис от Успеха")
-            _wealth = float(npc_dict.get("gold", 0.0) or 0.0)
-            _project_completed = _wealth >= 1000.0
-            
-            LifeProjectResolver.resolve(_npc_state, _break_deltas.identity_crisis, project_completed=_project_completed)
+            LifeProjectResolver.resolve(_npc_state, _break_deltas.identity_pressure)
             if _old_state != _npc_state.life_project_state:
                 logger.info(f"[LIFE_PROJECT] NPC {npc_id} FSM переход: {_old_state} -> {_npc_state.life_project_state} (Проект: {_npc_state.life_project})")
 

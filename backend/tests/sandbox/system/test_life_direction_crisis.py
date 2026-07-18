@@ -90,27 +90,28 @@ def test_crisis_changes_life_direction_and_intent(family_profile, world_tick_eve
         recent_failures=2,
     )
     assert deltas.identity_crisis, "NPC в стадии deformation должен иметь identity_crisis=True"
+    assert deltas.identity_pressure > 80.0, "NPC в стадии deformation должен иметь высокое identity_pressure"
 
     # Симулируем продвижение FSM (5 тиков)
-    # Тик 1: ACTIVE -> COLLAPSING
-    LifeProjectResolver.resolve(state_broken, deltas.identity_crisis)
+    # Тик 1: ACTIVE -> COLLAPSING (давление > 80)
+    LifeProjectResolver.resolve(state_broken, deltas.identity_pressure)
     assert state_broken.life_project_state == "COLLAPSING"
 
-    # Тик 2: COLLAPSING -> LOST
-    LifeProjectResolver.resolve(state_broken, False)
+    # Тик 2: COLLAPSING -> LOST (безусловный переход в экзистенциальную пустоту)
+    LifeProjectResolver.resolve(state_broken, deltas.identity_pressure)
     assert state_broken.life_project_state == "LOST"
 
     # Тик 3: LOST -> SEARCHING (stress уже 95.0, > 90.0)
-    LifeProjectResolver.resolve(state_broken, False)
+    LifeProjectResolver.resolve(state_broken, deltas.identity_pressure)
     assert state_broken.life_project_state == "SEARCHING"
 
     # Тик 4: SEARCHING -> COMMITTED
-    LifeProjectResolver.resolve(state_broken, False)
+    LifeProjectResolver.resolve(state_broken, deltas.identity_pressure)
     assert state_broken.life_project_state == "COMMITTED"
     assert state_broken.life_project == "isolation", "Family builder в кризисе должен уйти в изоляцию"
 
     # Тик 5: COMMITTED -> ACTIVE
-    LifeProjectResolver.resolve(state_broken, False)
+    LifeProjectResolver.resolve(state_broken, deltas.identity_pressure)
     assert state_broken.life_project_state == "ACTIVE"
     print(f"\n[CRISIS RESOLVED] life_project changed to: {state_broken.life_project}, state={state_broken.life_project_state}")
 

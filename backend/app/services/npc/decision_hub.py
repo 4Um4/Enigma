@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 # backend/app/services/npc/decision_hub.py
 """
@@ -16,7 +16,7 @@ R2.2 — DecisionHub: чистая функция принятия решени�
 import logging
 import random
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple, Union
 
 if TYPE_CHECKING:
     from app.services.npc.kernel_rng import KernelRNG
@@ -51,12 +51,16 @@ from app.models.npc_profile import NPCProfileL0
 from app.models.npc_state import (
     EmotionTag,
     Intent,
+    NPCIdentityL1,
+    NPCPersonality,
     NPCState,
     WillState,
 )
 
 # StateDeltas — канонический контракт мутаций (Устав §2.3)
 from app.models.state_delta import StateDeltas
+from app.domain.decision_context import DecisionContext
+from app.domain.identity_events import EffectiveDrives
 from app.services.economy.opportunity_engine import (
     OpportunityContext,
     OpportunityEngine,
@@ -387,7 +391,7 @@ class DecisionHub:
                     intent=Intent.IDLE,
                     intent_target=None,
                     score=0.0,
-                    scores_trace={"veto": _life_status.value},
+                    scores_trace={"veto": 0.0},
                     deltas=[],
                 ),
             )
@@ -817,7 +821,7 @@ class DecisionHub:
     def _get_possible_intents(
         self,
         state: NPCState,
-        personality: NPCPersonality,
+        personality: NPCProfileL0,
         event: EventContext,
         opportunity: OpportunityResult,
         effective_drives: Optional["EffectiveDrives"] = None,
@@ -852,7 +856,7 @@ class DecisionHub:
         self,
         intent: str,
         state: NPCState,
-        personality: NPCPersonality,
+        personality: NPCProfileL0,
         opportunity: OpportunityResult,
         effective_drives: Optional["EffectiveDrives"] = None,
     ) -> bool:
@@ -878,6 +882,8 @@ class DecisionHub:
             # Контролирующий (control доминирует) → удерживает стабильность
             # STEP A: L3 обязателен. Фоллбек на L0 (drives_base) удалён (Инвариант L3-P2).
             # Если L3 нет — это pipeline fault, обрабатываемый на уровне выше.
+            if not effective_drives:
+                return {}
             drives = dict(effective_drives.values)
             fear = drives.get("fear", 0.25)
             desire = drives.get("desire", 0.25)
@@ -906,16 +912,16 @@ class DecisionHub:
     def _score_all(
         self,
         state: NPCState,
-        personality: NPCPersonality,
+        personality: NPCProfileL0,
         event: EventContext,
         possible: List[str],
         opportunity: OpportunityResult,
-        active_traits: Dict[str, float] = None,  # L1 черты, опционально
+        active_traits: Optional[Dict[str, float]] = None,  # L1 черты, опционально
         decision_ctx: Optional[
             "DecisionContext"
         ] = None,  # S74: Affective Field Propagation
         effective_drives: Optional["EffectiveDrives"] = None,  # L3-P2: проекция драйвов
-    ) -> Dict[str, float]:
+    ) -> Tuple[Dict[str, float], Dict[str, Any]]:
         """
         Считает score для каждого доступного intent.
         Early exit: трусливый NPC (fear > 0.6) не рассматривает агрессию.
@@ -1122,10 +1128,10 @@ class DecisionHub:
         self,
         intent: str,
         state: NPCState,
-        personality: NPCPersonality,
+        personality: NPCProfileL0,
         event: EventContext,
         opportunity: OpportunityResult,
-        active_traits: Dict[str, float] = None,  # L1 черты из NPCIdentityL1
+        active_traits: Optional[Dict[str, float]] = None,  # L1 черты из NPCIdentityL1
         decision_ctx: Optional[
             "DecisionContext"
         ] = None,  # S74: Affective Field Propagation
@@ -1253,10 +1259,10 @@ class DecisionHub:
         self,
         intent: str,
         state: NPCState,
-        personality: NPCPersonality,
+        personality: NPCProfileL0,
         event: EventContext,
         opportunity: OpportunityResult,
-        active_traits: Dict[str, float] = None,
+        active_traits: Optional[Dict[str, float]] = None,
         decision_ctx: Optional["DecisionContext"] = None,
         effective_drives: Optional["EffectiveDrives"] = None,
     ) -> float:
@@ -1280,7 +1286,7 @@ class DecisionHub:
         drives: Dict[str, float],
         event: EventContext,
         state: Optional["NPCState"] = None,
-        personality: Optional["NPCPersonality"] = None,
+        personality: Optional["NPCProfileL0"] = None,
         effective_drives: Optional[Any] = None,
     ) -> float:
         """drive_weight × context_relevance."""
@@ -1326,7 +1332,7 @@ class DecisionHub:
         intent: str,
         event: EventContext,
         state: Optional["NPCState"] = None,
-        personality: Optional["NPCPersonality"] = None,
+        personality: Optional["NPCProfileL0"] = None,
         effective_drives: Optional["EffectiveDrives"] = None,
     ) -> float:
         """Насколько событие релевантно данному intent. 0.0–2.0.
@@ -1778,7 +1784,7 @@ class DecisionHub:
     def _switching_cost(
         self,
         state: NPCState,
-        personality: NPCPersonality,
+        personality: NPCProfileL0,
         commitment: float,
         effective_drives: Optional["EffectiveDrives"] = None,  # ПУТЬ А: L3 проекция
     ) -> float:
@@ -1798,7 +1804,7 @@ class DecisionHub:
         # ПУТЬ А: Ось 3. Identity определяется текущей деформацией (L3), не архетипом (L0).
         # L0 оставлен как initial seed только для загрузки.
         _drives = dict(effective_drives.values) if effective_drives else {}
-        current_drive = max(_drives, key=_drives.get) if _drives else ""
+        current_drive = max(_drives, key=lambda k: _drives.get(k, 0.0)) if _drives else ""
         _DRIVE_INTENTS = {
             "control": {
                 Intent.ATTACK.value,
@@ -1871,7 +1877,7 @@ class DecisionHub:
     def _compute_deltas(
         self,
         state: NPCState,
-        personality: NPCPersonality,
+        personality: NPCProfileL0,
         event: EventContext,
         intent: str,
     ) -> List[StateDeltas]:
@@ -1894,7 +1900,7 @@ class DecisionHub:
     def _explain_mode(
         self,
         state: NPCState,
-        personality: NPCPersonality,
+        personality: NPCProfileL0,
         event: EventContext,
     ) -> AgentAction:
         """
@@ -1924,3 +1930,5 @@ class DecisionHub:
             scores=None,
         )
         return AgentAction(decision=_decision, communication=_communication)
+
+

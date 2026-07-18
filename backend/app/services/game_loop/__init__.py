@@ -788,8 +788,8 @@ class GameLoop:
         )
 
         # ADR-TZ08-8: Explicit snapshot step для PerceptionProjector
-        _all_npcs_raw = self._resolve_npcs_snapshot(campaign_id)
-        print(f"[ARCHAE_IDLE] result_ws={bool(result.world_snapshot)} all_npcs_raw={len(_all_npcs_raw) if _all_npcs_raw else 0}")
+        # S122 FIX: Берём свежий all_npcs_raw из результата тика, а не из старого кэша.
+        _all_npcs_raw = result.all_npcs_raw or self._resolve_npcs_snapshot(campaign_id)
         if result.world_snapshot:
             _perception = self._project_perception(campaign_id, _scene, _all_npcs_raw)
             if _perception:
@@ -799,14 +799,6 @@ class GameLoop:
                     result.world_snapshot, player_perception=_perception
                 )
                 result = dataclasses.replace(result, world_snapshot=_new_ws)
-
-        # Phase 8.5: Исполняем NPC-NPC диалоги через DialogueQueue
-        try:
-            _scheduler = self._get_task_scheduler()
-            if _scheduler and hasattr(_scheduler, "execute_pending"):
-                _scheduler.execute_pending(_scene, campaign_id)
-        except Exception as e:
-            logger.warning(f"[IDLE_TICK] execute_pending failed: {e}")
 
         # S83.1 FIX: Ядро больше не вызывает commit_tick_result.
         # Обновляем _tick_scene явно, до materialization и unlock.
@@ -893,8 +885,10 @@ class GameLoop:
             return state
 
         # ADR-TZ08-8: Explicit snapshot step для PerceptionProjector
-        state.shared_context.all_npcs_raw = self._resolve_npcs_snapshot(req.campaign_id)
-        print(f"[ARCHAE_PLAYER] shared_ctx={bool(state.shared_context)} scene_state={bool(state.shared_context.scene_state if state.shared_context else False)} all_npcs_raw={len(state.shared_context.all_npcs_raw) if state.shared_context and state.shared_context.all_npcs_raw else 0}")
+        # S122 FIX: Берём свежий all_npcs_raw из результата тика, а не из старого кэша.
+        if state.shared_context:
+            state.shared_context.all_npcs_raw = self._resolve_npcs_snapshot(req.campaign_id)
+        
         if state.shared_context and state.shared_context.scene_state:
             _perception = self._project_perception(
                 req.campaign_id,
@@ -1787,11 +1781,11 @@ class GameLoop:
         if not hasattr(self, "_task_scheduler"):
             from app.services.game_loop.task_scheduler import TaskScheduler
 
-            # Инъекция LLM провайдера и контекстного колбэка для Эпистемического Барьера
-            _llm = self.dm_agent.router.get_provider("narrative")
+            # Инъекция ModelRouter и контекстного колбэка для Эпистемического Барьера
+            _router = self.dm_agent.router
             _ctx = self._get_life_engine().get_npc_observed_state
             _et = self._svc.economy_tracker
-            _scheduler = TaskScheduler(llm_provider=_llm, context_provider=_ctx, economy_tracker=_et)
+            _scheduler = TaskScheduler(router=_router, context_provider=_ctx, economy_tracker=_et)
             self._task_scheduler = _scheduler
         return self._task_scheduler
 

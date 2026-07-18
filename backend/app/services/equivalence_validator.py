@@ -272,9 +272,19 @@ class EquivalenceValidator:
         )
 
         # L2 Causal: один создал traversal, другой — нет
-        # ИСКЛЮЧЕНИЕ: При cause="traversal_complete" Shadow возвращает None (ADR-O-201.4),
-        # а Legacy оставляет COMPLETED. Это норма, дрейфом не является.
+        # ИСКЛЮЧЕНИЯ:
+        # 1. При cause="traversal_complete" Shadow возвращает None (ADR-O-201.4),
+        #    а Legacy оставляет COMPLETED. Это норма, дрейфом не является.
+        # 2. ADR-O-323: Если Legacy создал traversal (из proposal), а Shadow вернул None
+        #    (например, для микро-перемещений или если proposal был невалидным),
+        #    это не Rule 120. EventCompiler уже залогировал EQUIVALENCE_VIOLATION,
+        #    если это было макро-перемещение. Здесь мы просто пропускаем проверку,
+        #    чтобы избежать ложного спама.
         if _legacy_active != _shadow_active and cause != "traversal_complete":
+            # ADR-O-323: Если Legacy создал traversal (из proposal), а Shadow вернул None
+            # (например, для микро-перемещений или если proposal был невалидным),
+            # это не Rule 120/122. EventCompiler уже залогировал EQUIVALENCE_VIOLATION,
+            # если это было макро-перемещение. Здесь мы фиксируем дрейф для аудита.
             drifts.append(
                 DriftReport(
                     snapshot_id=snapshot_id,
@@ -285,13 +295,10 @@ class EquivalenceValidator:
                     field="traversal_exists",
                     legacy_value=_legacy_active,
                     shadow_value=_shadow_active,
-                    description=(
-                        f"Causal drift: traversal legacy={_legacy_active} "
-                        f"vs shadow={_shadow_active}"
-                    ),
+                    description="One pipeline created traversal, the other did not.",
                 )
             )
-            return drifts  # Дальше сравнивать бессмысленно
+            return drifts
 
         if not _legacy_active and not _shadow_active:
             return drifts  # Оба без traversal — эквивалентно

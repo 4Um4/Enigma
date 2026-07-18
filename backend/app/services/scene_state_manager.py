@@ -1502,20 +1502,13 @@ class SceneStateManager:
                                             )
                                         else:
                                             from app.domain.traversal_schema import build_traversal_dict
-                                            _traversal_dict = build_traversal_dict(
-                                                npc_id=_proposal.npc_id,
-                                                from_node=_proposal.source_node,
-                                                target_node=_proposal.target_node,
-                                                path_waypoints=[list(wp) for wp in _proposal.path_waypoints],
-                                                started_tick=_proposal.planned_tick,
-                                                duration_ticks=_proposal.duration_ticks,
-                                                speed=_proposal.speed,
-                                            )
+                                            _traversal_dict = build_traversal_dict(_proposal)
                                             scene_state.setdefault("active_traversals", {})[
                                                 change.target
                                             ] = _traversal_dict
-                                    elif change.field == "position":
+                                    elif change.field == "position" and getattr(change, "cause", "") != "traversal_complete":
                                         # Контракт: macro relocation (field="position") обязан иметь proposal.
+                                        # Исключение: traversal_complete (snap позиции, proposal не нужен).
                                         # Микро-перемещения (field="local_position") его не требуют.
                                         logger.error(
                                             f"[PIPELINE][SCENE_CHANGE][MISSING_TRAVERSAL_PROPOSAL] "

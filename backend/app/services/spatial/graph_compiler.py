@@ -352,60 +352,236 @@ def compile_graph(
 
     # ДОЛГ 6.2: _legacy_compile не имеет adjacency → boundary_map пуста
     # ETKE-IK v1: возвращаем rooms_geometry 5-м элементом
-    return graph, connections, alias_map, boundary_map, rooms_geometry
+    # ADR-O-324: возвращаем spatial_walls и spatial_obstacles 6-м и 7-м элементом
+    spatial_walls, spatial_obstacles = _build_spatial_data(editor_data)
+    return graph, connections, alias_map, boundary_map, rooms_geometry, spatial_walls, spatial_obstacles
 
 
-def _infer_connections_from_adjacency(
-    rooms: Dict[str, dict], tolerance: float = 0.5
-) -> List[dict]:
-    """Выводит связи между комнатами на основе смежности их bounding box.
-    Если две комнаты имеют общую стену (пересечение по оси > tolerance),
-    между ними создаётся passage. Это масштабируемая основа: двери потом модифицируют этот путь."""
-    connections = []
-    room_ids = list(rooms.keys())
+def _build_spatial_data(editor_data: Dict[str, Any]) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+    """Извлекает spatial_walls и spatial_obstacles из editor JSON.
+    
+    ADR-O-324: Перенесено из SceneStateManager для обеспечения Single Spatial Authority.
+    SpatialService теперь владеет геометрией стен и может валидировать сегменты пути.
+    """
+    spatial_walls: list[dict] = []
+    spatial_obstacles: list[dict] = []
+    
+    if not editor_data:
+        return spatial_walls, spatial_obstacles
+    
+    # Разрезаем стены проёмами (двери)
+    wall_openings: dict[str, list[dict]] = {}
+    for obj in editor_data.get("objects", []):
+        wall_id = obj.get("rotation")
+        if not wall_id:
+            continue
+        if obj.get("passability", {}).get("walk", False):
+            wall_openings.setdefault(wall_id, []).append(obj)
+    
+    for wall in editor_data.get("walls", []):
+        wall_id = wall.get("id")
+        openings = wall_openings.get(wall_id, [])
+        segments = _split_wall_by_openings(wall, openings)
+        spatial_walls.extend(segments)
+    
+    # Препятствия с passability и blocks_los
+    for obj in editor_data.get("objects", []):
+        if obj.get("passability", {}).get("walk", True):
+            continue
+        pos = obj.get("position", {})
+        size = obj.get("size", {})
+        if pos and size:
+            spatial_obstacles.append(
+                {
+                    "x": pos["x"] - size.get("w", 0) / 2,
+                    "y": pos["y"] - size.get("h", 0) / 2,
+                    "w": size.get("w", 0),
+                    "h": size.get("h", 0),
+                    "id": obj.get("id", ""),
+                    "type": obj.get("type", "decoration"),
+                    "blocks_los": obj.get("cover", 0) >= 0.8,
+                    "passability": obj.get("passability", {}),
+                }
+            )
+    
+    return spatial_walls, spatial_obstacles
 
-    for i in range(len(room_ids)):
-        for j in range(i + 1, len(room_ids)):
-            r1 = rooms[room_ids[i]]
-            r2 = rooms[room_ids[j]]
 
-            # Bounding Box: x, y, width, height
-            x1_min, y1_min = r1.get("x", 0.0), r1.get("y", 0.0)
-            x1_max = x1_min + r1.get("width", 0.0)
-            y1_max = y1_min + r1.get("height", 0.0)
+def _split_wall_by_openings(wall: dict, openings: list[dict]) -> list[dict]:
+    """Разрезает сегмент стены на части, исключая проёмы (двери, проходы)."""
+    if not openings:
+        return [
+            {
+                "x1": wall["x1"],
+                "y1": wall["y1"],
+                "x2": wall["x2"],
+                "y2": wall["y2"],
+            }
+        ]
+    
+    x1, y1 = wall["x1"], wall["y1"]
+    x2, y2 = wall["x2"], wall["y2"]
+    
+    dx = x2 - x1
+    dy = y2 - y1
+    wall_len = (dx * dx + dy * dy) ** 0.5
+    if wall_len == 0:
+        return [{"x1": x1, "y1": y1, "x2": x2, "y2": y2}]
+    
+    # единичный вектор вдоль стены
+    ux = dx / wall_len
+    uy = dy / wall_len
+    
+    # Собираем интервалы проёмов вдоль стены (в метрах от начала стены)
+    gaps = []
+    for op in openings:
+        pos = op.get("position", {})
+        size = op.get("size", {})
+        px, py = pos.get("x", 0), pos.get("y", 0)
+        # Вектор от начала стены до центра объекта
+        vx, vy = px - x1, py - y1
+        # Расстояние вдоль стены от начала
+        dist_along = vx * ux + vy * uy
+        # Перпендикулярное расстояние (объект должен быть на стене)
+        perp_dist = abs(vx * (-uy) + vy * ux)
+        
+        if perp_dist > 0.5:
+            continue
+        
+        w = size.get("w", 0)
+        h = size.get("h", 0)
+        # Проекция размера объекта на стену
+        half_len = (abs(w * ux) + abs(h * uy)) / 2
+        gap_start = max(0, dist_along - half_len)
+        gap_end = min(wall_len, dist_along + half_len)
+        if gap_end > gap_start:
+            gaps.append((gap_start, gap_end))
+    
+    if not gaps:
+        return [{"x1": x1, "y1": y1, "x2": x2, "y2": y2}]
+    
+    # Сортируем проёмы и объединяем перекрывающиеся
+    gaps.sort()
+    merged = [gaps[0]]
+    for start, end in gaps[1:]:
+        if start <= merged[-1][1]:
+            merged[-1] = (merged[-1][0], max(merged[-1][1], end))
+        else:
+            merged.append((start, end))
+    
+    # Строим сегменты стены между проёмами
+    segments = []
+    current = 0.0
+    for start, end in merged:
+        if start > current:
+            segments.append({
+                "x1": x1 + ux * current,
+                "y1": y1 + uy * current,
+                "x2": x1 + ux * start,
+                "y2": y1 + uy * start,
+            })
+        current = end
+    
+    if current < wall_len:
+        segments.append({
+            "x1": x1 + ux * current,
+            "y1": y1 + uy * current,
+            "x2": x2,
+            "y2": y2,
+        })
+    
+    return segments
 
-            x2_min, y2_min = r2.get("x", 0.0), r2.get("y", 0.0)
-            x2_max = x2_min + r2.get("width", 0.0)
-            y2_max = y2_min + r2.get("height", 0.0)
 
-            # Вертикальная общая стена (r1 справа или слева от r2)
-            if abs(x1_max - x2_min) < tolerance or abs(x2_max - x1_min) < tolerance:
-                # Проверяем перекрытие по Y
-                y_overlap = min(y1_max, y2_max) - max(y1_min, y2_min)
-                if y_overlap > tolerance:
-                    connections.append({"from": room_ids[i], "to": room_ids[j]})
-                    continue
+def load_editor_json(
+    campaign_id: str, 
+    location_id: str, 
+    search_dirs: Optional[List[Path]] = None
+) -> Optional[Dict[str, Any]]:
+    """Загружает JSON-файл локации.
+    
+    Поиск: search_dirs (если переданы) -> campaign_dir/locations -> campaign_dir.
+    Сопоставление: по имени файла (location_id.json) или по полю location_id/id внутри JSON.
+    Включает fuzzy match для случаев вроде "tavern" vs "tavern_silver_wolf".
+    """
+    # 1. Формируем список директорий для поиска
+    dirs_to_search: List[Path] = []
+    if search_dirs:
+        dirs_to_search.extend(search_dirs)
+    
+    project_root = Path(__file__).resolve().parents[4]
+    campaign_dir = project_root / "frontend" / "map_editor" / "campaigns" / campaign_id
+    dirs_to_search.append(campaign_dir / "locations")
+    dirs_to_search.append(campaign_dir)
+    
+    # 2. Ищем файл
+    for d in dirs_to_search:
+        if not d.exists():
+            continue
+            
+        # Пробуем точное совпадение имени файла
+        loc_file = d / f"{location_id}.json"
+        if loc_file.exists():
+            try:
+                with open(loc_file, "r", encoding="utf-8") as f:
+                    return json.load(f)
+            except Exception:
+                pass
+                
+        # Пробуем искать по содержимому (поле location_id или id)
+        for json_file in d.glob("*.json"):
+            if json_file.name == "campaign.json":
+                continue
+            try:
+                with open(json_file, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    file_loc_id = data.get("location_id", data.get("id", ""))
+                    if file_loc_id == location_id:
+                        return data
+                    # Fuzzy match для случаев вроде "tavern" vs "tavern_silver_wolf"
+                    if file_loc_id and (file_loc_id in location_id or location_id in file_loc_id):
+                        return data
+            except Exception:
+                pass
+                
+    # 3. Fallback: campaign.json (старый формат, где всё в одном файле)
+    campaign_file = campaign_dir / "campaign.json"
+    if campaign_file.exists():
+        try:
+            with open(campaign_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                if "locations" in data:
+                    for loc in data["locations"]:
+                        if loc.get("id") == location_id or loc.get("location_id") == location_id:
+                            return loc
+                if data.get("id") == location_id or data.get("location_id") == location_id:
+                    return data
+        except Exception:
+            pass
+            
+    logger.warning(f"[GRAPH_COMPILER] No map file found for {campaign_id}/{location_id}")
+    return None
 
-            # Горизонтальная общая стена (r1 над или под r2)
-            if abs(y1_max - y2_min) < tolerance or abs(y2_max - y1_min) < tolerance:
-                # Проверяем перекрытие по X
-                x_overlap = min(x1_max, x2_max) - max(x1_min, x2_min)
-                if x_overlap > tolerance:
-                    connections.append({"from": room_ids[i], "to": room_ids[j]})
-                    continue
-
-    return connections
-
-
-# ── Boundary Nodes (ДОЛГ 6.2) ────────────────────────────────────────
-
-# Противоположные направления для резолва entry-узла в соседнем чанке
-_OPPOSITE_DIRECTION = {
-    "east": "west",
-    "west": "east",
-    "north": "south",
-    "south": "north",
-}
+def _validate_connectivity(graph: Dict[str, NodeRef], connections: Dict[str, Set[str]], location_id: str) -> None:
+    """Проверяет связность графа. Логирует предупреждения об изолированных узлах."""
+    if not graph:
+        return
+        
+    visited: Set[str] = set()
+    queue = deque([next(iter(graph))])
+    
+    while queue:
+        node = queue.popleft()
+        if node in visited:
+            continue
+        visited.add(node)
+        for neighbor in connections.get(node, set()):
+            if neighbor not in visited:
+                queue.append(neighbor)
+                
+    if len(visited) != len(graph):
+        isolated = set(graph.keys()) - visited
+        logger.warning(f"[GRAPH_COMPILER] Изолированные узлы в {location_id}: {isolated}")
 
 
 def _create_boundary_nodes(
@@ -416,232 +592,62 @@ def _create_boundary_nodes(
     location_id: str,
     adjacency: Dict[str, Any],
 ) -> None:
-    """Создаёт виртуальные граничные узлы по декларации adjacency.
-
-    Для каждого направления (east, west, north, south) создаётся:
-    - Boundary node на краю текущего чанка
-    - Связь с ближайшим существующим узлом
-    - Метаданные в boundary_map для навигации при переходе
-
-    Boundary node НЕ создаёт связь с узлом соседнего чанка напрямую —
-    это ответственность MovementEngine при cross-chunk transition.
-    """
+    """Создаёт виртуальные boundary nodes для перехода в соседние чанки (ДОЛГ 6.2)."""
+    _OPPOSITE_DIRS = {"north": "south", "south": "north", "east": "west", "west": "east"}
+    
     if not graph:
         return
-
-    # Вычисляем bounding box существующих узлов (исключая уже созданные boundary)
-    internal_nodes = {
-        nid: nref for nid, nref in graph.items() if nref.role != NodeRole.BOUNDARY
-    }
-    if not internal_nodes:
-        return
-
-    xs = [nref.x for nref in internal_nodes.values()]
-    ys = [nref.y for nref in internal_nodes.values()]
-    min_x, max_x = min(xs), max(xs)
-    min_y, max_y = min(ys), max(ys)
-    center_x = (min_x + max_x) / 2.0
-    center_y = (min_y + max_y) / 2.0
-
-    # Маржа — boundary node ставится за пределами bounding box
-    margin = 2.0
-
-    for direction, neighbor_chunk in adjacency.items():
-        if not isinstance(neighbor_chunk, str) or not neighbor_chunk:
+        
+    for direction, neighbor_loc_id in adjacency.items():
+        if not isinstance(neighbor_loc_id, str):
             continue
-
-        # Координаты boundary node — на краю чанка в направлении выхода
-        if direction == "east":
-            bx, by = max_x + margin, center_y
-        elif direction == "west":
-            bx, by = min_x - margin, center_y
-        elif direction == "south":
-            bx, by = center_x, max_y + margin
-        elif direction == "north":
-            bx, by = center_x, min_y - margin
-        else:
-            logger.warning(
-                f"[GRAPH_COMPILER] Неизвестное направление adjacency: {direction}"
-            )
-            continue
-
+            
+        # Ищем ближайший узел к центру или просто берём первый
+        nearest_node = next(iter(graph.values()))
+        
         boundary_id = f"{location_id}:exit_{direction}"
-        entry_direction = _OPPOSITE_DIRECTION.get(direction, direction)
-
-        # Создаём boundary node
-        node_ref = NodeRef(
+        boundary_node = NodeRef(
             node_id=boundary_id,
+            x=0.0,
+            y=0.0,
             role=NodeRole.BOUNDARY,
-            tags=[
-                "boundary:exit",
-                f"direction:{direction}",
-                f"neighbor:{neighbor_chunk}",
-                f"entry_direction:{entry_direction}",
-            ],
-            x=bx,
-            y=by,
+            tags=["boundary:exit"],
             zone_id=location_id,
         )
-        graph[boundary_id] = node_ref
+        
+        graph[boundary_id] = boundary_node
         alias_map[f"exit_{direction}"] = boundary_id
-
-        # Метаданные для cross-chunk навигации
+        
+        connections.setdefault(nearest_node.node_id, set()).add(boundary_id)
+        connections.setdefault(boundary_id, set()).add(nearest_node.node_id)
+        
+        _entry_dir = _OPPOSITE_DIRS.get(direction, direction)
         boundary_map[boundary_id] = {
+            "neighbor_chunk": neighbor_loc_id,
+            "node_id": boundary_id,
+            "x": 0.0,
+            "y": 0.0,
             "direction": direction,
-            "neighbor_chunk": neighbor_chunk,
-            "entry_direction": entry_direction,
-            "entry_node_hint": f"{neighbor_chunk}:exit_{entry_direction}",
+            "entry_direction": _entry_dir,
+            "entry_node_hint": f"{neighbor_loc_id}:exit_{_entry_dir}"
         }
 
-        # Связываем с ближайшим внутренним узлом (1-2 узла для надёжности)
-        # Расстояние от boundary до каждого внутреннего узла
-        distances = []
-        for nid, nref in internal_nodes.items():
-            dist = ((nref.x - bx) ** 2 + (nref.y - by) ** 2) ** 0.5
-            distances.append((dist, nid))
-        distances.sort()
 
-        # Соединяем с ближайшим узлом (если он не слишком далеко)
-        if distances:
-            closest_dist, closest_id = distances[0]
-            # Минимальный порог: margin * 3 (гарантирует связь даже при одном узле)
-            max_link_dist = max(max_x - min_x, max_y - min_y, margin * 3) * 0.8
-            if closest_dist <= max_link_dist:
-                connections.setdefault(boundary_id, set()).add(closest_id)
-                connections.setdefault(closest_id, set()).add(boundary_id)
-                # Если есть второй близкий узел — тоже связываем (для альтернативных путей)
-                if len(distances) > 1:
-                    d2, id2 = distances[1]
-                    if d2 <= max_link_dist and d2 <= closest_dist * 1.5:
-                        connections.setdefault(boundary_id, set()).add(id2)
-                        connections.setdefault(id2, set()).add(boundary_id)
-
-        logger.info(
-            f"[GRAPH_COMPILER] Boundary node: {boundary_id} → "
-            f"{neighbor_chunk} ({direction}), linked to {closest_id}"
-        )
-
-
-def _validate_connectivity(
-    graph: Dict[str, NodeRef],
-    connections: Dict[str, Set[str]],
-    location_id: str,
-) -> None:
-    """Проверяет связность графа через BFS. Логирует изолированные компоненты."""
-    if not graph:
-        return
-
-    visited: Set[str] = set()
-    components: List[Set[str]] = []
-
-    for node_id in graph:
-        if node_id in visited:
-            continue
-        # BFS от node_id
-        component: Set[str] = set()
-        queue = deque([node_id])
-        while queue:
-            current = queue.popleft()
-            if current in visited:
-                continue
-            visited.add(current)
-            component.add(current)
-            for neighbor in connections.get(current, set()):
-                if neighbor not in visited:
-                    queue.append(neighbor)
-        components.append(component)
-
-    if len(components) > 1:
-        # Есть изолированные компоненты
-        main_component = max(components, key=len)
-        for component in components:
-            if component is main_component:
-                continue
-            isolated_ids = [nid.split(":")[-1] for nid in component]
-            logger.warning(
-                f"[GRAPH_COMPILER] {location_id}: "
-                f"изолированная компонента ({len(component)} узлов): {isolated_ids}"
-            )
-
-
-def load_editor_json(
-    campaign_id: str,
-    location_id: str,
-    search_dirs: Optional[List[Path]] = None,
-) -> Optional[Dict[str, Any]]:
-    """Ищет и загружает editor JSON для локации.
-
-    Аргументы:
-        campaign_id: идентификатор кампании
-        location_id: идентификатор локации
-        search_dirs: дополнительные директории для поиска
-
-    Возвращает:
-        Dict[str, Any] из editor JSON или None
-    """
-    if search_dirs is None:
-        # ADR-O-146: Единственный источник карт — map_editor/campaigns.
-        # backend/data/campaigns — мёртвый путь, удалён.
-        search_dirs = [
-            _PROJECT_ROOT
-            / "frontend"
-            / "map_editor"
-            / "campaigns"
-            / campaign_id
-            / "locations",
-        ]
-
-    for loc_dir in search_dirs:
-        if not loc_dir.exists():
-            continue
-        for json_file in loc_dir.glob("*.json"):
-            try:
-                # utf-8-sig корректно обрабатывает BOM (EF BB BF)
-                data = json.loads(json_file.read_text(encoding="utf-8-sig"))
-                lid = data.get("location_id", "")
-                label = data.get("label", "")
-                # Точное совпадение
-                if lid == location_id or label == location_id:
-                    return data
-                # Частичное совпадение
-                if label and location_id and location_id.lower() in label.lower():
-                    return data
-                # ADR-061: Compatibility Resolver для legacy данных (без location_id).
-                # Строгое правило: инференс только по точному совпадению префикса имени файла.
-                if not lid and data.get("rooms"):
-                    inferred_lid = json_file.stem.lower()
-                    # Проверяем, что целевой location_id начинается с имени файла
-                    if location_id.lower().startswith(inferred_lid):
-                        logger.warning(
-                            f"[GRAPH_COMPILER] DEPRECATION: Файл {json_file.name} не имеет поля 'location_id'. "
-                            f"Инференс из имени файла: '{inferred_lid}'. Заполните поле в Map Editor!"
-                        )
-                        return data
-            except (json.JSONDecodeError, OSError) as e:
-                logger.error(f"[GRAPH_COMPILER] Ошибка чтения {json_file.name}: {e}")
-                continue
-
-    logger.warning(
-        f"[GRAPH_COMPILER] editor JSON не найден для {campaign_id}/{location_id}"
-    )
-    return None
-
-
-def _infer_adjacency_from_bounds(rooms: Dict[str, Any], tolerance: float = 0.5) -> List[Any]:
-    """Инференс смежности: если bounding box-ы комнат имеют общую стену,
-    между ними создаётся passage. Это масштабируемая основа: двери потом модифицируют этот путь.
-    ADR-091: Комната, полностью содержащая другую — это внешняя граница (container), не навигационная зона."""
-
-    # ADR-091: Фильтрация container-комнат (внешних границ от Map Editor)
+def _infer_connections_from_adjacency(
+    rooms: Dict[str, dict], tolerance: float = 0.5
+) -> List[dict]:
+    """Выводит связи между комнатами на основе смежности их bounding box.
+    Если две комнаты имеют общую стену (пересечение по оси > tolerance),
+    между ними создаётся passage."""
+    connections = []
     room_ids = list(rooms.keys())
-    container_ids = set()
 
     for i in range(len(room_ids)):
-        for j in range(len(room_ids)):
-            if i == j:
-                continue
-            r1 = rooms[room_ids[i]]
-            r2 = rooms[room_ids[j]]
+        for j in range(i + 1, len(room_ids)):
+            r1_id = room_ids[i]
+            r2_id = room_ids[j]
+            r1 = rooms[r1_id]
+            r2 = rooms[r2_id]
 
             x1_min, y1_min = r1.get("x", 0.0), r1.get("y", 0.0)
             x1_max = x1_min + r1.get("width", 0.0)
@@ -651,51 +657,16 @@ def _infer_adjacency_from_bounds(rooms: Dict[str, Any], tolerance: float = 0.5) 
             x2_max = x2_min + r2.get("width", 0.0)
             y2_max = y2_min + r2.get("height", 0.0)
 
-            # Если r1 полностью содержит r2
-            if (
-                x1_min <= x2_min + tolerance
-                and y1_min <= y2_min + tolerance
-                and x1_max >= x2_max - tolerance
-                and y1_max >= y2_max - tolerance
-            ):
-                container_ids.add(room_ids[i])
-                logger.warning(
-                    f"[GRAPH_COMPILER] Комната '{room_ids[i]}' содержит '{room_ids[j]}'. Это внешняя граница — исключена из графа."
-                )
+            x_overlap = min(x1_max, x2_max) - max(x1_min, x2_min)
+            y_overlap = min(y1_max, y2_max) - max(y1_min, y2_min)
 
-    filtered_rooms = {rid: rooms[rid] for rid in rooms if rid not in container_ids}
-
-    connections = []
-    filtered_ids = list(filtered_rooms.keys())
-
-    for i in range(len(filtered_ids)):
-        for j in range(i + 1, len(filtered_ids)):
-            r1 = filtered_rooms[filtered_ids[i]]
-            r2 = filtered_rooms[filtered_ids[j]]
-
-            # Bounding Box: x, y, width, height
-            x1_min, y1_min = r1.get("x", 0.0), r1.get("y", 0.0)
-            x1_max = x1_min + r1.get("width", 0.0)
-            y1_max = y1_min + r1.get("height", 0.0)
-
-            x2_min, y2_min = r2.get("x", 0.0), r2.get("y", 0.0)
-            x2_max = x2_min + r2.get("width", 0.0)
-            y2_max = y2_min + r2.get("height", 0.0)
-
-            # Вертикальная общая стена (r1 справа или слева от r2)
-            if abs(x1_max - x2_min) < tolerance or abs(x2_max - x1_min) < tolerance:
-                # Проверяем перекрытие по Y
-                y_overlap = min(y1_max, y2_max) - max(y1_min, y2_min)
-                if y_overlap > tolerance:
-                    connections.append({"from": filtered_ids[i], "to": filtered_ids[j]})
-                    continue
-
-            # Горизонтальная общая стена (r1 над или под r2)
-            if abs(y1_max - y2_min) < tolerance or abs(y2_max - y1_min) < tolerance:
-                # Проверяем перекрытие по X
-                x_overlap = min(x1_max, x2_max) - max(x1_min, x2_min)
-                if x_overlap > tolerance:
-                    connections.append({"from": filtered_ids[i], "to": filtered_ids[j]})
-                    continue
+            if abs(x1_max - x2_min) < tolerance and y_overlap > tolerance:
+                connections.append({"from": r1_id, "to": r2_id})
+            elif abs(x2_max - x1_min) < tolerance and y_overlap > tolerance:
+                connections.append({"from": r1_id, "to": r2_id})
+            elif abs(y1_max - y2_min) < tolerance and x_overlap > tolerance:
+                connections.append({"from": r1_id, "to": r2_id})
+            elif abs(y2_max - y1_min) < tolerance and x_overlap > tolerance:
+                connections.append({"from": r1_id, "to": r2_id})
 
     return connections

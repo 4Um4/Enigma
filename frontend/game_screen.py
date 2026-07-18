@@ -999,11 +999,15 @@ class GameScreen:
                             _spk_id = _dlg.get("speaker_id", "")
                             _dlg_text = _dlg.get("text", "")
                             if _spk_id and _dlg_text:
-                                self.npc_speech_bubbles[_spk_id] = {
-                                    "text": _dlg_text,
-                                    "tick": pygame.time.get_ticks(),
-                                }
-                                logger.info(f"[BUBBLE_INJECT] speaker={_spk_id} text={_dlg_text[:30]}...")
+                                # ADR-SPEECH FIX: Обновляем облачко только если текст изменился.
+                                # Иначе кэш бэкенда (10 сек) будет держать облачко вечно.
+                                _existing = self.npc_speech_bubbles.get(_spk_id)
+                                if not _existing or _existing.get("text") != _dlg_text:
+                                    self.npc_speech_bubbles[_spk_id] = {
+                                        "text": _dlg_text,
+                                        "tick": pygame.time.get_ticks(),
+                                    }
+                                    logger.info(f"[BUBBLE_INJECT] speaker={_spk_id} text={_dlg_text[:30]}...")
             if _new_positions:
                 import copy
 
@@ -1677,10 +1681,15 @@ class GameScreen:
                 self.player_speech_bubble = None
 
             # ADR-MANIFEST: Читаем наблюдаемые проявления из perception data (бэкенд — источник истины)
-            _manifest_indicators = {}
             _perc = scene_state.get("player_perception") or {}
-            # API отдаёт manifestations как list[ManifestationDTO], конвертируем в dict
             _raw_manifests = _perc.get("manifestations", [])
+            _now = pygame.time.get_ticks()
+            # Кэшируем проявления, чтобы они не исчезали резко при потере фокуса
+            if not hasattr(self, "_manifest_cache"):
+                self._manifest_cache = {}
+                self._manifest_tick_cache = {}
+
+            _manifest_indicators = {}
             if isinstance(_raw_manifests, list):
                 for _m in _raw_manifests:
                     _nid = (
@@ -1708,15 +1717,26 @@ class GameScreen:
                             if _first_key
                             else COLOR_MANIFEST_DEFAULT
                         )
-                        _manifest_indicators[_nid] = {
+                        _data = {
                             "tags": _tags,
                             "text": ", ".join(_texts),
                             "color": _color,
                         }
+                        _manifest_indicators[_nid] = _data
+                        self._manifest_cache[_nid] = _data
+                        self._manifest_tick_cache[_nid] = _now
+
+            # Если бэкенд не прислал данные, проверяем кэш (живём 3 секунды)
+            for _nid, _data in list(self._manifest_cache.items()):
+                if _nid not in _manifest_indicators:
+                    if _now - self._manifest_tick_cache.get(_nid, 0) < 3000:
+                        _manifest_indicators[_nid] = _data
+                    else:
+                        del self._manifest_cache[_nid]
+                        del self._manifest_tick_cache[_nid]
 
             self.npc_manifest_indicators = _manifest_indicators
-            # Убрали спам для проверки бэкенда
-            self.screen.fill((200, 0, 0))  # ЯРКО-КРАСНЫЙ — если видно, цикл работает
+            self.screen.fill((0, 0, 0))  # Чёрный фон по умолчанию
             # S81-ФИКС: Камера следует за ИГРОКОМ, а не за статичным _world_ctx
             # Конвертируем ТЕКУЩУЮ локальную позицию в мировую для камеры
             _render_px, _render_py = px, py

@@ -183,6 +183,8 @@ class TickResultDTO:
     # ADR-075: Строго типизированный транспорт Эмбодимента через каузальную границу API.
     # None по умолчанию (нет конфликта = нет моторного сопротивления).
     will_conflict_data: Optional[Dict[str, Any]] = None
+    # S122 FIX: Проброс свежего all_npcs_raw для PerceptionProjector (Pipeline Gap fix).
+    all_npcs_raw: Optional[list] = None
     # TZ-08 v0.2: Narrative Projection. Данные для LLM-генерации, вычисленные ядром.
     # Формируются в любом тике (idle/player) на основе State+Decision.
     npc_contexts: List[Dict[str, Any]] = field(default_factory=list)

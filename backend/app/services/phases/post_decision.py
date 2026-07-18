@@ -48,6 +48,7 @@ def run_phase_6_post_decision(ctx: Any, orchestrator: Any) -> None:
                 target_id=_target_id,
                 exposure=intent.exposure_level,
                 intent_type=intent.intent_type,
+                emotional_state=intent.emotional_state,
             )
 
             _task = QueuedTask(
@@ -81,6 +82,7 @@ def run_phase_6_post_decision(ctx: Any, orchestrator: Any) -> None:
                     "target_id": _req.target_id,
                     "exposure_semantic": _req.exposure.semantic,
                     "intent_type": _req.intent_type,
+                    "emotional_state": _req.emotional_state,
                 },
                 "created_tick": _task.created_tick,
             }

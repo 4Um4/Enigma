@@ -1,11 +1,8 @@
 Traceback (most recent call last):
-  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\api\routes.py", line 412, in game_action
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\api\routes.py", line 476, in game_action
     result = await game_loop.run_turn(turn_request)
              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\__init__.py", line 857, in run_turn
-    _recent_d = self._get_task_scheduler().get_recent_dialogues(time.time())
-                ~~~~~~~~~~~~~~~~~~~~~~~~^^
-  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\__init__.py", line 1398, in _get_task_scheduler
-    _ctx = self.life_engine.get_npc_observed_state
-           ^^^^^^^^^^^^^^^^
-AttributeError: 'GameLoop' object has no attribute 'life_engine'. Did you mean: '_get_life_engine'?
+  File "C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\game_loop\__init__.py", line 898, in run_turn
+    state.shared_context.all_npcs_raw = state.tick_result.all_npcs_raw or self._resolve_npcs_snapshot(req.campaign_id)
+                                        ^^^^^^^^^^^^^^^^^
+AttributeError: '_PipelineState' object has no attribute 'tick_result'. Did you mean: 'npc_result'?

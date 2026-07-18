@@ -33,8 +33,10 @@ from app.models.delta_payloads import (
     PerceptionPayload,
     PhysiologyPayload,
     SocialPayload,
+    WillConflictPayload,
 )
 from app.models.event_resolution import StateChange
+from app.services.npc.kernel_rng import KernelRNG
 
 # Целевая архитектура данных (L2)
 # Легаси-типы, используемые в логике (Enum'ы и контракты)
@@ -127,7 +129,7 @@ class StateApplicator:
 
             # --- ИСПРАВЛЕНО: работаем с new_state и result.deltas ---
             d = _legacy_deltas
-            _l1_events: list = []  # C7 FIX: Инициализация списка для L1 событий
+            _l1_events: list[Any] = []  # C7 FIX: Инициализация списка для L1 событий
 
             # Применяем психологические изменения (R6.1)
             new_state.identity_integrity = max(
@@ -346,7 +348,7 @@ class StateApplicator:
                     StateChange(
                         target_id=new_state.npc_id,
                         field=f"wound.{wound.body_part}",
-                        delta=wound.severity.value,
+                        delta=float(wound.severity.value),
                         source=outcome.damage_type.value,
                     )
                 )
@@ -391,7 +393,7 @@ class StateApplicator:
         outcome: PhysicalOutcome,
         state: NPCState,
         tick: int,
-        rng: Optional["KernelRNG"] = None,
+        rng: Optional[KernelRNG] = None,
     ) -> Optional[Wound]:
         """Проверяет необходимость создания wound.
 
@@ -590,37 +592,7 @@ class StateApplicator:
             else 0.0
         )
 
-        # S-93: Reward Prediction Error (FEP) & EMA Ownership
-        if (
-            domain == DeltaDomain.SOCIAL
-            and isinstance(deltas.payload, SocialPayload)
-            and hasattr(self, "_expectation_store")
-            and self._expectation_store is not None
-        ):
-            _source = "player"  # В S-93 PE работает только для player
-            exp = self._expectation_store.get_expectation(npc_id, _source)
-
-            # Нормализация: max trust_delta = +12.0, max fear_delta = +8.0
-            actual_reward = max(0.0, trust_delta) / 12.0
-            actual_threat = max(0.0, fear_delta) / 8.0
-            pe_reward = actual_reward - exp.expected_reward
-
-            # Модуляция: разочарование (PE < -0.3) удваивает падение trust
-            # DEBT-DET-02 FIX: Код выполняется строго внутри блока DeltaDomain.SOCIAL,
-            # поэтому прямая мутация trust_delta здесь безопасна (in-domain writer).
-            if pe_reward < -0.3 and trust_delta < 0:
-                trust_delta *= 2.0
-                logger.info(
-                    f"[PE_DISAPPOINTMENT] NPC={npc_id} PE={pe_reward:.2f} Trust fall doubled (in-domain)."
-                )
-
-            # Обновляем EMA ожидания (Single Writer)
-            self._expectation_store.update_expectation(
-                npc_id=npc_id,
-                source_id=_source,
-                actual_reward=actual_reward,
-                actual_threat=actual_threat,
-            )
+        # DEEP-015 FIX: Мёртвый код ExpectationStore (Reward Prediction Error) удалён.
 
         identity_integrity_delta = (
             deltas.payload.identity_integrity_delta
@@ -643,7 +615,7 @@ class StateApplicator:
 
         # Physiology Domain: Damage & Stress Propagation System
         hp_delta = (
-            deltas.payload.effective_hp_delta
+            deltas.payload.hp_delta
             if domain == DeltaDomain.PHYSIOLOGY
             and isinstance(deltas.payload, PhysiologyPayload)
             else 0.0
@@ -1215,7 +1187,7 @@ class StateApplicator:
     def apply_batch(
         self,
         deltas: List[StateDeltas],
-        all_npcs_raw: List[dict],
+        all_npcs_raw: List[dict[str, Any]],
         campaign_id: str,
     ) -> None:
         """Единая точка применения всех накопленных дельт.
@@ -1278,7 +1250,7 @@ class StateApplicator:
             # Сортируем дельты по домену для предсказуемого результата
             sorted_deltas = sorted(
                 by_npc[npc_id],
-                key=lambda d: _DOMAIN_APPLICATION_ORDER.get(d.domain, _DEFAULT_ORDER),
+                key=lambda d: _DOMAIN_APPLICATION_ORDER.get(d.domain if d.domain else DeltaDomain.PERCEPTION, _DEFAULT_ORDER),
             )
             for delta in sorted_deltas:
                 self._apply_delta_to_raw(npc_dict, delta, campaign_id)

@@ -139,31 +139,21 @@ class MovementPlanResult:
                 raise ValueError("REJECTED result cannot contain proposal")
 
 
-def build_traversal_dict(
-    npc_id: str,
-    from_node: str,
-    target_node: str,
-    path_waypoints: List[Any],
-    started_tick: int,
-    duration_ticks: int,
-    speed: float = 2.0,
-    locomotion: str = "WALK",
-    current_waypoint_idx: int = 0,
-) -> Dict[str, Any]:
-    """Единственный разрешённый способ создания traversal_dict.
-
-    Запрещено собирать dict вручную. Все писатели обязаны использовать
-    эту функцию.
+def build_traversal_dict(proposal: "TraversalProposal") -> Dict[str, Any]:
+    """Механический материализатор TraversalProposal в runtime dict.
+    
+    ADR-O-323: Не вычисляет семантику пути. Только сериализует авторизованный proposal.
+    Единственный разрешённый способ создания traversal_dict.
     """
     return {
-        "npc_id": npc_id,
-        "from_node": from_node,
-        "target_node": target_node,
-        "path_waypoints": path_waypoints,
-        "speed": speed,
-        "started_tick": started_tick,
-        "duration_ticks": duration_ticks,
-        "locomotion": locomotion,
+        "npc_id": proposal.npc_id,
+        "from_node": proposal.source_node,
+        "target_node": proposal.target_node,
+        "path_waypoints": [list(wp) for wp in proposal.path_waypoints],
+        "speed": proposal.speed,
+        "started_tick": proposal.planned_tick,
+        "duration_ticks": proposal.duration_ticks,
+        "locomotion": "WALK",
         "status": "MOVING",
-        "current_waypoint_idx": current_waypoint_idx,
+        "current_waypoint_idx": 0,
     }

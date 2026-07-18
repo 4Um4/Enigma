@@ -268,6 +268,16 @@ def publish_classified_player_event(
         "stealth": EventType.PLAYER_MOVED,
     }
     _raw_type = shared_context.action_type or "dialogue"
+    
+    # S122 FIX: Жёсткий лексический перехват боевых команд (Fast-Path).
+    # LLM (DM Router) часто классифицирует "ударить" как dialogue, из-за чего CombatSubscriber не вызывается.
+    # Если в тексте есть глаголы агрессии — принудительно выставляем ATTACK.
+    _raw_lower = raw_input.lower()
+    if any(verb in _raw_lower for verb in ["удар", "бей", "атак", "вреж", "убей", "калеч"]):
+        _raw_type = "attack"
+        shared_context.action_type = "attack"
+        logger.warning(f"[FAST_PATH_ATTACK] Lexical override triggered for input: '{raw_input}'")
+
     # ADR-082: Case-Insensitive Routing. NLP возвращает 'ATTACK', маппинг ждет 'attack'.
     # Без .lower() удар уходит в PLAYER_SPOKE, минуя CombatSubscriber и ImpactEngine.
     _resolved_type = _evt_map.get(_raw_type.lower(), EventType.PLAYER_SPOKE)

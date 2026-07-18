@@ -726,7 +726,8 @@ def create_memory_event(
             campaign_id=campaign_id,
             spatial_query=spatial_query,
         )
-    return state_l2
+        return _evt_dto  # S122 FIX: Возвращаем событие для memory_events, а не state_l2
+    return None
 
 
 # ── Verbalization context builder ───────────────────────────────────────────

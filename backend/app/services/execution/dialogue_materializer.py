@@ -32,6 +32,10 @@ class DialogueMaterializer:
         elif exposure_semantic == "private":
             visibility = "private"
 
+        from app.services.verbalization.tone_mapper import ToneMapper
+
+        _tone = ToneMapper.map(data.get("emotional_state"))
+
         event = EventDTO.create(
             event_type=EventType.NPC_SPOKE.value,
             source=data["speaker_id"],
@@ -40,6 +44,7 @@ class DialogueMaterializer:
                 "text": data["text"],
                 "topic": data.get("topic"),
                 "exposure": exposure_semantic,
+                "tone": _tone,
             },
             visibility=visibility,
             radius=10.0,  # Упрощённый радиус для материализатора

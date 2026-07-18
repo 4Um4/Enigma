@@ -586,6 +586,10 @@ class NPCState:
     # R6.4 — динамическое сопротивление давлению (Anti-abuse).
     pressure_resistance: float = 0.0
 
+    # L2.7: Счётчик недавних неудач (для BreakProgressEngine).
+    # Растёт при высоком affective_load, затухает при спокойствии.
+    recent_failures: int = 0
+
     will_state: WillState = WillState.FREE
 
     # R6.2 — внешний поведенческий паттерн поверх will_state.
@@ -809,6 +813,7 @@ class NPCState:
         psyche["state"] = state.will_state.value
         psyche["identity_integrity"] = state.identity_integrity
         psyche["pressure_resistance"] = state.pressure_resistance
+        psyche["recent_failures"] = state.recent_failures
         # L2.7: LifeDirection — персистенция динамического жизненного проекта
         psyche["life_project"] = state.life_project
         psyche["life_project_state"] = state.life_project_state
@@ -994,6 +999,7 @@ class NPCStateAdapter:
             dependency=float(psyche.get("dependency", 0.0)),
             identity_integrity=float(psyche.get("identity_integrity", 1.0)),
             pressure_resistance=float(psyche.get("pressure_resistance", 0.0)),
+            recent_failures=int(psyche.get("recent_failures", 0)),
             will_state=WillState(psyche.get("state", "free")),
             trauma_markers=set(psyche.get("trauma_flags", [])),
             # P1 ARCH FIX: relationship_cache — эфемерный read-cache.

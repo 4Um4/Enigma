@@ -24,10 +24,10 @@ class DialogueExecutor:
 
     def __init__(
         self,
-        llm_provider=None,
+        router=None,
         context_provider: Optional[Callable[[str, str], dict]] = None,
     ):
-        self._llm = llm_provider
+        self._router = router
         self._get_context = context_provider or (
             lambda npc_id, camp_id: {"name": npc_id, "description": ""}
         )
@@ -49,14 +49,15 @@ class DialogueExecutor:
             f"[DIALOGUE_EXEC] Executing task for {task.owner_id} -> {req.target_id} on topic '{req.topic}'"
         )
 
-        # Если провайдер не задан (sandbox/test), возвращаем заглушку
-        if self._llm is None:
-            text = f"[Stub LLM] {task.owner_id} говорит {req.target_id} о '{req.topic}'"
+        # Если роутер не задан (sandbox/test), возвращаем заглушку
+        if self._router is None:
+            logger.warning("[DIALOGUE_EXEC] ModelRouter is None! Fallback to stub.")
+            text = f"[Заглушка] {task.owner_id} обращается к {req.target_id} по теме: '{req.topic}'"
         else:
-            text = self._generate_with_timeout(task, req)
+            text = self._generate_with_router(task, req)
 
         if not text:
-            text = f"[Stub LLM] {task.owner_id} молчит."
+            text = f"[Заглушка] {task.owner_id} молчит."
 
         yield Artifact(
             task_id=task.task_id,
@@ -68,11 +69,12 @@ class DialogueExecutor:
                 "text": text,
                 "exposure": req.exposure.semantic,
                 "topic": req.topic,
+                "emotional_state": req.emotional_state,
             },
         )
 
-    def _generate_with_timeout(self, task: QueuedTask, req: DialogueRequest) -> str:
-        """Генерация с таймаутом 2 сек. Не блокирует симуляцию (Правило 2 ТЗ)."""
+    def _generate_with_router(self, task: QueuedTask, req: DialogueRequest) -> str:
+        """Генерация через ModelRouter. Не блокирует симуляцию (Правило 2 ТЗ)."""
         ctx = self._get_context(task.owner_id, task.campaign_id)
 
         system_prompt = (
@@ -89,16 +91,14 @@ class DialogueExecutor:
         )
 
         try:
-            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-                future = executor.submit(
-                    self._llm.complete, user_prompt, None, system_prompt
-                )
-                return future.result(timeout=15.0).strip()
-        except concurrent.futures.TimeoutError:
-            logger.error(
-                f"[DIALOGUE_EXEC] LLM timeout (15s) for {task.owner_id}. Fallback to stub."
+            from app.services.llm.router import GenerationParams
+            raw = self._router.request_for_agent(
+                agent_name="npc",
+                prompt=user_prompt,
+                system_prompt=system_prompt,
+                params=GenerationParams(max_tokens=100)
             )
-            return ""
+            return raw.strip() if isinstance(raw, str) else ""
         except Exception as e:
             logger.error(f"[DIALOGUE_EXEC] LLM call failed: {e}. Fallback to stub.")
             return ""

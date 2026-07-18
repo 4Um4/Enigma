@@ -250,7 +250,10 @@
   - `max_tokens` вынесен в `config.py` (A7).
   - В промпт и `DMContractBuilder` добавлены строгий JSON-формат и динамический forbidden-блок (B1/B2/B3).
   - `MockProvider` заблокирован в production (B4).
-  - После аудита зависимостей удалён мёртвый код: `parser.py`, `npc_response_validator.py`, 4 cloud-провайдера (C2/C3/C5).
+- После аудита зависимостей удалён мёртвый код: `parser.py`, `npc_response_validator.py`, 4 cloud-провайдера (C2/C3/C5).
+- 🔵 **S123** Ликвидация BUG-R120: Внедрение MovementPlanner (ADR-O-323). Устранен архитектурный долг Layer 1. Внедрен домен `MovementPlanner` как единственный автор `TraversalProposal`. `SceneStateManager` и `EventCompiler` переведены в режим чтения/валидации (удалены `math.hypot`, `find_path`). Добавлен guard для микро-перемещений в `EquivalenceValidator`.
+- 🔵 **S124** Layer 2 Activation & Causal Movement Topology. `EventCompiler` (Shadow) переведен на валидацию инвариантов `proposal` (геометрия, консистентность). Спроектирован контракт ADR-O-324 (Geometric Obstacle Resolution) для устранения слепого доверия графу в `MovementPlanner`.
+  Files: backend/app/services/spatial/movement_engine.py, backend/app/services/scene_state_manager.py, backend/app/services/event_compiler.py, backend/app/services/equivalence_validator.py
 
 ---
 
@@ -271,6 +274,8 @@
 - 🟢 **S76** ADR-140: DM Death Scene Pipeline. DM получает life_status через avatar_to_prompt.
 - 🟢 **S77** ADR-141: Убит разрыв Injury → Pain. `InjuryProcessor` генерирует `pain_delta` из свойств раны.
 - 🟢 **S86** ТЗ-02 (Шаг 12): DOUBLE TRUTH HP устранена. Канонический источник — `body_state["current_hp"]`. Устаревший `state.hp` оставлен как deprecated-проекция и синхронизируется с `body_state` при уроне.
+- 🟢 **S123** Восстановление ADR-O-301 в Combat Pipeline & DEEP-013. Внедрен `Optional[random.Random] = None` в `combat_math.py` (броски кубиков). В `impact_engine.py` добавлен адаптер вычисления AC (Armor Class) и проброс `rng`. Сняты `@pytest.mark.skip` с тестов урона. `apply_perception_memory` преобразован в pure function (возвращает EventDTO). `CrystallizedBeliefStore` переписан с SQLite-персистентностью (lazy load, таблица `crystallized_beliefs`).
+  Files: backend/app/services/combat/impact_engine.py, backend/app/services/npc/npc_tick_pipeline.py, backend/app/services/pipeline_runner.py, backend/app/services/identity/crystallized_belief_store.py, backend/app/services/tick_orchestrator.py
 
 ### DOM-06: SOCIAL & MEMORY
 
@@ -360,6 +365,9 @@
   - **Bugfix 6 (TraversalExecutionSystem закомментирован):** В `backend/app/services/tick_orchestrator.py` вызов `TraversalExecutionSystem.advance(ctx.scene_state, ctx.tick_number)` был закомментирован. Транзиты создавались, но никогда не завершались. Вызов раскомментирован.
   - **Validation:** Все 5 инвариантов IPT теперь проходят (5 passed / 0 failed). `DriftLaboratory` отрабатывает без крашей.
   Files: backend/app/services/event_compiler.py, backend/app/domain/tick.py, backend/app/services/tick_orchestrator.py, backend/app/services/game_loop/__init__.py, backend/tests/IPT.py
+- 🟢 **S122** Восстановление pytest (Legacy Contract Drift) & P3 Археология. Обновлены тесты на `effective_hp`, `social_input_ema_delta`, `build_npc_snapshots`, `BODY_STATE_DISABLED`, `LifeEngine` и `post_decision.py` (удален легаси-код проверки `ctx.decisions`). `LifeProjectResolver` заблокирован в каузальной цепочке (0 deltas по trust/fear), долг переведен в архитектурный.
+- 🟢 **S122** BUG-S120.3 & Task 3: Combat Pipe & Manifest Generation. Внедрён fast-path лексический перехват атакующих глаголов в `phase_1_input.py`. Исправлен `EventBus.publish` (поиск обработчиков по `.value`). Починены краши тика: `AttributeError` в `create_memory_event` и `effective_hp_delta` (переименован в `hp_delta`). `TickResultDTO` расширен полем `all_npcs_raw` для `PerceptionProjector`. В `BehaviorManifestationService` добавлено чтение `stress` и `affective_load` из `psyche`.
+  Files: backend/app/services/game_loop/phase_1_input.py, backend/app/services/events/event_bus.py, backend/app/services/npc/npc_tick_pipeline.py, backend/app/services/npc/state_applicator.py, backend/app/domain/tick.py, backend/app/services/tick_orchestrator.py, backend/app/services/game_loop/__init__.py, backend/app/services/perception/behavior_manifestation_service.py
 
 ### DOM-09: SOCIAL & AFFECTIVE ARCHITECTURE (SSOT & Causal Derivation)
 
@@ -405,6 +413,8 @@
 - 🟢 **S85.2** Belief Decay Model: Внедрена энтропия убеждений (`BELIEF_DECAY_TAU`). Убеждения растворяются без подкрепления, предотвращая статическую кристаллизацию личности.
 - 🔴 **S86** ТЗ-02 (Шаг 9): `L1Chronicle` стал персистентным (SQLite). Внедрена схема `l1_chronicle_events`. DI замкнут от `GameLoop` до `L1Chronicle`. Контракт `TraitDriftEvent` (`target_id`, `tick_id`, `effect_value`) полностью канонизирован.
 - 💀 **S86** ТЗ-02 (Шаг 10 ОТМЕНЁН): Применение `ctx.drives_updates` к `state.drives_runtime` ЗАПРЕЩЕНО. `CalibrationEngine` оставлен в pass-through режиме. Мутация скалярных драйвов минуя Belief Layer (L2.5) нарушает ADR-O-208/211. L3 проекция строго эфемерна.
+- 🔵 **S124** Identity Pressure Vector (Layer 2). Удален хардкод `gold >= 1000` в `phases/decision.py`. `LifeProjectResolver.resolve()` переведен на эфемерный `identity_pressure` (0-100). FSM реагирует на `pressure > 80` (COLLAPSING) и `< 10` (COMPLETED). Внедрено динамическое поле `recent_failures` в `NPCState` и адаптеры (обновляется в `BreakProgressEngine`).
+  Files: backend/app/services/phases/decision.py, backend/app/models/npc_state.py, backend/app/services/npc/break_progress_engine.py
 
 - 🔵 **S99** ТЗ-6: Engineering Debt Cleanup (Final Stage).
   - **UI Hardcodes & Magic Numbers Eliminated:** Все хардкод-строки в `game_screen.py`, `campaign_select.py`, `character_select.py` заменены на ключи `i18n.py`. Магические числа (RGB-цвета, шрифты, масштаб) вынесены в `frontend/constants.py`. `scene_renderer.py` полностью переведён на константы.
@@ -626,44 +636,3 @@
 92. ❌ Использование `PatternDetector` без передачи `L1Chronicle` в конструктор (ADR-S93.3)
 93. ❌ Жёсткие пороги (if/else) в формировании убеждений `BeliefCrystallizationEngine` (ADR-S93.3)
 94. ❌ Отсутствие затухания ожиданий в Фазе 0.5 — ожидания обязаны затухать привязанные к `dt_game` (ADR-S93.2)
-
----
-
-## S122 — Восстановление pytest (Legacy Debt P1) & P3 Археология
-
-**Дата:** 2026-07-16
-**Статус:** CI ЗЕЛЁНЫЙ (833 passed, 0 failed) | IPT 5/5 passed
-
-### 🟢 P1: Восстановление pytest (Legacy Contract Drift)
-- **`PlayerDistortionInputs`**: Переименованы поля `hp`/`max_hp` → `effective_hp`/`effective_max_hp` (cognitive_distortion.py, pipeline.py).
-- **`SocialPayload`**: Обновлены тесты `test_social_homeostasis.py` на использование `social_input_ema_delta` (ранее `social_satiation_delta`).
-- **`DecisionHub.compute()`**: Обновлены тесты `test_phase3_spatial_social.py`, `test_npc_npc_stage7.py` для передачи обязательного аргумента `effective_drives`.
-- **`_build_npc_snapshots`**: Обновлены тесты `test_npc_social_enrichment.py` для использования `build_npc_snapshots` из `tick_utils.py`.
-- **`SystemRequirements`**: Разделены импорты в `test_startup_checks.py` для изоляции `ImportError`.
-- **`PhysiologyDecayHandler`**: Обновлена фабрика `_make_snapshot` в `test_physiology_decay_handler.py` для вложения физиологии в `body_state`.
-- **`JsonPersistenceAdapter`**: Обновлен путь в `test_persistence_port.py` (`campaigns/` → `saves/`).
-- **`ImpactEngine`**: Добавлен отрицательный AC в `_make_snapshot` (`test_impact_engine.py`) для гарантированного попадания и тестирования физики.
-- **`BODY_STATE_DISABLED`**: Исправлен баг в `tick_orchestrator.py` (использование `BODY_STATE_DISABLED_DATA` вместо класса `dict`).
-- **`LifeEngine`**: Обновлены fixture и ассерты в `test_life_engine.py` (добавлены `activity_map` и `npc_positions`).
-- **`phases/post_decision.py`**: Удален легаси-код проверки `ctx.decisions` (нарушение ADR-TZ09-1).
-
-### ⚪ P3: Археология LifeProjectResolver
-- **Диагноз:** `LifeProjectResolver` не "недостроен" в коде (FSM работает: тест `test_life_direction_crisis.py` проходит), но **заблокирован** в каузальной цепочке. `identity_crisis` всегда `False` из-за 0 deltas по trust/fear в памяти. FSM никогда не переходитиз `ACTIVE`.
-- **Решение:** Долг переведен в архитектурный. Требует внедрения `Identity Pressure Vector` и `Multiple Stabilizers` согласно `ENTITY_CONTINUITY_CONTRACT.md`.
-
----
-
-## S123 — Восстановление ADR-O-301 в Combat Pipeline
-
-**Дата:** 2026-07-15
-**Статус:** CI ЗЕЛЁНЫЙ (833 passed, 0 failed) | IPT 5/5 passed
-
-### 🟢 P1: Фикс Flaky Combat Tests (Восстановление ADR-O-301)
-- **`combat_math.py`**: Внедрён `Optional[random.Random] = None` во все функции бросков кубиков (`roll`, `roll_advantage`, `roll_disadvantage`, `attack_roll`). Глобальный `random.*` заменён на `_rng = rng or random`.
-- **`impact_engine.py`**: В функцию `_resolve_contact` добавлен адаптер `NPCStateSnapshot` → `combat_math` dict. Вычисление AC (Armor Class) защитника: `10 + ability_modifier(dexterity) + armor_mod`. `rng` пробрасывается в `attack_roll`.
-- **`test_impact_engine.py`**: Сняты `@pytest.mark.skip` с 3 тестов (`test_high_dexterity_dodge`, `test_head_hit_high_pain`, `test_groin_hit_massive_pain_low_bleed`).
-- **`test_physiology_flow.py`**: Изменён `rng_seed` в `test_violence_generates_fear` с 42 на 10, чтобы гарантировать попадание (d20=9 + mod=2 + prof=2 = 13 > AC=10).
-- **`test_life_engine.py`**: В `test_tick_at_night_tornin_goes_to_sleep` добавлены поля `location_id` и `position` в словарь NPC, чтобы `LifeEngine` смог сгенерировать `SceneChange` для смены активности.
-
-
-

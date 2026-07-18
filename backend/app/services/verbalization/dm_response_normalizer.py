@@ -56,13 +56,13 @@ class DMResponseNormalizer:
                 dm_text=result["dm_response"].strip(), schema_type="dm_response"
             )
 
-        if "speech" in result or "action" in result:
-            logger.warning("[DM_NORMALIZER] LLM returned NPC-schema, recovering.")
-            return DMOutput(
-                dm_text=(result.get("speech") or result.get("action") or "").strip(),
-                schema_type="npc_schema",
-            )
+        # ADR-O-322: Восстановление npc_schema (speech/text)
+        if "speech" in result or "text" in result or "narrative" in result:
+            _txt = result.get("speech") or result.get("text") or result.get("narrative")
+            return DMOutput(dm_text=_txt.strip(), schema_type="npc_schema")
 
+        # ADR-O-313: DM-агент не генерирует реплики NPC. 
+        # Если LLM вернула неизвестную схему, просто берём самое длинное строковое значение.
         # Fallback: ищем любое длинное строковое значение
         for k, v in result.items():
             if isinstance(v, str) and len(v) > 20:
