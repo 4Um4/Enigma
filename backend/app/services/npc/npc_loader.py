@@ -486,6 +486,17 @@ def load_profile_from_legacy_json(raw_data: Dict[str, Any]) -> NPCProfileL0:
             "desire": float(drives_raw.get("desire", 0.0)),
         }
 
+        # ADR-O-MEMETIC-002: Загрузка VoiceArchetype из Canon.
+        # Если указан voice_archetype_id, он переопределяет voice_profile из JSON.
+        _archetype_id = raw_data.get("voice_archetype_id")
+        _voice_profile = raw_data.get("voice_profile", "")
+        
+        if _archetype_id:
+            from app.domain.memetic.voice_archetype import load_voice_archetype
+            _archetype_data = load_voice_archetype(_archetype_id)
+            if _archetype_data and _archetype_data.voice_profile:
+                _voice_profile = _archetype_data.voice_profile
+
         profile = NPCProfileL0(
             id=raw_data["id"],
             name=raw_data.get("name", "Unknown"),
@@ -494,12 +505,13 @@ def load_profile_from_legacy_json(raw_data: Dict[str, Any]) -> NPCProfileL0:
             archetype=raw_data.get("_archetype", "commoner"),
             drives_base=drives_base,
             psyche_base=psyche_base,
-            # voice_profile и backstory берем из JSON.
-            voice_profile=raw_data.get("voice_profile", ""),
+            # voice_profile берётся из архетипа (если есть), иначе из JSON.
+            voice_profile=_voice_profile,
             backstory=raw_data.get("backstory", raw_data.get("description", "")),
             author_notes=raw_data.get("author_notes", ""),
             goal=raw_data.get("goal", ""),
             core_orientation=raw_data.get("core_orientation", "survival"),
+            voice_archetype_id=_archetype_id,
         )
 
         return profile

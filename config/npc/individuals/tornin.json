@@ -1,7 +1,8 @@
-{
+﻿{
   "_version": "1.0",
   "_type": "individual",
   "_archetype": "tavern_keeper",
+  "voice_archetype_id": "gruff_veteran",
   "_mixins": [
     "veteran"
   ],

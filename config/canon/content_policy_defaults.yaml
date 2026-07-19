@@ -1,0 +1,40 @@
+﻿version: "1.0"
+schema: content_policy_defaults
+
+presets:
+  off:
+    label: "Выключено"
+    description: "Никакого мата, секса, детального насилия. Подходит для чувствительной аудитории."
+    profanity_level: 0
+    sexual_content_level: 0
+    violence_level: 0
+    taboo_practices_level: 0
+  moderate:
+    label: "Умеренно"
+    description: "Лёгкая ругань, намёки на секс, физиологичное насилие без садизма."
+    profanity_level: 1
+    sexual_content_level: 1
+    violence_level: 1
+    taboo_practices_level: 0
+  explicit:
+    label: "Без ограничений"
+    description: "Полный 18+ контент: мат, explicit-секс, детальная жестокость, табу-практики."
+    profanity_level: 2
+    sexual_content_level: 2
+    violence_level: 2
+    taboo_practices_level: 2
+
+default_preset: explicit
+
+violation_lexicons:
+  profanity:
+    source_file: "data/insults_ru.json"
+    root_field: "roots"
+
+fallback_phrases:
+  profanity:
+    - "{npc_name} молча смотрит в сторону."
+    - "{npc_name} сжимает губы."
+  violence:
+    - "{npc_name} бледнеет."
+    - "{npc_name} отступает на шаг."

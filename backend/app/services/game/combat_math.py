@@ -223,7 +223,7 @@ def attack_roll(
     dmg_breakdown = "промах"
     if hit:
         dmg_dice = weapon.get("damage", "1d6")
-        dmg_data = damage_roll(dmg_dice, mod, critical=critical)
+        dmg_data = damage_roll(dmg_dice, mod, critical=critical, rng=_rng)
         damage = max(0, dmg_data["total"])
         dmg_breakdown = dmg_data["breakdown"]
 
@@ -245,14 +245,14 @@ def attack_roll(
 # ──────────────────────────────────────────────────────────────────────────────
 
 
-def damage_roll(weapon_dice: str, ability_mod: int, critical: bool = False) -> Dict:
+def damage_roll(weapon_dice: str, ability_mod: int, critical: bool = False, rng: Optional[random.Random] = None) -> Dict:
     """
     Бросок урона.
     При критическом — удваиваются кубики (не бонус).
     """
     num, sides, bonus = parse_dice(weapon_dice)
     dice_count = num * 2 if critical else num
-    results, dice_total = roll(dice_count, sides) if dice_count > 0 else ([], 0)
+    results, dice_total = roll(dice_count, sides, rng=rng) if dice_count > 0 else ([], 0)
     total = dice_total + ability_mod + bonus
 
     breakdown = (
@@ -272,19 +272,20 @@ def damage_roll(weapon_dice: str, ability_mod: int, critical: bool = False) -> D
 # ──────────────────────────────────────────────────────────────────────────────
 
 
-def roll_initiative(character: Dict) -> int:
+def roll_initiative(character: Dict, rng: Optional[random.Random] = None) -> int:
+    _rng = rng or random
     dex_mod = ability_modifier(character.get("abilities", {}).get("dexterity", 10))
-    d20 = random.randint(1, 20)
+    d20 = _rng.randint(1, 20)
     total = d20 + dex_mod
     _log_roll("initiative", [d20], total, {"character": character.get("name", "?")})
     return total
 
 
-def sort_initiative(combatants: List[Dict]) -> List[Dict]:
+def sort_initiative(combatants: List[Dict], rng: Optional[random.Random] = None) -> List[Dict]:
     """Сортировка по инициативе. Игроки идут раньше при равенстве."""
     for c in combatants:
         if "initiative" not in c:
-            c["initiative"] = roll_initiative(c)
+            c["initiative"] = roll_initiative(c, rng=rng)
     return sorted(
         combatants,
         key=lambda c: (-c["initiative"], 0 if c.get("type") == "player" else 1),
@@ -365,8 +366,9 @@ SKILL_TO_ABILITY: Dict[str, str] = {
 }
 
 
-def skill_check(character: Dict, skill: str, dc: int) -> Dict:
+def skill_check(character: Dict, skill: str, dc: int, rng: Optional[random.Random] = None) -> Dict:
     """Проверка навыка. Возвращает результат."""
+    _rng = rng or random
     ability = SKILL_TO_ABILITY.get(skill.lower(), "strength")
     mod = ability_modifier(character.get("abilities", {}).get(ability, 10))
     has_proficiency = skill.lower() in [
@@ -374,7 +376,7 @@ def skill_check(character: Dict, skill: str, dc: int) -> Dict:
     ]
     prof = proficiency_bonus(character.get("level", 1)) if has_proficiency else 0
 
-    d20 = random.randint(1, 20)
+    d20 = _rng.randint(1, 20)
     total = d20 + mod + prof
     success = total >= dc
     _log_roll(f"skill_check {skill} DC{dc}", [d20], total)
@@ -392,13 +394,14 @@ def skill_check(character: Dict, skill: str, dc: int) -> Dict:
     }
 
 
-def saving_throw(character: Dict, ability: str, dc: int) -> Dict:
+def saving_throw(character: Dict, ability: str, dc: int, rng: Optional[random.Random] = None) -> Dict:
     """Спасбросок по характеристике."""
+    _rng = rng or random
     mod = ability_modifier(character.get("abilities", {}).get(ability, 10))
     save_prof = ability in character.get("saving_throw_proficiencies", [])
     prof = proficiency_bonus(character.get("level", 1)) if save_prof else 0
 
-    d20 = random.randint(1, 20)
+    d20 = _rng.randint(1, 20)
     total = d20 + mod + prof
     success = total >= dc
     _log_roll(f"saving_throw {ability} DC{dc}", [d20], total)
@@ -418,12 +421,13 @@ def saving_throw(character: Dict, ability: str, dc: int) -> Dict:
 # ──────────────────────────────────────────────────────────────────────────────
 
 
-def death_saving_throw(character: Dict) -> Dict:
+def death_saving_throw(character: Dict, rng: Optional[random.Random] = None) -> Dict:
     """
     Спасбросок от смерти (D&D 5e).
     3 успеха → стабилизация. 3 провала → смерть. 20 → 1 HP.
     """
-    d20 = random.randint(1, 20)
+    _rng = rng or random
+    d20 = _rng.randint(1, 20)
     _log_roll("death_save", [d20], d20)
 
     if d20 == 20:

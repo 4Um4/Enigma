@@ -1,7 +1,8 @@
-{
+﻿{
   "_version": "1.0",
   "_type": "individual",
   "_archetype": "thief",
+  "voice_archetype_id": "cold_professional",
   "_mixins": [],
   "id": "thief_shadow",
   "name": "Тень",

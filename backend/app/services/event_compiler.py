@@ -616,20 +616,12 @@ class EventCompiler:
         3. Консистентность distance и duration_ticks
         4. Stale detection (topology_version)
         """
-        # 1. Source / Target совпадают (ADR-O-323 FIX: учитываем пустой source в snapshot при спавне/переходе)
-        if spatial.source_node and proposal.source_node != spatial.source_node:
-            # Если snapshot содержит префикс локации, а proposal нет (или наоборот), пробуем сравнить по node_id
-            _prop_src = proposal.source_node.split(":")[-1]
-            _actual_src = spatial.source_node.split(":")[-1]
-            if _prop_src != _actual_src:
-                return False, f"SOURCE_MISMATCH prop={proposal.source_node} actual={spatial.source_node}"
+        # 1. Source / Target совпадают
+        if proposal.source_node != spatial.source_node:
+            return False, f"SOURCE_MISMATCH prop={proposal.source_node} actual={spatial.source_node}"
         if proposal.target_node != change.value:
-            # ADR-O-323 FIX: Учитываем префикс локации (tavern_silver_wolf:main_hall vs main_hall)
-            _prop_tgt = proposal.target_node.split(":")[-1]
-            _actual_tgt = change.value.split(":")[-1]
-            if _prop_tgt != _actual_tgt:
-                return False, f"TARGET_MISMATCH prop={proposal.target_node} requested={change.value}"
-            
+            return False, f"TARGET_MISMATCH prop={proposal.target_node} requested={change.value}"
+        
         # 2. Геометрическая валидность (без дублирования pathfinding)
         prop_wps = [list(wp) for wp in proposal.path_waypoints]
         if len(prop_wps) < 2:

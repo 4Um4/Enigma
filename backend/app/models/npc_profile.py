@@ -46,6 +46,12 @@ class PsycheBase:
     willpower: int
     breakpoint: int
     loyalty_base: int = 50  # Переименовано из loyalty_true для ясности
+    # STUB (TZ_CONTENT_POLICY_FUNDAMENT §2.3) -> ACTIVE (TZ-MEMETIC-02 §5.1)
+    linguistic_integrity: float = 1.0
+    """Сопротивление языковому дрейфу. 0..1.
+    В рамках fundament ТЗ всегда 1.0 (нет дрейфа).
+    Memetic ТЗ будет вычислять по формуле: willpower * class_factor * age_factor * identity_attachment.
+    """
 
 
 @dataclass(frozen=True)
@@ -76,6 +82,13 @@ class NPCProfileL0:
     # P1-3 v3.0: Ось идентичности (Core Orientation). Не меняемая базовая жизненная направленность.
     # Меняется только через кризис идентичности (падение confidence ниже 0.2 и перестройка убеждений).
     core_orientation: str = "survival"  # family_builder, wealth_creator, warrior, etc.
+
+    # STUB (TZ_CONTENT_POLICY_FUNDAMENT §2.3) -> ACTIVE (TZ-MEMETIC-02 §5.3)
+    voice_archetype_id: Optional[str] = None
+    """ID архетипа голоса в config/canon/voice_archetypes/*.yaml.
+    Пока не используется (None = default). Memetic ТЗ заполнит."""
+    identity_attachment: float = 1.0
+    """Насколько NPC дорожит своей речью (0..1). Влияет на linguistic_integrity."""
 
 
 # --- СЛОЙ L1: ИДЕНТИЧНОСТЬ (MEDIAN DYNAMICS) ---

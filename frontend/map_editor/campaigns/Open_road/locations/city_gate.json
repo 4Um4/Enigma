@@ -1999,6 +1999,7 @@
       "x": 16.0,
       "y": 3.5,
       "label": "Караульня",
+      "tags": ["workplace:guard", "guard_post"],
       "connections": [
         "gate_arch"
       ]

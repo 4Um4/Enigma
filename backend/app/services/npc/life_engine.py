@@ -506,10 +506,13 @@ class LifeEngine:
             f"(время: {current_time})"
         )
 
-        # Используем кэшированных NPC если есть, иначе загружаем с диска
-        npcs = self._npc_cache.get(campaign_id) or load_npcs_merged(
-            runtime_path=runtime_path
-        )
+        # ADR-123/127: Мёртвые NPC не генерируют интенты и не двигаются.
+        _alive_npcs = []
+        for _npc in (self._npc_cache.get(campaign_id) or load_npcs_merged(runtime_path=runtime_path)):
+            _life_status = _npc.get("body_state", {}).get("life_status", "ALIVE")
+            if _life_status == "ALIVE":
+                _alive_npcs.append(_npc)
+        npcs = _alive_npcs
         logger.debug(
             f"[LIFE_SET] tick={current_tick} npcs={sorted([n.get('id', '?') for n in npcs]) if npcs else []}"
         )
@@ -1205,9 +1208,8 @@ class LifeEngine:
             npc["narrative_cache"] = []
             npc.pop("wounds", None)
             npc.pop("conditions", None)
-        # Сохранение в persistence для следующих загрузок
-        if self._persistence is not None:
-            self._persistence.save_npc_runtime(campaign_id, npcs)
+        # BUG-AUDIT-13 (Atomic Commit): Не сохраняем здесь! 
+        # Сохранение будет атомарным в GameLoop.new_game() через atomic_commit.
         # Обновление кэша
         self._npc_cache[campaign_id] = npcs
         logger.info(
@@ -2310,18 +2312,24 @@ class LifeEngine:
             from app.models.spatial_contracts import NodeRole
 
             _ACTIVITY_TO_ROLE_MAP = {
+                # Питьё/еда — социальные точки
                 "drinking": NodeRole.BAR,
-                "serving_tables": NodeRole.BAR,
+                "eating": NodeRole.TABLE,
+                
+                # Рабочие точки (конкретные)
+                "serving_tables": NodeRole.SERVING_STATION,
                 "cleaning_tables": NodeRole.TABLE,
+                "guarding_gate": NodeRole.GUARD_POST,
+                "observing": NodeRole.DARK_CORNER,
+                "innkeeping": NodeRole.INN_DESK,
+                
+                # Базовые
                 "sleeping": NodeRole.BED,
                 "resting": NodeRole.BED,
                 "working": NodeRole.WORKBENCH,
-                "eating": NodeRole.TABLE,
                 "idle": NodeRole.DEFAULT,
-                "observing": NodeRole.TABLE,
                 "active": NodeRole.TABLE,
                 "planning": NodeRole.TABLE,
-                "guarding_gate": NodeRole.ENTRANCE,
                 "socializing": NodeRole.BAR,
                 "haggling": NodeRole.MARKET,
             }

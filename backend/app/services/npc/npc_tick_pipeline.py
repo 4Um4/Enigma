@@ -202,9 +202,16 @@ class NpcTickPipeline:
                     state_l2.relationship_cache.setdefault("player", {}).update(
                         _mem_weights
                     )
+                    from app.services.spatial.spatial_runtime import line_of_sight, sound_reach
+                    _npc_pos = state_l2.local_position if hasattr(state_l2, "local_position") else (0.0, 0.0)
                     for _nearby_npc in state.nearby_npcs:
                         _nearby_id = _nearby_npc.get("npc_id") or _nearby_npc.get("id")
                         if _nearby_id and _nearby_id != npc_id:
+                            _target_pos = _nearby_npc.get("local_position", _npc_pos)
+                            _has_los = line_of_sight(state.spatial_query, _npc_pos, _target_pos)
+                            _has_sound = sound_reach(state.spatial_query, _npc_pos, _target_pos, radius=15.0)
+                            if not _has_los and not _has_sound:
+                                continue
                             _npc_weights = state.memory_weights_map.get(npc_id, {}).get(
                                 _nearby_id, {}
                             )

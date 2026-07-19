@@ -67,7 +67,22 @@ class Settings(BaseSettings):
     # ─────────────────────────────────────────────────────────────────
     # Content policy
     # ─────────────────────────────────────────────────────────────────
-    hardcore_mode: bool = True
+    hardcore_mode: bool = True  # DEPRECATED: заменено на ContentPolicy
+    user_settings_path: Path = BASE_DIR / "config" / "user_settings.yaml"
+
+    @property
+    def content_policy(self) -> "ContentPolicy":
+        """Кэшированная политика контента. Загружается при первом обращении."""
+        if not hasattr(self, "_content_policy_cache") or self._content_policy_cache is None:
+            from app.core.content_policy import load_content_policy
+            self._content_policy_cache = load_content_policy(self)
+        return self._content_policy_cache
+
+    def reload_content_policy(self) -> "ContentPolicy":
+        """Принудительный reload. Вызывается из settings screen после изменения игроком."""
+        from app.core.content_policy import load_content_policy
+        self._content_policy_cache = load_content_policy(self)
+        return self._content_policy_cache
     movement_debug: bool = False
     orchestrator_debug: bool = False
     dm_debug: bool = False

@@ -31,11 +31,22 @@ class WorldScheduler:
         if last_tick and (now - last_tick) < timedelta(minutes=every_minutes):
             return {"triggered": False, "reason": "interval_not_elapsed", "events": []}
 
-        # TODO: временная заглушка
-        # будет удалено после: ФАЗА 6 — WorldTickEngine (Python-based, без LLM)
-        # ПРИЧИНА: world_sim_agent использует LLM для генерации событий,
-        # что нарушает главный контракт: "LLM НЕ ПРИНИМАЕТ РЕШЕНИЯ"
-        result = {"world_events": [], "simulation_log": "disabled_pending_phase6"}
+        # MINIMAL OFFSCREEN TICK: мир живет, даже когда игрок думает.
+        # Генерируем простые физические события без LLM.
+        _events = []
+        try:
+            _npcs = self.memory.store.recent(f"npcs_runtime_{world_id}", limit=10)
+            for _npc in _npcs:
+                if _npc.get("life_status") == "ALIVE":
+                    _events.append({
+                        "type": "idle_tick",
+                        "actor": _npc.get("id", "unknown"),
+                        "tick": now.isoformat()
+                    })
+        except Exception:
+            pass
+
+        result = {"world_events": _events, "simulation_log": "offscreen_tick_ok"}
 
         event_payload = {
             "visibility": "hidden",

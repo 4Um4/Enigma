@@ -80,7 +80,9 @@ class DMContractBuilder:
         hardcore_mode: bool = False,
         max_sentences: int = 3,
     ) -> None:
-        self._hardcore = hardcore_mode
+        # ADR-O-MEMETIC-000: hardcore_mode заменён на ContentPolicy
+        from app.core.config import settings
+        self._policy = settings.content_policy
         self._max_sentences = max_sentences
         self._blocks: list[str] = []
 
@@ -162,7 +164,16 @@ class DMContractBuilder:
         if system_prompt:
             system = system_prompt
         else:
-            system = DM_SYSTEM_PROMPT_HARDCORE if self._hardcore else DM_SYSTEM_PROMPT
+            # ADR-O-MEMETIC-000: Динамическая сборка промпта из ContentPolicy
+            system = DM_SYSTEM_PROMPT
+            if self._policy.profanity_level >= 1 or self._policy.violence_level >= 1 or self._policy.sexual_content_level >= 1:
+                system += "\n\nТОН/РЕЖИМ: MATURE.\n"
+                if self._policy.profanity_level >= 1: system += "Разрешена лёгкая ругань.\n"
+                if self._policy.violence_level >= 1: system += "Разрешено физиологичное насилие.\n"
+                if self._policy.sexual_content_level >= 1: system += "Разрешены намёки.\n"
+            
+            if self._policy.hardcore_mode: # EXPLICIT
+                system = DM_SYSTEM_PROMPT_HARDCORE # Полный 18+ промпт
 
         # B3-FIX: forbidden-блок из контракта (single source of truth, pure render).
         blocks = list(self._blocks)

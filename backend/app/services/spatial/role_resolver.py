@@ -19,7 +19,54 @@ from app.models.spatial_contracts import NodeRole
 # ── Ключевые слова для вывода роли из label ──────────────────────────
 # Порядок важен: более специфичные роли идут первыми
 
+# ── Tag → NodeRole (ADR-O-326: Workplace Affordance) ─────────────────
+_TAG_ROLE_MAP: Dict[str, NodeRole] = {
+    "guard_post": NodeRole.GUARD_POST,
+    "dark_corner": NodeRole.DARK_CORNER,
+    "serving_station": NodeRole.SERVING_STATION,
+    "kitchen_counter": NodeRole.KITCHEN_COUNTER,
+    "inn_desk": NodeRole.INN_DESK,
+}
+
+# ── Ключевые слова для вывода роли из label ──────────────────────────
+# Порядок важен: более специфичные роли идут первыми
+
 _ROLE_KEYWORDS: Dict[NodeRole, Set[str]] = {
+    NodeRole.GUARD_POST: {
+        "караульн",
+        "guard_post",
+        "пост",
+        "сторож",
+        "watch",
+    },
+    NodeRole.DARK_CORNER: {
+        "тёмн",
+        "темн",
+        "угол",
+        "dark",
+        "corner_dark",
+        "shadow",
+    },
+    NodeRole.SERVING_STATION: {
+        "раздаточ",
+        "serving",
+        "serving_station",
+    },
+    NodeRole.KITCHEN_COUNTER: {
+        "кухн",
+        "kitchen",
+        "разделоч",
+    },
+    NodeRole.INN_DESK: {
+        "стойк",
+        "бар",
+        "bar",
+        "трактир",
+        "кабак",
+        "за стойкой",
+        "у стойки",
+        "reception",
+    },
     NodeRole.ENTRANCE: {
         "вход",
         "дверь",
@@ -59,7 +106,6 @@ _ROLE_KEYWORDS: Dict[NodeRole, Set[str]] = {
         "bed",
         "койка",
         "лежанк",
-        "караульн",
         "постел",
         "опочивальн",
         "палатк",
@@ -125,12 +171,12 @@ def resolve_role(
     if editor_type and editor_type in _EDITOR_TYPE_MAP:
         return _EDITOR_TYPE_MAP[editor_type]
 
-    # 3. Editor tags — будущий слой (когда editor UI поддержит теги)
-    # if editor_tags:
-    #     for tag in editor_tags:
-    #         role = _TAG_ROLE_MAP.get(tag)
-    #         if role:
-    #             return role
+    # 3. Editor tags — ADR-O-326: Workplace Affordance (приоритет над keywords)
+    if editor_tags:
+        for tag in editor_tags:
+            role = _TAG_ROLE_MAP.get(tag)
+            if role:
+                return role
 
     # 4. Keyword matching по label
     if node_label:

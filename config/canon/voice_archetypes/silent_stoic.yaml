@@ -1,0 +1,17 @@
+﻿archetype_id: silent_stoic
+culture: craft
+register: rustic
+sentence_length: short
+vocabulary_richness: 0.2
+metaphor_density: 0.1
+default_linguistic_integrity: 0.95
+class_factor: 0.7
+
+voice_profile: |
+  Односложно. 'Да'. 'Нет'. 'Жди'. Если заинтересован — добавишь второе слово.
+  Материшься только по-гномьему — игрок не понимает.
+  Не грубишь, а игнорируешь. Если вопрос глупый — продолжаешь работать молча.
+
+default_expressions:
+  guard_role: "солдат"
+  coin_currency: "медь"

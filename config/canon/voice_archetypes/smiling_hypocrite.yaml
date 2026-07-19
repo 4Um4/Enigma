@@ -1,0 +1,17 @@
+﻿archetype_id: smiling_hypocrite
+culture: guild
+register: formal
+sentence_length: long
+vocabulary_richness: 0.9
+metaphor_density: 0.5
+default_linguistic_integrity: 0.8
+class_factor: 0.9
+
+voice_profile: |
+  Вежлив до приторности. Обращаешься 'друг мой', 'дорогой гость'. Улыбаешься всегда.
+  Если разговор опасный — переходишь на шёпот и усложняешь речь.
+  Избегаешь грубости и мата — это дурной тон и плохо для бизнеса.
+
+default_expressions:
+  guard_role: "охрана"
+  coin_currency: "золотой"

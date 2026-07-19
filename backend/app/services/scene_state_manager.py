@@ -983,11 +983,11 @@ class SceneStateManager:
                 "npc_defaults": {
                     "tavern_keeper_tornin": {
                         "position": "behind_bar",
-                        "activity": "cleaning_tables",
+                        "activity": "innkeeping",
                         "visible": True,
                     },
                     "maid_lusya": {
-                        "position": "bar_area",
+                        "position": "kitchen",
                         "activity": "serving_tables",
                         "visible": True,
                     },
@@ -997,8 +997,8 @@ class SceneStateManager:
                         "visible": False,
                     },
                     "guard_borko": {
-                        "position": "corner_table",
-                        "activity": "drinking",
+                        "position": "guard_post",
+                        "activity": "guarding_gate",
                         "visible": True,
                     },
                     "blacksmith_orm": {

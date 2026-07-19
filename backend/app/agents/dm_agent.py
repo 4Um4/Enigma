@@ -134,8 +134,7 @@ class DmAgent:
         from app.services.verbalization.dm_contract_builder import DMContractBuilder
 
         builder = DMContractBuilder(
-            hardcore_mode=getattr(settings, "hardcore_mode", False),
-            max_sentences=3,
+            max_sentences=settings.dm_max_tokens // 50 or 3,
         )
 
         # Intro для первой сессии — атмосферное описание вместо пустого промпта
@@ -451,7 +450,7 @@ class DmAgent:
                 _author = _npc.get("author_notes", "")
                 if _voice:
                     _line += f"\n  Голос: {_voice}"
-                if _author and getattr(settings, "hardcore_mode", False):
+                if _author and settings.content_policy.hardcore_mode:
                     _line += f"\n  Режиссёрская: {_author}"
                 _npc_ctx_lines.append(_line)
             if _npc_ctx_lines:

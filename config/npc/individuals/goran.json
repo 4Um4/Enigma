@@ -1,7 +1,8 @@
-{
+﻿{
   "_version": "1.0",
   "_type": "individual",
   "_archetype": "merchant",
+  "voice_archetype_id": "smiling_hypocrite",
   "_mixins": [],
   "id": "merchant_goran",
   "name": "Купец Горан",

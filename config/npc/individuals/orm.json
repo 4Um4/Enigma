@@ -1,7 +1,8 @@
-{
+﻿{
   "_version": "1.0",
   "_type": "individual",
   "_archetype": "blacksmith",
+  "voice_archetype_id": "silent_stoic",
   "_mixins": [],
   "id": "blacksmith_orm",
   "name": "Кузнец Орм",

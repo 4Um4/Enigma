@@ -1,7 +1,8 @@
-{
+﻿{
   "_version": "1.0",
   "_type": "individual",
   "_archetype": "guard",
+  "voice_archetype_id": "lazy_cynic",
   "_mixins": [],
   "id": "guard_borko",
   "name": "Стражник Борко",
@@ -52,34 +53,30 @@
   },
   "routine": {
     "schedule": {
-      "08:00-22:00": "drinking",
+      "08:00-20:00": "guarding_gate",
+      "20:00-22:00": "drinking",
       "22:00-08:00": "sleeping"
     }
   },
   "activity_map": {
     "drinking": {
       "location": "tavern_silver_wolf",
-      "position": "corner_table",
+      "position": "bar_area",
       "display": "drinking"
     },
     "sleeping": {
-      "location": "tavern_silver_wolf",
-      "position": "corner_table",
-      "display": "sleeping"
-    },
-    "working": {
       "location": "city_gate",
-      "position": "entrance",
-      "display": "on_duty"
+      "position": "guard_post",
+      "display": "sleeping"
     },
     "guarding_gate": {
       "location": "city_gate",
-      "position": "entrance",
+      "position": "guard_post",
       "display": "guarding_gate"
     },
     "on_duty": {
       "location": "city_gate",
-      "position": "entrance",
+      "position": "guard_post",
       "display": "guarding_gate"
     }
   },

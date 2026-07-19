@@ -1099,3 +1099,32 @@
 - `ADR-O-324` [ONTO] **Geometric Obstacle Resolution Contract (Hybrid Pathfinding)** — Пространство проходимо тогда и только тогда, когда каждый отрезок пути свободен от непроходимых препятствий. Топология графа (Macro Graph) даёт лишь последовательность узлов (reachability). Физическая валидация (Geometric Validation) происходит для каждого сегмента `(Node[i] → Node[i+1])`. 
   Контракт потока: `Macro Graph` → `Route Nodes` → `Geometric Segment Validation` (против `spatial_walls` и `spatial_obstacles`) → `Local Waypoint Generation` (если нужен обход) → `TraversalProposal`.
   Taboo: ❌ Доверять графу без геометрической проверки сегментов. ❌ Использовать прямую линию (`is_path_blocked(A, B)`) в обход валидации промежуточных узлов.
+---
+
+## ADR-O-327: Single Campaign Authority
+
+**Статус:** Принято
+**Дата:** 2026-07-18 (S124)
+
+### Контекст
+В проекте скопились устаревшие тестовые и пустые кампании (my_cam, default, 	est, 	est_campaign), а также апрельские логи сессий (с китайским языком и битым DM-контрактом). Это загрязняло data/, saves/ и редактор карт, вызывая путаницу при загрузке.
+
+### Решение
+1. В проекте существует **единственная каноническая кампания** — Open_road.
+2. Все остальные кампании в rontend/map_editor/campaigns/ удалены.
+3. Апрельские сессионные логи (JSONL) и устаревшие сохранения удалены.
+4. Создание новых кампаний допускается только через Map Editor (UI-лейбл my_campaign).
+
+### Последствия
+- При старте игры Open_road инициализируется заново (tick=0, чистый SQLite).
+- Удаление data/campaigns/test/ безопасно (тесты используют моки или 	est_data/).
+- Граф локации 	avern_silver_wolf строится исключительно из Open_road/locations/tavern.json.
+
+`ADR-O-326` [ONTO] **Workplace Affordance Contract** — Каждый узел графа локации может быть помечен тегом `workplace:<npc_id>` или функциональной ролью (напр. `guard_post`, `dark_corner`). `LifeEngine` резолвит рабочую точку NPC через: 1. `npc.activity_map[activity].position` (data-driven) 2. `SpatialService.resolve_node(role)` (семантический биндинг по новой роли) 3. `NodeRole.DEFAULT`. 
+Taboo: ❌ Хардкод стартовых позиций NPC в `scene_state_manager.py`, противоречащий их `activity_map`. ❌ Использование `NodeRole.BAR` для активностей `serving_tables` или `innkeeping` (это разные рабочие станции). ❌ Расписание, не вызывающее рабочих активностей (Борко пьёт 14 часов).
+Files: `spatial_contracts.py`, `role_resolver.py`, `life_engine.py`, `scene_state_manager.py`, `config/npc/individuals/*.json`, `frontend/map_editor/campaigns/*/locations/*.json`
+
+- 🔵 ADR-O-325 Epistemic Boundary Enforcement in Memory Pipeline.
+Контракт: NpcTickPipeline (pure reducer) генерирует memory_events для всех NPC, но I/O слой (pipeline_runner.py) обязан фильтровать их через perception_filter.filter_perceiving_npcs перед записью в MemoryManager.
+Проблема: NPC за стеной или вне радиуса слуха записывал в память реплики игрока (телепатия).
+Решение: Внедрение SpatialQueryService и filter_perceiving_npcs в точке применения memory_events.

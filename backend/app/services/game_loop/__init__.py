@@ -347,18 +347,35 @@ class GameLoop:
         # === 5. СБРОС + ПЕРЕИНИЦИАЛИЗАЦИЯ NPC (healthy body_state) ===
         # КОРЕНЬ БАГА: раньше только чистили кэш → NPC грузились без body_state
         # → Normalization Gate инжектил BODY_STATE_DISABLED (shock=1.0, pain=100)
+        _npcs_for_commit = []
         try:
             engine = self._get_life_engine()
-            engine.reset_campaign(campaign_id)
+            _npcs_for_commit = engine.reset_campaign(campaign_id) or []
         except Exception as e:
             logger.warning(f"[NEW_GAME] LifeEngine NPC reset failed: {e}")
 
         # === 6. ПЕРЕИНИЦИАЛИЗАЦИЯ СЦЕНЫ из editor JSON ===
         # КОРЕНЬ БАГА: раньше сцена не пересоздавалась → get_scene_state() = None
+        _scene_for_commit = None
         try:
-            self.scene_manager.reinit_campaign(campaign_id)
+            _scene_for_commit = self.scene_manager.reinit_campaign(campaign_id)
         except Exception as e:
             logger.warning(f"[NEW_GAME] Scene reinit failed: {e}")
+            
+        # === 7. АТОМАРНЫЙ КОММИТ (scene + npcs) ===
+        # BUG-AUDIT-13: Сохраняем сцену и NPC в одной транзакции, чтобы избежать рассинхрона.
+        if _scene_for_commit and _npcs_for_commit:
+            try:
+                self.scene_manager.commit(
+                    campaign_id=campaign_id,
+                    scene_state=_scene_for_commit,
+                    npc_dicts=_npcs_for_commit,
+                    events=[],
+                    significant_events=[],
+                )
+                logger.info(f"[NEW_GAME] Atomic commit OK for {campaign_id}")
+            except Exception as e:
+                logger.error(f"[NEW_GAME] Atomic commit FAILED for {campaign_id}: {e}")
 
         # === 7. СБРОС LRU-КЭША загрузчика ===
         self._load_npcs.cache_clear() if hasattr(
@@ -1713,7 +1730,11 @@ class GameLoop:
                             )
                         )
                     else:
-                        _avatar_state.hp = _updated_avatar_dict["hp"]
+                        # BUG-AUDIT-01 (HP Double Truth): Инициализируем BODY_STATE_DISABLED_DATA 
+                        # при пустом body_state, чтобы не потерять pain/shock/fatigue.
+                        from app.models.npc_state import BODY_STATE_DISABLED_DATA
+                        _avatar_state.body_state = dict(BODY_STATE_DISABLED_DATA)
+                        _avatar_state.body_state["current_hp"] = _updated_avatar_dict["hp"]
 
             # S115 FIX: Сравниваем полное состояние до и после. Если есть разница — сохраняем.
             if (

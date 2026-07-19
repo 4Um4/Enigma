@@ -149,6 +149,10 @@ class PeripheralCueDTO:
     npc_id: str
     cue_key: str  # "FREEZE", "HURRY", "AVOID_GAZE" (renamed from cue_type)
     hover_text: str  # "Замер на месте", "Отвел взгляд"
+    
+    # Uncertainty Model (ADR-O-318)
+    confidence: float = 0.5  # Уверенность наблюдателя (0.0-1.0)
+    possible_causes: tuple[str, ...] = ()  # Возможные причины без указания истинной
 
 
 @dataclass(frozen=True)

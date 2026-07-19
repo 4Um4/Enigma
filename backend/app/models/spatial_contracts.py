@@ -25,7 +25,7 @@ from typing import Dict, List, Optional, Set, Tuple
 class NodeRole(Enum):
     """Семантическая роль узла. Определяет поведение NPC при поиске цели."""
 
-    BAR = "bar"  # Стойка, место обслуживания
+    BAR = "bar"  # Стойка, место обслуживания (для гостей)
     BED = "bed"  # Кровать, место сна
     ENTRANCE = "entrance"  # Вход, дверь, ворота
     TABLE = "table"  # Стол, место приёма пищи/работы
@@ -33,6 +33,14 @@ class NodeRole(Enum):
     MARKET = "market"  # Рынок, прилавок, торговля
     TRANSITION = "transition"  # Лестницы, двери, люки, порталы
     BOUNDARY = "boundary"  # Выход из чанка в соседний (ДОЛГ 6.2)
+    
+    # ADR-O-326: Функциональные роли (рабочие станции)
+    GUARD_POST = "guard_post"           # Караульня (где стоит стражник на дежурстве)
+    DARK_CORNER = "dark_corner"         # Тёмный угол (где прячется вор)
+    SERVING_STATION = "serving_station" # Точка обслуживания (где служанка раздаёт еду)
+    KITCHEN_COUNTER = "kitchen_counter" # Кухонная стойка (где готовят/протирают)
+    INN_DESK = "inn_desk"               # Стойка трактирщика (где встречают гостей)
+    
     DEFAULT = "default"  # Узел без явной роли
 
 

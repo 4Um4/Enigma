@@ -53,6 +53,28 @@ class MovementPlanner:
         _cx = current_xy.get("x", source_node_obj.x) if isinstance(current_xy, dict) else source_node_obj.x
         _cy = current_xy.get("y", source_node_obj.y) if isinstance(current_xy, dict) else source_node_obj.y
         source_xy = (_cx, _cy)
+        
+        # ADR-O-324: Same-Node NO-OP. Если NPC уже в целевом узле, это не макро-движение.
+        # Не применяем Hash Offset, не проверяем стены — остаёмся на месте.
+        if source_node_obj.node_id == target_node_obj.node_id:
+            _topology_version = getattr(svc, "_topology_version", 0)
+            return MovementPlanResult(
+                status=MovementPlanStatus.ACCEPTED,
+                proposal=TraversalProposal(
+                    npc_id=intent.actor_id,
+                    source_node=source_node_obj.node_id,
+                    target_node=target_node_obj.node_id,
+                    path_waypoints=((source_xy[0], source_xy[1]),),
+                    distance=0.0,
+                    speed=0.0,
+                    duration_ticks=0,
+                    source_intent_id=getattr(intent, "intent_id", f"{intent.actor_id}:{intent.reason}"),
+                    planned_tick=tick,
+                    topology_version=_topology_version,
+                ),
+                reason="SAME_NODE_NO_OP"
+            )
+
         target_xy = (target_node_obj.x, target_node_obj.y)
         
         # FIX Overlap: Добавляем персональный offset ДО создания proposal,
@@ -116,8 +138,8 @@ class MovementPlanner:
         
         proposal = TraversalProposal(
             npc_id=intent.actor_id,
-            source_node=source_node_obj.node_id,
-            target_node=target_node_obj.node_id,
+            source_node=current_pos,
+            target_node=target_node,
             path_waypoints=tuple(tuple(wp) for wp in waypoints),
             distance=distance,
             speed=self._DEFAULT_SPEED,

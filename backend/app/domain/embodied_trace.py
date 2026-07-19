@@ -31,6 +31,10 @@ class EmbodiedTraceDTO:
     is_frozen: bool = False  # posture_rigidity > 0.7
     is_shaking: bool = False  # locomotion_instability > 0.5
 
+    # Uncertainty Model (ADR-O-318)
+    confidence: float = 0.8  # Базовая уверенность для физических проявлений (0.0-1.0)
+    possible_causes: tuple[str, ...] = ()  # Возможные физические причины (напр., "cold", "fear", "pain")
+
 
 @dataclass
 class PlayerPerceptionDTO:

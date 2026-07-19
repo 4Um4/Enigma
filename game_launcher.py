@@ -34,6 +34,7 @@ from campaign_select import CampaignSelectScreen  # noqa: E402
 from character_select import CharacterSelectScreen  # noqa: E402
 from game_menu import GameMenu, MenuAction  # noqa: E402
 from game_screen import GameScreen  # noqa: E402
+from settings_screen import SettingsScreen  # noqa: E402
 
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
@@ -243,8 +244,10 @@ def main() -> None:
                 screen, clock, menu = _init_menu_display()
 
             elif action == MenuAction.SETTINGS:
-                # TODO: временная заглушка — экран настроек
-                pass
+                settings_screen = SettingsScreen(screen, clock)
+                settings_screen.run()
+                # Возвращаемся в меню — пересоздаём поверхность и меню
+                screen, clock, menu = _init_menu_display()
 
             elif action == MenuAction.EXIT:
                 break

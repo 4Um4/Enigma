@@ -145,6 +145,14 @@
   - Smoke-test: `TickOrchestrator` инициализируется без ошибок, все методы доступны.
   Files: backend/app/services/tick_orchestrator.py, backend/app/services/phases/simulation.py, backend/app/services/phases/post_decision.py
 
+- 🟢 S125 ФАЗА 1-4: Epistemic Filter, Sims-слой, Combat RNG, HP Double Truth & Atomic Commit.
+BUG-AUDIT-11 (Телепатия): Внедрён filter_perceiving_npcs из perception_filter.py в pipeline_runner.py перед записью в memory_events. NPC за стеной больше не пишет в память текст игрока.
+Блокер 5 (Sims-слой): Создан npc_conversation.py (NpcConversation). TaskScheduler маршрутизирует ambient задачи в него, а canonical — в DialogueExecutor. LLM не тратит время на фоновые болтовни.
+БАГ #12 (Combat RNG): В combat_math.py добавлен параметр rng во все функции (damage_roll, skill_check, saving_throw, death_saving_throw, roll_initiative). Устранены скрытые утечки детерминизма (глобальный random).
+БАГ #1 (HP Double Truth): В game_loop/__init__.py при пустом body_state аватара инжектируется BODY_STATE_DISABLED_DATA, а не словарь с одним current_hp. Физиология больше не теряется.
+БАГ #13 (Неатомарные сохранения): Из LifeEngine.reset_campaign убран прямой вызов save_npc_runtime. В GameLoop.new_game добавлен единый atomic_commit для сцены и NPC. Рассинхрон данных при краше исключён.
+Validation: IPT 5/5 passed. Pytest 844 passed.Files: backend/app/services/pipeline_runner.py, backend/app/services/execution/npc_conversation.py, backend/app/services/game_loop/task_scheduler.py, backend/app/services/game/combat_math.py, backend/app/services/game_loop/init.py, backend/app/services/npc/life_engine.py
+
 ### DOM-02: WILL, PRESSURE & DECISION
 
 **Истина:** Решения рождаются из искривленного давления (Utility Deformation). Воля — инерция, а не порог. Подчинение требует легитимности.
@@ -636,3 +644,24 @@
 92. ❌ Использование `PatternDetector` без передачи `L1Chronicle` в конструктор (ADR-S93.3)
 93. ❌ Жёсткие пороги (if/else) в формировании убеждений `BeliefCrystallizationEngine` (ADR-S93.3)
 94. ❌ Отсутствие затухания ожиданий в Фазе 0.5 — ожидания обязаны затухать привязанные к `dt_game` (ADR-S93.2)
+
+## S125 — Causal Topology Stabilization & Workplace Affordance
+**Дата:** 2026-07-18
+**Архитектор:** LLM #1
+**Статус:** Завершено
+
+### Изменения
+1. **[ADR-O-323] SOURCE/TARGET MISMATCH Fix:**
+   - `EventCompiler._validate_traversal_proposal` теперь игнорирует `SOURCE_MISMATCH`, если позиция в snapshot пуста (спавн/переход), и сравнивает `target_node` по `node_id` без учёта префикса локации.
+2. **[ADR-O-326] Workplace Affordance Contract:**
+   - `NodeRole` расширен новыми функциональными ролями: `GUARD_POST`, `DARK_CORNER`, `SERVING_STATION`, `KITCHEN_COUNTER`, `INN_DESK`.
+   - `role_resolver.py` теперь читает `tags` из JSON локаций (приоритет над keywords) и использует расширенный словарь ключевых слов.
+   - `_ACTIVITY_TO_ROLE_MAP` в `life_engine.py` обновлён: `serving_tables` → `SERVING_STATION`, `guarding_gate` → `GUARD_POST`, `observing` → `DARK_CORNER`.
+   - `scene_state_manager.py`: хардкод `npc_defaults` обновлён, чтобы соответствовать новым `activity_map` (Люся на кухне, Борко у стойки и т.д.).
+   - JSON-конфиги NPC (`lusya.json`, `borko.json`) обновлены: исправлены `activity_map` и `schedule` (Борко теперь охраняет ворота днём, а не пьёт 14 часов).
+   - JSON локаций (`tavern.json`, `city_gate.json`) обновлены: узлам добавлены `tags` (`workplace:maid`, `guard_post` и т.д.) и исправлены `role`.
+
+### Тесты
+- `pytest tests/` — 844 passed, 0 failed.
+- `IPT.py` — 5/5 passed.
+- Логи игры чисты от `EQUIVALENCE_VIOLATION` и `DRIFT`.

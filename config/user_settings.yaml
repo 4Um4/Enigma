@@ -1,0 +1,21 @@
+ai_model:
+  model: qwen_7b
+audio:
+  volume: 80
+content:
+  individual:
+    profanity_level: 2
+    sexual_content_level: 2
+    taboo_practices_level: 2
+    violence_level: 2
+  last_changed_reason: user_action
+  last_changed_tick: 0
+  preset: explicit
+controls:
+  keybindings: {}
+graphics:
+  resolution: 1920x1080
+interface:
+  language: ru
+performance:
+  workers: 2

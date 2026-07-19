@@ -110,10 +110,29 @@ def build_npc_contexts_from_intents(ctx: Any, mutation: TickMutation) -> None:
                 scene_state=ctx.scene_state,
             )
             
+        # BUG-AUDIT-11 (Фаза 2): Эпистемический барьер. 
+        # NPC не должен писать в память то, чего не видел/слышал (телепатия).
+        from app.services.npc.perception_filter import filter_perceiving_npcs
+        
+        # Собираем ID всех живых NPC для фильтрации
+        _all_npc_ids = [n.get("npc_id", n.get("id")) for n in ctx.all_npcs_raw if n.get("npc_id", n.get("id"))]
+
         for _mem_evt in mutation.memory_events:
             _npc_id = _mem_evt.payload.get("npc_id")
             if not _npc_id:
                 continue
+                
+            # Проверка Line-of-Sight и hearing-radius через SpatialQueryService
+            _perceiving_npcs = filter_perceiving_npcs(
+                npc_ids=_all_npc_ids,
+                event=_mem_evt,
+                scene_state=ctx.scene_state,
+                spatial_query=_spatial_query,
+            )
+            if _npc_id not in _perceiving_npcs:
+                logger.debug(f"[EPISTEMIC_FILTER] NPC {_npc_id} пропущен: не воспринимает событие {_mem_evt.type}")
+                continue
+
             _npc_dict = next((n for n in ctx.all_npcs_raw if n.get("npc_id") == _npc_id or n.get("id") == _npc_id), None)
             if not _npc_dict:
                 continue

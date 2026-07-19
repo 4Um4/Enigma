@@ -1,17 +1,18 @@
 [
   {
-    "name": "Венус",
+    "name": "Горик",
+    "npc_id": "player",
     "archetype": "Drifter",
-    "temperament": "Calculating",
+    "temperament": "Stoic",
     "body_profile": {
       "max_hp": 100,
       "strength": 10,
       "dexterity": 14
     },
     "psyche": {
-      "fear": 0.2,
-      "impulsivity": 0.1,
-      "willpower": 0.7
+      "fear": 0.3,
+      "impulsivity": 0.2,
+      "willpower": 0.8
     },
     "race": "Human",
     "class_name": "Drifter",
@@ -24,36 +25,7 @@
       "wis": 10,
       "cha": 10
     },
-    "skills": {},
-    "inventory": [],
-    "spells": [],
-    "portrait": null,
-    "backstory": null,
     "hp": 100,
-    "max_hp": 100,
-    "ac": 10,
-    "effects": [],
-    "importance": null
-  },
-  {
-    "name": "Tester",
-    "archetype": "Drifter",
-    "temperament": "Stoic",
-    "body_profile": {},
-    "psyche": {},
-    "race": "",
-    "class_name": "",
-    "level": 1,
-    "stats": {},
-    "skills": {},
-    "inventory": [],
-    "spells": [],
-    "portrait": null,
-    "backstory": null,
-    "hp": 10,
-    "max_hp": 10,
-    "ac": 10,
-    "effects": [],
-    "importance": null
+    "max_hp": 100
   }
 ]

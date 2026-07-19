@@ -157,7 +157,18 @@
         "entrance",
         "bar_area",
         "fireplace",
-        "corner_table"
+        "corner_table",
+        "door_kitchen"
+      ]
+    },
+    "door_kitchen": {
+      "x": 14.0,
+      "y": 3.75,
+      "label": "Проём на кухню",
+      "role": "passage",
+      "connections": [
+        "main_hall",
+        "kitchen"
       ]
     },
     "bar_area": {
@@ -174,7 +185,8 @@
       "x": 4.0,
       "y": 2.5,
       "label": "За стойкой",
-      "role": "bar",
+      "role": "inn_desk",
+      "tags": ["workplace:tavern_keeper", "inn_desk"],
       "connections": [
         "bar_area"
       ]
@@ -192,7 +204,8 @@
       "x": 12.0,
       "y": 10.0,
       "label": "В тёмном углу",
-      "role": "table",
+      "role": "dark_corner",
+      "tags": ["workplace:thief", "dark_corner"],
       "connections": [
         "main_hall"
       ]
@@ -211,9 +224,10 @@
       "x": 16.0,
       "y": 4.0,
       "label": "Кухня",
-      "role": "default",
+      "role": "kitchen_counter",
+      "tags": ["workplace:maid", "serving_station"],
       "connections": [
-        "main_hall"
+        "door_kitchen"
       ]
     }
   },

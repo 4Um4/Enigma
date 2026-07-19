@@ -1,7 +1,8 @@
-{
+﻿{
   "_version": "1.0",
   "_type": "individual",
   "_archetype": "maid",
+  "voice_archetype_id": "nervous_submissive",
   "_mixins": [],
   "id": "maid_lusya",
   "name": "Люся",
@@ -70,7 +71,7 @@
   "activity_map": {
     "working": {
       "location": "tavern_silver_wolf",
-      "position": "bar_area",
+      "position": "kitchen",
       "display": "serving_tables"
     },
     "sleeping": {

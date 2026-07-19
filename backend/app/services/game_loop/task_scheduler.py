@@ -33,9 +33,12 @@ class TaskScheduler:
     """
 
     def __init__(self, router=None, context_provider=None, economy_tracker=None):
+        from app.services.execution.npc_conversation import NpcConversation
         self._executors: Dict[TaskKind, TaskExecutor] = {
             TaskKind.DIALOGUE: DialogueExecutor(router, context_provider)
         }
+        # Блокер 5: Sims-слой для ambient-диалогов без LLM
+        self._ambient_executor: NpcConversation = NpcConversation()
         self._materializers: Dict[str, Materializer] = {
             "dialogue_line": DialogueMaterializer()
         }
@@ -150,7 +153,13 @@ class TaskScheduler:
                 )
                 continue
 
-            executor = self._executors.get(task.kind)
+            # Блокер 5: Маршрутизация ambient -> NpcConversation, canonical -> DialogueExecutor
+            _task_type = _eligible.payload.get("task_type", "canonical") if '_eligible' in locals() else "canonical"
+            if _task_type == "ambient":
+                executor = self._ambient_executor
+            else:
+                executor = self._executors.get(task.kind)
+            
             if not executor:
                 logger.warning(f"[SCHEDULER] No executor for kind {task.kind}")
                 continue
