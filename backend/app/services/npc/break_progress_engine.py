@@ -61,6 +61,7 @@ class BreakProgressEngine:
         willpower: float = 50.0,  # из NPCPersonality
         recent_failures: int = 0,
         support_present: bool = False,
+        social_pressure: float = 0.0,  # Шаг 1.1: Социальный стресс
     ) -> BreakDeltas:
         """
         Тик-независимый расчёт давления на личность NPC.
@@ -80,7 +81,8 @@ class BreakProgressEngine:
         failures = recent_failures * 10  # каждая неудача +10 к давлению
 
         # Willpower снижает эффективное давление
-        raw_pressure = fear + stress + failures
+        # Шаг 1.1: social_pressure добавляется к сыромy давлению
+        raw_pressure = fear + stress + failures + social_pressure
 
         # Willpower ослабляет давление, а не обнуляет его
         willpower_factor = willpower / 100  # 0–1

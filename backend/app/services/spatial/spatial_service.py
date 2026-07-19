@@ -65,11 +65,14 @@ class SpatialService:
         # ДОЛГ 6.2: compile_graph возвращает 4 элемента (добавлен boundary_map)
         # ETKE-IK v1: compile_graph возвращает 5 элементов (добавлен rooms_geometry)
         # ADR-O-324: compile_graph возвращает 7 элементов (добавлены spatial_walls, spatial_obstacles)
-        if len(result) == 7:
+        if len(result) == 8:
+            graph, connections, alias_map, boundary_map, rooms_geometry, spatial_walls, spatial_obstacles, affordance_objects = result
+        elif len(result) == 7:
             graph, connections, alias_map, boundary_map, rooms_geometry, spatial_walls, spatial_obstacles = result
+            affordance_objects = []
         elif len(result) == 5:
             graph, connections, alias_map, boundary_map, rooms_geometry = result
-            spatial_walls, spatial_obstacles = [], []
+            spatial_walls, spatial_obstacles, affordance_objects = [], [], []
         elif len(result) == 4:
             graph, connections, alias_map, boundary_map = result
             rooms_geometry, spatial_walls, spatial_obstacles = {}, [], []
@@ -105,6 +108,7 @@ class SpatialService:
         ] = None,  # ETKE-IK v1
         spatial_walls: Optional[List[Dict[str, Any]]] = None,  # ADR-O-324
         spatial_obstacles: Optional[List[Dict[str, Any]]] = None,  # ADR-O-324
+        affordance_objects: Optional[List[Dict[str, Any]]] = None,  # ADR-O-330
     ) -> None:
         self._graph = graph  # canonical_id → NodeRef
         self._connections = connections  # canonical_id → set[canonical_id]
@@ -116,6 +120,8 @@ class SpatialService:
         self._boundary_map = boundary_map or {}  # ДОЛГ 6.2
         self._rooms_geometry = rooms_geometry or {}  # ETKE-IK v1
         self._spatial_walls = spatial_walls or []  # ADR-O-324
+        self._spatial_obstacles = spatial_obstacles or []  # ADR-O-324
+        self._affordance_objects = affordance_objects or []  # ADR-O-330
         self._spatial_obstacles = spatial_obstacles or []  # ADR-O-324
         self._path_cache: Dict[Tuple[str, str, str, Urgency], List[NodeRef]] = {}
 
@@ -274,6 +280,60 @@ class SpatialService:
             NodeRole.DEFAULT: self.denormalize_id(node.node_id),
         }
         return role_labels.get(node.role, self.denormalize_id(node.node_id))
+
+    # ── ADR-O-330: Affordance Resolution ──────────────────────────────
+
+    def resolve_affordance(
+        self,
+        affordance_type: str,
+        origin_xy: Tuple[float, float],
+        origin_zone: Optional[str] = None,
+        owner: Optional[str] = None,
+    ) -> Optional[NodeRef]:
+        """Ищет физический объект с нужным аффордансом.
+        
+        ADR-O-330: Кровать — это объект, а не узел графа.
+        Метод находит объект, берёт его XY и возвращает ближайший 
+        навигационный узел как точку маршрута (Interaction Point).
+        """
+        if not self._affordance_objects:
+            return None
+            
+        candidates = [
+            obj for obj in self._affordance_objects
+            if affordance_type in obj.get("affordances", [])
+            and not obj.get("destroyed", False)
+        ]
+        
+        # Фильтр по владельцу (через теги owner:orm или поле owner)
+        if owner:
+            candidates = [
+                obj for obj in candidates
+                if f"owner:{owner}" in obj.get("tags", []) or obj.get("owner") == owner
+            ]
+            
+        if not candidates:
+            return None
+            
+        # Скоринг по дистанции до NPC
+        best_obj = None
+        min_dist_sq = float('inf')
+        ox, oy = origin_xy
+        
+        for obj in candidates:
+            dx = obj["x"] - ox
+            dy = obj["y"] - oy
+            dist_sq = dx * dx + dy * dy
+            if dist_sq < min_dist_sq:
+                min_dist_sq = dist_sq
+                best_obj = obj
+                
+        if not best_obj:
+            return None
+            
+        # Возвращаем ближайший навигационный узел к точке взаимодействия с объектом
+        zone = origin_zone or self._location_id
+        return self.get_nearest(zone, (best_obj["x"], best_obj["y"]))
 
     # ── Резолв целей ──────────────────────────────────────────────────
 

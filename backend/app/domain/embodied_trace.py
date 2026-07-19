@@ -23,6 +23,8 @@ class EmbodiedTraceDTO:
     # Моторные искажения (0.0 - 1.0)
     locomotion_instability: float = 0.0  # Дрожь, пошатывание (от pain/shock)
     posture_rigidity: float = 0.0  # Замер, окамененость (от initiative_suppression)
+    gait_asymmetry: float = 0.0  # P5.1: Асимметрия походки (от травмы ноги)
+    arm_restriction: float = 0.0  # P5.2: Ограничение руки/защитная поза (от травмы руки)
     gaze_break_rate: float = 0.0  # Отведение взгляда (от низкой compliance/lodge)
     action_interruption: float = 0.0  # Прерванное действие (от shock/path_abort)
     micro_pause_density: float = 0.0  # Частые микро-остановки (от blood_loss/fatigue)

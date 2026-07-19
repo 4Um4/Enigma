@@ -1771,9 +1771,20 @@ class LifeEngine:
             }
             _role = _NEED_ROLE_MAP.get(target_activity)
             if _role:
-                _ref = self._spatial_service.resolve_node(
-                    role=_role, origin_zone=npc.get("location_id")
-                )
+                # ADR-O-330: Affordance Compatibility Adapter для сна
+                _npc_xy = npc.get("local_position", {})
+                _origin_xy = (_npc_xy.get("x", 0.0), _npc_xy.get("y", 0.0))
+                if _role == NodeRole.BED and hasattr(self._spatial_service, 'resolve_affordance'):
+                    _ref = self._spatial_service.resolve_affordance(
+                        affordance_type="sleep",
+                        origin_xy=_origin_xy,
+                        origin_zone=npc.get("location_id"),
+                        owner=npc.get("id") # пока передаём ID, чтобы在未来 фильтровать палатки
+                    )
+                else:
+                    _ref = self._spatial_service.resolve_node(
+                        role=_role, origin_zone=npc.get("location_id")
+                    )
                 if _ref:
                     target_entry = {
                         "location": _ref.zone_id,
@@ -2339,9 +2350,20 @@ class LifeEngine:
             }
             role = _ACTIVITY_TO_ROLE_MAP.get(activity)
             if role:
-                ref = self._spatial_service.resolve_node(
-                    role=role, origin_zone=npc.get("location_id")
-                )
+                # ADR-O-330: Affordance Compatibility Adapter для сна
+                _npc_xy = npc.get("local_position", {})
+                _origin_xy = (_npc_xy.get("x", 0.0), _npc_xy.get("y", 0.0))
+                if role == NodeRole.BED and hasattr(self._spatial_service, 'resolve_affordance'):
+                    ref = self._spatial_service.resolve_affordance(
+                        affordance_type="sleep",
+                        origin_xy=_origin_xy,
+                        origin_zone=npc.get("location_id"),
+                        owner=npc.get("id")
+                    )
+                else:
+                    ref = self._spatial_service.resolve_node(
+                        role=role, origin_zone=npc.get("location_id")
+                    )
                 if ref:
                     return (ref.zone_id, ref.node_id, activity)
 

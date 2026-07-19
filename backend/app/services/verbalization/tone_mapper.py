@@ -13,6 +13,7 @@ class ToneMapper:
     """Маппит русские emotional_state (из CommunicationIntent) в английские tone (для NpcDialogueSubscriber)."""
 
     _MAP = {
+        # RU
         "злость": "ANGRY",
         "страх": "FEARFUL",
         "паника": "PANIC",
@@ -21,9 +22,20 @@ class ToneMapper:
         "отвращение": "ANGRY",
         "удивление": "CURIOUS",
         "грусть": "SAD",
-        "neutral": "NEUTRAL",
-        "none": "NEUTRAL",
         "нейтрально": "NEUTRAL",
+        # EN (EmotionTag values)
+        "neutral": "NEUTRAL",
+        "angry": "ANGRY",
+        "fearful": "FEARFUL",
+        "suspicious": "SUSPICIOUS",
+        "sad": "SAD",
+        "joyful": "FRIENDLY",
+        "curious": "CURIOUS",
+        "panicked": "PANIC",
+        "disgusted": "ANGRY",
+        "surprised": "CURIOUS",
+        # Misc
+        "none": "NEUTRAL",
     }
 
     @staticmethod

@@ -1128,3 +1128,13 @@ Files: `spatial_contracts.py`, `role_resolver.py`, `life_engine.py`, `scene_stat
 Контракт: NpcTickPipeline (pure reducer) генерирует memory_events для всех NPC, но I/O слой (pipeline_runner.py) обязан фильтровать их через perception_filter.filter_perceiving_npcs перед записью в MemoryManager.
 Проблема: NPC за стеной или вне радиуса слуха записывал в память реплики игрока (телепатия).
 Решение: Внедрение SpatialQueryService и filter_perceiving_npcs в точке применения memory_events.
+
+`ADR-O-328` [ONTO] **Motion Semantic Classification (Dual Rail Unity)** — `MovementPlanner` классифицирует движение до разделения на Legacy/Shadow рельсы. Введён статус `MICRO_MOVEMENT` для дистанций < 0.1 (snap `local_position` без `TraversalProposal`). `MACRO_TRAVERSAL` (distance >= 0.1) единственный источник `TraversalProposal`. `EventCompiler` синхронизирован: для макро-телепортов создаёт `TraversalContract`, устраняя `[DRIFT][D] traversal_exists`.
+  Taboo: ❌ Создание `TraversalProposal` для `MICRO_MOVEMENT`. ❌ Возврат `None` в Shadow при валидном `proposal` с `distance < 0.1`.
+  Status: VERIFIED (S127)
+  Files: backend/app/domain/traversal_schema.py, backend/app/services/spatial/movement_engine.py, backend/app/services/event_compiler.py
+
+`ADR-O-329` [ONTO] **Dynamic Doorway Routing (Passage-Aware Geometric Routing)** — Если прямой сегмент пути заблокирован стеной, `MovementPlanner` генерирует временные осевые waypoints (approach/exit points) в радиусе 1.5 от цели/источника. Это позволяет NPC физически проходить через дверные проёмы, вырезанные в геометрии стен, без ручного добавления промежуточных узлов в JSON-картах.
+  Taboo: ❌ Ручное добавление навигационных узлов перед каждой дверью в JSON. ❌ Доверие графу (reachability) без геометрической валидации сегментов.
+  Status: VERIFIED (S127)
+  Files: backend/app/services/spatial/movement_engine.py, backend/app/services/spatial/spatial_service.py

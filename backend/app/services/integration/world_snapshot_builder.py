@@ -236,6 +236,21 @@ class WorldSnapshotBuilder:
                 f"x={local.get('x') or 0.0} "
                 f"y={local.get('y') or 0.0}"
             )
+            # ADR-O-319: RecognitionMemory projection.
+            # Читаем confidence из scene_state (персистится в SQLite).
+            _recog_map = scene_state.get("player_recognition", {})
+            _recog_data = _recog_map.get(npc_id, {})
+            _confidence = float(_recog_data.get("confidence", 0.0))
+            _real_name = data.get("name", npc_id)
+            
+            _display_name = "Незнакомец"
+            if _confidence >= 0.9:
+                _display_name = _real_name
+            elif _confidence >= 0.6:
+                _display_name = f"{_real_name} (?)"
+            elif _confidence >= 0.2:
+                _display_name = "Знакомое лицо"
+
             result[npc_id] = NPCPositionDTO(
                 npc_id=npc_id,
                 # A2-FIX: Передаем local_position как есть (Dict[str, float])
@@ -244,7 +259,9 @@ class WorldSnapshotBuilder:
                 facing=data.get("facing", "south"),
                 body_heading=data.get("body_heading", 1.5708),
                 activity=data.get("activity", "idle"),
-                name=data.get("name", npc_id),
+                name=_real_name,
+                display_name=_display_name,
+                recognition_confidence=_confidence,
                 initiative_suppression=data.get("initiative_suppression", 0.0),
                 velocity=data.get("velocity", (0.0, 0.0)),
                 exertion_level=data.get("exertion_level", 0.0),

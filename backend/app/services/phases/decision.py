@@ -28,6 +28,8 @@ def evaluate_behavior_and_identity(
     memory_manager: Any,
     l1_chronicle: Optional[Any],
     economic_profiles_map: Optional[Dict[str, Any]] = None,
+    social_modifiers_map: Optional[Dict[str, Any]] = None,
+    relationship_store: Optional[Any] = None,  # Шаг 1.1: SSOT для trust/fear
 ) -> None:
     """Выполняет расчёт слома воли (BreakProgress) и поведенческой маски (BehaviorMask).
 
@@ -56,12 +58,31 @@ def evaluate_behavior_and_identity(
                 else 50.0
             )
 
+            # Шаг 1.1: Вычисление social_pressure на основе реальных trust и fear из RelationshipStore (SSOT)
+            _social_pressure = 0.0
+            if relationship_store:
+                _rels = relationship_store.get_all_for_source(campaign_id, npc_id)
+                if _rels:
+                    # Берём минимальный trust и максимальный fear по всем связям NPC
+                    _min_trust = min((v.get("trust", 50.0) for v in _rels.values()), default=50.0)
+                    _max_fear = max((v.get("fear", 0.0) for v in _rels.values()), default=0.0)
+                    
+                    # Низкий trust (< 20) даёт +20 давления
+                    if _min_trust < 20.0:
+                        _social_pressure += 20.0
+                    # Высокий fear (> 50) даёт +20 давления
+                    if _max_fear > 50.0:
+                        _social_pressure += 20.0
+                        
+                    logger.info(f"[BREAK_PROGRESS] npc={npc_id} trust_min={_min_trust:.1f} fear_max={_max_fear:.1f} social_pressure={_social_pressure:.1f}")
+
             # ADR-S86.3: Расчёт слома воли
             _break_deltas = BreakProgressEngine.calculate(
                 state=_npc_state,
                 willpower=_willpower,
                 recent_failures=getattr(_npc_state, "recent_failures", 0),
                 support_present=getattr(_npc_state, "support_present", False),
+                social_pressure=_social_pressure,
             )
 
             _npc_state.identity_integrity = max(

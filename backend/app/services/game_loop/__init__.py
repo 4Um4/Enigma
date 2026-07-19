@@ -993,6 +993,7 @@ class GameLoop:
                 all_npcs_raw=_anr_rce,
                 player_name=_player_name,
             )
+
             if _rce_reactions:
                 # Инжектим извлечённые реакции обратно в dm_result для downstream
                 dm_result["npc_reactions"] = _rce_reactions

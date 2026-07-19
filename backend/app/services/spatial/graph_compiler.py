@@ -355,7 +355,50 @@ def compile_graph(
     # ETKE-IK v1: возвращаем rooms_geometry 5-м элементом
     # ADR-O-324: возвращаем spatial_walls и spatial_obstacles 6-м и 7-м элементом
     spatial_walls, spatial_obstacles = _build_spatial_data(editor_data)
-    return graph, connections, alias_map, boundary_map, rooms_geometry, spatial_walls, spatial_obstacles
+    # ADR-O-330: Извлекаем физические объекты с аффордансами (кровати, палатки, верстаки)
+    affordance_objects = _extract_affordance_objects(editor_data)
+    return graph, connections, alias_map, boundary_map, rooms_geometry, spatial_walls, spatial_obstacles, affordance_objects
+
+
+def _extract_affordance_objects(editor_data: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Извлекает физические объекты с аффордансами из editor JSON.
+    
+    ADR-O-330: Кровать — это физический объект, а не навигационный узел.
+    Возвращает список словарей с координатами и типами аффордансов.
+    """
+    objects = editor_data.get("objects", [])
+    if not objects:
+        return []
+    
+    # Временный детерминированный маппинг типа объекта → аффордансы
+    _TYPE_TO_AFFORDANCE = {
+        "bed": ["sleep", "rest"],
+        "tent": ["sleep", "rest"],
+        "forge": ["forge", "work"],
+        "workbench": ["work", "craft"],
+    }
+    
+    affordance_objects = []
+    for obj in objects:
+        obj_type = obj.get("type", "")
+        affordances = _TYPE_TO_AFFORDANCE.get(obj_type)
+        if not affordances:
+            continue
+            
+        pos = obj.get("position", {})
+        if not pos:
+            continue
+            
+        affordance_objects.append({
+            "object_id": obj.get("id", obj_type),
+            "source_type": obj_type,
+            "affordances": affordances,
+            "x": float(pos.get("x", 0.0)),
+            "y": float(pos.get("y", 0.0)),
+            "tags": obj.get("tags", []),
+            "destroyed": obj.get("destroyed", False),
+        })
+    return affordance_objects
 
 
 def _build_spatial_data(editor_data: Dict[str, Any]) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
@@ -526,8 +569,8 @@ def load_editor_json(
             try:
                 with open(loc_file, "r", encoding="utf-8") as f:
                     return json.load(f)
-            except Exception:
-                pass
+            except Exception as e:
+                logger.error(f"[GRAPH_COMPILER] Failed to parse JSON from {loc_file}: {e}")
                 
         # Пробуем искать по содержимому (поле location_id или id)
         for json_file in d.glob("*.json"):
@@ -542,8 +585,8 @@ def load_editor_json(
                     # Fuzzy match для случаев вроде "tavern" vs "tavern_silver_wolf"
                     if file_loc_id and (file_loc_id in location_id or location_id in file_loc_id):
                         return data
-            except Exception:
-                pass
+            except Exception as e:
+                logger.error(f"[GRAPH_COMPILER] Failed to parse JSON from {json_file}: {e}")
                 
     # 3. Fallback: campaign.json (старый формат, где всё в одном файле)
     campaign_file = campaign_dir / "campaign.json"
@@ -557,8 +600,8 @@ def load_editor_json(
                             return loc
                 if data.get("id") == location_id or data.get("location_id") == location_id:
                     return data
-        except Exception:
-            pass
+        except Exception as e:
+            logger.error(f"[GRAPH_COMPILER] Failed to parse JSON from {campaign_file}: {e}")
             
     logger.warning(f"[GRAPH_COMPILER] No map file found for {campaign_id}/{location_id}")
     return None

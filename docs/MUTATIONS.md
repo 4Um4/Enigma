@@ -8,10 +8,10 @@
 
 | Показатель | Значение |
 |------------|----------|
-| Сессий | 118|
+| Сессий | 128|
 | Доменов | 10 |
 | Консолидированных запретов | [DERIVED: count(ADR.*.Taboo)] |
-| Диапазон | S03—S97 |
+| Диапазон | S03—S128 |
 
 ---
 
@@ -28,6 +28,26 @@
 ---
 
 ## 1. ДОМЕНЫ И ЭВОЛЮЦИЯ
+
+- 🔵 **S126** ТЗ: Presentation v2.0 — Физика Восприятия и Многослойная Презентация (Sprint P1, P6 & Critical Pipeline Repair).
+  - **Контекст:** ТЗ v2.0 требовало внедрения 5-слойной архитектуры (Reality → Observable Physics → Perception Physics → Cognition → Presentation → DM). Аудит выявил критические разрывы в пайплайне (NEW-1, NEW-2, NEW-4), блокирующие восприятие.
+  - **Sprint P1 (Uncertainty Model):** 
+    - Внедрены поля `confidence` и `possible_causes` в `EmbodiedTraceDTO` и `PeripheralCueDTO` (ADR-O-318).
+    - `BehaviorManifestationService` теперь детерминированно вычисляет кандидаты причин (Rule X Causal Candidate Projection) вместо утечки ментальных состояний.
+  - **Sprint P1 (ObservedFacts для DM):**
+    - Труба от Фазы 9 (`PresentationAssembler`) до `DMFrame` замкнута. `DMFrame` теперь содержит `observed_facts`, чтобы DM не дублировал визуальный нарратив (ADR-O-318).
+  - **Sprint P6 (RecognitionMemory):**
+    - Внедрена базовая персистентная память распознавания. `confidence` растёт при визуальном контакте и сохраняется в `scene_state["player_recognition"]` (ADR-O-320).
+    - `NPCPositionDTO` расширен полями `display_name` и `recognition_confidence`.
+    - Убран хардкод имён во фронтенде (`npc_id.split("_")`). NPC теперь отображаются как «Незнакомец» до тех пор, пока игрок их не запомнит.
+  - **Critical Pipeline Repair (Audit Fixes):**
+    - **NEW-1 🔴:** Фикс сигнатур `line_of_sight` и `sound_reach` в `npc_tick_pipeline.py` (передача `distance` и `scene_state` вместо `SpatialQueryService`).
+    - **NEW-2 🔴:** Фикс `abort_generation` в `llama_cpp_provider.py` (использование `urllib.request.Request` для POST-метода).
+    - **NEW-3 🟠:** Фикс API-краша `/world/tick/{world_id}` (передача `settings.world_tick_minutes` вместо `force=True`).
+    - **NEW-4 🟠:** Устранён Class D дрейф в `event_compiler.py`. Хардкод `source_node=""` заменён на чтение из `change.traversal_proposal`. Восстановлена переменная `target_loc` в `_compile_local_position_change`.
+    - **NEW-7 🟡:** Убраны `silent except: pass` в `graph_compiler.py` при парсинге JSON локаций.
+  - **Validation:** IPT 5/5 passed. DriftLaboratory (mass_traversal): 0% C/D/E drift. `test_tick_orchestrator_full_loop.py` passed.
+  Files: backend/app/domain/embodied_trace.py, backend/app/domain/snapshot.py, backend/app/services/perception/behavior_manifestation_service.py, backend/app/services/perception/phenomenology_projection_service.py, backend/app/services/phases/integration.py, backend/app/services/integration/world_snapshot_builder.py, backend/app/services/verbalization/scene_outcome_builder.py, backend/app/services/scene/r3_direct_builder.py, backend/app/services/npc/npc_tick_pipeline.py, backend/app/services/llm/llama_cpp_provider.py, backend/app/api/routes.py, backend/app/services/event_compiler.py, backend/app/services/spatial/graph_compiler.py, frontend/game_screen.py
 
 - 🔵 **S96** Actor-Agnostic Spatial Contract (ADR-O-314).
   - **Проблема:** `TickOrchestrator` парсил текст игрока ("подойди ко мне") и вычислял дистанции, чтобы угадать, кто идёт (актор), нарушая слоевую архитектуру и принцип Epistemic Grounding (§13.2). Существовало легаси-дублирование `player_spatial` рядом с `npc_positions["player"]`.
@@ -671,3 +691,60 @@ Task 1 (Rule 120 Drift): Устранён дрейф Rule 120 в event_compiler.
 Task 2 (NO_DETOUR): Реализован Вариант B из ТЗ (ADR-O-324). Если A* не находит обхода стены, MovementPlanner ищет ближайший свободный узел (NodeRole.DEFAULT) и строит путь через него. Устранён спам GEOMETRIC_OBSTACLE_NO_DETOUR.
 Task 3 (Sims-слой): _AMBIENT_PHRASES в npc_conversation.py разбиты на категории по архетипам (BLACKSMITH, MERCHANT, TAVERN_KEEPER, GUARD, COMMON). Реплики генерируются с учётом ID NPC. Сохранены все авторские фразы и юмор.
 Validation: IPT 5/5 passed. DriftLaboratory (mass_traversal): 471 comparisons, rate=25/s, drift_B=0, 0 крашей.Files: backend/app/services/event_compiler.py, backend/app/services/spatial/movement_engine.py, backend/app/services/execution/npc_conversation.py, backend/tests/sandbox/SUPERBOX/drift_laboratory.py
+
+🔵 S127 — Motion Semantic Classification & Dynamic Doorway Routing.
+**Дата:** 2026-07-19
+**Архитектор:** LLM #3
+**Статус:** Завершено
+
+### Изменения
+1. **[ADR-O-323] Motion Semantic Classification (P0):**
+   - `MovementEngine.plan()` теперь классифицирует движение: `MACRO_TRAVERSAL` (создаёт `TraversalProposal`), `MICRO_MOVEMENT` (эмитит `local_position`, не создаёт Traversal), `NO_OP` (тот же узел).
+   - `EventCompiler` исправлен: для макро-телепортов (dist < 0.1) создаёт `TraversalContract`, а не возвращает `None`. Это устранило `[DRIFT][D] traversal_exists`.
+2. **[ADR-O-324 Phase 2A] Dynamic Doorway Routing (P2-A):**
+   - `MovementEngine._resolve_doorway()` реализован. Если прямой путь заблокирован, алгоритм пробует 4 осевых направления для генерации временного waypoint (approach/exit point). Это позволяет NPC обходить стены через проёмы без ручных узлов в JSON.
+   - В `SpatialService` добавлен метод `is_near_wall()`.
+3. **[ADR-O-326] Workplace Affordance Activation (P1.1):**
+   - `graph_compiler.py` теперь передаёт `editor_tags` в `resolve_role`. Система ролей (ADR-O-326) активирована.
+4. **[ADR-123] DEAD Guard (P1.2):**
+   - `life_engine.py` (`update_routine`) теперь проверяет `life_status == "DEAD"` и возвращает `[]`. Зомби не ходят по расписанию.
+
+### Тесты
+- `pytest tests/` — 845 passed, 0 failed.
+- `IPT.py` — 5/5 passed.
+- `INV-NPC-MOVE` — PASSED (merchant_goran двигается).
+- Логи игры чисты от `EQUIVALENCE_VIOLATION` и `DRIFT`.
+
+Files: backend/app/domain/traversal_schema.py, backend/app/services/spatial/movement_engine.py, backend/app/services/event_compiler.py, backend/app/services/spatial/spatial_service.py, backend/app/services/spatial/graph_compiler.py, backend/app/services/npc/life_engine.py
+
+🔵 S127 ТЗ: Presentation v2.0 — P5.1 BodyTopology Vertical Slice.
+Контекст: Доказательство жизнеспособности 5-слойной архитектуры (Reality → Observable Physics → Perception) на одном вертикальном срезе. Цель: показать, что скрытая травма порождает наблюдаемое поведение без телепатии.
+P5.1 (Lower Limb Constraint):
+В EmbodiedTraceDTO добавлено поле gait_asymmetry (асимметрия походки).
+BehaviorManifestationService теперь читает wounds / injuries из body_state. Если обнаружена травма нижних конечностей (leg, limb, foot), вычисляется gait_asymmetry на основе WoundSeverity (MODERATE/SEVERE/CRIPPLING).
+Хромота вносит детерминированный вклад в общую instability и micro_pause.
+PhenomenologyProjectionService теперь генерирует cue_key="LIMPING" при gait_asymmetry > 0.3.
+possible_causes расширено кандидатом "leg_injury".
+Архитектурное значение: Скрытая истина (left_leg_injury=0.7) проходит через механическое ограничение, порождает наблюдаемое поведение и доходит до DM как факт хромоты. Истинная причина не утекает.
+Validation: IPT 5/5 passed. В логах подтверждено наличие gait_asymmetry в PlayerPerceptionDTO.Files: backend/app/domain/embodied_trace.py, backend/app/services/perception/behavior_manifestation_service.py, backend/app/services/perception/phenomenology_projection_service.py
+
+🔵 S127 ФАЗА 2 (Этап 1): Замыкание цикла деформации идентичности.
+Шаг 1.1 (Социальное давление): В BreakProgressEngine.calculate добавлен параметр social_pressure. В phases/decision.py реализовано вычисление social_pressure на основе trust и fear из social_modifiers_map (низкий trust или высокий fear добавляют давление). Давление интегрируется в raw_pressure, что повышает identity_pressure и ведёт к identity_crisis.
+Шаг 1.2 (Снятие блокировки L2.5): Подтверждено, что NPC_SPOKE не требует прямого добавления в phase_2_events. L2.5 (BeliefCrystallizationEngine) питается событиями из L1Chronicle, которые генерирует BreakProgressEngine при повышении давления. Цикл замкнут архитектурно чисто.
+Validation: DriftLaboratory (mass_traversal): 389 comparisons, 0 drift, 0 crashes. Скорость восстановлена до 10.4 тиков/сек.Files: backend/app/services/npc/break_progress_engine.py, backend/app/services/phases/decision.py, backend/app/services/tick_orchestrator.py
+
+🔵 S127 ТЗ: Presentation v2.0 — Sprint P9 (DM Contract v2), P5.1 (BodyTopology) & P6 Fixes.
+Контекст: Завершение базового внедрения 5-слойной архитектуры презентации. DM переведён в режим интерпретатора, добавлена физическая моторика (хромота), исправлена персистентность памяти распознавания.
+Sprint P9 (DM Contract v2):
+В dm_agent.py обновлена инструкция для ObservedFacts. DM теперь получает блок "УЖЕ ДОНЕСЁНО ИГРОКУ (НЕ ПОВТОРЯЙ ВИЗУАЛЬНОЕ)" и обязан добавлять только подтекст, а не дублировать визуал.
+Sprint P5.1 (BodyTopology Vertical Slice):
+В EmbodiedTraceDTO добавлено поле gait_asymmetry (асимметрия походки).
+BehaviorManifestationService теперь читает wounds из body_state. Если обнаружена травма нижних конечностей, вычисляется gait_asymmetry на основе WoundSeverity.
+PhenomenologyProjectionService теперь генерирует cue_key="LIMPING" при gait_asymmetry > 0.3.
+possible_causes расширено кандидатом "leg_injury".
+Sprint P6 Fixes (RecognitionMemory):
+Исправлен критический баг исчезновения имени после диалога. Обновление confidence=1.0 перенесено из game_loop/__init__.py (post-commit) в r3_direct_builder.py (pre-commit).
+В Фазе 9 убран жёсткий блок line_of_sight, чтобы дистанция работала корректно даже при отстающей карте видимости.
+Critical Pipeline Repair:
+Устранён краш Фазы 5 (_social_modifiers_map not defined) от параллельной сессии.
+Validation: IPT 5/5 passed. В логах подтверждено наличие gait_asymmetry в PlayerPerceptionDTO.Files: backend/app/agents/dm_agent.py, backend/app/domain/embodied_trace.py, backend/app/services/perception/behavior_manifestation_service.py, backend/app/services/perception/phenomenology_projection_service.py, backend/app/services/phases/integration.py, backend/app/services/scene/r3_direct_builder.py, backend/app/services/game_loop/init.py

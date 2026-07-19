@@ -613,9 +613,11 @@ class EventCompiler:
         prop_wps = [list(wp) for wp in proposal.path_waypoints]
         if len(prop_wps) < 2:
             return False, "WAYPOINTS_TOO_SHORT"
-        if abs(prop_wps[0][0] - source_xy[0]) > 0.5 or abs(prop_wps[0][1] - source_xy[1]) > 0.5:
+        # ADR-O-323: Повышенная толерантность для START/END waypoint.
+        # EventCompiler может интерполировать позицию (Ghost Interpolation), опережая Legacy local_position.
+        if abs(prop_wps[0][0] - source_xy[0]) > 2.0 or abs(prop_wps[0][1] - source_xy[1]) > 2.0:
             return False, f"START_WAYPOINT_MISMATCH prop={prop_wps[0]} actual={list(source_xy)}"
-        if abs(prop_wps[-1][0] - target_xy[0]) > 0.5 or abs(prop_wps[-1][1] - target_xy[1]) > 0.5:
+        if abs(prop_wps[-1][0] - target_xy[0]) > 2.0 or abs(prop_wps[-1][1] - target_xy[1]) > 2.0:
             return False, f"END_WAYPOINT_MISMATCH prop={prop_wps[-1]} actual={list(target_xy)}"
             
         # 3. Distance и Duration консистентны (геометрическая проверка)

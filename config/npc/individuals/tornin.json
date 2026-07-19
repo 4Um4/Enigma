@@ -68,6 +68,28 @@
     "is_dead": false
   },
   "location": "tavern_silver_wolf",
+  "activity_map": {
+    "working": {
+      "location": "tavern_silver_wolf",
+      "position": "behind_bar",
+      "display": "innkeeping"
+    },
+    "resting": {
+      "location": "tavern_silver_wolf",
+      "position": "fireplace",
+      "display": "resting"
+    },
+    "drinking": {
+      "location": "tavern_silver_wolf",
+      "position": "bar_area",
+      "display": "drinking"
+    },
+    "sleeping": {
+      "location": "tavern_silver_wolf",
+      "position": "fireplace",
+      "display": "sleeping"
+    }
+  },
   "hp": 40,
   "max_hp": 40,
   "origin_events": [

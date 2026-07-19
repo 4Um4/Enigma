@@ -85,7 +85,9 @@ class NPCPositionDTO:
     activity: str = (
         "idle"  # 'idle', 'walking', 'talking', 'working' (переименовано с action)
     )
-    name: str = ""  # имя для UI (переименовано с display_name)
+    name: str = ""  # Истинное имя (для DM и логики)
+    display_name: str = "Незнакомец"  # ADR-O-319: Имя для UI (зависит от RecognitionMemory)
+    recognition_confidence: float = 0.0  # ADR-O-319: Уверенность распознавания (0.0-1.0)
     initiative_suppression: float = (
         0.0  # Спринт 30: Cognitive Freeze (0.0-1.0), паралич воли
     )

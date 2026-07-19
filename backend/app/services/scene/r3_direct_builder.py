@@ -133,6 +133,16 @@ def build_r3_dm_frame(
     if _ws and hasattr(_ws, "player_perception"):
         _observed_facts = getattr(_ws.player_perception, "observed_facts", [])
 
+    # S127 FIX: RecognitionMemory Dialogue Trigger (Persistent)
+    # Если игрок обратился к NPC (target_id), NPC перестаёт быть "Незнакомцем" немедленно.
+    # Обновляем scene_state ДО коммита в базу данных.
+    _target_id = getattr(shared_context, "player_target_id", None)
+    if _target_id and hasattr(shared_context, "scene_state") and shared_context.scene_state:
+        _recog_map = shared_context.scene_state.setdefault("player_recognition", {})
+        _recog_entry = _recog_map.setdefault(_target_id, {"confidence": 0.0})
+        _recog_entry["confidence"] = 1.0
+        logger.info(f"[RECOG_MEMORY] Dialogue trigger (Persistent): NPC {_target_id} confidence=1.0")
+
     # Строим SceneOutcome → DMFrame (с психологической проекцией + ADR-131 трёхосевая модель)
     _scene = _builder.build(
         _decisions,

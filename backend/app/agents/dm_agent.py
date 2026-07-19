@@ -180,12 +180,14 @@ class DmAgent:
         npc_reactions = npc_result.get("npc_reactions", []) if npc_result else []
         npc_actions = npc_result.get("npc_actions", []) if npc_result else []
 
-        # Sprint P9: Добавляем ObservedFactsBundle в промпт
+        # Sprint P9: DM Contract v2 — DM как интерпретатор подтекста
         _obs_facts = world_result.get("observed_facts", []) if world_result else []
         if _obs_facts:
             builder.add_custom_block(
-                "Наблюдаемые факты сцены (опирайся на них при ответе)",
-                "Отвечай на вопросы игрока, опираясь на эти факты. Не давай общих отписок.\n"
+                "УЖЕ ДОНЕСЁНО ИГРОКУ (НЕ ПОВТОРЯЙ ВИЗУАЛЬНОЕ)",
+                "Игрок УЖЕ видит эти факты через визуал/аудио. "
+                "НЕ ПОВТОРЯЙ их, если только они не несут новый смысл. "
+                "Добавляй ТОЛЬКО подтекст, атмосферу, реакции.\n"
                 + "\n".join(_obs_facts),
             )
 

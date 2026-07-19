@@ -32,7 +32,13 @@ class PhenomenologyProjectionService:
             elif getattr(trace, "posture_rigidity", 0.0) > 0.4:
                 cues.append({"npc_id": trace.npc_id, "cue_key": "TENSE_POSTURE"})
 
-            if getattr(trace, "is_shaking", False):
+            # P5.2: Upper Limb Constraint -> Observable Arm Guarding
+            if getattr(trace, "arm_restriction", 0.0) > 0.4:
+                cues.append({"npc_id": trace.npc_id, "cue_key": "ARM_GUARDING"})
+            # P5.1: Lower Limb Constraint -> Observable Limp
+            if getattr(trace, "gait_asymmetry", 0.0) > 0.3:
+                cues.append({"npc_id": trace.npc_id, "cue_key": "LIMPING"})
+            elif getattr(trace, "is_shaking", False):
                 cues.append({"npc_id": trace.npc_id, "cue_key": "SWAYING"})
             elif getattr(trace, "locomotion_instability", 0.0) > 0.3:
                 cues.append({"npc_id": trace.npc_id, "cue_key": "UNEVEN_STANCE"})

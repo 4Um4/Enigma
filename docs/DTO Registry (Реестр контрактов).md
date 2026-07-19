@@ -136,6 +136,18 @@
 - ❌ **Голый DecisionHub() (ADR-O-301):** Вызов `DecisionHub()` без передачи `rng` запрещён. Использование глобального `random.*` в kernel layer запрещено.
 - ❌ **Нарушение изоляции подсистем (ADR-O-301):** Создание `KernelRNG` без `salt` (или использование одного `salt` для разных подсистем) запрещено. Каждая подсистема (DecisionHub, LifeEngine, MovementEngine) обязана иметь свой `salt`.
 
+**S127: Motion Semantic Classification (ADR-O-328)**
+- **`MovementPlanStatus`** (`domain/traversal_schema.py`): Расширен статусом `MICRO_MOVEMENT`. `MovementPlanner` классифицирует движение до разделения на рельсы: `MICRO_MOVEMENT` (дистанция < 0.1, snap `local_position`), `MACRO_TRAVERSAL` (создаёт `TraversalProposal`).
+- **`MovementPlanResult`** (`domain/traversal_schema.py`): Инвариант обновлён: `MICRO_MOVEMENT` не требует `proposal` (в отличие от `ACCEPTED`).
+- **`EventCompiler`** (`services/event_compiler.py`): Для макро-телепортов (`is_teleport == True` при `field="position"`) создаёт `TraversalContract(status="NEW")`, а не возвращает `None`. Устраняет Semantic Drift.
+- **`SpatialService.is_near_wall()`** (`services/spatial/spatial_service.py`): Новые метод. Вычисляет расстояние от точки до отрезка стены.
+- **`MovementEngine._resolve_doorway()`** (`services/spatial/movement_engine.py`): Реализация ADR-O-329 (Dynamic Doorway Routing). Если сегмент заблокирован, генерирует временные осевые waypoints (offset 1.5) для обхода стены через проём.
+
+🚫 **КАУЗАЛЬНЫЕ ЗАПРЕТЫ (S127):**
+- ❌ Создание `TraversalProposal` для `MICRO_MOVEMENT` (ADR-O-328).
+- ❌ Возврат `None` в Shadow при валидном `proposal` с `distance < 0.1` (ADR-O-328).
+- ❌ Ручное добавление навигационных узлов перед дверями в JSON (ADR-O-329).
+
 ---
 
 ## 5. ФИЗИОЛОГИЯ И БОЙ (Physiology & Combat)

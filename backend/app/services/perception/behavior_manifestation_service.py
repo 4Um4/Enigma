@@ -33,12 +33,73 @@ def _safe_get(d, *keys, default=0.0):
         return default
 
 
+from dataclasses import dataclass
+
+@dataclass(frozen=True)
+class BodyConstraint:
+    """P5.3: Универсальное функциональное ограничение тела."""
+    region: str          # "LEG", "ARM", "TORSO", etc.
+    function: str        # "LOCOMOTION", "MANIPULATION", etc.
+    severity: float      # 0.0 - 1.0
+
 class BehaviorManifestationService:
     """
     ФАЗА 8.5: Перевод латентных ограничений в наблюдаемые моторные паттерны.
 
     ЗАПРЕТ: Не читает psyche (fear, anger). Только моторные замки и физиологию.
     """
+
+    # P5.3: Маппинг регионов и функций
+    _REGION_MAP = {
+        "leg": "LEG", "limb": "LEG", "foot": "LEG",
+        "arm": "ARM", "hand": "ARM", "shoulder": "ARM"
+    }
+    _FUNCTION_MAP = {
+        "LEG": "LOCOMOTION",
+        "ARM": "MANIPULATION"
+    }
+    _SEVERITY_MAP = {
+        "crippling": 0.8,
+        "severe": 0.5,
+        "moderate": 0.2
+    }
+
+    def _derive_constraints(self, wounds: list) -> list[BodyConstraint]:
+        """P5.3: Вывод функциональных ограничений из ран."""
+        constraints = []
+        for w in wounds:
+            if not isinstance(w, dict): continue
+            part = str(w.get("body_part", "")).lower()
+            sev = str(w.get("severity", "")).lower()
+            
+            region = self._REGION_MAP.get(part)
+            if not region: continue
+            
+            severity = self._SEVERITY_MAP.get(sev, 0.0)
+            if severity == 0.0: continue
+            
+            function = self._FUNCTION_MAP.get(region, "UNKNOWN")
+            constraints.append(BodyConstraint(region=region, function=function, severity=severity))
+        return constraints
+
+    def _apply_constraints_to_motor(
+        self, constraints: list[BodyConstraint], instability: float, posture_rigidity: float, micro_pause: float, action_interrupt: float
+    ) -> tuple:
+        """P5.3: Применение ограничений к моторным проекциям."""
+        gait_asymmetry = 0.0
+        arm_restriction = 0.0
+        
+        for c in constraints:
+            if c.function == "LOCOMOTION":
+                gait_asymmetry = max(gait_asymmetry, c.severity)
+                instability = max(instability, c.severity * 0.6)
+                micro_pause = max(micro_pause, c.severity * 0.4)
+            elif c.function == "MANIPULATION":
+                arm_restriction = max(arm_restriction, c.severity)
+                posture_rigidity = max(posture_rigidity, c.severity * 0.5)
+                action_interrupt = max(action_interrupt, c.severity * 0.7)
+                
+        return gait_asymmetry, arm_restriction, instability, posture_rigidity, micro_pause, action_interrupt
 
     def produce_traces(self, scene_state, all_npcs_raw=None) -> list[EmbodiedTraceDTO]:
         traces = []
@@ -162,6 +223,17 @@ class BehaviorManifestationService:
             min(1.0, shock_impulse) if shock_impulse > 0.5 else 0.0,
         )
 
+        # P5.3: Generalize BodyConstraint primitive
+        _wounds = []
+        if body_state and isinstance(body_state.get("injuries"), list):
+            _wounds = body_state.get("injuries", [])
+        elif isinstance(data.get("wounds"), list):
+            _wounds = data.get("wounds", [])
+
+        _constraints = self._derive_constraints(_wounds)
+        gait_asymmetry, arm_restriction, instability, posture_rigidity, micro_pause, action_interrupt = \
+            self._apply_constraints_to_motor(_constraints, instability, posture_rigidity, micro_pause, action_interrupt)
+
         is_frozen = posture_rigidity > 0.7
         is_shaking = instability > 0.3
 
@@ -177,6 +249,10 @@ class BehaviorManifestationService:
                 _possible_causes.add("shock")
             if affective_load > 0.3:
                 _possible_causes.add("emotional_overload")
+        if gait_asymmetry > 0.2:
+            _possible_causes.add("leg_injury")
+        if arm_restriction > 0.2:
+            _possible_causes.add("arm_injury")
 
         if posture_rigidity > 0.3:
             if pain > 20.0:
@@ -218,6 +294,8 @@ class BehaviorManifestationService:
             micro_pause_density=micro_pause,
             is_frozen=is_frozen,
             is_shaking=is_shaking,
+            gait_asymmetry=gait_asymmetry,
+            arm_restriction=arm_restriction,
             confidence=_confidence,
             possible_causes=tuple(sorted(_possible_causes)),
         )

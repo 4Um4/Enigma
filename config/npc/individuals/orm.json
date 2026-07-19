@@ -53,11 +53,28 @@
     "planning_revenge": false,
     "is_dead": false
   },
-  "location": "market_square",
-  "position": "market_square:forge",
+  "location": "tavern_silver_wolf",
+  "position": "tavern_silver_wolf:fireplace",
   "local_position": {
-    "x": 11.0,
-    "y": 3.6
+    "x": 10.5,
+    "y": 5.0
+  },
+  "activity_map": {
+    "working": {
+      "location": "market_square",
+      "position": "workshop_area",
+      "display": "working"
+    },
+    "resting": {
+      "location": "tavern_silver_wolf",
+      "position": "fireplace",
+      "display": "drinking"
+    },
+    "drinking": {
+      "location": "tavern_silver_wolf",
+      "position": "bar_area",
+      "display": "drinking"
+    }
   },
   "hp": 45,
   "max_hp": 45,

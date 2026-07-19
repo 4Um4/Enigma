@@ -144,9 +144,9 @@ def _build_perceived_scene(
                 y=y,
                 visible=True,
                 los=True,
-                display_name=npc_data.get("display_name")
-                or npc_data.get("name")
-                or npc_id.split("_")[-1].capitalize(),
+                # ADR-O-319: Имя берётся строго из RecognitionMemory (display_name).
+                # Хардкод npc_id убит (телепатия).
+                display_name=npc_data.get("display_name", "Незнакомец"),
                 body_heading=_body_heading,
                 in_attention=(config.player_focus.focus_entity_id == npc_id),
                 inferences=_inferences,

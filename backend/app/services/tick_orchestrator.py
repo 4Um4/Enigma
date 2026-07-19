@@ -1176,6 +1176,10 @@ class TickOrchestrator:
         # [S99] Block 4 (Behavior Evaluation) вынесен в phases/decision.py
         # DEEP-FIX: Перенесено после assemble_preloaded_data, чтобы передать economic_profiles_map
         from app.services.phases.decision import evaluate_behavior_and_identity
+        
+        # Шаг 1.1: Извлекаем RelationshipStore (SSOT) из StateApplicator для расчёта social_pressure
+        _rel_store = getattr(self._state_applicator, "_rel_store", None) if self._state_applicator else None
+        
         evaluate_behavior_and_identity(
             npc_states=ctx.npc_states,
             campaign_id=ctx.campaign_id,
@@ -1184,6 +1188,8 @@ class TickOrchestrator:
             memory_manager=self._get_memory_manager(),
             l1_chronicle=getattr(self, "l1_chronicle", None),
             economic_profiles_map=_economic_profiles_map,
+            social_modifiers_map=_social_modifiers_map,
+            relationship_store=_rel_store,  # Шаг 1.1: Передача SSOT
         )
 
         # P5 FIX: Передаём разрешённый spatial_service напрямую, чтобы избежать потери в npc_services
