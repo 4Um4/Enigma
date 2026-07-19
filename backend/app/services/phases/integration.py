@@ -541,7 +541,7 @@ def run_phase_9_integration(ctx: _TickContext, deps: Phase9IntegrationDeps) -> N
 
     # Сборка PlayerPerceptionDTO (вне цикла!)
     _player_perception = deps.project_svc.project(
-        _traces, ctx.scene_state, tick=ctx.tick_number
+        _traces, ctx.scene_state, tick=ctx.tick_number, observed_facts=_facts_for_dm
     )
 
     # Сборка WorldSnapshotDTO (вне цикла!)

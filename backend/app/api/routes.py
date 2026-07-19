@@ -240,7 +240,7 @@ def idle_tick(campaign_id: str, game_loop=Depends(get_game_loop)) -> dict:
 def force_world_tick(
     world_id: str, game_loop=Depends(get_game_loop)
 ) -> WorldTickResponse:
-    tick = game_loop.world_scheduler.maybe_tick(world_id, force=True)
+    tick = game_loop.world_scheduler.maybe_tick(world_id, settings.world_tick_minutes)
     return WorldTickResponse(world_id=world_id, **tick)
 
 

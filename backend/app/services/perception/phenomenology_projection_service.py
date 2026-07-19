@@ -21,7 +21,7 @@ class PhenomenologyProjectionService:
     """
 
     def project(
-        self, traces: List[EmbodiedTraceDTO], scene_state: Dict[str, Any], tick: int = 0
+        self, traces: list[EmbodiedTraceDTO], scene_state: dict, tick: int, observed_facts: list[str] = None
     ) -> PlayerPerceptionDTO:
         cues = []
 
@@ -117,4 +117,5 @@ class PhenomenologyProjectionService:
                 t.__dict__ if hasattr(t, "__dict__") else dict(t) for t in traces
             ],
             manifestations=manifestations,
+            observed_facts=observed_facts or [],
         )

@@ -45,7 +45,7 @@ class DriftConfig:
     location_id: str = "tavern_silver_wolf"
 
     # Режимы
-    mass_traversal_ticks: int = 10_000  # ~30 NPC × 10000 = 300k comparisons
+    mass_traversal_ticks: int = 200  # Уменьшено до 200 тиков для быстрого smoke-test (ADR-O-324)
     save_load_storm_ticks: int = 5_000  # save/load каждые 50 тиков
     chunk_migration_ticks: int = 10_000  # boundary transitions
     long_horizon_ticks: int = 100_000  # idle drift

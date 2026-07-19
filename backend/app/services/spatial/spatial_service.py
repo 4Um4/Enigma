@@ -141,6 +141,23 @@ class SpatialService:
         
         return False
 
+    def is_near_wall(self, x: float, y: float, threshold: float = 0.5) -> bool:
+        """Проверяет, находится ли точка вблизи любой стены (в пределах threshold)."""
+        for wall in self._spatial_walls:
+            # Вычисляем расстояние от точки до отрезка стены
+            x1, y1 = wall["x1"], wall["y1"]
+            x2, y2 = wall["x2"], wall["y2"]
+            dx, dy = x2 - x1, y2 - y1
+            if dx == 0 and dy == 0:
+                dist = math.hypot(x - x1, y - y1)
+            else:
+                t = max(0, min(1, ((x - x1) * dx + (y - y1) * dy) / (dx * dx + dy * dy)))
+                px, py = x1 + t * dx, y1 + t * dy
+                dist = math.hypot(x - px, y - py)
+            if dist < threshold:
+                return True
+        return False
+
     # ── Overlay обновление ────────────────────────────────────────────
 
     def set_overlay(self, overlay: SpatialOverlay) -> None:

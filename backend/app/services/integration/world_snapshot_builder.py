@@ -202,6 +202,7 @@ class WorldSnapshotBuilder:
             peripheral_cues=peripheral_cues,
             manifestations=_api_manifestations,
             embodied_traces=getattr(domain_perception, "embodied_traces", []),
+            observed_facts=getattr(domain_perception, "observed_facts", []),
         )
 
     def _extract_npc_positions(self, scene_state: Dict) -> Dict[str, NPCPositionDTO]:

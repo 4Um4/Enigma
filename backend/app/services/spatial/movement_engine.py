@@ -54,24 +54,11 @@ class MovementPlanner:
         _cy = current_xy.get("y", source_node_obj.y) if isinstance(current_xy, dict) else source_node_obj.y
         source_xy = (_cx, _cy)
         
-        # ADR-O-324: Same-Node NO-OP. Если NPC уже в целевом узле, это не макро-движение.
-        # Не применяем Hash Offset, не проверяем стены — остаёмся на месте.
+        # ADR-O-323: Same-Node NO-OP. Если NPC уже в целевом узле, это не макро-движение.
+        # Классифицируем как MICRO_MOVEMENT — snap local_position без TraversalProposal.
         if source_node_obj.node_id == target_node_obj.node_id:
-            _topology_version = getattr(svc, "_topology_version", 0)
             return MovementPlanResult(
-                status=MovementPlanStatus.ACCEPTED,
-                proposal=TraversalProposal(
-                    npc_id=intent.actor_id,
-                    source_node=source_node_obj.node_id,
-                    target_node=target_node_obj.node_id,
-                    path_waypoints=((source_xy[0], source_xy[1]),),
-                    distance=0.0,
-                    speed=0.0,
-                    duration_ticks=0,
-                    source_intent_id=getattr(intent, "intent_id", f"{intent.actor_id}:{intent.reason}"),
-                    planned_tick=tick,
-                    topology_version=_topology_version,
-                ),
+                status=MovementPlanStatus.MICRO_MOVEMENT,
                 reason="SAME_NODE_NO_OP"
             )
 
@@ -84,43 +71,81 @@ class MovementPlanner:
         _offset_x = ((_hash % 10) / 10.0 - 0.5) * 1.5
         _offset_y = (((_hash // 10) % 10) / 10.0 - 0.5) * 1.5
         target_xy = (target_xy[0] + _offset_x, target_xy[1] + _offset_y)
-        
+
+        # ADR-O-323: Motion Classification. Если дистанция меньше порога — это MICRO_MOVEMENT.
+        # Порог 0.1 совпадает с EventCompiler._TELEPORT_THRESHOLD для единой классификации.
+        _dist = math.hypot(target_xy[0] - source_xy[0], target_xy[1] - source_xy[1])
+        if _dist < 0.1:
+            return MovementPlanResult(
+                status=MovementPlanStatus.MICRO_MOVEMENT,
+                reason="DISTANCE_BELOW_THRESHOLD"
+            )
+
         # ADR-O-324: Geometric Segment Validation. Проверяем КАЖДЫЙ отрезок пути.
         # Сначала проверяем прямую видимость (source → target).
         is_path_blocked = self._check_wall_blocking(svc, source_xy, target_xy)
         waypoints: List[List[float]] = [[source_xy[0], source_xy[1]]]
         
         if is_path_blocked:
-            # Прямой путь заблокирован. Ищем обход через A* (топология графа).
-            path = self._find_path(svc, source_xy, target_node_obj)
-            if path and len(path) >= 2:
-                intermediate = [[pn.x, pn.y] for pn in path[1:-1]] if len(path) > 2 else []
-                if intermediate:
-                    # ADR-O-324: Валидируем КАЖДЫЙ промежуточный отрезок.
-                    # Если хотя бы один отрезок заблокирован стеной — весь маршрут невалиден.
-                    _prev_xy = source_xy
-                    _all_segments_valid = True
-                    for wp in intermediate:
-                        if svc.is_segment_blocked(_prev_xy[0], _prev_xy[1], wp[0], wp[1]):
-                            _all_segments_valid = False
-                            break
-                        _prev_xy = (wp[0], wp[1])
-                    
-                    if _all_segments_valid and not svc.is_segment_blocked(_prev_xy[0], _prev_xy[1], target_xy[0], target_xy[1]):
-                        waypoints.extend(intermediate)
+            # ADR-O-324 Phase 2A: Dynamic Doorway Routing.
+            # Если прямой путь заблокирован, пытаемся найти временный waypoint 
+            # (approach/exit point) вокруг цели или источника.
+            _probed_waypoint = self._resolve_doorway(svc, source_xy, target_xy)
+            if _probed_waypoint:
+                waypoints.extend([list(_probed_waypoint)])
+            else:
+                # Fallback: A* (топология графа)
+                path = self._find_path(svc, source_xy, target_node_obj)
+                if path and len(path) >= 2:
+                    intermediate = [[pn.x, pn.y] for pn in path[1:-1]] if len(path) > 2 else []
+                    if intermediate:
+                        _prev_xy = source_xy
+                        _all_segments_valid = True
+                        for wp in intermediate:
+                            if svc.is_segment_blocked(_prev_xy[0], _prev_xy[1], wp[0], wp[1]):
+                                _all_segments_valid = False
+                                break
+                            _prev_xy = (wp[0], wp[1])
+                        
+                        if _all_segments_valid and not svc.is_segment_blocked(_prev_xy[0], _prev_xy[1], target_xy[0], target_xy[1]):
+                            waypoints.extend(intermediate)
+                        else:
+                            return MovementPlanResult(
+                                status=MovementPlanStatus.REJECTED,
+                                reason=f"GEOMETRIC_OBSTACLE source={current_pos} target={target_node}"
+                            )
                     else:
-                        # ADR-O-324: Геометрический obstacle. Маршрут физически невозможен.
+                        # A* вернул 2 узла (прямая связь), но геометрия заблокирована.
+                        # DOORWAY-TRUST: Доверяем графу, чтобы не блокировать движение.
+                        pass
+                elif path and len(path) == 1:
+                    # A* считает, что мы уже на месте. Доверяем графу.
+                    pass
+                else:
+                    # A* ничего не нашёл. Ищем ближайший DEFAULT узел для обхода.
+                    from app.models.spatial_contracts import NodeRole
+                    _default_nodes = svc.find_nodes_by_role(NodeRole.DEFAULT)
+                    _best_detour = None
+                    _min_dist = float('inf')
+                    
+                    for _dn in _default_nodes:
+                        if _dn.node_id == target_node:
+                            continue
+                        _dn_xy = (_dn.x, _dn.y)
+                        if not svc.is_segment_blocked(source_xy[0], source_xy[1], _dn_xy[0], _dn_xy[1]):
+                            if not svc.is_segment_blocked(_dn_xy[0], _dn_xy[1], target_xy[0], target_xy[1]):
+                                _dist = math.hypot(_dn_xy[0] - source_xy[0], _dn_xy[1] - source_xy[1])
+                                if _dist < _min_dist:
+                                    _min_dist = _dist
+                                    _best_detour = _dn_xy
+                    
+                    if _best_detour:
+                        waypoints.extend([list(_best_detour)])
+                    else:
                         return MovementPlanResult(
                             status=MovementPlanStatus.REJECTED,
-                            reason=f"GEOMETRIC_OBSTACLE source={current_pos} target={target_node}"
+                            reason=f"GEOMETRIC_OBSTACLE_NO_DETOUR source={current_pos} target={target_node}"
                         )
-            else:
-                # ADR-O-324: Прямая линия заблокирована, и A* не нашёл обхода.
-                # Граф может утверждать, что связь есть (DOORWAY-TRUST), но физически пути нет.
-                return MovementPlanResult(
-                    status=MovementPlanStatus.REJECTED,
-                    reason=f"GEOMETRIC_OBSTACLE_NO_DETOUR source={current_pos} target={target_node}"
-                )
         
         waypoints.append([target_xy[0], target_xy[1]])
         
@@ -161,6 +186,39 @@ class MovementPlanner:
             blocked = svc.is_segment_blocked(source_xy[0], source_xy[1], target_xy[0], target_xy[1])
             return blocked if isinstance(blocked, bool) else False
         return False
+
+    def _resolve_doorway(self, svc: Any, source_xy: tuple, target_xy: tuple) -> Optional[tuple]:
+        """ADR-O-324 Phase 2A: Dynamic Doorway Routing.
+        Ищет временный waypoint вокруг цели или источника, чтобы обойти стену.
+        Пробует 4 осевых направления. Возвращает (x, y) или None.
+        """
+        _offset = 1.5  # Дистанция отступа от цели/источника
+        
+        # 1. Пробуем найти approach point вокруг цели
+        _candidates = [
+            (target_xy[0] + _offset, target_xy[1]),
+            (target_xy[0] - _offset, target_xy[1]),
+            (target_xy[0], target_xy[1] + _offset),
+            (target_xy[0], target_xy[1] - _offset),
+        ]
+        for c in _candidates:
+            if not svc.is_segment_blocked(source_xy[0], source_xy[1], c[0], c[1]):
+                if not svc.is_segment_blocked(c[0], c[1], target_xy[0], target_xy[1]):
+                    return c
+        
+        # 2. Пробуем найти exit point вокруг источника
+        _candidates_src = [
+            (source_xy[0] + _offset, source_xy[1]),
+            (source_xy[0] - _offset, source_xy[1]),
+            (source_xy[0], source_xy[1] + _offset),
+            (source_xy[0], source_xy[1] - _offset),
+        ]
+        for c in _candidates_src:
+            if not svc.is_segment_blocked(source_xy[0], source_xy[1], c[0], c[1]):
+                if not svc.is_segment_blocked(c[0], c[1], target_xy[0], target_xy[1]):
+                    return c
+        
+        return None
 
     def _find_path(self, svc: Any, source_xy: tuple, target_node: Any) -> Optional[list]:
         """A* pathfinding через SpatialService."""
@@ -527,13 +585,40 @@ class MovementEngine:
             )
             return []
 
+        # ADR-O-323: MICRO_MOVEMENT — snap local_position без TraversalProposal.
+        # Этим устраняется Semantic Drift (Legacy создавал Traversal, Shadow — нет).
+        if plan_result.status == MovementPlanStatus.MICRO_MOVEMENT:
+            target_node_obj = svc.get_node(intent.target_node_id)
+            if target_node_obj:
+                # Вычисляем target_xy с offset, как в planner.plan()
+                import zlib as _zl
+                _h = _zl.adler32(intent.actor_id.encode("utf-8")) if intent.actor_id else 0
+                _ox = ((_h % 10) / 10.0 - 0.5) * 1.5
+                _oy = (((_h // 10) % 10) / 10.0 - 0.5) * 1.5
+                target_xy = (target_node_obj.x + _ox, target_node_obj.y + _oy)
+                logger.info(
+                    f"[PIPELINE][MOVEMENT][MICRO] npc={intent.actor_id} → snap to {target_xy} reason={plan_result.reason}"
+                )
+                return [
+                    SceneChange(
+                        type=ChangeType.NPC_POSITION,
+                        target=intent.actor_id,
+                        field="local_position",
+                        value={"x": target_xy[0], "y": target_xy[1]},
+                        cause=f"micro_snap:{intent.reason}",
+                        tick=tick,
+                        target_location_id=location_id,
+                    )
+                ]
+            return []
+
         if plan_result.proposal is None:
             logger.error(
                 f"[GATE_B3] npc={intent.actor_id} reason=ACCEPTED_NULL_PROPOSAL (Kernel Violation)"
             )
             return []
 
-        # ADR-O-323: MovementEngine не модифицирует proposal. 
+        # ADR-O-323: MovementEngine не модифифует proposal. 
         # Извлекаем целевые координаты из proposal для логирования и SceneChange.target_local_xy.
         target_xy = plan_result.proposal.path_waypoints[-1]
 

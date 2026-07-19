@@ -665,3 +665,9 @@ Validation: IPT 5/5 passed. Pytest 844 passed.Files: backend/app/services/pipeli
 - `pytest tests/` — 844 passed, 0 failed.
 - `IPT.py` — 5/5 passed.
 - Логи игры чисты от `EQUIVALENCE_VIOLATION` и `DRIFT`.
+
+🔵 S126 ФАЗА 1: Rule 120 Drift Elimination & NO_DETOUR & Sims-Enrichment.
+Task 1 (Rule 120 Drift): Устранён дрейф Rule 120 в event_compiler.py. Из _compile_full_movement удалена дублирующая логика поиска пути (find_path и проверки блокировки). Shadow-пайплайн теперь строго доверяет TraversalProposal от MovementPlanner и только валидирует его. Восстановлены _get_source_node и target_loc, удалённые другим архитектором. drift_B = 0 в масс-тесте.
+Task 2 (NO_DETOUR): Реализован Вариант B из ТЗ (ADR-O-324). Если A* не находит обхода стены, MovementPlanner ищет ближайший свободный узел (NodeRole.DEFAULT) и строит путь через него. Устранён спам GEOMETRIC_OBSTACLE_NO_DETOUR.
+Task 3 (Sims-слой): _AMBIENT_PHRASES в npc_conversation.py разбиты на категории по архетипам (BLACKSMITH, MERCHANT, TAVERN_KEEPER, GUARD, COMMON). Реплики генерируются с учётом ID NPC. Сохранены все авторские фразы и юмор.
+Validation: IPT 5/5 passed. DriftLaboratory (mass_traversal): 471 comparisons, rate=25/s, drift_B=0, 0 крашей.Files: backend/app/services/event_compiler.py, backend/app/services/spatial/movement_engine.py, backend/app/services/execution/npc_conversation.py, backend/tests/sandbox/SUPERBOX/drift_laboratory.py

@@ -157,6 +157,7 @@ class SceneOutcome:
     scene_changes: List[str]  # наблюдаемые изменения сцены
     tension: TensionOutcome
     latent: List[LatentSignal]  # структурированные скрытые сигналы
+    observed_facts: List[str] = field(default_factory=list)  # ADR-O-318
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -211,6 +212,7 @@ class DMFrame:
     scene_line: List[str]  # наблюдаемые изменения
     hidden_pressure: List[LatentSignal]  # для стиля DM, не для содержания
     voice_map: Dict[str, Dict[str, str]]  # npc_id → voice_constraints
+    observed_facts: List[str] = field(default_factory=list)  # ADR-O-318: факты, уже донесённые игроку
 
 
 # Порог разделения focus/background
@@ -268,6 +270,7 @@ class SceneOutcomeBuilder:
         # ADR-131: Трёхосевая модель — вызывающий код извлекает из доменов
         npc_affective_loads: Optional[Dict[str, float]] = None,
         avatar_coherence: float = 1.0,
+        observed_facts: Optional[List[str]] = None,  # ADR-O-318
     ) -> SceneOutcome:
         """
         Основной метод. Принимает решения + контекст, возвращает проживаемую реальность.
@@ -319,6 +322,7 @@ class SceneOutcomeBuilder:
             scene_changes=scene_changes,
             tension=tension,
             latent=latent,
+            observed_facts=observed_facts or [],
         )
 
     # ─── DM Frame построение ───
@@ -356,6 +360,7 @@ class SceneOutcomeBuilder:
             scene_line=scene.scene_changes,
             hidden_pressure=scene.latent,
             voice_map=voice_map,
+            observed_facts=scene.observed_facts,  # ADR-O-318
         )
 
     def _interpret_tension(

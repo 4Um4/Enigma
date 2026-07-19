@@ -162,12 +162,53 @@ class BehaviorManifestationService:
             min(1.0, shock_impulse) if shock_impulse > 0.5 else 0.0,
         )
 
-        # [DIAG S61] Снятие слепка причинных факторов (Правило X vs Semantic Inflation)
-        logger.debug(
-            f"[MANIFEST_DIAG] npc={npc_id} pain={pain:.2f} shock_imp={shock_impulse:.2f} → instab={instability:.2f} rigid={posture_rigidity:.2f}"
-        )
-        is_frozen = posture_rigidity > 0.7 and not in_transit
+        is_frozen = posture_rigidity > 0.7
         is_shaking = instability > 0.3
+
+        # ADR-O-318: Rule X Causal Candidate Projection.
+        # Причины выводятся только из реально активированных причинных ветвей.
+        # Это не телепатия: мы не отдаем affective_load, мы отдаем "emotional_overload".
+        _possible_causes: set[str] = set()
+
+        if instability > 0.3:
+            if pain > 10.0:
+                _possible_causes.add("pain")
+            if shock_impulse > 0.3:
+                _possible_causes.add("shock")
+            if affective_load > 0.3:
+                _possible_causes.add("emotional_overload")
+
+        if posture_rigidity > 0.3:
+            if pain > 20.0:
+                _possible_causes.add("pain")
+            if shock_impulse > 0.5:
+                _possible_causes.add("shock")
+            if stress > 20.0:
+                _possible_causes.add("stress")
+            if _kernel and _threat > 0.0:
+                _possible_causes.add("threat")
+
+        if micro_pause > 0.0:
+            if blood_loss > 0.05:
+                _possible_causes.add("blood_loss")
+            if fatigue > 30.0:
+                _possible_causes.add("fatigue")
+            if affective_load > 0.3:
+                _possible_causes.add("cognitive_overload")
+
+        # manifestation_confidence: насколько сильно выражено проявление
+        _confidence = min(
+            1.0,
+            max(
+                pain / 50.0,
+                shock_impulse,
+                blood_loss * 5.0,
+                fatigue / 80.0,
+                stress / 100.0,
+                affective_load,
+                _threat if _kernel else 0.0,
+            ),
+        )
 
         return EmbodiedTraceDTO(
             npc_id=npc_id,
@@ -177,4 +218,6 @@ class BehaviorManifestationService:
             micro_pause_density=micro_pause,
             is_frozen=is_frozen,
             is_shaking=is_shaking,
+            confidence=_confidence,
+            possible_causes=tuple(sorted(_possible_causes)),
         )

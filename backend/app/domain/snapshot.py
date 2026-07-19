@@ -200,6 +200,9 @@ class PlayerPerceptionDTO:
 
     # The Fool: Моторные следы для физического рендера (дрожь, замер)
     embodied_traces: List[Dict[str, Any]] = field(default_factory=list)
+    
+    # ADR-O-318: Наблюдаемые факты для DM (чтобы не дублировать визуал)
+    observed_facts: List[str] = field(default_factory=list)
 
 
 @dataclass(frozen=True)

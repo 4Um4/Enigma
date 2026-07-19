@@ -2089,6 +2089,10 @@ class LifeEngine:
         npc_id = npc.get("id", "unknown")
         schedule = npc.get("routine", {}).get("schedule", {})
 
+        # ADR-123: Мёртвые NPC не обновляют расписание. Зомби-NPC запрещены.
+        if npc.get("body_state", {}).get("life_status") == "DEAD":
+            return [], None
+
         if not schedule:
             return [], None
 

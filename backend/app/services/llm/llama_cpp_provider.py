@@ -218,12 +218,12 @@ class LlamaCppProvider(StreamingLlmProvider):
         """Прервать текущую генерацию (server — HTTP abort, CLI — kill процесса)."""
         if self._use_server and self.server_url:
             try:
-                urllib.request.urlopen(
+                _abort_req = urllib.request.Request(
                     self.server_url.rstrip("/") + "/abort",
                     data=b"",
                     method="POST",
-                    timeout=2,
                 )
+                urllib.request.urlopen(_abort_req, timeout=2)
             except Exception as e:
                 logger.warning(f"[B5-FIX] silent failure suppressed: {e}")
         else:

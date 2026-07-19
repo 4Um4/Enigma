@@ -113,8 +113,9 @@ class TraversalProposal:
 
 
 class MovementPlanStatus(Enum):
-    ACCEPTED = "ACCEPTED"
+    ACCEPTED = "ACCEPTED"  # MACRO_TRAVERSAL
     REJECTED = "REJECTED"
+    MICRO_MOVEMENT = "MICRO_MOVEMENT"  # ADR-O-323: Snap или микро-перемещение, не создаёт TraversalProposal
 
 
 @dataclass(frozen=True)
@@ -134,6 +135,8 @@ class MovementPlanResult:
         if self.status is MovementPlanStatus.ACCEPTED:
             if self.proposal is None:
                 raise ValueError("ACCEPTED result requires proposal")
+        # MICRO_MOVEMENT не требует proposal — это snap local_position без Traversal
+        # REJECTED также не требует proposal
         if self.status is MovementPlanStatus.REJECTED:
             if self.proposal is not None:
                 raise ValueError("REJECTED result cannot contain proposal")

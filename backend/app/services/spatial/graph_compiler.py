@@ -98,6 +98,7 @@ def compile_graph(
                 role=resolve_role(
                     node_label=node_label,
                     editor_type=node_data.get("type"),
+                    editor_tags=node_data.get("tags", []),
                     node_id=node_id,
                 ),
                 tags=node_data.get("tags", []),

@@ -127,6 +127,12 @@ def build_r3_dm_frame(
                         logger.warning(f"[B5-FIX] silent failure suppressed: {e}")
                 break  # берём первого игрока
 
+    # Извлекаем observed_facts из PlayerPerceptionDTO (Фаза 9)
+    _observed_facts = []
+    _ws = getattr(shared_context, "world_snapshot", None)
+    if _ws and hasattr(_ws, "player_perception"):
+        _observed_facts = getattr(_ws.player_perception, "observed_facts", [])
+
     # Строим SceneOutcome → DMFrame (с психологической проекцией + ADR-131 трёхосевая модель)
     _scene = _builder.build(
         _decisions,
@@ -137,6 +143,7 @@ def build_r3_dm_frame(
         topics=_npc_topics,
         npc_affective_loads={},
         avatar_coherence=_avatar_coherence,
+        observed_facts=_observed_facts,  # ADR-O-318
     )
 
     # Диагностика ProjectionLayer + DecisionHub
