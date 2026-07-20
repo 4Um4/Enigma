@@ -108,7 +108,9 @@ class LlamaCppProvider(StreamingLlmProvider):
         full_prompt = self._build_chatml_prompt(prompt, system_prompt)
 
         if self._use_server:
-            raw = self._complete_via_server(full_prompt, gen_params)
+            # S128 FIX: Используем OpenAI-совместимый эндпоинт /v1/chat/completions
+            # передаём чистые prompt и system_prompt, чтобы избежать двойного ChatML
+            raw = self._complete_via_server(prompt, system_prompt, gen_params)
         else:
             raw = self._complete_via_cli(full_prompt, gen_params)
 
@@ -143,21 +145,25 @@ class LlamaCppProvider(StreamingLlmProvider):
         return f"<|im_start|>user\n{user_prompt}\n<|im_end|>\n<|im_start|>assistant\n"
 
     # ──────────────────────────────────────────────────────────────────────────
-    # Server mode — /completion
+    # Server mode — /v1/chat/completions (OpenAI compatible)
     # ──────────────────────────────────────────────────────────────────────────
 
-    def _complete_via_server(self, prompt: str, params: GenerationParams) -> str:
-        url = self.server_url.rstrip("/") + "/completion"
+    def _complete_via_server(self, prompt: str, system_prompt: Optional[str], params: GenerationParams) -> str:
+        url = self.server_url.rstrip("/") + "/v1/chat/completions"
 
         stop_tokens = list(DEFAULT_STOP_TOKENS)
         if params.stop:
             stop_tokens.extend([t for t in params.stop if t.isascii()])
 
-        # seed=-1 + случайное значение ломает KV-кеш llama-server при похожих промптах
+        messages = []
+        if system_prompt:
+            messages.append({"role": "system", "content": system_prompt})
+        messages.append({"role": "user", "content": prompt})
+
         _seed = random.randint(0, 2**31 - 1)
         payload = {
-            "prompt": prompt,
-            "n_predict": params.max_tokens,
+            "messages": messages,
+            "max_tokens": params.max_tokens,
             "stream": False,
             "stop": stop_tokens,
             "temperature": params.temperature,
@@ -190,7 +196,7 @@ class LlamaCppProvider(StreamingLlmProvider):
                     req, timeout=settings.llama_cpp_timeout_sec
                 ) as resp:
                     body = json.loads(resp.read().decode("utf-8"))
-                    return body.get("content", "")
+                    return body.get("choices", [{}])[0].get("message", {}).get("content", "")
             except (
                 urllib.error.URLError,
                 ConnectionResetError,

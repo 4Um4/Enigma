@@ -32,12 +32,16 @@ class NpcDialogueSubscriber:
         affective_integrator: Any = None,
         npc_states_provider: Any = None,
         campaign_id_provider: Any = None,  # NEW — callable() -> str
+        avatar_service: Any = None,
+        spatial_query_provider: Any = None,
     ) -> None:
         self.memory = memory_manager
         self.relationships = relationship_store
         self.affective = affective_integrator
         self._get_npc_state = npc_states_provider
         self._get_campaign_id = campaign_id_provider or (lambda: "Open_road")
+        self._avatar_service = avatar_service
+        self._get_spatial_query = spatial_query_provider
 
     def on_npc_spoke(self, event: Any) -> None:
         # Поддержка как EventDTO, так и dict (для тестов)
@@ -58,6 +62,17 @@ class NpcDialogueSubscriber:
 
         if not speaker or not listener or listener == "all":
             return
+
+        # S128: Eavesdrop — если игрок рядом, он подслушивает реплику
+        if self._avatar_service and self._get_spatial_query:
+            _campaign_id = self._get_campaign_id()
+            _spatial_query = self._get_spatial_query()
+            if _spatial_query:
+                _dist_to_player = _spatial_query.player_distances([speaker]).get(speaker, 999.0)
+                if _dist_to_player < 8.0 and is_canonical:
+                    self._avatar_service.append_journal(
+                        campaign_id=_campaign_id, speaker=speaker, text=text
+                    )
 
         logger.info(
             f"[NPC_DIALOGUE_SUB] {listener} heard {speaker} "

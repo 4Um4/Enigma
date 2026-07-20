@@ -320,6 +320,7 @@ def create_tick_context(
     drf_bus: "DRFBus",
     all_npcs_raw: list = None,
     shared_context: Any = None,
+    task_scheduler: Any = None,
 ) -> "_TickContext":
     """[S98] Чистая сборка _TickContext для TickOrchestrator.execute().
 
@@ -369,6 +370,7 @@ def create_tick_context(
         npc_services=npc_services,
         drf_bus=drf_bus,
         rng_factory=_rng_factory,
+        task_scheduler=task_scheduler,
         player_intent=_player_intent,
         all_npcs_raw=all_npcs_raw or [],
         shared_context=shared_context

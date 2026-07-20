@@ -21,7 +21,7 @@ class DmSettings(Settings):
     llm_servers: dict = {
         "dm": {
             "host": "127.0.0.1",
-            "port": 8080,
+            "port": 8181,
             "description": "DM narrative server",
         },
     }

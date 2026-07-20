@@ -1,0 +1,6 @@
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6692, "vram_after_mb": 6692}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 215, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6600, "vram_after_mb": 6600}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 77, "status": "complete"}

@@ -237,6 +237,11 @@ class GameLoop:
         self._time_skip = TimeSkipExecutor(self._tick_orch)
         self._skip_locks: Dict[str, threading.Lock] = {}  # Real locks per campaign
 
+    def _get_spatial_query_for_subscriber(self):
+        """Провайдер SpatialQueryService для NpcDialogueSubscriber (eavesdrop)."""
+        # Возвращает текущий spatial_query из TickContext или None
+        return getattr(self, "_current_spatial_query", None)
+
     def _register_npc_dialogue_subscriber(self, memory_manager: Any, rel_store: Any) -> None:
         """Регистрирует NpcDialogueSubscriber на события NPC_SPOKE."""
         try:
@@ -253,6 +258,8 @@ class GameLoop:
                 affective_integrator=None,
                 npc_states_provider=None,
                 campaign_id_provider=lambda: getattr(self, "_current_campaign_id", "Open_road"),
+                avatar_service=self.avatar_service,
+                spatial_query_provider=self._get_spatial_query_for_subscriber,
             )
 
             from app.services.events.event_types import EventType
@@ -639,10 +646,12 @@ class GameLoop:
                     _spatial_svc = SpatialFactory.build_for_campaign(
                         campaign_id=campaign_id, location_id=_loc_id, scene_state=_scene
                     )
+                    self._current_spatial_query = _spatial_svc  # S128: Провайдер для Eavesdrop
                 except Exception as e:
                     logger.warning(
                         f"[SPATIAL_AUTHORITY] SpatialService build failed: {e}"
                     )
+                    self._current_spatial_query = None
 
             result = self._time_skip.skip(
                 campaign_id=campaign_id,
@@ -1042,6 +1051,11 @@ class GameLoop:
         # TODO: _write_memory удалён — persist_dm_response на строке ниже покрывает запись
         elapsed_ms = int(time.time() * 1000 - state.start_ms)
         traces = self._build_traces(state, dm_result, elapsed_ms)
+
+        # S128 FIX: Обязательный commit_tick_result после _run_pipeline.
+        # Без этого unlock_tick сохраняет старый _tick_scene, затирая мутации ядра (player_recognition).
+        if hasattr(state, "shared_context") and state.shared_context and state.shared_context.scene_state:
+            self.scene_manager.commit_tick_result(req.campaign_id, state.shared_context.scene_state)
 
         # TASK 1: Force Merge — строим world_snapshot из актуального scene_state (ADR-0014)
         _ws_dict = None

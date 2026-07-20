@@ -495,6 +495,9 @@ class GameScreen:
         self.screen = screen
         self.show_obs_console = False  # Консоль наблюдений (клавиша Ё)
         self.show_journal = False  # ADR-JOURNAL: Журнал диалогов (клавиша J / О)
+        # S128: Вкладки журнала (по спикерам)
+        self._journal_active_tab = "all"  # ID активной вкладки ("all" или speaker_id)
+        self._journal_tab_rects = []  # Хитбоксы вкладок для кликов мышью
         # B1.3-FIX: dialog_journal — из backend world_snapshot, не локальный.
         # Раньше: self.dialog_journal = [] → двойное хранение, рассинхрон на Continue.
         # Теперь: читаем из _ws["dialog_journal"] при каждом sync.
@@ -711,6 +714,17 @@ class GameScreen:
                     # ADR-JOURNAL: Переключение журнала (J / Русская О), только если консоль НЕ в фокусе
                     elif not text_input.focused and event.key == pygame.K_j:
                         self.show_journal = not self.show_journal
+                        if not self.show_journal:
+                            self._journal_active_tab = "all"  # Сброс вкладки при закрытии
+
+                    # S128: Обработка кликов по вкладкам журнала
+                    elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                        if self.show_journal and self._journal_tab_rects:
+                            _mx, _my = event.pos
+                            for _tab_id, _rect in self._journal_tab_rects:
+                                if _rect.collidepoint(_mx, _my):
+                                    self._journal_active_tab = _tab_id
+                                    break
                     elif event.key == pygame.K_TAB:
                         # Переключение фокуса: игра <-> консоль общения
                         text_input.focused = not text_input.focused
@@ -1958,7 +1972,40 @@ class GameScreen:
 
                 # B1.3-FIX: читаем из backend cache
                 _journal_data = self._dialog_journal_backend
-                _y_offset = 45
+                
+                # S128: Сбор уникальных спикеров для вкладок
+                _speakers = ["all"]
+                for _entry in _journal_data:
+                    _spk = _entry.get("speaker", "???")
+                    if _spk not in _speakers:
+                        _speakers.append(_spk)
+                
+                # S128: Отрисовка вкладок
+                _font_tab = pygame.font.Font(None, 24)
+                _tab_x = 15
+                _tab_y = 45
+                self._journal_tab_rects = []
+                _npc_pos_map = scene_state.get("npc_positions", {})
+
+                for _spk in _speakers:
+                    if _spk == "all":
+                        _tab_name = "Все"
+                    elif _spk == t("ui:narrator"):
+                        _tab_name = t("ui:narrator")
+                    else:
+                        # S128: Берём display_name из npc_positions (если NPC запомнен)
+                        _npc_data = _npc_pos_map.get(_spk, {})
+                        _tab_name = _npc_data.get("display_name", "Незнакомец")
+                    
+                    _color = COLOR_TEXT_DEFAULT if _spk == self._journal_active_tab else COLOR_TEXT_MUTED
+                    _tab_surf = _font_tab.render(_tab_name, True, _color)
+                    _journal_surf.blit(_tab_surf, (_tab_x, _tab_y))
+                    # Хитбокс в абсолютных координатах экрана
+                    _abs_x = self.screen.get_width() - _panel_width + _tab_x
+                    self._journal_tab_rects.append((_spk, pygame.Rect(_abs_x, _tab_y, _tab_surf.get_width(), _tab_surf.get_height())))
+                    _tab_x += _tab_surf.get_width() + 15
+
+                _y_offset = 75
 
                 if not _journal_data:
                     _font_text = pygame.font.Font(None, 22)
@@ -1970,8 +2017,13 @@ class GameScreen:
                     _font_name = pygame.font.Font(None, 26)
                     _font_text = pygame.font.Font(None, 22)
 
+                    # S128: Фильтрация по активной вкладке
+                    _filtered_data = _journal_data
+                    if self._journal_active_tab != "all":
+                        _filtered_data = [e for e in _journal_data if e.get("speaker") == self._journal_active_tab]
+
                     # Отрисовка снизу вверх (новые реплики внизу)
-                    for _entry in reversed(_journal_data):
+                    for _entry in reversed(_filtered_data):
                         _speaker = _entry.get("speaker", "???")
                         _text = _entry.get("text", "")
 

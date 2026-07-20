@@ -13,7 +13,10 @@
 
 import copy
 import logging
+import math
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional
+
+from app.services.spatial.spatial_runtime import sound_reach
 
 from app.domain.tick import TickMutation, TickState
 
@@ -152,6 +155,33 @@ class NpcTickPipeline:
             _is_attack_target = npc_id == _attack_target
 
             if npc_id and (_is_player_turn and not (_los or _is_attack_target)):
+                # P1-02: NPC не видит, но может слышать.
+                # Если NPC в радиусе слуха, он записывает обобщённое событие в память, но пропускает DecisionHub.
+                _npc_pos_dict = npc.get("local_position", {"x": 0.0, "y": 0.0})
+                _npc_pos = (_npc_pos_dict.get("x", 0.0), _npc_pos_dict.get("y", 0.0))
+                _player_pos_dict = state.scene_state.get("npc_positions", {}).get("player", {}).get("local_position", {"x": 0.0, "y": 0.0})
+                _player_pos = (_player_pos_dict.get("x", 0.0), _player_pos_dict.get("y", 0.0))
+                _dist_to_player = math.hypot(_npc_pos[0] - _player_pos[0], _npc_pos[1] - _player_pos[1])
+                _has_sound = sound_reach(15.0, state.scene_state) >= _dist_to_player
+                
+                if _has_sound and state.hub_event:
+                    try:
+                        _mem_evt = apply_perception_memory(
+                            None,
+                            state_l2,
+                            state.hub_event,
+                            npc_id,
+                            state.player_target_id,
+                            "(обрывки разговора)", # Обобщённый текст для слуха
+                            state.campaign_id,
+                            spatial_query=state.spatial_query,
+                        )
+                        if _mem_evt:
+                            memory_events.append(_mem_evt)
+                    except Exception as _perc_mem_err:
+                        logger.warning(
+                            f"[MEMORY] hearing perception apply failed for {npc_id}: {_perc_mem_err}"
+                        )
                 continue
 
             _npc_drf_ctx = drf_ctx.for_npc(npc_id) if drf_ctx else None

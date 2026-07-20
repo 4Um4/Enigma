@@ -356,6 +356,7 @@ class TickOrchestrator:
         shared_context: Optional[
             Any
         ] = None,  # S116 FIX: Проброс shared_context для CombatSubscriber
+        task_scheduler: Optional[Any] = None,  # S128 FIX: Проброс для Фазы 4
     ) -> Union[TickResultDTO, TickPlayerResultDTO]:
         """Единая точка входа для тика мира (TZ-08 v0.2).
 
@@ -401,6 +402,7 @@ class TickOrchestrator:
             drf_bus=self._drf_bus,
             all_npcs_raw=all_npcs_raw,
             shared_context=shared_context,
+            task_scheduler=task_scheduler,
         )
 
         # CFRM P2: Восстанавливаем пространственный индекс кластеров ДО привязки моста
@@ -1037,9 +1039,11 @@ class TickOrchestrator:
 
             topic = None
             
-            # 0. Приоритет: Проверяем недавние диалоги в scene_state (NPC_SPOKE)
+            # 0. Приоритет: Проверяем недавние диалоги в TaskScheduler (NPC_SPOKE)
             # Если к NPC обратились, он должен ответить, а не болтать "наблюдение".
-            _recent_dialogues = ctx.scene_state.get("recent_dialogues", [])
+            _recent_dialogues = []
+            if ctx.task_scheduler:
+                _recent_dialogues = ctx.task_scheduler.get_recent_dialogues(ctx.scene_state.get("game_time_seconds", 0.0))
             for dialogue in _recent_dialogues:
                 if dialogue.get("target_id") == npc_id:
                     _speaker = dialogue.get("speaker_id", "кто-то")

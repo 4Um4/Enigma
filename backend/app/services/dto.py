@@ -100,6 +100,8 @@ class _TickContext:
     changes_count: int = 0
     # Sprint P3: SpatialQueryService для PerceptionPhysicsEngine
     spatial_query: Optional[Any] = None
+    # ADR-O-313: Проброс TaskScheduler для чтения свежих реплик (S128 FIX)
+    task_scheduler: Optional[Any] = None
 
     # KERNEL-ISOLATION: per-tick RNG factory.
     # Создаёт KernelRNG для каждого NPC по запросу (lazy).

@@ -25,6 +25,6 @@ class RulesSettings(Settings):
     )
 
 
-llama_cpp_server_url: str = "http://127.0.0.1:8080"
+llama_cpp_server_url: str = "http://127.0.0.1:8181"
 
 rules_settings = RulesSettings()

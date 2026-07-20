@@ -19,6 +19,7 @@ TODO:
 import heapq
 import logging
 import math
+from collections import OrderedDict
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 from app.models.cfrm import ClusterDef, ClusterGraph
@@ -124,7 +125,8 @@ class SpatialService:
         self._spatial_obstacles = spatial_obstacles or []  # ADR-O-324
         self._affordance_objects = affordance_objects or []  # ADR-O-330
         self._spatial_obstacles = spatial_obstacles or []  # ADR-O-324
-        self._path_cache: Dict[Tuple[str, str, str, Urgency], List[NodeRef]] = {}
+        self._path_cache: OrderedDict[Tuple[str, str, str, Urgency], List[NodeRef]] = OrderedDict()
+        self._path_cache_max_size = 128  # P1-15: LRU cache limit
 
     # ── ADR-O-324: Geometric Validation ─────────────────────────────────
     def is_segment_blocked(self, ax: float, ay: float, bx: float, by: float) -> bool:
@@ -498,6 +500,7 @@ class SpatialService:
         )
         cached = self._path_cache.get(cache_key)
         if cached is not None:
+            self._path_cache.move_to_end(cache_key)  # LRU: помечаем как недавно использованный
             return cached
 
         # A*
@@ -515,6 +518,8 @@ class SpatialService:
                 # Восстановление пути
                 path = self._reconstruct_path(came_from, current_id)
                 self._path_cache[cache_key] = path
+                if len(self._path_cache) > self._path_cache_max_size:
+                    self._path_cache.popitem(last=False)  # LRU: удаляем самый старый
                 return path
 
             current_node = self._graph.get(current_id)

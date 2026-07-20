@@ -12,7 +12,7 @@ class NpcSettings(BaseSettings):
     llm_servers: Dict[str, Dict[str, str]] = {
         "npc": {
             "host": "127.0.0.1",
-            "port": "8080",
+            "port": "8181",
             "description": "NPC dialogues",
         }
     }

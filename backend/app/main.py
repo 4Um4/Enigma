@@ -77,7 +77,7 @@ def _restart_llama_server() -> bool:
             "-m",
             settings.llama_cpp_model_path,
             "--port",
-            "8080",
+            str(settings.llama_cpp_port),
             "--host",
             "localhost",
             "-ngl",
