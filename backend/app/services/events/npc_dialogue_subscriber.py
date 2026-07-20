@@ -179,12 +179,16 @@ class NpcDialogueSubscriber:
     def _compute_rel_delta(self, tone: str) -> tuple[float, float]:
         """Конвертирует tone в изменения trust/fear."""
         _BASE = {
-            "ANGRY": (-5.0, 2.0),
-            "FRIENDLY": (3.0, 0.0),
-            "FLIRTY": (2.0, 0.0),
-            "VENTING": (1.0, 0.0),
-            "MANIPULATIVE": (-2.0, 1.0),
-            "FEARFUL": (0.0, 1.0),
-            "NEUTRAL": (0.0, 0.0),
+            "ANGRY": (-0.10, 0.05),
+            "FRIENDLY": (0.05, 0.0),
+            "FLIRTY": (0.03, 0.0),
+            "VENTING": (0.02, 0.0),
+            "MANIPULATIVE": (-0.05, 0.02),
+            "FEARFUL": (0.0, 0.03),
+            "NEUTRAL": (0.005, 0.0),  # Шкала 0..1: привыкание очень медленное
+            "PANIC": (-0.02, 0.08),
+            "CURIOUS": (0.01, 0.0),
+            "SAD": (-0.01, 0.01),
+            "SUSPICIOUS": (-0.03, 0.01),
         }
         return _BASE.get(tone, (0.0, 0.0))

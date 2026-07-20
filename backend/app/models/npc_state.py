@@ -889,7 +889,9 @@ class NPCState:
 
         # emotion — текущая эмоция (ADR-116)
         # Без этого emotion сбрасывается в NEUTRAL каждый тик → DOUBLE TRUTH → _emotion_modifier() = 0.0
-        npc_dict["emotion"] = state.emotion.value
+        # ADR-O-331: Round-Trip Safety. emotion может быть строкой после загрузки из JSON.
+        _emo = state.emotion
+        npc_dict["emotion"] = _emo.value if hasattr(_emo, "value") else _emo
         npc_dict["emotion_delta"] = state.emotion_delta
 
 

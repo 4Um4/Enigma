@@ -80,10 +80,8 @@ class ServiceFactory:
         try:
             from app.services.social.reputation_engine import ReputationEngine
 
-            _config_path = self._data_dir / "config" / "world" / "factions.json"
-            # Fallback: ищем в корне проекта
-            if not _config_path.exists():
-                _config_path = Path("config/world/factions.json")
+            # data_dir указывает на backend/data, поднимаемся к корню проекта (Enigma/)
+            _config_path = self._data_dir.parent.parent / "config" / "world" / "factions.json"
             if not _config_path.exists():
                 logger.info("[REPUTATION] factions.json not found, engine disabled")
                 return None

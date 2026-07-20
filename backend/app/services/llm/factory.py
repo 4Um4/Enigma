@@ -61,6 +61,16 @@ class ProviderFactory:
                     server_url=endpoint,
                 )
 
+            case ProviderType.OPENAI:
+                from app.services.llm.openai_compatible_provider import OpenAICompatibleProvider
+                # endpoint: https://api.openai.com/v1 или https://open.bigmodel.cn/api/paas/v4
+                # api_key: берётся из config.py (settings.openai_api_key)
+                return OpenAICompatibleProvider(
+                    model_name=model_path or "gpt-4o-mini",
+                    api_key=api_key or "",
+                    endpoint=endpoint or "https://api.openai.com/v1",
+                )
+
             case ProviderType.MOCK:
                 # B4-FIX: MockProvider excluded from production (No fallback reality).
                 from app.core.config import settings

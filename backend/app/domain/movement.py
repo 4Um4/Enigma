@@ -10,6 +10,7 @@ TODO:
 from __future__ import annotations
 
 import enum
+import uuid
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -48,6 +49,7 @@ class MacroMovementGoal:
     target_local_xy: Optional[tuple[float, float]] = (
         None  # ADR-065: Точные координаты цели внутри узла (для подхода к игроку)
     )
+    intent_id: str = field(default_factory=lambda: str(uuid.uuid4())) # P1-09: Уникальный ID для трекинга
     # ADR-XXXX: Инвариант единого владения причинностью. Один Intent → один process_intents() → одно будущее.
     processed: bool = field(default=False, init=False)
     processor: Optional[str] = field(default=None, init=False)

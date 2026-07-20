@@ -28,7 +28,7 @@ class LifeProjectResolver:
     }
 
     @staticmethod
-    def resolve(state: NPCState, identity_pressure: float) -> None:
+    def resolve(state: NPCState, identity_pressure: float, tick: int = 0) -> None:
         """
         Продвигает FSM жизненного проекта на основе эфемерного Identity Pressure.
         Вызывается каждый тик в phases/decision.py.
@@ -36,13 +36,18 @@ class LifeProjectResolver:
         current_state = getattr(state, "life_project_state", "ACTIVE")
 
         if current_state == "ACTIVE":
-            # Кризис от Угрозы: высокое давление ломает текущий смысл
-            if identity_pressure > 80.0:
-                state.life_project_state = "COLLAPSING"
-            # Кризис от Успеха: давление спало, личность цела — стабилизатор достигнут
-            # (Survival — это перманентный проект, он не завершается)
-            elif identity_pressure < 10.0 and state.identity_integrity > 0.9 and state.life_project != "survival":
-                state.life_project_state = "COMPLETED"
+            # P5-01: Аккумуляция для COLLAPSING (3 тика подряд > 60)
+            if identity_pressure > 60.0:
+                _high_ticks = state.state_modifiers.get("high_pressure_ticks", 0.0) + 1.0
+                state.state_modifiers["high_pressure_ticks"] = _high_ticks
+                if _high_ticks >= 3.0:
+                    state.life_project_state = "COLLAPSING"
+                    state.state_modifiers["high_pressure_ticks"] = 0.0
+            else:
+                state.state_modifiers["high_pressure_ticks"] = 0.0
+                # P5-01: Кризис от Успеха. Порог 1.0, требование tick > 50.
+                if identity_pressure < 1.0 and tick > 50 and state.identity_integrity > 0.9 and state.life_project != "survival":
+                    state.life_project_state = "COMPLETED"
 
         elif current_state == "COMPLETED":
             # P1: Vitality decay. Stress grows as the agent lacks a successor project.

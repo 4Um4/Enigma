@@ -47,7 +47,7 @@ def _restart_llama_server() -> bool:
         urllib.request.urlopen(f"{settings.llama_cpp_server_url}/health", timeout=2)
         return True  # Уже работает
     except Exception as e:
-        logger.warning(f"[B5-FIX] silent failure suppressed: {e}")
+        logger.error(f"[LLM_RESTART] Health check failed: {e}", exc_info=True)
     # Шаг 2: убиваем старый процесс если он мёртв (poll != None) или завис
     if _llama_server_proc is not None:
         if _llama_server_proc.poll() is not None:
@@ -55,7 +55,7 @@ def _restart_llama_server() -> bool:
             try:
                 _llama_server_proc.kill()
             except Exception as e:
-                logger.warning(f"[B5-FIX] silent failure suppressed: {e}")
+                logger.error(f"[LLM_RESTART] Failed to kill dead process: {e}", exc_info=True)
             _llama_server_proc = None
         else:
             # Процесс жив но не отвечает — убиваем
@@ -67,7 +67,7 @@ def _restart_llama_server() -> bool:
                 try:
                     _llama_server_proc.kill()
                 except Exception as e:
-                    logger.warning(f"[B5-FIX] silent failure suppressed: {e}")
+                    logger.error(f"[LLM_RESTART] Failed to kill unresponsive process: {e}", exc_info=True)
             _llama_server_proc = None
     # Шаг 3: запускаем новый
     logger.info("[LLM_RESTART] Перезапуск llama-server...")
