@@ -145,19 +145,19 @@
       "label": "Вход",
       "role": "entrance",
       "connections": [
-        "main_hall"
+        "main_hall",
+        "corner_table"
       ]
     },
     "main_hall": {
       "x": 8.0,
-      "y": 7.0,
+      "y": 6.0,
       "label": "Центр зала",
       "role": "default",
       "connections": [
         "entrance",
         "bar_area",
-        "fireplace",
-        "corner_table",
+        "right_table",
         "door_kitchen"
       ]
     },
@@ -172,8 +172,8 @@
       ]
     },
     "bar_area": {
-      "x": 4.0,
-      "y": 4.0,
+      "x": 4.5,
+      "y": 4.5,
       "label": "У стойки",
       "role": "bar",
       "connections": [
@@ -193,31 +193,34 @@
     },
     "fireplace": {
       "x": 11.0,
-      "y": 4.0,
+      "y": 3.0,
       "label": "У камина",
       "role": "default",
       "connections": [
-        "main_hall"
+        "right_table"
       ]
     },
     "corner_table": {
-      "x": 12.0,
+      "x": 11.0,
       "y": 10.0,
       "label": "В тёмном углу",
       "role": "dark_corner",
       "tags": ["workplace:thief", "dark_corner"],
       "connections": [
-        "main_hall"
+        "entrance",
+        "main_hall",
+        "right_table"
       ]
     },
     "right_table": {
-      "x": 12.0,
-      "y": 7.0,
+      "x": 10.0,
+      "y": 6.0,
       "label": "За правым столом",
       "role": "table",
       "connections": [
         "main_hall",
-        "fireplace"
+        "fireplace",
+        "corner_table"
       ]
     },
     "kitchen": {

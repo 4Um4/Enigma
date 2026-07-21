@@ -376,16 +376,24 @@ class ModelRouter:
         # Fallback: try any available model from pool
         pool_configs = pool.list_model_configs()
         for model_key in pool_configs.keys():
-            if pool.active_model_key != model_key:  # Don't retry same model
-                model_provider = pool.get_model(model_key)
-                if model_provider and model_provider.is_available():
-                    try:
-                        return model_provider.provider.complete(
-                            prompt, params, system_prompt
-                        )
-                    except Exception as e:
-                        logger.warning(f"Fallback {model_key} failed: {e}")
-                        continue
+            # Не повторяем запрос к той же модели, которая только что упала.
+            # Retry должен быть реализован явно как retry-политика, а не скрыт в fallback.
+            if pool.active_model_key == model_key:
+                continue
+
+            model_provider = pool.get_model(model_key)
+            if model_provider and model_provider.is_available():
+                try:
+                    return model_provider.provider.complete(
+                        prompt, params, system_prompt
+                    )
+                except Exception as e:
+                    logger.warning(f"Fallback {model_key} failed: {e}")
+                    continue
+            else:
+                # S129 FIX: Безопасное логирование без вложенных вызовов is_available()
+                _status = model_provider.status if model_provider else "None"
+                logger.error(f"ModelRouter: Fallback Model {model_key} not available. Status: {_status}")
 
         # Все модели пула недоступны — не создаём новые провайдеры (это порождало
         # дублирующие llama-cli процессы на занятую VRAM)

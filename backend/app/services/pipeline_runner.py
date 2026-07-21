@@ -71,6 +71,8 @@ def build_tick_state(
         relationship_store=_svc.relationship_store if _svc else None,
         spatial_service=spatial_service or (_svc.spatial_service if _svc and hasattr(_svc, "spatial_service") else None),
         spatial_query=spatial_query or (_svc.spatial_query if _svc and hasattr(_svc, "spatial_query") else None),
+        npc_topics=ctx.npc_topics,
+        response_targets=ctx.response_targets,
     )
     return _tick_state
 

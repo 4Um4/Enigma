@@ -229,9 +229,14 @@ class NpcTickPipeline:
             _mem_weights = state.memory_weights_map.get(npc_id, {})
             if _mem_weights:
                 try:
-                    state_l2.relationship_cache.setdefault("player", {}).update(
-                        _mem_weights
-                    )
+                    # S128 FIX: _mem_weights теперь граф Dict[str, Dict[str, float]].
+                    # Применяем player отдельно, так как его нет в nearby_npcs.
+                    _player_weights = _mem_weights.get("player", {})
+                    if _player_weights:
+                        state_l2.relationship_cache.setdefault("player", {}).update(
+                            _player_weights
+                        )
+                        
                     import math
                     from app.services.spatial.spatial_runtime import line_of_sight, sound_reach
                     # ADR-O-331: Safe Position Extraction. local_position может быть dict {"x":, "y":} или tuple (x, y).
@@ -248,9 +253,7 @@ class NpcTickPipeline:
                             _has_sound = sound_reach(15.0, state.scene_state) >= _dist
                             if not _has_los and not _has_sound:
                                 continue
-                            _npc_weights = state.memory_weights_map.get(npc_id, {}).get(
-                                _nearby_id, {}
-                            )
+                            _npc_weights = _mem_weights.get(_nearby_id, {})
                             state_l2.relationship_cache.setdefault(
                                 _nearby_id, {}
                             ).update(_npc_weights)
@@ -391,13 +394,18 @@ class NpcTickPipeline:
 
             from app.services.npc.topic_extractor import extract_topic
 
-            _topic = extract_topic(
-                event_type=_event_for_interp.event_type.value
-                if hasattr(_event_for_interp.event_type, "value")
-                else str(_event_for_interp.event_type),
-                scene_facts=_event_for_interp.scene_facts,
-                raw_input=state.raw_input,
-            )
+            # S129: Bridge 7 — Если Фаза 4 уже сформировала тему ответа, используем её.
+            _topic = state.npc_topics.get(npc_id)
+            _response_target = state.response_targets.get(npc_id)
+            
+            if not _topic:
+                _topic = extract_topic(
+                    event_type=_event_for_interp.event_type.value
+                    if hasattr(_event_for_interp.event_type, "value")
+                    else str(_event_for_interp.event_type),
+                    scene_facts=_event_for_interp.scene_facts,
+                    raw_input=state.raw_input,
+                )
 
             _dir = getattr(
                 getattr(state_l2, "perceptual_kernel", None), "recent_directive", None
@@ -457,6 +465,7 @@ class NpcTickPipeline:
                 decision_ctx=_decision_ctx,
                 spatial_query=state.spatial_query,
                 all_npc_ids=_all_npc_ids,
+                pending_response_target=_response_target, # S129: Bridge 7
             )
             # SHI-FIX: логируем решение для CDS в строгом формате (pattern_registry.py:22).
             # Без этого SHI=0% (симуляция работает, но невидима).

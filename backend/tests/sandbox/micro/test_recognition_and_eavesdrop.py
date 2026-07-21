@@ -49,7 +49,7 @@ def test_eavesdrop_out_of_range():
 
     mock_avatar = MagicMock()
     mock_spatial = MagicMock()
-    mock_spatial.player_distances.return_value = {"maid_lusya": 15.0}  # Игрок слишком далеко
+    mock_spatial.player_distances.return_value = {"maid_lusya": 15.0}  # Игрок слишком далеко (>10м)
 
     sub = NpcDialogueSubscriber(
         memory_manager=MagicMock(),

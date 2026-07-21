@@ -32,6 +32,16 @@ from typing import Dict, List, Optional
 
 # SUPERBOX — добавляем backend/ в path (на 2 уровня выше)
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+_ROOT = Path(__file__).resolve().parents[4]
+sys.path.insert(0, str(_ROOT))
+
+# Автоматический запуск/остановка LLM для DriftLab
+import atexit
+from scripts.llm_server_manager import start_llama_server, kill_llama_server
+_llm_ok = start_llama_server()
+if not _llm_ok:
+    print("⚠️ Внимание: LLM не запущена. Тесты диалогов будут падать.")
+atexit.register(kill_llama_server)
 
 
 # ─── Конфигурация ───────────────────────────────────────────────────────
@@ -249,7 +259,10 @@ class DriftLaboratory:
 
         try:
             # Собираем РЕАЛЬНЫЙ GameLoop (как при startup)
-            self._game_loop = build_game_loop(data_dir=temp_path / "data")
+            # S129 FIX: Передаём реальный data_dir (статические данные), а не пустой temp.
+            # Изолировать нужно только saves_dir (runtime-мутации).
+            _real_data_dir = Path(self._original_data_dir) if self._original_data_dir else Path(settings.data_dir)
+            self._game_loop = build_game_loop(data_dir=_real_data_dir)
 
             # Доступ к внутреннему TickOrchestrator для чтения drift_stats
             self._orchestrator = self._game_loop._tick_orch

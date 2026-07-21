@@ -620,28 +620,31 @@ class MemoryManager:
         self,
         campaign_id: str,
         npc_id: str,
-        target_id: str,
-    ) -> Dict[str, float]:
-        rel = self._relationships.get_pair(campaign_id, npc_id, target_id)
-        recent = self._working.get(f"{campaign_id}:{npc_id}")
+        target_ids: List[str],
+    ) -> Dict[str, Dict[str, float]]:
+        """S128 FIX: Возвращает граф отношений для всех target_ids.
+        Шкала: -100.0 .. 100.0 (нормализация выполняется в DecisionHub).
+        """
+        graph_weights = {}
+        for tid in target_ids:
+            rel = self._relationships.get_pair(campaign_id, npc_id, tid)
+            recent = self._working.get(f"{campaign_id}:{npc_id}")
 
-        recent_pressure = 0.0
-        for e in recent:
-            if isinstance(e, dict):
-                # Legacy формат
-                if e.get("actor") == target_id or e.get("target") == target_id:
-                    recent_pressure += e.get("importance", 0.0)
-            elif hasattr(e, "npc_id") and e.npc_id == npc_id:
-                # EventMemory — учитываем все события этого NPC
-                recent_pressure += e.importance
+            recent_pressure = 0.0
+            for e in recent:
+                if isinstance(e, dict):
+                    if e.get("actor") == tid or e.get("target") == tid:
+                        recent_pressure += e.get("importance", 0.0)
+                elif hasattr(e, "npc_id") and e.npc_id == npc_id:
+                    recent_pressure += e.importance
 
-        # Нормализация 0-100 → 0-1 для DecisionHub
-        return {
-            "trust": rel.get("trust", 0.0) / 100.0,
-            "fear": rel.get("fear", 0.0) / 100.0,
-            "debt": rel.get("debt", 0.0) / 100.0,
-            "recent_pressure": min(recent_pressure, 100.0),
-        }
+            graph_weights[tid] = {
+                "trust": rel.get("trust", 0.0),
+                "fear": rel.get("fear", 0.0),
+                "debt": rel.get("debt", 0.0),
+                "recent_pressure": min(recent_pressure, 100.0),
+            }
+        return graph_weights
 
     def run_decay_if_needed(
         self,

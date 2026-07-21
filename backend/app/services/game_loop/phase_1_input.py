@@ -14,6 +14,19 @@ import logging
 from difflib import get_close_matches
 from typing import Any, Dict, Optional
 
+# P1-07: Лемматизация для Fuzzy Matching (уменьшает ложные срабатывания падежей)
+try:
+    from pymorphy3 import MorphAnalyzer
+    _morph = MorphAnalyzer()
+except ImportError:
+    _morph = None
+
+def _lemmatize(text: str) -> str:
+    """Возвращает нормальную форму слова, если доступен pymorphy3."""
+    if not _morph or not text:
+        return text
+    return _morph.parse(text)[0].normal_form
+
 from app.domain.events import EventDTO
 from app.domain.intent import IntentDTO, IntentParametersDTO
 from app.domain.intent_profile import ActionType, IntentSemanticField
@@ -31,7 +44,7 @@ def _resolve_target_reference(field: IntentSemanticField, scene_context: Any) ->
     if not field.target_reference or not scene_context:
         return ""
 
-    ref = field.target_reference.lower()
+    ref = _lemmatize(field.target_reference.lower())
 
     # Извлекаем словарь {npc_name.lower(): npc_id} из контекста сцены
     # Ожидаем, что scene_context содержит all_npcs_raw или npc_positions с именами
@@ -47,7 +60,7 @@ def _resolve_target_reference(field: IntentSemanticField, scene_context: Any) ->
                 if isinstance(pos_data, dict):
                     # Поддержка обоих ключей: display_name (DTO) и name (scene_state)
                     if _name := pos_data.get("display_name") or pos_data.get("name"):
-                        npc_name_map[_name.lower()] = npc_id
+                        npc_name_map[_lemmatize(_name.lower())] = npc_id
 
     # ADR-046: Диагностика Fuzzy Matching (Слой 2)
     logger.warning(
@@ -57,8 +70,8 @@ def _resolve_target_reference(field: IntentSemanticField, scene_context: Any) ->
     if not npc_name_map:
         return ""
 
-    # Fuzzy matching (порог 0.6 — терпим к опечаткам и падежам)
-    matches = get_close_matches(ref, npc_name_map.keys(), n=1, cutoff=0.6)
+    # P1-07: Fuzzy matching (порог 0.75 — строгий, лемматизация убирает падежи)
+    matches = get_close_matches(ref, npc_name_map.keys(), n=1, cutoff=0.75)
     return npc_name_map[matches[0]] if matches else ""
 
 
@@ -69,7 +82,7 @@ def _resolve_actor_reference(field: IntentSemanticField, scene_context: Any) -> 
     if not field.actor_reference:
         return "player"  # По умолчанию действие совершает игрок
 
-    ref = field.actor_reference.lower()
+    ref = _lemmatize(field.actor_reference.lower())
 
     # Проверяем алиасы игрока
     _player_aliases = {"я", "меня", "мне", "мы", "нас", "нам", "player"}
@@ -81,7 +94,7 @@ def _resolve_actor_reference(field: IntentSemanticField, scene_context: Any) -> 
     if isinstance(scene_context, dict):
         for npc in scene_context.get("all_npcs_raw", []):
             if isinstance(npc, dict) and npc.get("name") and npc.get("npc_id"):
-                npc_name_map[npc["name"].lower()] = npc["npc_id"]
+                npc_name_map[_lemmatize(npc["name"].lower())] = npc["npc_id"]
         if not npc_name_map:
             for npc_id, pos_data in scene_context.get("npc_positions", {}).items():
                 if isinstance(pos_data, dict):
@@ -91,7 +104,8 @@ def _resolve_actor_reference(field: IntentSemanticField, scene_context: Any) -> 
     if not npc_name_map:
         return ""
 
-    matches = get_close_matches(ref, npc_name_map.keys(), n=1, cutoff=0.6)
+    # P1-07: Fuzzy matching (порог 0.75)
+    matches = get_close_matches(ref, npc_name_map.keys(), n=1, cutoff=0.75)
     return npc_name_map[matches[0]] if matches else ""
 
 

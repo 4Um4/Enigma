@@ -255,11 +255,11 @@ class GameLoop:
             _subscriber = NpcDialogueSubscriber(
                 memory_manager=memory_manager,
                 relationship_store=rel_store,
-                affective_integrator=None,
                 npc_states_provider=None,
                 campaign_id_provider=lambda: getattr(self, "_current_campaign_id", "Open_road"),
                 avatar_service=self.avatar_service,
                 spatial_query_provider=self._get_spatial_query_for_subscriber,
+                l1_chronicle=self._tick_orch.l1_chronicle,
             )
 
             from app.services.events.event_types import EventType
@@ -646,7 +646,11 @@ class GameLoop:
                     _spatial_svc = SpatialFactory.build_for_campaign(
                         campaign_id=campaign_id, location_id=_loc_id, scene_state=_scene
                     )
-                    self._current_spatial_query = _spatial_svc  # S128: Провайдер для Eavesdrop
+                    from app.services.spatial.spatial_query_service import SpatialQueryService
+                    self._current_spatial_query = SpatialQueryService(
+                        npc_positions=_scene.get("npc_positions", {}),
+                        scene_state=_scene,
+                    )
                 except Exception as e:
                     logger.warning(
                         f"[SPATIAL_AUTHORITY] SpatialService build failed: {e}"
@@ -800,8 +804,14 @@ class GameLoop:
                 _spatial_svc = SpatialFactory.build_for_campaign(
                     campaign_id=campaign_id, location_id=_loc_id, scene_state=_scene
                 )
+                from app.services.spatial.spatial_query_service import SpatialQueryService
+                self._current_spatial_query = SpatialQueryService(
+                    npc_positions=_scene.get("npc_positions", {}),
+                    scene_state=_scene,
+                )
             except Exception as e:
                 logger.warning(f"[SPATIAL_AUTHORITY] SpatialService build failed: {e}")
+                self._current_spatial_query = None
 
         result: TickResultDTO = self._tick_orch.execute(
             campaign_id=campaign_id,

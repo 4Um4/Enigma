@@ -4,3 +4,20 @@
 {"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6600, "vram_after_mb": 6600}
 {"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
 {"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 77, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6699, "vram_after_mb": 6699}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 136, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6595, "vram_after_mb": 6595}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 124, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6652, "vram_after_mb": 6652}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 118, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6658, "vram_after_mb": 6658}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 78, "status": "complete"}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6851, "vram_after_mb": 6851}
+{"level": "WARN", "agent": "dm_agent", "violation": "empty", "fallback_text": "Ничего не произошло."}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 83, "status": "complete"}
+{"level": "INFO", "agent": "llm_input", "capability": "Capability.DIALOGUE", "prompt_preview": "Скажи: привет, архитектор!", "system_prompt": ""}
+{"level": "INFO", "agent": "llm_input", "capability": "Capability.DIALOGUE", "prompt_preview": "Скажи: привет, архитектор!", "system_prompt": ""}

@@ -9,6 +9,7 @@ path: backend/tests/IPT.py
 Запуск: python backend/tests/IPT.py
 """
 
+import atexit
 import sys
 import tempfile
 import traceback
@@ -19,6 +20,15 @@ from typing import Callable, List
 # Пропатчим sys.path, чтобы из backend/tests/ запускать без cd
 _BACKEND = Path(__file__).parent.parent
 sys.path.insert(0, str(_BACKEND))
+_ROOT = _BACKEND.parent
+sys.path.insert(0, str(_ROOT))
+
+# Автоматический запуск/остановка LLM для IPT
+from scripts.llm_server_manager import start_llama_server, kill_llama_server
+_llm_ok = start_llama_server()
+if not _llm_ok:
+    print("⚠️ Внимание: LLM не запущена. Тесты диалогов будут падать.")
+atexit.register(kill_llama_server)
 
 
 @dataclass

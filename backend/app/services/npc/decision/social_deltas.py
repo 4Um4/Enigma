@@ -46,6 +46,13 @@ _BASE_DELTAS: Dict[str, Tuple[float, float, str]] = {
     "intimidation": (-10.0, +8.0, "threat"),
     # Помощь: доверие растёт, страх снижается
     "help": (+12.0, -5.0, "relief"),
+    # S129: P2-05 — NPC-NPC события
+    "npc_insults": (-6.0, 2.0, "aggression"),
+    "npc_helps": (+8.0, -2.0, "relief"),
+    "npc_threatens": (-8.0, 5.0, "threat"),
+    "npc_shares_secret": (+15.0, 0.0, "relief"),
+    "npc_betrays": (-20.0, 8.0, "aggression"),
+    "npc_gossip_overheard": (-2.0, 0.0, "threat"),
 }
 
 

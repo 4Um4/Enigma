@@ -90,6 +90,8 @@ class _TickContext:
     phase_2_events: list = field(default_factory=list)
     # Фаза 4: извлечённые темы для каждого NPC (npc_id → topic)
     npc_topics: dict = field(default_factory=dict)
+    # S129: Адресат ответа для NPC (npc_id → speaker_id)
+    response_targets: dict = field(default_factory=dict)
     # Фаза 5: CommunicationIntent для каждого NPC (пока пустой — legacy pipeline)
     communication_intents: list = field(default_factory=list)
     # TZ-08 v0.2: Narrative Projection (для LLM/UI). Артефакт тика, а не player_result.

@@ -538,17 +538,22 @@ class LlamaCppProvider(StreamingLlmProvider):
 
     def _check_server(self) -> bool:
         if not self.server_url:
+            print("[LLAMA_DEBUG] _check_server: server_url is missing!")
             return False
         for endpoint in ["/health", ""]:
             try:
                 url = self.server_url.rstrip("/") + endpoint
+                print(f"[LLAMA_DEBUG] _check_server: trying {url}")
                 # S97 FIX: Обход прокси (Throne)
                 _opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
                 with _opener.open(url, timeout=2) as resp:
+                    print(f"[LLAMA_DEBUG] _check_server: got status {resp.status}")
                     if resp.status == 200:
                         return True
-            except Exception:
+            except Exception as e:
+                print(f"[LLAMA_DEBUG] _check_server: exception {type(e).__name__}: {e}")
                 continue
+        print("[LLAMA_DEBUG] _check_server: all endpoints failed, returning False")
         return False
 
     def check_server_with_retry(

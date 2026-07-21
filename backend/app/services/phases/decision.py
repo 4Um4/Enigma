@@ -246,9 +246,13 @@ def assemble_preloaded_data(ctx: Any, alive_npcs: list) -> tuple:
                 continue
 
             if _svc.memory_manager:
+                # S128 FIX: Загружаем граф отношений для всех alive NPC, а не только player.
+                _target_ids = [n.get("id") or n.get("npc_id") for n in alive_npcs]
+                if "player" not in _target_ids:
+                    _target_ids.append("player")
                 _memory_weights_map[_nid] = (
                     _svc.memory_manager.get_weights_for_decision(
-                        campaign_id=ctx.campaign_id, npc_id=_nid, target_id="player"
+                        campaign_id=ctx.campaign_id, npc_id=_nid, target_ids=_target_ids
                     )
                 )
                 _narrative_cache_map[_nid] = (
@@ -261,8 +265,14 @@ def assemble_preloaded_data(ctx: Any, alive_npcs: list) -> tuple:
                 )
 
             if _svc.social_engine:
+                # P2-08 FIX: Передаём обязательные аргументы, чтобы избежать TypeError.
+                # TODO: В будущем player_distances должен пробрасываться из SpatialQueryService.
                 _social_modifiers_map[_nid] = (
-                    _svc.social_engine.compute_social_modifiers(npc_id=_nid)
+                    _svc.social_engine.compute_social_modifiers(
+                        npc_id=_nid,
+                        player_distances={},
+                        event_type=ctx.action_type or "idle"
+                    )
                 )
 
             if _svc.reputation_engine:

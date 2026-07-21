@@ -91,22 +91,23 @@ async def _run_e2e_test():
     # Вызываем idle_tick, чтобы обновить spatial_query
     game_loop.idle_tick(campaign_id)
 
-    # Диагностика: проверяем расстояние до borko
+    # Диагностика: проверяем расстояние до maid_lusya
     _sq = getattr(game_loop, "_current_spatial_query", None)
     if _sq:
-        _dists = _sq.player_distances(["borko"])
-        print(f"[DIAG_EAVESDROP] dist_to_borko = {_dists}")
+        _dists = _sq.player_distances(["maid_lusya", "borko"])
+        print(f"[DIAG_EAVESDROP] dists = {_dists}")
     else:
         print("[DIAG_EAVESDROP] _current_spatial_query is None!")
 
+    # S128: Используем maid_lusya как спикера, так как она ближе к игроку
     event = EventDTO(
         id="test-eavesdrop-1",
         type=EventType.NPC_SPOKE.value,
-        source="borko",
+        source="maid_lusya",
         timestamp=datetime.now(timezone.utc).timestamp(),
         payload={
-            "target_id": "maid_lusya",
-            "text": "Люся, я видел, как Горан прятал товар в подвале.",
+            "target_id": "borko",
+            "text": "Борко, я видела, как Горан прятал товар в подвале.",
             "tone": "SUSPICIOUS",
             "topic": "goran_contraband"
         },
@@ -122,7 +123,7 @@ async def _run_e2e_test():
     journal_after_eavesdrop = game_loop.avatar_service.get_journal(campaign_id)
     
     eavesdrop_found = any(
-        entry.get("speaker") == "borko" and "подвале" in entry.get("text", "")
+        entry.get("speaker") == "maid_lusya" and "подвале" in entry.get("text", "")
         for entry in journal_after_eavesdrop
     )
     
@@ -130,3 +131,11 @@ async def _run_e2e_test():
         print("❌ ТЕСТ ПРОВАЛЕН: Подслушанная реплика NPC-NPC не попала в журнал.")
         print(f"Журнал: {journal_after_eavesdrop}")
         return False
+
+    print("✓ Eavesdrop работает: подслушанная реплика Люси добавлена в журнал.")
+    print("\n🎉 E2E ТЕСТ ПРОЙДЕН УСПЕШНО!")
+    return True
+
+if __name__ == "__main__":
+    success = asyncio.run(_run_e2e_test())
+    sys.exit(0 if success else 1)

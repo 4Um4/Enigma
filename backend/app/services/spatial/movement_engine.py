@@ -110,10 +110,15 @@ class MovementPlanner:
                         if _all_segments_valid and not svc.is_segment_blocked(_prev_xy[0], _prev_xy[1], target_xy[0], target_xy[1]):
                             waypoints.extend(intermediate)
                         else:
-                            return MovementPlanResult(
-                                status=MovementPlanStatus.REJECTED,
-                                reason=f"GEOMETRIC_OBSTACLE source={current_pos} target={target_node}"
-                            )
+                            # S129 FIX: P4-04 — Не отбрасываем путь, а ищем обход (doorway).
+                            _detour = self._resolve_doorway(svc, _prev_xy, target_xy)
+                            if _detour:
+                                waypoints.extend([list(_detour)])
+                            else:
+                                return MovementPlanResult(
+                                    status=MovementPlanStatus.REJECTED,
+                                    reason=f"GEOMETRIC_OBSTACLE_NO_DETOUR source={current_pos} target={target_node}"
+                                )
                     else:
                         # A* вернул 2 узла (прямая связь), но геометрия заблокирована.
                         # DOORWAY-TRUST: Доверяем графу, чтобы не блокировать движение.

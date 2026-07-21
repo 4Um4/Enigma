@@ -24,11 +24,29 @@ class SocialTargetResolver:
         if not _candidates:
             return None
 
+        # P2-06: Фильтр по отношениям. NPC не общается с теми, кому не доверяет.
+        _rel_cache = getattr(state, "relationship_cache", {})
+        _filtered_candidates = []
+        for nid in _candidates:
+            _trust = _rel_cache.get(nid, {}).get("trust", 0.0)
+            if _trust < -20:
+                logger.debug(f"[SOCIAL_TARGET] {state.npc_id} skips {nid} (trust={_trust:.1f} < -20)")
+                continue
+            _filtered_candidates.append((nid, _trust))
+            
+        if not _filtered_candidates:
+            # Все отношения негативные — одиночество
+            return None
+
+        # Предпочитаем цели с trust > 30
+        _high_trust = [c for c in _filtered_candidates if c[1] > 30]
+        _search_pool = _high_trust if _high_trust else _filtered_candidates
+
         _best_target = None
         _min_dist = float("inf")
         _SPEAK_RADIUS = 5.0  # NPC говорят только с теми, кто в 5 метрах
 
-        for nid in _candidates:
+        for nid, _trust in _search_pool:
             _dist = spatial_query.distance(state.npc_id, nid)
             if _dist <= _SPEAK_RADIUS and _dist < _min_dist:
                 # Проверка линии видимости (Line of Sight) — нет стен между ними

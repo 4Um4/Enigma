@@ -52,7 +52,7 @@ class ServiceFactory:
             from app.services.social.social_engine import SocialEngine
 
             _config = load_social_base()
-            if not _config.get("relations"):
+            if not _config:
                 logger.info("[SOCIAL] No relations in config, engine disabled")
                 return None
 
@@ -61,7 +61,8 @@ class ServiceFactory:
             _name_map = {
                 n.get("id", ""): n.get("name", "") for n in _all_npcs if n.get("id")
             }
-            self._social_engine = SocialEngine.from_config(_config, name_map=_name_map)
+            # S129 FIX: Оборачиваем плоский словарь в формат, ожидаемый SocialEngine.from_config
+            self._social_engine = SocialEngine.from_config({"relations": _config}, name_map=_name_map)
             logger.info(
                 "[SOCIAL] Engine initialized (%d NPCs in graph)",
                 len(self._social_engine.get_all_npc_ids()),
@@ -80,10 +81,11 @@ class ServiceFactory:
         try:
             from app.services.social.reputation_engine import ReputationEngine
 
-            # data_dir указывает на backend/data, поднимаемся к корню проекта (Enigma/)
-            _config_path = self._data_dir.parent.parent / "config" / "world" / "factions.json"
+            # S128 FIX: Надёжный путь к factions.json через BASE_DIR (корень проекта)
+            from app.core.config import BASE_DIR
+            _config_path = BASE_DIR / "config" / "world" / "factions.json"
             if not _config_path.exists():
-                logger.info("[REPUTATION] factions.json not found, engine disabled")
+                logger.warning(f"[REPUTATION] factions.json not found at {_config_path}, engine disabled")
                 return None
             self._reputation_engine = ReputationEngine(config_path=str(_config_path))
             logger.info("[REPUTATION] Engine initialized")

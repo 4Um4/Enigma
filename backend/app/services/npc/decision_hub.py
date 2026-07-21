@@ -371,6 +371,7 @@ class DecisionHub:
         decision_ctx: Optional["DecisionContext"] = None,  # S28: Каузальная деформация
         spatial_query: Optional[Any] = None,  # S96: Для SocialTargetResolver
         all_npc_ids: Optional[List[str]] = None,  # S96: Для SocialTargetResolver
+        pending_response_target: Optional[str] = None,  # S129: Bridge 7
     ) -> AgentAction:
         """
         Основной метод. READ ONLY — state не мутируется.
@@ -761,11 +762,12 @@ class DecisionHub:
             best_score = 0.0
 
         intent_target = self._resolve_target(
-            best_intent,
-            event,
-            state,
+            intent=best_intent,
+            event=event,
+            state=state,
             spatial_query=spatial_query,
             all_npc_ids=all_npc_ids or [],
+            pending_response_target=pending_response_target,
         )
         deltas = self._compute_deltas(state, personality, event, best_intent)
         narrative = None  # факт создаётся через MemoryManager.apply(), не здесь
@@ -1846,6 +1848,7 @@ class DecisionHub:
         state: NPCState,
         spatial_query: Optional[Any] = None,
         all_npc_ids: Optional[List[str]] = None,
+        pending_response_target: Optional[str] = None,
     ) -> Optional[str]:
         """Определяет цель intent."""
         if all_npc_ids is None:
@@ -1858,12 +1861,19 @@ class DecisionHub:
         from app.services.events.event_types import EventType
         from app.services.npc.social_target_resolver import SocialTargetResolver
 
-        # Если есть явная цель (игрок атаковал/приказал) — используем её
+        # 1. Приоритет: Явная цель (игрок атаковал/приказал)
         if event.target_id and event.event_type != EventType.WORLD_TICK:
             return event.target_id
 
-        # S96: Все социальные и проактивные интенты используют SocialTargetResolver
-        # Если NPC хочет работать с людьми (TALK, TRADE, HELP, APPROACH, SPREAD_RUMOR и т.д.), он ищет цель.
+        # 2. S129: Bridge 7 — Если NPC отвечает на реплику (TALK), адресат уже известен причинно.
+        if (
+            intent == Intent.TALK.value 
+            and pending_response_target 
+            and pending_response_target != state.npc_id
+        ):
+            return pending_response_target
+
+        # 3. S96: Социальные интенты ищут цель пространственно
         if intent in self._VERBAL_INTENTS or intent == Intent.APPROACH.value:
             _target = SocialTargetResolver.resolve(state, spatial_query, all_npc_ids)
             if _target:
@@ -1871,7 +1881,7 @@ class DecisionHub:
             # Fallback на актора, если резолвер ничего не нашёл
             return event.actor_id if event.actor_id != state.npc_id else None
 
-        # По умолчанию — актор события
+        # 4. По умолчанию — актор события
         return event.actor_id
 
     def _compute_deltas(

@@ -106,7 +106,8 @@ def _restart_llama_server() -> bool:
         # Ждём HTTP readiness
         for _attempt in range(int(settings.model_load_timeout_sec / 2)):
             try:
-                urllib.request.urlopen(
+                _opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+                _opener.open(
                     f"{settings.llama_cpp_server_url}/health", timeout=2
                 )
                 logger.info("[LLM_RESTART] llama-server перезапущен успешно")
@@ -341,9 +342,9 @@ async def lifespan(app: FastAPI):
                         _server_ready = False
                         for _attempt in range(int(settings.model_load_timeout_sec / 2)):
                             try:
-                                urllib.request.urlopen(
-                                    f"{settings.llama_cpp_server_url}/health",
-                                    timeout=2,
+                                _opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+                                _opener.open(
+                                    f"{settings.llama_cpp_server_url}/health", timeout=2
                                 )
                                 _server_ready = True
                                 break

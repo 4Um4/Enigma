@@ -1048,7 +1048,9 @@ class TickOrchestrator:
                 if dialogue.get("target_id") == npc_id:
                     _speaker = dialogue.get("speaker_id", "кто-то")
                     _text = dialogue.get("text", "")
-                    topic = f"ответить {_speaker}: {_text}"
+                    # S129: Тема содержит только семантику. Адресат передаётся структурно.
+                    topic = f"ответить: {_text}"
+                    ctx.response_targets[npc_id] = _speaker
                     break
 
             # 1. Проверяем spatial events затронувшие этого NPC
@@ -1067,6 +1069,7 @@ class TickOrchestrator:
             # 2. Фоллбэк на STM
             if not topic:
                 stm_text = mm.get_stm_prompt_block(ctx.campaign_id, npc_id)
+                logger.info(f"[STM_DEBUG] npc={npc_id} stm_len={len(stm_text)}")
                 if stm_text.strip():
                     topic = extract_topic(
                         event_type="idle",

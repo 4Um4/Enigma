@@ -29,19 +29,19 @@ class NpcDialogueSubscriber:
         self,
         memory_manager: Any,
         relationship_store: Any,
-        affective_integrator: Any = None,
         npc_states_provider: Any = None,
         campaign_id_provider: Any = None,  # NEW — callable() -> str
         avatar_service: Any = None,
         spatial_query_provider: Any = None,
+        l1_chronicle: Any = None,
     ) -> None:
         self.memory = memory_manager
         self.relationships = relationship_store
-        self.affective = affective_integrator
         self._get_npc_state = npc_states_provider
         self._get_campaign_id = campaign_id_provider or (lambda: "Open_road")
         self._avatar_service = avatar_service
         self._get_spatial_query = spatial_query_provider
+        self._l1_chronicle = l1_chronicle
 
     def on_npc_spoke(self, event: Any) -> None:
         # Поддержка как EventDTO, так и dict (для тестов)
@@ -68,7 +68,19 @@ class NpcDialogueSubscriber:
             _campaign_id = self._get_campaign_id()
             _spatial_query = self._get_spatial_query()
             if _spatial_query:
-                _dist_to_player = _spatial_query.player_distances([speaker]).get(speaker, 999.0)
+                # P1-07 FIX: Совместимость с SpatialService и SpatialQueryService
+                _dist_to_player = 999.0
+                if hasattr(_spatial_query, "player_distances"):
+                    _dist_to_player = _spatial_query.player_distances([speaker]).get(speaker, 999.0)
+                elif hasattr(_spatial_query, "_npc_positions"):
+                    _player_pos = _spatial_query._npc_positions.get("player", {}).get("local_position", {})
+                    _speaker_pos = _spatial_query._npc_positions.get(speaker, {}).get("local_position", {})
+                    if _player_pos and _speaker_pos:
+                        import math
+                        _dist_to_player = math.hypot(
+                            _player_pos.get("x", 0.0) - _speaker_pos.get("x", 0.0),
+                            _player_pos.get("y", 0.0) - _speaker_pos.get("y", 0.0)
+                        )
                 if _dist_to_player < 8.0 and is_canonical:
                     self._avatar_service.append_journal(
                         campaign_id=_campaign_id, speaker=speaker, text=text
@@ -112,22 +124,7 @@ class NpcDialogueSubscriber:
         except Exception as mem_err:
             logger.warning(f"[NPC_DIALOGUE_SUB] add_dialogue_turn failed for {listener}: {mem_err}")
 
-        # 2. AffectiveIntegrator — обновить эмоции listener'а (NEW)
-        if self.affective is not None and self._get_npc_state is not None:
-            try:
-                listener_state = self._get_npc_state(listener)
-                if listener_state is not None:
-                    interpretation = self._build_interpretation(tone, text, topic)
-                    self.affective.apply(listener, interpretation)
-                    logger.info(
-                        f"[NPC_DIALOGUE_SUB] {listener} affective updated "
-                        f"after {speaker} (tone={tone})"
-                    )
-            except Exception as aff_err:
-                logger.warning(
-                    f"[NPC_DIALOGUE_SUB] affective update failed for "
-                    f"{listener}: {aff_err}"
-                )
+        # P2-03: AffectiveIntegrator ghost removed. Emotions handled via CFRM P2 and social_pressure.
 
         # 3. RelationshipStore
         delta_trust, delta_fear = self._compute_rel_delta(tone)
@@ -142,6 +139,7 @@ class NpcDialogueSubscriber:
                 f"[NPC_DIALOGUE_SUB] {listener} rel update: "
                 f"{speaker} trust={delta_trust:+.1f} fear={delta_fear:+.1f}"
             )
+            
         except Exception as rel_err:
             logger.warning(f"[NPC_DIALOGUE_SUB] relationship update failed: {rel_err}")
 

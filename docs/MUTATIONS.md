@@ -8,10 +8,10 @@
 
 | Показатель | Значение |
 |------------|----------|
-| Сессий | 128|
+| Сессий | 130|
 | Доменов | 10 |
 | Консолидированных запретов | [DERIVED: count(ADR.*.Taboo)] |
-| Диапазон | S03—S128 |
+| Диапазон | S03—S130 |
 
 ---
 
@@ -28,6 +28,21 @@
 ---
 
 ## 1. ДОМЕНЫ И ЭВОЛЮЦИЯ
+
+- 🔵 **S128** ТЗ: ENIGMA CLOSURE CONTRACT — ФАЗА 0 (P0-01..P0-04) & UI/UX Enhancements.
+  - **Контекст:** Завершение критических инфраструктурных багов, блокирующих LLM, фракции и базовый геймплей. Внедрение UI-улучшений для журнала и механики подслушивания.
+  - **Sprint P0-01 (LLM 503 Fix):** Устранён хардкод порта `8080` в `main.py` и `settings_*.py`. `llama-server` теперь корректно стартует на `8181`. Логи LLM-роутера подняты с `debug` до `error/warning`.
+  - **Sprint P0-02 (factions.json Fix):** Путь к `factions.json` в `service_factories.py` переведён на `BASE_DIR` (SSOT из `config.py`), устраняя зависимость от `data_dir`. `ReputationEngine` теперь инициализируется.
+  - **Sprint P0-03 (Silent Errors):** Аудит `except: pass` показал, что все silent-ошибки уже устранены в S85/S91. Оставлен только комментарий-маркер в `intent_compressor.py`.
+  - **Sprint P0-04 (KeyError 0):** Уже закрыт в S127 (безопасный экстрактор координат).
+  - **Sprint UI/UX (Journal Tabs & Eavesdrop):**
+    - Внедрена механика Eavesdrop (подслушивание) в `NpcDialogueSubscriber`. Если игрок находится в радиусе 10м от говорящего NPC, canonical-реплика NPC-NPC попадает в `dialog_journal` игрока.
+    - Журнал во фронтенде (`game_screen.py`) переведён на вкладки. Записи группируются по `speaker`. Название вкладки берётся из `display_name` (меняется с "Незнакомец" на имя при распознавании).
+  - **Sprint Pipeline Repair (Commit-Gap Fix):**
+    - Найден и устранён критический баг исчезновения имени NPC после `idle_tick`. В `run_turn` отсутствовал вызов `commit_tick_result`, из-за чего `unlock_tick` перезаписывал свежий `final_scene_state` старым `_tick_scene`, убивая `player_recognition`.
+    - Внедрена инъекция `SpatialQueryService` в `_current_spatial_query` во время `idle_tick` и `skip_time` для обеспечения работы Eavesdrop.
+  - **Validation:** IPT 5/5 passed. E2E тест `test_run_turn_e2e.py` (с поднятием `llama-server`) пройден успешно. Юнит-тесты `test_recognition_and_eavesdrop.py` зелёные.
+  Files: backend/app/main.py, backend/app/core/settings_rules.py, backend/app/core/settings_dm.py, backend/app/core/settings_npc.py, backend/app/services/error_interpreter.py, backend/app/services/input/llm_compressor_client.py, backend/app/services/game_loop/service_factories.py, backend/app/services/events/npc_dialogue_subscriber.py, backend/app/services/game_loop/__init__.py, frontend/game_screen.py
 
 - 🔵 **S126** ТЗ: Presentation v2.0 — Физика Восприятия и Многослойная Презентация (Sprint P1, P6 & Critical Pipeline Repair).
   - **Контекст:** ТЗ v2.0 требовало внедрения 5-слойной архитектуры (Reality → Observable Physics → Perception Physics → Cognition → Presentation → DM). Аудит выявил критические разрывы в пайплайне (NEW-1, NEW-2, NEW-4), блокирующие восприятие.
@@ -748,3 +763,11 @@ Sprint P6 Fixes (RecognitionMemory):
 Critical Pipeline Repair:
 Устранён краш Фазы 5 (_social_modifiers_map not defined) от параллельной сессии.
 Validation: IPT 5/5 passed. В логах подтверждено наличие gait_asymmetry в PlayerPerceptionDTO.Files: backend/app/agents/dm_agent.py, backend/app/domain/embodied_trace.py, backend/app/services/perception/behavior_manifestation_service.py, backend/app/services/perception/phenomenology_projection_service.py, backend/app/services/phases/integration.py, backend/app/services/scene/r3_direct_builder.py, backend/app/services/game_loop/init.py
+
+- 🔵 **S129** ТЗ: ENIGMA CLOSURE CONTRACT — ФАЗА 1 & 2 (Social Engine Activation).
+  - **Контекст:** Расконсервация социального провода. SocialEngine был мёртв из-за мисматча контрактов.
+  - **Sprint P2-04 (SocialEngine Init):** `load_social_base()` возвращает плоский словарь, а `service_factories.py` искал ключ `"relations"`. Метод `from_config` обёрнут в `{"relations": _config}`.
+  - **Sprint P2-08 (TypeError Fix):** `phases/decision.py` вызывал `compute_social_modifiers` без обязательных аргументов. Добавлены `player_distances={}` и `event_type="IDLE"` (заглушки для P2-02).
+  - **Sprint P2-03 (Ghost Removal):** Удалён мёртвый код `AffectiveIntegrator` из `NpcDialogueSubscriber` и `GameLoop`.
+  - **Validation:** IPT 5/5 passed. `SocialEngine` инициализируется без ошибок.
+  Files: backend/app/services/game_loop/service_factories.py, backend/app/services/phases/decision.py, backend/app/services/events/npc_dialogue_subscriber.py, backend/app/services/game_loop/__init__.py
