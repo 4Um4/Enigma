@@ -2,6 +2,20 @@
   "scene_state": {
     "location_id": "tavern_silver_wolf",
     "objects": {
+      "obj_door_kitchen": {
+        "name": "Дверь на кухню",
+        "type": "door",
+        "state": "intact",
+        "position": {
+          "x": 14.0,
+          "y": 3.75
+        },
+        "size": {
+          "w": 0.2,
+          "h": 1.5
+        },
+        "interactable": true
+      },
       "obj_0": {
         "name": "Барная стойка #1",
         "type": "bar",
@@ -575,7 +589,7 @@
       "candles_main": {
         "name": "свечи",
         "state": "lit",
-        "count": 14,
+        "count": 13,
         "interactable": true,
         "owner": null
       }
@@ -608,7 +622,7 @@
       "blacksmith_orm": {
         "name": "Кузнец Орм",
         "location_id": "tavern_silver_wolf",
-        "position": "fireplace",
+        "position": "right_table",
         "activity": "",
         "visible": true,
         "local_position": {
@@ -644,7 +658,7 @@
       "merchant_goran": {
         "name": "Купец Горан",
         "location_id": "tavern_silver_wolf",
-        "position": "main_hall",
+        "position": "corner_table",
         "activity": "",
         "visible": true,
         "local_position": {
@@ -697,12 +711,6 @@
       {
         "x1": 2.0,
         "y1": 12.0,
-        "x2": 7.445,
-        "y2": 12.0
-      },
-      {
-        "x1": 8.555,
-        "y1": 12.0,
         "x2": 14.0,
         "y2": 12.0
       },
@@ -728,11 +736,11 @@
         "x1": 14.0,
         "y1": 2.0,
         "x2": 14.0,
-        "y2": 3.21
+        "y2": 3.0
       },
       {
         "x1": 14.0,
-        "y1": 4.29,
+        "y1": 4.5,
         "x2": 14.0,
         "y2": 7.0
       },

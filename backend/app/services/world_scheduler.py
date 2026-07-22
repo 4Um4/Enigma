@@ -1,7 +1,10 @@
+import logging
 from datetime import datetime, timedelta, timezone
 
 from app.agents.world_sim_agent import WorldSimulationAgent
 from app.services.memory import LayeredMemory
+
+logger = logging.getLogger(__name__)
 
 
 class WorldScheduler:
@@ -43,8 +46,8 @@ class WorldScheduler:
                         "actor": _npc.get("id", "unknown"),
                         "tick": now.isoformat()
                     })
-        except Exception:
-            pass
+        except Exception as e:
+            logger.error(f"[WORLD_SCHEDULER] Failed to generate idle_tick events for {world_id}: {e}", exc_info=True)
 
         result = {"world_events": _events, "simulation_log": "offscreen_tick_ok"}
 

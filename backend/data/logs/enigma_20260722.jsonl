@@ -1,0 +1,17 @@
+{"level": "INFO", "agent": "system", "event": "startup_complete", "log_dir": "C:\\DDD\\Codex\\VSC_Enigma\\Enigma\\backend\\data\\logs"}
+{"timestamp": "2026-07-22T21:19:42.680774", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6770}
+{"timestamp": "2026-07-22T21:19:42.727819", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6770, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6772, "vram_after_mb": 6772}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 2081, "status": "complete"}
+{"timestamp": "2026-07-22T21:19:53.046488", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6780}
+{"timestamp": "2026-07-22T21:19:53.093527", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6780, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6780, "vram_after_mb": 6780}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 1575, "status": "complete"}
+{"timestamp": "2026-07-22T21:20:28.447994", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6779}
+{"timestamp": "2026-07-22T21:20:28.496082", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6779, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6779, "vram_after_mb": 6779}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 1159, "status": "complete"}
+{"timestamp": "2026-07-22T21:20:37.893689", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_start", "vram_before_mb": 6779}
+{"timestamp": "2026-07-22T21:20:37.938887", "level": "INFO", "agent": "unknown", "model": "qwen_7b", "status": "load_success", "vram_after_mb": 6779, "vram_delta_mb": 0}
+{"level": "INFO", "agent": "dm", "status": "model_switch", "vram_before_mb": 6779, "vram_after_mb": 6779}
+{"level": "INFO", "agent": "dm", "error_code": "SUCCESS", "duration_ms": 1304, "status": "complete"}

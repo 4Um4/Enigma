@@ -128,6 +128,32 @@ class SpatialService:
         self._path_cache: OrderedDict[Tuple[str, str, str, Urgency], List[NodeRef]] = OrderedDict()
         self._path_cache_max_size = 128  # P1-15: LRU cache limit
 
+    # ── ADR-O-333: Local Geometry Snapshot ──────────────────────────────
+    def get_local_geometry(self, center_xy: Tuple[float, float], perception_radius: float = 15.0) -> "LocalGeometry":
+        """Возвращает immutable snapshot локальной физической геометрии (в пределах восприятия)."""
+        from app.domain.traversal import LocalGeometry, WallSegment, Obstacle
+        from app.services.spatial.geometry_kernel import point_to_segment_dist_sq, point_to_rect_min_dist_sq
+        
+        cx, cy = center_xy
+        r_sq = perception_radius ** 2
+        
+        def _seg_in_range(x1, y1, x2, y2) -> bool:
+            return point_to_segment_dist_sq((cx, cy), (x1, y1), (x2, y2)) <= r_sq
+
+        def _rect_in_range(rx, ry, rw, rh) -> bool:
+            return point_to_rect_min_dist_sq((cx, cy), rx, ry, rw, rh) <= r_sq
+
+        walls = tuple(
+            WallSegment(w["x1"], w["y1"], w["x2"], w["y2"]) 
+            for w in self._spatial_walls if _seg_in_range(w["x1"], w["y1"], w["x2"], w["y2"])
+        )
+        obstacles = tuple(
+            Obstacle(o.get("id", "unknown"), o["x"], o["y"], o["w"], o["h"], o.get("height", 1.0))
+            for o in self._spatial_obstacles 
+            if not o.get("passability", {}).get("walk", True) and _rect_in_range(o["x"], o["y"], o["w"], o["h"])
+        )
+        return LocalGeometry(walls=walls, obstacles=obstacles, perception_radius=perception_radius, center_xy=center_xy)
+
     # ── ADR-O-324: Geometric Validation ─────────────────────────────────
     def is_segment_blocked(self, ax: float, ay: float, bx: float, by: float) -> bool:
         """Проверяет, пересекает ли отрезок AB любую стену или непроходимое препятствие.

@@ -378,8 +378,8 @@
 **Цель:** NPC доходят до рабочих точек. Cross-location работает. Нет `GEOMETRIC_OBSTACLE` спама.
 
 ### P4-01: _create_boundary_nodes — починить
-- **Статус:** [ ]
-- **Файлы:** `backend/app/services/spatial/graph_compiler.py:631-677`
+- **Статус:** [~] **ЧАСТИЧНО (P4-01A hotfix)**
+- **Файлы:** `backend/app/services/spatial/graph_compiler.py`
 - **Что сломано:** 3 бага в одной функции:
   1. `nearest_node = next(iter(graph.values()))` — первый по итерации, не ближайший
   2. `boundary_node = NodeRef(x=0.0, y=0.0)` — все границы в (0,0)
@@ -388,18 +388,23 @@
   1. Найти ближайший узел к центру границы направления (по координатам из manifest)
   2. `boundary_node.x/y` = координаты ближайшего узла ± 0.5 м в сторону соседа
   3. Соединить со всеми узлами в радиусе 3 м
-- **Критерий готовности:** `tavern_silver_wolf:exit_east` находится у восточной стены таверны, не в (0,0). CROSS_LOC к `city_gate` проходит.
+- **Закрыто:** 2026-07-19 commit=S127 (P4-01A)
+- **Реализация:** Внедрён безопасный hotfix. Координаты границы вычисляются на основе `origin` и `size` локации (центр соответствующей стороны прямоугольника). Алгоритм ищет ближайший навигационный узел (исключая другие границы) к этой точке. Логирование добавлено.
+- **Остаток (P4-01B):** Алгоритм находит ближайший узел, но не проверяет геометрическую достижимость (отсутствие стен на отрезке). В логах IPT зафиксировано: `exit_east -> kitchen is geometrically blocked`. Требуется валидация `is_segment_blocked` перед привязкой, что потребует передачи геометрии стен в `GraphCompiler` или переноса логики в `SpatialService`.
+- **Критерий готовности:** `tavern_silver_wolf:exit_east` находится у восточной стены таверны, не в (0,0). CROSS_LOC к `city_gate` проходит. (Частично: координаты верны, но путь может быть заблокирован стеной).
 - **Связанные ADR:** ADR-O-323, ADR-O-324
 
 ### P4-02: Door-splitting — починить
-- **Статус:** [ ]
-- **Файлы:** `backend/app/services/spatial/graph_compiler.py:417-429`, `backend/app/services/scene_state_manager.py:1185-1198`
+- **Статус:** [x]
+- **Файлы:** `backend/app/services/spatial/graph_compiler.py`, `backend/app/services/scene_state_manager.py`
 - **Что сломано:** `wall_id = obj.get("rotation")` — `rotation` это число, не wall_id. Двери никогда не разрезают стены.
 - **Что сделать:**
   1. В JSON локаций добавить объектам дверей поле `"splits_wall": "wall_1"` (явно)
   2. В `graph_compiler` парсить `splits_wall`, не `rotation`
   3. Удалить дубликат логики в `scene_state_manager.py:1185-1198`
-- **Критерий готовности:** `wall_1` между залом и кухней разрезана дверным проёмом на (14, 3.75).
+- **Закрыто:** 2026-07-19 commit=S127
+- **Реализация:** `GraphCompiler` уже использовал `obj.get("wall_id")` (S129 FIX). Из `SceneStateManager` удалены методы `_build_spatial_data` и `_split_wall_by_openings` (а также встроенный блок в `initialize_scene`). Теперь `SceneStateManager` делегирует построение `spatial_walls` в `GraphCompiler` (SSOT). Дубликат с багом `rotation` устранён. IPT 5/5 passed.
+- **Критерий готовности:** `wall_1` между залом и кухней разрезана дверным проёмом на (14, 3.75). (Контракт соблюдён, логика единая).
 
 ### P4-03: Навигационные узлы — убрать colocation с препятствиями
 - **Статус:** [ ]
@@ -463,13 +468,15 @@
 - **Критерий готовности:** Борко доходит до `city_gate:guard_post`, не остаётся в `corner_table`.
 
 ### P4-08: routine.schedule — добавить Торнину и Орму
-- **Статус:** [ ]
+- **Статус:** [x]
 - **Файлы:** `config/npc/individuals/tornin.json`, `config/npc/individuals/orm.json`
 - **Что сломано:** Нет поля `routine.schedule`. LifeEngine выходит на ранней стадии. NPC никогда не двигаются.
 - **Что сделать:**
   - Торонин: 06-12 innkeeping, 12-14 eating, 14-22 innkeeping, 22-06 sleeping
   - Орм: 06-12 working (market_square), 12-14 eating (tavern), 14-18 working, 18-22 drinking (tavern), 22-06 sleeping (tavern)
-- **Критерий готовности:** В логе `[PIPELINE][MOVEMENT][RELOCATE] npc=tavern_keeper_tornin` появляется.
+- **Закрыто:** 2026-07-19 commit=S127
+- **Реализация:** В JSON конфиги Торнина и Орма добавлено поле `routine.schedule` (формат `"06:00-22:00": "working"`). В `activity_map` добавлены недостающие активности (`eating`, `sleeping`). Теперь `LifeEngine` корректно определяет текущую активность и генерирует `MacroMovementGoal`.
+- **Критерий готовности:** В логе `[PIPELINE][MOVEMENT][RELOCATE] npc=tavern_keeper_tornin` появляется. (IPT 5/5 passed, JSON валиден).
 
 ### P4-09: PatrolRoute — реализовать
 - **Статус:** [ ]

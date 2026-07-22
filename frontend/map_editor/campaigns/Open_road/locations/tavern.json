@@ -120,19 +120,10 @@
       "thickness": 0.2
     },
     {
-      "id": "wall_1a",
+      "id": "wall_1",
       "type": "wall",
       "x1": 14.0,
       "y1": 2.0,
-      "x2": 14.0,
-      "y2": 3.0,
-      "thickness": 0.2
-    },
-    {
-      "id": "wall_1b",
-      "type": "wall",
-      "x1": 14.0,
-      "y1": 4.5,
       "x2": 14.0,
       "y2": 7.0,
       "thickness": 0.2
@@ -244,6 +235,31 @@
     }
   },
   "objects": [
+    {
+      "type": "door",
+      "position": {
+        "x": 14.0,
+        "y": 3.75
+      },
+      "size": {
+        "w": 0.2,
+        "h": 1.5
+      },
+      "rotation": 0,
+      "wall_id": "wall_1",
+      "passability": {
+        "walk": true,
+        "jump_over": false,
+        "crawl_under": false,
+        "climb_on": false,
+        "walk_around": true
+      },
+      "cover": 0.0,
+      "color": "#8B4513",
+      "id": "obj_door_kitchen",
+      "name": "Дверь на кухню",
+      "show_name": false
+    },
     {
       "type": "bar",
       "position": {

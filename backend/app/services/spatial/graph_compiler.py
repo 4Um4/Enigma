@@ -17,6 +17,7 @@ TODO:
 
 import json
 import logging
+import math
 from collections import deque
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
@@ -340,6 +341,8 @@ def compile_graph(
             boundary_map=boundary_map,
             location_id=location_id,
             adjacency=adjacency,
+            origin=editor_data.get("origin", {"x": 0.0, "y": 0.0}),
+            size=editor_data.get("size", {"w": 10.0, "h": 10.0}),
         )
 
     _validate_connectivity(graph, connections, location_id)
@@ -355,9 +358,79 @@ def compile_graph(
     # ETKE-IK v1: возвращаем rooms_geometry 5-м элементом
     # ADR-O-324: возвращаем spatial_walls и spatial_obstacles 6-м и 7-м элементом
     spatial_walls, spatial_obstacles = _build_spatial_data(editor_data)
+    
+    # S129 FIX: P4-02 — Геометрическая валидация графа. Ловим рёбра, проходящие сквозь стены.
+    _validate_navigation_geometry(graph, connections, spatial_walls, spatial_obstacles, location_id)
+    
     # ADR-O-330: Извлекаем физические объекты с аффордансами (кровати, палатки, верстаки)
     affordance_objects = _extract_affordance_objects(editor_data)
     return graph, connections, alias_map, boundary_map, rooms_geometry, spatial_walls, spatial_obstacles, affordance_objects
+
+def _validate_navigation_geometry(
+    graph: Dict[str, Any],
+    connections: Dict[str, set],
+    spatial_walls: List[Dict[str, Any]],
+    spatial_obstacles: List[Dict[str, Any]],
+    location_id: str,
+) -> None:
+    """S129: Проверяет, что навигационные рёбра не пересекают физическую геометрию."""
+    for from_id, neighbors in connections.items():
+        from_node = graph.get(from_id)
+        if not from_node: continue
+        
+        for to_id in neighbors:
+            # Проверяем только A -> B, чтобы избежать дублирования логов (B -> A)
+            if from_id > to_id:
+                continue
+                
+            to_node = graph.get(to_id)
+            if not to_node: continue
+            
+            is_blocked = False
+            # 1. Проверка стен
+            for wall in spatial_walls:
+                if _segments_intersect(
+                    from_node.x, from_node.y, to_node.x, to_node.y,
+                    wall["x1"], wall["y1"], wall["x2"], wall["y2"]
+                ):
+                    is_blocked = True
+                    break
+            
+            # 2. Проверка препятствий (только walk=false)
+            if not is_blocked:
+                for obs in spatial_obstacles:
+                    if not obs.get("passability", {}).get("walk", True):
+                        if _line_rect_intersect(
+                            from_node.x, from_node.y, to_node.x, to_node.y,
+                            obs["x"], obs["y"], obs["w"], obs["h"]
+                        ):
+                            is_blocked = True
+                            break
+                            
+            if is_blocked:
+                logger.error(
+                    f"[SPATIAL_VALIDATION] {location_id}: edge {from_id} -> {to_id} "
+                    f"is geometrically blocked!"
+                )
+
+def _segments_intersect(x1, y1, x2, y2, x3, y3, x4, y4) -> bool:
+    """Стандартное определение пересечения двух отрезков."""
+    def ccw(ax, ay, bx, by, cx, cy):
+        return (cy - ay) * (bx - ax) > (by - ay) * (cx - ax)
+    return ccw(x1, y1, x3, y3, x4, y4) != ccw(x2, y2, x3, y3, x4, y4) and \
+           ccw(x1, y1, x2, y2, x3, y3) != ccw(x1, y1, x2, y2, x4, y4)
+
+def _line_rect_intersect(x1, y1, x2, y2, rx, ry, rw, rh) -> bool:
+    """Проверка пересечения отрезка с прямоугольником (AABB)."""
+    # Если одна из точек внутри — уже пересечение
+    if (rx <= x1 <= rx + rw and ry <= y1 <= ry + rh) or (rx <= x2 <= rx + rw and ry <= y2 <= ry + rh):
+        return True
+    # Проверка пересечения с 4 сторонами прямоугольника
+    if _segments_intersect(x1, y1, x2, y2, rx, ry, rx + rw, ry): return True
+    if _segments_intersect(x1, y1, x2, y2, rx + rw, ry, rx + rw, ry + rh): return True
+    if _segments_intersect(x1, y1, x2, y2, rx, ry + rh, rx + rw, ry + rh): return True
+    if _segments_intersect(x1, y1, x2, y2, rx, ry, rx, ry + rh): return True
+    return False
 
 
 def _extract_affordance_objects(editor_data: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -414,12 +487,13 @@ def _build_spatial_data(editor_data: Dict[str, Any]) -> Tuple[List[Dict[str, Any
         return spatial_walls, spatial_obstacles
     
     # Разрезаем стены проёмами (двери)
+    # S129 FIX: P4-02 — Честный контракт wall_id вместо переиспользования rotation.
     wall_openings: dict[str, list[dict]] = {}
     for obj in editor_data.get("objects", []):
-        wall_id = obj.get("rotation")
-        if not wall_id:
-            continue
-        if obj.get("passability", {}).get("walk", False):
+        if not obj.get("passability", {}).get("walk", True):
+            continue # Непроходимые объекты не могут быть дверными проёмами
+        wall_id = obj.get("wall_id")
+        if wall_id:
             wall_openings.setdefault(wall_id, []).append(obj)
     
     for wall in editor_data.get("walls", []):
@@ -635,25 +709,57 @@ def _create_boundary_nodes(
     boundary_map: Dict[str, dict],
     location_id: str,
     adjacency: Dict[str, Any],
+    origin: Dict[str, float],
+    size: Dict[str, float],
 ) -> None:
     """Создаёт виртуальные boundary nodes для перехода в соседние чанки (ДОЛГ 6.2)."""
     _OPPOSITE_DIRS = {"north": "south", "south": "north", "east": "west", "west": "east"}
     
     if not graph:
         return
+
+    _ox = float(origin.get("x", 0.0))
+    _oy = float(origin.get("y", 0.0))
+    _w = float(size.get("w", 10.0))
+    _h = float(size.get("h", 10.0))
+
+    # P4-01A: Геометрические центры границ локации
+    _DIR_TO_XY = {
+        "north": (_ox + _w / 2.0, _oy + _h),
+        "south": (_ox + _w / 2.0, _oy),
+        "east": (_ox + _w, _oy + _h / 2.0),
+        "west": (_ox, _oy + _h / 2.0),
+    }
         
     for direction, neighbor_loc_id in adjacency.items():
         if not isinstance(neighbor_loc_id, str):
             continue
             
-        # Ищем ближайший узел к центру или просто берём первый
-        nearest_node = next(iter(graph.values()))
-        
+        _bx, _by = _DIR_TO_XY.get(direction, (_ox + _w / 2.0, _oy + _h / 2.0))
+
+        # P4-01A FIX: Ищем ближайший навигационный узел к границе (исключая другие boundary nodes)
+        _nearest_node = None
+        _min_dist_sq = float('inf')
+        for node in graph.values():
+            if node.role == NodeRole.BOUNDARY:
+                continue
+            _dx = node.x - _bx
+            _dy = node.y - _by
+            _dist_sq = _dx * _dx + _dy * _dy
+            if _dist_sq < _min_dist_sq:
+                _min_dist_sq = _dist_sq
+                _nearest_node = node
+
+        if not _nearest_node:
+            logger.warning(f"[GRAPH_COMPILER] No navigation node found to attach boundary {direction} in {location_id}")
+            continue
+
         boundary_id = f"{location_id}:exit_{direction}"
+        # P4-01A: Boundary node получает координаты границы, без эвристических смещений
         boundary_node = NodeRef(
             node_id=boundary_id,
-            x=0.0,
-            y=0.0,
+            x=_bx,
+            y=_by,
             role=NodeRole.BOUNDARY,
             tags=["boundary:exit"],
             zone_id=location_id,
@@ -661,16 +767,34 @@ def _create_boundary_nodes(
         
         graph[boundary_id] = boundary_node
         alias_map[f"exit_{direction}"] = boundary_id
+
+        # P4-01 FIX: Соединяем boundary node со всеми навигационными узлами в радиусе 3.0 м
+        _CONNECTION_RADIUS = 3.0
+        _connected_count = 0
+        for node in graph.values():
+            if node.node_id == boundary_id or node.role == NodeRole.BOUNDARY:
+                continue
+            _dx = node.x - _bx
+            _dy = node.y - _by
+            if (_dx * _dx + _dy * _dy) <= (_CONNECTION_RADIUS ** 2):
+                connections.setdefault(node.node_id, set()).add(boundary_id)
+                connections.setdefault(boundary_id, set()).add(node.node_id)
+                _connected_count += 1
         
-        connections.setdefault(nearest_node.node_id, set()).add(boundary_id)
-        connections.setdefault(boundary_id, set()).add(nearest_node.node_id)
+        if _connected_count == 0:
+            # Fallback: если в радиусе 3м никого нет, цепляем хотя бы за ближайший
+            connections.setdefault(_nearest_node.node_id, set()).add(boundary_id)
+            connections.setdefault(boundary_id, set()).add(_nearest_node.node_id)
+            _connected_count = 1
+
+        logger.info(f"[GRAPH_COMPILER] boundary={direction} connected_to={_connected_count} nodes")
         
         _entry_dir = _OPPOSITE_DIRS.get(direction, direction)
         boundary_map[boundary_id] = {
             "neighbor_chunk": neighbor_loc_id,
             "node_id": boundary_id,
-            "x": 0.0,
-            "y": 0.0,
+            "x": _bx,
+            "y": _by,
             "direction": direction,
             "entry_direction": _entry_dir,
             "entry_node_hint": f"{neighbor_loc_id}:exit_{_entry_dir}"

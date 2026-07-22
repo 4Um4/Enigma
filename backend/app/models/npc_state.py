@@ -41,6 +41,7 @@ if TYPE_CHECKING:
 import logging
 
 from app.models.npc.beliefs import BeliefState
+from app.domain.traversal import BodyCapabilities
 from app.models.physical import ThreatAccumulator
 from app.models.psychological import CausalEntry
 
@@ -653,6 +654,8 @@ class NPCState:
     # combat code, но НЕ должны писаться напрямую. Используйте body_state.
     hp: int = 0  # deprecated, читается из body_state через effective_hp
     max_hp: int = 0  # deprecated
+    # ADR-O-333: Embodied Traversal Architecture. Контракт физического тела.
+    body_capabilities: BodyCapabilities = field(default_factory=BodyCapabilities)
     conditions: Dict[str, "Condition"] = field(default_factory=dict)
     wounds: List["Wound"] = field(default_factory=list)
     threat_accumulator: "ThreatAccumulator" = field(
@@ -862,6 +865,19 @@ class NPCState:
         if state.body_state is not None:
             npc_dict["body_state"] = state.body_state
 
+        # ADR-O-333: Сериализация контракта тела (BodyCapabilities)
+        if state.body_capabilities:
+            _caps = state.body_capabilities
+            npc_dict["body_capabilities"] = {
+                "radius": _caps.radius,
+                "height": _caps.height,
+                "can_walk": _caps.can_walk,
+                "can_jump": _caps.can_jump,
+                "max_jump_height": _caps.max_jump_height,
+                "max_jump_distance": _caps.max_jump_distance,
+                "movement_speed": _caps.movement_speed,
+            }
+
         # perceptual_kernel — субъективная модель восприятия (ADR-O)
         # Без этого threat_gradient/initiative_suppression теряются между тиками → DOUBLE TRUTH
         if state.perceptual_kernel:
@@ -1014,6 +1030,14 @@ class NPCStateAdapter:
             # body_state — физиология (pain, blood_loss, shock_impulse, injuries, statuses)
             # Без этого state.body_state всегда пустой → StateApplicator пересоздаёт его каждый раз
             body_state=dict(npc_dict.get("body_state", {})),
+            # ADR-O-333: Восстановление контракта тела (BodyCapabilities)
+            body_capabilities=BodyCapabilities(
+                **{
+                    k: v
+                    for k, v in npc_dict.get("body_capabilities", {}).items()
+                    if k in BodyCapabilities.__dataclass_fields__
+                }
+            ),
             # perceptual_kernel — восстановление из dict (ADR-O)
             # Без этого threat_gradient/initiative_suppression = 0.0 каждый тик
             perceptual_kernel=_pk_from_dict(npc_dict.get("perceptual_kernel", {})),

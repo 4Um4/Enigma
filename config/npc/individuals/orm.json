@@ -59,6 +59,15 @@
     "x": 10.5,
     "y": 5.0
   },
+  "routine": {
+    "schedule": {
+      "06:00-12:00": "working",
+      "12:00-14:00": "eating",
+      "14:00-18:00": "working",
+      "18:00-22:00": "drinking",
+      "22:00-06:00": "sleeping"
+    }
+  },
   "activity_map": {
     "working": {
       "location": "market_square",
