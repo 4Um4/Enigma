@@ -143,8 +143,10 @@ class SpatialService:
         # Проверка непроходимых препятствий
         for obs in self._spatial_obstacles:
             _pass = obs.get("passability", {})
+            # S129 FIX: P4-04 — Pathfinding учитывает ТОЛЬКО физическую непроходимость (walk).
+            # blocks_los не должен разрывать навигационный граф (LoS проверяется отдельно).
             _blocks_walk = not _pass.get("walk", True)
-            if _blocks_walk or obs.get("blocks_los", False):
+            if _blocks_walk:
                 if _line_rect_intersect(ax, ay, bx, by, obs["x"], obs["y"], obs["w"], obs["h"]):
                     return True
         
@@ -529,6 +531,13 @@ class SpatialService:
             for neighbor_id in self._connections.get(current_id, set()):
                 neighbor_node = self._graph.get(neighbor_id)
                 if neighbor_node is None:
+                    continue
+
+                # S129 FIX: P4-04 — A* obstacle-aware. 
+                # Если ребро заблокировано геометрией (стена, стол), считаем его непроходимым.
+                if self.is_segment_blocked(
+                    current_node.x, current_node.y, neighbor_node.x, neighbor_node.y
+                ):
                     continue
 
                 edge_cost = self._edge_cost(current_node, neighbor_node, urgency)

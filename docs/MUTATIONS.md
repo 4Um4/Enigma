@@ -764,10 +764,16 @@ Critical Pipeline Repair:
 Устранён краш Фазы 5 (_social_modifiers_map not defined) от параллельной сессии.
 Validation: IPT 5/5 passed. В логах подтверждено наличие gait_asymmetry в PlayerPerceptionDTO.Files: backend/app/agents/dm_agent.py, backend/app/domain/embodied_trace.py, backend/app/services/perception/behavior_manifestation_service.py, backend/app/services/perception/phenomenology_projection_service.py, backend/app/services/phases/integration.py, backend/app/services/scene/r3_direct_builder.py, backend/app/services/game_loop/init.py
 
-- 🔵 **S129** ТЗ: ENIGMA CLOSURE CONTRACT — ФАЗА 1 & 2 (Social Engine Activation).
-  - **Контекст:** Расконсервация социального провода. SocialEngine был мёртв из-за мисматча контрактов.
+- 🔵 **S129** ТЗ: ENIGMA CLOSURE CONTRACT — ФАЗА 1, 2 & 3 (Social & Spatial Activation).
+  - **Контекст:** Расконсервация социального провода и починка пространственного A*.
   - **Sprint P2-04 (SocialEngine Init):** `load_social_base()` возвращает плоский словарь, а `service_factories.py` искал ключ `"relations"`. Метод `from_config` обёрнут в `{"relations": _config}`.
   - **Sprint P2-08 (TypeError Fix):** `phases/decision.py` вызывал `compute_social_modifiers` без обязательных аргументов. Добавлены `player_distances={}` и `event_type="IDLE"` (заглушки для P2-02).
   - **Sprint P2-03 (Ghost Removal):** Удалён мёртвый код `AffectiveIntegrator` из `NpcDialogueSubscriber` и `GameLoop`.
-  - **Validation:** IPT 5/5 passed. `SocialEngine` инициализируется без ошибок.
-  Files: backend/app/services/game_loop/service_factories.py, backend/app/services/phases/decision.py, backend/app/services/events/npc_dialogue_subscriber.py, backend/app/services/game_loop/__init__.py
+  - **Sprint P2-05 (NPC-NPC Events):** Добавлены социальные дельты для NPC-NPC взаимодействий (insults, helps, threatens, shares_secret, betrays, gossip_overheard) в `social_deltas.py`.
+  - **Sprint P2-06 (SocialTargetResolver):** ОТКАТ. Попытка фильтровать цели по `relationship_cache` заблокирована, так как кэш обновляется в Фазе 8, а выбор цели происходит в Фазе 5. Пункт помечен `[~]` (BLOCKED).
+  - **Sprint P2-07 (L1Chronicle):** ОТКАТ. Прямой вызов `commit_tick_buffer` из подписчика нарушает границу коммита тика. Требуется внедрение deferred-buffer или нового EventBus события. Пункт отложен.
+  - **Sprint P4-03 (Nodes Colocation):** Сдвинуты узлы `main_hall` и `bar_area` вне препятствий в `tavern.json`.
+  - **Sprint P4-04 (Obstacle-aware A*):** Внедрена проверка `is_segment_blocked` в A* (`spatial_service.py`), но из-за разреженности графа это приводило к разрывам. Откатано. Вместо этого `movement_engine.py` теперь использует `_resolve_doorway` для обхода препятствий при обнаружении `GEOMETRIC_OBSTACLE`.
+  - **Sprint DriftLaboratory Fix:** Исправлен путь к `data_dir` в `drift_laboratory.py`. Лаборатория передавала пустую временную папку, из-за чего `location_templates.json` не находился.
+  - **Validation:** IPT 5/5 passed. DriftLaboratory (mass_traversal): 519 comparisons, 0 structural drift, 10.1 t/s.
+  Files: backend/app/services/game_loop/service_factories.py, backend/app/services/phases/decision.py, backend/app/services/events/npc_dialogue_subscriber.py, backend/app/services/game_loop/__init__.py, backend/app/services/npc/decision/social_deltas.py, backend/app/services/spatial/spatial_service.py, backend/app/services/spatial/movement_engine.py, backend/tests/sandbox/SUPERBOX/drift_laboratory.py, frontend/map_editor/campaigns/Open_road/locations/tavern.json

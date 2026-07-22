@@ -1,10 +1,29 @@
-# Narrative Manifestation Gap Analysis — Forensic Audit
+# Narrative Manifestation Gap Analysis — Forensic Audit v2
 
 **Status:** Architectural Audit (не контракт, не дизайн)
 **Scope:** NPC social behavior, identity dynamics, memory, dialogue, movement
-**Date:** 2026-07-20
-**Version audited:** Enigma V.0.5.3.5.3_-_-_-
+**Date:** 2026-07-21
+**Version audited:** Enigma V.0.5.3.5.4_-_-_-
 **Methodology:** Forensic — `State → Reader → Transformation → Decision → Action → Observable Consequence`
+**Baseline:** FORENSIC-1 (V.0.5.3.5.3, 2026-07-20, 12 gaps in 8 bridges)
+**Current audit:** FORENSIC-2 (V.0.5.3.5.4, 2026-07-21)
+
+---
+
+## Δ Progress v5353 → v5354 (one day of work)
+
+| Bridge | v5353 Status | v5354 Status | Net Change |
+|---|---|---|---|
+| 1 RelationshipStore → NPC-NPC cache | propagation gap | **IMPROVED** — graph populated per-tick | ✅ fixed |
+| 2 L1Chronicle NPC-NPC TraitDriftEvent | propagation gap | **REGRESSED COSMETICALLY** — ghost param accepted but never called | ⚠️ ghost |
+| 3 BeliefState + ALLY_NEARBY | propagation gap | UNCHANGED | 0 |
+| 4 DialogueQueue | WORKING (with bug) | UNCHANGED (same bug) | 0 |
+| 5 TemporaryDrive threshold | propagation gap | UNCHANGED | 0 |
+| 6 LifeProject → schedule | decision gap | UNCHANGED | 0 |
+| 7 ResponseGenerator | execution gap | **PARTIALLY FIXED** — wired end-to-end but producer drops `target_id` | +0.5 (one-line fix away) |
+| 8 player_cognition | bridge gap (dead) | UNCHANGED | 0 |
+
+**Acceptance test:** 2/11 steps worked in v5353. **Still 2/11 in v5354.** Bridge 1 enables cache population but acceptance test breaks earlier at step 3 (belief formation).
 
 ---
 
@@ -693,3 +712,138 @@ It does not yet have a living world.
 *Components audited: 8*
 *Gaps found: 12 (2 bridge, 5 propagation, 2 decision, 3 execution)*
 *Acceptance test result: 2/11 steps produce observable consequences*
+
+---
+
+# FORENSIC-2 UPDATE — 2026-07-21 (V.0.5.3.5.4)
+
+## A. Concrete minimal bridges identified (next iteration)
+
+### Bridge 7 — ONE-LINE FIX (highest priority)
+
+**File:** `services/game_loop/task_scheduler.py:233-237`
+
+**Bug:** `_dlg_entry` cache stores only `{"speaker_id", "text", "timestamp"}` — **drops `target_id`**. `tick_orchestrator.py:1048` checks `dialogue.get("target_id") == npc_id` → always False → `ctx.response_targets[npc_id]` never set → Bridge 7 producer never fires.
+
+**Fix:**
+```python
+# task_scheduler.py:233
+_dlg_entry = {
+    "speaker_id": ev.source,
+    "target_id": ev.payload.get("target_id"),  # ← ADD THIS LINE
+    "text": ev.payload.get("text", ""),
+    "timestamp": ev.timestamp,
+}
+```
+
+**Unblocks:** NPC_B responds specifically to NPC_A (not nearest NPC). Acceptance test step 6.
+
+---
+
+### Bridge 2 — Wire L1Chronicle write in NpcDialogueSubscriber
+
+**File:** `services/events/npc_dialogue_subscriber.py:127` (after RelationshipStore.update)
+
+**Bug:** `self._l1_chronicle = l1_chronicle` stored but **never called**. NPC-NPC dialogue never written to L1Chronicle → BeliefCrystallizationEngine never sees NPC-NPC events.
+
+**Fix:**
+```python
+# In _process_canonical, after RelationshipStore.update:
+if self._l1_chronicle:
+    from app.services.npc.l1_chronicle import TraitDriftEvent
+    _event = TraitDriftEvent(
+        tick_id=tick,
+        target_id=listener,
+        source_id=f"dialogue:{tone}",
+        effect_value=delta_trust,
+        observation_weight=1.0,
+        event_type="social_dialogue",
+    )
+    self._l1_chronicle.commit_tick_buffer([_event], tick)
+```
+
+**Unblocks:** Bridge 2 → NPC-NPC dialogue flows to L1Chronicle → PatternDetector → BeliefCrystallizationEngine.
+
+---
+
+### Bridge 5 + Step 9 — P2-05 redemption
+
+**Bug:** `social_deltas.py:49-55` adds 6 NPC-NPC event types (`npc_insults`, `npc_helps`, etc.) but:
+- (a) No code emits these event_type strings — only `npc_spoke` exists
+- (b) Line 177 hardcodes `target="player"` — would write NPC-NPC deltas to player relationship (WRONG)
+
+**Fix (2 changes):**
+
+1. **Map NPC_SPOKE + tone → event_type** in `services/events/npc_dialogue_subscriber.py`:
+```python
+_TONE_TO_NPC_EVENT = {
+    "ANGRY": "npc_insults",
+    "MANIPULATIVE": "npc_threatens",
+    "FRIENDLY": "npc_helps",
+    "FEARFUL": "npc_threatens",
+    "FLIRTY": "npc_helps",
+}
+_npc_event_type = _TONE_TO_NPC_EVENT.get(tone)
+if _npc_event_type:
+    # emit EventContext(event_type=_npc_event_type, actor_id=speaker, target_id=listener)
+```
+
+2. **Fix target routing** in `services/npc/decision/social_deltas.py:177`:
+```python
+# Was: target="player"
+target = event.actor_id if _et_val.startswith("npc_") else "player"
+```
+
+**Unblocks:** Bridge 5 (TemporaryDrive for NPC-NPC events) AND Step 9 (Orm updates opinion of Borko).
+
+---
+
+## B. New issues introduced by v5354 fixes
+
+| # | Severity | File:line | Issue |
+|---|---|---|---|
+| NEW-1 | 🔴 CRITICAL | `task_scheduler.py:233-237` | `_dlg_entry` missing `target_id` — Bridge 7 producer dead (one-line fix) |
+| NEW-2 | 🔴 HIGH | `social_deltas.py:49-55, 177` | P2-05 unreachable + misrouted — 6 new event types never fire, would write to player if they did |
+| NEW-3 | 🟠 MEDIUM | `npc_dialogue_subscriber.py:36, 44` | `l1_chronicle` ghost parameter — stored, never called. Bridge 2 still broken. |
+| NEW-4 | 🟡 LOW | `decision.py:271-275` | `compute_social_modifiers(player_distances={})` — no crash but produces 0 modifiers. TODO at line 269 acknowledged. |
+| NEW-5 | 🟡 LOW | `service_factories.py` | SocialEngine source-fixed, runtime still shows "disabled" — possibly stale process or path mismatch on Windows |
+| NEW-6 | 🟡 LOW | `movement_engine.py:195-226` | `_resolve_doorway` works but limited to 1.5m axial offsets — wider doorways still fall back to REJECTED |
+
+---
+
+## C. Updated acceptance test trace (v5354)
+
+| Step | v5353 | v5354 | Blocker |
+|---|---|---|---|
+| 1 Player → Lusya | ✓ | ✓ | — |
+| 2 Lusya receives | ✓ | ✓ | — |
+| 3 Lusya forms belief | ✗ | ✗ | `_THREAT_TYPES` player-only; PLAYER_SPOKE not included |
+| 4 Lusya approaches Borko | ✗ | ✗ | SocialTargetResolver picks nearest; trust=0 doesn't trigger prefer>30 |
+| 5 Lusya asks "Were you watching?" | ✗ | ✗ | topic_extractor needs keyword in raw_input |
+| 6 Borko responds defensively | ✗ | ✗ | **NEW-1: target_id dropped from _dlg_entry** |
+| 7 Orm hears exchange | ✗ | ✗ | Orm's hub_event = player action, not Lusya's NPC_SPOKE |
+| 8 Orm stores episodic memory | ✗ | ✗ | NpcDialogueSubscriber writes memory only for target_id listener |
+| 9 Orm updates opinion of Borko | ✗ | ✗ | **NEW-2: P2-05 npc_* entries unreachable** |
+| 10 Orm avoids Borko | ✗ | ✗ | Orm→Borko trust=0, no FLEE bias |
+| 11 Final state | ✗ | ✗ | Causal chain breaks at step 3 |
+
+**Same result as v5353: 2/11.** But Bridge 1 cache population enables future fixes — once NEW-1, NEW-2, NEW-3 fixed, steps 6, 7, 8, 9 will cascade.
+
+---
+
+## D. Top 3 priority fixes for next iteration
+
+1. **ONE-LINE FIX — NEW-1**: `task_scheduler.py:233` add `"target_id": ev.payload.get("target_id")`. **Unblocks Bridge 7 end-to-end.**
+
+2. **Bridge 2 — wire L1Chronicle write**: `npc_dialogue_subscriber.py` add `commit_tick_buffer` call. **Unblocks BeliefCrystallizationEngine for NPC-NPC.**
+
+3. **NEW-2 — P2-05 redemption**: (a) Map NPC_SPOKE + tone → `npc_insults`/`npc_helps`/etc., (b) fix `social_deltas.py:177` to use `event.actor_id` for npc_* events. **Unlocks TemporaryDrive + Step 9.**
+
+---
+
+*Forensic-2 audit completed: 2026-07-21*
+*Source: V.0.5.3.5.4_-_-_*
+*Components re-audited: 8*
+*New issues: 6 (2 critical, 1 high, 1 medium, 2 low)*
+*Acceptance test result: 2/11 (unchanged from v5353)*
+*Critical one-line fix identified: NEW-1*

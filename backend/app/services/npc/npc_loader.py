@@ -114,6 +114,27 @@ def _load_archetype_chain(individual_data: Dict[str, Any]) -> Dict[str, Any]:
     return merged
 
 
+def reload_archetype_for(npc_dict: Dict[str, Any], new_archetype: str) -> Dict[str, Any]:
+    """Перезагружает schedule + activity_map из нового архетипа, сохраняя runtime-overlay (P2-11).
+    
+    ADR-TIFL-003: При кризисе идентичности NPC может сменить архетип.
+    Эта функция перезагружает статические данные (schedule, activity_map) из нового архетипа,
+    но сохраняет все runtime-поля (stress, relationship_cache, body_state и т.д.).
+    """
+    _runtime_overlay = {}
+    for key in _RUNTIME_TOP_LEVEL_KEYS:
+        if key in npc_dict:
+            _runtime_overlay[key] = npc_dict[key]
+            
+    npc_dict["_archetype"] = new_archetype
+    _new_static = _load_archetype_chain(npc_dict)
+    
+    # Возвращаем runtime поля поверх новой статики
+    _new_static.update(_runtime_overlay)
+    logger.info(f"[NPC_LOADER] Reloaded archetype for {npc_dict.get('id')}: -> {new_archetype}")
+    return _new_static
+
+
 def load_npc_profiles_from_config() -> Dict[str, NPCProfileL0]:
     """
     Загружает все NPC из config/npc/individuals/.

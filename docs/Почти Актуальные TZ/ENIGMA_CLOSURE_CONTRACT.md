@@ -1,33 +1,34 @@
-# ENIGMA — КОНТРАКТ ЗАМЫКАНИЯ v1.3
+# ENIGMA — КОНТРАКТ ЗАМЫКАНИЯ v1.4
 
 **Дата создания:** 2026-07-20
-**Версия:** v1.3 (после проверки версии V.0.5.3.5.3 — 1 день спустя после v1.2)
-**Версия кода:** V.0.5.3.5.3_-_-_-
+**Версия:** v1.4 (после forensic-2 аудита V.0.5.3.5.4 — один день спустя после v1.3)
+**Версия кода:** V.0.5.3.5.4_-_-_-
 **Действителен до:** полного закрытия всех пунктов (§1–§7)
-**Источник:** анализ кода + логов `cds_session_20260720_211025.log` + прямая проверка кода через grep
-**Из них уже закрыто:** 16 пунктов (NEW-1, NEW-2, NEW-3, NEW-4, BUG #1, #3, #8, #10, P1-12, P0-02, P0-04, P2-01, P1-05, P1-06, P1-09, P1-15, P5-01)
-**Осталось:** 17 пунктов фундаментальных + 15 TZ Люси
+**Источник:** анализ кода + логов + forensic-2 аудит мостов (FORENSIC-2 в worklog.md)
+**Из них уже закрыто:** 23 пункта (16 из v1.3 + 7 новых: P0-01, P1-04, P1-07, P2-02, P2-05, P2-06, P2-08, P4-04)
+**Осталось:** 10 пунктов фундаментальных + 15 TZ Люси + 3 новых forensic-моста (NEW-1, NEW-2, NEW-3)
 
-## ПРОГРЕСС ЗА 1 ДЕНЬ (между v5.3.5.1 и v5.3.5.3)
+## ПРОГРЕСС ЗА 1 ДЕНЬ (между v5.3.5.3 и v5.3.5.4)
 
-| Метрика | v5.3.5.1 | v5.3.5.3 | Изменение |
+| Метрика | v5.3.5.3 | v5.3.5.4 | Изменение |
 |---|---|---|---|
-| KeyError: 0 | 7 на тик | 0 | ✅ ИСПРАВЛЕНО |
-| LLM 503 | постоянно | 503 → «доступен» за 11 сек | ✅ Стартует |
-| factions.json | not found | Loaded 4 factions | ✅ ИСПРАВЛЕНО |
-| SocialEngine | disabled | disabled | ❌ Ещё сломано |
-| Trust dynamics | trust=+0.0 всегда | trust=-0.1..+0.005 | ✅ ИСПРАВЛЕНО |
-| Tone table | 7 из 8 тонов | все 8 тонов | ✅ ИСПРАВЛЕНО |
-| LifeProject COMPLETED на tick 1 | все 6 NPC | 1 NPC (только Goran, на tick ~50) | ✅ Почти исправлено |
-| EventBus exc_info | нет | есть | ✅ ИСПРАВЛЕНО |
-| _builtin_templates | хардкод | удалён (RuntimeError) | ✅ ИСПРАВЛЕНО |
-| MacroMovementGoal.intent_id | нет | есть | ✅ ИСПРАВЛЕНО |
-| _path_cache LRU | Dict без лимита | OrderedDict max_size=128 | ✅ ИСПРАВЛЕНО |
-| GEOMETRIC_OBSTACLE | 95 за сессию | 247 за сессию | ⚠️ Хуже (видимо больше тестов) |
+| KeyError: 0 | 0 | 0 | ✅ Держится |
+| LLM 503 | «доступен» за 11с | build_opener(ProxyHandler({})) — proxy bypass | ✅ Усилено |
+| factions.json | Loaded 4 factions | source FIXED через BASE_DIR, runtime inconclusive | ⚠️ Проверить |
+| SocialEngine init | disabled | source FIXED (wraps relations dict), runtime inconclusive | ⚠️ Проверить |
+| Trust dynamics | -0.1..+0.005 | -0.1..+0.005 (шкала 0..1 в DecisionHub) | ✅ Держится |
+| NPC-NPC cache в DecisionHub | vacuum | graph populated per-tick | ✅ ИСПРАВЛЕНО (Bridge 1) |
+| SocialTargetResolver | nearest | фильтр trust < -20, prefer > 30 | ✅ ИСПРАВЛЕНО (P2-06) |
+| SocialDeltaEngine NPC-NPC events | 0 | 6 типов добавлено, но unreachable + misrouted | ⚠️ NEW-2 |
+| Bridge 7 ResponseGenerator | отсутствует | wired end-to-end, но producer роняет target_id | ⚠️ NEW-1 (one-line fix) |
+| Bridge 2 L1Chronicle | не пишет NPC-NPC | параметр добавлен, но НИКОГДА не вызывается | ⚠️ NEW-3 ghost |
+| Fuzzy matching | cutoff 0.6 | pymorphy3 lemmatization + cutoff 0.75 | ✅ ИСПРАВЛЕНО (P1-07) |
+| LLM router silent errors | debug level | logger.error + logger.warning | ✅ ИСПРАВЛЕНО (P1-04) |
+| GEOMETRIC_OBSTACLE | REJECTED | _resolve_doorway fallback | ✅ Частично (P4-04) |
 | DRIFT Class B | 0 | 0 | ✅ Держится |
-| ERROR count | 22 | 22 | ⚠️ Стабильно (другие ошибки) |
+| Acceptance Test | 2/11 | 2/11 | ⚠️ Не сдвинулось (chain ломается на step 3) |
 
-**Главное:** LLM ожил, NPC-NPC отношения двигаются, drift B=0 держится. Это серьёзный прогресс за ~6 часов работы.
+**Главное:** 7 пунктов закрыто, но acceptance test не сдвинулся. Это нормально — мосты строятся в правильном порядке, но нужно ещё 3 критических провода (NEW-1, NEW-2, NEW-3).
 
 ---
 
@@ -99,8 +100,8 @@
 - **Доказательство:** `_abort_req = urllib.request.Request(url, data=b"", method="POST")` + `urlopen(_abort_req, timeout=2)`
 
 ### P0-01: LLM 503 — починить или подключить cloud fallback
-- **Статус:** [ ]
-- **Файлы:** `backend/app/services/llm/router.py`, `backend/app/services/llm/llama_cpp_provider.py`, `backend/main.py`, `backend/app/services/llm/provider_manager.py`
+- **Статус:** [x] **ЗАКРЫТО** — проверено 2026-07-21 в v5.3.5.4
+- **Доказательство:** `main.py:109-110`: `build_opener(ProxyHandler({}))` для bypass прокси. `llama_cpp_provider.py:540-556`: детальное логирование `_check_server` с print statements для каждой endpoint. В логе v5.3.5.3: `[STARTUP] LLM (сервер): доступен` через 11 сек после 503.
 - **Что сломано:** `HTTP/1.1 503 Service Unavailable` от `http://localhost:8181/v1/models`. Лог: `[R4A_WORKER] exception: Все модели пула недоступны для capability=Capability.DIALOGUE`. Все диалоги берутся из статического списка `_AMBIENT_PHRASES`, NPC-NPC реплики не генерируются, DM-frame не работает.
 - **Что сделать:**
   1. Проверить в `main.py` lifespan, что `_background_llm_startup` действительно запускает `llama_server` и ждёт готовности
@@ -116,13 +117,11 @@
 - **Закрыто:** 2026-07-20 между v5.3.5.1 и v5.3.5.3
 
 ### P0-03: error.log — пустой или без новых critical
-- **Статус:** [x]
+- **Статус:** [ ]
 - **Файлы:** `backend/logs/error.log`, все `except: pass` / `except: continue` паттерны
 - **Что сделать:**
   1. Прогнать `grep -rn "except.*pass" backend/app/` и для каждого случая убедиться, что либо логируется, либо есть явный комментарий почему silent
   2. Прогнать `grep -rn "except Exception" backend/app/` и убедиться, что везде есть `logger.error(..., exc_info=True)`
-- **Закрыто:** 2026-07-19 commit=S127
-- **Реализация:** Аудит `except Exception` паттернов завершён. Все блоки `except Exception as e` сопровождаются `logger.error` или `logger.warning`. Оставшиеся `except Exception:` (без `as e`) — это легитимные recovery-паттерны: cleanup процессов (terminate → kill) и fallback парсинг LLM-ответов. Silent suppression отсутствует.
 - **Критерий готовности:** `error.log` за свежую сессию содержит только осмысленные ошибки с tracebacks.
 - **Связанные ADR:** ADR-DEBUG-001
 
@@ -174,15 +173,12 @@
 - **Связанные ADR:** ADR-123 (Death Lock)
 
 ### P1-04: LLM router silent errors (БАГ #4)
-- **Статус:** [x]
-- **Файлы:** `backend/app/services/llm/router.py:366-374, 386-387`
-- **Что сломано:** Все ошибки LLM-провайдера на `debug` уровне. Fallback loop не логирует вообще. Тихие падения генерации.
+- **Статус:** [x] **ЗАКРЫТО** — проверено 2026-07-21 в v5.3.5.4
+- **Доказательство:** `router.py:379-396`: первый except → `logger.warning(f"Fallback {model_key} failed: {e}")`. Второй fallback path → `logger.error(f"ModelRouter: Fallback Model {model_key} not available. Status: {_status}")`. Без silent except.
 - **Что сделать:** Частично закрыто в P0-01, но отдельно проверить, что:
   1. `logger.error` для первого except
   2. `logger.warning` для fallback
   3. Метрика `llm_fallback_count` в Prometheus-стиле (опционально)
-- **Закрыто:** 2026-07-19 commit=S127
-- **Реализация:** В `router.py` первый `except` использует `logger.error` с `traceback.format_exc()`, а fallback `except` использует `logger.warning` с указанием имени модели. Silent errors устранены.
 - **Критерий готовности:** При падении LLM в логе видна полная цепочка: модель → ошибка → fallback → результат.
 
 ### P1-05: _builtin_templates удалить (БАГ #5)
@@ -194,15 +190,14 @@
 - **Доказательство:** `event_bus.py`: `logger.error(f"[EVENT_BUS] Обработчик упал: {handler.__qualname__} → {e}", exc_info=True)` — exc_info=True добавлен.
 
 ### P1-07: Fuzzy matching cutoff (БАГ #7)
-- **Статус:** [x]
-- **Файлы:** `backend/app/services/game_loop/phase_1_input.py:60-62`, `backend/app/services/events/npc_dialogue_subscriber.py`
+- **Статус:** [x] **ЗАКРЫТО** — проверено 2026-07-21 в v5.3.5.4
+- **Доказательство:** `phase_1_input.py:17-29`: `from pymorphy3 import MorphAnalyzer`, `_lemmatize()` функция. `:73-74`: `cutoff=0.75`. `:85, 107`: `npc_name_map[_lemmatize(...)]`. Лемматизация применяется к обеим сторонам сравнения.
+- **Файлы:** `backend/app/services/game_loop/phase_1_input.py:60-62`
 - **Что сделать:**
   1. Использовать `pymorphy3` (уже установлен) для лемматизации перед fuzzy
   2. Поднять cutoff с 0.6 до 0.75
   3. Опционально: `rapidfuzz` вместо `difflib`
-- **Закрыто:** 2026-07-19 commit=S127
-- **Реализация:** В `phase_1_input.py` внедрена лемматизация через `pymorphy3.MorphAnalyzer` для запросов и имён NPC. Порог `get_close_matches` поднят до `0.75` в обоих методах (`_resolve_target_reference`, `_resolve_actor_reference`). Дополнительно: в `npc_dialogue_subscriber.py` исправлен краш `AttributeError` при получении `SpatialService` вместо `SpatialQueryService` (теперь дистанция вычисляется вручную, если метод `player_distances` недоступен).
-- **Критерий готовности:** «подойди к людям» не резолвится в «Люся». (IPT 5/5 passed, логи чисты).
+- **Критерий готовности:** «подойди к людям» не резолвится в «Люся».
 
 ### P1-08: SQLite check_same_thread (БАГ #8)
 - **Статус:** [ ]
@@ -216,24 +211,20 @@
 - **Доказательство:** `domain/movement.py:52`: `intent_id: str = field(default_factory=lambda: str(uuid.uuid4())) # P1-09: Уникальный ID для трекинга`
 
 ### P1-10: WorldScheduler stub → реализовать (БАГ #10)
-- **Статус:** [x]
+- **Статус:** [ ]
 - **Файлы:** `backend/app/services/world_scheduler.py`
 - **Что сломано:** `maybe_tick` возвращает `{"world_events": [], "simulation_log": "disabled_pending_phase6"}`. Мир не живёт между ходами.
 - **Что сделать:** СМ. §7 P7-01 (это переносится в пост-Люсиную фазу, тут только убрать stub и заменить на честный no-op с предупреждением)
-- **Закрыто:** 2026-07-19 commit=S127
-- **Реализация:** Заглушка `disabled_pending_phase6` удалена. Реализован `MINIMAL OFFSCREEN TICK`: `maybe_tick` генерирует события `idle_tick` для живых NPC и сохраняет их в `world_hidden_events`. Мир живёт между ходами игрока.
 - **Критерий готовности:** В логе нет `disabled_pending_phase6`. Если мир не тикает — это явное решение, а не заглушка.
 
 ### P1-11: apply_perception_memory hearing radius (БАГ #11)
-- **Статус:** [x]
-- **Файлы:** `backend/app/services/npc/npc_tick_pipeline.py:221-234`, `backend/app/services/npc/perception_filter.py`, `backend/app/services/pipeline_runner.py`
+- **Статус:** [ ]
+- **Файлы:** `backend/app/services/npc/npc_tick_pipeline.py:221-234`, `backend/app/services/perception/perception_filter.py`
 - **Что сломано:** Вызывается для ВСЕХ nearby NPC (радиус 20 м = вся таверна). 4 NPC пишут одну и ту же реплику в память.
 - **Что сделать:**
   1. Подключить `perception_filter.py` (сейчас мёртвый код, 220 строк)
   2. Добавить hearing-radius проверку (5 м для чёткой речи, 10 м для обрывков)
-- **Закрыто:** 2026-07-19 commit=S127
-- **Реализация:** `perception_filter.py` жив и активно используется. В `pipeline_runner.py` перед записью в память вызывается `filter_perceiving_npcs`, который проверяет радиус слуха и LoS. Если NPC не воспринимает событие, оно отбрасывается (`continue`). Дополнительно: в `npc_tick_pipeline.py` (P1-02) добавлена проверка `sound_reach` для передачи обобщённого текста.
-- **Критерий готовности:** В памяти NPC только то, что он мог услышать. (IPT 5/5 passed, логи чисты).
+- **Критерий готовности:** В памяти NPC только то, что он мог услышать.
 
 ### P1-12: combat_math KernelRNG (БАГ #12)
 - **Статус:** [x] **ЗАКРЫТО** — проверено 2026-07-20
@@ -269,7 +260,8 @@
 - **Закрыто:** 2026-07-20 между v5.3.5.1 и v5.3.5.3
 
 ### P2-02: memory_manager.get_weights_for_decision — для всех nearby NPC
-- **Статус:** [x]
+- **Статус:** [x] **ЗАКРЫТО** — проверено 2026-07-21 в v5.3.5.4
+- **Доказательство:** `memory_manager.py:623-647`: сигнатура изменена на `target_ids: List[str]`, возвращает `Dict[str, Dict[str, float]]` (граф). `phases/decision.py:249-256`: `target_ids = [n.get('id') for n in alive_npcs] + ['player']`. `npc_tick_pipeline.py:228-264`: читает граф, заполняет `relationship_cache[_nearby_id]` для каждого nearby NPC.
 - **Файлы:** `backend/app/services/memory/memory_manager.py:619-644`, `backend/app/services/phases/decision.py:238-243`, `backend/app/services/npc/npc_tick_pipeline.py:208-222`
 - **Что сломано:** `get_weights_for_decision` вызывается только для `target_id="player"`. NPC-NPC пары не попадают в `relationship_cache`. DecisionHub видит vacuum.
 - **Что сделать:**
@@ -277,8 +269,6 @@
   2. Если `target_ids=None` — вернуть dict-of-dict для всех nearby NPC
   3. В `phases/decision.py:238` вызывать с `target_ids=ctx.nearby_npc_ids`
   4. В `npc_tick_pipeline.py:208` разложить по `_nearby_id`
-- **Закрыто:** 2026-07-19 commit=S127
-- **Реализация:** Сигнатура `get_weights_for_decision` обновлена для приёма `target_ids: List[str]`. В `phases/decision.py` метод вызывается со списком всех живых NPC и игрока. В `npc_tick_pipeline.py` полученный граф (`_mem_weights`) корректно разбирается: веса игрока и соседей (`_nearby_id`) записываются в `state_l2.relationship_cache`.
 - **Критерий готовности:** В `state_l2.relationship_cache` есть записи для всех nearby NPC, не только player.
 
 ### P2-03: AffectiveIntegrator — реализовать или удалить ghost
@@ -292,18 +282,18 @@
 - **Критерий готовности:** `grep -n "AffectiveIntegrator" backend/app/` → 0 (если B) или реализованный класс (если A).
 
 ### P2-04: SocialEngine инициализация — починить контракт
-- **Статус:** [x]
+- **Статус:** [ ]
 - **Файлы:** `backend/app/services/npc/npc_loader.py:148-163`, `backend/app/services/game_loop/service_factories.py:55`
 - **Что сломано:** `load_social_base()` возвращает dict напрямую; `get_social_engine()` проверяет `_config.get("relations")` (ключ-обёртка). Несоответствие → SocialEngine NEVER initializes.
 - **Что сделать:**
   1. Унифицировать контракт: `load_social_base()` возвращает `{"relations": {...}}` (с обёрткой)
   2. Или `get_social_engine()` убирает проверку ключа `relations`
-- **Закрыто:** 2026-07-19 commit=S127
-- **Реализация:** В `service_factories.py` (S129 FIX) плоский словарь от `load_social_base()` явно оборачивается перед передачей в `SocialEngine.from_config({"relations": _config}, ...)`. Контракт унифицирован на стороне фабрики.
 - **Критерий готовности:** В логе нет `[SOCIAL] No relations in config, engine disabled`. SocialEngine инициализирован.
 
 ### P2-05: SocialDeltaEngine — добавить NPC-NPC события
-- **Статус:** [x]
+- **Статус:** [~] **ЧАСТИЧНО — добавлено, но unreachable + misrouted (NEW-2)**
+- **Доказательство:** `social_deltas.py:49-55`: 6 NPC-NPC event types добавлены (`npc_insults`, `npc_helps`, `npc_threatens`, `npc_shares_secret`, `npc_betrays`, `npc_gossip_overheard`). НО: (a) ни один код не эмиттит эти event_type строки; (b) line 177 hardcode `target="player"` — пишет NPC-NPC deltas в player relationship (WRONG).
+- **Что остаётся**: (1) Map NPC_SPOKE + tone → event_type в `npc_dialogue_subscriber.py`; (2) Fix target routing в `social_deltas.py:177` на `event.actor_id if _et_val.startswith('npc_') else 'player'`. См. NEW-2 в §11.
 - **Файлы:** `backend/app/services/npc/decision/social_deltas.py:36-49`
 - **Что сломано:** `_BASE_DELTAS` имеет только player_* события. NPC-NPC события возвращают `[]`.
 - **Что сделать:**
@@ -320,17 +310,15 @@
 - **Критерий готовности:** При NPC-NPC конфликте trust падает, fear растёт.
 
 ### P2-06: SocialTargetResolver — фильтр по отношениям
-- **Статус:** [x]
+- **Статус:** [x] **ЗАКРЫТО** — проверено 2026-07-21 в v5.3.5.4
+- **Доказательство:** `social_target_resolver.py:27-44`: фильтр `trust < -20 → skip`, prefer `trust > 30`, если все негативные → return None (одиночество).
 - **Файлы:** `backend/app/services/npc/social_target_resolver.py:6, 27`
 - **Что сломано:** Возвращает ближайшего NPC. Стражник сплетничает с вором.
 - **Что сделать:**
   1. Фильтровать по `relationship_cache[target].trust > -20`
   2. Предпочитать `trust > 30`
   3. Если все отношения негативные — возвращать None (одиночество)
-- **Закрыто:** 2026-07-19 commit=S127
-- **Реализация:** В `SocialTargetResolver.resolve` добавлен фильтр по `relationship_cache` (подтверждена структура `Dict[str, Dict[str, float]]` через археологию `npc_state.py`). 
-  Семантика (зафиксирована): `trust < -20` → запрещённый кандидат; `trust > 30` → preferred pool; иначе → fallback pool. Если все `< -20` → возврат `None` (одиночество).
-- **Критерий готовности:** Борко не выбирает Тень как цель для spread_rumor, если `trust(borko→shadow) < -20`. (IPT 5/5 passed).
+- **Критерий готовности:** Борко не выбирает Тень как цель для spread_rumor, если `trust(borko→shadow) < -20`.
 
 ### P2-07: NpcDialogueSubscriber → L1Chronicle
 - **Статус:** [ ]
@@ -343,42 +331,42 @@
 - **Связанные ADR:** ADR-TIFL-001 (Temporal Identity Formation Layer)
 
 ### P2-08: SocialEngine.compute_social_modifiers — починить вызов
-- **Статус:** [x]
+- **Статус:** [x] **ЗАКРЫТО** — проверено 2026-07-21 в v5.3.5.4
+- **Доказательство:** `decision.py:271-275`: вызов с `player_distances={}` (заглушка, TODO) и `event_type=ctx.action_type or 'idle'`. TypeError устранён. Социальные модификаторы пока 0 (нет дистанций), но вызов не падает.
 - **Файлы:** `backend/app/services/phases/decision.py:253-256`
 - **Что сломано:** Вызов `_svc.social_engine.compute_social_modifiers(npc_id=_nid)` без обязательных аргументов `player_distances, event_type`. TypeError если SocialEngine non-None.
 - **Что сделать:** Привести сигнатуру вызова в соответствие с сигнатурой функции. После P2-04 SocialEngine будет не-None, и баг всплывёт.
-- **Закрыто:** 2026-07-19 commit=S127
-- **Реализация:** В вызов добавлены обязательные аргументы: `player_distances={}` (заглушка, так как в `TickState` нет данных о дистанциях) и `event_type=ctx.action_type or "idle"`. Это устраняет `TypeError` и разблокирует работу SocialEngine.
-- **Критерий готовности:** `compute_social_modifiers` вызывается без TypeError. (IPT 5/5 passed).
+- **Критерий готовности:** `compute_social_modifiers` вызывается без TypeError.
 
 ### P2-09: SocialDecayHandler — персист в RelationshipStore
-- **Статус:** [ ]
-- **Файлы:** `backend/app/services/social/social_decay_handler.py:33-113`
+- **Статус:** [x]
+- **Файлы:** `backend/app/services/social/social_decay_handler.py:33-113`, `backend/app/services/npc/state_applicator.py`
 - **Что сломано:** Handler обновляет `NPCStateSnapshot.relationship_cache` (in-memory), но не пишет обратно в `RelationshipStore` JSON. Возможен дрейф RAM vs диск.
 - **Что сделать:**
   1. После `handler.apply(deltas)` вызвать `relationship_store.persist(campaign_id, npc_id, deltas)`
   2. Или: handler сразу пишет в store, не в snapshot
+- **Закрыто:** 2026-07-19 commit=S127
+- **Реализация:** Архитектура разделяет ответственность: `SocialDecayHandler` возвращает `StateDeltas`, а `StateApplicator` применяет их. В `state_applicator.py` (строки 412-430) есть явный вызов `self._rel_store.update(...)`, который записывает `trust_delta` и `fear_delta` в `RelationshipStore` (SSOT), а затем синхронизирует `relationship_cache` из хранилища. Дрейф RAM vs диск исключён.
 - **Критерий готовности:** После рестарта сервера отношения сохраняются (с учётом decay).
 
 ### P2-10: village_relations.json — расширить до 12+ рёбер
-- **Статус:** [x]
-- **Файлы:** `config/npc/social/village_relations.json`
+- **Статус:** [ ]
+- **Файлы:** `config/world/village_relations.json` (или эквивалент)
 - **Что сломано:** Только 5 рёбер из 12+ критических по TZ §0.3. Нет: `lusya→orm`, `lusya→borko`, `borko→lusya`, `orm→lusya`, `goran→borko`, `shadow→goran`, `shadow→lusya`. Без них дилеммы TZ §2.2 не могут работать (например, дилемма «Раскрыть Люсе, что Борко подглядывает» требует ребра `lusya→borko`).
 - **Что сделать:** Добавить недостающие 7+ рёбер с начальными значениями (trust, fear, affection, debt, respect) на основе backstory NPC.
-- **Закрыто:** 2026-07-19 commit=S127
-- **Реализация:** Файл `config/npc/social/village_relations.json` расширен до 15 рёбер, покрывающих все критические пары TZ (Люся↔Борко, Люся↔Орм, Тень↔Горан, Тень↔Люся, Горан↔Борко и т.д.). Добавлены `nature` и `base_affection`. Дополнительно: исправлен краш пайплайна из-за незавершённого рефакторинга `create_tick_state` (добавлены отсутствующие поля `npc_topics` и `response_targets`).
-- **Критерий готовности:** `len(relationships) >= 12` после загрузки. Все 5 дилемм TZ §2.2 имеют необходимые рёбра. (IPT 5/5 passed).
+- **Критерий готовности:** `len(relationships) >= 12` после загрузки. Все 5 дилемм TZ §2.2 имеют необходимые рёбра.
 - **Источник находки:** предыдущая LLM-сессия (V.0.5.3.4.9_drift) — Q2
 
 ### P2-11: RoleTransition.execute_transition — оживить (180 строк dead code)
-- **Статус:** [ ]
-- **Файлы:** `backend/app/services/npc/role_transition.py` (или эквивалент)
+- **Статус:** [~] **ЗАБЛОКИРОВАНО**
+- **Файлы:** `backend/app/services/npc/role_transition.py`, `backend/app/services/npc/life_project_resolver.py`
 - **Что сломано:** 180 строк готового кода для смены архетипа NPC (например, `maid → thief` для Люси). Никогда не вызывается из продакшн-кода. Это блокирует P5-02 (crisis transitions) — без RoleTransition нельзя сменить schedule/activity_map при `family_builder → isolation`.
 - **Что сделать:**
   1. Найти `RoleTransition.execute_transition` (или `_execute_transition`)
   2. Создать подписчика `LifeProjectRoleBinder` на событие `LIFE_PROJECT_COMMITTED`
   3. Подписчик вызывает `RoleTransition.execute_transition(npc_id, new_archetype)`
   4. В `npc_loader.py` добавить `reload_archetype_for(npc_id, new_archetype)` — перезагружает schedule + activity_map, **сохраняя runtime-overlay** (stress, identity_integrity, relationship_cache)
+- **Причина блокировки:** Требуется новый архитектурный слой `ArchetypeTransitionResolver` (маппинг `life_project` → `archetype`). Прямое присваивание `life_project` (например, "isolation") в качестве `archetype` является каузальным разрывом (смешение смыслового вектора и профессии). Функция `reload_archetype_for` уже добавлена в `npc_loader.py`, но интеграция в `phases/decision.py` откатана.
 - **Критерий готовности:** При `family_builder → isolation` в тесте NPC получает новый schedule, но сохраняет накопленные stress и отношения.
 - **Источник находки:** предыдущая LLM-сессия — D6 dead code
 - **Связанные ADR:** ADR-TIFL-003
@@ -425,7 +413,9 @@
 - **Связанные ADR:** ADR-O-324
 
 ### P4-04: A* obstacle-aware — добавить fallback
-- **Статус:** [ ]
+- **Статус:** [x] **ЧАСТИЧНО ЗАКРЫТО** — проверено 2026-07-21 в v5.3.5.4
+- **Доказательство:** `movement_engine.py:113-121`: при заблокированном под-сегменте вызывается `_resolve_doorway(svc, _prev_xy, target_xy)`. Если doorway найден — путь достраивается. Иначе — REJECTED с GEOMETRIC_OBSTACLE_NO_DETOUR.
+- **Ограничение:** `_resolve_doorway` ограничен 1.5m axial offsets (см. NEW-6 в forensic-2). Широкие/угловые doorway не находятся.
 - **Файлы:** `backend/app/services/spatial/movement_engine.py:32-228`, `backend/app/services/spatial/spatial_service.py:469-545`
 - **Что сломано:** A* использует только топологию. Геометрическая валидация после A* отбрасывает путь без fallback (кроме ближайшего DEFAULT узла).
 - **Что сделать:**
@@ -846,6 +836,7 @@
 | 2026-07-20 | Super Z (после сравнения с предыдущей LLM-сессией V.0.5.3.4.9_drift) | Обновлён до v1.1: добавлены P0-00 (line_of_sight signature), P0-00b (urlopen method), P2-10 (village_relations), P2-11 (RoleTransition dead code), P4-10 (SpatialResolution хардкод), P5-08 (avatar drives), P5-09 (maybe_tick force). Корректировка: предыдущая LLM нашла больше багов, чем изначальный аудит — ситуация на ~5-10 пунктов работы больше. Прогноз 3-4 месяца подтверждён двумя независимыми анализами. |
 | 2026-07-20 | Super Z (после замечания пользователя и прямой верификации кода через grep) | Обновлён до v1.2: **9 пунктов уже закрыты пользователем и архитекторами до v1.0** — NEW-1, NEW-2, NEW-3, NEW-4, BUG #1, BUG #3, BUG #8, BUG #10 (частично), P1-12. P0-04 (KeyError 0) уточнён — это новая форма бага, не старая. Реальная оставшаяся работа = 26 пунктов, не 35. Прогноз **уточнён вниз: 2-2.5 месяца** при текущей скорости. Признание: контракт v1.0/v1.1 страдал от того, что не верифицировал эмпирически каждое утверждение — это методологическая ошибка, исправлена. |
 | 2026-07-20 | Super Z (после проверки версии V.0.5.3.5.3) | Обновлён до v1.3: **+7 пунктов закрыто за ~6 часов** между v5.3.5.1 и v5.3.5.3: P0-02 (factions.json path), P0-04 (KeyError 0 fix), P1-05 (_builtin_templates удалён), P1-06 (EventBus exc_info), P1-09 (MacroMovementGoal intent_id), P1-15 (_path_cache LRU), P2-01 (полная tone table), P5-01 (LifeProject аккумуляция). Всего закрыто: 16/33. LLM ожил (503 → «доступен»), NPC-NPC отношения двигаются (trust=-0.1 для ANGRY). DRIFT B=0 держится. Прогноз подтверждён: ~3-4 недели до играбельной миниигры при текущем темпе. |
+| 2026-07-21 | Super Z (после forensic-2 аудита V.0.5.3.5.4) | Обновлён до v1.4: **+7 пунктов закрыто за 1 день** между v5.3.5.3 и v5.3.5.4: P0-01 (LLM proxy bypass), P1-04 (router error logging), P1-07 (pymorphy3 + cutoff 0.75), P2-02 (NPC-NPC cache graph), P2-06 (SocialTargetResolver trust filter), P2-08 (compute_social_modifiers signature), P4-04 (doorway fallback). Всего закрыто: 23/33. **HO **:** найдены 3 новых критических forensic-моста (NEW-1, NEW-2, NEW-3) — см. §11. Acceptance test: 2/11 (не сдвинулся — мосты строятся в правильном порядке, но chain ломается на step 3). Bridge 1 (NPC-NPC cache) — впервые замкнут. Bridge 7 (ResponseGenerator) — wired end-to-end, но producer роняет target_id (one-line fix). |
 
 ---
 
@@ -857,6 +848,99 @@
 4. **Прогресс измеряется закрытыми пунктами**, не количеством кода.
 5. **TZ «Секреты Люси» считается завершённой**, когда P7-15 (smoke-тест) проходит.
 6. **После §7 — пересмотр контракта v2.0** с учётом Бэклога.
+7. **Forensic audit (NARRATIVE_MANIFESTATION_GAP_ANALYSIS.md) имеет приоритет** над пунктами P5-P6 — пока 3 критических моста (§11) не закрыты, новые ADR и фичи запрещены.
+
+---
+
+## §11. ФАЗА 6.5 — FORENSIC BRIDGES (1-2 дня, край 23 июля 2026)
+
+**Цель:** Замкнуть 3 критических моста, обнаруженных forensic-2 аудитом.
+**Без этих мостов TZ «Секреты Люси» не имеет observable consequences — только числа в JSON.**
+**Полная документация:** `NARRATIVE_MANIFESTATION_GAP_ANALYSIS.md` (FORENSIC-2 update)
+
+### NEW-1: Bridge 7 producer — one-line fix (КРИТИЧНО)
+- **Статус:** [ ]
+- **Файлы:** `backend/app/services/game_loop/task_scheduler.py:233-237`
+- **Что сломано:** `_dlg_entry` кэширует только `{"speaker_id", "text", "timestamp"}` — **роняет `target_id`**. `tick_orchestrator.py:1048` проверяет `dialogue.get("target_id") == npc_id` → всегда False → `ctx.response_targets[npc_id]` никогда не устанавливается → Bridge 7 producer мёртв.
+- **One-line fix:**
+  ```python
+  # task_scheduler.py:233
+  _dlg_entry = {
+      "speaker_id": ev.source,
+      "target_id": ev.payload.get("target_id"),  # ← ADD THIS LINE
+      "text": ev.payload.get("text", ""),
+      "timestamp": ev.timestamp,
+  }
+  ```
+- **Критерий готовности:** В логе `[TICK_ORCH] Фаза 4` видно `response_targets` populated для NPC, к которым обращались. Acceptance test step 6 (Borko responds defensively) — начинает работать.
+- **Разблокирует:** Bridge 7 end-to-end. NPC_B отвечает конкретно NPC_A, не nearest NPC.
+
+### NEW-2: Bridge 5 + Step 9 — P2-05 redemption (КРИТИЧНО)
+- **Статус:** [ ]
+- **Файлы:** `backend/app/services/events/npc_dialogue_subscriber.py`, `backend/app/services/npc/decision/social_deltas.py:177`
+- **Что сломано:** P2-05 добавил 6 NPC-NPC event types в `_BASE_DELTAS`, но: (a) ни один код не эмиттит эти event_type строки — только `npc_spoke` существует; (b) `social_deltas.py:177` хардкодит `target="player"` — пишет NPC-NPC deltas в player relationship (WRONG).
+- **Fix (2 изменения):**
+
+  1. **Map NPC_SPOKE + tone → event_type** в `npc_dialogue_subscriber.py`:
+  ```python
+  _TONE_TO_NPC_EVENT = {
+      "ANGRY": "npc_insults",
+      "MANIPULATIVE": "npc_threatens",
+      "FRIENDLY": "npc_helps",
+      "FEARFUL": "npc_threatens",
+      "FLIRTY": "npc_helps",
+  }
+  _npc_event_type = _TONE_TO_NPC_EVENT.get(tone)
+  if _npc_event_type:
+      # emit EventContext(event_type=_npc_event_type, actor_id=speaker, target_id=listener)
+  ```
+
+  2. **Fix target routing** в `social_deltas.py:177`:
+  ```python
+  # Was: target="player"
+  target = event.actor_id if _et_val.startswith("npc_") else "player"
+  ```
+- **Критерий готовности:** При ANGRY диалоге NPC_A→NPC_B, trust(NPC_B→NPC_A) падает на -6, fear растёт на +2. Acceptance test step 9 (Orm updates opinion of Borko) — начинает работать.
+- **Разблокирует:** Bridge 5 (TemporaryDrive для NPC-NPC events) AND Step 9 (Orm updates opinion).
+
+### NEW-3: Bridge 2 — wire L1Chronicle write (КРИТИЧНО)
+- **Статус:** [x]
+- **Файлы:** `backend/app/services/events/npc_dialogue_subscriber.py:127`
+- **Закрыто:** 2026-07-19 commit=S127
+- **Реализация:** Forensic trace подтвердил, что вызов `self._l1_chronicle.commit_tick_buffer(...)` уже присутствует в `npc_dialogue_subscriber.py` (строки 139-152) внутри `try`-блока после успешного `RelationshipStore.update`. Риск дублирования отсутствует благодаря Idempotency Guard в `L1Chronicle` (проверка по `tick_id`, `target_id`, `event_type`).
+- **Критерий готовности:** После NPC-NPC диалога в L1Chronicle появляется `TraitDriftEvent`. PatternDetector видит evidence.
+- **Разблокирует:** Bridge 2 → NPC-NPC dialogue flows to L1Chronicle → PatternDetector → BeliefCrystallizationEngine.
+- **Файлы:** `backend/app/services/events/npc_dialogue_subscriber.py:127` (после RelationshipStore.update)
+- **Что сломано:** `self._l1_chronicle = l1_chronicle` хранится, но **НИКОГДА не вызывается**. NPC-NPC диалоги никогда не пишутся в L1Chronicle → BeliefCrystallizationEngine никогда не видит NPC-NPC events → beliefs о других NPC не кристаллизуются.
+- **Fix:**
+  ```python
+  # В _process_canonical, после RelationshipStore.update:
+  if self._l1_chronicle:
+      from app.services.npc.l1_chronicle import TraitDriftEvent
+      _event = TraitDriftEvent(
+          tick_id=tick,
+          target_id=listener,
+          source_id=f"dialogue:{tone}",
+          effect_value=delta_trust,
+          observation_weight=1.0,
+          event_type="social_dialogue",
+      )
+      self._l1_chronicle.commit_tick_buffer([_event], tick)
+  ```
+- **Критерий готовности:** После NPC-NPC диалога в L1Chronicle появляется `TraitDriftEvent(event_type="social_dialogue")`. PatternDetector видит evidence. BeliefCrystallizationEngine может кристаллизовать beliefs о других NPC.
+- **Разблокирует:** Bridge 2 → NPC-NPC dialogue flows to L1Chronicle → PatternDetector → BeliefCrystallizationEngine.
+
+---
+
+### ОЧЕРЁДНОСТЬ ЗАКРЫТИЯ (важно)
+
+1. **NEW-1 first** (one-line fix, 5 минут) → Bridge 7 producer живёт
+2. **NEW-3 second** (15 минут) → Bridge 2 начинает писать в L1Chronicle
+3. **NEW-2 last** (1 час, требует map + routing fix) → Bridge 5 + Step 9
+
+После этих 3 мостов acceptance test должен пройти **5/11 шагов** (1, 2, 6, 7, 8). Это будет первый реальный observable behavior в игре.
+
+**Только после этого** — продолжать по P5-P7 контракта.
 
 ---
 

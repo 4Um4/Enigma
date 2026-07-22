@@ -56,6 +56,15 @@ _BASE_DELTAS: Dict[str, Tuple[float, float, str]] = {
 }
 
 
+def get_base_delta(event_type: str) -> Tuple[float, float, str]:
+    """Возвращает базовые дельты для указанного типа события.
+    
+    Используется NpcDialogueSubscriber для NPC-NPC взаимодействий,
+    чтобы избежать прямого доступа к приватному _BASE_DELTAS и сохранить SSOT.
+    """
+    return _BASE_DELTAS.get(event_type, (0.0, 0.0, "relief"))
+
+
 def _get_rel_value(state: Any, target_id: str, attr: str) -> Optional[float]:
     """Precedence Contract: Graph (SSOT) > Scalar (Legacy) > Vacuum (None).
     Standalone-копия DecisionHub._get_rel_value — устраняет circular dependency.
@@ -170,11 +179,20 @@ class SocialDeltaEngine:
         # 7. Собрать результат (одна дельта = один домен — ADR-013)
         result_deltas = []
         if s_trust != 0.0 or s_fear != 0.0:
+            # S129 FIX: NEW-2 — NPC-NPC события должны писаться к actor_id, не к player.
+            if _et_val.startswith("npc_"):
+                # Если NPC сам является актором действия, его отношение к себе не меняется
+                if state.npc_id == event.actor_id:
+                    return []
+                _target = event.actor_id
+            else:
+                _target = "player"
+                
             result_deltas.append(
                 StateDeltas(
                     npc_id=state.npc_id,
                     domain=DeltaDomain.SOCIAL,
-                    target="player",
+                    target=_target,
                     payload=SocialPayload(
                         trust_delta=s_trust,
                         fear_delta=s_fear,

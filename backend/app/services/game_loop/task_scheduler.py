@@ -232,6 +232,7 @@ class TaskScheduler:
                         import time
                         _dlg_entry = {
                             "speaker_id": ev.source,
+                            "target_id": ev.payload.get("target_id", ""),
                             "text": ev.payload.get("text", ""),
                             "timestamp": time.time(),  # §15.2: UI Cache TTL uses wall-clock
                         }

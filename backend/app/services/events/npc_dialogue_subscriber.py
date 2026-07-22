@@ -127,7 +127,21 @@ class NpcDialogueSubscriber:
         # P2-03: AffectiveIntegrator ghost removed. Emotions handled via CFRM P2 and social_pressure.
 
         # 3. RelationshipStore
-        delta_trust, delta_fear = self._compute_rel_delta(tone)
+        # NEW-2: Маппим tone на event_type из P2-05 (get_base_delta).
+        # Если тон не замапплен (напр. NEUTRAL), дельты равны 0 (предотвращает Double Truth со старой шкалой).
+        _TONE_TO_NPC_EVENT = {
+            "ANGRY": "npc_insults",
+            "MANIPULATIVE": "npc_threatens",
+            "FRIENDLY": "npc_helps",
+            "FEARFUL": "npc_threatens",
+            "FLIRTY": "npc_helps",
+        }
+        _npc_event_type = _TONE_TO_NPC_EVENT.get(tone)
+        if _npc_event_type:
+            from app.services.npc.decision.social_deltas import get_base_delta
+            delta_trust, delta_fear, _ = get_base_delta(_npc_event_type)
+        else:
+            delta_trust, delta_fear = 0.0, 0.0
         try:
             self.relationships.update(
                 campaign_id=_campaign_id,
@@ -139,6 +153,19 @@ class NpcDialogueSubscriber:
                 f"[NPC_DIALOGUE_SUB] {listener} rel update: "
                 f"{speaker} trust={delta_trust:+.1f} fear={delta_fear:+.1f}"
             )
+            
+            # NEW-3: Bridge 2 — пишем NPC-NPC диалог в L1Chronicle для BeliefCrystallizationEngine
+            if self._l1_chronicle:
+                from app.domain.identity_events import TraitDriftEvent
+                _drift_event = TraitDriftEvent(
+                    tick_id=tick,
+                    target_id=listener,
+                    source_id=speaker,
+                    effect_value=delta_trust,
+                    observation_weight=1.0,
+                    event_type=f"social_dialogue:{tone}",
+                )
+                self._l1_chronicle.commit_tick_buffer([_drift_event], tick)
             
         except Exception as rel_err:
             logger.warning(f"[NPC_DIALOGUE_SUB] relationship update failed: {rel_err}")
@@ -155,16 +182,52 @@ class NpcDialogueSubscriber:
         _campaign_id = self._get_campaign_id()
 
         # Ambient — дельты в 5 раз меньше, без записи в STM
-        delta_trust, delta_fear = self._compute_rel_delta(tone)
+        # NEW-2: Маппим tone на event_type из P2-05 (get_base_delta) с множителем 0.2 для ambient.
+        # Если тон не замапплен, дельты равны 0.
+        _TONE_TO_NPC_EVENT = {
+            "ANGRY": "npc_insults",
+            "MANIPULATIVE": "npc_threatens",
+            "FRIENDLY": "npc_helps",
+            "FEARFUL": "npc_threatens",
+            "FLIRTY": "npc_helps",
+        }
+        _npc_event_type = _TONE_TO_NPC_EVENT.get(tone)
+        if _npc_event_type:
+            from app.services.npc.decision.social_deltas import get_base_delta
+            _bt, _bf, _ = get_base_delta(_npc_event_type)
+            delta_trust, delta_fear = _bt * 0.2, _bf * 0.2
+        else:
+            delta_trust, delta_fear = 0.0, 0.0
+
         try:
             self.relationships.update(
                 campaign_id=_campaign_id,
                 source=listener,
                 target=speaker,
-                delta={"trust": delta_trust * 0.2, "fear": delta_fear * 0.2},
+                delta={"trust": delta_trust, "fear": delta_fear},
+            )
+            logger.info(
+                f"[NPC_DIALOGUE_SUB] {listener} rel update (ambient): "
+                f"{speaker} trust={delta_trust:+.1f} fear={delta_fear:+.1f} (event={_npc_event_type or 'fallback'})"
             )
         except Exception as rel_err:
-            logger.warning(f"[NPC_DIALOGUE_SUB] ambient relationship update failed: {rel_err}")
+            logger.warning(f"[NPC_DIALOGUE_SUB] relationship update failed: {rel_err}")
+
+        # NEW-3: Bridge 2 — пишем NPC-NPC диалог в L1Chronicle для BeliefCrystallizationEngine
+        try:
+            if self._l1_chronicle:
+                from app.domain.identity_events import TraitDriftEvent
+                _drift_event = TraitDriftEvent(
+                    tick_id=tick,
+                    target_id=listener,
+                    source_id=speaker,
+                    effect_value=delta_trust,
+                    observation_weight=1.0,
+                    event_type=f"social_dialogue:{tone}",
+                )
+                self._l1_chronicle.commit_tick_buffer([_drift_event], tick)
+        except Exception as chron_err:
+            logger.warning(f"[NPC_DIALOGUE_SUB] L1Chronicle append failed: {chron_err}")
 
     def _build_interpretation(self, tone: str, text: str, topic: str) -> dict:
         """Строит упрощённую интерпретацию реплики для AffectiveIntegrator.
