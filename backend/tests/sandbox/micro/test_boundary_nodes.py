@@ -29,7 +29,7 @@ def test_boundary_nodes_created_from_adjacency():
             "south": "another_chunk",
         },
     }
-    graph, connections, alias_map, boundary_map, _rooms_geometry, _w, _o = compile_graph(editor_data, location_id="test_loc")
+    graph, connections, alias_map, boundary_map, _rooms_geometry, _w, _o, _aff = compile_graph(editor_data, location_id="test_loc")
 
     # Boundary nodes созданы
     assert "test_loc:exit_east" in graph, "Boundary exit_east не создан"
@@ -54,7 +54,7 @@ def test_boundary_nodes_connected_to_internal():
             "east": "other_chunk",
         },
     }
-    graph, connections, alias_map, boundary_map, _rooms_geometry, _w, _o = compile_graph(editor_data, location_id="test_loc")
+    graph, connections, alias_map, boundary_map, _rooms_geometry, _w, _o, _aff = compile_graph(editor_data, location_id="test_loc")
 
     # exit_east связан с center
     east_conns = connections.get("test_loc:exit_east", set())
@@ -78,7 +78,7 @@ def test_boundary_map_contains_neighbor_info():
             "east": "city_gate",
         },
     }
-    graph, connections, alias_map, boundary_map, _rooms_geometry, _w, _o = compile_graph(editor_data, location_id="tavern")
+    graph, connections, alias_map, boundary_map, _rooms_geometry, _w, _o, _aff = compile_graph(editor_data, location_id="tavern")
 
     binfo = boundary_map.get("tavern:exit_east")
     assert binfo is not None, "boundary_map не содержит exit_east"
@@ -100,7 +100,7 @@ def test_no_adjacency_no_boundary_nodes():
             "center": {"x": 5.0, "y": 5.0, "connections": []},
         },
     }
-    graph, connections, alias_map, boundary_map, _rooms_geometry, _w, _o = compile_graph(editor_data, location_id="isolated")
+    graph, connections, alias_map, boundary_map, _rooms_geometry, _w, _o, _aff = compile_graph(editor_data, location_id="isolated")
 
     assert len(boundary_map) == 0, "Без adjacency не должно быть boundary nodes"
     boundaries = [nid for nid, nref in graph.items() if nref.role == NodeRole.BOUNDARY]
@@ -121,7 +121,7 @@ def test_boundary_node_is_not_a_place():
             "east": "other_chunk",
         },
     }
-    graph, connections, alias_map, boundary_map, _rooms_geometry, _w, _o = compile_graph(editor_data, location_id="test_loc")
+    graph, connections, alias_map, boundary_map, _rooms_geometry, _w, _o, _aff = compile_graph(editor_data, location_id="test_loc")
 
     boundary_node = graph["test_loc:exit_east"]
 
@@ -150,7 +150,7 @@ def test_opposite_directions_resolved():
             "west": "western_chunk",
         },
     }
-    graph, connections, alias_map, boundary_map, _rooms_geometry, _w, _o = compile_graph(editor_data, location_id="crossroads")
+    graph, connections, alias_map, boundary_map, _rooms_geometry, _w, _o, _aff = compile_graph(editor_data, location_id="crossroads")
 
     assert boundary_map["crossroads:exit_north"]["entry_direction"] == "south"
     assert boundary_map["crossroads:exit_south"]["entry_direction"] == "north"

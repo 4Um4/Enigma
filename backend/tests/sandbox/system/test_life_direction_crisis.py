@@ -92,9 +92,9 @@ def test_crisis_changes_life_direction_and_intent(family_profile, world_tick_eve
     assert deltas.identity_crisis, "NPC в стадии deformation должен иметь identity_crisis=True"
     assert deltas.identity_pressure > 80.0, "NPC в стадии deformation должен иметь высокое identity_pressure"
 
-    # Симулируем продвижение FSM (5 тиков)
-    # Тик 1: ACTIVE -> COLLAPSING (давление > 80)
-    LifeProjectResolver.resolve(state_broken, deltas.identity_pressure)
+    # Симулируем продвижение FSM (P5-01: 3 тика высокого давления для COLLAPSING)
+    for _ in range(3):
+        LifeProjectResolver.resolve(state_broken, deltas.identity_pressure)
     assert state_broken.life_project_state == "COLLAPSING"
 
     # Тик 2: COLLAPSING -> LOST (безусловный переход в экзистенциальную пустоту)

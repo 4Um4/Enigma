@@ -12,7 +12,9 @@ logger = logging.getLogger(__name__)
 
 
 class TraversalExecutionSystem:
-    """Продвигает TraversalState и проецирует его в local_position (Derived State)."""
+    """Продвигает TraversalState и проецирует его в local_position (Derived State).
+    S132.1: Segment-Aware Execution. Учитывает segment_modes (WALK/JUMP) для честной кинематики.
+    """
 
     @staticmethod
     def advance(scene_state: Dict[str, Any], current_tick: int) -> None:
@@ -35,6 +37,38 @@ class TraversalExecutionSystem:
             started_tick = trav.get("started_tick", current_tick)
             duration_ticks = trav.get("duration_ticks", 1)
             waypoints = trav.get("path_waypoints", [])
+            
+            # S134.1: Жёсткая валидация кинематического контракта.
+            segment_modes = trav.get("segment_modes")
+            segment_arc_heights = trav.get("segment_arc_heights")
+            
+            modes_missing = segment_modes is None
+            arcs_missing = segment_arc_heights is None
+            
+            if modes_missing and arcs_missing:
+                # A. Legacy fallback для старых сохранений без сегментов
+                logger.warning(f"[TRAV_EXEC] Legacy traversal for {npc_id}, synthesizing WALK.")
+                expected_segs = max(0, len(waypoints) - 1)
+                segment_modes = ["WALK"] * expected_segs
+                segment_arc_heights = [0.0] * expected_segs
+            elif modes_missing or arcs_missing:
+                # C. Partial corruption — игра должна упасть громко
+                from app.errors import SimulationIntegrityError
+                raise SimulationIntegrityError(
+                    invariant_id="INV-TRAV-CONTRACT",
+                    message=f"Partial contract corruption for {npc_id}: one of segment_modes/arc_heights is missing",
+                    suspect_files=["backend/app/services/spatial/movement_engine.py"],
+                    file=__file__, line=48,
+                )
+            elif len(segment_modes) != len(waypoints) - 1 or len(segment_arc_heights) != len(waypoints) - 1:
+                # B. Invalid length — игра должна упасть громко
+                from app.errors import SimulationIntegrityError
+                raise SimulationIntegrityError(
+                    invariant_id="INV-TRAV-CONTRACT",
+                    message=f"Kinematic contract violated for {npc_id}: len(segment_modes) != len(waypoints)-1",
+                    suspect_files=["backend/app/services/spatial/movement_engine.py", "backend/app/domain/traversal_schema.py"],
+                    file=__file__, line=57,
+                )
 
             if not waypoints:
                 continue
@@ -47,6 +81,7 @@ class TraversalExecutionSystem:
                 npc_positions.setdefault(npc_id, {})["local_position"] = {
                     "x": target_xy[0],
                     "y": target_xy[1],
+                    "z": 0.0,  # S132.1: Завершение прыжка — возврат на землю
                 }
                 trav["status"] = "COMPLETED"
                 completed_npcs.append(npc_id)
@@ -56,18 +91,17 @@ class TraversalExecutionSystem:
             else:
                 # Маршрут активен — интерполяция по пути
                 progress = elapsed_ticks / duration_ticks if duration_ticks > 0 else 1.0
-                pos = TraversalExecutionSystem._interpolate_path(waypoints, progress)
+                pos, seg_idx = TraversalExecutionSystem._interpolate_path(
+                    waypoints, progress, segment_modes, segment_arc_heights
+                )
                 if pos:
                     npc_positions.setdefault(npc_id, {})["local_position"] = {
                         "x": pos[0],
                         "y": pos[1],
+                        "z": pos[2],  # S132.1: Z-координата для прыжков
                     }
                     # Обновляем current_waypoint_idx для фронтенда
-                    trav["current_waypoint_idx"] = (
-                        TraversalExecutionSystem._get_current_wp_idx(
-                            waypoints, progress
-                        )
-                    )
+                    trav["current_waypoint_idx"] = seg_idx
 
         # Очистка завершённых маршрутов (SSM владеет lifecycle, но мы помогаем избежать зомби)
         for npc_id in completed_npcs:
@@ -79,20 +113,28 @@ class TraversalExecutionSystem:
     def resolve(
         npc_id: str, scene_state: Dict[str, Any], current_tick: int
     ) -> Tuple[float, float]:
-        """Чистая функция: возвращает текущую мировую позицию NPC."""
+        """Чистая функция: возвращает текущую мировую позицию NPC (x, y)."""
         trav = scene_state.get("active_traversals", {}).get(npc_id)
         if trav and trav.get("status") == "MOVING":
             started_tick = trav.get("started_tick", current_tick)
             duration_ticks = trav.get("duration_ticks", 1)
             waypoints = trav.get("path_waypoints", [])
+            segment_modes = trav.get("segment_modes", [])
+            segment_arc_heights = trav.get("segment_arc_heights", [])
+            if not segment_modes or len(segment_modes) != len(waypoints) - 1:
+                segment_modes = ["WALK"] * max(1, len(waypoints) - 1)
+                segment_arc_heights = [0.0] * max(1, len(waypoints) - 1)
+                
             if waypoints:
                 elapsed_ticks = current_tick - started_tick
                 if elapsed_ticks >= duration_ticks:
-                    return waypoints[-1]
+                    return (waypoints[-1][0], waypoints[-1][1])
                 progress = elapsed_ticks / duration_ticks if duration_ticks > 0 else 1.0
-                pos = TraversalExecutionSystem._interpolate_path(waypoints, progress)
+                pos, _ = TraversalExecutionSystem._interpolate_path(
+                    waypoints, progress, segment_modes, segment_arc_heights
+                )
                 if pos:
-                    return pos
+                    return (pos[0], pos[1])
 
         # Fallback на кэшированную позицию
         lp = (
@@ -103,12 +145,19 @@ class TraversalExecutionSystem:
         return (lp.get("x", 0.0), lp.get("y", 0.0))
 
     @staticmethod
-    def _interpolate_path(waypoints: List[Any], progress: float) -> Tuple[float, float]:
-        """Линейная интерполяция вдоль пути."""
+    def _interpolate_path(
+        waypoints: List[Any], 
+        progress: float, 
+        segment_modes: List[str],
+        segment_arc_heights: List[float]
+    ) -> Tuple[Tuple[float, float, float], int]:
+        """S132.1: Интерполяция вдоль пути с учётом сегментов (WALK/JUMP).
+        Возвращает ((x, y, z), current_segment_index).
+        """
         if not waypoints:
-            return (0.0, 0.0)
+            return ((0.0, 0.0, 0.0), 0)
         if len(waypoints) == 1:
-            return (waypoints[0][0], waypoints[0][1])
+            return ((waypoints[0][0], waypoints[0][1], 0.0), 0)
 
         total_dist = 0.0
         segment_dists = []
@@ -120,7 +169,7 @@ class TraversalExecutionSystem:
             total_dist += d
 
         if total_dist == 0:
-            return (waypoints[0][0], waypoints[0][1])
+            return ((waypoints[0][0], waypoints[0][1], 0.0), 0)
 
         target_dist = total_dist * progress
         current_dist = 0.0
@@ -130,23 +179,23 @@ class TraversalExecutionSystem:
                 seg_progress = (
                     (target_dist - current_dist) / seg_dist if seg_dist > 0 else 0.0
                 )
-                x = (
-                    waypoints[i][0]
-                    + (waypoints[i + 1][0] - waypoints[i][0]) * seg_progress
-                )
-                y = (
-                    waypoints[i][1]
-                    + (waypoints[i + 1][1] - waypoints[i][1]) * seg_progress
-                )
-                return (x, y)
+                
+                # S132.1: Линейная интерполяция для X и Y (работает для обоих режимов)
+                x = waypoints[i][0] + (waypoints[i + 1][0] - waypoints[i][0]) * seg_progress
+                y = waypoints[i][1] + (waypoints[i + 1][1] - waypoints[i][1]) * seg_progress
+                
+                # S132.1: Вычисление Z (высоты) в зависимости от режима сегмента
+                mode = segment_modes[i] if i < len(segment_modes) else "WALK"
+                if mode == "JUMP":
+                    # Параболическая траектория: z(t) = 4 * h * t * (1 - t)
+                    # где h - максимальная высота прыжка, t - локальный прогресс сегмента [0..1]
+                    arc_h = segment_arc_heights[i] if i < len(segment_arc_heights) else 1.0
+                    z = 4.0 * arc_h * seg_progress * (1.0 - seg_progress)
+                else:
+                    z = 0.0 # WALK - движение по земле
+                    
+                return ((x, y, z), i)
+                
             current_dist += seg_dist
 
-        return (waypoints[-1][0], waypoints[-1][1])
-
-    @staticmethod
-    def _get_current_wp_idx(waypoints: List[Any], progress: float) -> int:
-        """Возвращает индекс текущего waypoint для фронтенда."""
-        if not waypoints:
-            return 0
-        idx = int(progress * (len(waypoints) - 1))
-        return min(idx, len(waypoints) - 1)
+        return ((waypoints[-1][0], waypoints[-1][1], 0.0), len(segment_dists) - 1)

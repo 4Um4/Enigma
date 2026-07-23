@@ -60,15 +60,33 @@ class LocalTraversalPlanner:
                 segments=(TraversalSegment(mode=TraversalMode.WALK, start_pose=src_pose, end_pose=tgt_pose),)
             )
 
-        # 4. Построение плана: WALK -> [JUMP -> WALK]*
-        candidates = self._topology_solver.solve_jump_candidates(
-            src_pose, tgt_pose, blocking_obstacles, body.radius
-        )
+        # 4. BUG #2 FIX: Проверка разрешённых режимов.
+        # Если WALK заблокирован, а JUMP не разрешён запросом — план невозможен.
+        if TraversalMode.JUMP not in query.allowed_modes:
+            return TraversalPlan(possible=False, reason="JUMP_NOT_ALLOWED", required_capability="allowed_modes")
+
+        # Сортируем препятствия по удалённости от source (по центру AABB)
+        blocking_obstacles.sort(key=lambda item: math.dist((item[0].x + item[0].w/2, item[0].y + item[0].h/2), src))
 
         segments: List[TraversalSegment] = []
         current_pose = src_pose
         
-        for candidate in candidates:
+        for obs, clearance in blocking_obstacles:
+            # BUG #1 FIX: Решаем переход для каждого препятствия индивидуально.
+            # Если blocking obstacle не получает candidate, план не может быть возможен.
+            candidates = self._topology_solver.solve_jump_candidates(
+                src_pose, tgt_pose, [(obs, clearance)], body.radius
+            )
+
+            if not candidates:
+                return TraversalPlan(possible=False, reason="TRANSITION_TOPOLOGY_UNRESOLVED")
+
+            candidate = candidates[0]
+
+            # BUG #3 FIX: Защита от вырожденного перехода (entry == exit)
+            if candidate.horizontal_distance <= 1e-9:
+                return TraversalPlan(possible=False, reason="DEGENERATE_TRANSITION")
+
             # Сегмент WALK до точки входа
             if (current_pose.x, current_pose.y) != (candidate.entry_pose.x, candidate.entry_pose.y):
                 segments.append(TraversalSegment(

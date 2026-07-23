@@ -225,6 +225,11 @@ class SceneStateManager:
             self._tick_locked = True
             self._tick_campaign_id = campaign_id
             self._tick_scene = scene
+            try:
+                _recog = scene.get("player_recognition", {})
+                print(f"[DEBUG_LOCK] campaign={campaign_id} recog_keys={list(_recog.keys())}")
+            except Exception as e:
+                print(f"[DEBUG_LOCK] error: {e}")
         return scene
 
     def unlock_tick(self, campaign_id: str) -> None:
@@ -280,6 +285,11 @@ class SceneStateManager:
         )
         if self._tick_campaign_id == campaign_id:
             self._tick_scene = copy.deepcopy(result_snapshot)
+            try:
+                _recog = self._tick_scene.get("player_recognition", {})
+                print(f"[DEBUG_COMMIT] campaign={campaign_id} recog_keys={list(_recog.keys())}")
+            except Exception as e:
+                print(f"[DEBUG_COMMIT] error: {e}")
             logger.debug(
                 f"[COMMIT_TRACE] _tick_scene updated, trav_keys_after={list(self._tick_scene.get('active_traversals', {}).keys())}"
             )
@@ -298,6 +308,12 @@ class SceneStateManager:
         Используется внутри lock_for_tick() для первичной загрузки."""
         if self._persistence:
             scene = self._persistence.load_scene(campaign_id)
+            if scene:
+                try:
+                    _recog = scene.get("player_recognition", {})
+                    print(f"[DEBUG_LOAD] campaign={campaign_id} recog_keys={list(_recog.keys())}")
+                except Exception as e:
+                    print(f"[DEBUG_LOAD] error: {e}")
         else:
             data = self._read_campaign_json(campaign_id)
             scene = data.get("scene_state")
@@ -386,6 +402,12 @@ class SceneStateManager:
         if self._persistence:
             scene = self._persistence.load_scene(campaign_id)
             if scene:
+                try:
+                    _recog = scene.get("player_recognition", {})
+                    print(f"[DEBUG_LOAD] campaign={campaign_id} recog_keys={list(_recog.keys())}")
+                except Exception as e:
+                    print(f"[DEBUG_LOAD] error: {e}")
+            if scene:
                 import inspect
 
                 _caller = inspect.currentframe().f_back
@@ -464,6 +486,13 @@ class SceneStateManager:
             f"[SAVE_TRACE] campaign={campaign_id} locked={self._tick_locked} traversals={_trav_keys}"
         )
         if self._persistence:
+            try:
+                _recog = scene_state.get("player_recognition", {})
+                import traceback
+                _stack = traceback.format_stack(limit=5)
+                print(f"[DEBUG_SAVE] campaign={campaign_id} recog_keys={list(_recog.keys())} stack={_stack}")
+            except Exception as e:
+                print(f"[DEBUG_SAVE] error: {e}")
             self._persistence.save_scene(campaign_id, scene_state)
         else:
             # Фоллбэк: прямая запись JSON (без порта)

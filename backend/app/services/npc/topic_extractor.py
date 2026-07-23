@@ -16,7 +16,34 @@ path: /backend/app/services/npc/topic_extractor.py
 Основные сущности: extract_topic
 """
 
-from typing import List, Optional
+from typing import Any, List, Optional
+
+# T-01: Маппинги для генерации тем из состояния NPC
+_DRIVE_TO_TOPIC: dict[str, str] = {
+    "control": "власть",
+    "significance": "статус",
+    "fear": "безопасность",
+    "desire": "желания",
+}
+_LIFE_PROJECT_TO_TOPIC: dict[str, str] = {
+    "family_builder": "семья",
+    "wealth_creator": "деньги",
+    "warrior": "бой",
+    "knowledge_seeker": "знания",
+    "ruler": "власть",
+    "isolation": "одиночество",
+    "revenge": "месть",
+    "survival": "выживание",
+    "hermit": "покой",
+}
+_ROLE_TO_TOPIC: dict[str, str] = {
+    "tavern_keeper": "таверна",
+    "maid": "работа",
+    "guard": "стража",
+    "thief": "наблюдение",
+    "blacksmith": "кузница",
+    "merchant": "торговля",
+}
 
 # Базовый маппинг event_type → topic
 _EVENT_TOPIC_MAP: dict[str, str] = {
@@ -74,15 +101,45 @@ def extract_topic(
     event_type: str,
     scene_facts: Optional[List[str]] = None,
     raw_input: Optional[str] = None,
+    npc_state: Optional[Any] = None,
 ) -> str:
     """
     Извлечь тему из контекста события.
 
     Приоритет:
+    0. Если нет текстовых источников — тема из состояния NPC (drives, life_project, role)
     1. Ключевые слова в raw_input/scene_facts (конкретнее)
     2. Базовый маппинг event_type
     3. Пустая строка (тема не определена)
     """
+    # T-01: Для idle-тиков приоритет у структурного состояния NPC (автономная тематическая жизнь).
+    # STM не должно конкурировать с внутренним состоянием, если нет реального события.
+    if event_type in ("idle", "world_tick") and npc_state is not None:
+        _npc_dict = npc_state if isinstance(npc_state, dict) else {}
+        
+        # Приоритет: drives > life_project (core_orientation) > role
+        _drives = _npc_dict.get("drives", {})
+        if _drives:
+            try:
+                _dominant_drive = max(_drives.items(), key=lambda x: float(x[1]))[0]
+                _topic = _DRIVE_TO_TOPIC.get(_dominant_drive)
+                if _topic:
+                    return _topic
+            except (ValueError, TypeError):
+                pass
+                
+        _life_project = _npc_dict.get("core_orientation", "")
+        if _life_project:
+            _topic = _LIFE_PROJECT_TO_TOPIC.get(_life_project)
+            if _topic:
+                return _topic
+                
+        _role = _npc_dict.get("_archetype", "")
+        if _role:
+            _topic = _ROLE_TO_TOPIC.get(_role)
+            if _topic:
+                return _topic
+
     # Склеиваем все текстовые источники для поиска ключевых слов
     _text_parts: list[str] = []
     if scene_facts:

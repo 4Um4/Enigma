@@ -78,3 +78,34 @@ def segment_to_rect_min_dist_sq(p1: Tuple[float, float], p2: Tuple[float, float]
         segments_distance_sq(p1, p2, corners[i], corners[(i+1)%4])
         for i in range(4)
     )
+
+def expanded_rect(
+    rx: float,
+    ry: float,
+    rw: float,
+    rh: float,
+    expansion: float
+) -> Tuple[float, float, float, float]:
+    """Возвращает координаты расширенного AABB (Collision Envelope)."""
+    return (
+        rx - expansion,
+        ry - expansion,
+        rw + 2 * expansion,
+        rh + 2 * expansion
+    )
+
+def point_in_expanded_rect(
+    p: Tuple[float, float],
+    rx: float,
+    ry: float,
+    rw: float,
+    rh: float,
+    expansion: float
+) -> bool:
+    """Проверяет, находится ли точка внутри расширенного AABB (Collision Envelope)."""
+    exp_x, exp_y, exp_w, exp_h = expanded_rect(rx, ry, rw, rh, expansion)
+    return (
+        exp_x <= p[0] <= exp_x + exp_w
+        and
+        exp_y <= p[1] <= exp_y + exp_h
+    )

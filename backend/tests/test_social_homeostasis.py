@@ -31,6 +31,9 @@ class FakeSpatialQuery:
             return 15.0
         return 999.0
 
+    def visibility(self, a: str, b: str) -> bool:
+        return True  # В моке предполагаем, что стен между NPC нет
+
     def get_nearest_npc(self, source_id: str, npc_ids: list) -> str:
         _min_dist = float("inf")
         _nearest = None

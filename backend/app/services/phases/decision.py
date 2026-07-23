@@ -271,7 +271,7 @@ def assemble_preloaded_data(ctx: Any, alive_npcs: list) -> tuple:
                     _svc.social_engine.compute_social_modifiers(
                         npc_id=_nid,
                         player_distances={},
-                        event_type=ctx.action_type or "idle"
+                        event_type=getattr(ctx.shared_context, "action_type", None) or "idle"
                     )
                 )
 

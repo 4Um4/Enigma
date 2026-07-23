@@ -130,8 +130,9 @@ def manager():
 
 @pytest.fixture
 def patched_spatial_build(spatial_svc):
-    """Патчит SpatialService.build_for_location чтобы вернуть мок."""
-    with patch.object(SpatialService, "build_for_location", return_value=spatial_svc):
+    """Патчит SpatialFactory.build_for_campaign чтобы вернуть мок (ADR-O-314)."""
+    from app.services.spatial.spatial_factory import SpatialFactory
+    with patch.object(SpatialFactory, "build_for_campaign", return_value=spatial_svc):
         yield spatial_svc
 
 

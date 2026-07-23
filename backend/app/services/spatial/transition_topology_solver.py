@@ -10,7 +10,7 @@ import math
 from typing import List, Optional, Tuple
 
 from app.domain.traversal import Obstacle, Pose, TransitionCandidate, TraversalMode
-from app.services.spatial.geometry_kernel import point_in_rect, segments_intersect
+from app.services.spatial.geometry_kernel import point_in_expanded_rect, segments_intersect
 
 logger = logging.getLogger(__name__)
 
@@ -32,9 +32,9 @@ class TransitionTopologySolver:
         tgt = (target_pose.x, target_pose.y)
         
         for obs, clearance in blocking_obstacles:
-            # Если источник или цель внутри исходного препятствия — переход невозможен
-            if point_in_rect(src, obs.x, obs.y, obs.w, obs.h) or \
-               point_in_rect(tgt, obs.x, obs.y, obs.w, obs.h):
+            # Если источник или цель уже внутри Collision Envelope (AABB + radius) — переход невозможен (глубокое проникновение)
+            if point_in_expanded_rect(src, obs.x, obs.y, obs.w, obs.h, body_radius) or \
+               point_in_expanded_rect(tgt, obs.x, obs.y, obs.w, obs.h, body_radius):
                 continue
                 
             # Строим расширенный AABB (Collision Envelope)
@@ -59,7 +59,7 @@ class TransitionTopologySolver:
                 horizontal_distance=horiz_dist,
                 vertical_delta=target_pose.z - source_pose.z,
                 obstacle_height=obs.height,
-                clearance=clearance
+                trajectory_clearance=clearance
             ))
             
         # Сортируем кандидатов по удалённости точки входа от source
@@ -80,7 +80,7 @@ class TransitionTopologySolver:
         for i in range(4):
             c1 = corners[i]
             c2 = corners[(i+1)%4]
-            if segments_intersect(src[0], src[1], tgt[0], tgt[1], c1[0], c1[1], c2[0], c2[1]):
+            if segments_intersect(src, tgt, c1, c2):
                 denom = (c2[1]-c1[1])*(tgt[0]-src[0]) - (c2[0]-c1[0])*(tgt[1]-src[1])
                 if abs(denom) < 1e-9: continue
                 ua = ((c2[0]-c1[0])*(src[1]-c1[1]) - (c2[1]-c1[1])*(src[0]-c1[0])) / denom

@@ -1066,15 +1066,12 @@ class TickOrchestrator:
                         )
                         break  # первый подошедший event достаточно
 
-            # 2. Фоллбэк на STM
+            # 2. Фоллбэк на состояние NPC (T-01: автономная тематическая жизнь)
             if not topic:
-                stm_text = mm.get_stm_prompt_block(ctx.campaign_id, npc_id)
-                logger.info(f"[STM_DEBUG] npc={npc_id} stm_len={len(stm_text)}")
-                if stm_text.strip():
-                    topic = extract_topic(
-                        event_type="idle",
-                        raw_input=stm_text,
-                    )
+                topic = extract_topic(
+                    event_type="idle",
+                    npc_state=npc_dict,
+                )
 
             # 3. Жёсткий фоллбэк — тема НЕ может быть пустой (Устав §3.2)
             if not topic:
@@ -1111,8 +1108,9 @@ class TickOrchestrator:
                 if _nid:
                     _profile_l0 = personality_from_legacy(npc_dict)
                     _beliefs = self.crystallized_belief_store.get_beliefs(_nid)
+                    _body_state = npc_dict.get("body_state", {})
                     _projection = self.drive_resolver.resolve_drives(
-                        _profile_l0, _beliefs
+                        _profile_l0, _beliefs, body_state=_body_state
                     )
 
                     if isinstance(_projection, EffectiveDrives):

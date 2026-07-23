@@ -301,7 +301,9 @@ INTERCALARY_NAME_RU: Final[str] = "Межсезонье"
 # WORLD_TICK — Проактивный тик мира (Фаза 3.4)
 # ═══════════════════════════════════════════════════════════════════════
 
-WORLD_TICK_EVERY_TURNS: Final[int] = 3  # проактивный тик каждые N ходов игрока
+# P5-06: Снижено с 3 до 2, чтобы NPC генерировали проактивные интенты чаще.
+# TODO: Удалить эту константу после реализации B-01 (Background WorldTick), который будет тикать мир асинхронно.
+WORLD_TICK_EVERY_TURNS: Final[int] = 2
 MIN_PROACTIVE_SCORE: Final[float] = 0.3  # минимальный score для проактивного действия
 PROACTIVE_INTENT_PENALTY: Final[float] = 0.2  # штраф за проактивность (NPC не спамят)
 

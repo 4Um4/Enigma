@@ -244,6 +244,8 @@ class WorldSnapshotBuilder:
             _real_name = data.get("name", npc_id)
             
             _display_name = "Незнакомец"
+            print(f"[SNAPSHOT_RECOG] npc={npc_id} confidence={_confidence} recog_map_keys={list(_recog_map.keys())}")
+            logger.debug(f"[SNAPSHOT_RECOG] npc={npc_id} confidence={_confidence} recog_map_keys={list(_recog_map.keys())}")
             if _confidence >= 0.9:
                 _display_name = _real_name
             elif _confidence >= 0.6:
@@ -253,8 +255,8 @@ class WorldSnapshotBuilder:
 
             result[npc_id] = NPCPositionDTO(
                 npc_id=npc_id,
-                # A2-FIX: Передаем local_position как есть (Dict[str, float])
-                local_position={"x": local.get("x") or 0.0, "y": local.get("y") or 0.0},
+                # S132.1: Передаем local_position с x, y, z
+                local_position={"x": local.get("x", 0.0), "y": local.get("y", 0.0), "z": local.get("z", 0.0)},
                 location_id=data.get("location_id", ""),
                 facing=data.get("facing", "south"),
                 body_heading=data.get("body_heading", 1.5708),

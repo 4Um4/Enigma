@@ -3,7 +3,7 @@
 
 """
 
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from app.domain.identity_events import CrystallizedBelief
 from app.models.npc_state import NPCPersonality
@@ -25,11 +25,13 @@ class DriveResolver:
         self,
         archetype: NPCPersonality,
         beliefs: Optional[List[CrystallizedBelief]] = None,
+        body_state: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, float]:
         """
-        Pure function: L0 + L2.5(Beliefs) -> L3 Projection.
+        Pure function: L0 + L2.5(Beliefs) + BodyState -> L3 Projection.
         Вызывается каждый тик заново. Результат нигде не сохраняется.
         ADR-O-211: L1 не мутирует скаляры напрямую, только через Belief Layer.
+        P5-08: Драйвы модулируются физиологией (fatigue, pain).
         """
         # 1. Клонируем базовый архетип (L0)
         drives = dict(archetype.drives_base)
@@ -44,6 +46,23 @@ class DriveResolver:
                 elif belief.trait == "trust":
                     drives["fear"] -= belief.weight * _BELIEF_MODIFIER * 0.5
                     drives["desire"] += belief.weight * _BELIEF_MODIFIER * 0.25
+
+        # P5-08: Модуляция от физиологии (body_state)
+        if body_state:
+            _fatigue = float(body_state.get("fatigue", 0.0)) / 100.0  # 0.0..1.0
+            _pain = float(body_state.get("pain", 0.0)) / 100.0       # 0.0..1.0
+            
+            # Усталость снижает желание (desire) и повышает потребность в покое (control)
+            if _fatigue > 0.5:
+                _fatigue_impact = (_fatigue - 0.5) * 0.2  # мягкое влияние
+                drives["desire"] = max(0.01, drives.get("desire", 0.0) - _fatigue_impact)
+                drives["control"] = drives.get("control", 0.0) + _fatigue_impact * 0.5
+            
+            # Боль повышает страх (fear) и снижает желание (desire)
+            if _pain > 0.3:
+                _pain_impact = (_pain - 0.3) * 0.3
+                drives["fear"] = drives.get("fear", 0.0) + _pain_impact
+                drives["desire"] = max(0.01, drives.get("desire", 0.0) - _pain_impact * 0.5)
 
         # 3. Закон Сохранения Я (Нормализация mass=1.0)
         for trait in drives:

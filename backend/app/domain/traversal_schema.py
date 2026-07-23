@@ -21,6 +21,8 @@ TRAVERSAL_REQUIRED_KEYS: tuple[str, ...] = (
     "duration_ticks",
     "locomotion",
     "status",
+    "segment_modes",  # S134.1: Кинематический инвариант
+    "segment_arc_heights",  # S134.1: Кинематический инвариант
 )
 
 # Дефолтные значения для создания нового traversal_dict
@@ -29,6 +31,8 @@ TRAVERSAL_DEFAULTS: dict[str, object] = {
     "locomotion": "WALK",
     "status": "MOVING",
     "current_waypoint_idx": 0,  # Фронтенду нужен — добавляем в persistence
+    "segment_modes": ["WALK"],  # S132.1: Сохраняем семантику сегментов для Execution Kernel
+    "segment_arc_heights": [0.0],  # S132.1: Высота дуги для каждого сегмента
 }
 
 # Допустимые значения status (lifecycle state machine)
@@ -84,6 +88,21 @@ def validate_traversal_dict(data: Dict[str, Any]) -> List[str]:
         errors.append(f"invalid status: {data.get('status')}")
     if not isinstance(data.get("path_waypoints"), list):
         errors.append("path_waypoints must be list")
+    
+    # S134.1: Кинематический инвариант (пустые массивы допустимы при 1 waypoint)
+    expected_segments = max(0, len(data.get("path_waypoints", [])) - 1)
+    seg_modes = data.get("segment_modes")
+    seg_arcs = data.get("segment_arc_heights")
+    
+    if seg_modes is None or seg_arcs is None:
+        errors.append("missing segment_modes or segment_arc_heights")
+    elif not isinstance(seg_modes, list) or not isinstance(seg_arcs, list):
+        errors.append("segment_modes and segment_arc_heights must be lists")
+    elif len(seg_modes) != expected_segments:
+        errors.append(f"len(segment_modes) ({len(seg_modes)}) != expected ({expected_segments})")
+    elif len(seg_arcs) != expected_segments:
+        errors.append(f"len(segment_arc_heights) ({len(seg_arcs)}) != expected ({expected_segments})")
+        
     return errors
 
 
@@ -110,6 +129,12 @@ class TraversalProposal:
     source_intent_id: str
     planned_tick: int
     topology_version: int  # ADR-O-323: Stale detection. Mandatory contract.
+    # S131: Сохранение семантики сегментов (WALK/JUMP) для будущей кинематики.
+    segment_modes: tuple[str, ...] = ("WALK",)
+    # S131.1: Источник планирования (Local Traversal или A* Fallback).
+    planning_source: str = "LOCAL_TRAVERSAL"
+    # S132.1: Высота дуги для каждого сегмента (0.0 для WALK, max_jump_height для JUMP).
+    segment_arc_heights: tuple[float, ...] = (0.0,)
 
 
 class MovementPlanStatus(Enum):
@@ -159,4 +184,6 @@ def build_traversal_dict(proposal: "TraversalProposal") -> Dict[str, Any]:
         "locomotion": "WALK",
         "status": "MOVING",
         "current_waypoint_idx": 0,
+        "segment_modes": list(proposal.segment_modes),  # S132.1: Сохраняем семантику сегментов
+        "segment_arc_heights": list(proposal.segment_arc_heights),  # S132.1: Сохраняем высоту дуги
     }

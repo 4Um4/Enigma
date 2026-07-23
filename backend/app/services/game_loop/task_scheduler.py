@@ -32,10 +32,10 @@ class TaskScheduler:
     Читает scene_state["pending_tasks"], вызывает исполнителей, генерирует события.
     """
 
-    def __init__(self, router=None, context_provider=None, economy_tracker=None):
+    def __init__(self, router=None, context_provider=None, economy_tracker=None, belief_store=None):
         from app.services.execution.npc_conversation import NpcConversation
         self._executors: Dict[TaskKind, TaskExecutor] = {
-            TaskKind.DIALOGUE: DialogueExecutor(router, context_provider)
+            TaskKind.DIALOGUE: DialogueExecutor(router, context_provider, belief_store=belief_store)
         }
         # Блокер 5: Sims-слой для ambient-диалогов без LLM
         self._ambient_executor: NpcConversation = NpcConversation()

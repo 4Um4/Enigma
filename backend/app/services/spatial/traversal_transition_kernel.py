@@ -76,5 +76,5 @@ class TraversalTransitionKernel:
             possible=True, 
             mode=TraversalMode.JUMP,
             required_capability="can_jump",
-            available_clearance=candidate.clearance
+            available_clearance=candidate.trajectory_clearance
         )

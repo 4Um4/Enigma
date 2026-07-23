@@ -46,6 +46,7 @@ class PerceivedEntity:
     # --- Spatial Layer ---
     x: float = 0.0
     y: float = 0.0
+    z: float = 0.0  # S133: Высота прыжка (проекция от backend Execution Kernel)
     distance: float = 999.0
     los: bool = False
     los_blocked_by: Optional[str] = None

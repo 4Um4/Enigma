@@ -777,3 +777,57 @@ Validation: IPT 5/5 passed. В логах подтверждено наличи�
   - **Sprint DriftLaboratory Fix:** Исправлен путь к `data_dir` в `drift_laboratory.py`. Лаборатория передавала пустую временную папку, из-за чего `location_templates.json` не находился.
   - **Validation:** IPT 5/5 passed. DriftLaboratory (mass_traversal): 519 comparisons, 0 structural drift, 10.1 t/s.
   Files: backend/app/services/game_loop/service_factories.py, backend/app/services/phases/decision.py, backend/app/services/events/npc_dialogue_subscriber.py, backend/app/services/game_loop/__init__.py, backend/app/services/npc/decision/social_deltas.py, backend/app/services/spatial/spatial_service.py, backend/app/services/spatial/movement_engine.py, backend/tests/sandbox/SUPERBOX/drift_laboratory.py, frontend/map_editor/campaigns/Open_road/locations/tavern.json
+
+- 🔵 **S130** ТЗ: Embodied Traversal Architecture (Фундамент локальной физической проходимости).
+  - **Контекст:** Переход от примитивного A* по ручному графу к архитектуре, где движение определяется физической геометрией мира и возможностями тела.
+  - **Архитектурный сдвиг (ADR-O-333):** Внедрён чистый `Geometry Kernel` и `Local Traversal Planner`. Система теперь честно отвечает на вопрос: «Может ли это конкретное тело пройти из A в B через эту геометрию, и какие режимы перехода (WALK, JUMP) потребуются?».
+  - **Новые доменные контракты:** Внедрены `BodyCapabilities`, `TraversalQuery`, `TraversalPlan`, `TransitionCandidate`. Геометрия и физика полностью разделены.
+  - **Geometry Kernel:** Создан независимый математический модуль (`geometry_kernel.py`) с честным расчётом расстояний от отрезка до прямоугольника и устойчивым пересечением отрезков (EPSILON).
+  - **Traversability Evaluator:** Оценивает прямую проходимость (WALK) с учётом `radius` (clearance). Возвращает `signed clearance` (отрицательный при проникновении).
+  - **Local Traversal Planner:** Компилирует последовательность переходов (WALK -> JUMP -> WALK) для обхода мебели. Защищён от ложных срабатываний (false positive) при глубоком проникновении.
+  - **Baseline Stabilization:** Устранён критический краш IPT (`'SceneStateManager' object has no attribute '_split_wall_by_openings'`). Сборка стен делегирована в `graph_compiler._build_spatial_data`.
+  - **Очистка tavern.json:** Добавлены промежуточные узлы (`main_hall_west`, `bar_side`) для обхода мебели, так как валидация теперь честно подсвечивает рёбра, проходящие сквозь физические объекты.
+  - **Тесты:** Написаны 11 контрактных тестов (`test_traversal_planner.py`), закрепляющих инварианты локальной физики (clearance, capabilities, walls, multi-obstacle).
+  - **Статус движения:** Реализован фундамент (Levels 1-4). Temporal execution (кинематика) и интеграция в `MovementEngine` (Level 5) остаются для S131+.
+  - **Validation:** IPT 5/5 passed.
+  Files: backend/app/domain/traversal.py, backend/app/services/spatial/geometry_kernel.py, backend/app/services/spatial/transition_topology_solver.py, backend/app/services/spatial/traversal_transition_kernel.py, backend/app/services/spatial/local_traversal_planner.py, backend/app/services/spatial/traversability_evaluator.py, backend/app/services/spatial/spatial_service.py, backend/app/services/scene_state_manager.py, backend/app/domain/movement.py, backend/app/models/npc_state.py, backend/tests/sandbox/movement/test_traversal_planner.py, frontend/map_editor/campaigns/Open_road/locations/tavern.json
+
+- 🔵 **S131** ТЗ: Интеграция LocalTraversalPlanner в MovementEngine (Level 5).
+  - **Контекст:** Переход от примитивного A* к честной физической проходимости (Embodied Traversal) в основном цикле движения.
+  - **Архитектурный сдвиг:** `MovementEngine` превратился в чистый оркестратор. Он переводит `MacroMovementGoal` в `TraversalQuery`, получает `TraversalPlan` от `LocalTraversalPlanner` и компилирует его в `TraversalProposal`.
+  - **Hybrid Navigation Gate:** Внедрён `Fallback Gate`. Если `SpatialService` предоставляет `LocalGeometry`, `LocalTraversalPlanner` имеет абсолютный приоритет. Физический `REJECTED` (WALL_CLEARANCE_BLOCKED, GAP_TOO_WIDE) является `HARD_REJECT` — A* не может его обойти. A* используется только как fallback при отсутствии геометрии (`NotImplementedError`).
+  - **Capability Fidelity:** `BodyCapabilities.can_jump` и `max_jump_height` теперь определяют `allowed_modes` в запросе и высоту дуги в плане.
+  - **Контракты:** В `TraversalProposal` добавлены поля `segment_modes` (WALK/JUMP) и `planning_source` (LOCAL_TRAVERSAL/ASTAR_FALLBACK).
+  - **Очистка:** Удалён класс `MovementPlanner` (старый A*-планировщик с doorway эвристиками).
+  - **Validation:** IPT 5/5 passed. DriftLaboratory подтверждает отсутствие C/D/E drift.
+  Files: backend/app/domain/traversal.py, backend/app/domain/traversal_schema.py, backend/app/services/spatial/movement_engine.py
+
+- 🔵 **S132.1** ТЗ: Segment-Aware Execution Kernel (Честная физика прыжка).
+  - **Контекст:** Замена "телепортации с задержкой" (`duration_ticks` как метаданные) на реальное tick-by-tick исполнение маршрута с учётом кинематики сегментов.
+  - **Segment-Aware Interpolation:** `TraversalExecutionSystem._interpolate_path` переписан. Теперь он вычисляет distance-weighted прогресс внутри конкретного сегмента, а не по индексу waypoint.
+  - **Jump Kinematics:** Для сегментов с режимом `JUMP` вычисляется Z-координата по параболической формуле `z(t) = 4 * h * t * (1 - t)`, где `h` берётся из `segment_arc_heights` (проброшенных из `BodyCapabilities.max_jump_height`).
+  - **Contract Invariant:** В `traversal_dict` добавлены `segment_modes` и `segment_arc_heights`. Внедрена проверка длины: `len(segment_modes) == len(waypoints) - 1`. При нарушении используется defensive fallback (все сегменты WALK, h=0.0).
+  - **3D Projection:** В `NPCPositionDTO` поле `local_position` теперь официально содержит `z` (ранее было 2D). `WorldSnapshotBuilder` пробрасывает Z в снапшот.
+  - **API Compatibility:** `resolve()` сохраняет сигнатуру `Tuple[float, float]`, чтобы не сломать downstream потребителей.
+  - **Validation:** IPT 5/5 passed. NPC честно интерполируют позицию тик за тиком.
+  Files: backend/app/domain/traversal_schema.py, backend/app/services/spatial/traversal_execution_system.py, backend/app/services/integration/world_snapshot_builder.py, backend/app/domain/snapshot.py
+
+- 🔵 **S131** ТЗ: Интеграция LocalTraversalPlanner в MovementEngine (Level 5).
+  - **Контекст:** Переход от примитивного A* к честной физической проходимости (Embodied Traversal) в основном цикле движения.
+  - **Архитектурный сдвиг:** MovementEngine превратился в чистый оркестратор. Он переводит MacroMovementGoal в TraversalQuery, получает TraversalPlan от LocalTraversalPlanner и компилирует его в TraversalProposal.
+  - **Hybrid Navigation Gate:** Внедрён Fallback Gate. Если SpatialService предоставляет LocalGeometry, LocalTraversalPlanner имеет абсолютный приоритет. Физический REJECTED (WALL_CLEARANCE_BLOCKED, GAP_TOO_WIDE) является HARD_REJECT — A* не может его обойти. A* используется только как fallback при отсутствии геометрии (NotImplementedError).
+  - **Capability Fidelity:** BodyCapabilities.can_jump и max_jump_height теперь определяют llowed_modes в запросе и высоту дуги в плане.
+  - **Контракты:** В TraversalProposal добавлены поля segment_modes (WALK/JUMP) и planning_source (LOCAL_TRAVERSAL/ASTAR_FALLBACK).
+  - **Очистка:** Удалён класс MovementPlanner (старый A*-планировщик с doorway эвристиками).
+  - **Validation:** IPT 5/5 passed. DriftLaboratory подтверждает отсутствие C/D/E drift.
+  Files: backend/app/domain/traversal.py, backend/app/domain/traversal_schema.py, backend/app/services/spatial/movement_engine.py
+
+- 🔵 **S132.1** ТЗ: Segment-Aware Execution Kernel (Честная физика прыжка).
+  - **Контекст:** Замена "телепортации с задержкой" (duration_ticks как метаданные) на реальное tick-by-tick исполнение маршрута с учётом кинематики сегментов.
+  - **Segment-Aware Interpolation:** TraversalExecutionSystem._interpolate_path переписан. Теперь он вычисляет distance-weighted прогресс внутри конкретного сегмента, а не по индексу waypoint.
+  - **Jump Kinematics:** Для сегментов с режимом JUMP вычисляется Z-координата по параболической формуле z(t) = 4 * h * t * (1 - t), где h берётся из segment_arc_heights (проброшенных из BodyCapabilities.max_jump_height).
+  - **Contract Invariant:** В 	raversal_dict добавлены segment_modes и segment_arc_heights. Внедрена проверка длины: len(segment_modes) == len(waypoints) - 1. При нарушении используется defensive fallback (все сегменты WALK, h=0.0).
+  - **3D Projection:** В NPCPositionDTO поле local_position теперь официально содержит z (ранее было 2D). WorldSnapshotBuilder пробрасывает Z в снапшот.
+  - **API Compatibility:** esolve() сохраняет сигнатуру Tuple[float, float], чтобы не сломать downstream потребителей.
+  - **Validation:** IPT 5/5 passed. NPC честно интерполируют позицию тик за тиком.
+  Files: backend/app/domain/traversal_schema.py, backend/app/services/spatial/traversal_execution_system.py, backend/app/services/integration/world_snapshot_builder.py, backend/app/domain/snapshot.py

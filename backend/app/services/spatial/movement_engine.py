@@ -1,235 +1,35 @@
+"""
+backend/app/services/spatial/movement_engine.py
+Назначение: Слой 2 Execution. MovementIntent → SceneChange с {x, y}.
+Получает целевой узел графа, резолвит в координаты, генерирует SceneChange.
+"""
+
 from __future__ import annotations
-
-# backend/app/services/spatial/movement_engine.py
-# Назначение: Слой 2 Execution. MovementIntent → SceneChange с {x, y}.
-# Получает целевой узел графа, резолвит в координаты, генерирует SceneChange.
 import logging
-
 logger = logging.getLogger(__name__)
-from typing import Any, Dict, List, Optional
 
+from typing import Any, Dict, List, Optional
 import math
-from app.domain.movement import LocalSteeringGoal, MacroMovementGoal
+from app.domain.movement import LocalSteeringGoal, MacroMovementGoal, MovementIntent
+from app.domain.traversal import (
+    LocalGeometry,
+    Pose,
+    TraversalMode,
+    TraversalPlan,
+    TraversalQuery,
+)
 from app.domain.traversal_schema import (
     MovementPlanResult,
     MovementPlanStatus,
     TraversalProposal,
 )
 from app.services.scene_change import ChangeType, SceneChange
-
+from app.services.spatial.local_traversal_planner import LocalTraversalPlanner
 logger = logging.getLogger(__name__)
 
-
-class MovementPlanner:
-    """ADR-O-323: Единственный автор TraversalProposal.
-    
-    Инкапсулирует логику валидации пути, вычисления waypoints, distance
-    и duration_ticks. Возвращает MovementPlanResult (ACCEPTED/REJECTED).
-    REJECTED proposals не доходят до SceneChange.
-    """
-    _DEFAULT_SPEED = 2.0
-
-    def plan(
-        self,
-        intent: MacroMovementGoal,
-        svc: Any,
-        current_pos: str,
-        tick: int,
-        current_xy: Dict[str, float],
-    ) -> MovementPlanResult:
-        """Планирует макро-перемещение. Возвращает TraversalProposal или REJECT."""
-        target_node = intent.target_node_id
-        source_node_obj = svc.get_node(current_pos)
-        target_node_obj = svc.get_node(target_node) or svc.get_node(f"{intent.location_id}:{target_node}")
-        
-        if not source_node_obj or not target_node_obj:
-            return MovementPlanResult(
-                status=MovementPlanStatus.REJECTED,
-                reason=f"NODE_NOT_FOUND source={current_pos} target={target_node}"
-            )
-
-        # ADR-O-323: Используем реальную local_position NPC для начальной точки,
-        # чтобы избежать расхождения с EventCompiler (который читает local_position из снапшота).
-        _cx = current_xy.get("x", source_node_obj.x) if isinstance(current_xy, dict) else source_node_obj.x
-        _cy = current_xy.get("y", source_node_obj.y) if isinstance(current_xy, dict) else source_node_obj.y
-        source_xy = (_cx, _cy)
-        
-        # ADR-O-323: Same-Node NO-OP. Если NPC уже в целевом узле, это не макро-движение.
-        # Классифицируем как MICRO_MOVEMENT — snap local_position без TraversalProposal.
-        if source_node_obj.node_id == target_node_obj.node_id:
-            return MovementPlanResult(
-                status=MovementPlanStatus.MICRO_MOVEMENT,
-                reason="SAME_NODE_NO_OP"
-            )
-
-        target_xy = (target_node_obj.x, target_node_obj.y)
-        
-        # FIX Overlap: Добавляем персональный offset ДО создания proposal,
-        # чтобы TraversalProposal содержал финальные координаты.
-        import zlib
-        _hash = zlib.adler32(intent.actor_id.encode("utf-8")) if intent.actor_id else 0
-        _offset_x = ((_hash % 10) / 10.0 - 0.5) * 1.5
-        _offset_y = (((_hash // 10) % 10) / 10.0 - 0.5) * 1.5
-        target_xy = (target_xy[0] + _offset_x, target_xy[1] + _offset_y)
-
-        # ADR-O-323: Motion Classification. Если дистанция меньше порога — это MICRO_MOVEMENT.
-        # Порог 0.1 совпадает с EventCompiler._TELEPORT_THRESHOLD для единой классификации.
-        _dist = math.hypot(target_xy[0] - source_xy[0], target_xy[1] - source_xy[1])
-        if _dist < 0.1:
-            return MovementPlanResult(
-                status=MovementPlanStatus.MICRO_MOVEMENT,
-                reason="DISTANCE_BELOW_THRESHOLD"
-            )
-
-        # ADR-O-324: Geometric Segment Validation. Проверяем КАЖДЫЙ отрезок пути.
-        # Сначала проверяем прямую видимость (source → target).
-        is_path_blocked = self._check_wall_blocking(svc, source_xy, target_xy)
-        waypoints: List[List[float]] = [[source_xy[0], source_xy[1]]]
-        
-        if is_path_blocked:
-            # ADR-O-324 Phase 2A: Dynamic Doorway Routing.
-            # Если прямой путь заблокирован, пытаемся найти временный waypoint 
-            # (approach/exit point) вокруг цели или источника.
-            _probed_waypoint = self._resolve_doorway(svc, source_xy, target_xy)
-            if _probed_waypoint:
-                waypoints.extend([list(_probed_waypoint)])
-            else:
-                # Fallback: A* (топология графа)
-                path = self._find_path(svc, source_xy, target_node_obj)
-                if path and len(path) >= 2:
-                    intermediate = [[pn.x, pn.y] for pn in path[1:-1]] if len(path) > 2 else []
-                    if intermediate:
-                        _prev_xy = source_xy
-                        _all_segments_valid = True
-                        for wp in intermediate:
-                            if svc.is_segment_blocked(_prev_xy[0], _prev_xy[1], wp[0], wp[1]):
-                                _all_segments_valid = False
-                                break
-                            _prev_xy = (wp[0], wp[1])
-                        
-                        if _all_segments_valid and not svc.is_segment_blocked(_prev_xy[0], _prev_xy[1], target_xy[0], target_xy[1]):
-                            waypoints.extend(intermediate)
-                        else:
-                            # S129 FIX: P4-04 — Не отбрасываем путь, а ищем обход (doorway).
-                            _detour = self._resolve_doorway(svc, _prev_xy, target_xy)
-                            if _detour:
-                                waypoints.extend([list(_detour)])
-                            else:
-                                return MovementPlanResult(
-                                    status=MovementPlanStatus.REJECTED,
-                                    reason=f"GEOMETRIC_OBSTACLE_NO_DETOUR source={current_pos} target={target_node}"
-                                )
-                    else:
-                        # A* вернул 2 узла (прямая связь), но геометрия заблокирована.
-                        # DOORWAY-TRUST: Доверяем графу, чтобы не блокировать движение.
-                        pass
-                elif path and len(path) == 1:
-                    # A* считает, что мы уже на месте. Доверяем графу.
-                    pass
-                else:
-                    # A* ничего не нашёл. Ищем ближайший DEFAULT узел для обхода.
-                    from app.models.spatial_contracts import NodeRole
-                    _default_nodes = svc.find_nodes_by_role(NodeRole.DEFAULT)
-                    _best_detour = None
-                    _min_dist = float('inf')
-                    
-                    for _dn in _default_nodes:
-                        if _dn.node_id == target_node:
-                            continue
-                        _dn_xy = (_dn.x, _dn.y)
-                        if not svc.is_segment_blocked(source_xy[0], source_xy[1], _dn_xy[0], _dn_xy[1]):
-                            if not svc.is_segment_blocked(_dn_xy[0], _dn_xy[1], target_xy[0], target_xy[1]):
-                                _dist = math.hypot(_dn_xy[0] - source_xy[0], _dn_xy[1] - source_xy[1])
-                                if _dist < _min_dist:
-                                    _min_dist = _dist
-                                    _best_detour = _dn_xy
-                    
-                    if _best_detour:
-                        waypoints.extend([list(_best_detour)])
-                    else:
-                        return MovementPlanResult(
-                            status=MovementPlanStatus.REJECTED,
-                            reason=f"GEOMETRIC_OBSTACLE_NO_DETOUR source={current_pos} target={target_node}"
-                        )
-        
-        waypoints.append([target_xy[0], target_xy[1]])
-        
-        # Вычисление дистанции (сумма сегментов)
-        distance = 0.0
-        for i in range(len(waypoints) - 1):
-            dx = waypoints[i][0] - waypoints[i+1][0]
-            dy = waypoints[i][1] - waypoints[i+1][1]
-            distance += math.hypot(dx, dy)
-            
-        duration_ticks = max(1, math.ceil(distance / self._DEFAULT_SPEED)) if self._DEFAULT_SPEED > 0 else 1
-        
-        # Получаем version из SpatialService (если доступно)
-        topology_version = getattr(svc, "_topology_version", 0)
-        
-        proposal = TraversalProposal(
-            npc_id=intent.actor_id,
-            source_node=current_pos,
-            target_node=target_node,
-            path_waypoints=tuple(tuple(wp) for wp in waypoints),
-            distance=distance,
-            speed=self._DEFAULT_SPEED,
-            duration_ticks=duration_ticks,
-            source_intent_id=getattr(intent, "intent_id", f"{intent.actor_id}:{intent.reason}"),
-            planned_tick=tick,
-            topology_version=topology_version,
-        )
-        
-        return MovementPlanResult(
-            status=MovementPlanStatus.ACCEPTED,
-            proposal=proposal,
-        )
-
-    def _check_wall_blocking(self, svc: Any, source_xy: tuple, target_xy: tuple) -> bool:
-        """Проверяет прямую видимость между точками (source → target)."""
-        # ADR-O-324: Делегируем в SpatialService.is_segment_blocked
-        if hasattr(svc, "is_segment_blocked"):
-            blocked = svc.is_segment_blocked(source_xy[0], source_xy[1], target_xy[0], target_xy[1])
-            return blocked if isinstance(blocked, bool) else False
-        return False
-
-    def _resolve_doorway(self, svc: Any, source_xy: tuple, target_xy: tuple) -> Optional[tuple]:
-        """ADR-O-324 Phase 2A: Dynamic Doorway Routing.
-        Ищет временный waypoint вокруг цели или источника, чтобы обойти стену.
-        Пробует 4 осевых направления. Возвращает (x, y) или None.
-        """
-        _offset = 1.5  # Дистанция отступа от цели/источника
-        
-        # 1. Пробуем найти approach point вокруг цели
-        _candidates = [
-            (target_xy[0] + _offset, target_xy[1]),
-            (target_xy[0] - _offset, target_xy[1]),
-            (target_xy[0], target_xy[1] + _offset),
-            (target_xy[0], target_xy[1] - _offset),
-        ]
-        for c in _candidates:
-            if not svc.is_segment_blocked(source_xy[0], source_xy[1], c[0], c[1]):
-                if not svc.is_segment_blocked(c[0], c[1], target_xy[0], target_xy[1]):
-                    return c
-        
-        # 2. Пробуем найти exit point вокруг источника
-        _candidates_src = [
-            (source_xy[0] + _offset, source_xy[1]),
-            (source_xy[0] - _offset, source_xy[1]),
-            (source_xy[0], source_xy[1] + _offset),
-            (source_xy[0], source_xy[1] - _offset),
-        ]
-        for c in _candidates_src:
-            if not svc.is_segment_blocked(source_xy[0], source_xy[1], c[0], c[1]):
-                if not svc.is_segment_blocked(c[0], c[1], target_xy[0], target_xy[1]):
-                    return c
-        
-        return None
-
-    def _find_path(self, svc: Any, source_xy: tuple, target_node: Any) -> Optional[list]:
-        """A* pathfinding через SpatialService."""
-        if hasattr(svc, "find_path"):
-            return svc.find_path(source_xy, target_node)
-        return None
+# S131: Радиус восприятия для локальной геометрии.
+# В будущем должен браться из BodyCapabilities или PerceptionKernel.
+_DEFAULT_PERCEPTION_RADIUS = 15.0
 
 
 class MovementEngine:
@@ -244,8 +44,8 @@ class MovementEngine:
     def __init__(self) -> None:
         # SpatialService v1.2 — инъекция извне (DI)
         self._spatial_service: Optional[Any] = None
-        # ADR-O-323: Планировщик — единственный автор TraversalProposal
-        self._planner = MovementPlanner()
+        # S131: LocalTraversalPlanner — честная физика проходимости (Embodied Traversal)
+        self._planner = LocalTraversalPlanner()
 
     def set_spatial_service(self, svc: Any) -> None:
         """Инъекция SpatialService для A* с учётом оверлея."""
@@ -559,6 +359,152 @@ class MovementEngine:
             ),
         ]
 
+    def _fallback_to_astar(
+        self,
+        svc: Any,
+        intent: MacroMovementGoal,
+        current_pos: str,
+        tick: int,
+        source_xy: tuple,
+        target_xy: tuple,
+        target_node_obj: Any
+    ) -> MovementPlanResult:
+        """S131.1: Fallback на A* ТОЛЬКО если локальная геометрия недоступна.
+        Если геометрия была доступна, но план отклонён (физический запрет) — этот метод не вызывается.
+        """
+        path = svc.find_path(source_xy, target_node_obj) if hasattr(svc, "find_path") else None
+        if not path or len(path) < 2:
+            return MovementPlanResult(
+                status=MovementPlanStatus.REJECTED,
+                reason="NO_GEOMETRY_AND_NO_A_STAR_PATH"
+            )
+            
+        waypoints: List[List[float]] = [[source_xy[0], source_xy[1]]]
+        segment_modes: List[str] = []
+        distance = 0.0
+        prev_xy = source_xy
+        
+        for node in path[1:]:
+            wp = [node.x, node.y]
+            if math.hypot(wp[0] - prev_xy[0], wp[1] - prev_xy[1]) > 0.01:
+                waypoints.append(wp)
+                segment_modes.append(TraversalMode.WALK.value)
+                distance += math.hypot(wp[0] - prev_xy[0], wp[1] - prev_xy[1])
+                prev_xy = (wp[0], wp[1])
+                
+        speed = intent.body_capabilities.movement_speed
+        duration_ticks = max(1, math.ceil(distance / speed)) if speed > 0 else 1
+        topology_version = getattr(svc, "_topology_version", 0)
+        
+        proposal = TraversalProposal(
+            npc_id=intent.actor_id,
+            source_node=current_pos,
+            target_node=target_node_obj.node_id,
+            path_waypoints=tuple(tuple(wp) for wp in waypoints),
+            distance=distance,
+            speed=speed,
+            duration_ticks=duration_ticks,
+            source_intent_id=getattr(intent, "intent_id", f"{intent.actor_id}:{intent.reason}"),
+            planned_tick=tick,
+            topology_version=topology_version,
+            segment_modes=tuple(segment_modes) if segment_modes else ("WALK",),
+            planning_source="ASTAR_FALLBACK",
+            segment_arc_heights=tuple(segment_arc_heights) if segment_arc_heights else (0.0,)
+        )
+        
+        return MovementPlanResult(
+            status=MovementPlanStatus.ACCEPTED,
+            proposal=proposal,
+        )
+
+    def _compile_traversal_plan(
+        self,
+        intent: MacroMovementGoal,
+        svc: Any,
+        current_pos: str,
+        tick: int,
+        source_xy: tuple,
+        target_xy: tuple,
+        target_node_obj: Any
+    ) -> MovementPlanResult:
+        """S131: Компилирует TraversalPlan (от LocalTraversalPlanner) в TraversalProposal.
+        Если локальная физика блокирована стеной, fallback на A* (все сегменты WALK).
+        """
+        # S131.1: Traversal Failure Semantics & Fallback Gate.
+        # 1. Получаем локальную геометрию. Если сервис не предоставляет геометрию — fallback на A*.
+        try:
+            geometry: LocalGeometry = svc.get_local_geometry(source_xy, perception_radius=_DEFAULT_PERCEPTION_RADIUS)
+        except (AttributeError, NotImplementedError):
+            return self._fallback_to_astar(svc, intent, current_pos, tick, source_xy, target_xy, target_node_obj)
+        
+        # S131 FIX (советник): allowed_modes зависит от body.can_jump
+        allowed_modes = [TraversalMode.WALK]
+        if intent.body_capabilities.can_jump:
+            allowed_modes.append(TraversalMode.JUMP)
+            
+        # 2. Собираем запрос к планировщику
+        query = TraversalQuery(
+            source_pose=Pose(source_xy[0], source_xy[1]),
+            target_pose=Pose(target_xy[0], target_xy[1]),
+            body=intent.body_capabilities,
+            allowed_modes=tuple(allowed_modes)
+        )
+        
+        # 3. Выполняем локальное планирование (честная физика)
+        plan: TraversalPlan = self._planner.compile_plan(query, geometry)
+        
+        # S131.1: Если физика запрещает — это HARD_REJECT. A* не имеет права отменить физический запрет.
+        if not plan.possible:
+            return MovementPlanResult(
+                status=MovementPlanStatus.REJECTED,
+                reason=plan.reason or "TRAVERSAL_IMPOSSIBLE"
+            )
+
+        # 4. Компилируем сегменты из TraversalPlan (с сохранением JUMP)
+        waypoints: List[List[float]] = [[source_xy[0], source_xy[1]]]
+        segment_modes: List[str] = []
+        segment_arc_heights: List[float] = []
+        distance = 0.0
+        prev_xy = source_xy
+        
+        for seg in plan.segments:
+            wp = [seg.end_pose.x, seg.end_pose.y]
+            if math.hypot(wp[0] - prev_xy[0], wp[1] - prev_xy[1]) > 0.01:
+                waypoints.append(wp)
+                segment_modes.append(seg.mode.value)
+                # S132.1: Если JUMP, используем max_jump_height из BodyCapabilities, иначе 0.0
+                arc_h = intent.body_capabilities.max_jump_height if seg.mode == TraversalMode.JUMP else 0.0
+                segment_arc_heights.append(arc_h)
+                distance += math.hypot(wp[0] - prev_xy[0], wp[1] - prev_xy[1])
+                prev_xy = (wp[0], wp[1])
+
+        # 5. Вычисляем длительность
+        speed = intent.body_capabilities.movement_speed
+        duration_ticks = max(1, math.ceil(distance / speed)) if speed > 0 else 1
+        
+        topology_version = getattr(svc, "_topology_version", 0)
+        
+        proposal = TraversalProposal(
+            npc_id=intent.actor_id,
+            source_node=current_pos,
+            target_node=target_node_obj.node_id,
+            path_waypoints=tuple(tuple(wp) for wp in waypoints),
+            distance=distance,
+            speed=speed,
+            duration_ticks=duration_ticks,
+            source_intent_id=getattr(intent, "intent_id", f"{intent.actor_id}:{intent.reason}"),
+            planned_tick=tick,
+            topology_version=topology_version,
+            segment_modes=tuple(segment_modes) if segment_modes else ("WALK",), # S131: Сохраняем семантику
+            planning_source="LOCAL_TRAVERSAL",
+            segment_arc_heights=tuple(segment_arc_heights) if segment_arc_heights else (0.0,)
+        )
+        
+        return MovementPlanResult(
+            status=MovementPlanStatus.ACCEPTED,
+            proposal=proposal,
+        )
+
     def _resolve_macro_relocation(
         self,
         intent: MacroMovementGoal,
@@ -568,8 +514,18 @@ class MovementEngine:
         current_pos: str,
         current_xy: Dict[str, float],
     ) -> List[SceneChange]:
-        """ADR-0010/060/060: LOD1 макро-перемещение (Semantic Relocation).
-        ADR-O-323: Делегирует планирование MovementPlanner'u."""
+        """S131: LOD1 макро-перемещение. Делегирует планирование LocalTraversalPlanner'u."""
+
+    def _resolve_macro_relocation(
+        self,
+        intent: MacroMovementGoal,
+        svc: Any,
+        location_id: str,
+        tick: int,
+        current_pos: str,
+        current_xy: Dict[str, float],
+    ) -> List[SceneChange]:
+        """S131: LOD1 макро-перемещение. Делегирует планирование LocalTraversalPlanner'у."""
         # Защита micro-position: если NPC уже в целевом узле — пропускаем
         if current_pos and current_pos == intent.target_node_id:
             logger.debug(
@@ -580,9 +536,42 @@ class MovementEngine:
             )
             return []
 
-        # ADR-O-323: MovementPlanner — единственный автор TraversalProposal.
-        # Передаём авторитетную позицию из scene_state (current_pos + current_xy).
-        plan_result = self._planner.plan(intent, svc, current_pos, tick, current_xy)
+        # S131: MovementEngine — оркестратор. 
+        # Пробует построить честный физический путь (LocalTraversalPlanner).
+        # Если стена блокирует — fallback на A* (топология графа).
+        target_node_obj = svc.get_node(intent.target_node_id) or svc.get_node(f"{intent.location_id}:{intent.target_node_id}")
+        source_node_obj = svc.get_node(current_pos)
+        if not target_node_obj:
+             return []
+
+        # S131 FIX (советник): current_xy — авторитетная позиция тела, а не графовый узел.
+        if isinstance(current_xy, dict) and "x" in current_xy and "y" in current_xy:
+            _cx = float(current_xy["x"])
+            _cy = float(current_xy["y"])
+        elif source_node_obj:
+            _cx = source_node_obj.x
+            _cy = source_node_obj.y
+        else:
+            return []
+            
+        source_xy = (_cx, _cy)
+        
+        import zlib
+        _hash = zlib.adler32(intent.actor_id.encode("utf-8")) if intent.actor_id else 0
+        _offset_x = ((_hash % 10) / 10.0 - 0.5) * 1.5
+        _offset_y = (((_hash // 10) % 10) / 10.0 - 0.5) * 1.5
+        target_xy = (target_node_obj.x + _offset_x, target_node_obj.y + _offset_y)
+
+        _dist = math.hypot(target_xy[0] - source_xy[0], target_xy[1] - source_xy[1])
+        if (source_node_obj and source_node_obj.node_id == target_node_obj.node_id) or _dist < 0.1:
+            plan_result = MovementPlanResult(
+                status=MovementPlanStatus.MICRO_MOVEMENT,
+                reason="SAME_NODE_OR_THRESHOLD"
+            )
+        else:
+            plan_result = self._compile_traversal_plan(
+                intent, svc, current_pos, tick, source_xy, target_xy, target_node_obj
+            )
 
         if plan_result.status == MovementPlanStatus.REJECTED:
             logger.warning(
@@ -590,32 +579,22 @@ class MovementEngine:
             )
             return []
 
-        # ADR-O-323: MICRO_MOVEMENT — snap local_position без TraversalProposal.
-        # Этим устраняется Semantic Drift (Legacy создавал Traversal, Shadow — нет).
+        # S131: MICRO_MOVEMENT — snap local_position без TraversalProposal.
         if plan_result.status == MovementPlanStatus.MICRO_MOVEMENT:
-            target_node_obj = svc.get_node(intent.target_node_id)
-            if target_node_obj:
-                # Вычисляем target_xy с offset, как в planner.plan()
-                import zlib as _zl
-                _h = _zl.adler32(intent.actor_id.encode("utf-8")) if intent.actor_id else 0
-                _ox = ((_h % 10) / 10.0 - 0.5) * 1.5
-                _oy = (((_h // 10) % 10) / 10.0 - 0.5) * 1.5
-                target_xy = (target_node_obj.x + _ox, target_node_obj.y + _oy)
-                logger.info(
-                    f"[PIPELINE][MOVEMENT][MICRO] npc={intent.actor_id} → snap to {target_xy} reason={plan_result.reason}"
+            logger.info(
+                f"[PIPELINE][MOVEMENT][MICRO] npc={intent.actor_id} → snap to {target_xy} reason={plan_result.reason}"
+            )
+            return [
+                SceneChange(
+                    type=ChangeType.NPC_POSITION,
+                    target=intent.actor_id,
+                    field="local_position",
+                    value={"x": target_xy[0], "y": target_xy[1]},
+                    cause=f"micro_snap:{intent.reason}",
+                    tick=tick,
+                    target_location_id=location_id,
                 )
-                return [
-                    SceneChange(
-                        type=ChangeType.NPC_POSITION,
-                        target=intent.actor_id,
-                        field="local_position",
-                        value={"x": target_xy[0], "y": target_xy[1]},
-                        cause=f"micro_snap:{intent.reason}",
-                        tick=tick,
-                        target_location_id=location_id,
-                    )
-                ]
-            return []
+            ]
 
         if plan_result.proposal is None:
             logger.error(
@@ -623,8 +602,7 @@ class MovementEngine:
             )
             return []
 
-        # ADR-O-323: MovementEngine не модифифует proposal. 
-        # Извлекаем целевые координаты из proposal для логирования и SceneChange.target_local_xy.
+        # S131: Извлекаем целевые координаты из proposal для логирования и SceneChange.target_local_xy.
         target_xy = plan_result.proposal.path_waypoints[-1]
 
         logger.info(
@@ -638,7 +616,7 @@ class MovementEngine:
                 type=ChangeType.NPC_POSITION,
                 target=intent.actor_id,
                 field="position",
-                value=intent.target_node_id,
+                value=target_node_obj.node_id,  # S131 FIX: Канонический ID с префиксом локации
                 cause=f"semantic_relocation:{intent.reason}",
                 tick=tick,
                 target_location_id=location_id,

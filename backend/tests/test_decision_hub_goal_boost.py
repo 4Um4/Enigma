@@ -1,6 +1,7 @@
 # backend/tests/test_decision_hub_goal_boost.py
 """
-Smoke-тест: Проверяет, что долгосрочная цель (goal) даёт буст к проактивным интентам.
+Smoke-тест: Проверяет, что жизненный проект (life_project) даёт буст к проактивным интентам.
+P5-03: Поле profile.goal удалено. DecisionHub теперь использует state.life_project.
 """
 import pytest
 from app.models.npc_profile import NPCProfileL0, PsycheBase
@@ -14,7 +15,7 @@ def hub() -> DecisionHub:
     return DecisionHub(seed=42)
 
 @pytest.fixture
-def profile_with_goal() -> NPCProfileL0:
+def profile() -> NPCProfileL0:
     return NPCProfileL0(
         id="test_npc",
         name="Тестовый NPC",
@@ -22,19 +23,6 @@ def profile_with_goal() -> NPCProfileL0:
         drives_base={"control": 0.4, "significance": 0.3, "fear": 0.1, "desire": 0.6},
         psyche_base=PsycheBase(willpower=70, breakpoint=80, loyalty_base=50),
         voice_profile="Тестовый голос",
-        goal="Стать главой гильдии"
-    )
-
-@pytest.fixture
-def profile_without_goal() -> NPCProfileL0:
-    return NPCProfileL0(
-        id="test_npc",
-        name="Тестовый NPC",
-        tier="major",
-        drives_base={"control": 0.4, "significance": 0.3, "fear": 0.1, "desire": 0.6},
-        psyche_base=PsycheBase(willpower=70, breakpoint=80, loyalty_base=50),
-        voice_profile="Тестовый голос",
-        goal=""
     )
 
 @pytest.fixture
@@ -51,27 +39,33 @@ class TestDecisionHubGoalBoost:
     def test_goal_provides_boost_to_proactive_intents(
         self,
         hub: DecisionHub,
-        profile_with_goal: NPCProfileL0,
-        profile_without_goal: NPCProfileL0,
+        profile: NPCProfileL0,
         world_tick_event: EventContext
     ):
-        """Если есть goal, скор проактивных интентов должен быть выше."""
-        state = NPCState(npc_id="test_npc", will_state=WillState.FREE, emotion=EmotionTag.NEUTRAL)
+        """Если есть life_project, скор проактивных интентов должен быть выше."""
+        # Состояние с активным жизненным проектом
+        state_with_project = NPCState(npc_id="test_npc", will_state=WillState.FREE, emotion=EmotionTag.NEUTRAL)
+        state_with_project.life_project = "wealth_creator"
+        state_with_project.life_project_state = "ACTIVE"
+
+        # Состояние без проекта (survival по умолчанию)
+        state_without_project = NPCState(npc_id="test_npc", will_state=WillState.FREE, emotion=EmotionTag.NEUTRAL)
+        state_without_project.life_project = "survival"
+        state_without_project.life_project_state = "ACTIVE"
 
         from app.domain.identity_events import EffectiveDrives
-        # Используем эффективные драйвы (равные базовым для теста)
-        effective_drives = EffectiveDrives.from_dict(profile_with_goal.drives_base)
+        effective_drives = EffectiveDrives.from_dict(profile.drives_base)
 
-        result_with_goal = hub.compute(
-            state=state,
-            personality=profile_with_goal,
+        result_with_project = hub.compute(
+            state=state_with_project,
+            personality=profile,
             effective_drives=effective_drives,
             event=world_tick_event
         )
 
-        result_without_goal = hub.compute(
-            state=state,
-            personality=profile_without_goal,
+        result_without_project = hub.compute(
+            state=state_without_project,
+            personality=profile,
             effective_drives=effective_drives,
             event=world_tick_event
         )
@@ -81,9 +75,9 @@ class TestDecisionHubGoalBoost:
 
         boosted_count = 0
         for intent in proactive_intents:
-            score_with = result_with_goal.scores_trace.get(intent, 0.0)
-            score_without = result_without_goal.scores_trace.get(intent, 0.0)
+            score_with = result_with_project.scores_trace.get(intent, 0.0)
+            score_without = result_without_project.scores_trace.get(intent, 0.0)
             if score_with > score_without:
                 boosted_count += 1
 
-        assert boosted_count > 0, "Наличие цели (goal) должно увеличивать скор хотя бы одного проактивного интента"
+        assert boosted_count > 0, "Наличие life_project должно увеличивать скор хотя бы одного проактивного интента"

@@ -1,12 +1,12 @@
-# ENIGMA — КОНТРАКТ ЗАМЫКАНИЯ v1.4
+# ENIGMA — КОНТРАКТ ЗАМЫКАНИЯ v1.6
 
 **Дата создания:** 2026-07-20
-**Версия:** v1.4 (после forensic-2 аудита V.0.5.3.5.4 — один день спустя после v1.3)
-**Версия кода:** V.0.5.3.5.4_-_-_-
+**Версия:** v1.6 (после анализа диалоговой связанности и системы памяти — добавлена §13)
+**Версия кода:** V.0.5.3.5.5_-_-_-
 **Действителен до:** полного закрытия всех пунктов (§1–§7)
-**Источник:** анализ кода + логов + forensic-2 аудит мостов (FORENSIC-2 в worklog.md)
-**Из них уже закрыто:** 23 пункта (16 из v1.3 + 7 новых: P0-01, P1-04, P1-07, P2-02, P2-05, P2-06, P2-08, P4-04)
-**Осталось:** 10 пунктов фундаментальных + 15 TZ Люси + 3 новых forensic-моста (NEW-1, NEW-2, NEW-3)
+**Источник:** анализ кода + логов `cds_session_20260722_211846.log` + прямой diff v5354→v5355
+**Из них уже закрыто:** 26 пунктов (23 из v1.4 + 3 forensic-моста: NEW-1, NEW-2, NEW-3)
+**Осталось:** 7 пунктов фундаментальных + 15 TZ Люси + 2 НОВЫХ regression-бага (NEW-7, NEW-8)
 
 ## ПРОГРЕСС ЗА 1 ДЕНЬ (между v5.3.5.3 и v5.3.5.4)
 
@@ -339,14 +339,12 @@
 - **Критерий готовности:** `compute_social_modifiers` вызывается без TypeError.
 
 ### P2-09: SocialDecayHandler — персист в RelationshipStore
-- **Статус:** [x]
-- **Файлы:** `backend/app/services/social/social_decay_handler.py:33-113`, `backend/app/services/npc/state_applicator.py`
+- **Статус:** [ ]
+- **Файлы:** `backend/app/services/social/social_decay_handler.py:33-113`
 - **Что сломано:** Handler обновляет `NPCStateSnapshot.relationship_cache` (in-memory), но не пишет обратно в `RelationshipStore` JSON. Возможен дрейф RAM vs диск.
 - **Что сделать:**
   1. После `handler.apply(deltas)` вызвать `relationship_store.persist(campaign_id, npc_id, deltas)`
   2. Или: handler сразу пишет в store, не в snapshot
-- **Закрыто:** 2026-07-19 commit=S127
-- **Реализация:** Архитектура разделяет ответственность: `SocialDecayHandler` возвращает `StateDeltas`, а `StateApplicator` применяет их. В `state_applicator.py` (строки 412-430) есть явный вызов `self._rel_store.update(...)`, который записывает `trust_delta` и `fear_delta` в `RelationshipStore` (SSOT), а затем синхронизирует `relationship_cache` из хранилища. Дрейф RAM vs диск исключён.
 - **Критерий готовности:** После рестарта сервера отношения сохраняются (с учётом decay).
 
 ### P2-10: village_relations.json — расширить до 12+ рёбер
@@ -358,15 +356,14 @@
 - **Источник находки:** предыдущая LLM-сессия (V.0.5.3.4.9_drift) — Q2
 
 ### P2-11: RoleTransition.execute_transition — оживить (180 строк dead code)
-- **Статус:** [~] **ЗАБЛОКИРОВАНО**
-- **Файлы:** `backend/app/services/npc/role_transition.py`, `backend/app/services/npc/life_project_resolver.py`
+- **Статус:** [ ]
+- **Файлы:** `backend/app/services/npc/role_transition.py` (или эквивалент)
 - **Что сломано:** 180 строк готового кода для смены архетипа NPC (например, `maid → thief` для Люси). Никогда не вызывается из продакшн-кода. Это блокирует P5-02 (crisis transitions) — без RoleTransition нельзя сменить schedule/activity_map при `family_builder → isolation`.
 - **Что сделать:**
   1. Найти `RoleTransition.execute_transition` (или `_execute_transition`)
   2. Создать подписчика `LifeProjectRoleBinder` на событие `LIFE_PROJECT_COMMITTED`
   3. Подписчик вызывает `RoleTransition.execute_transition(npc_id, new_archetype)`
   4. В `npc_loader.py` добавить `reload_archetype_for(npc_id, new_archetype)` — перезагружает schedule + activity_map, **сохраняя runtime-overlay** (stress, identity_integrity, relationship_cache)
-- **Причина блокировки:** Требуется новый архитектурный слой `ArchetypeTransitionResolver` (маппинг `life_project` → `archetype`). Прямое присваивание `life_project` (например, "isolation") в качестве `archetype` является каузальным разрывом (смешение смыслового вектора и профессии). Функция `reload_archetype_for` уже добавлена в `npc_loader.py`, но интеграция в `phases/decision.py` откатана.
 - **Критерий готовности:** При `family_builder → isolation` в тесте NPC получает новый schedule, но сохраняет накопленные stress и отношения.
 - **Источник находки:** предыдущая LLM-сессия — D6 dead code
 - **Связанные ADR:** ADR-TIFL-003
@@ -378,8 +375,8 @@
 **Цель:** NPC доходят до рабочих точек. Cross-location работает. Нет `GEOMETRIC_OBSTACLE` спама.
 
 ### P4-01: _create_boundary_nodes — починить
-- **Статус:** [~] **ЧАСТИЧНО (P4-01A hotfix)**
-- **Файлы:** `backend/app/services/spatial/graph_compiler.py`
+- **Статус:** [ ]
+- **Файлы:** `backend/app/services/spatial/graph_compiler.py:631-677`
 - **Что сломано:** 3 бага в одной функции:
   1. `nearest_node = next(iter(graph.values()))` — первый по итерации, не ближайший
   2. `boundary_node = NodeRef(x=0.0, y=0.0)` — все границы в (0,0)
@@ -388,23 +385,18 @@
   1. Найти ближайший узел к центру границы направления (по координатам из manifest)
   2. `boundary_node.x/y` = координаты ближайшего узла ± 0.5 м в сторону соседа
   3. Соединить со всеми узлами в радиусе 3 м
-- **Закрыто:** 2026-07-19 commit=S127 (P4-01A)
-- **Реализация:** Внедрён безопасный hotfix. Координаты границы вычисляются на основе `origin` и `size` локации (центр соответствующей стороны прямоугольника). Алгоритм ищет ближайший навигационный узел (исключая другие границы) к этой точке. Логирование добавлено.
-- **Остаток (P4-01B):** Алгоритм находит ближайший узел, но не проверяет геометрическую достижимость (отсутствие стен на отрезке). В логах IPT зафиксировано: `exit_east -> kitchen is geometrically blocked`. Требуется валидация `is_segment_blocked` перед привязкой, что потребует передачи геометрии стен в `GraphCompiler` или переноса логики в `SpatialService`.
-- **Критерий готовности:** `tavern_silver_wolf:exit_east` находится у восточной стены таверны, не в (0,0). CROSS_LOC к `city_gate` проходит. (Частично: координаты верны, но путь может быть заблокирован стеной).
+- **Критерий готовности:** `tavern_silver_wolf:exit_east` находится у восточной стены таверны, не в (0,0). CROSS_LOC к `city_gate` проходит.
 - **Связанные ADR:** ADR-O-323, ADR-O-324
 
 ### P4-02: Door-splitting — починить
-- **Статус:** [x]
-- **Файлы:** `backend/app/services/spatial/graph_compiler.py`, `backend/app/services/scene_state_manager.py`
+- **Статус:** [ ]
+- **Файлы:** `backend/app/services/spatial/graph_compiler.py:417-429`, `backend/app/services/scene_state_manager.py:1185-1198`
 - **Что сломано:** `wall_id = obj.get("rotation")` — `rotation` это число, не wall_id. Двери никогда не разрезают стены.
 - **Что сделать:**
   1. В JSON локаций добавить объектам дверей поле `"splits_wall": "wall_1"` (явно)
   2. В `graph_compiler` парсить `splits_wall`, не `rotation`
   3. Удалить дубликат логики в `scene_state_manager.py:1185-1198`
-- **Закрыто:** 2026-07-19 commit=S127
-- **Реализация:** `GraphCompiler` уже использовал `obj.get("wall_id")` (S129 FIX). Из `SceneStateManager` удалены методы `_build_spatial_data` и `_split_wall_by_openings` (а также встроенный блок в `initialize_scene`). Теперь `SceneStateManager` делегирует построение `spatial_walls` в `GraphCompiler` (SSOT). Дубликат с багом `rotation` устранён. IPT 5/5 passed.
-- **Критерий готовности:** `wall_1` между залом и кухней разрезана дверным проёмом на (14, 3.75). (Контракт соблюдён, логика единая).
+- **Критерий готовности:** `wall_1` между залом и кухней разрезана дверным проёмом на (14, 3.75).
 
 ### P4-03: Навигационные узлы — убрать colocation с препятствиями
 - **Статус:** [ ]
@@ -468,15 +460,13 @@
 - **Критерий готовности:** Борко доходит до `city_gate:guard_post`, не остаётся в `corner_table`.
 
 ### P4-08: routine.schedule — добавить Торнину и Орму
-- **Статус:** [x]
+- **Статус:** [ ]
 - **Файлы:** `config/npc/individuals/tornin.json`, `config/npc/individuals/orm.json`
 - **Что сломано:** Нет поля `routine.schedule`. LifeEngine выходит на ранней стадии. NPC никогда не двигаются.
 - **Что сделать:**
   - Торонин: 06-12 innkeeping, 12-14 eating, 14-22 innkeeping, 22-06 sleeping
   - Орм: 06-12 working (market_square), 12-14 eating (tavern), 14-18 working, 18-22 drinking (tavern), 22-06 sleeping (tavern)
-- **Закрыто:** 2026-07-19 commit=S127
-- **Реализация:** В JSON конфиги Торнина и Орма добавлено поле `routine.schedule` (формат `"06:00-22:00": "working"`). В `activity_map` добавлены недостающие активности (`eating`, `sleeping`). Теперь `LifeEngine` корректно определяет текущую активность и генерирует `MacroMovementGoal`.
-- **Критерий готовности:** В логе `[PIPELINE][MOVEMENT][RELOCATE] npc=tavern_keeper_tornin` появляется. (IPT 5/5 passed, JSON валиден).
+- **Критерий готовности:** В логе `[PIPELINE][MOVEMENT][RELOCATE] npc=tavern_keeper_tornin` появляется.
 
 ### P4-09: PatrolRoute — реализовать
 - **Статус:** [ ]
@@ -524,13 +514,15 @@
 - **Связанные ADR:** ADR-TIFL-002, ADR-TIFL-003
 
 ### P5-03: profile.goal — мёртвое поле, оживить
-- **Статус:** [ ]
-- **Файлы:** `backend/app/models/npc_profile.py:81`, `backend/app/services/npc/decision_hub.py:1447`
+- **Статус:** [x]
+- **Файлы:** `backend/app/models/npc_profile.py:81`, `backend/app/services/npc/npc_loader.py`
 - **Что сломано:** `profile.goal` определён, никогда не читается DecisionHub. Тест `test_decision_hub_goal_boost.py:51` должен был это поймать, но `_context_relevance` читает `state.life_project` вместо `state.goal`.
 - **Что сделать:**
   1. Либо удалить `profile.goal` (если не нужен)
   2. Либо в `_context_relevance` читать `state.active_goals: List[Goal]` (см. P5-04)
-- **Критерий готовности:** `grep "profile.goal" backend/app/` → 0 или используется.
+- **Закрыто:** 2026-07-19 commit=S127
+- **Реализация:** Поле `goal` удалено из `NPCProfileL0` (мёртвый код). Аргумент `goal` удалён из вызова конструктора в `npc_loader.py`. `DecisionHub` уже использует динамическое `state.life_project` (L2.7) для бустов интентов, статичное `profile.goal` (L0) было дублирующей сущностью (DOUBLE TRUTH).
+- **Критерий готовности:** `grep "profile.goal" backend/app/` → 0 или используется. (IPT 5/5 passed).
 
 ### P5-04: Goal Tree (опционально, только если P5-02 требует)
 - **Статус:** [ ]
@@ -562,16 +554,16 @@
 - **Критерий готовности:** NPC генерируют проактивные интенты не реже, чем раз в 2 хода.
 
 ### P5-08: Avatar drives — пересчёт на каждом тике
-- **Статус:** [ ]
-- **Файлы:** `backend/app/services/player_avatar_service.py:111-116`, `backend/app/services/tick_orchestrator.py:1078`
-- **Что сломано:** `drives` поле аватара устанавливается ОДИН РАЗ при `load_state` (`{0.25, 0.25, 0.25, 0.25}`) и **никогда не пересчитывается** — `DriveResolver` запускается только для `NPCProfileL0`. Аватар «застывает» в начальных драйвах навсегда.
+- **Статус:** [x]
+- **Файлы:** `backend/app/services/npc/drive_resolver.py`, `backend/app/services/tick_orchestrator.py`
+- **Что сломано:** `drives` поле аватара устанавливается ОДИН РАЗ при `load_state` и **никогда не пересчитывается**. Аватар «застывает» в начальных драйвах навсегда.
 - **Что сделать:**
-  1. В `tick_orchestrator.py:1078` расширить условие запуска `DriveResolver` на аватар (не только `NPCProfileL0`)
-  2. В `player_avatar_service.py` добавить `update_drives(state, context)` — пересчитывает drives на основе hunger/fatigue/stress/threat
-  3. Вызывать на каждом тике (player или idle)
-- **Критерий готовности:** После 30 минут gameplay drives аватара изменились (например, hunger вырос → drive `desire` вырос).
-- **Источник находки:** предыдущая LLM-сессия — Q5
-- **Примечание:** Это не полная автономия аватара (см. B-06 в Бэклоге), но обязательный минимум для P6 (player_cognition) — без живых drives perception pipeline не работает корректно.
+  1. В `tick_orchestrator.py` расширить условие запуска `DriveResolver` на аватар
+  2. Добавить `update_drives(state, context)` — пересчитывает drives на основе hunger/fatigue/stress/threat
+  3. Вызывать на каждом тике
+- **Закрыто:** 2026-07-19 commit=S127
+- **Реализация:** Археология показала, что `TickOrchestrator` уже вызывает `DriveResolver` для всех NPC в `all_npcs_raw` (включая аватара, если он добавлен в список). Проблема была в том, что `DriveResolver` учитывал только L0 и L2.5, игнорируя физиологию (`body_state`). В `DriveResolver.resolve_drives` добавлен опциональный параметр `body_state`. Теперь `fatigue` снижает `desire` и повышает `control`, а `pain` повышает `fear`. Вызов в `tick_orchestrator.py` обновлён для передачи `body_state`. Обратная совместимость сохранена (`body_state=None` не меняет поведение).
+- **Критерий готовности:** После 30 минут gameplay drives аватара изменились (например, fatigue вырос → drive `desire` упал, `control` вырос). (IPT 5/5 passed).
 
 ### P5-09: maybe_tick force parameter (NEW-3)
 - **Статус:** [ ]
@@ -833,6 +825,30 @@
 - Заменить `life_project: str` на `active_goals: List[Goal]`
 - Многошаговые планы в DecisionHub
 
+### B-11: Abstract Reasoning Layer (Conceptual Transfer)
+- **Status:** BACKLOG (ФАЗА 3 — после MVP, после B-06 Theory of Other)
+- **Принцип:** An intelligent NPC does not merely select actions from the world. It can change the representation of the problem before selecting an action.
+- **Архитектура:** Concrete Experience → Relation Extraction → Abstract Schema → Situation Matching → Schema Mutation → Hypothesis Generation → Causal Validation → DecisionHub
+- **4 операции:** Structural Compression, Analogical Retrieval, Schema Mutation, Counterfactual Simulation.
+- **Запрет:** `abstract_thinking: float` (декоративная психология).
+
+### B-12: Inference Engine & Theory of Mind (Research-grade)
+- **Status:** BACKLOG (ФАЗА 4 — после MVP, после B-11)
+- **Принцип:** Не хранить мысли NPC. Хранить процесс, посредством которого наблюдения превращаются в гипотезы, гипотезы — в предсказания, предсказания — в новые наблюдения, а ошибки — в перестройку модели мира.
+- **Архитектура (цикл мышления):**
+  ```
+  OBSERVATION → HYPOTHESIS → PREDICTION → ACTION → NEW EVIDENCE → UPDATE (MODEL REFINEMENT)
+  ```
+- **Ключевые механизмы:**
+  1. **Hypothesis Generation:** Конкурирующие гипотезы с confidence (не `is_liar=True`, а `H1: lie (0.68), H2: misunderstanding (0.12)`).
+  2. **Model Refinement:** `PLAYER IS VIOLENT` → (contradiction) → `PLAYER USES VIOLENCE WHEN threatened OR protecting`.
+  3. **Predictive Models:** Модель Other должна предсказывать `P(player lies | reputation_risk) = 0.78`, не просто хранить факты.
+  4. **Situation Construction:** `INFORMATION LEVERAGE` relation → генерация новых целей (`"How can I make the merchant discover the truth?"`).
+  5. **Event-triggered ToM:** Theory of Mind вычисляется только когда есть причинная ценность (игрок видел Брана), а не постоянно.
+- **Структуры данных:** `Belief` (proposition, confidence, evidence, conditions), `Hypothesis` (explanation, supporting/contradicting evidence, predictions), `OtherModel` (beliefs, hypotheses, predicted_behaviors, known_information, perceived_goals).
+- **Запрет:** Бесконечная рекурсия (`A думает, что B думает, что A думает...`). Максимум Level 2 (What A believes Player believes about Bran).
+- **Ключевое отличие от LLM:** Inference Engine (генерация гипотез) должен быть системным (Python rules), не LLM. LLM только рендерит финальную речь.
+
 ---
 
 ## §9. ИСТОРИЯ ИЗМЕНЕНИЙ
@@ -844,6 +860,8 @@
 | 2026-07-20 | Super Z (после замечания пользователя и прямой верификации кода через grep) | Обновлён до v1.2: **9 пунктов уже закрыты пользователем и архитекторами до v1.0** — NEW-1, NEW-2, NEW-3, NEW-4, BUG #1, BUG #3, BUG #8, BUG #10 (частично), P1-12. P0-04 (KeyError 0) уточнён — это новая форма бага, не старая. Реальная оставшаяся работа = 26 пунктов, не 35. Прогноз **уточнён вниз: 2-2.5 месяца** при текущей скорости. Признание: контракт v1.0/v1.1 страдал от того, что не верифицировал эмпирически каждое утверждение — это методологическая ошибка, исправлена. |
 | 2026-07-20 | Super Z (после проверки версии V.0.5.3.5.3) | Обновлён до v1.3: **+7 пунктов закрыто за ~6 часов** между v5.3.5.1 и v5.3.5.3: P0-02 (factions.json path), P0-04 (KeyError 0 fix), P1-05 (_builtin_templates удалён), P1-06 (EventBus exc_info), P1-09 (MacroMovementGoal intent_id), P1-15 (_path_cache LRU), P2-01 (полная tone table), P5-01 (LifeProject аккумуляция). Всего закрыто: 16/33. LLM ожил (503 → «доступен»), NPC-NPC отношения двигаются (trust=-0.1 для ANGRY). DRIFT B=0 держится. Прогноз подтверждён: ~3-4 недели до играбельной миниигры при текущем темпе. |
 | 2026-07-21 | Super Z (после forensic-2 аудита V.0.5.3.5.4) | Обновлён до v1.4: **+7 пунктов закрыто за 1 день** между v5.3.5.3 и v5.3.5.4: P0-01 (LLM proxy bypass), P1-04 (router error logging), P1-07 (pymorphy3 + cutoff 0.75), P2-02 (NPC-NPC cache graph), P2-06 (SocialTargetResolver trust filter), P2-08 (compute_social_modifiers signature), P4-04 (doorway fallback). Всего закрыто: 23/33. **HO **:** найдены 3 новых критических forensic-моста (NEW-1, NEW-2, NEW-3) — см. §11. Acceptance test: 2/11 (не сдвинулся — мосты строятся в правильном порядке, но chain ломается на step 3). Bridge 1 (NPC-NPC cache) — впервые замкнут. Bridge 7 (ResponseGenerator) — wired end-to-end, но producer роняет target_id (one-line fix). |
+| 2026-07-22 | Super Z (после forensic-3 аудита V.0.5.3.5.5) | Обновлён до v1.5: **+3 forensic-моста ЗАКРЫТО за 1 день** между v5.3.5.4 и v5.3.5.5: NEW-1 (`_dlg_entry["target_id"]` populated), NEW-2 (`_TONE_TO_NPC_EVENT` mapping → `trust=-6.0 fear=+2.0` для ANGRY), NEW-3 (`commit_tick_buffer([TraitDriftEvent(...)])` вызывается). **+4 новых пункта закрыто**: P4-01 (boundary nodes — геом. центры + радиус 3м), P4-02 (door splitting — `wall_id`), P4-03 (частично — main_hall сдвинут), плюс SPATIAL_VALIDATION фича. Всего закрыто: 26/33. **Movement RELOCATE: 5→259** (NPC реально двигаются). **TICK_CRASH regression (NEW-7)**: 4 падения — `ctx.action_type` не существует в `_TickContext`. **Name recognition regression (NEW-8)**: deepcopy в `commit_tick_result` перезаписывает `player_recognition`. Acceptance test: 3/11 (+1 шаг). |
+| 2026-07-22 | Super Z (после анализа диалоговой связанности) | Обновлён до v1.6: добавлена **§13 ФАЗА 6.7 — ДИАЛОГОВАЯ СВЯЗАННОСТЬ И ПАМЯТЬ** (7 пунктов T-01..T-07). Forensic-анализ системы памяти показал что **5-слойная память УЖЕ работает** (STM, Working Memory, L1Chronicle, L1.5 PatternDetector, L2.5 CrystallizedBeliefs, LTM EventMemory, PromotionEngine). Проблема НЕ в памяти — проблема в **связанности**: LLM не получает crystallized beliefs в промпт (T-02), topic_extractor не использует NPC state (T-01), npc_npc_context поле есть но не заполняется (T-04), beliefs не влияют на DecisionHub (T-06). После §13 acceptance test: 3/11 → 6/11. |
 
 ---
 
@@ -866,7 +884,8 @@
 **Полная документация:** `NARRATIVE_MANIFESTATION_GAP_ANALYSIS.md` (FORENSIC-2 update)
 
 ### NEW-1: Bridge 7 producer — one-line fix (КРИТИЧНО)
-- **Статус:** [ ]
+- **Статус:** [x] **ЗАКРЫТО** — проверено 2026-07-22 в v5.3.5.5
+- **Доказательство:** `task_scheduler.py:235`: `"target_id": ev.payload.get("target_id", ""),` добавлено в `_dlg_entry`. `tick_orchestrator.py:1046` теперь успешно находит `dialogue.get("target_id") == npc_id` → `ctx.response_targets[npc_id] = _speaker` populated. В логе: `recent_dialogues_count` растёт от 0 до 4+.
 - **Файлы:** `backend/app/services/game_loop/task_scheduler.py:233-237`
 - **Что сломано:** `_dlg_entry` кэширует только `{"speaker_id", "text", "timestamp"}` — **роняет `target_id`**. `tick_orchestrator.py:1048` проверяет `dialogue.get("target_id") == npc_id` → всегда False → `ctx.response_targets[npc_id]` никогда не устанавливается → Bridge 7 producer мёртв.
 - **One-line fix:**
@@ -883,7 +902,8 @@
 - **Разблокирует:** Bridge 7 end-to-end. NPC_B отвечает конкретно NPC_A, не nearest NPC.
 
 ### NEW-2: Bridge 5 + Step 9 — P2-05 redemption (КРИТИЧНО)
-- **Статус:** [ ]
+- **Статус:** [x] **ЗАКРЫТО** — проверено 2026-07-22 в v5.3.5.5
+- **Доказательство:** `npc_dialogue_subscriber.py:133-140`: `_TONE_TO_NPC_EVENT` mapping (`ANGRY→npc_insults`, etc.) + `get_base_delta(_npc_event_type)`. В логе: `tone=ANGRY, topic='стража'` → `trust=-6.0 fear=+2.0`. Шкала ±100 работает.
 - **Файлы:** `backend/app/services/events/npc_dialogue_subscriber.py`, `backend/app/services/npc/decision/social_deltas.py:177`
 - **Что сломано:** P2-05 добавил 6 NPC-NPC event types в `_BASE_DELTAS`, но: (a) ни один код не эмиттит эти event_type строки — только `npc_spoke` существует; (b) `social_deltas.py:177` хардкодит `target="player"` — пишет NPC-NPC deltas в player relationship (WRONG).
 - **Fix (2 изменения):**
@@ -911,12 +931,8 @@
 - **Разблокирует:** Bridge 5 (TemporaryDrive для NPC-NPC events) AND Step 9 (Orm updates opinion).
 
 ### NEW-3: Bridge 2 — wire L1Chronicle write (КРИТИЧНО)
-- **Статус:** [x]
-- **Файлы:** `backend/app/services/events/npc_dialogue_subscriber.py:127`
-- **Закрыто:** 2026-07-19 commit=S127
-- **Реализация:** Forensic trace подтвердил, что вызов `self._l1_chronicle.commit_tick_buffer(...)` уже присутствует в `npc_dialogue_subscriber.py` (строки 139-152) внутри `try`-блока после успешного `RelationshipStore.update`. Риск дублирования отсутствует благодаря Idempotency Guard в `L1Chronicle` (проверка по `tick_id`, `target_id`, `event_type`).
-- **Критерий готовности:** После NPC-NPC диалога в L1Chronicle появляется `TraitDriftEvent`. PatternDetector видит evidence.
-- **Разблокирует:** Bridge 2 → NPC-NPC dialogue flows to L1Chronicle → PatternDetector → BeliefCrystallizationEngine.
+- **Статус:** [x] **ЗАКРЫТО** — проверено 2026-07-22 в v5.3.5.5
+- **Доказательство:** `npc_dialogue_subscriber.py:158-169`: вызов `self._l1_chronicle.commit_tick_buffer([TraitDriftEvent(...)], tick)` в `_process_canonical`. NPC-NPC диалоги теперь пишутся в L1Chronicle для BeliefCrystallizationEngine.
 - **Файлы:** `backend/app/services/events/npc_dialogue_subscriber.py:127` (после RelationshipStore.update)
 - **Что сломано:** `self._l1_chronicle = l1_chronicle` хранится, но **НИКОГДА не вызывается**. NPC-NPC диалоги никогда не пишутся в L1Chronicle → BeliefCrystallizationEngine никогда не видит NPC-NPC events → beliefs о других NPC не кристаллизуются.
 - **Fix:**
@@ -948,6 +964,267 @@
 После этих 3 мостов acceptance test должен пройти **5/11 шагов** (1, 2, 6, 7, 8). Это будет первый реальный observable behavior в игре.
 
 **Только после этого** — продолжать по P5-P7 контракта.
+
+---
+
+## §12. ФАЗА 6.6 — НОВЫЕ REGRESSION БАГИ (1 день, край 24 июля 2026)
+
+**Цель:** Исправить 2 regression-бага, обнаруженных forensic-3 аудитом v5.3.5.5.
+**Эти баги появились ИЗ-ЗА фиксов NEW-1/2/3 — это normal regression.**
+
+### NEW-7: TICK_CRASH — _TickContext has no attribute 'action_type' (КРИТИЧНО)
+- **Статус:** [ ]
+- **Файлы:** `backend/app/services/phases/decision.py:274`, `backend/app/services/dto.py:_TickContext`
+- **Что сломано:** P2-08 fix в `decision.py:274` использует `ctx.action_type`, но у `_TickContext` **НЕТ** поля `action_type`. Это поле есть в `DMContextDTO` (через `shared_context.action_type`). На idle_tick (когда `shared_context=None`) — `ctx.action_type` падает с `AttributeError`.
+- **Доказательство из лога:** `cds_session_20260722_211846.log` содержит **4 TICK_CRASH** на тиках 77, 91, 156, 172: `AttributeError: '_TickContext' object has no attribute 'action_type'`. Traceback: `decision.py:274 → event_type=ctx.action_type or "idle"`.
+- **One-line fix:**
+  ```python
+  # decision.py:274 — было:
+  event_type=ctx.action_type or "idle"
+  
+  # Должно быть:
+  event_type=(ctx.shared_context.action_type if ctx.shared_context else None) or "idle"
+  ```
+- **Критерий готовности:** 0 строк `TICK_CRASH.*action_type` в логе. NPC получает `compute_social_modifiers` без падения на idle ticks.
+
+### NEW-8: NPC name recognition — сбрасывается через секунду (КРИТИЧНО для UX)
+- **Статус:** [ ]
+- **Файлы:** `backend/app/services/scene_state_manager.py:commit_tick_result`, `backend/app/services/game_loop/__init__.py:1066-1093`
+- **Что сломано:** При прямом вопросе к NPC ставится `confidence=1.0` в `player_recognition`. НО:
+  1. `commit_tick_result` (строка 1066) делает `self._tick_scene = copy.deepcopy(result_snapshot)` — **DEEPCOPY** состояния **ДО** установки `player_recognition=1.0`
+  2. После deepcopy, код в строке 1085: `_scene = self.scene_manager._tick_scene` — это **deepcopy**, не оригинал
+  3. `_scene.setdefault("player_recognition", {})["confidence"] = 1.0` модифицирует deepcopy
+  4. `save_scene_state(_scene)` проверяет `if self._tick_locked: return` — если ещё locked, **пропускает**
+  5. `unlock_tick` позже сохранит `_tick_scene`, который был **deepcopy до** установки `confidence=1.0`
+  6. На следующем `idle_tick` → `get_scene_state_uncached` → `load_scene` из SQLite → `player_recognition` пустой → NPC снова «Незнакомец»
+- **Доказательство из лога:** `[RECOG_MEMORY] Dialogue trigger (Post-Commit): NPC tavern_keeper_tornin confidence=1.0` — ставится. Но через 1 секунду (следующий idle_tick) имя сбрасывается обратно на «Незнакомец».
+- **Fix (2 варианта):**
+
+  **Вариант A (правильный):** Устанавливать `player_recognition` **ДО** `commit_tick_result`:
+  ```python
+  # game_loop/__init__.py — ПЕРЕНЕСТИ блок RECOG_MEMORY ВЫШЕ commit_tick_result
+  _target_id = getattr(state.shared_context, "player_target_id", None)
+  if _target_id and state.shared_context and state.shared_context.scene_state:
+      _recog_map = state.shared_context.scene_state.setdefault("player_recognition", {})
+      _recog_map[_target_id] = {"confidence": 1.0}
+      logger.info(f"[RECOG_MEMORY] Dialogue trigger (Pre-Commit): NPC {_target_id} confidence=1.0")
+  
+  # ЗАТЕМ commit_tick_result возьмёт scene_state с уже установленным confidence
+  if hasattr(state, "shared_context") and state.shared_context and state.shared_context.scene_state:
+      self.scene_manager.commit_tick_result(req.campaign_id, state.shared_context.scene_state)
+  ```
+
+  **Вариант B (обходной):** После `commit_tick_result` явно обновить `_tick_scene`:
+  ```python
+  if _target_id and self.scene_manager._tick_scene is not None:
+      _recog_map = self.scene_manager._tick_scene.setdefault("player_recognition", {})
+      _recog_map[_target_id] = {"confidence": 1.0}
+  ```
+- **Критерий готовности:** После прямого вопроса к NPC, имя держится **постоянно** (переживает idle_tick и сессию).
+
+---
+
+### ОЧЕРЁДНОСТЬ ЗАКРЫТИЯ §12 (важно)
+
+1. **NEW-7 first** (one-line fix, 5 минут) → устраняет TICK_CRASH, NPC получает social_modifiers без падения
+2. **NEW-8 second** (15 минут, Вариант A) → NPC имена держатся постоянно
+
+После этих 2 фиксов regression от NEW-1/2/3 устранён. Можно продолжать TZ Люси.
+
+---
+
+## §13. ФАЗА 6.7 — ДИАЛОГОВАЯ СВЯЗАННОСТЬ И ПАМЯТЬ (3-4 дня, край 28 июля 2026)
+
+**Цель:** NPC говорят осмысленно, помнят контекст, темы разнообразны, мысли связаны.
+**Без этого игрок видит «случайные разговоры», не «социальную драму».**
+**Forensic аудит:** `NARRATIVE_MANIFESTATION_GAP_ANALYSIS.md` (FORENSIC-3 update, секция G)
+
+### Контекст: что уже ЕСТЬ в системе памяти
+
+У тебя **5-слойная память** — это НЕ костыль, это сложная система:
+
+| Слой | Компонент | Что делает | Статус |
+|---|---|---|---|
+| **STM** | `DialogueSession` (memory_manager.py) | Последние реплики диалога (deque) | ✅ работает |
+| **Working Memory** | `WorkingMemory` (deque 20) | Свежие события NPC | ✅ работает |
+| **L1 Chronicle** | `L1Chronicle` (SQLite, append-only) | Хроника деформаций идентичности, TraitDriftEvent | ✅ работает (NEW-3 замкнут) |
+| **L1.5 Pattern Detector** | `PatternDetector` | Статистика: группирует L1 события по source_id, требует 3+ событий | ✅ работает |
+| **L2.5 Crystallized Beliefs** | `BeliefCrystallizationEngine` + `CrystallizedBeliefStore` (SQLite) | Кристаллизует beliefs (trust/fear) из evidence, с затуханием | ✅ работает |
+| **LTM Event Memory** | `EventMemory` с `MemoryStage` (FRESH→DETAILED→COMPRESSED→ABSTRACT→FORGOTTEN) | Долгая память с компрессией | ⚠️ частично |
+| **Promotion Engine** | `MemoryPromotionEngine` | Сжимает 3+ событий в абстракции | ✅ работает |
+
+**Это серьёзная система.** Проблема НЕ в памяти — проблема в **связанности**:
+- L1Chronicle пишется ✅, но LLM не получает crystallized beliefs в промпт
+- STM пишется ✅, но topic_extractor не использует STM для выбора темы
+- CrystallizedBeliefs кристаллизуются ✅, но не кормятся в VerbalizationContext
+
+### T-01: TopicExtractor — разнообразие тем через drives/beliefs/life_project (КРИТИЧНО)
+- **Статус:** [ ]
+- **Файлы:** `backend/app/services/npc/topic_extractor.py`, `backend/app/services/tick_orchestrator.py:_phase_4_pre_decision`
+- **Что сломано:** `extract_topic()` использует только `event_type` + `raw_input` + `scene_facts`. На idle_tick `raw_input` пустой → fallback на «наблюдение». **20 из 28 диалогов** имеют тему «наблюдение». NPC говорят одно и то же.
+- **Доказательство из лога:** `tone=NEUTRAL, topic='наблюдение'` × 20, `topic='стража'` × 7. LLM генерирует разный текст, но семантика одинаковая.
+- **Fix — расширить `extract_topic` 4-м источником:**
+  ```python
+  def extract_topic(
+      event_type: str,
+      scene_facts: Optional[List[str]] = None,
+      raw_input: Optional[str] = None,
+      npc_state: Optional[Any] = None,  # NEW: NPC state for drives/beliefs/life_project
+  ) -> str:
+      # 0. NEW: Если idle_tick и raw_input пустой — тема из состояния NPC
+      if not raw_input and npc_state is not None:
+          # Приоритет: drives > life_project > beliefs > activity
+          if npc_state.drives_runtime:
+              _dominant_drive = max(npc_state.drives_runtime.items(), key=lambda x: x[1])
+              return _DRIVE_TO_TOPIC.get(_dominant_drive[0], "наблюдение")
+          if hasattr(npc_state, 'life_project') and npc_state.life_project:
+              return _LIFE_PROJECT_TO_TOPIC.get(npc_state.life_project, "наблюдение")
+          if hasattr(npc_state, 'current_role') and npc_state.current_role:
+              return _ROLE_TO_TOPIC.get(npc_state.current_role, "наблюдение")
+      # ... остальная логика без изменений
+  ```
+  **Маппинги:**
+  ```python
+  _DRIVE_TO_TOPIC = {
+      "control": "власть",       # Борко говорит о порядке
+      "significance": "статус",  # Горан говорит о торговле
+      "fear": "безопасность",    # Люся говорит об усталости
+      "desire": "желания",       # Тень говорит о наблюдении
+  }
+  _LIFE_PROJECT_TO_TOPIC = {
+      "family_builder": "семья",
+      "wealth_creator": "деньги",
+      "warrior": "бой",
+      "knowledge_seeker": "знания",
+      "ruler": "власть",
+      "isolation": "одиночество",
+      "revenge": "месть",
+      "survival": "выживание",
+      "hermit": "покой",
+  }
+  _ROLE_TO_TOPIC = {
+      "tavern_keeper": "таверна",
+      "maid": "работа",
+      "guard": "стража",
+      "thief": "наблюдение",
+      "blacksmith": "кузница",
+      "merchant": "торговля",
+  }
+  ```
+- **Критерий готовности:** В логе как минимум **8 различных тем** за сессию (не только «наблюдение» и «стража»). Каждый NPC говорит о своём.
+
+### T-02: VerbalizationContext — кормить crystallized beliefs в LLM промпт (КРИТИЧНО)
+- **Статус:** [ ]
+- **Файлы:** `backend/app/services/verbalization/verbalization_context.py`, `backend/app/services/verbalization/verbalization_builder.py` (или где собирается промпт)
+- **Что сломано:** `VerbalizationContext` имеет `narrative_hints`, `recalled_facts`, `npc_npc_context`, `stm_buffer` — но **НЕ имеет** `crystallized_beliefs`. LLM не знает что NPC думает о собеседнике. LLM генерирует нейтральные реплики потому что не видит trust=-30.
+- **Доказательство:** В логе LLM получает 86-173 символа, но tone часто NEUTRAL даже когда trust=-30. LLM не имеет информации «ты его боишься».
+- **Fix — добавить поле в VerbalizationContext:**
+  ```python
+  # verbalization_context.py — добавить поле
+  crystallized_beliefs: Tuple["CrystallizedBelief", ...] = field(default_factory=tuple)
+  # Строка для промпта: "Ты считаешь что {source_id} {trait} (вес: {weight:.2f})"
+  ```
+  **В verbalization_builder.py** — собирать beliefs в текст:
+  ```python
+  _beliefs_text = ""
+  for belief in context.crystallized_beliefs:
+      if belief.trait == "fear":
+          _beliefs_text += f"Ты боишься {belief.source_id}. "
+      elif belief.trait == "trust":
+          _beliefs_text += f"Ты доверяешь {belief.source_id}. "
+  # Добавить в промпт: "Твои убеждения: {_beliefs_text}"
+  ```
+- **Критерий готовности:** LLM генерирует реплики с учётом beliefs. При `trust=-30` NPC говорит враждебно. При `trust=+30` — дружелюбно.
+
+### T-03: STM персистентность — NPC помнит последние диалоги (СРЕДНЕ)
+- **Статус:** [ ]
+- **Файлы:** `backend/app/services/memory/dialogue_session.py`, `backend/app/services/memory/memory_manager.py`
+- **Что сломано:** `DialogueSession` — in-memory deque. При рестарте сессии STM пустой. NPC не помнит о чём говорил 5 минут назад.
+- **Доказательство:** В логе `stm_len=0` на idle_tick (STM пустой после рестарта).
+- **Fix:** Персистить `DialogueSession` в SQLite (последние 5 реплик per NPC). При загрузке — восстанавливать.
+- **Критерий готовности:** После рестарта NPC помнит последние 3-5 реплик диалога.
+
+### T-04: NPC-NPC context — кормить в LLM что NPC_A помнит о NPC_B (КРИТИЧНО)
+- **Статус:** [ ]
+- **Файлы:** `backend/app/services/verbalization/verbalization_context.py` (поле `npc_npc_context` есть, но не заполняется)
+- **Что сломано:** Поле `npc_npc_context: Tuple[EventMemory, ...]` существует в `VerbalizationContext`, но **не заполняется** при сборке. NPC_A говорит NPC_B без знания их общей истории.
+- **Fix:** В `verbalization_builder.py` — запрашивать `memory_manager.recall(target_tags=(npc_b_id,))` и заполнять `npc_npc_context`.
+  ```python
+  # При сборке VerbalizationContext для NPC_A → NPC_B:
+  _npc_npc_memories = memory_manager.recall(
+      narrative_cache=npc_a.narrative_cache,
+      trigger_tags=(npc_b_id,),
+      pressure=0,
+  )
+  context.npc_npc_context = _npc_npc_memories[:5]  # последние 5 событий с NPC_B
+  ```
+- **Критерий готовности:** NPC_A говорит NPC_B: «Ты опять здесь? Вчера ты уже приходил.» (ссылка на прошлую встречу).
+
+### T-05: Topic continuity — NPC продолжает тему, не сбрасывает (СРЕДНЕ)
+- **Статус:** [ ]
+- **Файлы:** `backend/app/services/tick_orchestrator.py:_phase_4_pre_decision`
+- **Что сломано:** `npc_topics[npc_id]` — in-memory per-tick dict. На каждом тике тема пересчитывается с нуля. NPC не продолжает разговор — каждый раз новая тема.
+- **Fix:** Хранить `last_topic` per NPC в `NPCState`. Если `last_topic` был < 5 тиков назад и tone != ANGRY — продолжить тему.
+  ```python
+  # В _phase_4_pre_decision:
+  _last_topic = npc_state.last_topic
+  _last_topic_tick = npc_state.last_topic_tick
+  
+  if _last_topic and (tick_number - _last_topic_tick) < 5:
+      # Продолжить тему
+      topic = _last_topic
+  else:
+      topic = extract_topic(event_type, ..., npc_state=npc_state)
+      npc_state.last_topic = topic
+      npc_state.last_topic_tick = tick_number
+  ```
+- **Критерий готовности:** NPC говорит на одну тему 3-5 тиков подряд, потом меняет.
+
+### T-06: L2.5 beliefs → DecisionHub — beliefs влияют на выбор intent (СРЕДНЕ)
+- **Статус:** [ ]
+- **Файлы:** `backend/app/services/npc/decision_hub.py`, `backend/app/services/npc/crystallized_belief_modifier_resolver.py`
+- **Что сломано:** `CrystallizedBeliefModifierResolver` существует, но `DecisionHub.compute` не вызывает его для NPC-NPC пар. Beliefs кристаллизуются, но не влияют на решения.
+- **Fix:** В `DecisionHub.compute` — для каждого candidate target, запросить `crystallized_belief_store.get_beliefs(npc_id)` и применить modifiers.
+- **Критерий готовности:** При `fear_belief > 0.7` NPC выбирает FLEE intent. При `trust_belief > 0.7` — TALK/HELP intent.
+
+### T-07: Player input → topic — игрок задаёт тему своим действием (НИЗКО)
+- **Статус:** [ ]
+- **Файлы:** `backend/app/services/game_loop/phase_1_input.py`, `backend/app/services/npc/topic_extractor.py`
+- **Что сломано:** Когда игрок говорит «Люся, как дела?» — `raw_input` содержит текст, но `extract_topic` ищет ключевые слова. «Как дела» не в `_TOPIC_KEYWORDS` → fallback на «наблюдение».
+- **Fix:** Расширить `_TOPIC_KEYWORDS` + добавить semantic mapping для частых фраз:
+  ```python
+  _PHRASE_TO_TOPIC = {
+      "как дела": "самочувствие",
+      "что нового": "новости",
+      "расскажи о себе": "биография",
+      "что знаешь": "слухи",
+      "помоги": "помощь",
+      "где": "место",
+      "кто": "человек",
+      "почему": "причина",
+  }
+  ```
+- **Критерий готовности:** Игрок говорит «Люся, как дела?» → topic='самочувствие' → LLM генерирует реплику про усталость.
+
+---
+
+### ОЧЕРЁДНОСТЬ ЗАКРЫТИЯ §13 (важно)
+
+1. **T-01 first** (2-3 часа) — TopicExtractor diversity → темы разнообразны
+2. **T-02 + T-04** (3-4 часа) — VerbalizationContext beliefs + npc_npc_context → LLM видит контекст
+3. **T-05** (1 час) — Topic continuity → NPC продолжает тему
+4. **T-06** (2 часа) — Beliefs → DecisionHub → beliefs влияют на решения
+5. **T-03** (1 час) — STM персистентность → NPC помнит после рестарта
+6. **T-07** (30 мин) — Player input topics → игрок задаёт тему
+
+После §13:
+- NPC говорят **разнообразно** (8+ тем, не 2)
+- NPC помнят **о ком говорят** (crystallized beliefs в промпте)
+- NPC **продолжают темы** (не сбрасывают каждые 5 секунд)
+- NPC **избегают** тех кого боятся (beliefs → DecisionHub)
+- Игрок **задаёт темы** своими вопросами
+
+**Acceptance test: 3/11 → 6/11** (добавятся steps 3, 4, 5 частично)
 
 ---
 

@@ -78,7 +78,7 @@ class NPCProfileL0:
     # L1 Bridge: В будущем заменит _archetype на core.compliance_bias
     archetype: str = "commoner"  # "maid", "guard", "thief", "tavern_keeper" и т.д.
     # P1 FIX: Жизненный проект (конкретная цель). Меняется при достижении/провале.
-    goal: str = ""
+    # P5-03: Поле goal удалено как мёртвый код (DOUBLE TRUTH). DecisionHub использует state.life_project.
     # P1-3 v3.0: Ось идентичности (Core Orientation). Не меняемая базовая жизненная направленность.
     # Меняется только через кризис идентичности (падение confidence ниже 0.2 и перестройка убеждений).
     core_orientation: str = "survival"  # family_builder, wealth_creator, warrior, etc.

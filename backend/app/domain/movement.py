@@ -14,6 +14,8 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Optional
 
+from app.domain.traversal import BodyCapabilities
+
 
 class IntentDomain(enum.Enum):
     """Онтологический домен намерения. Определяет, в каком слое причинности существует действие.
@@ -50,6 +52,8 @@ class MacroMovementGoal:
         None  # ADR-065: Точные координаты цели внутри узла (для подхода к игроку)
     )
     intent_id: str = field(default_factory=lambda: str(uuid.uuid4())) # P1-09: Уникальный ID для трекинга
+    # ADR-O-333: Embodied Traversal. Контракт физического тела для навигации.
+    body_capabilities: BodyCapabilities = field(default_factory=BodyCapabilities)
     # ADR-XXXX: Инвариант единого владения причинностью. Один Intent → один process_intents() → одно будущее.
     processed: bool = field(default=False, init=False)
     processor: Optional[str] = field(default=None, init=False)

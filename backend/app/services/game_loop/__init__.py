@@ -842,6 +842,11 @@ class GameLoop:
         # мы должны коммитить result.final_scene_state, а не устаревший _scene.
         _scene_to_commit = result.final_scene_state or _scene
         if self.scene_manager and self.scene_manager._tick_campaign_id == campaign_id:
+            try:
+                _recog = _scene_to_commit.get("player_recognition", {})
+                print(f"[DEBUG_IDLE_COMMIT] campaign={campaign_id} recog_keys={list(_recog.keys())}")
+            except Exception as e:
+                print(f"[DEBUG_IDLE_COMMIT] error: {e}")
             self.scene_manager.commit_tick_result(campaign_id, _scene_to_commit)
 
         # ДИАГНОСТИКА: Читаем из authoritative source (scene_manager._tick_scene),
@@ -1062,6 +1067,15 @@ class GameLoop:
         elapsed_ms = int(time.time() * 1000 - state.start_ms)
         traces = self._build_traces(state, dm_result, elapsed_ms)
 
+        # NEW-8 FIX: Устанавливаем player_recognition ДО commit_tick_result,
+        # чтобы deepcopy внутри commit_tick_result захватил confidence=1.0.
+        _target_id = getattr(state.shared_context, "player_target_id", None) if state.shared_context else None
+        if _target_id and hasattr(state, "shared_context") and state.shared_context and state.shared_context.scene_state:
+            _recog_map = state.shared_context.scene_state.setdefault("player_recognition", {})
+            _recog_entry = _recog_map.setdefault(_target_id, {"confidence": 0.0})
+            _recog_entry["confidence"] = 1.0
+            logger.info(f"[RECOG_MEMORY] Dialogue trigger (Pre-Commit): NPC {_target_id} confidence=1.0")
+
         # S128 FIX: Обязательный commit_tick_result после _run_pipeline.
         # Без этого unlock_tick сохраняет старый _tick_scene, затирая мутации ядра (player_recognition).
         if hasattr(state, "shared_context") and state.shared_context and state.shared_context.scene_state:
@@ -1080,17 +1094,6 @@ class GameLoop:
             from app.services.integration.world_snapshot_builder import (
                 WorldSnapshotBuilder,
             )
-
-            # S127 FIX: RecognitionMemory Dialogue Trigger (Persistent Post-Commit)
-            # Если игрок обратился к NPC (target_id), NPC перестаёт быть "Незнакомцем" немедленно.
-            # Обновляем scene_state и ЯВНО сохраняем в SQLite, чтобы idle_tick не перезаписал его.
-            _target_id = getattr(state.shared_context, "player_target_id", None) if state.shared_context else None
-            if _target_id:
-                _recog_map = _scene.setdefault("player_recognition", {})
-                _recog_entry = _recog_map.setdefault(_target_id, {"confidence": 0.0})
-                _recog_entry["confidence"] = 1.0
-                logger.info(f"[RECOG_MEMORY] Dialogue trigger (Post-Commit): NPC {_target_id} confidence=1.0")
-                self.save_scene_state(req.campaign_id, _scene)
 
             _builder = WorldSnapshotBuilder()
             # ADR-092: Проброс perception из TickOrchestrator для action tick
@@ -1842,7 +1845,8 @@ class GameLoop:
             _router = self.dm_agent.router
             _ctx = self._get_life_engine().get_npc_observed_state
             _et = self._svc.economy_tracker
-            _scheduler = TaskScheduler(router=_router, context_provider=_ctx, economy_tracker=_et)
+            _cbs = getattr(self._tick_orch, "crystallized_belief_store", None)
+            _scheduler = TaskScheduler(router=_router, context_provider=_ctx, economy_tracker=_et, belief_store=_cbs)
             self._task_scheduler = _scheduler
         return self._task_scheduler
 

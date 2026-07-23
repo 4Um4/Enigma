@@ -71,8 +71,7 @@ def test_eavesdrop_out_of_range():
     mock_avatar.append_journal.assert_not_called()
 
 
-@pytest.mark.asyncio
-async def test_player_recognition_persists_in_run_turn():
+def test_player_recognition_persists_in_run_turn():
     """Тест: Проверяет, что run_turn вызывает commit_tick_result, сохраняя player_recognition."""
     from app.services.game_loop import GameLoop
     from app.models.schemas import ChatTurnRequest, PlayerAction

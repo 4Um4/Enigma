@@ -530,7 +530,6 @@ def load_profile_from_legacy_json(raw_data: Dict[str, Any]) -> NPCProfileL0:
             voice_profile=_voice_profile,
             backstory=raw_data.get("backstory", raw_data.get("description", "")),
             author_notes=raw_data.get("author_notes", ""),
-            goal=raw_data.get("goal", ""),
             core_orientation=raw_data.get("core_orientation", "survival"),
             voice_archetype_id=_archetype_id,
         )

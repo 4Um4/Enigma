@@ -35,7 +35,7 @@ _search_dirs = [
     _project_root / "backend" / "data" / "campaigns" / "Open_road" / "locations",
 ]
 editor = load_editor_json("Open_road", "tavern_silver_wolf", search_dirs=_search_dirs)
-graph, conns, alias_map, boundary_map, rooms_geometry, _walls, _obstacles = compile_graph(editor, "tavern_silver_wolf")
+graph, conns, alias_map, boundary_map, rooms_geometry, _walls, _obstacles, _affordance = compile_graph(editor, "tavern_silver_wolf")
 overlay = SpatialOverlay()
 svc = SpatialService(graph, conns, alias_map, overlay)
 

@@ -74,11 +74,11 @@ RAW_NPC_WITH_GOAL = {
 class TestNPCLoaderGoalParsing:
     def test_goal_parsed_correctly(self):
         profile = load_profile_from_legacy_json(RAW_NPC_WITH_GOAL)
-        assert profile.goal == "Найти убийцу брата"
+        assert not hasattr(profile, 'goal'), "Поле goal должно быть удалено (S127)"
 
     def test_goal_defaults_to_empty(self):
         profile = load_profile_from_legacy_json(RAW_TORNIN_LEGACY)
-        assert profile.goal == ""
+        assert not hasattr(profile, 'goal'), "Поле goal должно быть удалено (S127)"
         # Это гарантирует, что динамика отсечена.
 
     def test_missing_id_raises_value_error(self):

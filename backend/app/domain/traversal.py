@@ -49,7 +49,7 @@ class TransitionCandidate:
     horizontal_distance: float
     vertical_delta: float
     obstacle_height: float
-    clearance: float # Глубина проникновения тела в препятствие (отрицательная)
+    trajectory_clearance: float # Signed clearance of the original source-target trajectory relative to body's collision envelope. < 0 means penetration.
 
 @dataclass(frozen=True)
 class LocalGeometry:
@@ -64,9 +64,10 @@ class BodyCapabilities:
     radius: float = 0.35
     height: float = 1.8
     can_walk: bool = True
-    can_jump: bool = False
-    max_jump_height: float = 0.0
-    max_jump_distance: float = 0.0  # Требуется для будущей физики прыжка в TransitionKernel
+    # S131: Базовые гуманоиды могут перешагивать мебель (canonical baseline).
+    can_jump: bool = True
+    max_jump_height: float = 1.0
+    max_jump_distance: float = 2.0
     movement_speed: float = 2.0
 
 @dataclass(frozen=True)

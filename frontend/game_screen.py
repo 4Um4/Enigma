@@ -136,12 +136,15 @@ def _build_perceived_scene(
                     )
                 )
 
+        _lp_z = float(npc_data.get("local_position", {}).get("z", 0.0))
+
         entities.append(
             PerceivedEntity(
                 entity_id=npc_id,
                 entity_type="npc",
                 x=x,
                 y=y,
+                z=_lp_z,
                 visible=True,
                 los=True,
                 # ADR-O-319: Имя берётся строго из RecognitionMemory (display_name).

@@ -50,8 +50,8 @@ class SceneRenderer:
     def __init__(self, screen: pygame.Surface):
         self.screen = screen
         self._prev_npc_positions: Dict[
-            str, Tuple[float, float]
-        ] = {}  # ADR-037: Для Temporal Assembly Delay
+            str, Tuple[float, float, float]
+        ] = {}  # ADR-037: Для Temporal Assembly Delay (x, y, z)
         self._hover_npc_id: Optional[str] = None  # The Fool v2: Для тултипов наблюдений
         self.font_small = pygame.font.SysFont(FONT_NAME_MAIN, FONT_SIZE_SMALL)
         self.font_audio = pygame.font.SysFont(
@@ -362,8 +362,8 @@ class SceneRenderer:
             if not entity.visible:
                 continue
 
-            prev_x, prev_y = self._prev_npc_positions.get(
-                entity.entity_id, (entity.x, entity.y)
+            prev_x, prev_y, prev_z = self._prev_npc_positions.get(
+                entity.entity_id, (entity.x, entity.y, entity.z)
             )
 
             # ADR-ETKE-RENDER: Два режима интерполяции
@@ -412,8 +412,13 @@ class SceneRenderer:
                 else:
                     render_x, render_y = entity.x, entity.y
 
-            self._prev_npc_positions[entity.entity_id] = (render_x, render_y)
-            sx, sy = self._w2s(render_x, render_y, cam_x, cam_y)
+            self._prev_npc_positions[entity.entity_id] = (render_x, render_y, entity.z)
+            sx, ground_sy = self._w2s(render_x, render_y, cam_x, cam_y)
+
+            # S133: Z-projection. Спрайт и облачко смещаются вверх, земля (ground_sy) остается.
+            # Z не изменяет мировую XY-позицию. Z берётся как snapshot value до аудита Temporal Pose.
+            z_offset = int(entity.z * SCALE)
+            sy = ground_sy - z_offset
 
             # The Fool v2: Моторный рендер (тупой, без эмоций)
             if entity.is_frozen:
@@ -567,7 +572,9 @@ class SceneRenderer:
 
             # Спринт 30: Сохраняем визуальную позицию (после интерполяции), а не сырую позицию тика,
             # чтобы на следующем кадре непрерывное движение продолжилось, а не началось с начала
-            self._prev_npc_positions[entity.entity_id] = (render_x, render_y)
+            # S134.3: Сохраняем Z (0.0 для игрока/объектов без Z), чтобы избежать ValueError.
+            _ent_z = getattr(entity, 'z', 0.0)
+            self._prev_npc_positions[entity.entity_id] = (render_x, render_y, _ent_z)
 
             # Отслеживание наведения мыши (для тултипов) — используем экранные координаты
             _mouse_x, _mouse_y = pygame.mouse.get_pos()

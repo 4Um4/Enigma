@@ -145,8 +145,19 @@
       "label": "Вход",
       "role": "entrance",
       "connections": [
-        "main_hall",
+        "main_hall_west",
         "corner_table"
+      ]
+    },
+    "main_hall_west": {
+      "x": 6.0,
+      "y": 8.0,
+      "label": "Западный проход",
+      "role": "default",
+      "connections": [
+        "entrance",
+        "main_hall",
+        "bar_area"
       ]
     },
     "main_hall": {
@@ -155,8 +166,7 @@
       "label": "Центр зала",
       "role": "default",
       "connections": [
-        "entrance",
-        "bar_area",
+        "main_hall_west",
         "right_table",
         "door_kitchen"
       ]
@@ -177,7 +187,17 @@
       "label": "У стойки",
       "role": "bar",
       "connections": [
-        "main_hall",
+        "main_hall_west",
+        "bar_side"
+      ]
+    },
+    "bar_side": {
+      "x": 2.5,
+      "y": 3.5,
+      "label": "Обход стойки",
+      "role": "default",
+      "connections": [
+        "bar_area",
         "behind_bar"
       ]
     },
@@ -188,7 +208,7 @@
       "role": "inn_desk",
       "tags": ["workplace:tavern_keeper", "inn_desk"],
       "connections": [
-        "bar_area"
+        "bar_side"
       ]
     },
     "fireplace": {

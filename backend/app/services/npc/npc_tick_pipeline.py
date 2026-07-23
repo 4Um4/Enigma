@@ -546,6 +546,7 @@ class NpcTickPipeline:
                                     actor_id=npc_id,
                                     target_node_id=_target_node,
                                     reason=f"proactive_{_intent_value}",
+                                    body_capabilities=state_l2.body_capabilities
                                 )
                         except Exception as _e:
                             logger.exception(f"[PROACTIVE_MOVE_ERROR] npc={npc_id} intent={_intent_value}: {_e}")

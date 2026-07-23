@@ -26,11 +26,13 @@ class DialogueExecutor:
         self,
         router=None,
         context_provider: Optional[Callable[[str, str], dict]] = None,
+        belief_store=None,
     ):
         self._router = router
         self._get_context = context_provider or (
             lambda npc_id, camp_id: {"name": npc_id, "description": ""}
         )
+        self._belief_store = belief_store
 
     def execute(self, task: QueuedTask) -> Iterable[Artifact]:
         if not isinstance(task.payload, DialogueRequest):
@@ -83,10 +85,27 @@ class DialogueExecutor:
             f"Тема разговора: {req.topic}. Намерение: {req.intent_type}."
         )
 
+        # T-02: Добавляем crystallized beliefs в промпт, чтобы LLM знала отношение NPC
+        _beliefs_text = ""
+        if self._belief_store:
+            _all_beliefs = self._belief_store.get_beliefs(task.owner_id)
+            _target_beliefs = [b for b in _all_beliefs if b.source_id == req.target_id]
+            
+            _TRAIT_TO_TEXT = {
+                "fear": "Ты боишься",
+                "trust": "Ты доверяешь",
+                "loyalty": "Ты предан",
+                "anger": "Ты злишься на",
+            }
+            for b in _target_beliefs:
+                _phrase = _TRAIT_TO_TEXT.get(b.trait, f"Ты относишься к {req.target_id} как к {b.trait}")
+                _beliefs_text += f"{_phrase} {req.target_id} (уверенность: {b.weight:.2f}). "
+
         user_prompt = (
             f"Твоё имя: {ctx.get('name', task.owner_id)}. "
             f"Краткое описание твоей натуры: {ctx.get('description', 'неизвестно')}. "
             f"Ты обращаешься к: {req.target_id}. "
+            f"{_beliefs_text}"
             "Скажи свою реплику:"
         )
 
