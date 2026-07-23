@@ -7,6 +7,12 @@ from __future__ import annotations
 import logging
 from typing import Any, List, Optional
 
+from app.core.constants import (
+    SOCIAL_TRUST_NEUTRAL,
+    SOCIAL_TRUST_HOSTILE_THRESHOLD,
+    SOCIAL_TRUST_HIGH_THRESHOLD,
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -15,7 +21,8 @@ class SocialTargetResolver:
 
     @staticmethod
     def resolve(
-        state: Any, spatial_query: Optional[Any], all_npc_ids: List[str]
+        state: Any, spatial_query: Optional[Any], all_npc_ids: List[str],
+        relationship_store: Optional[Any] = None, campaign_id: str = ""
     ) -> Optional[str]:
         if not spatial_query:
             return None
@@ -24,13 +31,29 @@ class SocialTargetResolver:
         if not _candidates:
             return None
 
-        # P2-06: Фильтр по отношениям. NPC не общается с теми, кому не доверяет.
-        _rel_cache = getattr(state, "relationship_cache", {})
+        _rel_store = relationship_store
+        _c_id = campaign_id
+        
+        # S135: Загружаем все отношения этого NPC одним запросом из SSOT
+        _all_rels = {}
+        if _rel_store is not None:
+            _all_rels = _rel_store.get(_c_id, state.npc_id)
+
         _filtered_candidates = []
         for nid in _candidates:
-            _trust = _rel_cache.get(nid, {}).get("trust", 0.0)
-            if _trust < -20:
-                logger.debug(f"[SOCIAL_TARGET] {state.npc_id} skips {nid} (trust={_trust:.1f} < -20)")
+            _trust = SOCIAL_TRUST_NEUTRAL  # Vacuum semantics
+            
+            if _rel_store is not None:
+                _target_key = f"{state.npc_id}→{nid}"
+                _target_rel = _all_rels.get(_target_key, {})
+                _trust = _target_rel.get("trust", SOCIAL_TRUST_NEUTRAL)
+            else:
+                # Legacy fallback (только если SSOT недоступен)
+                _trust = getattr(state, "relationship_cache", {}).get(nid, {}).get("trust", SOCIAL_TRUST_NEUTRAL)
+            
+            # Отсекаем только явных врагов
+            if _trust < SOCIAL_TRUST_HOSTILE_THRESHOLD:
+                logger.debug(f"[SOCIAL_TARGET] {state.npc_id} skips {nid} (trust={_trust:.1f} < {SOCIAL_TRUST_HOSTILE_THRESHOLD})")
                 continue
             _filtered_candidates.append((nid, _trust))
             
@@ -38,8 +61,8 @@ class SocialTargetResolver:
             # Все отношения негативные — одиночество
             return None
 
-        # Предпочитаем цели с trust > 30
-        _high_trust = [c for c in _filtered_candidates if c[1] > 30]
+        # Предпочитаем цели с высоким доверием
+        _high_trust = [c for c in _filtered_candidates if c[1] > SOCIAL_TRUST_HIGH_THRESHOLD]
         _search_pool = _high_trust if _high_trust else _filtered_candidates
 
         _best_target = None

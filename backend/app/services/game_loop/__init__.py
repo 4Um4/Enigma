@@ -301,6 +301,7 @@ class GameLoop:
         Returns: {"reset": True, "campaign_id": str, "files_removed": [str]}
         """
         import logging
+        self._current_campaign_id = campaign_id
 
         logger = logging.getLogger(__name__)
 
@@ -407,12 +408,16 @@ class GameLoop:
                 store = self.memory_manager._layered.store
                 # P1 FIX: Удаляем только хронику забега (playthrough). Канон (campaign_canon) переживает new_game.
                 for collection in [f"playthrough_{campaign_id}"]:
-                    fpath = store._collection_path(collection)
-                    if fpath.exists():
-                        fpath.unlink()
-                        logger.info(f"[NEW_GAME] Removed JSONL playthrough: {fpath}")
-                # Очистка кэша JsonMemoryStore
-                store._recent_cache.clear()
+                    if hasattr(store, "_collection_path"):
+                        fpath = store._collection_path(collection)
+                        if fpath.exists():
+                            fpath.unlink()
+                            logger.info(f"[NEW_GAME] Removed JSONL playthrough: {fpath}")
+                    elif hasattr(store, "delete_campaign"):
+                        store.delete_campaign(campaign_id)
+                        logger.info(f"[NEW_GAME] SQLite playthrough cleared for '{campaign_id}'")
+                if hasattr(store, "_recent_cache"):
+                    store._recent_cache.clear()
         except Exception as e:
             logger.warning(f"[NEW_GAME] MemoryManager reset failed: {e}")
 

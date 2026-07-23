@@ -163,19 +163,25 @@ class AgentAction:
 
     @staticmethod
     def _get_rel_value(state: Any, target_id: str, attr: str) -> Optional[float]:
-        """Precedence Contract: Graph (SSOT) > Scalar (Legacy) > Vacuum (None).
-        Возвращает None, если отношение UNKNOWN (запись отсутствует).
-        Возвращает float, если отношение известно (даже если это 0.0 - нейтралитет).
+        """S135: Чтение из SSOT (RelationshipStore). Vacuum = None.
+        Шкала SSOT: -1.0..1.0 (0.5 = neutral).
         """
-        # 1. Graph Model (ADR-121 SSOT)
+        _rel_store = getattr(state, "relationship_store", None)
+        _campaign_id = getattr(state, "campaign_id", "")
+        
+        if _rel_store:
+            _rel_data = _rel_store.get_relationship(_campaign_id, state.npc_id, target_id)
+            if _rel_data:
+                _val = _rel_data.get(attr)
+                if _val is not None:
+                    return float(_val)
+        
+        # Fallback на relationship_cache (для legacy/test сред без SSOT)
         _graph_val = state.relationship_cache.get(target_id, {}).get(attr)
         if _graph_val is not None:
             return float(_graph_val)
-        # 2. Legacy Scalar Model (Pre-ADR-121)
-        _scalar_val = state.relationship_cache.get(attr)
-        if _scalar_val is not None:
-            return float(_scalar_val)
-        # 3. Vacuum (Нет знания об отношении)
+            
+        # Vacuum (Нет знания об отношении)
         return None
 
     @property
@@ -298,19 +304,28 @@ class DecisionHub:
         Intent.CHANGE_ROLE.value,
     }
 
-    @staticmethod
-    def _get_rel_value(state: Any, target_id: str, attr: str) -> Optional[float]:
-        """Precedence Contract: Graph (SSOT) > Scalar (Legacy) > Vacuum (None).
-        S69: Унифицированный accessor для чтения relationship_cache.
+    def _get_rel_value(self, state: Any, target_id: str, attr: str) -> Optional[float]:
+        """S135: Чтение из SSOT (RelationshipStore). Шкала: -100..100 (0.0 = neutral).
+        Возвращает None, если отношение UNKNOWN (Vacuum).
         """
-        # 1. Graph Model (ADR-121 SSOT)
+        # 1. SSOT (RelationshipStore) - имеет абсолютный приоритет
+        if self._rel_store is not None:
+            # API: get(campaign_id, source) -> Dict[str, Any] (ключ "source→target")
+            _all_rels = self._rel_store.get(self._campaign_id, state.npc_id)
+            _target_key = f"{state.npc_id}→{target_id}"
+            _target_rel = _all_rels.get(_target_key, {})
+            _val = _target_rel.get(attr)
+            if _val is not None:
+                return float(_val)
+            # Если SSOT доступен, но записи нет — это Vacuum (None).
+            # Мы НЕ падаем в relationship_cache, чтобы избежать stale shadow truth.
+            return None
+            
+        # 2. Fallback на relationship_cache (только если SSOT недоступен)
         _graph_val = state.relationship_cache.get(target_id, {}).get(attr)
         if _graph_val is not None:
             return float(_graph_val)
-        # 2. Legacy Scalar Model (Pre-ADR-121)
-        _scalar_val = state.relationship_cache.get(attr)
-        if _scalar_val is not None:
-            return float(_scalar_val)
+            
         # 3. Vacuum (Нет знания об отношении)
         return None
 
@@ -372,6 +387,8 @@ class DecisionHub:
         spatial_query: Optional[Any] = None,  # S96: Для SocialTargetResolver
         all_npc_ids: Optional[List[str]] = None,  # S96: Для SocialTargetResolver
         pending_response_target: Optional[str] = None,  # S129: Bridge 7
+        relationship_store: Optional[Any] = None,  # S135: SSOT для чтения отношений
+        campaign_id: str = "",  # S135: Ключ кампании для SSOT
     ) -> AgentAction:
         """
         Основной метод. READ ONLY — state не мутируется.
@@ -379,6 +396,9 @@ class DecisionHub:
         (game_loop вызывает apply_break через StateApplicator перед compute).
         Возвращает DecisionResult для StateApplicator.
         """
+        # S135: Сохраняем SSOT для доступа из вложенных методов (_get_rel_value, _resolve_target)
+        self._rel_store = relationship_store
+        self._campaign_id = campaign_id
         # ── Vital State Guard: мёртвые и без сознания не принимают решения ──
         # ЕДИНСТВЕННАЯ точка блокировки DecisionHub.
         # evaluate_vital_state — единственный владелец решения о жизни/смерти.
@@ -455,7 +475,7 @@ class DecisionHub:
             and _tid_pop == state.npc_id
             and Intent.APPROACH.value in scores
         ):
-            _fear_raw = DecisionHub._get_rel_value(state, "player", "fear")
+            _fear_raw = self._get_rel_value(state, "player", "fear")
             # L3-P2: Воля определяется текущей проекцией, не архетипом
             _will_pop = effective_drives.get("control", 0.5)
             _kernel_pop = getattr(state, "perceptual_kernel", None)
@@ -1150,8 +1170,8 @@ class DecisionHub:
         drives = dict(effective_drives.values) if effective_drives else {}
         # ENIGMA-REL-001: Запрет прямого доступа к relationship_cache (DOUBLE TRUTH)
         # Все чтения идут через унифицированный accessor _get_rel_value (§ENIGMA-003)
-        fear = (DecisionHub._get_rel_value(state, "player", "fear") or 0.0) / 100.0
-        trust = (DecisionHub._get_rel_value(state, "player", "trust") or 0.0) / 100.0
+        fear = (self._get_rel_value(state, "player", "fear") or 0.0) / 100.0
+        trust = (self._get_rel_value(state, "player", "trust") or 0.0) / 100.0
         risk = perceive_risk(event, state, drives)  # L3 вместо L0
 
         drive_score = self._drive_relevance(
@@ -1853,6 +1873,10 @@ class DecisionHub:
         """Определяет цель intent."""
         if all_npc_ids is None:
             all_npc_ids = []
+            
+        # S135: Получаем SSOT из инстанса DecisionHub
+        _rel_store = getattr(self, "_rel_store", None)
+        _campaign_id = getattr(self, "_campaign_id", "")
         if intent in (Intent.IDLE.value, Intent.OBSERVE.value):
             return None
         if intent == Intent.FLEE.value:
@@ -1875,7 +1899,13 @@ class DecisionHub:
 
         # 3. S96: Социальные интенты ищут цель пространственно
         if intent in self._VERBAL_INTENTS or intent == Intent.APPROACH.value:
-            _target = SocialTargetResolver.resolve(state, spatial_query, all_npc_ids)
+            _target = SocialTargetResolver.resolve(
+                state=state, 
+                spatial_query=spatial_query, 
+                all_npc_ids=all_npc_ids,
+                relationship_store=_rel_store,
+                campaign_id=_campaign_id
+            )
             if _target:
                 return _target
             # Fallback на актора, если резолвер ничего не нашёл

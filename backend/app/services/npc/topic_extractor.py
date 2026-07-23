@@ -116,6 +116,8 @@ def extract_topic(
     # STM не должно конкурировать с внутренним состоянием, если нет реального события.
     if event_type in ("idle", "world_tick") and npc_state is not None:
         _npc_dict = npc_state if isinstance(npc_state, dict) else {}
+        # DEBUG T-01: Проверяем реальные ключи и значения
+        print(f"[DEBUG_T01] npc_id={_npc_dict.get('id', 'unknown')} drives_keys={list(_npc_dict.get('drives', {}).keys())} core_orientation={_npc_dict.get('core_orientation', 'MISSING')} archetype={_npc_dict.get('_archetype', 'MISSING')}")
         
         # Приоритет: drives > life_project (core_orientation) > role
         _drives = _npc_dict.get("drives", {})

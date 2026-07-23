@@ -23,10 +23,11 @@ import pytest
 import tempfile
 import shutil
 from pathlib import Path
+from unittest.mock import MagicMock
 
 @pytest.fixture
 def game_loop_factory():
-    """Возвращает функцию, которая создаёт реальный GameLoop с изолированной persistence (без LLM)."""
+    """Возвращает функцию, которая создаёт реальный GameLoop с изолированной persistence и замоканным LLM."""
     from app.core.config import settings
     from app.services.game_loop_builder import build_game_loop
     
@@ -35,13 +36,18 @@ def game_loop_factory():
     _original_saves_dir = settings.saves_dir
     
     def _factory():
-        # Переопределяем saves_dir, чтобы не мусорить в реальных сейвах
         settings.saves_dir = Path(_temp_dir)
-        return build_game_loop(data_dir=_real_data_dir)
+        loop = build_game_loop(data_dir=_real_data_dir)
+        
+        # Замокаем LLM роутер, чтобы избежать блокировок сети/очереди в тестах
+        if hasattr(loop, "_task_scheduler") and loop._task_scheduler:
+            loop._task_scheduler._router = MagicMock()
+            loop._task_scheduler._router.route.return_value = "[Test LLM Mock]"
+            
+        return loop
         
     yield _factory
     
-    # Восстанавливаем настройки после теста
     settings.saves_dir = _original_saves_dir
     shutil.rmtree(_temp_dir, ignore_errors=True)
 from app.domain.identity_events import EffectiveDrives

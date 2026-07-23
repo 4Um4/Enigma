@@ -466,6 +466,8 @@ class NpcTickPipeline:
                 spatial_query=state.spatial_query,
                 all_npc_ids=_all_npc_ids,
                 pending_response_target=_response_target, # S129: Bridge 7
+                relationship_store=state.relationship_store, # S135: SSOT
+                campaign_id=state.campaign_id, # S135: SSOT
             )
             # SHI-FIX: логируем решение для CDS в строгом формате (pattern_registry.py:22).
             # Без этого SHI=0% (симуляция работает, но невидима).

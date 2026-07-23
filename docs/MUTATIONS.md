@@ -828,6 +828,18 @@ Validation: IPT 5/5 passed. В логах подтверждено наличи�
   - **Jump Kinematics:** Для сегментов с режимом JUMP вычисляется Z-координата по параболической формуле z(t) = 4 * h * t * (1 - t), где h берётся из segment_arc_heights (проброшенных из BodyCapabilities.max_jump_height).
   - **Contract Invariant:** В 	raversal_dict добавлены segment_modes и segment_arc_heights. Внедрена проверка длины: len(segment_modes) == len(waypoints) - 1. При нарушении используется defensive fallback (все сегменты WALK, h=0.0).
   - **3D Projection:** В NPCPositionDTO поле local_position теперь официально содержит z (ранее было 2D). WorldSnapshotBuilder пробрасывает Z в снапшот.
-  - **API Compatibility:** esolve() сохраняет сигнатуру Tuple[float, float], чтобы не сломать downstream потребителей.
+  - **API Compatibility:** 
+esolve() сохраняет сигнатуру Tuple[float, float], чтобы не сломать downstream потребителей.
   - **Validation:** IPT 5/5 passed. NPC честно интерполируют позицию тик за тиком.
   Files: backend/app/domain/traversal_schema.py, backend/app/services/spatial/traversal_execution_system.py, backend/app/services/integration/world_snapshot_builder.py, backend/app/domain/snapshot.py
+
+- 🔵 **S135** ТЗ: Causal Target Resolution (SocialTargetResolver SSOT Wiring).
+  - **Контекст:** Устранение временной онтологической ошибки (causal phase-ordering bug). `DecisionHub` (Фаза 5) читал `relationship_cache` — эфемерную проекцию, которая обновляется только в Фазе 8. Это приводило к решениям на основе устаревших данных (stale shadow truth) и блокировке ходов (P2-06 откат в S129).
+  - **Архитектурный сдвиг:** `RelationshipStore` (SSOT) проброшен из `TickState` напрямую в `DecisionHub.compute()` и далее в `SocialTargetResolver`. Кэш используется *только* если SSOT недоступен (например, в тестах).
+  - **Vacuum Semantics:** 
+    - `SocialTargetResolver`: Отсутствие записи в SSOT = `trust = 0.0` (Neutral). NPC может начать диалог с незнакомцем (exploration).
+    - `DecisionHub._get_rel_value`: Отсутствие записи в SSOT = `None`. NPC не испытывает специфического страха/доверия к незнакомцу (no belief injection).
+  - **Шкала доверия:** Доказана археологией `RelationshipStore._clamp(-100, 100)`. Пороги вынесены в константы: `SOCIAL_TRUST_NEUTRAL` (0.0), `SOCIAL_TRUST_HOSTILE_THRESHOLD` (-50.0), `SOCIAL_TRUST_HIGH_THRESHOLD` (50.0).
+  - **Очистка:** Убраны magic numbers (`-20`, `30`) из `SocialTargetResolver`.
+  - **Validation:** IPT 5/5 passed. Каузальная топология восстановлена: Фаза 5 читает только первопричинные данные.
+  Files: backend/app/core/constants.py, backend/app/services/npc/npc_tick_pipeline.py, backend/app/services/npc/decision_hub.py, backend/app/services/npc/social_target_resolver.py

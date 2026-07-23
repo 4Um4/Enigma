@@ -339,3 +339,8 @@ TEXT_INPUT_MAX_HISTORY: int = 100
 MSG_MAX_REPLIES: int = 3
 MSG_NOTHING_HAPPENED: str = "Ничего не произошло."
 MSG_INVALID_RESPONSE: str = "..."
+
+# S135: Social Trust Thresholds (Шкала RelationshipStore: -100..100, где 0.0 = neutral)
+SOCIAL_TRUST_NEUTRAL: float = 0.0
+SOCIAL_TRUST_HOSTILE_THRESHOLD: float = -50.0
+SOCIAL_TRUST_HIGH_THRESHOLD: float = 50.0
