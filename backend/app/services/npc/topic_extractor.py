@@ -67,6 +67,20 @@ _EVENT_TOPIC_MAP: dict[str, str] = {
 }
 
 
+# T-07: Маппинг фраз → тема (приоритет над одиночными ключевыми словами)
+_PHRASE_TO_TOPIC: dict[str, str] = {
+    "как дела": "самочувствие",
+    "как ты": "самочувствие",
+    "что нового": "новости",
+    "расскажи о себе": "биография",
+    "кто ты": "биография",
+    "что знаешь": "слухи",
+    "помоги": "помощь",
+    "где": "место",
+    "кто": "человек",
+    "почему": "причина",
+}
+
 # Ключевые слова → уточнение темы
 _TOPIC_KEYWORDS: dict[str, str] = {
     "торговля": "торговля",
@@ -116,9 +130,6 @@ def extract_topic(
     # STM не должно конкурировать с внутренним состоянием, если нет реального события.
     if event_type in ("idle", "world_tick") and npc_state is not None:
         _npc_dict = npc_state if isinstance(npc_state, dict) else {}
-        # DEBUG T-01: Проверяем реальные ключи и значения
-        print(f"[DEBUG_T01] npc_id={_npc_dict.get('id', 'unknown')} drives_keys={list(_npc_dict.get('drives', {}).keys())} core_orientation={_npc_dict.get('core_orientation', 'MISSING')} archetype={_npc_dict.get('_archetype', 'MISSING')}")
-        
         # Приоритет: drives > life_project (core_orientation) > role
         _drives = _npc_dict.get("drives", {})
         if _drives:
@@ -149,6 +160,11 @@ def extract_topic(
     if raw_input:
         _text_parts.append(raw_input)
     _combined = " ".join(_text_parts).lower()
+
+    # T-07: Поиск по фразам (приоритет над одиночными ключевыми словами)
+    for _phrase, _topic in _PHRASE_TO_TOPIC.items():
+        if _phrase in _combined:
+            return _topic
 
     # Поиск по ключевым словам — приоритет над event_type
     for _word, _topic in _TOPIC_KEYWORDS.items():

@@ -233,11 +233,11 @@ class TestRelationshipCalibration:
         )
         state_trusted = NPCState(
             npc_id="control_npc",
-            relationship_cache={"trust": 80.0, "fear": 0.0, "debt": 0.0},
+            relationship_cache={"player": {"trust": 80.0, "fear": 0.0, "debt": 0.0}},
         )
         state_neutral = NPCState(
             npc_id="control_npc",
-            relationship_cache={"trust": 0.0, "fear": 0.0, "debt": 0.0},
+            relationship_cache={"player": {"trust": 0.0, "fear": 0.0, "debt": 0.0}},
         )
         result_trusted = hub.compute(state_trusted, control_personality, event, effective_drives=_MOCK_DRIVES)
         result_neutral = hub.compute(state_neutral, control_personality, event, effective_drives=_MOCK_DRIVES)

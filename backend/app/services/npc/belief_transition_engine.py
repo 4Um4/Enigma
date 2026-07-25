@@ -43,6 +43,7 @@ _THREAT_TYPES: frozenset = frozenset(
         "player_threatens",
         "player_cast_spell",
         "weapon_drawn",
+        "player_spoke",
         "combat_started",
     }
 )

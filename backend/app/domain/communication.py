@@ -58,6 +58,8 @@ class DialogueRequest:
     exposure: ExposureLevel
     intent_type: str = "talk"
     emotional_state: str = "нейтрально"
+    # T-04: Строка с историей взаимодействий (npc_npc_context), сформированная в post_decision.
+    npc_npc_context: str = ""
 
 
 @dataclass(frozen=True)

@@ -43,12 +43,34 @@ def run_phase_6_post_decision(ctx: Any, orchestrator: Any) -> None:
             # Если audience="all", передаём None, чтобы TaskScheduler выбрал цель через SpatialQueryService.
             _target_id = intent.audience if intent.audience != "all" else None
 
+            # T-04: Формируем npc_npc_context (историю взаимодействий с целью)
+            _history_text = ""
+            _svc = ctx.npc_services
+            if _svc and _svc.memory_manager and _target_id and _target_id != "all":
+                try:
+                    _cache = _svc.memory_manager.load_narrative_from_sqlite(
+                        ctx.campaign_id, intent.speaker
+                    )
+                    _memories = _svc.memory_manager.recall(
+                        narrative_cache=_cache,
+                        target_npc_id=_target_id,
+                        pressure=0,
+                    )
+                    if _memories:
+                        _history_text = " ".join(
+                            getattr(_m, 'summary', getattr(_m, 'description', str(_m)))
+                            for _m in _memories[:3]
+                        )
+                except Exception as _e:
+                    logger.warning(f"[POST_DECISION] T-04: Failed to recall memory for {intent.speaker}: {_e}")
+
             _req = DialogueRequest(
                 topic=intent.topic,
                 target_id=_target_id,
                 exposure=intent.exposure_level,
                 intent_type=intent.intent_type,
                 emotional_state=intent.emotional_state,
+                npc_npc_context=_history_text,
             )
 
             _task = QueuedTask(
@@ -83,6 +105,7 @@ def run_phase_6_post_decision(ctx: Any, orchestrator: Any) -> None:
                     "exposure_semantic": _req.exposure.semantic,
                     "intent_type": _req.intent_type,
                     "emotional_state": _req.emotional_state,
+                    "npc_npc_context": _req.npc_npc_context,
                 },
                 "created_tick": _task.created_tick,
             }

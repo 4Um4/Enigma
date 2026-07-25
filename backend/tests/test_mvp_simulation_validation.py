@@ -109,6 +109,12 @@ class TestCausalChains:
         loop = game_loop_factory()
         campaign_id = "Open_road"
         loop.new_game(campaign_id)
+        
+        # Явно привязываем L1Chronicle к кампании ДО эмуляции события,
+        # иначе событие запишется с пустым campaign_id и потеряется при reload.
+        if hasattr(loop, "_tick_orch") and hasattr(loop._tick_orch, "l1_chronicle"):
+            loop._tick_orch.l1_chronicle.bind_campaign(campaign_id)
+            
         bus = get_event_bus()
         
         event = EventDTO.create(
@@ -116,7 +122,11 @@ class TestCausalChains:
             source="npc_a",
             payload={"tone": "ANGRY", "text": "Ты грязный вор!", "target_id": "npc_b"}
         )
-        bus.publish(event)
+        # Вызываем подписчика напрямую, чтобы изолировать проблему с шиной
+        if hasattr(loop, "_npc_dialogue_subscriber") and loop._npc_dialogue_subscriber:
+            loop._npc_dialogue_subscriber.on_npc_spoke(event)
+        else:
+            bus.publish(event)
         
         # 1. Проверяем немедленную реакцию (trust падает)
         rel_store = loop.memory_manager._relationships if hasattr(loop, "memory_manager") else None

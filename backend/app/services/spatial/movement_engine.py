@@ -27,6 +27,8 @@ from app.services.scene_change import ChangeType, SceneChange
 from app.services.spatial.local_traversal_planner import LocalTraversalPlanner
 logger = logging.getLogger(__name__)
 
+from app.errors import SimulationIntegrityError
+
 # S131: Радиус восприятия для локальной геометрии.
 # В будущем должен браться из BodyCapabilities или PerceptionKernel.
 _DEFAULT_PERCEPTION_RADIUS = 15.0
@@ -122,6 +124,20 @@ class MovementEngine:
         - Если целевой узел найден в графе → SceneChange с {x, y}
         - Если не найден → логируем warning, пропускаем
         """
+        # S139: Intent Arbitration. Оставляем только самый приоритетный MacroMovementGoal для каждого NPC.
+        # Это предотвращает перезапись расписания (sleeping, 0.85) социальными интентами (approach, 0.8).
+        _best_macro_intents: Dict[str, MacroMovementGoal] = {}
+        _other_intents: List[MacroMovementGoal | LocalSteeringGoal] = []
+        for intent in intents:
+            if isinstance(intent, MacroMovementGoal):
+                _npc_id = intent.actor_id
+                _prio = getattr(intent, "priority", 0.0)
+                if _npc_id not in _best_macro_intents or _prio > getattr(_best_macro_intents[_npc_id], "priority", 0.0):
+                    _best_macro_intents[_npc_id] = intent
+            else:
+                _other_intents.append(intent)
+        intents = list(_best_macro_intents.values()) + _other_intents
+
         # Spatial Intent Gate: Desire → Commitment конверсия.
         # ЗАПРЕТ (ADR-138): spatial eligibility logic НЕ существует нигде кроме _spatial_intent_gate.
         _pre_gate_count = len(intents)
@@ -181,6 +197,49 @@ class MovementEngine:
                     if current_svc:
                         boundary_node = current_svc.get_boundary_to_neighbor(target_loc)
                         if boundary_node:
+                            # S-04: Проверяем, не стоит ли NPC уже на boundary node.
+                            # Используем XY-дистанцию, так как position (node_id) ещё не обновлён до Фазы 8.
+                            _npc_data = npc_positions.get(intent.actor_id, {}) if npc_positions else {}
+                            _lp = _npc_data.get("local_position", {})
+                            _cur_x = _lp.get("x", 0.0) if isinstance(_lp, dict) else 0.0
+                            _cur_y = _lp.get("y", 0.0) if isinstance(_lp, dict) else 0.0
+                            
+                            _dist_to_boundary = math.hypot(boundary_node.x - _cur_x, boundary_node.y - _cur_y)
+                            
+                            if _dist_to_boundary < 0.5:
+                                logger.info(f"[CROSS_LOC_MATERIALIZE] npc={intent.actor_id} crossing {current_loc} → {target_loc}")
+                                target_svc = self._resolve_spatial_service(target_loc, campaign_id, scene_state)
+                                
+                                # Ищем целевой узел в новой локации (строгий контракт, без случайных fallback'ов)
+                                _target_node_id_short = intent.target_node_id.split(":")[-1]
+                                target_node_obj = target_svc.get_node(_target_node_id_short) or target_svc.get_node(f"{target_loc}:{_target_node_id_short}")
+                                
+                                if not target_node_obj:
+                                    # S-04: Topology Violation. Целевой узел отсутствует в новой локации.
+                                    # Silent fallback убит (S134.1). Игра должна упасть громко.
+                                    from app.errors import SimulationIntegrityError
+                                    raise SimulationIntegrityError(
+                                        invariant_id="INV-CROSS-LOC-TARGET",
+                                        message=f"Materialize failed: target node '{_target_node_id_short}' not found in loc '{target_loc}'",
+                                        suspect_files=["frontend/map_editor/campaigns/Open_road/locations/"],
+                                        file=__file__, line=188,
+                                    )
+                                
+                                changes.extend([
+                                    SceneChange(
+                                        type=ChangeType.NPC_POSITION,
+                                        target=intent.actor_id,
+                                        field="position",
+                                        value=target_node_obj.node_id,
+                                        cause=f"cross_loc_materialize:{intent.reason}",
+                                        tick=tick,
+                                        target_location_id=target_loc,
+                                        target_local_xy=(target_node_obj.x, target_node_obj.y),
+                                        traversal_proposal=None, # Мгновенный перенос (портал)
+                                    )
+                                ])
+                                continue # Переходим к следующему NPC, этот уже материализован
+
                             logger.info(
                                 f"[CROSS_LOC_INTERCEPT] npc={intent.actor_id} target={target_loc} rerouted to boundary {boundary_node.node_id} in {current_loc}"
                             )
@@ -574,7 +633,8 @@ class MovementEngine:
             )
 
         if plan_result.status == MovementPlanStatus.REJECTED:
-            logger.warning(
+            # S137.1: План отклонён (цель недостижима или заблокирована). Это нормальная логика, не ошибка.
+            logger.debug(
                 f"[GATE_B3] npc={intent.actor_id} reason=PLAN_REJECTED reason={plan_result.reason}"
             )
             return []

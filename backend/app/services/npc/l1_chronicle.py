@@ -35,6 +35,37 @@ class L1Chronicle:
         # L1-T3 Fix: Per-NPC partitioning. Никакого global event soup.
         self._events: Dict[str, List[TraitDriftEvent]] = {}
         self._loaded: bool = False  # lazy load from SQLite
+        
+        # ADR-L1-PERSIST FIX: Гарантируем создание схемы при инициализации, 
+        # чтобы _ensure_loaded не падал на SELECT до CREATE TABLE.
+        if self._store:
+            try:
+                self._store.execute("""
+                    CREATE TABLE IF NOT EXISTS l1_chronicle_events (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        campaign_id TEXT NOT NULL,
+                        target_id TEXT NOT NULL,
+                        tick_id INTEGER NOT NULL,
+                        source_id TEXT NOT NULL,
+                        effect_value REAL NOT NULL,
+                        observation_weight REAL NOT NULL,
+                        event_type TEXT NOT NULL
+                    )
+                """)
+                self._store.execute("""
+                    CREATE TABLE IF NOT EXISTS l1_chronicle_archive (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        campaign_id TEXT NOT NULL,
+                        target_id TEXT NOT NULL,
+                        tick_id INTEGER NOT NULL,
+                        source_id TEXT NOT NULL,
+                        effect_value REAL NOT NULL,
+                        observation_weight REAL NOT NULL,
+                        event_type TEXT NOT NULL
+                    )
+                """)
+            except Exception as _init_err:
+                _logger.error(f"[L1_CHRONICLE] Не удалось инициализировать схему БД: {_init_err}")
 
     def bind_campaign(self, campaign_id: str) -> None:
         """Привязка к campaign_id для ленивой загрузки из SQLite."""

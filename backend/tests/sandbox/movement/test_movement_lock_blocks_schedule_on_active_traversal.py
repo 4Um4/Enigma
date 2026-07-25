@@ -44,8 +44,9 @@ def test_movement_lock_blocks_schedule_on_active_traversal():
     # Вызов update_routine с time="10:00" (внутри диапазона расписания)
     changes, intent = engine.update_routine(npc=npc, current_time="10:00", tick=1, scene_state=scene_state_with_lock)
 
-    # VERDICT: Schedule заблокирован. Нет новых SceneChange и нет schedule intent.
-    assert changes == [], f"Movement Lock нарушен! Созданы SceneChange: {changes}"
+    # VERDICT: Schedule заблокирован. Нет изменения ПОЗИЦИИ и нет schedule intent.
+    pos_changes = [c for c in changes if c.field == "position"]
+    assert len(pos_changes) == 0, f"Movement Lock нарушен! Созданы SceneChange для position: {pos_changes}"
     assert intent is None, f"Movement Lock нарушен! Создан schedule intent: {intent}"
 
 

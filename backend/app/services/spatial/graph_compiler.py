@@ -378,6 +378,8 @@ def _validate_navigation_geometry(
         from_node = graph.get(from_id)
         if not from_node: continue
         
+        # S137.1: Собираем заблокированные рёбра, чтобы удалить их из графа.
+        _blocked_edges = set()
         for to_id in neighbors:
             # Проверяем только A -> B, чтобы избежать дублирования логов (B -> A)
             if from_id > to_id:
@@ -408,10 +410,17 @@ def _validate_navigation_geometry(
                             break
                             
             if is_blocked:
-                logger.error(
+                logger.warning(
                     f"[SPATIAL_VALIDATION] {location_id}: edge {from_id} -> {to_id} "
-                    f"is geometrically blocked!"
+                    f"is geometrically blocked! Removing edge from graph."
                 )
+                _blocked_edges.add(to_id)
+                
+        # S137.1: Удаляем заблокированные рёбра из графа (A -> B и B -> A)
+        for to_id in _blocked_edges:
+            neighbors.discard(to_id)
+            if to_id in connections:
+                connections[to_id].discard(from_id)
 
 def _segments_intersect(x1, y1, x2, y2, x3, y3, x4, y4) -> bool:
     """Стандартное определение пересечения двух отрезков."""
@@ -755,11 +764,12 @@ def _create_boundary_nodes(
             continue
 
         boundary_id = f"{location_id}:exit_{direction}"
-        # P4-01A: Boundary node получает координаты границы, без эвристических смещений
+        # S137.2: Boundary node получает координаты ближайшего навигонного узла, 
+        # а не стены. Это гарантирует, что он внутри локации и физически достижим.
         boundary_node = NodeRef(
             node_id=boundary_id,
-            x=_bx,
-            y=_by,
+            x=_nearest_node.x,
+            y=_nearest_node.y,
             role=NodeRole.BOUNDARY,
             tags=["boundary:exit"],
             zone_id=location_id,

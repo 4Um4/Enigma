@@ -1,18 +1,18 @@
 [
   {
-    "name": "Горик",
+    "name": "Абис",
     "npc_id": "player",
     "archetype": "Drifter",
-    "temperament": "Stoic",
+    "temperament": "Fearful",
     "body_profile": {
       "max_hp": 100,
       "strength": 10,
       "dexterity": 14
     },
     "psyche": {
-      "fear": 0.3,
-      "impulsivity": 0.2,
-      "willpower": 0.8
+      "fear": 0.8,
+      "impulsivity": 0.3,
+      "willpower": 0.4
     },
     "race": "Human",
     "class_name": "Drifter",

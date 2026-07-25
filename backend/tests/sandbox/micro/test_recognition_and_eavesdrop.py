@@ -82,6 +82,12 @@ def test_player_recognition_persists_in_run_turn():
     loop.scene_manager._tick_campaign_id = "test_camp"
     loop.avatar_service = MagicMock()
     loop._tick_orch = MagicMock()
+    loop.system_requirements = MagicMock()
+    loop.system_requirements.check.return_value = SimpleNamespace(meets=True, details={})
+    loop._session_started_campaigns = set()
+    loop.memory_manager = MagicMock()
+    loop.memory_manager.persist_dm_response.return_value = "test_journal_id"
+    loop.get_current_tick = MagicMock(return_value=0)
     
     # Имитируем, что ядро вернуло состояние с player_recognition
     _fresh_scene = {"player_recognition": {"maid_lusya": {"confidence": 1.0}}}
@@ -92,15 +98,29 @@ def test_player_recognition_persists_in_run_turn():
         observed_facts=[]
     )
 
-    # Мокируем остальной pipeline
-    loop._run_pipeline = MagicMock(return_value=SimpleNamespace(
-        shared_context=SimpleNamespace(scene_state=_fresh_scene, player_target_id="maid_lusya"),
+    # Мокируем остальной pipeline (используем AsyncMock, так как run_turn вызывает await)
+    import time
+    from unittest.mock import AsyncMock
+    loop._run_pipeline = AsyncMock(return_value=SimpleNamespace(
+        shared_context=SimpleNamespace(
+            scene_state=_fresh_scene, 
+            player_target_id="maid_lusya",
+            will_conflict_data=None
+        ),
         dm_result={"dm_response": "test"},
-        observed_facts=[]
+        observed_facts=[],
+        world_tick_meta={"events": []},
+        rules_result={},
+        npc_result={},
+        start_ms=int(time.time() * 1000)
     ))
     loop._build_traces = MagicMock(return_value=[])
     loop.dm_agent = MagicMock()
     loop.dm_agent.stream_narrate = MagicMock()
+    
+    # Мокируем TaskScheduler, чтобы избежать ленивой инициализации с зависимостями
+    loop._get_task_scheduler = MagicMock()
+    loop._get_task_scheduler.return_value.get_recent_dialogues.return_value = []
 
     req = ChatTurnRequest(
         campaign_id="test_camp",
@@ -110,8 +130,11 @@ def test_player_recognition_persists_in_run_turn():
     )
 
     # Запускаем run_turn
-    with patch('app.services.memory.rce.extract_speech_events', return_value=[]):
-        await loop.run_turn(req)
+    import asyncio
+    from unittest.mock import AsyncMock
+    with patch('app.services.memory.rce.extract_speech_events', return_value=[]), \
+         patch('app.services.game_loop.run_agent_safe', new=AsyncMock(return_value={"dm_response": "test"})):
+        asyncio.run(loop.run_turn(req))
 
     # Проверяем, что commit_tick_result был вызван с правильным scene_state
     loop.scene_manager.commit_tick_result.assert_called_once()

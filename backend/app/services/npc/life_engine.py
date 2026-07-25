@@ -1319,7 +1319,7 @@ class LifeEngine:
 
     def get_npc_observed_state(self, campaign_id: str, npc_id: str) -> Dict[str, Any]:
         """Возвращает безопасный наблюдаемый слепок NPC для LLM (Эпистемический Барьер ADR-TZ08-6).
-        Не содержит ментальных полей (stress, fear, drives). Только name и description.
+        L-03 FIX: Возвращает voice_profile, backstory, author_notes для уникального голоса NPC.
         """
         cached = self._npc_cache.get(campaign_id, [])
         for n in cached:
@@ -1327,6 +1327,9 @@ class LifeEngine:
                 return {
                     "name": n.get("name", npc_id),
                     "description": n.get("description", ""),
+                    "voice_profile": n.get("voice_profile", ""),
+                    "backstory": n.get("backstory", ""),
+                    "author_notes": n.get("author_notes", ""),
                 }
         return {"name": npc_id, "description": ""}
 
@@ -2098,7 +2101,9 @@ class LifeEngine:
         Возвращает пустой список если активность не изменилась.
         """
         npc_id = npc.get("id", "unknown")
-        schedule = npc.get("routine", {}).get("schedule", {})
+        _routine = npc.get("routine") or {}
+        print(f"[DIAG_ROUTINE] npc={npc_id} routine={_routine}")
+        schedule = _routine.get("schedule", {})
 
         # ADR-123: Мёртвые NPC не обновляют расписание. Зомби-NPC запрещены.
         if npc.get("body_state", {}).get("life_status") == "DEAD":
@@ -2140,18 +2145,20 @@ class LifeEngine:
             )
             return [], None
 
-        # ADR-130: Movement Lock. Если NPC уже в активном транзите — расписание
-        # НЕ может перезаписать его движение. Schedule = suggestion, traversal = commitment.
-        # Без этого guard'а schedule создаёт новый traversal каждый idle tick,
-        # перезаписывая reactive:approach от DecisionHub (Phase 5).
+        # S139: Interruptibility Contract. Если NPC в активном транзите, 
+        # расписание может его прервать, ТОЛЬКО если это не боевой/критический транзит.
         if scene_state:
             _active_travs = scene_state.get("active_traversals", {})
             _my_trav = _active_travs.get(npc_id)
             if _my_trav and _my_trav.get("status") == "MOVING":
-                logger.debug(
-                    f"[LIFE_ENGINE] {npc_id}: Schedule bypassed — active traversal (target={_my_trav.get('target_node', '?')})"
-                )
-                return [], None
+                _trav_reason = _my_trav.get("reason", "")
+                # Non-interruptible: flee, combat, reactive threats.
+                if "flee" in _trav_reason or "combat" in _trav_reason:
+                    logger.debug(
+                        f"[LIFE_ENGINE] {npc_id}: Schedule bypassed — non-interruptible traversal ({_trav_reason})"
+                    )
+                    return [], None
+                # Social traversals (approach, seek_ally) are interruptible by schedule.
 
         new_activity = self._get_current_activity(schedule, current_time)
         if not new_activity:
@@ -2251,7 +2258,12 @@ class LifeEngine:
 
         # ── MovementIntent для MovementEngine (Слой 2) ────────────────────
         from app.domain.movement import PRIORITY_SCHEDULE
-
+        
+        # S139: Sleep Authority. Сон имеет приоритет выше социального (0.8), но ниже боя (0.95).
+        _schedule_priority = PRIORITY_SCHEDULE
+        if new_activity == "sleeping":
+            _schedule_priority = 0.85  # PRIORITY_SLEEP
+            
         # ADR-0010: movement_mode удалён. Макро-перемещение — Semantic Relocation.
         intent = MacroMovementGoal(
             actor_id=npc_id,
@@ -2260,7 +2272,7 @@ class LifeEngine:
             location_id=new_location,
             reason=f"schedule:{new_activity}",
             domain=IntentDomain.ROUTINE,  # ДОЛГ 4.3: Расписание = рутина
-            priority=PRIORITY_SCHEDULE,
+            priority=_schedule_priority,
         )
 
         # ── Обновляем NPC dict в памяти ────────────────────────────────────

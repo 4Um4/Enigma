@@ -33,6 +33,27 @@ class DialogueExecutor:
             lambda npc_id, camp_id: {"name": npc_id, "description": ""}
         )
         self._belief_store = belief_store
+        # L-02: Валидатор реплик NPC
+        from app.services.verbalization.response_validator import ResponseValidator
+        from dataclasses import dataclass, field
+        from uuid import uuid4
+        
+        @dataclass
+        class NpcContract:
+            system_prompt: str = ""
+            user_prompt: str = ""
+            max_sentences: int = 2
+            contract_id: str = field(default_factory=lambda: uuid4().hex[:8])
+            _forbidden_tuple: tuple[str, ...] = (
+                "описывать действия за других",
+                "задавать вопросы игроку напрямую",
+                "упоминать игру, симуляцию, интерфейс",
+            )
+            @property
+            def forbidden_actions(self) -> list[str]:
+                return list(self._forbidden_tuple)
+
+        self._validator = ResponseValidator(NpcContract())
 
     def execute(self, task: QueuedTask) -> Iterable[Artifact]:
         if not isinstance(task.payload, DialogueRequest):
@@ -77,11 +98,19 @@ class DialogueExecutor:
 
     def _generate_with_router(self, task: QueuedTask, req: DialogueRequest) -> str:
         """Генерация через ModelRouter. Не блокирует симуляцию (Правило 2 ТЗ)."""
-        ctx = self._get_context(task.owner_id, task.campaign_id)
+        ctx = self._get_context(task.campaign_id, task.owner_id)
 
+        # L-05 FIX: Резолвим target_id в имя для LLM, чтобы избежать утечки ID в реплики
+        _target_ctx = self._get_context(task.campaign_id, req.target_id) if req.target_id else {}
+        _target_name = _target_ctx.get("name", req.target_id)
+
+        # L-04: Жёсткий system prompt с языковыми правилами
         system_prompt = (
-            "Ты — NPC в мире ENIGMA. Твоя задача — сказать одну короткую реплику (1-2 предложения). "
-            "Не описывай действия, только прямую речь. "
+            "Ты — NPC в мире ENIGMA (тёмное фэнтези). Твоя задача — сказать одну короткую реплику (1-2 предложения). "
+            "Говори ТОЛЬКО на русском языке. Не используй китайские иероглифы, английский текст или системные теги. "
+            "Не описывай свои действия (например, 'идёт к двери'). Только прямая речь. "
+            "Не упоминай игрока, симуляцию, интерфейс или механики игры. "
+            "Оставайся в образе своего персонажа. "
             f"Тема разговора: {req.topic}. Намерение: {req.intent_type}."
         )
 
@@ -98,14 +127,30 @@ class DialogueExecutor:
                 "anger": "Ты злишься на",
             }
             for b in _target_beliefs:
-                _phrase = _TRAIT_TO_TEXT.get(b.trait, f"Ты относишься к {req.target_id} как к {b.trait}")
-                _beliefs_text += f"{_phrase} {req.target_id} (уверенность: {b.weight:.2f}). "
+                _phrase = _TRAIT_TO_TEXT.get(b.trait, f"Ты относишься к {_target_name} как к {b.trait}")
+                _beliefs_text += f"{_phrase} {_target_name} (уверенность: {b.weight:.2f}). "
 
+        # T-04: Извлекаем npc_npc_context (историю взаимодействий с целью) из DialogueRequest
+        _history_text = ""
+        if getattr(req, "npc_npc_context", ""):
+            _history_text = f"Твои воспоминания об этой встрече: {req.npc_npc_context} "
+
+        # L-03 FIX: Добавляем voice_profile, backstory, author_notes для уникального голоса
         user_prompt = (
             f"Твоё имя: {ctx.get('name', task.owner_id)}. "
             f"Краткое описание твоей натуры: {ctx.get('description', 'неизвестно')}. "
-            f"Ты обращаешься к: {req.target_id}. "
+        )
+        if ctx.get("voice_profile"):
+            user_prompt += f"Твоя манера речи: {ctx['voice_profile']}. "
+        if ctx.get("backstory"):
+            user_prompt += f"Твоё прошлое: {ctx['backstory']}. "
+        if ctx.get("author_notes"):
+            user_prompt += f"Важные ограничения: {ctx['author_notes']}. "
+        
+        user_prompt += (
+            f"Ты обращаешься к: {_target_name}. "
             f"{_beliefs_text}"
+            f"{_history_text}"
             "Скажи свою реплику:"
         )
 
@@ -117,7 +162,13 @@ class DialogueExecutor:
                 system_prompt=system_prompt,
                 params=GenerationParams(max_tokens=100)
             )
-            return raw.strip() if isinstance(raw, str) else ""
+            
+            # L-02: Валидация ответа LLM (отсечение китайского, английского, 4-й стены)
+            validation = self._validator.validate(raw)
+            if validation.is_fallback:
+                logger.warning(f"[DIALOGUE_EXEC] LLM response rejected ({validation.violation}). Using fallback.")
+            
+            return validation.text
         except Exception as e:
             logger.error(f"[DIALOGUE_EXEC] LLM call failed: {e}. Fallback to stub.")
             return ""
