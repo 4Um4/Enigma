@@ -4,9 +4,16 @@
 
 import pytest
 from app.domain.traversal import (
-    BodyCapabilities, LocalGeometry, Obstacle, Pose, TraversalMode, TraversalQuery, WallSegment
+    BodyCapabilities,
+    LocalGeometry,
+    Obstacle,
+    Pose,
+    TraversalMode,
+    TraversalQuery,
+    WallSegment,
 )
 from app.services.spatial.local_traversal_planner import LocalTraversalPlanner
+
 
 @pytest.fixture
 def planner():

@@ -35,6 +35,7 @@ def _safe_get(d, *keys, default=0.0):
 
 from dataclasses import dataclass
 
+
 @dataclass(frozen=True)
 class BodyConstraint:
     """P5.3: Универсальное функциональное ограничение тела."""
@@ -68,16 +69,19 @@ class BehaviorManifestationService:
         """P5.3: Вывод функциональных ограничений из ран."""
         constraints = []
         for w in wounds:
-            if not isinstance(w, dict): continue
+            if not isinstance(w, dict):
+                continue
             part = str(w.get("body_part", "")).lower()
             sev = str(w.get("severity", "")).lower()
-            
+
             region = self._REGION_MAP.get(part)
-            if not region: continue
-            
+            if not region:
+                continue
+
             severity = self._SEVERITY_MAP.get(sev, 0.0)
-            if severity == 0.0: continue
-            
+            if severity == 0.0:
+                continue
+
             function = self._FUNCTION_MAP.get(region, "UNKNOWN")
             constraints.append(BodyConstraint(region=region, function=function, severity=severity))
         return constraints
@@ -88,7 +92,7 @@ class BehaviorManifestationService:
         """P5.3: Применение ограничений к моторным проекциям."""
         gait_asymmetry = 0.0
         arm_restriction = 0.0
-        
+
         for c in constraints:
             if c.function == "LOCOMOTION":
                 gait_asymmetry = max(gait_asymmetry, c.severity)
@@ -98,7 +102,7 @@ class BehaviorManifestationService:
                 arm_restriction = max(arm_restriction, c.severity)
                 posture_rigidity = max(posture_rigidity, c.severity * 0.5)
                 action_interrupt = max(action_interrupt, c.severity * 0.7)
-                
+
         return gait_asymmetry, arm_restriction, instability, posture_rigidity, micro_pause, action_interrupt
 
     def produce_traces(self, scene_state, all_npcs_raw=None) -> list[EmbodiedTraceDTO]:

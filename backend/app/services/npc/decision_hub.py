@@ -43,6 +43,8 @@ from app.core.constants import (
     SWITCHING_COST_IDENTITY_K,
 )
 from app.domain.communication import CommunicationIntent, ExposureLevel
+from app.domain.decision_context import DecisionContext
+from app.domain.identity_events import EffectiveDrives
 from app.domain.vital_state import LifeStatus, evaluate_vital_state, is_conscious
 from app.models.behavior_mask import BehaviorMask
 from app.models.npc_profile import NPCProfileL0
@@ -59,8 +61,6 @@ from app.models.npc_state import (
 
 # StateDeltas — канонический контракт мутаций (Устав §2.3)
 from app.models.state_delta import StateDeltas
-from app.domain.decision_context import DecisionContext
-from app.domain.identity_events import EffectiveDrives
 from app.services.economy.opportunity_engine import (
     OpportunityContext,
     OpportunityEngine,
@@ -168,19 +168,19 @@ class AgentAction:
         """
         _rel_store = getattr(state, "relationship_store", None)
         _campaign_id = getattr(state, "campaign_id", "")
-        
+
         if _rel_store:
             _rel_data = _rel_store.get_relationship(_campaign_id, state.npc_id, target_id)
             if _rel_data:
                 _val = _rel_data.get(attr)
                 if _val is not None:
                     return float(_val)
-        
+
         # Fallback на relationship_cache (для legacy/test сред без SSOT)
         _graph_val = state.relationship_cache.get(target_id, {}).get(attr)
         if _graph_val is not None:
             return float(_graph_val)
-            
+
         # Vacuum (Нет знания об отношении)
         return None
 
@@ -320,12 +320,12 @@ class DecisionHub:
             # Если SSOT доступен, но записи нет — это Vacuum (None).
             # Мы НЕ падаем в relationship_cache, чтобы избежать stale shadow truth.
             return None
-            
+
         # 2. Fallback на relationship_cache (только если SSOT недоступен)
         _graph_val = state.relationship_cache.get(target_id, {}).get(attr)
         if _graph_val is not None:
             return float(_graph_val)
-            
+
         # 3. Vacuum (Нет знания об отношении)
         return None
 
@@ -1873,7 +1873,7 @@ class DecisionHub:
         """Определяет цель intent."""
         if all_npc_ids is None:
             all_npc_ids = []
-            
+
         # S135: Получаем SSOT из инстанса DecisionHub
         _rel_store = getattr(self, "_rel_store", None)
         _campaign_id = getattr(self, "_campaign_id", "")
@@ -1891,8 +1891,8 @@ class DecisionHub:
 
         # 2. S129: Bridge 7 — Если NPC отвечает на реплику (TALK), адресат уже известен причинно.
         if (
-            intent == Intent.TALK.value 
-            and pending_response_target 
+            intent == Intent.TALK.value
+            and pending_response_target
             and pending_response_target != state.npc_id
         ):
             return pending_response_target
@@ -1900,8 +1900,8 @@ class DecisionHub:
         # 3. S96: Социальные интенты ищут цель пространственно
         if intent in self._VERBAL_INTENTS or intent == Intent.APPROACH.value:
             _target = SocialTargetResolver.resolve(
-                state=state, 
-                spatial_query=spatial_query, 
+                state=state,
+                spatial_query=spatial_query,
                 all_npc_ids=all_npc_ids,
                 relationship_store=_rel_store,
                 campaign_id=_campaign_id

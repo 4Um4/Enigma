@@ -5,11 +5,14 @@ backend/app/services/spatial/movement_engine.py
 """
 
 from __future__ import annotations
+
 import logging
+
 logger = logging.getLogger(__name__)
 
-from typing import Any, Dict, List, Optional
 import math
+from typing import Any, Dict, List, Optional
+
 from app.domain.movement import LocalSteeringGoal, MacroMovementGoal, MovementIntent
 from app.domain.traversal import (
     LocalGeometry,
@@ -25,6 +28,7 @@ from app.domain.traversal_schema import (
 )
 from app.services.scene_change import ChangeType, SceneChange
 from app.services.spatial.local_traversal_planner import LocalTraversalPlanner
+
 logger = logging.getLogger(__name__)
 
 from app.errors import SimulationIntegrityError
@@ -124,19 +128,45 @@ class MovementEngine:
         - Если целевой узел найден в графе → SceneChange с {x, y}
         - Если не найден → логируем warning, пропускаем
         """
-        # S139: Intent Arbitration. Оставляем только самый приоритетный MacroMovementGoal для каждого NPC.
-        # Это предотвращает перезапись расписания (sleeping, 0.85) социальными интентами (approach, 0.8).
+        # S139.3: Total Intent Arbitration. Schedule (spatial commitment) beats Social (desire), but loses to Reactive (flee/combat).
+        # Если MacroMovementGoal расписания выигрывает, мы должны УДАЛИТЬ LocalSteeringGoal (социальные микро-движения), чтобы они не перетягивали NPC.
         _best_macro_intents: Dict[str, MacroMovementGoal] = {}
-        _other_intents: List[MacroMovementGoal | LocalSteeringGoal] = []
+        _micro_intents: List[LocalSteeringGoal] = []
+
         for intent in intents:
+            if getattr(intent, "actor_id", "") == "guard_borko":
+                logger.debug(f"[BORKO_TRACE] tick={tick} type={type(intent).__name__} reason={getattr(intent, 'reason', '')} target={getattr(intent, 'target_node_id', getattr(intent, 'local_target_xy', '?'))}")
             if isinstance(intent, MacroMovementGoal):
                 _npc_id = intent.actor_id
-                _prio = getattr(intent, "priority", 0.0)
-                if _npc_id not in _best_macro_intents or _prio > getattr(_best_macro_intents[_npc_id], "priority", 0.0):
+                _reason = getattr(intent, "reason", "")
+                _is_schedule = "schedule" in _reason
+                _is_reactive = "flee" in _reason or "combat" in _reason or "reactive" in _reason
+
+                if _npc_id not in _best_macro_intents:
                     _best_macro_intents[_npc_id] = intent
-            else:
-                _other_intents.append(intent)
-        intents = list(_best_macro_intents.values()) + _other_intents
+                else:
+                    _existing = _best_macro_intents[_npc_id]
+                    _existing_reason = getattr(_existing, "reason", "")
+                    _existing_is_schedule = "schedule" in _existing_reason
+                    _existing_is_reactive = "flee" in _existing_reason or "combat" in _existing_reason or "reactive" in _existing_reason
+
+                    # Reactive (flee/combat) always wins
+                    if _is_reactive and not _existing_is_reactive:
+                        _best_macro_intents[_npc_id] = intent
+                    # Schedule beats Social (if existing is not reactive and not schedule)
+                    elif _is_schedule and not _existing_is_reactive and not _existing_is_schedule:
+                        _best_macro_intents[_npc_id] = intent
+            elif isinstance(intent, LocalSteeringGoal):
+                _micro_intents.append(intent)
+
+        # Фильтруем микро-интенты: если у NPC есть выигравший MacroMovementGoal (Schedule/Reactive), микро-интенты (Social) удаляются.
+        _winning_actors = set(_best_macro_intents.keys())
+        _filtered_micro_intents = [
+            intent for intent in _micro_intents
+            if getattr(intent, "actor_id", "") not in _winning_actors
+        ]
+
+        intents = list(_best_macro_intents.values()) + _filtered_micro_intents
 
         # Spatial Intent Gate: Desire → Commitment конверсия.
         # ЗАПРЕТ (ADR-138): spatial eligibility logic НЕ существует нигде кроме _spatial_intent_gate.
@@ -190,12 +220,17 @@ class MovementEngine:
                 else:
                     target_loc = intent.location_id or current_loc
 
+                if getattr(intent, "actor_id", "") == "guard_borko":
+                    _ss = "YES" if scene_state else "NO"
+                    logger.debug(f"[BORKO_CROSS] tick={tick} target_node={intent.target_node_id} intent_loc={getattr(intent, 'location_id', 'N/A')} cur_loc={current_loc} target_loc={target_loc} scene_state={_ss}")
                 if scene_state and current_loc and target_loc != current_loc:
+                    logger.debug(f"[BORKO_CROSS_IN] tick={tick} ENTERED CROSS_LOC_INTERCEPT block")
                     current_svc = self._resolve_spatial_service(
                         current_loc, campaign_id, scene_state
                     )
                     if current_svc:
                         boundary_node = current_svc.get_boundary_to_neighbor(target_loc)
+                        logger.debug(f"[BORKO_CROSS_BOUNDARY] tick={tick} boundary_node={boundary_node}")
                         if boundary_node:
                             # S-04: Проверяем, не стоит ли NPC уже на boundary node.
                             # Используем XY-дистанцию, так как position (node_id) ещё не обновлён до Фазы 8.
@@ -203,17 +238,21 @@ class MovementEngine:
                             _lp = _npc_data.get("local_position", {})
                             _cur_x = _lp.get("x", 0.0) if isinstance(_lp, dict) else 0.0
                             _cur_y = _lp.get("y", 0.0) if isinstance(_lp, dict) else 0.0
-                            
+
                             _dist_to_boundary = math.hypot(boundary_node.x - _cur_x, boundary_node.y - _cur_y)
-                            
+                            if getattr(intent, "actor_id", "") == "guard_borko":
+                                # P7-MVP FIX: Защита от MagicMock в тестах
+                                if hasattr(boundary_node, "x") and isinstance(boundary_node.x, (int, float)):
+                                    logger.debug(f"[BORKO_DIST] tick={tick} cur_xy=({_cur_x:.1f}, {_cur_y:.1f}) boundary_xy=({boundary_node.x:.1f}, {boundary_node.y:.1f}) dist={_dist_to_boundary:.2f}")
+
                             if _dist_to_boundary < 0.5:
                                 logger.info(f"[CROSS_LOC_MATERIALIZE] npc={intent.actor_id} crossing {current_loc} → {target_loc}")
                                 target_svc = self._resolve_spatial_service(target_loc, campaign_id, scene_state)
-                                
+
                                 # Ищем целевой узел в новой локации (строгий контракт, без случайных fallback'ов)
                                 _target_node_id_short = intent.target_node_id.split(":")[-1]
                                 target_node_obj = target_svc.get_node(_target_node_id_short) or target_svc.get_node(f"{target_loc}:{_target_node_id_short}")
-                                
+
                                 if not target_node_obj:
                                     # S-04: Topology Violation. Целевой узел отсутствует в новой локации.
                                     # Silent fallback убит (S134.1). Игра должна упасть громко.
@@ -224,7 +263,7 @@ class MovementEngine:
                                         suspect_files=["frontend/map_editor/campaigns/Open_road/locations/"],
                                         file=__file__, line=188,
                                     )
-                                
+
                                 changes.extend([
                                     SceneChange(
                                         type=ChangeType.NPC_POSITION,
@@ -278,6 +317,8 @@ class MovementEngine:
                 _npc_data = npc_positions.get(_npc_id, {}) if npc_positions else {}
                 _current_pos = _npc_data.get("position", intent.from_node_id)
                 _current_xy = _npc_data.get("local_position", {})
+                if _npc_id == "guard_borko":
+                    logger.debug(f"[BORKO_RELOC] tick={tick} loc={location_id} target={intent.target_node_id} cur_pos={_current_pos} cur_xy={_current_xy}")
                 changes.extend(
                     self._resolve_macro_relocation(intent, svc, location_id, tick, _current_pos, _current_xy)
                 )
@@ -437,12 +478,12 @@ class MovementEngine:
                 status=MovementPlanStatus.REJECTED,
                 reason="NO_GEOMETRY_AND_NO_A_STAR_PATH"
             )
-            
+
         waypoints: List[List[float]] = [[source_xy[0], source_xy[1]]]
         segment_modes: List[str] = []
         distance = 0.0
         prev_xy = source_xy
-        
+
         for node in path[1:]:
             wp = [node.x, node.y]
             if math.hypot(wp[0] - prev_xy[0], wp[1] - prev_xy[1]) > 0.01:
@@ -450,11 +491,11 @@ class MovementEngine:
                 segment_modes.append(TraversalMode.WALK.value)
                 distance += math.hypot(wp[0] - prev_xy[0], wp[1] - prev_xy[1])
                 prev_xy = (wp[0], wp[1])
-                
+
         speed = intent.body_capabilities.movement_speed
         duration_ticks = max(1, math.ceil(distance / speed)) if speed > 0 else 1
         topology_version = getattr(svc, "_topology_version", 0)
-        
+
         proposal = TraversalProposal(
             npc_id=intent.actor_id,
             source_node=current_pos,
@@ -470,7 +511,7 @@ class MovementEngine:
             planning_source="ASTAR_FALLBACK",
             segment_arc_heights=tuple(segment_arc_heights) if segment_arc_heights else (0.0,)
         )
-        
+
         return MovementPlanResult(
             status=MovementPlanStatus.ACCEPTED,
             proposal=proposal,
@@ -495,12 +536,12 @@ class MovementEngine:
             geometry: LocalGeometry = svc.get_local_geometry(source_xy, perception_radius=_DEFAULT_PERCEPTION_RADIUS)
         except (AttributeError, NotImplementedError):
             return self._fallback_to_astar(svc, intent, current_pos, tick, source_xy, target_xy, target_node_obj)
-        
+
         # S131 FIX (советник): allowed_modes зависит от body.can_jump
         allowed_modes = [TraversalMode.WALK]
         if intent.body_capabilities.can_jump:
             allowed_modes.append(TraversalMode.JUMP)
-            
+
         # 2. Собираем запрос к планировщику
         query = TraversalQuery(
             source_pose=Pose(source_xy[0], source_xy[1]),
@@ -508,10 +549,10 @@ class MovementEngine:
             body=intent.body_capabilities,
             allowed_modes=tuple(allowed_modes)
         )
-        
+
         # 3. Выполняем локальное планирование (честная физика)
         plan: TraversalPlan = self._planner.compile_plan(query, geometry)
-        
+
         # S131.1: Если физика запрещает — это HARD_REJECT. A* не имеет права отменить физический запрет.
         if not plan.possible:
             return MovementPlanResult(
@@ -525,7 +566,7 @@ class MovementEngine:
         segment_arc_heights: List[float] = []
         distance = 0.0
         prev_xy = source_xy
-        
+
         for seg in plan.segments:
             wp = [seg.end_pose.x, seg.end_pose.y]
             if math.hypot(wp[0] - prev_xy[0], wp[1] - prev_xy[1]) > 0.01:
@@ -540,9 +581,9 @@ class MovementEngine:
         # 5. Вычисляем длительность
         speed = intent.body_capabilities.movement_speed
         duration_ticks = max(1, math.ceil(distance / speed)) if speed > 0 else 1
-        
+
         topology_version = getattr(svc, "_topology_version", 0)
-        
+
         proposal = TraversalProposal(
             npc_id=intent.actor_id,
             source_node=current_pos,
@@ -558,7 +599,7 @@ class MovementEngine:
             planning_source="LOCAL_TRAVERSAL",
             segment_arc_heights=tuple(segment_arc_heights) if segment_arc_heights else (0.0,)
         )
-        
+
         return MovementPlanResult(
             status=MovementPlanStatus.ACCEPTED,
             proposal=proposal,
@@ -595,15 +636,15 @@ class MovementEngine:
             )
             return []
 
-        # S131: MovementEngine — оркестратор. 
-        # Пробует построить честный физический путь (LocalTraversalPlanner).
-        # Если стена блокирует — fallback на A* (топология графа).
+        # S140: Route-Aware Traversal Planning.
+        # Сначала строим маршрут через граф (A*), затем берём первый шаг (waypoint)
+        # и проверяем его физическую проходимость через LocalTraversalPlanner.
         target_node_obj = svc.get_node(intent.target_node_id) or svc.get_node(f"{intent.location_id}:{intent.target_node_id}")
         source_node_obj = svc.get_node(current_pos)
         if not target_node_obj:
              return []
 
-        # S131 FIX (советник): current_xy — авторитетная позиция тела, а не графовый узел.
+        # S131 FIX (советник): current_xy — авторитетная позиция тела, а не графового узла.
         if isinstance(current_xy, dict) and "x" in current_xy and "y" in current_xy:
             _cx = float(current_xy["x"])
             _cy = float(current_xy["y"])
@@ -612,38 +653,29 @@ class MovementEngine:
             _cy = source_node_obj.y
         else:
             return []
-            
+
         source_xy = (_cx, _cy)
+
+        # S140: Ищем топологический маршрут через A*
+        path_nodes = svc.find_path(source_xy, target_node_obj)
+        if not path_nodes or len(path_nodes) < 2:
+            logger.warning(f"[GATE_B3] npc={intent.actor_id} reason=A_STAR_FAILED No path found to {intent.target_node_id}")
+            return []
+        
+        if intent.actor_id == "guard_borko":
+            print(f"[BORKO_ASTAR] current_pos={current_pos} source_xy={source_xy} target={target_node_obj.node_id} path={[n.node_id for n in path_nodes]}")
+
+        # Берём первый шаг маршрута (следующий waypoint)
+        next_node = path_nodes[1]
         
         import zlib
         _hash = zlib.adler32(intent.actor_id.encode("utf-8")) if intent.actor_id else 0
         _offset_x = ((_hash % 10) / 10.0 - 0.5) * 1.5
         _offset_y = (((_hash // 10) % 10) / 10.0 - 0.5) * 1.5
-        target_xy = (target_node_obj.x + _offset_x, target_node_obj.y + _offset_y)
+        target_xy = (next_node.x + _offset_x, next_node.y + _offset_y)
 
         _dist = math.hypot(target_xy[0] - source_xy[0], target_xy[1] - source_xy[1])
-        if (source_node_obj and source_node_obj.node_id == target_node_obj.node_id) or _dist < 0.1:
-            plan_result = MovementPlanResult(
-                status=MovementPlanStatus.MICRO_MOVEMENT,
-                reason="SAME_NODE_OR_THRESHOLD"
-            )
-        else:
-            plan_result = self._compile_traversal_plan(
-                intent, svc, current_pos, tick, source_xy, target_xy, target_node_obj
-            )
-
-        if plan_result.status == MovementPlanStatus.REJECTED:
-            # S137.1: План отклонён (цель недостижима или заблокирована). Это нормальная логика, не ошибка.
-            logger.debug(
-                f"[GATE_B3] npc={intent.actor_id} reason=PLAN_REJECTED reason={plan_result.reason}"
-            )
-            return []
-
-        # S131: MICRO_MOVEMENT — snap local_position без TraversalProposal.
-        if plan_result.status == MovementPlanStatus.MICRO_MOVEMENT:
-            logger.info(
-                f"[PIPELINE][MOVEMENT][MICRO] npc={intent.actor_id} → snap to {target_xy} reason={plan_result.reason}"
-            )
+        if _dist < 0.1:
             return [
                 SceneChange(
                     type=ChangeType.NPC_POSITION,
@@ -656,27 +688,33 @@ class MovementEngine:
                 )
             ]
 
-        if plan_result.proposal is None:
-            logger.error(
-                f"[GATE_B3] npc={intent.actor_id} reason=ACCEPTED_NULL_PROPOSAL (Kernel Violation)"
-            )
+        plan_result = self._compile_traversal_plan(
+            intent, svc, current_pos, tick, source_xy, target_xy, next_node
+        )
+
+        if plan_result.status == MovementPlanStatus.REJECTED:
+            logger.debug(f"[GATE_B3] npc={intent.actor_id} reason=PLAN_REJECTED reason={plan_result.reason}")
+            return []
+
+        if plan_result.status != MovementPlanStatus.ACCEPTED or plan_result.proposal is None:
+            logger.error(f"[GATE_B3] npc={intent.actor_id} reason=ACCEPTED_NULL_PROPOSAL (Kernel Violation)")
             return []
 
         # S131: Извлекаем целевые координаты из proposal для логирования и SceneChange.target_local_xy.
         target_xy = plan_result.proposal.path_waypoints[-1]
 
         logger.info(
-            f"[PIPELINE][MOVEMENT][RELOCATE] npc={intent.actor_id} → zone={intent.target_node_id} reason={intent.reason} exact_xy={target_xy} dist={plan_result.proposal.distance:.2f} ticks={plan_result.proposal.duration_ticks}"
+            f"[PIPELINE][MOVEMENT][RELOCATE] npc={intent.actor_id} → zone={next_node.node_id} reason={intent.reason} exact_xy={target_xy} dist={plan_result.proposal.distance:.2f} ticks={plan_result.proposal.duration_ticks}"
         )
         logger.debug(
-            f"[GATE_B3] npc={intent.actor_id} reason=SUCCESS target={intent.target_node_id} loc={location_id}"
+            f"[GATE_B3] npc={intent.actor_id} reason=SUCCESS target={next_node.node_id} loc={location_id}"
         )
         return [
             SceneChange(
                 type=ChangeType.NPC_POSITION,
                 target=intent.actor_id,
                 field="position",
-                value=target_node_obj.node_id,  # S131 FIX: Канонический ID с префиксом локации
+                value=next_node.node_id,  # S140: Следующий waypoint маршрута A*
                 cause=f"semantic_relocation:{intent.reason}",
                 tick=tick,
                 target_location_id=location_id,

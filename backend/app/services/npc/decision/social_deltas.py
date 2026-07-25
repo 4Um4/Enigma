@@ -58,7 +58,7 @@ _BASE_DELTAS: Dict[str, Tuple[float, float, str]] = {
 
 def get_base_delta(event_type: str) -> Tuple[float, float, str]:
     """Возвращает базовые дельты для указанного типа события.
-    
+
     Используется NpcDialogueSubscriber для NPC-NPC взаимодействий,
     чтобы избежать прямого доступа к приватному _BASE_DELTAS и сохранить SSOT.
     """
@@ -187,7 +187,7 @@ class SocialDeltaEngine:
                 _target = event.actor_id
             else:
                 _target = "player"
-                
+
             result_deltas.append(
                 StateDeltas(
                     npc_id=state.npc_id,

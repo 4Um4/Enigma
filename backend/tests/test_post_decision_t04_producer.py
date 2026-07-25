@@ -1,13 +1,15 @@
 # backend/tests/test_post_decision_t04_producer.py
 """
-cd C:\DDD\Codex\VSC_Enigma\Enigma\backend
+cd C:\\DDD\\Codex\\VSC_Enigma\\Enigma\backend
 python -m pytest tests/test_post_decision_t04_producer.py -v
 """
 
-import pytest
 from unittest.mock import MagicMock
-from app.services.phases.post_decision import run_phase_6_post_decision
+
+import pytest
 from app.domain.communication import CommunicationIntent, ExposureLevel
+from app.services.phases.post_decision import run_phase_6_post_decision
+
 
 @pytest.fixture
 def mock_ctx():

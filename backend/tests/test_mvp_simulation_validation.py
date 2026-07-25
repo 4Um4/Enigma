@@ -6,14 +6,15 @@
 Запуск: cd backend; python -m pytest tests/test_mvp_simulation_validation.py -v -s; cd ..
 """
 
-import pytest
-import math
-import types
-import logging
 import json
-import time
+import logging
+import math
 import os
-from contextlib import contextmanager, redirect_stdout, redirect_stderr
+import time
+import types
+from contextlib import contextmanager, redirect_stderr, redirect_stdout
+
+import pytest
 from app.domain.events import EventDTO
 from app.services.events.event_bus import get_event_bus
 

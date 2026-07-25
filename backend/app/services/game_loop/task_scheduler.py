@@ -126,7 +126,7 @@ class TaskScheduler:
 
         task_dict = _eligible.payload.get("task_dict", {})
         _task_id = task_dict.get("task_id", "")
-        
+
         # Убираем из pending, чтобы не запустить повторно
         scene_state["pending_tasks"] = [
             t for t in pending if t.get("task_id") != _task_id
@@ -159,7 +159,7 @@ class TaskScheduler:
                 executor = self._ambient_executor
             else:
                 executor = self._executors.get(task.kind)
-            
+
             if not executor:
                 logger.warning(f"[SCHEDULER] No executor for kind {task.kind}")
                 continue
@@ -210,7 +210,7 @@ class TaskScheduler:
                 if artifact.success:
                     task.state = TaskState.FINISHED
                     logger.info(f"[TASK_SCHED] dialogue executed: speaker={task.owner_id} target={task.payload.target_id if hasattr(task.payload, 'target_id') else 'unknown'}")
-                    
+
                     materializer = self._materializers.get(artifact.result_type)
                     if materializer:
                         try:

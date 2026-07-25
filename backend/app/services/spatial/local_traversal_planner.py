@@ -10,12 +10,17 @@ import math
 from typing import List, Tuple
 
 from app.domain.traversal import (
-    BodyCapabilities, LocalGeometry, Obstacle, Pose, TraversalFeasibility,
-    TraversalMode, TraversalPlan, TraversalQuery, TraversalSegment
+    BodyCapabilities,
+    LocalGeometry,
+    Obstacle,
+    Pose,
+    TraversalFeasibility,
+    TraversalMode,
+    TraversalPlan,
+    TraversalQuery,
+    TraversalSegment,
 )
-from app.services.spatial.geometry_kernel import (
-    point_in_rect, segment_to_rect_min_dist_sq, segments_distance_sq
-)
+from app.services.spatial.geometry_kernel import point_in_rect, segment_to_rect_min_dist_sq, segments_distance_sq
 from app.services.spatial.transition_topology_solver import TransitionTopologySolver
 from app.services.spatial.traversal_transition_kernel import TraversalTransitionKernel
 
@@ -43,6 +48,7 @@ class LocalTraversalPlanner:
         for wall in geometry.walls:
             dist_sq = segments_distance_sq(src, tgt, (wall.x1, wall.y1), (wall.x2, wall.y2))
             if math.sqrt(dist_sq) - body.radius < 0:
+                print(f"[CLEARANCE_FAIL] src={src} tgt={tgt} body_radius={body.radius} wall=({wall.x1},{wall.y1})-({wall.x2},{wall.y2}) dist={math.sqrt(dist_sq):.2f}")
                 return TraversalPlan(possible=False, reason="WALL_CLEARANCE_BLOCKED")
 
         # 2. Сбор всех препятствий на пути
@@ -56,7 +62,7 @@ class LocalTraversalPlanner:
         # 3. Если препятствий нет — чистый WALK
         if not blocking_obstacles:
             return TraversalPlan(
-                possible=True, 
+                possible=True,
                 segments=(TraversalSegment(mode=TraversalMode.WALK, start_pose=src_pose, end_pose=tgt_pose),)
             )
 
@@ -70,7 +76,7 @@ class LocalTraversalPlanner:
 
         segments: List[TraversalSegment] = []
         current_pose = src_pose
-        
+
         for obs, clearance in blocking_obstacles:
             # BUG #1 FIX: Решаем переход для каждого препятствия индивидуально.
             # Если blocking obstacle не получает candidate, план не может быть возможен.
@@ -98,11 +104,11 @@ class LocalTraversalPlanner:
 
             # Оценка перехода (JUMP)
             feasibility = self._transition_kernel.evaluate_transition(candidate, body)
-            
+
             if not feasibility.possible:
                 return TraversalPlan(
-                    possible=False, 
-                    reason=feasibility.reason, 
+                    possible=False,
+                    reason=feasibility.reason,
                     segments=tuple(segments),
                     required_capability=feasibility.required_capability,
                     available_clearance=feasibility.available_clearance

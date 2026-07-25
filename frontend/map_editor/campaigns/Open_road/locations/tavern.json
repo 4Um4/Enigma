@@ -1,6 +1,6 @@
 {
   "filename": "tavern.json",
-  "location_id": "tavern",
+  "location_id": "tavern_silver_wolf",
   "label": "Таверна Серебряного Волка",
   "size": {
     "w": 20,
@@ -156,8 +156,18 @@
       "role": "default",
       "connections": [
         "entrance",
-        "main_hall",
+        "main_hall_south",
         "bar_area"
+      ]
+    },
+    "main_hall_south": {
+      "x": 6.0,
+      "y": 6.0,
+      "label": "Юго-запад зала",
+      "role": "default",
+      "connections": [
+        "main_hall_west",
+        "main_hall"
       ]
     },
     "main_hall": {
@@ -166,28 +176,48 @@
       "label": "Центр зала",
       "role": "default",
       "connections": [
-        "main_hall_west",
-        "right_table",
-        "door_kitchen"
+        "main_hall_south",
+        "right_table"
       ]
     },
     "door_kitchen": {
-      "x": 14.0,
+      "x": 13.5,
       "y": 3.75,
       "label": "Проём на кухню",
       "role": "passage",
       "connections": [
         "main_hall",
-        "kitchen"
+        "kitchen",
+        "fireplace"
       ]
     },
     "bar_area": {
       "x": 4.5,
-      "y": 5.5,
+      "y": 6.5,
       "label": "У стойки",
       "role": "bar",
       "connections": [
         "main_hall_west",
+        "bar_west"
+      ]
+    },
+    "bar_west": {
+      "x": 4.5,
+      "y": 4.5,
+      "label": "У южной стойки",
+      "role": "default",
+      "connections": [
+        "bar_area",
+        "bar_pass_north"
+      ]
+    },
+    "bar_pass_north": {
+      "x": 2.5,
+      "y": 6.0,
+      "label": "Северный обход (по стене)",
+      "role": "default",
+      "connections": [
+        "bar_west",
         "bar_side"
       ]
     },
@@ -197,27 +227,41 @@
       "label": "Обход стойки",
       "role": "default",
       "connections": [
-        "bar_area",
+        "bar_pass_north",
+        "bar_pass_south"
+      ]
+    },
+    "bar_pass_south": {
+      "x": 2.5,
+      "y": 3.0,
+      "label": "Южный обход (по стене)",
+      "role": "default",
+      "connections": [
+        "bar_side",
         "behind_bar"
       ]
     },
     "behind_bar": {
       "x": 4.0,
-      "y": 2.5,
+      "y": 3.0,
       "label": "За стойкой",
       "role": "inn_desk",
-      "tags": ["workplace:tavern_keeper", "inn_desk"],
+      "tags": [
+        "workplace:tavern_keeper",
+        "inn_desk"
+      ],
       "connections": [
-        "bar_side"
+        "bar_pass_south"
       ]
     },
     "fireplace": {
-      "x": 11.0,
+      "x": 10.5,
       "y": 3.0,
       "label": "У камина",
       "role": "default",
       "connections": [
-        "right_table"
+        "right_table",
+        "door_kitchen"
       ]
     },
     "corner_table": {
@@ -225,10 +269,12 @@
       "y": 10.0,
       "label": "В тёмном углу",
       "role": "dark_corner",
-      "tags": ["workplace:thief", "dark_corner"],
+      "tags": [
+        "workplace:thief",
+        "dark_corner"
+      ],
       "connections": [
         "entrance",
-        "main_hall",
         "right_table"
       ]
     },
@@ -244,11 +290,14 @@
       ]
     },
     "kitchen": {
-      "x": 16.0,
-      "y": 4.0,
+      "x": 17.0,
+      "y": 5.5,
       "label": "Кухня",
       "role": "kitchen_counter",
-      "tags": ["workplace:maid", "serving_station"],
+      "tags": [
+        "workplace:maid",
+        "serving_station"
+      ],
       "connections": [
         "door_kitchen"
       ]
@@ -736,31 +785,6 @@
       "position": {
         "x": 12.0,
         "y": 7.0
-      },
-      "size": {
-        "w": 0.5,
-        "h": 0.5,
-        "d": 0.5
-      },
-      "rotation": 0,
-      "passability": {
-        "walk": false,
-        "jump_over": true,
-        "crawl_under": false,
-        "climb_on": true,
-        "walk_around": true
-      },
-      "cover": 0.3,
-      "color": "#A0522D",
-      "properties": {}
-    },
-    {
-      "id": "obj_19",
-      "name": "Стул №9",
-      "type": "chair",
-      "position": {
-        "x": 12.0,
-        "y": 4.5
       },
       "size": {
         "w": 0.5,
@@ -1353,8 +1377,8 @@
     {
       "ref_id": "guard_borko",
       "position": {
-        "x": 12.0,
-        "y": 9.0
+        "x": 11.5,
+        "y": 10.5
       },
       "room_id": "room_0"
     },
@@ -1398,7 +1422,6 @@
   },
   "global_coords": true,
   "labels": [],
-  "location_id": "tavern_silver_wolf",
   "adjacency": {
     "east": "city_gate",
     "south": "market_square"

@@ -1136,7 +1136,7 @@ class SceneStateManager:
                                     entry["local_position"] = {"x": node.x, "y": node.y}
 
                                 _active_travs = scene_state.get("active_traversals", {})
-                                # ADR-O-201.4 / ADR-130.2: При cause="traversal_complete" 
+                                # ADR-O-201.4 / ADR-130.2: При cause="traversal_complete"
                                 # это факт завершения перемещения (snap), а не начало нового.
                                 # Создание нового TraversalState здесь запрещено.
                                 # Invariant I (Causal Provenance): Traversal не может существовать без существующего пути.

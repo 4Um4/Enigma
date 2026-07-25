@@ -23,8 +23,9 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from app.models.npc_profile import NPCProfileL0
 from app.services.npc.decision_hub import DecisionResult
-from app.services.npc.legacy_delta_adapter import LegacyStateDeltaAdapter
 from app.services.verbalization.verbal_stance import stance_from_decision
+from app.services.npc.legacy_delta_adapter import LegacyStateDeltaAdapter
+from app.models.npc_state import NPCState
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Выходные структуры (SceneOutcome)
@@ -768,7 +769,6 @@ class SceneOutcomeBuilder:
         Сохраняет trend/sources/focus из ET-оси для backward compatibility.
         """
         # ET-компоненты — для trend/sources/focus (legacy логика)
-        from app.services.npc.legacy_delta_adapter import LegacyStateDeltaAdapter
 
         if not decisions:
             _loads = npc_affective_loads or {}

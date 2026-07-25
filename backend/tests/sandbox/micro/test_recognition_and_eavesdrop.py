@@ -6,9 +6,10 @@
 Запуск: cd backend; python -m pytest tests/sandbox/micro/test_recognition_and_eavesdrop.py -v
 """
 
-import pytest
-from unittest.mock import MagicMock, patch
 from types import SimpleNamespace
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 
 def test_eavesdrop_into_journal():
@@ -73,8 +74,8 @@ def test_eavesdrop_out_of_range():
 
 def test_player_recognition_persists_in_run_turn():
     """Тест: Проверяет, что run_turn вызывает commit_tick_result, сохраняя player_recognition."""
-    from app.services.game_loop import GameLoop
     from app.models.schemas import ChatTurnRequest, PlayerAction
+    from app.services.game_loop import GameLoop
 
     # Мокируем GameLoop, оставляя только тестируемую логику
     loop = GameLoop.__new__(GameLoop)
@@ -103,7 +104,7 @@ def test_player_recognition_persists_in_run_turn():
     from unittest.mock import AsyncMock
     loop._run_pipeline = AsyncMock(return_value=SimpleNamespace(
         shared_context=SimpleNamespace(
-            scene_state=_fresh_scene, 
+            scene_state=_fresh_scene,
             player_target_id="maid_lusya",
             will_conflict_data=None
         ),

@@ -2,7 +2,9 @@
 Запуск: python scripts/spatial_diag.py
 """
 
-import sys, json
+import json
+import sys
+
 sys.path.insert(0, 'backend')
 from app.services.spatial.graph_compiler import _build_spatial_data, _line_rect_intersect, _segments_intersect
 

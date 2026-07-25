@@ -321,13 +321,14 @@ class EventCompiler:
                 elif neighbor_chunk:
                     entry_node = f"{neighbor_chunk}:entrance"
 
-        # Если target_location_id задан напрямую (от _process_traversals)
-        # node is None для cross-location movement, но это IS boundary transition
-        if target_loc:
+        # S140: Если target_location_id задан явно и отличается от текущей — это boundary transition.
+        # Запрещаем fallback на snapshot.location_id, чтобы избежать ложных is_boundary=True.
+        _explicit_target_loc = getattr(change, "target_location_id", "")
+        if _explicit_target_loc and _explicit_target_loc != snapshot.location_id:
             if not neighbor_chunk:
-                neighbor_chunk = target_loc
+                neighbor_chunk = _explicit_target_loc
             if not entry_node:
-                entry_node = f"{target_loc}:entry_west"  # ADR-O-201.1: Fallback to default entry node
+                entry_node = f"{_explicit_target_loc}:entry_west"
             is_boundary = True
 
         # Cross-location: node is None — use SceneChange data
@@ -512,12 +513,12 @@ class EventCompiler:
         # ADR-O-323 (Fix Rule 120 Drift): Shadow Compiler больше НЕ вычисляет путь.
         # MovementPlanner (Layer 1) уже сделал это и прикрепил TraversalProposal к SceneChange.
         # Любая попытка пересчёта здесь приводит к рассинхрону (Rule 120 Drift).
-        
+
         # Восстанавливаем target_loc, который был случайно удалён другим архитектором
         target_loc = getattr(change, "target_location_id", "") or snapshot.location_id
-        
+
         proposal = getattr(change, "traversal_proposal", None)
-        
+
         if not proposal:
             # Если это макро-перемещение, но нет proposal — это Causal Violation.
             if change.field == "position":
@@ -596,7 +597,7 @@ class EventCompiler:
         target_xy: Tuple[float, float],
     ) -> Tuple[bool, str]:
         """ADR-O-323: Независимая валидация инвариантов TraversalProposal.
-        
+
         Проверяет:
         1. Совпадение source/target с запрошенными
         2. Геометрическую валидность waypoints (начало/конец)
@@ -608,7 +609,7 @@ class EventCompiler:
             return False, f"SOURCE_MISMATCH prop={proposal.source_node} actual={spatial.source_node}"
         if proposal.target_node != change.value:
             return False, f"TARGET_MISMATCH prop={proposal.target_node} requested={change.value}"
-        
+
         # 2. Геометрическая валидность (без дублирования pathfinding)
         prop_wps = [list(wp) for wp in proposal.path_waypoints]
         if len(prop_wps) < 2:
@@ -619,7 +620,7 @@ class EventCompiler:
             return False, f"START_WAYPOINT_MISMATCH prop={prop_wps[0]} actual={list(source_xy)}"
         if abs(prop_wps[-1][0] - target_xy[0]) > 2.0 or abs(prop_wps[-1][1] - target_xy[1]) > 2.0:
             return False, f"END_WAYPOINT_MISMATCH prop={prop_wps[-1]} actual={list(target_xy)}"
-            
+
         # 3. Distance и Duration консистентны (геометрическая проверка)
         calc_distance = 0.0
         for i in range(len(prop_wps) - 1):
@@ -631,12 +632,12 @@ class EventCompiler:
         expected_duration = max(1, math.ceil(proposal.distance / proposal.speed)) if proposal.speed > 0 else 1
         if proposal.duration_ticks != expected_duration:
             return False, f"DURATION_MISMATCH prop={proposal.duration_ticks} expected={expected_duration}"
-            
+
         # 4. Topology Version
         current_topology_version = getattr(spatial, "_topology_version", 0)
         if proposal.topology_version != current_topology_version:
             return False, f"STALE_TOPOLOGY prop={proposal.topology_version} current={current_topology_version}"
-            
+
         return True, "OK"
 
     # ── Вспомогательные вычисления ────────────────────────────────

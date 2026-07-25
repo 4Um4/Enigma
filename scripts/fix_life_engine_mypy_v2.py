@@ -35,7 +35,7 @@ def apply_fixes():
         'tuple[list[SceneChange], list["MacroMovementGoal"]]'
     )
 
-    # 3. current_position: убираем повторное определение типа (no-redef) 
+    # 3. current_position: убираем повторное определение типа (no-redef)
     # и добавляем assert для getattr
     content = content.replace(
         '                        current_position: str = getattr(_ref, "node_id", str(_ref))',

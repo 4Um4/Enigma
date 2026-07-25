@@ -657,9 +657,9 @@ class SceneRenderer:
         tags: список строк вида 'manifest:tense', 'manifest:rigid' и т.д.
         """
         # Смещение по X, чтобы иконки не накладывались на inference_badges
-        # inference_badges рисуются от sx с шагом 8. 
+        # inference_badges рисуются от sx с шагом 8.
         # Допустим, максимум 5 бейджей. Тогда стартовая X для иконок = sx + 40.
-        _x_offset = 40 
+        _x_offset = 40
         
         _icon_map = {
             "manifest:tense": self._draw_tense_icon,

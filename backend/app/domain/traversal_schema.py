@@ -88,12 +88,12 @@ def validate_traversal_dict(data: Dict[str, Any]) -> List[str]:
         errors.append(f"invalid status: {data.get('status')}")
     if not isinstance(data.get("path_waypoints"), list):
         errors.append("path_waypoints must be list")
-    
+
     # S134.1: Кинематический инвариант (пустые массивы допустимы при 1 waypoint)
     expected_segments = max(0, len(data.get("path_waypoints", [])) - 1)
     seg_modes = data.get("segment_modes")
     seg_arcs = data.get("segment_arc_heights")
-    
+
     if seg_modes is None or seg_arcs is None:
         errors.append("missing segment_modes or segment_arc_heights")
     elif not isinstance(seg_modes, list) or not isinstance(seg_arcs, list):
@@ -102,7 +102,7 @@ def validate_traversal_dict(data: Dict[str, Any]) -> List[str]:
         errors.append(f"len(segment_modes) ({len(seg_modes)}) != expected ({expected_segments})")
     elif len(seg_arcs) != expected_segments:
         errors.append(f"len(segment_arc_heights) ({len(seg_arcs)}) != expected ({expected_segments})")
-        
+
     return errors
 
 
@@ -114,7 +114,7 @@ from typing import Any, Dict, List, Optional
 @dataclass(frozen=True)
 class TraversalProposal:
     """Causal artifact: immutable proposal for physical movement.
-    
+
     ADR-O-323: Created exclusively by MovementPlanner. Contains all
     validated data needed for materialization. Includes topology_version
     to detect stale proposals if spatial authority changed.
@@ -146,7 +146,7 @@ class MovementPlanStatus(Enum):
 @dataclass(frozen=True)
 class MovementPlanResult:
     """Result of MovementPlanner planning attempt.
-    
+
     If ACCEPTED, contains valid TraversalProposal.
     If REJECTED, contains reason. REJECTED proposals must NOT
     reach materialization layer.
@@ -169,7 +169,7 @@ class MovementPlanResult:
 
 def build_traversal_dict(proposal: "TraversalProposal") -> Dict[str, Any]:
     """Механический материализатор TraversalProposal в runtime dict.
-    
+
     ADR-O-323: Не вычисляет семантику пути. Только сериализует авторизованный proposal.
     Единственный разрешённый способ создания traversal_dict.
     """

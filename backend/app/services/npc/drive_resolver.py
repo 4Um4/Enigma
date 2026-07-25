@@ -51,13 +51,13 @@ class DriveResolver:
         if body_state:
             _fatigue = float(body_state.get("fatigue", 0.0)) / 100.0  # 0.0..1.0
             _pain = float(body_state.get("pain", 0.0)) / 100.0       # 0.0..1.0
-            
+
             # Усталость снижает желание (desire) и повышает потребность в покое (control)
             if _fatigue > 0.5:
                 _fatigue_impact = (_fatigue - 0.5) * 0.2  # мягкое влияние
                 drives["desire"] = max(0.01, drives.get("desire", 0.0) - _fatigue_impact)
                 drives["control"] = drives.get("control", 0.0) + _fatigue_impact * 0.5
-            
+
             # Боль повышает страх (fear) и снижает желание (desire)
             if _pain > 0.3:
                 _pain_impact = (_pain - 0.3) * 0.3

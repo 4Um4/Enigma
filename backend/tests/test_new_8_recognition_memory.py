@@ -1,8 +1,10 @@
 ﻿# backend/tests/test_new_8_recognition_memory.py
-import pytest
 import tempfile
 from pathlib import Path
+
+import pytest
 from app.services.state.sqlite_persistence_adapter import SqlitePersistenceAdapter
+
 
 def test_new_8_player_recognition_survives_save_load():
     db_path = Path(tempfile.gettempdir()) / "test_recognition.db"

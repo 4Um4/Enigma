@@ -7,8 +7,9 @@ S137.3: Daily Cross-Location Flow Census.
 Запуск: python scripts/check_population_flow.py
 """
 import json
-from pathlib import Path
 from collections import defaultdict
+from pathlib import Path
+
 
 def main():
     saves_dir = Path("saves/Open_road")

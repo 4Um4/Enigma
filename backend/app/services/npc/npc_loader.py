@@ -116,7 +116,7 @@ def _load_archetype_chain(individual_data: Dict[str, Any]) -> Dict[str, Any]:
 
 def reload_archetype_for(npc_dict: Dict[str, Any], new_archetype: str) -> Dict[str, Any]:
     """Перезагружает schedule + activity_map из нового архетипа, сохраняя runtime-overlay (P2-11).
-    
+
     ADR-TIFL-003: При кризисе идентичности NPC может сменить архетип.
     Эта функция перезагружает статические данные (schedule, activity_map) из нового архетипа,
     но сохраняет все runtime-поля (stress, relationship_cache, body_state и т.д.).
@@ -125,10 +125,10 @@ def reload_archetype_for(npc_dict: Dict[str, Any], new_archetype: str) -> Dict[s
     for key in _RUNTIME_TOP_LEVEL_KEYS:
         if key in npc_dict:
             _runtime_overlay[key] = npc_dict[key]
-            
+
     npc_dict["_archetype"] = new_archetype
     _new_static = _load_archetype_chain(npc_dict)
-    
+
     # Возвращаем runtime поля поверх новой статики
     _new_static.update(_runtime_overlay)
     logger.info(f"[NPC_LOADER] Reloaded archetype for {npc_dict.get('id')}: -> {new_archetype}")
@@ -511,7 +511,7 @@ def load_profile_from_legacy_json(raw_data: Dict[str, Any]) -> NPCProfileL0:
         # Если указан voice_archetype_id, он переопределяет voice_profile из JSON.
         _archetype_id = raw_data.get("voice_archetype_id")
         _voice_profile = raw_data.get("voice_profile", "")
-        
+
         if _archetype_id:
             from app.domain.memetic.voice_archetype import load_voice_archetype
             _archetype_data = load_voice_archetype(_archetype_id)

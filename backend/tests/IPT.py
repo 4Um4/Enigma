@@ -24,7 +24,8 @@ _ROOT = _BACKEND.parent
 sys.path.insert(0, str(_ROOT))
 
 # Автоматический запуск/остановка LLM для IPT
-from scripts.llm_server_manager import start_llama_server, kill_llama_server
+from scripts.llm_server_manager import kill_llama_server, start_llama_server
+
 _llm_ok = start_llama_server()
 if not _llm_ok:
     print("⚠️ Внимание: LLM не запущена. Тесты диалогов будут падать.")

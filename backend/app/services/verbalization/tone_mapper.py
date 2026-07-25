@@ -44,10 +44,10 @@ class ToneMapper:
         if not emotional_state:
             logger.debug("[TONE_MAPPER] emotional_state is None/empty. Fallback to NEUTRAL.")
             return "NEUTRAL"
-        
+
         _state_lower = emotional_state.lower()
         if _state_lower in ToneMapper._MAP:
             return ToneMapper._MAP[_state_lower]
-        
+
         logger.warning(f"[TONE_MAPPER] Unknown emotional_state '{emotional_state}'. Fallback to NEUTRAL.")
         return "NEUTRAL"

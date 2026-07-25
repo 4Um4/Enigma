@@ -36,7 +36,6 @@ from app.models.delta_payloads import (
     WillConflictPayload,
 )
 from app.models.event_resolution import StateChange
-from app.services.npc.kernel_rng import KernelRNG
 
 # Целевая архитектура данных (L2)
 # Легаси-типы, используемые в логике (Enum'ы и контракты)
@@ -57,8 +56,9 @@ from app.models.psychological import CausalEntry
 from app.models.state_delta import DeltaDomain, StateDeltas
 from app.services.memory.relationship_store import RelationshipStore
 from app.services.npc.decision_hub import DecisionResult
-from app.services.npc.legacy_delta_adapter import LegacyStateDeltaAdapter
+from app.services.npc.kernel_rng import KernelRNG
 from app.services.npc.math_utils import apply_saturation
+from app.services.npc.legacy_delta_adapter import LegacyStateDeltaAdapter
 
 logger = logging.getLogger(__name__)
 

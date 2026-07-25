@@ -344,3 +344,6 @@ MSG_INVALID_RESPONSE: str = "..."
 SOCIAL_TRUST_NEUTRAL: float = 0.0
 SOCIAL_TRUST_HOSTILE_THRESHOLD: float = -50.0
 SOCIAL_TRUST_HIGH_THRESHOLD: float = 50.0
+
+# Порог координаты X для выхода из таверны (ТЗ Миниигра «Таверна Серебряный Волк»)
+EXIT_X_THRESHOLD: Final[float] = 18.0

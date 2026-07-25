@@ -29,7 +29,7 @@ from app.models.spatial_contracts import (
     SpatialOverlay,
     Urgency,
 )
-from app.services.spatial.spatial_runtime import _segments_intersect, _line_rect_intersect
+from app.services.spatial.spatial_runtime import _line_rect_intersect, _segments_intersect
 
 logger = logging.getLogger(__name__)
 
@@ -131,12 +131,12 @@ class SpatialService:
     # ── ADR-O-333: Local Geometry Snapshot ──────────────────────────────
     def get_local_geometry(self, center_xy: Tuple[float, float], perception_radius: float = 15.0) -> "LocalGeometry":
         """Возвращает immutable snapshot локальной физической геометрии (в пределах восприятия)."""
-        from app.domain.traversal import LocalGeometry, WallSegment, Obstacle
-        from app.services.spatial.geometry_kernel import point_to_segment_dist_sq, point_to_rect_min_dist_sq
-        
+        from app.domain.traversal import LocalGeometry, Obstacle, WallSegment
+        from app.services.spatial.geometry_kernel import point_to_rect_min_dist_sq, point_to_segment_dist_sq
+
         cx, cy = center_xy
         r_sq = perception_radius ** 2
-        
+
         def _seg_in_range(x1, y1, x2, y2) -> bool:
             return point_to_segment_dist_sq((cx, cy), (x1, y1), (x2, y2)) <= r_sq
 
@@ -144,12 +144,12 @@ class SpatialService:
             return point_to_rect_min_dist_sq((cx, cy), rx, ry, rw, rh) <= r_sq
 
         walls = tuple(
-            WallSegment(w["x1"], w["y1"], w["x2"], w["y2"]) 
+            WallSegment(w["x1"], w["y1"], w["x2"], w["y2"])
             for w in self._spatial_walls if _seg_in_range(w["x1"], w["y1"], w["x2"], w["y2"])
         )
         obstacles = tuple(
             Obstacle(o.get("id", "unknown"), o["x"], o["y"], o["w"], o["h"], o.get("height", 1.0))
-            for o in self._spatial_obstacles 
+            for o in self._spatial_obstacles
             if not o.get("passability", {}).get("walk", True) and _rect_in_range(o["x"], o["y"], o["w"], o["h"])
         )
         return LocalGeometry(walls=walls, obstacles=obstacles, perception_radius=perception_radius, center_xy=center_xy)
@@ -157,7 +157,7 @@ class SpatialService:
     # ── ADR-O-324: Geometric Validation ─────────────────────────────────
     def is_segment_blocked(self, ax: float, ay: float, bx: float, by: float) -> bool:
         """Проверяет, пересекает ли отрезок AB любую стену или непроходимое препятствие.
-        
+
         ADR-O-324: Единственный метод для геометрической валидации сегментов пути.
         Используется MovementPlanner для проверки каждого отрезка маршрута.
         """
@@ -165,7 +165,7 @@ class SpatialService:
         for wall in self._spatial_walls:
             if _segments_intersect(ax, ay, bx, by, wall["x1"], wall["y1"], wall["x2"], wall["y2"]):
                 return True
-        
+
         # Проверка непроходимых препятствий
         for obs in self._spatial_obstacles:
             _pass = obs.get("passability", {})
@@ -175,7 +175,7 @@ class SpatialService:
             if _blocks_walk:
                 if _line_rect_intersect(ax, ay, bx, by, obs["x"], obs["y"], obs["w"], obs["h"]):
                     return True
-        
+
         return False
 
     def is_near_wall(self, x: float, y: float, threshold: float = 0.5) -> bool:
@@ -322,35 +322,35 @@ class SpatialService:
         owner: Optional[str] = None,
     ) -> Optional[NodeRef]:
         """Ищет физический объект с нужным аффордансом.
-        
+
         ADR-O-330: Кровать — это объект, а не узел графа.
-        Метод находит объект, берёт его XY и возвращает ближайший 
+        Метод находит объект, берёт его XY и возвращает ближайший
         навигационный узел как точку маршрута (Interaction Point).
         """
         if not self._affordance_objects:
             return None
-            
+
         candidates = [
             obj for obj in self._affordance_objects
             if affordance_type in obj.get("affordances", [])
             and not obj.get("destroyed", False)
         ]
-        
+
         # Фильтр по владельцу (через теги owner:orm или поле owner)
         if owner:
             candidates = [
                 obj for obj in candidates
                 if f"owner:{owner}" in obj.get("tags", []) or obj.get("owner") == owner
             ]
-            
+
         if not candidates:
             return None
-            
+
         # Скоринг по дистанции до NPC
         best_obj = None
         min_dist_sq = float('inf')
         ox, oy = origin_xy
-        
+
         for obj in candidates:
             dx = obj["x"] - ox
             dy = obj["y"] - oy
@@ -358,10 +358,10 @@ class SpatialService:
             if dist_sq < min_dist_sq:
                 min_dist_sq = dist_sq
                 best_obj = obj
-                
+
         if not best_obj:
             return None
-            
+
         # Возвращаем ближайший навигационный узел к точке взаимодействия с объектом
         zone = origin_zone or self._location_id
         return self.get_nearest(zone, (best_obj["x"], best_obj["y"]))
@@ -515,9 +515,13 @@ class SpatialService:
         # Находим стартовый узел (ближайший к start_xy в той же зоне)
         start_node = self.get_nearest(target_node.zone_id, start_xy, urgency)
         if start_node is None:
+            print(f"[FIND_PATH_DIAG] FAIL: start_node is None. zone={target_node.zone_id} xy={start_xy}")
             return []
         if start_node.node_id == target_id:
+            print(f"[FIND_PATH_DIAG] SUCCESS: start_node is target. node={start_node.node_id}")
             return [start_node]
+
+        print(f"[FIND_PATH_DIAG] start_xy={start_xy} target={target_id} start_node={start_node.node_id} zone={target_node.zone_id}")
 
         # Кэш
         cache_key = (
@@ -559,7 +563,7 @@ class SpatialService:
                 if neighbor_node is None:
                     continue
 
-                # S129 FIX: P4-04 — A* obstacle-aware. 
+                # S129 FIX: P4-04 — A* obstacle-aware.
                 # Если ребро заблокировано геометрией (стена, стол), считаем его непроходимым.
                 if self.is_segment_blocked(
                     current_node.x, current_node.y, neighbor_node.x, neighbor_node.y
@@ -583,6 +587,7 @@ class SpatialService:
             f"[SPATIAL] Путь не найден: {start_node.node_id} → {target_id} "
             f"(urgency={urgency.value})"
         )
+        print(f"[FIND_PATH_DIAG] FAIL: A* no path. start={start_node.node_id} target={target_id} connections={self._connections.get(start_node.node_id, set())}")
         return []
 
     def _edge_cost(

@@ -1,8 +1,10 @@
 ﻿# backend/tests/test_new_8_scene_manager.py
-import pytest
 import tempfile
 from pathlib import Path
+
+import pytest
 from app.services.scene_state_manager import SceneStateManager
+
 
 def test_new_8_scene_manager_preserves_recognition():
     db_path = Path(tempfile.gettempdir()) / "test_scene_mgr_recognition.db"

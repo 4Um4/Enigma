@@ -11,12 +11,13 @@
 Запускать ТОЛЬКО после применения шагов 1-4 этого ТЗ.
 """
 
-import requests
-import time
+import os
 import subprocess
 import sys
-import os
+import time
 from pathlib import Path
+
+import requests
 
 BACKEND = "http://localhost:8000"
 CAMPAIGN = "Open_road"
@@ -29,9 +30,9 @@ LOG_PATH = PROJECT_ROOT / "backend" / "logs" / "cds_backend.log"
 
 def test_autonomous_world():
     """Главная функция проверки AWC."""
-    print(f"=" * 60)
+    print("=" * 60)
     print(f"AWC test: starting session for campaign '{CAMPAIGN}'...")
-    print(f"=" * 60)
+    print("=" * 60)
 
     # 0. Проверить что backend жив
     try:
@@ -42,7 +43,7 @@ def test_autonomous_world():
         print(f"✅ Backend alive: {r.json()}")
     except Exception as e:
         print(f"❌ BACKEND NOT ALIVE: {e}")
-        print(f"   Запусти game_launcher.py и дождись backend startup")
+        print("   Запусти game_launcher.py и дождись backend startup")
         sys.exit(1)
 
     # 1. Создать сессию
@@ -76,7 +77,7 @@ def test_autonomous_world():
 
     # 3. Ждать 5 минут
     print(f"\nWaiting {WAIT_SECONDS} seconds (autonomous observation)...")
-    print(f"Не вводи ничего в игру. Просто наблюдай.")
+    print("Не вводи ничего в игру. Просто наблюдай.")
     for i in range(WAIT_SECONDS, 0, -30):
         print(f"  ...{i} seconds remaining")
         time.sleep(30)
@@ -114,7 +115,7 @@ def test_autonomous_world():
     failures = []
 
     print(f"\n{'=' * 60}")
-    print(f"AWC RESULTS")
+    print("AWC RESULTS")
     print(f"{'=' * 60}")
 
     # A. Время идёт
@@ -150,15 +151,15 @@ def test_autonomous_world():
 
     # D. Communication intents → dialogues
     if dialogue_exec_count < 1:
-        failures.append(f"D: 0 dialogues executed (expected ≥1)")
-        print(f"❌ D FAILED: 0 dialogues executed")
+        failures.append("D: 0 dialogues executed (expected ≥1)")
+        print("❌ D FAILED: 0 dialogues executed")
     else:
         print(f"✅ D PASSED: {dialogue_exec_count} dialogues executed")
 
     # E. NpcDialogueSubscriber ловит события
     if dialogue_sub_count < 1:
-        failures.append(f"E: 0 NPC_DIALOGUE_SUB events (expected ≥1)")
-        print(f"❌ E FAILED: 0 NPC_DIALOGUE_SUB events")
+        failures.append("E: 0 NPC_DIALOGUE_SUB events (expected ≥1)")
+        print("❌ E FAILED: 0 NPC_DIALOGUE_SUB events")
     else:
         print(f"✅ E PASSED: {dialogue_sub_count} NPC_DIALOGUE_SUB events")
 
@@ -167,7 +168,7 @@ def test_autonomous_world():
         failures.append(f"F: {tick_crash_count} TICK_CRASH events (expected 0)")
         print(f"❌ F FAILED: {tick_crash_count} TICK_CRASH events")
     else:
-        print(f"✅ F PASSED: 0 TICK_CRASH events")
+        print("✅ F PASSED: 0 TICK_CRASH events")
 
     # G. _build_communication не падает
     if build_comm_failed_count > 5:
@@ -178,8 +179,8 @@ def test_autonomous_world():
 
     # H. Proactive movement
     if motion_router_count < 1:
-        failures.append(f"H: 0 MOTION_ROUTER logs (expected ≥1)")
-        print(f"❌ H FAILED: 0 MOTION_ROUTER logs")
+        failures.append("H: 0 MOTION_ROUTER logs (expected ≥1)")
+        print("❌ H FAILED: 0 MOTION_ROUTER logs")
     else:
         print(f"✅ H PASSED: {motion_router_count} MOTION_ROUTER logs")
 
@@ -189,18 +190,18 @@ def test_autonomous_world():
         print(f"❌ AWC FAILED — {len(failures)} issues:")
         for f in failures:
             print(f"  - {f}")
-        print(f"\nОтладка:")
+        print("\nОтладка:")
         print(f"  1. Проверь логи: {LOG_PATH}")
-        print(f"  2. grep 'TICK_CRASH\\|BUILD_COMM_FAILED' backend/logs/cds_backend.log")
-        print(f"  3. grep 'DECISION_HUB_RETURN' backend/logs/cds_backend.log | tail -5")
+        print("  2. grep 'TICK_CRASH\\|BUILD_COMM_FAILED' backend/logs/cds_backend.log")
+        print("  3. grep 'DECISION_HUB_RETURN' backend/logs/cds_backend.log | tail -5")
         sys.exit(1)
     else:
-        print(f"✅ AWC PASSED — мир автономен!")
-        print(f"\nЧто это значит:")
-        print(f"  - Симуляция работает без ввода игрока")
-        print(f"  - NPC двигаются, принимают решения, говорят")
-        print(f"  - Цикл эмерджентности замыкается")
-        print(f"  - Можно переходить к мини-игре «Секреты Люси»")
+        print("✅ AWC PASSED — мир автономен!")
+        print("\nЧто это значит:")
+        print("  - Симуляция работает без ввода игрока")
+        print("  - NPC двигаются, принимают решения, говорят")
+        print("  - Цикл эмерджентности замыкается")
+        print("  - Можно переходить к мини-игре «Секреты Люси»")
         sys.exit(0)
 
 

@@ -1,4 +1,5 @@
 ﻿import pytest
+
 # -*- coding: utf-8 -*-
 """
 Тесты Impact Propagation Engine (Violence Simulation).

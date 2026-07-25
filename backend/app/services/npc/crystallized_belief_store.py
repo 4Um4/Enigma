@@ -6,7 +6,7 @@ path: backend/app/services/npc/crystallized_belief_store.py
 """
 
 import logging
-from typing import Dict, List, Optional, Any
+from typing import Any, Dict, List, Optional
 
 from app.domain.identity_events import CrystallizedBelief
 

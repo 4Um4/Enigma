@@ -107,20 +107,20 @@ class SettingsScreen:
         x = screen_w // 2 - btn_w // 2
         
         return [
-            _SettingsButton(x, start_y, btn_w, btn_h, "Семейный (0+)", 
-                            _MENU_COLORS["btn_secondary"], _MENU_COLORS["btn_secondary_hover"], 
+            _SettingsButton(x, start_y, btn_w, btn_h, "Семейный (0+)",
+                            _MENU_COLORS["btn_secondary"], _MENU_COLORS["btn_secondary_hover"],
                             lambda: self._set_preset("off"), self.current_preset == "off",
                             tooltip="Никакого мата, секса, детального насилия. Подходит для чувствительной аудитории."),
-            _SettingsButton(x, start_y + btn_h + gap, btn_w, btn_h, "Подростковый (16+)", 
-                            _MENU_COLORS["btn_secondary"], _MENU_COLORS["btn_secondary_hover"], 
+            _SettingsButton(x, start_y + btn_h + gap, btn_w, btn_h, "Подростковый (16+)",
+                            _MENU_COLORS["btn_secondary"], _MENU_COLORS["btn_secondary_hover"],
                             lambda: self._set_preset("moderate"), self.current_preset == "moderate",
                             tooltip="Лёгкая ругань, намёки на секс, физиологичное насилие без садизма."),
-            _SettingsButton(x, start_y + 2*(btn_h + gap), btn_w, btn_h, "Взрослый (18+)", 
-                            _MENU_COLORS["btn_secondary"], _MENU_COLORS["btn_secondary_hover"], 
+            _SettingsButton(x, start_y + 2*(btn_h + gap), btn_w, btn_h, "Взрослый (18+)",
+                            _MENU_COLORS["btn_secondary"], _MENU_COLORS["btn_secondary_hover"],
                             lambda: self._set_preset("explicit"), self.current_preset == "explicit",
                             tooltip="Полный 18+ контент: мат, explicit-секс, детальная жестокость, табу-практики."),
-            _SettingsButton(x, start_y + 3*(btn_h + gap), btn_w, btn_h, "Назад", 
-                            _MENU_COLORS["btn_danger"], _MENU_COLORS["btn_danger_hover"], 
+            _SettingsButton(x, start_y + 3*(btn_h + gap), btn_w, btn_h, "Назад",
+                            _MENU_COLORS["btn_danger"], _MENU_COLORS["btn_danger_hover"],
                             lambda: setattr(self, "_result", "back")),
         ]
 

@@ -16,6 +16,7 @@ from typing import Optional
 # Добавляем backend в path для импорта settings
 _BACKEND_DIR = Path(__file__).parent.parent / "backend"
 import sys
+
 sys.path.insert(0, str(_BACKEND_DIR))
 
 from app.core.config import settings

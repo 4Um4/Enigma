@@ -6,10 +6,12 @@
 python -m pytest tests/test_new_7_tick_crash.py -v
 """
 import types
-import pytest
 from unittest.mock import MagicMock
+
+import pytest
 from app.services.dto import _TickContext
 from app.services.phases.decision import assemble_preloaded_data
+
 
 def test_new_7_idle_tick_simple_namespace_does_not_crash():
     """

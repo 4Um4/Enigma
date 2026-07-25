@@ -754,8 +754,9 @@ class TickOrchestrator:
         # Без этого NPC не получает боль/шок, и BehaviorManifestationService не генерирует моторные следы.
         if _sem_action.upper() == "ATTACK":
             import uuid
-            from app.services.events.event_types import EventType
+
             from app.domain.events import EventDTO
+            from app.services.events.event_types import EventType
 
             _attack_event = EventDTO(
                 id=str(uuid.uuid4()),
@@ -1038,7 +1039,7 @@ class TickOrchestrator:
             from app.services.npc.topic_extractor import extract_topic
 
             topic = None
-            
+
             # 0. Приоритет: Проверяем недавние диалоги в TaskScheduler (NPC_SPOKE)
             # Если к NPC обратились, он должен ответить, а не болтать "наблюдение".
             _recent_dialogues = []
@@ -1181,10 +1182,10 @@ class TickOrchestrator:
         # [S99] Block 4 (Behavior Evaluation) вынесен в phases/decision.py
         # DEEP-FIX: Перенесено после assemble_preloaded_data, чтобы передать economic_profiles_map
         from app.services.phases.decision import evaluate_behavior_and_identity
-        
+
         # Шаг 1.1: Извлекаем RelationshipStore (SSOT) из StateApplicator для расчёта social_pressure
         _rel_store = getattr(self._state_applicator, "_rel_store", None) if self._state_applicator else None
-        
+
         evaluate_behavior_and_identity(
             npc_states=ctx.npc_states,
             campaign_id=ctx.campaign_id,

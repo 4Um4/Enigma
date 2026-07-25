@@ -5,6 +5,7 @@
 Основные сущности: NpcConversation
 """
 from __future__ import annotations
+
 import logging
 import random
 from typing import Iterable
@@ -208,7 +209,7 @@ class NpcConversation:
         # ADR-O-326: Sims-слой привязан к архетипам NPC
         _npc_id = task.owner_id.lower()
         _phrases = _AMBIENT_PHRASES_COMMON
-        
+
         if "blacksmith" in _npc_id or "orm" in _npc_id:
             _phrases = _AMBIENT_PHRASES_BLACKSMITH + _AMBIENT_PHRASES_COMMON
         elif "merchant" in _npc_id or "goran" in _npc_id:
@@ -219,7 +220,7 @@ class NpcConversation:
             _phrases = _AMBIENT_PHRASES_GUARD + _AMBIENT_PHRASES_COMMON
 
         text = random.choice(_phrases)
-        
+
         yield Artifact(
             task_id=task.task_id,
             success=True,

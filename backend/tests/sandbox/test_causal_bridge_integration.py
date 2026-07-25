@@ -34,6 +34,8 @@ class _DummyGraph:
 
     def __init__(self, location_id: str, nodes: dict):
         self.location_id = location_id
+        # P7-FIX: MovementEngine проверяет _location_id для нужд needs_dynamic
+        self._location_id = location_id
         self._nodes = nodes
 
     def all_nodes(self) -> dict:
@@ -101,6 +103,7 @@ def spatial_svc(tavern_graph):
     from app.models.spatial_contracts import NodeRef, NodeRole
 
     svc = MagicMock(spec=SpatialService)
+    svc._location_id = "tavern_silver_wolf" # P7-FIX: Предотвращает needs_dynamic=True и пересборку графа
     nodes = tavern_graph.all_nodes()
 
     def _get_node(node_id):
@@ -115,8 +118,13 @@ def spatial_svc(tavern_graph):
     svc.normalize_id.side_effect = lambda x: x  # Прямой ID
     svc.get_nearest.return_value = _get_node("main_hall")
     svc.get_furthest.return_value = _get_node("bed")
-    # КРИТИЧЕСКИ: mock build_for_location чтобы MovementEngine не перезаписал сервис
-    svc._resolve_spatial_service = MagicMock(return_value=svc)
+    
+    # P7-FIX: Mock find_path to return a list of NodeRef objects, not strings
+    def _find_path(src_xy, tgt_node):
+        _src_node = NodeRef(node_id="source", role=NodeRole.DEFAULT, tags=[], x=src_xy[0], y=src_xy[1], zone_id="tavern_silver_wolf")
+        return [_src_node, tgt_node]
+    svc.find_path.side_effect = _find_path
+
     return svc
 
 
@@ -156,6 +164,7 @@ def test_schedule_locomotion_updates_coordinates(tavern_graph, scene_state, patc
     # MovementEngine обрабатывает intent
     me = MovementEngine()
     me.set_spatial_service(spatial_svc)
+    
     changes = me.process_intents(
         [intent],
         tick=1,

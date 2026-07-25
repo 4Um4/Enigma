@@ -6,15 +6,16 @@ S137.3: Daily Cross-Location Flow Census.
 Запуск: python scripts/run_census.py
 """
 
-import sys
 import shutil
-from pathlib import Path
+import sys
 from collections import defaultdict
+from pathlib import Path
 
 # Добавляем корень бэкенда в sys.path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend"))
 
 from app.core.config import settings
+
 
 def main():
     settings.environment = "test"  # Отключаем LLM
@@ -76,7 +77,7 @@ def main():
             if i % 50 == 0:
                 print(f"  ...прогнано {i} тиков")
                 
-        print(f"\nСимуляция завершена. Сбор статистики...\n")
+        print("\nСимуляция завершена. Сбор статистики...\n")
         
         # 8. Читаем финальное состояние
         scene_state = loop.scene_manager.get_scene_state_uncached(campaign_id, location_id)
@@ -93,7 +94,7 @@ def main():
         location_map = defaultdict(list)
         
         print(f"{'='*50}")
-        print(f" 📊 CENSUS: Финальное распределение NPC")
+        print(" 📊 CENSUS: Финальное распределение NPC")
         print(f"{'='*50}\n")
         
         for npc_id, npc_data in npc_positions.items():

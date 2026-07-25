@@ -53,7 +53,7 @@ class NpcDialogueSubscriber:
             speaker = event.get("source", "")
             payload = event.get("payload", {})
             tick = event.get("timestamp", 0)
-            
+
         listener = payload.get("target_id")
         text = payload.get("text", "")
         tone = payload.get("tone", "NEUTRAL")
@@ -153,7 +153,7 @@ class NpcDialogueSubscriber:
                 f"[NPC_DIALOGUE_SUB] {listener} rel update: "
                 f"{speaker} trust={delta_trust:+.1f} fear={delta_fear:+.1f}"
             )
-            
+
             # NEW-3: Bridge 2 — пишем NPC-NPC диалог в L1Chronicle для BeliefCrystallizationEngine
             if self._l1_chronicle:
                 from app.domain.identity_events import TraitDriftEvent
@@ -166,7 +166,7 @@ class NpcDialogueSubscriber:
                     event_type=f"social_dialogue:{tone}",
                 )
                 self._l1_chronicle.commit_tick_buffer([_drift_event], tick)
-            
+
         except Exception as rel_err:
             logger.warning(f"[NPC_DIALOGUE_SUB] relationship update failed: {rel_err}")
 

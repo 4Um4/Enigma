@@ -1,0 +1,188 @@
+{
+  "schema_version": 1,
+  "campaign_id": "silver_wolf",
+  "secrets": [
+    {
+      "secret_id": "lusya_basement",
+      "npc_id": "maid_lusya",
+      "participants": ["maid_lusya"],
+      "category": "criminal",
+      "canonical_truth": "Люся знает тайный ход в подвал гильдии воров",
+      "importance": 0.9,
+      "initial_holders": ["maid_lusya"],
+      "discovery_surface": ["visual_cue", "eavesdrop"]
+    },
+    {
+      "secret_id": "lusya_shadow_orders",
+      "npc_id": "maid_lusya",
+      "participants": ["maid_lusya", "thief_shadow"],
+      "category": "criminal",
+      "canonical_truth": "Тень приказал Люсе быть готовой к большому делу",
+      "importance": 0.8,
+      "initial_holders": ["maid_lusya", "thief_shadow"],
+      "discovery_surface": ["eavesdrop"]
+    },
+    {
+      "secret_id": "lusya_orm_borko",
+      "npc_id": "maid_lusya",
+      "participants": ["maid_lusya", "blacksmith_orm", "guard_borko"],
+      "category": "intimacy",
+      "canonical_truth": "Люся спит с кузнецом Ормом, а Борко подглядывает",
+      "importance": 0.7,
+      "initial_holders": ["maid_lusya", "blacksmith_orm", "guard_borko"],
+      "discovery_surface": ["visual_cue", "eavesdrop"]
+    },
+    {
+      "secret_id": "lusya_borko_crush",
+      "npc_id": "maid_lusya",
+      "participants": ["maid_lusya"],
+      "category": "intimacy",
+      "canonical_truth": "Люся влюблена в Борко",
+      "importance": 0.6,
+      "initial_holders": ["maid_lusya"],
+      "discovery_surface": ["dialogue"]
+    },
+    {
+      "secret_id": "borko_bribe",
+      "npc_id": "guard_borko",
+      "participants": ["guard_borko", "merchant_goran"],
+      "category": "corruption",
+      "canonical_truth": "Горан платит Борко 5 золотых в месяц за закрытие глаз",
+      "importance": 0.8,
+      "initial_holders": ["guard_borko", "merchant_goran"],
+      "discovery_surface": ["eavesdrop", "visual_cue"]
+    },
+    {
+      "secret_id": "borko_voyeur",
+      "npc_id": "guard_borko",
+      "participants": ["guard_borko"],
+      "category": "intimacy",
+      "canonical_truth": "Борко подглядывает за Люсей и Ормом",
+      "importance": 0.7,
+      "initial_holders": ["guard_borko"],
+      "discovery_surface": ["visual_cue"]
+    },
+    {
+      "secret_id": "borko_negligence",
+      "npc_id": "guard_borko",
+      "participants": ["guard_borko"],
+      "category": "guilt",
+      "canonical_truth": "Борко пропустил караван, из-за чего нашли труп",
+      "importance": 0.6,
+      "initial_holders": ["guard_borko"],
+      "discovery_surface": ["dialogue"]
+    },
+    {
+      "secret_id": "goran_contraband",
+      "npc_id": "merchant_goran",
+      "participants": ["merchant_goran"],
+      "category": "criminal",
+      "canonical_truth": "Горан потерял 300 золотых на перехваченном шёлке",
+      "importance": 0.9,
+      "initial_holders": ["merchant_goran"],
+      "discovery_surface": ["dialogue", "eavesdrop"]
+    },
+    {
+      "secret_id": "goran_bribe",
+      "npc_id": "merchant_goran",
+      "participants": ["merchant_goran", "guard_borko"],
+      "category": "corruption",
+      "canonical_truth": "Горан подкупал Борко два года",
+      "importance": 0.7,
+      "initial_holders": ["merchant_goran", "guard_borko"],
+      "discovery_surface": ["dialogue"]
+    },
+    {
+      "secret_id": "orm_craft",
+      "npc_id": "blacksmith_orm",
+      "participants": ["blacksmith_orm"],
+      "category": "guilt",
+      "canonical_truth": "Орм не передал секрет мастера после его смерти",
+      "importance": 0.5,
+      "initial_holders": ["blacksmith_orm"],
+      "discovery_surface": ["dialogue"]
+    },
+    {
+      "secret_id": "orm_tornin_order",
+      "npc_id": "blacksmith_orm",
+      "participants": ["blacksmith_orm", "tavern_keeper_tornin"],
+      "category": "criminal",
+      "canonical_truth": "Орм выковал что-то особенное для Торнина без вопросов",
+      "importance": 0.8,
+      "initial_holders": ["blacksmith_orm", "tavern_keeper_tornin"],
+      "discovery_surface": ["eavesdrop"]
+    },
+    {
+      "secret_id": "shadow_investigation",
+      "npc_id": "thief_shadow",
+      "participants": ["thief_shadow"],
+      "category": "criminal",
+      "canonical_truth": "Тень ищет предателя, сдавшего шёлк",
+      "importance": 0.9,
+      "initial_holders": ["thief_shadow"],
+      "discovery_surface": ["eavesdrop", "dialogue"]
+    },
+    {
+      "secret_id": "shadow_suspects_lusya",
+      "npc_id": "thief_shadow",
+      "participants": ["thief_shadow"],
+      "category": "criminal",
+      "canonical_truth": "Тень подозревает Люсю в предательстве",
+      "importance": 0.8,
+      "initial_holders": ["thief_shadow"],
+      "discovery_surface": ["eavesdrop"]
+    },
+    {
+      "secret_id": "shadow_first_kill",
+      "npc_id": "thief_shadow",
+      "participants": ["thief_shadow"],
+      "category": "guilt",
+      "canonical_truth": "Тень убил человека три года назад",
+      "importance": 0.6,
+      "initial_holders": ["thief_shadow"],
+      "discovery_surface": ["dialogue"]
+    },
+    {
+      "secret_id": "tornin_debt",
+      "npc_id": "tavern_keeper_tornin",
+      "participants": ["tavern_keeper_tornin", "thief_shadow"],
+      "category": "criminal",
+      "canonical_truth": "Торнин должен гильдии 1200 золотых",
+      "importance": 0.9,
+      "initial_holders": ["tavern_keeper_tornin", "thief_shadow"],
+      "discovery_surface": ["dialogue", "eavesdrop"]
+    },
+    {
+      "secret_id": "tornin_basement",
+      "npc_id": "tavern_keeper_tornin",
+      "participants": ["tavern_keeper_tornin", "maid_lusya"],
+      "category": "criminal",
+      "canonical_truth": "Торнин знает, что подвал используется гильдией, но притворяется",
+      "importance": 0.8,
+      "initial_holders": ["tavern_keeper_tornin", "maid_lusya"],
+      "discovery_surface": ["eavesdrop"]
+    }
+  ],
+  "relations": [
+    {"source_secret_id": "lusya_basement", "target_secret_id": "tornin_basement", "relation_type": "DEPENDS_ON", "strength": 0.9},
+    {"source_secret_id": "lusya_basement", "target_secret_id": "shadow_investigation", "relation_type": "REVEALS", "strength": 0.8},
+    {"source_secret_id": "lusya_shadow_orders", "target_secret_id": "shadow_investigation", "relation_type": "DEPENDS_ON", "strength": 0.7},
+    {"source_secret_id": "lusya_shadow_orders", "target_secret_id": "shadow_first_kill", "relation_type": "ENABLES", "strength": 0.6},
+    {"source_secret_id": "lusya_orm_borko", "target_secret_id": "borko_voyeur", "relation_type": "CAUSES", "strength": 0.8},
+    {"source_secret_id": "lusya_orm_borko", "target_secret_id": "orm_craft", "relation_type": "EXPLAINS", "strength": 0.5},
+    {"source_secret_id": "lusya_borko_crush", "target_secret_id": "borko_voyeur", "relation_type": "CONTRADICTS", "strength": 0.4},
+    {"source_secret_id": "borko_bribe", "target_secret_id": "goran_bribe", "relation_type": "DEPENDS_ON", "strength": 0.9},
+    {"source_secret_id": "goran_contraband", "target_secret_id": "shadow_investigation", "relation_type": "CAUSES", "strength": 0.9},
+    {"source_secret_id": "goran_contraband", "target_secret_id": "goran_bribe", "relation_type": "ENABLES", "strength": 0.7},
+    {"source_secret_id": "orm_tornin_order", "target_secret_id": "tornin_debt", "relation_type": "DEPENDS_ON", "strength": 0.8},
+    {"source_secret_id": "shadow_investigation", "target_secret_id": "goran_contraband", "relation_type": "EXPLAINS", "strength": 0.8},
+    {"source_secret_id": "shadow_investigation", "target_secret_id": "lusya_basement", "relation_type": "REVEALS", "strength": 0.7},
+    {"source_secret_id": "shadow_suspects_lusya", "target_secret_id": "lusya_shadow_orders", "relation_type": "DEPENDS_ON", "strength": 0.8},
+    {"source_secret_id": "tornin_debt", "target_secret_id": "tornin_basement", "relation_type": "CAUSES", "strength": 0.9},
+    {"source_secret_id": "tornin_debt", "target_secret_id": "shadow_investigation", "relation_type": "REVEALS", "strength": 0.6},
+    {"source_secret_id": "tornin_basement", "target_secret_id": "lusya_basement", "relation_type": "CONCEALS", "strength": 0.8},
+    {"source_secret_id": "borko_voyeur", "target_secret_id": "lusya_orm_borko", "relation_type": "DEPENDS_ON", "strength": 0.9},
+    {"source_secret_id": "goran_bribe", "target_secret_id": "borko_bribe", "relation_type": "CAUSES", "strength": 0.9},
+    {"source_secret_id": "shadow_first_kill", "target_secret_id": "shadow_suspects_lusya", "relation_type": "EXPLAINS", "strength": 0.5}
+  ]
+}

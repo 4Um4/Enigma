@@ -358,10 +358,10 @@ def compile_graph(
     # ETKE-IK v1: возвращаем rooms_geometry 5-м элементом
     # ADR-O-324: возвращаем spatial_walls и spatial_obstacles 6-м и 7-м элементом
     spatial_walls, spatial_obstacles = _build_spatial_data(editor_data)
-    
+
     # S129 FIX: P4-02 — Геометрическая валидация графа. Ловим рёбра, проходящие сквозь стены.
     _validate_navigation_geometry(graph, connections, spatial_walls, spatial_obstacles, location_id)
-    
+
     # ADR-O-330: Извлекаем физические объекты с аффордансами (кровати, палатки, верстаки)
     affordance_objects = _extract_affordance_objects(editor_data)
     return graph, connections, alias_map, boundary_map, rooms_geometry, spatial_walls, spatial_obstacles, affordance_objects
@@ -376,19 +376,22 @@ def _validate_navigation_geometry(
     """S129: Проверяет, что навигационные рёбра не пересекают физическую геометрию."""
     for from_id, neighbors in connections.items():
         from_node = graph.get(from_id)
-        if not from_node: continue
-        
+        if not from_node:
+            continue
+
         # S137.1: Собираем заблокированные рёбра, чтобы удалить их из графа.
         _blocked_edges = set()
         for to_id in neighbors:
             # Проверяем только A -> B, чтобы избежать дублирования логов (B -> A)
             if from_id > to_id:
                 continue
-                
+
             to_node = graph.get(to_id)
-            if not to_node: continue
-            
+            if not to_node:
+                continue
+
             is_blocked = False
+            _blocker = ""
             # 1. Проверка стен
             for wall in spatial_walls:
                 if _segments_intersect(
@@ -396,8 +399,9 @@ def _validate_navigation_geometry(
                     wall["x1"], wall["y1"], wall["x2"], wall["y2"]
                 ):
                     is_blocked = True
+                    _blocker = f"WALL {wall}"
                     break
-            
+
             # 2. Проверка препятствий (только walk=false)
             if not is_blocked:
                 for obs in spatial_obstacles:
@@ -406,21 +410,28 @@ def _validate_navigation_geometry(
                             from_node.x, from_node.y, to_node.x, to_node.y,
                             obs["x"], obs["y"], obs["w"], obs["h"]
                         ):
-                            is_blocked = True
-                            break
-                            
+                            # S140: Не блокируем ребро, если препятствие можно перепрыгнуть.
+                            # LocalTraversalPlanner построит маршрут с JUMP-сегментом.
+                            if not obs.get("passability", {}).get("jump_over", False):
+                                is_blocked = True
+                                _blocker = f"OBSTACLE {obs.get('id', obs)}"
+                                break
+
+            if is_blocked:
+                print(f"[DEBUG_GEO_BLOCK] {from_id} ({from_node.x},{from_node.y}) -> {to_id} ({to_node.x},{to_node.y}) blocked by {_blocker}")
+
             if is_blocked:
                 logger.warning(
                     f"[SPATIAL_VALIDATION] {location_id}: edge {from_id} -> {to_id} "
-                    f"is geometrically blocked! Removing edge from graph."
+                    f"is geometrically blocked! Edge removed from graph."
                 )
-                _blocked_edges.add(to_id)
-                
-        # S137.1: Удаляем заблокированные рёбра из графа (A -> B и B -> A)
-        for to_id in _blocked_edges:
-            neighbors.discard(to_id)
-            if to_id in connections:
-                connections[to_id].discard(from_id)
+                _blocked_edges.add((from_id, to_id))
+                _blocked_edges.add((to_id, from_id))
+
+        # S140 FIX: Фактическое удаление заблокированных рёбер из графа.
+        for _src, _tgt in _blocked_edges:
+            if _src in connections and _tgt in connections[_src]:
+                connections[_src].remove(_tgt)
 
 def _segments_intersect(x1, y1, x2, y2, x3, y3, x4, y4) -> bool:
     """Стандартное определение пересечения двух отрезков."""
@@ -435,23 +446,27 @@ def _line_rect_intersect(x1, y1, x2, y2, rx, ry, rw, rh) -> bool:
     if (rx <= x1 <= rx + rw and ry <= y1 <= ry + rh) or (rx <= x2 <= rx + rw and ry <= y2 <= ry + rh):
         return True
     # Проверка пересечения с 4 сторонами прямоугольника
-    if _segments_intersect(x1, y1, x2, y2, rx, ry, rx + rw, ry): return True
-    if _segments_intersect(x1, y1, x2, y2, rx + rw, ry, rx + rw, ry + rh): return True
-    if _segments_intersect(x1, y1, x2, y2, rx, ry + rh, rx + rw, ry + rh): return True
-    if _segments_intersect(x1, y1, x2, y2, rx, ry, rx, ry + rh): return True
+    if _segments_intersect(x1, y1, x2, y2, rx, ry, rx + rw, ry):
+        return True
+    if _segments_intersect(x1, y1, x2, y2, rx + rw, ry, rx + rw, ry + rh):
+        return True
+    if _segments_intersect(x1, y1, x2, y2, rx, ry + rh, rx + rw, ry + rh):
+        return True
+    if _segments_intersect(x1, y1, x2, y2, rx, ry, rx, ry + rh):
+        return True
     return False
 
 
 def _extract_affordance_objects(editor_data: Dict[str, Any]) -> List[Dict[str, Any]]:
     """Извлекает физические объекты с аффордансами из editor JSON.
-    
+
     ADR-O-330: Кровать — это физический объект, а не навигационный узел.
     Возвращает список словарей с координатами и типами аффордансов.
     """
     objects = editor_data.get("objects", [])
     if not objects:
         return []
-    
+
     # Временный детерминированный маппинг типа объекта → аффордансы
     _TYPE_TO_AFFORDANCE = {
         "bed": ["sleep", "rest"],
@@ -459,18 +474,18 @@ def _extract_affordance_objects(editor_data: Dict[str, Any]) -> List[Dict[str, A
         "forge": ["forge", "work"],
         "workbench": ["work", "craft"],
     }
-    
+
     affordance_objects = []
     for obj in objects:
         obj_type = obj.get("type", "")
         affordances = _TYPE_TO_AFFORDANCE.get(obj_type)
         if not affordances:
             continue
-            
+
         pos = obj.get("position", {})
         if not pos:
             continue
-            
+
         affordance_objects.append({
             "object_id": obj.get("id", obj_type),
             "source_type": obj_type,
@@ -485,16 +500,16 @@ def _extract_affordance_objects(editor_data: Dict[str, Any]) -> List[Dict[str, A
 
 def _build_spatial_data(editor_data: Dict[str, Any]) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
     """Извлекает spatial_walls и spatial_obstacles из editor JSON.
-    
+
     ADR-O-324: Перенесено из SceneStateManager для обеспечения Single Spatial Authority.
     SpatialService теперь владеет геометрией стен и может валидировать сегменты пути.
     """
     spatial_walls: list[dict] = []
     spatial_obstacles: list[dict] = []
-    
+
     if not editor_data:
         return spatial_walls, spatial_obstacles
-    
+
     # Разрезаем стены проёмами (двери)
     # S129 FIX: P4-02 — Честный контракт wall_id вместо переиспользования rotation.
     wall_openings: dict[str, list[dict]] = {}
@@ -504,33 +519,41 @@ def _build_spatial_data(editor_data: Dict[str, Any]) -> Tuple[List[Dict[str, Any
         wall_id = obj.get("wall_id")
         if wall_id:
             wall_openings.setdefault(wall_id, []).append(obj)
-    
+
     for wall in editor_data.get("walls", []):
         wall_id = wall.get("id")
         openings = wall_openings.get(wall_id, [])
         segments = _split_wall_by_openings(wall, openings)
         spatial_walls.extend(segments)
-    
+
     # Препятствия с passability и blocks_los
     for obj in editor_data.get("objects", []):
+        # S-01 FIX: Двери (type=door/door_transition) обрабатываются как проёмы в стенах выше.
+        # Они не должны быть физическими препятствиями, иначе блокируют путь даже при разрезе стены.
+        if obj.get("type") in ("door", "door_transition"):
+            continue
         if obj.get("passability", {}).get("walk", True):
             continue
         pos = obj.get("position", {})
         size = obj.get("size", {})
         if pos and size:
+            # S-01 FIX: Уменьшаем bounding box препятствий на 0.2м (0.1м с каждой стороны).
+            # Это даёт NPC "зазор" для прохождения вплотную к мебели, не задевая её математически.
+            _w = max(0.0, size.get("w", 0) - 0.2)
+            _h = max(0.0, size.get("h", 0) - 0.2)
             spatial_obstacles.append(
                 {
-                    "x": pos["x"] - size.get("w", 0) / 2,
-                    "y": pos["y"] - size.get("h", 0) / 2,
-                    "w": size.get("w", 0),
-                    "h": size.get("h", 0),
+                    "x": pos["x"] - _w / 2,
+                    "y": pos["y"] - _h / 2,
+                    "w": _w,
+                    "h": _h,
                     "id": obj.get("id", ""),
                     "type": obj.get("type", "decoration"),
                     "blocks_los": obj.get("cover", 0) >= 0.8,
                     "passability": obj.get("passability", {}),
                 }
             )
-    
+
     return spatial_walls, spatial_obstacles
 
 
@@ -545,20 +568,20 @@ def _split_wall_by_openings(wall: dict, openings: list[dict]) -> list[dict]:
                 "y2": wall["y2"],
             }
         ]
-    
+
     x1, y1 = wall["x1"], wall["y1"]
     x2, y2 = wall["x2"], wall["y2"]
-    
+
     dx = x2 - x1
     dy = y2 - y1
     wall_len = (dx * dx + dy * dy) ** 0.5
     if wall_len == 0:
         return [{"x1": x1, "y1": y1, "x2": x2, "y2": y2}]
-    
+
     # единичный вектор вдоль стены
     ux = dx / wall_len
     uy = dy / wall_len
-    
+
     # Собираем интервалы проёмов вдоль стены (в метрах от начала стены)
     gaps = []
     for op in openings:
@@ -571,10 +594,10 @@ def _split_wall_by_openings(wall: dict, openings: list[dict]) -> list[dict]:
         dist_along = vx * ux + vy * uy
         # Перпендикулярное расстояние (объект должен быть на стене)
         perp_dist = abs(vx * (-uy) + vy * ux)
-        
+
         if perp_dist > 0.5:
             continue
-        
+
         w = size.get("w", 0)
         h = size.get("h", 0)
         # Проекция размера объекта на стену
@@ -583,10 +606,10 @@ def _split_wall_by_openings(wall: dict, openings: list[dict]) -> list[dict]:
         gap_end = min(wall_len, dist_along + half_len)
         if gap_end > gap_start:
             gaps.append((gap_start, gap_end))
-    
+
     if not gaps:
         return [{"x1": x1, "y1": y1, "x2": x2, "y2": y2}]
-    
+
     # Сортируем проёмы и объединяем перекрывающиеся
     gaps.sort()
     merged = [gaps[0]]
@@ -595,7 +618,7 @@ def _split_wall_by_openings(wall: dict, openings: list[dict]) -> list[dict]:
             merged[-1] = (merged[-1][0], max(merged[-1][1], end))
         else:
             merged.append((start, end))
-    
+
     # Строим сегменты стены между проёмами
     segments = []
     current = 0.0
@@ -608,7 +631,7 @@ def _split_wall_by_openings(wall: dict, openings: list[dict]) -> list[dict]:
                 "y2": y1 + uy * start,
             })
         current = end
-    
+
     if current < wall_len:
         segments.append({
             "x1": x1 + ux * current,
@@ -616,17 +639,17 @@ def _split_wall_by_openings(wall: dict, openings: list[dict]) -> list[dict]:
             "x2": x2,
             "y2": y2,
         })
-    
+
     return segments
 
 
 def load_editor_json(
-    campaign_id: str, 
-    location_id: str, 
+    campaign_id: str,
+    location_id: str,
     search_dirs: Optional[List[Path]] = None
 ) -> Optional[Dict[str, Any]]:
     """Загружает JSON-файл локации.
-    
+
     Поиск: search_dirs (если переданы) -> campaign_dir/locations -> campaign_dir.
     Сопоставление: по имени файла (location_id.json) или по полю location_id/id внутри JSON.
     Включает fuzzy match для случаев вроде "tavern" vs "tavern_silver_wolf".
@@ -635,17 +658,17 @@ def load_editor_json(
     dirs_to_search: List[Path] = []
     if search_dirs:
         dirs_to_search.extend(search_dirs)
-    
+
     project_root = Path(__file__).resolve().parents[4]
     campaign_dir = project_root / "frontend" / "map_editor" / "campaigns" / campaign_id
     dirs_to_search.append(campaign_dir / "locations")
     dirs_to_search.append(campaign_dir)
-    
+
     # 2. Ищем файл
     for d in dirs_to_search:
         if not d.exists():
             continue
-            
+
         # Пробуем точное совпадение имени файла
         loc_file = d / f"{location_id}.json"
         if loc_file.exists():
@@ -654,7 +677,7 @@ def load_editor_json(
                     return json.load(f)
             except Exception as e:
                 logger.error(f"[GRAPH_COMPILER] Failed to parse JSON from {loc_file}: {e}")
-                
+
         # Пробуем искать по содержимому (поле location_id или id)
         for json_file in d.glob("*.json"):
             if json_file.name == "campaign.json":
@@ -670,7 +693,7 @@ def load_editor_json(
                         return data
             except Exception as e:
                 logger.error(f"[GRAPH_COMPILER] Failed to parse JSON from {json_file}: {e}")
-                
+
     # 3. Fallback: campaign.json (старый формат, где всё в одном файле)
     campaign_file = campaign_dir / "campaign.json"
     if campaign_file.exists():
@@ -685,7 +708,7 @@ def load_editor_json(
                     return data
         except Exception as e:
             logger.error(f"[GRAPH_COMPILER] Failed to parse JSON from {campaign_file}: {e}")
-            
+
     logger.warning(f"[GRAPH_COMPILER] No map file found for {campaign_id}/{location_id}")
     return None
 
@@ -693,10 +716,10 @@ def _validate_connectivity(graph: Dict[str, NodeRef], connections: Dict[str, Set
     """Проверяет связность графа. Логирует предупреждения об изолированных узлах."""
     if not graph:
         return
-        
+
     visited: Set[str] = set()
     queue = deque([next(iter(graph))])
-    
+
     while queue:
         node = queue.popleft()
         if node in visited:
@@ -705,7 +728,7 @@ def _validate_connectivity(graph: Dict[str, NodeRef], connections: Dict[str, Set
         for neighbor in connections.get(node, set()):
             if neighbor not in visited:
                 queue.append(neighbor)
-                
+
     if len(visited) != len(graph):
         isolated = set(graph.keys()) - visited
         logger.warning(f"[GRAPH_COMPILER] Изолированные узлы в {location_id}: {isolated}")
@@ -723,7 +746,7 @@ def _create_boundary_nodes(
 ) -> None:
     """Создаёт виртуальные boundary nodes для перехода в соседние чанки (ДОЛГ 6.2)."""
     _OPPOSITE_DIRS = {"north": "south", "south": "north", "east": "west", "west": "east"}
-    
+
     if not graph:
         return
 
@@ -739,11 +762,11 @@ def _create_boundary_nodes(
         "east": (_ox + _w, _oy + _h / 2.0),
         "west": (_ox, _oy + _h / 2.0),
     }
-        
+
     for direction, neighbor_loc_id in adjacency.items():
         if not isinstance(neighbor_loc_id, str):
             continue
-            
+
         _bx, _by = _DIR_TO_XY.get(direction, (_ox + _w / 2.0, _oy + _h / 2.0))
 
         # P4-01A FIX: Ищем ближайший навигационный узел к границе (исключая другие boundary nodes)
@@ -764,7 +787,7 @@ def _create_boundary_nodes(
             continue
 
         boundary_id = f"{location_id}:exit_{direction}"
-        # S137.2: Boundary node получает координаты ближайшего навигонного узла, 
+        # S137.2: Boundary node получает координаты ближайшего навигонного узла,
         # а не стены. Это гарантирует, что он внутри локации и физически достижим.
         boundary_node = NodeRef(
             node_id=boundary_id,
@@ -774,7 +797,7 @@ def _create_boundary_nodes(
             tags=["boundary:exit"],
             zone_id=location_id,
         )
-        
+
         graph[boundary_id] = boundary_node
         alias_map[f"exit_{direction}"] = boundary_id
 
@@ -790,7 +813,7 @@ def _create_boundary_nodes(
                 connections.setdefault(node.node_id, set()).add(boundary_id)
                 connections.setdefault(boundary_id, set()).add(node.node_id)
                 _connected_count += 1
-        
+
         if _connected_count == 0:
             # Fallback: если в радиусе 3м никого нет, цепляем хотя бы за ближайший
             connections.setdefault(_nearest_node.node_id, set()).add(boundary_id)
@@ -798,7 +821,7 @@ def _create_boundary_nodes(
             _connected_count = 1
 
         logger.info(f"[GRAPH_COMPILER] boundary={direction} connected_to={_connected_count} nodes")
-        
+
         _entry_dir = _OPPOSITE_DIRS.get(direction, direction)
         boundary_map[boundary_id] = {
             "neighbor_chunk": neighbor_loc_id,

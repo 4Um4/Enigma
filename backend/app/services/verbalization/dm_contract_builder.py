@@ -168,10 +168,13 @@ class DMContractBuilder:
             system = DM_SYSTEM_PROMPT
             if self._policy.profanity_level >= 1 or self._policy.violence_level >= 1 or self._policy.sexual_content_level >= 1:
                 system += "\n\nТОН/РЕЖИМ: MATURE.\n"
-                if self._policy.profanity_level >= 1: system += "Разрешена лёгкая ругань.\n"
-                if self._policy.violence_level >= 1: system += "Разрешено физиологичное насилие.\n"
-                if self._policy.sexual_content_level >= 1: system += "Разрешены намёки.\n"
-            
+                if self._policy.profanity_level >= 1:
+                    system += "Разрешена лёгкая ругань.\n"
+                if self._policy.violence_level >= 1:
+                    system += "Разрешено физиологичное насилие.\n"
+                if self._policy.sexual_content_level >= 1:
+                    system += "Разрешены намёки.\n"
+
             if self._policy.hardcore_mode: # EXPLICIT
                 system = DM_SYSTEM_PROMPT_HARDCORE # Полный 18+ промпт
 

@@ -1,5 +1,6 @@
-import pytest
 import math
+
+import pytest
 from app.domain.traversal_schema import (
     MovementPlanResult,
     MovementPlanStatus,

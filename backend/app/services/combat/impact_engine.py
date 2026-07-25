@@ -47,7 +47,7 @@ def _resolve_contact(
     attacker: NPCStateSnapshot, intent: ImpactIntentDTO, defender: NPCStateSnapshot, rng: random.Random
 ) -> ContactLevel:
     """Контактная модель: D&D 5e attack_roll → ContactLevel mapping (TZ §4.3)."""
-    from app.services.game.combat_math import attack_roll, ability_modifier
+    from app.services.game.combat_math import ability_modifier, attack_roll
 
     # Адаптер NPCStateSnapshot → combat_math dict
     # combat_math ожидает "abilities", а snapshot содержит "base_abilities".
@@ -57,7 +57,7 @@ def _resolve_contact(
         "level": attacker.get("level", 1),
         "equipped_weapon": attacker.get("equipped_weapon", {}),
     }
-    
+
     # Вычисляем AC защитника: 10 + Dex mod + Armor mod
     # Если в snapshot нет ac, вычисляем его из dexterity
     defender_dict = {}

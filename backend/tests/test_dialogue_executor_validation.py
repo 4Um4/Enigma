@@ -1,9 +1,11 @@
 # backend/tests/test_dialogue_executor_validation.py
-import pytest
 from unittest.mock import MagicMock
-from app.services.execution.dialogue_executor import DialogueExecutor
-from app.domain.execution import QueuedTask, TaskKind, TaskPriority
+
+import pytest
 from app.domain.communication import DialogueRequest, ExposureLevel
+from app.domain.execution import QueuedTask, TaskKind, TaskPriority
+from app.services.execution.dialogue_executor import DialogueExecutor
+
 
 @pytest.fixture
 def mock_router():
@@ -22,7 +24,7 @@ def _make_task(target_id='target', topic='test'):
         exposure=ExposureLevel.from_semantic('normal')
     )
     return QueuedTask(
-        task_id='t1', tick=1, counter=1, kind=TaskKind.DIALOGUE, 
+        task_id='t1', tick=1, counter=1, kind=TaskKind.DIALOGUE,
         owner_id='npc1', campaign_id='c1', priority=TaskPriority.NORMAL, payload=req
     )
 

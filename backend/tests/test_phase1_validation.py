@@ -2,12 +2,13 @@
 Файл: backend/tests/test_phase1_validation.py
 Назначение: Наглядная проверка реализации пунктов S-03, Bridge 3, L-01..L-05, T-04, T-07.
 Зависимости: pytest, json, os
-Запуск: 
+Запуск:
 """
 
-import pytest
 import json
 import os
+
+import pytest
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 

@@ -4,11 +4,13 @@ cd backend
 python -m pytest tests/test_dialogue_context_and_target.py -v
 """
 
-import pytest
 from unittest.mock import MagicMock, patch
-from app.services.execution.dialogue_executor import DialogueExecutor
-from app.domain.execution import QueuedTask, TaskKind, TaskPriority
+
+import pytest
 from app.domain.communication import DialogueRequest, ExposureLevel
+from app.domain.execution import QueuedTask, TaskKind, TaskPriority
+from app.services.execution.dialogue_executor import DialogueExecutor
+
 
 @pytest.fixture
 def mock_router():
@@ -22,7 +24,7 @@ def mock_context_provider():
     def _provider(camp_id, npc_id):
         if npc_id == 'maid_lusya':
             return {
-                'name': 'Люся', 
+                'name': 'Люся',
                 'description': 'Служанка',
                 'voice_profile': 'Тихо, запинаясь',
                 'backstory': 'Работает у Торнина 3 года',
@@ -38,7 +40,7 @@ def _make_task(target_id='guard_borko', owner_id='maid_lusya'):
         topic='работа', target_id=target_id, exposure=ExposureLevel.from_semantic('normal')
     )
     return QueuedTask(
-        task_id='t1', tick=1, counter=1, kind=TaskKind.DIALOGUE, 
+        task_id='t1', tick=1, counter=1, kind=TaskKind.DIALOGUE,
         owner_id=owner_id, campaign_id='c1', priority=TaskPriority.NORMAL, payload=req
     )
 

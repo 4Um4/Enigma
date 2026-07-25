@@ -35,7 +35,7 @@ class DMResponseNormalizer:
     def _get_profanity_roots(cls) -> set[str]:
         if cls._PROFANITY_ROOTS is not None:
             return cls._PROFANITY_ROOTS
-        
+
         try:
             insults_path = cls._PROJECT_ROOT / "backend" / "data" / "insults_ru.json"
             if insults_path.exists():
@@ -46,7 +46,7 @@ class DMResponseNormalizer:
         except Exception as e:
             logger.warning(f"[DM_NORMALIZER] Failed to load insults_ru.json: {e}")
             cls._PROFANITY_ROOTS = set()
-            
+
         return cls._PROFANITY_ROOTS
 
     @classmethod
@@ -54,15 +54,15 @@ class DMResponseNormalizer:
         """Детерминированный пост-фильтр мата, если ContentPolicy запрещает (OFF)."""
         from app.core.config import settings
         policy = settings.content_policy
-        
+
         # Если мат разрешен, пропускаем
         if policy.profanity_level > 0:
             return text
-            
+
         roots = cls._get_profanity_roots()
         if not roots:
             return text
-            
+
         text_lower = text.lower()
         for root in roots:
             if root in text_lower:
@@ -73,7 +73,7 @@ class DMResponseNormalizer:
                     "Собеседник замолкает, подбирая слова.",
                     "В воздухе повисает напряжение."
                 ])
-                
+
         return text
 
     @staticmethod
@@ -115,7 +115,7 @@ class DMResponseNormalizer:
             _txt = _txt.strip()
             return DMOutput(dm_text=DMResponseNormalizer._apply_content_policy_filter(_txt), schema_type="npc_schema")
 
-        # ADR-O-313: DM-агент не генерирует реплики NPC. 
+        # ADR-O-313: DM-агент не генерирует реплики NPC.
         # Если LLM вернула неизвестную схему, просто берём самое длинное строковое значение.
         # Fallback: ищем любое длинное строковое значение
         for k, v in result.items():

@@ -539,7 +539,7 @@ def run_phase_9_integration(ctx: _TickContext, deps: Phase9IntegrationDeps) -> N
 
     ctx.observed_facts_for_dm = _facts_for_dm
 
-    # ADR-O-320: RecognitionMemory Engine. 
+    # ADR-O-320: RecognitionMemory Engine.
     # Уверенность распознавания растёт при визуальном контакте.
     _npc_ids = [n.get("id") or n.get("npc_id") for n in _npc_truth_source if n.get("id") or n.get("npc_id")]
     _distances = _spatial_query.player_distances(_npc_ids)
@@ -549,7 +549,7 @@ def run_phase_9_integration(ctx: _TickContext, deps: Phase9IntegrationDeps) -> N
         ctx.scene_state["player_recognition"] = {}
 
     for _nid, _dist in _distances.items():
-        # S127 FIX: Убираем жесткий блок LOS. Если карта видимости пуста/отстаёт, 
+        # S127 FIX: Убираем жесткий блок LOS. Если карта видимости пуста/отстаёт,
         # мы всё равно позволяем запомнить NPC по дистанции.
         _is_visible = _los_map.get(_nid, True) if _los_map else True
         if not _is_visible:

@@ -7,7 +7,7 @@
 import json
 import logging
 import urllib.request
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
 
 from app.services.llm.llm_provider import LlmProvider
 
@@ -44,7 +44,7 @@ class OpenAICompatibleProvider(LlmProvider):
             "Content-Type": "application/json",
             "Authorization": f"Bearer {self._api_key}",
         }
-        
+
         messages = []
         if system_prompt:
             messages.append({"role": "system", "content": system_prompt})

@@ -242,7 +242,7 @@ class WorldSnapshotBuilder:
             _recog_data = _recog_map.get(npc_id, {})
             _confidence = float(_recog_data.get("confidence", 0.0))
             _real_name = data.get("name", npc_id)
-            
+
             _display_name = "Незнакомец"
             print(f"[SNAPSHOT_RECOG] npc={npc_id} confidence={_confidence} recog_map_keys={list(_recog_map.keys())}")
             logger.debug(f"[SNAPSHOT_RECOG] npc={npc_id} confidence={_confidence} recog_map_keys={list(_recog_map.keys())}")

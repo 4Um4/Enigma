@@ -7,6 +7,7 @@
 import os
 from pathlib import Path
 
+
 def main():
     file_path = Path("backend/app/services/scene_state_manager.py")
     if not file_path.exists():

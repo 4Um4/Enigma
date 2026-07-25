@@ -151,7 +151,7 @@ class PeripheralCueDTO:
     npc_id: str
     cue_key: str  # "FREEZE", "HURRY", "AVOID_GAZE" (renamed from cue_type)
     hover_text: str  # "Замер на месте", "Отвел взгляд"
-    
+
     # Uncertainty Model (ADR-O-318)
     confidence: float = 0.5  # Уверенность наблюдателя (0.0-1.0)
     possible_causes: tuple[str, ...] = ()  # Возможные причины без указания истинной
@@ -202,7 +202,7 @@ class PlayerPerceptionDTO:
 
     # The Fool: Моторные следы для физического рендера (дрожь, замер)
     embodied_traces: List[Dict[str, Any]] = field(default_factory=list)
-    
+
     # ADR-O-318: Наблюдаемые факты для DM (чтобы не дублировать визуал)
     observed_facts: List[str] = field(default_factory=list)
 

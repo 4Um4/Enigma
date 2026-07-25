@@ -16,9 +16,9 @@ import logging
 import math
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional
 
-from app.services.spatial.spatial_runtime import sound_reach
-
 from app.domain.tick import TickMutation, TickState
+from app.services.npc.legacy_delta_adapter import LegacyStateDeltaAdapter
+from app.services.spatial.spatial_runtime import line_of_sight, sound_reach
 
 if TYPE_CHECKING:
     from app.services.npc.kernel_rng import KernelRNG
@@ -30,7 +30,6 @@ from app.services.npc.domain_phases import (
     tick_conditions,
 )
 from app.services.npc.kernel_rng import KernelRNG
-from app.services.npc.legacy_delta_adapter import LegacyStateDeltaAdapter
 
 logger = logging.getLogger(__name__)
 
@@ -163,7 +162,7 @@ class NpcTickPipeline:
                 _player_pos = (_player_pos_dict.get("x", 0.0), _player_pos_dict.get("y", 0.0))
                 _dist_to_player = math.hypot(_npc_pos[0] - _player_pos[0], _npc_pos[1] - _player_pos[1])
                 _has_sound = sound_reach(15.0, state.scene_state) >= _dist_to_player
-                
+
                 if _has_sound and state.hub_event:
                     try:
                         _mem_evt = apply_perception_memory(
@@ -236,13 +235,11 @@ class NpcTickPipeline:
                         state_l2.relationship_cache.setdefault("player", {}).update(
                             _player_weights
                         )
-                        
-                    import math
-                    from app.services.spatial.spatial_runtime import line_of_sight, sound_reach
+
                     # ADR-O-331: Safe Position Extraction. local_position может быть dict {"x":, "y":} или tuple (x, y).
                     _raw_pos = state_l2.local_position if hasattr(state_l2, "local_position") else (0.0, 0.0)
                     _npc_pos = (_raw_pos.get("x", 0.0), _raw_pos.get("y", 0.0)) if isinstance(_raw_pos, dict) else tuple(_raw_pos)
-                    
+
                     for _nearby_npc in state.nearby_npcs:
                         _nearby_id = _nearby_npc.get("npc_id") or _nearby_npc.get("id")
                         if _nearby_id and _nearby_id != npc_id:
@@ -397,7 +394,7 @@ class NpcTickPipeline:
             # S129: Bridge 7 — Если Фаза 4 уже сформировала тему ответа, используем её.
             _topic = state.npc_topics.get(npc_id)
             _response_target = state.response_targets.get(npc_id)
-            
+
             if not _topic:
                 _topic = extract_topic(
                     event_type=_event_for_interp.event_type.value
@@ -459,7 +456,7 @@ class NpcTickPipeline:
                 eco_modifiers=_all_modifiers or None,
                 social_modifiers=_social_mods or None,
                 reputation_modifiers=_rep_modifiers_for_hub,
-                drive_modifiers=_drive_modifiers_for_hub,
+                drive_modifiers=_drive_modifiers_for_hub or None,
                 reflex_constraints=_reflex_constraints,
                 topic=_topic,
                 decision_ctx=_decision_ctx,
@@ -1199,7 +1196,7 @@ def _resolve_reactive_movement(
             return None
 
     if not target_node_id:
-        # Тихий возврат для не-реактивных интентов (seek_ally, offer_job и др.), 
+        # Тихий возврат для не-реактивных интентов (seek_ally, offer_job и др.),
         # чтобы они прошли через _resolve_proactive_target без ложного спама.
         return None
 

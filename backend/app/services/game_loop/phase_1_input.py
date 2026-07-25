@@ -282,7 +282,7 @@ def publish_classified_player_event(
         "stealth": EventType.PLAYER_MOVED,
     }
     _raw_type = shared_context.action_type or "dialogue"
-    
+
     # S122 FIX: Жёсткий лексический перехват боевых команд (Fast-Path).
     # LLM (DM Router) часто классифицирует "ударить" как dialogue, из-за чего CombatSubscriber не вызывается.
     # Если в тексте есть глаголы агрессии — принудительно выставляем ATTACK.

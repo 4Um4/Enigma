@@ -186,9 +186,6 @@ class _TickContext:
 
 
 # ── Мостовые DTO для player turn (P1.1b) ──────────────────────────────
-# TODO: удалить после замены HubEventContext на EventDTO
-
-
 @dataclass(frozen=True)
 class DMContextDTO:
     """Мост: DM-интерпретация → TickOrchestrator."""

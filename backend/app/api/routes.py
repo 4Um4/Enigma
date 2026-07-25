@@ -347,6 +347,25 @@ async def game_turn(
         raise HTTPException(status_code=412, detail=str(exc))
 
 
+@router.get("/api/game/end_screen/{campaign_id}")
+def get_end_screen(campaign_id: str, game_loop=Depends(get_game_loop)) -> dict:
+    """Возвращает финальный экран оценки игрока (MVP Mini-game)."""
+    if not game_loop.mvp_controller:
+        return {"error": "MVP controller not initialized"}
+    
+    end_screen = game_loop.mvp_controller.build_end_screen()
+    ev = end_screen.evaluation
+    
+    return {
+        "exited": True,
+        "score": ev.score,
+        "secrets_total": ev.secrets_total,
+        "secrets_identified": ev.secrets_identified,
+        "secrets_misidentified": ev.secrets_misidentified,
+        "secrets_missed": ev.secrets_missed,
+        "methods_used": ev.methods_used,
+    }
+
 @router.post("/game/action")
 async def game_action(request: dict, game_loop=Depends(get_game_loop)) -> dict:
     try:
@@ -762,7 +781,7 @@ def update_scene_state(
     if _current_state:
         # Список ключей, которые фронтенду ЗАПРЕЩЕНО перезаписывать
         _protected_keys = {
-            "game_time_seconds", "tick", "player_recognition", 
+            "game_time_seconds", "tick", "player_recognition",
             "active_traversals", "pending_tasks", "spatial_walls", "spatial_obstacles"
         }
         for _k, _v in scene_state.items():

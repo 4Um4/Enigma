@@ -1,0 +1,63 @@
+{
+  "state": {
+    "npc_id": "Абис",
+    "stress": 0.0,
+    "resentment": 0.0,
+    "dependency": 0.0,
+    "identity_integrity": 1.0,
+    "pressure_resistance": 0.0,
+    "will_state": "free",
+    "behavior_mask": {
+      "mask": "none",
+      "applied_at_day": null,
+      "intensity": 0.0
+    },
+    "trauma_markers": [],
+    "current_role": "",
+    "hp": 0.0,
+    "max_hp": 0.0,
+    "conditions": {},
+    "wounds": [],
+    "posture": "standing",
+    "body_state": {
+      "money": 48,
+      "current_hp": 0
+    },
+    "emotion": "neutral",
+    "emotion_delta": 0.0,
+    "state_modifiers": {},
+    "affective_load": 0.0,
+    "perceptual_kernel": {
+      "threat_gradient": 0.0,
+      "trust_gradient": 0.0,
+      "uncertainty": 0.0,
+      "anomaly_score": 0.0,
+      "last_hostile_direction": null,
+      "dominant_emotion": null,
+      "aggression_inhibition": 0.0,
+      "initiative_suppression": 0.0,
+      "compliance_bias": 0.0,
+      "somatic_urgency": 0.0,
+      "recent_directive": null
+    },
+    "gender": "male"
+  },
+  "dialog_journal": [
+    {
+      "speaker": "merchant_goran",
+      "text": "Дорогой гость, если ты услышишь о моих делах, то поймёшь, что честный труд — это золото в купеческих руках. Может быть, ты ищешь какое-то ценное сокровище для своего путешествия?"
+    },
+    {
+      "speaker": "thief_shadow",
+      "text": "Ничего не произошло."
+    },
+    {
+      "speaker": "maid_lusya",
+      "text": "Господин Торнин, я... я знаю о подвале. Он тайник для драгоценностей и золота. Но только мне известно это место. Пожалуйста, не надо рассказывать никому другому."
+    },
+    {
+      "speaker": "tavern_keeper_tornin",
+      "text": "Таверну отнимут, если не заплатить долг вовремя. Гильдия носом дышит, как всегда."
+    }
+  ]
+}

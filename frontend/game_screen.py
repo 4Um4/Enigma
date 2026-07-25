@@ -868,7 +868,7 @@ class GameScreen:
             _moved = False
 
             if move.cooldown <= 0:
-                # Спринт 31: Elastic Time. Движение — это Intent, подтвержденный бэкендом.
+                # Спринт 31: Elastic Time. Движение — это Intent, подтвержденный бэкендом.ц
                 npc_positions = scene_state.get("npc_positions", {})
                 px, py = _player_xy(scene_state)
 

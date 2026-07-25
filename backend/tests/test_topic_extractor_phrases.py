@@ -1,11 +1,12 @@
 # backend/tests/test_topic_extractor_phrases.py
 """
-cd C:\DDD\Codex\VSC_Enigma\Enigma\backend
+cd C:\\DDD\\Codex\\VSC_Enigma\\Enigma\backend
 python -m pytest tests/test_topic_extractor_phrases.py -v
 """
 
 import pytest
 from app.services.npc.topic_extractor import extract_topic
+
 
 def test_t07_phrase_how_are_you():
     topic = extract_topic(event_type="player_interacts", raw_input="Люся, как дела?")

@@ -60,7 +60,7 @@ class ContentPolicy:
     def hardcore_mode(self) -> bool:
         """Deprecated alias для обратной совместимости. True, если хотя бы одна ось = EXPLICIT."""
         return any(
-            level == ContentLevel.EXPLICIT 
+            level == ContentLevel.EXPLICIT
             for level in [
                 self.profanity_level,
                 self.sexual_content_level,
@@ -85,10 +85,13 @@ def _content_to_dict(policy: ContentPolicy, reason: str = "user_action") -> Dict
 def _content_from_dict(data: Dict[str, Any]) -> ContentPolicy:
     preset = data.get("preset")
     if preset:
-        if preset == "off": return ContentPolicy.preset_off()
-        if preset == "moderate": return ContentPolicy.preset_moderate()
-        if preset == "explicit": return ContentPolicy.preset_explicit()
-    
+        if preset == "off":
+            return ContentPolicy.preset_off()
+        if preset == "moderate":
+            return ContentPolicy.preset_moderate()
+        if preset == "explicit":
+            return ContentPolicy.preset_explicit()
+
     individual = data.get("individual", {})
     return ContentPolicy(
         profanity_level=ContentLevel(individual.get("profanity_level", 0)),
@@ -100,7 +103,7 @@ def _content_from_dict(data: Dict[str, Any]) -> ContentPolicy:
 def load_content_policy(settings: Any) -> ContentPolicy:
     """Загружает ContentPolicy из user_settings.yaml."""
     path: Path = getattr(settings, "user_settings_path", Path("config/user_settings.yaml"))
-    
+
     if not path.exists():
         logger.info("[CONTENT_POLICY] user_settings.yaml not found. Migrating from hardcore_mode.")
         if getattr(settings, "hardcore_mode", True):
@@ -109,7 +112,7 @@ def load_content_policy(settings: Any) -> ContentPolicy:
             policy = ContentPolicy.preset_off()
         _save_content_section(path, policy, reason="migration")
         return policy
-    
+
     try:
         data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     except Exception as e:
@@ -117,7 +120,7 @@ def load_content_policy(settings: Any) -> ContentPolicy:
         return ContentPolicy.preset_explicit()
 
     content_section = data.get("content")
-    
+
     if content_section is None:
         logger.info("[CONTENT_POLICY] 'content' section missing. Migrating from hardcore_mode.")
         if getattr(settings, "hardcore_mode", True):
@@ -127,7 +130,7 @@ def load_content_policy(settings: Any) -> ContentPolicy:
         data["content"] = _content_to_dict(policy, reason="migration")
         path.write_text(yaml.dump(data, allow_unicode=True), encoding="utf-8")
         return policy
-    
+
     return _content_from_dict(content_section)
 
 def _save_content_section(path: Path, policy: ContentPolicy, reason: str = "user_action") -> None:
@@ -139,14 +142,14 @@ def _save_content_section(path: Path, policy: ContentPolicy, reason: str = "user
             data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
         except Exception:
             data = {}
-            
+
     data["content"] = _content_to_dict(policy, reason)
     path.write_text(yaml.dump(data, allow_unicode=True), encoding="utf-8")
 
 def save_content_policy(settings: Any, preset_name: str) -> ContentPolicy:
     """Сохраняет выбранный пресет в user_settings.yaml и перезагружает кэш."""
     path: Path = getattr(settings, "user_settings_path", Path("config/user_settings.yaml"))
-    
+
     if preset_name == "off":
         policy = ContentPolicy.preset_off()
     elif preset_name == "moderate":
@@ -156,7 +159,7 @@ def save_content_policy(settings: Any, preset_name: str) -> ContentPolicy:
     else:
         logger.warning(f"[CONTENT_POLICY] Unknown preset '{preset_name}'. Fallback to explicit.")
         policy = ContentPolicy.preset_explicit()
-        
+
     if not path.exists():
         data = {}
     else:
@@ -164,7 +167,7 @@ def save_content_policy(settings: Any, preset_name: str) -> ContentPolicy:
             data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
         except Exception:
             data = {}
-            
+
     data["content"] = {
         "preset": preset_name,
         "individual": {
@@ -177,6 +180,6 @@ def save_content_policy(settings: Any, preset_name: str) -> ContentPolicy:
         "last_changed_reason": "user_action"
     }
     path.write_text(yaml.dump(data, allow_unicode=True), encoding="utf-8")
-    
+
     # Принудительно перезагружаем кэш в настройках
     return settings.reload_content_policy()

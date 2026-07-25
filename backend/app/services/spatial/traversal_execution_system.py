@@ -37,14 +37,14 @@ class TraversalExecutionSystem:
             started_tick = trav.get("started_tick", current_tick)
             duration_ticks = trav.get("duration_ticks", 1)
             waypoints = trav.get("path_waypoints", [])
-            
+
             # S134.1: Жёсткая валидация кинематического контракта.
             segment_modes = trav.get("segment_modes")
             segment_arc_heights = trav.get("segment_arc_heights")
-            
+
             modes_missing = segment_modes is None
             arcs_missing = segment_arc_heights is None
-            
+
             if modes_missing and arcs_missing:
                 # A. Legacy fallback для старых сохранений без сегментов
                 logger.warning(f"[TRAV_EXEC] Legacy traversal for {npc_id}, synthesizing WALK.")
@@ -124,7 +124,7 @@ class TraversalExecutionSystem:
             if not segment_modes or len(segment_modes) != len(waypoints) - 1:
                 segment_modes = ["WALK"] * max(1, len(waypoints) - 1)
                 segment_arc_heights = [0.0] * max(1, len(waypoints) - 1)
-                
+
             if waypoints:
                 elapsed_ticks = current_tick - started_tick
                 if elapsed_ticks >= duration_ticks:
@@ -146,8 +146,8 @@ class TraversalExecutionSystem:
 
     @staticmethod
     def _interpolate_path(
-        waypoints: List[Any], 
-        progress: float, 
+        waypoints: List[Any],
+        progress: float,
         segment_modes: List[str],
         segment_arc_heights: List[float]
     ) -> Tuple[Tuple[float, float, float], int]:
@@ -179,11 +179,11 @@ class TraversalExecutionSystem:
                 seg_progress = (
                     (target_dist - current_dist) / seg_dist if seg_dist > 0 else 0.0
                 )
-                
+
                 # S132.1: Линейная интерполяция для X и Y (работает для обоих режимов)
                 x = waypoints[i][0] + (waypoints[i + 1][0] - waypoints[i][0]) * seg_progress
                 y = waypoints[i][1] + (waypoints[i + 1][1] - waypoints[i][1]) * seg_progress
-                
+
                 # S132.1: Вычисление Z (высоты) в зависимости от режима сегмента
                 mode = segment_modes[i] if i < len(segment_modes) else "WALK"
                 if mode == "JUMP":
@@ -193,9 +193,9 @@ class TraversalExecutionSystem:
                     z = 4.0 * arc_h * seg_progress * (1.0 - seg_progress)
                 else:
                     z = 0.0 # WALK - движение по земле
-                    
+
                 return ((x, y, z), i)
-                
+
             current_dist += seg_dist
 
         return ((waypoints[-1][0], waypoints[-1][1], 0.0), len(segment_dists) - 1)

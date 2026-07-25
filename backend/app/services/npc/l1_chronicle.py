@@ -35,8 +35,8 @@ class L1Chronicle:
         # L1-T3 Fix: Per-NPC partitioning. Никакого global event soup.
         self._events: Dict[str, List[TraitDriftEvent]] = {}
         self._loaded: bool = False  # lazy load from SQLite
-        
-        # ADR-L1-PERSIST FIX: Гарантируем создание схемы при инициализации, 
+
+        # ADR-L1-PERSIST FIX: Гарантируем создание схемы при инициализации,
         # чтобы _ensure_loaded не падал на SELECT до CREATE TABLE.
         if self._store:
             try:

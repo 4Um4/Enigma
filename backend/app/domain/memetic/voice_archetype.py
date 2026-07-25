@@ -17,26 +17,26 @@ logger = logging.getLogger(__name__)
 @dataclass(frozen=True)
 class VoiceArchetype:
     """Родной язык NPC. Canon-level.
-    
+
     Загружается из config/canon/voice_archetypes/<archetype>.yaml.
     Один архетип на много NPC (noble, thief, maid, ...).
     """
     archetype_id: str                # "noble" / "thief" / "maid" / ...
     culture: str                     # к какой культуре принадлежит по умолчанию
     register: str                    # "formal" / "slang" / "rustic" / ...
-    
+
     # Базовые характеристики речи
     sentence_length: str             # "short" / "medium" / "long"
     vocabulary_richness: float       # 0..1
     metaphor_density: float          # 0..1
-    
+
     # Сопротивление дрейфу
     default_linguistic_integrity: float  # 0..1, базовое сопротивление
     class_factor: float = 1.0        # множитель для целевых классов
-    
+
     # Свободное описание (для LLM)
     voice_profile: str = ""           # "Говоришь тихо, короткими фразами..."
-    
+
     # Канонические Expressions по умолчанию
     default_expressions: Dict[str, str] = field(default_factory=dict)
 
@@ -49,19 +49,19 @@ def load_voice_archetype(archetype_id: str, canon_dir: Optional[str] = None) -> 
     """Загружает VoiceArchetype из YAML файла. Кэширует результат."""
     if not archetype_id:
         return None
-        
+
     if archetype_id in _CACHE:
         return _CACHE[archetype_id]
-        
+
     # ADR-O-MEMETIC: Абсолютный путь от корня проекта, чтобы работало из backend/ и из корня
     if canon_dir is None:
         canon_dir = _PROJECT_ROOT / "config" / "canon" / "voice_archetypes"
-        
+
     file_path = Path(canon_dir) / f"{archetype_id}.yaml"
     if not file_path.exists():
         logger.warning(f"[VOICE_ARCHETYPE] File not found: {file_path}")
         return None
-        
+
     try:
         data = yaml.safe_load(file_path.read_text(encoding="utf-8"))
         archetype = VoiceArchetype(

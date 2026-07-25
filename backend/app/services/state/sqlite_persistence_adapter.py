@@ -1,3 +1,9 @@
+"""
+Файл: backend/app/services/state/world_diff_builder.py
+Назначение: Сборка WorldStateDiff из всех трекеров.
+Зависимости: typing, app.models., app.services.
+"""
+
 from __future__ import annotations
 
 # backend/app/services/state/sqlite_persistence_adapter.py

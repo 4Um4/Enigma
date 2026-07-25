@@ -145,6 +145,12 @@ class GameLoop:
         self.data_dir = data_dir
         self._saves_dir = Path(saves_dir) if saves_dir else data_dir / "campaigns"
         self.memory_manager = memory_manager
+        
+        # P7-MVP: Инициализация эпистемического фасада
+        from pathlib import Path as PathLib
+        from app.services.social.mvp_tavern_controller import MvpTavernController
+        _canon_path = PathLib(self.data_dir).parent / "config" / "canon" / "truth_state_tavern.json"
+        self.mvp_controller = MvpTavernController(_canon_path) if _canon_path.exists() else None
         self.dm_orchestrator = dm_orchestrator
         self.scene_manager = scene_manager
         self.world_scheduler = world_scheduler
@@ -217,7 +223,6 @@ class GameLoop:
         # Регистрация NpcDialogueSubscriber для замыкания цикла NPC-NPC диалогов
         self._register_npc_dialogue_subscriber(memory_manager, _rel_store)
 
-        from app.services.social.social_decay_handler import SocialDecayHandler
         self._tick_orch.add_idle_handler(SocialDecayHandler())
 
         # InjuryProcessor — мост Injury → Physiology (кровотечение из ран)
@@ -369,7 +374,7 @@ class GameLoop:
             _scene_for_commit = self.scene_manager.reinit_campaign(campaign_id)
         except Exception as e:
             logger.warning(f"[NEW_GAME] Scene reinit failed: {e}")
-            
+
         # === 7. АТОМАРНЫЙ КОММИТ (scene + npcs) ===
         # BUG-AUDIT-13: Сохраняем сцену и NPC в одной транзакции, чтобы избежать рассинхрона.
         if _scene_for_commit and _npcs_for_commit:
@@ -884,7 +889,7 @@ class GameLoop:
             # UUID → строка для JSON-совместимости
             if _ws.get("last_event_id") is not None:
                 _ws["last_event_id"] = str(_ws["last_event_id"])
-            
+
             # ADR-O-313: Внедряем кэш реплик для Speech Bubbles (UI)
             try:
                 _recent_d = self._get_task_scheduler().get_recent_dialogues(_scene.get("game_time_seconds", 0.0))
@@ -937,7 +942,7 @@ class GameLoop:
         # S122 FIX: Берём свежий all_npcs_raw из результата тика, а не из старого кэша.
         if state.shared_context:
             state.shared_context.all_npcs_raw = self._resolve_npcs_snapshot(req.campaign_id)
-        
+
         if state.shared_context and state.shared_context.scene_state:
             _perception = self._project_perception(
                 req.campaign_id,
@@ -1068,7 +1073,6 @@ class GameLoop:
         except Exception as e:
             logger.warning(f"[R2.1] NarrativeExtractor REST error: {e}")
 
-        # TODO: _write_memory удалён — persist_dm_response на строке ниже покрывает запись
         elapsed_ms = int(time.time() * 1000 - state.start_ms)
         traces = self._build_traces(state, dm_result, elapsed_ms)
 
@@ -1581,6 +1585,25 @@ class GameLoop:
             # Передаем давление в контекст для TickOrchestrator (Causal Resolution)
             shared_context.intent_resolution = _resolution
 
+            # P7-14 MVP: Каузальный мост действий игрока
+            if self.mvp_controller and getattr(shared_context, "player_target_id", None):
+                from app.models.player_action import PlayerAction, ActionType
+                _act_type = ActionType.DIALOGUE
+                if "blackmail" in _raw_action.lower() or "шантаж" in _raw_action.lower():
+                    _act_type = ActionType.BLACKMAIL
+                elif "help" in _raw_action.lower() or "помочь" in _raw_action.lower():
+                    _act_type = ActionType.HELP
+                
+                _action = PlayerAction(
+                    action_id=f"player_act_{shared_context.tick}",
+                    tick=shared_context.tick,
+                    actor_id="player",
+                    action_type=_act_type,
+                    target_id=shared_context.player_target_id,
+                    description=_raw_action
+                )
+                self.mvp_controller.action_compiler.process_action(_action)
+
             # FIX: Проброс semantic_action в hub_event.payload ПОСЛЕ intent_resolution,
             # но ДО run_npc_orchestration (где DecisionHub читает hub_event).
             # Без этого DecisionHub не видит MOVE и obedience boost не работает.
@@ -1774,7 +1797,7 @@ class GameLoop:
                             )
                         )
                     else:
-                        # BUG-AUDIT-01 (HP Double Truth): Инициализируем BODY_STATE_DISABLED_DATA 
+                        # BUG-AUDIT-01 (HP Double Truth): Инициализируем BODY_STATE_DISABLED_DATA
                         # при пустом body_state, чтобы не потерять pain/shock/fatigue.
                         from app.models.npc_state import BODY_STATE_DISABLED_DATA
                         _avatar_state.body_state = dict(BODY_STATE_DISABLED_DATA)

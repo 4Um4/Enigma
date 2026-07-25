@@ -40,8 +40,8 @@ if TYPE_CHECKING:
     from app.models.physical import Condition, Wound
 import logging
 
-from app.models.npc.beliefs import BeliefState
 from app.domain.traversal import BodyCapabilities
+from app.models.npc.beliefs import BeliefState
 from app.models.physical import ThreatAccumulator
 from app.models.psychological import CausalEntry
 

@@ -34,10 +34,11 @@ class DialogueExecutor:
         )
         self._belief_store = belief_store
         # L-02: Валидатор реплик NPC
-        from app.services.verbalization.response_validator import ResponseValidator
         from dataclasses import dataclass, field
         from uuid import uuid4
-        
+
+        from app.services.verbalization.response_validator import ResponseValidator
+
         @dataclass
         class NpcContract:
             system_prompt: str = ""
@@ -119,7 +120,7 @@ class DialogueExecutor:
         if self._belief_store:
             _all_beliefs = self._belief_store.get_beliefs(task.owner_id)
             _target_beliefs = [b for b in _all_beliefs if b.source_id == req.target_id]
-            
+
             _TRAIT_TO_TEXT = {
                 "fear": "Ты боишься",
                 "trust": "Ты доверяешь",
@@ -146,7 +147,7 @@ class DialogueExecutor:
             user_prompt += f"Твоё прошлое: {ctx['backstory']}. "
         if ctx.get("author_notes"):
             user_prompt += f"Важные ограничения: {ctx['author_notes']}. "
-        
+
         user_prompt += (
             f"Ты обращаешься к: {_target_name}. "
             f"{_beliefs_text}"
@@ -162,12 +163,12 @@ class DialogueExecutor:
                 system_prompt=system_prompt,
                 params=GenerationParams(max_tokens=100)
             )
-            
+
             # L-02: Валидация ответа LLM (отсечение китайского, английского, 4-й стены)
             validation = self._validator.validate(raw)
             if validation.is_fallback:
                 logger.warning(f"[DIALOGUE_EXEC] LLM response rejected ({validation.violation}). Using fallback.")
-            
+
             return validation.text
         except Exception as e:
             logger.error(f"[DIALOGUE_EXEC] LLM call failed: {e}. Fallback to stub.")

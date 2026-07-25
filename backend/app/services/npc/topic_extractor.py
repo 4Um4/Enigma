@@ -140,13 +140,13 @@ def extract_topic(
                     return _topic
             except (ValueError, TypeError):
                 pass
-                
+
         _life_project = _npc_dict.get("core_orientation", "")
         if _life_project:
             _topic = _LIFE_PROJECT_TO_TOPIC.get(_life_project)
             if _topic:
                 return _topic
-                
+
         _role = _npc_dict.get("_archetype", "")
         if _role:
             _topic = _ROLE_TO_TOPIC.get(_role)

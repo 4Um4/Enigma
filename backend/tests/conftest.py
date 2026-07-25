@@ -17,13 +17,13 @@ if str(backend) not in sys.path:
     sys.path.insert(0, str(backend))
 
 # Теперь импорты from app... должны работать
-from unittest.mock import Mock, patch
+import shutil
+import tempfile
+from pathlib import Path
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
-import tempfile
-import shutil
-from pathlib import Path
-from unittest.mock import MagicMock
+
 
 @pytest.fixture
 def game_loop_factory():

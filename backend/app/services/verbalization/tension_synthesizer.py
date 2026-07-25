@@ -16,6 +16,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Literal
+from app.services.npc.legacy_delta_adapter import LegacyStateDeltaAdapter
+from app.models.npc_state import NPCState
 
 
 @dataclass(frozen=True)
@@ -86,7 +88,6 @@ class TensionSynthesizer:
         # --- Ось 2: Event Tension (производная) ---
         ET = 0.0
         if decisions:
-            from app.services.npc.legacy_delta_adapter import LegacyStateDeltaAdapter
 
             raw_stress = sum(
                 abs(LegacyStateDeltaAdapter.collapse(d.deltas).stress_delta)

@@ -46,7 +46,7 @@ import math
 import time
 from collections import OrderedDict
 from pathlib import Path
-from typing import Any, Dict, List, Optional, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
 
 if TYPE_CHECKING:
     from app.domain.movement import MovementIntent
@@ -1208,7 +1208,7 @@ class LifeEngine:
             npc["narrative_cache"] = []
             npc.pop("wounds", None)
             npc.pop("conditions", None)
-        # BUG-AUDIT-13 (Atomic Commit): Не сохраняем здесь! 
+        # BUG-AUDIT-13 (Atomic Commit): Не сохраняем здесь!
         # Сохранение будет атомарным в GameLoop.new_game() через atomic_commit.
         # Обновление кэша
         self._npc_cache[campaign_id] = npcs
@@ -2145,7 +2145,7 @@ class LifeEngine:
             )
             return [], None
 
-        # S139: Interruptibility Contract. Если NPC в активном транзите, 
+        # S139: Interruptibility Contract. Если NPC в активном транзите,
         # расписание может его прервать, ТОЛЬКО если это не боевой/критический транзит.
         if scene_state:
             _active_travs = scene_state.get("active_traversals", {})
@@ -2164,6 +2164,22 @@ class LifeEngine:
         if not new_activity:
             return [], None
 
+        # Bridge 6: LifeProject → schedule mutation
+        # ADR-O-317: В состоянии LOST или SEARCHING NPC игнорирует расписание (кризис идентичности).
+        _psyche = npc.get("psyche", {})
+        _life_project_state = _psyche.get("life_project_state", "ACTIVE")
+        if _life_project_state in ("LOST", "SEARCHING"):
+            logger.debug(
+                f"[LIFE_ENGINE] {npc_id}: Schedule bypassed due to LifeProject crisis ({_life_project_state})"
+            )
+            return [], None
+
+        # Bridge 6: Если жизненный проект сменился на кризисный (isolation, hermit, revenge),
+        # NPC не ходит на работу, даже если FSM вернулся в ACTIVE. Fallback to resting.
+        _life_project = _psyche.get("life_project", npc.get("core_orientation", "survival"))
+        if _life_project in ("isolation", "hermit", "revenge", "survival") and new_activity == "working":
+            new_activity = "resting"
+
         prev_activity = npc.get("routine", {}).get("current", "")
 
         # S89: Диагностика Schedule Freeze — отслеживание переходов активности
@@ -2173,7 +2189,23 @@ class LifeEngine:
             )
 
         if new_activity == prev_activity:
-            return [], None
+            # S140: Spatial Verification. Если активность не сменилась, но NPC не на месте —
+            # продолжаем генерировать MacroMovementGoal, пока он не дойдёт.
+            _resolved = self._resolve_position(npc, new_activity)
+            if not _resolved:
+                return [], None
+
+            _exp_loc, _exp_pos, _ = _resolved
+            _cur_loc = npc.get("location_id", npc.get("location", ""))
+            _cur_pos = npc.get("position", "")
+
+            # Нормализуем для сравнения
+            _norm_exp_pos = _exp_pos if ":" in _exp_pos else f"{_exp_loc}:{_exp_pos}"
+            _norm_cur_pos = _cur_pos if ":" in _cur_pos else f"{_cur_loc}:{_cur_pos}"
+
+            if _norm_exp_pos == _norm_cur_pos:
+                logger.debug(f"[LIFE_ENGINE] {npc_id}: already at {_exp_pos} for {new_activity}.")
+                return [], None
 
         # GAP9 FIX: Реалистичное Пробуждение. Если NPC напуган или в стрессе, он не может уснуть.
         # Угроза (threat_gradient) и стресс — непрерывные скаляры, в отличие от сгорающей директивы.
@@ -2258,12 +2290,7 @@ class LifeEngine:
 
         # ── MovementIntent для MovementEngine (Слой 2) ────────────────────
         from app.domain.movement import PRIORITY_SCHEDULE
-        
-        # S139: Sleep Authority. Сон имеет приоритет выше социального (0.8), но ниже боя (0.95).
-        _schedule_priority = PRIORITY_SCHEDULE
-        if new_activity == "sleeping":
-            _schedule_priority = 0.85  # PRIORITY_SLEEP
-            
+
         # ADR-0010: movement_mode удалён. Макро-перемещение — Semantic Relocation.
         intent = MacroMovementGoal(
             actor_id=npc_id,
@@ -2272,7 +2299,7 @@ class LifeEngine:
             location_id=new_location,
             reason=f"schedule:{new_activity}",
             domain=IntentDomain.ROUTINE,  # ДОЛГ 4.3: Расписание = рутина
-            priority=_schedule_priority,
+            priority=PRIORITY_SCHEDULE,
         )
 
         # ── Обновляем NPC dict в памяти ────────────────────────────────────
@@ -2342,14 +2369,14 @@ class LifeEngine:
                 # Питьё/еда — социальные точки
                 "drinking": NodeRole.BAR,
                 "eating": NodeRole.TABLE,
-                
+
                 # Рабочие точки (конкретные)
                 "serving_tables": NodeRole.SERVING_STATION,
                 "cleaning_tables": NodeRole.TABLE,
                 "guarding_gate": NodeRole.GUARD_POST,
                 "observing": NodeRole.DARK_CORNER,
                 "innkeeping": NodeRole.INN_DESK,
-                
+
                 # Базовые
                 "sleeping": NodeRole.BED,
                 "resting": NodeRole.BED,

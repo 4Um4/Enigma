@@ -8,9 +8,9 @@ import logging
 from typing import Any, List, Optional
 
 from app.core.constants import (
-    SOCIAL_TRUST_NEUTRAL,
-    SOCIAL_TRUST_HOSTILE_THRESHOLD,
     SOCIAL_TRUST_HIGH_THRESHOLD,
+    SOCIAL_TRUST_HOSTILE_THRESHOLD,
+    SOCIAL_TRUST_NEUTRAL,
 )
 
 logger = logging.getLogger(__name__)
@@ -33,7 +33,7 @@ class SocialTargetResolver:
 
         _rel_store = relationship_store
         _c_id = campaign_id
-        
+
         # S135: Загружаем все отношения этого NPC одним запросом из SSOT
         _all_rels = {}
         if _rel_store is not None:
@@ -42,7 +42,7 @@ class SocialTargetResolver:
         _filtered_candidates = []
         for nid in _candidates:
             _trust = SOCIAL_TRUST_NEUTRAL  # Vacuum semantics
-            
+
             if _rel_store is not None:
                 _target_key = f"{state.npc_id}→{nid}"
                 _target_rel = _all_rels.get(_target_key, {})
@@ -50,13 +50,13 @@ class SocialTargetResolver:
             else:
                 # Legacy fallback (только если SSOT недоступен)
                 _trust = getattr(state, "relationship_cache", {}).get(nid, {}).get("trust", SOCIAL_TRUST_NEUTRAL)
-            
+
             # Отсекаем только явных врагов
             if _trust < SOCIAL_TRUST_HOSTILE_THRESHOLD:
                 logger.debug(f"[SOCIAL_TARGET] {state.npc_id} skips {nid} (trust={_trust:.1f} < {SOCIAL_TRUST_HOSTILE_THRESHOLD})")
                 continue
             _filtered_candidates.append((nid, _trust))
-            
+
         if not _filtered_candidates:
             # Все отношения негативные — одиночество
             return None

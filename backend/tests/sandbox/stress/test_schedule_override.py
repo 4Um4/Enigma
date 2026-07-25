@@ -28,6 +28,7 @@ def suppressed_npc() -> dict:
     """NPC с захваченным вниманием (recent_directive.interrupts_routine=True). Имеет активное расписание."""
     return {
         "id": "worker_01",
+        "psyche": {"life_project": "wealth_creator"}, # P7-FIX: Без этого life_project=survival, и working заменяется на resting
         "perceptual_kernel": {
             "threat_gradient": 0.8,
             "recent_directive": {
@@ -42,7 +43,7 @@ def suppressed_npc() -> dict:
             "working": {"location": "forge", "position": "anvil", "display": "Кует металл"},
             "sleeping": {"location": "home", "position": "bed", "display": "Спит"},
         },
-        "location": "home",
+        "location_id": "home",
     }
 
 
@@ -51,6 +52,7 @@ def free_npc() -> dict:
     """NPC со свободным вниманием (без recent_directive). Имеет активное расписание."""
     return {
         "id": "worker_02",
+        "psyche": {"life_project": "wealth_creator"}, # P7-FIX: Без этого life_project=survival, и working заменяется на resting
         "perceptual_kernel": {
             "threat_gradient": 0.1,
             "recent_directive": None,  # Нет захвата внимания
@@ -61,7 +63,7 @@ def free_npc() -> dict:
             "working": {"location": "forge", "position": "anvil", "display": "Кует металл"},
             "sleeping": {"location": "home", "position": "bed", "display": "Спит"},
         },
-        "location": "home",
+        "location_id": "home",
     }
 
 

@@ -10,8 +10,8 @@ E2E тест для S128 FIX: Проверка run_turn с поднятым LLM-
 import asyncio
 import sys
 import tempfile
-from pathlib import Path
 from datetime import datetime, timezone
+from pathlib import Path
 
 # Пропатчим sys.path
 _BACKEND = Path(__file__).resolve().parents[3]
@@ -20,12 +20,12 @@ sys.path.insert(0, str(_BACKEND))
 
 async def _run_e2e_test():
     from app.core.config import settings
-    from app.services.game_loop_builder import build_game_loop
+    from app.domain.events import EventDTO
+    from app.main import _kill_llama_server, _restart_llama_server
     from app.models.schemas import ChatTurnRequest, PlayerAction
-    from app.main import _restart_llama_server, _kill_llama_server
     from app.services.events.event_bus import get_event_bus
     from app.services.events.event_types import EventType
-    from app.domain.events import EventDTO
+    from app.services.game_loop_builder import build_game_loop
 
     print("--- [1/6] Инициализация GameLoop ---")
     temp_saves = tempfile.mkdtemp(prefix="e2e_saves_")

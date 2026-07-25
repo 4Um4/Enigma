@@ -79,10 +79,9 @@ class ServiceFactory:
         if self._reputation_engine is not None:
             return self._reputation_engine
         try:
-            from app.services.social.reputation_engine import ReputationEngine
-
             # S128 FIX: Надёжный путь к factions.json через BASE_DIR (корень проекта)
             from app.core.config import BASE_DIR
+            from app.services.social.reputation_engine import ReputationEngine
             _config_path = BASE_DIR / "config" / "world" / "factions.json"
             if not _config_path.exists():
                 logger.warning(f"[REPUTATION] factions.json not found at {_config_path}, engine disabled")

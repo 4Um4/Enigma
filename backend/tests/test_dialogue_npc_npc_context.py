@@ -1,14 +1,16 @@
 # backend/tests/test_dialogue_npc_npc_context.py
 """
-cd C:\DDD\Codex\VSC_Enigma\Enigma\backend
+cd C:\\DDD\\Codex\\VSC_Enigma\\Enigma\backend
 python -m pytest tests/test_dialogue_npc_npc_context.py -v
 """
 
-import pytest
 from unittest.mock import MagicMock
-from app.services.execution.dialogue_executor import DialogueExecutor
-from app.domain.execution import QueuedTask, TaskKind, TaskPriority
+
+import pytest
 from app.domain.communication import DialogueRequest, ExposureLevel
+from app.domain.execution import QueuedTask, TaskKind, TaskPriority
+from app.services.execution.dialogue_executor import DialogueExecutor
+
 
 @pytest.fixture
 def mock_router():
@@ -22,13 +24,13 @@ def mock_context_provider():
 
 def _make_task(target_id='target_npc', owner_id='npc1', history="Мы встречались вчера у бара"):
     req = DialogueRequest(
-        topic='test', 
-        target_id=target_id, 
+        topic='test',
+        target_id=target_id,
         exposure=ExposureLevel.from_semantic('normal'),
         npc_npc_context=history
     )
     return QueuedTask(
-        task_id='t1', tick=1, counter=1, kind=TaskKind.DIALOGUE, 
+        task_id='t1', tick=1, counter=1, kind=TaskKind.DIALOGUE,
         owner_id=owner_id, campaign_id='c1', priority=TaskPriority.NORMAL, payload=req
     )
 
